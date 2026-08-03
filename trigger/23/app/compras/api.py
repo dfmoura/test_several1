@@ -57,6 +57,7 @@ from app.filtros_periodo import (
     data_iso_pncp,
     resolver_periodo,
 )
+from app.observadores import condicao_observador
 from app.unidades_compradoras import obter_unidades_compradoras
 
 router = APIRouter(tags=["compras"])
@@ -661,6 +662,7 @@ def listar_compras(
     numero: str | None = None,
     texto: str | None = None,
     material_ou_servico: str | None = None,
+    observador_id: int | None = Query(None, ge=0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -742,6 +744,10 @@ def listar_compras(
         )
         stmt = stmt.where(item_do_tipo)
         count = count.where(item_do_tipo)
+    filtro_obs = condicao_observador(CompraContratacao.observador_id, observador_id)
+    if filtro_obs is not None:
+        stmt = stmt.where(filtro_obs)
+        count = count.where(filtro_obs)
 
     total = db.scalar(count) or 0
     rows = db.scalars(stmt.order_by(CompraContratacao.id.desc()).offset(offset).limit(limit)).all()

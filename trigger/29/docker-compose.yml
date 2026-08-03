@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orcamento
+      POSTGRES_PASSWORD: orcamento
+      POSTGRES_DB: orcamento
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orcamento -d orcamento"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    ports:
+      - "18080:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://orcamento:orcamento@db:5432/orcamento
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

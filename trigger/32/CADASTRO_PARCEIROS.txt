@@ -1,0 +1,243 @@
+====================================================================================================
+PROPOSTA DE CADASTRO DE PARCEIROS (FORNECEDORES, CLIENTES E COLABORADORES)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: estrategia_implantacao_ja.txt (Fase 1) + estudo_tributação.txt +
+      VERIFICACAO_ENDERECO_FORNECEDOR.txt + XMLs da pasta notas_compras (abril/2026)
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento atende à Fase 1 da estratégia de implantação do novo ERP: migrar os
+CADASTROS necessários para a empresa operar desde o primeiro dia (clientes, fornecedores
+e posição financeira), sem depender da importação do histórico de movimentos.
+
+Conceito adotado: CADASTRO ÚNICO DE PARCEIROS. Cada pessoa (física ou jurídica) é
+cadastrada UMA única vez e recebe PAPÉIS (flags): fornecedor, cliente, colaborador,
+transportadora, banco etc. Isso evita duplicidade (ex.: um cliente que também fornece,
+um colaborador PJ que emite NF de serviço) e simplifica o financeiro, que enxerga o
+mesmo parceiro em contas a pagar e a receber.
+
+----------------------------------------------------------------------------------------------------
+1. ESTRUTURA GERAL — CAMPOS COMUNS A TODO PARCEIRO
+----------------------------------------------------------------------------------------------------
+
+IDENTIFICAÇÃO
+  * Código interno .................. padrão sugerido na seção 2
+  * Tipo de pessoa .................. PJ | PF | ESTRANGEIRO (idExEst, se vier a ocorrer)
+  * CNPJ / CPF ...................... validar dígito verificador no cadastro (bloquear inválido)
+  * Razão social / Nome completo .... exatamente como no cartão CNPJ / documento (sem abreviar)
+  * Nome fantasia / Apelido ......... nome usual para telas e relatórios
+  * Inscrição Estadual (IE) ......... obrigatória p/ PJ contribuinte de ICMS; usar
+                                      "ISENTO" ou vazio conforme o caso (define indIEDest
+                                      na NF-e: 1=contribuinte, 2=isento, 9=não contribuinte)
+  * Inscrição Municipal ............. para prestadores/tomadores de serviço (NFS-e)
+  * Papéis (múltipla escolha) ....... FORNECEDOR | CLIENTE | COLABORADOR | BANCO |
+                                      TRANSPORTADORA | ENTIDADE/AUTARQUIA | CONTADOR
+  * Situação ........................ ATIVO | INATIVO | BLOQUEADO (com motivo e data)
+
+ENDEREÇO (padrão NF-e — grupo enderEmit/enderDest)
+  * Logradouro, número, complemento, bairro
+  * Município (com código IBGE — obrigatório para emissão de NF-e/NFS-e)
+  * UF e CEP
+  * REGRA (já em uso — ver VERIFICACAO_ENDERECO_FORNECEDOR.txt): o endereço cadastrado
+    deve conferir com o cartão CNPJ da RFB. Ao importar XML pela Focus NFe, comparar o
+    enderEmit com o cadastro e ALERTAR em divergência material. Revalidar 1x por ano.
+
+CONTATOS
+  * Telefone / WhatsApp
+  * E-mail comercial e E-MAIL PARA ENVIO DE XML/DANFE (podem ser diferentes)
+  * Pessoa de contato (nome + função) — comprador, vendedor, financeiro
+
+FINANCEIRO (comum)
+  * Condição de pagamento padrão .... ex.: 28 DDL, 28/35/42, à vista
+  * Forma de pagamento preferida .... boleto, PIX, transferência
+  * Dados bancários / chave PIX ..... conferir titularidade: a conta deve ser do MESMO
+                                      CNPJ/CPF do parceiro (prevenção a fraude de boleto)
+  * Categoria financeira padrão ..... plano de contas p/ lançamento automático do a pagar/receber
+
+LGPD (para PF e contatos)
+  * Guardar apenas dados necessários à finalidade (contratual/fiscal); restringir o
+    acesso a dados pessoais de colaboradores (salário, CPF, endereço) por perfil (seção 6).
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO DO PARCEIRO (CÓDIGO ÚNICO, SEM TIPO EMBUTIDO)
+----------------------------------------------------------------------------------------------------
+
+  Como o cadastro é ÚNICO e os papéis são flags, o código NÃO deve carregar o tipo do
+  parceiro. Prefixos por tipo (FOR-, CLI-, COL-) quebrariam o modelo: um colaborador PJ
+  que presta serviço, ou um cliente que passa a fornecer, precisaria de dois códigos —
+  recriando a duplicidade que o cadastro único elimina. Além disso, papéis mudam com o
+  tempo, e código bom é código que nunca precisa mudar.
+
+  Padrão sugerido:
+
+  * Código ......... sequencial único gerado pelo ERP (PAR-0001, PAR-0002... ou apenas
+                     o número automático do sistema), sem significado embutido
+  * Identidade ..... CNPJ/CPF é a chave real de unicidade (seção 6, regra 1)
+  * Papéis ......... flags FORNECEDOR | CLIENTE | COLABORADOR | BANCO | ENTIDADE etc. —
+                     é por elas (e não pelo código) que se filtra, agrupa e relata
+  * Categoria ...... campo adicional livre p/ agrupamentos gerenciais (ex.: "fornecedor
+                     de insumo", "utilidade", "órgão público"), quando útil em relatório
+
+----------------------------------------------------------------------------------------------------
+3. FORNECEDORES
+----------------------------------------------------------------------------------------------------
+
+3.1 CAMPOS ESPECÍFICOS
+  * Tipo de fornecimento ............ MERCADORIA (insumo/embalagem/revenda) | SERVIÇO |
+                                      UTILIDADE (energia, água, telecom) | TRIBUTO/TAXA
+  * Regime tributário do fornecedor . Simples Nacional | Presumido | Real (impacta o
+                                      crédito de ICMS/PIS/COFINS no futuro Lucro Real)
+  * Contribuinte de ICMS? ........... SIM/NÃO + IE (necessário p/ cálculo da antecipação
+                                      MG e, no Lucro Real, do crédito de entrada)
+  * UF de origem .................... define alíquota interestadual (4% p/ importados
+                                      orig 1/2/3/8 x 12% — ver REVISAO_ANTECIPACAO_ICMS_MG.txt)
+  * CFOP padrão de entrada .......... sugerido por fornecedor/grupo de produto
+  * Prazo de entrega médio e frete padrão (CIF/FOB, transportadora usual)
+  * Para SERVIÇOS (PJ): código de serviço (LC 116), retenções aplicáveis (ISS, INSS 11%,
+    IRRF 1,5%/4,8%, CSRF 4,65%) — parametrizar desde já para o Lucro Real
+  * Situação cadastral RFB (ATIVA) e data da última verificação
+
+3.2 CARGA INICIAL — FORNECEDORES JÁ VALIDADOS (XMLs abril/2026 + checagem RFB)
+  Endereços já conferidos contra o cartão CNPJ (ver VERIFICACAO_ENDERECO_FORNECEDOR.txt):
+
+  (códigos definitivos serão gerados pelo ERP na importação — identificar pelo CNPJ)
+
+  AUTO ADESIVOS PARANA LTDA (Colacril)   03.514.129/0001-06  PR  papéis autoadesivos
+  AVERY DENNISON DO BRASIL LTDA          43.999.630/0001-24  SP  papéis/filmes autoadesivos
+  FEDRIGONI BRASIL PAPEIS LTDA           34.661.762/0001-50  SP  papéis
+  CAMALLON (ind. de tintas)              02.744.462/0001-49  MG  tintas/vernizes
+  ARMOR BRASIL IND COM FITAS P/ IMPR.    08.979.043/0001-72  AM  ribbons
+  TODAYTEC DA AMAZONIA                   21.309.396/0001-23  AM  ribbons
+    ATENÇÃO: pendência de endereço (BLOCO 2-B x BLOCO T) — concluir a
+    providência da verificação antes de considerar o cadastro definitivo.
+
+  Completar a carga com os demais fornecedores citados no cadastro de produtos
+  (Vertex, Ritrama/marcas a confirmar) à medida que chegarem XMLs de compra — a Focus NFe
+  recupera as notas de entrada pelo certificado digital e alimenta esta lista.
+
+3.3 BANCOS (papel BANCO)
+  * Cadastrar cada instituição onde a empresa mantém conta (código FEBRABAN/COMPE,
+    agência, conta, tipo: corrente/aplicação) — necessário p/ migrar a posição de
+    bancos da Fase 1 (caixa, contas correntes, aplicações) e p/ conciliação.
+  * Vincular às contas contábeis correspondentes.
+  * Também cadastrar como fornecedor quando houver tarifas/juros a pagar (categoria
+    financeira: despesas bancárias).
+
+3.4 ENTIDADES E AUTARQUIAS (papel ENTIDADE/AUTARQUIA)
+  Cadastrar para permitir lançamentos no contas a pagar com CNPJ correto:
+  * RFB / PGFN ............ DAS (enquanto no Simples), IRPJ/CSLL/PIS/COFINS/IPI (Lucro Real)
+  * SEF/MG ................ ICMS antecipação (enquanto no Simples), ICMS próprio (Lucro Real)
+  * Prefeitura local ...... ISS, taxas, IPTU
+  * Concessionárias ....... energia elétrica (crédito de ICMS no Lucro Real — manter
+                            cadastro fiscal completo), água, telecom
+  * Sindicatos/entidades .. contribuições da categoria, SESI/SENAI quando aplicável
+  Estes cadastros normalmente não têm IE nem condição comercial — marcar "não emite NF-e"
+  e usar documento de arrecadação (DAS/DAE/guia) como documento do título.
+
+----------------------------------------------------------------------------------------------------
+4. CLIENTES
+----------------------------------------------------------------------------------------------------
+
+4.1 CAMPOS ESPECÍFICOS (além dos comuns da seção 1)
+  * indIEDest ....................... 1 = contribuinte (B2B com IE — maioria esperada)
+                                      2 = isento | 9 = não contribuinte (consumidor final)
+                                      Campo crítico: define DIFAL de saída em venda
+                                      interestadual a não contribuinte (EC 87/2015)
+  * Consumidor final? / Uso e consumo x revenda x insumo — orienta o CFOP de saída
+  * Limite de crédito e regra de bloqueio (por atraso e por limite) — exigido na Fase 1
+  * Condição de pagamento negociada e tabela de preço/desconto
+  * Vendedor responsável / % comissão
+  * Endereço de ENTREGA quando diferente do fiscal (grupo entrega da NF-e)
+  * Transportadora preferida e frete padrão (CIF/FOB)
+  * E-mail para envio automático de XML + DANFE ao faturar (via Focus NFe)
+  * Regime do cliente (Simples/Presumido/Real) — no Lucro Real, clientes do regime
+    normal passam a aproveitar crédito das nossas NF-e; manter o dado ajuda o comercial
+    a precificar (ver "melhor relacionamento comercial" no estudo tributário)
+
+4.2 REGRAS DE QUALIDADE
+  * Buscar razão social, endereço e situação cadastral pelo CNPJ (consulta RFB) no ato
+    do cadastro — mesmo rigor aplicado aos fornecedores.
+  * Cliente com IE: validar no cadastro estadual (SINTEGRA/CCC) antes da primeira venda —
+    NF-e para IE baixada é rejeitada/questionada.
+  * Migrar da base atual somente cadastros ATIVOS (com compra nos últimos 24 meses,
+    sugestão) — evitar poluir o novo ERP com cadastro morto; o restante entra na Fase 2.
+  * Conferir duplicidades por CNPJ/CPF antes da importação (regra de unicidade no ERP).
+
+4.3 CARGA INICIAL (Fase 1 — conforme estratégia de implantação)
+  Migrar do sistema atual, no mínimo: CNPJ/CPF, razão social, IE, endereço completo com
+  código IBGE do município, contatos, condição de pagamento, limite de crédito e os
+  títulos em aberto (contas a receber: cliente, valor, vencimento).
+
+----------------------------------------------------------------------------------------------------
+5. COLABORADORES (USUÁRIOS DO SISTEMA E COLABORADORES PF/PJ)
+----------------------------------------------------------------------------------------------------
+
+5.1 CAMPOS ESPECÍFICOS
+  * Vínculo ......................... CLT (PF) | SÓCIO | ESTAGIÁRIO | AUTÔNOMO (PF/RPA) |
+                                      PJ (prestador contínuo)
+  * CPF (sempre, inclusive do responsável quando PJ) e CNPJ (quando PJ)
+  * Cargo/função e departamento ..... comercial, produção, expedição, financeiro, fiscal
+  * Data de admissão / início do contrato; data de desligamento (inativar, nunca excluir —
+    preserva o histórico de documentos e lançamentos feitos pelo usuário)
+  * Para PJ: contrato de prestação de serviço, código de serviço (LC 116), retenções
+    aplicáveis, e emissão de NFS-e mensal — o financeiro paga via contas a pagar
+    (o parceiro acumula os papéis COLABORADOR + FORNECEDOR de serviço)
+  * Para PF autônomo: RPA com retenções de INSS/IRRF/ISS conforme o caso
+  * Dados para pagamento: conta bancária/PIX de titularidade do próprio colaborador
+  * Vendedores: vincular ao cadastro de vendedor/comissão usado no cadastro de clientes
+
+5.2 USUÁRIO DO SISTEMA (quando o colaborador acessa o ERP)
+  * Login individual e intransferível (e-mail corporativo) — NUNCA usuário compartilhado:
+    a trilha de auditoria do ERP (quem emitiu NF, quem baixou título, quem alterou preço)
+    só tem valor com login pessoal
+  * Perfil de acesso (ver seção 6) e vigência (bloquear automaticamente no desligamento)
+  * Senha com política mínima + duplo fator quando o ERP suportar
+  * Registrar também os acessos externos vinculados: Focus NFe (tokens/API), certificado
+    digital A1 (quem tem acesso ao arquivo/senha), internet banking
+
+5.3 SUGESTÃO DE PERFIS DE ACESSO (mínimo p/ segregação de funções)
+  ADMIN ........ TI/direção: parametrização, usuários, cadastros fiscais
+  FISCAL ....... emissão/escrituração de NF-e, cadastros fiscais de produto e parceiro
+  FINANCEIRO ... contas a pagar/receber, bancos, conciliação (sem alterar cadastro fiscal)
+  COMERCIAL .... pedidos, clientes (sem editar limite de crédito — alçada do financeiro)
+  PRODUCAO ..... ordens de produção, apontamentos, estoque (sem custos/preços de compra)
+  COMPRAS ...... pedidos de compra, fornecedores, entrada de XML
+  CONSULTA ..... contador externo e consultas gerenciais (somente leitura)
+
+  Regra de alçada mínima: quem cadastra/altera dados bancários de parceiro NÃO deve ser
+  a mesma pessoa que libera pagamentos (prevenção a fraude interna e externa).
+
+----------------------------------------------------------------------------------------------------
+6. REGRAS GERAIS DE QUALIDADE E GOVERNANÇA DO CADASTRO
+----------------------------------------------------------------------------------------------------
+
+ 1. UNICIDADE: CNPJ/CPF é chave única. O ERP deve bloquear cadastro duplicado; matriz e
+    filiais são cadastros distintos (CNPJ raiz igual, sufixo diferente) vinculados.
+ 2. VALIDAÇÃO NA ORIGEM: todo cadastro PJ nasce de consulta ao cartão CNPJ (RFB) e, se
+    contribuinte, ao SINTEGRA/CCC. Anexar/registrar a data da consulta.
+ 3. SINCRONIA COM XML: ao importar NF-e de entrada pela Focus NFe, comparar emitente
+    (razão social, IE, endereço) com o cadastro e alertar divergência — rotina já
+    definida na verificação de endereços (seção 4 daquele documento).
+ 4. INATIVAR, NÃO EXCLUIR: parceiros sem movimento ou desligados são inativados,
+    preservando histórico fiscal e financeiro.
+ 5. RESPONSÁVEL PELO CADASTRO: definir um "dono" (sugestão: fiscal/financeiro) — comercial
+    e compras SOLICITAM cadastro; a criação/alteração de dados fiscais e bancários passa
+    pelo dono (workflow simples de aprovação, se o ERP tiver).
+ 6. PREPARAÇÃO P/ LUCRO REAL: desde já preencher regime tributário e IE de todos os
+    fornecedores e clientes — na virada de regime esses campos passam a determinar
+    créditos (entradas) e destaque/DIFAL (saídas) sem retrabalho.
+ 7. CARGA INICIAL (Fase 1): ordem sugerida de importação —
+      (1) bancos e entidades (poucos, manuais);
+      (2) fornecedores ativos (semente da seção 3.2 + demais do sistema atual);
+      (3) clientes ativos;
+      (4) colaboradores e usuários com perfis;
+      (5) títulos em aberto (a pagar/receber) já vinculados aos parceiros.
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Retenções de tributos sobre
+serviços (PJ/autônomos) e enquadramentos de vínculo (PJ x CLT — risco de pejotização)
+devem ser validados com o contador e, quando necessário, com assessoria trabalhista.
+Dados públicos (cartão CNPJ, SINTEGRA) devem ser reconferidos na data de cada cadastro.
+====================================================================================================

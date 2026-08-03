@@ -1,0 +1,408 @@
+====================================================================================================
+PROPOSTA DE CADASTRO DE PRODUTOS PARA VENDA (PRODUÇÃO PRÓPRIA, REVENDA E SERVIÇO)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: LISTAGEM_NCM_NFE_VENDA.txt + CADASTRO_PRODUTOS_COMPRA.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt +
+      GERACAO_ORCAMENTO.txt + FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt +
+      VERIFICACAO_IMPOSTO_ORCAMENTO.txt + estudo_tributação.txt + estrategia_implantacao_ja.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento atende à Fase 1 da estratégia de implantação do novo ERP ("Cadastro de
+produtos") no lado da SAÍDA: o que a empresa fatura ao cliente. Complementa — e não
+substitui — o CADASTRO_PRODUTOS_COMPRA.txt (insumos, embalagens e ribbons de entrada).
+
+A regra de ouro desta indústria:
+
+  NÃO CADASTRAR MILHARES DE ETIQUETAS SOB MEDIDA COMO PRODUTOS ETERNOS.
+  Cadastrar FAMÍLIAS FISCAIS DE SAÍDA + CATÁLOGO DE OPÇÕES (papel, faca, acabamento...).
+  A personalização vive no PEDIDO / OP / ORÇAMENTO — não no cadastro de produto.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE É "PRODUTO DE VENDA" NESTA EMPRESA
+----------------------------------------------------------------------------------------------------
+
+A RLP vende três naturezas distintas. Cada uma exige tratamento diferente no ERP:
+
+  A) PRODUÇÃO PRÓPRIA (caso principal)
+     Etiquetas impressas ou lisas, sob medida, sob encomenda.
+     O "produto" fiscal é genérico (ex.: ETIQUETAS BOPP, ETIQUETAS TÉRMICAS).
+     A especificação comercial (medida, papel, cores, acabamento, etiq/rolo) é
+     montada no orçamento a partir do catálogo — ver FLEXIBILIDADE_... e
+     GERACAO_ORCAMENTO.txt.
+
+  B) REVENDA
+     Ribbons e eventuais materiais revendidos sem industrialização.
+     Usa o mesmo cadastro de compra tipo 00 (REV-RIB-nnn), com CFOP de saída
+     de revenda (5102 / 6102).
+
+  C) SERVIÇO AVULSO
+     Rebobinação, acerto de bobina, serviço sob encomenda sem transferência
+     de mercadoria própria industrializada.
+     Prefixo SVC-nnn. Natureza fiscal própria (confirmar com o contador se
+     NF-e de mercadoria ou NFS-e / CFOP de serviço conforme o caso).
+
+O que NÃO é produto de venda:
+  * Matérias-primas (MP-*), embalagens (EMB-*) — são custo/estoque de compra.
+  * Facas / matrizes / clichês — são FERRAMENTAL (FAC-NNNN), cobrado no 1º pedido
+    e reutilizado; não viram SKU de venda recorrente.
+  * Opções do orçamento (acabamento, cor, tubete) — são PARÂMETROS / catálogo,
+    não produtos faturáveis isolados (exceto quando o cliente compra só o
+    material — aí cai em revenda ou bobina lisa).
+
+----------------------------------------------------------------------------------------------------
+2. MODELO RECOMENDADO: DUAS CAMADAS (FISCAL × OPERACIONAL)
+----------------------------------------------------------------------------------------------------
+
+Alinhado a CODIFICACAO_INFORMACOES_SISTEMA.txt (seções 6.1 e 6.4):
+
+  CAMADA A — FAMÍLIA FISCAL DE SAÍDA (cadastro permanente, poucos registros)
+    * id BIGINT (PK do banco)
+    * código legível: PA-ETQ-nnn | REV-RIB-nnn | SVC-nnn
+    * descrição fiscal para NF-e
+    * NCM, CEST (se houver), tipo SPED, origem padrão
+    * CFOP / CSOSN (ou CST no Lucro Real) padrão
+    * unidade comercial de saída (MIL, UN, RL, M2...)
+    * flag: produção própria | revenda | serviço
+
+  CAMADA B — ESPECIFICAÇÃO DO PEDIDO (não é cadastro de produto eterno)
+    * medida (da faca), papel/filme, cores, acabamento, tubete, etiq/rolo
+    * gravada no ORÇAMENTO → PEDIDO → OP → item da NF
+    * descrição comercial completa montada automaticamente para o PDF/NF
+      (ex.: "ETIQUETA BOPP FOSCO 95x35 mm 4 cores + verniz — 1000 etiq/rolo")
+
+Exceção à regra "não criar SKU sob medida":
+  Só criar PA-ETQ específico (ou SKU grupo 80) quando houver ESTOQUE ACABADO
+  RECORRENTE do mesmo modelo (cliente compra pronto da prateleira). A maioria
+  dos itens da RLP é sob encomenda → família genérica + especificação no pedido.
+
+----------------------------------------------------------------------------------------------------
+3. CAMPOS OBRIGATÓRIOS DO CADASTRO (FAMÍLIA DE SAÍDA)
+----------------------------------------------------------------------------------------------------
+
+IDENTIFICAÇÃO
+  * Código interno (negócio) ...... PA-ETQ-nnn / REV-RIB-nnn / SVC-nnn
+  * Descrição fiscal .............. curta e estável (vai na NF-e / SPED)
+  * Descrição comercial padrão .... modelo de texto com placeholders
+                                    ({material}, {medida}, {cores}, {acabamento},
+                                    {etiq_rolo}) — preenchido na emissão
+  * Grupo/categoria ............... conforme seção 5
+  * Situação ...................... ATIVO / INATIVO (nunca apagar)
+  * EAN/GTIN ...................... "SEM GTIN" na quase totalidade (produto
+                                    industrializado sob medida / bobina)
+
+CLASSIFICAÇÃO FISCAL
+  * NCM ........................... 8 dígitos — ver seção 5 (validado contra
+                                    XMLs de venda reais)
+  * CEST .......................... VAZIO para os itens atuais de venda
+                                    (mesma lógica do cadastro de compra:
+                                    NCM 3919 com CEST 10.010.00 só quando
+                                    destinado a CONSTRUÇÕES — não é o caso)
+  * Origem da mercadoria (orig) ... produção própria: tipicamente 0 (nacional)
+                                    quando o produto acabado é fabricado no
+                                    Brasil; se o processo usar conteúdo
+                                    importado relevante, validar com o
+                                    contador (não copiar cegamente a origem
+                                    do insumo para a saída)
+  * Tipo de item (SPED Reg. 0200) . 00 = mercadoria para revenda
+                                    04 = produto acabado (produção própria)
+                                    09 = serviços (quando aplicável ao SVC)
+  * Indicador de escala relevante . "S" (padrão), salvo orientação contrária
+  * cBenef ........................ preencher só se MG exigir para o NCM
+
+UNIDADES
+  * Unidade comercial de saída .... MIL (milheiro), UN, RL (rolo), M2
+                                    — a unidade em que o cliente é faturado
+  * Unidade de controle interno ... etiqueta, rolo ou m² (para OP/estoque PA)
+  * Fator de conversão ............ obrigatório quando comercial ≠ interna
+                                    (ex.: MIL ↔ quantidade de etiquetas;
+                                    RL ↔ etiq/rolo × nº de rolos)
+
+COMERCIAL
+  * Preço de tabela ............... opcional para PA genérico (na prática o
+                                    preço vem do ORÇAMENTO); obrigatório para
+                                    revenda de ribbon com preço de lista
+  * Margem mínima / perfil ........ vínculo ao motor de orçamento (não digitar
+                                    preço solto na NF)
+  * Prazo padrão / lead time ...... dias úteis típicos por família (ajuda o
+                                    vendedor e o módulo de reposição)
+
+TRIBUTAÇÃO — REGIME ATUAL (SIMPLES NACIONAL)
+  * CSOSN de saída ................ 102 (padrão) ou 101 se houver crédito
+                                    ao cliente — confirmar política comercial
+  * CFOP padrão ................... ver seção 6
+  * ICMS-ST na saída .............. NÃO se aplica aos NCMs atuais de venda
+                                    (ver REVISAO_ICMS_ST.txt); reavaliar se
+                                    surgir produto/CEST novo
+  * Perfil fiscal de orçamento .... % de carga por dentro conforme
+                                    VERIFICACAO_IMPOSTO_ORCAMENTO.txt
+                                    (substituir o "16% chutado")
+
+TRIBUTAÇÃO — PREPARAÇÃO PARA O LUCRO REAL (parametrizar desde já)
+  * CST ICMS de saída ............. 00 (tributada integralmente) como base;
+                                    validar reduções / benefícios com o
+                                    contador por NCM e UF de destino
+  * Alíquota interna MG ........... 18% (VERIFICACAO_ALIQUOTA_INTERNA_MG.txt)
+  * Interestadual ................. 4% ou 12% conforme origem/destino e
+                                    conteúdo de importação do produto
+  * DIFAL (EC 87/2015) ............ vendas interestaduais a NÃO contribuinte
+                                    (CFOP 6107/6108) — ativar no Lucro Real
+  * CST PIS/COFINS de saída ....... regime não cumulativo: tipicamente 01/02
+                                    (operação tributável) + alíquotas
+                                    1,65% / 7,60% — validar com o contador
+  * IPI ........................... como industrial fora do Simples, avaliar
+                                    débito na saída de etiquetas
+                                    personalizadas por NCM/TIPI; se devido,
+                                    cadastrar CST/alíquota na família
+
+INTEGRAÇÃO COM ORÇAMENTO / PEDIDO
+  * Tipos de orçamento permitidos . etiqueta impressa | lisa | rebobinação |
+                                    bobina/revenda | serviço (seção 2 de
+                                    GERACAO_ORCAMENTO.txt)
+  * Catálogo de opções vinculado .. papéis, acabamentos, facas, tubetes
+                                    (FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_...)
+  * Flag "exige faca" ............. SIM para etiqueta cortada; NÃO para
+                                    ribbon / serviço puro
+  * Flag "cobra ferramental no 1º". SIM para modelos novos com matriz/faca
+
+----------------------------------------------------------------------------------------------------
+4. PADRÃO DE CODIFICAÇÃO SUGERIDO (SKU DE VENDA)
+----------------------------------------------------------------------------------------------------
+
+  PA-ETQ-nnn   produto acabado — etiquetas (família fiscal de saída)
+  PA-BOB-nnn   bobina / material cortado ou rebobinado como mercadoria
+  REV-RIB-nnn  ribbons (mesmo código do cadastro de compra tipo 00)
+  SVC-nnn      serviço avulso (rebobinação, acerto, etc.)
+
+NÃO criar:
+  PA-ETQ por cliente + medida + arte  → explode o cadastro e nunca se limpa
+  código com ano, preço ou "promo" embutido → ver CODIFICACAO_... (proibições)
+
+Descrição comercial na NF / PDF (montagem automática):
+  {DESCRICAO_FISCAL} | {MATERIAL} | {MEDIDA} | {CORES} | {ACABAMENTO} |
+  {ETIQ_POR_ROLO} etiq/rolo | Ped {PED-AAAA-NNNNN}
+
+Exemplo:
+  ETIQUETAS BOPP | BOPP FOSCO COLACRIL | 95x35 mm | 4 cores | verniz |
+  1000 etiq/rolo | Ped PED-2026-00087
+
+----------------------------------------------------------------------------------------------------
+5. PARAMETRIZAÇÃO FISCAL POR FAMÍLIA (BASE NOS XMLs DE VENDA)
+----------------------------------------------------------------------------------------------------
+
+Fonte: LISTAGEM_NCM_NFE_VENDA.txt (4 XMLs; 3 NCMs distintos). Expandir conforme
+novas notas forem emitidas pela Focus NFe.
+
+...................................................................................................
+5.1 ETIQUETAS EM FILME PLÁSTICO AUTOADESIVO — NCM 3919.10.90
+    Confirmado: "ETIQUETAS BOPP" (NF 6113 e 6114)
+    Tipo SPED: 04 (produto acabado) | Un.com típica: MIL ou RL
+    Observação: o NCM 3919 desdobra por LARGURA do rolo
+      ≤ 20 cm → 3919.10.xx | > 20 cm → 3919.90.xx
+    Nas vendas amostradas usou-se 3919.10.90 (rolo ≤ 20 cm — típico de
+    etiqueta acabada). Se a empresa passar a faturar bobinas largas
+    (> 20 cm) como mercadoria, criar família PA-BOB com 3919.90.xx.
+...................................................................................................
+  PA-ETQ-001  ETIQUETAS BOPP (brilho / fosco / transp. / metalizado)
+              NCM 3919.10.90 | material vem do catálogo MP-FLM-*
+
+...................................................................................................
+5.2 ETIQUETAS EM PAPEL AUTOADESIVO — NCM 4811.41.90
+    Confirmado: "ETIQUETAS TERMICA" (NF 6115) e "PAPEL COUCHE" (NF 6112)
+    Tipo SPED: 04 | Un.com: MIL ou RL
+    Abrange couché, fosco papel, térmico e demais papéis autoadesivos
+    industrializados como etiqueta.
+...................................................................................................
+  PA-ETQ-002  ETIQUETAS PAPEL COUCHÉ / FOSCO     4811.41.90
+  PA-ETQ-003  ETIQUETAS TÉRMICAS                 4811.41.90
+
+  Alternativa enxuta (recomendada no go-live): um único PA-ETQ-002
+  "ETIQUETAS PAPEL AUTOADESIVO" com NCM 4811.41.90, diferenciando
+  couché/térmico só na descrição comercial do pedido. Menos famílias,
+  mesma fiscalidade. Separar 002/003 só se o contador exigir ou se a
+  gestão comercial quiser preço/relatório por linha.
+
+...................................................................................................
+5.3 ETIQUETAS TÊXTEIS (CETIM / RESINADO / EMBORRACHADO) — NCM A CONFIRMAR
+    Não há XML de venda na amostra. Candidatos usuais acompanham o
+    tecido de entrada (ex.: 5806.32.00 / 5903.90.00 / 5906.99.00) —
+    NÃO inventar: obter NCM da prática atual do emissor ou do contador
+    antes de gravar.
+    Tipo SPED: 04 | Un.com: MIL / RL / M
+...................................................................................................
+  PA-ETQ-004  ETIQUETAS TÊXTEIS                  NCM a confirmar
+
+...................................................................................................
+5.4 TAG / CARTÃO SEM ADESIVO (quando industrializado e vendido)
+    NCM de saída tende a acompanhar o papel tag (entrada 4810.13.89) —
+    confirmar se a saída permanece nessa posição ou migra para posição
+    de produto impresso. Validar com o contador + XML da próxima venda.
+...................................................................................................
+  PA-ETQ-005  TAG / CARTÃO IMPRESSO              NCM a confirmar
+
+...................................................................................................
+5.5 REVENDA DE RIBBON — NCM 9612.10.00
+    Confirmado: "RIBBON CERA 110X74 TODAYTEC" (NF 6112)
+    Tipo SPED: 00 (revenda) | Un.com: UN / RL
+    Usa o cadastro REV-RIB-* já proposto em CADASTRO_PRODUTOS_COMPRA.txt
+    (mesmo SKU compra/venda — um item, dois CFOPs conforme a operação).
+...................................................................................................
+  REV-RIB-001..005  (ver lista no cadastro de compra)
+
+...................................................................................................
+5.6 SERVIÇOS AVULSOS
+    Rebobinação, acerto, corte sem industrialização completa.
+    Definir com o contador: item de NF-e (NCM/CFOP de serviço sobre
+    mercadoria de terceiro) ou NFS-e municipal. Até a definição,
+    cadastrar a família como SVC e BLOQUEAR emissão automática.
+...................................................................................................
+  SVC-001  REBOBINAÇÃO / ACERTO DE BOBINA
+  SVC-002  SERVIÇO AVULSO (genérico)
+
+----------------------------------------------------------------------------------------------------
+6. CFOPs PADRÃO DE SAÍDA
+----------------------------------------------------------------------------------------------------
+
+Produção própria (etiquetas / PA):
+  5101 — venda de produção do estabelecimento, dentro de MG
+  6101 — venda de produção do estabelecimento, para outra UF
+  6107 — venda interestadual a NÃO contribuinte (produção) — DIFAL
+         após saída do Simples (atenção na virada)
+
+Revenda (ribbons / material):
+  5102 — venda de mercadoria adquirida, dentro de MG
+  6102 — venda de mercadoria adquirida, para outra UF
+  6108 — venda interestadual a NÃO contribuinte (revenda)
+
+Outros (avaliar caso a caso com o contador):
+  5901 / 6901 — remessa para industrialização por encomenda (se houver)
+  5910 / 6910 — remessa em bonificação / brinde
+  5949 / 6949 — outra saída não especificada (evitar; só com orientação)
+
+O ERP deve escolher o CFOP pela combinação:
+  natureza do item (PA x REV) + UF destino + contribuinte ICMS (S/N).
+  Nunca deixar CFOP "fixo 5101" para tudo.
+
+----------------------------------------------------------------------------------------------------
+7. RELAÇÃO COM O CADASTRO DE COMPRA E COM O ORÇAMENTO
+----------------------------------------------------------------------------------------------------
+
+7.1. COMPRA → CUSTO; VENDA → RECEITA
+     MP-/EMB-* alimentam estoque e custo médio.
+     PA-/REV-/SVC-* alimentam faturamento e NF-e de saída.
+     O orçamento cruza os dois: consome preço/custo dos insumos
+     (compra) e emite na família fiscal correta (venda).
+
+7.2. UM PEDIDO, UMA FAMÍLIA FISCAL, VÁRIAS LINHAS DE CUSTO
+     Ex.: pedido de etiqueta BOPP 4 cores + verniz:
+       * sai fiscalmente em PA-ETQ-001 (NCM 3919.10.90, CFOP 5101/6101)
+       * consome MP-FLM-*, MP-TIN-*, MP-LAM-* / verniz, EMB-TUB-*, EMB-CX-*
+       * o cliente NÃO vê a explosão de insumos — só a especificação
+         comercial (GERACAO_ORCAMENTO.txt, princípio 1.5)
+
+7.3. REVENDA NÃO EXPLODE INSUMO DE PRODUÇÃO
+     Ribbon: baixa o próprio REV-RIB-* do estoque; CFOP 5102/6102.
+
+7.4. DE-PARA COM O EMISSOR ANTIGO
+     Mapear as descrições históricas das NF de venda
+     ("ETIQUETAS BOPP", "ETIQUETAS TERMICA", "PAPEL COUCHE",
+     "RIBBON...") para PA-ETQ-001/002/003 e REV-RIB-*.
+     Necessário se houver importação de XML de saída (estratégia:
+     notas antigas NÃO vêm sozinhas pela Focus — importar XML do
+     emissor atual se quiser histórico completo).
+
+----------------------------------------------------------------------------------------------------
+8. REGRAS TRANSVERSAIS DO CADASTRO DE VENDA
+----------------------------------------------------------------------------------------------------
+
+ 1. POUCOS PRODUTOS FISCAIS, MUITAS COMBINAÇÕES COMERCIAIS.
+    Se o cadastro de PA passar de algumas dezenas sem estoque acabado
+    recorrente, algo está errado (provavelmente SKU por arte/medida).
+
+ 2. DESCRIÇÃO FISCAL ESTÁVEL; DESCRIÇÃO COMERCIAL RICA.
+    A NF precisa de NCM/CFOP corretos e texto compreensível. O detalhe
+    (medida, cores, acabamento) vai no complemento da descrição do
+    item / informações adicionais do pedido — não em mil códigos.
+
+ 3. NCM DE SAÍDA ≠ NCM DE ENTRADA (às vezes).
+    Papel 4811 vira etiqueta 4811 na amostra; filme 3919.90 (bobina
+    larga de compra) pode sair como 3919.10 (etiqueta ≤ 20 cm).
+    Sempre validar pela natureza do que está sendo faturado.
+
+ 4. PREÇO DE VENDA NASCE NO ORÇAMENTO, NÃO NO CADASTRO.
+    Exceto lista de ribbon / itens de prateleira. Gravar preço
+    "chutado" no PA genérico gera inconsistência com o motor de custo.
+
+ 5. PERFIL FISCAL NO ORÇAMENTO = MESMA BASE DO CADASTRO.
+    UF destino, contribuinte S/N, família (PA/REV) e regime
+    (Simples → Lucro Real) devem produzir a carga correta
+    (VERIFICACAO_IMPOSTO_ORCAMENTO.txt) — não um % livre.
+
+ 6. HIGIENE ANTES DO GO-LIVE:
+    * unificar descrições históricas ambíguas ("PAPEL COUCHE" vendido
+      como etiqueta → padronizar como ETIQUETAS PAPEL...);
+    * garantir que todo item faturável tenha família PA/REV/SVC;
+    * bloquear emissão de NF sem NCM e sem CFOP resolvido;
+    * ribbons: mesmo código na compra e na venda.
+
+ 7. VIRADA PARA O LUCRO REAL:
+    * trocar CSOSN → CST ICMS / PIS / COFINS / IPI nas famílias;
+    * ativar DIFAL em 6107/6108;
+    * recalibrar perfil de imposto do orçamento (créditos na compra
+      baixam custo; débitos na venda mudam o gross-up).
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST DE IMPLANTAÇÃO (FASE 1 — DIA DA VIRADA)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Criar famílias PA-ETQ-001 (BOPP/3919.10.90) e PA-ETQ-002
+      (papel autoadesivo/4811.41.90) — mínimo viável confirmado por XML
+  [ ] Vincular REV-RIB-* já cadastrados na compra com CFOP de saída
+      5102/6102
+  [ ] Parametrizar CSOSN 102 (ou 101) + CFOPs 5101/6101/5102/6102
+  [ ] Unidade de saída + fator (MIL/RL/etiq) alinhado a
+      CONVERSOES_UNIDADES_MEDIDA.txt
+  [ ] Template de descrição comercial com placeholders
+  [ ] De-para das descrições do emissor antigo → novas famílias
+  [ ] Integrar seleção de família fiscal ao fechar orçamento → pedido
+  [ ] Testar emissão Focus NFe: 1 NF interna MG + 1 interestadual
+      (contribuinte) + 1 ribbon de revenda
+  [ ] (Pós go-live) confirmar NCM de têxteis e tag; liberar PA-ETQ-004/005
+  [ ] (Pós go-live) definir tratamento fiscal de SVC-001/002
+
+----------------------------------------------------------------------------------------------------
+10. PENDÊNCIAS A RESOLVER ANTES DO CADASTRO DEFINITIVO COMPLETO
+----------------------------------------------------------------------------------------------------
+
+ 1. ETIQUETAS TÊXTEIS: NCM de saída (sem XML na amostra).
+ 2. TAG / CARTÃO: NCM de saída após impressão/corte.
+ 3. LARGURA DO ROLO ACABADO: confirmar se alguma venda exige 3919.90
+    (rolo > 20 cm) em vez de 3919.10.
+ 4. "PAPEL COUCHE" na NF 6112: tratar sempre como etiqueta acabada
+    (PA-ETQ) ou houve venda de material sem industrializar (revenda)?
+    Se for material, usar família/CFOP de revenda — não 5101.
+ 5. ORIGEM na saída de produção própria: política oficial com o contador
+    (sempre 0 vs. refletir conteúdo importado).
+ 6. SERVIÇOS (rebobinação): NF-e x NFS-e + CFOP/NCM ou código de serviço.
+ 7. IPI no Lucro Real sobre etiquetas personalizadas: incidência e
+    alíquota por NCM (TIPI) — validar antes da virada de regime.
+ 8. Política CSOSN 101 vs 102 (crédito ao cliente no Simples).
+
+----------------------------------------------------------------------------------------------------
+RESUMO
+----------------------------------------------------------------------------------------------------
+  Famílias mínimas no go-live: 2 PA (BOPP + papel autoadesivo) + ribbons REV
+  NCMs de venda confirmados por XML: 3919.10.90 | 4811.41.90 | 9612.10.00
+  Modelo: família fiscal estável + especificação no pedido/orçamento
+  CFOPs-chave: 5101/6101 (produção) | 5102/6102 (revenda)
+  Não fazer: um SKU eterno por arte, medida ou cliente
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial. Os NCMs confirmados seguem os XMLs reais de
+venda amostrados; famílias sem XML são propostas que devem ser validadas
+pelo contador responsável. Classificação fiscal incorreta na saída gera
+autuação, CFOP errado, DIFAL indevido/omitido e distorção no faturamento
+do Simples / Lucro Real. Qualquer dúvida de enquadramento (serviço vs.
+mercadoria, IPI, origem) prevalece a orientação do contador da empresa.
+====================================================================================================

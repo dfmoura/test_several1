@@ -1,0 +1,195 @@
+====================================================================================================
+NATUREZAS GERENCIAIS DE RECEITA, DESPESA E DEMAIS — PLANO GERENCIAL DO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: FATURAMENTO_GERACAO_COBRANCA.txt + RECEBIMENTO_BAIXA_COBRANCA.txt +
+      CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt + CADASTRO_PRODUTOS_VENDA.txt +
+      GERACAO_ORCAMENTO.txt + RH_PAGAMENTO_GERENCIAL.txt + PATRIMONIO_CONTROLE.txt +
+      CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define as NATUREZAS GERENCIAIS: classificação interna de
+todo dinheiro que entra ou sai, para DRE gerencial, fluxo de caixa e
+análise de margem. NÃO é o plano de contas contábil oficial do contador
+(mas deve ter de-para para exportação).
+
+Decisão:
+  O ERP fecha a visão GERENCIAL da empresa.
+  O CONTADOR fecha a CONTABILIDADE e o FISCAL.
+  As naturezas existem para a RLP enxergar o negócio com clareza
+  e ainda assim entregar ao contador um arquivo coerente.
+  Sem naturezas de livro paralelo / “caixa 2” no ERP
+  (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt).
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. TODO TÍTULO E TODO LANÇAMENTO DE CAIXA/BANCO TEM NATUREZA.
+ 2. NATUREZA GERENCIAL ≠ CFOP ≠ CATEGORIA FISCAL.
+     CFOP explica a NF; natureza explica o bolso e a DRE interna.
+ 3. POUCAS NATUREZAS BEM USADAS > CENTENAS NUNCA PREENCHIDAS.
+ 4. RECEITA DE VENDA SEPARADA DE RECEITA FINANCEIRA E DE OUTRAS.
+ 5. CUSTO / DESPESA OPERACIONAL / INVESTIMENTO / RETIRADA DE SÓCIO
+     nunca viram a mesma conta "diversos".
+
+Codificação: id BIGINT + NAT-RRRR (grupo) ou código hierárquico
+legível (ex.: 1.01.02). Prefixo NAT- no catálogo de exibição.
+
+----------------------------------------------------------------------------------------------------
+2. ESTRUTURA SUGERIDA (ÁRVORE)
+----------------------------------------------------------------------------------------------------
+
+1. RECEITAS
+   1.01  Receita operacional bruta
+         1.01.01  Venda produção própria (etiquetas PA)
+         1.01.02  Venda revenda (ribbon / material)
+         1.01.03  Serviços (rebobinação, acerto, SVC)
+         1.01.04  Ferramental / faca / clichê (1º pedido)
+         1.01.05  Frete cobrado do cliente (quando receita)
+   1.02  Deduções da receita (gerencial)
+         1.02.01  Devoluções de venda
+         1.02.02  Descontos condicionais concedidos
+         1.02.03  Abatimentos / perdasas comerciais
+   1.03  Receitas financeiras
+         1.03.01  Juros recebidos
+         1.03.02  Multas recebidas
+         1.03.03  Rendimento aplicação
+   1.04  Outras receitas
+         1.04.01  Venda de sucata / apara
+         1.04.02  Venda de ativo imobilizado
+         1.04.03  Recuperação de despesas
+         1.04.04  Outras (com descrição obrigatória)
+
+2. CUSTOS OPERACIONAIS (ligados à produção/venda)
+   2.01  Material consumido (MP/EMB) — via estoque/OP
+   2.02  Serviço de terceiros (industrialização externa)
+   2.03  Frete sobre compras (se apropriado ao custo)
+   2.04  Quebras / perdasas de produção (apontadas)
+
+3. DESPESAS OPERACIONAIS
+   3.01  Pessoal (página gerencial — líquidos/encargos provisionados
+         conforme o que o contador informar; ver RH_...)
+         3.01.01  Salários líquidos pagos
+         3.01.02  Adiantamentos salariais
+         3.01.03  Vale / benefícios pagos pela empresa
+         3.01.04  Pró-labore
+         3.01.05  Comissões de vendedores
+   3.02  Encargos e impostos (quando pagos via financeiro)
+         3.02.01  DAS / impostos do Simples (guia)
+         3.02.02  Guia ICMS-ST / antecipação MG
+         3.02.03  ISS / outras guias
+         3.02.04  Taxas cartão / tarifas bancárias
+   3.03  Utilidades e instalação
+         3.03.01  Energia
+         3.03.02  Água
+         3.03.03  Telecom / internet
+         3.03.04  Aluguel / condomínio
+   3.04  Manutenção e operação
+         3.04.01  Manutenção de máquinas
+         3.04.02  Ferramentas / consumíveis de fábrica
+         3.04.03  Combustível / frota
+   3.05  Comercial e administrativo
+         3.05.01  Marketing / brindes
+         3.05.02  Material de escritório
+         3.05.03  Sistemas / software (Focus, ERP…)
+         3.05.04  Contador / honorários
+         3.05.05  Despesas de viagem
+   3.06  Logística de saída
+         3.06.01  Frete de entrega (despesa)
+         3.06.02  Embalagem extraordinária
+   3.07  Despesas financeiras
+         3.07.01  Juros pagos
+         3.07.02  IOF / tarifas
+         3.07.03  Descontos obtidos (contra — pode ser receita 1.04)
+
+4. INVESTIMENTOS / PATRIMÔNIO (não são despesa de resultado no mês
+   da compra do bem — ver PATRIMONIO_CONTROLE.txt)
+   4.01  Aquisição de máquinas / equipamentos
+   4.02  Móveis / informática
+   4.03  Veículos
+   4.04  Benfeitorias
+   (No caixa saem; no gerencial vão para ativo e depreciação gerencial
+    se a empresa quiser acompanhar — Fase 2)
+
+5. MOVIMENTAÇÕES NÃO RESULTADO
+   5.01  Transferência entre contas (caixa ↔ banco)
+   5.02  Empréstimo recebido / pagamento de empréstimo (principal)
+   5.03  Aporte de sócio
+   5.04  Retirada de sócio / distribuição
+   5.05  Aplicação / resgate (principal)
+
+PROIBIDO no plano gerencial do ERP:
+  Grupo 9.xx / “livro auxiliar isolado” / naturezas de “caixa 2”.
+  Decisão: DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+  O ERP só opera naturezas oficiais (1–5 acima).
+
+----------------------------------------------------------------------------------------------------
+3. REGRAS DE USO
+----------------------------------------------------------------------------------------------------
+
+  * Faturamento de etiqueta → 1.01.01 (e custo 2.01 via produção)
+  * Revenda ribbon → 1.01.02 + baixa estoque REV
+  * OS rebobinação → 1.01.03
+  * Juros no boleto → 1.03.01 (separado da venda)
+  * Pagamento DAS → 3.02.01 (o ERP registra o pagamento; não calcula
+    a apuração — contador)
+  * Compra de bobina → entra estoque; natureza de caixa pode ser
+    "fornecedor MP" no contas a pagar; custo só quando consumir
+  * Compra de máquina → 4.01 + bem no patrimônio; NÃO 3.04
+
+Default por tipo de operação no cadastro (NF saída, título, OP)
+reduz erro humano; usuário só altera com motivo.
+
+----------------------------------------------------------------------------------------------------
+4. DRE GERENCIAL (visão mensal)
+----------------------------------------------------------------------------------------------------
+
+  (+) Receita operacional bruta (1.01)
+  (−) Deduções (1.02)
+  (=) Receita líquida gerencial
+  (−) Custos (2.xx)   ← preferir custo real das OPs concluídas
+  (=) Lucro bruto gerencial
+  (−) Despesas operacionais (3.xx)
+  (=) Resultado operacional
+  (+/−) Financeiras e outras (1.03, 1.04, 3.07)
+  (=) Resultado gerencial do período
+
+Isso NÃO é o lucro contábil oficial. É o painel da direção.
+De-para para o contador: tabela natureza_id → conta contábil dele.
+
+----------------------------------------------------------------------------------------------------
+5. FLUXO DE CAIXA × REGIME DE COMPETÊNCIA
+----------------------------------------------------------------------------------------------------
+
+  Caixa: natureza no momento da BX (recebimento/pagamento).
+  Competência gerencial: receita na NF; custo na conclusão da OP;
+  despesa no fato gerador quando fizer sentido.
+
+Relatórios separados: "Caixa do mês" e "DRE gerencial competência".
+Misturar os dois sem aviso é o erro clássico.
+
+----------------------------------------------------------------------------------------------------
+6. CENTRO DE CUSTO (OPCIONAL FASE 1 LEVE)
+----------------------------------------------------------------------------------------------------
+
+  Ex.: Comercial | Produção | Administrativo | Direção
+  Todo lançamento pode ter cc_id. Natureza = O QUÊ; CC = ONDE.
+  Não explodir em 50 centros no dia 1.
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Árvore NAT cadastrada e defaults por operação
+  [ ] Proibido lançar sem natureza
+  [ ] De-para contábil para exportação
+  [ ] DRE gerencial + fluxo de caixa distintos
+  [ ] Investimento ≠ despesa
+  [ ] Transferência entre contas sem resultado
+  [ ] Comissões e pró-labore separados de salário
+
+====================================================================================================
+Fim — NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+Natureza gerencial = idioma do bolso e da DRE interna; contábil oficial é do contador.
+====================================================================================================

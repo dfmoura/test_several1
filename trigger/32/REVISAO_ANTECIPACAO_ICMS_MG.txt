@@ -1,0 +1,133 @@
+====================================================================================================
+REVISÃO DE ANTECIPAÇÕES DE ICMS EM MINAS GERAIS — ENTRADAS INTERESTADUAIS
+Empresa destinatária: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: XMLs da pasta notas_compras (10 NF-e, abril/2026) + estudo_tributação.txt
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento atende ao ponto de atenção nº 10 do estudo tributário:
+"revisar antecipações de ICMS em Minas Gerais" antes da migração para o Lucro Real.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE É A ANTECIPAÇÃO (E POR QUE ELA ATINGE A EMPRESA HOJE)
+----------------------------------------------------------------------------------------------------
+
+Minas Gerais exige das empresas optantes pelo SIMPLES NACIONAL, nas AQUISIÇÕES
+INTERESTADUAIS de mercadorias destinadas a industrialização ou comercialização, a
+ANTECIPAÇÃO DO IMPOSTO correspondente à diferença entre a alíquota interna de MG e a
+alíquota interestadual da operação (antecipação SEM encerramento de tributação —
+não confundir com ICMS-ST, tratado em REVISAO_ICMS_ST.txt).
+
+  Valor devido = base da operação x (alíquota interna MG − alíquota interestadual)
+
+Parâmetros aplicáveis às notas analisadas:
+  * Alíquota interna de MG: 18% (insumos analisados, sem redução de base identificada);
+  * Alíquota interestadual: 12% (operações normais) ou 4% (mercadoria importada /
+    conteúdo de importação — origens 3, 5 e 8, Resolução do Senado 13/2012);
+  * Base legal: RICMS/MG (Decreto 48.589/2023, sucessor do art. 42, §14, do RICMS/MG
+    2002). A cobrança de diferencial/antecipação de optantes do Simples foi validada
+    pelo STF (Tema 517 — RE 970.821), desde que prevista em lei estadual.
+  * O valor recolhido NÃO gera crédito para empresa do Simples — vira CUSTO da
+    matéria-prima.
+
+IMPORTANTE: como quase todos os insumos têm origem importada (orig 3, 5 e 8) e chegam
+com alíquota interestadual de apenas 4%, a diferença a antecipar sobe para 14 pontos
+percentuais — é o maior fator de custo oculto nas compras atuais.
+
+----------------------------------------------------------------------------------------------------
+2. CÁLCULO ESTIMADO POR NOTA FISCAL (ABRIL/2026)
+----------------------------------------------------------------------------------------------------
+
+Base utilizada: vBC do ICMS destacada nos XMLs (sem IPI). Confirmar com o contador a
+composição exata da base exigida pela legislação mineira vigente.
+
+NF      | Fornecedor            | UF orig. | Base ICMS (R$) | Alíq. inter. | Diferença | Antecipação (R$)
+--------|-----------------------|----------|----------------|--------------|-----------|-----------------
+12890   | ARMOR (ribbons)       | AM       |       1.344,75 | 12%          | 6%        |           80,69
+33062   | TODAYTEC (ribbons)    | AM       |       3.235,93 | 12%          | 6%        |          194,16
+91055   | FEDRIGONI (filmes PP) | SP       |      11.730,00 | 4%           | 14%       |        1.642,20
+91056   | FEDRIGONI (filmes PP) | SP       |       5.259,76 | 4%           | 14%       |          736,37
+866545  | AVERY (PP branco)     | SP       |      25.327,01 | 12%          | 6%        |        1.519,62
+867545  | AVERY (papel térmico) | SP       |      23.255,05 | 12%          | 6%        |        1.395,30
+576445  | COLACRIL (térmico)    | PR       |      27.885,00 | 12%          | 6%        |        1.673,10
+577305  | COLACRIL (couché)     | PR       |      45.589,64 | 4%           | 14%       |        6.382,55
+577306* | COLACRIL (BOPP met.)  | PR       |       3.800,00 | 12%          | 6%        |          228,00
+--------|-----------------------|----------|----------------|--------------|-----------|-----------------
+        | TOTAL (com NF 577306) |          |     147.427,14 |              |           |       13.851,99
+        | TOTAL (sem NF 577306) |          |     143.627,14 |              |           |       13.623,99
+
+NF 45962 (CAMALLON) é operação INTERNA MG→MG (CFOP 5101): NÃO há antecipação.
+
+(*) A NF 577306 tem destinatário diverso (ADESIVOS ETIQUETAS E ROTULOS UDI LTDA,
+    IE 0050823380009). Se não pertencer à empresa, excluir do cálculo.
+
+Leitura do resultado:
+  * As três notas com alíquota de 4% (Fedrigoni 91055/91056 e Colacril 577305)
+    respondem por R$ 8.761,12 — cerca de 63% de toda a antecipação estimada do mês,
+    embora representem apenas ~42% da base de compras interestaduais.
+  * Projetando para o volume anual de compras do estudo (R$ 4,5 milhões, mantido o
+    mesmo mix de fornecedores/origens), a antecipação pode superar R$ 150 mil/ano.
+
+----------------------------------------------------------------------------------------------------
+3. PONTOS DE CONFERÊNCIA (COMPLIANCE ENQUANTO NO SIMPLES)
+----------------------------------------------------------------------------------------------------
+
+ 1. Verificar se as antecipações das entradas de abril/2026 (e meses anteriores) foram
+    efetivamente RECOLHIDAS (DAE específico). Levantar histórico de pelo menos 5 anos
+    (prazo decadencial) para dimensionar passivo, se houver omissão.
+ 2. Confirmar o PRAZO de recolhimento vigente na legislação mineira (em regra, até o
+    dia 2 do segundo mês subsequente ao da entrada — confirmar na norma atual).
+ 3. Conferir a BASE de cálculo exigida (valor da operação; verificar tratamento de IPI,
+    frete e descontos na norma vigente — a tabela acima usou a vBC do ICMS dos XMLs).
+ 4. Verificar se há REDUÇÃO DE BASE ou alíquota interna diversa de 18% para algum dos
+    NCMs (3215.19.00, 3919.xx, 4811.41.90, 9612.10.00) na legislação mineira, o que
+    reduziria a diferença a antecipar.
+ 5. Checar o código de origem informado pelos fornecedores (orig 3, 5, 8): origem errada
+    muda a alíquota interestadual (4% x 12%) e, portanto, o valor da antecipação.
+ 6. Conciliar as entradas escrituradas com os XMLs: qualquer NF interestadual de
+    mercadoria para industrialização/comercialização entra no cálculo.
+
+----------------------------------------------------------------------------------------------------
+4. EFEITO DA MIGRAÇÃO PARA O LUCRO REAL
+----------------------------------------------------------------------------------------------------
+
+* No regime normal (Lucro Real), a antecipação de alíquota do Simples DEIXA DE EXISTIR
+  para essas compras: a empresa passa a se creditar do ICMS destacado (12% ou 4%) e a
+  debitar 18% nas saídas internas — o "custo antecipação" estimado acima (~R$ 13,9 mil
+  no mês analisado) desaparece e ainda surge o crédito integral da entrada.
+* Ganho combinado por mês analisado (referência):
+    - antecipação que deixa de ser paga: ................ ~R$ 13.852
+    - crédito de ICMS das entradas que passa a existir: .. ~R$ 12.685 (soma do vICMS dos XMLs interestaduais)
+* Permanecem no regime normal apenas hipóteses específicas de antecipação/DIFAL:
+    - DIFAL de USO E CONSUMO ou ATIVO IMOBILIZADO adquirido de outra UF;
+    - DIFAL de vendas interestaduais a NÃO CONTRIBUINTE (EC 87/2015);
+    - antecipações setoriais previstas no RICMS/MG (verificar se algum NCM da empresa
+      é alcançado — nas notas analisadas, nenhum caso identificado).
+
+----------------------------------------------------------------------------------------------------
+5. RECOMENDAÇÕES
+----------------------------------------------------------------------------------------------------
+
+ 1. Levantar e conciliar TODOS os recolhimentos de antecipação de 2021 a 2026 contra as
+    entradas interestaduais dos XMLs; regularizar diferenças por denúncia espontânea,
+    se necessário.
+ 2. Incluir a antecipação no CUSTO real da matéria-prima enquanto no Simples — isso
+    afeta diretamente a formação de preço (item também apontado no estudo tributário).
+ 3. Considerar o peso da antecipação na DECISÃO DE TIMING da migração: quanto maior o
+    volume de compras interestaduais a 4%, maior a vantagem de antecipar a saída do
+    Simples (na simulação, ~R$ 150 mil/ano de custo que desaparece no Lucro Real).
+ 4. Quando possível, comparar fornecedores MG x outros estados considerando o custo da
+    antecipação: a compra interna (ex.: Camallon) não sofre antecipação no Simples.
+ 5. Na virada de regime, reparametrizar o ERP: desligar o cálculo de antecipação do
+    Simples, ativar apuração normal débito/crédito e manter DIFAL apenas para uso e
+    consumo/ativo e vendas a não contribuinte.
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial elaborado a partir dos XMLs disponíveis e do estudo
+tributário interno. Valores calculados com alíquota interna de 18% e base = vBC do
+ICMS dos XMLs; hipóteses de dispensa, reduções de base, composição da base e prazos
+devem ser validados pelo contador responsável na legislação mineira vigente
+(Decreto 48.589/2023 e resoluções correlatas).
+====================================================================================================

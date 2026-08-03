@@ -1,0 +1,72 @@
+[
+  {
+    "nome": "BOPP BRILHO",
+    "preco_m2": 7.2,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP BRILHO BXT",
+    "preco_m2": 7.9,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP FOSCO",
+    "preco_m2": 6.9,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP FOSCO BXT",
+    "preco_m2": 7.9,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP PRATA",
+    "preco_m2": 7.5,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP PRATA BXT",
+    "preco_m2": 8.5,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP TRANSPARENTE",
+    "preco_m2": 7.0,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP TRANSPARENTE BXT",
+    "preco_m2": 7.9,
+    "ativo": true
+  },
+  {
+    "nome": "COUCHE FASSON 20G",
+    "preco_m2": 3.5,
+    "ativo": true
+  },
+  {
+    "nome": "COUCHE VERTEX 30G",
+    "preco_m2": 5.3,
+    "ativo": true
+  },
+  {
+    "nome": "FOSCO COLACRIL 20G",
+    "preco_m2": 4.3,
+    "ativo": true
+  },
+  {
+    "nome": "TÉRMICO FASSON",
+    "preco_m2": 3.6,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP FOSCO FASSON 0290 - LABORATORIOS",
+    "preco_m2": 6.0,
+    "ativo": true
+  },
+  {
+    "nome": "BOPP FOSCO FASSON 30G 2075",
+    "preco_m2": 7.0,
+    "ativo": true
+  }
+]

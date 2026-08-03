@@ -1,0 +1,222 @@
+====================================================================================================
+CASOS DE USO — M05 FISCAL OPERACIONAL — ERP RLP
+Documento: CASOS_USO_M05_FISCAL.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M05 — Fiscal operacional (NF-e/NFS-e via Focus; sem fechamento SPED)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Emissão e acompanhamento de documentos fiscais operacionais amarrados ao
+  PED. Numeração SEFAZ via Focus — ERP NÃO inventa número. Não fecha SPED.
+
+Atores: FISCAL (primário); Focus NFe (sistema); FINANCEIRO (TIT nasce junto);
+        PRODUCAO/EXPEDICAO (pré-condição OP/OS concluída)
+
+Invariants:
+  • NF vinculada a ped_id + empresa_id.
+  • Documento fiscal ≠ título (nascem juntos no faturamento).
+  • Idempotência na emissão (retry não duplica).
+  • Política recomendada: NF antes de expedir.
+  • Contador fecha apuração oficial — fora deste módulo.
+
+====================================================================================================
+UC-FIS-001 — Emitir NF-e / NFS-e vinculada ao PED (via Focus)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FISCAL
+Sistema ......: Focus NFe
+
+Pré-condições:
+  1. PED com itens faturáveis (OP/OS concluídos e/ou REVENDA separada).
+  2. Cadastro fiscal do PAR e produtos OK.
+  3. Ambiente Focus correto (homolog ≠ prod); cert A1 da empresa_id.
+
+Pós-condições:
+  1. NF autorizada com chave44; XML/PDF armazenados.
+  2. Eventos disparam UC-FIN-001 (TIT) e UC-FIN-002 (COB).
+  3. PED atualiza para FATURADO ou FATURADO_PARCIAL.
+
+Garantia: ERP não gera numeração fiscal própria.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FISCAL seleciona PED e itens/quantidades a faturar.
+  2. Sistema monta payload fiscal (CFOP, CST/CSOSN, valores decimais).
+  3. Enfileira emissão Focus com chave de idempotência.
+  4. Focus autoriza; worker persiste série/número/chave44/XML/PDF.
+  5. Sistema dispara geração de TIT/COB (mesmo faturamento).
+  6. Status da NF = AUTORIZADA; evento NfEmitida.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — NFS-e de serviço
+    1a. Fluxo análogo para item SERVICO / município conforme configuração.
+  AL2 — Emissão assíncrona
+    3a. UI mostra “processando”; polling/webhook atualiza status.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Rejeição SEFAZ/Focus
+    4a. NF não autorizada; erro estruturado; permite correção e reenvio
+        com nova idempotência ou mesma chave conforme regra do adapter.
+  EX2 — Kill-switch Focus ligado
+    3a. Emissão bloqueada sem derrubar o ERP (UC-INT-006).
+
+Regras: RN-09, RN-10, RN-14; RF-FAT-01…03; CA-04; D0.10, D0.16
+Trace: FATURAMENTO_GERACAO_COBRANCA.txt · MAPA_FATURAMENTO_EXPLICADO.txt
+Aceite:
+  • Retry da mesma emissão não cria segunda NF.
+  • TIT nasce no mesmo faturamento, conceito separado.
+  • chave44 consultável e arquivo XML no storage.
+
+====================================================================================================
+UC-FIS-002 — Consultar status / XML / PDF da NF
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FISCAL / CONSULTA / COMERCIAL (leitura)
+
+Pré-condições: NF existente (ou protocolo em processamento).
+
+Pós-condições: Status atualizado; arquivos disponíveis para download autorizado.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator busca NF por chave, número, PED ou cliente.
+  2. Sistema exibe status local; se necessário consulta Focus.
+  3. Disponibiliza XML/PDF com controle de acesso.
+
+Regras: RF-FAT-01; RF-INT-01
+Trace: FATURAMENTO_GERACAO_COBRANCA.txt
+Aceite: Download XML requer perfil autorizado; código PED visível na ficha.
+
+====================================================================================================
+UC-FIS-003 — Cancelar NF ou emitir carta de correção (API)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FISCAL
+
+Pré-condições: NF autorizada; prazo/regras legais atendidas; API Focus disponível.
+
+Pós-condições:
+  Cancelamento: NF cancelada; documentos financeiros compensados (não apagados).
+  CCe: correção registrada sem novo número indevido.
+
+Garantia: Cancelamento não apaga TIT/histórico — estorna/compensa.
+
+--------------------------------------------------------------------------------
+Fluxo principal (cancelamento)
+--------------------------------------------------------------------------------
+  1. FISCAL solicita cancelamento com justificativa.
+  2. Sistema valida elegibilidade e envia à Focus.
+  3. Em sucesso, marca NF cancelada e aciona estornos financeiros/estoque
+     conforme impacto (fila de tarefas / DEV se necessário).
+  4. Auditoria completa.
+
+--------------------------------------------------------------------------------
+Fluxo alternativo — Carta de correção
+--------------------------------------------------------------------------------
+  1b. FISCAL informa campos corrigíveis; sistema envia CCe; anexa protocolo.
+
+Regras: D0.4; RF-INT-01; RF-EXC-05
+Trace: FATURAMENTO_GERACAO_COBRANCA.txt · DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+Aceite: Após cancelamento, PED/origem permanecem; há documento compensatório.
+
+====================================================================================================
+UC-FIS-004 — Faturar parcialmente o mesmo PED
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FISCAL
+
+Pré-condições: PED com múltiplos itens ou qtde parcial concluída/separada.
+
+Pós-condições: Uma ou mais NFs no mesmo ped_id; PED = FATURADO_PARCIAL até fechar.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FISCAL seleciona subconjunto faturável do PED.
+  2. Emite NF (UC-FIS-001) só desse subconjunto.
+  3. Sistema atualiza saldos a faturar do PED.
+  4. Quando não restar saldo faturável → PED FATURADO.
+
+Regras: RF-FAT-04
+Trace: MAPA_FATURAMENTO_EXPLICADO.txt
+Aceite: Duas NFs distintas vinculadas ao mesmo PED sem misturar itens já faturados.
+
+====================================================================================================
+UC-FIS-005 — Impedir emissão duplicada (idempotência)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (worker / API)
+Secundário ...: FISCAL (dispara)
+
+Pré-condições: Solicitação de emissão com idempotency_key.
+
+Pós-condições: No máximo um documento autorizado por chave de correlação.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Cliente API/UI envia emissão com chave idempotente.
+  2. Sistema verifica UNIQUE/registro prévio.
+  3. Se já processada → retorna resultado original (sem nova NF).
+  4. Se nova → processa e grava chave.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Retry durante processamento
+    2a. Retorna “em processamento” sem segunda chamada destrutiva.
+
+Regras: RN-14; RF-INT-06; CA-04; RNF-53
+Trace: ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt · FATURAMENTO_*
+Aceite: Teste automatizado de retry não gera 2ª chave44.
+
+====================================================================================================
+UC-FIS-006 — Tratar NF de amostra / remessa / devolução (CFOP)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FISCAL
+Secundário ...: Contador (homologação de CFOP)
+
+Pré-condições: CFOP/operações homologados; operação de origem (REM/RMA/DEV/amostra).
+
+Pós-condições: NF com CFOP correto amarrada à origem; sem virar “venda comum” indevida.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator escolhe tipo operacional (remessa, amostra, devolução…).
+  2. Sistema sugere CFOP/CST conforme de-para homologado.
+  3. Emite via Focus (UC-FIS-001 adaptado).
+  4. Vincula à REM/RMA/DEV/PED origem.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — CFOP não homologado
+    2a. Bloqueia emissão; marca pendência com contador.
+
+Regras: RF-PRD-08, RF-PRD-09, RF-EXC-02
+Trace: INDUSTRIALIZACAO_EXTERNA_REMESSA.txt · AMOSTRAS_PROTOTIPOS.txt ·
+       DEVOLUCAO_VENDA_PONTA_A_PONTA.txt · LACUNAS_PENDENCIAS_SISTEMA.txt
+Aceite: Remessa não gera TIT de venda; devolução usa CFOP de retorno homologado.
+
+====================================================================================================
+Fim — CASOS_USO_M05_FISCAL.txt
+6 casos de uso | Módulo M05 Fiscal operacional
+====================================================================================================

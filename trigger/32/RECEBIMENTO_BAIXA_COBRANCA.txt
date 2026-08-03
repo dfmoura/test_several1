@@ -1,0 +1,155 @@
+====================================================================================================
+RECEBIMENTO E BAIXA DA COBRANÇA — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: FATURAMENTO_GERACAO_COBRANCA.txt + INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt +
+      GERACAO_PEDIDO.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt +
+      estrategia_implantacao_ja.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO O DINHEIRO ENTRA e COMO O TÍTULO É BAIXADO.
+A baixa libera limite de crédito, atualiza fluxo de caixa e alimenta
+as naturezas gerenciais de receita. Não substitui a conciliação bancária
+contábil oficial do contador — mas o ERP deve estar apto a espelhá-la.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. BAIXA SÓ COM DINHEIRO IDENTIFICADO (ou perda/desconto autorizados).
+ 2. QUEM BAIXA TÍTULO NÃO É O MESMO QUE ALTERA DADOS BANCÁRIOS DO PARCEIRO
+     (SoD — ORGANIZACAO_USUARIOS_PERFIS_ACESSO).
+ 3. ADIANTAMENTO BAIXADO LIBERA PRODUÇÃO; BAIXA DA NF LIBERA LIMITE.
+ 4. Nunca "zerar" título editando valor — usar baixa parcial, desconto,
+     juros, cancelamento ou perda com motivo e alçada.
+
+----------------------------------------------------------------------------------------------------
+2. OBJETOS
+----------------------------------------------------------------------------------------------------
+
+  TIT-AAAA-NNNNN     título a receber (aberto)
+  BX-AAAA-NNNNN      documento de baixa / recebimento (id BIGINT)
+  Conta financeira   caixa, banco, aplicação (posição da Fase 1)
+  Extrato / OFX      conciliação (Fase 1 manual; Fase 2 CNAB/API)
+
+----------------------------------------------------------------------------------------------------
+3. FORMAS DE RECEBIMENTO
+----------------------------------------------------------------------------------------------------
+
+  * PIX (comprovante / conciliação por valor+data+pagador)
+  * Boleto (retorno bancário CNAB ou baixa manual com autenticidade)
+  * Transferência / TED / DOC
+  * Dinheiro (caixa) — com recibo
+  * Cartão (liquidação líquida; taxa = despesa natureza própria)
+  * Compensação (crédito de devolução × título)
+  * Permuta / acordo: alçada direção + natureza correta
+
+Cada BX informa: conta destino, data crédito, valor, tit_id(s),
+usuario_id, anexo opcional (comprovante).
+
+----------------------------------------------------------------------------------------------------
+4. TIPOS DE BAIXA
+----------------------------------------------------------------------------------------------------
+
+  A) BAIXA TOTAL
+     valor recebido = saldo do título (aceita juros/desconto na mesma BX)
+
+  B) BAIXA PARCIAL
+     reduz saldo; título fica PARCIAL; limite libera só a parte paga
+
+  C) BAIXA COM JUROS / MULTA
+     receita financeira (natureza distinta da venda)
+
+  D) BAIXA COM DESCONTO
+     desconto condicional ou pontual — alçada; natureza de abatimento
+
+  E) BAIXA DE ADIANTAMENTO
+     liquida TIT do sinal; evento LIBERA PED para produção se era o
+     bloqueio; depois apropria contra a NF quando emitir
+     (saldo adiantamento a amortizar)
+
+  F) PERDA / INADIMPLÊNCIA
+     baixa para perda com alçada direção; natureza própria;
+     NÃO confundir com desconto comercial
+
+  G) CANCELAMENTO DE TÍTULO
+     NF cancelada / duplicidade — estorno sem receber dinheiro
+
+----------------------------------------------------------------------------------------------------
+5. FLUXO OPERACIONAL
+----------------------------------------------------------------------------------------------------
+
+  1) Título ABERTO aparece no aging (a vencer / vencido)
+  2) Financeiro identifica crédito no banco/caixa
+  3) Vincula ao TIT- (sugestão automática por valor+parceiro+vencimento)
+  4) Confirma BX- — status do título atualiza
+  5) Atualiza saldo do cliente no motor de crédito
+  6) Atualiza fluxo de caixa (conta financeira)
+  7) Se PED só dependia desse recebimento (sinal): status → LIBERADO
+  8) Se todos os títulos do PED quitados (+ entrega ok): PED pode
+     ENCERRAR no eixo financeiro
+
+Cobrança ativa (régua): lembretes antes/depois do vencimento —
+tom profissional, separado do lembrete de reposição de produto
+(PEDIDOS_RECORRENTES_...).
+
+----------------------------------------------------------------------------------------------------
+6. CONCILIAÇÃO BANCÁRIA (nível ERP)
+----------------------------------------------------------------------------------------------------
+
+  * Lançamentos da conta × extrato
+  * Pendências: crédito sem título / título sem crédito
+  * Meta: conciliar diariamente o operacional
+
+O contador pode refazer/agrupar no razão oficial. O ERP guarda a
+trilha gerencial e exporta (CONTABILIDADE_FISCAL_SEM_FECHAMENTO).
+
+----------------------------------------------------------------------------------------------------
+7. CONTAS A PAGAR (espelho curto)
+----------------------------------------------------------------------------------------------------
+
+Mesmo motor de baixa, outro sinal:
+  * Títulos a pagar (fornecedores, frete, pró-labore, etc.)
+  * Baixa contra NF de entrada / boleto fornecedor
+  * Naturezas de DESPESA
+Não misturar conta a pagar com recebimento no mesmo BX.
+
+Pagamento de pessoal: RH_PAGAMENTO_GERENCIAL.txt (líquidos /
+adiantamentos), sem fechar folha.
+
+----------------------------------------------------------------------------------------------------
+8. ALÇADAS
+----------------------------------------------------------------------------------------------------
+
+  Baixa normal .............. FINANCEIRO
+  Desconto acima do parâmetro  gerência/direção
+  Perda / renegociação ....... direção
+  Estorno de baixa ........... FINANCEIRO + motivo (não excluir; estornar)
+
+----------------------------------------------------------------------------------------------------
+9. RELATÓRIOS
+----------------------------------------------------------------------------------------------------
+
+  * Aging de recebíveis (faixas 0–30–60–90+)
+  * Inadimplência por cliente
+  * Recebido no período por natureza / forma
+  * Adiantamentos a apropriar
+  * Previsão de caixa (títulos a vencer × a pagar)
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] BX com conta, data, valor, TIT
+  [ ] Parcial / juros / desconto / perda distintos
+  [ ] Baixa de sinal libera produção
+  [ ] Limite de crédito atualiza na baixa
+  [ ] SoD dados bancários × liberação/baixa
+  [ ] Estorno auditável (sem delete)
+  [ ] Régua de cobrança ≠ lembrete de reposição
+
+====================================================================================================
+Fim — RECEBIMENTO_BAIXA_COBRANCA.txt
+Receber é conciliar dinheiro ao título. Baixa certa alimenta crédito, caixa e natureza.
+====================================================================================================

@@ -1,0 +1,156 @@
+====================================================================================================
+ESTOQUE — FLUXO DE SAÍDA PARA PRODUÇÃO, RETORNO DE SOBRAS E PRODUTO ACABADO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: CONTROLE_ESTOQUE_PROFISSIONAL.txt + TRATAMENTO_SOBRA_BOBINA_RETALHO.txt +
+      AJUSTE_ESTOQUE_INVENTARIO.txt + CADASTRO_PRODUTOS_COMPRA.txt +
+      CADASTRO_PRODUTOS_VENDA.txt + CONVERSOES_UNIDADES_MEDIDA.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + CONCLUSAO_PRODUCAO.txt +
+      CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento é o ELO OPERACIONAL do estoque no ciclo pedido → produção →
+faturamento. Não republica o modelo completo de estoque: detalha o fluxo
+de SAÍDA / RETORNO / PA já citado nos documentos-base, para amarrar ao PED/OP.
+
+Leitura obrigatória em conjunto:
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt ........ princípios, SKU, entradas, KPIs
+  * TRATAMENTO_SOBRA_BOBINA_RETALHO.txt ...... decisão sobra × refugo × apara
+  * AJUSTE_ESTOQUE_INVENTARIO.txt ............. inventário e acuracidade
+  * CADASTRO_PRODUTOS_VENDA.txt .............. PA fiscal × especificação no pedido
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIO NO CICLO INDUSTRIAL
+----------------------------------------------------------------------------------------------------
+
+  Nenhuma saída de MP/EMB sem OP (ou OS com consumo).
+  Nenhuma sobra "some" na máquina.
+  Nenhum PA de encomenda existe no saldo sem OP concluída
+  (ou política explícita de estoque acabado recorrente).
+
+Documento de movimento: MOV-AAAA-NNNNN (id BIGINT), sempre com origem:
+  op_id | os_id | nf_id | aju_id | ped_id (quando venda direta de revenda).
+
+----------------------------------------------------------------------------------------------------
+2. SAÍDA PARA PRODUÇÃO (MP / EMB → OP)
+----------------------------------------------------------------------------------------------------
+
+2.1. Empenho (reserva)
+  Ao abrir/planejar a OP, o ERP reserva no SKU a quantidade prevista
+  (metros, kg, un) convertida conforme CONVERSOES_UNIDADES_MEDIDA.txt.
+  Saldo disponível = físico − empenhado − outros.
+
+2.2. Requisição (baixa)
+  Almox confirma entrega à máquina:
+    * MOV tipo SAIDA_PRODUCAO
+    * sku_id, lote_id, quantidade, op_id, usuario_id
+  Política FIFO/FEFO (CONTROLE_ESTOQUE seção 6).
+
+2.3. Consumo real
+  Apontamento pode consumir mais ou menos que o empenho.
+  Diferença vira:
+    * consumo extra (nova requisição ou ajuste na OP), ou
+    * devolução/sobra (seção 3)
+
+2.4. Revenda sem OP
+  Item REV no PED: saída na expedição/NF (CFOP 5102/6102), sem passar
+  por OP. MOV ligado a ped_id / nf_id.
+
+----------------------------------------------------------------------------------------------------
+3. RETORNO DE SOBRAS (OBRIGATÓRIO)
+----------------------------------------------------------------------------------------------------
+
+Ao pausar ou concluir a OP, para cada bobina/lote requisitado:
+
+  1) Informar comprimento/peso restante
+  2) Árvore de decisão de TRATAMENTO_SOBRA_BOBINA_RETALHO.txt:
+       sobra aproveitável → MOV ENTRADA_SOBRA (mesmo SKU parcial ou
+       SKU grupo 90 retalho — CODIFICACAO 6.5)
+       refugo → baixa PERDA na OP (custo)
+       apara/sucata → movimento de sucateamento
+
+  3) Etiqueta interna do retalho (SKU, metros, lote origem, OP)
+
+Regra de ouro (já no CONTROLE_ESTOQUE):
+  "Sobra de produção volta para o estoque, nunca desaparece."
+
+Sem apontamento de retorno, OP NÃO conclui (trava parametrizável —
+recomendado ON para substratos).
+
+----------------------------------------------------------------------------------------------------
+4. PRODUTO ACABADO (PA)
+----------------------------------------------------------------------------------------------------
+
+4.1. Sob encomenda (caso principal RLP)
+  * Não criar milhares de SKUs eternos (CADASTRO_PRODUTOS_VENDA)
+  * Na conclusão da OP: MOV ENTRADA_PA
+      - quantidade boa liberada pelo CQ
+      - custo real = materiais líquidos consumidos + rateios apontados
+      - vínculo ped_id / op_id / especificação
+  * Saldo de PA "endereçado" à expedição / pedido (não mistura prateleira
+    genérica com encomenda de outro cliente)
+
+4.2. PA recorrente em estoque (exceção)
+  * SKU grupo 80 ou PA-ETQ específico
+  * OP pode ser "para estoque" (sem PED) — política da direção
+  * Venda baixa PA na NF como qualquer estoque
+
+4.3. Saída do PA
+  * Expedição / NF-e (Focus) → MOV SAIDA_VENDA
+  * Devolução de cliente → MOV entrada com NF de devolução
+
+----------------------------------------------------------------------------------------------------
+5. DIAGRAMA RESUMIDO DOS MOVIMENTOS NO CICLO
+----------------------------------------------------------------------------------------------------
+
+  COMPRA (XML)           → ENTRADA_MP/EMB          (custo médio)
+  OP empenho/requisição  → SAIDA_PRODUCAO          (MP → OP)
+  retorno bobina         → ENTRADA_SOBRA/RETALHO
+  refugo                 → PERDA_OP
+  conclusão OP           → ENTRADA_PA
+  NF-e saída             → SAIDA_VENDA (PA ou REV)
+  inventário             → AJU-*                   (AJUSTE_ESTOQUE_...)
+
+Tudo auditável; saldo do sistema é a verdade oficial.
+
+----------------------------------------------------------------------------------------------------
+6. VISÕES POR PERFIL (sem outro WMS)
+----------------------------------------------------------------------------------------------------
+
+  PRODUCAO ... requisitar, devolver sobra, ver empenho da OP
+  COMPRAS .... saldo, ponto de pedido, entrada XML
+  EXPEDICAO .. PA liberado por pedido, picking
+  FINANCEIRO . não altera saldo; consulta valorização se autorizado
+  FISCAL ..... inventário de virada de regime / Bloco H futuro
+
+Coletor/código de barras: mesmo MOV via API — não é WMS separado.
+
+----------------------------------------------------------------------------------------------------
+7. CONFERÊNCIA COM DOCUMENTOS JÁ EXISTENTES
+----------------------------------------------------------------------------------------------------
+
+  Tema                          Documento mestre
+  ----------------------------  ------------------------------------------
+  Princípios e SKU              CONTROLE_ESTOQUE_PROFISSIONAL.txt
+  Sobra/retalho                 TRATAMENTO_SOBRA_BOBINA_RETALHO.txt
+  Inventário/ajuste             AJUSTE_ESTOQUE_INVENTARIO.txt
+  Unidades                      CONVERSOES_UNIDADES_MEDIDA.txt
+  Famílias compra/venda         CADASTRO_PRODUTOS_COMPRA / _VENDA.txt
+  Este fluxo no PED/OP          (este arquivo)
+
+----------------------------------------------------------------------------------------------------
+8. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Saída MP só com op_id/os_id
+  [ ] Trava de conclusão sem retorno de bobina (substratos)
+  [ ] ENTRADA_PA com custo real e vínculo ao PED
+  [ ] SAIDA_VENDA automática na NF autorizada
+  [ ] Retalho grupo 90 ou comprimento parcial rastreado
+  [ ] Revenda sem OP não passa por produção
+  [ ] Nenhum saldo editado "na mão" — só AJU com motivo
+
+====================================================================================================
+Fim — ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt
+Saída, sobra e PA são o mesmo estoque — só mudam o tipo do MOV e a origem.
+====================================================================================================

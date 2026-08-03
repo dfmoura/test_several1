@@ -1,0 +1,383 @@
+====================================================================================================
+PEDIDOS RECORRENTES E LEMBRETE DE REPOSIÇÃO — DINÂMICA RECOMENDADA NO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_ORCAMENTO.txt (produto, preço e conversão em pedido) +
+      APROVACAO_ORCAMENTO_CLIENTE.txt (link de aprovação WhatsApp / e-mail) +
+      CADASTRO_PARCEIROS.txt (contatos oficiais e papéis) +
+      ORCAMENTO_PROSPECT_SEM_CADASTRO.txt (funil comercial) +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt (auditoria e rastreabilidade)
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO O ERP TRATA PEDIDOS RECORRENTES e gera LEMBRETES DE
+REPOSIÇÃO para o cliente — de forma profissional, no momento certo — para que ele
+não fique sem etiquetas e a empresa não perca a venda por silêncio comercial.
+
+O problema que resolve: muitos clientes de etiquetas autoadesivas compram de forma
+cíclica (mesmo produto, mesma faca, mesmo acabamento). Quando o estoque do CLIENTE
+acaba, ele liga apressado pedindo prazo curto; a fábrica entra em urgência, o
+vendedor reage em vez de antecipar, e às vezes o cliente já comprou de outro
+fornecedor. O ERP precisa TRANSFORMAR O HISTÓRICO DE PEDIDOS EM ANTECIPAÇÃO
+COMERCIAL — não em spam, não em mensagem genérica.
+
+Conceito central: O SISTEMA ESTIMA QUANDO O CLIENTE VAI PRECISAR REPOR e dispara
+um LEMBRETE PROFISSIONAL com antecedência suficiente para orçar, aprovar e
+produzir SEM RUPTURA. O lembrete NÃO cria pedido sozinho; ele reabre o ciclo
+comercial (orçamento / recompra) com o produto já conhecido.
+
+Ele complementa:
+  * GERACAO_ORCAMENTO.txt .............. motor de cálculo e ciclo do orçamento
+  * APROVACAO_ORCAMENTO_CLIENTE.txt .... envio e aceite pelo link
+  * CADASTRO_PARCEIROS.txt ............. contatos autorizados e carteira
+  * INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt ... crédito na conversão
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt ......... quem vê e quem dispara
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. REPOSIÇÃO É ANTECIPAÇÃO, NÃO URGÊNCIA.
+    O valor do lembrete está em chegar ANTES do estoque do cliente zerar. Lembrete
+    no dia em que o cliente já está sem produto falhou — virou pedido de urgência.
+
+ 2. O LEMBRETE NÃO É PEDIDO AUTOMÁTICO.
+    O ERP sugere e convida; o cliente (ou o vendedor, com o cliente) decide.
+    Nenhum pedido nasce sem o fluxo formal: orçamento → aprovação pelo link →
+    crédito/adiantamento (APROVACAO_ORCAMENTO_CLIENTE.txt). Recompra recorrente
+    NÃO pula a aprovação.
+
+ 3. HISTÓRICO DO CLIENTE É A BASE DO CÁLCULO.
+    Intervalo entre pedidos, quantidade média, produto/faca e lead time de
+    produção alimentam a data prevista de reposição. Chute manual do vendedor
+    pode complementar; não substitui o motor.
+
+ 4. TOM PROFISSIONAL E ÚTIL — NUNCA COBRANÇA INSISTENTE.
+    A mensagem deixa claro: "seu ciclo de consumo indica necessidade próxima",
+    oferece atalho para recompra do MESMO item e deixa porta aberta para ajustar
+    quantidade. Proibido tom de cobrança, ameaça de ruptura ou disparo diário.
+
+ 5. ENVIO SOMENTE PARA CONTATO OFICIAL DO CADASTRO.
+    Mesma regra do link de aprovação: WhatsApp/e-mail vêm do CADASTRO_PARCEIROS
+    (contato autorizado a compras). Sem número avulso digitado na hora.
+
+ 6. CLIENTE PODE SILENCIAR OU AJUSTAR O CICLO.
+    Opt-out, frequência máxima e "não lembrar deste item" são direitos do cliente
+    (LGPD + boa prática comercial). Respeitar evita spam e preserva a marca.
+
+ 7. TUDO LOGADO.
+    Cálculo da data prevista, disparo, abertura, resposta, "já pedi" e opt-out
+    entram na trilha de auditoria (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt, seção 7).
+
+----------------------------------------------------------------------------------------------------
+2. O QUE É UM PEDIDO RECORRENTE NESTE ERP
+----------------------------------------------------------------------------------------------------
+
+Pedido recorrente NÃO é "assinatura automática mensal" (a menos que a direção
+ative um contrato formal no futuro). Aqui, recorrência significa:
+
+  * Cliente ATIVO com 2 ou mais pedidos do MESMO item-chave (ou família
+    equivalente: mesma faca + mesmo papel/acabamento);
+  * Padrão de recompra identificável no tempo (ex.: a cada 45–60 dias);
+  * Produto já conhecido pela fábrica (faca existente, especificação estável).
+
+O ERP marca o vínculo cliente × item como CANDIDATO A REPOSIÇÃO quando:
+  a) existem pelo menos 2 pedidos faturados do mesmo item-chave; OU
+  b) o vendedor/cadastro ativa manualmente a flag "REPOSIÇÃO ASSISTIDA" no
+     item do cliente (útil no 2º pedido, antes de haver histórico estatístico).
+
+Item-chave sugerido: FACA + PAPEL/FILME + ACABAMENTO + ETIQ/ROLO (quando
+estável). Variação só de quantidade NÃO gera item novo — é a mesma reposição
+com volume ajustável.
+
+----------------------------------------------------------------------------------------------------
+3. COMO O SISTEMA CALCULA A DATA DO LEMBRETE
+----------------------------------------------------------------------------------------------------
+
+3.1 ENTRADAS DO MOTOR
+  * Data do último faturamento/entrega do item ao cliente (D_ULT)
+  * Quantidade da última compra (Q_ULT) e, se houver, média das últimas N compras
+  * Intervalo médio entre pedidos do mesmo item (I_MED, em dias) — calculado
+    sobre os últimos 3 a 6 ciclos, descartando outliers óbvios
+  * Prazo médio de produção/entrega daquele tipo de item (L_PROD, em dias)
+  * Margem de segurança comercial (M_SEG, padrão sugerido: 7 a 14 dias) —
+    tempo para o cliente decidir, aprovar e a fábrica encaixar
+
+3.2 DATA PREVISTA DE NECESSIDADE (D_NEC)
+  Em regra simples (quando há intervalo médio confiável):
+
+      D_NEC = D_ULT + I_MED
+
+  Quando o cliente informa consumo médio (ex.: "uso X mil etiquetas/semana")
+  e o cadastro guarda isso:
+
+      D_NEC = D_ULT + (Q_ULT / consumo_diario_estimado)
+
+  O ERP usa o MENOR entre as duas estimativas quando ambas existirem
+  (mais conservador = menos chance de ruptura no cliente).
+
+3.3 DATA DO LEMBRETE (D_LEM)
+      D_LEM = D_NEC − L_PROD − M_SEG
+
+  Ou seja: o lembrete sai com antecedência de (prazo de produção + margem
+  comercial). Exemplo numérico:
+
+      Última entrega ........ 01/06/2026
+      Intervalo médio ....... 60 dias  → D_NEC = 31/07/2026
+      Prazo de produção ..... 10 dias
+      Margem de segurança ... 14 dias
+      D_LEM ................. 31/07 − 10 − 14 = 07/07/2026
+
+  Em 07/07 o cliente já recebe o aviso; ainda dá tempo de aprovar e produzir
+  antes de 31/07.
+
+3.4 CONFIANÇA DO CÁLCULO
+  O ERP classifica cada previsão:
+    ALTA ..... ≥ 3 ciclos regulares (variação baixa do intervalo)
+    MÉDIA .... 2 ciclos ou intervalos irregulares
+    BAIXA .... flag manual / 1º ciclo assistido / outlier recente
+
+  Lembrete com confiança BAIXA pode exigir CONFIRMAÇÃO DO VENDEDOR antes do
+  envio automático (configurável por carteira).
+
+3.5 O QUE NÃO ENTRA NO CÁLCULO AUTOMÁTICO
+  * Pedidos cancelados ou não faturados
+  * Amostras / prototipagem
+  * Itens com faca nova ainda sem estabilizar (1º pedido com matriz)
+  * Clientes INATIVOS ou BLOQUEADOS
+
+----------------------------------------------------------------------------------------------------
+4. VISÃO GERAL DO FLUXO
+----------------------------------------------------------------------------------------------------
+
+  PEDIDO FATURADO / ENTREGUE
+     -> ERP atualiza histórico cliente × item e recalcula D_NEC e D_LEM
+     -> agenda o evento de lembrete (fila de reposição)
+
+  CHEGA D_LEM (job diário do ERP)
+     -> valida: cliente ativo? contato oficial? opt-out? já existe orçamento/
+        pedido aberto do mesmo item?
+     -> se OK: gera LEMBRETE (status AGENDADO → DISPARADO)
+     -> envia WhatsApp e/ou e-mail com texto padronizado (seção 5)
+     -> notifica o vendedor da carteira (painel "Reposições da semana")
+
+  CLIENTE RESPONDE / VENDEDOR ACOMPANHA
+     -> "Quero repor" / clique no link: ERP abre RECOMPRA RÁPIDA (seção 6)
+        com o último item pré-carregado → orçamento → link de aprovação
+     -> "Ainda tenho estoque": vendedor ou cliente informa nova data / quantidade
+        restante → ERP RECALCULA D_LEM (não insiste na mesma semana)
+     -> sem resposta: 1 único REFORÇO após X dias (padrão 5), depois vai para
+        follow-up manual do vendedor — sem bombardeio automático
+
+  ORÇAMENTO APROVADO PELO LINK
+     -> pedido normal (crédito/adiantamento intactos)
+     -> ao faturar/entregar, o ciclo recomeça
+
+----------------------------------------------------------------------------------------------------
+5. O LEMBRETE (o que o cliente recebe)
+----------------------------------------------------------------------------------------------------
+
+5.1 CANAIS
+  * Preferência do cadastro: WhatsApp e/ou e-mail (mesma disciplina da
+    APROVACAO_ORCAMENTO_CLIENTE.txt — API oficial de WhatsApp Business).
+  * Cópia interna (opcional) para o vendedor da carteira.
+
+5.2 TOM E CONTEÚDO (modelo padronizado — não improvisar)
+  Objetivo: útil, curto, respeitoso, com próximo passo claro.
+
+  WHATSAPP (modelo):
+  "Olá, [contato]! Aqui é a RLP Etiquetas. Pelo histórico de compras do item
+  [descrição curta — ex.: BOPP 90x60 / 4 cores / faca F-123], estimamos que a
+  reposição esteja próxima (por volta de [mês/semana]).
+
+  Para não ficar sem produto, podemos preparar a proposta de recompra com a
+  mesma especificação. Se quiser ajustar quantidade ou prazo, é só responder.
+
+  [Link para recompra / falar com [vendedor]]
+  Se preferir não receber estes avisos, responda SAIR."
+
+  E-MAIL: mesmo conteúdo, com assunto:
+  "Reposição prevista — [item] | RLP Etiquetas"
+
+5.3 O QUE O LEMBRETE NÃO FAZ
+  * Não informa preço antigo como se fosse vigente (preço SEMPRE recalculado
+    no orçamento — regra 7.5 do GERACAO_ORCAMENTO.txt).
+  * Não promete prazo de produção sem passar pelo PCP.
+  * Não menciona margem, custo ou dados de outros clientes.
+  * Não usa urgência artificial ("últimas unidades", "oferta acaba hoje").
+
+5.4 FREQUÊNCIA MÁXIMA
+  * No máximo 1 lembrete automático + 1 reforço por ciclo de reposição.
+  * Se o cliente abriu orçamento/pedido do item, cancela lembretes pendentes
+    daquele ciclo.
+  * Após opt-out: zero disparos até reativação explícita no cadastro.
+
+----------------------------------------------------------------------------------------------------
+6. RECOMPRA RÁPIDA (atalho operacional)
+----------------------------------------------------------------------------------------------------
+
+Quando o cliente (ou o vendedor) aceita seguir com a reposição, o ERP NÃO
+obriga a remontar o orçamento do zero:
+
+  1. Abre orçamento pré-preenchido com a ÚLTIMA ESPECIFICAÇÃO aprovada
+     (papel, cores, faca, acabamento, tubete, etiq/rolo).
+  2. Quantidade sugerida = última compra ou média das últimas (editável).
+  3. RECALCULA preço e prazo com parâmetros VIGENTES (tabelas atuais) —
+     nunca "copia valor" do pedido antigo.
+  4. Segue o fluxo normal: envio do LINK DE APROVAÇÃO → aceite → crédito/
+     adiantamento → produção.
+
+Benefício: o cliente sente continuidade ("é o mesmo produto de sempre");
+a fábrica mantém disciplina de preço e capacidade (FLEXIBILIDADE_LIMITES_
+CUSTOMIZACAO_ORCAMENTO.txt — envelope de capacidade continua valendo).
+
+Se a especificação mudou (papel descontinuado, faca alterada, acabamento
+indisponível), o ERP ALERTA na recompra e obriga o vendedor a ajustar antes
+do envio — nunca esconde incompatibilidade.
+
+----------------------------------------------------------------------------------------------------
+7. PAINEL DO VENDEDOR — "REPOSIÇÕES DA SEMANA"
+----------------------------------------------------------------------------------------------------
+
+Além do disparo ao cliente, o comercial enxerga uma fila:
+
+  * Cliente | Item | D_NEC | D_LEM | Confiança | Status do lembrete
+  * Ações: disparar agora | adiar | marcar "cliente já tem estoque" |
+           abrir recompra | silenciar item
+
+Regras de uso:
+  * Lembrete AUTOMÁTICO só dispara se a carteira estiver com "auto-lembrete"
+    ligado (padrão recomendado: LIGADO para confiança ALTA/MÉDIA).
+  * Confiança BAIXA: aparece na fila para o vendedor decidir o envio.
+  * Cliente com orçamento ENVIADO/VISUALIZADO do mesmo item: não dispara
+    lembrete paralelo — o follow-up é o da aprovação.
+
+----------------------------------------------------------------------------------------------------
+8. STATUS DO CICLO DE REPOSIÇÃO
+----------------------------------------------------------------------------------------------------
+
+  MONITORANDO ........ histórico ativo; D_LEM no futuro
+  LEMBRETE_AGENDADO .. job vai disparar em D_LEM
+  LEMBRETE_ENVIADO ... mensagem disparada; aguardando reação
+  REFORCO_ENVIADO .... segundo toque (único) após silêncio
+  EM_NEGOCIAÇÃO ...... orçamento aberto / link enviado
+  RECOMPRA_FECHADA ... pedido gerado neste ciclo
+  ADIADO ............. cliente/vendedor informou estoque restante; nova D_LEM
+  SILENCIADO ......... opt-out do item ou do cliente
+  ENCERRADO .......... item inativo / cliente inativo / sem recorrência
+
+----------------------------------------------------------------------------------------------------
+9. RESPONSABILIDADES POR PAPEL
+----------------------------------------------------------------------------------------------------
+
+  VENDEDOR (COMERCIAL)
+   * Acompanha o painel semanal; trata confiança BAIXA e silêncios pós-reforço.
+   * Usa a recompra rápida; não remonta planilha "por fora".
+   * Atualiza "cliente ainda tem estoque" quando souber — melhora o motor.
+   * Não importa o lembrete: aprovação continua só pelo link.
+
+  PCP / PRODUÇÃO
+   * Não muda: só produz com aceite + situação financeira ok.
+   * Benefício indireto: menos pedidos "para ontem" por ruptura no cliente.
+
+  FINANCEIRO
+   * Inalterado na conversão (crédito / adiantamento).
+   * Lembrete de reposição NÃO é cobrança financeira (não misturar com boleto).
+
+  DIREÇÃO / COMERCIAL GESTOR
+   * Define M_SEG padrão, se auto-lembrete nasce ligado, e meta de taxa de
+     resposta/conversão dos lembretes.
+   * Revisa mensalmente: rupturas evitadas, conversão do lembrete, opt-outs.
+
+  TI / ADMIN ERP
+   * Job diário de cálculo e disparo; templates de mensagem; integração
+     WhatsApp Business API; logs e LGPD (base legal / opt-out).
+
+----------------------------------------------------------------------------------------------------
+10. EXCEÇÕES E CASOS PRÁTICOS
+----------------------------------------------------------------------------------------------------
+
+  a) CLIENTE COMPRA O MESMO ITEM EM INTERVALOS MUITO IRREGULARES
+     Motor marca confiança BAIXA; só entra na fila do vendedor. Alternativa:
+     cadastrar consumo informado pelo cliente (ex.: "lote mensal fixo").
+
+  b) CLIENTE PEDIU QUANTIDADE MUITO MAIOR QUE O HABITUAL (PICO)
+     Intervalo seguinte tende a alongar. O ERP pode ponderar pela quantidade
+     (Q_ULT alta → empurrar D_NEC) ou pedir confirmação do vendedor.
+
+  c) CLIENTE JÁ ABRIU ORÇAMENTO ANTES DO LEMBRETE
+     Cancela o disparo automático daquele ciclo; status EM_NEGOCIAÇÃO.
+
+  d) PRODUTO COM FACA DO CLIENTE (FERRAMENTAL PRÓPRIO)
+     Recompra é ainda mais natural — lembrete destaca "sua faca F-xxx".
+     Matriz NÃO entra de novo no preço (regra do 1º pedido).
+
+  e) CLIENTE PEDIU PARA NÃO SER AVISADO
+     Opt-out por item ou global; vendedor ainda pode ligar manualmente, mas
+     o ERP não dispara mensagem automática.
+
+  f) CAMPANHA OU PREÇO ESPECIAL NO CICLO ANTERIOR
+     Recompra SEMPRE recalcula com tabela vigente. Se houver condição comercial
+     vigente no cadastro do cliente, ela aparece no orçamento — não no texto
+     do lembrete.
+
+  g) VÁRIOS ITENS DO MESMO CLIENTE COM D_LEM PRÓXIMAS
+     Preferir UM lembrete consolidado ("itens A, B e C") em vez de 3 mensagens
+     no mesmo dia — menos ruído, mais profissional.
+
+----------------------------------------------------------------------------------------------------
+11. INDICADORES SUGERIDOS (para a direção)
+----------------------------------------------------------------------------------------------------
+
+  * % de clientes/itens com reposição assistida ativa
+  * Taxa de abertura / resposta ao lembrete
+  * Taxa de conversão lembrete → orçamento → pedido
+  * Antecedência média entre lembrete e ruptura estimada
+  * Pedidos classificados como "urgência por falta no cliente" (deve CAIR)
+  * Opt-outs (se subir demais, revisar tom/frequência)
+
+----------------------------------------------------------------------------------------------------
+12. IMPLANTAÇÃO SUGERIDA (em ondas)
+----------------------------------------------------------------------------------------------------
+
+  1. Liberar o painel "Reposições da semana" só para o comercial (sem disparo
+     automático) — 2 a 4 semanas calibrando I_MED e M_SEG.
+  2. Ativar auto-lembrete apenas para confiança ALTA + carteira piloto.
+  3. Padronizar templates WhatsApp/e-mail com a identidade da RLP.
+  4. Treinar o discurso: "o sistema avisa para você não ficar sem etiqueta;
+     a proposta e a aprovação continuam no link, como sempre".
+  5. Expandir para toda a base; medir indicadores da seção 11.
+
+----------------------------------------------------------------------------------------------------
+13. CHECKLIST RÁPIDO
+----------------------------------------------------------------------------------------------------
+
+  CONFIGURAÇÃO
+   1. Contato oficial de compras cadastrado e autorizado?
+   2. Item-chave estável (faca + papel + acabamento)?
+   3. Há histórico suficiente ou flag "reposição assistida"?
+   4. Cliente sem opt-out?
+
+  ANTES DO DISPARO
+   5. D_LEM coerente (produção + margem de segurança)?
+   6. Já existe orçamento/pedido aberto do mesmo item? (se sim, não disparar)
+   7. Confiança BAIXA passou pelo vendedor?
+
+  DEPOIS DA RESPOSTA
+   8. Recompra rápida aberta com especificação correta?
+   9. Preço/prazo RECALCULADOS (não copiados)?
+  10. Aprovação pelo link + crédito/adiantamento seguidos?
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Intervalos, margens
+de segurança (M_SEG), número de reforços e textos de mensagem são SUGESTÕES
+iniciais a calibrar com a direção comercial. O lembrete de reposição é ferramenta
+de relacionamento e prevenção de ruptura no cliente — NÃO substitui orçamento,
+aprovação pelo link nem verificação de crédito. O envio por WhatsApp deve usar a
+API oficial (conta business verificada). Tratamento de contatos e opt-out observa
+a LGPD. Estimativas de consumo são estatísticas com margem de erro; a operação
+deve tratar confiança BAIXA com acompanhamento humano. Nem todo ERP de PME possui
+motor de reposição nativo — nesse caso, aplicar o painel manual da seção 7
+(vendedor dispara a partir da fila) até a automação existir.
+====================================================================================================

@@ -1,0 +1,197 @@
+====================================================================================================
+PRODUÇÃO OPERACIONAL E GERENCIAL — PADRÃO ÚNICO DO NOVO ERP (SEM CRIAR OUTRO SISTEMA)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_PEDIDO.txt + CONTROLE_ESTOQUE_PROFISSIONAL.txt + TRATAMENTO_SOBRA_BOBINA_RETALHO.txt +
+      GERACAO_ORCAMENTO.txt + CADASTRO_PRODUTOS_VENDA.txt + ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt +
+      CODIFICACAO_INFORMACOES_SISTEMA.txt + CONCLUSAO_PRODUCAO.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO A PRODUÇÃO FUNCIONA no ERP em duas camadas no
+MESMO módulo:
+
+  * CAMADA PROFISSIONAL (chão de fábrica): OP, requisição, apontamento,
+    máquina, sobra, refugo, PA.
+  * CAMADA GERENCIAL (PCP / direção): fila, prazo, OEE simples, custo real
+    × orçado, gargalos — visão e decisão, não um segundo software.
+
+Regra de ouro:
+  NÃO CRIAR "SISTEMA DE PCP", "APP DA FÁBRICA" OU PLANILHA MESTRA AO LADO.
+  Tudo o que produção precisa é tela/filtro/relatório do ERP, sobre OP/OS
+  ligadas ao PED. Integração futura com coletor/tablet usa a MESMA API.
+
+----------------------------------------------------------------------------------------------------
+1. VISÃO DO FLUXO (único)
+----------------------------------------------------------------------------------------------------
+
+  PED LIBERADO
+     → PCP/produção abre OP (ou sistema sugere 1 OP por item)
+     → reserva/empenho de materiais (BOM / ficha do item)
+     → requisição almox → máquina
+     → apontamento (bom, refugo, sobra)
+     → conclusão → entrada de PA + custo real
+     → item do PED = PRODUZIDO → faturamento / expedição
+
+Paralelo para serviço: OS (ORDEM_SERVICO.txt), mesmo painel com filtro.
+
+----------------------------------------------------------------------------------------------------
+2. ORDEM DE PRODUÇÃO (OP) — NÚCLEO PROFISSIONAL
+----------------------------------------------------------------------------------------------------
+
+2.1. Codificação
+  id BIGINT + OP-AAAA-NNNNN
+  FK ped_id, ped_item_id (CODIFICACAO seções 5 e 8.3)
+
+2.2. Abertura
+  * Só a partir de PED LIBERADO (crédito/sinal ok)
+  * Herda especificação do item (papel, faca FAC-*, cores, acabamento,
+    qtde, etiq/rolo) — não redigitar
+  * Monta necessidade de materiais:
+      - pela ficha técnica/BOM do modelo, OU
+      - pelos componentes do orçamento (snapshot) convertidos em SKU
+  * Reserva quantidade no almox (empenho). Sem saldo: alerta de compra /
+    retalho — não "fabricar no negativo" sem alçada
+
+2.3. Status OP
+  PLANEJADA | EMPENHADA | EM_SETUP | EM_PRODUCAO | PAUSADA |
+  AGUARDA_INSUMO | CONCLUIDA | CANCELADA
+
+2.4. Requisição e chão
+  * MOV de saída MP/EMB → OP (lote identificado)
+  * Operador aponta: qtde boa, refugo, metros/kg reais
+  * Sobra de bobina: retorno obrigatório (TRATAMENTO_SOBRA_...)
+  * Perda/apara: motivo cadastrado (compõe custo e KPI)
+
+2.5. Máquina / posto
+  Cadastro simples no ERP (código, tipo, status ativo).
+  OP pode ter maquina_id. Não precisa MES completo na Fase 1:
+  apontamento manual ou tablet bastam.
+
+2.6. Quem opera
+  Perfil PRODUCAO: criar OP (se permitido), apontar, requisitar, devolver
+  sobra. SEM ver preço de venda/margem do pedido.
+  Almox (COMPRAS ou PRODUCAO conforme perfil): libera material.
+
+----------------------------------------------------------------------------------------------------
+3. CAMADA GERENCIAL (cuidado: é visão, não outro sistema)
+----------------------------------------------------------------------------------------------------
+
+O gestor NÃO troca de software. Usa o mesmo ERP com painel "Produção /
+PCP" contendo:
+
+  A) FILA DE PEDIDOS LIBERADOS
+     prazo prometido, dias restantes, faca pronta?, material ok?,
+     prioridade (FIFO + urgência autorizada)
+
+  B) CAPACIDADE SIMPLIFICADA
+     horas disponíveis por máquina/semana (parâmetro) × carga das OPs
+     planejadas. Alerta de sobrecarga — sem APS caro na Fase 1.
+
+  C) ANDAMENTO
+     % apontado por OP, pausas, motivo de atraso vs prazo do PED
+
+  D) CUSTO REAL × ORÇADO (só perfis com permissão de custo)
+     material consumido + perda vs snapshot do orçamento
+     (GORDURA_ORCAMENTO_... e MOBILIDADE_... já preveem pós-produção)
+
+  E) KPIs MENSAIS (mesmos indicadores, um lugar)
+     * OTIF (no prazo e completo)
+     * % perda real × perda padrão
+     * lead time médio PED liberado → OP concluída
+     * retrabalho / 2ª passagem
+     * ocupação por máquina (se houver apontamento de tempo)
+
+Proibido:
+  * Exportar "planilha oficial de PCP" que vira a verdade
+  * Kanban físico sem espelho no sistema (quadro pode existir, status
+    mestre é o ERP)
+  * WhatsApp de produção como fila oficial
+
+----------------------------------------------------------------------------------------------------
+4. PLANEJAMENTO MÍNIMO VIÁVEL (PCP no ERP)
+----------------------------------------------------------------------------------------------------
+
+Fase 1 (implantar já):
+  * Lista priorizada de OPs
+  * Data desejada de conclusão = prazo PED − folga expedição
+  * Checklist: faca FAC-* disponível? clichê? material empenhado?
+  * Sequenciamento manual (arrastar ordem / campo prioridade)
+
+Fase 2 (sem novo produto):
+  * Sugestão automática de sequência por setup similar (mesmo papel/
+    tinta) — regra simples no ERP
+  * Integração coletor de chão
+
+Nunca na escopo deste ERP como "sistema paralelo":
+  APS avançado, Manutenção 4.0 completa, CLP — só se um dia integrar
+  via API ao MESMO ped_id/op_id.
+
+----------------------------------------------------------------------------------------------------
+5. RELAÇÃO COM ESTOQUE E CUSTO
+----------------------------------------------------------------------------------------------------
+
+  * Empenho / requisição / retorno / PA: ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt
+  * Custo médio MP + apontamento → custo do PA na conclusão
+  * Bloco K futuro: OP é o documento de ligação — já nascer certo
+
+Produção não "acaba" estoque por planilha lateral.
+
+----------------------------------------------------------------------------------------------------
+6. QUALIDADE (mínimo embutido)
+----------------------------------------------------------------------------------------------------
+
+Na conclusão (detalhe em CONCLUSAO_PRODUCAO.txt):
+  * Checklist rápido: medida, adesão, registro, refile, embálage
+  * Qtde aprovada CQ × qtde apontada
+  * Se reprova: status PAUSADA/RETRABALHO, sem liberar expedição
+
+Não criar módulo QMS ISO completo agora — só trava operacional.
+
+----------------------------------------------------------------------------------------------------
+7. COMUNICAÇÃO COM COMERCIAL E EXPEDIÇÃO
+----------------------------------------------------------------------------------------------------
+
+Eventos do ERP (notificação interna):
+  * OP concluída → comercial/expedição
+  * Atraso previsto (prazo PED em risco) → comercial avisa cliente
+  * Falta de material → compras
+
+Cliente final NÃO recebe status de máquina — recebe prazo do PED /
+entrega (ENTREGA_CONFIRMACAO_CLIENTE.txt).
+
+----------------------------------------------------------------------------------------------------
+8. SEGREGAÇÃO E AUDITORIA
+----------------------------------------------------------------------------------------------------
+
+  * Quem aponta não altera preço
+  * Quem vê margem (gerência) pode não ser o mesmo que baixa estoque
+  * Todo movimento: usuario_id + timestamp
+  (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt)
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST DE ACEITE
+----------------------------------------------------------------------------------------------------
+
+  [ ] OP só de PED LIBERADO
+  [ ] Empenho + requisição + sobra + PA no mesmo motor de estoque
+  [ ] Painel gerencial = telas do ERP (não app/planilha mestre)
+  [ ] KPIs únicos compartilhados com direção
+  [ ] Perfil PRODUCAO sem custo/preço de venda
+  [ ] OS e OP na mesma fila com filtro de tipo
+  [ ] Conclusão formal antes de faturar/expedir PA sob encomenda
+
+----------------------------------------------------------------------------------------------------
+10. DOCUMENTOS IRMÃOS
+----------------------------------------------------------------------------------------------------
+
+  Pedido ............. GERACAO_PEDIDO.txt
+  Serviço ............ ORDEM_SERVICO.txt
+  Estoque ............ ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt + CONTROLE_...
+  Sobra .............. TRATAMENTO_SOBRA_BOBINA_RETALHO.txt
+  Conclusão .......... CONCLUSAO_PRODUCAO.txt
+  Faturamento ........ FATURAMENTO_GERACAO_COBRANCA.txt
+
+====================================================================================================
+Fim — PRODUCAO_OPERACIONAL_GERENCIAL.txt
+Uma produção, duas leituras (chão e gestão), um só sistema.
+====================================================================================================

@@ -1,0 +1,183 @@
+====================================================================================================
+VERIFICAÇÃO DE ENDEREÇO DOS FORNECEDORES — NF-e x CARTÃO CNPJ (RECEITA FEDERAL)
+Empresa destinatária: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: XMLs da pasta notas_compras (10 NF-e, abril/2026) + consulta ao cadastro CNPJ da RFB
+Gerado em: 31/07/2026
+====================================================================================================
+
+REGRA VERIFICADA: o endereço do EMITENTE informado na NF-e (grupo <enderEmit>) deve estar
+igual ao endereço registrado no CARTÃO CNPJ do fornecedor na Receita Federal.
+
+Endereço divergente pode indicar: cadastro desatualizado do fornecedor, emissão por
+estabelecimento (filial) diferente do cadastrado, ou nota emitida por terceiros — situações
+que comprometem a idoneidade documental e o aproveitamento de créditos no Lucro Real.
+
+----------------------------------------------------------------------------------------------------
+1. METODOLOGIA
+----------------------------------------------------------------------------------------------------
+
+ 1. Extração do endereço do emitente de cada XML (campos xLgr, nro, xCpl, xBairro, xMun, UF, CEP).
+ 2. Consulta do CNPJ do emitente na base pública da Receita Federal (cadastro CNPJ),
+    obtendo logradouro, número, complemento, bairro, município, UF, CEP e situação cadastral.
+ 3. Comparação campo a campo, desconsiderando diferenças apenas de:
+      * abreviação do tipo de logradouro (AV x AVENIDA, R x RUA, ROD x RODOVIA);
+      * caixa alta/baixa e acentuação.
+ 4. Classificação:
+      CONFERE ............. todos os campos equivalentes
+      CONFERE C/ RESSALVA . mesmo local, com diferença de grafia/abreviação relevante
+      DIVERGENTE .......... campo(s) materialmente diferente(s) — exige providência
+
+----------------------------------------------------------------------------------------------------
+2. RESULTADO POR FORNECEDOR
+----------------------------------------------------------------------------------------------------
+
+...................................................................................................
+2.1 ARMOR BRASIL — CNPJ 08.979.043/0001-72 — NF 12890 (29/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                        | Cartão CNPJ (RFB)           | Status
+  -------------|-----------------------------|-----------------------------|--------
+  Logradouro   | AV TORQUATO TAPAJOS         | AVENIDA TORQUATO TAPAJOS    | OK
+  Número       | 8656                        | 8656                        | OK
+  Complemento  | (vazio)                     | (vazio)                     | OK
+  Bairro       | COLONIA TERRA NOVA          | COLONIA TERRA NOVA          | OK
+  Município/UF | MANAUS / AM                 | MANAUS / AM                 | OK
+  CEP          | 69093-415                   | 69093-415                   | OK
+
+  RESULTADO: CONFERE.
+  OBS: razão social abreviada na NF ("ARMOR BRASIL IND. COM. FITAS P/IMP LTDA." x
+  "ARMOR BRASIL INDUSTRIA E COMERCIO DE FITAS PARA IMPRESSAO LTDA") — mesma empresa,
+  sem impacto.
+
+...................................................................................................
+2.2 TODAYTEC — CNPJ 21.309.396/0001-23 — NF 33062 (28/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                        | Cartão CNPJ (RFB)           | Status
+  -------------|-----------------------------|-----------------------------|--------
+  Logradouro   | RUA ACARA                   | RUA ACARA                   | OK
+  Número       | 200                         | 200                         | OK
+  Complemento  | BLOCO 2-B                   | BLOCO T                     | DIFERE
+  Bairro       | DISTRITO INDUSTRIAL         | DISTRITO INDUSTRIAL I       | DIFERE
+  Município/UF | MANAUS / AM                 | MANAUS / AM                 | OK
+  CEP          | 69075-030                   | 69075-030                   | OK
+
+  RESULTADO: DIVERGENTE (complemento e bairro).
+  Logradouro, número, município e CEP coincidem — tudo indica o MESMO endereço físico,
+  com o complemento desatualizado em uma das bases (BLOCO 2-B x BLOCO T).
+  PROVIDÊNCIA: solicitar ao fornecedor a confirmação do bloco correto e a atualização
+  (do cadastro na RFB ou do cadastro no emissor de NF-e), documentando a resposta.
+
+...................................................................................................
+2.3 CAMALLON — CNPJ 02.744.462/0001-49 — NF 45962 (08/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                            | Cartão CNPJ (RFB)               | Status
+  -------------|---------------------------------|---------------------------------|--------
+  Logradouro   | AV. WINSTON DA SILVA            | AVENIDA WINSTON DA SILVA        | OK
+  Número       | 535                             | 535                             | OK
+  Complemento  | (vazio)                         | (vazio)                         | OK
+  Bairro       | DISTRITO INDUSTRIAL BANDEIRINHAS| DISTRITO INDUSTRIAL BANDEIRINHAS| OK
+  Município/UF | BETIM / MG                      | BETIM / MG                      | OK
+  CEP          | 32654-806                       | 32654-806                       | OK
+
+  RESULTADO: CONFERE.
+
+...................................................................................................
+2.4 FEDRIGONI — CNPJ 34.661.762/0001-50 — NFs 91055 e 91056 (09/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                        | Cartão CNPJ (RFB)           | Status
+  -------------|-----------------------------|-----------------------------|--------
+  Logradouro   | R ANTONIO OVIDIO RODRIGUES  | RUA ANTONIO OVIDIO RODRIGUES| OK
+  Número       | 105                         | 85/105                      | PARCIAL
+  Complemento  | (vazio)                     | (vazio)                     | OK
+  Bairro       | PARQUE INDUSTRIAL III       | PARQUE INDUSTRIAL III       | OK
+  Município/UF | JUNDIAI / SP                | JUNDIAI / SP                | OK
+  CEP          | 13213-180                   | 13213-180                   | OK
+
+  RESULTADO: CONFERE COM RESSALVA.
+  O cartão CNPJ registra "85/105" (imóvel com dupla numeração) e a NF usa apenas "105" —
+  mesmo endereço físico. Sem providência obrigatória; registrar a justificativa.
+
+...................................................................................................
+2.5 AVERY DENNISON — CNPJ 43.999.630/0001-24 — NFs 866545 (03/04) e 867545 (11/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                                 | Cartão CNPJ (RFB)                    | Status
+  -------------|--------------------------------------|--------------------------------------|--------
+  Logradouro   | ROD MIGUEL MELHADO CAMPOS            | RODOVIA MIGUEL MELHADO CAMPOS        | OK
+  Número       | S/N                                  | S/N                                  | OK
+  Complemento  | KM 77                                | KM 77                                | OK
+  Bairro       | DISTRITO INDUSTRIAL BENEDITO STORANI | DISTRITO INDUSTRIAL BENEDITO STORANI | OK
+  Município/UF | VINHEDO / SP                         | VINHEDO / SP                         | OK
+  CEP          | 13288-003                            | 13288-003                            | OK
+
+  RESULTADO: CONFERE.
+
+...................................................................................................
+2.6 AUTO ADESIVOS PARANÁ (Colacril) — CNPJ 03.514.129/0001-06
+    NFs 576445 (04/04), 577305 e 577306 (10/04/2026)
+    Situação cadastral RFB: ATIVA
+...................................................................................................
+  Campo        | NF-e                        | Cartão CNPJ (RFB)           | Status
+  -------------|-----------------------------|-----------------------------|--------
+  Logradouro   | AV PRES JOHN KENEDY         | AVENIDA JOHN F. KENNEDY     | GRAFIA
+  Número       | 2427                        | 2427                        | OK
+  Complemento  | (vazio)                     | (vazio)                     | OK
+  Bairro       | JARDIM LAR PARANA           | JD LAR PARANA               | OK
+  Município/UF | CAMPO MOURAO / PR           | CAMPO MOURAO / PR           | OK
+  CEP          | 87306-000                   | 87306-000                   | OK
+
+  RESULTADO: CONFERE COM RESSALVA.
+  Trata-se da mesma avenida — a NF grafa "PRES JOHN KENEDY" (com erro de grafia e o
+  tratamento "Presidente") e a RFB registra "JOHN F. KENNEDY". Número, bairro, município
+  e CEP idênticos. Sugerir ao fornecedor padronizar a grafia no emissor.
+  ATENÇÃO (já apontada em REVISAO_ICMS_ST.txt): a NF 577306 tem como DESTINATÁRIO
+  "ADESIVOS ETIQUETAS E ROTULOS UDI LTDA" — a divergência ali é de titularidade do
+  destinatário, não do endereço do emitente.
+
+----------------------------------------------------------------------------------------------------
+3. QUADRO-RESUMO
+----------------------------------------------------------------------------------------------------
+
+  NF      | Fornecedor            | UF | Resultado da verificação de endereço
+  --------|-----------------------|----|--------------------------------------------------
+  12890   | ARMOR BRASIL          | AM | CONFERE
+  33062   | TODAYTEC              | AM | DIVERGENTE (complemento e bairro) — ver 2.2
+  45962   | CAMALLON              | MG | CONFERE
+  91055   | FEDRIGONI             | SP | CONFERE C/ RESSALVA (número 105 x 85/105)
+  91056   | FEDRIGONI             | SP | CONFERE C/ RESSALVA (número 105 x 85/105)
+  866545  | AVERY DENNISON        | SP | CONFERE
+  867545  | AVERY DENNISON        | SP | CONFERE
+  576445  | AUTO ADES. PARANÁ     | PR | CONFERE C/ RESSALVA (grafia do logradouro)
+  577305  | AUTO ADES. PARANÁ     | PR | CONFERE C/ RESSALVA (grafia do logradouro)
+  577306  | AUTO ADES. PARANÁ     | PR | CONFERE C/ RESSALVA (grafia) + destinatário divergente
+
+  Totais: 10 notas | 4 CONFEREM | 5 CONFEREM C/ RESSALVA | 1 DIVERGENTE
+  Situação cadastral na RFB: todos os 6 fornecedores ATIVOS.
+
+----------------------------------------------------------------------------------------------------
+4. PROVIDÊNCIAS
+----------------------------------------------------------------------------------------------------
+
+ 1. TODAYTEC (NF 33062): pedir confirmação formal do endereço (BLOCO 2-B x BLOCO T /
+    DISTRITO INDUSTRIAL x DISTRITO INDUSTRIAL I) e a correção do cadastro divergente.
+ 2. NF 577306: resolver a titularidade do destinatário (ADESIVOS UDI) antes de
+    escriturar — pendência já registrada nas revisões de ST e de cadastro de produtos.
+ 3. Incorporar esta checagem à rotina de entrada de notas no novo ERP (Fase 2 da
+    estratégia de implantação): ao importar o XML pela Focus NFe, comparar o <enderEmit>
+    com o endereço do fornecedor no cadastro interno (mantido sincronizado com o cartão
+    CNPJ) e bloquear/alertar em caso de divergência material.
+ 4. Revalidar os endereços a cada novo fornecedor e, para os atuais, ao menos 1x por ano
+    ou quando houver alteração cadastral comunicada.
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial. A comparação usou os dados públicos do cadastro CNPJ da
+Receita Federal na data de geração; recomenda-se conferir o comprovante de inscrição
+(cartão CNPJ) oficial em https://solucoes.receita.fazenda.gov.br antes de formalizar
+qualquer cobrança ao fornecedor. Divergências de endereço do emitente devem ser
+avaliadas pelo contador responsável quanto ao impacto na escrituração e nos créditos.
+====================================================================================================

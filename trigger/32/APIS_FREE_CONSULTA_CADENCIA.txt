@@ -1,0 +1,452 @@
+======================================================================
+     APIS FREE DE CONSULTA PUBLICA - POSSIBILIDADES E CADENCIA
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+======================================================================
+
+Este documento explica COMO o novo ERP deve usar APIs publicas
+gratuitas para enriquecer e validar cadastros (parceiros, produtos,
+enderecos, codigos fiscais), quais consultas sao possiveis, e como
+CADENCIAR as requisicoes para nao estourar limites, nao abusar de
+servicos comunitarios e nao deixar a tela do usuario travada.
+
+Principio em uma frase:
+
+  CONSULTAR NA HORA DO USO (evento humano), CACHEAR O RESULTADO,
+  REVALIDAR COM BAIXA FREQUENCIA — NUNCA FAZER CRAWLING EM LOOP.
+
+Ele complementa:
+  * CADASTRO_PARCEIROS.txt ............. CNPJ, IE, endereco, IBGE
+  * VERIFICACAO_ENDERECO_FORNECEDOR.txt  confrontar NF-e x cartao CNPJ
+  * ORCAMENTO_PROSPECT_SEM_CADASTRO.txt  completar cadastro sob demanda
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt .. NCM / CEST / CFOP no produto
+  * VERIFICACAO_IMPOSTO_ORCAMENTO.txt .. perfil fiscal por NCM/UF/CFOP
+  * LISTAGEM_NCM.txt / LISTAGEM_NCM_NFE_VENDA.txt
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt (tokens Focus NFe etc.)
+
+======================================================================
+1. POR QUE USAR API FREE (E O QUE ELA NAO SUBSTITUI)
+======================================================================
+
+1.1. O ERP precisa de dados publicos brasileiros em varios pontos:
+     razao social e situacao do CNPJ, endereco por CEP, codigo IBGE
+     do municipio (obrigatorio na NF-e), descricao de NCM, CEST,
+     CFOP, CNAE, bancos (PIX/boleto), feriados (prazo), etc.
+
+1.2. APIs free resolvem o "preencher e validar" sem custo de
+     assinatura. Elas NAO substituem:
+       * Contabilidade / classificacao fiscal definitiva
+       * Emissor de NF-e pago (Focus NFe ou equivalente)
+       * Consulta oficial com valor juridico (ex.: certidao)
+       * SINTEGRA / SEFAZ para IE em tempo real (quando exigido)
+
+1.3. Regra de ouro: dado externo e SUGESTAO preenchida na tela.
+     O usuario (ou o papel FISCAL) confirma. O ERP grava snapshot
+     da consulta (fonte, data/hora, payload resumido) para auditoria.
+
+======================================================================
+2. MAPA DAS CONSULTAS QUE O ERP PRECISA
+======================================================================
+
+  Dominio     | Quando dispara no ERP              | Campo(s) preenchidos
+  ----------- | ---------------------------------- | ----------------------
+  CNPJ        | Cadastro / completar prospect /    | Razao social, fantasia,
+              | importacao XML fornecedor          | situacao, CNAE, endereco
+              |                                    | sede, porte, abertura
+  CEP         | Digitar CEP em endereco            | Logradouro, bairro,
+              |                                    | municipio, UF, IBGE
+  IBGE        | Combo UF -> municipio; validacao   | Codigo municipio 7 dig.
+              | NF-e / NFS-e                       |
+  NCM         | Cadastro produto; conferencia XML  | Descricao, vigencia
+  CEST        | Produto sujeito a ICMS-ST          | CEST vinculado ao NCM
+  CFOP        | Natureza de operacao / sugestao    | Codigo + descricao
+              | entrada/saida                      |
+  CNAE        | Parceiro PJ (atividade)            | Codigo + descricao
+  Bancos/PIX  | Conta bancaria do parceiro         | Nome banco, ISPB
+  Feriados    | Prazo de entrega / vencimento      | Datas nacionais
+  DDD         | Validar telefone / regiao          | UF + cidades
+  Taxas       | Referencia (SELIC etc.) — opcional | Indices oficiais
+
+Outras tabelas uteis (nao sao "API de pessoa", sao TABELAS):
+  * TIPI (aliquota IPI por NCM)
+  * TEC (imposto de importacao por NCM)
+  * CST / CSOSN / cBenef (emissao NF-e)
+  * Tabela de municipios IBGE completa (carga unica)
+
+======================================================================
+3. CATALOGO DE APIS FREE RECOMENDADAS (POR DOMINIO)
+======================================================================
+
+----------------------------------------------------------------------
+3.1. CNPJ (empresa na Receita Federal)
+----------------------------------------------------------------------
+
+  Fonte primaria sugerida: BrasilAPI
+    GET https://brasilapi.com.br/api/cnpj/v1/{cnpj}
+    Auth: nenhuma | Custo: free | Base: dados publicos RFB
+
+  Alternativas / fallback:
+    * OpenCNPJ ........ API free + downloads em massa (bom p/ lote)
+    * ReceitaWS ....... free com limite tipico ~3 req/min
+    * CNPJ.ws ......... free com limite tipico ~3 req/min
+    * Minha Receita ... base open (usada por varias APIs agregadoras)
+
+  Retorno tipico util ao ERP:
+    razao_social, nome_fantasia, situacao_cadastral, data_abertura,
+    cnae_fiscal, cnaes_secundarios, logradouro, numero, complemento,
+    bairro, municipio, uf, cep, capital_social, qsa (socios — se
+    a fonte devolver).
+
+  Uso no ERP (ver CADASTRO_PARCEIROS + VERIFICACAO_ENDERECO):
+    * Ao informar CNPJ: preencher razao social e endereco sede
+    * Bloquear CNPJ INVALIDO (digito) ANTES de chamar a API
+    * Comparar endereco NF-e x cartao CNPJ e alertar divergencia
+    * Revalidar situacao cadastral 1x ao ano (ou sob demanda)
+
+----------------------------------------------------------------------
+3.2. CEP (endereco)
+----------------------------------------------------------------------
+
+  Fontes free:
+    * ViaCEP .......... https://viacep.com.br/ws/{cep}/json/
+                        + busca por UF/cidade/logradouro
+    * BrasilAPI CEP v2  https://brasilapi.com.br/api/cep/v2/{cep}
+                        (multiplos providers + geolocalizacao)
+
+  Retorno tipico:
+    cep, logradouro, complemento, bairro, localidade, uf,
+    ibge (codigo municipio), ddd, siafi.
+
+  Uso no ERP:
+    * Ao sair do campo CEP: preencher endereco e codigo IBGE
+    * Usuario ainda edita numero/complemento (API nao sabe o nro)
+    * CEP generico (ex.: so cidade) -> pedir logradouro manual
+
+----------------------------------------------------------------------
+3.3. IBGE (estados e municipios)
+----------------------------------------------------------------------
+
+  Fontes free:
+    * API oficial IBGE (canonica)
+      https://servicodados.ibge.gov.br/api/docs
+      Localidades: UFs, municipios, distritos, malhas
+    * BrasilAPI IBGE
+      GET /api/ibge/uf/v1
+      GET /api/ibge/uf/v1/{code}
+      GET /api/ibge/municipios/v1/{siglaUF}
+
+  Uso no ERP:
+    * CARGA UNICA (ou mensal) da tabela de municipios no banco
+      local — NAO consultar IBGE a cada keystroke do combo
+    * Na NF-e o campo cMun / cMunFG usa o codigo IBGE de 7 digitos
+    * ViaCEP/BrasilAPI ja devolvem ibge no CEP; validar contra
+      a tabela local
+
+----------------------------------------------------------------------
+3.4. NCM (classificacao de mercadoria)
+----------------------------------------------------------------------
+
+  Fontes free:
+    * Download oficial Siscomex/Classif (preferido p/ carga):
+      https://portalunico.siscomex.gov.br/classif/api/publico/nomenclatura/download/json
+    * BrasilAPI NCM:
+      GET /api/ncm/v1
+      GET /api/ncm/v1/{codigo}
+      GET /api/ncm/v1?search={termo}
+    * Tabelas Fiscais (hub NCM/CEST/CFOP/CNAE/TIPI/TEC):
+      https://tabelasfiscais.com.br/api  (~60 req/min/IP no free)
+    * Buscador NCM (consulta humana / conferencia):
+      https://buscadorncm.com.br/
+
+  Uso no ERP:
+    * Importar tabela NCM vigente para o banco (carga batch)
+    * Na tela: autocomplete local; API so para refresh/atualizacao
+    * Conferir NCM do XML de compra com o cadastro do produto
+      (ver CONTROLE_ESTOQUE_PROFISSIONAL.txt)
+
+----------------------------------------------------------------------
+3.5. CFOP, CEST, CNAE, TIPI, CST/CSOSN
+----------------------------------------------------------------------
+
+  Estas tabelas mudam POUCO e sao pequenas o bastante para viver
+  DENTRO do ERP (nao depender de API a cada orcamento/NF).
+
+  Fontes free para carga / atualizacao:
+    * Tabelas Fiscais ........ NCM, CEST, CFOP, CNAE (+ TIPI/TEC)
+    * Portal da NF-e ......... tabelas oficiais / schemas
+    * Buscador NCM ........... conferencia cruzada NCM x CEST x CFOP
+    * Download NCM Siscomex .. base oficial de nomenclatura
+
+  Uso no ERP:
+    * CFOP padrao por natureza de operacao (entrada/saida,
+      interna/interestadual, industrializacao x revenda) —
+      ver VERIFICACAO_IMPOSTO_ORCAMENTO.txt (5101/5102 etc.)
+    * CEST so quando o NCM estiver no convenio de ST
+    * CNAE vem do retorno do CNPJ; validar descricao na tabela
+      local se quiser exibir texto amigavel
+
+----------------------------------------------------------------------
+3.6. OUTRAS APIS FREE UTEIS (AS QUE "NAO LEMBRAVA")
+----------------------------------------------------------------------
+
+  Dominio        | Fonte free tipica              | Uso no ERP
+  -------------- | ------------------------------ | --------------------------
+  Bancos         | BrasilAPI /banks/v1            | Cadastro de conta / boleto
+  Participantes  | BrasilAPI /pix/v1/participants | Chave PIX / ISPB
+  PIX            |                                |
+  Feriados       | BrasilAPI /feriados/v1/{ano}   | Prazo entrega / vencimento
+  DDD            | BrasilAPI /ddd/v1/{ddd}        | Validar telefone
+  Taxas (SELIC,  | BrasilAPI /taxas/v1            | Referencia financeira
+  CDI, IPCA)     |                                | (opcional)
+  Cambio         | BrasilAPI /cambio/...          | Se houver compra exterior
+  FIPE           | BrasilAPI /fipe/...            | Pouco uso (nao e core)
+  ISBN           | BrasilAPI /isbn/v1/{isbn}      | Irrelevante p/ etiquetas
+  Registro .br   | BrasilAPI /registrobr/v1/{dom} | Irrelevante p/ core
+  Clima CPTEC    | BrasilAPI /cptec/...           | Irrelevante p/ core
+  Corretoras/CVM | BrasilAPI                      | Irrelevante p/ core
+
+  Foco do ERP da RLP: CNPJ + CEP + IBGE + NCM + CEST + CFOP +
+  CNAE + Bancos/PIX + Feriados. O resto e opcional.
+
+----------------------------------------------------------------------
+3.7. O QUE NAO E "API FREE" MAS ENTRA NO MESMO FLUXO
+----------------------------------------------------------------------
+
+  * Focus NFe (paga) ......... emissao, inutilizacao, XML, eventos
+  * SEFAZ / SVRS ............. autorizacao (via Focus ou proprio)
+  * Consulta IE (SEFAZ/UF) ... pode exigir certificado; nao tratar
+                               como "free sem cadencia"
+  * WhatsApp Business API .... mensageria (ver APROVACAO_ORCAMENTO)
+
+======================================================================
+4. TIPOS DE REQUISICAO (DEFINE A CADENCIA)
+======================================================================
+
+Nem toda consulta e igual. Cadenciar depende do TIPO:
+
+  TIPO A — INTERATIVA (humano na tela)
+    Ex.: usuario digitou CNPJ ou CEP e saiu do campo.
+    Volume: baixo (dezenas/dia no inicio; centenas no pico).
+    Cadencia: 1 req por evento; debounce 400–800 ms; cache 24h+.
+
+  TIPO B — LOTE CONTROLADO (job agendado)
+    Ex.: revalidar situacao cadastral de todos os fornecedores ativos
+         1x por ano; atualizar tabela NCM/CEST mensalmente.
+    Volume: dezenas a milhares, mas previsivel.
+    Cadencia: fila com rate limit; lotes de 5–10; pausa entre lotes.
+
+  TIPO C — CARGA DE TABELA (download unico)
+    Ex.: JSON oficial da NCM; lista de municipios IBGE; CSV CFOP.
+    Volume: 1 download; depois tudo e consulta LOCAL.
+    Cadencia: nao e "N requests" — e 1 arquivo + parse.
+
+  TIPO D — PROIBIDO
+    Ex.: varrer CEP 00000000..99999999; varrer CNPJ sequencial;
+         loop sem cache; retry agressivo sem backoff.
+    Motivo: derruba API comunitaria e pode banir o IP.
+
+======================================================================
+5. LIMITES CONHECIDOS E CADENCIA RECOMENDADA
+======================================================================
+
+  Servico              | Limite pratico (free)     | Cadencia sugerida no ERP
+  -------------------- | ------------------------- | ---------------------------
+  BrasilAPI            | Sem cota documentada;     | Interativo: livre c/ cache
+                       | PEDIDO: nao fazer crawling| Lote: 5–10 req, pausa 2–5s
+                       | nem full scan             | Nunca loop de faixa
+  ViaCEP               | Free; evitar abuso        | Interativo + cache 7–30 dias
+  ReceitaWS / CNPJ.ws  | ~3 req/min (free)         | Max 1 req a cada 20s;
+                       |                           | fila obrigatoria em lote
+  Tabelas Fiscais API  | ~60 req/min/IP            | Preferir download CSV/JSON;
+                       |                           | API so p/ busca pontual
+  IBGE servicodados    | Free oficial              | Carga periodica local;
+                       |                           | zero chamada no request HTTP
+                       |                           | da tela do usuario
+  Siscomex NCM JSON    | Download da tabela        | 1x na implantacao +
+                       |                           | refresh mensal/sob aviso
+  OpenCNPJ             | API + dataset em massa    | Lote grande: preferir
+                       |                           | download, nao milhares GET
+
+Regra operacional unica do ERP (fila interna):
+
+  * Token bucket global por PROVEDOR (nao por tela)
+  * Default conservador: 1 req/s por provedor "generoso"
+    (BrasilAPI/ViaCEP) e 1 req/20s por provedor "apertado"
+    (ReceitaWS free)
+  * Em HTTP 429 / 503: backoff exponencial (1s, 2s, 4s, 8s),
+    max 5 tentativas; depois marca consulta como FALHA e usa
+    cache antigo se existir
+  * Timeout de rede: 5–8s; nunca segurar a request do browser
+    mais que isso — responder "consulta em andamento" via job
+
+Sugestao pratica (issue BrasilAPI p/ ~5.000 CNPJs):
+  lotes de 10 em paralelo + espera ~3s entre lotes.
+  No ERP da RLP o volume e bem menor; ainda assim usar a fila.
+
+======================================================================
+6. ARQUITETURA DE CONSULTA NO ERP (PADRAO OBRIGATORIO)
+======================================================================
+
+6.1. FLUXO PADRAO (CNPJ / CEP / NCM pontual)
+
+      [Tela] --evento--> [API interna do ERP]
+                              |
+                              +--> cache local HIT? -> devolve
+                              |
+                              +--> enfileira consulta externa
+                              |      (respeita rate limit)
+                              +--> grava cache + log auditoria
+                              +--> devolve preenchimento
+
+6.2. CACHE (o que realmente evita estourar limite)
+
+  Chave              | TTL sugerido        | Observacao
+  ------------------ | ------------------- | --------------------------
+  CNPJ               | 30 dias (cadastro)  | Situacao: revalidar 1x/ano
+                     | 24h (preview tela)  | ou sob botao "atualizar"
+  CEP                | 30–90 dias          | Base muda pouco
+  NCM codigo         | ate proxima carga   | Preferir tabela local
+  IBGE municipio     | ate proxima carga   | Preferir tabela local
+  CFOP/CEST/CNAE     | ate proxima carga   | Preferir tabela local
+  Feriados (ano)     | 1 ano               | Baixar 1x por ano
+  Bancos / PIX       | 7–30 dias           | Lista muda ocasionalmente
+
+6.3. FALLBACK EM CADEIA (exemplo CNPJ)
+
+  1) Cache local
+  2) BrasilAPI
+  3) OpenCNPJ (ou outra free)
+  4) Mensagem: "consulta indisponivel — preencher manual e
+     validar depois"
+
+  Nunca bloquear o cadastro inteiro se a API externa cair.
+  Bloquear so digito verificador invalido (regra local).
+
+6.4. TABELAS LOCAIS (obrigatorias na implantacao)
+
+  Carregar UMA vez e atualizar por job:
+
+    * municipios_ibge (codigo, nome, UF)
+    * ncm (codigo 8 digitos, descricao, vigencia)
+    * cest (codigo, descricao, NCMs vinculados quando houver)
+    * cfop (codigo, descricao, tipo entrada/saida)
+    * cnae (codigo, descricao)
+    * bancos (codigo COMPE, nome, ISPB) — opcional via API banks
+
+  Motivo: 90% das "consultas fiscais" viram SELECT local,
+  sem gastar cota de API free.
+
+6.5. AUDITORIA MINIMA DE CADA CONSULTA EXTERNA
+
+  * provedor, endpoint, chave (CNPJ/CEP/NCM)
+  * status HTTP, tempo ms
+  * hash/resumo do payload (nao precisa guardar JSON inteiro)
+  * usuario e tela que disparou
+  * flag: cache_hit | network | fallback | falha
+
+======================================================================
+7. CADENCIA POR CENARIO DE NEGOCIO (RLP)
+======================================================================
+
+7.1. CADASTRO DE CLIENTE / FORNECEDOR (1 CNPJ)
+     Digito OK -> 1 consulta CNPJ -> preenche razao/endereco
+     -> se CEP informado, 1 consulta CEP (ou usar CEP do CNPJ)
+     -> IBGE vem do CEP ou da tabela local
+     Cadencia: 1–2 req externas. Cache impede repetir no mesmo dia.
+
+7.2. COMPLETAR PROSPECT (ORCAMENTO_PROSPECT_SEM_CADASTRO)
+     So consulta CNPJ quando o prospect INFORMAR o documento.
+     Nao antecipar varredura. Mesma cadencia do 7.1.
+
+7.3. IMPORTACAO DE XML DE COMPRA (Focus)
+     Para cada emitente novo: 1 consulta CNPJ (se nao cacheado)
+     para confrontar endereco (VERIFICACAO_ENDERECO_FORNECEDOR).
+     10 NF-e do mes com 8 fornecedores distintos = no maximo
+     8 consultas — irrelevante se houver cache.
+
+7.4. REVALIDACAO ANUAL DE FORNECEDORES ATIVOS
+     Ex.: 50 CNPJs. Job noturno:
+       fila, 1 req a cada 2–3s (BrasilAPI) OU lotes de 10 + pausa.
+       Tempo total: poucos minutos. Gravar divergencias para
+       o papel FISCAL revisar.
+
+7.5. ATUALIZACAO MENSAL DE NCM / CEST / CFOP
+     Preferir DOWNLOAD (Siscomex / CSV Tabelas Fiscais), nao
+     milhares de GETs. Diff contra a tabela local; logar
+     codigos criados/extintos.
+
+7.6. DIGITACAO DE CEP NO ENDERECO DE ENTREGA
+     Debounce no blur do campo. Cache por CEP. Se ViaCEP falhar,
+     tentar BrasilAPI CEP v2; se ambos falharem, endereco manual
+     + municipio escolhido na tabela IBGE local.
+
+======================================================================
+8. O QUE NUNCA FAZER
+======================================================================
+
+  [ ] Loop de CEP/CNPJ "para popular base"
+  [ ] Chamar API externa a cada tecla (sem debounce)
+  [ ] Chamar NCM/CFOP/IBGE na API a cada abertura de tela
+      (use tabela local)
+  [ ] Ignorar HTTP 429 e martelar de novo na hora
+  [ ] Dependencia unica sem fallback nem modo manual
+  [ ] Tratar retorno free como verdade juridica absoluta
+      (sempre permitir override com perfil adequado)
+  [ ] Expor URL da API free direto no frontend sem passar pelo
+      backend (esconde rate limit, log e cache central)
+
+======================================================================
+9. MATRIZ RESUMO — ONDE CONSULTAR O QUE
+======================================================================
+
+  Dado            | Preferencia 1          | Preferencia 2       | Cadencia
+  --------------- | ---------------------- | ------------------- | --------
+  CNPJ pontual    | BrasilAPI              | OpenCNPJ / ReceitaWS| A + cache
+  CNPJ em massa   | OpenCNPJ download      | Fila BrasilAPI      | B
+  CEP             | ViaCEP                 | BrasilAPI CEP v2    | A + cache
+  Municipio IBGE  | Tabela local (IBGE)    | BrasilAPI IBGE      | C
+  NCM             | Tabela local (Siscomex)| BrasilAPI / Tabelas | C
+  CEST / CFOP     | Tabela local           | Tabelas Fiscais     | C
+  CNAE            | Retorno CNPJ + local   | Tabelas Fiscais     | A/C
+  Bancos / PIX    | BrasilAPI              | Tabela local        | C / A
+  Feriados        | BrasilAPI (1x/ano)     | Tabela local        | C
+
+======================================================================
+10. CHECKLIST DE IMPLEMENTACAO
+======================================================================
+
+  [ ] Validacao local de digito CNPJ/CPF/CEP antes de qualquer HTTP
+  [ ] Servico interno unico "ConsultaExterna" com fila e token bucket
+  [ ] Cache persistente (tabela) com TTL por tipo de dado
+  [ ] Fallback em cadeia + preenchimento manual se tudo falhar
+  [ ] Carga inicial: municipios IBGE + NCM + CFOP + CEST + CNAE
+  [ ] Job mensal de refresh das tabelas fiscais (download, nao crawl)
+  [ ] Job anual de revalidacao de CNPJ de parceiros ativos
+  [ ] Log de auditoria de consultas (quem, quando, fonte, status)
+  [ ] Tela mostra fonte e data da ultima consulta ("BrasilAPI em
+      01/08/2026 14:32")
+  [ ] Perfis: quem pode forcar "atualizar agora" (ver ORGANIZACAO_
+      USUARIOS_PERFIS_ACESSO.txt)
+  [ ] Nunca crawlear; volume sempre com natureza de uso humano
+      ou lote agendado com pausa
+
+======================================================================
+11. RELACAO COM O RESTANTE DO ERP
+======================================================================
+
+  Cadastro de parceiros ........ consome CNPJ + CEP + IBGE
+  Verificacao endereco XML ..... consome CNPJ (e compara)
+  Prospect -> cliente .......... consome CNPJ so na conversao
+  Produto / estoque ............ consome NCM/CEST (tabela local)
+  Imposto no orcamento ......... CFOP + NCM + UF (tabela local;
+                                 API so para manter tabelas)
+  Contas bancarias ............. Bancos/PIX (BrasilAPI ou local)
+  Prazos / agenda .............. Feriados nacionais (1x/ano)
+
+======================================================================
+FIM DO DOCUMENTO — APIS FREE / POSSIBILIDADES / CADENCIA
+Proximo passo sugerido: especificar o servico interno
+ConsultaExterna (fila, TTL, provedores) no desenho tecnico do ERP
+e carregar as tabelas IBGE + NCM + CFOP + CEST na Fase 1 de
+cadastros.
+======================================================================

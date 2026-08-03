@@ -1,0 +1,208 @@
+====================================================================================================
+CASOS DE USO — M09 INTEGRAÇÕES — ERP RLP
+Documento: CASOS_USO_M09_INTEGRACOES.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M09 — Integrações (Focus, BankProvider, WhatsApp Meta, APIs free)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Adaptadores externos com isolamento homolog≠prod, filas+DLQ, idempotência
+  e kill-switch. Integração nunca casa o ERP a um único banco ou conta WA pessoal.
+
+Atores: ADMIN / TI; Workers; Focus; Banco; Meta; APIs free
+
+Invariants:
+  • Adapter pattern (Focus, BankProvider, WhatsApp).
+  • Idempotência em NF, COB, BX.
+  • Secrets fora do código.
+  • WhatsApp somente API Meta oficial.
+  • Cadência/cache/circuit breaker em APIs free.
+
+====================================================================================================
+UC-INT-001 — Integrar emissão fiscal (Focus) — homolog ≠ prod
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN (config) / FISCAL (uso operacional via UC-FIS-*)
+Sistema ......: Focus NFe
+
+Pré-condições: Credenciais e certificado A1 por empresa_id; ambiente selecionado.
+
+Pós-condições: Emissão/consulta/cancelamento/CCe operáveis; logs correlacionados.
+
+Garantia: Token/cert de homologação nunca aponta para produção.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN configura Focus por empresa_id (homolog e prod isolados).
+  2. Worker envia operação fiscal com correlation_id + idempotency_key.
+  3. Persiste resposta/XML; métricas de sucesso/erro.
+  4. Em falha transitória → retry com backoff; DLQ se esgotar.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Ambiente errado detectado
+    1a. Bloqueio de go-live; alarme.
+  EX2 — DLQ
+    4a. Alerta operacional; reprocessamento manual controlado.
+
+Regras: RF-INT-01; RNF-02; RNF-11; RNF-23
+Trace: FATURAMENTO_* · SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt ·
+       estrategia_implantacao_ja.txt
+Aceite: Switch homolog/prod documentado; emissão teste não vai à SEFAZ prod.
+
+====================================================================================================
+UC-INT-002 — Integrar cobrança bancária (BankProvider)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1 (sandbox) / 2 (prod Sicoob)
+Ator primário : ADMIN (config) / FINANCEIRO (uso via UC-FIN-002/003)
+Sistema ......: Inter (sandbox) / Sicoob (prod alvo) / CNAB fallback
+
+Pré-condições: Adapter configurado; credenciais no cofre; webhook endpoint seguro.
+
+Pós-condições: Emitir/consultar/cancelar cobrança; extrato; PDF; webhook de baixa.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN registra provider ativo por empresa_id.
+  2. ERP chama interface BankProvider (não SDK espalhado no domínio).
+  3. Webhooks autenticados atualizam COB/BX (UC-FIN-003).
+  4. CNAB disponível como fallback operacional.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Troca de provider
+    1a. Novo adapter sem reescrever M06; migração de títulos abertos planejada.
+
+Regras: RF-INT-02; R0.6
+Trace: INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt
+Aceite: Mesma UC financeira funciona em Inter sandbox e (futuro) Sicoob via adapter.
+
+====================================================================================================
+UC-INT-003 — Enviar mensagem WhatsApp oficial (template Meta)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : Sistema / COMERCIAL / FINANCEIRO / EXPEDICAO
+Sistema ......: Meta Cloud API / BSP
+
+Pré-condições: WABA, templates aprovados, número oficial, opt-in/política LGPD.
+
+Pós-condições: MSG- gravada (enviada/falha/status); conteúdo amarrado a ORC/PED/TIT/ENT.
+
+Garantia: Conta pessoal / Baileys / libs não oficiais = proibido.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Caso de uso de negócio solicita envio (ORC link, NF, entrega, cobrança).
+  2. Sistema escolhe template aprovado e parâmetros.
+  3. Chama Meta API; persiste MSG- com status.
+  4. Webhooks de status atualizam MSG-.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Template inexistente / rejeitado
+    2a. Não envia texto livre irregular; cria pendência.
+  EX2 — Tentativa de canal pessoal
+    1a. Funcionalidade inexistente no produto.
+
+Regras: RN-13; RF-INT-03, RF-INT-04; D0.9
+Trace: INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+Aceite: Toda mensagem oficial tem MSG-; não há integração WhatsApp pessoal.
+
+====================================================================================================
+UC-INT-004 — Processar webhook com idempotência
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (endpoint + worker)
+
+Pré-condições: Webhook autenticado (assinatura/token); payload com chave idempotente.
+
+Pós-condições: Efeito de negócio aplicado no máximo uma vez; resposta 2xx adequada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Endpoint valida autenticidade do webhook.
+  2. Extrai idempotency_key / event_id.
+  3. Se já processado → retorna sucesso idempotente com resultado original.
+  4. Se novo → persiste “em processamento”, aplica efeito (BX/status NF/MSG),
+     marca concluído.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Assinatura inválida
+    1a. 401/403; sem efeito de negócio.
+  EX2 — Falha no meio
+    4a. Retry posterior usa a mesma chave; UNIQUE impede duplicidade.
+
+Regras: RN-14; RF-INT-06; CA-05; RNF-53
+Trace: INTEGRACAO_BANCARIA_* · ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt
+Aceite: Teste de reentrega de webhook não duplica BX/NF/MSG.
+
+====================================================================================================
+UC-INT-005 — Consultar APIs free com cadência / cache / circuit breaker
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : Sistema (em apoio a UC-CAD-006 e afins)
+
+Pré-condições: Cadência configurada; cache TTL; limiares de breaker.
+
+Pós-condições: Resposta servida (cache ou live); métricas; sem martelar API.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Pedido de consulta chega.
+  2. Cache hit → retorna.
+  3. Cache miss → verifica breaker e cadência.
+  4. Chama API; armazena cache; retorna.
+  5. Em erros repetidos → abre breaker; usa degradação (manual/cache stale).
+
+Regras: RF-INT-05; RF-CAD-05
+Trace: APIS_FREE_CONSULTA_CADENCIA.txt
+Aceite: Sob rate limit, ERP continua utilizável com cadastro manual.
+
+====================================================================================================
+UC-INT-006 — Acionar kill-switch de integração sem derrubar o ERP
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN
+
+Pré-condições: Integração com flag de kill-switch (Focus / Banco / WhatsApp).
+
+Pós-condições: Novas chamadas externas daquele adapter bloqueadas; ERP operacional
+               para cadastros/consultas/operações internas.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN liga kill-switch (motivo obrigatório).
+  2. Sistema rejeita novas emissões/envios daquele canal com mensagem clara.
+  3. Filas param de processar jobs daquele adapter (ou vão a hold).
+  4. Auditoria + alarme.
+  5. ADMIN desliga switch após estabilizar; reprocessa DLQ com cuidado.
+
+Regras: RF-PLT-08
+Trace: SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt · ARQUITETURA_*
+Aceite: Com Focus off, usuário ainda cria ORC/PED; só emissão NF fica bloqueada.
+
+====================================================================================================
+Fim — CASOS_USO_M09_INTEGRACOES.txt
+6 casos de uso | Módulo M09 Integrações
+====================================================================================================

@@ -1,0 +1,285 @@
+====================================================================================================
+APROVAÇÃO DE ORÇAMENTO PELO CLIENTE VIA LINK (WHATSAPP / E-MAIL) — PROCESSO NO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_ORCAMENTO.txt (seções 6 e 9 — proposta e ciclo de vida) +
+      INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt (motor de crédito, adiantamento e limite) +
+      CADASTRO_PARCEIROS.txt (contatos oficiais do cliente) +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt (auditoria e rastreabilidade)
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO O CLIENTE APROVA O ORÇAMENTO no novo ERP: o sistema gera um
+LINK ÚNICO DE APROVAÇÃO e o envia ao cliente por WHATSAPP e/ou E-MAIL. O cliente abre o
+link, vê a proposta comercial e APROVA (ou recusa) com um clique — e essa aprovação é o
+GATILHO formal que converte o orçamento em pedido.
+
+Conceito central: NENHUM ORÇAMENTO VIRA PEDIDO SEM APROVAÇÃO REGISTRADA DO CLIENTE PELO
+LINK. Isso vale para TODOS os cenários de pagamento, sem exceção:
+  * venda a prazo dentro do LIMITE DE CRÉDITO;
+  * primeira compra com ADIANTAMENTO (à vista, PIX antecipado ou sinal de 50%);
+  * cliente com limite zero comprando antecipado.
+O "aprovado por telefone", "aprovado no zap por áudio" ou "cliente de confiança, pode
+rodar" deixa de existir como gatilho de produção. A conversa pode acontecer onde for —
+a APROVAÇÃO só existe no link.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. APROVAÇÃO DO CLIENTE É PRÉ-REQUISITO UNIVERSAL.
+    Adiantamento recebido NÃO substitui a aprovação; limite de crédito disponível NÃO
+    substitui a aprovação. Pagamento define COMO o pedido será cobrado; o link define
+    QUE o cliente concordou com especificação, quantidades, preço, prazo e condições.
+    Os dois eventos são independentes e ambos são obrigatórios.
+
+ 2. O LINK É ÚNICO, PESSOAL E POR VERSÃO DO ORÇAMENTO.
+    Cada orçamento (ORC-AAAA-NNNNN + versão) gera um token próprio. Nova versão do
+    orçamento (v2, v3...) INVALIDA o link anterior — o cliente nunca aprova uma
+    proposta desatualizada.
+
+ 3. O CLIENTE VÊ SOMENTE A PROPOSTA COMERCIAL.
+    O link exibe exatamente o conteúdo da seção 6 do GERACAO_ORCAMENTO.txt (material,
+    acabamento, quantidades, totais, unitário, matriz, prazo, validade, tolerância
+    +/-20%, condições). NUNCA expõe custo, margem, comissão ou imposto.
+
+ 4. ENVIO SOMENTE PARA CONTATOS OFICIAIS DO CADASTRO.
+    O WhatsApp e o e-mail de destino vêm do CADASTRO_PARCEIROS (contato marcado como
+    autorizado a aprovar compras). Digitar número/e-mail avulso na hora do envio é
+    proibido — se o contato mudou, atualiza-se o cadastro primeiro.
+
+ 5. TUDO LOGADO. Envio (canal, destino, data/hora), aberturas do link, aprovação ou
+    recusa (data/hora, IP/dispositivo), e reenvios entram na trilha de auditoria
+    (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt, seção 7).
+
+ 6. APROVAÇÃO NÃO ATROPELA O CRÉDITO. O aceite do cliente dispara a conversão em
+    pedido, e É NESSE MOMENTO que o motor de crédito roda a verificação plena
+    (INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt, seção 6). Aprovado pelo cliente
+    + reprovado no crédito = pedido BLOQUEADO na fila do financeiro, como sempre.
+
+----------------------------------------------------------------------------------------------------
+2. VISÃO GERAL DO FLUXO
+----------------------------------------------------------------------------------------------------
+
+  ORÇAMENTO CALCULADO
+     -> vendedor comanda ENVIAR: ERP gera o LINK e dispara por WhatsApp e/ou e-mail
+     -> status do orçamento = ENVIADO (aguardando cliente)
+     -> cliente abre o link (ERP registra a visualização)
+     -> cliente escolhe: APROVAR faixa(s) de quantidade | RECUSAR (com motivo)
+     -> APROVADO: ERP grava o aceite e converte em PEDIDO (herda item, faca, papel,
+        preço travado — GERACAO_ORCAMENTO.txt, seção 9.3)
+     -> motor de crédito roda na conversão (seção 5 deste documento)
+     -> pedido segue para produção quando crédito OK (ou condição de adiantamento
+        cumprida)
+
+  Prazos amarrados à validade da proposta (padrão atual: 7 dias):
+  * Link expira junto com a validade do orçamento. Link expirado mostra ao cliente
+    "proposta vencida — solicite atualização" e avisa o vendedor.
+  * Orçamento vencido precisa ser RECALCULADO (regra 7.5 do GERACAO_ORCAMENTO.txt)
+    e gera NOVO link — nunca "revalidar" o link velho.
+
+----------------------------------------------------------------------------------------------------
+3. O LINK DE APROVAÇÃO (o que o cliente recebe e vê)
+----------------------------------------------------------------------------------------------------
+
+3.1 MENSAGEM DE ENVIO (modelos padronizados — não improvisar texto)
+  WHATSAPP: "Olá, [contato]! Segue a proposta [ORC-2026-00123 v1] da RLP Etiquetas:
+  [link]. Válida até [data]. Para aprovar, basta abrir e confirmar. Qualquer dúvida,
+  estou à disposição — [vendedor]."
+  E-MAIL: mesmo conteúdo, com a proposta em PDF anexada além do link.
+
+3.2 PÁGINA DO LINK (mobile-first — a maioria abre pelo celular)
+  * Logo e dados da empresa, número/versão do orçamento, data e validade
+  * Descrição do item: MATERIAL — MEDIDA — ACABAMENTO — ETIQ/ROLO — CORES
+  * Tabela de faixas de quantidade com TOTAL, UNITÁRIO e VALOR DO ROLO
+  * Valor da MATRIZ com a nota "somente no 1º pedido" (quando houver)
+  * Prazo de entrega, condições de pagamento, frete e tolerância +/-20%
+  * CONDIÇÃO FINANCEIRA em destaque (seção 5): "50% antecipado na aprovação",
+    "PIX antecipado" ou "faturado conforme limite aprovado"
+  * Botões: [APROVAR] e [RECUSAR]. Na aprovação com múltiplas faixas, o cliente
+    SELECIONA a quantidade que está fechando (obrigatório — sem ambiguidade).
+  * Campo opcional de observação do cliente (vai junto para o vendedor)
+
+3.3 CONFIRMAÇÃO DO ACEITE
+  * Ao clicar APROVAR, o cliente confirma nome e vê o resumo do que aprovou.
+  * O ERP grava: data/hora, faixa escolhida, nome informado, IP/dispositivo, e a
+    FOTOGRAFIA da proposta aprovada (mesmo espírito do snapshot da seção 9.2 do
+    GERACAO_ORCAMENTO.txt) — o que o cliente viu e aceitou fica congelado.
+  * Cliente e vendedor recebem confirmação automática (mesmo canal do envio) com o
+    resumo do aceite e, se aplicável, instruções de pagamento do adiantamento.
+
+3.4 SEGURANÇA DO LINK
+  * Token longo e não sequencial (impossível "adivinhar" o link de outro cliente).
+  * Expira com a validade da proposta; invalidado por nova versão ou cancelamento.
+  * Aprovação já registrada trava o link (reabrir mostra "proposta já aprovada").
+  * O link não exige senha (atrito mataria a adesão), por isso SÓ vai para contato
+    oficial do cadastro — o canal + token é a identificação do aceite.
+
+----------------------------------------------------------------------------------------------------
+4. STATUS DO ORÇAMENTO (complementa o ciclo da seção 9 do GERACAO_ORCAMENTO.txt)
+----------------------------------------------------------------------------------------------------
+
+  ENVIADO ............ link gerado e disparado; aguardando ação do cliente
+  VISUALIZADO ........ cliente abriu o link (vendedor enxerga isso na carteira —
+                       "abriu e não aprovou" é sinal de follow-up)
+  APROVADO ........... aceite registrado; conversão em pedido disparada
+  RECUSADO ........... cliente recusou pelo link (motivo registrado quando informado)
+  VENCIDO ............ validade expirou sem resposta; link inativo
+  SUBSTITUÍDO ........ nova versão emitida; link anterior invalidado
+
+  Regras:
+  * Reenvio do MESMO link é permitido (lembrete) e logado; recriar link só por nova
+    versão do orçamento.
+  * Recusa e vencimento alimentam os relatórios de conversão por vendedor
+    (GERACAO_ORCAMENTO.txt, seção 9.5) — motivo de recusa é ouro para pricing.
+
+----------------------------------------------------------------------------------------------------
+5. APROVAÇÃO x PAGAMENTO: ADIANTAMENTO E LIMITE DE CRÉDITO
+----------------------------------------------------------------------------------------------------
+
+O ponto central pedido pela operação: O LINK DE APROVAÇÃO É OBRIGATÓRIO EM TODOS OS
+CENÁRIOS FINANCEIROS. O que muda entre eles é apenas O QUE ACONTECE DEPOIS do aceite:
+
+5.1 CENÁRIO A — PRIMEIRA COMPRA COM ADIANTAMENTO (cliente novo / limite zero)
+  * Cliente novo nasce com LIMITE 0 e compra à vista / PIX antecipado / 50% de sinal
+    (INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt, seção 3.1).
+  * FLUXO: cliente APROVA pelo link -> pedido criado com condição "AGUARDANDO
+    ADIANTAMENTO" -> a confirmação do aceite já traz os dados de pagamento (PIX/
+    boleto do sinal) -> baixa do recebimento no financeiro LIBERA o pedido para
+    produção automaticamente (mesma mecânica da liberação condicionada — seção 7.2b
+    do documento de crédito).
+  * O adiantamento NÃO dispensa o link: sem o aceite registrado, nem se emite a
+    cobrança do sinal. Ordem correta: APROVOU -> COBROU -> RECEBEU -> PRODUZIU.
+  * Pagamento antecipado integral não passa pelo motor de bloqueio de crédito
+    (venda sem risco), mas passa pela aprovação como qualquer outro.
+
+5.2 CENÁRIO B — VENDA A PRAZO DENTRO DO LIMITE
+  * Cliente APROVA pelo link -> conversão em pedido roda a VERIFICAÇÃO PLENA de
+    crédito (exposição + novo pedido vs. limite, atrasos) — seção 6 do documento
+    de crédito.
+  * Crédito OK: pedido segue direto para produção. Sem intervenção humana.
+  * Crédito estourado/atraso: pedido nasce APROVADO PELO CLIENTE porém BLOQUEADO
+    POR CRÉDITO — cai na fila do financeiro. A aprovação do cliente NUNCA pula a
+    fila; e a liberação do financeiro NUNCA dispensa a aprovação do cliente.
+
+5.3 CENÁRIO C — MISTO (sinal + saldo faturado)
+  * Ex.: 50% na aprovação e 50% faturado 28 DDL. O aceite dispara a cobrança do
+    sinal; o SALDO a prazo é o valor que entra na verificação de limite. Recebeu o
+    sinal + saldo dentro do limite = produção liberada.
+
+5.4 REGISTRO DO VÍNCULO
+  * O pedido guarda: id do aceite (link), condição financeira aplicada, adiantamento
+    vinculado (título/recebimento) e resultado da checagem de crédito — a história
+    completa "quem aprovou, como paga, quem liberou" em um lugar só.
+
+----------------------------------------------------------------------------------------------------
+6. RESPONSABILIDADES POR PAPEL
+----------------------------------------------------------------------------------------------------
+
+  VENDEDOR (COMERCIAL)
+   * Envia o link SEMPRE pelo ERP (nunca PDF avulso por fora sem registro de envio).
+   * Acompanha status (VISUALIZADO sem aprovar = follow-up; VENCIDO = recalcular).
+   * Não aceita aprovação verbal/print como gatilho: se o cliente "aprovou no zap"
+     por mensagem, responde com o link — "confirma aqui que já libero a produção".
+
+  FINANCEIRO
+   * Configura condições de adiantamento (percentual do sinal, formas de pagamento).
+   * Dá baixa nos adiantamentos no dia (a produção do cenário A depende disso).
+   * Trata a fila de crédito dos pedidos aprovados-e-bloqueados (cenário B).
+
+  PCP / PRODUÇÃO
+   * Só puxa pedido com aceite registrado E situação financeira resolvida (crédito
+     OK ou adiantamento baixado). Pedido sem isso NÃO aparece na fila de produção.
+
+  DIREÇÃO
+   * Revisa no relatório mensal: pedidos produzidos sem aceite (deveria ser ZERO),
+     tempo médio entre envio e aprovação, taxa de conversão por vendedor.
+
+----------------------------------------------------------------------------------------------------
+7. EXCEÇÕES E CASOS PRÁTICOS
+----------------------------------------------------------------------------------------------------
+
+ a) CLIENTE NÃO CONSEGUE/NÃO QUER USAR O LINK (raro, mas existe):
+    aceite alternativo = resposta de e-mail formal "aprovado" citando número e versão
+    do orçamento, ANEXADA ao orçamento no ERP pelo vendedor, com aprovação de um
+    GERENTE para registrar o aceite manual. Fica logado como ACEITE MANUAL e aparece
+    destacado no relatório mensal (meta: tender a zero).
+
+ b) CLIENTE APROVA E PEDE MUDANÇA LOGO DEPOIS ("na verdade quero 20.000"):
+    aceite não se edita. Gera-se NOVA VERSÃO do orçamento, novo link, nova aprovação.
+    O pedido da versão anterior é cancelado com motivo.
+
+ c) CLIENTE APROVA FORA DA VALIDADE (link expirado):
+    recalcular (preços podem ter mudado), nova versão, novo link. O ERP bloqueia
+    conversão de orçamento vencido — sem exceção "foi só um dia".
+
+ d) DOIS CONTATOS DO MESMO CLIENTE, RESPOSTAS DIFERENTES:
+    vale o aceite registrado no link. Se a empresa cliente exige aprovador específico,
+    marcar no cadastro QUEM é o contato autorizado e enviar o link só para ele.
+
+ e) WHATSAPP INDISPONÍVEL (número inválido, API fora):
+    o ERP alerta o vendedor e envia por e-mail; o canal efetivamente usado fica
+    registrado. Nunca "mandar do celular pessoal" sem registro.
+
+----------------------------------------------------------------------------------------------------
+8. AUDITORIA, RELATÓRIOS E INDICADORES
+----------------------------------------------------------------------------------------------------
+
+  EVENTOS LOGADOS: geração do link, cada envio/reenvio (canal + destino), cada
+  abertura, aceite/recusa (com fotografia da proposta), aceite manual (exceção 7a),
+  invalidação por nova versão/vencimento.
+
+  RELATÓRIO MENSAL (revisado pela direção):
+  * Pedidos convertidos SEM aceite via link (aceites manuais) — meta zero
+  * Tempo médio ENVIADO -> APROVADO (velocidade de fechamento)
+  * Taxa de conversão por vendedor e por canal (zap x e-mail)
+  * Recusas por motivo (preço, prazo, especificação, concorrência)
+  * Pedidos aprovados-e-bloqueados por crédito (cruzamento com a fila de crédito)
+
+  INDICADORES SUGERIDOS:
+  * % de orçamentos visualizados que aprovam (qualidade da proposta)
+  * % de links vencidos sem resposta (follow-up fraco ou validade curta demais)
+  * Tempo médio entre aceite e baixa do adiantamento (cenário A — gargalo comum)
+
+----------------------------------------------------------------------------------------------------
+9. IMPLANTAÇÃO (amarrado à Fase 1 da estrategia_implantacao_ja.txt)
+----------------------------------------------------------------------------------------------------
+
+  1. Cadastrar/confirmar contatos oficiais (zap + e-mail) dos clientes ativos na
+     migração do CADASTRO_PARCEIROS — sem contato oficial, não há para quem enviar.
+  2. Definir os textos padrão das mensagens (3.1) e a página da proposta (3.2) com
+     a identidade visual da empresa.
+  3. Integração WhatsApp via API oficial (WhatsApp Business API) — nunca automação
+     sobre conta pessoal (risco de banimento e zero rastreabilidade).
+  4. Rodar 2 semanas em PARALELO: link + confirmação pelo canal antigo, para
+     acostumar os clientes. Depois, o link vira o único gatilho.
+  5. Treinar o comercial no discurso: "sua aprovação pelo link é o que libera a
+     produção — quanto antes aprovar, antes entra na fila".
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST RÁPIDO
+----------------------------------------------------------------------------------------------------
+
+  ANTES DE ENVIAR
+   1. Orçamento CALCULADO e validado (seção 8 do GERACAO_ORCAMENTO.txt)?
+   2. Contato de envio é o oficial/autorizado do cadastro?
+   3. Condição financeira correta na proposta (adiantamento? prazo? limite)?
+
+  DEPOIS DO ACEITE
+   4. Faixa de quantidade escolhida pelo cliente conferida?
+   5. Cenário A: cobrança do adiantamento emitida e sendo acompanhada?
+   6. Cenário B: pedido passou no crédito ou está na fila do financeiro?
+   7. Ferramental (matriz/faca) do 1º pedido registrado como pago ao faturar?
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Textos de mensagem, prazos de
+validade e percentuais de adiantamento são SUGESTÕES iniciais a calibrar com a direção. O
+envio por WhatsApp deve usar a API oficial (conta business verificada) e o tratamento de
+dados de contatos observa a LGPD. O aceite pelo link constitui registro eletrônico de
+concordância comercial (data/hora, identificação do destinatário e fotografia da proposta);
+para contratos de maior valor ou clientes que o exijam, complementar com assinatura
+eletrônica formal. Nem todo ERP de PME possui portal de aprovação nativo — nesse caso,
+aplicar o controle compensatório da exceção 7a (aceite por e-mail formal anexado + relatório
+mensal revisado pela direção) até a funcionalidade existir.
+====================================================================================================

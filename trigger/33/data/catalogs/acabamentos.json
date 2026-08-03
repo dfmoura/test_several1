@@ -1,0 +1,30 @@
+[
+  {
+    "nome": "SEM ACABAMENTO",
+    "preco_m2": 0.0
+  },
+  {
+    "nome": "VERNIZ",
+    "preco_m2": 0.3
+  },
+  {
+    "nome": "LAMINAÇÃO FOSCA",
+    "preco_m2": 2.8
+  },
+  {
+    "nome": "LAMINAÇÃO BRILHO",
+    "preco_m2": 1.8
+  },
+  {
+    "nome": "REBOBINAÇÃO",
+    "preco_m2": 17.0
+  },
+  {
+    "nome": "COLD STAMP +VERNIZ",
+    "preco_m2": 3.5
+  },
+  {
+    "nome": "COLD STAMP + COLA",
+    "preco_m2": 2.8
+  }
+]

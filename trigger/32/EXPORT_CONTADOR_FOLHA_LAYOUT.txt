@@ -1,0 +1,104 @@
+====================================================================================================
+EXPORT PARA O CONTADOR E LAYOUT DE FOLHA — PONTE PADRONIZADA
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt + RH_PAGAMENTO_GERENCIAL.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + MULTI_EMPRESA_CNPJS_E_LIVROS.txt +
+      DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+Gerado em: 02/08/2026 | Retificado em: 02/08/2026
+====================================================================================================
+
+Fecha a lacuna da “ponte com o contador”: o que sai do ERP, em que
+formato. Layouts abaixo são PROPOSTA — homologar 1 ciclo com o
+escritório e travar versão.
+
+O ERP só exporta o OFICIAL (não há livro paralelo no sistema).
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. Um pacote mensal por empresa_id (EMP-00001 separado de EMP-00002).
+ 2. Só naturezas 1–5, TIT, BX, NF, estoque, patrimônio, pessoal pago.
+ 3. Formato: CSV/Excel + ZIP de XMLs; JSON opcional.
+ 4. Versão do layout no cabeçalho (ex.: RLP-CONTADOR-v1).
+ 5. Perfil CONSULTA do contador pode baixar o mesmo pacote.
+ 6. Não existe (e não deve existir) filtro “excluir LAI” — porque
+     LAI não é implementado (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP).
+
+----------------------------------------------------------------------------------------------------
+2. PACOTE MENSAL OFICIAL (EMP-00001)
+----------------------------------------------------------------------------------------------------
+
+  A) nfe_saida_periodo.zip .......... XMLs + eventos Focus
+  B) nfe_entrada_periodo.zip ........ XMLs + vínculo OC quando houver
+  C) faturamento_resumo.csv ......... data, chave, destinatário, valor,
+                                      CFOP, série/número
+  D) titulo_cr_cp.csv ............... TIT-, natureza, vencimento, saldo,
+                                      status, BX- relacionadas
+  E) baixas.csv ..................... BX-, conta, valor, forma
+  F) naturezas_movimentos.csv ....... data, natureza, valor, histórico
+  G) estoque_inventario_mes.csv ..... saldo × custo médio (se fechamento
+                                      gerencial de estoque no mês)
+  H) patrimonio_bens.csv ............ BEM- ativos / baixas no mês
+  I) pagamentos_pessoal.csv ......... líquidos/adiantamentos PAGOS
+                                      (RH_) — sem holerite completo
+  J) de_para_naturezas.csv .......... natureza_gerencial → conta contábil
+                                      (preenchido com o escritório)
+
+Nome arquivo: RLP_01423183000110_AAAA_MM_v1.zip
+
+----------------------------------------------------------------------------------------------------
+3. IMPORT CSV DA FOLHA (CONTADOR → ERP)
+----------------------------------------------------------------------------------------------------
+
+Objetivo: alimentar sugestão de pagamento / conferência — não substituir
+eSocial. Layout proposto RLP-FOLHA-v1:
+
+  competencia;cpf;nome;tipo_verba;valor;centro_custo;obs
+  tipos_verba: LIQUIDO | ADIANTAMENTO | VALE | PROLABORE | COMISSAO |
+               ENCARGO_EMPRESA (se informado)
+
+ERP:
+  * Importa → confere totais → gera títulos a pagar sugeridos
+  * Pagamento real gera BX- + natureza 3.01.xx
+  * Divergência → fila FINANCEIRO (não sobrescreve calado)
+
+----------------------------------------------------------------------------------------------------
+4. DE-PARA NATUREZAS
+----------------------------------------------------------------------------------------------------
+
+Tabela mantida em conjunto:
+  natureza_codigo | natureza_nome | conta_contador | historico_padrao
+
+Sem de-para, export F ainda serve para o contador classificar manualmente.
+
+----------------------------------------------------------------------------------------------------
+5. O QUE NUNCA EXPORTAR
+----------------------------------------------------------------------------------------------------
+
+  * Credenciais, tokens, certificados
+  * Mensagens WhatsApp completas (só se o escritório pedir caso a caso)
+  * Dados de EMP-00002 misturados no zip da EMP-00001
+  * Qualquer artefato de “caixa paralelo” — e o ERP não deve tê-lo
+
+----------------------------------------------------------------------------------------------------
+6. CALENDÁRIO
+----------------------------------------------------------------------------------------------------
+
+  Sugestão: pacote disponível D+2 úteis após o fechamento do mês
+  operacional (não é a data do DAS — essa é do contador).
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Layout v1 homologado com o escritório
+  [ ] Zip por CNPJ / competência
+  [ ] Só dados oficiais (sem módulo LAI no produto)
+  [ ] Import folha com tipos_verba estáveis
+  [ ] De-para iniciado (mesmo que parcial)
+
+====================================================================================================
+Fim — EXPORT_CONTADOR_FOLHA_LAYOUT.txt
+Ponte clara com o contador: só o oficial. Sem paralelo no ERP.
+====================================================================================================

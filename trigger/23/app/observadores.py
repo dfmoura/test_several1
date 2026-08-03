@@ -3,15 +3,25 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.orm import Session
 
 from app.database import Observador, get_db
 
 router = APIRouter(prefix="/api/observadores", tags=["observadores"])
+
+
+def condicao_observador(coluna: Any, observador_id: int | None) -> ColumnElement[bool] | None:
+    """Filtro compartilhado: None = todos; 0 = sem observador; >0 = id específico."""
+    if observador_id is None:
+        return None
+    if observador_id == 0:
+        return coluna.is_(None)
+    return coluna == observador_id
 
 
 class ObservadorOut(BaseModel):

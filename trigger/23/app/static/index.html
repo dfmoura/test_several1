@@ -827,6 +827,10 @@
                 </select>
               </label>
               <label class="field">
+                <span>Observador</span>
+                <select id="compras-filtro-observador"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
                 <span>Processo</span>
                 <input type="text" id="compras-filtro-processo" placeholder="Ex.: 123, PE 45/2025" autocomplete="off" />
               </label>
@@ -899,6 +903,7 @@
                 <label class="field"><span>Empresa</span><select id="pbi-filtro-lic-empresa"><option value="">Todas</option></select></label>
                 <label class="field"><span>Solicitante</span><select id="pbi-filtro-lic-solicitante"><option value="">Todos</option></select></label>
                 <label class="field"><span>Situação</span><select id="pbi-filtro-lic-situacao"><option value="">Todas</option></select></label>
+                <label class="field"><span>Observador</span><select id="pbi-filtro-lic-observador"><option value="">Todos</option></select></label>
                 <label class="field"><span>Modalidade</span><div id="pbi-filtro-lic-modalidade" class="ms" data-placeholder="Todas"></div></label>
                 <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-lic-processo" autocomplete="off" /></label>
                 <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-lic-texto" placeholder="Objeto, empresa…" /></label>
@@ -906,6 +911,7 @@
               <div class="pbi-filtros-dataset" data-dataset="contratos" hidden>
                 <label class="field"><span>Ano contrato</span><select id="pbi-filtro-con-ano"><option value="">Todos</option></select></label>
                 <label class="field"><span>Empresa</span><select id="pbi-filtro-con-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Observador</span><select id="pbi-filtro-con-observador"><option value="">Todos</option></select></label>
                 <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-con-numero" autocomplete="off" /></label>
                 <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-con-processo" autocomplete="off" /></label>
                 <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-con-texto" placeholder="Objeto, fornecedor, empresa…" /></label>
@@ -913,6 +919,7 @@
               <div class="pbi-filtros-dataset" data-dataset="eventos" hidden>
                 <label class="field"><span>Ano contrato</span><select id="pbi-filtro-ev-ano"><option value="">Todos</option></select></label>
                 <label class="field"><span>Empresa</span><select id="pbi-filtro-ev-empresa"><option value="">Todas</option></select></label>
+                <label class="field"><span>Observador</span><select id="pbi-filtro-ev-observador"><option value="">Todos</option></select></label>
                 <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-ev-numero" autocomplete="off" /></label>
                 <label class="field"><span>Processo</span><input type="text" id="pbi-filtro-ev-processo" autocomplete="off" /></label>
                 <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-ev-texto" placeholder="Objeto, fornecedor, empresa…" /></label>
@@ -921,6 +928,7 @@
                 <label class="field"><span>Ano contrato</span><select id="pbi-filtro-gest-ano"><option value="">Todos</option></select></label>
                 <label class="field"><span>Órgão</span><select id="pbi-filtro-gest-orgao"><option value="">Todos</option></select></label>
                 <label class="field"><span>Papel</span><select id="pbi-filtro-gest-papel"><option value="">Todos</option></select></label>
+                <label class="field"><span>Observador</span><select id="pbi-filtro-gest-observador"><option value="">Todos</option></select></label>
                 <label class="field"><span>Nº contrato</span><input type="text" id="pbi-filtro-gest-numero" autocomplete="off" /></label>
                 <label class="field field-wide"><span>Busca</span><input type="text" id="pbi-filtro-gest-texto" placeholder="Pessoa, objeto, fornecedor, órgão…" /></label>
               </div>
@@ -1726,7 +1734,7 @@
     crossorigin=""
   ></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-  <script src="/static/shell.js?v=osb12"></script>
+  <script src="/static/shell.js?v=osb13"></script>
   <script src="/static/auth.js?v=osb3"></script>
   <script src="/static/coleta.js?v=osb4"></script>
   <script src="/static/dashboard.js?v=osb9"></script>
@@ -1734,9 +1742,9 @@
   <script src="/static/localidade.js?v=osb6"></script>
   <script src="/static/consulta_processo.js?v=osb10"></script>
   <script src="/static/propostas_abertas.js?v=osb14"></script>
-  <script src="/static/compras.js?v=osb11"></script>
+  <script src="/static/compras.js?v=osb12"></script>
   <script src="/static/vencedores_cnpj.js?v=osb8"></script>
-  <script src="/static/powerbi.js?v=osb7"></script>
+  <script src="/static/powerbi.js?v=osb8"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>
   <script src="/static/observadores.js?v=osb4"></script>

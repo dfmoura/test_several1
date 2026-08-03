@@ -1,0 +1,169 @@
+====================================================================================================
+CASOS DE USO — M07 COMPRAS — ERP RLP
+Documento: CASOS_USO_M07_COMPRAS.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M07 — Compras (COT, OC, urgência, entrada XML)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Suprimento de MP/EMB/REV e materiais que alimentam OP e revenda.
+  Fluxo: cotação → OC → entrada XML → MOV. Urgência com alçada.
+  Fase típica: 2 (Should), mas crítica para operação contínua.
+
+Atores: COMPRAS (primário); PRODUCAO (demanda/OP parada); FINANCEIRO (alçada);
+        FISCAL (manifestação XML); Focus (XML)
+
+Invariants:
+  • OC formal; urgência exige alçada.
+  • Entrada de compra gera MOV — não “lança saldo no olho”.
+  • Fornecedor = PAR com papel FORNECEDOR.
+
+====================================================================================================
+UC-CPR-001 — Criar cotação de compra (COT)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMPRAS
+
+Pré-condições: Necessidade identificada (estoque mínimo, OP, revenda); fornecedores PAR.
+
+Pós-condições: COT- com itens, fornecedores convidados e respostas registráveis.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. COMPRAS cria COT- com SKUs/qtdes/prazo desejado.
+  2. Seleciona um ou mais fornecedores (PAR).
+  3. Registra propostas (preço, prazo, condição).
+  4. Escolhe vencedor(es) para gerar OC (UC-CPR-002).
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Cotação emergencial simplificada
+    1a. Menos fornecedores; segue para urgência (UC-CPR-003).
+
+Regras: RF-EXC-03
+Trace: COMPRAS_COTACAO_URGENCIA.txt · CADASTRO_PRODUTOS_COMPRA.txt
+Aceite: COT preserva histórico de propostas; escolha vencedora auditável.
+
+====================================================================================================
+UC-CPR-002 — Gerar ordem de compra (OC)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMPRAS
+Secundário ...: FINANCEIRO (se alçada de valor)
+
+Pré-condições: Cotação decidida OU compra direta autorizada; fornecedor OK.
+
+Pós-condições: OC- emitida; aguarda entrega/XML; pode vincular OP dependente.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. COMPRAS transforma COT (ou demanda) em OC-.
+  2. Sistema valida valor × alçada do perfil.
+  3. Emite OC ao fornecedor (PDF/e-mail); status aberta.
+  4. Aguarda entrada (UC-CPR-004).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Valor acima da alçada
+    2a. Encaminha aprovação; OC não confirma sem OK.
+
+Regras: RF-EXC-03
+Trace: COMPRAS_COTACAO_URGENCIA.txt
+Aceite: OC acima do teto sem aprovador permanece pendente.
+
+====================================================================================================
+UC-CPR-003 — Solicitar compra urgente com alçada
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMPRAS / PRODUCAO (solicita)
+Secundário ...: FINANCEIRO / direção (aprova)
+
+Pré-condições: OP parada ou risco de parada por falta de material (UC-CPR-005).
+
+Pós-condições: Solicitação urgente aprovada/rejeitada; se OK, COT/OC priorizada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre urgência vinculada a OP/PED/SKU.
+  2. Informa impacto (parada, prazo cliente) e valor estimado.
+  3. Aprovador com alçada decide.
+  4. Se aprovado, COMPRAS executa OC prioritária.
+
+Regras: RF-EXC-03
+Trace: COMPRAS_COTACAO_URGENCIA.txt · PRODUCAO_OPERACIONAL_GERENCIAL.txt
+Aceite: Urgência sem alçada não gera OC “furada”.
+
+====================================================================================================
+UC-CPR-004 — Receber e conferir XML de compra (entrada)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMPRAS / FISCAL
+Sistema ......: Focus (XML / manifestação)
+
+Pré-condições: OC aberta (ou política de entrada sem OC excepcional); XML disponível.
+
+Pós-condições: Manifestação OK; conferência física/fiscal; MOV entrada; custo médio atualizado.
+
+Garantia: Entrada sem conferência não fecha automaticamente em ambiente produtivo.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema importa/recebe XML via Focus.
+  2. FISCAL/COMPRAS manifesta ciência/confirmação conforme etapa.
+  3. Confere itens/qtde/valores × OC (divergência → tratamento).
+  4. Gera MOV entrada; amarra OC e atualiza custo médio.
+  5. Libera materiais para produção/estoque.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Divergência de qtde/preço
+    3a. Abre pendência; entrada parcial ou devolução ao fornecedor.
+  EX2 — XML sem OC
+    1a. Exige alçada para entrada avulsa; auditoria reforçada.
+
+Regras: RF-EXC-04; RF-PRD-05
+Trace: COMPRAS_COTACAO_URGENCIA.txt · CONTROLE_ESTOQUE_PROFISSIONAL.txt
+Aceite: Após entrada, saldo e custo médio refletem a NF de compra.
+
+====================================================================================================
+UC-CPR-005 — Vincular falta de material à OP parada
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO / COMPRAS
+
+Pré-condições: OP aberta sem saldo de MP/REV necessário.
+
+Pós-condições: OP marcada aguardando material; demanda visível em compras; vínculo OP↔COT/OC.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema ou PRODUCAO detecta falta ao separar/consumir.
+  2. Marca OP como parada por material (motivo + SKU).
+  3. Gera demanda de compra (alimenta UC-CPR-001/003).
+  4. Quando MOV entrada atende, OP volta a elegível.
+
+Regras: RF-EXC-03; RF-PRD-01
+Trace: COMPRAS_COTACAO_URGENCIA.txt · PRODUCAO_OPERACIONAL_GERENCIAL.txt
+Aceite: Painel mostra OP parada e OC relacionada até a entrada.
+
+====================================================================================================
+Fim — CASOS_USO_M07_COMPRAS.txt
+5 casos de uso | Módulo M07 Compras
+====================================================================================================

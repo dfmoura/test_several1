@@ -96,6 +96,28 @@ function preencherSelect(sel, items, placeholder) {
   if (atual && [...sel.options].some((o) => o.value === atual)) sel.value = atual;
 }
 
+/** Popula selects de filtro por observador: Todos / Sem observador / nomes ativos. */
+async function preencherFiltroObservador(selectors) {
+  const lista = Array.isArray(selectors) ? selectors : [selectors];
+  const els = lista.map((s) => (typeof s === "string" ? $(s) : s)).filter(Boolean);
+  if (!els.length) return [];
+  const obs = await api("/api/observadores?ativos=true").catch(() => []);
+  const html = '<option value="">Todos</option><option value="0">Sem observador</option>' +
+    (obs || []).map((o) => `<option value="${o.id}">${esc(o.nome)}</option>`).join("");
+  els.forEach((sel) => {
+    const atual = sel.value;
+    sel.innerHTML = html;
+    if (atual && [...sel.options].some((o) => o.value === atual)) sel.value = atual;
+  });
+  return obs;
+}
+
+/** Anexa observador_id ao URLSearchParams quando o select tem valor (inclui 0 = sem). */
+function appendObservadorParam(params, selector) {
+  const val = $(selector)?.value;
+  if (val !== undefined && val !== null && val !== "") params.set("observador_id", val);
+}
+
 /** Multilist (1+ opções) — dropdown com checkboxes, alinhado ao visual do sistema */
 const _msRegistry = new WeakMap();
 let _msDocCloseWired = false;

@@ -1,0 +1,134 @@
+====================================================================================================
+COMISSÕES DE VENDEDORES — REGRA DETALHADA (SEM PLANILHA / SEM ZAP)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: GERACAO_PEDIDO.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      RECEBIMENTO_BAIXA_COBRANCA.txt + DEVOLUCAO_VENDA_PONTA_A_PONTA.txt +
+      RH_PAGAMENTO_GERENCIAL.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Define COMO a comissão nasce, quando vira direito, como estorna e como
+paga — tudo no ERP. A comissão calculada é GERENCIAL até o financeiro/
+contador confirmar o pagamento (alinhado ao RH_PAGAMENTO_GERENCIAL).
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. BASE E MOMENTO são parâmetros oficiais da empresa — não combinados
+    no WhatsApp.
+ 2. Comissão “no zap” não existe para o ERP: só COM- apurada.
+ 3. Devolução / cancelamento / perda ESTORNAM comissão proporcional.
+ 4. Vários vendedores no mesmo PED: rateio explícito (soma = 100%).
+ 5. Meta é opcional (acelerador); nunca substitui a regra-base.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  COM-AAAA-NNNNN   apuração de comissão (por período ou por título)
+  FK: vendedor_id (USR ou PAR papel vendedor), ped_id, nf_id, tit_id,
+      bx_id, dev_id
+
+----------------------------------------------------------------------------------------------------
+3. PARÂMETROS OFICIAIS (calibrar na implantação)
+----------------------------------------------------------------------------------------------------
+
+  comissao_base ............... FATURADO | RECEBIDO
+     FATURADO = % sobre valor da NF (ou item) quando autorizada
+     RECEBIDO = % sobre valor baixado (BX) — recomendado se inadimplência
+                for risco material
+
+  comissao_percentual_padrao .. ex.: 1,0% a 5,0% (definir com direção)
+  comissao_por_familia ........ opcional (PA × REV × SVC × ferramental)
+  comissao_exclui ............. frete destacado, IPI (se houver),
+                                devoluções já abatidas
+  meta_mensal_vendedor ........ valor R$ (opcional)
+  acelerador_meta .............% extra se bater meta (opcional)
+  carencia_estorno_dias ....... se RECEBIDO, estorno na devolução mesmo
+                                após pago (gera COM- negativa)
+
+Sugestão inicial RLP (sujeita a ratificação):
+  * Base = RECEBIDO (protege caixa)
+  * % padrão = a definir pela direção (campo obrigatório antes de pagar)
+  * Ferramental / 1º faca: regra à parte (pode ser % menor ou zero)
+
+----------------------------------------------------------------------------------------------------
+4. VÁRIOS VENDEDORES NO MESMO PED
+----------------------------------------------------------------------------------------------------
+
+  No PED (ou no ORC que originou):
+    vendedor_principal_id + lista de rateio:
+      [{ vendedor_id, percentual }, ...]  Σ = 100%
+
+  Apuração multiplica base × % comissão × % rateio do vendedor.
+  Sem rateio cadastrado: 100% no vendedor_principal.
+
+----------------------------------------------------------------------------------------------------
+5. CICLO DE APURAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  A) EVENTO GERADOR
+     FATURADO → NF autorizada
+     RECEBIDO → BX confirmada no título de venda
+
+  B) COM- PREVISTA (provisão gerencial)
+     Aparece no extrato do vendedor; ainda não é pagamento
+
+  C) COM- LIBERADA
+     Fechamento quinzenal/mensal; financeiro revisa exceções
+
+  D) PAGAMENTO
+     Natureza 3.01.05; BX a pagar / folha via contador
+     (RH_PAGAMENTO_GERENCIAL — sugestão ≠ líquido oficial)
+
+  E) ESTORNO
+     DEV / cancelamento / perda → COM- negativa no mesmo vínculo
+     Se já paga: desconto na próxima apuração ou título a receber
+     do vendedor (política + alçada)
+
+----------------------------------------------------------------------------------------------------
+6. O QUE NÃO ENTRA NA BASE (padrão)
+----------------------------------------------------------------------------------------------------
+
+  * Juros/multa financeira recebidos (1.03.xx)
+  * Reposição de garantia a preço zero
+  * Simples adiantamento ainda não apropriado (só quando liquidar
+    a base escolhida)
+  * Vendas internas entre CNPJs do grupo (MULTI_EMPRESA...) —
+    parâmetro: comissão zero em intercompany
+
+----------------------------------------------------------------------------------------------------
+7. RELATÓRIOS
+----------------------------------------------------------------------------------------------------
+
+  * Extrato por vendedor (prevista / liberada / paga / estornada)
+  * Ranking e margem após comissão
+  * Divergência PED sem vendedor
+  * Impacto de devoluções no período
+
+----------------------------------------------------------------------------------------------------
+8. ALÇADAS E ACESSO
+----------------------------------------------------------------------------------------------------
+
+  Ver extrato próprio ............... vendedor (só dele)
+  Ver todos / liberar ............... financeiro / direção
+  Alterar % fora da tabela .......... direção + motivo
+  Pagar ............................. financeiro (SoD)
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Parâmetro FATURADO vs RECEBIDO definido por escrito
+  [ ] % padrão cadastrado antes da 1ª apuração
+  [ ] Rateio multi-vendedor no PED quando couber
+  [ ] Estorno automático em DEV/cancelamento
+  [ ] Pagamento via natureza 3.01.05 + confirmação
+  [ ] Nada de comissão “combinada no zap” sem COM-
+
+====================================================================================================
+Fim — COMISSOES_VENDEDORES_DETALHADO.txt
+Comissão no ERP evita briga e DRE distorcida. Zap não é holerite.
+====================================================================================================

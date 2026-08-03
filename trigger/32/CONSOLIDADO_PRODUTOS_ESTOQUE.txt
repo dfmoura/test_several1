@@ -1,0 +1,192 @@
+==========================================================================================
+                      CONSOLIDADO DE PRODUTOS - CONTROLE DE ESTOQUE                       
+                         Fonte: ESTOQUE DE PAPEIS-29-7-26(1).xlsx                         
+                               Gerado em: 31/07/2026 16:00                                
+==========================================================================================
+
+------------------------------------------------------------------------------------------
+CATEGORIA: FOSCO
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)   MTS LINEARES
+-------------------------------------------   --------- ------------- --------------
+FOSCO COLACRIL ADC 1000                               7             8           7100
+FOSCO COLACRIL ADC 5240                              32            60          58300
+TOTAL DA CATEGORIA                                                 68          65400
+Produtos distintos: 2
+
+------------------------------------------------------------------------------------------
+CATEGORIA: TAG
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)   MTS LINEARES
+-------------------------------------------   --------- ------------- --------------
+TAG COUCHE 170G                                       9             0              0
+TAG COUCHE 80G                                       10            14          14000
+TAG COUCHE 90G                                       12            26          26700
+TOTAL DA CATEGORIA                                                 40          40700
+Produtos distintos: 3
+
+------------------------------------------------------------------------------------------
+CATEGORIA: COUCHE
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)   MTS LINEARES
+-------------------------------------------   --------- ------------- --------------
+COUCHE 20G COLACRIL                                  18            75         101300
+COUCHE 20G FASSON                                    66           312         355600
+COUCHE 20G VERTEX                                     1             1            700
+COUCHE 30G VERTEX                                    12            35          35000
+RITRAMA                                               2             3           3000
+TOTAL DA CATEGORIA                                                426         495600
+Produtos distintos: 5
+
+------------------------------------------------------------------------------------------
+CATEGORIA: TÉRMICO
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)   MTS LINEARES
+-------------------------------------------   --------- ------------- --------------
+TÉRMICO COLACRIL                                      4             2           1500
+TÉRMICO FASSON                                       20            85          83600
+TOTAL DA CATEGORIA                                                 87          85100
+Produtos distintos: 2
+
+------------------------------------------------------------------------------------------
+CATEGORIA: BOPP
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)   MTS LINEARES
+-------------------------------------------   --------- ------------- --------------
+BOPP BRILHO COLACRIL BXT                             21            29          29000
+BOPP BRILHO COLACRIL NBT                              8             9           9500
+BOPP BRILHO RITRAMA                                  16            27          39000
+BOPP FOSCO COLACRIL BXT                              28            40          52200
+BOPP FOSCO FASSON 20G                                41            88         101000
+BOPP FOSCO FASSON 30G                                 5             5           6500
+BOPP FOSCO RITRAMA                                    6             8           7700
+BOPP FOSCO RITRAMA BXT                                6            24          24000
+BOPP METALIZADO                                       4             5           5000
+BOPP METALIZADO COLACRIL BXT                         13            28          33500
+BOPP TRANSPARENTE COLACRIL BXT                        5             6           6000
+BOPP TRANSPARENTE FASSON                              2             5           5200
+BOPP TRANSPARENTE RITRAMA                             1             1            500
+BOPP TRANSPARENTE RITRAMA BXT                         8             8           8000
+TOTAL DA CATEGORIA                                                283         327100
+Produtos distintos: 14
+
+------------------------------------------------------------------------------------------
+CATEGORIA: TECIDOS
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES      SALDO(m)
+-------------------------------------------   --------- -------------
+Cetim (6030301)                                       4          8800
+Cetim (6030301) Beje                                  1          2100
+Cetim (6030301) Perolizado                            2          2550
+Cetim PEROLIZADO                                      1          2050
+Cetim PEROLIZADO Beje                                 2          2150
+Cetim bege                                            1          3500
+Emborrachado (5090251)                                8         13670
+Resinado (4010301)                                   10         18730
+Resinado Perolizado                                   1             0
+Resinado importado normal                             1             0
+Resinado importado ruim                               1             0
+Resinado inportado ruim                               1             0
+Resinado perolizado                                   1             0
+Resinado verde                                        1             0
+TOTAL DA CATEGORIA                                              53550
+Produtos distintos: 14
+
+------------------------------------------------------------------------------------------
+CATEGORIA: LAMINAÇÃO
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES  SALDO(rolos)
+-------------------------------------------   --------- -------------
+LAMINAÇÃO                                            10             0
+LAMINAÇÃO BRILHO                                     54           118
+LAMINAÇÃO FOSCA                                      12            12
+TOTAL DA CATEGORIA                                                130
+Produtos distintos: 3
+
+------------------------------------------------------------------------------------------
+CATEGORIA: COLD (Hot Stamping)
+------------------------------------------------------------------------------------------
+PRODUTO                                       VARIAÇÕES QTDE(bobinas)
+-------------------------------------------   --------- -------------
+OURO                                                 13            23
+PRATA                                                 5             8
+TOTAL DA CATEGORIA                                                 31
+Produtos distintos: 2
+
+------------------------------------------------------------------------------------------
+CATEGORIA: TUBETES (por diâmetro)
+------------------------------------------------------------------------------------------
+PRODUTO                                        SALDO(unid.)
+-------------------------------------------   -------------
+Tubete 1 1/2"                                          4890
+Tubete 1"                                             70396
+Tubete 3"                                           27300.5
+TOTAL DA CATEGORIA                                   102586
+Produtos distintos: 3
+
+------------------------------------------------------------------------------------------
+CATEGORIA: CAIXAS
+------------------------------------------------------------------------------------------
+PRODUTO                                       ESTOQUE(unid.)
+-------------------------------------------   --------------
+Caixa 1 (200x150x120)                                    325
+Caixa 2 (250x200x200)                                    575
+Caixa 3 (250x250x200)                                    250
+Caixa 4 (400x300x223)                                    670
+Caixa 5 (300x300x317)                                    350
+Caixa 6 (500x300x300)                                    550
+Caixa 7 (460x360x340)                                    540
+Caixa 8 (500x400x300)                                    460
+Caixa 9 (540x405x335)                                      0
+TOTAL DA CATEGORIA                                      3720
+Produtos distintos: 9
+
+------------------------------------------------------------------------------------------
+CATEGORIA: TINTAS
+------------------------------------------------------------------------------------------
+PRODUTO                                           SALDO
+-------------------------------------------   ---------
+ANTIESPUMANTE                                         0
+BLACK                                                 0
+BLACK INTENSE                                         0
+BLUE 072                                              0
+BRANCO                                                0
+BRANCO OPACO                                          0
+CIAN                                                  0
+CYAN                                                  0
+DILUENTE                                              0
+GOLD 871                                              0
+LACA AMARELO                                          0
+LACA AZUL 072                                         0
+LACA AZUL BLUE                                        0
+LACA BRANCO                                           0
+LACA MAGENTA                                          0
+LACA PRETO                                            0
+LACA VERMELHO                                         0
+MAGENTA                                               0
+METALIC GOLD                                          0
+PANTONE ????                                          0
+PROCESS CYAN                                          0
+PROCESS MAGENTA                                       0
+PROCESS PRETO                                         0
+PROCESS YELLOW                                        0
+VERMELHO                                              0
+VERNIZ                                                0
+YELLOW                                                0
+TOTAL DA CATEGORIA                                    0
+Produtos distintos: 27
+
+------------------------------------------------------------------------------------------
+CATEGORIA: DUPLA FACE
+------------------------------------------------------------------------------------------
+PRODUTO                                            QTDE
+-------------------------------------------   ---------
+Ref. 4880 (100x30)                                    7
+Ref. 52015 (460x25)                                   1
+Ref. 52017 (460x25)                                   1
+TOTAL DA CATEGORIA                                    9
+Produtos distintos: 3
+
+==========================================================================================
+TOTAL GERAL DE PRODUTOS CONSOLIDADOS: 87
+==========================================================================================

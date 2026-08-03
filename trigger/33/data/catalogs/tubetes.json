@@ -1,0 +1,17 @@
+[
+  {
+    "tamanho": "1\"",
+    "preco": 0.5,
+    "nome": "TUBETE PEQUENO"
+  },
+  {
+    "tamanho": "1\" 1/2",
+    "preco": 0.6,
+    "nome": "TUBETE MEDIO"
+  },
+  {
+    "tamanho": "3\"",
+    "preco": 0.7,
+    "nome": "TUBETE GRANDE"
+  }
+]

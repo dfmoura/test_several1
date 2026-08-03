@@ -1,0 +1,105 @@
+====================================================================================================
+ÍNDICE DO FLUXO OPERACIONAL COMPLETO — DO ORÇAMENTO AO CAIXA
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real)
+Gerado em: 01/08/2026 | Atualizado em: 02/08/2026
+====================================================================================================
+
+Mapa dos TXTs do ciclo operacional e âncoras. Leia na ordem da coluna
+"Seq" para o fluxo feliz; use a seção 2 para exceções e integrações.
+
+----------------------------------------------------------------------------------------------------
+1. CADEIA PRINCIPAL (SEQ) — FLUXO FELIZ
+----------------------------------------------------------------------------------------------------
+
+  Seq  Documento                                      Papel
+  ---  ---------------------------------------------  ---------------------------------
+   0   GERACAO_ORCAMENTO.txt (+ flexibilidade,        Antes do pedido
+       imposto, gordura, mobilidade, aprovação…)
+   1   GERACAO_PEDIDO.txt                             Nasce o PED-
+   2   ORDEM_SERVICO.txt                              Serviço (OS-) quando couber
+   3   PRODUCAO_OPERACIONAL_GERENCIAL.txt             OP + visão PCP no mesmo ERP
+   4   ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt             Saída MP, sobra, PA
+   5   CONCLUSAO_PRODUCAO.txt                         Encerra OP/OS, libera PA
+   6   FATURAMENTO_GERACAO_COBRANCA.txt               NF + TIT-
+       (+ MAPA_FATURAMENTO_EXPLICADO.txt — visão/mapa)
+   7   ENTREGA_CONFIRMACAO_CLIENTE.txt                ENT- + confirmação
+   8   RECEBIMENTO_BAIXA_COBRANCA.txt                 BX- + crédito/caixa
+
+----------------------------------------------------------------------------------------------------
+2. FLUXO INFELIZ / EXCEÇÕES (NÃO QUEBRAM A CADEIA — COMPLEMENTAM)
+----------------------------------------------------------------------------------------------------
+
+  POS_VENDA_RMA_GARANTIA.txt              RMA- reclamação → CQ → decisão
+  DEVOLUCAO_VENDA_PONTA_A_PONTA.txt       DEV- fiscal+estoque+financeiro
+  COMPRAS_COTACAO_URGENCIA.txt            COT-/OC e OP parada
+  INDUSTRIALIZACAO_EXTERNA_REMESSA.txt    REM- poder de terceiros
+  COMISSOES_VENDEDORES_DETALHADO.txt      COM- (não planilha / não zap)
+  FRETE_TRANSPORTADORAS.txt               Frete receita×despesa + avaria
+  MANUTENCAO_PREVENTIVA_MAQUINAS.txt      Plano no BEM-
+  QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt   Amostra CQ + certificado
+  AMOSTRAS_PROTOTIPOS.txt                 Política custo/NF de amostra
+
+----------------------------------------------------------------------------------------------------
+3. CAMADAS GERENCIAIS, MULTI-EMPRESA E INTEGRAÇÕES
+----------------------------------------------------------------------------------------------------
+
+  MAPA_FATURAMENTO_EXPLICADO.txt             Mapa NF×TIT×COB×BX×ENT
+  NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt   DRE/caixa interno (só 1–5)
+  PATRIMONIO_CONTROLE.txt                    Bens BEM-
+  CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt    Não fecha fiscal; entrega dados
+  RH_PAGAMENTO_GERENCIAL.txt                 Só pagamento + gerencial
+  EXPORT_CONTADOR_FOLHA_LAYOUT.txt           Pacote mensal + import folha
+  MULTI_EMPRESA_CNPJS_E_LIVROS.txt           EMP-00001/00002 (sem LAI)
+  DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt     Proíbe livro paralelo no ERP
+  PARAMETROS_EMPRESA_OFICIAIS.txt            Números a ratificar
+  INTEGRACAO_WHATSAPP_BUSINESS_API.txt       Meta Cloud API (nunca pessoal)
+  INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt     Adapter; Inter teste; Sicoob alvo
+  LACUNAS_PENDENCIAS_SISTEMA.txt             Backlog residual
+
+----------------------------------------------------------------------------------------------------
+4. DIAGRAMA RÁPIDO
+----------------------------------------------------------------------------------------------------
+
+  ORC → (link) aceite → PED
+           │
+           ├─ crédito/sinal ok → LIBERADO
+           │
+           ├─ item PRODUCAO → OP → estoque MP→sobra→PA → conclusão
+           ├─ item SERVICO  → OS → conclusão
+           └─ item REVENDA  → separação
+                    │
+                    ▼
+              NF (Focus) + TIT → COB (banco) → ENT → confirmação
+                    │                              │
+                    ▼                              ▼
+                   BX ← webhook/extrato/CNAB     (MSG WhatsApp status)
+                    │
+            exceção: RMA → CQ → DEV/reposição/crédito
+            paralelo: COT/OC; REM; COM; BEM preventivo
+
+  Multi-empresa: documentos com empresa_id (default EMP-00001).
+  Sem LAI-/livro paralelo no ERP (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP).
+
+----------------------------------------------------------------------------------------------------
+5. PREFIXOS DESTE PACOTE
+----------------------------------------------------------------------------------------------------
+
+  Já no catálogo: PED OP OC ORC MOV OS TIT BX ENT NAT BEM …
+  Inclusões 02/08/2026: EMP RMA DEV COT REM COM MSG COB
+  LAI- NÃO entra no catálogo (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt)
+  (CODIFICACAO_INFORMACOES_SISTEMA.txt §5)
+
+----------------------------------------------------------------------------------------------------
+6. REGRA DE OURO DO PACOTE
+----------------------------------------------------------------------------------------------------
+
+  Um único ERP. Pedido é o mestre. Produção não vira outro sistema.
+  Contábil, fiscal e folha oficiais ficam com o contador — o ERP
+  alimenta com disciplina operacional.
+  WhatsApp = canal oficial (API Meta). Banco = adapter multi-provider.
+  Exceção (RMA/DEV) não apaga o fluxo feliz — estorna com trilha.
+
+====================================================================================================
+Fim — INDICE_FLUXO_OPERACIONAL.txt
+====================================================================================================

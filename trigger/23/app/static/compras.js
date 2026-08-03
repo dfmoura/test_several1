@@ -102,6 +102,7 @@ async function carregarComprasFiltros() {
     api("/api/compras/situacoes").catch(() => []),
     api("/api/compras/modalidades").catch(() => []),
     api("/api/compras/stats").catch(() => ({ por_ano: {} })),
+    preencherFiltroObservador("#compras-filtro-observador"),
   ]);
   preencherSelect(
     $("#compras-filtro-ano"),
@@ -127,6 +128,7 @@ async function buscarCompras() {
   if (g("#compras-filtro-numero")) params.set("numero", g("#compras-filtro-numero"));
   if ($("#compras-filtro-tipo")?.value) params.set("material_ou_servico", $("#compras-filtro-tipo").value);
   if (g("#compras-filtro-texto")) params.set("texto", g("#compras-filtro-texto"));
+  appendObservadorParam(params, "#compras-filtro-observador");
   params.set("limit", "500");
 
   const tb = $("#compras-tabela");

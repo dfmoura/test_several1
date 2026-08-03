@@ -1,0 +1,193 @@
+====================================================================================================
+GERAÇÃO DO PEDIDO DE VENDA / PRODUÇÃO — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: APROVACAO_ORCAMENTO_CLIENTE.txt + GERACAO_ORCAMENTO.txt +
+      INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt + CADASTRO_PRODUTOS_VENDA.txt +
+      CODIFICACAO_INFORMACOES_SISTEMA.txt + ORCAMENTO_PROSPECT_SEM_CADASTRO.txt +
+      PEDIDOS_RECORRENTES_LEMBRETE_REPOSICAO.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO O PEDIDO NASCE e o que ele carrega até a produção,
+o faturamento e a entrega. O pedido é o documento-mestre operacional: tudo o
+que acontece depois (OP, OS, estoque, NF-e, cobrança, entrega) aponta para ele.
+
+Complementa — e não substitui — a geração e a aprovação do orçamento.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. PEDIDO SÓ EXISTE COM APROVAÇÃO DO CLIENTE PELO LINK.
+    Gatilho formal: aceite em APROVACAO_ORCAMENTO_CLIENTE.txt.
+    "Combinado no zap" não gera PED-.
+
+ 2. PEDIDO HERDA O ORÇAMENTO TRAVADO (snapshot).
+    Preço, especificação, quantidade aprovada, prazo, condição de pagamento,
+    ferramental e tolerância +/-20% vêm da versão aprovada do ORC.
+    Não recalcular na conversão — o que o cliente aprovou é o contrato.
+
+ 3. UM PEDIDO, UM PARCEIRO, N ITENS.
+    Cada item guarda a especificação comercial + família fiscal de saída
+    (PA-ETQ / REV-RIB / SVC) — CADASTRO_PRODUTOS_VENDA.txt.
+
+ 4. CRÉDITO E ADIANTAMENTO LIBERAM A PRODUÇÃO — NÃO SUBSTITUEM O ACEITE.
+    Conversão → motor de crédito → se bloquear, pedido fica na fila do
+    financeiro; se adiantamento, produção só após baixa do sinal.
+
+ 5. CÓDIGO: id BIGINT + exibição PED-AAAA-NNNNN
+    (CODIFICACAO_INFORMACOES_SISTEMA.txt, seções 5 e 8.2).
+    FK: orcamento_id, parceiro_id, usuario_id (vendedor).
+
+----------------------------------------------------------------------------------------------------
+2. ORIGENS POSSÍVEIS DO PEDIDO
+----------------------------------------------------------------------------------------------------
+
+  A) ORÇAMENTO APROVADO (caminho padrão)
+     ORC calculado → enviado → cliente aprova faixa(s) → PED nascido.
+
+  B) LEMBRETE DE REPOSIÇÃO (recorrente)
+     Lembrete reabre ciclo comercial: gera NOVO orçamento (ou reusa
+     modelo) → cliente aprova de novo → PED.
+     Lembrete NUNCA cria pedido sozinho (PEDIDOS_RECORRENTES_...).
+
+  C) REVENDA / SERVIÇO AVULSO
+     Mesmo fluxo de orçamento (tipo REV ou SVC) → aprovação → PED.
+     Diferença: pode não gerar OP industrial; pode gerar OS.
+
+  D) PROSPECT
+     Prospect só vira PED após cadastro fiscal completo + aceite +
+     (se exigido) adiantamento baixado — ORCAMENTO_PROSPECT_....
+
+Não existe "pedido digitado do zero" sem orçamento na Fase 1, salvo
+exceção parametrizada pela direção (ex.: amostra sem valor comercial
+com perfil ADMIN/COMERCIAL + motivo). Mesmo assim gera ORC interno
+zerado ou simbólico para manter trilha.
+
+----------------------------------------------------------------------------------------------------
+3. O QUE O PEDIDO GRAVA (fotografia obrigatória)
+----------------------------------------------------------------------------------------------------
+
+Cabeçalho:
+  * codigo PED-AAAA-NNNNN, data, status
+  * parceiro_id + condição de pagamento + prazo de entrega prometido
+  * vendedor_id, canal de origem (WhatsApp/e-mail/presencial)
+  * orcamento_id + versão aprovada
+  * flag crédito: OK | BLOQUEADO | AGUARDA_ADIANTAMENTO
+  * frete (CIF/FOB/cliente retira) e endereço de entrega (snapshot)
+  * observações comerciais e fiscais (info adicionais NF)
+
+Por item:
+  * família fiscal (PA-/REV-/SVC-*) + descrição comercial montada
+  * especificação: medida/faca, papel, cores, acabamento, tubete, etiq/rolo
+  * quantidade aprovada + unidade comercial (MIL, UN, RL...)
+  * preço unitário e total travados
+  * ferramental (FAC-*) se cobrado neste pedido (1ª vez)
+  * item-chave / modelo para recorrência
+  * necessidade: PRODUCAO | REVENDA | SERVICO (define OP x OS x só faturar)
+
+----------------------------------------------------------------------------------------------------
+4. STATUS DO PEDIDO (ciclo de vida)
+----------------------------------------------------------------------------------------------------
+
+  RASCUNHO .............. conversão ainda em validação (raro na tela)
+  AGUARDA_CREDITO ....... aceite OK, motor de crédito pendente/bloqueado
+  AGUARDA_ADIANTAMENTO .. cobrança de sinal emitida, aguarda baixa
+  LIBERADO .............. apto a gerar OP/OS / separação
+  EM_PRODUCAO ........... pelo menos uma OP/OS aberta
+  PRODUZIDO ............. itens concluídos (PA disponível / serviço ok)
+  FATURADO .............. NF-e/NFS-e autorizada (parcial ou total)
+  EM_ENTREGA ............ romaneio/despacho emitido
+  ENTREGUE .............. confirmação de entrega registrada
+  ENCERRADO ............. financeiro quitado (ou baixado) + entrega ok
+  CANCELADO ............. com motivo, alçada e estorno de reservas
+
+Status permite PARCIAL: faturar parte, entregar parte, produzir parte.
+O pedido só ENCERRADO quando todos os itens tiverem destino final.
+
+----------------------------------------------------------------------------------------------------
+5. GERAÇÃO AUTOMÁTICA A PARTIR DO ACEITE
+----------------------------------------------------------------------------------------------------
+
+Fluxo do sistema no momento da aprovação:
+
+  1) Grava aceite (token, IP, data/hora, versão ORC)
+  2) Cria PED herdando snapshot do ORC
+  3) Roda motor de crédito (INCLUSAO_LIBERACAO_LIMITE_CREDITO_...)
+  4) Se exige adiantamento: gera título/cobrança do sinal
+     (ver FATURAMENTO_GERACAO_COBRANCA.txt) e status AGUARDA_ADIANTAMENTO
+  5) Se crédito OK (ou sinal baixado): status LIBERADO
+  6) Reserva de capacidade / fila PCP (não é outro sistema —
+     ver PRODUCAO_OPERACIONAL_GERENCIAL.txt)
+  7) Notifica produção/comercial (evento interno + opcional WhatsApp interno)
+
+Liberação manual de crédito (alçada financeiro) também move para LIBERADO.
+
+----------------------------------------------------------------------------------------------------
+6. O QUE O PEDIDO DISPARA (documentos filhos)
+----------------------------------------------------------------------------------------------------
+
+  PED (produção própria)  → OP-AAAA-NNNNN (1 ou N por item/lote)
+  PED (serviço avulso)    → OS-AAAA-NNNNN (ORDEM_SERVICO.txt)
+  PED (revenda pronta)    → separação/picking direto (sem OP)
+  PED (qualquer)          → títulos a receber no faturamento
+  PED (qualquer)          → romaneio/entrega após PA disponível ou serviço ok
+
+Toda FK filha aponta para ped_id (BIGINT). Nunca orphan.
+
+----------------------------------------------------------------------------------------------------
+7. ALTERAÇÃO E CANCELAMENTO
+----------------------------------------------------------------------------------------------------
+
+  * Alterar quantidade/preço/especificação APÓS LIBERADO:
+    exige nova versão de orçamento + novo aceite do cliente
+    (ou alçada direção com motivo — exceção auditada).
+  * Cancelar com OP já consumindo material: primeiro encerra/estorna OP
+    (sobras voltam — TRATAMENTO_SOBRA_BOBINA_RETALHO.txt), depois cancela PED.
+  * Cancelar com NF emitida: só via devolução/cancelamento fiscal
+    (Focus NFe + fluxo financeiro) — não "apagar" pedido.
+
+----------------------------------------------------------------------------------------------------
+8. PAPÉIS E ALÇADAS
+----------------------------------------------------------------------------------------------------
+
+  COMERCIAL .... visualiza, acompanha, solicita alteração
+  FINANCEIRO ... libera crédito, confirma adiantamento
+  PRODUCAO ..... vê só pedidos LIBERADOS (e em produção)
+  EXPEDICAO .... vê pedidos PRODUZIDO / FATURADO aptos a despacho
+  FISCAL ....... faturamento
+  CONSULTA ..... contador / direção (leitura)
+
+(ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt)
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST DE ACEITE DO MÓDULO
+----------------------------------------------------------------------------------------------------
+
+  [ ] Conversão ORC→PED só com token de aprovação válido
+  [ ] Snapshot de preço/especificação imutável após criação
+  [ ] Motor de crédito na conversão
+  [ ] Adiantamento bloqueia produção até baixa
+  [ ] Prefixos PED- e vínculos OP/OS/NF/título
+  [ ] Status parciais e encerramento só com ciclo completo
+  [ ] Cancelamento com estorno de estoque/financeiro quando couber
+  [ ] Prospect sem cadastro completo não fatura
+
+----------------------------------------------------------------------------------------------------
+10. VÍNCULO COM O RESTANTE DO SISTEMA
+----------------------------------------------------------------------------------------------------
+
+  Orçamento .......... GERACAO_ORCAMENTO.txt / APROVACAO_...
+  Crédito ............ INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt
+  Produto venda ...... CADASTRO_PRODUTOS_VENDA.txt
+  Produção ........... PRODUCAO_OPERACIONAL_GERENCIAL.txt / CONCLUSAO_PRODUCAO.txt
+  Serviço ............ ORDEM_SERVICO.txt
+  Estoque ............ ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt
+  Faturamento ........ FATURAMENTO_GERACAO_COBRANCA.txt
+  Entrega ............ ENTREGA_CONFIRMACAO_CLIENTE.txt
+  Recebimento ........ RECEBIMENTO_BAIXA_COBRANCA.txt
+
+====================================================================================================
+Fim — GERACAO_PEDIDO.txt
+Pedido = contrato operacional vivo. Sem aceite, sem crédito/sinal ok, sem produção.
+====================================================================================================

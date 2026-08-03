@@ -29,6 +29,7 @@ from app.filtros_periodo import (
     data_filtro_powerbi,
     resolver_periodo,
 )
+from app.observadores import condicao_observador
 from app.powerbi_arvore import agrupar_eventos, contagem_contratos, eventos_do_processo, responsaveis_do_contrato
 from app.powerbi_coletor import coletar as coletar_powerbi
 
@@ -536,6 +537,7 @@ def listar_licitacoes(
     modalidade: list[str] = Query(default=[]),
     processo: str | None = None,
     texto: str | None = None,
+    observador_id: int | None = Query(None, ge=0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -597,6 +599,10 @@ def listar_licitacoes(
         f = _filtro_texto_licitacao(t)
         stmt = stmt.where(f)
         count = count.where(f)
+    filtro_obs = condicao_observador(PbiProcessoLicitatorio.observador_id, observador_id)
+    if filtro_obs is not None:
+        stmt = stmt.where(filtro_obs)
+        count = count.where(filtro_obs)
     total = db.scalar(count) or 0
     rows = db.scalars(
         stmt.order_by(PbiProcessoLicitatorio.ano_processo.desc(), PbiProcessoLicitatorio.processo)
@@ -671,6 +677,7 @@ def listar_contratos_agrupados(
     processo: str | None = None,
     nr_contrato: str | None = None,
     texto: str | None = None,
+    observador_id: int | None = Query(None, ge=0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -696,6 +703,9 @@ def listar_contratos_agrupados(
         if not orgao_joined:
             stmt = stmt.join(PbiOrgao)
         stmt = stmt.join(PbiFornecedor, isouter=True).where(_filtro_texto_contrato(t))
+    filtro_obs = condicao_observador(PbiContrato.observador_id, observador_id)
+    if filtro_obs is not None:
+        stmt = stmt.where(filtro_obs)
 
     eventos = list(db.scalars(stmt).all())
     grupos = agrupar_eventos(eventos)
@@ -744,6 +754,7 @@ def listar_contratos(
     processo: str | None = None,
     nr_contrato: str | None = None,
     texto: str | None = None,
+    observador_id: int | None = Query(None, ge=0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -784,6 +795,10 @@ def listar_contratos(
         f = _filtro_texto_contrato(t)
         stmt = stmt.join(PbiFornecedor, isouter=True).where(f)
         count = count.join(PbiFornecedor, isouter=True).where(f)
+    filtro_obs = condicao_observador(PbiContrato.observador_id, observador_id)
+    if filtro_obs is not None:
+        stmt = stmt.where(filtro_obs)
+        count = count.where(filtro_obs)
     total = db.scalar(count) or 0
     rows = db.scalars(
         stmt.order_by(PbiContrato.ano_contrato.desc(), PbiContrato.nr_contrato)
@@ -812,6 +827,7 @@ def listar_gestores(
     fornecedor: str | None = None,
     fornecedor_id: int | None = None,
     texto: str | None = None,
+    observador_id: int | None = Query(None, ge=0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
@@ -862,6 +878,10 @@ def listar_gestores(
         f = _filtro_texto_gestor(t)
         stmt = stmt.join(PbiPessoa).where(f)
         count = count.join(PbiPessoa).where(f)
+    filtro_obs = condicao_observador(PbiContratoResponsavel.observador_id, observador_id)
+    if filtro_obs is not None:
+        stmt = stmt.where(filtro_obs)
+        count = count.where(filtro_obs)
     total = db.scalar(count) or 0
     rows = db.scalars(
         stmt.order_by(

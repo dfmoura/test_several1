@@ -1,0 +1,7 @@
+services:
+  rlpflow:
+    build: .
+    container_name: rlpflow
+    ports:
+      - "8034:80"
+    restart: unless-stopped

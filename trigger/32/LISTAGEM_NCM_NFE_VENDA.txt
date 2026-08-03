@@ -1,0 +1,43 @@
+====================================================================================================
+LISTAGEM DE NCM - XMLs DA PASTA nfe_venda
+Gerado em: 31/07/2026 19:50
+Arquivos XML processados: 4
+NCMs distintos encontrados: 3
+====================================================================================================
+
+RESUMO
+----------------------------------------------------------------------------------------------------
+3919.10.90  |  Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - Outras
+4811.41.90  |  Papel e cartão gomados ou adesivos - Autoadesivos - Outros
+9612.10.00  |  Fitas impressoras para máquinas de escrever e fitas impressoras semelhantes, tintadas ou preparadas de outro modo para imprimir (ribbons)
+
+DETALHAMENTO POR NCM
+====================================================================================================
+
+NCM: 3919.10.90
+Descrição: Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - Outras
+Ocorrências (itens de NF): 2
+Produtos:
+  - ETIQUETAS BOPP
+      Cliente: ALESSANDRA AMARAL DINIZ | NF: 6113
+  - ETIQUETAS BOPP
+      Cliente: URSULA RAXILAN SOUTO VIEIRA | NF: 6114
+----------------------------------------------------------------------------------------------------
+
+NCM: 4811.41.90
+Descrição: Papel e cartão gomados ou adesivos - Autoadesivos - Outros
+Ocorrências (itens de NF): 4
+Produtos:
+  - ETIQUETAS TERMICA
+      Cliente: ESTOFCAR ESTOFAMENTOS LTDA ME | NF: 6115
+  - PAPEL COUCHE
+      Cliente: Raf Comercio E Servicos De Cartuchos Ltda | NF: 6112
+----------------------------------------------------------------------------------------------------
+
+NCM: 9612.10.00
+Descrição: Fitas impressoras para máquinas de escrever e fitas impressoras semelhantes, tintadas ou preparadas de outro modo para imprimir (ribbons)
+Ocorrências (itens de NF): 1
+Produtos:
+  - RIBBON CERA 110X74 TODAYTEC
+      Cliente: Raf Comercio E Servicos De Cartuchos Ltda | NF: 6112
+----------------------------------------------------------------------------------------------------

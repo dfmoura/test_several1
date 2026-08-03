@@ -1,0 +1,127 @@
+====================================================================================================
+DEVOLUÇÃO DE VENDA PONTA A PONTA — FISCAL + ESTOQUE + FINANCEIRO + CRÉDITO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real)
+Base: FATURAMENTO_GERACAO_COBRANCA.txt + RECEBIMENTO_BAIXA_COBRANCA.txt +
+      ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt + ENTREGA_CONFIRMACAO_CLIENTE.txt +
+      POS_VENDA_RMA_GARANTIA.txt + INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + COMISSOES_VENDEDORES_DETALHADO.txt +
+      CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Roteiro ÚNICO para quando a mercadoria (ou parte) VOLTA após faturamento.
+Hoje os pedaços existem espalhados; este TXT amarra a ordem correta para
+não deixar SEFAZ, estoque, título e limite de crédito dessincronizados.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. DEVOLUÇÃO ≠ CANCELAMENTO DE NF.
+    Cancelamento: prazo legal curto, NF ainda “viva” na SEFAZ.
+    Devolução: NF de entrada (cliente → RLP) referenciando a chave
+    original, ou procedimento que o contador homologar.
+ 2. UM DOCUMENTO MESTRE NO ERP: DEV-AAAA-NNNNN, espelhando a operação
+    completa (fiscal + MOV + financeiro).
+ 3. NUNCA APAGAR a NF de saída nem o PED — só estornar e referenciar.
+ 4. COMISSÃO, NATUREZA E CRÉDITO acompanham o estorno (não “deixar
+    pra depois”).
+ 5. Contador valida CFOP/CST da devolução; ERP executa o roteiro.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  id BIGINT + DEV-AAAA-NNNNN
+  FK: ped_id, nf_saida_id (chave 44), rma_id (se veio de pós-venda),
+      parceiro_id, nf_devolucao_id (quando autorizada)
+
+----------------------------------------------------------------------------------------------------
+3. CENÁRIOS
+----------------------------------------------------------------------------------------------------
+
+  A) CANCELAMENTO DE NF (ainda no prazo)
+     Focus cancela → ERP: estorna MOV de saída PA/REV; cancela TIT
+     abertos; libera crédito; marca faturamento estornado.
+     Prefixo continua ligado ao evento de cancelamento (sem DEV-
+     obrigatório; pode gerar DEV tipo CANCELAMENTO_FISCAL para trilha).
+
+  B) DEVOLUÇÃO TOTAL (após prazo de cancelamento ou política)
+     Cliente emite NF de devolução (ou RLP emite conforme regra do
+     contador) → entrada estoque → abate títulos / gera crédito.
+
+  C) DEVOLUÇÃO PARCIAL
+     Mesmo fluxo, só nos itens/qtde devolvidos; títulos proporcionais
+     ou crédito residual.
+
+  D) RECUSA NA ENTREGA (ainda sem confirmação ENTREGUE)
+     Preferir: não concluir ENT + tratar como retorno logístico;
+     se NF já saiu, cai em B/C.
+
+  E) AVARIA / GARANTIA COM REPOSIÇÃO SEM DEVOLUÇÃO FÍSICA
+     Pode ser só RMA + reposição; DEV só se houver retorno de
+     mercadoria ou abatimento fiscal.
+
+----------------------------------------------------------------------------------------------------
+4. ROTEIRO OPERACIONAL (ordem obrigatória)
+----------------------------------------------------------------------------------------------------
+
+  1) Origem: RMA aprovado OU solicitação comercial/financeiro com alçada
+  2) Abre DEV-AAAA-NNNNN (rascunho) com itens, qtde, motivo, rma_id
+  3) Conferência física na entrada (quando mercadoria retorna):
+       qtde, estado (íntegro / avariado / improprio)
+  4) Classificação de estoque:
+       * Íntegro aproveitável → MOV ENTRADA_DEVOLUCAO no SKU/PA
+       * Avariado → quarentena / perda / sucata (natureza correta)
+  5) Emissão/registro da NF de devolução via Focus (CFOP típico
+     1201/2201 ou o que o contador definir para o caso)
+  6) Financeiro:
+       * TIT em aberto do mesmo PED/NF → baixa por compensação /
+         cancelamento parcial
+       * Já recebido → gera crédito ao cliente OU restituição (PIX/
+         TED) com BX- e natureza 1.02.01
+  7) Limite de crédito: recalcula (abate o que voltou / crédito gerado)
+  8) Comissão: estorno proporcional (COMISSOES_VENDEDORES_DETALHADO)
+  9) Natureza gerencial: 1.02.01 Devoluções de venda
+ 10) Status DEV → CONCLUIDA; RMA → ENCERRADO se era a única ação
+ 11) Export/contador: XML + espelho no pacote mensal
+
+Se qualquer passo falhar, DEV fica PENDENTE — não “marcar ok” no zap.
+
+----------------------------------------------------------------------------------------------------
+5. O QUE NÃO FAZER
+----------------------------------------------------------------------------------------------------
+
+  * Devolver só na SEFAZ e esquecer o ERP
+  * Ajustar estoque com AJU- “para bater” sem DEV
+  * Zerar título editando valor
+  * Misturar devolução de venda com remessa de industrialização
+  * Usar natureza de despesa operacional para mascarar devolução
+
+----------------------------------------------------------------------------------------------------
+6. ALÇADAS
+----------------------------------------------------------------------------------------------------
+
+  Devolução parcial rotineira ........ comercial + financeiro
+  Devolução total / alto valor ....... gerência/direção
+  Perda total do material devolvido .. direção
+  Estorno de comissão ................ automático na conclusão do DEV
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] DEV- ligado à NF de saída (chave)
+  [ ] MOV de entrada ou perda classificada
+  [ ] NF devolução autorizada (Focus) ou cancelamento no prazo
+  [ ] Títulos / crédito / restituição tratados
+  [ ] Limite de crédito atualizado
+  [ ] Comissão estornada
+  [ ] Natureza 1.02.01 (ou subconta acordada)
+  [ ] Nada apagado — só estornado
+
+====================================================================================================
+Fim — DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+Devolução completa = SEFAZ + estoque + caixa + crédito + comissão no mesmo DEV-.
+====================================================================================================

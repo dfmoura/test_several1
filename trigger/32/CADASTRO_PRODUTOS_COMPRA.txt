@@ -1,0 +1,361 @@
+====================================================================================================
+PROPOSTA DE CADASTRO FISCAL DE PRODUTOS DE COMPRA (INSUMOS, EMBALAGENS E REVENDA)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: PRODUTOS_EXISTENTES.txt (85 itens) + LISTAGEM_NCM.txt (XMLs de compra) +
+      LISTAGEM_NCM_NFE_VENDA.txt + estudo_tributação.txt + REVISAO_ICMS_ST.txt +
+      REVISAO_ANTECIPACAO_ICMS_MG.txt + estrategia_implantacao_ja.txt
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento atende à Fase 1 da estratégia de implantação do novo ERP ("Cadastro de
+produtos") e aos pontos de atenção do estudo tributário: "revisar todos os NCMs, CFOPs,
+CSTs e o cadastro de produtos" antes da migração para o Lucro Real.
+
+----------------------------------------------------------------------------------------------------
+1. CAMPOS OBRIGATÓRIOS DO CADASTRO (ESTRUTURA)
+----------------------------------------------------------------------------------------------------
+
+Para cada produto, o cadastro no novo ERP deve conter no mínimo:
+
+IDENTIFICAÇÃO
+  * Código interno (SKU) ............ padrão sugerido na seção 2 (MP-, EMB-, REV-)
+  * Descrição ....................... clara, sem abreviações ambíguas (corrigir "PANTONE ????")
+  * Grupo/categoria ................. conforme seção 3
+  * Código do produto no fornecedor . cProd do XML (tabela "de-para" — essencial para a
+                                      Focus NFe importar as NF-e de entrada e baixar/entrar
+                                      estoque automaticamente sem redigitação)
+  * EAN/GTIN ........................ informar "SEM GTIN" quando o item não possuir código
+                                      de barras (padrão da NF-e para insumos em bobina)
+
+CLASSIFICAÇÃO FISCAL
+  * NCM ............................. 8 dígitos, conforme seção 3 (validado contra os XMLs
+                                      reais dos fornecedores)
+  * CEST ............................ VAZIO para todos os itens atuais. Os NCMs 3919 constam
+                                      do CEST 10.010.00 apenas quando destinados a
+                                      CONSTRUÇÕES — não é o caso (ver REVISAO_ICMS_ST.txt).
+                                      Registrar essa justificativa no cadastro/observações.
+  * Origem da mercadoria (orig) ..... copiar do XML do fornecedor. ATENÇÃO: as notas
+                                      analisadas trazem orig 0, 3, 5 e 8. A origem define a
+                                      alíquota interestadual (4% x 12%) e o valor da
+                                      antecipação em MG — não padronizar como "0" por comodidade.
+  * Tipo de item (SPED, Reg. 0200) .. 00 = revenda | 01 = matéria-prima | 02 = embalagem
+                                      07 = uso e consumo (ver por grupo na seção 3)
+  * Indicador de escala relevante ... "S" (padrão) — só alterar se o fornecedor indicar
+  * cBenef .......................... preencher apenas se MG passar a exigir para o NCM
+
+UNIDADES E CONVERSÃO (ponto crítico para indústria de etiquetas)
+  * Unidade comercial ............... a unidade em que o fornecedor fatura (KG para papéis,
+                                      M2 para filmes, UN/RL para ribbons e tubetes, L/KG tintas)
+  * Unidade de estoque/consumo ...... bobina, metro linear ou m² conforme o controle interno
+  * Fator de conversão .............. obrigatório quando comercial ≠ estoque (ex.: KG → m²
+                                      pela gramatura; sem isso o custo e o estoque desandam)
+
+TRIBUTAÇÃO — REGIME ATUAL (SIMPLES NACIONAL)
+  * CSOSN de saída .................. 102 (ou 101 se permitir crédito ao cliente)
+  * CFOP padrão de entrada .......... ver seção 4
+  * Flag "sujeito a antecipação MG" . SIM para toda entrada interestadual de mercadoria
+                                      (industrialização/comercialização) enquanto no Simples
+                                      — o ERP deve calcular base x (18% − alíq. interestadual)
+                                      e lançar como custo (ver REVISAO_ANTECIPACAO_ICMS_MG.txt)
+  * ICMS-ST ......................... NÃO se aplica a nenhum item atual (ver REVISAO_ICMS_ST.txt)
+
+TRIBUTAÇÃO — PREPARAÇÃO PARA O LUCRO REAL (deixar parametrizado desde já)
+  * CST ICMS de entrada ............. 00 (origem + 00) — insumos geram crédito integral
+  * Alíquota interna MG ............. 18% (verificar reduções de base por NCM com o contador)
+  * CST PIS/COFINS de entrada ....... 50 (operação com direito a crédito) + natureza do
+                                      crédito (aquisição de insumos p/ industrialização)
+  * Alíquotas PIS/COFINS ............ 1,65% / 7,60% (regime não cumulativo)
+  * IPI ............................. enquadramento e alíquota por NCM conforme TIPI vigente;
+                                      como industrial fora do Simples, a empresa passa a ser
+                                      contribuinte de IPI — crédito na entrada dos insumos e
+                                      débito na saída quando devido (validar com o contador a
+                                      incidência sobre etiquetas personalizadas)
+
+----------------------------------------------------------------------------------------------------
+2. PADRÃO DE CODIFICAÇÃO SUGERIDO (SKU)
+----------------------------------------------------------------------------------------------------
+
+  MP-PAP-nnn  matérias-primas de papel (fosco, tag, couché, térmico)
+  MP-FLM-nnn  filmes plásticos autoadesivos (BOPP)
+  MP-TEC-nnn  tecidos p/ etiquetas têxteis (cetim, resinado, emborrachado)
+  MP-LAM-nnn  filmes de laminação
+  MP-CLD-nnn  cold/hot stamping (foils)
+  MP-TIN-nnn  tintas, vernizes e auxiliares de impressão
+  MP-ADF-nnn  fitas dupla face (uso produtivo)
+  EMB-TUB-nnn tubetes (embalagem/núcleo da bobina)
+  EMB-CX-nnn  caixas de papelão
+  REV-RIB-nnn ribbons (revenda e uso interno)
+
+----------------------------------------------------------------------------------------------------
+3. PARAMETRIZAÇÃO FISCAL POR GRUPO E RELAÇÃO DE PRODUTOS
+----------------------------------------------------------------------------------------------------
+
+Convenções: Tipo = tipo de item SPED | Un.com = unidade comercial típica
+CFOPs de entrada na seção 4. CEST vazio em todos (justificativa na seção 1).
+
+...................................................................................................
+3.1 PAPÉIS AUTOADESIVOS — NCM 4811.41.90 (confirmado nos XMLs Colacril e Avery Dennison)
+    Tipo 01 (matéria-prima) | Un.com: KG ou M2 | Origem: conforme XML (há orig 3/5/8 a 4%)
+...................................................................................................
+  MP-PAP-001  FOSCO COLACRIL ADC 1000          4811.41.90 (*a)
+  MP-PAP-002  FOSCO COLACRIL ADC 5240          4811.41.90 (*a)
+  MP-PAP-003  COUCHE 20G COLACRIL              4811.41.90
+  MP-PAP-004  COUCHE 20G FASSON                4811.41.90
+  MP-PAP-005  COUCHE 20G VERTEX                4811.41.90
+  MP-PAP-006  COUCHE 30G VERTEX                4811.41.90
+  MP-PAP-007  COUCHE RITRAMA                   4811.41.90 (renomear "RITRAMA": marca não é descrição)
+  MP-PAP-008  TÉRMICO COLACRIL                 4811.41.90 (confirmado: NF 576445)
+  MP-PAP-009  TÉRMICO FASSON                   4811.41.90 (confirmado: NF 867545)
+
+  (*a) Confirmar se os itens "FOSCO COLACRIL" são papel couché fosco autoadesivo (4811.41.90)
+       ou filme BOPP fosco (3919.9x.10) — o XML da próxima compra resolve.
+
+...................................................................................................
+3.2 PAPEL TAG / CARTÃO SEM ADESIVO — NCM 4810.13.89 (papel couché em rolos, sem adesivo)
+    Tipo 01 | Un.com: KG | Origem: conforme XML
+...................................................................................................
+  MP-PAP-010  TAG COUCHE 80G                   4810.13.89
+  MP-PAP-011  TAG COUCHE 90G                   4810.13.89
+  MP-PAP-012  TAG COUCHE 170G                  4810.13.89 (*b)
+
+  (*b) A gramatura pode alterar o desdobramento dentro da posição 4810 — validar com o
+       XML do fornecedor na primeira compra de cada gramatura.
+
+...................................................................................................
+3.3 FILMES BOPP AUTOADESIVOS — NCM 3919.xx.xx conforme LARGURA da bobina
+    Regra (vista nos XMLs Fedrigoni/Colacril/Avery):
+      largura ≤ 20 cm: 3919.10.10 (polipropileno) / 3919.10.90 (outros)
+      largura > 20 cm: 3919.90.10 (polipropileno) / 3919.90.90 (outros)
+    Bobinas industriais são normalmente > 20 cm → padrão 3919.90.10 (confirmado nas notas
+    Colacril 577306 e Avery 866545). Tipo 01 | Un.com: M2 | Origem: conforme XML
+...................................................................................................
+  MP-FLM-001  BOPP BRILHO COLACRIL BXT         3919.90.10
+  MP-FLM-002  BOPP BRILHO COLACRIL NBT         3919.90.10
+  MP-FLM-003  BOPP BRILHO RITRAMA              3919.90.10
+  MP-FLM-004  BOPP FOSCO COLACRIL BXT          3919.90.10
+  MP-FLM-005  BOPP FOSCO FASSON 20G            3919.90.10 (confirmado: NF 866545)
+  MP-FLM-006  BOPP FOSCO FASSON 30G            3919.90.10
+  MP-FLM-007  BOPP FOSCO RITRAMA               3919.90.10
+  MP-FLM-008  BOPP FOSCO RITRAMA BXT           3919.90.10
+  MP-FLM-009  BOPP METALIZADO                  3919.90.10 (confirmado: NF 577306 — ver *c)
+  MP-FLM-010  BOPP METALIZADO COLACRIL BXT     3919.90.10
+  MP-FLM-011  BOPP TRANSPARENTE COLACRIL BXT   3919.90.10
+  MP-FLM-012  BOPP TRANSPARENTE FASSON         3919.90.10
+  MP-FLM-013  BOPP TRANSPARENTE RITRAMA        3919.90.10
+  MP-FLM-014  BOPP TRANSPARENTE RITRAMA BXT    3919.90.10
+
+  (*c) A NF 577306 está em nome de outro CNPJ (ADESIVOS ETIQUETAS E ROTULOS UDI LTDA) —
+       resolver a titularidade antes de usar como referência de cadastro/custo.
+  OBS: o fornecedor Fedrigoni usou 3919.10.90 e 3919.90.90 para o MESMO item (NF 91055) —
+       divergência já apontada na revisão de ST; cobrar correção e cadastrar pelo NCM correto.
+
+...................................................................................................
+3.4 TECIDOS PARA ETIQUETAS TÊXTEIS — NCM A CONFIRMAR (não há XML de compra na amostra)
+    Candidatos usuais: cetim 5806.32.00 (fitas de fibras sintéticas); nylon resinado
+    5806.32.00 ou 5903.90.00 (tecido impregnado c/ plástico); emborrachado 5906.99.00.
+    AÇÃO: solicitar o NCM da última NF de cada fornecedor antes de gravar o cadastro.
+    Tipo 01 | Un.com: M ou RL | Origem: conforme XML
+...................................................................................................
+  MP-TEC-001  CETIM (6030301)                  NCM a confirmar
+  MP-TEC-002  CETIM (6030301) BEGE             NCM a confirmar
+  MP-TEC-003  CETIM (6030301) PEROLIZADO       NCM a confirmar
+  MP-TEC-004  CETIM BEGE                       NCM a confirmar
+  MP-TEC-005  CETIM PEROLIZADO                 NCM a confirmar
+  MP-TEC-006  CETIM PEROLIZADO BEGE            NCM a confirmar
+  MP-TEC-007  EMBORRACHADO (5090251)           NCM a confirmar
+  MP-TEC-008  RESINADO (4010301)               NCM a confirmar
+  MP-TEC-009  RESINADO IMPORTADO NORMAL        NCM a confirmar (origem 1 ou 2 — importado!)
+  MP-TEC-010  RESINADO IMPORTADO RUIM          NCM a confirmar (rever descrição "RUIM")
+  MP-TEC-011  RESINADO PEROLIZADO              NCM a confirmar
+  MP-TEC-012  RESINADO VERDE                   NCM a confirmar
+
+...................................................................................................
+3.5 LAMINAÇÃO — NCM 3919.90.90 se filme AUTOADESIVO; 3920.20.19 se filme PP SEM adesivo
+    AÇÃO: confirmar com o fornecedor se a laminação usada é adesivada.
+    Tipo 01 | Un.com: M2 | Origem: conforme XML
+...................................................................................................
+  MP-LAM-001  LAMINAÇÃO                        3919.90.90 ou 3920.20.19 (unificar c/ 002/003?)
+  MP-LAM-002  LAMINAÇÃO BRILHO                 3919.90.90 ou 3920.20.19
+  MP-LAM-003  LAMINAÇÃO FOSCA                  3919.90.90 ou 3920.20.19
+
+...................................................................................................
+3.6 COLD / HOT STAMPING — NCM 3212.10.00 (folhas para marcar a ferro — stamping foils)
+    Tipo 01 | Un.com: RL ou M | Origem: geralmente importado (confirmar orig)
+...................................................................................................
+  MP-CLD-001  COLD OURO                        3212.10.00
+  MP-CLD-002  COLD PRATA                       3212.10.00
+
+...................................................................................................
+3.7 TINTAS E AUXILIARES DE IMPRESSÃO
+    Tintas de impressão: 3215.11.00 (PRETAS) / 3215.19.00 (demais — confirmado NF 45962
+    Camallon). Verniz, diluente e antiespumante NÃO são 3215 — classificação própria.
+    Tipo 01 (consumidos no processo) | Un.com: KG ou L | Origem: conforme XML
+    Fornecedor MG (Camallon): operação interna — SEM antecipação no Simples.
+...................................................................................................
+  MP-TIN-001  BLACK                            3215.11.00 (tinta de impressão PRETA)
+  MP-TIN-002  BLACK INTENSE                    3215.11.00
+  MP-TIN-003  PROCESS PRETO                    3215.11.00
+  MP-TIN-004  LACA PRETO                       3215.11.00 (*d)
+  MP-TIN-005  BLUE 072                         3215.19.00
+  MP-TIN-006  BRANCO                           3215.19.00
+  MP-TIN-007  BRANCO OPACO                     3215.19.00
+  MP-TIN-008  CIAN                             3215.19.00 (unificar com CYAN — duplicidade)
+  MP-TIN-009  CYAN                             3215.19.00 (unificar com CIAN — duplicidade)
+  MP-TIN-010  GOLD 871                         3215.19.00
+  MP-TIN-011  LACA AMARELO                     3215.19.00 (*d)
+  MP-TIN-012  LACA AZUL 072                    3215.19.00 (*d)
+  MP-TIN-013  LACA AZUL BLUE                   3215.19.00 (*d)
+  MP-TIN-014  LACA BRANCO                      3215.19.00 (*d)
+  MP-TIN-015  LACA MAGENTA                     3215.19.00 (*d)
+  MP-TIN-016  LACA VERMELHO                    3215.19.00 (*d)
+  MP-TIN-017  MAGENTA                          3215.19.00
+  MP-TIN-018  METALIC GOLD                     3215.19.00
+  MP-TIN-019  PROCESS CYAN                     3215.19.00
+  MP-TIN-020  PROCESS MAGENTA                  3215.19.00
+  MP-TIN-021  PROCESS YELLOW                   3215.19.00
+  MP-TIN-022  VERMELHO                         3215.19.00
+  MP-TIN-023  YELLOW                           3215.19.00
+  MP-TIN-024  PANTONE ????                     3215.19.00 (CORRIGIR descrição antes de migrar)
+  MP-TIN-025  VERNIZ                           3208.90.xx / 3210.00.xx conforme composição —
+                                               confirmar pela FISPQ/NF do fornecedor
+  MP-TIN-026  DILUENTE                         3814.00.90 (solventes/diluentes compostos)
+  MP-TIN-027  ANTIESPUMANTE                    3824.99.7x (confirmar na NF do fornecedor)
+
+  (*d) "Lacas" vendidas como tinta de impressão seguem 3215; se forem laca/verniz base
+       (posição 3208/3210), o NCM muda — confirmar pelo XML do fornecedor.
+
+...................................................................................................
+3.8 FITAS DUPLA FACE — NCM 3919 conforme LARGURA (mesma regra dos filmes)
+    Tipo 01 se consumida na produção (emenda de bobinas); 07 (uso e consumo) se uso geral.
+    Un.com: RL | Origem: conforme XML
+...................................................................................................
+  MP-ADF-001  DUPLA FACE REF. 4880 (100X30)    3919.10.90 (100 mm ≤ 20 cm)
+  MP-ADF-002  DUPLA FACE REF. 52015 (460X25)   3919.90.90 (460 mm > 20 cm) (*e)
+  MP-ADF-003  DUPLA FACE REF. 52017 (460X25)   3919.90.90 (460 mm > 20 cm) (*e)
+
+  (*e) Se "460" não for a largura em mm, reclassificar. Se o material for PP, usar
+       3919.10.10/3919.90.10. Confirmar no XML.
+
+...................................................................................................
+3.9 TUBETES (núcleo das bobinas) — NCM 4822.90.00 (tubos de papel/cartão)
+    Tipo 02 (embalagem — integra o produto vendido; gera crédito no Lucro Real)
+    Un.com: UN | Origem: 0 (nacional, confirmar)
+...................................................................................................
+  EMB-TUB-001  TUBETE 1"                       4822.90.00
+  EMB-TUB-002  TUBETE 1 1/2"                   4822.90.00
+  EMB-TUB-003  TUBETE 3"                       4822.90.00
+
+...................................................................................................
+3.10 CAIXAS DE PAPELÃO — NCM 4819.10.00 (caixas de papel/cartão ondulado)
+     Tipo 02 (embalagem — usada no acondicionamento do produto vendido; gera crédito
+     de ICMS/PIS/COFINS no Lucro Real)
+     Un.com: UN | Origem: 0 (nacional, confirmar)
+...................................................................................................
+  EMB-CX-001  CAIXA 200X150X120                4819.10.00
+  EMB-CX-002  CAIXA 250X200X200                4819.10.00
+  EMB-CX-003  CAIXA 250X250X200                4819.10.00
+  EMB-CX-004  CAIXA 300X300X317                4819.10.00
+  EMB-CX-005  CAIXA 400X300X223                4819.10.00
+  EMB-CX-006  CAIXA 460X360X340                4819.10.00
+  EMB-CX-007  CAIXA 500X300X300                4819.10.00
+  EMB-CX-008  CAIXA 500X400X300                4819.10.00
+  EMB-CX-009  CAIXA 540X405X335                4819.10.00
+
+...................................................................................................
+3.11 RIBBONS — NCM 9612.10.00 (confirmado nos XMLs Armor e Todaytec)
+     ITENS NOVOS: os ribbons aparecem nas COMPRAS (NFs 12890 e 33062) e nas VENDAS
+     (NF 6112) mas NÃO constam da lista de produtos existentes — incluir no cadastro.
+     Tipo 00 (revenda) quando revendido; se também consumido na impressão própria,
+     manter um único cadastro tipo 00 e tratar o consumo interno por requisição
+     (ou criar código espelho tipo 01, conforme orientação do contador).
+     Un.com: UN/RL | Origem: conforme XML (fornecedores AM — Zona Franca: conferir orig)
+...................................................................................................
+  REV-RIB-001  RIBBON CERA 110MM X 74M         9612.10.00
+  REV-RIB-002  RIBBON CERA 110MM X 300M        9612.10.00
+  REV-RIB-003  RIBBON CERA 60MM X 450M         9612.10.00
+  REV-RIB-004  RIBBON APR1 ZEBRA 110MM X 74M   9612.10.00
+  REV-RIB-005  RIBBON AWR1 ZEBRA 110MM X 74M   9612.10.00
+
+----------------------------------------------------------------------------------------------------
+4. CFOPs PADRÃO POR TIPO DE ITEM
+----------------------------------------------------------------------------------------------------
+
+ENTRADAS (compras):
+  Matéria-prima / embalagem (tipos 01 e 02)
+    1101 — compra p/ industrialização, dentro de MG (ex.: Camallon)
+    2101 — compra p/ industrialização, de outra UF (Fedrigoni/SP, Avery/SP, Colacril/PR,
+            Armor e Todaytec/AM quando o ribbon for consumido na produção)
+  Revenda (tipo 00 — ribbons)
+    1102 / 2102 — compra para comercialização (dentro / fora de MG)
+  Uso e consumo (tipo 07 — se houver)
+    1556 / 2556 (dentro / fora de MG) — no Simples e no LR gera DIFAL de uso e consumo
+
+SAÍDAS (referência para o cadastro de venda):
+  5101 / 6101 — venda de produção própria (etiquetas)
+  5102 / 6102 — revenda (ribbons)
+  6107 / 6108 — vendas interestaduais a não contribuinte (produção/revenda) — atenção ao
+                DIFAL EC 87/2015 após a saída do Simples
+
+----------------------------------------------------------------------------------------------------
+5. REGRAS FISCAIS TRANSVERSAIS (VALEM PARA TODO O CADASTRO)
+----------------------------------------------------------------------------------------------------
+
+ 1. ICMS-ST: nenhum item atual é sujeito a ST nas compras (destinatário industrial em MG,
+    uso como matéria-prima) — cadastrar SEM ST e SEM CEST, com a justificativa documentada
+    (REVISAO_ICMS_ST.txt). Reavaliar a cada mudança do Convênio 142/18 / RICMS-MG.
+ 2. ANTECIPAÇÃO MG (enquanto no Simples): ativar no ERP o cálculo automático por entrada
+    interestadual — base x (18% − alíq. interestadual). O valor NÃO gera crédito e deve
+    compor o CUSTO do produto (impacto estimado ~R$ 150 mil/ano — ver
+    REVISAO_ANTECIPACAO_ICMS_MG.txt). Compras internas MG (Camallon) ficam de fora.
+ 3. ORIGEM DA MERCADORIA: campo mais sensível do cadastro hoje. Origens 3/5/8 (conteúdo
+    importado) chegam a 4% interestadual e geram antecipação de 14 p.p. Sempre replicar a
+    origem do XML do fornecedor, item a item, e conferir quando o fornecedor alterar.
+ 4. CUSTO DE ENTRADA no Simples = valor da NF + IPI + frete + antecipação MG − descontos.
+    No Lucro Real = valor da NF − ICMS creditável − PIS/COFINS creditáveis (+ IPI se não
+    creditável). Parametrizar as duas fórmulas para a virada de regime ser só uma troca.
+ 5. VIRADA PARA O LUCRO REAL (deixar pré-parametrizado):
+      * desligar antecipação do Simples; ativar apuração débito/crédito de ICMS;
+      * entradas: CST ICMS 00 + CST PIS/COFINS 50 (crédito de insumo);
+      * levantar o ESTOQUE na data da mudança para o crédito de ICMS sobre estoques
+        (inventário — discutir com o contador o direito ao crédito na saída do Simples);
+      * habilitar IPI (crédito nas entradas / débito nas saídas quando devido).
+ 6. HIGIENE DO CADASTRO antes de migrar para o novo ERP:
+      * unificar CIAN x CYAN (duplicidade);
+      * corrigir "PANTONE ????" (descrição inválida);
+      * renomear "RITRAMA" e "RESINADO IMPORTADO RUIM" (marca/apelido não descreve o item);
+      * incluir os RIBBONS no estoque (compras e vendas existem, produto não).
+ 7. DE-PARA FORNECEDOR: alimentar a tabela código-fornecedor x SKU interno desde a primeira
+    importação de XML pela Focus NFe — é o que permite entrada automática de notas na Fase 2.
+
+----------------------------------------------------------------------------------------------------
+6. PENDÊNCIAS A RESOLVER ANTES DE GRAVAR O CADASTRO DEFINITIVO
+----------------------------------------------------------------------------------------------------
+
+ 1. TECIDOS (12 itens): obter NCM dos XMLs/fornecedores — sem nota de compra na amostra.
+ 2. FOSCO COLACRIL (2 itens): papel (4811.41.90) ou filme BOPP (3919.9x.10)?
+ 3. LAMINAÇÃO (3 itens): com ou sem adesivo? (3919.90.90 x 3920.20.19)
+ 4. VERNIZ / DILUENTE / ANTIESPUMANTE: confirmar NCM pela NF/FISPQ do fornecedor.
+ 5. DUPLA FACE: confirmar largura real e material (define o desdobramento do 3919).
+ 6. TAG 170G: confirmar desdobramento do 4810 para a gramatura.
+ 7. NF 577306 (destinatário ADESIVOS UDI): resolver titularidade antes de usar o histórico.
+ 8. Fedrigoni: cobrar posicionamento sobre o mesmo item em dois NCMs (3919.10.90 x 3919.90.90).
+ 9. Ribbons de fornecedores do AM (Zona Franca): conferir origem e eventuais particularidades
+    de crédito na entrada após a migração para o Lucro Real.
+
+----------------------------------------------------------------------------------------------------
+RESUMO
+----------------------------------------------------------------------------------------------------
+  Produtos do estoque atual: 85 | Ribbons a incluir: 5 | Total proposto: 90
+  Com NCM confirmado por XML de compra: papéis autoadesivos, térmicos, BOPP, tintas, ribbons
+  Com NCM proposto (validar): tag, laminação, cold, tubetes, caixas, dupla face, auxiliares
+  Sem NCM (obter do fornecedor): tecidos (12 itens)
+  CEST: vazio em todos | ICMS-ST: nenhum item | Antecipação MG: todas as entradas interestaduais
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial. Os NCMs marcados como "confirmado" seguem os XMLs reais dos
+fornecedores; os demais são propostas técnicas que devem ser validadas pelo contador
+responsável e, quando possível, pelo XML da próxima compra de cada item. Classificação
+fiscal incorreta gera autuação, ST indevida e erro na antecipação/crédito de ICMS.
+====================================================================================================

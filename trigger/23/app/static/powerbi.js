@@ -129,6 +129,12 @@ async function carregarPbiFiltros() {
   fill($("#pbi-filtro-gest-ano"), anosCon.map(String), "Todos");
   fill($("#pbi-filtro-gest-orgao"), orgGest, "Todos");
   fill($("#pbi-filtro-gest-papel"), papGest, "Todos");
+  await preencherFiltroObservador([
+    "#pbi-filtro-lic-observador",
+    "#pbi-filtro-con-observador",
+    "#pbi-filtro-ev-observador",
+    "#pbi-filtro-gest-observador",
+  ]);
   pbiFiltrosCarregados = true;
 }
 
@@ -146,24 +152,28 @@ function pbiQueryParams() {
     appendQueryAll(p, "modalidade", multiSelectOf("#pbi-filtro-lic-modalidade")?.getValues());
     if (g("#pbi-filtro-lic-processo")) p.set("processo", g("#pbi-filtro-lic-processo"));
     if (g("#pbi-filtro-lic-texto")) p.set("texto", g("#pbi-filtro-lic-texto"));
+    appendObservadorParam(p, "#pbi-filtro-lic-observador");
   } else if (pbiDataset === "contratos") {
     if (g("#pbi-filtro-con-ano")) p.set("ano_contrato", g("#pbi-filtro-con-ano"));
     if (g("#pbi-filtro-con-empresa")) p.set("empresa", g("#pbi-filtro-con-empresa"));
     if (g("#pbi-filtro-con-processo")) p.set("processo", g("#pbi-filtro-con-processo"));
     if (g("#pbi-filtro-con-numero")) p.set("nr_contrato", g("#pbi-filtro-con-numero"));
     if (g("#pbi-filtro-con-texto")) p.set("texto", g("#pbi-filtro-con-texto"));
+    appendObservadorParam(p, "#pbi-filtro-con-observador");
   } else if (pbiDataset === "eventos") {
     if (g("#pbi-filtro-ev-ano")) p.set("ano_contrato", g("#pbi-filtro-ev-ano"));
     if (g("#pbi-filtro-ev-empresa")) p.set("empresa", g("#pbi-filtro-ev-empresa"));
     if (g("#pbi-filtro-ev-processo")) p.set("processo", g("#pbi-filtro-ev-processo"));
     if (g("#pbi-filtro-ev-numero")) p.set("nr_contrato", g("#pbi-filtro-ev-numero"));
     if (g("#pbi-filtro-ev-texto")) p.set("texto", g("#pbi-filtro-ev-texto"));
+    appendObservadorParam(p, "#pbi-filtro-ev-observador");
   } else {
     if (g("#pbi-filtro-gest-ano")) p.set("ano_contrato", g("#pbi-filtro-gest-ano"));
     if (g("#pbi-filtro-gest-orgao")) p.set("ds_orgao", g("#pbi-filtro-gest-orgao"));
     if (g("#pbi-filtro-gest-papel")) p.set("ds_papeis", g("#pbi-filtro-gest-papel"));
     if (g("#pbi-filtro-gest-numero")) p.set("nr_contrato", g("#pbi-filtro-gest-numero"));
     if (g("#pbi-filtro-gest-texto")) p.set("texto", g("#pbi-filtro-gest-texto"));
+    appendObservadorParam(p, "#pbi-filtro-gest-observador");
   }
   return p;
 }

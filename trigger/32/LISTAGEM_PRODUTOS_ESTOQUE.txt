@@ -1,0 +1,708 @@
+====================================================================================================
+                             LISTAGEM DE PRODUTOS - CONTROLE DE ESTOQUE                             
+                              Fonte: ESTOQUE DE PAPEIS-29-7-26(1).xlsx                              
+                                    Gerado em: 31/07/2026 15:58                                     
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: FOSCO
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                               GRAM.   FORNECEDOR     LARG(mm)  COMP(m)  SALDO(rolos)
+--------------------------------------  ------  ------------   -------- -------- -------------
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             40      500             0
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             45      500             0
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             60     1000             5
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             66      500             1
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             70      600             1
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL             75     1000             1
+FOSCO COLACRIL ADC 1000                 20G     COLACRIL            130     1000             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             18      700             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             20     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             30      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             40     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             45      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             46      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             55      600             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             60      400             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             63      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             65      800             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             65     1000             5
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             70     1000             2
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             75     1000            14
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             80      700             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             80     1000             2
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             95      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL             95     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            100      700             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            100     1000             8
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            105     1000             7
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            110      400             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            110     1000             4
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            114     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            115     1000             2
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            120     1000             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            130      500             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            130     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            138     1000             2
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            140      300             0
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            140     1000             2
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            190     1000             1
+FOSCO COLACRIL ADC 5240                 20G     COLACRIL            195     1000             1
+                                                                          TOTAL:            68
+Itens distintos: 39
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: TAG
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                               GRAM.   FORNECEDOR     LARG(mm)  COMP(m)  SALDO(rolos)
+--------------------------------------  ------  ------------   -------- -------- -------------
+TAG COUCHE 170G                         170G    PROTACK              70     1000             0
+TAG COUCHE 170G                         170G    PROTACK              75     1000             0
+TAG COUCHE 170G                         170G    PROTACK              85     1000             0
+TAG COUCHE 170G                         170G    PROTACK             105      700             0
+TAG COUCHE 170G                         170G    PROTACK             105     1000             0
+TAG COUCHE 170G                         170G    PROTACK             110     1000             0
+TAG COUCHE 170G                         170G    PROTACK             125     1000             0
+TAG COUCHE 170G                         170G    PROTACK             130     1000             0
+TAG COUCHE 170G                         170G    PROTACK             150     1000             0
+TAG COUCHE 80G                          170G    THERMOTAG            60     1000             2
+TAG COUCHE 80G                          170G    THERMOTAG            80     1000             1
+TAG COUCHE 80G                          170G    THERMOTAG           105     1000             2
+TAG COUCHE 80G                          170G    THERMOTAG           110     1000             2
+TAG COUCHE 80G                          170G    THERMOTAG           125     1000             1
+TAG COUCHE 80G                          170G    THERMOTAG           130     1000             1
+TAG COUCHE 80G                          170G    THERMOTAG           140     1000             2
+TAG COUCHE 80G                          170G    THERMOTAG           150     1000             1
+TAG COUCHE 80G                          170G    THERMOTAG           210     1000             1
+TAG COUCHE 80G                          170G    THERMOTAG           250     1000             1
+TAG COUCHE 90G                          90G     PROTACK               0     1000             2
+TAG COUCHE 90G                          90G     PROTACK              65     1000             2
+TAG COUCHE 90G                          90G     PROTACK              70     1000             2
+TAG COUCHE 90G                          90G     PROTACK              75     1500             3
+TAG COUCHE 90G                          90G     PROTACK              80     1000             1
+TAG COUCHE 90G                          90G     PROTACK              85     1000             2
+TAG COUCHE 90G                          90G     PROTACK              90     1000             7
+TAG COUCHE 90G                          90G     PROTACK             100     1000             3
+TAG COUCHE 90G                          90G     PROTACK             140     1000             1
+TAG COUCHE 90G                          90G     PROTACK             152      500             1
+TAG COUCHE 90G                          90G     PROTACK             152     1000             1
+TAG COUCHE 90G                          90G     PROTACK             220      700             1
+                                                                          TOTAL:            40
+Itens distintos: 31
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: COUCHE
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                               GRAM.   FORNECEDOR     LARG(mm)  COMP(m)  SALDO(rolos)
+--------------------------------------  ------  ------------   -------- -------- -------------
+COUCHE 20G COLACRIL                     20G     COLACRIL             65     1500             1
+COUCHE 20G COLACRIL                     20G     COLACRIL             80     1500             7
+COUCHE 20G COLACRIL                     20G     COLACRIL             83     1500             3
+COUCHE 20G COLACRIL                     20G     COLACRIL             85      800             1
+COUCHE 20G COLACRIL                     20G     COLACRIL             85     1500             5
+COUCHE 20G COLACRIL                     20G     COLACRIL             90     1500             4
+COUCHE 20G COLACRIL                     20G     COLACRIL             95     1500             3
+COUCHE 20G COLACRIL                     20G     COLACRIL            100     1500             3
+COUCHE 20G COLACRIL                     20G     COLACRIL            105     1000             0
+COUCHE 20G COLACRIL                     20G     COLACRIL            105     1500             8
+COUCHE 20G COLACRIL                     20G     COLACRIL            125      500             1
+COUCHE 20G COLACRIL                     20G     COLACRIL            125     1500             2
+COUCHE 20G COLACRIL                     20G     COLACRIL            130     1000             0
+COUCHE 20G COLACRIL                     20G     COLACRIL            130     1500            13
+COUCHE 20G COLACRIL                     20G     COLACRIL            145     1500             4
+COUCHE 20G COLACRIL                     20G     COLACRIL            180     1500             0
+COUCHE 20G COLACRIL                     20G     COLACRIL            195     1500             1
+COUCHE 20G COLACRIL                     20G     COLACRIL            210     1000            19
+COUCHE 20G FASSON                       20G     FASSON               60     1000             8
+COUCHE 20G FASSON                       20G     FASSON               65     1000             3
+COUCHE 20G FASSON                       20G     FASSON               65     1500             5
+COUCHE 20G FASSON                       20G     FASSON               70     1000             0
+COUCHE 20G FASSON                       20G     FASSON               70     1500             5
+COUCHE 20G FASSON                       20G     FASSON               75     1000             7
+COUCHE 20G FASSON                       20G     FASSON               75     1500             9
+COUCHE 20G FASSON                       20G     FASSON               78     1000            11
+COUCHE 20G FASSON                       20G     FASSON               80     1000             3
+COUCHE 20G FASSON                       20G     FASSON               83     1000             2
+COUCHE 20G FASSON                       20G     FASSON               83     1500             7
+COUCHE 20G FASSON                       20G     FASSON               85     1000             7
+COUCHE 20G FASSON                       20G     FASSON               90     1000             0
+COUCHE 20G FASSON                       20G     FASSON               90     1500             2
+COUCHE 20G FASSON                       20G     FASSON               95     1000             0
+COUCHE 20G FASSON                       20G     FASSON               95     1500             8
+COUCHE 20G FASSON                       20G     FASSON               97     1000             5
+COUCHE 20G FASSON                       20G     FASSON              100     1000            12
+COUCHE 20G FASSON                       20G     FASSON              100     1500             3
+COUCHE 20G FASSON                       20G     FASSON              103     1000             8
+COUCHE 20G FASSON                       20G     FASSON              105     1000             9
+COUCHE 20G FASSON                       20G     FASSON              105     1500             5
+COUCHE 20G FASSON                       20G     FASSON              110     1000             0
+COUCHE 20G FASSON                       20G     FASSON              115      500             1
+COUCHE 20G FASSON                       20G     FASSON              115     1000             3
+COUCHE 20G FASSON                       20G     FASSON              115     1500            10
+COUCHE 20G FASSON                       20G     FASSON              120      500             1
+COUCHE 20G FASSON                       20G     FASSON              120     1000            10
+COUCHE 20G FASSON                       20G     FASSON              120     1500             2
+COUCHE 20G FASSON                       20G     FASSON              125     1000             6
+COUCHE 20G FASSON                       20G     FASSON              125     1500             1
+COUCHE 20G FASSON                       20G     FASSON              130     1000             8
+COUCHE 20G FASSON                       20G     FASSON              135      600             1
+COUCHE 20G FASSON                       20G     FASSON              135     1000             9
+COUCHE 20G FASSON                       20G     FASSON              135     1500             4
+COUCHE 20G FASSON                       20G     FASSON              138      500             0
+COUCHE 20G FASSON                       20G     FASSON              140     1000             3
+COUCHE 20G FASSON                       20G     FASSON              140     1500             7
+COUCHE 20G FASSON                       20G     FASSON              145      800             0
+COUCHE 20G FASSON                       20G     FASSON              145     1000             7
+COUCHE 20G FASSON                       20G     FASSON              145     1500             2
+COUCHE 20G FASSON                       20G     FASSON              150     1000             2
+COUCHE 20G FASSON                       20G     FASSON              150     1500             1
+COUCHE 20G FASSON                       20G     FASSON              155      500             1
+COUCHE 20G FASSON                       20G     FASSON              155     1000             8
+COUCHE 20G FASSON                       20G     FASSON              158      500             1
+COUCHE 20G FASSON                       20G     FASSON              158     1000            15
+COUCHE 20G FASSON                       20G     FASSON              160     1000             4
+COUCHE 20G FASSON                       20G     FASSON              165     1000             2
+COUCHE 20G FASSON                       20G     FASSON              165     1500             1
+COUCHE 20G FASSON                       20G     FASSON              180     1000             2
+COUCHE 20G FASSON                       20G     FASSON              180     1500             7
+COUCHE 20G FASSON                       20G     FASSON              185     1500            11
+COUCHE 20G FASSON                       20G     FASSON              190     1000             4
+COUCHE 20G FASSON                       20G     FASSON              190     1500             2
+COUCHE 20G FASSON                       20G     FASSON              195     1000             1
+COUCHE 20G FASSON                       20G     FASSON              195     1500             2
+COUCHE 20G FASSON                       20G     FASSON              196     1000             1
+COUCHE 20G FASSON                       20G     FASSON              200     1000             3
+COUCHE 20G FASSON                       20G     FASSON              210     1000            29
+COUCHE 20G FASSON                       20G     FASSON              215     1000             1
+COUCHE 20G FASSON                       20G     FASSON              220     1000             0
+COUCHE 20G FASSON                       20G     FASSON              225      700             1
+COUCHE 20G FASSON                       20G     FASSON              225     1000             0
+COUCHE 20G FASSON                       20G     FASSON              250     1000            18
+COUCHE 20G FASSON                       20G     FASSON              300      300             1
+COUCHE 20G VERTEX                       20G     VERTEX              333      500             1
+COUCHE 30G VERTEX                       30G     VERTEX               60     1000             2
+COUCHE 30G VERTEX                       30G     VERTEX               65     1000             3
+COUCHE 30G VERTEX                       30G     VERTEX               70     1000             3
+COUCHE 30G VERTEX                       30G     VERTEX               80     1000             0
+COUCHE 30G VERTEX                       30G     VERTEX               95     1000             0
+COUCHE 30G VERTEX                       30G     VERTEX              105     1000            13
+COUCHE 30G VERTEX                       30G     VERTEX              110     1000             4
+COUCHE 30G VERTEX                       30G     VERTEX              110     1500             1
+COUCHE 30G VERTEX                       30G     VERTEX              120     1000             1
+COUCHE 30G VERTEX                       30G     VERTEX              180      500             1
+COUCHE 30G VERTEX                       30G     VERTEX              180     1000             2
+COUCHE 30G VERTEX                       30G     VERTEX              210     1000             5
+RITRAMA                                 20G     RITRAMA              95     1000             2
+RITRAMA                                 20G     RITRAMA             120     1000             1
+                                                                          TOTAL:           426
+Itens distintos: 99
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: TÉRMICO
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                               GRAM.   FORNECEDOR     LARG(mm)  COMP(m)  SALDO(rolos)
+--------------------------------------  ------  ------------   -------- -------- -------------
+TÉRMICO COLACRIL                        20G     COLACRIL            180     1000             1
+TÉRMICO COLACRIL                        20G     COLACRIL            188      500             1
+TÉRMICO COLACRIL                        20G     COLACRIL            220     1000             0
+TÉRMICO COLACRIL                        20G     COLACRIL            250     1000             0
+TÉRMICO FASSON                          20G     COLACRIL             60     1000             4
+TÉRMICO FASSON                          20G     COLACRIL             70     1000             1
+TÉRMICO FASSON                          20G     COLACRIL             77     1000             5
+TÉRMICO FASSON                          20G     COLACRIL             86     1000             2
+TÉRMICO FASSON                          20G     COLACRIL             95     1000             0
+TÉRMICO FASSON                          20G     COLACRIL            105      600             0
+TÉRMICO FASSON                          20G     COLACRIL            110     1000             3
+TÉRMICO FASSON                          20G     COLACRIL            120     1000             2
+TÉRMICO FASSON                          20G     COLACRIL            190     1000             1
+TÉRMICO FASSON                          20G     COLACRIL            220      500             0
+TÉRMICO FASSON                          20G     COLACRIL            220     1000             0
+TÉRMICO FASSON                          20G     COLACRIL            250     1000             0
+TÉRMICO FASSON                          20G     FASSON               60     1000            18
+TÉRMICO FASSON                          20G     FASSON               65      600             1
+TÉRMICO FASSON                          20G     FASSON               70     1000             1
+TÉRMICO FASSON                          20G     FASSON               77      500             2
+TÉRMICO FASSON                          20G     FASSON               77     1000             6
+TÉRMICO FASSON                          20G     FASSON               80     1000             2
+TÉRMICO FASSON                          20G     FASSON              100      500             0
+TÉRMICO FASSON                          20G     FASSON              100     1000             1
+TÉRMICO FASSON                          20G     FASSON              105     1000             1
+TÉRMICO FASSON                          20G     FASSON              190     1000             2
+TÉRMICO FASSON                          20G     FASSON              210     1000            23
+TÉRMICO FASSON                          20G     FASSON              220     1000             9
+TÉRMICO FASSON                          20G     FASSON              240     1000             1
+TÉRMICO FASSON                          20G     FASSON              250     1000             0
+                                                                          TOTAL:            87
+Itens distintos: 30
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: BOPP
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                               GRAM.   FORNECEDOR     LARG(mm)  COMP(m)  SALDO(rolos)
+--------------------------------------  ------  ------------   -------- -------- -------------
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             40     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             60     1000             0
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             70     1000             0
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             80     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             83     1000             2
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             85     1000             2
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             95     1000             3
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL             95     1500             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            100      500             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            100     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            110     1000             3
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            130     1000             2
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            131     1000             3
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            135     1000             0
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            145     1000             2
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            155     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            205     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            210     1000             3
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            220     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            250     1000             1
+BOPP BRILHO COLACRIL BXT                20G     COLACRIL            333     1000             0
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL             80     1000             1
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL             83     1500             1
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL             85     1000             1
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL            110     1000             0
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL            125     1000             1
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL            155     1000             2
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL            220     1000             1
+BOPP BRILHO COLACRIL NBT                20G     COLACRIL            235     1000             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA              75     1000             0
+BOPP BRILHO RITRAMA                     20G     RITRAMA              80     1000             4
+BOPP BRILHO RITRAMA                     20G     RITRAMA             100     1000             1
+BOPP BRILHO RITRAMA                     20G     RITRAMA             100     1500             4
+BOPP BRILHO RITRAMA                     20G     RITRAMA             100     2000             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA             105     2000             3
+BOPP BRILHO RITRAMA                     20G     RITRAMA             111      500             1
+BOPP BRILHO RITRAMA                     20G     RITRAMA             115      600             0
+BOPP BRILHO RITRAMA                     20G     RITRAMA             115     1000             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA             115     1500             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA             115     2000             1
+BOPP BRILHO RITRAMA                     20G     RITRAMA             130     2000             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA             135     1000             0
+BOPP BRILHO RITRAMA                     20G     RITRAMA             155     2000             2
+BOPP BRILHO RITRAMA                     20G     RITRAMA             333      500             1
+BOPP BRILHO RITRAMA                     20G     RITRAMA             334     1000             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             30     1000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             60     1000             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             60     2000             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             61     1000             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             65     1000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             75     1000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             80     1000             6
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             83     1500             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             85     2000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             90      500             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL             95     2000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            100     1000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            110     2000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            120     1000             5
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            120     2000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            130     1000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            132     1000             3
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            145     2000             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            150     2000             0
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            160     1000             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            160     1500             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            205     1500             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            210      700             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            210     1000             1
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            210     1500             8
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            210     2000             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            220     1500             2
+BOPP FOSCO COLACRIL BXT                 20G     COLACRIL            250     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON               60     1000             3
+BOPP FOSCO FASSON 20G                   20G     FASSON               65     1000             4
+BOPP FOSCO FASSON 20G                   20G     FASSON               65     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON               70     1000             2
+BOPP FOSCO FASSON 20G                   20G     FASSON               75     1000             0
+BOPP FOSCO FASSON 20G                   20G     FASSON               80     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON               80     1500             3
+BOPP FOSCO FASSON 20G                   20G     FASSON               85     1500             3
+BOPP FOSCO FASSON 20G                   20G     FASSON               90     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON               90     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON               95     1000             3
+BOPP FOSCO FASSON 20G                   20G     FASSON               95     1500             2
+BOPP FOSCO FASSON 20G                   20G     FASSON              100     1500             4
+BOPP FOSCO FASSON 20G                   20G     FASSON              102     1000             0
+BOPP FOSCO FASSON 20G                   20G     FASSON              105     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              110     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              110     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              112     1500             3
+BOPP FOSCO FASSON 20G                   20G     FASSON              115      700             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              115     1000             2
+BOPP FOSCO FASSON 20G                   20G     FASSON              120      500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              120     1000             5
+BOPP FOSCO FASSON 20G                   20G     FASSON              130     1000             5
+BOPP FOSCO FASSON 20G                   20G     FASSON              135     1000             2
+BOPP FOSCO FASSON 20G                   20G     FASSON              140     1000             3
+BOPP FOSCO FASSON 20G                   20G     FASSON              145     1000             4
+BOPP FOSCO FASSON 20G                   20G     FASSON              150     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              155     1000             9
+BOPP FOSCO FASSON 20G                   20G     FASSON              160     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              160     1500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              165     1500             2
+BOPP FOSCO FASSON 20G                   20G     FASSON              180     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              210      500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              210     1500             6
+BOPP FOSCO FASSON 20G                   20G     FASSON              220      800             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              220     1000             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              220     1500             2
+BOPP FOSCO FASSON 20G                   20G     FASSON              235      500             1
+BOPP FOSCO FASSON 20G                   20G     FASSON              235     1000             4
+BOPP FOSCO FASSON 20G                   20G     FASSON              250      500             0
+BOPP FOSCO FASSON 20G                   20G     FASSON              250      600             0
+BOPP FOSCO FASSON 30G                   30G     FASSON               90     1000             1
+BOPP FOSCO FASSON 30G                   30G     FASSON              100     1000             1
+BOPP FOSCO FASSON 30G                   30G     FASSON              120     1500             1
+BOPP FOSCO FASSON 30G                   30G     FASSON              145     1500             1
+BOPP FOSCO FASSON 30G                   30G     FASSON              220     1500             1
+BOPP FOSCO RITRAMA                      20G     RITRAMA              60     1000             1
+BOPP FOSCO RITRAMA                      20G     RITRAMA              88      700             1
+BOPP FOSCO RITRAMA                      20G     RITRAMA             100     1000             2
+BOPP FOSCO RITRAMA                      20G     RITRAMA             110     1000             2
+BOPP FOSCO RITRAMA                      20G     RITRAMA             130     1000             1
+BOPP FOSCO RITRAMA                      20G     RITRAMA             210     1000             1
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA              80     1000             5
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA              90     1000             0
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA             110     1000             4
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA             130     1000             1
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA             140     1000             1
+BOPP FOSCO RITRAMA BXT                  20G     RITRAMA             210     1000            13
+BOPP METALIZADO                                 COLACRIL             76     1000             1
+BOPP METALIZADO                                 COLACRIL             80     1000             2
+BOPP METALIZADO                                 COLACRIL            333     1000             1
+BOPP METALIZADO                                 COLACRIL            334     1000             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL             55     1500             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL             80      500             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL             85     1500             2
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            100     1000             2
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            105     1000             2
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            110     1000             5
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            110     1500             5
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            120     1000             4
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            120     1500             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            125     1000             2
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            125     1500             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            150     1500             1
+BOPP METALIZADO COLACRIL BXT                    COLACRIL            330     1500             1
+BOPP TRANSPARENTE COLACRIL BXT                  COLACRIL             75     1000             1
+BOPP TRANSPARENTE COLACRIL BXT                  COLACRIL             80     1000             0
+BOPP TRANSPARENTE COLACRIL BXT                  COLACRIL             84     1000             2
+BOPP TRANSPARENTE COLACRIL BXT                  COLACRIL             90     1000             1
+BOPP TRANSPARENTE COLACRIL BXT                  COLACRIL            105     1000             2
+BOPP TRANSPARENTE FASSON                20G     FASSON              128      800             1
+BOPP TRANSPARENTE FASSON                20G     FASSON              240     1100             4
+BOPP TRANSPARENTE RITRAMA                       RITRAMA             163      500             1
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             100     1000             1
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             105     1000             2
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             110      500             0
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             120     1000             1
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             250     1000             0
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             275     1000             1
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             333     1000             2
+BOPP TRANSPARENTE RITRAMA BXT                   RITRAMA             334     1000             1
+                                                                          TOTAL:           283
+Itens distintos: 164
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: TECIDOS
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                                     LARG(mm)    SALDO(m)
+-------------------------------------------   --------  ----------
+Cetim (6030301)                                     10        3600
+Cetim (6030301)                                     15        1200
+Cetim (6030301) Beje                                15        2100
+Cetim (6030301)                                     20         600
+Cetim (6030301) Perolizado                          20         750
+Cetim (6030301)                                     25        3400
+Cetim (6030301) Perolizado                          25        1800
+Cetim bege                                          30        3500
+Cetim PEROLIZADO                                    35        2050
+Cetim PEROLIZADO Beje                               35         900
+Cetim PEROLIZADO Beje                               40        1250
+Emborrachado (5090251)                              10        2000
+Emborrachado (5090251)                              15         720
+Emborrachado (5090251)                              20        3100
+Emborrachado (5090251)                              25           0
+Emborrachado (5090251)                              30         600
+Emborrachado (5090251)                              35        2000
+Emborrachado (5090251)                              40        3000
+Emborrachado (5090251)                              45        2250
+Resinado (4010301)                                  10        3000
+Resinado (4010301)                                  15        4780
+Resinado (4010301)                                  20        1750
+Resinado (4010301)                                  25        1900
+Resinado (4010301)                                  30        1200
+Resinado (4010301)                                  35         800
+Resinado (4010301)                                  40        3300
+Resinado (4010301)                                  45        1200
+Resinado (4010301)                                  50         800
+Resinado (4010301)                                  55           0
+Resinado inportado ruim                             40           0
+Resinado importado normal                           60           0
+Resinado importado ruim                             60           0
+Resinado verde                                      15           0
+Resinado perolizado                                 25           0
+Resinado Perolizado                                 30           0
+Itens distintos: 35
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: LAMINAÇÃO
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO                     FORNECEDOR       LARG(mm)  COMP(m)   SALDO
+----------------------------  --------------   -------- --------  ------
+LAMINAÇÃO BRILHO              ALTERNATIVA            25     1000       4
+LAMINAÇÃO BRILHO              ALTERNATIVA            32     1500       2
+LAMINAÇÃO BRILHO              ALTERNATIVA            35     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            30     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            38     1000       4
+LAMINAÇÃO BRILHO              ALTERNATIVA            41     2000       2
+LAMINAÇÃO BRILHO              ALTERNATIVA            43     2000       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            45     1500       2
+LAMINAÇÃO BRILHO              ALTERNATIVA            48     1500       4
+LAMINAÇÃO FOSCA               ALTERNATIVA            48     1500       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            50     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            53     2000       5
+LAMINAÇÃO FOSCA               ALTERNATIVA            58     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA            60     1000       1
+LAMINAÇÃO FOSCA               ALTERNATIVA            60     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            62     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            63     1500       4
+LAMINAÇÃO BRILHO              ALTERNATIVA            65     1000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            68     2000       0
+LAMINAÇÃO FOSCA               ALTERNATIVA            68     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA            72     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            75     1000       2
+LAMINAÇÃO BRILHO              ALTERNATIVA            76     1000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            78     2000       1
+LAMINAÇÃO FOSCA               ALTERNATIVA            78      200       1
+LAMINAÇÃO BRILHO              ALTERNATIVA            80     2000       7
+LAMINAÇÃO BRILHO              ALTERNATIVA            82     2000       2
+LAMINAÇÃO BRILHO              ALTERNATIVA            83     1500       5
+LAMINAÇÃO BRILHO              ALTERNATIVA            84     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA            84     1000       0
+LAMINAÇÃO FOSCA               ALTERNATIVA            85     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            89     1500       4
+LAMINAÇÃO BRILHO              ALTERNATIVA            93     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            93     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA            94     2000       5
+LAMINAÇÃO FOSCA               ALTERNATIVA            95     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA            96     1000       3
+LAMINAÇÃO BRILHO              ALTERNATIVA            98     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           100     2000       3
+LAMINAÇÃO BRILHO              ALTERNATIVA           100     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           102     1000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           110     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           107     1000       2
+LAMINAÇÃO BRILHO              ALTERNATIVA           108     2000       4
+LAMINAÇÃO FOSCA               ALTERNATIVA           108      700       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           110     1500       4
+LAMINAÇÃO FOSCA               ALTERNATIVA           110     1500       2
+LAMINAÇÃO BRILHO              ALTERNATIVA           112     1000       2
+LAMINAÇÃO BRILHO              ALTERNATIVA           118     1500       4
+LAMINAÇÃO FOSCA               ALTERNATIVA           118     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           122     1000       4
+LAMINAÇÃO BRILHO              ALTERNATIVA           123     1524       2
+LAMINAÇÃO BRILHO              ALTERNATIVA           125     1524       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           128     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           128     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           134     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA           137     1000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           138      500       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           138     2000       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           142     2000       2
+LAMINAÇÃO FOSCA               ALTERNATIVA           143     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           148     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           145     1500       3
+LAMINAÇÃO BRILHO              ALTERNATIVA           150     2000       0
+LAMINAÇÃO FOSCA               ALTERNATIVA           150     2000       1
+LAMINAÇÃO BRILHO              ALTERNATIVA           153     2000       5
+LAMINAÇÃO BRILHO              ALTERNATIVA           153     1500       0
+LAMINAÇÃO BRILHO              ALTERNATIVA           158     1000       1
+LAMINAÇÃO                     ALTERNATIVA            50     2000       0
+LAMINAÇÃO                     ALTERNATIVA            65     2000       0
+LAMINAÇÃO                     ALTERNATIVA            72     2000       0
+LAMINAÇÃO                     ALTERNATIVA            78     2000       0
+LAMINAÇÃO                     ALTERNATIVA            83     2000       0
+LAMINAÇÃO                     ALTERNATIVA           118     2000       0
+LAMINAÇÃO                     ALTERNATIVA           128     2000       0
+LAMINAÇÃO                     ALTERNATIVA           137     2000       0
+LAMINAÇÃO                     ALTERNATIVA           142     2000       0
+LAMINAÇÃO                     ALTERNATIVA             0     2000       0
+LAMINAÇÃO                     ALTERNATIVA             0     2000       0
+Itens distintos: 79
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: COLD (Hot Stamping)
+----------------------------------------------------------------------------------------------------
+DESCRIÇÃO            LARG(mm)  METRAGEM(m)   QTDE
+------------------   --------  -----------  -----
+Ouro                      220         1000      1
+Ouro                      210          800      1
+Ouro                      150         1000      2
+Ouro                      138         1000      1
+Ouro                      136         1000      3
+Ouro                      120         1000      2
+Ouro                       35         1000      2
+Ouro                       40         1000      1
+Ouro                      110         1000      0
+Ouro                      110          700      0
+Ouro                      105         1000      1
+Ouro                      100         1000      3
+Ouro                       71         1000      1
+Ouro                      105         1000      2
+Ouro                      110         1000      3
+Ouro                       50         1000      0
+PRATA                     110         1000      1
+PRATA                      75         1000      2
+PRATA                      55         1000      1
+PRATA                      50         1000      1
+PRATA                      35         1000      2
+PRATA                     110          500      1
+Itens distintos: 22
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: TUBETES
+----------------------------------------------------------------------------------------------------
+MEDIDAS                         SALDO (unid.)
+----------------------------    -------------
+1" x 2,0 x1,8                               0
+1" x 2,0 x 3,9 S/ logo                      0
+1" x 2,0 x 3,8 c/ logo                   8040
+1" x 2,0 x 3,8 s/ logo                      0
+1" x 2,0 x 4,0 c/ logo                      0
+1" x 2,0 x 4,0 s/ logo                      0
+1" x 2,0 x 4,2 c/ logo                  19656
+1" x 2,0 x 5,0 c/ logo                   4590
+1" x 2,0 x 5,5 c/ logo                   4590
+1" x 2,0 x 5,5 c/ logo                      0
+1" x 2,0 x 6,0 c/ logo                   7380
+1" x 2,0 x 62 c/ logo                   15990
+1" x 2,0 x 62 s/ logo                       0
+1" x 2,0 x 70 s/ logo                       0
+1" x 2,0 x 80 s/ logo                       0
+1" x 2,0 x 80 c/ logo                     800
+1" x 2,0 x 90 c/ logo                       0
+1" x 2,0 x 90 s/ logo                       0
+1" x 2,0 x 100 c/ logo                      0
+1" x 2,0 x 102 c/ logo                   2250
+1" x 2,0 x 102 s/ logo                      0
+1" x 2,0 x 105 C/ logo                   1420
+1" x 2,0 x 107 C/ logo                   5680
+1" x 2,0 x 107 s/ logo                      0
+1 1/2" x 2,0 x 20 c/ logo                   0
+1 1/2" x 2,0 x 25 c/ logo                1600
+1 1/2" x 2,0 x 80 c/logo                  650
+1 1/2" x 2,0 x 80 s/logo                    0
+1 1/2" x 2,0 x 102 c/logo                 510
+1 1/2" x 2,0 x 102 s/logo                   0
+1 1/2" x 2,0 x 108 c/logo                1420
+1 1/2" x 2,0 x 100 c/logo                 710
+1 1/2" x 2,0 x 118 c/logo                   0
+1 1/2" x 2,0 x 118 s/logo                   0
+3" x 3,0 x 1.1 s/logo                       0
+3" x 3,0 x 1.0 c/logo                    3500
+3" x 3,0 x 1.0 s/logo                       0
+3" x 3,0 x 20 c/logo                     6160
+3" x 3,0 x 25 c/logo                     8800
+3" x 3,0 x 25 s/logo                        0
+3" x 3,0 x 65 S/logo                    337.5
+3" x 3,0 x 80 c/logo                    337.5
+3" x 3,0 x 85 c/logo                      675
+3" x 3,0 x 85 S/logo                        0
+3" x 3,0 x 95 s/logo                   3562.5
+3" x 3,0 x 100 c/logo                    1008
+3" x 3,0 x 100 s/logo                       0
+3" x 3,0 x 102 c/logo                     680
+3" x 3,0 x 102 s/logo                       0
+3" x 3,0 x 108 c/logo                     160
+3" x 3,0 x 108 S/logo                       0
+3" x 3,0 x 107 S/logo                       0
+3" x 3,0 x 105 c/logo                    1760
+3" x 3,0 x 108 S/logo                     320
+3" x 3,0 x 108 c/logo                       0
+Itens distintos: 55
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: CAIXAS
+----------------------------------------------------------------------------------------------------
+CAIXA   MEDIDAS              ESTOQUE
+------  ----------------    --------
+1       200x150x120              325
+2       250x200x200              575
+3       250x250x200              250
+4       400x300x223              670
+5       300x300x317              350
+6       500x300x300              550
+7       460x360x340              540
+8       500x400x300              460
+9       540x405x335                0
+Itens distintos: 9
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: TINTAS
+----------------------------------------------------------------------------------------------------
+REFERÊNCIA    FORNECEDOR      DESCRIÇÃO                  SALDO
+------------  --------------  ----------------------    ------
+220AMFP       NATHALGRAPH     PROCESS YELLOW                 0
+220BRFP       NATHALGRAPH     BRANCO OPACO                   0
+220MGFP       NATHALGRAPH     PROCESS MAGENTA                0
+220CYFP       NATHALGRAPH     PROCESS CYAN                   0
+              NATHALGRAPH     DILUENTE                       0
+              NATHALGRAPH     PANTONE ????                   0
+              NATHALGRAPH     VERNIZ                         0
+FPF 871                       GOLD 871                       0
+FPF007        NATHALGRAPH     BLUE 072                       0
+220P1FP       NATHALGRAPH     PROCESS PRETO                  0
+GI 22 AZ 103  GRAPHINK        LACA Azul 072                  0
+GI MG ST 205; GRAPHINK        Laca Magenta                   0
+GI AM ST 200; GRAPHINK        Laca Amarelo                   0
+GI PR ST 206; GRAPHINK        Laca Preto                     0
+GI BR ST 203  GRAPHINK        Laca Branco                    0
+GI VM FP 210  GRAPHINK        Laca Vermelho                  0
+Gl AZ ST 201  GRAPHINK        Laca Azul blue                 0
+              ACTEGA          BRANCO                         0
+AM3555        ACTEGA          YELLOW                         0
+VM4555        ACTEGA          MAGENTA                        0
+AZ5555        ACTEGA          CYAN                           0
+PR9170        ACTEGA          BLACK                          0
+AZ7072        ACTEGA          BLUE 072                       0
+OR9871/72     ACTEGA          METALIC GOLD                   0
+VM4315        ACTEGA          MAGENTA                        0
+VM4850        ACTEGA          VERMELHO                       0
+WM1001        WINFLEXO        YELLOW                         0
+WM2001        WINFLEXO        MAGENTA                        0
+WM3001        WINFLEXO        CYAN                           0
+WM            WINFLEXO        BLACK                          0
+WP40103       WINFLEXO        BLACK INTENSE                  0
+              WINFLEXO        BLUE 072                       0
+WP0871        WINFLEXO        METALIC GOLD                   0
+WUV0004       WINFLEXO        VERNIZ                         0
+              WINFLEXO        VERNIZ                         0
+WA 300        WINFLEXO        ANTIESPUMANTE                  0
+              WINFLEXO        VERNIZ                         0
+WF 3030       WINFLEXO        BLUE 072                       0
+WF8000        WINFLEXO        BRANCO                         0
+WF 1000       WINFLEXO        YELLOW                         0
+WF 3000       WINFLEXO        CIAN                           0
+WF 2000       WINFLEXO        MAGENTA                        0
+WF 4000       WINFLEXO        BLACK                          0
+WF20101       WINFLEXO        VERMELHO                       0
+Itens distintos: 44
+
+----------------------------------------------------------------------------------------------------
+CATEGORIA: DUPLA FACE
+----------------------------------------------------------------------------------------------------
+REFERÊNCIA    MEDIDAS          QTDE
+------------  ------------    -----
+4880          100x30              7
+52015         460x25              1
+52017         460x25              1
+Itens distintos: 3
+
+====================================================================================================
+TOTAL GERAL DE ITENS LISTADOS: 610
+====================================================================================================

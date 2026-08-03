@@ -1,0 +1,79 @@
+{
+  "arquivo": "23-07 rarepan .xlsm",
+  "cliente": "RAREPAN",
+  "medida": "14,6X8,8",
+  "largura_cm": 15.5,
+  "puxada_cm": 9.091633333333334,
+  "cores": 2,
+  "papel": "COUCHE FASSON 20G",
+  "acabamento": "SEM ACABAMENTO",
+  "modelos": 1,
+  "colunas": 1,
+  "etiq_por_rolo": 1000,
+  "tubete": "3\"",
+  "z": 86.0,
+  "faca": "DESENHADA",
+  "repeticao": 3,
+  "maquina_roda_servico": "MODULAR",
+  "maquina": "BETA",
+  "imposto_pct": 18.0,
+  "matriz": "SIM",
+  "coluna_rebobinacao": 1,
+  "tipo_troca_produto": "SEM PARADA",
+  "rpm": 1000.0,
+  "overrides": {
+    "papel": {
+      "COUCHE FASSON 20G": 3.5
+    },
+    "tinta_acima_m2": 0.6
+  },
+  "faixas": [
+    {
+      "quantidade": 10000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 1110.0,
+        "matriz": 342.0,
+        "total": 1452.0,
+        "metragem": 909.1633333333333,
+        "m2": 141.0,
+        "hora_maq": 1.9091633333333333,
+        "valor_servico": 935.6710933333334,
+        "perda_papel_troca_produto": 2.17,
+        "valor_papel_troca_produto": 7.595
+      }
+    },
+    {
+      "quantidade": 15000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 1560.0,
+        "matriz": 342.0,
+        "total": 1902.0,
+        "metragem": 1363.7450000000001,
+        "m2": 211.4,
+        "hora_maq": 2.363745,
+        "valor_servico": 1321.2176796979168,
+        "perda_papel_troca_produto": 2.17,
+        "valor_papel_troca_produto": 7.595
+      }
+    },
+    {
+      "quantidade": 20000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 2010.0,
+        "matriz": 342.0,
+        "total": 2352.0,
+        "metragem": 1818.3266666666666,
+        "m2": 281.90000000000003,
+        "hora_maq": 2.8183266666666666,
+        "valor_servico": 1699.000795152778,
+        "perda_papel_troca_produto": 2.17,
+        "valor_papel_troca_produto": 7.595
+      }
+    }
+  ],
+  "papel_preco_arquivo": 3.5,
+  "tinta_c3": 0.6
+}

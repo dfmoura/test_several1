@@ -1,0 +1,381 @@
+======================================================================
+        MODELO PROFISSIONAL DE CONTROLE DE ESTOQUE - NOVO ERP
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 31/07/2026
+======================================================================
+
+Este documento define como o controle de estoque deve funcionar no
+novo ERP, substituindo a planilha atual (ESTOQUE DE PAPEIS), de forma
+profissional e alinhada com:
+
+  * a operacao industrial (impressao de etiquetas em rolos);
+  * as regras fiscais atuais (Simples Nacional em MG);
+  * a futura migracao para o Lucro Real (creditos de ICMS/PIS/COFINS);
+  * a integracao com a Focus NFe (entrada automatica de XML);
+  * as obrigacoes acessorias futuras (SPED Fiscal, Bloco K, Bloco H).
+
+======================================================================
+1. PRINCIPIOS GERAIS
+======================================================================
+
+1.1. Nenhuma mercadoria entra ou sai do estoque sem documento:
+     - Entrada: sempre vinculada ao XML da NF-e do fornecedor.
+     - Saida para producao: sempre vinculada a uma Ordem de Producao.
+     - Venda: sempre vinculada a NF-e de saida.
+     - Perdas, sobras e ajustes: sempre com movimento proprio,
+       motivo cadastrado e usuario identificado.
+
+1.2. O saldo do sistema e a verdade oficial. Divergencia fisica se
+     corrige com inventario e movimento de ajuste, nunca editando
+     o saldo diretamente.
+
+1.3. Todo item possui UM codigo unico (SKU). Proibido cadastrar o
+     mesmo material duas vezes com descricoes diferentes.
+
+1.4. Custeio pelo CUSTO MEDIO PONDERADO MOVEL, calculado pelo ERP a
+     cada entrada. E o metodo aceito pela legislacao fiscal e o que
+     sera exigido na apuracao de custos no Lucro Real.
+
+======================================================================
+2. CADASTRO DE PRODUTOS (BASE DE TUDO)
+======================================================================
+
+2.1. ESTRUTURA DO CODIGO (SKU)
+
+Cada combinacao de material + gramatura + fornecedor + largura +
+comprimento e um SKU distinto, pois hoje a planilha ja controla
+por essas variacoes (ex.: COUCHE 20G FASSON 130mm x 1000m).
+
+Sugestao de mascara de codigo:
+
+  GG.MMM.FFF.LLLL.CCCC
+
+  GG   = grupo (10=Couche, 11=Fosco, 12=Termico, 13=Tag, 20=BOPP,
+         30=Tecidos, 40=Laminacao, 41=Cold, 50=Tintas, 60=Ribbon,
+         70=Tubetes, 71=Caixas, 72=Dupla Face, 80=Prod. Acabado)
+  MMM  = material/linha (ex.: 001 = COUCHE 20G)
+  FFF  = fornecedor homologado (ex.: FAS, COL, VTX, RIT)
+  LLLL = largura em mm (ex.: 0130)
+  CCCC = comprimento em m (ex.: 1000)
+
+Exemplo: 10.001.FAS.0130.1000 = COUCHE 20G FASSON 130mm x 1000m
+
+2.2. CAMPOS OBRIGATORIOS DO CADASTRO
+
+  * Codigo interno (SKU)
+  * Descricao padronizada (MATERIAL + GRAMATURA + FORNECEDOR +
+    LARGURA x COMPRIMENTO)
+  * Grupo / categoria
+  * Tipo de item (ver 2.3)
+  * NCM correto e revisado (ver 2.4)
+  * Origem da mercadoria (0 = nacional, 2/3 = importada - atencao
+    aos tecidos "RESINADO IMPORTADO")
+  * Unidade de estoque e unidade de compra + fator de conversao
+  * CEST (quando o NCM estiver sujeito a ICMS-ST)
+  * CFOP padrao de entrada e de saida
+  * CST/CSOSN padrao
+  * Estoque minimo / ponto de pedido / lote de compra
+  * Fornecedores homologados (principal e alternativos)
+  * Endereco de armazenagem padrao
+  * Peso por rolo (necessario para frete e para conversoes)
+
+2.3. TIPOS DE ITEM (CLASSIFICACAO FISCAL-CONTABIL)
+
+Essa classificacao e OBRIGATORIA porque define CFOP, direito a
+credito no Lucro Real e o tipo no Bloco K/registro 0200 do SPED:
+
+  MP  - Materia-prima: couche, fosco, termico, tag, BOPP, tecidos
+        (cetim, resinado, emborrachado), tintas, ribbons.
+  MA  - Material auxiliar/intermediario: laminacao, cold stamping,
+        dupla face, verniz, diluente, antiespumante.
+  EMB - Embalagem: caixas de papelao, tubetes.
+  PA  - Produto acabado: etiquetas impressas (por cliente/modelo).
+  REV - Revenda: itens vendidos sem industrializacao (ex.: ribbon
+        revendido ao cliente final).
+
+ATENCAO: o mesmo material pode existir como MP e como REV (ex.:
+ribbon usado na producao x ribbon revendido). Nesse caso usar SKUs
+ou naturezas de operacao distintas, pois o CFOP de entrada muda
+(industrializacao 1.101/2.101 x revenda 1.102/2.102) e isso impacta
+ICMS-ST e antecipacao em MG.
+
+2.4. NCM DE REFERENCIA (JA VALIDADOS NOS XML DE COMPRA)
+
+  3215.19.00  Tintas de impressao
+  3919.10.10  BOPP autoadesivo em rolos ate 20cm
+  3919.10.90  Filmes autoadesivos em rolos ate 20cm - outros
+  3919.90.10  BOPP autoadesivo - outras formas
+  3919.90.90  Plasticos autoadesivos - outros
+  4811.41.90  Papel autoadesivo (couche, fosco, termico, tag)
+  9612.10.00  Ribbon
+
+Regra: o NCM do cadastro deve bater com o NCM do XML do fornecedor.
+Divergencia bloqueia a entrada ate analise (fornecedor errado ou
+cadastro errado - decidir e documentar).
+
+======================================================================
+3. UNIDADES DE MEDIDA E CONVERSAO
+======================================================================
+
+3.1. Unidade de ESTOQUE dos materiais em bobina: ROLO, sempre
+     qualificado por largura (mm) e comprimento (m) no proprio SKU.
+
+3.2. Unidade de CONSUMO na producao: METRO LINEAR (ou m2 quando o
+     ERP suportar). O sistema converte automaticamente:
+
+       1 rolo = comprimento do SKU (ex.: 1 rolo 130mm x 1000m
+                = 1.000 metros lineares = 130 m2)
+
+3.3. Tintas e vernizes: estoque em KG (ou litro), consumo apontado
+     por pesagem na OP.
+
+3.4. Ribbons: estoque em UNIDADE (rolo), consumo por unidade.
+
+3.5. Tubetes e caixas: estoque em UNIDADE.
+
+3.6. Fator de conversao COMPRA x ESTOQUE cadastrado no item:
+     fornecedores faturam em kg ou m2; o ERP deve converter para
+     rolos/metros na entrada, usando os dados do XML + conferencia.
+
+======================================================================
+4. ENTRADAS (COMPRAS)
+======================================================================
+
+Fluxo obrigatorio:
+
+  1) Pedido de compra emitido no ERP (comprador), ja com SKU,
+     quantidade, preco negociado e previsao de entrega.
+  2) XML da NF-e capturado automaticamente pela Focus NFe
+     (distribuicao DF-e via certificado digital).
+  3) Vinculacao XML x Pedido de Compra (confronto de NCM, qtde,
+     preco, ICMS, IPI, ST). Divergencia = bloqueio + tratativa.
+  4) MANIFESTACAO DO DESTINATARIO: confirmar a operacao de toda
+     NF-e recebida (obrigacao e protecao fiscal).
+  5) Recebimento fisico: conferencia cega (contar sem olhar a NF),
+     conferir largura, comprimento, gramatura e estado das bobinas.
+  6) Registro do LOTE do fornecedor + etiqueta interna de
+     identificacao em cada rolo (ver secao 6).
+  7) Entrada efetivada = saldo e custo medio atualizados.
+
+Regras fiscais na entrada (empresa em MG, Simples Nacional):
+
+  * Verificar, por NCM/CEST, se a compra interestadual esta sujeita
+    a ICMS-ST ou a ANTECIPACAO DE ICMS em MG (conforme os estudos
+    REVISAO_ICMS_ST e REVISAO_ANTECIPACAO_ICMS_MG). O ERP deve
+    marcar o item/UF e gerar o financeiro da guia quando devido.
+  * Guardar TODOS os XML (guarda legal de 5 anos) - a Focus ja
+    centraliza isso.
+  * Mesmo no Simples, registrar os impostos destacados (ICMS, IPI,
+    PIS, COFINS) item a item: e essa base que permitira calcular e
+    aproveitar creditos na virada para o Lucro Real, inclusive o
+    credito de ICMS sobre o ESTOQUE EXISTENTE na data da mudanca
+    de regime (levantamento de inventario com documentacao fiscal).
+
+======================================================================
+5. SAIDAS E PRODUCAO
+======================================================================
+
+5.1. FICHA TECNICA (BOM) POR PRODUTO ACABADO
+
+Cada etiqueta produzida deve ter ficha tecnica com:
+  * substrato (SKU do papel/filme) e metragem por milheiro;
+  * tintas por cor (g/milheiro);
+  * laminacao / cold / verniz quando houver;
+  * ribbon (quando aplicavel);
+  * tubete e caixa (embalagem);
+  * PERCENTUAL DE PERDA PADRAO (setup + refile) por processo.
+
+5.2. ORDEM DE PRODUCAO (OP)
+
+  1) OP aberta a partir do pedido de venda (ou para estoque).
+  2) Reserva/empenho dos materiais da ficha tecnica.
+  3) Requisicao baixa o material do almoxarifado para a OP
+     (movimento MP -> producao), identificando o LOTE usado.
+  4) Apontamento de producao: quantidade boa, refugo e sobra.
+  5) SOBRA DE BOBINA (retalho): retorna ao estoque como o mesmo
+     SKU com comprimento restante estimado/medido, ou como SKU de
+     retalho - nunca "some". Retalho e um dos maiores focos de
+     divergencia em graficas de etiquetas.
+  6) Encerramento da OP: gera entrada do produto acabado com custo
+     real (materiais consumidos + perdas apontadas).
+
+5.3. VENDA / EXPEDICAO
+
+  * Separacao por picking vinculado ao pedido.
+  * Conferencia na expedicao (dupla checagem).
+  * NF-e emitida via Focus NFe baixa o estoque de PA
+    automaticamente.
+  * NCM de venda conforme LISTAGEM_NCM_NFE_VENDA (3919.10.90,
+    4811.41.90, 9612.10.00), com CFOP de industrializacao para
+    producao propria (5.101/6.101) e de revenda para mercadoria
+    revendida (5.102/6.102).
+
+5.4. OUTRAS SAIDAS (sempre com motivo e aprovacao)
+
+  * Perda / avaria / material fora de especificacao;
+  * Amostras e testes de maquina;
+  * Devolucao ao fornecedor (com NF-e de devolucao referenciando
+    a nota de origem - obrigatorio para estornar ICMS/ST);
+  * Remessa para conserto / industrializacao externa (CFOP proprio
+    e controle de retorno em ate 180 dias).
+
+======================================================================
+6. RASTREABILIDADE, LOTES E ARMAZENAGEM
+======================================================================
+
+6.1. Cada rolo recebe ETIQUETA INTERNA (impressa pela propria
+     empresa) com: SKU, descricao, largura x comprimento, lote do
+     fornecedor, NF de origem, data de entrada e codigo de barras.
+
+6.2. Controle por LOTE ativado para todos os substratos e tintas:
+     permite rastrear reclamacao de cliente ate a NF do fornecedor
+     e e pre-requisito para o Bloco K completo no futuro.
+
+6.3. ENDERECAMENTO do almoxarifado:
+     RUA - ESTANTE - NIVEL - POSICAO (ex.: A-03-2-05).
+     Todo SKU tem endereco padrao; o sistema registra onde cada
+     lote esta.
+
+6.4. Politica de consumo: FIFO (primeiro que entra, primeiro que
+     sai). Para adesivos e tintas com validade, usar FEFO (vence
+     primeiro, sai primeiro) - adesivos autoadesivos tem shelf life
+     tipico de 12 a 24 meses.
+
+6.5. Condicoes de armazenagem dos autoadesivos: bobinas em pe ou
+     suspensas, na embalagem original, longe de calor/umidade/sol
+     (evita tunelamento de adesivo e ondulacao do liner).
+
+======================================================================
+7. PARAMETROS DE REPOSICAO
+======================================================================
+
+7.1. CURVA ABC (revisar trimestralmente):
+     A = ~20% dos SKUs / ~80% do valor (ex.: COUCHE 20G FASSON e
+         COLACRIL nas larguras de maior giro, BOPP, termico)
+         -> contagem ciclica mensal, estoque de seguranca definido.
+     B = giro medio -> contagem bimestral.
+     C = baixo valor/giro (larguras exoticas, cores de tinta raras)
+         -> contagem semestral, compra somente contra pedido.
+
+7.2. Por SKU classe A e B definir:
+     * Estoque de seguranca = consumo medio diario x lead time do
+       fornecedor x fator de seguranca;
+     * Ponto de pedido = estoque de seguranca + consumo no lead time;
+     * Lote economico/minimo de compra do fornecedor.
+
+7.3. O ERP deve gerar alerta automatico de ponto de pedido e
+     sugestao de compra consolidada por fornecedor.
+
+7.4. SKUs com saldo zero ha mais de 12 meses e sem pedido previsto:
+     inativar no cadastro (nao excluir - preserva historico fiscal).
+
+======================================================================
+8. INVENTARIOS E ACURACIDADE
+======================================================================
+
+8.1. INVENTARIO ROTATIVO (ciclico): contar itens A todo mes, B a
+     cada 2 meses, C a cada 6 meses, sem parar a fabrica.
+
+8.2. INVENTARIO GERAL: 1x ao ano (dezembro/janeiro), obrigatorio
+     para o balanco e para o LIVRO REGISTRO DE INVENTARIO / futuro
+     BLOCO H do SPED Fiscal no Lucro Real.
+
+8.3. INVENTARIO DE VIRADA DE REGIME: na data de saida do Simples
+     para o Lucro Real, levantar inventario completo VALORIZADO,
+     com vinculacao as NF de compra - base do credito de ICMS
+     (e PIS/COFINS conforme regras de estoque de abertura).
+
+8.4. Ajustes de inventario: sempre por movimento de ajuste com
+     motivo, contagem assinada e aprovacao do responsavel.
+     Meta de acuracidade: >= 95% na implantacao, >= 98% apos 6 meses.
+     Procedimento detalhado (fluxo, motivos, alcadas, tratamento
+     fiscal e medicao da acuracidade): ver documento
+     AJUSTE_ESTOQUE_INVENTARIO.txt.
+
+======================================================================
+9. INDICADORES MENSAIS (KPIs)
+======================================================================
+
+  * Acuracidade de estoque (saldo fisico x sistema) ........ >= 98%
+  * Giro de estoque de MP (consumo anual / estoque medio)
+  * Cobertura de estoque em dias por grupo
+  * % de perda real x perda padrao das fichas tecnicas
+  * Valor de estoque parado > 180 dias (obsolescencia)
+  * Rupturas (OPs paradas por falta de material) ........... = 0
+  * Divergencias de recebimento (XML x fisico)
+
+======================================================================
+10. ROTINAS E RESPONSABILIDADES
+======================================================================
+
+DIARIO (almoxarife):
+  * Receber e conferir NF-e x fisico; etiquetar rolos;
+  * Atender requisicoes de OP; registrar retornos de sobras;
+  * Manifestar NF-e recebidas (Focus NFe).
+
+SEMANAL (PCP/compras):
+  * Revisar alertas de ponto de pedido e gerar pedidos de compra;
+  * Analisar divergencias de consumo (real x ficha tecnica).
+
+MENSAL (gestor + contabilidade):
+  * Inventario ciclico dos itens A;
+  * Fechamento de custo medio e valorizacao do estoque;
+  * KPIs; revisao de perdas; conciliar estoque contabil x fisico.
+
+TRIMESTRAL:
+  * Revisar curva ABC, estoques minimos e lead times;
+  * Revisar NCM/CEST/CFOP com a contabilidade (regras de ICMS-ST e
+    antecipacao mudam com frequencia em MG).
+
+ANUAL:
+  * Inventario geral valorizado (Registro de Inventario);
+  * Revisao completa de cadastro (inativar SKUs mortos).
+
+Segregacao de funcoes: quem compra nao recebe; quem recebe nao
+ajusta saldo; ajustes de inventario exigem aprovacao do gestor.
+Todo movimento fica logado com usuario, data e hora.
+
+======================================================================
+11. IMPLANTACAO NO NOVO ERP (ALINHADA A ESTRATEGIA EM 2 FASES)
+======================================================================
+
+FASE 1 - VIRADA (dia da entrada em producao):
+  1) Carga do cadastro de produtos ja no padrao da secao 2
+     (aproveitar a base dos 85 produtos / SKUs por largura x
+     comprimento ja levantados da planilha atual);
+  2) Contagem fisica COMPLETA na data da virada (nao confiar no
+     saldo da planilha) e digitacao do saldo inicial por SKU;
+  3) Valorizar o saldo inicial pelo custo da ultima compra (XML);
+  4) Definir estoque minimo/ponto de pedido dos itens A;
+  5) Ativar captura de XML pela Focus NFe e manifestacao.
+
+FASE 2 - POS-VIRADA (sem parar a operacao):
+  1) Importar historico de XML de compras (custos e fornecedores);
+  2) Completar fichas tecnicas e perdas padrao dos produtos
+     de maior volume;
+  3) Ativar controle de lote e enderecamento completos;
+  4) Iniciar inventarios ciclicos e KPIs;
+  5) Preparar parametrizacao fiscal do Lucro Real (CST, creditos,
+     SPED) antes da virada de regime.
+
+======================================================================
+12. REGRAS DE OURO (RESUMO)
+======================================================================
+
+  1. Sem documento nao ha movimento.
+  2. Um material = um SKU; largura e comprimento fazem parte do SKU.
+  3. NCM do cadastro = NCM do XML; divergencia bloqueia a entrada.
+  4. Toda bobina etiquetada e enderecada; consumo FIFO/FEFO.
+  5. Sobra de producao volta para o estoque, nunca desaparece.
+  6. Saldo se corrige com inventario e ajuste aprovado, nunca
+     editando numero na tela.
+  7. Custo medio ponderado calculado pelo sistema, nunca manual.
+  8. Inventario geral anual valorizado e inventario completo na
+     data da migracao para o Lucro Real (credito sobre estoque).
+  9. XML de todas as notas guardado por 5 anos (Focus NFe).
+ 10. Acuracidade e o KPI mestre: se o saldo do sistema nao e
+     confiavel, nenhum outro controle funciona.
+
+======================================================================
+                          FIM DO DOCUMENTO
+======================================================================

@@ -1,0 +1,109 @@
+{
+  "arquivo": "23-07 ART MOVEIS.xlsm",
+  "cliente": "Arte final móveis",
+  "medida": "10,0X6,0",
+  "largura_cm": 10.5,
+  "puxada_cm": 6.35,
+  "cores": 0,
+  "papel": "COUCHE FASSON 20G",
+  "acabamento": "SEM ACABAMENTO",
+  "modelos": 0,
+  "colunas": 1,
+  "etiq_por_rolo": 1000,
+  "tubete": "1\"",
+  "z": 60.0,
+  "faca": "ESPECIAL",
+  "repeticao": 3,
+  "maquina_roda_servico": 250,
+  "maquina": "BETA",
+  "imposto_pct": 16.0,
+  "matriz": "SIM",
+  "coluna_rebobinacao": 1,
+  "tipo_troca_produto": "SEM PARADA",
+  "rpm": 1000.0,
+  "overrides": {
+    "papel": {
+      "COUCHE FASSON 20G": 3.5
+    },
+    "tinta_acima_m2": 0.4
+  },
+  "faixas": [
+    {
+      "quantidade": 1000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 210.0,
+        "matriz": 0.0,
+        "total": 210.0,
+        "metragem": 63.5,
+        "m2": 6.7,
+        "hora_maq": 1.0635,
+        "valor_servico": 173.6495,
+        "perda_papel_troca_produto": 0.0,
+        "valor_papel_troca_produto": 0.0
+      }
+    },
+    {
+      "quantidade": 2000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 240.0,
+        "matriz": 0.0,
+        "total": 240.0,
+        "metragem": 127.0,
+        "m2": 13.4,
+        "hora_maq": 1.127,
+        "valor_servico": 206.29899999999998,
+        "perda_papel_troca_produto": 0.0,
+        "valor_papel_troca_produto": 0.0
+      }
+    },
+    {
+      "quantidade": 3000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 280.0,
+        "matriz": 0.0,
+        "total": 280.0,
+        "metragem": 190.5,
+        "m2": 20.1,
+        "hora_maq": 1.1905000000000001,
+        "valor_servico": 238.94850000000002,
+        "perda_papel_troca_produto": 0.0,
+        "valor_papel_troca_produto": 0.0
+      }
+    },
+    {
+      "quantidade": 4000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 330.0,
+        "matriz": 0.0,
+        "total": 330.0,
+        "metragem": 254.0,
+        "m2": 26.700000000000003,
+        "hora_maq": 1.254,
+        "valor_servico": 283.528,
+        "perda_papel_troca_produto": 0.0,
+        "valor_papel_troca_produto": 0.0
+      }
+    },
+    {
+      "quantidade": 5000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 370.0,
+        "matriz": 0.0,
+        "total": 370.0,
+        "metragem": 317.5,
+        "m2": 33.4,
+        "hora_maq": 1.3175,
+        "valor_servico": 318.85749999999996,
+        "perda_papel_troca_produto": 0.0,
+        "valor_papel_troca_produto": 0.0
+      }
+    }
+  ],
+  "papel_preco_arquivo": 3.5,
+  "tinta_c3": 0.4
+}

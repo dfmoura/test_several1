@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NFe parcial (só papel) — útil se quiser testar entrada parcial / 2ª nota -->
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe31260758820046000137550010000005021260728002" versao="4.00">
+      <ide>
+        <cUF>31</cUF>
+        <natOp>Venda de mercadoria</natOp>
+        <mod>55</mod>
+        <serie>1</serie>
+        <nNF>5012</nNF>
+        <dhEmi>2026-07-28T11:00:00-03:00</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3170206</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>2</cDV>
+        <tpAmb>2</tpAmb>
+        <finNFe>1</finNFe>
+        <procEmi>0</procEmi>
+      </ide>
+      <emit>
+        <CNPJ>11222333000181</CNPJ>
+        <xNome>INSUMOS GRAFICOS HOMOL LTDA</xNome>
+        <enderEmit>
+          <xLgr>AVENIDA DOS FORNECEDORES</xLgr>
+          <nro>450</nro>
+          <xBairro>DISTRITO INDUSTRIAL</xBairro>
+          <cMun>3170206</cMun>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38400100</CEP>
+        </enderEmit>
+        <IE>0623456789012</IE>
+      </emit>
+      <dest>
+        <CNPJ>58820046000137</CNPJ>
+        <xNome>ADESIVOS, ETIQUETAS E ROTULOS UDI LTDA</xNome>
+        <enderDest>
+          <xLgr>ALAMEDA SOSTHENES GUIMARAES</xLgr>
+          <nro>65</nro>
+          <xBairro>MORADA DA COLINA</xBairro>
+          <cMun>3170206</cMun>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38411160</CEP>
+        </enderDest>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>PAPEL-BOPP-BRILHO</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>PAPEL BOPP BRILHO ADESIVO</xProd>
+          <NCM>39199090</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>M2</uCom>
+          <qCom>20.5000</qCom>
+          <vUnCom>3.8000</vUnCom>
+          <vProd>77.90</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>M2</uTrib>
+          <qTrib>20.5000</qTrib>
+          <vUnTrib>3.8000</vUnTrib>
+        </prod>
+        <imposto/>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>0.00</vBC>
+          <vICMS>0.00</vICMS>
+          <vProd>77.90</vProd>
+          <vNF>77.90</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+  <protNFe>
+    <infProt>
+      <chNFe>31260758820046000137550010000005021260728002</chNFe>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>

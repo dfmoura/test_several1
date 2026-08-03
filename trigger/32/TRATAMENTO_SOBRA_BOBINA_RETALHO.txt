@@ -1,0 +1,312 @@
+======================================================================
+      TRATAMENTO DE SOBRA DE BOBINA (RETALHO) - NOVO ERP
+      INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                   GERADO EM: 31/07/2026
+======================================================================
+
+Este documento detalha o item 5 da secao 5.2 (Ordem de Producao) do
+CONTROLE_ESTOQUE_PROFISSIONAL: como tratar a SOBRA DE BOBINA que
+retorna da producao. Retalho e um dos maiores focos de divergencia
+de estoque em graficas de etiquetas, porque:
+
+  * a bobina sai inteira para a maquina e volta parcial;
+  * ninguem mede o que voltou (vai "no olho" ou nao registra);
+  * o retalho fica ao lado da maquina e e consumido sem baixa;
+  * o saldo do sistema continua mostrando a bobina cheia.
+
+Regra de ouro correspondente (secao 12, item 5):
+  "Sobra de producao volta para o estoque, nunca desaparece."
+
+======================================================================
+1. DEFINICOES (NAO MISTURAR OS CONCEITOS)
+======================================================================
+
+  SOBRA / RETALHO - trecho remanescente da bobina, APROVEITAVEL em
+       producao futura (comprimento util acima do minimo definido).
+       -> VOLTA AO ESTOQUE com movimento proprio.
+
+  REFUGO / PERDA - material inutilizado no processo (setup, acerto
+       de registro, emenda, refile, avaria).
+       -> Baixa como perda na OP (compoe o custo do produto e o
+          indicador de perda real x perda padrao).
+
+  APARA / SUCATA - residuo sem aproveitamento produtivo (liner,
+       refile lateral, pontas curtas), destinado a descarte ou
+       venda como sucata.
+       -> Baixa por movimento de sucateamento; se vendida, NF-e
+          propria (ver secao 8).
+
+Cada um tem movimento, motivo e destino diferentes no ERP. O erro
+classico e jogar tudo em "perda" ou, pior, nao registrar nada.
+
+======================================================================
+2. REGRA DE DECISAO NA VOLTA DA MAQUINA
+======================================================================
+
+Ao encerrar (ou suspender) a OP, o operador informa o que restou de
+cada bobina requisitada. O ERP aplica a arvore de decisao:
+
+  1) Comprimento restante >= COMPRIMENTO MINIMO UTIL do material?
+     (parametro por grupo de material - sugestao inicial: 100 m
+     para substratos; ajustar por experiencia de PCP)
+
+     NAO -> tratar como APARA/SUCATA (baixa total na OP, com o
+            trecho residual indo para descarte/venda de sucata).
+
+     SIM -> segue para 2.
+
+  2) A bobina voltou com comprimento PROXIMO do original?
+     (sugestao: restante >= 80% do comprimento nominal do SKU)
+
+     SIM -> RETORNA COMO O MESMO SKU, com ajuste de metragem:
+            o estorno da requisicao devolve os metros nao usados
+            ao saldo do SKU original. Indicado quando a maquina
+            consumiu pouco (tiragem curta, cancelamento de OP).
+
+     NAO -> RETORNA COMO SKU DE RETALHO (ver secao 3), com o
+            comprimento MEDIDO ou ESTIMADO (ver secao 4).
+
+Observacoes:
+
+  * O percentual de 80% e o minimo de 100 m sao PARAMETROS do ERP,
+    nao numeros fixos: revisar apos 3 meses de operacao.
+  * Bobina que voltou intacta (nao montada na maquina) = simples
+    estorno de requisicao, sem virar retalho.
+  * A decisao NUNCA e do operador "de cabeca": o apontamento pede
+    a metragem restante e o sistema decide o destino.
+
+======================================================================
+3. CADASTRO DO SKU DE RETALHO
+======================================================================
+
+3.1. Manter a mascara da secao 2.1 do CONTROLE_ESTOQUE_PROFISSIONAL,
+     usando o campo de comprimento para marcar o retalho:
+
+       GG.MMM.FFF.LLLL.CCCC
+       CCCC = 0000  -> identifica RETALHO (comprimento variavel)
+
+     Exemplo:
+       10.001.FAS.0130.1000 = COUCHE 20G FASSON 130mm x 1000m
+       10.001.FAS.0130.0000 = COUCHE 20G FASSON 130mm RETALHO
+
+3.2. Unidade de estoque do SKU de retalho: METRO LINEAR (nao ROLO),
+     porque cada retalho tem comprimento diferente. O saldo e a soma
+     dos metros de todos os retalhos daquela combinacao material +
+     gramatura + fornecedor + largura.
+
+3.3. Controle POR LOTE obrigatorio no retalho: cada rolo de retalho
+     e um lote com sua metragem individual, herdando o lote do
+     fornecedor e a NF de origem da bobina mae (rastreabilidade
+     da secao 6 preservada).
+
+3.4. NAO criar um SKU por retalho fisico (explode o cadastro) e
+     NAO criar um SKU generico "RETALHO DIVERSOS" (perde material,
+     largura e custo). Um SKU de retalho por combinacao material +
+     fornecedor + largura, com lotes individuais, e o equilibrio
+     correto.
+
+3.5. Campos fiscais do SKU de retalho = identicos aos do SKU mae
+     (NCM, origem, CST/CSOSN, CEST): o material e o mesmo, so o
+     comprimento mudou.
+
+======================================================================
+4. MEDICAO DO COMPRIMENTO RESTANTE
+======================================================================
+
+Ordem de preferencia (da mais precisa para a menos precisa):
+
+  A) CONTADOR DA MAQUINA: metros nominais da bobina menos metros
+     rodados (producao boa + setup + refugo). Usar quando a maquina
+     tem contador confiavel.
+
+  B) PESAGEM: pesar o retalho (balanca no setor) e converter:
+
+       comprimento (m) = (peso liquido em g - peso do tubete em g)
+                         / (gramatura total g/m2 x largura em m)
+
+     Ex.: retalho de couche total 90 g/m2 (frontal+adesivo+liner),
+     largura 130 mm, peso liquido 3,5 kg:
+       3500 / (90 x 0,130) = ~299 m
+
+     Requer cadastrar no item a GRAMATURA TOTAL (g/m2) e o peso
+     padrao do tubete. E o metodo recomendado como padrao da casa.
+
+  C) DIAMETRO: medir diametro externo (D), diametro do tubete (d)
+     e espessura total do material (e):
+
+       comprimento (m) = PI x (D^2 - d^2) / (4 x e)
+
+     (medidas em metros; espessura tipica de autoadesivo com liner:
+     0,00015 a 0,00025 m). Util como conferencia rapida na fabrica.
+
+  D) ESTIMATIVA VISUAL: somente em ultimo caso, sempre marcada no
+     sistema como "estimada" e com arredondamento PARA BAIXO
+     (melhor estoque subestimado do que metragem fantasma).
+
+Tolerancia: divergencia de ate 5% entre metodos e aceitavel; acima
+disso, repesar/remedir antes de dar entrada.
+
+======================================================================
+5. FLUXO OPERACIONAL NO ERP
+======================================================================
+
+  1) OP requisita a bobina inteira (baixa do SKU original, por
+     lote, conforme FIFO/FEFO).
+  2) Producao roda. Operador aponta: quantidade boa, refugo
+     (com motivo) e SOBRA por bobina.
+  3) Operador mede a sobra (contador/pesagem) e lanca a metragem
+     no apontamento da OP.
+  4) ERP executa automaticamente:
+     - consumo real da OP = metragem requisitada - metragem
+       devolvida (o custo da OP so carrega o que foi consumido);
+     - movimento de RETORNO DE PRODUCAO: entrada no SKU original
+       (caso 2-SIM) ou no SKU de retalho (caso 2-NAO), criando o
+       lote do retalho com a metragem individual;
+     - valorizacao da entrada ao MESMO custo medio unitario (R$/m)
+       da bobina mae (ver secao 6).
+  5) ERP imprime a NOVA ETIQUETA INTERNA do retalho na hora:
+     SKU, descricao, largura x comprimento MEDIDO, lote de origem,
+     NF de origem, data do retorno, codigo de barras e OP que gerou.
+     SEM ETIQUETA NOVA O RETALHO NAO VOLTA PARA A PRATELEIRA.
+  6) Almoxarife confere, coleta o codigo de barras e endereca o
+     retalho em area propria (ver secao 7).
+
+Prazo: o retorno de sobra deve ser registrado NO MESMO TURNO do
+encerramento da OP. Retalho sem registro em 24h = nao conformidade
+(entra na rotina diaria do almoxarife, secao 10 do documento base).
+
+======================================================================
+6. CUSTEIO DO RETALHO
+======================================================================
+
+6.1. O retalho volta ao estoque pelo CUSTO MEDIO UNITARIO POR METRO
+     da bobina de origem (custo medio do SKU mae / comprimento
+     nominal). Nao inventar custo novo nem devolver "a custo zero".
+
+6.2. Efeito correto no custo da OP: a OP paga apenas os metros que
+     consumiu (bons + refugo). A sobra devolvida reduz o custo de
+     material da OP na mesma proporcao.
+
+6.3. Proibido devolver retalho a custo zero "para simplificar":
+     isso infla o custo dos produtos daquela OP e zera o valor de
+     um ativo que existe fisicamente - distorce estoque, custo e,
+     no Lucro Real, a apuracao fiscal.
+
+6.4. Retalho reclassificado como sucata (secao 8): baixa pelo custo
+     medio contra conta de perda, com movimento e motivo proprios.
+
+======================================================================
+7. ARMAZENAGEM E CONSUMO PRIORITARIO
+======================================================================
+
+7.1. Endereco FISICO EXCLUSIVO para retalhos (ex.: rua R do
+     almoxarifado), separado das bobinas inteiras, organizado por
+     material e largura. Retalho espalhado ao lado das maquinas e
+     a principal causa de dupla contagem e de consumo sem baixa.
+
+7.2. REGRA DE CONSUMO: retalho primeiro. Na abertura da OP, o ERP
+     deve sugerir automaticamente lotes de retalho compativeis
+     (mesmo material/gramatura/largura, comprimento >= necessidade
+     da OP + perda padrao) ANTES de empenhar bobina inteira.
+
+7.3. Retalho e otimo para: tiragens curtas, provas, testes de
+     maquina e acertos - parametrizar essas OPs para puxar retalho
+     por padrao.
+
+7.4. Idade maxima em estoque: retalho parado ha mais de 180 dias
+     entra no relatorio de obsolescencia (KPI da secao 9 do
+     documento base) para decisao: usar, vender como sucata ou
+     descartar - sempre com movimento e aprovacao.
+
+======================================================================
+8. QUANDO O RETALHO VIRA SUCATA (TRATAMENTO FISCAL)
+======================================================================
+
+8.1. Retalho abaixo do comprimento minimo util, danificado
+     (tunelamento, ondulacao, adesivo vencido) ou obsoleto e
+     reclassificado como SUCATA por movimento de ajuste aprovado.
+
+8.2. Venda de sucata/apara exige NF-e propria:
+     - NCM tipico 4707.xx.xx (desperdicios/aparas de papel) para
+       residuos de autoadesivo de papel; residuos plasticos (BOPP)
+       em 3915.xx.xx - VALIDAR COM A CONTABILIDADE antes da
+       primeira venda;
+     - CFOP de venda de sucata (5.949/6.949 ou especifico conforme
+       orientacao contabil);
+     - atencao ao diferimento de ICMS na venda de sucata em MG
+       (regra comum para residuos) - confirmar o tratamento no
+       Simples Nacional com a contabilidade.
+
+8.3. Descarte sem venda: baixa por perda com motivo "descarte de
+     sucata", evidencia (foto/pesagem) e aprovacao do gestor.
+
+======================================================================
+9. INVENTARIO E KPIs ESPECIFICOS DE RETALHO
+======================================================================
+
+9.1. Retalhos entram no inventario rotativo como itens CLASSE A de
+     contagem (nao de valor): contar TODO MES, porque e onde a
+     divergencia nasce. Contagem = coletar etiqueta + pesar/medir
+     por amostragem.
+
+9.2. KPIs mensais a acompanhar:
+     * metros de retalho gerados / metros consumidos nas OPs (%);
+     * % de retalho reaproveitado em OPs (meta: > 70%);
+     * valor de estoque em retalho (R$) e idade media;
+     * divergencia de inventario nos SKUs de retalho (meta: mesma
+       acuracidade geral, >= 98%);
+     * retalhos devolvidos sem medicao (meta: 0 - todo retorno
+       com metragem medida ou estimada declarada).
+
+9.3. Auditoria rapida semanal do PCP: conferir se toda OP encerrada
+     na semana tem apontamento de sobra OU declaracao explicita de
+     "sem sobra" (campo obrigatorio no encerramento da OP).
+
+======================================================================
+10. PARAMETRIZACAO RESUMIDA NO ERP (CHECKLIST)
+======================================================================
+
+  [ ] Parametro COMPRIMENTO MINIMO UTIL por grupo de material
+      (default sugerido: 100 m para substratos)
+  [ ] Parametro % PARA RETORNO NO MESMO SKU (default: >= 80%)
+  [ ] SKU de retalho (CCCC = 0000) para cada combinacao material +
+      fornecedor + largura com giro de sobra
+  [ ] Unidade do SKU de retalho = METRO; controle por lote ativo
+  [ ] Gramatura total (g/m2) e peso de tubete no cadastro (para
+      conversao por pesagem)
+  [ ] Movimento "RETORNO DE PRODUCAO - SOBRA" com custo herdado
+      da bobina mae
+  [ ] Campo obrigatorio de sobra (metragem ou "sem sobra") no
+      encerramento da OP
+  [ ] Impressao automatica de etiqueta interna no retorno
+  [ ] Sugestao automatica de retalho compativel na abertura de OP
+  [ ] Endereco exclusivo de retalhos no almoxarifado
+  [ ] Relatorio de retalhos parados > 180 dias
+  [ ] Movimento de reclassificacao retalho -> sucata com aprovacao
+  [ ] KPIs da secao 9 no painel mensal
+
+======================================================================
+11. REGRAS DE OURO DO RETALHO (RESUMO)
+======================================================================
+
+  1. Sobra nunca "some": ou volta como o mesmo SKU, ou como SKU
+     de retalho, ou vira sucata com movimento proprio.
+  2. Todo retorno tem metragem MEDIDA (contador ou pesagem);
+     estimativa visual e excecao e fica marcada como estimada.
+  3. Retalho volta pelo custo medio por metro da bobina mae -
+     nunca a custo zero.
+  4. Sem etiqueta interna nova, o retalho nao entra na prateleira.
+  5. Retalho tem endereco proprio - proibido "estacionar" ao lado
+     da maquina.
+  6. Retalho e consumido PRIMEIRO (o ERP sugere na abertura da OP).
+  7. Encerramento de OP exige declarar a sobra (ou "sem sobra") -
+     campo obrigatorio, nao opcional.
+  8. Retalho conta-se todo mes; e o termometro da acuracidade.
+  9. Sucata sai com NF-e propria (NCM/CFOP validados com a
+     contabilidade) ou baixa aprovada de descarte.
+ 10. Parametros (minimo util, % de retorno) sao revisados apos os
+     primeiros meses de operacao - nao sao dogma.
+
+======================================================================
+                          FIM DO DOCUMENTO
+======================================================================

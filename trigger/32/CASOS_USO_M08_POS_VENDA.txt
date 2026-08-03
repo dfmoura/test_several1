@@ -1,0 +1,183 @@
+====================================================================================================
+CASOS DE USO — M08 PÓS-VENDA — ERP RLP
+Documento: CASOS_USO_M08_POS_VENDA.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M08 — Pós-venda (RMA, CQ, reposição, crédito, DEV)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Exceções que COMPLEMENTAM o fluxo feliz — nunca apagam a origem.
+  RMA → CQ → decisão (reparo | reposição | crédito | DEV).
+  DEV estorna fiscal + estoque + financeiro com trilha.
+
+Atores: COMERCIAL, PRODUCAO (CQ), FISCAL, FINANCEIRO, Cliente
+
+Invariants:
+  • Origem (PED/NF/TIT) permanece; documentos compensatórios ligados a ela.
+  • Estorno silencioso = proibido.
+  • Estados RMA e DEV conforme domínio.
+
+====================================================================================================
+UC-POS-001 — Abrir RMA (reclamação / garantia)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMERCIAL / FISCAL / PRODUCAO (atendimento)
+Secundário ...: Cliente
+
+Pré-condições: Existe PED/NF de origem; prazo/política de garantia aplicável.
+
+Pós-condições: RMA- ABERTA vinculada à origem; anexos (fotos/laudos) armazenados.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator registra reclamação com PED/NF/item/qtde e sintoma.
+  2. Anexa evidências (arquivos S3).
+  3. Sistema cria RMA- ABERTA e encaminha a CQ (UC-POS-002).
+  4. Evento RmaAberta; opcional MSG status ao cliente.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Sem documento de origem
+    1a. Bloqueia RMA “órfã”; exige vínculo mínimo a PED/cliente+NF.
+
+Regras: RF-EXC-01; D0.12
+Trace: POS_VENDA_RMA_GARANTIA.txt
+Aceite: RMA sempre referencia PED/NF; código RMA- legível.
+
+====================================================================================================
+UC-POS-002 — Avaliar RMA no CQ e decidir destino
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO (CQ)
+Secundários ..: COMERCIAL / FINANCEIRO / FISCAL (impacto da decisão)
+
+Pré-condições: RMA ABERTA ou EM_CQ.
+
+Pós-condições: RMA → DECIDIDA com destino: reparo | reposição | crédito | DEV.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. CQ analisa material/evidências; marca RMA → EM_CQ.
+  2. Registra laudo e decide destino.
+  3. Sistema exige perfil/alçada se crédito/DEV.
+  4. RMA → DECIDIDA; evento RmaDecidida; dispara UC-POS-003 ou UC-POS-004.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Improcedente
+    2a. Decide encerrar sem reparo/DEV; comunica cliente; RMA → ENCERRADA.
+
+Regras: RF-EXC-01
+Trace: POS_VENDA_RMA_GARANTIA.txt · QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt
+Aceite: Não há avanço financeiro/fiscal sem decisão registrada.
+
+====================================================================================================
+UC-POS-003 — Executar reposição / reparo / crédito comercial
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO (reparo/reposição) / FINANCEIRO (crédito) / COMERCIAL
+
+Pré-condições: RMA DECIDIDA com destino ≠ DEV (ou pré-DEV).
+
+Pós-condições:
+  Reparo/reposição: nova OP/OS ou separação amarrada à RMA/PED.
+  Crédito: documento financeiro compensatório (não apaga TIT origem).
+
+--------------------------------------------------------------------------------
+Fluxo principal — reposição
+--------------------------------------------------------------------------------
+  1. Sistema gera demanda produtiva/separação vinculada à RMA.
+  2. PRODUCAO executa (UC-PRD / UC-EST).
+  3. FISCAL trata NF de reposição/remessa conforme política.
+  4. RMA → ENCERRADA quando entregue/aceita.
+
+--------------------------------------------------------------------------------
+Fluxo principal — crédito comercial
+--------------------------------------------------------------------------------
+  1. FINANCEIRO emite crédito (abate TIT/gera título a pagar) com natureza 1–5.
+  2. Auditoria amarra RMA↔crédito.
+  3. RMA → ENCERRADA.
+
+Regras: RF-EXC-01, RF-EXC-05; D0.4
+Trace: POS_VENDA_RMA_GARANTIA.txt · RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: Crédito não delete o título original; há vínculo RMA.
+
+====================================================================================================
+UC-POS-004 — Abrir devolução ponta a ponta (DEV)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FISCAL / FINANCEIRO / COMERCIAL
+
+Pré-condições: Decisão de DEV (via RMA ou fluxo direto autorizado); NF origem.
+
+Pós-condições: DEV- ABERTA; checklist fiscal+estoque+financeiro iniciado.
+
+Garantia: Origem permanece; só entram documentos compensatórios.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre DEV- referenciando NF/PED/itens/qtde.
+  2. Sistema cria plano de estorno: fiscal → estoque → financeiro.
+  3. FISCAL emite NF de devolução (UC-FIS-006) → DEV FISCAL_OK.
+  4. Estoque registra retorno (MOV) → ESTOQUE_OK.
+  5. Financeiro estorna/abate TIT/COB → FINANCEIRO_OK.
+  6. Segue UC-POS-005.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — CFOP de devolução não homologado
+    3a. Bloqueia passo fiscal; pendência com contador.
+  EX2 — Tentativa de “apagar NF”
+    3a. Operação inexistente/rejeitada.
+
+Regras: RF-EXC-02, RF-EXC-05; CA-07; D0.12
+Trace: DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+Aceite: DEV não remove NF/PED originais do histórico.
+
+====================================================================================================
+UC-POS-005 — Encerrar DEV (fiscal + estoque + financeiro OK)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : Sistema (quando trilhas OK) / FINANCEIRO+FISCAL (conferência)
+
+Pré-condições: DEV em FINANCEIRO_OK (três trilhas concluídas).
+
+Pós-condições: DEV → ENCERRADA; evento DevolucaoEncerrada; RMA vinculada encerrada se houver.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema valida as três flags (fiscal/estoque/financeiro).
+  2. Executa checklist de consistência (saldos, títulos, chave NF).
+  3. Encerra DEV; disponibiliza relatório para contador/export.
+  4. Auditoria final consolidada.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Trilha incompleta
+    1a. Encerramento bloqueado; indica passo faltante.
+
+Regras: RF-EXC-02; CA-07
+Trace: DEVOLUCAO_VENDA_PONTA_A_PONTA.txt · HOMOLOGACAO_ERP_RLP.txt
+Aceite: Caso real controlado (fase 2) percorre as três trilhas sem apagar origem.
+
+====================================================================================================
+Fim — CASOS_USO_M08_POS_VENDA.txt
+5 casos de uso | Módulo M08 Pós-venda
+====================================================================================================

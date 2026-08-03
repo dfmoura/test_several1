@@ -1,0 +1,164 @@
+====================================================================================================
+INTEGRAÇÃO WHATSAPP — API OFICIAL (WHATSAPP BUSINESS PLATFORM)
+Modelo de integração alinhado ao produto Canal Zap (trigger/12) + ERP RLP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: APROVACAO_ORCAMENTO_CLIENTE.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      ENTREGA_CONFIRMACAO_CLIENTE.txt + RECEBIMENTO_BAIXA_COBRANCA.txt +
+      PEDIDOS_RECORRENTES_LEMBRETE_REPOSICAO.txt + POS_VENDA_RMA_GARANTIA.txt +
+      CADASTRO_PARCEIROS.txt + ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+DECISÃO OFICIAL — NÃO NEGOCIÁVEL:
+
+  A RLP INTEGRA WHATSAPP SOMENTE VIA API OFICIAL
+  (WhatsApp Business Platform / Meta Cloud API ou BSP homologado).
+
+  PROIBIDO em produção do ERP:
+    * Automação em conta WhatsApp PESSOAL
+    * Bibliotecas não oficiais (Baileys, WhatsApp Web scrapers,
+      “Evolution com WHATSAPP-BAILEYS”, multi-device de número pessoal)
+    * Disparo em massa sem opt-in / template aprovado
+
+  Motivos: risco de banimento, zero rastreabilidade Meta, LGPD frágil,
+  impossibilidade de provar opt-in e auditoria em cobrança/entrega.
+
+O “Canal Zap” (trigger/12/site/canal-zap) inspira a EXPERIÊNCIA
+(conversa com memória, tom, vínculo com backend). No ERP da RLP, o
+transporte deve ser a API oficial — o agente/IA, se existir, fala
+ATRÁS do Cloud API, nunca no lugar dele.
+
+----------------------------------------------------------------------------------------------------
+1. PAPEL DO WHATSAPP NO ERP
+----------------------------------------------------------------------------------------------------
+
+WhatsApp é CANAL, não sistema de verdade.
+
+  Pode: notificar, enviar link de ORC, PDF de NF/boleto, status de
+        entrega, régua de cobrança (templates), abrir RMA, confirmar
+        dados com o cliente.
+  Não pode: ser a fila oficial de produção, o livro de comissão,
+            o canhoto sem ENT-, a baixa financeira sem BX-.
+
+Tudo que o zap dispara ou recebe e afeta negócio → grava MSG- no ERP
+com FK para ORC/PED/TIT/ENT/RMA.
+
+----------------------------------------------------------------------------------------------------
+2. ARQUITETURA ALVO
+----------------------------------------------------------------------------------------------------
+
+  ERP RLP  →  serviço de mensagens (Canal Zap / módulo interno)
+           →  Meta Cloud API (ou BSP: 360dialog, Gupshup, Twilio, etc.)
+           →  WhatsApp do cliente (número Business da RLP)
+
+  Webhook Meta → serviço → atualiza status MSG- / respostas / opt-out
+
+Credenciais: WABA ID, Phone Number ID, token, verify token, app secret.
+Nunca no front-end; vault / secrets do servidor.
+
+Ambientes: Sandbox/teste → Produção (número dedicado da empresa).
+
+----------------------------------------------------------------------------------------------------
+3. OPT-IN, LGPD E TEMPLATES
+----------------------------------------------------------------------------------------------------
+
+  * Só envia mensagem de UTILIDADE/COBRANÇA/MARKETING conforme
+    categoria Meta e consentimento do contato.
+  * Contato oficial no PAR-: telefone E.164 + flag whatsapp_opt_in
+    + data/origem do consentimento.
+  * Opt-out: palavra-chave / botão → para réguas; registra no PAR-.
+  * Janela de 24h: respostas livres após mensagem do usuário;
+    fora disso → só template aprovado.
+  * Templates sugeridos (nomes lógicos; texto final na Meta):
+      orcamento_disponivel
+      pedido_confirmado
+      nf_e_cobranca          (NF + link boleto/PIX)
+      saiu_para_entrega
+      entrega_confirmada
+      cobranca_lembrete_d3 / d1 / dp7
+      reposicao_lembrete     (≠ cobrança — tom distinto)
+      rma_status
+
+Tom: profissional, curto, com códigos legíveis (ORC-2026-00xxx).
+
+----------------------------------------------------------------------------------------------------
+4. EVENTOS DO ERP QUE DISPARAM ENVIO
+----------------------------------------------------------------------------------------------------
+
+  ORC aprovado p/ envio ...... link + PDF
+  PED liberado ............... confirmação
+  NF + TIT gerados ........... NF + cobrança
+  ENT saiu / entregue ........ status logística
+  Régua TIT vencendo/vencido . cobrança
+  RMA status relevante ....... pós-venda
+  Lembrete reposição ......... PEDIDOS_RECORRENTES_...
+
+Cada um: template_id + payload (nome, valor, vencimento, link seguro).
+Link seguro: token UUID, não id interno sequencial exposto sem auth.
+
+----------------------------------------------------------------------------------------------------
+5. ENTRADA (CLIENTE FALA)
+----------------------------------------------------------------------------------------------------
+
+  * Webhook recebe mensagem → identifica PAR- pelo telefone
+  * Intents leves (Fase 1): “recebi”, “abrir chamado”, “falar com humano”
+  * “Abrir chamado” → RMA rascunho
+  * Handover para atendente humano (fila) sem perder histórico MSG-
+  * IA (opcional, estilo Canal Zap): só com prompts controlados;
+    nunca inventa preço/prazo — consulta ERP ou escala para humano
+
+----------------------------------------------------------------------------------------------------
+6. CODIFICAÇÃO E AUDITORIA
+----------------------------------------------------------------------------------------------------
+
+  MSG-AAAA-NNNNN
+  Campos: direcao (IN/OUT), template, waba_message_id, status
+          (queued/sent/delivered/read/failed), erro Meta,
+          parceiro_id, documento_tipo/id, usuario_id (se manual),
+          payload resumido (sem dado sensível demais no log aberto)
+
+Retention: conforme LGPD + política interna.
+
+----------------------------------------------------------------------------------------------------
+7. O QUE REAPROVEITAR DO CANAL ZAP (trigger/12) E O QUE NÃO
+----------------------------------------------------------------------------------------------------
+
+  REAPROVEITAR (conceitos):
+    * Memória de conversa / perfil por contato
+    * Tom e personalidade editáveis
+    * Ligação conversa ↔ backend
+    * Implantação assistida, número business
+
+  NÃO REAPROVEITAR para a RLP em produção:
+    * Sessão WhatsApp Web / QR de conta pessoal
+    * Integração tipo Baileys como transporte principal
+    * Disparo sem template/opt-in
+
+Se houver protótipo técnico com Evolution+Baileys (ex.: trigger/25),
+trata-se de LABORATÓRIO — não é o padrão do ERP industrial.
+
+----------------------------------------------------------------------------------------------------
+8. PAPÉIS E SEGURANÇA
+----------------------------------------------------------------------------------------------------
+
+  * Só FINANCEIRO/COMERCIAL/ADMIN disparam cobrança/ORC em massa
+  * PRODUCAO não usa WhatsApp como fila oficial
+  * Tokens Meta: acesso mínimo; rotação; audit log
+  * Anexos: links autenticados, não XML completo em grupo
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST DE IMPLANTAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  [ ] Conta Meta Business + WABA + número aprovado
+  [ ] BSP ou Cloud API escolhido; webhooks HTTPS válidos
+  [ ] Templates aprovados (ORC, NF, entrega, cobrança, RMA)
+  [ ] Opt-in no cadastro PAR-
+  [ ] MSG- gravando id Meta e status
+  [ ] Proibido conta pessoal / Baileys em produção
+  [ ] Régua de cobrança ≠ lembrete de reposição (tom e template)
+
+====================================================================================================
+Fim — INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+Zap oficial, auditável e ligado ao ERP. Conta pessoal automatizada não entra no padrão.
+====================================================================================================

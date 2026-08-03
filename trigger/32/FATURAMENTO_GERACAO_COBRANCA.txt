@@ -1,0 +1,180 @@
+====================================================================================================
+FATURAMENTO E GERAÇÃO DA COBRANÇA — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_PEDIDO.txt + CONCLUSAO_PRODUCAO.txt + CADASTRO_PRODUTOS_VENDA.txt +
+      VERIFICACAO_IMPOSTO_ORCAMENTO.txt + INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt +
+      APROVACAO_ORCAMENTO_CLIENTE.txt + estrategia_implantacao_ja.txt +
+      CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO FATURAR o pedido e COMO NASCE A COBRANÇA
+(títulos a receber). Emissão fiscal via Focus NFe (e NFS-e quando serviço);
+financeiro no mesmo ERP. O sistema NÃO "fecha" apuração de impostos —
+prepara e registra o que foi emitido (ver CONTABILIDADE_FISCAL_SEM_FECHAMENTO).
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. FATURA-SE O QUE FOI APROVADO E ESTÁ LIBERADO PARA SAÍDA/SERVIÇO.
+    Base: PED + itens PRODUZIDOS (ou política de faturamento antecipado
+    excepcional com alçada — não é padrão).
+
+ 2. DOCUMENTO FISCAL ≠ TÍTULO FINANCEIRO, MAS ANDAM JUNTOS.
+    NF-e/NFS-e = obrigação fiscal e baixa de estoque PA/REV.
+    Título (TIT-) = cobrança (boleto, PIX, duplicata, cartão).
+    Um faturamento gera 1..N títulos conforme condição de pagamento.
+
+ 3. PREÇO TRAVADO NO PED (snapshot do ORC).
+    Impostos de saída conforme motor fiscal / Focus; divergência de
+    gross-up do orçamento é analisada, não "reprecificada" na nota
+    sem novo acordo (VERIFICACAO_IMPOSTO_ORCAMENTO.txt).
+
+ 4. NUMERAÇÃO FISCAL É DA SEFAZ (série + número via Focus).
+    ERP guarda chave de 44, liga a ped_id. Não inventar número de NF.
+
+----------------------------------------------------------------------------------------------------
+2. QUANDO FATURAR (políticas)
+----------------------------------------------------------------------------------------------------
+
+  PADRÃO RECOMENDADO (produção própria):
+    OP/OS concluída → PA/serviço ok → emite NF → gera cobrança → expede
+    (pode expedir no mesmo dia; NF antes do caminhão sair).
+
+  REVENDA:
+    Separação ok → NF → cobrança → entrega.
+
+  ADIANTAMENTO / SINAL (antes de produzir):
+    Não é NF de venda integral necessariamente.
+    Gera cobrança financeira (PIX/boleto) vinculada ao PED;
+    quando receber, libera produção (APROVACAO_... / GERACAO_PEDIDO).
+    Tratamento fiscal do adiantamento: conforme orientação do contador
+    (adiantamento, NF prévia, etc.) — ERP registra o vínculo.
+
+  FATURAMENTO PARCIAL:
+    Permitido quando conclusão parcial / entrega fracionada.
+    Títulos e NFs parciais amarrados ao mesmo ped_id.
+
+----------------------------------------------------------------------------------------------------
+3. MONTAGEM DA NF-e / NFS-e
+----------------------------------------------------------------------------------------------------
+
+Cabeçalho:
+  * Destinatário = parceiro fiscal completo (CNPJ, IE, endereço)
+  * Natureza da operação / CFOP por item (5101/6101 PA, 5102/6102 REV…)
+  * Informações adicionais: pedido PED-..., ordem compra cliente, etc.
+
+Itens:
+  * Família fiscal PA-/REV-/SVC-* + descrição comercial completa
+    (CADASTRO_PRODUTOS_VENDA — texto montado)
+  * NCM, CFOP, CSOSN/CST, unidade, qtde, valor
+  * Pedido/item origem
+
+Serviço (SVC):
+  * Fluxo NFS-e quando o contador assim definir; mesmos títulos.
+
+Validação pré-emissão:
+  * Cadastro cliente apto (não prospect incompleto)
+  * Crédito/condição ok
+  * Estoque PA/REV suficiente para a qtde faturada
+  * Totais = soma itens + frete − descontos autorizados
+
+Emissão: Focus NFe → autorizada / rejeitada / contingência.
+Só NF autorizada baixa estoque e confirma títulos "em aberto" vinculados.
+
+----------------------------------------------------------------------------------------------------
+4. GERAÇÃO DA COBRANÇA (TÍTULOS)
+----------------------------------------------------------------------------------------------------
+
+4.1. Codificação
+  id BIGINT + TIT-AAAA-NNNNN (incluir no catálogo de prefixos)
+  FK: ped_id, nf_id (quando houver), parceiro_id
+
+4.2. Origem da condição
+  Condição do PED (herdada do ORC / cadastro parceiro):
+    ex.: 28 DDL, 14/28/42, à vista, 50% sinal + 50% 28 DDL
+
+4.3. O que o título carrega
+  * valor, vencimento, forma (boleto/PIX/transferência/cartão)
+  * nosso número / linha digitável / QR PIX (via banco ou gateway)
+  * natureza gerencial de receita (NATUREZAS_GERENCIAIS_...)
+  * status: ABERTO | PARCIAL | BAIXADO | CANCELADO | PERDA
+  * saldo em aberto (compromete limite de crédito)
+
+4.4. Momentos de geração
+  * Sinal na aprovação (sem NF ou com doc fiscal conforme contador)
+  * Saldo/parcelas na NF autorizada
+  * Ferramental (FAC) pode ser item da NF ou linha separada —
+    já veio no PED
+
+4.5. Envio ao cliente
+  * E-mail/WhatsApp com PDF da NF + boleto/PIX
+  * Contatos oficiais do CADASTRO_PARCEIROS
+  * Log de envio (auditoria)
+
+----------------------------------------------------------------------------------------------------
+5. FRETE E DESPESAS ACESSÓRIAS
+----------------------------------------------------------------------------------------------------
+
+  * Frete na NF (se CIF e destacado) ou cobrado à parte
+  * Seguro / outra despesa: conforme prática e CFOP
+  * Não misturar frete de despesa interna (pagar transportadora)
+    com receita — ver naturezas (despesa × receita)
+
+----------------------------------------------------------------------------------------------------
+6. CANCELAMENTO E DEVOLUÇÃO
+----------------------------------------------------------------------------------------------------
+
+  * Cancelamento de NF: prazo legal + Focus; estorna estoque e cancela
+    títulos abertos (ou gera crédito)
+  * Devolução: NF de entrada referenciando chave; MOV estoque;
+    abate financeiro (RECEBIMENTO_BAIXA_COBRANCA / nota de crédito)
+  * Nunca apagar faturamento autorizado — só estornar
+
+----------------------------------------------------------------------------------------------------
+7. LIMITE DE CRÉDITO E FATURAMENTO
+----------------------------------------------------------------------------------------------------
+
+  Títulos em aberto + pedidos faturados não baixados consomem limite
+  (INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt).
+  Baixa do recebimento libera limite.
+
+----------------------------------------------------------------------------------------------------
+8. PAPÉIS
+----------------------------------------------------------------------------------------------------
+
+  FISCAL ........ emite NF, trata rejeição SEFAZ
+  FINANCEIRO .... confere títulos, envia cobrança, negocia prazo
+  COMERCIAL ..... solicita faturamento, não altera valor sem alçada
+  PRODUCAO ...... não emite NF
+  CONSULTA ...... contador lê XMLs e relatório de faturamento
+
+----------------------------------------------------------------------------------------------------
+9. RELATÓRIOS QUE O ERP ENTREGA (sem fechar o fiscal)
+----------------------------------------------------------------------------------------------------
+
+  * Faturamento por período (base Simples / preparação Lucro Real)
+  * XMLs autorizados (Focus + cópia metadados no ERP)
+  * Itens por NCM/CFOP/CSOSN
+  * Títulos abertos por vencimento (aging)
+  * Adiantamentos a apropriar
+
+Apuração DAS, SPED completo, ECD: contador — ERP alimenta.
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] NF só com PED apto e cadastro fiscal ok
+  [ ] Baixa estoque somente NF autorizada
+  [ ] 1 NF → N títulos conforme condição
+  [ ] Sinal separado e vinculado ao PED
+  [ ] Prefixo TIT- + naturezas gerenciais
+  [ ] Cancelamento/devolução com estorno completo
+  [ ] Envio documentado ao contato oficial
+
+====================================================================================================
+Fim — FATURAMENTO_GERACAO_COBRANCA.txt
+Faturar = NF autorizada + títulos vivos. Cobrar sem NF (sinal) é exceção controlada.
+====================================================================================================

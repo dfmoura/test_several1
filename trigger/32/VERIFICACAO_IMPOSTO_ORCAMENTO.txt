@@ -1,0 +1,390 @@
+======================================================================
+       VERIFICACAO PROFISSIONAL DO IMPOSTO NO ORCAMENTO
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+======================================================================
+
+Este documento DETALHA o item 4.13 de GERACAO_ORCAMENTO.txt:
+
+  "IMPOSTO: percentual por operacao (12 a 25%). Padrao interno
+   atual: 16%. Deve evoluir para calculo fiscal real por NCM/UF."
+
+Objetivo: substituir o percentual "chutado" de imposto por um
+PERFIL FISCAL DE OPERACAO parametrizado, auditavel e coerente com a
+situacao tributaria real da empresa (hoje Simples Nacional, com
+migracao prevista para Lucro Real).
+
+Ele complementa:
+  * GERACAO_ORCAMENTO.txt .............. motor de calculo (passo 6)
+  * PADRAO_DECIMAL_CALCULOS.txt ........ aliquota NUMERIC(7,4)
+  * estudo_tributação.txt .............. regimes e NCMs da empresa
+  * REVISAO_ICMS_ST.txt ................ ST nas compras e vendas
+  * REVISAO_ANTECIPACAO_ICMS_MG.txt .... antecipacao (entradas)
+  * VERIFICACAO_ALIQUOTA_INTERNA_MG.txt  18% interno MG confirmado
+  * LISTAGEM_NCM_NFE_VENDA.txt ......... NCMs realmente vendidos
+
+======================================================================
+1. COMO E HOJE E POR QUE NAO E PROFISSIONAL
+======================================================================
+
+1.1. Na planilha (e no modelo atual do orcamento), o IMPOSTO e um
+     percentual digitado pelo orcamentista entre 12 e 25%, com
+     padrao interno de 16%, aplicado "POR FORA" no fechamento:
+
+       IMPOSTO     = VALOR_SERVICO x (%IMPOSTO / 100)
+       TOTAL_BRUTO = VALOR_SERVICO + COMISSAO + IMPOSTO
+
+1.2. Problemas identificados:
+
+     a) O percentual NAO tem origem rastreavel. Nao se sabe se o
+        16% representa o DAS do Simples, o ICMS, a soma de tudo,
+        ou uma folga comercial. Cada orcamentista pode digitar um
+        numero diferente para a mesma operacao.
+
+     b) O percentual NAO varia com o que realmente muda o imposto:
+        regime tributario, UF de destino, tipo de cliente
+        (contribuinte ou nao), finalidade (industrializacao,
+        revenda, uso/consumo), NCM do produto e exportacao.
+
+     c) A conta e "POR FORA", mas imposto de verdade e "POR
+        DENTRO" do preco (calculado sobre o valor da venda, nao
+        sobre o custo). Aplicar 16% por fora equivale a suportar
+        apenas 13,79% de carga sobre o preco final (secao 2).
+        Se a carga real for 16% do preco, o orcamento esta
+        subprecificado.
+
+     d) Na migracao para o Lucro Real a carga sobre a VENDA muda
+        de composicao (ICMS + PIS/COFINS destacados + IPI se
+        devido) e o custo do MATERIAL cai (creditos). Um numero
+        fixo nao captura nada disso.
+
+======================================================================
+2. CONCEITO FUNDAMENTAL: POR FORA x POR DENTRO (GROSS-UP)
+======================================================================
+
+2.1. Tributos sobre a venda (DAS, ICMS, PIS, COFINS) incidem sobre
+     o PRECO DE VENDA, nao sobre o custo. O calculo correto do
+     preco e o GROSS-UP:
+
+       PRECO = (CUSTO + COMPONENTES) / (1 - %IMPOSTO - %COMISSAO)
+
+     onde %IMPOSTO e a carga POR DENTRO (fracao do preco final).
+
+2.2. Conversao entre as duas formas:
+
+       %POR_FORA   = %POR_DENTRO / (1 - %POR_DENTRO)
+       %POR_DENTRO = %POR_FORA   / (1 + %POR_FORA)
+
+     Tabela de equivalencia (conferencia rapida):
+
+       POR DENTRO (carga real)   POR FORA (a aplicar no custo)
+       ----------------------    -----------------------------
+        8,00%                     8,70%
+       12,00%                    13,64%
+       13,79%                    16,00%   <- padrao atual
+       14,00%                    16,28%
+       16,00%                    19,05%
+       18,00%                    21,95%
+       20,00%                    25,00%   <- teto atual
+       25,00%                    33,33%
+
+2.3. DECISAO PARA O ERP: o motor de calculo deve trabalhar com a
+     carga POR DENTRO (e fazer gross-up), armazenando no snapshot
+     as duas formas. Se, por compatibilidade, o passo 6 continuar
+     aplicando por fora, o perfil fiscal deve entregar o
+     percentual JA CONVERTIDO pela formula 2.2 - nunca deixar o
+     orcamentista fazer essa conversao de cabeca.
+
+2.4. Padrao decimal: aliquotas em NUMERIC(7,4) (4 casas), Decimal
+     exato, arredondamento half-up UMA unica vez no valor final
+     (PADRAO_DECIMAL_CALCULOS.txt, secoes 2 e 3).
+
+======================================================================
+3. SITUACAO ATUAL: SIMPLES NACIONAL (O QUE O 16% DEVERIA SER HOJE)
+======================================================================
+
+3.1. Confirmado nos XMLs de venda (pasta nfe_venda): CRT = 1
+     (Simples Nacional), CSOSN 102, sem destaque de ICMS. Ou seja,
+     HOJE o unico imposto sobre a venda e o DAS.
+
+3.2. Industria recolhe pelo ANEXO II da LC 123/2006. A aliquota
+     EFETIVA depende da receita bruta dos ultimos 12 meses (RBT12):
+
+       ALIQ_EFETIVA = (RBT12 x ALIQ_NOMINAL - PARCELA_DEDUZIR)
+                      / RBT12
+
+       FAIXA  RBT12 (R$)              NOMINAL   DEDUZIR (R$)
+       -----  ----------------------  -------   ------------
+       1      ate 180.000              4,50%           0,00
+       2      180.000,01 a 360.000     7,80%       5.940,00
+       3      360.000,01 a 720.000    10,00%      13.860,00
+       4      720.000,01 a 1.800.000  11,20%      22.500,00
+       5      1.800.000,01 a 3.600.000 14,70%     85.500,00
+       6      3.600.000,01 a 4.800.000 30,00%    720.000,00
+
+     Exemplos de aliquota efetiva (por dentro):
+       RBT12 = 2.500.000 -> 14,70% - 3,42% = 11,28%
+       RBT12 = 3.600.000 -> 14,70% - 2,375% = 12,33%
+       RBT12 = 4.800.000 -> 30,00% - 15,00% = 15,00%
+
+3.3. ATENCAO - SUBLIMITE DE R$ 3.600.000: acima do sublimite
+     estadual, o ICMS DEIXA de ser recolhido dentro do DAS e passa
+     a ser apurado como no regime normal (debito 18% interno MG -
+     creditos), mesmo ainda "dentro" do Simples para os tributos
+     federais. Como a empresa espera estourar o limite este ano,
+     este cenario intermediario e REAL e deve existir como perfil
+     proprio no ERP (confirmar enquadramento com o contador).
+
+3.4. Enquanto no Simples, o percentual do orcamento deve ser:
+
+       %IMPOSTO(por dentro) = ALIQ_EFETIVA do DAS no mes
+       (parametro atualizado MENSALMENTE a partir do RBT12)
+
+     e NAO um 16% fixo. Com RBT12 na faixa 5, usar 16% por fora
+     (13,79% por dentro) esta ate FOLGADO; na faixa 6 / sublimite
+     estourado, pode estar CURTO. Por isso o parametro precisa de
+     vigencia mensal, nao de "padrao interno".
+
+3.5. A ANTECIPACAO de aliquota nas COMPRAS interestaduais
+     (REVISAO_ANTECIPACAO_ICMS_MG.txt, ~R$ 13,9 mil/mes estimado)
+     NAO entra no %IMPOSTO da venda: ela e CUSTO DO MATERIAL e
+     deve estar embutida no custo medio do estoque
+     (CONTROLE_ESTOQUE_PROFISSIONAL.txt). Nao contar duas vezes.
+
+======================================================================
+4. SITUACAO FUTURA: LUCRO REAL (COMPOSICAO POR OPERACAO)
+======================================================================
+
+4.1. No Lucro Real, a carga POR DENTRO sobre a venda passa a ser a
+     SOMA dos debitos destacados na NF-e:
+
+       ICMS (aliquota conforme a operacao - ver 4.2)
+     + PIS  1,65% (nao cumulativo)
+     + COFINS 7,60% (nao cumulativo)
+     + IPI se devido (por NCM na TIPI - ver pendencia 10.2)
+
+4.2. Aliquotas de ICMS por operacao (produtos de venda: NCMs
+     3919.10.90, 4811.41.90, 9612.10.00 - sem reducao de base,
+     conforme VERIFICACAO_ALIQUOTA_INTERNA_MG.txt):
+
+       OPERACAO                                   ICMS DEBITO
+       ----------------------------------------   -----------
+       Venda interna MG (qualquer cliente)          18%
+       Interestadual p/ CONTRIBUINTE S/SE (*)       12%
+       Interestadual p/ CONTRIBUINTE N/NE/CO/ES      7%
+       Interestadual p/ NAO CONTRIBUINTE            12% ou 7%
+         + DIFAL p/ UF destino (EC 87/2015)        + diferenca
+       Mercadoria de ORIGEM IMPORTADA (orig 1-8)
+         em interestadual (Res. SF 13/2012)          4%
+       Exportacao                                    0% (imune)
+
+       (*) S/SE exceto ES. Hoje as vendas sao MG -> MG (CFOP 5102
+       nos XMLs), mas o perfil precisa cobrir todas as hipoteses.
+
+4.3. Carga POR DENTRO indicativa (debitos nominais, sem IPI):
+
+       Interna MG:            18% + 9,25% = 27,25%
+       Interestadual 12%:     12% + 9,25% = 21,25%
+       Interestadual  7%:      7% + 9,25% = 16,25%
+       Interestadual  4%:      4% + 9,25% = 13,25%
+       Exportacao:              0% (PIS/COFINS tambem zerados)
+
+4.4. E OS CREDITOS? Regra de ouro para nao contar errado:
+
+     * Os CREDITOS de ICMS/PIS/COFINS das compras REDUZEM O CUSTO
+       DO MATERIAL, nao o imposto da venda. No Lucro Real o
+       estoque passa a entrar LIQUIDO de impostos recuperaveis
+       (custo medio liquido), e o gross-up da venda usa os
+       DEBITOS CHEIOS da tabela 4.3.
+     * Resultado: o %IMPOSTO do orcamento SOBE (de ~13% para
+       21-27%) mas o CUSTO DO PAPEL CAI na mesma migracao. Os
+       dois efeitos devem entrar JUNTOS na virada, senao o preco
+       explode ou a margem some.
+
+4.5. IRPJ/CSLL (34% sobre o LUCRO) nao entram no %IMPOSTO por
+     operacao: devem ser tratados na MARGEM ALVO do orcamento
+     (politica comercial), pois incidem sobre resultado e nao
+     sobre a venda.
+
+4.6. ICMS-ST nas vendas: hoje NAO ha ST para os NCMs vendidos
+     (REVISAO_ICMS_ST.txt, secao 4). Mas vendas a REVENDEDORES em
+     outras UFs exigem verificacao de protocolo/convenio por UF de
+     destino. O perfil fiscal deve ter o campo "ST aplicavel S/N +
+     MVA" mesmo que hoje fique sempre NAO.
+
+======================================================================
+5. MODELO DE DADOS: PERFIL FISCAL DE OPERACAO
+======================================================================
+
+5.1. Nova tabela de parametros PERFIL_FISCAL_OPERACAO, com
+     vigencia (inicio/fim) e historico, como toda tabela do
+     orcamento (GERACAO_ORCAMENTO.txt, secao 4):
+
+     CHAVE DE BUSCA (entrada):
+       - REGIME VIGENTE (Simples / Simples acima do sublimite /
+         Lucro Real)  [parametro global com vigencia]
+       - UF DE DESTINO (do cadastro do cliente - CADASTRO_PARCEIROS)
+       - TIPO DE CLIENTE (contribuinte ICMS / nao contribuinte /
+         consumidor final / exterior)
+       - FINALIDADE (industrializacao / revenda / uso e consumo)
+       - NCM DO PRODUTO VENDIDO (3919.10.90 / 4811.41.90 /
+         9612.10.00 / novos)
+       - ORIGEM DA MERCADORIA (0 nacional / importada 1-8)
+
+     SAIDA (resultado):
+       - %ICMS, %PIS, %COFINS, %IPI, %DIFAL, %DAS (o que couber)
+       - %IMPOSTO_POR_DENTRO (soma) e %IMPOSTO_POR_FORA (conv. 2.2)
+       - ST aplicavel (S/N) + MVA/UF quando houver
+       - CFOP e CST/CSOSN sugeridos para a futura NF-e
+       - MEMO DE COMPOSICAO (texto: como o percentual foi formado)
+
+5.2. O orcamento NAO digita mais o percentual: ele SELECIONA o
+     cliente e o produto, e o perfil e resolvido automaticamente.
+     O campo continua visivel (e o range 12-25 vira apenas um
+     ALERTA de sanidade), mas a origem passa a ser o perfil.
+
+5.3. Excecao manual: permitida somente com justificativa gravada e
+     aprovacao de gerente (mesmo fluxo do piso de margem, regra
+     7.7 de GERACAO_ORCAMENTO.txt). O snapshot guarda o perfil
+     resolvido, o percentual usado e quem aprovou a excecao.
+
+======================================================================
+6. MUDANCA NO MOTOR DE CALCULO (PASSO 6 DO ORCAMENTO)
+======================================================================
+
+6.1. Fechamento comercial revisado (substitui o passo 6 atual):
+
+       BASE          = VALOR_SERVICO           (custos, passo 5)
+       %IMP          = %IMPOSTO_POR_DENTRO(perfil fiscal)
+       %COM          = %COMISSAO(vendedor/faixa)
+       TOTAL_BRUTO   = BASE / (1 - %IMP - %COM)      <- GROSS-UP
+       IMPOSTO       = TOTAL_BRUTO x %IMP
+       COMISSAO      = TOTAL_BRUTO x %COM
+       VALOR_ETIQUETAS = arredonda_para_CIMA(TOTAL_BRUTO, 10)
+
+     Matriz/ferramental, unitario e valor por rolo: inalterados.
+
+6.2. Validacao de sanidade obrigatoria:
+       1 - %IMP - %COM > 0,50  (senao bloquear: percentuais
+       absurdos gerariam preco infinito/negativo)
+
+6.3. Conferencia com o exemplo real da secao 5 de
+     GERACAO_ORCAMENTO.txt (servico 461,02, sem comissao):
+
+       Modelo atual (16% por fora):
+         461,02 x 1,16 = 534,78 -> R$ 540,00
+       Modelo novo, Simples faixa 5 (12,33% por dentro):
+         461,02 / (1 - 0,1233) = 525,86 -> R$ 530,00
+       Modelo novo, Lucro Real interno MG (27,25% por dentro),
+       ANTES de reduzir o custo do papel pelos creditos:
+         461,02 / (1 - 0,2725) = 633,70 -> R$ 640,00
+
+     A diferenca entre as linhas mostra exatamente por que o
+     percentual fixo e perigoso: o mesmo servico tem fechamento
+     correto diferente conforme o regime e a operacao.
+
+6.4. SNAPSHOT: alem dos parametros ja previstos (9.2 de
+     GERACAO_ORCAMENTO.txt), gravar: perfil fiscal resolvido
+     (chave completa), composicao por tributo, forma de calculo
+     (por dentro/por fora) e RBT12 usado quando no Simples.
+
+======================================================================
+7. MATRIZ RESUMO POR OPERACAO (VALORES INDICATIVOS POR DENTRO)
+======================================================================
+
+  OPERACAO                        SIMPLES(*)   LUCRO REAL
+  ------------------------------  ----------   -------------------
+  Venda interna MG                ALIQ_EFET.   27,25% (+IPI se dev.)
+  Interestadual contribuinte 12%  ALIQ_EFET.   21,25% (+IPI)
+  Interestadual contribuinte  7%  ALIQ_EFET.   16,25% (+IPI)
+  Interestadual nao contribuinte  ALIQ_EFET.   21,25/16,25% + DIFAL
+  Origem importada interestadual  ALIQ_EFET.   13,25% + DIFAL se n/c
+  Exportacao                      ALIQ_EFET.**  0%
+  Simples ACIMA do sublimite      ALIQ_EFET.
+    (ICMS fora do DAS)            - ICMS do DAS + 18/12/7/4%
+
+  (*)  ALIQ_EFETIVA do DAS conforme RBT12 do mes (secao 3.2).
+  (**) Exportacao no Simples tem tratamento proprio (segregacao de
+       receita) - parametrizar com o contador se vier a ocorrer.
+
+  Estes numeros sao DEBITOS NOMINAIS para o gross-up; a carga
+  liquida real da empresa fica menor via creditos no custo do
+  material (regra 4.4). O range historico "12 a 25%" da planilha
+  passa a ser somente uma faixa de alerta.
+
+======================================================================
+8. VALIDACOES AUTOMATICAS (COMPLEMENTA A SECAO 8 DO ORCAMENTO)
+======================================================================
+
+  [ ] %IMPOSTO veio de um PERFIL FISCAL vigente (nao digitado)
+  [ ] Percentual > 0 (a checagem "nunca zero por engano" continua,
+      exceto exportacao, onde zero e correto e justificado)
+  [ ] Percentual fora do range de alerta (12-25 por fora) exige
+      confirmacao com motivo
+  [ ] Cliente com UF e indicador de contribuinte preenchidos no
+      cadastro (sem isso o perfil nao resolve - bloquear)
+  [ ] NCM do produto orcado definido (herdado do cadastro do item)
+  [ ] Regime vigente do parametro global compativel com a data do
+      orcamento (alerta 60 dias antes de virada programada)
+  [ ] 1 - %IMP - %COM > 0,50 (sanidade do gross-up)
+  [ ] Orcamento aprovado apos mudanca de perfil fiscal -> exigir
+      RECALCULO antes de virar pedido (mesma regra da validade 7.5)
+
+======================================================================
+9. ACHADOS NOS XMLs DE VENDA (CORRIGIR JUNTO COM ESTA MUDANCA)
+======================================================================
+
+9.1. CFOP 5102 ("venda de mercadoria adquirida de terceiros") esta
+     sendo usado nas NF-e de ETIQUETAS FABRICADAS pela empresa.
+     Producao propria deve sair com CFOP 5101 (interna) / 6101
+     (interestadual). Alem do risco fiscal, o CFOP errado
+     distorce o enquadramento industria x comercio (Anexo II x
+     Anexo I do Simples) e a apuracao futura de IPI no Lucro
+     Real. Validar com o contador e corrigir a parametrizacao.
+     (Revenda de ribbon/bobina lisa sem industrializacao ai sim e
+     5102/6102.)
+
+9.2. CSOSN 102 confirmado em todos os itens - coerente com o
+     Simples sem permissao de credito. Na virada para o Lucro
+     Real, os perfis devem trocar automaticamente para CST 00
+     (ou o CST que couber) - deixar isso pronto no perfil fiscal
+     (campo CFOP/CST sugerido, secao 5.1).
+
+======================================================================
+10. PENDENCIAS E ROTINA DE REVISAO
+======================================================================
+
+ 1. CONTADOR: validar as aliquotas efetivas do DAS por mes
+    (RBT12), o enquadramento no sublimite de R$ 3,6 milhoes e a
+    data prevista da migracao para o Lucro Real.
+ 2. IPI: levantar na TIPI vigente a aliquota dos NCMs de venda
+    (3919.10.90, 4811.41.90, 9612.10.00) para compor o perfil do
+    Lucro Real. Nao assumir zero sem confirmacao.
+ 3. DIFAL: montar a tabela de aliquotas internas por UF de destino
+    para vendas a nao contribuinte (hoje a carteira e MG, mas o
+    perfil deve nascer completo).
+ 4. ST nas vendas a revendedores de outras UFs: revisar protocolos
+    por UF antes de habilitar esse tipo de operacao no perfil.
+ 5. CUSTO LIQUIDO: na virada ao Lucro Real, reparametrizar o
+    estoque para custo medio LIQUIDO de creditos (ICMS/PIS/COFINS)
+    NA MESMA DATA em que os perfis de venda mudarem (regra 4.4).
+ 6. REFORMA TRIBUTARIA (EC 132/23): 2026 e ano de teste de
+    CBS/IBS; a transicao 2029-2032 substituira PIS/COFINS/ICMS.
+    O desenho por PERFIL FISCAL absorve a mudanca (troca-se a
+    composicao dos perfis, nao o motor) - revisar a cada etapa.
+ 7. Reexecutar esta verificacao: (a) na virada de regime; (b) a
+    cada NCM novo de venda; (c) a cada alteracao relevante do
+    RICMS/MG, da TIPI ou da legislacao do Simples.
+
+======================================================================
+AVISO
+======================================================================
+Documento de apoio gerencial para parametrizacao do ERP, elaborado
+a partir dos documentos internos citados e dos XMLs reais de venda
+(pasta nfe_venda). Aliquotas e enquadramentos devem ser validados
+pelo contador responsavel antes de gravar os perfis definitivos -
+em especial: aliquota efetiva do DAS, sublimite estadual, IPI por
+NCM, DIFAL por UF e hipoteses de ST em vendas para revenda.
+======================================================================
+FIM DO DOCUMENTO
+======================================================================

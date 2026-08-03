@@ -1,0 +1,88 @@
+import type { CriterioHomologacao } from '../types';
+
+export const CRITERIOS_PADRAO: Omit<CriterioHomologacao, 'status' | 'observacao' | 'atualizado_em'>[] = [
+  {
+    id: 'ca-01',
+    codigo: 'CA-01',
+    titulo: 'ORC → aceite → PED',
+    descricao: 'Criar ORC, enviar link, aceite cliente e nascer PED com snapshot correto.',
+    roteiros: ['HT-COM-06', 'HT-COM-07'],
+  },
+  {
+    id: 'ca-02',
+    codigo: 'CA-02',
+    titulo: 'Crédito e sinal',
+    descricao: 'Crédito bloqueia/libera produção; adiantamento só libera após BX.',
+    roteiros: ['HT-COM-08', 'HT-COM-09'],
+  },
+  {
+    id: 'ca-03',
+    codigo: 'CA-03',
+    titulo: 'OP / estoque MP→PA',
+    descricao: 'OP consome MP, registra sobra e gera PA; inventário concilia.',
+    roteiros: ['HT-PRD-01', 'HT-PRD-02', 'HT-PRD-05'],
+  },
+  {
+    id: 'ca-04',
+    codigo: 'CA-04',
+    titulo: 'NF idempotente',
+    descricao: 'Emitir NF Focus sem duplicar (retry idempotente); TIT e COB gerados.',
+    roteiros: ['HT-FAT-02', 'HT-FAT-03'],
+  },
+  {
+    id: 'ca-05',
+    codigo: 'CA-05',
+    titulo: 'Webhook baixa',
+    descricao: 'Webhook/baixa NÃO gera BX duplicada; ambíguo cai em fila humana.',
+    roteiros: ['HT-FAT-06', 'HT-INT-04'],
+  },
+  {
+    id: 'ca-06',
+    codigo: 'CA-06',
+    titulo: 'Entrega e WhatsApp',
+    descricao: 'ENT gera status e MSG WhatsApp quando integração ligada.',
+    roteiros: ['HT-FAT-07', 'HT-INT-05'],
+  },
+  {
+    id: 'ca-07',
+    codigo: 'CA-07',
+    titulo: 'Devolução',
+    descricao: 'DEV estorna fiscal+estoque+financeiro sem apagar origem.',
+    roteiros: ['HT-POS-02', 'HT-POS-03'],
+  },
+  {
+    id: 'ca-08',
+    codigo: 'CA-08',
+    titulo: 'Multi-empresa',
+    descricao: 'Documento EMP-00001 não “pula” para EMP-00002.',
+    roteiros: ['HT-PLT-04', 'HT-PLT-05'],
+  },
+  {
+    id: 'ca-09',
+    codigo: 'CA-09',
+    titulo: 'Sem LAI',
+    descricao: 'Tentativa de criar LAI/natureza 9.xx rejeitada ou inexistente.',
+    roteiros: ['HT-PLT-07'],
+  },
+  {
+    id: 'ca-10',
+    codigo: 'CA-10',
+    titulo: 'Backup / restore',
+    descricao: 'Backup restaurado com sucesso em exercício documentado.',
+    roteiros: ['HT-NFR-04'],
+  },
+  {
+    id: 'ca-11',
+    codigo: 'CA-11',
+    titulo: 'Decimal',
+    descricao: 'Casos de regressão de arredondamento e custo médio passam.',
+    roteiros: ['HT-NFR-02', 'HT-NFR-03'],
+  },
+  {
+    id: 'ca-12',
+    codigo: 'CA-12',
+    titulo: 'SoD perfis',
+    descricao: 'Perfis SoD impedem pares incompatíveis ou exigem controle compensatório.',
+    roteiros: ['HT-CAD-04', 'HT-PRD-05', 'HT-PLT-02'],
+  },
+];

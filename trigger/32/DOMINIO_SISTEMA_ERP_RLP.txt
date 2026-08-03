@@ -1,0 +1,662 @@
+====================================================================================================
+MODELO DE DOMÍNIO — ERP RLP (TODO O SISTEMA)
+Documento: DOMINIO_SISTEMA_ERP_RLP.txt
+Versão ......: 1.0
+Status ......: BASELINE DE DOMÍNIO (linguagem ubíqua + bounded contexts + entidades)
+Gerado em ...: 03/08/2026
+Tipo ........: Domain Model / Ubiquitous Language (negócio, não infraestrutura)
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ ........: EMP-00001 = 01.423.183/0001-10 (principal)
+               EMP-00002 = 58.820.046/0001-37 (venda desligada até escopo fechado)
+
+Fontes:
+  ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+  MANUAL_UNICO_ERP_RLP.txt (DOC-01 … DOC-61)
+  INDICE_FLUXO_OPERACIONAL.txt
+  CODIFICACAO_INFORMACOES_SISTEMA.txt
+  NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+  + TXTs unitários da pasta trigger/32
+
+Propósito:
+  Definir o DOMÍNIO do ERP RLP em um único TXT: o que existe no negócio,
+  como se chama, como se relaciona, quais estados e regras sustentam a
+  linguagem ubíqua usada por produto, operação e engenharia.
+
+Não substitui:
+  • SRS (ESPECIFICACAO_SOFTWARE_ERP_RLP.txt) — requisitos e aceite
+  • TXTs de processo — regras linha a linha de cada fluxo
+  • Arquitetura / FinOps / Segurança — como roda na nuvem
+
+Como usar:
+  1) Product / direção: seções 0–3 e 12 (visão, contextos, glossário).
+  2) Engenharia / modelagem: seções 4–11 (entidades, estados, invariants).
+  3) Implementação: nomear classes/tabelas/eventos conforme este domínio.
+
+====================================================================================================
+0. ESSÊNCIA DO DOMÍNIO
+====================================================================================================
+
+  A RLP é indústria de etiquetas autoadesivas. O domínio do ERP cobre a
+  cadeia operacional completa:
+
+    ORÇAR → PEDIR → PRODUZIR/SEPARAR → FATURAR → ENTREGAR → RECEBER
+
+  com exceções (RMA/DEV), compras, remessa industrial, gerencial interno
+  e export disciplinado ao contador.
+
+  PEDIDO (PED) é o documento-mestre. Todo o resto (OP, OS, NF, TIT, COB,
+  ENT, BX, RMA, DEV, COM…) aponta para o PED ou para cadastros mestres —
+  nunca inventa um “pedido paralelo” em outro sistema.
+
+  Fronteira explícita do domínio ERP:
+    DENTRO ........ operação, estoque, crédito interno, NF via hub, títulos,
+                    cobrança, entrega, DRE gerencial, export ao contador.
+    FORA .......... apuração fiscal oficial, SPED, eSocial completo, LAI /
+                    caixa 2, CT-e/API transportadora (fase 2).
+
+====================================================================================================
+1. REGRAS DE OURO DO DOMÍNIO (INVARIANTS)
+====================================================================================================
+
+  D0.1  Um único ERP. PED é o agregado-raiz operacional da venda.
+  D0.2  Produção, estoque, NF, título, cobrança, entrega e baixa vivem no
+        mesmo bounded system — não viram satélites.
+  D0.3  Contábil, fiscal e folha OFICIAIS ficam com o CONTADOR.
+        O ERP alimenta; NÃO fecha apuração fiscal.
+  D0.4  Documento não se apaga — estorna/compensa com trilha auditável.
+  D0.5  Identidade em duas camadas: id BIGINT (motor) + codigo legível
+        (negócio). Relacionamentos SEMPRE por id.
+  D0.6  Integrações por adapter: Focus NFe, BankProvider, WhatsApp Meta.
+  D0.7  Multi-empresa por empresa_id (default EMP-00001). Credenciais isoladas.
+  D0.8  LAI / livro paralelo / “caixa 2” NÃO existe no domínio.
+  D0.9  WhatsApp oficial somente via API Meta (nunca conta pessoal).
+  D0.10 Dinheiro e NF são IDEMPOTENTES (webhook, job, retry).
+  D0.11 Proibido ponto flutuante binário para dinheiro, qtde, alíquota, custo.
+  D0.12 Exceção (RMA/DEV) complementa o fluxo feliz — não o apaga.
+  D0.13 Aceite formal de ORC (link). “Combinado no zap” NÃO gera PED.
+  D0.14 Snapshot do ORC aprovado trava o PED (preço/spec/qtde/prazo/condição).
+  D0.15 Liberação de produção exige crédito OK ou adiantamento baixado (BX).
+  D0.16 Documento fiscal ≠ título financeiro — nascem juntos no faturamento,
+        mas são conceitos distintos.
+  D0.17 Naturezas gerenciais só grupos 1–5. Grupo 9.xx / LAI proibidos.
+
+====================================================================================================
+2. LINGUAGEM UBÍQUA (GLOSSÁRIO CANÔNICO)
+====================================================================================================
+
+  Termo              Prefixo / tipo     Significado no domínio RLP
+  -----------------  -----------------  ----------------------------------------------
+  Empresa            EMP-               CNPJ operacional isolado (multi-empresa)
+  Parceiro           PAR-               Cadastro único (cliente, fornec., transp.,
+                                        colaborador…) via papéis
+  Prospect           (PAR incompleto)   Pode orçar; só vira PED com cadastro completo
+  Produto / SKU      máscara / família  MP, EMB, REV, PA, SVC (+ FAC ferramental)
+  Matéria-prima      MP-                Insumo de produção (bobinas etc.)
+  Embalagem          EMB-               Material de embalagem
+  Revenda            REV-               Compra para revender (ribbon/material)
+  Produto acabado    PA                 Etiqueta produzida
+  Serviço            SVC / OS-          Serviço (rebobinação, acerto…)
+  Faca / ferramental FAC-               Ferramental rastreável ao pedido
+  Orçamento          ORC-               Proposta versionada; não é pedido
+  Aceite             (evento)           Aprovação formal do cliente via link
+  Pedido             PED-               Documento-mestre operacional
+  Item do pedido     (filho do PED)     Tipado: PRODUCAO | SERVICO | REVENDA
+  Ordem de produção  OP-                Execução industrial do item PRODUCAO
+  Ordem de serviço   OS-                Execução do item SERVICO
+  Separação          (operação)         Reserva/baixa de REV para item REVENDA
+  Movimento estoque  MOV-               Entrada/saída/transferência com custo médio
+  Sobra / retalho    (estoque)          Residual de bobina após consumo na OP
+  Inventário         INV-               Contagem física
+  Ajuste estoque     AJU-               Correção com aprovação segregada
+  Lote               LOT-               Rastreio de lote quando aplicável
+  Nota fiscal        NF-e / NFS-e       Documento SEFAZ via Focus; chave 44
+  Título             TIT-               Verdade financeira (a receber/pagar)
+  Cobrança           COB-               Emissão bancária vinculada ao TIT
+  Baixa              BX-                Quitação (webhook/extrato/CNAB)
+  Entrega            ENT-               Romaneio + confirmação do cliente
+  Crédito            CRT-               Limite / liberação de crédito do cliente
+  Natureza           NAT-               Classificação gerencial 1–5 (DRE/caixa)
+  Cotação compra     COT-               Cotação a fornecedores
+  Ordem de compra    OC-                Compra formalmente pedida
+  Remessa ind.       REM-               Industrialização externa (poder 3ºs)
+  RMA                RMA-               Reclamação / pós-venda / garantia
+  Devolução          DEV-               Estorno ponta a ponta (fiscal+est+fin)
+  Comissão           COM-               Comissão de vendedor no ERP
+  Mensagem           MSG-               Registro de WhatsApp oficial
+  Bem patrimonial    BEM-               Ativo (máquina etc.) + manutenção
+  Usuário            USR-               Login corporativo individual
+  Perfil             PER-               Papel RBAC (nunca permissão solta)
+  Parâmetro / tabela TAB-               Parâmetro oficial versionado
+  Contador           (ator externo)     Fecha fiscal/contábil/folha oficiais
+  Focus              (adapter)          Hub NF-e/NFS-e
+  BankProvider       (adapter)          Cobrança bancária multi-provider
+  SoD                (conceito)         Segregação de funções
+  LAI                — PROIBIDO —       Livro auxiliar / caixa 2 — fora do domínio
+
+====================================================================================================
+3. BOUNDED CONTEXTS (MÓDULOS DE DOMÍNIO)
+====================================================================================================
+
+  Contexto               Código   Responsabilidade principal
+  ---------------------  -------  ------------------------------------------------
+  Cadastros              M01      PAR, produtos, usuários, perfis, parâmetros
+  Comercial              M02      ORC (versão, cenário, gordura, crédito) → PED
+  Produção / PCP         M03      OP, OS, apontamento, conclusão, BEM preventivo
+  Estoque                M04      MOV, inventário, sobra/retalho, REM
+  Fiscal operacional     M05      NF-e/NFS-e via Focus; metadados; sem fechamento
+  Financeiro             M06      TIT, COB, BX, aging, crédito, naturezas, contas
+  Compras                M07      COT, OC, urgência, entrada XML
+  Pós-venda              M08      RMA, DEV, garantia, amostra/protótipo
+  Integrações            M09      BankProvider, WhatsApp MSG, Focus, jobs cadência
+  Gerencial              M10      DRE interno, patrimônio, RH pagamento, export
+  Plataforma             M11      auth, auditoria, filas, arquivos, multi-empresa
+
+  Regra de dependência:
+    Contextos operacionais CONVERGEM no PED (mestre).
+    Produção CONSULTA o PED; não cria “sistema de produção” paralelo.
+    Fiscal operacional e Financeiro nascem juntos no faturamento, mas
+    permanecem agregados distintos (NF ≠ TIT).
+
+----------------------------------------------------------------------------------------------------
+3.1. MAPA DE CONTEXTO (visão lógica)
+----------------------------------------------------------------------------------------------------
+
+                    ┌──────────── Cadastros (M01) ────────────┐
+                    │  Empresa · Parceiro · Produto · Usuário │
+                    └───────────────────┬─────────────────────┘
+                                        │
+                         ┌──────────────▼──────────────┐
+                         │     Comercial (M02)         │
+                         │  ORC ──aceite──► PED        │
+                         │  CRT (liberação crédito)    │
+                         └──────────────┬──────────────┘
+                ┌───────────────────────┼───────────────────────┐
+                │                       │                       │
+       ┌────────▼────────┐   ┌──────────▼──────────┐   ┌───────▼────────┐
+       │ Produção (M03)  │   │   Estoque (M04)     │   │ Compras (M07)  │
+       │ OP / OS / BEM   │◄─►│ MOV / INV / REM     │◄─►│ COT / OC / XML │
+       └────────┬────────┘   └──────────┬──────────┘   └────────────────┘
+                │                       │
+                └───────────┬───────────┘
+                            │
+              ┌─────────────▼─────────────┐
+              │ Fiscal op. (M05) + Fin(M06)│
+              │ NF + TIT → COB → ENT → BX  │
+              └─────────────┬─────────────┘
+                            │
+              ┌─────────────▼─────────────┐
+              │ Pós-venda (M08)           │
+              │ RMA → CQ → DEV/repos/créd.│
+              └─────────────┬─────────────┘
+                            │
+         ┌──────────────────┼──────────────────┐
+         │                  │                  │
+    Integrações (M09)  Gerencial (M10)   Plataforma (M11)
+    Focus·Banco·WA     DRE·RH·Export     auth·audit·empresa
+
+====================================================================================================
+4. AGREGADOS E ENTIDADES CENTRAIS
+====================================================================================================
+
+  Convenção de modelagem:
+    • Agregado = fronteira de consistência; muda por comandos/eventos.
+    • Entidade = identidade estável (id + codigo).
+    • Filho = só existe no contexto do agregador.
+    • Relacionamentos entre agregados = por id BIGINT.
+
+----------------------------------------------------------------------------------------------------
+4.1. CADASTROS (M01)
+----------------------------------------------------------------------------------------------------
+
+  Empresa (EMP)
+    Atributos-chave: cnpj, razao_social, flags (venda_ativa, estoque_ativo),
+                     regime, parâmetros fiscais por empresa_id.
+    Invariants: EMP-00002 sem venda/estoque até homologação Contador+Direção.
+                Credenciais Focus/banco isoladas por empresa.
+
+  Parceiro (PAR)  [agregado]
+    Papéis: CLIENTE | FORNECEDOR | TRANSPORTADORA | COLABORADOR | OUTRO
+            (mesmo PAR pode ter múltiplos papéis).
+    Filhos: endereços, contatos, dados bancários (SoD: só FINANCEIRO+alçada),
+            papéis, indIEDest / IE.
+    Invariants: prospect pode orçar sem fiscal completo; PED exige cadastro
+                completo (+ sinal se exigido). CNPJ/CPF único quando informado.
+
+  Produto / SKU  [agregado]
+    Famílias compra: MP | EMB | REV
+    Famílias venda:  PA | REV | SVC
+    Filhos/attrs: NCM, CFOP padrão, CST/CSOSN, unidades, fatores conversão,
+                  máscara estruturada (bobina), custo médio.
+    Relacionados: FAC (ferramental) quando aplicável ao pedido.
+
+  Usuário (USR) / Perfil (PER)
+    Login = e-mail corporativo individual, intransferível.
+    Autorização = só via PER (RBAC). Soft-delete / inativação.
+
+  Parâmetro (TAB)
+    Valores oficiais versionados; não ratificados = PENDENTE_RATIFICACAO.
+
+----------------------------------------------------------------------------------------------------
+4.2. COMERCIAL (M02)
+----------------------------------------------------------------------------------------------------
+
+  Orçamento (ORC)  [agregado]
+    Identidade: ano + numero + versao (código ORC-AAAA-NNNNN + versão).
+    Filhos: itens (spec, preço, prazo, tolerância), cenários de simulação,
+            condições de pagamento, frete, impostos estimados, gordura.
+    Relaciona: PAR (cliente/prospect), CRT (consulta limite).
+    Invariants:
+      • Versionamento: cenário não destrói versão base.
+      • Imposto no ORC é estimativa/gross-up; divergência pós-NF é analisada.
+      • Desconto/customização respeitam alçadas.
+      • Aceite formal via LINK gera PED; zap informal não gera.
+
+  Pedido (PED)  [agregado-raiz operacional]
+    Snapshot travado do ORC aprovado (preço/spec/qtde/prazo/condição).
+    Filhos: itens tipados PRODUCAO | SERVICO | REVENDA.
+    Relaciona: PAR, ORC origem, CRT/liberação, adiantamentos (TIT/COB/BX).
+    Invariants:
+      • Não recalcular preço na conversão ORC→PED.
+      • Produção só após crédito OK ou adiantamento com BX.
+      • Recorrência/lembrete gera NOVO ciclo ORC→aceite; nunca PED sozinho.
+
+  Crédito / Liberação (CRT)
+    Limite do cliente; liberação financeira.
+    Invariant: comercial NÃO altera limite (SoD).
+
+----------------------------------------------------------------------------------------------------
+4.3. PRODUÇÃO / PCP (M03)
+----------------------------------------------------------------------------------------------------
+
+  Ordem de Produção (OP)  [agregado]
+    Nasce de item PRODUCAO do PED.
+    Filhos: apontamentos, consumo MP, sobra, retorno PA, CQ amostragem.
+    Estados: ABERTA → EM_ANDAMENTO → CONCLUIDA | CANCELADA.
+    Invariant: conclusão libera PA e permite política de faturamento.
+
+  Ordem de Serviço (OS)  [agregado]
+    Nasce de item SERVICO do PED. Conclusão encerra o item.
+
+  Bem / Manutenção (BEM)
+    Ativo patrimonial + plano preventivo amarrado à máquina.
+
+  Qualidade / Amostra / Protótipo
+    Conceitos auxiliares: amostragem, certificado, contra-prova;
+    amostra/protótipo com política de custo e NF (parecer contador).
+
+----------------------------------------------------------------------------------------------------
+4.4. ESTOQUE (M04)
+----------------------------------------------------------------------------------------------------
+
+  Movimento (MOV)  [entidade de evento]
+    Tipos: entrada, saída, transferência, retorno, industrialização.
+    Sempre com custo médio; nunca “some” saldo sem documento.
+
+  Fluxo industrial típico:
+    saída MP → registro sobra/retalho → retorno PA
+
+  Inventário (INV) / Ajuste (AJU)
+    Contagem e correção com aprovação segregada (SoD).
+
+  Remessa de industrialização (REM)
+    Envio a terceiro com prazo e retorno; não confundir com venda.
+
+  Lote (LOT)
+    Rastreio quando a operação exigir.
+
+----------------------------------------------------------------------------------------------------
+4.5. FISCAL OPERACIONAL (M05)
+----------------------------------------------------------------------------------------------------
+
+  DocumentoFiscal (NF-e / NFS-e)  [agregado operacional]
+    Numeração: SEFAZ/Focus — ERP NÃO inventa número.
+    Guarda: série, número, chave44, XML/PDF, vínculo ped_id, empresa_id.
+    Operações: emissão, consulta, cancelamento, carta de correção (API).
+    Invariants:
+      • Idempotência na emissão (retry não duplica).
+      • Não é fechamento SPED / apuração oficial.
+      • Faturamento parcial amarrado ao mesmo PED permitido.
+
+----------------------------------------------------------------------------------------------------
+4.6. FINANCEIRO (M06)
+----------------------------------------------------------------------------------------------------
+
+  Título (TIT)  [agregado — verdade financeira]
+    A receber ou a pagar; natureza gerencial obrigatória (1–5).
+    Estados: ABERTO → COBRADO → PARCIALMENTE_BAIXADO → BAIXADO | PERDA | CANCELADO
+
+  Cobrança (COB)
+    Emissão bancária vinculada ao TIT (não substitui o TIT).
+    Estados: PENDENTE → REGISTRADA → PAGA | CANCELADA | VENCIDA
+
+  Baixa (BX)
+    Quitação por webhook / extrato / CNAB; ambiguidade → fila humana.
+    Invariant: idempotente (não duplicar BX).
+
+  Conta financeira / Aging / Régua
+    Contas caixa/banco; aging; régua D-3, D+1, D+7, D+15 via templates WA.
+
+  Frete (conceito financeiro)
+    Receita × despesa + avaria; transportadora = PAR com papel.
+
+  Comissão (COM)
+    Base FATURADO | RECEBIDO (a ratificar); nunca planilha/zap.
+
+----------------------------------------------------------------------------------------------------
+4.7. COMPRAS (M07)
+----------------------------------------------------------------------------------------------------
+
+  Cotação (COT) → Ordem de Compra (OC)
+  Urgência com alçada; OP pode ficar parada por falta de material.
+  Entrada XML via Focus + manifestação + conferência → MOV entrada.
+
+----------------------------------------------------------------------------------------------------
+4.8. PÓS-VENDA (M08)
+----------------------------------------------------------------------------------------------------
+
+  RMA  [agregado]
+    Reclamação → CQ → decisão (reparo | reposição | crédito | DEV).
+    Estados: ABERTA → EM_CQ → DECIDIDA → ENCERRADA
+
+  Devolução (DEV)  [agregado]
+    Estorno ponta a ponta: fiscal + estoque + financeiro.
+    Estados: ABERTA → FISCAL_OK → ESTOQUE_OK → FINANCEIRO_OK → ENCERRADA
+    Invariant: documentos compensatórios ligados à origem; origem permanece.
+
+----------------------------------------------------------------------------------------------------
+4.9. GERENCIAL (M10)
+----------------------------------------------------------------------------------------------------
+
+  Natureza (NAT)
+    Árvore 1–5 (receitas, custos, despesas, investimentos, não-resultado).
+    De-para homologado para o plano do contador.
+
+  DRE / Caixa interno
+    Visão gerencial RLP a partir das naturezas — não é contabilidade oficial.
+
+  Patrimônio (BEM)
+    Capitalização com valor mínimo parametrizado.
+
+  RH pagamento gerencial
+    Pagamento + vínculo colaborador; sem fechar eSocial.
+
+  Export Contador
+    Pacote mensal + layout import de folha.
+
+====================================================================================================
+5. CATÁLOGO DE PREFIXOS (CÓDIGOS DE NEGÓCIO)
+====================================================================================================
+
+  Prefixo  Entidade
+  -------  ----------------------------------------
+  EMP      Empresa / CNPJ
+  PAR      Parceiro
+  SKU      Produto (máscara própria)
+  FAC      Faca / ferramental
+  ORC      Orçamento                 ORC-AAAA-NNNNN
+  PED      Pedido                    PED-AAAA-NNNNN
+  CRT      Crédito / liberação
+  OP       Ordem de produção
+  OS       Ordem de serviço
+  MOV      Movimento de estoque
+  INV      Inventário
+  AJU      Ajuste de estoque
+  LOT      Lote
+  REM      Remessa industrialização
+  COT      Cotação de compra
+  OC       Ordem de compra
+  TIT      Título financeiro
+  COB      Cobrança bancária
+  BX       Baixa
+  ENT      Entrega / romaneio
+  NAT      Natureza gerencial
+  COM      Comissão
+  RMA      Pós-venda
+  DEV      Devolução
+  BEM      Bem patrimonial
+  MSG      Mensagem WhatsApp
+  USR      Usuário
+  PER      Perfil RBAC
+  TAB      Tabela / parâmetro
+
+  Numeração NF-e/NFS-e: Focus/SEFAZ (não é prefixo ERP).
+  PROIBIDO: LAI
+
+====================================================================================================
+6. MÁQUINAS DE ESTADO (SÍNTESE)
+====================================================================================================
+
+  ORC:
+    RASCUNHO → ENVIADO → APROVADO
+                       → RECUSADO
+                       → EXPIRADO
+                       → CANCELADO
+
+  PED:
+    NOVO → AGUARDA_CREDITO | AGUARDA_ADIANTAMENTO → LIBERADO →
+           EM_PRODUCAO | EM_SEPARACAO → FATURADO_PARCIAL | FATURADO →
+           ENTREGUE → ENCERRADO
+
+  OP / OS:
+    ABERTA → EM_ANDAMENTO → CONCLUIDA
+                          → CANCELADA
+
+  TIT:
+    ABERTO → COBRADO → PARCIALMENTE_BAIXADO → BAIXADO
+                                           → PERDA
+                                           → CANCELADO
+
+  COB:
+    PENDENTE → REGISTRADA → PAGA
+                          → CANCELADA
+                          → VENCIDA
+
+  RMA:
+    ABERTA → EM_CQ → DECIDIDA → ENCERRADA
+
+  DEV:
+    ABERTA → FISCAL_OK → ESTOQUE_OK → FINANCEIRO_OK → ENCERRADA
+
+  Transições inválidas = erro de domínio (não “forçar no banco”).
+  Detalhe fino de eventos: TXT de cada fluxo.
+
+====================================================================================================
+7. FLUXOS DE DOMÍNIO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+7.1. FLUXO FELIZ (cadeia principal)
+----------------------------------------------------------------------------------------------------
+
+  1. Comercial cria ORC (versão, itens, imposto estimado, gordura).
+  2. Cliente ACEITA via link formal.
+  3. Sistema gera PED com snapshot travado.
+  4. FINANCEIRO libera crédito (CRT) OU baixa adiantamento (BX).
+  5. PED → LIBERADO.
+  6. Por tipo de item:
+       PRODUCAO → OP → MOV (MP↓ / sobra / PA↑) → conclusão
+       SERVICO  → OS → conclusão
+       REVENDA  → separação (MOV REV↓)
+  7. Faturamento: NF (Focus) + TIT + COB (política: NF antes de expedir).
+  8. ENT (romaneio) + confirmação cliente + MSG status.
+  9. BX via webhook/extrato/CNAB → crédito/caixa.
+
+----------------------------------------------------------------------------------------------------
+7.2. FLUXOS PARALELOS
+----------------------------------------------------------------------------------------------------
+
+  COT → OC → entrada XML → MOV compra
+  REM (industrialização externa) com prazo/retorno
+  COM (comissão) sobre faturado/recebido
+  BEM preventivo (manutenção)
+  INV / AJU (inventário e ajuste)
+
+----------------------------------------------------------------------------------------------------
+7.3. FLUXOS DE EXCEÇÃO
+----------------------------------------------------------------------------------------------------
+
+  RMA → CQ → (reparo | reposição | crédito comercial | DEV)
+  DEV → estorno fiscal + estoque + financeiro (origem preservada)
+  Estorno silencioso = proibido no domínio
+
+====================================================================================================
+8. RELACIONAMENTOS MESTRE (grafo simplificado)
+====================================================================================================
+
+  Empresa 1──* (quase todas as entidades operacionais via empresa_id)
+
+  Parceiro 1──* Orçamento
+  Parceiro 1──* Pedido
+  Parceiro 1──* Título
+  Parceiro 1──* RMA
+
+  Orçamento 1──* ItemORC
+  Orçamento 1──1→0..1 Pedido          (após aceite; versão aprovada)
+
+  Pedido 1──* ItemPED
+  ItemPED (PRODUCAO) 1──0..1 OP
+  ItemPED (SERVICO)  1──0..1 OS
+  ItemPED (REVENDA)  ──► MOV separação
+
+  Pedido 1──* DocumentoFiscal
+  Pedido 1──* Título
+  Título 1──* Cobrança
+  Título 1──* Baixa
+  Pedido 1──* Entrega
+
+  OP 1──* MOV (consumo/retorno)
+  OC 1──* MOV (entrada)
+  REM 1──* MOV (envio/retorno)
+
+  DocumentoFiscal / Título / MOV originais ──► DEV / RMA (compensatórios)
+
+  Natureza 1──* Título / lançamento caixa
+  Bem 1──* ManutençãoPreventiva
+  Usuário *──1 Perfil
+
+====================================================================================================
+9. ATORES E RESPONSABILIDADES NO DOMÍNIO
+====================================================================================================
+
+  Internos:
+    ADMIN ........ parâmetros, usuários, exceções de sistema
+    FISCAL ....... cadastro fiscal, emissão NF, metadados fiscais
+    FINANCEIRO ... crédito, contas, TIT/COB/BX, liberação pagamentos
+    COMERCIAL .... ORC, PED, cliente comercial (sem alterar limite)
+    PRODUCAO ..... OP/OS, apontamento, estoque de fábrica
+    COMPRAS ...... COT/OC, fornecedor, XML entrada
+    EXPEDICAO .... ENT / romaneio (opcional)
+    CONSULTA ..... leitura
+
+  Externos:
+    Cliente ........... aceite de ORC (link), confirmação de entrega
+    Contador .......... recebe export; fecha fiscal/contábil/folha
+    Focus NFe ......... emissão/consulta NF
+    Banco ............. Inter (sandbox) / Sicoob (prod) via BankProvider
+    Meta WhatsApp ..... templates oficiais (MSG)
+    Transportadora .... fase 2 (CT-e/API)
+
+  Pares SoD (incompatíveis no mesmo ator, sem controle compensatório):
+    • alterar dados bancários do favorecido × liberar pagamento
+    • alterar limite de crédito × operar pedido comercial
+    • ajustar estoque × aprovar inventário
+    (matriz completa: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt)
+
+====================================================================================================
+10. VALORES, UNIDADES E PRECISÃO (DOMÍNIO NUMÉRICO)
+====================================================================================================
+
+  Tipos de valor de negócio (nunca float binário):
+    • Monetário final .................... 2 casas
+    • Preço / custo unitário ............. 6 casas
+    • Preço unitário NF (vUnCom) ......... até 10 casas
+    • Quantidade estoque ................. 4 casas
+
+  Unidades oficiais típicas: m, kg, rolo, un (+ fatores de conversão).
+  Custo médio: recalculado nos MOV — domínio de Estoque + Financeiro gerencial.
+  JSON decimal = STRING na fronteira de API.
+  Trace: PADRAO_DECIMAL_CALCULOS.txt · CONVERSOES_UNIDADES_MEDIDA.txt
+
+====================================================================================================
+11. EVENTOS DE DOMÍNIO (CATÁLOGO MÍNIMO)
+====================================================================================================
+
+  Nome sugerido                         Dispara quando
+  ------------------------------------  ------------------------------------------
+  OrcamentoEnviado                      ORC → ENVIADO (link gerado)
+  OrcamentoAprovadoCliente              Aceite formal via link
+  PedidoGerado                          Snapshot ORC→PED
+  CreditoLiberado                       CRT libera PED
+  AdiantamentoBaixado                   BX de sinal libera produção
+  PedidoLiberadoProducao                PED → LIBERADO
+  OpAberta / OpConcluida                Ciclo OP
+  OsAberta / OsConcluida                Ciclo OS
+  EstoqueMovimentado                    MOV gravado
+  NfEmitida                             Focus autorizou (chave44)
+  TituloGerado / CobrancaRegistrada     Faturamento
+  EntregaConfirmada                     ENT + confirmação
+  BaixaEfetuada                         BX idempotente
+  RmaAberta / RmaDecidida               Pós-venda
+  DevolucaoEncerrada                    DEV fiscal+est+fin OK
+  MensagemWhatsAppRegistrada            MSG- enviada/recebida status
+
+  Eventos de dinheiro/NF exigem chave de idempotência.
+
+====================================================================================================
+12. O QUE NÃO É DOMÍNIO DESTE ERP
+====================================================================================================
+
+  Explicitamente fora:
+    • Apuração/fechamento fiscal oficial (SPED, obrigação principal)
+    • Folha oficial completa / eSocial (só pagamento gerencial + import/export)
+    • LAI / livro auxiliar / caixa 2
+    • Venda em EMP-00002 sem parecer Contador + Direção
+    • CT-e / API transportadora (FRETE Fase 2)
+    • Assinatura eletrônica de canhoto (pós go-live opcional)
+    • Marketplace público / app aberto a clientes em massa
+
+====================================================================================================
+13. RASTREABILIDADE DOMÍNIO → DOCUMENTOS FONTE
+====================================================================================================
+
+  Contexto / tema              Fontes principais
+  ---------------------------  -------------------------------------------------
+  Regras de ouro / fluxo       INDICE_FLUXO_OPERACIONAL, MANUAL_UNICO
+  Codificação / identidade     CODIFICACAO_INFORMACOES_SISTEMA
+  Cadastros                    CADASTRO_PARCEIROS, CADASTRO_PRODUTOS_*
+  Comercial / ORC→PED          GERACAO_ORCAMENTO, APROVACAO_*, GERACAO_PEDIDO,
+                               CREDITO_*, GORDURA_*, MOBILIDADE_*, FLEXIBILIDADE_*
+  Produção / OS                PRODUCAO_*, ORDEM_SERVICO, CONCLUSAO_PRODUCAO
+  Estoque / sobra / REM        CONTROLE_ESTOQUE_*, ESTOQUE_FLUXO_*, AJUSTE_*,
+                               TRATAMENTO_SOBRA_*, INDUSTRIALIZACAO_EXTERNA_*
+  Fiscal / faturamento         FATURAMENTO_*, MAPA_FATURAMENTO_*, estudo_tributação
+  Financeiro / BX / naturezas  RECEBIMENTO_*, NATUREZAS_*, COMISSOES_*, FRETE_*,
+                               INTEGRACAO_BANCARIA_*
+  Compras                      COMPRAS_COTACAO_URGENCIA
+  Pós-venda                    POS_VENDA_RMA_*, DEVOLUCAO_VENDA_*
+  Gerencial / contador         PATRIMONIO_*, RH_*, EXPORT_CONTADOR_*,
+                               CONTABILIDADE_FISCAL_*, MULTI_EMPRESA_*,
+                               DECISAO_NAO_IMPLEMENTAR_LAI_*
+  Integrações                  INTEGRACAO_WHATSAPP_*, INTEGRACAO_BANCARIA_*,
+                               APIS_FREE_*
+  Requisitos / aceite          ESPECIFICACAO_SOFTWARE_ERP_RLP
+
+====================================================================================================
+14. CONTROLE DE MUDANÇAS DESTE DOCUMENTO
+====================================================================================================
+
+  v1.0 — 03/08/2026
+    Baseline do modelo de domínio do ERP RLP: linguagem ubíqua, bounded
+    contexts, agregados, estados, fluxos, eventos, glossário e fronteiras.
+    Alteração de regra de ouro (seção 1) exige revisão conjugada do SRS e
+    do TXT-fonte do processo afetado.
+
+====================================================================================================
+Fim — DOMINIO_SISTEMA_ERP_RLP.txt
+Modelo de domínio completo do ERP RLP: o que o sistema conhece, como se
+nomeia, como se relaciona e o que fica explicitamente fora.
+====================================================================================================

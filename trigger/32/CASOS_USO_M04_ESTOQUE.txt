@@ -1,0 +1,216 @@
+====================================================================================================
+CASOS DE USO — M04 ESTOQUE — ERP RLP
+Documento: CASOS_USO_M04_ESTOQUE.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M04 — Estoque (MOV, sobra, inventário, ajuste, REM)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Saldos e movimentos com custo médio. Fluxo industrial típico:
+  saída MP → sobra/retalho → retorno PA. Nada some sem documento.
+
+Atores: PRODUCAO, COMPRAS, ADMIN (aprovação AJU); EXPEDICAO (separação)
+
+Invariants:
+  • Todo MOV com custo médio; decimal exato (sem float).
+  • Ajuste exige aprovação segregada (SoD).
+  • Remessa industrial ≠ venda.
+  • Estorno nunca silencioso — documento compensatório.
+
+====================================================================================================
+UC-EST-001 — Registrar consumo de MP na OP (saída)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições: OP aberta/em andamento; saldo de MP suficiente (ou política de negativa).
+
+Pós-condições: MOV saída de MP; custo médio atualizado; saldo reduzido.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. PRODUCAO informa OP e materiais consumidos (SKU, qtde, lote se houver).
+  2. Sistema valida unidade/conversão e saldo.
+  3. Gera MOV- de saída amarrado à OP/PED.
+  4. Recalcula custo médio conforme regra oficial.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Saldo insuficiente
+    2a. Bloqueia ou alerta (conforme parâmetro); pode acionar compra urgente.
+
+Regras: RF-PRD-04, RF-PRD-05; CA-03; D0.11
+Trace: ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt · CONTROLE_ESTOQUE_PROFISSIONAL.txt
+Aceite: Consumo sem OP/documento é impossível pela UI padrão.
+
+====================================================================================================
+UC-EST-002 — Registrar sobra / retalho de bobina
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições: Consumo de bobina na OP; política de aproveitamento definida.
+
+Pós-condições: Sobra/retalho registrada em estoque (SKU/lote adequado) ou sucata.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Após consumo, operador informa sobra (dimensão/qtde).
+  2. Sistema classifica: aproveitável × sucata (parâmetro mínimo).
+  3. Gera MOV de retorno/ajuste de sobra vinculado à OP.
+  4. Disponibiliza sobra para uso futuro se aproveitável.
+
+Regras: RF-PRD-04; LR-RF-043
+Trace: TRATAMENTO_SOBRA_BOBINA_RETALHO.txt
+Aceite: Sobra aproveitável aumenta saldo rastreável; não “some”.
+
+====================================================================================================
+UC-EST-003 — Registrar retorno de PA ao estoque
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições: Produção apontada; OP próxima da conclusão.
+
+Pós-condições: MOV entrada de PA; saldo PA disponível para faturamento/expedição.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. PRODUCAO informa qtde de PA produzida (tolerância do PED).
+  2. Sistema gera MOV entrada PA com custo industrial calculado.
+  3. PA fica disponível; amarra OP/PED.
+
+Regras: RF-PRD-04; CA-03
+Trace: ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt · CONCLUSAO_PRODUCAO.txt
+Aceite: Sem retorno PA, conclusão da OP é bloqueada (UC-PRD-004 EX1).
+
+====================================================================================================
+UC-EST-004 — Separar item REVENDA do PED
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO / EXPEDICAO / COMPRAS operacional
+
+Pré-condições: PED liberado; item REVENDA; saldo REV suficiente.
+
+Pós-condições: MOV saída de REV reservada/baixada para o PED; item pronto a faturar.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator seleciona item REVENDA do PED.
+  2. Sistema reserva/baixa estoque REV (MOV).
+  3. Marca item separado; PED pode ir a EM_SEPARACAO / faturável.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Sem saldo
+    2a. Bloqueia separação; sugere OC (UC-CPR).
+
+Regras: RN-04; RF-COM-11; LR-RF-042
+Trace: CONTROLE_ESTOQUE_PROFISSIONAL.txt · GERACAO_PEDIDO.txt
+Aceite: Separação de REVENDA não cria OP.
+
+====================================================================================================
+UC-EST-005 — Realizar inventário físico (INV)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO / COMPRAS / ADMIN operacional
+
+Pré-condições: Período de inventário aberto; SKUs no escopo definidos.
+
+Pós-condições: INV- com contagens; divergências listadas para ajuste (UC-EST-006).
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre inventário (INV-) por depósito/família.
+  2. Equipe informa contagem física.
+  3. Sistema confronta saldo sistema × contado.
+  4. Gera lista de divergências; não ajusta saldo sozinho sem AJU aprovado.
+
+Regras: RF-PRD-05
+Trace: AJUSTE_ESTOQUE_INVENTARIO.txt
+Aceite: Contagem não altera saldo até AJU aprovado.
+
+====================================================================================================
+UC-EST-006 — Aprovar ajuste de estoque (AJU) com SoD
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Aprovador (perfil distinto de quem contou/lançou)
+Secundário ...: Quem lançou a proposta de ajuste
+
+Pré-condições: Divergência de INV ou proposta AJU pendente.
+
+Pós-condições: AJU aprovado → MOV de correção; auditoria completa.
+
+Garantia: Mesma pessoa não lança e aprova (SoD), salvo controle compensatório.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Operador propõe AJU com motivo e evidência.
+  2. Aprovador revisa e aprova/rejeita.
+  3. Se aprovado, sistema gera MOV compensatório e atualiza saldo/custo.
+  4. Auditoria registra ambos os atores.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Tentativa SoD violada
+    2a. Aprovação bloqueada.
+
+Regras: RF-PRD-05; RNF-22; CA-12
+Trace: AJUSTE_ESTOQUE_INVENTARIO.txt · ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Aceite: Usuário que lançou não consegue autoaprovar.
+
+====================================================================================================
+UC-EST-007 — Remessa de industrialização externa (REM)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO / COMPRAS
+Secundário ...: FISCAL (documento de remessa)
+
+Pré-condições: Fornecedor industrializador (PAR); material a enviar; prazo.
+
+Pós-condições: REM- aberta; MOV de envio; retorno futuro esperado; ≠ venda.
+
+Garantia: Remessa não gera TIT de venda ao industrializador.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator cria REM- vinculada a OP/PED/OC conforme caso.
+  2. Sistema gera MOV saída para poder de terceiros.
+  3. FISCAL emite documento de remessa (CFOP adequado — UC-FIS-006).
+  4. No retorno, MOV de entrada e encerramento da REM (ou parcial).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Prazo estourado sem retorno
+    4a. Alerta operacional; não “some” saldo externo.
+
+Regras: RF-PRD-09
+Trace: INDUSTRIALIZACAO_EXTERNA_REMESSA.txt
+Aceite: Saldo em poder de terceiros consultável; distinto de venda.
+
+====================================================================================================
+Fim — CASOS_USO_M04_ESTOQUE.txt
+7 casos de uso | Módulo M04 Estoque
+====================================================================================================

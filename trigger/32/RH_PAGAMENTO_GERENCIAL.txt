@@ -1,0 +1,145 @@
+====================================================================================================
+RH — PAGAMENTO E VISÃO GERENCIAL (FOLHA OFICIAL FECHADA PELO CONTADOR)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt +
+      RECEBIMENTO_BAIXA_COBRANCA.txt + ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt +
+      CADASTRO_PARCEIROS.txt (colaborador como pessoa) + estrategia_implantacao_ja.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+DECISÃO OFICIAL DE ESCOPO:
+
+  O ERP NÃO FECHARÁ A FOLHA DE PAGAMENTO.
+  Admissão, pontos legais, eSocial, INSS, IRRF, FGTS, férias, 13º,
+  rescisão e obrigações trabalhistas são de responsabilidade do
+  CONTADOR / departamento pessoal do escritório.
+
+  No ERP entra apenas:
+    (1) PAGAMENTO — o que a empresa realmente paga (líquidos,
+        adiantamentos, benefícios, pró-labore, comissões);
+    (2) GERENCIAL — custo de pessoal no caixa e na DRE gerencial,
+        vínculo com centros de custo e produção (quando útil).
+
+Assim o financeiro não depende de planilha paralela, sem duplicar o
+software de folha do contador.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE O ERP TEM (ESCOPO RH LEVE)
+----------------------------------------------------------------------------------------------------
+
+  A) CADASTRO RESUMIDO DO COLABORADOR
+     * Nome, CPF, data admissão/demissão (vigência)
+     * Cargo / setor / centro de custo
+     * Dados bancários para pagamento (SoD: quem cadastra × quem paga)
+     * Usuário do sistema (USR) vinculado — inativa no desligamento
+       (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt)
+     * NÃO precisa espelhar todo o contrato de trabalho
+
+  B) AGENDA DE PAGAMENTOS
+     * Folha líquida do mês (valor informado pelo contador)
+     * Adiantamento quinzenal
+     * Vale transporte / vale alimentação (se pago pela empresa)
+     * Pró-labore
+     * Comissões (pode nascer do faturamento — regra comercial)
+     * Rescisões (valor líquido a pagar, informado)
+
+  C) EXECUÇÃO FINANCEIRA
+     * Gera título a pagar ou lançamento de pagamento
+     * Naturezas 3.01.xx
+     * Baixa na conta (PIX/salário/banco) — mesmo motor de
+       RECEBIMENTO_BAIXA_COBRANCA (lado pagar)
+
+  D) RELATÓRIOS GERENCIAIS
+     * Pessoal pago no mês por natureza / CC
+     * Headcount ativo
+     * Comissões × faturamento
+     * Comparativo mês a mês (custo pessoal × receita)
+
+----------------------------------------------------------------------------------------------------
+2. O QUE O ERP NÃO TEM (DEIXAR EXPLÍCITO)
+----------------------------------------------------------------------------------------------------
+
+  * Cálculo de salário bruto, INSS, IRRF, FGTS
+  * Espelho de ponto legal / banco de horas oficial
+  * Geração de eSocial, EFD-Reinf, SEFIP/FGTS digital
+  * Recibo de férias / 13º / rescisão completa
+  * Medicina do trabalho, CAT, etc.
+
+Ponto de fábrica para PRODUÇÃO (horas de OP) é APONTAMENTO
+OPERACIONAL — não substitui ponto jurídico.
+
+----------------------------------------------------------------------------------------------------
+3. FLUXO MENSAL RECOMENDADO
+----------------------------------------------------------------------------------------------------
+
+  1) Contador fecha a folha no sistema DELE
+  2) Contador envia à RLP: lista de líquidos + vencimentos + guias
+     (INSS/FGTS/IR se aplicável — valores a pagar)
+  3) Financeiro lança no ERP os pagamentos (import CSV ou digitação)
+     com natureza correta
+  4) ERP paga / baixa e alimenta DRE gerencial e fluxo de caixa
+  5) Guias de encargos: títulos a pagar natureza 3.02 / 3.01 conforme
+     classificação acordada com o contador
+
+Nunca digitar "folha inventada" no ERP sem o fechamento do contador.
+
+----------------------------------------------------------------------------------------------------
+4. COMISSÕES DE VENDEDORES
+----------------------------------------------------------------------------------------------------
+
+  * Podem ser CALCULADAS no ERP ( % sobre faturamento/recebido —
+    parâmetro comercial)
+  * O valor calculado é GERENCIAL / sugestão de pagamento
+  * Integração com folha: contador inclui no holerite OU empresa
+    paga como RPA/pró-labore conforme orientação — ERP só registra
+    o pagamento efetivo e a provisão gerencial
+
+Regra de ouro: comissão "sugerida pelo ERP" ≠ líquido oficial até
+o contador/financeiro confirmar.
+
+----------------------------------------------------------------------------------------------------
+5. PRÓ-LABORE E RETIRADAS
+----------------------------------------------------------------------------------------------------
+
+  * Pró-labore: natureza 3.01.04 (despesa operacional gerencial)
+  * Distribuição de lucros / retirada: natureza 5.04 (não resultado)
+  * Separar sempre — misturar distorce a DRE gerencial
+
+----------------------------------------------------------------------------------------------------
+6. VÍNCULO COM PRODUÇÃO (OPCIONAL)
+----------------------------------------------------------------------------------------------------
+
+  Apontamento de horas na OP pode ratear custo horário de mão de obra
+  no custo real da OP (parâmetro do orçamento já usa hora máquina /
+  mão de obra).
+
+  Fonte do "custo hora": tabela de parâmetros, não cálculo da folha.
+  Recalibrar periodicamente com o total pago de pessoal ÷ horas
+  produtivas (estudo gerencial).
+
+----------------------------------------------------------------------------------------------------
+7. PRIVACIDADE E ACESSO
+----------------------------------------------------------------------------------------------------
+
+  * Dados de pagamento de pessoal: perfil FINANCEIRO / DIREÇÃO
+  * PRODUCAO não vê salários
+  * Contador: CONSULTA ou envio controlado
+  * LGPD: mínimo necessário no ERP; dossier completo no escritório
+
+----------------------------------------------------------------------------------------------------
+8. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Cadastro leve de colaborador + vigência
+  [ ] Pagamentos com naturezas 3.01 / encargos
+  [ ] Sem módulo de cálculo de folha
+  [ ] Import dos líquidos do contador
+  [ ] Comissões como sugestão + pagamento confirmado
+  [ ] Pró-labore ≠ distribuição de lucros
+  [ ] Usuário inativado no desligamento
+  [ ] Relatório gerencial de custo de pessoal
+
+====================================================================================================
+Fim — RH_PAGAMENTO_GERENCIAL.txt
+Folha fecha no contador; no ERP só o que se paga e o que a gestão precisa ver.
+====================================================================================================

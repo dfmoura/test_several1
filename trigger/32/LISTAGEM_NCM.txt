@@ -1,0 +1,91 @@
+====================================================================================================
+LISTAGEM DE NCM - XMLs DA PASTA notas_compras
+Gerado em: 31/07/2026 19:44
+Arquivos XML processados: 10
+NCMs distintos encontrados: 7
+====================================================================================================
+
+RESUMO
+----------------------------------------------------------------------------------------------------
+3215.19.00  |  Tintas de impressão - Outras (exceto pretas)
+3919.10.10  |  Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - De polipropileno
+3919.10.90  |  Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - Outras
+3919.90.10  |  Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos - Outras - De polipropileno
+3919.90.90  |  Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos - Outras - Outras
+4811.41.90  |  Papel e cartão gomados ou adesivos - Autoadesivos - Outros
+9612.10.00  |  Fitas impressoras para máquinas de escrever e fitas impressoras semelhantes, tintadas ou preparadas de outro modo para imprimir (ribbons)
+
+DETALHAMENTO POR NCM
+====================================================================================================
+
+NCM: 3215.19.00
+Descrição: Tintas de impressão - Outras (exceto pretas)
+Ocorrências (itens de NF): 2
+Produtos:
+  - ETISTAR VERSA BW5 RED PAN 485C
+      Fornecedor: Camallon Comercio de Produtos Graficos Ltda | NF: 45962
+  - ETISTAR VERSA STRONG BW5 PROCE
+      Fornecedor: Camallon Comercio de Produtos Graficos Ltda | NF: 45962
+----------------------------------------------------------------------------------------------------
+
+NCM: 3919.10.10
+Descrição: Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - De polipropileno
+Ocorrências (itens de NF): 3
+Produtos:
+  - B0912 | FLM4445 | 07182 PP MATT WHITE CAV 60 / AP903 PLUS / WG55
+      Fornecedor: FEDRIGONI SELF-ADHESIVES DO BRASIL LTDA | NF: 91056
+----------------------------------------------------------------------------------------------------
+
+NCM: 3919.10.90
+Descrição: Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos, em rolos de largura <= 20 cm - Outras
+Ocorrências (itens de NF): 4
+Produtos:
+  - B5062 | FLM0543 | 10238 PP TC8 GLOSS CLEAR 50 / AP903 PLUS / WG55
+      Fornecedor: FEDRIGONI SELF-ADHESIVES DO BRASIL LTDA | NF: 91055
+----------------------------------------------------------------------------------------------------
+
+NCM: 3919.90.10
+Descrição: Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos - Outras - De polipropileno
+Ocorrências (itens de NF): 11
+Produtos:
+  - COLACRIL_BOPP METALIZADOTC 50M/ADC210/GL52M
+      Fornecedor: AUTO ADES. PARANA S.A. | NF: 577306
+  - FASSON PP BRANCO FOSCO NTC/S0290/60G - EXACT 1500
+      Fornecedor: AVERY DENNISON DO BRASIL LTDA | NF: 866545
+----------------------------------------------------------------------------------------------------
+
+NCM: 3919.90.90
+Descrição: Chapas, folhas, tiras, fitas, películas e outras formas planas, autoadesivas, de plásticos - Outras - Outras
+Ocorrências (itens de NF): 4
+Produtos:
+  - B5062 | FLM0543 | 10238 PP TC8 GLOSS CLEAR 50 / AP903 PLUS / WG55
+      Fornecedor: FEDRIGONI SELF-ADHESIVES DO BRASIL LTDA | NF: 91055
+----------------------------------------------------------------------------------------------------
+
+NCM: 4811.41.90
+Descrição: Papel e cartão gomados ou adesivos - Autoadesivos - Outros
+Ocorrências (itens de NF): 3
+Produtos:
+  - COLACRIL_COUCHE 80G L/ADC5240/60G _
+      Fornecedor: AUTO ADES. PARANA S.A. | NF: 577305
+  - COLACRIL_TERMICO ECO70G L/ADC5240/60G FSC _
+      Fornecedor: AUTO ADES. PARANA S.A. | NF: 576445
+  - FASSON TERMICO DRY/S2045N/60G - EXACT 1000
+      Fornecedor: AVERY DENNISON DO BRASIL LTDA | NF: 867545
+----------------------------------------------------------------------------------------------------
+
+NCM: 9612.10.00
+Descrição: Fitas impressoras para máquinas de escrever e fitas impressoras semelhantes, tintadas ou preparadas de outro modo para imprimir (ribbons)
+Ocorrências (itens de NF): 5
+Produtos:
+  - APR1 ZEBRA 110MM X 74M - IO
+      Fornecedor: ARMOR BRASIL IND. COM. FITAS P/IMP LTDA. | NF: 12890
+  - AWR1 ZEBRA 110MM X 74M - IO
+      Fornecedor: ARMOR BRASIL IND. COM. FITAS P/IMP LTDA. | NF: 12890
+  - RIBBON CERA TDW108 - 110MMX300M
+      Fornecedor: TODAYTEC INDUSTRIA DE FITAS PARA CODIGOS DE BARRA LTDA | NF: 33062
+  - RIBBON CERA TDW108 - 110MMX74M
+      Fornecedor: TODAYTEC INDUSTRIA DE FITAS PARA CODIGOS DE BARRA LTDA | NF: 33062
+  - RIBBON CERA TDW108 - 60MMX450M
+      Fornecedor: TODAYTEC INDUSTRIA DE FITAS PARA CODIGOS DE BARRA LTDA | NF: 33062
+----------------------------------------------------------------------------------------------------

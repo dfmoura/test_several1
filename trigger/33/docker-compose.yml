@@ -1,0 +1,51 @@
+# Reta Etiquetas ERP — homologação local (Trigger)
+# Portas isoladas de outros protótipos (27→3847, 28→3848).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: reta-erp-hml-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: orcamento
+      POSTGRES_PASSWORD: orcamento_dev_change_me
+      POSTGRES_DB: orcamento
+    ports:
+      - "5435:5432"
+    volumes:
+      - reta_erp_hml_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orcamento -d orcamento"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - reta_erp_hml_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reta-erp-hml-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://orcamento:orcamento_dev_change_me@db:5432/orcamento?schema=public
+      AUTH_SECRET: local-hml-auth-secret-change-me-32ch
+      ADMIN_PASSWORD: Admin@123
+      APP_ENV: homologacao
+      PORT: "3849"
+      HOSTNAME: "0.0.0.0"
+      NODE_ENV: production
+    ports:
+      - "3849:3849"
+    networks:
+      - reta_erp_hml_net
+
+volumes:
+  reta_erp_hml_pg:
+
+networks:
+  reta_erp_hml_net:
+    driver: bridge

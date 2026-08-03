@@ -1,0 +1,127 @@
+====================================================================================================
+DECISÃO OFICIAL — NÃO IMPLEMENTAR LAI (“CAIXA 2”) DENTRO DO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: MULTI_EMPRESA_CNPJS_E_LIVROS.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + EXPORT_CONTADOR_FOLHA_LAYOUT.txt +
+      INDICE_FLUXO_OPERACIONAL.txt + LACUNAS_PENDENCIAS_SISTEMA.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+DECISÃO (obrigatória para o desenho e a implementação):
+
+  O ERP DA RLP NÃO TERÁ MÓDULO LAI- / “LIVRO AUXILIAR ISOLADO” /
+  CONTA “CAIXA 2” / NATUREZAS 9.xx / TOGGLE “CAIXA REAL”.
+
+  Motivo principal: QUALQUER livro paralelo DENTRO do mesmo sistema
+  que emite NF, controla estoque, gera TIT/BX e exporta ao contador
+  cria risco real de CONTAMINAR o oficial — por bug, relatório errado,
+  usuário curiosos, join esquecido ou pedido “só um totalzinho”.
+
+  Garantia pedida pela operação (“não pode estragar nada”) só é
+  confiável se o paralelo NÃO EXISTIR no ERP.
+
+----------------------------------------------------------------------------------------------------
+1. POR QUE NÃO TER LAI NO ERP (MESMO “BEM ISOLADO”)
+----------------------------------------------------------------------------------------------------
+
+  1. CONTAMINAÇÃO TÉCNICA
+     Um único banco, uma única tela de “fluxo de caixa”, um export
+     genérico, um BI: basta um filtro esquecido (empresa_id, ISOLADO,
+     natureza 9.xx) para o número oficial sair errado.
+
+  2. CONTAMINAÇÃO OPERACIONAL
+     Quem vê o isolado passa a “fechar a cabeça” com ele; em pouco
+     tempo alguém baixa título, ajusta estoque ou manda cobrança
+     olhando saldo que o contador nunca viu.
+
+  3. RISCO JURÍDICO / PROVA
+     LAI dentro do ERP vira registro sistêmico. Em fiscalização ou
+     litígio, o próprio software documenta a existência do paralelo.
+     Isso piora a posição da empresa — e do fornecedor do sistema.
+
+  4. FALSA SENSAÇÃO DE SEGURANÇA
+     Flags ISOLADO=true, perfil DIREÇÃO e “não exporta” NÃO são
+     garantia matemática. São política. Política falha; FK e relatório
+     também.
+
+  5. OBJETIVO DO ERP RLP
+     Disciplinar o fluxo feliz e o fluxo da exceção (RMA/DEV) no
+     oficial. Não ser cofre de movimentação não formalizada.
+
+----------------------------------------------------------------------------------------------------
+2. O QUE FAZER COM A NECESSIDADE REAL DE “CAIXA À PARTE”
+----------------------------------------------------------------------------------------------------
+
+Se a direção ainda precisar ANOTAR algo fora do banco/NF:
+
+  A) FORA DO ERP — caderno, planilha local criptografada, ou ferramenta
+     100% desconectada (sem API, sem mesmo banco, sem mesmo login).
+     Responsabilidade exclusiva da direção. O ERP NÃO integra.
+
+  B) MELHOR CAMINHO — formalizar com o CONTADOR o que for receita/
+     despesa de verdade (NF, TIT, BX, naturezas 1–5). O ERP só opera
+     o oficial.
+
+  C) PROIBIDO — criar “conta fantasma”, segundo CNPJ como gaveta
+     (EMP-00002), natureza 9.xx, prefixo LAI-, ou relatório que some
+     oficial + informal no mesmo artefato enviado a terceiros.
+
+O ERP deve refletir o caixa e o resultado que a empresa ASSUME
+perante banco, Focus e contador — nada além.
+
+----------------------------------------------------------------------------------------------------
+3. GARANTIAS NO DESENHO / IMPLEMENTAÇÃO (CHECKLIST ANTI-LAI)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Não existe tabela lai / livro_auxiliar_isolado
+  [ ] Não existe prefixo LAI- no catálogo ativo
+  [ ] Não existe natureza 9.xx no plano gerencial
+  [ ] Não existe flag conta.ISOLADO para “caixa 2”
+  [ ] Não existe tela “caixa real = oficial + paralelo”
+  [ ] Exports (EXPORT_CONTADOR_...) só leem TIT/BX/NF/naturezas 1–5
+  [ ] Fluxo de caixa / DRE gerencial / aging / comissão / crédito:
+      somente contas e documentos oficiais da EMP-
+  [ ] Code review: rejeitar PR que introduza “isolado”, “lai”,
+      “caixa2”, “off_books” no domínio financeiro
+
+Se alguém pedir “só um módulo escondido”: responder com este TXT.
+Não é backlog — é FORA DE ESCOPO.
+
+----------------------------------------------------------------------------------------------------
+4. RELAÇÃO COM OUTROS DOCUMENTOS (RETIFICAÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  * MULTI_EMPRESA_CNPJS_E_LIVROS.txt  → trata só EMP-00001/00002;
+    seção LAI REVOGADA; aponta para ESTE arquivo.
+  * NATUREZAS_...                     → grupo 9.xx REMOVIDO / proibido
+  * CODIFICACAO_...                   → LAI- NÃO faz parte do catálogo
+  * PARAMETROS_... / EXPORT_... /
+    INDICE_... / LACUNAS_...          → alinhados a “sem LAI no ERP”
+
+Versões anteriores que descreviam LAI- como módulo a construir
+ficam SUPERADAS por esta decisão de 02/08/2026.
+
+----------------------------------------------------------------------------------------------------
+5. MULTI-EMPRESA CONTINUA (ISSO NÃO É LAI)
+----------------------------------------------------------------------------------------------------
+
+  EMP-00001 (01.423.183/0001-10) e EMP-00002 (58.820.046/0001-37)
+  continuam no desenho como CNPJs formais, com empresa_id, Focus e
+  banco próprios quando ativos.
+
+  Isso NÃO substitui LAI e NÃO autoriza usar EMP-00002 para esconder
+  receita da EMP-00001.
+
+----------------------------------------------------------------------------------------------------
+6. FRASE DE OURO
+----------------------------------------------------------------------------------------------------
+
+  O ERP fica LIMPO.
+  O paralelo, se existir, fica FORA.
+  Assim nada do “caixa à parte” estraga NF, estoque, TIT, BX,
+  comissão, crédito, WhatsApp, BankProvider nem o pacote do contador.
+
+====================================================================================================
+Fim — DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+Não ter LAI no ERP é a única garantia forte de não contaminar o sistema.
+====================================================================================================

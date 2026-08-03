@@ -1,0 +1,121 @@
+====================================================================================================
+MULTI-EMPRESA / CNPJs — PADRÃO OFICIAL (SEM LIVRO PARALELO NO ERP)
+Empresa operacional principal: RLP ETIQUETAS AUTO ADESIVOS LTDA
+Gerado em: 02/08/2026 | Retificado em: 02/08/2026 (LAI fora de escopo)
+====================================================================================================
+
+Este documento define COMO o ERP enxerga mais de um CNPJ.
+NÃO descreve “caixa 2” nem livro auxiliar dentro do sistema.
+
+  Decisão vinculada: DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+  → LAI- / naturezas 9.xx / conta isolada NÃO entram no ERP.
+
+----------------------------------------------------------------------------------------------------
+1. CNPJs DO GRUPO (CADASTRO OFICIAL NO ERP)
+----------------------------------------------------------------------------------------------------
+
+  EMP-00001  CNPJ 01.423.183/0001-10
+             Razão: RLP ETIQUETAS AUTO ADESIVOS LTDA (confirmar cartão)
+             Papel hoje: OPERAÇÃO PRINCIPAL (indústria / vendas)
+             Regime hoje: Simples Nacional
+             Destino: migração para Lucro Real (contador + ERP alimentando)
+             Focus NFe, estoque, PED, OP, TIT: AMBIENTE DESTE CNPJ
+
+  EMP-00002  CNPJ 58.820.046/0001-37
+             Papel previsto: FUTURO — escopo ainda NÃO fechado;
+             hipótese de uso “só para funcionários” (folha / benefícios /
+             estrutura laboral). NÃO ativar faturamento de etiquetas
+             neste CNPJ até existir parecer Contador + Direção.
+             Enquanto escopo aberto: cadastro EMP- EXISTENTE, módulos
+             de venda/estoque DESLIGADOS por flag.
+
+Codificação: empresa_id BIGINT + EMP-NNNNN em todos os documentos
+operacionais (já previsto “por filial” na CODIFICACAO).
+Série de NF, numeração ORC/PED/OP e contas bancárias: POR empresa_id.
+
+----------------------------------------------------------------------------------------------------
+2. PRINCÍPIOS MULTI-EMPRESA
+----------------------------------------------------------------------------------------------------
+
+ 1. Um login pode ver 1..N empresas conforme perfil; default = EMP-00001.
+ 2. Documento de EMP-00001 NUNCA “pula” para EMP-00002 sem operação
+    intercompany explícita (e CFOP/contrato quando houver).
+ 3. Credenciais Focus, certificado A1/A3, BankProvider e WABA:
+    um conjunto por empresa_id.
+ 4. Relatórios fiscais/gerenciais oficiais filtram empresa_id —
+    nunca somar CNPJs distintos como se fossem um só sem marcar.
+ 5. Intercompany (se um dia existir): PED/NF entre EMP- com natureza
+    própria e comissão zero (COMISSOES_...).
+ 6. Nenhuma EMP- é “gaveta” de movimentação não formalizada.
+     Ver DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt.
+
+----------------------------------------------------------------------------------------------------
+3. EMP-00002 — ESCOPO EM ABERTO (NÃO INVENTAR PROCESSO)
+----------------------------------------------------------------------------------------------------
+
+Enquanto a direção não fechar o uso:
+  * Manter EMP- cadastrado e INATIVO_OPERACIONAL_VENDA = true
+  * Não emitir NF de produto por este CNPJ no ERP
+  * Possíveis destinos (só lista de hipótese — Contador decide):
+      - Veículo de contratação / rateio de pessoal
+      - Holding/serviço interno
+      - Outro papel societário
+  * Qualquer ativação exige: CNAE, regime, certificado, Focus,
+    naturezas próprias e este TXT atualizado.
+
+Não usar EMP-00002 para esconder receita da RLP (EMP-00001).
+
+----------------------------------------------------------------------------------------------------
+4. LAI / “CAIXA 2” — FORA DE ESCOPO (REVOGADO)
+----------------------------------------------------------------------------------------------------
+
+  Versões anteriores deste arquivo descreviam um “livro auxiliar
+  isolado” (LAI-) dentro do ERP. ISSO FOI REVOGADO.
+
+  Motivo: não há garantia técnica segura de que um paralelo no mesmo
+  sistema não estrague DRE, export, caixa, crédito ou fiscal.
+
+  Padrão vigente: DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+  → anotações informais, se existirem, ficam FORA do ERP;
+  → o ERP opera só o oficial (naturezas 1–5, TIT, BX, NF, estoque).
+
+----------------------------------------------------------------------------------------------------
+5. IMPACTO NOS MÓDULOS (NÃO ESTRAGAR O FLUXO FELIZ)
+----------------------------------------------------------------------------------------------------
+
+  Orçamento → Pedido → OP → NF → ENT → TIT → BX :
+    100% em EMP-00001 (ou EMP- ativa), contas oficiais, naturezas 1–5.
+
+  EMP-00002 :
+    desligado de venda até escopo fechado; não altera telas do chão
+    de fábrica da RLP.
+
+  WhatsApp / BankProvider :
+    credenciais da EMP ativa; só cobrança/documentos oficiais.
+
+  Sem módulo lateral de caixa paralelo. Sem toggle “caixa real”.
+
+----------------------------------------------------------------------------------------------------
+6. MIGRAÇÃO SIMPLES → LUCRO REAL (EMP-00001)
+----------------------------------------------------------------------------------------------------
+
+  * Manter histórico de faturamento e XMLs (estratégia_implantacao_ja)
+  * Naturezas e exports já pensados para o contador
+  * Virada de regime: parâmetros fiscais novos; base = só oficial
+  * Contador define data-corte; ERP marca competência
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] EMP-00001 e EMP-00002 cadastrados com papéis claros
+  [ ] empresa_id em documentos e credenciais
+  [ ] EMP-00002 sem venda até parecer Contador+Direção
+  [ ] Nenhum LAI- / natureza 9.xx / conta “isolada caixa 2”
+  [ ] Fluxo feliz EMP-00001 intacto e 100% oficial
+  [ ] DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt respeitada na implantação
+
+====================================================================================================
+Fim — MULTI_EMPRESA_CNPJS_E_LIVROS.txt
+Dois CNPJs formais; zero livro paralelo dentro do ERP.
+====================================================================================================

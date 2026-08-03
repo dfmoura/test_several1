@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orçamento Flexográfico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="print-watermark" aria-hidden="true"><span>DOCUMENTO DE EXEMPLO</span></div>
+  <header class="top">
+    <div class="brand">FLEX<span>ORÇA</span></div>
+    <p class="tag">Mesmo detalhe da planilha ORÇAMENTO · cálculos, custos e proposta</p>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" id="step-cabecalho">
+      <h1>Descrição do serviço</h1>
+      <p class="hint">
+        Selecione a <strong>faca</strong> no mapa (fonte oficial).
+        Medida, puxada, Z, formato e <strong>REP (repetição)</strong> vêm juntos.
+        Em <strong>REDONDA</strong>, a medida é o <strong>diâmetro (Ø)</strong>.
+      </p>
+
+      <div class="faca-picker" id="faca-picker">
+        <div class="faca-summary" id="faca_summary">
+          <div class="faca-summary-main">
+            <div class="faca-summary-top">
+              <span class="faca-kicker">Faca do mapa</span>
+              <button type="button" class="ghost faca-btn" id="btn_abrir_mapa">Buscar / trocar faca</button>
+            </div>
+            <div class="faca-summary-title" id="faca_summary_title">Nenhuma faca selecionada</div>
+            <div class="faca-summary-meta" id="faca_summary_meta">
+              Abra o mapa para escolher medida, formato e máquina.
+            </div>
+            <div class="faca-chips" id="faca_chips" hidden></div>
+          </div>
+        </div>
+
+        <div class="auto-grid faca-auto">
+          <label class="auto">Medida <input id="medida" readonly /></label>
+          <label class="auto">Formato (faca) <input id="faca" readonly /></label>
+          <label class="auto">Puxada máquina (cm)
+            <input id="puxada_cm" type="number" step="any" />
+            <small class="field-note" id="puxada-note">Vem do mapa</small>
+          </label>
+          <label class="auto">Z <input id="z" type="number" step="any" /></label>
+          <label class="auto">REP (repetição) <input id="repeticao" readonly /></label>
+          <label class="auto">Máquina do mapa <input id="maquina_catalogo" readonly /></label>
+        </div>
+        <p class="hint auto-note faca-legenda-toggle">
+          <button type="button" class="linkish" id="btn_tog_legenda">Sobre códigos de máquina</button>
+        </p>
+        <p class="hint auto-note" id="maq-legenda" hidden></p>
+      </div>
+
+      <div class="faca-modal" id="faca_modal" hidden>
+        <div class="faca-modal-backdrop" id="faca_modal_backdrop"></div>
+        <div class="faca-modal-panel" role="dialog" aria-modal="true" aria-labelledby="faca_modal_title">
+          <header class="faca-modal-head">
+            <div>
+              <h2 id="faca_modal_title">Mapa de facas</h2>
+              <p class="faca-modal-sub">
+                <strong>MAPA DE FACAS 20260715 ATUAL</strong>
+                · REDONDA = diâmetro (Ø) · REP = repetição
+              </p>
+            </div>
+            <button type="button" class="ghost" id="btn_fechar_mapa" aria-label="Fechar">Fechar</button>
+          </header>
+
+          <div class="faca-filters">
+            <label class="faca-busca-wrap">Buscar
+              <input id="faca_busca" type="search" placeholder="Medida, Ø, cliente, fornecedor…" autocomplete="off" />
+            </label>
+            <label>Máquina
+              <select id="faca_filtro_maq"><option value="">Todas</option></select>
+            </label>
+            <label>Formato
+              <select id="faca_filtro_fmt"><option value="">Todos</option></select>
+            </label>
+            <label class="check faca-check">
+              <input type="checkbox" id="faca_so_completas" checked />
+              Só completas
+            </label>
+          </div>
+
+          <p class="hint auto-note" id="faca-hint">Digite para filtrar e clique na linha para escolher.</p>
+
+          <div class="faca-table-wrap">
+            <table class="faca-table" id="faca_table">
+              <thead>
+                <tr>
+                  <th>Medida</th>
+                  <th>Formato</th>
+                  <th>Máq.</th>
+                  <th>Z</th>
+                  <th>REP<br><small>repetição</small></th>
+                  <th>Puxada</th>
+                  <th>Cliente / nota</th>
+                </tr>
+              </thead>
+              <tbody id="faca_tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <label>Cliente <input id="cliente" value="BRAHVA" /></label>
+        <label>Largura papel (cm) <input id="largura_cm" type="number" step="0.01" value="9" /></label>
+        <label>Cores <select id="cores"></select></label>
+        <label>Papel <select id="papel"></select></label>
+        <label>Acab. Lam/Vern <select id="acabamento"></select></label>
+        <label>Qdade modelos <input id="modelos" type="number" value="7" /></label>
+        <label>Qdade colunas <input id="colunas" type="number" value="1" /></label>
+        <label>Quant etiq rolo <input id="etiq_por_rolo" type="number" value="1000" /></label>
+        <label>Tamanho tubete
+          <select id="tubete"><option>1"</option><option selected>3"</option></select>
+        </label>
+        <label>Máquina que roda o serviço
+          <select id="maquina_roda_servico"></select>
+          <small class="field-note">Excel F10 — qual máquina física executa (não entra no preço)</small>
+        </label>
+        <label>Máquina de custo (R$/hora)
+          <select id="maquina"></select>
+          <small class="field-note">Excel G10 — tabela HORA MÁQUINA por cores (entra no preço)</small>
+        </label>
+        <label>Imposto % <input id="imposto_pct" type="number" step="0.1" value="16" /></label>
+        <label>Matriz
+          <select id="matriz"><option>SIM</option><option>NÃO</option></select>
+        </label>
+        <label>Coluna rebobinação <input id="coluna_rebobinacao" type="number" value="1" /></label>
+        <label>Troca produto
+          <select id="tipo_troca_produto"></select>
+        </label>
+        <label>RPM máq <input id="rpm" type="number" value="1000" /></label>
+      </div>
+      <p class="hint" id="hint-troca-prod">
+        <strong>Hora troca produto</strong> é automática:
+        tempo em HORA PARADA × (qtde modelos − 1). Não depende da metragem.
+      </p>
+    </section>
+
+    <section class="panel" id="step-faixas">
+      <div class="row-between">
+        <h1>Quantidades (1…N)</h1>
+        <button type="button" class="ghost" id="add-faixa">+ faixa</button>
+      </div>
+      <div id="faixas"></div>
+    </section>
+
+    <section class="panel" id="step-precos">
+      <h1>Readequação de preços</h1>
+      <p class="hint">Override só deste orçamento (equivalente a alterar PAPEL / TINTA na planilha).</p>
+      <div class="grid two">
+        <label>Papel R$/m² <input id="ov_papel" type="number" step="0.01" placeholder="catálogo" /></label>
+        <label>Tinta &gt;30 m² <input id="ov_tinta" type="number" step="0.01" placeholder="catálogo" /></label>
+      </div>
+      <label class="check"><input type="checkbox" id="matriz_ja_cobrada" /> Matriz já cobrada em pedido anterior (mesma chave)</label>
+    </section>
+
+    <section class="panel" id="step-proposta-cfg">
+      <h1>Dados da proposta (CONSOLIDADO)</h1>
+      <div class="grid three">
+        <label>Prazo de entrega <input id="prazo_entrega" value="12 DIAS ÚTEIS" /></label>
+        <label>Validade <input id="validade_proposta" value="7 dias" /></label>
+        <label>Tolerância ±% <input id="tolerancia_qtd_pct" type="number" value="20" /></label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button type="button" class="primary" id="btn-calc">Calcular orçamento</button>
+      <button type="button" class="secondary" id="btn-save">Salvar</button>
+    </div>
+
+    <section class="panel result sheet" id="resultado" hidden>
+      <header class="print-header" aria-hidden="true">
+        <div class="print-title">
+          <strong>Relatório de orçamento</strong>
+          <small>Cálculo completo · valores, custos e proposta</small>
+        </div>
+        <div class="print-meta" id="print-meta"></div>
+      </header>
+
+      <div class="sheet-head">
+        <h1>Cálculo orçamento</h1>
+        <div class="sheet-head-actions">
+          <p id="matriz-status" class="status"></p>
+          <button type="button" class="ghost report-btn" id="btn-print" title="Gera um PDF em paisagem: pág. 1 orçamento completo · pág. 2 insumos e quantidades (via diálogo de impressão)">
+            Gerar relatório (PDF)
+          </button>
+        </div>
+      </div>
+
+      <h2 class="sheet-section">Cálculo dos valores</h2>
+      <p class="hint">Equivalente às colunas B–O (linhas 12–17) da planilha.</p>
+      <div class="table-wrap">
+        <table class="sheet-table" id="tbl-calc">
+          <thead>
+            <tr>
+              <th>Qtde</th>
+              <th>Troca produto</th>
+              <th>Hora máquina</th>
+              <th>Hora troca produto<br><small>auto: tempo × (modelos−1)</small></th>
+              <th>Hora troca bobina<br><small>só se metragem ≥1000</small></th>
+              <th>Metragem linear<br><small>&lt;1000 = sem troca bobina</small></th>
+              <th>Metragem m²</th>
+              <th>Perda acerto</th>
+              <th>Perda acabamento</th>
+              <th>Perda papel troca produto<br><small>PERDA DE PAPEL ACERTO × modelos</small></th>
+              <th>Perda troca bobina m²</th>
+              <th>Quant rolos</th>
+              <th>Quant caixas<br><small>CEILING(rolos ÷ capacidade)</small></th>
+              <th>Caixa / cap.<br><small>MEDIDA_CAIXAS</small></th>
+              <th>Matriz</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2 class="sheet-section">Valores de custo</h2>
+      <p class="hint">Equivalente às colunas B–M (linhas 20–25).</p>
+      <div class="table-wrap">
+        <table class="sheet-table" id="tbl-custos">
+          <thead>
+            <tr>
+              <th>Qtde</th>
+              <th>Valor papel</th>
+              <th>Valor máquina</th>
+              <th>Valor troca produto</th>
+              <th>Valor troca bobina</th>
+              <th>Valor papel troca produto</th>
+              <th>Tinta</th>
+              <th>Acabamento</th>
+              <th>Rebobinação</th>
+              <th>Tubete</th>
+              <th>Valor caixa</th>
+              <th>Valor serviço</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2 class="sheet-section">Comissão · imposto · totais</h2>
+      <p class="hint">Equivalente às linhas 27–32 (CEILING 10 na etiqueta; matriz em todas as faixas se cobrável neste pedido).</p>
+      <div class="table-wrap">
+        <table class="sheet-table" id="tbl-totais">
+          <thead>
+            <tr>
+              <th>% Comissão</th>
+              <th>Comissão</th>
+              <th>Imposto</th>
+              <th>Serviço + imposto + comissão</th>
+              <th>Etiquetas</th>
+              <th>Valor da etiqueta</th>
+              <th>Valor da matriz</th>
+              <th>Valor total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2 class="sheet-section">Proposta (CONSOLIDADO)</h2>
+      <div class="table-wrap">
+        <table class="sheet-table" id="tbl-proposta">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Acabamento</th>
+              <th>Etiq por rolo</th>
+              <th>Rolos</th>
+              <th>Etiquetas</th>
+              <th>Total</th>
+              <th>Unitário</th>
+              <th>Valor rolo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="proposta-box" class="proposta"></div>
+    </section>
+
+    <section class="panel result sheet" id="insumos" hidden>
+      <header class="print-header" aria-hidden="true">
+        <div class="print-title">
+          <strong>Relatório de orçamento</strong>
+          <small>Insumos e quantidades previstas · página 2</small>
+        </div>
+        <div class="print-meta" id="print-meta-insumos"></div>
+      </header>
+
+      <div class="sheet-head">
+        <h1>Insumos do orçamento</h1>
+      </div>
+
+      <h2 class="sheet-section">Insumos e quantidades por faixa</h2>
+      <p class="hint">
+        Quantidades derivadas do mesmo motor de cálculo do orçamento
+        (consumo + perdas). Cada coluna é uma faixa de quantidade —
+        alternativas; o cliente escolhe uma.
+      </p>
+      <div class="table-wrap">
+        <table class="sheet-table" id="tbl-insumos">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="insumos-note">
+        Quantidades calculadas com as mesmas fórmulas da planilha ORÇAMENTO
+        (consumo de impressão + perdas de acerto, troca de produto e troca de bobina).
+        Considerar apenas a faixa de quantidade aprovada pelo cliente.
+      </p>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

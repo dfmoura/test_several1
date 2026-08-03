@@ -1,0 +1,929 @@
+====================================================================================================
+GUIA PASSO A PASSO — CONSTRUÇÃO DO ERP RLP (DO ZERO ATÉ O FLUXO PRONTO)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real) | Multi-empresa EMP-00001 / EMP-00002
+Stack deste guia: Laravel 11 + MySQL 8 + Nginx + Docker Compose + React (SPA) + Filas (Redis/SQS)
+Infra AWS: Cenário D enxuto (1× EC2 Graviton, sem NAT/ALB obrigatórios) — sa-east-1
+Gerado em: 03/08/2026
+====================================================================================================
+
+ATENÇÃO — ESTE ARQUIVO NÃO É A PROPOSTA PARA O CLIENTE.
+  Para levar à Direção / reunião comercial, use:
+    PROPOSTA_COMERCIAL_ERP_RLP.txt
+  Este TXT é o ROTEIRO TÉCNICO DE CONSTRUÇÃO (time de engenharia): o que fazer,
+  em que ordem, o que ver na tela depois de cada etapa, e qual documento do
+  pacote trigger/32 amarra cada regra.
+
+Não substitui os TXTs de domínio/casos de uso. Traduz o pacote em trabalho executável.
+
+Leitura complementar obrigatória (não pular):
+  DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt   ← ordem de implementação
+  ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt     ← como engessar o monólito
+  SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt          ← AWS segura e enxuta
+  ESTIMATIVA_CUSTO_AWS_MENSAL.txt                  ← teto de custo (Cenário D)
+  INDICE_FLUXO_OPERACIONAL.txt                     ← ORC→PED→OP→NF→TIT→COB→ENT→BX
+  APIS_FREE_CONSULTA_CADENCIA.txt                  ← CNPJ/CEP/NCM nos formulários
+  estrategia_implantacao_ja.txt                    ← o que migrar no dia da virada
+  HOMOLOGACAO_ERP_RLP.txt + ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+  CASOS_USO_M01…M11 + MANUAL_UNICO_ERP_RLP.txt
+
+Como usar este guia:
+  1) Faça UMA etapa por vez.
+  2) Só avance se o CHECKPOINT “O QUE VOCÊ DEVE VER” passar.
+  3) Marque [x] nos checklists.
+  4) Não comece Fase 2 “bonita” se a Fase 1 não fecha o fluxo feliz.
+
+====================================================================================================
+0. O QUE VOCÊ ESTÁ CONSTRUINDO (VISÃO DO RESULTADO FINAL)
+====================================================================================================
+
+No fim deste guia, com o navegador aberto em https://erp.rlpetiquetas.com.br
+(ou IP da EC2 em staging), você deve conseguir:
+
+  LOGIN (user COMERCIAL)
+    → Novo ORÇAMENTO (ORC-…) com itens, gordura e imposto ESTIMADO
+    → Enviar LINK de aceite ao cliente
+    → Cliente aceita → nasce PEDIDO (PED-…) com snapshot travado
+
+  LOGIN (user FINANCEIRO)
+    → Libera crédito / confirma sinal → PED fica LIBERADO
+
+  LOGIN (user PRODUCAO)
+    → Itens PRODUCAO geram OP-…; itens SERVICO geram OS-…
+    → Baixa MP (MOV-…), aponta produção, registra sobra/retalho, gera PA
+    → Conclusão libera faturamento
+
+  LOGIN (user FISCAL)
+    → Emite NF-e via Focus NFe (adapter)
+    → Sistema gera TIT-… (contas a receber) distintos da NF
+
+  LOGIN (user FINANCEIRO / EXPEDICAO)
+    → Emite COB-… (boleto/PIX via BankProvider)
+    → Confirma ENTREGA (ENT-…)
+    → Webhook/baixa cria BX-… e atualiza caixa/crédito
+
+  Login ADMIN
+    → Parâmetros, usuários/perfis, empresa_id, integrações
+    → Cadastros com botão “Buscar CNPJ / CEP / NCM” (APIs free + cache)
+
+Um único ERP. PED é o mestre. Sem LAI. Sem microsserviços no dia 1.
+Documento não se apaga — se estorna. Dinheiro e NF são idempotentes.
+
+Cadeia obrigatória (INDICE_FLUXO_OPERACIONAL):
+
+  ORC → (link) aceite → PED
+         │
+         ├─ crédito/sinal ok → LIBERADO
+         ├─ item PRODUCAO → OP → estoque MP→sobra→PA → conclusão
+         ├─ item SERVICO  → OS → conclusão
+         └─ item REVENDA  → separação
+                  │
+                  ▼
+            NF (Focus) + TIT → COB (banco) → ENT → confirmação
+                  │                              │
+                  ▼                              ▼
+                 BX ← webhook/extrato           (WhatsApp MSG- status — Fase 2)
+
+====================================================================================================
+1. DECISÕES JÁ FECHADAS (NÃO REABRIR)
+====================================================================================================
+
+  [x] Monólito modular Laravel (não microsserviços)
+  [x] MySQL 8 como banco do dia 1 (este guia); DECIMAL para dinheiro/qtde
+  [x] Id BIGINT (PK) + código legível (PAR-, ORC-, PED-…) — nunca string como FK
+  [x] Multi-empresa por empresa_id (default EMP-00001; EMP-00002 venda off)
+  [x] Focus NFe = hub fiscal; contador fecha o oficial
+  [x] BankProvider (Inter sandbox → Sicoob alvo)
+  [x] WhatsApp = Meta Cloud API (nunca número pessoal)
+  [x] LAI / livro paralelo = PROIBIDO no ERP
+  [x] AWS Cenário D: 1 EC2 + Compose + HTTPS; SSH fechado (SSM)
+  [x] Ordem: Fundação → Cadastros → Comercial → Estoque/OP → Fiscal → Financeiro
+  [x] APIs free: consultar no evento humano, cachear, nunca crawling em loop
+
+Nota MySQL × Postgres dos TXTs de arquitetura:
+  O pacote recomenda PostgreSQL como preferência canônica. Este guia usa MySQL
+  porque é o ecossistema natural do Laravel escolhido pelo time. Mantenha:
+  NUMERIC/DECIMAL, UNIQUE(event_id), locks otimistas, migrations versionadas.
+  Se no futuro migrar para Postgres, a camada de domínio não muda.
+
+====================================================================================================
+2. MAPA DE FASES (VISÃO GERAL DO CRONOGRAMA)
+====================================================================================================
+
+  FASE A … Conta AWS + EC2 + DNS + HTTPS                 (~1–2 dias)
+  FASE B … Docker Compose (local = prod-like)            (~1 dia)
+  FASE C … Skeleton Laravel + React + Auth/RBAC          (~3–5 dias)
+  FASE D … Cadastros + APIs públicas nos formulários     (~1–2 semanas)
+  FASE E … Comercial ORC → aceite → PED + crédito        (~2 semanas)
+  FASE F … Estoque + OP/OS + conclusão                   (~2 semanas)
+  FASE G … Fiscal Focus (NF) + TIT                       (~1–2 semanas)
+  FASE H … COB + ENT + BX (fluxo feliz completo)         (~1–2 semanas)
+  FASE I … Deploy prod + virada (estratégia_implantacao) (~1 semana)
+  FASE J … Exceções Fase 2 (RMA/DEV/compras/WA…)         (após go-live)
+
+Cada fase abaixo traz:
+  • Objetivo
+  • Passos numerados (comandos / telas / arquivos)
+  • Integração com TXT do pacote
+  • CHECKPOINT visual — o que abrir no browser/API para “ver funcionando”
+
+====================================================================================================
+FASE A — ABRIR A INSTÂNCIA NA AWS (CENÁRIO D)
+====================================================================================================
+
+Objetivo: ter uma EC2 em sa-east-1 acessível por HTTPS, sem SSH aberto, pronta
+para receber Docker. Custo no teto do ESTIMATIVA_CUSTO_AWS_MENSAL (Cenário D).
+
+----------------------------------------------------------------------------------------------------
+A.1. Conta e trava de custo (antes de criar máquina)
+----------------------------------------------------------------------------------------------------
+
+  1. Conta AWS dedicada (ideal: conta prod separada de nonprod).
+  2. Root: MFA ligado. NÃO usar root no dia a dia.
+  3. Criar usuário IAM (ou Identity Center) com MFA:
+       PlatformAdmin | Developer | Reader | FinanceOps
+  4. Billing → Budgets:
+       Alarme mensal USD 250 (teto) + aviso em 80% (USD 200).
+  5. Região padrão do console: São Paulo (sa-east-1).
+
+  Docs: SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA §§1–2; ESTIMATIVA_CUSTO §§0 e teto D.
+
+  CHECKPOINT:
+    [ ] Budget aparece em AWS Budgets
+    [ ] Login humano só com MFA
+    [ ] Access Key da root = inexistente
+
+----------------------------------------------------------------------------------------------------
+A.2. Rede mínima (sem NAT Gateway)
+----------------------------------------------------------------------------------------------------
+
+  1. Use a VPC default OU crie VPC simples com 1 subnet pública.
+  2. NÃO crie NAT Gateway (custo fixo ~USD 68/mês desnecessário neste porte).
+  3. Security Group `sg-erp-rlp`:
+       INBOUND:
+         443/tcp  ← 0.0.0.0/0   (HTTPS)
+         80/tcp   ← 0.0.0.0/0   (redirect → 443; depois pode fechar)
+         22/tcp   ← NADA (fechado)
+       OUTBOUND: all (Focus, banco, Meta, apt, ECR…)
+  4. Elastic IP — alocar e associar à EC2 depois.
+
+  CHECKPOINT:
+    [ ] SG sem porta 22 aberta
+    [ ] Sem NAT Gateway na fatura
+
+----------------------------------------------------------------------------------------------------
+A.3. Criar a EC2 (Graviton)
+----------------------------------------------------------------------------------------------------
+
+  Console EC2 → Launch instance:
+
+    Name ............ erp-rlp-prod (ou erp-rlp-staging)
+    AMI ............. Ubuntu 24.04 LTS ARM64 (Graviton)
+    Instance type ... t4g.small (piloto) ou t4g.medium (folga)
+    Key pair ........ pode criar, mas o acesso diário será via SSM (não SSH)
+    Network ......... subnet pública + Auto-assign public IP (ou EIP depois)
+    Storage ......... 40–80 GB gp3
+    IAM instance profile ... role com:
+                              AmazonSSMManagedInstanceCore
+                              (depois: S3 app bucket, SQS, Secrets Manager leitura)
+    User data (opcional) ... instala docker (ver A.5) — ou faça manual via SSM
+
+  Após subir:
+    1. Associar Elastic IP.
+    2. Session Manager → Start session (sem abrir SSH).
+    3. Confirmar: `uname -m` → aarch64.
+
+  CHECKPOINT:
+    [ ] Conecta via SSM Session Manager
+    [ ] `curl ifconfig.me` devolve o Elastic IP
+    [ ] Porta 22 continua fechada no SG
+
+----------------------------------------------------------------------------------------------------
+A.4. DNS e HTTPS
+----------------------------------------------------------------------------------------------------
+
+  Opção simples (recomendada no porte RLP):
+    1. Domínio em Route 53 (ou DNS do registrador apontando A → Elastic IP).
+    2. Na EC2, Caddy OU Nginx + Certbot (Let's Encrypt) na frente do Compose.
+    3. Redirect HTTP → HTTPS; TLS 1.2+.
+
+  Nome sugerido:
+    erp.rlpetiquetas.com.br          → app
+    (webhooks usam o mesmo host: /webhooks/…)
+
+  CHECKPOINT:
+    [ ] https://SEU_DOMINIO responde (mesmo que página “em construção”)
+    [ ] Cadeado válido no navegador
+
+----------------------------------------------------------------------------------------------------
+A.5. Pacotes base no host (via SSM)
+----------------------------------------------------------------------------------------------------
+
+  No shell da EC2:
+
+    sudo apt update && sudo apt upgrade -y
+    sudo apt install -y ca-certificates curl gnupg
+    # Docker Engine + Compose plugin (oficial Docker p/ Ubuntu ARM64)
+    # Seguir docs.docker.com/engine/install/ubuntu/
+    sudo usermod -aG docker ubuntu   # ou o user do SSM
+    docker --version
+    docker compose version
+
+  Também:
+    sudo apt install -y fail2ban unattended-upgrades
+    # timezone
+    sudo timedatectl set-timezone America/Sao_Paulo
+
+  CHECKPOINT:
+    [ ] `docker run --rm hello-world` funciona
+    [ ] `docker compose version` ≥ v2
+
+----------------------------------------------------------------------------------------------------
+A.6. S3 + Secrets (esqueleto)
+----------------------------------------------------------------------------------------------------
+
+  1. Bucket privado: rlp-erp-prod-files (XML NF, PDF boleto, anexos)
+     - Block Public Access = ON
+     - Versioning = ON
+  2. Secrets Manager (ou SSM Parameter Store):
+       /rlp/prod/db_password
+       /rlp/prod/app_key
+       /rlp/prod/focus_token
+       /rlp/prod/bank_*
+       /rlp/prod/whatsapp_*
+  3. IAM da EC2: só GetSecretValue / s3:PutObject,GetObject no prefixo do app.
+
+  CHECKPOINT:
+    [ ] Upload teste via CLI com a role da instância
+    [ ] Segredo lido sem Access Key no ~/.aws
+
+====================================================================================================
+FASE B — DOCKER: MESMO ARTEFATO EM DEV E NA EC2
+====================================================================================================
+
+Objetivo: subir Nginx + PHP-FPM (Laravel) + MySQL + Redis + Node (build front)
+com um `docker compose up` e ver a tela de login.
+
+Docs: ARQUITETURA §6 Docker; SEGURANCA §4.1 Opção D.
+
+----------------------------------------------------------------------------------------------------
+B.1. Estrutura de pastas do repositório
+----------------------------------------------------------------------------------------------------
+
+  erp-rlp/
+  ├── apps/
+  │   ├── api/                 ← Laravel 11
+  │   └── web/                 ← React + TypeScript (Vite)
+  ├── docker/
+  │   ├── nginx/default.conf
+  │   ├── php/Dockerfile       ← multi-stage, non-root
+  │   ├── php/php.ini
+  │   └── mysql/my.cnf
+  ├── docker-compose.yml       ← base
+  ├── docker-compose.dev.yml   ← MySQL+Redis locais, mailhog
+  ├── docker-compose.prod.yml  ← sem expor MySQL; volumes; restart always
+  ├── .env.example
+  ├── Makefile                 ← make up / migrate / seed / test
+  └── docs/                    ← links para os TXTs do pacote (opcional)
+
+----------------------------------------------------------------------------------------------------
+B.2. docker-compose.dev.yml (mínimo que “parece prod”)
+----------------------------------------------------------------------------------------------------
+
+  Serviços:
+
+    nginx ........ porta 8080→80 (dev); proxy /api → php-fpm; / → web ou spa
+    app .......... imagem PHP 8.3-FPM + extensões (pdo_mysql, redis, gd, zip, bcmath, intl)
+    worker ....... mesma imagem; comando: php artisan queue:work
+    scheduler .... mesma imagem; comando: php artisan schedule:work  (ou cron no worker)
+    mysql ........ MySQL 8; volume nomeado; SOMENTE em DEV/staging
+    redis ........ cache + filas locais
+    mailpit ...... captura e-mail de aceite de ORC (dev)
+    web .......... node:22; npm run dev (Vite HMR) OU build estático servido pelo nginx
+
+  Em PRODUÇÃO (EC2):
+    - MySQL pode ficar NO MESMO HOST (Lightsail-style / Cenário E) OU RDS db.t4g.micro
+    - Redis local só se usar fila Redis; em prod preferir SQS depois (Fase H+)
+    - Não publicar 3306 para a internet
+
+  Variáveis essenciais (.env — NUNCA commitado):
+
+    APP_NAME=ERP-RLP
+    APP_ENV=local|staging|production
+    APP_URL=https://erp.rlpetiquetas.com.br
+    APP_KEY=base64:…
+    DB_CONNECTION=mysql
+    DB_HOST=mysql
+    DB_DATABASE=erp_rlp
+    DB_USERNAME=erp
+    DB_PASSWORD=***
+    QUEUE_CONNECTION=redis
+    FILESYSTEM_DISK=s3   # local em dev
+    FOCUS_NFE_TOKEN=
+    FOCUS_NFE_ENV=homologacao
+    BRASILAPI_BASE=https://brasilapi.com.br/api
+    VIACEP_BASE=https://viacep.com.br/ws
+    DEFAULT_EMPRESA_CODIGO=EMP-00001
+
+----------------------------------------------------------------------------------------------------
+B.3. Comandos do dia 1 (local)
+----------------------------------------------------------------------------------------------------
+
+    # Na máquina do desenvolvedor
+    cp .env.example .env
+    make up          # docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+    make key         # php artisan key:generate
+    make migrate     # php artisan migrate
+    make seed        # usuários, perfis, EMP-00001, naturezas 1–5, CFOP/NCM seed
+    open http://localhost:8080
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER:
+    [ ] Página de login do ERP (mesmo que só marca RLP + formulário)
+    [ ] `docker compose ps` todos healthy
+    [ ] `make migrate` sem erro
+    [ ] Health: GET /api/v1/health → {"status":"ok"}
+
+----------------------------------------------------------------------------------------------------
+B.4. Imagem production (checklist)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Multi-stage build (composer install --no-dev; npm ci && npm run build)
+  [ ] Usuário non-root no container
+  [ ] HEALTHCHECK curl /api/v1/health
+  [ ] Tag = git sha (nunca :latest em prod)
+  [ ] Secrets só por env / Secrets Manager — zero secret na imagem
+
+====================================================================================================
+FASE C — FUNDAÇÃO DO SOFTWARE (M11 + AUTH + MULTI-EMPRESA)
+====================================================================================================
+
+Objetivo: Laravel modular com login, perfis, empresa_id, auditoria, OpenAPI, Decimal.
+Sem domínio comercial ainda — mas já “parece sistema”.
+
+Docs: ORGANIZACAO_USUARIOS_PERFIS_ACESSO; CODIFICACAO_INFORMACOES_SISTEMA;
+      ARQUITETURA §§1–3; DECISAO §4.4 Fase 0; PADRAO_DECIMAL_CALCULOS.
+
+----------------------------------------------------------------------------------------------------
+C.1. Criar o projeto Laravel
+----------------------------------------------------------------------------------------------------
+
+    docker compose exec app composer create-project laravel/laravel .
+    # ou scaffolding pré-existente no apps/api
+
+  Pacotes sugeridos:
+    laravel/sanctum          ← API token / SPA cookie
+    spatie/laravel-permission← RBAC por perfil
+    darkaonline/l5-swagger   ← OpenAPI (ou scribe)
+    brick/math ou bcmath     ← dinheiro (NUNCA float)
+    league/flysystem-aws-s3-v3
+
+----------------------------------------------------------------------------------------------------
+C.2. Organização modular (pastas)
+----------------------------------------------------------------------------------------------------
+
+  apps/api/app/
+    Domain/
+      Shared/          Money, EmpresaId, CodigoNegocio, Audit
+      Cadastros/
+      Comercial/
+      Producao/
+      Estoque/
+      Fiscal/
+      Financeiro/
+      Compras/
+      PosVenda/
+      Integracoes/
+      Gerencial/
+      Plataforma/
+    Application/       Use cases (1 UC ≈ 1 Action/Command)
+    Infrastructure/    FocusNfeClient, BankProvider, BrasilApiClient, S3…
+    Http/Api/V1/       Controllers + FormRequests + Resources
+
+  Regra: Domain NÃO importa Http nem Eloquent detalhe de infra se puder evitar.
+  Pragmática Laravel: Models finos + Services de aplicação + Policies.
+
+----------------------------------------------------------------------------------------------------
+C.3. Tabelas mínimas da fundação
+----------------------------------------------------------------------------------------------------
+
+  empresas ............ id, codigo EMP-00001, cnpj, razao_social, …
+  users ............... id, name, email, password, ativo, …
+  profiles / roles .... ADMIN, FISCAL, FINANCEIRO, COMERCIAL, PRODUCAO, COMPRAS, CONSULTA
+  model_has_roles ..... vínculo usuário×perfil (Spatie)
+  empresa_user ........ acesso multi-empresa (default EMP-00001)
+  audit_logs .......... quem, quando, empresa_id, entidade, de→para, ip
+  outbox .............. eventos a publicar
+  webhook_inbox ....... event_id UNIQUE, payload, status
+  integration_logs .... request/response resumido + correlation_id
+  api_cache ........... chave, fonte, payload, expires_at (CNPJ/CEP…)
+  parametros_empresa .. chave/valor versionado (PARAMETROS_EMPRESA_OFICIAIS)
+
+  Seed obrigatório:
+    EMP-00001 = 01.423.183/0001-10
+    EMP-00002 = 58.820.046/0001-37 (venda desligada)
+    User admin + um user por perfil de teste
+    Naturezas gerenciais 1–5 (NATUREZAS_GERENCIAIS_RECEITA_DESPESA)
+    Municipios IBGE (carga batch — não API a cada keystroke)
+
+----------------------------------------------------------------------------------------------------
+C.4. Middleware e regras de ouro na API
+----------------------------------------------------------------------------------------------------
+
+  Toda rota /api/v1/* autenticada:
+    1. Resolve empresa_id do header X-Empresa-Id OU da sessão (default EMP-00001)
+    2. Garante que o user tem vínculo com a empresa
+    3. Policy/Permission por perfil (matriz ORGANIZACAO_USUARIOS)
+    4. Money só via Decimal cast / value object
+    5. Soft-delete em cadastros; documentos = estorno
+
+  Endpoints da fundação:
+    POST   /api/v1/auth/login
+    POST   /api/v1/auth/logout
+    GET    /api/v1/me
+    GET    /api/v1/empresas
+    GET    /api/v1/health
+    GET    /api/v1/parametros
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER:
+    [ ] Login com COMERCIAL → menu só comercial (sem parâmetros admin)
+    [ ] Login com ADMIN → usuários e parâmetros
+    [ ] Trocar empresa (se liberado) muda o contexto; dados filtrados por empresa_id
+    [ ] audit_logs registra login e troca de parâmetro
+    [ ] Swagger/OpenAPI em /api/documentation (só nonprod)
+
+====================================================================================================
+FASE D — CADASTROS + FORMULÁRIOS COM APIS PÚBLICAS (M01)
+====================================================================================================
+
+Objetivo: cadastrar PAR, produtos (MP/EMB/REV/PA/SVC), tabelas fiscais auxiliares,
+com formulários que PREENCHEM SOZINHOS via BrasilAPI / ViaCEP / NCM local.
+
+Docs: CADASTRO_PARCEIROS; CADASTRO_PRODUTOS_*; APIS_FREE_CONSULTA_CADENCIA;
+      VERIFICACAO_ENDERECO_FORNECEDOR; CONVERSOES_UNIDADES_MEDIDA; CASOS_USO_M01.
+
+----------------------------------------------------------------------------------------------------
+D.1. Parceiro único (PAR-)
+----------------------------------------------------------------------------------------------------
+
+  Telas:
+    Lista de parceiros (busca por CNPJ/CPF/nome/código)
+    Formulário criar/editar com abas: Identificação | Endereço | Contatos |
+                                       Papéis | Financeiro | Fiscal
+
+  Campos conforme CADASTRO_PARCEIROS §1.
+  Código: PAR-0001 sequencial (sem tipo embutido).
+  Unicidade: CNPJ/CPF por empresa.
+
+----------------------------------------------------------------------------------------------------
+D.2. Integrações free JÁ NO FORMULÁRIO (backend proxy — não chamar do browser)
+----------------------------------------------------------------------------------------------------
+
+  Princípio (APIS_FREE):
+    Evento humano → API backend → cache api_cache → preenche formulário →
+    usuário CONFIRMA → grava snapshot (fonte, data, resumo).
+
+  Endpoints internos:
+
+    GET /api/v1/consultas/cnpj/{cnpj}
+        → BrasilAPI /api/cnpj/v1/{cnpj}
+        → valida dígito ANTES de chamar
+        → cache 30 dias (situação cadastral); TTL menor se quiser
+
+    GET /api/v1/consultas/cep/{cep}
+        → ViaCEP ou BrasilAPI CEP v2
+        → devolve logradouro, bairro, município, uf, ibge
+        → cache 90 dias
+
+    GET /api/v1/consultas/ncm?q=
+        → busca LOCAL na tabela ncm (carga Siscomex/BrasilAPI)
+        → autocomplete; API externa só no job de atualização mensal
+
+    GET /api/v1/consultas/bancos
+        → BrasilAPI /banks/v1 (cache longo) p/ dados bancários do parceiro
+
+    GET /api/v1/municipios?uf=MG
+        → tabela local IBGE
+
+  UX do formulário de parceiro (resultado que o usuário “vê”):
+
+    1. Digita CNPJ → blur/botão “Consultar CNPJ”
+    2. Spinner curto (<2s típico) OU mensagem “usando cache de DD/MM”
+    3. Campos preenchidos: razão social, fantasia, CNAE, endereço sede, CEP, UF
+    4. Badge discreto: “Sugestão BrasilAPI · confirmar antes de salvar”
+    5. Digita CEP → preenche logradouro/bairro/município/IBGE; usuário só completa nº
+    6. Salvar → PAR-00xx criado; audit_log + snapshot da consulta
+
+  Cadência / proteção (APIS_FREE):
+    [ ] Rate limit por user (ex.: 30 CNPJ/hora)
+    [ ] Circuit breaker se BrasilAPI 429/5xx → mensagem amigável + retry manual
+    [ ] Nunca job noturno varrendo milhares de CNPJ
+    [ ] Fallback OpenCNPJ/ReceitaWS só se BrasilAPI falhar (e respeitando limites)
+
+----------------------------------------------------------------------------------------------------
+D.3. Produtos
+----------------------------------------------------------------------------------------------------
+
+  Tipos: MP | EMB | REV | PA | SVC (conforme docs de produto/estoque).
+  Campos: código interno, descrição, NCM (autocomplete local), unidade,
+          fator conversão, CFOP padrão, grupo, preço (quando aplicável),
+          CEST se ST, CSOSN/CST conforme Simples.
+
+  UX NCM:
+    Digita “4821” → lista local com descrição → seleciona → grava código + desc snapshot.
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER:
+    [ ] Cadastrar cliente real da RLP só digitando CNPJ + número do endereço
+    [ ] Cadastrar fornecedor; endereço bate com cartão CNPJ (alerta se divergir)
+    [ ] Produto PA com NCM da lista LISTAGEM_NCM_*
+    [ ] User COMERCIAL edita contato do cliente; NÃO edita NCM fiscal (só FISCAL)
+    [ ] User FINANCEIRO edita dados bancários; COMPRAS não consegue
+
+====================================================================================================
+FASE E — COMERCIAL: ORC → ACEITE → PED (+ CRÉDITO)  [M02]
+====================================================================================================
+
+Objetivo: fluxo comercial usable end-to-end, sem NF ainda.
+Docs: GERACAO_ORCAMENTO (+ flexibilidade/gordura/imposto/mobilidade/aprovação);
+      ORCAMENTO_PROSPECT_SEM_CADASTRO; APROVACAO_ORCAMENTO_CLIENTE;
+      GERACAO_PEDIDO; INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE; CASOS_USO_M02.
+
+----------------------------------------------------------------------------------------------------
+E.1. Orçamento (ORC-)
+----------------------------------------------------------------------------------------------------
+
+  Telas:
+    Lista ORC (status RASCUNHO | ENVIADO | ACEITO | RECUSADO | EXPIRADO | CONVERTIDO)
+    Editor de ORC: cabeçalho + itens + cenários + gordura + imposto ESTIMADO
+    Botão “Enviar link de aceite” → e-mail/WhatsApp oficial (e-mail primeiro)
+
+  Regras:
+    - Prospect pode orçar; PED exige cadastro completo (ORCAMENTO_PROSPECT…)
+    - Imposto no ORC = simulação (VERIFICACAO_IMPOSTO_ORCAMENTO) — não é NF
+    - Versão/cenário travados no aceite
+    - Alçada de gordura (GORDURA_ORCAMENTO…); FLEXIBILIDADE_LIMITES…
+
+----------------------------------------------------------------------------------------------------
+E.2. Aceite por LINK (nunca “combinado no zap”)
+----------------------------------------------------------------------------------------------------
+
+  Rota pública assinada:
+    GET  /aceitacao/{token}     → página somente leitura do ORC
+    POST /aceitacao/{token}     → aceita / recusa
+
+  Resultado do aceite:
+    - Cria PED-… com SNAPSHOT de itens/preços (não recalcula)
+    - ORC → CONVERTIDO
+    - Evento PedidoCriado (outbox)
+
+----------------------------------------------------------------------------------------------------
+E.3. Crédito (CRT) — escrita no Financeiro, consulta no Comercial
+----------------------------------------------------------------------------------------------------
+
+  Telas FINANCEIRO:
+    Limite do cliente; liberação manual; adiantamento (BX parcial)
+
+  Regra: produção só após CRT OK ou BX de sinal (DECISAO §5.3).
+  Status PED: RASCUNHO_COMERCIAL → AGUARDANDO_CREDITO → LIBERADO → …
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER (demo de 10 minutos):
+    [ ] COMERCIAL cria ORC-0001 com 2 itens PRODUCAO + 1 REV
+    [ ] Imposto estimado aparece; total com gordura dentro da alçada
+    [ ] Envia link → Mailpit mostra e-mail
+    [ ] Cliente aceita no link → PED-0001 nasce com mesmos preços
+    [ ] FINANCEIRO libera crédito → PED LIBERADO
+    [ ] COMERCIAL tenta alterar preço do PED → bloqueado (snapshot)
+
+====================================================================================================
+FASE F — ESTOQUE + PRODUÇÃO (OP/OS) + CONCLUSÃO  [M04 + M03]
+====================================================================================================
+
+Objetivo: do PED liberado até PA disponível para faturar.
+Docs: PRODUCAO_OPERACIONAL_GERENCIAL; ORDEM_SERVICO; ESTOQUE_FLUXO_SAIDA_RETORNO_PA;
+      CONCLUSAO_PRODUCAO; TRATAMENTO_SOBRA_BOBINA_RETALHO; CONTROLE_ESTOQUE_PROFISSIONAL;
+      AJUSTE_ESTOQUE_INVENTARIO; CASOS_USO_M03/M04.
+
+----------------------------------------------------------------------------------------------------
+F.1. Saldo e MOV-
+----------------------------------------------------------------------------------------------------
+
+  Tabelas: produtos_estoque (saldo, custo_medio) + movimentos (imutáveis).
+  Tipos MOV: ENTRADA | SAIDA | AJUSTE | SOBRA | PRODUCAO_PA | …
+
+  Na virada (estratégia_implantacao): importar SALDO do dia — não reconstruir histórico.
+
+----------------------------------------------------------------------------------------------------
+F.2. OP / OS a partir do item do PED
+----------------------------------------------------------------------------------------------------
+
+  Item PRODUCAO → OP-… (não órfã)
+  Item SERVICO  → OS-…
+  Item REVENDA  → separação (sem OP fictícia)
+
+  Telas PRODUCAO:
+    Kanban/lista OP; apontamento; baixa MP; registrar sobra/retalho; conclusão
+
+----------------------------------------------------------------------------------------------------
+F.3. Conclusão
+----------------------------------------------------------------------------------------------------
+
+  Conclusão OP: entra PA no estoque; libera política de faturamento do item.
+  Conclusão OS: marca serviço pronto a faturar.
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER:
+    [ ] PED LIBERADO gera OP-0001 automaticamente (ou botão “Gerar OP”)
+    [ ] Baixa de bobina MP reduz saldo; sobra registrada (MOV)
+    [ ] Conclusão aumenta saldo do PA
+    [ ] Item REVENDA aparece em “separação” sem OP
+    [ ] Inventário de ajuste exige perfil com SoD (não o mesmo que conta estoque crítico —
+        seguir ORGANIZACAO_USUARIOS / estoque)
+
+====================================================================================================
+FASE G — FISCAL OPERACIONAL: FOCUS NFe + TIT  [M05 + início M06]
+====================================================================================================
+
+Objetivo: emitir NF-e (homolog) a partir do PED e gerar títulos a receber.
+Docs: FATURAMENTO_GERACAO_COBRANCA; MAPA_FATURAMENTO_EXPLICADO;
+      estrategia_implantacao (Focus); CONTABILIDADE_FISCAL_SEM_FECHAMENTO;
+      CASOS_USO_M05/M06. Adapter: ARQUITETURA §7.1.
+
+----------------------------------------------------------------------------------------------------
+G.1. Adapter FocusNfeClient
+----------------------------------------------------------------------------------------------------
+
+  Interface interna estável:
+    emitirNfe(pedidoFaturaDto): ResultadoEmissao
+    consultarNfe(ref): Status
+    baixarXml/Pdf(ref)
+
+  Env: FOCUS_NFE_TOKEN + FOCUS_NFE_ENV=homologacao
+  Idempotency-Key por (empresa_id, ped_id, tentativa_logica)
+  XML/PDF → S3; metadados no banco
+  ERP NÃO inventa numeração oficial
+
+----------------------------------------------------------------------------------------------------
+G.2. Tela de faturamento
+----------------------------------------------------------------------------------------------------
+
+  Lista itens faturáveis do PED (após conclusão / política).
+  Faturamento parcial permitido (mesmo PED).
+  Ao AUTORIZAR NF:
+    - grava NF + chave
+    - gera TIT-… (parcelas conforme condição) — NF ≠ TIT (D0.16)
+    - baixa estoque de PA/REV conforme regra
+    - outbox NfAutorizada
+
+  CHECKPOINT — O QUE VOCÊ DEVE VER:
+    [ ] Em homolog Focus, NF autorizada com DANFE/PDF abrir no browser
+    [ ] TIT-0001 / TIT-0002 criados com vencimentos corretos
+    [ ] Reenviar a mesma emissão NÃO duplica NF nem TIT (idempotência)
+    [ ] Rejeição SEFAZ aparece com motivo legível; PED continua faturável
+
+====================================================================================================
+FASE H — COBRANÇA + ENTREGA + BAIXA (FLUXO FELIZ COMPLETO)  [M06 + M09]
+====================================================================================================
+
+Objetivo: fechar ORC→caixa na tela — o “filme completo”.
+Docs: FATURAMENTO…; RECEBIMENTO_BAIXA_COBRANCA; ENTREGA_CONFIRMACAO_CLIENTE;
+      INTEGRACAO_BANCARIA_MULTI_PROVIDER; MAPA_FATURAMENTO_EXPLICADO.
+
+----------------------------------------------------------------------------------------------------
+H.1. BankProvider (Inter sandbox primeiro)
+----------------------------------------------------------------------------------------------------
+
+  Interface:
+    emitirCobranca(titulos[]): COB
+    cancelar(cob_id)
+    parseWebhook(payload): EventoPago|…
+
+  Webhook público:
+    POST /webhooks/bank/{provider}
+      → valida assinatura
+      → grava webhook_inbox (UNIQUE event_id)
+      → enqueue job → BX idempotente
+
+----------------------------------------------------------------------------------------------------
+H.2. Entrega (ENT-)
+----------------------------------------------------------------------------------------------------
+
+  Ownership: módulo expedicao/logistica (DECISAO §5.1) — não dentro de TIT.
+  Se parâmetro “NF antes de expedir” = SIM → bloqueia ENT sem NF.
+
+----------------------------------------------------------------------------------------------------
+H.3. Baixa (BX-)
+----------------------------------------------------------------------------------------------------
+
+  Baixa total/parcial; nunca editar valor do TIT — só compensar.
+  Atualiza crédito do cliente; evento TituloBaixado.
+
+  CHECKPOINT — DEMO FINAL FASE 1 (gravar vídeo interno de 15 min):
+    [ ] ORC → aceite → PED → crédito → OP → conclusão → NF → TIT → COB → ENT → BX
+    [ ] Painel do PED mostra a timeline completa com códigos
+    [ ] Aging financeiro reflete o título até a BX
+    [ ] Auditoria mostra quem emitiu NF / quem baixou
+    [ ] Restart do worker + reentrega de webhook NÃO duplica BX
+
+====================================================================================================
+FASE I — PRODUÇÃO NA EC2 + VIRADA OPERACIONAL
+====================================================================================================
+
+Objetivo: o mesmo Compose na AWS, dados reais mínimos, contador alinhado.
+Docs: estrategia_implantacao_ja; HOMOLOGACAO_ERP_RLP; EXPORT_CONTADOR_FOLHA_LAYOUT;
+      PARAMETROS_EMPRESA_OFICIAIS; SEGURANCA §§6–8.
+
+----------------------------------------------------------------------------------------------------
+I.1. Deploy na EC2
+----------------------------------------------------------------------------------------------------
+
+  1. Via SSM: clonar repo OU puxar imagens do ECR/GHCR (tag = sha).
+  2. docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  3. migrate --force; seed APENAS parâmetros/naturezas (nunca clients reais via seed)
+  4. Nginx/Caddy → app:80; TLS ok
+  5. Cron/worker healthy; disk alarm CloudWatch básico
+  6. Backup: mysqldump diário → S3 + teste de restore mensal
+
+----------------------------------------------------------------------------------------------------
+I.2. Integrações produção (feature flags)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Focus: homolog → produção (flag)
+  [ ] Bank: Inter sandbox → Sicoob quando pronto (adapter; não reescrever FIN)
+  [ ] WhatsApp: pode ficar OFF no go-live (e-mail cobre aceite)
+  [ ] Kill-switch por provedor (SEGURANCA princípio 8)
+
+----------------------------------------------------------------------------------------------------
+I.3. Migração do dia da virada (NÃO importar milênio de XML)
+----------------------------------------------------------------------------------------------------
+
+  Conforme estrategia_implantacao_ja:
+
+    1. Clientes (cadastro) .............. CNPJ, razão, endereço, condição, limite, contatos
+    2. Produtos ......................... código, desc, NCM, unidade, CFOP, preço
+    3. Estoque saldo na data ............ quantidades do inventário de virada
+    4. Contas a receber/pagar abertas ... posição do dia
+    5. Saldos bancários / caixa ......... posição do dia
+    6. Faturamento acumulado Simples .... totais mensais (não todas as NF)
+
+  Histórico de NF de saída antiga: import XML depois se o contador exigir;
+  entradas: Focus distribuição ajuda — planejar, não bloquear go-live.
+
+----------------------------------------------------------------------------------------------------
+I.4. Homologação de aceite (sair da “construção”)
+----------------------------------------------------------------------------------------------------
+
+  Percorrer HOMOLOGACAO_ERP_RLP + CA do SRS §15.2.
+  Checklist mínimo go-live Fase 1:
+
+    [ ] 10 users com perfil correto (sem login compartilhado)
+    [ ] Fluxo feliz ORC→BX em produção/homolog final
+    [ ] Backup restore testado
+    [ ] Contador validou export mensal (XML + títulos + naturezas)
+    [ ] Parâmetros numéricos ratificados pela direção
+    [ ] Budget AWS + alarme ativos
+    [ ] Runbook: “Focus fora”, “banco fora”, “webhook falhou”
+
+====================================================================================================
+FASE J — DEPOIS DO GO-LIVE (NÃO MISTURAR COM A CONSTRUÇÃO INICIAL)
+====================================================================================================
+
+Só quando Fase 1 estiver estável (DECISAO §4.4):
+
+  Compras COT/OC + urgência ............... COMPRAS_COTACAO_URGENCIA
+  RMA / DEV ponto a ponto ................. POS_VENDA_*; DEVOLUCAO_VENDA_*
+  WhatsApp régua oficial .................. INTEGRACAO_WHATSAPP_BUSINESS_API
+  Comissões ............................... COMISSOES_VENDEDORES_DETALHADO
+  Frete gerencial ......................... FRETE_TRANSPORTADORAS
+  Industrialização REM- ................... INDUSTRIALIZACAO_EXTERNA_REMESSA
+  Manutenção BEM- ......................... MANUTENCAO_PREVENTIVA_MAQUINAS
+  Amostras / CQ ........................... AMOSTRAS_*; QUALIDADE_*
+  Pedidos recorrentes ..................... PEDIDOS_RECORRENTES_LEMBRETE_REPOSICAO
+  BankProvider Sicoob prod ................ INTEGRACAO_BANCARIA_*
+  EMP-00002 venda ......................... só com Contador+Direção
+  Lucro Real prep ......................... GER-006 / estudo_tributação
+
+====================================================================================================
+3. ROTEIRO DE TELAS (MAPA UI → TXT) — PARA JÁ VISUALIZAR O SISTEMA
+====================================================================================================
+
+  Menu                     Tela principal                 TXT âncora
+  -----------------------  -----------------------------  ---------------------------------
+  Cadastros → Parceiros    Form + Consultar CNPJ/CEP      CADASTRO_PARCEIROS + APIS_FREE
+  Cadastros → Produtos     Form + autocomplete NCM        CADASTRO_PRODUTOS_* + LISTAGEM_NCM
+  Comercial → Orçamentos   Editor ORC + link aceite       GERACAO_ORCAMENTO + APROVACAO_*
+  Comercial → Pedidos      Timeline PED                   GERACAO_PEDIDO + INDICE_FLUXO
+  Financeiro → Crédito     Limite / liberação             INCLUSAO_LIBERACAO_LIMITE_CREDITO
+  Produção → OPs           Kanban + apontamento           PRODUCAO_OPERACIONAL_*
+  Produção → OS            Lista OS                       ORDEM_SERVICO
+  Estoque → Saldos/MOV     Kardex + sobra                 ESTOQUE_FLUXO_* + SOBRA_BOBINA
+  Fiscal → Faturar         Emitir NF Focus                FATURAMENTO_* + MAPA_FATURAMENTO
+  Financeiro → Títulos     Aging TIT                      RECEBIMENTO_BAIXA_*
+  Financeiro → Cobranças   COB + status provider          INTEGRACAO_BANCARIA_*
+  Expedição → Entregas     ENT + confirmação              ENTREGA_CONFIRMACAO_CLIENTE
+  Admin → Usuários         Perfis RBAC                    ORGANIZACAO_USUARIOS_*
+  Admin → Parâmetros       Chaves oficiais                PARAMETROS_EMPRESA_OFICIAIS
+  Admin → Empresas         EMP-00001/2                    MULTI_EMPRESA_CNPJS_E_LIVROS
+  Gerencial → Export       Pacote contador                EXPORT_CONTADOR_FOLHA_LAYOUT
+
+Protótipos / wireframes textuais: AMOSTRAS_PROTOTIPOS.txt (quando couber) +
+formular sempre “mobile leve consulta / desktop operação”.
+
+====================================================================================================
+4. SEQUÊNCIA DE COMANDOS “DIA ZERO” (COLAR E EXECUTAR)
+====================================================================================================
+
+  # --- Local (notebook) ---
+  git clone <repo-erp-rlp> && cd erp-rlp
+  cp .env.example .env
+  # editar DB_*, APP_URL=http://localhost:8080
+  docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+  docker compose exec app php artisan key:generate
+  docker compose exec app php artisan migrate --seed
+  docker compose exec app php artisan db:seed --class=IbgeMunicipiosSeeder
+  docker compose exec app php artisan db:seed --class=NcmSeeder
+  # browser
+  xdg-open http://localhost:8080
+
+  # --- EC2 (via SSM) — depois da Fase C estável ---
+  cd /opt/erp-rlp
+  git pull   # ou docker pull ghcr.io/.../api:$SHA
+  export $(sudo aws ssm get-parameters-by-path --path /rlp/prod --with-decryption \
+           --query 'Parameters[*].[Name,Value]' --output text | sed 's#/rlp/prod/##')
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+  docker compose exec app php artisan migrate --force
+  docker compose exec app php artisan config:cache
+  curl -fsS https://erp.rlpetiquetas.com.br/api/v1/health
+
+====================================================================================================
+5. CHECKLIST MESTRE — “SISTEMA PRONTO” (FASE 1)
+====================================================================================================
+
+Infra
+  [ ] EC2 t4g + EIP + SSM + SG sem SSH
+  [ ] HTTPS no domínio
+  [ ] Docker Compose prod saudável (api+worker+nginx[+mysql])
+  [ ] Backup MySQL → S3 com restore testado
+  [ ] Budget AWS ≤ teto Cenário D
+
+Fundação
+  [ ] Login + 7 perfis + SoD básica
+  [ ] empresa_id em todas tabelas de negócio
+  [ ] audit_log + outbox + webhook_inbox
+  [ ] OpenAPI publicado em nonprod
+
+Cadastros + APIs
+  [ ] PAR com CNPJ/CEP auto-preenchidos (proxy + cache)
+  [ ] Produtos com NCM local
+  [ ] Municípios IBGE locais
+
+Fluxo feliz
+  [ ] ORC → link aceite → PED snapshot
+  [ ] Crédito libera PED
+  [ ] OP/OS + MOV + conclusão
+  [ ] NF Focus homolog/prod + TIT
+  [ ] COB sandbox + ENT + BX idempotente
+
+Virada
+  [ ] Clientes/produtos/estoque/financeiro posição dia importados
+  [ ] Faturamento acumulado Simples lançado
+  [ ] Contador recebeu 1º pacote export de teste
+  [ ] Homologação assinada (HOMOLOGACAO_ERP_RLP)
+
+Só então: abrir FASE J.
+
+====================================================================================================
+6. ANTI-PADRÕES (SE APARECER, PARE E CORRIJA)
+====================================================================================================
+
+  ✗ Começar pela tela “bonita” de dashboard sem PED/ORC
+  ✗ Microsserviço por módulo
+  ✗ NAT+ALB+Fargate no dia 1 “porque é padrão AWS”
+  ✗ float/double em valor ou estoque
+  ✗ DELETE físico de NF/TIT/MOV
+  ✗ Chamar BrasilAPI em loop/job sem cache
+  ✗ Aceite de orçamento só por WhatsApp pessoal
+  ✗ Misturar NF e título no mesmo registro
+  ✗ Implementar LAI / livro paralelo
+  ✗ EMP-00002 vendendo antes de escopo fechado
+  ✗ Fase 2 (RMA, comissão…) antes do fluxo feliz estável
+
+====================================================================================================
+7. ÍNDICE RÁPIDO — QUAL TXT ABRIR EM CADA DOR
+====================================================================================================
+
+  “Como desenhar a AWS barata e segura?” ..... SEGURANCA_* + ESTIMATIVA_*
+  “Como organizar o código?” ................. ARQUITETURA_* + DECISAO_MODELO_*
+  “O que implementar primeiro?” .............. DECISAO §4.4 + este guia Fases C–H
+  “Como preencher CNPJ/CEP/NCM?” ............. APIS_FREE_* + CADASTRO_PARCEIROS
+  “Qual o fluxo do pedido ao caixa?” ......... INDICE_FLUXO_* + MAPA_FATURAMENTO_*
+  “O que migrar no go-live?” ................. estrategia_implantacao_ja
+  “Quem pode fazer o quê?” ................... ORGANIZACAO_USUARIOS_*
+  “O que está faltando?” ..................... LACUNAS_PENDENCIAS_SISTEMA
+  “Regra canônica de um processo?” ........... MANUAL_UNICO_ERP_RLP + TXT unitário
+  “Caso de uso formal?” ...................... CASOS_USO_M01…M11
+
+====================================================================================================
+Fim — GUIA_PASSO_A_PASSO_CONSTRUCAO_ERP_RLP.txt
+Próximo passo prático recomendado: executar FASE A.1–A.5 (conta + EC2 + Docker no host)
+e em paralelo FASE B–C no notebook (Compose local + login RBAC), até o CHECKPOINT
+da Fase C ficar verde. Depois D (formulários com APIs) e só então E–H (fluxo).
+====================================================================================================

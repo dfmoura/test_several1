@@ -1,0 +1,154 @@
+====================================================================================================
+CONTABILIDADE E FISCAL — O ERP NÃO FECHA, MAS ENTREGA TUDO COMO SE FECHASSE
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: estrategia_implantacao_ja.txt + estudo_tributação.txt + VERIFICACAO_IMPOSTO_ORCAMENTO.txt +
+      REVISAO_ICMS_ST.txt + REVISAO_ANTECIPACAO_ICMS_MG.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + CONTROLE_ESTOQUE_PROFISSIONAL.txt +
+      APIS_FREE_CONSULTA_CADENCIA.txt + ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+DECISÃO OFICIAL DE ESCOPO:
+
+  O NOVO ERP NÃO FECHARÁ A CONTABILIDADE NEM O FISCAL DA EMPRESA.
+  Quem fecha é o CONTADOR (escritório / profissional responsável).
+
+  O ERP, porém, DEVE ESTAR APTO A FORNECER TODAS AS INFORMAÇÕES,
+  DOCUMENTOS E RELATÓRIOS necessários para que o fechamento seja
+  feito com base fiel — "como se" o sistema fechasse, sem assumir
+  a responsabilidade legal de ECD, ECF, SPED, DAS, DCTF, etc.
+
+Este documento deixa a fronteira explícita para não haver expectativa
+errada na implantação nem lacuna de dados na operação.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE SIGNIFICA "NÃO FECHAR"
+----------------------------------------------------------------------------------------------------
+
+O ERP NÃO será, na Fase 1 (e por política atual):
+
+  * Escrituração contábil oficial (ECD) com partidas dobradas homologadas
+  * Apuração e transmissão do Simples (PGDAS-D) como produto final
+  * SPED Fiscal / Contribuições / Bloco K como entrega oficial à RFB
+  * ECD/ECF, DIRF, eSocial completo, EFD-Reinf como módulo de fechamento
+  * Substituição do papel do contador perante o Fisco
+
+O ERP NÃO calcula "imposto a recolher do mês" como verdade jurídica
+final — pode ESTIMAR para gestão (ex.: acumulado Simples), mas a
+guia e a declaração são do contador / portal oficial.
+
+----------------------------------------------------------------------------------------------------
+2. O QUE SIGNIFICA "APTO COMO SE FECHASSE"
+----------------------------------------------------------------------------------------------------
+
+Para cada obrigação, o ERP guarda e exporta a MATÉRIA-PRIMA:
+
+  Obrigação / necessidade          O que o ERP entrega
+  ------------------------------   ------------------------------------------
+  NF-e / NFS-e emitidas            XML + eventos via Focus; espelho no ERP
+  NF-e de entrada                  XML via Focus; vínculo OC/estoque
+  Manifestação destinatário        registro / status
+  Faturamento acumulado Simples    relatório mensal/anual (estratégia_...)
+  Itens por NCM/CFOP/CST/CSOSN     relatório fiscal de saída/entrada
+  ICMS-ST / antecipação MG         flags + valores destacados + guias pagas
+  Inventário valorizado            saldo × custo médio (Bloco H futuro)
+  Produção / consumo               OP + MOV (base Bloco K futuro)
+  Contas a pagar/receber           aging, baixas, conciliação gerencial
+  Naturezas / DRE gerencial        de-para para plano do contador
+  Patrimônio                       lista de bens + NFs de compra
+  Pagamentos de pessoal            líquidos e encargos pagos (RH_...)
+  Cadastros                        parceiros, produtos, parâmetros fiscais
+
+Formato: tela + PDF/Excel + (ideal) exportação CSV/JSON acordada com
+o escritório. Perfil CONSULTA para o contador.
+
+----------------------------------------------------------------------------------------------------
+3. FRONTEIRA FISCAL NO DIA A DIA
+----------------------------------------------------------------------------------------------------
+
+  ERP FAZ:
+    * Emitir NF-e/NFS-e (Focus) com cadastros corretos
+    * Validar NCM/CFOP/CSOSN sugeridos
+    * Guardar XML 5+ anos (Focus + metadados)
+    * Alertar faturamento × limite Simples
+    * Registrar guias PAGAS (valor, período, natureza 3.02.xx)
+
+  CONTADOR FAZ:
+    * Parametrizar / revisar regras fiscais sensíveis
+    * Apurar DAS, ST, antecipação, DIFAL quando couber
+    * Transmitir obrigações acessórias
+    * Orientar mudança Simples → Lucro Real
+    * Assinar/responsabilizar peças contábeis
+
+  EMPRESA (RLP) FAZ:
+    * Operar o ERP com disciplina (cadastro, estoque, NF)
+    * Não "jeitar" CFOP na mão para fechar venda
+    * Enviar exports no calendário fechado com o contador
+
+----------------------------------------------------------------------------------------------------
+4. FRONTEIRA CONTÁBIL
+----------------------------------------------------------------------------------------------------
+
+  ERP: regime gerencial (caixa + competência gerencial), naturezas,
+       bancos, estoque valorizado, custos de OP.
+
+  CONTADOR: plano de contas oficial, lançamentos de encerramento,
+            depreciação fiscal, provisões, balanço, DRE oficial.
+
+  Ponte: de-para natureza_gerencial → conta contábil; exportação
+  mensal dos movimentos. Se um dia a empresa quiser contabilidade
+  integrada nativa, será projeto à parte — não é o escopo atual.
+
+----------------------------------------------------------------------------------------------------
+5. PREPARAÇÃO PARA O LUCRO REAL (sem fechar o fiscal agora)
+----------------------------------------------------------------------------------------------------
+
+Já nascer certo (mesmo no Simples):
+
+  * Impostos destacados nas entradas (crédito futuro)
+  * Custo médio e inventário auditável
+  * OP/MOV rastreáveis (Bloco K)
+  * Separação MP / REV / PA / EMB
+  * Histórico de XMLs completo pós-Focus
+
+Isso é "apto a fechar" no futuro — sem implementar apuração de PIS/COFINS
+não cumulativo agora como produto oficial.
+
+----------------------------------------------------------------------------------------------------
+6. ESTIMATIVAS GERENCIAIS PERMITIDAS (COM RÓTULO)
+----------------------------------------------------------------------------------------------------
+
+Telas podem mostrar:
+  * "Estimativa de DAS sobre faturamento (não é a guia oficial)"
+  * "Imposto simulado no orçamento" (VERIFICACAO_IMPOSTO_...)
+
+Sempre com disclaimer. Nunca botão "Transmitir PGDAS" no ERP atual.
+
+----------------------------------------------------------------------------------------------------
+7. CALENDÁRIO DE ENTREGA AO CONTADOR (OPERACIONAL)
+----------------------------------------------------------------------------------------------------
+
+  Diário .... XMLs Focus ok; divergências de entrada tratadas
+  Semanal ... títulos e conciliação gerencial
+  Mensal .... faturamento; inventário resumido; guias pagas;
+              pagamentos RH; DRE gerencial; lista bens novos/baixados
+  Anual ..... inventário geral; acumulado Simples; património
+
+Datas alinhadas ao fechamento do escritório (não inventar prazo fiscal
+no ERP sem o contador).
+
+----------------------------------------------------------------------------------------------------
+8. CHECKLIST DE ACEITE DE ESCOPO
+----------------------------------------------------------------------------------------------------
+
+  [ ] Documento de escopo lido por direção + contador
+  [ ] Perfil CONSULTA ativo para o escritório
+  [ ] Exportações mínimas definidas (NF, financeiro, estoque, RH)
+  [ ] De-para de naturezas acordado
+  [ ] Disclaimer em qualquer "estimativa de imposto"
+  [ ] Nenhum módulo vendido como "fecha seu imposto sozinho"
+
+====================================================================================================
+Fim — CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+Não fechamos contábil/fiscal no ERP — mas não faltará dado para quem fecha.
+====================================================================================================

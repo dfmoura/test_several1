@@ -1,0 +1,309 @@
+====================================================================================================
+INCLUSÃO E LIBERAÇÃO DE LIMITE DE CRÉDITO DE CLIENTES — POLÍTICA E PROCESSO NO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: CADASTRO_PARCEIROS.txt (seção 4.1 — limite e regra de bloqueio) +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt (alçadas, SoD e auditoria) +
+      GERACAO_ORCAMENTO.txt (ciclo orçamento -> pedido) + estrategia_implantacao_ja.txt (Fase 1)
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento detalha COMO O LIMITE DE CRÉDITO DE CLIENTE É INCLUÍDO, ALTERADO, CONSUMIDO
+E LIBERADO no novo ERP. Ele transforma o campo "limite de crédito e regra de bloqueio"
+previsto no cadastro de clientes (CADASTRO_PARCEIROS.txt, seção 4.1) em um PROCESSO
+completo: política de concessão, motor de verificação automática, workflow de liberação
+de pedidos bloqueados e trilha de auditoria.
+
+Conceito central: LIMITE É POLÍTICA, LIBERAÇÃO É EXCEÇÃO. O sistema decide sozinho na
+regra (dentro do limite e sem atraso = venda flui sem intervenção humana); a intervenção
+humana só existe na exceção (bloqueio), sempre com alçada definida, justificativa
+registrada e log. Nenhuma venda a prazo acontece "no fio do bigode" fora do ERP.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. TODO CLIENTE TEM LIMITE REGISTRADO NO ERP — inclusive limite ZERO.
+    Cliente sem análise de crédito nasce com limite 0 (vende somente à vista/antecipado).
+    "Sem limite cadastrado" não pode significar "sem limite de venda": o campo é
+    obrigatório e o padrão do sistema é 0, nunca em branco ou ilimitado.
+
+ 2. QUEM VENDE NÃO DEFINE NEM LIBERA CRÉDITO.
+    Já definido na segregação de funções (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt,
+    seção 4, par nº 3): emitir pedido de venda x alterar limite de crédito são
+    incompatíveis na mesma pessoa. O COMERCIAL solicita; o FINANCEIRO analisa e
+    concede; a DIREÇÃO aprova acima da alçada do financeiro (seção 5).
+
+ 3. O BLOQUEIO É AUTOMÁTICO; A LIBERAÇÃO É MANUAL, IDENTIFICADA E JUSTIFICADA.
+    O ERP bloqueia sozinho (limite excedido ou títulos em atraso). Nenhum bloqueio é
+    contornado "por fora" (faturar sem pedido, dividir pedido para caber no limite etc.).
+    Toda liberação tem autor, data/hora, motivo e alcance registrados (seção 7).
+
+ 4. LIBERAÇÃO PONTUAL NÃO É AUMENTO DE LIMITE.
+    Liberar UM pedido bloqueado vale para AQUELE pedido. Se o cliente cresceu e o limite
+    ficou pequeno, o caminho correto é o workflow de REVISÃO DE LIMITE (seção 4) — nunca
+    liberar pedido a pedido cronicamente (o relatório da seção 8 denuncia esse desvio).
+
+ 5. LIMITE NUNCA É EDITADO "NA MÃO" SEM RASTRO.
+    Alteração de limite só existe via workflow (solicitação -> análise -> aprovação) e
+    entra na trilha de auditoria obrigatória do ERP (ORGANIZACAO_USUARIOS_PERFIS_ACESSO,
+    seção 7 — alteração de limite de crédito é um dos eventos logados desde o dia 1).
+
+ 6. VALORES EM DECIMAL EXATO, conforme PADRAO_DECIMAL_CALCULOS.txt — limite, exposição
+    e saldo disponível são monetários (2 casas), nunca float.
+
+----------------------------------------------------------------------------------------------------
+2. CONCEITOS E FÓRMULA DA EXPOSIÇÃO (o que o sistema calcula)
+----------------------------------------------------------------------------------------------------
+
+  LIMITE DE CRÉDITO (R$) ....... valor máximo de EXPOSIÇÃO total aceito para o cliente.
+                                 Campo do cadastro de parceiros, editável só por workflow.
+
+  EXPOSIÇÃO (R$) ............... tudo o que o cliente deve ou está prestes a dever:
+
+     EXPOSIÇÃO = TÍTULOS EM ABERTO (contas a receber, vencidos e a vencer)
+               + PEDIDOS FATURADOS ainda não baixados no financeiro
+               + PEDIDOS APROVADOS ainda não faturados (carteira)
+               (- ADIANTAMENTOS/créditos do cliente, se houver)
+
+     Orçamento NÃO consome limite (é só proposta). O consumo começa quando o orçamento
+     APROVADO vira PEDIDO (GERACAO_ORCAMENTO.txt, seção 9.3) — é nesse momento que o
+     ERP roda a verificação de crédito (seção 6).
+
+  SALDO DISPONÍVEL (R$) ........ LIMITE - EXPOSIÇÃO. Visível para o comercial em modo
+                                 LEITURA (matriz de perfis: COMERCIAL = L em limite de
+                                 crédito) — o vendedor ENXERGA o disponível para não
+                                 vender no escuro, mas não edita.
+
+  SITUAÇÃO DE CRÉDITO DO CLIENTE (status calculado, não editável):
+     NORMAL ......... sem atraso e com saldo disponível
+     ATENÇÃO ........ exposição >= 80% do limite OU título vencido há 1–7 dias
+     BLOQUEADO ...... título vencido acima da tolerância (seção 6.2) OU exposição
+                      acima do limite
+     BLOQUEIO MANUAL  travado pelo financeiro/direção por decisão comercial ou risco
+                      (ex.: cheque devolvido, recuperação judicial) — só sai por
+                      liberação manual de quem bloqueou ou alçada superior
+
+----------------------------------------------------------------------------------------------------
+3. INCLUSÃO DO LIMITE (cliente novo — análise de crédito)
+----------------------------------------------------------------------------------------------------
+
+3.1 REGRA DE ENTRADA
+  * Cliente novo nasce do cadastro de parceiros (validação RFB/SINTEGRA — regras da
+    seção 4.2 do CADASTRO_PARCEIROS.txt) com LIMITE = 0.
+  * Com limite 0 ele já pode comprar: À VISTA, PIX antecipado ou 50% antecipado —
+    condição de pagamento sem risco não consome limite se o recebimento antecede o
+    faturamento (parametrizar no ERP quais condições são "sem crédito").
+  * Venda A PRAZO exige análise de crédito ANTES do primeiro pedido faturado.
+
+3.2 ANÁLISE DE CRÉDITO (checklist do financeiro — anexar evidências no cadastro)
+  [ ] Cartão CNPJ ativo e data de abertura (empresa < 2 anos = critério conservador)
+  [ ] IE ativa no SINTEGRA/CCC (cliente contribuinte)
+  [ ] Consulta a bureau de crédito (Serasa/SPC/Boa Vista — conforme contrato vigente):
+      pendências, protestos, cheques devolvidos, score
+  [ ] Referências comerciais (2–3 fornecedores atuais do cliente, contato registrado)
+  [ ] Porte/capital social x volume pretendido de compra mensal
+  [ ] Histórico no sistema antigo, se cliente migrado (seção 9)
+
+3.3 DEFINIÇÃO DO VALOR INICIAL (régua sugerida — parametrizável)
+  * Ponto de partida: LIMITE INICIAL = 1 x compra mensal estimada, limitado a um teto
+    de entrada (sugestão: R$ 5.000 para cliente sem histórico conosco).
+  * Cliente com restrição relevante no bureau: limite 0 (somente à vista) até resolver.
+  * Cliente indicado/grupo já conhecido: pode partir da régua do grupo, com aprovação
+    da direção se acima da alçada (seção 5).
+  * Após 3–6 meses de pagamentos pontuais: revisão automática sugerida pelo ERP
+    (seção 4.3) — o limite CRESCE com histórico, não com pressão comercial.
+
+3.4 REGISTRO NO ERP (obrigatório ao incluir o limite)
+  * Valor do limite + data da análise + validade da análise (sugestão: 12 meses)
+  * Quem analisou (FINANCEIRO) e quem aprovou (alçada da seção 5)
+  * Evidências anexadas (consultas, referências)
+  * Condição de pagamento máxima autorizada (ex.: até 28/35/42 DDL)
+
+----------------------------------------------------------------------------------------------------
+4. ALTERAÇÃO / REVISÃO DE LIMITE (workflow)
+----------------------------------------------------------------------------------------------------
+
+4.1 QUEM PODE PEDIR: COMERCIAL (aumento p/ atender pedido maior), FINANCEIRO (redução
+    por atraso/risco), DIREÇÃO (qualquer sentido). O pedido é um REGISTRO no ERP (ou
+    e-mail padronizado, enquanto o ERP não tiver workflow), nunca verbal.
+
+4.2 FLUXO
+    SOLICITAÇÃO (valor pedido + motivo + pedido de venda vinculado, se houver)
+      -> ANÁLISE do FINANCEIRO (reconsulta bureau se análise vencida; pontualidade
+         dos últimos 6 meses; exposição atual)
+      -> APROVAÇÃO conforme alçada (seção 5)
+      -> EFETIVAÇÃO no cadastro (novo valor + vigência) com log automático
+    Recusa também é registrada (motivo) — histórico de crédito do cliente é ativo valioso.
+
+4.3 REVISÕES PERIÓDICAS (o ERP deve sugerir, o financeiro decide)
+  * AUMENTO: clientes NORMAIS com 6+ meses de pontualidade e uso recorrente >= 80% do
+    limite — candidatos a aumento (relatório mensal automático).
+  * REDUÇÃO/CORTE: 2+ ocorrências de atraso > 15 dias em 6 meses, protesto ou piora
+    relevante no bureau — reduzir limite ou zerar (voltar a à vista).
+  * REVALIDAÇÃO: análise de crédito vencida (12 meses) trava AUMENTOS até reconsulta
+    (não bloqueia a operação corrente dentro do limite vigente).
+
+----------------------------------------------------------------------------------------------------
+5. ALÇADAS DE APROVAÇÃO (concessão/alteração de limite e liberação de bloqueio)
+----------------------------------------------------------------------------------------------------
+
+  Valores sugeridos — calibrar com a direção e parametrizar no ERP:
+
+  AÇÃO                                          FINANCEIRO           DIREÇÃO
+  ------------------------------------------    -----------------    ------------------
+  Incluir/alterar limite até R$ 10.000          aprova sozinho       —
+  Incluir/alterar limite acima de R$ 10.000     analisa e propõe     aprova
+  Liberar pedido bloqueado por LIMITE
+    (estouro até 10% do limite, 1x por mês)     aprova sozinho       —
+  Liberar pedido bloqueado por LIMITE
+    (estouro > 10% ou reincidente no mês)       analisa e propõe     aprova
+  Liberar pedido bloqueado por ATRASO           analisa e propõe     aprova
+  Bloqueio/desbloqueio MANUAL de cliente        registra             aprova
+  Zerar limite (corte de crédito)               aprova sozinho       comunicada
+
+  Regras de segregação (reforço da matriz de perfis):
+  * COMERCIAL: nunca aprova nem libera — apenas solicita e consulta (perfil = L).
+  * ADMIN: tem o poder técnico, mas NÃO usa na rotina (princípio 6 dos usuários) —
+    liberação por ADMIN aparece destacada no relatório de auditoria.
+  * Quem SOLICITOU a liberação não pode ser quem APROVA (mesmo dentro do financeiro,
+    se houver mais de um usuário).
+
+----------------------------------------------------------------------------------------------------
+6. MOTOR DE VERIFICAÇÃO AUTOMÁTICA (onde e quando o ERP checa)
+----------------------------------------------------------------------------------------------------
+
+6.1 PONTOS DE VERIFICAÇÃO NO FLUXO (amarrado ao ciclo do orçamento/pedido)
+  1. AO CALCULAR/ENVIAR ORÇAMENTO ..... só ALERTA (não bloqueia): mostra ao
+     orçamentista a situação de crédito e o saldo disponível — evita vender o que
+     não poderá faturar (complementa as validações da seção 8 do GERACAO_ORCAMENTO.txt).
+  2. AO CONVERTER ORÇAMENTO EM PEDIDO . VERIFICAÇÃO PLENA (é aqui que bloqueia):
+     recalcula exposição incluindo o novo pedido; se estourar limite ou houver
+     atraso acima da tolerância -> pedido entra em BLOQUEADO POR CRÉDITO e NÃO
+     segue para produção.
+  3. NO FATURAMENTO ................... re-verificação: se entre a aprovação e o
+     faturamento o cliente atrasou títulos, o faturamento trava e exige nova
+     liberação (a liberação da etapa 2 não "vale para sempre" — seção 7.4).
+
+6.2 REGRAS DE BLOQUEIO AUTOMÁTICO (parâmetros iniciais sugeridos)
+  * POR LIMITE: EXPOSIÇÃO + valor do novo pedido > LIMITE -> bloqueia.
+  * POR ATRASO: qualquer título vencido há mais de 3 dias corridos (tolerância p/
+    compensação de boleto) -> bloqueia NOVOS pedidos, independentemente do limite.
+  * Os dois parâmetros (dias de tolerância, % de alerta ATENÇÃO) ficam em tabela de
+    parâmetros com vigência — nunca hardcoded (mesmo princípio 1.2 do orçamento).
+
+6.3 O QUE O BLOQUEIO TRAVA (e o que não trava)
+  * TRAVA: conversão em pedido, liberação para produção (OP) e faturamento a prazo.
+  * NÃO TRAVA: orçar, cadastrar, receber pagamento, faturar À VISTA/antecipado
+    (a venda sem risco continua possível — o bloqueio é de CRÉDITO, não do cliente).
+
+----------------------------------------------------------------------------------------------------
+7. LIBERAÇÃO DE PEDIDO BLOQUEADO (o processo da exceção)
+----------------------------------------------------------------------------------------------------
+
+7.1 FILA DE CRÉDITO
+  Todo pedido bloqueado cai numa FILA visível ao FINANCEIRO (e à direção), com:
+  cliente, valor do pedido, motivo do bloqueio (limite/atraso/manual), exposição atual,
+  limite, títulos vencidos (valor e dias), histórico de liberações do cliente no mês.
+  O comercial vê o SEU pedido como "BLOQUEADO — em análise de crédito" (sem valores de
+  terceiros) e pode anexar contexto (ex.: "cliente pagará o vencido hoje, comprovante").
+
+7.2 DECISÕES POSSÍVEIS (sempre com justificativa gravada)
+  a) LIBERAR O PEDIDO ........... exceção pontual dentro da alçada (seção 5).
+                                  Escopo: SOMENTE este pedido, com validade (7.4).
+  b) LIBERAR CONDICIONADO ....... ex.: libera após compensar o título vencido, ou
+                                  mediante 50% antecipado — o ERP mantém o pedido
+                                  aguardando a condição e libera sozinho quando ela
+                                  ocorre (baixa do título / recebimento do sinal).
+  c) PROPOR REVISÃO DE LIMITE ... quando o bloqueio é recorrente e o cliente é bom
+                                  pagador — segue o workflow da seção 4 (o correto,
+                                  em vez de liberar toda semana).
+  d) RECUSAR .................... pedido volta ao comercial com o motivo; renegociar
+                                  condição (à vista, parcial) ou aguardar regularização.
+
+7.3 REGISTRO OBRIGATÓRIO DA LIBERAÇÃO (trilha de auditoria)
+  * Quem liberou (login individual — nunca compartilhado), data/hora
+  * Motivo do bloqueio e justificativa da liberação (texto obrigatório, mínimo definido)
+  * Valores no momento: limite, exposição, valor liberado, dias de atraso (fotografia,
+    no mesmo espírito do snapshot do orçamento — seção 9.2 do GERACAO_ORCAMENTO.txt)
+  * Alçada aplicada (financeiro sozinho x direção)
+
+7.4 VALIDADE DA LIBERAÇÃO
+  * A liberação vale para O PEDIDO liberado e expira no faturamento dele ou em 7 dias
+    corridos (o que ocorrer primeiro). Pedido liberado e não faturado no prazo volta
+    para a fila se a situação de crédito persistir.
+  * Liberação NÃO altera limite, NÃO desbloqueia outros pedidos e NÃO remove o status
+    BLOQUEADO do cliente — cada exceção é individual.
+
+----------------------------------------------------------------------------------------------------
+8. AUDITORIA, RELATÓRIOS E INDICADORES
+----------------------------------------------------------------------------------------------------
+
+  EVENTOS LOGADOS DESDE O DIA 1 (já previsto na seção 7 dos usuários/perfis):
+  alteração de limite, bloqueio/desbloqueio manual, liberação de pedido bloqueado,
+  alteração dos parâmetros de crédito (tolerância de atraso, % de alerta).
+
+  RELATÓRIO MENSAL DE CRÉDITO (revisado pela DIREÇÃO — quem revisa não executa):
+  * Todas as liberações do mês (por quem, valor, motivo) — liberações recorrentes do
+    mesmo cliente indicam limite errado ou exceção virando regra
+  * Alterações de limite do mês (antes/depois, quem aprovou)
+  * Clientes em ATENÇÃO e BLOQUEADO, com exposição e atraso
+  * Liberações feitas por ADMIN (deveria ser zero)
+
+  INDICADORES SUGERIDOS:
+  * % de pedidos bloqueados sobre pedidos emitidos (saúde da política — muito alto =
+    limites defasados; zero = política frouxa demais)
+  * Prazo médio de decisão da fila de crédito (meta: mesmo dia útil)
+  * Inadimplência (valor vencido / carteira) por faixa de limite
+  * Exposição total da carteira x limite total concedido
+
+----------------------------------------------------------------------------------------------------
+9. CARGA INICIAL (Fase 1 da implantação)
+----------------------------------------------------------------------------------------------------
+
+  A Fase 1 já prevê migrar "limite de crédito e os títulos em aberto" junto com os
+  clientes ativos (CADASTRO_PARCEIROS.txt, seção 4.3). Complementos para o crédito
+  funcionar no dia 1:
+
+  1. Migrar clientes ativos COM o limite do sistema atual; cliente sem limite definido
+     lá entra com limite 0 aqui (princípio 1) — a régua da seção 3.3 define o valor
+     na primeira compra a prazo.
+  2. Migrar TODOS os títulos em aberto ANTES de ativar o motor de bloqueio — exposição
+     calculada sobre carteira incompleta bloquearia (ou liberaria) errado.
+  3. Rodar 1 semana em MODO ALERTA (verifica e avisa, sem travar) para calibrar
+     parâmetros e limpar falsos positivos (títulos migrados errados, adiantamentos
+     não lançados). Só então ativar o BLOQUEIO efetivo.
+  4. Definir por escrito as alçadas (seção 5) e treinar comercial + financeiro no
+     fluxo da fila de crédito ANTES da virada.
+  5. Agendar a primeira rodada de revisão de limites para 90 dias após a virada.
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST RÁPIDO POR PAPEL
+----------------------------------------------------------------------------------------------------
+
+  COMERCIAL
+   1. Consultou o saldo disponível do cliente antes de fechar a proposta?
+   2. Pedido bloqueou? Solicitar liberação PELO SISTEMA com contexto — nunca contornar.
+   3. Cliente bom estourando limite todo mês? Solicitar REVISÃO de limite, não liberação.
+
+  FINANCEIRO
+   1. Cliente novo a prazo: análise completa (3.2) anexada e limite dentro da alçada?
+   2. Fila de crédito zerada no dia (decisão registrada em cada pedido)?
+   3. Liberação condicionada: condição foi configurada no ERP (não "de cabeça")?
+   4. Revisões sugeridas pelo sistema (aumentos/cortes) tratadas no mês?
+
+  DIREÇÃO
+   1. Aprovações acima da alçada respondidas em até 1 dia útil?
+   2. Relatório mensal de crédito revisado e assinado (seção 8)?
+   3. Exceções recorrentes viraram revisão de política (limite/parâmetros)?
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Valores de alçada, teto de
+limite inicial, tolerância de atraso e percentuais de alerta são SUGESTÕES iniciais e devem
+ser calibrados pela direção e revisados após os primeiros 90 dias de operação. A contratação
+e o uso de bureau de crédito (Serasa/SPC) e o tratamento de dados de PF observam a LGPD.
+Nem todo ERP de PME possui workflow de aprovação nativo — nesse caso, aplicar os controles
+compensatórios (registro por e-mail padronizado + relatório mensal revisado pela direção),
+como já definido na organização de usuários e perfis de acesso.
+====================================================================================================

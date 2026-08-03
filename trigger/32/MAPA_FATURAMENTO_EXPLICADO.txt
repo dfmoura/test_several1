@@ -1,0 +1,349 @@
+====================================================================================================
+MAPA DE FATURAMENTO EXPLICADO — VISÃO ÚNICA DO QUE VIRA NOTA E COBRANÇA
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real)
+Base: INDICE_FLUXO_OPERACIONAL.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      RECEBIMENTO_BAIXA_COBRANCA.txt + CONCLUSAO_PRODUCAO.txt +
+      GERACAO_PEDIDO.txt + ENTREGA_CONFIRMACAO_CLIENTE.txt +
+      INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt +
+      DEVOLUCAO_VENDA_PONTA_A_PONTA.txt + FRETE_TRANSPORTADORAS.txt +
+      COMISSOES_VENDEDORES_DETALHADO.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Este TXT é o MAPA mental do faturamento — não substitui o procedimento
+detalhado em FATURAMENTO_GERACAO_COBRANCA.txt. Aqui a pergunta é:
+"de onde vem, o que nasce, para onde vai e o que NÃO misturar".
+
+Leia este mapa para entender. Use FATURAMENTO_... para operar.
+Use RECEBIMENTO_... para baixar. Use DEVOLUCAO_... para desfazer.
+
+----------------------------------------------------------------------------------------------------
+1. IDEIA CENTRAL (em uma frase)
+----------------------------------------------------------------------------------------------------
+
+  Faturar = transformar o PEDIDO apto em DOCUMENTO FISCAL (NF) +
+            COBRANÇA FINANCEIRA (TIT-/COB-), sem inventar preço nem
+            numeração fiscal, e sem fechar apuração de imposto no ERP.
+
+  Três eixos andam juntos, mas não são a mesma coisa:
+
+    FISCAL ......... NF-e / NFS-e (Focus → SEFAZ/prefeitura)
+    FINANCEIRO ..... TIT- → COB- → BX- (dinheiro e crédito)
+    LOGÍSTICO ...... ENT- (saiu / chegou)
+
+  Um PED pode estar "entregue" e ainda "a receber".
+  Um PED pode ter "sinal pago" e ainda "sem NF".
+  Isso é normal — o mapa abaixo mostra quando cada eixo fecha.
+
+----------------------------------------------------------------------------------------------------
+2. MAPA GERAL (visão de cima)
+----------------------------------------------------------------------------------------------------
+
+                    ┌──────────────┐
+                    │  ORC → PED   │  preço e condição TRAVADOS
+                    └──────┬───────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+           ▼               ▼               ▼
+      item PRODUCAO   item SERVICO    item REVENDA
+           │               │               │
+           ▼               ▼               ▼
+         OP + PA           OS            separação
+           │               │               │
+           └───────────────┼───────────────┘
+                           │
+                           ▼
+              ┌────────────────────────┐
+              │  APTOS A FATURAR?      │
+              │  (checklist §4)        │
+              └────────────┬───────────┘
+                           │ SIM
+                           ▼
+              ┌────────────────────────┐
+              │  EMISSÃO FISCAL        │
+              │  Focus → NF autorizada │
+              │  (chave 44 / NFS-e)    │
+              └────────────┬───────────┘
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+           ▼               ▼               ▼
+      baixa estoque    gera TIT-      libera ENT-
+      PA / REV         (1..N parc.)   (expedição)
+                           │
+                           ▼
+                      COB- (banco)
+                     boleto / PIX
+                           │
+                           ▼
+                      BX- (baixa)
+                   libera limite
+                   alimenta natureza
+
+  Exceção controlada ANTES da NF:
+    sinal / adiantamento → TIT- + COB- sem NF integral
+    (libera produção; fiscal conforme contador).
+
+  Exceção DEPOIS da NF:
+    cancelamento (prazo legal) OU DEV- (devolução ponta a ponta).
+
+----------------------------------------------------------------------------------------------------
+3. O QUE CADA CÓDIGO FAZ NO FATURAMENTO
+----------------------------------------------------------------------------------------------------
+
+  PED- .... mestre. Sem PED apto, não fatura (padrão).
+  OP-/OS- . concluem o item → liberam quantidade a faturar.
+  NF ...... obrigação fiscal; número/série oficiais (Focus/SEFAZ).
+  TIT- .... título a receber (valor, vencimento, saldo, natureza).
+  COB- .... cobrança emitida no banco (liga TIT- ↔ provider).
+  ENT- .... romaneio/entrega (pode ser parcial; liga PED + NF).
+  BX- ..... recebimento que baixa TIT- (total/parcial/juros/desconto).
+  DEV- .... estorno ponta a ponta (fiscal + estoque + financeiro).
+  NAT- .... classifica o dinheiro na DRE gerencial (≠ CFOP).
+  EMP- .... empresa_id do documento (default EMP-00001).
+  MSG- .... aviso WhatsApp (NF/boleto/status) — canal, não documento.
+
+  Regra de ouro dos objetos:
+    NF autorizada ≠ dinheiro no caixa.
+    TIT- aberto ≠ mercadoria entregue.
+    BX- ≠ “zerar valor editando o título”.
+
+----------------------------------------------------------------------------------------------------
+4. QUANDO O PEDIDO ESTÁ APTO A FATURAR
+----------------------------------------------------------------------------------------------------
+
+  Checklist mínimo (todos SIM no caminho padrão):
+
+  [ ] PED existe e não está cancelado
+  [ ] Cadastro fiscal do cliente completo (não prospect incompleto)
+  [ ] Crédito OK ou sinal já baixado (se era o bloqueio)
+  [ ] Itens a faturar em status PRODUZIDO / separado / OS concluída
+      (ou política de parcial explícita)
+  [ ] Estoque PA/REV suficiente para a quantidade da NF
+  [ ] Totais batem: itens + frete receita − descontos autorizados
+  [ ] Condição de pagamento do PED definida (gera 1..N TIT-)
+
+  NÃO é pré-requisito do faturamento:
+    * entrega confirmada (pode faturar e depois expedir no mesmo dia)
+    * recebimento do saldo (salvo venda à vista exigida na política)
+    * apuração do Simples/DAS no ERP (isso é do contador)
+
+----------------------------------------------------------------------------------------------------
+5. CAMINHOS POR TIPO DE ITEM (mesmo PED, regras diferentes)
+----------------------------------------------------------------------------------------------------
+
+  A) PRODUÇÃO PRÓPRIA (PA-ETQ…)
+     OP concluída → MOV ENTRADA_PA → NF (CFOP tip. 5101/6101)
+     → baixa PA → TIT- → ENT-
+     Natureza gerencial típica: 1.01.01
+
+  B) REVENDA (REV-RIB…)
+     Separação ok → NF (CFOP tip. 5102/6102) → baixa REV → TIT- → ENT-
+     Natureza: 1.01.02
+
+  C) SERVIÇO (SVC…)
+     OS concluída → NFS-e (quando contador definir) → TIT-
+     Pode não movimentar PA; insumos próprios já baixados na OS
+     Natureza: 1.01.03
+
+  D) FERRAMENTAL / FACA (FAC no PED)
+     Vai na mesma NF como item OU linha acordada — já veio no PED
+     Natureza: 1.01.04
+
+  E) FRETE COBRADO DO CLIENTE
+     Destacado na NF (CIF) ou cobrado à parte — receita 1.01.05
+     Frete PAGO à transportadora = despesa (outro eixo; FRETE_...)
+
+  F) AMOSTRA / PROTÓTIPO
+     Política própria (AMOSTRAS_PROTOTIPOS.txt) — não distorcer
+     faturamento comercial nem custo médio sem regra explícita.
+
+----------------------------------------------------------------------------------------------------
+6. MOMENTOS DE FATURAR (políticas)
+----------------------------------------------------------------------------------------------------
+
+  ┌─────────────────────┬──────────────────────────────────────────────┐
+  │ Momento             │ O que nasce                                  │
+  ├─────────────────────┼──────────────────────────────────────────────┤
+  │ PADRÃO              │ NF integral (ou parcial) + TIT- do saldo     │
+  │ (após conclusão)    │                                              │
+  ├─────────────────────┼──────────────────────────────────────────────┤
+  │ SINAL / ADIANTAM.   │ TIT- (+ COB-) ANTES da NF; libera produção;  │
+  │                     │ depois apropria contra a NF                  │
+  ├─────────────────────┼──────────────────────────────────────────────┤
+  │ PARCIAL             │ NFs e TIT- fracionados no mesmo ped_id       │
+  │ (entrega/produção)  │                                              │
+  ├─────────────────────┼──────────────────────────────────────────────┤
+  │ À VISTA NA NF       │ TIT- com vencimento = data da NF; BX rápido  │
+  ├─────────────────────┼──────────────────────────────────────────────┤
+  │ PARCELADO           │ 1 NF → N TIT- (ex.: 14/28/42)                │
+  └─────────────────────┴──────────────────────────────────────────────┘
+
+  Faturamento antecipado integral (NF antes de produzir) NÃO é padrão.
+  Exige alçada e acordo explícito — ver FATURAMENTO_GERACAO_COBRANCA.
+
+----------------------------------------------------------------------------------------------------
+7. NF × TÍTULO × COBRANÇA × BAIXA (o elo que mais confunde)
+----------------------------------------------------------------------------------------------------
+
+  Passo a passo do dinheiro:
+
+  1) Condição do PED define o calendário (à vista, 28 DDL, 50/50…).
+  2) Na NF autorizada (ou no sinal), o ERP cria TIT-AAAA-NNNNN
+     com valor, vencimento, forma e natureza.
+  3) Adapter bancário emite COB- (boleto/PIX) ligado ao TIT-.
+  4) Cliente paga → crédito no banco → BX- liquida TIT-
+     (total, parcial, com juros ou desconto — tipos distintos).
+  5) Limite de crédito do parceiro sobe de volta na baixa.
+  6) Natureza alimenta DRE gerencial / fluxo de caixa.
+
+  Lembretes:
+    * Um faturamento → 1..N títulos.
+    * Um título → 0..N baixas parciais até zerar saldo.
+    * COB- é emissão bancária; a verdade financeira no ERP é o TIT-.
+    * Provider (Inter teste / Sicoob alvo) troca sem reescrever NF/TIT.
+
+----------------------------------------------------------------------------------------------------
+8. O QUE A NF AUTORIZADA DISPARA (efeitos colaterais)
+----------------------------------------------------------------------------------------------------
+
+  Automático / esperado no mesmo evento de autorização Focus:
+
+  * Grava chave 44 (ou protocolo NFS-e) + XML metadados no ERP
+  * Baixa estoque PA/REV da quantidade faturada
+  * Confirma TIT- “em aberto” vinculados (se já criados em rascunho)
+  * Consome limite de crédito (títulos abertos)
+  * Pode disparar MSG- (PDF NF + boleto/PIX ao contato oficial)
+  * Pode liberar ENT- / romaneio do dia
+  * Dispara base de comissão se parâmetro = FATURADO
+    (COMISSOES_...; se = RECEBIDO, espera BX-)
+
+  NF REJEITADA:
+    * Não baixa estoque, não confirma cobrança viva, não expede.
+    * Fiscal corrige e reenvia — sem “forçar” saída.
+
+----------------------------------------------------------------------------------------------------
+9. FATURAMENTO PARCIAL (como ler no mapa)
+----------------------------------------------------------------------------------------------------
+
+  Mesmo PED-2026-00XXX:
+
+    OP parcial 40% ──► NF-1 + TIT-A ──► ENT-1
+    OP restante 60% ──► NF-2 + TIT-B ──► ENT-2
+
+  Tudo aponta para o mesmo ped_id.
+  Aging e crédito somam TIT-A + TIT-B ainda abertos.
+  Conclusão/entrega “fechadas” no logístico não apagam TIT abertos.
+
+----------------------------------------------------------------------------------------------------
+10. MULTI-EMPRESA NO FATURAMENTO
+----------------------------------------------------------------------------------------------------
+
+  * Documento fiscal e financeiro carregam empresa_id
+    (default EMP-00001 — RLP etiquetas).
+  * EMP-00002 (folha/serviços) NÃO ativa faturamento de etiquetas
+    por engano — ver MULTI_EMPRESA_CNPJS_E_LIVROS.txt.
+  * Numeração fiscal é por CNPJ emissor via Focus — o ERP não inventa.
+  * Sem livro paralelo / LAI- no ERP
+    (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt).
+
+----------------------------------------------------------------------------------------------------
+11. DESFAZER O FATURAMENTO (dois ramos)
+----------------------------------------------------------------------------------------------------
+
+  CANCELAMENTO (prazo legal, NF ainda “viva” na SEFAZ)
+    Focus cancela → estorna estoque → cancela TIT abertos →
+    libera crédito → marca faturamento estornado.
+    Nunca apagar histórico.
+
+  DEVOLUÇÃO (após prazo ou política)
+    DEV- mestre → NF de entrada referenciando chave → MOV retorno →
+    abate financeiro (compensa TIT / crédito / devolução de valor) →
+    natureza 1.02.01 → comissão acompanha.
+    Roteiro completo: DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+    (pode vir de RMA-).
+
+----------------------------------------------------------------------------------------------------
+12. PAPÉIS NO MAPA (quem toca o quê)
+----------------------------------------------------------------------------------------------------
+
+  COMERCIAL ..... solicita faturamento; não muda preço sem alçada
+  PRODUÇÃO ...... conclui OP/OS; NÃO emite NF
+  FISCAL ........ emite/trata rejeição Focus/SEFAZ
+  EXPEDIÇÃO ..... ENT- após NF (padrão) ou política alinhada
+  FINANCEIRO .... confere TIT-/COB-, régua, BX-, conciliação
+  DIREÇÃO ....... alçada: perda, desconto fora do parâmetro,
+                  faturamento antecipado excepcional
+  CONTADOR ...... lê XML/relatórios; fecha fiscal oficial
+                  (ERP NÃO fecha DAS/SPED/ECD)
+
+----------------------------------------------------------------------------------------------------
+13. RELATÓRIOS QUE “PROVAM” O MAPA
+----------------------------------------------------------------------------------------------------
+
+  * Faturamento por período (valor, NCM, CFOP, CSOSN)
+  * XMLs autorizados + metadados
+  * Aging de TIT- (0–30–60–90+)
+  * Adiantamentos a apropriar
+  * Entregas pendentes com NF já autorizada
+  * Comissões a provisionar (FATURADO vs RECEBIDO)
+  * Export contador: faturamento_resumo + titulo_cr_cp
+    (EXPORT_CONTADOR_FOLHA_LAYOUT.txt)
+
+----------------------------------------------------------------------------------------------------
+14. DIAGRAMA RÁPIDO “SÓ FATURAMENTO”
+----------------------------------------------------------------------------------------------------
+
+  PED apto
+    │
+    ├─(opcional) sinal ──► TIT-/COB- ──► BX- ──► libera OP
+    │
+    ▼
+  conclusão / separação
+    │
+    ▼
+  Focus autoriza NF ──► estoque↓ ──► TIT- (saldo/parcelas) ──► COB-
+    │                                              │
+    ▼                                              ▼
+  ENT- (expede)                              BX- (recebe)
+    │                                              │
+    ▼                                              ▼
+  confirmação cliente                      limite↑ + NAT- + caixa
+
+  Quebra: rejeição NF (para tudo) | cancelamento | DEV- | RMA-
+
+----------------------------------------------------------------------------------------------------
+15. CHECKLIST DO MAPA (para implantar / treinar)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Equipe distingue NF × TIT- × COB- × BX- × ENT-
+  [ ] Padrão: fatura após conclusão/separação; sinal é exceção
+  [ ] Preço só do PED (snapshot); imposto via motor/Focus
+  [ ] 1 NF → N títulos conforme condição
+  [ ] Baixa de estoque só com NF autorizada
+  [ ] Frete receita ≠ frete despesa
+  [ ] Parcial amarrado ao mesmo ped_id
+  [ ] Cancelamento ≠ devolução (ramos distintos)
+  [ ] Multi-empresa: empresa_id certo no emissor
+  [ ] Contador fecha fiscal; ERP alimenta com disciplina
+
+----------------------------------------------------------------------------------------------------
+16. ONDE APROFUNDAR (âncoras)
+----------------------------------------------------------------------------------------------------
+
+  Operar emissão ........... FATURAMENTO_GERACAO_COBRANCA.txt
+  Operar recebimento ....... RECEBIMENTO_BAIXA_COBRANCA.txt
+  Banco / boleto / PIX ..... INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt
+  Entrega .................. ENTREGA_CONFIRMACAO_CLIENTE.txt
+  Estorno completo ......... DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+  Naturezas de receita ..... NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+  Comissão ................. COMISSOES_VENDEDORES_DETALHADO.txt
+  Cadeia inteira ........... INDICE_FLUXO_OPERACIONAL.txt
+
+====================================================================================================
+Fim — MAPA_FATURAMENTO_EXPLICADO.txt
+Faturar é NF autorizada + títulos vivos no PED apto.
+Cobrar sem NF (sinal) e desfazer (cancel/DEV) são ramos do mesmo mapa.
+====================================================================================================

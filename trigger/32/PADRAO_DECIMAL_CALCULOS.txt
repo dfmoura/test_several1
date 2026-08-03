@@ -1,0 +1,422 @@
+======================================================================
+        PADRAO DECIMAL E EXATIDAO DE CALCULOS - NOVO ERP
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 31/07/2026
+======================================================================
+
+Este documento define o PADRAO DECIMAL OFICIAL do novo ERP: tipos
+de dados, casas decimais por grandeza, regras de arredondamento e
+mecanismos de conciliacao que garantem EXATIDAO DOS CALCULOS AO
+LONGO DO TEMPO (custo medio, saldos, impostos, NF-e).
+
+Ele complementa:
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt (custo medio, unidades)
+  * TRATAMENTO_SOBRA_BOBINA_RETALHO.txt (conversoes por pesagem)
+  * AJUSTE_ESTOQUE_INVENTARIO.txt (valorizacao de ajustes)
+
+O padrao segue a pratica mais aceita atualmente em sistemas
+financeiros e ERPs: ARITMETICA DECIMAL EXATA (ponto fixo), nunca
+ponto flutuante binario, com arredondamento unico e documentado.
+
+======================================================================
+1. A REGRA FUNDAMENTAL: PROIBIDO PONTO FLUTUANTE BINARIO
+======================================================================
+
+1.1. NUNCA usar tipos FLOAT / DOUBLE / REAL (IEEE 754 binario) para
+     dinheiro, quantidade, aliquota, fator de conversao ou qualquer
+     valor que participe de calculo fiscal ou de estoque.
+
+     Motivo: o binario NAO representa exatamente a maioria dos
+     decimais. Exemplo classico:
+
+       0.1 + 0.2 = 0.30000000000000004  (em float/double)
+
+     Um erro de 0,0000000000000004 parece inofensivo, mas somado
+     em milhares de movimentos por anos gera saldos e custos medios
+     errados em centavos e depois em reais - exatamente o tipo de
+     "deriva" que este padrao existe para impedir.
+
+1.2. USAR SEMPRE aritmetica decimal exata:
+
+     BANCO DE DADOS ..... NUMERIC(p,s) / DECIMAL(p,s) com precisao
+                          e escala DECLARADAS (nunca "float", nunca
+                          NUMERIC sem escala).
+     BACKEND ............ tipo decimal da linguagem:
+                          - Python: decimal.Decimal (nunca float)
+                          - Java/Kotlin: BigDecimal
+                          - C#: decimal
+                          - Go: shopspring/decimal ou similar
+                          - Node/JS: decimal.js / big.js, ou
+                            inteiros em centavos/milesimos
+     FRONTEND/JSON ...... valores decimais trafegam como STRING
+                          ("1234.5600"), nunca como numero JSON,
+                          porque o parser JSON padrao converte
+                          para double e corrompe o valor.
+
+1.3. Construir Decimal SEMPRE a partir de string ou inteiro, nunca
+     a partir de float:
+
+       CERTO:  Decimal("0.10")
+       ERRADO: Decimal(0.10)   -> ja nasce contaminado pelo binario
+
+1.4. Onde float e tolerado (unica excecao): graficos, dashboards e
+     estatisticas MERAMENTE VISUAIS, que nunca retornam para a base
+     de calculo.
+
+======================================================================
+2. PRECISAO PADRAO POR GRANDEZA (TABELA OFICIAL)
+======================================================================
+
+Escala = casas decimais ARMAZENADAS. Exibicao pode mostrar menos,
+armazenamento nunca corta.
+
+  GRANDEZA                        TIPO SUGERIDO     ESCALA
+  ------------------------------  ----------------  ------------
+  Valor monetario final (totais,
+  parcelas, impostos, NF-e)       NUMERIC(15,2)     2 casas
+  Preco/custo UNITARIO (R$/m,
+  R$/kg, R$/rolo, custo medio)    NUMERIC(19,6)     6 casas
+  Preco unitario NF-e (vUnCom)    NUMERIC(21,10)    ate 10 casas
+  Quantidade de estoque (m, kg)   NUMERIC(15,4)     4 casas
+  Quantidade em UNIDADE/ROLO      NUMERIC(15,4)     4 (usar so
+                                                    inteiros; ver
+                                                    2.2)
+  Aliquota / percentual           NUMERIC(7,4)      4 casas
+  Fator de conversao de unidade   NUMERIC(19,10)    10 casas
+  Gramatura (g/m2)                NUMERIC(9,2)      2 casas
+  Largura (mm) / comprimento (m)  NUMERIC(9,2)      2 casas
+  Peso (kg)                       NUMERIC(12,3)     3 casas
+  Espessura (mm)                  NUMERIC(9,4)      4 casas
+
+2.1. POR QUE 6 CASAS NO CUSTO UNITARIO: com custo em 2 casas, um
+     material de R$ 0,05/m acumula erro de ate 10% ao valorizar
+     milhares de metros. Com 6 casas o erro maximo por movimento e
+     de R$ 0,0000005 por unidade - irrelevante mesmo em decadas.
+
+2.2. ROLO, TUBETE, CAIXA, RIBBON (itens contados em unidade):
+     o movimento deve validar quantidade INTEIRA (fracao de rolo
+     fechado nao existe fisicamente). O campo e decimal por
+     uniformidade, mas a regra de negocio exige inteiro.
+
+2.3. Essas escalas sao COMPATIVEIS com o leiaute da NF-e 4.00
+     (secao 5) e com o SPED - nunca menores que o exigido.
+
+======================================================================
+3. REGRAS DE ARREDONDAMENTO (MODO UNICO E DOCUMENTADO)
+======================================================================
+
+3.1. MODO PADRAO DO SISTEMA: ARREDONDAMENTO HALF-UP
+     ("meio para cima", o arredondamento comercial brasileiro):
+
+       0,005 -> 0,01      2,345 -> 2,35      2,344 -> 2,34
+
+     E o modo esperado pelo fisco e pela contabilidade no Brasil e
+     o que os validadores de NF-e assumem na pratica. O modo
+     "half-even" (bancario, ABNT NBR 5891) NAO deve ser usado como
+     padrao geral, para nao divergir de SEFAZ e contabilidade.
+     Qualquer excecao legal (ex.: tributo especifico que exija
+     TRUNCAMENTO) deve ser configurada por imposto e documentada.
+
+3.2. ARREDONDAR UMA UNICA VEZ, NO FINAL:
+
+     * Calculos intermediarios rodam com a precisao COMPLETA do
+       Decimal (sem cortar casas no meio da conta).
+     * O arredondamento acontece UMA vez, no resultado final de
+       cada campo persistido (valor do item, valor do imposto,
+       custo medio), na escala da tabela da secao 2.
+     * PROIBIDO arredondar em cascata (arredondar, usar o valor
+       arredondado em outra conta, arredondar de novo) quando o
+       valor original ainda esta disponivel.
+
+3.3. ORDEM DAS OPERACOES: multiplicar antes de dividir, sempre que
+     matematicamente equivalente:
+
+       CERTO:  (quantidade x preco_total) / quantidade_total
+       EVITAR: quantidade x (preco_total / quantidade_total)
+
+     Divisao e a operacao que cria dizimas; deixa-la por ultimo
+     reduz o erro a um unico arredondamento.
+
+3.4. O modo de arredondamento e uma CONSTANTE GLOBAL do codigo
+     (ex.: ROUND_HALF_UP), nunca o default silencioso da linguagem
+     (Python Decimal, por exemplo, usa half-even por padrao - deve
+     ser configurado explicitamente).
+
+======================================================================
+4. CUSTO MEDIO PONDERADO MOVEL SEM DERIVA (CRITICO)
+======================================================================
+
+O custo medio e o calculo mais sensivel a erro acumulado, porque
+cada entrada depende do resultado anterior - erro pequeno hoje vira
+erro grande em anos. Regras obrigatorias:
+
+4.1. A VERDADE E O PAR (QUANTIDADE, VALOR TOTAL), nao o unitario:
+
+     Para cada SKU o sistema mantem:
+       saldo_qtd   NUMERIC(15,4)  - soma das quantidades
+       saldo_valor NUMERIC(15,2)  - soma dos valores em R$
+
+     O custo medio unitario e DERIVADO na hora do uso:
+       custo_medio = saldo_valor / saldo_qtd  (6 casas, half-up)
+
+     PROIBIDO acumular o custo medio unitario arredondado e
+     multiplicar de volta - esse e o mecanismo classico de deriva.
+
+4.2. ENTRADA (compra, retorno de sobra, ajuste positivo):
+       saldo_valor += valor_total_do_movimento (2 casas)
+       saldo_qtd   += quantidade (4 casas)
+
+4.3. SAIDA (requisicao de OP, venda, ajuste negativo):
+       valor_da_saida = quantidade_saida x custo_medio_derivado,
+                        arredondado a 2 casas
+       saldo_valor -= valor_da_saida
+       saldo_qtd   -= quantidade_saida
+
+4.4. ZERAGEM OBRIGATORIA: quando saldo_qtd chega a ZERO, o
+     saldo_valor DEVE ser zerado no mesmo movimento. Se sobrar
+     residuo de centavos (efeito normal do arredondamento das
+     saidas), o residuo e lancado automaticamente como ajuste de
+     custo (conta de variacao de estoque), com log. Saldo zero com
+     valor diferente de zero e a principal fonte de custo medio
+     absurdo (divisao por quantidade minuscula).
+
+4.5. SALDO NEGATIVO E PROIBIDO por parametro: movimento que
+     deixaria saldo_qtd < 0 e bloqueado (ver regra 6 do documento
+     de estoque). Custo medio calculado sobre saldo negativo nao
+     tem significado e contamina todas as saidas seguintes.
+
+4.6. RETALHO (documento de sobra, secao 6): volta pelo custo medio
+     POR METRO derivado da bobina mae, na escala de 6 casas, e o
+     valor total devolvido (2 casas) e subtraido do custo da OP -
+     as duas pontas usam O MESMO numero, nunca recalculado de
+     formas diferentes.
+
+======================================================================
+5. LIMITES DA NF-e 4.00 E DO FISCO (COMPATIBILIDADE)
+======================================================================
+
+O padrao interno respeita o leiaute da NF-e 4.00 (o que a Focus NFe
+transmite a SEFAZ):
+
+  CAMPO NF-e                       FORMATO       CASAS DECIMAIS
+  -------------------------------  ------------  --------------
+  qCom / qTrib (quantidade)        11v0-4        0 a 4
+  vUnCom / vUnTrib (preco unit.)   11v0-10       0 a 10
+  vProd (valor do item)            13v2          exatamente 2
+  vBC, vICMS, vIPI, vNF (valores)  13v2          exatamente 2
+  pICMS, pIPI etc. (aliquotas)     3v2-4         2 a 4
+
+Regras:
+
+5.1. vProd = qCom x vUnCom arredondado a 2 casas (half-up). A
+     SEFAZ valida essa conta (rejeicao 629) com tolerancia de
+     R$ 0,01 - por isso o preco unitario deve ir com as casas
+     necessarias (ate 10) para a conta fechar, e nao "bonitinho"
+     com 2 casas.
+
+5.2. TOTAL DA NOTA = SOMA DOS ITENS JA ARREDONDADOS (nunca somar
+     valores cheios e arredondar o total). E assim que a SEFAZ
+     confere; fazer diferente gera rejeicao por divergencia de
+     totais.
+
+5.3. Impostos calculados POR ITEM, arredondados a 2 casas por item,
+     e totalizados por soma. Mesma logica do 5.2.
+
+5.4. Os impostos destacados nos XML de compra (base da futura
+     virada ao Lucro Real) sao armazenados EXATAMENTE como vieram
+     no XML, sem recalculo e sem rearredondamento - o XML e o
+     documento legal.
+
+======================================================================
+6. RATEIOS E DISTRIBUICAO DE CENTAVOS (METODO DO MAIOR RESTO)
+======================================================================
+
+Todo rateio (frete/seguro/despesas da NF entre itens, desconto
+proporcional, custo de OP entre produtos) sofre do mesmo problema:
+as parcelas arredondadas nao somam o total exato.
+
+REGRA OBRIGATORIA:
+
+  1) Calcular cada parcela com precisao cheia;
+  2) Arredondar cada parcela a 2 casas;
+  3) DIFERENCA = total original - soma das parcelas arredondadas;
+  4) Distribuir a diferenca em centavos, um a um, nas parcelas de
+     MAIOR RESTO de arredondamento (metodo do maior resto). Na
+     pratica simplificada: jogar a diferenca inteira no item de
+     MAIOR VALOR (padrao aceito fiscalmente), desde que documentado.
+
+INVARIANTE INEGOCIAVEL: soma das parcelas = total, ao centavo,
+SEMPRE. O sistema deve validar isso e bloquear a gravacao se nao
+fechar. Rateio que "quase fecha" e bug, nao tolerancia.
+
+Aplicacoes na operacao:
+  * frete e IPI da NF de compra rateados no custo dos itens;
+  * desconto do pedido de venda rateado nos itens da NF-e;
+  * custo real da OP rateado entre produtos bons apontados.
+
+======================================================================
+7. CONVERSOES DE UNIDADE (KG x M2 x METRO x ROLO)
+======================================================================
+
+7.1. O fator de conversao compra x estoque (secao 3.6 do documento
+     de estoque) e armazenado com 10 casas (NUMERIC 19,10) e usado
+     SEM arredondamento intermediario.
+
+7.2. Conversao por pesagem do retalho (documento de sobra, 4.B):
+
+       metros = (peso_liq_g - peso_tubete_g)
+                / (gramatura_g_m2 x largura_m)
+
+     Executar em Decimal, arredondar SO o resultado final a 4
+     casas... e ENTAO aplicar a regra do retalho: estimativas sao
+     arredondadas PARA BAIXO (ROUND_FLOOR) - melhor estoque
+     subestimado do que metragem fantasma. Este e um dos poucos
+     pontos onde o modo de arredondamento NAO e half-up, por
+     decisao de negocio documentada.
+
+7.3. Conversao NUNCA e feita duas vezes (ida e volta). O sistema
+     guarda a quantidade na unidade de ESTOQUE como valor oficial;
+     a unidade de compra e apenas informativa no documento de
+     origem. Converter m -> kg -> m degrada o numero a cada passo.
+
+7.4. Toda conversao registrada no movimento guarda: valor original,
+     unidade original, fator usado e resultado - permite auditoria
+     e recalculo exato anos depois.
+
+======================================================================
+8. COMPARACOES, VALIDACOES E TOLERANCIAS
+======================================================================
+
+8.1. Igualdade entre valores decimais e comparada EXATAMENTE
+     (Decimal permite isso; era o float que impedia). Conciliacao
+     interna nao usa "tolerancia": movimentos devem fechar ao
+     centavo e ao decimo de milesimo de quantidade.
+
+8.2. Tolerancias EXISTEM apenas nas fronteiras com o mundo fisico
+     ou com sistemas externos, e sao PARAMETROS explicitos:
+       * vProd x qCom x vUnCom (SEFAZ) ........ R$ 0,01 por item
+       * pesagem x contador de maquina ........ 5% (doc. de sobra)
+       * tintas a granel no inventario ........ 2% (doc. de ajuste)
+
+8.3. Entrada de dados: o sistema REJEITA quantidade/valor com mais
+     casas decimais que a escala do campo (nao trunca em silencio).
+     Ex.: digitar 10,12345 m num campo de 4 casas = erro de
+     validacao, nunca corte automatico.
+
+======================================================================
+9. EXIBICAO E FORMATACAO (SEPARAR DO ARMAZENAMENTO)
+======================================================================
+
+9.1. ARMAZENAMENTO e TRAFEGO: sempre ponto decimal, sem separador
+     de milhar, sem simbolo de moeda ("12345.6789").
+
+9.2. EXIBICAO (telas e relatorios): formato brasileiro - virgula
+     decimal e ponto de milhar (R$ 12.345,68). Formatacao e SO
+     apresentacao; o valor exibido arredondado NUNCA volta para o
+     banco no lugar do valor completo.
+
+9.3. Telas de custo unitario e fatores mostram as casas completas
+     (6/10), nao a versao "bonita" de 2 casas - o usuario precisa
+     enxergar o numero que o sistema realmente usa.
+
+9.4. Importacao de planilhas/CSV: parser explicito do formato
+     brasileiro (virgula decimal), com rejeicao de ambiguidade -
+     nunca "auto-detectar" e arriscar ler 1.234 como 1,234.
+
+======================================================================
+10. EXATIDAO AO LONGO DO TEMPO (CONCILIACAO PERMANENTE)
+======================================================================
+
+Padrao decimal correto evita erro novo; as rotinas abaixo garantem
+que nenhum erro (bug, migracao, intervencao manual) sobreviva
+escondido por anos:
+
+10.1. IMUTABILIDADE: movimento gravado nunca e alterado ou apagado;
+      correcao e feita por movimento de estorno/ajuste. Sem isso,
+      nenhuma conciliacao historica e possivel.
+
+10.2. INVARIANTE DO KARDEX (verificacao automatica):
+
+        saldo atual do SKU = soma de TODOS os movimentos
+        valor atual do SKU = soma de todos os valores de movimento
+
+      Rotina automatica (diaria ou semanal) recalcula o kardex do
+      zero e compara com o saldo vivo. Divergencia de 1 centavo ou
+      0,0001 de quantidade = alerta bloqueante para o gestor.
+      Esta rotina e o seguro de vida da exatidao de longo prazo.
+
+10.3. CONCILIACAO MENSAL contabil x estoque (ja prevista no
+      documento de ajuste, secao 7.1): estoque valorizado do ERP
+      x razao contabil, ao centavo.
+
+10.4. TESTES AUTOMATIZADOS DE REGRESSAO (obrigatorios no ERP):
+      * casos "de ouro" com resultados calculados a mao (compra,
+        saida, sobra, rateio, NF-e completa);
+      * casos de borda: quantidade 0,0001; preco R$ 0,000001;
+        zeragem de saldo; rateio de R$ 0,01 entre 3 itens;
+        SKU com 100.000 movimentos (teste de deriva);
+      * teste que roda 10.000 entradas/saidas aleatorias e confere
+        o invariante do kardex no final.
+
+10.5. MIGRACOES E CARGAS (virada da planilha, secao 11 do documento
+      de estoque): toda carga inicial confere soma de quantidades e
+      soma de valores origem x destino ANTES de liberar a operacao.
+      Planilha usa float internamente - os valores devem ser lidos
+      como texto e validados, nunca "copiados" como numero.
+
+10.6. MUDANCA DE ESCALA OU DE REGRA: se um dia for preciso mudar
+      casas decimais ou modo de arredondamento, a mudanca vale de
+      uma DATA DE CORTE em diante, com registro em changelog -
+      nunca reprocessar o passado com regra nova.
+
+======================================================================
+11. CHECKLIST DE PARAMETRIZACAO / DESENVOLVIMENTO
+======================================================================
+
+  [ ] Nenhuma coluna FLOAT/DOUBLE/REAL em tabela de negocio
+      (auditar o schema; criar teste automatico que falha se
+      aparecer uma)
+  [ ] Escalas da secao 2 aplicadas em todas as colunas NUMERIC
+  [ ] Modo ROUND_HALF_UP configurado como constante global
+      (e ROUND_FLOOR apenas na estimativa de retalho)
+  [ ] Decimais trafegam como string no JSON das APIs
+  [ ] Custo medio implementado pelo par (saldo_qtd, saldo_valor)
+      com zeragem obrigatoria (secao 4.4)
+  [ ] Bloqueio de saldo negativo ativo
+  [ ] Rateios com fechamento exato ao centavo (secao 6) e
+      validacao bloqueante
+  [ ] vProd/total da NF-e = soma dos itens arredondados (secao 5)
+  [ ] Impostos do XML de compra armazenados sem recalculo
+  [ ] Validacao de casas decimais na digitacao (sem truncar)
+  [ ] Rotina automatica do invariante do kardex (secao 10.2)
+  [ ] Suite de testes de ouro + teste de deriva (secao 10.4)
+  [ ] Conferencia de somas na carga inicial (secao 10.5)
+
+======================================================================
+12. REGRAS DE OURO DO PADRAO DECIMAL (RESUMO)
+======================================================================
+
+  1. Dinheiro, quantidade e aliquota NUNCA em float: Decimal no
+     codigo, NUMERIC(p,s) no banco, string no JSON.
+  2. Arredondamento e half-up, feito UMA vez, no final, na escala
+     oficial da grandeza (secao 2).
+  3. Valor final tem 2 casas; custo unitario tem 6; quantidade tem
+     4; fator de conversao tem 10.
+  4. Custo medio vive no par quantidade + valor total; o unitario
+     e sempre derivado, nunca acumulado.
+  5. Saldo zerado = valor zerado (residuo vai para variacao de
+     estoque, com log). Saldo negativo e bloqueado.
+  6. Total e a soma das parcelas arredondadas; rateio fecha ao
+     centavo pelo metodo do maior resto - sempre, sem excecao.
+  7. NF-e: unitario com ate 10 casas para a conta fechar; item e
+     impostos com 2 casas; SEFAZ confere a soma dos itens.
+  8. Conversao de unidade so na ida, com fator de 10 casas, e a
+     estimativa de retalho arredonda para baixo.
+  9. Movimento e imutavel; o kardex recalculado do zero deve bater
+     com o saldo vivo ao centavo - rotina automatica vigia isso.
+ 10. Exibicao em formato brasileiro e so exibicao: o numero
+     completo e o unico que o sistema conhece.
+
+======================================================================
+                          FIM DO DOCUMENTO
+======================================================================

@@ -1,0 +1,139 @@
+====================================================================================================
+VERIFICAÇÃO DA ALÍQUOTA INTERNA DE ICMS EM MG (18%) E DAS REDUÇÕES DE BASE POR NCM
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: CADASTRO_PRODUTOS_COMPRA.txt + LISTAGEM_NCM.txt + LISTAGEM_NCM_NFE_VENDA.txt +
+      RICMS/MG 2023 (Decreto 48.589/2023, versão eletrônica SEF/MG consultada em 31/07/2026) +
+      Lei estadual 6.763/1975
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento atende ao ponto pendente do cadastro de produtos (seção "TRIBUTAÇÃO —
+PREPARAÇÃO PARA O LUCRO REAL"): "Alíquota interna MG 18% (verificar reduções de base
+por NCM com o contador)". Também fecha o item 4 dos pontos de conferência da
+REVISAO_ANTECIPACAO_ICMS_MG.txt (redução de base ou alíquota diversa de 18%).
+
+----------------------------------------------------------------------------------------------------
+1. BASE LEGAL CONSULTADA
+----------------------------------------------------------------------------------------------------
+
+  * Alíquota interna geral de MG: 18% — Lei 6.763/75, art. 12, I, "d" ("operações e
+    prestações não especificadas nas alíneas anteriores") e RICMS/MG 2023 (Decreto
+    48.589/2023), Anexo I ("Das Alíquotas"), Parte 1, subitem 7.1.
+  * Alíquotas internas diferenciadas: Anexo I, Parte 1 (12% p/ itens essenciais e
+    listas específicas; 25%/30% p/ supérfluos da Tabela "F" da Lei 6.763/75).
+  * Reduções de base de cálculo: Anexo II do RICMS/2023 ("Da Redução de Base de
+    Cálculo", a que se refere o art. 13 do Regulamento). Correlação: corresponde ao
+    antigo Anexo IV do RICMS/2002 — atenção ao citar pareceres/consultas antigas.
+  * Adicional de 2% do FEM (Fundo de Erradicação da Miséria — Lei 19.978/11,
+    reinstituído pela Lei 24.471/23, vigente até 31/12/2026): incide apenas sobre
+    supérfluos (bebidas alcoólicas, cigarros, cosméticos etc.).
+
+----------------------------------------------------------------------------------------------------
+2. RESULTADO DA VERIFICAÇÃO POR NCM
+----------------------------------------------------------------------------------------------------
+
+Foram varridos o Anexo I (Partes 1 a 4 — alíquotas) e o Anexo II (Parte 1, itens 1 a 66,
+e Partes 2 a 10 — listas de mercadorias) do RICMS/2023 em busca dos NCMs usados pela
+empresa nas compras e nas vendas.
+
+NCM         | Uso na empresa                        | Alíq. interna | Redução de base?
+------------|---------------------------------------|---------------|------------------
+3215.11.00  | Tintas de impressão pretas            | 18%           | NÃO localizada
+3215.19.00  | Tintas de impressão (demais)          | 18%           | NÃO localizada
+3919.10.10  | BOPP autoadesivo PP (rolos <= 20 cm)  | 18%           | NÃO localizada
+3919.10.90  | Filmes autoadesivos (rolos <= 20 cm)  | 18%           | NÃO localizada
+            | + etiquetas BOPP (produto de VENDA)   |               |
+3919.90.10  | BOPP autoadesivo PP (> 20 cm)         | 18%           | NÃO localizada
+3919.90.90  | Filmes autoadesivos outros (> 20 cm)  | 18%           | NÃO localizada
+4811.41.90  | Papel autoadesivo (insumo e VENDA)    | 18%           | NÃO localizada
+4810.13.89  | Papel tag/couché sem adesivo          | 18%           | NÃO localizada
+4819.10.00  | Caixas de papelão (embalagem)         | 18%           | NÃO localizada
+4822.90.00  | Tubetes de papel (embalagem)          | 18%           | NÃO localizada
+3212.10.00  | Foils de estampagem (cold/hot)        | 18%           | NÃO localizada
+3814.00.90  | Diluentes/solventes compostos         | 18%           | NÃO localizada (*a)
+3824.99.7x  | Antiespumante (NCM a confirmar)       | 18%           | NÃO localizada
+9612.10.00  | Ribbons (insumo, revenda e VENDA)     | 18%           | NÃO localizada (*b)
+
+(*a) Solventes têm alíquota MAJORADA em MG apenas quando destinados a FINS CARBURANTES
+     (Lei 6.763/75, art. 12, I, "h" — gasolina e solvente a 31%). O diluente de tinta
+     para uso industrial gráfico NÃO se enquadra — confirmar que as NF-e do fornecedor
+     não classificam o produto como solvente carburante.
+(*b) Ribbons NÃO constam da Parte 9 do Anexo II ("Produtos da indústria de informática
+     e automação"), única lista que poderia alcançá-los — ver seção 3, item 2.
+
+NCMs ainda SEM verificação possível (pendências do cadastro):
+  * Tecidos p/ etiquetas têxteis (candidatos 5806.32.00 / 5903.90.00 / 5906.99.00):
+    nenhum dos candidatos aparece nas listas de redução — mas a verificação definitiva
+    depende do NCM real a obter dos fornecedores (pendência 1 do cadastro).
+  * Verniz (3208.90.xx / 3210.00.xx): idem — confirmar NCM pela FISPQ/NF e reverificar.
+
+CONCLUSÃO: para TODOS os NCMs confirmados, a alíquota interna aplicável em MG é a GERAL
+de 18%, SEM redução de base de cálculo e SEM adicional de FEM. O parâmetro "Alíquota
+interna MG = 18%" do cadastro de produtos está CORRETO e pode ser gravado no ERP.
+
+----------------------------------------------------------------------------------------------------
+3. HIPÓTESES PRÓXIMAS VERIFICADAS E DESCARTADAS (documentar para o contador)
+----------------------------------------------------------------------------------------------------
+
+ 1. Anexo II, Parte 1, item 44 — saída interna de INDUSTRIAL que utilize como
+    matéria-prima SUCATA/RESÍDUO de papel ou plástico de lixo reciclado: redução de
+    33,33% (carga efetiva 12%), eficácia até 31/12/2032. NÃO aplicável hoje (a empresa
+    compra insumos virgens), mas é oportunidade a avaliar caso passe a usar aparas/
+    material reciclado no processo.
+ 2. Anexo II, Parte 1, item 45 + Parte 9 — produtos da indústria de INFORMÁTICA E
+    AUTOMAÇÃO fabricados por industrial habilitado no PPB (art. 4º da Lei 8.248/91):
+    alíquota reduzida na saída interna do FABRICANTE. Os ribbons (9612.10.00) NÃO
+    constam da Parte 9 e a empresa não é fabricante habilitada — NÃO aplicável nem às
+    compras (fornecedores de outra UF) nem à revenda.
+ 3. Anexo I, Parte 1 — alíquota de 12%: as listas alcançam máquinas e equipamentos
+    industriais (ex.: máquinas p/ trabalhar papel/cartão, NCM 8441), alimentos etc.
+    Nenhuma mercadoria da empresa está listada. OBS ÚTIL PARA CAPEX: a compra INTERNA
+    de máquinas gráficas/de corte (posição 8441 e afins) pode ter alíquota de 12% ou
+    redução de base (Anexo II, Parte 4 — Convênio 52/91) — considerar na expansão do
+    parque industrial.
+ 4. FEM (+2%): restrito a supérfluos — nenhum NCM da empresa é alcançado.
+
+----------------------------------------------------------------------------------------------------
+4. IMPACTOS PRÁTICOS DA CONFIRMAÇÃO DOS 18%
+----------------------------------------------------------------------------------------------------
+
+ 1. ANTECIPAÇÃO (enquanto no Simples): confirmado que NÃO há redução de base para os
+    insumos, a antecipação permanece calculada por base x (18% − alíq. interestadual),
+    exatamente como estimado na REVISAO_ANTECIPACAO_ICMS_MG.txt (~R$ 13,9 mil no mês
+    analisado; ~R$ 150 mil/ano). Nenhum recálculo necessário.
+ 2. ERP — ENTRADAS (Lucro Real): manter CST ICMS 00 (tributação integral) para todos
+    os itens. NÃO usar CST 20 (redução de base) em nenhum NCM atual.
+ 3. ERP — SAÍDAS internas (Lucro Real): débito de 18% cheio sobre etiquetas
+    (3919.10.90 / 4811.41.90) e ribbons (9612.10.00). Usar 18% também como alíquota
+    interna de referência no DIFAL de vendas interestaduais a não contribuinte
+    (EC 87/2015) quando MG for o destino.
+ 4. FORMAÇÃO DE PREÇO: a simulação do estudo tributário (débito 18% x créditos de
+    12%/4% nas entradas) permanece válida sem ajuste de alíquota.
+
+----------------------------------------------------------------------------------------------------
+5. PENDÊNCIAS E ROTINA DE REVISÃO
+----------------------------------------------------------------------------------------------------
+
+ 1. VALIDAR com o contador responsável este levantamento (a consulta foi feita na
+    versão eletrônica do RICMS/2023 da SEF/MG em 31/07/2026 — anexos I e II são
+    alterados com frequência por decreto).
+ 2. Reverificar os NCMs PENDENTES assim que confirmados: tecidos (5806/5903/5906),
+    verniz (3208/3210) e antiespumante (3824.99.7x).
+ 3. Reexecutar esta verificação: (a) na data da migração para o Lucro Real;
+    (b) a cada inclusão de NCM novo no cadastro; (c) a cada alteração relevante dos
+    Anexos I e II do RICMS/2023.
+ 4. REFORMA TRIBUTÁRIA (EC 132/23): 2026 é ano de teste de CBS/IBS e a transição do
+    ICMS (2029-2032) alterará alíquotas e benefícios — acompanhar com o contador o
+    cronograma e o efeito sobre os 18% e sobre eventuais reduções futuras.
+ 5. Se a empresa passar a usar MATERIAL RECICLADO como matéria-prima, reavaliar o
+    item 44 da Parte 1 do Anexo II (carga efetiva 12% na saída interna).
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial. A verificação foi feita por varredura dos Anexos I e II do
+RICMS/MG 2023 (Decreto 48.589/2023) publicados no site da SEF/MG em 31/07/2026, cruzando
+os NCMs dos XMLs reais e do cadastro proposto. Não substitui a análise do contador
+responsável: itens do Anexo II podem descrever mercadorias sem citar NCM, e a legislação
+mineira é alterada com frequência. Confirmar antes de gravar os parâmetros definitivos.
+====================================================================================================

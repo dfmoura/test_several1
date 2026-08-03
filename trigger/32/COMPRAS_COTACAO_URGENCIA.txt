@@ -1,0 +1,115 @@
+====================================================================================================
+COMPRAS, COTAÇÃO E URGÊNCIA CONTRA OP PARADA — PADRÃO COMPLEMENTAR
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: CADASTRO_PRODUTOS_COMPRA.txt + CONTROLE_ESTOQUE_PROFISSIONAL.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt +
+      CADASTRO_PARCEIROS.txt + RECEBIMENTO_BAIXA_COBRANCA.txt (contas a pagar) +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Complementa a entrada por XML/OC já prevista. Foco: COMO COTAR, APROVAR
+e COMPRAR COM URGÊNCIA quando a OP está parada por falta de material —
+sem voltar para planilha ou “pedido no zap do fornecedor” sem rastro.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. NECESSIDADE NASCE DO ESTOQUE / OP / PCP — não de memória.
+ 2. COTAÇÃO formal (COT-) antes da OC, exceto compra homologada
+     de item sob contrato/preço vigência (pode pular cotação).
+ 3. OP PARADA gera alerta de compra com prioridade URGENTE e vínculo
+     op_id — comprador vê o motivo, não só o SKU.
+ 4. Entrada física só com NF × OC × conferência (já no estoque).
+ 5. Urgência NÃO autoriza pular NF nem misturar CNPJ.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  COT-AAAA-NNNNN   cotação (pode ter N fornecedores / N linhas)
+  OC-AAAA-NNNNN    ordem de compra (já no catálogo)
+  FK: sku_id, fornecedor_id, op_id (opcional), solicitante_id
+
+----------------------------------------------------------------------------------------------------
+3. FLUXO NORMAL
+----------------------------------------------------------------------------------------------------
+
+  1) Necessidade: ponto de reposição / requisição PCP / lista de
+     faltas da OP
+  2) Solicitação de compra (interna) → status ABERTA
+  3) Comprador abre COT- e convida ≥1 fornecedor (ideal 2–3 em
+     itens críticos de substrato)
+  4) Registra propostas: preço, prazo, frete, validade, condição
+  5) Escolha + alçada → gera OC- a partir da proposta vencedora
+  6) Envio da OC ao fornecedor (e-mail / WhatsApp Business API
+     no contato do PAR- fornecedor — log MSG-)
+  7) Acompanha confirmação / previsão
+  8) NF chega (Focus) → amarra OC → conferência → MOV entrada
+  9) Título a pagar + natureza (custo/despesa/investimento)
+
+----------------------------------------------------------------------------------------------------
+4. FLUXO URGENTE (OP PARADA)
+----------------------------------------------------------------------------------------------------
+
+Gatilho: OP com status AGUARDANDO_MATERIAL ou empenho sem saldo.
+
+  1) Sistema cria/atualiza necessidade URGENTE com op_id + sku + qtde
+     mínima para destravar
+  2) Notifica COMPRAS + PCP (evento interno; opcional WhatsApp interno
+     via API oficial para usuários opt-in)
+  3) Cotação expressa: 1 fornecedor homologado permitido se parâmetro
+     “urgencia_single_source” = ON e alçada gerência
+  4) OC urgente com flag; prazo prometido visível na OP
+  5) Ao entrar NF/estoque: libera empenho; OP volta à fila
+
+Proibido: comprar “no nome da pessoa” e depois “acertar” no ERP sem OC.
+
+----------------------------------------------------------------------------------------------------
+5. ALÇADAS SUGERIDAS (calibrar)
+----------------------------------------------------------------------------------------------------
+
+  Até R$ X .............. comprador
+  Até R$ Y .............. gerência
+  Acima / urgente ....... direção
+  Novo fornecedor ....... cadastro PAR- completo antes da OC
+                          (CNPJ, IE, dados bancários com SoD)
+
+----------------------------------------------------------------------------------------------------
+6. COTAÇÃO — DADOS MÍNIMOS
+----------------------------------------------------------------------------------------------------
+
+  * SKU + descrição técnica (largura, gramatura, adesivo…)
+  * Qtde e unidade
+  * Data necessidade (ligada à OP quando houver)
+  * Frete incluso? CIF/FOB
+  * Impostos estimados (só referência; NF manda no recebimento)
+  * Validade da proposta
+
+Comparativo na tela: preço landed (produto+frete+taxas conhecidas).
+
+----------------------------------------------------------------------------------------------------
+7. RELAÇÃO COM INDUSTRIALIZAÇÃO EXTERNA
+----------------------------------------------------------------------------------------------------
+
+Remessa para beneficiamento NÃO é compra de mercadoria acabada —
+ver INDUSTRIALIZACAO_EXTERNA_REMESSA.txt. Cotação de serviço de
+terceiro pode nascer como COT tipo SERVICO_INDUSTRIALIZACAO e
+virar OC de serviço + remessa.
+
+----------------------------------------------------------------------------------------------------
+8. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Falta de material gera necessidade rastreável (op_id quando OP)
+  [ ] COT- antes da OC (salvo contrato/preço vigência)
+  [ ] Urgência com alçada — sem pular NF/OC
+  [ ] Entrada só NF × OC × conferência
+  [ ] Título a pagar com natureza correta
+  [ ] Nada “só no zap” sem OC-
+
+====================================================================================================
+Fim — COMPRAS_COTACAO_URGENCIA.txt
+OP parada sem compra rastreável recria a planilha. Cotação + OC + NF fecham o ciclo.
+====================================================================================================

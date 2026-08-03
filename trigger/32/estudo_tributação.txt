@@ -1,0 +1,224 @@
+# Estudo Tributário – Indústria de Etiquetas Autoadesivas (MG)
+
+## 1. Situação Atual
+
+A empresa atua na **fabricação de etiquetas autoadesivas em rolos**, utilizando processos de impressão sobre materiais como BOPP e papel couché autoadesivo.
+
+Atualmente está enquadrada no **Simples Nacional**, porém a expectativa é **ultrapassar o limite de faturamento no final do ano**, sendo considerada a migração para o **Lucro Real**.
+
+A empresa está localizada em **Minas Gerais** e realiza compras de fornecedores de diversos estados brasileiros.
+
+---
+
+# 2. Tributação no Simples Nacional
+
+No Simples Nacional, a empresa:
+
+* recolhe seus tributos através do DAS;
+* paga normalmente o valor das notas fiscais dos fornecedores;
+* não aproveita, em regra, créditos de ICMS, PIS e COFINS como ocorre no regime normal.
+
+Os impostos incidentes na compra já estão embutidos ou destacados na nota fiscal do fornecedor, mas esses valores normalmente não geram créditos para empresas optantes pelo Simples.
+
+Entretanto, dependendo da operação interestadual e da legislação mineira, algumas compras podem exigir recolhimentos específicos, como:
+
+* antecipação do ICMS;
+* diferencial de alíquota (quando aplicável);
+* ICMS-ST em determinadas situações.
+
+Essas hipóteses dependem do NCM, CFOP e da legislação vigente.
+
+---
+
+# 3. Produtos comercializados
+
+### Venda
+
+| NCM        | Descrição                                   |
+| ---------- | ------------------------------------------- |
+| 3919.10.90 | Etiquetas autoadesivas de plástico em rolos |
+| 4811.41.90 | Papel autoadesivo                           |
+| 9612.10.00 | Ribbon                                      |
+
+---
+
+# 4. Principais insumos utilizados
+
+| NCM        | Produto                       |
+| ---------- | ----------------------------- |
+| 3215.19.00 | Tintas para impressão         |
+| 3919.10.10 | BOPP autoadesivo              |
+| 3919.10.90 | Filmes autoadesivos           |
+| 3919.90.10 | BOPP em outras formas         |
+| 3919.90.90 | Outros plásticos autoadesivos |
+| 4811.41.90 | Papel autoadesivo             |
+| 9612.10.00 | Ribbon                        |
+
+Esses materiais representam praticamente toda a matéria-prima utilizada na fabricação das etiquetas.
+
+---
+
+# 5. Perfil dos fornecedores
+
+Os fornecedores são empresas de grande porte.
+
+As notas fiscais são emitidas corretamente, contendo destaque dos tributos aplicáveis, como:
+
+* ICMS;
+* IPI (quando devido);
+* PIS;
+* COFINS.
+
+Isso é extremamente importante para uma futura migração ao Lucro Real, pois possibilita o correto aproveitamento dos créditos tributários quando permitido pela legislação.
+
+---
+
+# 6. Migração para o Lucro Real
+
+A empresa pretende migrar para o Lucro Real após ultrapassar o limite do Simples Nacional.
+
+Pelas características apresentadas, trata-se de um perfil bastante favorável ao regime.
+
+Os principais fatores são:
+
+* atividade industrial;
+* elevado consumo de matéria-prima;
+* compras de fornecedores do regime normal;
+* emissão correta das notas fiscais;
+* possibilidade de aproveitamento de créditos tributários.
+
+---
+
+# 7. Créditos que passam a existir
+
+Ao migrar para o Lucro Real, podem existir créditos relativos a diversos tributos, observadas as regras legais aplicáveis.
+
+Entre eles:
+
+### ICMS
+
+Os principais insumos utilizados na fabricação normalmente permitem crédito de ICMS, tais como:
+
+* BOPP;
+* papel autoadesivo;
+* tintas;
+* ribbons;
+* demais matérias-primas.
+
+Também podem gerar créditos:
+
+* embalagens utilizadas na industrialização;
+* alguns materiais auxiliares;
+* energia elétrica utilizada no processo industrial, quando atendidos os requisitos legais.
+
+---
+
+### PIS e COFINS
+
+No regime não cumulativo, diversos insumos industriais podem gerar créditos de PIS e COFINS, incluindo:
+
+* BOPP;
+* papel;
+* tintas;
+* adesivos;
+* ribbon;
+* outros materiais consumidos diretamente na fabricação.
+
+O direito ao crédito depende da legislação e do enquadramento de cada insumo como essencial ou relevante para a atividade.
+
+---
+
+### IPI
+
+Caso existam operações tributadas pelo IPI, também pode haver direito ao aproveitamento de créditos nas hipóteses previstas na legislação.
+
+---
+
+# 8. Simulação estimada
+
+Foi realizada uma simulação utilizando valores compatíveis com uma indústria de etiquetas.
+
+### Cenário
+
+Faturamento anual
+
+R$ 8.000.000
+
+Compras de matéria-prima
+
+R$ 4.500.000
+
+Outras despesas
+
+R$ 2.000.000
+
+Lucro
+
+R$ 1.500.000
+
+---
+
+## Resultado esperado
+
+### Simples Nacional
+
+Carga tributária aproximada:
+
+13% a 16%
+
+sobre o faturamento.
+
+---
+
+### Lucro Presumido
+
+Carga tributária estimada:
+
+14% a 18%
+
+dependendo da margem.
+
+---
+
+### Lucro Real
+
+A tendência é apresentar carga tributária menor quando existem elevados créditos de ICMS, PIS e COFINS e uma boa gestão fiscal.
+
+---
+
+# 9. Benefícios esperados
+
+A migração poderá proporcionar:
+
+* aproveitamento de créditos tributários;
+* redução do custo efetivo da matéria-prima;
+* diminuição do custo de fabricação;
+* melhoria da competitividade;
+* formação de preços mais eficiente;
+* melhor relacionamento comercial com clientes do regime normal.
+
+---
+
+# 10. Pontos de atenção
+
+Antes da migração recomenda-se:
+
+* revisar todos os NCMs;
+* revisar CFOPs;
+* revisar CSTs;
+* revisar cadastro de produtos;
+* validar fornecedores;
+* revisar regras de ICMS-ST;
+* revisar antecipações de ICMS em Minas Gerais;
+* mapear todos os insumos que geram crédito;
+* revisar a formação do preço de venda.
+
+---
+
+# 11. Conclusão
+
+Pelas informações apresentadas, a empresa possui características típicas de uma **indústria de etiquetas autoadesivas** com alto consumo de matéria-prima adquirida de grandes fornecedores que emitem documentos fiscais completos.
+
+Esse perfil tende a ser favorável ao **Lucro Real**, pois amplia a possibilidade de aproveitamento de créditos tributários e pode reduzir a carga tributária efetiva em comparação com outros regimes, desde que haja boa organização fiscal e contábil.
+
+Antes da migração, é recomendável elaborar uma simulação com os dados reais da empresa (faturamento, compras, despesas, margem de lucro e vendas por estado), para confirmar qual regime oferece o menor custo tributário e estruturar corretamente a transição.

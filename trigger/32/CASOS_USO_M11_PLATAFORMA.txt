@@ -1,0 +1,245 @@
+====================================================================================================
+CASOS DE USO — M11 PLATAFORMA — ERP RLP
+Documento: CASOS_USO_M11_PLATAFORMA.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M11 — Plataforma (auth, RBAC, multi-empresa, auditoria, parâmetros)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Fundação transversal: quem entra, o que pode fazer, em qual empresa,
+  com que trilha de auditoria e quais parâmetros oficiais. Sem plataforma
+  sólida, os demais módulos não são confiáveis.
+
+Atores: ADMIN (primário); todos os perfis (autenticação); Sistema
+
+Invariants:
+  • Login individual intransferível (e-mail corporativo).
+  • Autorização só via PER (RBAC) — nunca permissão solta no usuário.
+  • Soft-delete / bloqueio — usuário desligado não é apagado.
+  • ADMIN não é login de rotina operacional.
+  • empresa_id em todo documento operacional; EMP-00002 venda off.
+  • Documento não se apaga — estorna/compensa.
+
+====================================================================================================
+UC-PLT-001 — Autenticar usuário (login individual)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Qualquer usuário interno
+
+Pré-condições: USR ativo cadastrado com e-mail corporativo; HTTPS.
+
+Pós-condições: Sessão autenticada; identidade rastreável em auditoria.
+
+Garantia: Proibido “usuário da firma” compartilhado como prática suportada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Usuário informa e-mail e senha (ou IdP corporativo, se adotado).
+  2. Sistema valida credenciais e status ATIVO.
+  3. Cria sessão segura; registra login (ip/hora) em trilha.
+  4. Encaminha à home conforme perfil.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Usuário bloqueado / inativo
+    2a. Acesso negado.
+  EX2 — Credencial inválida
+    2a. Falha genérica; contador de tentativas / lockout conforme política.
+
+Regras: U1; RF-PLT-01; LR-RNF-01
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt · SEGURANCA_NUVEM_*
+Aceite: Dois operadores distintos têm logins distintos; sessão mostra usuário real.
+
+====================================================================================================
+UC-PLT-002 — Autorizar por perfil RBAC
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (em toda operação) / ADMIN (mantém PER)
+
+Pré-condições: Usuário autenticado; perfil(s) atribuído(s).
+
+Pós-condições: Operação permitida ou negada conforme matriz; SoD aplicado.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Usuário tenta ação (ex.: emitir NF, alterar limite).
+  2. Sistema resolve permissões via PER (nunca lista solta no USR).
+  3. Avalia pares SoD incompatíveis.
+  4. Autoriza ou nega com mensagem e log.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — ADMIN mantém perfil
+    ADMIN cria/edita PER e associa usuários; auditoria da mudança.
+
+Regras: U2; RF-PLT-02; RNF-22; CA-12
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt · SRS §14
+Aceite: COMERCIAL não altera limite de crédito; matriz SoD impede autoaprovação crítica.
+
+====================================================================================================
+UC-PLT-003 — Operar multi-empresa (empresa_id / isolamento)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema / usuário com acesso a empresa(s)
+
+Pré-condições: EMP cadastradas; flags venda_ativa/estoque_ativo.
+
+Pós-condições: Documento gravado com empresa_id correto; livros isolados.
+
+Garantia: Documento EMP-00001 não “pula” para EMP-00002; venda EMP-00002 off.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sessão resolve empresa_id (default EMP-00001).
+  2. Toda criação operacional carrega empresa_id.
+  3. Consultas filtram pela empresa da sessão/contexto.
+  4. Credenciais Focus/banco isoladas por empresa.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Tentativa de venda em EMP-00002 com flag off
+    2a. Operação negada até Contador+Direção (CA-08).
+
+Regras: RN-16, RN-17; RF-PLT-03, RF-PLT-04; CA-08; D0.7
+Trace: MULTI_EMPRESA_CNPJS_E_LIVROS.txt
+Aceite: PED criado em EMP-00001 nunca aparece no livro de EMP-00002.
+
+====================================================================================================
+UC-PLT-004 — Auditar ações críticas (quem/quando/de→para)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema
+Consumidor ...: ADMIN / FINANCEIRO / CONSULTA auditoria
+
+Pré-condições: Ação crítica (criar/alterar baixa, NF, parâmetro, crédito, pagamento…).
+
+Pós-condições: Registro imutável de auditoria consultável.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ação crítica é executada com sucesso.
+  2. Sistema grava: ator, timestamp, entidade, id, de→para, empresa_id, ip.
+  3. Painel de auditoria permite busca por período/entidade/usuário.
+
+Regras: RF-PLT-05; LR-RF-003
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt · ARQUITETURA_*
+Aceite: Alteração de limite de crédito gera linha de auditoria com valores anteriores.
+
+====================================================================================================
+UC-PLT-005 — Versionar parâmetros oficiais (TAB)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN
+Secundário ...: Direção (ratificação)
+
+Pré-condições: Perfil autorizado; parâmetros identificados (preço MP, hora máquina…).
+
+Pós-condições: Nova vigência publicada; ORCs antigos preservam snapshot.
+
+Garantia: Orçamento antigo não “muda” quando preço novo entra.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN edita parâmetro e define vigência.
+  2. Se não ratificado → status PENDENTE_RATIFICACAO (alerta em cálculos).
+  3. Após ratificação, publica versão.
+  4. Motor de ORC passa a usar vigência nova só daí em diante.
+  5. Auditoria completa.
+
+Regras: RN-18; RF-PLT-07; D0.* parâmetros
+Trace: PARAMETROS_EMPRESA_OFICIAIS.txt · GERACAO_ORCAMENTO.txt
+Aceite: Reabrir ORC antigo mantém resultados do snapshot original.
+
+====================================================================================================
+UC-PLT-006 — Gerenciar feature flags / virada por fases
+====================================================================================================
+
+Prioridade ...: S | Fase: 1–3 (contínuo)
+Ator primário : ADMIN
+
+Pré-condições: Flags definidas (WhatsApp prod, Sicoob, RMA, EMP-00002…).
+
+Pós-condições: Módulo/comportamento ligado/desligado sem redeploy destrutivo.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN altera flag (ex.: régua WhatsApp = on).
+  2. Sistema aplica imediatamente ou no próximo ciclo.
+  3. Operações dependentes respeitam flag (UC-INT-003, etc.).
+  4. Auditoria do toggle.
+
+Regras: RF-PLT-09; LR-RF-005
+Trace: estrategia_implantacao_ja.txt
+Aceite: Desligar WhatsApp não impede ORC→PED→NF no fluxo feliz.
+
+====================================================================================================
+UC-PLT-007 — Impedir exclusão física de documento (estorno)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (regra global)
+Tentativa ...: Qualquer perfil que tente “apagar”
+
+Pré-condições: Documento operacional existente (ORC aprovado, PED, NF, TIT, MOV…).
+
+Pós-condições: Delete físico indisponível; caminho = cancelar/estornar/compensar.
+
+Garantia: API “DELETE destrutivo” de documento de negócio não existe ou é no-op seguro.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Usuário solicita exclusão de PED/NF/TIT/MOV.
+  2. Sistema oferece cancelamento/estorno conforme tipo.
+  3. Gera documento compensatório e mantém origem.
+  4. Auditoria registra a intenção e o estorno.
+
+Regras: RN-04 domínio; D0.4; R0.4; RF-EXC-05; RNF-13
+Trace: DOMINIO_SISTEMA_ERP_RLP.txt · DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+Aceite: Não há botão “Excluir NF”; há “Cancelar/Estornar” com trilha.
+
+====================================================================================================
+UC-PLT-008 — Bloquear usuário desligado (sem apagar histórico)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN
+
+Pré-condições: Colaborador desligado; USR existente com histórico.
+
+Pós-condições: USR bloqueado/inativo; sem login; documentos históricos intactos.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. ADMIN bloqueia usuário (motivo: desligamento).
+  2. Sessões ativas são invalidadas.
+  3. Login futuro negado (UC-PLT-001 EX1).
+  4. Auditorias e documentos do passado continuam atribuídos ao USR.
+
+Regras: U3; RF-PLT-06; RN-15
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Aceite: Usuário bloqueado não autentica; PED antigos ainda mostram quem criou.
+
+====================================================================================================
+Fim — CASOS_USO_M11_PLATAFORMA.txt
+8 casos de uso | Módulo M11 Plataforma
+====================================================================================================

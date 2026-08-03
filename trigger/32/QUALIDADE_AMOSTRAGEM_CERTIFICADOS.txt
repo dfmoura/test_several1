@@ -1,0 +1,85 @@
+====================================================================================================
+QUALIDADE AMPLIADA — AMOSTRAGEM, CERTIFICADOS E CONTRA-PROVA
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: CONCLUSAO_PRODUCAO.txt + POS_VENDA_RMA_GARANTIA.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt +
+      AMOSTRAS_PROTOTIPOS.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+A conclusão já exige checklist mínimo. Este documento amplia: plano de
+amostragem, certificado ao cliente e retenção de contra-prova — sem
+criar laboratório ISO completo na Fase 1.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. CQ mínimo na conclusão permanece obrigatório.
+ 2. Amostragem proporcional ao risco/cliente (não 100% de tudo).
+ 3. Contra-prova retida quando o cliente ou o produto exige
+    rastreio forte (parâmetro por parceiro/família).
+ 4. Certificado é documento do ERP (PDF), não “print do zap”.
+
+----------------------------------------------------------------------------------------------------
+2. CHECKLIST MÍNIMO (já na conclusão) — reforço
+----------------------------------------------------------------------------------------------------
+
+  Medida | impressão | refile | embálage | etiq/rolo | adesão visual
+
+Bloqueio se item crítico falhar (CONCLUSAO_PRODUCAO).
+
+----------------------------------------------------------------------------------------------------
+3. PLANO DE AMOSTRAGEM (Fase 1 — simples)
+----------------------------------------------------------------------------------------------------
+
+Parâmetros por família ou cliente VIP:
+  * n = 1 rolo a cada N rolos (ex.: 1/10) OU
+  * 100% em primeiros pedidos / troca de faca / novo substrato
+  * Amostra destrutiva só com autorização (consome qtde)
+
+Resultado: APROVADO | REPROVADO | APROVADO_COM_RESSALVA
+Reprovado → não conclui OP / quarentena PA.
+
+----------------------------------------------------------------------------------------------------
+4. CERTIFICADO PARA O CLIENTE
+----------------------------------------------------------------------------------------------------
+
+Quando PED/parceiro exige (flag):
+  * PDF: PED-, OP-, lote(s), qtde, data, checklist, responsável CQ
+  * Envio: e-mail / WhatsApp Business API (template) + anexo no PED
+
+Não inventar laudo laboratorial que a RLP não realiza.
+
+----------------------------------------------------------------------------------------------------
+5. CONTRA-PROVA (RETENÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  * Guarda amostra física etiquetada (OP-, lote, validade da guarda)
+  * Prazo sugerido: 90–180 dias (calibrar) ou até fim da garantia
+  * Local e responsável registrados
+  * Descarte com log (não “sumir”)
+
+Uso: confronto em RMA.
+
+----------------------------------------------------------------------------------------------------
+6. LIGAÇÃO COM RMA
+----------------------------------------------------------------------------------------------------
+
+Parecer CQ do RMA consulta: checklist da OP, certificado, contra-prova,
+lotes. Sem isso a análise degrada.
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Checklist mínimo na conclusão
+  [ ] Regra de amostragem cadastrada (mesmo que simples)
+  [ ] Certificado quando cliente exige
+  [ ] Contra-prova com prazo e local
+  [ ] RMA usa o histórico de CQ
+
+====================================================================================================
+Fim — QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt
+Qualidade além do “olho”: amostra, papel e contra-prova quando o risco pede.
+====================================================================================================

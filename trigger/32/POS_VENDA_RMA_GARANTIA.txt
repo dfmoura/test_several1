@@ -1,0 +1,161 @@
+====================================================================================================
+PÓS-VENDA, RMA, RECLAMAÇÃO E GARANTIA — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_PEDIDO.txt + ENTREGA_CONFIRMACAO_CLIENTE.txt + CONCLUSAO_PRODUCAO.txt +
+      ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      DEVOLUCAO_VENDA_PONTA_A_PONTA.txt + QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt +
+      CODIFICACAO_INFORMACOES_SISTEMA.txt + INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Este documento fecha o FLUXO INFELIZ pós-entrega: reclamação, análise de
+causa, reposição, crédito e garantia. Não substitui a devolução fiscal
+completa (ver DEVOLUCAO_VENDA_PONTA_A_PONTA.txt) — o RMA é o ticket que
+orquestra CQ, estoque, comercial e financeiro até a decisão.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. NADA SE RESOLVE SÓ NO WHATSAPP. Conversa pode abrir o RMA; o RMA
+    vive no ERP com status, causa, lote/OP e decisão.
+ 2. RASTREIO ANTES DE CULPA. Lote, OP, faca, operador e fornecedor
+    entram na análise — não “achismo”.
+ 3. DECISÃO ÚNICA E AUDITÁVEL: reposição | crédito | recusa | troca
+    parcial | reprocesso interno.
+ 4. ESTOQUE E CUSTO SÓ MUDAM COM MOV / NF / crédito formal — nunca
+    “apagando” a venda original.
+ 5. SLA interno: abertura → triagem → CQ → decisão comercial → execução.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  id BIGINT + RMA-AAAA-NNNNN
+  FK: parceiro_id, ped_id (obrigatório quando houver), nf_id, ent_id,
+      op_id(s), lote_id(s), sku_id(s), usuario_abertura_id
+
+Prefixo RMA incluso no catálogo (CODIFICACAO_INFORMACOES_SISTEMA).
+
+----------------------------------------------------------------------------------------------------
+3. ABERTURA DO RMA
+----------------------------------------------------------------------------------------------------
+
+Canais de entrada (todos geram o mesmo objeto RMA-):
+  * WhatsApp Business API (template/opt-in) → cria RMA rascunho
+  * E-mail / telefone → comercial abre no ERP
+  * Portal / link do PED (Fase 2)
+  * Recusa na entrega (ENT- com ocorrência) → RMA automático sugerido
+
+Campos mínimos na abertura:
+  * Cliente (PAR-), contato, telefone/WhatsApp oficial
+  * PED- / NF- / ENT- (buscar; se não achar, status “sem vínculo”
+    até comercial amarrar)
+  * Sintoma: defeito impressão, medida, adesivo, quantidade, atraso,
+    avaria transporte, outro
+  * Qtde reclamada × unidade
+  * Evidências: fotos, vídeo, amostra física (flag “aguardando material”)
+  * Prioridade: NORMAL | URGENTE (parada de linha do cliente)
+
+----------------------------------------------------------------------------------------------------
+4. STATUS DO RMA
+----------------------------------------------------------------------------------------------------
+
+  ABERTO → TRIAGEM → AGUARDA_AMOSTRA → EM_CQ → PARECER_CQ →
+  DECISAO_COMERCIAL → EM_EXECUCAO → ENCERRADO | RECUSADO | CANCELADO
+
+Não pular CQ em reclamação de qualidade (override só DIREÇÃO + motivo).
+
+----------------------------------------------------------------------------------------------------
+5. TRIAGEM E CQ
+----------------------------------------------------------------------------------------------------
+
+Triagem (comercial / SAC):
+  * Confirma se item/lote batem com o PED
+  * Classifica: qualidade | quantidade | logística | comercial | outro
+  * Solicita contra-prova se necessário (prazo parâmetro, ex.: 5 dias úteis)
+
+CQ (qualidade):
+  * Confronta amostra × especificação do PED × checklist da conclusão
+  * Liga a lote/OP/fornecedor (quando rastreio existir)
+  * Parecer: PROCEDENTE | IMPROCEDENTE | PARCIAL | INCONCLUSIVO
+  * Causa raiz (código): material | processo | faca | transporte |
+    especificação ambígua | uso cliente | desconhecida
+  * Ação sugerida: reposição OP | crédito | devolução formal |
+    orientação de uso | nada a fazer
+
+----------------------------------------------------------------------------------------------------
+6. DECISÃO COMERCIAL (alçadas)
+----------------------------------------------------------------------------------------------------
+
+  Reposição sem custo (garantia) ...... comercial até parâmetro R$;
+                                       acima → gerência/direção
+  Crédito em conta corrente .......... financeiro + comercial
+  Devolução formal (NF) .............. segue DEVOLUCAO_VENDA_...
+  Desconto em pedido futuro .......... comercial + natureza 1.02.xx
+  Recusa da reclamação ............... comercial; notifica cliente
+                                       com fundamento do CQ
+
+Garantia padrão sugerida (calibrar com a empresa):
+  * Defeito de fabricação comprovado: reposição ou crédito
+  * Avaria transportadora: abrir ocorrência + cobrança ao transportador
+    (FRETE_TRANSPORTADORAS) — não “absorver” sem análise
+  * Fora de especificação por alteração verbal não registrada no PED:
+    não é garantia automática
+
+----------------------------------------------------------------------------------------------------
+7. EXECUÇÃO
+----------------------------------------------------------------------------------------------------
+
+A) REPOSIÇÃO
+   * Gera item/PED de reposição (tipo REPOSICAO_RMA) ou OP filha
+     ligada ao rma_id — preço zero ou política comercial
+   * Não reabre o PED original como se nada tivesse acontecido
+   * Custo da reposição entra no custo da reclamação (relatório)
+
+B) CRÉDITO AO CLIENTE
+   * Gera crédito financeiro vinculado ao RMA (compensa títulos /
+     próximo PED) — RECEBIMENTO_BAIXA_COBRANCA tipo compensação
+
+C) DEVOLUÇÃO FISCAL
+   * Encaminha para fluxo DEVOLUCAO_VENDA_PONTA_A_PONTA (mesmo rma_id)
+
+D) RETRABALHO INTERNO
+   * OP de retrabalho; PA retorna; cliente pode ou não receber de novo
+
+----------------------------------------------------------------------------------------------------
+8. WHATSAPP E COMUNICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  * Status relevantes podem notificar o contato oficial via
+    WhatsApp Business API (templates aprovados) — nunca Baileys/
+    conta pessoal (INTEGRACAO_WHATSAPP_BUSINESS_API.txt).
+  * Mensagem não substitui o registro no RMA.
+  * Histórico da thread fica no log MSG- ligado ao rma_id.
+
+----------------------------------------------------------------------------------------------------
+9. RELATÓRIOS
+----------------------------------------------------------------------------------------------------
+
+  * RMA abertos por idade / SLA
+  * Taxa de procedência por causa raiz
+  * Custo de garantia / reposição no período
+  * Top clientes / produtos / lotes com reclamação
+  * Ligação fornecedor (quando causa = material)
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] RMA- com vínculo PED/NF quando existir
+  [ ] Evidência ou amostra tratada
+  [ ] Parecer CQ antes de decisão de qualidade
+  [ ] Decisão com alçada e motivo
+  [ ] Execução gera OP/crédito/DEV — não “jeitinho” no estoque
+  [ ] Encerramento só com ação concluída ou recusa documentada
+
+====================================================================================================
+Fim — POS_VENDA_RMA_GARANTIA.txt
+Reclamação sem RMA vira planilha; RMA sem CQ vira briga. O ERP fecha os dois.
+====================================================================================================

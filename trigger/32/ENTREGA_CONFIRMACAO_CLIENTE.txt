@@ -1,0 +1,149 @@
+====================================================================================================
+ENTREGA AO CLIENTE E CONFIRMAÇÃO — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_PEDIDO.txt + CONCLUSAO_PRODUCAO.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      CONTROLE_ESTOQUE_PROFISSIONAL.txt + CADASTRO_PARCEIROS.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define COMO O PEDIDO SAI da empresa e COMO SE CONFIRMA
+que o cliente recebeu. Entrega não é "saiu no caminhão e pronto": é
+documento (romaneio/despacho), vínculo com NF/PED e confirmação auditável.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. SÓ EXPEDE O QUE ESTÁ PRODUZIDO (OU REVENDA SEPARADA) E LIBERADO.
+ 2. ENDEREÇO DE ENTREGA = SNAPSHOT DO PED (ou retirada no cadastro).
+ 3. CONFIRMAÇÃO DE ENTREGA FECHA O CICLO LOGÍSTICO DO PED
+     (financeiro pode continuar aberto — são eixos distintos).
+ 4. NÃO CRIAR TMS COMPLETO NA FASE 1 — romaneio + status + canhoto
+     digital/foto bastam; transportadora como parceiro PAR- com flag.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  id BIGINT + ENT-AAAA-NNNNN (romaneio / documento de entrega)
+  FK: ped_id (1 PED pode ter N entregas parciais), nf_id(s), transportadora_id
+
+----------------------------------------------------------------------------------------------------
+3. MODOS DE SAÍDA
+----------------------------------------------------------------------------------------------------
+
+  A) CLIENTE RETIRA
+     * Agendamento / senha de retirada
+     * Conferência na expedição (qtde, volumes, PED/NF)
+     * Assinatura (nome + documento) ou foto do canhoto
+     * Status ENTREGUE na hora
+
+  B) ENTREGA PRÓPRIA (veículo da RLP)
+     * Romaneio com rota do dia (lista de ENT-)
+     * Motorista / veículo (cadastro simples — pode ligar a PATRIMÔNIO)
+     * Saída registrada → EM_ENTREGA → confirmação → ENTREGUE
+
+  C) TRANSPORTADORA
+     * PAR- transportadora + volumes + peso (se houver)
+     * CT-e / minutas: anexar ou referenciar se existir (Fase 2)
+     * Código de rastreio (campo texto) + status
+     * Confirmação: canhoto, API transportadora, ou baixa manual
+       com comprovante anexado
+
+  D) CORREIOS / MOTOBOY / OUTROS
+     * Mesmo ENT- com tipo = OUTRO; rastreio quando houver
+
+----------------------------------------------------------------------------------------------------
+4. FLUXO OPERACIONAL
+----------------------------------------------------------------------------------------------------
+
+  1) Fila de expedição: itens PRODUZIDOS (+ NF emitida, se política
+     exigir NF antes de sair — recomendado)
+  2) Picking / separação por PED (ou por ENT consolidando N PEDs
+     na mesma rota — cuidado para não misturar volumes)
+  3) Conferência dupla (CONTROLE_ESTOQUE 5.3): qtde, etiqueta, NF
+  4) Gera ENT-AAAA-NNNNN + volumes (caixas/rolos)
+  5) Baixa de estoque PA: preferencialmente já na NF autorizada;
+     se retirada sem NF (evitar), política excepcional
+  6) Status PED: EM_ENTREGA
+  7) Confirmação (seção 5) → PED ENTREGUE (no eixo logístico)
+  8) Evento opcional: WhatsApp ao contato oficial "saiu para entrega"
+     / "entregue" — sem substituir o registro no ERP
+
+----------------------------------------------------------------------------------------------------
+5. CONFIRMAÇÃO DE ENTREGA
+----------------------------------------------------------------------------------------------------
+
+Formas aceitas (pelo menos uma):
+  * Assinatura digital / nome legível no coletor
+  * Foto do canhoto (upload no ENT-)
+  * Protocolo transportadora / rastreio "entregue"
+  * E-mail/WhatsApp do cliente confirmando (anexo + usuário registra)
+  * Retirada: assinatura no balcão
+
+Dados mínimos:
+  * data/hora, quem confirmou (usuario ou motorista), tipo de prova,
+    geolocalização opcional
+
+Recusa / avaria na entrega:
+  * Status RECUSADA / AVARIADA
+  * Não baixar como entregue
+  * Abre tratativa: devolução, reentrega, CQ, comercial
+  * Estoque: retorno com MOV e NF de devolução se já faturado
+
+----------------------------------------------------------------------------------------------------
+6. ENTREGA PARCIAL E SALDO
+----------------------------------------------------------------------------------------------------
+
+  * Cada ENT reduz saldo a entregar do item
+  * PED só "ENTREGUE" completo quando saldo logístico = 0
+  * Faturamento parcial e entrega parcial podem ter ritmos diferentes
+    — painel mostra os dois eixos
+
+----------------------------------------------------------------------------------------------------
+7. PRAZO × PROMESSA COMERCIAL
+----------------------------------------------------------------------------------------------------
+
+  Prazo do ORC/PED é a data prometida.
+  KPI OTIF: entregue completo até a data (ou janela).
+  Atraso: comercial notifica; motivo no PED/ENT (máquina, material,
+  cliente ausente, transportadora).
+
+Feriados: usar calendário (APIS_FREE /feriados) no cálculo de prazo
+quando o módulo de prazo estiver ativo.
+
+----------------------------------------------------------------------------------------------------
+8. PAPÉIS
+----------------------------------------------------------------------------------------------------
+
+  EXPEDICAO / PRODUCAO ... separa, confere, gera ENT-
+  COMERCIAL .............. agenda retirada, trata recusa
+  FINANCEIRO ............. não confirma entrega (SoD); pode só consultar
+  FISCAL ................. NF ligada ao despacho
+
+----------------------------------------------------------------------------------------------------
+9. O QUE NÃO FAZER
+----------------------------------------------------------------------------------------------------
+
+  * Confirmar entrega só no WhatsApp sem gravar no ENT-
+  * Expedir sem NF quando a política exige NF (padrão)
+  * Misturar volumes de clientes sem identificação
+  * Criar app de logística desconectado do ped_id
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Prefixo ENT- + vínculo PED/NF
+  [ ] Fila só com item liberado
+  [ ] Conferência e volumes
+  [ ] Confirmação com prova anexável
+  [ ] Recusa/avaria com retorno de estoque
+  [ ] Parcial controlado
+  [ ] OTIF no painel único
+
+====================================================================================================
+Fim — ENTREGA_CONFIRMACAO_CLIENTE.txt
+Entregar é romaneio + prova. Sem confirmação no ERP, o pedido não fechou a logística.
+====================================================================================================

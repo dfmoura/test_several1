@@ -1,0 +1,865 @@
+====================================================================================================
+COMPARATIVO ABRANGENTE — ERP RLP (sob medida) × iQuattro Sistemas (SaaS pronto)
+Fontes ........: Documentação interna trigger/32 + site público iQuattro
+                 (https://iquattro.com.br/planos/ e páginas de indústrias de
+                 rótulos/etiquetas)
+Versão ........: 1.0 | 03/08/2026
+Classificação ..: Análise de decisão / build vs buy — uso interno RLP + equipe
+Idioma ........: Português (Brasil)
+====================================================================================================
+
+Empresa de referência (lado sob medida):
+  RLP ETIQUETAS AUTO ADESIVOS LTDA
+  CNPJ ......: 01.423.183/0001-10 (MG) — Simples Nacional
+               (migração planejada para Lucro Real)
+  Porte .....: ≤ 10 usuários | ≈ 200 NF/mês | indústria flexográfica B2B
+
+Concorrente / alternativa pronta:
+  iQuattro Sistemas (Vinhedo/SP)
+  Site ......: https://iquattro.com.br/
+  Planos ....: https://iquattro.com.br/planos/
+  Vertical ..: Indústrias de rótulos e etiquetas (além de plásticos, alimentos,
+               serviços, distribuidoras)
+  Contato ...: 19 3826.4345 | contato@iquattro.com.br
+
+
+====================================================================================================
+0. VEREDITO EM UMA PÁGINA (LER PRIMEIRO)
+====================================================================================================
+
+São produtos da mesma “família mental” (ERP industrial para rótulos/etiquetas),
+mas de MODELOS DE NEGÓCIO opostos:
+
+  iQuattro ........ SaaS vertical maduro, pronto para contratar, implantável em
+                    poucas semanas, pago mensalmente, com suporte do fornecedor.
+                    Customização existe, mas dentro da plataforma deles.
+
+  ERP RLP ......... Sistema sob medida, desenhado sobre as regras reais da RLP
+                    (planilhas oficiais, fluxo de crédito, bobina/retalho, Focus,
+                    2º CNPJ, export ao contador). Custo alto de construção na
+                    frente; custo recorrente previsível (cloud + integrações).
+                    Código e regras sob controle da RLP.
+
+Pergunta correta NÃO é “qual tem mais checkbox no marketing”.
+É:
+
+  (A) Quero VELOCIDADE e risco de implantação baixo → favorece iQuattro.
+  (B) Quero DONO das regras da RLP (orçamento hermético, PED mestre, crédito,
+      sobra de bobina, aceites, multi-empresa controlada) sem depender de
+      roadmap de fornecedor → favorece ERP RLP.
+  (C) Quero o melhor dos dois → iQuattro como operação hoje / paralelo de
+      avaliação, e ERP RLP só se o gap de regras do iQuattro for inaceitável
+      após demo com dados reais da RLP.
+
+Resposta prática (síntese da equipe de domínio):
+
+  • iQuattro é concorrente SÉRIO e espertíssimo de comparar — tem vertical
+    rótulos/etiquetas, m²/m linear, facas, PCP, NF, financeiro.
+  • ERP RLP só se justifica se o diferencial for profundidade de processo RLP
+    (motor de orçamento das .xlsm, aceite formal, crédito/sinal, retalho,
+    trilha ORC→caixa sem livro paralelo, preparação Lucro Real à própria
+    maneira) + propriedade do software.
+  • Se a RLP só precisa de “ERP de etiqueta genérico bom o bastante”,
+    iQuattro tende a ganhar em TCO de 3–5 anos e em tempo até valor.
+
+
+====================================================================================================
+1. OBJETIVO DESTE DOCUMENTO
+====================================================================================================
+
+  1) Colocar lado a lado o que cada sistema entrega (funcional, comercial,
+     fiscal, operacional e de risco).
+  2) Traduzir planos públicos do iQuattro para o porte da RLP.
+  3) Evitar decide-se por “apareceu no site” ou por apego ao pacote TXT.
+  4) Servir de checklist para DEMO CONTROLLADA no iQuattro (perguntas que
+     a direção deve fazer na demonstração).
+  5) Apoiar choose build vs buy (ou híbrido) com critérios mensuráveis.
+
+
+====================================================================================================
+2. QUEM É CADA SISTEMA
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+2.1. iQuattro (buy / SaaS)
+----------------------------------------------------------------------------------------------------
+
+  O que é:
+    Plataforma ERP web brasileira, com linha específica para indústrias de
+    rótulos e etiquetas e outras verticais industriais/serviços.
+
+  Como vende:
+    Planos mensais escalonados por SEGMENTO + faturamento anual declarado,
+    com número de usuários incluso. Planos intermediários e altos pedem
+    “consulte” (preço sob orçamento comercial).
+
+  Como implanta (comunicação pública):
+    Implantação guiada “em poucas semanas”, em paralelo à operação, sem
+    exigir que o cliente seja técnico. Suporte humano no dia a dia.
+
+  Presença:
+    Empresa com clientes em vários estados; ajuda online, blog, YouTube;
+    integrações divulgadas (ex.: RD CRM, sistema Domínio para contadores).
+
+  Referências públicas usadas neste TXT:
+    • https://iquattro.com.br/planos/
+    • https://iquattro.com.br/sistema-de-gestao-para-industria-de-rotulos-e-etiquetas/
+    • Blog / central de ajuda (PCP, relatório Produção Label, etc.)
+
+----------------------------------------------------------------------------------------------------
+2.2. ERP RLP (build / sob medida)
+----------------------------------------------------------------------------------------------------
+
+  O que é:
+    ERP web interno projetado para a cadeia canônica da RLP:
+
+      ORC → PED → OP/OS → NF → TIT → COB → ENT → BX
+
+    Arquitetura decidida: monólito modular único (não três sistemas).
+    Pedido = documento-mestre. Sem livro paralelo / “caixa 2” no sistema.
+    Contabilidade oficial permanece com o CONTADOR; ERP exporta pacote.
+
+  Estado em 03/08/2026:
+    Domínio e requisitos muito avançados (pacote trigger/32 — dezenas de
+    TXTs, 80 casos de uso M01–M11, proposta comercial, AWS).
+    Código de produção ainda a consolidar a partir de protótipos (28/29/31)
+    + construção guiada.
+
+  Como implanta (proposta interna):
+    Fase 1 em 4–5 meses até go-live; virada por saldos (não por milênio de
+    XML histórico); treino e homologação com usuários-chave.
+
+  Propriedade:
+    Software da RLP (ou do fornecedor de desenvolvimento contratado, conforme
+    contrato). Evolução sob demanda da própria empresa.
+
+
+====================================================================================================
+3. POSICIONAMENTO DE MERCADO E ENCAIXE NA RLP
+====================================================================================================
+
+  Dimensão                         iQuattro                         ERP RLP
+  ------------------------------   ------------------------------   ------------------------------
+  Modelo                           SaaS multi-tenant (fornecedor)   App interna / dedicada
+  Público                          PME industriais e serviços       Uma empresa (RLP) + 2º CNPJ
+  Vertical rótulos                 Sim — dedicada                   Sim — desenhado SO para RLP
+  Tempo até 1ª operação            Semanas (promo marketing)        4–5 meses (Fase 1 proposta)
+  Maturidade do produto            Alto (já em produção em N        Baixo no código / alto no
+                                   clientes)                        domínio documentado
+  Customização profunda            Possível, limitada ao            Total (desde que paga em
+                                   produto e à fila do              engenharia)
+                                   fornecedor
+  Dependência de fornecedor        Alta (saas, roadmap, preço)      Baixa no produto; alta no
+                                                                    time que mantém o código
+  Encaixe porte RLP (≤10 users)    Planos 5–10 users batem bem      Escala desenhada para ≤10
+  Encaixe ~200 NF/mês              Adequado                         Adequado (Focus + AWS enxuto)
+
+
+====================================================================================================
+4. PLANOS E PREÇOS PÚBLICOS DO iQuattro
+====================================================================================================
+
+Fonte: https://iquattro.com.br/planos/ (valores “a partir de”; comerciais
+podem divergir em proposta formal — marcar SEMPRE como referência pública).
+
+----------------------------------------------------------------------------------------------------
+4.1. Tabela pública de planos
+----------------------------------------------------------------------------------------------------
+
+  Plano / público-alvo                          Preço público          Users
+  --------------------------------------------  ---------------------  ------
+  Prestação de serviços                         a partir de R$ 479/mês  3
+  Indústria até R$ 1M faturamento/ano           a partir de R$ 974/mês  5
+  Indústria/distribuidora R$ 1M–R$ 5M/ano       consulte...             10
+  Indústria/distribuidora acima de R$ 5M/ano    consulte...             15
+
+----------------------------------------------------------------------------------------------------
+4.2. O que cada faixa industrial lista (checklist marketing)
+----------------------------------------------------------------------------------------------------
+
+  Indústria ≤ R$ 1M (R$ 974+/mês | 5 users)
+    • Controle de Vendas e Orçamentos
+    • Ficha Técnica de Produtos
+    • PCP e Ordem de Produção
+    • Faturamento dos Pedidos
+    • Controle Financeiro
+    • Conciliação via OFX
+    • Emissão de Boletos
+
+  Indústria R$ 1M–R$ 5M (consulte | 10 users)
+    Tudo acima +
+    • Controle de Lotes e Validades
+    • Controle de Compras e Estoque
+    • Faturamento | NF-e
+    • SPED Fiscal e Bloco K
+
+  Indústria > R$ 5M (consulte | 15 users)
+    Tudo acima +
+    • Controle de Locais e Localizações
+    • Controle de Qualidade
+
+  Observação importante:
+    No plano “até R$ 1M”, a lista NÃO destaca explicitamente “Compras e
+    Estoque”, “Lotes”, “NF-e” e “SPED” — esses aparecem nas faixas maiores.
+    Na demo, a RLP precisa confirmar o que realmente entra na versão
+    comercializada para rótulos (o site de rótulos mistura features do
+    vertical com a tabela de planos gerais).
+
+----------------------------------------------------------------------------------------------------
+4.3. Estimativa de encaixe da RLP nos planos iQuattro
+----------------------------------------------------------------------------------------------------
+
+  Premissas RLP:
+    • ≤ 10 usuários → plano com 5 users PODE ficar curto; 10 users é o
+      alvo confortável (faixa R$ 1M–R$ 5M ou usuário avulso — a confirmar).
+    • ~200 NF/mês e indústria de etiquetas → vertical “rótulos” é o pitch
+      certo; faixa provavelmente a 2ª ou 3ª (depende do faturamento anual
+      real da RLP — NÃO assumir aqui; marcar como dado a preencher).
+
+  Custo recorrente estimado (ordem de grandeza — NÃO é cotação):
+    • Piso industrial público ............ ~ R$ 974 / mês (5 users)
+    • Plano com 10 users ................. “consulte” (tipicamente bem
+      acima do piso; obter proposta formal)
+    • Implantação / treinamento .......... nem sempre zero — perguntar na
+      comercial (pode haver taxa, projeto, ou embutido)
+    • Usuário adicional .................. preço a confirmar
+
+  O que NÃO aparece como linha no site e a RLP deve perguntar:
+    Certificado A1, bancos/CNAB, emissão fiscal (se há custo por NF ou
+    embutido), storage, customizações, horário de suporte, SLA, cancelamento,
+    exportação de dados na saída (lock-in).
+
+
+====================================================================================================
+5. CUSTO DO ERP RLP (lado build) — REFERÊNCIA PROPOSTA
+====================================================================================================
+
+Fonte: PROPOSTA_COMERCIAL_ERP_RLP.txt + ESTIMATIVA_CUSTO_AWS_MENSAL.txt
+
+  Investimento Fase 1 (desenvolvimento + implantação)
+    R$ 120.000 a R$ 180.000 (one-shot / projeto)
+    Prazo 4–5 meses até go-live
+
+  Recorrente mensal (pós go-live — tipicamente pago pela RLP):
+    AWS (Cenário D) .............. R$ 660 a R$ 1.100 / mês (alarme ~R$ 1.375)
+    Focus NFe .................... conforme contrato Focus
+    Tarifas banco boleto/PIX ..... conforme banco
+    Certificado digital .......... anual
+    Contador ..................... (já existe)
+    Manutenção evolutiva ......... contrato de suporte/dev (não fechado na
+                                   proposta Fase 1 — estimativa: reserva
+                                   mensal ou banco de horas; tipicamente
+                                   R$ 2.000–8.000/mês se houver evolução
+                                   contínua — FAIXA ORIENTATIVA)
+
+  Fase 2 (compras avançadas, RMA, WhatsApp oficial etc.)
+    Orientação: ~30%–50% do valor da Fase 1 (aditivo futuro)
+
+
+====================================================================================================
+6. COMPARAÇÃO DE TCO (TOTAL COST OF OWNERSHIP) — 36 MESES
+====================================================================================================
+
+Cálculo ilustrativo. Substituir pelas propostas formais.
+
+----------------------------------------------------------------------------------------------------
+6.1. Cenário A — iQuattro (hipótese)
+----------------------------------------------------------------------------------------------------
+
+  Hipótese conservadora para porte RLP:
+    Assinatura média .............. R$ 1.800 / mês (*)
+    Implantação / setup ........... R$ 5.000 (uma vez) (*)
+    Ajustes leves no 1º ano ....... R$ 8.000 (*)
+    (*) PLACEHOLDER — preencher com proposta real do iQuattro
+
+  36 meses ≈
+    (1.800 × 36) + 5.000 + 8.000 = R$ 77.800
+
+  Se a assinatura real for R$ 1.200 → ~R$ 56k em 36 meses.
+  Se for R$ 3.000 → ~R$ 121k em 36 meses.
+  Em 60 meses o SaaS continua cobrando; o build amortiza.
+
+----------------------------------------------------------------------------------------------------
+6.2. Cenário B — ERP RLP (hipótese alinhada à proposta)
+----------------------------------------------------------------------------------------------------
+
+  Fase 1 ......................... R$ 150.000 (meio da faixa)
+  AWS média ...................... R$ 880 / mês × 36 = R$ 31.680
+  Focus + banco + cert (ordem) ... R$ 400 / mês × 36 = R$ 14.400 (**)
+  Manutenção evolutiva ............ R$ 3.000 / mês × 30 (após go-live) = R$ 90.000 (**)
+  (**) PLACEHOLDERS — ajustar
+
+  36 meses (ordem de grandeza) ≈ R$ 150k + 32k + 14k + 90k ≈ R$ 286.000
+
+  Leitura:
+    No horizonte curto (1–2 anos), iQuattro costuma ser MUITO mais barato.
+    No horizonte longo (5–10 anos) com muita customização contínua no
+    SaaS, o build pode empatar — mas só se a RLP REALMENTE usar a
+    profundidade própria e tiver quem mantenha o sistema.
+
+----------------------------------------------------------------------------------------------------
+6.3. Regra de bolso (decisão financeira)
+----------------------------------------------------------------------------------------------------
+
+  Se a RLP precisa só do que o iQuattro já cobre na demo → BUY.
+  Se a RLP vai gastar anos “lutando” com o SaaS por regras de orçamento,
+  crédito, retalho e trilha fiscal-operacional próprias → BUILD tende
+  a justificar o CAPEX — ou negociar customização pesada no iQuattro
+  e comparar o preço dessa customização com o CAPEX do ERP RLP.
+
+
+====================================================================================================
+7. FUNCIONALIDADES DA VERTICAL “RÓTULOS E ETIQUETAS”
+====================================================================================================
+
+O iQuattro promove explicitamente (página da vertical):
+
+  ✓ Orçamento com cálculo automático
+  ✓ Controle de facas rotativas, magnéticas, porta-clichê e anilox
+  ✓ Estoque em m² e metro linear
+  ✓ Emissão de notas e gestão financeira
+  ✓ Mapa de custos (hora/máquina atualizado)
+  ✓ Análise de produção (% perda, velocidade, tempo de setup)
+  ✓ Rastreabilidade por OP, máquina e operador
+  ✓ Impressão de etiquetas de identificação / rastreio
+
+O ERP RLP especifica (domínio trigger/32), entre outros:
+
+  ✓ Motor de orçamento com engenharia reversa das .xlsm oficiais
+    (etiqueta impressa, lisa, rebobinação, bobina, revenda, serviço)
+  ✓ Escada de quantidades, gordura/desconto com alçada, snapshot
+  ✓ Imposto estimado no ORC; arredondamento comercial para cima
+  ✓ Ferramental cobrado 1× por modelo/cliente
+  ✓ Aceite formal do cliente por link; ORC→PED com valores travados
+  ✓ Limite de crédito + liberação Financeiro + sinal/adiantamento
+  ✓ OP e OS a partir do PED; consumo de MP; sobra/retalho/refugo/apara
+  ✓ Facas / ferramental rastreável (FAC)
+  ✓ Conversões m / m² / kg / rolo
+  ✓ NF-e/NFS-e via Focus; títulos distintos da nota; baixa/cobrança
+  ✓ Multi-empresa (2º CNPJ com venda desligada até decisão)
+  ✓ Export disciplinado ao contador (sem SPED oficial no ERP)
+  ✓ Pós-venda RMA/DEV, compras cotação, WhatsApp oficial (Fase 2+)
+
+----------------------------------------------------------------------------------------------------
+7.1. Matriz de cobertura (visão macro)
+----------------------------------------------------------------------------------------------------
+
+  Capacidade / tema                      iQuattro (público)     ERP RLP (espec.)
+  -------------------------------------  ---------------------  ---------------------
+  Orçamento industrial rótulos           Sim (genérico vertical) Sim (regras RLP)
+  Ficha técnica / estrutura              Sim                    Sim (produto PA)
+  Facas / clichê / anilox                Sim (forte no pitch)   Sim (FAC + 1× cobr.)
+  Estoque m² e m linear                  Sim                    Sim
+  Sobra/retalho de bobina                Provável (PCP/perda)   Explícito e profundo
+  PCP / OP                               Sim (maduro)           Sim (Fase 1)
+  Setup / perda / hora máquina           Sim (relatórios Label) Sim (parâmetros ORC)
+  Pedido mestre amarrando tudo           Sim (ERP integrado)    Sim (regra canônica)
+  Aceite cliente por link                ? (confirmar demo)     Sim (Must Fase 1)
+  Crédito + liberação produção           Parcial/?              Sim (Must)
+  NF-e                                   Sim (planos médios+)   Sim (Focus)
+  NFS-e                                  Sim                    Sim (via Focus)
+  Boletos                                Sim                    Sim (BankProvider)
+  PIX / webhook bancário                 ?                      Sim (desenhado)
+  Conciliação OFX                        Sim (lista planos)     Parcial (via baixa)
+  Compras + XML entrada                  Planos maiores         Fase 2 (S)
+  Lotes / validades                      Planos maiores         Só se pedir
+  Locais / localizações                  Plano top              Inventário + movimentos
+  Qualidade / certificado                Plano top / soluções   Fase 2 amostragem
+  SPED / Bloco K                         Planos médios+         Fora (contador)
+  Contratos recorrentes                  Plano serviços         Lembrete reposição (S)
+  Multi-CNPJ com regras                  ?                      Sim (desenhado)
+  DRE / dashboards                       Sim                    DRE gerencial (S)
+  WhatsApp oficial                       ?                      Fase 2
+  RMA / devolução ponta a ponta          ?                      Fase 2
+  Código-fonte / dados no exit           Não / export a ver     Sim (próprio)
+
+Legenda: "?" = não afirmado no material público analisado → validar em demo.
+
+
+====================================================================================================
+8. COMPARAÇÃO MÓDULO A MÓDULO (PROFUNDIDADE)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+8.1. Cadastros
+----------------------------------------------------------------------------------------------------
+
+  iQuattro
+    Cadastros industriais típicos de ERP (parceiros, produtos, operações
+    fiscais, máquinas, operadores, roteiros). Vertical destaca ferramental
+    gráfico (facas, anilox, porta-clichê).
+
+  ERP RLP
+    PAR (cliente/fornecedor), produtos MP/EMB/REV/PA/SVC, FAC, conversões,
+    dados bancários com SoD, soft-delete, CNPJ/CEP/NCM com cache/cadência,
+    prospect sem cadastro fiscal completo até o PED.
+
+  Vantagem relativa
+    iQuattro: velocidade de ter catálogos já prontos.
+    RLP: modelo de dados já amarrado às regras MG / 2 CNPJs / SoD.
+
+----------------------------------------------------------------------------------------------------
+8.2. Comercial / Orçamento / Pedido
+----------------------------------------------------------------------------------------------------
+
+  Este é o MAIOR diferenciador potencial do ERP RLP.
+
+  iQuattro
+    “Orçamento fácil com cálculo automático” + vendas/orçamentos nos planos.
+    Motor genérico do produto — precisão para A RLP depende de configuração
+    e customização. Aceite formal externo e escada de preços: confirmar.
+
+  ERP RLP
+    Motor derivado das planilhas oficiais (.xlsm BRAHVA, ART, RAREPAN…).
+    Princípios: custo real + perdas + setup + overhead + imposto + comissão;
+    parâmetros com vigência; snapshot auditável; N faixas; proposta ao
+    cliente sem abrir composição interna; arredondamento para cima;
+    ferramental 1×; ORC→PED travado; crédito/sinal.
+
+  Critério de desempate na demo iQuattro:
+    Subir 3 orçamentos reais oficiais da RLP e ver se o sistema:
+      (1) bate o preço da planilha dentro da tolerância aceita;
+      (2) reproduz o aceito 6 meses depois com mesmos parâmetros;
+      (3) suprime ferramental em recompra do mesmo modelo;
+      (4) gera pedido sem digitar de novo.
+    Se falhar (1)–(3), o “orçamento automático” genérico NÃO substitui
+    o motor RLP sem projeto de customização — e esse projeto precisa
+    entrar no TCO do buy.
+
+----------------------------------------------------------------------------------------------------
+8.3. Produção / PCP
+----------------------------------------------------------------------------------------------------
+
+  iQuattro
+    Forte no marketing e na ajuda: OP, roteiros, empenho, apontamentos,
+    operadores, máquinas, relatório Produção Label (perda, tempos
+    produtivos/improdutivos, setup, custo material, hora máquina).
+    Parece MADURO e batido em clientes reais do setor.
+
+  ERP RLP
+    OP/OS a partir do PED, apontamento, conclusão liberando faturamento,
+    amostragem/CQ e manutenção preventiva como Should/Fase 2.
+    Menos “suite PCP de mercado” no papel; mais amarrado ao PED e estoque.
+
+  Vantagem relativa
+    iQuattro provavelmente à frente em PCP analítico no dia 1.
+    RLP à frente se a dor for amarração comercial→crédito→libera OP,
+    e não dashboards de velocidade de máquina.
+
+----------------------------------------------------------------------------------------------------
+8.4. Estoque
+----------------------------------------------------------------------------------------------------
+
+  iQuattro
+    m² e metro linear (vertical). Compras/estoque nas faixas maiores.
+    Locais/localizações no plano top. Movimentação automática (pitch).
+
+  ERP RLP
+    Consumo na OP, retorno de PA, inventário, ajuste com SoD, revenda,
+    e sobretudo ÁRVORE DE DECISÃO de sobra/retalho/refugo/apara —
+    tema clássico de divergência em gráfica de etiquetas.
+
+  Vantagem relativa
+    Empate em unidades. RLP mais explícito em retalho. iQuattro mais
+    completo em multi-local e compras se o plano for o médio/alto.
+
+----------------------------------------------------------------------------------------------------
+8.5. Fiscal
+----------------------------------------------------------------------------------------------------
+
+  iQuattro
+    NF-e, NFS-e, automações de imposto (pitch). SPED Fiscal e Bloco K
+    nos planos a partir da faixa R$ 1M–R$ 5M. Isso é ponto FORTE se a
+    RLP quiser mais fiscal DENTRO do ERP.
+
+  ERP RLP
+    Decisão consciente: fiscal OPERACIONAL via Focus; apuração/SPED
+    fica com o CONTADOR. Export mensal (XML + títulos + naturezas).
+    Preparação para Lucro Real via dados limpos, não via fechar SPED
+    no ERP. ICMS-ST / antecipação MG já estudados em TXTs.
+
+  Vantagem relativa
+    iQuattro se a direção quiser SPED/Bloco K no mesmo login.
+    RLP se a política for “contador é dono do oficial” (já alinhada).
+
+----------------------------------------------------------------------------------------------------
+8.6. Financeiro / cobrança / entrega
+----------------------------------------------------------------------------------------------------
+
+  iQuattro
+    Financeiro, boletos, conciliação OFX — todos os planos industriais.
+    Comissões mencionadas no pitch institucional.
+
+  ERP RLP
+    TIT ≠ NF; COB boleto/PIX; baixa via webhook/extrato/CNAB; conciliação
+    ambígua com fila humana; naturezas gerenciais 1–5; entrega/romaneio;
+    aging; comissão e frete na Fase 2; régua WhatsApp Fase 2.
+
+  Vantagem relativa
+    iQuattro: OFX nativo e maturidade de caixa do produto.
+    RLP: desenho fino da cadeia faturamento→cobrança→entrega→baixa
+    amarrada ao PED (menos “módulo financeiro solto”).
+
+----------------------------------------------------------------------------------------------------
+8.7. Compras
+----------------------------------------------------------------------------------------------------
+
+  iQuattro: planos médios/altos (cotação, OC, recebimento — blog Plus).
+  ERP RLP: Fase 2 (cotação, OC, XML, urgência, falta×OP).
+
+  Hoje: vantagem iQuattro se compras for prioridade imediata.
+  RLP: igualável no aditivo Fase 2.
+
+----------------------------------------------------------------------------------------------------
+8.8. Qualidade / pós-venda / rastreabilidade
+----------------------------------------------------------------------------------------------------
+
+  iQuattro: qualidade e CQ no plano top; lotes/validades no médio+;
+           rastreio OP/máquina/operador e etiquetas de identificação.
+  ERP RLP: amostragem/certificado (S), RMA/DEV (Fase 2), rastreio via
+           documentos da cadeia (OP, FAC, movimentos).
+
+----------------------------------------------------------------------------------------------------
+8.9. Plataforma, segurança, multi-empresa
+----------------------------------------------------------------------------------------------------
+
+  iQuattro: 100% web (desktop/tablet/phone); backups diários (marketing);
+            personalização “para qualquer necessidade industrial”.
+  ERP RLP: login individual, RBAC, auditoria, soft-delete, estorno com
+           trilha, feature flags, kill-switch de integração, multi-empresa
+           com regra dura no 2º CNPJ, AWS Cenário D FinOps.
+
+----------------------------------------------------------------------------------------------------
+8.10. Integrações
+----------------------------------------------------------------------------------------------------
+
+  iQuattro (público): Domínio (contábil), RD CRM; CNAB/OFX no produto.
+  ERP RLP: Focus NFe, BankProvider (ex. Inter), Meta WhatsApp (Fase 2),
+           APIs free (CNPJ/CEP) com circuit breaker; export contador próprio.
+
+
+====================================================================================================
+9. FLUXO DE NEGÓCIO: O QUE A DIREÇÃO PRECISA VER FUNCIONAR
+====================================================================================================
+
+Cadeia mínima que a RLP exige no go-live (proposta):
+
+  1. Orçar com preço confiável (bater planilha)
+  2. Cliente aceitar formalmente
+  3. Pedido travado nascer
+  4. Crédito/sinal liberar produção
+  5. OP/OS + estoque coerente (incl. sobra)
+  6. NF emitida
+  7. Título + cobrança
+  8. Entrega confirmada
+  9. Baixa atualiza caixa e crédito
+  10. Contador recebe export do mês
+
+Avaliação sugerida na demo iQuattro (score 0–2 por item; máx. 20):
+
+  [ ] Motor de preço = planilha oficial em 3 casos
+  [ ] Aceite / trilha sem WhatsApp paralelo
+  [ ] Crédito impede OP indevida
+  [ ] Bobina: saída + retalho + perda separados
+  [ ] Ferramental 1× por modelo
+  [ ] NF → título sem greve de redigitação
+  [ ] Boleto/PIX e baixa
+  [ ] Perfis / quem pode o quê
+  [ ] Relatório que a direção usa de verdade
+  [ ] Export / contador (SPED interno ou pacote)
+
+Interpretação sugerida:
+  ≥ 16  ...... iQuattro viável como caminho principal (BUY)
+  10–15 ...... BUY com customização cara OU BUILD (empatar TCO)
+  ≤ 9  ....... BUILD (ERP RLP) ou outro vertical especializado
+
+
+====================================================================================================
+10. IMPLANTAÇÃO, MUDANÇA E RISCO
+====================================================================================================
+
+  Tema                         iQuattro                      ERP RLP
+  ---------------------------  ----------------------------  ----------------------------
+  Tempo até valor              Semanas (promessa pública)    4–5 meses Fase 1
+  Parar a fábrica?             Não (paralelo)                Não (virada por saldos)
+  Risco de atraso              Médio (depende agenda        Médio-alto (projeto de
+                               do fornecedor)                software)
+  Risco de escopo              Customizacao vira change      Escopo já escrito; risco é
+                               order                         construir demais
+  Adoção usuários              Treino do fornecedor          Treino próprio/contratado
+  Continuidadedo fornecedor    Risco clássico SaaS           Risco clássico “só um
+                               (preço ↑, produto muda)       dev conhece”
+  Lock-in                      Alto (dados + processo no     Baixo se houver boa
+                               tenant)                       documentação + repo
+  Conformidade LGPD / backup   Pedir DPA e evidências        Responsabilidade própria
+                                                             + AWS
+  Dependência fiscal interna   Pode trazer SPED             Contador oficial por
+                                                             decisão
+
+
+====================================================================================================
+11. FORÇAS E FRAQUEZAS (HONESTAS)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+11.1. iQuattro — forças
+----------------------------------------------------------------------------------------------------
+
+  • Produto já existe e já atende o setor de rótulos/etiquetas.
+  • PCP e indicadores de produção aparentam maturidade (Produção Label).
+  • Pitch forte em ferramental gráfico e unidades corretas (m² / m).
+  • Preço de entrada público baixo frente ao CAPEX de um ERP próprio.
+  • Implantação rápida e suporte do fabricante.
+  • SPED/Bloco K disponíveis em planos — atrativo se a RLP quiser.
+  • Menos risco de “projeto infinito de documentação sem tela”.
+
+----------------------------------------------------------------------------------------------------
+11.2. iQuattro — fraquezas / riscos (do ponto de vista RLP)
+----------------------------------------------------------------------------------------------------
+
+  • Motor de orçamento pode NÃO espelhar as .xlsm oficiais da RLP.
+  • Preço real do plano 10 users + vertical = “consulte” (opacidade).
+  • Customizações profundas competem com fila de outros clientes.
+  • Lock-in: sair depois dói (re-treinar + migrar dados + reaprender).
+  • Plano baixo pode omitir compras/estoque/lotes/SPED — checar pacote.
+  • Aceite, crédito e retalho “à moda RLP” podem exigir gambiarra.
+  • Multi-empresa com 2º CNPJ sem venda: confirmar suporte nativo.
+  • O sistema é genérico da vertical, não do jeito da RLP.
+
+----------------------------------------------------------------------------------------------------
+11.3. ERP RLP — forças
+----------------------------------------------------------------------------------------------------
+
+  • Domínio já mapeado em profundidade rara (80 UCs + manuais).
+  • Orçamento como ativo estratégico (herança das planilhas).
+  • Cadeia PED mestre coerente com crédito, NF, cobrança e baixa.
+  • Decisões claras: sem LAI, contador oficial, Focus, AWS enxuto.
+  • Propriedade do software e capacidade de evoluir sem “não está no
+    roadmap”.
+  • Encaixe cirúrgico em MG, Simples→Lucro Real, 2 CNPJs.
+  • TCO de cloud desenhado para porte real (não enterprise fantasioso).
+
+----------------------------------------------------------------------------------------------------
+11.4. ERP RLP — fraquezas / riscos
+----------------------------------------------------------------------------------------------------
+
+  • Ainda não é produto pronto — risco de entrega e de atraso.
+  • CAPEX alto (R$ 120–180k) vs. assinatura mensal.
+  • PCP analítico (setup %, OEE, etc.) pode nascer mais pobre que o
+    iQuattro no dia 1.
+  • SPED/Bloco K fora do ERP — se a direção mudar de ideia, há gap.
+  • Exige disciplina de produto: não expandir documentação sem código.
+  • Dependência de equipe técnica após go-live (manutenção).
+  • Custo de oportunidade: 4–5 meses sem o benefício que um SaaS
+    poderia dar em semanas.
+
+
+====================================================================================================
+12. CENÁRIOS DE DECISÃO RECOMENDADOS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+12.1. Cenário BUY — contratar iQuattro
+----------------------------------------------------------------------------------------------------
+
+  Escolher se:
+    • Demo passar no score ≥ 16 do §9 com orçamentos reais;
+    • Proposta comercial 36 meses < ~50% do CAPEX+manutenção do build;
+    • Direção prioriza velocidade e previsibilidade de suporte;
+    • Aceita adaptar processos da RLP ao padrão do sistema (com pouca
+      customização dura).
+
+  Ações:
+    1) Pedir demo na vertical rótulos com DADOS da RLP (não demo genérica).
+    2) Obter proposta escrita: users, plano, implantação, NF, bancos, SLA,
+       reajuste anual, política de saída de dados.
+    3) Envolver Contador na avaliação de SPED vs. export.
+    4) Rodar piloto 30–60 dias em paralelo às planilhas.
+    5) Só então desligar fluxo principal no legado/planilha.
+
+----------------------------------------------------------------------------------------------------
+12.2. Cenário BUILD — seguir ERP RLP
+----------------------------------------------------------------------------------------------------
+
+  Escolher se:
+    • Demo iQuattro falhar no motor de orçamento / crédito / retalho;
+    • Customização cotada no iQuattro aproximar o CAPEX do build;
+    • Direção valorizar propriedade do código e regras inegociáveis;
+    • Equipe (ou fornecedor de dev) estiver disponível 4–5 meses + manutenção.
+
+  Ações:
+    1) Fechar proposta comercial Fase 1 (documento já existente).
+    2) Parar de expandir TXTs; construir monólito modular (guia passo a passo).
+    3) Homologar regras R1–R20 / fixtures de orçamento ANTES do resto.
+    4) Go-live por saldos; Fase 2 depois de estabilidade.
+
+----------------------------------------------------------------------------------------------------
+12.3. Cenário HÍBRIDO — avaliar agora, decidir em 30 dias
+----------------------------------------------------------------------------------------------------
+
+  Mais sensato se a direção está insegura:
+
+    Semana 1–2 ... Agendar demo iQuattro + enviar 3 ORC oficiais e 1 fluxo
+                   completo (pedido real anonimizado).
+    Semana 2–3 ... Score do §9 + proposta formal de preço 36 meses.
+    Semana 3–4 ... Comparar TCO §6 preenchido + workshop de 2h com Contador
+                   e usuários-chave (Comercial, Produção, Financeiro).
+    Dia 30 ....... Decisão GO BUY / GO BUILD / “BUY parcial + build do
+                   motor de orçamento” (último é o pior dos mundos —
+                   evitar dois cérebros de preço — só se houver API clara).
+
+  Aviso:
+    Integrar “orçamento RLP próprio” + “ERP iQuattro” sem projeto sério
+    de integração costuma recriar o problema dos três sistemas.
+
+
+====================================================================================================
+13. CHECKLIST DE PERGUNTAS OBRIGATÓRIAS PARA O COMERCIAL iQuattro
+====================================================================================================
+
+Preço e plano
+  [ ] Qual plano exato para indústria de rótulos com N usuários da RLP?
+  [ ] Preço mensal fechado + reajuste anual (IGPM/IPCA/% fixo)?
+  [ ] Custo de usuário adicional?
+  [ ] Taxa de implantação / treinamento / horas de consultoria inclusas?
+  [ ] Existe custo por NF emitida / boleto / storage?
+
+Funcional (com evidência na tela)
+  [ ] Dá para importar/parametrizar nosso cálculo de orçamento?
+  [ ] Aceite do cliente (link/e-mail) gera pedido sem redigitação?
+  [ ] Limite de crédito bloqueia OP/faturamento?
+  [ ] Como registra retalho de bobina vs. perda vs. apara?
+  [ ] Ferramental cobrado só no 1º pedido do modelo?
+  [ ] Escada de quantidades no mesmo ORC?
+  [ ] Multi-empresa / 2 CNPJs com venda desligada em um deles?
+  [ ] SPED/Bloco K: incluso no plano cotado? Quem valida com nosso Contador?
+
+Operação
+  [ ] Tempo médio real de go-live em cliente de rótulos similar?
+  [ ] Horário e canal de suporte (WhatsApp/telefone/ticket)?
+  [ ] SLA de severidade 1 (NF não emite)?
+  [ ] Homologação e produção fiscal: como é o corte?
+
+Saída / lock-in
+  [ ] Export completo de cadastros, movimentos, XML e PDFs?
+  [ ] Multa / aviso prévio de cancelamento?
+  [ ] Posso ter usuário somente leitura para o Contador?
+
+Segurança
+  [ ] Onde ficam os dados (região/datacenter)?
+  [ ] Backup, retenção, teste de restore?
+  [ ] 2FA / autenticação / logs de auditoria?
+
+
+====================================================================================================
+14. MAPA “O QUE O SITE PROMETE” × “O QUE A RLP JÁ ESPECIFICOU”
+====================================================================================================
+
+  Promessa iQuattro (site)              Espelho no pacote ERP RLP
+  ------------------------------------  ------------------------------------------
+  Orçamento com cálculo automático      GERACAO_ORCAMENTO.txt + fixtures .xlsm
+  Facas / clichê / anilox               CAD + UC-CAD-004 FAC + cobrança 1×
+  Estoque m² / metro linear             CONVERSOES_UNIDADES + estoque profissional
+  PCP e OP                              CASOS_USO_M03 + produção operacional
+  Análise perda/setup/velocidade        Parcial (ORC + apontamento); menos Label
+  NF + financeiro                       M05 + M06 + Focus + BankProvider
+  Compras e estoque (planos+)           M07 Fase 2
+  Lotes/validades (planos+)             Não é Must atual
+  Qualidade (plano top)                 UC-PRD-005 Should
+  SPED / Bloco K                        FORA — Contador (decisão explícita)
+  Contratos recorrentes                 PEDIDOS_RECORRENTES… (lembrete, não SaaS)
+  Dashboards gerenciais                 M10 DRE/naturezas
+  Implantação em semanas                RLP propõe 4–5 meses (build)
+  A partir de R$ 974/mês indústria      RLP: CAPEX 120–180k + AWS ~0,7–1,1k/mês
+
+
+====================================================================================================
+15. CONCLUSÃO OPERACIONAL PARA A RLP
+====================================================================================================
+
+1) O iQuattro é o benchmark certo: mesma indústria, mesmo vocabulário
+   (faca, m², OP, orçamento, NF, boleto). Não compare com ERP genérico
+   de varejo.
+
+2) Do ponto de vista de MERCADO, o iQuattro ganha em velocidade, maturidade
+   de PCP e TCO de curto prazo.
+
+3) Do ponto de vista de DOMÍNIO RLP (orçamento hermético + crédito + PED
+   mestre + retalho + política fiscal com Contador + 2 CNPJs), o ERP
+   sob medida só vale a pena se a demo do iQuattro NÃO reproduzir essas
+   regras com fidelidade aceitável — ou se a customização SaaS custar
+   perto do build.
+
+4) Decisão responsável: não escolher no PowerPoint. Escolher com
+   3 orçamentos reais, score do §9, proposta de 36 meses e opinião do
+   Contador sobre SPED-no-ERP vs. export.
+
+5) Enquanto a decisão não fecha: NÃO expandir mais TXTs do ERP RLP;
+   ou agenda-se a demo iQuattro esta semana, ou entra-se na construção
+   do monólito (Guia passo a passo). Os dois caminhos ao mesmo tempo
+   drenam foco.
+
+6) Qualquer caminho escolhido deve matar o fluxo principal em planilha
+   + WhatsApp sem trilha — esse é o problema de negócio, não a marca
+   do software.
+
+
+====================================================================================================
+16. FONTES E LIMITAÇÕES DESTE COMPARATIVO
+====================================================================================================
+
+Fontes iQuattro (públicas, consultadas em 03/08/2026):
+  • https://iquattro.com.br/planos/
+  • https://iquattro.com.br/sistema-de-gestao-para-industria-de-rotulos-e-etiquetas/
+  • https://iquattro.com.br/
+  • https://iquattro.com.br/blog/sistema-erp-para-industria-de-rotulos-e-etiquetas/
+  • Central de ajuda (PCP, Relatório Produção Label)
+
+Fontes ERP RLP (internas):
+  • PROPOSTA_COMERCIAL_ERP_RLP.txt
+  • CASOS_USO_INDICE_ERP_RLP.txt (+ M01–M11)
+  • LEVANTAMENTO_REQUISITOS_ERP_RLP.txt
+  • GERACAO_ORCAMENTO.txt
+  • TRATAMENTO_SOBRA_BOBINA_RETALHO.txt
+  • ESTIMATIVA_CUSTO_AWS_MENSAL.txt
+  • ANALISE_ESTRATEGIA_MONOLITO_VS_TRES_SISTEMAS.txt
+  • Demais TXTs da pasta trigger/32
+
+Limitações:
+  • Preços “consulte” e listas de feature do iQuattro são marketing;
+    a verdade comercial só existe em proposta assinada e demo.
+  • Não houve acesso a tenant trial nem a contrato do iQuattro neste TXT.
+  • Custos de manutenção do ERP RLP pós-Fase 1 são estimativas.
+  • Faturamento anual real da RLP (para encaixe de plano) precisa ser
+    preenchido pela Direção:
+
+      Faturamento anual aproximado RLP: R$ _______________ / ano
+      Plano iQuattro alvo: _______________________________
+      Usuários necessários: ______
+
+
+====================================================================================================
+17. ANEXO — TABELA RÁPIDA DE DESEMPATE (PREENCHER NA REUNIÃO)
+====================================================================================================
+
+  Critério (peso 1–5)     Peso   Nota iQuattro (0–10)   Nota ERP RLP (0–10)   Ponderado
+  ----------------------  -----  ---------------------  --------------------  ---------
+  Fidelidade do orçamento ____   ____                   ____                  ____
+  Tempo até go-live       ____   ____                   ____                  ____
+  TCO 36 meses            ____   ____                   ____                  ____
+  PCP / chão de fábrica   ____   ____                   ____                  ____
+  Estoque / bobina        ____   ____                   ____                  ____
+  Fiscal (Focus/SPED)     ____   ____                   ____                  ____
+  Financeiro / cobrança   ____   ____                   ____                  ____
+  Suporte / risco         ____   ____                   ____                  ____
+  Propriedade / lock-in   ____   ____                   ____                  ____
+  Ajuste ao jeito RLP     ____   ____                   ____                  ____
+  ------------------------------------------------------------------
+  TOTAL ponderado                ____                   ____
+
+  Decisão: ( ) BUY iQuattro   ( ) BUILD ERP RLP   ( ) Reavaliar em ___/___/______
+
+
+====================================================================================================
+FIM DO COMPARATIVO — ERP RLP × iQuattro (v1.0)
+====================================================================================================

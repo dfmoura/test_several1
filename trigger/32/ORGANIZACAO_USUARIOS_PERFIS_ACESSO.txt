@@ -1,0 +1,213 @@
+====================================================================================================
+ORGANIZAÇÃO DOS USUÁRIOS DO SISTEMA — PERFIS DE ACESSO E SEGREGAÇÃO DE FUNÇÕES
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: CADASTRO_PARCEIROS.txt (seções 5.2, 5.3 e 6) + estrategia_implantacao_ja.txt (Fase 1)
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento detalha a MELHOR PRÁTICA para organizar os usuários do novo ERP, expandindo
+a sugestão de perfis da seção 5.3 do cadastro de parceiros. A ideia central: o acesso é
+organizado por FUNÇÃO (perfil), nunca por pessoa, e o desenho dos perfis já embute a
+segregação de funções mínima para prevenir erro e fraude.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (a base de tudo — não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. LOGIN INDIVIDUAL E INTRANSFERÍVEL
+    Um usuário por pessoa (e-mail corporativo), NUNCA login compartilhado. A trilha de
+    auditoria do ERP (quem emitiu NF-e, quem baixou título, quem alterou preço/limite)
+    só tem valor jurídico e gerencial se cada ação tiver um responsável identificável.
+
+ 2. PERFIL POR FUNÇÃO, NÃO POR PESSOA (modelo RBAC)
+    As permissões são definidas no PERFIL (Fiscal, Financeiro, Comercial...) e a pessoa
+    é vinculada ao perfil. Nunca conceder permissão avulsa direto ao usuário: quando a
+    pessoa muda de função ou sai, basta trocar/bloquear o vínculo — sem "herança" de
+    acessos esquecidos.
+
+ 3. MENOR PRIVILÉGIO
+    Cada perfil recebe somente o necessário para a função. Em dúvida, começar restrito
+    e liberar sob demanda — o caminho inverso (cortar acesso depois) raramente acontece.
+
+ 4. SEGREGAÇÃO DE FUNÇÕES (SoD)
+    Atividades incompatíveis não podem estar no mesmo perfil/pessoa (matriz na seção 4).
+    Regra de ouro já definida no cadastro de parceiros: quem cadastra/altera DADOS
+    BANCÁRIOS de parceiro NÃO libera pagamentos.
+
+ 5. INATIVAR, NUNCA EXCLUIR
+    Usuário desligado é BLOQUEADO na data do desligamento (idealmente automático, via
+    vigência do cadastro de colaborador). Excluir o usuário destruiria o vínculo do
+    histórico de documentos e lançamentos com o autor.
+
+ 6. ADMIN É EXCEÇÃO, NÃO ROTINA
+    Perfil ADMIN restrito a 1–2 pessoas (TI/direção) e usado apenas para parametrizar.
+    Quem tem ADMIN e também opera o dia a dia deve ter um SEGUNDO usuário operacional
+    com perfil comum — o ADMIN não deve ser o login de uso diário.
+
+----------------------------------------------------------------------------------------------------
+2. PERFIS DE ACESSO (detalhamento da seção 5.3 do CADASTRO_PARCEIROS.txt)
+----------------------------------------------------------------------------------------------------
+
+  ADMIN ........ TI/direção. Parametrização do sistema, gestão de usuários e perfis,
+                 cadastros fiscais estruturais (CFOP, NCM, regras de tributação),
+                 integrações (Focus NFe, certificado A1). Não opera rotina.
+
+  FISCAL ....... Emissão e escrituração de NF-e/NFS-e, manifestação de notas de entrada,
+                 cadastros fiscais de produto e parceiro (NCM, CST/CSOSN, IE, indIEDest).
+                 É o "dono do cadastro" sugerido na governança (seção 6.5 do cadastro
+                 de parceiros), junto com o financeiro.
+
+  FINANCEIRO ... Contas a pagar/receber, bancos, conciliação, limite de crédito de
+                 cliente, dados bancários de parceiro (com alçada — ver seção 4).
+                 NÃO altera cadastro fiscal de produto/parceiro.
+
+  COMERCIAL .... Pedidos de venda, cadastro comercial de clientes (contatos, condição
+                 negociada, tabela de preço dentro da alçada), consulta de estoque.
+                 NÃO edita limite de crédito (alçada do financeiro) nem dados fiscais.
+
+  PRODUCAO ..... Ordens de produção, apontamentos, movimentação de estoque (incluindo
+                 sobras/retalhos — ver TRATAMENTO_SOBRA_BOBINA_RETALHO.txt).
+                 SEM acesso a custos e preços de compra.
+
+  COMPRAS ...... Pedidos de compra, cadastro comercial de fornecedores, entrada de XML
+                 (importação via Focus NFe), cotações. NÃO altera dados bancários do
+                 fornecedor (solicita ao dono do cadastro) e não libera pagamento.
+
+  EXPEDICAO .... (opcional, se o ERP permitir) Separação, conferência e despacho;
+                 consulta de pedidos e emissão de romaneio. Se não valer um perfil
+                 próprio no início, acomodar dentro de PRODUCAO sem custos.
+
+  CONSULTA ..... Somente leitura. Contador externo, consultas gerenciais, auditoria.
+                 Todo acesso de terceiros (contador, consultoria) entra aqui — nunca
+                 emprestar um login operacional.
+
+  Observação: perfis são a REGRA; exceções pontuais (ex.: um comprador que também
+  apura estoque) se resolvem atribuindo DOIS perfis à mesma pessoa quando compatíveis
+  pela matriz da seção 4 — nunca criando permissões avulsas.
+
+----------------------------------------------------------------------------------------------------
+3. MATRIZ PERFIL x MÓDULO (referência rápida)
+----------------------------------------------------------------------------------------------------
+
+  Legenda: T = total | E = edita/opera | L = leitura | - = sem acesso
+
+  Módulo / Perfil              ADMIN  FISCAL  FINANC  COMERC  PRODUC  COMPRAS  CONSULTA
+  Parâmetros e usuários          T      -       -       -       -        -        -
+  Cadastro fiscal (prod/parc)    T      E       L       L       L        L        L
+  Cadastro comercial cliente     T      L       L       E       -        -        L
+  Cadastro comercial fornec.     T      L       L       -       -        E        L
+  Dados bancários de parceiro    T      -       E*      -       -        -        -
+  Limite de crédito              T      -       E       L       -        -        L
+  Emissão NF-e / escrituração    T      E       -       -       -        -        L
+  Pedidos de venda               T      L       L       E       L        -        L
+  Pedidos de compra / XML entr.  T      L       L       -       -        E        L
+  Contas a pagar/receber/bancos  T      -       E       -       -        -        L
+  Liberação de pagamentos        T      -       E**     -       -        -        -
+  Ordens de produção/apontam.    T      -       -       -       E        -        L
+  Estoque (movimentação)         T      -       -       L       E        E        L
+  Custos e preços de compra      T      L       E       -       -        E        L
+  Relatórios gerenciais          T      E       E       E       E        E        L
+
+  *  Alterar dados bancários exige aprovação/alçada (seção 4).
+  ** Quem libera pagamento NÃO pode ser quem alterou os dados bancários do favorecido.
+
+----------------------------------------------------------------------------------------------------
+4. SEGREGAÇÃO DE FUNÇÕES — PARES INCOMPATÍVEIS (mesma pessoa NÃO acumula)
+----------------------------------------------------------------------------------------------------
+
+  1. Cadastrar/alterar dados bancários de parceiro   x   Liberar/efetuar pagamentos
+     (fraude clássica de troca de boleto/conta — o risco nº 1 em PME)
+  2. Cadastrar fornecedor                            x   Aprovar pedido de compra
+  3. Emitir pedido de venda                          x   Alterar limite de crédito
+  4. Movimentar estoque (apontar/ajustar)            x   Aprovar inventário/ajuste
+  5. Emitir NF-e                                     x   Cancelar NF-e sem registro de motivo
+     (cancelamento deve ficar restrito a FISCAL e logado com justificativa)
+  6. Administrar usuários (ADMIN)                    x   Operar rotina financeira/fiscal
+
+  REALIDADE DE EMPRESA PEQUENA: se a equipe é enxuta e uma pessoa precisa acumular um
+  par incompatível, adotar CONTROLE COMPENSATÓRIO — dupla aprovação no internet banking
+  (quem inclui não é quem assina), relatório mensal de alterações de dados bancários e
+  de ajustes de estoque revisado pela direção, e revisão trimestral da trilha de
+  auditoria. O acúmulo deve ser exceção documentada, não regra silenciosa.
+
+----------------------------------------------------------------------------------------------------
+5. CICLO DE VIDA DO USUÁRIO (processo, não evento)
+----------------------------------------------------------------------------------------------------
+
+  ADMISSÃO / ENTRADA
+   * Usuário nasce vinculado ao cadastro de COLABORADOR (papel no cadastro único de
+     parceiros) — nunca criar usuário "solto" sem colaborador correspondente.
+   * Perfil definido pelo cargo/departamento; solicitação registrada (e-mail ou chamado)
+     e criação feita apenas pelo ADMIN.
+   * Vigência: se o vínculo tem prazo (estágio, contrato PJ), registrar data de expiração.
+
+  MUDANÇA DE FUNÇÃO
+   * Trocar o perfil, não somar: remover o perfil antigo ao atribuir o novo (evita o
+     "acúmulo de acessos" de quem passou por vários setores).
+
+  DESLIGAMENTO
+   * Bloquear o usuário NA DATA do desligamento (checklist de desligamento junto com RH).
+   * Revogar também os acessos EXTERNOS vinculados: token/painel Focus NFe, senha do
+     certificado digital A1, internet banking, e-mail corporativo.
+   * Nunca excluir: inativar preserva a autoria do histórico.
+
+  REVISÃO PERIÓDICA (recertificação)
+   * A cada 6 meses (mínimo 1x/ano): direção revisa a lista USUÁRIO x PERFIL e confirma
+     que cada acesso ainda corresponde à função. Documentar a revisão (data + quem revisou).
+   * Na mesma revisão: conferir usuários sem login há 90+ dias (bloquear) e exceções de
+     segregação ainda vigentes (seção 4).
+
+----------------------------------------------------------------------------------------------------
+6. AUTENTICAÇÃO E ACESSOS EXTERNOS
+----------------------------------------------------------------------------------------------------
+
+  SENHAS E MFA
+   * Política mínima: senha forte, troca no primeiro acesso, bloqueio após tentativas
+     falhas. Ativar duplo fator (MFA) assim que o ERP suportar — prioritariamente para
+     ADMIN e FINANCEIRO.
+
+  ACESSOS QUE FICAM FORA DO ERP (mapear e tratar como usuários)
+   * Focus NFe .......... tokens de API e usuários do painel — registrar quem tem acesso;
+                          token fica na parametrização (ADMIN), não circula por e-mail.
+   * Certificado A1 ..... arquivo + senha sob guarda restrita (direção/fiscal); registrar
+                          quem tem cópia; trocar a senha se alguém com acesso for desligado.
+   * Internet banking ... operadores nominais com dupla aprovação para pagamentos
+                          (compensa a equipe enxuta — ver seção 4).
+   * Contador externo ... perfil CONSULTA no ERP + acesso próprio, nunca login emprestado.
+
+----------------------------------------------------------------------------------------------------
+7. AUDITORIA E MONITORAMENTO
+----------------------------------------------------------------------------------------------------
+
+   * Habilitar a trilha de auditoria (log) do ERP desde o dia 1 — em especial para:
+     alteração de dados bancários de parceiro, alteração de limite de crédito, alteração
+     de preço/tabela, cancelamento de NF-e, ajuste manual de estoque, baixa manual de título.
+   * Relatório mensal dessas ocorrências revisado por quem NÃO as executa (direção).
+   * Guardar os logs pelo mesmo prazo dos documentos fiscais (5 anos).
+
+----------------------------------------------------------------------------------------------------
+8. IMPLANTAÇÃO (encaixe na Fase 1 da estratégia)
+----------------------------------------------------------------------------------------------------
+
+  Ordem sugerida (item 7 da governança do cadastro de parceiros já prevê colaboradores
+  e usuários na carga inicial):
+
+   1. Criar os PERFIS no ERP conforme seções 2 e 3 (antes de criar qualquer usuário).
+   2. Levantar a lista de pessoas x função atual (RH/direção) e mapear cada uma a UM perfil.
+   3. Identificar acúmulos incompatíveis (seção 4) e definir os controles compensatórios
+      por escrito ANTES da virada.
+   4. Criar os usuários vinculados aos cadastros de colaborador, com e-mail corporativo.
+   5. Registrar os acessos externos (Focus NFe, A1, bancos) na planilha/registro de acessos.
+   6. Treinar: cada usuário conhece o próprio escopo e sabe que exceção se SOLICITA
+      (workflow/e-mail), não se contorna com login de colega.
+   7. Agendar a primeira revisão de acessos para 6 meses após a virada.
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial. Os nomes de perfis/módulos devem ser adaptados à nomenclatura
+do ERP escolhido; nem todo ERP de PME tem workflow de aprovação ou log completo — nesses
+casos os controles compensatórios (relatórios revisados pela direção, dupla aprovação no
+banco) ganham ainda mais importância. Questões trabalhistas de vínculo (PJ x CLT) e LGPD
+sobre dados de colaboradores devem ser validadas com contador/assessoria.
+====================================================================================================

@@ -1,0 +1,158 @@
+====================================================================================================
+REVISÃO DE REGRAS DE ICMS-ST — COMPRAS DE INSUMOS
+Empresa destinatária: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: XMLs da pasta notas_compras (10 NF-e) + estudo_tributação.txt
+Gerado em: 31/07/2026
+====================================================================================================
+
+Este documento atende ao ponto de atenção nº 10 do estudo tributário:
+"revisar regras de ICMS-ST" antes da migração do Simples Nacional para o Lucro Real.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE FOI ENCONTRADO NOS XMLs (SITUAÇÃO ATUAL)
+----------------------------------------------------------------------------------------------------
+
+Resumo por nota fiscal:
+
+NF      | Fornecedor                        | UF | CFOP      | CST ICMS | Alíq.  | vICMS     | vICMS-ST
+--------|-----------------------------------|----|-----------|----------|--------|-----------|---------
+12890   | ARMOR BRASIL (fitas p/ impressão) | AM | 6105      | 00       | 12%    | 161,37    | 0,00
+33062   | TODAYTEC (ribbons)                | AM | 6101      | 00       | 12%    | 388,31    | 0,00
+45962   | CAMALLON (tintas)                 | MG | 5101      | 00       | 18%    | 353,49    | 0,00
+91055   | FEDRIGONI (filmes PP)             | SP | 6101      | 00       | 4%     | 469,20    | 0,00
+91056   | FEDRIGONI (filmes PP)             | SP | 6101      | 00       | 4%     | 210,39    | 0,00
+866545  | AVERY DENNISON (PP branco fosco)  | SP | 6101      | 00       | 12%    | 3.039,26  | 0,00
+867545  | AVERY DENNISON (papel térmico)    | SP | 6101      | 00       | 12%    | 2.790,60  | 0,00
+576445  | AUTO ADES. PARANÁ / Colacril      | PR | 6101      | 00       | 12%    | 3.346,20  | 0,00
+577305  | AUTO ADES. PARANÁ / Colacril      | PR | 6101      | 00       | 4%     | 1.823,59  | 0,00
+577306* | AUTO ADES. PARANÁ / Colacril      | PR | 6101      | 00       | 12%    | 456,00    | 0,00
+
+(*) ATENÇÃO: a NF 577306 tem como destinatário "ADESIVOS ETIQUETAS E ROTULOS UDI LTDA"
+    (IE 0050823380009), CNPJ/razão social diferente das demais notas. Verificar se pertence
+    ao mesmo grupo ou se o arquivo foi arquivado na pasta errada.
+
+Constatações objetivas:
+
+* NENHUMA das 10 notas possui ICMS-ST retido (vBCST = 0 e vICMSST = 0 em todas).
+* TODOS os itens estão com CST 00 (tributação integral pelo ICMS próprio, sem ST).
+* O campo CEST está VAZIO em todos os itens de todas as notas.
+* Todos os fornecedores são do regime normal (CRT = 3) e operam com CFOP de venda de
+  produção (6101/6105/5101) — coerente com venda de insumo a estabelecimento industrial.
+* 9 das 10 notas são compras INTERESTADUAIS (AM, SP, PR → MG); apenas Camallon é interna (MG).
+* Vários itens têm origem importada (orig 3, 5 e 8), com alíquota interestadual de 4%
+  (Resolução SF 13/2012), o que amplia a diferença para a alíquota interna de MG (18%).
+
+----------------------------------------------------------------------------------------------------
+2. ANÁLISE DE SUJEIÇÃO AO ICMS-ST POR NCM (INSUMOS COMPRADOS)
+----------------------------------------------------------------------------------------------------
+
+Referências: Convênio ICMS 142/18 (regras gerais e tabelas CEST) e RICMS/MG
+(Decreto 48.589/2023, Anexo VII — Substituição Tributária, antiga Parte 2 do Anexo XV).
+
+NCM 3215.19.00 — Tintas de impressão (Camallon)
+  * O segmento "Tintas e vernizes" do CEST (24.001.00 / 24.002.00) abrange os NCMs
+    3208, 3209, 3210 e correlatos. Tintas de IMPRESSÃO (3215) NÃO constam das tabelas
+    de ST vigentes desde a reformulação do Convênio 92/15 → 142/18.
+  * Conclusão: NÃO sujeito a ICMS-ST. Nota emitida corretamente com CST 00.
+
+NCMs 3919.10.10 / 3919.10.90 / 3919.90.10 / 3919.90.90 — Filmes/chapas autoadesivas de plástico
+  (Fedrigoni, Avery Dennison, Colacril)
+  * O NCM 3919 aparece nas tabelas de ST no segmento "Materiais de construção e congêneres"
+    (CEST 10.010.00 — "chapas, folhas, tiras, fitas, películas autoadesivas, de plásticos,
+    PARA CONSTRUÇÕES"). A sujeição à ST depende da FINALIDADE construção civil.
+  * Filmes BOPP/PP adquiridos como MATÉRIA-PRIMA para fabricação de etiquetas não se
+    enquadram na descrição do CEST (não são para construções).
+  * Além disso, mesmo que o NCM estivesse listado, aplica-se a INAPLICABILIDADE da ST
+    para mercadoria destinada a estabelecimento industrial para emprego como matéria-prima,
+    produto intermediário ou material de embalagem (Convênio 142/18, cláusula nona, e
+    RICMS/MG — hipóteses de inaplicabilidade da ST).
+  * Conclusão: NÃO sujeito a ICMS-ST nessas compras. Notas corretas com CST 00.
+
+NCM 4811.41.90 — Papel autoadesivo (Colacril, Avery Dennison)
+  * Não consta dos segmentos de ST com CEST vigente para uso como insumo industrial
+    (o segmento "Papelaria" alcança itens de papelaria/escritório, não bobinas de
+    papel autoadesivo para conversão industrial).
+  * Ainda que houvesse listagem, valeria a mesma inaplicabilidade por destinação à
+    industrialização.
+  * Conclusão: NÃO sujeito a ICMS-ST nessas compras.
+
+NCM 9612.10.00 — Ribbons (Armor, Todaytec)
+  * Não consta das tabelas de ST do Convênio 142/18 nem do RICMS/MG.
+  * Conclusão: NÃO sujeito a ICMS-ST.
+  * OBS: parte dos ribbons é REVENDIDA (consta como produto de venda no estudo). Mesmo
+    em revenda, o NCM não está no regime de ST em MG — mas manter monitoramento, pois
+    a destinação (revenda x insumo) muda o tratamento caso o item venha a ser incluído.
+
+RESULTADO GERAL: o comportamento dos fornecedores está CORRETO — nenhum insumo analisado
+está sujeito a ICMS-ST nas condições atuais (destinatário industrial em MG, uso como
+matéria-prima). Não há ST "faltando" nas notas nem ST pago indevidamente a recuperar.
+
+----------------------------------------------------------------------------------------------------
+3. PONTO CRÍTICO ENQUANTO ESTIVER NO SIMPLES: ANTECIPAÇÃO DE ALÍQUOTA (MG)
+----------------------------------------------------------------------------------------------------
+
+Não confundir ICMS-ST com a ANTECIPAÇÃO do diferencial de alíquota exigida por MG de
+empresas do Simples Nacional nas ENTRADAS INTERESTADUAIS (antecipação sem encerramento
+de tributação — RICMS/MG). Como 9 das 10 notas são interestaduais, enquanto a empresa
+permanecer no Simples deve-se verificar o recolhimento de:
+
+  (alíquota interna MG 18% − alíquota interestadual) x base da operação
+
+Exposição estimada com base nas notas analisadas (abril/2026):
+
+  Compras a 4% (Fedrigoni 91055/91056, Colacril 577305): base ~R$ 62.980 → dif. 14% ≈ R$ 8.817
+  Compras a 12% (Armor, Todaytec, Avery, Colacril 576445, 577306): base ~R$ 85.559 → dif. 6% ≈ R$ 5.134
+
+  Exposição potencial no mês analisado: ≈ R$ 13.950 (confirmar hipóteses de dispensa,
+  reduções de base e o tratamento aplicável a insumos de industrialização na legislação
+  mineira vigente, com o contador).
+
+Este custo DESAPARECE no Lucro Real: no regime normal a empresa passa a creditar-se do
+ICMS destacado (12% ou 4%) e debita 18% na saída, sem antecipação — um dos principais
+ganhos apontados no estudo tributário.
+
+----------------------------------------------------------------------------------------------------
+4. ICMS-ST NAS VENDAS (PRODUTOS ACABADOS) — PARA A MIGRAÇÃO
+----------------------------------------------------------------------------------------------------
+
+Produtos de venda (estudo): 3919.10.90 (etiquetas plásticas), 4811.41.90 (papel
+autoadesivo) e 9612.10.00 (ribbon).
+
+* Etiquetas autoadesivas vendidas a CONSUMO/USO do cliente (etiquetagem de produtos):
+  sem ST — não há operação subsequente presumida.
+* Vendas a REVENDEDORES/distribuidores: verificar caso a caso o CEST aplicável e se a
+  UF de destino possui protocolo/convênio com MG exigindo retenção de ST pelo remetente.
+  Hoje, os NCMs de venda não estão nos segmentos de ST (fora da hipótese "para
+  construções" do 3919), mas isso deve ser reavaliado por UF de destino.
+* Vendas interestaduais a NÃO CONTRIBUINTE: recolher DIFAL (EC 87/2015) — atenção após
+  sair do Simples.
+
+----------------------------------------------------------------------------------------------------
+5. PENDÊNCIAS E RECOMENDAÇÕES
+----------------------------------------------------------------------------------------------------
+
+ 1. CEST vazio em todos os itens: para os NCMs 3919 (constam de segmento CEST), exigir
+    dos fornecedores o preenchimento correto do CEST ou a justificativa de não
+    enquadramento (finalidade não é construção). Evita questionamentos em malha.
+ 2. Divergência de NCM no mesmo produto (NF 91055 — item "B5062" ora em 3919.10.90,
+    ora em 3919.90.90): pedir revisão ao fornecedor; NCM errado pode gerar ST indevida
+    ou autuação.
+ 3. NF 577306 com destinatário diverso (ADESIVOS ETIQUETAS E ROTULOS UDI LTDA):
+    confirmar a titularidade antes de escriturar/creditar.
+ 4. Enquanto no Simples: conferir com o contador os recolhimentos de antecipação de
+    alíquota sobre as entradas interestaduais (seção 3) e eventuais dispensas para
+    insumos de industrialização.
+ 5. Na migração para o Lucro Real: reparametrizar o ERP — CSTs de entrada (00/20 etc.),
+    apropriação de créditos de ICMS sobre os insumos (hoje sem crédito no Simples) e
+    regras de ST por UF de destino nas vendas a revenda.
+ 6. Reavaliar esta revisão a cada alteração das tabelas CEST/protocolos (Convênio
+    142/18 e RICMS/MG são alterados com frequência).
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial elaborado a partir dos XMLs disponíveis e do estudo
+tributário interno. As conclusões sobre sujeição/inaplicabilidade de ICMS-ST e sobre a
+antecipação de alíquota devem ser validadas pelo contador responsável com base na
+legislação vigente de MG (Decreto 48.589/2023) e nos protocolos ICMS aplicáveis.
+====================================================================================================

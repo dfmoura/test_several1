@@ -1,0 +1,312 @@
+====================================================================================================
+CASOS DE USO — M01 CADASTROS — ERP RLP
+Documento: CASOS_USO_M01_CADASTROS.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M01 — Cadastros (PAR, produtos, FAC, unidades, bancários)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Cadastros mestres que sustentam ORC, PED, OP, NF e financeiro. Sem
+  parceiro/produto coerentes, a cadeia operacional não fecha com trilha.
+
+Atores do módulo:
+  Primários típicos: COMERCIAL, COMPRAS, FISCAL, FINANCEIRO, ADMIN
+  Secundários: CONSULTA (leitura); APIs CNPJ/CEP (sistema)
+
+Invariants do módulo:
+  • Parceiro único com papéis (CLIENTE | FORNECEDOR | TRANSPORTADORA | …).
+  • Prospect orça; PED exige cadastro fiscal completo.
+  • Soft-delete / inativação — nunca exclusão que quebre histórico.
+  • Dados bancários: só FINANCEIRO (+ alçada); SoD com liberação de pagamento.
+  • Identidade: id BIGINT + codigo legível (PAR-NNNNN, etc.).
+
+====================================================================================================
+UC-CAD-001 — Cadastrar / manter parceiro (PAR)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL (cliente) / COMPRAS (fornecedor) / ADMIN
+Secundários ..: FISCAL (complemento fiscal); CONSULTA (leitura)
+
+Pré-condições:
+  1. Usuário autenticado com perfil autorizado a criar/editar PAR do papel.
+  2. empresa_id ativa (default EMP-00001).
+
+Pós-condições (sucesso):
+  1. Parceiro persistido com id + codigo PAR-NNNNN.
+  2. Papéis e contatos/endereços gravados; auditoria registrada.
+
+Garantia (não pode):
+  • Duplicar CNPJ/CPF quando informado e já existente na mesma empresa.
+  • Excluir fisicamente parceiro com histórico operacional.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre “Novo parceiro” (ou edita existente).
+  2. Sistema solicita identificação (razão/nome, tipo pessoa, papéis).
+  3. Ator informa documentos (CNPJ/CPF se já disponíveis) e contatos.
+  4. Sistema valida formato e unicidade de documento quando informado.
+  5. Ator salva; sistema gera codigo PAR-NNNNN (se novo) e confirma.
+  6. Sistema registra auditoria (quem/quando/de→para).
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Edição de parceiro existente
+    1a. Ator busca por código, CNPJ, razão ou pedaço; abre ficha; segue 2–6.
+  AL2 — Múltiplos papéis no mesmo PAR
+    2a. Ator marca CLIENTE + FORNECEDOR (ex.); sistema mantém um único PAR.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — CNPJ/CPF já cadastrado
+    4a. Sistema bloqueia e oferece abrir o PAR existente.
+  EX2 — Perfil sem permissão para o papel
+    1a. Sistema nega (ex.: COMERCIAL não cadastra fornecedor de compra).
+
+Regras: RN-15; RF-CAD-01; RF-CAD-02; D0.5
+Entidades: Parceiro, Endereço, Contato, Papel
+Trace: CADASTRO_PARCEIROS.txt · CODIFICACAO_INFORMACOES_SISTEMA.txt
+Aceite:
+  • Criar PAR- com papel CLIENTE e localizar por CNPJ.
+  • Editar contato gera trilha de auditoria.
+  • Tentativa de CNPJ duplicado é rejeitada com mensagem clara.
+
+====================================================================================================
+UC-CAD-002 — Completar cadastro fiscal de prospect para PED
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL / FISCAL
+Secundários ..: Cliente (fornece dados)
+
+Pré-condições:
+  1. Existe PAR prospect com ORC aprovado (ou a converter).
+  2. Cadastro fiscal incompleto (sem IE/indIEDest/endereço fiscal OK).
+
+Pós-condições:
+  1. PAR marcado como apto a PED (cadastro fiscal completo).
+  2. Conversão ORC→PED desbloqueada quanto a esta regra.
+
+Garantia: Prospect incompleto NÃO gera PED.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema sinaliza ORC/PED bloqueado por “cadastro fiscal incompleto”.
+  2. Ator completa CNPJ/CPF, IE, indIEDest, endereço de faturamento.
+  3. Sistema valida obrigatoriedades fiscais mínimas para emissão.
+  4. Sistema marca aptidão e libera o próximo passo da conversão.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Dados inválidos (IE x UF inconsistente)
+    3a. Sistema rejeita e lista campos pendentes.
+  EX2 — Cliente exige sinal antes do PED
+    4a. Sistema exige também adiantamento conforme política (ver UC-COM-009).
+
+Regras: RF-CAD-04; RN-02; D0.13
+Trace: ORCAMENTO_PROSPECT_SEM_CADASTRO.txt · GERACAO_PEDIDO.txt
+Aceite:
+  • Prospect orça sem IE; PED permanece bloqueado até completar.
+  • Após completar, conversão ORC→PED deixa de falhar por cadastro.
+
+====================================================================================================
+UC-CAD-003 — Cadastrar / manter produto (MP/EMB/REV/PA/SVC)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMPRAS (compra) / COMERCIAL|FISCAL (venda) / ADMIN
+Secundários ..: PRODUCAO (consulta máscara / consumo)
+
+Pré-condições:
+  1. Usuário autorizado; família do SKU definida (MP|EMB|REV|PA|SVC).
+
+Pós-condições:
+  1. SKU ativo com máscara, NCM (quando aplicável), unidades e fatores.
+  2. Disponível para ORC / OP / MOV / NF conforme família.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator cria produto escolhendo família.
+  2. Sistema exige atributos mínimos da família (ex.: bobina → máscara).
+  3. Ator informa NCM, CFOP padrão, CST/CSOSN (venda), unidades.
+  4. Sistema valida conversões oficiais (m, kg, rolo, un).
+  5. Sistema persiste SKU e disponibiliza em buscas/orçamento/estoque.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Produto de serviço (SVC)
+    2a. Sistema não exige estoque físico; amarra a OS.
+  AL2 — Revenda (REV)
+    2a. Produto compra+venda; separação via MOV.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — NCM / unidade inválidos
+    4a. Persistência bloqueada com mensagem de campo.
+
+Regras: RF-CAD-10…13; RNF-40…42
+Entidades: Produto/SKU, Unidade, FatorConversao
+Trace: CADASTRO_PRODUTOS_COMPRA.txt · CADASTRO_PRODUTOS_VENDA.txt ·
+       CONVERSOES_UNIDADES_MEDIDA.txt
+Aceite:
+  • Criar MP com máscara e converter kg↔m quando fator cadastrado.
+  • PA/SVC/REV aparecem corretamente nos fluxos respectivos.
+
+====================================================================================================
+UC-CAD-004 — Manter ferramental / faca (FAC) rastreável
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL / PRODUCAO / ADMIN
+
+Pré-condições:
+  1. Modelo/cliente identificáveis para cobrança 1×.
+
+Pós-condições:
+  1. FAC- vinculado a cliente/modelo; histórico de cobrança consultável.
+  2. Orçamento/pedido sabe se ferramental já foi cobrado.
+
+Garantia: Não cobrar 2× o mesmo FAC para o mesmo modelo/cliente sem
+          autorização explícita de exceção auditada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator cadastra FAC- (identificação física / desenho / cliente).
+  2. Sistema associa modelo e PAR cliente.
+  3. Em ORC/PED, sistema consulta se já houve cobrança em pedido anterior.
+  4. Se 1ª vez → item/ferramental elegível a cobrança; senão → não cobra.
+
+Regras: RN-08; RF-COM implícito via LR-RF-032; UC-COM-010
+Trace: GERACAO_ORCAMENTO.txt · DOMINIO §2 (FAC)
+Aceite:
+  • 1º PED do modelo cobra FAC; 2º PED do mesmo modelo/cliente não cobra.
+
+====================================================================================================
+UC-CAD-005 — Manter unidades e fatores de conversão
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN / COMPRAS
+
+Pré-condições: Perfil autorizado a alterar parâmetros de unidade.
+
+Pós-condições: Fatores versionados; movimentos futuros usam fatores vigentes.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator seleciona SKU ou tabela de unidades oficiais.
+  2. Informa fator (ex.: kg → m) com precisão decimal exigida.
+  3. Sistema valida fator > 0 e escala (sem float binário).
+  4. Sistema publica vigência; auditoria registrada.
+
+Regras: RF-CAD-12; RNF-40; D0.11
+Trace: CONVERSOES_UNIDADES_MEDIDA.txt · PADRAO_DECIMAL_CALCULOS.txt
+Aceite: Conversão aplicada em MOV e ORC usa fator vigente; antigo não muda.
+
+====================================================================================================
+UC-CAD-006 — Consultar CNPJ/CEP com cache e cadência
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMERCIAL / FISCAL / COMPRAS
+Sistema ......: API externa (CNPJ/CEP)
+
+Pré-condições: Integração habilitada; dentro da cadência/cache.
+
+Pós-condições: Dados sugeridos preenchidos no formulário; consulta logada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator informa CNPJ ou CEP e solicita consulta.
+  2. Sistema verifica cache válido; se hit, retorna sem chamada externa.
+  3. Se miss, chama API respeitando cadência/circuit breaker.
+  4. Sistema preenche campos sugeridos; ator confirma antes de salvar.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — API indisponível / rate limit
+    3a. Sistema informa falha; permite cadastro manual; não trava o ERP.
+  EX2 — Circuit breaker aberto
+    3a. Bloqueia novas chamadas externas temporariamente; usa cache se houver.
+
+Regras: RF-CAD-05; RF-INT-05
+Trace: APIS_FREE_CONSULTA_CADENCIA.txt · VERIFICACAO_ENDERECO_FORNECEDOR.txt
+Aceite: Segunda consulta no TTL não gera chamada externa; falha API não impede save.
+
+====================================================================================================
+UC-CAD-007 — Manter dados bancários do parceiro (SoD)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO (+ alçada)
+Incompatível .: Quem libera pagamento (mesmo usuário, sem controle compensatório)
+
+Pré-condições: PAR existente; perfil FINANCEIRO com alçada bancária.
+
+Pós-condições: Conta bancária do parceiro atualizada; auditoria completa.
+
+Garantia: COMERCIAL/COMPRAS não alteram dados bancários.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FINANCEIRO abre ficha do PAR → dados bancários.
+  2. Informa banco, agência, conta, PIX (quando houver).
+  3. Sistema exige confirmação / segunda checagem conforme alçada.
+  4. Persiste e audita; sinaliza impacto em pagamentos futuros.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Usuário com perfil incompatível (liberou pagamento recente do PAR)
+    1a. Sistema bloqueia por SoD ou exige aprovador compensatório auditado.
+
+Regras: RF-CAD-03; RNF-22; U2
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt · CADASTRO_PARCEIROS.txt
+Aceite: Tentativa de edição por perfil não financeiro é negada; trilha OK.
+
+====================================================================================================
+UC-CAD-008 — Inativar parceiro / produto (soft-delete)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : ADMIN / perfil dono do cadastro
+
+Pré-condições: Entidade existente; pode haver documentos históricos.
+
+Pós-condições: Status INATIVO; histórico preservado; não aparece em novas seleções.
+
+Garantia: Não apagar fisicamente; PED/ORC/NF antigos continuam legíveis.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator solicita inativação informando motivo.
+  2. Sistema verifica se há documentos em aberto críticos (alerta).
+  3. Sistema marca INATIVO (soft); remove de listagens de seleção “ativos”.
+  4. Consultas históricas por código continuam funcionando.
+
+Regras: RN-15; RF-PLT-06; D0.4
+Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt · CODIFICACAO_INFORMACOES_SISTEMA.txt
+Aceite: PAR inativo não entra em novo ORC; ORC antigo ainda mostra o PAR.
+
+====================================================================================================
+Fim — CASOS_USO_M01_CADASTROS.txt
+8 casos de uso | Módulo M01 Cadastros
+====================================================================================================

@@ -1,0 +1,388 @@
+======================================================================
+     MOBILIDADE, GORDURA E SIMULACAO DE CENARIOS NO ORCAMENTO
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+======================================================================
+
+Este documento ESTENDE o modelo de GERACAO_ORCAMENTO.txt com tres
+capacidades que o orcamento profissional precisa ter:
+
+  1. MOBILIDADE ........ alterar variaveis e parametros e recalcular
+                         na hora, sem refazer o orcamento do zero;
+  2. SIMULACAO SEM FACA  orcar mesmo quando NAO existe faca no mapa,
+                         simulando o custo e o impacto da faca nova;
+  3. GORDURA ........... margem de seguranca deliberada e rastreavel,
+                         com detalhamento do impacto no preco final;
+
+e formaliza o MODULO DE CENARIOS: criar N variacoes do mesmo
+orcamento manipulando variaveis e parametros, comparar lado a lado e
+promover o cenario escolhido a proposta oficial.
+
+Ele complementa:
+  * GERACAO_ORCAMENTO.txt .............. motor de calculo (base)
+  * VERIFICACAO_IMPOSTO_ORCAMENTO.txt .. gross-up e perfil fiscal
+  * PADRAO_DECIMAL_CALCULOS.txt ........ tipos e casas decimais
+  * CONVERSOES_UNIDADES_MEDIDA.txt ..... conversoes m / m2 / kg / rolo
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt .. custo medio dos materiais
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt ... quem pode simular /
+    aprovar gordura acima do padrao
+
+======================================================================
+1. MOBILIDADE: O ORCAMENTO COMO MODELO VIVO, NAO COMO CONTA PRONTA
+======================================================================
+
+1.1. DEFINICAO. Mobilidade e a capacidade de o orcamento reagir a
+     mudanca de QUALQUER variavel de entrada ou parametro de calculo
+     com recalculo IMEDIATO e AUDITAVEL de todos os componentes,
+     sem redigitacao e sem planilha paralela. O orcamento deixa de
+     ser um numero fechado e passa a ser um MODELO: entradas ->
+     motor -> resultado.
+
+1.2. POR QUE ISSO IMPORTA. Na pratica comercial o cliente pergunta:
+     "e se for BOPP fosco em vez de couche?", "e se eu dobrar a
+     quantidade?", "e se tirar a laminacao?", "e sem a faca nova,
+     usando uma medida parecida que voces ja tenham?". Hoje cada
+     pergunta dessas vira uma planilha nova salva por cima da
+     anterior, perdendo o historico. Com mobilidade, cada pergunta
+     vira um CENARIO (secao 5) derivado do mesmo orcamento.
+
+1.3. O QUE PODE SER MANIPULADO (dois niveis, sempre separados):
+
+     a) VARIAVEIS DO ORCAMENTO (nivel do orcamentista - livre):
+        - papel/filme, largura, cores, acabamento
+        - faca (existente ou simulada - secao 3), Z, puxada, colunas
+        - modelos, tipo de troca, etiquetas por rolo, tubete
+        - faixas de quantidade, coluna de rebobinacao
+        - maquina/grupo de hora-maquina
+        - % de gordura (secao 4), dentro do teto do perfil
+        - forma de cobranca do ferramental (integral/diluido)
+
+     b) PARAMETROS DE CALCULO (nivel gerencial - controlado):
+        - preco do papel por m2, valor da hora maquina
+        - tabelas de perda, tinta, acabamento, tubete, caixa
+        - velocidade da maquina, % de comissao, perfil fiscal
+        >> Em SIMULACAO o gerente pode sobrescrever um parametro
+           ("e se o BOPP subir 12%?"), mas o valor sobrescrito vale
+           SO dentro daquele cenario, fica marcado como OVERRIDE e
+           nunca altera a tabela oficial de parametros.
+
+1.4. REGRAS DE MOBILIDADE:
+
+     a) Recalculo total a cada mudanca: nao existe "campo travado"
+        com valor velho convivendo com entrada nova. Mudou entrada,
+        recalcula tudo (motor da secao 5 de GERACAO_ORCAMENTO.txt).
+     b) Toda mudanca gera trilha: campo, valor anterior, valor novo,
+        quem mudou, quando. Compativel com o versionamento 9.1
+        (v1, v2...) - mexer apos ENVIADO gera nova versao.
+     c) Snapshot por cenario: cada cenario guarda a fotografia
+        completa de parametros e intermediarios (regra 1.3 e 9.2 de
+        GERACAO_ORCAMENTO.txt), entao qualquer cenario reabre
+        identico no futuro.
+     d) Mobilidade NAO e informalidade: os numeros continuam vindo
+        de tabelas de parametros. O que e livre e ESCOLHER e
+        COMBINAR; digitar preco solto continua proibido fora de
+        override justificado.
+
+======================================================================
+2. SIMULACAO QUANDO NAO EXISTE FACA (FACA NOVA)
+======================================================================
+
+2.1. SITUACAO. A regra 7.3 de GERACAO_ORCAMENTO.txt diz: se nao
+     existe faca compativel no MAPA DE FACAS, o orcamento marca
+     FACA NOVA e inclui custo e prazo. Este capitulo detalha COMO
+     simular esse orcamento de forma profissional, porque e
+     exatamente nos itens sem faca que mais se erra preco e prazo.
+
+2.2. FACA SIMULADA (virtual). Quando nao ha faca, o orcamentista
+     cria no proprio orcamento uma FACA SIMULADA informando:
+       - medida da etiqueta (ex.: 10,0 x 4,0 cm)
+       - formato (reto / redondo / especial)
+       - puxada, Z e colunas PROPOSTOS (o ERP sugere o Z e a
+         puxada que minimizam perda de papel na largura de bobina
+         disponivel - melhor aproveitamento = menor m2)
+       - maquina de destino
+     A faca simulada alimenta o motor normalmente (metragens,
+     perdas, tempos) e fica marcada como SIMULADA ate a aprovacao.
+     Aprovado o pedido, ela e cotada/fabricada e so entao entra no
+     MAPA DE FACAS como faca real.
+
+2.3. CUSTO E PRAZO DA FACA NOVA (parametros com vigencia):
+       - CUSTO: por cotacao do fornecedor OU tabela indicativa por
+         tipo/tamanho (ex.: faca reta simples R$ 600-900; redonda /
+         especial R$ 900-1.500 - valores de referencia, SEMPRE
+         confirmar cotacao antes de enviar a proposta)
+       - PRAZO DO FERRAMENTAL: prazo do fornecedor + margem interna
+         (ex.: 7 dias uteis da faca + 12 dias uteis de producao).
+         O prazo de entrega da proposta DEVE somar o prazo da faca
+         quando FACA NOVA = SIM - nunca prometer os 12 dias padrao.
+
+2.4. FORMAS DE COBRAR A FACA NOVA (o simulador calcula as tres e
+     mostra lado a lado; a escolha e comercial):
+
+     MODO A - INTEGRAL NO 1o PEDIDO (padrao, igual a matriz):
+       linha propria "FERRAMENTAL - FACA", arredondada para cima
+       em R$ 1,00, cobrada uma unica vez (regra 1.7). Nao entra
+       na base de imposto/comissao do servico se destacada como
+       ferramental (confirmar tratamento fiscal com o contador).
+
+     MODO B - DILUIDA NO UNITARIO:
+       FACA_POR_ETIQ = CUSTO_FACA / QTD_COMPROMETIDA
+       onde QTD_COMPROMETIDA e o volume que o cliente se compromete
+       a comprar (contrato/programacao). Entra como componente de
+       custo e portanto SOFRE gross-up de imposto e comissao -
+       diluir faca encarece o total em relacao ao Modo A. So usar
+       com volume garantido; sem garantia, o risco e nunca
+       recuperar o ferramental.
+
+     MODO C - ABSORVIDA (cortesia comercial):
+       custo da faca vira reducao direta de margem. O simulador
+       DEVE mostrar a margem resultante e exigir aprovacao de
+       gerente (mesmo fluxo do piso de margem, regra 7.7).
+
+2.5. EXEMPLO NUMERICO (base: exemplo real da secao 5 de
+     GERACAO_ORCAMENTO.txt - servico R$ 461,02, 10.000 etiquetas,
+     imposto 16% por fora, matriz R$ 91; faca nova cotada R$ 800):
+
+       MODO A: ETIQUETAS 540,00 + MATRIZ 91 + FACA 800
+               = TOTAL 1o pedido R$ 1.431,00 (unit. servico 0,054)
+       MODO B (compromisso 100.000 etiq): faca 0,008/etiq ->
+               componente 80,00 no servico da faixa de 10.000 ->
+               (461,02 + 80,00) x 1,16 = 627,58 -> R$ 630,00
+               unit. 0,063 no 1o pedido e nas recompras ate cobrir
+               o compromisso; total pago de faca ao longo do
+               contrato ~R$ 928 (800 + imposto) - mais caro que A.
+       MODO C: total R$ 631,00 como sem faca, margem reduzida em
+               R$ 800 - so com aprovacao gerencial.
+
+2.6. COMPARAR COM ALTERNATIVA SEM FACA NOVA. O simulador deve
+     SEMPRE oferecer o cenario "faca existente mais proxima": o ERP
+     busca no mapa facas com medida ate +/- X% da pedida (parametro,
+     sugestao 5%) e monta um cenario paralelo com a medida adaptada.
+     Muitas vendas se resolvem ajustando 1-2 mm na etiqueta e
+     eliminando R$ 800 de ferramental e uma semana de prazo - mas a
+     decisao e do cliente, e o cenario da isso preto no branco.
+
+======================================================================
+3. GORDURA: MARGEM DE SEGURANCA DELIBERADA E RASTREAVEL
+======================================================================
+
+3.1. DEFINICAO. GORDURA e um percentual (ou valor) ADICIONADO de
+     proposito ao calculo para cobrir incerteza: variacao de preco
+     de material ate o fechamento, risco de perda acima da tabela,
+     cliente que historicamente pede reposicao, cotacao de faca
+     ainda nao confirmada, espaco para negociar desconto sem furar
+     a margem. Gordura NAO e margem de lucro (que ja esta na
+     politica de preco) nem imposto (que vem do perfil fiscal).
+
+3.2. REGRA DE OURO: GORDURA EXPLICITA, NUNCA ESCONDIDA. Proibido
+     inflar preco de papel, hora maquina ou perda "de cabeca" para
+     criar folga - isso destroi a auditabilidade (principio 1.1 de
+     GERACAO_ORCAMENTO.txt) e contamina os relatorios de custo. A
+     gordura e um CAMPO PROPRIO do orcamento, com percentual, base
+     de aplicacao, motivo e autor gravados no snapshot.
+
+3.3. ONDE APLICAR (o ERP suporta os dois, com teto por perfil):
+
+     a) GORDURA GLOBAL: % sobre VALOR_SERVICO, aplicada entre o
+        passo 5 e o passo 6 do motor:
+          VALOR_COM_GORDURA = VALOR_SERVICO x (1 + %GORDURA)
+        e o fechamento (imposto, comissao, arredondamento) roda
+        sobre VALOR_COM_GORDURA.
+     b) GORDURA POR COMPONENTE: % individual sobre um componente
+        incerto (ex.: +10% so no papel porque o fornecedor sinaliza
+        reajuste; +15% so na faca porque a cotacao e estimada).
+        Mais precisa e mais honesta que a global quando o risco e
+        localizado.
+
+3.4. DETALHAMENTO DO IMPACTO (o simulador exibe SEMPRE este quadro
+     ao lado do campo de gordura):
+
+     a) EFEITO CASCATA. A gordura entra ANTES do fechamento, entao
+        imposto e comissao incidem sobre ela. Com fechamento por
+        fora a 16% e comissao 0%, cada R$ 1,00 de gordura vira
+        R$ 1,16 no preco; com gross-up por dentro (27,25% + 5% de
+        comissao, cenario Lucro Real), cada R$ 1,00 vira
+        1 / (1 - 0,2725 - 0,05) = R$ 1,48. Gordura custa ao cliente
+        sempre MAIS do que o percentual nominal sugere.
+
+     b) EXEMPLO NUMERICO (base servico R$ 461,02, imposto 16% por
+        fora, sem comissao, matriz R$ 91):
+
+        GORDURA  SERVICO+G   +IMPOSTO   ETIQUETAS  UNITARIO  TOTAL
+        -------  ---------   --------   ---------  --------  ------
+          0%      461,02      534,78      540,00    0,0540    631
+          3%      474,85      550,83      560,00    0,0560    651
+          5%      484,07      561,52      570,00    0,0570    661
+         10%      507,12      588,26      590,00    0,0590    681
+         15%      530,17      615,00      620,00    0,0620    711
+
+        Leitura: 5% de gordura elevou o unitario de 0,054 para
+        0,057 (+5,6% ja com o efeito cascata e o arredondamento
+        comercial para cima). O quadro mostra ao orcamentista
+        exatamente quanto de competitividade ele esta gastando.
+
+     c) IMPACTO COMERCIAL. O simulador cruza o preco com gordura
+        contra o historico do item/cliente (ultimo preco vendido,
+        preco medio dos concorrentes quando informado) e alerta
+        quando a gordura empurra o preco acima do referencial.
+        Gordura demais perde pedido; gordura de menos transfere o
+        risco para a margem. Por isso o relatorio 3.6.
+
+     d) IMPACTO NA MARGEM SE NAO CONSUMIDA. Gordura nao consumida
+        vira margem extra no fechamento da producao. O confronto
+        custo orcado x custo real (relatorio 9.5 de
+        GERACAO_ORCAMENTO.txt) deve separar a gordura: se ela NUNCA
+        e consumida num tipo de servico, o padrao esta alto demais;
+        se e consumida sempre, as tabelas de perda/preco estao
+        defasadas e devem ser corrigidas NA ORIGEM (parametro), nao
+        com mais gordura.
+
+3.5. GOVERNANCA (tetos por perfil de acesso, conforme
+     ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt):
+       - ORCAMENTISTA: ate X% de gordura global (sugestao: 5%)
+         sem aprovacao, com motivo obrigatorio acima de 0%.
+       - GERENTE: acima do teto do orcamentista e qualquer gordura
+         por componente acima de Y% (sugestao: 15%).
+       - Gordura NEGATIVA (desconto tecnico) e proibida: desconto
+         e outra coisa e segue o fluxo do piso de margem (7.7).
+
+3.6. RELATORIO DE GORDURA (mensal): gordura media aplicada por
+     orcamentista/tipo de servico, taxa de conversao com e sem
+     gordura, gordura consumida x nao consumida na producao.
+     E este relatorio que calibra os tetos e os padroes - a
+     gordura vira instrumento de gestao, nao vicio de calculo.
+
+======================================================================
+4. MODULO DE CENARIOS: CRIAR, MANIPULAR E COMPARAR
+======================================================================
+
+4.1. CONCEITO. Um CENARIO e uma copia completa e independente das
+     entradas de um orcamento (variaveis + overrides de parametros
+     + gordura + modo de cobranca de ferramental), recalculada pelo
+     MESMO motor. Estrutura:
+
+       ORCAMENTO ORC-2026-00123
+         CENARIO 1 "BASE"            (sempre existe, criado junto)
+         CENARIO 2 "SEM LAMINACAO"
+         CENARIO 3 "FACA EXISTENTE 9,8cm"
+         CENARIO 4 "PESSIMISTA: BOPP +12%, GORDURA 8%"
+         ...
+       -> UM cenario e marcado como OFICIAL e gera a proposta.
+
+4.2. CRIACAO. Novo cenario nasce como CLONE de um cenario existente
+     (nunca do zero) e recebe nome e descricao obrigatorios. Tudo
+     que muda em relacao ao cenario-pai fica destacado como DELTA
+     (campo, valor pai, valor novo) - e assim que o gerente revisa
+     um cenario em segundos.
+
+4.3. O QUE SE MANIPULA POR CENARIO: qualquer item da lista 1.3,
+     respeitando o nivel de acesso (variaveis livres; parametros so
+     via override gerencial marcado). Casos tipicos:
+
+       PERGUNTA DO NEGOCIO             O QUE MANIPULAR
+       -----------------------------   --------------------------
+       E se o material mudar?          papel/filme
+       E se o cliente dobrar volume?   faixas de quantidade
+       E se nao fizer faca nova?       faca simulada x existente
+       E se o papel subir?             override preco m2 (gerente)
+       E se der desconto na comissao?  % comissao da faixa
+       Quanto de folga cabe?           % gordura (quadro 3.4)
+       E se rodar em outra maquina?    grupo hora-maquina
+       E se o imposto mudar (regime)?  perfil fiscal do cenario
+       Pior caso operacional?          override de perdas/velocidade
+
+4.4. CENARIOS PADRAO SUGERIDOS (template de 1 clique):
+       - BASE .......... parametros vigentes, gordura padrao
+       - OTIMISTA ...... faca existente adaptada, gordura minima
+       - PESSIMISTA .... materiais +10%, perdas +20%, gordura teto
+       - SEM FERRAMENTAL cliente ja tem faca/matriz (recompra)
+     O par OTIMISTA/PESSIMISTA da a faixa de preco defensavel: se
+     ate o pessimista fecha com margem, o negocio e seguro.
+
+4.5. COMPARACAO LADO A LADO (tela e PDF interno). Colunas = cenarios;
+     linhas = componentes e totais:
+
+       LINHA                    CEN.1 BASE   CEN.3 FACA EXIST.
+       ----------------------   ----------   -----------------
+       Papel                        147,00              152,30
+       Maquina + setup              200,10              200,10
+       Tinta / acabamento            86,46               86,46
+       Rebob./tubete/caixa           27,46               27,46
+       Gordura (5%)                  23,05               23,32
+       SERVICO                      484,07              489,64
+       Imposto (16% p/ fora)         77,45               78,34
+       ETIQUETAS (arred.)           570,00              570,00
+       Matriz                        91,00               91,00
+       Faca nova                    800,00                0,00
+       TOTAL 1o PEDIDO            1.461,00              661,00
+       Unitario                     0,0570              0,0570
+       Prazo                    19 d uteis          12 d uteis
+       MARGEM ESTIMADA                  x%                  y%
+
+     (Numeros ilustrativos derivados do exemplo real; o quadro
+     sempre sai do motor, nunca montado a mao.)
+
+4.6. PROMOCAO E CICLO DE VIDA. So o cenario OFICIAL segue o fluxo
+     RASCUNHO -> CALCULADO -> ENVIADO -> ... (secao 9 de
+     GERACAO_ORCAMENTO.txt). Os demais ficam ARQUIVADOS junto ao
+     orcamento, com snapshot proprio, para consulta e para reabrir
+     negociacao ("o cliente voltou pedindo a opcao sem laminacao").
+     Trocar o cenario oficial apos ENVIO = nova versao (v2).
+
+4.7. O CLIENTE PODE RECEBER MAIS DE UM CENARIO? Pode - como OPCOES
+     na mesma proposta (ex.: "Opcao A com faca nova / Opcao B na
+     medida 9,8 cm sem ferramental"), sempre so com os dados
+     comerciais (regra 1.5: composicao interna, overrides e gordura
+     NUNCA aparecem na proposta).
+
+======================================================================
+5. VALIDACOES AUTOMATICAS DO SIMULADOR
+======================================================================
+
+  [ ] Cenario sempre nomeado e com cenario-pai identificado
+  [ ] Override de parametro: so gerente, com motivo, marcado no
+      snapshot e visivel no delta
+  [ ] Gordura dentro do teto do perfil; acima -> aprovacao
+  [ ] Gordura sempre com motivo quando > 0
+  [ ] FACA NOVA: custo cotado ou tabela indicativa marcada como
+      ESTIMATIVA; proposta bloqueada sem prazo do ferramental somado
+  [ ] Modo B (faca diluida): exigir quantidade comprometida > 0
+  [ ] Modo C (faca absorvida): exigir aprovacao gerencial
+  [ ] Cenario oficial recalculado com parametros vigentes antes de
+      ENVIAR (override nao pode estar mais velho que a vigencia)
+  [ ] Comparativo: minimo 2 cenarios quando FACA NOVA = SIM (o da
+      faca nova e o da melhor faca existente, regra 2.6)
+  [ ] Margem do cenario oficial acima do piso (7.7) mesmo DEPOIS
+      de eventual desconto da gordura
+
+======================================================================
+6. CHECKLIST DO ORCAMENTISTA (SIMULACAO)
+======================================================================
+
+  1. Criei o cenario BASE com parametros vigentes, sem override?
+  2. Sem faca no mapa: simulei faca nova (custo cotado + prazo) E
+     a melhor faca existente adaptada?
+  3. Escolhi o modo de cobranca da faca (A/B/C) com o comparativo
+     na frente? Modo B tem volume comprometido? Modo C aprovado?
+  4. Gordura: percentual explicito, com motivo, dentro do teto?
+     Olhei o quadro de impacto (unitario e total) antes de fixar?
+  5. Rodei OTIMISTA e PESSIMISTA? O pessimista ainda fecha com
+     margem acima do piso?
+  6. O cenario promovido a OFICIAL esta com parametros vigentes e
+     validacoes verdes?
+  7. A proposta ao cliente mostra so os dados comerciais (sem
+     gordura, sem override, sem composicao)?
+  8. Cenarios descartados ficaram arquivados com nome claro?
+
+======================================================================
+AVISO
+======================================================================
+Documento de apoio para parametrizacao do ERP. Valores de faca nova
+sao referencias ilustrativas - usar sempre cotacao vigente do
+fornecedor. Tetos de gordura (5% / 15%) sao sugestoes iniciais a
+calibrar pelo relatorio da secao 3.6. Tratamento fiscal da cobranca
+de ferramental (destacado x embutido) deve ser validado com o
+contador junto com VERIFICACAO_IMPOSTO_ORCAMENTO.txt.
+======================================================================
+FIM DO DOCUMENTO
+======================================================================

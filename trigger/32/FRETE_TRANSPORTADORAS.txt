@@ -1,0 +1,91 @@
+====================================================================================================
+FRETE E TRANSPORTADORAS — PADRÃO LEVE (FASE 1 → FASE 2)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: ENTREGA_CONFIRMACAO_CLIENTE.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      CADASTRO_PARCEIROS.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt +
+      POS_VENDA_RMA_GARANTIA.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Documento LEVE: não é TMS completo. Organiza frete, transportadora,
+CUB/seguro e CT-e o suficiente para não misturar receita × despesa e
+para amarrar avaria à transportadora.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. Frete COBRADO do cliente ≠ frete PAGO à transportadora.
+    Receita: natureza 1.01.05 | Despesa: 3.06.01
+ 2. Transportadora = PAR- com flag transportadora.
+ 3. Fase 1: tabela simples + romaneio ENT- | Fase 2: CT-e / API.
+ 4. Avaria em trânsito → ocorrência no ENT- + RMA + cobrança ao
+    transportador (não sumir no “prejuízo genérico”).
+
+----------------------------------------------------------------------------------------------------
+2. MODOS (já em ENTREGA_)
+----------------------------------------------------------------------------------------------------
+
+  Cliente retira | Frota própria | Transportadora | Correios/outros
+
+Frete próprio (combustível/motorista): despesa 3.04.03 / 3.06 —
+sem inventar frete “fantasma” na NF sem política.
+
+----------------------------------------------------------------------------------------------------
+3. TABELA DE FRETE (Fase 1)
+----------------------------------------------------------------------------------------------------
+
+Cadastro TAB-FRETE-... ou parâmetros por:
+  * Região / cidade / faixa de CEP
+  * Peso ou volume (m³)
+  * CUB: peso cubado = comprimento×largura×altura / fator
+    (fator parâmetro; comum 300 ou 6000 conforme prática — calibrar)
+  * Valor mínimo de frete
+  * Seguro (% sobre valor NF) opcional
+
+No PED/ORC: frete estimado (CIF/FOB/cliente retira).
+Na NF: destacar conforme regra fiscal do contador.
+
+----------------------------------------------------------------------------------------------------
+4. CT-e E DOCUMENTOS (Fase 2)
+----------------------------------------------------------------------------------------------------
+
+  * Anexar chave/PDF do CT-e no ENT-
+  * Rastreio (texto) obrigatório quando transportadora
+  * Manifesto/romaneio do dia (lista de ENT-)
+
+Fase 1 aceita: minuta + comprovante + foto.
+
+----------------------------------------------------------------------------------------------------
+5. COBRANÇA AO CLIENTE × PAGAMENTO AO TRANSPORTADOR
+----------------------------------------------------------------------------------------------------
+
+  CIF com frete na NF ...... receita 1.01.05 (+ item/frete na NF)
+  Frete à parte ............ TIT separado ou incluso no boleto
+  Pagar transportadora ..... título a pagar 3.06.01 (ou rateio)
+
+Nunca usar a mesma natureza para os dois lados.
+
+----------------------------------------------------------------------------------------------------
+6. AVARIA / EXTRAVIO
+----------------------------------------------------------------------------------------------------
+
+  1) Ocorrência no ENT-
+  2) RMA se cliente reclamou
+  3) Abrir cobrança/documento ao transportador (parceiro)
+  4) Estoque/financeiro conforme DEVOLUCAO_ ou perda autorizada
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Transportadora cadastrada como PAR-
+  [ ] Frete receita × despesa separados
+  [ ] CUB/fator documentado se usar volume
+  [ ] Rastreio no ENT- quando aplicável
+  [ ] Avaria amarrada a transportador + RMA
+
+====================================================================================================
+Fim — FRETE_TRANSPORTADORAS.txt
+Frete organizado sem TMS: tabela, natureza certa e avaria rastreável.
+====================================================================================================

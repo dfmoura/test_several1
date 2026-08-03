@@ -1,0 +1,523 @@
+====================================================================================================
+ARQUITETURA E ENGENHARIA — MELHORES PRÁTICAS PARA CONSTRUIR O ERP RLP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real) | Multi-empresa EMP-00001 / EMP-00002
+Base: MANUAL_UNICO_ERP_RLP.txt + INDICE_FLUXO_OPERACIONAL.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt + INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt +
+      FATURAMENTO_GERACAO_COBRANCA.txt + PADRAO_DECIMAL_CALCULOS.txt + estrategia_implantacao_ja.txt
+Gerado em: 02/08/2026 | Atualizado em: 02/08/2026 (volume oficial)
+Complementa: SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt (segurança, custo e operação na AWS)
+FinOps: ESTIMATIVA_CUSTO_AWS_MENSAL.txt (≤10 users · ≈200 NF/mês · padrão Cenário D)
+
+Volume oficial (âncora de engenharia):
+  • Usuários no ERP ............. no máximo 10
+  • Notas fiscais / mês ......... ≈ 200 (fluxo completo)
+  → Priorizar correção, simplicidade operacional e rightsizing — não elasticidade de marketplace.
+  → Custo: evitar posto fixo enterprise (NAT+ALB+Fargate) no dia 1; ver Cenário D no FinOps.
+====================================================================================================
+
+Documento normativo de ENGENHARIA. Define como construir o ERP da melhor forma possível:
+software, dados, padrões de projeto, sistemas, containers, banco e integração — alinhado
+às regras de negócio já fechadas no pacote trigger/32.
+
+Não redefine regras comerciais/fiscais. Traduz o domínio para decisões técnicas.
+
+====================================================================================================
+0. PRINCÍPIOS DE OURO (NÃO NEGOCIÁVEIS)
+====================================================================================================
+
+  1. UM ÚNICO ERP. Pedido (PED) é o mestre. Produção, estoque, NF, TIT, COB, BX, ENT
+     vivem no mesmo sistema — não viram “satélites” desconectados.
+
+  2. DOMÍNIO ANTES DE TECNOLOGIA. A cadeia ORC→PED→OP/OS→NF→TIT→COB→ENT→BX é o
+     contrato. Código, API e banco existem para servir essa cadeia com trilha auditável.
+
+  3. DUAS CAMADAS DE IDENTIDADE (CODIFICACAO_INFORMACOES_SISTEMA):
+       • Motor: id BIGINT (PK/FK, joins, performance)
+       • Negócio: código legível (PAR-, ORC-, PED-, TIT-, COB-, BX-…)
+     Nunca usar string de negócio como chave primária de relacionamento.
+
+  4. DOCUMENTO NÃO SE APAGA — SE ESTORNA. NF autorizada, baixa, movimento de estoque
+     e cobrança emitida geram estorno/compensação com trilha. Sem “delete silencioso”.
+
+  5. INTEGRAÇÕES POR ADAPTER. Focus NFe, BankProvider, WhatsApp Meta Cloud API —
+     contratos internos estáveis; provedor externo pluggable.
+
+  6. MULTI-EMPRESA POR empresa_id. Default EMP-00001. Credenciais, contas e livros
+     isolados por CNPJ. LAI / livro paralelo NÃO entra no ERP.
+
+  7. CONTADOR FECHA O OFICIAL; ERP ALIMENTA. Sem apuração fiscal “fechada” no ERP.
+     Export disciplinado (XML, títulos, naturezas, folha import).
+
+  8. IMPLANTAR EM FASES. Cadastro + estoque na virada + operação do dia;
+     histórico e automações avançadas depois (estrategia_implantacao_ja).
+
+====================================================================================================
+1. ENGENHARIA DE SISTEMAS — VISÃO DE ARQUITETURA
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. ESTILO RECOMENDADO: MONÓLITO MODULAR (não microsserviços no dia 1)
+----------------------------------------------------------------------------------------------------
+
+  Para o porte da RLP (indústria de etiquetas, ≤10 usuários, ≈200 NF/mês,
+  multi-empresa controlada, equipe enxuta), o melhor custo/benefício é:
+
+    • Um deploy principal (API + workers) com MÓDULOS internos bem delimitados
+    • Fronteiras por domínio (bounded contexts), não por “serviço HTTP por tela”
+    • Extrair serviço separado SÓ quando houver motivo mensurável
+      (neste volume, quase nunca no dia 1)
+
+  Evitar no início:
+    • Dezenas de microsserviços → latência, consistência distribuída, custo AWS
+    • Cluster “enterprise” (EKS, Aurora, Redis Multi-AZ) sem carga que justifique
+    • “Big bang” rewrite sem contratos de domínio
+    • Duplicar o ERP em planilha / WhatsApp pessoal / sistema paralelo de produção
+
+----------------------------------------------------------------------------------------------------
+1.2. MÓDULOS (BOUNDED CONTEXTS) ALINHADOS AO PACOTE
+----------------------------------------------------------------------------------------------------
+
+  Cadastros .......... PAR, produtos MP/EMB/REV/PA/SVC, usuários, perfis, parâmetros
+  Comercial .......... ORC (versão, cenário, gordura, crédito, aceite) → PED
+  Produção / PCP ..... OP, OS, apontamento, conclusão, manutenção BEM-
+  Estoque ............ MOV, inventário, sobra/retalho, industrialização REM-
+  Fiscal ............. NF-e/NFS-e via Focus; metadados; sem fechamento oficial
+  Financeiro ......... TIT, COB, BX, aging, crédito, naturezas 1–5, contas
+  Compras ............ COT, OC, urgência, entrada XML
+  Pós-venda .......... RMA, DEV, garantia, amostra/protótipo
+  Integrações ........ BankProvider, WhatsApp MSG-, Focus, jobs de cadência API
+  Gerencial .......... DRE interno, patrimônio, RH pagamento gerencial, export contador
+  Plataforma ......... auth, auditoria, filas, arquivos, multi-empresa, observabilidade
+
+  Regra: dependência entre módulos aponta para DENTRO do domínio (pedido mestre),
+  não o contrário. Produção consulta PED; não inventa outro “pedido paralelo”.
+
+----------------------------------------------------------------------------------------------------
+1.3. DIAGRAMA LÓGICO (alto nível)
+----------------------------------------------------------------------------------------------------
+
+                    ┌─────────────┐
+                    │  Clientes   │  Web (operação) + mobile leve (consulta)
+                    │  (HTTPS)    │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼──────┐
+                    │  API ERP    │  autenticação, RBAC, empresa_id
+                    │  (módulo)   │
+                    └──────┬──────┘
+           ┌───────────────┼───────────────┐
+           │               │               │
+    ┌──────▼─────┐  ┌──────▼──────┐ ┌──────▼──────┐
+    │  Workers   │  │  PostgreSQL │ │  Object     │
+    │  (filas)   │  │  (+ Redis)  │ │  Storage    │
+    └──────┬─────┘  └─────────────┘ │  (XML/PDF)  │
+           │                        └─────────────┘
+     Focus │ BankProvider │ Meta WhatsApp │ e-mail
+
+----------------------------------------------------------------------------------------------------
+1.4. RUNTIME E LINGUAGEM (RECOMENDAÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  Backend ........ TypeScript (Node.js LTS) OU Python 3.12+ — uma stack só no núcleo
+                  Preferência: TypeScript se o time priorizar tipagem fim-a-fim com
+                  o front; Python se o time priorizar scripts fiscais/dados.
+  Front .......... React + TypeScript (SPA) ou Next.js se precisar SSR/auth edge
+  API ............ REST versionada (/api/v1) + OpenAPI; GraphQL só se houver caso claro
+  Filas .......... Amazon SQS (+ DLQ) em prod — padrão do volume RLP
+                  Redis/BullMQ só em DEV ou FASE2 com evidência de necessidade
+  Banco .......... PostgreSQL 16+ (fonte da verdade) — sizing small no go-live
+  Cache .......... Preferir Postgres + TTL de aplicação; Redis opcional depois
+  Locks .......... UNIQUE / advisory lock no Postgres (idempotência NF/COB/BX)
+  Arquivos ....... S3 (XML NF, PDF boleto, anexos BX/RMA)
+  Compute AWS .... Padrão porte RLP (FinOps Cenário D): 1× EC2 Graviton com
+                  API + worker (Compose). Fargate+ALB+NAT = opcional/legado (B).
+
+  Critério de escolha: uma linguagem no backend, tipagem forte no domínio financeiro
+  e fiscal, biblioteca decimal confiável (nunca float para dinheiro), e
+  infraestrutura DIMENSIONADA AO VOLUME (10 users / 200 NF) — inteligente, não inchada.
+
+====================================================================================================
+2. DESIGN PATTERNS — O QUE USAR (E ONDE)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+2.1. PADRÕES OBRIGATÓRIOS NO DOMÍNIO
+----------------------------------------------------------------------------------------------------
+
+  Adapter / Port ...... BankProvider, FocusNfeClient, WhatsAppProvider
+                        (contrato interno estável; troca de banco sem reescrever TIT-)
+
+  Repository .......... Acesso a dados por agregado (PedidoRepository, TituloRepository)
+                        — SQL explícito ou ORM com disciplina; sem “god query” na UI
+
+  Unit of Work ........ Transação única para operações compostas
+                        (ex.: NF autorizada + baixa estoque + gerar TIT-)
+
+  Domain Event ........ PedidoLiberado, NfAutorizada, TituloBaixado, CobrancaPaga
+                        → workers reagem (WhatsApp, crédito, comissão) sem acoplar telas
+
+  Idempotency Key ..... Toda integração externa e todo webhook (COB, BX, Focus)
+                        chave única + resultado armazenado → sem duplicar baixa/NF
+
+  Outbox Pattern ...... Persistência do evento no mesmo commit do negócio;
+                        publisher lê outbox → fila. Evita “salvou no banco e falhou
+                        o envio” sem rastro
+
+  State Machine ....... Status canônicos de ORC, PED, OP, TIT, COB, RMA, DEV
+                        Transições explícitas; ilegal = rejeição com motivo
+
+  Strategy ............ Cálculo fiscal / condição de pagamento / régua de cobrança
+  Specification ....... Regras de “pode faturar?”, “pode liberar PED?”, crédito
+
+  CQRS leve ........... Comandos de escrita no domínio; leituras/relatórios em
+                        views materializadas ou queries dedicadas (aging, DRE)
+
+----------------------------------------------------------------------------------------------------
+2.2. PADRÕES A EVITAR NO INÍCIO
+----------------------------------------------------------------------------------------------------
+
+  • Event Sourcing completo (complexidade alta; auditoria tabular basta no dia 1)
+  • Microsserviço por entidade (PedidoService, TituloService isolados)
+  • Shared database entre sistemas externos sem contrato
+  • Anemic domain com toda regra no front
+  • Singleton global mutável para “empresa atual” sem contexto de request
+
+----------------------------------------------------------------------------------------------------
+2.3. AGREGADOS E INVARIANTES (EXEMPLOS)
+----------------------------------------------------------------------------------------------------
+
+  Pedido ............. itens, condição, crédito, empresa_id; preço snapshot do ORC
+  Faturamento ........ NF + títulos gerados; só NF autorizada confirma estoque/TIT
+  Cobrança ........... COB liga TIT ↔ provider_ref; status canônicos do adapter
+  Baixa .............. BX com conta, data, valor, tit_id(s); nunca editar valor do TIT
+  Movimento estoque .. MOV imutável; ajuste só por inventário/estorno
+
+====================================================================================================
+3. ENGENHARIA DE SOFTWARE — QUALIDADE E ORGANIZAÇÃO DO CÓDIGO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+3.1. CAMADAS DENTRO DO MÓDULO
+----------------------------------------------------------------------------------------------------
+
+  api/http ........... controllers, DTOs, validação de entrada, auth
+  application ........ casos de uso (FaturarPedido, EmitirCobranca, BaixarTitulo)
+  domain ............. entidades, VOs, enums de status, invariantes, erros de negócio
+  infrastructure ..... DB, Focus, banco, WhatsApp, S3, filas
+
+  Dependência: api → application → domain ← infrastructure
+  Domain NÃO importa framework HTTP nem SQL driver.
+
+----------------------------------------------------------------------------------------------------
+3.2. TIPOS E CÁLCULO (PADRAO_DECIMAL_CALCULOS)
+----------------------------------------------------------------------------------------------------
+
+  • Dinheiro e quantidade: DECIMAL/NUMERIC no banco; Decimal no código
+  • NUNCA number/float para valor, imposto, estoque, comissão
+  • Arredondamento: regra única versionada (parâmetro + testes)
+  • Conversão de unidade: tabela explícita (CONVERSOES_UNIDADES_MEDIDA)
+  • Imposto no orçamento = simulação; NF = motor Focus/contador — divergência
+    vira análise, não “repreço silencioso”
+
+----------------------------------------------------------------------------------------------------
+3.3. API E CONTRATOS
+----------------------------------------------------------------------------------------------------
+
+  • OpenAPI 3 como contrato; gerar clientes tipados para o front
+  • Versionamento /api/v1; breaking change = v2
+  • Paginação cursor/limit em listagens (aging, movimentos, XML)
+  • Filtro obrigatório por empresa_id (nunca confiar só no front)
+  • Erros: código estável (CREDITO_INSUFICIENTE, NF_REJEITADA) + mensagem humana
+  • Idempotency-Key em POST de faturamento, emissão COB, baixa, envio MSG
+
+----------------------------------------------------------------------------------------------------
+3.4. TESTES (PIRÂMIDE PRAGMÁTICA)
+----------------------------------------------------------------------------------------------------
+
+  Unitários .......... domínio (estado, crédito, parcial de BX, estorno)
+  Integração ......... repositório + Postgres de teste; adapter com sandbox
+  Contrato ........... OpenAPI + consumer (front)
+  E2E críticos ....... ORC→PED→OP→NF→TIT→COB→BX (fluxo feliz)
+                       + DEV/RMA e rejeição Focus (fluxo infeliz)
+  Não exigir 100% coverage; exigir 100% dos caminhos que mexem em dinheiro/estoque/NF
+
+----------------------------------------------------------------------------------------------------
+3.5. CI/CD E QUALIDADE
+----------------------------------------------------------------------------------------------------
+
+  • Lint + typecheck + testes em todo PR
+  • Migrações de banco versionadas (obrigatórias, reversíveis quando possível)
+  • Feature flags para homologar Focus/banco sem “big bang”
+  • Changelog alinhado a DOC-/TXT do pacote quando regra de negócio mudar
+
+====================================================================================================
+4. ENGENHARIA DE DADOS — MODELO, INTEGRIDADE E ANALYTICS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. FONTE DA VERDADE
+----------------------------------------------------------------------------------------------------
+
+  PostgreSQL = sistema de registro (system of record).
+  Relatórios gerenciais leem do mesmo banco (views) até o volume exigir
+  réplica read-only. Data warehouse só depois que a operação estiver estável.
+
+----------------------------------------------------------------------------------------------------
+4.2. MODELO RELACIONAL
+----------------------------------------------------------------------------------------------------
+
+  • Normalização 3NF no OLTP; desnormalização só em snapshot documentado
+    (ex.: preço travado no item do PED; descrição fiscal montada na NF)
+  • empresa_id NOT NULL em tabelas de negócio; índice composto (empresa_id, …)
+  • Soft-delete / inativação de cadastro; hard-delete proibido em documento
+  • CHECK constraints para status e enums críticos
+  • UNIQUE (empresa_id, codigo) onde o código de negócio for por empresa
+  • FK sempre para id BIGINT
+
+----------------------------------------------------------------------------------------------------
+4.3. MIGRAÇÕES E EVOLUÇÃO
+----------------------------------------------------------------------------------------------------
+
+  • Ferramenta única (Flyway / Liquibase / Prisma Migrate / Alembic)
+  • Expand-contract: adicionar coluna → preencher → trocar leitura → remover antiga
+  • Seeds só de parâmetros e naturezas; nunca de produção via seed
+  • Ambiente de staging com subset anonimizado
+
+----------------------------------------------------------------------------------------------------
+4.4. AUDITORIA E EVENTOS
+----------------------------------------------------------------------------------------------------
+
+  Tabelas mínimas:
+    audit_log .......... quem, quando, empresa, entidade, de→para, ip
+    outbox ............. eventos a publicar
+    integration_log .... request/response resumido (sem segredo) + correlation_id
+    webhook_inbox ...... payload + event_id + status processamento
+
+  Retenção: alinhar necessidade fiscal/operacional; XML NF com guarda longa em S3.
+
+----------------------------------------------------------------------------------------------------
+4.5. PIPELINE DE DADOS (QUANDO NECESSÁRIO)
+----------------------------------------------------------------------------------------------------
+
+  Fase 1: SQL + export contador (EXPORT_CONTADOR_FOLHA_LAYOUT)
+  Fase 2: réplica read + BI (Metabase/Power BI) sobre views
+  Fase 3 (opcional): CDC (Debezium) → warehouse — só com volume/latência que justifique
+
+  Princípio: não construir data lake antes de ter NF+TIT+BX confiáveis.
+
+====================================================================================================
+5. BANCO DE DADOS — POSTGRESQL COMO PADRÃO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+5.1. POR QUE POSTGRESQL
+----------------------------------------------------------------------------------------------------
+
+  • NUMERIC preciso, JSONB para metadados Focus/webhook, partial indexes
+  • Row Level Security (RLS) opcional por empresa_id
+  • Extensões úteis: pgcrypto, pg_trgm (busca parceiro), uuid-ossp só para tokens
+  • Ecossistema maduro em AWS (RDS/Aurora)
+
+----------------------------------------------------------------------------------------------------
+5.2. CONVENÇÕES
+----------------------------------------------------------------------------------------------------
+
+  • snake_case; tabelas no singular ou plural — escolher UM e manter
+  • created_at / updated_at / created_by / updated_by
+  • status VARCHAR ou ENUM Postgres versionado
+  • Índices: FK, (empresa_id, status), (empresa_id, vencimento) em TIT
+  • Particionamento só quando aging/movimentos passarem de milhões
+
+----------------------------------------------------------------------------------------------------
+5.3. TRANSAÇÕES E CONCORRÊNCIA
+----------------------------------------------------------------------------------------------------
+
+  • Faturamento / baixa / movimento: isolation READ COMMITTED + locks otimistas
+    (version) ou SELECT … FOR UPDATE no agregado
+  • Estoque: impedir saldo negativo conforme política; never silent overwrite
+  • Webhook de pagamento: UNIQUE(event_id) + upsert idempotente
+
+----------------------------------------------------------------------------------------------------
+5.4. BACKUP E DR (VISÃO ENGENHARIA)
+----------------------------------------------------------------------------------------------------
+
+  Detalhe operacional AWS no documento irmão. Exigência mínima de desenho:
+  RPO ≤ 15 min (operação), RTO ≤ 4 h (meta inicial), restore testado trimestralmente.
+
+====================================================================================================
+6. DOCKER E EMPACOTAMENTO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+6.1. OBJETIVO DO CONTAINER
+----------------------------------------------------------------------------------------------------
+
+  Mesmo artefato em dev, staging e prod. “Funciona na minha máquina” não é critério.
+
+----------------------------------------------------------------------------------------------------
+6.2. LAYOUT RECOMENDADO
+----------------------------------------------------------------------------------------------------
+
+  services:
+    api ............... imagem app (API HTTP)
+    worker ............ mesma imagem, comando diferente (consumidor SQS)
+    # scheduler 24×7: evitar — preferir EventBridge one-shot ou cron no worker
+    postgres .......... só em DEV (prod = RDS small)
+    redis ............. só DEV se útil (prod = SQS + Postgres no go-live)
+    mailhog/minio ..... só DEV
+
+  docker-compose.dev.yml ≠ prod. Em produção (porte RLP): 1× EC2 com Compose
+  (API + worker) — ver SEGURANCA_NUVEM e ESTIMATIVA_CUSTO_AWS_MENSAL Cenário D.
+  Fargate+ALB+NAT só com requisito formal (Cenário A/B).
+
+----------------------------------------------------------------------------------------------------
+6.3. BOAS PRÁTICAS DE IMAGEM
+----------------------------------------------------------------------------------------------------
+
+  • Multi-stage build; imagem final slim/distroless
+  • Usuário non-root; read-only root filesystem quando possível
+  • HEALTHCHECK na API
+  • Sem secrets na imagem / ARG de build
+  • Tag imutável por digest/sha do commit; evitar :latest em prod
+  • SBOM + scan de CVE no CI
+
+----------------------------------------------------------------------------------------------------
+6.4. CONFIGURAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  Twelve-Factor: config por ambiente (env / Secrets Manager).
+  Nunca .env de produção no Git.
+  Parâmetros de negócio (régua, alçadas) no banco — PARAMETROS_EMPRESA_OFICIAIS —
+  não hardcoded.
+
+====================================================================================================
+7. INTEGRAÇÕES — CONTRATO ÚNICO, VÁRIOS PROVEDORES
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+7.1. FISCAL — FOCUS NFE
+----------------------------------------------------------------------------------------------------
+
+  • Cliente HTTP tipado; timeouts; retry com backoff só em erro transitório
+  • Contingência e rejeição SEFAZ modeladas como estados, não exceção genérica
+  • XML/PDF persistidos (S3 + metadados no ERP)
+  • Numeração fiscal é da SEFAZ — ERP não inventa número
+
+----------------------------------------------------------------------------------------------------
+7.2. BANCO — BANKPROVIDER
+----------------------------------------------------------------------------------------------------
+
+  • Interface única: emitir, consultar, cancelar, extrato, webhook
+  • Status canônicos: EMITIDA | REGISTRADA | PAGA | CANCELADA | VENCIDA | FALHA | ESTORNADA
+  • Homologação Inter sandbox; produção alvo Sicoob; CNAB como fallback
+  • Credenciais por empresa_id; mTLS/cert fora do repositório
+
+----------------------------------------------------------------------------------------------------
+7.3. WHATSAPP — META CLOUD API
+----------------------------------------------------------------------------------------------------
+
+  • Apenas BSP/API oficial; proibido Baileys / conta pessoal
+  • Templates aprovados; MSG- com log; régua ≠ lembrete de reposição
+  • Rate limit e opt-out respeitados
+
+----------------------------------------------------------------------------------------------------
+7.4. APIS FREE / CADÊNCIA
+----------------------------------------------------------------------------------------------------
+
+  • Cache + fila + teto diário (APIS_FREE_CONSULTA_CADENCIA)
+  • Nunca consultar em loop síncrono na tela de cadastro
+
+====================================================================================================
+8. SEGURANÇA DE APLICAÇÃO (BASE PARA A NUVEM)
+====================================================================================================
+
+  Detalhamento de conta AWS, redes e custo: documento irmão.
+  Exigências que o CÓDIGO deve nascer cumprindo:
+
+  • Auth: OIDC/JWT ou sessão server-side; MFA para ADMIN/FINANCEIRO
+  • RBAC por perfil (ORGANIZACAO_USUARIOS_PERFIS_ACESSO) + SoD
+  • empresa_id em toda query; teste de isolamento multi-empresa
+  • Secrets só em cofre; rotação; nunca logar token/certificado
+  • Upload com tipo/tamanho validados; vírus scan se anexos externos
+  • Headers de segurança; CORS restrito; CSRF se cookie session
+  • LGPD: base legal, minimização, retenção, acesso do titular
+
+====================================================================================================
+9. OBSERVABILIDADE E OPERAÇÃO DE SOFTWARE
+====================================================================================================
+
+  • correlation_id por request e por job
+  • Logs estruturados JSON (nível, empresa_id, user_id, entity, action)
+  • Métricas: latência API, fila atrasada, falha Focus/banco, webhooks
+  • Tracing amostrado em integrações
+  • Alertas: erro 5xx, DLQ > 0, emissão NF parada, webhook sem processar
+  • Runbook por incidente crítico (NF, cobrança, baixa duplicada)
+
+====================================================================================================
+10. ROADMAP TÉCNICO DE IMPLANTAÇÃO (ALINHADO À ESTRATÉGIA DE NEGÓCIO)
+====================================================================================================
+
+  FASE A — Fundação
+    Modelo de dados + auth RBAC + multi-empresa + auditoria + Docker DEV
+    Cadastros PAR/produtos + parâmetros + naturezas
+
+  FASE B — Cadeia feliz mínima
+    ORC→PED→estoque básico→NF Focus homolog→TIT→BX manual
+    Export contador inicial
+
+  FASE C — Produção e estoque industrial
+    OP/OS, sobra/retalho, conclusão, inventário
+
+  FASE D — Cobrança automatizada
+    BankProvider (Inter sandbox → Sicoob), COB, webhook idempotente, régua MSG
+
+  FASE E — Exceções e gerencial
+    RMA/DEV, compras urgência, comissões, patrimônio, WhatsApp status entrega
+
+  FASE F — Endurecimento
+    Hardening AWS, DR testado, performance, BI read-replica
+
+====================================================================================================
+11. ANTI-PADRÕES (LISTA NEGRA)
+====================================================================================================
+
+  ✗ Float para dinheiro / estoque
+  ✗ PK string (PAR-00001 como FK)
+  ✗ Apagar NF/TIT/BX/MOV
+  ✗ Login compartilhado
+  ✗ Credencial de banco/Focus no Git
+  ✗ WhatsApp pessoal como “integração”
+  ✗ Segundo sistema de produção fora do ERP
+  ✗ LAI / livro paralelo no ERP
+  ✗ Microsserviços prematuros
+  ✗ Job sem idempotência gerando cobrança/NF em loop
+  ✗ Superdimensionar AWS (EKS, Aurora, Multi-AZ Redis, max tasks altos)
+     para ≤10 users / ≈200 NF/mês
+  ✗ Parâmetro de negócio hardcoded sem PENDENTE_RATIFICACAO
+  ✗ Ambiente prod = notebook do desenvolvedor
+
+====================================================================================================
+12. CHECKLIST DE ACEITE DE ENGENHARIA
+====================================================================================================
+
+  [ ] Monólito modular com bounded contexts mapeados ao pacote TXT
+  [ ] id BIGINT + código de negócio em todas as entidades
+  [ ] Decimal em dinheiro/qtde; testes de arredondamento
+  [ ] State machines documentadas para PED/TIT/COB/OP
+  [ ] Unit of Work em faturamento e baixa
+  [ ] Outbox + filas para Focus, banco, WhatsApp
+  [ ] Idempotência em webhooks e POSTs críticos
+  [ ] BankProvider + Focus + WhatsApp como adapters
+  [ ] empresa_id isolado e testado
+  [ ] Docker multi-stage; secrets fora da imagem
+  [ ] Sizing AWS alinhado ao volume (≤10 users / ≈200 NF) — ver ESTIMATIVA_CUSTO
+  [ ] Migrações versionadas; backup restore testado
+  [ ] OpenAPI + CI (lint, typecheck, testes do fluxo feliz)
+  [ ] Auditoria quem/quando/de→para em parâmetro, preço, crédito, baixa
+  [ ] Documento AWS irmão aplicado antes de produção pública
+
+====================================================================================================
+Fim — ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt
+Construa o domínio certo, com adapters e trilha. Tecnologia serve o PED→caixa — não o contrário.
+====================================================================================================

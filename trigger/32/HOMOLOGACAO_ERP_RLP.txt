@@ -1,0 +1,857 @@
+====================================================================================================
+PLANO DE HOMOLOGAÇÃO — ERP RLP (MELHOR PRÁTICA OPERACIONAL)
+Documento: HOMOLOGACAO_ERP_RLP.txt
+Versão ......: 1.0
+Status ......: BASELINE DE HOMOLOGAÇÃO (pronto para executar com a equipe)
+Gerado em ...: 03/08/2026
+Tipo ........: Plano de homologação / UAT / go–no-go
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ principal (EMP-00001): 01.423.183/0001-10
+CNPJ secundário (EMP-00002): 58.820.046/0001-37  [venda desligada — NÃO homologar venda]
+Volume âncora: ≤10 usuários simultâneos · ≈200 NF/mês
+
+Fontes normativas:
+  ESPECIFICACAO_SOFTWARE_ERP_RLP.txt          (CA-01…CA-12, RFs, RNFs, fases)
+  DOMINIO_SISTEMA_ERP_RLP.txt                 (estados, invariants, linguagem)
+  estrategia_implantacao_ja.txt               (virada por fases, sem big bang)
+  LACUNAS_PENDENCIAS_SISTEMA.txt              (pendências Contador/banco/WABA)
+  SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt     (isolamento nonprod|prod)
+  ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt      (SoD / perfis)
+  PARAMETROS_EMPRESA_OFICIAIS.txt             (números a ratificar)
+  EXPORT_CONTADOR_FOLHA_LAYOUT.txt            (pacote mensal)
+  INDICE_FLUXO_OPERACIONAL.txt                (cadeia ORC→caixa)
+  MANUAL_UNICO_ERP_RLP.txt                    (DOC-01 … DOC-61)
+
+Propósito:
+  Definir COMO homologar o ERP RLP da forma mais segura e eficiente possível:
+  ambientes, papéis, dados, roteiros por módulo, integrações, critérios de
+  aceite, gestão de defeitos, sign-off e go–no-go — alinhado à virada por
+  fases (não “big bang”) e às regras de ouro do domínio.
+
+Não substitui:
+  • SRS (o que o sistema DEVE fazer)
+  • TXTs de processo (regras linha a linha)
+  • Plano de implantação técnica / runbook de cutover detalhado de infra
+
+Como usar:
+  1) Direção / PO ........ seções 0–3, 11–13 (governança e go–no-go).
+  2) Key users ........... seções 5–8 (roteiros e evidências).
+  3) Engenharia / QA ..... seções 4, 6–10 (ambiente, dados, integrações, NFR).
+  4) Contador ............ seções 7.5 e 8.2 (fiscal operacional + export).
+
+====================================================================================================
+0. O QUE É “MELHOR HOMOLOGAÇÃO” NESTE CONTEXTO
+====================================================================================================
+
+  Homologação aqui NÃO é “clicar e ver se abre”. É provar, com evidência
+  reproduzível, que a cadeia operacional da RLP funciona de ponta a ponta
+  no ambiente controlado (HML), com as mesmas regras que valerão em produção,
+  SEM contaminar produção e SEM usar integrações reais de dinheiro/NF de
+  produção durante os testes.
+
+  Princípios da melhor homologação para o porte RLP (≤10 usuários, ≈200 NF/mês):
+
+  H0.1  Homologar o FLUXO, não só a tela. ORC→PED→OP/OS→NF→TIT→COB→ENT→BX
+        + RMA/DEV + compras + export contador.
+
+  H0.2  Ambiente HML isolado de PROD (conta/rede/secrets/certificados/tokens).
+        Focus homolog ≠ Focus prod; Inter sandbox ≠ Sicoob prod; WA teste ≠ WABA prod.
+
+  H0.3  Aceite por CRITÉRIO (CA-01…CA-12 + roteiros desta peça), não por “sensação”.
+
+  H0.4  Dual-run seletivo: operação do dia no ERP HML (ou piloto controlado)
+        enquanto legado ainda existe; virada só com checklist verde.
+
+  H0.5  Contador e Direção assinam o que é fiscal/societário; key users assinam
+        o operacional; engenharia assina NFR e integrações.
+
+  H0.6  Defeito crítico = bloqueio de fase, não “vai em paralelo”.
+
+  H0.7  Dinheiro/NF = idempotência obrigatória nos roteiros (retry, webhook duplicado).
+
+  H0.8  Não homologar o que está FORA de escopo (LAI, SPED oficial, eSocial completo,
+        venda EMP-00002, CT-e fase 2) — e registrar como “N/A escopo”.
+
+  H0.9  Evidência: print + código de negócio (ORC-/PED-/chave44) + log de correlação
+        + (quando aplicável) XML/PDF/banco sandbox.
+
+  H0.10 Homologação termina em ATA DE ACEITE e GO/NO-GO — não em “chat aprovou”.
+
+====================================================================================================
+1. OBJETIVOS E FORA DE ESCOPO DA HOMOLOGAÇÃO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. OBJETIVOS
+----------------------------------------------------------------------------------------------------
+
+  O1  Validar a cadeia feliz ponta a ponta (CA-01…CA-06, CA-08…CA-12).
+  O2  Validar exceções mínimas (DEV/RMA — CA-07) com 1 caso controlado por fase.
+  O3  Validar integrações em ambiente de homologação (Focus, Inter sandbox, WA teste).
+  O4  Validar SoD, auditoria, multi-empresa (EMP-00001 ≠ EMP-00002).
+  O5  Validar precisão decimal, custo médio, imposto estimado no ORC.
+  O6  Validar restore de backup (exercício documentado — CA-10).
+  O7  Homologar layout de export ao contador (antes da Fase 2 plena).
+  O8  Produzir ATA DE ACEITE por fase (Fase 1 / Fase 2 / Fase 3).
+
+----------------------------------------------------------------------------------------------------
+1.2. FORA DE ESCOPO (NÃO TESTAR COMO “PASS”)
+----------------------------------------------------------------------------------------------------
+
+  • Apuração SPED / fechamento fiscal oficial no ERP.
+  • Folha eSocial completa.
+  • Qualquer fluxo LAI / natureza 9.xx (deve FALHAR / não existir — CA-09).
+  • Ativação de venda EMP-00002 (só cenário de isolamento / flag desligada).
+  • CT-e / API transportadora / assinatura eletrônica de canhoto.
+  • Performance enterprise / teste de carga de milhares de usuários.
+  • Importação milenar de histórico XML antes da Fase 1 (estratégia: virada enxuta).
+
+====================================================================================================
+2. AMBIENTES E ISOLAMENTO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+2.1. MAPA DE AMBIENTES
+----------------------------------------------------------------------------------------------------
+
+  Ambiente     Uso principal                         Dados              Integrações
+  -----------  ------------------------------------  -----------------  ------------------------
+  DEV          Desenvolvimento / debug               Sintéticos         Mocks ou sandboxes
+  HML          Homologação formal (UAT)              Sintéticos +       Focus HOMOLOG
+               = fonte da verdade do aceite          cópia mascarada    Inter SANDBOX
+                                                     seletiva           WhatsApp TESTE / sandbox
+  PILOTO(*)    Dual-run curto com operação real      Cadastros reais    Focus HOMOLOG ou
+               sob supervisão (opcional pré-go-live) Estoque congelado  prod só com alçada
+  PROD         Operação oficial pós go-live          Reais              Focus PROD
+                                                                        Sicoob PROD (Fase 2)
+                                                                        WABA PROD (Fase 2)
+
+  (*) PILOTO só se Direção autorizar; nunca misturar cobrança real sem kill-switch
+      e observação de filas/DLQ.
+
+----------------------------------------------------------------------------------------------------
+2.2. REGRAS DE OURO DO AMBIENTE HML
+----------------------------------------------------------------------------------------------------
+
+  R-HML-01  URL, conta AWS (ou namespace), banco e S3 distintos de PROD.
+  R-HML-02  Certificado A1 Focus de HOMOLOGAÇÃO (nunca o de prod no HML).
+  R-HML-03  BankProvider apontado ao Inter sandbox (ou provider sandbox).
+  R-HML-04  WhatsApp apenas números/templates de teste Meta; sem disparo a clientes reais.
+  R-HML-05  Banner visual permanente: “AMBIENTE DE HOMOLOGAÇÃO — NÃO É PRODUÇÃO”.
+  R-HML-06  Secrets em cofre/SSM do ambiente HML; rotação independente.
+  R-HML-07  Kill-switch por integração testável (Focus / Banco / WA) sem derrubar ERP.
+  R-HML-08  E-mails SES (se houver) em modo sandbox ou lista permitida.
+  R-HML-09  Backup de HML existe, mas o exercício formal de restore (CA-10)
+            pode usar cópia controlada — documentar o procedimento que valerá em PROD.
+
+----------------------------------------------------------------------------------------------------
+2.3. PROIBIÇÕES
+----------------------------------------------------------------------------------------------------
+
+  • Copiar tokens de produção para HML.
+  • Emitir NF de produção “só para testar”.
+  • Enviar cobrança WhatsApp / boleto real a cliente durante UAT sem acordo escrito.
+  • Usar conta pessoal WhatsApp / Baileys em qualquer ambiente (RF-INT-04).
+
+====================================================================================================
+3. GOVERNANÇA, PAPÉIS E RACI
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+3.1. PAPÉIS NA HOMOLOGAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  Papel                  Quem tipicamente                 Responsabilidade
+  ---------------------  -------------------------------  ---------------------------------
+  Sponsor / Direção      Sócios / gerência RLP            GO/NO-GO, parâmetros oficiais,
+                                                          alçadas, EMP-00002
+  Product Owner          Dono do escopo ERP               Prioriza defeitos, aceita escopo
+  Coordenador HML        Analista / PM implantação        Agenda, ata, trilha de evidências
+  Key User Comercial     Vendas                           ORC, link, PED, gordura, cenários
+  Key User Financeiro    Contas a receber/pagar           Crédito, TIT/COB/BX, SoD bancária
+  Key User Fiscal        Fiscal interno                   NF Focus, CFOP, metadados
+  Key User Produção      PCP / chão                       OP/OS, apontamento, sobra/PA
+  Key User Estoque       Almoxarifado                     MOV, INV, AJU, inventário
+  Key User Compras       Compras                          COT/OC, urgência, XML entrada
+  Key User Expedição     Expedição (se houver)            ENT, confirmação, MSG status
+  Contador (externo)     Escritório                       CFOP, de-para NAT, export/folha
+  Engenharia / QA        Time de software                 Ambiente, logs, idempotência, NFR
+  Segurança / Ops AWS    Quém opera a conta               Isolamento, backup, alarmes
+
+----------------------------------------------------------------------------------------------------
+3.2. RACI SÍNTESE (homologação)
+----------------------------------------------------------------------------------------------------
+
+  Atividade                         Dir  PO  Coord  KeyU  Cont  Eng
+  --------------------------------  ---  --  -----  ----  ----  ---
+  Planejar janela / roteiros         C   A    R      C     C    C
+  Preparar ambiente HML              I   C    C      I     I    R/A
+  Ratificar parâmetros oficiais      A   R    C      C     C    I
+  Executar roteiros UAT              I   C    C      R     C    C
+  Homologar CFOP / export            C   C    C      C     R/A  C
+  Classificar severidade defeito     C   A    R      C     C    C
+  Corrigir defeito                   I   C    C      I     I    R/A
+  Re-teste / regressão               I   C    C      R     C    C
+  ATA de aceite por fase             A   R    R      C     C    C
+  GO / NO-GO go-live                 A   R    C      C     C    C
+
+  R=Responsible A=Accountable C=Consulted I=Informed
+
+----------------------------------------------------------------------------------------------------
+3.3. COMITÊ DE ACEITE
+----------------------------------------------------------------------------------------------------
+
+  Quórum mínimo para ATA de Fase 1:
+    • Direção (ou delegado formal)
+    • Product Owner
+    • 1 Key User Comercial + 1 Financeiro + 1 Produção/Estoque
+    • Engenharia (confirma NFR mínimos e CA técnicos)
+    • Contador (parecer nos itens fiscais/export — pode ser parcial na Fase 1
+      se CFOP críticos de venda já validados; itens RMA/DEV/remessa na Fase 2)
+
+====================================================================================================
+4. CRITÉRIOS DE ENTRADA E SAÍDA (QUALITY GATES)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. ENTRADA EM HOMOLOGAÇÃO FORMAL (Gate E0)
+----------------------------------------------------------------------------------------------------
+
+  Só começa UAT formal quando TODOS forem VERDADE:
+
+  E0-01  Build HML congelado (versão/tag) — mudanças só por hotfix documentado.
+  E0-02  Migrações de banco aplicadas; seed de parâmetros loaded.
+  E0-03  Banner HML ativo; integrações apontando sandboxes.
+  E0-04  Usuários de teste criados por PERFIL (não um único ADMIN para tudo).
+  E0-05  Matriz SoD configurável e lista de usuários-teste publicada.
+  E0-06  Smoke técnico OK: login, CRUD parceiro, health API, fila/worker up.
+  E0-07  PARAMETROS_EMPRESA_OFICIAIS ratificados OU marcados explicitamente
+         PENDENTE_RATIFICACAO com valor temporário aceito pela Direção para HML.
+  E0-08  Checklist deste documento distribuído; treinamento mínimo dos key users
+         (1 sessão do fluxo feliz + 1 da trilha de evidências).
+  E0-09  Canal de defeitos definido (planilha / board): ID, severidade, CA afetado.
+  E0-10  Dados de teste preparados (seção 5) sem CNPJ/CPF reais sensíveis
+         desnecessários — preferir CNPJs de teste / mascaramento.
+
+----------------------------------------------------------------------------------------------------
+4.2. SAÍDA POR FASE (Gates S1 / S2 / S3)
+----------------------------------------------------------------------------------------------------
+
+  Gate S1 — Aceite Fase 1 (go-live enxuto):
+    • CA-01…CA-06, CA-08…CA-12 PASS
+    • CA-07 (DEV) pelo menos em laboratório HML (1 roteiro controlado)
+    • Zero bloqueador aberto; críticos resolvidos ou com workaround assinado
+    • Backup/restore exercitado (CA-10)
+    • Focus homolog: emissão + retry idempotente
+    • BankProvider sandbox: COB + webhook/BX sem duplicidade
+    • ATA Fase 1 assinada
+
+  Gate S2 — Aceite Fase 2 (endurecimento):
+    • WhatsApp templates oficiais (ou sandbox aprovado) ORC/NF/ENT/cobrança
+    • Export contador + de-para naturezas homologados pelo escritório
+    • RMA/DEV com 1 caso real controlado (ou dual-run supervisionado)
+    • Credenciais Sicoob prontas para cutover (teste em sandbox/homolog do banco
+      quando existir; senão plano escrito de virada)
+    • ATA Fase 2 assinada
+
+  Gate S3 — Aceite Fase 3 (expansão):
+    • Parecer Contador+Direção sobre EMP-00002 (se for discutir ativação)
+    • Itens fase 2 (frete/CT-e etc.) só se entrarem no escopo — com roteiros próprios
+    • ATA Fase 3 ou “não aplicável / adiado” formal
+
+====================================================================================================
+5. ESTRATÉGIA DE DADOS DE TESTE
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+5.1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+  D1  Preferir dados sintéticos coerentes com o domínio (bobinas, PA, REV, SVC).
+  D2  Cadastros mestres mínimos cobrindo famílias: MP, EMB, REV, PA, SVC, FAC.
+  D3  Clientes: 1 prospect incompleto; 1 cliente com crédito OK; 1 acima do limite;
+      1 exigindo adiantamento/sinal.
+  D4  Naturezas 1–5 populadas; tentar criar 9.xx deve falhar (CA-09).
+  D5  EMP-00001 operacional; EMP-00002 presente com venda/estoque DESLIGADOS.
+  D6  Estoque inicial suficiente para 1 OP completa + 1 cenário de falta de MP.
+  D7  Nunca apagar documentos após uso nos roteiros — estornar se necessário
+      (prova da regra D0.4 / R0.4).
+
+----------------------------------------------------------------------------------------------------
+5.2. PACOTE MÍNIMO DE DADOS (seed HML)
+----------------------------------------------------------------------------------------------------
+
+  Entidade              Qtde mín.   Observação
+  --------------------  ----------  ------------------------------------------
+  EMP-00001 / 00002     2           Flags EMP-00002 off
+  Usuarios por perfil   ≥1 cada     ADMIN, FISCAL, FINANC, COMERC, PRODUC,
+                                    COMPRAS, CONSULTA (+ EXPEDICAO se houver)
+  Parceiros clientes    ≥4          ver D3
+  Fornecedores          ≥2          1 com XML de compra de exemplo
+  Transportadora        ≥1          papel PAR (frete sem CT-e)
+  Produtos MP/EMB/REV   ≥5+2+2      conversões m/kg/rolo/un
+  Produtos PA / SVC     ≥2+1        NCM/CFOP padrão
+  Contas financeiras    ≥2          caixa + banco sandbox
+  Naturezas             árvore 1–5  de-para contador em rascunho
+  Parâmetros TAB        oficiais    NF antes de expedir = SIM (recomendado)
+  Estoque inicial       inventário  quantidade na “data de virada HML”
+
+----------------------------------------------------------------------------------------------------
+5.3. MASCARAMENTO (se houver cópia de prod)
+----------------------------------------------------------------------------------------------------
+
+  • Anonimizar e-mail, telefone, chave PIX, dados bancários reais.
+  • Manter estrutura de CNPJ/IE apenas quando necessário ao Focus homolog.
+  • Registrar origem da cópia e data do dump na ATA.
+
+====================================================================================================
+6. ESTRATÉGIA DE TESTES (PIRÂMIDE + UAT)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+6.1. CAMADAS
+----------------------------------------------------------------------------------------------------
+
+  Camada                 Quem                Quando              Foco
+  ---------------------  ------------------  ------------------  -------------------------
+  Unitário / núcleo      Engenharia          CI contínuo         crédito, imposto ORC,
+                                                                 custo médio, decimal,
+                                                                 idempotência NF/COB/BX,
+                                                                 estorno DEV (RNF-53)
+  Integração adapter     Engenharia          Pré-UAT             Focus homolog, Inter sandbox,
+                                                                 Meta teste, filas/DLQ
+  Sistema (E2E técnico)  QA / Eng            Pré-UAT             Fluxo feliz automatizável
+  UAT / Homologação      Key users + Cont.   Formal (este doc)   Negócio, SoD, evidência
+  Piloto / dual-run      Operação + Eng      Pré/go-live         Volume real controlado
+  Chaos leve             Eng / Ops           Pós-S1 em HML       Retry, kill-switch, DLQ
+
+----------------------------------------------------------------------------------------------------
+6.2. TIPOS OBRIGATÓRIOS NA UAT
+----------------------------------------------------------------------------------------------------
+
+  T1  Fluxo feliz (caminho crítico)
+  T2  Regras de bloqueio (crédito, prospect incompleto, zap ≠ PED)
+  T3  Exceção (RMA/DEV; estorno com origem preservada)
+  T4  Idempotência / concorrência leve (retry emissão; webhook duplicado)
+  T5  SoD / RBAC negativo (deve negar)
+  T6  Multi-empresa (vazamento entre EMP)
+  T7  Precisão numérica (casas / arredondamento / custo médio)
+  T8  Integração assíncrona (fila, status, DLQ)
+  T9  Contador (export + CFOP críticos)
+  T10 Restauração (backup → restore → smoke)
+
+----------------------------------------------------------------------------------------------------
+6.3. SEVERIDADE DE DEFEITO
+----------------------------------------------------------------------------------------------------
+
+  Sev     Nome          Definição                                    Efeito no gate
+  ------  ------------  -------------------------------------------  -------------------
+  S1      Bloqueador    Impede fluxo feliz ou corrompe dinheiro/NF   Gate vermelho
+  S2      Crítico       Workaround pesado; risco alto                Não vai a prod
+  S3      Maior         Funciona com falha não crítica               Pode ir com prazo
+  S4      Menor         Usabilidade / texto                          Backlog
+  S5      Cosmético     Visual irrelevante                           Backlog
+
+  Regra: qualquer S1/S2 aberto em CA do Gate da fase = NO-GO daquela fase.
+
+====================================================================================================
+7. PLANO POR FASES (ALINHADO À IMPLANTAÇÃO)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+7.1. FASE 0 — PREPARAÇÃO (antes da UAT formal)
+----------------------------------------------------------------------------------------------------
+
+  Duração sugerida: 3–5 dias úteis (equipe enxuta).
+
+  Atividades:
+    • Ratificar parâmetros (ou marcar PENDENTE_RATIFICACAO com aceite Direção)
+    • Subir HML, seeds, usuários por perfil
+    • Treinar key users no fluxo e na trilha de evidências
+    • Smoke Eng + Gate E0
+    • Congelar build HML-F0
+
+  Saída: Checklist E0 verde + agenda da Fase 1 UAT.
+
+----------------------------------------------------------------------------------------------------
+7.2. FASE 1 — HOMOLOGAÇÃO GO-LIVE ENXUTO (obrigatória)
+----------------------------------------------------------------------------------------------------
+
+  Escopo: o que entra em produção no dia da virada.
+    Cadastros necessários · estoque na data · ORC→PED→OP/OS→NF→TIT→COB→ENT→BX
+    Focus homolog · BankProvider sandbox · sem histórico milenar
+
+  Duração sugerida: 5–8 dias úteis de execução + 2–3 dias de correção/reteste.
+
+  Semanas típicas (referência):
+    D1–D2  Cadastros, perfis, SoD negativo, multi-empresa, parâmetros
+    D3–D4  Comercial + crédito + produção + estoque (inclui sobra)
+    D5–D6  Faturamento Focus + TIT/COB + entrega + BX idempotente
+    D7     DEV laboratório + decimal/custo médio + restore
+    D8     Regressão fluxo feliz + comitê + ATA Fase 1
+
+  Artefatos: evidências por CA, log de defeitos, ATA S1.
+
+----------------------------------------------------------------------------------------------------
+7.3. FASE 2 — HOMOLOGAÇÃO DE ENDURECIMENTO
+----------------------------------------------------------------------------------------------------
+
+  Escopo: WhatsApp oficial · Sicoob (plano/credenciais) · RMA/DEV controlado
+          · export contador/folha · histórico seletivo se necessário
+
+  Duração sugerida: 5–10 dias úteis após estabilidade da Fase 1 em prod
+  (parte pode começar em HML em paralelo ao go-live Fase 1).
+
+  Gate S2 independente — não misturar “já estamos em prod Fase 1” com
+  “WhatsApp prod liberado” sem ATA.
+
+----------------------------------------------------------------------------------------------------
+7.4. FASE 3 — HOMOLOGAÇÃO DE EXPANSÃO CONTROLADA
+----------------------------------------------------------------------------------------------------
+
+  Escopo sob demanda: EMP-00002 (só após parecer) · frete/CT-e · automações régua
+  Só cria roteiros quando o escopo for aberto formalmente.
+
+====================================================================================================
+8. ROTEIROS DE HOMOLOGAÇÃO (CASOS DE TESTE)
+====================================================================================================
+
+  Legenda de resultado: PASS | FAIL | BLOQ | N/A
+  Cada caso exige: executor, data, códigos gerados, evidência (anexo/link), CA ligado.
+
+----------------------------------------------------------------------------------------------------
+8.1. PLATAFORMA, ACESSO E MULTI-EMPRESA
+----------------------------------------------------------------------------------------------------
+
+  HT-PLT-01  Login individual por e-mail; senha intransferível; logout.
+             Perfis: todos | CA: RF-PLT-01 | Tipo T5
+
+  HT-PLT-02  Usuário COMERCIAL não acessa parâmetros/usuários.
+             Esperado: negado + audit trail (se tentar). | CA: RF-PLT-02
+
+  HT-PLT-03  Soft-delete: inativar usuário/parceiro não apaga histórico.
+             Esperado: consulta histórica ok; login do inativo bloqueado.
+
+  HT-PLT-04  Documento criado em EMP-00001 não aparece / não é editável
+             no contexto EMP-00002. | CA-08
+
+  HT-PLT-05  EMP-00002: flags venda/estoque desligadas — tentar PED/venda
+             deve falhar com mensagem clara. | RF-PLT-04
+
+  HT-PLT-06  Kill-switch Focus OFF: ERP sobe, emissão NF fica bloqueada
+             elegantemente; demais módulos operam. | RF-PLT-08
+
+  HT-PLT-07  Tentativa de natureza 9.xx / LAI: rejeitada ou inexistente. | CA-09
+
+----------------------------------------------------------------------------------------------------
+8.2. CADASTROS
+----------------------------------------------------------------------------------------------------
+
+  HT-CAD-01  Criar PAR cliente completo (CNPJ, IE, indIEDest, endereço).
+  HT-CAD-02  Prospect incompleto gera ORC; conversão a PED bloqueada até completar.
+             | RF-CAD-04 · D0.13
+  HT-CAD-03  FINANCEIRO altera dados bancários do PAR; COMERCIAL não consegue.
+  HT-CAD-04  SoD: mesmo usuário NÃO pode (sem compensação) alterar banco do
+             favorecido E liberar pagamento. | CA-12 · RNF-22
+  HT-CAD-05  Produto MP com conversão m/kg/rolo; PA com NCM/CFOP/CST|CSOSN.
+  HT-CAD-06  Busca por código, CNPJ, pedaço de razão social, cProd. | RNF-31
+
+----------------------------------------------------------------------------------------------------
+8.3. COMERCIAL E CRÉDITO (CA-01, CA-02)
+----------------------------------------------------------------------------------------------------
+
+  HT-COM-01  Criar ORC versionado com itens PRODUCAO + preço/prazo/condição/frete.
+  HT-COM-02  Simular cenário alternativo SEM destruir versão base.
+  HT-COM-03  Imposto estimado no ORC calculado; armazenar valor para comparar pós-NF
+             (divergência analisável — não esconder).
+  HT-COM-04  Desconto acima da alçada bloqueado; dentro da alçada permitido + audit.
+  HT-COM-05  Gordura visível só a perfil autorizado.
+  HT-COM-06  Enviar link de aceite; cliente aprova → PED com snapshot travado.
+             Conferir: preço/spec/qtde/prazo/condição idênticos ao ORC aprovado.
+             | CA-01 · D0.14
+  HT-COM-07  Negativo: “combinado no zap” / status informal NÃO gera PED. | D0.13
+  HT-COM-08  Cliente acima do limite → PED em AGUARDA_CREDITO; produção bloqueada.
+             FINANCEIRO libera CRT → PED LIBERADO. Comercial NÃO altera limite.
+             | CA-02
+  HT-COM-09  Cliente com sinal: gera COB de adiantamento; só após BX libera produção.
+             | CA-02 · D0.15
+  HT-COM-10  Lembrete de reposição NÃO cria PED sozinho; só novo ORC→aceite.
+
+----------------------------------------------------------------------------------------------------
+8.4. PRODUÇÃO, OS E ESTOQUE (CA-03)
+----------------------------------------------------------------------------------------------------
+
+  HT-PRD-01  Item PRODUCAO → OP-AAAA-NNNNN; estados ABERTA→EM_ANDAMENTO→CONCLUIDA.
+  HT-PRD-02  Apontamento: saída MP → sobra/retalho → retorno PA; custo médio coerente.
+             | CA-03 · RF-PRD-04
+  HT-PRD-03  Item SERVICO → OS; conclusão encerra item.
+  HT-PRD-04  Item REVENDA → separação (MOV REV↓) sem OP.
+  HT-PRD-05  Inventário INV: contagem; AJU com aprovador ≠ apontador. | CA-12
+  HT-PRD-06  Falta de MP: OP aguarda / compras urgência (encadeia HT-CMP).
+  HT-PRD-07  Remessa REM (opcional Fase 1+): envio e retorno sem virar venda.
+
+----------------------------------------------------------------------------------------------------
+8.5. FATURAMENTO, ENTREGA E FINANCEIRO (CA-04, CA-05, CA-06)
+----------------------------------------------------------------------------------------------------
+
+  HT-FAT-01  Política NF antes de expedir = SIM: bloquear ENT sem NF autorizada.
+  HT-FAT-02  Emitir NF-e via Focus HOMOLOG; ERP grava série/número/chave44/ped_id.
+             Retry deliberado da mesma operação NÃO gera segunda NF. | CA-04 · R0.10
+  HT-FAT-03  Ao faturar: nasce TIT + COB; NF ≠ TIT mas ambos ligados ao PED.
+  HT-FAT-04  Faturamento parcial: 2 NFs no mesmo PED; saldos de item coerentes.
+  HT-FAT-05  Emitir COB no Inter sandbox; PDF/linha digitável; status REGISTRADA.
+  HT-FAT-06  Simular webhook de pagamento 2× (mesmo id externo): 1 só BX.
+             Ambíguo → fila humana. | CA-05
+  HT-FAT-07  ENT romaneio + confirmação; MSG WhatsApp quando integração teste ON.
+             | CA-06
+  HT-FAT-08  Aging / régua: apenas validar sugestões e templates (sem spam real).
+  HT-FAT-09  Natureza gerencial 1–5 obrigatória em TIT; título sem natureza bloqueado.
+  HT-FAT-10  Comissão COM- gerada conforme parâmetro (FATURADO|RECEBIDO) —
+             se ainda PENDENTE_RATIFICACAO, registrar decisão na ATA.
+
+----------------------------------------------------------------------------------------------------
+8.6. COMPRAS
+----------------------------------------------------------------------------------------------------
+
+  HT-CMP-01  COT → OC com alçada; OC urgente com aprovação.
+  HT-CMP-02  Entrada XML (Focus homolog / arquivo exemplo) → conferência → MOV entrada.
+  HT-CMP-03  Manifestação / divergência de quantidade gera pendência (não some).
+
+----------------------------------------------------------------------------------------------------
+8.7. PÓS-VENDA E DEVOLUÇÃO (CA-07)
+----------------------------------------------------------------------------------------------------
+
+  HT-POS-01  Abrir RMA → EM_CQ → decisão reposição (sem DEV). Origem PED/NF preservada.
+  HT-POS-02  RMA → decisão DEV: estorno fiscal + estoque + financeiro;
+             documentos compensatórios ligados à origem; origem NÃO apagada.
+             Estados até ENCERRADA. | CA-07 · D0.12
+  HT-POS-03  Negativo: tentar “excluir” NF/TIT/MOV originais → negado.
+
+  Na Fase 1: HT-POS-02 em laboratório HML é suficiente para Gate S1.
+  Na Fase 2: repetir com 1 caso real controlado (ATA S2).
+
+----------------------------------------------------------------------------------------------------
+8.8. GERENCIAL E CONTADOR
+----------------------------------------------------------------------------------------------------
+
+  HT-GER-01  DRE/caixa interno a partir naturezas 1–5 (números batem com TIT do mês HML).
+  HT-GER-02  Export mensal ao contador gerado conforme EXPORT_CONTADOR_FOLHA_LAYOUT;
+             Contador valida campos obrigatórios (parecer escrito).
+  HT-GER-03  De-para naturezas ERP ↔ plano contador: amostra de 10 lançamentos.
+  HT-GER-04  RH pagamento gerencial: lançar pagamento colaborador SEM pretender eSocial.
+  HT-GER-05  Registrar faturamento acumulado Simples (parâmetro/tabela) para controle
+             de limite — coerente com estrategia_implantacao_ja.
+
+----------------------------------------------------------------------------------------------------
+8.9. INTEGRAÇÕES (detalhe operacional)
+----------------------------------------------------------------------------------------------------
+
+  HT-INT-01  Focus: emissão autorizada + consulta + download XML/PDF no S3 HML.
+  HT-INT-02  Focus: cancelamento / CC-e (se aplicável ao caso) conforme API homolog.
+  HT-INT-03  Banco: cancelar COB não paga; status coerente no TIT.
+  HT-INT-04  Filas: forçar falha de adapter → mensagem vai a DLQ; sem retry infinito.
+             | RNF-11
+  HT-INT-05  WhatsApp teste: template ORC e status ENT; registro MSG- com id.
+  HT-INT-06  APIs free (CNPJ/CEP): cadência/cache; não estourar rate no loop de teste.
+  HT-INT-07  Observabilidade: métrica/log de 5xx, profundidade de fila e DLQ visíveis
+             ANTES de autorizar cobrança automática em prod. | RNF-51 · princípio segurança 7
+
+----------------------------------------------------------------------------------------------------
+8.10. NÃO FUNCIONAIS E OPERAÇÃO SEGURA
+----------------------------------------------------------------------------------------------------
+
+  HT-NFR-01  CRUD típico < 2 s em rede normal (amostra cronometrada). | RNF-02
+  HT-NFR-02  Decimal: bateria de casos (2/6/10/4 casas) — regressão PASS. | CA-11
+  HT-NFR-03  Custo médio após sequência MOV conhecida (planilha oráculo). | RNF-53
+  HT-NFR-04  Backup → restore em ambiente descartável → smoke login + consulta PED.
+             Documentar tempo e responsável. | CA-10
+  HT-NFR-05  Feature flag / kill-switch documentado no runbook de operação.
+  HT-NFR-06  Tentativa de float em API (enviar número binário ambíguo) rejeitada
+             ou normalizada via STRING decimal — conforme PADRAO_DECIMAL_CALCULOS.
+
+====================================================================================================
+9. MATRIZ CA × ROTEIRO (RASTREABILIDADE DE ACEITE)
+====================================================================================================
+
+  Critério SRS     Roteiros mínimos que provam
+  ---------------  -----------------------------------------------------------
+  CA-01            HT-COM-06, HT-COM-07
+  CA-02            HT-COM-08, HT-COM-09
+  CA-03            HT-PRD-01, HT-PRD-02, HT-PRD-05
+  CA-04            HT-FAT-02, HT-FAT-03
+  CA-05            HT-FAT-06, HT-INT-04
+  CA-06            HT-FAT-07, HT-INT-05
+  CA-07            HT-POS-02, HT-POS-03
+  CA-08            HT-PLT-04, HT-PLT-05
+  CA-09            HT-PLT-07
+  CA-10            HT-NFR-04
+  CA-11            HT-NFR-02, HT-NFR-03
+  CA-12            HT-CAD-04, HT-PRD-05, HT-PLT-02
+
+  Regra: nenhum CA do Gate da fase pode ficar sem ao menos 1 evidência PASS.
+
+====================================================================================================
+10. GESTÃO DE DEFEITOS E RETESTE
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+10.1. FLUXO
+----------------------------------------------------------------------------------------------------
+
+  Achado → registrar (ID, sev, módulo, CA, passos, esperado×obtido, evidência)
+        → triagem diária (PO + Coord + Eng)
+        → correção em branch → deploy HML (changelog)
+        → reteste do caso + regressão curta do fluxo feliz
+        → fechar somente com PASS do key user original (ou substituto formal)
+
+----------------------------------------------------------------------------------------------------
+10.2. REGRESSÃO MÍNIMA OBRIGATÓRIA APÓS HOTFIX EM NÚCLEO
+----------------------------------------------------------------------------------------------------
+
+  Sempre reexecutar se o hotfix tocar crédito, imposto, custo médio,
+  emissão NF, COB, BX ou DEV:
+    HT-COM-06 · HT-COM-08 · HT-PRD-02 · HT-FAT-02 · HT-FAT-06 · HT-POS-02 · HT-NFR-02
+
+----------------------------------------------------------------------------------------------------
+10.3. CONGELAMENTO
+----------------------------------------------------------------------------------------------------
+
+  48–72 h antes do GO Fase 1: só entra S1/S2 no HML. Cosméticos não redesenham UI.
+  Build candidato a prod = exatamente o build HML aceito (tag imutável).
+
+====================================================================================================
+11. EVIDÊNCIAS, ATA E GO / NO-GO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+11.1. PACOTE DE EVIDÊNCIAS (por fase)
+----------------------------------------------------------------------------------------------------
+
+  • Planilha/board de casos com resultado e link de anexo
+  • Pasta/S3 HML: XML NF, PDF boleto, exports
+  • Relatório de defeitos abertos/fechados por severidade
+  • Log de restore (CA-10)
+  • Parecer Contador (itens da fase)
+  • Lista de parâmetros efetivos na versão aceita
+  • Tag/commit hash do build homologado
+
+----------------------------------------------------------------------------------------------------
+11.2. MODELO DE ATA (mínimo)
+----------------------------------------------------------------------------------------------------
+
+  ATA DE ACEITE — ERP RLP — FASE __
+  Data: ____/____/________
+  Ambiente: HML (URL) · Build/tag: ________
+  Escopo: (Fase 1 / 2 / 3)
+
+  Resumo CA:
+    CA-01 [ ] PASS  CA-02 [ ] PASS  …  CA-12 [ ] PASS / N/A
+
+  Defeitos abertos aceitos (só S3+ com prazo):
+    ID · descrição · prazo · dono
+
+  Pendências externas remanescentes (LACUNAS):
+    ...
+
+  Decisão:  ( ) ACEITO PARA GO-LIVE DA FASE
+             ( ) ACEITO COM RESTRIÇÕES (listar)
+             ( ) NÃO ACEITO (NO-GO)
+
+  Assinaturas: Direção · PO · Key Users · Contador (se aplicável) · Engenharia
+
+----------------------------------------------------------------------------------------------------
+11.3. CHECKLIST GO / NO-GO (Fase 1)
+----------------------------------------------------------------------------------------------------
+
+  GO somente se TODOS forem SIM:
+
+  [ ] Gate E0 foi verde e build congelado corresponde à tag
+  [ ] CA-01…CA-06, CA-08…CA-12 = PASS
+  [ ] CA-07 laboratório = PASS
+  [ ] Zero S1/S2 abertos
+  [ ] Focus homolog validado; plano de troca de credencial prod documentado
+  [ ] Banco sandbox validado; kill-switch testado
+  [ ] Observabilidade de fila/DLQ/5xx operacional
+  [ ] Backup/restore documentado
+  [ ] Usuários prod preparados por perfil (sem compartilhar login)
+  [ ] Cadastros + estoque + posição financeira de virada prontos
+     (estratégia_implantacao_ja)
+  [ ] Dual-run / legado: plano de “onde registrar no dia D” comunicado
+  [ ] ATA Fase 1 assinada
+  [ ] Janela de go-live e rollback acordados (horário comercial RLP)
+
+  Qualquer NÃO = NO-GO ou GO com restrição escrita (exceção rara, só Direção).
+
+====================================================================================================
+12. CUTOVER E DUAL-RUN (PÓS-ACEITE HML)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+12.1. MODELO RECOMENDADO (não big bang histórico)
+----------------------------------------------------------------------------------------------------
+
+  Conforme estrategia_implantacao_ja + SRS §15:
+
+  T-7 … T-2  Carga de cadastros e parâmetros em PROD (sem operar venda)
+  T-1        Estoque de virada + posição financeira + faturamento acumulado Simples
+  T0         Liga operação do dia no ERP PROD (Focus/banco conforme fase)
+             Legado: somente consulta / encerramento do que já estava aberto
+  T0…T+14    Hypercare: time Eng + key users; war room leve; kill-switches armados
+  Pós        Fase 2 (WA/Sicoob/export/RMA real) sob Gate S2 — não “tudo no dia D”
+
+----------------------------------------------------------------------------------------------------
+12.2. O QUE NÃO FAZER NO CUTOVER
+----------------------------------------------------------------------------------------------------
+
+  • Importar anos de XML de saída como pré-requisito do dia D
+  • Ligar WhatsApp prod + Sicoob prod + Focus prod sem HML prévio de cada um
+  • Operar EMP-00002 “para ver”
+  • Desligar legado sem plano de documentos em aberto (ORC/PED/NF antigos)
+
+----------------------------------------------------------------------------------------------------
+12.3. ROLLBACK (conceito)
+----------------------------------------------------------------------------------------------------
+
+  Rollback de software: redeploy da tag anterior + migração reversível.
+  Rollback de negócio: voltar a registrar no legado apenas se declarado em
+  até H horas do go-live — documentos já emitidos em Focus prod NÃO se “apagariam”;
+  tratativa fiscal com Contador. Por isso o Gate S1 é rígido em NF/BX.
+
+====================================================================================================
+13. CALENDÁRIO SUGGERIDO (EQUIPE ENXUTA)
+====================================================================================================
+
+  Semana  Atividade principal
+  ------  ---------------------------------------------------------------
+  S0      Fase 0: ambiente, seeds, treinamento, Gate E0
+  S1      UAT Fase 1 — cadastros, comercial, produção, estoque
+  S2      UAT Fase 1 — fiscal, financeiro, DEV lab, NFR, restore
+  S3      Correções + regressão + ATA S1 + preparação cutover
+  S4      Go-live Fase 1 + hypercare
+  S5–S6   UAT Fase 2 (WA, export contador, RMA/DEV controlado, banco prod)
+  S7      ATA S2 + ativação controlada dos itens Fase 2
+  Depois  Fase 3 sob demanda (EMP-00002 / frete avançado)
+
+  Ajuste o calendário à disponibilidade dos key users (hora comercial).
+  Com ≤10 usuários, preferir manhãs de UAT + tardes de correção Eng.
+
+====================================================================================================
+14. CHECKLIST DIÁRIO DO COORDENADOR HML
+====================================================================================================
+
+  [ ] Build/tag do dia registrado
+  [ ] Integrações HML respondendo (Focus / banco / WA teste)
+  [ ] Filas sem crescimento anômalo / DLQ vazia ou justificada
+  [ ] Casos do dia atribuídos a key users
+  [ ] Defeitos novos triados (sev)
+  [ ] Evidências anexadas aos casos PASS/FAIL
+  [ ] Bloqueadores comunicados a PO/Direção no mesmo dia
+  [ ] Atualizar burn-down de CA da fase
+
+====================================================================================================
+15. RISCOS DE HOMOLOGAÇÃO E MITIGAÇÕES
+====================================================================================================
+
+  Risco                                    Mitigação
+  ---------------------------------------  ------------------------------------------
+  Key user sola no ADMIN                   Usuários por PERFIL desde o dia 1 do UAT
+  “Testei no prod”                         Banner HML + secrets isolados + política
+  Contador entra tarde                     HT-GER-02/03 agendados na S2; prévia CFOP
+                                           de venda na Fase 1
+  Parâmetro não ratificado                 PENDENTE_RATIFICACAO explícito na ATA
+  Falso PASS em BX                         Forçar webhook duplicado (HT-FAT-06)
+  Falso PASS em NF                         Retry + consulta chave44 (HT-FAT-02)
+  Escopo creep (CT-e, EMP-00002, LAI)      Recusar no UAT; N/A escopo; ver H0.8
+  Cansaço / UAT superficial                Roteiro obrigatório + quórum ATA
+  Ambiente HML “quase prod”                Checklist R-HML-*; auditoria de secrets
+  Histórico milenar atrasa go-live         Seguir estrategia_implantacao_ja
+
+====================================================================================================
+16. ANEXOS OPERACIONAIS (MODELOS)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+16.1. CABEÇALHO DE CASO DE TESTE (copiar por execução)
+----------------------------------------------------------------------------------------------------
+
+  ID caso ........: HT-___-__
+  Fase ...........: 1 | 2 | 3
+  CA / RF ........:
+  Executor .......:              Perfil login:
+  Data ...........:
+  Build/tag ......:
+  Pré-condições ..:
+  Passos .........:
+    1.
+    2.
+    3.
+  Esperado .......:
+  Obtido .........:
+  Códigos gerados : ORC- / PED- / OP- / NF chave44 / TIT- / COB- / BX- / …
+  Resultado ......: PASS | FAIL | BLOQ | N/A
+  Severidade ......: S1…S5 (se FAIL)
+  Evidências ......: (paths / prints)
+  Reteste de ......: (ID defeito, se houver)
+
+----------------------------------------------------------------------------------------------------
+16.2. LISTA MÍNIMA DE USUÁRIOS DE TESTE
+----------------------------------------------------------------------------------------------------
+
+  USR-HML-ADMIN      → PER ADMIN
+  USR-HML-FISCAL     → PER FISCAL
+  USR-HML-FINAN      → PER FINANCEIRO
+  USR-HML-COMERC     → PER COMERCIAL
+  USR-HML-PRODUC     → PER PRODUCAO
+  USR-HML-COMPRAS    → PER COMPRAS
+  USR-HML-CONSULTA   → PER CONSULTA
+  USR-HML-EXPED      → PER EXPEDICAO (se houver)
+  (Opcional SoD) USR-HML-FINAN-2  → segundo financeiro para aprovações segregadas
+
+----------------------------------------------------------------------------------------------------
+16.3. ORDEM SUGERIDA DE EXECUÇÃO NO DIA DE FLUXO FELIZ
+----------------------------------------------------------------------------------------------------
+
+  1 HT-CAD-* (se ainda não estáveis)
+  2 HT-COM-01…06 (ORC→PED)
+  3 HT-COM-08 ou 09 (liberação)
+  4 HT-PRD-01…04 (executar tipo de item do PED)
+  5 HT-FAT-01…07 (NF→TIT→COB→ENT→BX)
+  6 Conferência gerencial rápida HT-GER-01
+  7 Registrar evidências e códigos na planilha mestre
+
+====================================================================================================
+17. RASTREABILIDADE DESTE DOCUMENTO
+====================================================================================================
+
+  Tema                         Fonte
+  ---------------------------  -------------------------------------------------
+  Critérios de aceite          ESPECIFICACAO_SOFTWARE_ERP_RLP §15.2 (CA-01…12)
+  Fases de implantação         SRS §15.1 · estrategia_implantacao_ja
+  Invariants / estados         DOMINIO_SISTEMA_ERP_RLP
+  Pendências Contador/banco    LACUNAS_PENDENCIAS_SISTEMA
+  Isolamento nuvem             SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA
+  SoD / perfis                 ORGANIZACAO_USUARIOS_PERFIS_ACESSO · SRS §14
+  Parâmetros                   PARAMETROS_EMPRESA_OFICIAIS
+  Export contador              EXPORT_CONTADOR_FOLHA_LAYOUT
+  Integrações                  INTEGRACAO_* · RF-INT-*
+  Fluxo operacional            INDICE_FLUXO_OPERACIONAL · MANUAL_UNICO
+
+====================================================================================================
+18. CONTROLE DE MUDANÇAS
+====================================================================================================
+
+  v1.0 — 03/08/2026
+    Baseline do plano de homologação do ERP RLP: princípios, ambientes,
+    governança, gates, dados, pirâmide de testes, fases 0–3, roteiros
+    HT-* rastreáveis aos CA do SRS, defeitos, ATA, go/no-go, cutover e
+    dual-run enxuto. Alteração de CA no SRS exige atualização da matriz §9.
+
+====================================================================================================
+Fim — HOMOLOGACAO_ERP_RLP.txt
+Plano detalhado da melhor homologação do ERP RLP: como provar com evidência
+que a cadeia ORC→caixa (e exceções) está pronta para cada fase de go-live.
+====================================================================================================

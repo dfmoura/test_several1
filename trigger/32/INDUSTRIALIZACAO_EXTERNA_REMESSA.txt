@@ -1,0 +1,94 @@
+====================================================================================================
+INDUSTRIALIZAÇÃO EXTERNA / REMESSA — PROCEDIMENTO COMPLETO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt + CADASTRO_PRODUTOS_VENDA.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + COMPRAS_COTACAO_URGENCIA.txt +
+      FATURAMENTO_GERACAO_COBRANCA.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Quando a RLP remete mercadoria/insumo a TERCEIRO para industrialização
+(ou recebe material de cliente para industrializar), o estoque e o fiscal
+precisam de documento próprio — não misturar com venda nem com compra
+simples. CFOP e prazo (tipicamente 180 dias na remessa) são do contador;
+o ERP controla o SALDO EM PODER DE TERCEIROS e o retorno.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. REMESSA ≠ VENDA. Não gera receita de produto; gera obrigação de
+    retorno / NF de retorno / cobrança do serviço do terceiro.
+ 2. Todo material fora da fábrica em industrialização tem REM- e
+    saldo “em poder de terceiros”.
+ 3. Prazo legal de retorno: parâmetro (padrão 180 dias) com alerta
+    D-30 / D-7 / vencido — contador orienta CFOP e regularização.
+ 4. Custo do serviço do terceiro → natureza 2.02 (serviço de terceiros)
+    apropriado à OP quando houver.
+ 5. Material do CLIENTE na RLP: controle operacional (ORDEM_SERVICO)
+    separado do estoque próprio — não “virar” MP da RLP sem NF.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  REM-AAAA-NNNNN   documento de remessa / retorno industrialização
+  Tipos: REMESSA_TERCEIRO | RETORNO_TERCEIRO | REMESSA_CLIENTE |
+         RETORNO_CLIENTE | INDUSTRIALIZACAO_RECEBIDA
+  FK: parceiro_id (industrializador ou cliente), op_id, oc_id, nf_id(s)
+
+----------------------------------------------------------------------------------------------------
+3. FLUXO A — RLP ENVIA PARA TERCEIRO INDUSTRIALIZAR
+----------------------------------------------------------------------------------------------------
+
+  1) Necessidade (PCP/OP) + cotação do serviço (COMPRAS_...)
+  2) Abre REM- tipo REMESSA_TERCEIRO: itens, qtde, lote, op_id
+  3) Emite NF-e remessa (CFOP tipicamente 5901/6901 — validar contador)
+  4) MOV: saída para “poder de terceiros” (não baixa como consumo final)
+  5) Acompanha prazo e status no terceiro
+  6) Retorno: NF retorno (5924/6924 ou conforme contador) + REM-
+     RETORNO_TERCEIRO
+  7) MOV: entrada do item beneficiado (SKU PA/semi) + baixa saldo
+     em terceiros
+  8) NF/fatura do serviço do terceiro → título a pagar + rateio OP
+  9) Se sobra material não usado: retorna ou regulariza (contador)
+
+Alerta: saldo em terceiros > prazo → fila de regularização fiscal.
+
+----------------------------------------------------------------------------------------------------
+4. FLUXO B — CLIENTE ENVIA MATERIAL PARA A RLP INDUSTRIALIZAR
+----------------------------------------------------------------------------------------------------
+
+  1) OS- / PED item serviço (ORDEM_SERVICO — material de terceiro)
+  2) Entrada simbólica / controle de quantidade recebida (não mistura
+     custo médio do estoque próprio)
+  3) Processa OP/OS; aponta consumo do material do cliente
+  4) Devolve produto industrializado + sobras conciliadas
+  5) Fatura serviço (NFS-e ou NF conforme contador)
+  6) Fecha conciliação: recebido × processado × devolvido
+
+----------------------------------------------------------------------------------------------------
+5. O QUE O ERP MOSTRA
+----------------------------------------------------------------------------------------------------
+
+  * Painel “em poder de terceiros” por parceiro / lote / prazo
+  * Vincular custo 2.02 à OP
+  * Histórico de NF remessa/retorno (XML Focus)
+  * Não misturar no relatório de faturamento de venda própria
+
+----------------------------------------------------------------------------------------------------
+6. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] REM- antes de mercadoria sair para industrialização
+  [ ] CFOP/CST validados pelo contador
+  [ ] Saldo em terceiros ≠ estoque disponível para venda
+  [ ] Retorno ou regularização dentro do prazo
+  [ ] Serviço do terceiro com OC/título e natureza 2.02
+  [ ] Material de cliente conciliado na OS
+
+====================================================================================================
+Fim — INDUSTRIALIZACAO_EXTERNA_REMESSA.txt
+Remessa controlada evita estoque fantasma e dor de cabeça no prazo dos 180 dias.
+====================================================================================================

@@ -1,0 +1,326 @@
+====================================================================================================
+PROPOSTA COMERCIAL — ERP RLP
+Sistema de gestão operacional para indústria de etiquetas autoadesivas
+====================================================================================================
+
+Cliente ........: RLP ETIQUETAS AUTO ADESIVOS LTDA
+CNPJ ...........: 01.423.183/0001-10 (MG) — Simples Nacional (migração prevista p/ Lucro Real)
+Documento ......: Proposta comercial de implantação — Fase 1 (virada operacional)
+Versão .........: 1.0 | 03/08/2026
+Validade .......: 30 dias a contar da data desta proposta
+Classificação ..: Documento para apresentação à Direção (não é manual técnico)
+
+Como usar este documento:
+  • Leia as seções 1 a 4 em reunião (cerca de 20–30 minutos).
+  • Seções 5 a 7 são o detalhe de escopo, prazo e investimento.
+  • Seção 8 é o que pedimos da RLP para o projeto andar.
+  • Seção 9 são os próximos passos para fechar e começar.
+
+====================================================================================================
+1. RESUMO EXECUTIVO (1 página)
+====================================================================================================
+
+A RLP precisa de um único sistema que acompanhe o pedido do início ao fim:
+
+  Orçamento → Aceite do cliente → Pedido → Produção/Estoque → Nota fiscal
+  → Cobrança → Entrega → Baixa no financeiro
+
+Hoje esse caminho está fragmentado (planilha, WhatsApp, emissor fiscal à parte),
+o que gera retrabalho, risco de cobrança errada e dificuldade de crescer com
+controle — especialmente com a migração futura do Simples para o Lucro Real.
+
+Esta proposta apresenta a implantação de um ERP web sob medida para a operação
+da RLP, em fases claras, com prioridade no fluxo que coloca dinheiro e produto
+em ordem no dia a dia (Fase 1), sem esperar histórico completo de anos
+anteriores para começar a operar.
+
+Investimento proposto — Fase 1 (virada operacional):
+  Desenvolvimento e implantação ........ R$ 120.000 a R$ 180.000
+  Prazo estimado ....................... 4 a 5 meses até go-live
+  Infraestrutura em nuvem (AWS) ........ R$ 660 a R$ 1.100 / mês (teto alarme ~R$ 1.375)
+
+Entrega da Fase 1: a empresa opera o ciclo completo no novo sistema, com
+exportação disciplinada para o contador. Melhorias extras (pós-venda, compras
+avançadas, WhatsApp oficial, 2º CNPJ em venda etc.) ficam na Fase 2,
+depois do go-live estável.
+
+====================================================================================================
+2. O PROBLEMA QUE RESOLVEMOS
+====================================================================================================
+
+  • Falta de trilha: quem aprovou o orçamento, o que foi produzido, o que foi
+    faturado e o que foi recebido não ficam no mesmo lugar.
+  • Risco financeiro: crédito, boleto/PIX e nota fiscal fora de sincronia.
+  • Estoque industrial: bobina, sobra e produto acabado exigem controle próprio
+    — planilha não segura o ritmo da fábrica.
+  • Preparação fiscal: a RLP precisa de dados limpos para acompanhar o
+    faturamento do Simples e, depois, operar com mais segurança no Lucro Real.
+  • Equipe enxuta: ≤ 10 usuários no sistema; ≈ 200 notas/mês — o sistema precisa
+    ser enxuto no custo e rigoroso na operação, não “mini data center”.
+
+====================================================================================================
+3. A SOLUÇÃO PROPOSTA (EM LINGUAGEM DE NEGÓCIO)
+====================================================================================================
+
+Um ERP web interno, acessado pelo navegador, com perfis por área
+(Comercial, Financeiro, Produção, Fiscal, Expedição, Administração).
+
+O Pedido é o documento-mestre. Tudo o mais (produção, estoque, NF, título,
+cobrança, entrega e baixa) vive no mesmo sistema.
+
+Fluxo que a Direção deve enxergar funcionando no go-live:
+
+  1. Comercial monta o ORÇAMENTO e envia link de aceite ao cliente.
+  2. Cliente aceita → nasce o PEDIDO (valores e itens travados).
+  3. Financeiro libera crédito / confirma sinal → pedido liberado.
+  4. Produção gera ordem de produção ou de serviço; estoque baixa material,
+     registra sobra/retalho e gera produto acabado.
+  5. Fiscal emite a NF-e (via Focus NFe, já alinhada à estratégia fiscal da RLP).
+  6. Sistema gera títulos a receber e cobrança (boleto/PIX).
+  7. Expedição confirma entrega; baixa financeira atualiza caixa e crédito.
+
+Regras de negócio inegociáveis (já validadas no levantamento):
+
+  • Um único ERP — sem livros paralelos / “caixa 2” no sistema.
+  • Documento não se apaga: se errou, estorna com trilha.
+  • Contabilidade e apuração fiscal oficiais ficam com o CONTADOR;
+    o ERP entrega exportação operacional organizada.
+  • Infraestrutura dimensionada para o porte real da RLP (custo cloud sob controle).
+
+====================================================================================================
+4. ESCOPO DA FASE 1 — O QUE ENTRA NA PROPOSTA
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. Incluído (Must — go-live)
+----------------------------------------------------------------------------------------------------
+
+  Cadastros
+    Clientes, fornecedores, produtos (compra e venda), usuários e perfis de acesso.
+    Consulta auxiliada de CNPJ, CEP e NCM nos formulários (com cache e limite).
+
+  Comercial
+    Orçamento (incluindo prospect), link de aceite pelo cliente, geração de pedido,
+    consulta de limite de crédito (alteração só pelo Financeiro).
+
+  Estoque e produção
+    Saldo de abertura na data da virada; movimentações do dia 1 em diante;
+    ordem de produção / ordem de serviço; conclusão liberando faturamento;
+    tratamento de sobra/retalho de bobina.
+
+  Fiscal operacional
+    Emissão de NF-e via Focus NFe; títulos a receber distintos da nota;
+    acompanhamento do faturamento acumulado (Simples).
+
+  Financeiro e expedição
+    Cobrança (boleto/PIX); confirmação de entrega; baixa de recebimentos;
+    exportação mensal para o contador (XML + títulos + naturezas gerenciais).
+
+  Plataforma
+    Login seguro, multi-empresa preparado (2º CNPJ com venda desligada até
+    decisão futura), auditoria básica, backup e ambiente em nuvem (AWS).
+
+----------------------------------------------------------------------------------------------------
+4.2. Fora do escopo da Fase 1 (explícito — vai para Fase 2 ou fica com terceiros)
+----------------------------------------------------------------------------------------------------
+
+  • Apuração/fechamento fiscal oficial (SPED etc.) — contador.
+  • Folha oficial completa.
+  • Compras com cotação formal avançada.
+  • Pós-venda (RMA/garantia/devolução ponta a ponta).
+  • WhatsApp Business oficial (régua de status) — e-mail cobre o aceite no go-live.
+  • Comissões detalhadas, frete/CT-e, industrialização externa, manutenção preventiva.
+  • Ativação de vendas no 2º CNPJ sem parecer Contador + Direção.
+  • Importação completa de todos os XML históricos antes de operar
+    (história importa depois; a virada usa saldos e cadastros — ver §6).
+
+====================================================================================================
+5. CRONOGRAMA POR FASES (VISÃO PARA A DIREÇÃO)
+====================================================================================================
+
+Prazo total sugerido da Fase 1: 4 a 5 meses corridos após kickoff e liberação
+de acessos (certificado, Focus, banco sandbox, usuários-chave).
+
+  ETAPA                          O QUE A RLP VÊ                          DURAÇÃO ORIENT.
+  -----------------------------  --------------------------------------  ---------------
+  0. Fundação                    Ambiente seguro + login + perfis        2–3 semanas
+  1. Cadastros                   Telas de parceiros/produtos usáveis     2–3 semanas
+  2. Comercial                   Orçamento → aceite → pedido + crédito   ~4 semanas
+  3. Estoque e produção          OP/OS, baixa de material, conclusão     ~4 semanas
+  4. Fiscal + financeiro         NF, título, cobrança, entrega, baixa    3–5 semanas
+  5. Homologação e virada        Treino, piloto, go-live                 ~2–3 semanas
+
+Marcos de acompanhamento (sugestão de reuniões com a Direção):
+
+  M1 (fim da fundação) ...... Ambiente no ar; usuários da RLP logam.
+  M2 (fim do comercial) ..... Demo: orçamento aceito vira pedido.
+  M3 (fim produção/estoque) . Demo: pedido liberado até conclusão de OP.
+  M4 (fluxo feliz completo) . Demo: NF → cobrança → entrega → baixa.
+  M5 (go-live) .............. Empresa opera no ERP; planilha antiga desligada
+                              no fluxo principal.
+
+Fase 2 (após go-live estável — proposta comercial à parte ou aditivo):
+  Compras, RMA/devolução, WhatsApp oficial, comissões, frete, 2º CNPJ em venda,
+  importação gradual de histórico fiscal, preparação reforçada Lucro Real.
+
+====================================================================================================
+6. ESTRATÉGIA DE VIRADA (SEM PARAR A FÁBRICA)
+====================================================================================================
+
+Não aguardamos importar milhares de notas antigas para começar.
+
+No dia da mudança, migramos o essencial para operar:
+
+  • Cadastro de clientes e produtos (sem histórico completo de vendas).
+  • Estoque: quantidade na data da virada (inventário).
+  • Financeiro: contas a receber/pagar e saldos bancários do dia.
+  • Faturamento acumulado do ano (controle do Simples) — totais mensais bastam.
+
+Depois do go-live, em segundo plano:
+  • Importação gradual de XMLs históricos (entrada/saída), sem parar a operação.
+
+Benefício: implantação rápida, continuidade do negócio e histórico fiscal
+recuperado com calma — alinhado à Focus NFe e ao contador.
+
+====================================================================================================
+7. INVESTIMENTO
+====================================================================================================
+
+Valores em Real (BRL). Faixa intermediária alinhada a escopo e prazo desta
+proposta. Cotação AWS de referência: ≈ R$ 5,50 por USD (revisar na assinatura).
+
+----------------------------------------------------------------------------------------------------
+7.1. Desenvolvimento e implantação — Fase 1
+----------------------------------------------------------------------------------------------------
+
+  Item                                         Faixa
+  -------------------------------------------  -------------------------
+  Levantamento fechado + configuração          incluído na faixa
+  Desenvolvimento do ERP (escopo §4.1)         incluído na faixa
+  Integrações Must (Focus NFe + cobrança)      incluído na faixa
+  Homologação, treino dos usuários-chave       incluído na faixa
+  Acompanhamento da virada (go-live)           incluído na faixa
+  -------------------------------------------  -------------------------
+  TOTAL FASE 1                                 R$ 120.000 a R$ 180.000
+
+  Forma de pagamento sugerida (negociável):
+    • 30% na assinatura / kickoff
+    • 40% no marco M4 (fluxo feliz completo homologado)
+    • 30% no go-live (M5)
+
+  O valor final dentro da faixa é fechado após:
+    (a) confirmação dos usuários-chave e calendário da RLP;
+    (b) disponibilidade de certificado, Focus e ambiente bancário;
+    (c) lista de produtos/clientes prioritários para a virada.
+
+----------------------------------------------------------------------------------------------------
+7.2. Infraestrutura em nuvem (AWS) — custo mensal da RLP
+----------------------------------------------------------------------------------------------------
+
+  Cenário recomendado (porte da RLP — até ~10 usuários, ≈200 NF/mês):
+
+    Operação típica ............... R$ 660 a R$ 1.100 / mês
+    Alarme de teto (Budget) ....... ~ R$ 1.375 / mês
+
+  O que isso cobre em linhas gerais: servidor dedicado ao ERP, armazenamento
+  de XML/PDF, HTTPS, backup e segurança adequada ao porte — sem postos fixos
+  caros de “arquitetura enterprise” desnecessários neste volume.
+
+  Não incluídos no desenvolvimento (custos de terceiros, pagos pela RLP):
+    • Conta / consumo AWS
+    • Assinatura Focus NFe
+    • Tarifas bancárias de boleto/PIX
+    • Certificado digital A1/A3
+    • Contador e obrigações oficiais
+    • Domínio (erp.…), se ainda não existir
+
+----------------------------------------------------------------------------------------------------
+7.3. Fase 2 (referência — não faz parte deste fechamento)
+----------------------------------------------------------------------------------------------------
+
+  Estimativa orientativa apenas (aditivo futuro): tipicamente 30% a 50% do
+  valor da Fase 1, conforme pacote escolhido (compras, RMA, WhatsApp etc.),
+  após 30–60 dias de operação estável.
+
+====================================================================================================
+8. O QUE PRECISAMOS DA RLP
+====================================================================================================
+
+  Pessoas
+    • Patrocinador na Direção (decisões de prazo e escopo em até 3 dias úteis).
+    • Um usuário-chave por área: Comercial, Financeiro, Produção, Fiscal.
+    • Contador alinhado desde o início (export e regras oficiais).
+
+  Acessos e insumos
+    • Certificado digital e cadastro Focus NFe.
+    • Ambiente sandbox do banco para testes de cobrança.
+    • Lista priorizada de clientes e produtos da virada.
+    • Inventário de estoque e posição financeira na data combinada.
+
+  Decisões já alinhadas neste projeto (não reabrir na implantação):
+    • Um único ERP; Pedido como documento-mestre.
+    • Sem livro paralelo no sistema.
+    • Virada por saldos (não por milênio de XML).
+    • 2º CNPJ sem venda até decisão Contador + Direção.
+
+====================================================================================================
+9. CRITÉRIOS DE ACEITE E GO-LIVE
+====================================================================================================
+
+A Fase 1 é considerada entregue quando, em homologação com usuários da RLP:
+
+  [ ] Usuário Comercial fecha orçamento e obtém aceite do cliente (link).
+  [ ] Pedido nasce travado e segue liberação de crédito.
+  [ ] Produção conclui OP/OS com movimento de estoque coerente.
+  [ ] Fiscal emite NF-e; títulos são gerados corretamente.
+  [ ] Cobrança é emitida; entrega confirmada; baixa atualiza o financeiro.
+  [ ] Contador valida o pacote de exportação mensal.
+  [ ] Equipe treinada nos papéis do dia a dia; backup e acesso seguro ativos.
+
+Somente após isso recomendamos desligar o fluxo principal nas planilhas antigas.
+
+====================================================================================================
+10. PRÓXIMOS PASSOS
+====================================================================================================
+
+  1. Reunião de apresentação desta proposta com a Direção (30–45 min).
+  2. Ajustes pontuais de escopo/calendário (se houver).
+  3. Fechamento do valor dentro da faixa e assinatura.
+  4. Kickoff (acessos + usuários-chave + data-alvo de virada).
+  5. Início da Etapa 0 (fundação) na semana seguinte à assinatura.
+
+Contato para esclarecimentos desta proposta:
+  _______________________________________________
+  E-mail / telefone: _____________________________
+
+====================================================================================================
+11. ACEITE FORMAL (OPCIONAL — ASSINATURA)
+====================================================================================================
+
+Declaramos estar de acordo com o escopo da Fase 1, a faixa de investimento,
+o prazo estimado e as premissas desta proposta (versão 1.0).
+
+  Pela RLP ETIQUETAS AUTO ADESIVOS LTDA          Pelo fornecedor
+
+  Nome: _______________________________          Nome: _______________________________
+  Cargo: ______________________________          Cargo: ______________________________
+  Data: ____/____/________                       Data: ____/____/________
+  Assinatura: _________________________          Assinatura: _________________________
+
+====================================================================================================
+ANEXO A — MAPA RÁPIDO “ONDE ESTÁ O DETALHE” (uso interno, se perguntarem)
+====================================================================================================
+
+Este anexo NÃO precisa ser lido na reunião com o cliente. Orienta a equipe:
+
+  Proposta comercial (este arquivo) ........... o que apresentar e fechar
+  GUIA_PASSO_A_PASSO_CONSTRUCAO_ERP_RLP.txt ... como construir tecnicamente
+  ESPECIFICACAO_SOFTWARE_ERP_RLP.txt .......... requisitos formais
+  DECISAO_MODELO_DOMINIO_… .txt ............... ordem Fase 0→3
+  estrategia_implantacao_ja.txt ............... virada por saldos
+  ESTIMATIVA_CUSTO_AWS_MENSAL.txt ............. detalhe FinOps Cenário D
+  CASOS_USO_M01…M11 + MANUAL_UNICO_… .......... regras linha a linha
+
+====================================================================================================
+FIM DA PROPOSTA COMERCIAL — ERP RLP (v1.0)
+====================================================================================================

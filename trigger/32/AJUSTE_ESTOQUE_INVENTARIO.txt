@@ -1,0 +1,316 @@
+======================================================================
+        AJUSTES DE ESTOQUE E INVENTARIO - PROCEDIMENTO DETALHADO
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 31/07/2026
+======================================================================
+
+Este documento detalha o item 8.4 do MODELO PROFISSIONAL DE CONTROLE
+DE ESTOQUE (CONTROLE_ESTOQUE_PROFISSIONAL.txt):
+
+  "8.4. Ajustes de inventario: sempre por movimento de ajuste com
+        motivo, contagem assinada e aprovacao do responsavel.
+        Meta de acuracidade: >= 95% na implantacao, >= 98% apos
+        6 meses."
+
+Objetivo: definir COMO o ajuste de estoque deve funcionar no novo
+ERP, quem pode fazer, quando, com quais evidencias e como medir o
+resultado (acuracidade).
+
+======================================================================
+1. O QUE E UM AJUSTE DE ESTOQUE (E O QUE NAO E)
+======================================================================
+
+1.1. DEFINICAO
+
+Ajuste de estoque e o movimento que corrige a diferenca entre o
+saldo FISICO (contado) e o saldo do SISTEMA, quando essa diferenca
+foi confirmada por contagem e nao pode ser explicada por um
+documento pendente (NF nao lancada, OP nao apontada, venda nao
+faturada etc.).
+
+  * AJUSTE POSITIVO (entrada): fisico > sistema. Ex.: sobra de
+    bobina que voltou da producao sem registro.
+  * AJUSTE NEGATIVO (saida): fisico < sistema. Ex.: rolo avariado
+    descartado sem apontamento, consumo maior que a ficha tecnica.
+
+1.2. O QUE O AJUSTE NAO E
+
+  * NAO e edicao direta do saldo na tela. O ERP deve BLOQUEAR
+    qualquer alteracao manual do campo de saldo. Toda correcao
+    gera um MOVIMENTO proprio, com documento interno numerado.
+  * NAO e valvula de escape para erro de processo. Ajuste
+    recorrente no mesmo SKU indica problema de rotina (recebimento,
+    apontamento de OP, retalho) que deve ser corrigido na origem.
+  * NAO substitui documentos fiscais. Perda de mercadoria,
+    devolucao e remessa tem tratamento fiscal proprio (ver secao 7).
+
+1.3. REGRA DE OURO (repete a regra 6 do documento principal)
+
+  Saldo se corrige com INVENTARIO + AJUSTE APROVADO, nunca
+  editando numero na tela.
+
+======================================================================
+2. QUANDO O AJUSTE E PERMITIDO
+======================================================================
+
+O ERP so deve aceitar movimento de ajuste vinculado a uma destas
+origens:
+
+  a) INVENTARIO ROTATIVO (ciclico): contagens mensais (itens A),
+     bimestrais (itens B) e semestrais (itens C), conforme item
+     8.1 do documento principal.
+  b) INVENTARIO GERAL ANUAL: contagem completa de dezembro/janeiro
+     (item 8.2), base do Registro de Inventario / futuro Bloco H.
+  c) INVENTARIO DE VIRADA: implantacao do ERP e mudanca de regime
+     tributario (itens 8.3 e 11).
+  d) CONTAGEM AVULSA AUTORIZADA: quando uma divergencia e detectada
+     no dia a dia (ex.: picking nao encontra o rolo no endereco),
+     o gestor autoriza contagem pontual do SKU antes do ajuste.
+
+Ajuste sem contagem vinculada = proibido. O sistema deve exigir o
+numero da contagem/inventario no movimento.
+
+======================================================================
+3. FLUXO OBRIGATORIO DO AJUSTE (PASSO A PASSO)
+======================================================================
+
+  1) CONGELAR O ITEM: durante a contagem, o ERP bloqueia
+     movimentos do SKU (ou registra o "corte" de documentos:
+     ultima NF, ultima OP e ultima expedicao consideradas).
+
+  2) 1a CONTAGEM (contagem cega): o contador recebe a lista de
+     SKUs SEM o saldo do sistema e registra o que contou
+     (rolos, metragem estimada dos retalhos, kg de tinta).
+     Contar por endereco e por lote, nao apenas por SKU.
+
+  3) CONFRONTO: o ERP compara contagem x saldo. Divergencia zero
+     = contagem encerrada, sem ajuste.
+
+  4) 2a CONTAGEM (recontagem): TODA divergencia exige recontagem
+     por pessoa DIFERENTE da primeira, tambem cega. Se as duas
+     contagens diferem entre si, fazer 3a contagem acompanhada
+     pelo gestor.
+
+  5) INVESTIGACAO ANTES DO AJUSTE: checar as causas mais comuns
+     ANTES de ajustar (checklist da secao 4). Muitas "faltas" sao
+     documentos pendentes, nao falta fisica.
+
+  6) FICHA DE CONTAGEM ASSINADA: a contagem final e impressa (ou
+     assinada eletronicamente no ERP) com: data/hora, SKU, lote,
+     endereco, quantidade contada, saldo do sistema, diferenca,
+     nome e assinatura do contador e do recontador.
+
+  7) MOTIVO OBRIGATORIO: o movimento de ajuste exige um motivo da
+     tabela padronizada (secao 5). Campo de texto livre e
+     complemento, nunca substituto do motivo codificado.
+
+  8) APROVACAO: o ajuste nasce com status PENDENTE e so atualiza
+     o saldo apos aprovacao eletronica conforme a alcada (secao 6).
+     Quem conta nao aprova; quem aprova nao conta.
+
+  9) EFETIVACAO: aprovado, o ERP gera o movimento (entrada ou
+     saida de ajuste), atualiza saldo e valoriza pelo CUSTO MEDIO
+     vigente do SKU. Fica logado: usuario, data/hora, contagem de
+     origem, motivo, aprovador e valor do ajuste.
+
+ 10) TRATATIVA DE CAUSA: divergencias relevantes (secao 6) exigem
+     registro da causa raiz e acao corretiva (ex.: retreinar
+     apontamento de sobra de bobina, revisar perda padrao da
+     ficha tecnica).
+
+======================================================================
+4. CHECKLIST DE INVESTIGACAO (ANTES DE AJUSTAR)
+======================================================================
+
+Verificar, nesta ordem, se a diferenca tem explicacao documental:
+
+  [ ] NF-e de compra recebida fisicamente mas nao lancada?
+  [ ] Requisicao/baixa de OP pendente de apontamento?
+  [ ] Sobra de bobina (retalho) que voltou da producao sem
+      registro? (maior causa de divergencia na operacao -
+      ver TRATAMENTO_SOBRA_BOBINA_RETALHO.txt)
+  [ ] Venda expedida sem faturamento ou faturada sem expedir?
+  [ ] Rolo em endereco errado (erro de armazenagem, nao de saldo)?
+  [ ] Troca entre SKUs parecidos (mesma largura, fornecedor
+      diferente; mesmo material, comprimento diferente)?
+  [ ] Erro de unidade/conversao (kg x rolo x metro linear)?
+  [ ] Devolucao ao fornecedor sem NF-e de devolucao emitida?
+  [ ] Material em poder de terceiros (industrializacao externa)?
+
+Se qualquer item acima explicar a diferenca, corrigir pelo
+DOCUMENTO correto (lancar a NF, apontar a OP, emitir a devolucao),
+NAO por ajuste. Ajuste e o ultimo recurso.
+
+======================================================================
+5. TABELA DE MOTIVOS DE AJUSTE (CADASTRO NO ERP)
+======================================================================
+
+Cada motivo define o tipo (entrada/saida) e o tratamento contabil:
+
+  COD  MOTIVO                                TIPO      OBS
+  ---  ------------------------------------  --------  -------------
+  A01  Diferenca de inventario rotativo      E ou S    padrao
+  A02  Diferenca de inventario geral         E ou S    padrao
+  A03  Saldo inicial / implantacao ERP       E         so na virada
+  A04  Avaria / material danificado          S         ver 7.2
+  A05  Perda de processo acima do padrao     S         analisar BOM
+  A06  Obsolescencia / descarte aprovado     S         ver 7.2
+  A07  Erro de apontamento corrigido         E ou S    exige doc ref
+  A08  Sobra de producao nao registrada      E         retalho
+  A09  Furto / extravio comprovado           S         ver 7.2, BO
+  A10  Erro de unidade / conversao           E ou S    corrigir cad.
+  A11  Amostra / teste de maquina            S         com requisicao
+
+Regras:
+  * Motivos A04, A06 e A09 exigem evidencia anexada (foto,
+    laudo, boletim de ocorrencia).
+  * Motivo A07 exige o numero do documento corrigido (OP, NF).
+  * E proibido criar motivo generico tipo "outros" sem descricao;
+    se usado, o campo complemento e obrigatorio e o gestor deve
+    revisar mensalmente todos os "outros".
+
+======================================================================
+6. ALCADAS DE APROVACAO E SEGREGACAO DE FUNCOES
+======================================================================
+
+6.1. SEGREGACAO (item 10 do documento principal):
+     * Quem compra nao recebe.
+     * Quem recebe nao ajusta saldo.
+     * Quem conta nao aprova o proprio ajuste.
+     * Perfil de "ajuste de estoque" restrito no ERP (ver
+       ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt).
+
+6.2. ALCADAS SUGERIDAS (valorizar o ajuste pelo custo medio):
+
+     ATE R$ 500,00 por SKU ........ aprovacao do lider do
+                                    almoxarifado
+     R$ 500,01 A R$ 5.000,00 ...... aprovacao do gestor de
+                                    operacoes/PCP
+     ACIMA DE R$ 5.000,00 ......... aprovacao do gestor + ciencia
+                                    da diretoria e da contabilidade
+     INVENTARIO GERAL / VIRADA .... aprovacao do gestor + validacao
+                                    da contabilidade (impacto no
+                                    balanco e no Registro de
+                                    Inventario)
+
+     Ajustar os valores das faixas na implantacao, conforme o
+     porte real dos estoques.
+
+6.3. Divergencia relevante (obriga analise de causa raiz):
+     * valor absoluto > R$ 1.000,00 no SKU; ou
+     * diferenca > 5% do saldo do SKU; ou
+     * terceiro ajuste no mesmo SKU em 6 meses.
+
+======================================================================
+7. TRATAMENTO CONTABIL E FISCAL DOS AJUSTES
+======================================================================
+
+7.1. CONTABILIZACAO
+     * Ajuste negativo: despesa de perda/quebra de estoque
+       (conta propria, separada do CMV/custo de producao, para
+       enxergar o problema nos relatorios).
+     * Ajuste positivo: recuperacao/sobra de inventario.
+     * A contabilidade recebe mensalmente o relatorio de ajustes
+       valorizados para conciliar estoque contabil x fisico.
+
+7.2. FISCAL (empresa hoje no Simples Nacional em MG)
+     * Ajuste de inventario NAO gera NF-e por si so. Porem:
+       - DESCARTE/PERDA/AVARIA (A04, A06, A09): documentar com
+         laudo/foto e, quando exigido, emitir NF-e de baixa
+         (CFOP 5.927 - lancamento a titulo de baixa de estoque
+         por perda, roubo ou deterioracao). Validar o procedimento
+         com a contabilidade.
+       - DEVOLUCAO ao fornecedor nunca e ajuste: sempre NF-e de
+         devolucao referenciando a nota de origem.
+     * No futuro LUCRO REAL: perdas e quebras exigem ESTORNO do
+       credito de ICMS/PIS/COFINS da mercadoria perdida. Por isso
+       todo ajuste negativo ja deve nascer com lote e NF de origem
+       identificados - essa rastreabilidade e construida agora.
+     * Os saldos ajustados alimentam o Registro de Inventario
+       (futuro Bloco H) e, com o Bloco K, as quantidades de
+       producao/consumo - inconsistencias grandes entre consumo
+       teorico e ajustes chamam atencao do fisco.
+
+======================================================================
+8. ACURACIDADE: COMO MEDIR A META (>= 95% / >= 98%)
+======================================================================
+
+8.1. FORMULA (por contagem/inventario):
+
+     Acuracidade = (n de SKUs contados SEM divergencia relevante
+                    / n total de SKUs contados) x 100
+
+     Considerar "sem divergencia" o SKU cuja diferenca esta dentro
+     da tolerancia definida (sugestao inicial):
+       * Rolos fechados e unidades (ribbon, tubete, caixa):
+         tolerancia ZERO (ou conta certo, ou esta errado).
+       * Retalhos/bobinas abertas (metragem estimada): ate 5%
+         da metragem do SKU.
+       * Tintas a granel (pesagem): ate 2% do saldo em kg.
+
+8.2. MEDIR TAMBEM EM VALOR:
+
+     Acuracidade financeira = 1 - (soma dos ajustes em R$, em
+     modulo, no mes / valor medio do estoque no mes)
+
+     Um estoque pode acertar 98% dos SKUs e ainda assim errar
+     feio nos itens classe A - por isso as duas visoes.
+
+8.3. METAS E TRAJETORIA:
+
+     * Implantacao (mes 0 a 3) ............ >= 95%
+     * Apos 6 meses de operacao ........... >= 98% (KPI mestre,
+       item 9 do documento principal)
+     * Itens classe A ..................... meta sempre >= 98%,
+       pois sao contados todo mes e concentram ~80% do valor.
+
+8.4. SE A META NAO FOR ATINGIDA:
+     * Aumentar a frequencia de contagem dos SKUs reincidentes;
+     * Auditar os processos de origem (recebimento, apontamento
+       de OP, retalho, expedicao);
+     * Revisar perdas padrao das fichas tecnicas;
+     * Nao "afrouxar" a tolerancia para bater a meta - a meta
+       existe para forcar a correcao do processo.
+
+======================================================================
+9. RESPONSABILIDADES (RESUMO)
+======================================================================
+
+  ALMOXARIFE ........ conta (1a contagem), identifica e etiqueta,
+                      registra contagens no ERP.
+  CONFERENTE/PCP .... reconta (2a contagem), investiga o checklist
+                      da secao 4.
+  GESTOR ............ aprova ajustes conforme alcada, analisa
+                      causa raiz, acompanha o KPI de acuracidade.
+  CONTABILIDADE ..... valida inventario geral e de virada, orienta
+                      o tratamento fiscal (CFOP 5.927, estornos de
+                      credito no Lucro Real), concilia contabil x
+                      fisico mensalmente.
+  DIRETORIA ......... toma ciencia de ajustes acima da alcada e
+                      do KPI mensal.
+
+======================================================================
+10. REGRAS DE OURO DO AJUSTE (RESUMO)
+======================================================================
+
+  1. Ajuste so existe vinculado a uma contagem; contagem e cega
+     e divergencia sempre e recontada por outra pessoa.
+  2. Antes de ajustar, investigar: a maioria das "faltas" e
+     documento pendente, retalho nao registrado ou endereco errado.
+  3. Todo ajuste tem motivo codificado, ficha de contagem assinada
+     e aprovacao eletronica por alcada.
+  4. Quem conta nao aprova; quem aprova nao conta; saldo nunca e
+     editado na tela.
+  5. Perda, avaria e descarte tem evidencia anexada e tratamento
+     fiscal proprio (NF-e de baixa quando cabivel); devolucao ao
+     fornecedor nunca e ajuste.
+  6. Ajuste e valorizado pelo custo medio e reportado mensalmente
+     a contabilidade.
+  7. Acuracidade e medida em SKUs e em valor: >= 95% na
+     implantacao, >= 98% apos 6 meses (classe A sempre >= 98%).
+  8. Ajuste recorrente no mesmo SKU = problema de processo:
+     corrigir a causa, nao apenas o saldo.
+
+======================================================================
+                          FIM DO DOCUMENTO
+======================================================================

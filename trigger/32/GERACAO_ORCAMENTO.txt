@@ -1,0 +1,436 @@
+======================================================================
+          GERACAO DE ORCAMENTO - PADRAO OFICIAL DO NOVO ERP
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+======================================================================
+
+Este documento define COMO GERAR UM ORCAMENTO DA MELHOR FORMA
+POSSIVEL no novo ERP. Ele foi construido a partir da engenharia
+reversa completa das planilhas oficiais usadas ate hoje (pasta
+/orçamento: ORcAMENTO_OFICIAL_*.xlsm e orcamentos de clientes como
+BRAHVA, ART MOVEIS, PUMPKIN, RAREPAN), preservando TODA a logica de
+calculo que ja funciona, e generalizando o modelo para que sirva a
+QUALQUER TIPO DE ORCAMENTO (etiqueta impressa, rebobinacao, bobina
+lisa, revenda de material, servico avulso, etc.).
+
+Ele complementa:
+  * PADRAO_DECIMAL_CALCULOS.txt ........ tipos e casas decimais
+  * CONVERSOES_UNIDADES_MEDIDA.txt ..... conversoes m / m2 / kg / rolo
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt .. custo medio dos materiais
+  * CADASTRO_PARCEIROS.txt ............. cadastro de clientes
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt ... quem pode orcar/aprovar
+
+======================================================================
+1. PRINCIPIOS DE UM BOM ORCAMENTO (VALEM PARA QUALQUER TIPO)
+======================================================================
+
+1.1. CUSTO REAL + PERDAS + SETUP + OVERHEAD + IMPOSTO + COMISSAO.
+     Nunca orcar "no olho". Todo orcamento e a soma de componentes
+     calculados a partir de PARAMETROS CADASTRADOS, nunca de numeros
+     digitados livremente no meio do calculo.
+
+1.2. PARAMETRIZADO, NAO HARDCODED. Precos de papel, valor da hora
+     maquina, percentuais de perda, valor do tubete, preco da caixa,
+     valor do cm2 de cliche etc. ficam em TABELAS DE PARAMETROS com
+     vigencia (data inicio/fim). O motor de calculo apenas consulta.
+     Trocar um preco NUNCA exige mexer em formula.
+
+1.3. AUDITAVEL E REPRODUTIVEL. O orcamento gravado guarda uma
+     FOTOGRAFIA (snapshot) de todos os parametros usados no momento
+     do calculo. Reabrir um orcamento de 6 meses atras mostra
+     exatamente os mesmos numeros, mesmo que os precos ja tenham
+     mudado.
+
+1.4. MULTIPLAS QUANTIDADES NO MESMO ORCAMENTO. O cliente sempre
+     recebe uma escada de precos (ex.: 5.000 / 10.000 / 20.000) para
+     enxergar o ganho de escala. O custo de setup e ferramental
+     dilui, e o preco unitario cai. A planilha antiga suportava ate
+     5 faixas; o ERP deve suportar N faixas.
+
+1.5. SEPARAR CALCULO INTERNO DE PROPOSTA COMERCIAL. O cliente NUNCA
+     ve a composicao de custos (papel, hora maquina, perdas...).
+     Ele ve apenas: material, acabamento, quantidades, preco total,
+     preco unitario, valor do ferramental, prazo e condicoes.
+     (Na planilha antiga: aba ORCAMENTO = interno; aba CONSOLIDADO
+     = o que vai para o cliente.)
+
+1.6. ARREDONDAMENTO COMERCIAL SEMPRE PARA CIMA. O valor final ao
+     cliente e arredondado PARA CIMA (na pratica atual: multiplo de
+     R$ 10,00 para o servico e R$ 1,00 para o ferramental). Nunca
+     arredondar para baixo: a margem so pode crescer no fechamento.
+
+1.7. FERRAMENTAL COBRADO UMA VEZ. Matriz/cliche (e faca nova, quando
+     houver) sao cobrados SOMENTE NO 1o PEDIDO daquele modelo. O
+     ERP deve saber se o cliente ja pagou o ferramental daquele item
+     e suprimir a cobranca nas recompras.
+
+======================================================================
+2. TIPOS DE ORCAMENTO SUPORTADOS (MODELO GENERICO)
+======================================================================
+
+O motor e UNICO. O que muda entre os tipos e QUAIS COMPONENTES DE
+CUSTO entram no calculo:
+
+  TIPO DE ORCAMENTO           COMPONENTES ATIVOS
+  --------------------------  ------------------------------------
+  ETIQUETA IMPRESSA           papel + maquina + setup + tinta +
+  (caso principal)            acabamento + rebobinacao + tubete +
+                              caixa + matriz (1o pedido) + faca
+  ETIQUETA LISA (sem imp.)    papel + maquina (corte) + rebobinacao
+                              + tubete + caixa (sem tinta/matriz)
+  SO REBOBINACAO / ACERTO     hora maquina + tubete + caixa
+  BOBINA / MATERIAL REVENDA   custo material (estoque) + margem
+  SERVICO AVULSO              hora maquina/homem + materiais usados
+  ITEM SOB ENCOMENDA          cotacao do fornecedor + frete + margem
+
+Regra geral: TODO componente e uma linha de custo com ORIGEM
+(parametro consultado), QUANTIDADE calculada e VALOR. Componentes
+nao aplicaveis ao tipo ficam zerados/ocultos, mas a estrutura do
+orcamento e sempre a mesma.
+
+======================================================================
+3. DADOS DE ENTRADA (O QUE O ORCAMENTISTA PREENCHE)
+======================================================================
+
+3.1. CABECALHO
+     - Data (automatica), numero sequencial do orcamento
+     - Cliente (obrigatorio, vindo do cadastro de parceiros;
+       na planilha era texto livre - isso causava retrabalho)
+     - Vendedor (define % de comissao)
+     - Tipo de orcamento (secao 2)
+
+3.2. ESPECIFICACAO TECNICA DO ITEM (etiqueta impressa)
+     - MEDIDA da etiqueta (ex.: 9,5 x 3,5 cm) - puxada do MAPA DE
+       FACAS ao escolher a faca
+     - LARGURA DO PAPEL (cm) - largura da bobina a usar
+     - PUXADA DA MAQUINA (cm) - avanco por batida, vem da faca
+     - CORES: 0 (lisa), 1 a 8, ou "4V" (4 cores + verniz)
+     - PAPEL/FILME: escolhido da tabela de materiais (BOPP brilho,
+       BOPP fosco, couche, termico...) com preco por m2
+     - ACABAMENTO: sem acabamento / verniz / laminacao fosca /
+       laminacao brilho / cold stamp + verniz / cold stamp + cola
+     - QUANTIDADE DE MODELOS (artes diferentes no mesmo servico)
+     - QUANTIDADE DE COLUNAS (etiquetas lado a lado na bobina)
+     - ETIQUETAS POR ROLO (define rolos, tubetes e caixas)
+
+3.3. PRODUCAO / FERRAMENTAL
+     - FACA: selecionada no MAPA DE FACAS (cadastro de facas com
+       maquina, formato reto/redondo, medida, puxada, largura, Z,
+       repeticoes, colunas). Se nao existir faca compativel, o
+       orcamento marca "FACA NOVA" e inclui custo/prazo da faca.
+     - Z (numero de dentes do cilindro) - vem da faca
+     - MAQUINA QUE RODA O SERVICO e GRUPO DE HORA-MAQUINA
+       (BETA/160/250/ETIRAMA, BATIDA, MODULAR)
+     - MATRIZ (cliche): SIM/NAO - SIM apenas no 1o pedido
+     - COLUNA DE REBOBINACAO (em quantas saidas rebobina)
+     - TAMANHO DO TUBETE: 1", 1"1/2 ou 3"
+     - IMPOSTO (%) conforme operacao/UF (tabela: 12 a 25)
+     - TIPO DE TROCA ENTRE MODELOS (tempo de parada):
+         SEM PARADA ............. 0 min
+         SO NOME ................ 5 min
+         MUDANCA TARJA .......... 10 min
+         PRETO INTEIRO .......... 15 min
+         PRETO INTEIRO + BORDA .. 20 min
+         OUTRA MONTAGEM ......... 50 min
+         TROCA PAPEL ............ 5 min
+
+3.4. QUANTIDADES A COTAR
+     - N faixas de quantidade (ex.: 7.000 / 10.000 / 14.000)
+     - % de comissao por faixa (0 quando venda direta)
+
+======================================================================
+4. TABELAS DE PARAMETROS (CADASTROS QUE ALIMENTAM O CALCULO)
+======================================================================
+
+Todas com vigencia e historico. Valores atuais extraidos da
+planilha oficial (conferir/atualizar no cadastro):
+
+4.1. PAPEL / FILME (R$ por m2)
+     BOPP BRILHO 7,20 | BOPP BRILHO BXT 7,90 | BOPP FOSCO 6,90
+     BOPP FOSCO BXT 7,90 | BOPP PRATA 7,50 | BOPP PRATA BXT 8,50
+     BOPP TRANSP 7,00 | BOPP TRANSP BXT 7,90 | COUCHE FASSON 20G
+     3,50 | COUCHE VERTEX 30G 5,30 | FOSCO COLACRIL 20G 4,30 |
+     TERMICO FASSON 3,60 | BOPP FOSCO FASSON 0290 6,00 | BOPP
+     FOSCO FASSON 30G 2075 7,00
+     >> No ERP, o ideal e usar o CUSTO MEDIO REAL do estoque
+        (CONTROLE_ESTOQUE_PROFISSIONAL.txt) com um preco de tabela
+        como piso de seguranca.
+
+4.2. HORA MAQUINA (R$/h) - por GRUPO DE MAQUINA x CORES
+     BETA/160/250/ETIRAMA: 0c=120 1c=145 2c=155 3c=165 4c=175
+                           4V=180 5c=190
+     BATIDA:               1c=200 2c=210
+     MODULAR:              0c=120 1c=150 2c=160 3c=170 4c=190
+                           4V=200 5c=210 6c=220 7c=230 8c=240
+
+4.3. HORA PARADA (setup entre modelos) - tabela da secao 3.3
+
+4.4. PERDA DE PAPEL POR ACERTO DE IMPRESSAO (depende de cores)
+     1 cor=4 m2 | 2 cores=6 m2 | 3 cores=8 m2
+     4 cores: (LARGURA+1)/100 x 180 m lineares
+     4V/5 cores: LARGURA/100 x 220 m (e 250/260/270/280 m para
+     5/6/7/8 cores na regra de metro linear)
+
+4.5. PERDA DE ACERTO POR MODELO (troca de arte)
+     1 cor=0,7 m2 | 2 cores=1,4 | 3 cores=2,1 | 4 a 8 cores=20 m2
+     Multiplica por quantidade de modelos.
+
+4.6. PERDA DE ACABAMENTO (m2 fixo por servico)
+     Laminacao (fosca ou brilho) = 5 m2 | Cold stamp = 5 m2 |
+     Verniz / sem acabamento / rebobinacao = 0
+
+4.7. PERDA POR TROCA DE BOBINA
+     So existe se metragem linear > 1000 m:
+     PERDA_M2 = 5 x (LARGURA - 0,75) x COLUNAS / 100
+                x (METRAGEM / 1000)
+
+4.8. TINTA
+     Ate 30 m2 (com perdas): R$ 10,00 por cor (minimo)
+     Acima de 30 m2: (m2 + perdas) x R$ 0,40
+
+4.9. ACABAMENTO (R$ por m2 aplicado sobre m2 + perdas)
+     Verniz 0,30 | Laminacao brilho 1,80 | Laminacao fosca 2,80 |
+     Cold stamp + verniz 3,50 | Cold stamp + cola 2,80 |
+     Rebobinacao: R$ 17,00 por 1000 m rebobinados
+
+4.10. TUBETE (R$ por rolo)
+     1" = 0,50 | 1"1/2 = 0,60 | 3" = 0,70
+
+4.11. CAIXA
+     Preco comercial: R$ 7,00 por caixa.
+     Empacotamento padrao: tubete 1" -> caixa 250x200x200 com 20
+     rolos; tubete 3" -> caixa 500x300x300 com 12 rolos; tubete
+     1"1/2 usa a regra do 1".
+
+4.12. MATRIZ / CLICHE (R$ 0,28 por cm2)
+     VALOR = ((Z x 3,175 / 10) + 4) x (LARGURA_PAPEL + 4)
+             x QTD_CORES x 0,28
+     (Z x 3,175 / 10 = desenvolvimento do cilindro em cm; os +4
+     sao margens de fixacao em cada dimensao.)
+     Exemplo real: Z=60, largura 10 cm, 1 cor ->
+     (60x3,175/10 + 4) x (10+4) x 1 x 0,28 = 23,05 x 14 x 0,28
+     = R$ 90,36 -> cobrado R$ 91 (arredonda p/ cima em R$ 1).
+
+4.13. IMPOSTO: percentual por operacao (12 a 25%). Padrao interno
+      atual: 16%. Deve evoluir para calculo fiscal real por NCM/UF
+      via PERFIL FISCAL DE OPERACAO - especificacao completa em
+      VERIFICACAO_IMPOSTO_ORCAMENTO.txt (ver tambem
+      REVISAO_ICMS_ST.txt e estudo_tributacao.txt).
+
+4.14. COMISSAO: % por vendedor/faixa (tabela 0 a 17%).
+
+4.15. RPM / VELOCIDADE DA MAQUINA: 1000 m/h (parametro por maquina).
+
+======================================================================
+5. MOTOR DE CALCULO - PASSO A PASSO (POR FAIXA DE QUANTIDADE)
+======================================================================
+
+Notacao: QTD = quantidade de etiquetas da faixa; LARG = largura do
+papel (cm); PUX = puxada (cm); COL = colunas; MOD = modelos;
+VEL = velocidade (m/h).
+
+PASSO 1 - METRAGENS
+  METRAGEM_LINEAR (m) = (PUX / 100) x QTD / COL
+  METRAGEM_M2         = arredonda_para_cima(
+                          QTD x LARG x PUX / 10000, 0.1)
+
+PASSO 2 - TEMPOS
+  HORA_MAQUINA       = (METRAGEM_LINEAR / VEL) + 1
+                       (a hora fixa "+1" e o setup basico embutido)
+  HORA_TROCA_PRODUTO = TEMPO_PARADA(tipo troca) x (MOD - 1)
+  HORA_TROCA_BOBINA  = 0 se METRAGEM_LINEAR < 1000; senao
+                       ((METRAGEM_LINEAR/1000) - 1) x 5 min / 60
+
+PASSO 3 - PERDAS (todas em m2)
+  PERDA_ACERTO        = tabela 4.4 (funcao de cores e largura)
+  PERDA_ACERTO_MODELO = tabela 4.5 x MOD
+  PERDA_ACABAMENTO    = tabela 4.6
+  PERDA_TROCA_BOBINA  = formula 4.7 (0 se metragem <= 1000)
+
+PASSO 4 - QUANTIDADES FISICAS
+  ROLOS  = QTD / ETIQ_POR_ROLO
+  CAIXAS = arredonda_para_cima(ROLOS / ROLOS_POR_CAIXA(tubete))
+
+PASSO 5 - CUSTOS
+  VALOR_PAPEL   = (M2 + PERDA_ACERTO + PERDA_TROCA_BOBINA)
+                  x PRECO_PAPEL_M2
+  VALOR_MAQUINA = HORA_MAQUINA x VALOR_HORA(maquina, cores)
+  VALOR_TROCA_PRODUTO = HORA_TROCA_PRODUTO x VALOR_HORA
+  VALOR_TROCA_BOBINA  = HORA_TROCA_BOBINA x VALOR_HORA
+  VALOR_TINTA   = se (M2 + PERDA_ACERTO) <= 30:
+                     CORES x 10,00
+                  senao: (M2 + PERDA_ACERTO) x 0,40
+  VALOR_ACABAMENTO = PRECO_ACAB_M2 x (M2 + perdas aplicaveis)
+  VALOR_REBOBINACAO = (METRAGEM_LINEAR x COL / COL_REBOB) / 1000
+                      x 17,00
+  VALOR_TUBETE  = ROLOS x PRECO_TUBETE
+  VALOR_CAIXA   = CAIXAS x 7,00
+
+  VALOR_SERVICO = soma de todos os componentes acima
+
+PASSO 6 - FECHAMENTO COMERCIAL
+  COMISSAO = VALOR_SERVICO x (%COMISSAO / 100)
+  IMPOSTO  = VALOR_SERVICO x (%IMPOSTO / 100)
+  TOTAL_BRUTO = VALOR_SERVICO + COMISSAO + IMPOSTO
+  VALOR_ETIQUETAS = arredonda_para_CIMA(TOTAL_BRUTO, 10)
+  VALOR_MATRIZ    = arredonda_para_CIMA(formula 4.12, 1)
+                    (somente se MATRIZ = SIM / 1o pedido)
+  VALOR_TOTAL     = VALOR_ETIQUETAS + VALOR_MATRIZ
+  UNITARIO        = VALOR_ETIQUETAS / QTD
+  VALOR_POR_ROLO  = VALOR_ETIQUETAS / ROLOS
+
+IMPORTANTE (padrao decimal): todos os passos usam DECIMAL exato
+conforme PADRAO_DECIMAL_CALCULOS.txt. Nada de float. Arredondamento
+ocorre APENAS no fechamento (passo 6) - os intermediarios ficam com
+a precisao cheia armazenada no snapshot.
+
+EXEMPLO REAL CONFERIDO (planilha oficial):
+  9,5x3,5 cm, papel COUCHE FASSON 20G, laminacao brilho, 1 cor,
+  1 modelo, 1 coluna, 500 etiq/rolo, tubete 3", Z=60, 10.000 etiq:
+  Metragem 380 m / 38 m2; papel 147,00; maquina 200,10; tinta
+  16,80; acabamento 69,66; rebobinacao 6,46; tubete 14,00; caixa
+  7,00 -> servico 461,02 + imposto 16% (73,76) = 534,78 ->
+  ETIQUETAS R$ 540 + MATRIZ R$ 91 = TOTAL R$ 631 (unit. 0,054).
+
+======================================================================
+6. PROPOSTA AO CLIENTE (SAIDA COMERCIAL)
+======================================================================
+
+O documento entregue ao cliente (PDF/e-mail) contem SOMENTE:
+
+  - Logo/dados da empresa, numero e data do orcamento
+  - Cliente e vendedor
+  - Descricao: MATERIAL - MEDIDA - ACABAMENTO - ETIQ/ROLO - CORES
+  - Tabela de faixas:
+      MATERIAL | ACABAMENTO | ETIQ/ROLO | ROLOS | ETIQUETAS |
+      TOTAL (R$) | UNITARIO (R$) | VALOR DO ROLO (R$)
+  - VALOR DA MATRIZ (com a nota "somente no 1o pedido")
+  - PRAZO DE ENTREGA (padrao atual: 12 dias uteis)
+  - VALIDADE DA PROPOSTA (padrao atual: 7 dias)
+  - Nota: "As quantidades poderao variar ate 20% para mais ou
+    para menos" (tolerancia industrial de producao)
+  - Condicoes de pagamento e frete
+
+NUNCA expor: custo de papel, hora maquina, perdas, comissao,
+percentual de imposto ou margem.
+
+======================================================================
+7. REGRAS DE NEGOCIO OBRIGATORIAS
+======================================================================
+
+7.1. MATRIZ/FACA SO NO 1o PEDIDO. Ao aprovar orcamento com matriz,
+     registrar o ferramental como PAGO no cadastro do item do
+     cliente. Recompra do mesmo item -> matriz nao cobrada e campo
+     MATRIZ = NAO ja sugerido.
+
+7.2. METRAGEM < 1000 m: nao ha troca de bobina (tempo e perda = 0).
+
+7.3. FACA EXISTENTE x FACA NOVA. Orcamento so seleciona faca do
+     MAPA DE FACAS compativel com a maquina. Se nao existir:
+     - marcar FACA NOVA, incluir custo e prazo da faca;
+     - apos aprovacao, cadastrar a faca no mapa.
+
+7.4. MULTIPLOS MODELOS: o custo de parada (setup) cresce com
+     (MOD - 1) x tempo do tipo de troca. A perda de acerto por
+     modelo tambem multiplica.
+
+7.5. VALIDADE: orcamento vencido (>= 7 dias) precisa ser
+     RECALCULADO antes de virar pedido (parametros podem ter
+     mudado). O ERP deve bloquear conversao de orcamento vencido
+     sem recalculo.
+
+7.6. TOLERANCIA +/-20% na quantidade produzida deve constar na
+     proposta e ser aceita no faturamento.
+
+7.7. PISO DE PRECO / MARGEM MINIMA: o ERP deve alertar (e exigir
+     aprovacao de gerente) quando o preco final ficar abaixo de
+     custo + margem minima configurada, ou quando o orcamentista
+     forcar desconto manual.
+
+======================================================================
+8. VALIDACOES AUTOMATICAS ANTES DE LIBERAR O ORCAMENTO
+======================================================================
+
+  [ ] Cliente selecionado do cadastro (nao texto livre)
+  [ ] Faca compativel com a maquina escolhida (ou FACA NOVA)
+  [ ] Largura do papel >= largura exigida pela faca/colunas
+  [ ] Cores compativel com a maquina (ex.: BATIDA so ate 2 cores)
+  [ ] Papel existe na tabela vigente e tem preco > 0
+  [ ] Acabamento compativel (ex.: laminacao exige maquina apta)
+  [ ] Etiquetas por rolo > 0 e quantidade divisivel razoavel
+  [ ] Percentual de imposto informado (nunca zero por engano)
+  [ ] Ao menos 1 faixa de quantidade preenchida
+  [ ] Matriz: verificar historico do cliente (1o pedido ou nao)
+  [ ] Estoque do papel: alertar se nao ha bobina disponivel na
+      largura pedida (integracao com CONTROLE_ESTOQUE e
+      TRATAMENTO_SOBRA_BOBINA_RETALHO - aproveitar retalhos!)
+
+======================================================================
+9. FLUXO DO ORCAMENTO NO ERP (CICLO DE VIDA)
+======================================================================
+
+  RASCUNHO -> CALCULADO -> ENVIADO -> (APROVADO | RECUSADO |
+  VENCIDO) -> PEDIDO DE PRODUCAO
+
+9.1. Numeracao sequencial unica (ORC-AAAA-NNNNN) + versao (v1,
+     v2...). Toda alteracao apos envio gera NOVA VERSAO, nunca
+     sobrescreve (a planilha salvava arquivos soltos por cliente e
+     se perdia o historico - o ERP resolve isso).
+
+9.2. SNAPSHOT: ao calcular, gravar JSON/registro com todos os
+     parametros usados (precos, tabelas, percentuais) e todos os
+     intermediarios (metragens, horas, perdas, componentes).
+
+9.3. APROVACAO vira PEDIDO herdando: item, faca, maquina, papel
+     (com reserva de estoque), quantidades e preco travado.
+
+9.4. RASTREABILIDADE: quem criou, quem alterou, quem aprovou,
+     quando enviou, canal de envio.
+
+9.5. RELATORIOS: taxa de conversao por vendedor, margem media por
+     orcamento, orcamentos vencidos, itens mais cotados, desvio
+     entre custo orcado x custo real da producao (retroalimenta
+     os parametros de perda e velocidade).
+
+======================================================================
+10. COMO GENERALIZAR PARA QUALQUER TIPO DE ORCAMENTO
+======================================================================
+
+10.1. O orcamento e uma LISTA DE COMPONENTES DE CUSTO. Cada
+      componente tem: tipo (material, maquina, setup, insumo,
+      embalagem, ferramental, servico externo), formula de
+      quantidade, parametro de preco e flag "cobrar so no 1o
+      pedido". O tipo de orcamento (secao 2) define o conjunto
+      de componentes ativos - o motor e o mesmo.
+
+10.2. Para um tipo novo (ex.: revenda de bobina lisa):
+      - componente MATERIAL = quantidade x custo medio do estoque
+      - componente MARGEM = % sobre material
+      - fechamento identico (imposto, comissao, arredondamento).
+
+10.3. Para servico avulso (ex.: so rebobinar material do cliente):
+      - componente MAQUINA = horas x valor hora
+      - componentes de embalagem (tubete/caixa) se aplicaveis.
+
+10.4. NUNCA criar planilha paralela para um caso novo. Se um caso
+      nao cabe no modelo, cria-se um NOVO TIPO DE COMPONENTE no
+      cadastro, mantendo calculo centralizado e auditavel.
+
+======================================================================
+11. CHECKLIST FINAL DO ORCAMENTISTA
+======================================================================
+
+  1. Cliente certo, do cadastro, com vendedor e comissao corretos?
+  2. Faca/medida confirmadas no mapa de facas? Faca nova cotada?
+  3. Papel na largura certa e com preco vigente? Ha estoque?
+  4. Cores, acabamento e maquina compativeis entre si?
+  5. Todas as faixas de quantidade que o cliente pediu?
+  6. Matriz: e realmente 1o pedido deste modelo?
+  7. Imposto correto para a UF/operacao do cliente?
+  8. Preco final acima do piso de margem? Se nao, aprovar excecao.
+  9. Proposta gerada mostra APENAS os dados comerciais?
+ 10. Validade, prazo de entrega e tolerancia +/-20% na proposta?
+
+======================================================================
+FIM DO DOCUMENTO
+======================================================================

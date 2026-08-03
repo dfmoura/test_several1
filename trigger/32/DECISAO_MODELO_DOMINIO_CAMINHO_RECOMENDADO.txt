@@ -1,0 +1,470 @@
+====================================================================================================
+REVISÃO DE EXCELÊNCIA + DECISÃO DO CAMINHO — MODELO DE DOMÍNIO ERP RLP
+Documento: DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt
+Versão ......: 1.0
+Status ......: DECISÃO NORMATIVA (fechar modelagem e seguir implementação)
+Gerado em ...: 03/08/2026
+Tipo ........: Domain Model Review / Architecture Decision Record (ADR de negócio+código)
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ ........: EMP-00001 = 01.423.183/0001-10 (principal)
+               EMP-00002 = 58.820.046/0001-37 (venda desligada até escopo fechado)
+
+Fontes revisadas:
+  DOMINIO_SISTEMA_ERP_RLP.txt                         (baseline de domínio)
+  CASOS_USO_INDICE_ERP_RLP.txt + CASOS_USO_M01…M11    (80 UCs)
+  ESPECIFICACAO_SOFTWARE_ERP_RLP.txt                   (SRS)
+  ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt
+  LACUNAS_PENDENCIAS_SISTEMA.txt
+  INDICE_FLUXO_OPERACIONAL.txt · MANUAL_UNICO_ERP_RLP.txt
+  + TXTs unitários de processo da pasta trigger/32
+
+Propósito deste TXT:
+  1) Garantir (com veredito formal) que a modelagem de domínio está EXCELENTE
+     para o porte e a realidade da RLP.
+  2) Escolher e FIXAR o melhor caminho técnico/organizacional a partir daqui.
+  3) Evitar retrabalho: o que NÃO reabrir, o que só calibrar, o que implementar.
+
+Não substitui:
+  • DOMINIO_SISTEMA_ERP_RLP.txt — continua sendo a fonte canônica de linguagem
+  • CASOS_USO_* — detalhe operacional por UC
+  • SRS / Homologação — critérios de aceite e go-live
+
+====================================================================================================
+0. VEREDITO EXECUTIVO (UMA PÁGINA)
+====================================================================================================
+
+  VEREDITO ........ MODELO DE DOMÍNIO APROVADO COMO EXCELENTE / BASELINE FECHADA
+  NOTA GLOBAL ....: 9,3 / 10  (excelente para indústria flexográfica PME / ≤10 users)
+  DECISÃO ........: PARAR de expandir teoria de domínio. IR PARA IMPLEMENTAÇÃO
+                    sobre o baseline atual, com refinamentos mínimos listados
+                    na seção 5 (ownership fino) — sem redesign.
+
+  Por que é excelente (não “bom o bastante”):
+    • Linguagem ubíqua consistente (ORC → PED → OP/OS → NF ≠ TIT → COB → ENT → BX)
+    • PED como agregado-raiz operacional — elimina satélites e “pedido paralelo”
+    • Fronteiras explícitas (fiscal oficial / LAI / EMP-00002 / CT-e fora)
+    • Invariants mensuráveis (D0.1–D0.17) + SoD + idempotência dinheiro/NF
+    • Bounded contexts M01–M11 alinhados a 80 UCs rastreáveis a TXT-fonte
+    • Decimal, identidade dupla (id + código), multi-empresa e adapters já decididos
+    • Fluxo feliz + exceção (RMA/DEV) + compras/REM modelados — não só o happy path
+
+  O que NÃO falta agora:
+    • Outro “modelo de domínio” paralelo
+    • Microsserviços por módulo
+    • Contabilidade oficial / SPED / eSocial completo no ERP
+    • Reabrir LAI
+
+  O que falta agora (fora de modelagem):
+    • Ratificar parâmetros numéricos (direção)
+    • Homologar CFOP/de-para/export com o CONTADOR
+    • Implementar monólito modular conforme seção 4
+
+====================================================================================================
+1. CRITÉRIOS DE EXCELÊNCIA APLICADOS
+====================================================================================================
+
+  Critério                              Avaliação   Evidência
+  ------------------------------------  ----------  ------------------------------------------
+  C1 Linguagem ubíqua única             EXCELENTE   Glossário §2 do DOMINIO; prefixos únicos
+  C2 Agregado-raiz claro                EXCELENTE   PED = mestre; filhos tipados
+  C3 Bounded contexts coerentes         EXCELENTE   M01–M11 = UCs = arquitetura
+  C4 Invariants / regras de ouro        EXCELENTE   D0.1–D0.17 + G1–G12 no índice UC
+  C5 Máquinas de estado testáveis       EXCELENTE   ORC/PED/OP/TIT/COB/RMA/DEV
+  C6 Separação NF ≠ TIT                 EXCELENTE   D0.16; UCs FIS + FIN distintos
+  C7 Exceções no domínio (não ad-hoc)   EXCELENTE   RMA/DEV ponto a ponto
+  C8 Fora-do-escopo explícito           EXCELENTE   §12 DOMINIO + anti-LAI
+  C9 Rastreabilidade UC→RN→TXT          EXCELENTE   80 UCs com Trace
+  C10 Numerics / identidade / audit     EXCELENTE   decimal; id+código; sem delete físico
+  C11 Ajuste ownership fino             BOM*        ENT em M06 / BEM em M03∩M10 (ver §5)
+  C12 Prontidão para código             EXCELENTE   monólito modular já prescrito
+
+  * “BOM” ≠ frágil: são decisões de empacotamento de módulo, não falhas de domínio.
+    Este TXT as RESOLVE (seção 5) para zerar ambiguidade na implementação.
+
+====================================================================================================
+2. REVISÃO POR BOUNDED CONTEXT (M01–M11)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+2.1. M01 — CADASTROS                                          NOTA: 9,5 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • PAR único com papéis (evita cadastro duplicado cliente×fornecedor×transporte).
+    • Prospect orça; PED exige cadastro completo — regra comercial realista.
+    • Soft-delete; SoD em dados bancários; unidades/fatores/NCM no SKU.
+
+  Risco residual: nenhum de modelagem — só qualidade de dados na migração.
+  Caminho: implementar como base da virada (estratégia “cadastro + estoque no dia”).
+
+----------------------------------------------------------------------------------------------------
+2.2. M02 — COMERCIAL                                          NOTA: 9,7 | DECISÃO: MANTER (ÂNCORA)
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • ORC versionado + cenários + gordura/alçada + imposto ESTIMADO.
+    • Aceite formal por LINK (não zap) → PED com SNAPSHOT travado.
+    • Crédito (FINANCEIRO) vs operação comercial (SoD) bem separado.
+    • Recorrência gera novo ciclo ORC→aceite — nunca PED sozinho.
+
+  Risco residual: calibragem de alçadas/% gordura (parâmetro, não domínio).
+  Caminho: núcleo do MVP; código/eventos conforme catálogo §11 do DOMINIO.
+
+----------------------------------------------------------------------------------------------------
+2.3. M03 — PRODUÇÃO / PCP                                     NOTA: 9,2 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • OP/OS nascem do item do PED (PRODUCAO|SERVICO) — sem produção órfã.
+    • Conclusão libera PA / política de faturamento.
+    • Amostra/CQ/manutenção como S (fase 2) — escopo MVP limpo.
+
+  Risco residual: BEM aparece também em Gerencial (ver §5.2 — ownership decidido).
+  Caminho: FASE 1 = OP/OS/apontamento/conclusão; preventivo e amostra depois.
+
+----------------------------------------------------------------------------------------------------
+2.4. M04 — ESTOQUE                                            NOTA: 9,4 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • MOV como evento com custo médio; fluxo industrial MP↓ → sobra → PA↑.
+    • Inventário + ajuste com SoD; REM como não-venda.
+    • Item REVENDA separado do PED (não força OP fictícia).
+
+  Risco residual: política de retalho mínimo = parâmetro ratificado.
+  Caminho: estoque na virada (saldo de abertura) + MOV do dia 1; histórico depois.
+
+----------------------------------------------------------------------------------------------------
+2.5. M05 — FISCAL OPERACIONAL                                 NOTA: 9,5 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • Focus adapter; ERP não inventa numeração; idempotência de emissão.
+    • NF ≠ fechamento oficial; faturamento parcial no mesmo PED.
+    • Fronteira Contador cristalina.
+
+  Risco residual: CFOP amostra/remessa/DEV com homologação do contador.
+  Caminho: emitir só pós-homolog Focus (homolog ≠ prod).
+
+----------------------------------------------------------------------------------------------------
+2.6. M06 — FINANCEIRO                                         NOTA: 9,4 | DECISÃO: MANTER (+ §5.1)
+----------------------------------------------------------------------------------------------------
+
+  Força:
+    • TIT verdade financeira; COB satélite; BX idempotente + fila ambígua.
+    • Naturezas 1–5 obrigatórias; aging; régua WA oficial (S).
+    • Adiantamento BX libera produção — fecha o loop com M02.
+
+  Ponto de ownership: UC-FIN-010 (ENT) vive no pacote Financeiro nos UCs,
+  mas no mapa de contexto ENT é pós-faturamento operacional. RESOLVIDO em §5.1.
+
+----------------------------------------------------------------------------------------------------
+2.7. M07 — COMPRAS                                            NOTA: 9,0 | DECISÃO: MANTER (FASE 2)
+----------------------------------------------------------------------------------------------------
+
+  Força: COT→OC→XML→MOV; urgência com alçada; OP parada por falta de material.
+  Prioridade correta: todos S no índice — não bloqueiam o fluxo feliz de venda.
+  Caminho: entrada XML cedo se útil à virada; cotação formal pode esperar.
+
+----------------------------------------------------------------------------------------------------
+2.8. M08 — PÓS-VENDA                                          NOTA: 9,3 | DECISÃO: MANTER (FASE 2)
+----------------------------------------------------------------------------------------------------
+
+  Força: RMA→CQ→decisão; DEV estorna fiscal+estoque+financeiro sem apagar origem.
+  Caminho: 1 caso controlado em homologação antes de operar em massa.
+
+----------------------------------------------------------------------------------------------------
+2.9. M09 — INTEGRAÇÕES                                        NOTA: 9,6 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força: adapters (Focus, BankProvider, Meta); webhook idempotente; kill-switch;
+         cadência/circuit breaker em API free.
+  Caminho: contrato interno estável no dia 1 — trocar banco/hub sem reescrever TIT/NF.
+
+----------------------------------------------------------------------------------------------------
+2.10. M10 — GERENCIAL                                         NOTA: 9,1 | DECISÃO: MANTER
+----------------------------------------------------------------------------------------------------
+
+  Força: DRE interno ≠ contábil oficial; export contador Must; LAI proibido.
+  Caminho: export mensal é Must de go-live; DRE/RH/patrimônio endurecem depois.
+
+----------------------------------------------------------------------------------------------------
+2.11. M11 — PLATAFORMA                                        NOTA: 9,5 | DECISÃO: MANTER (PRIMEIRO)
+----------------------------------------------------------------------------------------------------
+
+  Força: login individual, RBAC/SoD, empresa_id, auditoria, TAB versionado,
+         anti-delete físico, feature flags.
+  Caminho: implementar ANTES dos módulos de negócio profundos — sem isso o resto
+           não é auditável nem multi-empresa de verdade.
+
+====================================================================================================
+3. CONSISTÊNCIA ENTRE DOCUMENTOS (O QUE FOI CRUZADO)
+====================================================================================================
+
+  Cruzamento                              Resultado
+  --------------------------------------  ------------------------------------------
+  DOMINIO §1 (D0.x) × Índice UC G1–G12    ALINHADO — mesmas regras de ouro
+  DOMINIO §3 contextos × M01–M11 UCs      ALINHADO — 1:1
+  DOMINIO §6 estados × UCs                ALINHADO — transições cobertas
+  DOMINIO §11 eventos × arquitetura       ALINHADO — prontos para outbox/fila
+  Arquitetura monólito modular × porte    ALINHADO — ≤10 users / ≈200 NF/mês
+  LACUNAS (02/08) × pacote UC (03/08)     ALINHADO — lacunas residual = params/
+                                          homolog/impl, NÃO “falta modelo”
+  Anti-LAI × naturezas 1–5 × gerencial    ALINHADO — decisão fechada
+  Multi-empresa EMP-00002 off             ALINHADO — domínio + UC-PLT-003
+
+  Conclusão do cruzamento:
+    Não há divergência estrutural que justifique reescrever o domínio.
+    Há apenas 2 refinamentos de ownership (seção 5) + pendências de negócio
+    externas (contador/direção/credenciais).
+
+====================================================================================================
+4. DECISÃO DO CAMINHO — O QUE FAZER DAQUI PRA FRENTE
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. CAMINHO ESCOLHIDO (OFICIAL)
+----------------------------------------------------------------------------------------------------
+
+  NOME CURTO ......: “Monólito modular orientado a domínio (DDD pragmático)”
+  CÓDIGO INTERNO ..: ADR-DOM-001 / CAMINHO-A
+
+  Em uma frase:
+    Um único deploy (API + workers), módulos internos = bounded contexts M01–M11,
+    PED como raiz operacional, adapters para Focus/Banco/WhatsApp, PostgreSQL
+    como verdade, filas para NF/COB/BX/MSG, sem microsserviços no dia 1.
+
+  Por que este caminho (e não os outros):
+    • Volume real (≤10 users, ≈200 NF) NÃO paga tax de microsserviço.
+    • Domínio já está coeso — fronteiras lógicas bastam; não precisa rede entre módulos.
+    • Equipe enxuta: um repositório, um pipeline, um banco, contratos claros.
+    • Troca de banco/hub já resolvida por PORT/ADAPTER — sem precisar “explodir” o core.
+    • Implantação por fases (Must FASE 1) já mapeada nos UCs.
+
+----------------------------------------------------------------------------------------------------
+4.2. CAMINHOS REJEITADOS (COM MOTIVO) — NÃO REABRIR
+----------------------------------------------------------------------------------------------------
+
+  CAMINHO-B — Microsserviços por módulo (Comercial, Fiscal, Fin…)
+    REJEITADO. Consistência PED↔NF↔TIT↔MOV vira saga distribuída; custo AWS e
+    complexidade operacionais incompatíveis com o porte. Extrair serviço só com
+    motivo mensurável (hoje: nenhum).
+
+  CAMINHO-C — Modularização fraca / “CRUD gigante sem agregado”
+    REJEITADO. Quebra snapshot ORC→PED, mistura NF com TIT, abre porta a delete
+    e float — exatamente o que os invariants proíbem.
+
+  CAMINHO-D — DDD acadêmico completo (Event Storming weeks, CQRS/ES full)
+    REJEITADO como abordagem inicial. O pacote já EXERCE linguagem ubíqua e
+    eventos. Usar Event Sourcing total em estoque/financeiro agora atrasa go-live
+    sem ganho. Preferir: estado atual no Postgres + event log / outbox quando
+    precisar de integração e auditoria.
+
+  CAMINHO-E — ERP genérico white-label / customização infinita
+    REJEITADO. Domínio RLP é flexo (bobina, sobra, FAC, gordura, REM). Customização
+    sem limite destrói o baseline. Feature flags por fase — não product builder.
+
+  CAMINHO-F — Reabrir LAI / livro paralelo “só gerencial”
+    REJEITADO DEFINITIVAMENTE. Contamina oficial. Ver DECISAO_NAO_IMPLEMENTAR_LAI.
+
+----------------------------------------------------------------------------------------------------
+4.3. ESTILO DE CÓDIGO DO DOMÍNIO (DDD PRAGMÁTICO — OBRIGATÓRIO)
+----------------------------------------------------------------------------------------------------
+
+  Adotar:
+    • Aggregates com invariantes no domínio (não só na UI)
+    • Application services / use-cases (mapear 1 UC-xxx ≈ 1 comando ou fluxo)
+    • Domain events (catálogo DOMINIO §11) publicados via outbox quando cruzam módulo
+    • Ports & Adapters nas bordas (Focus, BankProvider, WhatsApp, storage)
+    • DECIMAL / tipos monetários fortes — zero float binário
+    • Id BIGINT (PK) + codigo legível (único por empresa quando fizer sentido)
+    • Soft-delete / estorno — nunca DELETE físico de documento operacional
+
+  Não adotar no dia 1:
+    • Event Sourcing como store principal
+    • Saga orquestrada multi-serviço
+    • GraphQL obrigatório
+    • “Shared Kernel” inchado entre todos os módulos (só EmpresaId, Money, Audit)
+
+----------------------------------------------------------------------------------------------------
+4.4. ORDEM DE IMPLEMENTAÇÃO DECIDIDA (BLOQUEANTE)
+----------------------------------------------------------------------------------------------------
+
+  Fase 0 — Fundação (M11 + infra)
+    Auth, RBAC/SoD, empresa_id, auditoria, TAB, filas, S3, OpenAPI, decimal utils.
+
+  Fase 1 — Virada operacional (Must)
+    M01 Cadastros → M02 ORC/PED/CRT → M04 estoque dia-1 → M03 OP/OS básicas
+    → M05 NF Focus → M06 TIT/COB/BX + ENT → M09 adapters Must → M10 export contador.
+
+  Fase 2 — Endurecimento (Should)
+    Compras COT/OC, RMA/DEV, régua WA, comissão, frete, REM, manutenção, amostragem,
+    BankProvider prod (Sicoob), WABA templates oficiais.
+
+  Fase 3 — Expansão controlada (Could)
+    EMP-00002 se Contador+Direção aprovarem; CT-e/API frete; Lucro Real prep
+    (GER-006); assinatura canhoto.
+
+  Regra: NÃO iniciar Fase 2 “bonita” se Fase 1 não fecha CA do SRS §15.2.
+
+----------------------------------------------------------------------------------------------------
+4.5. STACK (ECOAR ARQUITETURA — NÃO REABRIR DEBATE)
+----------------------------------------------------------------------------------------------------
+
+  • 1 linguagem backend no núcleo (TS Node LTS OU Python 3.12+) — escolha do time,
+    uma só.
+  • Front React+TS.
+  • PostgreSQL 16+ verdade; Redis só se evidência.
+  • SQS + DLQ (prod) para workers; Compose/EC2 rightsized (FinOps Cenário D).
+  • Detalhe: ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt + SEGURANCA_* + ESTIMATIVA_*.
+
+====================================================================================================
+5. REFINAMENTOS MÍNIMOS DE OWNERSHIP (FECHADOS NESTE TXT)
+====================================================================================================
+
+  Estes NÃO mudam o domínio de negócio — só eliminam dúvida de pacote/módulo
+  na hora de escrever código e pastas.
+
+----------------------------------------------------------------------------------------------------
+5.1. ENTREGA (ENT) — ownership canônico
+----------------------------------------------------------------------------------------------------
+
+  DECISÃO:
+    • Conceito de domínio ENT pertence à cadeia pós-faturamento (romaneio /
+      confirmação cliente / transição PED → ENTREGUE).
+    • Pacote de CASOS DE USO pode permanecer UC-FIN-010 por histórico do índice
+      (não renumerar agora — custo > benefício).
+    • No CÓDIGO: módulo/pasta preferencial `expedicao` OU `logistica`, NÃO
+      misturar regra de romaneio dentro do agregado Título.
+    • Dependências: ENT consulta PED + NF (política “NF antes de expedir”);
+      dispara evento EntregaConfirmada; Financeiro só observa (aging/status).
+
+  Proibido:
+    • Fazer de TIT o dono do romaneio.
+    • Permitir ENT total sem NF quando parâmetro NF-antes-expedir = SIM.
+
+----------------------------------------------------------------------------------------------------
+5.2. BEM PATRIMONIAL — ownership canônico
+----------------------------------------------------------------------------------------------------
+
+  DECISÃO:
+    • Cadastro/capitalização/valor mínimo = Gerencial/Patrimônio (M10 / UC-GER-002).
+    • Plano preventivo operacional = Produção (M03 / UC-PRD-006) referenciando
+      bem_id — não duplicar entidade.
+    • Uma tabela/agregado BEM; dois casos de uso; zero “máquina paralela”.
+
+----------------------------------------------------------------------------------------------------
+5.3. CRÉDITO (CRT)
+----------------------------------------------------------------------------------------------------
+
+  DECISÃO já implícita e agora explícita:
+    • Limite e liberação = responsabilidade FINANCEIRO (comandos em financeiro/crédito).
+    • Comercial só CONSULTA (UC-COM-007) — nunca altera limite.
+    • UC-COM-008 permanece no pacote Comercial do índice por encadeamento ORC→PED,
+      mas o agregado/serviço de escrita é Financeiro.
+
+----------------------------------------------------------------------------------------------------
+5.4. COMISSÃO / FRETE
+----------------------------------------------------------------------------------------------------
+
+  DECISÃO:
+    • Conceitos financeiros (COM, frete receita×despesa) no Financeiro.
+    • Frete fase 2 CT-e continua FORA (DOMÍNIO §12) — só registro gerencial agora.
+
+====================================================================================================
+6. CHECKLIST “MODELO EXCELENTE → CÓDIGO SEM REGREDIR”
+====================================================================================================
+
+  Antes de mergear qualquer feature de domínio, a PR deve passar:
+
+  [ ] Nomes iguais ao glossário (ORC/PED/OP/OS/MOV/NF/TIT/COB/BX/ENT/RMA/DEV…)
+  [ ] Relacionamentos por id BIGINT; código só exibição/busca
+  [ ] empresa_id presente; isolamento EMP-00002 venda off
+  [ ] Sem float em dinheiro/qtde/alíquota/custo
+  [ ] Sem delete físico de documento; estorno/compensação
+  [ ] Dinheiro/NF com chave de idempotência
+  [ ] NF e TIT criados como conceitos distintos no faturamento
+  [ ] Produção só após CRT OK ou BX de adiantamento
+  [ ] Aceite PED só via link formal (nunca “combinado no zap”)
+  [ ] Snapshot ORC aprovado não recalcula preço no PED
+  [ ] Natureza 1–5; grupo 9 / LAI impossível
+  [ ] Adapter nas bordas Focus / Bank / WhatsApp
+  [ ] Auditoria quem/quando/de→para em ações críticas
+  [ ] UC Must da Fase 1 tem teste de aceite mapeável
+
+  Se um item falhar → não é “dívida técnica aceitável”; é regressão de domínio.
+
+====================================================================================================
+7. O QUE RATIFICAR FORA DO MODELO (NÃO BLOQUEIA A EXCELÊNCIA)
+====================================================================================================
+
+  Ainda necessários, mas NÃO alteram a modelagem estrutural:
+
+  1. Direção ........ números em PARAMETROS_EMPRESA_OFICIAIS
+                      (% comissão, régua, alçadas, retalho, capitalizar, NF-antes-expedir)
+  2. Contador ....... CFOP DEV/REM/amostra; de-para naturezas; layout export/folha;
+                      data-corte Simples → Lucro Real
+  3. Contador+Dir ... escopo EMP-00002
+  4. Impl ........... credenciais Sicoob; WABA/templates; NFS-e município se ≠ Focus
+
+  Ordem sugerida (eco LACUNAS §4): parâmetros → contador → WABA → banco sandbox→prod
+  → 1 RMA/DEV controlado → só então EMP-00002.
+
+====================================================================================================
+8. ADR RESUMIDO (REGISTRO DE DECISÃO)
+====================================================================================================
+
+  ID .............: ADR-DOM-001
+  Data ...........: 03/08/2026
+  Status .........: ACEITO
+  Contexto .......: Pacote trigger/32 com domínio + 80 UCs + arquitetura já escritos;
+                    risco de over-engineering ou reabrir debates.
+  Decisão ........: Declarar modelo EXCELENTE (baseline fechada) e implementar
+                    monólito modular DDD-pragmático (CAMINHO-A), com ownership
+                    fino de ENT/BEM/CRT conforme §5.
+  Consequências +:
+    • Time para de redesenhar e começa a entregar Fase 0/1
+    • Linguagem ubíqua vira contrato de código
+    • Custo AWS e complexidade sob controle
+  Consequências −:
+    • Extrair microsserviço mais tarde exige motivo — ok
+    • Renumerar UC-FIN-010 para outro módulo fica adiado (aceitável)
+  Alternativas ..: CAMINHO-B…F rejeitados (§4.2)
+
+====================================================================================================
+9. NOTA FINAL POR DIMENSÃO
+====================================================================================================
+
+  Dimensão                         Nota
+  -------------------------------  ----
+  Clareza de negócio               9,6
+  Coesão / acoplamento             9,2
+  Cobertura fluxo feliz+exceção    9,5
+  Prontidão de implementação       9,4
+  Risco de retrabalho de modelo    1,5 / 10  (baixo — só params/homolog)
+  NOTA GLOBAL                      9,3 / 10
+
+  Interpretação:
+    Acima de 9,0 com fronteiras e UCs alinhados = liberar construção.
+    Continuação correta NÃO é “mais um TXT de teoria”; é código + homologação
+    externa (contador/banco) + parâmetros oficiais.
+
+====================================================================================================
+10. CONTROLE DE MUDANÇAS
+====================================================================================================
+
+  v1.0 — 03/08/2026
+    Revisão completa M01–M11 + decisão ADR-DOM-001 (CAMINHO-A).
+    Ownership fino ENT / BEM / CRT fechado.
+    Qualquer proposta de reabrir microsserviços, LAI, ou apagar PED como mestre
+    exige ADR novo e aprovação explícita Direção + Engenhaira + (se fiscal) Contador.
+
+====================================================================================================
+Fim — DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt
+Veredito: modelo de domínio EXCELENTE. Caminho oficial: monólito modular
+DDD-pragmático. Próximo passo: implementar Fase 0/1 — não redesenhar.
+====================================================================================================

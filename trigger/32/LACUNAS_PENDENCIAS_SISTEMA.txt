@@ -1,0 +1,98 @@
+====================================================================================================
+LACUNAS E PENDÊNCIAS — O QUE AINDA FALTA (ATUALIZADO APÓS PACOTE 02/08/2026)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real) | EMP-00002: 58.820.046/0001-37
+Base: conjunto de documentos da pasta trigger/32
+Gerado em: 01/08/2026 | Atualizado em: 02/08/2026
+====================================================================================================
+
+Backlog de desenho residual. Itens que TINHAM (DOC) na versão 01/08
+e já receberam TXT próprio saíram da lista de lacuna de especificação
+— restam calibragem (número), homologação (contador/banco) ou IMPL.
+
+----------------------------------------------------------------------------------------------------
+1. JÁ COBERTO EM TXT (NÃO É LACUNA DE ESPECIFICAÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  Fluxo feliz: orçamento → pedido → produção → estoque → conclusão →
+  faturamento → entrega → recebimento; naturezas; patrimônio; contábil
+  sem fechamento; RH pagamento; codificação; usuários; Focus/estratégia.
+
+  Pacote exceções/integrações (02/08/2026):
+    POS_VENDA_RMA_GARANTIA.txt
+    DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+    COMPRAS_COTACAO_URGENCIA.txt
+    INDUSTRIALIZACAO_EXTERNA_REMESSA.txt
+    COMISSOES_VENDEDORES_DETALHADO.txt
+    FRETE_TRANSPORTADORAS.txt
+    MANUTENCAO_PREVENTIVA_MAQUINAS.txt
+    QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt
+    AMOSTRAS_PROTOTIPOS.txt
+    INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+    INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt
+    MULTI_EMPRESA_CNPJS_E_LIVROS.txt
+    DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+    PARAMETROS_EMPRESA_OFICIAIS.txt
+    EXPORT_CONTADOR_FOLHA_LAYOUT.txt
+
+----------------------------------------------------------------------------------------------------
+2. PENDÊNCIAS RESIDUAIS (NÃO SÃO “FALTA DE TXT”)
+----------------------------------------------------------------------------------------------------
+
+2.1. (EMPRESA) Ratificar números em PARAMETROS_EMPRESA_OFICIAIS.txt
+     % comissão, régua D-x, alçadas, retalho mínimo, capitalizar bem,
+     NF antes de expedir = SIM.
+
+2.2. (CONTADOR) Homologar:
+     CFOP devolução / remessa / amostra; de-para naturezas;
+     layout EXPORT_CONTADOR_FOLHA_LAYOUT v1; import folha;
+     data-corte Simples → Lucro Real.
+
+2.3. (CONTADOR+DIREÇÃO) Fechar escopo do CNPJ 58.820.046/0001-37
+     (EMP-00002) — hoje desligado de venda no desenho.
+
+2.4. (FECHADO) LAI / livro paralelo no ERP — NÃO implementar.
+     Ver DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt. Anotações
+     informais, se existirem, ficam FORA do sistema.
+
+2.5. (IMPL) Credenciais Sicoob (BankProvider prod) — Inter só sandbox.
+2.6. (IMPL) WABA / BSP + templates Meta aprovados.
+2.7. (IMPL) NFS-e município se provedor ≠ Focus (quando serviço).
+2.8. (IMPL) Assinatura eletrônica de canhoto (opcional).
+2.9. (IMPL) CT-e / API transportadora (FRETE Fase 2).
+
+----------------------------------------------------------------------------------------------------
+3. RISCOS SE AS PENDÊNCIAS RESIDUAIS FOREM IGNORADAS
+----------------------------------------------------------------------------------------------------
+
+  * Parâmetro sem dono → briga comercial/financeiro
+  * Contador sem layout → fechamento lento
+  * EMP-00002 ligado sem parecer → risco fiscal/societário
+  * Implementar LAI “escondido” → contamina oficial (proibido)
+  * WhatsApp não oficial → banimento e zero auditoria
+  * Banco sem adapter → retrabalho ao sair do Inter/Sicoob
+
+----------------------------------------------------------------------------------------------------
+4. ORDEM SUGERIDA PÓS-DOCUMENTAÇÃO (IMPLANTAÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  1. Ratificar PARAMETROS_EMPRESA_OFICIAIS com a direção
+  2. Homologar export/folha com o escritório
+  3. Subir WABA oficial (templates ORC/NF/entrega/cobrança)
+  4. BankProvider Inter sandbox → depois Sicoob prod
+  5. Operar RMA/DEV na homologação com 1 caso real controlado
+  6. Só então discutir ativação EMP-00002
+  7. Nunca reabrir LAI no ERP (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP)
+
+----------------------------------------------------------------------------------------------------
+5. SÍNTESE
+----------------------------------------------------------------------------------------------------
+
+O fluxo feliz e o fluxo da exceção estão ESPECIFICADOS.
+O que falta agora é RATIFICAR números, HOMOLOGAR com contador/banco
+e IMPLEMENTAR — não escrever outro TXT de processo core.
+
+====================================================================================================
+Fim — LACUNAS_PENDENCIAS_SISTEMA.txt
+Especificação das lacunas de processo/integração: fechada em 02/08/2026.
+====================================================================================================

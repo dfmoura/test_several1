@@ -1,0 +1,1377 @@
+// ERP RLP — Fase 0 (M11 Plataforma)
+// Convenções: id BIGINT PK + codigo legível; empresa_id; soft-delete; sem float
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UsuarioStatus {
+  ATIVO
+  BLOQUEADO
+  INATIVO
+}
+
+enum ParametroStatusRatificacao {
+  PENDENTE_RATIFICACAO
+  RATIFICADO
+  FIXO
+}
+
+enum OutboxStatus {
+  PENDENTE
+  PUBLICADO
+  ERRO
+}
+
+model Empresa {
+  id                 BigInt    @id @default(autoincrement())
+  codigo             String    @unique @db.VarChar(20)
+  razaoSocial        String    @map("razao_social") @db.VarChar(200)
+  nomeFantasia       String?   @map("nome_fantasia") @db.VarChar(200)
+  cnpj               String    @unique @db.VarChar(14)
+  uf                 String    @db.Char(2)
+  regimeTributario   String    @default("SIMPLES_NACIONAL") @map("regime_tributario") @db.VarChar(40)
+  vendaAtiva         Boolean   @default(true) @map("venda_ativa")
+  estoqueAtivo       Boolean   @default(true) @map("estoque_ativo")
+  ativa              Boolean   @default(true)
+  criadoEm           DateTime  @default(now()) @map("criado_em")
+  atualizadoEm       DateTime  @updatedAt @map("atualizado_em")
+
+  usuariosEmpresas   UsuarioEmpresa[]
+  parametros         ParametroEmpresa[]
+  sessoes            Sessao[]
+  auditorias         AuditLog[]
+  parceiros          Parceiro[]
+  produtos           Produto[]
+  facas              Faca[]
+  sequencias         SequenciaCodigo[]
+  orcamentos         Orcamento[]
+  pedidos            Pedido[]
+  movimentosEstoque  MovimentoEstoque[]
+  saldosEstoque      SaldoEstoque[]
+  ordensProducao     OrdemProducao[]
+  ordensServico      OrdemServico[]
+  documentosFiscais  DocumentoFiscal[]
+  titulos            Titulo[]
+  entregas           Entrega[]
+  inventarios        Inventario[]
+  baixasAmbiguas     BaixaAmbigua[]
+  cotacoesCompra     CotacaoCompra[]
+  ordensCompra       OrdemCompra[]
+  nfeCompras         NfeCompraEntrada[]
+
+  @@map("empresa")
+}
+
+model Usuario {
+  id              BigInt         @id @default(autoincrement())
+  email           String         @unique @db.Citext
+  nome            String         @db.VarChar(160)
+  senhaHash       String         @map("senha_hash") @db.VarChar(255)
+  status          UsuarioStatus  @default(ATIVO)
+  mfaObrigatorio  Boolean        @default(false) @map("mfa_obrigatorio")
+  ultimoLoginEm   DateTime?      @map("ultimo_login_em")
+  falhasLogin     Int            @default(0) @map("falhas_login")
+  bloqueadoAte    DateTime?      @map("bloqueado_ate")
+  criadoEm        DateTime       @default(now()) @map("criado_em")
+  atualizadoEm    DateTime       @updatedAt @map("atualizado_em")
+  inativadoEm     DateTime?      @map("inativado_em")
+
+  perfis          UsuarioPerfil[]
+  empresas        UsuarioEmpresa[]
+  sessoes         Sessao[]
+  auditorias      AuditLog[]     @relation("AuditActor")
+
+  @@map("usuario")
+}
+
+model Perfil {
+  id          BigInt   @id @default(autoincrement())
+  codigo      String   @unique @db.VarChar(40)
+  nome        String   @db.VarChar(120)
+  descricao   String?  @db.VarChar(400)
+  sistema     Boolean  @default(true)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  permissoes  PerfilPermissao[]
+  usuarios    UsuarioPerfil[]
+  sodComoA    SodPar[] @relation("SodPerfilA")
+  sodComoB    SodPar[] @relation("SodPerfilB")
+
+  @@map("perfil")
+}
+
+model Permissao {
+  id          BigInt   @id @default(autoincrement())
+  codigo      String   @unique @db.VarChar(80)
+  modulo      String   @db.VarChar(40)
+  descricao   String   @db.VarChar(200)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  perfis      PerfilPermissao[]
+
+  @@map("permissao")
+}
+
+model PerfilPermissao {
+  perfilId     BigInt @map("perfil_id")
+  permissaoId  BigInt @map("permissao_id")
+
+  perfil       Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissao    Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+  @@id([perfilId, permissaoId])
+  @@map("perfil_permissao")
+}
+
+model UsuarioPerfil {
+  usuarioId BigInt @map("usuario_id")
+  perfilId  BigInt @map("perfil_id")
+
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  perfil    Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, perfilId])
+  @@map("usuario_perfil")
+}
+
+model UsuarioEmpresa {
+  usuarioId      BigInt  @map("usuario_id")
+  empresaId      BigInt  @map("empresa_id")
+  padrao         Boolean @default(false)
+  acessoAtivo    Boolean @default(true) @map("acesso_ativo")
+
+  usuario        Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa        Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, empresaId])
+  @@map("usuario_empresa")
+}
+
+/// Pares de perfis incompatíveis (SoD)
+model SodPar {
+  id          BigInt  @id @default(autoincrement())
+  perfilAId   BigInt  @map("perfil_a_id")
+  perfilBId   BigInt  @map("perfil_b_id")
+  motivo      String  @db.VarChar(400)
+  ativo       Boolean @default(true)
+
+  perfilA     Perfil  @relation("SodPerfilA", fields: [perfilAId], references: [id], onDelete: Cascade)
+  perfilB     Perfil  @relation("SodPerfilB", fields: [perfilBId], references: [id], onDelete: Cascade)
+
+  @@unique([perfilAId, perfilBId])
+  @@map("sod_par")
+}
+
+model Sessao {
+  id              BigInt   @id @default(autoincrement())
+  usuarioId       BigInt   @map("usuario_id")
+  empresaId       BigInt   @map("empresa_id")
+  tokenJti        String   @unique @map("token_jti") @db.VarChar(64)
+  ip              String?  @db.VarChar(64)
+  userAgent       String?  @map("user_agent") @db.VarChar(400)
+  criadaEm        DateTime @default(now()) @map("criada_em")
+  expiraEm        DateTime @map("expira_em")
+  revogadaEm      DateTime? @map("revogada_em")
+
+  usuario         Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa         Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, revogadaEm])
+  @@map("sessao")
+}
+
+model ParametroEmpresa {
+  id                   BigInt                     @id @default(autoincrement())
+  empresaId            BigInt                     @map("empresa_id")
+  chave                String                     @db.VarChar(80)
+  valor                String                     @db.Text
+  tipo                 String                     @default("STRING") @db.VarChar(20)
+  descricao            String?                    @db.VarChar(400)
+  statusRatificacao    ParametroStatusRatificacao @default(PENDENTE_RATIFICACAO) @map("status_ratificacao")
+  criadoEm             DateTime                   @default(now()) @map("criado_em")
+  atualizadoEm         DateTime                   @updatedAt @map("atualizado_em")
+
+  empresa              Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, chave])
+  @@map("parametro_empresa")
+}
+
+model AuditLog {
+  id            BigInt   @id @default(autoincrement())
+  ocorridoEm    DateTime @default(now()) @map("ocorrido_em")
+  empresaId     BigInt?  @map("empresa_id")
+  usuarioId     BigInt?  @map("usuario_id")
+  acao          String   @db.VarChar(80)
+  entidade      String   @db.VarChar(80)
+  entidadeId    String?  @map("entidade_id") @db.VarChar(64)
+  deJson        Json?    @map("de_json")
+  paraJson      Json?    @map("para_json")
+  ip            String?  @db.VarChar(64)
+  correlationId String?  @map("correlation_id") @db.VarChar(64)
+  sucesso       Boolean  @default(true)
+
+  empresa       Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  usuario       Usuario? @relation("AuditActor", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId, ocorridoEm])
+  @@index([entidade, entidadeId])
+  @@map("audit_log")
+}
+
+model OutboxEvent {
+  id            BigInt       @id @default(autoincrement())
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+  empresaId     BigInt?      @map("empresa_id")
+  tipo          String       @db.VarChar(120)
+  agregadoTipo  String       @map("agregado_tipo") @db.VarChar(80)
+  agregadoId    String       @map("agregado_id") @db.VarChar(64)
+  payload       Json
+  status        OutboxStatus @default(PENDENTE)
+  tentativas    Int          @default(0)
+  publicadoEm   DateTime?    @map("publicado_em")
+  ultimoErro    String?      @map("ultimo_erro") @db.Text
+  idempotencyKey String?     @unique @map("idempotency_key") @db.VarChar(120)
+
+  @@index([status, criadoEm])
+  @@map("outbox_event")
+}
+
+// =============================================================================
+// M01 — Cadastros
+// =============================================================================
+
+enum TipoPessoa {
+  PJ
+  PF
+  ESTRANGEIRO
+}
+
+enum SituacaoCadastro {
+  ATIVO
+  INATIVO
+  BLOQUEADO
+}
+
+enum IndIEDest {
+  CONTRIBUINTE // 1
+  ISENTO       // 2
+  NAO_CONTRIBUINTE // 9
+}
+
+enum TipoEnderecoParceiro {
+  FISCAL
+  ENTREGA
+  COBRANCA
+}
+
+enum FamiliaProduto {
+  MP
+  EMB
+  REV
+  PA
+  SVC
+}
+
+model SequenciaCodigo {
+  id         BigInt  @id @default(autoincrement())
+  empresaId  BigInt? @map("empresa_id")
+  prefixo    String  @db.VarChar(20)
+  proximo    BigInt  @default(1)
+  empresa    Empresa? @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, prefixo])
+  @@map("sequencia_codigo")
+}
+
+model Parceiro {
+  id                      BigInt            @id @default(autoincrement())
+  empresaId               BigInt            @map("empresa_id")
+  codigo                  String            @db.VarChar(20)
+  tipoPessoa              TipoPessoa        @default(PJ) @map("tipo_pessoa")
+  cnpjCpf                 String?           @map("cnpj_cpf") @db.VarChar(14)
+  razaoSocial             String            @map("razao_social") @db.VarChar(200)
+  nomeFantasia            String?           @map("nome_fantasia") @db.VarChar(200)
+  inscricaoEstadual       String?           @map("inscricao_estadual") @db.VarChar(30)
+  inscricaoMunicipal      String?           @map("inscricao_municipal") @db.VarChar(30)
+  indIEDest               IndIEDest?        @map("ind_ie_dest")
+  situacao                SituacaoCadastro  @default(ATIVO)
+  ehProspect              Boolean           @default(false) @map("eh_prospect")
+  cadastroFiscalCompleto  Boolean           @default(false) @map("cadastro_fiscal_completo")
+  papelCliente            Boolean           @default(false) @map("papel_cliente")
+  papelFornecedor         Boolean           @default(false) @map("papel_fornecedor")
+  papelTransportadora     Boolean           @default(false) @map("papel_transportadora")
+  papelColaborador        Boolean           @default(false) @map("papel_colaborador")
+  papelBanco              Boolean           @default(false) @map("papel_banco")
+  papelContador           Boolean           @default(false) @map("papel_contador")
+  condicaoPagamentoPadrao String?           @map("condicao_pagamento_padrao") @db.VarChar(80)
+  formaPagamentoPreferida String?           @map("forma_pagamento_preferida") @db.VarChar(40)
+  observacoes             String?           @db.Text
+  motivoBloqueio          String?           @map("motivo_bloqueio") @db.VarChar(400)
+  criadoEm                DateTime          @default(now()) @map("criado_em")
+  atualizadoEm            DateTime          @updatedAt @map("atualizado_em")
+  inativadoEm             DateTime?         @map("inativado_em")
+
+  empresa                 Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  enderecos               ParceiroEndereco[]
+  contatos                ParceiroContato[]
+  dadosBancarios          ParceiroDadoBancario[]
+  facas                   Faca[]
+  orcamentos              Orcamento[]
+  pedidos                 Pedido[]
+  limiteCredito           LimiteCreditoParceiro?
+  titulos                 Titulo[]
+  propostasCotacao        CotacaoProposta[]
+  ordensCompra            OrdemCompra[]
+  nfeCompras              NfeCompraEntrada[]
+
+  @@unique([empresaId, codigo])
+  @@unique([empresaId, cnpjCpf])
+  @@index([empresaId, razaoSocial])
+  @@index([empresaId, situacao])
+  @@map("parceiro")
+}
+
+model ParceiroEndereco {
+  id          BigInt               @id @default(autoincrement())
+  parceiroId  BigInt               @map("parceiro_id")
+  tipo        TipoEnderecoParceiro @default(FISCAL)
+  logradouro  String               @db.VarChar(200)
+  numero      String               @db.VarChar(20)
+  complemento String?              @db.VarChar(80)
+  bairro      String               @db.VarChar(80)
+  municipio   String               @db.VarChar(80)
+  codigoIbge  String?              @map("codigo_ibge") @db.VarChar(7)
+  uf          String               @db.Char(2)
+  cep         String               @db.VarChar(8)
+  principal   Boolean              @default(true)
+  criadoEm    DateTime             @default(now()) @map("criado_em")
+
+  parceiro    Parceiro             @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([parceiroId])
+  @@map("parceiro_endereco")
+}
+
+model ParceiroContato {
+  id          BigInt   @id @default(autoincrement())
+  parceiroId  BigInt   @map("parceiro_id")
+  nome        String   @db.VarChar(120)
+  funcao      String?  @db.VarChar(80)
+  telefone    String?  @db.VarChar(30)
+  whatsapp    String?  @db.VarChar(30)
+  email       String?  @db.VarChar(160)
+  emailXml    String?  @map("email_xml") @db.VarChar(160)
+  principal   Boolean  @default(false)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  parceiro    Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([parceiroId])
+  @@map("parceiro_contato")
+}
+
+model ParceiroDadoBancario {
+  id             BigInt   @id @default(autoincrement())
+  parceiroId     BigInt   @map("parceiro_id")
+  bancoCodigo    String   @map("banco_codigo") @db.VarChar(10)
+  bancoNome      String?  @map("banco_nome") @db.VarChar(120)
+  agencia        String   @db.VarChar(20)
+  conta          String   @db.VarChar(30)
+  tipoConta      String   @default("CORRENTE") @map("tipo_conta") @db.VarChar(20)
+  pixChave       String?  @map("pix_chave") @db.VarChar(120)
+  pixTipo        String?  @map("pix_tipo") @db.VarChar(20)
+  ativo          Boolean  @default(true)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+
+  parceiro       Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@index([parceiroId])
+  @@map("parceiro_dado_bancario")
+}
+
+model UnidadeMedida {
+  id             BigInt   @id @default(autoincrement())
+  codigo         String   @unique @db.VarChar(10)
+  nome           String   @db.VarChar(80)
+  casasDecimais  Int      @default(4) @map("casas_decimais")
+  ativo          Boolean  @default(true)
+  criadoEm       DateTime @default(now()) @map("criado_em")
+
+  produtosEstoque    Produto[]         @relation("ProdutoUnidadeEstoque")
+  produtosComercial  Produto[]         @relation("ProdutoUnidadeComercial")
+  fatoresDe          FatorConversao[]  @relation("FatorDe")
+  fatoresPara        FatorConversao[]  @relation("FatorPara")
+
+  @@map("unidade_medida")
+}
+
+model Produto {
+  id                 BigInt           @id @default(autoincrement())
+  empresaId          BigInt           @map("empresa_id")
+  codigo             String           @db.VarChar(40)
+  familia            FamiliaProduto
+  descricao          String           @db.VarChar(240)
+  ncm                String?          @db.VarChar(8)
+  cest               String?          @db.VarChar(10)
+  origem             String           @default("0") @db.VarChar(1)
+  unidadeEstoqueId   BigInt           @map("unidade_estoque_id")
+  unidadeComercialId BigInt           @map("unidade_comercial_id")
+  controlaEstoque    Boolean          @default(true) @map("controla_estoque")
+  mascaraJson        Json?            @map("mascara_json")
+  csosnPadrao        String?          @map("csosn_padrao") @db.VarChar(4)
+  cfopPadraoDentro   String?          @map("cfop_padrao_dentro") @db.VarChar(4)
+  cfopPadraoFora     String?          @map("cfop_padrao_fora") @db.VarChar(4)
+  precoTabela        Decimal?         @map("preco_tabela") @db.Decimal(18, 4)
+  situacao           SituacaoCadastro @default(ATIVO)
+  observacoes        String?          @db.Text
+  criadoEm           DateTime         @default(now()) @map("criado_em")
+  atualizadoEm       DateTime         @updatedAt @map("atualizado_em")
+  inativadoEm        DateTime?        @map("inativado_em")
+
+  empresa            Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  unidadeEstoque     UnidadeMedida    @relation("ProdutoUnidadeEstoque", fields: [unidadeEstoqueId], references: [id])
+  unidadeComercial   UnidadeMedida    @relation("ProdutoUnidadeComercial", fields: [unidadeComercialId], references: [id])
+  fatores            FatorConversao[]
+  movimentosEstoque  MovimentoEstoque[]
+  saldosEstoque      SaldoEstoque[]
+  inventarioItens    InventarioItem[]
+  cotacaoItens       CotacaoCompraItem[]
+  ordemCompraItens   OrdemCompraItem[]
+  nfeCompraItens     NfeCompraItem[]
+  opsParadasMaterial OrdemProducao[]     @relation("OpMaterialFalta")
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, familia, situacao])
+  @@index([empresaId, descricao])
+  @@map("produto")
+}
+
+model FatorConversao {
+  id              BigInt    @id @default(autoincrement())
+  produtoId       BigInt    @map("produto_id")
+  unidadeDeId     BigInt    @map("unidade_de_id")
+  unidadeParaId   BigInt    @map("unidade_para_id")
+  fator           Decimal   @db.Decimal(24, 10)
+  vigenciaInicio  DateTime  @default(now()) @map("vigencia_inicio")
+  vigenciaFim     DateTime? @map("vigencia_fim")
+  criadoEm        DateTime  @default(now()) @map("criado_em")
+
+  produto         Produto       @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  unidadeDe       UnidadeMedida @relation("FatorDe", fields: [unidadeDeId], references: [id])
+  unidadePara     UnidadeMedida @relation("FatorPara", fields: [unidadeParaId], references: [id])
+
+  @@index([produtoId, vigenciaInicio])
+  @@map("fator_conversao")
+}
+
+model Faca {
+  id                 BigInt           @id @default(autoincrement())
+  empresaId          BigInt           @map("empresa_id")
+  codigo             String           @db.VarChar(20)
+  descricao          String           @db.VarChar(200)
+  modeloRef          String?          @map("modelo_ref") @db.VarChar(120)
+  parceiroClienteId  BigInt?          @map("parceiro_cliente_id")
+  jaCobrado          Boolean          @default(false) @map("ja_cobrado")
+  situacao           SituacaoCadastro @default(ATIVO)
+  observacoes        String?          @db.Text
+  criadoEm           DateTime         @default(now()) @map("criado_em")
+  atualizadoEm       DateTime         @updatedAt @map("atualizado_em")
+  inativadoEm        DateTime?        @map("inativado_em")
+
+  empresa            Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  parceiroCliente    Parceiro?        @relation(fields: [parceiroClienteId], references: [id], onDelete: SetNull)
+  orcamentos         Orcamento[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, parceiroClienteId, modeloRef])
+  @@map("faca")
+}
+
+// =============================================================================
+// M02 — Comercial (ORC → aceite → PED)
+// =============================================================================
+
+enum OrcamentoStatus {
+  RASCUNHO
+  ENVIADO
+  APROVADO
+  RECUSADO
+  EXPIRADO
+  CANCELADO
+}
+
+enum PedidoStatus {
+  NOVO
+  AGUARDA_CREDITO
+  AGUARDA_ADIANTAMENTO
+  LIBERADO
+  EM_PRODUCAO
+  EM_SEPARACAO
+  FATURADO_PARCIAL
+  FATURADO
+  ENTREGUE
+  ENCERRADO
+  CANCELADO
+}
+
+enum TipoItemComercial {
+  PRODUCAO
+  SERVICO
+  REVENDA
+}
+
+enum AceiteAcao {
+  APROVAR
+  RECUSAR
+}
+
+model Orcamento {
+  id                    BigInt          @id @default(autoincrement())
+  empresaId             BigInt          @map("empresa_id")
+  codigo                String          @db.VarChar(30)
+  versao                Int             @default(1)
+  parceiroId            BigInt          @map("parceiro_id")
+  status                OrcamentoStatus @default(RASCUNHO)
+  condicaoPagamento     String?         @map("condicao_pagamento") @db.VarChar(80)
+  prazoDias             Int             @default(7) @map("prazo_dias")
+  observacoesCliente    String?         @map("observacoes_cliente") @db.Text
+  observacoesInternas   String?         @map("observacoes_internas") @db.Text
+  gorduraPct            Decimal         @default(0) @map("gordura_pct") @db.Decimal(8, 4)
+  descontoPct           Decimal         @default(0) @map("desconto_pct") @db.Decimal(8, 4)
+  subtotal              Decimal         @default(0) @db.Decimal(18, 2)
+  valorImpostoEstimado  Decimal         @default(0) @map("valor_imposto_estimado") @db.Decimal(18, 2)
+  valorTotal            Decimal         @default(0) @map("valor_total") @db.Decimal(18, 2)
+  snapshotParametros    Json?           @map("snapshot_parametros")
+  enviadoEm             DateTime?       @map("enviado_em")
+  aprovadoEm            DateTime?       @map("aprovado_em")
+  recusadoEm            DateTime?       @map("recusado_em")
+  criadoPorId           BigInt?         @map("criado_por_id")
+  criadoEm              DateTime        @default(now()) @map("criado_em")
+  atualizadoEm          DateTime        @updatedAt @map("atualizado_em")
+
+  empresa               Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  parceiro              Parceiro        @relation(fields: [parceiroId], references: [id], onDelete: Restrict)
+  itens                 OrcamentoItem[]
+  aceites               AceiteOrcamento[]
+  pedido                Pedido?
+  cenarios              OrcamentoCenario[]
+  facaId                BigInt?           @map("faca_id")
+  faca                  Faca?             @relation(fields: [facaId], references: [id], onDelete: SetNull)
+
+  @@unique([empresaId, codigo, versao])
+  @@index([empresaId, status])
+  @@index([empresaId, parceiroId])
+  @@map("orcamento")
+}
+
+model OrcamentoItem {
+  id                    BigInt            @id @default(autoincrement())
+  orcamentoId           BigInt            @map("orcamento_id")
+  sequencia             Int
+  produtoId             BigInt?           @map("produto_id")
+  produtoCodigo         String?           @map("produto_codigo") @db.VarChar(40)
+  descricao             String            @db.VarChar(240)
+  tipoItem              TipoItemComercial @map("tipo_item")
+  quantidade            Decimal           @db.Decimal(18, 4)
+  unidadeCodigo         String            @map("unidade_codigo") @db.VarChar(10)
+  precoUnitario         Decimal           @map("preco_unitario") @db.Decimal(18, 4)
+  descontoPct           Decimal           @default(0) @map("desconto_pct") @db.Decimal(8, 4)
+  valorTotal            Decimal           @map("valor_total") @db.Decimal(18, 2)
+  custoInternoUnitario  Decimal?          @map("custo_interno_unitario") @db.Decimal(18, 4)
+  specJson              Json?             @map("spec_json")
+  criadoEm              DateTime          @default(now()) @map("criado_em")
+
+  orcamento             Orcamento         @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+
+  @@unique([orcamentoId, sequencia])
+  @@map("orcamento_item")
+}
+
+model OrcamentoCenario {
+  id          BigInt   @id @default(autoincrement())
+  orcamentoId BigInt   @map("orcamento_id")
+  sequencia   Int
+  ativo       Boolean  @default(false)
+  label       String   @db.VarChar(120)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  orcamento   Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  itens       OrcamentoCenarioItem[]
+
+  @@unique([orcamentoId, sequencia])
+  @@index([orcamentoId, ativo])
+  @@map("orcamento_cenario")
+}
+
+model OrcamentoCenarioItem {
+  id            BigInt            @id @default(autoincrement())
+  cenarioId     BigInt            @map("cenario_id")
+  sequencia     Int
+  produtoId     BigInt?           @map("produto_id")
+  produtoCodigo String?           @map("produto_codigo") @db.VarChar(40)
+  descricao     String            @db.VarChar(240)
+  tipoItem      TipoItemComercial @map("tipo_item")
+  quantidade    Decimal           @db.Decimal(18, 4)
+  unidadeCodigo String            @map("unidade_codigo") @db.VarChar(10)
+  precoUnitario Decimal           @map("preco_unitario") @db.Decimal(18, 4)
+  descontoPct   Decimal           @default(0) @map("desconto_pct") @db.Decimal(8, 4)
+  valorTotal    Decimal           @map("valor_total") @db.Decimal(18, 2)
+
+  cenario       OrcamentoCenario  @relation(fields: [cenarioId], references: [id], onDelete: Cascade)
+
+  @@unique([cenarioId, sequencia])
+  @@map("orcamento_cenario_item")
+}
+
+model AceiteOrcamento {
+  id            BigInt      @id @default(autoincrement())
+  orcamentoId   BigInt      @map("orcamento_id")
+  token         String      @unique @db.VarChar(64)
+  expiraEm      DateTime    @map("expira_em")
+  usadoEm       DateTime?   @map("usado_em")
+  acao          AceiteAcao?
+  ip            String?     @db.VarChar(64)
+  userAgent     String?     @map("user_agent") @db.VarChar(400)
+  motivoRecusa  String?     @map("motivo_recusa") @db.VarChar(400)
+  criadoEm      DateTime    @default(now()) @map("criado_em")
+
+  orcamento     Orcamento   @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+
+  @@index([orcamentoId])
+  @@map("aceite_orcamento")
+}
+
+model Pedido {
+  id                    BigInt       @id @default(autoincrement())
+  empresaId             BigInt       @map("empresa_id")
+  codigo                String       @db.VarChar(30)
+  parceiroId            BigInt       @map("parceiro_id")
+  orcamentoId           BigInt       @unique @map("orcamento_id")
+  orcamentoCodigo       String       @map("orcamento_codigo") @db.VarChar(30)
+  orcamentoVersao       Int          @map("orcamento_versao")
+  status                PedidoStatus @default(NOVO)
+  condicaoPagamento     String?      @map("condicao_pagamento") @db.VarChar(80)
+  prazoDias             Int          @map("prazo_dias")
+  subtotal              Decimal      @db.Decimal(18, 2)
+  valorImpostoEstimado  Decimal      @map("valor_imposto_estimado") @db.Decimal(18, 2)
+  valorTotal            Decimal      @map("valor_total") @db.Decimal(18, 2)
+  snapshotJson          Json         @map("snapshot_json")
+  creditoLiberadoEm     DateTime?    @map("credito_liberado_em")
+  creditoLiberadoPorId  BigInt?      @map("credito_liberado_por_id")
+  creditoMotivo         String?      @map("credito_motivo") @db.VarChar(400)
+  criadoEm              DateTime     @default(now()) @map("criado_em")
+  atualizadoEm          DateTime     @updatedAt @map("atualizado_em")
+
+  empresa               Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  parceiro              Parceiro     @relation(fields: [parceiroId], references: [id], onDelete: Restrict)
+  orcamento             Orcamento    @relation(fields: [orcamentoId], references: [id], onDelete: Restrict)
+  itens                 PedidoItem[]
+  movimentosEstoque     MovimentoEstoque[]
+  ordensProducao        OrdemProducao[]
+  ordensServico         OrdemServico[]
+  documentosFiscais     DocumentoFiscal[]
+  titulos               Titulo[]
+  entregas              Entrega[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("pedido")
+}
+
+model PedidoItem {
+  id              BigInt            @id @default(autoincrement())
+  pedidoId        BigInt            @map("pedido_id")
+  sequencia       Int
+  produtoId       BigInt?           @map("produto_id")
+  produtoCodigo   String?           @map("produto_codigo") @db.VarChar(40)
+  descricao       String            @db.VarChar(240)
+  tipoItem        TipoItemComercial @map("tipo_item")
+  quantidade      Decimal           @db.Decimal(18, 4)
+  unidadeCodigo   String            @map("unidade_codigo") @db.VarChar(10)
+  precoUnitario   Decimal           @map("preco_unitario") @db.Decimal(18, 4)
+  descontoPct     Decimal           @default(0) @map("desconto_pct") @db.Decimal(8, 4)
+  valorTotal      Decimal           @map("valor_total") @db.Decimal(18, 2)
+  specJson        Json?             @map("spec_json")
+  criadoEm        DateTime          @default(now()) @map("criado_em")
+
+  pedido          Pedido            @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  movimentosEstoque MovimentoEstoque[]
+  ordemProducao   OrdemProducao?
+  ordemServico    OrdemServico?
+  documentosFiscaisItens DocumentoFiscalItem[]
+
+  @@unique([pedidoId, sequencia])
+  @@map("pedido_item")
+}
+
+model LimiteCreditoParceiro {
+  id          BigInt   @id @default(autoincrement())
+  empresaId   BigInt   @map("empresa_id")
+  parceiroId  BigInt   @unique @map("parceiro_id")
+  limite      Decimal  @default(0) @db.Decimal(18, 2)
+  bloqueado   Boolean  @default(false)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  parceiro    Parceiro @relation(fields: [parceiroId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, parceiroId])
+  @@map("limite_credito_parceiro")
+}
+
+// =============================================================================
+// M04 — Estoque dia-1 (MOV imutável + saldo materializado)
+// =============================================================================
+
+enum TipoMovimentoEstoque {
+  ENTRADA
+  SAIDA
+}
+
+enum MotivoMovimentoEstoque {
+  ENTRADA_INICIAL
+  AJUSTE_INVENTARIO
+  SEPARACAO_PEDIDO
+  CONSUMO_OP
+  RETORNO_PA
+  SOBRA_RETALHO
+  ENTRADA_COMPRA
+}
+
+enum StatusInventario {
+  ABERTO
+  EM_CONTAGEM
+  AGUARDA_APROVACAO
+  APROVADO
+  CANCELADO
+}
+
+model Inventario {
+  id            BigInt           @id @default(autoincrement())
+  empresaId     BigInt           @map("empresa_id")
+  codigo        String           @db.VarChar(30)
+  status        StatusInventario @default(ABERTO)
+  criadoPorId   BigInt           @map("criado_por_id")
+  aprovadoPorId BigInt?          @map("aprovado_por_id")
+  criadoEm      DateTime         @default(now()) @map("criado_em")
+  atualizadoEm  DateTime         @updatedAt @map("atualizado_em")
+
+  empresa       Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  itens         InventarioItem[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("inventario")
+}
+
+model InventarioItem {
+  inventarioId BigInt   @map("inventario_id")
+  produtoId    BigInt   @map("produto_id")
+  qtdeSistema  Decimal  @map("qtde_sistema") @db.Decimal(18, 4)
+  qtdeContada  Decimal? @map("qtde_contada") @db.Decimal(18, 4)
+  diferenca    Decimal? @db.Decimal(18, 4)
+
+  inventario   Inventario @relation(fields: [inventarioId], references: [id], onDelete: Cascade)
+  produto      Produto    @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+
+  @@id([inventarioId, produtoId])
+  @@map("inventario_item")
+}
+
+/// Evento imutável — nunca delete físico; estorno = MOV compensatório
+model MovimentoEstoque {
+  id                BigInt                 @id @default(autoincrement())
+  empresaId         BigInt                 @map("empresa_id")
+  codigo            String                 @db.VarChar(30)
+  produtoId         BigInt                 @map("produto_id")
+  tipo              TipoMovimentoEstoque
+  motivo            MotivoMovimentoEstoque
+  quantidade        Decimal                @db.Decimal(18, 4)
+  custoUnitario     Decimal                @map("custo_unitario") @db.Decimal(18, 4)
+  custoTotal        Decimal                @map("custo_total") @db.Decimal(18, 4)
+  saldoApos         Decimal                @map("saldo_apos") @db.Decimal(18, 4)
+  custoMedioApos    Decimal                @map("custo_medio_apos") @db.Decimal(18, 4)
+  pedidoId          BigInt?                @map("pedido_id")
+  pedidoItemId      BigInt?                @map("pedido_item_id")
+  ordemProducaoId   BigInt?                @map("ordem_producao_id")
+  motivoTexto       String?                @map("motivo_texto") @db.VarChar(400)
+  criadoPorId       BigInt?                @map("criado_por_id")
+  criadoEm          DateTime               @default(now()) @map("criado_em")
+
+  empresa           Empresa                @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  produto           Produto                @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  pedido            Pedido?                @relation(fields: [pedidoId], references: [id], onDelete: SetNull)
+  pedidoItem        PedidoItem?            @relation(fields: [pedidoItemId], references: [id], onDelete: SetNull)
+  ordemProducao     OrdemProducao?         @relation(fields: [ordemProducaoId], references: [id], onDelete: SetNull)
+  nfeCompraItens    NfeCompraItem[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, produtoId, criadoEm])
+  @@index([empresaId, pedidoId])
+  @@index([pedidoItemId])
+  @@index([ordemProducaoId])
+  @@map("movimento_estoque")
+}
+
+/// Saldo materializado por empresa+SKU (derivável da soma dos MOV)
+model SaldoEstoque {
+  id           BigInt   @id @default(autoincrement())
+  empresaId    BigInt   @map("empresa_id")
+  produtoId    BigInt   @map("produto_id")
+  quantidade   Decimal  @default(0) @db.Decimal(18, 4)
+  custoMedio   Decimal  @default(0) @map("custo_medio") @db.Decimal(18, 4)
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  empresa      Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  produto      Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, produtoId])
+  @@index([empresaId, quantidade])
+  @@map("saldo_estoque")
+}
+
+// =============================================================================
+// M03 — Produção / PCP dia-1 (OP / OS + apontamento)
+// =============================================================================
+
+enum OrdemStatus {
+  ABERTA
+  EM_ANDAMENTO
+  AGUARDANDO_MATERIAL
+  CONCLUIDA
+  CANCELADA
+}
+
+model OrdemProducao {
+  id                     BigInt      @id @default(autoincrement())
+  empresaId              BigInt      @map("empresa_id")
+  codigo                 String      @db.VarChar(30)
+  pedidoId               BigInt      @map("pedido_id")
+  pedidoItemId           BigInt      @unique @map("pedido_item_id")
+  status                 OrdemStatus @default(ABERTA)
+  quantidadePlanejada    Decimal     @map("quantidade_planejada") @db.Decimal(18, 4)
+  quantidadeApontada     Decimal     @default(0) @map("quantidade_apontada") @db.Decimal(18, 4)
+  quantidadePaRetornada  Decimal     @default(0) @map("quantidade_pa_retornada") @db.Decimal(18, 4)
+  snapshotJson           Json        @map("snapshot_json")
+  criadoPorId            BigInt?     @map("criado_por_id")
+  iniciadoEm             DateTime?   @map("iniciado_em")
+  concluidoEm            DateTime?   @map("concluido_em")
+  canceladoEm            DateTime?   @map("cancelado_em")
+  motivoCancelamento     String?     @map("motivo_cancelamento") @db.VarChar(400)
+  materialFaltaProdutoId BigInt?     @map("material_falta_produto_id")
+  materialFaltaQtde      Decimal?    @map("material_falta_qtde") @db.Decimal(18, 4)
+  materialFaltaObs       String?     @map("material_falta_obs") @db.VarChar(400)
+  criadoEm               DateTime    @default(now()) @map("criado_em")
+  atualizadoEm           DateTime    @updatedAt @map("atualizado_em")
+
+  empresa                Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido                 Pedido      @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  pedidoItem             PedidoItem  @relation(fields: [pedidoItemId], references: [id], onDelete: Restrict)
+  materialFaltaProduto   Produto?    @relation("OpMaterialFalta", fields: [materialFaltaProdutoId], references: [id], onDelete: SetNull)
+  apontamentos           ApontamentoOrdem[]
+  movimentosEstoque      MovimentoEstoque[]
+  cotacoesCompra         CotacaoCompra[]
+  ordensCompra           OrdemCompra[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@index([empresaId, pedidoId])
+  @@map("ordem_producao")
+}
+
+model OrdemServico {
+  id                     BigInt      @id @default(autoincrement())
+  empresaId              BigInt      @map("empresa_id")
+  codigo                 String      @db.VarChar(30)
+  pedidoId               BigInt      @map("pedido_id")
+  pedidoItemId           BigInt      @unique @map("pedido_item_id")
+  status                 OrdemStatus @default(ABERTA)
+  quantidadePlanejada    Decimal     @map("quantidade_planejada") @db.Decimal(18, 4)
+  quantidadeApontada     Decimal     @default(0) @map("quantidade_apontada") @db.Decimal(18, 4)
+  snapshotJson           Json        @map("snapshot_json")
+  criadoPorId            BigInt?     @map("criado_por_id")
+  iniciadoEm             DateTime?   @map("iniciado_em")
+  concluidoEm            DateTime?   @map("concluido_em")
+  canceladoEm            DateTime?   @map("cancelado_em")
+  motivoCancelamento     String?     @map("motivo_cancelamento") @db.VarChar(400)
+  criadoEm               DateTime    @default(now()) @map("criado_em")
+  atualizadoEm           DateTime    @updatedAt @map("atualizado_em")
+
+  empresa                Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido                 Pedido      @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  pedidoItem             PedidoItem  @relation(fields: [pedidoItemId], references: [id], onDelete: Restrict)
+  apontamentos           ApontamentoOrdem[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@index([empresaId, pedidoId])
+  @@map("ordem_servico")
+}
+
+model ApontamentoOrdem {
+  id                BigInt         @id @default(autoincrement())
+  ordemProducaoId   BigInt?        @map("ordem_producao_id")
+  ordemServicoId    BigInt?        @map("ordem_servico_id")
+  quantidade        Decimal        @db.Decimal(18, 4)
+  observacao        String?        @db.VarChar(400)
+  criadoPorId       BigInt?         @map("criado_por_id")
+  criadoEm          DateTime       @default(now()) @map("criado_em")
+
+  ordemProducao     OrdemProducao? @relation(fields: [ordemProducaoId], references: [id], onDelete: Cascade)
+  ordemServico      OrdemServico?  @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+
+  @@index([ordemProducaoId])
+  @@index([ordemServicoId])
+  @@map("apontamento_ordem")
+}
+
+// =============================================================================
+// M05 — Fiscal operacional dia-1 (NF via Focus adapter; sem TIT)
+// =============================================================================
+
+enum TipoDocumentoFiscal {
+  NFE
+  NFSE
+}
+
+enum StatusDocumentoFiscal {
+  PROCESSANDO
+  AUTORIZADA
+  REJEITADA
+  CANCELADA
+}
+
+model DocumentoFiscal {
+  id                 BigInt                 @id @default(autoincrement())
+  empresaId          BigInt                 @map("empresa_id")
+  codigo             String                 @db.VarChar(30)
+  tipo               TipoDocumentoFiscal
+  status             StatusDocumentoFiscal  @default(PROCESSANDO)
+  pedidoId           BigInt                 @map("pedido_id")
+  serie              String?                @db.VarChar(10)
+  numero             String?                @db.VarChar(20)
+  chave44            String?                @unique @map("chave44") @db.VarChar(44)
+  protocolo          String?                @db.VarChar(60)
+  valorTotal         Decimal                @map("valor_total") @db.Decimal(18, 2)
+  naturezaOperacao   String                 @default("VENDA") @map("natureza_operacao") @db.VarChar(120)
+  idempotencyKey     String                 @unique @map("idempotency_key") @db.VarChar(120)
+  focusRef           String?                @map("focus_ref") @db.VarChar(80)
+  adapter            String                 @default("stub") @db.VarChar(20)
+  xmlRef             String?                @map("xml_ref") @db.VarChar(400)
+  pdfRef             String?                @map("pdf_ref") @db.VarChar(400)
+  rejeicaoCodigo     String?                @map("rejeicao_codigo") @db.VarChar(40)
+  rejeicaoMotivo     String?                @map("rejeicao_motivo") @db.VarChar(400)
+  payloadEnvio       Json?                  @map("payload_envio")
+  payloadRetorno     Json?                  @map("payload_retorno")
+  emitidoPorId       BigInt?                @map("emitido_por_id")
+  autorizadoEm           DateTime?              @map("autorizado_em")
+  canceladoEm            DateTime?              @map("cancelado_em")
+  protocoloCancelamento  String?                @map("protocolo_cancelamento") @db.VarChar(60)
+  cceSequencia           Int?                   @map("cce_sequencia")
+  criadoEm               DateTime               @default(now()) @map("criado_em")
+  atualizadoEm           DateTime               @updatedAt @map("atualizado_em")
+
+  empresa            Empresa                @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido             Pedido                 @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  itens              DocumentoFiscalItem[]
+  titulo             Titulo?
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@index([empresaId, pedidoId])
+  @@map("documento_fiscal")
+}
+
+model DocumentoFiscalItem {
+  id                BigInt           @id @default(autoincrement())
+  documentoFiscalId BigInt           @map("documento_fiscal_id")
+  pedidoItemId      BigInt           @map("pedido_item_id")
+  sequencia         Int
+  produtoCodigo     String?          @map("produto_codigo") @db.VarChar(40)
+  descricao         String           @db.VarChar(240)
+  tipoItem          TipoItemComercial @map("tipo_item")
+  quantidade        Decimal          @db.Decimal(18, 4)
+  unidadeCodigo     String           @map("unidade_codigo") @db.VarChar(10)
+  valorUnitario     Decimal          @map("valor_unitario") @db.Decimal(18, 4)
+  valorTotal        Decimal          @map("valor_total") @db.Decimal(18, 2)
+  cfop              String?          @db.VarChar(4)
+  csosn             String?          @db.VarChar(4)
+
+  documento         DocumentoFiscal  @relation(fields: [documentoFiscalId], references: [id], onDelete: Cascade)
+  pedidoItem        PedidoItem       @relation(fields: [pedidoItemId], references: [id], onDelete: Restrict)
+
+  @@unique([documentoFiscalId, sequencia])
+  @@index([pedidoItemId])
+  @@map("documento_fiscal_item")
+}
+
+// =============================================================================
+// M06 — Financeiro dia-1 (TIT + BX manual; sem COB/CNAB)
+// =============================================================================
+
+enum TipoTitulo {
+  RECEBER
+  PAGAR
+}
+
+enum OrigemTitulo {
+  NF
+  SINAL
+}
+
+enum StatusTitulo {
+  ABERTO
+  COBRADO
+  PARCIALMENTE_BAIXADO
+  BAIXADO
+  PERDA
+  CANCELADO
+}
+
+model Titulo {
+  id                  BigInt       @id @default(autoincrement())
+  empresaId           BigInt       @map("empresa_id")
+  codigo              String       @db.VarChar(30)
+  tipo                TipoTitulo   @default(RECEBER)
+  status              StatusTitulo @default(ABERTO)
+  pedidoId            BigInt       @map("pedido_id")
+  documentoFiscalId   BigInt?      @unique @map("documento_fiscal_id")
+  origem              OrigemTitulo @default(NF)
+  parceiroId          BigInt       @map("parceiro_id")
+  naturezaGerencial   String       @map("natureza_gerencial") @db.VarChar(20)
+  valorOriginal       Decimal      @map("valor_original") @db.Decimal(18, 2)
+  valorAberto         Decimal      @map("valor_aberto") @db.Decimal(18, 2)
+  valorBaixado        Decimal      @default(0) @map("valor_baixado") @db.Decimal(18, 2)
+  vencimentoEm        DateTime     @map("vencimento_em") @db.Date
+  observacoes         String?      @db.VarChar(400)
+  criadoEm            DateTime     @default(now()) @map("criado_em")
+  atualizadoEm        DateTime     @updatedAt @map("atualizado_em")
+
+  empresa             Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido              Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  documentoFiscal     DocumentoFiscal? @relation(fields: [documentoFiscalId], references: [id], onDelete: Restrict)
+  baixasAmbiguas      BaixaAmbigua[]
+  parceiro            Parceiro     @relation(fields: [parceiroId], references: [id], onDelete: Restrict)
+  baixas              BaixaTitulo[]
+  cobrancas           Cobranca[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@index([empresaId, parceiroId])
+  @@index([empresaId, vencimentoEm])
+  @@map("titulo")
+}
+
+model BaixaTitulo {
+  id               BigInt   @id @default(autoincrement())
+  empresaId        BigInt   @map("empresa_id")
+  codigo           String   @db.VarChar(30)
+  tituloId         BigInt   @map("titulo_id")
+  valor            Decimal  @db.Decimal(18, 2)
+  baixadoEm        DateTime @map("baixado_em") @db.Date
+  forma            String   @default("MANUAL") @db.VarChar(40)
+  idempotencyKey   String   @unique @map("idempotency_key") @db.VarChar(120)
+  observacoes      String?  @db.VarChar(400)
+  criadoPorId      BigInt?  @map("criado_por_id")
+  criadoEm         DateTime @default(now()) @map("criado_em")
+
+  titulo           Titulo   @relation(fields: [tituloId], references: [id], onDelete: Restrict)
+
+  @@unique([empresaId, codigo])
+  @@index([tituloId])
+  @@map("baixa_titulo")
+}
+
+enum StatusCobranca {
+  PENDENTE
+  REGISTRADA
+  PAGA
+  CANCELADA
+  VENCIDA
+}
+
+/// Emissão bancária vinculada ao TIT (≠ verdade financeira)
+model Cobranca {
+  id               BigInt         @id @default(autoincrement())
+  empresaId        BigInt         @map("empresa_id")
+  codigo           String         @db.VarChar(30)
+  tituloId         BigInt         @map("titulo_id")
+  status           StatusCobranca @default(PENDENTE)
+  valor            Decimal        @db.Decimal(18, 2)
+  vencimentoEm     DateTime       @map("vencimento_em") @db.Date
+  nossoNumero      String?        @map("nosso_numero") @db.VarChar(40)
+  linhaDigitavel   String?        @map("linha_digitavel") @db.VarChar(60)
+  pdfRef           String?        @map("pdf_ref") @db.VarChar(400)
+  adapter          String         @default("stub") @db.VarChar(20)
+  idempotencyKey   String         @unique @map("idempotency_key") @db.VarChar(120)
+  payloadRetorno   Json?          @map("payload_retorno")
+  registradoEm     DateTime?      @map("registrado_em")
+  criadoPorId      BigInt?        @map("criado_por_id")
+  criadoEm         DateTime       @default(now()) @map("criado_em")
+  atualizadoEm     DateTime       @updatedAt @map("atualizado_em")
+
+  titulo           Titulo         @relation(fields: [tituloId], references: [id], onDelete: Restrict)
+
+  @@unique([empresaId, codigo])
+  @@index([tituloId])
+  @@index([empresaId, status])
+  @@map("cobranca")
+}
+
+enum StatusEntrega {
+  DESPACHADA
+  ENTREGUE
+  CANCELADA
+}
+
+/// Romaneio / confirmação de entrega (ENT-) — dia-1 sem tracking avançado
+model Entrega {
+  id               BigInt        @id @default(autoincrement())
+  empresaId        BigInt        @map("empresa_id")
+  codigo           String        @db.VarChar(30)
+  pedidoId         BigInt        @map("pedido_id")
+  status           StatusEntrega @default(DESPACHADA)
+  volumes          Int           @default(1)
+  observacoes      String?       @db.VarChar(400)
+  despachadoEm     DateTime      @default(now()) @map("despachado_em")
+  entregueEm       DateTime?     @map("entregue_em")
+  criadoPorId      BigInt?       @map("criado_por_id")
+  criadoEm         DateTime      @default(now()) @map("criado_em")
+  atualizadoEm     DateTime      @updatedAt @map("atualizado_em")
+
+  empresa          Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  pedido           Pedido        @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, pedidoId])
+  @@index([empresaId, status])
+  @@map("entrega")
+}
+
+enum StatusBaixaAmbigua {
+  PENDENTE
+  CONCILIADA
+  DESCARTADA
+}
+
+model BaixaAmbigua {
+  id             BigInt             @id @default(autoincrement())
+  empresaId      BigInt             @map("empresa_id")
+  codigo         String             @db.VarChar(30)
+  payloadJson    Json               @map("payload_json")
+  status         StatusBaixaAmbigua @default(PENDENTE)
+  tituloId       BigInt?            @map("titulo_id")
+  valor          Decimal?           @db.Decimal(18, 2)
+  idempotencyKey String             @unique @map("idempotency_key") @db.VarChar(120)
+  criadoEm       DateTime           @default(now()) @map("criado_em")
+  atualizadoEm   DateTime           @updatedAt @map("atualizado_em")
+
+  empresa        Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  titulo         Titulo?            @relation(fields: [tituloId], references: [id], onDelete: SetNull)
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("baixa_ambigua")
+}
+
+model WebhookEvent {
+  id             BigInt    @id @default(autoincrement())
+  provider       String    @db.VarChar(40)
+  idempotencyKey String    @unique @map("idempotency_key") @db.VarChar(120)
+  payload        Json
+  processadoEm   DateTime? @map("processado_em")
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+
+  @@index([provider, criadoEm])
+  @@map("webhook_event")
+}
+
+// =============================================================================
+// M07 — Compras (COT / OC / XML entrada) — Fase 2 Should
+// =============================================================================
+
+enum StatusCotacaoCompra {
+  ABERTA
+  DECIDIDA
+  CANCELADA
+}
+
+enum StatusOrdemCompra {
+  RASCUNHO
+  AGUARDA_ALCADA
+  ABERTA
+  PARCIAL
+  RECEBIDA
+  CANCELADA
+}
+
+enum StatusNfeCompra {
+  IMPORTADA
+  CONFERIDA
+  ESTORNADA
+}
+
+model CotacaoCompra {
+  id              BigInt             @id @default(autoincrement())
+  empresaId       BigInt             @map("empresa_id")
+  codigo          String             @db.VarChar(30)
+  status          StatusCotacaoCompra @default(ABERTA)
+  urgente         Boolean            @default(false)
+  ordemProducaoId BigInt?            @map("ordem_producao_id")
+  observacoes     String?            @db.VarChar(400)
+  criadoPorId     BigInt?            @map("criado_por_id")
+  decididoEm      DateTime?          @map("decidido_em")
+  criadoEm        DateTime           @default(now()) @map("criado_em")
+  atualizadoEm    DateTime           @updatedAt @map("atualizado_em")
+
+  empresa         Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  ordemProducao   OrdemProducao?     @relation(fields: [ordemProducaoId], references: [id], onDelete: SetNull)
+  itens           CotacaoCompraItem[]
+  propostas       CotacaoProposta[]
+  ordensCompra    OrdemCompra[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("cotacao_compra")
+}
+
+model CotacaoCompraItem {
+  id          BigInt        @id @default(autoincrement())
+  cotacaoId   BigInt        @map("cotacao_id")
+  produtoId   BigInt        @map("produto_id")
+  quantidade  Decimal       @db.Decimal(18, 4)
+  observacoes String?       @db.VarChar(200)
+
+  cotacao     CotacaoCompra @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  produto     Produto       @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+
+  @@index([cotacaoId])
+  @@map("cotacao_compra_item")
+}
+
+model CotacaoProposta {
+  id            BigInt        @id @default(autoincrement())
+  cotacaoId     BigInt        @map("cotacao_id")
+  fornecedorId  BigInt        @map("fornecedor_id")
+  precoUnitario Decimal       @map("preco_unitario") @db.Decimal(18, 4)
+  prazoDias     Int           @default(7) @map("prazo_dias")
+  frete         Decimal       @default(0) @db.Decimal(18, 2)
+  vencedora     Boolean       @default(false)
+  observacoes   String?       @db.VarChar(200)
+  criadoEm      DateTime      @default(now()) @map("criado_em")
+
+  cotacao       CotacaoCompra @relation(fields: [cotacaoId], references: [id], onDelete: Cascade)
+  fornecedor    Parceiro      @relation(fields: [fornecedorId], references: [id], onDelete: Restrict)
+
+  @@index([cotacaoId])
+  @@map("cotacao_proposta")
+}
+
+model OrdemCompra {
+  id              BigInt           @id @default(autoincrement())
+  empresaId       BigInt           @map("empresa_id")
+  codigo          String           @db.VarChar(30)
+  status          StatusOrdemCompra @default(RASCUNHO)
+  fornecedorId    BigInt           @map("fornecedor_id")
+  cotacaoId       BigInt?          @map("cotacao_id")
+  ordemProducaoId BigInt?          @map("ordem_producao_id")
+  urgente         Boolean          @default(false)
+  valorTotal      Decimal          @default(0) @map("valor_total") @db.Decimal(18, 2)
+  aprovadoPorId   BigInt?          @map("aprovado_por_id")
+  aprovadoEm      DateTime?        @map("aprovado_em")
+  observacoes     String?          @db.VarChar(400)
+  criadoPorId     BigInt?          @map("criado_por_id")
+  criadoEm        DateTime         @default(now()) @map("criado_em")
+  atualizadoEm    DateTime         @updatedAt @map("atualizado_em")
+
+  empresa         Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  fornecedor      Parceiro         @relation(fields: [fornecedorId], references: [id], onDelete: Restrict)
+  cotacao         CotacaoCompra?   @relation(fields: [cotacaoId], references: [id], onDelete: SetNull)
+  ordemProducao   OrdemProducao?   @relation(fields: [ordemProducaoId], references: [id], onDelete: SetNull)
+  itens           OrdemCompraItem[]
+  entradasNfe     NfeCompraEntrada[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("ordem_compra")
+}
+
+model OrdemCompraItem {
+  id             BigInt      @id @default(autoincrement())
+  ordemCompraId  BigInt      @map("ordem_compra_id")
+  produtoId      BigInt      @map("produto_id")
+  quantidade     Decimal     @db.Decimal(18, 4)
+  precoUnitario  Decimal     @map("preco_unitario") @db.Decimal(18, 4)
+  valorTotal     Decimal     @map("valor_total") @db.Decimal(18, 2)
+  qtdeRecebida   Decimal     @default(0) @map("qtde_recebida") @db.Decimal(18, 4)
+
+  ordemCompra    OrdemCompra @relation(fields: [ordemCompraId], references: [id], onDelete: Cascade)
+  produto        Produto     @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+
+  @@index([ordemCompraId])
+  @@map("ordem_compra_item")
+}
+
+model NfeCompraEntrada {
+  id              BigInt         @id @default(autoincrement())
+  empresaId       BigInt         @map("empresa_id")
+  codigo          String         @db.VarChar(30)
+  status          StatusNfeCompra @default(IMPORTADA)
+  chave44         String         @unique @db.VarChar(44)
+  numero          String?        @db.VarChar(20)
+  serie           String?        @db.VarChar(10)
+  emitenteCnpj    String         @map("emitente_cnpj") @db.VarChar(14)
+  fornecedorId    BigInt?        @map("fornecedor_id")
+  ordemCompraId   BigInt?        @map("ordem_compra_id")
+  valorTotal      Decimal        @map("valor_total") @db.Decimal(18, 2)
+  emitidaEm       DateTime?      @map("emitida_em")
+  xmlRef          String?        @map("xml_ref") @db.VarChar(400)
+  idempotencyKey  String         @unique @map("idempotency_key") @db.VarChar(120)
+  conferidoPorId  BigInt?        @map("conferido_por_id")
+  conferidoEm     DateTime?      @map("conferido_em")
+  criadoPorId     BigInt?        @map("criado_por_id")
+  criadoEm        DateTime       @default(now()) @map("criado_em")
+  atualizadoEm    DateTime       @updatedAt @map("atualizado_em")
+
+  empresa         Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  fornecedor      Parceiro?      @relation(fields: [fornecedorId], references: [id], onDelete: SetNull)
+  ordemCompra     OrdemCompra?   @relation(fields: [ordemCompraId], references: [id], onDelete: SetNull)
+  itens           NfeCompraItem[]
+
+  @@unique([empresaId, codigo])
+  @@index([empresaId, status])
+  @@map("nfe_compra_entrada")
+}
+
+model NfeCompraItem {
+  id             BigInt           @id @default(autoincrement())
+  nfeCompraId    BigInt           @map("nfe_compra_id")
+  sequencia      Int
+  cProd          String           @map("c_prod") @db.VarChar(60)
+  descricao      String           @db.VarChar(240)
+  ncm            String?          @db.VarChar(8)
+  unidade        String           @db.VarChar(10)
+  quantidade     Decimal          @db.Decimal(18, 4)
+  valorUnitario  Decimal          @map("valor_unitario") @db.Decimal(18, 4)
+  valorTotal     Decimal          @map("valor_total") @db.Decimal(18, 2)
+  produtoId      BigInt?          @map("produto_id")
+  movimentoId    BigInt?          @map("movimento_id")
+
+  nfeCompra      NfeCompraEntrada @relation(fields: [nfeCompraId], references: [id], onDelete: Cascade)
+  produto        Produto?         @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+  movimento      MovimentoEstoque? @relation(fields: [movimentoId], references: [id], onDelete: SetNull)
+
+  @@unique([nfeCompraId, sequencia])
+  @@map("nfe_compra_item")
+}
+

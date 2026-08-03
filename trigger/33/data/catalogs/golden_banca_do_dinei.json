@@ -1,0 +1,103 @@
+{
+  "nome": "BANCA DO DINEI",
+  "input": {
+    "medida": "5,0X2,5",
+    "largura_papel": 7.5,
+    "puxada": 2.72749,
+    "cores": 1,
+    "papel": "BOPP BRILHO",
+    "acabamento": "COLD STAMP + COLA",
+    "qtde_modelos": 1,
+    "qtde_colunas": 2,
+    "etiq_por_rolo": 1000,
+    "tubete": "3\"",
+    "z": 43,
+    "formato_faca": "ESPECIAL",
+    "repeticao": 5,
+    "maquina_roda": "MODULAR",
+    "maquina_grupo": "MODULAR",
+    "imposto_pct": 16,
+    "matriz": true,
+    "coluna_rebobinacao": 1,
+    "rpm": 1300,
+    "comissao_pct": 5,
+    "faixas": [
+      {
+        "quantidade": 10000,
+        "tipo_parada": "SEM PARADA"
+      },
+      {
+        "quantidade": 20000,
+        "tipo_parada": "SEM PARADA"
+      },
+      {
+        "quantidade": 40000,
+        "tipo_parada": "SEM PARADA"
+      },
+      {
+        "quantidade": 60000,
+        "tipo_parada": "SEM PARADA"
+      }
+    ]
+  },
+  "expected": {
+    "matriz_bruta": 93.9113,
+    "faixas": [
+      {
+        "quantidade": 10000,
+        "hora_maquina": 1.1049034615384616,
+        "metragem_linear": 136.3745,
+        "metragem_m2": 20.5,
+        "perda_acerto": 4,
+        "perda_acabamento": 5,
+        "qtde_rolos": 10,
+        "qtde_caixas": 1,
+        "valor_papel": 176.4,
+        "valor_maquina": 165.73551923076926,
+        "tinta": 10,
+        "acabamento": 82.6,
+        "rebobinacao": 4.636733,
+        "tubete": 7,
+        "valor_caixa": 7,
+        "valor_servico": 453.3722522307692,
+        "comissao": 22.66861261153846,
+        "imposto": 72.53956035692308,
+        "servico_encargos": 548.5804251992307,
+        "valor_etiqueta": 550,
+        "valor_matriz": 94,
+        "valor_total": 644
+      },
+      {
+        "quantidade": 20000,
+        "hora_maquina": 1.209806923076923,
+        "metragem_linear": 272.749,
+        "metragem_m2": 41,
+        "valor_papel": 324,
+        "valor_maquina": 181.47103846153846,
+        "tinta": 18,
+        "acabamento": 140,
+        "rebobinacao": 9.273466,
+        "tubete": 14,
+        "valor_caixa": 14,
+        "valor_servico": 700.7445044615384,
+        "valor_etiqueta": 850,
+        "valor_total": 944
+      },
+      {
+        "quantidade": 40000,
+        "metragem_m2": 81.9,
+        "valor_servico": 1194.849008923077,
+        "valor_etiqueta": 1450,
+        "valor_total": 1544
+      },
+      {
+        "quantidade": 60000,
+        "metragem_m2": 122.80000000000001,
+        "qtde_caixas": 5,
+        "valor_servico": 1681.9535133846157,
+        "valor_etiqueta": 2040,
+        "valor_total": 2134
+      }
+    ]
+  }
+}

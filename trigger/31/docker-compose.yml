@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rlp_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rlp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rlp_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-rlp_erp}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rlp} -d ${POSTGRES_DB:-rlp_erp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: rlp_api
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-rlp}:${POSTGRES_PASSWORD:-rlp_secret}@db:5432/${POSTGRES_DB:-rlp_erp}
+      FOCUS_NFE_TOKEN: ${FOCUS_NFE_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    container_name: rlp_web
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

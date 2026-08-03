@@ -1,0 +1,583 @@
+======================================================================
+   CODIFICACAO DAS INFORMACOES DO SISTEMA - PADRAO PROFISSIONAL
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+                    ATUALIZADO EM: 02/08/2026
+======================================================================
+
+Este documento define a MELHOR FORMA PROFISSIONAL de gerar, atribuir
+e manter os identificadores das informacoes do novo ERP.
+
+DECISAO OFICIAL (obrigatoria):
+
+  DUAS CAMADAS — NUMERICO NO NUCLEO, LEGIVEL NA OPERACAO.
+
+  * CAMADA 1 (motor):  id BIGINT gerado pelo banco
+                       -> joins, FK, indice, performance
+  * CAMADA 2 (negocio): codigo de exibicao formatado
+                       -> tela, etiqueta, WhatsApp, PDF, suporte
+
+Codigo bom nao e "numero bonito" nem "texto bonito" isolado:
+e o PAR de (id numerico + codigo legivel), ESTAVEL, UNICO e
+AUDITAVEL. Atributos que mudam ficam em CAMPOS — nunca embutidos
+no id nem no codigo.
+
+Ele consolida e alinha o que ja esta espalhado em:
+  * CADASTRO_PARCEIROS.txt ............. PAR-NNNN (cadastro unico)
+  * CADASTRO_PRODUTOS_COMPRA.txt ....... prefixos MP-/EMB-/REV-
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt .. mascara estruturada do SKU
+  * GERACAO_ORCAMENTO.txt .............. ORC-AAAA-NNNNN + versao
+  * ORCAMENTO_PROSPECT_SEM_CADASTRO.txt promocao sem trocar codigo
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt login/perfil
+  * PADRAO_DECIMAL_CALCULOS.txt ........ tipos numericos (nao confundir)
+  * APIS_FREE_CONSULTA_CADENCIA.txt .... codigos oficiais externos
+
+Principio em uma frase:
+
+  BIGINT PARA A MAQUINA; MASCARA COM PREFIXO PARA O HUMANO;
+  NUNCA USAR STRING COMO CHAVE PRIMARIA DE RELACIONAMENTO.
+
+======================================================================
+1. POR QUE DUAS CAMADAS (E NAO SO NUMERO OU SO TEXTO)
+======================================================================
+
+1.1. SO NUMERICO (ex.: parceiro = 42)
+     + Mais performatico: indice compacto, join barato, insert simples
+     + Ideal como PK/FK em todas as tabelas
+     - Ambiguo na operacao: 42 e parceiro, orcamento ou OP?
+     - Facil digitar/passar errado no WhatsApp e no romaneio
+     - Sem contexto visual no PDF e na etiqueta
+
+1.2. SO ALFANUMERICO COMO PK (ex.: PK = 'PAR-00042')
+     + Legivel para gente
+     - Indice maior; comparacao de string mais cara que BIGINT
+     - Prefixo/mascara viram prisao se o padrao evoluir
+     - FK em toda tabela filha carrega VARCHAR desnecessario
+
+1.3. O MELHOR (padrao deste ERP)
+     Tabela parceiro:
+       id              BIGINT PK          <- motor (sequencia/identity)
+       codigo          VARCHAR UNIQUE     <- 'PAR-00042' (exibicao)
+       cnpj_cpf        VARCHAR UNIQUE     <- identidade fiscal
+       ...demais campos
+
+     Relacionamentos (pedido, NF, movimento, credito...):
+       sempre FK para parceiro.id (BIGINT), NUNCA para codigo.
+
+     Tela / API de leitura / impressao:
+       mostram parceiro.codigo ('PAR-00042').
+
+     Busca:
+       aceita codigo, pedacos do codigo, razao social, CNPJ.
+       Resolve para id internamente e segue com BIGINT.
+
+1.4. Escala desta industria: milhares a dezenas de milhares de
+     registros. A diferenca de performance string vs bigint importa
+     sobretudo em FK/join em massa (estoque, movimentos, custo
+     medio). Por isso o nucleo e numerico. O codigo formatado
+     existe para nao sacrificar a operacao humana.
+
+1.5. Separar QUATRO mundos (nunca misturar):
+       A) ID NUMERICO (PK) ............. BIGINT do ERP
+       B) CODIGO DE NEGOCIO ............ mascara legivel (PAR-, ORC-)
+       C) CODIGO FORNECEDOR/CLIENTE .... cProd, ref. do cliente
+       D) CODIGO OFICIAL EXTERNO ....... NCM, CEST, CFOP, IBGE, CNAE
+          (so consultados/validados; o ERP nao "inventa" NCM)
+
+======================================================================
+2. PRINCIPIOS NAO NEGOCIAVEIS
+======================================================================
+
+2.1. PK SEMPRE NUMERICA
+     Toda entidade de negocio tem id BIGINT (identity/sequence/
+     bigserial). UUID so em casos especiais (token publico,
+     integracao externa sem sequencia) — nao como padrao de cadastro.
+
+2.2. CODIGO DE NEGOCIO SEMPRE SEPARADO
+     Campo codigo (ou numero + ano + versao em colunas numericas
+     com formatacao na leitura — ver secao 3.2). UNIQUE.
+     Imutavel apos uso em documento.
+
+2.3. FK SEMPRE PELO ID
+     pedido.parceiro_id -> parceiro.id
+     movimento.sku_id   -> produto.id
+     Nunca gravar 'PAR-00042' como FK.
+
+2.4. UNICIDADE EM DUAS CAMADAS
+     * id unico (PK)
+     * codigo unico (negocio)
+     * + chaves naturais quando existirem (CNPJ/CPF; fornecedor+cProd)
+
+2.5. IMUTABILIDADE
+     Depois de usado em documento: id e codigo NAO mudam.
+     O que muda: situacao, descricao, papel, preco.
+     Correcao de codigo "virgem" (sem movimento): so ADMIN + log.
+
+2.6. SEM SIGNIFICADO QUE MUDA NO CODIGO
+     Nao embutir: tipo de parceiro, preco, margem, regime, vendedor,
+     "VIP", ano comercial generico.
+     Pode embutir so o que e FISICO/ESTAVEL no SKU de bobina
+     (largura/comprimento) — secao 6.
+
+2.7. GERADO PELO SISTEMA
+     Usuario escolhe TIPO/GRUPO; ERP gera id + codigo.
+     Digitar codigo livre so em migracao controlada.
+
+2.8. NUNCA REAPROVEITAR
+     Inativo/cancelado mantem id e codigo. Furos na sequencia
+     sao normais e desejaveis.
+
+2.9. CASE E NORMALIZACAO DO CODIGO DE NEGOCIO
+     UPPERCASE, sem acento, sem espaco.
+     Hifen (-) entre prefixo e numero; ponto (.) so na mascara
+     estruturada do SKU de bobina.
+
+2.10. DE-PARA OBRIGATORIO
+     Codigo externo (fornecedor, cliente, planilha) -> id interno.
+     Nunca sobrescrever id/codigo para "ficar igual ao fornecedor".
+
+======================================================================
+3. MODELO DE DADOS CANONICO (COMO GRAVAR)
+======================================================================
+
+----------------------------------------------------------------------
+3.1. REGRA GERAL DE COLUNAS
+----------------------------------------------------------------------
+
+  id              BIGINT PK NOT NULL          -- motor
+  codigo          VARCHAR(32) UNIQUE NOT NULL -- exibicao (quando
+                                              -- mascara simples)
+  -- OU, para documentos anuais (preferivel — mais performatico):
+  ano             SMALLINT NOT NULL
+  numero          INTEGER  NOT NULL           -- sequencial numerico
+  versao          SMALLINT NOT NULL DEFAULT 1 -- orcamento
+  -- codigo formatado = funcao/view: 'ORC-' || ano || '-' || lpad(...)
+
+  situacao        ...
+  created_at      ...
+  -- UNIQUE (ano, numero) no documento; versao separada do orcamento
+
+Por que numero/ano em colunas numericas nos documentos?
+  * Comparar, ordenar e indexar INTEGER e mais barato que VARCHAR
+  * Prefixo 'ORC-' nao precisa ocupar indice de FK
+  * A mascara e responsabilidade da camada de apresentacao
+  * Relatorios "orcamentos do ano" filtram por ano SMALLINT
+
+----------------------------------------------------------------------
+3.2. QUANDO GUARDAR codigo COMO VARCHAR PRONTO
+----------------------------------------------------------------------
+
+  * Parceiro, familia de produto, faca, credito, perfil:
+    sequencia global simples -> gravar codigo ja formatado
+    ('PAR-00042') E o id BIGINT. Volume baixo; simplicidade
+    na busca textual compensa.
+
+  * Documentos de alto volume (MOV, OP, PED, ORC):
+    preferir ano + numero (+ versao) numericos; formatar na
+    saida. Opcional: coluna codigo GERADA/STORED para busca
+    (indice) se o SGBD permitir — sem usar como FK.
+
+----------------------------------------------------------------------
+3.3. SKU DE BOBINA (MASCARA ESTRUTURADA)
+----------------------------------------------------------------------
+
+  id           BIGINT PK
+  codigo       VARCHAR UNIQUE  -- '10.001.FAS.0130.1000' (operacao)
+  grupo        SMALLINT        -- 10
+  material     INTEGER         -- 1
+  fornecedor_sigla CHAR(3)     -- FAS (ou FK numerica p/ fornecedor
+                               -- homologado + sigla denormalizada)
+  largura_mm   INTEGER         -- 130
+  comprimento_m INTEGER        -- 1000
+  familia_id   BIGINT FK       -- liga a familia fiscal (MP-PAP-...)
+
+Atributos numericos nas colunas permitem filtrar "todas as bobinas
+130 mm" sem parsear string. O codigo concatenado e para etiqueta
+e digitacao humana.
+
+----------------------------------------------------------------------
+3.4. DIAGRAMA LOGICO (EXEMPLO)
+----------------------------------------------------------------------
+
+  parceiro          produto (SKU)         orcamento
+  --------------    ----------------      -------------------
+  id        PK      id          PK        id           PK
+  codigo    UQ      codigo      UQ        ano
+  cnpj_cpf  UQ      familia_id  FK        numero
+  ...               ...                   versao
+                                          parceiro_id  FK->parceiro.id
+                                          codigo_fmt   (gerado/leitura)
+
+  item_orcamento
+  -------------------
+  id             PK
+  orcamento_id   FK->orcamento.id     << BIGINT
+  produto_id     FK->produto.id       << BIGINT
+  ...
+
+======================================================================
+4. MODELO GERAL DE MASCARA (SO EXIBICAO / CODIGO DE NEGOCIO)
+======================================================================
+
+Formato canonico na tela, PDF, etiqueta, API publica:
+
+  PPP-AAAA-NNNNN    ou    PPP-NNNNNN
+
+  PPP   = prefixo de 2 a 4 letras (dominio)
+  AAAA  = ano (so sequencia ANUAL: orcamento, pedido, OP, OC...)
+  NNNNN = sequencial com zeros a esquerda
+
+Regras de sequencia (geram o NUMERO, nao a string da PK):
+  * GLOBAL (parceiro, familia, faca): nunca zera
+  * ANUAL (orcamento, pedido, OP): zera em 01/01; ano na mascara
+  * Por FILIAL (multi-CNPJ futuro): serie por filial_id numerico;
+    mascara inclui codigo curto da filial se necessario
+
+Onde NAO usar ano na mascara:
+  * Parceiro, SKU, usuario, plano de contas, parametro
+
+======================================================================
+5. CATALOGO OFICIAL DE PREFIXOS (CAMADA DE EXIBICAO)
+======================================================================
+
+  PREFIXO   DOMINIO                         SEQUENCIA     EXIBICAO
+  --------  ------------------------------  ------------  -----------------
+  PAR       Parceiro (cadastro unico)       global        PAR-00042
+  SKU       Produto / material / PA         ver secao 6   (mascara propria)
+  ORC       Orcamento comercial             anual         ORC-2026-00123
+  PED       Pedido de venda / producao      anual         PED-2026-00087
+  OP        Ordem de producao               anual         OP-2026-00410
+  OS        Ordem de servico                anual         OS-2026-00022
+  OC        Ordem de compra                 anual         OC-2026-00055
+  MOV       Movimento de estoque            anual         MOV-2026-12045
+  INV       Inventario / contagem           anual         INV-2026-00003
+  AJU       Ajuste de estoque               anual         AJU-2026-00018
+  TIT       Titulo financeiro (CR/CP)       anual         TIT-2026-01002
+  BX        Baixa / recebimento-pagamento   anual         BX-2026-00880
+  ENT       Entrega / romaneio              anual         ENT-2026-00045
+  NAT       Natureza gerencial              cadastro      NAT-1.01.01
+  BEM       Bem patrimonial                 global        BEM-00017
+  CRT       Limite / liberacao de credito   global        CRT-00091
+  USR       Usuario                         global        (login = e-mail;
+                                                          id BIGINT interno)
+  PER       Perfil de acesso (RBAC)         cadastro      PER-COMERCIAL
+  TAB       Tabela de parametro/preco       vigencia      TAB-PAPEL-2026-01
+  LOT       Lote / partida                  por entrada   LOT- + ref. forn.
+  FAC       Faca / ferramental              global        FAC-00012
+  CLI-REF   Referencia do item no cliente   por parceiro  (nao e PK)
+  EMP       Empresa / CNPJ (multi-empresa)  global        EMP-00001
+  RMA       Pos-venda / reclamacao/garantia anual         RMA-2026-00015
+  DEV       Devolucao de venda (mestre)     anual         DEV-2026-00008
+  COT       Cotacao de compra               anual         COT-2026-00040
+  REM       Remessa / retorno industrializ. anual         REM-2026-00012
+  COM       Apuracao de comissao            anual         COM-2026-00110
+  MSG       Mensagem WhatsApp (API oficial) anual         MSG-2026-04500
+  COB       Cobranca bancaria emitida       anual         COB-2026-00990
+
+  PROIBIDO no catalogo ativo: LAI (livro auxiliar / "caixa 2").
+  Decisao: DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+
+  Documentos de fluxo: GERACAO_PEDIDO, ORDEM_SERVICO, PRODUCAO_...,
+  FATURAMENTO_..., ENTREGA_..., RECEBIMENTO_..., NATUREZAS_...,
+  PATRIMONIO_..., INDICE_FLUXO_OPERACIONAL.txt,
+  POS_VENDA_RMA_..., DEVOLUCAO_VENDA_..., COMPRAS_COTACAO_...,
+  INDUSTRIALIZACAO_EXTERNA_..., COMISSOES_..., INTEGRACAO_WHATSAPP_...,
+  INTEGRACAO_BANCARIA_..., MULTI_EMPRESA_CNPJS_E_LIVROS.txt,
+  DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt.
+
+  Notas EMP:
+  * empresa_id (BIGINT) em todo documento operacional; mascara EMP-NNNNN
+  * Sem prefixo/tabela de livro paralelo no ERP
+
+Em TODAS as linhas acima existe id BIGINT por tras.
+A coluna "EXIBICAO" e o que o usuario ve — nao a PK.
+
+Notas:
+  * NF-e / NFS-e: numeracao FISCAL (serie + numero INTEGER) via
+    Focus NFe / SEFAZ. ERP guarda serie, numero e chave (44) e
+    liga ao ped_id / op_id (BIGINT).
+  * Prospect: mesmo parceiro.id e mesmo codigo PAR-; so mudam flags
+    (ORCAMENTO_PROSPECT_SEM_CADASTRO.txt).
+
+======================================================================
+6. CODIFICACAO DE PRODUTOS (SKU) — REGRA DEFINITIVA
+======================================================================
+
+Tres niveis: id numerico (sempre) + familia fiscal + SKU operacional.
+
+----------------------------------------------------------------------
+6.1. CAMADA A — FAMILIA FISCAL / COMPRA
+----------------------------------------------------------------------
+
+id BIGINT + codigo de exibicao (CADASTRO_PRODUTOS_COMPRA.txt):
+
+  MP-PAP-nnn   materias-primas de papel
+  MP-FLM-nnn   filmes (BOPP etc.)
+  MP-TEC-nnn   tecidos
+  MP-LAM-nnn   laminacao
+  MP-CLD-nnn   cold/hot stamping
+  MP-TIN-nnn   tintas / vernizes
+  MP-ADF-nnn   fitas dupla face
+  EMB-TUB-nnn  tubetes
+  EMB-CX-nnn   caixas
+  REV-RIB-nnn  ribbons (revenda / uso)
+  PA-ETQ-nnn   produto acabado generico (quando nao for sob medida)
+  SVC-nnn      servico avulso (rebobinacao, etc.)
+
+----------------------------------------------------------------------
+6.2. CAMADA B — SKU DE ESTOQUE (variacao fisica)
+----------------------------------------------------------------------
+
+id BIGINT + codigo estruturado + colunas numericas (secao 3.3):
+
+  GG.MMM.FFF.LLLL.CCCC
+
+  GG   = grupo (10 Couche, 11 Fosco, 12 Termico, 13 Tag, 20 BOPP,
+         30 Tecidos, 40 Laminacao, 41 Cold, 50 Tintas, 60 Ribbon,
+         70 Tubetes, 71 Caixas, 72 Dupla Face, 80 Prod. Acabado,
+         90 Retalho/Sobra)
+  MMM  = material/linha
+  FFF  = fornecedor homologado (FAS, COL, VTX, RIT...)
+  LLLL = largura mm
+  CCCC = comprimento m
+
+Exemplo: 10.001.FAS.0130.1000 = COUCHE 20G FASSON 130mm x 1000m
+
+Familia (MP-PAP-001) 1:N SKUs. Fiscal herda da familia; saldo
+por sku.id (BIGINT).
+
+----------------------------------------------------------------------
+6.3. SO CAMADA A
+----------------------------------------------------------------------
+
+Sem variacao dimensional (tinta, caixa, servico): familia.id ja e
+o produto de estoque; um unico codigo de negocio.
+
+----------------------------------------------------------------------
+6.4. PA SOB MEDIDA
+----------------------------------------------------------------------
+
+  * Ferramental: id + FAC-NNNN
+  * Personalizacao no PED/OP (nao milhares de SKUs eternos)
+  * PA generico (PA-ETQ-001) para saida fiscal, OU SKU por modelo
+    so se houver estoque acabado recorrente
+
+----------------------------------------------------------------------
+6.5. RETALHO / SOBRA
+----------------------------------------------------------------------
+
+Novo sku.id + codigo grupo 90 (ou proprio). Nao reusar SKU do rolo
+inteiro. Rastreio de origem em metadados (lote_id, nf entrada) —
+ver TRATAMENTO_SOBRA_BOBINA_RETALHO.txt.
+
+======================================================================
+7. CODIFICACAO DE PARCEIROS
+======================================================================
+
+7.1. id BIGINT PK + codigo 'PAR-NNNNN' UNIQUE (sequencia global).
+
+7.2. Unicidade fiscal: CNPJ/CPF UNIQUE. Codigo e apelido operacional.
+
+7.3. Papeis = FLAGS. Prospect -> cliente: mesmo id, mesmo codigo.
+
+7.4. FK em pedido/titulo/NF: sempre parceiro_id (BIGINT).
+
+7.5. Nao usar razao social ("COLACRIL") como codigo. Nome fantasia
+     e campo de texto.
+
+======================================================================
+8. CODIFICACAO DE DOCUMENTOS (MOVIMENTO)
+======================================================================
+
+8.1. ORCAMENTO: id BIGINT; ano + numero + versao (inteiros);
+     exibicao ORC-AAAA-NNNNN vN. Pos-envio: nova versao, mesmo
+     numero base. Nunca sobrescrever.
+
+8.2. PEDIDO: id + ano/numero; exibicao PED-AAAA-NNNNN;
+     FK orcamento_id, parceiro_id.
+
+8.3. OP: id + ano/numero; exibicao OP-AAAA-NNNNN; FK ped_id.
+
+8.3b. OS: id + ano/numero; exibicao OS-AAAA-NNNNN; FK ped_id
+      (servico — ORDEM_SERVICO.txt). Nao confundir com OP.
+
+8.4. OC: id + ano/numero; exibicao OC-AAAA-NNNNN;
+     liga a chave NF-e (44) do fornecedor — a chave e fiscal;
+     oc.id e interno.
+
+8.5. MOVIMENTO DE ESTOQUE: id BIGINT (alto volume — critico para
+     performance). Documento de origem por FK (nf_id, op_id,
+     os_id, aju_id). Mascara MOV-... so na listagem, se util.
+
+8.5b. TIT / BX / ENT: id BIGINT + mascara anual; FK ped_id / nf_id
+      / conta financeira conforme o caso (faturamento, baixa, entrega).
+
+8.5c. BEM: id BIGINT + BEM-NNNNN global (patrimonio). NAT: codigo
+      hierarquico de natureza gerencial (cadastro).
+
+8.6. Token de aprovacao do cliente: string criptografica longa
+     (nao sequencial, nao BIGINT adivinhavel). Separado do
+     orcamento.id / codigo ORC (APROVACAO_ORCAMENTO_CLIENTE.txt).
+
+======================================================================
+9. CODIGOS OFICIAIS EXTERNOS (NAO SAO "NOSSOS")
+======================================================================
+
+O ERP ARMAZENA e VALIDA; nao cria variante caseira.
+Preferir colunas numericas/char de digitos (sem mascara) no banco.
+
+  CODIGO     GRAVACAO NO BANCO            ONDE USA
+  ---------  ---------------------------  ---------------------------
+  NCM        CHAR(8) so digitos           produto, NF-e
+  CEST       CHAR(7) ou NULL              produto ST
+  CFOP       CHAR(4)                      natureza operacao
+  CST/CSOSN  conforme leiaute             tributacao
+  cMun IBGE  CHAR(7) ou INTEGER           endereco NF-e
+  CNAE       oficial                      parceiro PJ
+  EAN/GTIN   digitos ou "SEM GTIN"        produto
+  Chave NF-e CHAR(44)                     documento fiscal
+  CEP        CHAR(8)                      endereco
+
+Mascarar (pontos/tracos) so na tela.
+Vigencia via carga de tabelas (APIS_FREE). Nunca "adaptar" NCM.
+
+======================================================================
+10. CODIGOS AUXILIARES E DE-PARA
+======================================================================
+
+10.1. cProd do fornecedor
+      Tabela: fornecedor_id (BIGINT) + cProd -> produto_id (BIGINT).
+
+10.2. Referencia do cliente
+      parceiro_id + ref_cliente -> produto_id / modelo_id / fac_id.
+
+10.3. Legado da planilha
+      codigo_antigo -> id novo. Busca aceita legado na fase 1.
+
+10.4. Lote
+      lote.id BIGINT; lote_fornecedor texto; opcional mascara LOT-...
+
+======================================================================
+11. COMO O ERP DEVE GERAR (FLUXO PROFISSIONAL)
+======================================================================
+
+11.1. Novo cadastro:
+       1) Usuario escolhe TIPO/GRUPO (atributos fisicos se SKU)
+       2) Backend, em transacao:
+            - obtem proximo id (identity) OU reserva sequencia
+              de NUMERO de negocio
+            - monta codigo de exibicao (ou ano+numero)
+            - grava linha
+       3) Resposta da API devolve id + codigo formatado
+       4) Tela mostra codigo em modo LEITURA
+
+11.2. Sequencia de negocio:
+       * Tabela de contadores por dominio (e ano, se anual)
+         OU sequence nativa do SGBD
+       * NUNCA SELECT MAX(numero)+1 na tabela de fato
+       * Furo apos rollback e aceitavel
+
+11.3. API / contratos:
+       * Interno entre servicos: trafegar id (BIGINT)
+       * Externo (PDF, WhatsApp, tela): trafegar codigo
+       * Endpoints de busca: resolvem codigo|cnpj|texto -> id
+
+11.4. Validacao de mascara: regex no backend para o campo codigo
+       (ou para montagem ano/numero). Frontend so UX.
+
+11.5. Busca: codigo, prefixo, descricao, CNPJ, cProd, legado.
+       Autocomplete para evitar duplicata.
+
+11.6. Etiqueta de prateleira:
+       codigo de negocio + descricao + barras (Code128 do codigo
+       ou do id — preferir o codigo legivel) + lote.
+       QR pode apontar URL com id interno; texto impresso = codigo.
+
+11.7. Performance (checklist tecnico):
+       [ ] PK BIGINT em todas as tabelas de fato
+       [ ] FK BIGINT; indice nas FKs de alto volume (movimento)
+       [ ] Documentos anuais: indice (ano, numero) numerico
+       [ ] codigo VARCHAR indexado UNIQUE so onde necessario
+           para busca — nao como alvo de FK
+       [ ] Movimentos de estoque: particionar/arquivar por data
+           se volume crescer; id continua BIGINT monotono
+
+======================================================================
+12. O QUE NUNCA FAZER
+======================================================================
+
+  [ ] Usar VARCHAR/codigo como PRIMARY KEY ou como FK
+  [ ] Reciclar id ou codigo de registro inativo
+  [ ] Mudar PAR- (ou id) quando prospect vira cliente
+  [ ] Colocar preco ou "2024" dentro do SKU
+  [ ] Usar nome do vendedor no numero do orcamento
+  [ ] Deixar usuario inventar codigo no dia a dia
+  [ ] Dois SKUs para o mesmo rolo por descricao diferente
+  [ ] Usar so CNPJ como PK de relacionamento (mascarar na tela;
+      id + PAR- existem)
+  [ ] Concatenar texto livre no codigo
+  [ ] Gerar id/codigo so no frontend
+  [ ] Confundir id/codigo interno com NCM/CFOP/EAN
+  [ ] Fazer join por codigo string em relatorio pesado
+      (resolver id uma vez; agregar por id)
+
+======================================================================
+13. MATRIZ RAPIDA — QUEM GERA O QUE
+======================================================================
+
+  INFORMACAO              CAMADA MOTOR       CAMADA EXIBICAO
+  ----------------------  -----------------  ----------------------
+  Parceiro                id BIGINT          PAR-NNNNN
+  Familia MP-/EMB-/...    id BIGINT          MP-PAP-nnn etc.
+  SKU bobina              id BIGINT          GG.MMM.FFF.LLLL.CCCC
+  Orcamento/Ped/OP/OC     id BIGINT          PREFIXO-ANO-NUMERO
+  Movimento estoque       id BIGINT          MOV-... (opcional)
+  Serie/numero NF-e       serie+nro oficiais (Focus/SEFAZ)
+  NCM/CFOP/IBGE           tabelas oficiais   mascara so na UI
+  cProd fornecedor        de-para -> id      texto do XML
+  Token aprovacao         n/a (crypto)       token opaco na URL
+  Usuario                 id BIGINT          e-mail login
+  Perfil                  id BIGINT          PER-NOME
+
+======================================================================
+14. CHECKLIST DE IMPLANTACAO
+======================================================================
+
+  [ ] Todas as entidades com id BIGINT PK
+  [ ] Nenhuma FK apontando para codigo VARCHAR
+  [ ] Contadores/sequences por dominio (e ano quando anual)
+  [ ] Codigo de negocio UNIQUE + imutavel apos uso
+  [ ] Documentos: ano/numero(/versao) numericos + formatacao
+  [ ] SKU bobina: colunas grupo/largura/comprimento + codigo
+  [ ] Unique: CNPJ/CPF; (fornecedor_id + cProd)
+  [ ] De-para legado e cProd (Colacril, Avery...)
+  [ ] Familias fiscais + SKUs migrados
+  [ ] API devolve { id, codigo } ; UI prioriza codigo
+  [ ] Relatorios pesados agregam por id
+  [ ] Etiqueta com codigo legivel + lote
+  [ ] Treinamento: "nao digite PK; busque pelo codigo PAR-/SKU"
+  [ ] Job de duplicatas suspeitas (descricao/EAN/cProd)
+
+======================================================================
+15. DECISOES OFICIAIS (RESUMO EXECUTIVO)
+======================================================================
+
+  1. Nucleo SEMPRE numerico: id BIGINT como PK/FK (performance).
+  2. Operacao SEMPRE legivel: codigo com prefixo (ou ano+numero
+     formatado) para tela, PDF, etiqueta e suporte.
+  3. Nunca usar o codigo string como chave de relacionamento.
+  4. Atributos mutaveis ficam em CAMPOS (papel, preco, situacao).
+  5. Parceiro = id + PAR-NNNNN; papeis sao flags.
+  6. Produto = id + familia fiscal + SKU estruturado (bobinas)
+     com atributos numericos nas colunas.
+  7. Documentos = id + (ano, numero [, versao]) numericos;
+     mascara PREFIXO-ANO-SEQUENCIAL na exibicao.
+  8. Documentos fiscais = numeracao oficial (nao reinventar).
+  9. Codigos de governo = tabelas oficiais (digitos no banco).
+ 10. DE-PARA para fornecedor, cliente e legado -> id interno.
+ 11. Nunca reaproveitar id/codigo; furos sao saudaveis.
+ 12. Um item, um sku.id; uma pessoa, um parceiro.id — para sempre.
+
+======================================================================
+FIM DO DOCUMENTO — CODIFICACAO_INFORMACOES_SISTEMA.txt
+======================================================================

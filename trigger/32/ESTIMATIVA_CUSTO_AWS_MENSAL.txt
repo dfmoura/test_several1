@@ -1,0 +1,500 @@
+====================================================================================================
+ESTIMATIVA DE CUSTO AWS — DIAGNÓSTICO DE PORTE + ORÇAMENTO CORRIGIDO (ERP RLP)
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Apoio a: SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt
+Base: ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt + volume oficial (≤10 users · ≈200 NF/mês)
+Gerado em: 02/08/2026 | Revisado em: 02/08/2026 (diagnóstico de porte / corte de posto fixo)
+Região-alvo: sa-east-1 (São Paulo)
+====================================================================================================
+
+Documento de APOIO FINOPS + DIAGNÓSTICO. Responde à pergunta da direção:
+
+  “A AWS está ficando cara demais para o porte da empresa — tem algo errado?”
+
+  Resposta curta: SIM — não no sentido de “bug na fatura”, e sim no sentido de
+  ARQUITETURA DESPROPORCIONAL. O volume da RLP é pequeno; o desenho anterior
+  (subnet privada + NAT Gateway + ALB + Fargate + RDS 24×7) cobra um POSTO FIXO
+  de nuvem enterprise que não se justifica com ≤10 usuários e ≈200 NF/mês.
+
+====================================================================================================
+0. VEREDITO EXECUTIVO (LER PRIMEIRO)
+====================================================================================================
+
+  Volume real:
+    Usuários no ERP .............. no máximo 10
+    Notas fiscais / mês .......... ≈ 200 (fluxo completo ORC→caixa)
+    Pico ......................... horário comercial; app INTERNA (não público)
+
+  O que estava errado na análise anterior (“Cenário B” como padrão):
+    • Tratou “padrão AWS seguro” como se fosse obrigatório Fargate+ALB+NAT.
+    • Com isso, o piso de custo ficava ~USD 260–400 / mês (R$ 1.430–2.200)
+      ANTES de processar quase nada — caro demais para indústria enxuta.
+    • Em sa-east-1 o NAT Gateway sozinho custa ~USD 68 / mês LIGADO,
+      mesmo com tráfego quase zero. Isso é imposto de arquitetura, não de NF.
+
+  O que NÃO está errado (e não se corta):
+    • Backup testado, HTTPS, secrets, idempotência NF/COB/BX, DLQ, Budget.
+    • Correção > elasticidade. Isso continua inegociável.
+
+  Orçamento CORRIGIDO sugerido à direção (padrão novo = Cenário D):
+
+    CENÁRIO                              USD / mês       BRL / mês (×5,50)
+    -----------------------------------  --------------  -----------------
+    D — Enxuto porte RLP ★ NOVO PADRÃO   90 – 180        495 – 990
+    E — Mínimo viável (Lightsail/EC2)    55 – 120        300 – 660
+    A — Seguro “clássico” enxuto         150 – 240       825 – 1.320
+    B — Fargate+ALB+NAT (legado)         260 – 400       1.430 – 2.200
+    C — Folga / crescimento              450 – 700       2.475 – 3.850
+
+  Teto Budget recomendado (1º semestre, padrão D):
+    Infra AWS mensal .................. USD 120 – 200  |  R$ 660 – 1.100
+    Budget alarm (teto) ............... USD 250        |  R$ 1.375
+
+  Comparativo de sensatez:
+    Processar 200 NF/mês NÃO exige “mini data center”.
+    Se a fatura AWS > R$ 1.500/mês sem Multi-AZ/EKS/Redis, há OVERENGINEERING.
+
+====================================================================================================
+1. DIAGNÓSTICO — POR QUE PARECE CARO (E ONDE ESTÁ O ERRO)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. O PROBLEMA NÃO É A AWS — É O MODELO COPIADO DE EMPRESA GRANDE
+----------------------------------------------------------------------------------------------------
+
+  Padrão “enterprise” que inchou o orçamento:
+
+                    Internet
+                       │
+                      ALB  ←── custo fixo ~USD 28–42/mês
+                       │
+              ┌────────┴────────┐
+              │  subnet privada │
+              │  Fargate API    │
+              │  Fargate worker │
+              └────────┬────────┘
+                       │
+                  NAT Gateway  ←── vilão #1 em sa-east-1 (~USD 68/mês parado)
+                       │
+                 Focus / banco / Meta
+
+  Com 200 NF/mês o tráfego de dados é BAIXO. Você paga a TARIFA HORÁRIA
+  desses componentes, não o processamento das notas.
+
+  Distribuição típica do “Cenário B legado” (errado como padrão RLP):
+
+    NAT Gateway ...................... 20 – 30%   ← quase fixo, tráfego irrelevante
+    RDS .............................. 25 – 35%   ← quase fixo 24×7
+    ALB .............................. 10 – 15%   ← quase fixo
+    Fargate (API+worker) ............. 12 – 20%
+    Segurança + logs ................. 8 – 15%
+    S3 + SQS + SSM + SES ............. < 8%   ← o que realmente escala com NF
+
+  Insight: com o volume da RLP, ~60–75% da fatura é POSTO FIXO de rede/entrada/
+  banco ligado — não “custo por nota”. Cortar NF não baixa a conta; cortar NAT/ALB
+  e consolidar compute sim.
+
+----------------------------------------------------------------------------------------------------
+1.2. CHECKLIST — SINAIS DE QUE O SIZING ESTÁ ERRADO PARA O PORTE
+----------------------------------------------------------------------------------------------------
+
+  Sintoma                                              Diagnóstico
+  ---------------------------------------------------  ------------------------------------------
+  Orçamento AWS > R$ 1.500/mês com ≤10 users           Arquitetura enterprise demais
+  NAT Gateway na fatura sem tráfego alto               Posto fixo desnecessário neste porte
+  ALB + Fargate + NAT todos juntos no dia 1            Três “portagens” para um ERP interno
+  Nonprod ligado 24×7                                  Desperdício clássico
+  Multi-AZ / 2 NAT / ElastiCache / EKS no go-live      Overkill; não comprar
+  CloudWatch > USD 40/mês com 10 users                 Log sem dieta / retenção longa
+  Fatura sobe sem subir NF                             Loop de job, deploy puxando imagem via NAT,
+                                                       staging ligado, anomaly
+
+----------------------------------------------------------------------------------------------------
+1.3. O QUE A EMPRESA REALMENTE PRECISA (ÂNCORA)
+----------------------------------------------------------------------------------------------------
+
+  Tradução operacional:
+
+    NF por dia útil ................... ≈ 7 – 10
+    Emissões Focus / mês .............. ≈ 200 (+ consultas de status)
+    Webhooks bancários / mês .......... ≈ 100 – 250
+    WhatsApp régua / mês .............. dezenas a poucas centenas
+    Crescimento S3 (XML+PDF) .......... ≈ 0,3 – 2 GB / ano no início
+    Conexões DB concorrentes .......... < 20 com pool
+
+  Gargalo real: CORRETUDE (idempotência) + disponibilidade do banco + disciplina
+  de custo fixo. NÃO é CPU, NÃO é elasticidade de Black Friday.
+
+====================================================================================================
+2. DECISÃO CORRIGIDA — QUAL CENÁRIO USAR
+====================================================================================================
+
+  ★ PADRÃO RLP (go-live e 1º ano, volume atual):
+      Cenário D — Enxuto porte RLP (EC2 consolidado, sem NAT, sem ALB obrigatório)
+
+  Alternativa ainda mais barata (piloto / budget apertado):
+      Cenário E — Lightsail ou 1 EC2 “tudo junto” com Postgres na mesma máquina
+      (aceitar trade-off: menos isolamento banco/app)
+
+  Só subir para A/B se:
+      • Direção exigir isolamento privado clássico (app sem IP público)
+      • Compliance/auditoria exigir ALB+WAF+subnet privada formalmente
+      • Volume passar de ~500 NF/mês ou ~20 users concorrentes
+
+  NÃO usar C como “padrão por garantia”. C é crescimento comprovado.
+
+====================================================================================================
+3. CENÁRIO D — ENXUTO PORTE RLP ★ NOVO PADRÃO (USD 90–180)
+====================================================================================================
+
+Objetivo: mesma segurança de NEGÓCIO (HTTPS, backup, secrets, idempotência),
+com posto fixo compatível com indústria de ≤10 usuários.
+
+Arquitetura:
+
+                    Internet
+                       │
+                 Elastic IP + HTTPS
+                 (Caddy/Nginx ou
+                  ALB só se exigido)
+                       │
+              ┌────────▼────────┐
+              │  EC2 t4g.small  │  API + worker no mesmo host (Docker Compose
+              │  ou t4g.medium  │  ou systemd). SG: 443 liberado; SSH só bastion/
+              │  Graviton       │  SSM Session Manager (sem SSH aberto ao mundo).
+              └────────┬────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         │             │             │
+    RDS t4g.micro   S3 + SQS      Focus/banco/Meta
+    Single-AZ       SES/SSM       (saída DIRETA da
+    OU Postgres                   EC2 pública —
+    no mesmo EC2*                 SEM NAT Gateway)
+
+  * Preferência go-live: Postgres no mesmo EC2 (Cenário E) OU RDS micro/small
+    Single-AZ se a direção quiser restore gerenciado separado.
+
+  Item                              Spec                              USD/mês
+  --------------------------------  --------------------------------  -------
+  EC2 t4g.small/medium              1 host API+worker (Graviton)       20–45
+  EBS gp3 40–80 GB                  SO + app + (opcional) PG           5–12
+  RDS PostgreSQL (se separado)      db.t4g.micro Single-AZ             35–70
+                                    30–50 GB gp3 + backup 14d          8–18
+  OU Postgres no EC2                sem RDS                            0
+  Elastic IP + data transfer        baixo volume                       3–12
+  S3 + SQS + SES + ECR/SSM          200 NF                             5–15
+  CloudWatch (retenção 7–14d)       alarmes essenciais                 8–18
+  ACM + Route 53 (opcional)         TLS/DNS                            1–8
+  GuardDuty + Trail + KMS + Budget residual                           6–15
+  WAF (só se houver ALB)            senão: rate limit no reverse proxy 0–15
+  --------------------------------                                    -------
+  TOTAL PROD (com RDS micro)                                        90–180
+  TOTAL PROD (Postgres no EC2)                                       55–120  ← ver Cenário E
+
+  O que D ELIMINA de propósito (e por quê):
+    ✗ NAT Gateway ........ ~USD 68/mês parado em SP; tráfego RLP não paga isso
+    ✗ ALB obrigatório .... ERP interno; Nginx/Caddy + ACM (ou cert no host) basta
+    ✗ 2 tasks Fargate .... 1 VM cobre API+worker neste volume
+    ✗ ElastiCache ........ SQS + Postgres
+    ✗ Multi-AZ / 2 NAT ... decisão de risco futura, não default
+
+  Segurança mantida (não negociável):
+    ✓ HTTPS (443)
+    ✓ SG fechado (DB só localhost ou SG da app)
+    ✓ SSM Session Manager (sem SSH 22 aberto)
+    ✓ Secrets em SSM SecureString
+    ✓ Backup diário + restore ENSAIADO (snapshot EBS e/ou pg_dump → S3)
+    ✓ DLQ + idempotência + Budget + anti-loop
+    ✓ Fail2ban / rate limit no reverse proxy se sem WAF
+
+  Usar D quando: operação real da RLP (padrão). É o equilíbrio certo.
+
+----------------------------------------------------------------------------------------------------
+3.1. ORÇAMENTO SUGERIDO À DIREÇÃO (D)
+----------------------------------------------------------------------------------------------------
+
+  Prod (meio da faixa D, com RDS micro) ... USD 135
+  Nonprod sob demanda / sleep ............. USD 15 – 30
+  Folga 15% (deploy/anomalia) ............. USD 25
+  -------------------------------------------------
+  TETO Budget AWS ......................... USD 200 – 250 / mês
+  Em BRL (×5,50) .......................... R$ 1.100 – 1.375 / mês
+
+====================================================================================================
+4. CENÁRIO E — MÍNIMO VIÁVEL (USD 55–120) — PILOTO / BUDGET APERTO
+====================================================================================================
+
+Objetivo: menor conta possível ainda profissional o bastante para emitir NF
+e cobrar com segurança de negócio.
+
+  Opção E1 — Amazon Lightsail (simples de operar):
+    1 instância 2–4 GB RAM + disco + IP estático + snapshot
+    App + Postgres no mesmo host (Docker Compose)
+    Bucket S3 à parte para XML/PDF (ou disco + sync)
+    Faixa típica: USD 20 – 60 compute + 10 – 30 extras = USD 55 – 100
+
+  Opção E2 — 1× EC2 t4g.small “tudo junto”:
+    API + worker + Postgres + Caddy
+    Backup: pg_dump agendado → S3 + snapshot EBS semanal
+    Faixa típica: USD 55 – 120
+
+  Aceitar conscientemente:
+    • Banco e app no mesmo host (incidente de host afeta os dois)
+    • Sem autoscaling (com 10 users não precisa)
+    • Menos “carinhas” AWS na fatura — mais disciplina operacional no host
+
+  NÃO aceitar:
+    • Sem backup / sem restore testado
+    • Sem HTTPS
+    • Sem kill-switch de integração
+    • Root AWS no dia a dia
+
+====================================================================================================
+5. CENÁRIO A — SEGURO “CLÁSSICO” ENXUTO (USD 150–240) — SÓ SE EXIGIDO
+====================================================================================================
+
+Usar quando a direção/auditoria exigir app em subnet privada OU ALB+WAF formal,
+MAS ainda cortando o pior vilão (NAT caro) ou mitigando-o.
+
+  Caminhos inteligentes dentro de A:
+
+    A1) EC2 privada + NAT Instance t4g.nano (não NAT Gateway)
+        — NAT Instance ~USD 5–12/mês vs Gateway ~USD 68/mês em SP
+    A2) EC2/Fargate em subnet PÚBLICA com SG restrito (sem NAT)
+        — saída pela própria ENI; entrada só 443 via SG/ALB
+    A3) ALB + ECS Fargate SEM NAT (tasks públicas + SG) + RDS privado
+        — ainda paga ALB+Fargate, mas corta ~USD 68 do NAT
+
+  Item (A2 típico)                     Spec                      USD/mês
+  ------------------------------------  ------------------------  -------
+  RDS db.t4g.micro/small Single-AZ      + backup                  45–100
+  ECS Fargate OU 1 EC2                  API+worker                25–60
+  ALB (se exigido)                      HTTPS                     28–42
+  SEM NAT Gateway                       —                         0
+  S3/SQS/SSM/CW/Trail/Budget            mínimos                   25–50
+  --------------------------------                                -------
+  TOTAL                                                               150–240
+
+====================================================================================================
+6. CENÁRIO B — FARGATE + ALB + NAT (LEGADO) — NÃO É MAIS O PADRÃO
+====================================================================================================
+
+Mantido só como referência do desenho anterior e para quando o volume crescer
+OU houver requisito formal de isolamento clássico completo.
+
+  TOTAL PROD .............................................. USD 260 – 400 / mês
+  Em BRL ................................................. R$ 1.430 – 2.200
+
+  Status: LEGADO / OPCIONAL. Não orçar como default da RLP.
+  Se alguém propor B no dia 1, perguntar: “qual requisito justifica ~USD 70/mês
+  de NAT parado + ALB fixo com 10 usuários?”
+
+  O que B ainda NÃO deve incluir:
+    ✗ ElastiCache · 2ª task ociosa · scheduler 24×7 · Multi-AZ · EKS · Aurora · 2 NAT
+
+====================================================================================================
+7. CENÁRIO C — FOLGA / CRESCIMENTO (USD 450–700)
+====================================================================================================
+
+Gatilhos (não antecipar):
+
+  • > 500 NF/mês sustentado
+  • > 15–20 usuários concorrentes
+  • EMP-00002 vendendo em volume
+  • Exigência formal Multi-AZ + HA de rede
+  • BI pesado competindo com OLTP
+
+====================================================================================================
+8. INVENTÁRIO — O QUE USAR NO PADRÃO D (PORTE RLP)
+====================================================================================================
+
+Marcas: OBRIG | RECOM | FASE2 | NÃO | OPC
+
+  Serviço / peça                 Papel                         Marca (padrão D)
+  -----------------------------  ----------------------------  ----------------
+  EC2 Graviton (1)               API + worker                  OBRIG
+  Docker Compose / systemd       Runtime                       OBRIG
+  Reverse proxy HTTPS            Entrada TLS                   OBRIG
+  RDS micro OU Postgres no host  Fonte da verdade              OBRIG
+  Amazon S3                      XML/PDF/boletos               OBRIG
+  Amazon SQS + DLQ               Filas Focus/banco/WhatsApp    OBRIG
+  SSM SecureString               Secrets                       OBRIG
+  CloudWatch (curto) + Budgets   Observabilidade + teto        OBRIG
+  SNS                            Alarmes                       OBRIG
+  VPC Endpoint S3 (se VPC)       Evita caminho caro a S3       RECOM
+  Route 53 / ACM                 DNS/TLS                       RECOM
+  GuardDuty                      Detecção                      RECOM
+  ALB                            Entrada gerenciada            OPC (não default)
+  AWS WAF                        Se houver ALB                 OPC
+  NAT Gateway                    Saída privada gerenciada      NÃO (padrão D)
+  NAT Instance                   Só se subnet privada forçada  OPC (A1)
+  ECS Fargate                    Compute gerenciado            FASE2 / B
+  ElastiCache Redis              Cache gerenciado              NÃO
+  EKS / Aurora / CloudFront      Overkill                      NÃO
+  Multi-AZ RDS                   HA de AZ                      FASE2 / C
+
+====================================================================================================
+9. TABELA DE CORTE — ONDE ESTAVA O DESPERDÍCIO
+====================================================================================================
+
+  Item cortado / trocado              Economia típica/mês (sa-east-1)   Risco se feito certo
+  ----------------------------------  --------------------------------  --------------------
+  Remover NAT Gateway                 ~USD 65 – 80                      Baixo (app interna)
+  Trocar ALB por Nginx/Caddy no host  ~USD 28 – 42                      Baixo
+  Fargate 2 tasks → 1 EC2             ~USD 20 – 50                      Baixo @ 10 users
+  RDS small → micro ou PG no host     ~USD 30 – 80                      Médio (monitorar)
+  Nonprod 24×7 → sleep                ~USD 50 – 120                     Nenhum
+  Logs verbosos → retenção 7–14d      ~USD 10 – 40                      Nenhum
+  ----------------------------------  --------------------------------
+  Potencial vs “B legado”             ~USD 150 – 280 / mês              Mantém correção
+
+  Em BRL: economia potencial de ~R$ 800 – 1.500 / mês frente ao B como padrão.
+  Isso é material para o porte da RLP.
+
+====================================================================================================
+10. CUSTO POR FASE (CORRIGIDO)
+====================================================================================================
+
+  Fase                              AWS                         USD/mês
+  --------------------------------  --------------------------  --------
+  Dev local (Compose)               ~0                          0 – 15
+  Staging sob demanda               sleep / liga quando precisa 10 – 40
+  Homolog Focus/Inter/WhatsApp      staging curto               40 – 90
+  Go-live fluxo completo            Cenário D ★                 90 – 180
+  Piloto ultra-enxuto               Cenário E                   55 – 120
+  Isolamento clássico exigido       Cenário A                   150 – 240
+  Padrão legado Fargate+NAT         Cenário B (evitar)          260 – 400
+  Crescimento comprovado            Cenário C                   450 – 700
+
+====================================================================================================
+11. FORA DA FATURA AWS (NÃO ESQUECER NO ORÇAMENTO TOTAL)
+====================================================================================================
+
+  Focus NFe · tarifas Sicoob/Inter · Meta WhatsApp/BSP · certificado A1 ·
+  domínio · contador · link de internet · horas de TI.
+
+  Volume baixo favorece previsibilidade nesses itens — ainda assim: teto diário
+  + anti-loop (SEGURANCA_NUVEM §6). Planilha separada da fatura AWS.
+
+====================================================================================================
+12. DECISÕES INTELIGENTES (FUNCIONAR + CABER NO BOLSO)
+====================================================================================================
+
+  1. PORTE MANDA NO DESENHO
+     10 users / 200 NF → 1 VM (ou Lightsail), não cluster. Ponto.
+
+  2. NAT GATEWAY É SUSPEITO Nº 1 EM sa-east-1
+     ~USD 68/mês parado. Só mantenha com requisito escrito de subnet privada.
+
+  3. ALB NÃO É SINÔNIMO DE SEGURANÇA
+     HTTPS + SG + rate limit + SSM já atendem ERP interno neste porte.
+
+  4. CONSOLIDAR COMPUTE
+     API + worker no mesmo host. Separar só com evidência (CPU/fila).
+
+  5. BANCO: MICRO OU NO HOST NO DIA 1
+     Subir sizing só com CPU/memória > 70% sustentado ou restore exigindo RDS.
+
+  6. FILA BARATA (SQS) > Redis pago
+     Idempotência no Postgres.
+
+  7. NONPROD DORME
+     Staging sob demanda. Dev local em Docker Compose.
+
+  8. LOG COM DIETA
+     Sem payload completo de webhook; retenção 7–14d.
+
+  9. ANTI-LOOP É FINOPS
+     200 NF viram 20.000 se job enlouquecer — teto + DLQ + kill-switch.
+
+ 10. MEDIR 30 DIAS ANTES DE RI/SAVINGS/MULTI-AZ
+     Rightsizing primeiro; compromisso longo depois.
+
+ 11. NÃO COMPRAR HA “POR MEDO”
+     Snapshot + restore ensaiado + runbook costam menos que Multi-AZ no dia 1.
+
+ 12. REVISAR FATURA NO DIA 7, 30 E 90
+     Qualquer linha > 15% sem justificativa de volume = investigação.
+
+====================================================================================================
+13. SINAIS DE AÇÃO (OPERAÇÃO)
+====================================================================================================
+
+  Sintoma                              Ação
+  -----------------------------------  ----------------------------------
+  Fatura > USD 250 com padrão D        Procurar NAT/ALB/nonprod/logs
+  EC2 CPU > 70% dias seguidos          t4g.small → medium (ainda 1 host)
+  Disco > 80%                          lifecycle S3; limpar logs; expandir EBS
+  Fila SQS envelhecendo                achar query lenta; 2º worker no mesmo host
+  Quer “mais HA” sem incidente         documentar Multi-AZ/ALB como decisão,
+                                       não como reflexo
+  Volume > 500 NF ou 20 users          reabrir Cenário A/B/C com números
+
+====================================================================================================
+14. CHECKLIST FINOPS (PORTE CORRIGIDO)
+====================================================================================================
+
+  [ ] Premissas travadas: ≤10 users · ≈200 NF/mês
+  [ ] Cenário D (ou E) como orçamento-base — NÃO B
+  [ ] NAT Gateway AUSENTE no go-live (salvo requisito escrito)
+  [ ] ALB ausente no default (salvo requisito escrito)
+  [ ] 1 host compute · sem ElastiCache · sem EKS
+  [ ] Backup + restore ensaiado (data anotada)
+  [ ] Budget teto USD 200–250 + anomaly detection
+  [ ] Nonprod com sleep documentado
+  [ ] Anti-loop NF/COB/BX/régua testado (SEGURANCA §6)
+  [ ] Planilha separada: Focus + WhatsApp + tarifas banco
+  [ ] Revisão de fatura dia 7 / 30 / 90
+  [ ] Qualquer proposta de Multi-AZ/2 NAT/Fargate+NAT exige aprovação da direção
+      com justificativa de risco (não “best practice genérica”)
+
+====================================================================================================
+15. TABELA RÁPIDA — SERVIÇO × USA? × USD/MÊS (PROD D)
+====================================================================================================
+
+  Serviço                Usa?     Faixa USD/mês    Nota @ volume RLP
+  ---------------------  -------  ---------------  ---------------------------
+  EC2 (API+worker)       SIM      20 – 45          1 host Graviton
+  RDS micro (ou no host) SIM/OPC  0 – 70           preferir micro ou host
+  EBS                    SIM      5 – 12           disco do host / RDS
+  S3                     SIM      5 – 12           200 XML/PDF = barato
+  SQS                    SIM      1 – 4            filas baratas
+  SSM / Secrets          SIM      0 – 6            SecureString
+  CloudWatch             SIM      8 – 18           retenção curta
+  Trail+KMS+Budget+GD    RECOM    6 – 15
+  ALB                    NÃO*     —                *só se exigido
+  NAT Gateway            NÃO*     —                *maior vilão; evitar
+  Fargate                NÃO*     —                *FASE2 / cenário B
+  ElastiCache            NÃO      —
+  Multi-AZ RDS           OPC      +75 – 120        decisão de risco
+  ---------------------           ---------------
+  SOMA TÍPICA D                   90 – 180
+
+====================================================================================================
+16. RECOMENDAÇÃO FINAL PARA A RLP
+====================================================================================================
+
+  1) Sim: a estimativa anterior no patamar USD 260–400 como “padrão” estava
+     DESALINHADA ao porte (≤10 users · ≈200 NF). O erro é de arquitetura de
+     posto fixo (NAT+ALB+Fargate), não de “NF cara”.
+
+  2) Travar go-live no Cenário D (USD 90–180 / mês) — ou E (USD 55–120) no piloto.
+
+  3) Budget teto USD 250 / mês no 1º semestre (≈ R$ 1.375).
+
+  4) Não comprar NAT Gateway, ALB, Multi-AZ, ElastiCache, EKS “por costume”.
+
+  5) Manter o que importa: idempotência, DLQ, kill-switch, HTTPS, backup ensaiado.
+
+  6) Nonprod dormindo; prod consolidado; medir 7/30/90 dias.
+
+  7) Só reabrir A/B/C com volume ou requisito formal documentado.
+
+  8) Validar números no AWS Pricing Calculator (sa-east-1) antes do go-live.
+     Valores deste TXT são ordem de grandeza (câmbio planejamento R$ 5,50/USD).
+
+====================================================================================================
+Fim — ESTIMATIVA_CUSTO_AWS_MENSAL.txt
+Para a RLP: nuvem confiável e barata o bastante — não um data center em miniatura.
+Se a fatura parecer “de empresa grande”, o desenho é que está grande demais.
+====================================================================================================

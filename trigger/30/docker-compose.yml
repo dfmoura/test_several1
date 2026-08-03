@@ -1,0 +1,7 @@
+services:
+  flexoflow:
+    build: .
+    container_name: flexoflow
+    ports:
+      - "8090:80"
+    restart: unless-stopped

@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rlp36_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rlp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rlp_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-rlp_erp}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5436}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rlp} -d ${POSTGRES_DB:-rlp_erp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    container_name: rlp36_api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-rlp}:${POSTGRES_PASSWORD:-rlp_secret}@db:5432/${POSTGRES_DB:-rlp_erp}
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production-rlp-erp-32chars}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@rlp.com.br}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123}
+      ENVIRONMENT: ${ENVIRONMENT:-HOMOLOGACAO}
+      SIMULAR_INTEGRACOES: ${SIMULAR_INTEGRACOES:-true}
+      FOCUS_NFE_TOKEN: ${FOCUS_NFE_TOKEN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    container_name: rlp36_web
+    ports:
+      - "${WEB_PORT:-8036}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:

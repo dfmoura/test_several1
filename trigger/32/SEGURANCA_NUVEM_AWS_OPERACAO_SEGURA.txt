@@ -1,0 +1,586 @@
+====================================================================================================
+SEGURANÇA EM NUVEM AWS — OPERAÇÃO SEGURA, ESTÁVEL E SEM SURPRESA DE CUSTO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+         Simples Nacional (migração p/ Lucro Real) | Multi-empresa EMP-00001 / EMP-00002
+Base: ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt + INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt + INTEGRACAO_WHATSAPP_BUSINESS_API.txt +
+      FATURAMENTO_GERACAO_COBRANCA.txt + RECEBIMENTO_BAIXA_COBRANCA.txt +
+      APIS_FREE_CONSULTA_CADENCIA.txt + PARAMETROS_EMPRESA_OFICIAIS.txt
+Gerado em: 02/08/2026 | Atualizado em: 02/08/2026 (volume oficial)
+Irmão: ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt (como construir o software)
+Apoio FinOps: ESTIMATIVA_CUSTO_AWS_MENSAL.txt (diagnóstico de porte + custo corrigido)
+
+Volume oficial (âncora de sizing):
+  • Usuários no ERP ............. no máximo 10
+  • Notas fiscais / mês ......... ≈ 200 (fluxo completo ORC→caixa)
+====================================================================================================
+
+Documento normativo de NUVEM. Define a melhor forma de colocar o ERP RLP na AWS
+de modo SEGURO, SEM QUEBRAR a operação, SEM looping infinito de cobrança/NF/jobs,
+e SEM estouro de custo — com padrões profissionais de conta, rede, identidade,
+dados, integração e FinOps.
+
+Não substitui o desenho de domínio. Complementa a engenharia com o “como operar
+em produção na AWS”.
+
+Com ≤10 usuários e ≈200 NF/mês, a nuvem deve ser CONFIÁVEL e ENXUTA:
+correção (idempotência) > elasticidade; padrão FinOps = Cenário D (1 EC2,
+sem NAT Gateway/ALB obrigatórios; RDS micro ou Postgres no host).
+Fargate+ALB+NAT (Cenário B) é legado/opcional — caro demais como default.
+Detalhe de custo e BOM em ESTIMATIVA_CUSTO_AWS_MENSAL.txt.
+
+====================================================================================================
+0. PRINCÍPIOS DE OURO (NÃO NEGOCIÁVEIS)
+====================================================================================================
+
+  1. PRODUÇÃO NÃO É LABORATÓRIO. Conta, rede, secrets e dados de prod isolados
+     de sandbox (Inter, Focus homolog, WhatsApp teste).
+
+  2. MENOR PRIVILÉGIO EM TUDO. IAM, banco, S3, pessoas e serviços.
+     ADMIN AWS ≠ login diário do ERP.
+
+  3. TUDO QUE MEXE EM DINHEIRO OU NF É IDEMPOTENTE.
+     Webhook, job, retry e fila NÃO podem gerar segunda COB, segunda BX
+     ou segunda NF para o mesmo fato.
+
+  4. CUSTO TEM TETO. Budget + alarme + kill-switch de ambientes não essenciais.
+     Loop de API/job é incidente de segurança E de FinOps.
+
+  5. MUDANÇA COM TRILHA. Infra como código; deploy com rollback; migração de
+     banco revisada; feature flag para integrações.
+
+  6. BACKUP SÓ VALE SE RESTORE FOI TESTADO. Snapshot sem exercício = falsa segurança.
+
+  7. OBSERVABILIDADE ANTES DO GO-LIVE. Sem métrica de fila/DLQ/erro 5xx,
+     não se sobe cobrança automática.
+
+  8. NÃO ESTRAGAR O QUE JÁ FUNCIONA. Virada por fases; dual-run quando necessário;
+     kill-switch por provedor (banco / Focus / WhatsApp) sem derrubar o ERP inteiro.
+
+====================================================================================================
+1. MODELO DE CONTA E AMBIENTES AWS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. ORGANIZAÇÃO RECOMENDADA
+----------------------------------------------------------------------------------------------------
+
+  Conta (mínimo viável profissional):
+
+    management / billing ...... Organizations + Consolidated Billing (opcional no início)
+    shared-services ........... DNS, CI roles, ECR (quando houver >1 conta)
+    nonprod ................... DEV + STAGING (pode ser uma conta só no início)
+    prod ...................... somente produção
+
+  No dia 1, se a empresa for enxuta: 2 contas (nonprod | prod) já é ganho enorme.
+  Evitar “tudo na mesma conta root com Access Key no notebook”.
+
+----------------------------------------------------------------------------------------------------
+1.2. AMBIENTES LÓGICOS
+----------------------------------------------------------------------------------------------------
+
+  DEV ........ dados fictícios/anonimizados; Inter sandbox; Focus homolog
+  STAGING .... espelho de config de prod; volume reduzido; testes de NF/COB
+  PROD ....... Sicoob alvo + Focus produção + WhatsApp produção + dados reais
+
+  Separação obrigatória:
+    • Credenciais Inter ≠ Sicoob
+    • Token WhatsApp teste ≠ produção
+    • Bucket S3 e banco distintos
+    • Filas / prefixos de job distintos (evita worker DEV consumir PROD)
+
+----------------------------------------------------------------------------------------------------
+1.3. REGIÃO
+----------------------------------------------------------------------------------------------------
+
+  Primária sugerida: sa-east-1 (São Paulo) — latência, LGPD, Latency SEFAZ/APIs BR.
+  DR (fase posterior): réplica em outra região só com plano e custo aprovados.
+  Não espalhar recursos “por curiosidade” em us-east-1 sem necessidade — gera custo
+  e superfície de ataque.
+
+====================================================================================================
+2. IDENTIDADE, ACESSO E SEGREGAÇÃO (IAM + SSO)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+2.1. HUMANOS
+----------------------------------------------------------------------------------------------------
+
+  • Conta root: MFA hardware/virtual; NÃO usar no dia a dia; access key root = proibida
+  • Acesso humano via IAM Identity Center (SSO) ou usuários IAM com MFA obrigatório
+  • Grupos: PlatformAdmin | Developer | Reader | FinanceOps (billing)
+  • SoD: quem libera pagamento no ERP ≠ quem altera IAM/root; quem altera DNS ≠ sozinho
+  • Break-glass: usuário de emergência documentado, monitorado, revisado
+
+----------------------------------------------------------------------------------------------------
+2.2. MÁQUINAS / SERVIÇOS
+----------------------------------------------------------------------------------------------------
+
+  • Roles IAM por serviço (API, worker, scheduler) — sem Access Key de longa duração
+  • ECS task role / EC2 instance profile / Lambda role com policy mínima
+  • Secrets Manager / SSM Parameter Store para Focus, banco, WhatsApp, DB
+  • Rotação de segredos; proibido secret no Git, imagem Docker, ticket, WhatsApp
+
+----------------------------------------------------------------------------------------------------
+2.3. ALINHAMENTO COM O ERP (RBAC)
+----------------------------------------------------------------------------------------------------
+
+  Perfis do ERP (ADMIN, FISCAL, FINANCEIRO, …) continuam válidos.
+  Na AWS: o app assume role; o usuário do ERP nunca recebe chave AWS.
+  Auditoria: CloudTrail (conta) + audit_log (aplicação).
+
+====================================================================================================
+3. REDE E PERÍMETRO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+3.1. VPC DE REFERÊNCIA (PORTE RLP — PADRÃO ENXUTO)
+----------------------------------------------------------------------------------------------------
+
+  Padrão go-live (Cenário D do FinOps) — ERP interno ≤10 users:
+  • 1× EC2 (ou Lightsail) em subnet pública com Elastic IP
+  • HTTPS no reverse proxy (Caddy/Nginx) — ALB opcional, não obrigatório
+  • Security Groups: 443 aberto; SSH 22 FECHADO (acesso via SSM Session Manager)
+  • RDS (se separado) só aceita SG da app; sem 0.0.0.0/0 na 5432
+  • SEM NAT Gateway no default (sa-east-1: ~USD 68/mês parado — desproporcional)
+  • Saída para Focus/banco/Meta pela própria ENI da EC2
+  • Rate limit no reverse proxy (WAF só se houver ALB)
+
+  Topologia “clássica” (subnet privada + ALB + NAT) = Cenário A/B do FinOps:
+  só com requisito formal de isolamento. Não é o default do porte RLP.
+
+----------------------------------------------------------------------------------------------------
+3.2. TLS E DNS
+----------------------------------------------------------------------------------------------------
+
+  • ACM certificate; TLS 1.2+; redirect HTTP→HTTPS
+  • Route 53 com registro controlado; DNSSEC quando aplicável
+  • Certificado A1 da empresa: fora de bucket público; acesso só ao serviço fiscal
+
+----------------------------------------------------------------------------------------------------
+3.3. EXPOSIÇÃO DE WEBHOOKS
+----------------------------------------------------------------------------------------------------
+
+  Endpoints públicos necessários:
+    • /webhooks/bank/{provider}     (assinatura/HMAC/mTLS conforme banco)
+    • /webhooks/focus               (se aplicável)
+    • /webhooks/whatsapp            (verify token + assinatura Meta)
+
+  Controles:
+    • Validar assinatura ANTES de qualquer efeito colateral
+    • IP allowlist quando o provedor publicar ranges
+    • Idempotência por event_id (ver seção 6)
+    • Resposta rápida 2xx após enfileirar; processamento no worker
+    • Nunca confiar em payload sem autenticação do provedor
+
+====================================================================================================
+4. TOPOLOGIA DE COMPUTE E DADOS NA AWS (RECOMENDAÇÃO)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. COMPUTE (ESCOLHA PRAGMÁTICA — CALIBRADA AO VOLUME)
+----------------------------------------------------------------------------------------------------
+
+  Volume: ≤10 usuários · ≈200 NF/mês → NÃO dimensionar como site de alto tráfego.
+
+  Opção D — 1× EC2 Graviton ★ RECOMENDADO (porte RLP)
+    • t4g.small/medium: API + worker no mesmo host (Docker Compose / systemd)
+    • Reverse proxy HTTPS no host; SSM Session Manager (sem SSH aberto)
+    • Scheduler: cron no worker com lock Postgres (sem 3ª máquina)
+
+  Opção E — Lightsail / EC2 “tudo junto” (piloto / budget apertado)
+    • App + Postgres no mesmo host; snapshot + pg_dump → S3
+
+  Opção B — ECS Fargate + ALB (+ NAT se privada)
+    • Legado / quando isolamento clássico for exigido — ver FinOps Cenário A/B
+    • desired=1/1, max=2/2 · Graviton · sem 3ª task ociosa
+
+  Opção C — EKS
+    Evitar (custo/complexidade altos demais para este porte)
+
+  Autoscaling: neste porte, 1 host basta; teto de processos no Compose.
+  Se Fargate: proteção com max=2 (ver FinOps).
+
+----------------------------------------------------------------------------------------------------
+4.2. DADOS
+----------------------------------------------------------------------------------------------------
+
+  • Amazon RDS PostgreSQL — padrão porte RLP: db.t4g.micro Single-AZ
+    (ou Postgres no mesmo EC2 no Cenário E), backup 14–35 dias, restore ensaiado
+  • Multi-AZ: opcional (add-on de risco) — não default com ≤10 users /
+    horário comercial; ver ESTIMATIVA_CUSTO_AWS_MENSAL Cenário D/C
+  • ElastiCache Redis: NÃO no go-live (OPC/FASE2). Filas=SQS; locks=Postgres
+  • S3: buckets separados
+      erp-prod-docs .... XML, PDF NF, boletos, anexos (SSE-KMS, block public)
+      erp-prod-logs .... logs exportados (lifecycle)
+  • CloudFront: não (app interna; volume irrelevante para CDN)
+
+----------------------------------------------------------------------------------------------------
+4.3. FILAS
+----------------------------------------------------------------------------------------------------
+
+  Padrão: Amazon SQS (+ DLQ) — barato e suficiente para 200 NF/mês.
+  Não introduzir Redis/BullMQ em prod só por hábito.
+
+  Filas mínimas:
+    fiscal.emitir | fiscal.consultar
+    bank.emitir_cobranca | bank.processar_webhook
+    whatsapp.enviar
+    cobranca.regua
+    conciliar.extrato
+    outbox.dispatch
+
+====================================================================================================
+5. SEGURANÇA DE DADOS, BACKUP E LGPD
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+5.1. CRIPTOGRAFIA
+----------------------------------------------------------------------------------------------------
+
+  • RDS: encryption at rest (KMS)
+  • S3: SSE-KMS; Block Public Access ON
+  • TLS em trânsito (ALB→app→RDS)
+  • Campos sensíveis (cert password, tokens): Secrets Manager, não coluna aberta
+  • Backup criptografado; cópia cross-account opcional na fase DR
+
+----------------------------------------------------------------------------------------------------
+5.2. BACKUP E RETENÇÃO
+----------------------------------------------------------------------------------------------------
+
+  RDS:
+    • Automated backups ≥ 7 dias (meta: 14–35)
+    • Snapshot manual antes de migração arriscada
+    • Point-in-time recovery habilitado
+
+  S3:
+    • Versioning ON em buckets de XML/PDF
+    • Object Lock (Compliance) só se contador/jurídico exigir — custo e trava
+
+  Exercício:
+    • Restore completo em staging a cada trimestre
+    • Checklist: sobe API, login, emite NF homolog, lista TIT
+
+----------------------------------------------------------------------------------------------------
+5.3. LGPD / ACESSO
+----------------------------------------------------------------------------------------------------
+
+  • Inventário de dados pessoais (parceiro, contato, colaborador)
+  • Perfis CONSULTA para contador; export controlado
+  • Logs sem CPF/CNPJ completo quando não necessário (mascaramento)
+  • Processo de exclusão/anonimização compatível com obrigação fiscal
+    (documento fiscal NÃO some — base legal de guarda)
+
+====================================================================================================
+6. ANTI-LOOPING E IDEMPOTÊNCIA — COBRANÇA, NF, WEBHOOK, JOBS
+====================================================================================================
+
+Esta seção é crítica. “Looping infinito de cobrança” e retries desgovernados
+quebram cliente, banco, Focus e a fatura AWS ao mesmo tempo.
+
+----------------------------------------------------------------------------------------------------
+6.1. DEFINIÇÃO DE IDEMPOTÊNCIA NO ERP
+----------------------------------------------------------------------------------------------------
+
+  Para cada fato de negócio existe UMA chave natural ou sintética:
+
+    Emissão NF ........... (empresa_id, ped_id, parcial_seq) ou idempotency_key do caso
+    Emissão COB .......... (tit_id) — 1 título aberto → no máximo 1 COB ativa
+    Baixa BX ............. (provider, event_id) OU (tit_id, valor, data_credito, end_to_end)
+    WhatsApp MSG ......... (template, destinatario, ref_documento, slot_regua)
+    Job régua ............ (tit_id, marco_regua, data_ref)
+
+  UNIQUE no banco + “select before insert” + outbox. Retry deve REPETIR o mesmo
+  efeito, não CRIAR outro.
+
+----------------------------------------------------------------------------------------------------
+6.2. WEBHOOK BANCÁRIO (COB → BX)
+----------------------------------------------------------------------------------------------------
+
+  Fluxo seguro:
+
+    1) Recebe POST → valida assinatura → gera hash do event_id
+    2) INSERT webhook_inbox ON CONFLICT DO NOTHING
+    3) Se já processado: responde 200 e PARA (sem reprocessar efeito)
+    4) Enfileira mensagem com o id do inbox
+    5) Worker: abre transação; cria BX se TIT ainda aberto; atualiza COB/TIT
+    6) Marca inbox PROCESSADO; commit
+    7) Falha transitória: volta para fila com backoff; NÃO cria segunda BX
+
+  Ambiguidade (valor/pagador): fila humana — NUNCA chute automático em loop.
+
+----------------------------------------------------------------------------------------------------
+6.3. RETRIES — REGRAS QUE EVITAM TEMPESTADE
+----------------------------------------------------------------------------------------------------
+
+  • Backoff exponencial + jitter
+  • Tentativas máximas (ex.: 5–10) → DLQ
+  • Alerta imediato quando mensagem cair na DLQ
+  • Proibido retry infinito em:
+      - rejeição SEFAZ definitiva
+      - título já baixado
+      - cobrança já cancelada
+      - template WhatsApp rejeitado
+  • Circuit breaker por provedor (Focus / banco / Meta): após N falhas,
+    abrir circuito X minutos; matar flood de chamadas
+
+----------------------------------------------------------------------------------------------------
+6.4. RÉGUA DE COBRANÇA (WHATSAPP / E-MAIL)
+----------------------------------------------------------------------------------------------------
+
+  Parâmetro: D-3, D+1, D+7, D+15 (PARAMETROS_EMPRESA_OFICIAIS)
+
+  Controles anti-loop:
+    • Job diário (não a cada minuto)
+    • UNIQUE (tit_id, marco) — cada marco dispara no máximo uma vez
+    • Se TIT baixado/cancelado: não envia; marca marco SKIPPED
+    • Kill-switch global: cobranca.regua.enabled = false
+    • Opt-out / horário comercial / limite diário de MSG por cliente
+    • Separar régua financeira de lembrete de reposição (outro job, outro template)
+
+----------------------------------------------------------------------------------------------------
+6.5. FATURAMENTO E EMISSÃO FOCUS
+----------------------------------------------------------------------------------------------------
+
+  • Botão/API “Faturar” exige Idempotency-Key
+  • Worker fiscal consulta status antes de reemitir
+  • NF autorizada: não reprocessa emissão; só consulta/download XML se faltando
+  • Contingência: estado explícito; não “martelar” em loop a cada segundo
+  • Cadência: respeitar limites Focus/SEFAZ; fila única por empresa
+
+----------------------------------------------------------------------------------------------------
+6.6. SCHEDULER — O QUE NÃO FAZER
+----------------------------------------------------------------------------------------------------
+
+  ✗ Cron a cada 10s chamando emitir_cobranca em massa
+  ✗ Reprocessar DLQ automaticamente sem inspeção
+  ✗ Dois schedulers (DEV+PROD) apontando para a mesma credencial
+  ✗ Job de extrato sem watermark (releitura total do histórico todo dia)
+  ✗ Auto-scaling sem max capacity (1 falha → 1000 tasks → conta AWS)
+
+----------------------------------------------------------------------------------------------------
+6.7. TESTE OBRIGATÓRIO ANTES DE LIGAR PRODUÇÃO
+----------------------------------------------------------------------------------------------------
+
+  [ ] Webhook duplicado (mesmo event_id) → 1 BX apenas
+  [ ] Retry após timeout → 1 COB apenas
+  [ ] Régua com título baixado no meio → não envia marco seguinte indevido
+  [ ] Focus rejeição definitiva → vai a estado FALHA, não loop
+  [ ] Kill-switch desliga régua e emissão automática em < 1 minuto
+  [ ] DLQ gera alarme e não some sozinha
+
+====================================================================================================
+7. FINOPS — NÃO QUEBRAR A CONTA AWS (CUSTO SOB CONTROLE)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+7.1. CONTROLES DE ORÇAMENTO
+----------------------------------------------------------------------------------------------------
+
+  • AWS Budgets: alarme em 50%, 80%, 100% do teto mensal aprovado
+  • Teto sugerido no volume atual (≤10 users / ≈200 NF): USD 200–250 / mês
+    (detalhe em ESTIMATIVA_CUSTO_AWS_MENSAL.txt — Cenário D ★ padrão)
+  • SNS → e-mail/SMS da direção/TI
+  • Cost Anomaly Detection ligado
+  • Tags obrigatórias: Environment, Application=erp-rlp, Owner, CostCenter
+  • Relatório semanal de custo por serviço (EC2, RDS, S3, transfer; alertar se NAT/ALB aparecer)
+
+----------------------------------------------------------------------------------------------------
+7.2. TETOS TÉCNICOS (GUARDRAILS) — CALIBRADOS AO VOLUME
+----------------------------------------------------------------------------------------------------
+
+  • Processos no host com teto (Compose: 1 API + 1 worker; sem escala cega)
+  • SQS: redrive policy com maxReceiveCount; sem consumer tempestade
+  • Rate limit no reverse proxy / API (por IP e por usuário)
+  • NAT Gateway: AUSENTE no padrão D; se A/B forçado → 1 AZ + VPC Endpoint S3
+  • Logs: retenção CloudWatch 7–14 dias + export S3 lifecycle
+  • Evitar pull de imagem gigante a cada deploy sem cache local/ECR na região
+  • Não ligar ElastiCache / NAT / Multi-AZ / ALB sem decisão documentada
+
+----------------------------------------------------------------------------------------------------
+7.3. AMBIENTES QUE DORMEM
+----------------------------------------------------------------------------------------------------
+
+  • DEV/STAGING: desligar RDS/ECS fora do horário (ou use Aurora Serverless v2
+    / schedules) quando política da empresa permitir
+  • Nunca “esquecer” ambiente de teste com worker ligado gerando API bank/Focus
+
+----------------------------------------------------------------------------------------------------
+7.4. CUSTO DE INTEGRAÇÕES EXTERNAS (NÃO É SÓ AWS)
+----------------------------------------------------------------------------------------------------
+
+  Mesmo cuidado com looping:
+    • Focus NFe (consultas/emissões)
+    • Banco (Inter/Sicoob)
+    • Meta WhatsApp (conversas/templates)
+    • APIs free com cadência (APIS_FREE_CONSULTA_CADENCIA)
+
+  Cada uma precisa de: teto diário, cache, circuit breaker, dashboard de volume.
+
+====================================================================================================
+8. DEPLOY SEGURO — NÃO ESTRAGAR PRODUÇÃO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+8.1. PIPELINE
+----------------------------------------------------------------------------------------------------
+
+  PR → CI (lint, testes, scan imagem) → build → push ECR →
+  deploy STAGING → smoke test → aprovação → deploy PROD (rolling/blue-green)
+
+  Infra: Terraform ou AWS CDK; estado remoto travado; plan revisado.
+
+----------------------------------------------------------------------------------------------------
+8.2. BANCO
+----------------------------------------------------------------------------------------------------
+
+  • Migrações expand/contract; nunca drop column “quente” sem fase
+  • Backup/snapshot antes de migração destrutiva
+  • Migration job com lock; um runner só
+  • Rollback de app compatível com schema N e N-1 (janela de deploy)
+
+----------------------------------------------------------------------------------------------------
+8.3. FEATURE FLAGS / KILL-SWITCHES
+----------------------------------------------------------------------------------------------------
+
+  Flags mínimas em parâmetro (banco) ou AppConfig:
+
+    focus.emit.enabled
+    bank.emit.enabled
+    bank.webhook.apply_bx.enabled
+    whatsapp.send.enabled
+    cobranca.regua.enabled
+    jobs.extrato.enabled
+
+  Incidente: desliga o flag → operação manual permanece (BX manual, NF sob alçada).
+
+----------------------------------------------------------------------------------------------------
+8.4. MUDANÇA DE PROVEDOR / CREDENCIAL
+----------------------------------------------------------------------------------------------------
+
+  • Rotação com overlap (credencial nova válida antes de revogar a antiga)
+  • Teste em staging com sandbox
+  • Nunca trocar Sicoob/Inter “no calor” sem janela e checklist COB abertas
+
+====================================================================================================
+9. OBSERVABILIDADE, ALERTAS E RESPOSTA A INCIDENTES
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+9.1. TELEMETRIA MÍNIMA
+----------------------------------------------------------------------------------------------------
+
+  • CloudWatch metrics + logs da API/worker
+  • Alarmes:
+      - 5xx ALB/API
+      - CPU/memória saturada
+      - DLQ depth > 0
+      - idade da mensagem na fila > limiar
+      - falha Focus/banco acima do limiar
+      - RDS storage / freeable memory
+      - Budget AWS
+  • Dashboard único: saúde ERP + integrações + custo do dia
+
+----------------------------------------------------------------------------------------------------
+9.2. CORRELATION
+----------------------------------------------------------------------------------------------------
+
+  correlation_id do request → outbox → SQS → webhook_inbox → BX/NF
+  Sem isso, “loop de cobrança” vira caça no escuro.
+
+----------------------------------------------------------------------------------------------------
+9.3. RUNBOOKS (OBRIGATÓRIOS)
+----------------------------------------------------------------------------------------------------
+
+  R1  Baixa duplicada suspeita
+  R2  Cobrança emitida em loop
+  R3  Focus indisponível / rejeição em massa
+  R4  Vazamento de secret
+  R5  Custo AWS anomalo
+  R6  Restore de backup
+
+  Cada runbook: sintomas → kill-switch → verificação SQL → correção → pós-mortem.
+
+====================================================================================================
+10. COMPLIANCE E HARDENING CONTÍNUO
+====================================================================================================
+
+  • CloudTrail em todas as regiões (ou organização); log file validation
+  • GuardDuty ON; Security Hub / Foundational Best Practices quando maduro
+  • Config rules: S3 público proibido; MFA root; RDS público proibido
+  • Patch: imagens base atualizadas no CI; RDS minor upgrades em janela
+  • Pentest / review antes de abrir acesso amplo a clientes externos (portal aceite ORC)
+  • Revisão trimestral de usuários IAM e perfis ERP (inativos)
+
+====================================================================================================
+11. CHECKLIST DE GO-LIVE NA AWS
+====================================================================================================
+
+  CONTA E ACESSO
+  [ ] Root com MFA; sem access key root
+  [ ] Contas/ambientes nonprod ≠ prod
+  [ ] SSO/IAM com MFA; roles de serviço mínimas
+
+  REDE E APP
+  [ ] HTTPS (proxy no host ou ALB se exigido); SG fechados; SSM sem SSH 22 aberto
+  [ ] SEM NAT Gateway no go-live (salvo requisito escrito — FinOps Cenário D)
+  [ ] Webhooks com validação de assinatura + idempotência
+  [ ] Kill-switches de Focus/banco/WhatsApp/régua testados
+
+  DADOS
+  [ ] RDS micro OU Postgres no host + backup + restore ensaiado
+  [ ] 1× EC2 API+worker (Compose); sem ElastiCache no go-live (≤10 users / 200 NF)
+  [ ] S3 privados + KMS + versioning em docs fiscais
+  [ ] SSM SecureString; nenhum secret no Git
+
+  ANTI-LOOP
+  [ ] UNIQUE/event_id em webhook e régua
+  [ ] Retry com teto + DLQ + alarme
+  [ ] Circuit breaker por provedor
+  [ ] Sem escala automática ilimitada
+
+  FINOPS
+  [ ] Budget teto USD 200–250 + anomaly detection
+  [ ] Tags de custo; retenção de logs curta; nonprod dorme
+
+  OPERAÇÃO
+  [ ] Pipeline staging→prod com aprovação
+  [ ] Dashboards e runbooks R1–R6
+  [ ] Dual-run / fase de virada alinhada a estrategia_implantacao_ja
+
+====================================================================================================
+12. ANTI-PADRÕES (LISTA NEGRA NA NUVEM)
+====================================================================================================
+
+  ✗ Access Key de longa duração em servidor ou notebook do financeiro
+  ✗ RDS/Redis públicos na internet
+  ✗ Bucket S3 com XML/PDF público “para facilitar”
+  ✗ Um único ambiente misturando sandbox Inter e Sicoob real
+  ✗ Worker sem DLQ reprocessando para sempre
+  ✗ Régua de cobrança a cada minuto / sem UNIQUE por marco
+  ✗ Autoscaling sem teto (ou max alto demais para 10 users)
+  ✗ Superdimensionar (EKS, Aurora, ElastiCache, Multi-AZ) sem carga que peça
+  ✗ Deploy sexta à noite sem rollback
+  ✗ “Ajuste rápido” de credencial em prod sem staging
+  ✗ Desligar alarme de budget porque “incomoda”
+  ✗ WhatsApp pessoal / Baileys como “plano B” de produção
+  ✗ Apagar CloudTrail ou audit_log para “limpar”
+
+====================================================================================================
+13. ORDEM RECOMENDADA DE COLOCAÇÃO NA AWS
+====================================================================================================
+
+  1) Conta prod/nonprod + IAM/SSO + Budgets
+  2) VPC + RDS + S3 + Secrets
+  3) ECS/API staging + CI/CD + restore test
+  4) Integrações homolog (Focus + Inter + WhatsApp teste) com idempotência
+  5) Carga controlada e chaos leve (retry/webhook duplicado)
+  6) Go-live Fase 1 do negócio (cadastro/estoque/operação do dia)
+  7) Ligar emissão automática COB + régua com flags e tetos
+  8) Endurecer GuardDuty/WAF/DR regional quando estável
+
+====================================================================================================
+Fim — SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt
+Na AWS: isole ambientes, torne dinheiro/NF idempotentes, coloque teto em custo e retry.
+Kill-switch pronto vale mais que herói às 3h da manhã.
+====================================================================================================

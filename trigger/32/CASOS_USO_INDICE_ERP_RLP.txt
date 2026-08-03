@@ -1,0 +1,370 @@
+====================================================================================================
+CASOS DE USO — ÍNDICE MESTRE — ERP RLP (INDÚSTRIA FLEXOGRÁFICA)
+Documento: CASOS_USO_INDICE_ERP_RLP.txt
+Versão ......: 1.0
+Status ......: BASELINE DE ANÁLISE (casos de uso por bounded context)
+Gerado em ...: 03/08/2026
+Tipo ........: Use Case Catalog / Índice mestre
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ principal (EMP-00001): 01.423.183/0001-10
+CNPJ secundário (EMP-00002): 58.820.046/0001-37  [venda desligada até escopo fechado]
+
+Propósito:
+  Catalogar e indexar TODOS os casos de uso do ERP RLP, organizados por
+  bounded context (M01–M11), com rastreabilidade a SRS, domínio, regras
+  de negócio e TXTs de processo.
+
+Não substitui:
+  • ESPECIFICACAO_SOFTWARE_ERP_RLP.txt  — requisitos (o que o software deve)
+  • DOMINIO_SISTEMA_ERP_RLP.txt         — linguagem ubíqua e entidades
+  • TXTs de processo                    — regras linha a linha
+  • HOMOLOGACAO_ERP_RLP.txt             — como aceitar em homologação
+
+Como usar:
+  1) Product / direção ........ seções 0–3 (atores, mapa, prioridades).
+  2) Análise / QA ............. abrir o TXT do módulo e ler UC por UC.
+  3) Engenharia ............... implementar a partir do fluxo + RN + Trace.
+  4) Homologação .............. cruzar UC ↔ critérios de aceite do SRS.
+
+Fontes normativas:
+  LEVANTAMENTO_REQUISITOS_ERP_RLP.txt
+  ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+  DOMINIO_SISTEMA_ERP_RLP.txt
+  INDICE_FLUXO_OPERACIONAL.txt
+  + TXTs unitários da pasta trigger/32
+
+====================================================================================================
+0. CONVENÇÕES DO PACOTE DE CASOS DE USO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+0.1. Identificação
+----------------------------------------------------------------------------------------------------
+
+  Formato do ID:
+    UC-<Módulo>-<NNN>
+
+  Exemplos:
+    UC-CAD-001   Cadastros (M01)
+    UC-COM-003   Comercial (M02)
+    UC-PRD-001   Produção (M03)
+    UC-EST-002   Estoque (M04)
+    UC-FIS-001   Fiscal (M05)
+    UC-FIN-004   Financeiro (M06)
+    UC-CPR-001   Compras (M07)
+    UC-POS-002   Pós-venda (M08)
+    UC-INT-001   Integrações (M09)
+    UC-GER-001   Gerencial (M10)
+    UC-PLT-001   Plataforma (M11)
+
+----------------------------------------------------------------------------------------------------
+0.2. Estrutura padrão de cada caso de uso (em cada TXT de módulo)
+----------------------------------------------------------------------------------------------------
+
+  Cada UC contém:
+    • Identificação / nome / prioridade / fase sugerida
+    • Atores (primário e secundários / sistemas externos)
+    • Pré-condições / pós-condições / garantia (o que NÃO pode acontecer)
+    • Fluxo principal (caminho feliz)
+    • Fluxos alternativos (ALx)
+    • Fluxos de exceção (EXx)
+    • Regras de negócio aplicáveis (RN- / D0.x / RF-*)
+    • Dados / entidades tocadas
+    • Rastreabilidade (Trace → TXT-fonte + RF do SRS)
+    • Critérios de aceite testáveis
+
+----------------------------------------------------------------------------------------------------
+0.3. Prioridade e fase
+----------------------------------------------------------------------------------------------------
+
+  Pri   Significado                         Fase típica
+  ---   ----------------------------------  ----------------------
+  M     Must — indispensável ao MVP         FASE 1 (virada)
+  S     Should — endurecimento              FASE 2
+  C     Could — expansão controlada         FASE 3 / backlog
+
+----------------------------------------------------------------------------------------------------
+0.4. Tipografia de atores
+----------------------------------------------------------------------------------------------------
+
+  Internos: ADMIN | COMERCIAL | FINANCEIRO | FISCAL | PRODUCAO |
+            COMPRAS | EXPEDICAO | CONSULTA
+  Externos: Cliente | Contador | Focus NFe | Banco (BankProvider) |
+            Meta WhatsApp | Transportadora (fase 2)
+  Sistema:  ERP | Fila/Worker | Adapter
+
+====================================================================================================
+1. DIAGRAMA DE CONTEXTO (ATORES × SISTEMA)
+====================================================================================================
+
+                         ┌─────────────────────────────┐
+           ADMIN ───────►│                             │◄────── Contador (export)
+        COMERCIAL ──────►│         ERP RLP             │◄────── Focus NFe
+       FINANCEIRO ──────►│   (web · multi-empresa)     │◄────── Banco / BankProvider
+          FISCAL ───────►│                             │◄────── Meta WhatsApp
+        PRODUCAO ───────►│   PED = documento-mestre    │
+         COMPRAS ───────►│                             │◄──┐
+       EXPEDICAO ───────►│                             │   │
+        CONSULTA ───────►│                             │   Cliente
+                         └─────────────────────────────┘   │
+                                    ▲                      │
+                                    └──────────────────────┘
+                                      (link aceite ORC /
+                                       confirmação ENT)
+
+====================================================================================================
+2. MAPA MÓDULO × ARQUIVO × QUANTIDADE
+====================================================================================================
+
+  Módulo   Nome                  Arquivo                              # UC
+  -------  --------------------  -----------------------------------  ----
+  M01      Cadastros             CASOS_USO_M01_CADASTROS.txt            8
+  M02      Comercial             CASOS_USO_M02_COMERCIAL.txt           12
+  M03      Produção / PCP        CASOS_USO_M03_PRODUCAO.txt             7
+  M04      Estoque               CASOS_USO_M04_ESTOQUE.txt              7
+  M05      Fiscal operacional    CASOS_USO_M05_FISCAL.txt               6
+  M06      Financeiro            CASOS_USO_M06_FINANCEIRO.txt          10
+  M07      Compras               CASOS_USO_M07_COMPRAS.txt              5
+  M08      Pós-venda             CASOS_USO_M08_POS_VENDA.txt            5
+  M09      Integrações           CASOS_USO_M09_INTEGRACOES.txt          6
+  M10      Gerencial             CASOS_USO_M10_GERENCIAL.txt            6
+  M11      Plataforma            CASOS_USO_M11_PLATAFORMA.txt           8
+                                                              TOTAL   80
+
+====================================================================================================
+3. CATÁLOGO COMPLETO (VISÃO RÁPIDA)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+3.1. M01 — CADASTROS
+----------------------------------------------------------------------------------------------------
+
+  UC-CAD-001  M  Cadastrar / manter parceiro (PAR)
+  UC-CAD-002  M  Completar cadastro fiscal de prospect para PED
+  UC-CAD-003  M  Cadastrar / manter produto (MP/EMB/REV/PA/SVC)
+  UC-CAD-004  M  Manter ferramental / faca (FAC) rastreável
+  UC-CAD-005  M  Manter unidades e fatores de conversão
+  UC-CAD-006  S  Consultar CNPJ/CEP com cache e cadência
+  UC-CAD-007  M  Manter dados bancários do parceiro (SoD)
+  UC-CAD-008  M  Inativar parceiro / produto (soft-delete)
+
+----------------------------------------------------------------------------------------------------
+3.2. M02 — COMERCIAL
+----------------------------------------------------------------------------------------------------
+
+  UC-COM-001  M  Gerar orçamento (ORC) parametrizado
+  UC-COM-002  M  Simular cenários / escada de quantidades
+  UC-COM-003  M  Aplicar gordura / desconto com alçada
+  UC-COM-004  M  Calcular imposto estimado no ORC
+  UC-COM-005  M  Enviar ORC e obter aceite formal do cliente (link)
+  UC-COM-006  M  Converter ORC aprovado em PED (snapshot travado)
+  UC-COM-007  M  Consultar limite de crédito do cliente
+  UC-COM-008  M  Liberar crédito (CRT) — perfil FINANCEIRO
+  UC-COM-009  M  Registrar adiantamento / sinal e liberar PED após BX
+  UC-COM-010  M  Controlar cobrança de ferramental (1× por modelo/cliente)
+  UC-COM-011  S  Gerar lembrete de reposição / pedido recorrente (sem PED solo)
+  UC-COM-012  M  Orçar para prospect sem cadastro fiscal completo
+
+----------------------------------------------------------------------------------------------------
+3.3. M03 — PRODUÇÃO / PCP
+----------------------------------------------------------------------------------------------------
+
+  UC-PRD-001  M  Abrir ordem de produção (OP) a partir do PED
+  UC-PRD-002  M  Abrir ordem de serviço (OS) a partir do PED
+  UC-PRD-003  M  Apontar produção / progresso da OP ou OS
+  UC-PRD-004  M  Concluir OP / OS e liberar PA / item
+  UC-PRD-005  S  Registrar amostragem / qualidade / certificado
+  UC-PRD-006  S  Planejar manutenção preventiva (BEM)
+  UC-PRD-007  S  Tratar amostra / protótipo (custo e NF)
+
+----------------------------------------------------------------------------------------------------
+3.4. M04 — ESTOQUE
+----------------------------------------------------------------------------------------------------
+
+  UC-EST-001  M  Registrar consumo de MP na OP (saída)
+  UC-EST-002  M  Registrar sobra / retalho de bobina
+  UC-EST-003  M  Registrar retorno de PA ao estoque
+  UC-EST-004  M  Separar item REVENDA do PED
+  UC-EST-005  M  Realizar inventário físico (INV)
+  UC-EST-006  M  Aprovar ajuste de estoque (AJU) com SoD
+  UC-EST-007  S  Remessa de industrialização externa (REM)
+
+----------------------------------------------------------------------------------------------------
+3.5. M05 — FISCAL OPERACIONAL
+----------------------------------------------------------------------------------------------------
+
+  UC-FIS-001  M  Emitir NF-e / NFS-e vinculada ao PED (via Focus)
+  UC-FIS-002  M  Consultar status / XML / PDF da NF
+  UC-FIS-003  M  Cancelar NF ou emitir carta de correção (API)
+  UC-FIS-004  M  Faturar parcialmente o mesmo PED
+  UC-FIS-005  M  Impedir emissão duplicada (idempotência)
+  UC-FIS-006  S  Tratar NF de amostra / remessa / devolução (CFOP)
+
+----------------------------------------------------------------------------------------------------
+3.6. M06 — FINANCEIRO
+----------------------------------------------------------------------------------------------------
+
+  UC-FIN-001  M  Gerar título (TIT) no faturamento
+  UC-FIN-002  M  Emitir cobrança bancária (COB) vinculada ao TIT
+  UC-FIN-003  M  Registrar baixa (BX) via webhook / extrato / CNAB
+  UC-FIN-004  M  Conciliar baixa ambígua (fila humana)
+  UC-FIN-005  M  Classificar título com natureza gerencial (1–5)
+  UC-FIN-006  M  Acompanhar aging / contas a receber
+  UC-FIN-007  S  Executar régua de cobrança (WhatsApp oficial)
+  UC-FIN-008  S  Calcular e registrar comissão (COM)
+  UC-FIN-009  S  Registrar frete (receita × despesa) amarrado ao PED
+  UC-FIN-010 M  Confirmar entrega / romaneio (ENT) + status
+
+----------------------------------------------------------------------------------------------------
+3.7. M07 — COMPRAS
+----------------------------------------------------------------------------------------------------
+
+  UC-CPR-001  S  Criar cotação de compra (COT)
+  UC-CPR-002  S  Gerar ordem de compra (OC)
+  UC-CPR-003  S  Solicitar compra urgente com alçada
+  UC-CPR-004  S  Receber e conferir XML de compra (entrada)
+  UC-CPR-005  S  Vincular falta de material à OP parada
+
+----------------------------------------------------------------------------------------------------
+3.8. M08 — PÓS-VENDA
+----------------------------------------------------------------------------------------------------
+
+  UC-POS-001  S  Abrir RMA (reclamação / garantia)
+  UC-POS-002  S  Avaliar RMA no CQ e decidir destino
+  UC-POS-003  S  Executar reposição / reparo / crédito comercial
+  UC-POS-004  S  Abrir devolução ponta a ponta (DEV)
+  UC-POS-005  S  Encerrar DEV (fiscal + estoque + financeiro OK)
+
+----------------------------------------------------------------------------------------------------
+3.9. M09 — INTEGRAÇÕES
+----------------------------------------------------------------------------------------------------
+
+  UC-INT-001  M  Integrar emissão fiscal (Focus) — homolog ≠ prod
+  UC-INT-002  M  Integrar cobrança bancária (BankProvider)
+  UC-INT-003  S  Enviar mensagem WhatsApp oficial (template Meta)
+  UC-INT-004  M  Processar webhook com idempotência
+  UC-INT-005  S  Consultar APIs free com cadência / cache / circuit breaker
+  UC-INT-006  M  Acionar kill-switch de integração sem derrubar o ERP
+
+----------------------------------------------------------------------------------------------------
+3.10. M10 — GERENCIAL
+----------------------------------------------------------------------------------------------------
+
+  UC-GER-001  S  Consultar DRE / caixa interno (naturezas 1–5)
+  UC-GER-002  S  Manter patrimônio (BEM) e capitalização
+  UC-GER-003  S  Registrar pagamento gerencial de RH
+  UC-GER-004  M  Gerar pacote mensal de export ao contador
+  UC-GER-005  S  Importar layout de folha (sem fechar eSocial)
+  UC-GER-006  C  Acompanhar faturamento acumulado (preparação Lucro Real)
+
+----------------------------------------------------------------------------------------------------
+3.11. M11 — PLATAFORMA
+----------------------------------------------------------------------------------------------------
+
+  UC-PLT-001  M  Autenticar usuário (login individual)
+  UC-PLT-002  M  Autorizar por perfil RBAC
+  UC-PLT-003  M  Operar multi-empresa (empresa_id / isolamento)
+  UC-PLT-004  M  Auditar ações críticas (quem/quando/de→para)
+  UC-PLT-005  M  Versionar parâmetros oficiais (TAB)
+  UC-PLT-006  S  Gerenciar feature flags / virada por fases
+  UC-PLT-007  M  Impedir exclusão física de documento (estorno)
+  UC-PLT-008  M  Bloquear usuário desligado (sem apagar histórico)
+
+====================================================================================================
+4. CADEIA PRINCIPAL (FLUXO FELIZ) — UC ENCADEADOS
+====================================================================================================
+
+  Seq  Caso de uso                         Prefixo gerado
+  ---  ----------------------------------  ----------------
+   1   UC-COM-001 Gerar ORC                ORC-
+   2   UC-COM-005 Aceite formal (link)     (evento)
+   3   UC-COM-006 Converter ORC→PED        PED-
+   4   UC-COM-008 / 009 Crédito ou sinal   CRT- / BX-
+   5   UC-PRD-001|002| UC-EST-004          OP- / OS- / separação
+   6   UC-EST-001→003 Consumo/sobra/PA     MOV-
+   7   UC-PRD-004 Concluir OP/OS           —
+   8   UC-FIS-001 Emitir NF                chave44
+   9   UC-FIN-001|002 TIT + COB            TIT- / COB-
+  10   UC-FIN-010 Entrega / romaneio       ENT-
+  11   UC-FIN-003 Baixa                    BX-
+
+  Exceção típica: UC-POS-001 → UC-POS-002 → UC-POS-004/005
+  Paralelo típico: UC-CPR-* ; UC-EST-007 ; UC-FIN-008
+
+====================================================================================================
+5. MATRIZ ATOR × CASOS DE USO (SÍNTESE)
+====================================================================================================
+
+  Ator         Casos onde é PRIMÁRIO (principais)
+  -----------  --------------------------------------------------------------
+  ADMIN        UC-PLT-*, UC-CAD-*, UC-INT-006, UC-GER-004
+  COMERCIAL    UC-COM-001…007, 010…012 ; UC-CAD-001/002 (comercial)
+  FINANCEIRO   UC-COM-008/009 ; UC-FIN-* ; UC-CAD-007 ; UC-GER-001
+  FISCAL       UC-FIS-* ; UC-CAD (fiscal) ; UC-POS-004 (parte fiscal)
+  PRODUCAO     UC-PRD-* ; UC-EST-001…004 ; UC-POS-002 (CQ)
+  COMPRAS      UC-CPR-* ; UC-EST (entrada)
+  EXPEDICAO    UC-FIN-010
+  CONSULTA     leitura em vários (sem UC de escrita)
+  Cliente      UC-COM-005 (aceite) ; UC-FIN-010 (confirmação)
+  Contador     UC-GER-004/005 (consome export)
+  Focus        UC-FIS-* ; UC-INT-001
+  Banco        UC-FIN-002/003 ; UC-INT-002/004
+  Meta WA      UC-INT-003 ; UC-FIN-007
+
+====================================================================================================
+6. REGRAS DE OURO QUE TODO UC DEVE RESPEITAR
+====================================================================================================
+
+  G1  PED é o documento-mestre operacional; nenhum UC inventa “pedido paralelo”.
+  G2  Aceite informal (WhatsApp pessoal) NÃO gera PED — só link formal.
+  G3  Snapshot do ORC aprovado trava preço/spec/qtde/prazo/condição no PED.
+  G4  Produção só libera com crédito OK ou adiantamento com BX.
+  G5  Documento fiscal ≠ título financeiro (nascem juntos, conceitos distintos).
+  G6  Documento não se apaga — estorna/compensa com trilha.
+  G7  Dinheiro e NF são idempotentes (retry/webhook não duplica).
+  G8  Naturezas só grupos 1–5; LAI / “caixa 2” inexistente.
+  G9  Proibido float binário em dinheiro/qtde/alíquota/custo.
+  G10 Multi-empresa: tudo carrega empresa_id; EMP-00002 sem venda até decisão.
+  G11 WhatsApp oficial somente via API Meta.
+  G12 Contábil/fiscal/folha OFICIAIS ficam com o CONTADOR; ERP alimenta.
+
+====================================================================================================
+7. RASTREABILIDADE PACOTE ↔ DOCUMENTOS
+====================================================================================================
+
+  Pacote UC                         Documento fonte
+  --------------------------------  ------------------------------------------
+  Este índice                       INDICE_FLUXO_OPERACIONAL, SRS §3/§16
+  CASOS_USO_M01_CADASTROS.txt       SRS §5 ; CADASTRO_* ; ORGANIZACAO_*
+  CASOS_USO_M02_COMERCIAL.txt       SRS §6 ; GERACAO_ORCAMENTO ; GERACAO_PEDIDO
+  CASOS_USO_M03_PRODUCAO.txt        SRS §7 ; PRODUCAO_* ; ORDEM_SERVICO
+  CASOS_USO_M04_ESTOQUE.txt         SRS §7 ; CONTROLE_ESTOQUE_* ; ESTOQUE_FLUXO_*
+  CASOS_USO_M05_FISCAL.txt          SRS §8 ; FATURAMENTO_* ; MAPA_FATURAMENTO_*
+  CASOS_USO_M06_FINANCEIRO.txt      SRS §8 ; RECEBIMENTO_* ; NATUREZAS_*
+  CASOS_USO_M07_COMPRAS.txt         SRS §9 ; COMPRAS_COTACAO_URGENCIA
+  CASOS_USO_M08_POS_VENDA.txt       SRS §9 ; POS_VENDA_* ; DEVOLUCAO_*
+  CASOS_USO_M09_INTEGRACOES.txt     SRS §11 ; INTEGRACAO_*
+  CASOS_USO_M10_GERENCIAL.txt       SRS §10 ; EXPORT_* ; PATRIMONIO_* ; RH_*
+  CASOS_USO_M11_PLATAFORMA.txt      SRS §4 ; ORGANIZACAO_* ; MULTI_EMPRESA_*
+
+  Domínio / estados / eventos: DOMINIO_SISTEMA_ERP_RLP.txt
+  Aceite global de go-live:    ESPECIFICACAO §15.2 (CA-01…CA-12)
+  Homologação operacional:     HOMOLOGACAO_ERP_RLP.txt
+
+====================================================================================================
+8. CONTROLE DE MUDANÇAS
+====================================================================================================
+
+  v1.0 — 03/08/2026
+    Baseline do catálogo de casos de uso do ERP RLP: índice mestre +
+    11 TXTs por módulo (80 UCs). Alteração de regra de ouro exige revisão
+    conjugada do SRS, domínio e TXT-fonte do processo afetado.
+
+====================================================================================================
+Fim — CASOS_USO_INDICE_ERP_RLP.txt
+Abra o TXT do módulo desejado para o detalhe completo de cada caso de uso.
+====================================================================================================

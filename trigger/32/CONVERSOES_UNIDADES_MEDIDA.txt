@@ -1,0 +1,418 @@
+======================================================================
+        CONVERSOES DE UNIDADES DE MEDIDA - NOVO ERP
+        INDUSTRIA DE ETIQUETAS AUTOADESIVAS - MINAS GERAIS
+                     GERADO EM: 01/08/2026
+======================================================================
+
+Este documento e o GUIA COMPLETO DE CONVERSOES do novo ERP: mostra
+TODAS as unidades usadas na operacao, quais conversoes existem entre
+elas, a formula de cada uma, os dados de cadastro necessarios e
+exemplos numericos passo a passo.
+
+Ele complementa:
+  * CONTROLE_ESTOQUE_PROFISSIONAL.txt (secao 3 - unidades)
+  * TRATAMENTO_SOBRA_BOBINA_RETALHO.txt (secao 4 - medicao)
+  * PADRAO_DECIMAL_CALCULOS.txt (secao 7 - regras de exatidao)
+
+COMO USAR ESTE DOCUMENTO:
+  1) Descubra sua situacao na ARVORE DE DECISAO (secao 3);
+  2) Localize a conversao na MATRIZ (secao 4);
+  3) Aplique a FORMULA correspondente (secoes 5 a 9);
+  4) Respeite as regras de exatidao (secao 10).
+
+======================================================================
+1. AS UNIDADES DO SISTEMA (QUEM E QUEM)
+======================================================================
+
+  UNIDADE        SIGLA  ONDE APARECE NA OPERACAO
+  -------------  -----  -------------------------------------------
+  ROLO/BOBINA    RL     Estoque de substratos (couche, BOPP, termico,
+                        tag, tecidos). Sempre qualificado por
+                        largura (mm) x comprimento (m) no SKU.
+  METRO LINEAR   M      Consumo de substrato na producao, retalho,
+                        ficha tecnica (metragem por milheiro).
+  METRO QUADRADO M2     Faturamento de alguns fornecedores; base de
+                        calculo da gramatura.
+  QUILOGRAMA     KG     Faturamento de fornecedores de substrato;
+                        estoque e consumo de tintas/vernizes;
+                        pesagem de retalho e sucata.
+  GRAMA          G      Apontamento de tinta na OP (g/milheiro);
+                        pesagem fina de retalho.
+  UNIDADE        UN     Ribbons, tubetes, caixas (itens contados).
+  MILHEIRO       MIL    Venda e producao de etiquetas (1 MIL =
+                        1.000 etiquetas). Unidade comercial do
+                        produto acabado.
+  LITRO          L      Alternativa de estoque para tintas liquidas
+                        (converter por densidade).
+  CAIXA          CX     Embalagem de produto acabado (X milheiros
+                        ou X rolos de etiqueta por caixa).
+
+REGRA BASICA: cada item tem UMA unidade de ESTOQUE (a oficial, onde
+vive o saldo) e pode ter unidades de COMPRA e de VENDA diferentes,
+ligadas por fator de conversao cadastrado no item.
+
+======================================================================
+2. OS DADOS DE CADASTRO QUE ALIMENTAM AS CONVERSOES
+======================================================================
+
+Nenhuma conversao e "magica": todas dependem de campos do cadastro
+do item. Sem esses campos preenchidos, o ERP deve BLOQUEAR a
+conversao (nunca assumir valor padrao em silencio).
+
+  CAMPO DO CADASTRO           USADO PARA CONVERTER
+  --------------------------  ---------------------------------
+  Largura (mm)                M <-> M2, KG <-> M
+  Comprimento nominal (m)     RL <-> M, RL <-> M2
+  Gramatura TOTAL (g/m2)      KG <-> M2, KG <-> M, pesagem
+    (frontal + adesivo +
+     liner, somados)
+  Peso do tubete (g)          Pesagem de retalho/bobina parcial
+  Espessura total (mm)        Conversao por diametro (conferencia)
+  Metragem por milheiro (m)   MIL <-> M (vem da FICHA TECNICA:
+                              passo da etiqueta + gap + carreiras)
+  Consumo de tinta (g/MIL)    MIL <-> G de tinta (ficha tecnica)
+  Densidade da tinta (g/ml)   KG <-> L
+  Qtd por caixa (MIL ou RL)   CX <-> MIL / CX <-> RL
+  Fator compra x estoque      Unidade do fornecedor -> unidade
+    (NUMERIC 19,10)           oficial de estoque
+
+ATENCAO A GRAMATURA: fornecedores informam as gramaturas em separado
+(frontal 80 g/m2, adesivo 20 g/m2, liner 60 g/m2). Para pesagem e
+conversao KG <-> M o que vale e a SOMA (no exemplo, 160 g/m2),
+porque a balanca pesa o conjunto completo.
+
+======================================================================
+3. ARVORE DE DECISAO: "QUERO CONVERTER... E AGORA?"
+======================================================================
+
+  SITUACAO NA OPERACAO                        USE A SECAO
+  ------------------------------------------  -----------
+  "O fornecedor faturou em KG e meu estoque
+   e em ROLO/METRO"                           5.3 e 5.4
+  "O fornecedor faturou em M2"                5.2 e 5.5
+  "Preciso saber quantos METROS tem este
+   rolo/retalho pesado na balanca"            6.1
+  "Nao tenho balanca aqui, so uma trena
+   (diametro da bobina)"                      6.2
+  "Quantos METROS de substrato preciso para
+   produzir X MILHEIROS de etiqueta?"         7.1
+  "Quanta TINTA (g/kg) para X MILHEIROS?"     7.2
+  "Tinta comprada em LITRO, estoque em KG"    7.3
+  "Quantas CAIXAS fecham este pedido?"        8.1
+  "Quantos M2 tem este rolo (p/ comparar
+   preco entre fornecedores)?"                5.2
+  "A OP consumiu METROS, mas requisitei
+   ROLOS - como baixa o saldo?"               5.1
+
+======================================================================
+4. MATRIZ GERAL DE CONVERSOES (VISAO DE MAPA)
+======================================================================
+
+Leitura: linha = unidade de ORIGEM; coluna = unidade de DESTINO.
+"X" = conversao direta suportada; "-" = nao se aplica (ou passa por
+unidade intermediaria).
+
+            | RL  | M   | M2  | KG  | MIL | UN  | CX  | L
+  ----------+-----+-----+-----+-----+-----+-----+-----+-----
+  ROLO   RL |  .  |  X  |  X  |  X  |  -  |  -  |  X  |  -
+  METRO  M  |  X  |  .  |  X  |  X  |  X  |  -  |  -  |  -
+  M2        |  X  |  X  |  .  |  X  |  -  |  -  |  -  |  -
+  KG        |  X  |  X  |  X  |  .  |  -  |  -  |  -  |  X
+  MILH. MIL |  -  |  X  |  -  |  -  |  .  |  -  |  X  |  -
+  UNID.  UN |  -  |  -  |  -  |  -  |  -  |  .  |  X  |  -
+  CAIXA  CX |  X  |  -  |  -  |  -  |  X  |  X  |  .  |  -
+  LITRO  L  |  -  |  -  |  -  |  X  |  -  |  -  |  -  |  .
+
+As "pontes" fundamentais que sustentam toda a matriz:
+
+  RL <-> M .... comprimento nominal do SKU
+  M  <-> M2 ... largura
+  M2 <-> KG ... gramatura total
+  M  <-> MIL .. metragem por milheiro (ficha tecnica)
+  KG <-> L .... densidade
+  CX <-> MIL/RL/UN ... quantidade por caixa
+
+Qualquer conversao composta (ex.: KG -> RL) e a combinacao dessas
+pontes, executada em UM unico calculo, sem arredondar no meio.
+
+======================================================================
+5. CONVERSOES DE SUBSTRATO (BOBINAS)
+======================================================================
+
+Exemplo-base usado em toda esta secao:
+  SKU 10.001.FAS.0130.1000 - COUCHE FASSON 130mm x 1000m
+  Largura ........ 130 mm  = 0,130 m
+  Comprimento .... 1.000 m por rolo
+  Gramatura total  160 g/m2 (80 frontal + 20 adesivo + 60 liner)
+
+5.1. ROLO <-> METRO LINEAR
+
+       metros = rolos x comprimento_nominal_do_SKU
+       rolos  = metros / comprimento_nominal_do_SKU
+
+     Ex.: 3 rolos = 3 x 1.000 = 3.000 m
+          2.500 m = 2,5 rolos
+
+     USO: requisicao de OP (baixa em metros de um saldo em rolos),
+     consumo real x devolvido. Rolo FECHADO em estoque e sempre
+     inteiro; fracao de rolo so existe como RETALHO (SKU proprio,
+     unidade METRO - ver documento de sobra).
+
+5.2. METRO LINEAR <-> M2
+
+       m2 = metros x largura_m
+       metros = m2 / largura_m
+
+     Ex.: 1 rolo de 1.000 m x 0,130 m = 130 m2
+          520 m2 / 0,130 = 4.000 m = 4 rolos
+
+     USO: comparar precos entre fornecedores (R$/m2 e a unica base
+     justa entre larguras diferentes) e dar entrada em NF faturada
+     em m2.
+
+5.3. M2 <-> KG (via gramatura)
+
+       kg = m2 x gramatura_g_m2 / 1000
+       m2 = kg x 1000 / gramatura_g_m2
+
+     Ex.: 130 m2 x 160 / 1000 = 20,8 kg  (peso de material do rolo,
+          sem tubete e sem embalagem)
+          100 kg x 1000 / 160 = 625 m2
+
+5.4. KG -> METROS -> ROLOS (a conversao de compra mais comum)
+
+     Formula composta, executada de uma vez:
+
+       metros = kg x 1000 / (gramatura_g_m2 x largura_m)
+       rolos  = metros / comprimento_nominal
+
+     Ex.: NF do fornecedor com 416,0 kg do couche do exemplo:
+       metros = 416 x 1000 / (160 x 0,130) = 20.000 m
+       rolos  = 20.000 / 1.000 = 20 rolos
+
+     CONFERENCIA OBRIGATORIA na entrada: o fisico contado (20 rolos)
+     deve bater com o convertido do XML. Divergencia acima da
+     tolerancia parametrizada = bloqueio + tratativa com fornecedor.
+
+5.5. TABELA-RESUMO DO EXEMPLO (1 ROLO 130mm x 1000m, 160 g/m2)
+
+       1 RL = 1.000 m = 130 m2 = 20,8 kg de material
+
+     O ERP deve conseguir exibir o saldo desse SKU nas 4 leituras -
+     essa "visao dinamica" e o que permite conferir NF em kg,
+     estoque em rolo e consumo em metro sem conta manual.
+
+======================================================================
+6. CONVERSOES POR MEDICAO FISICA (RETALHO E CONFERENCIA)
+======================================================================
+
+6.1. PESAGEM -> METROS (metodo padrao da casa para retalho)
+
+       metros = (peso_liquido_g - peso_tubete_g)
+                / (gramatura_g_m2 x largura_m)
+
+     Ex.: retalho do couche do exemplo, balanca marcou 4,58 kg,
+     tubete cadastrado 250 g:
+       (4.580 - 250) / (160 x 0,130) = 4.330 / 20,8 = 208,17 m
+       -> entrada do retalho: 208,17 m (estimativa arredonda
+          PARA BAIXO - ver secao 10.4)
+
+6.2. DIAMETRO -> METROS (conferencia rapida sem balanca)
+
+       metros = PI x (D^2 - d^2) / (4 x e)
+
+       D = diametro externo da bobina (m)
+       d = diametro do tubete (m)
+       e = espessura total do material (m)
+
+     Ex.: D = 0,30 m; d = 0,076 m; e = 0,00020 m:
+       3,1416 x (0,09 - 0,005776) / (0,0008) = ~330,7 m
+
+     USO: conferencia de recebimento e inventario rapido. E menos
+     preciso que a pesagem - serve de dupla checagem, nunca de
+     valor oficial quando a balanca estiver disponivel.
+
+6.3. TOLERANCIA ENTRE METODOS: divergencia de ate 5% entre contador
+     de maquina, pesagem e diametro e aceitavel. Acima disso,
+     repesar/remedir antes de efetivar o movimento.
+
+======================================================================
+7. CONVERSOES DE PRODUCAO (FICHA TECNICA)
+======================================================================
+
+7.1. MILHEIRO <-> METROS DE SUBSTRATO
+
+     A ponte e a METRAGEM POR MILHEIRO, calculada na ficha tecnica:
+
+       metragem_por_milheiro (m/MIL) =
+         (passo_da_etiqueta_mm + gap_mm) x 1000
+         / n_carreiras / 1000
+
+     Ex.: etiqueta 100 x 50 mm, gap 3 mm, rodando em 2 carreiras
+     na bobina de 130 mm... nao cabe (2 x 100 > 130); rodando em
+     1 carreira:
+       (50 + 3) x 1000 / 1 / 1000 = 53 m por milheiro
+
+     Necessidade da OP:
+       metros = milheiros x metragem_por_milheiro
+                x (1 + perda_padrao_%)
+
+     Ex.: OP de 40 MIL com perda padrao de 8%:
+       40 x 53 x 1,08 = 2.289,6 m -> ERP sugere retalhos
+       compativeis primeiro e depois rolos inteiros (2,29 rolos ->
+       empenha 3 rolos, devolucao da sobra prevista).
+
+7.2. MILHEIRO -> TINTA (G/KG)
+
+       tinta_g = milheiros x consumo_g_por_milheiro (por cor)
+       tinta_kg = tinta_g / 1000
+
+     Ex.: ficha tecnica com 12 g/MIL de ciano: OP de 40 MIL
+       40 x 12 = 480 g = 0,48 kg de ciano.
+
+     O apontamento real e por PESAGEM (pesar lata antes/depois);
+     a conversao da ficha tecnica e a PREVISAO para empenho e
+     analise de variacao real x padrao.
+
+7.3. LITRO <-> KG (tintas e vernizes liquidos)
+
+       kg = litros x densidade_g_ml
+       litros = kg / densidade_g_ml
+
+     Ex.: verniz com densidade 1,05 g/ml: 20 L = 21 kg.
+     Estoque oficial em KG (a balanca e a verdade); litro e
+     unidade de compra/informativa.
+
+======================================================================
+8. CONVERSOES COMERCIAIS (PRODUTO ACABADO)
+======================================================================
+
+8.1. MILHEIRO / ROLO DE ETIQUETA / CAIXA
+
+     Produto acabado tem tres leituras, ligadas pela ficha do item:
+
+       etiquetas_por_rolo (ex.: 1.000 un/rolo de saida)
+       rolos_por_caixa    (ex.: 12 rolos/caixa)
+
+       1 CX = 12 RL de etiqueta = 12 MIL etiquetas (no exemplo)
+
+     Ex.: pedido de 40 MIL: 40.000 / 1.000 = 40 rolos de saida;
+     40 / 12 = 3,33 -> 3 caixas fechadas + 4 rolos avulsos.
+     O ERP mostra o pedido nas tres unidades e o faturamento usa
+     a unidade comercial acordada com o cliente (normalmente MIL).
+
+8.2. A unidade da NF-e de venda (uCom/uTrib) segue o pedido do
+     cliente; a conversao para a unidade de estoque fica gravada
+     no item da nota (valor original + fator + resultado), como
+     manda a secao 10.6.
+
+======================================================================
+9. EXEMPLO PONTA A PONTA (COMPRA -> PRODUCAO -> RETALHO)
+======================================================================
+
+  1) COMPRA: XML chega com 416 kg de couche 130mm (R$ 18,50/kg).
+     ERP converte: 416 kg -> 20.000 m -> 20 rolos (secao 5.4).
+     Conferencia fisica: 20 rolos OK. Entrada: 20 RL; custo do
+     rolo = 416 x 18,50 / 20 = R$ 384,80; custo/m = R$ 0,384800.
+
+  2) OP DE 40 MIL: necessidade 2.289,6 m (secao 7.1). Requisicao:
+     3 rolos = 3.000 m, valorizados a 3.000 x 0,384800.
+
+  3) PRODUCAO RODA: contador aponta 2.310 m consumidos (dentro da
+     perda padrao). Sobra fisica de um rolo parcial.
+
+  4) RETALHO: pesagem 4,58 kg -> 208,17 m (secao 6.1). ERP compara
+     com o contador (3.000 - 2.310 = 690 m esperados nos rolos
+     restantes; um voltou intacto = 1.000 m... o sistema fecha
+     rolo intacto por estorno e o parcial pela pesagem).
+
+  5) CUSTO: OP paga somente os metros consumidos; retalho volta a
+     R$ 0,384800/m (custo herdado, nunca custo zero).
+
+  Em nenhum momento houve conversao "de volta" (m -> kg -> m):
+  cada numero nasceu de UMA conversao e ficou registrado com o
+  fator usado.
+
+======================================================================
+10. REGRAS DE EXATIDAO (RESUMO DO PADRAO DECIMAL)
+======================================================================
+
+10.1. FATOR DE CONVERSAO: NUMERIC(19,10) - 10 casas decimais,
+      usado sem arredondamento intermediario.
+
+10.2. CALCULO EM DECIMAL EXATO (nunca float), arredondando UMA
+      vez, no resultado final: quantidade com 4 casas, half-up.
+
+10.3. CONVERSAO SO NA IDA: o valor oficial e o da unidade de
+      ESTOQUE. A unidade de compra/venda e informativa no
+      documento de origem. Converter m -> kg -> m degrada o
+      numero a cada passo e e PROIBIDO.
+
+10.4. EXCECAO DE ARREDONDAMENTO: estimativas de retalho (pesagem,
+      diametro, visual) arredondam PARA BAIXO (ROUND_FLOOR) -
+      melhor estoque subestimado que metragem fantasma.
+
+10.5. ITENS CONTADOS (UN, RL fechado, CX): quantidade INTEIRA
+      obrigatoria; fracao so existe em M, M2, KG, G, L.
+
+10.6. AUDITORIA: todo movimento convertido guarda valor original,
+      unidade original, fator usado e resultado - recalculavel
+      anos depois.
+
+10.7. CAMPO DE CADASTRO FALTANDO (gramatura, largura, densidade,
+      tubete...) = conversao BLOQUEADA com mensagem clara, nunca
+      valor assumido em silencio.
+
+======================================================================
+11. CHECKLIST DE PARAMETRIZACAO NO ERP
+======================================================================
+
+  [ ] Unidade de ESTOQUE definida em todo item (RL, M, KG, UN...)
+  [ ] Unidade de COMPRA + fator (19,10) nos itens com fornecedor
+      que fatura em kg/m2
+  [ ] Largura, comprimento nominal e GRAMATURA TOTAL em todos os
+      SKUs de bobina
+  [ ] Peso do tubete e espessura total cadastrados (pesagem e
+      diametro do retalho)
+  [ ] Metragem por milheiro e consumo de tinta (g/MIL) em toda
+      ficha tecnica
+  [ ] Densidade cadastrada nas tintas/vernizes controlados em KG
+      e comprados em L
+  [ ] Quantidade por caixa nos produtos acabados
+  [ ] Tolerancia de conferencia (5% entre metodos de medicao;
+      parametro por grupo)
+  [ ] ROUND_FLOOR aplicado apenas nas estimativas de retalho
+  [ ] Log de conversao (original + fator + resultado) em todo
+      movimento
+  [ ] Bloqueio de conversao com cadastro incompleto
+  [ ] Tela de saldo "multi-unidade" (RL / M / M2 / KG) para os
+      SKUs de bobina
+
+======================================================================
+12. REGRAS DE OURO DAS CONVERSOES (RESUMO)
+======================================================================
+
+  1. Cada item tem UMA unidade de estoque oficial; o saldo vive
+     nela e somente nela.
+  2. Toda conversao vem de dados de CADASTRO (largura, gramatura,
+     comprimento, densidade, ficha tecnica) - nunca de numero
+     digitado "de cabeca" na hora.
+  3. As pontes sao poucas e fixas: RL<->M (comprimento), M<->M2
+     (largura), M2<->KG (gramatura), M<->MIL (ficha tecnica),
+     KG<->L (densidade), CX<->conteudo.
+  4. Conversao composta roda em UM calculo, com fator de 10 casas,
+     arredondando so o resultado final (4 casas, half-up).
+  5. Converter so na ida - ida e volta (m -> kg -> m) e proibido.
+  6. Estimativa de retalho arredonda PARA BAIXO, sempre.
+  7. Rolo fechado, unidade e caixa sao INTEIROS; fracao de bobina
+     e retalho em metros, com SKU proprio.
+  8. Entrada em kg/m2 exige conferencia fisica do convertido
+     (tolerancia parametrizada; fora dela, bloqueia).
+  9. Todo movimento convertido guarda original + fator + resultado
+     para auditoria eterna.
+ 10. Cadastro incompleto bloqueia a conversao com mensagem clara -
+     o sistema nunca "chuta" um fator.
+
+======================================================================
+                          FIM DO DOCUMENTO
+======================================================================

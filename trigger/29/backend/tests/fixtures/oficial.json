@@ -1,0 +1,94 @@
+{
+  "arquivo": "ORÇAMENTO OFICIAL 2607171006.xlsm",
+  "cliente": "BANCA DO DINEI",
+  "medida": "5,0X2,5",
+  "largura_cm": 7.5,
+  "puxada_cm": 2.7274900000000004,
+  "cores": 1,
+  "papel": "BOPP BRILHO",
+  "acabamento": "COLD STAMP + COLA",
+  "modelos": 1,
+  "colunas": 2,
+  "etiq_por_rolo": 1000,
+  "tubete": "3\"",
+  "z": 43.0,
+  "faca": "ESPECIAL",
+  "repeticao": 5,
+  "maquina_roda_servico": "MODULAR",
+  "maquina": "MODULAR",
+  "imposto_pct": 16.0,
+  "matriz": "SIM",
+  "coluna_rebobinacao": 1,
+  "tipo_troca_produto": "SEM PARADA",
+  "rpm": 1300.0,
+  "overrides": {
+    "papel": {
+      "BOPP BRILHO": 7.2
+    },
+    "tinta_acima_m2": 0.4
+  },
+  "faixas": [
+    {
+      "quantidade": 10000,
+      "comissao_pct": 5.0,
+      "excel": {
+        "etiqueta": 560.0,
+        "matriz": 94.0,
+        "total": 654.0,
+        "metragem": 136.3745,
+        "m2": 20.5,
+        "hora_maq": 1.1049034615384616,
+        "valor_servico": 457.1522522307692,
+        "perda_papel_troca_produto": 0.525,
+        "valor_papel_troca_produto": 3.7800000000000002
+      }
+    },
+    {
+      "quantidade": 20000,
+      "comissao_pct": 5.0,
+      "excel": {
+        "etiqueta": 860.0,
+        "matriz": 94.0,
+        "total": 954.0,
+        "metragem": 272.749,
+        "m2": 41.0,
+        "hora_maq": 1.209806923076923,
+        "valor_servico": 704.5245044615384,
+        "perda_papel_troca_produto": 0.525,
+        "valor_papel_troca_produto": 3.7800000000000002
+      }
+    },
+    {
+      "quantidade": 40000,
+      "comissao_pct": 5.0,
+      "excel": {
+        "etiqueta": 1460.0,
+        "matriz": 94.0,
+        "total": 1554.0,
+        "metragem": 545.498,
+        "m2": 81.9,
+        "hora_maq": 1.4196138461538461,
+        "valor_servico": 1198.629008923077,
+        "perda_papel_troca_produto": 0.525,
+        "valor_papel_troca_produto": 3.7800000000000002
+      }
+    },
+    {
+      "quantidade": 60000,
+      "comissao_pct": 5.0,
+      "excel": {
+        "etiqueta": 2040.0,
+        "matriz": 94.0,
+        "total": 2134.0,
+        "metragem": 818.2470000000002,
+        "m2": 122.80000000000001,
+        "hora_maq": 1.6294207692307694,
+        "valor_servico": 1685.7335133846157,
+        "perda_papel_troca_produto": 0.525,
+        "valor_papel_troca_produto": 3.7800000000000002
+      }
+    }
+  ],
+  "papel_preco_arquivo": 7.2,
+  "tinta_c3": 0.4
+}

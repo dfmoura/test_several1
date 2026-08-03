@@ -1,0 +1,195 @@
+# Estratégia de Migração para o Novo ERP utilizando a Focus NFe
+
+## Objetivo
+
+A empresa está implantando um novo ERP e utilizará a **Focus NFe** como hub fiscal para emissão e gerenciamento de documentos fiscais.
+
+O principal objetivo é:
+
+* acompanhar o faturamento acumulado para controle do limite do Simples Nacional;
+* preparar a empresa para a futura migração ao Lucro Real;
+* manter histórico fiscal consistente sem atrasar a implantação do novo sistema.
+
+---
+
+# Recuperação das notas fiscais pela Focus NFe
+
+Uma das dúvidas é se a Focus NFe conseguirá recuperar automaticamente todas as notas fiscais já emitidas utilizando apenas o certificado digital.
+
+## Notas de Entrada
+
+A expectativa é positiva.
+
+Como as NF-es de entrada são emitidas contra o CNPJ da empresa, a Focus consegue consultar os documentos disponibilizados pelos serviços de distribuição de documentos fiscais, desde que estejam disponíveis e corretamente autorizados.
+
+Isso permite recuperar:
+
+* XML das compras;
+* fornecedores;
+* produtos adquiridos;
+* valores;
+* impostos destacados.
+
+Essa funcionalidade será muito útil para manter atualizado o histórico de compras e preparar a empresa para o Lucro Real.
+
+---
+
+## Notas de Saída
+
+A situação é diferente.
+
+As notas emitidas **após a integração com a Focus** ficarão registradas normalmente na plataforma.
+
+Por outro lado, as notas emitidas anteriormente por outro emissor normalmente não serão importadas automaticamente apenas pela configuração do certificado digital.
+
+Caso seja necessário manter todo o histórico de vendas, será preciso importar os XML do sistema antigo ou utilizar algum mecanismo de exportação disponibilizado pelo emissor atual.
+
+---
+
+# Estratégia recomendada de implantação
+
+Em vez de aguardar a importação completa de milhares de XML antes de iniciar a operação, recomenda-se dividir a implantação em duas etapas.
+
+---
+
+# Fase 1 – Entrada em produção
+
+No dia da mudança de sistema, migrar apenas as informações necessárias para que a empresa continue operando normalmente.
+
+## Cadastro de clientes
+
+Migrar somente os cadastros.
+
+Exemplo:
+
+* CNPJ
+* Razão Social
+* Endereço
+* Condição de pagamento
+* Limite de crédito
+* Contatos
+
+Não é necessário importar todo o histórico de vendas.
+
+---
+
+## Cadastro de produtos
+
+Migrar apenas o cadastro dos produtos.
+
+Exemplo:
+
+* Código interno
+* Descrição
+* NCM
+* Unidade
+* CFOP padrão
+* Grupo
+* Preço
+
+O histórico de movimentação poderá ser importado posteriormente.
+
+---
+
+## Estoque
+
+Importar o estoque existente **na data da virada**.
+
+Exemplo:
+
+| Produto      |  Quantidade |
+| ------------ | ----------: |
+| BOPP Branco  |   120 rolos |
+| Papel Couché |    85 rolos |
+| Ribbon Cera  | 42 unidades |
+
+Não é necessário reconstruir todas as movimentações desde janeiro.
+
+---
+
+## Financeiro
+
+Migrar a posição financeira do dia da implantação.
+
+### Contas a receber
+
+* Clientes
+* Valores
+* Vencimentos
+
+### Contas a pagar
+
+* Fornecedores
+* Valores
+* Vencimentos
+
+### Bancos
+
+* Caixa
+* Contas correntes
+* Aplicações
+
+---
+
+## Faturamento acumulado
+
+Para controlar o limite do Simples Nacional, não é obrigatório importar todas as NF-es imediatamente.
+
+Basta registrar o faturamento acumulado do ano.
+
+Exemplo:
+
+| Mês                       |      Valor |
+| ------------------------- | ---------: |
+| Janeiro                   | R$ 320.000 |
+| Fevereiro                 | R$ 350.000 |
+| Março                     | R$ 420.000 |
+| Abril                     | R$ 510.000 |
+| Maio                      | R$ 490.000 |
+| Junho                     | R$ 560.000 |
+| Julho                     | R$ 610.000 |
+| Agosto                    | R$ 580.000 |
+| Setembro (até a migração) | R$ 210.000 |
+
+Com esses valores o ERP já consegue calcular:
+
+* faturamento acumulado;
+* RBT12;
+* faixa do Simples Nacional;
+* previsão de ultrapassagem do limite.
+
+---
+
+# Fase 2 – Importação do histórico
+
+Após a empresa já estar operando normalmente no novo ERP, realizar a importação dos XML em segundo plano.
+
+Importar:
+
+* todas as NF-es de entrada;
+* todas as NF-es de saída;
+* histórico de compras;
+* histórico de vendas.
+
+Essa etapa pode ocorrer gradualmente, sem interromper a operação.
+
+---
+
+# Benefícios dessa abordagem
+
+A estratégia em duas fases apresenta diversas vantagens:
+
+* implantação rápida do novo ERP;
+* continuidade da operação sem necessidade de aguardar a importação completa do histórico;
+* controle imediato do faturamento e do limite do Simples Nacional;
+* possibilidade de importar o histórico fiscal posteriormente;
+* preparação da base de dados para a futura migração ao Lucro Real;
+* redução do risco de paralisação durante a troca de sistema.
+
+---
+
+# Conclusão
+
+Para uma indústria de etiquetas que pretende migrar do Simples Nacional para o Lucro Real, a estratégia mais equilibrada é colocar o novo ERP em produção com os **saldos e cadastros atuais**, garantindo o funcionamento da empresa desde o primeiro dia, e realizar a **importação do histórico de XML posteriormente**.
+
+Dessa forma, o sistema passa a operar imediatamente, o controle do faturamento permanece correto e a empresa preserva o histórico fiscal necessário para análises futuras, aproveitamento de créditos tributários e gestão no Lucro Real.

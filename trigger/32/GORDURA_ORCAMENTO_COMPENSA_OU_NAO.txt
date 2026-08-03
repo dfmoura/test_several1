@@ -1,0 +1,294 @@
+====================================================================================================
+GORDURA NO ORÇAMENTO — COMPENSA OU NÃO COLOCAR?
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_ORCAMENTO.txt (motor e piso de margem) +
+      MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt (mecanismo de gordura, seções 3–4) +
+      VERIFICACAO_IMPOSTO_ORCAMENTO.txt (efeito cascata no fechamento) +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt (tetos e aprovação)
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento responde a UMA pergunta de desenho comercial e de sistema:
+
+  COMPENSA COLOCAR GORDURA NO ORÇAMENTO — OU É MELHOR ORÇAR
+  “NO OSSO” E CORRIGIR DEPOIS?
+
+A resposta em uma frase:
+
+  COMPENSA COLOCAR GORDURA QUANDO HÁ INCERTEZA REAL E ELA FICA
+  EXPLÍCITA, COM TETO E MOTIVO; NÃO COMPENSA USAR GORDURA COMO
+  SUBSTITUTO DE PARÂMETRO DESATUALIZADO NEM COMO DESCONTO
+  DISFARÇADO.
+
+Gordura NÃO é margem de lucro e NÃO é imposto. É folga deliberada
+para absorver risco até o fechamento do pedido. O ERP já formaliza
+o mecanismo em MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt (seção 3);
+este arquivo decide QUANDO aplicar, QUANTO e quando ZERAR.
+
+Ele complementa:
+  * GERACAO_ORCAMENTO.txt ........................ motor + piso 7.7
+  * MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt .. campo, cascata,
+    tetos e relatório de gordura
+  * VERIFICACAO_IMPOSTO_ORCAMENTO.txt ............ gross-up / por fora
+  * FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt ... exceção
+    quando preço/insumo foge do envelope
+  * ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt ...... quem aprova acima
+    do teto
+
+----------------------------------------------------------------------------------------------------
+1. O QUE É GORDURA (E O QUE NÃO É)
+----------------------------------------------------------------------------------------------------
+
+1.1. DEFINIÇÃO OPERACIONAL
+     Percentual (ou valor) ADICIONADO de propósito ao cálculo, com
+     campo próprio, motivo, autor e snapshot — para cobrir
+     incerteza até o pedido fechar e a produção consumir.
+
+1.2. NÃO CONFUNDIR COM:
+
+       CONCEITO              FUNÇÃO                         ONDE MORA
+       --------------------  -----------------------------  ------------------------
+       MARGEM DE LUCRO       remunerar o capital / risco    política de preço +
+                             comercial estrutural           piso 7.7
+       IMPOSTO / COMISSÃO    obrigação fiscal e venda       perfil fiscal + vendedor
+       PERDA TABELADA        desperdício médio conhecido    tabelas 4.x do motor
+       ARREDONDAMENTO        fechamento comercial p/ cima   princípio 1.6
+       GORDURA               folga por INCERTEZA pontual    campo %GORDURA
+
+1.3. REGRA DE OURO (igual à MOBILIDADE 3.2)
+     Gordura EXPLÍCITA, nunca escondida em papel, hora-máquina ou
+     perda “de cabeça”. Inflar parâmetro para criar folga destrói
+     auditoria e contamina relatório de custo.
+
+----------------------------------------------------------------------------------------------------
+2. VEREDITO: QUANDO COMPENSA E QUANDO NÃO
+----------------------------------------------------------------------------------------------------
+
+2.1. COMPENSA COLOCAR (usar gordura) quando pelo menos UM destes
+     riscos for verdadeiro e mensurável:
+
+  a) PREÇO DE MATERIAL INSTÁVEL
+     Fornecedor sinalizou reajuste, cotação tem validade curta, ou
+     o papel/filme é importado / escasso. Folga no componente
+     (gordura por componente no papel) protege a margem sem
+     adulterar o custo médio de estoque.
+
+  b) FACA / FERRAMENTAL AINDA ESTIMADO
+     Cotação do fornecedor de faca não confirmada, ou faca simulada
+     (MOBILIDADE seção 2). Gordura localizada no ferramental evita
+     surpresa no 1º pedido.
+
+  c) CLIENTE HISTORICAMENTE “PEDIGUDO”
+     Troca de arte, reposição de matriz, ajuste de quantidade após
+     aprovação. Folga pequena (2–5%) vira espaço de negociação SEM
+     furar o piso de margem.
+
+  d) PRODUÇÃO FORA DO PADRÃO
+     Combinação nova (papel + acabamento pouco rodado), máquina no
+     limite de cores/largura, ou 1º pedido com perda acima da
+     tabela ainda sem histórico. Gordura cobre a curva de
+     aprendizado; depois o parâmetro se calibra.
+
+  e) PRAZO LONGO ENTRE ORÇAMENTO E PRODUÇÃO
+     Orçamento com validade longa ou fila cheia: o custo de hoje
+     pode não ser o de daqui a 30–45 dias. Folga temporal.
+
+2.2. NÃO COMPENSA COLOCAR (zerar gordura ou corrigir a origem)
+     quando o motivo for um destes:
+
+  a) PARÂMETRO DESATUALIZADO
+     Papel, hora-máquina ou perda errados na tabela. A correção é
+     no CADASTRO com vigência — não “compensar” com gordura em
+     todo orçamento. Gordura crônica = tabela errada.
+
+  b) CONCORRÊNCIA ACIRRADA / PREÇO JÁ NO TETO
+     Cliente compara com último preço ou com concorrente. Gordura
+     empurra o unitário para fora da faixa e PERDE o pedido. Aqui
+     o certo é orçar no osso (dentro do piso 7.7) ou simular
+     cenários (quantidade, papel, acabamento).
+
+  c) RECOMPRA ESTÁVEL DO MESMO ITEM
+     Mesma faca, mesmo papel, mesmo acabamento, custo conhecido.
+     Incerteza baixa → gordura 0%. A margem estrutural já remunera.
+
+  d) “DESCONTO DISFARÇADO”
+     Colocar 10% de gordura só para “dar 8% de desconto” depois.
+     Isso mente o relatório, ensina o cliente a barganhar e
+     contamina a taxa de conversão. Desconto = fluxo próprio
+     (piso de margem / aprovação gerente).
+
+  e) ORÇAMENTO DE PROSPECT EM DISPUTA AGRESSIVA
+     Ver ORCAMENTO_PROSPECT_SEM_CADASTRO.txt: ganhar a porta com
+     preço inchado costuma falhar. Preferir cenário otimista
+     limpo + validade curta a gordura alta.
+
+2.3. RESUMO EM UMA TABELA DE DECISÃO
+
+  SITUAÇÃO                              GORDURA?     SUGESTÃO
+  ------------------------------------  -----------  --------------------
+  Material com reajuste iminente        SIM          3–8% no papel
+  Faca cotada / não confirmada          SIM          5–15% no ferramental
+  1º pedido combinação nova             SIM          3–5% global
+  Cliente pede desconto frequente       SIM (baixa)  2–5% global c/ motivo
+  Recompra idêntica, custo estável      NÃO          0%
+  Preço já no limite vs concorrência    NÃO          0% + cenários
+  Tabela de perda/preço defasada        NÃO          corrigir parâmetro
+  “Só para ter folga de desconto”       NÃO          proibido (2.2.d)
+
+----------------------------------------------------------------------------------------------------
+3. O CUSTO REAL DE COLOCAR (POR QUE NÃO É “DE GRAÇA”)
+----------------------------------------------------------------------------------------------------
+
+3.1. EFEITO CASCATA
+     Gordura entra ANTES do fechamento fiscal/comercial. Imposto e
+     comissão incidem sobre ela. No Lucro Real com gross-up, cada
+     R$ 1,00 de gordura vira ~R$ 1,48 no preço ao cliente
+     (detalhe e quadro em MOBILIDADE 3.4). O percentual nominal
+     SEMPRE subestima o impacto no unitário.
+
+3.2. COMPETITIVIDADE
+     5% de gordura no serviço pode virar +5,5% a +7% no unitário
+     após imposto + arredondamento. Em etiqueta de alto volume,
+     milésimos matam a venda.
+
+3.3. CULTURA DO ORÇAMENTISTA
+     Se todo mundo coloca 10% “por costume”, ninguém calibra
+     parâmetro, o relatório de margem mente e a direção perde o
+     termômetro. Gordura sem motivo obrigatório vira vício.
+
+3.4. POR ISSO O ERP EXIGE
+     * Campo próprio (nunca embutido)
+     * Motivo quando % > 0
+     * Teto por perfil (sugestão: orçamentista até 5%; gerente até
+       15% — calibrar com a direção)
+     * Relatório mensal: média aplicada × conversão × consumida
+       na produção (MOBILIDADE 3.6)
+
+----------------------------------------------------------------------------------------------------
+4. DINÂMICA RECOMENDADA NO ERP (DECISÃO NA TELA)
+----------------------------------------------------------------------------------------------------
+
+4.1. PADRÃO DO SISTEMA
+     Novo orçamento nasce com %GORDURA = 0 (ou padrão da empresa
+     configurável, se a direção quiser um piso institucional baixo,
+     ex.: 2%). Nunca “forçar” gordura alta por default.
+
+4.2. ASSISTENTE DE DECISÃO (alerta suave, não bloqueio)
+     O ERP sugere “considerar gordura” quando detectar sinais:
+       - validade do orçamento > X dias;
+       - papel sem compra recente / cotação externa;
+       - faca simulada ou ferramental estimado;
+       - 1º pedido do item-chave para aquele cliente;
+       - histórico do cliente com alteração pós-aprovação.
+
+     A sugestão mostra o quadro de impacto (MOBILIDADE 3.4) e o
+     orçamentista ACEITA, AJUSTA ou IGNORA — com motivo se > 0.
+
+4.3. COMPARAÇÃO OBRIGATÓRIA ANTES DE ENVIAR (quando % > 0)
+     Tela mostra lado a lado:
+       - preço com gordura 0%
+       - preço com gordura escolhida
+       - último preço vendido daquele item/cliente (se houver)
+     Se o preço com gordura ficar acima do referencial, alerta
+     amarelo: “gordura pode custar a conversão”.
+
+4.4. GORDURA POR COMPONENTE PREFERÍVEL À GLOBAL
+     Quando o risco é localizado (só papel, só faca), preferir
+     gordura no componente. Global é atalho para incerteza
+     difusa — e deve ter motivo mais forte.
+
+4.5. PÓS-PRODUÇÃO: A GORDURA FOI CONSUMIDA?
+     No confronto custo orçado × custo real:
+       - Nunca consumida em N ciclos → baixar padrão / zerar
+       - Sempre consumida → corrigir parâmetro na ORIGEM
+       - Consumida às vezes → manter faixa e motivo caso a caso
+     Gordura não consumida vira margem extra — mas isso deve ser
+     EXCEÇÃO feliz, não meta do orçamentista.
+
+----------------------------------------------------------------------------------------------------
+5. REGRAS DE GOVERNANÇA (NÃO NEGOCIÁVEIS)
+----------------------------------------------------------------------------------------------------
+
+ 1. GORDURA EXPLÍCITA OU NADA.
+    Proibido inflar custo escondido.
+
+ 2. MOTIVO OBRIGATÓRIO SE % > 0.
+    Texto curto cadastrado ou livre (ex.: “reajuste BOPP ago/26”,
+    “faca cotação provisória”, “espaço negociação cliente X”).
+
+ 3. TETO POR PERFIL.
+    Acima do teto → aprovação gerente (mesmo anel do piso 7.7).
+
+ 4. GORDURA NEGATIVA PROIBIDA.
+    Desconto é outro fluxo.
+
+ 5. CLIENTE NUNCA VÊ A LINHA “GORDURA”.
+    Princípio 1.5 de GERACAO_ORCAMENTO: proposta comercial limpa.
+    Internamente a composição guarda o %.
+
+ 6. NÃO SUBSTITUI ATUALIZAÇÃO DE TABELA.
+    Relatório 3.6 da MOBILIDADE alimenta revisão de parâmetros.
+
+ 7. TUDO NO SNAPSHOT.
+    % , base, motivo, autor, data — reabrir o orçamento de 6 meses
+    mostra a mesma folga.
+
+----------------------------------------------------------------------------------------------------
+6. CHECKLIST RÁPIDO — “COLOCO GORDURA NESTE ORÇAMENTO?”
+----------------------------------------------------------------------------------------------------
+
+  ANTES DE PREENCHER O %
+   1. Existe incerteza REAL (material, faca, prazo, 1º pedido)?
+      Se NÃO → gordura = 0%. Pare aqui.
+   2. A tabela de preço/perda está atualizada?
+      Se NÃO → corrigir cadastro primeiro; só depois avaliar folga.
+   3. O preço sem gordura já está no limite vs cliente/concorrência?
+      Se SIM → preferir cenários (quantidade/papel) a engordar.
+
+  SE VAI COLOCAR
+   4. Preferiu componente (papel/faca) em vez de global?
+   5. Motivo preenchido e compreensível daqui a 6 meses?
+   6. % dentro do teto do perfil? Se não, pediu aprovação?
+   7. Olhou o quadro de impacto (unitário + total + cascata)?
+   8. Comparou com último preço vendido / cenário 0%?
+
+  DEPOIS (GESTÃO)
+   9. No fechamento da OP, a gordura foi consumida?
+  10. Padrão do tipo de serviço precisa recalibrar?
+
+----------------------------------------------------------------------------------------------------
+7. RESPOSTA FINAL PARA A DIREÇÃO
+----------------------------------------------------------------------------------------------------
+
+  SIM, o ERP DEVE ter gordura — como instrumento consciente de
+  gestão de risco, não como costume.
+
+  NÃO, o orçamentista NÃO deve colocar gordura em todo orçamento
+  “por garantia”.
+
+  O ponto ótimo para a RLP (indústria de etiquetas, mix variável,
+  materiais com preço volátil e muita recompra estável) é:
+
+    * Default baixo ou zero;
+    * Gordura pontual com motivo quando o risco é real;
+    * Preferência por gordura no componente incerto;
+    * Tetos + relatório mensal calibrando o hábito;
+    * Parâmetro errado se corrige na origem — gordura não é
+      muleta permanente.
+
+Sem esse critério, a empresa ou perde margem (orça no osso demais
+em pedido arriscado) ou perde venda (engorda tudo e fica cara).
+Com o critério, a gordura COMPENSA exatamente onde precisa — e
+some onde atrapalha.
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Percentuais
+sugeridos (2%, 5%, 8%, 15%) e tetos por perfil são SUGESTÕES iniciais a
+calibrar com a direção e com o relatório mensal de gordura
+(MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt, seção 3.6). A mecânica de
+cálculo, efeito cascata e campos obrigatórios seguem aquele documento e
+GERACAO_ORCAMENTO.txt; este arquivo trata apenas da DECISÃO de usar ou
+não a folga. Gordura nunca aparece na proposta enviada ao cliente.
+====================================================================================================

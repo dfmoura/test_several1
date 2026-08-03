@@ -1,0 +1,174 @@
+====================================================================================================
+INTEGRAÇÃO BANCÁRIA MULTI-PROVIDER — BOLETO, BOLEPIX, PIX, EXTRATO, WEBHOOK
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Banco atual da empresa: SICOOB (detalhes de credencial ainda pendentes)
+Banco de TESTE / referência de implementação: BANCO INTER (API pública)
+Base: FATURAMENTO_GERACAO_COBRANCA.txt + RECEBIMENTO_BAIXA_COBRANCA.txt +
+      CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt + MULTI_EMPRESA_CNPJS_E_LIVROS.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+DECISÃO DE ARQUITETURA:
+
+  O ERP NÃO se casa com um banco só.
+  Existe uma CAMADA DE ADAPTER (“BankProvider”) com o mesmo contrato
+  interno; cada banco implementa o adapter.
+
+  Produção alvo ........ Sicoob (quando credenciais/convênio existirem)
+  Homologação/exemplo ... Inter (documentação rica e onboarding digital)
+  Futuro ................ BB, Itaú, Bradesco, Stone, etc. — mesmo contrato
+
+CNAB clássico continua como FALLBACK (retorno de boleto) quando a API
+do banco ainda não estiver habilitada.
+
+Referências Inter (exemplo de estudo — não travar o desenho nelas):
+  * Cobrança BolePix:
+    https://developers.inter.co/references/cobranca-bolepix
+  * Banking / Extrato:
+    https://developers.inter.co/references/banking#tag/Extrato
+  * Portal geral: https://developers.inter.co/
+
+NUNCA versionar Client Secret, certificado mTLS nem chave privada
+no Git. Secrets em cofre / .env fora do repositório.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. TIT- é a verdade financeira no ERP; cobrança bancária é EMISSÃO
+    vinculada (cobranca_bancaria_id / nosso número / txid PIX).
+ 2. Baixa automática só via webhook/retorno CONFIÁVEL + conciliação;
+    ambiguidade → fila humana (RECEBIMENTO_BAIXA_COBRANCA).
+ 3. Cada EMPRESA/CNPJ (filial) tem suas próprias credenciais e contas.
+ 4. Adapter único: trocar Sicoob↔Inter não reescreve faturamento.
+ 5. Tarifas bancárias → natureza 3.02.04 (ou subconta acordada).
+
+----------------------------------------------------------------------------------------------------
+2. CONTRATO INTERNO DO ADAPTER (BankProvider)
+----------------------------------------------------------------------------------------------------
+
+Operações mínimas (todas assíncronas com id de correlação):
+
+  emitir_cobranca(tit_id) → { provider_ref, linha_digitavel, pix_qr,
+                               pdf_url, vencimento, status }
+  consultar_cobranca(provider_ref) → status
+  cancelar_cobranca(provider_ref) → status
+  obter_pdf(provider_ref) → bytes/url
+  listar_extrato(conta_id, de, ate) → lançamentos[]
+  consultar_saldo(conta_id) → saldo
+  registrar_webhook(url, eventos) / processar_webhook(payload)
+
+Status canônicos ERP (independentemente do banco):
+  EMITIDA | REGISTRADA | PAGA | CANCELADA | VENCIDA | FALHA | ESTORNADA
+
+Mapeamento provider → canônico fica DENTRO do adapter.
+
+----------------------------------------------------------------------------------------------------
+3. OBJETOS NO ERP
+----------------------------------------------------------------------------------------------------
+
+  Conta financeira .... banco, agência, conta, pix_chave, empresa_id
+  Credencial provider . client_id, escopos, cert_ref, ambiente
+                        (SANDBOX|PROD), empresa_id
+  COB-AAAA-NNNNN ...... cobrança emitida (liga TIT- ↔ provider_ref)
+  Webhook log ......... payload resumido + resultado processamento
+
+Prefixo COB- no catálogo de exibição.
+
+----------------------------------------------------------------------------------------------------
+4. FLUXO COM TIT-
+----------------------------------------------------------------------------------------------------
+
+  1) Faturamento gera TIT- (condição de pagamento)
+  2) Financeiro (ou automático) chama emitir_cobranca
+  3) Grava COB- + nosso número / txid / QR / PDF
+  4) Envia ao cliente (e-mail + WhatsApp Business API — template)
+  5) Pagamento: webhook ou retorno CNAB ou conciliação de extrato
+  6) Cria BX- + baixa TIT- (parcial/total)
+  7) Atualiza limite de crédito
+
+Cancelamento de NF / DEV → cancela cobrança aberta no provider.
+
+----------------------------------------------------------------------------------------------------
+5. INTER COMO AMBIENTE DE TESTE (exemplo)
+----------------------------------------------------------------------------------------------------
+
+Capacidades úteis para o adapter de referência:
+  * OAuth2 + mTLS (certificado da integração)
+  * API Cobrança (boleto / BolePix)
+  * PIX cobrança (imediata / com vencimento)
+  * Extrato e saldo (Banking)
+  * Webhooks de paga/cancelada
+  * Sandbox antes de produção
+
+Escopos típicos (conferir painel no ato da criação):
+  emissão/consulta/cancelamento de cobrança; PDF; extrato; webhooks.
+
+Implementação: classe InterBankProvider implements BankProvider.
+Homologar com valores baixos e CNPJ de teste da conta PJ Inter.
+
+ATENÇÃO: qualquer arquivo antigo em pastas de laboratório (trigger/1)
+que contenha ClientID/Secret NÃO deve ser copiado para o ERP nem
+commitado. Rotacionar se vazou.
+
+----------------------------------------------------------------------------------------------------
+6. SICOOB COMO PRODUÇÃO ALVO
+----------------------------------------------------------------------------------------------------
+
+Enquanto detalhe de API/CNAB não chega:
+  * Manter emissão manual ou CNAB se já existir rotina
+  * Modelar SicoobBankProvider com os mesmos métodos
+  * Documentar no adapter: URL base, OAuth, certificado, layout
+    de retorno, particularidades de nosso número
+
+Não reinventar TIT-/BX- quando o Sicoob entrar — só plugar o provider
+e migrar credenciais por empresa_id = CNPJ 01.423.183/0001-10.
+
+Segundo CNPJ (58.820.046/0001-37), quando operacional: conta e
+credenciais SEPARADAS (MULTI_EMPRESA_CNPJS_E_LIVROS).
+
+----------------------------------------------------------------------------------------------------
+7. EXTRATO E CONCILIAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  * Job diário: extrato → sugere match com TIT/BX (valor+data+pagador)
+  * PIX com txid amarra direto na COB-
+  * Sobras (crédito sem título) → fila “não identificados”
+  * Contador recebe export; ERP mantém conciliação gerencial
+
+----------------------------------------------------------------------------------------------------
+8. CNAB FALLBACK
+----------------------------------------------------------------------------------------------------
+
+Se API indisponível:
+  * Remessa CNAB (entrada de boletos) gerada do TIT-
+  * Retorno CNAB processado → mesmos status canônicos → BX-
+  Provider “CnabFileProvider” implementa subset (sem QR em tempo real)
+
+----------------------------------------------------------------------------------------------------
+9. SEGURANÇA E SoD
+----------------------------------------------------------------------------------------------------
+
+  * Quem cadastra chave PIX/dados bancários do PAR- ≠ quem baixa título
+  * Certificados: permissão de leitura só do serviço bancário
+  * Webhook: validar assinatura/certificado do banco; idempotência
+    por event_id (não baixar duas vezes)
+  * Ambiente SANDBOX isolado de PROD
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Interface BankProvider estável no desenho
+  [ ] Inter sandbox emite BolePix + webhook de teste
+  [ ] COB- ligado a TIT- e empresa_id
+  [ ] Baixa só com evento confiável + BX-
+  [ ] Sicoob como provider futuro sem reescrever faturamento
+  [ ] Secrets fora do Git
+  [ ] CNAB como plano B documentado
+
+====================================================================================================
+Fim — INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt
+Um contrato, vários bancos. Inter para aprender; Sicoob para operar; TIT-/BX- no centro.
+====================================================================================================

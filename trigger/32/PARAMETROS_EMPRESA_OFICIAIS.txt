@@ -1,0 +1,67 @@
+====================================================================================================
+PARÂMETROS OFICIAIS DA EMPRESA — NÚMEROS QUE PRECISAM DE RATIFICAÇÃO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: LACUNAS_PENDENCIAS_SISTEMA.txt §4 + documentos de domínio citados
+Gerado em: 02/08/2026
+====================================================================================================
+
+Lista única dos parâmetros que o ERP precisa como NÚMERO/REGRA oficial.
+Enquanto não ratificados pela direção (+ contador quando fiscal), o
+sistema usa SUGESTÃO DE IMPLANTAÇÃO e marca o parâmetro como
+PENDENTE_RATIFICACAO (não inventar silêncio).
+
+----------------------------------------------------------------------------------------------------
+1. PATRIMÔNIO / ESTOQUE / PRAZO
+----------------------------------------------------------------------------------------------------
+
+  valor_minimo_capitalizar_bem ........ sugestão R$ 1.000
+                                        (PATRIMONIO_CONTROLE)
+  comprimento_minimo_retalho_m ........ calibrar (TRATAMENTO_SOBRA_...)
+  folga_expedicao_dias ................ sugestão 1–2 dias úteis no PED
+  prazo_remessa_industrializacao_dias . 180 (contador confirma)
+  prazo_guarda_contra_prova_dias ...... sugestão 90–180
+
+----------------------------------------------------------------------------------------------------
+2. FINANCEIRO / COBRANÇA / CRÉDITO
+----------------------------------------------------------------------------------------------------
+
+  regua_cobranca ...................... sugestão D-3, D+1, D+7, D+15
+                                        (templates WhatsApp oficiais)
+  politica_nf_antes_expedir ........... RECOMENDADO = SIM
+  comissao_base ....................... FATURADO | RECEBIDO (definir)
+  comissao_percentual_padrao .......... DEFINIR com direção
+  alcadas_desconto_pct ................ tabela comercial
+  alcadas_perda_titulo ................ direção
+  alcadas_compra_urgencia ............. gerência/direção
+
+----------------------------------------------------------------------------------------------------
+3. MULTI-EMPRESA
+----------------------------------------------------------------------------------------------------
+
+  empresa_default ..................... EMP-00001 (01.423.183/0001-10)
+  emp_00002_venda_habilitada .......... NÃO (até escopo fechado)
+  lai_no_erp .......................... NÃO (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP)
+                                        — parâmetro fixo; não “ligar depois”
+
+----------------------------------------------------------------------------------------------------
+4. BANCO / WHATSAPP
+----------------------------------------------------------------------------------------------------
+
+  bank_provider_prod .................. SICOOB (pendente credenciais)
+  bank_provider_sandbox ............... INTER (homologação)
+  whatsapp_transporte ................. Meta Cloud API / BSP oficial
+  whatsapp_proibido ................... conta pessoal / Baileys
+
+----------------------------------------------------------------------------------------------------
+5. COMO RATIFICAR
+----------------------------------------------------------------------------------------------------
+
+  1) Direção preenche coluna “valor oficial” neste TXT ou em TAB-
+  2) Contador valida itens fiscais/prazo remessa/CFOP amostra
+  3) ADMIN grava no ERP; remove flag PENDENTE_RATIFICACAO
+  4) Log de alteração de parâmetro (quem/quando/de→para)
+
+====================================================================================================
+Fim — PARAMETROS_EMPRESA_OFICIAIS.txt
+Parâmetro sem dono vira briga operacional. Ratificar e versionar.
+====================================================================================================

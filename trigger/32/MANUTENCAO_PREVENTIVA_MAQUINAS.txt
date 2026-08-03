@@ -1,0 +1,69 @@
+====================================================================================================
+MANUTENÇÃO PREVENTIVA DE MÁQUINAS — PLANO LEVE SOBRE O PATRIMÔNIO
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: PATRIMONIO_CONTROLE.txt + PRODUCAO_OPERACIONAL_GERENCIAL.txt +
+      ORDEM_SERVICO.txt + NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Patrimônio já guarda histórico do bem. Este TXT adiciona o PLANO
+PREVENTIVO (horas / contador / calendário) sem virar CMMS pesado.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. Todo bem crítico (impressora, rebobinadeira, cortadeira…) tem
+    plano preventivo OU justificativa “só corretiva”.
+ 2. Contador de horas/metros da máquina (quando existir) alimenta
+    o plano — senão usa calendário.
+ 3. OS interna de manutenção liga a BEM- e natureza 3.04.01.
+ 4. Máquina EM_MANUTENCAO não recebe OP nova (trava parametrizável).
+
+----------------------------------------------------------------------------------------------------
+2. PLANO POR BEM
+----------------------------------------------------------------------------------------------------
+
+No cadastro BEM- (ou tabela filha):
+  * tipo_gatilho: HORAS | METROS | DIAS | CICLOS
+  * intervalo (ex.: 500 h | 30 dias)
+  * checklist padrão (óleo, limpeza, facas, tensionamento…)
+  * responsável (setor manutenção / externo)
+  * alerta antecipado (ex.: 10% do intervalo)
+
+----------------------------------------------------------------------------------------------------
+3. EXECUÇÃO
+----------------------------------------------------------------------------------------------------
+
+  1) Sistema gera OS-MANUT ou tarefa MANUT-AAAA-NNNNN (pode reutilizar
+     OS- com tipo MANUTENCAO_INTERNA)
+  2) Executa checklist; anexa fotos/notas
+  3) Lança custo (peças/mão de obra) → 3.04.01
+  4) Atualiza contador / próxima data
+  5) Status do bem: ATIVO de novo
+
+Corretiva de emergência: mesma trilha, flag CORRETIVA; analisa se
+preventiva falhou.
+
+----------------------------------------------------------------------------------------------------
+4. RELATÓRIOS
+----------------------------------------------------------------------------------------------------
+
+  * Preventivas atrasadas
+  * Custo manutenção por BEM- / mês
+  * MTBF simplificado (opcional Fase 2)
+  * Disponibilidade de máquina para PCP
+
+----------------------------------------------------------------------------------------------------
+5. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Bens críticos com plano ou exceção documentada
+  [ ] Gatilho horas/dias cadastrado
+  [ ] OS/manutenção com custo 3.04.01
+  [ ] Bem EM_MANUTENCAO não fura fila de OP sem override
+
+====================================================================================================
+Fim — MANUTENCAO_PREVENTIVA_MAQUINAS.txt
+Preventiva leve no BEM- evita parada surpresa sem CMMS gigante.
+====================================================================================================

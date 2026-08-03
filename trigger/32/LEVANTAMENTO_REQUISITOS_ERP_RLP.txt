@@ -1,0 +1,442 @@
+====================================================================================================
+LEVANTAMENTO DE REQUISITOS — ERP RLP (INDÚSTRIA FLEXOGRÁFICA)
+Documento: LEVANTAMENTO_REQUISITOS_ERP_RLP.txt
+Versão ......: 1.0
+Status ......: RASCUNHO PARA VALIDAÇÃO COM O CLIENTE (fase que foi pulada)
+Gerado em ...: 03/08/2026
+Tipo ........: Requirements elicitation / inception (antes do SRS)
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ principal (EMP-00001): 01.423.183/0001-10
+CNPJ secundário (EMP-00002): 58.820.046/0001-37  [uso a confirmar — venda desligada no desenho]
+
+Este documento RECONSTITUI a fase de levantamento que antecede a especificação.
+Ele registra o contexto de entrada, stakeholders, problemas, requisitos e
+dúvidas em aberto — para validação formal com direção, operação e contador.
+
+Documentos derivados (já existentes — não substituem este levantamento):
+  • ESPECIFICACAO_SOFTWARE_ERP_RLP.txt     → SRS (o que o software deve fazer)
+  • DOMINIO_SISTEMA_ERP_RLP.txt            → linguagem ubíqua e entidades
+  • GERACAO_ORCAMENTO.txt + demais TXTs   → detalhe operacional linha a linha
+  • HOMOLOGACAO_ERP_RLP.txt               → como aceitar
+
+Como usar:
+  1) Apresentar ao cliente seção a seção.
+  2) Marcar cada dúvida (seção 7) como RESPONDIDA / ADIADA / FORA DE ESCOPO.
+  3) Só então considerar o SRS “fechado” — o que já foi escrito nas outras
+     peças vira proposta a ratificar, não verdade absoluta.
+
+====================================================================================================
+0. CONTEXTO DA DEMANDA (COMO CHEGOU O PEDIDO)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+0.1. Pedido inicial
+----------------------------------------------------------------------------------------------------
+
+  Chegada na empresa com solicitação explícita de um sistema para
+  CALCULAR O ORÇAMENTO (indústria de etiquetas autoadesivas / flexográfica).
+
+  Na prática, o orçamento é só a ponta da correnteia. Sem pedido, produção,
+  estoque, NF, cobrança e baixa no mesmo sistema, o “calculador de orçamento”
+  vira mais uma planilha — e o problema operacional permanece.
+
+  Escopo emergente (após entendimento do negócio):
+    cadeia operacional completa
+      ORÇAR → PEDIR → PRODUZIR/SEPARAR → FATURAR → ENTREGAR → RECEBER
+    + exceções (RMA/devolução), compras, remessa industrial, visão gerencial
+      e export disciplinado ao contador.
+
+----------------------------------------------------------------------------------------------------
+0.2. Situação atual (as-is)
+----------------------------------------------------------------------------------------------------
+
+  • Sistema legado caseiro de gestão (marca/plataforma “Reta Etiquetas”),
+    acessível em ambiente web (contas a receber e demais módulos).
+  • A empresa NÃO utiliza o sistema em sua plenitude: parte do fluxo
+    permanece em planilha, WhatsApp e conhecimento tácito.
+  • Orçamentos históricos em planilhas Excel (.xlsm) com lógica de cálculo
+    própria (pasta /orçamento — engenharia reversa já documentada).
+  • Emissão fiscal e cobrança existem, mas sem amarração forte ao ciclo
+    completo orçamento → caixa dentro de um único ERP.
+
+  ATENÇÃO DE SEGURANÇA:
+    Credenciais do legado foram compartilhadas verbalmente/por chat para
+    análise. NÃO guardar senha neste documento, em repositório nem em e-mail.
+    Rotacionar senha após o levantamento e preferir acesso somente leitura /
+    usuário temporário. Qualquer captura de tela do legado deve omitir dados
+    sensíveis de clientes e valores quando possível.
+
+----------------------------------------------------------------------------------------------------
+0.3. Objetivo do levantamento
+----------------------------------------------------------------------------------------------------
+
+  • Registrar quem usa, o que dói, o que o sistema precisa fazer e sob
+    quais restrições.
+  • Separar NECESSIDADE (problema) de SOLUÇÃO (módulo/tela).
+  • Explicitar o que entra agora (MVP / fases) e o que fica para depois.
+  • Listar dúvidas que só o cliente / contador podem fechar.
+
+====================================================================================================
+1. SISTEMA DE GESTÃO DE INDÚSTRIA FLEXOGRÁFICA — VISÃO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. O que é o negócio
+----------------------------------------------------------------------------------------------------
+
+  Indústria de etiquetas autoadesivas (impressão flexográfica e processos
+  correlatos: rebobinação, acerto, revenda de material, serviço avulso).
+  Venda B2B típica: orçamento sob especificação → aprovação → produção
+  sob encomenda → faturamento → cobrança → entrega.
+
+----------------------------------------------------------------------------------------------------
+1.2. Problema de negócio (uma frase)
+----------------------------------------------------------------------------------------------------
+
+  A operação depende de orçamento confiável e de trilha contínua até o
+  dinheiro em caixa; hoje isso está fragmentado entre legado subutilizado,
+  planilha e conversas informais.
+
+----------------------------------------------------------------------------------------------------
+1.3. Visão da solução (to-be)
+----------------------------------------------------------------------------------------------------
+
+  Um único ERP web, multi-empresa controlada, cobrindo ORC→caixa com
+  exceções e export ao contador — sem substituir a apuração fiscal oficial
+  do escritório contábil.
+
+----------------------------------------------------------------------------------------------------
+1.4. Escopo in / out (rascunho de levantamento)
+----------------------------------------------------------------------------------------------------
+
+  DENTRO (proposta):
+    Cadastros, orçamento/comercial, pedido, produção/PCP, estoque,
+    NF operacional (via hub), títulos/cobrança/baixa, entrega, compras,
+    pós-venda (RMA/DEV), comissão, DRE gerencial interno, WhatsApp oficial,
+    integrações bancárias.
+
+  FORA (explícito até nova decisão):
+    • Fechamento fiscal oficial (SPED / obrigação principal).
+    • Folha eSocial completa (só pagamento gerencial + import/export).
+    • LAI / livro paralelo / “caixa 2” dentro do ERP.
+    • Marketplace ou app público (sistema interno).
+    • CT-e / API profunda de transportadora (candidato a fase 2).
+    • Ativação de venda no 2º CNPJ sem parecer Contador + Direção.
+
+----------------------------------------------------------------------------------------------------
+1.5. Volume e porte (âncora preliminar)
+----------------------------------------------------------------------------------------------------
+
+  • Usuários simultâneos ........ até ~10 (a confirmar)
+  • Notas / mês ................. ~200 (a confirmar)
+  • Regime ..................... Simples Nacional → Lucro Real (data a definir)
+
+====================================================================================================
+2. USUÁRIOS DO SISTEMA
+====================================================================================================
+
+  Usuário = pessoa com login individual (e-mail corporativo).
+  Acesso por PERFIL (função), nunca permissão “solta” por pessoa.
+
+----------------------------------------------------------------------------------------------------
+2.1. Atores internos (perfis propostos)
+----------------------------------------------------------------------------------------------------
+
+  PERFIL         QUEM TIPICAMENTE É          O QUE PRECISA FAZER NO DIA A DIA
+  -------------  --------------------------  ------------------------------------------
+  ADMIN          TI / direção (1–2 pessoas)  Parametrizar, usuários, integrações;
+                                             NÃO é login de rotina operacional
+  COMERCIAL      Vendedor / orçamentista     Orçar, negociar, converter ORC→PED,
+                                             acompanhar aceite do cliente
+  FINANCEIRO     Contas a pagar/receber      Crédito, títulos, cobrança, baixa,
+                                             dados bancários de parceiro
+  FISCAL         Responsável NF              Emitir/acompanhar NF-e/NFS-e, cadastro
+                                             fiscal produto/parceiro (via Focus)
+  PRODUCAO       Chão de fábrica / PCP       OP, OS, apontamento, estoque operacional
+  COMPRAS        Comprador                   Cotação, OC, entrada XML, urgência
+  EXPEDICAO      (opcional)                  Separação, romaneio, despacho
+  CONSULTA       Contador / direção leitura  Somente leitura / export
+
+----------------------------------------------------------------------------------------------------
+2.2. Atores externos
+----------------------------------------------------------------------------------------------------
+
+  • Cliente .......... recebe link de aceite do orçamento; confirma entrega
+  • Contador ......... recebe export mensal; homologa de-para fiscal
+  • Focus NFe ........ hub de NF-e/NFS-e
+  • Banco ............ cobrança (sandbox Inter / produção alvo a confirmar)
+  • Meta WhatsApp .... mensagens oficiais (templates)
+  • Transportadora ... parceiro no frete (integração profunda fase 2)
+
+----------------------------------------------------------------------------------------------------
+2.3. Regras de acesso (já no levantamento)
+----------------------------------------------------------------------------------------------------
+
+  U1  Login individual e intransferível — proibido “usuário da firma”.
+  U2  Menor privilégio; SoD: quem mexe em dados bancários ≠ quem libera pagamento.
+  U3  Usuário desligado = bloqueado (nunca apagado).
+  U4  ADMIN não opera rotina no mesmo login.
+
+====================================================================================================
+3. PROBLEMAS IDENTIFICADOS
+====================================================================================================
+
+  Fonte: observação da operação + legado subutilizado + planilhas +
+  pedido inicial focado em orçamento.
+
+  Código  Problema                                              Impacto
+  ------  ----------------------------------------------------  ------------------------------
+  P01     Orçamento em planilha / conhecimento tácito           Erro, margem invisível,
+                                                                dificuldade de treinar
+  P02     Sistema legado existe mas não é usado plenamente      Retrabalho, dados
+                                                                inconsistentes entre fontes
+  P03     “Combinado no WhatsApp” sem aceite formal             Pedido sem trilha;
+                                                                disputa comercial
+  P04     Crédito e liberação de produção pouco formalizados    Inadimplência / OP sem lastro
+  P05     Custo de materiais / sobra de bobina fora do ciclo    Margem real desconhecida
+  P06     Fiscal, título e cobrança sem amarração ao pedido     Duplicidade, cobrança
+                                                                errada, conciliação dura
+  P07     Cadastro de cliente incompleto em orçamento           Retrabalho na conversão
+                                                                e risco fiscal na NF
+  P08     Ferramental (faca/matriz) cobrado sem controle        Cobrar 2x ou esquecer
+                                                                de cobrar no 1º pedido
+  P09     Dependência de login/senha compartilhados no legado   Sem auditoria confiável
+  P10     Migração Simples → Lucro Real com dados frágeis       Risco e custo no escritório
+  P11     Comissão / cobrança fora do sistema                   Planilha e “zap” sem
+                                                                conferência
+  P12     Módulo solicitado = só orçamento, dor = a cadeia      Escopo errado se atender
+                                                                só o calculador
+
+  Síntese: o sintoma pedido (orçamento) mascara a causa (falta de sistema
+  único da proposta ao caixa).
+
+====================================================================================================
+4. REQUISITOS FUNCIONAIS
+====================================================================================================
+
+  Numeração de levantamento (LR-RF-*). Detalhamento fino e critérios de
+  aceite estão (ou deverão estar) no SRS. Prioridade sugerida:
+    M = Must (MVP / Fase 1) | S = Should (Fase 2) | C = Could (depois)
+
+----------------------------------------------------------------------------------------------------
+4.1. Plataforma e acesso
+----------------------------------------------------------------------------------------------------
+
+  ID          Pri  Requisito
+  ----------  ---  ---------------------------------------------------------
+  LR-RF-001   M    Autenticação individual + perfis RBAC
+  LR-RF-002   M    Multi-empresa por empresa_id (default EMP-00001)
+  LR-RF-003   M    Auditoria (quem/quando/de→para) em ações críticas
+  LR-RF-004   M    Parâmetros oficiais versionados (preço MP, hora máquina,
+                   perdas, arredondamento, etc.)
+  LR-RF-005   S    Feature flags / virada por fases
+
+----------------------------------------------------------------------------------------------------
+4.2. Cadastros
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-010   M    Parceiro único (cliente/fornec./transp./colab.) com papéis
+  LR-RF-011   M    Prospect pode orçar; PED só com cadastro fiscal completo
+  LR-RF-012   M    Produtos por família: MP, EMB, REV, PA, SVC + faca/ferramental
+  LR-RF-013   M    Unidades e conversões (m, m², kg, rolo, un)
+  LR-RF-014   S    Consulta CNPJ/CEP com cache e cadência
+
+----------------------------------------------------------------------------------------------------
+4.3. Comercial e orçamento (pedido inicial da empresa)
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-020   M    Motor de orçamento parametrizado (não “no olho”)
+  LR-RF-021   M    Tipos: etiqueta impressa, lisa, rebobinação, revenda,
+                   serviço avulso, sob encomenda
+  LR-RF-022   M    Escada de quantidades (N faixas) no mesmo ORC
+  LR-RF-023   M    Snapshot dos parâmetros no momento do cálculo (reprodutível)
+  LR-RF-024   M    Separar visão interna de custo × proposta ao cliente
+  LR-RF-025   M    Imposto estimado no ORC alinhado ao regime
+  LR-RF-026   M    Aceite formal do cliente via LINK → gera PED
+                   (“combinado no zap” NÃO gera pedido)
+  LR-RF-027   M    Conversão ORC→PED com snapshot travado (preço/spec/qtde/prazo)
+  LR-RF-028   M    Limite de crédito com liberação financeira (comercial não altera)
+  LR-RF-029   M    Produção só libera com crédito OK ou adiantamento baixado
+  LR-RF-030   S    Simulação de cenários / “gordura” com alçada
+  LR-RF-031   S    Pedidos recorrentes / lembrete de reposição (sem criar PED sozinho)
+  LR-RF-032   M    Ferramental cobrado 1x por modelo/cliente (controle de 1º pedido)
+
+----------------------------------------------------------------------------------------------------
+4.4. Produção e estoque
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-040   M    OP a partir de item PRODUCAO do PED
+  LR-RF-041   M    OS a partir de item SERVICO
+  LR-RF-042   M    Separação para item REVENDA
+  LR-RF-043   M    Consumo de MP + sobra/retalho + retorno de PA
+  LR-RF-044   M    Movimentos com custo médio; inventário/ajuste com alçada
+  LR-RF-045   S    Manutenção preventiva de máquina; qualidade/amostras
+  LR-RF-046   S    Remessa de industrialização externa
+
+----------------------------------------------------------------------------------------------------
+4.5. Faturamento, entrega e financeiro
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-050   M    NF-e/NFS-e via hub (Focus); vínculo obrigatório ao PED
+  LR-RF-051   M    Título financeiro nasce com o faturamento (documento ≠ título)
+  LR-RF-052   M    Cobrança bancária vinculada ao título; baixa idempotente
+  LR-RF-053   M    Entrega/romaneio + confirmação do cliente
+  LR-RF-054   M    Naturezas gerenciais 1–5 (sem LAI/grupo 9)
+  LR-RF-055   S    Régua de cobrança (WhatsApp oficial)
+  LR-RF-056   S    Comissões no ERP (base faturado ou recebido — a definir)
+  LR-RF-057   S    Frete como receita/despesa amarrada ao pedido
+
+----------------------------------------------------------------------------------------------------
+4.6. Exceções, compras, gerencial
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-060   S    RMA → CQ → decisão (reparo/reposição/crédito/DEV)
+  LR-RF-061   S    Devolução ponta a ponta (fiscal + estoque + financeiro)
+  LR-RF-062   S    Compras: cotação → OC + urgência com alçada
+  LR-RF-063   S    Entrada XML de compra
+  LR-RF-064   M    Export mensal ao contador (layout homologado)
+  LR-RF-065   S    DRE/caixa interno; patrimônio; RH pagamento gerencial
+
+----------------------------------------------------------------------------------------------------
+4.7. Integrações
+----------------------------------------------------------------------------------------------------
+
+  LR-RF-070   M    Focus NFe (homolog ≠ prod)
+  LR-RF-071   M    Banco via adapter (sandbox primeiro)
+  LR-RF-072   S    WhatsApp Business API (Meta) — sem conta pessoal
+  LR-RF-073   M    Idempotência em NF, cobrança e baixa
+
+====================================================================================================
+5. REQUISITOS NÃO FUNCIONAIS
+====================================================================================================
+
+  ID         Pri  Categoria        Requisito
+  ---------  ---  ---------------  ------------------------------------------------
+  LR-RNF-01  M    Segurança        HTTPS, secrets fora do código, senhas individuais
+  LR-RNF-02  M    Segurança        Isolamento homologação × produção
+  LR-RNF-03  M    Precisão         Proibido float binário em dinheiro/qtde/alíquota
+  LR-RNF-04  M    Auditoria        Documento não se apaga — estorna/compensa
+  LR-RNF-05  M    Disponibilidade  Adequada a operação diurna enxuta (SLA a calibrar)
+  LR-RNF-06  M    Usabilidade      Web responsiva; mobile leve para consulta/aceite
+  LR-RNF-07  S    Desempenho       ≤10 usuários simultâneos sem degradação perceptível
+  LR-RNF-08  M    Conformidade     Dados coerentes para contador; ERP NÃO fecha SPED
+  LR-RNF-09  M    Observabilidade  Logs/correlação em integrações (NF/banco/WA)
+  LR-RNF-10  S    Backup           Restore testado e documentado
+  LR-RNF-11  M    LGPD (básico)    Acesso mínimo a dados de clientes; retenção definida
+  LR-RNF-12  M    Migração         Plano de convivência/virada sem big bang cego
+
+====================================================================================================
+6. REGRAS DE NEGÓCIO
+====================================================================================================
+
+  Código   Regra
+  -------  ------------------------------------------------------------------
+  RN-01    PEDIDO (PED) é o documento-mestre operacional. Tudo aponta ao PED
+           ou a cadastro mestre — não existe “pedido paralelo” em satélite.
+  RN-02    Orçamento não é pedido. Só vira PED com ACEITE FORMAL (link).
+  RN-03    Snapshot do ORC aprovado trava preço, especificação, quantidade,
+           prazo e condição no PED.
+  RN-04    Itens do PED tipados: PRODUCAO | SERVICO | REVENDA.
+  RN-05    Liberação de produção exige crédito OK ou adiantamento baixado.
+  RN-06    Cliente NÃO vê composição interna de custos no orçamento.
+  RN-07    Arredondamento comercial final SEMPRE para cima (valores oficiais
+           a ratificar — ex.: múltiplo de R$ 10 no serviço).
+  RN-08    Ferramental (matriz/faca nova) cobrado uma vez por modelo/cliente.
+  RN-09    Documento fiscal ≠ título financeiro (nascem juntos, conceitos distintos).
+  RN-10    Política recomendada: NF antes de expedir (parâmetro ratificável).
+  RN-11    Contábil/fiscal/folha OFICIAIS ficam com o CONTADOR; ERP alimenta.
+  RN-12    Naturezas gerenciais só grupos 1–5; LAI / “caixa 2” proibido no ERP.
+  RN-13    WhatsApp oficial somente via API Meta (nunca conta pessoal).
+  RN-14    Dinheiro e NF são idempotentes (retry/webhook não duplica).
+  RN-15    Soft-delete / inativação — nunca exclusão que quebre histórico.
+  RN-16    Multi-empresa: credenciais e livros isolados por empresa_id.
+  RN-17    EMP-00002 sem venda até decisão Contador + Direção.
+  RN-18    Parâmetros de custo/preço com vigência; orçamento antigo não “muda”
+           quando preço novo entra.
+
+====================================================================================================
+7. DÚVIDAS PARA O CLIENTE
+====================================================================================================
+
+  Checklist de elicitação. Preencher Status: ABERTO | RESPONDIDO | ADIADO.
+  Responsável típico: DIR = Direção | OPE = Operação | FIN = Financeiro |
+                      FIS = Fiscal interno | CON = Contador | TI = TI
+
+  #    Status    Resp   Pergunta
+  ---  --------  -----  ----------------------------------------------------------
+  D01  ABERTO    DIR    O pedido inicial era “só orçamento”. Confirmam escopo
+                        da cadeia ORC→caixa em fases, ou querem calculadora
+                        isolada primeiro?
+  D02  ABERTO    DIR    Quais módulos do legado Reta são usados hoje de fato
+                        (contas a receber, pedidos, estoque, NF…)?
+  D03  ABERTO    OPE    Quem são as pessoas reais por perfil (nome × função)?
+  D04  ABERTO    FIN    Limite de crédito: quem libera e quais faixas/alçadas?
+  D05  ABERTO    FIN    Comissão: base FATURADO ou RECEBIDO? % por vendedor?
+  D06  ABERTO    FIN    Régua de cobrança (D-3, D+1…): valores desejados?
+  D07  ABERTO    COM    Escada padrão de quantidades no orçamento (ex.: 5k/10k/20k)?
+  D08  ABERTO    COM    Arredondamento comercial oficial (múltiplo R$)?
+  D09  ABERTO    COM    Gordura / desconto máximo sem alçada da direção?
+  D10  ABERTO    OPE    Mapa de facas e parâmetros de máquina: quem mantém?
+  D11  ABERTO    OPE    Política de sobra/retalho mínimo aproveitável?
+  D12  ABERTO    FIS    NF antes de expedir = SIM confirmado?
+  D13  ABERTO    CON    CFOP / CST / layout de export mensal homologados?
+  D14  ABERTO    CON    Data-alvo da migração Simples → Lucro Real?
+  D15  ABERTO    DIR+CON Escopo do 2º CNPJ (EMP-00002): entra quando e para quê?
+  D16  ABERTO    DIR    Confirmar: LAI / livro paralelo NÃO entra no ERP?
+  D17  ABERTO    FIN    Banco de produção (Sicoob?) e o que já existe no Inter?
+  D18  ABERTO    COM    WhatsApp Business oficial: número, BSP e templates ok?
+  D19  ABERTO    DIR    Dados do legado: migração histórica, só aberto, ou zero?
+  D20  ABERTO    OPE    Volume real: usuários simultâneos, ORC/mês, NF/mês, OPs?
+  D21  ABERTO    FIS    NFS-e de serviço: município e provedor = Focus?
+  D22  ABERTO    DIR    Prioridade das fases (sugestão): orçamento+pedido →
+                        produção/estoque → NF/financeiro → exceções/integrações?
+  D23  ABERTO    TI     Hospedagem preferida (AWS já estudada) e restrições?
+  D24  ABERTO    DIR    Critério de sucesso em 90 dias pós go-live (o que “pronto”
+                        significa para a direção)?
+
+====================================================================================================
+8. FONTES E PRÓXIMOS PASSOS DO LEVANTAMENTO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+8.1. Fontes já usadas
+----------------------------------------------------------------------------------------------------
+
+  • Entrevista/pedido inicial (foco em orçamento)
+  • Acesso de análise ao legado Reta Etiquetas (sem registrar senha aqui)
+  • Planilhas oficiais de orçamento (pasta /orçamento)
+  • NFes de compra/venda amostrais na pasta do projeto
+  • Pacote documental já produzido (SRS, domínio, processos)
+
+----------------------------------------------------------------------------------------------------
+8.2. Próximos passos recomendados
+----------------------------------------------------------------------------------------------------
+
+  1. Workshop de 1–2h com DIR + COM + FIN + OPE: validar seções 2–3 e dúvidas D01–D12.
+  2. Call com CONTADOR: D13–D16, D21 e layout de export.
+  3. Ratificar PARAMETROS_EMPRESA_OFICIAIS (números).
+  4. Marcar cada LR-RF_* como aceito / cortado / fase.
+  5. Só então congelar baseline do SRS e iniciar implementação por fase.
+  6. Rotacionar credenciais do legado após o período de análise.
+
+----------------------------------------------------------------------------------------------------
+8.3. Rastreio
+----------------------------------------------------------------------------------------------------
+
+  Levantamento (este TXT)
+       │
+       ▼
+  SRS — ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+       │
+       ▼
+  Domínio / TXTs de processo / Homologação / Implantação
+
+====================================================================================================
+Fim — LEVANTAMENTO_REQUISITOS_ERP_RLP.txt
+Preencher a seção 7 com o cliente. Até lá, o restante da pasta é proposta,
+não contrato fechado.
+====================================================================================================

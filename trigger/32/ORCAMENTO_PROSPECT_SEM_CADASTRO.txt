@@ -1,0 +1,274 @@
+====================================================================================================
+ORÇAMENTO PARA PROSPECT (AINDA NÃO É CLIENTE, NÃO TEM CADASTRO) — PROCESSO NO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_ORCAMENTO.txt (validação "cliente do cadastro" — seção 8) +
+      CADASTRO_PARCEIROS.txt (cadastro único e papéis) +
+      APROVACAO_ORCAMENTO_CLIENTE.txt (link de aprovação) +
+      INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt (cliente novo, limite 0)
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento trata de uma situação RECORRENTE do dia a dia comercial: chega um pedido de
+orçamento de alguém que AINDA NÃO É CLIENTE e NÃO TEM CADASTRO — ligou, mandou WhatsApp,
+veio por indicação ou pelo site. Muitas vezes o contato informa só um nome e um telefone;
+não se sabe ainda o CNPJ, o endereço ou sequer se vai fechar negócio.
+
+O sistema NÃO PODE tratar isso como exceção nem criar atrito: exigir o cadastro completo
+de cliente ANTES de orçar mata a venda (o prospect desiste ou o vendedor orça "por fora",
+em planilha/papel, e o ERP perde a história). Por outro lado, orçamento com "texto livre"
+no lugar do cliente também é proibido (regra da seção 8 do GERACAO_ORCAMENTO.txt) — foi
+exatamente isso que gerou retrabalho e duplicidade nas planilhas antigas.
+
+Conceito central: PROSPECT É UM PARCEIRO DE VERDADE, COM CADASTRO MÍNIMO. O ERP ganha um
+papel novo no cadastro único de parceiros (CADASTRO_PARCEIROS.txt): PROSPECT. Orçar para
+prospect exige APENAS os dados mínimos (30 segundos de preenchimento); virar CLIENTE — com
+cadastro completo, validação fiscal e política de crédito — só é obrigatório NA CONVERSÃO
+DO ORÇAMENTO EM PEDIDO. Nunca antes, nunca depois.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS (não negociáveis)
+----------------------------------------------------------------------------------------------------
+
+ 1. ORÇAR NÃO EXIGE SER CLIENTE. O funil correto é:
+    PROSPECT (cadastro mínimo) -> ORÇAMENTO -> APROVAÇÃO -> CLIENTE (cadastro completo)
+    -> PEDIDO. Exigir CNPJ, IE e endereço completo para ORÇAR inverte o funil e perde
+    venda. O cadastro completo é pré-requisito do PEDIDO, não da PROPOSTA.
+
+ 2. TEXTO LIVRE CONTINUA PROIBIDO. Todo orçamento aponta para um registro do cadastro
+    de parceiros — se o solicitante não existe, cria-se um PROSPECT na hora, de dentro
+    da própria tela de orçamento (sem sair para outro módulo). O que muda é o TAMANHO
+    do cadastro exigido, não a regra.
+
+ 3. CADASTRO MÍNIMO DE PROSPECT = 30 SEGUNDOS. Campos obrigatórios: NOME (empresa ou
+    pessoa, como o contato se apresentou), UM CANAL DE CONTATO (WhatsApp OU e-mail) e
+    CIDADE/UF (necessária para estimar imposto e frete). Todo o resto é opcional.
+
+ 4. PROSPECT NÃO COMPRA. Papel PROSPECT não habilita pedido, faturamento nem crédito.
+    Prospect tem, por definição, LIMITE = 0 e nenhuma condição a prazo — coerente com
+    a regra 1 do documento de crédito (todo cliente nasce com limite 0; prospect nem
+    cliente é ainda).
+
+ 5. UMA PESSOA, UM REGISTRO. Antes de criar prospect, o ERP busca por telefone, e-mail
+    e nome aproximado (e CNPJ/CPF, se informado) para não duplicar. Na conversão em
+    cliente, o registro é PROMOVIDO (mesmo código, ganha o papel CLIENTE) — nunca se
+    cria um segundo cadastro, preservando o histórico de orçamentos do prospect.
+
+ 6. TUDO LOGADO. Criação do prospect, orçamentos emitidos, promoção a cliente e descarte
+    entram na trilha de auditoria (ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt, seção 7).
+
+----------------------------------------------------------------------------------------------------
+2. VISÃO GERAL DO FLUXO
+----------------------------------------------------------------------------------------------------
+
+  CONTATO CHEGA (zap / telefone / indicação / site)
+     -> vendedor abre ORÇAMENTO e busca o solicitante no cadastro
+     -> NÃO EXISTE: cria PROSPECT na própria tela (nome + contato + cidade/UF)
+     -> orçamento calculado normalmente (motor da seção 5 do GERACAO_ORCAMENTO.txt)
+     -> proposta enviada pelo LINK DE APROVAÇÃO (APROVACAO_ORCAMENTO_CLIENTE.txt)
+        para o contato informado pelo próprio prospect
+     -> PROSPECT APROVA pelo link
+     -> ERP trava a conversão e abre o passo COMPLETAR CADASTRO (seção 4):
+        CNPJ/CPF, razão social, endereço, IE — validação RFB/SINTEGRA
+     -> prospect PROMOVIDO a CLIENTE (limite 0) -> pedido criado com condição
+        "AGUARDANDO ADIANTAMENTO" (cenário A da APROVACAO_ORCAMENTO_CLIENTE.txt, 5.1)
+     -> recebeu o sinal/PIX antecipado -> produção liberada
+
+  Se o prospect NÃO aprova: o orçamento vence normalmente e o prospect fica na base
+  para follow-up e estatística — nenhum cadastro completo foi exigido à toa.
+
+----------------------------------------------------------------------------------------------------
+3. O CADASTRO MÍNIMO DE PROSPECT
+----------------------------------------------------------------------------------------------------
+
+3.1 CAMPOS OBRIGATÓRIOS (só estes três)
+  * NOME .................. como o contato se apresentou ("Padaria do João", "Maria da
+                            Pumpkin"). Não precisa ser razão social — isso vem depois.
+  * CONTATO ............... WhatsApp OU e-mail (pelo menos um). É para esse contato que
+                            o link de aprovação será enviado; a regra "somente contato
+                            oficial do cadastro" fica satisfeita porque o contato do
+                            prospect É o oficial dele nesse estágio.
+  * CIDADE/UF ............. define a estimativa de imposto (tabela 12 a 25% da seção
+                            3.3 do GERACAO_ORCAMENTO.txt) e o frete da proposta.
+
+3.2 CAMPOS OPCIONAIS (preencher se o contato informar espontaneamente)
+  * CNPJ/CPF (se informado, validar dígito e usar como chave antiduplicidade desde já)
+  * Nome da empresa / segmento / como conheceu a RLP (origem do lead)
+  * Vendedor responsável (default: quem criou)
+  * Observações da conversa
+
+3.3 O QUE O ERP FAZ SOZINHO
+  * ANTIDUPLICIDADE: busca por telefone/e-mail/CNPJ e por nome aproximado antes de
+    criar. Achou parecido? Mostra e pergunta "é este?" — reaproveitar, nunca duplicar.
+  * SITUAÇÃO = PROSPECT (papel no cadastro único; código PAR-NNNN normal, sem prefixo
+    especial — coerente com a seção 2 do CADASTRO_PARCEIROS.txt).
+  * Data de criação e origem do lead registradas para os relatórios da seção 7.
+
+----------------------------------------------------------------------------------------------------
+4. IMPACTOS NO ORÇAMENTO (o que muda quando o solicitante é prospect)
+----------------------------------------------------------------------------------------------------
+
+4.1 CÁLCULO: NENHUMA DIFERENÇA. O motor roda idêntico (custos, perdas, setup, matriz,
+    arredondamento). Prospect não é orçamento "de segunda".
+
+4.2 IMPOSTO ESTIMADO COM AVISO. Sem CNPJ/IE não se sabe ainda se o destinatário é
+    contribuinte, nem a operação fiscal exata. O ERP usa o percentual da tabela por
+    UF/operação como ESTIMATIVA e marca o orçamento com a flag "IMPOSTO ESTIMADO —
+    revalidar na conversão". Ao completar o cadastro (4.4), se o imposto real mudar o
+    preço, gera-se NOVA VERSÃO do orçamento e novo link — o prospect nunca descobre
+    diferença de preço depois de aprovado o pedido.
+
+4.3 CONDIÇÃO FINANCEIRA SEMPRE SEM RISCO. Proposta para prospect só sai com condição
+    à vista / PIX antecipado / 50% de sinal (cenário A). O ERP bloqueia condição a
+    prazo para papel PROSPECT — a prazo só depois de virar cliente E passar pela
+    análise de crédito (INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt, seção 3).
+
+4.4 CONVERSÃO EXIGE PROMOÇÃO A CLIENTE. Aprovado pelo link, o ERP NÃO cria o pedido
+    direto: abre o passo "completar cadastro" — CNPJ/CPF, razão social como no cartão
+    CNPJ, endereço com código IBGE, IE (define indIEDest na NF-e) — com as validações
+    RFB/SINTEGRA do CADASTRO_PARCEIROS.txt (seção 4.2). Concluído, o MESMO registro
+    ganha o papel CLIENTE e o pedido é criado herdando o aceite do link. Pedir esses
+    dados NESSE momento é natural: o prospect acabou de aprovar e precisa deles de
+    qualquer forma para a nota fiscal e a cobrança do sinal.
+
+4.5 FERRAMENTAL/MATRIZ: prospect é, por definição, 1º pedido — a matriz entra na
+    proposta (regra 7.1 do GERACAO_ORCAMENTO.txt) e o histórico de ferramental pago
+    começa na promoção a cliente.
+
+----------------------------------------------------------------------------------------------------
+5. CICLO DE VIDA DO PROSPECT
+----------------------------------------------------------------------------------------------------
+
+  PROSPECT ATIVO ....... criado, com orçamento em andamento ou follow-up aberto
+  PROMOVIDO A CLIENTE .. aprovou e completou o cadastro (papel CLIENTE adicionado;
+                         o papel PROSPECT sai; histórico preservado no mesmo código)
+  DORMENTE ............. sem interação (orçamento, contato) há mais de N meses
+                         (sugestão inicial: 12) — some das buscas padrão, mas não é
+                         apagado: se voltar a pedir orçamento, reativa com histórico
+  DESCARTADO ........... registro criado errado/duplicado — inativado com motivo,
+                         nunca excluído fisicamente (auditoria)
+
+  Regras:
+  * Prospect dormente com dados pessoais (PF) entra na rotina de revisão LGPD:
+    guardou-se só o necessário (nome, contato) e há finalidade legítima (histórico
+    comercial); descartar dados que perderam a finalidade.
+  * Duplicado detectado tardiamente: FUSÃO de registros (o que tem histórico maior
+    absorve o outro), com log.
+
+----------------------------------------------------------------------------------------------------
+6. RESPONSABILIDADES POR PAPEL
+----------------------------------------------------------------------------------------------------
+
+  VENDEDOR (COMERCIAL)
+   * Cria o prospect na hora do orçamento — nunca orça por fora "porque não tem
+     cadastro". Se a tela mínima de 3 campos for atrito demais, o problema é da tela,
+     e deve ser reportado, não contornado.
+   * Faz o follow-up dos prospects com orçamento VISUALIZADO e não aprovado.
+   * Na aprovação, conduz o prospect no completar-cadastro ("preciso do CNPJ e
+     endereço para emitir sua nota e o PIX do sinal").
+
+  FINANCEIRO
+   * Não participa do estágio prospect (não há crédito envolvido). Entra na promoção:
+     valida o cadastro completo e emite a cobrança do adiantamento.
+   * Analisa crédito SOMENTE se o novo cliente pedir condição a prazo em compra futura.
+
+  PCP / PRODUÇÃO
+   * Inalterado: só enxerga pedido com aceite registrado + adiantamento baixado.
+     Prospect, por definição, nunca aparece na fila de produção.
+
+  DIREÇÃO
+   * Acompanha os indicadores da seção 7 — o funil prospect -> cliente é termômetro
+     direto do comercial.
+
+----------------------------------------------------------------------------------------------------
+7. RELATÓRIOS E INDICADORES
+----------------------------------------------------------------------------------------------------
+
+  * TAXA DE CONVERSÃO PROSPECT -> CLIENTE (por vendedor, por origem do lead)
+  * Orçamentos emitidos para prospects x para clientes (volume do funil)
+  * Tempo médio: criação do prospect -> 1º orçamento -> aprovação -> promoção
+  * Motivos de recusa/vencimento de propostas de prospects (preço? prazo? sumiu?)
+  * Prospects dormentes (candidatos a campanha de reativação ou limpeza LGPD)
+  * Duplicidades fundidas no mês (qualidade do antiduplicidade)
+
+  Sinal de alerta para a direção: orçamento aprovado por prospect que NÃO completou o
+  cadastro em X dias (sugestão: 5 dias úteis) — venda ganha que está esfriando na
+  burocracia; o vendedor deve ser cobrado do follow-up.
+
+----------------------------------------------------------------------------------------------------
+8. EXCEÇÕES E CASOS PRÁTICOS
+----------------------------------------------------------------------------------------------------
+
+ a) PROSPECT INFORMA O CNPJ JÁ NO PRIMEIRO CONTATO:
+    ótimo — preenche o campo opcional, o ERP valida o dígito e já consulta duplicidade
+    por CNPJ. Se quiser, o vendedor pode completar o cadastro inteiro de uma vez
+    (vira cliente com limite 0 direto). O mínimo é piso, não teto.
+
+ b) O "PROSPECT" JÁ ERA CLIENTE (comprou há anos, ninguém lembrava):
+    o antiduplicidade acha pelo telefone/nome/CNPJ. Reaproveita-se o cadastro existente
+    — o histórico antigo (ferramental já pago! limite! atrasos!) vale ouro e não pode
+    ser perdido num cadastro novo.
+
+ c) PROSPECT PESSOA FÍSICA (encomenda pequena, CPF):
+    mesmo fluxo; na promoção exige-se CPF válido e endereço. Atenção redobrada à LGPD
+    (guardar o mínimo, finalidade contratual/fiscal).
+
+ d) PROSPECT DE FORA DE MG / EXPORTAÇÃO:
+    a UF do cadastro mínimo já direciona a estimativa de imposto interestadual; caso
+    exterior, tratar como idExEst (CADASTRO_PARCEIROS.txt, seção 1) e envolver o
+    fiscal antes da proposta.
+
+ e) PROSPECT APROVA E DESAPARECE SEM COMPLETAR O CADASTRO:
+    o pedido não nasce (regra 4.4). O aceite fica registrado e o orçamento entra no
+    alerta da seção 7. Vencida a validade, aplica-se a regra padrão: recalcular, nova
+    versão, novo link.
+
+ f) VENDEDOR TENTA "ADIANTAR" CRIANDO O PROSPECT DIRETO COMO CLIENTE SEM CNPJ:
+    o ERP bloqueia — papel CLIENTE exige CNPJ/CPF validado. O caminho rápido correto
+    é o prospect (3 campos); não existe atalho que crie cliente pela metade.
+
+----------------------------------------------------------------------------------------------------
+9. IMPLANTAÇÃO (amarrado à Fase 1 da estrategia_implantacao_ja.txt)
+----------------------------------------------------------------------------------------------------
+
+  1. Incluir o papel PROSPECT no cadastro único de parceiros e a criação rápida
+     (3 campos) DENTRO da tela de orçamento — sem troca de módulo.
+  2. Ativar o antiduplicidade (telefone, e-mail, CNPJ, nome aproximado) já na criação.
+  3. Configurar o bloqueio de condição a prazo para papel PROSPECT e o passo
+     obrigatório "completar cadastro" na conversão aprovação -> pedido.
+  4. Marcar a flag "IMPOSTO ESTIMADO" nas propostas de prospect e o recálculo com
+     nova versão quando o cadastro completo alterar o imposto.
+  5. Treinar o comercial: "orçamento sem registro no ERP não existe — e registrar um
+     prospect custa 30 segundos".
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST RÁPIDO
+----------------------------------------------------------------------------------------------------
+
+  AO RECEBER O CONTATO
+   1. Buscou no cadastro antes de criar (telefone/nome/CNPJ)?
+   2. Prospect criado com nome + contato + cidade/UF?
+   3. Origem do lead registrada?
+
+  NA PROPOSTA
+   4. Condição financeira sem risco (à vista / PIX / sinal)?
+   5. Flag de imposto estimado ativa?
+   6. Link de aprovação enviado para o contato do prospect?
+
+  NA APROVAÇÃO
+   7. Cadastro completado (CNPJ/CPF, razão social, endereço, IE) e validado?
+   8. Registro PROMOVIDO (mesmo código) — não foi criado cadastro novo?
+   9. Imposto real conferido; se mudou o preço, nova versão + novo aceite?
+  10. Cobrança do adiantamento emitida e sendo acompanhada?
+
+----------------------------------------------------------------------------------------------------
+AVISO
+----------------------------------------------------------------------------------------------------
+Documento de apoio gerencial para a implantação do novo ERP. Os campos mínimos do prospect,
+o prazo de dormência (12 meses) e o alerta de cadastro incompleto (5 dias úteis) são
+SUGESTÕES iniciais a calibrar com a direção. O tratamento de dados de prospects (nome,
+telefone, e-mail) observa a LGPD: coleta mínima, finalidade comercial legítima e descarte
+quando a finalidade se esgotar. Se o ERP escolhido não suportar papel/estado PROSPECT
+nativamente, o controle compensatório é criar o parceiro como CLIENTE-BLOQUEADO com
+situação "pré-cadastro" e os mesmos bloqueios de pedido/prazo — nunca voltar ao texto
+livre ou à planilha paralela.
+====================================================================================================

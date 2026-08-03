@@ -1,0 +1,172 @@
+====================================================================================================
+ORDEM DE SERVIÇO (OS) — PADRÃO OFICIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: GERACAO_PEDIDO.txt + CADASTRO_PRODUTOS_VENDA.txt + GERACAO_ORCAMENTO.txt +
+      CONTROLE_ESTOQUE_PROFISSIONAL.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define a ORDEM DE SERVIÇO (OS): documento operacional para
+trabalhos que NÃO são (ou não são só) industrialização clássica de etiqueta
+sob encomenda com explosão completa de MP → PA.
+
+A OS NÃO é um segundo ERP. É o mesmo núcleo do pedido/produção, com
+ciclo mais leve, quando o item do pedido é natureza SERVIÇO (SVC-*) ou
+quando há serviço acoplado a material do cliente / rebobinação / acerto.
+
+----------------------------------------------------------------------------------------------------
+1. OS × OP — QUANDO USAR CADA UMA
+----------------------------------------------------------------------------------------------------
+
+  ORDEM DE PRODUÇÃO (OP) — ver PRODUCAO_OPERACIONAL_GERENCIAL.txt
+    * Etiqueta impressa/lisa sob encomenda (produção própria)
+    * Consome MP/EMB da ficha técnica / BOM
+    * Gera PA (produto acabado) no estoque
+    * CFOP típico de saída: 5101/6101
+
+  ORDEM DE SERVIÇO (OS) — este documento
+    * Rebobinação, acerto de bobina, serviço sob encomenda
+    * Industrialização de material do CLIENTE (quando aplicável)
+    * Serviços avulsos cadastrados como SVC-*
+    * Pode consumir pouco ou nenhum estoque próprio (tubete, fita…)
+    * Em geral NÃO cria PA próprio para prateleira — conclui o serviço
+      no pedido e libera faturamento (NFS-e ou NF-e conforme contador)
+
+Regra prática:
+  Item do PED com necessidade = SERVICO → gera OS
+  Item do PED com necessidade = PRODUCAO → gera OP
+  Pedido misto → OP + OS no mesmo PED (filhos distintos)
+
+Nunca criar "módulo de oficina" paralelo com cadastro próprio de clientes,
+preços e estoque. OS usa PAR-, PED-, MOV-, mesmos perfis e mesma auditoria.
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  id BIGINT PK
+  codigo exibição: OS-AAAA-NNNNN (sequência anual)
+  FK: ped_id, ped_item_id, parceiro_id
+  Prefixo novo no catálogo (alinhar CODIFICACAO_INFORMACOES_SISTEMA.txt)
+
+----------------------------------------------------------------------------------------------------
+3. CONTEÚDO MÍNIMO DA OS
+----------------------------------------------------------------------------------------------------
+
+Cabeçalho:
+  * OS-AAAA-NNNNN, data abertura, prazo, status
+  * Pedido origem + cliente
+  * Tipo de serviço (catálogo: rebobinação, acerto, outro SVC)
+  * Responsável / máquina ou posto (opcional, mesmo cadastro da produção)
+  * Material do cliente? (S/N) — se S: descrição, qtde recebida, estado
+
+Itens / escopo:
+  * Descrição do serviço (herdada do PED/ORC)
+  * Quantidade / unidade (rolos, metros, milheiro…)
+  * Insumos próprios previstos (SKU + qtde) — se houver
+  * Observações técnicas e de qualidade
+
+Não inventar "ficha técnica eterna" para cada serviço pontual: parâmetros
+vêm do orçamento/pedido. Catálogo SVC-* é fiscal/comercial, não mil SKUs.
+
+----------------------------------------------------------------------------------------------------
+4. CICLO DE VIDA
+----------------------------------------------------------------------------------------------------
+
+  ABERTA .......... gerada a partir do PED LIBERADO
+  AGUARDA_MATERIAL . material do cliente ainda não conferido (se aplicável)
+  EM_EXECUCAO ...... apontamento iniciado
+  PAUSADA .......... motivo (máquina, falta auxiliar, aguarda cliente)
+  CONCLUIDA ........ serviço ok + insumos baixados + checklist
+  FATURAVEL ........ disponível para NF/NFS e cobrança
+  CANCELADA ........ com motivo; estorna movimentações
+
+Conclusão da OS alimenta o status do item no PED (PRODUZIDO no sentido
+"pronto para faturar/entregar"), alinhado a CONCLUSAO_PRODUCAO.txt
+(mesma ideia de "pronto", outro documento filho).
+
+----------------------------------------------------------------------------------------------------
+5. ESTOQUE NA OS
+----------------------------------------------------------------------------------------------------
+
+  * Se consome tubete, fita, ribbon próprio: requisição MOV ligada à OS
+    (mesmo motor de CONTROLE_ESTOQUE_PROFISSIONAL / ESTOQUE_FLUXO_...).
+  * Se material é do cliente: NÃO entra como compra da RLP.
+    Controlar como "material de terceiros em poder" (quantidade
+    recebida × devolvida/processada) — saldo operacional, sem misturar
+    com custo médio do estoque próprio.
+  * Sobra de material próprio: mesma regra de retorno (TRATAMENTO_SOBRA...).
+  * Refugo de material do cliente: registrar com ciência do cliente;
+    não "some" sem apontamento.
+
+----------------------------------------------------------------------------------------------------
+6. APONTAMENTO (profissional, sem burocracia excessiva)
+----------------------------------------------------------------------------------------------------
+
+Operador informa:
+  * início / fim (ou quantidade concluída por turno)
+  * quantidade boa vs refugo
+  * insumos reais consumidos (se divergir do previsto)
+  * responsável
+
+Gerência vê (mesmo painel da produção, filtro OS):
+  * lead time OS × prazo prometido no PED
+  * horas/máquina ou posto (se apontado)
+  * margem do serviço (receita do item − insumos − tempo × taxa)
+    — custo horário já existe no motor de orçamento; reutilizar parâmetro
+
+Não criar BI separado: indicadores entram no painel gerencial único.
+
+----------------------------------------------------------------------------------------------------
+7. FISCAL E FATURAMENTO
+----------------------------------------------------------------------------------------------------
+
+  * Natureza SVC-* — CADASTRO_PRODUTOS_VENDA.txt
+  * Contador define: NFS-e (serviço) vs NF-e de mercadoria/industrialização
+    conforme o caso concreto (material do cliente, ISS, etc.)
+  * ERP prepara os dados; emissão via Focus (ou provedor NFS-e)
+  * Cobrança: mesmo motor de títulos do faturamento do PED
+
+O ERP NÃO fecha ISS/DAS sozinho como contabilidade — ver
+CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt. Entrega o que foi faturado.
+
+----------------------------------------------------------------------------------------------------
+8. INTEGRAÇÃO COM O PEDIDO E A ENTREGA
+----------------------------------------------------------------------------------------------------
+
+  PED LIBERADO → gera OS → execução → OS CONCLUIDA
+    → item do PED apto a faturar → NF/NFS → entrega/devolução do
+      material processado ao cliente → confirmação
+
+Se o cliente retira: ENTREGA tipo "retirada" com assinatura.
+Se envia: romaneio igual ao de PA (ENTREGA_CONFIRMACAO_CLIENTE.txt).
+
+----------------------------------------------------------------------------------------------------
+9. O QUE NÃO FAZER (evitar "outro sistema")
+----------------------------------------------------------------------------------------------------
+
+  * Não cadastrar clientes só na OS
+  * Não ter tabela de preço paralela — preço vem do ORC/PED
+  * Não ter estoque paralelo em planilha ao lado da OS
+  * Não usar OS para produção completa de etiqueta sob medida
+    (isso é OP)
+  * Não exigir 15 telas de PCP para um rebobinamento simples —
+    formulário curto, mesmos status essenciais
+
+----------------------------------------------------------------------------------------------------
+10. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Prefixo OS-AAAA-NNNNN + ped_id
+  [ ] Geração automática por item SERVICO do PED
+  [ ] Material de terceiros separado do estoque próprio
+  [ ] Baixa de insumos próprios via MOV
+  [ ] Conclusão libera faturamento do item
+  [ ] Mesmos perfis PRODUCAO / EXPEDICAO / FISCAL
+  [ ] Indicadores no painel único (não app paralelo)
+
+====================================================================================================
+Fim — ORDEM_SERVICO.txt
+OS = OP leve para serviço. Mesmo ERP, mesmo pedido, sem oficina paralela.
+====================================================================================================

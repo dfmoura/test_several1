@@ -1,0 +1,85 @@
+====================================================================================================
+AMOSTRAS E PROTÓTIPOS — POLÍTICA DE CUSTO, PEDIDO E NF
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — CNPJ 01.423.183/0001-10
+Base: GERACAO_ORCAMENTO.txt + GERACAO_PEDIDO.txt + FATURAMENTO_GERACAO_COBRANCA.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt +
+      NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + ORCAMENTO_PROSPECT_SEM_CADASTRO.txt
+Gerado em: 02/08/2026
+====================================================================================================
+
+Amostra/protótipo NÃO é “pedido normal com quantidade pequena escondida”.
+Tem política própria de custo, faturamento e rastreio — para não distorcer
+margem nem fiscal.
+
+----------------------------------------------------------------------------------------------------
+1. PRINCÍPIOS
+----------------------------------------------------------------------------------------------------
+
+ 1. Toda amostra vira ORC/PED com tipo AMOSTRA ou PROTOTIPO.
+ 2. Custo real da OP de amostra é visível (mesmo preço zero).
+ 3. Tratamento fiscal (bonificação, venda simbólica, remessa) =
+    orientação do CONTADOR — ERP registra o caminho escolhido.
+ 4. Amostra aprovada pode virar PED de produção (cópia de especificação).
+
+----------------------------------------------------------------------------------------------------
+2. TIPOS
+----------------------------------------------------------------------------------------------------
+
+  AMOSTRA_COMERCIAL .... pequena tiragem para cliente avaliar
+  PROTOTIPO_TECNICO .... desenvolvimento (faca nova, layout, material)
+  CONTRA_PROVA_INTERNA . retenção CQ (não é venda)
+
+----------------------------------------------------------------------------------------------------
+3. POLÍTICA COMERCIAL (calibrar)
+----------------------------------------------------------------------------------------------------
+
+  * Preço: ZERO | simbólico | custo | tabela reduzida
+  * Quem autoriza amostra gratuita: comercial até N/ano por cliente;
+    acima → gerência
+  * Frete da amostra: quem paga? (parâmetro)
+  * Prospect: pode orçar amostra sem cadastro completo; para NF
+    precisa PAR- fiscal apto (ORCAMENTO_PROSPECT_...)
+
+----------------------------------------------------------------------------------------------------
+4. PRODUÇÃO E ESTOQUE
+----------------------------------------------------------------------------------------------------
+
+  * OP com flag AMOSTRA; consumo de MP normal
+  * PA de amostra: pode ir direto à expedição sem estoque de prateleira
+  * Especificação aprovada trava no próximo PED (snapshot)
+
+----------------------------------------------------------------------------------------------------
+5. FISCAL (fronteira)
+----------------------------------------------------------------------------------------------------
+
+Caminhos típicos (contador escolhe o oficial):
+  * Remessa em bonificação / brinde (CFOP 5910/6910 etc.)
+  * Venda com valor
+  * Simples controle interno se não houver circulação (raro)
+
+ERP NÃO “escolhe CFOP no feeling” — usa o que o contador parametrizar
+para o tipo AMOSTRA.
+
+----------------------------------------------------------------------------------------------------
+6. PÓS-APROVAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  Cliente aprova amostra → comercial gera PED produção a partir do
+  ORC/PED amostra (herda especificação, faca, material).
+  Reprova → encerra; custo fica como despesa comercial / desenvolvimento
+  (natureza 3.05.01 ou centro de custo P&D leve).
+
+----------------------------------------------------------------------------------------------------
+7. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Tipo AMOSTRA/PROTOTIPO explícito
+  [ ] Alçada para gratuidade
+  [ ] OP com custo real visível
+  [ ] CFOP/caminho fiscal validado pelo contador
+  [ ] Aprovação gera PED de produção sem retrabalho de especificação
+
+====================================================================================================
+Fim — AMOSTRAS_PROTOTIPOS.txt
+Amostra sem política vira custo invisível e NF improvisada.
+====================================================================================================

@@ -1,0 +1,131 @@
+======================================================================
+              RELAÇÃO DE PRODUTOS - CONTROLE DE ESTOQUE               
+            (SOMENTE PRODUTOS EXISTENTES, SEM QUANTIDADES)            
+               FONTE: ESTOQUE DE PAPEIS-29-7-26(1).XLSX               
+                     GERADO EM: 31/07/2026 16:02                      
+======================================================================
+
+FOSCO (2 PRODUTOS)
+----------------------------------------------------------------------
+  - FOSCO COLACRIL ADC 1000
+  - FOSCO COLACRIL ADC 5240
+
+TAG (3 PRODUTOS)
+----------------------------------------------------------------------
+  - TAG COUCHE 170G
+  - TAG COUCHE 80G
+  - TAG COUCHE 90G
+
+COUCHE (5 PRODUTOS)
+----------------------------------------------------------------------
+  - COUCHE 20G COLACRIL
+  - COUCHE 20G FASSON
+  - COUCHE 20G VERTEX
+  - COUCHE 30G VERTEX
+  - RITRAMA
+
+TÉRMICO (2 PRODUTOS)
+----------------------------------------------------------------------
+  - TÉRMICO COLACRIL
+  - TÉRMICO FASSON
+
+BOPP (14 PRODUTOS)
+----------------------------------------------------------------------
+  - BOPP BRILHO COLACRIL BXT
+  - BOPP BRILHO COLACRIL NBT
+  - BOPP BRILHO RITRAMA
+  - BOPP FOSCO COLACRIL BXT
+  - BOPP FOSCO FASSON 20G
+  - BOPP FOSCO FASSON 30G
+  - BOPP FOSCO RITRAMA
+  - BOPP FOSCO RITRAMA BXT
+  - BOPP METALIZADO
+  - BOPP METALIZADO COLACRIL BXT
+  - BOPP TRANSPARENTE COLACRIL BXT
+  - BOPP TRANSPARENTE FASSON
+  - BOPP TRANSPARENTE RITRAMA
+  - BOPP TRANSPARENTE RITRAMA BXT
+
+TECIDOS (12 PRODUTOS)
+----------------------------------------------------------------------
+  - CETIM (6030301)
+  - CETIM (6030301) BEGE
+  - CETIM (6030301) PEROLIZADO
+  - CETIM BEGE
+  - CETIM PEROLIZADO
+  - CETIM PEROLIZADO BEGE
+  - EMBORRACHADO (5090251)
+  - RESINADO (4010301)
+  - RESINADO IMPORTADO NORMAL
+  - RESINADO IMPORTADO RUIM
+  - RESINADO PEROLIZADO
+  - RESINADO VERDE
+
+LAMINAÇÃO (3 PRODUTOS)
+----------------------------------------------------------------------
+  - LAMINAÇÃO
+  - LAMINAÇÃO BRILHO
+  - LAMINAÇÃO FOSCA
+
+COLD (HOT STAMPING) (2 PRODUTOS)
+----------------------------------------------------------------------
+  - COLD OURO
+  - COLD PRATA
+
+TUBETES (3 PRODUTOS)
+----------------------------------------------------------------------
+  - TUBETE 1 1/2"
+  - TUBETE 1"
+  - TUBETE 3"
+
+CAIXAS (9 PRODUTOS)
+----------------------------------------------------------------------
+  - CAIXA 200X150X120
+  - CAIXA 250X200X200
+  - CAIXA 250X250X200
+  - CAIXA 400X300X223
+  - CAIXA 300X300X317
+  - CAIXA 500X300X300
+  - CAIXA 460X360X340
+  - CAIXA 500X400X300
+  - CAIXA 540X405X335
+
+TINTAS (27 PRODUTOS)
+----------------------------------------------------------------------
+  - ANTIESPUMANTE
+  - BLACK
+  - BLACK INTENSE
+  - BLUE 072
+  - BRANCO
+  - BRANCO OPACO
+  - CIAN
+  - CYAN
+  - DILUENTE
+  - GOLD 871
+  - LACA AMARELO
+  - LACA AZUL 072
+  - LACA AZUL BLUE
+  - LACA BRANCO
+  - LACA MAGENTA
+  - LACA PRETO
+  - LACA VERMELHO
+  - MAGENTA
+  - METALIC GOLD
+  - PANTONE ????
+  - PROCESS CYAN
+  - PROCESS MAGENTA
+  - PROCESS PRETO
+  - PROCESS YELLOW
+  - VERMELHO
+  - VERNIZ
+  - YELLOW
+
+DUPLA FACE (3 PRODUTOS)
+----------------------------------------------------------------------
+  - DUPLA FACE REF. 4880 (100X30)
+  - DUPLA FACE REF. 52015 (460X25)
+  - DUPLA FACE REF. 52017 (460X25)
+
+======================================================================
+TOTAL DE PRODUTOS EXISTENTES: 85
+======================================================================

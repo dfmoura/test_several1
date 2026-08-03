@@ -1,0 +1,184 @@
+====================================================================================================
+CASOS DE USO — M10 GERENCIAL — ERP RLP
+Documento: CASOS_USO_M10_GERENCIAL.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M10 — Gerencial (DRE interno, patrimônio, RH pagamento, export contador)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Visão gerencial interna da RLP e alimentação disciplinada do CONTADOR.
+  ERP NÃO fecha SPED, eSocial completo nem LAI.
+
+Atores: FINANCEIRO, ADMIN, CONSULTA (direção), Contador (externo)
+
+Invariants:
+  • Naturezas só 1–5.
+  • Export mensal com layout homologado.
+  • RH = pagamento gerencial + import/export; sem fechar folha oficial.
+  • Multi-empresa isolada nos pacotes.
+
+====================================================================================================
+UC-GER-001 — Consultar DRE / caixa interno (naturezas 1–5)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FINANCEIRO / CONSULTA (direção)
+
+Pré-condições: Títulos/lançamentos classificados com NAT 1–5.
+
+Pós-condições: Relatório DRE/caixa gerencial do período; drill-down até documento.
+
+Garantia: Relatório NÃO se apresenta como contabilidade oficial / SPED.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator escolhe período e empresa_id.
+  2. Sistema agrega por natureza (receitas, custos, despesas…).
+  3. Exibe DRE/caixa interno com filtros.
+  4. Permite export CSV/PDF gerencial (não substitui o pacote do contador).
+
+Regras: RF-GER-01; RN-11, RN-12
+Trace: NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt ·
+       CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+Aceite: Label “gerencial interno”; natureza 9.xx inexistente na agregação.
+
+====================================================================================================
+UC-GER-002 — Manter patrimônio (BEM) e capitalização
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FINANCEIRO / ADMIN
+Secundário ...: PRODUCAO (máquinas / manutenção)
+
+Pré-condições: Valor mínimo de capitalização parametrizado.
+
+Pós-condições: BEM- cadastrado; capitalização quando aplicável; vínculo a manutenção.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator cadastra bem (máquina, equipamento…).
+  2. Sistema avalia valor × parâmetro de capitalização.
+  3. Gera lançamentos gerenciais se política exigir.
+  4. Disponibiliza BEM para plano preventivo (UC-PRD-006).
+
+Regras: RF-GER-02
+Trace: PATRIMONIO_CONTROLE.txt · MANUTENCAO_PREVENTIVA_MAQUINAS.txt
+Aceite: Bem abaixo do mínimo segue política (despesa × não capitaliza) documentada.
+
+====================================================================================================
+UC-GER-003 — Registrar pagamento gerencial de RH
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FINANCEIRO
+Secundário ...: Colaborador = PAR papel COLABORADOR
+
+Pré-condições: Colaborador cadastrado; natureza de pagamento válida.
+
+Pós-condições: Pagamento gerencial registrado; eventualmente TIT a pagar; sem eSocial fechado.
+
+Garantia: Tela não promete “folha oficial” / SEFIP / eSocial completo.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FINANCEIRO lança pagamento (salário/adiantamento/benefício gerencial).
+  2. Vincula colaborador e competência.
+  3. Classifica natureza 1–5; gera título/baixa conforme fluxo.
+  4. Mantém disponível para export/import de layout (UC-GER-005).
+
+Regras: RF-GER-03; R0.3
+Trace: RH_PAGAMENTO_GERENCIAL.txt
+Aceite: Não há módulo de apuração eSocial; há trilha de pagamento gerencial.
+
+====================================================================================================
+UC-GER-004 — Gerar pacote mensal de export ao contador
+====================================================================================================
+
+Prioridade ...: M | Fase: 1–2 (layout em homologação contínua)
+Ator primário : FINANCEIRO / ADMIN
+Ator externo .: Contador (consome)
+
+Pré-condições: Competência fechada operacionalmente; layout homologado (ou versão acordada).
+
+Pós-condições: Pacote gerado (arquivos) com de-para naturezas; log de geração; imutável da competência.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator seleciona competência e empresa_id.
+  2. Sistema coleta NFs, títulos, movimentos e metadados necessários.
+  3. Aplica de-para naturezas ERP ↔ plano contador.
+  4. Gera pacote versionado + checksum; disponibiliza download seguro.
+  5. Registra auditoria de quem gerou e quando.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Layout não homologado / pendência contador
+    3a. Gera com marca d’água “não homologado” ou bloqueia conforme parâmetro.
+
+Regras: RF-GER-04, RF-GER-05; LR-RF-064
+Trace: EXPORT_CONTADOR_FOLHA_LAYOUT.txt · CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+Aceite: Contador recebe pacote do mês sem precisar de acesso amplo ao ERP.
+
+====================================================================================================
+UC-GER-005 — Importar layout de folha (sem fechar eSocial)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FINANCEIRO / ADMIN
+Origem ......: Arquivo do contador / DP externo
+
+Pré-condições: Layout de import definido; arquivo válido.
+
+Pós-condições: Dados de folha relevantes carregados para pagamento gerencial/conferência.
+
+Garantia: Import não significa apuração oficial no ERP.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator faz upload do arquivo de folha.
+  2. Sistema valida layout e rejeita linhas inválidas com relatório.
+  3. Confirma importação; vincula colaboradores.
+  4. Disponibiliza para UC-GER-003 / conferência.
+
+Regras: RF-GER-04
+Trace: EXPORT_CONTADOR_FOLHA_LAYOUT.txt · RH_PAGAMENTO_GERENCIAL.txt
+Aceite: Arquivo fora do layout é rejeitado com erros linha a linha.
+
+====================================================================================================
+UC-GER-006 — Acompanhar faturamento acumulado (preparação Lucro Real)
+====================================================================================================
+
+Prioridade ...: C | Fase: 3
+Ator primário : FINANCEIRO / FISCAL / CONSULTA
+Secundário ...: Contador (decisão de regime)
+
+Pré-condições: NFs de saída consistentes no ERP; regime atual Simples.
+
+Pós-condições: Visão de acumulado / indicadores de acompanhamento; sem apurar Simples oficial.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator consulta painel de faturamento acumulado do período.
+  2. Sistema soma bases a partir das NFs operacionais.
+  3. Emite alertas paramétricos (thresholds definidos com contador).
+  4. Export gerencial auxilia reunião Contador + Direção.
+
+Regras: RF-GER-06
+Trace: estrategia_implantacao_ja.txt · estudo_tributação.txt
+Aceite: Painel deixa claro que apuração oficial é do escritório contábil.
+
+====================================================================================================
+Fim — CASOS_USO_M10_GERENCIAL.txt
+6 casos de uso | Módulo M10 Gerencial
+====================================================================================================

@@ -1,0 +1,132 @@
+====================================================================================================
+PATRIMÔNIO E CONTROLE DE BENS — PADRÃO GERENCIAL DO NOVO ERP
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt +
+      ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt + CADASTRO_PARCEIROS.txt +
+      PRODUCAO_OPERACIONAL_GERENCIAL.txt + CODIFICACAO_INFORMACOES_SISTEMA.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define o CONTROLE PATRIMONIAL GERENCIAL: máquinas,
+equipamentos, veículos, informática e móveis. Objetivo: saber o que a
+empresa tem, onde está, quanto custou e se está ativo — sem transformar
+o ERP no livro de depreciação oficial do contador (ele continua
+responsável pelo imobilizado contábil/fiscal).
+
+----------------------------------------------------------------------------------------------------
+1. ESCOPO
+----------------------------------------------------------------------------------------------------
+
+  INCLUI (bem com vida útil > 1 ano e valor relevante — parâmetro,
+  sugestão inicial: acima de R$ 1.000 ou lista obrigatória de máquinas):
+    * Impressoras / rebobinadeiras / cortadeiras / plotters
+    * Compressores, balanças, empilhadeiras
+    * Computadores, servidores, nobreaks
+    * Veículos
+    * Móveis de valor
+    * Softwares capitalizáveis (se a política assim tratar)
+
+  NÃO INCLUI (vão para despesa / estoque):
+    * Consumíveis, ferramentas de baixo valor
+    * Estoque MP/PA (já tem módulo próprio)
+    * Facas/clichês de cliente: ferramental FAC-* (cadastro próprio
+      operacional — pode cruzar com patrimônio se a faca for da RLP)
+
+----------------------------------------------------------------------------------------------------
+2. CODIFICAÇÃO
+----------------------------------------------------------------------------------------------------
+
+  id BIGINT + BEM-NNNNN (sequência global)
+  Etiqueta física no bem com código de barras / QR = BEM-NNNNN
+  FK opcional: fornecedor_id, nf_entrada_id, centro_custo_id, maquina_id
+  (se o bem É a máquina usada na OP — mesmo registro, dois papéis)
+
+----------------------------------------------------------------------------------------------------
+3. CADASTRO MÍNIMO DO BEM
+----------------------------------------------------------------------------------------------------
+
+  * codigo BEM-NNNNN, descrição, marca, modelo, nº série
+  * categoria (máquina gráfica, informática, veículo, móvel…)
+  * data aquisição, valor aquisição, NF/fornecedor
+  * local (setor / endereço interno)
+  * responsável (usuario ou setor)
+  * status: ATIVO | EM_MANUTENCAO | CEDIDO | BAIXADO | VENDIDO
+  * garantia até (data)
+  * anexos: foto, manual, NF PDF
+  * placa / RENAVAM (veículo)
+  * link com natureza 4.0x na compra (investimento)
+
+Depreciação GERENCIAL (opcional Fase 1):
+  * vida útil meses + método linear simples → valor residual gerencial
+  * NÃO substitui a depreciação fiscal/contábil do contador
+  * Se houver conflito de números, prevalece o do contador no oficial;
+    o gerencial é para decisão interna (substituir máquina? ROI?)
+
+----------------------------------------------------------------------------------------------------
+4. CICLO DE VIDA
+----------------------------------------------------------------------------------------------------
+
+  COMPRA
+    contas a pagar + natureza 4.01..4.04 + cria BEM- + etiqueta
+
+  TRANSFERÊNCIA INTERNA
+    muda local/responsável — histórico
+
+  MANUTENÇÃO
+    OS interna leve ou lançamento de despesa 3.04.01 vinculado ao bem_id
+    (não criar CMMS completo na Fase 1 — histórico de gastos no bem basta)
+
+  BAIXA / VENDA / SUCATA
+    status final + data + motivo
+    se venda: NF + natureza 1.04.02; remove do ativo gerencial
+    se sucata: despesa/perda conforme caso
+
+  INVENTÁRIO PATRIMONIAL
+    contagem anual dos BEM- ativos (pode coincidir com inventário
+    de estoque, mas lista separada)
+
+----------------------------------------------------------------------------------------------------
+5. INTEGRAÇÃO COM PRODUÇÃO E ENTREGA
+----------------------------------------------------------------------------------------------------
+
+  * Máquina da OP: preferir maquina_id = bem_id da impressora
+  * Veículo da entrega própria: veículo_id = bem_id
+  Assim manutenção e ocupação falam do mesmo ativo — sem cadastro
+  duplicado "máquina do PCP" × "bem do patrimônio".
+
+----------------------------------------------------------------------------------------------------
+6. O QUE O CONTADOR RECEBE
+----------------------------------------------------------------------------------------------------
+
+  Exportação: lista de bens, valor aquisição, data, NF, baixa.
+  Ele classifica no imobilizado oficial, calcula depreciação fiscal
+  e CIAP se couber no Lucro Real futuro.
+
+  ERP NÃO emite laudo de vida útil fiscal nem CIAP automaticamente
+  na Fase 1 — só fornece a base.
+
+----------------------------------------------------------------------------------------------------
+7. PAPÉIS
+----------------------------------------------------------------------------------------------------
+
+  ADMIN / DIREÇÃO ... inclui bem, baixativa, valor
+  PRODUCAO .......... consulta máquinas ativas, aponta manutenção simples
+  FINANCEIRO ........ paga a compra (título), não "some" com o bem
+  CONSULTA .......... contador
+
+----------------------------------------------------------------------------------------------------
+8. CHECKLIST
+----------------------------------------------------------------------------------------------------
+
+  [ ] Prefixo BEM- + etiqueta física
+  [ ] Compra de investimento cria bem (não só despesa)
+  [ ] Máquina de produção = mesmo cadastro do bem
+  [ ] Histórico de manutenção/gastos por bem_id
+  [ ] Inventário patrimonial periódico
+  [ ] Exportação para o contador
+  [ ] Depreciação gerencial opcional e explícita como não oficial
+
+====================================================================================================
+Fim — PATRIMONIO_CONTROLE.txt
+Patrimônio no ERP = controle e decisão. Depreciação oficial = contador.
+====================================================================================================

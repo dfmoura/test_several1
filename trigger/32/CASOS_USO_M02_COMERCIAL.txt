@@ -1,0 +1,412 @@
+====================================================================================================
+CASOS DE USO — M02 COMERCIAL — ERP RLP
+Documento: CASOS_USO_M02_COMERCIAL.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M02 — Comercial (ORC → aceite → PED · crédito · ferramental)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Núcleo do pedido inicial da empresa: orçar com motor parametrizado e
+  converter em PED só com aceite formal. Crédito e sinal liberam produção.
+
+Atores:
+  Primários: COMERCIAL, FINANCEIRO (crédito/sinal), Cliente (aceite)
+  Secundários: ADMIN (parâmetros/alçadas); Meta WhatsApp (envio opcional)
+
+Invariants:
+  • ORC ≠ PED. Só link formal gera pedido.
+  • Snapshot travado na conversão (preço/spec/qtde/prazo/condição).
+  • Cliente NÃO vê composição interna de custo.
+  • Comercial NÃO altera limite de crédito.
+  • Arredondamento comercial final para cima (valores oficiais a ratificar).
+
+====================================================================================================
+UC-COM-001 — Gerar orçamento (ORC) parametrizado
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL
+
+Pré-condições:
+  1. PAR cliente ou prospect selecionável.
+  2. Parâmetros oficiais existentes (mesmo que PENDENTE_RATIFICACAO — alerta).
+  3. Produtos/famílias necessários cadastrados.
+
+Pós-condições:
+  1. ORC-AAAA-NNNNN em RASCUNHO com versão.
+  2. Snapshot dos parâmetros de cálculo gravado para reprodutibilidade.
+  3. Visão interna (custo) separada da proposta ao cliente.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. COMERCIAL cria novo ORC e seleciona cliente/prospect.
+  2. Adiciona itens (etiqueta impressa/lisa, rebobinação, revenda, serviço…).
+  3. Sistema calcula preço via motor parametrizado (não “no olho”).
+  4. Sistema grava imposto estimado, prazo, condição, frete, tolerância.
+  5. Sistema apresenta proposta ao cliente SEM composição interna de custo.
+  6. ORC permanece RASCUNHO até envio (UC-COM-005).
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Nova versão do ORC
+    1a. Ator versiona ORC existente; versão anterior preservada.
+  AL2 — Escada de quantidades (N faixas)
+    2a. Ator informa faixas; sistema calcula preço por faixa no mesmo ORC.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Parâmetro crítico ausente
+    3a. Cálculo bloqueado; lista parâmetros faltantes.
+  EX2 — EMP-00002 sem venda
+    1a. Se empresa_id = EMP-00002 e venda desligada → operação negada.
+
+Regras: RN-06, RN-07, RN-18; RF-COM-01; LR-RF-020…025
+Entidades: Orçamento, ItemORC, Parâmetro(TAB), Parceiro
+Trace: GERACAO_ORCAMENTO.txt · PARAMETROS_EMPRESA_OFICIAIS.txt
+Aceite:
+  • Dois ORCs com mesmos parâmetros produzem o mesmo resultado.
+  • PDF/tela do cliente não exibe custo interno.
+  • Código ORC-AAAA-NNNNN legível.
+
+====================================================================================================
+UC-COM-002 — Simular cenários / escada de quantidades
+====================================================================================================
+
+Prioridade ...: M | Fase: 1 (escada) / S cenário avançado
+Ator primário : COMERCIAL
+
+Pré-condições: ORC em RASCUNHO (ou versão editável).
+
+Pós-condições: Cenários gravados sem destruir versão base escolhida.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre simulação no ORC.
+  2. Informa cenários (qtde, prazo, gordura, frete…).
+  3. Sistema recalcula cada cenário com o motor oficial.
+  4. Ator escolhe cenário vencedor para a versão a enviar.
+  5. Demais cenários ficam históricos / anexos da versão.
+
+Regras: RF-COM-05; LR-RF-022, LR-RF-030
+Trace: MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt
+Aceite: Escolher cenário B não apaga o cenário A da versão.
+
+====================================================================================================
+UC-COM-003 — Aplicar gordura / desconto com alçada
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL
+Secundário ...: ADMIN / direção (alçada superior)
+
+Pré-condições: ORC em edição; alçadas configuradas.
+
+Pós-condições: Gordura/desconto aplicados dentro da alçada; excesso exige aprovação.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator informa gordura ou desconto.
+  2. Sistema compara com limite do perfil.
+  3. Se dentro da alçada → aplica e registra transparência interna.
+  4. Recalcula proposta ao cliente.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Acima da alçada
+    2a. Sistema solicita aprovação de perfil superior; sem aprovação, não aplica.
+
+Regras: RF-COM-03, RF-COM-04
+Trace: GORDURA_ORCAMENTO_COMPENSA_OU_NAO.txt ·
+       FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt
+Aceite: Desconto acima do teto sem aprovador é rejeitado.
+
+====================================================================================================
+UC-COM-004 — Calcular imposto estimado no ORC
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (disparado por COMERCIAL ao calcular)
+Secundário ...: FISCAL / Contador (parâmetros de regime)
+
+Pré-condições: Regime da empresa e regras tributárias mínimas disponíveis.
+
+Pós-condições: Imposto estimado/gross-up no ORC; marcado como ESTIMATIVA.
+
+Garantia: Divergência pós-NF não é “escondida” — fica analisável.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ao calcular ORC, sistema aplica motor de imposto do regime vigente.
+  2. Grava bases/alíquotas usadas no snapshot do ORC.
+  3. Exibe imposto estimado na proposta conforme política comercial.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Pós-NF divergente
+    Após UC-FIS-001, sistema permite análise de divergência ORC×NF.
+
+Regras: RF-COM-02; RN-11
+Trace: VERIFICACAO_IMPOSTO_ORCAMENTO.txt · estudo_tributação.txt
+Aceite: ORC antigo não muda imposto quando alíquota futura entra (snapshot).
+
+====================================================================================================
+UC-COM-005 — Enviar ORC e obter aceite formal do cliente (link)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL
+Ator externo .: Cliente
+Secundário ...: Meta WhatsApp / e-mail (canal de envio do link)
+
+Pré-condições: ORC válido para envio (itens, preço, condições OK).
+
+Pós-condições:
+  Sucesso: ORC → APROVADO (evento OrcamentoAprovadoCliente).
+  Alternativas: RECUSADO | EXPIRADO | permanece ENVIADO.
+
+Garantia: “Combinado no zap” (mensagem informal) NÃO gera PED.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. COMERCIAL aciona “Enviar para aceite”.
+  2. Sistema gera link seguro, tokenizado, com validade.
+  3. ORC → ENVIADO; opcionalmente dispara MSG/template oficial.
+  4. Cliente abre link, revisa proposta e confirma aceite.
+  5. Sistema marca ORC → APROVADO e dispara prontidão para UC-COM-006.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Cliente recusa
+    4a. ORC → RECUSADO; motivo opcional; não gera PED.
+  AL2 — Link expira
+    4b. ORC → EXPIRADO; comercial pode reenviar (nova validade / versão).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Tentativa de “aprovar pelo comercial” sem link do cliente
+    Bloqueado (salvo fluxo explícito de exceção de direção com auditoria
+    — fora do caminho padrão e deve ser rara).
+
+Regras: RN-02; D0.13; RF-COM-06; CA-01
+Trace: APROVACAO_ORCAMENTO_CLIENTE.txt · INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+Aceite:
+  • Aceite via link gera evento e habilita conversão.
+  • Mensagem informal não cria PED.
+
+====================================================================================================
+UC-COM-006 — Converter ORC aprovado em PED (snapshot travado)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (após aceite) / COMERCIAL (confirma se necessário)
+
+Pré-condições:
+  1. ORC = APROVADO.
+  2. Cadastro fiscal do PAR completo (UC-CAD-002).
+  3. Não existe PED já gerado para essa versão aprovada.
+
+Pós-condições:
+  1. PED-AAAA-NNNNN criado com snapshot (preço/spec/qtde/prazo/condição).
+  2. Itens tipados PRODUCAO | SERVICO | REVENDA.
+  3. PED em NOVO → AGUARDA_CREDITO ou AGUARDA_ADIANTAMENTO conforme política.
+
+Garantia: Não recalcular preço na conversão.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema (ou COMERCIAL) aciona conversão da versão aprovada.
+  2. Sistema copia snapshot travado do ORC → PED.
+  3. Classifica itens (PRODUCAO/SERVICO/REVENDA).
+  4. Avalia política de crédito/sinal → estado de espera adequado.
+  5. Emite evento PedidoGerado.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Cadastro incompleto
+    1a. Bloqueia; encaminha UC-CAD-002.
+  EX2 — ORC não APROVADO
+    1a. Conversão rejeitada.
+
+Regras: RN-01…04; RF-COM-09, RF-COM-11; D0.14
+Trace: GERACAO_PEDIDO.txt
+Aceite: Valores do PED = valores do ORC aprovado (byte-a-byte comercial).
+
+====================================================================================================
+UC-COM-007 — Consultar limite de crédito do cliente
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL (consulta) / FINANCEIRO (visão completa)
+
+Pré-condições: PAR cliente com limite configurado (ou zero).
+
+Pós-condições: Exposição e saldo de crédito calculados e exibidos.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre cliente ou PED em espera.
+  2. Sistema calcula limite × títulos em aberto × pedidos liberados.
+  3. Exibe situação: OK / ESTOURADO / SEM LIMITE.
+
+Regras: RF-COM-07; comercial NÃO altera limite
+Trace: INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt
+Aceite: COMERCIAL vê situação; botão de alterar limite ausente/negado.
+
+====================================================================================================
+UC-COM-008 — Liberar crédito (CRT) — perfil FINANCEIRO
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO
+
+Pré-condições: PED em AGUARDA_CREDITO; limite/alçada suficientes ou exceção.
+
+Pós-condições: CRT registrado; PED → LIBERADO (se demais regras OK); evento CreditoLiberado.
+
+Garantia: COMERCIAL não executa este UC.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FINANCEIRO analisa PED e exposição do cliente.
+  2. Informa liberação (total/parcial conforme política) e motivo.
+  3. Sistema grava CRT-, audita, muda PED → LIBERADO.
+  4. Produção/separação ficam elegíveis (UC-PRD / UC-EST).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Sem alçada
+    2a. Solicita aprovador superior; senão mantém AGUARDA_CREDITO.
+  EX2 — Cliente bloqueado
+    1a. Liberação negada até regularização.
+
+Regras: RN-05; D0.15; RF-COM-07, RF-COM-10; CA-02
+Trace: INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt
+Aceite: PED não gera OP enquanto AGUARDA_CREDITO; após CRT, OP abrível.
+
+====================================================================================================
+UC-COM-009 — Registrar adiantamento / sinal e liberar PED após BX
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO
+Secundários ..: Banco (cobrança/baixa)
+
+Pré-condições: Política exige sinal; PED em AGUARDA_ADIANTAMENTO.
+
+Pós-condições: TIT/COB de adiantamento; após BX → PED LIBERADO.
+
+Garantia: Existência de COB sem BX NÃO libera produção.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema gera TIT/COB de adiantamento vinculados ao PED.
+  2. Cliente paga; chega BX (UC-FIN-003) idempotente.
+  3. Sistema valida BX do sinal → libera PED.
+  4. Evento AdiantamentoBaixado / PedidoLiberadoProducao.
+
+Regras: RF-FAT-05; RF-COM-10; CA-02
+Trace: GERACAO_PEDIDO.txt · FATURAMENTO_GERACAO_COBRANCA.txt ·
+       RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: Antes da BX, OP bloqueada; após BX, OP liberada.
+
+====================================================================================================
+UC-COM-010 — Controlar cobrança de ferramental (1× por modelo/cliente)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL / Sistema
+
+Pré-condições: FAC cadastrado (UC-CAD-004); ORC/PED com modelo que usa FAC.
+
+Pós-condições: Item de ferramental incluído só se elegível (1ª cobrança).
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ao montar ORC/PED, sistema consulta histórico FAC×cliente×modelo.
+  2. Se primeira cobrança → inclui linha de ferramental.
+  3. Se já cobrado → omite / marca “já faturado” (visível só internamente).
+  4. Persistência amarra FAC ao PED quando cobrado.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Reimpressão cobrada por política especial
+    2a. Exige alçada e motivo; auditado.
+
+Regras: RN-08; LR-RF-032
+Trace: GERACAO_ORCAMENTO.txt
+Aceite: Segundo pedido do mesmo modelo/cliente não inclui FAC automaticamente.
+
+====================================================================================================
+UC-COM-011 — Gerar lembrete de reposição / pedido recorrente
+====================================================================================================
+
+Prioridade ...: S | Fase: 2–3
+Ator primário : Sistema / COMERCIAL
+
+Pré-condições: Política de recorrência cadastrada no cliente/produto.
+
+Pós-condições: NOVO ciclo ORC sugerido / lembrete enviado; PED NÃO criado sozinho.
+
+Garantia: Lembrete nunca cria PED automaticamente.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Job detecta janela de reposição.
+  2. Sistema cria rascunho de ORC ou notifica COMERCIAL.
+  3. Fluxo segue UC-COM-001 → UC-COM-005 → UC-COM-006 normalmente.
+
+Regras: RF-COM-08
+Trace: PEDIDOS_RECORRENTES_LEMBRETE_REPOSICAO.txt
+Aceite: Job de lembrete não deixa PED gerado sem aceite.
+
+====================================================================================================
+UC-COM-012 — Orçar para prospect sem cadastro fiscal completo
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : COMERCIAL
+
+Pré-condições: Prospect identificável (nome/contato mínimos).
+
+Pós-condições: ORC válido para negociação; conversão a PED bloqueada até UC-CAD-002.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. COMERCIAL cria PAR mínimo (prospect) ou seleciona existente incompleto.
+  2. Gera ORC normalmente (UC-COM-001).
+  3. Sistema permite envio/aceite, mas bloqueia PED com pendência clara.
+  4. Após aceite, tela guia completar cadastro (UC-CAD-002).
+
+Regras: RF-CAD-04; RF-COM-06
+Trace: ORCAMENTO_PROSPECT_SEM_CADASTRO.txt
+Aceite: Aceite de prospect incompleto não gera PED até cadastro fiscal OK.
+
+====================================================================================================
+Fim — CASOS_USO_M02_COMERCIAL.txt
+12 casos de uso | Módulo M02 Comercial
+====================================================================================================

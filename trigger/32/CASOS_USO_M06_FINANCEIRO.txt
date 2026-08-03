@@ -1,0 +1,318 @@
+====================================================================================================
+CASOS DE USO — M06 FINANCEIRO — ERP RLP
+Documento: CASOS_USO_M06_FINANCEIRO.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M06 — Financeiro (TIT, COB, BX, aging, naturezas, ENT, frete, COM)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Verdade financeira (TIT), cobrança bancária (COB), baixa (BX) e entrega
+  (ENT). Naturezas gerenciais só 1–5. Dinheiro é idempotente.
+
+Atores: FINANCEIRO, EXPEDICAO, Cliente (confirmação); Banco; Meta WhatsApp
+
+Invariants:
+  • TIT é a verdade; COB é emissão bancária vinculada.
+  • BX idempotente; ambiguidade → fila humana.
+  • Natureza obrigatória em título/lançamento (1–5); LAI proibido.
+  • Documento não some — estorna/compensa.
+
+====================================================================================================
+UC-FIN-001 — Gerar título (TIT) no faturamento
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (no faturamento) / FINANCEIRO (ajuste de condição)
+
+Pré-condições: NF autorizada (ou adiantamento formal do PED).
+
+Pós-condições: TIT- ABERTO com natureza 1–5; vínculo ped_id / nf; condições de vencimento.
+
+Garantia: Não existe faturamento “só NF” sem TIT na política padrão.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ao autorizar NF (UC-FIS-001), sistema cria TIT a receber.
+  2. Aplica condição do snapshot do PED (parcelas/vencimentos).
+  3. Exige natureza gerencial válida (grupo 1–5).
+  4. Emite evento TituloGerado; habilita UC-FIN-002.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Tentativa de natureza 9.xx / LAI
+    3a. Rejeitada (CA-09).
+
+Regras: RN-09, RN-12; RF-FAT-02, RF-FAT-07, RF-FAT-10; D0.17
+Trace: FATURAMENTO_GERACAO_COBRANCA.txt · NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+Aceite: Toda NF de venda gera TIT; natureza inválida bloqueia gravação.
+
+====================================================================================================
+UC-FIN-002 — Emitir cobrança bancária (COB) vinculada ao TIT
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO / Sistema
+Sistema ......: BankProvider
+
+Pré-condições: TIT ABERTO elegível; adapter bancário configurado (sandbox/prod).
+
+Pós-condições: COB- REGISTRADA (ou PENDENTE→REGISTRADA); PDF/linha digitável; TIT→COBRADO.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Sistema/FINANCEIRO solicita emissão de cobrança do TIT.
+  2. Adapter envia ao banco com idempotency_key.
+  3. Persiste retorno (nosso número, PDF, status).
+  4. Evento CobrancaRegistrada.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Banco indisponível
+    2a. COB PENDENTE / fila; kill-switch não derruba ERP.
+  EX2 — Retry
+    2a. Não duplica cobrança (UC-INT-004).
+
+Regras: RF-FAT-07; RF-INT-02; RF-INT-06; CA-04
+Trace: INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt · RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: PDF da cobrança acessível; segunda emissão idêntica não gera 2 COBs.
+
+====================================================================================================
+UC-FIN-003 — Registrar baixa (BX) via webhook / extrato / CNAB
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : Sistema (webhook/job) / FINANCEIRO (manual assistido)
+Sistema ......: Banco
+
+Pré-condições: COB/TIT existentes; evento de pagamento recebido.
+
+Pós-condições: BX- gravada; TIT PARCIALMENTE_BAIXADO ou BAIXADO; caixa atualizado.
+
+Garantia: Mesmo webhook 2× não cria 2 BX.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Worker recebe notificação (webhook/CNAB/extrato) com chave idempotente.
+  2. Localiza COB/TIT candidatos.
+  3. Se match único e valor/data coerentes → gera BX.
+  4. Atualiza estados TIT/COB; evento BaixaEfetuada.
+  5. Se for sinal de PED → libera produção (UC-COM-009).
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Baixa parcial
+    3a. TIT → PARCIALMENTE_BAIXADO; saldo remanescente permanece.
+  AL2 — CNAB fallback
+    1a. Importação arquivo; mesma regra de idempotência.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Match ambíguo
+    2a. Encaminha UC-FIN-004 (fila humana); não baixa automaticamente.
+
+Regras: RN-14; RF-FAT-08; CA-05; D0.10
+Trace: RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: Reprocessar webhook idêntico → 1 BX apenas.
+
+====================================================================================================
+UC-FIN-004 — Conciliar baixa ambígua (fila humana)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO
+
+Pré-condições: Evento de pagamento sem match único automático.
+
+Pós-condições: BX confirmada manualmente OU descarte justificado; trilha auditável.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. FINANCEIRO abre fila de ambiguidades.
+  2. Analisa candidatos (cliente, valor, vencimento, PED).
+  3. Associa pagamento ao TIT/COB correto e confirma BX.
+  4. Sistema aplica UC-FIN-003 a partir da decisão humana.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Não identificado
+    3a. Mantém em aberto / conta transitória conforme política; sem inventar cliente.
+
+Regras: RF-FAT-08; CA-05
+Trace: RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: Item na fila impede BX automática duplicada até decisão.
+
+====================================================================================================
+UC-FIN-005 — Classificar título com natureza gerencial (1–5)
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO / Sistema (default do tipo de operação)
+
+Pré-condições: Árvore NAT grupos 1–5 carregada; de-para contador (quando export).
+
+Pós-condições: Todo TIT/lançamento com NAT válida.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ao criar TIT, sistema sugere natureza padrão do tipo.
+  2. FINANCEIRO ajusta se necessário dentro de 1–5.
+  3. Persistência rejeita grupo proibido.
+
+Regras: RN-12; RF-FAT-10; CA-09; D0.8, D0.17
+Trace: NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt ·
+       DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt
+Aceite: UI não oferece natureza 9.xx; API rejeita payload LAI.
+
+====================================================================================================
+UC-FIN-006 — Acompanhar aging / contas a receber
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : FINANCEIRO / CONSULTA (direção)
+
+Pré-condições: Títulos existentes.
+
+Pós-condições: Visão por faixas de atraso; drill-down até PED/NF/COB.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator abre aging (a vencer / vencidos por faixa).
+  2. Filtra por cliente, vendedor, natureza, empresa_id.
+  3. Abre detalhe do TIT e ações (cobrança, régua, acordo).
+
+Regras: RF-FAT-09
+Trace: RECEBIMENTO_BAIXA_COBRANCA.txt · NATUREZAS_*
+Aceite: Título baixado não aparece como em aberto; parcial mostra saldo.
+
+====================================================================================================
+UC-FIN-007 — Executar régua de cobrança (WhatsApp oficial)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : Sistema / FINANCEIRO
+Sistema ......: Meta WhatsApp
+
+Pré-condições: Templates aprovados; WABA ativo; TIT/COB elegíveis; kill-switch off.
+
+Pós-condições: MSG- registradas nos gatilhos (ex.: D-3, D+1, D+7, D+15).
+
+Garantia: Proibido enviar por WhatsApp pessoal.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Job identifica títulos na janela da régua.
+  2. Seleciona template oficial adequado.
+  3. Envia via API Meta; registra MSG- (UC-INT-003).
+  4. Atualiza histórico de cobrança do TIT.
+
+Regras: RN-13; RF-FAT-09; RF-INT-03, RF-INT-04
+Trace: INTEGRACAO_WHATSAPP_BUSINESS_API.txt · RECEBIMENTO_BAIXA_COBRANCA.txt
+Aceite: Cada disparo gera MSG-; sem template → não envia mensagem livre irregular.
+
+====================================================================================================
+UC-FIN-008 — Calcular e registrar comissão (COM)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : FINANCEIRO / Sistema
+Secundário ...: COMERCIAL (consulta)
+
+Pré-condições: Política base FATURADO|RECEBIDO ratificada; vendedor no PED.
+
+Pós-condições: COM- gerada no ERP (não planilha/zap).
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Evento de faturamento ou BX (conforme base) dispara cálculo.
+  2. Sistema calcula % do vendedor sobre base homologada.
+  3. Gera COM- vinculada a PED/TIT/vendedor.
+  4. Disponibiliza relatório e eventual título a pagar.
+
+Regras: RF-FAT-12; LR-RF-056
+Trace: COMISSOES_VENDEDORES_DETALHADO.txt
+Aceite: Comissão não depende de planilha externa; estorno de NF/BX ajusta COM.
+
+====================================================================================================
+UC-FIN-009 — Registrar frete (receita × despesa) amarrado ao PED
+====================================================================================================
+
+Prioridade ...: S | Fase: 2–3
+Ator primário : FINANCEIRO / EXPEDICAO
+Secundário ...: Transportadora (PAR)
+
+Pré-condições: PED com política de frete; transportadora cadastrada.
+
+Pós-condições: Receita e/ou despesa de frete com natureza; avaria tratada se houver.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator informa valor de frete cobrado do cliente e/ou pago à transportadora.
+  2. Sistema classifica receita×despesa e vincula ao PED/ENT.
+  3. Gera lançamentos/TIT conforme caso.
+  4. Se avaria → registra ocorrência e impacto financeiro.
+
+Regras: RF-FAT-11
+Trace: FRETE_TRANSPORTADORAS.txt
+Aceite: Frete aparece no gerencial do PED; não fica só em conversa informal.
+
+====================================================================================================
+UC-FIN-010 — Confirmar entrega / romaneio (ENT) + status
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : EXPEDICAO / PRODUCAO
+Secundários ..: Cliente (confirmação); Meta WhatsApp (status)
+
+Pré-condições:
+  1. Itens prontos; política “NF antes de expedir” atendida se ativa.
+  2. Dados de destino do PED/PAR.
+
+Pós-condições: ENT- gerada; status enviado; PED pode ir a ENTREGUE; evento EntregaConfirmada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. EXPEDICAO monta romaneio (ENT-) com volumes/itens do PED.
+  2. Sistema valida NF emitida se parâmetro exigir.
+  3. Registra despacho; opcional MSG de status ao cliente.
+  4. Cliente confirma recebimento (link/portal/MSG).
+  5. Sistema atualiza PED → ENTREGUE (quando total) e audita.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Entrega fracionada
+    1a. Múltiplos ENT no mesmo PED; faturamento parcial correlato (UC-FIS-004).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Tentativa de expedir sem NF (política SIM)
+    2a. Bloqueio com mensagem clara.
+
+Regras: RN-10; RF-FAT-06; CA-06
+Trace: ENTREGA_CONFIRMACAO_CLIENTE.txt · MAPA_FATURAMENTO_EXPLICADO.txt
+Aceite: Com parâmetro NF-antes-expedir=SIM, ENT sem NF é impossível.
+
+====================================================================================================
+Fim — CASOS_USO_M06_FINANCEIRO.txt
+10 casos de uso | Módulo M06 Financeiro
+====================================================================================================

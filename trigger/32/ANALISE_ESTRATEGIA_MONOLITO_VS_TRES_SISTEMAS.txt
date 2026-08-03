@@ -1,0 +1,473 @@
+====================================================================================================
+ANÁLISE ESTRATÉGICA — MONÓLITO MODULAR vs. TRÊS SISTEMAS INTEGRADOS
+ERP RLP — caminho do protótipo ao sistema de produção (Docker local → AWS)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+CNPJ ........: 01.423.183/0001-10 (MG) — Simples Nacional
+Documento ...: Análise de arquitetura e forma de entrega
+Versão ......: 1.0 | 03/08/2026
+Classificação: Decisão de engenharia / estratégia de construção
+Idioma ......: Português (Brasil)
+
+Público .....: Você (construtor do sistema) — não é texto para o cliente final.
+Complementa .: PROPOSTA_COMERCIAL_ERP_RLP.txt
+               DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt
+               ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt
+               GUIA_PASSO_A_PASSO_CONSTRUCAO_ERP_RLP.txt
+
+Pergunta que este TXT responde:
+  “Está tudo muito complexo. Se eu dividir em três sistemas (orçamento,
+   estoque/produção/vendas, financeiro) com integração automática, consigo
+   entregar melhor? Compensa — ou qual é a melhor forma?”
+
+Resposta em uma linha:
+  NÃO vale a pena três sistemas separados agora. Compensa um ÚNICO ERP
+  (monólito modular), entregue em TRÊS FATIAS VERDES — a mesma divisão
+  mental que você quer, sem a dor de integração distribuída.
+
+
+====================================================================================================
+1. DE ONDE VOCÊ VEIO (MAPA HONESTO DAS ETAPAS)
+====================================================================================================
+
+Você não “usou errado”. Você evoluiu o problema certo em camadas.
+O sentimento de complexidade nasce de misturar PROVA DE CONCEITO com
+SISTEMA DE PRODUÇÃO — e de acumular domínio antes de fechar o código.
+
+----------------------------------------------------------------------------------------------------
+1.1. trigger/28 — ERP amplo (homologação)
+----------------------------------------------------------------------------------------------------
+
+  Pasta ......: /home/dfmoura/Documents/test_several1/trigger/28
+  Stack ......: Next.js 15 + TypeScript + PostgreSQL + Docker Compose
+  O que brilha:
+    • Cadastro de parceiro e produto — sólido o bastante para reaproveitar
+      como referência de UX e modelo
+    • Visão de ciclo completo (orçamento → pedido → estoque → NF → boleto)
+    • Packages úteis: pricing-engine, focus-nfe, banco-inter
+    • Docker já pensado para rodar local
+
+  Onde frágil:
+    • Escopo grande demais cedo → superfície larga, profundidade irregular
+    • Motor de preço e regras fiscais ainda em estágio de protótipo
+
+  Veredito ....: REAPROVEITAR como referência de cadastros + idea de packages
+                 + compose; NÃO copiar o monólito inteiro “como está”.
+
+----------------------------------------------------------------------------------------------------
+1.2. trigger/29 — Orçamento dedicado
+----------------------------------------------------------------------------------------------------
+
+  Pasta ......: /home/dfmoura/Documents/test_several1/trigger/29
+  Stack ......: FastAPI (Python) + Postgres + Docker
+  O que brilha:
+    • Parte de orçamento mais madura e focada
+    • Regras R1–R20 documentadas + fixtures (BRAHVA, ART, rarepan, oficial)
+    • Engenharia reversa das planilhas .xlsm — ouro para o domínio comercial
+
+  Onde frágil:
+    • Cálculos ainda não 100% corretos (sua observação) — precisa fechar
+      regressão com fixtures oficiais antes de ir para produção
+    • Estoque propositalmente fora do MVP (bom isolamento, mau fim de linha)
+
+  Veredito ....: REAPROVEITAR motor de regras + testes + docs de cálculo;
+                 CORRIGIR preços até bater fixture; embutir no ERP único.
+
+----------------------------------------------------------------------------------------------------
+1.3. trigger/31 — Estoque / compras / financeiro operacional
+----------------------------------------------------------------------------------------------------
+
+  Pasta ......: /home/dfmoura/Documents/test_several1/trigger/31
+  Stack ......: FastAPI + React/Ant Design + Postgres + Docker/nginx
+  O que brilha:
+    • Bobina em m² e metros lineares — representou bem o chão de fábrica
+    • Entrada por XML de NF-e + aceite + contas a pagar
+    • CNPJ/CEP/NCM via APIs públicas — padrão reaproveitável
+    • UX operacional de estoque/compras interessante
+
+  Onde frágil:
+    • Não ficou totalmente pronto (sua observação) — falta amarrar ao PED
+      e à produção canônica do domínio RLP
+    • Financeiro ali é parcial (foco em pagar/baixar), não o ciclo TIT/COB/BX
+
+  Veredito ....: REAPROVEITAR conversões, pipe de XML e telas de saldo;
+                 NÃO tratar como “sistema financeiro completo”.
+
+----------------------------------------------------------------------------------------------------
+1.4. trigger/32 — Documentação de domínio (estado atual)
+----------------------------------------------------------------------------------------------------
+
+  Pasta ......: /home/dfmoura/Documents/test_several1/trigger/32
+  O que brilha:
+    • Pacote de domínio fechado e excelente (veredito 9,3/10 no ADR)
+    • Cadeia canônica: ORC → PED → OP/OS → NF → TIT → COB → ENT → BX
+    • Casos de uso M01–M11, proposta comercial, AWS, guia passo a passo
+    • Decisão já escrita: monólito modular, SEM microsserviços no dia 1
+
+  Onde dói:
+    • Volume grande de TXTs → sensação de “tudo é complexo”
+    • Documentação sem código novo ainda = ansiedade legítima
+
+  Veredito ....: baseline FECHADA. Parar de expandir teoria. Construir.
+
+
+====================================================================================================
+2. POR QUE ESTÁ PARECENDO “MUITO COMPLEXO”
+====================================================================================================
+
+Não é porque o ERP da RLP seja gigante (≤10 usuários, ≈200 NF/mês).
+É porque três camadas diferentes estão misturadas na mesma cabeça:
+
+  (A) PROTOTIPOS ........ experiments em 28/29/31 (stacks e escopos diferentes)
+  (B) DOMÍNIO ........... pacote trigger/32 (quase “ERP escrito em prosa”)
+  (C) ENTREGA ........... “agora quero o sistema de verdade + Docker + AWS”
+
+Sintoma típico:
+  • Cada pasta resolve um pedaço bem, mas com contratos diferentes
+  • A cadeia real do negócio EXIGE que os pedaços falem a mesma língua
+  • Separar em “três sistemas” parece alívio — mas em PME industrial
+    costuma VIRAR a complexidade (sincronizar cliente, produto, pedido,
+    estoque e dinheiro entre bancos/APIs)
+
+Frase âncora:
+  Complexidade boa = domínio rico, bem modularizado, um deploy.
+  Complexidade má  = três deploys + fila + consistência eventual + 3 logins
+                     + “integração automática” que vira projeto paralelo.
+
+
+====================================================================================================
+3. SUA IDEIA: TRÊS SISTEMAS + INTEGRAÇÃO AUTOMÁTICA
+====================================================================================================
+
+Proposta analisada:
+
+  S1 — Orçamento + cadastro de clientes, produtos e fornecedores
+  S2 — Estoque, produção, vendas e devoluções
+  S3 — Financeiro
+  + Integração automática entre eles
+
+----------------------------------------------------------------------------------------------------
+3.1. O que essa ideia ACERTA (o instinto é bom)
+----------------------------------------------------------------------------------------------------
+
+  • Reduz ansiedade: entrega fatia por fatia
+  • Espelha áreas da empresa (Comercial / Fábrica / Financeiro)
+  • Casa com a ordem do cronograma da proposta (M2 comercial → M3 estoque
+    → M4 fiscal/financeiro)
+  • Evita “big bang” de escrever tudo antes de ver valor na tela
+
+Ou seja: a DIVISÃO MENTAL e a DIVISÃO DE ENTREGA estão corretas.
+
+----------------------------------------------------------------------------------------------------
+3.2. O que essa ideia ERRA se virar três sistemas DEPLOYADOS
+----------------------------------------------------------------------------------------------------
+
+  Para o porte da RLP, três sistemas físicos geram custo que não aparece
+  no PowerPoint:
+
+  1) CADASTRO DUPLICADO
+     Cliente/produto em S1 e de novo em S2/S3 — ou um “master data” à parte
+     (quarto sistema).
+
+  2) PEDIDO É O MESTRE
+     No domínio RLP, PED amarra produção, estoque, NF, título e cobrança.
+     Se S1 gera orçamento, S2 “venda” e S3 “título”, alguém precisa ser
+     dono da verdade. Sem um agregado único, nasce pedído paralelo.
+
+  3) TRANSAÇÃO DE NEGÓCIO CRUZADA
+     Aceite do orçamento → pedido → reserva/explosão de material → crédito.
+     Em monólito: uma transação (ou saga simples interna).
+     Em 3 sistemas: fila, retry, inconsistência (“aceito no comercial,
+     estoque não sabe, financeiro cobrou errado”).
+
+  4) AUTH, AUDITORIA, MULTI-EMPRESA × 3
+     Login, perfis, empresa_id, soft-delete, estorno — triplicam.
+
+  5) DOCKER / AWS × 3
+     3 APIs, 3 bancos (ou schema war), 3 pipelines, 3 monitoramentos.
+     Na AWS enxuta (Cenário D da documentação) isso sobe custo e risco
+     sem ganho de escala (não há 100 mil users).
+
+  6) “INTEGRAÇÃO AUTOMÁTICA” NÃO É GRÁTIS
+     Ela É o projeto mais difícil — e aparece exatamente quando você
+     achou que tinha simplificado.
+
+  7) DESALINHAMENTO COM O QUE JÁ FOI DECIDIDO
+     DECISAO_MODELO_DOMINIO… e ARQUITETURA… já fecharam:
+       “Um único ERP. Pedido é o mestre. Sem microsserviços no dia 1.”
+     Três sistemas contradizem a proposta comercial (“um único sistema
+     do orçamento à baixa”).
+
+----------------------------------------------------------------------------------------------------
+3.3. Tabela rápida: monólito modular vs. 3 sistemas
+----------------------------------------------------------------------------------------------------
+
+  Critério                         Monólito modular     3 sistemas + integração
+  -------------------------------  -------------------  ---------------------------
+  Velocidade até 1º valor na tela  ALTA (fatias)        MÉDIA (integração cedo)
+  Consistência ORC→PED→OP→NF→TIT   FORTE (mesmo DB)     FRÁGIL (distribuída)
+  Cadastro único                   NATURAL              Projeto extra
+  Docker local                     1 compose            3 (+ rede + health)
+  Custo AWS (PME)                  BAIXO (Cenário D)    MAIOR sem necessidade
+  Complexidade cognitiva           Módulos no código    Sistemas + contratos
+  Equipe enxuta (1–2 devs)         ADEQUADO             SOFRE
+  Escala futura (10 → 50 users)    Cabe                   Overkill cedo
+  Alinha à proposta RLP            SIM                  NÃO
+  Quando extrair serviço           Depois, se dor real  Desde o dia 1 (cedo demais)
+
+Veredito da tabela: a divisão em TRES fatias COMPENSA; a divisão em TRES
+sistemas NÃO COMPENSA neste momento.
+
+
+====================================================================================================
+4. RECOMENDAÇÃO OFICIAL (MELHOR FORMA)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+4.1. Decisão
+----------------------------------------------------------------------------------------------------
+
+  CONSTRUIR UM ÚNICO SISTEMA (ERP RLP) em estilo MONÓLITO MODULAR.
+
+  Por fora (para você e para o cliente):
+    → Um produto, um login, um banco, um Docker Compose, um deploy AWS.
+
+  Por dentro (para o código não virar massa):
+    → Módulos delimitados (bounded contexts M01–M11), pastas claras,
+      regras que não vazam entre áreas.
+
+  Por entrega (para não afogar na complexidade):
+    → Três FATIAS VERDES alinhadas à sua intuição — mas no MESMO codebase.
+
+----------------------------------------------------------------------------------------------------
+4.2. As três fatias (entrega profissional SEM três sistemas)
+----------------------------------------------------------------------------------------------------
+
+  FATIA A — “Sistema de Orçamento” (mas é módulo Comercial + Cadastros)
+    Escopo:
+      • PAR (clientes / fornecedores / prospect)
+      • Produtos (compra e venda, NCM, unidades)
+      • Orçamento (motor corrigido do 29) + link de aceite → PED
+      • Limite de crédito (consulta; alteração só Financeiro, mesmo que
+        a tela financeira ainda seja mínima)
+    Origem do melhor:
+      • UX/modelo cadastro ← 28
+      • Motor + fixtures ← 29 (com correção de cálculo)
+      • Domínio ORC/PED ← 32
+    Critério de pronto (demo M2):
+      Orçamento aceito vira PEDIDO travado. Cadastros usáveis.
+
+  FATIA B — “Estoque, produção, vendas e devoluções”
+    Escopo:
+      • OP/OS a partir do PED
+      • Movimentação estoque (m² / m linear / sobra/retalho)
+      • Conclusão libera faturamento
+      • Devolução/RMA: só o mínimo da Fase 1 se couber; senão Fase 2
+        (a proposta já coloca pós-venda completo na Fase 2)
+    Origem do melhor:
+      • Conversões e XML entrada / saldos ← 31
+      • Regras OP/OS/sobra ← 32
+    Critério de pronto (demo M3):
+      Pedido liberado → OP → baixa MP → PA/conclusão.
+
+  FATIA C — “Financeiro + fiscal operacional”
+    Escopo:
+      • NF-e via Focus (adapter)
+      • TIT ≠ NF, COB (boleto/PIX), ENT, BX
+      • Exportação para contador
+    Origem do melhor:
+      • Ideas focus-nfe / banco-inter ← 28
+      • Contas a pagar / baixas práticas ← 31 (como referência UX)
+      • Cadeia fiscal/financeira ← 32
+    Critério de pronto (demo M4):
+      Fluxo feliz: NF → cobrança → entrega → baixa.
+
+Importante:
+  Fatia A, B e C NÃO são repositórios/sistemas separados.
+  São marcos de merge no MESMO repositório, mesmo banco, mesmo Compose.
+
+----------------------------------------------------------------------------------------------------
+4.3. O que NÃO fazer agora
+----------------------------------------------------------------------------------------------------
+
+  [ ] Três repos / três APIs / três bancos “integrados por webhook”
+  [ ] Reescrever o domínio (já está excelente)
+  [ ] Começar pela AWS antes do fluxo local fechar
+  [ ] Escopo Fase 2 (WhatsApp oficial, RMA completo, cotação avançada…)
+      antes do go-live da Fase 1
+  [ ] Copiar cegamente 28+29+31 e “colar” — reaproveitar só o ouro
+
+
+====================================================================================================
+5. COMO REAPROVEITAR SEM VIRAR FRANKENSTEIN
+====================================================================================================
+
+Princípio: EXTRAIR IDEIAS E REGRAS — não juntar três codebases.
+
+  De 28  → referência de cadastro PAR/produto; estrutura de packages
+           (pricing / Focus / Inter); docker-compose como ponto de partida.
+  De 29  → engine de cálculo + testes/fixtures; documentos R1–R20;
+           UI de orçamento como inspiração. PRIORIDADE: fechar % de
+           acerto dos cálculos contra fixtures oficiais.
+  De 31  → lógica m²↔metro linear; parser/aceite NF-e entrada; telas de
+           saldo e contas a pagar como referência operacional.
+  De 32  → CONTRATOS (linguagem, estados, invariants). Código novo segue
+           o guia e o ADR — não o inverso.
+
+Ordem prática de construção (alinha ao GUIA_PASSO_A_PASSO…):
+
+  0. Fundação ........ auth, empresa_id, auditoria, Docker Compose, CI mínimo
+  1. Cadastros ....... PAR + produtos (padrão bom do 28, regras do 32)
+  2. Comercial ....... motor 29 corrigido + ORC → aceite → PED
+  3. Estoque/produção . OP/OS + MOV (idéias do 31 + domínio 32)
+  4. Fiscal/financeiro . Focus + TIT/COB/ENT/BX
+  5. Homologação ...... treino, piloto, virada (saldos, sem histórico completo)
+
+
+====================================================================================================
+6. DOCKER LOCAL → AWS (SEM OVERENGINEERING)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+6.1. Local (obrigatório primeiro)
+----------------------------------------------------------------------------------------------------
+
+  Um docker-compose com, no mínimo:
+    • app (API + ou SPA estática atrás do mesmo proxy)
+    • worker (filas: e-mail, Focus, webhook banco) — pode ser o mesmo
+      binário com outro comando
+    • db (PostgreSQL ou MySQL — escolha UMA stack e mantenha; o guia
+      cita Laravel/MySQL; os protótipos usam FastAPI/Postgres/Next —
+      decidir na fundação e não oscilar)
+    • redis (fila/cache leve) se jobs forem necessários
+
+  Meta local:
+    docker compose up --build
+    → login → ORC → PED → OP → NF homolog → TIT → COB sandbox → BX
+
+  Se isso não fecha no laptop, NÃO sobe para AWS.
+
+----------------------------------------------------------------------------------------------------
+6.2. AWS (visão; Cenário D enxuto — já dimensionado na documentação)
+----------------------------------------------------------------------------------------------------
+
+  Alvo: ≤10 users, ≈200 NF/mês, custo sob controle (~centenas de R$/mês,
+  não “enterprise”).
+
+  Forma sensata:
+    • 1× EC2 (Graviton) ou equivalente pequeno com Docker Compose / compose
+      production (mesmo artefato do local)
+    • RDS ou Postgres/MySQL na mesma instância no dia 1 (só migrar DB
+      gerenciado se backup/HA virar dor real)
+    • Reverse proxy + TLS (nginx/Caddy)
+    • Secrets fora do git
+    • Backup automatizado + alarme de custo
+
+  Evitar no dia 1:
+    EKS, Aurora Multi-AZ, NAT Gateway caro, ALB “porque sim”,
+    microsserviços em Fargate para 10 usuários.
+
+  Contrato mental:
+    Local Compose ≈ produção Compose (mesmos serviços, envs diferentes).
+    AWS é infra, não redesenho de arquitetura.
+
+
+====================================================================================================
+7. COMPENSA OU NÃO? — RESPOSTA DIRETA
+====================================================================================================
+
+  Pergunta: “Dividir em três sistemas com integração automática compensa?”
+
+  Resposta:
+    • Como TRÊS PRODUTOS / TRÊS DEPLOYS .............. NÃO. Aumenta
+      complexidade, custo AWS e risco de inconsistência sem ganho.
+    • Como TRÊS FATIAS DE ENTREGA no mesmo ERP ...... SIM. É a forma
+      profissional e alinhada à proposta e ao domínio já fechado.
+
+  Melhor forma (resumo operacional):
+
+    1) Um repositório novo (“ERP RLP produção”), monólito modular.
+    2) Domínio canônico = trigger/32 (não reabrir).
+    3) Reaproveitar o ouro de 28/29/31 (cadastro, motor+testes, estoque XML).
+    4) Entregar Fatia A → B → C com demos M2/M3/M4.
+    5) Docker Compose local primeiro; AWS só com fluxo feliz rodando.
+    6) Extrair serviço separado somente se aparecer dor mensurável
+       (hoje: quase impossível com este volume).
+
+  Tradução emocional (importante):
+    Você não precisa “carregar o ERP inteiro na cabeça”.
+    Precisa carregar SÓ a fatia da sprint — sabendo que PED é o mestre
+    e que as outras fatias vão pluguar no mesmo produto.
+
+
+====================================================================================================
+8. PLANO DE 30 / 60 / 90 DIAS (ORIENTATIVO, EQUIPE ENXUTA)
+====================================================================================================
+
+  Dias 1–30 (Fatia A começando)
+    [ ] Repo único + Compose + auth + empresa_id
+    [ ] Cadastros PAR/produto (padrão 28 + regras 32)
+    [ ] Portar/corrigir motor 29 até passar fixtures oficiais
+    [ ] ORC básico + aceite → PED
+    Demo: M2 parcial/completo
+
+  Dias 31–60 (Fatia B)
+    [ ] OP/OS a partir do PED
+    [ ] Estoque com conversões (idéias 31) + sobra/retalho
+    [ ] Conclusão libera faturamento
+    Demo: M3
+
+  Dias 61–90+ (Fatia C + endurecimento)
+    [ ] Focus NF-e homolog → produção
+    [ ] TIT / COB / ENT / BX
+    [ ] Export contador + treino + virada
+    Demo: M4 → go-live (M5 na proposta: 4–5 meses no total — este
+    bloco de 90 dias é aceleração técnica; calendário comercial da
+    proposta continua válido se houver espera de acessos/contadores)
+
+
+====================================================================================================
+9. CHECKLIST DE DECISÃO (ASSINATURA MENTAL)
+====================================================================================================
+
+Antes de escrever a primeira linha do “sistema de verdade”, confirme:
+
+  [x] Um único ERP (não três produtos)
+  [x] Módulos internos = Orçamento | Operação | Financeiro
+  [x] Entrega em fatias A → B → C
+  [x] Domínio trigger/32 é lei; protótipos são doadores de código
+  [x] Cálculo do 29 precisa fechar fixtures ANTES de ir longe na UI
+  [x] Docker local = contrato de runtime; AWS depois
+  [ ] Escolher UMA stack de implementação e não misturar 28+29+31
+      no mesmo deploy (fundação = decisão de stack; resto é adaptação)
+
+Se algum item virar “três sistemas mesmo assim”, releia a seção 3.2:
+você estará trocando clareza de entrega por complexidade de integração.
+
+
+====================================================================================================
+10. CONCLUSÃO
+====================================================================================================
+
+Sua leitura do caminho está correta:
+  28 mostrou cadastros; 29 elevou o orçamento; 31 deu forma ao estoque;
+  32 fechou o domínio do sistema real.
+
+Sua intuição de “dividir para entregar” também está correta —
+mas a divisão certa é por MÓDULO E POR MARCO, não por SISTEMA DEPLOYADO.
+
+Compensa:
+  ERP único · monólito modular · fatias A/B/C · Docker → AWS enxuta
+  · ouro de 28/29/31 · lei de 32.
+
+Não compensa (agora):
+  Três sistemas + integração automática como arquitetura do dia 1.
+
+Próximo passo recomendado (ação única):
+  Abrir o repositório de produção, fixar a stack na fundação, e começar
+  só a Fatia A — sem abrir outro protótipo paralelo.
+
+====================================================================================================
+FIM DO DOCUMENTO
+====================================================================================================

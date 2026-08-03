@@ -1,0 +1,142 @@
+====================================================================================================
+CONCLUSÃO DA PRODUÇÃO — ENCERRAMENTO DE OP/OS E LIBERAÇÃO PARA FATURAR/ENTREGAR
+Empresa: RLP ETIQUETAS AUTO ADESIVOS LTDA (MG) — Simples Nacional (migração p/ Lucro Real)
+Base: PRODUCAO_OPERACIONAL_GERENCIAL.txt + ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt +
+      TRATAMENTO_SOBRA_BOBINA_RETALHO.txt + GERACAO_PEDIDO.txt + ORDEM_SERVICO.txt +
+      GORDURA_ORCAMENTO_COMPENSA_OU_NAO.txt + ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+Gerado em: 01/08/2026
+====================================================================================================
+
+Este documento define o momento em que a OP (ou OS) DEIXA DE SER CHÃO DE
+FÁBRICA e passa a alimentar faturamento, expedição e análise de custo.
+Concluir não é "marcar pronto no zap": é um evento de sistema com checklist.
+
+----------------------------------------------------------------------------------------------------
+1. O QUE SIGNIFICA "CONCLUÍDA"
+----------------------------------------------------------------------------------------------------
+
+  OP CONCLUIDA =
+    * quantidade boa apontada e liberada (CQ mínimo ok)
+    * sobras/refugos/aparas lançados
+    * insumos totais batidos (sem requisição aberta órfã)
+    * MOV ENTRADA_PA gerado (produção própria)
+    * custo real calculado e gravado na OP
+    * item do PED atualizado para PRODUZIDO (ou parcial)
+
+  OS CONCLUIDA =
+    * escopo do serviço executado e apontado
+    * insumos próprios baixados / material de terceiro conciliado
+    * item do PED apto a faturar/entregar
+
+Conclusão PARCIAL: permite faturar/entregar parte da quantidade do PED
+quando a empresa trabalha com entregas fracionadas (política comercial).
+
+----------------------------------------------------------------------------------------------------
+2. CHECKLIST OBRIGATÓRIO ANTES DE ENCERRAR (OP)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Qtde boa + refugo + (se couber) retrabalho informados
+  [ ] Toda bobina requisitada com destino: consumida / sobra / perda / apara
+  [ ] Lotes usados registrados (rastreio)
+  [ ] Faca/clichê devolvidos ao ferramental ou baixa se consumidos
+  [ ] Checklist qualidade: medida, impressão, refile, embálage, etiq/rolo
+  [ ] Embalagem (tubete/caixa) conferida com o pedido
+  [ ] Operador + responsável (se alçada) confirmam
+
+Falha em item crítico (ex.: sobra não lançada em substrato) → bloqueio.
+Override só com perfil gerência + motivo (auditoria).
+
+----------------------------------------------------------------------------------------------------
+3. EVENTOS AUTOMÁTICOS NA CONCLUSÃO
+----------------------------------------------------------------------------------------------------
+
+  1) Grava data/hora fim real e usuario_id
+  2) Gera ENTRADA_PA (qtde liberada) — ESTOQUE_FLUXO_...
+  3) Fecha empenhos residuais (libera ou consome)
+  4) Calcula custo real do PA:
+       Σ (consumos valorizados a custo médio)
+       + perdas apontadas
+       − (não inclui apara vendida como sucata à parte)
+  5) Atualiza item do PED (qtde produzida / saldo a produzir)
+  6) Se item completo: status item PRODUZIDO; se todos itens:
+     PED → PRODUZIDO (ou mantém EM_PRODUCAO se ainda houver OS/OP)
+  7) Dispara evento: apto a FATURAR (política: fatura antes ou depois
+     da expedição — ver FATURAMENTO_GERACAO_COBRANCA.txt)
+  8) Disponibiliza na fila de EXPEDIÇÃO
+  9) (Gerencial) grava desvio custo real × orçado para o relatório
+     de gordura/pós-produção (GORDURA_ORCAMENTO_... seção 4.5)
+
+----------------------------------------------------------------------------------------------------
+4. QUANTIDADE: TOLERÂNCIA +/-20%
+----------------------------------------------------------------------------------------------------
+
+A proposta comercial já prevê tolerância (GERACAO_ORCAMENTO).
+Na conclusão:
+
+  * Qtde boa dentro da faixa → conclui normal; faturar a qtde real
+    (política: faturar produzido dentro da tolerância, não o pedido
+    "cheio" fictício — confirmar com comercial/contador)
+  * Abaixo da faixa inferior → não encerra como completo; comercial
+    trata com cliente (reposição ou aceite)
+  * Acima da faixa → excedente: negociar, estocar como PA daquele PED,
+    ou refugo controlado — nunca "levar para casa"
+
+ERP deve alertar desvio fora da tolerância antes do ok final.
+
+----------------------------------------------------------------------------------------------------
+5. RETRABALHO E REABERTURA
+----------------------------------------------------------------------------------------------------
+
+  * CQ reprova: OP volta para EM_PRODUCAO / RETRABALHO; PA não entra
+    (ou entra bloqueado em endereço QUARENTENA)
+  * Reabrir OP já concluída: só alçada + motivo; estorna ENTRADA_PA
+    se necessário; gera nova trilha (não apaga histórico)
+
+----------------------------------------------------------------------------------------------------
+6. CONCLUSÃO DA OS (espelho leve)
+----------------------------------------------------------------------------------------------------
+
+  [ ] Serviço executado na qtde/escopo
+  [ ] Material do cliente: qtde devolvida/processada conciliada
+  [ ] Insumos próprios ok
+  [ ] Libera item do PED para faturamento (NFS-e/NF-e conforme caso)
+
+Sem ENTRADA_PA próprio na maioria dos SVC; o "produto" é a conclusão
+do serviço no pedido.
+
+----------------------------------------------------------------------------------------------------
+7. PAPÉIS
+----------------------------------------------------------------------------------------------------
+
+  PRODUCAO ........ aponta e solicita conclusão
+  SUPERVISAO ...... (perfil PRODUCAO elevado ou gerência) homologa CQ
+  EXPEDICAO ....... só enxerga após conclusão liberada
+  FISCAL .......... fatura a partir do liberado
+  COMERCIAL ....... trata exceção de tolerância/cliente
+
+----------------------------------------------------------------------------------------------------
+8. INDICADORES NO ATO DA CONCLUSÃO
+----------------------------------------------------------------------------------------------------
+
+Registrar para o painel único (não planilha nova):
+  * lead time real (liberação PED → conclusão)
+  * % perda
+  * setup vs tempo produção (se houver tempos)
+  * custo real / custo orçado
+
+----------------------------------------------------------------------------------------------------
+9. CHECKLIST DE ACEITE DO MÓDULO
+----------------------------------------------------------------------------------------------------
+
+  [ ] Conclusão bloqueada sem destino de todas as bobinas
+  [ ] ENTRADA_PA automática com custo
+  [ ] Atualização do PED e fila de expedição
+  [ ] Alerta de tolerância +/-20%
+  [ ] Quarentena/retrabalho sem faturar
+  [ ] Auditoria de override
+  [ ] OS com checklist próprio sem duplicar cadastros
+
+====================================================================================================
+Fim — CONCLUSAO_PRODUCAO.txt
+Concluir = estoque PA + custo + pedido apto a faturar/entregar — em um clique auditado.
+====================================================================================================

@@ -1,0 +1,223 @@
+====================================================================================================
+CASOS DE USO — M03 PRODUÇÃO / PCP — ERP RLP
+Documento: CASOS_USO_M03_PRODUCAO.txt
+Versão ......: 1.0
+Status ......: BASELINE
+Gerado em ...: 03/08/2026
+Módulo ......: M03 — Produção / PCP (OP, OS, apontamento, CQ, BEM)
+Índice ......: CASOS_USO_INDICE_ERP_RLP.txt
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Contexto:
+  Execução industrial e de serviço a partir do PED liberado. Produção
+  consulta o PED — não cria “sistema de produção” paralelo.
+
+Atores: PRODUCAO (primário); COMERCIAL/FINANCEIRO (pré-condição liberação);
+        FISCAL (amostra/NF — fase 2)
+
+Invariants:
+  • OP nasce de item PRODUCAO; OS de item SERVICO.
+  • PED deve estar LIBERADO (crédito OK ou sinal baixado).
+  • Estados: ABERTA → EM_ANDAMENTO → CONCLUIDA | CANCELADA.
+  • Conclusão libera PA / encerra item e habilita política de faturamento.
+
+====================================================================================================
+UC-PRD-001 — Abrir ordem de produção (OP) a partir do PED
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições:
+  1. PED = LIBERADO (ou equivalente que autorize produção).
+  2. Item do PED tipo PRODUCAO sem OP ativa.
+  3. empresa_id com estoque/venda ativos.
+
+Pós-condições: OP-AAAA-NNNNN ABERTA vinculada ao item do PED; PED pode ir a EM_PRODUCAO.
+
+Garantia: Não abrir OP para PED em AGUARDA_CREDITO / AGUARDA_ADIANTAMENTO.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. PRODUCAO seleciona PED liberado e item PRODUCAO.
+  2. Sistema valida crédito/sinal e tipagem do item.
+  3. Gera OP com especificação snapshot do PED (não reedita preço).
+  4. Disponibiliza OP para apontamento e consumo de estoque (UC-EST-001…).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Pedido não liberado
+    2a. Bloqueio com motivo (crédito/sinal).
+  EX2 — Falta de material crítica
+    3a. OP pode abrir em estado aguardando material (ver UC-CPR-005) conforme política.
+
+Regras: RN-04, RN-05; RF-PRD-01; CA-02
+Trace: PRODUCAO_OPERACIONAL_GERENCIAL.txt · GERACAO_PEDIDO.txt
+Aceite: Tentativa de OP com PED aguardando crédito é rejeitada.
+
+====================================================================================================
+UC-PRD-002 — Abrir ordem de serviço (OS) a partir do PED
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições: PED liberado; item SERVICO sem OS ativa.
+
+Pós-condições: OS-AAAA-NNNNN ABERTA; conclusão encerrará o item serviço.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. PRODUCAO seleciona item SERVICO do PED liberado.
+  2. Sistema gera OS com spec/snapshot do PED.
+  3. OS segue apontamento (UC-PRD-003) e conclusão (UC-PRD-004).
+
+Regras: RF-PRD-02
+Trace: ORDEM_SERVICO.txt
+Aceite: OS só nasce de item SERVICO; item PRODUCAO gera OP, não OS.
+
+====================================================================================================
+UC-PRD-003 — Apontar produção / progresso da OP ou OS
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições: OP/OS ABERTA ou EM_ANDAMENTO.
+
+Pós-condições: Apontamentos gravados; estado EM_ANDAMENTO; trilha de quem apontou.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Operador seleciona OP/OS.
+  2. Informa quantidade/tempo/máquina/turno conforme formulário.
+  3. Sistema valida qtde decimal (4 casas estoque / regras oficiais).
+  4. Persiste apontamento; avança estado para EM_ANDAMENTO se estava ABERTA.
+
+--------------------------------------------------------------------------------
+Fluxos alternativos
+--------------------------------------------------------------------------------
+  AL1 — Apontamento parcial múltiplo
+    2a. Vários apontamentos até atingir qtde do pedido/tolerância.
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — OP cancelada
+    1a. Apontamento recusado.
+
+Regras: RF-PRD-03; RNF-40
+Trace: PRODUCAO_OPERACIONAL_GERENCIAL.txt · CONCLUSAO_PRODUCAO.txt
+Aceite: Histórico de apontamentos consultável por OP.
+
+====================================================================================================
+UC-PRD-004 — Concluir OP / OS e liberar PA / item
+====================================================================================================
+
+Prioridade ...: M | Fase: 1
+Ator primário : PRODUCAO
+
+Pré-condições:
+  1. OP/OS EM_ANDAMENTO (ou ABERTA se política permitir conclusão direta).
+  2. Para OP: fluxo de estoque coerente (consumo/sobra/PA — UC-EST-001…003).
+
+Pós-condições:
+  1. OP/OS → CONCLUIDA.
+  2. PA disponível / item serviço encerrado.
+  3. PED elegível a faturamento conforme política (UC-FIS-001).
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. PRODUCAO solicita conclusão.
+  2. Sistema valida apontamentos e movimentos obrigatórios da OP.
+  3. Fecha OP/OS; emite evento OpConcluida / OsConcluida.
+  4. Habilita faturamento do item (parcial ou total).
+
+--------------------------------------------------------------------------------
+Fluxos de exceção
+--------------------------------------------------------------------------------
+  EX1 — Movimentos de estoque incompletos na OP
+    2a. Bloqueia conclusão; lista MOV faltantes.
+  EX2 — Cancelamento
+    1a. OP/OS → CANCELADA com motivo; não libera faturamento do item cancelado.
+
+Regras: RF-PRD-03; RF-FAT-03; CA-03
+Trace: CONCLUSAO_PRODUCAO.txt · ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt
+Aceite: Após conclusão OP, PA aparece no estoque e item fica faturável.
+
+====================================================================================================
+UC-PRD-005 — Registrar amostragem / qualidade / certificado
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO (CQ)
+
+Pré-condições: OP em andamento ou concluindo; política de amostragem ativa.
+
+Pós-condições: Amostra/certificado/contra-prova registrados e vinculados à OP/PED.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. CQ registra amostragem (qtde, critério, resultado).
+  2. Opcionalmente anexa certificado / contra-prova (arquivo).
+  3. Se reprovado → aciona tratamento (retrabalho / RMA interno).
+
+Regras: RF-PRD-07
+Trace: QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt
+Aceite: OP com CQ reprovado não conclui “limpo” sem decisão registrada.
+
+====================================================================================================
+UC-PRD-006 — Planejar manutenção preventiva (BEM)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : PRODUCAO / ADMIN operacional
+
+Pré-condições: BEM (máquina) cadastrado no patrimônio.
+
+Pós-condições: Plano preventivo com datas; OS de manutenção gerada/registrada.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator define plano no BEM- (periodicidade, checklist).
+  2. Sistema alerta vencimentos.
+  3. Equipe registra execução da manutenção.
+
+Regras: RF-PRD-06
+Trace: MANUTENCAO_PREVENTIVA_MAQUINAS.txt · PATRIMONIO_CONTROLE.txt
+Aceite: Máquina com preventiva vencida gera alerta visível no PCP.
+
+====================================================================================================
+UC-PRD-007 — Tratar amostra / protótipo (custo e NF)
+====================================================================================================
+
+Prioridade ...: S | Fase: 2
+Ator primário : COMERCIAL / PRODUCAO / FISCAL
+
+Pré-condições: Política de amostra homologada com contador (CFOP/custo).
+
+Pós-condições: Amostra rastreada; custo e eventual NF conforme política.
+
+--------------------------------------------------------------------------------
+Fluxo principal
+--------------------------------------------------------------------------------
+  1. Ator registra pedido de amostra/protótipo amarrado a PAR/ORC.
+  2. PRODUCAO executa; estoque/custo movimentados conforme regra.
+  3. FISCAL emite NF de amostra se exigido (UC-FIS-006).
+
+Regras: RF-PRD-08
+Trace: AMOSTRAS_PROTOTIPOS.txt
+Aceite: Amostra não “some” estoque sem documento; NF só com CFOP correto.
+
+====================================================================================================
+Fim — CASOS_USO_M03_PRODUCAO.txt
+7 casos de uso | Módulo M03 Produção / PCP
+====================================================================================================

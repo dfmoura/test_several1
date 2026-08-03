@@ -1,0 +1,642 @@
+====================================================================================================
+ESPECIFICAÇÃO DE SOFTWARE (SRS) — ERP RLP COMPLETO
+Documento: ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+Versão ......: 1.0
+Status ......: BASELINE DE ESPECIFICAÇÃO (pronto para implementação)
+Gerado em ...: 03/08/2026
+Tipo ........: Software Requirements Specification (funcional + não-funcional)
+Idioma ......: Português (Brasil)
+====================================================================================================
+
+Empresa .....: RLP ETIQUETAS AUTO ADESIVOS LTDA
+UF / Regime .: Minas Gerais — Simples Nacional (migração planejada para Lucro Real)
+CNPJ principal (EMP-00001): 01.423.183/0001-10
+CNPJ secundário (EMP-00002): 58.820.046/0001-37  [venda desligada até escopo fechado]
+
+Volume oficial (âncora de engenharia e sizing):
+  • Usuários simultâneos no ERP .......... ≤ 10
+  • Notas fiscais / mês (fluxo completo) . ≈ 200
+  • App INTERNÁ (não marketplace público)
+
+Fontes normativas do domínio (detalhe operacional):
+  MANUAL_UNICO_ERP_RLP.txt (DOC-01 … DOC-61)
+  INDICE_FLUXO_OPERACIONAL.txt
+  ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt
+  SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt
+  ESTIMATIVA_CUSTO_AWS_MENSAL.txt
+  LACUNAS_PENDENCIAS_SISTEMA.txt
+  PARAMETROS_EMPRESA_OFICIAIS.txt
+  + TXTs unitários da pasta trigger/32
+
+Propósito deste documento:
+  Consolidar, em formato de ESPECIFICAÇÃO DE SOFTWARE, o que o ERP deve fazer,
+  sob quais restrições, com quais módulos, papéis, integrações e critérios de
+  aceite — sem substituir os TXTs de processo que detalham regras linha a linha.
+
+Como usar:
+  1) Direção / product owner: seções 0–4 e 12 (escopo e aceite).
+  2) Engenharia: seções 5–11 (requisitos, dados, arquitetura, qualidade).
+  3) Implementação: para cada RF, abrir o TXT-fonte indicado em "Trace".
+
+====================================================================================================
+0. REGRAS DE OURO (NÃO NEGOCIÁVEIS)
+====================================================================================================
+
+  R0.1  Um único ERP. Pedido (PED) é o documento-mestre operacional.
+  R0.2  Produção, estoque, NF, título, cobrança, entrega e baixa vivem no
+        mesmo sistema — não viram satélites desconectados nem planilha.
+  R0.3  Contábil, fiscal e folha OFICIAIS ficam com o CONTADOR.
+        O ERP alimenta com disciplina operacional; NÃO fecha apuração fiscal.
+  R0.4  Documento não se apaga — se estorna/compensa com trilha auditável.
+  R0.5  Duas camadas de identidade: id BIGINT (motor) + código legível (negócio).
+  R0.6  Integrações por adapter (Focus NFe, BankProvider, WhatsApp Meta Cloud API).
+  R0.7  Multi-empresa por empresa_id (default EMP-00001). Credenciais isoladas.
+  R0.8  LAI / livro paralelo / “caixa 2” NÃO entra no ERP
+        (DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt).
+  R0.9  WhatsApp oficial somente via API Meta (nunca conta pessoal / Baileys).
+  R0.10 Tudo que mexe em dinheiro ou NF é IDEMPOTENTE (webhook, job, retry).
+  R0.11 Proibido ponto flutuante binário para dinheiro, qtde, alíquota e custo.
+  R0.12 Exceção (RMA/DEV) não apaga o fluxo feliz — complementa com estorno.
+
+====================================================================================================
+1. VISÃO DO PRODUTO
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+1.1. PROBLEMA
+----------------------------------------------------------------------------------------------------
+
+  A RLP opera indústria de etiquetas autoadesivas com fluxo comercial longo
+  (orçamento → produção → NF → cobrança → entrega → baixa), regras fiscais de MG,
+  estoque de bobinas/materiais com sobra/retalho, e equipe enxuta. Operar isso em
+  planilha + WhatsApp pessoal + emissor fiscal isolado gera:
+    • perda de trilha (quem aprovou, o que foi produzido, o que foi cobrado);
+    • risco de crédito e cobrança duplicada;
+    • dificuldade de migrar Simples → Lucro Real com dados coerentes;
+    • custo operacional alto e dependência de conhecimento tácito.
+
+----------------------------------------------------------------------------------------------------
+1.2. SOLUÇÃO
+----------------------------------------------------------------------------------------------------
+
+  ERP monólito modular, web, multi-empresa controlada, cobrindo a cadeia
+  operacional completa ORC→caixa + exceções (RMA/DEV/compras/remessa) +
+  visão gerencial interna + export disciplinado ao contador.
+
+----------------------------------------------------------------------------------------------------
+1.3. ATORES
+----------------------------------------------------------------------------------------------------
+
+  Internos: ADMIN, FISCAL, FINANCEIRO, COMERCIAL, PRODUCAO, COMPRAS,
+            EXPEDICAO (opcional), CONSULTA.
+  Externos: Cliente (link de aprovação de orçamento), Contador (export/consulta),
+            Focus NFe, Banco (Inter sandbox / Sicoob prod), Meta WhatsApp,
+            Transportadora (fase 2).
+
+----------------------------------------------------------------------------------------------------
+1.4. FORA DE ESCOPO (EXPLÍCITO)
+----------------------------------------------------------------------------------------------------
+
+  • Apuração/fechamento fiscal oficial (SPED/obrigação principal).
+  • Folha oficial completa (só pagamento gerencial + import/export).
+  • LAI / livro auxiliar / caixa 2 dentro do ERP.
+  • Ativação de venda em EMP-00002 sem parecer Contador + Direção.
+  • Microsserviços enterprise / EKS / NAT+ALB+Fargate como padrão dia-1.
+  • CT-e / API transportadora (FRETE Fase 2 — backlog).
+  • Assinatura eletrônica de canhoto (opcional pós go-live).
+
+====================================================================================================
+2. CONTEXTO E DIAGRAMA LÓGICO
+====================================================================================================
+
+  Fluxo feliz:
+
+    ORC → (link) aceite → PED
+             │
+             ├─ crédito/sinal ok → LIBERADO
+             │
+             ├─ item PRODUCAO → OP → estoque MP→sobra→PA → conclusão
+             ├─ item SERVICO  → OS → conclusão
+             └─ item REVENDA  → separação
+                      │
+                      ▼
+                NF (Focus) + TIT → COB (banco) → ENT → confirmação
+                      │                              │
+                      ▼                              ▼
+                     BX ← webhook/extrato/CNAB     (MSG WhatsApp status)
+
+    Exceção: RMA → CQ → DEV / reposição / crédito
+    Paralelo: COT/OC; REM; COM; BEM preventivo; inventário
+
+  Arquitetura lógica:
+
+                    Clientes (HTTPS) — Web + mobile leve
+                           │
+                    API ERP (auth, RBAC, empresa_id)
+                           │
+           ┌───────────────┼───────────────┐
+           │               │               │
+        Workers         PostgreSQL      Object Storage
+        (filas+DLQ)     (+ locks)       (XML/PDF/anexos)
+           │
+     Focus │ BankProvider │ Meta WhatsApp │ e-mail (SES)
+
+====================================================================================================
+3. MÓDULOS DO SISTEMA (BOUNDED CONTEXTS)
+====================================================================================================
+
+  M01 Cadastros .......... PAR, produtos MP/EMB/REV/PA/SVC, usuários, perfis, parâmetros
+  M02 Comercial .......... ORC (versão, cenário, gordura, crédito, aceite) → PED
+  M03 Produção / PCP ..... OP, OS, apontamento, conclusão, manutenção BEM-
+  M04 Estoque ............ MOV, inventário, sobra/retalho, industrialização REM-
+  M05 Fiscal ............. NF-e/NFS-e via Focus; metadados; sem fechamento oficial
+  M06 Financeiro ......... TIT, COB, BX, aging, crédito, naturezas 1–5, contas
+  M07 Compras ............ COT, OC, urgência, entrada XML
+  M08 Pós-venda .......... RMA, DEV, garantia, amostra/protótipo
+  M09 Integrações ........ BankProvider, WhatsApp MSG-, Focus, jobs de cadência API
+  M10 Gerencial .......... DRE interno, patrimônio, RH pagamento, export contador
+  M11 Plataforma ......... auth, auditoria, filas, arquivos, multi-empresa, observabilidade
+
+  Regra de dependência: módulos apontam para o PED (mestre), não inventam
+  pedido paralelo. Produção consulta PED; não cria “sistema de produção”.
+
+====================================================================================================
+4. REQUISITOS FUNCIONAIS — PLATAFORMA E MULTI-EMPRESA
+====================================================================================================
+
+RF-PLT-01  Autenticação individual por e-mail corporativo; login intransferível.
+           Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+RF-PLT-02  Autorização RBAC por perfil (nunca permissão avulsa “solta” no usuário).
+RF-PLT-03  Todo documento operacional carrega empresa_id; default EMP-00001.
+           Trace: MULTI_EMPRESA_CNPJS_E_LIVROS.txt
+RF-PLT-04  EMP-00002 existe cadastrado com venda/estoque DESLIGADOS por flag até
+           homologação Contador + Direção.
+RF-PLT-05  Auditoria: quem/quando/de→para em criação, alteração, baixa, emissão NF,
+           mudança de parâmetro, liberação de crédito e pagamento.
+RF-PLT-06  Soft-delete / inativação de usuários e cadastros — nunca exclusão física
+           que quebre histórico.
+RF-PLT-07  Parâmetros oficiais versionados; valores não ratificados ficam
+           PENDENTE_RATIFICACAO (PARAMETROS_EMPRESA_OFICIAIS.txt).
+RF-PLT-08  Kill-switch por integração (Focus / Banco / WhatsApp) sem derrubar o ERP.
+RF-PLT-09  Feature flags para virada em fases (estratégia_implantacao_ja.txt).
+
+====================================================================================================
+5. REQUISITOS FUNCIONAIS — CADASTROS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+5.1. PARCEIROS (PAR-)
+----------------------------------------------------------------------------------------------------
+
+RF-CAD-01  Cadastro único de parceiro (cliente, fornecedor, transportadora,
+           colaborador etc. via papéis), código PAR-NNNNN + id BIGINT.
+           Trace: CADASTRO_PARCEIROS.txt
+RF-CAD-02  Identidade fiscal: CNPJ/CPF, IE, indIEDest, endereço; validação de
+           endereço/fornecedor conforme textos de verificação.
+RF-CAD-03  Dados bancários de parceiro só perfil FINANCEIRO (+ alçada);
+           incompatível com liberar pagamento (SoD).
+RF-CAD-04  Prospect sem cadastro fiscal completo pode orçar; só vira PED após
+           cadastro completo (+ sinal se exigido).
+           Trace: ORCAMENTO_PROSPECT_SEM_CADASTRO.txt
+RF-CAD-05  Consultas externas (CNPJ, CEP, etc.) com cadência e cache —
+           APIS_FREE_CONSULTA_CADENCIA.txt.
+
+----------------------------------------------------------------------------------------------------
+5.2. PRODUTOS
+----------------------------------------------------------------------------------------------------
+
+RF-CAD-10  Famílias: compra MP-/EMB-/REV-; venda PA (etiquetas), REV (ribbon/material),
+           SVC (serviço). Trace: CADASTRO_PRODUTOS_COMPRA/VENDA.txt
+RF-CAD-11  SKU com máscara profissional (estoque); NCM, CFOP padrão, CST/CSOSN,
+           unidades e fatores de conversão.
+RF-CAD-12  Conversões de unidade oficiais (m, kg, rolo, un) —
+           CONVERSOES_UNIDADES_MEDIDA.txt.
+RF-CAD-13  Ferramental/faca (FAC-) rastreável ao pedido quando aplicável.
+
+====================================================================================================
+6. REQUISITOS FUNCIONAIS — COMERCIAL E ORÇAMENTO
+====================================================================================================
+
+RF-COM-01  Gerar ORC-AAAA-NNNNN com versionamento; itens com especificação,
+           preço, prazo, condição de pagamento, frete, tolerância.
+           Trace: GERACAO_ORCAMENTO.txt
+RF-COM-02  Motor de imposto no orçamento (estimativa/gross-up) alinhado ao regime;
+           divergência pós-NF analisada, não “escondida”.
+           Trace: VERIFICACAO_IMPOSTO_ORCAMENTO.txt
+RF-COM-03  Flexibilidade/customização com limites e alçadas de desconto.
+           Trace: FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt
+RF-COM-04  Controle de “gordura” comercial transparente ao perfil autorizado.
+           Trace: GORDURA_ORCAMENTO_COMPENSA_OU_NAO.txt
+RF-COM-05  Simulação de cenários sem destruir a versão base.
+           Trace: MOBILIDADE_SIMULACAO_CENARIOS_ORCAMENTO.txt
+RF-COM-06  Aprovação do cliente via LINK (aceite formal). “Combinado no zap”
+           NÃO gera PED. Trace: APROVACAO_ORCAMENTO_CLIENTE.txt
+RF-COM-07  Motor de limite de crédito (CRT-) com liberação financeira;
+           comercial NÃO altera limite. Trace: INCLUSAO_LIBERACAO_LIMITE_CREDITO_CLIENTE.txt
+RF-COM-08  Pedidos recorrentes / lembrete de reposição: geram NOVO ciclo ORC→aceite;
+           lembrete nunca cria PED sozinho.
+           Trace: PEDIDOS_RECORRENTES_LEMBRETE_REPOSICAO.txt
+RF-COM-09  Conversão ORC aprovado → PED: snapshot travado (preço/spec/qtde/prazo/
+           condição). Não recalcular na conversão. Trace: GERACAO_PEDIDO.txt
+RF-COM-10  PED libera produção só com crédito OK ou adiantamento baixado.
+RF-COM-11  Itens do PED tipados: PRODUCAO | SERVICO | REVENDA (roteiam OP/OS/separação).
+
+====================================================================================================
+7. REQUISITOS FUNCIONAIS — PRODUÇÃO, OS E ESTOQUE
+====================================================================================================
+
+RF-PRD-01  OP-AAAA-NNNNN gerada a partir de item PRODUCAO do PED; visão PCP no ERP.
+           Trace: PRODUCAO_OPERACIONAL_GERENCIAL.txt
+RF-PRD-02  OS-AAAA-NNNNN para itens SERVICO.
+           Trace: ORDEM_SERVICO.txt
+RF-PRD-03  Apontamento de produção; conclusão libera PA e fecha OP/OS.
+           Trace: CONCLUSAO_PRODUCAO.txt
+RF-PRD-04  Fluxo de estoque: saída MP → sobra/retalho → retorno PA.
+           Trace: ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt + TRATAMENTO_SOBRA_BOBINA_RETALHO.txt
+RF-PRD-05  Movimentos MOV- com custo médio; inventário INV- e ajuste AJU- com
+           aprovação segregada. Trace: CONTROLE_ESTOQUE_PROFISSIONAL.txt +
+           AJUSTE_ESTOQUE_INVENTARIO.txt
+RF-PRD-06  Manutenção preventiva de máquinas amarrada a BEM-.
+           Trace: MANUTENCAO_PREVENTIVA_MAQUINAS.txt
+RF-PRD-07  Qualidade: amostragem, certificados e contra-prova.
+           Trace: QUALIDADE_AMOSTRAGEM_CERTIFICADOS.txt
+RF-PRD-08  Amostras/protótipos com política de custo e NF conforme contador.
+           Trace: AMOSTRAS_PROTOTIPOS.txt
+RF-PRD-09  Remessa de industrialização externa REM- com prazo e retorno.
+           Trace: INDUSTRIALIZACAO_EXTERNA_REMESSA.txt
+
+====================================================================================================
+8. REQUISITOS FUNCIONAIS — FATURAMENTO, ENTREGA E FINANCEIRO
+====================================================================================================
+
+RF-FAT-01  Emissão NF-e/NFS-e via Focus; ERP guarda série, número, chave 44 e
+           vínculo ped_id. Não inventar numeração SEFAZ.
+           Trace: FATURAMENTO_GERACAO_COBRANCA.txt + MAPA_FATURAMENTO_EXPLICADO.txt
+RF-FAT-02  Documento fiscal ≠ título financeiro, mas nascem juntos no faturamento.
+RF-FAT-03  Política padrão: concluir OP/OS → emitir NF → gerar TIT/COB → expedir
+           (NF antes de sair — parâmetro recomendado SIM).
+RF-FAT-04  Faturamento parcial permitido (entrega fracionada) amarrado ao mesmo PED.
+RF-FAT-05  Adiantamento/sinal gera cobrança vinculada ao PED e libera produção
+           após BX; tratamento fiscal conforme contador.
+RF-FAT-06  ENT- romaneio/entrega + confirmação do cliente (e MSG WhatsApp).
+           Trace: ENTREGA_CONFIRMACAO_CLIENTE.txt
+RF-FAT-07  TIT- é a verdade financeira; COB- é emissão bancária vinculada.
+RF-FAT-08  BX- por webhook/extrato/CNAB com conciliação; ambiguidade → fila humana.
+           Trace: RECEBIMENTO_BAIXA_COBRANCA.txt
+RF-FAT-09  Aging, régua de cobrança (sugestão D-3, D+1, D+7, D+15) via templates
+           oficiais WhatsApp.
+RF-FAT-10  Naturezas gerenciais 1–5 em todo título/lançamento; sem naturezas 9.xx/LAI.
+           Trace: NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt
+RF-FAT-11  Frete: receita×despesa + avaria; transportadora como parceiro.
+           Trace: FRETE_TRANSPORTADORAS.txt
+RF-FAT-12  Comissões COM- no ERP (não planilha / não zap); base FATURADO|RECEBIDO
+           a ratificar. Trace: COMISSOES_VENDEDORES_DETALHADO.txt
+
+====================================================================================================
+9. REQUISITOS FUNCIONAIS — EXCEÇÕES, COMPRAS E PÓS-VENDA
+====================================================================================================
+
+RF-EXC-01  RMA-: reclamação → CQ → decisão (reparo / reposição / crédito / DEV).
+           Trace: POS_VENDA_RMA_GARANTIA.txt
+RF-EXC-02  DEV-: devolução ponta a ponta (fiscal + estoque + financeiro) com trilha.
+           Trace: DEVOLUCAO_VENDA_PONTA_A_PONTA.txt
+RF-EXC-03  Compras: COT- → OC-; fluxo de urgência com alçada; OP parada por falta.
+           Trace: COMPRAS_COTACAO_URGENCIA.txt
+RF-EXC-04  Entrada de XML de compra via Focus; manifestações e conferência.
+RF-EXC-05  Estornos de estoque/financeiro/NF nunca silenciosos — sempre documento
+           compensatório ligado à origem.
+
+====================================================================================================
+10. REQUISITOS FUNCIONAIS — GERENCIAL, RH, PATRIMÔNIO E CONTADOR
+====================================================================================================
+
+RF-GER-01  DRE/caixa interno a partir das naturezas 1–5 (visão gerencial RLP).
+RF-GER-02  Patrimônio BEM- com valor mínimo de capitalização parametrizado.
+           Trace: PATRIMONIO_CONTROLE.txt
+RF-GER-03  RH no ERP = pagamento gerencial + vínculo colaborador; sem fechar eSocial.
+           Trace: RH_PAGAMENTO_GERENCIAL.txt
+RF-GER-04  Pacote mensal de export ao contador + layout de import de folha.
+           Trace: EXPORT_CONTADOR_FOLHA_LAYOUT.txt + CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt
+RF-GER-05  De-para naturezas ERP ↔ plano do contador (homologado).
+RF-GER-06  Acompanhar faturamento acumulado no Simples e preparar migração Lucro Real
+           (dados consistentes; apuração oficial no escritório).
+           Trace: estrategia_implantacao_ja.txt + estudo_tributação.txt
+
+====================================================================================================
+11. REQUISITOS FUNCIONAIS — INTEGRAÇÕES
+====================================================================================================
+
+RF-INT-01  Focus NFe: emissão, consulta, XML, cancelamento/carta correção conforme API;
+           ambientes homolog/prod isolados; cert A1 por empresa_id.
+RF-INT-02  BankProvider (adapter): emitir/consultar/cancelar cobrança, PDF, extrato,
+           saldo, webhook. Prod alvo Sicoob; sandbox Inter; CNAB fallback.
+           Trace: INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt
+RF-INT-03  WhatsApp Business API (Meta Cloud / BSP): templates aprovados para
+           ORC, NF, entrega, cobrança; toda mensagem registra MSG-.
+           Trace: INTEGRACAO_WHATSAPP_BUSINESS_API.txt
+RF-INT-04  Proibido WhatsApp pessoal / bibliotecas não oficiais.
+RF-INT-05  Jobs de consulta a APIs free com cadência, cache e circuit breaker.
+           Trace: APIS_FREE_CONSULTA_CADENCIA.txt
+RF-INT-06  Idempotência obrigatória em emissão NF, COB e BX (chave de correlação /
+           UNIQUE no banco).
+
+====================================================================================================
+12. REQUISITOS NÃO FUNCIONAIS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+12.1. DESEMPENHO E CAPACIDADE
+----------------------------------------------------------------------------------------------------
+
+RNF-01  Dimensionado para ≤10 usuários e ≈200 NF/mês (pico comercial horário útil).
+RNF-02  Operações CRUD típicas < 2 s em rede normal; emissão Focus assíncrona com
+        feedback de status (fila + polling/webhook).
+RNF-03  Rightsizing: preferir compute enxuto (FinOps Cenário D) a elasticidade
+        enterprise sem carga.
+
+----------------------------------------------------------------------------------------------------
+12.2. CONFIABILIDADE E CORREÇÃO
+----------------------------------------------------------------------------------------------------
+
+RNF-10  Disponibilidade alvo: horário comercial com manutenção planejada;
+        backup diário + restore testado periodicamente.
+RNF-11  Filas com DLQ; nada de retry infinito em Focus/Banco/WhatsApp.
+RNF-12  Dual-run / virada por fases; não “big bang” de histórico milenar.
+RNF-13  Documento financeiro/fiscal nunca “some”: só estorno.
+
+----------------------------------------------------------------------------------------------------
+12.3. SEGURANÇA
+----------------------------------------------------------------------------------------------------
+
+RNF-20  HTTPS obrigatório; secrets em cofre/SSM — nunca no Git.
+RNF-21  Menor privilégio (IAM, banco, S3, pessoas); ADMIN AWS ≠ login diário ERP.
+RNF-22  Matriz SoD: pares incompatíveis (dados bancários × liberar pagamento;
+        pedido × limite de crédito; ajuste estoque × aprovar inventário; etc.).
+        Trace: ORGANIZACAO_USUARIOS_PERFIS_ACESSO.txt
+RNF-23  Isolamento nonprod | prod; certificados e tokens distintos.
+RNF-24  Budget/alarme AWS (teto sugerido USD 250/mês no 1º semestre — FinOps).
+        Trace: SEGURANCA_NUVEM_AWS_OPERACAO_SEGURA.txt + ESTIMATIVA_CUSTO_AWS_MENSAL.txt
+
+----------------------------------------------------------------------------------------------------
+12.4. USABILIDADE E ACESSIBILIDADE OPERACIONAL
+----------------------------------------------------------------------------------------------------
+
+RNF-30  Códigos de negócio legíveis em tela, PDF, etiqueta e WhatsApp.
+RNF-31  Busca por código, CNPJ, razão social, pedaço de código, cProd.
+RNF-32  Mobile leve para consulta/status; operação pesada no desktop web.
+RNF-33  Idioma UI: pt-BR; mascaras monetárias e datas BR.
+
+----------------------------------------------------------------------------------------------------
+12.5. EXATIDÃO NUMÉRICA
+----------------------------------------------------------------------------------------------------
+
+RNF-40  Aritmética decimal exata (NUMERIC/Decimal); JSON decimal como STRING.
+        Trace: PADRAO_DECIMAL_CALCULOS.txt
+RNF-41  Escalas oficiais (síntese):
+          • monetário final ............... 2 casas
+          • preço/custo unitário .......... 6 casas
+          • preço unitário NF (vUnCom) .... até 10 casas
+          • quantidade estoque ............ 4 casas
+RNF-42  Arredondamento único e documentado; proibido float em cálculo de negócio.
+
+----------------------------------------------------------------------------------------------------
+12.6. MANUTENIBILIDADE E OBSERVABILIDADE
+----------------------------------------------------------------------------------------------------
+
+RNF-50  Monólito modular; API REST versionada /api/v1 + OpenAPI.
+RNF-51  Logs estruturados + métricas de fila/DLQ/5xx antes do go-live de cobrança.
+RNF-52  Migrações de banco versionadas com rollback.
+RNF-53  Testes obrigatórios nos núcleos: crédito, imposto orçamento, custo médio,
+        idempotência NF/COB/BX, estorno DEV.
+
+----------------------------------------------------------------------------------------------------
+12.7. COMPATIBILIDADE / TECNOLOGIA RECOMENDADA
+----------------------------------------------------------------------------------------------------
+
+RNF-60  Backend: TypeScript (Node LTS) OU Python 3.12+ — uma stack só no núcleo.
+RNF-61  Front: React + TypeScript (SPA) ou Next.js se SSR/auth edge for necessário.
+RNF-62  Banco: PostgreSQL 16+ (fonte da verdade).
+RNF-63  Filas: SQS + DLQ em prod; Redis opcional depois.
+RNF-64  Arquivos: S3 (XML, PDF boleto, anexos RMA/BX).
+RNF-65  Compute AWS padrão porte RLP: 1× EC2 Graviton (API+worker Compose);
+        Fargate+ALB+NAT = opcional legado, não default.
+
+====================================================================================================
+13. MODELO DE DADOS — PADRÕES OBRIGATÓRIOS
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+13.1. IDENTIDADE EM DUAS CAMADAS
+----------------------------------------------------------------------------------------------------
+
+  Toda entidade de negócio:
+    id        BIGINT  PK (identity/sequence)
+    codigo    VARCHAR UNIQUE (máscara legível imutável após uso)
+    empresa_id BIGINT FK → empresa (quando operacional)
+
+  Relacionamentos SEMPRE por id BIGINT — nunca por string PAR-/PED-.
+
+  Trace: CODIFICACAO_INFORMACOES_SISTEMA.txt
+
+----------------------------------------------------------------------------------------------------
+13.2. CATÁLOGO DE PREFIXOS (EXIBIÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  PAR   Parceiro
+  SKU   Produto/material/PA (máscara própria)
+  ORC   Orçamento            ORC-AAAA-NNNNN
+  PED   Pedido               PED-AAAA-NNNNN
+  OP    Ordem de produção
+  OS    Ordem de serviço
+  OC    Ordem de compra
+  MOV   Movimento de estoque
+  INV   Inventário
+  AJU   Ajuste de estoque
+  TIT   Título financeiro
+  BX    Baixa
+  ENT   Entrega/romaneio
+  NAT   Natureza gerencial
+  BEM   Bem patrimonial
+  CRT   Crédito/liberação
+  USR   Usuário (login = e-mail)
+  PER   Perfil RBAC
+  TAB   Tabela parâmetro/preço
+  LOT   Lote
+  FAC   Faca/ferramental
+  EMP   Empresa/CNPJ
+  RMA   Pós-venda
+  DEV   Devolução
+  COT   Cotação compra
+  REM   Remessa industrialização
+  COM   Comissão
+  MSG   Mensagem WhatsApp
+  COB   Cobrança bancária
+
+  PROIBIDO: LAI
+
+  NF-e/NFS-e: numeração fiscal via Focus/SEFAZ; ERP liga chave44 ↔ ped_id.
+
+----------------------------------------------------------------------------------------------------
+13.3. ESTADOS MÍNIMOS (SÍNTESE)
+----------------------------------------------------------------------------------------------------
+
+  ORC: RASCUNHO → ENVIADO → APROVADO / RECUSADO / EXPIRADO / CANCELADO
+  PED: NOVO → AGUARDA_CREDITO|AGUARDA_ADIANTAMENTO → LIBERADO →
+       EM_PRODUCAO|EM_SEPARACAO → FATURADO_PARCIAL|FATURADO → ENTREGUE → ENCERRADO
+  OP/OS: ABERTA → EM_ANDAMENTO → CONCLUIDA | CANCELADA
+  TIT: ABERTO → COBRADO → PARCIALMENTE_BAIXADO → BAIXADO | PERDA | CANCELADO
+  COB: PENDENTE → REGISTRADA → PAGA | CANCELADA | VENCIDA
+  RMA: ABERTA → EM_CQ → DECIDIDA → ENCERRADA
+  DEV: ABERTA → FISCAL_OK → ESTOQUE_OK → FINANCEIRO_OK → ENCERRADA
+
+  (Detalhe de transição e eventos: TXTs de cada domínio.)
+
+====================================================================================================
+14. SEGURANÇA DE ACESSO — MATRIZ SÍNTESE
+====================================================================================================
+
+  Legenda: T=total | E=edita/opera | L=leitura | -=sem acesso
+
+  Módulo / Perfil              ADMIN  FISCAL  FINANC  COMERC  PRODUC  COMPRAS  CONSULTA
+  Parâmetros e usuários          T      -       -       -       -        -        -
+  Cadastro fiscal                T      E       L       L       L        L        L
+  Cadastro comercial cliente     T      L       L       E       -        -        L
+  Cadastro comercial fornec.     T      L       L       -       -        E        L
+  Dados bancários parceiro       T      -       E*      -       -        -        -
+  Limite de crédito              T      -       E       L       -        -        L
+  Emissão NF-e                   T      E       -       -       -        -        L
+  Pedidos de venda               T      L       L       E       L        -        L
+  Pedidos de compra / XML        T      L       L       -       -        E        L
+  Contas / bancos                T      -       E       -       -        -        L
+  Liberação pagamentos           T      -       E**     -       -        -        -
+  OP / apontamento               T      -       -       -       E        -        L
+  Estoque movimentação           T      -       -       L       E        E        L
+  Custos / preços compra         T      L       E       -       -        E        L
+  Relatórios gerenciais          T      E       E       E       E        E        L
+
+  * Alteração bancária com alçada.
+  ** Quem libera pagamento ≠ quem alterou dados bancários do favorecido.
+
+====================================================================================================
+15. IMPLANTAÇÃO E CRITÉRIOS DE ACEITE
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+15.1. FASES (estratégia_implantacao_ja)
+----------------------------------------------------------------------------------------------------
+
+  FASE 1 — Entrada em produção (virada):
+    • Cadastros clientes/produtos necessários
+    • Estoque na data da virada
+    • Operação do dia: ORC→PED→OP/OS→NF→TIT→COB→ENT→BX
+    • Focus homologado; BankProvider sandbox Inter
+    • Sem depender de histórico milenar importado
+
+  FASE 2 — Endurecimento:
+    • Histórico seletivo (XML saída legado se necessário)
+    • WhatsApp templates oficiais em produção
+    • Sicoob prod (credenciais)
+    • RMA/DEV homologados com 1 caso real controlado
+    • Export contador/folha homologado
+
+  FASE 3 — Expansão controlada:
+    • Discussão EMP-00002 (só com parecer)
+    • Frete/CT-e fase 2
+    • Automações avançadas (régua, recorrência fina)
+
+----------------------------------------------------------------------------------------------------
+15.2. CRITÉRIOS DE ACEITE GO-LIVE (mínimos)
+----------------------------------------------------------------------------------------------------
+
+  CA-01  Criar ORC → enviar link → aceite cliente → nascer PED com snapshot correto.
+  CA-02  Crédito bloqueia/libera produção conforme regra; adiantamento só libera após BX.
+  CA-03  OP consome MP, registra sobra e gera PA; inventário concilia.
+  CA-04  Emitir NF Focus sem duplicar (retry idempotente); TIT e COB gerados.
+  CA-05  Webhook/baixa NÃO gera BX duplicada; ambíguo cai em fila humana.
+  CA-06  ENT gera status e MSG WhatsApp (quando integração ligada).
+  CA-07  DEV estorna fiscal+estoque+financeiro sem apagar origem.
+  CA-08  Multi-empresa: documento EMP-00001 não “pula” para EMP-00002.
+  CA-09  Tentativa de criar LAI/natureza 9.xx rejeitada / inexistente no produto.
+  CA-10  Backup restaurado com sucesso em exercício documentado.
+  CA-11  Decimal: casos de regressão de arredondamento / custo médio passam.
+  CA-12  Perfis SoD impedem pares incompatíveis (ou exige controle compensatório
+         explicitamente configurado e auditado).
+
+----------------------------------------------------------------------------------------------------
+15.3. PENDÊNCIAS EXTERNAS (NÃO BLOQUEIAM ESPECIFICAÇÃO)
+----------------------------------------------------------------------------------------------------
+
+  Conforme LACUNAS_PENDENCIAS_SISTEMA.txt:
+    • Ratificar números em PARAMETROS_EMPRESA_OFICIAIS
+    • Homologar CFOP devolução/remessa/amostra e layouts com contador
+    • Credenciais Sicoob / WABA templates Meta
+    • Escopo EMP-00002
+    • NFS-e município se provedor ≠ Focus (quando serviço)
+
+====================================================================================================
+16. RASTREABILIDADE — MÓDULO × DOCUMENTO FONTE
+====================================================================================================
+
+  M01 Cadastros .... CADASTRO_PARCEIROS, CADASTRO_PRODUTOS_*, ORGANIZACAO_USUARIOS_*,
+                     CODIFICACAO_*, APIS_FREE_*, VERIFICACAO_ENDERECO_*,
+                     CONVERSOES_UNIDADES_*, PADRAO_DECIMAL_*
+  M02 Comercial .... GERACAO_ORCAMENTO, VERIFICACAO_IMPOSTO_*, FLEXIBILIDADE_*,
+                     GORDURA_*, MOBILIDADE_*, ORCAMENTO_PROSPECT_*, CREDITO_*,
+                     APROVACAO_*, PEDIDOS_RECORRENTES_*, GERACAO_PEDIDO
+  M03 Produção ..... ORDEM_SERVICO, PRODUCAO_OPERACIONAL_*, CONCLUSAO_PRODUCAO,
+                     MANUTENCAO_PREVENTIVA_*, QUALIDADE_*, AMOSTRAS_*
+  M04 Estoque ...... CONTROLE_ESTOQUE_*, ESTOQUE_FLUXO_*, AJUSTE_ESTOQUE_*,
+                     TRATAMENTO_SOBRA_*, INDUSTRIALIZACAO_EXTERNA_*
+  M05 Fiscal ....... FATURAMENTO_*, MAPA_FATURAMENTO_*, estudo_tributação,
+                     REVISAO_ICMS_*, REVISAO_ANTECIPACAO_*, VERIFICACAO_ALIQUOTA_*,
+                     CONTABILIDADE_FISCAL_*, LISTAGEM_NCM_*
+  M06 Financeiro ... RECEBIMENTO_*, NATUREZAS_*, COMISSOES_*, FRETE_*,
+                     INTEGRACAO_BANCARIA_*
+  M07 Compras ...... COMPRAS_COTACAO_URGENCIA, CADASTRO_PRODUTOS_COMPRA
+  M08 Pós-venda .... POS_VENDA_RMA_*, DEVOLUCAO_VENDA_*
+  M09 Integrações .. INTEGRACAO_WHATSAPP_*, INTEGRACAO_BANCARIA_*, APIS_FREE_*,
+                     estrategia_implantacao_ja (Focus)
+  M10 Gerencial .... NATUREZAS_*, PATRIMONIO_*, RH_PAGAMENTO_*, EXPORT_CONTADOR_*,
+                     MULTI_EMPRESA_*, DECISAO_NAO_IMPLEMENTAR_LAI_*,
+                     PARAMETROS_EMPRESA_OFICIAIS
+  M11 Plataforma ... ARQUITETURA_ENGENHARIA_*, SEGURANCA_NUVEM_*, ESTIMATIVA_CUSTO_*,
+                     ORGANIZACAO_USUARIOS_*, CODIFICACAO_*, LACUNAS_PENDENCIAS_*
+
+  Índice mestre do fluxo: INDICE_FLUXO_OPERACIONAL.txt
+  Compêndio integral:     MANUAL_UNICO_ERP_RLP.txt
+
+====================================================================================================
+17. GLOSSÁRIO RÁPIDO
+====================================================================================================
+
+  ORC   Orçamento comercial (versão + aceite)
+  PED   Pedido mestre operacional
+  OP    Ordem de produção industrial
+  OS    Ordem de serviço
+  PA    Produto acabado (etiqueta)
+  MP    Matéria-prima
+  TIT   Título a receber/pagar
+  COB   Cobrança bancária emitida
+  BX    Baixa financeira
+  ENT   Entrega/romaneio
+  RMA   Reclamação / pós-venda
+  DEV   Devolução de venda
+  Focus Hub fiscal NF-e/NFS-e
+  SoD   Segregation of Duties (segregação de funções)
+  LAI   Livro auxiliar isolado — PROIBIDO no ERP
+
+====================================================================================================
+18. CONTROLE DE MUDANÇAS DESTA ESPECIFICAÇÃO
+====================================================================================================
+
+  v1.0 — 03/08/2026
+    Baseline criada a partir do pacote trigger/32 (manual único + arquitetura +
+    segurança/FinOps + lacunas). Qualquer alteração de regra de ouro exige
+    revisão deste SRS e do TXT-fonte correspondente; implementação não pode
+    “inventar” LAI, apagar documento ou casar o ERP a um único banco.
+
+====================================================================================================
+Fim — ESPECIFICACAO_SOFTWARE_ERP_RLP.txt
+Especificação de software do ERP RLP: escopo, módulos, RFs, RNFs, dados,
+integrações, segurança, implantação e rastreabilidade aos TXTs de domínio.
+====================================================================================================
