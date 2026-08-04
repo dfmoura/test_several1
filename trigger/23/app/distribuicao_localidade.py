@@ -13,9 +13,17 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.compras.porte import (
+    PORTE_NAO_INFORMADO,
+    brutos_equivalentes,
+    catalogar_portes,
+    chave_porte,
+    ids_porte,
+    rotulo_porte,
+)
 from app.database import (
     CompraContratacao,
     ComprasContratacaoResultado,
@@ -70,6 +78,15 @@ _UF_NOMES = {
 }
 
 _LIMITE_MUNICIPIOS = 400
+
+# Ordem analítica: do menor porte ao maior, com “não informado” por último
+_PORTE_ORDEM = {
+    "MEI": 0,
+    "MICROEMPRESA": 1,
+    "EMPRESADEPEQUENOPORTE": 2,
+    "DEMAIS": 3,
+    PORTE_NAO_INFORMADO: 9,
+}
 
 
 def _parse_valor(v: str | None) -> Decimal | None:
@@ -162,6 +179,48 @@ def _fechar_agg(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _porte_chave_rotulo(forn_porte_nome: str | None, forn_porte_id: int | None) -> tuple[str, str]:
+    """Chave/rótulo canônicos; sem informação → _vazio_ / Não informado."""
+    chave = chave_porte(forn_porte_nome, porte_id=forn_porte_id)
+    if not chave:
+        return PORTE_NAO_INFORMADO, "Não informado"
+    rotulo = rotulo_porte(forn_porte_nome, chave=chave, porte_id=forn_porte_id)
+    return chave, rotulo or chave
+
+
+def _agg_porte_vazio() -> dict[str, Any]:
+    return {
+        **_agg_vazio(),
+        "udi": _agg_vazio(),
+        "fora": _agg_vazio(),
+    }
+
+
+def _fechar_porte_bucket(
+    chave: str,
+    rotulo: str,
+    raw: dict[str, Any],
+    *,
+    total_q: int,
+    total_v: float,
+) -> dict[str, Any]:
+    closed = _fechar_agg(raw)
+    q = closed["quantidade"] or 0
+    v = float(closed["valor"] or 0)
+    forn = closed["fornecedores"] or 0
+    return {
+        "id": chave,
+        "nome": rotulo,
+        **closed,
+        "pct_quantidade": round(100 * q / total_q, 1) if total_q else 0.0,
+        "pct_valor": round(100 * v / total_v, 1) if total_v else 0.0,
+        "ticket_medio_item": round(v / q, 2) if q else 0.0,
+        "ticket_medio_fornecedor": round(v / forn, 2) if forn else 0.0,
+        "uberlandia": _fechar_agg(raw.get("udi") or _agg_vazio()),
+        "fora": _fechar_agg(raw.get("fora") or _agg_vazio()),
+    }
+
+
 @router.get("/api/distribuicao-localidade/filtros")
 def filtros_distribuicao(db: Session = Depends(get_db)):
     anos = anos_disponiveis(
@@ -188,6 +247,16 @@ def filtros_distribuicao(db: Session = Depends(get_db)):
         .order_by(ComprasFornecedor.uf_sigla)
     ).all()
 
+    portes = db.scalars(
+        select(ComprasFornecedor.porte_empresa_nome)
+        .where(
+            ComprasFornecedor.porte_empresa_nome.isnot(None),
+            ComprasFornecedor.porte_empresa_nome != "",
+        )
+        .distinct()
+        .order_by(ComprasFornecedor.porte_empresa_nome)
+    ).all()
+
     return {
         "anos": list(anos),
         "orgaos": [{"id": o.id, "nome": o.nome, "sigla": o.sigla} for o in orgaos],
@@ -197,6 +266,7 @@ def filtros_distribuicao(db: Session = Depends(get_db)):
             for u in ufs
             if u
         ],
+        "portes": catalogar_portes(portes),
     }
 
 
@@ -211,6 +281,13 @@ def stats_distribuicao(
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     uf: str | None = Query(None, min_length=2, max_length=2),
+    porte: str | None = Query(
+        None,
+        description=(
+            "Porte canônico (ex.: MICROEMPRESA) ou grafia bruta; "
+            "_vazio_ para sem porte informado. Variantes tipográficas são unificadas."
+        ),
+    ),
     escopo: Escopo = Query("todos"),
     metrica: Metrica = Query("quantidade"),
 ):
@@ -229,6 +306,9 @@ def stats_distribuicao(
     chaves_org = _chaves_orgao(db, orgao_id)
     chaves_mod = _chaves_modalidade(db, ids_mod)
     uf_filtro = (uf or "").strip().upper() or None
+    porte_filtro = (porte or "").strip() or None
+    if porte_filtro in ("todos", "all", ""):
+        porte_filtro = None
 
     stmt = (
         select(
@@ -241,6 +321,8 @@ def stats_distribuicao(
             ComprasFornecedor.nome_municipio,
             ComprasFornecedor.codigo_municipio_ibge,
             ComprasFornecedor.de_uberlandia,
+            ComprasFornecedor.porte_empresa_nome,
+            ComprasFornecedor.porte_empresa_id,
         )
         .select_from(ComprasContratacaoResultado)
         .join(
@@ -271,6 +353,33 @@ def stats_distribuicao(
         crit.append(CompraContratacao.modalidade_codigo.in_(chaves_mod))
     if uf_filtro:
         crit.append(ComprasFornecedor.uf_sigla == uf_filtro)
+    if porte_filtro == PORTE_NAO_INFORMADO:
+        crit.append(
+            (ComprasFornecedor.porte_empresa_nome.is_(None))
+            | (ComprasFornecedor.porte_empresa_nome == "")
+        )
+    elif porte_filtro:
+        portes_brutos = db.scalars(
+            select(ComprasFornecedor.porte_empresa_nome)
+            .where(
+                ComprasFornecedor.porte_empresa_nome.isnot(None),
+                ComprasFornecedor.porte_empresa_nome != "",
+            )
+            .distinct()
+        ).all()
+        equivalentes = brutos_equivalentes(porte_filtro, portes_brutos)
+        chave = chave_porte(porte_filtro)
+        ids = list(ids_porte(chave))
+        conds: list[Any] = []
+        if equivalentes:
+            conds.append(ComprasFornecedor.porte_empresa_nome.in_(equivalentes))
+        if ids:
+            conds.append(ComprasFornecedor.porte_empresa_id.in_(ids))
+        if conds:
+            crit.append(or_(*conds))
+        else:
+            # Filtro sem correspondência na base → resultado vazio
+            crit.append(ComprasFornecedor.id == -1)
     if escopo == "uberlandia":
         crit.append(ComprasFornecedor.de_uberlandia.is_(True))
     elif escopo == "fora":
@@ -283,6 +392,8 @@ def stats_distribuicao(
 
     por_uf: dict[str, dict[str, Any]] = defaultdict(_agg_vazio)
     por_mun: dict[tuple[str, str, int | None], dict[str, Any]] = defaultdict(_agg_vazio)
+    por_porte: dict[str, dict[str, Any]] = defaultdict(_agg_porte_vazio)
+    porte_rotulos: dict[str, str] = {}
     mun_meta: dict[tuple[str, str, int | None], bool | None] = {}
     udi = _agg_vazio()
     fora = _agg_vazio()
@@ -298,6 +409,8 @@ def stats_distribuicao(
         mun_nome,
         ibge,
         de_udi,
+        porte_nome,
+        porte_id,
     ) in rows:
         uf_s = (uf_sigla or "").strip().upper()
         if not uf_s:
@@ -305,8 +418,10 @@ def stats_distribuicao(
         mun = _norm_municipio(mun_nome)
         key_mun = _chave_municipio(uf_s, mun_nome, ibge)
         valor = _parse_valor(valor_raw) or Decimal(0)
+        porte_chave, porte_label = _porte_chave_rotulo(porte_nome, porte_id)
+        porte_rotulos[porte_chave] = porte_label
 
-        for bucket in (total, por_uf[uf_s], por_mun[key_mun]):
+        for bucket in (total, por_uf[uf_s], por_mun[key_mun], por_porte[porte_chave]):
             bucket["quantidade"] += 1
             bucket["valor"] += valor
             bucket["contratacoes"].add(cid)
@@ -325,6 +440,12 @@ def stats_distribuicao(
         alvo["valor"] += valor
         alvo["contratacoes"].add(cid)
         alvo["fornecedores"].add(fid)
+
+        escopo_bucket = por_porte[porte_chave]["udi" if de_udi else "fora"]
+        escopo_bucket["quantidade"] += 1
+        escopo_bucket["valor"] += valor
+        escopo_bucket["contratacoes"].add(cid)
+        escopo_bucket["fornecedores"].add(fid)
 
     por_uf_out = []
     for sigla, raw in por_uf.items():
@@ -366,6 +487,24 @@ def stats_distribuicao(
     tq = total_closed["quantidade"] or 0
     tv = total_closed["valor"] or 0.0
 
+    por_porte_out = [
+        _fechar_porte_bucket(
+            chave,
+            porte_rotulos.get(chave, chave),
+            raw,
+            total_q=tq,
+            total_v=tv,
+        )
+        for chave, raw in por_porte.items()
+    ]
+    por_porte_out.sort(
+        key=lambda x: (
+            _PORTE_ORDEM.get(x["id"], 5),
+            -(x["valor"] if metrica == "valor" else x["quantidade"]),
+            x["nome"],
+        )
+    )
+
     orgao_nome = None
     if orgao_id:
         org = db.get(OrgaoConsolidado, orgao_id)
@@ -380,6 +519,13 @@ def stats_distribuicao(
         nomes = [m.nome for m in mods if m and m.nome]
         mod_nome = ", ".join(nomes) if nomes else None
 
+    porte_rotulo = None
+    if porte_filtro == PORTE_NAO_INFORMADO:
+        porte_rotulo = "Não informado"
+    elif porte_filtro:
+        porte_rotulo = rotulo_porte(porte_filtro) or porte_filtro
+        porte_filtro = chave_porte(porte_filtro) or porte_filtro
+
     return {
         "filtros": {
             "ano": ano,
@@ -392,6 +538,8 @@ def stats_distribuicao(
             "modalidade_id": ids_mod or None,
             "modalidade_nome": mod_nome,
             "uf": uf_filtro,
+            "porte": porte_filtro,
+            "porte_nome": porte_rotulo,
             "escopo": escopo,
             "metrica": metrica,
         },
@@ -413,6 +561,7 @@ def stats_distribuicao(
         "por_uf": por_uf_out,
         "por_municipio": por_mun_out[:_LIMITE_MUNICIPIOS],
         "por_municipio_total": len(por_mun_out),
+        "por_porte": por_porte_out,
         "interpretacao": {
             "eixo": "Localidade do fornecedor vencedor (sede cadastral)",
             "quantidade": (
@@ -424,5 +573,9 @@ def stats_distribuicao(
                 "nos filtros."
             ),
             "valor": "Soma de valor_total_homologado dos itens/resultados",
+            "porte": (
+                "Porte canônico do fornecedor vencedor (Compras.gov / CNPJ), "
+                "unificando grafias equivalentes (ex.: ME ≡ Microempresa)."
+            ),
         },
     }

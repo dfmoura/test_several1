@@ -1,0 +1,10 @@
+.env
+apps/api/.env
+apps/api/vendor/
+apps/api/storage/*.key
+apps/web/node_modules/
+apps/web/dist/
+.idea/
+.vscode/
+*.log
+.DS_Store

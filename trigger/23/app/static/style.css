@@ -391,7 +391,22 @@ a { color: var(--steel); }
 .field-wide { grid-column: span 2; }
 .field-block { display: block; }
 .field-inline { flex-direction: row; align-items: center; gap: 10px; margin-bottom: 12px; max-width: 340px; }
-.field-actions { display: flex; gap: 8px; align-items: end; padding-bottom: 1px; }
+.field-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+  padding-bottom: 1px;
+  min-width: 0;
+}
+.field-actions-vencedores {
+  /* Cabem Buscar + Limpar + Atualizar pendentes sem estourar a grade */
+  min-width: min(100%, 280px);
+}
+.field-actions .btn {
+  flex: 0 1 auto;
+  white-space: nowrap;
+}
 
 input, select, textarea {
   font-family: var(--font-ui);
@@ -2286,6 +2301,14 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
 }
 .loc-map-title { margin: 0; font-size: 18px; }
 .loc-map-hint { margin: 3px 0 0; font-size: 12.5px; color: var(--text-soft); }
+.loc-toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.loc-vista-toggle,
 .loc-mode-toggle {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -2293,6 +2316,7 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
   overflow: hidden;
   background: var(--surface-sunk);
 }
+.loc-vista-btn,
 .loc-mode-btn {
   border: 0;
   background: transparent;
@@ -2303,10 +2327,273 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
   padding: 7px 14px;
   cursor: pointer;
 }
+.loc-vista-btn:hover,
 .loc-mode-btn:hover { color: var(--ink); }
+.loc-vista-btn.active,
 .loc-mode-btn.active {
   background: var(--accent);
   color: #fff;
+}
+.loc-vista-toggle .loc-vista-btn.active {
+  background: var(--ink);
+  color: #f4f1e8;
+}
+.loc-vista-pane[hidden] { display: none !important; }
+.loc-vista-pane[data-vista-pane="mapa"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.loc-vista-pane[data-vista-pane="porte"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+/* ---- Porte analytics (mesmo card) ---- */
+.loc-porte-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 420px;
+}
+.loc-porte-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.loc-porte-intro strong { color: var(--ink); font-weight: 600; }
+.loc-porte-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1;
+}
+.loc-porte-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, #fbfaf6 0%, #f7f4eb 100%);
+  min-height: 0;
+}
+.loc-porte-card-wide { grid-column: 1 / -1; }
+.loc-porte-card h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.loc-porte-card-hint {
+  margin: -4px 0 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.loc-porte-stack {
+  display: flex;
+  height: 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--line-soft);
+}
+.loc-porte-stack-seg {
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  transition: width 0.45s ease, filter 0.15s ease;
+  cursor: pointer;
+}
+.loc-porte-stack-seg:hover { filter: brightness(0.94); }
+.loc-porte-stack-seg:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+  z-index: 1;
+}
+.loc-porte-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.loc-porte-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.loc-porte-legend li:hover { background: rgba(13, 31, 42, 0.04); }
+.loc-porte-legend li:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.loc-porte-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.loc-porte-legend-pct {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.loc-porte-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.loc-porte-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.9fr) minmax(0, 1.6fr);
+  gap: 8px 10px;
+  align-items: center;
+}
+.loc-porte-row-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+  min-width: 0;
+}
+.loc-porte-row-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loc-porte-dual {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.loc-porte-dual-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.loc-porte-dual-label {
+  flex: 0 0 38px;
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.loc-porte-dual-bar {
+  flex: 1;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.loc-porte-dual-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+.loc-porte-dual-fill.itens { background: linear-gradient(90deg, var(--brand), var(--accent)); }
+.loc-porte-dual-fill.valor { background: linear-gradient(90deg, #c9a24a, #9a742f); }
+.loc-porte-dual-val {
+  flex: 0 0 42px;
+  text-align: right;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-soft);
+}
+.loc-porte-escopo-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-soft);
+  margin-bottom: 2px;
+}
+.loc-porte-escopo-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.85fr) minmax(0, 1.5fr) minmax(72px, 0.55fr);
+  gap: 8px;
+  align-items: center;
+}
+.loc-porte-escopo-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+}
+.loc-porte-escopo-udi { background: linear-gradient(90deg, #c9a24a, #9a742f); }
+.loc-porte-escopo-fora { background: linear-gradient(90deg, var(--brand), var(--accent)); }
+.loc-porte-escopo-meta {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.loc-porte-ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.loc-porte-ticket-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.9fr) minmax(0, 1.4fr) minmax(88px, 0.7fr);
+  gap: 8px;
+  align-items: center;
+}
+.loc-porte-ticket-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.loc-porte-ticket-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--steel), #2a4f66);
+  transition: width 0.45s ease;
+}
+.loc-porte-ticket-val {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loc-porte-empty {
+  margin: auto;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.loc-porte-clickable { cursor: pointer; }
+.loc-porte-clickable:hover .loc-porte-row-name { color: var(--accent-ink); }
+
+@media (max-width: 900px) {
+  .loc-porte-grid { grid-template-columns: 1fr; }
+  .loc-porte-card-wide { grid-column: auto; }
 }
 .loc-map-shell {
   position: relative;

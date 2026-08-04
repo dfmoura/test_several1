@@ -9,6 +9,8 @@ services:
       - "${APP_HOST_PORT:-8096}:8096"
     volumes:
       - ./data:/app/data
+      # Código vivo — evita rebuild só para ajuste de frontend/API
+      - ./app:/app/app
     environment:
       - APP_PORT=8096
       - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-auto}

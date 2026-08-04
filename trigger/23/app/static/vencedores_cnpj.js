@@ -79,6 +79,10 @@ function badgeCache(status) {
   return `<span class="badge ${cls}">${esc(STATUS_LABEL[status] || status)}</span>`;
 }
 
+function preencherPortesVencedores(portes) {
+  preencherSelectPorte($("#vencedores-filtro-porte"), portes);
+}
+
 function atualizarBotoesLote(running) {
   const btn = $("#btn-vencedores-pendentes");
   const btnCancel = $("#btn-vencedores-pendentes-cancelar");
@@ -408,11 +412,14 @@ async function carregarVencedores({ silencioso = false } = {}) {
     const params = new URLSearchParams();
     const q = $("#vencedores-filtro-q")?.value?.trim();
     const st = $("#vencedores-filtro-status")?.value;
+    const porte = $("#vencedores-filtro-porte")?.value;
     if (q) params.set("q", q);
     if (st) params.set("status", st);
+    if (porte) params.set("porte", porte);
     const data = await api(`/api/compras/vencedores-cnpj?${params}`);
     vencedoresItems = data.items || [];
     vencedoresCacheDias = data.cache_dias ?? 30;
+    preencherPortesVencedores(data.portes);
     if (meta) {
       meta.textContent = vencedoresEhAdmin()
         ? `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · lotes de pendentes usam ${3}s entre requisições`

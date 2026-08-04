@@ -96,6 +96,32 @@ function preencherSelect(sel, items, placeholder) {
   if (atual && [...sel.options].some((o) => o.value === atual)) sel.value = atual;
 }
 
+/**
+ * Select de porte canônico (ME / EPP / Demais…), unificando grafias da API.
+ * Aceita `[{id, nome}, …]` (preferido) ou strings legadas.
+ */
+function preencherSelectPorte(sel, portes, { incluirVazio = true, keepSelection = true } = {}) {
+  if (!sel) return;
+  const atual = keepSelection ? (sel.value || "") : "";
+  const opts = ['<option value="">Todos</option>'];
+  if (incluirVazio) opts.push('<option value="_vazio_">Não informado</option>');
+  (portes || []).forEach((p) => {
+    let id = "";
+    let nome = "";
+    if (p && typeof p === "object") {
+      id = String(p.id || "").trim();
+      nome = String(p.nome || p.id || "").trim();
+    } else if (p != null && String(p).trim()) {
+      id = String(p).trim();
+      nome = id;
+    }
+    if (!id) return;
+    opts.push(`<option value="${esc(id)}">${esc(nome || id)}</option>`);
+  });
+  sel.innerHTML = opts.join("");
+  if (atual && [...sel.options].some((o) => o.value === atual)) sel.value = atual;
+}
+
 /** Popula selects de filtro por observador: Todos / Sem observador / nomes ativos. */
 async function preencherFiltroObservador(selectors) {
   const lista = Array.isArray(selectors) ? selectors : [selectors];

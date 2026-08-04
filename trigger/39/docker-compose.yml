@@ -1,0 +1,101 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: erp39_mysql
+    command:
+      [
+        "--default-authentication-plugin=mysql_native_password",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+        "--innodb-buffer-pool-size=128M",
+        "--max-connections=40",
+        "--performance-schema=OFF",
+        "--skip-name-resolve",
+      ]
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-erp_rlp}
+      MYSQL_USER: ${DB_USERNAME:-erp}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-erp_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/erp.cnf:ro
+    ports:
+      - "${DB_PORT:-33069}:3306"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-p${DB_ROOT_PASSWORD:-root_secret}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 512m
+
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp39_app
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      APP_NAME: ${APP_NAME:-ERP-RLP}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${APP_KEY:-}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8039}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-erp_rlp}
+      DB_USERNAME: ${DB_USERNAME:-erp}
+      DB_PASSWORD: ${DB_PASSWORD:-erp_secret}
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:8039,127.0.0.1:8039,localhost:5173,127.0.0.1:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8039}
+      DEFAULT_EMPRESA_CODIGO: ${DEFAULT_EMPRESA_CODIGO:-EMP-00001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@rlp.com.br}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo@123}
+      BRASILAPI_BASE: https://brasilapi.com.br/api
+      VIACEP_BASE: https://viacep.com.br/ws
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 384m
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: erp39_web
+    ports:
+      - "${WEB_PORT:-8039}:80"
+    volumes:
+      - ./branding:/var/www/branding:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    mem_limit: 64m
+
+volumes:
+  mysqldata:

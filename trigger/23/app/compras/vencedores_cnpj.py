@@ -16,6 +16,11 @@ from sqlalchemy.orm import Session
 
 from app.compras.cnpj_publico import cache_cnpj_valido
 from app.compras.normalizers import fmt_valor_br, normalizar_ni, parse_decimal
+from app.compras.porte import (
+    catalogar_portes,
+    porte_de_fornecedor,
+    porte_equivale,
+)
 from app.config import CNPJ_PUBLICO_CACHE_DIAS
 from app.database import (
     CompraContratacao,
@@ -154,6 +159,7 @@ def listar_vencedores_consolidados(
     *,
     q: str | None = None,
     status: str | None = None,
+    porte: str | None = None,
     limit: int = 500,
 ) -> dict[str, Any]:
     """
@@ -174,6 +180,7 @@ def listar_vencedores_consolidados(
                 "cpf": 0,
                 "invalido": 0,
             },
+            "portes": [],
             "cache_dias": CNPJ_PUBLICO_CACHE_DIAS,
             "fonte_canonica": "compras_contratacao_resultados",
         }
@@ -190,14 +197,25 @@ def listar_vencedores_consolidados(
     status_filtro = (status or "").strip().lower() or None
     if status_filtro in ("todos", "all", ""):
         status_filtro = None
+    porte_filtro = (porte or "").strip() or None
+    if porte_filtro in ("todos", "all", ""):
+        porte_filtro = None
 
     items: list[dict[str, Any]] = []
     resumo = {"atualizado": 0, "vencido": 0, "pendente": 0, "cpf": 0, "invalido": 0}
+    portes_brutos: list[str] = []
 
     for ni, bucket in agg.items():
         forn = fornecedores.get(ni)
         st = _status_cache(forn, ni=ni)
         resumo[st] = resumo.get(st, 0) + 1
+
+        porte_chave, porte_rotulo = porte_de_fornecedor(forn)
+        porte_bruto = (forn.porte_empresa_nome if forn else None) or None
+        if porte_bruto:
+            porte_bruto = str(porte_bruto).strip() or None
+        if porte_bruto:
+            portes_brutos.append(porte_bruto)
 
         nome = bucket["nome_fornecedor"] or (forn.nome_razao_social_fornecedor if forn else None)
         if q_norm:
@@ -205,6 +223,12 @@ def listar_vencedores_consolidados(
             if q_norm not in nome_l and q_digits not in ni:
                 continue
         if status_filtro and st != status_filtro:
+            continue
+        if not porte_equivale(
+            porte_bruto,
+            porte_filtro,
+            porte_id=forn.porte_empresa_id if forn else None,
+        ):
             continue
 
         fontes = bucket["fontes"]
@@ -238,6 +262,8 @@ def listar_vencedores_consolidados(
                 else None,
                 "municipio": forn.nome_municipio if forn else None,
                 "uf": forn.uf_sigla if forn else None,
+                "porte": porte_rotulo,
+                "porte_id": porte_chave,
                 "situacao_cadastral": forn.situacao_cadastral if forn else None,
                 "de_uberlandia": forn.de_uberlandia if forn else None,
                 "compras_gov_enriquecido_em": _fmt_iso(forn.compras_gov_enriquecido_em)
@@ -264,6 +290,7 @@ def listar_vencedores_consolidados(
         "items": items,
         "total": total,
         "resumo": resumo,
+        "portes": catalogar_portes(portes_brutos),
         "cache_dias": CNPJ_PUBLICO_CACHE_DIAS,
         "fonte_canonica": "compras_contratacao_resultados",
     }

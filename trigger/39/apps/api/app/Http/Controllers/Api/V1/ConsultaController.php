@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Services\Cadastros\ProdutoGrupoService;
+use App\Services\Consulta\BrasilApiClient;
+use App\Services\Consulta\FiscalCatalogService;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ConsultaController extends Controller
+{
+    public function __construct(
+        private readonly BrasilApiClient $brasilApiClient,
+        private readonly FiscalCatalogService $fiscalCatalogService,
+        private readonly ProdutoGrupoService $produtoGrupoService,
+    ) {}
+
+    public function cnpj(string $cnpj): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->brasilApiClient->getCnpj($cnpj)]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (RequestException $e) {
+            return response()->json(['message' => 'Consulta CNPJ indisponível.'], $e->response?->status() ?? 502);
+        }
+    }
+
+    public function cep(string $cep): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->brasilApiClient->getCep($cep)]);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (RequestException $e) {
+            return response()->json(['message' => 'Consulta CEP indisponível.'], $e->response?->status() ?? 502);
+        }
+    }
+
+    public function bancos(): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->brasilApiClient->getBanks()]);
+        } catch (RequestException $e) {
+            return response()->json(['message' => 'Consulta de bancos indisponível.'], $e->response?->status() ?? 502);
+        }
+    }
+
+    public function ncm(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        $data = $this->fiscalCatalogService->searchNcm(
+            $validated['q'] ?? null,
+            (int) ($validated['limit'] ?? 20)
+        );
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function cest(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'ncm' => ['nullable', 'string', 'max:8'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        $data = $this->fiscalCatalogService->searchCest(
+            $validated['q'] ?? null,
+            $validated['ncm'] ?? null,
+            (int) ($validated['limit'] ?? 20)
+        );
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function csosn(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        $data = $this->fiscalCatalogService->searchCsosn(
+            $validated['q'] ?? null,
+            (int) ($validated['limit'] ?? 20)
+        );
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function cfop(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'tipo' => ['nullable', 'string', 'in:ENTRADA,SAIDA,entrada,saida'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        $tipo = isset($validated['tipo']) ? strtoupper($validated['tipo']) : null;
+
+        $data = $this->fiscalCatalogService->searchCfop(
+            $validated['q'] ?? null,
+            $tipo,
+            (int) ($validated['limit'] ?? 20)
+        );
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function cstIcms(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        return response()->json([
+            'data' => $this->fiscalCatalogService->searchCstIcms(
+                $validated['q'] ?? null,
+                (int) ($validated['limit'] ?? 20)
+            ),
+        ]);
+    }
+
+    public function cstPisCofins(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        return response()->json([
+            'data' => $this->fiscalCatalogService->searchCstPisCofins(
+                $validated['q'] ?? null,
+                (int) ($validated['limit'] ?? 20)
+            ),
+        ]);
+    }
+
+    public function tiposItemSped(): JsonResponse
+    {
+        return response()->json(['data' => $this->fiscalCatalogService->tiposItemSped()]);
+    }
+
+    public function origensMercadoria(): JsonResponse
+    {
+        return response()->json(['data' => $this->fiscalCatalogService->origens()]);
+    }
+
+    public function produtoGrupos(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC'],
+            'natureza' => ['nullable', 'string', 'in:COMPRA,VENDA,AMBOS'],
+            'todos' => ['nullable', 'boolean'],
+        ]);
+
+        $data = $this->produtoGrupoService->list(
+            $validated['familia'] ?? null,
+            $validated['natureza'] ?? null,
+            ! ($validated['todos'] ?? false)
+        );
+
+        return response()->json(['data' => $data]);
+    }
+}

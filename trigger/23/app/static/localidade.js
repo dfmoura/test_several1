@@ -13,6 +13,7 @@ const LOC = {
   ufCentroids: null,
   data: null,
   mode: "estados",
+  vista: "mapa",
   ufFocus: null,
   municipios: [],
   ready: false,
@@ -26,6 +27,20 @@ const LOC_PALETTE = [
   "#6e9e28",
   "#3d5f14",
 ];
+
+/** Cores estáveis por porte canônico — alinhadas à identidade OSB */
+const LOC_PORTE_CORES = {
+  MEI: "#5b8a9a",
+  MICROEMPRESA: "#6e9e28",
+  EMPRESADEPEQUENOPORTE: "#35617f",
+  DEMAIS: "#9a742f",
+  _vazio_: "#b0a894",
+};
+
+const LOC_PORTE_HINT = {
+  mapa: "Sede do fornecedor vencedor · intensidade por itens homologados ou valor (PNCP 07.3)",
+  porte: "Composição por porte da empresa vencedora · clique em um porte para filtrar o mapa",
+};
 
 function locMetrica() {
   return $("#loc-filtro-metrica")?.value === "valor" ? "valor" : "quantidade";
@@ -50,6 +65,51 @@ function locNorm(v, max) {
 
 function locFmtMetrica(v) {
   return locMetrica() === "valor" ? fmtMoeda(v) : fmtNum(v);
+}
+
+function locPorteCor(id) {
+  return LOC_PORTE_CORES[id] || "#7b8891";
+}
+
+function locPortes() {
+  return LOC.data?.por_porte || [];
+}
+
+/* -------------------- vista Mapa | Porte -------------------- */
+
+function locSetVista(vista) {
+  const next = vista === "porte" ? "porte" : "mapa";
+  LOC.vista = next;
+  $$(".loc-vista-btn").forEach((b) => {
+    const on = b.dataset.vista === next;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  const mapaPane = $("#loc-vista-mapa-pane");
+  const portePane = $("#loc-vista-porte-pane");
+  if (mapaPane) mapaPane.hidden = next !== "mapa";
+  if (portePane) portePane.hidden = next !== "porte";
+  const modeToggle = $("#loc-mode-toggle");
+  if (modeToggle) modeToggle.hidden = next !== "mapa";
+  const hint = $("#loc-map-hint");
+  if (hint) hint.textContent = LOC_PORTE_HINT[next] || LOC_PORTE_HINT.mapa;
+
+  if (next === "mapa") {
+    setTimeout(() => LOC.map?.invalidateSize(), 80);
+    if (LOC.data) locRedrawMap();
+  } else {
+    locRenderPorte();
+  }
+}
+
+function locFiltrarPorte(id) {
+  const sel = $("#loc-filtro-porte");
+  if (!sel) return;
+  const atual = sel.value || "";
+  const alvo = id || "";
+  sel.value = atual === alvo ? "" : alvo;
+  locSetVista("mapa");
+  carregarLocStats();
 }
 
 /* -------------------- bootstrap mapa -------------------- */
@@ -495,6 +555,7 @@ function locRenderResumo() {
   if (f.orgao_nome) parts.push(`Órgão <strong>${esc(f.orgao_nome)}</strong>`);
   if (f.modalidade_nome) parts.push(`Modalidade <strong>${esc(f.modalidade_nome)}</strong>`);
   if (f.uf) parts.push(`UF <strong>${esc(f.uf)}</strong>`);
+  if (f.porte_nome) parts.push(`Porte <strong>${esc(f.porte_nome)}</strong>`);
   if (f.escopo && f.escopo !== "todos") {
     parts.push(f.escopo === "uberlandia" ? "Escopo <strong>Uberlândia</strong>" : "Escopo <strong>fora</strong>");
   }
@@ -505,6 +566,162 @@ function locRenderResumo() {
   );
   if (LOC.ufFocus) parts.push(`Foco <strong>${esc(LOC.ufFocus)}</strong>`);
   el.innerHTML = parts.join(" · ");
+}
+
+/* -------------------- análise de porte -------------------- */
+
+function locRenderPorte() {
+  const el = $("#loc-porte-panel");
+  if (!el) return;
+  const portes = locPortes();
+  const metrica = locMetrica();
+  if (!portes.length) {
+    el.innerHTML = '<p class="loc-porte-empty">Sem dados de porte para os filtros selecionados.</p>';
+    return;
+  }
+
+  const totalQ = portes.reduce((s, p) => s + (p.quantidade || 0), 0);
+  const totalV = portes.reduce((s, p) => s + (Number(p.valor) || 0), 0);
+  const filtroAtivo = LOC.data?.filtros?.porte_nome;
+
+  const stackSegs = portes
+    .map((p) => {
+      const base = metrica === "valor" ? Number(p.valor) || 0 : p.quantidade || 0;
+      const tot = metrica === "valor" ? totalV || 1 : totalQ || 1;
+      const pct = Math.max(0, (100 * base) / tot);
+      if (pct <= 0) return "";
+      const title = `${p.nome}: ${fmtNum(p.quantidade)} itens · ${fmtMoeda(p.valor)}`;
+      return `<button type="button" class="loc-porte-stack-seg" data-porte="${esc(p.id)}"
+        style="width:${pct.toFixed(2)}%;background:${locPorteCor(p.id)}"
+        title="${esc(title)}" aria-label="${esc(`Filtrar por ${p.nome}`)}"></button>`;
+    })
+    .join("");
+
+  const legend = portes
+    .map((p) => {
+      const pct = metrica === "valor" ? p.pct_valor : p.pct_quantidade;
+      return `<li data-porte="${esc(p.id)}" tabindex="0" role="button"
+        aria-label="${esc(`Filtrar por ${p.nome}`)}" title="Clique para filtrar o mapa">
+        <span class="loc-porte-swatch" style="background:${locPorteCor(p.id)}"></span>
+        <span>${esc(p.nome)}</span>
+        <span class="loc-porte-legend-pct">${fmtNum(pct)}%</span>
+      </li>`;
+    })
+    .join("");
+
+  const compareRows = portes
+    .map((p) => {
+      const pq = Math.min(100, Number(p.pct_quantidade) || 0);
+      const pv = Math.min(100, Number(p.pct_valor) || 0);
+      return `<div class="loc-porte-row loc-porte-clickable" data-porte="${esc(p.id)}" role="button" tabindex="0">
+        <div class="loc-porte-row-name">
+          <span class="loc-porte-swatch" style="background:${locPorteCor(p.id)}"></span>
+          <span title="${esc(p.nome)}">${esc(p.nome)}</span>
+        </div>
+        <div class="loc-porte-dual">
+          <div class="loc-porte-dual-track">
+            <span class="loc-porte-dual-label">Itens</span>
+            <div class="loc-porte-dual-bar"><div class="loc-porte-dual-fill itens" style="width:${pq}%"></div></div>
+            <span class="loc-porte-dual-val">${fmtNum(pq)}%</span>
+          </div>
+          <div class="loc-porte-dual-track">
+            <span class="loc-porte-dual-label">Valor</span>
+            <div class="loc-porte-dual-bar"><div class="loc-porte-dual-fill valor" style="width:${pv}%"></div></div>
+            <span class="loc-porte-dual-val">${fmtNum(pv)}%</span>
+          </div>
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  const escopoRows = portes
+    .map((p) => {
+      const udi = metrica === "valor" ? Number(p.uberlandia?.valor) || 0 : p.uberlandia?.quantidade || 0;
+      const fora = metrica === "valor" ? Number(p.fora?.valor) || 0 : p.fora?.quantidade || 0;
+      const tot = udi + fora || 1;
+      const pctU = Math.round((100 * udi) / tot);
+      const pctF = 100 - pctU;
+      return `<div class="loc-porte-escopo-row loc-porte-clickable" data-porte="${esc(p.id)}" role="button" tabindex="0">
+        <div class="loc-porte-row-name">
+          <span class="loc-porte-swatch" style="background:${locPorteCor(p.id)}"></span>
+          <span title="${esc(p.nome)}">${esc(p.nome)}</span>
+        </div>
+        <div class="loc-porte-escopo-bar" title="Uberlândia ${pctU}% · Fora ${pctF}%">
+          <span class="loc-porte-escopo-udi" style="width:${pctU}%"></span>
+          <span class="loc-porte-escopo-fora" style="width:${pctF}%"></span>
+        </div>
+        <div class="loc-porte-escopo-meta">${pctU}% UDI</div>
+      </div>`;
+    })
+    .join("");
+
+  const maxTicket = Math.max(...portes.map((p) => Number(p.ticket_medio_item) || 0), 1);
+  const ticketRows = portes
+    .map((p) => {
+      const t = Number(p.ticket_medio_item) || 0;
+      const pct = Math.round((100 * t) / maxTicket);
+      return `<div class="loc-porte-ticket-row loc-porte-clickable" data-porte="${esc(p.id)}" role="button" tabindex="0">
+        <div class="loc-porte-row-name">
+          <span class="loc-porte-swatch" style="background:${locPorteCor(p.id)}"></span>
+          <span title="${esc(p.nome)}">${esc(p.nome)}</span>
+        </div>
+        <div class="loc-porte-ticket-track">
+          <div class="loc-porte-ticket-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="loc-porte-ticket-val" title="${esc(fmtMoeda(t))}">${fmtMoeda(t)}</div>
+      </div>`;
+    })
+    .join("");
+
+  const introFiltro = filtroAtivo
+    ? `Filtro ativo: <strong>${esc(filtroAtivo)}</strong> · clique de novo no porte para limpar`
+    : "Clique em um porte para filtrar o mapa · mesma fatia dos filtros do painel";
+
+  el.innerHTML = `
+    <div class="loc-porte-intro">
+      <span>${introFiltro}</span>
+      <span>${fmtNum(totalQ)} itens · ${fmtMoeda(totalV)}</span>
+    </div>
+    <div class="loc-porte-grid">
+      <section class="loc-porte-card loc-porte-card-wide">
+        <h4>Composição por porte</h4>
+        <p class="loc-porte-card-hint">${metrica === "valor" ? "Participação no valor homologado" : "Participação nos itens homologados"}</p>
+        <div class="loc-porte-stack" role="img" aria-label="Composição empilhada por porte">${stackSegs}</div>
+        <ul class="loc-porte-legend">${legend}</ul>
+      </section>
+      <section class="loc-porte-card">
+        <h4>Itens × valor</h4>
+        <p class="loc-porte-card-hint">Concentração: quem vence volume vs. quem concentra valor</p>
+        <div class="loc-porte-compare">${compareRows}</div>
+      </section>
+      <section class="loc-porte-card">
+        <h4>Uberlândia × fora</h4>
+        <p class="loc-porte-card-hint">Origem da sede do vencedor, por porte</p>
+        <div class="loc-porte-escopo">
+          <div class="loc-porte-escopo-legend">
+            <span><span class="loc-dot udi"></span>Uberlândia</span>
+            <span><span class="loc-dot fora"></span>Fora</span>
+          </div>
+          ${escopoRows}
+        </div>
+      </section>
+      <section class="loc-porte-card loc-porte-card-wide">
+        <h4>Ticket médio por item</h4>
+        <p class="loc-porte-card-hint">Valor homologado ÷ itens — leitura do porte típico do contrato</p>
+        <div class="loc-porte-ticket">${ticketRows}</div>
+      </section>
+    </div>`;
+
+  el.querySelectorAll("[data-porte]").forEach((node) => {
+    const go = () => locFiltrarPorte(node.dataset.porte);
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        go();
+      }
+    });
+  });
 }
 
 /* -------------------- carga / filtros -------------------- */
@@ -535,6 +752,7 @@ async function carregarLocFiltros() {
         '<option value="">Todas</option>' +
         (data.ufs || []).map((u) => `<option value="${u.sigla}">${esc(u.sigla)} · ${esc(u.nome)}</option>`).join("");
     }
+    preencherSelectPorte($("#loc-filtro-porte"), data.portes);
   } catch (err) {
     console.error("Filtros localidade:", err);
   }
@@ -544,11 +762,13 @@ async function carregarLocStats() {
   const params = new URLSearchParams();
   const orgao = $("#loc-filtro-orgao")?.value;
   const uf = $("#loc-filtro-uf")?.value;
+  const porte = $("#loc-filtro-porte")?.value;
   const escopo = $("#loc-filtro-escopo")?.value || "todos";
   const metrica = $("#loc-filtro-metrica")?.value || "quantidade";
   if (orgao) params.set("orgao_id", orgao);
   appendQueryAll(params, "modalidade_id", multiSelectOf("#loc-filtro-modalidade")?.getValues());
   if (uf) params.set("uf", uf);
+  if (porte) params.set("porte", porte);
   if (escopo) params.set("escopo", escopo);
   params.set("metrica", metrica);
 
@@ -572,6 +792,7 @@ async function carregarLocStats() {
     locRenderResumo();
     locRedrawMap();
     locRenderRanking();
+    locRenderPorte();
     clearTableSortState($("#loc-table-thead"));
     locRenderTabela(locMetrica(), "desc");
   } catch (err) {
@@ -605,11 +826,15 @@ $("#form-loc-filtros")?.addEventListener("submit", (e) => {
   carregarLocStats();
 });
 
-$("#btn-loc-limpar")?.addEventListener("click", () => {
+$("#btn-loc-limpar")?.addEventListener("click", async () => {
   $("#form-loc-filtros")?.reset();
   limparFiltroPeriodo("loc");
   multiSelectOf("#loc-filtro-modalidade")?.clear({ silent: true });
   LOC.ufFocus = null;
+  // Reaplica o catálogo canônico de portes (evita grafias brutas após reset)
+  await carregarLocFiltros();
+  const selPorte = $("#loc-filtro-porte");
+  if (selPorte) selPorte.value = "";
   carregarLocStats();
 });
 
@@ -630,12 +855,19 @@ $$(".loc-mode-btn").forEach((btn) => {
   });
 });
 
+$$(".loc-vista-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    locSetVista(btn.dataset.vista || "mapa");
+  });
+});
+
 $("#loc-filtro-metrica")?.addEventListener("change", () => {
   if (LOC.data) {
     locRenderUdiSplit();
     locRenderResumo();
     locRedrawMap();
     locRenderRanking();
+    locRenderPorte();
     locRenderTabela(locMetrica(), "desc");
   }
 });

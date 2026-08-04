@@ -968,10 +968,17 @@ def listar_vencedores_cnpj(
         None,
         description="Filtro de cache: atualizado | vencido | pendente | cpf | invalido",
     ),
+    porte: str | None = Query(
+        None,
+        description=(
+            "Porte canônico (ex.: MICROEMPRESA) ou grafia bruta; "
+            "_vazio_ para sem porte. Variantes tipográficas são unificadas."
+        ),
+    ),
     limit: int = Query(500, ge=1, le=2000),
 ):
     """Fornecedores vencedores consolidados de `compras_contratacao_itens` + status do cache CNPJ."""
-    return listar_vencedores_consolidados(db, q=q, status=status, limit=limit)
+    return listar_vencedores_consolidados(db, q=q, status=status, porte=porte, limit=limit)
 
 
 @router.get("/api/compras/vencedores-cnpj/{ni}/homologacoes")

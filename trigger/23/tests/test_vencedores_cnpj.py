@@ -159,6 +159,92 @@ def test_filtro_status_pendente():
     db.close()
 
 
+def test_filtro_porte_empresa():
+    db = _db()
+    db.add_all(
+        [
+            CompraContratacaoItem(
+                id_compra_item="i1",
+                id_compra="c1",
+                cod_fornecedor="12345678000199",
+                nome_fornecedor="ME Ltda",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i2",
+                id_compra="c2",
+                cod_fornecedor="11222333000181",
+                nome_fornecedor="ME variante",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i3",
+                id_compra="c3",
+                cod_fornecedor="44555666000177",
+                nome_fornecedor="EPP SA",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i4",
+                id_compra="c4",
+                cod_fornecedor="99888777000166",
+                nome_fornecedor="Sem porte",
+            ),
+        ]
+    )
+    db.add_all(
+        [
+            ComprasFornecedor(
+                ni_fornecedor="12345678000199",
+                cnpj="12345678000199",
+                nome_razao_social_fornecedor="ME Ltda",
+                porte_empresa_nome="MICRO EMPRESA",
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="11222333000181",
+                cnpj="11222333000181",
+                nome_razao_social_fornecedor="ME variante",
+                porte_empresa_nome="MICROEMPRESA",
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="44555666000177",
+                cnpj="44555666000177",
+                nome_razao_social_fornecedor="EPP SA",
+                porte_empresa_nome="Empresa de Pequeno Porte",
+            ),
+        ]
+    )
+    db.commit()
+
+    out_me = listar_vencedores_consolidados(db, porte="MICROEMPRESA")
+    assert out_me["total"] == 2
+    assert {r["cod_fornecedor"] for r in out_me["items"]} == {
+        "12345678000199",
+        "11222333000181",
+    }
+    assert all(r["porte"] == "Microempresa" for r in out_me["items"])
+
+    # Sigla e grafia bruta também resolvem
+    assert listar_vencedores_consolidados(db, porte="ME")["total"] == 2
+    assert listar_vencedores_consolidados(db, porte="MICRO EMPRESA")["total"] == 2
+
+    out_epp = listar_vencedores_consolidados(db, porte="EPP")
+    assert out_epp["total"] == 1
+    assert out_epp["items"][0]["porte"] == "Empresa de Pequeno Porte"
+
+    out_vazio = listar_vencedores_consolidados(db, porte="_vazio_")
+    assert out_vazio["total"] == 1
+    assert out_vazio["items"][0]["cod_fornecedor"] == "99888777000166"
+    assert out_vazio["items"][0]["porte"] is None
+
+    ids = {p["id"] for p in out_me["portes"]}
+    nomes = {p["nome"] for p in out_me["portes"]}
+    assert "MICROEMPRESA" in ids
+    assert "EMPRESADEPEQUENOPORTE" in ids
+    assert "Microempresa" in nomes
+    assert "Empresa de Pequeno Porte" in nomes
+    # Sem duplicatas tipográficas no select
+    assert len([p for p in out_me["portes"] if p["id"] == "MICROEMPRESA"]) == 1
+    db.close()
+
+
 def test_listar_pendentes_enriquecimento_so_cnpj():
     from app.compras.vencedores_cnpj import listar_pendentes_enriquecimento
 
