@@ -325,6 +325,27 @@ def test_homologacoes_fornecedor_detalha_campos():
             data_resultado="2024-03-10",
         )
     )
+    db.add(
+        ComprasFornecedor(
+            ni_fornecedor="12345678000199",
+            cnpj="12345678000199",
+            nome_razao_social_fornecedor="ACME LTDA",
+            nome_fantasia="ACME",
+            porte_empresa_nome="Demais",
+            natureza_juridica_nome="Sociedade Empresária Limitada",
+            codigo_cnae=4771701,
+            nome_cnae="Comércio varejista de produtos farmacêuticos",
+            nome_municipio="Uberlândia",
+            uf_sigla="MG",
+            de_uberlandia=True,
+            situacao_cadastral="ATIVA",
+            habilitado_licitar=True,
+            cnpj_dados_json=(
+                '{"fonte":"brasilapi","payload":{"cnaes_secundarios":'
+                '[{"codigo":4781400,"descricao":"Comércio varejista de artigos do vestuário"}]}}'
+            ),
+        )
+    )
     db.commit()
 
     out = listar_homologacoes_fornecedor(db, "12.345.678/0001-99")
@@ -332,6 +353,19 @@ def test_homologacoes_fornecedor_detalha_campos():
     assert out["total"] == 2
     assert out["qtd_compras"] == 2
     assert out["valor_total_homologado"] == 1750.50
+
+    emp = out["empresa"]
+    assert emp is not None
+    assert emp["cnae_codigo"] == 4771701
+    assert "farmacêuticos" in (emp["cnae"] or "")
+    assert emp["porte"] == "Demais"
+    assert emp["municipio"] == "Uberlândia"
+    assert emp["uf"] == "MG"
+    assert emp["de_uberlandia"] is True
+    assert emp["origem_local"] == "Uberlândia"
+    assert emp["habilitado_licitar"] is True
+    assert len(emp["cnaes_secundarios"]) == 1
+    assert emp["cnaes_secundarios"][0]["codigo"] == 4781400
 
     por_item = {r["id_compra_item"]: r for r in out["items"]}
     r1 = por_item["i1"]

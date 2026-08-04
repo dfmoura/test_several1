@@ -1549,13 +1549,21 @@
     </div>
   </dialog>
 
-  <dialog id="modal-vencedor-homologacoes" class="modal">
+  <dialog id="modal-vencedor-homologacoes" class="modal modal-vencedor-homologacoes">
     <div class="modal-head">
       <h3 id="modal-vencedor-homologacoes-titulo">Homologações</h3>
       <button class="btn ghost" id="modal-vencedor-homologacoes-fechar" type="button">Fechar</button>
     </div>
     <div class="modal-body">
       <div id="modal-vencedor-homologacoes-resumo" class="compra-resumo"></div>
+      <section class="detail-panel detail-panel-wide" id="modal-vencedor-empresa-wrap" aria-label="Dados da empresa">
+        <h4 class="detail-panel-title">Dados da empresa</h4>
+        <dl id="modal-vencedor-empresa" class="detail-grid vencedor-empresa-dl"></dl>
+        <div id="modal-vencedor-cnaes-sec-wrap" class="vencedor-empresa-cnaes" hidden>
+          <p class="meta-line" id="modal-vencedor-cnaes-sec-meta">CNAEs secundários</p>
+          <ul class="vencedor-cnaes-sec" id="modal-vencedor-cnaes-sec"></ul>
+        </div>
+      </section>
       <section class="detail-panel detail-panel-wide">
         <h4 class="detail-panel-title">Itens homologados</h4>
         <p id="modal-vencedor-homologacoes-meta" class="meta-line">-</p>

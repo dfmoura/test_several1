@@ -300,6 +300,91 @@ function renderHomologacoesTabela() {
   });
 }
 
+function fmtCnaeHomolog(emp) {
+  if (!emp) return null;
+  if (emp.cnae_codigo != null && emp.cnae) return `${emp.cnae_codigo} — ${emp.cnae}`;
+  if (emp.cnae_codigo != null) return String(emp.cnae_codigo);
+  return emp.cnae || null;
+}
+
+function pillOrigemHomolog(deUberlandia) {
+  if (typeof window.OSB?.pillOrigemLocal === "function") {
+    return window.OSB.pillOrigemLocal(deUberlandia);
+  }
+  if (deUberlandia === true) return '<span class="pill-local pill-local-udi">Uberlândia</span>';
+  if (deUberlandia === false) return '<span class="pill-local pill-local-fora">Fora de Uberlândia</span>';
+  return "";
+}
+
+function renderHomologacoesEmpresa(empresa, { tipo } = {}) {
+  const wrap = $("#modal-vencedor-empresa-wrap");
+  const dl = $("#modal-vencedor-empresa");
+  const secWrap = $("#modal-vencedor-cnaes-sec-wrap");
+  const secMeta = $("#modal-vencedor-cnaes-sec-meta");
+  const secList = $("#modal-vencedor-cnaes-sec");
+  if (!wrap || !dl) return;
+
+  wrap.hidden = false;
+  if (secWrap) secWrap.hidden = true;
+  if (secList) secList.innerHTML = "";
+
+  if (!empresa) {
+    dl.innerHTML = `<dt>Cadastro</dt><dd class="muted-empty">${
+      tipo === "cpf"
+        ? "CPF sem enriquecimento cadastral de CNAE."
+        : "Cadastro ainda não enriquecido. Clique no nome na tabela para consultar o CNPJ."
+    }</dd>`;
+    return;
+  }
+
+  const mun = empresa.municipio
+    ? `${empresa.municipio}${empresa.uf ? `/${empresa.uf}` : ""}`
+    : null;
+  const endParts = [empresa.logradouro, empresa.numero, empresa.bairro, empresa.cep]
+    .filter((v) => v != null && String(v).trim() !== "");
+  const endereco = endParts.length ? endParts.join(", ") : null;
+  const cnae = fmtCnaeHomolog(empresa);
+  const hab = empresa.habilitado_licitar;
+  const habTxt = hab === true ? "Sim" : hab === false ? "Não" : null;
+
+  const campos = [
+    ["Razão social", empresa.razao_social],
+    ["Nome fantasia", empresa.nome_fantasia],
+    ["Porte", empresa.porte],
+    ["Natureza jurídica", empresa.natureza_juridica],
+    ["Situação", empresa.situacao_cadastral],
+    ["Município", mun || empresa.origem_local],
+    ["Habilitado a licitar", habTxt],
+    ["Endereço", endereco],
+  ];
+
+  let html = campos
+    .filter(([, v]) => v != null && String(v).trim() !== "")
+    .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`)
+    .join("");
+
+  if (cnae) {
+    html += `<dt class="vencedor-cnae-label">CNAE principal</dt>`
+      + `<dd class="vencedor-cnae-value">${esc(cnae)}</dd>`;
+  } else {
+    html += `<dt class="vencedor-cnae-label">CNAE principal</dt>`
+      + `<dd class="vencedor-cnae-value muted-empty">Não informado no cache local</dd>`;
+  }
+
+  dl.innerHTML = html || "<dt>Info</dt><dd class='muted-empty'>Sem dados cadastrais</dd>";
+
+  const secundarios = Array.isArray(empresa.cnaes_secundarios) ? empresa.cnaes_secundarios : [];
+  if (secWrap && secMeta && secList && secundarios.length) {
+    secWrap.hidden = false;
+    secMeta.textContent = `${secundarios.length} CNAE(s) secundário(s)`;
+    secList.innerHTML = secundarios.map((c) => {
+      const cod = c.codigo != null ? String(c.codigo) : "";
+      const desc = c.descricao || "";
+      return `<li>${cod ? `<code>${esc(cod)}</code>` : ""}${esc(desc || "—")}</li>`;
+    }).join("");
+  }
+}
+
 async function abrirHomologacoesFornecedor(ni, nome) {
   const digits = String(ni || "").replace(/\D/g, "");
   if (!digits) return;
@@ -309,6 +394,7 @@ async function abrirHomologacoesFornecedor(ni, nome) {
   const resumo = $("#modal-vencedor-homologacoes-resumo");
   const meta = $("#modal-vencedor-homologacoes-meta");
   const tb = $("#modal-vencedor-homologacoes-tabela");
+  const empDl = $("#modal-vencedor-empresa");
 
   if (titulo) titulo.textContent = nome && nome !== "—" ? nome : "Homologações";
   if (resumo) {
@@ -320,6 +406,9 @@ async function abrirHomologacoesFornecedor(ni, nome) {
   }
   if (meta) meta.textContent = "Consultando…";
   if (tb) tb.innerHTML = '<tr><td colspan="6">Carregando…</td></tr>';
+  if (empDl) empDl.innerHTML = "<dt>Cadastro</dt><dd class='muted-empty'>Carregando…</dd>";
+  const secWrap = $("#modal-vencedor-cnaes-sec-wrap");
+  if (secWrap) secWrap.hidden = true;
   homologItems = [];
   clearTableSortState($("#modal-vencedor-homologacoes-head"));
   homologSortKey = "data";
@@ -330,11 +419,17 @@ async function abrirHomologacoesFornecedor(ni, nome) {
     const data = await api(`/api/compras/vencedores-cnpj/${encodeURIComponent(digits)}/homologacoes`);
     homologItems = data.items || [];
     const nomeFinal = data.nome_fornecedor || nome || "Fornecedor";
+    const emp = data.empresa || null;
     if (titulo) titulo.textContent = nomeFinal;
     if (resumo) {
+      const pills = [
+        pillOrigemHomolog(emp?.de_uberlandia),
+        emp?.situacao_cadastral ? `<span class="pill-mod">${esc(emp.situacao_cadastral)}</span>` : "",
+      ].filter(Boolean).join("");
       resumo.innerHTML = `
         <div class="compra-resumo-main">
           <span class="compra-resumo-num">${esc(nomeFinal)}</span>
+          ${pills}
         </div>
         <div class="compra-resumo-sub">
           ${esc(fmtCnpjLocal(data.cod_fornecedor || digits))}
@@ -344,6 +439,7 @@ async function abrirHomologacoesFornecedor(ni, nome) {
           ${data.valor_total_homologado != null ? ` · total ${fmtMoeda(data.valor_total_homologado)}` : ""}
         </div>`;
     }
+    renderHomologacoesEmpresa(emp, { tipo: data.tipo });
     if (meta) {
       meta.textContent = homologItems.length
         ? `${fmtNum(homologItems.length)} homologação(ões) · ordenável pelas colunas`
@@ -353,6 +449,9 @@ async function abrirHomologacoesFornecedor(ni, nome) {
   } catch (err) {
     if (resumo) {
       resumo.innerHTML = `<p class="meta-line">${esc(err.message)}</p>`;
+    }
+    if (empDl) {
+      empDl.innerHTML = `<dt>Cadastro</dt><dd class="muted-empty">${esc(err.message)}</dd>`;
     }
     if (meta) meta.textContent = "Falha ao carregar.";
     if (tb) tb.innerHTML = `<tr><td colspan="6">${esc(err.message)}</td></tr>`;

@@ -14,7 +14,7 @@ from typing import Any, Literal
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.compras.cnpj_publico import cache_cnpj_valido
+from app.compras.cnpj_publico import cache_cnpj_valido, cnaes_secundarios_de_registro
 from app.compras.normalizers import fmt_valor_br, normalizar_ni, parse_decimal
 from app.compras.porte import (
     catalogar_portes,
@@ -48,6 +48,38 @@ def _status_cache(row: ComprasFornecedor | None, *, ni: str) -> StatusCache:
 
 def _fmt_iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
+
+
+def _empresa_resumo(forn: ComprasFornecedor | None) -> dict[str, Any] | None:
+    """Resumo cadastral + CNAE a partir do cache local (módulo 10 / CNPJ público)."""
+    if forn is None:
+        return None
+    de_udi = forn.de_uberlandia
+    if de_udi is True:
+        origem = "Uberlândia"
+    elif de_udi is False:
+        origem = "Fora de Uberlândia"
+    else:
+        origem = None
+    return {
+        "razao_social": forn.nome_razao_social_fornecedor,
+        "nome_fantasia": forn.nome_fantasia,
+        "porte": forn.porte_empresa_nome,
+        "natureza_juridica": forn.natureza_juridica_nome,
+        "cnae_codigo": forn.codigo_cnae,
+        "cnae": forn.nome_cnae,
+        "cnaes_secundarios": cnaes_secundarios_de_registro(forn.cnpj_dados_json),
+        "situacao_cadastral": forn.situacao_cadastral,
+        "municipio": forn.nome_municipio,
+        "uf": forn.uf_sigla,
+        "de_uberlandia": de_udi,
+        "origem_local": origem,
+        "habilitado_licitar": forn.habilitado_licitar,
+        "cep": forn.cep,
+        "logradouro": forn.logradouro,
+        "numero": forn.numero_endereco,
+        "bairro": forn.bairro,
+    }
 
 
 def _bucket_vazio(ni: str, nome: str | None) -> dict[str, Any]:
@@ -448,6 +480,7 @@ def listar_homologacoes_fornecedor(
         select(ComprasFornecedor).where(ComprasFornecedor.ni_fornecedor == ni_norm)
     )
     nome = forn.nome_razao_social_fornecedor if forn else None
+    empresa = _empresa_resumo(forn)
 
     items: list[dict[str, Any]] = []
     valor_total = Decimal("0")
@@ -488,6 +521,9 @@ def listar_homologacoes_fornecedor(
     if limit and len(items) > limit:
         items = items[:limit]
 
+    if empresa and not empresa.get("razao_social") and nome:
+        empresa = {**empresa, "razao_social": nome}
+
     return {
         "cod_fornecedor": ni_norm,
         "nome_fornecedor": nome,
@@ -495,6 +531,7 @@ def listar_homologacoes_fornecedor(
         "qtd_itens": total,
         "qtd_compras": len({i["id_compra"] for i in items if i.get("id_compra")}),
         "valor_total_homologado": float(valor_total.quantize(Decimal("0.01"))) if tem_valor else None,
+        "empresa": empresa,
         "items": items,
         "total": total,
         "fonte_canonica": "compras_contratacao_resultados",
