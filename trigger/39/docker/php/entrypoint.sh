@@ -18,6 +18,18 @@ if ! grep -qE '^APP_KEY=base64:[A-Za-z0-9+/=]{20,}$' .env 2>/dev/null; then
   php artisan key:generate --force --no-interaction || true
 fi
 
+# Compose pode injetar APP_KEY vazio e sobrescrever o .env do volume — restaura a chave do arquivo.
+# Sem isso o worker `queue` quebra Crypt ("No application encryption key has been specified").
+ENV_KEY="$(grep -E '^APP_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2-)"
+if printf '%s' "$ENV_KEY" | grep -qE '^base64:[A-Za-z0-9+/=]{20,}$'; then
+  case "${APP_KEY:-}" in
+    ''|'null'|null) export APP_KEY="$ENV_KEY" ;;
+  esac
+  if ! printf '%s' "${APP_KEY:-}" | grep -qE '^base64:[A-Za-z0-9+/=]{20,}$'; then
+    export APP_KEY="$ENV_KEY"
+  fi
+fi
+
 # Garante MySQL do Compose (evita cair no sqlite do skeleton)
 if [ -n "$DB_CONNECTION" ]; then
   sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONNECTION}/" .env

@@ -83,6 +83,103 @@ function preencherPortesVencedores(portes) {
   preencherSelectPorte($("#vencedores-filtro-porte"), portes);
 }
 
+/** Monta query params compartilhados pela lista e pelo modal de homologações. */
+function paramsFiltrosVencedores() {
+  const params = new URLSearchParams();
+  const q = $("#vencedores-filtro-q")?.value?.trim();
+  const st = $("#vencedores-filtro-status")?.value;
+  const porte = $("#vencedores-filtro-porte")?.value;
+  const orgao = $("#vencedores-filtro-orgao")?.value;
+  const uf = $("#vencedores-filtro-uf")?.value;
+  if (q) params.set("q", q);
+  if (st) params.set("status", st);
+  if (porte) params.set("porte", porte);
+  if (orgao) params.set("orgao_id", orgao);
+  if (uf) params.set("uf", uf);
+  appendQueryAll(params, "modalidade_id", multiSelectOf("#vencedores-filtro-modalidade")?.getValues());
+  appendPeriodoParams(params, "vencedores");
+  return params;
+}
+
+/** Params do recorte analítico (período/órgão/modalidade/UF — para o modal). */
+function paramsRecorteAnaliticoVencedores() {
+  const params = new URLSearchParams();
+  const orgao = $("#vencedores-filtro-orgao")?.value;
+  const uf = $("#vencedores-filtro-uf")?.value;
+  if (orgao) params.set("orgao_id", orgao);
+  if (uf) params.set("uf", uf);
+  appendQueryAll(params, "modalidade_id", multiSelectOf("#vencedores-filtro-modalidade")?.getValues());
+  appendPeriodoParams(params, "vencedores");
+  return params;
+}
+
+function resumoFiltrosVencedores() {
+  const el = $("#vencedores-filtros-resumo");
+  if (!el) return;
+  const periodo = resumoFiltroPeriodo("vencedores");
+  const parts = [periodo ? `<strong>${esc(periodo)}</strong>` : "Período <strong>todos</strong>"];
+  const selOrg = $("#vencedores-filtro-orgao");
+  if (selOrg?.value) {
+    const opt = selOrg.selectedOptions?.[0];
+    parts.push(`Órgão <strong>${esc(opt?.textContent || selOrg.value)}</strong>`);
+  }
+  const modVals = multiSelectOf("#vencedores-filtro-modalidade")?.getValues() || [];
+  if (modVals.length === 1) {
+    const host = $("#vencedores-filtro-modalidade");
+    const lab = host?.querySelector(`.ms-opt input[value="${CSS.escape(String(modVals[0]))}"]`)
+      ?.closest("label")
+      ?.querySelector("span")
+      ?.textContent;
+    parts.push(`Modalidade <strong>${esc(lab || modVals[0])}</strong>`);
+  } else if (modVals.length > 1) {
+    parts.push(`Modalidades <strong>${modVals.length}</strong>`);
+  }
+  const selUf = $("#vencedores-filtro-uf");
+  if (selUf?.value) {
+    parts.push(`UF <strong>${esc(selUf.value)}</strong>`);
+  }
+  el.innerHTML = parts.join(" · ");
+}
+
+async function carregarFiltrosVencedores() {
+  try {
+    const data = await api("/api/compras/vencedores-cnpj/filtros");
+    const selAno = $("#vencedores-filtro-ano");
+    const selOrg = $("#vencedores-filtro-orgao");
+    const selUf = $("#vencedores-filtro-uf");
+    const anoAtual = selAno?.value || "";
+    const orgAtual = selOrg?.value || "";
+    const ufAtual = selUf?.value || "";
+    if (selAno) {
+      selAno.innerHTML =
+        '<option value="">Todos</option>' +
+        (data.anos || []).map((a) => `<option value="${a}">${a}</option>`).join("");
+      if (anoAtual) selAno.value = anoAtual;
+    }
+    if (selOrg) {
+      selOrg.innerHTML =
+        '<option value="">Todos</option>' +
+        (data.orgaos || [])
+          .map((o) => `<option value="${o.id}">${esc(o.sigla ? `${o.sigla} · ${o.nome}` : o.nome)}</option>`)
+          .join("");
+      if (orgAtual) selOrg.value = orgAtual;
+    }
+    multiSelectOf("#vencedores-filtro-modalidade")?.setOptions(
+      (data.modalidades || []).map((m) => ({ value: m.id, label: m.nome })),
+    );
+    if (selUf) {
+      selUf.innerHTML =
+        '<option value="">Todas</option>' +
+        (data.ufs || [])
+          .map((u) => `<option value="${esc(u.sigla)}">${esc(u.sigla)} · ${esc(u.nome)}</option>`)
+          .join("");
+      if (ufAtual) selUf.value = ufAtual;
+    }
+  } catch (err) {
+    console.error("Filtros CNPJs vencedores:", err);
+  }
+}
+
 function atualizarBotoesLote(running) {
   const btn = $("#btn-vencedores-pendentes");
   const btnCancel = $("#btn-vencedores-pendentes-cancelar");
@@ -416,7 +513,11 @@ async function abrirHomologacoesFornecedor(ni, nome) {
   dlg?.showModal();
 
   try {
-    const data = await api(`/api/compras/vencedores-cnpj/${encodeURIComponent(digits)}/homologacoes`);
+    const params = paramsRecorteAnaliticoVencedores();
+    const qs = params.toString();
+    const data = await api(
+      `/api/compras/vencedores-cnpj/${encodeURIComponent(digits)}/homologacoes${qs ? `?${qs}` : ""}`,
+    );
     homologItems = data.items || [];
     const nomeFinal = data.nome_fornecedor || nome || "Fornecedor";
     const emp = data.empresa || null;
@@ -508,17 +609,12 @@ async function carregarVencedores({ silencioso = false } = {}) {
   if (!silencioso && meta) meta.textContent = "Consultando fornecedores vencedores…";
 
   try {
-    const params = new URLSearchParams();
-    const q = $("#vencedores-filtro-q")?.value?.trim();
-    const st = $("#vencedores-filtro-status")?.value;
-    const porte = $("#vencedores-filtro-porte")?.value;
-    if (q) params.set("q", q);
-    if (st) params.set("status", st);
-    if (porte) params.set("porte", porte);
+    const params = paramsFiltrosVencedores();
     const data = await api(`/api/compras/vencedores-cnpj?${params}`);
     vencedoresItems = data.items || [];
     vencedoresCacheDias = data.cache_dias ?? 30;
     preencherPortesVencedores(data.portes);
+    resumoFiltrosVencedores();
     if (meta) {
       meta.textContent = vencedoresEhAdmin()
         ? `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · lotes de pendentes usam ${3}s entre requisições`
@@ -619,9 +715,16 @@ $("#form-vencedores-filtros")?.addEventListener("submit", (e) => {
   e.preventDefault();
   carregarVencedores();
 });
-$("#btn-vencedores-limpar")?.addEventListener("click", () => {
+$("#btn-vencedores-limpar")?.addEventListener("click", async () => {
   $("#form-vencedores-filtros")?.reset();
+  limparFiltroPeriodo("vencedores");
+  multiSelectOf("#vencedores-filtro-modalidade")?.clear({ silent: true });
   clearTableSortState($("#vencedores-tabela-head"));
+  await carregarFiltrosVencedores();
+  const selPorte = $("#vencedores-filtro-porte");
+  if (selPorte) selPorte.value = "";
+  const selUf = $("#vencedores-filtro-uf");
+  if (selUf) selUf.value = "";
   carregarVencedores();
 });
 $("#btn-vencedores-pendentes")?.addEventListener("click", () => iniciarLotePendentes());
@@ -641,7 +744,9 @@ wireSortableHeaders($("#modal-vencedor-homologacoes-head"), (key, dir) => {
 });
 
 registrarPagina("vencedores", async () => {
+  iniciarFiltroPeriodo("vencedores");
   atualizarBotoesLote(vencedoresLotePolling);
+  await carregarFiltrosVencedores();
   await carregarVencedores();
   await restaurarLoteSeAtivo();
 });

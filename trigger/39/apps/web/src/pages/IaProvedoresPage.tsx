@@ -44,7 +44,7 @@ const IA_MODELO_SUGESTAO: Record<string, string> = {
   openai: 'gpt-4o-mini',
   openai_compatible: 'gpt-4o-mini',
   gemini: 'gemini-2.0-flash',
-  anthropic: 'claude-3-5-haiku-latest',
+  anthropic: 'claude-haiku-4-5',
   deepseek: 'deepseek-chat',
   groq: 'llama-3.3-70b-versatile',
   mistral: 'mistral-small-latest',

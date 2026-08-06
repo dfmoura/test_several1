@@ -5,9 +5,11 @@ import {
   IconAi,
   IconArrow,
   IconBuilding,
+  IconHub,
   IconOrcamento,
   IconPartners,
   IconProduct,
+  IconReport,
   IconSettings,
   IconUsers,
 } from '../components/NavIcons';
@@ -61,6 +63,14 @@ export function DashboardPage() {
       visible: hasPermission('orcamento.ler'),
     },
     {
+      to: '/relatorios',
+      title: 'Relatórios IA',
+      description: 'Solicite em linguagem natural; a IA gera o programa e o PDF profissional.',
+      hint: 'Relatórios',
+      icon: IconReport,
+      visible: hasPermission('relatorio.ler'),
+    },
+    {
       to: '/usuarios',
       title: 'Usuários',
       description: 'Contas de acesso, perfis e restrições por empresa.',
@@ -83,6 +93,14 @@ export function DashboardPage() {
       hint: 'Sistema',
       icon: IconAi,
       visible: hasPermission('ia.provedores.gerir'),
+    },
+    {
+      to: '/fiscal-hubs',
+      title: 'Hubs fiscais',
+      description: 'Focus NFe e demais hubs: tokens homolog/prod e vínculo da empresa.',
+      hint: 'Fiscal',
+      icon: IconHub,
+      visible: hasPermission('fiscal.hubs.gerir'),
     },
   ].filter((m) => m.visible);
 
@@ -142,7 +160,7 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {!hasAnyPermission('parceiro.ler', 'produto.ler', 'usuarios.gerir', 'parametros.gerir') && (
+      {!hasAnyPermission('parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler', 'usuarios.gerir', 'parametros.gerir') && (
         <div className="card" style={{ marginTop: '1.5rem' }}>
           <div className="card-body">
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>

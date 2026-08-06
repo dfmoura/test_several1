@@ -1,0 +1,1179 @@
+================================================================================
+RELATÓRIOS IA — ERP RLP / TRIGGER (projeto trigger/39)
+PLANO ESPECIALISTA DE EVOLUÇÃO: DE "LISTA FILTRADA" PARA "RELATÓRIO PROFISSIONAL"
+================================================================================
+Documento técnico-normativo · elaborado a partir da leitura integral do módulo
+Data: 2026-08-05
+Base analisada:
+  apps/api/app/Services/Relatorio/{RelatorioCatalogo,RelatorioIaPlanner,
+      RelatorioProgramaValidator,RelatorioProgramaCompiler,RelatorioPdfRenderer,
+      RelatorioService,FacaShapeSvg}.php
+  apps/api/app/Services/Ia/{IaClient,IaCrypto,IaProvedorService}.php
+  apps/api/app/Jobs/GerarRelatorioJob.php
+  apps/api/app/Models/{Relatorio,IaProvedor}.php
+  apps/api/app/Http/Controllers/Api/V1/RelatorioController.php
+  apps/api/resources/views/relatorios/layout.blade.php
+  apps/api/database/migrations/2026_08_04_2200*_*.php
+  apps/api/tests/Feature/RelatorioTest.php
+  apps/web/src/pages/{RelatoriosPage,RelatorioNovoPage,RelatorioDetailPage}.tsx
+  docs/BACKLOG.md (BL-001, BL-005) · README.md
+
+NATUREZA DESTE DOCUMENTO
+  É um plano. Nenhum arquivo do projeto foi alterado. Todas as mudanças abaixo
+  são descritas como ADITIVAS, com flag de ativação e caminho de rollback, para
+  que nada do que já funciona (ORC, motor BRAHVA, facas, PDF atual, testes)
+  seja comprometido.
+
+--------------------------------------------------------------------------------
+0. SUMÁRIO EXECUTIVO (leia isto se ler só uma página)
+--------------------------------------------------------------------------------
+
+O módulo hoje está ARQUITETURALMENTE CERTO e FUNCIONALMENTE RASO.
+
+  Certo:   a IA não gera SQL/PHP — gera um programa JSON validado contra
+           allowlist (RelatorioProgramaValidator), executado por um compiler
+           próprio, escopado por empresa_id, assíncrono via fila, com RBAC e
+           auditoria. Essa é exatamente a arquitetura correta e NÃO deve mudar.
+
+  Raso:    o "relatório" produzido é sempre a MESMA coisa — uma tabela plana,
+           colunas fixas, sem agrupamento, sem comparação, sem análise, sem
+           gráfico, sem contexto temporal, e com números que em alguns casos
+           estão silenciosamente errados (totais e ordenações calculados depois
+           do corte de limite). O usuário não consegue revisar nada antes do PDF
+           sair, não consegue salvar um relatório como modelo, e a IA faz uma
+           única tentativa: se errar o JSON, o relatório vira ERRO.
+
+A causa raiz da sensação de superficialidade tem três camadas, nesta ordem de
+importância:
+
+  (1) CONTRATO POBRE — o ReportSpec só sabe descrever "SELECT colunas WHERE
+      filtros ORDER BY x LIMIT n". Um relatório profissional é agregação,
+      comparação de períodos, ranking, participação %, quebra por grupo com
+      subtotal e uma leitura executiva. Nada disso é representável hoje.
+      Enquanto o contrato for pobre, trocar de modelo ou melhorar o prompt não
+      resolve — a IA não tem como pedir o que não existe.
+
+  (2) SEMÂNTICA AUSENTE — o catálogo entrega nomes de coluna e tipos, mas não
+      entrega significado de negócio, sinônimos, nem a data de hoje. A IA não
+      sabe que "total" é o valor_etiqueta da 1ª faixa (não é faturamento), não
+      sabe o que é "carteira", e não tem como interpretar "últimos 90 dias".
+
+  (3) EXATIDÃO NÃO GARANTIDA — agregações e ordenações rodam em PHP sobre o
+      conjunto já truncado. "Top 10 orçamentos por valor" hoje devolve 10
+      orçamentos QUAISQUER. Isso é mais grave que a superficialidade: um
+      relatório bonito com número errado destrói a confiança no módulo inteiro.
+      Corrigir (3) é PRÉ-REQUISITO de qualquer narrativa gerada por IA — sem
+      isso a IA vai escrever análises confiantes sobre dados falsos.
+
+A recomendação central, em uma frase:
+
+  >> Transforme a IA de "geradora de query" em "tradutora de intenção para um
+  >> contrato de relatório rico, revisável pelo humano antes de virar PDF, e
+  >> narradora aterrada de resultados que ELA NÃO CALCULOU."
+
+A IA nunca deve calcular número. Ela planeja e ela redige. Quem calcula é o
+compiler, em SQL, no banco. Esse é o padrão profissional e é o que separa um
+brinquedo de um módulo de ERP auditável.
+
+--------------------------------------------------------------------------------
+1. COMO O MÓDULO FUNCIONA HOJE (mapa fiel)
+--------------------------------------------------------------------------------
+
+  UI RelatorioNovoPage  ──POST /api/v1/relatorios──>  RelatorioController@store
+        (prompt, orientacao, titulo?)                        │
+                                                             v
+                                              RelatorioService::create()
+                                                - CodigoGenerator → REL-AAAA-NNNNN
+                                                - grava status PENDENTE
+                                                - contexto_flags = {incluir_credito}
+                                                - AuditLogger 'CRIAR'
+                                                - GerarRelatorioJob::dispatch
+                                                             │
+                                       (fila database, worker Compose "queue")
+                                                             v
+                                              RelatorioService::processar()
+                                                             │
+        ┌────────────────────────────────────────────────────┼───────────────┐
+        v                                                    v               v
+  RelatorioIaPlanner::planejar()          RelatorioProgramaCompiler   RelatorioPdfRenderer
+   - monta system prompt + catálogo         ::execute()                 ::renderAndStore()
+   - IaClient::chat() (rotação por          - revalida spec             - Blade relatorios.layout
+     prioridade entre IaProvedor ativos)    - query por fonte           - DomPDF A4 retrato/paisagem
+   - extrai JSON da resposta                - projeta colunas           - page_script numeração
+   - Validator::validate() (allowlist)      - computeTotais             - Storage local
+                                                             │
+                                                             v
+                                        status CONCLUIDO | ERRO + AuditLogger
+                                                             │
+                        UI RelatorioDetailPage faz polling 2s e libera download
+
+  Fontes v1: orcamentos, parceiros, produtos, facas (com coluna "desenho" = SVG).
+  Tetos: LIMITE_MAX 1000 · LIMITE_PADRAO 500 · FACAS 200 · FACAS_COM_DESENHO 60.
+  RBAC: relatorio.ler / relatorio.escrever. Escopo: empresa_id + X-Empresa-Id.
+
+O que já está BOM e é intocável (invariantes):
+  I1. IA jamais recebe/produz SQL, PHP ou nome de tabela. Só spec declarativa.
+  I2. Toda spec passa por allowlist antes de tocar o banco. Duas vezes
+      (planner e compiler) — defesa em profundidade correta, manter.
+  I3. Assíncrono com job + status + reprocessar. Manter.
+  I4. Multi-empresa por empresa_id em toda query. Manter.
+  I5. Campos sensíveis (crédito) só entram no catálogo via contexto_flags.
+  I6. Soft-delete, código de negócio legível, auditoria. Manter.
+  I7. PDF com identidade RLP/TRIGGER, rodapé de emissão e numeração. Manter.
+
+--------------------------------------------------------------------------------
+2. DIAGNÓSTICO — POR QUE ESTÁ SUPERFICIAL (evidência por evidência)
+--------------------------------------------------------------------------------
+
+Classifiquei em três severidades:
+  [A] EXATIDÃO — produz número errado ou resultado silenciosamente incompleto.
+  [B] PROFUNDIDADE — impede que o relatório seja profissional.
+  [C] DINÂMICA/UX — impede que o usuário confie, itere e reaproveite.
+
+── [A] EXATIDÃO ───────────────────────────────────────────────────────────────
+
+A1. Ordenação por campo virtual é ignorada — "top N" não funciona.
+    RelatorioProgramaCompiler::applyDbOrder() pula todo campo fora do $map.
+    Em queryOrcamentos(), 'total' e 'parceiro_nome' NÃO estão no mapa de
+    ordenação e não há reordenação em memória depois. Resultado: o pedido
+    "10 orçamentos de maior valor" devolve os 10 mais antigos por created_at.
+    O usuário não recebe erro nem aviso. É o pior tipo de falha.
+
+A2. Ordenação de facas ocorre DEPOIS do corte de limite.
+    queryFacas() preenche $mapped até $spec['limite'] e só então faz usort().
+    "As 20 facas de maior repetição" = as 20 primeiras do catálogo, ordenadas
+    entre si. Mesma classe de erro de A1.
+
+A3. Totais calculados sobre a PÁGINA, não sobre o conjunto.
+    computeTotais() opera sobre $rows já limitadas. Com 500 de limite e 3.200
+    registros elegíveis, "soma do total" mostra a soma de 500. O PDF apresenta
+    isso como se fosse o total. Nada indica truncamento.
+
+A4. Total sobre campo que não é coluna retorna zero silenciosamente.
+    computeTotais() lê $r[$campo] das linhas JÁ PROJETADAS por project().
+    Se a IA pedir totais:[{campo:'total',fn:'sum'}] sem incluir 'total' em
+    colunas (pedido perfeitamente razoável: "só quero o somatório"), o
+    resultado é 0,00 impresso como fato.
+
+A5. Filtro virtual + janela de 3x = resultado incompleto.
+    queryOrcamentos() busca min(limite*3, 2000) e filtra parceiro_nome/total em
+    PHP. Filtrar por um cliente cujos orçamentos estão fora dessa janela devolve
+    "Nenhum registro encontrado" para dados que existem.
+
+A6. Datas: comparação de dia-limite corta o último dia.
+    applyDbFilters() 'lte' com valor '2026-08-31' compara contra DATETIME →
+    exclui tudo do próprio dia 31 após 00:00:00. Todo relatório "do mês" perde
+    o último dia. Não há normalização de data nem timezone no validator.
+
+A7. 'count' em computeTotais ignora o campo e conta linhas.
+    match 'count' => count($rows). Um "count distinto de clientes" vira número
+    de linhas. Semanticamente errado.
+
+A8. Sem indicação de truncamento em lugar nenhum.
+    Não existe total_linhas_disponiveis. O Blade imprime "N linha(s)" como se
+    fosse o universo. Um relatório profissional é obrigado a declarar recorte.
+
+── [B] PROFUNDIDADE ───────────────────────────────────────────────────────────
+
+B1. O contrato só descreve tabela plana.
+    Sem GROUP BY, sem quebra com subtotal, sem período comparativo, sem
+    percentual de participação, sem ranking, sem métrica derivada, sem KPI.
+    Todo "relatório gerencial" real precisa de pelo menos agrupamento e
+    comparação. Hoje é impossível expressar "faturamento por UF por mês".
+
+B2. Um relatório = uma fonte = uma tabela. Sem seções.
+    Não existe conceito de documento com capa, sumário executivo, bloco de
+    indicadores, tabela detalhada e observações. O PDF é literalmente um
+    <h1> e um <table>.
+
+B3. Zero narrativa. É esse o coração do pedido "relatório feito por IA".
+    Hoje a IA some depois de gerar o JSON. O documento final não tem nenhuma
+    frase escrita por ela. Um relatório de IA profissional entrega leitura:
+    "23 orçamentos calculados no período, R$ 412.300 em valor de 1ª faixa,
+    concentração de 61% em 3 clientes, queda de 12% vs. mês anterior."
+    Isso é o diferencial percebido — e é seguro DESDE QUE aterrado (§8).
+
+B4. Sem gráfico.
+    DomPDF renderiza SVG (já provado por FacaShapeSvg no mapa de facas). Barras
+    e linhas geradas por PHP puro, sem rede, são perfeitamente viáveis e
+    baratas. Não existe hoje.
+
+B5. Catálogo sem semântica de negócio.
+    RelatorioCatalogo entrega label/tipo. Não entrega: descrição funcional,
+    sinônimos ("faturamento", "carteira", "prospect frio"), unidade, formato
+    (moeda/percentual/data), pegadinhas. Exemplo crítico: 'total' está rotulado
+    "Total 1ª faixa (valor_etiqueta)" — a IA vai tratar como faturamento e o
+    relatório vai mentir por vocabulário, não por bug.
+
+B6. A IA não sabe que dia é hoje.
+    O system prompt não injeta data/timezone. "Últimos 30 dias", "este mês",
+    "1º semestre" são impossíveis de traduzir corretamente. O modelo vai
+    inventar uma data — geralmente do treinamento.
+
+B7. Formatação de célula é heurística frágil.
+    O Blade decide moeda por "tem ponto na string". Preço, alíquota %, dias e
+    quantidade recebem o mesmo tratamento. Sem alinhamento à direita para
+    número, sem símbolo, sem casas decimais por campo.
+
+── [C] DINÂMICA / UX / GOVERNANÇA ─────────────────────────────────────────────
+
+C1. Sem preview. O usuário escreve o prompt e recebe um PDF pronto — ou um
+    erro. Não há etapa de conferência do que a IA entendeu. Isso é o que mais
+    pesa na sensação de "superficial e sem controle".
+
+C2. Uma tentativa só. RelatorioIaPlanner::planejar() chama a IA uma vez. Se o
+    JSON vier com uma coluna inexistente, InvalidArgumentException → ERRO. Não
+    há ciclo de auto-correção (devolver o erro do validator ao modelo e pedir
+    correção), que tipicamente eleva a taxa de sucesso de ~70% para >95%.
+
+C3. Sem modelo/template e sem reexecução determinística. Um relatório útil é
+    executado toda semana. Hoje cada execução chama a IA de novo, gasta token,
+    e pode produzir uma spec diferente para o mesmo pedido. Não há "salvar como
+    modelo" nem "rodar de novo sem IA".
+
+C4. Sem edição manual da spec. O programa_json é exibido como <pre> read-only
+    no RelatorioDetailPage. O usuário vê que a IA errou uma coluna e não pode
+    corrigir — só reescrever o prompt e torcer.
+
+C5. Sem observabilidade de IA. Não se registra prompt enviado, resposta bruta,
+    tokens, latência, provedor, nº de tentativas. Impossível depurar
+    regressão de prompt ou medir custo por empresa.
+
+C6. Sem JSON mode / structured output. IaClient::chat() manda texto puro e o
+    planner faz regex/strpos para achar o JSON. OpenAI-compat aceita
+    response_format; Anthropic aceita tool_use; Gemini aceita
+    responseMimeType/responseSchema. Não usar isso é jogar fora confiabilidade
+    de graça.
+
+C7. Rotação de provedor sem adequação de finalidade. chat() pega o primeiro
+    ativo por prioridade — pode cair num modelo pequeno que não faz JSON
+    confiável. Não há noção de "provedor para planejamento" vs "para redação".
+
+C8. Vazamento potencial de dado sensível pelo PDF.
+    contexto_flags é fotografado na criação. O PDF é baixável por qualquer
+    usuário com relatorio.ler — inclusive perfil CONSULTA — mesmo que contenha
+    limite_credito/credito_utilizado, que exigiriam credito.escrever /
+    parceiro.bancario para serem vistos na tela. Além disso, reprocessar mantém
+    as flags antigas mesmo que o autor tenha perdido a permissão. É um gap real
+    de SoD, barato de fechar.
+
+C9. Sem limite de uso. Nada impede 50 relatórios simultâneos consumindo token e
+    memória do worker (que já sobe ini_set para 384M por causa dos SVG).
+
+C10. Catálogo inteiro enviado em toda chamada. Custo de token constante e
+    crescente a cada fonte nova, sem cache de prompt.
+
+--------------------------------------------------------------------------------
+3. PRINCÍPIOS DA SOLUÇÃO (as regras que tornam isto "profissional")
+--------------------------------------------------------------------------------
+
+P1. IA PLANEJA E REDIGE. IA NÃO CALCULA.
+    Todo número do PDF vem do banco, via compiler determinístico. A IA recebe
+    números prontos para escrever sobre eles. Zero aritmética no LLM.
+
+P2. CONTRATO ANTES DE PROMPT.
+    Melhorar prompt sem enriquecer o ReportSpec é otimização local inútil.
+    Primeiro amplia-se a linguagem (spec v2), depois ensina-se a IA a falá-la.
+
+P3. HUMANO NO LOOP, POR PADRÃO.
+    Planejar (barato, rápido, revisável) é uma etapa separada de Gerar (caro,
+    assíncrono, definitivo). O usuário aprova ou ajusta a spec.
+
+P4. DETERMINISMO REPRODUTÍVEL.
+    Spec aprovada vira ativo versionado. Reexecutar não chama IA. Mesmo spec +
+    mesmo dado = mesmo PDF. Isso é requisito de ERP auditável.
+
+P5. HONESTIDADE ESTATÍSTICA.
+    Todo recorte, truncamento, filtro aplicado, período e fuso aparecem no
+    documento. "Amostra de 500 de 3.214 registros" é obrigatório quando houver
+    corte. Nunca apresentar parcial como total.
+
+P6. ATERRAMENTO ESTRITO DA NARRATIVA.
+    A IA redatora só recebe agregados já calculados e só pode citar números
+    presentes nesse pacote. Verificação automática pós-geração. Rótulo visível
+    de "texto gerado por IA".
+
+P7. ADITIVO E REVERSÍVEL.
+    Spec v1 continua válida para sempre. Recursos novos atrás de flag em
+    config/erp.php, default desligado. Nenhuma migration destrutiva. Nenhum
+    teste existente alterado.
+
+P8. MENOS PODER PARA A IA, MAIS PODER PARA O CATÁLOGO.
+    Cada capacidade nova (agrupar, comparar) nasce declarada e validada no
+    catálogo, nunca como texto livre interpretado em runtime.
+
+--------------------------------------------------------------------------------
+4. ARQUITETURA ALVO
+--------------------------------------------------------------------------------
+
+  ┌─ CAMADA SEMÂNTICA ────────────────────────────────────────────────────────┐
+  │ RelatorioCatalogo (enriquecido) + RelatorioVocabulario (novo)             │
+  │  · descrição de negócio por fonte e por campo                            │
+  │  · sinônimos PT-BR, unidade, formato, agregações permitidas              │
+  │  · métricas derivadas nomeadas (ex.: ticket_medio, participacao_pct)     │
+  │  · dimensões de tempo pré-definidas (dia/semana/mes/trimestre/ano)       │
+  │  · perguntas-exemplo por fonte (few-shot curado)                         │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    │  (contexto compacto, não o catálogo cru inteiro)
+                    v
+  ┌─ PLANEJAMENTO ────────────────────────────────────────────────────────────┐
+  │ RelatorioIaPlanner v2                                                     │
+  │  · injeta data/hora/timezone/empresa e as flags do usuário               │
+  │  · pede JSON via structured output quando o provedor suportar            │
+  │  · ciclo de auto-correção: validate → se falhar, devolve o erro ao        │
+  │    modelo (máx. 2 retentativas) → validate                                │
+  │  · normalizador tolerante ANTES de reprovar (acentos, snake/camel,        │
+  │    sinônimo → campo canônico)                                            │
+  │  · registra tudo em relatorio_execucoes                                   │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    │  ReportSpec v2 validada
+                    v
+  ┌─ REVISÃO HUMANA (novo, opcional por flag) ───────────────────────────────┐
+  │ POST /relatorios/planejar → devolve spec + amostra (até 20 linhas) +      │
+  │ contagem real + custo estimado. UI mostra em linguagem natural            │
+  │ ("Fonte: Orçamentos · Período: 01/07 a 31/07 · Agrupado por UF").        │
+  │ Usuário: Gerar PDF | Ajustar campos | Refazer pedido | Salvar modelo.     │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    v
+  ┌─ EXECUÇÃO DETERMINÍSTICA ────────────────────────────────────────────────┐
+  │ RelatorioProgramaCompiler v2                                             │
+  │  · SEMPRE agrega e ordena no BANCO (nunca em PHP pós-limite)             │
+  │  · dois passes: (a) COUNT/agregados do universo  (b) linhas do recorte   │
+  │  · normalização de datas (inclusive fim-de-dia, timezone do app)         │
+  │  · devolve ResultSet: kpis, series, grupos, linhas, meta de truncamento  │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    v
+  ┌─ NARRATIVA ATERRADA (novo, opcional por flag) ───────────────────────────┐
+  │ RelatorioNarrativaService                                                │
+  │  · entrada: SÓ o pacote de agregados (kpis/series/top-N), nunca a base   │
+  │    completa e nunca campo sensível não autorizado                        │
+  │  · saída: sumário executivo (3-6 bullets) + 2-4 observações              │
+  │  · pós-verificação: todo número citado deve existir no pacote            │
+  │  · falha na verificação → PDF sai SEM narrativa (nunca bloqueia o PDF)   │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    v
+  ┌─ COMPOSIÇÃO E RENDER ────────────────────────────────────────────────────┐
+  │ RelatorioDocumentBuilder → blocos (capa? · kpis · gráfico · tabela ·     │
+  │ grupos com subtotal · narrativa · metodologia/recorte)                   │
+  │ RelatorioPdfRenderer v2: escolhe layout v1 (spec v1, inalterado) ou      │
+  │ layout v2 (blocos). SVG gerado em PHP, sem rede (isRemoteEnabled=false). │
+  └───────────────────────────────────────────────────────────────────────────┘
+                    v
+  ┌─ GOVERNANÇA ─────────────────────────────────────────────────────────────┐
+  │ relatorio_execucoes (auditoria de IA) · marcação de sensibilidade no     │
+  │ registro + checagem no download · rate limit · cache de spec idêntica    │
+  │ · evals (golden set de prompts) rodando no CI                            │
+  └───────────────────────────────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+5. ReportSpec v2 — O CONTRATO (retrocompatível com v1)
+--------------------------------------------------------------------------------
+
+Regra de compatibilidade: ausência de "versao" == versão 1. Toda spec v1 hoje
+gravada em relatorios.programa_json continua válida, valida igual e renderiza
+no layout atual. O validator v2 é um SUPERSET.
+
+{
+  "versao": 2,
+  "titulo": "Orçamentos calculados por UF — julho/2026",
+  "subtitulo": "Base: valor de 1ª faixa (valor_etiqueta)",     // opcional
+  "fonte": "orcamentos",
+
+  "periodo": {                       // NOVO — resolvido pelo backend, não pela IA
+    "campo": "created_at",
+    "preset": "mes_atual|mes_anterior|ultimos_30_dias|ano_atual|trimestre_atual|custom",
+    "de": "2026-07-01",              // usado só quando preset = custom
+    "ate": "2026-07-31",
+    "comparar_com": "periodo_anterior|mesmo_periodo_ano_anterior|nenhum"
+  },
+
+  "filtros": [ { "campo":"status", "op":"in", "valor":["CALCULADO","ENVIADO"] } ],
+
+  "agrupamento": {                   // NOVO — quando presente, o relatório é analítico
+    "por": ["uf"],                   // 1 ou 2 dimensões, todas do catálogo
+    "granularidade_tempo": "mes",    // opcional: dia|semana|mes|trimestre|ano
+    "metricas": [
+      { "campo":"total", "fn":"sum",   "rotulo":"Valor total" },
+      { "campo":"codigo","fn":"count", "rotulo":"Qtd. orçamentos" },
+      { "campo":"total", "fn":"avg",   "rotulo":"Ticket médio" }
+    ],
+    "ordenar_por": { "metrica":0, "dir":"desc" },
+    "top_n": 10,
+    "incluir_outros": true,          // agrega a cauda em "Outros"
+    "participacao_percentual": true  // coluna % sobre o total do universo
+  },
+
+  "colunas": ["codigo","parceiro_nome","status","total","created_at"], // detalhe
+  "ordenacao": [ { "campo":"total", "dir":"desc" } ],
+  "limite": 200,
+  "totais": [ { "campo":"total", "fn":"sum" } ],          // v1, mantido
+
+  "kpis": [                          // NOVO — cartões no topo, sempre do universo
+    { "rotulo":"Valor total",   "campo":"total",  "fn":"sum",   "formato":"moeda" },
+    { "rotulo":"Orçamentos",    "campo":"codigo", "fn":"count", "formato":"inteiro" },
+    { "rotulo":"Ticket médio",  "campo":"total",  "fn":"avg",   "formato":"moeda" }
+  ],
+
+  "grafico": {                       // NOVO — opcional, derivado do agrupamento
+    "tipo": "barras|barras_horizontal|linha|pizza",
+    "serie": 0                       // índice da métrica do agrupamento
+  },
+
+  "narrativa": {                     // NOVO
+    "gerar": true,
+    "tom": "executivo|operacional",
+    "focos": ["concentracao","variacao_periodo","outliers"]
+  },
+
+  "apresentacao": {                  // NOVO — formatação declarada, não adivinhada
+    "formatos": { "total":"moeda", "aliquota_cbs":"percentual",
+                  "created_at":"data_hora", "prazo_entrega_dias":"inteiro" },
+    "quebrar_pagina_por_grupo": false,
+    "mostrar_detalhe": true,         // false = só analítico (KPI+gráfico+grupos)
+    "capa": false
+  }
+}
+
+Regras de validação obrigatórias no v2 (todas em RelatorioProgramaValidator):
+  V1. agrupamento.por: cada campo deve existir, ser do tipo string/bool/enum ou
+      ser dimensão de tempo declarada. Máximo 2 dimensões.
+  V2. métricas: campo precisa de agregavel=true (exceto fn=count, que aceita
+      qualquer campo e passa a significar COUNT(campo) / COUNT(DISTINCT campo)
+      conforme declarado — nunca count de linhas disfarçado).
+  V3. top_n ≤ 50. limite continua sujeito a LIMITE_MAX e aos tetos de facas.
+  V4. periodo.campo deve ser tipo date/datetime e filtravel.
+  V5. preset é resolvido no backend com Carbon + config('app.timezone').
+      A IA nunca escreve data absoluta a partir de "mês passado".
+  V6. kpis.formato ∈ {moeda, inteiro, decimal, percentual, data, data_hora, texto}.
+  V7. grafico só é aceito se houver agrupamento com ≥1 métrica e ≤ 25 categorias
+      (acima disso o gráfico é suprimido com nota, não é erro).
+  V8. narrativa.gerar=true só é honrada se a flag global estiver ligada e
+      existir provedor IA ativo; caso contrário degrada silenciosamente.
+  V9. mostrar_detalhe=false com agrupamento ausente = erro (relatório vazio).
+  V10. Campos sensíveis: se algum campo com sensivel=true entrar em colunas,
+      métricas ou kpis, o registro é marcado contem_sensivel=true (ver §10).
+
+--------------------------------------------------------------------------------
+6. A DINÂMICA DE USO (o "como" que o usuário vai sentir)
+--------------------------------------------------------------------------------
+
+FLUXO RECOMENDADO — "Planejar, conferir, gerar, reaproveitar"
+
+  Passo 1 · PEDIR
+    Tela atual, com um acréscimo de valor imediato: um seletor de exemplos por
+    fonte, alimentado por GET /relatorios/catalogo (as perguntas-exemplo do §7).
+    O usuário aprende o que o sistema sabe fazer em 5 segundos. Isso, sozinho,
+    já resolve boa parte da percepção de superficialidade.
+
+  Passo 2 · PLANEJAR  (síncrono, ~2-5s, novo endpoint)
+    POST /api/v1/relatorios/planejar { prompt, titulo?, orientacao }
+    → 200 { spec, resumo_legivel, amostra: [...20 linhas], total_estimado,
+            avisos: ["Período interpretado como 01/07 a 31/07/2026"],
+            provedor, tentativas }
+    Não grava Relatorio. Não gera PDF. Barato e descartável.
+
+  Passo 3 · CONFERIR
+    A UI mostra a spec em português, não em JSON:
+      Fonte ......... Orçamentos
+      Período ....... 01/07/2026 a 31/07/2026 (mês anterior)
+      Filtros ....... Status em CALCULADO, ENVIADO
+      Agrupado por .. UF  ·  Métricas: Valor total, Qtd., Ticket médio
+      Ordenação ..... Valor total (maior → menor), top 10 + Outros
+      Detalhe ....... 200 linhas (de ~3.214 elegíveis)
+      Extras ........ KPIs, gráfico de barras, sumário executivo por IA
+    Com toggles simples: incluir/remover coluna, trocar orientação, ligar/
+    desligar narrativa e gráfico, ajustar top_n e limite. Tudo isso edita a
+    spec localmente e revalida no backend — sem chamar IA de novo.
+
+  Passo 4 · GERAR
+    POST /api/v1/relatorios { prompt, orientacao, titulo?, spec? }
+    Quando spec vem preenchida e válida, o job PULA o planner (economia de
+    token, determinismo). Quando não vem, comportamento atual preservado —
+    é exatamente o que mantém a compatibilidade total com o fluxo de hoje.
+
+  Passo 5 · REAPROVEITAR
+    "Salvar como modelo" grava relatorio_modelos {nome, spec, empresa_id,
+    periodo_relativo=true}. Executar um modelo NÃO chama IA: resolve o preset
+    de período para a data corrente e vai direto ao compiler. É aqui que o
+    módulo deixa de ser demo e vira ferramenta de rotina — e é o caminho
+    natural para agendamento (fase futura, fora deste plano).
+
+DINÂMICAS COMPLEMENTARES QUE VALEM MUITO E CUSTAM POUCO
+
+  D1. Refino conversacional de spec: "agora quebra por mês também" enviado com
+      a spec atual como contexto → planner devolve spec ajustada. Duas linhas
+      de payload, ganho enorme de percepção de inteligência.
+  D2. "Por que esses números?": botão que abre a spec + período + filtros +
+      contagem. Transparência é o que faz gerente confiar em relatório de IA.
+  D3. Reprocessar mantendo a spec (hoje ele limpa programa_json e chama a IA de
+      novo, podendo gerar outro relatório com o mesmo nome). Sugestão: dois
+      botões — "Reprocessar" (mesma spec, dados atualizados) e "Replanejar com
+      IA" (comportamento atual). Mudança pequena, ganho de previsibilidade alto.
+  D4. Exportar CSV/XLSX do dataset já calculado. Não exige IA, é uma rota nova
+      sobre o mesmo ResultSet, e é o pedido nº 1 de qualquer usuário de ERP.
+
+--------------------------------------------------------------------------------
+7. PROMPTING PROFISSIONAL (o que muda no RelatorioIaPlanner)
+--------------------------------------------------------------------------------
+
+7.1 ESTRUTURA DO SYSTEM PROMPT (ordem importa)
+
+  [1] Papel e escopo — 2 linhas, não mais.
+  [2] Contrato de saída — o JSON Schema do ReportSpec v2, com os campos
+      opcionais marcados. Schema literal vale mais que prosa explicativa.
+  [3] Contexto de execução — INJETADO, não fixo:
+        data_hoje, dia_da_semana, timezone, empresa (nome/código),
+        flags do usuário (ex.: sem acesso a crédito),
+        limites vigentes (LIMITE_MAX, tetos de facas).
+  [4] Catálogo COMPACTO da(s) fonte(s) plausíveis — ver 7.2.
+  [5] Regras de decisão — as heurísticas de um analista sênior:
+        R1 Pedido com "por/ranking/top/quanto/total/média/evolução/comparado"
+           → é ANALÍTICO: use agrupamento + kpis; detalhe é opcional.
+        R2 Pedido com "listar/relação/quais/exportar" → é DETALHE: colunas.
+        R3 Sempre defina periodo quando a fonte tiver campo de data e o usuário
+           citar tempo, explícita ou implicitamente ("recentes", "do mês").
+        R4 Nunca invente data absoluta: use preset.
+        R5 Escolha no máximo 7 colunas em retrato, 10 em paisagem.
+        R6 Sugira orientação paisagem quando colunas > 6.
+        R7 Ligue narrativa quando houver agrupamento ou kpis.
+        R8 Se o pedido for ambíguo, escolha a interpretação mais comum e
+           registre em "avisos" — nunca peça esclarecimento (é assíncrono).
+        R9 Facas com desenho: teto 60, prefira filtro de formato/máquina.
+  [6] 3 a 5 EXEMPLOS completos (few-shot) pedido → spec, cobrindo:
+        um detalhe simples, um analítico com agrupamento, um comparativo de
+        período, um de facas com desenho, um ambíguo resolvido com aviso.
+      Few-shot é o instrumento mais barato e mais eficaz deste documento.
+      Vale mais que trocar de modelo.
+  [7] "Responda apenas com o JSON." — última linha, sempre.
+
+7.2 CATÁLOGO COMPACTO (economia e precisão)
+
+  Hoje: json_encode do catálogo inteiro, todas as fontes, toda chamada.
+  Recomendado: pré-seleção por palavra-chave/sinônimo do prompt (roteador
+  determinístico em PHP, sem IA) e envio de 1-2 fontes prováveis com todos os
+  campos, + apenas o nome das demais fontes ("se o pedido for de X, peça Y").
+  Fallback: se o roteador não tiver confiança, manda tudo (comportamento atual).
+  Ganho típico: 50-70% menos tokens de entrada e menos confusão entre fontes.
+  Também: manter o bloco de catálogo estável no início da mensagem viabiliza
+  prompt caching nos provedores que suportam.
+
+7.3 SAÍDA ESTRUTURADA (confiabilidade grátis)
+
+  Estender IaClient::chat() com um 3º parâmetro OPCIONAL, sem quebrar chamadas
+  existentes:  chat(array $messages, ?float $timeout = null, array $opts = [])
+  onde $opts pode conter ['json_schema' => [...], 'temperature' => 0.0,
+  'max_tokens' => 4096]. Tradução por protocolo:
+    · OpenAI-compat: response_format = {type:'json_schema', json_schema:{...}}
+      (fallback {type:'json_object'} se o modelo não suportar schema)
+    · Anthropic: tool com input_schema + tool_choice forçado
+    · Gemini: generationConfig.responseMimeType='application/json' +
+      responseSchema
+  Todo provedor que não suportar continua no caminho de texto puro + parser
+  atual. Nenhuma regressão possível.
+  Além disso: temperature 0.0 para planejamento (hoje 0.2 fixo no cliente —
+  torná-la parametrizável, mantendo 0.2 como default para não alterar o
+  comportamento de testarConexao e demais usos).
+
+7.4 CICLO DE AUTO-CORREÇÃO (o maior ganho isolado de robustez)
+
+  tentativa 1 → parse → validate
+     falhou?  → mensagem role=user:
+                "Sua resposta foi rejeitada pelo validador com o erro:
+                 <mensagem exata do InvalidArgumentException>.
+                 Campos válidos para a fonte X: <lista>.
+                 Corrija e reenvie APENAS o JSON."
+  tentativa 2 → parse → validate
+     falhou?  → tentativa 3 (última)
+     falhou?  → ERRO, agora com uma mensagem útil ao usuário:
+                "Não consegui montar um relatório válido para este pedido.
+                 O que tentei: <resumo>. Sugestão: <exemplo próximo>."
+  Todas as tentativas gravadas em relatorio_execucoes. Custo marginal baixo
+  (só ocorre quando falharia de qualquer forma) e converte ERRO em sucesso na
+  grande maioria dos casos.
+
+7.5 NORMALIZAÇÃO TOLERANTE ANTES DE REPROVAR
+
+  Antes de lançar "Coluna não permitida", tentar mapear:
+    · minúsculas, sem acento, snake_case  ("Razão Social" → razao_social)
+    · sinônimos declarados no catálogo    ("cliente" → parceiro_nome)
+    · similaridade alta (levenshtein/similar_text ≥ 0.9) com campo válido
+  Registrar cada correção em avisos. Isso preserva 100% da segurança (o destino
+  continua sendo um campo da allowlist) e elimina a maior fonte de ERRO.
+
+--------------------------------------------------------------------------------
+8. NARRATIVA GERADA POR IA — COMO FAZER SEM MENTIR
+--------------------------------------------------------------------------------
+
+Esta é a parte que o usuário chama de "relatório feito por IA". É também a mais
+perigosa. As regras abaixo não são opcionais.
+
+N1. SEGUNDA CHAMADA, DEPOIS DOS DADOS.
+    A narrativa é gerada após o compiler, nunca junto do planejamento.
+
+N2. ENTRADA MÍNIMA E AGREGADA.
+    Envie exclusivamente um pacote pequeno e já calculado:
+      { titulo, periodo:{de,ate,rotulo}, comparativo:{...}|null,
+        universo:{ total_registros, truncado:bool, limite },
+        kpis:[{rotulo,valor,formato}],
+        grupos:[{ rotulo, metricas:{...}, participacao_pct }] (top 10),
+        variacoes:[{ rotulo, atual, anterior, delta_pct }] }
+    NUNCA envie as linhas de detalhe. NUNCA envie campo sensivel=true, mesmo
+    que o usuário tenha permissão — o texto vai para um provedor externo.
+    NUNCA envie CNPJ/CPF, e-mail, telefone, endereço. Se o agrupamento for por
+    parceiro, envie razão social apenas se a política da empresa permitir; o
+    default recomendado é enviar rótulos e deixar a decisão numa flag
+    (relatorio_ia_narrativa_nomes = false por padrão).
+
+N3. INSTRUÇÃO DE ATERRAMENTO (system da 2ª chamada), literal:
+    "Você redige o sumário executivo de um relatório de ERP.
+     Use SOMENTE os números presentes no JSON fornecido. É proibido calcular,
+     estimar, projetar ou inferir qualquer valor que não esteja no JSON.
+     É proibido citar causas externas (mercado, sazonalidade, concorrência).
+     Se o JSON indicar truncado=true, mencione que a análise cobre um recorte.
+     Português do Brasil, tom executivo, frases curtas, sem adjetivos vazios.
+     Formato de saída (JSON):
+       { \"sumario\": [\"3 a 6 bullets\"],
+         \"observacoes\": [\"0 a 4 pontos de atenção\"] }
+     Cada bullet: no máximo 200 caracteres."
+
+N4. VERIFICAÇÃO AUTOMÁTICA PÓS-GERAÇÃO (obrigatória).
+    Extrair todos os numerais do texto e conferir se cada um aparece no pacote
+    de entrada (com tolerância de arredondamento e de formatação pt-BR).
+    Qualquer número órfão → descartar a narrativa inteira. O PDF sai completo,
+    sem a seção, com nota discreta "Sumário automático indisponível". A
+    narrativa NUNCA pode derrubar o relatório nem atrasar o job além do
+    timeout (recomendo timeout próprio de 20s e try/catch amplo).
+
+N5. RÓTULO PERMANENTE NO PDF.
+    Bloco visualmente distinto (fundo claro, borda) com:
+    "Sumário gerado automaticamente por IA (<provedor>/<modelo>) a partir dos
+     números apurados neste relatório. Confira antes de usar em decisão."
+    Isso é higiene profissional e proteção institucional.
+
+N6. LIMITES DE CONTEÚDO.
+    Proibido: recomendação de ação comercial, projeção futura, juízo sobre
+    pessoas/clientes, qualquer texto que pareça parecer fiscal ou jurídico.
+    Permitido: descrição, comparação, concentração, variação, destaque de
+    outlier presente nos dados.
+
+N7. DEGRADAÇÃO ELEGANTE.
+    Sem provedor ativo, com erro de rede, com verificação reprovada ou com flag
+    desligada → PDF idêntico ao de hoje, apenas sem a seção. Nunca ERRO.
+
+--------------------------------------------------------------------------------
+9. CORREÇÕES DE EXATIDÃO (pré-requisito inegociável)
+--------------------------------------------------------------------------------
+
+Estas mudanças ficam no compiler e não têm relação com IA. Sem elas, tudo o que
+está acima amplifica erro em vez de valor. Recomendo tratá-las como a PRIMEIRA
+fase, isoladas, com teste dedicado — inclusive porque melhoram o módulo atual
+mesmo que nada mais deste plano seja feito.
+
+E1. Ordenação sempre no banco.
+    Para campos hoje virtuais em orcamentos, promover a colunas reais ou joins:
+      · parceiro_nome  → join em parceiros (razao_social) com orderBy
+      · total          → é data_get(result_snapshot,'faixas.0.valor_etiqueta'),
+                         hoje inacessível a SQL. Duas saídas:
+          (a) coluna gerada/materializada valor_primeira_faixa (DECIMAL) em
+              orcamentos, preenchida no OrcamentoService ao salvar snapshot +
+              migration de backfill idempotente. Recomendada: barata, indexável,
+              não altera o motor nem o snapshot.
+          (b) coluna JSON virtual do MySQL 8 sobre result_snapshot.
+    Enquanto não existir, o validator deve REJEITAR ordenação por 'total' com
+    mensagem clara em vez de ignorar silenciosamente. Falhar alto > mentir.
+
+E2. Agregação no banco, sobre o universo.
+    KPIs e métricas de agrupamento saem de um SELECT com GROUP BY/SUM/COUNT
+    próprio, independente da consulta de detalhe e sem LIMIT do detalhe.
+    computeTotais() em PHP passa a ser fallback apenas para fonte 'facas'
+    (catálogo em arquivo) — e mesmo lá deve rodar ANTES do corte.
+
+E3. Duas contagens sempre.
+    ResultSet passa a carregar total_linhas (exibidas) e total_disponivel
+    (COUNT do universo) + truncado:bool. Blade imprime, quando truncado:
+    "Exibindo 500 de 3.214 registros (recorte por limite)."
+
+E4. Datas normalizadas no validator.
+    · preset → Carbon com config('app.timezone')
+    · valor date-only em 'lte'/'between' → endOfDay()
+    · valor date-only em 'gte' → startOfDay()
+    · devolve os limites resolvidos na spec (auditável) e no rodapé do PDF.
+
+E5. count com semântica declarada.
+    fn 'count' vira 'count' (linhas do grupo) e 'count_distinct' (campo).
+    Ambas mapeadas para SQL. Nunca count($rows) do array projetado.
+
+E6. Métrica não precisa ser coluna.
+    Agregações operam sobre a query, não sobre o array projetado. Elimina o
+    zero silencioso do A4.
+
+E7. Facas: filtrar e ordenar antes de cortar.
+    Aplicar virtual filters + usort sobre a coleção completa do catálogo e só
+    então array_slice pelo limite.
+
+E8. Guard-rail de memória mantido.
+    Teto de 60 linhas com desenho continua. Com gráficos SVG novos, medir: um
+    gráfico de barras é 1 SVG pequeno, sem impacto relevante frente aos 60 SVG
+    de facas já suportados.
+
+--------------------------------------------------------------------------------
+10. GOVERNANÇA, SEGURANÇA, CUSTO E LGPD
+--------------------------------------------------------------------------------
+
+G1. Sensibilidade viaja com o artefato.
+    Nova coluna relatorios.contem_sensivel (BOOLEAN, default false), marcada
+    pelo validator (V10). No download e no show, exigir a mesma permissão que
+    a tela exige (credito.escrever OU parceiro.bancario) quando true.
+    Fecha o gap C8 sem afetar nenhum relatório existente (todos ficam false).
+
+G2. Reavaliar flags no reprocessamento.
+    Ao reprocessar, recalcular contexto_flags a partir do usuário que dispara,
+    não reutilizar a foto antiga. Se a spec pedir campo agora proibido, a
+    execução falha com mensagem clara. Coerente com SoD do domínio.
+
+G3. Auditoria de IA (tabela nova relatorio_execucoes).
+    relatorio_id?, empresa_id, usuario_id, etapa (planejar|narrar),
+    provedor_ia_id, modelo, tentativa, prompt_hash, prompt_tokens?,
+    completion_tokens?, latencia_ms, sucesso, erro, spec_resultante (json),
+    created_at. Guardar HASH do prompt + prompt em texto apenas se
+    relatorio_ia_log_prompt=true (default false) — o prompt pode conter nome de
+    cliente. Nunca gravar API key nem resposta com dado sensível.
+
+G4. Custo sob controle.
+    · rate limit por usuário (ex.: 20 planejamentos/hora, 10 gerações/hora)
+      via middleware throttle nas rotas novas;
+    · cache curto (5-15 min) para prompt idêntico + mesmo catálogo + mesma
+      empresa → devolve a spec sem chamar IA;
+    · max_tokens explícito nas duas chamadas;
+    · catálogo compacto (§7.2).
+
+G5. Finalidade por provedor (aditivo, opcional).
+    Coluna ia_provedores.finalidades (JSON nullable). NULL = serve para tudo
+    (comportamento atual, zero regressão). Preenchido = filtro na rotação.
+    Permite "modelo forte para planejar, modelo barato para narrar".
+
+G6. LGPD e dado que sai da empresa.
+    Documentar explicitamente que o prompt do usuário e o pacote de agregados
+    trafegam para o provedor configurado. Default seguro: narrativa sem nomes
+    próprios (N2). Se a RLP exigir dado zero-fora, a flag global desliga a
+    narrativa e o módulo continua 100% funcional — o planejamento pode até
+    operar só com catálogo (que não contém dado de cliente, só metadados).
+
+G7. Concorrência do worker.
+    Um relatório pesado + SVG a 384M já é o limite do host de 1 GB previsto no
+    LIGHTSAIL_E_FUTURO.md. Manter fila serial (1 worker) e, se adicionar
+    paralelismo, medir antes. Gráficos e narrativa não devem aumentar o pico —
+    a narrativa é I/O, não memória.
+
+--------------------------------------------------------------------------------
+11. TESTES E "EVALS" (como evoluir prompt sem quebrar nada)
+--------------------------------------------------------------------------------
+
+T1. Preservar integralmente RelatorioTest.php. Nenhum teste existente deve ser
+    editado. Se algum quebrar, a mudança está errada — não o teste.
+
+T2. Teste de caracterização ANTES de mexer no Blade.
+    Gerar o PDF atual de um dataset fixo e travar asserções estruturais
+    (título, nº de colunas, presença do rodapé, "N linha(s)"). Só então
+    introduzir o layout v2 em paralelo.
+
+T3. Golden set de prompts (o "eval" do módulo) — tests/Feature/RelatorioEvalTest.
+    Arquivo tests/fixtures/relatorio_evals.json com N casos:
+      { prompt, spec_esperada_parcial:{fonte, agrupamento.por, periodo.preset},
+        deve_conter_colunas:[...], nao_deve:[...] }
+    Executado com Http::fake determinístico para CI (verifica o pipeline
+    prompt→parse→normalização→validação) e, opcionalmente, com provedor real
+    num comando artisan manual (relatorio:eval) para medir taxa de acerto por
+    modelo. Métrica única e objetiva: % de specs válidas e semanticamente
+    corretas. É assim que se compara "modelo A vs. modelo B" sem achismo.
+
+T4. Testes unitários novos, um por correção do §9 (E1..E7). São os que impedem
+    a volta silenciosa dos bugs de exatidão.
+
+T5. Teste de aterramento da narrativa: dado um pacote com valores conhecidos e
+    uma resposta fake contendo um número inventado, o verificador deve
+    descartar a narrativa e o PDF deve sair completo mesmo assim.
+
+T6. Teste de retrocompatibilidade: uma spec v1 literal (a mesma do teste atual)
+    deve continuar validando e renderizando no layout v1.
+
+--------------------------------------------------------------------------------
+12. PLANO DE IMPLEMENTAÇÃO EM FASES (aditivo, cada fase entregável e reversível)
+--------------------------------------------------------------------------------
+
+Flags novas em config/erp.php (todas default como indicado — nada muda até
+alguém ligar):
+
+  'relatorio_ia_autocorrecao'      => env(..., true)    // seguro ligar de saída
+  'relatorio_ia_json_mode'         => env(..., true)    // com fallback automático
+  'relatorio_spec_v2'              => env(..., false)
+  'relatorio_ia_narrativa'         => env(..., false)
+  'relatorio_ia_narrativa_nomes'   => env(..., false)
+  'relatorio_graficos'             => env(..., false)
+  'relatorio_ia_log_prompt'        => env(..., false)
+  'relatorio_ia_planejar_endpoint' => env(..., false)
+
+┌── FASE 0 — EXATIDÃO E HONESTIDADE (sem IA, sem UI nova) ─────────────────────┐
+│ Objetivo: o que existe hoje passa a estar CERTO.                            │
+│ Arquivos: RelatorioProgramaCompiler, RelatorioProgramaValidator,            │
+│           layout.blade.php (só a linha de totais), migration aditiva        │
+│           (valor_primeira_faixa + backfill), Orcamento(Service/Model).      │
+│ Entrega: E1..E7 do §9 + total_disponivel/truncado no PDF.                   │
+│ Aceite:  · "top N por valor" ordena de fato (teste)                         │
+│          · soma bate com SELECT SUM manual em base de 3k linhas             │
+│          · filtro de mês inclui o último dia                                │
+│          · PDF declara recorte quando truncado                              │
+│          · RelatorioTest atual passa sem alteração                          │
+│ Risco: baixo. Rollback: reverter commit; nenhum dado novo é obrigatório.    │
+│ Valor percebido: alto e imediato (para de dar resposta errada).             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 1 — PLANNER CONFIÁVEL (IA melhor, contrato ainda v1) ─────────────────┐
+│ Arquivos: RelatorioIaPlanner (reescrito internamente, mesma assinatura       │
+│           pública planejar()), IaClient (3º parâmetro opcional $opts),       │
+│           RelatorioCatalogo (+ sinônimos/descrições/exemplos),               │
+│           nova migration relatorio_execucoes.                                │
+│ Entrega: injeção de data/timezone/empresa · few-shot · catálogo compacto ·   │
+│          JSON mode com fallback · normalização tolerante · auto-correção 2x  │
+│          · log de execução · temperature 0.0 no planejamento.                │
+│ Aceite:  · golden set ≥ 90% de specs válidas                                 │
+│          · "orçamentos dos últimos 30 dias" produz período correto           │
+│          · erro do validador vira retentativa, não status ERRO               │
+│          · sem provedor JSON-capable, cai no parser atual e funciona igual   │
+│ Risco: baixo/médio (é a mesma saída v1, só mais acertada).                   │
+│ Rollback: flags relatorio_ia_autocorrecao/json_mode = false.                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 2 — PLANEJAR/CONFERIR (dinâmica de uso; ainda sem spec v2) ──────────┐
+│ Arquivos: RelatorioController (+planejar, +preview), routes/api.php,         │
+│           RelatorioService (aceitar spec pronta no create),                  │
+│           RelatorioNovoPage (etapa de conferência), lib/api.ts.              │
+│ Entrega: POST /relatorios/planejar (síncrono) · amostra de 20 linhas ·       │
+│          contagem real · resumo em português · edição de colunas/limite ·    │
+│          criar já com spec aprovada (job pula a IA) · botões separados       │
+│          "Reprocessar" x "Replanejar com IA".                                │
+│ Aceite:  · criar sem spec continua funcionando exatamente como hoje          │
+│          · criar com spec inválida → 422 (nunca chega ao job)                │
+│          · throttle ativo nas rotas novas                                    │
+│ Risco: baixo (tudo aditivo). Rollback: flag do endpoint = false; UI esconde. │
+│ Valor percebido: muito alto — é o fim da caixa-preta.                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 3 — SPEC v2 ANALÍTICA (agrupamento, KPI, período comparativo) ───────┐
+│ Arquivos: RelatorioProgramaValidator (superset v2), Compiler (query          │
+│           agregada), RelatorioDocumentBuilder (novo), layout_v2.blade.php    │
+│           (novo, o v1 permanece intacto), RelatorioPdfRenderer (seleção      │
+│           de layout por versao), catálogo (dimensões de tempo/métricas).     │
+│ Entrega: GROUP BY até 2 dimensões · métricas · top_n + Outros · % de         │
+│          participação · comparativo de período · KPIs · subtotais ·          │
+│          formatos declarados · quebra de página por grupo.                   │
+│ Aceite:  · spec v1 renderiza no layout v1, byte-compatível o quanto possível │
+│          · "faturamento por UF por mês, últimos 6 meses" sai correto         │
+│          · números do PDF batem com SQL manual                               │
+│ Risco: médio (é a maior mudança). Mitigação: layout novo em arquivo novo,    │
+│        flag relatorio_spec_v2, teste de caracterização da Fase 0.            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 4 — GRÁFICOS SVG ─────────────────────────────────────────────────────┐
+│ Arquivos: RelatorioChartSvg (novo, no espírito do FacaShapeSvg já provado),  │
+│           layout_v2.blade.php.                                               │
+│ Entrega: barras (v/h), linha, pizza — SVG puro em PHP, paleta TRIGGER        │
+│          (navy #1a3568 / verde #7cb518), rótulos legíveis em 8pt, sem rede.  │
+│ Aceite:  · ≤ 25 categorias, senão suprime com nota                           │
+│          · memória do job estável (medir antes/depois no worker)             │
+│ Risco: baixo. Rollback: flag relatorio_graficos = false.                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 5 — NARRATIVA ATERRADA ───────────────────────────────────────────────┐
+│ Arquivos: RelatorioNarrativaService (novo), RelatorioNarrativaVerificador    │
+│           (novo), RelatorioService::processar (uma chamada a mais, dentro    │
+│           de try/catch que nunca falha o relatório), layout_v2.              │
+│ Entrega: sumário executivo + observações, com todas as regras N1..N7.        │
+│ Aceite:  · número inventado → narrativa descartada, PDF completo             │
+│          · sem provedor → PDF completo                                       │
+│          · rótulo de IA sempre visível                                       │
+│          · nenhum campo sensível/PII no payload enviado (teste que inspeciona│
+│            o corpo da requisição via Http::fake)                             │
+│ Risco: médio em reputação, baixo em técnica. Mitigação: flag default off,    │
+│        piloto com 1 empresa, revisão humana das primeiras 20 saídas.         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌── FASE 6 — MODELOS E REAPROVEITAMENTO ───────────────────────────────────────┐
+│ Arquivos: migration relatorio_modelos, Model, Service, Controller, UI.       │
+│ Entrega: salvar spec como modelo · executar modelo sem IA · período relativo │
+│          resolvido na execução · exportar CSV/XLSX do ResultSet.             │
+│ Aceite:  · executar modelo não cria nenhuma linha em relatorio_execucoes     │
+│            de etapa 'planejar' (prova de que não chamou IA)                  │
+│ Base natural para agendamento futuro (fora deste plano).                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+SEQUENCIAMENTO RECOMENDADO
+  Se houver pouco tempo: FASE 0 → FASE 1 → FASE 2. Só isso já muda a percepção
+  de "superficial" para "sólido", sem tocar no formato do PDF.
+  Se o objetivo for impressionar/demonstrar: acrescente FASE 3 e FASE 5.
+  Não pule a FASE 0 em hipótese alguma.
+
+--------------------------------------------------------------------------------
+13. ITENS PRONTOS PARA docs/BACKLOG.md (padrão do projeto; próximo ID = BL-007)
+--------------------------------------------------------------------------------
+
+### BL-007 · [relatorios] Exatidão do compiler (ordenação, agregação, período, truncamento)
+- **Status:** Pronto para executar
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-05 — Relatórios IA percebidos como superficiais; auditoria
+  encontrou ordenação por campo virtual ignorada, totais sobre página e corte de dia
+- **Referência:** BL-005 (módulo original) · `app/Services/Relatorio/RelatorioProgramaCompiler.php`
+- **Decisão (fechada):**
+  1. Ordenação e agregação SEMPRE no banco; PHP só como fallback do catálogo de facas.
+  2. `orcamentos.valor_primeira_faixa` materializada + backfill idempotente (motor intocado).
+  3. Datas normalizadas com timezone do app; date-only em `lte`/`between` vira fim-do-dia.
+  4. ResultSet passa a expor `total_disponivel` e `truncado`; PDF declara o recorte.
+  5. `count` x `count_distinct` explícitos; métrica não precisa ser coluna.
+- **Aceite:**
+  - [ ] Ordenação por `total`/`parceiro_nome` funciona (ou é rejeitada com mensagem clara)
+  - [ ] Somatórios batem com SQL manual em base ≥ 3k registros
+  - [ ] Filtro "mês" inclui o último dia
+  - [ ] PDF informa "Exibindo N de M" quando truncado
+  - [ ] `RelatorioTest` existente passa sem edição + novos testes E1..E7
+- **Fora de escopo:** IA, layout novo, gráficos, narrativa
+
+### BL-008 · [ia] Planner confiável (contexto temporal, few-shot, JSON mode, auto-correção)
+- **Status:** Pronto para executar
+- **Prioridade:** P1
+- **Decisão (fechada):**
+  1. Injetar data/timezone/empresa/flags/limites no system prompt.
+  2. Catálogo compacto por roteamento determinístico, com fallback para completo.
+  3. `IaClient::chat($messages, $timeout, $opts)` — 3º parâmetro opcional; JSON mode
+     por protocolo (OpenAI response_format · Anthropic tool · Gemini responseSchema),
+     com degradação para o parser atual.
+  4. Normalização tolerante (acento/snake/sinônimo/similaridade) antes de reprovar.
+  5. Auto-correção com até 2 retentativas realimentando o erro do validador.
+  6. Tabela `relatorio_execucoes` (sem plaintext de prompt por padrão).
+- **Aceite:**
+  - [ ] Golden set (`tests/fixtures/relatorio_evals.json`) ≥ 90% de specs válidas
+  - [ ] "últimos 30 dias" / "mês passado" resolvidos corretamente
+  - [ ] Provedor sem JSON mode continua funcionando idêntico
+  - [ ] Nenhuma API key ou secret em log
+- **Fora de escopo:** spec v2, narrativa, UI
+
+### BL-009 · [relatorios] Planejar → conferir → gerar (humano no loop)
+- **Status:** Pronto para executar
+- **Prioridade:** P1
+- **Decisão (fechada):**
+  1. `POST /relatorios/planejar` síncrono, não persiste, devolve spec + amostra + contagem.
+  2. `POST /relatorios` aceita `spec` opcional; com spec válida o job não chama IA.
+  3. UI com resumo em português e ajustes finos (colunas, limite, orientação).
+  4. "Reprocessar" (mesma spec) separado de "Replanejar com IA".
+  5. Throttle nas rotas de IA.
+- **Aceite:**
+  - [ ] Criar sem `spec` mantém 100% do comportamento atual
+  - [ ] `spec` inválida → 422 antes da fila
+  - [ ] Reprocessar não altera o programa aprovado
+- **Fora de escopo:** modelos salvos, agendamento
+
+### BL-010 · [relatorios] ReportSpec v2 analítica (agrupamento, KPIs, comparativo, layout v2)
+- **Status:** Backlog
+- **Prioridade:** P1
+- **Decisão (fechada):**
+  1. `versao:2` como superset; ausência de `versao` = v1 e renderiza no layout atual.
+  2. Até 2 dimensões, granularidade de tempo, top_n + "Outros", % de participação.
+  3. `layout_v2.blade.php` em arquivo novo; `relatorios/layout.blade.php` intocado.
+  4. Flag `relatorio_spec_v2` default false.
+- **Aceite:**
+  - [ ] Spec v1 continua idêntica (teste de caracterização)
+  - [ ] "por UF por mês, últimos 6 meses" correto contra SQL manual
+  - [ ] Subtotais e quebra de página funcionando
+- **Fora de escopo:** gráficos, narrativa
+
+### BL-011 · [ia] Sumário executivo aterrado + gráficos SVG
+- **Status:** Backlog
+- **Prioridade:** P2
+- **Decisão (fechada):**
+  1. Segunda chamada de IA, só com agregados; sem PII; sem campo sensível.
+  2. Verificador numérico obrigatório; falha → PDF sem a seção, nunca ERRO.
+  3. Rótulo permanente "gerado por IA" com provedor/modelo.
+  4. Gráficos SVG em PHP puro (sem rede), no padrão do `FacaShapeSvg`.
+  5. Flags `relatorio_ia_narrativa` e `relatorio_graficos` default false.
+- **Aceite:**
+  - [ ] Número inventado → narrativa descartada (teste)
+  - [ ] Payload enviado ao provedor sem PII (teste via `Http::fake`)
+  - [ ] Memória do worker estável com gráfico + 60 facas
+- **Fora de escopo:** recomendação/projeção de negócio
+
+### BL-012 · [relatorios] Modelos salvos, execução sem IA e exportação CSV/XLSX
+- **Status:** Backlog
+- **Prioridade:** P2
+- **Decisão (fechada):**
+  1. `relatorio_modelos` por empresa, com período relativo resolvido na execução.
+  2. Executar modelo nunca chama IA (auditável por `relatorio_execucoes`).
+  3. Export do mesmo ResultSet, sem novo caminho de dados.
+- **Aceite:**
+  - [ ] Duas execuções do mesmo modelo produzem a mesma spec
+  - [ ] Nenhum registro de etapa `planejar` ao executar modelo
+- **Fora de escopo:** agendamento/e-mail automático
+
+--------------------------------------------------------------------------------
+14. CHECKLIST "NÃO ESTRAGAR NADA" (revisar a cada PR deste plano)
+--------------------------------------------------------------------------------
+
+  [ ] Nenhum teste existente foi editado ou removido.
+  [ ] `RelatorioTest`, `OrcamentoTest`, `OrcamentoMotorTest`, `FacasMapaTest`,
+      `RelatorioProgramaValidatorTest` verdes.
+  [ ] Spec v1 gravada em produção ainda valida e ainda renderiza igual.
+  [ ] `relatorios/layout.blade.php` não foi alterado (ou foi, e há teste de
+      caracterização provando saída equivalente).
+  [ ] Toda migration é aditiva: coluna nullable ou com default; tabela nova;
+      backfill idempotente; `down()` implementado.
+  [ ] Assinaturas públicas preservadas: `IaClient::chat()`, `IaClient::
+      testarConexao()`, `RelatorioIaPlanner::planejar()`,
+      `RelatorioService::{create,processar,show,list,reprocessar,delete}`.
+  [ ] Novos parâmetros são opcionais com default = comportamento atual.
+  [ ] Toda feature nova atrás de flag em `config/erp.php`, default off
+      (exceto autocorreção/JSON mode, que degradam sozinhas).
+  [ ] Endpoints existentes com payload e status codes inalterados.
+  [ ] Motor de orçamento (R1–R20), catálogo ORC e snapshot: zero alteração.
+      A coluna `valor_primeira_faixa` é derivada e nunca lida pelo motor.
+  [ ] Mapa de facas e `FacaShapeSvg`: comportamento e tetos preservados.
+  [ ] RBAC: nenhuma permissão nova exigida para o que já funcionava;
+      restrições novas (sensibilidade) só afetam relatórios novos.
+  [ ] Nenhum secret, API key ou PII em log, auditoria ou backlog.
+  [ ] `isRemoteEnabled=false` mantido no DomPDF (nenhum recurso externo).
+  [ ] Worker: pico de memória medido antes/depois; `ini_set 384M` mantido.
+  [ ] Sem dependência nova pesada (gráficos em SVG nativo, não biblioteca).
+  [ ] Rollback documentado em cada fase (flag ou revert isolado).
+
+--------------------------------------------------------------------------------
+15. ANEXO A — ESQUELETO DO SYSTEM PROMPT v2 (referência de redação)
+--------------------------------------------------------------------------------
+
+  Você é o planejador de relatórios do ERP RLP (TRIGGER). Traduza o pedido do
+  usuário em um ReportSpec JSON. Você NÃO consulta dados e NÃO calcula números:
+  quem executa é o sistema.
+
+  CONTEXTO DE EXECUÇÃO
+    Hoje: {{data_hoje}} ({{dia_semana}}) · Fuso: {{timezone}}
+    Empresa: {{empresa_nome}} ({{empresa_codigo}})
+    Permissões do solicitante: {{"inclui dados de crédito" | "sem dados de crédito"}}
+    Limite máximo de linhas: {{limite_max}} · Facas com desenho: {{teto_facas}}
+
+  CONTRATO DE SAÍDA (JSON Schema)
+    {{schema_reportspec_v2}}
+
+  CATÁLOGO DISPONÍVEL
+    {{catalogo_compacto_com_sinonimos_e_descricoes}}
+
+  REGRAS DE DECISÃO
+    R1 "por/ranking/top/total/média/evolução/comparado" → analítico:
+       preencha agrupamento + kpis; detalhe é opcional.
+    R2 "listar/relação/quais/exportar" → detalhe: preencha colunas.
+    R3 Se a fonte tem campo de data e o pedido menciona tempo (mesmo implícito),
+       preencha "periodo".
+    R4 Nunca escreva data absoluta a partir de expressão relativa — use preset.
+    R5 Máx. 7 colunas em retrato, 10 em paisagem.
+    R6 colunas > 6 → sugira orientação paisagem.
+    R7 Com agrupamento ou kpis, ligue narrativa.gerar = true.
+    R8 Pedido ambíguo: escolha a leitura mais comum e explique em "avisos".
+       Nunca peça esclarecimento — o processamento é assíncrono.
+    R9 Facas com desenho: limite ≤ {{teto_facas}} e prefira filtro por
+       formato/máquina.
+    R10 Use exclusivamente campos do catálogo. Não invente nome, tabela, SQL
+        ou código.
+
+  EXEMPLOS
+    {{3 a 5 pares pedido → spec, curados, cobrindo detalhe, analítico,
+      comparativo, facas e ambíguo}}
+
+  Responda APENAS com o JSON.
+
+--------------------------------------------------------------------------------
+16. ANEXO B — ENRIQUECIMENTO DO CATÁLOGO (formato sugerido por campo)
+--------------------------------------------------------------------------------
+
+  'total' => [
+      'tipo'        => 'number',
+      'label'       => 'Valor 1ª faixa',
+      'descricao'   => 'Valor unitário da etiqueta na primeira faixa de '.
+                       'quantidade do orçamento. NÃO é faturamento nem receita '.
+                       'realizada; é preço de proposta.',
+      'sinonimos'   => ['valor', 'preço', 'valor do orçamento', 'valor etiqueta'],
+      'nao_confundir_com' => ['faturamento', 'receita', 'valor total do pedido'],
+      'formato'     => 'moeda',
+      'agregavel'   => true,
+      'agregacoes'  => ['sum', 'avg', 'min', 'max'],
+      'ordenavel'   => true,   // após BL-007
+      'filtravel'   => true,
+  ],
+
+  E, por fonte:
+      'dimensoes_tempo'    => ['created_at' => ['dia','semana','mes','trimestre','ano']],
+      'dimensoes_analise'  => ['status','uf','municipio','parceiro_nome'],
+      'perguntas_exemplo'  => [
+          'Orçamentos calculados do mês passado, por cliente, do maior valor para o menor',
+          'Evolução mensal da quantidade de orçamentos nos últimos 6 meses',
+          'Ranking de UF por valor de proposta, top 10 e participação %',
+      ],
+
+  As perguntas-exemplo servem a DOIS consumidores: o few-shot do prompt e o
+  seletor de sugestões da tela de novo relatório. Uma fonte, dois ganhos.
+
+--------------------------------------------------------------------------------
+17. ANEXO C — ANATOMIA DO PDF PROFISSIONAL (layout v2)
+--------------------------------------------------------------------------------
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │ [logo RLP]                         REL-2026-00042            │  cabeçalho
+  │                                    RLP Etiquetas · EMP-00001 │  (já existe)
+  │                                    Paisagem · A4             │
+  ├──────────────────────────────────────────────────────────────┤
+  │ Orçamentos calculados por UF — julho/2026                    │  título
+  │ ▬▬▬▬▬▬                                                       │  accent verde
+  │ Período 01/07/2026 a 31/07/2026 · Status: CALCULADO, ENVIADO │  linha de recorte
+  ├──────────────────────────────────────────────────────────────┤
+  │ ┌────────────┐ ┌────────────┐ ┌────────────┐                 │  KPIs
+  │ │ R$ 412.300 │ │     23     │ │ R$ 17.926  │                 │  (novo)
+  │ │Valor total │ │ Orçamentos │ │Ticket médio│                 │
+  │ └────────────┘ └────────────┘ └────────────┘                 │
+  ├──────────────────────────────────────────────────────────────┤
+  │ [gráfico de barras SVG — valor por UF, top 10]               │  novo, opcional
+  ├──────────────────────────────────────────────────────────────┤
+  │ UF │ Valor total │ Qtd │ Ticket médio │  %                   │  analítico
+  │ SP │  248.100,00 │  12 │   20.675,00  │ 60,2%                │  (novo)
+  │ MG │   91.400,00 │   6 │   15.233,33  │ 22,2%                │
+  │ …  │             │     │              │                      │
+  │ TOTAL             412.300,00   23        17.926,09   100,0%  │  subtotal
+  ├──────────────────────────────────────────────────────────────┤
+  │ SUMÁRIO EXECUTIVO (gerado por IA · openai/gpt-4o-mini)       │  novo, opcional
+  │ • 23 orçamentos calculados no período, R$ 412.300 em valor…  │  bloco destacado
+  │ • Concentração de 60,2% em SP…                               │
+  │ Confira os números antes de usar em decisão.                 │
+  ├──────────────────────────────────────────────────────────────┤
+  │ DETALHE — exibindo 200 de 3.214 registros (recorte por limite)│ honestidade
+  │ [tabela de detalhe, formato atual]                           │  (§9-E3)
+  ├──────────────────────────────────────────────────────────────┤
+  │ METODOLOGIA — Fonte: orçamentos · Campo de data: created_at  │  novo
+  │ Fuso: America/Sao_Paulo · Programa: REL-2026-00042 v2        │  rastreável
+  ├──────────────────────────────────────────────────────────────┤
+  │ Emitido em 05/08/2026 14:32 · Powered by TRIGGER  Página 1/4 │  rodapé (existe)
+  └──────────────────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+18. RESUMO DE DECISÃO (o que eu faria, nesta ordem, se fosse tocar amanhã)
+--------------------------------------------------------------------------------
+
+  1º  BL-007 (exatidão). Sem IA. Sem UI. É o que impede o módulo de mentir.
+  2º  BL-008 (planner confiável). Data no prompt + few-shot + auto-correção
+      são, juntos, o melhor retorno por hora investida deste documento inteiro.
+  3º  BL-009 (planejar/conferir). Tira o módulo da caixa-preta; é o que o
+      usuário vai chamar de "agora ficou profissional".
+  4º  BL-010 (spec v2). É o salto de profundidade — mas só depois de 1-3.
+  5º  BL-011 (narrativa + gráficos). É o brilho. Vale muito, desde que
+      aterrado e rotulado. Nunca antes da exatidão.
+  6º  BL-012 (modelos). É o que faz o módulo virar rotina, não novidade.
+
+  O erro clássico neste tipo de módulo é começar pelo 5º. Relatório de IA
+  bonito com número errado destrói a confiança de forma que nenhuma fase
+  posterior recupera.
+
+================================================================================
+FIM
+================================================================================

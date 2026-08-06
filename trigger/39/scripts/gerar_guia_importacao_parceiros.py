@@ -243,11 +243,11 @@ def build_story(styles):
     # Capa
     story.append(Spacer(1, 3.2 * cm))
     story.append(Paragraph("TRIGGER · ERP RLP", styles["cover_brand"]))
-    story.append(Paragraph("Guia de preenchimento<br/>Importação de parceiros (CSV)", styles["cover_title"]))
+    story.append(Paragraph("Guia de importação de parceiros<br/>CSV e XML NF-e (Fornecedor)", styles["cover_title"]))
     story.append(
         Paragraph(
-            "Referência completa de cada coluna do modelo <b>parceiros_modelo.csv</b>, "
-            "incluindo campos de escolha e booleanos.",
+            "CSV em lote, atualização automática via API CNPJ e cadastro de fornecedor "
+            "a partir do XML da NF-e de entrada — com simulação antes de gravar.",
             styles["cover_sub"],
         )
     )
@@ -288,6 +288,7 @@ def build_story(styles):
         "9. Fornecedor e colaborador",
         "10. Exemplos prontos",
         "11. Erros comuns",
+        "12. XML NF-e → Fornecedor",
     ]:
         story.append(Paragraph(item, styles["toc"]))
 
@@ -715,6 +716,78 @@ def build_story(styles):
             "Fluxo recomendado: preencha CNPJ + papel (+ fiscal manual se souber) → simule e "
             "confira a coluna “API CNPJ” na tela → confirme. A simulação não grava nada; só a "
             "confirmação cria os parceiros.",
+            styles["body"],
+        )
+    )
+
+    story.append(PageBreak())
+
+    # 12 — XML NF-e
+    story.append(Paragraph("12. XML NF-e → Fornecedor", styles["h1"]))
+    story.append(
+        Paragraph(
+            "Na tela <b>Parceiros → Importar</b>, use a aba <b>XML NF-e (Fornecedor)</b>. "
+            "Envie um ou mais arquivos <font face='Courier'>.xml</font> de NF-e modelo 55 "
+            "(ou um <font face='Courier'>.zip</font> com vários XMLs). O sistema extrai o "
+            "<b>emitente</b>, consulta o cartão CNPJ (BrasilAPI) e prepara o cadastro com papel "
+            "<b>fornecedor</b>. Limite: 20 XMLs por lote.",
+            styles["body"],
+        )
+    )
+    story.append(
+        Paragraph(
+            "<b>Escopo:</b> apenas cadastro de parceiro. Não manifesta na SEFAZ, não baixa pela "
+            "Focus, não gera entrada de estoque nem contas a pagar. Entrada fiscal completa fica "
+            "para o módulo de Compras.",
+            styles["body"],
+        )
+    )
+    story.append(Paragraph("Mapeamento XML → cadastro", styles["h2"]))
+    story.append(
+        field_table(
+            styles,
+            [
+                ("CNPJ (emit)", "sim", "cnpj_cpf + tipo_pessoa=PJ", "14 dígitos válidos"),
+                ("xNome / xFant", "auto", "razao_social / nome_fantasia", "XML; BrasilAPI preferida"),
+                ("IE / CRT", "auto", "ie (+ ind_ie_dest) / hint regime", "CRT 1/2 → Simples"),
+                ("enderEmit.*", "auto", "endereço completo + telefone", "cMun → ibge"),
+                ("CFOP itens", "opc.", "cfop_entrada_padrao sugerido", "moda / 1º item"),
+                ("sistema", "sim", "papel_fornecedor + tipo_fornecimento", "default MERCADORIA"),
+            ],
+        )
+    )
+    story.append(Spacer(1, 0.35 * cm))
+    story.append(Paragraph("APIs e confrontação", styles["h2"]))
+    story.append(
+        Paragraph(
+            "1) Valida dígitos do CNPJ. 2) <b>BrasilAPI</b> preenche/preferencialmente razão, "
+            "fantasia, endereço sede, IBGE, CNAE, telefone, e-mail e regime sugerido (fonte do "
+            "cartão CNPJ). 3) Campos só do XML entram se a API não trouxe. 4) <b>ViaCEP</b> só se "
+            "o IBGE ainda estiver vazio. 5) Endereço do XML é confrontado com o da API — "
+            "divergência material vira aviso (não bloqueia). Abreviações de logradouro são aceitas.",
+            styles["body"],
+        )
+    )
+    story.append(Paragraph("CNPJ já cadastrado", styles["h2"]))
+    bullets_xml = [
+        "Já tem papel fornecedor → linha informativa; não duplica; link para o cadastro.",
+        "Existe sem papel fornecedor → confirmação apenas adiciona o papel (não sobrescreve endereço).",
+        "CNPJ novo → cria PAR-##### com os campos mapeados após você confirmar a simulação.",
+        "Destinatário do XML diferente do CNPJ da empresa ativa → aviso na prévia.",
+        "Transportadora no XML → aviso; cadastro separado não é feito neste fluxo.",
+    ]
+    story.append(
+        ListFlowable(
+            [ListItem(Paragraph(b, styles["body"]), leftIndent=8, value="•") for b in bullets_xml],
+            bulletType="bullet",
+            start="•",
+        )
+    )
+    story.append(Spacer(1, 0.35 * cm))
+    story.append(
+        Paragraph(
+            "Fluxo: escolha a aba XML → selecione arquivos → Simular → confira origem dos campos "
+            "(XML / BrasilAPI) e avisos → Confirmar. A simulação não grava nada.",
             styles["body"],
         )
     )

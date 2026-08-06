@@ -88,6 +88,7 @@ final class PadraoDecimal
             'preco_tabela' => self::SCALE_UNIT_PRICE,
             'custo_medio' => self::SCALE_UNIT_PRICE,
             'estoque_minimo' => self::SCALE_QTY,
+            'aliquota_cbs' => self::SCALE_PERCENT,
         ];
     }
 

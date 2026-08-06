@@ -37,7 +37,9 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
-    mem_limit: 512m
+    # Cap no host 1 GB: sob pressão, preferir OOM no queue (recuperável) a no mysql.
+    # Ver docs/relatorios-ia-impacto-computacional-trigger39.txt §8-R7.
+    mem_limit: 384m
 
   app:
     build:
@@ -47,6 +49,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - ./apps/api:/var/www/html
+      - ./branding:/var/www/branding:ro
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
       - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
     ports:
@@ -76,10 +79,65 @@ services:
       BRASILAPI_BASE: https://brasilapi.com.br/api
       VIACEP_BASE: https://viacep.com.br/ws
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+      IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
     depends_on:
       mysql:
         condition: service_healthy
     restart: unless-stopped
+    # API leve (planejar/conferir vai na fila). Pico DomPDF fica no worker.
+    mem_limit: 192m
+
+  queue:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp39_queue
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+      - ./branding:/var/www/branding:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
+    environment:
+      APP_NAME: ${APP_NAME:-ERP-RLP}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${APP_KEY:-}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8039}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-erp_rlp}
+      DB_USERNAME: ${DB_USERNAME:-erp}
+      DB_PASSWORD: ${DB_PASSWORD:-erp_secret}
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8039}
+      DEFAULT_EMPRESA_CODIGO: ${DEFAULT_EMPRESA_CODIGO:-EMP-00001}
+      SEED_ON_BOOT: "false"
+      IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
+    command:
+      [
+        "php",
+        "-d",
+        "memory_limit=384M",
+        "artisan",
+        "queue:work",
+        "database",
+        "--sleep=1",
+        "--tries=1",
+        "--timeout=240",
+        "--max-time=3600",
+      ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+    # Onde DomPDF + SVG rodam — precisa do teto; PHP -d memory_limit=384M.
     mem_limit: 384m
 
   web:
@@ -95,7 +153,7 @@ services:
     depends_on:
       - app
     restart: unless-stopped
-    mem_limit: 64m
+    mem_limit: 48m
 
 volumes:
   mysqldata:

@@ -1,0 +1,576 @@
+================================================================================
+IMPACTO COMPUTACIONAL DA IMPLANTAÇÃO DO PLANO DE RELATÓRIOS IA
+ERP RLP / TRIGGER — projeto trigger/39
+Alvo: Lightsail 1 GB (~USD 5/mês), Docker Compose único, ≤10 usuários
+================================================================================
+Documento complementar a: relatorios-ia-plano-profissional-trigger39.txt
+Data: 2026-08-05
+
+BASE FACTUAL DESTA ANÁLISE (lida no repositório, não estimada)
+  docker-compose.yml ................ mem_limit por serviço
+  docker/php/php.ini ................ memory_limit=256M · opcache 64M
+  docker/php/Dockerfile ............. php:8.4-cli · CMD "php artisan serve"
+  docker/mysql/my.cnf ............... buffer_pool 128M · tmp_table 16M · perf_schema OFF
+  docker/nginx/default.conf ......... proxy_read_timeout 120s para /api/
+  app/Jobs/GerarRelatorioJob.php .... tries=1 · timeout=240 · ini_set 384M
+  queue command ..................... 1 worker, --tries=1 --timeout=240 --max-time=3600
+  resources/data/orcamento/ ......... mapa_facas.json 273 KB · catalog_oficial.json 51 KB
+  docs/LIGHTSAIL_E_FUTURO.md ........ teto de 1 GB, ≤10 usuários, ~200 NF/mês
+
+STATUS DOS NÚMEROS
+  Os valores de consumo REAL (RSS) abaixo são ESTIMATIVAS de engenharia, não
+  medições — este ambiente não foi executado. Os valores de CONFIGURAÇÃO
+  (limites, timeouts, tamanhos de arquivo) são fatos lidos do repositório.
+  O §9 traz o procedimento de medição para substituir estimativa por dado.
+
+--------------------------------------------------------------------------------
+0. RESPOSTA CURTA
+--------------------------------------------------------------------------------
+
+O plano é praticamente GRATUITO em termos de computação local. Ele não muda a
+ordem de grandeza de nada no host. Três fases (0, 3 e 6) até REDUZEM consumo.
+
+O que o plano faz é deslocar o trabalho pesado para FORA da máquina: o
+"processamento" novo é uma chamada HTTP a um provedor de IA. Numa instância de
+1 GB isso é uma vantagem arquitetural — você compra CPU por requisição em vez
+de provisioná-la.
+
+Porém a análise revelou três coisas que precisam ser ditas com clareza:
+
+  (1) O GARGALO NÃO É O PLANO — JÁ EXISTE.
+      O compose declara 1.408 MB de mem_limit num host de 1.024 MB (137%),
+      antes do sistema operacional. Funciona hoje porque os containers usam
+      bem menos que o limite. É uma aposta, não um dimensionamento. O pico de
+      DomPDF com 60 SVGs de facas é o evento que pode estourar — e ele já está
+      no sistema, independentemente deste plano.
+
+  (2) UMA FASE MUDA O PERFIL DE RISCO — A FASE 2, E NÃO POR CAUSA DA IA.
+      O endpoint síncrono POST /relatorios/planejar vai rodar em cima de
+      `php artisan serve`, que atende UMA requisição por vez. Uma chamada de
+      IA de 5 segundos congela a API inteira para todos os usuários por 5
+      segundos. Com o timeout de 45s configurado, um provedor lento faz o ERP
+      inteiro parecer fora do ar. Isto é o item de maior impacto deste
+      documento e tem solução barata (§5, Fase 2).
+
+  (3) HÁ UM GANHO DE MEMÓRIA ESCONDIDO NA FASE 0.
+      Hoje `queryOrcamentos()` hidrata até 2.000 models Eloquent, cada um
+      carregando a coluna `result_snapshot` (JSON com faixas e composição de
+      custo) só para ler UM número: `faixas.0.valor_etiqueta`. Materializar
+      esse valor numa coluna elimina o carregamento desses JSONs. É,
+      provavelmente, o segundo maior consumidor de memória do módulo hoje.
+
+VEREDITO: implante. Faça o swapfile de 2 GB antes (§8-R1), resolva o
+`artisan serve` antes da Fase 2 (§5), e o plano cabe no alvo de USD 5/mês.
+
+--------------------------------------------------------------------------------
+1. O QUE ESTÁ PROVISIONADO HOJE (fatos)
+--------------------------------------------------------------------------------
+
+  Serviço   mem_limit    Papel                        Observação
+  ───────   ─────────    ──────────────────────────   ────────────────────────
+  mysql       512 MB     MySQL 8.0                    buffer_pool 128M
+  app         384 MB     API Laravel (artisan serve)  memory_limit PHP 256M
+  queue       448 MB     worker (1 processo)          php -d memory_limit=384M
+  web          64 MB     nginx + SPA estática         —
+  ───────   ─────────
+  TOTAL     1.408 MB     em um host de 1.024 MB       ← 137% de subscrição
+
+  Fora do compose, no host: Ubuntu 24.04 + dockerd + containerd.
+
+  Timeouts em cadeia (importante para a Fase 2):
+    nginx  proxy_read_timeout ........ 120 s
+    PHP    max_execution_time ........ 120 s
+    IA     IA_HTTP_TIMEOUT_SEC ....... 45 s
+    Job    timeout ................... 240 s (fora do caminho HTTP)
+
+  Volume de negócio oficial (LIGHTSAIL_E_FUTURO.md): ≤10 usuários,
+  ~200 NF/mês. Isso implica tabelas na casa de MILHARES de linhas — não de
+  milhões. Toda a análise de CPU abaixo parte desse porte.
+
+--------------------------------------------------------------------------------
+2. CONSUMO ESTIMADO ANTES DO PLANO (linha de base)
+--------------------------------------------------------------------------------
+
+  Componente          Ocioso        Pico (relatório pesado)
+  ─────────────────   ───────────   ───────────────────────
+  SO + dockerd        180–250 MB    180–250 MB
+  mysql               250–350 MB    260–370 MB
+  app (serve)          70–120 MB     70–120 MB
+  queue                60–90 MB     300–384 MB   ← DomPDF + 60 SVG de facas
+  web nginx            10–20 MB      10–20 MB
+  ─────────────────   ───────────   ───────────────────────
+  TOTAL               570–830 MB    820–1.144 MB
+
+  Leitura: em regime normal sobra folga razoável. No pico de um relatório de
+  mapa de facas com desenho, o host de 1 GB pode encostar no teto. Sem swap,
+  o desfecho é o OOM killer derrubar o processo mais gordo — tipicamente o
+  MySQL, que é o pior alvo possível.
+
+  O que domina o pico, em ordem:
+    1. DomPDF montando a árvore de frames (custo por CÉLULA, não por linha)
+    2. Os 60 SVGs de polígono (FacaShapeSvg) inline na tabela
+    3. Hidratação Eloquent de até 2.000 models com result_snapshot
+    4. mapa_facas.json (273 KB em disco → ~1,5–3 MB decodificado em array PHP)
+
+  Regra de bolso do DomPDF: ~3–8 KB de RAM por célula renderizada.
+    500 linhas ×  8 colunas =  4.000 células ≈ 15–30 MB
+  1.000 linhas × 10 colunas = 10.000 células ≈ 40–80 MB   (é o LIMITE_MAX atual)
+  Com SVG, cada célula de desenho custa muito mais que uma célula de texto —
+  daí o teto de 60 linhas já existir no código.
+
+--------------------------------------------------------------------------------
+3. CLASSIFICAÇÃO DO IMPACTO POR TIPO DE RECURSO
+--------------------------------------------------------------------------------
+
+  Recurso              Impacto do plano   Comentário
+  ──────────────────   ────────────────   ────────────────────────────────────
+  RAM em regime         ≈ 0 (+5 a 15 MB)  Uma tabela nova, mais código, opcache
+  RAM em pico           NEUTRO a MENOR    Fase 0 reduz; Fase 3 pode reduzir muito
+  CPU local             ≈ 0               SQL agregado sobre milhares de linhas
+  I/O de disco          BAIXO             +1 tabela pequena, PDFs um pouco maiores
+  Rede (saída)          BAIXO e MENOR     Catálogo compacto reduz o payload
+  Latência do job       +2 a +6 s         Só na Fase 5 (narrativa)
+  Latência da API       ALTO SE MAL FEITO Fase 2 — ver §5
+  Custo em tokens       ÚNICO QUE ESCALA  É custo financeiro, não de máquina
+  Armazenamento         MÉDIO no ano      PDFs acumulam; precisa de retenção
+
+  Conclusão desta tabela: o plano NÃO é um problema de capacidade. É um
+  problema de duas decisões pontuais de engenharia (Fase 2 e backfill) e de
+  higiene operacional (swap e retenção).
+
+--------------------------------------------------------------------------------
+4. IMPACTO FASE A FASE — DETALHADO
+--------------------------------------------------------------------------------
+
+═══ FASE 0 — EXATIDÃO (BL-007) ══════════════════════════════ IMPACTO: NEGATIVO
+                                                              (ou seja, alívio)
+
+  CPU
+    +1 query COUNT do universo e +1 query agregada (GROUP BY/SUM) por
+    relatório. Em tabelas de poucos milhares de linhas com índice em
+    (empresa_id, created_at) e (empresa_id, status): +10 a 50 ms. Irrelevante.
+    Atenção a um detalhe do my.cnf: tmp_table_size e max_heap_table_size estão
+    em 16 MB. Um GROUP BY que exceda isso cria tabela temporária em DISCO. No
+    porte previsto isso não acontece; se um dia acontecer, é o primeiro botão
+    a girar (subir para 32 MB custa 32 MB por conexão que estiver agregando —
+    com max_connections=40 isso é teórico, na prática 1–2 conexões).
+
+  MEMÓRIA — ganho relevante
+    Hoje: `queryOrcamentos()` faz `->limit(min($limite*3, 2000))->get()` e
+    hidrata models COMPLETOS, incluindo `result_snapshot`. Se o snapshot médio
+    tiver 5–30 KB, 2.000 models representam 10–60 MB só de payload JSON, mais
+    o custo de objeto Eloquent (~2–5 KB cada) e o decode de quem for lido.
+    Depois: com `valor_primeira_faixa` materializado, o SELECT pede só as
+    colunas necessárias e a janela de 3× desaparece (filtro e ordenação vão
+    para SQL). Estimativa de alívio no pico do job: −10 a −50 MB.
+    Isso, sozinho, compra folga para tudo o que vem nas fases seguintes.
+
+  DISCO
+    +1 coluna DECIMAL em `orcamentos` (~8–10 bytes/linha) + 1 índice. Nada.
+
+  ⚠ PONTO DE ATENÇÃO — A MIGRATION DE BACKFILL
+    Preencher `valor_primeira_faixa` exige ler o `result_snapshot` de TODOS os
+    orçamentos existentes. Feito ingenuamente (`Orcamento::all()`), isso carrega
+    todos os JSONs de uma vez e estoura o memory_limit de 256 MB do container
+    `app` — que é onde o entrypoint roda `php artisan migrate --force` no boot.
+    Um boot que falha na migration deixa o sistema fora do ar.
+    OBRIGATÓRIO:
+      · usar chunkById(200) com select() apenas de id e result_snapshot;
+      · ser idempotente (WHERE valor_primeira_faixa IS NULL), para poder
+        reexecutar;
+      · nunca usar update em massa dentro do loop sem transação por chunk.
+    Com chunk de 200 o pico fica em ~2–6 MB. Com `all()`, em centenas de MB.
+    Este é o único risco operacional REAL da Fase 0.
+
+  SALDO DA FASE 0:  RAM −10 a −50 MB no pico · CPU +10 a 50 ms · risco: baixo,
+  concentrado num único cuidado de implementação.
+
+═══ FASE 1 — PLANNER CONFIÁVEL (BL-008) ═══════════════════ IMPACTO: DESPREZÍVEL
+                                                             (e economiza rede)
+
+  CPU local
+    Montagem de prompt é concatenação de string e um json_encode do catálogo.
+    Ordem de microssegundos. A normalização tolerante (levenshtein/
+    similar_text contra ~15 nomes de campo) roda no máximo algumas dezenas de
+    vezes por relatório: ordem de microssegundos.
+
+  MEMÓRIA
+    O prompt completo hoje gira em torno de 10–20 KB (catálogo inteiro
+    serializado). Com o catálogo compacto, 3–6 KB. Irrelevante nos dois casos.
+
+  REDE / LATÊNCIA
+    Ganho no caminho feliz: menos tokens de entrada = geração mais rápida.
+    Estimativa de −20% a −40% no tempo da chamada de planejamento.
+    Custo no caminho de falha: a auto-correção adiciona até 2 chamadas.
+    Pior caso 3 × ~5 s = ~15 s. O job tem 240 s de orçamento — folga de 16×.
+    E note: esse caminho hoje não custa 0, custa um relatório com status ERRO.
+
+  DISCO / BANCO — tabela relatorio_execucoes
+    1 a 3 linhas por relatório. A 20 relatórios/dia: ~600–1.800 linhas/mês.
+    Sem o prompt em texto: ~0,5 KB/linha → < 1 MB/ano.
+    Com relatorio_ia_log_prompt=true: ~5–10 KB/linha → ~5–20 MB/ano.
+    Recomendação: manter o log de prompt desligado em produção e, se ligar,
+    aplicar retenção de 90 dias (§8-R6).
+
+  SALDO DA FASE 1:  RAM ≈ 0 · CPU ≈ 0 · rede MENOR · banco < 20 MB/ano.
+
+═══ FASE 2 — PLANEJAR/CONFERIR (BL-009) ═══════════════ IMPACTO: ALTO SE INGÊNUO
+                                                        ⚠ ITEM CRÍTICO ⚠
+
+  O PROBLEMA, EM UMA FRASE
+    O container `app` roda `php artisan serve` — o servidor embutido do PHP,
+    que atende UMA requisição por vez. Um endpoint síncrono que espera 5
+    segundos por um provedor de IA bloqueia TODAS as outras requisições de
+    TODOS os usuários durante esses 5 segundos.
+
+  A CADEIA COMPLETA
+    nginx (proxy_read_timeout 120s) → app:8000 (processo único)
+      → IaClient::chat() com IA_HTTP_TIMEOUT_SEC=45
+      → e a rotação tenta o PRÓXIMO provedor em falha recuperável.
+    Com 3 provedores cadastrados e todos lentos/fora do ar, uma única chamada
+    de planejamento pode segurar o processo por até ~135 s — mais que o
+    proxy_read_timeout do nginx. Sintoma para o usuário: o ERP inteiro trava,
+    depois retorna 504. Não é hipotético: é o comportamento previsto pela
+    configuração atual.
+
+  MITIGAÇÕES, EM ORDEM DE RECOMENDAÇÃO
+
+    A) PLANEJAR TAMBÉM PELA FILA  ← recomendada
+       Reaproveita exatamente o padrão que o módulo já tem e que já funciona:
+       o RelatorioDetailPage já faz polling de 2 s. Um "rascunho de
+       planejamento" com status e polling não bloqueia nada, não exige infra
+       nova, não muda o compose e não custa memória adicional (o worker já
+       existe e está ocioso 99% do tempo).
+       Custo: uma tabela leve ou um status novo. Latência percebida: +1 a 2 s
+       em relação ao síncrono (o intervalo do polling). Aceitável.
+
+    B) PHP_CLI_SERVER_WORKERS=4 no ambiente do serviço `app`  ← paliativo de 1 linha
+       O servidor embutido do PHP passa a usar 4 processos filhos. Custo:
+       ~3 × 70–120 MB adicionais = +210 a 360 MB. NÃO CABE no host de 1 GB sem
+       swap. Com swap de 2 GB, cabe com desconforto. Continua sendo o servidor
+       de desenvolvimento — sem gestão de pool, sem reciclagem de worker.
+
+    C) MIGRAR PARA php-fpm + nginx  ← o certo para produção, mas não agora
+       Pool dinâmico de 3–5 workers, reciclagem por max_requests, muito mais
+       robusto. Custo: +150 a 250 MB. Exige host de 2 GB ou swap generoso.
+       Recomendo tratar como item próprio de infraestrutura, desacoplado deste
+       plano, e não como pré-requisito da Fase 2.
+
+    D) Se, ainda assim, optar pelo síncrono: reduzir IA_HTTP_TIMEOUT_SEC para
+       15 s SOMENTE nesta rota, limitar a rotação a 1 provedor no planejamento
+       e aplicar throttle agressivo. Reduz o dano, não elimina a classe do
+       problema.
+
+  OUTROS CUSTOS DA FASE 2 (todos baixos)
+    · Amostra de 20 linhas + COUNT: 2 queries leves por planejamento.
+    · Throttle com CACHE_STORE=database: +1 a 2 queries por requisição
+      protegida. Trivial neste porte.
+    · Criar relatório com spec pronta ELIMINA a chamada de IA do job —
+      economia de tempo e de token.
+
+  SALDO DA FASE 2:  com a mitigação (A), impacto ≈ 0 e ganho grande de UX.
+  Sem mitigação, é o pior item de todo o plano para este host.
+
+═══ FASE 3 — SPEC v2 ANALÍTICA (BL-010) ═══════════════ IMPACTO: NEUTRO A NEGATIVO
+                                                        (pode aliviar muito)
+
+  CPU
+    +1 query agregada com GROUP BY (a mesma da Fase 0, reaproveitada) e,
+    quando houver comparativo, +1 query do período anterior. Total: 3 a 4
+    queries por relatório em vez de 1 a 2. Em tabelas de milhares de linhas:
+    dezenas de milissegundos.
+
+  MEMÓRIA DO PDF — a conta que importa
+    Blocos novos (KPIs, subtotais, metodologia, bloco de narrativa) somam
+    poucas dezenas de nós no DOM: +2 a 8 MB. Nada.
+    O GANHO: um relatório analítico com `mostrar_detalhe=false` troca 500
+    linhas de detalhe por 10 a 30 linhas agregadas.
+      Antes: 500 × 8 = 4.000 células ≈ 15–30 MB
+      Depois:  25 × 5 =   125 células ≈ 0,4–1 MB
+    Redução de 90%+ no custo de render para a classe de relatório que o
+    usuário mais vai pedir depois desta fase (gerencial, não operacional).
+    Ou seja: o relatório "profissional" é MAIS BARATO que o atual.
+
+  RECOMENDAÇÃO DE GUARDA
+    Trocar o teto por LINHAS por um teto por CÉLULAS RENDERIZADAS. Sugestão:
+    8.000 células no total do documento, estimadas ANTES do render
+    (linhas × colunas + grupos × métricas), com truncamento declarado no PDF
+    em vez de erro. Isso protege contra a combinação "1.000 linhas × 10
+    colunas + agrupamento + gráfico" que o v2 torna expressável e o v1 não.
+
+  SALDO DA FASE 3:  CPU +dezenas de ms · RAM neutra no pior caso, −90% no caso
+  típico · exige o guarda-corpo por células.
+
+═══ FASE 4 — GRÁFICOS SVG (BL-011a) ═══════════════════════ IMPACTO: DESPREZÍVEL
+
+  A referência já existe no próprio sistema: um relatório de facas renderiza
+  60 SVGs de polígono e é suportado. Um gráfico de barras é UM SVG com 10 a 40
+  elementos — cerca de 1/60 da carga que o módulo já sustenta hoje.
+    Estimativa: +1 a 3 MB de pico, +50 a 200 ms de render.
+
+  RESTRIÇÕES TÉCNICAS (para não criar problema onde não há)
+    · Usar apenas <rect>, <line>, <polyline>, <text> horizontal e <circle>.
+    · Evitar: gradientes, <filter>, máscaras, texto rotacionado, paths com
+      curvas complexas — o parser SVG do DomPDF trata mal e custa caro.
+    · Manter isRemoteEnabled=false (já está). Nenhuma fonte ou imagem externa.
+    · Suprimir o gráfico acima de 25 categorias, com nota — já previsto no
+      plano (V7).
+
+  SALDO DA FASE 4:  ruído estatístico frente ao que já existe.
+
+═══ FASE 5 — NARRATIVA (BL-011b) ═══════════════════ IMPACTO: TEMPO, NÃO MEMÓRIA
+
+  MEMÓRIA
+    O pacote de agregados enviado ao provedor tem 2 a 10 KB. A resposta tem
+    menos de 2 KB. Impacto: zero.
+
+  TEMPO
+    +1 chamada HTTP dentro do job: +2 a 6 s típicos.
+    O relatório sai de ~5–15 s para ~10–25 s de ponta a ponta. Como é
+    assíncrono com polling, o usuário percebe apenas mais alguns "tiques" da
+    tela de acompanhamento.
+    OBRIGATÓRIO: timeout próprio de ~20 s para esta chamada, independente do
+    IA_HTTP_TIMEOUT_SEC=45 global. Sem isso, com rotação entre 3 provedores
+    lentos, a narrativa sozinha pode consumir 135 s dos 240 s do job e fazer o
+    relatório INTEIRO falhar por timeout — justamente o cenário que o plano
+    proíbe (a narrativa nunca pode derrubar o PDF).
+
+  FILA
+    Com 1 worker serial, relatórios mais demorados aumentam a profundidade da
+    fila. Simulação de pior caso realista: 10 relatórios pesados disparados em
+    sequência × ~60 s = 10 minutos de backlog. Com ≤10 usuários e o rate limit
+    da Fase 2 ativo, isso não acontece na prática. Sem rate limit, acontece.
+
+  SALDO DA FASE 5:  RAM ≈ 0 · tempo +2 a 6 s por relatório · exige timeout
+  dedicado e rate limit.
+
+═══ FASE 6 — MODELOS E EXPORTAÇÃO (BL-012) ═══════ IMPACTO: NEGATIVO, EXCETO XLSX
+
+  MODELOS SALVOS — alívio puro
+    Executar um modelo NÃO chama IA. Elimina 1 chamada HTTP, elimina o custo
+    em tokens e reduz a latência do job em 3 a 8 s. Quanto mais o uso migrar
+    para modelos, mais barato o módulo fica — em máquina e em dinheiro.
+
+  EXPORT CSV — barato se feito certo
+    Com `cursor()` e resposta em streaming, a memória é O(1) independentemente
+    do número de linhas. É o caminho recomendado.
+    Com `get()` + montagem de string, é O(n) e compete com o DomPDF.
+
+  ⚠ EXPORT XLSX — o único item do plano que preocupa de verdade em memória
+    PhpSpreadsheet consome, tipicamente, 1 a 2 KB de RAM por célula, além de
+    20 a 30 MB da própria biblioteca carregada.
+      5.000 células ≈ 10–50 MB + 25 MB da lib = 35–75 MB
+    Num container com memory_limit de 256 MB (app) ou 384 MB (queue) isso
+    convive com o pico do DomPDF. É viável, mas é a maior dependência nova do
+    plano inteiro.
+    RECOMENDAÇÃO: entregar CSV no dia 1. XLSX só (a) com writer em modo
+    streaming, (b) rodando exclusivamente no worker, nunca no `app`, e (c)
+    com o mesmo teto por células do PDF. Ou adiar para depois do upgrade de
+    host.
+
+  SALDO DA FASE 6:  negativo (alívio) para modelos e CSV · atenção isolada
+  em XLSX.
+
+--------------------------------------------------------------------------------
+5. CONSOLIDADO — DELTA POR FASE
+--------------------------------------------------------------------------------
+
+  Fase   RAM regime   RAM pico      CPU/req    Latência   Risco no host 1 GB
+  ────   ──────────   ───────────   ────────   ────────   ────────────────────
+   0     ≈ 0          −10 a −50 MB  +10–50 ms  −          BAIXO (só o backfill)
+   1     +2 a 5 MB    ≈ 0           ≈ 0        −20/−40%   MUITO BAIXO
+   2     ≈ 0 *        ≈ 0 *         ≈ 0        crítica*   *ALTO se síncrono
+   3     ≈ 0          −90% típico   +20–60 ms  −          BAIXO (com teto/célula)
+   4     ≈ 0          +1 a 3 MB     +50–200ms  −          MUITO BAIXO
+   5     ≈ 0          ≈ 0           ≈ 0        +2 a 6 s   BAIXO (com timeout)
+   6     +2 a 5 MB    +35 a 75 MB†  ≈ 0        −3 a −8 s  †só se XLSX
+  ────   ──────────   ───────────   ────────   ────────   ────────────────────
+  TOTAL  +5 a 15 MB   NEUTRO ou     desprezí-  melhor no  Concentrado em
+                      MENOR         vel        caso comum FASE 2 e no backfill
+
+  Projeção do host DEPOIS do plano completo (estimativa):
+    Ocioso ....... 575–845 MB   (praticamente igual a hoje)
+    Pico ......... 810–1.140 MB (igual ou levemente melhor que hoje)
+
+  Ou seja: o plano NÃO consome a folga. Quem consome a folga é o DomPDF, e ele
+  já está lá.
+
+--------------------------------------------------------------------------------
+6. CUSTO QUE REALMENTE ESCALA: TOKENS DE IA
+--------------------------------------------------------------------------------
+
+  Este é o único custo do plano que cresce com o uso. E não é custo de máquina
+  — é custo de fornecedor. Volumetria estimada por relatório:
+
+    Etapa        Entrada          Saída        Quando ocorre
+    ──────────   ──────────────   ──────────   ─────────────────────────────
+    Planejar     3.000–6.000 tk   300–600 tk   1× por relatório novo
+    Correção     +3.000–6.000 tk  +300 tk      só quando a 1ª tentativa falha
+    Narrar       1.000–3.000 tk   300–500 tk   1× se a narrativa estiver ligada
+    ──────────   ──────────────   ──────────   ─────────────────────────────
+    Típico       ~5.000–9.000 tk  ~700–1.100   por relatório completo
+
+  Para estimar em dinheiro, use a fórmula com a tabela de preços VIGENTE do
+  provedor que estiver cadastrado (não fixo neste documento porque muda):
+
+    custo_mês ≈ relatórios_mês × [ (tk_entrada × preço_entrada)
+                                 + (tk_saída  × preço_saída ) ]
+
+  Cenário de referência (20 relatórios/dia úteis ≈ 440/mês) com ~8k tokens de
+  entrada e ~1k de saída: ~3,5 M tokens de entrada e ~0,44 M de saída por mês.
+  Em modelos da faixa "mini/flash/haiku" — que é a faixa adequada para esta
+  tarefa e é o default já configurado no IaClient — isso é uma fração
+  irrelevante do custo da instância. Em modelos de topo, pode superar o custo
+  da instância. É uma decisão de configuração, não de arquitetura.
+
+  ALAVANCAS DE REDUÇÃO JÁ PREVISTAS NO PLANO
+    · catálogo compacto ................. −50% a −70% de tokens de entrada
+    · cache de prompt idêntico (5–15 min)  elimina chamadas repetidas
+    · modelos salvos (Fase 6) ........... elimina a chamada de planejamento
+    · criar com spec aprovada (Fase 2) .. elimina a chamada de planejamento
+    · narrativa desligável por flag ..... elimina a 2ª chamada
+    · provedor por finalidade (G5) ...... modelo barato para narrar
+
+  Observação de arquitetura: o plano é deliberadamente "token-leve". Nenhuma
+  etapa envia linhas de dados ao provedor — só metadados de catálogo e
+  agregados. É por isso que o consumo por relatório não cresce com o tamanho
+  da base.
+
+--------------------------------------------------------------------------------
+7. ARMAZENAMENTO AO LONGO DO TEMPO
+--------------------------------------------------------------------------------
+
+  Item                        Crescimento estimado        Em 1 ano
+  ─────────────────────────   ─────────────────────────   ──────────────
+  PDFs (storage/app/...)      200–600 KB × 20/dia          1,5–4,5 GB
+  PDFs com gráfico (Fase 4)   +5 a 15% por arquivo         +0,1–0,7 GB
+  relatorio_execucoes         0,5 KB × ~1.300/mês          < 10 MB
+  ... com log de prompt on    5–10 KB × ~1.300/mês         ~80–160 MB
+  relatorio_modelos           desprezível                  < 1 MB
+
+  O disco do plano de USD 5 (~40 GB) comporta isso com folga por vários anos,
+  MAS sem política de retenção o crescimento é monotônico e ninguém percebe
+  até o dia em que o MySQL não consegue mais escrever.
+  Nota positiva já existente no código: RelatorioService::delete() e
+  reprocessar() apagam o arquivo antigo do disco. O vazamento é só de
+  relatórios concluídos e nunca excluídos.
+
+  RECOMENDAÇÃO: comando artisan agendado (`relatorios:purgar`) removendo
+  arquivos de relatórios com mais de 180 dias (mantendo a linha no banco, que
+  é barata, e marcando o registro como "arquivo expirado"). ~15 linhas de
+  código, resolve o problema para sempre.
+
+--------------------------------------------------------------------------------
+8. RECOMENDAÇÕES OPERACIONAIS (ordenadas por urgência)
+--------------------------------------------------------------------------------
+
+  R1. CRIAR SWAPFILE DE 2 GB NO HOST — ANTES DE QUALQUER FASE.
+      Custo: zero (usa disco, que sobra). Benefício: transforma um OOM kill
+      (que derruba o MySQL e corrompe a experiência) em lentidão temporária.
+      Numa instância de 1 GB com 1.408 MB de limites declarados, isto não é
+      otimização — é pré-requisito. Vale mesmo que o plano não seja implantado.
+
+  R2. RESOLVER A FASE 2 PELA FILA, NÃO PELO SÍNCRONO.
+      É a decisão de maior impacto deste documento. Reaproveita o padrão de
+      polling que já existe e custa zero de infraestrutura.
+
+  R3. BACKFILL EM chunkById(200), IDEMPOTENTE.
+      E rodá-lo fora do boot se a base já for grande: um `migrate` que estoura
+      memória no entrypoint deixa o sistema fora do ar.
+
+  R4. TETO POR CÉLULAS RENDERIZADAS, NÃO SÓ POR LINHAS.
+      Sugestão: 8.000 células, estimadas antes do render, com truncamento
+      declarado no PDF.
+
+  R5. TIMEOUT DEDICADO DE 20 s PARA A NARRATIVA, e rate limit ativo antes de
+      ligar a Fase 5.
+
+  R6. RETENÇÃO: PDFs > 180 dias e relatorio_execucoes > 90 dias.
+      Manter relatorio_ia_log_prompt=false em produção.
+
+  R7. AJUSTAR OS mem_limit PARA REFLETIR A REALIDADE.
+      Proposta que soma 1.008 MB (cabe no host, com o swap como rede de
+      segurança para os picos):
+          mysql  384m   (buffer_pool 128M + overhead do MySQL 8)
+          app    192m   (artisan serve com PHP memory_limit 256M)
+          queue  384m   (precisa do teto — é onde o DomPDF roda)
+          web     48m
+      Observação honesta: mem_limit não reserva memória, apenas limita. Baixar
+      os números não cria RAM; o que ele faz é garantir que, sob pressão, o
+      container que estoura seja o `queue` (recuperável, o job falha e o
+      usuário reprocessa) e não o `mysql` (não recuperável).
+
+  R8. GATILHOS OBJETIVOS PARA MIGRAR DE HOST (1 GB → 2 GB, ~USD 10–12/mês):
+      · ≥ 3 OOM kills por mês no dmesg, ou
+      · p95 do tempo de fila > 60 s, ou
+      · decisão de migrar para php-fpm, ou
+      · adoção de export XLSX, ou
+      · > 30 relatórios/dia de forma sustentada.
+      Enquanto nenhum disparar, 1 GB + swap atende ao volume oficial de
+      ≤10 usuários. Dobrar a instância é a alavanca mais barata que existe —
+      não hesite quando um gatilho disparar.
+
+--------------------------------------------------------------------------------
+9. COMO SUBSTITUIR ESTIMATIVA POR MEDIÇÃO (faça isto antes da Fase 3)
+--------------------------------------------------------------------------------
+
+  M1. Linha de base do host, por 24 h:
+        docker stats --no-stream --format \
+          "table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.CPUPerc}}"
+      Rodar a cada 5 min via cron e guardar. Duas horas de coleta já mostram
+      o perfil real de ocupação.
+
+  M2. Pico REAL do job — a medição que mais importa:
+      registrar `memory_get_peak_usage(true)` ao fim de
+      GerarRelatorioJob::handle() e gravar em relatorio_execucoes (a tabela da
+      Fase 1 já existe para isso). Com 20 relatórios medidos você saberá
+      exatamente onde está o teto, por tipo de relatório, e a discussão deixa
+      de ser estimativa.
+
+  M3. Pior caso proposital, antes de liberar para o usuário:
+      gerar o relatório de mapa de facas com desenho no limite de 60 linhas,
+      em paisagem, com gráfico e narrativa ligados, e medir. Se esse caso
+      couber, todos cabem.
+
+  M4. OOM: `dmesg -T | grep -i "killed process"` semanalmente. Zero
+      ocorrências é a meta.
+
+  M5. Fila: `SELECT COUNT(*) FROM jobs` amostrado. Se nunca passar de 1–2, a
+      serialização do worker não é problema e não há o que otimizar.
+
+--------------------------------------------------------------------------------
+10. CONCLUSÃO
+--------------------------------------------------------------------------------
+
+  Frente ao que se pretende utilizar — Lightsail 1 GB, Compose único, ≤10
+  usuários, ~200 NF/mês — o plano de Relatórios IA é COMPATÍVEL e, em várias
+  frentes, ALIVIANTE.
+
+  · Em RAM de regime, o plano soma algo entre 5 e 15 MB. Ruído.
+  · Em RAM de pico, ele é neutro no pior caso e reduz significativamente no
+    caso típico (Fase 0 tira a hidratação de snapshots; Fase 3 troca 500
+    linhas de detalhe por 25 agregadas).
+  · Em CPU, o volume de negócio previsto é pequeno demais para que agregação
+    em SQL apareça no gráfico.
+  · O trabalho pesado novo acontece no provedor de IA, não na instância — o
+    que é exatamente o que se quer num host de USD 5.
+
+  Duas ressalvas honestas, que valem mais que o resto deste documento:
+
+    1. O aperto que existe hoje é anterior ao plano. 1.408 MB de mem_limit
+       declarados em 1.024 MB de host, sem swap, com um DomPDF que pode
+       consumir 384 MB num pico, é uma configuração que funciona por margem
+       de sorte. O swapfile do R1 deve ser feito de qualquer forma.
+
+    2. A Fase 2 é a única que pode degradar o sistema — e a causa não é a IA,
+       é o `php artisan serve` atendendo uma requisição por vez. Resolvida
+       pela fila (R2), ela vira a fase de maior ganho percebido e menor custo
+       computacional do plano inteiro.
+
+  Recomendação final de sequência, considerando custo/benefício computacional:
+       R1 (swap) → Fase 0 → Fase 1 → R2 + Fase 2 → M2 (medir) → Fase 3
+       → Fase 4 → Fase 5 → Fase 6 (CSV; XLSX só após R8).
+
+================================================================================
+FIM
+================================================================================

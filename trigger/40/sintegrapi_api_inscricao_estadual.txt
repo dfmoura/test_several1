@@ -1,0 +1,313 @@
+================================================================================
+SINTEGRAPI — COMO A EMPRESA OFERECE A API DE BUSCA DE INSCRICAO ESTADUAL
+================================================================================
+Documento gerado em: 04/08/2026
+Objetivo: mostrar o que e a SintegrAPI, quais planos oferece e como funciona
+a API de consulta de Inscricao Estadual (Sintegra) por CNPJ.
+
+Fontes consultadas:
+- Planos e precos: https://sintegrapi.com.br/planos
+- Pagina do produto Sintegra: https://www.sintegrapi.com.br/api-sintegra
+- Documentacao Sintegra: https://docs.sintegrapi.com.br/sintegra
+- Autenticacao: https://docs.sintegrapi.com.br/authentication
+- Documentacao geral: https://docs.sintegrapi.com.br/
+
+
+================================================================================
+1. QUEM E A EMPRESA
+================================================================================
+
+Nome comercial : Sintegra API / SintegrAPI
+Razao social   : DCSW LTDA
+CNPJ           : 33.521.890/0001-36
+Endereco       : Av. Brigadeiro Faria Lima, 1811 - SL 1119
+                 Jd. America - Sao Paulo - SP - 01452-001
+Site           : https://sintegrapi.com.br
+Docs           : https://docs.sintegrapi.com.br
+
+O que faz:
+  Empresa privada (B2B) que vende APIs REST para consultas fiscais e
+  cadastrais no Brasil. Em vez de acessar portal a portal (Sintegra de
+  cada estado, Receita Federal, Simples, Suframa etc.), o cliente chama
+  um endpoint unico com chave de API e recebe JSON padronizado.
+
+Principais produtos / consultas:
+  - API Sintegra .............. Inscricao Estadual (foco deste documento)
+  - API CNPJ .................. Dados cadastrais na Receita Federal
+  - API Simples Nacional ...... Situacao no Simples / SIMEI
+  - API SUFRAMA ............... Cadastro Suframa
+  - API Produtor Rural ........ CPF/IE de produtor rural
+  - CPF SERPRO Receita Federal  Consulta CPF (cache ou online)
+
+
+================================================================================
+2. A API DE BUSCA DE INSCRICAO ESTADUAL (SINTEGRA)
+================================================================================
+
+Sim: a SintegrAPI JA oferece essa API. Nao e preciso "criar do zero" —
+o produto existe e esta documentado. Voce integra via HTTP GET.
+
+Nome do produto:
+  API Sintegra — Consulta de Inscricao Estadual por CNPJ
+
+Para que serve:
+  - Validar IE no cadastro de clientes/fornecedores
+  - Enriquecer CNPJ com inscricoes estaduais e situacao na UF
+  - Automatizar o que hoje e feito manualmente em portais estaduais
+  - Integrar em ERP, CRM, e-commerce B2B, fiscal e compliance
+
+Endpoint (versao atual documentada):
+  GET https://api.sintegrapi.com.br/consultas/v2/sintegra/{cnpj}
+
+Autenticacao:
+  Header obrigatorio:
+    x-api-key: SUA_CHAVE_DE_API
+
+  A chave e gerada no dashboard apos cadastro.
+  NUNCA versionar a chave em repositorio Git.
+
+
+--------------------------------------------------------------------------------
+2.1. Entrada (parametros)
+--------------------------------------------------------------------------------
+
+OBRIGATORIO
+  cnpj  (path)  CNPJ com ou sem pontuacao (completo)
+
+OPCIONAIS (query string)
+  uf               UF especifica (SP, RJ, MG...) OU "BR" para todas as UFs
+                   Se omitido, a API pode usar a UF de emissao do CNPJ.
+  cache            Idade maxima (em dias) para aceitar cache. Padrao: 7
+  cache_strategy   CACHE_SE_EXISTIR | CACHE_PREFERENCIAL |
+                   SO_ONLINE | ONLINE_PREFERENCIAL (padrao)
+  error_fallback   true/false — usar cache se a consulta online falhar
+  endereco         true/false — incluir endereco da IE (1 credito extra)
+
+
+--------------------------------------------------------------------------------
+2.2. Exemplos de chamada
+--------------------------------------------------------------------------------
+
+Consulta em uma UF (ex.: Sao Paulo):
+
+  curl -G "https://api.sintegrapi.com.br/consultas/v2/sintegra/15436940000103" \
+    -H "x-api-key: SUA_CHAVE_DE_API" \
+    -d "uf=SP" \
+    -d "cache_strategy=ONLINE_PREFERENCIAL"
+
+Consulta em TODAS as UFs (uf=BR):
+
+  curl -G "https://api.sintegrapi.com.br/consultas/v2/sintegra/15436940000103" \
+    -H "x-api-key: SUA_CHAVE_DE_API" \
+    -d "uf=BR"
+
+Consulta com endereco da IE:
+
+  curl -G "https://api.sintegrapi.com.br/consultas/v2/sintegra/15436940000103" \
+    -H "x-api-key: SUA_CHAVE_DE_API" \
+    -d "uf=SP" \
+    -d "endereco=true"
+
+
+--------------------------------------------------------------------------------
+2.3. Exemplo de resposta JSON
+--------------------------------------------------------------------------------
+
+{
+  "cnpj": "00001180000800",
+  "razao_social": "AXIA ENERGIA S.A.",
+  "uf": "SP",
+  "inscricoes_estaduais": [
+    {
+      "inscricao_estadual": "47329590401",
+      "uf": "MG",
+      "ativa": true,
+      "tipo_ie": "IE Substituto Tributario",
+      "situacao_pj": "Bloqueado como Destinatario na UF",
+      "updated_at": "2026-07-14 15:44:37"
+    },
+    {
+      "inscricao_estadual": "137774473115",
+      "uf": "SP",
+      "ativa": true,
+      "tipo_ie": "IE Normal",
+      "situacao_pj": "Sem restricao",
+      "updated_at": "2026-07-14 15:44:37",
+      "endereco": {
+        "logradouro": "RUA S TOME",
+        "numero": "86",
+        "complemento": "ANDAR 14 E 16 ...",
+        "bairro": "VILA OLIMPIA",
+        "municipio": "SAO PAULO",
+        "codigo_municipio_ibge": "3550308",
+        "uf": "SP",
+        "cep": "04551080"
+      }
+    }
+  ],
+  "request_id": "f54d694b-10b8-4119-8a3f-91534d02e48f",
+  "success": true,
+  "error": false,
+  "is_cache": false
+}
+
+Campos uteis em cada item de inscricoes_estaduais:
+  inscricao_estadual  -> numero da IE
+  uf                  -> estado da IE
+  ativa               -> true/false
+  tipo_ie             -> IE Normal, Substituto Tributario, Produtor Rural etc.
+  situacao_pj         -> Sem restricao, Bloqueado como destinatario etc.
+  updated_at          -> data/hora da atualizacao
+  endereco            -> so aparece se endereco=true e a fonte tiver o dado
+
+
+--------------------------------------------------------------------------------
+2.4. Observacoes importantes da API
+--------------------------------------------------------------------------------
+
+- uf=BR consulta varias UFs em background; cobra 1 credito por UF
+  e pode demorar mais.
+- Dados dependem da disponibilidade dos Sintegras estaduais (fontes
+  oficiais). Nem todos os campos existem em todas as UFs.
+- Cache compartilhado reduz latencia e falhas; a estrategia padrao
+  recomendada e ONLINE_PREFERENCIAL.
+- endereco=true cobra 1 consulta extra por requisicao (mesmo com uf=BR,
+  e 1 extra no total, nao 1 por UF).
+
+
+================================================================================
+3. PLANOS E PRECOS (https://sintegrapi.com.br/planos)
+================================================================================
+
+Modelo comercial:
+  Planos com cotas mensais de CREDITOS/CONSULTAS.
+  E possivel somar unidades do mesmo plano (limites e valores cumulativos).
+  Ha opcao Mensal e Anual.
+  Existe Free Tier para teste e Pay-per-use sob consulta.
+
+Consumo da consulta Sintegra (Inscricao Estadual):
+  1 credito por consulta Sintegra
+
+Tabela de consumo por tipo de consulta (igual em todos os planos):
+  Sintegra .............................. 1 credito
+  Produtor Rural ........................ 1 credito
+  CNPJ na Receita Federal ............... 1 credito
+  CPF SERPRO Receita Federal Cache ...... 1 credito
+  Simples Nacional ...................... 1 credito
+  Suframa ............................... 1 credito
+  CPF SERPRO Receita Federal Online ..... 10 creditos
+
+O consumo e contabilizado no ciclo de faturamento e resetado no inicio
+do proximo ciclo.
+
+
+--------------------------------------------------------------------------------
+3.1. Planos MENSAIS
+--------------------------------------------------------------------------------
+
+  Free Tier
+    Preco     : Gratis / sempre
+    Limite    : 10 consultas/mes
+    Cartao    : nao precisa
+    Indicado  : conhecer a plataforma, teste de integracao, baixo volume
+
+  Freelancer
+    Preco     : R$ 25 / mes (por unidade de plano)
+    Limite    : 100 consultas/mes
+    Indicado  : autonomos, MEIs, uso pontual
+
+  Profissional  (mais vendido)
+    Preco     : R$ 200 / mes (por unidade de plano)
+    Limite    : 1.000 consultas/mes
+    Indicado  : PMEs, equipes com integracao via API, volume consistente
+
+  Business
+    Preco     : R$ 1.800 / mes (por unidade de plano)
+    Limite    : 10.000 consultas/mes
+    Indicado  : startups/tech, alto fluxo continuo, previsibilidade de custo
+
+  Pay-per-use
+    Preco     : sob consulta (falar com comercial)
+    Indicado  : alto volume, layout personalizado, pos-pago, suporte
+                prioritario, condicoes comerciais diferenciadas
+
+
+--------------------------------------------------------------------------------
+3.2. Planos ANUAIS (com bonus mensal)
+--------------------------------------------------------------------------------
+
+  Freelancer
+    Preco     : R$ 285 / ano
+    Limite    : 100 consultas/mes + 20 bonus/mes
+
+  Profissional
+    Preco     : R$ 2.280 / ano
+    Limite    : 1.000 consultas/mes + 200 bonus/mes
+
+  Business
+    Preco     : R$ 20.520 / ano
+    Limite    : 10.000 consultas/mes + 2.000 bonus/mes
+
+
+--------------------------------------------------------------------------------
+3.3. Custo aproximado por consulta Sintegra (plano mensal basico)
+--------------------------------------------------------------------------------
+
+  Freelancer   R$ 25 / 100   = R$ 0,25 por consulta
+  Profissional R$ 200 / 1000 = R$ 0,20 por consulta
+  Business     R$ 1800 / 10000 = R$ 0,18 por consulta
+
+  (Valores ilustrativos do plano cheio; em uf=BR cada UF consome credito;
+   endereco=true adiciona 1 credito extra.)
+
+
+================================================================================
+4. COMO USAR NA PRATICA (PASSO A PASSO)
+================================================================================
+
+1) Acessar https://sintegrapi.com.br e cadastrar / escolher plano
+   (Free Tier ja permite 10 consultas/mes para testar).
+
+2) Gerar a chave no dashboard (x-api-key).
+
+3) Chamar o endpoint:
+     GET /consultas/v2/sintegra/{cnpj}?uf=XX
+   com o header x-api-key.
+
+4) Ler o array inscricoes_estaduais na resposta JSON e mapear no seu
+   sistema (cadastro, ERP, validacao fiscal etc.).
+
+5) Tratar erros e indisponibilidade dos portais estaduais
+   (cache_strategy, error_fallback).
+
+6) Monitorar consumo de creditos conforme o plano contratado.
+
+
+================================================================================
+5. RESUMO DIRETO DA PERGUNTA
+================================================================================
+
+Pergunta:
+  Esta empresa (sintegrapi.com.br/planos) consegue criar / oferecer a
+  API de buscar Inscricao Estadual?
+
+Resposta:
+  SIM. O produto ja existe: API Sintegra.
+  Voce informa o CNPJ (e opcionalmente a UF ou BR), autentica com
+  x-api-key, e recebe em JSON a lista de inscricoes estaduais, situacao
+  (ativa/inativa), tipo de IE, situacao na UF e, se pedir, endereco.
+
+  Cobertura: UFs brasileiras (consulta unitaria por estado ou uf=BR).
+  Preco: a partir do Free (10/mes) ate Business/Pay-per-use;
+         cada consulta Sintegra consome 1 credito do plano.
+
+Links uteis:
+  Planos ........ https://sintegrapi.com.br/planos
+  Produto ....... https://www.sintegrapi.com.br/api-sintegra
+  Docs Sintegra . https://docs.sintegrapi.com.br/sintegra
+  Auth .......... https://docs.sintegrapi.com.br/authentication
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

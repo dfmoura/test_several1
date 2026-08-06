@@ -111,6 +111,7 @@ class OrcamentoService
                 'chave_matriz' => $result['chave_matriz'],
                 'cobra_matriz' => $result['cobra_matriz'],
                 'valor_matriz' => $result['valor_matriz'],
+                'valor_primeira_faixa' => $this->extractValorPrimeiraFaixa($result),
                 'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? 12),
                 'validade_dias' => (int) ($data['validade_dias'] ?? 7),
                 'tolerancia_qtd_pct' => (string) ($data['tolerancia_qtd_pct'] ?? 20),
@@ -159,6 +160,7 @@ class OrcamentoService
                 'chave_matriz' => $result['chave_matriz'],
                 'cobra_matriz' => $result['cobra_matriz'],
                 'valor_matriz' => $result['valor_matriz'],
+                'valor_primeira_faixa' => $this->extractValorPrimeiraFaixa($result),
                 'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? $orcamento->prazo_entrega_dias),
                 'validade_dias' => (int) ($data['validade_dias'] ?? $orcamento->validade_dias),
                 'tolerancia_qtd_pct' => (string) ($data['tolerancia_qtd_pct'] ?? $orcamento->tolerancia_qtd_pct),
@@ -365,5 +367,16 @@ class OrcamentoService
             'created_at' => $o->created_at?->toIso8601String(),
             'updated_at' => $o->updated_at?->toIso8601String(),
         ];
+    }
+
+    /** @param  array<string, mixed>  $result */
+    private function extractValorPrimeiraFaixa(array $result): ?string
+    {
+        $valor = data_get($result, 'faixas.0.valor_etiqueta');
+        if ($valor === null || $valor === '' || ! is_numeric($valor)) {
+            return null;
+        }
+
+        return number_format((float) $valor, 4, '.', '');
     }
 }

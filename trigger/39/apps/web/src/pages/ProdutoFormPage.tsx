@@ -8,6 +8,16 @@ import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '..
 
 const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
 
+/** Grupo canônico padrão por família (estudo RLP / catálogo fixo). */
+const DEFAULT_GRUPO_BY_FAMILIA: Record<string, string> = {
+  MP: 'MP-PAP',
+  EMB: 'EMB-TUB',
+  REV: 'REV-RIB',
+  PA: 'PA-ETQ',
+  SVC: 'SVC',
+  FAC: 'FAC',
+};
+
 const FAMILIA_SPED_DEFAULT: Record<string, string> = {
   MP: '01',
   EMB: '02',
@@ -39,6 +49,9 @@ type ProdutoFormData = {
   cst_icms: string;
   cst_pis: string;
   cst_cofins: string;
+  cst_cbs: string;
+  cclass_trib: string;
+  aliquota_cbs: string;
   preco_tabela: string;
   estoque_minimo: string;
   lead_time_dias: string;
@@ -66,6 +79,10 @@ const emptyForm = (): ProdutoFormData => ({
   cst_icms: '',
   cst_pis: '',
   cst_cofins: '',
+  cst_cbs: '',
+  cclass_trib: '',
+  // Ano-teste 2026 (LC 214) — contador pode ajustar.
+  aliquota_cbs: '0.9000',
   preco_tabela: '',
   estoque_minimo: '',
   lead_time_dias: '',
@@ -94,6 +111,9 @@ function fromProduto(p: Produto): ProdutoFormData {
     cst_icms: p.cst_icms ?? '',
     cst_pis: p.cst_pis ?? '',
     cst_cofins: p.cst_cofins ?? '',
+    cst_cbs: p.cst_cbs ?? '',
+    cclass_trib: p.cclass_trib ?? '',
+    aliquota_cbs: p.aliquota_cbs ?? '',
     preco_tabela: p.preco_tabela ?? '',
     estoque_minimo: p.estoque_minimo ?? '',
     lead_time_dias: p.lead_time_dias != null ? String(p.lead_time_dias) : '',
@@ -140,6 +160,9 @@ function toPayload(form: ProdutoFormData): Record<string, unknown> {
     cst_icms: form.cst_icms || null,
     cst_pis: form.cst_pis || null,
     cst_cofins: form.cst_cofins || null,
+    cst_cbs: form.cst_cbs || null,
+    cclass_trib: form.cclass_trib || null,
+    aliquota_cbs: form.aliquota_cbs || null,
     preco_tabela: form.preco_tabela || null,
     estoque_minimo: form.estoque_minimo || null,
     lead_time_dias: form.lead_time_dias ? parseInt(form.lead_time_dias, 10) : null,
@@ -213,14 +236,19 @@ export function ProdutoFormPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const familia = form.familia;
     void (async () => {
       try {
-        const res = await fiscalConsulta.produtoGrupos(form.familia);
-        setGrupos(res.data);
+        const res = await fiscalConsulta.produtoGrupos(familia);
+        if (!cancelled) setGrupos(res.data);
       } catch {
-        setGrupos([]);
+        if (!cancelled) setGrupos([]);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [form.familia]);
 
   useEffect(() => {
@@ -238,16 +266,18 @@ export function ProdutoFormPage() {
   }, [id, isNew]);
 
   // Novo produto: escolhe automaticamente o grupo canônico padrão da família.
+  // Só considera grupos da família atual — evita race com lista stale (ex.: PA
+  // ainda carregada ao trocar para MP), que puxava familia de volta via applyGrupoDefaults.
   useEffect(() => {
-    if (!isNew || !grupos.length || form.grupo_id) return;
+    if (!isNew || form.grupo_id) return;
+    const daFamilia = grupos.filter((g) => g.familia === form.familia);
+    if (!daFamilia.length) return;
     const preferred =
-      grupos.find((g) =>
-        ({ MP: 'MP-PAP', EMB: 'EMB-TUB', REV: 'REV-RIB', PA: 'PA-ETQ', SVC: 'SVC', FAC: 'FAC' } as Record<
-          string,
-          string
-        >)[form.familia] === g.codigo
-      ) ?? grupos[0];
-    setForm((prev) => applyGrupoDefaults(prev, preferred, true));
+      daFamilia.find((g) => DEFAULT_GRUPO_BY_FAMILIA[form.familia] === g.codigo) ?? daFamilia[0];
+    setForm((prev) => {
+      if (prev.familia !== form.familia || prev.grupo_id) return prev;
+      return applyGrupoDefaults(prev, preferred, true);
+    });
   }, [isNew, grupos, form.familia, form.grupo_id]);
 
   const selectedGrupo = useMemo(
@@ -297,7 +327,19 @@ export function ProdutoFormPage() {
     return mapFiscalOptions(res.data);
   }, []);
 
+  const searchCstCbs = useCallback(async (q: string) => {
+    const res = await fiscalConsulta.cstCbs(q);
+    return mapFiscalOptions(res.data);
+  }, []);
+
+  const searchCClassTrib = useCallback(async (q: string) => {
+    const res = await fiscalConsulta.cClassTrib(q);
+    return mapFiscalOptions(res.data);
+  }, []);
+
   const handleFamiliaChange = (familia: string) => {
+    // Limpa grupos imediatamente para o efeito de default não aplicar catálogo da família anterior.
+    setGrupos([]);
     setForm((prev) => ({
       ...emptyForm(),
       familia,
@@ -746,6 +788,60 @@ export function ProdutoFormPage() {
                   search={searchCstPis}
                   onChange={(codigo) => update({ cst_cofins: codigo })}
                 />
+              </div>
+
+              <div className="fiscal-section-title">
+                Reforma tributária — CBS
+              </div>
+              <p className="form-hint" style={{ marginBottom: '0.85rem' }}>
+                Contribuição sobre Bens e Serviços (EC 132/23 · LC 214/2025). 2026 é ano-teste —
+                parametrizar no cadastro sem alterar PIS/COFINS atuais. Validar CST e cClassTrib com o
+                contador (IT NF-e 2025.002).
+              </p>
+              <div className="form-grid">
+                <FiscalCombobox
+                  label="CST IBS/CBS"
+                  value={form.cst_cbs}
+                  disabled={fiscalLocked}
+                  digitsOnly
+                  maxLength={3}
+                  placeholder="Ex.: 000 tributação integral"
+                  hint="Código compartilhado IBS+CBS no grupo UB da NF-e."
+                  search={searchCstCbs}
+                  onChange={(codigo) => update({ cst_cbs: codigo })}
+                />
+                <FiscalCombobox
+                  className="span-2"
+                  label="cClassTrib"
+                  value={form.cclass_trib}
+                  disabled={fiscalLocked}
+                  digitsOnly
+                  maxLength={6}
+                  placeholder="Ex.: 000001 tributação integral"
+                  hint="Os 3 primeiros dígitos correspondem ao CST. Preenche o CST automaticamente."
+                  search={searchCClassTrib}
+                  onChange={(codigo) => {
+                    const next: Partial<ProdutoFormData> = { cclass_trib: codigo };
+                    if (codigo.length >= 3) {
+                      next.cst_cbs = codigo.slice(0, 3);
+                    }
+                    update(next);
+                  }}
+                />
+                <div className="form-group">
+                  <label>Alíquota CBS (%)</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={decimalStep(DECIMAL_SCALE.percent)}
+                    value={form.aliquota_cbs}
+                    disabled={fiscalLocked}
+                    onChange={(e) => update({ aliquota_cbs: e.target.value })}
+                  />
+                  <span className="form-hint">
+                    Padrão ano-teste 2026: 0,9000%. NUMERIC(7,4) — sem float (estudo PADRAO_DECIMAL).
+                  </span>
+                </div>
               </div>
             </>
           )}

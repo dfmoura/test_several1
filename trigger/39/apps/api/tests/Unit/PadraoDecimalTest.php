@@ -65,12 +65,14 @@ class PadraoDecimalTest extends TestCase
             'fator_conversao' => '0,045',
             'preco_tabela' => '180,5',
             'estoque_minimo' => '12,5',
+            'aliquota_cbs' => '0,9000',
             'descricao_fiscal' => 'X',
         ], PadraoDecimal::produtoFieldScales());
 
         $this->assertSame('0.045', $data['fator_conversao']);
         $this->assertSame('180.5', $data['preco_tabela']);
         $this->assertSame('12.5', $data['estoque_minimo']);
+        $this->assertSame('0.9000', $data['aliquota_cbs']);
         $this->assertSame('X', $data['descricao_fiscal']);
     }
 

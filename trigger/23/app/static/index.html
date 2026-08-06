@@ -673,6 +673,49 @@
             </p>
             <form id="form-vencedores-filtros" class="filters-grid">
               <label class="field">
+                <span>Período</span>
+                <select id="vencedores-filtro-periodo">
+                  <option value="ano">Ano</option>
+                  <option value="quadrimestre">Quadrimestre</option>
+                  <option value="intervalo">Intervalo</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Ano de referência</span>
+                <select id="vencedores-filtro-ano"><option value="">Todos</option></select>
+              </label>
+              <label class="field" hidden>
+                <span>Quadrimestre</span>
+                <select id="vencedores-filtro-quadrimestre">
+                  <option value="">Selecione</option>
+                  <option value="1">1º · jan–abr</option>
+                  <option value="2">2º · mai–ago</option>
+                  <option value="3">3º · set–dez</option>
+                </select>
+              </label>
+              <label class="field" hidden>
+                <span>Data inicial</span>
+                <input type="date" id="vencedores-filtro-data-inicial" />
+              </label>
+              <label class="field" hidden>
+                <span>Data final</span>
+                <input type="date" id="vencedores-filtro-data-final" />
+              </label>
+              <label class="field">
+                <span>Órgão consolidado</span>
+                <select id="vencedores-filtro-orgao"><option value="">Todos</option></select>
+              </label>
+              <label class="field">
+                <span>Modalidade consolidada</span>
+                <div id="vencedores-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
+              </label>
+              <label class="field">
+                <span>UF do vencedor</span>
+                <select id="vencedores-filtro-uf" title="UF da sede do fornecedor vencedor">
+                  <option value="">Todas</option>
+                </select>
+              </label>
+              <label class="field">
                 <span>Busca</span>
                 <input type="text" id="vencedores-filtro-q" placeholder="Nome ou CNPJ/CPF" autocomplete="off" />
               </label>
@@ -707,6 +750,7 @@
                 </button>
               </div>
             </form>
+            <p id="vencedores-filtros-resumo" class="meta-line"></p>
             <p id="vencedores-meta" class="meta-line"></p>
             <div id="vencedores-lote-status" class="vencedores-lote-status" hidden></div>
             <div id="vencedores-resumo" class="vencedores-resumo" hidden></div>
@@ -1780,7 +1824,7 @@
   <script src="/static/consulta_processo.js?v=osb10"></script>
   <script src="/static/propostas_abertas.js?v=osb14"></script>
   <script src="/static/compras.js?v=osb12"></script>
-  <script src="/static/vencedores_cnpj.js?v=osb11"></script>
+  <script src="/static/vencedores_cnpj.js?v=osb13"></script>
   <script src="/static/powerbi.js?v=osb8"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>

@@ -145,6 +145,36 @@ class ConsultaController extends Controller
         ]);
     }
 
+    public function cstCbs(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        return response()->json([
+            'data' => $this->fiscalCatalogService->searchCstCbs(
+                $validated['q'] ?? null,
+                (int) ($validated['limit'] ?? 20)
+            ),
+        ]);
+    }
+
+    public function cClassTrib(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:40'],
+        ]);
+
+        return response()->json([
+            'data' => $this->fiscalCatalogService->searchCClassTrib(
+                $validated['q'] ?? null,
+                (int) ($validated['limit'] ?? 20)
+            ),
+        ]);
+    }
+
     public function tiposItemSped(): JsonResponse
     {
         return response()->json(['data' => $this->fiscalCatalogService->tiposItemSped()]);

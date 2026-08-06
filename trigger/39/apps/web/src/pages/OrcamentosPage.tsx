@@ -44,11 +44,16 @@ export function OrcamentosPage() {
         title="Orçamentos"
         description="Pré-fluxo comercial — calcular, salvar e revisar rascunhos (M02). Sem envio nem PED."
         actions={
-          canWrite ? (
-            <Link to="/orcamentos/novo" className="btn btn-primary">
-              Novo orçamento
+          <div className="btn-row">
+            <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
+              Como calcula
             </Link>
-          ) : undefined
+            {canWrite ? (
+              <Link to="/orcamentos/novo" className="btn btn-primary">
+                Novo orçamento
+              </Link>
+            ) : null}
+          </div>
         }
       />
 

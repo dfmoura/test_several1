@@ -34,6 +34,8 @@ docker compose up -d --build
 - Login: `admin@rlp.com.br` / `Admin@123`  
 - Demos: `comercial@rlp.com.br` … (perfis) / `Demo@123`
 
+O Compose sobe também o worker `queue` (fila `database`) — necessário para **Relatórios IA** (geração assíncrona de PDF).
+
 Frontend com HMR (opcional):
 
 ```bash
@@ -49,12 +51,33 @@ docker compose down
 ## Estrutura
 
 ```
-apps/api/     Laravel 11 (API /api/v1, Sanctum, Spatie Permission)
+apps/api/     Laravel 11 (API /api/v1, Sanctum, Spatie Permission, fila database)
 apps/web/     React + TypeScript (Vite)
-branding/     Logos TRIGGER + cliente RLP
-docker/       PHP, Nginx, MySQL (memória enxuta)
+branding/     Logos TRIGGER + cliente RLP (PDF de relatórios usa logo RLP)
+docker/       PHP, Nginx, MySQL (memória enxuta) + worker queue
 docs/         Lightsail/futuro + guias PDF de importação (parceiros e produtos)
 ```
+
+### Relatórios IA
+
+Menu **Relatórios → Relatórios IA** (`relatorio.ler` / `relatorio.escrever`).
+
+1. Usuário descreve o relatório e escolhe retrato/paisagem (sugestões por fonte no catálogo).
+2. **Planejar e conferir** (fila): a IA monta um programa JSON allowlist; a UI mostra resumo em português, amostra e ajustes finos antes do PDF.
+3. Com a spec aprovada, o job **pula a IA** e executa só compiler → DomPDF (determinístico).
+4. **Gerar direto** preserva o fluxo clássico (prompt → IA no job → PDF).
+5. No detalhe: **Reprocessar** (mesma spec, dados atualizados) × **Replanejar com IA**.
+
+Fontes: orçamentos, parceiros, produtos, facas. O PDF declara recorte quando truncado (“Exibindo N de M”).
+
+Logs do worker: `make queue-logs`. Flags em `config/erp.php` (`RELATORIO_IA_*`).
+
+Operação (impacto computacional):
+
+- Teto de **8.000 células** (linhas × colunas) antes do DomPDF.
+- Pico de memória do job gravado em `relatorio_execucoes.memory_peak_mb`.
+- Retenção: `php artisan relatorios:purgar` (PDF > 180d; logs > 90d).
+- Host Lightsail 1 GB: `sudo bash scripts/lightsail-setup-swap.sh` + ver `docs/LIGHTSAIL_E_FUTURO.md`.
 
 ## Lightsail Free Tier (recomendação)
 

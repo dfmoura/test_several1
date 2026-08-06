@@ -14,11 +14,235 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-004`
+`BL-015`
 
 ---
 
 ## Itens
+
+### BL-014 · [cadastros] Fornecedor a partir do XML da NF-e de entrada (em Importar parceiros)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-06 — dentro de “Importar parceiros”, cadastrar Fornecedor a partir do XML da nota de entrada; quando CNPJ não estiver na base, usar os campos do XML que o cadastro solicita; aproveitar APIs; decidir e recomendar o melhor caminho sem estragar o que já está excelente
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PARCEIROS.txt` (PAR único + papéis; unicidade CNPJ; sincronia com XML; razão = cartão CNPJ)
+  - `VERIFICACAO_ENDERECO_FORNECEDOR.txt` (confrontar `<enderEmit>` × cartão CNPJ; alertar divergência material; abreviações OK)
+  - `APIS_FREE_CONSULTA_CADENCIA.txt` (§7.3 importação XML — 1 consulta CNPJ por emitente novo; cache; nunca crawling)
+  - `CASOS_USO_M07_COMPRAS.txt` UC-CPR-004 (entrada XML via Focus → conferência → MOV — **Fase Compras**, não este BL)
+  - `CASOS_USO_M01_CADASTROS.txt` UC-CAD-001 / fornecedor
+- **Referência (padrão 39):** import CSV já excelente (`ParceiroImportPage` + `ParceiroImportService` preview→commit + BrasilAPI); consulta `GET /consulta/cnpj|cep`; fixture `tests/fixtures/nfe_fedrigoni.xml`; hubs Focus (BL-006) só config
+- **Problema / oportunidade:** hoje “Importar parceiros” é só CSV. Operacionalmente o fornecedor chega com o XML da NF-e; o domínio já mapeia emitente→PAR e manda confrontar endereço com a RFB. Falta um caminho profissional **no cadastro**, sem antecipar o módulo de compras.
+
+#### Opções avaliadas
+| # | Caminho | Veredito |
+|---|---------|----------|
+| A | Só formulário manual + “Consultar CNPJ” | Insuficiente — operador re-digita o que o XML já traz |
+| B | Ensinar CSV a aceitar colunas “como no XML” | UX ruim; não é o documento real da NF |
+| C | **Modo XML na mesma tela Importar parceiros** (parse local + APIs + preview humano → criar FORNECEDOR) | **Escolhido** |
+| D | Já fazer UC-CPR-004 completo (Focus download + OC + MOV estoque) | Fora de escopo — Compras/Fiscal ainda não liberados; estragaria fronteiras |
+| E | Auto-criar PAR sem conferência ao ler XML | Proibido pelo domínio (validação na origem + humano confirma endereço/regime) |
+| F | Gravar endereço só do XML, ignorar BrasilAPI | Contradiz “endereço = cartão CNPJ”; XML pode abreviar |
+
+#### Decisão (fechada — não reabrir neste item)
+1. **Onde mora:** mesma área **Parceiros → Importar**. UI com **dois modos** (abas): **CSV** (inalterado) e **XML NF-e (Fornecedor)**. Não criar menu paralelo de compras.
+2. **Escopo = cadastro de PAR, não entrada fiscal.** Upload de XML(s) → extrair emitente → preview → gravar/atualizar papel. **Não** manifestar na SEFAZ, **não** baixar pela Focus, **não** gerar MOV/OC/estoque, **não** escriturar. Focus continua só em Hubs (BL-006) para o futuro UC-CPR-004.
+3. **Parser local** de `nfeProc` / `NFe` (mod 55). Aceitar `.xml` (e ZIP com vários XML se barato). Reutilizar fixture Fedrigoni nos testes. Ignorar/avisar se destinatário (`dest/CNPJ`) ≠ CNPJ da empresa ativa (não bloquear se política permitir nota de terceiros em homolog — default: **avisar**).
+4. **CNPJ já na base (unicidade):** **nunca** duplicar PAR. Se existir:
+   - Já tem `papel_fornecedor` → informar “já cadastrado” + link para o cadastro; commit = no-op da linha.
+   - Existe sem papel fornecedor → preview oferece **somente adicionar** `papel_fornecedor` (+ defaults de fornecedor se vazios: `tipo_fornecimento`, `cfop_entrada_padrao` opcional); demais dados do PAR **não** são sobrescritos sem ação explícita “atualizar endereço do XML” (fora do v1 — só alerta de divergência).
+5. **CNPJ ausente — mapear XML → campos do cadastro** (tudo que existir no XML e o formulário pede):
+
+   | XML | Campo PAR |
+   |-----|-----------|
+   | `emit/CNPJ` | `cnpj_cpf` + `tipo_pessoa=PJ` |
+   | `emit/xNome` | `razao_social` (provisório) |
+   | `emit/xFant` | `nome_fantasia` |
+   | `emit/IE` | `ie` → deriva `ind_ie_dest` |
+   | `emit/CRT` | *hint* de `regime` (fraco; ver APIs) |
+   | `enderEmit/*` | logradouro, numero, complemento, bairro, municipio, uf, cep, ibge (`cMun`), telefone (`fone`) |
+   | — | `papel_fornecedor=true`, `emite_documento_fiscal=true`, `tipo_fornecimento=MERCADORIA` (default editável) |
+   | `det/prod/CFOP` (moda / 1º item) | sugerir `cfop_entrada_padrao` (editável; não obrigatório) |
+   | `transporta` (opcional v1.1) | 2ª linha sugerida com `papel_transportadora` — **não** no aceite mínimo; pode ficar como aviso “transportadora detectada” |
+
+   Contatos bancários, crédito, WhatsApp, e-mail comercial: **não** inventar a partir do XML.
+6. **APIs — como usar (caminho oficial deste BL):**
+   1. Validar dígitos do CNPJ **antes** de rede.
+   2. **BrasilAPI CNPJ** (`BrasilApiClient` / `GET` interno já existente, cache 30d): preencher/preferir **razão social, fantasia, endereço sede, IBGE, CNAE, telefone, e-mail, situação RFB, regime sugerido** — fonte de verdade do cartão CNPJ.
+   3. Campos do XML preenchem só o que a API **não** trouxe (fallback), ou quando a API falhar (offline/quota) — nesse caso marcar enrichment `parcial` e manter preview editável.
+   4. **ViaCEP** só se CEP ok e `ibge` ainda vazio após CNPJ.
+   5. **Confrontar** endereço XML × BrasilAPI: divergência material → `warnings[]` na preview (não hard-block); abreviação de logradouro/bairro = OK.
+   6. **Focus:** não chamar neste BL.
+   7. Cadência do domínio: 1 consulta por emitente novo / evento humano; reaproveitar cache; sem loop em lote sem throttle (limite prático: ex. ≤20 XML por commit).
+7. **Fluxo UI/API (espelhar CSV):** `upload → preview (simulação) → commit`.
+   - `POST /parceiros/import/xml/preview` (multipart `file` ou `files[]`)
+   - `POST /parceiros/import/xml/commit` (payload das linhas ok + overrides do usuário: regime, tipo_fornecimento, cfop…)
+   - Commit reutiliza `ParceiroService::create` / update mínimo de papel; audit `IMPORTAR_XML_NFE`.
+   - Permissão: mesmo `parceiro.escrever`.
+8. **Não estragar:** zero mudança no comportamento do modo CSV; motor/ORC/relatórios intocados; validação compartilhada (`ParceiroValidationRules` / `ParceiroFiscalRules`); incompleto fiscal continua permitido com flags de completude (como hoje).
+9. **Guia PDF:** acrescentar seção “XML NF-e → Fornecedor” no guia de importação de parceiros (script `scripts/gerar_guia_importacao_parceiros.py`) na mesma entrega.
+
+- **Objetivo:** operador sobe o XML da nota de entrada em Importar parceiros e, se o CNPJ do emitente não existir, confirma um PAR Fornecedor já pré-preenchido (XML + BrasilAPI/ViaCEP), alinhado ao estudo 32 — preparado para o dia em que Compras/Focus fechar a entrada (UC-CPR-004) sem retrabalho de cadastro.
+- **Aceite:**
+  - [x] Aba/modo XML na `ParceiroImportPage` sem regressão do CSV
+  - [x] Preview mostra emitente, chave NF (se houver), origem dos campos (XML / BrasilAPI / override), warnings de endereço e status do CNPJ (novo / já existe / existe sem papel fornecedor)
+  - [x] CNPJ novo → cria PAR com `papel_fornecedor` e campos mapeados; código `PAR-#####`
+  - [x] CNPJ existente → não duplica; add papel quando faltar
+  - [x] BrasilAPI chamada 1× por CNPJ novo (cache hit nas repetições); ViaCEP só se necessário
+  - [x] Destinatário ≠ empresa → aviso
+  - [x] Testes: parse fixture Fedrigoni; Feature preview/commit (novo + duplicado + add papel); Unit mapeamento/confrontação
+  - [x] Guia PDF atualizado
+- **Fora de escopo (nesta entrega):**
+  - UC-CPR-004 (Focus list/download, conferência com OC, MOV, contas a pagar)
+  - Atualização em massa de endereço de PAR já completo a partir do XML
+  - Cadastro automático de produtos/NCM a partir dos `det`
+  - NF modelo 65 / CT-e / NFS-e
+  - Criação obrigatória da transportadora no mesmo commit
+- **Notas técnicas:** extrator dedicado (ex. `NfeEmitenteExtractor`) + reuso de enrich do import CSV; não expor BrasilAPI/ViaCEP no browser; preferir `simplexml`/DOM PHP já disponível; opcional futuro: mesmo extractor chamado pelo adapter Focus quando Compras nascer.
+- **Caminho recomendado (resumo executivo):** **Opção C** — XML como segundo modo de Importar parceiros, humano no loop, BrasilAPI como verdade do cartão CNPJ, XML como semente + alerta de divergência, Focus só depois no módulo de compras.
+- **Entregue em:** 2026-08-06
+- **Implementação (39):**
+  - `NfeEmitenteExtractor` + `ParceiroXmlImportService` (preview/commit; BrasilAPI preferida; ViaCEP fallback IBGE; confrontação enderEmit×CNPJ)
+  - API `POST /parceiros/import/xml/preview` e `/xml/commit`; audit `IMPORTAR_XML_NFE`
+  - UI abas CSV | XML NF-e (Fornecedor) em `ParceiroImportPage`
+  - Guia PDF §12; testes Unit/Feature (fixture Fedrigoni)
+
+### BL-013 · [ops] Higiene computacional Relatórios IA (swap, mem_limit, células, retenção, M2)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** `docs/relatorios-ia-impacto-computacional-trigger39.txt` §8 R1/R4/R6/R7/R8 + §9 M2
+- **Decisão (fechada):**
+  1. Compose `mem_limit`: mysql 384m · app 192m · queue 384m · web 48m (Σ ≈ 1 GB).
+  2. Teto `CELULAS_MAX=8000` no validator (linhas × colunas) antes do DomPDF.
+  3. `relatorios:purgar` + schedule diário (PDF 180d / execuções 90d).
+  4. `memory_peak_mb` gravado ao fim de `RelatorioService::processar` (etapa `render`).
+  5. Script `scripts/lightsail-setup-swap.sh` + gatilhos de upgrade em Lightsail docs.
+- **Aceite:**
+  - [x] mem_limits no compose alinhados ao R7
+  - [x] Spec com 10 cols × limite 1000 → limite efetivo 800
+  - [x] Purge dry-run / efetivo cobertos por teste
+  - [x] Coluna memory_peak_mb preenchida em render
+- **Entregue em:** 2026-08-05
+
+### BL-009 · [relatorios] Planejar → conferir → gerar (humano no loop, via fila)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** `docs/relatorios-ia-plano-profissional-trigger39.txt` + impacto computacional (Fase 2 pela fila, não síncrono)
+- **Decisão (fechada):**
+  1. `POST /relatorios/planejar` → 202 + `PlanejarRelatorioJob` (não bloqueia `artisan serve`).
+  2. `GET /relatorios/planejamentos/{id}` com polling; UI de conferência + amostra.
+  3. `POST /relatorios` aceita `spec` opcional; com spec válida o job não chama IA.
+  4. Reprocessar (mesma spec) × Replanejar com IA.
+  5. Throttle nas rotas de IA; flag `RELATORIO_IA_PLANEJAR_ENDPOINT`.
+- **Aceite:**
+  - [x] Criar sem `spec` mantém comportamento atual
+  - [x] `spec` inválida → 422 antes da fila
+  - [x] Planejar não bloqueia a API (fila)
+- **Entregue em:** 2026-08-05
+
+### BL-008 · [ia] Planner confiável (contexto temporal, few-shot, JSON mode, auto-correção)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Decisão (fechada):**
+  1. Data/timezone/empresa/flags/limites no system prompt.
+  2. Catálogo compacto por roteamento determinístico + fallback completo.
+  3. `IaClient::chat($messages, $timeout, $opts)` — JSON mode com degradação.
+  4. Normalização tolerante + auto-correção até 2 retentativas.
+  5. Tabela `relatorio_execucoes` (prompt plaintext só com `RELATORIO_IA_LOG_PROMPT`).
+- **Aceite:**
+  - [x] Temperature 0.0 no planejamento; cache curto de prompt idêntico
+  - [x] Provedor sem JSON mode continua no parser atual
+- **Entregue em:** 2026-08-05
+
+### BL-007 · [relatorios] Exatidão do compiler (ordenação, agregação, período, truncamento)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-05 — Relatórios IA / auditoria de exatidão
+- **Decisão (fechada):**
+  1. Ordenação e agregação no banco; facas filtram/ordenam antes do slice.
+  2. `orcamentos.valor_primeira_faixa` materializada + backfill `chunkById(200)`.
+  3. Datas normalizadas (date-only `lte`/`between` → fim do dia).
+  4. ResultSet com `total_disponivel`/`truncado`; PDF declara o recorte.
+  5. `count` × `count_distinct`; métrica não precisa ser coluna.
+- **Aceite:**
+  - [x] Ordenação por `total`/`parceiro_nome` (teste E1)
+  - [x] Somatórios no universo (teste E2/E6)
+  - [x] Filtro de mês inclui último dia (E4)
+  - [x] PDF “Exibindo N de M”
+  - [x] `RelatorioTest` existente preservado + `RelatorioExactidaoTest`
+- **Entregue em:** 2026-08-05
+
+### BL-006 · [fiscal] Cadastro de hubs fiscais (Focus NFe + tokens homolog/prod)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-05 — área de cadastro de hubs que fazem as interações com o fisco; Focus NFe conhecida; prever outros; vínculo dinâmico com o sistema
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`  
+  - `CASOS_USO_M09_INTEGRACOES.txt` UC-INT-001 (Focus por empresa_id; homolog ≠ prod)  
+  - `MULTI_EMPRESA_CNPJS_E_LIVROS.txt` (credenciais por empresa)  
+  - `ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt` (adapter FocusNfeClient)  
+  - `DOMINIO_SISTEMA_ERP_RLP.txt` D0.6 adapters
+- **Referência (padrão 39):** BL-001 Provedores de IA (crypto + CRUD + testar + UI admin)
+- **Decisão (fechada):**
+  1. Entidade `fiscal_hubs` **por `empresa_id`** (não global como IA).
+  2. Tokens **homologação e produção** separados, cifrados (`APP_KEY`); respostas só máscara.
+  3. Provedores v1: `focusnfe` (URLs oficiais) + `generico` (URL custom).
+  4. **Um hub `padrao`** por empresa — resolver runtime (`FiscalHubResolver`) para emissão futura.
+  5. `ambiente_ativo` + kill-switch `ativo`; teste HTTP Basic em `/v2/empresas`.
+  6. RBAC `fiscal.hubs.gerir` (ADMIN). **Sem emissão NF nesta entrega.**
+- **Aceite:**
+  - [x] Migration `fiscal_hubs` + código `HUB-00001` + permissions
+  - [x] Crypto + FocusNfeClient + Service + Resolver
+  - [x] API CRUD + testar (homolog/prod) escopada à empresa
+  - [x] UI Administração → Hubs fiscais
+  - [x] Testes Feature `FiscalHubTest`
+- **Fora de escopo:** emissão/consulta/cancelamento NF; certificado A1 upload; webhooks Focus; SPED
+- **Entregue em:** 2026-08-05
+
+### BL-005 · [ia] Relatórios com IA (prompt → programa allowlist → PDF)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-04 — criar/gerenciar relatórios via prompt; IA gera a melhor programação segura; PDF retrato/paisagem com logo, título e rodapé
+- **Referência:** provedores BL-001 (`app/Services/Ia/`), padrão CRUD/API do ORC
+- **Decisão (fechada):**
+  1. IA **não** gera SQL/PHP — gera `ReportSpec` JSON validado contra catálogo allowlist.
+  2. Fluxo **assíncrono** (`GerarRelatorioJob` + serviço Compose `queue`).
+  3. PDF via DomPDF: logo RLP, título, emissão + páginas; orientação retrato/paisagem.
+  4. Fontes v1: orçamentos, parceiros, produtos, **mapa de facas** (coluna `desenho` = polígono/shape do formato ORC).
+  5. RBAC `relatorio.ler` / `relatorio.escrever` (ADMIN/COMERCIAL; CONSULTA ler).
+- **Aceite:**
+  - [x] Migration `relatorios` + código `REL-AAAA-NNNNN` + permissions
+  - [x] `IaClient::chat()` com rotação por prioridade
+  - [x] Catalogo / Validator / Compiler + Planner + PDF + Job
+  - [x] API CRUD + reprocessar + download + catalogo
+  - [x] UI lista / novo / detalhe com polling
+  - [x] Worker Compose `queue` + testes Feature/Unit
+- **Fora de escopo:** gráficos, Excel, agendamento, editor visual, código executável pela IA
+- **Entregue em:** 2026-08-04
+
+### BL-004 · [comercial] Cadastro editável das bases do catálogo ORC (Papel / Acabamento / Tipo troca / Máquina G10)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-04 — manipular bases que amarram valores do cálculo sem estragar o ORC já excelente; futuro auto-carregamento
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`  
+  - `GERACAO_ORCAMENTO.txt` (tabelas parametrizadas; engine só consulta)  
+  - `FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt` (catálogo × matriz; nunca delete — inativar)  
+  - `CASOS_USO_M11_PLATAFORMA.txt` UC-PLT-005 (TAB com vigência — futuro)  
+  - `CODIFICACAO_INFORMACOES_SISTEMA.txt` (`TAB-*`)
+- **Referência (exemplo):** trigger/28 (admin papéis + schema) / trigger/29 (`catalog_oficial.json`)
+- **Decisão (fechada):**
+  1. **4 bases no banco:** Papel (R$/m²), Acabamento (R$/m² + perda m²), Tipo troca produto (`tempo_h`), Máquina G10 (`hora_maquina` cores→R$/h).
+  2. **Demais parâmetros** (tinta, tubete, perdas acerto, caixas…) permanecem no JSON oficial.
+  3. **Overlay híbrido:** DB populado → bases do DB; tabelas vazias → fallback JSON (testes e segurança).
+  4. **Snapshot ORC intocado** — alterações valem só em novos cálculos.
+  5. **Só inativar** (sem hard-delete); lookup inclui inativos; selects do ORC só ativos.
+  6. **RBAC** `orcamento.catalogo.gerir` (ADMIN); seed idempotente via seeder + `orcamento:ensure-catalogo`.
+- **Aceite:**
+  - [x] Migrations + models + seed do JSON oficial
+  - [x] `OrcamentoCatalogo::load()` com overlay DB / fallback JSON
+  - [x] API admin CRUD + audit
+  - [x] UI Administração → Catálogo ORC (abas das 4 bases)
+  - [x] Testes Feature `OrcamentoCatalogoTest` + motor existente preservado
+- **Fora de escopo:** vigência/ratificação TAB completa; matriz de compatibilidade; auto-carga futura de estoque/ERP; demais tabelas do JSON
+- **Entregue em:** 2026-08-04
 
 ### BL-003 · [comercial] Prospect inline no ORC + FACA NOVA + layout do mapa de facas
 - **Status:** Feito

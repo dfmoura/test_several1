@@ -1,0 +1,503 @@
+================================================================================
+RELACAO ENTRE AS APIs DO TRANSFEREGOV.BR E A API DE DADOS ABERTOS
+DO COMPRAS.GOV.BR
+================================================================================
+Documento gerado em: 04/08/2026
+Objetivo: explicar o que cada API faz e como (e ate onde) se relacionam.
+
+Fontes oficiais consultadas:
+- https://www.gov.br/transferegov/pt-br/ferramentas-gestao/api-de-dados-abertos-transferegov.br
+- https://api-publica.transferegov.gestao.gov.br/fundoafundo/docs
+- https://api-publica.transferegov.gestao.gov.br/especiais/docs
+- https://api-publica.transferegov.gestao.gov.br/parcerias/docs
+- https://docs.api.transferegov.gestao.gov.br/fundoafundo/#/programa_beneficiario/get_programa_beneficiario
+- https://dadosabertos.compras.gov.br/swagger-ui/index.html
+- OpenAPI: https://dadosabertos.compras.gov.br/v3/api-docs
+
+
+================================================================================
+1. VISÃO GERAL: DOIS MUNDOS COMPLEMENTARES DO GASTO PUBLICO
+================================================================================
+
+As APIs do Transferegov e a API do Compras.gov.br tratam de etapas DIFERENTES
+do ciclo de recursos publicos federais:
+
+  TRANSFEREGOV.BR
+  ----------------
+  Foco: TRANSFERENCIA de recursos da Uniao para estados, DF, municipios e
+  entidades (OSC, fundos etc.).
+  Responde a: "Quem recebe dinheiro federal por transferencia? Quanto?
+  Em que programa/plano? Como foi empenhado, pago e executado financeiramente
+  apos a transferencia?"
+
+  COMPRAS.GOV.BR (Dados Abertos)
+  ------------------------------
+  Foco: CONTRATACAO / COMPRA publica (licitacoes, contratos, fornecedores,
+  catalogos CATMAT/CATSER, precos praticados, UASG, ARP etc.).
+  Responde a: "Quem comprou? O que foi comprado? De quem? Por qual preco?
+  Em qual unidade compradora (UASG)?"
+
+Em outras palavras:
+  Transferegov = REPASSE / DESCENTRALIZACAO de recursos
+  Compras.gov  = AQUISICAO de bens e servicos
+
+Nao existe (hoje) um "join" oficial unico entre as duas APIs. A relacao e
+analitica: voce cruza chaves comuns (CNPJ, IBGE, UG/UASG, natureza de despesa,
+favorecido/fornecedor) para montar a trilha do dinheiro e das compras.
+
+
+================================================================================
+2. AMBIENTE ATUAL DAS APIs DO TRANSFEREGOV
+================================================================================
+
+Novo ambiente central (2026):
+  https://api-publica.transferegov.gestao.gov.br
+
+Modulos publicos relevantes neste documento:
+  /fundoafundo   -> Transferencias Fundo a Fundo
+  /especiais     -> Transferencias Especiais (emendas individuais EC 105/2019)
+  /parcerias     -> Gestao de Parcerias
+
+Observacao importante sobre URLs antigas:
+  - A documentacao antiga em docs.api.transferegov.gestao.gov.br/fundoafundo
+    (endpoint get_programa_beneficiario) foi o Swagger do ambiente anterior.
+  - No novo ambiente, o recurso equivalente e:
+      GET https://api-publica.transferegov.gestao.gov.br/fundoafundo/programas-beneficiarios
+  - Parte das URLs antigas deve ser desligada (comunicado oficial de migracao
+    para api-publica.transferegov.gestao.gov.br). Prefira o ambiente novo.
+
+
+================================================================================
+3. API FUNDO A FUNDO
+================================================================================
+Documentacao:
+  https://api-publica.transferegov.gestao.gov.br/fundoafundo/docs
+  (legado Swagger mencionado por voce:
+   https://docs.api.transferegov.gestao.gov.br/fundoafundo/#/programa_beneficiario/get_programa_beneficiario)
+
+Titulo OpenAPI:
+  "API de dados abertos do modulo de Transferencias Fundo a Fundo do Transferegov"
+
+O que e:
+  Modalidade de transferencia em que recursos de fundos federais sao
+  repassados diretamente a fundos estaduais, distritais ou municipais,
+  em geral SEM celebracao de convenio. E disciplinada em leis especificas
+  e serve a politicas publicas setoriais (saude, assistencia etc., conforme
+  o programa).
+
+O que a API permite consultar (principais grupos / endpoints):
+  - /programas
+  - /programas-beneficiarios          << equivalente ao "programa_beneficiario"
+  - /programas-gestao-agil
+  - /planos-acao (+ analises, metas, acoes, destinacao, dados bancarios, historico)
+  - /termos-adesao (+ historico)
+  - /empenhos
+  - /gestao-financeira-lancamentos
+  - /gestao-financeira-subtransacoes
+  - /relatorios-gestao (+ acoes, analises)
+  - /data-atualizacao
+
+Endpoint destacado (pedido na pergunta):
+  GET /programas-beneficiarios
+  Uso tipico: listar beneficiarios vinculados a programas Fundo a Fundo.
+  Campos-chave (entre outros):
+    - id_beneficiario_programa, id_programa
+    - cnpj_beneficiario_programa, nome_beneficiario_programa
+    - valor_beneficiario_programa
+    - numero_emenda_beneficiario_programa, nome_parlamentar_beneficiario_programa
+    - uf_ente_beneficiario_programa
+    - nome_municipio_ente_beneficiario_programa
+    - codigo_ibge_municipio_ente_beneficiario_programa
+
+Empenhos Fundo a Fundo (/empenhos) trazem, entre outros:
+  - numero_empenho, ano_empenho, ug_emitente_empenho
+  - cnpj_favorecido_empenho
+  - natureza_despesa_empenho, valor_empenho
+  - gestao_emitente_empenho, fonte_recurso_empenho
+
+Para que serve em analise:
+  Mapear "programa federal -> fundo/ente benefciario -> plano de acao ->
+  empenho -> pagamentos/lancamentos -> relatorio de gestao".
+
+
+================================================================================
+4. API TRANSFERENCIAS ESPECIAIS
+================================================================================
+Documentacao:
+  https://api-publica.transferegov.gestao.gov.br/especiais/docs
+  (endpoint citado:
+   .../especiais/docs#/Execução Financeira/consulta_empenho_especial_empenhos_especiais_get)
+
+Titulo OpenAPI:
+  "API de dados abertos do modulo de Transferencias Especiais do Transferegov"
+
+O que e:
+  Gestao das emendas parlamentares individuais do tipo Transferencia Especial
+  (Emenda Constitucional 105/2019). O recurso vai a estados/municipios com
+  maior autonomia de aplicacao (custeio e investimento), sob regras proprias
+  de plano de acao / plano de trabalho / prestacao de informacoes.
+
+O que a API permite consultar (principais endpoints):
+  Programa / planos:
+    - /programas_especiais
+    - /planos_acao_especiais (+ historico)
+    - /beneficiarios_especiais
+    - /planos_trabalho_especiais (+ historico, metas, finalidades, executores)
+    - analises de planos de trabalho
+
+  Execucao financeira (grupo do endpoint citado):
+    - /empenhos_especiais
+    - /documentos_habeis_especiais
+    - /ordens_pagamentos_ordens_bancarias_especiais
+
+  Gestao financeira na ponta:
+    - /gestao_financeira_lancamentos_especiais
+    - /gestao_financeira_subtransacoes_especiais
+    - /saldo_conta_gestao_financeira_especiais
+
+  Prestacao / acompanhamento:
+    - /relatorios_gestao_especiais
+    - /relatorios_gestao_novos_especiais
+    - /data-atualizacao
+
+Endpoint destacado:
+  GET /empenhos_especiais
+  Consulta empenhos (e minutas) vinculados a planos de acao especiais.
+  Exemplo real de campos retornados:
+    - id_empenho, id_minuta_empenho, numero_empenho
+    - situacao_empenho / descricao_situacao_empenho
+    - ug_responsavel_empenho, ug_emitente_empenho
+    - fonte_recurso_empenho, plano_interno_empenho, ptres_empenho
+    - natureza_despesa_empenho, subitem_empenho
+    - categoria_despesa_empenho (ex.: INVESTIMENTO)
+    - valor_empenho, data_emissao_empenho
+    - id_plano_acao   << amarra o empenho ao plano de acao
+
+Para que serve em analise:
+  Seguir a trilha: emenda parlamentar -> beneficiario -> plano de acao ->
+  plano de trabalho/executor -> empenho/DH/OB -> gasto na conta especifica
+  -> relatorio de gestao.
+
+
+================================================================================
+5. API GESTAO DE PARCERIAS
+================================================================================
+Documentacao:
+  https://api-publica.transferegov.gestao.gov.br/parcerias/docs
+
+Titulo OpenAPI:
+  "API de dados abertos do modulo de Gestao de Parcerias do Transferegov"
+
+O que e:
+  Ciclo completo de parcerias/instrumentos de transferencia negociados
+  (programas, propostas, celebracao, execucao orcamentaria e financeira,
+  extrato bancario). Abrange etapas desde o programa e a proposta ate a
+  parceria assinada, empenho, documento habil, ordem de pagamento e conta.
+
+Principais endpoints:
+  Programa / proposta / parceria:
+    - /programa
+    - /beneficiario_emenda_parlamentar
+    - /proposta (+ analise, metas, itens, indicadores, cronograma)
+    - /parceria
+    - /distribuicao-recurso-proposta
+
+  Dados orcamentarios:
+    - /empenho-parceria
+    - /documento-habil
+    - /ordem-pagamento
+
+  Gestao financeira:
+    - /parceria-conta
+    - /extrato-bancario
+
+  Utilitario:
+    - /data-atualizacao
+
+Campos-chave uteis para cruce:
+  - proposta.cnpj_ente_recebedor, cnpj_executor, cd_ibge_recebedor
+  - empenho-parceria: nr_empenho, cd_ug_emitente/ug_emitente,
+    identificacao_favorecido, valor_empenho, in_situacao_siafi
+  - documento-habil: nr_empenho_dh, cd_ug_emitente_dh, cd_credor_devedor
+  - extrato-bancario: identificacao do beneficiario/depositante e valores
+
+Para que serve em analise:
+  Acompanhar instrumentos de parceria (nao so fundo a fundo / especial),
+  incluindo quem propôs, quem celebra, o que foi empenhado/pago e o fluxo
+  da conta da parceria.
+
+
+================================================================================
+6. API DADOS ABERTOS COMPRAS.GOV.BR
+================================================================================
+Documentacao Swagger:
+  https://dadosabertos.compras.gov.br/swagger-ui/index.html
+OpenAPI:
+  https://dadosabertos.compras.gov.br/v3/api-docs
+Base URL:
+  https://dadosabertos.compras.gov.br
+
+Titulo OpenAPI:
+  "API Compras.gov.br"
+  (Compras Publicas em Dados Abertos)
+
+O que e:
+  API publica de dados de compras e contratacoes do governo, organizada
+  em modulos. Cobre catalogos, precos, planejamento, unidades compradoras,
+  licitacoes legadas, contratacoes da Lei 14.133/2021, atas de registro de
+  precos, contratos, fornecedores e OCDS.
+
+Modulos principais (tags do Swagger):
+
+  01 - CATALOGO - MATERIAL (CATMAT)
+       Grupos, classes, PDM, itens, natureza de despesa, unidades,
+       caracteristicas.
+
+  02 - CATALOGO - SERVICO (CATSER)
+       Secao, divisao, grupo, classe, subclasse, itens, unidade de medida,
+       natureza de despesa.
+
+  03 - PESQUISA DE PRECO - PRECOS PRATICADOS
+       Precos historicos de materiais e servicos (com filtros por UASG,
+       UF, municipio, poder, esfera, periodo).
+
+  04 - PGC
+       Planejamento e Gerenciamento de Contratacoes.
+
+  05 - UASG
+       Unidades Administrativas de Servicos Gerais e orgaos (CNPJ do orgao,
+       orgao superior/vinculado, UF, status).
+
+  06 - LEGADO
+       Licitacoes / pregoes / compras sem licitacao sob Lei 8.666 e normas
+       anteriores a 14.133.
+
+  07 - CONTRATACOES (Lei 14.133 / PNCP)
+       Contratacoes, itens e resultados de itens.
+
+  08 - ARP
+       Atas de Registro de Precos, itens, adesoes, empenhos/saldo de item.
+
+  09 - CONTRATOS
+       Contratos e itens de contrato (inclui consulta por fim de vigencia).
+
+  10 - FORNECEDOR
+       Fornecedores registrados.
+
+  11 - OCDS
+       Contratacoes no padrao Open Contracting Data Standard
+       (filtro tipico por CNPJ do comprador + periodo).
+
+  Extras: autenticacao/usuarios, indicadores, integracao ALICE.
+
+Autenticacao:
+  Ha endpoints de autenticacao/usuarios no Swagger. Parte das consultas
+  de dados abertos e publicamente consultavel; alguns servicos de gestao
+  de usuario exigem bearer token. Confirme no Swagger o requisito de cada
+  operacao antes de integrar.
+
+
+================================================================================
+7. COMO RELACIONAR TRANSFEREGOV x COMPRAS.GOV.BR
+================================================================================
+
+7.1. Relacao conceitual (ciclo do recurso)
+
+  Uniao (programa/emenda/parceria)
+           |
+           v
+     [TRANSFEREGOV]  -------- repasse ------>  Ente / fundo / OSC
+           |                                      |
+           | empenho, DH, OB,                     | na ponta, o ente pode
+           | plano de acao/trabalho                | usar o recurso para
+           | gestao financeira                     | COMPRAR bens/servicos
+           v                                      v
+     Transparencia do REPASSE              [COMPRAS.GOV / PNCP]
+                                           licitacao, contrato, fornecedor
+
+As APIs do Transferegov mostram a origem e a formalizacao da transferencia.
+A API do Compras mostra a contratacao. Cruzar as duas permite aproximar
+"recurso transferido" de "compra realizada", sem garantir vinculo 1:1
+automatico.
+
+
+7.2. Chaves de cruzamento mais uteis
+
+  A) CNPJ
+     - Transferegov: cnpj do orgao superior, fundo, ente recebedor,
+       beneficiario, executor, favorecido do empenho, favorecido de
+       lancamento/subtransacao.
+     - Compras: cnpjCpfOrgao / orgao superior / vinculado (UASG),
+       fornecedor, buyerID no OCDS (formato BR-CNPJ).
+     Uso: partir de um municipio/OSC/fundo no Transferegov e procurar
+     o mesmo CNPJ como orgao comprador ou fornecedor no Compras.
+
+  B) Codigo IBGE do municipio
+     - Transferegov: codigo_ibge_* em programas, planos e propostas.
+     - Compras: codigoMunicipio em pesquisa de precos e filtros correlatos;
+       UASG tambem filtra por UF.
+     Uso: agregar transferencias recebidas por municipio e comparar com
+     volume/perfil de compras daquele territorio.
+
+  C) Unidade Gestora (UG) x UASG
+     - Transferegov: ug_emitente_empenho, ug_responsavel_empenho,
+       cd_ug_emitente (parcerias), descricao da UG.
+     - Compras: codigoUasg nos modulos UASG, precos, ARP, contratos etc.
+     Cuidado: UG (SIAFI) e UASG (compras) NAO sao o mesmo cadastro, mas
+     frequentemente se relacionam via orgao/CNPJ. O caminho seguro e:
+       UG/descricao no Transferegov -> CNPJ/orgao -> UASG no Compras.
+
+  D) Natureza de despesa
+     - Transferegov: natureza_despesa_empenho, grupo_natureza_despesa,
+       codigo_natureza_despesa em destinacao de recursos.
+     - Compras: natureza de despesa associada a itens CATMAT/CATSER.
+     Uso: ver se o tipo de gasto previsto/empenhado na transferencia
+     bate com a classe de material/servico comprado.
+
+  E) Favorecido / Credor / Fornecedor
+     - Transferegov: cnpj_favorecido_empenho, doc_favorecido_*,
+       cd_credor_devedor, beneficiario de subtransacao.
+     - Compras: modulo Fornecedor + fornecedores em contratos/contratacoes.
+     Uso: detectar empresas que aparecem como destino final de recursos
+     transferidos e tambem como fornecedores em compras publicas.
+
+  F) Empenho / ano / valor (cruzamento FRACO, mas util)
+     - Ambos os mundos tem numeros de empenho e valores.
+     - Em geral NAO ha campo publico "id compra <-> id plano acao".
+     - Da para fazer aproximacao por: UG/CNPJ + periodo + valor + objeto,
+       com alto grau de validacao manual/heuristica.
+
+
+7.3. Relacoes praticas por API do Transferegov
+
+  (1) Fundo a Fundo  (/programas-beneficiarios + /empenhos + gestao financeira)
+      x Compras.gov
+      - Pegar beneficiarios (CNPJ + IBGE) de um programa.
+      - No Compras, localizar UASG/orgaos daquele CNPJ ou municipio.
+      - Comparar volumes recebidos (repasse) vs contratacoes/contratos
+        no periodo de vigencia do plano de acao.
+      - Usar natureza de despesa do empenho FaF para orientar busca em
+        CATMAT/CATSER ou precos praticados.
+      - Subtransacoes/favorecidos da gestao financeira FaF podem indicar
+        destinatarios finais que depois aparecem como fornecedores.
+
+  (2) Especiais (/empenhos_especiais + planos + gestao financeira)
+      x Compras.gov
+      - Empenhos especiais amarram a id_plano_acao e trazem UG, ND, valor.
+      - Apos o creditamento na conta do ente, boa parte do gasto final
+        vira compra local (obras, equipamentos, servicos).
+      - Cruce tipico:
+          plano_acao (municipio/CNPJ/ano/emenda)
+            -> buscar no Compras contratacoes/contratos do orgao no periodo
+            -> confrontar valores e objetos.
+      - Empenhos_especiais sozinhos NAO sao a compra do ente; sao a
+        formalizacao orcamentaria do repasse federal. A compra do ente
+        (quando houver) aparece no Compras/PNCP/Sistemas locais.
+
+  (3) Parcerias (/proposta, /parceria, /empenho-parceria, /extrato-bancario)
+      x Compras.gov
+      - cnpj_ente_recebedor / cnpj_executor ligam a orgaos/entidades no
+        lado das compras.
+      - Itens da proposta (descricao, unidade, valor unitario) podem ser
+        confrontados com precos praticados CATMAT/CATSER.
+      - Favorecidos de empenho/documento habil e lancamentos do extrato
+        podem ser buscados no modulo Fornecedor / contratos.
+
+
+7.4. O que NAO esperar dessa relacao
+
+  - Nao ha, nas APIs publicas analisadas, um campo oficial do tipo
+    "numeroPNCP", "idCompra" ou "idContrato" dentro do Transferegov.
+  - Transferencia especial / fundo a fundo / parceria NAO implica
+    automaticamente uma licitacao no Compras.gov do mesmo valor.
+    Parte do recurso pode ir a custeio corrente, pessoal (quando permitido),
+    obras por regimes distintos, ou execucao por convenios/contratos fora
+    do recorte da API.
+  - Empenho no Transferegov, na maioria dos casos, e empenho de TRANSFERENCIA
+    (Uniao empenhando o repasse), nao o empenho da compra do municipio.
+  - Logo, a relacao e de inteligencia/transparencia integrada, nao de
+    integracao transacional nativa.
+
+
+================================================================================
+8. CASOS DE USO CONCRETOS DE INTEGRACAO
+================================================================================
+
+Caso A — Painel "quanto o municipio X recebeu x quanto comprou"
+  1) Transferegov/especiais e fundoafundo: filtrar por IBGE/CNPJ do municipio.
+  2) Somar valores de planos de acao / beneficiarios / empenhos / pagamentos.
+  3) Compras: achar UASG(s) do municipio/orgao e puxar contratos e
+     contratacoes no mesmo horizonte temporal.
+  4) Comparar ordens de grandeza e categorias (investimento vs custeio;
+     materiais vs servicos).
+
+Caso B — Rastrear favorecidos finais de emendas especiais
+  1) /gestao_financeira_subtransacoes_especiais ou lancamentos FaF/parcerias.
+  2) Extrair CNPJ/CPF mascarado/nome do beneficiario final.
+  3) Buscar o mesmo CNPJ em /modulo-fornecedor e em contratos/contratacoes.
+  4) Avaliar se o destinatario do recurso transferido tambem e fornecedor
+     frequente em compras publicas.
+
+Caso C — Checagem de coerencia de natureza de despesa
+  1) Pegar natureza_despesa_* nos empenhos do Transferegov.
+  2) No Compras, consultar itens CATMAT/CATSER ligados aquela ND.
+  3) Ver se as compras do orgao no periodo concentram-se em itens
+     compativeis com o tipo de despesa da transferencia.
+
+Caso D — Apoiar analise de risco / ALICE
+  - Compras tem tag ALICE (analisador de licitacoes/contratos/editais).
+  - Transferegov fornece o contexto de origem do recurso (emenda, programa,
+    parceria). O cruzamento ajuda a priorizar alertas em orgaos que recebem
+    volume alto de transferencia e disparam compras atipicas.
+
+
+================================================================================
+9. MAPA RAPIDO DAS URLs CITADAS
+================================================================================
+
+A) Fundo a Fundo - beneficiarios de programa
+   Antiga (Swagger legado):
+     https://docs.api.transferegov.gestao.gov.br/fundoafundo/#/programa_beneficiario/get_programa_beneficiario
+   Nova (recomendada):
+     https://api-publica.transferegov.gestao.gov.br/fundoafundo/docs
+     Endpoint: GET /fundoafundo/programas-beneficiarios
+
+B) Especiais - empenhos
+   https://api-publica.transferegov.gestao.gov.br/especiais/docs#/Execução%20Financeira/consulta_empenho_especial_empenhos_especiais_get
+   Endpoint: GET /especiais/empenhos_especiais
+
+C) Parcerias
+   https://api-publica.transferegov.gestao.gov.br/parcerias/docs
+
+D) Fundo a Fundo (docs gerais do novo ambiente)
+   https://api-publica.transferegov.gestao.gov.br/fundoafundo/docs
+
+E) Compras.gov.br Dados Abertos
+   https://dadosabertos.compras.gov.br/swagger-ui/index.html
+
+
+================================================================================
+10. RESUMO EXECUTIVO
+================================================================================
+
+1) As tres APIs do Transferegov (Fundo a Fundo, Especiais, Parcerias) sao
+   dados abertos de TRANSFERENCIAS federais: programas, beneficiarios,
+   planos, empenhos de repasse, pagamentos e gestao financeira.
+
+2) A API do Compras.gov.br e dados abertos de CONTRATACOES/COMPRAS:
+   catalogos, precos, UASG, licitacoes, contratos, fornecedores, OCDS.
+
+3) Elas se relacionam como etapas consecutivas da cadeia do gasto:
+   transferencia (Transferegov) -> aplicacao via compra (Compras.gov).
+
+4) O cruzamento pratico se faz por CNPJ, IBGE, orgao/UG->UASG, natureza
+   de despesa e favorecido/fornecedor — nao por chave nativa compartilhada.
+
+5) Para integracao/analytics, use o ambiente novo
+   api-publica.transferegov.gestao.gov.br e trate o Swagger antigo de
+   fundoafundo/programa_beneficiario como referencia legada do recurso
+   agora exposto em /programas-beneficiarios.
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

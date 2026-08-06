@@ -193,6 +193,68 @@ final class FiscalCatalogData
     }
 
     /**
+     * CST IBS/CBS (IT NF-e 2025.002 / LC 214/2025) — catálogo curado.
+     * Código compartilhado IBS+CBS no grupo UB da NF-e; aqui parametriza CBS no produto.
+     *
+     * @return list<array{codigo: string, descricao: string, grupo: string, destaque?: bool}>
+     */
+    public static function cstCbs(): array
+    {
+        return [
+            ['codigo' => '000', 'descricao' => 'Tributação integral', 'grupo' => 'CBS', 'destaque' => true],
+            ['codigo' => '010', 'descricao' => 'Tributação com alíquotas uniformes', 'grupo' => 'CBS', 'destaque' => true],
+            ['codigo' => '011', 'descricao' => 'Tributação com alíquotas uniformes reduzidas', 'grupo' => 'CBS'],
+            ['codigo' => '200', 'descricao' => 'Alíquota zero', 'grupo' => 'CBS'],
+            ['codigo' => '210', 'descricao' => 'Alíquota reduzida (demais hipóteses)', 'grupo' => 'CBS'],
+            ['codigo' => '220', 'descricao' => 'Alíquota fixa', 'grupo' => 'CBS'],
+            ['codigo' => '221', 'descricao' => 'Alíquota fixa proporcional', 'grupo' => 'CBS'],
+            ['codigo' => '222', 'descricao' => 'Redução de base de cálculo', 'grupo' => 'CBS'],
+            ['codigo' => '400', 'descricao' => 'Isenção', 'grupo' => 'CBS'],
+            ['codigo' => '410', 'descricao' => 'Imunidade e não incidência', 'grupo' => 'CBS'],
+            ['codigo' => '510', 'descricao' => 'Diferimento', 'grupo' => 'CBS'],
+            ['codigo' => '550', 'descricao' => 'Suspensão', 'grupo' => 'CBS'],
+            ['codigo' => '620', 'descricao' => 'Tributação monofásica', 'grupo' => 'CBS'],
+            ['codigo' => '800', 'descricao' => 'Transferência de crédito', 'grupo' => 'CBS'],
+            ['codigo' => '810', 'descricao' => 'Ajuste de IBS/CBS', 'grupo' => 'CBS'],
+            ['codigo' => '820', 'descricao' => 'Tributação em documento específico', 'grupo' => 'CBS'],
+            ['codigo' => '830', 'descricao' => 'Exclusão da base de cálculo', 'grupo' => 'CBS'],
+        ];
+    }
+
+    /**
+     * cClassTrib IBS/CBS — subset útil à operação RLP (indústria de etiquetas).
+     * Os 3 primeiros dígitos = CST. Tabela completa: Portal Nacional NF-e / IT 2025.002.
+     *
+     * @return list<array{codigo: string, descricao: string, grupo: string, destaque?: bool}>
+     */
+    public static function cClassTrib(): array
+    {
+        return [
+            ['codigo' => '000001', 'descricao' => 'Situações tributadas integralmente pelo IBS e pela CBS', 'grupo' => 'CBS', 'destaque' => true],
+            ['codigo' => '010001', 'descricao' => 'Operações com alíquotas uniformes (padrão transição)', 'grupo' => 'CBS', 'destaque' => true],
+            ['codigo' => '010002', 'descricao' => 'Operações com alíquotas uniformes — hipótese específica LC', 'grupo' => 'CBS'],
+            ['codigo' => '011001', 'descricao' => 'Alíquotas uniformes reduzidas', 'grupo' => 'CBS'],
+            ['codigo' => '200001', 'descricao' => 'Operações com alíquota zero', 'grupo' => 'CBS'],
+            ['codigo' => '200002', 'descricao' => 'Alíquota zero — hipótese adicional da tabela oficial', 'grupo' => 'CBS'],
+            ['codigo' => '210001', 'descricao' => 'Redução de alíquota — cesta básica / hipóteses legais', 'grupo' => 'CBS'],
+            ['codigo' => '220001', 'descricao' => 'Alíquota fixa — combustíveis / monofasia correlata', 'grupo' => 'CBS'],
+            ['codigo' => '400001', 'descricao' => 'Isenção do IBS e da CBS', 'grupo' => 'CBS'],
+            ['codigo' => '410001', 'descricao' => 'Imunidade / não incidência', 'grupo' => 'CBS'],
+            ['codigo' => '410021', 'descricao' => 'Imunidade / não incidência — hipótese específica', 'grupo' => 'CBS'],
+            ['codigo' => '410999', 'descricao' => 'Imunidade / não incidência — residual', 'grupo' => 'CBS'],
+            ['codigo' => '510001', 'descricao' => 'Diferimento', 'grupo' => 'CBS'],
+            ['codigo' => '550001', 'descricao' => 'Suspensão', 'grupo' => 'CBS'],
+            ['codigo' => '620001', 'descricao' => 'Tributação monofásica — hipótese 001', 'grupo' => 'CBS'],
+            ['codigo' => '620002', 'descricao' => 'Tributação monofásica — hipótese 002', 'grupo' => 'CBS'],
+            ['codigo' => '620003', 'descricao' => 'Tributação monofásica — hipótese 003', 'grupo' => 'CBS'],
+            ['codigo' => '800001', 'descricao' => 'Transferência de crédito', 'grupo' => 'CBS'],
+            ['codigo' => '820001', 'descricao' => 'Tributação em documento específico', 'grupo' => 'CBS'],
+            ['codigo' => '820006', 'descricao' => 'Tributação em documento específico — hipótese 006', 'grupo' => 'CBS'],
+            ['codigo' => '830001', 'descricao' => 'Exclusão da base de cálculo', 'grupo' => 'CBS'],
+        ];
+    }
+
+    /**
      * @return list<array{codigo: string, descricao: string}>
      */
     public static function tiposItemSped(): array

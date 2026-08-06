@@ -548,6 +548,24 @@ def build_story(styles):
                     "Preparação Lucro Real; opcional na carga Simples.",
                     "Até 8 caracteres cada",
                 ),
+                (
+                    "cst_cbs",
+                    "Não",
+                    "CST IBS/CBS (reforma EC 132 · LC 214). Ex.: 000 tributação integral.",
+                    "3 dígitos",
+                ),
+                (
+                    "cclass_trib",
+                    "Não",
+                    "Classificação tributária IBS/CBS (6 dígitos; 3 primeiros = CST).",
+                    "Ex.: 000001",
+                ),
+                (
+                    "aliquota_cbs",
+                    "Não",
+                    "Alíquota CBS %. Ano-teste 2026: 0,9000. Escala NUMERIC(7,4).",
+                    "Ex.: 0.9000",
+                ),
             ],
         )
     )

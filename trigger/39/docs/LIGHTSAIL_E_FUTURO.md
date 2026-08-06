@@ -73,6 +73,61 @@ Troca de cliente futuro: substituir `branding/cliente/*` e seed da empresa — s
 - [ ] Produto PA/MP/REV/SVC cadastrável  
 - [ ] Logos TRIGGER + RLP corretos na tela de login  
 
+## Host 1 GB — memória e Relatórios IA
+
+Base: `docs/relatorios-ia-impacto-computacional-trigger39.txt`.
+
+### Pré-requisito: swap 2 GB (R1)
+
+O Compose declara ~1.008 MB de `mem_limit` num host de 1.024 MB. Sem swap, um pico de DomPDF pode OOM-killar o MySQL.
+
+```bash
+sudo bash scripts/lightsail-setup-swap.sh
+```
+
+### mem_limit atuais (R7)
+
+| Serviço | mem_limit | Papel |
+|---------|-----------|--------|
+| mysql   | 384m      | buffer_pool 128M |
+| app     | 192m      | API (`artisan serve`) — planejar vai na fila |
+| queue   | 384m      | DomPDF + SVG |
+| web     | 48m       | nginx + SPA |
+| **Σ**   | **~1.008 MB** | cabe no host; swap é rede de segurança |
+
+Sob pressão, o container que deve estourar é o `queue` (job falha → usuário reprocessa), não o `mysql`.
+
+### Retenção (R6)
+
+```bash
+# No container app (ou cron do host apontando para ele):
+php artisan relatorios:purgar           # PDFs > 180d; execuções > 90d
+php artisan relatorios:purgar --dry-run
+```
+
+Agendado em `routes/console.php` (03:30). No host, cron:
+
+```
+* * * * * cd /path/to/apps/api && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Gatilhos para subir para 2 GB (~USD 10–12/mês) — R8
+
+Suba a instância quando **qualquer** um ocorrer:
+
+- ≥ 3 OOM kills/mês (`dmesg -T | grep -i 'killed process'`)
+- p95 do tempo de fila > 60 s
+- decisão de migrar para php-fpm
+- export XLSX em produção
+- > 30 relatórios/dia de forma sustentada
+
+### Medição (M1–M5)
+
+- `docker stats` a cada 5 min (linha de base)
+- Pico real do job: coluna `relatorio_execucoes.memory_peak_mb` (etapa `render`)
+- Pior caso: mapa de facas com desenho, 60 linhas, paisagem
+- Fila: `SELECT COUNT(*) FROM jobs` — se ficar em 0–2, não otimize
+
 ## Nota Composer
 
 O skeleton Laravel 11 pode reportar advisories até patch upstream. Em CI/prod: acompanhar `composer audit` e subir para versão corrigida assim que disponível — domínio e migrations permanecem estáveis.

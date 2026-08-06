@@ -3,6 +3,9 @@
 Fonte canônica: ``compras_contratacao_resultados`` (módulo 07.3).
 Fallback seguro: ``compras_contratacao_itens`` apenas para itens que ainda
 não possuem linha de resultado (coleta 07-resultados pendente/parcial).
+
+Filtros analíticos padrão (período / órgão consolidado / modalidade consolidada)
+seguem a mesma semântica de Distribuição · localidade (fonte ``compras_api``).
 """
 
 from __future__ import annotations
@@ -27,9 +30,168 @@ from app.database import (
     CompraContratacaoItem,
     ComprasContratacaoResultado,
     ComprasFornecedor,
+    ModalidadeConsolidada,
+    ModalidadeVinculo,
+    OrgaoConsolidado,
+    OrgaoVinculo,
+)
+from app.filtros_periodo import (
+    Periodo,
+    anos_disponiveis,
+    condicao_periodo,
+    data_iso_pncp,
 )
 
 StatusCache = Literal["atualizado", "vencido", "pendente", "cpf", "invalido"]
+
+_UF_NOMES = {
+    "AC": "Acre",
+    "AL": "Alagoas",
+    "AP": "Amapá",
+    "AM": "Amazonas",
+    "BA": "Bahia",
+    "CE": "Ceará",
+    "DF": "Distrito Federal",
+    "ES": "Espírito Santo",
+    "GO": "Goiás",
+    "MA": "Maranhão",
+    "MT": "Mato Grosso",
+    "MS": "Mato Grosso do Sul",
+    "MG": "Minas Gerais",
+    "PA": "Pará",
+    "PB": "Paraíba",
+    "PR": "Paraná",
+    "PE": "Pernambuco",
+    "PI": "Piauí",
+    "RJ": "Rio de Janeiro",
+    "RN": "Rio Grande do Norte",
+    "RS": "Rio Grande do Sul",
+    "RO": "Rondônia",
+    "RR": "Roraima",
+    "SC": "Santa Catarina",
+    "SP": "São Paulo",
+    "SE": "Sergipe",
+    "TO": "Tocantins",
+}
+
+
+def _chaves_orgao(db: Session, orgao_id: int | None) -> set[str]:
+    if orgao_id is None:
+        return set()
+    return {
+        v.chave
+        for v in db.scalars(
+            select(OrgaoVinculo).where(
+                OrgaoVinculo.orgao_consolidado_id == orgao_id,
+                OrgaoVinculo.fonte == "compras_api",
+            )
+        ).all()
+    }
+
+
+def _chaves_modalidade(db: Session, modalidade_id: int | list[int] | None) -> set[str]:
+    if modalidade_id is None:
+        return set()
+    if isinstance(modalidade_id, int):
+        ids = [modalidade_id] if modalidade_id else []
+    else:
+        ids = [int(v) for v in modalidade_id if v is not None]
+    if not ids:
+        return set()
+    return {
+        v.chave
+        for v in db.scalars(
+            select(ModalidadeVinculo).where(
+                ModalidadeVinculo.modalidade_consolidada_id.in_(ids),
+                ModalidadeVinculo.fonte == "compras_api",
+            )
+        ).all()
+    }
+
+
+def _ids_compra_no_escopo(
+    db: Session,
+    *,
+    periodo_resolvido: Periodo | None = None,
+    ano: int | None = None,
+    orgao_id: int | None = None,
+    modalidade_id: list[int] | int | None = None,
+) -> set[str] | None:
+    """IDs de compra permitidos pelos filtros padrão; ``None`` = sem recorte."""
+    chaves_org = _chaves_orgao(db, orgao_id)
+    chaves_mod = _chaves_modalidade(db, modalidade_id)
+    if periodo_resolvido is None and not ano and not chaves_org and not chaves_mod:
+        return None
+
+    crit: list[Any] = []
+    filtro_periodo = condicao_periodo(
+        data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp),
+        periodo_resolvido,
+    )
+    if filtro_periodo is not None:
+        crit.append(filtro_periodo)
+    elif ano:
+        crit.append(CompraContratacao.ano == ano)
+    if chaves_org:
+        crit.append(CompraContratacao.unidade_compradora.in_(chaves_org))
+    if chaves_mod:
+        crit.append(CompraContratacao.modalidade_codigo.in_(chaves_mod))
+    if not crit:
+        return None
+
+    ids: set[str] = set()
+    for id_compra, chave in db.execute(
+        select(CompraContratacao.id_compra, CompraContratacao.chave_compra).where(*crit)
+    ).all():
+        if id_compra:
+            ids.add(str(id_compra))
+        if chave:
+            ids.add(str(chave))
+    return ids
+
+
+def _compra_no_escopo(id_compra: str | None, ids_ok: set[str] | None) -> bool:
+    if ids_ok is None:
+        return True
+    if not id_compra:
+        return False
+    return str(id_compra) in ids_ok
+
+
+def listar_filtros_vencedores(db: Session) -> dict[str, Any]:
+    """Catálogo dos filtros analíticos padrão (mesma fonte da localidade)."""
+    anos = anos_disponiveis(
+        db, data_iso_pncp(CompraContratacao.data_encerramento_proposta_pncp)
+    )
+    orgaos = db.scalars(
+        select(OrgaoConsolidado)
+        .where(OrgaoConsolidado.ativo.is_(True))
+        .order_by(OrgaoConsolidado.nome)
+    ).all()
+    modalidades = db.scalars(
+        select(ModalidadeConsolidada)
+        .where(ModalidadeConsolidada.ativo.is_(True))
+        .order_by(ModalidadeConsolidada.nome)
+    ).all()
+    ufs = db.scalars(
+        select(ComprasFornecedor.uf_sigla)
+        .where(
+            ComprasFornecedor.uf_sigla.isnot(None),
+            ComprasFornecedor.uf_sigla != "",
+        )
+        .distinct()
+        .order_by(ComprasFornecedor.uf_sigla)
+    ).all()
+    return {
+        "anos": list(anos),
+        "orgaos": [{"id": o.id, "nome": o.nome, "sigla": o.sigla} for o in orgaos],
+        "modalidades": [{"id": m.id, "nome": m.nome} for m in modalidades],
+        "ufs": [
+            {"sigla": u, "nome": _UF_NOMES.get(u, u)}
+            for u in ufs
+            if u
+        ],
+    }
 
 
 def _status_cache(row: ComprasFornecedor | None, *, ni: str) -> StatusCache:
@@ -119,14 +281,24 @@ def _acumular(
         bucket["tem_valor"] = True
 
 
-def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
+def _agregar_vencedores(
+    db: Session,
+    *,
+    ids_compra_ok: set[str] | None = None,
+) -> dict[str, dict[str, Any]]:
     """
     Agrega NIs vencedores.
 
     1) Todos os resultados homologados (07.3).
     2) Itens com cod_fornecedor cujo id_compra_item ainda não tem resultado
        (fallback — não duplica item já coberto por 07.3).
+
+    Quando ``ids_compra_ok`` é um set, restringe ao recorte analítico
+    (período / órgão / modalidade). Set vazio → agregação vazia.
     """
+    if ids_compra_ok is not None and not ids_compra_ok:
+        return {}
+
     agg: dict[str, dict[str, Any]] = {}
 
     itens_com_resultado: set[str] = set()
@@ -142,6 +314,8 @@ def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
             ComprasContratacaoResultado.ni_fornecedor != "",
         )
     ).all():
+        if not _compra_no_escopo(id_compra, ids_compra_ok):
+            continue
         ni = normalizar_ni(ni_raw)
         if not ni:
             continue
@@ -168,6 +342,8 @@ def _agregar_vencedores(db: Session) -> dict[str, dict[str, Any]]:
             CompraContratacaoItem.cod_fornecedor != "",
         )
     ).all():
+        if not _compra_no_escopo(id_compra, ids_compra_ok):
+            continue
         # Já coberto pelo fato 07.3 — não usar atalho do item.
         if id_item and str(id_item) in itens_com_resultado:
             continue
@@ -192,14 +368,28 @@ def listar_vencedores_consolidados(
     q: str | None = None,
     status: str | None = None,
     porte: str | None = None,
+    uf: str | None = None,
+    periodo_resolvido: Periodo | None = None,
+    ano: int | None = None,
+    orgao_id: int | None = None,
+    modalidade_id: list[int] | int | None = None,
     limit: int = 500,
 ) -> dict[str, Any]:
     """
     Consolida vencedores (07.3 + fallback itens) e cruza com ``compras_fornecedores``.
 
     Contrato da API/UI permanece estável (mesmos campos públicos).
+    Filtros padrão (período/órgão/modalidade) recortam a agregação antes do cruzamento.
+    UF e porte filtram pela sede do fornecedor enriquecido (mesma semântica da localidade).
     """
-    agg = _agregar_vencedores(db)
+    ids_ok = _ids_compra_no_escopo(
+        db,
+        periodo_resolvido=periodo_resolvido,
+        ano=ano,
+        orgao_id=orgao_id,
+        modalidade_id=modalidade_id,
+    )
+    agg = _agregar_vencedores(db, ids_compra_ok=ids_ok)
 
     if not agg:
         return {
@@ -232,6 +422,7 @@ def listar_vencedores_consolidados(
     porte_filtro = (porte or "").strip() or None
     if porte_filtro in ("todos", "all", ""):
         porte_filtro = None
+    uf_filtro = (uf or "").strip().upper() or None
 
     items: list[dict[str, Any]] = []
     resumo = {"atualizado": 0, "vencido": 0, "pendente": 0, "cpf": 0, "invalido": 0}
@@ -256,6 +447,10 @@ def listar_vencedores_consolidados(
                 continue
         if status_filtro and st != status_filtro:
             continue
+        if uf_filtro:
+            forn_uf = ((forn.uf_sigla if forn else None) or "").strip().upper()
+            if forn_uf != uf_filtro:
+                continue
         if not porte_equivale(
             porte_bruto,
             porte_filtro,
@@ -389,6 +584,11 @@ def listar_homologacoes_fornecedor(
     db: Session,
     ni: str,
     *,
+    periodo_resolvido: Periodo | None = None,
+    ano: int | None = None,
+    orgao_id: int | None = None,
+    modalidade_id: list[int] | int | None = None,
+    uf: str | None = None,
     limit: int = 2000,
 ) -> dict[str, Any]:
     """
@@ -396,10 +596,44 @@ def listar_homologacoes_fornecedor(
 
     1) ``compras_contratacao_resultados`` (07.3)
     2) Fallback em ``compras_contratacao_itens`` só quando o item ainda não tem resultado
+
+    Aceita o mesmo recorte analítico da lista (período / órgão / modalidade / UF).
     """
     ni_norm = normalizar_ni(ni)
     if not ni_norm:
         raise ValueError("CNPJ/CPF inválido")
+
+    uf_filtro = (uf or "").strip().upper() or None
+    forn = db.scalar(
+        select(ComprasFornecedor).where(ComprasFornecedor.ni_fornecedor == ni_norm)
+    )
+    if uf_filtro:
+        forn_uf = ((forn.uf_sigla if forn else None) or "").strip().upper()
+        if forn_uf != uf_filtro:
+            empresa = _empresa_resumo(forn)
+            nome = forn.nome_razao_social_fornecedor if forn else None
+            if empresa and not empresa.get("razao_social") and nome:
+                empresa = {**empresa, "razao_social": nome}
+            return {
+                "cod_fornecedor": ni_norm,
+                "nome_fornecedor": nome,
+                "tipo": "cpf" if len(ni_norm) <= 11 else "cnpj",
+                "qtd_itens": 0,
+                "qtd_compras": 0,
+                "valor_total_homologado": None,
+                "empresa": empresa,
+                "items": [],
+                "total": 0,
+                "fonte_canonica": "compras_contratacao_resultados",
+            }
+
+    ids_ok = _ids_compra_no_escopo(
+        db,
+        periodo_resolvido=periodo_resolvido,
+        ano=ano,
+        orgao_id=orgao_id,
+        modalidade_id=modalidade_id,
+    )
 
     ids_compra: set[str] = set()
     itens_com_resultado: set[str] = set()
@@ -418,9 +652,11 @@ def listar_homologacoes_fornecedor(
     ).all():
         if normalizar_ni(res.ni_fornecedor) != ni_norm:
             continue
+        id_compra = res.id_compra or (item.id_compra if item else None)
+        if not _compra_no_escopo(id_compra, ids_ok):
+            continue
         if res.id_compra_item:
             itens_com_resultado.add(str(res.id_compra_item))
-        id_compra = res.id_compra or (item.id_compra if item else None)
         if id_compra:
             ids_compra.add(str(id_compra))
         bruto.append(
@@ -445,6 +681,8 @@ def listar_homologacoes_fornecedor(
         if item.id_compra_item and str(item.id_compra_item) in itens_com_resultado:
             continue
         if normalizar_ni(item.cod_fornecedor) != ni_norm:
+            continue
+        if not _compra_no_escopo(item.id_compra, ids_ok):
             continue
         if item.id_compra:
             ids_compra.add(str(item.id_compra))
@@ -476,9 +714,6 @@ def listar_homologacoes_fornecedor(
             if c.chave_compra:
                 mapa_compra.setdefault(str(c.chave_compra), c)
 
-    forn = db.scalar(
-        select(ComprasFornecedor).where(ComprasFornecedor.ni_fornecedor == ni_norm)
-    )
     nome = forn.nome_razao_social_fornecedor if forn else None
     empresa = _empresa_resumo(forn)
 

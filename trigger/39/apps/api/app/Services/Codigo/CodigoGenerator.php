@@ -18,6 +18,7 @@ class CodigoGenerator
         'PAR' => ['table' => 'parceiros', 'column' => 'codigo', 'scoped' => true],
         'USR' => ['table' => 'users', 'column' => 'codigo', 'scoped' => false],
         'EMP' => ['table' => 'empresas', 'column' => 'codigo', 'scoped' => false],
+        'HUB' => ['table' => 'fiscal_hubs', 'column' => 'codigo', 'scoped' => true],
     ];
 
     public function nextCode(?int $empresaId, string $prefix, int $pad = 5): string
@@ -107,6 +108,10 @@ class CodigoGenerator
 
         if (preg_match('/^ORC-\d{4}$/', $prefix) === 1) {
             return ['table' => 'orcamentos', 'column' => 'codigo', 'scoped' => true];
+        }
+
+        if (preg_match('/^REL-\d{4}$/', $prefix) === 1) {
+            return ['table' => 'relatorios', 'column' => 'codigo', 'scoped' => true];
         }
 
         // Prefixos de produto (MP-PAP, PA-ETQ, SVC, FAC-RETA, …)

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 
@@ -186,6 +187,10 @@ export function OrcamentoResultado({
                 GERACAO_ORCAMENTO).
               </p>
             ) : null}
+            <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
+              Quer entender cada linha?{' '}
+              <Link to="/orcamentos/como-calcula">Ver como o orçamento calcula</Link>
+            </p>
           </>
         )}
       </div>

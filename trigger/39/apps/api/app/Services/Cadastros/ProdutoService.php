@@ -145,7 +145,8 @@ class ProdutoService
             'descricao_fiscal', 'descricao_comercial', 'ncm', 'cest', 'origem',
             'tipo_item_sped', 'unidade_comercial', 'unidade_interna', 'fator_conversao',
             'cfop_saida_padrao', 'cfop_entrada_padrao', 'csosn', 'cst_icms', 'cst_pis',
-            'cst_cofins', 'preco_tabela', 'custo_medio', 'estoque_minimo', 'lead_time_dias',
+            'cst_cofins', 'cst_cbs', 'cclass_trib', 'aliquota_cbs', 'preco_tabela',
+            'custo_medio', 'estoque_minimo', 'lead_time_dias',
             'gtin', 'situacao', 'atributos',
         ];
 

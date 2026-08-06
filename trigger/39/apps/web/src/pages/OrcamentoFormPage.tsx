@@ -122,7 +122,6 @@ export function OrcamentoFormPage() {
     const largura = faca.largura_faca != null ? Number(faca.largura_faca) : null;
     const maq = String(faca.maquina_catalogo || '').trim();
     const maquinas = catalog?.maquinas ?? [];
-    const maquinasRoda = catalog?.maquinas_roda_servico ?? maquinas;
     const formato = String(faca.formato || faca.faca || '');
 
     setForm((prev) => ({
@@ -133,8 +132,6 @@ export function OrcamentoFormPage() {
       largura_cm:
         largura != null && !Number.isNaN(largura) && largura > 0 ? largura : prev.largura_cm,
       maquina: maq && maquinas.includes(maq) ? maq : prev.maquina,
-      maquina_roda_servico:
-        maq && maquinasRoda.includes(maq) ? maq : prev.maquina_roda_servico,
       faca_nova: isNova,
       formato_faca: formato,
       valor_faca_nova: isNova ? prev.valor_faca_nova : 0,
@@ -306,9 +303,14 @@ export function OrcamentoFormPage() {
         title={isNew ? 'Novo orçamento' : `Editar orçamento #${id}`}
         description="Wizard comercial (padrão M02 / 36) — calcular preview, salvar snapshot. Sem envio/PED."
         actions={
-          <Link to={isNew ? '/orcamentos' : `/orcamentos/${id}`} className="btn btn-secondary">
-            Voltar
-          </Link>
+          <div className="btn-row">
+            <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
+              Como calcula
+            </Link>
+            <Link to={isNew ? '/orcamentos' : `/orcamentos/${id}`} className="btn btn-secondary">
+              Voltar
+            </Link>
+          </div>
         }
       />
 
@@ -638,23 +640,6 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                 >
                   {(catalog?.maquinas ?? []).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>
-                  Máq. roda serviço (F10){' '}
-                  <span className="field-note">operacional — não entra no preço</span>
-                </label>
-                <select
-                  value={form.maquina_roda_servico}
-                  onChange={(e) => setField('maquina_roda_servico', e.target.value)}
-                  disabled={!canWrite}
-                >
-                  {(catalog?.maquinas_roda_servico ?? catalog?.maquinas ?? []).map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>

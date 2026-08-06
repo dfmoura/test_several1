@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         'parametros.gerir',
         'usuarios.gerir',
         'ia.provedores.gerir',
+        'fiscal.hubs.gerir',
         'parceiro.ler',
         'parceiro.escrever',
         'parceiro.bancario',
@@ -29,6 +30,9 @@ class DatabaseSeeder extends Seeder
         'produto.fiscal',
         'orcamento.ler',
         'orcamento.escrever',
+        'orcamento.catalogo.gerir',
+        'relatorio.ler',
+        'relatorio.escrever',
     ];
 
     private const ROLES = [
@@ -54,11 +58,13 @@ class DatabaseSeeder extends Seeder
             'produto.escrever',
             'orcamento.ler',
             'orcamento.escrever',
+            'relatorio.ler',
+            'relatorio.escrever',
         ],
         'PRODUCAO' => ['produto.ler'],
         'COMPRAS' => ['parceiro.ler', 'parceiro.escrever', 'produto.ler', 'produto.escrever'],
         'EXPEDICAO' => ['parceiro.ler', 'produto.ler'],
-        'CONSULTA' => ['parceiro.ler', 'produto.ler', 'orcamento.ler'],
+        'CONSULTA' => ['parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler'],
     ];
 
     public function run(): void
@@ -73,6 +79,7 @@ class DatabaseSeeder extends Seeder
         $this->seedColaboradoresAndUsers($emp1, $emp2);
         $this->call(FiscalCatalogSeeder::class);
         $this->call(ProdutoGrupoSeeder::class);
+        $this->call(OrcamentoCatalogoSeeder::class);
         $this->seedProdutos($emp1);
         // Garante vínculo grupo_id nos produtos seedados após o cadastro.
         app(\App\Services\Cadastros\ProdutoGrupoService::class)->backfillProdutos();

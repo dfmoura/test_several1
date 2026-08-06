@@ -33,6 +33,9 @@ class Produto extends Model
         'cst_icms',
         'cst_pis',
         'cst_cofins',
+        'cst_cbs',
+        'cclass_trib',
+        'aliquota_cbs',
         'preco_tabela',
         'custo_medio',
         'estoque_minimo',
@@ -52,6 +55,7 @@ class Produto extends Model
             'preco_tabela' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_UNIT_PRICE,
             'custo_medio' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_UNIT_PRICE,
             'estoque_minimo' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_QTY,
+            'aliquota_cbs' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_PERCENT,
             'atributos' => 'array',
         ];
     }

@@ -1,14 +1,18 @@
 import type { ComponentType } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { BrandBar } from './BrandBar';
 import {
   IconAi,
   IconBuilding,
+  IconCatalog,
   IconDashboard,
+  IconGuide,
+  IconHub,
   IconOrcamento,
   IconPartners,
   IconProduct,
+  IconReport,
   IconSettings,
   IconUsers,
 } from './NavIcons';
@@ -19,6 +23,8 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
   permission: string | null;
+  /** Custom active match (overrides default NavLink matching). */
+  isActivePath?: (pathname: string) => boolean;
 };
 
 type NavGroup = {
@@ -44,7 +50,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Comercial',
     items: [
-      { to: '/orcamentos', label: 'Orçamentos', icon: IconOrcamento, permission: 'orcamento.ler' },
+      {
+        to: '/orcamentos',
+        label: 'Orçamentos',
+        icon: IconOrcamento,
+        permission: 'orcamento.ler',
+        isActivePath: (pathname) =>
+          pathname === '/orcamentos' ||
+          (pathname.startsWith('/orcamentos/') && !pathname.startsWith('/orcamentos/como-calcula')),
+      },
+      {
+        to: '/orcamentos/como-calcula',
+        label: 'Como calcula',
+        icon: IconGuide,
+        permission: 'orcamento.ler',
+      },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    items: [
+      { to: '/relatorios', label: 'Relatórios IA', icon: IconReport, permission: 'relatorio.ler' },
     ],
   },
   {
@@ -53,10 +79,22 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/usuarios', label: 'Usuários', icon: IconUsers, permission: 'usuarios.gerir' },
       { to: '/parametros', label: 'Parâmetros', icon: IconSettings, permission: 'parametros.gerir' },
       {
+        to: '/orcamento-catalogo',
+        label: 'Catálogo ORC',
+        icon: IconCatalog,
+        permission: 'orcamento.catalogo.gerir',
+      },
+      {
         to: '/ia-provedores',
         label: 'Provedores de IA',
         icon: IconAi,
         permission: 'ia.provedores.gerir',
+      },
+      {
+        to: '/fiscal-hubs',
+        label: 'Hubs fiscais',
+        icon: IconHub,
+        permission: 'fiscal.hubs.gerir',
       },
     ],
   },
@@ -65,6 +103,7 @@ const NAV_GROUPS: NavGroup[] = [
 export function AppShell() {
   const { user, roles, empresas, empresaId, setEmpresa, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -102,6 +141,12 @@ export function AppShell() {
                     key={item.to}
                     to={item.to}
                     end={item.end ?? false}
+                    className={({ isActive }) => {
+                      const active = item.isActivePath
+                        ? item.isActivePath(location.pathname)
+                        : isActive;
+                      return active ? 'active' : undefined;
+                    }}
                   >
                     <span className="nav-icon">
                       <Icon />

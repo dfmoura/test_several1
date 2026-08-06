@@ -4,9 +4,10 @@ import { PageHeader } from '../components/PageHeader';
 import { ApiError, api } from '../lib/api';
 import { formatCnpjCpf } from '../lib/format';
 
+type Mode = 'csv' | 'xml';
 type Step = 'upload' | 'preview' | 'result';
 
-type ImportPreviewRow = {
+type CsvPreviewRow = {
   line: number;
   status: 'ok' | 'erro';
   errors: string[];
@@ -28,14 +29,14 @@ type ImportPreviewRow = {
   };
 };
 
-type ImportPreviewReport = {
+type CsvPreviewReport = {
   total: number;
   ok: number;
   erro: number;
-  rows: ImportPreviewRow[];
+  rows: CsvPreviewRow[];
 };
 
-type ImportCommitRow = {
+type CsvCommitRow = {
   line: number;
   status: 'criado' | 'erro';
   errors: string[];
@@ -45,25 +46,113 @@ type ImportCommitRow = {
   cnpj_cpf?: string | null;
 };
 
-type ImportCommitResult = {
+type CsvCommitResult = {
   total: number;
   criados: number;
   falhas: number;
-  rows: ImportCommitRow[];
+  rows: CsvCommitRow[];
+};
+
+type XmlPreviewRow = {
+  line: number;
+  file_name?: string;
+  status: 'ok' | 'info' | 'erro';
+  acao?: 'criar' | 'adicionar_papel' | 'nenhuma' | null;
+  errors: string[];
+  warnings?: string[];
+  data: Record<string, unknown>;
+  parceiro_id?: number;
+  preview: {
+    file_name?: string | null;
+    chave_nfe?: string | null;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+    cnpj_cpf?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    ie?: string | null;
+    regime?: string | null;
+    tipo_fornecimento?: string | null;
+    cfop_entrada_padrao?: string | null;
+    cnpj_status?: string | null;
+    parceiro_id?: number | null;
+    parceiro_codigo?: string | null;
+    field_sources?: Record<string, string>;
+    enrichment?: {
+      status?: string;
+      filled?: string[];
+      message?: string | null;
+    };
+    dest_aviso?: string | null;
+    transportadora?: { cnpj?: string | null; nome?: string | null } | null;
+    papeis?: string[];
+  };
+};
+
+type XmlPreviewReport = {
+  total: number;
+  ok: number;
+  info: number;
+  erro: number;
+  rows: XmlPreviewRow[];
+};
+
+type XmlCommitRow = {
+  line: number;
+  status: 'criado' | 'atualizado' | 'ignorado' | 'erro';
+  errors: string[];
+  id?: number;
+  codigo?: string;
+  razao_social?: string | null;
+  cnpj_cpf?: string | null;
+};
+
+type XmlCommitResult = {
+  total: number;
+  criados: number;
+  atualizados: number;
+  ignorados: number;
+  falhas: number;
+  rows: XmlCommitRow[];
 };
 
 export function ParceiroImportPage() {
+  const [mode, setMode] = useState<Mode>('csv');
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<ImportPreviewReport | null>(null);
-  const [result, setResult] = useState<ImportCommitResult | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [csvPreview, setCsvPreview] = useState<CsvPreviewReport | null>(null);
+  const [xmlPreview, setXmlPreview] = useState<XmlPreviewReport | null>(null);
+  const [csvResult, setCsvResult] = useState<CsvCommitResult | null>(null);
+  const [xmlResult, setXmlResult] = useState<XmlCommitResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const okRows = useMemo(
-    () => preview?.rows.filter((row) => row.status === 'ok') ?? [],
-    [preview],
+  const csvOkRows = useMemo(
+    () => csvPreview?.rows.filter((row) => row.status === 'ok') ?? [],
+    [csvPreview],
   );
+
+  const xmlOkRows = useMemo(
+    () =>
+      xmlPreview?.rows.filter(
+        (row) => row.status === 'ok' && (row.acao === 'criar' || row.acao === 'adicionar_papel'),
+      ) ?? [],
+    [xmlPreview],
+  );
+
+  const switchMode = (next: Mode) => {
+    if (next === mode && step === 'upload') return;
+    setMode(next);
+    setStep('upload');
+    setFile(null);
+    setFiles([]);
+    setCsvPreview(null);
+    setXmlPreview(null);
+    setCsvResult(null);
+    setXmlResult(null);
+    setError(null);
+  };
 
   const downloadTemplate = async () => {
     setError(null);
@@ -74,7 +163,7 @@ export function ParceiroImportPage() {
     }
   };
 
-  const runPreview = async () => {
+  const runCsvPreview = async () => {
     if (!file) {
       setError('Selecione um arquivo CSV.');
       return;
@@ -85,12 +174,12 @@ export function ParceiroImportPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await api.postForm<{ data: ImportPreviewReport }>(
+      const res = await api.postForm<{ data: CsvPreviewReport }>(
         '/parceiros/import/preview',
         formData,
       );
-      setPreview(res.data);
-      setResult(null);
+      setCsvPreview(res.data);
+      setCsvResult(null);
       setStep('preview');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Falha na simulação da importação.');
@@ -99,8 +188,8 @@ export function ParceiroImportPage() {
     }
   };
 
-  const runCommit = async () => {
-    if (okRows.length === 0) {
+  const runCsvCommit = async () => {
+    if (csvOkRows.length === 0) {
       setError('Não há linhas válidas para importar.');
       return;
     }
@@ -108,13 +197,13 @@ export function ParceiroImportPage() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api.post<{ data: ImportCommitResult }>('/parceiros/import/commit', {
-        rows: okRows.map((row) => ({
+      const res = await api.post<{ data: CsvCommitResult }>('/parceiros/import/commit', {
+        rows: csvOkRows.map((row) => ({
           line: row.line,
           data: row.data,
         })),
       });
-      setResult(res.data);
+      setCsvResult(res.data);
       setStep('result');
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Falha ao confirmar a importação.');
@@ -123,11 +212,65 @@ export function ParceiroImportPage() {
     }
   };
 
+  const runXmlPreview = async () => {
+    if (files.length === 0) {
+      setError('Selecione ao menos um arquivo XML (ou ZIP).');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append('files[]', f));
+      const res = await api.postForm<{ data: XmlPreviewReport }>(
+        '/parceiros/import/xml/preview',
+        formData,
+      );
+      setXmlPreview(res.data);
+      setXmlResult(null);
+      setStep('preview');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Falha na simulação do XML.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runXmlCommit = async () => {
+    if (xmlOkRows.length === 0) {
+      setError('Não há linhas válidas para confirmar.');
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.post<{ data: XmlCommitResult }>('/parceiros/import/xml/commit', {
+        rows: xmlOkRows.map((row) => ({
+          line: row.line,
+          acao: row.acao,
+          parceiro_id: row.parceiro_id ?? row.preview.parceiro_id ?? undefined,
+          data: row.data,
+        })),
+      });
+      setXmlResult(res.data);
+      setStep('result');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Falha ao confirmar a importação XML.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const reset = () => {
     setStep('upload');
     setFile(null);
-    setPreview(null);
-    setResult(null);
+    setFiles([]);
+    setCsvPreview(null);
+    setXmlPreview(null);
+    setCsvResult(null);
+    setXmlResult(null);
     setError(null);
   };
 
@@ -135,13 +278,34 @@ export function ParceiroImportPage() {
     <>
       <PageHeader
         title="Importar parceiros"
-        description="Carga cadenciada via CSV: simulação sem gravar, depois confirmação insert-only"
+        description="CSV em lote ou fornecedor a partir do XML da NF-e de entrada — simulação sem gravar, depois confirmação"
         actions={
           <Link to="/parceiros" className="btn btn-secondary">
             Voltar à lista
           </Link>
         }
       />
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div className="card-body" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={`btn ${mode === 'csv' ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={busy}
+            onClick={() => switchMode('csv')}
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            className={`btn ${mode === 'xml' ? 'btn-primary' : 'btn-secondary'}`}
+            disabled={busy}
+            onClick={() => switchMode('xml')}
+          >
+            XML NF-e (Fornecedor)
+          </button>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -159,7 +323,7 @@ export function ParceiroImportPage() {
         </div>
       )}
 
-      {step === 'upload' && (
+      {mode === 'csv' && step === 'upload' && (
         <div className="card">
           <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
             <p style={{ margin: 0 }}>
@@ -209,7 +373,7 @@ export function ParceiroImportPage() {
                 type="button"
                 className="btn btn-primary"
                 disabled={!file || busy}
-                onClick={() => void runPreview()}
+                onClick={() => void runCsvPreview()}
               >
                 {busy ? 'Simulando…' : 'Simular importação'}
               </button>
@@ -218,13 +382,70 @@ export function ParceiroImportPage() {
         </div>
       )}
 
-      {step === 'preview' && preview && (
+      {mode === 'xml' && step === 'upload' && (
+        <div className="card">
+          <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+            <p style={{ margin: 0 }}>
+              Envie um ou mais XML de NF-e de entrada (modelo 55) ou um ZIP com XMLs. O sistema
+              extrai o <strong>emitente</strong>, consulta o cartão CNPJ (BrasilAPI) e prepara o
+              cadastro de parceiro com papel <strong>Fornecedor</strong>. Nada é gravado até a
+              confirmação. Não é entrada fiscal — só cadastro.
+            </p>
+            <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
+              Se o CNPJ já existir com papel fornecedor, a linha fica informativa. Se existir sem o
+              papel, a confirmação apenas adiciona o papel (sem sobrescrever endereço). Máximo 20
+              XMLs por lote.
+            </p>
+            <div>
+              <a
+                className="btn btn-secondary"
+                href="/docs/guia-importacao-parceiros.pdf"
+                download="guia-importacao-parceiros.pdf"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Baixar guia PDF
+              </a>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="parceiro-xml">Arquivos XML / ZIP</label>
+              <input
+                id="parceiro-xml"
+                type="file"
+                accept=".xml,.zip,application/xml,text/xml,application/zip"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              />
+              {files.length > 0 && (
+                <small style={{ display: 'block', marginTop: '0.35rem', opacity: 0.8 }}>
+                  {files.length} arquivo{files.length === 1 ? '' : 's'}:{' '}
+                  {files.map((f) => f.name).join(', ')}
+                </small>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={files.length === 0 || busy}
+                onClick={() => void runXmlPreview()}
+              >
+                {busy ? 'Simulando…' : 'Simular a partir do XML'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === 'csv' && step === 'preview' && csvPreview && (
         <div className="card">
           <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              <Stat label="Total" value={preview.total} />
-              <Stat label="Válidas" value={preview.ok} />
-              <Stat label="Com erro" value={preview.erro} />
+              <Stat label="Total" value={csvPreview.total} />
+              <Stat label="Válidas" value={csvPreview.ok} />
+              <Stat label="Com erro" value={csvPreview.erro} />
             </div>
 
             <div className="table-wrap">
@@ -242,7 +463,7 @@ export function ParceiroImportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.rows.map((row) => (
+                  {csvPreview.rows.map((row) => (
                     <tr key={row.line}>
                       <td>{row.line}</td>
                       <td>{row.status === 'ok' ? 'OK' : 'Erro'}</td>
@@ -272,25 +493,113 @@ export function ParceiroImportPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={busy || okRows.length === 0}
-                onClick={() => void runCommit()}
+                disabled={busy || csvOkRows.length === 0}
+                onClick={() => void runCsvCommit()}
               >
                 {busy
                   ? 'Importando…'
-                  : `Confirmar importação (${okRows.length} linha${okRows.length === 1 ? '' : 's'})`}
+                  : `Confirmar importação (${csvOkRows.length} linha${csvOkRows.length === 1 ? '' : 's'})`}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {step === 'result' && result && (
+      {mode === 'xml' && step === 'preview' && xmlPreview && (
         <div className="card">
           <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              <Stat label="Enviadas" value={result.total} />
-              <Stat label="Criadas" value={result.criados} />
-              <Stat label="Falhas" value={result.falhas} />
+              <Stat label="Total" value={xmlPreview.total} />
+              <Stat label="Avançam" value={xmlPreview.ok} />
+              <Stat label="Já cadastrado" value={xmlPreview.info} />
+              <Stat label="Com erro" value={xmlPreview.erro} />
+            </div>
+
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Arquivo</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                    <th>Emitente</th>
+                    <th>CNPJ</th>
+                    <th>Cidade/UF</th>
+                    <th>Origem dados</th>
+                    <th>Avisos / erros</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {xmlPreview.rows.map((row) => (
+                    <tr key={row.line}>
+                      <td>{row.line}</td>
+                      <td>{row.file_name ?? row.preview.file_name ?? '—'}</td>
+                      <td>{xmlStatusLabel(row)}</td>
+                      <td>{xmlAcaoLabel(row.acao)}</td>
+                      <td>
+                        {row.preview.parceiro_id ? (
+                          <Link to={`/parceiros/${row.preview.parceiro_id}`}>
+                            {row.preview.razao_social ?? row.preview.parceiro_codigo ?? row.preview.parceiro_id}
+                          </Link>
+                        ) : (
+                          row.preview.razao_social ?? '—'
+                        )}
+                        {row.preview.chave_nfe && (
+                          <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: 2 }}>
+                            NF {row.preview.chave_nfe.slice(0, 10)}…
+                          </div>
+                        )}
+                      </td>
+                      <td>{formatCnpjCpf(row.preview.cnpj_cpf) || '—'}</td>
+                      <td>
+                        {[row.preview.municipio, row.preview.uf].filter(Boolean).join('/') || '—'}
+                      </td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        {sourcesSummary(row.preview.field_sources)}
+                        <div style={{ opacity: 0.75, marginTop: 2 }}>
+                          {enrichmentLabel(row.preview.enrichment)}
+                        </div>
+                      </td>
+                      <td>
+                        {[
+                          ...(row.warnings ?? []),
+                          ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+                          ...row.errors,
+                        ].join(' ') || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-secondary" disabled={busy} onClick={reset}>
+                Escolher outros arquivos
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || xmlOkRows.length === 0}
+                onClick={() => void runXmlCommit()}
+              >
+                {busy
+                  ? 'Confirmando…'
+                  : `Confirmar (${xmlOkRows.length} ${xmlOkRows.length === 1 ? 'fornecedor' : 'fornecedores'})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === 'csv' && step === 'result' && csvResult && (
+        <div className="card">
+          <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <Stat label="Enviadas" value={csvResult.total} />
+              <Stat label="Criadas" value={csvResult.criados} />
+              <Stat label="Falhas" value={csvResult.falhas} />
             </div>
 
             <div className="table-wrap">
@@ -306,10 +615,66 @@ export function ParceiroImportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {result.rows.map((row) => (
+                  {csvResult.rows.map((row) => (
                     <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
                       <td>{row.line}</td>
                       <td>{row.status === 'criado' ? 'Criado' : 'Erro'}</td>
+                      <td>
+                        {row.id ? (
+                          <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>{row.razao_social ?? '—'}</td>
+                      <td>{formatCnpjCpf(row.cnpj_cpf) || '—'}</td>
+                      <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-secondary" onClick={reset}>
+                Nova importação
+              </button>
+              <Link to="/parceiros" className="btn btn-primary">
+                Ir para parceiros
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode === 'xml' && step === 'result' && xmlResult && (
+        <div className="card">
+          <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              <Stat label="Enviadas" value={xmlResult.total} />
+              <Stat label="Criados" value={xmlResult.criados} />
+              <Stat label="Papel adicionado" value={xmlResult.atualizados} />
+              <Stat label="Ignorados" value={xmlResult.ignorados} />
+              <Stat label="Falhas" value={xmlResult.falhas} />
+            </div>
+
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Status</th>
+                    <th>Código</th>
+                    <th>Razão social</th>
+                    <th>CNPJ</th>
+                    <th>Mensagens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {xmlResult.rows.map((row) => (
+                    <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
+                      <td>{row.line}</td>
+                      <td>{xmlCommitStatusLabel(row.status)}</td>
                       <td>
                         {row.id ? (
                           <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
@@ -342,19 +707,64 @@ export function ParceiroImportPage() {
 }
 
 function enrichmentLabel(
-  enrichment?: ImportPreviewRow['preview']['enrichment'],
+  enrichment?: { status?: string; message?: string | null } | undefined,
 ): string {
   switch (enrichment?.status) {
     case 'atualizado':
-      return 'Atualizado';
+      return 'BrasilAPI';
     case 'ok_sem_lacunas':
       return 'OK';
+    case 'parcial':
+      return 'Parcial (XML)';
     case 'erro':
       return 'Falhou';
     case 'ignorado':
       return '—';
     default:
       return '—';
+  }
+}
+
+function sourcesSummary(sources?: Record<string, string>): string {
+  if (!sources || Object.keys(sources).length === 0) return '—';
+  const counts: Record<string, number> = {};
+  Object.values(sources).forEach((src) => {
+    counts[src] = (counts[src] ?? 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([src, n]) => `${src}:${n}`)
+    .join(' · ');
+}
+
+function xmlStatusLabel(row: XmlPreviewRow): string {
+  if (row.status === 'ok') return 'OK';
+  if (row.status === 'info') return 'Info';
+  return 'Erro';
+}
+
+function xmlAcaoLabel(acao?: XmlPreviewRow['acao']): string {
+  switch (acao) {
+    case 'criar':
+      return 'Criar fornecedor';
+    case 'adicionar_papel':
+      return 'Add papel fornecedor';
+    case 'nenhuma':
+      return 'Já é fornecedor';
+    default:
+      return '—';
+  }
+}
+
+function xmlCommitStatusLabel(status: XmlCommitRow['status']): string {
+  switch (status) {
+    case 'criado':
+      return 'Criado';
+    case 'atualizado':
+      return 'Papel adicionado';
+    case 'ignorado':
+      return 'Ignorado';
+    default:
+      return 'Erro';
   }
 }
 

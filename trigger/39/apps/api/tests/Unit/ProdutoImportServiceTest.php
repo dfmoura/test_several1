@@ -38,6 +38,9 @@ class ProdutoImportServiceTest extends TestCase
         $this->assertSame('largura_mm', $this->service->normalizeHeader('largura'));
         $this->assertSame('grupo_estoque', $this->service->normalizeHeader('GG'));
         $this->assertSame('fornecedor_sigla', $this->service->normalizeHeader('fornecedor'));
+        $this->assertSame('cst_cbs', $this->service->normalizeHeader('cst_ibs_cbs'));
+        $this->assertSame('cclass_trib', $this->service->normalizeHeader('cclasstrib'));
+        $this->assertSame('aliquota_cbs', $this->service->normalizeHeader('aliq_cbs'));
     }
 
     public function test_map_raw_row_skips_empty_values(): void

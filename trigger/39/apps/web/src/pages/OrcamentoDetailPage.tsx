@@ -89,7 +89,6 @@ export function OrcamentoDetailPage() {
       ['Tubete', input.tubete],
       ['Col. rebob.', input.coluna_rebobinacao],
       ['Máquina (G10)', input.maquina],
-      ['Máq. roda (F10)', input.maquina_roda_servico],
       ['Matriz', input.matriz],
       ['Faca nova', input.faca_nova ? 'SIM' : 'NÃO'],
       ['Formato faca', input.formato_faca],
@@ -110,6 +109,9 @@ export function OrcamentoDetailPage() {
           <div className="btn-row">
             <Link to="/orcamentos" className="btn btn-secondary">
               Lista
+            </Link>
+            <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
+              Como calcula
             </Link>
             {canWrite && editavel ? (
               <>

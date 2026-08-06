@@ -138,6 +138,22 @@ class FiscalCatalogService
     }
 
     /**
+     * @return list<array{codigo: string, descricao: string, grupo: string}>
+     */
+    public function searchCstCbs(?string $query, int $limit = 20): array
+    {
+        return $this->filterStatic(FiscalCatalogData::cstCbs(), $query, $limit);
+    }
+
+    /**
+     * @return list<array{codigo: string, descricao: string, grupo: string}>
+     */
+    public function searchCClassTrib(?string $query, int $limit = 20): array
+    {
+        return $this->filterStatic(FiscalCatalogData::cClassTrib(), $query, $limit);
+    }
+
+    /**
      * @return list<array{codigo: string, descricao: string}>
      */
     public function tiposItemSped(): array

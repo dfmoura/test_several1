@@ -11,6 +11,7 @@ Use cada arquivo como instrução completa para um agente/dev implementar a feat
 | `04-setup-tokens-ia-rotacao.md` | Tokens de IA no Setup + rotação automática |
 | `05-deploy-aws-free.md` | Deploy gratuito AWS + Git (contexto operacional) |
 | `06-baseline-disciplina.md` | Baseline: módulos, testes, backup, health (sem overengineering) |
+| `07-orm-e-separacao-front-back.txt` | Decisão: SQLAlchemy + separação lógica front/API (deploy único) |
 
 ## Ordem sugerida de implementação
 

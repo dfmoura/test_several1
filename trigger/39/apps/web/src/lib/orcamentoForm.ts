@@ -36,7 +36,6 @@ export type OrcForm = {
   tubete: string;
   z: number | '';
   maquina: string;
-  maquina_roda_servico: string;
   imposto_pct: number;
   matriz: 'SIM' | 'NAO';
   coluna_rebobinacao: number;
@@ -58,7 +57,8 @@ export type OrcCatalogo = {
   acabamentos: string[];
   tubetes: string[];
   maquinas: string[];
-  maquinas_roda_servico: string[];
+  /** Presente na API por compatibilidade; não é usado na UI (não entra no preço). */
+  maquinas_roda_servico?: string[];
   tipos_troca_produto: string[];
   imposto_pct_default: number;
 };
@@ -82,7 +82,6 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     tubete: '1"',
     z: '',
     maquina: maquinas[0] ?? 'BETA',
-    maquina_roda_servico: maquinas[0] ?? 'BETA',
     imposto_pct: catalog?.imposto_pct_default ?? 16,
     matriz: 'SIM',
     coluna_rebobinacao: 1,
@@ -129,9 +128,6 @@ export function formFromSnapshot(
     tubete: String(snap.tubete ?? base.tubete),
     z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
     maquina: String(snap.maquina ?? base.maquina),
-    maquina_roda_servico: String(
-      snap.maquina_roda_servico ?? snap.maquina ?? base.maquina_roda_servico,
-    ),
     imposto_pct: Number(snap.imposto_pct) || base.imposto_pct,
     matriz: String(snap.matriz) === 'NAO' ? 'NAO' : 'SIM',
     coluna_rebobinacao: Number(snap.coluna_rebobinacao) || 1,
@@ -170,7 +166,6 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     tubete: form.tubete,
     z: form.z === '' ? null : form.z,
     maquina: form.maquina,
-    maquina_roda_servico: form.maquina_roda_servico || null,
     imposto_pct: form.imposto_pct,
     matriz: form.matriz,
     coluna_rebobinacao: form.coluna_rebobinacao,

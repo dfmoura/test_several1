@@ -27,6 +27,7 @@ from app.compras.orquestrador import executar_pipeline
 from app.compras.repository import ensure_fornecedor_stub, upsert_resultado, vincular_fornecedores_resultados
 from app.compras.coletor_resultados import coletar_resultados, resultado_para_db
 from app.compras.vencedores_cnpj import (
+    listar_filtros_vencedores,
     listar_homologacoes_fornecedor,
     listar_vencedores_consolidados,
 )
@@ -960,6 +961,12 @@ def listar_fornecedores(
     }
 
 
+@router.get("/api/compras/vencedores-cnpj/filtros")
+def filtros_vencedores_cnpj(db: Session = Depends(get_db)):
+    """Catálogo de anos / órgãos / modalidades / UFs para a tela de vencedores."""
+    return listar_filtros_vencedores(db)
+
+
 @router.get("/api/compras/vencedores-cnpj")
 def listar_vencedores_cnpj(
     db: Session = Depends(get_db),
@@ -975,21 +982,87 @@ def listar_vencedores_cnpj(
             "_vazio_ para sem porte. Variantes tipográficas são unificadas."
         ),
     ),
+    uf: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="UF da sede do fornecedor vencedor (ex.: MG)",
+    ),
+    ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
+    orgao_id: int | None = Query(None),
+    modalidade_id: list[int] = Query(default=[]),
     limit: int = Query(500, ge=1, le=2000),
 ):
-    """Fornecedores vencedores consolidados de `compras_contratacao_itens` + status do cache CNPJ."""
-    return listar_vencedores_consolidados(db, q=q, status=status, porte=porte, limit=limit)
+    """Fornecedores vencedores consolidados + status do cache CNPJ (filtros analíticos padrão)."""
+    try:
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return listar_vencedores_consolidados(
+        db,
+        q=q,
+        status=status,
+        porte=porte,
+        uf=uf,
+        periodo_resolvido=periodo_resolvido,
+        ano=ano,
+        orgao_id=orgao_id,
+        modalidade_id=modalidade_id,
+        limit=limit,
+    )
 
 
 @router.get("/api/compras/vencedores-cnpj/{ni}/homologacoes")
 def listar_homologacoes_vencedor_cnpj(
     ni: str,
     db: Session = Depends(get_db),
+    ano: int | None = Query(None, ge=2000, le=2100),
+    periodo: TipoPeriodo | None = None,
+    quadrimestre: int | None = Query(None, ge=1, le=3),
+    data_inicial: date | None = None,
+    data_final: date | None = None,
+    orgao_id: int | None = Query(None),
+    modalidade_id: list[int] = Query(default=[]),
+    uf: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="UF da sede do fornecedor vencedor (ex.: MG)",
+    ),
     limit: int = Query(2000, ge=1, le=5000),
 ):
-    """Itens homologados de um fornecedor (data, objeto, descrição, valor)."""
+    """Itens homologados de um fornecedor (mesmo recorte analítico da lista)."""
     try:
-        return listar_homologacoes_fornecedor(db, ni, limit=limit)
+        periodo_resolvido = resolver_periodo(
+            periodo=periodo,
+            ano=ano,
+            quadrimestre=quadrimestre,
+            data_inicial=data_inicial,
+            data_final=data_final,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    try:
+        return listar_homologacoes_fornecedor(
+            db,
+            ni,
+            periodo_resolvido=periodo_resolvido,
+            ano=ano,
+            orgao_id=orgao_id,
+            modalidade_id=modalidade_id,
+            uf=uf,
+            limit=limit,
+        )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 

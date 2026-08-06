@@ -1,4 +1,4 @@
-.PHONY: up down build logs migrate seed shell health web-build orc-rbac guia-pdf guia-pdf-parceiros guia-pdf-produtos
+.PHONY: up down build logs migrate seed shell health web-build orc-rbac queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos
 
 up:
 	cp -n .env.example .env 2>/dev/null || true
@@ -15,7 +15,10 @@ build:
 	docker compose build
 
 logs:
-	docker compose logs -f app web mysql
+	docker compose logs -f app web mysql queue
+
+queue-logs:
+	docker compose logs -f queue
 
 migrate:
 	docker compose exec app php artisan migrate --force

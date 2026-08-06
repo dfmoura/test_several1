@@ -4,8 +4,11 @@ import { AppShell } from './components/AppShell';
 import { useAuth } from './lib/auth';
 import { DashboardPage } from './pages/DashboardPage';
 import { EmpresasPage } from './pages/EmpresasPage';
+import { FiscalHubsPage } from './pages/FiscalHubsPage';
 import { IaProvedoresPage } from './pages/IaProvedoresPage';
 import { LoginPage } from './pages/LoginPage';
+import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
+import { OrcamentoComoCalculaPage } from './pages/OrcamentoComoCalculaPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
 import { OrcamentoFormPage } from './pages/OrcamentoFormPage';
 import { OrcamentosPage } from './pages/OrcamentosPage';
@@ -16,6 +19,9 @@ import { ParceirosPage } from './pages/ParceirosPage';
 import { ProdutoFormPage } from './pages/ProdutoFormPage';
 import { ProdutoImportPage } from './pages/ProdutoImportPage';
 import { ProdutosPage } from './pages/ProdutosPage';
+import { RelatorioDetailPage } from './pages/RelatorioDetailPage';
+import { RelatorioNovoPage } from './pages/RelatorioNovoPage';
+import { RelatoriosPage } from './pages/RelatoriosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 
 function LoadingScreen() {
@@ -129,6 +135,14 @@ export default function App() {
           }
         />
         <Route
+          path="orcamentos/como-calcula"
+          element={
+            <PermissionRoute permission="orcamento.ler">
+              <OrcamentoComoCalculaPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="orcamentos/:id/editar"
           element={
             <PermissionRoute permission="orcamento.escrever">
@@ -141,6 +155,40 @@ export default function App() {
           element={
             <PermissionRoute permission="orcamento.ler">
               <OrcamentoDetailPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
+          path="orcamento-catalogo"
+          element={
+            <PermissionRoute permission="orcamento.catalogo.gerir">
+              <OrcamentoCatalogoPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
+          path="relatorios"
+          element={
+            <PermissionRoute permission="relatorio.ler">
+              <RelatoriosPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="relatorios/novo"
+          element={
+            <PermissionRoute permission="relatorio.escrever">
+              <RelatorioNovoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="relatorios/:id"
+          element={
+            <PermissionRoute permission="relatorio.ler">
+              <RelatorioDetailPage />
             </PermissionRoute>
           }
         />
@@ -166,6 +214,14 @@ export default function App() {
           element={
             <PermissionRoute permission="ia.provedores.gerir">
               <IaProvedoresPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="fiscal-hubs"
+          element={
+            <PermissionRoute permission="fiscal.hubs.gerir">
+              <FiscalHubsPage />
             </PermissionRoute>
           }
         />

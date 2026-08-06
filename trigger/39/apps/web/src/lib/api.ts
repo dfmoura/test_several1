@@ -391,6 +391,9 @@ export type Produto = {
   cst_icms: string | null;
   cst_pis: string | null;
   cst_cofins: string | null;
+  cst_cbs: string | null;
+  cclass_trib: string | null;
+  aliquota_cbs: string | null;
   preco_tabela: string | null;
   custo_medio: string | null;
   estoque_minimo: string | null;
@@ -458,6 +461,32 @@ export type IaProvedor = {
   ultimo_teste_em: string | null;
   ultimo_teste_ok: boolean | null;
   ultimo_teste_msg: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type FiscalHub = {
+  id: number;
+  empresa_id: number;
+  codigo: string;
+  nome: string;
+  provedor: string;
+  ambiente_ativo: 'homologacao' | 'producao' | string;
+  padrao: boolean;
+  ativo: boolean;
+  base_url_homologacao: string | null;
+  base_url_producao: string | null;
+  base_url_homologacao_efetiva: string | null;
+  base_url_producao_efetiva: string | null;
+  token_homologacao_mascara: string;
+  token_producao_mascara: string;
+  tem_token_homologacao: boolean;
+  tem_token_producao: boolean;
+  ultimo_teste_ambiente: string | null;
+  ultimo_teste_em: string | null;
+  ultimo_teste_ok: boolean | null;
+  ultimo_teste_msg: string | null;
+  meta?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -622,9 +651,54 @@ export type OrcamentoCatalogo = {
   acabamentos: string[];
   tubetes: string[];
   maquinas: string[];
-  maquinas_roda_servico: string[];
+  /** Compatibilidade API — campo operacional legado; não usado no preço nem na UI. */
+  maquinas_roda_servico?: string[];
   tipos_troca_produto: string[];
   imposto_pct_default: number;
+};
+
+export type OrcCatalogoResumo = {
+  papeis: number;
+  acabamentos: number;
+  tipos_troca: number;
+  maquinas: number;
+  fonte: 'database' | 'json_fallback' | string;
+  nota: string;
+};
+
+export type Relatorio = {
+  id: number;
+  codigo: string;
+  titulo: string | null;
+  prompt: string;
+  orientacao: 'retrato' | 'paisagem' | string;
+  status: string;
+  erro_mensagem: string | null;
+  downloadable: boolean;
+  /** PDF removido pela retenção (registro mantido). */
+  arquivo_expirado?: boolean;
+  reprocessavel: boolean;
+  replanejavel?: boolean;
+  resumo_legivel?: string | null;
+  criado_por?: { id: number; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+  programa?: {
+    titulo?: string;
+    fonte?: string;
+    colunas?: string[];
+    filtros?: unknown[];
+    ordenacao?: unknown[];
+    limite?: number;
+    totais?: unknown[];
+  } | null;
+  contexto_flags?: { incluir_credito?: boolean } | null;
+  provedor_ia?: {
+    id: number;
+    nome: string;
+    provedor: string;
+    modelo: string | null;
+  } | null;
 };
 
 export const fiscalConsulta = {
@@ -655,6 +729,14 @@ export const fiscalConsulta = {
   cstPisCofins: (q = '', limit = 20) =>
     api.get<{ data: FiscalCatalogItem[] }>(
       `/consulta/cst-pis-cofins?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+  cstCbs: (q = '', limit = 20) =>
+    api.get<{ data: FiscalCatalogItem[] }>(
+      `/consulta/cst-cbs?q=${encodeURIComponent(q)}&limit=${limit}`
+    ),
+  cClassTrib: (q = '', limit = 20) =>
+    api.get<{ data: FiscalCatalogItem[] }>(
+      `/consulta/cclass-trib?q=${encodeURIComponent(q)}&limit=${limit}`
     ),
   tiposItemSped: () =>
     api.get<{ data: FiscalCatalogItem[] }>('/consulta/tipos-item-sped'),

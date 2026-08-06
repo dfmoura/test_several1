@@ -20,6 +20,9 @@ class ProdutoValidationRules
             'cst_icms',
             'cst_pis',
             'cst_cofins',
+            'cst_cbs',
+            'cclass_trib',
+            'aliquota_cbs',
             'cfop_saida_padrao',
             'cfop_entrada_padrao',
         ];
@@ -52,6 +55,10 @@ class ProdutoValidationRules
             'cst_icms' => ['nullable', 'string', 'max:8'],
             'cst_pis' => ['nullable', 'string', 'max:8'],
             'cst_cofins' => ['nullable', 'string', 'max:8'],
+            // CST IBS/CBS (3 dígitos) + cClassTrib (6) — IT NF-e 2025.002 / LC 214.
+            'cst_cbs' => ['nullable', 'string', 'max:8'],
+            'cclass_trib' => ['nullable', 'string', 'max:16'],
+            'aliquota_cbs' => PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT),
             'preco_tabela' => PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE),
             'custo_medio' => PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE),
             'estoque_minimo' => PadraoDecimal::rules(PadraoDecimal::SCALE_QTY),

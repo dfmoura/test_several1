@@ -2,8 +2,19 @@
 
 namespace App\Services\Comercial\Orcamento;
 
+use App\Models\OrcCatalogoAcabamento;
+use App\Models\OrcCatalogoMaquina;
+use App\Models\OrcCatalogoPapel;
+use App\Models\OrcCatalogoTipoTroca;
+use Illuminate\Support\Facades\Schema;
+
 /**
  * Catálogo de preços do motor ORC — port fiel de trigger/36 catalog.py.
+ *
+ * Fonte híbrida (estudo 32): as 4 bases editáveis (papel, acabamento,
+ * tipo troca, máquina G10) vêm do banco quando populadas; demais
+ * parâmetros e fallback continuam em catalog_oficial.json.
+ * Lookup inclui inativos (ORCs antigos); metaForUi só lista ativos.
  */
 final class OrcamentoCatalogo
 {
@@ -32,6 +43,18 @@ final class OrcamentoCatalogo
         '1"' => ['caixa_id' => 2, 'medida' => '250x200x200'],
         '3"' => ['caixa_id' => 6, 'medida' => '500x300x300'],
     ];
+
+    /** @var list<string>|null */
+    private ?array $papeisAtivosUi = null;
+
+    /** @var list<string>|null */
+    private ?array $acabamentosAtivosUi = null;
+
+    /** @var list<string>|null */
+    private ?array $tiposTrocaAtivosUi = null;
+
+    /** @var list<string>|null */
+    private ?array $maquinasAtivasUi = null;
 
     /** @param array<string, float> $papel */
     public function __construct(
@@ -81,6 +104,13 @@ final class OrcamentoCatalogo
     }
 
     public static function load(?string $path = null): self
+    {
+        $cat = self::loadFromJson($path);
+
+        return self::overlayFromDatabase($cat);
+    }
+
+    public static function loadFromJson(?string $path = null): self
     {
         $path ??= resource_path('data/orcamento/catalog_oficial.json');
         $raw = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
@@ -171,6 +201,98 @@ final class OrcamentoCatalogo
     }
 
     /**
+     * Sobrepõe as 4 bases editáveis quando o banco já foi semeado.
+     * Tabelas vazias / ausentes → mantém JSON (testes e deploys sem seed).
+     */
+    public static function overlayFromDatabase(self $cat): self
+    {
+        if (! Schema::hasTable('orc_catalogo_papeis')) {
+            return $cat;
+        }
+
+        try {
+            if (OrcCatalogoPapel::query()->exists()) {
+                $papel = [];
+                /** @var list<string> $papeisAtivos */
+                $papeisAtivos = [];
+                foreach (OrcCatalogoPapel::query()->orderBy('ordem')->orderBy('nome')->get() as $row) {
+                    $nome = self::norm($row->nome);
+                    $papel[$nome] = (float) $row->preco_m2;
+                    if ($row->ativo) {
+                        $papeisAtivos[] = $nome;
+                    }
+                }
+                $cat->papel = $papel;
+                $cat->papeisAtivosUi = $papeisAtivos;
+            }
+
+            if (OrcCatalogoAcabamento::query()->exists()) {
+                $acab = [];
+                $perda = [];
+                /** @var list<string> $acabAtivos */
+                $acabAtivos = [];
+                foreach (OrcCatalogoAcabamento::query()->orderBy('ordem')->orderBy('nome')->get() as $row) {
+                    $nome = self::norm($row->nome);
+                    $acab[$nome] = (float) $row->preco_m2;
+                    $perda[$nome] = (float) $row->perda_m2;
+                    if ($row->ativo) {
+                        $acabAtivos[] = $nome;
+                    }
+                }
+                $cat->acabamentos = $acab;
+                $cat->perdaAcabamento = $perda;
+                $cat->acabamentosAtivosUi = $acabAtivos;
+            }
+
+            if (OrcCatalogoTipoTroca::query()->exists()) {
+                $parada = [];
+                /** @var list<string> $trocasAtivas */
+                $trocasAtivas = [];
+                foreach (OrcCatalogoTipoTroca::query()->orderBy('ordem')->orderBy('tipo')->get() as $row) {
+                    $tipo = self::norm($row->tipo);
+                    $parada[$tipo] = (float) $row->tempo_h;
+                    if ($row->ativo) {
+                        $trocasAtivas[] = $tipo;
+                    }
+                }
+                $cat->horaParadaH = $parada;
+                $cat->tiposTrocaAtivosUi = $trocasAtivas;
+            }
+
+            if (OrcCatalogoMaquina::query()->exists()) {
+                $hora = [];
+                /** @var list<string> $maquinasAtivas */
+                $maquinasAtivas = [];
+                $maqs = OrcCatalogoMaquina::query()
+                    ->with('tarifas')
+                    ->orderBy('ordem')
+                    ->orderBy('nome')
+                    ->get();
+                foreach ($maqs as $maq) {
+                    $nome = self::norm($maq->nome);
+                    $bloco = [];
+                    foreach ($maq->tarifas as $t) {
+                        $bloco[trim((string) $t->cores)] = (float) $t->tarifa;
+                    }
+                    $hora[$nome] = $bloco;
+                    if ($maq->ativo) {
+                        $maquinasAtivas[] = $nome;
+                    }
+                }
+                $cat->horaMaquina = $hora;
+                // G10: lista canônica = máquinas ativas do cadastro.
+                $cat->maquinas = $maquinasAtivas !== [] ? $maquinasAtivas : array_keys($hora);
+                $cat->maquinasAtivasUi = $maquinasAtivas;
+            }
+        } catch (\Throwable) {
+            // Em migração/teste parcial, não quebrar o motor — JSON segue válido.
+            return $cat;
+        }
+
+        return $cat;
+    }
+
+    /**
      * @param  array<string, mixed>|null  $overrides
      */
     public function withOverrides(?array $overrides): self
@@ -179,6 +301,10 @@ final class OrcamentoCatalogo
         // Clone é shallow — copiar arrays mutáveis.
         $cat->papel = $this->papel;
         $cat->acabamentos = $this->acabamentos;
+        $cat->papeisAtivosUi = $this->papeisAtivosUi;
+        $cat->acabamentosAtivosUi = $this->acabamentosAtivosUi;
+        $cat->tiposTrocaAtivosUi = $this->tiposTrocaAtivosUi;
+        $cat->maquinasAtivasUi = $this->maquinasAtivasUi;
 
         if (! $overrides) {
             return $cat;
@@ -382,16 +508,21 @@ final class OrcamentoCatalogo
     /** @return array{papeis: list<string>, acabamentos: list<string>, tubetes: list<string>, maquinas: list<string>, maquinas_roda_servico: list<string>, tipos_troca_produto: list<string>, imposto_pct_default: float} */
     public function metaForUi(): array
     {
+        $papeis = $this->papeisAtivosUi ?? array_keys($this->papel);
+        $acabamentos = $this->acabamentosAtivosUi ?? array_keys($this->acabamentos);
+        $tiposTroca = $this->tiposTrocaAtivosUi ?? array_keys($this->horaParadaH);
+        $maquinas = $this->maquinasAtivasUi ?? $this->maquinas;
+
         return [
-            'papeis' => array_keys($this->papel),
+            'papeis' => array_values($papeis),
             'acabamentos' => array_values(array_filter(
-                array_keys($this->acabamentos),
+                $acabamentos,
                 fn (string $k) => $k !== $this->rebobinacaoNome
             )),
             'tubetes' => array_keys($this->tubete),
-            'maquinas' => $this->maquinas,
+            'maquinas' => array_values($maquinas),
             'maquinas_roda_servico' => $this->maquinasRodaServico,
-            'tipos_troca_produto' => array_keys($this->horaParadaH),
+            'tipos_troca_produto' => array_values($tiposTroca),
             'imposto_pct_default' => 16.0,
         ];
     }

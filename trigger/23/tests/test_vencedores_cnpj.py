@@ -421,3 +421,184 @@ def test_job_pendentes_vazio_nao_corrompe_status():
     assert job.status["running"] is False
     assert job.status["resultado"]["ok"] is True
     assert job.status["resultado"]["total"] == 0
+
+
+def test_filtros_padrao_orgao_modalidade_periodo():
+    """Recorte analítico padrão restringe agregação (como Localidade)."""
+    from app.compras.vencedores_cnpj import (
+        listar_homologacoes_fornecedor,
+        listar_vencedores_consolidados,
+    )
+    from app.database import (
+        CompraContratacao,
+        ModalidadeConsolidada,
+        ModalidadeVinculo,
+        OrgaoConsolidado,
+        OrgaoVinculo,
+    )
+    from app.filtros_periodo import Periodo
+    from datetime import date
+
+    db = _db()
+    org = OrgaoConsolidado(nome="Prefeitura Teste", sigla="PMU", ativo=True)
+    mod = ModalidadeConsolidada(nome="Pregão Eletrônico", ativo=True)
+    db.add_all([org, mod])
+    db.flush()
+    db.add_all(
+        [
+            OrgaoVinculo(
+                orgao_consolidado_id=org.id,
+                fonte="compras_api",
+                chave="153001",
+                rotulo="UASG A",
+            ),
+            ModalidadeVinculo(
+                modalidade_consolidada_id=mod.id,
+                fonte="compras_api",
+                chave="6",
+                rotulo="Pregão",
+            ),
+            CompraContratacao(
+                id_compra="c-in",
+                chave_compra="c-in",
+                unidade_compradora="153001",
+                unidade_nome="UASG A",
+                ano=2024,
+                modalidade_codigo="6",
+                data_encerramento_proposta_pncp="2024-03-15T12:00:00",
+                numero="1/2024",
+            ),
+            CompraContratacao(
+                id_compra="c-out",
+                chave_compra="c-out",
+                unidade_compradora="999999",
+                unidade_nome="UASG B",
+                ano=2024,
+                modalidade_codigo="8",
+                data_encerramento_proposta_pncp="2024-08-01T12:00:00",
+                numero="2/2024",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i-in",
+                id_compra="c-in",
+                cod_fornecedor="12345678000199",
+                nome_fornecedor="Dentro",
+                valor_total_resultado="100,00",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i-out",
+                id_compra="c-out",
+                cod_fornecedor="11222333000181",
+                nome_fornecedor="Fora",
+                valor_total_resultado="200,00",
+            ),
+            ComprasContratacaoResultado(
+                id_compra="c-in",
+                id_compra_item="i-in",
+                sequencial_resultado=1,
+                ni_fornecedor="12345678000199",
+                nome_razao_social_fornecedor="Dentro",
+                valor_total_homologado="100,00",
+            ),
+            ComprasContratacaoResultado(
+                id_compra="c-out",
+                id_compra_item="i-out",
+                sequencial_resultado=1,
+                ni_fornecedor="11222333000181",
+                nome_razao_social_fornecedor="Fora",
+                valor_total_homologado="200,00",
+            ),
+        ]
+    )
+    db.commit()
+
+    # Sem filtro — ambos
+    assert listar_vencedores_consolidados(db)["total"] == 2
+
+    # Órgão consolidado
+    out_org = listar_vencedores_consolidados(db, orgao_id=org.id)
+    assert out_org["total"] == 1
+    assert out_org["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    # Modalidade consolidada
+    out_mod = listar_vencedores_consolidados(db, modalidade_id=[mod.id])
+    assert out_mod["total"] == 1
+    assert out_mod["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    # Período (intervalo cobrindo só a compra "in")
+    out_per = listar_vencedores_consolidados(
+        db,
+        periodo_resolvido=Periodo(date(2024, 1, 1), date(2024, 4, 30)),
+    )
+    assert out_per["total"] == 1
+    assert out_per["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    # UF da sede do vencedor
+    db.add_all(
+        [
+            ComprasFornecedor(
+                ni_fornecedor="12345678000199",
+                cnpj="12345678000199",
+                nome_razao_social_fornecedor="Dentro",
+                uf_sigla="MG",
+                nome_municipio="Uberlândia",
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="11222333000181",
+                cnpj="11222333000181",
+                nome_razao_social_fornecedor="Fora",
+                uf_sigla="SP",
+                nome_municipio="São Paulo",
+            ),
+        ]
+    )
+    db.commit()
+    out_uf = listar_vencedores_consolidados(db, uf="MG")
+    assert out_uf["total"] == 1
+    assert out_uf["items"][0]["cod_fornecedor"] == "12345678000199"
+    assert out_uf["items"][0]["uf"] == "MG"
+
+    # Modal homologações respeita o mesmo recorte
+    hom_all = listar_homologacoes_fornecedor(db, "12345678000199")
+    assert hom_all["total"] == 1
+    hom_org = listar_homologacoes_fornecedor(db, "12345678000199", orgao_id=org.id)
+    assert hom_org["total"] == 1
+    hom_uf_ok = listar_homologacoes_fornecedor(db, "12345678000199", uf="MG")
+    assert hom_uf_ok["total"] == 1
+    hom_uf_out = listar_homologacoes_fornecedor(db, "12345678000199", uf="SP")
+    assert hom_uf_out["total"] == 0
+    # Órgão sem vínculo → nenhuma homologação no recorte
+    org2 = OrgaoConsolidado(nome="Outro", sigla="XX", ativo=True)
+    db.add(org2)
+    db.flush()
+    db.add(
+        OrgaoVinculo(
+            orgao_consolidado_id=org2.id,
+            fonte="compras_api",
+            chave="000000",
+            rotulo="Vazio",
+        )
+    )
+    db.commit()
+    hom_vazio = listar_homologacoes_fornecedor(db, "12345678000199", orgao_id=org2.id)
+    assert hom_vazio["total"] == 0
+    db.close()
+
+
+def test_api_filtros_vencedores_cnpj():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    client = TestClient(app)
+    r = client.get("/api/compras/vencedores-cnpj/filtros")
+    assert r.status_code == 200
+    data = r.json()
+    assert "anos" in data
+    assert "orgaos" in data
+    assert "modalidades" in data
+    assert "ufs" in data
+    assert isinstance(data["anos"], list)
+    assert isinstance(data["orgaos"], list)
+    assert isinstance(data["modalidades"], list)
+    assert isinstance(data["ufs"], list)

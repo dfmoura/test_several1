@@ -37,7 +37,7 @@ class IaClient
         'openai' => 'gpt-4o-mini',
         'openai_compatible' => 'gpt-4o-mini',
         'gemini' => 'gemini-2.0-flash',
-        'anthropic' => 'claude-3-5-haiku-latest',
+        'anthropic' => 'claude-haiku-4-5',
         'deepseek' => 'deepseek-chat',
         'groq' => 'llama-3.3-70b-versatile',
         'mistral' => 'mistral-small-latest',
@@ -114,19 +114,91 @@ class IaClient
     }
 
     /**
+     * Chat com rotação por prioridade entre provedores ativos.
+     * Em falhas recuperáveis (rede, 401/429/5xx), tenta o próximo.
+     *
+     * @param  list<array{role: string, content: string}>  $messages
+     * @param  array{json_mode?: bool, temperature?: float, max_tokens?: int}  $opts
+     * @return array{texto: string, provedor_id: int, provedor_nome: string, provedor: string, modelo: ?string}
+     */
+    public function chat(array $messages, ?float $timeout = null, array $opts = []): array
+    {
+        $to = $timeout ?? (float) config('erp.ia_http_timeout_sec', 45);
+        $provedores = IaProvedor::query()
+            ->where('ativo', true)
+            ->orderBy('prioridade')
+            ->orderBy('id')
+            ->get();
+
+        if ($provedores->isEmpty()) {
+            throw new RuntimeException('Nenhum provedor de IA ativo. Cadastre e ative em Administração → Provedores de IA.');
+        }
+
+        $ultimoErro = null;
+        foreach ($provedores as $row) {
+            $runtime = $this->runtimeFromModel($row);
+            try {
+                $texto = $this->dispararChat($runtime, $messages, $to, $opts);
+
+                return [
+                    'texto' => $texto,
+                    'provedor_id' => (int) $row->id,
+                    'provedor_nome' => $row->nome,
+                    'provedor' => $row->provedor,
+                    'modelo' => $row->modelo,
+                ];
+            } catch (RequestException $e) {
+                $status = $e->response?->status() ?? 0;
+                $ultimoErro = $this->mensagemErroHttp($status, (string) ($e->response?->body() ?? ''));
+                // JSON mode rejeitado → retry sem json_mode no mesmo provedor antes de rotacionar.
+                if (
+                    ! empty($opts['json_mode'])
+                    && in_array($status, [400, 404, 422], true)
+                ) {
+                    try {
+                        $optsSemJson = $opts;
+                        unset($optsSemJson['json_mode']);
+                        $texto = $this->dispararChat($runtime, $messages, $to, $optsSemJson);
+
+                        return [
+                            'texto' => $texto,
+                            'provedor_id' => (int) $row->id,
+                            'provedor_nome' => $row->nome,
+                            'provedor' => $row->provedor,
+                            'modelo' => $row->modelo,
+                        ];
+                    } catch (\Throwable) {
+                        // cai na rotação
+                    }
+                }
+                if (! in_array($status, self::STATUS_RECUPERAVEIS, true) && ! in_array($status, [400, 404, 422], true)) {
+                    throw new RuntimeException("Provedor {$row->nome}: {$ultimoErro}");
+                }
+            } catch (ConnectionException $e) {
+                $ultimoErro = 'Falha de conexão: '.$e->getMessage();
+            } catch (\Throwable $e) {
+                $ultimoErro = $e->getMessage();
+            }
+        }
+
+        throw new RuntimeException('Todos os provedores de IA falharam. Último erro: '.($ultimoErro ?? 'desconhecido'));
+    }
+
+    /**
      * @param  array{id: ?int, nome: string, provedor: string, base_url: ?string, modelo: ?string, api_key: string, prioridade: int}  $p
      * @param  list<array{role: string, content: string}>  $messages
+     * @param  array{json_mode?: bool, temperature?: float, max_tokens?: int}  $opts
      */
-    public function dispararChat(array $p, array $messages, float $timeout): string
+    public function dispararChat(array $p, array $messages, float $timeout, array $opts = []): string
     {
         if (in_array($p['provedor'], self::OPENAI_COMPAT, true)) {
-            return $this->chatOpenaiCompatible($p, $messages, $timeout);
+            return $this->chatOpenaiCompatible($p, $messages, $timeout, $opts);
         }
         if ($p['provedor'] === 'anthropic') {
-            return $this->chatAnthropic($p, $messages, $timeout);
+            return $this->chatAnthropic($p, $messages, $timeout, $opts);
         }
         if ($p['provedor'] === 'gemini') {
-            return $this->chatGemini($p, $messages, $timeout);
+            return $this->chatGemini($p, $messages, $timeout, $opts);
         }
 
         throw new RuntimeException('Provedor não suportado: '.$p['provedor']);
@@ -157,17 +229,26 @@ class IaClient
     /**
      * @param  array{provedor: string, base_url: ?string, modelo: ?string, api_key: string}  $p
      * @param  list<array{role: string, content: string}>  $messages
+     * @param  array{json_mode?: bool, temperature?: float, max_tokens?: int}  $opts
      */
-    private function chatOpenaiCompatible(array $p, array $messages, float $timeout): string
+    private function chatOpenaiCompatible(array $p, array $messages, float $timeout, array $opts = []): string
     {
+        $body = [
+            'model' => $this->modelo($p),
+            'messages' => $messages,
+            'temperature' => array_key_exists('temperature', $opts) ? (float) $opts['temperature'] : 0.2,
+        ];
+        if (isset($opts['max_tokens'])) {
+            $body['max_tokens'] = (int) $opts['max_tokens'];
+        }
+        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+            $body['response_format'] = ['type' => 'json_object'];
+        }
+
         $response = Http::timeout($timeout)
             ->withToken($p['api_key'])
             ->acceptJson()
-            ->post($this->baseUrl($p).'/chat/completions', [
-                'model' => $this->modelo($p),
-                'messages' => $messages,
-                'temperature' => 0.2,
-            ])
+            ->post($this->baseUrl($p).'/chat/completions', $body)
             ->throw();
 
         $choices = $response->json('choices') ?? [];
@@ -185,8 +266,9 @@ class IaClient
     /**
      * @param  array{provedor: string, base_url: ?string, modelo: ?string, api_key: string}  $p
      * @param  list<array{role: string, content: string}>  $messages
+     * @param  array{json_mode?: bool, temperature?: float, max_tokens?: int}  $opts
      */
-    private function chatAnthropic(array $p, array $messages, float $timeout): string
+    private function chatAnthropic(array $p, array $messages, float $timeout, array $opts = []): string
     {
         $system = collect($messages)->where('role', 'system')->pluck('content')->implode("\n");
         $userMsgs = array_values(array_filter($messages, fn ($m) => $m['role'] !== 'system'));
@@ -194,13 +276,28 @@ class IaClient
             $userMsgs = [['role' => 'user', 'content' => '(vazio)']];
         }
 
+        $maxTokens = (int) ($opts['max_tokens'] ?? 2048);
         $body = [
             'model' => $this->modelo($p),
-            'max_tokens' => 2048,
+            'max_tokens' => $maxTokens,
             'messages' => $userMsgs,
+            'temperature' => array_key_exists('temperature', $opts) ? (float) $opts['temperature'] : 0.2,
         ];
         if ($system !== '') {
             $body['system'] = $system;
+        }
+
+        // Structured output via tool forçado quando json_mode.
+        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+            $body['tools'] = [[
+                'name' => 'emitir_programa_relatorio',
+                'description' => 'Emite o programa JSON do relatório',
+                'input_schema' => [
+                    'type' => 'object',
+                    'additionalProperties' => true,
+                ],
+            ]];
+            $body['tool_choice'] = ['type' => 'tool', 'name' => 'emitir_programa_relatorio'];
         }
 
         $response = Http::timeout($timeout)
@@ -213,6 +310,13 @@ class IaClient
             ->throw();
 
         $parts = $response->json('content') ?? [];
+        // Prefer tool_use input when present
+        foreach ($parts as $part) {
+            if (is_array($part) && ($part['type'] ?? null) === 'tool_use' && isset($part['input'])) {
+                return json_encode($part['input'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+            }
+        }
+
         $texto = collect($parts)
             ->filter(fn ($part) => is_array($part) && ($part['type'] ?? null) === 'text')
             ->pluck('text')
@@ -229,8 +333,9 @@ class IaClient
     /**
      * @param  array{provedor: string, base_url: ?string, modelo: ?string, api_key: string}  $p
      * @param  list<array{role: string, content: string}>  $messages
+     * @param  array{json_mode?: bool, temperature?: float, max_tokens?: int}  $opts
      */
-    private function chatGemini(array $p, array $messages, float $timeout): string
+    private function chatGemini(array $p, array $messages, float $timeout, array $opts = []): string
     {
         $system = collect($messages)->where('role', 'system')->pluck('content')->implode("\n");
         $contents = [];
@@ -247,7 +352,18 @@ class IaClient
             $contents = [['role' => 'user', 'parts' => [['text' => '(vazio)']]]];
         }
 
-        $body = ['contents' => $contents];
+        $body = [
+            'contents' => $contents,
+            'generationConfig' => [
+                'temperature' => array_key_exists('temperature', $opts) ? (float) $opts['temperature'] : 0.2,
+            ],
+        ];
+        if (isset($opts['max_tokens'])) {
+            $body['generationConfig']['maxOutputTokens'] = (int) $opts['max_tokens'];
+        }
+        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+            $body['generationConfig']['responseMimeType'] = 'application/json';
+        }
         if ($system !== '') {
             $body['systemInstruction'] = ['parts' => [['text' => $system]]];
         }

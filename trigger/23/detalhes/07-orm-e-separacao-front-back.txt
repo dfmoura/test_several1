@@ -1,0 +1,187 @@
+================================================================================
+DECISÃO DE ARQUITETURA — ORM e separação Front-end / Back-end
+Sistema: Observatório de Licitações (OSB Uberlândia)
+Documento: decisão definitiva para implementação e evolução
+================================================================================
+
+Contexto do sistema
+-------------------
+Aplicação para o Observatório Social do Brasil — Uberlândia acompanhar
+licitações e contratos de órgãos municipais, a partir de duas fontes oficiais:
+
+  1) Compras.gov / PNCP (API Dados Abertos)
+  2) Power BI / CSVs da Prefeitura Municipal de Uberlândia
+
+Stack já em uso e mantida: FastAPI + SQLAlchemy 2.x + SQLite + Docker +
+frontend estático (HTML/CSS/JS) em app/static/, servido pelo próprio FastAPI.
+Restrição operacional: Free Tier AWS (pouca RAM, um nó, sem overengineering).
+
+
+================================================================================
+1) O QUE É ORM (no contexto deste sistema)
+================================================================================
+
+ORM = Object-Relational Mapping (Mapeamento Objeto-Relacional).
+
+É a camada de software que traduz tabelas do banco de dados em classes Python
+(e o inverso). Em vez de escrever SQL “cru” para cada leitura/gravação, o
+código trabalha com objetos (ex.: CompraContratacao, Observador, Usuario) e o
+ORM gera o SQL correspondente.
+
+Exemplo conceitual (não é comando a rodar):
+
+  - Tabela SQL:  compras_contratacoes
+  - Classe ORM:  CompraContratacao (em app/database.py)
+  - Uso no código: session.execute(select(CompraContratacao).where(...))
+
+Benefícios para este projeto:
+  - Modelo de dados legível (órgãos, UASGs, itens, fornecedores, vínculos)
+  - Relacionamentos (ForeignKey / relationship) explícitos
+  - Menos erro de digitação em SQL espalhado
+  - Facilita testes com SQLite isolado
+  - Permite evoluir o schema com migrações pontuais (já há create_all +
+    rotinas _migrate_* em app/database.py)
+
+O ORM NÃO substitui:
+  - Validação de API (isso é Pydantic nos endpoints FastAPI)
+  - Regras de negócio (ficam nos módulos: coleta, dashboard, auth, etc.)
+  - Autenticação e cookies (middleware / app/auth)
+
+
+================================================================================
+2) DECISÃO SOBRE ORM — MANTER SQLAlchemy 2.x (Declarative)
+================================================================================
+
+DECISÃO OFICIAL: SQLAlchemy 2.0 com mapped_column / DeclarativeBase.
+
+Por quê (melhor recomendação para ESTE sistema):
+
+  a) Já está implantado e estável em todo o domínio (dezenas de tabelas:
+     Compras PNCP, Power BI normalizado, auth, agendamento, IA, vínculos).
+  b) Compatível com SQLite no Free Tier e, se no futuro couber Postgres
+     gerenciado, o mesmo ORM acompanha sem reescrever o domínio.
+  c) Ecossistema Python/FastAPI padrão de indústria — documentação e
+     manutenção simples para trabalho extensionista / OSC.
+  d) Evita custo de troca (Prisma, Django ORM, Peewee, Tortoise, SQLModel
+     como base nova, etc.) sem ganho proporcional ao escopo atual.
+
+O que NÃO fazer agora:
+  - Não migrar para outro ORM.
+  - Não introduzir ORM no front-end (frontend não fala com banco).
+  - Não adicionar microserviço só de banco.
+  - Não trocar SQLite por RDS/Postgres só “por padrão”; só quando carga,
+    concorrência ou backup/HA justificarem (ver detalhes/05 e 06).
+
+Padrões obrigatórios ao evoluir o modelo:
+  - Novas entidades em classes ORM em app/database.py (ou módulo models
+    se um dia o arquivo for fatiado — a API pública continua SessionLocal).
+  - Features novas em tabelas isoladas (não misturar com payload oficial PNCP).
+  - Campos que a coleta sincroniza não devem apagar marcações internas
+    (ex.: observador_id — já há conjuntos CAMPOS_PRESERVADOS_* ).
+  - Acesso ao banco via Session (get_db / SessionLocal); nunca do JS.
+  - Preferir select() estilo 2.0; evitar Query legado quando criar código novo.
+  - Índices únicos nas chaves naturais das fontes (processo+órgão, id_compra…).
+
+
+================================================================================
+3) SEPARAÇÃO FRONT-END × BACK-END
+================================================================================
+
+3.1 O que significa “separar”
+----------------------------
+Separação correta = responsabilidades diferentes:
+
+  BACK-END (servidor)
+    - Autenticação, autorização, cookies de sessão
+    - Coleta (httpx → APIs externas)
+    - Persistência (SQLAlchemy → SQLite)
+    - Regras e agregações (dashboard, cobertura, CNPJ, IA)
+    - Expõe JSON em rotas /api/*
+
+  FRONT-END (navegador)
+    - Interface para o colaborador do Observatório
+    - Consome apenas a API (/api/...)
+    - Não contém senha de banco, chave de IA em claro, nem SQL
+    - Arquivos em app/static/ (index.html + *.js + style.css)
+
+Isso já é a arquitetura do sistema. A UI chama endpoints; o banco só existe
+no processo Python.
+
+
+3.2 DECISÃO OFICIAL — Separação LÓGICA, deploy ÚNICO
+----------------------------------------------------
+Manter um único serviço Docker (serviço "app") que:
+
+  1) serve a API FastAPI em /api/*
+  2) serve o frontend estático em / e /static/*
+
+NÃO separar agora em dois repositórios/dois deploys (ex.: React separado +
+API em outro host), pelos motivos:
+
+  - Free Tier / OSC: um container, uma porta, um healthcheck, backup simples
+  - Volume de usuários baixo (tetos de conta admin/consulta já definidos)
+  - Frontend atual (HTML + JS modular) atende o operacional sem SPA pesada
+  - Menos CORS, menos pipes de CI, menos falhas de versão front≠API
+  - Caddy (profile https) faz proxy de um só upstream — ver docker-compose
+
+Separação física (dois artefatos) só entra se, no futuro, houver:
+  - time dedicado de UI, ou
+  - necessidade de CDN/PWA público massivo, ou
+  - escala que justifique front em Pages/S3 e API isolada
+
+Até lá: separação por pastas e contrato de API — não por microserviços.
+
+
+3.3 Contrato entre as camadas (regra de ouro)
+---------------------------------------------
+  - Front → só HTTP/JSON para /api/*
+  - Back → nunca renderiza regra de domínio em HTML dinâmico de template
+    (FileResponse do index está ok; dados vêm da API)
+  - Schema do banco = responsabilidade do ORM / back
+  - Validação de entrada = Pydantic nos routers
+  - Papéis (admin / consulta) = middleware auth no back; front só esconde
+    botões — a segurança real é na API
+
+
+3.4 Organização recomendada (continua válida)
+---------------------------------------------
+  app/
+    main.py              → só composição de routers + static
+    database.py          → ORM / engine / migrações leves
+    auth/                → login, sessão, papéis
+    compras/             → domínio PNCP + CNPJ
+    *.py (domínio)       → coleta, powerbi, dashboard, setup…
+    static/              → front (HTML/JS/CSS)
+
+  data/                  → SQLite + CSVs + backups (volume Docker)
+
+
+================================================================================
+4) RESUMO EXECUTIVO DAS DECISÕES
+================================================================================
+
+  ORM .......... SQLAlchemy 2.x (manter e evoluir; não trocar)
+  Banco ........ SQLite em data/ (Free Tier); Postgres só se justifica depois
+  Back-end ..... FastAPI (Python) — única porta de verdade para regras/dados
+  Front-end .... Estático em app/static/ — consome /api/* ; sem ORM no browser
+  Deploy ....... Um serviço "app" (+ Caddy opcional HTTPS)
+  Separação .... Lógica e por pastas; NÃO dois deploys agora
+  Princípio .... Sem overengineering; preservar coleta e schema oficial
+
+Estas decisões alinham-se a detalhes/00-INDICE.md e detalhes/06-baseline-
+disciplina.md: stack enxuta, testável, adequada à OSC e ao Free Tier.
+
+
+================================================================================
+5) GLOSSÁRIO RÁPIDO (para relatório extensionista)
+================================================================================
+
+  API .......... Interface HTTP que o front chama (/api/...)
+  Endpoint ..... Uma rota específica (ex.: GET /api/health)
+  ORM .......... Camada que mapeia classes ↔ tabelas
+  Session ...... Conexão lógica SQLAlchemy para uma unidade de trabalho
+  SQLite ....... Banco em arquivo, simples de backup/copiar
+  Static ....... Arquivos do site entregues sem processamento de negócio
+  Middleware ... Código que intercepta pedidos (ex.: checar sessão)
+
+Fim do documento.

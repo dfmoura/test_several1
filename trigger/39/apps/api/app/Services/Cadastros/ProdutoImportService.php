@@ -41,6 +41,9 @@ class ProdutoImportService
         'cst_icms',
         'cst_pis',
         'cst_cofins',
+        'cst_cbs',
+        'cclass_trib',
+        'aliquota_cbs',
         // Unidades / conversão:
         'unidade_comercial',
         'unidade_interna',
@@ -686,6 +689,13 @@ class ProdutoImportService
             'fornecedor' => 'fornecedor_sigla',
             'sigla_fornecedor' => 'fornecedor_sigla',
             'gg' => 'grupo_estoque',
+            'cst_ibs_cbs' => 'cst_cbs',
+            'cst_ibs' => 'cst_cbs',
+            'cclasstrib' => 'cclass_trib',
+            'classificacao_tributaria' => 'cclass_trib',
+            'aliq_cbs' => 'aliquota_cbs',
+            'p_cbs' => 'aliquota_cbs',
+            'pcbs' => 'aliquota_cbs',
         ];
 
         return $aliases[$header] ?? $header;
