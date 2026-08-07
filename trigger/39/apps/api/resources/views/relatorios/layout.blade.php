@@ -154,7 +154,7 @@
         <table class="footer-table">
             <tr>
                 <td>
-                    Emitido em {{ $emitidoEm }} · Powered by TRIGGER
+                    Emitido em {{ $emitidoEm }} · {{ config('erp.brand.attribution_print', 'Powered by TRIGGER') }}
                 </td>
                 <td class="footer-right">
                     {{-- Numeração via canvas DomPDF (CSS counter(pages) é inconsistente) --}}

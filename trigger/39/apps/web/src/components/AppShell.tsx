@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
 import { BrandBar } from './BrandBar';
+import { TriggerByline } from './TriggerAttribution';
 import {
   IconAi,
   IconBuilding,
@@ -16,6 +16,8 @@ import {
   IconSettings,
   IconUsers,
 } from './NavIcons';
+import { useAuth } from '../lib/auth';
+import { BRAND } from '../lib/brand';
 
 type NavItem = {
   to: string;
@@ -122,11 +124,11 @@ export function AppShell() {
       <aside className="app-sidebar">
         <div className="sidebar-brand">
           <div className="logo-plate logo-plate--sidebar">
-            <img src="/branding/cliente/logo-rlp.png" alt="RLP Etiquetas" />
+            <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} />
           </div>
           <div className="sidebar-product">
-            <span className="sidebar-product-name">ERP RLP</span>
-            <span className="sidebar-product-meta">Cadastros · Comercial</span>
+            <span className="sidebar-product-name">{BRAND.licensee.productName}</span>
+            <TriggerByline className="sidebar-product-byline" />
           </div>
         </div>
 
@@ -167,7 +169,7 @@ export function AppShell() {
       <div className="app-main">
         <header className="app-header">
           <div className="header-context">
-            <span className="header-title">ERP RLP</span>
+            <span className="header-title">{BRAND.licensee.productName}</span>
             {currentEmpresa && (
               <>
                 <span className="header-divider" aria-hidden />

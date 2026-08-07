@@ -874,9 +874,21 @@ export function ParceiroFormPage() {
         title={isNew ? 'Novo parceiro' : form.codigo ?? 'Parceiro'}
         description={isNew ? 'Cadastro de parceiro comercial' : form.razao_social}
         actions={
-          <Link to="/parceiros" className="btn btn-secondary">
-            Voltar
-          </Link>
+          <>
+            {!isNew && id && (
+              <Link
+                to={`/parceiros/${id}/ficha`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+              >
+                Imprimir ficha
+              </Link>
+            )}
+            <Link to="/parceiros" className="btn btn-secondary">
+              Voltar
+            </Link>
+          </>
         }
       />
 

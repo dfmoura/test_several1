@@ -72,6 +72,7 @@ class ProdutoService
 
         return DB::transaction(function () use ($empresa, $data, $familia, $grupo) {
             $payload = $this->mapAttributes($data, $grupo, applyDefaults: true);
+            $this->assertUnidadesConversao($payload);
             $codigo = $data['codigo'] ?? $this->generateCode($empresa->id, $grupo);
 
             $produto = Produto::query()->create([
@@ -120,6 +121,15 @@ class ProdutoService
         } elseif (isset($data['familia'])) {
             $payload['familia'] = $familia;
         }
+
+        $mergedForUnits = [
+            'unidade_comercial' => $payload['unidade_comercial'] ?? $produto->unidade_comercial,
+            'unidade_interna' => $payload['unidade_interna'] ?? $produto->unidade_interna,
+            'fator_conversao' => array_key_exists('fator_conversao', $payload)
+                ? $payload['fator_conversao']
+                : $produto->fator_conversao,
+        ];
+        $this->assertUnidadesConversao($mergedForUnits);
 
         $produto->update($payload);
         $this->auditLogger->log('ATUALIZAR', 'produto', $produto->id, $before, $produto->fresh()->toArray());
@@ -195,5 +205,37 @@ class ProdutoService
         }
 
         return $mapped;
+    }
+
+    /**
+     * Domínio 32: unidade comercial ≠ interna exige fator_conversao > 0.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function assertUnidadesConversao(array $data): void
+    {
+        $uCom = isset($data['unidade_comercial']) ? strtoupper(trim((string) $data['unidade_comercial'])) : '';
+        $uInt = isset($data['unidade_interna']) ? strtoupper(trim((string) $data['unidade_interna'])) : '';
+
+        if ($uCom === '' || $uInt === '' || $uCom === $uInt) {
+            return;
+        }
+
+        $fator = $data['fator_conversao'] ?? null;
+        if ($fator === null || $fator === '') {
+            throw ValidationException::withMessages([
+                'fator_conversao' => [
+                    'fator_conversao é obrigatório e deve ser > 0 quando unidade_comercial ≠ unidade_interna.',
+                ],
+            ]);
+        }
+
+        if (! is_numeric($fator) || (float) $fator <= 0) {
+            throw ValidationException::withMessages([
+                'fator_conversao' => [
+                    'fator_conversao é obrigatório e deve ser > 0 quando unidade_comercial ≠ unidade_interna.',
+                ],
+            ]);
+        }
     }
 }

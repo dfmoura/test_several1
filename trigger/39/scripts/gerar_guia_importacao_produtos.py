@@ -441,20 +441,24 @@ def build_story(styles):
                 (
                     "unidade_comercial",
                     "Não*",
-                    "Unidade da NF do fornecedor/cliente. Se vazia, vem do grupo.",
+                    "Unidade da NF do fornecedor/cliente. Se vazia, vem do grupo. "
+                    "Na tela de cadastro: select do catálogo oficial (GET /consulta/unidades). "
+                    "No CSV: só aceita a lista oficial — unidade inventada gera erro.",
                     "RL · M · M2 · KG · G · UN · MIL · L · CX",
                 ),
                 (
                     "unidade_interna",
                     "Não*",
-                    "Unidade de estoque/OP. Se vazia, vem do grupo.",
+                    "Unidade oficial de estoque/OP (domínio 32). Se vazia, vem do grupo. "
+                    "Mesmo select/catálogo da comercial.",
                     "Mesma lista oficial",
                 ),
                 (
                     "fator_conversao",
                     "Cond.",
-                    "Obrigatório e &gt; 0 se comercial ≠ interna (ex.: MP-PAP: KG→M2). "
-                    "Não inventar: calcule com gramatura/densidade do domínio.",
+                    "Obrigatório e &gt; 0 se comercial ≠ interna (ex.: MP-PAP KG→M2; PA-ETQ MIL→UN). "
+                    "Não inventar: calcule com gramatura/densidade do domínio. "
+                    "Na tela, o campo fica destacado quando as unidades diferem.",
                     "Número decimal — fator: até 10 casas (PADRAO_DECIMAL)",
                 ),
                 (
@@ -645,11 +649,13 @@ def build_story(styles):
             styles["body"],
         )
     )
-    story.append(Paragraph("Família fiscal de etiqueta (sem dimensão):", styles["h2"]))
+    story.append(Paragraph("Família fiscal de etiqueta (MIL comercial → UN interna):", styles["h2"]))
     story.append(
         Paragraph(
-            "<font face='Courier'>familia;grupo;descricao_fiscal;descricao_comercial</font><br/>"
-            "<font face='Courier'>PA;PA-ETQ;ETIQUETA BOPP;Família BOPP — especificação no orçamento</font>",
+            "<font face='Courier'>familia;grupo;descricao_fiscal;descricao_comercial;"
+            "fator_conversao</font><br/>"
+            "<font face='Courier'>PA;PA-ETQ;ETIQUETA BOPP;Família BOPP — especificação no orçamento;"
+            "1000</font>",
             styles["body"],
         )
     )
@@ -669,6 +675,7 @@ def build_story(styles):
         "Código duplicado no arquivo ou já cadastrado (insert-only).",
         "Grupo dimensional sem largura_mm / comprimento_m.",
         "unidade_comercial ≠ unidade_interna sem fator_conversao &gt; 0.",
+        "Unidade fora do catálogo oficial (RL, M, M2, KG, G, UN, MIL, L, CX).",
         "NCM com pontuação ou diferente de 8 dígitos.",
         "Override fiscal no CSV sem permissão produto.fiscal.",
         "Tentar importar custo_medio ou saldo — não fazem parte do modelo.",

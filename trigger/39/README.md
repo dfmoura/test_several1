@@ -17,9 +17,17 @@ Base normativa: `../32` (domínio, cadastros, RBAC, Lightsail/AWS Cenário D) ·
 
 ## Identidade visual
 
-- Marca produto/fornecedor: **TRIGGER** (navy `#1a3568` · verde `#7cb518`)
-- Área de licença: logo **RLP** (`branding/cliente/logo-rlp.png`) — “Licenciado para”
-- Shell: logo do cliente em destaque + rodapé “Powered by TRIGGER”
+Padrão canônico: [`docs/IDENTIDADE_TRIGGER.md`](docs/IDENTIDADE_TRIGGER.md) (modelo ecossistema × produto de `../12`).
+
+| Camada | O que | Onde |
+|--------|-------|------|
+| Licenciado | Logo RLP + “Licenciado para” | Herói do login e da sidebar |
+| Fornecedor | Byline **por Trigger Data Intelligence**; rodapé com marca + nome completo em tipografia contida; docs **Powered by TRIGGER** | Permanente — nunca herói, nunca gritante |
+| Plataforma | Favicon + título `ERP RLP · TRIGGER` | Aba do browser |
+
+Fonte front: `apps/web/src/lib/brand.ts` · back: `config('erp.brand')`.
+
+Troca white-label: substituir `branding/cliente/*` — a camada TRIGGER permanece.
 
 ## Subir (Docker — mesmo artefato para Lightsail)
 

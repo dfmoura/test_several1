@@ -46,8 +46,9 @@ class ProdutoValidationRules
             'cest' => ['nullable', 'string', 'max:16'],
             'origem' => ['nullable', 'integer', 'min:0', 'max:8'],
             'tipo_item_sped' => ['nullable', 'string', 'max:2'],
-            'unidade_comercial' => ['nullable', 'string', 'max:8'],
-            'unidade_interna' => ['nullable', 'string', 'max:8'],
+            // Lista oficial: CONVERSOES_UNIDADES_MEDIDA (estudo 32) — ver UnidadesMedida.
+            'unidade_comercial' => ['nullable', 'string', 'max:8', UnidadesMedida::validationRule()],
+            'unidade_interna' => ['nullable', 'string', 'max:8', UnidadesMedida::validationRule()],
             'fator_conversao' => PadraoDecimal::rules(PadraoDecimal::SCALE_FACTOR),
             'cfop_saida_padrao' => ['nullable', 'string', 'max:8'],
             'cfop_entrada_padrao' => ['nullable', 'string', 'max:8'],

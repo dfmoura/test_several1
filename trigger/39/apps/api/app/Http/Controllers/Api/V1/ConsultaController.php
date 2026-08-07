@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\Cadastros\FatorConversaoSugeridor;
 use App\Services\Cadastros\ProdutoGrupoService;
 use App\Services\Consulta\BrasilApiClient;
 use App\Services\Consulta\FiscalCatalogService;
@@ -183,6 +184,42 @@ class ConsultaController extends Controller
     public function origensMercadoria(): JsonResponse
     {
         return response()->json(['data' => $this->fiscalCatalogService->origens()]);
+    }
+
+    public function unidadesMedida(): JsonResponse
+    {
+        return response()->json(['data' => $this->fiscalCatalogService->unidadesMedida()]);
+    }
+
+    public function fatorConversao(Request $request, FatorConversaoSugeridor $sugeridor): JsonResponse
+    {
+        $validated = $request->validate([
+            'de' => ['nullable', 'string', 'max:8'],
+            'para' => ['nullable', 'string', 'max:8'],
+            'largura_mm' => ['nullable', 'string', 'max:32'],
+            'comprimento_m' => ['nullable', 'string', 'max:32'],
+            'gramatura_g_m2' => ['nullable', 'string', 'max:32'],
+            'qtd_por_caixa' => ['nullable', 'string', 'max:32'],
+            'densidade_g_ml' => ['nullable', 'string', 'max:32'],
+            'metragem_por_milheiro' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $attrs = array_filter([
+            'largura_mm' => $validated['largura_mm'] ?? null,
+            'comprimento_m' => $validated['comprimento_m'] ?? null,
+            'gramatura_g_m2' => $validated['gramatura_g_m2'] ?? null,
+            'qtd_por_caixa' => $validated['qtd_por_caixa'] ?? null,
+            'densidade_g_ml' => $validated['densidade_g_ml'] ?? null,
+            'metragem_por_milheiro' => $validated['metragem_por_milheiro'] ?? null,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        return response()->json([
+            'data' => $sugeridor->sugerir(
+                $validated['de'] ?? null,
+                $validated['para'] ?? null,
+                $attrs
+            ),
+        ]);
     }
 
     public function produtoGrupos(Request $request): JsonResponse

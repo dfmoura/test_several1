@@ -95,9 +95,6 @@ class ProdutoImportService
         'grupo_estoque',
     ];
 
-    /** @var list<string> */
-    private const OFFICIAL_UNITS = ['RL', 'M', 'M2', 'KG', 'G', 'UN', 'MIL', 'L', 'CX'];
-
     public function __construct(
         private readonly ProdutoService $produtoService,
         private readonly ProdutoGrupoService $produtoGrupoService,
@@ -458,13 +455,8 @@ class ProdutoImportService
 
         $uCom = $this->nullableString($validated['unidade_comercial'] ?? null);
         $uInt = $this->nullableString($validated['unidade_interna'] ?? null);
-        if ($uCom !== null && ! in_array($uCom, self::OFFICIAL_UNITS, true)) {
-            $warnings[] = "Unidade comercial {$uCom} fora da lista oficial (RL, M, M2, KG, G, UN, MIL, L, CX).";
-        }
-        if ($uInt !== null && ! in_array($uInt, self::OFFICIAL_UNITS, true)) {
-            $warnings[] = "Unidade interna {$uInt} fora da lista oficial.";
-        }
-
+        // Unidades fora do catálogo oficial já caem em erro via ProdutoValidationRules
+        // (UnidadesMedida). Aqui só reforçamos a regra de conversão do domínio 32.
         if ($uCom !== null && $uInt !== null && $uCom !== $uInt) {
             $fator = $validated['fator_conversao'] ?? null;
             if ($fator === null || $fator === '' || ! $this->decimalGreaterThanZero($fator)) {
@@ -608,20 +600,23 @@ class ProdutoImportService
             }
         }
 
-        // Conversão oficial MIL (milheiro) ↔ UN: 1 MIL = 1000 UN (domínio /32).
+        // Conversão sugerida pelo domínio 32 (MIL↔UN e demais pontes com atributos).
+        $warnings = [];
         $uCom = isset($payload['unidade_comercial']) ? strtoupper((string) $payload['unidade_comercial']) : '';
         $uInt = isset($payload['unidade_interna']) ? strtoupper((string) $payload['unidade_interna']) : '';
         $fatorEmpty = ! isset($payload['fator_conversao']) || $payload['fator_conversao'] === '' || $payload['fator_conversao'] === null;
         if ($fatorEmpty && $uCom !== '' && $uInt !== '' && $uCom !== $uInt) {
-            $pair = [$uCom, $uInt];
-            sort($pair);
-            if ($pair === ['MIL', 'UN']) {
-                $payload['fator_conversao'] = $uCom === 'MIL' ? '1000' : '0.001';
+            $attrs = is_array($payload['atributos'] ?? null) ? $payload['atributos'] : [];
+            $sugestao = app(FatorConversaoSugeridor::class)->sugerir($uCom, $uInt, $attrs);
+            if ($sugestao['status'] === FatorConversaoSugeridor::STATUS_SUGERIDO && $sugestao['fator'] !== null) {
+                $payload['fator_conversao'] = $sugestao['fator'];
                 $filled[] = 'fator_conversao';
+            } elseif ($sugestao['status'] === FatorConversaoSugeridor::STATUS_INCOMPLETO && $sugestao['faltando'] !== []) {
+                $warnings[] = ($sugestao['mensagem'] ?? 'Atributos insuficientes para sugerir fator.')
+                    .' Faltando: '.implode(', ', $sugestao['faltando']).'.';
             }
         }
 
-        $warnings = [];
         if (! $grupo->ncm_confirmado) {
             $warnings[] = "Grupo {$grupo->codigo}: NCM ainda não confirmado empiricamente — valide com a NF do fornecedor.";
         }

@@ -1,0 +1,198 @@
+====================================================================================================
+              LISTAGEM OPERACIONAL — PRODUTOS A CADASTRAR (FAMÍLIAS FISCAIS)
+                    RLP ETIQUETAS AUTO ADESIVOS LTDA (MG)
+        Padrão: CODIFICACAO_INFORMACOES_SISTEMA.txt + CADASTRO_PRODUTOS_COMPRA.txt
+                         Gerado em: 07/08/2026
+====================================================================================================
+
+Camada A — família fiscal (cadastrar primeiro). SKU de bobina (largura x comprimento)
+é Camada B e nasce depois, a partir destas famílias — ver CONTROLE_ESTOQUE_PROFISSIONAL.txt.
+
+LEGENDA
+  SKU ...... código de negócio (máscara MP-/EMB-/REV-) | id BIGINT = motor do ERP
+  TIPO ..... 00=revenda | 01=matéria-prima | 02=embalagem | 07=uso e consumo
+  UN ....... unidade comercial típica do fornecedor
+  CEST ..... vazio em todos | GTIN ...... SEM GTIN (padrão insumos)
+  SIT ...... OK = pronto | VAL = validar NCM na 1ª NF | UNI = unificar duplicidade
+  ORIG ..... copiar SEMPRE do XML do fornecedor (não padronizar como 0)
+
+COLUNAS
+  SKU           DESCRICAO                              NCM         TIPO  UN   GRUPO            SIT
+----------------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------
+1. PAPEIS AUTOADESIVOS — tipo 01 | NCM 4811.41.90
+----------------------------------------------------------------------------------------------------
+MP-PAP-001      PAPEL FOSCO AUTOADESIVO COLACRIL ADC 1000  48114190   01   KG   PAPEL_AUTO       VAL
+MP-PAP-002      PAPEL FOSCO AUTOADESIVO COLACRIL ADC 5240  48114190   01   KG   PAPEL_AUTO       VAL
+MP-PAP-003      PAPEL COUCHE 20G AUTOADESIVO COLACRIL      48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-004      PAPEL COUCHE 20G AUTOADESIVO FASSON        48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-005      PAPEL COUCHE 20G AUTOADESIVO VERTEX        48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-006      PAPEL COUCHE 30G AUTOADESIVO VERTEX        48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-007      PAPEL COUCHE AUTOADESIVO RITRAMA           48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-008      PAPEL TERMICO AUTOADESIVO COLACRIL         48114190   01   KG   PAPEL_AUTO       OK
+MP-PAP-009      PAPEL TERMICO AUTOADESIVO FASSON           48114190   01   KG   PAPEL_AUTO       OK
+
+----------------------------------------------------------------------------------------------------
+2. PAPEL TAG / CARTAO SEM ADESIVO — tipo 01 | NCM 4810.13.89
+----------------------------------------------------------------------------------------------------
+MP-PAP-010      TAG COUCHE 80G                             48101389   01   KG   TAG              OK
+MP-PAP-011      TAG COUCHE 90G                             48101389   01   KG   TAG              OK
+MP-PAP-012      TAG COUCHE 170G                            48101389   01   KG   TAG              VAL
+
+----------------------------------------------------------------------------------------------------
+3. FILMES BOPP AUTOADESIVOS — tipo 01 | NCM 3919.90.10 (bobina > 20 cm)
+----------------------------------------------------------------------------------------------------
+MP-FLM-001      BOPP BRILHO AUTOADESIVO COLACRIL BXT       39199010   01   M2   BOPP             OK
+MP-FLM-002      BOPP BRILHO AUTOADESIVO COLACRIL NBT       39199010   01   M2   BOPP             OK
+MP-FLM-003      BOPP BRILHO AUTOADESIVO RITRAMA            39199010   01   M2   BOPP             OK
+MP-FLM-004      BOPP FOSCO AUTOADESIVO COLACRIL BXT        39199010   01   M2   BOPP             OK
+MP-FLM-005      BOPP FOSCO AUTOADESIVO FASSON 20G          39199010   01   M2   BOPP             OK
+MP-FLM-006      BOPP FOSCO AUTOADESIVO FASSON 30G          39199010   01   M2   BOPP             OK
+MP-FLM-007      BOPP FOSCO AUTOADESIVO RITRAMA             39199010   01   M2   BOPP             OK
+MP-FLM-008      BOPP FOSCO AUTOADESIVO RITRAMA BXT         39199010   01   M2   BOPP             OK
+MP-FLM-009      BOPP METALIZADO AUTOADESIVO                39199010   01   M2   BOPP             OK
+MP-FLM-010      BOPP METALIZADO AUTOADESIVO COLACRIL BXT   39199010   01   M2   BOPP             OK
+MP-FLM-011      BOPP TRANSPARENTE AUTOADESIVO COLACRIL BXT 39199010   01   M2   BOPP             OK
+MP-FLM-012      BOPP TRANSPARENTE AUTOADESIVO FASSON       39199010   01   M2   BOPP             OK
+MP-FLM-013      BOPP TRANSPARENTE AUTOADESIVO RITRAMA      39199010   01   M2   BOPP             OK
+MP-FLM-014      BOPP TRANSPARENTE AUTOADESIVO RITRAMA BXT  39199010   01   M2   BOPP             OK
+
+----------------------------------------------------------------------------------------------------
+4. TECIDOS PARA ETIQUETAS TEXTEIS — tipo 01 | NCM a confirmar na 1a NF
+----------------------------------------------------------------------------------------------------
+MP-TEC-001      CETIM REF 6030301                          A CONF.    01   M    TECIDO           VAL
+MP-TEC-002      CETIM REF 6030301 BEGE                     A CONF.    01   M    TECIDO           VAL
+MP-TEC-003      CETIM REF 6030301 PEROLIZADO               A CONF.    01   M    TECIDO           VAL
+MP-TEC-004      CETIM BEGE                                 A CONF.    01   M    TECIDO           VAL
+MP-TEC-005      CETIM PEROLIZADO                           A CONF.    01   M    TECIDO           VAL
+MP-TEC-006      CETIM PEROLIZADO BEGE                      A CONF.    01   M    TECIDO           VAL
+MP-TEC-007      EMBORRACHADO REF 5090251                   A CONF.    01   M    TECIDO           VAL
+MP-TEC-008      RESINADO REF 4010301                       A CONF.    01   M    TECIDO           VAL
+MP-TEC-009      RESINADO IMPORTADO                         A CONF.    01   M    TECIDO           VAL
+MP-TEC-010      RESINADO IMPORTADO BAIXA QUALIDADE         A CONF.    01   M    TECIDO           VAL
+MP-TEC-011      RESINADO PEROLIZADO                        A CONF.    01   M    TECIDO           VAL
+MP-TEC-012      RESINADO VERDE                             A CONF.    01   M    TECIDO           VAL
+
+----------------------------------------------------------------------------------------------------
+5. LAMINACAO — tipo 01 | confirmar adesivado (3919.90.90) x PP sem adesivo (3920.20.19)
+----------------------------------------------------------------------------------------------------
+MP-LAM-001      LAMINACAO                                  39199090   01   M2   LAMINACAO        VAL
+MP-LAM-002      LAMINACAO BRILHO                           39199090   01   M2   LAMINACAO        VAL
+MP-LAM-003      LAMINACAO FOSCA                            39199090   01   M2   LAMINACAO        VAL
+
+----------------------------------------------------------------------------------------------------
+6. COLD / HOT STAMPING — tipo 01 | NCM 3212.10.00
+----------------------------------------------------------------------------------------------------
+MP-CLD-001      FOIL COLD OURO                             32121000   01   RL   COLD             OK
+MP-CLD-002      FOIL COLD PRATA                            32121000   01   RL   COLD             OK
+
+----------------------------------------------------------------------------------------------------
+7. TINTAS E AUXILIARES DE IMPRESSAO — tipo 01
+----------------------------------------------------------------------------------------------------
+MP-TIN-001      TINTA IMPRESSAO BLACK                      32151100   01   KG   TINTA            OK
+MP-TIN-002      TINTA IMPRESSAO BLACK INTENSE              32151100   01   KG   TINTA            OK
+MP-TIN-003      TINTA IMPRESSAO PROCESS PRETO              32151100   01   KG   TINTA            OK
+MP-TIN-004      TINTA IMPRESSAO LACA PRETO                 32151100   01   KG   TINTA            VAL
+MP-TIN-005      TINTA IMPRESSAO BLUE 072                   32151900   01   KG   TINTA            OK
+MP-TIN-006      TINTA IMPRESSAO BRANCO                     32151900   01   KG   TINTA            OK
+MP-TIN-007      TINTA IMPRESSAO BRANCO OPACO               32151900   01   KG   TINTA            OK
+MP-TIN-008      TINTA IMPRESSAO CYAN                       32151900   01   KG   TINTA            OK
+MP-TIN-009      TINTA IMPRESSAO GOLD 871                   32151900   01   KG   TINTA            OK
+MP-TIN-010      TINTA IMPRESSAO LACA AMARELO               32151900   01   KG   TINTA            VAL
+MP-TIN-011      TINTA IMPRESSAO LACA AZUL 072              32151900   01   KG   TINTA            VAL
+MP-TIN-012      TINTA IMPRESSAO LACA AZUL BLUE             32151900   01   KG   TINTA            VAL
+MP-TIN-013      TINTA IMPRESSAO LACA BRANCO                32151900   01   KG   TINTA            VAL
+MP-TIN-014      TINTA IMPRESSAO LACA MAGENTA               32151900   01   KG   TINTA            VAL
+MP-TIN-015      TINTA IMPRESSAO LACA VERMELHO              32151900   01   KG   TINTA            VAL
+MP-TIN-016      TINTA IMPRESSAO MAGENTA                    32151900   01   KG   TINTA            OK
+MP-TIN-017      TINTA IMPRESSAO METALIC GOLD               32151900   01   KG   TINTA            OK
+MP-TIN-018      TINTA IMPRESSAO PROCESS CYAN               32151900   01   KG   TINTA            OK
+MP-TIN-019      TINTA IMPRESSAO PROCESS MAGENTA            32151900   01   KG   TINTA            OK
+MP-TIN-020      TINTA IMPRESSAO PROCESS YELLOW             32151900   01   KG   TINTA            OK
+MP-TIN-021      TINTA IMPRESSAO VERMELHO                   32151900   01   KG   TINTA            OK
+MP-TIN-022      TINTA IMPRESSAO YELLOW                     32151900   01   KG   TINTA            OK
+MP-TIN-023      TINTA IMPRESSAO PANTONE (COR A DEFINIR)    32151900   01   KG   TINTA            VAL
+MP-TIN-024      VERNIZ IMPRESSAO                           A CONF.    01   KG   AUX_IMPRESSAO    VAL
+MP-TIN-025      DILUENTE                                   38140090   01   L    AUX_IMPRESSAO    VAL
+MP-TIN-026      ANTIESPUMANTE                              A CONF.    01   L    AUX_IMPRESSAO    VAL
+
+  OBS: CIAN x CYAN unificados em MP-TIN-008 (CYAN). Não cadastrar duplicata.
+
+----------------------------------------------------------------------------------------------------
+8. FITAS DUPLA FACE — tipo 01 | NCM 3919 por largura
+----------------------------------------------------------------------------------------------------
+MP-ADF-001      FITA DUPLA FACE REF 4880 100X30            39191090   01   RL   DUPLA_FACE       VAL
+MP-ADF-002      FITA DUPLA FACE REF 52015 460X25           39199090   01   RL   DUPLA_FACE       VAL
+MP-ADF-003      FITA DUPLA FACE REF 52017 460X25           39199090   01   RL   DUPLA_FACE       VAL
+
+----------------------------------------------------------------------------------------------------
+9. TUBETES — tipo 02 | NCM 4822.90.00
+----------------------------------------------------------------------------------------------------
+EMB-TUB-001     TUBETE 1"                                  48229000   02   UN   TUBETE           OK
+EMB-TUB-002     TUBETE 1 1/2"                              48229000   02   UN   TUBETE           OK
+EMB-TUB-003     TUBETE 3"                                  48229000   02   UN   TUBETE           OK
+
+----------------------------------------------------------------------------------------------------
+10. CAIXAS DE PAPELAO — tipo 02 | NCM 4819.10.00
+----------------------------------------------------------------------------------------------------
+EMB-CX-001      CAIXA PAPELAO 200X150X120                  48191000   02   UN   CAIXA            OK
+EMB-CX-002      CAIXA PAPELAO 250X200X200                  48191000   02   UN   CAIXA            OK
+EMB-CX-003      CAIXA PAPELAO 250X250X200                  48191000   02   UN   CAIXA            OK
+EMB-CX-004      CAIXA PAPELAO 300X300X317                  48191000   02   UN   CAIXA            OK
+EMB-CX-005      CAIXA PAPELAO 400X300X223                  48191000   02   UN   CAIXA            OK
+EMB-CX-006      CAIXA PAPELAO 460X360X340                  48191000   02   UN   CAIXA            OK
+EMB-CX-007      CAIXA PAPELAO 500X300X300                  48191000   02   UN   CAIXA            OK
+EMB-CX-008      CAIXA PAPELAO 500X400X300                  48191000   02   UN   CAIXA            OK
+EMB-CX-009      CAIXA PAPELAO 540X405X335                  48191000   02   UN   CAIXA            OK
+
+----------------------------------------------------------------------------------------------------
+11. RIBBONS (REVENDA) — tipo 00 | NCM 9612.10.00 | ITENS NOVOS (não estavam no estoque)
+----------------------------------------------------------------------------------------------------
+REV-RIB-001     RIBBON CERA 110MM X 74M                    96121000   00   RL   RIBBON           OK
+REV-RIB-002     RIBBON CERA 110MM X 300M                   96121000   00   RL   RIBBON           OK
+REV-RIB-003     RIBBON CERA 60MM X 450M                    96121000   00   RL   RIBBON           OK
+REV-RIB-004     RIBBON APR1 ZEBRA 110MM X 74M              96121000   00   RL   RIBBON           OK
+REV-RIB-005     RIBBON AWR1 ZEBRA 110MM X 74M              96121000   00   RL   RIBBON           OK
+
+====================================================================================================
+RESUMO PARA CADASTRO
+====================================================================================================
+
+  Grupo                         Qtd   Prefixo
+  ----------------------------- ----- --------
+  PAPEL_AUTO / TAG                 12 MP-PAP-
+  BOPP                             14 MP-FLM-
+  TECIDO                           12 MP-TEC-
+  LAMINACAO                         3 MP-LAM-
+  COLD                              2 MP-CLD-
+  TINTA / AUX_IMPRESSAO            26 MP-TIN-
+  DUPLA_FACE                        3 MP-ADF-
+  TUBETE                            3 EMB-TUB-
+  CAIXA                             9 EMB-CX-
+  RIBBON                            5 REV-RIB-
+  ----------------------------- -----
+  TOTAL FAMILIAS                   89
+
+  Situacao:
+    OK ........ cadastrar agora
+    VAL ....... cadastrar com NCM provisório e validar na 1ª NF-e de entrada
+    UNI ....... CIAN eliminado (usar só MP-TIN-008 CYAN) — total -1 vs lista original 90
+
+  Parametros transversais (todos os itens):
+    CEST ...................... (vazio)
+    EAN/GTIN .................. SEM GTIN
+    ICMS-ST ................... NAO
+    Antecipacao MG (Simples) .. SIM se entrada interestadual
+    CSOSN saida ............... 102 (enquanto Simples)
+    CFOP entrada MP/EMB ....... 1101 (MG) / 2101 (outra UF)
+    CFOP entrada REV .......... 1102 (MG) / 2102 (outra UF)
+    Origem .................... do XML do fornecedor (item a item)
+
+  Ordem sugerida de digitacao no ERP:
+    1) OK (papel, BOPP confirmados, cold, tubete, caixa, ribbon, tintas OK)
+    2) VAL com NCM proposto (laminacao, dupla face, lacas, verniz/diluente)
+    3) VAL sem NCM (tecidos — obter do fornecedor antes de fechar)
+
+Fonte: CADASTRO_PRODUTOS_COMPRA.txt | Padrao: CODIFICACAO_INFORMACOES_SISTEMA.txt
+====================================================================================================

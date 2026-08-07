@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { TriggerAttribution, TriggerByline } from '../components/TriggerAttribution';
 import { ApiError } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { BRAND } from '../lib/brand';
 
 export function LoginPage() {
   const { login, user, initialized, loading } = useAuth();
@@ -34,25 +36,18 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-brand-panel">
         <div className="login-client-area">
-          <div className="licensed-label">Licenciado para</div>
+          <div className="licensed-label">{BRAND.licensee.licensedLabel}</div>
           <div className="logo-plate">
-            <img src="/branding/cliente/logo-rlp.png" alt="RLP Etiquetas" />
+            <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} />
           </div>
         </div>
-        <a
-          className="login-trigger-footer"
-          href="https://www.triggerti.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>Desenvolvido por</span>
-          <img src="/branding/trigger/logo-trigger.png" alt="TRIGGER Data Intelligence" />
-        </a>
+        <TriggerAttribution variant="interactive" className="login-trigger-footer" />
       </div>
 
       <div className="login-form-panel">
         <div className="login-form-card">
-          <h1>ERP RLP</h1>
+          <h1>{BRAND.licensee.productName}</h1>
+          <TriggerByline className="login-product-byline" />
           <p className="subtitle">Acesse o sistema de gestão industrial</p>
 
           {error && <div className="alert alert-error">{error}</div>}

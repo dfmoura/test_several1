@@ -49,13 +49,16 @@ Igual ao guia B.1, enxuto:
 
 Contrato comercial: **IP da TRIGGER**; RLP com **licença de uso**.
 
+Norma completa: [`IDENTIDADE_TRIGGER.md`](IDENTIDADE_TRIGGER.md) (alinhada ao modelo ecossistema × nós de `trigger/12`).
+
 Na UI:
 
 1. **Licenciado para** = logo RLP (herói do ambiente do cliente)
-2. **Powered by / Desenvolvido por TRIGGER** = marca do produto (sidebar + login)
-3. Favicon TRIGGER (produto da plataforma)
+2. **Desenvolvido por TRIGGER** (login + sidebar) = atribuição clicável da plataforma
+3. **Powered by TRIGGER** (PDF / ficha impressa) = rodapé de documento
+4. Favicon TRIGGER (marca da plataforma — não o SVG roxo do Vite)
 
-Troca de cliente futuro: substituir `branding/cliente/*` e seed da empresa — sem fork do código.
+Troca de cliente futuro: substituir `branding/cliente/*` e seed da empresa — sem fork do código; **não** remover a camada TRIGGER.
 
 ## Segurança mínima Lightsail
 

@@ -14,11 +14,50 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-015`
+`BL-017`
 
 ---
 
 ## Itens
+
+### BL-016 · [identidade] Padrão canônico TRIGGER × licenciado (sem forçar nem apagar)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — melhorar identificação da TRIGGER em todo o sistema; modelo profissional; referência `trigger/12`; não forçar como herói nem apagar
+- **Referência (padrão):** `/home/dfmoura/Documents/test_several1/trigger/12` (ecossistema × nós/produto; atribuição “por Trigger”; navy+verde)
+- **Problema:** textos misturados (“Desenvolvido por” × “Powered by”), alt inconsistente, `favicon.svg` ainda Vite/roxo, paths/labels hardcoded espalhados — risco de apagar ou forçar a marca sem regra
+- **Decisão:** três camadas (licenciado herói · TRIGGER atribuição permanente · EMP contexto); UI = “Desenvolvido por”+logo; documentos = “Powered by TRIGGER”; fonte única `brand.ts` + `config('erp.brand')`; doc `docs/IDENTIDADE_TRIGGER.md`
+- **Aceite:**
+  - [x] Doc normativa + README/LIGHTSAIL alinhados
+  - [x] `TriggerAttribution` + `brand.ts` usados em login, BrandBar, ficha
+  - [x] Byline **por Trigger Data Intelligence** sob ERP RLP (sidebar + login)
+  - [x] Rodapé com marca + nome completo em tipografia contida (sem TRIGGER display estourado)
+  - [x] PDF via `config('erp.brand.attribution_print')`
+  - [x] Favicon SVG = marca navy TRIGGER
+- **Fora de escopo:** white-label dinâmico por tenant/API, troca de nome do produto
+- **Entregue em:** 2026-08-07
+
+### BL-015 · [cadastros] Ficha do parceiro para impressão (HTML retrato)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-08-07 — botão ao abrir parceiro; ficha profissional; sem sócios/QSA; retrato; recomendar HTML vs PDF e decidir sem estragar o sistema
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PARCEIROS.txt` (PAR único + seções identificação/endereço/contatos/fiscal/financeiro)
+  - `CASOS_USO_M01_CADASTROS.txt` (UC-CAD-001 “abre ficha”; UC-CAD-007 bancário SoD)
+- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF no browser). PDF DomPDF ficou de fora — Relatórios IA permanece o caminho de PDF arquivável; ficha é snapshot de consulta/impressão operacional.
+- **Objetivo:** operador abre o PAR e gera/visualiza uma ficha limpa para imprimir, sem QSA, respeitando SoD de crédito/bancário.
+- **Aceite:**
+  - [x] Botão “Imprimir ficha” na tela do parceiro existente (nova aba)
+  - [x] Layout retrato A4 com marca RLP + Powered by TRIGGER
+  - [x] Sem sócios/QSA
+  - [x] Bancário só com `parceiro.bancario`; limite de crédito só com `credito.escrever`
+  - [x] Zero mudança no CRUD/API/import/relatórios
+- **Fora de escopo:** PDF servidor, arquivo em storage, e-mail da ficha, QSA
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `ParceiroFichaSheet` + `ParceiroFichaPage` em `/parceiros/:id/ficha` (fora do AppShell)
+  - CSS print `body.ficha-print-mode` + `@page ficha-parceiro`
+  - CTA no `ParceiroFormPage` (somente edição, não “novo”)
 
 ### BL-014 · [cadastros] Fornecedor a partir do XML da NF-e de entrada (em Importar parceiros)
 - **Status:** Feito

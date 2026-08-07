@@ -23,7 +23,7 @@
   <link rel="icon" type="image/x-icon" href="/favicon-dark.ico" media="(prefers-color-scheme: dark)">
   <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" sizes="180x180">
   <link rel="stylesheet" href="/assets/css/styles.css">
-  <link rel="stylesheet" href="/assets/css/ecosystem.css">
+  <link rel="stylesheet" href="/assets/css/ecosystem.css?v=20260807">
 </head>
 <body class="page-ecosystem">
   <header class="site-header">
@@ -61,25 +61,23 @@
       </div>
 
       <figure class="eco-map" aria-label="Camadas do ecossistema">
-        <div class="eco-map-track">
-          <div class="eco-map-cell">
+        <ol class="eco-map-track">
+          <li class="eco-map-cell">
             <span class="eco-map-label">Camada de uso</span>
-            <strong>Apps e rotinas</strong>
-            <span>Campo, estoque, cobrança</span>
-          </div>
-          <span class="eco-map-connector" aria-hidden="true"></span>
-          <div class="eco-map-cell eco-map-cell--core">
+            <strong class="eco-map-title">Apps e rotinas</strong>
+            <span class="eco-map-desc">Campo, estoque, cobrança</span>
+          </li>
+          <li class="eco-map-cell eco-map-cell--core">
             <span class="eco-map-label">Núcleo</span>
-            <strong>Regras e integração</strong>
-            <span>APIs, Java, Oracle, mensageria</span>
-          </div>
-          <span class="eco-map-connector" aria-hidden="true"></span>
-          <div class="eco-map-cell">
+            <strong class="eco-map-title">Regras e integração</strong>
+            <span class="eco-map-desc">APIs, Java, Oracle, mensageria</span>
+          </li>
+          <li class="eco-map-cell">
             <span class="eco-map-label">Base</span>
-            <strong>ERP e dados</strong>
-            <span>Sankhya e sistemas já pagos</span>
-          </div>
-        </div>
+            <strong class="eco-map-title">ERP e dados</strong>
+            <span class="eco-map-desc">Sankhya e sistemas já pagos</span>
+          </li>
+        </ol>
         <figcaption class="eco-map-caption">
           Um desenho: o usuário opera no canal certo; o ERP continua como fonte da verdade.
         </figcaption>

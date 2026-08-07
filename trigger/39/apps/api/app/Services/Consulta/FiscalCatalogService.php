@@ -5,6 +5,7 @@ namespace App\Services\Consulta;
 use App\Models\ApiCache;
 use App\Models\FiscalCest;
 use App\Models\FiscalNcm;
+use App\Support\UnidadesMedida;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -167,6 +168,16 @@ class FiscalCatalogService
     public function origens(): array
     {
         return FiscalCatalogData::origens();
+    }
+
+    /**
+     * Unidades oficiais (CONVERSOES_UNIDADES_MEDIDA / estudo 32).
+     *
+     * @return list<array{codigo: string, descricao: string, uso: string}>
+     */
+    public function unidadesMedida(): array
+    {
+        return UnidadesMedida::catalog();
     }
 
     public function seedCatalog(): void

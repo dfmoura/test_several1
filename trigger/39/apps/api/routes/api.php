@@ -125,6 +125,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/consulta/cclass-trib', [ConsultaController::class, 'cClassTrib']);
         Route::get('/consulta/tipos-item-sped', [ConsultaController::class, 'tiposItemSped']);
         Route::get('/consulta/origens-mercadoria', [ConsultaController::class, 'origensMercadoria']);
+        Route::get('/consulta/unidades', [ConsultaController::class, 'unidadesMedida']);
+        Route::get('/consulta/fator-conversao', [ConsultaController::class, 'fatorConversao']);
         Route::get('/consulta/produto-grupos', [ConsultaController::class, 'produtoGrupos']);
     });
 });

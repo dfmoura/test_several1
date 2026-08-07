@@ -19,6 +19,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Identidade TRIGGER × licenciado
+    |--------------------------------------------------------------------------
+    |
+    | Norma: docs/IDENTIDADE_TRIGGER.md (modelo trigger/12).
+    | UI front: apps/web/src/lib/brand.ts — manter strings alinhadas.
+    | Atribuição permanente e não-herói: nunca omitir em PDF/ficha.
+    |
+    */
+
+    'brand' => [
+        'vendor_short' => 'TRIGGER',
+        'vendor_full' => 'TRIGGER Data Intelligence',
+        'vendor_url' => 'https://www.triggerti.com',
+        'attribution_print' => 'Powered by TRIGGER',
+        'licensee_product' => 'ERP RLP',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | IA providers (cadastro + cliente HTTP)
     |--------------------------------------------------------------------------
     |

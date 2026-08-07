@@ -1,13 +1,6 @@
+import { TriggerAttribution } from './TriggerAttribution';
+
+/** Rodapé da sidebar — atribuição TRIGGER (não-herói). */
 export function BrandBar() {
-  return (
-    <a
-      className="brand-bar"
-      href="https://www.triggerti.com"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <span>Desenvolvido por</span>
-      <img src="/branding/trigger/logo-trigger.png" alt="TRIGGER" />
-    </a>
-  );
+  return <TriggerAttribution variant="interactive" className="brand-bar" />;
 }

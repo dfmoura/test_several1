@@ -565,6 +565,8 @@ export type FiscalCatalogItem = {
   observacao?: string | null;
   vinculado_ncm?: boolean;
   meta?: string | null;
+  /** Unidades de medida (estudo 32). */
+  uso?: string;
 };
 
 export type OrcamentoFaixaResult = {
@@ -742,6 +744,35 @@ export const fiscalConsulta = {
     api.get<{ data: FiscalCatalogItem[] }>('/consulta/tipos-item-sped'),
   origens: () =>
     api.get<{ data: FiscalCatalogItem[] }>('/consulta/origens-mercadoria'),
+  unidades: () =>
+    api.get<{ data: FiscalCatalogItem[] }>('/consulta/unidades'),
+  fatorConversao: (params: {
+    de?: string;
+    para?: string;
+    largura_mm?: string;
+    comprimento_m?: string;
+    gramatura_g_m2?: string;
+    qtd_por_caixa?: string;
+    densidade_g_ml?: string;
+    metragem_por_milheiro?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') qs.set(k, v);
+    });
+    return api.get<{
+      data: {
+        status: string;
+        fator: string | null;
+        formula: string | null;
+        origem: string | null;
+        faltando: string[];
+        mensagem: string | null;
+        de: string | null;
+        para: string | null;
+      };
+    }>(`/consulta/fator-conversao?${qs}`);
+  },
   produtoGrupos: (familia?: string, natureza?: string) => {
     const params = new URLSearchParams();
     if (familia) params.set('familia', familia);

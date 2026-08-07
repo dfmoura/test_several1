@@ -27,7 +27,29 @@ const FAMILIA_SPED_DEFAULT: Record<string, string> = {
   FAC: '04',
 };
 
+/** Fallback local se /consulta/unidades falhar — espelha UnidadesMedida (API). */
+const UNIDADES_FALLBACK: Array<{ codigo: string; descricao: string; uso?: string }> = [
+  { codigo: 'RL', descricao: 'Rolo / bobina' },
+  { codigo: 'M', descricao: 'Metro linear' },
+  { codigo: 'M2', descricao: 'Metro quadrado' },
+  { codigo: 'KG', descricao: 'Quilograma' },
+  { codigo: 'G', descricao: 'Grama' },
+  { codigo: 'UN', descricao: 'Unidade' },
+  { codigo: 'MIL', descricao: 'Milheiro' },
+  { codigo: 'L', descricao: 'Litro' },
+  { codigo: 'CX', descricao: 'Caixa' },
+];
+
 type TabId = 'comercial' | 'fiscal';
+
+type FatorSugestao = {
+  status: string;
+  fator: string | null;
+  formula: string | null;
+  origem: string | null;
+  faltando: string[];
+  mensagem: string | null;
+};
 
 type ProdutoFormData = {
   familia: string;
@@ -43,6 +65,10 @@ type ProdutoFormData = {
   unidade_comercial: string;
   unidade_interna: string;
   fator_conversao: string;
+  largura_mm: string;
+  comprimento_m: string;
+  gramatura_g_m2: string;
+  grupo_estoque: string;
   cfop_saida_padrao: string;
   cfop_entrada_padrao: string;
   csosn: string;
@@ -73,6 +99,10 @@ const emptyForm = (): ProdutoFormData => ({
   unidade_comercial: 'UN',
   unidade_interna: '',
   fator_conversao: '',
+  largura_mm: '',
+  comprimento_m: '',
+  gramatura_g_m2: '',
+  grupo_estoque: '',
   cfop_saida_padrao: '5101',
   cfop_entrada_padrao: '',
   csosn: '102',
@@ -90,6 +120,12 @@ const emptyForm = (): ProdutoFormData => ({
   situacao: 'ATIVO',
 });
 
+function attrStr(attrs: Record<string, unknown> | null | undefined, key: string): string {
+  const v = attrs?.[key];
+  if (v === null || v === undefined || v === '') return '';
+  return String(v);
+}
+
 function fromProduto(p: Produto): ProdutoFormData {
   return {
     familia: p.familia,
@@ -105,6 +141,10 @@ function fromProduto(p: Produto): ProdutoFormData {
     unidade_comercial: p.unidade_comercial ?? 'UN',
     unidade_interna: p.unidade_interna ?? '',
     fator_conversao: p.fator_conversao ?? '',
+    largura_mm: attrStr(p.atributos, 'largura_mm'),
+    comprimento_m: attrStr(p.atributos, 'comprimento_m'),
+    gramatura_g_m2: attrStr(p.atributos, 'gramatura_g_m2'),
+    grupo_estoque: attrStr(p.atributos, 'grupo_estoque'),
     cfop_saida_padrao: p.cfop_saida_padrao ?? '',
     cfop_entrada_padrao: p.cfop_entrada_padrao ?? '',
     csosn: p.csosn ?? '',
@@ -135,12 +175,19 @@ function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: b
     ncm: fill(base.ncm, grupo.ncm_padrao),
     unidade_comercial: fill(base.unidade_comercial, grupo.unidade_comercial_padrao),
     unidade_interna: fill(base.unidade_interna, grupo.unidade_interna_padrao),
+    grupo_estoque: fill(base.grupo_estoque, grupo.grupo_estoque_padrao),
     cfop_entrada_padrao: fill(base.cfop_entrada_padrao, grupo.cfop_entrada_padrao),
     cfop_saida_padrao: fill(base.cfop_saida_padrao, grupo.cfop_saida_padrao),
   };
 }
 
 function toPayload(form: ProdutoFormData): Record<string, unknown> {
+  const atributos: Record<string, string> = {};
+  if (form.largura_mm) atributos.largura_mm = form.largura_mm;
+  if (form.comprimento_m) atributos.comprimento_m = form.comprimento_m;
+  if (form.gramatura_g_m2) atributos.gramatura_g_m2 = form.gramatura_g_m2;
+  if (form.grupo_estoque) atributos.grupo_estoque = form.grupo_estoque;
+
   const payload: Record<string, unknown> = {
     familia: form.familia,
     grupo_id: form.grupo_id ? parseInt(form.grupo_id, 10) : null,
@@ -168,6 +215,7 @@ function toPayload(form: ProdutoFormData): Record<string, unknown> {
     lead_time_dias: form.lead_time_dias ? parseInt(form.lead_time_dias, 10) : null,
     gtin: form.gtin || null,
     situacao: form.situacao,
+    atributos: Object.keys(atributos).length ? atributos : null,
   };
   if (form.codigo) payload.codigo = form.codigo;
   return payload;
@@ -218,6 +266,10 @@ export function ProdutoFormPage() {
   const [grupos, setGrupos] = useState<ProdutoGrupo[]>([]);
   const [origens, setOrigens] = useState<Array<{ codigo: string; descricao: string }>>([]);
   const [tiposSped, setTiposSped] = useState<Array<{ codigo: string; descricao: string }>>([]);
+  const [unidades, setUnidades] = useState(UNIDADES_FALLBACK);
+  const [fatorSugestao, setFatorSugestao] = useState<FatorSugestao | null>(null);
+  /** true = operador editou o fator; não sobrescrever com auto. */
+  const [fatorManual, setFatorManual] = useState(!isNew);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -226,9 +278,14 @@ export function ProdutoFormPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [o, t] = await Promise.all([fiscalConsulta.origens(), fiscalConsulta.tiposItemSped()]);
+        const [o, t, u] = await Promise.all([
+          fiscalConsulta.origens(),
+          fiscalConsulta.tiposItemSped(),
+          fiscalConsulta.unidades(),
+        ]);
         setOrigens(o.data);
         setTiposSped(t.data);
+        if (u.data.length) setUnidades(u.data);
       } catch {
         /* selects ainda funcionam com fallback mínimo */
       }
@@ -257,6 +314,7 @@ export function ProdutoFormPage() {
       try {
         const res = await api.get<{ data: Produto }>(`/produtos/${id}`);
         setForm(fromProduto(res.data));
+        setFatorManual(true);
       } catch {
         setError('Produto não encontrado.');
       } finally {
@@ -278,12 +336,107 @@ export function ProdutoFormPage() {
       if (prev.familia !== form.familia || prev.grupo_id) return prev;
       return applyGrupoDefaults(prev, preferred, true);
     });
+    setFatorManual(false);
   }, [isNew, grupos, form.familia, form.grupo_id]);
+
+  // Sugestão dinâmica de fator (domínio 32) — nunca inventa; só preenche se não for manual.
+  useEffect(() => {
+    let cancelled = false;
+    const de = form.unidade_comercial.trim();
+    const para = form.unidade_interna.trim();
+
+    if (!de && !para) {
+      setFatorSugestao(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fiscalConsulta.fatorConversao({
+            de: de || undefined,
+            para: para || undefined,
+            largura_mm: form.largura_mm || undefined,
+            comprimento_m: form.comprimento_m || undefined,
+            gramatura_g_m2: form.gramatura_g_m2 || undefined,
+          });
+          if (cancelled) return;
+          const s = res.data;
+          setFatorSugestao(s);
+          if (
+            !fatorManual &&
+            (s.status === 'sugerido' || s.status === 'igual') &&
+            s.fator != null &&
+            s.fator !== ''
+          ) {
+            setForm((prev) =>
+              prev.fator_conversao === s.fator ? prev : { ...prev, fator_conversao: s.fator as string }
+            );
+          }
+        } catch {
+          if (!cancelled) setFatorSugestao(null);
+        }
+      })();
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    form.unidade_comercial,
+    form.unidade_interna,
+    form.largura_mm,
+    form.comprimento_m,
+    form.gramatura_g_m2,
+    fatorManual,
+  ]);
 
   const selectedGrupo = useMemo(
     () => grupos.find((g) => String(g.id) === form.grupo_id) ?? null,
     [grupos, form.grupo_id]
   );
+
+  const unitsDiffer = useMemo(() => {
+    const a = form.unidade_comercial.trim().toUpperCase();
+    const b = form.unidade_interna.trim().toUpperCase();
+    return a !== '' && b !== '' && a !== b;
+  }, [form.unidade_comercial, form.unidade_interna]);
+
+  const showDimensoes = useMemo(() => {
+    if (selectedGrupo?.exige_dimensao_sku) return true;
+    const pair = [form.unidade_comercial, form.unidade_interna].map((u) => u.trim().toUpperCase());
+    const needsDim = pair.some((u) => ['RL', 'M', 'M2', 'KG'].includes(u));
+    const faltandoDim = (fatorSugestao?.faltando ?? []).some((f) =>
+      ['largura_mm', 'comprimento_m', 'gramatura_g_m2'].includes(f)
+    );
+    return (needsDim && unitsDiffer) || faltandoDim;
+  }, [
+    selectedGrupo?.exige_dimensao_sku,
+    form.unidade_comercial,
+    form.unidade_interna,
+    fatorSugestao?.faltando,
+    unitsDiffer,
+  ]);
+
+  const sugestaoAplicavel =
+    fatorSugestao != null &&
+    (fatorSugestao.status === 'sugerido' || fatorSugestao.status === 'igual') &&
+    fatorSugestao.fator != null &&
+    fatorSugestao.fator !== form.fator_conversao;
+
+  const unitOptions = useMemo(() => {
+    const codes = new Set(unidades.map((u) => u.codigo));
+    const extras: Array<{ codigo: string; descricao: string; uso?: string }> = [];
+    for (const value of [form.unidade_comercial, form.unidade_interna]) {
+      const code = value.trim().toUpperCase();
+      if (code && !codes.has(code)) {
+        extras.push({ codigo: code, descricao: 'valor legado — escolha uma unidade oficial' });
+        codes.add(code);
+      }
+    }
+    return [...unidades, ...extras];
+  }, [unidades, form.unidade_comercial, form.unidade_interna]);
 
   const update = (patch: Partial<ProdutoFormData>) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -340,6 +493,7 @@ export function ProdutoFormPage() {
   const handleFamiliaChange = (familia: string) => {
     // Limpa grupos imediatamente para o efeito de default não aplicar catálogo da família anterior.
     setGrupos([]);
+    setFatorManual(false);
     setForm((prev) => ({
       ...emptyForm(),
       familia,
@@ -359,6 +513,7 @@ export function ProdutoFormPage() {
       update({ grupo_id: '', grupo: '' });
       return;
     }
+    setFatorManual(false);
     setForm((prev) => applyGrupoDefaults(prev, grupo, isNew));
   };
 
@@ -523,31 +678,166 @@ export function ProdutoFormPage() {
               </div>
               <div className="form-group">
                 <label>Unidade comercial</label>
-                <input
+                <select
                   value={form.unidade_comercial}
                   disabled={readOnly}
-                  onChange={(e) => update({ unidade_comercial: e.target.value.toUpperCase() })}
-                />
+                  onChange={(e) => {
+                    setFatorManual(false);
+                    update({ unidade_comercial: e.target.value });
+                  }}
+                >
+                  <option value="">— selecione —</option>
+                  {unitOptions.map((u) => (
+                    <option key={`uc-${u.codigo}`} value={u.codigo} title={u.uso}>
+                      {u.codigo} — {u.descricao}
+                    </option>
+                  ))}
+                </select>
+                <span className="form-hint">
+                  Unidade da NF / faturamento (fornecedor ou cliente). Padrão do grupo:{' '}
+                  {selectedGrupo?.unidade_comercial_padrao ?? '—'}.
+                </span>
               </div>
               <div className="form-group">
                 <label>Unidade interna</label>
-                <input
+                <select
                   value={form.unidade_interna}
                   disabled={readOnly}
-                  onChange={(e) => update({ unidade_interna: e.target.value.toUpperCase() })}
-                />
+                  onChange={(e) => {
+                    setFatorManual(false);
+                    update({ unidade_interna: e.target.value });
+                  }}
+                >
+                  <option value="">— mesma / não definida —</option>
+                  {unitOptions.map((u) => (
+                    <option key={`ui-${u.codigo}`} value={u.codigo} title={u.uso}>
+                      {u.codigo} — {u.descricao}
+                    </option>
+                  ))}
+                </select>
+                <span className="form-hint">
+                  Unidade oficial de estoque/OP. Padrão do grupo:{' '}
+                  {selectedGrupo?.unidade_interna_padrao ?? '—'}.
+                </span>
               </div>
+
+              {showDimensoes && (
+                <>
+                  <div className="form-group">
+                    <label>Largura (mm)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                      value={form.largura_mm}
+                      disabled={readOnly}
+                      onChange={(e) => update({ largura_mm: e.target.value })}
+                    />
+                    <span className="form-hint">Ponte M ↔ M2 e conversões de bobina.</span>
+                  </div>
+                  <div className="form-group">
+                    <label>Comprimento (m)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                      value={form.comprimento_m}
+                      disabled={readOnly}
+                      onChange={(e) => update({ comprimento_m: e.target.value })}
+                    />
+                    <span className="form-hint">Ponte RL ↔ M (comprimento nominal do rolo).</span>
+                  </div>
+                  <div className="form-group">
+                    <label>Gramatura total (g/m²)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.gramatura)}
+                      value={form.gramatura_g_m2}
+                      disabled={readOnly}
+                      onChange={(e) => update({ gramatura_g_m2: e.target.value })}
+                    />
+                    <span className="form-hint">
+                      Soma frontal + adesivo + liner. Ponte M2 ↔ KG.
+                    </span>
+                  </div>
+                </>
+              )}
+
               <div className="form-group">
-                <label>Fator conversão</label>
+                <label>
+                  Fator conversão
+                  {unitsDiffer && fatorSugestao?.status !== 'igual' ? ' *' : ''}
+                </label>
                 <input
                   type="text"
                   inputMode="decimal"
                   placeholder={decimalStep(DECIMAL_SCALE.factor)}
                   value={form.fator_conversao}
-                  disabled={readOnly}
-                  onChange={(e) => update({ fator_conversao: e.target.value })}
+                  disabled={readOnly || (!unitsDiffer && !!form.unidade_interna)}
+                  required={unitsDiffer}
+                  onChange={(e) => {
+                    setFatorManual(true);
+                    update({ fator_conversao: e.target.value });
+                  }}
                 />
-                <span className="form-hint">Até {DECIMAL_SCALE.factor} casas (NUMERIC 19,10). Ponto ou vírgula.</span>
+                <span className="form-hint">
+                  {fatorSugestao?.status === 'igual' && (
+                    <>Unidades iguais — fator = 1.</>
+                  )}
+                  {fatorSugestao?.status === 'sugerido' && fatorSugestao.fator && (
+                    <>
+                      Sugerido: {fatorSugestao.fator}
+                      {fatorSugestao.formula ? ` (${fatorSugestao.formula})` : ''}. Convenção: 1{' '}
+                      {form.unidade_comercial || '?'} = fator × {form.unidade_interna || '?'}.
+                      {fatorManual && sugestaoAplicavel && !readOnly && (
+                        <>
+                          {' '}
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{
+                              display: 'inline',
+                              padding: '0.1rem 0.45rem',
+                              marginLeft: '0.35rem',
+                              fontSize: '0.85em',
+                              verticalAlign: 'baseline',
+                            }}
+                            onClick={() => {
+                              setFatorManual(false);
+                              update({ fator_conversao: fatorSugestao.fator as string });
+                            }}
+                          >
+                            Aplicar sugestão
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {fatorSugestao?.status === 'incompleto' && (
+                    <>
+                      {fatorSugestao.mensagem ?? 'Cadastro incompleto para calcular o fator.'}
+                      {fatorSugestao.faltando.length
+                        ? ` Faltando: ${fatorSugestao.faltando.join(', ')}.`
+                        : ''}
+                    </>
+                  )}
+                  {fatorSugestao?.status === 'sem_formula' && (
+                    <>
+                      {fatorSugestao.mensagem ??
+                        'Sem fórmula automática — informe o fator manualmente.'}
+                    </>
+                  )}
+                  {!fatorSugestao && unitsDiffer && (
+                    <>
+                      Até {DECIMAL_SCALE.factor} casas (NUMERIC 19,10). Necessário quando as unidades
+                      diferem.
+                    </>
+                  )}
+                  {!unitsDiffer && !form.unidade_interna && (
+                    <>Defina a unidade interna (ou deixe igual à comercial) para o fator dinâmico.</>
+                  )}
+                </span>
               </div>
               <div className="form-group">
                 <label>Preço tabela</label>

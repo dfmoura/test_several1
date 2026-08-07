@@ -13,6 +13,7 @@ import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
 import { OrcamentoFormPage } from './pages/OrcamentoFormPage';
 import { OrcamentosPage } from './pages/OrcamentosPage';
 import { ParametrosPage } from './pages/ParametrosPage';
+import { ParceiroFichaPage } from './pages/ParceiroFichaPage';
 import { ParceiroFormPage } from './pages/ParceiroFormPage';
 import { ParceiroImportPage } from './pages/ParceiroImportPage';
 import { ParceirosPage } from './pages/ParceirosPage';
@@ -226,6 +227,17 @@ export default function App() {
           }
         />
       </Route>
+
+      <Route
+        path="/parceiros/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="parceiro.ler">
+              <ParceiroFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
