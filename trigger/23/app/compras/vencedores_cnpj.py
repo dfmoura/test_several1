@@ -380,6 +380,7 @@ def listar_vencedores_consolidados(
 
     Contrato da API/UI permanece estável (mesmos campos públicos).
     Filtros padrão (período/órgão/modalidade) recortam a agregação antes do cruzamento.
+    ``q`` filtra por nome (substring) ou dígitos do NI (CNPJ/CPF, com ou sem máscara).
     UF e porte filtram pela sede do fornecedor enriquecido (mesma semântica da localidade).
     """
     ids_ok = _ids_compra_no_escopo(
@@ -442,8 +443,12 @@ def listar_vencedores_consolidados(
 
         nome = bucket["nome_fornecedor"] or (forn.nome_razao_social_fornecedor if forn else None)
         if q_norm:
+            # Nome parcial OU dígitos do NI (CNPJ/CPF). Não usar ``digits in ni`` com
+            # string vazia: ``"" in ni`` é sempre True e anulava a busca por nome.
             nome_l = (nome or "").lower()
-            if q_norm not in nome_l and q_digits not in ni:
+            bate_nome = q_norm in nome_l
+            bate_ni = bool(q_digits) and q_digits in ni
+            if not bate_nome and not bate_ni:
                 continue
         if status_filtro and st != status_filtro:
             continue

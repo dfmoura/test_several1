@@ -159,6 +159,58 @@ def test_filtro_status_pendente():
     db.close()
 
 
+def test_filtro_busca_nome_e_cnpj():
+    """Busca por nome parcial e por dígitos/máscara de CNPJ (sem anular filtro por '')."""
+    db = _db()
+    db.add_all(
+        [
+            CompraContratacaoItem(
+                id_compra_item="i1",
+                id_compra="c1",
+                cod_fornecedor="12345678000199",
+                nome_fornecedor="ACME INDUSTRIA LTDA",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i2",
+                id_compra="c2",
+                cod_fornecedor="11222333000181",
+                nome_fornecedor="Beta Comercio SA",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i3",
+                id_compra="c3",
+                cod_fornecedor="12345678901",
+                nome_fornecedor="Fulano da Silva",
+            ),
+        ]
+    )
+    db.commit()
+
+    por_nome = listar_vencedores_consolidados(db, q="acme")
+    assert por_nome["total"] == 1
+    assert por_nome["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    por_parcial = listar_vencedores_consolidados(db, q="Beta")
+    assert por_parcial["total"] == 1
+    assert por_parcial["items"][0]["nome_fornecedor"] == "Beta Comercio SA"
+
+    por_cnpj = listar_vencedores_consolidados(db, q="12345678000199")
+    assert por_cnpj["total"] == 1
+    assert por_cnpj["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    por_mascara = listar_vencedores_consolidados(db, q="12.345.678/0001-99")
+    assert por_mascara["total"] == 1
+    assert por_mascara["items"][0]["cod_fornecedor"] == "12345678000199"
+
+    por_cpf = listar_vencedores_consolidados(db, q="12345678901")
+    assert por_cpf["total"] == 1
+    assert por_cpf["items"][0]["tipo"] == "cpf"
+
+    sem_match = listar_vencedores_consolidados(db, q="inexistente xyz")
+    assert sem_match["total"] == 0
+    db.close()
+
+
 def test_filtro_porte_empresa():
     db = _db()
     db.add_all(
