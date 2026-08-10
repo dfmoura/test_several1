@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Produto;
+use App\Services\Cadastros\ProdutoDescricaoSugeridor;
 use App\Services\Cadastros\ProdutoService;
 use App\Support\ProdutoValidationRules;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +12,33 @@ use Illuminate\Http\Request;
 
 class ProdutoController extends Controller
 {
-    public function __construct(private readonly ProdutoService $produtoService) {}
+    public function __construct(
+        private readonly ProdutoService $produtoService,
+        private readonly ProdutoDescricaoSugeridor $descricaoSugeridor,
+    ) {}
+
+    public function sugerirDescricao(Request $request): JsonResponse
+    {
+        if (! $request->user()->can('produto.escrever')) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'grupo_id' => ['required', 'integer', 'exists:produto_grupos,id'],
+            'texto_livre' => ['nullable', 'string', 'max:500'],
+            'largura_mm' => ['nullable', 'string', 'max:32'],
+            'comprimento_m' => ['nullable', 'string', 'max:32'],
+            'produto_id' => ['nullable', 'integer'],
+        ]);
+
+        try {
+            $data = $this->descricaoSugeridor->sugerir(app('empresa'), $validated);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['data' => $data]);
+    }
 
     public function index(Request $request): JsonResponse
     {

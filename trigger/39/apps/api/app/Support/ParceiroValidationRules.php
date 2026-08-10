@@ -91,6 +91,23 @@ class ParceiroValidationRules
             'contas_bancarias.*.tipo_conta' => ['nullable', 'string', 'in:CORRENTE,POUPANCA,PAGAMENTO'],
             'contas_bancarias.*.principal' => ['sometimes', 'boolean'],
             'contas_bancarias.*.ordem' => ['nullable', 'integer', 'min:0'],
+            'enderecos_entrega' => ['sometimes', 'array'],
+            'enderecos_entrega.*.id' => ['nullable', 'integer'],
+            'enderecos_entrega.*.apelido' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.logradouro' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.numero' => ['nullable', 'string', 'max:32'],
+            'enderecos_entrega.*.complemento' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.bairro' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.municipio' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.uf' => ['nullable', 'string', 'size:2'],
+            'enderecos_entrega.*.cep' => ['nullable', 'string', 'max:8'],
+            'enderecos_entrega.*.ibge' => ['nullable', 'string', 'max:7'],
+            'enderecos_entrega.*.responsavel_nome' => ['nullable', 'string', 'max:255'],
+            'enderecos_entrega.*.responsavel_telefone' => ['nullable', 'string', 'max:32'],
+            'enderecos_entrega.*.responsavel_documento' => ['nullable', 'string', 'max:32'],
+            'enderecos_entrega.*.observacoes' => ['nullable', 'string', 'max:1000'],
+            'enderecos_entrega.*.principal' => ['sometimes', 'boolean'],
+            'enderecos_entrega.*.ordem' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

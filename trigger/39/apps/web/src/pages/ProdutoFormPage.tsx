@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FiscalCombobox, formatCest, formatNcm, type FiscalOption } from '../components/FiscalCombobox';
 import { PageHeader } from '../components/PageHeader';
-import { api, fiscalConsulta, type Produto, type ProdutoGrupo } from '../lib/api';
+import { api, fiscalConsulta, sugerirDescricaoProduto, type Produto, type ProdutoDescricaoSugestao, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { onAbrirFichaClick } from '../lib/fichaNav';
+import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
 import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '../lib/format';
 
 const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
@@ -274,7 +276,10 @@ export function ProdutoFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
+  const [textoLivreDesc, setTextoLivreDesc] = useState('');
+  const [descSugestao, setDescSugestao] = useState<ProdutoDescricaoSugestao | null>(null);
+  const [sugerindoDesc, setSugerindoDesc] = useState(false);
+  const [erroDescSugestao, setErroDescSugestao] = useState('');
   useEffect(() => {
     void (async () => {
       try {
@@ -291,6 +296,7 @@ export function ProdutoFormPage() {
       }
     })();
   }, []);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -397,27 +403,42 @@ export function ProdutoFormPage() {
     [grupos, form.grupo_id]
   );
 
+
   const unitsDiffer = useMemo(() => {
     const a = form.unidade_comercial.trim().toUpperCase();
     const b = form.unidade_interna.trim().toUpperCase();
     return a !== '' && b !== '' && a !== b;
   }, [form.unidade_comercial, form.unidade_interna]);
 
-  const showDimensoes = useMemo(() => {
-    if (selectedGrupo?.exige_dimensao_sku) return true;
-    const pair = [form.unidade_comercial, form.unidade_interna].map((u) => u.trim().toUpperCase());
-    const needsDim = pair.some((u) => ['RL', 'M', 'M2', 'KG'].includes(u));
-    const faltandoDim = (fatorSugestao?.faltando ?? []).some((f) =>
-      ['largura_mm', 'comprimento_m', 'gramatura_g_m2'].includes(f)
-    );
-    return (needsDim && unitsDiffer) || faltandoDim;
-  }, [
-    selectedGrupo?.exige_dimensao_sku,
-    form.unidade_comercial,
-    form.unidade_interna,
-    fatorSugestao?.faltando,
-    unitsDiffer,
-  ]);
+  const showDimensoes = useMemo(
+    () =>
+      decideBobinaDimensoesUi({
+        exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
+        larguraMm: form.largura_mm,
+        comprimentoM: form.comprimento_m,
+        gramaturaGm2: form.gramatura_g_m2,
+        faltando: fatorSugestao?.faltando,
+      }),
+    [
+      selectedGrupo?.exige_dimensao_sku,
+      form.largura_mm,
+      form.comprimento_m,
+      form.gramatura_g_m2,
+      fatorSugestao?.faltando,
+    ]
+  );
+
+  const faltandoAttrs = useMemo(
+    () => new Set(fatorSugestao?.faltando ?? []),
+    [fatorSugestao?.faltando]
+  );
+
+  const equacaoFator = useMemo(() => {
+    const de = form.unidade_comercial.trim().toUpperCase() || '?';
+    const para = (form.unidade_interna.trim() || form.unidade_comercial.trim()).toUpperCase() || '?';
+    const fator = form.fator_conversao.trim() || '…';
+    return `1 ${de} = ${fator} × ${para}`;
+  }, [form.unidade_comercial, form.unidade_interna, form.fator_conversao]);
 
   const sugestaoAplicavel =
     fatorSugestao != null &&
@@ -494,6 +515,9 @@ export function ProdutoFormPage() {
     // Limpa grupos imediatamente para o efeito de default não aplicar catálogo da família anterior.
     setGrupos([]);
     setFatorManual(false);
+    setDescSugestao(null);
+    setErroDescSugestao('');
+    setTextoLivreDesc('');
     setForm((prev) => ({
       ...emptyForm(),
       familia,
@@ -514,7 +538,56 @@ export function ProdutoFormPage() {
       return;
     }
     setFatorManual(false);
-    setForm((prev) => applyGrupoDefaults(prev, grupo, isNew));
+    setDescSugestao(null);
+    setErroDescSugestao('');
+    setForm((prev) => {
+      const next = applyGrupoDefaults(prev, grupo, isNew);
+      // Saiu de grupo de bobina → limpa dimensões (não carregar “Dados da bobina” por resíduo).
+      if (!grupo.exige_dimensao_sku) {
+        return { ...next, largura_mm: '', comprimento_m: '', gramatura_g_m2: '' };
+      }
+      return next;
+    });
+  };
+
+  const handleSugerirDescricoes = async () => {
+    if (!form.grupo_id || !canWrite) return;
+    setSugerindoDesc(true);
+    setErroDescSugestao('');
+    try {
+      const res = await sugerirDescricaoProduto({
+        grupo_id: Number(form.grupo_id),
+        texto_livre: textoLivreDesc.trim() || undefined,
+        largura_mm: form.largura_mm || undefined,
+        comprimento_m: form.comprimento_m || undefined,
+        produto_id: !isNew && id ? Number(id) : undefined,
+      });
+      setDescSugestao(res.data);
+    } catch (err) {
+      setDescSugestao(null);
+      setErroDescSugestao(err instanceof Error ? err.message : 'Falha ao sugerir descrições.');
+    } finally {
+      setSugerindoDesc(false);
+    }
+  };
+
+  const aplicarDescricoes = (quais: 'fiscal' | 'comercial' | 'ambas') => {
+    if (!descSugestao) return;
+    const applyFiscal = quais === 'fiscal' || quais === 'ambas';
+    const applyComercial = quais === 'comercial' || quais === 'ambas';
+    const konflikts: string[] = [];
+    if (applyFiscal && form.descricao_fiscal.trim()) konflikts.push('Descrição fiscal');
+    if (applyComercial && form.descricao_comercial.trim()) konflikts.push('Descrição comercial');
+    if (konflikts.length > 0) {
+      const ok = window.confirm(
+        `${konflikts.join(' e ')} já preenchida(s). Substituir pela sugestão?`
+      );
+      if (!ok) return;
+    }
+    update({
+      ...(applyFiscal ? { descricao_fiscal: descSugestao.descricao_fiscal } : {}),
+      ...(applyComercial ? { descricao_comercial: descSugestao.descricao_comercial } : {}),
+    });
   };
 
   const handleSave = async () => {
@@ -554,9 +627,20 @@ export function ProdutoFormPage() {
         title={isNew ? 'Novo produto' : form.codigo}
         description={isNew ? 'Cadastro de item' : form.descricao_fiscal}
         actions={
-          <Link to="/produtos" className="btn btn-secondary">
-            Voltar
-          </Link>
+          <>
+            {!isNew && id && (
+              <a
+                href={`/produtos/${id}/ficha`}
+                className="btn btn-secondary"
+                onClick={(e) => onAbrirFichaClick(e, `/produtos/${id}/ficha`)}
+              >
+                Imprimir ficha
+              </a>
+            )}
+            <Link to="/produtos" className="btn btn-secondary">
+              Voltar
+            </Link>
+          </>
         }
       />
 
@@ -658,6 +742,85 @@ export function ProdutoFormPage() {
                   </div>
                 </div>
               )}
+              {canWrite && (
+                <div className="form-group span-2 produto-desc-sugerir">
+                  <label>Sugestão de descrições</label>
+                  <textarea
+                    rows={2}
+                    value={textoLivreDesc}
+                    disabled={!form.grupo_id || sugerindoDesc}
+                    placeholder="Opcional: como você chama o item, material, marca, medida… (ex.: bopp fosco, couchê 80g Fasson, ribbon cera 110x300)"
+                    onChange={(e) => setTextoLivreDesc(e.target.value)}
+                  />
+                  <div className="produto-desc-sugerir-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={!form.grupo_id || sugerindoDesc}
+                      onClick={() => void handleSugerirDescricoes()}
+                    >
+                      {sugerindoDesc ? 'Sugerindo…' : 'Sugerir descrições'}
+                    </button>
+                    <span className="form-hint">
+                      Motor por grupo (domínio RLP). Confira e aplique — nada é gravado sozinho.
+                    </span>
+                  </div>
+                  {erroDescSugestao && <div className="form-error">{erroDescSugestao}</div>}
+                  {descSugestao && (
+                    <div className="produto-desc-preview">
+                      <div className="produto-desc-preview-row">
+                        <strong>Fiscal sugerida</strong>
+                        <span>{descSugestao.descricao_fiscal}</span>
+                      </div>
+                      <div className="produto-desc-preview-row">
+                        <strong>Comercial sugerida</strong>
+                        <span>{descSugestao.descricao_comercial}</span>
+                      </div>
+                      {descSugestao.racional && (
+                        <span className="form-hint">{descSugestao.racional}</span>
+                      )}
+                      {descSugestao.avisos.length > 0 && (
+                        <ul className="produto-desc-avisos">
+                          {descSugestao.avisos.map((a) => (
+                            <li key={a}>{a}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {descSugestao.similares.length > 0 && (
+                        <div className="form-hint">
+                          Similares no grupo:{' '}
+                          {descSugestao.similares
+                            .map((s) => `${s.codigo} (${s.similaridade}%)`)
+                            .join(' · ')}
+                        </div>
+                      )}
+                      <div className="produto-desc-sugerir-actions">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => aplicarDescricoes('ambas')}
+                        >
+                          Aplicar ambas
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => aplicarDescricoes('fiscal')}
+                        >
+                          Só fiscal
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => aplicarDescricoes('comercial')}
+                        >
+                          Só comercial
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="form-group span-2">
                 <label>Descrição fiscal</label>
                 <input
@@ -676,6 +839,14 @@ export function ProdutoFormPage() {
                   onChange={(e) => update({ descricao_comercial: e.target.value })}
                 />
               </div>
+
+              <div className="fiscal-section-title span-2">Unidades e conversão</div>
+              <p className="form-hint span-2 produto-unidades-lead">
+                Modelo dual (estudo 32 / ADR): unidade do documento × unidade oficial de estoque.
+                Largura, comprimento e gramatura alimentam a fórmula — não são unidades.
+                Convenção do fator: <strong>{equacaoFator}</strong>
+              </p>
+
               <div className="form-group">
                 <label>Unidade comercial</label>
                 <select
@@ -699,7 +870,7 @@ export function ProdutoFormPage() {
                 </span>
               </div>
               <div className="form-group">
-                <label>Unidade interna</label>
+                <label>Unidade de estoque</label>
                 <select
                   value={form.unidade_interna}
                   disabled={readOnly}
@@ -708,7 +879,7 @@ export function ProdutoFormPage() {
                     update({ unidade_interna: e.target.value });
                   }}
                 >
-                  <option value="">— mesma / não definida —</option>
+                  <option value="">— mesma da comercial —</option>
                   {unitOptions.map((u) => (
                     <option key={`ui-${u.codigo}`} value={u.codigo} title={u.uso}>
                       {u.codigo} — {u.descricao}
@@ -716,51 +887,67 @@ export function ProdutoFormPage() {
                   ))}
                 </select>
                 <span className="form-hint">
-                  Unidade oficial de estoque/OP. Padrão do grupo:{' '}
+                  Unidade oficial do saldo (interna). Vazia = igual à comercial. Padrão do grupo:{' '}
                   {selectedGrupo?.unidade_interna_padrao ?? '—'}.
                 </span>
               </div>
 
-              {showDimensoes && (
+              {showDimensoes.showSection && (
                 <>
-                  <div className="form-group">
-                    <label>Largura (mm)</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
-                      value={form.largura_mm}
-                      disabled={readOnly}
-                      onChange={(e) => update({ largura_mm: e.target.value })}
-                    />
-                    <span className="form-hint">Ponte M ↔ M2 e conversões de bobina.</span>
-                  </div>
-                  <div className="form-group">
-                    <label>Comprimento (m)</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder={decimalStep(DECIMAL_SCALE.dim)}
-                      value={form.comprimento_m}
-                      disabled={readOnly}
-                      onChange={(e) => update({ comprimento_m: e.target.value })}
-                    />
-                    <span className="form-hint">Ponte RL ↔ M (comprimento nominal do rolo).</span>
-                  </div>
-                  <div className="form-group">
-                    <label>Gramatura total (g/m²)</label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder={decimalStep(DECIMAL_SCALE.gramatura)}
-                      value={form.gramatura_g_m2}
-                      disabled={readOnly}
-                      onChange={(e) => update({ gramatura_g_m2: e.target.value })}
-                    />
-                    <span className="form-hint">
-                      Soma frontal + adesivo + liner. Ponte M2 ↔ KG.
-                    </span>
-                  </div>
+                  <div className="fiscal-section-title span-2">{showDimensoes.title}</div>
+                  {showDimensoes.showLargura && (
+                    <div className={`form-group${faltandoAttrs.has('largura_mm') ? ' is-required-hint' : ''}`}>
+                      <label>
+                        Largura (mm)
+                        {faltandoAttrs.has('largura_mm') ? ' *' : ''}
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                        value={form.largura_mm}
+                        disabled={readOnly}
+                        onChange={(e) => update({ largura_mm: e.target.value })}
+                      />
+                      <span className="form-hint">Ponte M ↔ M2 e conversões de bobina.</span>
+                    </div>
+                  )}
+                  {showDimensoes.showComprimento && (
+                    <div className={`form-group${faltandoAttrs.has('comprimento_m') ? ' is-required-hint' : ''}`}>
+                      <label>
+                        Comprimento (m)
+                        {faltandoAttrs.has('comprimento_m') ? ' *' : ''}
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={decimalStep(DECIMAL_SCALE.dim)}
+                        value={form.comprimento_m}
+                        disabled={readOnly}
+                        onChange={(e) => update({ comprimento_m: e.target.value })}
+                      />
+                      <span className="form-hint">Ponte RL ↔ M (comprimento nominal do rolo).</span>
+                    </div>
+                  )}
+                  {showDimensoes.showGramatura && (
+                    <div className={`form-group${faltandoAttrs.has('gramatura_g_m2') ? ' is-required-hint' : ''}`}>
+                      <label>
+                        Gramatura total (g/m²)
+                        {faltandoAttrs.has('gramatura_g_m2') ? ' *' : ''}
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder={decimalStep(DECIMAL_SCALE.gramatura)}
+                        value={form.gramatura_g_m2}
+                        disabled={readOnly}
+                        onChange={(e) => update({ gramatura_g_m2: e.target.value })}
+                      />
+                      <span className="form-hint">
+                        Soma frontal + adesivo + liner. Ponte M2 ↔ KG.
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -788,8 +975,8 @@ export function ProdutoFormPage() {
                   {fatorSugestao?.status === 'sugerido' && fatorSugestao.fator && (
                     <>
                       Sugerido: {fatorSugestao.fator}
-                      {fatorSugestao.formula ? ` (${fatorSugestao.formula})` : ''}. Convenção: 1{' '}
-                      {form.unidade_comercial || '?'} = fator × {form.unidade_interna || '?'}.
+                      {fatorSugestao.formula ? ` (${fatorSugestao.formula})` : ''}.{' '}
+                      {equacaoFator}.
                       {fatorManual && sugestaoAplicavel && !readOnly && (
                         <>
                           {' '}
@@ -835,10 +1022,13 @@ export function ProdutoFormPage() {
                     </>
                   )}
                   {!unitsDiffer && !form.unidade_interna && (
-                    <>Defina a unidade interna (ou deixe igual à comercial) para o fator dinâmico.</>
+                    <>Deixe a estoque vazia (mesma da comercial) ou escolha outra unidade.</>
                   )}
                 </span>
               </div>
+
+              <div className="fiscal-section-title span-2">Comercial / operação</div>
+
               <div className="form-group">
                 <label>Preço tabela</label>
                 <input

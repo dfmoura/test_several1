@@ -1,11 +1,34 @@
 import { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Parametro } from '../lib/api';
+import { useTableSort } from '../lib/useTableSort';
+
+/** Rótulos canônicos — estudo 32 / PARAMETROS_EMPRESA_OFICIAIS. */
+const PARAM_HINTS: Record<string, string> = {
+  valor_minimo_capitalizar_bem:
+    'Patrimônio · valor mínimo (R$) para capitalizar bem (gerencial; depreciação oficial = contador)',
+  empresa_default: 'Empresa padrão sugerida no login',
+  emp_00002_venda_habilitada: 'EMP-00002 · venda/estoque só após homologação',
+  lai_no_erp: 'Proibido grupo natureza 9.xx / LAI no ERP',
+};
+
+function paramHint(chave: string): string | null {
+  return PARAM_HINTS[chave] ?? null;
+}
+
+const SORT = {
+  chave: (p: Parametro) => p.chave,
+  valor: (p: Parametro) => p.valor,
+  status: (p: Parametro) => p.status,
+  versao: (p: Parametro) => p.versao,
+};
 
 export function ParametrosPage() {
   const [parametros, setParametros] = useState<Parametro[]>([]);
   const [loading, setLoading] = useState(true);
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(parametros, SORT);
   const [editing, setEditing] = useState<Parametro | null>(null);
   const [chave, setChave] = useState('');
   const [valor, setValor] = useState('');
@@ -120,17 +143,30 @@ export function ParametrosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Chave</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th>Versão</th>
+                  <SortableTh column="chave" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Chave
+                  </SortableTh>
+                  <SortableTh column="valor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Valor
+                  </SortableTh>
+                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Status
+                  </SortableTh>
+                  <SortableTh column="versao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Versão
+                  </SortableTh>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {parametros.map((p) => (
+                {sorted.map((p) => (
                   <tr key={p.id}>
-                    <td>{p.chave}</td>
+                    <td>
+                      <div>{p.chave}</div>
+                      {paramHint(p.chave) ? (
+                        <small style={{ color: 'var(--text-muted)' }}>{paramHint(p.chave)}</small>
+                      ) : null}
+                    </td>
                     <td>{p.valor ?? '—'}</td>
                     <td>
                       <StatusPill status={p.status} />

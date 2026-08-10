@@ -1165,9 +1165,10 @@
           </div>
           <div class="panel table-panel">
             <h4 class="sub-title">Observadores cadastrados</h4>
+            <p class="muted">Ative ou desative o vínculo e edite os dados de contato. Observadores inativos deixam de aparecer nas seleções das bases.</p>
             <div class="table-scroll">
               <table class="data-table">
-                <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Status</th></tr></thead>
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody id="tabela-observadores"></tbody>
               </table>
             </div>
@@ -1651,6 +1652,23 @@
           <label class="field"><span>Observador</span><select id="edit-pbi-observador"><option value="">Nenhum</option></select></label>
           <button type="submit" class="btn primary">Salvar</button>
         </div>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog id="modal-observador" class="modal modal-sm">
+    <div class="modal-head">
+      <h3 id="modal-observador-titulo">Editar observador</h3>
+      <button class="btn ghost" id="modal-observador-fechar">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-observador-edit" class="form-col">
+        <label class="field"><span>Nome *</span><input type="text" id="obs-edit-nome" required maxlength="200" minlength="2" /></label>
+        <div class="inline-form">
+          <label class="field"><span>E-mail</span><input type="email" id="obs-edit-email" maxlength="200" /></label>
+          <label class="field"><span>Telefone</span><input type="text" id="obs-edit-telefone" maxlength="40" /></label>
+        </div>
+        <button type="submit" class="btn primary">Salvar</button>
       </form>
     </div>
   </dialog>

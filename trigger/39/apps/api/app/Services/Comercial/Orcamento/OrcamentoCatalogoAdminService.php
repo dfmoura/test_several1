@@ -6,6 +6,7 @@ use App\Models\OrcCatalogoAcabamento;
 use App\Models\OrcCatalogoHoraMaquina;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
+use App\Models\OrcCatalogoParametro;
 use App\Models\OrcCatalogoTipoTroca;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -13,23 +14,46 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
- * CRUD das 4 bases editáveis do catálogo ORC (estudo 32).
+ * CRUD das bases editáveis do catálogo ORC (estudo 32) + escalares (matriz_cm2).
  * Seed idempotente a partir do catalog_oficial.json — nunca sobrescreve valores já editados.
  */
 class OrcamentoCatalogoAdminService
 {
     public function __construct(private readonly AuditLogger $audit) {}
 
-    /** @return array{papeis: int, acabamentos: int, tipos_troca: int, maquinas: int, fonte: string} */
+    /**
+     * @return array{
+     *   papeis: int,
+     *   acabamentos: int,
+     *   tipos_troca: int,
+     *   maquinas: int,
+     *   parametros: int,
+     *   matriz_cm2: float,
+     *   matriz_cm2_fonte: string,
+     *   fonte: string,
+     *   nota: string
+     * }
+     */
     public function resumo(): array
     {
         $hasDb = $this->tablesReady() && OrcCatalogoPapel::query()->exists();
+        $cat = OrcamentoCatalogo::load();
+        $matrizFromDb = Schema::hasTable('orc_catalogo_parametros')
+            && OrcCatalogoParametro::query()
+                ->where('chave', OrcCatalogoParametro::CHAVE_MATRIZ_CM2)
+                ->where('ativo', true)
+                ->exists();
 
         return [
             'papeis' => OrcCatalogoPapel::query()->count(),
             'acabamentos' => OrcCatalogoAcabamento::query()->count(),
             'tipos_troca' => OrcCatalogoTipoTroca::query()->count(),
             'maquinas' => OrcCatalogoMaquina::query()->count(),
+            'parametros' => Schema::hasTable('orc_catalogo_parametros')
+                ? OrcCatalogoParametro::query()->count()
+                : 0,
+            'matriz_cm2' => $cat->matrizCm2,
+            'matriz_cm2_fonte' => $matrizFromDb ? 'database' : 'json_fallback',
             'fonte' => $hasDb ? 'database' : 'json_fallback',
             'nota' => 'ORCs já salvos mantêm snapshot. Alterações valem para novos cálculos.',
         ];
@@ -45,10 +69,60 @@ class OrcamentoCatalogoAdminService
         $path ??= resource_path('data/orcamento/catalog_oficial.json');
         $raw = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
-        $criados = ['papeis' => 0, 'acabamentos' => 0, 'tipos_troca' => 0, 'maquinas' => 0, 'tarifas' => 0];
-        $existentes = ['papeis' => 0, 'acabamentos' => 0, 'tipos_troca' => 0, 'maquinas' => 0, 'tarifas' => 0];
+        $criados = [
+            'papeis' => 0,
+            'acabamentos' => 0,
+            'tipos_troca' => 0,
+            'maquinas' => 0,
+            'tarifas' => 0,
+            'parametros' => 0,
+        ];
+        $existentes = [
+            'papeis' => 0,
+            'acabamentos' => 0,
+            'tipos_troca' => 0,
+            'maquinas' => 0,
+            'tarifas' => 0,
+            'parametros' => 0,
+        ];
 
         DB::transaction(function () use ($raw, $forceOverwrite, &$criados, &$existentes) {
+            if (Schema::hasTable('orc_catalogo_parametros')) {
+                $defs = [
+                    OrcCatalogoParametro::CHAVE_MATRIZ_CM2 => [
+                        'valor' => (float) ($raw['matriz_cm2'] ?? 0.28),
+                        'rotulo' => 'Matriz / clichê',
+                        'unidade' => 'R$/cm²',
+                        'ordem' => 10,
+                    ],
+                ];
+                foreach ($defs as $chave => $def) {
+                    $row = OrcCatalogoParametro::query()->where('chave', $chave)->first();
+                    if ($row) {
+                        $existentes['parametros']++;
+                        if ($forceOverwrite) {
+                            $row->update([
+                                'valor' => $def['valor'],
+                                'rotulo' => $def['rotulo'],
+                                'unidade' => $def['unidade'],
+                                'ativo' => true,
+                                'ordem' => $def['ordem'],
+                            ]);
+                        }
+                        continue;
+                    }
+                    OrcCatalogoParametro::query()->create([
+                        'chave' => $chave,
+                        'valor' => $def['valor'],
+                        'rotulo' => $def['rotulo'],
+                        'unidade' => $def['unidade'],
+                        'ativo' => true,
+                        'ordem' => $def['ordem'],
+                    ]);
+                    $criados['parametros']++;
+                }
+            }
+
             $ordem = 0;
             foreach ($raw['papel'] ?? [] as $nome => $preco) {
                 $nome = OrcamentoCatalogo::norm((string) $nome);
@@ -355,9 +429,24 @@ class OrcamentoCatalogoAdminService
     }
 
     /** @return list<array<string, mixed>> */
-    public function listMaquinas(bool $incluirInativos = true): array
+    public function listMaquinas(bool $incluirInativos = true, ?int $empresaId = null): array
     {
-        $q = OrcCatalogoMaquina::query()->with('tarifas')->orderBy('ordem')->orderBy('nome');
+        $q = OrcCatalogoMaquina::query()
+            ->with([
+                'tarifas',
+                'bensPatrimoniais' => function ($rel) use ($empresaId) {
+                    if ($empresaId === null) {
+                        $rel->whereRaw('0 = 1');
+
+                        return;
+                    }
+                    $rel->where('empresa_id', $empresaId)
+                        ->orderBy('codigo')
+                        ->select(['id', 'empresa_id', 'codigo', 'descricao', 'status', 'orc_catalogo_maquina_id']);
+                },
+            ])
+            ->orderBy('ordem')
+            ->orderBy('nome');
         if (! $incluirInativos) {
             $q->where('ativo', true);
         }
@@ -431,7 +520,77 @@ class OrcamentoCatalogoAdminService
             && Schema::hasTable('orc_catalogo_acabamentos')
             && Schema::hasTable('orc_catalogo_tipos_troca')
             && Schema::hasTable('orc_catalogo_maquinas')
-            && Schema::hasTable('orc_catalogo_hora_maquina');
+            && Schema::hasTable('orc_catalogo_hora_maquina')
+            && Schema::hasTable('orc_catalogo_parametros');
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function listParametros(bool $incluirInativos = true): array
+    {
+        if (! Schema::hasTable('orc_catalogo_parametros')) {
+            return [];
+        }
+
+        $q = OrcCatalogoParametro::query()->orderBy('ordem')->orderBy('chave');
+        if (! $incluirInativos) {
+            $q->where('ativo', true);
+        }
+
+        return $q->get()->map(fn (OrcCatalogoParametro $p) => $this->parametroOut($p))->all();
+    }
+
+    /** @param  array<string, mixed>  $data */
+    public function updateParametro(string $chave, array $data): array
+    {
+        if (! in_array($chave, OrcCatalogoParametro::CHAVES_CONHECIDAS, true)) {
+            throw ValidationException::withMessages([
+                'chave' => ['Parâmetro desconhecido ou ainda não promovido ao catálogo.'],
+            ]);
+        }
+
+        $param = OrcCatalogoParametro::query()->where('chave', $chave)->first();
+        if (! $param) {
+            throw ValidationException::withMessages([
+                'chave' => ['Parâmetro ainda não semeado. Execute o seed do catálogo ORC.'],
+            ]);
+        }
+
+        $de = $this->parametroOut($param);
+        if (array_key_exists('valor', $data) && $data['valor'] !== null) {
+            $param->valor = (float) $data['valor'];
+        }
+        if (array_key_exists('ativo', $data)) {
+            $param->ativo = (bool) $data['ativo'];
+        }
+        if (array_key_exists('rotulo', $data) && $data['rotulo'] !== null) {
+            $param->rotulo = (string) $data['rotulo'];
+        }
+        if (array_key_exists('unidade', $data) && $data['unidade'] !== null) {
+            $param->unidade = (string) $data['unidade'];
+        }
+        if (array_key_exists('ordem', $data) && $data['ordem'] !== null) {
+            $param->ordem = (int) $data['ordem'];
+        }
+        $param->save();
+        $para = $this->parametroOut($param);
+        $this->audit->log('orc_catalogo.parametro.atualizar', 'orc_catalogo_parametro', $param->id, $de, $para);
+
+        return $para;
+    }
+
+    /** @return array<string, mixed> */
+    private function parametroOut(OrcCatalogoParametro $p): array
+    {
+        return [
+            'id' => $p->id,
+            'chave' => $p->chave,
+            'valor' => (float) $p->valor,
+            'rotulo' => $p->rotulo,
+            'unidade' => $p->unidade,
+            'ativo' => (bool) $p->ativo,
+            'ordem' => (int) $p->ordem,
+            'updated_at' => $p->updated_at?->toISOString(),
+        ];
     }
 
     /**
@@ -515,12 +674,25 @@ class OrcamentoCatalogoAdminService
         }
         ksort($tarifas, SORT_NATURAL);
 
+        $bens = [];
+        if ($m->relationLoaded('bensPatrimoniais')) {
+            foreach ($m->bensPatrimoniais as $bem) {
+                $bens[] = [
+                    'id' => $bem->id,
+                    'codigo' => $bem->codigo,
+                    'descricao' => $bem->descricao,
+                    'status' => $bem->status,
+                ];
+            }
+        }
+
         return [
             'id' => $m->id,
             'nome' => $m->nome,
             'ativo' => (bool) $m->ativo,
             'ordem' => (int) $m->ordem,
             'tarifas' => $tarifas,
+            'bens_vinculados' => $bens,
             'updated_at' => $m->updated_at?->toISOString(),
         ];
     }

@@ -1,0 +1,653 @@
+================================================================================
+  ZAP OUTBOUND GATEWAY — ESPECIFICAÇÃO DE SISTEMA (v1.0)
+  Workspace: trigger/41
+  Referência de aprendizado: trigger/25 (agente IA inbound — NÃO reutilizar portas)
+================================================================================
+  Papéis aplicados neste desenho:
+  - Eng. Software / Arquitetura: contratos estáveis, falha controlada, observabilidade
+  - Eng. Sistemas / SRE: Docker, filas, isolamento, healthchecks, restart policies
+  - Eng. Dados: auditoria, idempotência, retenção, correlação
+  - Segurança: segregação por sender, least privilege, segredos fora do código
+  - UX/DX: API previsível, admin claro, QR/pairing sem atrito operacional
+================================================================================
+
+
+1. PROBLEMA QUE ESTE SISTEMA RESOLVE
+--------------------------------------------------------------------------------
+O sistema #25 é um agente que RECEBE mensagem no WhatsApp e responde com IA.
+
+Este sistema (#41) é o inverso operacional:
+
+  Sistema externo X  --POST-->  Zap Gateway  --> Fila  --> Worker
+       --> Canal WhatsApp VINCULADO  --> Destinatário
+
+É um GATEWAY DE ENVIO MULTI-TENANT POR CELULAR:
+- Cada celular/WhatsApp cadastrado é um "Sender" isolado.
+- O POST não escolhe "qualquer Zap genérico": ele fala com um cadastro específico
+  (sender_id / api_key daquele vínculo).
+- Trocar o número físico (novo aparelho / novo WhatsApp) é operação de vínculo
+  no cadastro; o contrato do Sistema X permanece o mesmo (mesmo sender_id).
+
+
+2. OBJETIVOS DE PRODUTO
+--------------------------------------------------------------------------------
+[Must]
+- Aceitar POST autenticado com payload completo da mensagem.
+- Enfileirar com resposta rápida (202 Accepted).
+- Processar a fila e enviar via Evolution API (mesmo stack consolidado no #25).
+- Isolar totalmente os enviadores (creds, sessão, fila lógica, rate limit).
+- Permitir rebind do celular sem quebrar integradores.
+
+[Should]
+- Idempotência por (sender_id + external_id).
+- Retentativas com backoff + DLQ (dead-letter).
+- Status de entrega consultável (queued / processing / sent / failed / dead).
+- Painel admin mínimo (senders, QR, fila, falhas).
+
+[Could — fase 2]
+- Templates / mídia / documentos.
+- Webhook de callback para o Sistema X (status sent/failed).
+- Escala horizontal de workers por fila.
+
+
+3. NÃO-OBJETIVOS (para não misturar com #25)
+--------------------------------------------------------------------------------
+- NÃO responder conversas com IA.
+- NÃO qualificar leads.
+- NÃO compartilhar Redis/Postgres/Evolution/portas do #25.
+- NÃO expor Postgres/Redis/RabbitMQ na rede do host em produção
+  (só API + Evolution admin/QR em portas dedicadas).
+
+
+4. FLUXO PRINCIPAL (Ponta a ponta)
+--------------------------------------------------------------------------------
+
+  ┌─────────────┐   HTTPS POST /v1/messages    ┌──────────────────┐
+  │ Sistema X   │ ───────────────────────────► │  API Gateway     │
+  │ (ERP, CRM,  │   Authorization: Bearer …    │  (FastAPI)       │
+  │  bot, etc.)  │                              └────────┬─────────┘
+  └─────────────┘                                       │
+                                                        │ 1) autentica sender
+                                                        │ 2) valida payload
+                                                        │ 3) grava outbox (DB)
+                                                        │ 4) publica na fila
+                                                        │ 5) retorna 202
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │  Fila RabbitMQ   │
+                                               │  routing por     │
+                                               │  sender_id       │
+                                               └────────┬─────────┘
+                                                        │ consume
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │  Worker Send     │
+                                               │  - claim job     │
+                                               │  - resolve vínculo│
+                                               │  - rate limit    │
+                                               │  - chama Evolution│
+                                               └────────┬─────────┘
+                                                        │
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │ Evolution API    │
+                                               │ instance = sender│
+                                               └────────┬─────────┘
+                                                        │ WhatsApp
+                                                        ▼
+                                               ┌──────────────────┐
+                                               │ Destinatário     │
+                                               └──────────────────┘
+
+Estados da mensagem (máquina simples):
+  received -> queued -> processing -> sent
+                              |         ^
+                              +-> failed -> (retry) -> processing
+                              |
+                              +-> dead (esgotou retries / permanente)
+
+
+5. MODELO DE SEGREGAÇÃO DOS ENVIADORES (CRÍTICO)
+--------------------------------------------------------------------------------
+Princípio: "um cadastro = um celular = uma identidade de API = uma fila lógica".
+
+5.1 Entidade SENDER (cadastro do zap)
+  - id (UUID)
+  - name (rótulo interno, ex: "comercial-filial-01")
+  - phone_e164 (número vinculado quando conectado)
+  - evolution_instance (nome da instance na Evolution — único)
+  - api_key_hash (nunca guardar a key em claro)
+  - api_key_prefix (para UX de suporte, ex: zpg_live_ab12…)
+  - status: pending_pair | active | paused | revoked | rebind_required
+  - rate_limit_per_minute
+  - created_at / updated_at / last_connected_at
+
+5.2 Isolamento garantido
+  Rede / processo:
+  - Workers NÃO usam uma session global.
+  - Cada job carrega sender_id; o worker só usa a instance Evolution daquele sender.
+  - Credenciais do Sistema X autenticam 1:1 com o sender (Bearer daquele cadastro).
+
+  Dados:
+  - Mensagens sempre com FK sender_id.
+  - Row Level guard no service: job.sender_id deve bater com a instance usada.
+  - Logs com sender_id, never misturar phones de senders diferentes no mesmo job.
+
+  Fila:
+  - Exchange: zap.send
+  - Routing key: sender.{sender_id}
+  - Queue dedicada: q.sender.{sender_id}  (ou sharding por hash se muitos senders)
+  - Prefetch baixo (ex: 1–5) para não monopolizar um número.
+
+5.3 Rebind / substituir o Zap do cadastro
+  Caso de uso: troca de chip/aparelho sem mudar o Sistema X.
+
+  Fluxo:
+  1) Admin marca sender como rebind_required (pausar envios).
+  2) Logout/delete da instance antiga na Evolution (ou rotaciona instance name).
+  3) Cria nova instance e gera QR.
+  4) Escaneia no novo celular.
+  5) Atualiza phone_e164 + status=active.
+  6) Retoma consumindo a fila do MESMO sender_id.
+
+  Contrato do Sistema X permanece:
+    POST /v1/messages  + Bearer <mesma api_key do cadastro>
+  O "zap da mensagem" passa a ser o novo aparelho vinculado.
+
+
+6. CONTRATO DA API (Sistema X → Gateway)
+--------------------------------------------------------------------------------
+Base URL (host): http://localhost:8141
+
+6.1 Autenticação
+  Authorization: Bearer <SENDER_API_KEY>
+  Alternativa header: X-Sender-Key: <SENDER_API_KEY>
+
+  A key identifica o sender. Não existe "account root" no POST de envio.
+  (Admin usa outro token: ADMIN_TOKEN, só no painel / rotas /v1/admin/*)
+
+6.2 Criar mensagem (assíncrono)
+  POST /v1/messages
+  Content-Type: application/json
+
+  {
+    "external_id": "erp-order-998877",          // obrigatório p/ idempotência
+    "to": "5534999999999",                     // E.164 sem +
+    "type": "text",                            // text | (fase2: image, document)
+    "body": "Olá, seu pedido saiu para entrega.",
+    "metadata": {                              // livre, auditável
+      "order_id": "998877",
+      "source": "erp-wms"
+    },
+    "priority": "normal",                      // normal | high
+    "schedule_at": null                        // ISO-8601 opcional (fase 2)
+  }
+
+  Respostas:
+  202 Accepted
+  {
+    "id": "msg_01H…",
+    "external_id": "erp-order-998877",
+    "status": "queued",
+    "sender_id": "snd_01H…",
+    "created_at": "2026-08-07T16:00:00Z"
+  }
+
+  200 OK (replay idempotente — mesma external_id já existia)
+  401 Unauthorized (key inválida / sender revoked)
+  403 Forbidden (sender paused / rebind_required)
+  422 Unprocessable Entity (payload inválido)
+  429 Too Many Requests (rate limit do sender)
+
+6.3 Consultar status
+  GET /v1/messages/{id}
+  GET /v1/messages/by-external/{external_id}
+
+6.4 Health
+  GET /health          → liveness
+  GET /ready           → readiness (DB + RabbitMQ + Redis)
+
+6.5 Admin (protegido por ADMIN_TOKEN)
+  POST   /v1/admin/senders                 criar sender + gera api_key (mostra 1x)
+  GET    /v1/admin/senders
+  GET    /v1/admin/senders/{id}
+  POST   /v1/admin/senders/{id}/pair       inicia pairing / retorna QR
+  POST   /v1/admin/senders/{id}/rebind     inicia troca de aparelho
+  POST   /v1/admin/senders/{id}/pause
+  POST   /v1/admin/senders/{id}/resume
+  POST   /v1/admin/senders/{id}/rotate-key
+  GET    /v1/admin/queue/stats
+  GET    /v1/admin/messages?status=failed
+
+
+7. DADOS (modelo mínimo)
+--------------------------------------------------------------------------------
+senders
+  id, name, phone_e164, evolution_instance, api_key_hash, api_key_prefix,
+  status, rate_limit_per_minute, created_at, updated_at, last_connected_at
+
+messages (outbox + auditoria)
+  id, sender_id, external_id, to_phone, type, body, metadata_json,
+  status, attempts, last_error, evolution_message_id,
+  queued_at, processing_at, sent_at, failed_at, dead_at,
+  UNIQUE(sender_id, external_id)
+
+delivery_events (append-only)
+  id, message_id, event, detail_json, created_at
+
+Regras de dados:
+- Nunca deletar mensagens enviadas (retenção configurável, ex: 90 dias).
+- Soft-pause de sender não apaga fila; só deixa de consumir / rejeita novos POSTs.
+- PII (telefone/corpo): logs com masking parcial (5534****9999).
+
+
+8. FILA E PROCESSAMENTO (melhor caminho)
+--------------------------------------------------------------------------------
+Broker: RabbitMQ 3.13 (melhor DX + DLQ + management UI) em vez de só Redis list.
+Redis continua útil para: rate limit, locks curtos, cache de estado de connection.
+
+Por que RabbitMQ aqui (e não só Redis):
+- Ack / nack / requeue nativos
+- DLQ madura
+- Routing por sender
+- Visibilidade operacional (management UI)
+
+Política de retry:
+- max_attempts = 5
+- backoff: 15s, 45s, 2m, 5m, 15m
+- erros permanentes (número inválido, sender revoked) → dead imediato
+- erros transitórios (Evolution down, WhatsApp delay) → retry
+
+Worker:
+- consome 1 routing key / queue do sender
+- abre "claim" no DB (status=processing, attempts++)
+- verifica sender.active e instance connected
+- aplica rate limit por sender (Redis token bucket)
+- chama Evolution: POST /message/sendText/{instance}
+- marca sent + grava evolution_message_id
+- em falha: nack com delay / publica delay queue / ou dead
+
+
+9. INTEGRAÇÃO EVOLUTION (alinhada ao #25, isolada)
+--------------------------------------------------------------------------------
+Imagem: evoapicloud/evolution-api:v2.3.7 (mesma linha estável do #25)
+
+Por sender:
+  instanceName = sender.evolution_instance  (ex: snd_01HABC)
+  integration  = WHATSAPP-BAILEYS
+  qrcode       = true
+
+Envio texto (exemplo conceitual):
+  POST {EVOLUTION_URL}/message/sendText/{instance}
+  Header: apikey: {EVOLUTION_KEY}
+  Body: { "number": "5534…", "text": "…" }
+
+Webhook Evolution (opcional neste sistema):
+  - CONNECTION_UPDATE → atualizar sender.status / last_connected_at
+  - NÃO processar conversas inbound com IA (fora de escopo)
+
+Segurança Evolution:
+- EVOLUTION_KEY forte, só rede interna Docker.
+- Host publica só porta 8142 para QR/admin local.
+- Em produção, colocar Traefik/Caddy + auth na frente.
+
+
+10. PORTAS (livre neste host — NÃO colidir com #25 e demais triggers)
+--------------------------------------------------------------------------------
+Levantamento de portas já vistas nos triggers: 8000, 8085, 5432, 6379, 5050,
+8080, 3000, 9000, 9100, etc.
+
+Portas ESCOLHIDAS para o #41 (verificadas livres em 2026-08-07):
+
+  Serviço                 Interno Docker     Host (publish)
+  ----------------------  -----------------  --------------------
+  API Gateway (FastAPI)   8000               8141
+  Evolution API           8080               8142
+  Admin UI (nginx/static) 80                 8143   (opcional)
+  Postgres                5432               5437   (dev only)
+  Redis                   6379               6381   (dev only)
+  RabbitMQ AMQP           5672               5671   (dev only)
+  RabbitMQ Management     15672              15641  (dev only)
+  pgAdmin                 80                 5051   (profile: tools)
+
+Regra:
+- Em production compose: NÃO publicar 5437/6381/5671 — só 8141 (API) e,
+  se necessário, 8142 atrás de reverse proxy autenticado.
+
+
+11. DOCKER — ARQUITETURA DE COMPOSE (melhor forma)
+--------------------------------------------------------------------------------
+Serviços:
+
+  api          → FastAPI (ingress POST + status + admin API)
+  worker       → consumidor da fila (escalável: deploy.replicas)
+  postgres     → estado + outbox + auditoria
+  redis        → rate limit / locks
+  rabbitmq     → fila + DLQ
+  evolution    → ponta WhatsApp
+  admin-ui     → UI estática opcional (profile: ui)
+  pgadmin      → profile: tools
+
+Boas práticas aplicadas:
+- Networks bridge própria: zap-gateway-net
+- Healthchecks em todos os serviços críticos
+- depends_on com condition: service_healthy
+- Volumes nomeados (não bind de data dir em produção)
+- .env + .env.example (segredos nunca commitados)
+- API/worker mesma imagem, comando diferente (CMD override)
+- Restart: unless-stopped
+- Resource limits sugeridos (memória worker/evolution)
+- Usuário non-root na imagem da API
+- Multi-stage Dockerfile (builder + runtime slim)
+
+
+12. ESBOÇO docker-compose.yml (referência para implementação)
+--------------------------------------------------------------------------------
+# NOTA: este bloco é a especificação-alvo. Implementar em arquivos reais no passo seguinte.
+
+services:
+  api:
+    build: .
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    container_name: zap-gateway-api
+    restart: unless-stopped
+    ports:
+      - "8141:8000"
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zap:zap@postgres:5432/zap_gateway
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zap:zap@rabbitmq:5672/zap
+      EVOLUTION_URL: http://evolution:8080
+    depends_on:
+      postgres:  { condition: service_healthy }
+      redis:     { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
+
+  worker:
+    build: .
+    command: ["python", "-m", "app.worker"]
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zap:zap@postgres:5432/zap_gateway
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zap:zap@rabbitmq:5672/zap
+      EVOLUTION_URL: http://evolution:8080
+    depends_on:
+      postgres:  { condition: service_healthy }
+      redis:     { condition: service_healthy }
+      rabbitmq:  { condition: service_healthy }
+      evolution: { condition: service_started }
+    networks: [zap-gateway-net]
+    # escala: docker compose up -d --scale worker=3
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zap
+      POSTGRES_PASSWORD: zap
+      POSTGRES_DB: zap_gateway
+    ports: ["5437:5432"]            # remover em produção
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zap -d zap_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports: ["6381:6379"]            # remover em produção
+    volumes: [redis_data:/data]
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: zap
+      RABBITMQ_DEFAULT_PASS: zap
+      RABBITMQ_DEFAULT_VHOST: zap
+    ports:
+      - "5671:5672"                 # remover em produção
+      - "15641:15672"               # UI management
+    volumes: [rabbit_data:/var/lib/rabbitmq]
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: zap-gateway-evolution
+    restart: unless-stopped
+    ports: ["8142:8080"]
+    environment:
+      SERVER_URL: http://localhost:8142
+      AUTHENTICATION_API_KEY: ${EVOLUTION_KEY}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://zap:zap@postgres:5432/evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evo_zap_gateway
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://api:8000/webhook/evolution
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      # NÃO habilitar messages.upsert para IA — este gateway é outbound
+    volumes: [evolution_data:/evolution/instances]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    networks: [zap-gateway-net]
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    profiles: ["tools"]
+    ports: ["5051:80"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks: [zap-gateway-net]
+
+volumes:
+  pg_data:
+  redis_data:
+  rabbit_data:
+  evolution_data:
+
+networks:
+  zap-gateway-net:
+    driver: bridge
+
+
+13. VARIÁVEIS .env.example (alvo)
+--------------------------------------------------------------------------------
+APP_NAME=zap-outbound-gateway
+APP_ENV=development
+LOG_LEVEL=INFO
+HOST=0.0.0.0
+PORT=8000
+
+# Host publishes (documentação / compose)
+API_HOST_PORT=8141
+EVOLUTION_HOST_PORT=8142
+ADMIN_UI_HOST_PORT=8143
+POSTGRES_HOST_PORT=5437
+REDIS_HOST_PORT=6381
+RABBITMQ_AMQP_HOST_PORT=5671
+RABBITMQ_MGMT_HOST_PORT=15641
+
+ADMIN_TOKEN=change-me-admin-token-strong
+WEBHOOK_SECRET=change-me-webhook-secret
+
+DATABASE_URL=postgresql+asyncpg://zap:zap@postgres:5432/zap_gateway
+DATABASE_URL_SYNC=postgresql://zap:zap@postgres:5432/zap_gateway
+REDIS_URL=redis://redis:6379/0
+RABBITMQ_URL=amqp://zap:zap@rabbitmq:5672/zap
+
+EVOLUTION_URL=http://evolution:8080
+EVOLUTION_KEY=change-me-evolution-key-strong
+
+# Política de envio
+DEFAULT_RATE_LIMIT_PER_MINUTE=20
+MAX_SEND_ATTEMPTS=5
+MESSAGE_RETENTION_DAYS=90
+
+
+14. UX OPERACIONAL (admin humano)
+--------------------------------------------------------------------------------
+Jornada feliz (primeiro sender):
+  1) docker compose up -d --build
+  2) abrir http://localhost:8141/docs
+  3) criar sender (admin) → recebe api_key UMA vez → guardar no cofre/Sistema X
+  4) POST pair → abrir QR (UI ou base64)
+  5) celular: WhatsApp → Aparelhos conectados → escanear
+  6) status sender=active
+  7) Sistema X faz POST /v1/messages com a api_key
+  8) acompanhar RabbitMQ http://localhost:15641 (user/pass do .env)
+  9) consultar GET /v1/messages/{id}
+
+Princípios UX:
+- Feedback imediato no POST (202), nunca fazer integrador esperar o WhatsApp.
+- Erros acionáveis (sender_paused, invalid_phone, not_paired).
+- QR com TTL e botão "gerar novo".
+- Rebind guiado em 3 passos (pausar → novo QR → retomar).
+
+
+15. SEGURANÇA (checklist)
+--------------------------------------------------------------------------------
+[ ] API keys de sender com entropia alta (zpg_live_ + 32+ bytes random)
+[ ] Guardar apenas hash (argon2id / bcrypt)
+[ ] Rotação de key com invalidate imediato
+[ ] Rate limit por sender + global
+[ ] Validação rígida de telefone E.164
+[ ] Bloquear envio se sender não estiver active/connected
+[ ] Segredos só em .env / secret manager
+[ ] Rede Docker interna; minimizar publish de portas
+[ ] Logs sem corpo completo em produção (ou hash/truncar)
+[ ] Audit trail de ações admin (pair, rebind, rotate-key, pause)
+[ ] Separação total do stack #25 (containers, volumes, DB, ports)
+
+
+16. OBSERVABILIDADE
+--------------------------------------------------------------------------------
+- Structured logs JSON: request_id, sender_id, message_id, external_id
+- Métricas Prometheus (fase 2): enqueue_rate, send_success, send_fail, queue_depth
+- Tracing opcional OpenTelemetry api→worker→evolution
+- Alertas: DLQ > 0, sender disconnected, evolution unhealthy, API 5xx
+
+
+17. ESTRUTURA DE PASTAS SUGERIDA (quando for implementar)
+--------------------------------------------------------------------------------
+trigger/41/
+  SISTEMA_ZAP_GATEWAY.txt          ← este documento
+  docker-compose.yml
+  Dockerfile
+  .env.example
+  README.md
+  app/
+    main.py
+    worker.py
+    api/routes/ {messages, admin, webhook, health}
+    domain/     {sender, message, delivery}
+    services/   {ingest, dispatch, pairing, rate_limit}
+    integrations/evolution/
+    repositories/
+    schemas/
+  alembic/
+  scripts/init-databases.sh
+  admin-ui/                        (opcional)
+  tests/
+
+
+18. PLANO DE IMPLEMENTAÇÃO (ordem correta)
+--------------------------------------------------------------------------------
+Fase A — Fundação
+  1. Scaffold FastAPI + Docker compose com portas 8141+
+  2. Postgres schema (senders, messages) + Alembic
+  3. RabbitMQ topologia (exchange, DLQ)
+
+Fase B — Sender + Pairing
+  4. CRUD admin de senders + geração de api_key
+  5. Integração Evolution create/connect/QR
+  6. Webhook connection.update
+
+Fase C — Envio
+  7. POST /v1/messages (outbox + enqueue)
+  8. Worker sendText + estados + retry/DLQ
+  9. Idempotência (sender_id, external_id)
+
+Fase D — Endurecimento
+  10. Rate limit, pause/resume, rebind
+  11. Testes de contrato + carga leve
+  12. README operacional (igual clareza do #25)
+
+
+19. EXEMPLO RÁPIDO PARA O SISTEMA X
+--------------------------------------------------------------------------------
+# 1) Enfileirar mensagem no sender vinculado
+curl -X POST http://localhost:8141/v1/messages \
+  -H "Authorization: Bearer zpg_live_SEU_TOKEN_DO_SENDER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_id": "pedido-1001",
+    "to": "5534999999999",
+    "type": "text",
+    "body": "Seu pedido #1001 foi confirmado."
+  }'
+
+# 2) Consultar status
+curl http://localhost:8141/v1/messages/by-external/pedido-1001 \
+  -H "Authorization: Bearer zpg_live_SEU_TOKEN_DO_SENDER"
+
+
+20. DECISÕES DE ARQUITETURA (ADRs curtos)
+--------------------------------------------------------------------------------
+ADR-001: Outbox no Postgres + RabbitMQ
+  Motivo: não perder mensagem se o broker oscilar; fonte de verdade no DB.
+
+ADR-002: Auth do POST = api_key do sender (não tenant genérico)
+  Motivo: POST conversa direto com o cadastro do zap; isolamento forçado.
+
+ADR-003: Evolution por instanceName == sender
+  Motivo: segregação de sessão WhatsApp; rebind troca a session, mantém sender_id.
+
+ADR-004: Portas 8141+ / 5437 / 6381 / 5671 / 15641 / 5051
+  Motivo: convivência com #25 (8000/8085/5432/6379/5050) e demais triggers.
+
+ADR-005: Sem IA neste sistema
+  Motivo: responsabilidade única — transporte confiável de mensagens outbound.
+
+
+21. RESUMO EM UMA FRASE
+--------------------------------------------------------------------------------
+Sistema X autentica contra um Sender cadastrado, posta a mensagem, o gateway
+enfileira com isolamento total, o worker envia pelo WhatsApp vinculado àquele
+Sender — e trocar o celular é rebind do cadastro, não mudança no integrador.
+
+
+================================================================================
+  Fim da especificação v1.0 — pronto para implementação em trigger/41
+================================================================================

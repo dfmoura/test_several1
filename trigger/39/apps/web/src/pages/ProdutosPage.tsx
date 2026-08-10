@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, fiscalConsulta, type Produto, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { familiaLabel, formatUnitPrice } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
+
+const SORT = {
+  codigo: (p: Produto) => p.codigo,
+  familia: (p: Produto) => p.familia,
+  grupo: (p: Produto) => p.grupo ?? p.grupo_catalogo?.codigo,
+  descricao: (p: Produto) => p.descricao_comercial ?? p.descricao_fiscal,
+  ncm: (p: Produto) => p.ncm,
+  unidade: (p: Produto) => p.unidade_comercial,
+  preco: (p: Produto) => (p.preco_tabela != null ? Number(p.preco_tabela) : null),
+  situacao: (p: Produto) => p.situacao,
+};
 
 export function ProdutosPage() {
   const { hasPermission } = useAuth();
@@ -17,6 +30,7 @@ export function ProdutosPage() {
   const [familia, setFamilia] = useState('');
   const [grupo, setGrupo] = useState('');
   const [loading, setLoading] = useState(true);
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(produtos, SORT);
 
   const load = async (search?: string, fam?: string, grp?: string) => {
     setLoading(true);
@@ -118,7 +132,7 @@ export function ProdutosPage() {
       </div>
 
       <div className="card">
-        <div className="table-wrap">
+        <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : produtos.length === 0 ? (
@@ -127,18 +141,34 @@ export function ProdutosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Família</th>
-                  <th>Grupo</th>
-                  <th>Descrição</th>
-                  <th>NCM</th>
-                  <th>Unidade</th>
-                  <th>Preço</th>
-                  <th>Situação</th>
+                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="familia" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Família
+                  </SortableTh>
+                  <SortableTh column="grupo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Grupo
+                  </SortableTh>
+                  <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Descrição
+                  </SortableTh>
+                  <SortableTh column="ncm" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    NCM
+                  </SortableTh>
+                  <SortableTh column="unidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Unidade
+                  </SortableTh>
+                  <SortableTh column="preco" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Preço
+                  </SortableTh>
+                  <SortableTh column="situacao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Situação
+                  </SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {produtos.map((p) => (
+                {sorted.map((p) => (
                   <tr
                     key={p.id}
                     className="clickable"

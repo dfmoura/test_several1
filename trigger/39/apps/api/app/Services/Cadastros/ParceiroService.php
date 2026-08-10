@@ -23,7 +23,7 @@ class ParceiroService
     {
         $query = Parceiro::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['contatos', 'contasBancarias'])
+            ->with(['contatos', 'contasBancarias', 'enderecosEntrega'])
             ->orderBy('razao_social');
 
         if ($q) {
@@ -160,8 +160,9 @@ class ParceiroService
         $this->assertCnpjUnique($empresa->id, $data['cnpj_cpf'] ?? null);
         $contatos = $this->normalizeContatos($data['contatos'] ?? null);
         $contas = $this->normalizeContas($data['contas_bancarias'] ?? null);
+        $enderecosEntrega = $this->normalizeEnderecosEntrega($data['enderecos_entrega'] ?? null);
 
-        return DB::transaction(function () use ($empresa, $data, $contatos, $contas) {
+        return DB::transaction(function () use ($empresa, $data, $contatos, $contas, $enderecosEntrega) {
             $codigo = $data['codigo'] ?? $this->codigoGenerator->nextCode($empresa->id, 'PAR', 5);
 
             $attributes = $this->mapAttributes($data);
@@ -176,6 +177,7 @@ class ParceiroService
 
             $this->syncContatos($parceiro, $contatos);
             $this->syncContas($parceiro, $contas);
+            $this->syncEnderecosEntrega($parceiro, $enderecosEntrega);
             $this->openFiscalHistorico($parceiro, 'Cadastro inicial', Auth::id());
 
             $this->auditLogger->log(
@@ -183,10 +185,10 @@ class ParceiroService
                 'parceiro',
                 $parceiro->id,
                 null,
-                $parceiro->fresh(['contatos', 'contasBancarias', 'fiscaisHistorico'])->toArray()
+                $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico'])->toArray()
             );
 
-            return $parceiro->fresh(['contatos', 'contasBancarias', 'fiscaisHistorico']);
+            return $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico']);
         });
     }
 
@@ -200,14 +202,19 @@ class ParceiroService
 
         $hasContatos = array_key_exists('contatos', $data);
         $hasContas = array_key_exists('contas_bancarias', $data);
+        $hasEnderecosEntrega = array_key_exists('enderecos_entrega', $data);
         $contatos = $hasContatos ? $this->normalizeContatos($data['contatos']) : null;
         $contas = $hasContas ? $this->normalizeContas($data['contas_bancarias']) : null;
+        $enderecosEntrega = $hasEnderecosEntrega
+            ? $this->normalizeEnderecosEntrega($data['enderecos_entrega'])
+            : null;
 
-        $before = $parceiro->load(['contatos', 'contasBancarias', 'fiscaisHistorico'])->toArray();
+        $before = $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico'])->toArray();
         $beforeFiscal = $parceiro->only(ParceiroFiscalRules::vigenciaFields());
 
         return DB::transaction(function () use (
-            $parceiro, $data, $hasContatos, $hasContas, $contatos, $contas, $before, $beforeFiscal
+            $parceiro, $data, $hasContatos, $hasContas, $hasEnderecosEntrega,
+            $contatos, $contas, $enderecosEntrega, $before, $beforeFiscal
         ) {
             $attributes = $this->mapAttributes($data);
 
@@ -249,6 +256,10 @@ class ParceiroService
                 $this->syncContas($parceiro, $contas);
             }
 
+            if ($hasEnderecosEntrega) {
+                $this->syncEnderecosEntrega($parceiro, $enderecosEntrega);
+            }
+
             $parceiro->refresh();
             $afterFiscal = $parceiro->only(ParceiroFiscalRules::vigenciaFields());
             if (ParceiroFiscalRules::fiscalChanged($beforeFiscal, $afterFiscal)) {
@@ -259,7 +270,7 @@ class ParceiroService
                 );
             }
 
-            $fresh = $parceiro->fresh(['contatos', 'contasBancarias', 'fiscaisHistorico']);
+            $fresh = $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico']);
             $this->auditLogger->log('ATUALIZAR', 'parceiro', $parceiro->id, $before, $fresh->toArray());
 
             return $fresh;
@@ -551,6 +562,110 @@ class ParceiroService
     }
 
     /**
+     * Lista vazia = entrega no mesmo endereço fiscal (não duplica).
+     *
+     * @param  list<array<string, mixed>>|null  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeEnderecosEntrega(?array $rows): array
+    {
+        if ($rows === null) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach (array_values($rows) as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $apelido = $this->nullableString($row['apelido'] ?? null);
+            $logradouro = $this->nullableString($row['logradouro'] ?? null);
+            $numero = $this->nullableString($row['numero'] ?? null);
+            $complemento = $this->nullableString($row['complemento'] ?? null);
+            $bairro = $this->nullableString($row['bairro'] ?? null);
+            $municipio = $this->nullableString($row['municipio'] ?? null);
+            $uf = $this->nullableString($row['uf'] ?? null);
+            if ($uf !== null) {
+                $uf = strtoupper($uf);
+            }
+            $cep = $this->digitsOrNull($row['cep'] ?? null);
+            $ibge = $this->digitsOrNull($row['ibge'] ?? null);
+            $responsavelNome = $this->nullableString($row['responsavel_nome'] ?? null);
+            $responsavelTelefone = $this->digitsOrNull($row['responsavel_telefone'] ?? null);
+            $responsavelDocumento = $this->nullableString($row['responsavel_documento'] ?? null);
+            $observacoes = $this->nullableString($row['observacoes'] ?? null);
+
+            $hasAny = $apelido !== null
+                || $logradouro !== null
+                || $numero !== null
+                || $complemento !== null
+                || $bairro !== null
+                || $municipio !== null
+                || $uf !== null
+                || $cep !== null
+                || $ibge !== null
+                || $responsavelNome !== null
+                || $responsavelTelefone !== null
+                || $responsavelDocumento !== null
+                || $observacoes !== null;
+
+            if (! $hasAny) {
+                continue;
+            }
+
+            $prefix = "enderecos_entrega.{$index}";
+            $errors = [];
+
+            if ($responsavelNome === null) {
+                $errors["{$prefix}.responsavel_nome"] = ['Informe o responsável por receber neste endereço de entrega.'];
+            }
+            if ($logradouro === null) {
+                $errors["{$prefix}.logradouro"] = ['Informe o logradouro do endereço de entrega.'];
+            }
+            if ($numero === null) {
+                $errors["{$prefix}.numero"] = ['Informe o número do endereço de entrega.'];
+            }
+            if ($bairro === null) {
+                $errors["{$prefix}.bairro"] = ['Informe o bairro do endereço de entrega.'];
+            }
+            if ($municipio === null) {
+                $errors["{$prefix}.municipio"] = ['Informe o município do endereço de entrega.'];
+            }
+            if ($uf === null || strlen($uf) !== 2) {
+                $errors["{$prefix}.uf"] = ['Informe a UF (2 letras) do endereço de entrega.'];
+            }
+            if ($cep === null || strlen($cep) !== 8) {
+                $errors["{$prefix}.cep"] = ['Informe o CEP (8 dígitos) do endereço de entrega.'];
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $normalized[] = [
+                'apelido' => $apelido,
+                'logradouro' => $logradouro,
+                'numero' => $numero,
+                'complemento' => $complemento,
+                'bairro' => $bairro,
+                'municipio' => $municipio,
+                'uf' => $uf,
+                'cep' => $cep,
+                'ibge' => $ibge,
+                'responsavel_nome' => $responsavelNome,
+                'responsavel_telefone' => $responsavelTelefone,
+                'responsavel_documento' => $responsavelDocumento,
+                'observacoes' => $observacoes,
+                'principal' => (bool) ($row['principal'] ?? false),
+                'ordem' => (int) ($row['ordem'] ?? $index),
+            ];
+        }
+
+        return $this->ensureSinglePrincipal($normalized);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>
      */
@@ -602,6 +717,18 @@ class ParceiroService
 
         foreach ($contas as $row) {
             $parceiro->contasBancarias()->create($row);
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $enderecos
+     */
+    private function syncEnderecosEntrega(Parceiro $parceiro, array $enderecos): void
+    {
+        $parceiro->enderecosEntrega()->delete();
+
+        foreach ($enderecos as $row) {
+            $parceiro->enderecosEntrega()->create($row);
         }
     }
 

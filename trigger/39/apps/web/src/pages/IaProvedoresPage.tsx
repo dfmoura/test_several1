@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { ApiError, api, type IaProvedor } from '../lib/api';
 import { formatDateTime } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 type Mode = 'closed' | 'create' | 'edit';
 
@@ -40,6 +42,20 @@ export const IA_PROVEDOR_OPTIONS: { value: string; label: string }[] = [
   { value: 'openai_compatible', label: 'OpenAI-compatible (custom)' },
 ];
 
+function provedorLabel(tipo: string): string {
+  return IA_PROVEDOR_OPTIONS.find((o) => o.value === tipo)?.label ?? tipo;
+}
+
+const IA_SORT = {
+  nome: (p: IaProvedor) => p.nome,
+  tipo: (p: IaProvedor) => provedorLabel(p.provedor),
+  modelo: (p: IaProvedor) => p.modelo,
+  key: (p: IaProvedor) => p.api_key_mascara,
+  prioridade: (p: IaProvedor) => p.prioridade,
+  status: (p: IaProvedor) => (p.ativo ? 'ATIVO' : 'INATIVO'),
+  teste: (p: IaProvedor) => p.ultimo_teste_em,
+};
+
 const IA_MODELO_SUGESTAO: Record<string, string> = {
   openai: 'gpt-4o-mini',
   openai_compatible: 'gpt-4o-mini',
@@ -53,10 +69,6 @@ const IA_MODELO_SUGESTAO: Record<string, string> = {
   together: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
   perplexity: 'sonar',
 };
-
-function provedorLabel(tipo: string): string {
-  return IA_PROVEDOR_OPTIONS.find((o) => o.value === tipo)?.label ?? tipo;
-}
 
 function fieldErrors(err: unknown): string {
   if (err instanceof ApiError && err.details) {
@@ -91,6 +103,13 @@ export function IaProvedoresPage() {
         p.api_key_mascara.toLowerCase().includes(q),
     );
   }, [items, query]);
+
+  const {
+    sorted,
+    sortKey,
+    sortDir,
+    requestSort,
+  } = useTableSort(filtered, IA_SORT);
 
   const load = async () => {
     setLoading(true);
@@ -379,18 +398,38 @@ export function IaProvedoresPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Modelo</th>
-                  <th>Key</th>
-                  <th>Prioridade</th>
-                  <th>Status</th>
-                  <th>Último teste</th>
+                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh column="tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tipo
+                  </SortableTh>
+                  <SortableTh column="modelo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Modelo
+                  </SortableTh>
+                  <SortableTh column="key" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="Key">
+                    Key
+                  </SortableTh>
+                  <SortableTh column="prioridade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Prioridade
+                  </SortableTh>
+                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Status
+                  </SortableTh>
+                  <SortableTh
+                    column="teste"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    label="Último teste"
+                  >
+                    Último teste
+                  </SortableTh>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {sorted.map((p) => (
                   <tr key={p.id}>
                     <td>{p.nome}</td>
                     <td>{provedorLabel(p.provedor)}</td>

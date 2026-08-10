@@ -72,7 +72,10 @@ class OrcamentoService
     /** @return array<string, mixed> */
     public function show(Orcamento $orcamento): array
     {
-        $orcamento->loadMissing('parceiro:id,codigo,razao_social,nome_fantasia,is_prospect');
+        $orcamento->loadMissing([
+            'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
+            'linkAprovacao',
+        ]);
 
         return $this->toOut($orcamento);
     }
@@ -150,6 +153,15 @@ class OrcamentoService
         ];
 
         DB::transaction(function () use ($orcamento, $parceiro, $data, $input, $result, $before) {
+            // Recálculo após recusa: volta a preparação e invalida link antigo.
+            if ($orcamento->status === Orcamento::STATUS_REPROVADO) {
+                $link = $orcamento->linkAprovacao()->lockForUpdate()->first();
+                if ($link) {
+                    $link->fill(['ativo' => false]);
+                    $link->save();
+                }
+            }
+
             $orcamento->fill([
                 'versao' => $orcamento->versao + 1,
                 'parceiro_id' => $parceiro->id,
@@ -167,6 +179,14 @@ class OrcamentoService
                 'observacao' => array_key_exists('observacao', $data)
                     ? $data['observacao']
                     : $orcamento->observacao,
+                'decidido_em' => null,
+                'canal_aprovacao' => null,
+                'aceite_nome_cliente' => null,
+                'aceite_faixa_index' => null,
+                'aceite_ip' => null,
+                'aceite_user_agent' => null,
+                'motivo_decisao' => null,
+                'visualizado_em' => null,
             ]);
             $orcamento->save();
 
@@ -201,7 +221,10 @@ class OrcamentoService
     {
         if (! $orcamento->isEditavel()) {
             throw ValidationException::withMessages([
-                'status' => ['Orçamento não editável após envio/cancelamento — gere um novo ORC.'],
+                'status' => [
+                    'Orçamento não editável neste status (enviado/aprovado/cancelado). '
+                    .'Se foi rejeitado, edite e reenvie; caso contrário gere um novo ORC.',
+                ],
             ]);
         }
     }
@@ -346,6 +369,8 @@ class OrcamentoService
             'cliente_nome' => $o->cliente_nome,
             'status' => $o->status,
             'editavel' => $o->isEditavel(),
+            'enviavel' => $o->isEnviavel(),
+            'aguardando_cliente' => $o->aguardandoCliente(),
             'input_snapshot' => $o->input_snapshot,
             'result_snapshot' => $o->result_snapshot,
             'chave_matriz' => $o->chave_matriz,
@@ -355,6 +380,22 @@ class OrcamentoService
             'validade_dias' => $o->validade_dias,
             'tolerancia_qtd_pct' => $o->tolerancia_qtd_pct,
             'observacao' => $o->observacao,
+            'enviado_em' => $o->enviado_em?->toIso8601String(),
+            'visualizado_em' => $o->visualizado_em?->toIso8601String(),
+            'decidido_em' => $o->decidido_em?->toIso8601String(),
+            'canal_aprovacao' => $o->canal_aprovacao,
+            'aceite_nome_cliente' => $o->aceite_nome_cliente,
+            'aceite_faixa_index' => $o->aceite_faixa_index,
+            'motivo_decisao' => $o->motivo_decisao,
+            'link_aprovacao' => $o->relationLoaded('linkAprovacao') && $o->linkAprovacao
+                ? [
+                    'ativo' => (bool) $o->linkAprovacao->ativo,
+                    'expira_em' => $o->linkAprovacao->expira_em?->toIso8601String(),
+                    'visualizacoes' => $o->linkAprovacao->visualizacoes,
+                    'usado_em' => $o->linkAprovacao->usado_em?->toIso8601String(),
+                    // URL só via enviar-aprovacao (evita vazar token em listagens).
+                ]
+                : null,
             'parceiro' => $o->relationLoaded('parceiro') && $o->parceiro
                 ? [
                     'id' => $o->parceiro->id,

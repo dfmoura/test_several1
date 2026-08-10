@@ -166,3 +166,47 @@ export function IconHub({ className }: IconProps) {
     </IconBase>
   );
 }
+
+export function IconAsset({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="3" y="4" width="18" height="14" rx="1" />
+      <path d="M7 18v2" />
+      <path d="M17 18v2" />
+      <path d="M7 8h4" />
+      <path d="M7 12h10" />
+    </IconBase>
+  );
+}
+
+/** Mapa de facas — silhueta + grade. */
+export function IconFaca({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="4" y="5" width="10" height="14" rx="1.5" />
+      <circle cx="17.5" cy="9" r="2.5" />
+      <path d="M15 16h5" />
+      <path d="M15 19h3.5" />
+    </IconBase>
+  );
+}
+
+/** Ações de listagem — visualizar. */
+export function IconEye({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </IconBase>
+  );
+}
+
+/** Ações de listagem — editar. */
+export function IconPencil({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </IconBase>
+  );
+}

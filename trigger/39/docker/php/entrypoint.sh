@@ -57,6 +57,9 @@ fi
 # Sempre reaplicar RBAC de ORC (bancos já existentes / seed parcial / cache Spatie).
 php artisan orcamento:ensure-rbac --no-interaction || true
 
+# Mapa de facas: importa itens ausentes do JSON oficial (idempotente).
+php artisan facas:ensure-mapa --no-interaction || true
+
 php artisan storage:link 2>/dev/null || true
 
 exec "$@"

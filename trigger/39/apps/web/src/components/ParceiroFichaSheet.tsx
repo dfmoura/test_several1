@@ -165,6 +165,10 @@ export function ParceiroFichaSheet({
     if (a.principal !== b.principal) return a.principal ? -1 : 1;
     return (a.ordem ?? 0) - (b.ordem ?? 0);
   });
+  const enderecosEntrega = [...(p.enderecos_entrega ?? [])].sort((a, b) => {
+    if (a.principal !== b.principal) return a.principal ? -1 : 1;
+    return (a.ordem ?? 0) - (b.ordem ?? 0);
+  });
   const cnaesSec = Array.isArray(p.cnaes_secundarios) ? p.cnaes_secundarios : [];
   const showLegadoContato = hasText(p.contato_nome) || hasText(p.contato_funcao);
   const showPapelExtra = p.papel_fornecedor || p.papel_colaborador;
@@ -245,6 +249,57 @@ export function ParceiroFichaSheet({
           </div>
         </Section>
       </div>
+
+      <Section title="Entrega">
+        {enderecosEntrega.length === 0 ? (
+          <p className="ficha-inline-list">Mesmo do endereço fiscal</p>
+        ) : (
+          <table className="ficha-table">
+            <colgroup>
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '34%' }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '16%' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Apelido</th>
+                <th>Endereço</th>
+                <th>Responsável</th>
+                <th>Telefone</th>
+                <th>Documento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enderecosEntrega.map((e, idx) => (
+                <tr key={e.id ?? `${e.apelido}-${idx}`}>
+                  <td>
+                    {dash(e.apelido)}
+                    {e.principal ? <span className="ficha-flag">P</span> : null}
+                  </td>
+                  <td>
+                    {[e.logradouro, e.numero].filter(Boolean).join(', ') || '—'}
+                    {e.complemento ? ` — ${e.complemento}` : ''}
+                    <br />
+                    {[e.bairro, [e.municipio, e.uf].filter(Boolean).join('/')].filter(Boolean).join(' · ')}
+                    {e.cep ? ` · ${formatCep(e.cep)}` : ''}
+                    {e.observacoes ? (
+                      <>
+                        <br />
+                        <em>{e.observacoes}</em>
+                      </>
+                    ) : null}
+                  </td>
+                  <td>{dash(e.responsavel_nome)}</td>
+                  <td>{formatPhone(e.responsavel_telefone) || '—'}</td>
+                  <td>{dash(e.responsavel_documento)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
 
       <Section title="Fiscal">
         <div className="ficha-kv-grid cols-4">

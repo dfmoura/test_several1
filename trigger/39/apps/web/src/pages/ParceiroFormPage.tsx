@@ -4,6 +4,8 @@ import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
 import { QsaSociosPanel } from '../components/QsaSociosPanel';
+import { SortableTh } from '../components/SortableTh';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 import {
   api,
   type BancoConsulta,
@@ -13,6 +15,7 @@ import {
   type Parceiro,
   type ParceiroContaBancaria,
   type ParceiroContato,
+  type ParceiroEnderecoEntrega,
   type ParceiroFiscalHistorico,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -23,6 +26,7 @@ import {
   ieStatusLabel,
   suggestAreaIncentivada,
 } from '../lib/parceiroFiscal';
+import { useTableSort } from '../lib/useTableSort';
 
 const PAPEIS = [
   { key: 'papel_cliente', label: 'Cliente' },
@@ -35,7 +39,7 @@ const PAPEIS = [
   { key: 'papel_contador', label: 'Contador' },
 ] as const;
 
-const BASE_TABS = ['Identificação', 'Endereço', 'Fiscal', 'Contatos', 'Papéis', 'Financeiro'] as const;
+const BASE_TABS = ['Identificação', 'Endereço', 'Entrega', 'Fiscal', 'Contatos', 'Papéis', 'Financeiro'] as const;
 const PJ_ONLY_TABS = ['Atividades', 'Sócios'] as const;
 type BaseTab = (typeof BASE_TABS)[number];
 type PjTab = (typeof PJ_ONLY_TABS)[number];
@@ -47,6 +51,7 @@ function tabsForTipoPessoa(tipo: string): Tab[] {
       'Identificação',
       'Atividades',
       'Endereço',
+      'Entrega',
       'Fiscal',
       'Sócios',
       'Contatos',
@@ -85,6 +90,24 @@ type ContaForm = {
   conta: string;
   pix_chave: string;
   tipo_conta: string;
+  principal: boolean;
+};
+
+type EnderecoEntregaForm = {
+  key: string;
+  apelido: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  uf: string;
+  cep: string;
+  ibge: string;
+  responsavel_nome: string;
+  responsavel_telefone: string;
+  responsavel_documento: string;
+  observacoes: string;
   principal: boolean;
 };
 
@@ -142,6 +165,8 @@ type ParceiroFormData = {
   vinculo: string;
   cargo: string;
   departamento: string;
+  entrega_mesmo_fiscal: boolean;
+  enderecos_entrega: EnderecoEntregaForm[];
   contatos: ContatoForm[];
   contas: ContaForm[];
   historico: ParceiroFiscalHistorico[];
@@ -214,6 +239,26 @@ function emptyConta(principal = false): ContaForm {
   };
 }
 
+function emptyEnderecoEntrega(principal = false): EnderecoEntregaForm {
+  return {
+    key: nextKey('ee'),
+    apelido: '',
+    logradouro: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    municipio: '',
+    uf: '',
+    cep: '',
+    ibge: '',
+    responsavel_nome: '',
+    responsavel_telefone: '',
+    responsavel_documento: '',
+    observacoes: '',
+    principal,
+  };
+}
+
 const emptyForm = (): ParceiroFormData => ({
   tipo_pessoa: 'PJ',
   cnpj_cpf: '',
@@ -268,6 +313,8 @@ const emptyForm = (): ParceiroFormData => ({
   vinculo: '',
   cargo: '',
   departamento: '',
+  entrega_mesmo_fiscal: true,
+  enderecos_entrega: [emptyEnderecoEntrega(true)],
   contatos: [emptyContato(true)],
   contas: [emptyConta(true)],
   historico: [],
@@ -335,7 +382,32 @@ function mapContas(p: Parceiro): ContaForm[] {
   return [emptyConta(true)];
 }
 
+function mapEnderecosEntrega(p: Parceiro): EnderecoEntregaForm[] {
+  if (p.enderecos_entrega && p.enderecos_entrega.length > 0) {
+    return p.enderecos_entrega.map((e: ParceiroEnderecoEntrega) => ({
+      key: nextKey('ee'),
+      apelido: e.apelido ?? '',
+      logradouro: e.logradouro ?? '',
+      numero: e.numero ?? '',
+      complemento: e.complemento ?? '',
+      bairro: e.bairro ?? '',
+      municipio: e.municipio ?? '',
+      uf: e.uf ?? '',
+      cep: e.cep ?? '',
+      ibge: e.ibge ?? '',
+      responsavel_nome: e.responsavel_nome ?? '',
+      responsavel_telefone: e.responsavel_telefone ?? '',
+      responsavel_documento: e.responsavel_documento ?? '',
+      observacoes: e.observacoes ?? '',
+      principal: Boolean(e.principal),
+    }));
+  }
+
+  return [emptyEnderecoEntrega(true)];
+}
+
 function fromParceiro(p: Parceiro): ParceiroFormData {
+  const temEntrega = Boolean(p.enderecos_entrega && p.enderecos_entrega.length > 0);
   return {
     codigo: p.codigo,
     tipo_pessoa: p.tipo_pessoa ?? 'PJ',
@@ -391,6 +463,8 @@ function fromParceiro(p: Parceiro): ParceiroFormData {
     vinculo: p.vinculo ?? '',
     cargo: p.cargo ?? '',
     departamento: p.departamento ?? '',
+    entrega_mesmo_fiscal: !temEntrega,
+    enderecos_entrega: mapEnderecosEntrega(p),
     contatos: mapContatos(p),
     contas: mapContas(p),
     historico: p.fiscais_historico ?? [],
@@ -428,6 +502,40 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
       principal: c.principal,
       ordem: index,
     }));
+
+  const enderecosEntrega = form.entrega_mesmo_fiscal
+    ? []
+    : ensurePrincipal(form.enderecos_entrega)
+        .filter(
+          (e) =>
+            e.responsavel_nome ||
+            e.logradouro ||
+            e.numero ||
+            e.bairro ||
+            e.municipio ||
+            e.uf ||
+            e.cep ||
+            e.apelido,
+        )
+        .map((e, index) => ({
+          apelido: e.apelido || null,
+          logradouro: e.logradouro || null,
+          numero: e.numero || null,
+          complemento: e.complemento || null,
+          bairro: e.bairro || null,
+          municipio: e.municipio || null,
+          uf: e.uf || null,
+          cep: e.cep ? onlyDigits(e.cep) : null,
+          ibge: e.ibge ? onlyDigits(e.ibge) : null,
+          responsavel_nome: e.responsavel_nome || null,
+          responsavel_telefone: e.responsavel_telefone
+            ? onlyDigits(e.responsavel_telefone)
+            : null,
+          responsavel_documento: e.responsavel_documento || null,
+          observacoes: e.observacoes || null,
+          principal: e.principal,
+          ordem: index,
+        }));
 
   const principalContato = contatos.find((c) => c.principal) ?? contatos[0];
 
@@ -488,6 +596,7 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
     departamento: form.departamento || null,
     contatos,
     contas_bancarias: contas,
+    enderecos_entrega: enderecosEntrega,
   };
 }
 
@@ -512,7 +621,7 @@ export function ParceiroFormPage() {
   const [bancosLoading, setBancosLoading] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | null>(null);
+  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | `cep-ee:${string}` | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const loadTokenRef = useRef(0);
@@ -672,6 +781,88 @@ export function ParceiroFormPage() {
     });
   };
 
+  const setEntregaMesmoFiscal = (mesmo: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      entrega_mesmo_fiscal: mesmo,
+      enderecos_entrega: mesmo
+        ? prev.enderecos_entrega
+        : prev.enderecos_entrega.length > 0
+          ? prev.enderecos_entrega
+          : [emptyEnderecoEntrega(true)],
+    }));
+  };
+
+  const updateEnderecoEntrega = (key: string, patch: Partial<EnderecoEntregaForm>) => {
+    setForm((prev) => ({
+      ...prev,
+      enderecos_entrega: prev.enderecos_entrega.map((e) =>
+        e.key === key ? { ...e, ...patch } : e,
+      ),
+    }));
+  };
+
+  const setEnderecoEntregaPrincipal = (key: string) => {
+    setForm((prev) => ({
+      ...prev,
+      enderecos_entrega: prev.enderecos_entrega.map((e) => ({
+        ...e,
+        principal: e.key === key,
+      })),
+    }));
+  };
+
+  const addEnderecoEntrega = () => {
+    setForm((prev) => ({
+      ...prev,
+      entrega_mesmo_fiscal: false,
+      enderecos_entrega: [
+        ...prev.enderecos_entrega,
+        emptyEnderecoEntrega(prev.enderecos_entrega.length === 0),
+      ],
+    }));
+  };
+
+  const removeEnderecoEntrega = (key: string) => {
+    setForm((prev) => {
+      const next = prev.enderecos_entrega.filter((e) => e.key !== key);
+      return {
+        ...prev,
+        enderecos_entrega: ensurePrincipal(
+          next.length ? next : [emptyEnderecoEntrega(true)],
+        ),
+      };
+    });
+  };
+
+  const consultarCepEntrega = async (key: string) => {
+    const row = form.enderecos_entrega.find((e) => e.key === key);
+    const digits = onlyDigits(row?.cep ?? '');
+    if (digits.length !== 8) {
+      setError('Informe um CEP válido com 8 dígitos no endereço de entrega.');
+      return;
+    }
+    setConsulting(`cep-ee:${key}`);
+    setError('');
+    try {
+      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
+      const d = res.data;
+      updateEnderecoEntrega(key, {
+        logradouro: d.logradouro ?? row?.logradouro ?? '',
+        complemento: d.complemento ?? row?.complemento ?? '',
+        bairro: d.bairro ?? row?.bairro ?? '',
+        municipio: d.localidade ?? row?.municipio ?? '',
+        uf: d.uf ?? row?.uf ?? '',
+        ibge: d.ibge ?? row?.ibge ?? '',
+      });
+      setMessage('Endereço de entrega importado via CEP.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro na consulta CEP.');
+    } finally {
+      setConsulting(null);
+    }
+  };
+
   const updateConta = (key: string, patch: Partial<ContaForm>) => {
     setForm((prev) => ({
       ...prev,
@@ -768,6 +959,7 @@ export function ParceiroFormPage() {
 
       if (!canWrite) {
         delete payload.contatos;
+        delete payload.enderecos_entrega;
         delete payload.telefone;
         delete payload.whatsapp;
         delete payload.email;
@@ -876,14 +1068,13 @@ export function ParceiroFormPage() {
         actions={
           <>
             {!isNew && id && (
-              <Link
-                to={`/parceiros/${id}/ficha`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a
+                href={`/parceiros/${id}/ficha`}
                 className="btn btn-secondary"
+                onClick={(e) => onAbrirFichaClick(e, `/parceiros/${id}/ficha`)}
               >
                 Imprimir ficha
-              </Link>
+              </a>
             )}
             <Link to="/parceiros" className="btn btn-secondary">
               Voltar
@@ -1027,6 +1218,10 @@ export function ParceiroFormPage() {
 
           {tab === 'Endereço' && (
             <div className="form-section">
+              <div className="panel-title">
+                <h3>Endereço fiscal</h3>
+                <span className="form-hint">Sede / cartão CNPJ · NF-e enderDest</span>
+              </div>
               <div className="form-grid">
                 <div className="form-group">
                   <label>CEP</label>
@@ -1104,6 +1299,272 @@ export function ParceiroFormPage() {
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {tab === 'Entrega' && (
+            <div className="form-section">
+              <div className="panel-title">
+                <h3>Endereço de entrega</h3>
+                <span className="form-hint">
+                  Locais padrão do cliente · no pedido futuro o endereço será snapshot
+                </span>
+              </div>
+
+              <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                <div className="form-group span-2">
+                  <label className="radio-pill" style={{ marginRight: '1rem' }}>
+                    <input
+                      type="radio"
+                      name="entrega-modo"
+                      checked={form.entrega_mesmo_fiscal}
+                      disabled={fieldDisabled('write')}
+                      onChange={() => setEntregaMesmoFiscal(true)}
+                    />
+                    Usar o mesmo do Endereço fiscal
+                  </label>
+                  <label className="radio-pill">
+                    <input
+                      type="radio"
+                      name="entrega-modo"
+                      checked={!form.entrega_mesmo_fiscal}
+                      disabled={fieldDisabled('write')}
+                      onChange={() => setEntregaMesmoFiscal(false)}
+                    />
+                    Cadastrar um ou mais endereços de entrega
+                  </label>
+                </div>
+              </div>
+
+              {form.entrega_mesmo_fiscal ? (
+                <p className="form-hint">
+                  A entrega usa o endereço fiscal cadastrado na aba Endereço. Nenhum local
+                  adicional será gravado.
+                </p>
+              ) : (
+                <>
+                  <div className="panel-title">
+                    <h3>Locais de entrega</h3>
+                    {!fieldDisabled('write') && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={addEnderecoEntrega}
+                      >
+                        Adicionar endereço
+                      </button>
+                    )}
+                  </div>
+                  <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
+                    Informe o responsável por receber em cada local e marque um como
+                    principal.
+                  </p>
+
+                  <div className="repeatable-list">
+                    {form.enderecos_entrega.map((end, index) => (
+                      <div
+                        key={end.key}
+                        className={`repeatable-item${end.principal ? ' is-principal' : ''}`}
+                      >
+                        <div className="repeatable-item-header">
+                          <strong>Entrega {index + 1}</strong>
+                          <div className="repeatable-item-actions">
+                            <label className="radio-pill">
+                              <input
+                                type="radio"
+                                name="entrega-principal"
+                                checked={end.principal}
+                                disabled={fieldDisabled('write')}
+                                onChange={() => setEnderecoEntregaPrincipal(end.key)}
+                              />
+                              Principal
+                            </label>
+                            {!fieldDisabled('write') && form.enderecos_entrega.length > 1 && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => removeEnderecoEntrega(end.key)}
+                              >
+                                Remover
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="form-grid">
+                          <div className="form-group">
+                            <label>Apelido</label>
+                            <input
+                              value={end.apelido}
+                              disabled={fieldDisabled('write')}
+                              placeholder="Ex.: CD SP, Fábrica"
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, { apelido: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="form-group span-2">
+                            <label>Responsável por receber *</label>
+                            <input
+                              value={end.responsavel_nome}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  responsavel_nome: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Telefone do responsável</label>
+                            <input
+                              value={
+                                formatPhone(end.responsavel_telefone) || end.responsavel_telefone
+                              }
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  responsavel_telefone: onlyDigits(e.target.value),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Documento (portaria)</label>
+                            <input
+                              value={end.responsavel_documento}
+                              disabled={fieldDisabled('write')}
+                              placeholder="RG / CPF"
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  responsavel_documento: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>CEP *</label>
+                            <div className="input-action">
+                              <input
+                                value={formatCep(end.cep)}
+                                disabled={fieldDisabled('write')}
+                                onChange={(e) =>
+                                  updateEnderecoEntrega(end.key, {
+                                    cep: onlyDigits(e.target.value),
+                                  })
+                                }
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                disabled={
+                                  readOnly || consulting === `cep-ee:${end.key}`
+                                }
+                                onClick={() => void consultarCepEntrega(end.key)}
+                              >
+                                {consulting === `cep-ee:${end.key}` ? '…' : 'Consultar'}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="form-group span-2">
+                            <label>Logradouro *</label>
+                            <input
+                              value={end.logradouro}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  logradouro: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Número *</label>
+                            <input
+                              value={end.numero}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, { numero: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Complemento</label>
+                            <input
+                              value={end.complemento}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  complemento: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Bairro *</label>
+                            <input
+                              value={end.bairro}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, { bairro: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Município *</label>
+                            <input
+                              value={end.municipio}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  municipio: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>UF *</label>
+                            <input
+                              value={end.uf}
+                              maxLength={2}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  uf: e.target.value.toUpperCase().slice(0, 2),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>IBGE</label>
+                            <input
+                              value={end.ibge}
+                              disabled={fieldDisabled('write')}
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  ibge: onlyDigits(e.target.value).slice(0, 7),
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="form-group span-2">
+                            <label>Observações</label>
+                            <input
+                              value={end.observacoes}
+                              disabled={fieldDisabled('write')}
+                              placeholder="Ex.: entregar na portaria 2"
+                              onChange={(e) =>
+                                updateEnderecoEntrega(end.key, {
+                                  observacoes: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1358,34 +1819,7 @@ export function ParceiroFormPage() {
                     <span className="form-hint">{form.historico.length} registro(s)</span>
                   </div>
                   <div className="table-wrap">
-                    <table className="data-table fiscal-historico-table">
-                      <thead>
-                        <tr>
-                          <th>Início</th>
-                          <th>Fim</th>
-                          <th>IE</th>
-                          <th>ind</th>
-                          <th>Status</th>
-                          <th>Regime</th>
-                          <th>Finalidade</th>
-                          <th>Motivo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {form.historico.map((h) => (
-                          <tr key={h.id}>
-                            <td>{h.vigencia_inicio?.slice(0, 10)}</td>
-                            <td>{h.vigencia_fim ? h.vigencia_fim.slice(0, 10) : 'Atual'}</td>
-                            <td>{h.ie || '—'}</td>
-                            <td>{h.ind_ie_dest ?? '—'}</td>
-                            <td>{h.ie_status ? ieStatusLabel(h.ie_status) : '—'}</td>
-                            <td>{h.regime || '—'}</td>
-                            <td>{h.finalidade || '—'}</td>
-                            <td>{h.motivo || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <ParceiroHistoricoFiscalTable rows={form.historico} />
                   </div>
                 </>
               )}
@@ -1767,5 +2201,68 @@ export function ParceiroFormPage() {
         </div>
       </div>
     </>
+  );
+}
+
+const PARCEIRO_HISTORICO_SORT = {
+  inicio: (h: ParceiroFiscalHistorico) => h.vigencia_inicio,
+  fim: (h: ParceiroFiscalHistorico) => h.vigencia_fim,
+  ie: (h: ParceiroFiscalHistorico) => h.ie,
+  ind: (h: ParceiroFiscalHistorico) =>
+    h.ind_ie_dest != null ? Number(h.ind_ie_dest) : null,
+  status: (h: ParceiroFiscalHistorico) => h.ie_status,
+  regime: (h: ParceiroFiscalHistorico) => h.regime,
+  finalidade: (h: ParceiroFiscalHistorico) => h.finalidade,
+  motivo: (h: ParceiroFiscalHistorico) => h.motivo,
+};
+
+function ParceiroHistoricoFiscalTable({ rows }: { rows: ParceiroFiscalHistorico[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PARCEIRO_HISTORICO_SORT);
+
+  return (
+    <table className="data-table fiscal-historico-table">
+      <thead>
+        <tr>
+          <SortableTh column="inicio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Início
+          </SortableTh>
+          <SortableTh column="fim" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Fim
+          </SortableTh>
+          <SortableTh column="ie" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            IE
+          </SortableTh>
+          <SortableTh column="ind" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            ind
+          </SortableTh>
+          <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Status
+          </SortableTh>
+          <SortableTh column="regime" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Regime
+          </SortableTh>
+          <SortableTh column="finalidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Finalidade
+          </SortableTh>
+          <SortableTh column="motivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            Motivo
+          </SortableTh>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((h) => (
+          <tr key={h.id}>
+            <td>{h.vigencia_inicio?.slice(0, 10)}</td>
+            <td>{h.vigencia_fim ? h.vigencia_fim.slice(0, 10) : 'Atual'}</td>
+            <td>{h.ie || '—'}</td>
+            <td>{h.ind_ie_dest ?? '—'}</td>
+            <td>{h.ie_status ? ieStatusLabel(h.ie_status) : '—'}</td>
+            <td>{h.regime || '—'}</td>
+            <td>{h.finalidade || '—'}</td>
+            <td>{h.motivo || '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

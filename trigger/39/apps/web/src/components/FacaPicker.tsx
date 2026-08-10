@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api } from '../lib/api';
+import { useTableSort } from '../lib/useTableSort';
 import {
   FacaShapeIcon,
   facaAspectFromRecord,
   formatoKind,
   formatoLabel,
 } from './FacaShapeIcon';
+import { SortableTh } from './SortableTh';
 
 export type FacaRecord = Record<string, unknown> & {
   id?: number;
@@ -94,6 +96,16 @@ export function buildFacaNova(partial?: Partial<FacaRecord>): FacaRecord {
   };
 }
 
+const FACA_SORT = {
+  formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
+  medida: (f: FacaRecord) => String(f.medida || ''),
+  maquina: (f: FacaRecord) => String(f.maquina_catalogo || ''),
+  z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
+  rep: (f: FacaRecord) => (f.repeticao != null ? Number(f.repeticao) : null),
+  puxada: (f: FacaRecord) => (f.puxada != null ? Number(f.puxada) : null),
+  nota: (f: FacaRecord) => String(f.cliente_nota || f.fornecedor || ''),
+};
+
 export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = false }: Props) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'busca' | 'nova'>('busca');
@@ -106,6 +118,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const { sorted: sortedItems, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
 
   const [novaMedida, setNovaMedida] = useState('');
   const [novaFormato, setNovaFormato] = useState('RETA');
@@ -447,13 +460,27 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                   <table className="faca-table">
                     <thead>
                       <tr>
-                        <th>Formato</th>
-                        <th>Medida</th>
-                        <th>Máquina</th>
-                        <th>Z</th>
-                        <th>REP</th>
-                        <th>Puxada</th>
-                        <th>Nota</th>
+                        <SortableTh column="formato" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Formato
+                        </SortableTh>
+                        <SortableTh column="medida" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Medida
+                        </SortableTh>
+                        <SortableTh column="maquina" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Máquina
+                        </SortableTh>
+                        <SortableTh column="z" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Z
+                        </SortableTh>
+                        <SortableTh column="rep" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          REP
+                        </SortableTh>
+                        <SortableTh column="puxada" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Puxada
+                        </SortableTh>
+                        <SortableTh column="nota" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                          Nota
+                        </SortableTh>
                       </tr>
                     </thead>
                     <tbody>
@@ -465,7 +492,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                           </td>
                         </tr>
                       ) : (
-                        items.map((f) => {
+                        sortedItems.map((f) => {
                           const selected = value?.id != null && value.id === f.id && !isNova;
                           const aspectRow = facaAspectFromRecord(f);
                           const fmt = String(f.formato || f.faca || '');

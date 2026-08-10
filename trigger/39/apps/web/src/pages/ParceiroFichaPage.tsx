@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ParceiroFichaSheet } from '../components/ParceiroFichaSheet';
 import { api, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { voltarDaFicha } from '../lib/fichaNav';
 
 export function ParceiroFichaPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, empresas, empresaId, hasPermission } = useAuth();
   const [parceiro, setParceiro] = useState<Parceiro | null>(null);
   const [error, setError] = useState('');
@@ -63,9 +65,15 @@ export function ParceiroFichaPage() {
     <div className="ficha-page">
       <div className="ficha-toolbar no-print">
         <div className="ficha-toolbar-left">
-          <Link to={id && id !== 'novo' ? `/parceiros/${id}` : '/parceiros'} className="btn btn-secondary">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() =>
+              voltarDaFicha(navigate, id && id !== 'novo' ? `/parceiros/${id}` : '/parceiros')
+            }
+          >
             Voltar ao cadastro
-          </Link>
+          </button>
           <span className="ficha-toolbar-hint">Retrato A4 · use Imprimir ou Salvar como PDF no navegador</span>
         </div>
         <button

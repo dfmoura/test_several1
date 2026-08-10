@@ -11,10 +11,42 @@ export const CORES_OPCOES = [
   { value: '8', label: '8' },
 ] as const;
 
-export const STATUS_EDITAVEL = new Set(['RASCUNHO', 'CALCULADO']);
+export const STATUS_EDITAVEL = new Set(['RASCUNHO', 'CALCULADO', 'REPROVADO']);
 
 export function isOrcEditavel(status: string | undefined | null): boolean {
   return STATUS_EDITAVEL.has(String(status || ''));
+}
+
+export function isOrcEnviavel(status: string | undefined | null): boolean {
+  return ['CALCULADO', 'REPROVADO', 'ENVIADO', 'VISUALIZADO'].includes(String(status || ''));
+}
+
+export function statusOrcLabel(status: string): string {
+  const labels: Record<string, string> = {
+    RASCUNHO: 'Em preparação',
+    CALCULADO: 'Em preparação',
+    ENVIADO: 'Enviado p/ aprovação',
+    VISUALIZADO: 'Enviado p/ aprovação',
+    APROVADO: 'Aprovado',
+    REPROVADO: 'Rejeitado',
+    VENCIDO: 'Vencido',
+    CANCELADO: 'Cancelado',
+  };
+  return labels[status] ?? status;
+}
+
+export function statusOrcPill(status: string): string {
+  const labels: Record<string, string> = {
+    RASCUNHO: 'Em preparação',
+    CALCULADO: 'Em preparação',
+    ENVIADO: 'Enviado p/ aprovação',
+    VISUALIZADO: 'Visualizado',
+    APROVADO: 'Aprovado',
+    REPROVADO: 'Rejeitado',
+    VENCIDO: 'Vencido',
+    CANCELADO: 'Cancelado',
+  };
+  return labels[status] ?? status;
 }
 
 export type FaixaForm = {
@@ -61,6 +93,8 @@ export type OrcCatalogo = {
   maquinas_roda_servico?: string[];
   tipos_troca_produto: string[];
   imposto_pct_default: number;
+  /** Tarifa vigente R$/cm² — mesma fonte do motor (catálogo / JSON). */
+  matriz_cm2?: number;
 };
 
 export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
@@ -185,19 +219,6 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
         : form.prazo_faca_dias
       : null,
   };
-}
-
-export function statusOrcLabel(status: string): string {
-  const labels: Record<string, string> = {
-    RASCUNHO: 'Rascunho',
-    CALCULADO: 'Calculado',
-    ENVIADO: 'Enviado',
-    APROVADO: 'Aprovado',
-    REPROVADO: 'Reprovado',
-    VENCIDO: 'Vencido',
-    CANCELADO: 'Cancelado',
-  };
-  return labels[status] ?? status;
 }
 
 export function displaySnap(value: unknown): string {

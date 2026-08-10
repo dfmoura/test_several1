@@ -19,6 +19,8 @@ class CodigoGenerator
         'USR' => ['table' => 'users', 'column' => 'codigo', 'scoped' => false],
         'EMP' => ['table' => 'empresas', 'column' => 'codigo', 'scoped' => false],
         'HUB' => ['table' => 'fiscal_hubs', 'column' => 'codigo', 'scoped' => true],
+        'CFIN' => ['table' => 'empresa_contas_financeiras', 'column' => 'codigo', 'scoped' => false],
+        'BEM' => ['table' => 'bens_patrimoniais', 'column' => 'codigo', 'scoped' => false],
     ];
 
     public function nextCode(?int $empresaId, string $prefix, int $pad = 5): string

@@ -5,6 +5,7 @@ namespace App\Services\Comercial\Orcamento;
 use App\Models\OrcCatalogoAcabamento;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
+use App\Models\OrcCatalogoParametro;
 use App\Models\OrcCatalogoTipoTroca;
 use Illuminate\Support\Facades\Schema;
 
@@ -12,8 +13,8 @@ use Illuminate\Support\Facades\Schema;
  * Catálogo de preços do motor ORC — port fiel de trigger/36 catalog.py.
  *
  * Fonte híbrida (estudo 32): as 4 bases editáveis (papel, acabamento,
- * tipo troca, máquina G10) vêm do banco quando populadas; demais
- * parâmetros e fallback continuam em catalog_oficial.json.
+ * tipo troca, máquina G10) + escalares (matriz_cm2) vêm do banco quando
+ * populados; demais parâmetros e fallback continuam em catalog_oficial.json.
  * Lookup inclui inativos (ORCs antigos); metaForUi só lista ativos.
  */
 final class OrcamentoCatalogo
@@ -201,7 +202,7 @@ final class OrcamentoCatalogo
     }
 
     /**
-     * Sobrepõe as 4 bases editáveis quando o banco já foi semeado.
+     * Sobrepõe as 4 bases + escalares quando o banco já foi semeado.
      * Tabelas vazias / ausentes → mantém JSON (testes e deploys sem seed).
      */
     public static function overlayFromDatabase(self $cat): self
@@ -211,6 +212,16 @@ final class OrcamentoCatalogo
         }
 
         try {
+            if (Schema::hasTable('orc_catalogo_parametros')) {
+                $matriz = OrcCatalogoParametro::query()
+                    ->where('chave', OrcCatalogoParametro::CHAVE_MATRIZ_CM2)
+                    ->where('ativo', true)
+                    ->first();
+                if ($matriz) {
+                    $cat->matrizCm2 = (float) $matriz->valor;
+                }
+            }
+
             if (OrcCatalogoPapel::query()->exists()) {
                 $papel = [];
                 /** @var list<string> $papeisAtivos */
@@ -505,7 +516,18 @@ final class OrcamentoCatalogo
         throw new \InvalidArgumentException("Máquina não encontrada: {$maquina}");
     }
 
-    /** @return array{papeis: list<string>, acabamentos: list<string>, tubetes: list<string>, maquinas: list<string>, maquinas_roda_servico: list<string>, tipos_troca_produto: list<string>, imposto_pct_default: float} */
+    /**
+     * @return array{
+     *   papeis: list<string>,
+     *   acabamentos: list<string>,
+     *   tubetes: list<string>,
+     *   maquinas: list<string>,
+     *   maquinas_roda_servico: list<string>,
+     *   tipos_troca_produto: list<string>,
+     *   imposto_pct_default: float,
+     *   matriz_cm2: float
+     * }
+     */
     public function metaForUi(): array
     {
         $papeis = $this->papeisAtivosUi ?? array_keys($this->papel);
@@ -524,6 +546,7 @@ final class OrcamentoCatalogo
             'maquinas_roda_servico' => $this->maquinasRodaServico,
             'tipos_troca_produto' => array_values($tiposTroca),
             'imposto_pct_default' => 16.0,
+            'matriz_cm2' => $this->matrizCm2,
         ];
     }
 

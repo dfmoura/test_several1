@@ -4,7 +4,9 @@ import { PageHeader } from '../components/PageHeader';
 import {
   IconAi,
   IconArrow,
+  IconAsset,
   IconBuilding,
+  IconFaca,
   IconHub,
   IconOrcamento,
   IconPartners,
@@ -14,6 +16,7 @@ import {
   IconUsers,
 } from '../components/NavIcons';
 import { useAuth } from '../lib/auth';
+import { FEATURES } from '../lib/features';
 
 type ModuleCard = {
   to: string;
@@ -55,6 +58,14 @@ export function DashboardPage() {
       visible: hasPermission('produto.ler'),
     },
     {
+      to: '/patrimonio',
+      title: 'Patrimônio',
+      description: 'Máquinas e bens (BEM-) ligados ao ORC e ao fornecedor — sem misturar tarifas G10.',
+      hint: 'Ativos',
+      icon: IconAsset,
+      visible: hasPermission('patrimonio.ler'),
+    },
+    {
       to: '/orcamentos',
       title: 'Orçamentos',
       description: 'Rotina comercial em rascunho: calcular, salvar, revisar e excluir.',
@@ -63,12 +74,20 @@ export function DashboardPage() {
       visible: hasPermission('orcamento.ler'),
     },
     {
+      to: '/mapa-facas',
+      title: 'Mapa de facas',
+      description: 'Catálogo com desenho: visualizar, cadastrar novas e inativar.',
+      hint: 'Comercial',
+      icon: IconFaca,
+      visible: hasPermission('orcamento.ler'),
+    },
+    {
       to: '/relatorios',
       title: 'Relatórios IA',
       description: 'Solicite em linguagem natural; a IA gera o programa e o PDF profissional.',
       hint: 'Relatórios',
       icon: IconReport,
-      visible: hasPermission('relatorio.ler'),
+      visible: FEATURES.relatorioIa && hasPermission('relatorio.ler'),
     },
     {
       to: '/usuarios',
@@ -126,7 +145,7 @@ export function DashboardPage() {
         </div>
         <div className="dash-context-item">
           <span className="dash-context-label">Escopo atual</span>
-          <strong>Cadastros · Comercial</strong>
+          <strong>Cadastros · Comercial · Patrimônio</strong>
         </div>
       </section>
 
@@ -160,7 +179,15 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {!hasAnyPermission('parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler', 'usuarios.gerir', 'parametros.gerir') && (
+      {!hasAnyPermission(
+        'parceiro.ler',
+        'produto.ler',
+        'patrimonio.ler',
+        'orcamento.ler',
+        'relatorio.ler',
+        'usuarios.gerir',
+        'parametros.gerir',
+      ) && (
         <div className="card" style={{ marginTop: '1.5rem' }}>
           <div className="card-body">
             <p style={{ margin: 0, color: 'var(--text-muted)' }}>

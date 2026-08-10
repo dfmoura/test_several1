@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRelatorioIaHabilitado;
 use App\Http\Middleware\SetEmpresaContext;
 use App\Models\User;
 use Illuminate\Foundation\Application;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'empresa.context' => SetEmpresaContext::class,
+            'relatorio.ia' => EnsureRelatorioIaHabilitado::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

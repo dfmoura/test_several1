@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { ApiError, api, type Parceiro, type Usuario } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -12,6 +13,7 @@ import {
   roleLabel,
   rolesCompatibleWith,
 } from '../lib/usuarios';
+import { useTableSort } from '../lib/useTableSort';
 
 type Mode = 'closed' | 'create' | 'edit';
 
@@ -42,6 +44,16 @@ const EMPTY_FORM: FormState = {
 function userRoleNames(user: Usuario): string[] {
   return (user.roles ?? []).map((r) => (typeof r === 'string' ? r : r.name));
 }
+
+const USER_SORT = {
+  codigo: (u: Usuario) => u.codigo,
+  nome: (u: Usuario) => u.name,
+  email: (u: Usuario) => u.email,
+  colaborador: (u: Usuario) => u.parceiro?.codigo,
+  perfis: (u: Usuario) => userRoleNames(u).join(', '),
+  empresas: (u: Usuario) => (u.empresas ?? []).map((e) => e.codigo).join(', '),
+  status: (u: Usuario) => (u.ativo ? 'ATIVO' : 'INATIVO'),
+};
 
 export function UsuariosPage() {
   const { empresas: authEmpresas, empresaId } = useAuth();
@@ -92,6 +104,13 @@ export function UsuariosPage() {
       );
     });
   }, [usuarios, query, statusFilter]);
+
+  const {
+    sorted: sortedUsers,
+    sortKey,
+    sortDir,
+    requestSort,
+  } = useTableSort(filteredUsers, USER_SORT);
 
   const load = async () => {
     setLoading(true);
@@ -605,18 +624,32 @@ export function UsuariosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Colaborador</th>
-                  <th>Perfis</th>
-                  <th>Empresas</th>
-                  <th>Status</th>
+                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh column="email" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="E-mail">
+                    E-mail
+                  </SortableTh>
+                  <SortableTh column="colaborador" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Colaborador
+                  </SortableTh>
+                  <SortableTh column="perfis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Perfis
+                  </SortableTh>
+                  <SortableTh column="empresas" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Empresas
+                  </SortableTh>
+                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Status
+                  </SortableTh>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((u) => {
+                {sortedUsers.map((u) => {
                   const roles = userRoleNames(u);
                   return (
                     <tr key={u.id} className={u.ativo ? undefined : 'row-inactive'}>

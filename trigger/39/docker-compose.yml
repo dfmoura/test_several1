@@ -80,6 +80,7 @@ services:
       VIACEP_BASE: https://viacep.com.br/ws
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
       IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
+      RELATORIO_IA_HABILITADO: ${RELATORIO_IA_HABILITADO:-false}
     depends_on:
       mysql:
         condition: service_healthy
@@ -118,6 +119,7 @@ services:
       DEFAULT_EMPRESA_CODIGO: ${DEFAULT_EMPRESA_CODIGO:-EMP-00001}
       SEED_ON_BOOT: "false"
       IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
+      RELATORIO_IA_HABILITADO: ${RELATORIO_IA_HABILITADO:-false}
     command:
       [
         "php",

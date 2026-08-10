@@ -2,8 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\BemPatrimonial;
 use App\Models\CodigoSequence;
 use App\Models\Empresa;
+use App\Models\EmpresaContaFinanceira;
+use App\Models\OrcCatalogoMaquina;
 use App\Models\ParametroEmpresa;
 use App\Models\Parceiro;
 use App\Models\Produto;
@@ -28,6 +31,8 @@ class DatabaseSeeder extends Seeder
         'produto.ler',
         'produto.escrever',
         'produto.fiscal',
+        'patrimonio.ler',
+        'patrimonio.escrever',
         'orcamento.ler',
         'orcamento.escrever',
         'orcamento.catalogo.gerir',
@@ -50,7 +55,13 @@ class DatabaseSeeder extends Seeder
     private const ROLE_PERMISSIONS = [
         'ADMIN' => self::PERMISSIONS,
         'FISCAL' => ['parceiro.ler', 'produto.ler', 'produto.fiscal'],
-        'FINANCEIRO' => ['parceiro.ler', 'parceiro.bancario', 'credito.escrever'],
+        'FINANCEIRO' => [
+            'parceiro.ler',
+            'parceiro.bancario',
+            'credito.escrever',
+            'patrimonio.ler',
+            'patrimonio.escrever',
+        ],
         'COMERCIAL' => [
             'parceiro.ler',
             'parceiro.escrever',
@@ -61,10 +72,10 @@ class DatabaseSeeder extends Seeder
             'relatorio.ler',
             'relatorio.escrever',
         ],
-        'PRODUCAO' => ['produto.ler'],
-        'COMPRAS' => ['parceiro.ler', 'parceiro.escrever', 'produto.ler', 'produto.escrever'],
+        'PRODUCAO' => ['produto.ler', 'patrimonio.ler'],
+        'COMPRAS' => ['parceiro.ler', 'parceiro.escrever', 'produto.ler', 'produto.escrever', 'patrimonio.ler'],
         'EXPEDICAO' => ['parceiro.ler', 'produto.ler'],
-        'CONSULTA' => ['parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler'],
+        'CONSULTA' => ['parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler', 'patrimonio.ler'],
     ];
 
     public function run(): void
@@ -80,11 +91,13 @@ class DatabaseSeeder extends Seeder
         $this->call(FiscalCatalogSeeder::class);
         $this->call(ProdutoGrupoSeeder::class);
         $this->call(OrcamentoCatalogoSeeder::class);
+        $this->call(FacasMapaSeeder::class);
         $this->seedProdutos($emp1);
         // Garante vínculo grupo_id nos produtos seedados após o cadastro.
         app(\App\Services\Cadastros\ProdutoGrupoService::class)->backfillProdutos();
 
         $this->seedCliente($emp1);
+        $this->seedBensPatrimoniais($emp1);
         $this->seedCodigoSequences($emp1);
     }
 
@@ -178,7 +191,41 @@ class DatabaseSeeder extends Seeder
             ['proximo' => 3]
         );
 
+        $this->seedContasFinanceiras($emp1);
+
         return $emp1;
+    }
+
+    /**
+     * Conta financeira da EMP-00001 — Sicoob (estudo 32), sem inventar agência/conta.
+     */
+    private function seedContasFinanceiras(Empresa $emp1): void
+    {
+        CodigoSequence::query()->firstOrCreate(
+            ['empresa_id' => null, 'prefixo' => 'CFIN'],
+            ['proximo' => 2]
+        );
+
+        EmpresaContaFinanceira::withTrashed()->firstOrCreate(
+            ['codigo' => 'CFIN-00001'],
+            [
+                'empresa_id' => $emp1->id,
+                'tipo' => EmpresaContaFinanceira::TIPO_BANCO,
+                'descricao' => 'Sicoob (conta principal)',
+                'banco_codigo' => '756',
+                'banco_nome' => 'Banco Cooperativo Sicoob S.A.',
+                'agencia' => null,
+                'conta' => null,
+                'tipo_conta' => 'CORRENTE',
+                'pix_chave' => null,
+                'principal' => true,
+                'ativa' => true,
+                'ordem' => 0,
+                'saldo_abertura' => null,
+                'saldo_abertura_em' => null,
+                'observacao' => 'Produção alvo · preencher agência/conta na implantação',
+            ]
+        );
     }
 
     private function seedParametros(Empresa $emp1, Empresa $emp2): void
@@ -187,6 +234,7 @@ class DatabaseSeeder extends Seeder
             ['chave' => 'empresa_default', 'valor' => 'EMP-00001', 'status' => 'APROVADO'],
             ['chave' => 'emp_00002_venda_habilitada', 'valor' => 'NÃO', 'status' => 'APROVADO'],
             ['chave' => 'lai_no_erp', 'valor' => 'NÃO', 'status' => 'APROVADO'],
+            ['chave' => 'valor_minimo_capitalizar_bem', 'valor' => '1000', 'status' => 'APROVADO'],
         ];
 
         foreach ($parametrosEmp1 as $param) {
@@ -387,6 +435,134 @@ class DatabaseSeeder extends Seeder
         if ((int) $seq->proximo < 11) {
             $seq->update(['proximo' => 11]);
         }
+    }
+
+    /**
+     * Bens demo — ativos físicos. Uma BEM por grupo canônico do ORC (G10) + 1 informático.
+     * Grupo hora-máquina é ponte opcional (tarifas), não o cadastro do bem.
+     * Idempotente por codigo; não inventa NF/série/valor.
+     */
+    private function seedBensPatrimoniais(Empresa $emp1): void
+    {
+        $grupoId = static fn (string $nome): ?int => OrcCatalogoMaquina::query()
+            ->where('nome', $nome)
+            ->value('id');
+
+        $bens = [
+            [
+                'codigo' => 'BEM-00001',
+                'descricao' => 'Impressora flexográfica Betaflex',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Betaflex',
+                'modelo' => null,
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('BETA'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC BETA. Série/NF a informar na implantação.',
+            ],
+            [
+                'codigo' => 'BEM-00002',
+                'descricao' => 'Impressora Reflexo 160',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Reflexo',
+                'modelo' => '160',
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('160'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC 160. Série/NF a informar na implantação.',
+            ],
+            [
+                'codigo' => 'BEM-00003',
+                'descricao' => 'Nobreak / UPS sala TI',
+                'categoria' => BemPatrimonial::CATEGORIA_INFORMATICA,
+                'marca' => null,
+                'modelo' => null,
+                'numero_serie' => null,
+                'local' => 'TI / Escritório',
+                'responsavel' => 'TI',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => null,
+                'capitalizado' => true,
+                'observacao' => 'Equipamento de infraestrutura — sem vínculo com catálogo ORC',
+            ],
+            [
+                'codigo' => 'BEM-00004',
+                'descricao' => 'Impressora Reflexo 250',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Reflexo',
+                'modelo' => '250',
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('250'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC 250 (alias REFLEXO 250). Série/NF a informar na implantação.',
+            ],
+            [
+                'codigo' => 'BEM-00005',
+                'descricao' => 'Impressora Etirama',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Etirama',
+                'modelo' => null,
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('ETIRAMA'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC ETIRAMA. Série/NF a informar na implantação.',
+            ],
+            [
+                'codigo' => 'BEM-00006',
+                'descricao' => 'Impressora Batida',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Batida',
+                'modelo' => null,
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('BATIDA'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC BATIDA (até 2 cores no motor ORC). Série/NF a informar na implantação.',
+            ],
+            [
+                'codigo' => 'BEM-00007',
+                'descricao' => 'Impressora Modular SPX',
+                'categoria' => BemPatrimonial::CATEGORIA_MAQUINA_GRAFICA,
+                'marca' => 'Modular',
+                'modelo' => 'SPX',
+                'numero_serie' => null,
+                'local' => 'Produção',
+                'responsavel' => 'Produção',
+                'status' => BemPatrimonial::STATUS_ATIVO,
+                'orc_catalogo_maquina_id' => $grupoId('MODULAR'),
+                'capitalizado' => true,
+                'observacao' => 'Máquina física · grupo ORC MODULAR (alias MODULAR SPX). Série/NF a informar na implantação.',
+            ],
+        ];
+
+        foreach ($bens as $data) {
+            BemPatrimonial::withTrashed()->firstOrCreate(
+                ['codigo' => $data['codigo']],
+                [
+                    'empresa_id' => $emp1->id,
+                    ...$data,
+                ]
+            );
+        }
+
+        CodigoSequence::query()->updateOrCreate(
+            ['empresa_id' => null, 'prefixo' => 'BEM'],
+            ['proximo' => 8]
+        );
     }
 
     private function seedCodigoSequences(Empresa $emp1): void

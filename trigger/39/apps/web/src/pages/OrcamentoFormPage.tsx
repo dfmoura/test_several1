@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { PageHeader } from '../components/PageHeader';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
 import {
   ApiError,
@@ -20,6 +21,24 @@ import {
   type OrcCatalogo,
   type OrcForm,
 } from '../lib/orcamentoForm';
+
+/** Reconstrói a faca a partir do snapshot — desenho visível ao editar (sem faca_id no ORC). */
+function facaSelFromForm(form: OrcForm): FacaRecord | null {
+  if (!form.formato_faca && !form.medida) return null;
+  return {
+    faca_nova: form.faca_nova,
+    completa: !form.faca_nova,
+    medida: form.medida,
+    formato: form.formato_faca || 'RETA',
+    faca: form.formato_faca || 'RETA',
+    maquina_catalogo: form.maquina,
+    puxada: form.puxada_cm || null,
+    z: form.z === '' ? null : form.z,
+    largura_faca: form.largura_cm || null,
+    cliente_nota: form.faca_nova ? null : 'snapshot do ORC',
+    label: form.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento',
+  };
+}
 
 export function OrcamentoFormPage() {
   const { id } = useParams();
@@ -64,21 +83,8 @@ export function OrcamentoFormPage() {
           const nextForm = formFromSnapshot(orc.data.input_snapshot, catRes.data);
           setForm(nextForm);
           setCalculo(orc.data.result_snapshot);
-          if (nextForm.faca_nova) {
-            setFacaSel({
-              faca_nova: true,
-              completa: false,
-              medida: nextForm.medida,
-              formato: nextForm.formato_faca || 'RETA',
-              faca: nextForm.formato_faca || 'RETA',
-              maquina_catalogo: nextForm.maquina,
-              puxada: nextForm.puxada_cm || null,
-              z: nextForm.z === '' ? null : nextForm.z,
-              label: 'FACA NOVA (simulada)',
-            });
-          } else {
-            setFacaSel(null);
-          }
+          // Sempre restaura o desenho (mapa ou faca nova) — antes só faca_nova tinha summary.
+          setFacaSel(facaSelFromForm(nextForm));
         } else {
           setForm(defaultOrcForm(catRes.data));
           setCalculo(null);
@@ -100,6 +106,35 @@ export function OrcamentoFormPage() {
   const setField = <K extends keyof OrcForm>(key: K, value: OrcForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setCalculo(null);
+    // Mantém o desenho no picker alinhado aos campos editáveis.
+    if (
+      key === 'medida' ||
+      key === 'puxada_cm' ||
+      key === 'z' ||
+      key === 'largura_cm' ||
+      key === 'formato_faca' ||
+      key === 'maquina' ||
+      key === 'faca_nova'
+    ) {
+      setFacaSel((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        if (key === 'medida') next.medida = value as string;
+        if (key === 'puxada_cm') next.puxada = (value as number) || null;
+        if (key === 'z') next.z = value === '' ? null : (value as number);
+        if (key === 'largura_cm') next.largura_faca = (value as number) || null;
+        if (key === 'formato_faca') {
+          next.formato = (value as string) || 'RETA';
+          next.faca = (value as string) || 'RETA';
+        }
+        if (key === 'maquina') next.maquina_catalogo = value as string;
+        if (key === 'faca_nova') {
+          next.faca_nova = value as boolean;
+          next.completa = !(value as boolean);
+        }
+        return next;
+      });
+    }
   };
 
   const aplicarFaca = (faca: FacaRecord | null) => {
@@ -301,12 +336,21 @@ export function OrcamentoFormPage() {
     <>
       <PageHeader
         title={isNew ? 'Novo orçamento' : `Editar orçamento #${id}`}
-        description="Wizard comercial (padrão M02 / 36) — calcular preview, salvar snapshot. Sem envio/PED."
+        description="Wizard comercial — calcular, salvar snapshot. Envio para aprovação fica no detalhe."
         actions={
           <div className="btn-row">
             <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
               Como calcula
             </Link>
+            {!isNew && id ? (
+              <a
+                href={`/orcamentos/${id}/ficha`}
+                className="btn btn-secondary"
+                onClick={(e) => onAbrirFichaClick(e, `/orcamentos/${id}/ficha`)}
+              >
+                Imprimir ficha
+              </a>
+            ) : null}
             <Link to={isNew ? '/orcamentos' : `/orcamentos/${id}`} className="btn btn-secondary">
               Voltar
             </Link>
@@ -656,6 +700,18 @@ export function OrcamentoFormPage() {
                   <option value="SIM">SIM (1º pedido)</option>
                   <option value="NAO">NÃO (já cobrada / recompra)</option>
                 </select>
+                {form.matriz === 'SIM' && catalog?.matriz_cm2 != null ? (
+                  <span className="field-note">
+                    Tarifa vigente:{' '}
+                    {Number(catalog.matriz_cm2).toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 6,
+                    })}
+                    /cm² · valor final após cálculo (arredonda ↑ R$ 1)
+                  </span>
+                ) : null}
               </div>
               {form.faca_nova ? (
                 <>
@@ -857,6 +913,15 @@ export function OrcamentoFormPage() {
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}
             toleranciaQtdPct={form.tolerancia_qtd_pct}
+            facaDesenho={{
+              formato: form.formato_faca || calculo.formato_faca,
+              medida: form.medida,
+              larguraCm: form.largura_cm,
+              puxadaCm: form.puxada_cm,
+              z: form.z === '' ? null : form.z,
+              maquina: form.maquina,
+              facaNova: form.faca_nova,
+            }}
           />
         </div>
       ) : (

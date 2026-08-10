@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCnpjCpf, papelLabel } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 const PAPEIS = [
   'cliente',
@@ -21,6 +23,22 @@ function getPapeis(p: Parceiro): string[] {
   return PAPEIS.filter((key) => p[`papel_${key}` as keyof Parceiro] === true).map(papelLabel);
 }
 
+function fiscalSortKey(p: Parceiro): string {
+  if (p.apto_emissao_nfe) return 'Apto NF-e';
+  if (p.cadastro_fiscal_completo) return 'Completo';
+  if (p.is_prospect) return 'Prospect';
+  return 'Incompleto';
+}
+
+const SORT = {
+  codigo: (p: Parceiro) => p.codigo,
+  nome: (p: Parceiro) => p.nome_fantasia ?? p.razao_social,
+  documento: (p: Parceiro) => p.cnpj_cpf,
+  papeis: (p: Parceiro) => getPapeis(p).join(', '),
+  fiscal: (p: Parceiro) => fiscalSortKey(p),
+  situacao: (p: Parceiro) => p.situacao,
+};
+
 export function ParceirosPage() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +46,7 @@ export function ParceirosPage() {
   const [q, setQ] = useState('');
   const [papel, setPapel] = useState('');
   const [loading, setLoading] = useState(true);
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(parceiros, SORT);
 
   const load = async (search?: string, papelFilter?: string) => {
     setLoading(true);
@@ -103,7 +122,7 @@ export function ParceirosPage() {
       </div>
 
       <div className="card">
-        <div className="table-wrap">
+        <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : parceiros.length === 0 ? (
@@ -112,16 +131,34 @@ export function ParceirosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Razão social</th>
-                  <th>CNPJ/CPF</th>
-                  <th>Papéis</th>
-                  <th>Fiscal</th>
-                  <th>Situação</th>
+                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Razão social
+                  </SortableTh>
+                  <SortableTh
+                    column="documento"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    label="CNPJ ou CPF"
+                  >
+                    CNPJ/CPF
+                  </SortableTh>
+                  <SortableTh column="papeis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Papéis
+                  </SortableTh>
+                  <SortableTh column="fiscal" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Fiscal
+                  </SortableTh>
+                  <SortableTh column="situacao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Situação
+                  </SortableTh>
                 </tr>
               </thead>
               <tbody>
-                {parceiros.map((p) => (
+                {sorted.map((p) => (
                   <tr
                     key={p.id}
                     className="clickable"

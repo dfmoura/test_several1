@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 
 type SectionId =
   | 'visao'
@@ -90,6 +92,26 @@ const PASSOS = [
 
 export function OrcamentoComoCalculaPage() {
   const [ativo, setAtivo] = useState<SectionId>('visao');
+  const [matrizCm2, setMatrizCm2] = useState<number | null>(null);
+  const { hasPermission } = useAuth();
+  const canOpenCatalogo = hasPermission('orcamento.catalogo.gerir');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get<{ data: { matriz_cm2?: number } }>('/orcamentos/catalogo');
+        if (!cancelled && res.data.matriz_cm2 != null) {
+          setMatrizCm2(Number(res.data.matriz_cm2));
+        }
+      } catch {
+        /* página educativa — fallback silencioso */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const nodes = TOC.map((t) => document.getElementById(t.id)).filter(
@@ -308,9 +330,28 @@ export function OrcamentoComoCalculaPage() {
                   </p>
                   <div className="calc-formula">
                     <code>
-                      ((Z × 3,175 ÷ 10) + 4) × (largura × colunas + 4) × cores × R$/cm²
+                      ((Z × 3,175 ÷ 10) + 4) × (largura × colunas + 4) × cores ×{' '}
+                      {matrizCm2 != null
+                        ? Number(matrizCm2).toLocaleString('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 6,
+                          })
+                        : 'R$/cm²'}
                     </code>
                     <span>Depois arredonda para cima em R$ 1.</span>
+                    <span className="field-note">
+                      Tarifa vigente do catálogo
+                      {canOpenCatalogo ? (
+                        <>
+                          {' '}
+                          · editável em{' '}
+                          <Link to="/orcamento-catalogo">Catálogo ORC · Matriz</Link>
+                        </>
+                      ) : null}
+                      .
+                    </span>
                   </div>
                 </div>
                 <div>

@@ -1,0 +1,31 @@
+---
+description: Invariante BEM patrimonial ≠ máquina G10 do ORC (estudo 32 §5.2)
+globs: "**/BemPatrimonial*.php,**/OrcCatalogoMaquina*.php,**/OrcamentoCatalogo*.php,**/OrcamentoCatalogo*.tsx,**/Patrimonio*.tsx,**/BemFicha*.tsx,**/patrimonio.ts,**/ADR_BEM*.md"
+alwaysApply: false
+---
+
+# Fronteira BEM × ORC (G10)
+
+Norma: `docs/ADR_BEM_VS_ORC_MAQUINA.md` · estudo `../32` §5.2 · BL-023/025/026.
+
+## Donos
+
+- **`bens_patrimoniais` (BEM-)** = ativo físico. Capitalização/gerencial = patrimônio.
+- **`orc_catalogo_maquinas` (BETA, 160…)** = **apenas** tarifas hora-máquina do ORC.
+- Ponte: `orc_catalogo_maquina_id` nullable no BEM. Nunca o inverso como “a máquina da OP”.
+
+## Faça
+
+- Integrar por **navegação / leitura** (ex.: `bens_vinculados` no catálogo ORC).
+- Quando existir OP/manutenção: FK para **`bem_id`**.
+- Manter soft-delete e status de ciclo de vida no BEM.
+
+## Não faça
+
+- Fundir tabelas ou tratar nome G10 como patrimônio.
+- Usar id do catálogo ORC como máquina física na produção.
+- Exigir 1:1 BEM↔G10.
+- Implementar CMMS, compra→BEM automático ou depreciação fiscal “de passagem” sem ADR novo.
+- Alterar tarifas/seed G10 ao evoluir patrimônio.
+
+Se a tarefa exigir violar isto → parar e citar a ADR; não “improvisar máquina paralela”.

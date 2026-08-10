@@ -38,6 +38,8 @@ abstract class TestCase extends BaseTestCase
             'CACHE_STORE' => 'array',
             'QUEUE_CONNECTION' => 'sync',
             'SESSION_DRIVER' => 'array',
+            // Compose injeta false (produto congelado); testes do módulo precisam ON.
+            'RELATORIO_IA_HABILITADO' => 'true',
         ];
 
         foreach ($vars as $key => $value) {

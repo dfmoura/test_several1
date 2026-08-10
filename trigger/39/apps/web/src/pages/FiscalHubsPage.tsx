@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { ApiError, api, type FiscalHub } from '../lib/api';
 import { formatDateTime } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 type Mode = 'closed' | 'create' | 'edit';
 
@@ -38,6 +40,17 @@ export const FISCAL_HUB_OPTIONS: { value: string; label: string }[] = [
 function provedorLabel(tipo: string): string {
   return FISCAL_HUB_OPTIONS.find((o) => o.value === tipo)?.label ?? tipo;
 }
+
+const HUB_SORT = {
+  codigo: (h: FiscalHub) => h.codigo,
+  nome: (h: FiscalHub) => h.nome,
+  provedor: (h: FiscalHub) => provedorLabel(h.provedor),
+  ambiente: (h: FiscalHub) => h.ambiente_ativo,
+  tokens: (h: FiscalHub) =>
+    `${h.tem_token_homologacao ? '1' : '0'}${h.tem_token_producao ? '1' : '0'}`,
+  status: (h: FiscalHub) => (h.ativo ? 'ATIVO' : 'INATIVO'),
+  teste: (h: FiscalHub) => h.ultimo_teste_em,
+};
 
 function ambienteLabel(amb: string): string {
   return amb === 'producao' ? 'Produção' : 'Homologação';
@@ -77,6 +90,13 @@ export function FiscalHubsPage() {
         h.token_producao_mascara.toLowerCase().includes(q),
     );
   }, [items, query]);
+
+  const {
+    sorted,
+    sortKey,
+    sortDir,
+    requestSort,
+  } = useTableSort(filtered, HUB_SORT);
 
   const load = async () => {
     setLoading(true);
@@ -441,18 +461,38 @@ export function FiscalHubsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Código</th>
-                  <th>Nome</th>
-                  <th>Provedor</th>
-                  <th>Ambiente</th>
-                  <th>Tokens</th>
-                  <th>Status</th>
-                  <th>Último teste</th>
+                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Código
+                  </SortableTh>
+                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Nome
+                  </SortableTh>
+                  <SortableTh column="provedor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Provedor
+                  </SortableTh>
+                  <SortableTh column="ambiente" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Ambiente
+                  </SortableTh>
+                  <SortableTh column="tokens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Tokens
+                  </SortableTh>
+                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Status
+                  </SortableTh>
+                  <SortableTh
+                    column="teste"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    label="Último teste"
+                  >
+                    Último teste
+                  </SortableTh>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((h) => (
+                {sorted.map((h) => (
                   <tr key={h.id}>
                     <td>
                       <code>{h.codigo}</code>

@@ -14,11 +14,362 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-017`
+`BL-032`
 
 ---
 
 ## Itens
+
+### BL-031 · [comercial] Link público de aprovação do ORC (cliente)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-09 — rotina enviar orçamento para cliente aprovar; subdomínio flexorc; status preparação/enviado/aprovado/rejeitado; Ctrl+C; estudo 32; não estragar
+- **Referência:** `../32/APROVACAO_ORCAMENTO_CLIENTE.txt` · `../32/GERACAO_ORCAMENTO.txt` §6/§9 · ADR `docs/ADR_ORC_LINK_APROVACAO.md` · protótipo `../33`
+- **Decisão (fechada):**
+  1. Mesmo monólito; SPA `/p/{token}`; base `ORCAMENTO_PUBLIC_BASE_URL` (prod: `https://flexorc.triggerti.com`).
+  2. Tabela `orcamento_links_aprovacao` (token 1:1); DTO só comercial no público.
+  3. Status: preparação (edit/del) → enviado (imutável) → aprovado (travado) | rejeitado (reedita e reenvia). Link some após decisão.
+  4. Clipboard + texto padrão; **sem** WhatsApp API / PED / crédito nesta entrega.
+- **Aceite:**
+  - [x] Migration + model + service + APIs auth/pública
+  - [x] UI detalhe: Enviar / Copiar link
+  - [x] Página pública profissional aprovar/recusar
+  - [x] Testes Feature de fluxo completo
+  - [x] Diagrama + ADR
+
+### BL-030 · [comercial] Ficha operacional do ORC para impressão (HTML paisagem)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-09 — ficha completa de impressão no orçamento (não é para cliente); incluir faca etc.; padrão das demais; estudo 32; recomendar e decidir sem estragar
+- **Histórico:** Tentativas do mesmo dia (retrato forçado → paisagem) foram desfeitas a pedido; reaberta e fechada com decisão de domínio abaixo.
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `GERACAO_ORCAMENTO.txt` §1.5 — aba **ORÇAMENTO** (interno) ≠ **CONSOLIDADO** (cliente)
+  - Excel oficial `orçamento/ORcAMENTO_OFICIAL_*.xlsm` — ORÇAMENTO = **landscape**; CONSOLIDADO = portrait
+  - `CASOS_USO_M02_COMERCIAL.txt` UC-COM-001
+- **Referência (padrão 39):** shell `.ficha-*` + `fichaNav` + `window.print` (BL-015/018/019/024)
+- **Decisão (fechada):** HTML A4 **paisagem** espelhando a aba ORÇAMENTO (descrição + faca + métricas + custos + fechamento). Shell das fichas (masthead / tabelas / TRIGGER). Orientação paisagem é do **conteúdo** do cálculo; cadastros continuam retrato. **Não** é proposta CONSOLIDADO ao cliente. DomPDF fora.
+- **Aceite:**
+  - [x] `OrcamentoFichaSheet` + `OrcamentoFichaPage` em `/orcamentos/:id/ficha` (fora do AppShell)
+  - [x] Botão “Imprimir ficha” no detalhe e na edição (nova aba via `fichaNav`)
+  - [x] `@page ficha-orc-a4` landscape (CSS escopado em `.ficha-sheet-orc`)
+  - [x] Spec em tabelas + faca com `FacaShapeIcon` (print-safe)
+  - [x] Métricas / custos / fechamento por faixa
+  - [x] Marcação “Uso interno”
+- **Fora de escopo:** proposta CONSOLIDADO ao cliente, DomPDF, e-mail, WhatsApp
+- **Entregue em:** 2026-08-09 (reabertura)
+- **Arquivos:**
+  - `OrcamentoFichaSheet` + `OrcamentoFichaPage`
+  - rota + botões; CSS `.ficha-sheet-orc` / `.ficha-orc-faca`
+
+### BL-029 · [cadastros/arquitetura] Revalidar unidades do produto (dual canônico ≠ Sankhya)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-08 — revalidar Unidade comercial / interna / largura / comprimento / gramatura / fator; estudo 32; Sankhya só como referência; recomendar e decidir
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CONVERSOES_UNIDADES_MEDIDA.txt` (pontes + regras de ouro)
+  - `CADASTRO_PRODUTOS_COMPRA.txt` / `CADASTRO_PRODUTOS_VENDA.txt` (unidades)
+  - UC-CAD-005
+- **Decisão (fechada):** **modelo dual canônico** — `unidade_comercial` ↔ `unidade_interna` (estoque) + `fator_conversao` (1 com = fator × int) + atributos bobina em JSON. **Não** adotar tabela de unidades alternativas estilo Sankhya nesta fase. Sankhya inspira equivalências na UX, não o schema.
+- **Aceite:**
+  - [x] ADR `docs/ADR_UNIDADES_PRODUTO.md`
+  - [x] Regra Cursor `produto-unidades.mdc`
+  - [x] Teste de fronteira `ProdutoUnidadesBoundaryTest`
+  - [x] UX: seções Unidades / bobina / fator + rótulo “Unidade de estoque” + equação ao vivo
+  - [x] Normalização: interna vazia → comercial; iguais → fator 1
+  - [x] Ficha A4 alinhada; README invariante
+  - [x] Visibilidade bobina: só `exige_dimensao_sku` ∪ faltando do motor ∪ legado; limpa ao trocar grupo; helper `ProdutoBobinaDimensoes` / `produtoBobinaDimensoesUi.ts`
+- **Fora de escopo:** tabela N alternativas; promover atributos a colunas; estoque multi-saldo; CX/densidade na UI
+- **Entregue em:** 2026-08-08
+
+### BL-028 · [comercial] Mapa de facas persistente (visualizar + cadastrar + inativar)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-08 — Comercial com mapa visual; sem editar geometria; só inativar; desenho sempre; estudo 32
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `MANUAL_UNICO_ERP_RLP.txt` §3.3 / §7.3 (mapa oficial; FACA NOVA → cadastrar após aprovação)
+  - `GERACAO_ORCAMENTO.txt` (medida/Z/puxada vêm da faca)
+  - Soft-delete / inativar — sem apagar histórico
+- **Decisão (fechada):**
+  1. Tabela `orc_mapa_facas` + seed idempotente do JSON oficial (fallback JSON se vazia).
+  2. UI **Comercial → Mapa de facas** com desenho (`FacaShapeIcon`) em grade + detalhe.
+  3. Operações: listar/filtrar, **criar**, **inativar/reativar** — sem editar geometria existente.
+  4. RBAC: `orcamento.ler` (ver) / `orcamento.escrever` (criar/inativar/seed).
+  5. Distinto de produto **FAC-** (ferramental rastreável / cobrança 1×) — fora desta entrega.
+- **Aceite:**
+  - [x] Migration + model + `FacasMapaService` DB/JSON
+  - [x] API resumo/list/show/store/ativo/seed
+  - [x] UI mapa com desenho + cadastro + inativação
+  - [x] Menu Comercial + dashboard + `facas:ensure-mapa` no boot
+  - [x] Testes Feature estendidos
+- **Fora de escopo:** edição de geometria; vínculo FAC- produto; cobrança 1×; upload de arte/SVG custom
+- **Entregue em:** 2026-08-08
+
+### BL-027 · [arquitetura] Congelar invariante BEM ≠ G10 (ADR + regra + teste)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — melhor engenharia agora e no futuro; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt` §5.2 · ADR-DOM-001
+  - `PATRIMONIO_CONTROLE.txt` (máquina física = BEM; OP → bem_id)
+- **Decisão (fechada):** o cadastro/integração já estão corretos; o risco futuro é **regressão por fusão**. Entrega = **guarda de arquitetura**, sem mudar runtime de negócio.
+  1. ADR canônica no 39
+  2. Regra Cursor scoped aos arquivos BEM/ORC
+  3. Teste unitário de fronteira de schema/relações
+  4. Invariante no README + PHPDoc nos models
+- **Aceite:**
+  - [x] `docs/ADR_BEM_VS_ORC_MAQUINA.md`
+  - [x] `.cursor/rules/bem-orc-boundary.mdc`
+  - [x] `tests/Unit/BemOrcBoundaryTest.php`
+  - [x] README + docs nos models
+- **Fora de escopo:** nova feature de patrimônio, OP, CMMS, mudança de tarifas
+- **Entregue em:** 2026-08-07
+
+### BL-026 · [cadastros/gerencial] Integrar patrimônio ao restante do sistema (ponte BEM↔ORC↔PAR)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — patrimônio integrado ao sistema; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `PATRIMONIO_CONTROLE.txt` §5 (máquina OP = bem; sem cadastro duplicado)
+  - `DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt` §5.2 (uma tabela BEM; preventivo depois)
+- **Referência (padrão 39):** BL-023/025 (FK `orc_catalogo_maquina_id`); Catálogo ORC G10; parâmetros; dashboard
+- **Decisão (fechada):** integração **por visibilidade e navegação** nesta fase — não fundir entidades, não criar OP/CMMS/compra→BEM.
+  1. Catálogo ORC · Máquina (G10): coluna **Patrimônio** com `bens_vinculados[]` (somente leitura, escopo EMP).
+  2. Form BEM: deep-links para fornecedor (PAR) e Catálogo ORC.
+  3. Parâmetros: hint de `valor_minimo_capitalizar_bem`.
+  4. Dashboard: escopo + `patrimonio.ler` no check de acesso vazio.
+- **Aceite:**
+  - [x] `listMaquinas` retorna `bens_vinculados` filtrados por `empresa_id`
+  - [x] UI coluna Patrimônio com link `/patrimonio/:id` se `patrimonio.ler`
+  - [x] Links cruzados no formulário BEM
+  - [x] Hint em Parâmetros + dashboard
+  - [x] Teste feature; tarifas ORC intocadas
+- **Fora de escopo:** preventiva, OS, compra→BEM, alterar motor ORC, OP/`bem_id`
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `OrcCatalogoMaquina::bensPatrimoniais` + `maquinaOut.bens_vinculados`
+  - `OrcamentoCatalogoPage` coluna Patrimônio
+  - Soft links em `PatrimonioFormPage` / `ParametrosPage` / `DashboardPage`
+  - `OrcamentoCatalogoTest::test_list_maquinas_inclui_bens_vinculados_da_empresa`
+
+### BL-025 · [cadastros/gerencial] Completar máquinas físicas (BEM) × grupos ORC canônicos
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-08-07 — cadastrar as demais máquinas sem estragar; fonte = catálogo ORC do 39
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `PATRIMONIO_CONTROLE.txt` (máquina física = BEM; OP preferir bem_id)
+  - `DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt` §5.2 (zero “máquina paralela”)
+  - Manual ORC (grupos BETA/160/250/ETIRAMA, BATIDA, MODULAR)
+- **Decisão:** completar seed de **bens patrimoniais** ligados 1:1 aos 6 grupos canônicos do `catalog_oficial.json`. **Não** alterar `orc_catalogo_maquinas` / tarifas G10 (já semeadas). Sem inventar NF/série/valor.
+- **Aceite:**
+  - [x] BEM-00004 Reflexo 250 → ORC `250`
+  - [x] BEM-00005 Etirama → ORC `ETIRAMA`
+  - [x] BEM-00006 Batida → ORC `BATIDA`
+  - [x] BEM-00007 Modular SPX → ORC `MODULAR`
+  - [x] BEM-00001..00003 preservados; sequência BEM → 8
+  - [x] Idempotente (`firstOrCreate` por código)
+- **Fora de escopo:** preventiva CMMS, valores/NF reais, novos grupos ORC, rebobinadeiras fora do G10
+- **Entregue em:** 2026-08-07
+- **Implementação (39):** `DatabaseSeeder::seedBensPatrimoniais`
+
+### BL-024 · [cadastros/gerencial] Ficha patrimonial BEM profissional (HTML retrato)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — melhorar ficha gerada do patrimônio; retrato; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `PATRIMONIO_CONTROLE.txt` (etiqueta BEM-; gerencial ≠ depreciação do contador)
+- **Referência (padrão 39):** BL-015 PAR · BL-018 produto · BL-019 empresa · CSS `.ficha-*` + `body.ficha-print-mode`
+- **Decisão (fechada):** **mesmo padrão canônico** das outras fichas — HTML A4 retrato, `window.print`, DomPDF fora. Reaproveitar masthead / kv-strip / colunas / seções / rodapé TRIGGER. Não criar CSS paralelo.
+- **Aceite:**
+  - [x] `BemFichaSheet` alinhado a PAR/produto (Kv/Section, strip, colunas, chips de status)
+  - [x] `PatrimonioFichaPage` com `ficha-page` + `ficha-print-mode` + título da aba
+  - [x] Chips de ciclo de vida (ATIVO / EM_MANUTENCAO / CEDIDO / BAIXADO)
+  - [x] Nota gerencial + código para etiqueta física
+  - [x] Botão “Imprimir ficha” no cadastro
+- **Fora de escopo:** PDF servidor, QR code na etiqueta, foto do bem, inventário
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `BemFichaSheet` + `PatrimonioFichaPage` + chips status em `global.css`
+
+### BL-023 · [cadastros/gerencial] Cadastro de patrimônio (BEM)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — criar cadastro de patrimônio; já existem máquinas no sistema; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `PATRIMONIO_CONTROLE.txt` (BEM-NNNNN; máquina física = bem; depreciação oficial = contador)
+  - `MANUTENCAO_PREVENTIVA_MAQUINAS.txt` (plano preventivo futuro sobre bem_id)
+  - `DECISAO_MODELO_DOMINIO_CAMINHO_RECOMENDADO.txt` §5.2 (uma tabela BEM; zero “máquina paralela”)
+  - `CASOS_USO_M10_GERENCIAL.txt` UC-GER-002 · `CODIFICACAO_INFORMACOES_SISTEMA.txt` (BEM global)
+  - `PARAMETROS_EMPRESA_OFICIAIS.txt` (`valor_minimo_capitalizar_bem`)
+- **Referência (padrão 39):** CRUD parceiros/produtos; `CodigoGenerator` (CFIN); `orc_catalogo_maquinas` = **tarifas ORC**, não ativo físico
+- **Decisão (fechada):**
+  1. Entidade canônica **`bens_patrimoniais`** / código **`BEM-NNNNN`** (sequência global; linha com `empresa_id`).
+  2. **Não** fundir nem alterar `orc_catalogo_maquinas` (grupos G10 / hora-máquina do ORC).
+  3. Máquina de produção física = bem categoria `MAQUINA_GRAFICA`, com FK **opcional** `orc_catalogo_maquina_id` (ponte para tarifa ORC).
+  4. Cadastro mínimo do estudo; status ciclo de vida; soft-delete; parâmetro de capitalização só informativo (sem lançamento contábil).
+  5. Fora: CMMS/preventiva, inventário, anexos, depreciação gerencial calculada, compra→BEM automático, NF.
+- **Aceite:**
+  - [x] Migration + model + CodigoGenerator `BEM`
+  - [x] API CRUD `/bens` + permissões `patrimonio.ler` / `patrimonio.escrever`
+  - [x] Parâmetro `valor_minimo_capitalizar_bem` + aviso no formulário
+  - [x] UI listagem + formulário + ficha + menu Cadastros
+  - [x] Seed 1–2 bens demo EMP-00001 (sem inventar NF/série falsa)
+  - [x] Teste feature; catálogo ORC intacto
+- **Fora de escopo:** preventiva, OS manutenção, transferência histórica, export contador, depreciação, anexos
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `BemPatrimonial` + migration `2026_08_07_180000_*`
+  - `BemPatrimonialService` / `BemPatrimonialController` + rotas `/api/v1/bens`
+  - UI `PatrimonioPage` / `PatrimonioFormPage` / `BemFichaSheet`
+  - Seed BEM-00001..00003 + `BemPatrimonialTest`
+
+### BL-022 · [cadastros] Endereços de entrega no cadastro de parceiro
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — no cadastro de parceiro opção de endereço de entrega (mesmo do Endereço ou 1+ novos com responsável); estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PARCEIROS.txt` (endereço de ENTREGA quando diferente do fiscal / grupo entrega NF-e)
+  - `ENTREGA_CONFIRMACAO_CLIENTE.txt` (endereço de entrega = snapshot no PED; cadastro PAR = locais padrão)
+- **Referência (padrão 39):** `parceiro_contatos` / `parceiro_contas_bancarias` (sync multi-linha no save)
+- **Decisão (fechada):** tabela filha **`parceiro_enderecos_entrega`** — não mexer no endereço fiscal do PAR; lista vazia = entrega no fiscal; 1+ linhas com responsável por receber; aba **Entrega** após Endereço.
+- **Aceite:**
+  - [x] Migration + model + relação no PAR
+  - [x] create/update sync `enderecos_entrega[]` (padrão contatos: delete+recreate)
+  - [x] Validação: linhas não vazias exigem responsável + endereço mínimo; no máximo um principal
+  - [x] Aba Entrega no formulário (toggle mesmo fiscal × 1+ locais + CEP)
+  - [x] Seção na ficha impressa
+  - [x] Teste feature
+- **Fora de escopo:** snapshot ORC/PED, romaneio ENT-, frete CIF/FOB, transportadora preferida, import CSV/XML de entrega, alteração do endereço fiscal
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `ParceiroEnderecoEntrega` + migration `2026_08_07_170000_*`
+  - Sync em `ParceiroService` + regras em `ParceiroValidationRules`
+  - Aba Entrega em `ParceiroFormPage`; seção na `ParceiroFichaSheet`
+  - `ParceiroEnderecosEntregaTest`
+
+### BL-021 · [cadastros/financeiro] Contas financeiras (CFIN) no cadastro da empresa
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — no cadastro EMP já poder 1+ bancos/contas pensando em financeiro e implantação de saldo; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt` (Conta financeira; credenciais aparte; multi-provider)
+  - `CASOS_USO_M06_FINANCEIRO.txt` / `RECEBIMENTO_BAIXA_COBRANCA.txt` (BX → conta financeira)
+  - `MULTI_EMPRESA_CNPJS_E_LIVROS.txt` (contas/credenciais por EMP)
+  - `estrategia_implantacao_ja.txt` (virada por saldo de abertura)
+- **Referência (padrão 39):** `parceiro_contas_bancarias` (UX multi-conta + BrasilAPI) — semanticamente distinto
+- **Decisão (fechada):** entidade **Conta financeira (CFIN)** na EMP, não multi-select de banco solto.
+  - Tipos: `BANCO` | `CAIXA` | `APLICACAO`
+  - 1+ contas, uma principal; soft-delete no sync; código `CFIN-NNNNN`
+  - Campos de implantação: `saldo_abertura` + `saldo_abertura_em` (sem ledger / sem saldo corrente editável)
+  - Credenciais BankProvider / COB / TIT / BX **fora** desta entrega
+  - Contas do PAR permanecem só para pagar o parceiro
+- **Aceite:**
+  - [x] Migration `empresa_contas_financeiras` + model + relação EMP
+  - [x] PUT `/empresas/{id}` aceita `contas_financeiras[]` (sync por id)
+  - [x] SHOW carrega contas
+  - [x] Aba Contas no `EmpresasPage` (catálogo `/consulta/bancos`)
+  - [x] Seção na ficha impressa da empresa
+  - [x] Seed EMP-00001: CFIN-00001 Sicoob (sem inventar agência/conta)
+  - [x] Teste feature
+- **Fora de escopo:** ledger de movimentos, saldo corrente, CNAB/API bancária, credenciais provider
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `EmpresaContaFinanceira` + migration `2026_08_07_160000_*`
+  - `EmpresaService::syncContas` + `CodigoGenerator` prefixo `CFIN`
+  - UI aba Contas + ficha
+  - `EmpresaContasFinanceirasTest`
+
+### BL-020 · [relatorios] Congelar Relatórios IA (adiar pós-core; código intacto)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — PDF engessa UX; análise HTML vs PDF; decisão híbrido futuro; adiar enquanto foco é cadastro/ORC; não apagar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32` (M10 gerencial CSV/PDF futuro — sem Relatórios IA)
+- **Decisão:** **Feature flag master OFF**. Não hard-delete. Não tocar IaProvedores, migrations, queue Compose, DomPDF package.
+  - API: middleware `relatorio.ia` → 404 se `RELATORIO_IA_HABILITADO=false` (default).
+  - Jobs: no-op se flag OFF.
+  - SPA: menu/dashboard/rotas só com `VITE_RELATORIO_IA_HABILITADO=true`.
+  - Testes: phpunit força flag ON; testes do módulo preservados.
+  - Futuro (reabrir): HTML preview + PDF export do mesmo documento (plano profissional).
+- **Aceite:**
+  - [x] Menu Relatórios e card dashboard ocultos por padrão
+  - [x] Rotas SPA `/relatorios*` ausentes com flag OFF
+  - [x] API `/api/v1/relatorios*` → 404 com flag OFF
+  - [x] Código/services/jobs/tabelas/permissions seed preservados
+  - [x] IaProvedores intocado
+  - [x] README + .env.example documentam reabertura
+- **Fora de escopo:** apagar código, dropar tabelas, evoluir layout HTML/PDF agora
+- **Entregue em:** 2026-08-07
+- **Reabrir:** `RELATORIO_IA_HABILITADO=true` + `VITE_RELATORIO_IA_HABILITADO=true` + rebuild web
+
+### BL-019 · [cadastros] Ficha da empresa para impressão (HTML retrato)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-08-07 — mesma ficha profissional no cadastro da empresa; puxar parceiro + produto; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `MULTI_EMPRESA_CNPJS_E_LIVROS.txt` (EMP-00001/00002; flags venda/estoque; sem LAI)
+  - `PARAMETROS_EMPRESA_OFICIAIS.txt` (quando aplicável)
+- **Referência (padrão 39):** BL-015 ficha PAR · BL-018 ficha produto · abas Atividades/Sócios do `EmpresasPage`
+- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print`). DomPDF fora. **Atividades + QSA** na ficha: CNAEs do cadastro enriquecidos com descrição via consulta CNPJ; QSA só consulta Receita (não persiste) — mesmo padrão da tela.
+- **Aceite:**
+  - [x] Botão “Imprimir ficha” no cabeçalho da empresa selecionada (nova aba)
+  - [x] Layout retrato A4 com marca RLP + Powered by TRIGGER
+  - [x] Seções: endereço, contato, **atividades (CNAE)**, fiscal, **QSA**, operação, histórico, pendências
+  - [x] Consulta BrasilAPI ao abrir a ficha (silenciosa; imprint espera QSA/descrições)
+  - [x] Nota multi-empresa / venda off quando aplicável
+  - [x] Zero mudança no CRUD/API/relatórios
+- **Fora de escopo:** PDF servidor, parâmetros versionados na ficha, e-mail da ficha, persistir QSA
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `EmpresaFichaSheet` + `EmpresaFichaPage` em `/empresas/:id/ficha` (fora do AppShell)
+  - CTA no `EmpresasPage` (empresa selecionada)
+  - Enrichment: `GET /consulta/cnpj/{cnpj}` → QSA + descrições CNAE
+
+### BL-018 · [cadastros] Ficha do produto para impressão (HTML retrato)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-08-07 — ficha profissional em retrato; puxar padrão do parceiro; estudo 32; recomendar melhor caminho e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PRODUTOS_VENDA.txt` (Camada A fiscal × Camada B no ORC/PED; NCM/origem/SPED/unidades)
+  - `CADASTRO_PRODUTOS_COMPRA.txt` (MP/EMB/REV; atributos bobina)
+  - `CASOS_USO_M01_CADASTROS.txt` (UC-CAD-003)
+- **Referência (padrão 39):** BL-015 ficha do parceiro (`ParceiroFichaSheet` + HTML print A4)
+- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF). DomPDF fora — Relatórios IA permanece o PDF arquivável; ficha é snapshot operacional do cadastro.
+- **Aceite:**
+  - [x] Botão “Imprimir ficha” na tela do produto (somente edição, nova aba)
+  - [x] Layout retrato A4 com marca RLP + Powered by TRIGGER (mesmo CSS `.ficha-*`)
+  - [x] Seções: identificação, unidades, fiscal, comercial, atributos/bobina quando houver
+  - [x] Nota Camada A × especificação no ORC/PED (estudo 32)
+  - [x] Zero mudança no CRUD/API/import/relatórios
+- **Fora de escopo:** PDF servidor, e-mail da ficha, foto do produto, versão catálogo comercial com preço de ORC
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `ProdutoFichaSheet` + `ProdutoFichaPage` em `/produtos/:id/ficha` (fora do AppShell)
+  - `@page ficha-a4` (genérico; substitui `ficha-parceiro`)
+  - CTA no `ProdutoFormPage` (somente edição, não “novo”)
+
+### BL-017 · [cadastros] Sugestão automática de Descrição fiscal / comercial no produto
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-07 — sugestão ao cadastrar produto (pode usar info livre); IA opcional depois; respeitar padrão do sistema e estudo 32; não engessar; não estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PRODUTOS_VENDA.txt` (fiscal estável × comercial rica; template placeholders PA; regra de ouro)
+  - `CADASTRO_PRODUTOS_COMPRA.txt` (higiene: marca ≠ descrição; anti-apelido)
+  - `CASOS_USO_M01_CADASTROS.txt` (sugerir → humano confirma antes de salvar)
+- **Referência (padrão 39):** `ProdutoFormPage` (hint fiscal); `FatorConversaoSugeridor` (sugestão determinística + aplicar); hubs IA / Relatórios (v1.1); grupos canônicos `ProdutoGrupoCatalogData`
+- **Problema / oportunidade:** operador digita à mão as duas descrições; risco de marca no fiscal, apelido pejorativo, PA sob medida eterno, ou textos inconsistentes com o catálogo RLP.
+- **Decisão (v1 — fechada):** motor **determinístico por grupo** + campo opcional “informação extra” + preview + Aplicar (fiscal / comercial / ambas) com anti-sobrescrita e aviso de similares no mesmo grupo. **Sem IA nesta entrega** (v1.1 reutiliza `IaClient`). Sem mudar schema, validação, import commit, NCM/CFOP ou geração de código.
+- **Aceite:**
+  - [x] `POST /produtos/sugerir-descricao` (perm. `produto.escrever`) → fiscal + comercial + racional + avisos + similares
+  - [x] Templates por grupo (PA/MP/EMB/REV/SVC/FAC) alinhados ao estudo/seeds
+  - [x] UX no `ProdutoFormPage` (aba Comercial): texto livre opcional → Sugerir → aplicar com confirmação se campo já preenchido
+  - [x] Testes unitário + feature
+  - [x] Zero mudança em Relatórios IA / import CSV commit
+- **Fora de escopo (v1):** IA; placeholders resolvidos no ORC/PED; sugestão em massa no import; auto-save no blur
+- **Entregue em:** 2026-08-07
+- **Implementação (39):**
+  - `ProdutoDescricaoSugeridor` + `ProdutoController::sugerirDescricao`
+  - Rota `POST /api/v1/produtos/sugerir-descricao`
+  - UI no `ProdutoFormPage` (entre Grupo e descrições)
+  - Testes `ProdutoDescricaoSugeridorTest` + `ProdutoDescricaoSugestaoTest`
 
 ### BL-016 · [identidade] Padrão canônico TRIGGER × licenciado (sem forçar nem apagar)
 - **Status:** Feito
@@ -258,7 +609,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Entregue em:** 2026-08-04
 
 ### BL-004 · [comercial] Cadastro editável das bases do catálogo ORC (Papel / Acabamento / Tipo troca / Máquina G10)
-- **Status:** Feito
+- **Status:** Feito (+ extensão 2026-08-08: escalar `matriz_cm2`)
 - **Prioridade:** P1
 - **Origem:** Chat 2026-08-04 — manipular bases que amarram valores do cálculo sem estragar o ORC já excelente; futuro auto-carregamento
 - **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`  
@@ -269,19 +620,21 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Referência (exemplo):** trigger/28 (admin papéis + schema) / trigger/29 (`catalog_oficial.json`)
 - **Decisão (fechada):**
   1. **4 bases no banco:** Papel (R$/m²), Acabamento (R$/m² + perda m²), Tipo troca produto (`tempo_h`), Máquina G10 (`hora_maquina` cores→R$/h).
-  2. **Demais parâmetros** (tinta, tubete, perdas acerto, caixas…) permanecem no JSON oficial.
-  3. **Overlay híbrido:** DB populado → bases do DB; tabelas vazias → fallback JSON (testes e segurança).
+  2. **Escalar promovido (2026-08-08):** `matriz_cm2` em `orc_catalogo_parametros` — ADR `docs/ADR_ORC_PARAMETROS_ESCALARES.md`. Demais (tinta, tubete, perdas acerto, caixas…) permanecem no JSON oficial.
+  3. **Overlay híbrido:** DB populado → bases/escalares do DB; tabelas vazias / inativos → fallback JSON (testes e segurança).
   4. **Snapshot ORC intocado** — alterações valem só em novos cálculos.
   5. **Só inativar** (sem hard-delete); lookup inclui inativos; selects do ORC só ativos.
   6. **RBAC** `orcamento.catalogo.gerir` (ADMIN); seed idempotente via seeder + `orcamento:ensure-catalogo`.
+  7. **UX:** form ORC e “Como calcula” mostram a tarifa vigente; resultado/detalhe mostram a do snapshot.
 - **Aceite:**
   - [x] Migrations + models + seed do JSON oficial
   - [x] `OrcamentoCatalogo::load()` com overlay DB / fallback JSON
   - [x] API admin CRUD + audit
   - [x] UI Administração → Catálogo ORC (abas das 4 bases)
   - [x] Testes Feature `OrcamentoCatalogoTest` + motor existente preservado
-- **Fora de escopo:** vigência/ratificação TAB completa; matriz de compatibilidade; auto-carga futura de estoque/ERP; demais tabelas do JSON
-- **Entregue em:** 2026-08-04
+  - [x] Extensão: `orc_catalogo_parametros` + aba Matriz + `metaForUi.matriz_cm2` + testes
+- **Fora de escopo:** vigência/ratificação TAB completa; matriz de compatibilidade; auto-carga futura de estoque/ERP; demais escalares do JSON (exceto `matriz_cm2`)
+- **Entregue em:** 2026-08-04 · extensão matriz: 2026-08-08
 
 ### BL-003 · [comercial] Prospect inline no ORC + FACA NOVA + layout do mapa de facas
 - **Status:** Feito

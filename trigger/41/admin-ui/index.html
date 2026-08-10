@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zap Gateway — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Zap Gateway</h1>
+        <p>Outbound multi-tenant · admin</p>
+      </div>
+    </div>
+    <div class="auth-bar">
+      <label class="field">
+        <span>API base</span>
+        <input id="apiBase" type="url" value="http://localhost:8141" />
+      </label>
+      <label class="field">
+        <span>Admin token</span>
+        <input id="adminToken" type="password" placeholder="ADMIN_TOKEN" />
+      </label>
+      <button id="btnSaveAuth" class="btn primary" type="button">Salvar</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel" id="sendersPanel">
+      <div class="panel-head">
+        <h2>Senders</h2>
+        <button id="btnRefresh" class="btn ghost" type="button">Atualizar</button>
+      </div>
+
+      <form id="createForm" class="create-row">
+        <input id="senderName" type="text" placeholder="Nome (ex: comercial-filial-01)" required />
+        <input id="senderRate" type="number" min="1" max="120" value="20" title="Rate limit / min" />
+        <button class="btn primary" type="submit">Criar sender</button>
+      </form>
+
+      <div id="apiKeyBanner" class="banner hidden" role="status"></div>
+      <div id="sendersList" class="list"></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Fila</h2>
+          <button id="btnQueue" class="btn ghost" type="button">Refresh</button>
+        </div>
+        <pre id="queueStats" class="mono">—</pre>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Falhas</h2>
+          <button id="btnFailed" class="btn ghost" type="button">Refresh</button>
+        </div>
+        <div id="failedList" class="list compact"></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="qrDialog">
+    <form method="dialog" class="qr-box">
+      <h3 id="qrTitle">Pairing QR</h3>
+      <p id="qrDetail" class="muted"></p>
+      <img id="qrImage" alt="QR Code WhatsApp" />
+      <menu>
+        <button class="btn ghost" value="cancel">Fechar</button>
+        <button id="btnRefreshQr" class="btn primary" type="button">Gerar novo</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

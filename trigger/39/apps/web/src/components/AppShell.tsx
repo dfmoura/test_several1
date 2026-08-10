@@ -4,9 +4,11 @@ import { BrandBar } from './BrandBar';
 import { TriggerByline } from './TriggerAttribution';
 import {
   IconAi,
+  IconAsset,
   IconBuilding,
   IconCatalog,
   IconDashboard,
+  IconFaca,
   IconGuide,
   IconHub,
   IconOrcamento,
@@ -18,6 +20,7 @@ import {
 } from './NavIcons';
 import { useAuth } from '../lib/auth';
 import { BRAND } from '../lib/brand';
+import { FEATURES } from '../lib/features';
 
 type NavItem = {
   to: string;
@@ -34,7 +37,7 @@ type NavGroup = {
   items: NavItem[];
 };
 
-const NAV_GROUPS: NavGroup[] = [
+const NAV_GROUPS_ALL: NavGroup[] = [
   {
     label: 'Principal',
     items: [
@@ -47,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/empresas', label: 'Empresas', icon: IconBuilding, permission: null },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
       { to: '/produtos', label: 'Produtos', icon: IconProduct, permission: 'produto.ler' },
+      { to: '/patrimonio', label: 'Patrimônio', icon: IconAsset, permission: 'patrimonio.ler' },
     ],
   },
   {
@@ -60,6 +64,12 @@ const NAV_GROUPS: NavGroup[] = [
         isActivePath: (pathname) =>
           pathname === '/orcamentos' ||
           (pathname.startsWith('/orcamentos/') && !pathname.startsWith('/orcamentos/como-calcula')),
+      },
+      {
+        to: '/mapa-facas',
+        label: 'Mapa de facas',
+        icon: IconFaca,
+        permission: 'orcamento.ler',
       },
       {
         to: '/orcamentos/como-calcula',
@@ -101,6 +111,10 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+const NAV_GROUPS: NavGroup[] = NAV_GROUPS_ALL.filter(
+  (group) => group.label !== 'Relatórios' || FEATURES.relatorioIa,
+);
 
 export function AppShell() {
   const { user, roles, empresas, empresaId, setEmpresa, logout, hasPermission } = useAuth();

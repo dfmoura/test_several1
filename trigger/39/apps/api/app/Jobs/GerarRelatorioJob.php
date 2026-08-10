@@ -23,6 +23,10 @@ class GerarRelatorioJob implements ShouldQueue
 
     public function handle(RelatorioService $service): void
     {
+        if (! config('erp.relatorio_ia_habilitado', false)) {
+            return;
+        }
+
         // Relatórios com SVG (mapa de facas) precisam de folga além do php.ini 256M.
         @ini_set('memory_limit', '384M');
 

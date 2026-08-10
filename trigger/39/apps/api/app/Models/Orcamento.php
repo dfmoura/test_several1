@@ -4,18 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Orcamento extends Model
 {
     use SoftDeletes;
 
-    /** Estados no enum — só RASCUNHO/CALCULADO são operacionais neste BL. */
     public const STATUS_RASCUNHO = 'RASCUNHO';
 
     public const STATUS_CALCULADO = 'CALCULADO';
 
     public const STATUS_ENVIADO = 'ENVIADO';
+
+    public const STATUS_VISUALIZADO = 'VISUALIZADO';
 
     public const STATUS_APROVADO = 'APROVADO';
 
@@ -25,21 +27,49 @@ class Orcamento extends Model
 
     public const STATUS_CANCELADO = 'CANCELADO';
 
+    public const CANAL_LINK = 'LINK';
+
     /** @var list<string> */
     public const STATUSES = [
         self::STATUS_RASCUNHO,
         self::STATUS_CALCULADO,
         self::STATUS_ENVIADO,
+        self::STATUS_VISUALIZADO,
         self::STATUS_APROVADO,
         self::STATUS_REPROVADO,
         self::STATUS_VENCIDO,
         self::STATUS_CANCELADO,
     ];
 
-    /** @var list<string> */
+    /**
+     * Em preparação + rejeitado (pode recalcular e reenviar).
+     * Enviado/aprovado/vencido/cancelado ficam travados.
+     *
+     * @var list<string>
+     */
     public const STATUSES_EDITAVEIS = [
         self::STATUS_RASCUNHO,
         self::STATUS_CALCULADO,
+        self::STATUS_REPROVADO,
+    ];
+
+    /** @var list<string> */
+    public const STATUSES_AGUARDANDO_CLIENTE = [
+        self::STATUS_ENVIADO,
+        self::STATUS_VISUALIZADO,
+    ];
+
+    /**
+     * CALCULADO/REPROVADO = 1º envio ou reenvio após recusa.
+     * ENVIADO/VISUALIZADO = lembrete (mesmo link ativo).
+     *
+     * @var list<string>
+     */
+    public const STATUSES_ENVIAVEIS = [
+        self::STATUS_CALCULADO,
+        self::STATUS_REPROVADO,
+        self::STATUS_ENVIADO,
+        self::STATUS_VISUALIZADO,
     ];
 
     protected $fillable = [
@@ -61,6 +91,15 @@ class Orcamento extends Model
         'validade_dias',
         'tolerancia_qtd_pct',
         'observacao',
+        'enviado_em',
+        'visualizado_em',
+        'decidido_em',
+        'canal_aprovacao',
+        'aceite_nome_cliente',
+        'aceite_faixa_index',
+        'aceite_ip',
+        'aceite_user_agent',
+        'motivo_decisao',
     ];
 
     protected function casts(): array
@@ -77,6 +116,10 @@ class Orcamento extends Model
             'prazo_entrega_dias' => 'integer',
             'validade_dias' => 'integer',
             'tolerancia_qtd_pct' => 'decimal:4',
+            'enviado_em' => 'datetime',
+            'visualizado_em' => 'datetime',
+            'decidido_em' => 'datetime',
+            'aceite_faixa_index' => 'integer',
             'deleted_at' => 'datetime',
         ];
     }
@@ -91,9 +134,27 @@ class Orcamento extends Model
         return $this->belongsTo(Parceiro::class);
     }
 
+    public function linkAprovacao(): HasOne
+    {
+        return $this->hasOne(OrcamentoLinkAprovacao::class);
+    }
+
     public function isEditavel(): bool
     {
         return in_array($this->status, self::STATUSES_EDITAVEIS, true)
             && $this->deleted_at === null;
+    }
+
+    public function isEnviavel(): bool
+    {
+        return in_array($this->status, self::STATUSES_ENVIAVEIS, true)
+            && $this->deleted_at === null
+            && is_array($this->result_snapshot)
+            && ! empty($this->result_snapshot['faixas'] ?? null);
+    }
+
+    public function aguardandoCliente(): bool
+    {
+        return in_array($this->status, self::STATUSES_AGUARDANDO_CLIENTE, true);
     }
 }

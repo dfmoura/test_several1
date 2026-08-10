@@ -8,6 +8,8 @@ namespace App\Support;
  * Fonte única para catálogo de consulta, validação de produto e importação CSV.
  * Cada item tem UMA unidade de estoque (interna) e pode ter unidade comercial
  * (compra/venda) distinta, ligada por fator_conversao.
+ *
+ * ADR: docs/ADR_UNIDADES_PRODUTO.md — dual canônico; sem alternativas abertas.
  */
 final class UnidadesMedida
 {

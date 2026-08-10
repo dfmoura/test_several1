@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { ApiError, api, type OrcCatalogoResumo } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { bemStatusLabel } from '../lib/patrimonio';
+import { useTableSort } from '../lib/useTableSort';
 
-type TabId = 'papeis' | 'acabamentos' | 'trocas' | 'maquinas';
+type TabId = 'papeis' | 'acabamentos' | 'trocas' | 'maquinas' | 'matriz';
 
 type PapelRow = {
   id: number;
@@ -38,6 +43,22 @@ type MaquinaRow = {
   ativo: boolean;
   ordem: number;
   tarifas: Record<string, number>;
+  bens_vinculados?: Array<{
+    id: number;
+    codigo: string;
+    descricao: string;
+    status: string;
+  }>;
+};
+
+type ParametroRow = {
+  id: number;
+  chave: string;
+  valor: number;
+  rotulo: string;
+  unidade: string | null;
+  ativo: boolean;
+  ordem: number;
 };
 
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
@@ -51,7 +72,12 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   {
     id: 'maquinas',
     label: 'Máquina (G10)',
-    hint: 'Tabela HORA MÁQUINA — define R$/h',
+    hint: 'Tarifas R$/h · bens físicos em Patrimônio (BEM)',
+  },
+  {
+    id: 'matriz',
+    label: 'Matriz (clichê)',
+    hint: 'R$/cm² vigente — GERACAO §4.12 · só 1º pedido',
   },
 ];
 
@@ -72,12 +98,15 @@ function num(v: string): number {
 }
 
 export function OrcamentoCatalogoPage() {
+  const { hasPermission } = useAuth();
+  const canSeePatrimonio = hasPermission('patrimonio.ler');
   const [tab, setTab] = useState<TabId>('papeis');
   const [resumo, setResumo] = useState<OrcCatalogoResumo | null>(null);
   const [papeis, setPapeis] = useState<PapelRow[]>([]);
   const [acabamentos, setAcabamentos] = useState<AcabamentoRow[]>([]);
   const [trocas, setTrocas] = useState<TipoTrocaRow[]>([]);
   const [maquinas, setMaquinas] = useState<MaquinaRow[]>([]);
+  const [parametros, setParametros] = useState<ParametroRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -88,18 +117,20 @@ export function OrcamentoCatalogoPage() {
     setLoading(true);
     setError('');
     try {
-      const [r, p, a, t, m] = await Promise.all([
+      const [r, p, a, t, m, params] = await Promise.all([
         api.get<{ data: OrcCatalogoResumo }>('/orcamento-catalogo/resumo'),
         api.get<{ data: PapelRow[] }>('/orcamento-catalogo/papeis'),
         api.get<{ data: AcabamentoRow[] }>('/orcamento-catalogo/acabamentos'),
         api.get<{ data: TipoTrocaRow[] }>('/orcamento-catalogo/tipos-troca'),
         api.get<{ data: MaquinaRow[] }>('/orcamento-catalogo/maquinas'),
+        api.get<{ data: ParametroRow[] }>('/orcamento-catalogo/parametros'),
       ]);
       setResumo(r.data);
       setPapeis(p.data);
       setAcabamentos(a.data);
       setTrocas(t.data);
       setMaquinas(m.data);
+      setParametros(params.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao carregar catálogo');
     } finally {
@@ -143,14 +174,16 @@ export function OrcamentoCatalogoPage() {
             >
               Importar ausentes do oficial
             </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={loading}
-              onClick={() => setShowNew(true)}
-            >
-              Novo item
-            </button>
+            {tab !== 'matriz' ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={loading}
+                onClick={() => setShowNew(true)}
+              >
+                Novo item
+              </button>
+            ) : null}
           </div>
         }
       />
@@ -183,6 +216,17 @@ export function OrcamentoCatalogoPage() {
               <span>Máquinas G10</span>
               <strong>{resumo.maquinas}</strong>
             </div>
+            <div>
+              <span>Matriz (R$/cm²)</span>
+              <strong>
+                {resumo.matriz_cm2 != null
+                  ? Number(resumo.matriz_cm2).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 6,
+                    })
+                  : '—'}
+              </strong>
+            </div>
           </div>
           <p className="catalogo-nota">{resumo.nota}</p>
         </div>
@@ -213,7 +257,7 @@ export function OrcamentoCatalogoPage() {
         <p className="loading">Carregando…</p>
       ) : (
         <>
-          {showNew ? (
+          {showNew && tab !== 'matriz' ? (
             <NewItemForm
               tab={tab}
               onCancel={() => setShowNew(false)}
@@ -259,6 +303,18 @@ export function OrcamentoCatalogoPage() {
           {tab === 'maquinas' ? (
             <MaquinasTable
               rows={maquinas}
+              canSeePatrimonio={canSeePatrimonio}
+              onSaved={async (msg) => {
+                setMessage(msg);
+                await load();
+              }}
+              onError={setError}
+            />
+          ) : null}
+          {tab === 'matriz' ? (
+            <MatrizParametrosPanel
+              rows={parametros}
+              resumo={resumo}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -272,6 +328,137 @@ export function OrcamentoCatalogoPage() {
   );
 }
 
+const PAPEL_SORT = {
+  nome: (row: PapelRow) => row.nome,
+  preco_m2: (row: PapelRow) => Number(row.preco_m2),
+  status: (row: PapelRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
+};
+
+function MatrizParametrosPanel({
+  rows,
+  resumo,
+  onSaved,
+  onError,
+}: {
+  rows: ParametroRow[];
+  resumo: OrcCatalogoResumo | null;
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const matriz = rows.find((r) => r.chave === 'matriz_cm2') ?? null;
+  const [valor, setValor] = useState(
+    matriz != null ? String(matriz.valor) : resumo?.matriz_cm2 != null ? String(resumo.matriz_cm2) : '0.28',
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (matriz) {
+      setValor(String(matriz.valor));
+    } else if (resumo?.matriz_cm2 != null) {
+      setValor(String(resumo.matriz_cm2));
+    }
+  }, [matriz, resumo?.matriz_cm2]);
+
+  const dirty = matriz != null && Number(valor.replace(',', '.')) !== Number(matriz.valor);
+
+  const save = async () => {
+    if (!matriz) {
+      onError('Parâmetro matriz_cm2 ainda não semeado. Use “Importar ausentes do oficial”.');
+      return;
+    }
+    const n = num(valor);
+    if (!Number.isFinite(n) || n < 0) {
+      onError('Informe um R$/cm² válido (≥ 0).');
+      return;
+    }
+    setSaving(true);
+    onError('');
+    try {
+      await api.put(`/orcamento-catalogo/parametros/${matriz.chave}`, { valor: n });
+      await onSaved(`Matriz atualizada para R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}/cm².`);
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="card-body" style={{ display: 'grid', gap: '1rem', maxWidth: '32rem' }}>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Fórmula: ((Z × 3,175 ÷ 10) + 4) × (largura × colunas + 4) × cores × R$/cm², depois
+          arredonda para cima em R$ 1. Cobrado só no 1º pedido (chave ainda não paga).
+        </p>
+        {!matriz ? (
+          <div className="empty-state">
+            Nenhum parâmetro semeado. Use “Importar ausentes do oficial” para criar matriz_cm2.
+          </div>
+        ) : (
+          <>
+            <div className="form-group">
+              <label>
+                {matriz.rotulo} ({matriz.unidade ?? 'R$/cm²'}) *
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                disabled={saving || !matriz.ativo}
+              />
+              <span className="field-note">
+                Fonte:{' '}
+                {resumo?.matriz_cm2_fonte === 'database' ? 'banco (editável)' : 'JSON (fallback)'} ·
+                chave <code>{matriz.chave}</code>
+                {!matriz.ativo ? ' · inativo (motor usa JSON)' : ''}
+              </span>
+            </div>
+            <div className="btn-row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={saving || !dirty || !matriz.ativo}
+                onClick={() => void save()}
+              >
+                {saving ? 'Salvando…' : 'Salvar tarifa'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={saving}
+                onClick={() => {
+                  void (async () => {
+                    setSaving(true);
+                    onError('');
+                    try {
+                      await api.put(`/orcamento-catalogo/parametros/${matriz.chave}`, {
+                        ativo: !matriz.ativo,
+                      });
+                      await onSaved(
+                        matriz.ativo
+                          ? 'Matriz inativada — motor volta ao JSON até reativar.'
+                          : 'Matriz reativada no catálogo.',
+                      );
+                    } catch (e) {
+                      onError(fieldErrors(e));
+                    } finally {
+                      setSaving(false);
+                    }
+                  })();
+                }}
+              >
+                {matriz.ativo ? 'Inativar' : 'Reativar'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PapeisTable({
   rows,
   onSaved,
@@ -281,6 +468,8 @@ function PapeisTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PAPEL_SORT);
+
   return (
     <div className="card">
       <div className="table-wrap">
@@ -290,14 +479,20 @@ function PapeisTable({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>R$/m²</th>
-                <th>Status</th>
+                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Nome
+                </SortableTh>
+                <SortableTh column="preco_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  R$/m²
+                </SortableTh>
+                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Status
+                </SortableTh>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {sorted.map((row) => (
                 <PapelEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
               ))}
             </tbody>
@@ -377,6 +572,13 @@ function PapelEditRow({
   );
 }
 
+const ACABAMENTO_SORT = {
+  nome: (row: AcabamentoRow) => row.nome,
+  preco_m2: (row: AcabamentoRow) => Number(row.preco_m2),
+  perda_m2: (row: AcabamentoRow) => Number(row.perda_m2),
+  status: (row: AcabamentoRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
+};
+
 function AcabamentosTable({
   rows,
   onSaved,
@@ -386,6 +588,8 @@ function AcabamentosTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, ACABAMENTO_SORT);
+
   return (
     <div className="card">
       <div className="table-wrap">
@@ -395,15 +599,23 @@ function AcabamentosTable({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>R$/m²</th>
-                <th>Perda m²</th>
-                <th>Status</th>
+                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Nome
+                </SortableTh>
+                <SortableTh column="preco_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  R$/m²
+                </SortableTh>
+                <SortableTh column="perda_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Perda m²
+                </SortableTh>
+                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Status
+                </SortableTh>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {sorted.map((row) => (
                 <AcabamentoEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
               ))}
             </tbody>
@@ -505,6 +717,13 @@ function AcabamentoEditRow({
   );
 }
 
+const TROCA_SORT = {
+  tipo: (row: TipoTrocaRow) => row.tipo,
+  tempo_min: (row: TipoTrocaRow) => Number(row.tempo_min),
+  tempo_h: (row: TipoTrocaRow) => Number(row.tempo_h),
+  status: (row: TipoTrocaRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
+};
+
 function TrocasTable({
   rows,
   onSaved,
@@ -514,6 +733,8 @@ function TrocasTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, TROCA_SORT);
+
   return (
     <div className="card">
       <div className="table-wrap">
@@ -523,15 +744,23 @@ function TrocasTable({
           <table className="data-table">
             <thead>
               <tr>
-                <th>Tipo</th>
-                <th>Minutos</th>
-                <th>Horas (motor)</th>
-                <th>Status</th>
+                <SortableTh column="tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Tipo
+                </SortableTh>
+                <SortableTh column="tempo_min" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Minutos
+                </SortableTh>
+                <SortableTh column="tempo_h" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Horas (motor)
+                </SortableTh>
+                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Status
+                </SortableTh>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {sorted.map((row) => (
                 <TrocaEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
               ))}
             </tbody>
@@ -614,12 +843,20 @@ function TrocaEditRow({
   );
 }
 
+const MAQUINA_SORT_BASE = {
+  nome: (row: MaquinaRow) => row.nome,
+  patrimonio: (row: MaquinaRow) => (row.bens_vinculados ?? []).length,
+  status: (row: MaquinaRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
+};
+
 function MaquinasTable({
   rows,
+  canSeePatrimonio,
   onSaved,
   onError,
 }: {
   rows: MaquinaRow[];
+  canSeePatrimonio: boolean;
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -638,8 +875,26 @@ function MaquinasTable({
     });
   }, [rows]);
 
+  const sortGetters = useMemo(() => {
+    const g: Record<string, (row: MaquinaRow) => string | number | null> = { ...MAQUINA_SORT_BASE };
+    for (const c of coresCols) {
+      g[`tarifa_${c}`] = (row) =>
+        row.tarifas[c] != null ? Number(row.tarifas[c]) : null;
+    }
+    return g;
+  }, [coresCols]);
+
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, sortGetters);
+
   return (
     <div className="card">
+      <div className="card-body" style={{ paddingBottom: 0 }}>
+        <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Grupo G10 = tarifas do orçamento. Ativo físico = cadastro em{' '}
+          {canSeePatrimonio ? <Link to="/patrimonio">Patrimônio (BEM)</Link> : 'Patrimônio (BEM)'}.
+          A coluna abaixo é só leitura.
+        </p>
+      </div>
       <div className="table-wrap table-wrap-scroll">
         {rows.length === 0 ? (
           <div className="empty-state">Nenhuma máquina G10 cadastrada.</div>
@@ -647,22 +902,37 @@ function MaquinasTable({
           <table className="data-table data-table-tarifas">
             <thead>
               <tr>
-                <th>Máquina</th>
+                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Máquina
+                </SortableTh>
                 {coresCols.map((c) => (
-                  <th key={c} title={`Cores ${c}`}>
-                    {c}c
-                  </th>
+                  <SortableTh
+                    key={c}
+                    column={`tarifa_${c}`}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                    label={`Tarifa ${c} cores`}
+                  >
+                    <span title={`Cores ${c}`}>{c}c</span>
+                  </SortableTh>
                 ))}
-                <th>Status</th>
+                <SortableTh column="patrimonio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Patrimônio
+                </SortableTh>
+                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Status
+                </SortableTh>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {sorted.map((row) => (
                 <MaquinaEditRow
                   key={row.id}
                   row={row}
                   coresCols={coresCols}
+                  canSeePatrimonio={canSeePatrimonio}
                   onSaved={onSaved}
                   onError={onError}
                 />
@@ -678,11 +948,13 @@ function MaquinasTable({
 function MaquinaEditRow({
   row,
   coresCols,
+  canSeePatrimonio,
   onSaved,
   onError,
 }: {
   row: MaquinaRow;
   coresCols: string[];
+  canSeePatrimonio: boolean;
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
@@ -738,6 +1010,8 @@ function MaquinaEditRow({
     }
   };
 
+  const bens = row.bens_vinculados ?? [];
+
   return (
     <tr className={row.ativo ? undefined : 'row-inactive'}>
       <td>
@@ -758,6 +1032,34 @@ function MaquinaEditRow({
         </td>
       ))}
       <td>
+        {bens.length === 0 ? (
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>—</span>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            {bens.map((b) =>
+              canSeePatrimonio ? (
+                <Link
+                  key={b.id}
+                  to={`/patrimonio/${b.id}`}
+                  title={`${b.descricao} · ${bemStatusLabel(b.status)}`}
+                  style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                >
+                  {b.codigo}
+                </Link>
+              ) : (
+                <span
+                  key={b.id}
+                  title={`${b.descricao} · ${bemStatusLabel(b.status)}`}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  {b.codigo}
+                </span>
+              ),
+            )}
+          </div>
+        )}
+      </td>
+      <td>
         <StatusPill status={row.ativo ? 'ATIVO' : 'INATIVO'} />
       </td>
       <td>
@@ -771,7 +1073,7 @@ function MaquinaEditRow({
               if (t) void save({ tarifas: t });
             }}
           >
-            Salvar
+            {saving ? '…' : 'Salvar'}
           </button>
           <button
             type="button"
@@ -793,7 +1095,7 @@ function NewItemForm({
   onSaved,
   onError,
 }: {
-  tab: TabId;
+  tab: Exclude<TabId, 'matriz'>;
   onCancel: () => void;
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;

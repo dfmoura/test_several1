@@ -85,6 +85,14 @@ class Empresa extends Model
             ->orderByDesc('id');
     }
 
+    public function contasFinanceiras(): HasMany
+    {
+        return $this->hasMany(EmpresaContaFinanceira::class)
+            ->orderByDesc('principal')
+            ->orderBy('ordem')
+            ->orderBy('id');
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'empresa_user')

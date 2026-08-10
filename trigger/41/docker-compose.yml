@@ -1,0 +1,180 @@
+services:
+  api:
+    build: .
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    container_name: zap-gateway-api
+    restart: unless-stopped
+    ports:
+      - "8141:8000"
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zap:zap@postgres:5432/zap_gateway
+      DATABASE_URL_SYNC: postgresql://zap:zap@postgres:5432/zap_gateway
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zap:zap@rabbitmq:5672/zap
+      EVOLUTION_URL: http://evolution:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [zap-gateway-net]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  worker:
+    build: .
+    command: ["python", "-m", "app.worker"]
+    container_name: zap-gateway-worker
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zap:zap@postgres:5432/zap_gateway
+      DATABASE_URL_SYNC: postgresql://zap:zap@postgres:5432/zap_gateway
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zap:zap@rabbitmq:5672/zap
+      EVOLUTION_URL: http://evolution:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      evolution:
+        condition: service_started
+    networks: [zap-gateway-net]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: zap-gateway-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zap
+      POSTGRES_PASSWORD: zap
+      POSTGRES_DB: zap_gateway
+    ports:
+      - "5437:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zap -d zap_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: zap-gateway-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: zap-gateway-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: zap
+      RABBITMQ_DEFAULT_PASS: zap
+      RABBITMQ_DEFAULT_VHOST: zap
+    ports:
+      - "5671:5672"
+      - "15641:15672"
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    networks: [zap-gateway-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: zap-gateway-evolution
+    restart: unless-stopped
+    ports:
+      - "8142:8080"
+    environment:
+      SERVER_URL: http://localhost:8142
+      AUTHENTICATION_API_KEY: ${EVOLUTION_KEY:-change-me-evolution-key-strong}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://zap:zap@postgres:5432/evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evo_zap_gateway
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://api:8000/webhook/evolution
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      QRCODE_LIMIT: "30"
+      LOG_LEVEL: ERROR,WARN,INFO
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [zap-gateway-net]
+
+  admin-ui:
+    image: nginx:1.27-alpine
+    container_name: zap-gateway-admin-ui
+    profiles: ["ui"]
+    restart: unless-stopped
+    ports:
+      - "8143:80"
+    volumes:
+      - ./admin-ui:/usr/share/nginx/html:ro
+      - ./admin-ui/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [zap-gateway-net]
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: zap-gateway-pgadmin
+    profiles: ["tools"]
+    restart: unless-stopped
+    ports:
+      - "5051:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks: [zap-gateway-net]
+
+volumes:
+  pg_data:
+  redis_data:
+  rabbit_data:
+  evolution_data:
+
+networks:
+  zap-gateway-net:
+    driver: bridge

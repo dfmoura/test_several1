@@ -71,7 +71,7 @@ class ProdutoService
         );
 
         return DB::transaction(function () use ($empresa, $data, $familia, $grupo) {
-            $payload = $this->mapAttributes($data, $grupo, applyDefaults: true);
+            $payload = $this->normalizeUnidades($this->mapAttributes($data, $grupo, applyDefaults: true));
             $this->assertUnidadesConversao($payload);
             $codigo = $data['codigo'] ?? $this->generateCode($empresa->id, $grupo);
 
@@ -122,6 +122,11 @@ class ProdutoService
             $payload['familia'] = $familia;
         }
 
+        // Normaliza só quando o request toca unidades; senão só valida o estado efetivo.
+        $touchedUnits = array_key_exists('unidade_comercial', $payload)
+            || array_key_exists('unidade_interna', $payload)
+            || array_key_exists('fator_conversao', $payload);
+
         $mergedForUnits = [
             'unidade_comercial' => $payload['unidade_comercial'] ?? $produto->unidade_comercial,
             'unidade_interna' => $payload['unidade_interna'] ?? $produto->unidade_interna,
@@ -129,6 +134,12 @@ class ProdutoService
                 ? $payload['fator_conversao']
                 : $produto->fator_conversao,
         ];
+        if ($touchedUnits) {
+            $mergedForUnits = $this->normalizeUnidades($mergedForUnits);
+            $payload['unidade_comercial'] = $mergedForUnits['unidade_comercial'];
+            $payload['unidade_interna'] = $mergedForUnits['unidade_interna'];
+            $payload['fator_conversao'] = $mergedForUnits['fator_conversao'];
+        }
         $this->assertUnidadesConversao($mergedForUnits);
 
         $produto->update($payload);
@@ -205,6 +216,39 @@ class ProdutoService
         }
 
         return $mapped;
+    }
+
+    /**
+     * ADR-039-UNID-001: interna vazia → comercial; iguais → fator 1 se ausente.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizeUnidades(array $data): array
+    {
+        $uCom = isset($data['unidade_comercial']) ? strtoupper(trim((string) $data['unidade_comercial'])) : '';
+        $uInt = isset($data['unidade_interna']) ? strtoupper(trim((string) $data['unidade_interna'])) : '';
+
+        if ($uCom !== '') {
+            $data['unidade_comercial'] = $uCom;
+        }
+        if ($uInt !== '') {
+            $data['unidade_interna'] = $uInt;
+        }
+
+        if ($uCom !== '' && $uInt === '') {
+            $data['unidade_interna'] = $uCom;
+            $uInt = $uCom;
+        }
+
+        if ($uCom !== '' && $uInt !== '' && $uCom === $uInt) {
+            $fator = $data['fator_conversao'] ?? null;
+            if ($fator === null || $fator === '') {
+                $data['fator_conversao'] = '1';
+            }
+        }
+
+        return $data;
     }
 
     /**

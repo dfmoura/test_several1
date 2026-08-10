@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { ApiError, api } from '../lib/api';
+import { useTableSort } from '../lib/useTableSort';
 
 type Step = 'upload' | 'preview' | 'result';
 
@@ -231,50 +233,7 @@ export function ProdutoImportPage() {
               <Stat label="Com erro" value={preview.erro} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Linha</th>
-                    <th>Status</th>
-                    <th>Família</th>
-                    <th>Grupo</th>
-                    <th>Descrição fiscal</th>
-                    <th>NCM</th>
-                    <th>Unidades</th>
-                    <th>Grupo catálogo</th>
-                    <th>Mensagens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows.map((row) => (
-                    <tr key={row.line}>
-                      <td>{row.line}</td>
-                      <td>{row.status === 'ok' ? 'OK' : 'Erro'}</td>
-                      <td>{row.preview.familia ?? '—'}</td>
-                      <td>{row.preview.grupo ?? '—'}</td>
-                      <td>{row.preview.descricao_fiscal ?? '—'}</td>
-                      <td>{row.preview.ncm ?? '—'}</td>
-                      <td>
-                        {[row.preview.unidade_comercial, row.preview.unidade_interna]
-                          .filter(Boolean)
-                          .join(' → ') || '—'}
-                      </td>
-                      <td>{enrichmentLabel(row.preview.enrichment)}</td>
-                      <td>
-                        {[
-                          ...(row.preview.enrichment?.message
-                            ? [row.preview.enrichment.message]
-                            : []),
-                          ...(row.preview.warnings ?? []),
-                          ...row.errors,
-                        ].join(' ') || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProdutoPreviewTable rows={preview.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={reset}>
@@ -304,40 +263,7 @@ export function ProdutoImportPage() {
               <Stat label="Falhas" value={result.falhas} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Linha</th>
-                    <th>Status</th>
-                    <th>Código</th>
-                    <th>Família/Grupo</th>
-                    <th>Descrição fiscal</th>
-                    <th>Mensagens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.rows.map((row) => (
-                    <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
-                      <td>{row.line}</td>
-                      <td>{row.status === 'criado' ? 'Criado' : 'Erro'}</td>
-                      <td>
-                        {row.id ? (
-                          <Link to={`/produtos/${row.id}`}>{row.codigo ?? row.id}</Link>
-                        ) : (
-                          row.codigo ?? '—'
-                        )}
-                      </td>
-                      <td>
-                        {[row.familia, row.grupo].filter(Boolean).join(' / ') || '—'}
-                      </td>
-                      <td>{row.descricao_fiscal ?? '—'}</td>
-                      <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ProdutoResultTable rows={result.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" onClick={reset}>
@@ -351,6 +277,152 @@ export function ProdutoImportPage() {
         </div>
       )}
     </>
+  );
+}
+
+const PRODUTO_PREVIEW_SORT = {
+  line: (row: ImportPreviewRow) => Number(row.line),
+  status: (row: ImportPreviewRow) => row.status,
+  familia: (row: ImportPreviewRow) => row.preview.familia,
+  grupo: (row: ImportPreviewRow) => row.preview.grupo,
+  descricao: (row: ImportPreviewRow) => row.preview.descricao_fiscal,
+  ncm: (row: ImportPreviewRow) => row.preview.ncm,
+  unidades: (row: ImportPreviewRow) =>
+    [row.preview.unidade_comercial, row.preview.unidade_interna].filter(Boolean).join(' → '),
+  catalogo: (row: ImportPreviewRow) => enrichmentLabel(row.preview.enrichment),
+  mensagens: (row: ImportPreviewRow) =>
+    [
+      ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+      ...(row.preview.warnings ?? []),
+      ...row.errors,
+    ].join(' '),
+};
+
+function ProdutoPreviewTable({ rows }: { rows: ImportPreviewRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_PREVIEW_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Linha
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="familia" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Família
+            </SortableTh>
+            <SortableTh column="grupo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Grupo
+            </SortableTh>
+            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Descrição fiscal
+            </SortableTh>
+            <SortableTh column="ncm" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              NCM
+            </SortableTh>
+            <SortableTh column="unidades" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Unidades
+            </SortableTh>
+            <SortableTh column="catalogo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Grupo catálogo
+            </SortableTh>
+            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Mensagens
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={row.line}>
+              <td>{row.line}</td>
+              <td>{row.status === 'ok' ? 'OK' : 'Erro'}</td>
+              <td>{row.preview.familia ?? '—'}</td>
+              <td>{row.preview.grupo ?? '—'}</td>
+              <td>{row.preview.descricao_fiscal ?? '—'}</td>
+              <td>{row.preview.ncm ?? '—'}</td>
+              <td>
+                {[row.preview.unidade_comercial, row.preview.unidade_interna]
+                  .filter(Boolean)
+                  .join(' → ') || '—'}
+              </td>
+              <td>{enrichmentLabel(row.preview.enrichment)}</td>
+              <td>
+                {[
+                  ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+                  ...(row.preview.warnings ?? []),
+                  ...row.errors,
+                ].join(' ') || '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const PRODUTO_RESULT_SORT = {
+  line: (row: ImportCommitRow) => Number(row.line),
+  status: (row: ImportCommitRow) => row.status,
+  codigo: (row: ImportCommitRow) => row.codigo ?? (row.id != null ? String(row.id) : null),
+  familia_grupo: (row: ImportCommitRow) =>
+    [row.familia, row.grupo].filter(Boolean).join(' / '),
+  descricao: (row: ImportCommitRow) => row.descricao_fiscal,
+  mensagens: (row: ImportCommitRow) => row.errors.join(' '),
+};
+
+function ProdutoResultTable({ rows }: { rows: ImportCommitRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_RESULT_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Linha
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Código
+            </SortableTh>
+            <SortableTh column="familia_grupo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Família/Grupo
+            </SortableTh>
+            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Descrição fiscal
+            </SortableTh>
+            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Mensagens
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
+              <td>{row.line}</td>
+              <td>{row.status === 'criado' ? 'Criado' : 'Erro'}</td>
+              <td>
+                {row.id ? (
+                  <Link to={`/produtos/${row.id}`}>{row.codigo ?? row.id}</Link>
+                ) : (
+                  row.codigo ?? '—'
+                )}
+              </td>
+              <td>{[row.familia, row.grupo].filter(Boolean).join(' / ') || '—'}</td>
+              <td>{row.descricao_fiscal ?? '—'}</td>
+              <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

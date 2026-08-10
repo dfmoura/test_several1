@@ -152,7 +152,10 @@ class OrcamentoCatalogoController extends Controller
     {
         $this->authorizeManage($request);
 
-        return response()->json(['data' => $this->service->listMaquinas()]);
+        $empresa = app('empresa');
+        $empresaId = $empresa instanceof \App\Models\Empresa ? $empresa->id : null;
+
+        return response()->json(['data' => $this->service->listMaquinas(true, $empresaId)]);
     }
 
     public function storeMaquina(Request $request): JsonResponse
@@ -181,6 +184,27 @@ class OrcamentoCatalogoController extends Controller
         ]);
 
         return response()->json(['data' => $this->service->updateMaquina($maquina, $data)]);
+    }
+
+    public function parametros(Request $request): JsonResponse
+    {
+        $this->authorizeManage($request);
+
+        return response()->json(['data' => $this->service->listParametros()]);
+    }
+
+    public function updateParametro(Request $request, string $chave): JsonResponse
+    {
+        $this->authorizeManage($request);
+        $data = $request->validate([
+            'valor' => ['sometimes', 'numeric', 'min:0', 'max:999999'],
+            'ativo' => ['sometimes', 'boolean'],
+            'rotulo' => ['sometimes', 'string', 'min:2', 'max:160'],
+            'unidade' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'ordem' => ['sometimes', 'integer', 'min:0', 'max:9999'],
+        ]);
+
+        return response()->json(['data' => $this->service->updateParametro($chave, $data)]);
     }
 
     private function authorizeManage(Request $request): void

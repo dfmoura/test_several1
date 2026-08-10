@@ -56,7 +56,12 @@ return [
     | Spec v1 permanece válida sempre. Recursos novos degradam com segurança.
     | Ver docs/relatorios-ia-plano-profissional-trigger39.txt §12.
     |
+    | relatorio_ia_habilitado (master): false = módulo congelado (API 404,
+    | jobs no-op). Código, tabelas e IaProvedores permanecem. Reabrir = true.
+    |
     */
+
+    'relatorio_ia_habilitado' => filter_var(env('RELATORIO_IA_HABILITADO', false), FILTER_VALIDATE_BOOLEAN),
 
     'relatorio_ia_autocorrecao' => filter_var(env('RELATORIO_IA_AUTOCORRECAO', true), FILTER_VALIDATE_BOOLEAN),
     'relatorio_ia_json_mode' => filter_var(env('RELATORIO_IA_JSON_MODE', true), FILTER_VALIDATE_BOOLEAN),
@@ -87,5 +92,19 @@ return [
     */
 
     'fiscal_hub_http_timeout_sec' => (float) env('FISCAL_HUB_HTTP_TIMEOUT_SEC', 20),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Orçamento — link público de aprovação
+    |--------------------------------------------------------------------------
+    |
+    | Base absoluta do link Ctrl+C (sem barra final). Em produção aponta para o
+    | subdomínio comercial, ex.: https://flexorc.triggerti.com
+    | Local: deixa vazio para cair em APP_URL (http://localhost:8039).
+    | Path fixo: /p/{token}  ·  ADR: docs/ADR_ORC_LINK_APROVACAO.md
+    |
+    */
+
+    'orcamento_public_base_url' => env('ORCAMENTO_PUBLIC_BASE_URL', env('APP_URL', 'http://localhost:8039')),
 
 ];

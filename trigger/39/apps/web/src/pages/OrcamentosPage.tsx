@@ -1,11 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  facaDesenhoFromSnapshot,
+  OrcamentoFacaDesenho,
+} from '../components/OrcamentoFacaDesenho';
+import { IconEye, IconPencil } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDateTime } from '../lib/format';
-import { isOrcEditavel, statusOrcLabel } from '../lib/orcamentoForm';
+import { isOrcEditavel, statusOrcPill } from '../lib/orcamentoForm';
+import { useTableSort } from '../lib/useTableSort';
+
+const SORT = {
+  codigo: (o: Orcamento) => o.codigo,
+  parceiro: (o: Orcamento) => o.cliente_nome,
+  status: (o: Orcamento) => o.status,
+  versao: (o: Orcamento) => o.versao,
+  matriz: (o: Orcamento) =>
+    o.cobra_matriz && o.valor_matriz != null ? Number(o.valor_matriz) : null,
+  faixa: (o: Orcamento) => {
+    const primeiro = o.result_snapshot?.faixas?.[0];
+    return primeiro?.valor_total != null ? Number(primeiro.valor_total) : null;
+  },
+  atualizado: (o: Orcamento) => o.updated_at,
+};
 
 export function OrcamentosPage() {
   const { hasPermission } = useAuth();
@@ -16,6 +37,7 @@ export function OrcamentosPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
 
   const load = async (search?: string, statusFilter?: string) => {
     setLoading(true);
@@ -42,7 +64,7 @@ export function OrcamentosPage() {
     <>
       <PageHeader
         title="Orçamentos"
-        description="Pré-fluxo comercial — calcular, salvar e revisar rascunhos (M02). Sem envio nem PED."
+        description="Propostas comerciais — preparar, enviar link de aprovação e acompanhar o cliente."
         actions={
           <div className="btn-row">
             <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
@@ -79,9 +101,13 @@ export function OrcamentosPage() {
             <div className="form-group" style={{ minWidth: 160 }}>
               <label>Status</label>
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">Todos (pré-envio)</option>
-                <option value="RASCUNHO">Rascunho</option>
-                <option value="CALCULADO">Calculado</option>
+                <option value="">Todos</option>
+                <option value="CALCULADO">Em preparação</option>
+                <option value="ENVIADO">Enviado p/ aprovação</option>
+                <option value="VISUALIZADO">Visualizado</option>
+                <option value="APROVADO">Aprovado</option>
+                <option value="REPROVADO">Rejeitado</option>
+                <option value="CANCELADO">Cancelado</option>
               </select>
             </div>
             <div style={{ alignSelf: 'flex-end' }}>
@@ -105,24 +131,60 @@ export function OrcamentosPage() {
             </p>
           ) : (
             <div className="table-wrap">
-              <table className="data-table">
+              <table className="data-table orcamentos-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Parceiro</th>
-                    <th>Status</th>
-                    <th>Ver.</th>
-                    <th>Matriz</th>
-                    <th>1ª faixa</th>
-                    <th>Atualizado</th>
-                    <th>Ações</th>
+                    <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Código
+                    </SortableTh>
+                    <th>Faca</th>
+                    <SortableTh column="parceiro" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Parceiro
+                    </SortableTh>
+                    <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Status
+                    </SortableTh>
+                    <SortableTh
+                      column="versao"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Versão"
+                      className="num"
+                    >
+                      Ver.
+                    </SortableTh>
+                    <SortableTh
+                      column="matriz"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      className="num"
+                    >
+                      Matriz
+                    </SortableTh>
+                    <SortableTh
+                      column="faixa"
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Primeira faixa"
+                      className="num"
+                    >
+                      1ª faixa
+                    </SortableTh>
+                    <SortableTh column="atualizado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Atualizado
+                    </SortableTh>
+                    <th className="acoes">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((o) => {
+                  {sorted.map((o) => {
                     const faixas = o.result_snapshot?.faixas ?? [];
                     const primeiro = faixas[0];
                     const editavel = isOrcEditavel(o.status) && o.editavel;
+                    const faca = facaDesenhoFromSnapshot(o.input_snapshot);
                     return (
                       <tr
                         key={o.id}
@@ -137,33 +199,52 @@ export function OrcamentosPage() {
                           }
                         }}
                       >
-                        <td>
+                        <td className="codigo">
                           <strong>{o.codigo}</strong>
                         </td>
-                        <td>{o.cliente_nome}</td>
-                        <td>
-                          <StatusPill status={statusOrcLabel(o.status)} />
+                        <td className="faca">
+                          {faca ? (
+                            <OrcamentoFacaDesenho {...faca} variant="compact" />
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
                         </td>
-                        <td>v{o.versao}</td>
-                        <td>
+                        <td className="parceiro" title={o.cliente_nome}>
+                          {o.cliente_nome}
+                        </td>
+                        <td className="status">
+                          <StatusPill status={statusOrcPill(o.status)} />
+                        </td>
+                        <td className="num">v{o.versao}</td>
+                        <td className="num">
                           {o.cobra_matriz ? formatCurrency(o.valor_matriz) : '—'}
                         </td>
-                        <td>{primeiro ? formatCurrency(primeiro.valor_total) : '—'}</td>
+                        <td className="num">
+                          {primeiro ? formatCurrency(primeiro.valor_total) : '—'}
+                        </td>
                         <td>{formatDateTime(o.updated_at)}</td>
                         <td
+                          className="acoes"
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={(e) => e.stopPropagation()}
                         >
-                          <div className="btn-row">
-                            <Link to={`/orcamentos/${o.id}`} className="btn btn-secondary btn-sm">
-                              Ver
+                          <div className="table-actions">
+                            <Link
+                              to={`/orcamentos/${o.id}`}
+                              className="btn-icon"
+                              title="Ver orçamento"
+                              aria-label={`Ver orçamento ${o.codigo}`}
+                            >
+                              <IconEye />
                             </Link>
                             {canWrite && editavel ? (
                               <Link
                                 to={`/orcamentos/${o.id}/editar`}
-                                className="btn btn-secondary btn-sm"
+                                className="btn-icon"
+                                title="Editar orçamento"
+                                aria-label={`Editar orçamento ${o.codigo}`}
                               >
-                                Editar
+                                <IconPencil />
                               </Link>
                             ) : null}
                           </div>

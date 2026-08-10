@@ -1,0 +1,990 @@
+================================================================================
+  ERP RLP · TRIGGER — Diagrama do Banco de Dados (MySQL 8)
+  Fonte: apps/api/database/migrations (estado consolidado)
+  Gerado: 2026-08-08
+================================================================================
+
+LEGENDA
+-------
+  PK   = chave primária
+  FK   = chave estrangeira
+  UQ   = único (unique)
+  IDX  = índice
+  SD   = soft delete (deleted_at)
+  *    = nullable
+  →    = relação (N→1 ou 1→N)
+
+Invariantes de domínio
+----------------------
+  · Identidade dupla: id BIGINT + codigo legível (EMP-, PAR-, USR-, ORC-, REL-, BEM-, CFIN-)
+  · Multi-empresa: empresa_id + header X-Empresa-Id
+  · Usuário nasce de colaborador (parceiros.papel_colaborador)
+  · Soft-delete / inativar — sem apagar histórico
+  · BEM ≠ G10: bens_patrimoniais = ativo físico; orc_catalogo_maquinas = tarifa ORC
+
+
+================================================================================
+1. VISÃO GERAL DOS MÓDULOS (AGRUPAMENTO LÓGICO)
+================================================================================
+
+  ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+  │  AUTH / RBAC    │     │  EMPRESA / TENANT│     │  PARCEIROS      │
+  │  users          │◄────│  empresas        │────►│  parceiros      │
+  │  roles/perms    │     │  parametros      │     │  contatos       │
+  │  tokens/sessões │     │  contas fin.     │     │  contas banc.   │
+  └────────┬────────┘     │  fiscal hist.    │     │  endereços      │
+           │              │  fiscal_hubs     │     │  fiscal hist.   │
+           │              └────────┬─────────┘     └────────┬────────┘
+           │                       │                        │
+           │                       ▼                        │
+           │              ┌──────────────────┐              │
+           │              │  PRODUTOS        │              │
+           │              │  produtos        │              │
+           │              │  produto_grupos  │              │
+           │              └────────┬─────────┘              │
+           │                       │                        │
+           │         ┌─────────────┼─────────────┐          │
+           │         ▼             ▼             ▼          │
+           │  ┌────────────┐ ┌───────────┐ ┌────────────┐   │
+           │  │ FISCAL CAT │ │ ORÇAMENTO │ │ PATRIMÔNIO │   │
+           │  │ ncm/cest   │ │ orcamentos│ │ bens_patr. │◄──┘
+           │  └────────────┘ │ catálogo  │ └────────────┘
+           │                 │ matriz    │
+           │                 └─────┬─────┘
+           │                       │
+           ▼                       ▼
+  ┌─────────────────┐     ┌──────────────────┐
+  │  RELATÓRIOS IA  │     │  INFRA / UTIL    │
+  │  relatorios     │     │  jobs / cache    │
+  │  planejamentos  │     │  audit_logs      │
+  │  execucoes      │     │  api_cache       │
+  │  ia_provedores  │     │  codigo_sequences│
+  └─────────────────┘     └──────────────────┘
+
+
+================================================================================
+2. DIAGRAMA ER — RELACIONAMENTOS PRINCIPAIS
+================================================================================
+
+                          ┌──────────────┐
+                          │  empresas    │
+                          │  PK id       │
+                          │  UQ codigo   │
+                          │  UQ cnpj     │
+                          └──────┬───────┘
+           ┌─────────────────────┼──────────────────────────────┐
+           │                     │                              │
+           ▼                     ▼                              ▼
+  ┌────────────────┐   ┌─────────────────┐          ┌────────────────────┐
+  │parametros_     │   │empresa_user     │          │empresa_fiscal_     │
+  │empresa         │   │FK empresa_id    │          │historicos          │
+  │FK empresa_id   │   │FK user_id       │          │FK empresa_id       │
+  │FK alterado_por │   └────────┬────────┘          │FK alterado_por*    │
+  └────────────────┘            │                   └────────────────────┘
+                                │
+           ┌────────────────────┼────────────────────┬─────────────────┐
+           │                    │                    │                 │
+           ▼                    ▼                    ▼                 ▼
+  ┌─────────────────┐  ┌──────────────┐  ┌──────────────────┐  ┌─────────────┐
+  │empresa_contas_  │  │ fiscal_hubs  │  │parceiros         │  │produtos     │
+  │financeiras      │  │FK empresa_id │  │FK empresa_id     │  │FK empresa_id│
+  │FK empresa_id    │  └──────────────┘  │FK vendedor_* *   │──┤FK grupo_id* │
+  └─────────────────┘                    │  (self)          │  └──────┬──────┘
+                                         └────────┬─────────┘         │
+              ┌───────────────────────────────────┼──────────┐        │
+              │                 │                 │          │        │
+              ▼                 ▼                 ▼          ▼        ▼
+     ┌──────────────┐ ┌────────────────┐ ┌────────────┐ ┌──────────────────┐
+     │parceiro_     │ │parceiro_contas_│ │parceiro_   │ │produto_grupos    │
+     │contatos      │ │bancarias       │ │enderecos_  │ │(catálogo global) │
+     └──────────────┘ └────────────────┘ │entrega     │ └──────────────────┘
+                                         └────────────┘
+              │
+              ▼
+     ┌────────────────────┐
+     │parceiro_fiscal_    │
+     │historicos          │
+     │FK alterado_por*    │
+     └────────────────────┘
+
+  users ◄──parceiro_id── parceiros (colaborador)
+  users ◄──empresa_default_id── empresas
+  users ──N:N── empresas  (via empresa_user)
+
+  orcamentos ──FK── empresas, parceiros
+  orcamento_links_aprovacao ──FK── orcamentos (1:1 token público)
+  matriz_cobradas ──FK── empresas, orcamentos*
+
+  orc_catalogo_hora_maquina ──FK── orc_catalogo_maquinas
+  orc_catalogo_parametros   (escalares: matriz_cm2 — sem FK)
+
+  bens_patrimoniais ──FK── empresas, parceiros*(fornecedor),
+                           users*(responsavel), orc_catalogo_maquinas*
+
+  relatorios ──FK── empresas, users(criado_por), ia_provedores*
+  relatorio_planejamentos ──FK── empresas, users, ia_provedores*
+  relatorio_execucoes ──FK── relatorios*, planejamentos*, empresas,
+                             users*, ia_provedores*
+
+  audit_logs ──FK── empresas*, users*
+  codigo_sequences ──FK── empresas*
+  personal_access_tokens ── morph ── users (tokenable)
+  roles/permissions ── Spatie ── users (model_has_*)
+
+
+================================================================================
+3. CATÁLOGO DE TABELAS (COLUNAS CONSOLIDADAS)
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 AUTH / SESSÃO / FILA
+--------------------------------------------------------------------------------
+
+[users]
+  id                      BIGINT PK
+  codigo                  VARCHAR(16) UQ *          -- USR-00001
+  name                    VARCHAR
+  email                   VARCHAR UQ
+  email_verified_at       TIMESTAMP *
+  password                VARCHAR
+  ativo                   BOOLEAN DEFAULT true
+  empresa_default_id      BIGINT FK → empresas *
+  parceiro_id             BIGINT FK → parceiros *   -- colaborador
+  ultimo_login_em         TIMESTAMP *
+  vigencia_ate            DATE *
+  remember_token          VARCHAR *
+  created_at / updated_at / deleted_at (SD)
+
+[password_reset_tokens]
+  email                   VARCHAR PK
+  token                   VARCHAR
+  created_at              TIMESTAMP *
+
+[sessions]
+  id                      VARCHAR PK
+  user_id                 BIGINT IDX *
+  ip_address              VARCHAR(45) *
+  user_agent              TEXT *
+  payload                 LONGTEXT
+  last_activity           INT IDX
+
+[personal_access_tokens]  (Sanctum)
+  id                      BIGINT PK
+  tokenable_type          VARCHAR
+  tokenable_id            BIGINT                    -- morph → users
+  name                    VARCHAR
+  token                   VARCHAR(64) UQ
+  abilities               TEXT *
+  last_used_at            TIMESTAMP *
+  expires_at              TIMESTAMP *
+  created_at / updated_at
+
+[cache]
+  key                     VARCHAR PK
+  value                   MEDIUMTEXT
+  expiration              INT
+
+[cache_locks]
+  key                     VARCHAR PK
+  owner                   VARCHAR
+  expiration              INT
+
+[jobs]
+  id                      BIGINT PK
+  queue                   VARCHAR IDX
+  payload                 LONGTEXT
+  attempts                TINYINT
+  reserved_at             INT *
+  available_at            INT
+  created_at              INT
+
+[job_batches]
+  id                      VARCHAR PK
+  name                    VARCHAR
+  total_jobs              INT
+  pending_jobs            INT
+  failed_jobs             INT
+  failed_job_ids          LONGTEXT
+  options                 MEDIUMTEXT *
+  cancelled_at            INT *
+  created_at              INT
+  finished_at             INT *
+
+[failed_jobs]
+  id                      BIGINT PK
+  uuid                    VARCHAR UQ
+  connection              TEXT
+  queue                   TEXT
+  payload                 LONGTEXT
+  exception               LONGTEXT
+  failed_at               TIMESTAMP
+
+
+--------------------------------------------------------------------------------
+3.2 RBAC (Spatie Permission)
+--------------------------------------------------------------------------------
+
+[permissions]
+  id                      BIGINT PK
+  name                    VARCHAR
+  guard_name              VARCHAR
+  created_at / updated_at
+  UQ (name, guard_name)
+
+[roles]
+  id                      BIGINT PK
+  name                    VARCHAR
+  guard_name              VARCHAR
+  created_at / updated_at
+  UQ (name, guard_name)
+
+[model_has_permissions]
+  permission_id           BIGINT FK → permissions
+  model_type              VARCHAR
+  model_id                BIGINT
+  PK (permission_id, model_id, model_type)
+
+[model_has_roles]
+  role_id                 BIGINT FK → roles
+  model_type              VARCHAR
+  model_id                BIGINT
+  PK (role_id, model_id, model_type)
+
+[role_has_permissions]
+  permission_id           BIGINT FK → permissions
+  role_id                 BIGINT FK → roles
+  PK (permission_id, role_id)
+
+
+--------------------------------------------------------------------------------
+3.3 EMPRESA / TENANT / PARÂMETROS / TESOURARIA / HUB FISCAL
+--------------------------------------------------------------------------------
+
+[empresas]
+  id                      BIGINT PK
+  codigo                  VARCHAR(16) UQ            -- EMP-00001
+  cnpj                    VARCHAR(14) UQ
+  razao_social            VARCHAR
+  nome_fantasia           VARCHAR *
+  ie                      VARCHAR(32) *
+  ie_status               VARCHAR(24) DEFAULT NAO_VERIFICADA
+  ie_consultado_em        TIMESTAMP *
+  im                      VARCHAR(32) *
+  iest                    VARCHAR(32) *
+  regime                  VARCHAR(32) DEFAULT SIMPLES_NACIONAL
+  crt                     TINYINT DEFAULT 1         -- 1|2|3|4 NF-e
+  regime_desde            DATE *
+  cnae                    VARCHAR(16) *
+  cnaes_secundarios       JSON *
+  email                   VARCHAR *
+  telefone                VARCHAR(32) *
+  logradouro / numero / complemento / bairro / municipio / uf / cep / ibge *
+  venda_ativa             BOOLEAN DEFAULT true
+  estoque_ativo           BOOLEAN DEFAULT true
+  logo_path               VARCHAR *
+  situacao                VARCHAR(16) DEFAULT ATIVA
+  cadastro_fiscal_completo BOOLEAN DEFAULT false
+  created_at / updated_at / deleted_at (SD)
+
+[parametros_empresa]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  chave                   VARCHAR(80)
+  valor                   TEXT *
+  status                  VARCHAR(32) DEFAULT PENDENTE_RATIFICACAO
+  versao                  UINT DEFAULT 1
+  alterado_por            BIGINT FK → users *
+  created_at / updated_at
+  UQ (empresa_id, chave)
+
+[empresa_user]            -- N:N usuário ↔ empresa
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas CASCADE
+  user_id                 BIGINT FK → users CASCADE
+  padrao                  BOOLEAN DEFAULT false
+  created_at / updated_at
+  UQ (empresa_id, user_id)
+
+[empresa_fiscal_historicos]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas CASCADE
+  vigencia_inicio         DATE
+  vigencia_fim            DATE *
+  ie / im / iest          VARCHAR *
+  ie_status               VARCHAR(24) *
+  regime                  VARCHAR(32) *
+  crt                     TINYINT *
+  motivo                  VARCHAR(255) *
+  alterado_por            BIGINT FK → users *
+  created_at / updated_at
+  IDX (empresa_id, vigencia_inicio|fim)
+
+[empresa_contas_financeiras]   -- tesouraria EMP (≠ conta do PAR)
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas CASCADE
+  codigo                  VARCHAR(16) UQ            -- CFIN-00001
+  tipo                    VARCHAR(16)               -- BANCO|CAIXA|APLICACAO
+  descricao               VARCHAR
+  banco_codigo            VARCHAR(8) *
+  banco_nome              VARCHAR *
+  agencia                 VARCHAR(16) *
+  conta                   VARCHAR(32) *
+  tipo_conta              VARCHAR(16) *             -- CORRENTE|POUPANCA|PAGAMENTO
+  pix_chave               VARCHAR *
+  principal               BOOLEAN DEFAULT false
+  ativa                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  saldo_abertura          DECIMAL(15,2) *           -- só implantação
+  saldo_abertura_em       DATE *
+  observacao              VARCHAR *
+  created_at / updated_at / deleted_at (SD)
+  IDX (empresa_id, principal|ativa)
+
+[fiscal_hubs]             -- Focus NFe etc. (credenciais por empresa)
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas CASCADE
+  codigo                  VARCHAR(20)
+  nome                    VARCHAR(120)
+  provedor                VARCHAR(40) DEFAULT focusnfe
+  ambiente_ativo          VARCHAR(20) DEFAULT homologacao
+  padrao                  BOOLEAN DEFAULT false
+  ativo                   BOOLEAN DEFAULT true
+  base_url_homologacao    VARCHAR(500) *
+  base_url_producao       VARCHAR(500) *
+  token_homologacao_criptografada  TEXT *
+  token_homologacao_mascara        VARCHAR(40)
+  token_producao_criptografada     TEXT *
+  token_producao_mascara           VARCHAR(40)
+  ultimo_teste_ambiente   VARCHAR(20) *
+  ultimo_teste_em         TIMESTAMP *
+  ultimo_teste_ok         BOOLEAN *
+  ultimo_teste_msg        VARCHAR(300) *
+  meta                    JSON *
+  created_at / updated_at
+  UQ (empresa_id, codigo)
+  IDX (empresa_id, ativo, padrao)
+
+
+--------------------------------------------------------------------------------
+3.4 PARCEIROS (CADASTRO ÚNICO MULTIPAPEL)
+--------------------------------------------------------------------------------
+
+[parceiros]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  codigo                  VARCHAR(16)               -- PAR-00001
+  tipo_pessoa             VARCHAR(16) DEFAULT PJ    -- PJ|PF|ESTRANGEIRO
+  cnpj_cpf                VARCHAR(14) *
+  razao_social            VARCHAR
+  nome_fantasia           VARCHAR *
+  ie / im                 VARCHAR(32) *
+  suframa                 VARCHAR(16) *
+  area_incentivada        BOOLEAN DEFAULT false
+  ind_ie_dest             TINYINT *                 -- 1|2|9
+  ie_status               VARCHAR(24) DEFAULT NAO_VERIFICADA
+  ie_consultado_em        TIMESTAMP *
+  consumidor_final        BOOLEAN DEFAULT false
+  finalidade              VARCHAR(32) *
+  regime                  VARCHAR(32) *
+  regime_desde            DATE *
+  cnae                    VARCHAR(16) *
+  cnaes_secundarios       JSON *
+  situacao                VARCHAR(16) DEFAULT ATIVO
+  motivo_bloqueio         VARCHAR *
+  bloqueado_em            TIMESTAMP *
+  cadastro_fiscal_completo BOOLEAN DEFAULT false
+  emite_documento_fiscal  BOOLEAN DEFAULT true
+  is_prospect             BOOLEAN DEFAULT false
+  -- papéis (flags)
+  papel_cliente / papel_fornecedor / papel_colaborador /
+  papel_transportadora / papel_banco / papel_entidade /
+  papel_vendedor / papel_contador   BOOLEAN
+  -- endereço fiscal
+  logradouro / numero / complemento / bairro / municipio / uf / cep / ibge *
+  -- contatos (legado; preferir parceiro_contatos)
+  telefone / whatsapp / email / email_xml / contato_nome / contato_funcao *
+  -- financeiro cliente
+  limite_credito          DECIMAL(15,2) DEFAULT 0
+  credito_utilizado       DECIMAL(15,2) DEFAULT 0
+  condicao_pagamento      VARCHAR(64) *
+  forma_pagamento         VARCHAR(32) *
+  vendedor_parceiro_id    BIGINT FK → parceiros *   -- self
+  comissao_percentual     DECIMAL(7,4) *
+  -- fornecedor
+  tipo_fornecimento       VARCHAR(32) *
+  cfop_entrada_padrao     VARCHAR(8) *
+  -- colaborador
+  vinculo                 VARCHAR(32) *             -- CLT|SOCIO|ESTAGIARIO|AUTONOMO|PJ
+  cargo                   VARCHAR *
+  departamento            VARCHAR(64) *
+  admissao_em / desligamento_em  DATE *
+  -- bancário legado (preferir parceiro_contas_bancarias)
+  banco_codigo / banco_nome / agencia / conta / pix_chave *
+  consulta_snapshot       JSON *
+  created_at / updated_at / deleted_at (SD)
+  UQ (empresa_id, codigo)
+  UQ (empresa_id, cnpj_cpf)
+  IDX (empresa_id, razao_social|papel_cliente|papel_colaborador)
+
+[parceiro_contatos]
+  id                      BIGINT PK
+  parceiro_id             BIGINT FK → parceiros CASCADE
+  nome                    VARCHAR
+  funcao                  VARCHAR *
+  telefone / whatsapp / email *
+  principal               BOOLEAN DEFAULT false
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+  IDX (parceiro_id, principal)
+
+[parceiro_contas_bancarias]
+  id                      BIGINT PK
+  parceiro_id             BIGINT FK → parceiros CASCADE
+  banco_codigo            VARCHAR(8) *
+  banco_nome              VARCHAR *
+  agencia                 VARCHAR(16) *
+  conta                   VARCHAR(32) *
+  pix_chave               VARCHAR *
+  tipo_conta              VARCHAR(16) *             -- CORRENTE|POUPANCA|PAGAMENTO
+  principal               BOOLEAN DEFAULT false
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+  IDX (parceiro_id, principal)
+
+[parceiro_enderecos_entrega]
+  id                      BIGINT PK
+  parceiro_id             BIGINT FK → parceiros CASCADE
+  apelido                 VARCHAR *
+  logradouro / numero / complemento / bairro / municipio / uf / cep / ibge *
+  responsavel_nome        VARCHAR
+  responsavel_telefone    VARCHAR(32) *
+  responsavel_documento   VARCHAR(32) *
+  observacoes             TEXT *
+  principal               BOOLEAN DEFAULT false
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+  IDX (parceiro_id, principal)
+
+[parceiro_fiscal_historicos]
+  id                      BIGINT PK
+  parceiro_id             BIGINT FK → parceiros CASCADE
+  vigencia_inicio         DATE
+  vigencia_fim            DATE *
+  ie / im                 VARCHAR(32) *
+  ind_ie_dest             TINYINT *
+  ie_status               VARCHAR(24) *
+  regime / finalidade     VARCHAR(32) *
+  consumidor_final        BOOLEAN DEFAULT false
+  suframa                 VARCHAR(16) *
+  area_incentivada        BOOLEAN DEFAULT false
+  motivo                  VARCHAR(255) *
+  alterado_por            BIGINT FK → users *
+  created_at / updated_at
+  IDX (parceiro_id, vigencia_inicio|fim)
+
+
+--------------------------------------------------------------------------------
+3.5 PRODUTOS / GRUPOS CANÔNICOS
+--------------------------------------------------------------------------------
+
+[produto_grupos]          -- catálogo global (MP-PAP, PA-ETQ, REV-RIB…)
+  id                      BIGINT PK
+  codigo                  VARCHAR(16) UQ
+  nome                    VARCHAR
+  familia                 VARCHAR(8)                -- MP|EMB|REV|PA|SVC|FAC
+  natureza                VARCHAR(16)               -- COMPRA|VENDA|AMBOS
+  tipo_item_sped          VARCHAR(2)
+  grupo_estoque_padrao    VARCHAR(2) *
+  grupos_estoque          JSON *
+  ncm_padrao              VARCHAR(8) *
+  unidade_comercial_padrao / unidade_interna_padrao VARCHAR(8) *
+  cfop_entrada_padrao / cfop_saida_padrao VARCHAR(8) *
+  exige_dimensao_sku      BOOLEAN DEFAULT false
+  ncm_confirmado          BOOLEAN DEFAULT true
+  ordenacao               SMALLINT DEFAULT 100
+  situacao                VARCHAR(16) DEFAULT ATIVO
+  observacao              TEXT *
+  created_at / updated_at
+  IDX (familia|natureza, situacao)
+
+[produtos]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  codigo                  VARCHAR(32)               -- MP-… / PA-ETQ-… / SVC-…
+  familia                 VARCHAR(8)                -- MP|EMB|REV|PA|SVC|FAC
+  grupo_id                BIGINT FK → produto_grupos *
+  descricao_fiscal        VARCHAR
+  descricao_comercial     VARCHAR *
+  grupo                   VARCHAR(64) *             -- texto legado
+  ncm                     VARCHAR(8) *
+  cest                    VARCHAR(16) *
+  origem                  TINYINT DEFAULT 0
+  tipo_item_sped          VARCHAR(2) *
+  unidade_comercial       VARCHAR(8) DEFAULT UN   -- documento/NF
+  unidade_interna         VARCHAR(8) *            -- ESTOQUE oficial (única)
+  fator_conversao         DECIMAL(19,10) DEFAULT 1  -- 1 com = fator × int
+  -- ADR: docs/ADR_UNIDADES_PRODUTO.md (dual canônico; attrs bobina ≠ unidades)
+  cfop_saida_padrao / cfop_entrada_padrao VARCHAR(8) *
+  csosn / cst_icms / cst_pis / cst_cofins VARCHAR(8) *
+  cst_cbs                 VARCHAR(8) *              -- reforma tributária
+  cclass_trib             VARCHAR(16) *
+  aliquota_cbs            DECIMAL(7,4) *
+  preco_tabela            DECIMAL(19,6) *
+  custo_medio             DECIMAL(19,6) DEFAULT 0
+  estoque_minimo          DECIMAL(15,4) *
+  lead_time_dias          SMALLINT *
+  gtin                    VARCHAR(32) *
+  situacao                VARCHAR(16) DEFAULT ATIVO
+  atributos               JSON *                    -- máscara bobina etc.
+  created_at / updated_at / deleted_at (SD)
+  UQ (empresa_id, codigo)
+  IDX (empresa_id, familia|ncm|grupo_id)
+
+
+--------------------------------------------------------------------------------
+3.6 CATÁLOGO FISCAL (NCM / CEST)
+--------------------------------------------------------------------------------
+
+[fiscal_ncms]
+  id                      BIGINT PK
+  codigo                  VARCHAR(8) UQ
+  descricao               VARCHAR(500)
+  destaque_rlp            BOOLEAN DEFAULT false
+  ativo                   BOOLEAN DEFAULT true
+  created_at / updated_at
+  IDX (destaque_rlp, ativo)
+
+[fiscal_cests]
+  id                      BIGINT PK
+  codigo                  VARCHAR(7) UQ
+  descricao               VARCHAR(500)
+  segmento                VARCHAR(16) *
+  observacao              TEXT *
+  ativo                   BOOLEAN DEFAULT true
+  created_at / updated_at
+
+[fiscal_ncm_cest]         -- N:N lógica (por códigos string, sem FK formal)
+  id                      BIGINT PK
+  ncm_codigo              VARCHAR(8)
+  cest_codigo             VARCHAR(7)
+  created_at / updated_at
+  UQ (ncm_codigo, cest_codigo)
+  IDX (cest_codigo)
+
+
+--------------------------------------------------------------------------------
+3.7 ORÇAMENTO (ORC) + CATÁLOGO DE CUSTOS
+--------------------------------------------------------------------------------
+
+[orcamentos]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  ano                     SMALLINT
+  numero                  UINT
+  codigo                  VARCHAR(32)
+  versao                  UINT DEFAULT 1
+  parceiro_id             BIGINT FK → parceiros
+  cliente_nome            VARCHAR(255)
+  status                  VARCHAR(20) DEFAULT RASCUNHO
+                          -- RASCUNHO|CALCULADO|ENVIADO|VISUALIZADO|APROVADO|REPROVADO|VENCIDO|CANCELADO
+  input_snapshot          JSON *
+  result_snapshot         JSON *
+  chave_matriz            VARCHAR(64) *
+  cobra_matriz            BOOLEAN DEFAULT false
+  valor_matriz            DECIMAL(15,2) DEFAULT 0
+  valor_primeira_faixa    DECIMAL(14,4) *           -- derivado p/ relatórios
+  prazo_entrega_dias      UINT DEFAULT 12
+  validade_dias           UINT DEFAULT 7
+  tolerancia_qtd_pct      DECIMAL(7,4) DEFAULT 20
+  observacao              TEXT *
+  enviado_em              TIMESTAMP *
+  visualizado_em          TIMESTAMP *
+  decidido_em             TIMESTAMP *
+  canal_aprovacao         VARCHAR(32) *             -- LINK
+  aceite_nome_cliente     VARCHAR(160) *
+  aceite_faixa_index      USMALL *
+  aceite_ip               VARCHAR(45) *
+  aceite_user_agent       VARCHAR(512) *
+  motivo_decisao          TEXT *
+  created_at / updated_at / deleted_at (SD)
+  UQ (empresa_id, codigo)
+  UQ (empresa_id, ano, numero)
+  IDX (empresa_id, status|parceiro_id|valor_primeira_faixa)
+
+[orcamento_links_aprovacao]   -- 1:1 token público (ADR_ORC_LINK_APROVACAO)
+  id                      BIGINT PK
+  orcamento_id            BIGINT FK → orcamentos CASCADE UQ
+  token                   VARCHAR(64) UQ
+  ativo                   BOOLEAN DEFAULT true
+  expira_em               TIMESTAMP
+  enviado_em              TIMESTAMP *
+  canal_envio             VARCHAR(32) *
+  destino_envio           VARCHAR(255) *
+  visualizacoes           UINT DEFAULT 0
+  usado_em                TIMESTAMP *
+  created_at / updated_at
+  IDX (ativo, expira_em)
+
+[matriz_cobradas]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  chave_matriz            VARCHAR(64)
+  cliente                 VARCHAR(255)
+  orcamento_id            BIGINT FK → orcamentos *
+  valor                   DECIMAL(15,2) DEFAULT 0
+  created_at / updated_at
+  UQ (empresa_id, chave_matriz)
+
+[orc_catalogo_papeis]
+  id                      BIGINT PK
+  nome                    VARCHAR(160) UQ
+  preco_m2                DECIMAL(12,4)
+  ativo                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+
+[orc_catalogo_acabamentos]
+  id                      BIGINT PK
+  nome                    VARCHAR(160) UQ
+  preco_m2                DECIMAL(12,4)
+  perda_m2                DECIMAL(12,4) DEFAULT 0
+  ativo                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+
+[orc_catalogo_tipos_troca]
+  id                      BIGINT PK
+  tipo                    VARCHAR(160) UQ
+  tempo_h                 DECIMAL(16,10)
+  ativo                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+
+[orc_catalogo_maquinas]   -- tarifas ORC (NÃO é patrimônio)
+  id                      BIGINT PK
+  nome                    VARCHAR(80) UQ
+  ativo                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+
+[orc_catalogo_hora_maquina]
+  id                      BIGINT PK
+  maquina_id              BIGINT FK → orc_catalogo_maquinas CASCADE
+  cores                   VARCHAR(16)
+  tarifa                  DECIMAL(12,4)
+  created_at / updated_at
+  UQ (maquina_id, cores)
+
+[orc_catalogo_parametros]   -- escalares ORC (ex.: matriz_cm2); overlay híbrido JSON
+  id                      BIGINT PK
+  chave                   VARCHAR(64) UQ
+  valor                   DECIMAL(16,6)
+  rotulo                  VARCHAR(160)
+  unidade                 VARCHAR(32) NULL
+  ativo                   BOOLEAN DEFAULT true
+  ordem                   SMALLINT DEFAULT 0
+  created_at / updated_at
+
+[orc_mapa_facas]   -- mapa oficial do ORC (NÃO é produto FAC-)
+  id                      BIGINT PK
+  medida                  VARCHAR(64)
+  tamanho_raw             VARCHAR(64) NULL
+  tamanho_tipo            VARCHAR(32) NULL
+  diametro_cm             DECIMAL(12,4) NULL
+  formato                 VARCHAR(64)
+  faca                    VARCHAR(64) NULL
+  puxada                  DECIMAL(16,6) NULL
+  z                       DECIMAL(16,4) NULL
+  repeticao               DECIMAL(16,10) NULL
+  maquina_catalogo        VARCHAR(64) NULL
+  maquina_origem          VARCHAR(64) NULL
+  largura_faca            DECIMAL(12,4) NULL
+  n_facas                 INT NULL
+  cilindro                VARCHAR(32) NULL
+  colunas_mapa           VARCHAR(64) NULL
+  conjugada               VARCHAR(160) NULL
+  fornecedor              VARCHAR(120) NULL
+  cliente_nota            VARCHAR(255) NULL
+  completa                BOOLEAN DEFAULT true
+  label                   VARCHAR(255) NULL
+  ativo                   BOOLEAN DEFAULT true   -- soft-inativação
+  created_at / updated_at
+  IX (ativo) · IX (formato, maquina_catalogo) · IX (medida)
+
+
+--------------------------------------------------------------------------------
+3.8 RELATÓRIOS IA
+--------------------------------------------------------------------------------
+
+[ia_provedores]           -- global (tokens cifrados)
+  id                      BIGINT PK
+  nome                    VARCHAR(120)
+  provedor                VARCHAR(40) DEFAULT openai
+  base_url                VARCHAR(500) *
+  modelo                  VARCHAR(120) *
+  api_key_criptografada   TEXT
+  api_key_mascara         VARCHAR(40)
+  prioridade              SMALLINT DEFAULT 100
+  ativo                   BOOLEAN DEFAULT true
+  ultimo_teste_em         TIMESTAMP *
+  ultimo_teste_ok         BOOLEAN *
+  ultimo_teste_msg        VARCHAR(300) *
+  created_at / updated_at
+  IDX (ativo, prioridade)
+
+[relatorios]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas
+  ano                     SMALLINT
+  numero                  UINT
+  codigo                  VARCHAR(32)
+  titulo                  VARCHAR(200) *
+  prompt                  TEXT
+  orientacao              VARCHAR(16)               -- retrato|paisagem
+  status                  VARCHAR(24) DEFAULT PENDENTE
+  programa_json           JSON *
+  contexto_flags          JSON *
+  erro_mensagem           TEXT *
+  arquivo_path            VARCHAR(500) *
+  provedor_ia_id          BIGINT FK → ia_provedores *
+  criado_por              BIGINT FK → users
+  created_at / updated_at / deleted_at (SD)
+  UQ (empresa_id, codigo)
+  IDX (empresa_id, status|created_at)
+
+[relatorio_planejamentos]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas CASCADE
+  usuario_id              BIGINT FK → users CASCADE
+  prompt                  TEXT
+  titulo                  VARCHAR(200) *
+  orientacao              VARCHAR(16) DEFAULT retrato
+  status                  VARCHAR(24) DEFAULT PENDENTE
+                          -- PENDENTE|PROCESSANDO|PRONTO|ERRO
+  programa_json           JSON *
+  resumo_legivel          TEXT *
+  amostra_json            JSON *
+  total_estimado          UINT *
+  avisos_json             JSON *
+  contexto_flags          JSON *
+  provedor_ia_id          BIGINT FK → ia_provedores *
+  tentativas              TINYINT DEFAULT 0
+  erro_mensagem           VARCHAR(2000) *
+  created_at / updated_at
+  IDX (empresa_id, status, id)
+
+[relatorio_execucoes]
+  id                      BIGINT PK
+  relatorio_id            BIGINT FK → relatorios *
+  planejamento_id         BIGINT FK → relatorio_planejamentos *
+  empresa_id              BIGINT FK → empresas CASCADE
+  usuario_id              BIGINT FK → users *
+  etapa                   VARCHAR(32)               -- planejar|narrar
+  provedor_ia_id          BIGINT FK → ia_provedores *
+  modelo                  VARCHAR(120) *
+  tentativa               TINYINT DEFAULT 1
+  prompt_hash             VARCHAR(64) *
+  prompt_texto            TEXT *                    -- se log_prompt=true
+  prompt_tokens           UINT *
+  completion_tokens       UINT *
+  latencia_ms             UINT *
+  sucesso                 BOOLEAN DEFAULT false
+  erro                    VARCHAR(1000) *
+  spec_resultante         JSON *
+  memory_peak_mb          UINT *
+  created_at              TIMESTAMP
+  IDX (empresa_id, etapa, created_at)
+
+
+--------------------------------------------------------------------------------
+3.9 PATRIMÔNIO (BEM)
+--------------------------------------------------------------------------------
+
+[bens_patrimoniais]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas RESTRICT
+  codigo                  VARCHAR(16) UQ            -- BEM-…
+  descricao               VARCHAR(200)
+  categoria               VARCHAR(32)
+  marca                   VARCHAR(80) *
+  modelo                  VARCHAR(120) *
+  numero_serie            VARCHAR(80) *
+  adquirido_em            DATE *
+  valor_aquisicao         DECIMAL(14,2) *
+  nf_numero               VARCHAR(40) *
+  fornecedor_id           BIGINT FK → parceiros *
+  local                   VARCHAR(120) *
+  responsavel             VARCHAR(120) *
+  responsavel_user_id     BIGINT FK → users *
+  status                  VARCHAR(24) DEFAULT ATIVO
+  garantia_ate            DATE *
+  placa                   VARCHAR(16) *
+  renavam                 VARCHAR(24) *
+  vida_util_meses         SMALLINT *
+  orc_catalogo_maquina_id BIGINT FK → orc_catalogo_maquinas *  -- vínculo opcional
+  capitalizado            BOOLEAN DEFAULT false
+  observacao              TEXT *
+  baixado_em              DATE *
+  motivo_baixa            VARCHAR(240) *
+  created_at / updated_at / deleted_at (SD)
+  IDX (empresa_id, status|categoria)
+
+
+--------------------------------------------------------------------------------
+3.10 UTILITÁRIOS / AUDITORIA
+--------------------------------------------------------------------------------
+
+[audit_logs]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas *
+  user_id                 BIGINT FK → users *
+  acao                    VARCHAR(64)
+  entidade                VARCHAR(64) *
+  entidade_id             BIGINT *
+  de / para               JSON *
+  ip                      VARCHAR(45) *
+  user_agent              VARCHAR *
+  created_at / updated_at
+  IDX (entidade, entidade_id)
+
+[api_cache]               -- BrasilAPI / ViaCEP etc.
+  id                      BIGINT PK
+  chave                   VARCHAR(190) UQ
+  fonte                   VARCHAR(64)
+  payload                 JSON
+  expires_at              TIMESTAMP IDX
+  created_at / updated_at
+
+[codigo_sequences]
+  id                      BIGINT PK
+  empresa_id              BIGINT FK → empresas *
+  prefixo                 VARCHAR(16)
+  proximo                 BIGINT DEFAULT 1
+  created_at / updated_at
+  UQ (empresa_id, prefixo)
+
+
+================================================================================
+4. MATRIZ DE FOREIGN KEYS
+================================================================================
+
+  TABELA                          COLUNA                    → REFERÊNCIA              ON DELETE
+  ------------------------------  ------------------------  ------------------------  ----------
+  parametros_empresa              empresa_id                empresas                  (restrict)
+  parametros_empresa              alterado_por              users                     SET NULL
+  parceiros                       empresa_id                empresas                  (restrict)
+  parceiros                       vendedor_parceiro_id      parceiros                 SET NULL
+  users                           empresa_default_id        empresas                  SET NULL
+  users                           parceiro_id               parceiros                 SET NULL
+  empresa_user                    empresa_id                empresas                  CASCADE
+  empresa_user                    user_id                   users                     CASCADE
+  produtos                        empresa_id                empresas                  (restrict)
+  produtos                        grupo_id                  produto_grupos            SET NULL
+  audit_logs                      empresa_id                empresas                  SET NULL
+  audit_logs                      user_id                   users                     SET NULL
+  codigo_sequences                empresa_id                empresas                  SET NULL
+  parceiro_contatos               parceiro_id               parceiros                 CASCADE
+  parceiro_contas_bancarias       parceiro_id               parceiros                 CASCADE
+  parceiro_enderecos_entrega      parceiro_id               parceiros                 CASCADE
+  parceiro_fiscal_historicos      parceiro_id               parceiros                 CASCADE
+  parceiro_fiscal_historicos      alterado_por              users                     SET NULL
+  empresa_fiscal_historicos       empresa_id                empresas                  CASCADE
+  empresa_fiscal_historicos       alterado_por              users                     SET NULL
+  empresa_contas_financeiras      empresa_id                empresas                  CASCADE
+  fiscal_hubs                     empresa_id                empresas                  CASCADE
+  orcamentos                      empresa_id                empresas                  (restrict)
+  orcamentos                      parceiro_id               parceiros                 (restrict)
+  orcamento_links_aprovacao       orcamento_id              orcamentos                CASCADE
+  matriz_cobradas                 empresa_id                empresas                  (restrict)
+  matriz_cobradas                 orcamento_id              orcamentos                SET NULL
+  orc_catalogo_hora_maquina       maquina_id                orc_catalogo_maquinas     CASCADE
+  relatorios                      empresa_id                empresas                  (restrict)
+  relatorios                      provedor_ia_id            ia_provedores             SET NULL
+  relatorios                      criado_por                users                     (restrict)
+  relatorio_planejamentos         empresa_id                empresas                  CASCADE
+  relatorio_planejamentos         usuario_id                users                     CASCADE
+  relatorio_planejamentos         provedor_ia_id            ia_provedores             SET NULL
+  relatorio_execucoes             relatorio_id              relatorios                SET NULL
+  relatorio_execucoes             planejamento_id           relatorio_planejamentos   SET NULL
+  relatorio_execucoes             empresa_id                empresas                  CASCADE
+  relatorio_execucoes             usuario_id                users                     SET NULL
+  relatorio_execucoes             provedor_ia_id            ia_provedores             SET NULL
+  bens_patrimoniais               empresa_id                empresas                  RESTRICT
+  bens_patrimoniais               fornecedor_id             parceiros                 SET NULL
+  bens_patrimoniais               responsavel_user_id       users                     SET NULL
+  bens_patrimoniais               orc_catalogo_maquina_id   orc_catalogo_maquinas     SET NULL
+  model_has_permissions           permission_id             permissions               CASCADE
+  model_has_roles                 role_id                   roles                     CASCADE
+  role_has_permissions            permission_id             permissions               CASCADE
+  role_has_permissions            role_id                   roles                     CASCADE
+
+  Sem FK formal (ligação lógica):
+  fiscal_ncm_cest.ncm_codigo   ↔ fiscal_ncms.codigo
+  fiscal_ncm_cest.cest_codigo  ↔ fiscal_cests.codigo
+  produtos.ncm / cest          ↔ catálogo fiscal (string)
+
+
+================================================================================
+5. CONTAGEM DE TABELAS
+================================================================================
+
+  Auth / sessão / fila .......... 10  (users, password_reset_tokens, sessions,
+                                       personal_access_tokens, cache, cache_locks,
+                                       jobs, job_batches, failed_jobs + morph)
+  RBAC Spatie ...................  5  (permissions, roles, model_has_*, role_has_*)
+  Empresa / tenant ..............  6  (empresas, parametros, empresa_user,
+                                       fiscal_hist, contas_fin, fiscal_hubs)
+  Parceiros .....................  5  (parceiros + contatos + contas + endereços + fiscal_hist)
+  Produtos ......................  2  (produtos, produto_grupos)
+  Fiscal catálogo ...............  3  (ncms, cests, ncm_cest)
+  Orçamento ..................... 10  (orcamentos, orcamento_links_aprovacao, matriz_cobradas,
+                                       6× orc_catalogo_*, orc_mapa_facas)
+  Relatórios IA .................  4  (ia_provedores, relatorios, planejamentos, execucoes)
+  Patrimônio ....................  1  (bens_patrimoniais)
+  Util ..........................  3  (audit_logs, api_cache, codigo_sequences)
+  ------------------------------------------------------------------
+  TOTAL APROX. .................. ~48 tabelas
+
+
+================================================================================
+6. DIAGRAMA ASCII — FLUXO DE NEGÓCIO (ENTIDADES CENTRAIS)
+================================================================================
+
+                    ┌──────────── EMPRESA (tenant) ────────────┐
+                    │  empresas                                │
+                    │    ├─ parametros_empresa                 │
+                    │    ├─ empresa_contas_financeiras         │
+                    │    ├─ empresa_fiscal_historicos          │
+                    │    └─ fiscal_hubs                        │
+                    └───────────────┬──────────────────────────┘
+                                    │ 1:N
+          ┌─────────────────────────┼──────────────────────────┐
+          │                         │                          │
+          ▼                         ▼                          ▼
+   ┌─────────────┐          ┌──────────────┐          ┌──────────────┐
+   │  PARCEIROS  │◄─────────│    USERS     │          │   PRODUTOS   │
+   │  (multipapel│  nascem  │  (login +    │          │  familia MP  │
+   │   CLI/FORN/ │◄─────────│   RBAC)      │          │  EMB REV PA  │
+   │   COLAB…)   │  de COLAB│              │          │  SVC FAC     │
+   └──────┬──────┘          └──────┬───────┘          └──────┬───────┘
+          │                        │                         │
+          │ 1:N                    │                         │ N:1
+          ├─ contatos              │                         ▼
+          ├─ contas bancárias      │                  produto_grupos
+          ├─ endereços entrega     │
+          └─ fiscal históricos     │
+          │                        │
+          │                        │
+          ▼                        ▼
+   ┌─────────────┐          ┌──────────────┐          ┌──────────────┐
+   │  ORÇAMENTOS │          │ RELATÓRIOS IA│          │ PATRIMÔNIO   │
+   │  + matriz   │          │ + plan/exec  │          │ BEM-*        │
+   │  + catálogo │          │ + ia_prov.   │          │ (≠ máquina   │
+   │    ORC      │          └──────────────┘          │    ORC)      │
+   └─────────────┘                                    └──────────────┘
+
+
+================================================================================
+FIM DO DIAGRAMA
+================================================================================
+)

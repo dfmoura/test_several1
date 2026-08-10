@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { ApiError, api } from '../lib/api';
 import { formatCnpjCpf } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 type Mode = 'csv' | 'xml';
 type Step = 'upload' | 'preview' | 'result';
@@ -448,43 +450,7 @@ export function ParceiroImportPage() {
               <Stat label="Com erro" value={csvPreview.erro} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Linha</th>
-                    <th>Status</th>
-                    <th>Razão social</th>
-                    <th>CNPJ/CPF</th>
-                    <th>Cidade/UF</th>
-                    <th>API CNPJ</th>
-                    <th>Papéis</th>
-                    <th>Mensagens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvPreview.rows.map((row) => (
-                    <tr key={row.line}>
-                      <td>{row.line}</td>
-                      <td>{row.status === 'ok' ? 'OK' : 'Erro'}</td>
-                      <td>{row.preview.razao_social ?? '—'}</td>
-                      <td>{formatCnpjCpf(row.preview.cnpj_cpf) || '—'}</td>
-                      <td>
-                        {[row.preview.municipio, row.preview.uf].filter(Boolean).join('/') || '—'}
-                      </td>
-                      <td>{enrichmentLabel(row.preview.enrichment)}</td>
-                      <td>{row.preview.papeis?.join(', ') || '—'}</td>
-                      <td>
-                        {[
-                          ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
-                          ...row.errors,
-                        ].join(' ') || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CsvPreviewTable rows={csvPreview.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={reset}>
@@ -515,64 +481,7 @@ export function ParceiroImportPage() {
               <Stat label="Com erro" value={xmlPreview.erro} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Arquivo</th>
-                    <th>Status</th>
-                    <th>Ação</th>
-                    <th>Emitente</th>
-                    <th>CNPJ</th>
-                    <th>Cidade/UF</th>
-                    <th>Origem dados</th>
-                    <th>Avisos / erros</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {xmlPreview.rows.map((row) => (
-                    <tr key={row.line}>
-                      <td>{row.line}</td>
-                      <td>{row.file_name ?? row.preview.file_name ?? '—'}</td>
-                      <td>{xmlStatusLabel(row)}</td>
-                      <td>{xmlAcaoLabel(row.acao)}</td>
-                      <td>
-                        {row.preview.parceiro_id ? (
-                          <Link to={`/parceiros/${row.preview.parceiro_id}`}>
-                            {row.preview.razao_social ?? row.preview.parceiro_codigo ?? row.preview.parceiro_id}
-                          </Link>
-                        ) : (
-                          row.preview.razao_social ?? '—'
-                        )}
-                        {row.preview.chave_nfe && (
-                          <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: 2 }}>
-                            NF {row.preview.chave_nfe.slice(0, 10)}…
-                          </div>
-                        )}
-                      </td>
-                      <td>{formatCnpjCpf(row.preview.cnpj_cpf) || '—'}</td>
-                      <td>
-                        {[row.preview.municipio, row.preview.uf].filter(Boolean).join('/') || '—'}
-                      </td>
-                      <td style={{ fontSize: '0.85rem' }}>
-                        {sourcesSummary(row.preview.field_sources)}
-                        <div style={{ opacity: 0.75, marginTop: 2 }}>
-                          {enrichmentLabel(row.preview.enrichment)}
-                        </div>
-                      </td>
-                      <td>
-                        {[
-                          ...(row.warnings ?? []),
-                          ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
-                          ...row.errors,
-                        ].join(' ') || '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <XmlPreviewTable rows={xmlPreview.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" disabled={busy} onClick={reset}>
@@ -602,38 +511,7 @@ export function ParceiroImportPage() {
               <Stat label="Falhas" value={csvResult.falhas} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Linha</th>
-                    <th>Status</th>
-                    <th>Código</th>
-                    <th>Razão social</th>
-                    <th>CNPJ/CPF</th>
-                    <th>Mensagens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvResult.rows.map((row) => (
-                    <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
-                      <td>{row.line}</td>
-                      <td>{row.status === 'criado' ? 'Criado' : 'Erro'}</td>
-                      <td>
-                        {row.id ? (
-                          <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>{row.razao_social ?? '—'}</td>
-                      <td>{formatCnpjCpf(row.cnpj_cpf) || '—'}</td>
-                      <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CsvResultTable rows={csvResult.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" onClick={reset}>
@@ -658,38 +536,7 @@ export function ParceiroImportPage() {
               <Stat label="Falhas" value={xmlResult.falhas} />
             </div>
 
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Status</th>
-                    <th>Código</th>
-                    <th>Razão social</th>
-                    <th>CNPJ</th>
-                    <th>Mensagens</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {xmlResult.rows.map((row) => (
-                    <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
-                      <td>{row.line}</td>
-                      <td>{xmlCommitStatusLabel(row.status)}</td>
-                      <td>
-                        {row.id ? (
-                          <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>{row.razao_social ?? '—'}</td>
-                      <td>{formatCnpjCpf(row.cnpj_cpf) || '—'}</td>
-                      <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <XmlResultTable rows={xmlResult.rows} />
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-secondary" onClick={reset}>
@@ -703,6 +550,304 @@ export function ParceiroImportPage() {
         </div>
       )}
     </>
+  );
+}
+
+const CSV_PREVIEW_SORT = {
+  line: (row: CsvPreviewRow) => Number(row.line),
+  status: (row: CsvPreviewRow) => row.status,
+  razao: (row: CsvPreviewRow) => row.preview.razao_social,
+  cnpj: (row: CsvPreviewRow) => row.preview.cnpj_cpf,
+  cidade: (row: CsvPreviewRow) =>
+    [row.preview.municipio, row.preview.uf].filter(Boolean).join('/'),
+  enrichment: (row: CsvPreviewRow) => enrichmentLabel(row.preview.enrichment),
+  papeis: (row: CsvPreviewRow) => row.preview.papeis?.join(', '),
+  mensagens: (row: CsvPreviewRow) =>
+    [
+      ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+      ...row.errors,
+    ].join(' '),
+};
+
+function CsvPreviewTable({ rows }: { rows: CsvPreviewRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_PREVIEW_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Linha
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Razão social
+            </SortableTh>
+            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CNPJ/CPF
+            </SortableTh>
+            <SortableTh column="cidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Cidade/UF
+            </SortableTh>
+            <SortableTh column="enrichment" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              API CNPJ
+            </SortableTh>
+            <SortableTh column="papeis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Papéis
+            </SortableTh>
+            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Mensagens
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={row.line}>
+              <td>{row.line}</td>
+              <td>{row.status === 'ok' ? 'OK' : 'Erro'}</td>
+              <td>{row.preview.razao_social ?? '—'}</td>
+              <td>{formatCnpjCpf(row.preview.cnpj_cpf) || '—'}</td>
+              <td>
+                {[row.preview.municipio, row.preview.uf].filter(Boolean).join('/') || '—'}
+              </td>
+              <td>{enrichmentLabel(row.preview.enrichment)}</td>
+              <td>{row.preview.papeis?.join(', ') || '—'}</td>
+              <td>
+                {[
+                  ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+                  ...row.errors,
+                ].join(' ') || '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const XML_PREVIEW_SORT = {
+  line: (row: XmlPreviewRow) => Number(row.line),
+  arquivo: (row: XmlPreviewRow) => row.file_name ?? row.preview.file_name,
+  status: (row: XmlPreviewRow) => row.status,
+  acao: (row: XmlPreviewRow) => row.acao,
+  emitente: (row: XmlPreviewRow) =>
+    row.preview.razao_social ?? row.preview.parceiro_codigo ?? String(row.preview.parceiro_id ?? ''),
+  cnpj: (row: XmlPreviewRow) => row.preview.cnpj_cpf,
+  cidade: (row: XmlPreviewRow) =>
+    [row.preview.municipio, row.preview.uf].filter(Boolean).join('/'),
+  origem: (row: XmlPreviewRow) => sourcesSummary(row.preview.field_sources),
+  avisos: (row: XmlPreviewRow) =>
+    [
+      ...(row.warnings ?? []),
+      ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+      ...row.errors,
+    ].join(' '),
+};
+
+function XmlPreviewTable({ rows }: { rows: XmlPreviewRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, XML_PREVIEW_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              #
+            </SortableTh>
+            <SortableTh column="arquivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Arquivo
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="acao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Ação
+            </SortableTh>
+            <SortableTh column="emitente" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Emitente
+            </SortableTh>
+            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CNPJ
+            </SortableTh>
+            <SortableTh column="cidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Cidade/UF
+            </SortableTh>
+            <SortableTh column="origem" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Origem dados
+            </SortableTh>
+            <SortableTh column="avisos" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Avisos / erros
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={row.line}>
+              <td>{row.line}</td>
+              <td>{row.file_name ?? row.preview.file_name ?? '—'}</td>
+              <td>{xmlStatusLabel(row)}</td>
+              <td>{xmlAcaoLabel(row.acao)}</td>
+              <td>
+                {row.preview.parceiro_id ? (
+                  <Link to={`/parceiros/${row.preview.parceiro_id}`}>
+                    {row.preview.razao_social ?? row.preview.parceiro_codigo ?? row.preview.parceiro_id}
+                  </Link>
+                ) : (
+                  row.preview.razao_social ?? '—'
+                )}
+                {row.preview.chave_nfe && (
+                  <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: 2 }}>
+                    NF {row.preview.chave_nfe.slice(0, 10)}…
+                  </div>
+                )}
+              </td>
+              <td>{formatCnpjCpf(row.preview.cnpj_cpf) || '—'}</td>
+              <td>
+                {[row.preview.municipio, row.preview.uf].filter(Boolean).join('/') || '—'}
+              </td>
+              <td style={{ fontSize: '0.85rem' }}>
+                {sourcesSummary(row.preview.field_sources)}
+                <div style={{ opacity: 0.75, marginTop: 2 }}>
+                  {enrichmentLabel(row.preview.enrichment)}
+                </div>
+              </td>
+              <td>
+                {[
+                  ...(row.warnings ?? []),
+                  ...(row.preview.enrichment?.message ? [row.preview.enrichment.message] : []),
+                  ...row.errors,
+                ].join(' ') || '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const CSV_RESULT_SORT = {
+  line: (row: CsvCommitRow) => Number(row.line),
+  status: (row: CsvCommitRow) => row.status,
+  codigo: (row: CsvCommitRow) => row.codigo ?? (row.id != null ? String(row.id) : null),
+  razao: (row: CsvCommitRow) => row.razao_social,
+  cnpj: (row: CsvCommitRow) => row.cnpj_cpf,
+  mensagens: (row: CsvCommitRow) => row.errors.join(' '),
+};
+
+function CsvResultTable({ rows }: { rows: CsvCommitRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_RESULT_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Linha
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Código
+            </SortableTh>
+            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Razão social
+            </SortableTh>
+            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CNPJ/CPF
+            </SortableTh>
+            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Mensagens
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
+              <td>{row.line}</td>
+              <td>{row.status === 'criado' ? 'Criado' : 'Erro'}</td>
+              <td>
+                {row.id ? (
+                  <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td>{row.razao_social ?? '—'}</td>
+              <td>{formatCnpjCpf(row.cnpj_cpf) || '—'}</td>
+              <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const XML_RESULT_SORT = {
+  line: (row: XmlCommitRow) => Number(row.line),
+  status: (row: XmlCommitRow) => row.status,
+  codigo: (row: XmlCommitRow) => row.codigo ?? (row.id != null ? String(row.id) : null),
+  razao: (row: XmlCommitRow) => row.razao_social,
+  cnpj: (row: XmlCommitRow) => row.cnpj_cpf,
+  mensagens: (row: XmlCommitRow) => row.errors.join(' '),
+};
+
+function XmlResultTable({ rows }: { rows: XmlCommitRow[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, XML_RESULT_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              #
+            </SortableTh>
+            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status
+            </SortableTh>
+            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Código
+            </SortableTh>
+            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Razão social
+            </SortableTh>
+            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CNPJ
+            </SortableTh>
+            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Mensagens
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((row) => (
+            <tr key={`${row.line}-${row.status}-${row.id ?? 'x'}`}>
+              <td>{row.line}</td>
+              <td>{xmlCommitStatusLabel(row.status)}</td>
+              <td>
+                {row.id ? (
+                  <Link to={`/parceiros/${row.id}`}>{row.codigo ?? row.id}</Link>
+                ) : (
+                  '—'
+                )}
+              </td>
+              <td>{row.razao_social ?? '—'}</td>
+              <td>{formatCnpjCpf(row.cnpj_cpf) || '—'}</td>
+              <td>{row.errors.length ? row.errors.join(' ') : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

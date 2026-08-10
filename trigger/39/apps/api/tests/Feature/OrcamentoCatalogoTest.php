@@ -142,7 +142,57 @@ class OrcamentoCatalogoTest extends TestCase
         $this->asAdmin()
             ->getJson('/api/v1/orcamento-catalogo/maquinas')
             ->assertOk()
-            ->assertJsonStructure(['data' => [['id', 'nome', 'tarifas', 'ativo']]]);
+            ->assertJsonStructure([
+                'data' => [['id', 'nome', 'tarifas', 'ativo', 'bens_vinculados']],
+            ]);
+    }
+
+    public function test_list_maquinas_inclui_bens_vinculados_da_empresa(): void
+    {
+        Permission::findOrCreate('patrimonio.ler', 'web');
+        Permission::findOrCreate('patrimonio.escrever', 'web');
+
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson();
+
+        $grupo = \App\Models\OrcCatalogoMaquina::query()->where('nome', 'BETA')->firstOrFail();
+
+        \App\Models\BemPatrimonial::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'BEM-ORC1',
+            'descricao' => 'Impressora ligada ao BETA',
+            'categoria' => 'MAQUINA_GRAFICA',
+            'status' => 'ATIVO',
+            'orc_catalogo_maquina_id' => $grupo->id,
+            'capitalizado' => true,
+        ]);
+
+        $outra = Empresa::query()->create([
+            'codigo' => 'EMP-CAT2',
+            'razao_social' => 'Outra Empresa',
+            'nome_fantasia' => 'Outra',
+            'cnpj' => '11222333000181',
+            'situacao' => 'ATIVA',
+        ]);
+
+        \App\Models\BemPatrimonial::query()->create([
+            'empresa_id' => $outra->id,
+            'codigo' => 'BEM-ORC2',
+            'descricao' => 'Bem de outra EMP — não deve aparecer',
+            'categoria' => 'MAQUINA_GRAFICA',
+            'status' => 'ATIVO',
+            'orc_catalogo_maquina_id' => $grupo->id,
+            'capitalizado' => true,
+        ]);
+
+        $res = $this->asAdmin()
+            ->getJson('/api/v1/orcamento-catalogo/maquinas')
+            ->assertOk();
+
+        $beta = collect($res->json('data'))->firstWhere('nome', 'BETA');
+        $this->assertNotNull($beta);
+        $this->assertCount(1, $beta['bens_vinculados']);
+        $this->assertSame('BEM-ORC1', $beta['bens_vinculados'][0]['codigo']);
     }
 
     public function test_json_fallback_when_tables_empty(): void
@@ -163,5 +213,64 @@ class OrcamentoCatalogoTest extends TestCase
         $again = $service->seedFromJson();
         $this->assertSame(0, $again['criados']['papeis']);
         $this->assertSame(12.34, (float) $papel->fresh()->preco_m2);
+    }
+
+    public function test_matriz_cm2_overlay_and_meta_for_ui(): void
+    {
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson();
+
+        $this->assertSame(0.28, OrcamentoCatalogo::load()->matrizCm2);
+        $this->assertSame(0.28, OrcamentoCatalogo::load()->metaForUi()['matriz_cm2']);
+        $this->assertSame('database', $service->resumo()['matriz_cm2_fonte']);
+        $this->assertSame(0.28, $service->resumo()['matriz_cm2']);
+
+        $service->updateParametro('matriz_cm2', ['valor' => 0.35]);
+        $cat = OrcamentoCatalogo::load();
+        $this->assertSame(0.35, $cat->matrizCm2);
+        $this->assertSame(0.35, $cat->metaForUi()['matriz_cm2']);
+
+        $motor = app(\App\Services\Comercial\Orcamento\OrcamentoMotor::class);
+        $bruto = $motor->calcularMatriz(60.0, 10.0, 1, 1, $cat);
+        $this->assertEqualsWithDelta(((((60 * 3.175) / 10) + 4) * 14 * 1 * 0.35), $bruto, 0.0001);
+    }
+
+    public function test_inactive_matriz_falls_back_to_json(): void
+    {
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson();
+        $service->updateParametro('matriz_cm2', ['valor' => 0.99, 'ativo' => false]);
+
+        $cat = OrcamentoCatalogo::load();
+        $this->assertSame(0.28, $cat->matrizCm2);
+        $this->assertSame('json_fallback', $service->resumo()['matriz_cm2_fonte']);
+    }
+
+    public function test_http_parametro_matriz_requires_permission_and_updates(): void
+    {
+        app(OrcamentoCatalogoAdminService::class)->seedFromJson();
+
+        $this->asComercial()->getJson('/api/v1/orcamento-catalogo/parametros')->assertForbidden();
+
+        $this->asAdmin()
+            ->getJson('/api/v1/orcamento-catalogo/parametros')
+            ->assertOk()
+            ->assertJsonFragment(['chave' => 'matriz_cm2']);
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/parametros/matriz_cm2', ['valor' => 0.42])
+            ->assertOk()
+            ->assertJsonPath('data.valor', 0.42);
+
+        $this->asAdmin()
+            ->getJson('/api/v1/orcamento-catalogo/resumo')
+            ->assertOk()
+            ->assertJsonPath('data.matriz_cm2', 0.42)
+            ->assertJsonPath('data.matriz_cm2_fonte', 'database');
+
+        $this->asComercial()
+            ->getJson('/api/v1/orcamentos/catalogo')
+            ->assertOk()
+            ->assertJsonPath('data.matriz_cm2', 0.42);
     }
 }

@@ -30,7 +30,7 @@ class EmpresaController extends Controller
             abort(403);
         }
 
-        $empresa->load('fiscaisHistorico');
+        $empresa->load(['fiscaisHistorico', 'contasFinanceiras']);
 
         return response()->json(['data' => $empresa]);
     }
@@ -73,6 +73,22 @@ class EmpresaController extends Controller
             'logo_path' => ['nullable', 'string'],
             'situacao' => ['sometimes', 'string', 'max:16'],
             'motivo_vigencia_fiscal' => ['nullable', 'string', 'max:255'],
+            'contas_financeiras' => ['sometimes', 'array'],
+            'contas_financeiras.*.id' => ['nullable', 'integer'],
+            'contas_financeiras.*.tipo' => ['nullable', 'string', 'in:BANCO,CAIXA,APLICACAO'],
+            'contas_financeiras.*.descricao' => ['nullable', 'string', 'max:255'],
+            'contas_financeiras.*.banco_codigo' => ['nullable', 'string', 'max:8'],
+            'contas_financeiras.*.banco_nome' => ['nullable', 'string', 'max:255'],
+            'contas_financeiras.*.agencia' => ['nullable', 'string', 'max:16'],
+            'contas_financeiras.*.conta' => ['nullable', 'string', 'max:32'],
+            'contas_financeiras.*.tipo_conta' => ['nullable', 'string', 'in:CORRENTE,POUPANCA,PAGAMENTO'],
+            'contas_financeiras.*.pix_chave' => ['nullable', 'string', 'max:255'],
+            'contas_financeiras.*.principal' => ['sometimes', 'boolean'],
+            'contas_financeiras.*.ativa' => ['sometimes', 'boolean'],
+            'contas_financeiras.*.ordem' => ['nullable', 'integer', 'min:0'],
+            'contas_financeiras.*.saldo_abertura' => ['nullable', 'numeric'],
+            'contas_financeiras.*.saldo_abertura_em' => ['nullable', 'date'],
+            'contas_financeiras.*.observacao' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (array_key_exists('cnpj', $data)) {

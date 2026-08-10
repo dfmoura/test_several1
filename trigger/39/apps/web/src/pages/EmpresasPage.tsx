@@ -1,16 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
 import { QsaSociosPanel } from '../components/QsaSociosPanel';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import {
   api,
+  type BancoConsulta,
   type CepConsulta,
   type CnpjConsulta,
   type Empresa,
+  type EmpresaContaFinanceira,
+  type EmpresaFiscalHistorico,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 import {
   allowedCrtsForRegime,
   crtLabel,
@@ -22,11 +27,32 @@ import {
 import {
   formatCep,
   formatCnpj,
+  formatCurrency,
   formatDate,
   formatPhone,
   onlyDigits,
 } from '../lib/format';
 import { ieStatusLabel } from '../lib/parceiroFiscal';
+import { useTableSort } from '../lib/useTableSort';
+
+type ContaForm = {
+  key: string;
+  id?: number;
+  codigo?: string;
+  tipo: string;
+  descricao: string;
+  banco_codigo: string;
+  banco_nome: string;
+  agencia: string;
+  conta: string;
+  tipo_conta: string;
+  pix_chave: string;
+  principal: boolean;
+  ativa: boolean;
+  saldo_abertura: string;
+  saldo_abertura_em: string;
+  observacao: string;
+};
 
 type EmpresaForm = {
   cnpj: string;
@@ -54,6 +80,7 @@ type EmpresaForm = {
   estoque_ativo: boolean;
   situacao: string;
   motivo_vigencia_fiscal: string;
+  contas: ContaForm[];
 };
 
 const TABS = [
@@ -61,6 +88,7 @@ const TABS = [
   'Atividades',
   'Endereço',
   'Contato',
+  'Contas',
   'Sócios',
   'Histórico',
   'Operação',
@@ -73,6 +101,99 @@ const REGIMES = [
   { value: 'LUCRO_REAL', label: 'Lucro Real' },
   { value: 'MEI', label: 'MEI' },
 ] as const;
+
+const TIPOS_CONTA_FIN = [
+  { value: 'BANCO', label: 'Banco' },
+  { value: 'CAIXA', label: 'Caixa' },
+  { value: 'APLICACAO', label: 'Aplicação' },
+] as const;
+
+let contaKeySeq = 0;
+function nextContaKey(): string {
+  contaKeySeq += 1;
+  return `cf-${contaKeySeq}`;
+}
+
+function emptyConta(principal = false): ContaForm {
+  return {
+    key: nextContaKey(),
+    tipo: 'BANCO',
+    descricao: '',
+    banco_codigo: '',
+    banco_nome: '',
+    agencia: '',
+    conta: '',
+    tipo_conta: 'CORRENTE',
+    pix_chave: '',
+    principal,
+    ativa: true,
+    saldo_abertura: '',
+    saldo_abertura_em: '',
+    observacao: '',
+  };
+}
+
+function mapContas(emp: Empresa): ContaForm[] {
+  const list = emp.contas_financeiras ?? [];
+  if (list.length === 0) return [emptyConta(true)];
+  return list.map((c: EmpresaContaFinanceira) => ({
+    key: nextContaKey(),
+    id: c.id,
+    codigo: c.codigo,
+    tipo: c.tipo || 'BANCO',
+    descricao: c.descricao ?? '',
+    banco_codigo: c.banco_codigo ?? '',
+    banco_nome: c.banco_nome ?? '',
+    agencia: c.agencia ?? '',
+    conta: c.conta ?? '',
+    tipo_conta: c.tipo_conta ?? 'CORRENTE',
+    pix_chave: c.pix_chave ?? '',
+    principal: Boolean(c.principal),
+    ativa: c.ativa !== false,
+    saldo_abertura:
+      c.saldo_abertura === null || c.saldo_abertura === undefined
+        ? ''
+        : String(c.saldo_abertura),
+    saldo_abertura_em: c.saldo_abertura_em ? c.saldo_abertura_em.slice(0, 10) : '',
+    observacao: c.observacao ?? '',
+  }));
+}
+
+function serializeContas(contas: ContaForm[]) {
+  return contas
+    .filter(
+      (c) =>
+        c.descricao ||
+        c.banco_codigo ||
+        c.banco_nome ||
+        c.agencia ||
+        c.conta ||
+        c.pix_chave ||
+        c.saldo_abertura,
+    )
+    .map((c, ordem) => ({
+      id: c.id,
+      tipo: c.tipo || 'BANCO',
+      descricao: c.descricao || null,
+      banco_codigo: c.banco_codigo || null,
+      banco_nome: c.banco_nome || null,
+      agencia: c.agencia || null,
+      conta: c.conta || null,
+      tipo_conta: c.tipo === 'CAIXA' ? null : c.tipo_conta || null,
+      pix_chave: c.pix_chave || null,
+      principal: c.principal,
+      ativa: c.ativa,
+      ordem,
+      saldo_abertura: c.saldo_abertura === '' ? null : Number(c.saldo_abertura),
+      saldo_abertura_em: c.saldo_abertura_em || null,
+      observacao: c.observacao || null,
+    }));
+}
+
+function bankLabel(b: BancoConsulta): string {
+  const code = b.code ? `${b.code} — ` : '';
+  return `${code}${b.fullName || b.name}`;
+}
 
 function toForm(emp: Empresa): EmpresaForm {
   const regime = emp.regime ?? 'SIMPLES_NACIONAL';
@@ -102,6 +223,7 @@ function toForm(emp: Empresa): EmpresaForm {
     estoque_ativo: emp.estoque_ativo,
     situacao: emp.situacao,
     motivo_vigencia_fiscal: '',
+    contas: mapContas(emp),
   };
 }
 
@@ -149,6 +271,8 @@ export function EmpresasPage() {
   const [cnpjUnlocked, setCnpjUnlocked] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [bancos, setBancos] = useState<BancoConsulta[]>([]);
+  const [bancosLoading, setBancosLoading] = useState(false);
   const selectedIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -161,6 +285,29 @@ export function EmpresasPage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (tab !== 'Contas' || bancos.length > 0 || bancosLoading) return;
+    setBancosLoading(true);
+    void (async () => {
+      try {
+        const res = await api.get<{ data: BancoConsulta[] }>('/consulta/bancos');
+        setBancos(res.data);
+      } catch {
+        /* catálogo opcional — input manual permanece */
+      } finally {
+        setBancosLoading(false);
+      }
+    })();
+  }, [tab, bancos.length, bancosLoading]);
+
+  const bancosByCode = useMemo(() => {
+    const map = new Map<string, BancoConsulta>();
+    for (const b of bancos) {
+      if (b.code) map.set(b.code, b);
+    }
+    return map;
+  }, [bancos]);
 
   const applyCnpjConsulta = async (
     digits: string,
@@ -230,6 +377,53 @@ export function EmpresasPage() {
     setForm((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
+  const updateConta = (key: string, patch: Partial<ContaForm>) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        contas: prev.contas.map((c) => (c.key === key ? { ...c, ...patch } : c)),
+      };
+    });
+  };
+
+  const setContaPrincipal = (key: string) => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        contas: prev.contas.map((c) => ({ ...c, principal: c.key === key })),
+      };
+    });
+  };
+
+  const addConta = () => {
+    setForm((prev) => {
+      if (!prev) return prev;
+      const next = emptyConta(prev.contas.length === 0);
+      return { ...prev, contas: [...prev.contas, next] };
+    });
+  };
+
+  const removeConta = (key: string) => {
+    setForm((prev) => {
+      if (!prev || prev.contas.length <= 1) return prev;
+      const contas = prev.contas.filter((c) => c.key !== key);
+      if (!contas.some((c) => c.principal) && contas[0]) {
+        contas[0] = { ...contas[0], principal: true };
+      }
+      return { ...prev, contas };
+    });
+  };
+
+  const aplicarBanco = (key: string, code: string) => {
+    const bank = bancosByCode.get(code);
+    updateConta(key, {
+      banco_codigo: code,
+      banco_nome: bank ? bank.fullName || bank.name : '',
+    });
+  };
+
   const consultarCnpj = async () => {
     if (!form || !selected) return;
     const digits = onlyDigits(form.cnpj);
@@ -288,15 +482,17 @@ export function EmpresasPage() {
         selected.cnaes_secundarios ??
         null;
 
+      const { contas, motivo_vigencia_fiscal: motivoFiscal, ...empresaFields } = form;
       const res = await api.put<{ data: Empresa }>(`/empresas/${selected.id}`, {
-        ...form,
+        ...empresaFields,
         cnpj: cnpjDigits,
         cep: onlyDigits(form.cep),
         cnae: onlyDigits(form.cnae),
         regime_desde: form.regime_desde || null,
         iest: form.iest || null,
         cnaes_secundarios: cnaesSec,
-        motivo_vigencia_fiscal: form.motivo_vigencia_fiscal || null,
+        motivo_vigencia_fiscal: motivoFiscal || null,
+        contas_financeiras: serializeContas(contas),
       });
       setEmpresas((prev) => prev.map((e) => (e.id === res.data.id ? res.data : e)));
       setSelected(res.data);
@@ -324,6 +520,9 @@ export function EmpresasPage() {
     [];
   const socios = consulta?.qsa ?? [];
   const historico = selected?.fiscais_historico ?? [];
+  const contasCount = form?.contas.filter(
+    (c) => c.descricao || c.banco_codigo || c.banco_nome || c.conta || c.id,
+  ).length ?? 0;
   const pendencias = selected?.fiscal_pendencias ?? [];
   const pendenciasEmissao = selected?.fiscal_pendencias_emissao ?? [];
   const fiscalCompleto = Boolean(selected?.cadastro_fiscal_completo);
@@ -378,17 +577,24 @@ export function EmpresasPage() {
                   {consulting === 'cnpj' ? ' · consultando Receita…' : ''}
                 </p>
               </div>
-              {canEdit && (
-                <div className="empresa-header-actions">
-                  {cnpjLocked && (
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setCnpjUnlocked(true)}
-                    >
-                      Alterar CNPJ
-                    </button>
-                  )}
+              <div className="empresa-header-actions">
+                <a
+                  href={`/empresas/${selected.id}/ficha`}
+                  className="btn btn-secondary btn-sm"
+                  onClick={(e) => onAbrirFichaClick(e, `/empresas/${selected.id}/ficha`)}
+                >
+                  Imprimir ficha
+                </a>
+                {canEdit && cnpjLocked && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setCnpjUnlocked(true)}
+                  >
+                    Alterar CNPJ
+                  </button>
+                )}
+                {canEdit && (
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -397,8 +603,8 @@ export function EmpresasPage() {
                   >
                     {consulting === 'cnpj' ? 'Consultando…' : 'Atualizar da Receita'}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {message && <div className="alert alert-success">{message}</div>}
@@ -455,6 +661,7 @@ export function EmpresasPage() {
                   {t === 'Atividades' && cnaesSecundarios.length > 0
                     ? ` · ${cnaesSecundarios.length}`
                     : ''}
+                  {t === 'Contas' && contasCount > 0 ? ` · ${contasCount}` : ''}
                   {t === 'Sócios' && socios.length > 0 ? ` · ${socios.length}` : ''}
                 </button>
               ))}
@@ -754,6 +961,237 @@ export function EmpresasPage() {
               />
             )}
 
+            {tab === 'Contas' && form && (
+              <div className="form-section">
+                <div className="panel-title">
+                  <h3>Contas financeiras</h3>
+                  {canEdit && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={addConta}>
+                      Adicionar conta
+                    </button>
+                  )}
+                </div>
+                <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
+                  Tesouraria desta EMP · uma ou mais (banco, caixa ou aplicação) · destino futuro de
+                  baixas e implantação de saldo · bancos via BrasilAPI
+                  {bancosLoading
+                    ? ' · carregando catálogo…'
+                    : bancos.length
+                      ? ` · ${bancos.length} bancos`
+                      : ''}
+                </p>
+                <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
+                  Saldo de abertura é posição na virada (estratégia de implantação). O saldo corrido
+                  virá do ledger no módulo financeiro — não edite “saldo atual” aqui.
+                </p>
+
+                <div className="repeatable-list">
+                  {form.contas.map((conta, index) => (
+                    <div
+                      key={conta.key}
+                      className={`repeatable-item${conta.principal ? ' is-principal' : ''}`}
+                    >
+                      <div className="repeatable-item-header">
+                        <strong>
+                          {conta.codigo ? `${conta.codigo} · ` : ''}
+                          Conta {index + 1}
+                        </strong>
+                        <div className="repeatable-item-actions">
+                          <label className="radio-pill">
+                            <input
+                              type="radio"
+                              name="conta-fin-principal"
+                              checked={conta.principal}
+                              disabled={!canEdit}
+                              onChange={() => setContaPrincipal(conta.key)}
+                            />
+                            Principal
+                          </label>
+                          {canEdit && form.contas.length > 1 && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => removeConta(conta.key)}
+                            >
+                              Remover
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label>Tipo</label>
+                          <select
+                            value={conta.tipo}
+                            disabled={!canEdit}
+                            onChange={(e) => updateConta(conta.key, { tipo: e.target.value })}
+                          >
+                            {TIPOS_CONTA_FIN.map((t) => (
+                              <option key={t.value} value={t.value}>
+                                {t.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Descrição / apelido</label>
+                          <input
+                            value={conta.descricao}
+                            disabled={!canEdit}
+                            placeholder="Ex.: Sicoob operacional"
+                            onChange={(e) => updateConta(conta.key, { descricao: e.target.value })}
+                          />
+                        </div>
+                        {conta.tipo !== 'CAIXA' && (
+                          <>
+                            <div className="form-group span-2">
+                              <label>Banco</label>
+                              {bancos.length > 0 ? (
+                                <select
+                                  value={conta.banco_codigo}
+                                  disabled={!canEdit}
+                                  onChange={(e) => aplicarBanco(conta.key, e.target.value)}
+                                >
+                                  <option value="">Selecione o banco</option>
+                                  {conta.banco_codigo && !bancosByCode.has(conta.banco_codigo) && (
+                                    <option value={conta.banco_codigo}>
+                                      {conta.banco_codigo}
+                                      {conta.banco_nome ? ` — ${conta.banco_nome}` : ''}
+                                    </option>
+                                  )}
+                                  {bancos
+                                    .filter((b) => b.code)
+                                    .map((b) => (
+                                      <option key={`${b.code}-${b.ispb}`} value={b.code ?? ''}>
+                                        {bankLabel(b)}
+                                      </option>
+                                    ))}
+                                </select>
+                              ) : (
+                                <input
+                                  value={conta.banco_nome}
+                                  disabled={!canEdit}
+                                  placeholder="Nome do banco"
+                                  onChange={(e) =>
+                                    updateConta(conta.key, { banco_nome: e.target.value })
+                                  }
+                                />
+                              )}
+                            </div>
+                            <div className="form-group">
+                              <label>Código</label>
+                              <input
+                                value={conta.banco_codigo}
+                                disabled={!canEdit}
+                                onChange={(e) =>
+                                  updateConta(conta.key, {
+                                    banco_codigo: onlyDigits(e.target.value).slice(0, 3),
+                                  })
+                                }
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label>Tipo de conta</label>
+                              <select
+                                value={conta.tipo_conta}
+                                disabled={!canEdit}
+                                onChange={(e) =>
+                                  updateConta(conta.key, { tipo_conta: e.target.value })
+                                }
+                              >
+                                <option value="CORRENTE">Corrente</option>
+                                <option value="POUPANCA">Poupança</option>
+                                <option value="PAGAMENTO">Pagamento</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                        <div className="form-group">
+                          <label>Agência</label>
+                          <input
+                            value={conta.agencia}
+                            disabled={!canEdit}
+                            onChange={(e) => updateConta(conta.key, { agencia: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Conta</label>
+                          <input
+                            value={conta.conta}
+                            disabled={!canEdit}
+                            onChange={(e) => updateConta(conta.key, { conta: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group span-2">
+                          <label>Chave PIX</label>
+                          <input
+                            value={conta.pix_chave}
+                            disabled={!canEdit}
+                            onChange={(e) =>
+                              updateConta(conta.key, { pix_chave: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Saldo de abertura (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={conta.saldo_abertura}
+                            disabled={!canEdit}
+                            placeholder="Opcional — na virada"
+                            onChange={(e) =>
+                              updateConta(conta.key, { saldo_abertura: e.target.value })
+                            }
+                          />
+                          {conta.saldo_abertura !== '' && (
+                            <span className="form-hint">
+                              {formatCurrency(Number(conta.saldo_abertura))}
+                            </span>
+                          )}
+                        </div>
+                        <div className="form-group">
+                          <label>Data do saldo</label>
+                          <input
+                            type="date"
+                            value={conta.saldo_abertura_em}
+                            disabled={!canEdit}
+                            onChange={(e) =>
+                              updateConta(conta.key, { saldo_abertura_em: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Ativa</label>
+                          <select
+                            value={conta.ativa ? '1' : '0'}
+                            disabled={!canEdit}
+                            onChange={(e) =>
+                              updateConta(conta.key, { ativa: e.target.value === '1' })
+                            }
+                          >
+                            <option value="1">Sim</option>
+                            <option value="0">Não</option>
+                          </select>
+                        </div>
+                        <div className="form-group span-2">
+                          <label>Observação</label>
+                          <input
+                            value={conta.observacao}
+                            disabled={!canEdit}
+                            onChange={(e) =>
+                              updateConta(conta.key, { observacao: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {tab === 'Histórico' && (
               <div className="form-section">
                 <div className="panel-title">
@@ -763,36 +1201,7 @@ export function EmpresasPage() {
                 {historico.length === 0 ? (
                   <div className="empty-panel">Nenhuma vigência registrada ainda.</div>
                 ) : (
-                  <div className="table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Início</th>
-                          <th>Fim</th>
-                          <th>IE</th>
-                          <th>Status IE</th>
-                          <th>Regime</th>
-                          <th>CRT</th>
-                          <th>Motivo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {historico.map((h) => (
-                          <tr key={h.id}>
-                            <td>{formatDate(h.vigencia_inicio)}</td>
-                            <td>{h.vigencia_fim ? formatDate(h.vigencia_fim) : 'atual'}</td>
-                            <td>
-                              <code>{h.ie ?? '—'}</code>
-                            </td>
-                            <td>{h.ie_status ? ieStatusLabel(h.ie_status) : '—'}</td>
-                            <td>{h.regime ?? '—'}</td>
-                            <td>{h.crt ?? '—'}</td>
-                            <td>{h.motivo ?? '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <HistoricoFiscalTable rows={historico} />
                 )}
               </div>
             )}
@@ -855,5 +1264,66 @@ export function EmpresasPage() {
         </div>
       )}
     </>
+  );
+}
+
+const HISTORICO_FISCAL_SORT = {
+  inicio: (h: EmpresaFiscalHistorico) => h.vigencia_inicio,
+  fim: (h: EmpresaFiscalHistorico) => h.vigencia_fim,
+  ie: (h: EmpresaFiscalHistorico) => h.ie,
+  ie_status: (h: EmpresaFiscalHistorico) => h.ie_status,
+  regime: (h: EmpresaFiscalHistorico) => h.regime,
+  crt: (h: EmpresaFiscalHistorico) => (h.crt != null ? Number(h.crt) : null),
+  motivo: (h: EmpresaFiscalHistorico) => h.motivo,
+};
+
+function HistoricoFiscalTable({ rows }: { rows: EmpresaFiscalHistorico[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, HISTORICO_FISCAL_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="inicio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Início
+            </SortableTh>
+            <SortableTh column="fim" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Fim
+            </SortableTh>
+            <SortableTh column="ie" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              IE
+            </SortableTh>
+            <SortableTh column="ie_status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Status IE
+            </SortableTh>
+            <SortableTh column="regime" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Regime
+            </SortableTh>
+            <SortableTh column="crt" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CRT
+            </SortableTh>
+            <SortableTh column="motivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Motivo
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((h) => (
+            <tr key={h.id}>
+              <td>{formatDate(h.vigencia_inicio)}</td>
+              <td>{h.vigencia_fim ? formatDate(h.vigencia_fim) : 'atual'}</td>
+              <td>
+                <code>{h.ie ?? '—'}</code>
+              </td>
+              <td>{h.ie_status ? ieStatusLabel(h.ie_status) : '—'}</td>
+              <td>{h.regime ?? '—'}</td>
+              <td>{h.crt ?? '—'}</td>
+              <td>{h.motivo ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

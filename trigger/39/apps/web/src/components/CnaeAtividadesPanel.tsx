@@ -1,5 +1,7 @@
+import { SortableTh } from './SortableTh';
 import type { CnaeSecundario } from '../lib/api';
 import { formatCnae, onlyDigits } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 type Props = {
   cnae: string;
@@ -9,6 +11,42 @@ type Props = {
   loading?: boolean;
   onCnaeChange: (digits: string) => void;
 };
+
+const CNAE_SEC_SORT = {
+  codigo: (item: CnaeSecundario) => String(item.codigo),
+  descricao: (item: CnaeSecundario) => item.descricao,
+};
+
+function CnaesSecundariosTable({ items }: { items: CnaeSecundario[] }) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(items, CNAE_SEC_SORT);
+
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              CNAE
+            </SortableTh>
+            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              Descrição
+            </SortableTh>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((item) => (
+            <tr key={String(item.codigo)}>
+              <td>
+                <code>{formatCnae(item.codigo)}</code>
+              </td>
+              <td>{item.descricao || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export function CnaeAtividadesPanel({
   cnae,
@@ -57,26 +95,7 @@ export function CnaeAtividadesPanel({
           {canEdit ? ' Use “Consultar” na aba Identificação para atualizar pela BrasilAPI.' : ''}
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th style={{ width: '8rem' }}>CNAE</th>
-                <th>Descrição</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cnaesSecundarios.map((item) => (
-                <tr key={String(item.codigo)}>
-                  <td>
-                    <code>{formatCnae(item.codigo)}</code>
-                  </td>
-                  <td>{item.descricao || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CnaesSecundariosTable items={cnaesSecundarios} />
       )}
     </div>
   );

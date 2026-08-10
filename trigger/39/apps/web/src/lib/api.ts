@@ -145,8 +145,14 @@ export const api = {
   get: <T>(path: string, empresaId?: number | null) =>
     request<T>(path, { empresaId }),
 
+  /** Sem Sanctum / empresa — link público do cliente. */
+  publicGet: <T>(path: string) => request<T>(path, { skipAuth: true }),
+
   post: <T>(path: string, body?: unknown, empresaId?: number | null) =>
     request<T>(path, { method: 'POST', body, empresaId }),
+
+  publicPost: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', body, skipAuth: true }),
 
   postForm: <T>(path: string, formData: FormData, empresaId?: number | null) =>
     request<T>(path, { method: 'POST', formData, empresaId }),
@@ -216,6 +222,25 @@ export type EmpresaFiscalHistorico = {
   motivo: string | null;
 };
 
+export type EmpresaContaFinanceira = {
+  id?: number;
+  codigo?: string;
+  tipo: string;
+  descricao: string;
+  banco_codigo: string | null;
+  banco_nome: string | null;
+  agencia: string | null;
+  conta: string | null;
+  tipo_conta: string | null;
+  pix_chave: string | null;
+  principal: boolean;
+  ativa: boolean;
+  ordem?: number;
+  saldo_abertura: string | number | null;
+  saldo_abertura_em: string | null;
+  observacao: string | null;
+};
+
 export type Empresa = {
   id: number;
   codigo: string;
@@ -251,6 +276,7 @@ export type Empresa = {
   fiscal_pendencias?: string[];
   fiscal_pendencias_emissao?: string[];
   fiscais_historico?: EmpresaFiscalHistorico[];
+  contas_financeiras?: EmpresaContaFinanceira[];
 };
 
 export type ParceiroContato = {
@@ -272,6 +298,25 @@ export type ParceiroContaBancaria = {
   conta: string | null;
   pix_chave: string | null;
   tipo_conta: string | null;
+  principal: boolean;
+  ordem?: number;
+};
+
+export type ParceiroEnderecoEntrega = {
+  id?: number;
+  apelido: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  municipio: string | null;
+  uf: string | null;
+  cep: string | null;
+  ibge: string | null;
+  responsavel_nome: string;
+  responsavel_telefone: string | null;
+  responsavel_documento: string | null;
+  observacoes: string | null;
   principal: boolean;
   ordem?: number;
 };
@@ -352,6 +397,7 @@ export type Parceiro = {
   contato_funcao: string | null;
   contatos?: ParceiroContato[];
   contas_bancarias?: ParceiroContaBancaria[];
+  enderecos_entrega?: ParceiroEnderecoEntrega[];
   fiscais_historico?: ParceiroFiscalHistorico[];
   limite_credito: string | null;
   credito_utilizado: string | null;
@@ -367,6 +413,20 @@ export type Parceiro = {
   vinculo: string | null;
   cargo: string | null;
   departamento: string | null;
+};
+
+export type ProdutoDescricaoSugestao = {
+  descricao_fiscal: string;
+  descricao_comercial: string;
+  origem: string;
+  racional: string;
+  avisos: string[];
+  similares: Array<{
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    similaridade: number;
+  }>;
 };
 
 export type Produto = {
@@ -423,6 +483,46 @@ export type ProdutoGrupo = {
   ordenacao: number;
   situacao: string;
   observacao: string | null;
+};
+
+export type BemPatrimonial = {
+  id: number;
+  empresa_id: number;
+  codigo: string;
+  descricao: string;
+  categoria: string;
+  marca: string | null;
+  modelo: string | null;
+  numero_serie: string | null;
+  adquirido_em: string | null;
+  valor_aquisicao: string | null;
+  nf_numero: string | null;
+  fornecedor_id: number | null;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia: string | null;
+  } | null;
+  local: string | null;
+  responsavel: string | null;
+  responsavel_user_id: number | null;
+  status: string;
+  garantia_ate: string | null;
+  placa: string | null;
+  renavam: string | null;
+  vida_util_meses: number | null;
+  orc_catalogo_maquina_id: number | null;
+  grupo_hora_maquina?: { id: number; nome: string; ativo: boolean } | null;
+  capitalizado: boolean;
+  observacao: string | null;
+  baixado_em: string | null;
+  motivo_baixa: string | null;
+  capitalizacao?: {
+    valor_minimo: number;
+    abaixo_do_minimo: boolean;
+    mensagem: string | null;
+  } | null;
 };
 
 export type Usuario = {
@@ -628,6 +728,8 @@ export type Orcamento = {
   cliente_nome: string;
   status: string;
   editavel: boolean;
+  enviavel?: boolean;
+  aguardando_cliente?: boolean;
   input_snapshot: Record<string, unknown> | null;
   result_snapshot: OrcamentoResult | null;
   chave_matriz: string | null;
@@ -637,6 +739,19 @@ export type Orcamento = {
   validade_dias: number;
   tolerancia_qtd_pct: string | number;
   observacao: string | null;
+  enviado_em?: string | null;
+  visualizado_em?: string | null;
+  decidido_em?: string | null;
+  canal_aprovacao?: string | null;
+  aceite_nome_cliente?: string | null;
+  aceite_faixa_index?: number | null;
+  motivo_decisao?: string | null;
+  link_aprovacao?: {
+    ativo: boolean;
+    expira_em: string | null;
+    visualizacoes: number;
+    usado_em: string | null;
+  } | null;
   parceiro?: {
     id: number;
     codigo: string;
@@ -648,6 +763,63 @@ export type Orcamento = {
   updated_at: string | null;
 };
 
+export type OrcamentoEnvioAprovacao = {
+  url: string;
+  token: string;
+  mensagem: string;
+  expira_em: string | null;
+  reutilizado: boolean;
+  orcamento: Orcamento;
+};
+
+export type OrcamentoPropostaPublica = {
+  codigo: string;
+  versao: number;
+  status: string;
+  vencido: boolean;
+  disponivel: boolean;
+  expira_em: string | null;
+  cliente_nome: string;
+  empresa: {
+    nome_fantasia: string | null;
+    razao_social: string | null;
+    cnpj: string | null;
+    telefone: string | null;
+    email: string | null;
+    municipio: string | null;
+    uf: string | null;
+  };
+  descricao: {
+    medida: string | null;
+    papel: string | null;
+    acabamento: string | null;
+    cores: string | null;
+    etiq_por_rolo: number | null;
+    largura_cm: number | null;
+    puxada_cm: number | null;
+    formato_faca: string | null;
+    faca_nova: boolean;
+  };
+  prazo_entrega_dias: number;
+  validade_dias: number;
+  tolerancia_qtd_pct: number;
+  cobra_matriz: boolean;
+  valor_matriz: number;
+  matriz_nota: string | null;
+  faixas: Array<{
+    index: number;
+    quantidade: number;
+    valor_total: number;
+    valor_unitario: number | null;
+    valor_etiqueta: number;
+    valor_rolo: number | null;
+    rolos: number | null;
+    valor_matriz: number;
+    valor_faca_nova: number;
+  }>;
+  observacao_comercial: string | null;
+};
+
 export type OrcamentoCatalogo = {
   papeis: string[];
   acabamentos: string[];
@@ -657,6 +829,8 @@ export type OrcamentoCatalogo = {
   maquinas_roda_servico?: string[];
   tipos_troca_produto: string[];
   imposto_pct_default: number;
+  /** Tarifa vigente R$/cm² (GERACAO §4.12) — mesma fonte do motor. */
+  matriz_cm2: number;
 };
 
 export type OrcCatalogoResumo = {
@@ -664,6 +838,9 @@ export type OrcCatalogoResumo = {
   acabamentos: number;
   tipos_troca: number;
   maquinas: number;
+  parametros?: number;
+  matriz_cm2?: number;
+  matriz_cm2_fonte?: 'database' | 'json_fallback' | string;
   fonte: 'database' | 'json_fallback' | string;
   nota: string;
 };
@@ -783,3 +960,14 @@ export const fiscalConsulta = {
     );
   },
 };
+
+export function sugerirDescricaoProduto(payload: {
+  grupo_id: number;
+  texto_livre?: string;
+  largura_mm?: string;
+  comprimento_m?: string;
+  produto_id?: number;
+}) {
+  return api.post<{ data: ProdutoDescricaoSugestao }>('/produtos/sugerir-descricao', payload);
+}
+

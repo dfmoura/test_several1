@@ -22,6 +22,10 @@ class PlanejarRelatorioJob implements ShouldQueue
 
     public function handle(RelatorioService $service): void
     {
+        if (! config('erp.relatorio_ia_habilitado', false)) {
+            return;
+        }
+
         $p = RelatorioPlanejamento::query()->find($this->planejamentoId);
         if ($p === null) {
             return;

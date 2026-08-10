@@ -3,20 +3,28 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { useAuth } from './lib/auth';
 import { DashboardPage } from './pages/DashboardPage';
+import { EmpresaFichaPage } from './pages/EmpresaFichaPage';
 import { EmpresasPage } from './pages/EmpresasPage';
 import { FiscalHubsPage } from './pages/FiscalHubsPage';
 import { IaProvedoresPage } from './pages/IaProvedoresPage';
 import { LoginPage } from './pages/LoginPage';
+import { MapasFacasPage } from './pages/MapasFacasPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
 import { OrcamentoComoCalculaPage } from './pages/OrcamentoComoCalculaPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
+import { OrcamentoFichaPage } from './pages/OrcamentoFichaPage';
 import { OrcamentoFormPage } from './pages/OrcamentoFormPage';
+import { OrcamentoPublicoPage } from './pages/OrcamentoPublicoPage';
 import { OrcamentosPage } from './pages/OrcamentosPage';
 import { ParametrosPage } from './pages/ParametrosPage';
+import { PatrimonioFichaPage } from './pages/PatrimonioFichaPage';
+import { PatrimonioFormPage } from './pages/PatrimonioFormPage';
+import { PatrimonioPage } from './pages/PatrimonioPage';
 import { ParceiroFichaPage } from './pages/ParceiroFichaPage';
 import { ParceiroFormPage } from './pages/ParceiroFormPage';
 import { ParceiroImportPage } from './pages/ParceiroImportPage';
 import { ParceirosPage } from './pages/ParceirosPage';
+import { ProdutoFichaPage } from './pages/ProdutoFichaPage';
 import { ProdutoFormPage } from './pages/ProdutoFormPage';
 import { ProdutoImportPage } from './pages/ProdutoImportPage';
 import { ProdutosPage } from './pages/ProdutosPage';
@@ -24,6 +32,7 @@ import { RelatorioDetailPage } from './pages/RelatorioDetailPage';
 import { RelatorioNovoPage } from './pages/RelatorioNovoPage';
 import { RelatoriosPage } from './pages/RelatoriosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
+import { FEATURES } from './lib/features';
 
 function LoadingScreen() {
   return (
@@ -58,6 +67,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/p/:token" element={<OrcamentoPublicoPage />} />
 
       <Route
         element={
@@ -120,10 +130,35 @@ export default function App() {
         />
 
         <Route
+          path="patrimonio"
+          element={
+            <PermissionRoute permission="patrimonio.ler">
+              <PatrimonioPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="patrimonio/:id"
+          element={
+            <PermissionRoute permission="patrimonio.ler">
+              <PatrimonioFormPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
           path="orcamentos"
           element={
             <PermissionRoute permission="orcamento.ler">
               <OrcamentosPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="mapa-facas"
+          element={
+            <PermissionRoute permission="orcamento.ler">
+              <MapasFacasPage />
             </PermissionRoute>
           }
         />
@@ -169,30 +204,34 @@ export default function App() {
           }
         />
 
-        <Route
-          path="relatorios"
-          element={
-            <PermissionRoute permission="relatorio.ler">
-              <RelatoriosPage />
-            </PermissionRoute>
-          }
-        />
-        <Route
-          path="relatorios/novo"
-          element={
-            <PermissionRoute permission="relatorio.escrever">
-              <RelatorioNovoPage />
-            </PermissionRoute>
-          }
-        />
-        <Route
-          path="relatorios/:id"
-          element={
-            <PermissionRoute permission="relatorio.ler">
-              <RelatorioDetailPage />
-            </PermissionRoute>
-          }
-        />
+        {FEATURES.relatorioIa && (
+          <>
+            <Route
+              path="relatorios"
+              element={
+                <PermissionRoute permission="relatorio.ler">
+                  <RelatoriosPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="relatorios/novo"
+              element={
+                <PermissionRoute permission="relatorio.escrever">
+                  <RelatorioNovoPage />
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="relatorios/:id"
+              element={
+                <PermissionRoute permission="relatorio.ler">
+                  <RelatorioDetailPage />
+                </PermissionRoute>
+              }
+            />
+          </>
+        )}
 
         <Route
           path="usuarios"
@@ -234,6 +273,48 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="parceiro.ler">
               <ParceiroFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/produtos/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="produto.ler">
+              <ProdutoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/empresas/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <EmpresaFichaPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/patrimonio/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="patrimonio.ler">
+              <PatrimonioFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/orcamentos/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="orcamento.ler">
+              <OrcamentoFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

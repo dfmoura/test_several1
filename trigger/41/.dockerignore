@@ -1,0 +1,12 @@
+.env
+.venv/
+.deps/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.git
+*.md
+SISTEMA_ZAP_GATEWAY.txt
+admin-ui/

@@ -6,7 +6,7 @@ use App\Services\Comercial\Orcamento\OrcamentoCatalogoAdminService;
 use Illuminate\Database\Seeder;
 
 /**
- * Seméia as 4 bases editáveis do catálogo ORC a partir do JSON oficial.
+ * Seméia as bases editáveis do catálogo ORC (+ escalares) a partir do JSON oficial.
  * Idempotente: não sobrescreve preços já cadastrados.
  */
 class OrcamentoCatalogoSeeder extends Seeder
@@ -22,12 +22,13 @@ class OrcamentoCatalogoSeeder extends Seeder
 
         $result = $service->seedFromJson();
         $this->command?->info(sprintf(
-            'Catálogo ORC: papeis +%d, acabamentos +%d, trocas +%d, máquinas +%d, tarifas +%d',
+            'Catálogo ORC: papeis +%d, acabamentos +%d, trocas +%d, máquinas +%d, tarifas +%d, parâmetros +%d',
             $result['criados']['papeis'],
             $result['criados']['acabamentos'],
             $result['criados']['tipos_troca'],
             $result['criados']['maquinas'],
             $result['criados']['tarifas'],
+            $result['criados']['parametros'] ?? 0,
         ));
     }
 }

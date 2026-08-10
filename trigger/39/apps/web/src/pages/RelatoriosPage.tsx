@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Relatorio } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDateTime } from '../lib/format';
+import { useTableSort } from '../lib/useTableSort';
 
 function statusLabel(status: string): string {
   const map: Record<string, string> = {
@@ -17,6 +19,14 @@ function statusLabel(status: string): string {
   return map[status] ?? status;
 }
 
+const SORT = {
+  codigo: (r: Relatorio) => r.codigo,
+  titulo: (r: Relatorio) => r.titulo,
+  orientacao: (r: Relatorio) => r.orientacao,
+  status: (r: Relatorio) => r.status,
+  criado: (r: Relatorio) => r.created_at,
+};
+
 export function RelatoriosPage() {
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
@@ -26,6 +36,7 @@ export function RelatoriosPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
 
   const load = async (search?: string, statusFilter?: string) => {
     setLoading(true);
@@ -121,16 +132,26 @@ export function RelatoriosPage() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Título</th>
-                    <th>Orientação</th>
-                    <th>Status</th>
-                    <th>Criado</th>
+                    <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Código
+                    </SortableTh>
+                    <SortableTh column="titulo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Título
+                    </SortableTh>
+                    <SortableTh column="orientacao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Orientação
+                    </SortableTh>
+                    <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Status
+                    </SortableTh>
+                    <SortableTh column="criado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Criado
+                    </SortableTh>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((r) => (
+                  {sorted.map((r) => (
                     <tr key={r.id}>
                       <td>
                         <Link to={`/relatorios/${r.id}`}>{r.codigo}</Link>

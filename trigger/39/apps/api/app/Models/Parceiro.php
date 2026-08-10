@@ -144,6 +144,11 @@ class Parceiro extends Model
         return $this->hasMany(ParceiroContaBancaria::class)->orderBy('ordem')->orderBy('id');
     }
 
+    public function enderecosEntrega(): HasMany
+    {
+        return $this->hasMany(ParceiroEnderecoEntrega::class)->orderBy('ordem')->orderBy('id');
+    }
+
     public function fiscaisHistorico(): HasMany
     {
         return $this->hasMany(ParceiroFiscalHistorico::class)

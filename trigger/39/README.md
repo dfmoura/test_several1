@@ -39,7 +39,7 @@ docker compose up -d --build
 
 - App (SPA + API via nginx): http://localhost:8039  
 - API direta: http://localhost:8000/api/v1/health  
-- Login: `admin@rlp.com.br` / `Admin@123`  
+- Login: `admin@rlp.com.br` / `Admin@123`
 - Demos: `comercial@rlp.com.br` … (perfis) / `Demo@123`
 
 O Compose sobe também o worker `queue` (fila `database`) — necessário para **Relatórios IA** (geração assíncrona de PDF).
@@ -68,7 +68,11 @@ docs/         Lightsail/futuro + guias PDF de importação (parceiros e produtos
 
 ### Relatórios IA
 
-Menu **Relatórios → Relatórios IA** (`relatorio.ler` / `relatorio.escrever`).
+> **Congelado (adiado):** fora do menu/API por padrão (`RELATORIO_IA_HABILITADO=false`).
+> Código, tabelas, fila e IaProvedores **permanecem**. Reabrir: `true` na API +
+> `VITE_RELATORIO_IA_HABILITADO=true` e rebuild do front.
+
+Menu **Relatórios → Relatórios IA** (`relatorio.ler` / `relatorio.escrever`) — quando habilitado.
 
 1. Usuário descreve o relatório e escolhe retrato/paisagem (sugestões por fonte no catálogo).
 2. **Planejar e conferir** (fila): a IA monta um programa JSON allowlist; a UI mostra resumo em português, amostra e ajustes finos antes do PDF.
@@ -109,8 +113,13 @@ Após o 1º boot estável: `SEED_ON_BOOT=false`.
 - Soft-delete / inativar — sem apagar histórico  
 - Multi-empresa por `empresa_id` + header `X-Empresa-Id`  
 - EMP-00002 com venda/estoque **desligados** até homologação  
-- LAI / grupo 9.xx **proibido**
+- LAI / grupo 9.xx **proibido**  
+- **BEM ≠ G10:** patrimônio (`BEM-`) é ativo físico; `orc_catalogo_maquinas` é só tarifa ORC — ver [`docs/ADR_BEM_VS_ORC_MAQUINA.md`](docs/ADR_BEM_VS_ORC_MAQUINA.md)
+- **Unidades do SKU:** dual canônico (`unidade_comercial` ↔ `unidade_interna` + `fator_conversao`); largura/comprimento/gramatura são insumos em `atributos` — **não** unidades alternativas Sankhya — ver [`docs/ADR_UNIDADES_PRODUTO.md`](docs/ADR_UNIDADES_PRODUTO.md)
+- **Matriz ORC (R$/cm²):** parâmetro escalar `matriz_cm2` no Catálogo ORC (overlay híbrido); ORCs antigos mantêm snapshot — ver [`docs/ADR_ORC_PARAMETROS_ESCALARES.md`](docs/ADR_ORC_PARAMETROS_ESCALARES.md)
 
-## Próximo (1.e)
+## Próximo (1.e+)
 
-Orçamento ORC → envio → link de aceite (ainda sem PED/NF).
+Orçamento ORC → **envio + link de aceite** (feito — ver `docs/ADR_ORC_LINK_APROVACAO.md`) → PED/NF (ainda não).
+
+Link público: `{ORCAMENTO_PUBLIC_BASE_URL}/p/{token}` — em produção `https://flexorc.triggerti.com/p/...`.

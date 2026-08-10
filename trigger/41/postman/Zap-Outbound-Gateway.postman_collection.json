@@ -1,0 +1,318 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Zap Outbound Gateway",
+    "description": "Collection para testar o gateway outbound (#41).\n\n**Fluxo de teste:**\n1. Health / Ready\n2. Criar sender (admin) — copie a `api_key` exibida uma vez\n3. Pair (QR) e conecte o WhatsApp\n4. Enviar mensagem de teste com a api_key do sender\n5. Consultar status por external_id",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8141"
+    },
+    {
+      "key": "admin_token",
+      "value": "dev-admin-token-zap-gateway-41"
+    },
+    {
+      "key": "sender_api_key",
+      "value": "zpg_live_COLE_AQUI_A_API_KEY"
+    },
+    {
+      "key": "sender_id",
+      "value": ""
+    },
+    {
+      "key": "to_phone",
+      "value": "5534999999999"
+    },
+    {
+      "key": "external_id",
+      "value": "teste-postman-001"
+    },
+    {
+      "key": "message_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Liveness — não depende de Postgres/Redis/Rabbit."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Ready",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ready",
+              "host": ["{{base_url}}"],
+              "path": ["ready"]
+            },
+            "description": "Readiness — verifica dependências."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Sender",
+      "item": [
+        {
+          "name": "POST Criar sender",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.id) {",
+                  "        pm.collectionVariables.set('sender_id', data.id);",
+                  "    }",
+                  "    if (data.api_key) {",
+                  "        pm.collectionVariables.set('sender_api_key', data.api_key);",
+                  "        console.log('api_key salva na collection (apareceu só agora):', data.api_key);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"comercial-teste-postman\",\n  \"rate_limit_per_minute\": 20\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/admin/senders",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "admin", "senders"]
+            },
+            "description": "Cria o sender e gera `api_key` (exibida **uma única vez**). O script de teste grava `sender_id` e `sender_api_key` na collection."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar senders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/senders",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "admin", "senders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Sender por id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/senders/{{sender_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "admin", "senders", "{{sender_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Pair (QR)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/admin/senders/{{sender_id}}/pair",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "admin", "senders", "{{sender_id}}", "pair"]
+            },
+            "description": "Inicia pairing. Escaneie o QR no WhatsApp (Aparelhos conectados). Status vira `active` via webhook CONNECTION_UPDATE."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Mensagens — Envio de teste",
+      "item": [
+        {
+          "name": "POST Enviar mensagem de texto",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const stamp = Date.now();",
+                  "pm.collectionVariables.set('external_id', `teste-postman-${stamp}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Aceito (202) ou idempotente (200)', function () {",
+                  "    pm.expect([200, 202]).to.include(pm.response.code);",
+                  "});",
+                  "if ([200, 202].includes(pm.response.code)) {",
+                  "    const data = pm.response.json();",
+                  "    if (data.id) {",
+                  "        pm.collectionVariables.set('message_id', data.id);",
+                  "    }",
+                  "    if (data.external_id) {",
+                  "        pm.collectionVariables.set('external_id', data.external_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sender_api_key}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"external_id\": \"{{external_id}}\",\n  \"to\": \"{{to_phone}}\",\n  \"type\": \"text\",\n  \"body\": \"Mensagem de teste via Postman — {{external_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/messages",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages"]
+            },
+            "description": "Enfileira mensagem (202 Accepted).\n\nAntes de enviar:\n1. Ajuste `to_phone` (E.164 sem `+`, ex: 5534999999999)\n2. Garanta `sender_api_key` preenchida (criar sender ou colar manualmente)\n3. Sender precisa estar `active` (paired)"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Status por external_id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sender_api_key}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/messages/by-external/{{external_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages", "by-external", "{{external_id}}"]
+            },
+            "description": "Consulta status da última mensagem enviada pelo request de teste."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Status por message_id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sender_api_key}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/messages/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "messages", "{{message_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
