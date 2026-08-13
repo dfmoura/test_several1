@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { Parceiro } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -11,6 +12,7 @@ import {
   DECIMAL_SCALE,
 } from '../lib/format';
 import { finalidadeLabel, ieStatusLabel, indIeDestLabel, regimeLabel } from '../lib/parceiroFiscal';
+import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 
 const PAPEIS: Array<{ key: keyof Parceiro; label: string }> = [
   { key: 'papel_cliente', label: 'Cliente' },
@@ -356,7 +358,7 @@ export function ParceiroFichaSheet({
               <div className="ficha-kv-grid cols-2">
                 <Kv label="Vínculo" value={vinculoLabel(p.vinculo)} />
                 <Kv label="Cargo" value={dash(p.cargo)} />
-                <Kv label="Departamento" value={dash(p.departamento)} wide />
+                <Kv label="Departamento" value={dash(p.departamento_ref?.nome ?? p.departamento)} wide />
               </div>
             </Section>
           ) : null}
@@ -401,9 +403,10 @@ export function ParceiroFichaSheet({
       ) : null}
 
       <Section title="Condições comerciais">
+        <p className="ficha-note">Defaults do parceiro · condição efetiva no documento (OC/ORC/PED).</p>
         <div className="ficha-kv-grid cols-4">
-          <Kv label="Condição de pagamento" value={dash(p.condicao_pagamento)} />
-          <Kv label="Forma de pagamento" value={dash(p.forma_pagamento)} />
+          <Kv label="Condição padrão" value={dash(p.condicao_pagamento)} />
+          <Kv label="Forma preferida" value={formaPagamentoLabel(p.forma_pagamento)} />
           {showCredito && p.papel_cliente ? (
             <>
               <Kv label="Limite de crédito" value={money(p.limite_credito)} />
@@ -465,6 +468,8 @@ export function ParceiroFichaSheet({
           Dados bancários omitidos · exige <code>parceiro.bancario</code> (SoD).
         </p>
       )}
+
+      <RegistroMetaStrip registro={p} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>

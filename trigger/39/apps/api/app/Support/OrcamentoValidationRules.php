@@ -21,6 +21,12 @@ final class OrcamentoValidationRules
             'papel' => ['required', 'string', 'max:120'],
             'acabamento' => ['required', 'string', 'max:120'],
             'modelos' => ['required', 'integer', 'min:1'],
+            // Composição operacional (nome + % qty). Motor usa só `modelos`.
+            // Ausente → equal-split no service; presente → validado em ModelosComposicao.
+            'modelos_composicao' => ['sometimes', 'nullable', 'array'],
+            'modelos_composicao.*.ordem' => ['nullable', 'integer', 'min:1'],
+            'modelos_composicao.*.nome' => ['nullable', 'string', 'max:120'],
+            'modelos_composicao.*.percentual' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'colunas' => ['required', 'integer', 'min:1'],
             'etiq_por_rolo' => ['required', 'integer', 'min:1'],
             'tubete' => ['required', 'string', 'max:32'],
@@ -50,6 +56,10 @@ final class OrcamentoValidationRules
             'validade_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
             'tolerancia_qtd_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'observacao' => ['nullable', 'string', 'max:4000'],
+            // Defaults comerciais do PAR → snapshot desta proposta (ADR_CONDICOES_COMERCIAIS_PAR).
+            // Não entram no motor de preço; PED/TIT futuros consomem este snapshot.
+            'condicao_pagamento' => ['nullable', 'string', 'max:64'],
+            'forma_pagamento' => ['nullable', 'string', 'max:32'],
         ];
     }
 

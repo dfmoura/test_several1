@@ -15,6 +15,7 @@ class ParceiroContato extends Model
         'whatsapp',
         'email',
         'principal',
+        'autorizado_aprovar',
         'ordem',
     ];
 
@@ -22,6 +23,7 @@ class ParceiroContato extends Model
     {
         return [
             'principal' => 'boolean',
+            'autorizado_aprovar' => 'boolean',
             'ordem' => 'integer',
         ];
     }

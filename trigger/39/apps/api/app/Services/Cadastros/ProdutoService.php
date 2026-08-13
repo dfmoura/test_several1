@@ -8,11 +8,16 @@ use App\Models\ProdutoGrupo;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
+use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProdutoService
 {
+    public const LIST_LIMIT_DEFAULT = 250;
+
+    public const LIST_LIMIT_MAX = 500;
+
     public function __construct(
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $auditLogger,
@@ -24,10 +29,13 @@ class ProdutoService
         ?string $familia = null,
         ?string $grupo = null,
         ?string $q = null,
-        int $limit = 50
+        int $limit = self::LIST_LIMIT_DEFAULT
     ) {
+        $limit = max(1, min($limit, self::LIST_LIMIT_MAX));
+
         $query = Produto::query()
             ->where('empresa_id', $empresa->id)
+            ->with(Produto::userStampWith())
             ->orderBy('codigo');
 
         if ($familia) {
@@ -72,6 +80,7 @@ class ProdutoService
 
         return DB::transaction(function () use ($empresa, $data, $familia, $grupo) {
             $payload = $this->normalizeUnidades($this->mapAttributes($data, $grupo, applyDefaults: true));
+            $payload = $this->applyLoteFlags($payload, $data, $grupo, applyDefaults: true);
             $this->assertUnidadesConversao($payload);
             $codigo = $data['codigo'] ?? $this->generateCode($empresa->id, $grupo);
 
@@ -86,13 +95,13 @@ class ProdutoService
 
             $this->auditLogger->log('CRIAR', 'produto', $produto->id, null, $produto->toArray());
 
-            return $produto->fresh();
+            return $produto->fresh(Produto::userStampWith());
         });
     }
 
     public function update(Produto $produto, array $data): Produto
     {
-        $before = $produto->toArray();
+        $before = $produto->loadMissing(Produto::userStampWith())->toArray();
         $familia = strtoupper((string) ($data['familia'] ?? $produto->familia));
 
         $grupo = null;
@@ -113,6 +122,13 @@ class ProdutoService
         }
 
         $payload = $this->mapAttributes($data, $grupo, applyDefaults: false);
+        $payload = $this->applyLoteFlags(
+            $payload,
+            $data,
+            $grupo ?? $produto->grupoCatalogo,
+            applyDefaults: false,
+            atual: $produto
+        );
 
         if ($grupo) {
             $payload['grupo_id'] = $grupo->id;
@@ -143,9 +159,9 @@ class ProdutoService
         $this->assertUnidadesConversao($mergedForUnits);
 
         $produto->update($payload);
-        $this->auditLogger->log('ATUALIZAR', 'produto', $produto->id, $before, $produto->fresh()->toArray());
+        $this->auditLogger->log('ATUALIZAR', 'produto', $produto->id, $before, $produto->fresh(Produto::userStampWith())->toArray());
 
-        return $produto->fresh();
+        return $produto->fresh(Produto::userStampWith());
     }
 
     private function generateCode(int $empresaId, ProdutoGrupo $grupo): string
@@ -168,6 +184,7 @@ class ProdutoService
             'cfop_saida_padrao', 'cfop_entrada_padrao', 'csosn', 'cst_icms', 'cst_pis',
             'cst_cofins', 'cst_cbs', 'cclass_trib', 'aliquota_cbs', 'preco_tabela',
             'custo_medio', 'estoque_minimo', 'lead_time_dias',
+            'controla_lote', 'controla_validade', 'prazo_validade_dias',
             'gtin', 'situacao', 'atributos',
         ];
 
@@ -281,5 +298,49 @@ class ProdutoService
                 ],
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyLoteFlags(
+        array $payload,
+        array $data,
+        ?ProdutoGrupo $grupo,
+        bool $applyDefaults,
+        ?Produto $atual = null
+    ): array {
+        $touched = array_key_exists('controla_lote', $data)
+            || array_key_exists('controla_validade', $data)
+            || array_key_exists('prazo_validade_dias', $data);
+
+        if ($applyDefaults && ! $touched && $grupo) {
+            $pol = ProdutoLotePolitica::paraGrupo($grupo->codigo);
+            $payload['controla_lote'] = $pol['controla_lote'];
+            $payload['controla_validade'] = $pol['controla_validade'];
+            $payload['prazo_validade_dias'] = $pol['prazo_validade_dias'];
+
+            return $payload;
+        }
+
+        if (! $touched && ! $applyDefaults) {
+            return $payload;
+        }
+
+        $base = [
+            'controla_lote' => $payload['controla_lote'] ?? $atual?->controla_lote ?? false,
+            'controla_validade' => $payload['controla_validade'] ?? $atual?->controla_validade ?? false,
+            'prazo_validade_dias' => array_key_exists('prazo_validade_dias', $payload)
+                ? $payload['prazo_validade_dias']
+                : $atual?->prazo_validade_dias,
+        ];
+        $norm = ProdutoLotePolitica::normalizar($base);
+        $payload['controla_lote'] = $norm['controla_lote'];
+        $payload['controla_validade'] = $norm['controla_validade'];
+        $payload['prazo_validade_dias'] = $norm['prazo_validade_dias'];
+
+        return $payload;
     }
 }

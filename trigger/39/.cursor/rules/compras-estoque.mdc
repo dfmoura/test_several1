@@ -1,0 +1,46 @@
+# Fronteira Compras → Estoque → Contas a pagar
+
+Norma: `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `docs/ADR_ENTRADA_XML_ASSIST.md` · `docs/ADR_ENTRADA_XML_PARCELAS.md` · `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · estudo `../32` M07/M04/M06 · BL-033/036/037/038/042/045.
+
+## Espinha (dia a dia)
+
+`OC → NF×OC×conferência → MOV → TIT → BX`
+
+Extensões:
+
+- **A repor:** saldo × `estoque_minimo` (− trânsito) → OC DIRETA (humano confirma).
+- **AJU avulsa:** contagem → pendente → `estoque.aprovar` (+ alçada) → MOV `AJUSTE` (SoD). Pendente pode **cancelar** (status CANCELADO; sem apagar histórico).
+- **INV → AJU (BL-042):** inventário cego 1ª/2ª → checklist → AJU origem `INV_*`/`VIRADA` → alçada → MOV; extrato SKU; congelamento do SKU em contagem.
+- **XML assist (BL-037/038):** upload → preview/de-para/parcelas `dup` → **mesmo** `receber()` — nunca auto-lança; N TIT se parcelas.
+
+`NEC` e `COT` = fora do dia a dia (API preservada; UI fora do menu).
+
+## Faça
+
+- OC formal antes de entrada; MOV único caminho para saldo (`EstoqueSaldoWriter`).
+- Saldo e `custo_medio` só em `unidade_interna`.
+- TIT compra de estoque → NAT folha **`5.06`** (não `2.01`).
+- Permissões: `compras.*`, `estoque.*` (+ `estoque.aprovar`, `estoque.aprovar_gestor`), `financeiro.*`; SoD COMPRAS≠FINANCEIRO; quem conta ≠ quem aprova AJU.
+- UX menu Compras = **Ordens** · **A repor** · **Estoque** (Saldos/Movimentos · Inventários · Ajustes).
+- Contagem de inventário **cega** (API/UI sem saldo sistema para o contador).
+- XML só preenche; humano confirma conferência.
+- SKU com `controla_lote`: entrada/saída/ajuste amarram `estoque_lotes` (código, data de entrada, validade). Custo médio permanece no SKU. Consumo FEFO se o lote não for informado.
+- Substratos/tintas (política do grupo) controlam lote; EMB/REV/PA não — estudo 32 §6.2. Validade em adesivos/tintas/foils.
+- Estoque/custo = OC; pagar = parcelas NF (ou 1 vencimento); divergência IPI/frete = warning, não segundo saldo.
+- Trilha fiscal mínima no MOV (`nf_valor`/`nf_totais`); ERP **não** fecha contabilidade/SPED; AJU **não** emite NF-e.
+
+## Não faça
+
+- Lançar saldo sem MOV / comprar só no zap sem OC.
+- Usar `2.01` como natureza do TIT de entrada de estoque.
+- Editar `estoque_saldos` fora do writer.
+- Obrigar NEC ou COT no fluxo operacional atual.
+- Reexibir NEC/COT no menu sem ADR novo.
+- Entrada sem OC, Focus auto-download, OP/remessa sem ADR.
+- Auto-gerar OC sem confirmação; aprovar o próprio AJU.
+- Auto-receber no upload de XML.
+- Receber OC ou AJU avulso em SKU congelado por inventário aberto.
+- Editar qtde de lote fora do `EstoqueSaldoWriter`.
+- Obrigar lote em SKU sem `controla_lote`.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

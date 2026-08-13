@@ -241,7 +241,7 @@ class IaClient
         if (isset($opts['max_tokens'])) {
             $body['max_tokens'] = (int) $opts['max_tokens'];
         }
-        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+        if (! empty($opts['json_mode'])) {
             $body['response_format'] = ['type' => 'json_object'];
         }
 
@@ -288,16 +288,16 @@ class IaClient
         }
 
         // Structured output via tool forçado quando json_mode.
-        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+        if (! empty($opts['json_mode'])) {
             $body['tools'] = [[
-                'name' => 'emitir_programa_relatorio',
-                'description' => 'Emite o programa JSON do relatório',
+                'name' => 'emitir_json',
+                'description' => 'Emite a resposta estruturada em JSON',
                 'input_schema' => [
                     'type' => 'object',
                     'additionalProperties' => true,
                 ],
             ]];
-            $body['tool_choice'] = ['type' => 'tool', 'name' => 'emitir_programa_relatorio'];
+            $body['tool_choice'] = ['type' => 'tool', 'name' => 'emitir_json'];
         }
 
         $response = Http::timeout($timeout)
@@ -361,7 +361,7 @@ class IaClient
         if (isset($opts['max_tokens'])) {
             $body['generationConfig']['maxOutputTokens'] = (int) $opts['max_tokens'];
         }
-        if (! empty($opts['json_mode']) && config('erp.relatorio_ia_json_mode', true)) {
+        if (! empty($opts['json_mode'])) {
             $body['generationConfig']['responseMimeType'] = 'application/json';
         }
         if ($system !== '') {

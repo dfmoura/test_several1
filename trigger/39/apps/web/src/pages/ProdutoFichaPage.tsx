@@ -4,6 +4,7 @@ import { ProdutoFichaSheet } from '../components/ProdutoFichaSheet';
 import { api, type Produto } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
+import { brandDocumentTitle } from '../lib/brand';
 
 export function ProdutoFichaPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export function ProdutoFichaPage() {
     if (!produto) return;
     document.title = `Ficha ${produto.codigo} · ${produto.descricao_fiscal}`;
     return () => {
-      document.title = 'ERP RLP';
+      document.title = brandDocumentTitle();
     };
   }, [produto]);
 

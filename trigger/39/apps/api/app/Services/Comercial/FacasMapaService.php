@@ -160,6 +160,7 @@ class FacasMapaService
         $this->assertNoDuplicateAtiva($payload);
 
         $faca = OrcMapaFaca::query()->create($payload);
+        $faca->loadMissing(OrcMapaFaca::userStampWith());
         $out = $this->toArray($faca);
         $this->audit->log('mapa_facas.criar', 'orc_mapa_facas', $faca->id, null, $out);
         self::$jsonCache = null;
@@ -186,6 +187,8 @@ class FacasMapaService
         }
 
         if ((bool) $faca->ativo === $ativo) {
+            $faca->loadMissing(OrcMapaFaca::userStampWith());
+
             return $this->toArray($faca);
         }
 
@@ -193,9 +196,11 @@ class FacasMapaService
             $this->assertNoDuplicateAtiva($this->toArray($faca), exceptId: $faca->id);
         }
 
+        $faca->loadMissing(OrcMapaFaca::userStampWith());
         $de = $this->toArray($faca);
         $faca->ativo = $ativo;
         $faca->save();
+        $faca->loadMissing(OrcMapaFaca::userStampWith());
         $para = $this->toArray($faca);
         $this->audit->log(
             $ativo ? 'mapa_facas.reativar' : 'mapa_facas.inativar',
@@ -254,7 +259,10 @@ class FacasMapaService
      */
     private function listFromDatabase(array $filters): array
     {
-        $q = OrcMapaFaca::query()->orderBy('medida')->orderBy('id');
+        $q = OrcMapaFaca::query()
+            ->with(OrcMapaFaca::userStampWith())
+            ->orderBy('medida')
+            ->orderBy('id');
 
         $incluirInativas = (bool) ($filters['incluir_inativas'] ?? false);
         if (array_key_exists('ativo', $filters) && $filters['ativo'] !== null) {
@@ -566,6 +574,8 @@ class FacasMapaService
     /** @return array<string, mixed> */
     private function toArray(OrcMapaFaca $f): array
     {
+        $f->loadMissing(OrcMapaFaca::userStampWith());
+
         return [
             'id' => $f->id,
             'medida' => $f->medida,
@@ -589,6 +599,10 @@ class FacasMapaService
             'completa' => (bool) $f->completa,
             'label' => $f->label,
             'ativo' => (bool) $f->ativo,
+            'criado_por' => OrcMapaFaca::userStampFrom($f->criador),
+            'atualizado_por' => OrcMapaFaca::userStampFrom($f->atualizador),
+            'created_at' => optional($f->created_at)?->toIso8601String(),
+            'updated_at' => optional($f->updated_at)?->toIso8601String(),
         ];
     }
 

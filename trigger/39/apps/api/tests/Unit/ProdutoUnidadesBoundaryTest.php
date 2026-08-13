@@ -6,6 +6,7 @@ use App\Models\Produto;
 use App\Services\Cadastros\FatorConversaoSugeridor;
 use App\Services\Cadastros\ProdutoGrupoCatalogData;
 use App\Support\ProdutoBobinaDimensoes;
+use App\Support\ProdutoUnidadesConversao;
 use App\Support\UnidadesMedida;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -104,6 +105,32 @@ class ProdutoUnidadesBoundaryTest extends TestCase
         // Faltando densidade (tinta) NÃO abre seção de bobina.
         $tinta = ProdutoBobinaDimensoes::decide(false, null, null, null, ['densidade_g_ml']);
         $this->assertFalse($tinta['show_section']);
+    }
+
+    public function test_decisao_ui_conversao_so_quando_unidades_diferem(): void
+    {
+        $svc = ProdutoUnidadesConversao::decide('UN', 'UN');
+        $this->assertSame('simples', $svc['mode']);
+        $this->assertSame('Unidades', $svc['section_title']);
+        $this->assertFalse($svc['show_fator']);
+        $this->assertFalse($svc['show_equacao']);
+
+        // Interna vazia = mesma da comercial → sem superfície de conversão.
+        $vazio = ProdutoUnidadesConversao::decide('KG', '');
+        $this->assertSame('simples', $vazio['mode']);
+        $this->assertFalse($vazio['show_fator']);
+
+        $paEtq = ProdutoUnidadesConversao::decide('MIL', 'UN');
+        $this->assertSame('conversao', $paEtq['mode']);
+        $this->assertSame('Unidades e conversão', $paEtq['section_title']);
+        $this->assertTrue($paEtq['show_fator']);
+        $this->assertTrue($paEtq['show_equacao']);
+
+        $mpPap = ProdutoUnidadesConversao::decide('KG', 'M2');
+        $this->assertSame('conversao', $mpPap['mode']);
+        $this->assertTrue(ProdutoUnidadesConversao::unidadesDiferem('KG', 'M2'));
+        $this->assertFalse(ProdutoUnidadesConversao::unidadesDiferem('UN', 'UN'));
+        $this->assertFalse(ProdutoUnidadesConversao::unidadesDiferem('UN', null));
     }
 
     public function test_model_expoe_campos_de_unidade(): void

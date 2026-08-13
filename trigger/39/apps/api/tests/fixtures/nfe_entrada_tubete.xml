@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <protNFe>
+    <infProt>
+      <chNFe>35260800000000000000550010000000011000000015</chNFe>
+      <cStat>100</cStat>
+    </infProt>
+  </protNFe>
+  <NFe>
+    <infNFe Id="NFe35260800000000000000550010000000011000000015" versao="4.00">
+      <ide>
+        <mod>55</mod>
+        <nNF>1001</nNF>
+        <serie>1</serie>
+        <dhEmi>2026-08-11T10:00:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>11222333000181</CNPJ>
+        <xNome>FORNECEDOR BOBINAS LTDA</xNome>
+        <xFant>Bobinas</xFant>
+        <enderEmit>
+          <xLgr>Rua A</xLgr>
+          <nro>10</nro>
+          <xBairro>Centro</xBairro>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38400000</CEP>
+        </enderEmit>
+      </emit>
+      <dest>
+        <CNPJ>01423183000110</CNPJ>
+        <xNome>EMPRESA TESTE</xNome>
+      </dest>
+      <det>
+        <nItem>1</nItem>
+        <prod>
+          <cProd>FORN-TUB-76</cProd>
+          <xProd>TUBETE PAPELAO 76MM</xProd>
+          <NCM>48229000</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>100.0000</qCom>
+          <vUnCom>2.5000000000</vUnCom>
+          <vProd>250.00</vProd>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>250.00</vNF>
+          <vProd>250.00</vProd>
+        </ICMSTot>
+      </total>
+      <cobr>
+        <dup>
+          <nDup>001</nDup>
+          <dVenc>2026-09-11</dVenc>
+          <vDup>250.00</vDup>
+        </dup>
+      </cobr>
+    </infNFe>
+  </NFe>
+</nfeProc>

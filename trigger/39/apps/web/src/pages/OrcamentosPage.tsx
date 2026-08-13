@@ -213,7 +213,7 @@ export function OrcamentosPage() {
                           {o.cliente_nome}
                         </td>
                         <td className="status">
-                          <StatusPill status={statusOrcPill(o.status)} />
+                          <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
                         </td>
                         <td className="num">v{o.versao}</td>
                         <td className="num">

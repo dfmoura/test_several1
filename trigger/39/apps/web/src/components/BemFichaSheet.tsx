@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { BemPatrimonial } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -142,7 +143,7 @@ export function BemFichaSheet({ bem: b, empresaNome, emitidoPor, emitidoEm }: Be
       <div className="ficha-kv-strip">
         <Kv label="Código" value={b.codigo} />
         <Kv label="Valor aquisição" value={money(b.valor_aquisicao)} />
-        <Kv label="Local / setor" value={dash(b.local)} />
+        <Kv label="Departamento" value={dash(b.departamento?.nome ?? b.local)} />
         <Kv label="Nº de série" value={dash(b.numero_serie)} />
       </div>
 
@@ -160,7 +161,7 @@ export function BemFichaSheet({ bem: b, empresaNome, emitidoPor, emitidoEm }: Be
 
         <Section title="Localização e responsável">
           <div className="ficha-kv-grid cols-2">
-            <Kv label="Local / setor" value={dash(b.local)} wide />
+            <Kv label="Departamento" value={dash(b.departamento?.nome ?? b.local)} wide />
             <Kv label="Responsável" value={dash(b.responsavel)} wide />
             {showProducao ? (
               <Kv
@@ -222,6 +223,8 @@ export function BemFichaSheet({ bem: b, empresaNome, emitidoPor, emitidoEm }: Be
         o imobilizado nem a depreciação fiscal/contábil do contador. Etiqueta física sugerida:{' '}
         <code>{b.codigo}</code>.
       </p>
+
+      <RegistroMetaStrip registro={b} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>

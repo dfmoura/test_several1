@@ -10,6 +10,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
+import { brandDocumentTitle } from '../lib/brand';
 import { onlyDigits } from '../lib/format';
 
 type ConsultaStatus = 'idle' | 'loading' | 'ok' | 'erro';
@@ -121,7 +122,7 @@ export function EmpresaFichaPage() {
     if (!empresa) return;
     document.title = `Ficha ${empresa.codigo} · ${empresa.razao_social}`;
     return () => {
-      document.title = 'ERP RLP';
+      document.title = brandDocumentTitle();
     };
   }, [empresa]);
 

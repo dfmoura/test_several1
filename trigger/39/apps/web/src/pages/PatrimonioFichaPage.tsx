@@ -4,6 +4,7 @@ import { BemFichaSheet } from '../components/BemFichaSheet';
 import { api, type BemPatrimonial } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
+import { brandDocumentTitle } from '../lib/brand';
 
 export function PatrimonioFichaPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export function PatrimonioFichaPage() {
     if (!bem) return;
     document.title = `Ficha ${bem.codigo} · ${bem.descricao}`;
     return () => {
-      document.title = 'ERP RLP';
+      document.title = brandDocumentTitle();
     };
   }, [bem]);
 

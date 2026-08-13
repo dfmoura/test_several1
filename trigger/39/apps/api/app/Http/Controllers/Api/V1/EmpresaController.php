@@ -30,7 +30,7 @@ class EmpresaController extends Controller
             abort(403);
         }
 
-        $empresa->load(['fiscaisHistorico', 'contasFinanceiras']);
+        $empresa->load(['fiscaisHistorico', 'contasFinanceiras', ...Empresa::userStampWith()]);
 
         return response()->json(['data' => $empresa]);
     }

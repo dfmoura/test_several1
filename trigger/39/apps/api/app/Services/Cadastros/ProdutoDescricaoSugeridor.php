@@ -9,11 +9,12 @@ use Illuminate\Support\Str;
 
 /**
  * Sugere descrição fiscal (NF-e/SPED) e comercial (catálogo/operação)
- * a partir do grupo canônico + texto livre opcional.
+ * a partir do grupo canônico + texto livre opcional + CNAE da EMP ativa.
  *
  * Domínio (trigger/32): fiscal curta e estável; comercial mais rica;
  * marca/apelido não substitui descrição; PA = poucas famílias fiscais.
- * Nunca altera NCM/CFOP/código — só textos. Origem v1 = regra (sem IA).
+ * Nunca altera NCM/CFOP/código — só textos. Origem = regra (sem LLM).
+ * CNAE da EMP = contexto/avisos e default SVC sem texto — não inventa classificação.
  */
 class ProdutoDescricaoSugeridor
 {
@@ -31,6 +32,20 @@ class ProdutoDescricaoSugeridor
         'xxx',
         '????',
         'pantone ????',
+    ];
+
+    /**
+     * Faixas CNAE (7 dígitos, prefixo) → banda semântica da EMP.
+     * Fonte: atividades usuais do licenciado flexo + serviços avulsos.
+     *
+     * @var array<string, list<string>>
+     */
+    private const CNAE_BANDAS = [
+        'impressao' => ['1811', '1812', '1813', '1821', '1830'],
+        'locacao' => ['7711', '7729', '7731', '7732', '7733', '7739'],
+        'manutencao' => ['3311', '3312', '3313', '3314', '3319', '9511', '9521'],
+        'comercio' => ['461', '462', '463', '464', '465', '466', '467', '468', '469', '471', '472', '474', '475', '476', '477', '478'],
+        'ti_consultoria' => ['6201', '6202', '6203', '6204', '6209', '6311', '6319', '7020'],
     ];
 
     /**
@@ -75,12 +90,15 @@ class ProdutoDescricaoSugeridor
         $largura = $this->num($input['largura_mm'] ?? null);
         $comprimento = $this->num($input['comprimento_m'] ?? null);
 
+        $perfilCnae = $this->perfilCnaeEmpresa($empresa);
+
         [$fiscal, $comercial, $racional, $extraAvisos] = $this->montarPorGrupo(
             $grupo,
             $texto,
             $textoNorm,
             $largura,
-            $comprimento
+            $comprimento,
+            $perfilCnae
         );
         $avisos = array_values(array_unique(array_merge($avisos, $extraAvisos)));
 
@@ -115,6 +133,7 @@ class ProdutoDescricaoSugeridor
     }
 
     /**
+     * @param  array{codigos: list<string>, bandas: list<string>, rotulo: string}  $perfilCnae
      * @return array{0: string, 1: string, 2: string, 3: list<string>}
      */
     private function montarPorGrupo(
@@ -122,7 +141,8 @@ class ProdutoDescricaoSugeridor
         string $texto,
         string $textoNorm,
         ?float $largura,
-        ?float $comprimento
+        ?float $comprimento,
+        array $perfilCnae
     ): array {
         $codigo = strtoupper((string) $grupo->codigo);
         $avisos = [];
@@ -141,7 +161,7 @@ class ProdutoDescricaoSugeridor
             $codigo === 'EMB-TUB' => $this->embTub($texto, $textoNorm, $avisos),
             $codigo === 'EMB-CX' => $this->genericoGrupo('CAIXA DE PAPELAO', $texto, $textoNorm, 'Embalagem de acondicionamento (SPED 02).', $avisos),
             $codigo === 'REV-RIB' => $this->revRib($texto, $textoNorm, $avisos),
-            $codigo === 'SVC' => $this->svc($texto, $textoNorm, $avisos),
+            $codigo === 'SVC' => $this->svc($texto, $textoNorm, $perfilCnae, $avisos),
             $codigo === 'FAC' => $this->fac($texto, $textoNorm, $largura, $avisos),
             default => $this->fallbackGrupo($grupo, $texto, $textoNorm, $avisos),
         };
@@ -367,25 +387,56 @@ class ProdutoDescricaoSugeridor
     }
 
     /**
+     * @param  array{codigos: list<string>, bandas: list<string>, rotulo: string}  $perfilCnae
      * @param  list<string>  $avisos
      * @return array{0: string, 1: string, 2: string, 3: list<string>}
      */
-    private function svc(string $texto, string $textoNorm, array $avisos): array
+    private function svc(string $texto, string $textoNorm, array $perfilCnae, array $avisos): array
     {
+        $bandaServico = null;
+
         if ($this->hasAny($textoNorm, ['rebobin'])) {
             $fiscal = 'REBOBINACAO DE BOBINA';
+            $bandaServico = 'impressao';
         } elseif ($this->hasAny($textoNorm, ['acerto'])) {
             $fiscal = 'ACERTO DE BOBINA';
+            $bandaServico = 'impressao';
         } elseif ($this->hasAny($textoNorm, ['corte'])) {
             $fiscal = 'SERVICO DE CORTE';
+            $bandaServico = 'impressao';
+        } elseif ($this->hasAny($textoNorm, ['locacao', 'aluguel', 'aluga', 'leasing', 'comodato'])) {
+            $fiscal = $texto !== '' ? $this->fiscalFromTextoLivre($texto) : 'LOCACAO DE EQUIPAMENTOS';
+            $bandaServico = 'locacao';
+        } elseif ($this->hasAny($textoNorm, ['manutenc', 'reparo', 'reparacao', 'assistencia tecnica', 'assistencia'])) {
+            $fiscal = $texto !== '' ? $this->fiscalFromTextoLivre($texto) : 'MANUTENCAO DE EQUIPAMENTOS';
+            $bandaServico = 'manutencao';
+        } elseif ($this->hasAny($textoNorm, ['consultor', 'assessoria', 'treinamento', 'capacitacao'])) {
+            $fiscal = $texto !== '' ? $this->fiscalFromTextoLivre($texto) : 'CONSULTORIA / TREINAMENTO';
+            $bandaServico = 'ti_consultoria';
+        } elseif ($texto !== '') {
+            // Texto sem template canônico: NÃO forçar rebobinação (caso "Locação de impressoras" etc.).
+            $fiscal = $this->fiscalFromTextoLivre($texto);
+            $avisos[] = 'SVC sem template canônico para este texto — fiscal derivada do texto livre; revise antes de gravar.';
+            $bandaServico = $this->inferirBandaDoTexto($textoNorm);
         } else {
-            $fiscal = 'REBOBINACAO / ACERTO DE BOBINA';
+            [$fiscal, $bandaServico, $avisoDefault] = $this->svcDefaultPorCnae($perfilCnae);
+            if ($avisoDefault !== null) {
+                $avisos[] = $avisoDefault;
+            }
         }
 
         $avisos[] = 'SVC: confirmar com contador NF-e vs NFS-e antes de emissão automática.';
-        $comercial = $texto !== '' ? $this->enriquecerComercial($fiscal, $texto) : $fiscal;
+        $this->anexarAvisosCnaeSvc($avisos, $bandaServico, $perfilCnae);
 
-        return [$fiscal, $comercial, 'SVC: serviço avulso — fiscal estável; detalhe no comercial.', $avisos];
+        $comercial = $texto !== '' ? $this->enriquecerComercial($fiscal, $texto) : $fiscal;
+        $rotuloCnae = $perfilCnae['rotulo'] !== '' ? " CNAE EMP: {$perfilCnae['rotulo']}." : '';
+
+        return [
+            $fiscal,
+            $comercial,
+            'SVC: serviço avulso — fiscal estável; detalhe no comercial.'.$rotuloCnae,
+            $avisos,
+        ];
     }
 
     /**
@@ -576,6 +627,147 @@ class ProdutoDescricaoSugeridor
             'lintec' => 'Lintec',
             default => ucfirst($marcaNorm),
         };
+    }
+
+    /**
+     * Perfil CNAE da EMP ativa (principal + secundários) — só contexto.
+     *
+     * @return array{codigos: list<string>, bandas: list<string>, rotulo: string}
+     */
+    private function perfilCnaeEmpresa(Empresa $empresa): array
+    {
+        $codigos = [];
+        $principal = preg_replace('/\D/', '', (string) ($empresa->cnae ?? '')) ?: '';
+        if (strlen($principal) >= 4) {
+            $codigos[] = $principal;
+        }
+
+        $secs = $empresa->cnaes_secundarios;
+        if (is_array($secs)) {
+            foreach ($secs as $item) {
+                $codigo = is_array($item)
+                    ? preg_replace('/\D/', '', (string) ($item['codigo'] ?? ''))
+                    : preg_replace('/\D/', '', (string) $item);
+                $codigo = $codigo ?: '';
+                if (strlen($codigo) >= 4) {
+                    $codigos[] = $codigo;
+                }
+            }
+        }
+
+        $codigos = array_values(array_unique($codigos));
+        $bandas = [];
+        foreach ($codigos as $codigo) {
+            foreach (self::CNAE_BANDAS as $banda => $prefixos) {
+                foreach ($prefixos as $pref) {
+                    if (str_starts_with($codigo, $pref)) {
+                        $bandas[] = $banda;
+                        break 2;
+                    }
+                }
+            }
+        }
+        $bandas = array_values(array_unique($bandas));
+
+        $rotulo = $principal !== ''
+            ? $principal.(count($codigos) > 1 ? ' +'.(count($codigos) - 1).' sec.' : '')
+            : (count($codigos) > 0 ? $codigos[0] : '');
+
+        return [
+            'codigos' => $codigos,
+            'bandas' => $bandas,
+            'rotulo' => $rotulo,
+        ];
+    }
+
+    /**
+     * Default SVC sem texto livre: respeita CNAE da EMP; flexo permanece default histórico.
+     *
+     * @param  array{codigos: list<string>, bandas: list<string>, rotulo: string}  $perfilCnae
+     * @return array{0: string, 1: ?string, 2: ?string}
+     */
+    private function svcDefaultPorCnae(array $perfilCnae): array
+    {
+        $bandas = $perfilCnae['bandas'];
+
+        if (in_array('locacao', $bandas, true) && ! in_array('impressao', $bandas, true)) {
+            return [
+                'LOCACAO DE EQUIPAMENTOS',
+                'locacao',
+                'Sem texto livre — default alinhado ao CNAE de locação da EMP. Informe o bem/serviço no texto para afinar.',
+            ];
+        }
+
+        if (in_array('manutencao', $bandas, true) && ! in_array('impressao', $bandas, true)) {
+            return [
+                'MANUTENCAO DE EQUIPAMENTOS',
+                'manutencao',
+                'Sem texto livre — default alinhado ao CNAE de manutenção da EMP.',
+            ];
+        }
+
+        if (in_array('impressao', $bandas, true) || $bandas === []) {
+            // Domínio go-live flexo / sem CNAE: mantém template histórico.
+            return [
+                'REBOBINACAO / ACERTO DE BOBINA',
+                'impressao',
+                $bandas === []
+                    ? 'Sem texto livre e sem CNAE na EMP — default flexo (rebobinação/acerto). Prefira descrever o serviço.'
+                    : null,
+            ];
+        }
+
+        return [
+            'SERVICO AVULSO',
+            null,
+            'Sem texto livre — CNAE da EMP não mapeia template SVC específico. Descreva o serviço no campo de sugestão.',
+        ];
+    }
+
+    /**
+     * @param  list<string>  $avisos
+     * @param  array{codigos: list<string>, bandas: list<string>, rotulo: string}  $perfilCnae
+     */
+    private function anexarAvisosCnaeSvc(array &$avisos, ?string $bandaServico, array $perfilCnae): void
+    {
+        if ($bandaServico === null || $perfilCnae['bandas'] === []) {
+            return;
+        }
+
+        if (in_array($bandaServico, $perfilCnae['bandas'], true)) {
+            return;
+        }
+
+        // Atípico ≠ inválido: locação em gráfica, etc.
+        $avisos[] = 'Serviço sugerido pode ser atípico em relação aos CNAEs da EMP ativa — válido se for atividade real; confirme com o contador (NFS-e/NF-e).';
+    }
+
+    private function inferirBandaDoTexto(string $textoNorm): ?string
+    {
+        if ($this->hasAny($textoNorm, ['locacao', 'aluguel', 'leasing', 'impressora', 'equipamento'])) {
+            return 'locacao';
+        }
+        if ($this->hasAny($textoNorm, ['manutenc', 'reparo', 'reparacao'])) {
+            return 'manutencao';
+        }
+        if ($this->hasAny($textoNorm, ['bobina', 'etiqueta', 'rebobin', 'flexo', 'impressao'])) {
+            return 'impressao';
+        }
+        if ($this->hasAny($textoNorm, ['consultor', 'software', 'sistema', 'treinamento'])) {
+            return 'ti_consultoria';
+        }
+
+        return null;
+    }
+
+    private function fiscalFromTextoLivre(string $texto): string
+    {
+        $t = trim(preg_replace('/\s+/u', ' ', $texto) ?? $texto);
+        $t = mb_strtoupper(Str::ascii($t), 'UTF-8');
+        $t = trim(preg_replace('/[^A-Z0-9\/\-xX., ]+/u', ' ', $t) ?? $t);
+        $t = trim(preg_replace('/\s+/u', ' ', $t) ?? $t);
+
+        return $t !== '' ? $t : 'SERVICO AVULSO';
     }
 
     private function num(mixed $v): ?float

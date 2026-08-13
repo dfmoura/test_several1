@@ -120,4 +120,71 @@ class ProdutoDescricaoSugeridorTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->sugeridor->sugerir($this->empresa, []);
     }
+
+    public function test_svc_locacao_impressoras_nao_vira_rebobinacao(): void
+    {
+        $this->empresa->update(['cnae' => '1813099']); // impressão — atípico, mas texto manda
+
+        $r = $this->sugeridor->sugerir($this->empresa, [
+            'grupo_id' => $this->grupoIds['SVC'],
+            'texto_livre' => 'Locação de impressoras',
+        ]);
+
+        $this->assertSame('LOCACAO DE IMPRESSORAS', $r['descricao_fiscal']);
+        $this->assertStringContainsStringIgnoringCase('locação', $r['descricao_comercial']);
+        $this->assertStringNotContainsStringIgnoringCase('rebobin', $r['descricao_fiscal']);
+        $this->assertTrue(
+            collect($r['avisos'])->contains(fn (string $a) => str_contains(mb_strtolower($a), 'atípico')
+                || str_contains(mb_strtolower($a), 'atipico'))
+        );
+    }
+
+    public function test_svc_texto_livre_sem_template_nao_forca_rebobinacao(): void
+    {
+        $r = $this->sugeridor->sugerir($this->empresa, [
+            'grupo_id' => $this->grupoIds['SVC'],
+            'texto_livre' => 'Instalacao de software de etiquetas',
+        ]);
+
+        $this->assertStringContainsString('INSTALACAO', $r['descricao_fiscal']);
+        $this->assertStringNotContainsStringIgnoringCase('rebobin', $r['descricao_fiscal']);
+    }
+
+    public function test_svc_sem_texto_com_cnae_impressao_mantem_default_flexo(): void
+    {
+        $this->empresa->update(['cnae' => '1813099']);
+
+        $r = $this->sugeridor->sugerir($this->empresa, [
+            'grupo_id' => $this->grupoIds['SVC'],
+        ]);
+
+        $this->assertSame('REBOBINACAO / ACERTO DE BOBINA', $r['descricao_fiscal']);
+    }
+
+    public function test_svc_sem_texto_com_cnae_locacao_usa_default_locacao(): void
+    {
+        $this->empresa->update([
+            'cnae' => '7733100',
+            'cnaes_secundarios' => [
+                ['codigo' => '7739099', 'descricao' => 'Aluguel de outras máquinas'],
+            ],
+        ]);
+
+        $r = $this->sugeridor->sugerir($this->empresa, [
+            'grupo_id' => $this->grupoIds['SVC'],
+        ]);
+
+        $this->assertSame('LOCACAO DE EQUIPAMENTOS', $r['descricao_fiscal']);
+        $this->assertStringContainsString('CNAE', $r['racional']);
+    }
+
+    public function test_svc_rebobinacao_explicita_preservada(): void
+    {
+        $r = $this->sugeridor->sugerir($this->empresa, [
+            'grupo_id' => $this->grupoIds['SVC'],
+            'texto_livre' => 'rebobinação de bobina cliente',
+        ]);
+
+        $this->assertSame('REBOBINACAO DE BOBINA', $r['descricao_fiscal']);
+    }
 }

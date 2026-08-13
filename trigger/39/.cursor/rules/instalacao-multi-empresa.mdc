@@ -1,0 +1,44 @@
+---
+description: TRIGGER → produto → licenciado → 1 instalação × N EMPs × ambientes — não misturar
+alwaysApply: true
+---
+
+# Instalação × multi-empresa × ambientes
+
+Norma: `docs/MODELO_INSTALACAO_MULTI_EMPRESA.md` · identidade: `docs/IDENTIDADE_TRIGGER.md` · deploy: `docs/DEPLOY_LOCAL_AWS.md`.
+
+## Frase canônica
+
+**TRIGGER** fornece o **FLEXOERP**; o **licenciado** é o cliente sob contrato; **X/Y/Z** são **EMPs** na **instalação** dele — não outros clientes e não outros stages.
+
+## Modelo travado
+
+```
+TRIGGER → produto → licenciado → 1 instalação → N empresas (EMP-)
+```
+
+- Isolamento **lógico**: `empresa_id` + `empresa_user` + `SetEmpresaContext` / `X-Empresa-Id` + `hasEmpresaAccess`.
+- `local` / `homolog` / `production` = **ambientes de dados**, não “outra empresa”.
+- Outro **cliente**/contrato = nova instalação — não nova EMP no banco deste licenciado.
+- Vocabulário: licenciado ≠ EMP ≠ produto ≠ stage — glossário na norma.
+
+## Faça
+
+- Escopar domínio operacional (estoque, OC, ORC, TIT, Focus, parâmetros EMP, CFIN) pela EMP do contexto.
+- Recusar EMP sem vínculo (403); nunca confiar só no header.
+- UX: EMP ativa visível; seletor só se N>1; zero jargão Docker/AWS na UI operacional.
+- Identidade: licenciado herói · produto nomeado · TRIGGER atribuição discreta · EMP só contexto.
+- Manter deploy (infra) separado do modelo de EMP (produto).
+- Regredir isolamento: `php vendor/bin/phpunit --filter MultiEmpresaAceiteTest`.
+
+## Não faça
+
+- Uma VM/banco por CNPJ no dia 1 sem ADR e necessidade real.
+- Tratar Lightsail/deploy como se resolvesse multi-empresa ou UX.
+- Query operacional sem `empresa_id` do contexto.
+- Publicar MySQL/API no host AWS; `APP_DEBUG`/seed on boot em prod.
+- Misturar marca (licenciado/TRIGGER/produto) com EMP ativa — EMP não é marca.
+- Dois licenciados/contratos na mesma instalação; SaaS multi-tenant ou white-label dinâmico por tenant sem ADR/contrato.
+- Chamar EMP de “cliente” ou stage de “outra empresa”.
+
+Se a tarefa exigir violar isto → parar e citar `docs/MODELO_INSTALACAO_MULTI_EMPRESA.md`.

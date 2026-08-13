@@ -1,0 +1,15 @@
+# Overlay LOCAL — portas de conveniência no host (nunca use isto na AWS pública).
+# Ativado por: make up  |  COMPOSE_FILE=docker-compose.yml:docker-compose.local.yml
+
+services:
+  mysql:
+    ports:
+      - "${DB_PORT:-33069}:3306"
+
+  app:
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  web:
+    ports:
+      - "${WEB_PORT:-8039}:80"

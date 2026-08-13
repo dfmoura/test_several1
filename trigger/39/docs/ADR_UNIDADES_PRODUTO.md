@@ -52,9 +52,22 @@ Código: `produtoBobinaDimensoesUi.ts` · `ProdutoBobinaDimensoes` (PHP).
 
 ---
 
+## Visibilidade da conversão (UI)
+
+O **modelo dual** permanece no schema para todo SKU. A **superfície** de conversão é progressiva:
+
+| Modo | Quando | Título | Fator / equação |
+|------|--------|--------|-----------------|
+| **simples** | comercial = estoque (ou estoque vazio) | `Unidades` | ocultos |
+| **conversão** | comercial ≠ estoque | `Unidades e conversão` | visíveis |
+
+Código: `produtoUnidadesConversaoUi.ts` · `ProdutoUnidadesConversao` (PHP) · ficha alinhada.
+
+---
+
 ## Consequências (agora)
 
-1. UI do produto agrupa: unidades → dados da bobina (**só se a regra de visibilidade** acima) → fator, com rótulo **Unidade de estoque** para `unidade_interna`.
+1. UI do produto: unidades (sempre) → dados da bobina (**só se a regra dimensional**) → fator (**só se unidades diferem**), com rótulo **Unidade de estoque** para `unidade_interna`.
 2. `unidade_interna` vazia na gravação **normaliza** para `unidade_comercial` e fator `1` quando iguais.
 3. Atributos dimensionais permanecem em JSON — extensão sem migration a cada ponte nova.
 4. Conversão incompleta **não inventa** fator (regra de ouro §12.10 do estudo 32).
@@ -80,7 +93,7 @@ Alterar esta ADR exige decisão explícita alinhada ao estudo 32 (Direção + en
 
 ## Rastreio no código
 
-- `UnidadesMedida` · `FatorConversaoSugeridor` · `PadraoDecimal` · `ProdutoBobinaDimensoes`
-- UI: `ProdutoFormPage` · `produtoBobinaDimensoesUi.ts` · `ProdutoFichaSheet`
+- `UnidadesMedida` · `FatorConversaoSugeridor` · `PadraoDecimal` · `ProdutoBobinaDimensoes` · `ProdutoUnidadesConversao`
+- UI: `ProdutoFormPage` · `produtoBobinaDimensoesUi.ts` · `produtoUnidadesConversaoUi.ts` · `ProdutoFichaSheet`
 - Teste de arquitetura: `tests/Unit/ProdutoUnidadesBoundaryTest.php`
 - Regra Cursor: `.cursor/rules/produto-unidades.mdc`

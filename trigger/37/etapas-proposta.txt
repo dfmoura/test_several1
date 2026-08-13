@@ -1,0 +1,119 @@
+================================================================================
+ETAPAS DA PROPOSTA — ERP RLP Etiquetas
+TRIGGER Data Intelligence × RLP
+Proposta ERP-RLP-2026-01-v2 · Anexo B (Cronograma)
+Duração estimada: ~16 semanas | 5 fases sequenciais
+================================================================================
+
+0 · PRÉ-KICKOFF
+    Assinatura · sinal · acessos
+    Prazo: ~1 semana | Valor: R$ 5.000 (sinal / 20%)
+    ----------------------------------------------------------------
+    - Aceite formal da proposta
+    - Pagamento do sinal (20%)
+    - Kickoff na semana seguinte
+    - A1, credenciais bancárias e AWS (privilégio mínimo)
+
+    Critério de avanço: inicia Fase 1 com sinal confirmado e acessos liberados.
+
+
+1 · FUNDAÇÃO COMERCIAL
+    Ambiente, cadastros e orçamento até o envio
+    Prazo: S1–S4 (4 semanas) | Valor fase: R$ 5.000 | Saldo: R$ 4.000
+    ----------------------------------------------------------------
+    1.a  Criação do ambiente de acesso (login seguro, usuários e perfis)
+    1.b  Cadastro completo da empresa (dados cadastrais, fiscais e
+         parâmetros; multi-empresa EMP-00001 / EMP-00002)
+    1.c  Cadastro de parceiros (cliente, fornecedor, colaborador,
+         vendedor, bancos, entidades). Clientes com limite de crédito
+         e avaliação
+    1.d  Cadastro de produtos
+    1.e  Orçamento completo até o envio para o cliente
+
+    Pronta quando: usuários autenticam; fluxo parceiro → produto →
+    orçamento demonstrado.
+
+
+2 · COMPRAS, ESTOQUE E CONTAS A PAGAR
+    Do ponto de pedido à entrada e ao pagamento
+    Prazo: S5–S7 (3 semanas) | Valor fase: R$ 5.000 | Saldo: R$ 4.000
+    Gate: após pagamento do saldo da Fase 1
+    ----------------------------------------------------------------
+    2.a  Ajuste de saldo inicial de estoque (virada operacional)
+    2.b  Monitoramento de ponto de pedido / requisição
+    2.c  Pedido de compra
+    2.d  Conferência e entrada de estoque
+    2.e  Contas a pagar
+
+    Pronta quando: requisição → compra → entrada → CAP ponta a ponta.
+
+
+3 · PEDIDO, SINAL E PRODUÇÃO
+    Do aceite à OP e ao retorno de material
+    Prazo: S8–S11 (4 semanas) | Valor fase: R$ 5.000 | Saldo: R$ 4.000
+    Gate: após pagamento do saldo da Fase 2
+    ----------------------------------------------------------------
+    3.a  Confirmação do pedido
+    3.b  Integração bancária PIX: sinal / adiantamento (1º pedido)
+    3.c  Recebimento do adiantamento
+    3.d  Geração do pedido
+    3.e  Geração de OP / OS
+    3.f  Saída de MP / insumo do estoque
+    3.g  Produção
+    3.h  Conclusão da produção
+    3.i  Readequação do pedido em até ±20%
+    3.j  Entrada de sobra de MP / insumo
+
+    Pronta quando: ciclo pedido → produção → readequação homologado.
+
+
+4 · FATURAMENTO, ENTREGA E FINANCEIRO
+    Cobrança, expedição, baixa, conciliação e devolução
+    Prazo: S12–S14 (3 semanas) | Valor fase: R$ 5.000 | Saldo: R$ 4.000
+    Gate: após pagamento do saldo da Fase 3
+    ----------------------------------------------------------------
+    4.a  Faturamento / cobrança (contas a receber)
+    4.b  Entrega
+    4.c  Confirmação de entrega
+    4.d  Recebimento / baixa da cobrança
+    4.e  Conciliação
+    4.f  Devolução
+
+    Pronta quando: cobrança → entrega → baixa e devolução na amostra.
+
+
+5 · GESTÃO, BI E GO-LIVE
+    Indicadores gerenciais e colocação em produção
+    Prazo: S15–S16 (2 semanas) | Valor fase: R$ 5.000 | Saldo: R$ 4.000
+    Gate: após pagamento do saldo da Fase 4
+    ----------------------------------------------------------------
+    5.a  Relatórios, dashboards e BI gerencial
+    5.b  Colocar em produção (go-live)
+
+    Pronta quando: painéis do fluxo 1–4 + checklist de virada.
+    Licença mensal (R$ 300/mês) inicia após a virada de produção.
+
+
+================================================================================
+RESUMO FINANCEIRO
+--------------------------------------------------------------------------------
+Sinal (assinatura) .............................. R$  5.000
+Fase 1 — Fundação comercial (saldo) ............. R$  4.000
+Fase 2 — Compras, estoque e CAP (saldo) ......... R$  4.000
+Fase 3 — Pedido, sinal e produção (saldo) ....... R$  4.000
+Fase 4 — Faturamento e financeiro (saldo) ....... R$  4.000
+Fase 5 — BI e go-live (saldo) ................... R$  4.000
+                                          TOTAL  R$ 25.000
+
+Licença pós go-live ............................. R$    300 / mês
+
+
+GATES DE AVANÇO
+--------------------------------------------------------------------------------
+- Cada fase: execução → demonstração por escrito → aceite RLP
+  (ou tácito em 5 dias úteis) → saldo R$ 4.000
+- Fase N+1 só inicia após confirmação do pagamento integral
+  do saldo da fase N
+- Semanas são estimativa operacional a partir do kickoff
+
+================================================================================

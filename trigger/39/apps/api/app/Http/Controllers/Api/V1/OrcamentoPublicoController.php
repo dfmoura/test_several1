@@ -19,6 +19,21 @@ class OrcamentoPublicoController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function adiantamento(string $token): JsonResponse
+    {
+        $data = $this->aprovacao->adiantamentoPublico($token);
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function simularPagamento(string $token): JsonResponse
+    {
+        $data = app(\App\Services\Financeiro\SimularPagamentoPixService::class)
+            ->simularPeloToken($token);
+
+        return response()->json(['data' => $data]);
+    }
+
     public function decidir(Request $request, string $token): JsonResponse
     {
         $data = $request->validate([

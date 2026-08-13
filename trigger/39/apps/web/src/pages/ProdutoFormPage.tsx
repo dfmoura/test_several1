@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FiscalCombobox, formatCest, formatNcm, type FiscalOption } from '../components/FiscalCombobox';
 import { PageHeader } from '../components/PageHeader';
+import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
 import { api, fiscalConsulta, sugerirDescricaoProduto, type Produto, type ProdutoDescricaoSugestao, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
+import { decideUnidadesConversaoUi, unidadesDiferem } from '../lib/produtoUnidadesConversaoUi';
+import { politicaLotePorGrupo } from '../lib/produtoLotePolitica';
 import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '../lib/format';
 
 const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
@@ -83,6 +86,9 @@ type ProdutoFormData = {
   preco_tabela: string;
   estoque_minimo: string;
   lead_time_dias: string;
+  controla_lote: boolean;
+  controla_validade: boolean;
+  prazo_validade_dias: string;
   gtin: string;
   situacao: string;
 };
@@ -118,6 +124,9 @@ const emptyForm = (): ProdutoFormData => ({
   preco_tabela: '',
   estoque_minimo: '',
   lead_time_dias: '',
+  controla_lote: false,
+  controla_validade: false,
+  prazo_validade_dias: '',
   gtin: '',
   situacao: 'ATIVO',
 });
@@ -159,6 +168,9 @@ function fromProduto(p: Produto): ProdutoFormData {
     preco_tabela: p.preco_tabela ?? '',
     estoque_minimo: p.estoque_minimo ?? '',
     lead_time_dias: p.lead_time_dias != null ? String(p.lead_time_dias) : '',
+    controla_lote: !!p.controla_lote,
+    controla_validade: !!p.controla_validade,
+    prazo_validade_dias: p.prazo_validade_dias != null ? String(p.prazo_validade_dias) : '',
     gtin: p.gtin ?? '',
     situacao: p.situacao,
   };
@@ -180,6 +192,17 @@ function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: b
     grupo_estoque: fill(base.grupo_estoque, grupo.grupo_estoque_padrao),
     cfop_entrada_padrao: fill(base.cfop_entrada_padrao, grupo.cfop_entrada_padrao),
     cfop_saida_padrao: fill(base.cfop_saida_padrao, grupo.cfop_saida_padrao),
+    ...(() => {
+      const pol = politicaLotePorGrupo(grupo.codigo);
+      if (!force && (base.controla_lote || base.controla_validade || base.prazo_validade_dias)) {
+        return {};
+      }
+      return {
+        controla_lote: pol.controla_lote,
+        controla_validade: pol.controla_validade,
+        prazo_validade_dias: pol.prazo_validade_dias != null ? String(pol.prazo_validade_dias) : '',
+      };
+    })(),
   };
 }
 
@@ -215,6 +238,9 @@ function toPayload(form: ProdutoFormData): Record<string, unknown> {
     preco_tabela: form.preco_tabela || null,
     estoque_minimo: form.estoque_minimo || null,
     lead_time_dias: form.lead_time_dias ? parseInt(form.lead_time_dias, 10) : null,
+    controla_lote: form.controla_lote,
+    controla_validade: form.controla_validade,
+    prazo_validade_dias: form.prazo_validade_dias ? parseInt(form.prazo_validade_dias, 10) : null,
     gtin: form.gtin || null,
     situacao: form.situacao,
     atributos: Object.keys(atributos).length ? atributos : null,
@@ -276,6 +302,7 @@ export function ProdutoFormPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const [textoLivreDesc, setTextoLivreDesc] = useState('');
   const [descSugestao, setDescSugestao] = useState<ProdutoDescricaoSugestao | null>(null);
   const [sugerindoDesc, setSugerindoDesc] = useState(false);
@@ -320,6 +347,12 @@ export function ProdutoFormPage() {
       try {
         const res = await api.get<{ data: Produto }>(`/produtos/${id}`);
         setForm(fromProduto(res.data));
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         setFatorManual(true);
       } catch {
         setError('Produto não encontrado.');
@@ -404,11 +437,19 @@ export function ProdutoFormPage() {
   );
 
 
-  const unitsDiffer = useMemo(() => {
-    const a = form.unidade_comercial.trim().toUpperCase();
-    const b = form.unidade_interna.trim().toUpperCase();
-    return a !== '' && b !== '' && a !== b;
-  }, [form.unidade_comercial, form.unidade_interna]);
+  const unitsDiffer = useMemo(
+    () => unidadesDiferem(form.unidade_comercial, form.unidade_interna),
+    [form.unidade_comercial, form.unidade_interna]
+  );
+
+  const unidadesUi = useMemo(
+    () =>
+      decideUnidadesConversaoUi({
+        unidadeComercial: form.unidade_comercial,
+        unidadeInterna: form.unidade_interna,
+      }),
+    [form.unidade_comercial, form.unidade_interna]
+  );
 
   const showDimensoes = useMemo(
     () =>
@@ -606,7 +647,13 @@ export function ProdutoFormPage() {
         const res = await api.post<{ data: Produto }>('/produtos', payload);
         navigate(`/produtos/${res.data.id}`);
       } else {
-        await api.put<{ data: Produto }>(`/produtos/${id}`, payload);
+        const res = await api.put<{ data: Produto }>(`/produtos/${id}`, payload);
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         setMessage('Produto salvo com sucesso.');
       }
     } catch (err) {
@@ -649,6 +696,7 @@ export function ProdutoFormPage() {
 
       <div className="card">
         <div className="card-body">
+          {!isNew ? <RegistroMetaStrip registro={autoria} /> : null}
           <div className="tabs tabs-produto">
             <button
               type="button"
@@ -762,7 +810,8 @@ export function ProdutoFormPage() {
                       {sugerindoDesc ? 'Sugerindo…' : 'Sugerir descrições'}
                     </button>
                     <span className="form-hint">
-                      Motor por grupo (domínio RLP). Confira e aplique — nada é gravado sozinho.
+                      Motor por grupo + CNAE da empresa ativa. Confira e aplique — nada é gravado
+                      sozinho.
                     </span>
                   </div>
                   {erroDescSugestao && <div className="form-error">{erroDescSugestao}</div>}
@@ -840,11 +889,21 @@ export function ProdutoFormPage() {
                 />
               </div>
 
-              <div className="fiscal-section-title span-2">Unidades e conversão</div>
+              <div className="fiscal-section-title span-2">{unidadesUi.sectionTitle}</div>
               <p className="form-hint span-2 produto-unidades-lead">
-                Modelo dual (estudo 32 / ADR): unidade do documento × unidade oficial de estoque.
-                Largura, comprimento e gramatura alimentam a fórmula — não são unidades.
-                Convenção do fator: <strong>{equacaoFator}</strong>
+                {unidadesUi.mode === 'conversao' ? (
+                  <>
+                    Unidade do documento × unidade oficial de estoque. Largura, comprimento e
+                    gramatura alimentam a fórmula — não são unidades. Convenção do fator:{' '}
+                    <strong>{equacaoFator}</strong>
+                  </>
+                ) : (
+                  <>
+                    Unidade da NF / faturamento. Estoque vazio = mesma unidade (fator 1). Escolha
+                    outra unidade de estoque somente se a nota e o saldo falarem línguas
+                    diferentes.
+                  </>
+                )}
               </p>
 
               <div className="form-group">
@@ -951,81 +1010,77 @@ export function ProdutoFormPage() {
                 </>
               )}
 
-              <div className="form-group">
-                <label>
-                  Fator conversão
-                  {unitsDiffer && fatorSugestao?.status !== 'igual' ? ' *' : ''}
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={decimalStep(DECIMAL_SCALE.factor)}
-                  value={form.fator_conversao}
-                  disabled={readOnly || (!unitsDiffer && !!form.unidade_interna)}
-                  required={unitsDiffer}
-                  onChange={(e) => {
-                    setFatorManual(true);
-                    update({ fator_conversao: e.target.value });
-                  }}
-                />
-                <span className="form-hint">
-                  {fatorSugestao?.status === 'igual' && (
-                    <>Unidades iguais — fator = 1.</>
-                  )}
-                  {fatorSugestao?.status === 'sugerido' && fatorSugestao.fator && (
-                    <>
-                      Sugerido: {fatorSugestao.fator}
-                      {fatorSugestao.formula ? ` (${fatorSugestao.formula})` : ''}.{' '}
-                      {equacaoFator}.
-                      {fatorManual && sugestaoAplicavel && !readOnly && (
-                        <>
-                          {' '}
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{
-                              display: 'inline',
-                              padding: '0.1rem 0.45rem',
-                              marginLeft: '0.35rem',
-                              fontSize: '0.85em',
-                              verticalAlign: 'baseline',
-                            }}
-                            onClick={() => {
-                              setFatorManual(false);
-                              update({ fator_conversao: fatorSugestao.fator as string });
-                            }}
-                          >
-                            Aplicar sugestão
-                          </button>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {fatorSugestao?.status === 'incompleto' && (
-                    <>
-                      {fatorSugestao.mensagem ?? 'Cadastro incompleto para calcular o fator.'}
-                      {fatorSugestao.faltando.length
-                        ? ` Faltando: ${fatorSugestao.faltando.join(', ')}.`
-                        : ''}
-                    </>
-                  )}
-                  {fatorSugestao?.status === 'sem_formula' && (
-                    <>
-                      {fatorSugestao.mensagem ??
-                        'Sem fórmula automática — informe o fator manualmente.'}
-                    </>
-                  )}
-                  {!fatorSugestao && unitsDiffer && (
-                    <>
-                      Até {DECIMAL_SCALE.factor} casas (NUMERIC 19,10). Necessário quando as unidades
-                      diferem.
-                    </>
-                  )}
-                  {!unitsDiffer && !form.unidade_interna && (
-                    <>Deixe a estoque vazia (mesma da comercial) ou escolha outra unidade.</>
-                  )}
-                </span>
-              </div>
+              {unidadesUi.showFator && (
+                <div className="form-group">
+                  <label>
+                    Fator conversão
+                    {unitsDiffer && fatorSugestao?.status !== 'igual' ? ' *' : ''}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={decimalStep(DECIMAL_SCALE.factor)}
+                    value={form.fator_conversao}
+                    disabled={readOnly}
+                    required={unitsDiffer}
+                    onChange={(e) => {
+                      setFatorManual(true);
+                      update({ fator_conversao: e.target.value });
+                    }}
+                  />
+                  <span className="form-hint">
+                    {fatorSugestao?.status === 'sugerido' && fatorSugestao.fator && (
+                      <>
+                        Sugerido: {fatorSugestao.fator}
+                        {fatorSugestao.formula ? ` (${fatorSugestao.formula})` : ''}.{' '}
+                        {equacaoFator}.
+                        {fatorManual && sugestaoAplicavel && !readOnly && (
+                          <>
+                            {' '}
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{
+                                display: 'inline',
+                                padding: '0.1rem 0.45rem',
+                                marginLeft: '0.35rem',
+                                fontSize: '0.85em',
+                                verticalAlign: 'baseline',
+                              }}
+                              onClick={() => {
+                                setFatorManual(false);
+                                update({ fator_conversao: fatorSugestao.fator as string });
+                              }}
+                            >
+                              Aplicar sugestão
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
+                    {fatorSugestao?.status === 'incompleto' && (
+                      <>
+                        {fatorSugestao.mensagem ?? 'Cadastro incompleto para calcular o fator.'}
+                        {fatorSugestao.faltando.length
+                          ? ` Faltando: ${fatorSugestao.faltando.join(', ')}.`
+                          : ''}
+                      </>
+                    )}
+                    {fatorSugestao?.status === 'sem_formula' && (
+                      <>
+                        {fatorSugestao.mensagem ??
+                          'Sem fórmula automática — informe o fator manualmente.'}
+                      </>
+                    )}
+                    {!fatorSugestao && (
+                      <>
+                        Até {DECIMAL_SCALE.factor} casas (NUMERIC 19,10). Necessário quando as
+                        unidades diferem.
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
 
               <div className="fiscal-section-title span-2">Comercial / operação</div>
 
@@ -1062,6 +1117,58 @@ export function ProdutoFormPage() {
                   onChange={(e) => update({ lead_time_dias: e.target.value })}
                 />
               </div>
+
+              <div className="fiscal-section-title span-2">Rastreabilidade</div>
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.controla_lote}
+                    disabled={readOnly}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      update({
+                        controla_lote: on,
+                        controla_validade: on ? form.controla_validade : false,
+                        prazo_validade_dias: on ? form.prazo_validade_dias : '',
+                      });
+                    }}
+                  />{' '}
+                  Controla lote
+                </label>
+                <span className="form-hint">
+                  Substratos e tintas: sim. Tubete, caixa e ribbon: não.
+                </span>
+              </div>
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.controla_validade}
+                    disabled={readOnly || !form.controla_lote}
+                    onChange={(e) =>
+                      update({
+                        controla_validade: e.target.checked,
+                        controla_lote: e.target.checked ? true : form.controla_lote,
+                      })
+                    }
+                  />{' '}
+                  Controla validade
+                </label>
+                <span className="form-hint">Adesivos, tintas e foils — FEFO na saída.</span>
+              </div>
+              <div className="form-group">
+                <label>Prazo de validade (dias)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.prazo_validade_dias}
+                  disabled={readOnly || !form.controla_lote}
+                  onChange={(e) => update({ prazo_validade_dias: e.target.value })}
+                />
+                <span className="form-hint">Sugere o vencimento na entrada (12–24 meses típicos).</span>
+              </div>
+
               <div className="form-group">
                 <label>GTIN</label>
                 <input

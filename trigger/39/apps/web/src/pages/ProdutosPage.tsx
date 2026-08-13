@@ -74,7 +74,7 @@ export function ProdutosPage() {
     <>
       <PageHeader
         title="Produtos"
-        description="Família fiscal + grupo canônico (MP-PAP, PA-ETQ, REV-RIB…)"
+        description="Família fiscal + grupo canônico (MP-PAP, MP-TIN, PA-ETQ, REV-RIB…)"
         actions={
           hasPermission('produto.escrever') ? (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -132,6 +132,11 @@ export function ProdutosPage() {
       </div>
 
       <div className="card">
+        {!loading && produtos.length > 0 ? (
+          <div className="card-body" style={{ paddingBottom: 0 }}>
+            <span className="form-hint">{produtos.length} produto(s) nesta EMP</span>
+          </div>
+        ) : null}
         <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>

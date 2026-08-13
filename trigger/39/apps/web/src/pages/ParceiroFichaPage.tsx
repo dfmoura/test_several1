@@ -4,6 +4,7 @@ import { ParceiroFichaSheet } from '../components/ParceiroFichaSheet';
 import { api, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
+import { brandDocumentTitle } from '../lib/brand';
 
 export function ParceiroFichaPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,7 @@ export function ParceiroFichaPage() {
     if (!parceiro) return;
     document.title = `Ficha ${parceiro.codigo} · ${parceiro.razao_social}`;
     return () => {
-      document.title = 'ERP RLP';
+      document.title = brandDocumentTitle();
     };
   }, [parceiro]);
 

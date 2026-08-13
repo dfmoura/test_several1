@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
+import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
 import { QsaSociosPanel } from '../components/QsaSociosPanel';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
@@ -569,6 +570,7 @@ export function EmpresasPage() {
       {selected && form && (
         <div className="card">
           <div className="card-body">
+            <RegistroMetaStrip registro={selected} />
             <div className="empresa-header">
               <div className="empresa-header-title">
                 <h2>{selected.codigo}</h2>

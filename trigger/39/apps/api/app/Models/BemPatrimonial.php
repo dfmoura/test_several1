@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BemPatrimonial extends Model
 {
+    use HasUserStamps;
     use SoftDeletes;
 
     /**
@@ -78,6 +80,7 @@ class BemPatrimonial extends Model
         'nf_numero',
         'fornecedor_id',
         'local',
+        'departamento_id',
         'responsavel',
         'responsavel_user_id',
         'status',
@@ -112,6 +115,11 @@ class BemPatrimonial extends Model
     public function fornecedor(): BelongsTo
     {
         return $this->belongsTo(Parceiro::class, 'fornecedor_id');
+    }
+
+    public function departamento(): BelongsTo
+    {
+        return $this->belongsTo(Departamento::class, 'departamento_id');
     }
 
     public function responsavelUser(): BelongsTo

@@ -34,6 +34,7 @@ class ProdutoDescricaoSugestaoTest extends TestCase
             'razao_social' => 'Empresa PDS',
             'nome_fantasia' => 'PDS',
             'cnpj' => '00000000000515',
+            'cnae' => '1813099',
             'situacao' => 'ATIVA',
         ]);
 
@@ -98,5 +99,23 @@ class ProdutoDescricaoSugestaoTest extends TestCase
                 'grupo_id' => $grupoId,
             ])
             ->assertForbidden();
+    }
+
+    public function test_sugerir_svc_locacao_respeita_texto_e_cnae_emp(): void
+    {
+        Sanctum::actingAs($this->escritor);
+        $grupoId = \App\Models\ProdutoGrupo::query()->where('codigo', 'SVC')->value('id');
+
+        $res = $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->postJson('/api/v1/produtos/sugerir-descricao', [
+                'grupo_id' => $grupoId,
+                'texto_livre' => 'Locação de impressoras',
+            ]);
+
+        $res->assertOk()
+            ->assertJsonPath('data.origem', 'regra')
+            ->assertJsonPath('data.descricao_fiscal', 'LOCACAO DE IMPRESSORAS');
+        $this->assertStringNotContainsStringIgnoringCase('rebobin', (string) $res->json('data.descricao_fiscal'));
+        $this->assertNotEmpty($res->json('data.avisos'));
     }
 }

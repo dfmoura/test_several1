@@ -50,13 +50,15 @@ class ProdutoController extends Controller
             'familia' => ['nullable', 'string'],
             'grupo' => ['nullable', 'string', 'max:16'],
             'q' => ['nullable', 'string'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:'.ProdutoService::LIST_LIMIT_MAX],
         ]);
 
         $data = $this->produtoService->list(
             app('empresa'),
             $validated['familia'] ?? null,
             $validated['grupo'] ?? null,
-            $validated['q'] ?? null
+            $validated['q'] ?? null,
+            (int) ($validated['limit'] ?? ProdutoService::LIST_LIMIT_DEFAULT)
         );
 
         return response()->json(['data' => $data]);
@@ -80,6 +82,8 @@ class ProdutoController extends Controller
             abort(403);
         }
         $this->assertEmpresa($produto);
+
+        $produto->loadMissing(Produto::userStampWith());
 
         return response()->json(['data' => $produto]);
     }

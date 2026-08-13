@@ -1,8 +1,9 @@
 .env
+.env.aws
+.env.aws.bak*
 apps/api/.env
 apps/api/vendor/
 apps/api/storage/*.key
-apps/api/storage/app/relatorios/
 apps/web/node_modules/
 apps/web/dist/
 .idea/

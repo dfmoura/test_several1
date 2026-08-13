@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { PageHeader } from '../components/PageHeader';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
 import {
@@ -14,10 +15,19 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import {
+  CONDICOES_PAGAMENTO_SUGESTOES,
+  FORMAS_PAGAMENTO,
+  isFormaPagamentoCanonica,
+} from '../lib/condicoesComerciais';
+import {
   CORES_OPCOES,
+  alocarQuantidadePorModelo,
   defaultOrcForm,
   formFromSnapshot,
   payloadFromForm,
+  somaPercentualModelos,
+  syncModelosComposicao,
+  validarModelosComposicao,
   type OrcCatalogo,
   type OrcForm,
 } from '../lib/orcamentoForm';
@@ -49,8 +59,7 @@ export function OrcamentoFormPage() {
   const canWrite = hasPermission('orcamento.escrever');
 
   const [catalog, setCatalog] = useState<OrcCatalogo | null>(null);
-  const [parceiros, setParceiros] = useState<Parceiro[]>([]);
-  const [parceiroQ, setParceiroQ] = useState('');
+  const [parceiroSel, setParceiroSel] = useState<Parceiro | null>(null);
   const [parceiroModo, setParceiroModo] = useState<'cadastrado' | 'prospect'>('cadastrado');
   const [form, setForm] = useState<OrcForm>(() => defaultOrcForm(null));
   const [facaSel, setFacaSel] = useState<FacaRecord | null>(null);
@@ -65,13 +74,9 @@ export function OrcamentoFormPage() {
       setLoading(true);
       setErro(null);
       try {
-        const [catRes, parRes] = await Promise.all([
-          api.get<{ data: OrcCatalogo }>('/orcamentos/catalogo'),
-          api.get<{ data: Parceiro[] }>('/parceiros?papel=orcavel'),
-        ]);
+        const catRes = await api.get<{ data: OrcCatalogo }>('/orcamentos/catalogo');
         if (cancelled) return;
         setCatalog(catRes.data);
-        setParceiros(parRes.data);
 
         if (!isNew && id) {
           const orc = await api.get<{ data: Orcamento }>(`/orcamentos/${id}`);
@@ -85,10 +90,22 @@ export function OrcamentoFormPage() {
           setCalculo(orc.data.result_snapshot);
           // Sempre restaura o desenho (mapa ou faca nova) — antes só faca_nova tinha summary.
           setFacaSel(facaSelFromForm(nextForm));
+
+          if (nextForm.parceiro_id !== '') {
+            try {
+              const par = await api.get<{ data: Parceiro }>(`/parceiros/${nextForm.parceiro_id}`);
+              if (!cancelled) setParceiroSel(par.data);
+            } catch {
+              if (!cancelled) setParceiroSel(null);
+            }
+          } else if (!cancelled) {
+            setParceiroSel(null);
+          }
         } else {
           setForm(defaultOrcForm(catRes.data));
           setCalculo(null);
           setFacaSel(null);
+          setParceiroSel(null);
         }
       } catch (e) {
         if (!cancelled) {
@@ -180,45 +197,31 @@ export function OrcamentoFormPage() {
   const zManual = !facaSel || facaIncompleta || facaSel.z == null || facaNova;
   const medidaManual = !facaSel || facaNova;
 
-  const parceirosFiltrados = useMemo(() => {
-    const term = parceiroQ.trim().toLowerCase();
-    if (!term) return parceiros;
-    return parceiros.filter((p) => {
-      const blob = [
-        p.codigo,
-        p.razao_social,
-        p.nome_fantasia,
-        p.municipio,
-        p.uf,
-        p.whatsapp,
-        p.email,
-        p.cnpj_cpf,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return blob.includes(term);
-    });
-  }, [parceiros, parceiroQ]);
-
-  const upsertParceiroLocal = (p: Parceiro) => {
-    setParceiros((prev) => {
-      if (prev.some((x) => x.id === p.id)) {
-        return prev.map((x) => (x.id === p.id ? p : x));
-      }
-      return [p, ...prev];
-    });
+  const aplicarParceiro = (p: Parceiro | null) => {
+    setParceiroSel(p);
+    setForm((prev) => ({
+      ...prev,
+      parceiro_id: p ? p.id : '',
+      condicao_pagamento: p?.condicao_pagamento?.trim() ?? '',
+      forma_pagamento: p?.forma_pagamento?.trim() ?? '',
+    }));
+    setCalculo(null);
+    setErro(null);
   };
 
   const vincularParceiro = (p: Pick<Parceiro, 'id'> & Partial<Parceiro>) => {
-    const existing = parceiros.find((x) => x.id === p.id);
-    if (existing) {
-      setField('parceiro_id', existing.id);
+    if (parceiroSel?.id === p.id) {
+      aplicarParceiro({
+        ...parceiroSel,
+        ...p,
+        id: p.id,
+      } as Parceiro);
     } else {
       const stub = {
         id: p.id,
         codigo: p.codigo ?? `PAR-${p.id}`,
         razao_social: p.razao_social ?? '',
+        nome_fantasia: p.nome_fantasia ?? null,
         is_prospect: p.is_prospect ?? true,
         papel_cliente: p.papel_cliente ?? false,
         municipio: p.municipio ?? null,
@@ -226,27 +229,47 @@ export function OrcamentoFormPage() {
         whatsapp: p.whatsapp ?? null,
         email: p.email ?? null,
         cnpj_cpf: p.cnpj_cpf ?? null,
+        condicao_pagamento: p.condicao_pagamento ?? null,
+        forma_pagamento: p.forma_pagamento ?? null,
       } as Parceiro;
-      upsertParceiroLocal(stub);
-      setField('parceiro_id', p.id);
+      aplicarParceiro(stub);
     }
-    setParceiroQ('');
     setParceiroModo('cadastrado');
-    setErro(null);
   };
-
-  const parceiroSelecionado = useMemo(
-    () =>
-      form.parceiro_id === ''
-        ? null
-        : (parceiros.find((p) => p.id === form.parceiro_id) ?? null),
-    [form.parceiro_id, parceiros],
-  );
 
   const setFaixa = (index: number, key: keyof OrcForm['faixas'][number], value: number) => {
     setForm((prev) => {
       const faixas = prev.faixas.map((f, i) => (i === index ? { ...f, [key]: value } : f));
       return { ...prev, faixas };
+    });
+    setCalculo(null);
+  };
+
+  const setModelosCount = (n: number) => {
+    const modelos = Math.max(1, Math.floor(n) || 1);
+    setForm((prev) => ({
+      ...prev,
+      modelos,
+      modelos_composicao: syncModelosComposicao(prev.modelos_composicao, modelos),
+    }));
+    setCalculo(null);
+  };
+
+  const setModeloComposicao = (
+    index: number,
+    key: 'nome' | 'percentual',
+    value: string | number,
+  ) => {
+    setForm((prev) => {
+      const modelos_composicao = prev.modelos_composicao.map((m, i) =>
+        i === index
+          ? {
+              ...m,
+              [key]: key === 'nome' ? String(value) : Number(value) || 0,
+            }
+          : m,
+      );
+      return { ...prev, modelos_composicao };
     });
     setCalculo(null);
   };
@@ -278,6 +301,8 @@ export function OrcamentoFormPage() {
     if (form.faca_nova && form.valor_faca_nova < 0) return 'Valor da faca nova inválido.';
     if (form.faixas.length === 0) return 'Inclua ao menos uma faixa de quantidade.';
     if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades das faixas devem ser > 0.';
+    const compErr = validarModelosComposicao(form.modelos, form.modelos_composicao);
+    if (compErr) return compErr;
     return null;
   };
 
@@ -395,49 +420,60 @@ export function OrcamentoFormPage() {
 
             {parceiroModo === 'cadastrado' ? (
               <div className="form-grid">
+                <ParceiroCombobox
+                  className="span-full"
+                  label="Parceiro cadastrado"
+                  papel="orcavel"
+                  value={parceiroSel}
+                  onChange={aplicarParceiro}
+                  required
+                  disabled={!canWrite}
+                  placeholder="Buscar por nome, código, CNPJ, cidade ou WhatsApp…"
+                  hint="Cliente ou prospect · busca no cadastro PAR (não lista tudo de uma vez)."
+                  emptyMessage="Nenhum parceiro orçável encontrado. Ajuste o termo ou use Novo prospect."
+                />
                 <div className="form-group">
-                  <label>Filtrar na lista</label>
+                  <label>Condição de pagamento</label>
                   <input
-                    type="search"
-                    value={parceiroQ}
-                    onChange={(e) => setParceiroQ(e.target.value)}
-                    placeholder="Nome, código, cidade, WhatsApp…"
+                    list="orc-condicao-pagamento-sugestoes"
+                    value={form.condicao_pagamento}
+                    maxLength={64}
+                    placeholder="ex.: 28 DDL · prefill do PAR"
                     disabled={!canWrite}
+                    onChange={(e) => setField('condicao_pagamento', e.target.value)}
                   />
+                  <datalist id="orc-condicao-pagamento-sugestoes">
+                    {CONDICOES_PAGAMENTO_SUGESTOES.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
                 </div>
-                <div className="form-group span-full">
-                  <label>Parceiro cadastrado *</label>
+                <div className="form-group">
+                  <label>Forma de pagamento</label>
                   <select
-                    value={form.parceiro_id === '' ? '' : String(form.parceiro_id)}
-                    onChange={(e) =>
-                      setField('parceiro_id', e.target.value ? Number(e.target.value) : '')
-                    }
+                    value={form.forma_pagamento}
                     disabled={!canWrite}
+                    onChange={(e) => setField('forma_pagamento', e.target.value)}
                   >
                     <option value="">Selecione…</option>
-                    {parceirosFiltrados.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo} — {p.razao_social}
-                        {p.is_prospect ? ' (prospect)' : ''}
-                        {p.municipio ? ` · ${p.municipio}/${p.uf ?? ''}` : ''}
+                    {form.forma_pagamento && !isFormaPagamentoCanonica(form.forma_pagamento) ? (
+                      <option value={form.forma_pagamento}>
+                        {form.forma_pagamento} (legado)
+                      </option>
+                    ) : null}
+                    {FORMAS_PAGAMENTO.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
                       </option>
                     ))}
                   </select>
                 </div>
-                {parceiroSelecionado ? (
-                  <div className="form-group span-full">
-                    <p className="parceiro-vinculo" style={{ margin: 0 }}>
-                      Vinculado:{' '}
-                      <strong>
-                        {parceiroSelecionado.codigo} — {parceiroSelecionado.razao_social}
-                      </strong>
-                      {parceiroSelecionado.is_prospect ? ' · prospect' : ''}
-                      {parceiroSelecionado.municipio
-                        ? ` · ${parceiroSelecionado.municipio}/${parceiroSelecionado.uf ?? ''}`
-                        : ''}
-                    </p>
-                  </div>
-                ) : null}
+                <div className="form-group span-full">
+                  <p className="form-hint" style={{ margin: 0 }}>
+                    Condições desta proposta (snapshot). Prefill ao escolher o parceiro · editáveis
+                    aqui · não alteram o cálculo de preço · PED/TIT futuros usam este valor.
+                  </p>
+                </div>
               </div>
             ) : (
               <ProspectRapidoPanel
@@ -619,7 +655,7 @@ export function OrcamentoFormPage() {
                   type="number"
                   min={1}
                   value={form.modelos}
-                  onChange={(e) => setField('modelos', Number(e.target.value) || 1)}
+                  onChange={(e) => setModelosCount(Number(e.target.value) || 1)}
                   disabled={!canWrite}
                 />
               </div>
@@ -667,6 +703,73 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                 />
               </div>
+            </div>
+
+            <div className="orc-modelos-composicao">
+              <div className="orc-section-head" style={{ marginTop: '0.85rem' }}>
+                <h4 className="orc-subsection-title">Composição dos modelos</h4>
+                <span
+                  className={`orc-modelos-soma${
+                    Math.abs(somaPercentualModelos(form.modelos_composicao) - 100) > 0.01
+                      ? ' is-invalid'
+                      : ' is-ok'
+                  }`}
+                >
+                  Soma {somaPercentualModelos(form.modelos_composicao)}%
+                </span>
+              </div>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                Nome de cada arte e % da quantidade do serviço (soma 100%). Aparece na proposta
+                ao cliente com a quantidade inteira por faixa; produção e pedido futuros seguem o
+                mesmo rateio. O preço usa só a quantidade de modelos.
+              </p>
+              {(() => {
+                const faixasQtd = form.faixas.filter((f) => f.quantidade > 0);
+                const alocPorFaixa = faixasQtd.map((f) =>
+                  alocarQuantidadePorModelo(f.quantidade, form.modelos_composicao),
+                );
+                return form.modelos_composicao.map((m, i) => {
+                  const qtdsPreview = alocPorFaixa.map((aloc) =>
+                    (aloc[i]?.quantidade ?? 0).toLocaleString('pt-BR'),
+                  );
+                  return (
+                    <div key={m.ordem} className="form-grid faixa-row orc-modelo-row">
+                      <div className="form-group orc-modelo-nome">
+                        <label>Modelo {i + 1}</label>
+                        <input
+                          type="text"
+                          maxLength={120}
+                          placeholder="Ex.: bob esponja, maçã verde…"
+                          value={m.nome}
+                          onChange={(e) => setModeloComposicao(i, 'nome', e.target.value)}
+                          disabled={!canWrite}
+                        />
+                      </div>
+                      <div className="form-group orc-modelo-pct">
+                        <label>% quantidade</label>
+                        <input
+                          type="number"
+                          min={0.01}
+                          max={100}
+                          step={0.01}
+                          value={m.percentual}
+                          onChange={(e) =>
+                            setModeloComposicao(i, 'percentual', Number(e.target.value) || 0)
+                          }
+                          disabled={!canWrite || form.modelos === 1}
+                        />
+                        {qtdsPreview.length > 0 ? (
+                          <p className="orc-modelo-qtd-preview" title="Quantidade inteira por faixa">
+                            {qtdsPreview.length === 1
+                              ? `→ ${qtdsPreview[0]} un.`
+                              : `→ ${qtdsPreview.join(' · ')} un./faixa`}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </section>
 
@@ -913,6 +1016,28 @@ export function OrcamentoFormPage() {
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}
             toleranciaQtdPct={form.tolerancia_qtd_pct}
+            modelosComposicao={form.modelos_composicao}
+            guiaEspec={{
+              medida: form.medida,
+              largura_cm: form.largura_cm,
+              puxada_cm: form.puxada_cm,
+              cores: form.cores,
+              papel: form.papel,
+              acabamento: form.acabamento,
+              maquina: form.maquina,
+              tubete: form.tubete,
+              etiq_por_rolo: form.etiq_por_rolo,
+              modelos: form.modelos,
+              colunas: form.colunas,
+              coluna_rebobinacao: form.coluna_rebobinacao,
+              tipo_troca_produto: form.tipo_troca_produto,
+              rpm: form.rpm,
+              z: form.z === '' ? null : form.z,
+              faca_nova: form.faca_nova,
+              formato_faca: form.formato_faca,
+              matriz: form.matriz,
+              valor_faca_nova: form.valor_faca_nova,
+            }}
             facaDesenho={{
               formato: form.formato_faca || calculo.formato_faca,
               medida: form.medida,
@@ -926,8 +1051,8 @@ export function OrcamentoFormPage() {
         </div>
       ) : (
         <p className="form-hint" style={{ marginTop: '1rem' }}>
-          Calcule para visualizar a proposta comercial e o breakdown interno (composição oculta do
-          cliente).
+          Calcule para visualizar a proposta comercial, o breakdown interno e a guia de
+          produção (insumos e recursos).
         </p>
       )}
     </>

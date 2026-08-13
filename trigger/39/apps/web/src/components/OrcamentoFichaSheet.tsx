@@ -4,10 +4,13 @@ import {
   facaDesenhoFromSnapshot,
 } from './OrcamentoFacaDesenho';
 import { FacaShapeIcon, formatoKind, formatoLabel } from './FacaShapeIcon';
+import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { Orcamento, OrcamentoFaixaResult } from '../lib/api';
 import { BRAND } from '../lib/brand';
-import { formatCurrency, formatDateTime, formatDecimalBr } from '../lib/format';
+import { formaPagamentoLabel } from '../lib/condicoesComerciais';
+import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
 
 /**
@@ -201,7 +204,7 @@ export function OrcamentoFichaSheet({
         </div>
         <div className="ficha-title-meta">
           <span className={`ficha-chip ${statusChipClass(orc.status)}`.trim()}>
-            {statusOrcLabel(orc.status)}
+            {statusOrcLabel(orc.status, orc.financeiro_status)}
           </span>
           <span className="ficha-chip ficha-chip-papel">v{orc.versao}</span>
           {orc.parceiro?.is_prospect ? (
@@ -219,7 +222,16 @@ export function OrcamentoFichaSheet({
           label="Prazo / validade"
           value={`${orc.prazo_entrega_dias} d.úteis · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
         />
-        <Kv label="Atualizado" value={formatDateTime(orc.updated_at)} />
+        <Kv
+          label="Condição / forma"
+          value={
+            [dash(input.condicao_pagamento as string), formaPagamentoLabel(input.forma_pagamento as string)]
+              .filter((v) => v && v !== '—')
+              .join(' · ') || '—'
+          }
+        />
+        <Kv label="Cadastrado por" value={orc.criado_por?.name ?? '—'} />
+        <Kv label="Última edição" value={orc.atualizado_por?.name ?? '—'} />
       </div>
 
       <Section title="Descrição do serviço (snapshot)">
@@ -282,6 +294,28 @@ export function OrcamentoFichaSheet({
             </tr>
           </tbody>
         </table>
+        {Array.isArray(input.modelos_composicao) &&
+        (input.modelos_composicao as Array<{ nome?: string; percentual?: number }>).some(
+          (m) => String(m?.nome ?? '').trim() !== '',
+        ) ? (
+          <ModelosComposicaoTable
+            variant="ficha"
+            title={null}
+            hint={null}
+            className="orc-modelos-ficha"
+            modelos={
+              input.modelos_composicao as Array<{
+                ordem?: number;
+                nome?: string;
+                percentual?: number;
+              }>
+            }
+            faixas={faixas.map((fx, i) => ({
+              key: i,
+              quantidade: Number(fx.quantidade) || 0,
+            }))}
+          />
+        ) : null}
       </Section>
 
       <Section title="Faca">
@@ -478,6 +512,8 @@ export function OrcamentoFichaSheet({
         <strong>Uso interno</strong> — espelho da aba ORÇAMENTO (cálculo completo). Não é a
         proposta CONSOLIDADO ao cliente (estudo 32 · GERACAO §1.5 / §6). Motor R1–R20 · G10.
       </p>
+
+      <RegistroMetaStrip registro={orc} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>Uso interno · cálculo ORC · emitido por {emitidoPor}</span>

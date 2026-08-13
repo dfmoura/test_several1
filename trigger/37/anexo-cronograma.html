@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Anexo B — Cronograma de implantação ERP RLP Etiquetas. TRIGGER Data Intelligence.">
+  <title>Anexo B · Cronograma | TRIGGER × RLP</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon-32-light.png" sizes="32x32">
+  <meta name="theme-color" content="#1a3568">
+  <link rel="stylesheet" href="assets/css/proposta.css">
+  <style>
+    :root {
+      --gate: #15803d;
+      --gate-soft: rgba(21, 128, 61, 0.1);
+      --hold: #b45309;
+      --hold-soft: rgba(180, 83, 9, 0.12);
+      --pre: #64748b;
+      --pre-soft: #eef1f5;
+    }
+
+    body.doc-anexo {
+      background: #dfe6f0;
+    }
+
+    body.doc-anexo .doc {
+      width: min(100% - 1rem, 1120px);
+      margin: 0.75rem auto 1.25rem;
+    }
+
+    .sheet {
+      padding: 0.7rem 0.85rem 0.55rem;
+    }
+
+    .head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.35rem;
+      padding-bottom: 0.32rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head-left {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+    }
+
+    .head-left img {
+      height: 28px;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .head-titles h1 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .head-titles p {
+      margin: 0.12rem 0 0;
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-right: 0.3rem;
+      padding: 0.06rem 0.35rem;
+      font-size: 0.58rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--navy-dark);
+      background: var(--navy-soft);
+      border: 1px solid rgba(26, 53, 104, 0.2);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
+
+    .head-meta {
+      text-align: right;
+      font-size: 0.62rem;
+      color: var(--muted);
+      line-height: 1.35;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .head-meta strong {
+      display: block;
+      color: var(--navy-dark);
+      font-size: 0.68rem;
+    }
+
+    /* Resumo */
+    .snap {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.28rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .snap-item {
+      padding: 0.28rem 0.4rem;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--soft);
+      text-align: center;
+    }
+
+    .snap-item span {
+      display: block;
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .snap-item strong {
+      display: block;
+      margin-top: 0.08rem;
+      font-size: 0.72rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.7rem;
+      margin: 0 0 0.32rem;
+      font-size: 0.6rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.26rem;
+    }
+
+    .sw {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 2px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .sw--work { background: var(--navy); border-color: var(--navy); }
+    .sw--aceite { background: var(--hold-soft); border-color: var(--hold); }
+    .sw--gate { background: var(--gate-soft); border-color: var(--gate); }
+    .sw--pre { background: var(--pre-soft); border-color: var(--pre); }
+    .sw--mile { background: var(--green); border-color: var(--green); border-radius: 50%; }
+
+    /* Gantt */
+    .gantt-wrap {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      overflow: hidden;
+      background: #fff;
+      margin-bottom: 0.4rem;
+    }
+
+    .gantt {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.58rem;
+    }
+
+    .gantt th,
+    .gantt td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid rgba(26, 53, 104, 0.06);
+      padding: 0;
+      vertical-align: middle;
+    }
+
+    .gantt thead th {
+      background: var(--navy);
+      color: #fff;
+      font-weight: 650;
+      font-size: 0.54rem;
+      letter-spacing: 0.02em;
+      text-align: center;
+      padding: 0.22rem 0.1rem;
+      border-right-color: rgba(255, 255, 255, 0.12);
+      border-bottom: none;
+    }
+
+    .gantt thead th.lab {
+      text-align: left;
+      padding-left: 0.4rem;
+      width: 11.5%;
+      font-size: 0.58rem;
+    }
+
+    .gantt tbody th {
+      text-align: left;
+      padding: 0.22rem 0.4rem;
+      font-size: 0.58rem;
+      font-weight: 650;
+      color: var(--navy-dark);
+      background: var(--soft);
+      line-height: 1.2;
+      width: 11.5%;
+    }
+
+    .gantt tbody th small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.5rem;
+      margin-top: 0.02rem;
+    }
+
+    .gantt tbody tr:last-child th,
+    .gantt tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .gantt td {
+      height: 1.55rem;
+      position: relative;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent calc(100% / 1 - 1px),
+          rgba(26, 53, 104, 0.04) calc(100% / 1 - 1px),
+          rgba(26, 53, 104, 0.04) 100%
+        );
+    }
+
+    .bar {
+      position: absolute;
+      top: 18%;
+      bottom: 18%;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.48rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      line-height: 1;
+      z-index: 1;
+    }
+
+    .bar--pre {
+      background: var(--pre-soft);
+      border: 1px solid var(--pre);
+      color: #334155;
+      left: 0;
+      width: calc(100% / 17 * 1 - 2px);
+      margin-left: 1px;
+    }
+
+    .bar--work {
+      background: var(--navy);
+      color: #fff;
+      border: 1px solid var(--navy-dark);
+    }
+
+    .bar--aceite {
+      background: var(--hold-soft);
+      border: 1px solid var(--hold);
+      color: #7c2d12;
+    }
+
+    .bar--gate {
+      background: var(--gate-soft);
+      border: 1px solid var(--gate);
+      color: #14532d;
+    }
+
+    .bar--live {
+      background: var(--green);
+      border: 1px solid #5a8f10;
+      color: #fff;
+    }
+
+    /* Colunas no eixo: 0=P, 1–16=S1–S16 (17 células) */
+    .c1  { left: calc(100% / 17 * 0);  width: calc(100% / 17 * 1 - 2px); margin-left: 1px; }
+    .w3  { left: calc(100% / 17 * 1);  width: calc(100% / 17 * 3 - 2px); margin-left: 1px; }  /* F1 S1–S3 */
+    .a1  { left: calc(100% / 17 * 4);  width: calc(100% / 17 * 1 - 2px); margin-left: 1px; }  /* F1 S4 */
+    .w3b { left: calc(100% / 17 * 5);  width: calc(100% / 17 * 2 - 2px); margin-left: 1px; }  /* F2 S5–S6 */
+    .a2  { left: calc(100% / 17 * 7);  width: calc(100% / 17 * 1 - 2px); margin-left: 1px; }  /* F2 S7 */
+    .w3c { left: calc(100% / 17 * 8);  width: calc(100% / 17 * 3 - 2px); margin-left: 1px; }  /* F3 S8–S10 */
+    .a3  { left: calc(100% / 17 * 11); width: calc(100% / 17 * 1 - 2px); margin-left: 1px; } /* F3 S11 */
+    .w3d { left: calc(100% / 17 * 12); width: calc(100% / 17 * 2 - 2px); margin-left: 1px; } /* F4 S12–S13 */
+    .a4  { left: calc(100% / 17 * 14); width: calc(100% / 17 * 1 - 2px); margin-left: 1px; } /* F4 S14 */
+    .w3e { left: calc(100% / 17 * 15); width: calc(100% / 17 * 1 - 2px); margin-left: 1px; } /* F5 S15 */
+    .live{ left: calc(100% / 17 * 16); width: calc(100% / 17 * 1 - 2px); margin-left: 1px; } /* F5 S16 */
+
+    /* Fases cards */
+    .phases {
+      display: grid;
+      grid-template-columns: 0.85fr repeat(5, 1fr);
+      gap: 0.28rem;
+      margin-bottom: 0.35rem;
+      align-items: stretch;
+    }
+
+    .ph {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .ph--pre {
+      background: var(--soft);
+    }
+
+    .ph-h {
+      padding: 0.28rem 0.35rem;
+      background: var(--navy);
+      color: #fff;
+      min-height: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.06rem;
+    }
+
+    .ph--pre .ph-h {
+      background: #475569;
+    }
+
+    .ph-h strong {
+      display: block;
+      font-size: 0.64rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .ph-h em {
+      display: block;
+      font-style: normal;
+      font-size: 0.52rem;
+      opacity: 0.82;
+      line-height: 1.2;
+    }
+
+    .ph-b {
+      padding: 0.3rem 0.35rem 0.35rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .ph-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.15rem;
+    }
+
+    .chip {
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 0.08rem 0.22rem;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      background: var(--soft);
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .chip--navy {
+      background: var(--navy-soft);
+      border-color: rgba(26, 53, 104, 0.25);
+    }
+
+    .chip--ok {
+      background: var(--gate-soft);
+      border-color: rgba(21, 128, 61, 0.35);
+      color: #14532d;
+    }
+
+    .chip--hold {
+      background: var(--hold-soft);
+      border-color: rgba(180, 83, 9, 0.35);
+      color: #7c2d12;
+    }
+
+    .ph-b ul {
+      margin: 0;
+      padding-left: 0.85rem;
+      font-size: 0.55rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .ph-b li { margin-bottom: 0.04rem; }
+    .ph-b li:last-child { margin-bottom: 0; }
+
+    .ph-b .code {
+      font-weight: 700;
+      color: var(--navy-dark);
+      font-size: 0.52rem;
+    }
+
+    .ph-ready {
+      margin-top: auto;
+      padding-top: 0.22rem;
+      border-top: 1px dashed var(--line);
+      font-size: 0.52rem;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .ph-ready strong {
+      color: var(--navy-dark);
+      font-weight: 700;
+    }
+
+    /* Notas de governança */
+    .rules {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 0.28rem;
+    }
+
+    .rule {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.32rem 0.4rem;
+      background: var(--soft);
+    }
+
+    .rule--gate {
+      border-color: rgba(21, 128, 61, 0.28);
+      background: var(--gate-soft);
+    }
+
+    .rule--hold {
+      border-color: rgba(180, 83, 9, 0.28);
+      background: var(--hold-soft);
+    }
+
+    .rule h3 {
+      margin: 0 0 0.15rem;
+      font-size: 0.64rem;
+      color: var(--navy-dark);
+    }
+
+    .rule--gate h3 { color: #14532d; }
+    .rule--hold h3 { color: #7c2d12; }
+
+    .rule p,
+    .rule ul {
+      margin: 0;
+      font-size: 0.58rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .rule ul {
+      padding-left: 0.85rem;
+    }
+
+    .rule li { margin-bottom: 0.04rem; }
+    .rule li:last-child { margin-bottom: 0; }
+
+    .foot {
+      margin-top: 0.32rem;
+      padding-top: 0.26rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.58rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .foot a { color: var(--navy); }
+
+    @media (max-width: 900px) {
+      .snap { grid-template-columns: 1fr 1fr; }
+      .phases { grid-template-columns: 1fr; }
+      .rules { grid-template-columns: 1fr; }
+      .head { flex-direction: column; }
+      .head-meta { text-align: left; white-space: normal; }
+      .gantt thead th:not(.lab),
+      .gantt tbody td { display: none; }
+      .gantt tbody th { width: auto; }
+    }
+
+    @media print {
+      body.doc-anexo {
+        background: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body.doc-anexo .toolbar { display: none !important; }
+
+      body.doc-anexo .doc {
+        width: auto;
+        max-width: none;
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 7mm 7mm 7mm;
+      }
+
+      body.doc-anexo .sheet { padding: 0; }
+
+      body.doc-anexo .head-titles h1 { font-size: 9.5pt; }
+      body.doc-anexo .head-titles p { font-size: 6.8pt; }
+      body.doc-anexo .head-meta { font-size: 6.2pt; }
+      body.doc-anexo .snap-item strong { font-size: 7.2pt; }
+      body.doc-anexo .snap-item span { font-size: 5.4pt; }
+      body.doc-anexo .legend { font-size: 6pt; }
+      body.doc-anexo .gantt thead th { font-size: 5.6pt; padding: 0.18rem 0.06rem; }
+      body.doc-anexo .gantt tbody th { font-size: 6pt; }
+      body.doc-anexo .gantt tbody th small { font-size: 5.2pt; }
+      body.doc-anexo .bar { font-size: 5pt; }
+      body.doc-anexo .ph-h strong { font-size: 6.6pt; }
+      body.doc-anexo .ph-h em { font-size: 5.4pt; }
+      body.doc-anexo .ph-b ul { font-size: 5.6pt; }
+      body.doc-anexo .chip { font-size: 5.2pt; }
+      body.doc-anexo .ph-ready { font-size: 5.4pt; }
+      body.doc-anexo .rule h3 { font-size: 6.6pt; }
+      body.doc-anexo .rule p,
+      body.doc-anexo .rule ul { font-size: 6pt; }
+      body.doc-anexo .foot { font-size: 6pt; margin-top: 0.22rem; }
+
+      body.doc-anexo .sheet,
+      body.doc-anexo .gantt-wrap,
+      body.doc-anexo .phases,
+      body.doc-anexo .rules {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="doc-anexo">
+  <div class="toolbar" role="navigation" aria-label="Ações do documento">
+    <div class="toolbar-brand">
+      <img src="assets/img/logo-trigger-mark.png" alt="" width="28" height="28">
+      <span>Anexo B · Cronograma · ERP RLP</span>
+    </div>
+    <div class="toolbar-actions">
+      <a class="btn btn-secondary" href="index-v2.html">Voltar à proposta</a>
+      <a class="btn btn-secondary" href="anexo-fluxo-operacional.html">Anexo A · Fluxo</a>
+      <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF (paisagem)</button>
+    </div>
+  </div>
+
+  <article class="doc" aria-label="Anexo B — Cronograma de implantação">
+    <section class="sheet">
+
+      <header class="head">
+        <div class="head-left">
+          <img src="assets/img/logo-trigger-header.png" alt="TRIGGER Data Intelligence" width="120" height="50">
+          <div class="head-titles">
+            <h1><span class="badge">Anexo B</span> Cronograma de implantação por fases</h1>
+            <p>
+              Etapas, duração estimada e gates vinculados ao escopo da proposta
+              (itens 1.a–5.b · seções 3 e 6). Uma página · A4 paisagem.
+            </p>
+          </div>
+        </div>
+        <div class="head-meta">
+          <strong>ERP-RLP-2026-01-v2</strong>
+          Proposta comercial · 11/08/2026<br>
+          TRIGGER × RLP Etiquetas
+        </div>
+      </header>
+
+      <div class="snap" aria-label="Resumo do prazo">
+        <div class="snap-item">
+          <span>Marco zero</span>
+          <strong>Sinal + kickoff</strong>
+        </div>
+        <div class="snap-item">
+          <span>Prazo alvo</span>
+          <strong>~16 semanas</strong>
+        </div>
+        <div class="snap-item">
+          <span>Fases</span>
+          <strong>5 etapas sequenciais</strong>
+        </div>
+        <div class="snap-item">
+          <span>Aceite / fase</span>
+          <strong>até 5 dias úteis</strong>
+        </div>
+        <div class="snap-item">
+          <span>Avanço N→N+1</span>
+          <strong>após saldo quitado</strong>
+        </div>
+      </div>
+
+      <div class="legend" aria-label="Legenda">
+        <span><i class="sw sw--pre" aria-hidden="true"></i> Pré-kickoff (assinatura / sinal)</span>
+        <span><i class="sw sw--work" aria-hidden="true"></i> Execução TRIGGER</span>
+        <span><i class="sw sw--aceite" aria-hidden="true"></i> Homologação RLP</span>
+        <span><i class="sw sw--gate" aria-hidden="true"></i> Gate de pagamento (saldo)</span>
+        <span><i class="sw sw--mile" aria-hidden="true"></i> Go-live / virada</span>
+        <span>S1 = 1ª semana após kickoff · P = pré-kickoff</span>
+      </div>
+
+      <div class="gantt-wrap" aria-label="Cronograma Gantt relativo">
+        <table class="gantt">
+          <thead>
+            <tr>
+              <th class="lab">Etapa</th>
+              <th>P</th>
+              <th>S1</th><th>S2</th><th>S3</th><th>S4</th>
+              <th>S5</th><th>S6</th><th>S7</th>
+              <th>S8</th><th>S9</th><th>S10</th><th>S11</th>
+              <th>S12</th><th>S13</th><th>S14</th>
+              <th>S15</th><th>S16</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Assinatura / sinal<small>semana seguinte → kickoff</small></th>
+              <td colspan="17">
+                <span class="bar bar--pre c1">Sinal</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Fase 1 · Fundação<small>S1–S3 exec. · S4 aceite/saldo</small></th>
+              <td colspan="17">
+                <span class="bar bar--work w3">1.a–1.e</span>
+                <span class="bar bar--aceite a1">Aceite</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Fase 2 · Compras<small>S5–S6 exec. · S7 aceite/saldo</small></th>
+              <td colspan="17">
+                <span class="bar bar--work w3b">2.a–2.e</span>
+                <span class="bar bar--aceite a2">Aceite</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Fase 3 · Produção<small>S8–S10 exec. · S11 aceite/saldo</small></th>
+              <td colspan="17">
+                <span class="bar bar--work w3c">3.a–3.j</span>
+                <span class="bar bar--aceite a3">Aceite</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Fase 4 · Financeiro<small>S12–S13 exec. · S14 aceite/saldo</small></th>
+              <td colspan="17">
+                <span class="bar bar--work w3d">4.a–4.f</span>
+                <span class="bar bar--aceite a4">Aceite</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Fase 5 · Go-live<small>S15 exec. · S16 aceite / virada</small></th>
+              <td colspan="17">
+                <span class="bar bar--work w3e">5.a</span>
+                <span class="bar bar--live live">5.b</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="phases" aria-label="Detalhe por etapa">
+
+        <article class="ph ph--pre">
+          <div class="ph-h">
+            <strong>0 · Pré-kickoff</strong>
+            <em>Assinatura · sinal · acessos</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">~1 semana</span>
+              <span class="chip">R$ 5.000 sinal</span>
+            </div>
+            <ul>
+              <li>Aceite formal da proposta</li>
+              <li>Pagamento do sinal (20%)</li>
+              <li>Kickoff na semana seguinte</li>
+              <li>A1, banco e AWS (privilégio mínimo)</li>
+            </ul>
+            <p class="ph-ready"><strong>Inicia Fase 1</strong> com sinal confirmado e acessos liberados.</p>
+          </div>
+        </article>
+
+        <article class="ph">
+          <div class="ph-h">
+            <strong>1 · Fundação comercial</strong>
+            <em>Ambiente · cadastros · orçamento</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">S1–S4 · 4 sem.</span>
+              <span class="chip chip--ok">Saldo R$ 4.000</span>
+            </div>
+            <ul>
+              <li><span class="code">1.a</span> Ambiente, login e perfis</li>
+              <li><span class="code">1.b</span> Empresas EMP-00001/00002</li>
+              <li><span class="code">1.c</span> Parceiros e crédito</li>
+              <li><span class="code">1.d</span> Produtos</li>
+              <li><span class="code">1.e</span> Orçamento até o envio</li>
+            </ul>
+            <p class="ph-ready"><strong>Pronta:</strong> usuários autenticam; fluxo parceiro → produto → orçamento demonstrado.</p>
+          </div>
+        </article>
+
+        <article class="ph">
+          <div class="ph-h">
+            <strong>2 · Compras e estoque</strong>
+            <em>Ponto de pedido → contas a pagar</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">S5–S7 · 3 sem.</span>
+              <span class="chip chip--ok">Saldo R$ 4.000</span>
+              <span class="chip chip--hold">após F1 paga</span>
+            </div>
+            <ul>
+              <li><span class="code">2.a</span> Saldo inicial de estoque</li>
+              <li><span class="code">2.b</span> Ponto de pedido</li>
+              <li><span class="code">2.c</span> Pedido de compra</li>
+              <li><span class="code">2.d</span> Conferência / entrada</li>
+              <li><span class="code">2.e</span> Contas a pagar</li>
+            </ul>
+            <p class="ph-ready"><strong>Pronta:</strong> requisição → compra → entrada → CAP ponta a ponta.</p>
+          </div>
+        </article>
+
+        <article class="ph">
+          <div class="ph-h">
+            <strong>3 · Pedido e produção</strong>
+            <em>Sinal PIX · OP/OS · estoque MP</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">S8–S11 · 4 sem.</span>
+              <span class="chip chip--ok">Saldo R$ 4.000</span>
+              <span class="chip chip--hold">após F2 paga</span>
+            </div>
+            <ul>
+              <li><span class="code">3.a–c</span> Pedido · PIX · adiantamento</li>
+              <li><span class="code">3.d–e</span> Pedido · OP/OS</li>
+              <li><span class="code">3.f–h</span> Saída MP · produção · fim</li>
+              <li><span class="code">3.i–j</span> ±20% · retorno de sobra</li>
+            </ul>
+            <p class="ph-ready"><strong>Pronta:</strong> ciclo pedido → produção → readequação homologado.</p>
+          </div>
+        </article>
+
+        <article class="ph">
+          <div class="ph-h">
+            <strong>4 · Faturamento</strong>
+            <em>Cobrança · entrega · baixa</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">S12–S14 · 3 sem.</span>
+              <span class="chip chip--ok">Saldo R$ 4.000</span>
+              <span class="chip chip--hold">após F3 paga</span>
+            </div>
+            <ul>
+              <li><span class="code">4.a</span> Contas a receber</li>
+              <li><span class="code">4.b–c</span> Entrega / confirmação</li>
+              <li><span class="code">4.d–e</span> Baixa / conciliação</li>
+              <li><span class="code">4.f</span> Devolução</li>
+            </ul>
+            <p class="ph-ready"><strong>Pronta:</strong> cobrança → entrega → baixa e devolução na amostra.</p>
+          </div>
+        </article>
+
+        <article class="ph">
+          <div class="ph-h">
+            <strong>5 · BI e go-live</strong>
+            <em>Indicadores · virada de produção</em>
+          </div>
+          <div class="ph-b">
+            <div class="ph-meta">
+              <span class="chip chip--navy">S15–S16 · 2 sem.</span>
+              <span class="chip chip--ok">Saldo R$ 4.000</span>
+              <span class="chip chip--hold">após F4 paga</span>
+            </div>
+            <ul>
+              <li><span class="code">5.a</span> Relatórios / dashboards / BI</li>
+              <li><span class="code">5.b</span> Colocar em produção</li>
+            </ul>
+            <p class="ph-ready"><strong>Pronta:</strong> painéis do fluxo 1–4 + checklist de virada. Licença R$&nbsp;300/mês inicia.</p>
+          </div>
+        </article>
+
+      </div>
+
+      <div class="rules" aria-label="Regras de prazo e avanço">
+        <div class="rule rule--gate">
+          <h3>Gates de avanço (proposta §2 e §4)</h3>
+          <ul>
+            <li>Cada fase: execução → demonstração por escrito → aceite RLP (ou tácito em 5 dias úteis) → <strong>saldo R$&nbsp;4.000</strong>.</li>
+            <li><strong>Fase N+1 só inicia após confirmação do pagamento integral do saldo da fase N.</strong></li>
+            <li>Barras de “Aceite” no Gantt incluem janela de homologação e quitação; atraso no pagamento desloca as semanas seguintes.</li>
+          </ul>
+        </div>
+        <div class="rule rule--hold">
+          <h3>Dependências da RLP</h3>
+          <ul>
+            <li>A1, credenciais bancárias e AWS já no kickoff / Fase&nbsp;1.</li>
+            <li>Usuário-chave por área e feedback em até 5 dias úteis.</li>
+            <li>Inventário e base de clientes/produtos na data combinada (Fase&nbsp;2).</li>
+          </ul>
+        </div>
+        <div class="rule">
+          <h3>Contagem e idle (proposta §4)</h3>
+          <ul>
+            <li>Semanas são <strong>estimativa operacional</strong> a partir do kickoff; não substituem aceite formal.</li>
+            <li>Sem dados/acessos/feedback: prazos TRIGGER suspendem.</li>
+            <li>Idle &gt; 15 du: remanejamento · &gt; 45 du: rescisão das fases não iniciadas (sinal retido).</li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="foot">
+        <span><strong>TRIGGER</strong> · CNPJ 53.369.941/0001-63 · Anexo B da proposta ERP-RLP-2026-01-v2 · confidencial</span>
+        <span>Impressão: A4 paisagem · 1 página · <a href="index-v2.html">voltar à proposta</a> · <a href="anexo-fluxo-operacional.html">Anexo A</a></span>
+      </footer>
+    </section>
+  </article>
+</body>
+</html>

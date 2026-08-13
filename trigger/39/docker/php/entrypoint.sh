@@ -47,10 +47,34 @@ if [ -n "$DB_PASSWORD" ]; then
   sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env || echo "DB_PASSWORD=${DB_PASSWORD}" >> .env
 fi
 
+# Estágio canônico: local | homolog | production (docs/DEPLOY_LOCAL_AWS.md)
+ERP_STAGE="${ERP_STAGE:-local}"
+case "$ERP_STAGE" in
+  local|homolog|production) ;;
+  *)
+    echo "ERP_STAGE inválido: '$ERP_STAGE' (use local|homolog|production)" >&2
+    exit 1
+    ;;
+esac
+
+# Guarda: produção/homolog nunca semeiam no boot (evita resetar dados na reinicialização).
+if [ "$ERP_STAGE" = "production" ] || [ "$ERP_STAGE" = "homolog" ]; then
+  if [ "${SEED_ON_BOOT:-false}" = "true" ]; then
+    echo "AVISO: SEED_ON_BOOT ignorado em ERP_STAGE=$ERP_STAGE (use seed manual se banco vazio)." >&2
+  fi
+  SEED_ON_BOOT=false
+fi
+
+# Guarda: debug ligado em produção é erro de configuração.
+if [ "$ERP_STAGE" = "production" ] && [ "${APP_DEBUG:-false}" = "true" ]; then
+  echo "ERRO: APP_DEBUG=true com ERP_STAGE=production — recusando boot." >&2
+  exit 1
+fi
+
 php artisan config:clear || true
 php artisan migrate --force --no-interaction
 
-if [ "${SEED_ON_BOOT:-true}" = "true" ]; then
+if [ "${SEED_ON_BOOT:-false}" = "true" ]; then
   php artisan db:seed --force --no-interaction
 fi
 

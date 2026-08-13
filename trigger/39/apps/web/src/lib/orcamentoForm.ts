@@ -21,13 +21,17 @@ export function isOrcEnviavel(status: string | undefined | null): boolean {
   return ['CALCULADO', 'REPROVADO', 'ENVIADO', 'VISUALIZADO'].includes(String(status || ''));
 }
 
-export function statusOrcLabel(status: string): string {
+export function statusOrcLabel(status: string, financeiroStatus?: string | null): string {
+  if (status === 'APROVADO' && financeiroStatus === 'AGUARDA_ADIANTAMENTO') {
+    return 'Aguardando pagamento';
+  }
   const labels: Record<string, string> = {
     RASCUNHO: 'Em preparação',
     CALCULADO: 'Em preparação',
     ENVIADO: 'Enviado p/ aprovação',
     VISUALIZADO: 'Enviado p/ aprovação',
     APROVADO: 'Aprovado',
+    AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
     REPROVADO: 'Rejeitado',
     VENCIDO: 'Vencido',
     CANCELADO: 'Cancelado',
@@ -35,13 +39,17 @@ export function statusOrcLabel(status: string): string {
   return labels[status] ?? status;
 }
 
-export function statusOrcPill(status: string): string {
+export function statusOrcPill(status: string, financeiroStatus?: string | null): string {
+  if (status === 'APROVADO' && financeiroStatus === 'AGUARDA_ADIANTAMENTO') {
+    return 'Aguardando pagamento';
+  }
   const labels: Record<string, string> = {
     RASCUNHO: 'Em preparação',
     CALCULADO: 'Em preparação',
     ENVIADO: 'Enviado p/ aprovação',
     VISUALIZADO: 'Visualizado',
     APROVADO: 'Aprovado',
+    AGUARDANDO_PAGAMENTO: 'Aguardando pagamento',
     REPROVADO: 'Rejeitado',
     VENCIDO: 'Vencido',
     CANCELADO: 'Cancelado',
@@ -54,6 +62,13 @@ export type FaixaForm = {
   comissao_pct: number;
 };
 
+/** Arte / modelo operacional — % da quantidade do serviço (soma = 100). */
+export type ModeloComposicaoForm = {
+  ordem: number;
+  nome: string;
+  percentual: number;
+};
+
 export type OrcForm = {
   parceiro_id: number | '';
   medida: string;
@@ -63,6 +78,8 @@ export type OrcForm = {
   papel: string;
   acabamento: string;
   modelos: number;
+  /** Detalhe operacional; motor usa só `modelos`. */
+  modelos_composicao: ModeloComposicaoForm[];
   colunas: number;
   etiq_por_rolo: number;
   tubete: string;
@@ -82,6 +99,9 @@ export type OrcForm = {
   formato_faca: string;
   valor_faca_nova: number;
   prazo_faca_dias: number | '';
+  /** Snapshot comercial desta proposta (defaults do PAR; não altera o motor). */
+  condicao_pagamento: string;
+  forma_pagamento: string;
 };
 
 export type OrcCatalogo = {
@@ -97,6 +117,80 @@ export type OrcCatalogo = {
   matriz_cm2?: number;
 };
 
+/** Equal-split canônico (soma = 100); preserva nomes nas posições existentes. */
+export function syncModelosComposicao(
+  prev: ModeloComposicaoForm[] | undefined,
+  n: number,
+): ModeloComposicaoForm[] {
+  const count = Math.max(1, Math.floor(n) || 1);
+  const base = Math.floor(10000 / count) / 100;
+  const out: ModeloComposicaoForm[] = [];
+  let acc = 0;
+  for (let i = 0; i < count; i++) {
+    const pct = i === count - 1 ? Math.round((100 - acc) * 10000) / 10000 : base;
+    acc += pct;
+    out.push({
+      ordem: i + 1,
+      nome: prev?.[i]?.nome ?? '',
+      percentual: pct,
+    });
+  }
+  return out;
+}
+
+export function somaPercentualModelos(rows: ModeloComposicaoForm[]): number {
+  return Math.round(rows.reduce((s, r) => s + (Number(r.percentual) || 0), 0) * 10000) / 10000;
+}
+
+/** Mensagem de validação da composição; null se OK. */
+export function validarModelosComposicao(
+  modelos: number,
+  rows: ModeloComposicaoForm[],
+): string | null {
+  const n = Math.max(1, Math.floor(modelos) || 1);
+  if (rows.length !== n) {
+    return `Detalhe exatamente ${n} modelo(s) (nome + % da quantidade).`;
+  }
+  for (let i = 0; i < rows.length; i++) {
+    const nome = String(rows[i]?.nome ?? '').trim();
+    if (!nome) {
+      return `Informe o nome do modelo ${i + 1} (arte / referência).`;
+    }
+    const pct = Number(rows[i]?.percentual);
+    if (!(pct > 0) || pct > 100) {
+      return `Percentual do modelo ${i + 1} deve ser > 0 e ≤ 100.`;
+    }
+  }
+  const soma = somaPercentualModelos(rows);
+  if (Math.abs(soma - 100) > 0.01) {
+    return `A soma dos % dos modelos deve ser 100% (atual: ${soma}%).`;
+  }
+  return null;
+}
+
+/**
+ * Aloca Q por %; resto no último (para preview / PED futuro).
+ */
+export function alocarQuantidadePorModelo(
+  quantidadeTotal: number,
+  rows: ModeloComposicaoForm[],
+): Array<ModeloComposicaoForm & { quantidade: number }> {
+  const q = Math.max(0, Math.floor(quantidadeTotal) || 0);
+  const n = rows.length;
+  if (n === 0) return [];
+  let alocado = 0;
+  return rows.map((r, i) => {
+    let qi: number;
+    if (i === n - 1) {
+      qi = q - alocado;
+    } else {
+      qi = Math.floor((q * (Number(r.percentual) || 0)) / 100 + 1e-9);
+      alocado += qi;
+    }
+    return { ...r, quantidade: Math.max(0, qi) };
+  });
+}
+
 export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
   const papeis = catalog?.papeis ?? [];
   const acabamentos = catalog?.acabamentos ?? [];
@@ -111,6 +205,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     papel: papeis[0] ?? 'COUCHE',
     acabamento: acabamentos[0] ?? 'SEM ACABAMENTO',
     modelos: 1,
+    modelos_composicao: syncModelosComposicao([], 1),
     colunas: 1,
     etiq_por_rolo: 1000,
     tubete: '1"',
@@ -134,6 +229,8 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     formato_faca: '',
     valor_faca_nova: 0,
     prazo_faca_dias: '',
+    condicao_pagamento: '',
+    forma_pagamento: '',
   };
 }
 
@@ -144,6 +241,19 @@ export function formFromSnapshot(
   const base = defaultOrcForm(catalog);
   if (!snap) return base;
   const faixasRaw = (snap.faixas as FaixaForm[]) ?? base.faixas;
+  const modelos = Number(snap.modelos) || 1;
+  const compRaw = Array.isArray(snap.modelos_composicao)
+    ? (snap.modelos_composicao as ModeloComposicaoForm[])
+    : [];
+  const modelos_composicao =
+    compRaw.length === modelos
+      ? compRaw.map((r, i) => ({
+          ordem: Number(r.ordem) || i + 1,
+          nome: String(r.nome ?? ''),
+          percentual: Number(r.percentual) || 0,
+        }))
+      : syncModelosComposicao(compRaw, modelos);
+
   return {
     ...base,
     parceiro_id:
@@ -156,7 +266,8 @@ export function formFromSnapshot(
     cores: String(snap.cores ?? base.cores),
     papel: String(snap.papel ?? base.papel),
     acabamento: String(snap.acabamento ?? base.acabamento),
-    modelos: Number(snap.modelos) || 1,
+    modelos,
+    modelos_composicao,
     colunas: Number(snap.colunas) || 1,
     etiq_por_rolo: Number(snap.etiq_por_rolo) || 1000,
     tubete: String(snap.tubete ?? base.tubete),
@@ -182,6 +293,8 @@ export function formFromSnapshot(
       snap.prazo_faca_dias == null || snap.prazo_faca_dias === ''
         ? ''
         : Number(snap.prazo_faca_dias),
+    condicao_pagamento: String(snap.condicao_pagamento ?? ''),
+    forma_pagamento: String(snap.forma_pagamento ?? ''),
   };
 }
 
@@ -195,6 +308,11 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     papel: form.papel,
     acabamento: form.acabamento,
     modelos: form.modelos,
+    modelos_composicao: form.modelos_composicao.map((m, i) => ({
+      ordem: i + 1,
+      nome: m.nome.trim(),
+      percentual: Number(m.percentual) || 0,
+    })),
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,
     tubete: form.tubete,
@@ -218,6 +336,8 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
         ? null
         : form.prazo_faca_dias
       : null,
+    condicao_pagamento: form.condicao_pagamento.trim() || null,
+    forma_pagamento: form.forma_pagamento.trim() || null,
   };
 }
 

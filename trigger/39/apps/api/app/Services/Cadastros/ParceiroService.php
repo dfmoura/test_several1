@@ -17,13 +17,20 @@ class ParceiroService
     public function __construct(
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $auditLogger,
+        private readonly DepartamentoService $departamentoService,
     ) {}
 
     public function list(Empresa $empresa, ?string $q = null, ?string $papel = null, int $limit = 50)
     {
         $query = Parceiro::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['contatos', 'contasBancarias', 'enderecosEntrega'])
+            ->with([
+                'contatos',
+                'contasBancarias',
+                'enderecosEntrega',
+                'departamentoRef:id,codigo,nome,ativo',
+                ...Parceiro::userStampWith(),
+            ])
             ->orderBy('razao_social');
 
         if ($q) {
@@ -34,7 +41,9 @@ class ParceiroService
                     ->orWhere('codigo', 'like', "%{$q}%")
                     ->orWhere('email', 'like', "%{$q}%")
                     ->orWhere('telefone', 'like', "%{$q}%")
-                    ->orWhere('whatsapp', 'like', "%{$q}%");
+                    ->orWhere('whatsapp', 'like', "%{$q}%")
+                    ->orWhere('municipio', 'like', "%{$q}%")
+                    ->orWhere('uf', 'like', "%{$q}%");
                 if ($digits !== '') {
                     $builder->orWhere('cnpj_cpf', 'like', "%{$digits}%")
                         ->orWhere('telefone', 'like', "%{$digits}%")
@@ -166,6 +175,7 @@ class ParceiroService
             $codigo = $data['codigo'] ?? $this->codigoGenerator->nextCode($empresa->id, 'PAR', 5);
 
             $attributes = $this->mapAttributes($data);
+            $attributes = $this->applyDepartamento($empresa, $data, $attributes);
             $attributes = array_merge($attributes, $this->denormalizeFromRelations($contatos, $contas, $attributes));
             $attributes = $this->applyFiscalRules($attributes, []);
 
@@ -185,10 +195,10 @@ class ParceiroService
                 'parceiro',
                 $parceiro->id,
                 null,
-                $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico'])->toArray()
+                $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()])->toArray()
             );
 
-            return $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico']);
+            return $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()]);
         });
     }
 
@@ -209,20 +219,22 @@ class ParceiroService
             ? $this->normalizeEnderecosEntrega($data['enderecos_entrega'])
             : null;
 
-        $before = $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico'])->toArray();
+        $before = $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()])->toArray();
         $beforeFiscal = $parceiro->only(ParceiroFiscalRules::vigenciaFields());
 
         return DB::transaction(function () use (
             $parceiro, $data, $hasContatos, $hasContas, $hasEnderecosEntrega,
             $contatos, $contas, $enderecosEntrega, $before, $beforeFiscal
         ) {
+            $empresa = $parceiro->empresa ?? Empresa::query()->findOrFail($parceiro->empresa_id);
             $attributes = $this->mapAttributes($data);
+            $attributes = $this->applyDepartamento($empresa, $data, $attributes);
 
             if ($hasContatos || $hasContas) {
                 $currentContatos = $hasContatos
                     ? $contatos
                     : $parceiro->contatos->map(fn ($c) => $c->only([
-                        'nome', 'funcao', 'telefone', 'whatsapp', 'email', 'principal', 'ordem',
+                        'nome', 'funcao', 'telefone', 'whatsapp', 'email', 'principal', 'autorizado_aprovar', 'ordem',
                     ]))->all();
                 $currentContas = $hasContas
                     ? $contas
@@ -270,7 +282,7 @@ class ParceiroService
                 );
             }
 
-            $fresh = $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico']);
+            $fresh = $parceiro->fresh(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()]);
             $this->auditLogger->log('ATUALIZAR', 'parceiro', $parceiro->id, $before, $fresh->toArray());
 
             return $fresh;
@@ -420,7 +432,7 @@ class ParceiroService
             'limite_credito', 'credito_utilizado', 'condicao_pagamento', 'forma_pagamento',
             'vendedor_parceiro_id', 'comissao_percentual',
             'tipo_fornecimento', 'cfop_entrada_padrao',
-            'vinculo', 'cargo', 'departamento', 'admissao_em', 'desligamento_em',
+            'vinculo', 'cargo', 'departamento_id', 'admissao_em', 'desligamento_em',
             'banco_codigo', 'banco_nome', 'agencia', 'conta', 'pix_chave',
             'consulta_snapshot',
         ];
@@ -435,11 +447,64 @@ class ParceiroService
                 if ($field === 'cnaes_secundarios') {
                     $value = $this->normalizeCnaesSecundarios($value);
                 }
+                if ($field === 'departamento_id') {
+                    $value = $value === '' || $value === null ? null : (int) $value;
+                }
                 $mapped[$field] = $value;
             }
         }
 
         return PadraoDecimal::canonicalizeFields($mapped, PadraoDecimal::parceiroFieldScales());
+    }
+
+    /**
+     * Resolve departamento_id e espelha o nome em `departamento` (legado).
+     * Texto livre só é aceito via import (sem departamento_id) — resolve ou cria.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function applyDepartamento(Empresa $empresa, array $data, array $attributes): array
+    {
+        $hasId = array_key_exists('departamento_id', $data);
+        $hasTexto = array_key_exists('departamento', $data);
+
+        if (! $hasId && ! $hasTexto) {
+            return $attributes;
+        }
+
+        // API moderna: departamento_id é a fonte da verdade; string não escreve sozinha.
+        if ($hasId) {
+            $id = $data['departamento_id'];
+            if ($id === null || $id === '') {
+                $attributes['departamento_id'] = null;
+                $attributes['departamento'] = null;
+
+                return $attributes;
+            }
+
+            $resolved = $this->departamentoService->resolveId($empresa, $id, null, false);
+            $attributes['departamento_id'] = $resolved;
+            $attributes['departamento'] = $this->departamentoService->mirrorNome($resolved);
+
+            return $attributes;
+        }
+
+        // Import legado: só texto → resolve por código/nome (cria se ausente).
+        $texto = is_string($data['departamento'] ?? null) ? trim((string) $data['departamento']) : '';
+        if ($texto === '') {
+            $attributes['departamento_id'] = null;
+            $attributes['departamento'] = null;
+
+            return $attributes;
+        }
+
+        $resolved = $this->departamentoService->resolveId($empresa, null, $texto, true);
+        $attributes['departamento_id'] = $resolved;
+        $attributes['departamento'] = $this->departamentoService->mirrorNome($resolved);
+
+        return $attributes;
     }
 
     /**
@@ -512,6 +577,7 @@ class ParceiroService
                 'whatsapp' => $whatsapp,
                 'email' => $email,
                 'principal' => (bool) ($row['principal'] ?? false),
+                'autorizado_aprovar' => (bool) ($row['autorizado_aprovar'] ?? ($row['principal'] ?? false)),
                 'ordem' => (int) ($row['ordem'] ?? $index),
             ];
         }

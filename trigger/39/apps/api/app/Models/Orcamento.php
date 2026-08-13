@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Orcamento extends Model
 {
+    use HasUserStamps;
     use SoftDeletes;
 
     public const STATUS_RASCUNHO = 'RASCUNHO';
@@ -100,6 +102,8 @@ class Orcamento extends Model
         'aceite_ip',
         'aceite_user_agent',
         'motivo_decisao',
+        'financeiro_status',
+        'adiantamento_titulo_id',
     ];
 
     protected function casts(): array
@@ -137,6 +141,16 @@ class Orcamento extends Model
     public function linkAprovacao(): HasOne
     {
         return $this->hasOne(OrcamentoLinkAprovacao::class);
+    }
+
+    public function adiantamentoTitulo(): BelongsTo
+    {
+        return $this->belongsTo(Titulo::class, 'adiantamento_titulo_id');
+    }
+
+    public function pedido(): HasOne
+    {
+        return $this->hasOne(Pedido::class);
     }
 
     public function isEditavel(): bool

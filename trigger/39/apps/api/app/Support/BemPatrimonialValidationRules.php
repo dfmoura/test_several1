@@ -33,6 +33,16 @@ class BemPatrimonialValidationRules
                 }),
             ],
             'local' => ['nullable', 'string', 'max:120'],
+            'departamento_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('departamentos', 'id')->where(function ($q) use ($empresaId) {
+                    $q->whereNull('deleted_at')->where('ativo', true);
+                    if ($empresaId !== null) {
+                        $q->where('empresa_id', $empresaId);
+                    }
+                }),
+            ],
             'responsavel' => ['nullable', 'string', 'max:120'],
             'responsavel_user_id' => [
                 'nullable',

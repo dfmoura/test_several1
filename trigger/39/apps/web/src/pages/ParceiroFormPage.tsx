@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
+import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
 import { QsaSociosPanel } from '../components/QsaSociosPanel';
 import { SortableTh } from '../components/SortableTh';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -12,6 +13,7 @@ import {
   type CepConsulta,
   type CnaeSecundario,
   type CnpjConsulta,
+  type Departamento,
   type Parceiro,
   type ParceiroContaBancaria,
   type ParceiroContato,
@@ -20,6 +22,11 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { DECIMAL_SCALE, decimalStep, formatCep, formatCnpjCpf, formatPhone, onlyDigits } from '../lib/format';
+import {
+  CONDICOES_PAGAMENTO_SUGESTOES,
+  FORMAS_PAGAMENTO,
+  isFormaPagamentoCanonica,
+} from '../lib/condicoesComerciais';
 import {
   deriveIndIeDest,
   indIeDestLabel,
@@ -80,6 +87,7 @@ type ContatoForm = {
   whatsapp: string;
   email: string;
   principal: boolean;
+  autorizado_aprovar: boolean;
 };
 
 type ContaForm = {
@@ -164,7 +172,8 @@ type ParceiroFormData = {
   cfop_entrada_padrao: string;
   vinculo: string;
   cargo: string;
-  departamento: string;
+  departamento_id: string;
+  departamento_nome: string;
   entrega_mesmo_fiscal: boolean;
   enderecos_entrega: EnderecoEntregaForm[];
   contatos: ContatoForm[];
@@ -223,6 +232,7 @@ function emptyContato(principal = false): ContatoForm {
     whatsapp: '',
     email: '',
     principal,
+    autorizado_aprovar: principal,
   };
 }
 
@@ -312,7 +322,8 @@ const emptyForm = (): ParceiroFormData => ({
   cfop_entrada_padrao: '',
   vinculo: '',
   cargo: '',
-  departamento: '',
+  departamento_id: '',
+  departamento_nome: '',
   entrega_mesmo_fiscal: true,
   enderecos_entrega: [emptyEnderecoEntrega(true)],
   contatos: [emptyContato(true)],
@@ -330,6 +341,7 @@ function mapContatos(p: Parceiro): ContatoForm[] {
       whatsapp: c.whatsapp ?? '',
       email: c.email ?? '',
       principal: Boolean(c.principal),
+      autorizado_aprovar: Boolean(c.autorizado_aprovar ?? c.principal),
     }));
   }
 
@@ -343,6 +355,7 @@ function mapContatos(p: Parceiro): ContatoForm[] {
         whatsapp: p.whatsapp ?? '',
         email: p.email ?? '',
         principal: true,
+        autorizado_aprovar: true,
       },
     ];
   }
@@ -462,7 +475,8 @@ function fromParceiro(p: Parceiro): ParceiroFormData {
     cfop_entrada_padrao: p.cfop_entrada_padrao ?? '',
     vinculo: p.vinculo ?? '',
     cargo: p.cargo ?? '',
-    departamento: p.departamento ?? '',
+    departamento_id: p.departamento_id != null ? String(p.departamento_id) : '',
+    departamento_nome: p.departamento_ref?.nome ?? p.departamento ?? '',
     entrega_mesmo_fiscal: !temEntrega,
     enderecos_entrega: mapEnderecosEntrega(p),
     contatos: mapContatos(p),
@@ -487,6 +501,7 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
       whatsapp: c.whatsapp ? onlyDigits(c.whatsapp) : null,
       email: c.email || null,
       principal: c.principal,
+      autorizado_aprovar: c.autorizado_aprovar,
       ordem: index,
     }));
 
@@ -593,7 +608,7 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
     cfop_entrada_padrao: form.cfop_entrada_padrao || null,
     vinculo: form.vinculo || null,
     cargo: form.cargo || null,
-    departamento: form.departamento || null,
+    departamento_id: form.departamento_id ? Number(form.departamento_id) : null,
     contatos,
     contas_bancarias: contas,
     enderecos_entrega: enderecosEntrega,
@@ -619,11 +634,13 @@ export function ParceiroFormPage() {
   const [consulta, setConsulta] = useState<CnpjConsulta | null>(null);
   const [bancos, setBancos] = useState<BancoConsulta[]>([]);
   const [bancosLoading, setBancosLoading] = useState(false);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [consulting, setConsulting] = useState<'cnpj' | 'cep' | `cep-ee:${string}` | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const loadTokenRef = useRef(0);
 
   const visibleTabs = useMemo(() => tabsForTipoPessoa(form.tipo_pessoa), [form.tipo_pessoa]);
@@ -643,6 +660,12 @@ export function ParceiroFormPage() {
         if (token !== loadTokenRef.current) return;
         const mapped = fromParceiro(res.data);
         setForm(mapped);
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         setConsulta(null);
 
         const digits = onlyDigits(mapped.cnpj_cpf);
@@ -674,6 +697,33 @@ export function ParceiroFormPage() {
       }
     })();
   }, [tab, bancos.length, bancosLoading]);
+
+  useEffect(() => {
+    if (!form.papel_colaborador || departamentos.length > 0) return;
+    void (async () => {
+      try {
+        const res = await api.get<{ data: Departamento[] }>('/consulta/departamentos');
+        setDepartamentos(res.data);
+      } catch {
+        // Picker opcional — colaborador continua editável.
+      }
+    })();
+  }, [form.papel_colaborador, departamentos.length]);
+
+  const departamentosOptions = useMemo(() => {
+    const list = [...departamentos];
+    const currentId = form.departamento_id ? Number(form.departamento_id) : null;
+    if (currentId && !list.some((d) => d.id === currentId)) {
+      list.unshift({
+        id: currentId,
+        empresa_id: 0,
+        codigo: '',
+        nome: form.departamento_nome || 'Departamento atual',
+        ativo: false,
+      });
+    }
+    return list;
+  }, [departamentos, form.departamento_id, form.departamento_nome]);
 
   const bancosByCode = useMemo(() => {
     const map = new Map<string, BancoConsulta>();
@@ -1006,7 +1056,7 @@ export function ParceiroFormPage() {
         delete payload.forma_pagamento;
         delete payload.vinculo;
         delete payload.cargo;
-        delete payload.departamento;
+        delete payload.departamento_id;
       }
 
       if (!canBancario) {
@@ -1023,6 +1073,12 @@ export function ParceiroFormPage() {
       } else {
         const res = await api.put<{ data: Parceiro }>(`/parceiros/${id}`, payload);
         setForm(fromParceiro(res.data));
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         setMessage('Parceiro salvo com sucesso.');
       }
     } catch (err) {
@@ -1088,6 +1144,7 @@ export function ParceiroFormPage() {
 
       <div className="card">
         <div className="card-body">
+          {!isNew ? <RegistroMetaStrip registro={autoria} /> : null}
           {isPj && consulta && <CnpjConsultaMetaStrip consulta={consulta} />}
 
           <div className="tabs tabs-parceiro">
@@ -1193,11 +1250,24 @@ export function ParceiroFormPage() {
                     </div>
                     <div className="form-group">
                       <label>Departamento</label>
-                      <input
-                        value={form.departamento}
+                      <select
+                        value={form.departamento_id}
                         disabled={fieldDisabled('write')}
-                        onChange={(e) => update({ departamento: e.target.value })}
-                      />
+                        onChange={(e) => update({ departamento_id: e.target.value })}
+                      >
+                        <option value="">— Selecione —</option>
+                        {departamentosOptions.map((d) => (
+                          <option key={d.id} value={String(d.id)}>
+                            {d.codigo ? `${d.codigo} — ${d.nome}` : d.nome}
+                            {d.ativo === false ? ' (inativo)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {canWrite ? (
+                        <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                          Cadastro em <Link to="/departamentos">Departamentos</Link>.
+                        </p>
+                      ) : null}
                     </div>
                   </>
                 )}
@@ -1896,7 +1966,8 @@ export function ParceiroFormPage() {
                 )}
               </div>
               <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
-                Cadastre um ou mais contatos e marque um como principal.
+                Cadastre contatos e marque quem está autorizado a aprovar orçamentos (estudo
+                comercial). O envio do link usa somente esses contatos.
               </p>
 
               <div className="repeatable-list">
@@ -1917,6 +1988,19 @@ export function ParceiroFormPage() {
                             onChange={() => setContatoPrincipal(contato.key)}
                           />
                           Principal
+                        </label>
+                        <label className="radio-pill">
+                          <input
+                            type="checkbox"
+                            checked={contato.autorizado_aprovar}
+                            disabled={fieldDisabled('write')}
+                            onChange={(e) =>
+                              updateContato(contato.key, {
+                                autorizado_aprovar: e.target.checked,
+                              })
+                            }
+                          />
+                          Autorizado a aprovar
                         </label>
                         {!fieldDisabled('write') && form.contatos.length > 1 && (
                           <button
@@ -2009,6 +2093,10 @@ export function ParceiroFormPage() {
               <div className="panel-title">
                 <h3>Condições comerciais</h3>
               </div>
+              <p className="form-hint" style={{ marginBottom: '0.85rem' }}>
+                Defaults do parceiro — sugerem OC/ORC; a condição efetiva fica no documento
+                (snapshot). Não geram parcelas sozinhas.
+              </p>
               <div className="form-grid" style={{ marginBottom: '1.25rem' }}>
                 {form.papel_cliente && (
                   <div className="form-group">
@@ -2022,26 +2110,46 @@ export function ParceiroFormPage() {
                       onChange={(e) => update({ limite_credito: e.target.value })}
                     />
                     <span className="form-hint">
-                      Monetário final: {DECIMAL_SCALE.money} casas (NUMERIC 15,2).
-                      {!canCredito ? ' Somente perfil FINANCEIRO pode editar.' : ''}
+                      Padrão 0 = à vista / sinal. Monetário {DECIMAL_SCALE.money} casas.
+                      {!canCredito ? ' Somente FINANCEIRO edita (SoD).' : ''}
                     </span>
                   </div>
                 )}
                 <div className="form-group">
-                  <label>Condição de pagamento</label>
+                  <label>Condição de pagamento padrão</label>
                   <input
+                    list="par-condicao-pagamento-sugestoes"
                     value={form.condicao_pagamento}
                     disabled={fieldDisabled('write')}
+                    placeholder="ex.: 28 DDL, 14/28/42, à vista"
+                    maxLength={64}
                     onChange={(e) => update({ condicao_pagamento: e.target.value })}
                   />
+                  <datalist id="par-condicao-pagamento-sugestoes">
+                    {CONDICOES_PAGAMENTO_SUGESTOES.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                  <span className="form-hint">Texto livre · sugestões do estudo · máx. 64.</span>
                 </div>
                 <div className="form-group">
-                  <label>Forma de pagamento</label>
-                  <input
+                  <label>Forma de pagamento preferida</label>
+                  <select
                     value={form.forma_pagamento}
                     disabled={fieldDisabled('write')}
                     onChange={(e) => update({ forma_pagamento: e.target.value })}
-                  />
+                  >
+                    <option value="">Selecione…</option>
+                    {form.forma_pagamento && !isFormaPagamentoCanonica(form.forma_pagamento) ? (
+                      <option value={form.forma_pagamento}>{form.forma_pagamento} (legado)</option>
+                    ) : null}
+                    {FORMAS_PAGAMENTO.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="form-hint">PIX · boleto · transferência · cartão.</span>
                 </div>
               </div>
 

@@ -417,8 +417,9 @@ export function OrcamentoComoCalculaPage() {
                 </table>
               </div>
               <p className="calc-formula-note">
-                Nos ORCs salvos, a aba <em>Breakdown interno</em> mostra exatamente essas
-                linhas para a faixa escolhida.
+                Nos ORCs salvos, a aba <em>Breakdown interno</em> mostra os valores em R$ e a
+                aba <em>Guia de produção</em> lista os mesmos componentes em quantidade física
+                (sem preço), por faixa.
               </p>
             </div>
           </section>
@@ -433,6 +434,7 @@ export function OrcamentoComoCalculaPage() {
                     <li>Papel, hora-máquina, tintas, perdas</li>
                     <li>Comissão e imposto estimado</li>
                     <li>Metragem, m², rolos e caixas</li>
+                    <li>Guia de produção (consumos físicos, sem R$)</li>
                     <li>Snapshot completo (entrada + resultado)</li>
                   </ul>
                 </div>
@@ -463,7 +465,9 @@ export function OrcamentoComoCalculaPage() {
                 </li>
                 <li>
                   <strong>Vários modelos</strong> — parada e perda crescem com
-                  (modelos − 1) e o tipo de troca.
+                  (modelos − 1) e o tipo de troca. O detalhe nome + % da quantidade
+                  (composição) aparece na proposta ao cliente e segue para produção;
+                  não altera a fórmula de preço.
                 </li>
                 <li>
                   <strong>Imposto é estimativa</strong> — serve para precificar; não

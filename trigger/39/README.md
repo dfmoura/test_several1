@@ -1,6 +1,14 @@
-# ERP RLP — Fase 1 (1.a–1.d)
+# FLEXOERP — licenciado RLP (Fase 1)
 
-Sistema operacional **Laravel 11 + MySQL 8 + React** para a RLP Etiquetas, produto da **TRIGGER**, licenciado à RLP.
+Sistema operacional **Laravel 11 + MySQL 8 + React**: produto **FLEXOERP** da **TRIGGER**, licenciado à **RLP Etiquetas**.
+
+Hierarquia canônica (não misturar):
+
+```
+TRIGGER → FLEXOERP (produto) → RLP (licenciado) → 1 instalação → EMP-00001 / EMP-00002 / …
+```
+
+O mesmo esqueleto vale para outro contrato (outro licenciado → EMPs X/Y/Z). Norma: [`docs/MODELO_INSTALACAO_MULTI_EMPRESA.md`](docs/MODELO_INSTALACAO_MULTI_EMPRESA.md).
 
 Base normativa: `../32` (domínio, cadastros, RBAC, Lightsail/AWS Cenário D) · Proposta comercial: `../37` · Esboço anterior: `../36`.
 
@@ -21,28 +29,36 @@ Padrão canônico: [`docs/IDENTIDADE_TRIGGER.md`](docs/IDENTIDADE_TRIGGER.md) (m
 
 | Camada | O que | Onde |
 |--------|-------|------|
+| Produto | `FLEXOERP` | Título de tela, sidebar, login |
 | Licenciado | Logo RLP + “Licenciado para” | Herói do login e da sidebar |
 | Fornecedor | Byline **por Trigger Data Intelligence**; rodapé com marca + nome completo em tipografia contida; docs **Powered by TRIGGER** | Permanente — nunca herói, nunca gritante |
-| Plataforma | Favicon + título `ERP RLP · TRIGGER` | Aba do browser |
+| Empresa (EMP) | EMP ativa no header | Contexto operacional — **não** é marca |
+| Plataforma | Favicon + título `FLEXOERP · TRIGGER` | Aba do browser |
 
 Fonte front: `apps/web/src/lib/brand.ts` · back: `config('erp.brand')`.
 
-Troca white-label: substituir `branding/cliente/*` — a camada TRIGGER permanece.
+Troca white-label: substituir `branding/cliente/*` + `productName` — a camada TRIGGER permanece; outro contrato = nova instalação.
 
 ## Subir (Docker — mesmo artefato para Lightsail)
 
+Caminho canônico **local → homolog AWS → produção**: [`docs/DEPLOY_LOCAL_AWS.md`](docs/DEPLOY_LOCAL_AWS.md).  
+Modelo **1 instalação × N empresas** (não confundir EMP com stage/VM): [`docs/MODELO_INSTALACAO_MULTI_EMPRESA.md`](docs/MODELO_INSTALACAO_MULTI_EMPRESA.md).
+
 ```bash
-cp .env.example .env
-# Gere uma APP_KEY estável (ou deixe o entrypoint gerar no 1º boot)
-docker compose up -d --build
+cp -n .env.example .env
+make up
 ```
 
 - App (SPA + API via nginx): http://localhost:8039  
-- API direta: http://localhost:8000/api/v1/health  
+- API direta: http://localhost:8000/api/v1/health  → `"stage":"local"`  
 - Login: `admin@rlp.com.br` / `Admin@123`
 - Demos: `comercial@rlp.com.br` … (perfis) / `Demo@123`
+- Se `ERR_CONNECTION_REFUSED`: `make doctor` (quase sempre stack sem overlay local → rode `make up`)
 
-O Compose sobe também o worker `queue` (fila `database`) — necessário para **Relatórios IA** (geração assíncrona de PDF).
+Na AWS (homolog): `cp .env.aws.homolog.example .env.aws` → `make aws-check` → `make up-aws`.  
+Virada produção: `make promote-prod`.
+
+O Compose sobe também o worker `queue` (fila `database`) para jobs assíncronos futuros.
 
 Frontend com HMR (opcional):
 
@@ -53,7 +69,7 @@ cd apps/web && npm run dev   # proxy /api → :8000
 Parar:
 
 ```bash
-docker compose down
+make down
 ```
 
 ## Estrutura
@@ -61,62 +77,58 @@ docker compose down
 ```
 apps/api/     Laravel 11 (API /api/v1, Sanctum, Spatie Permission, fila database)
 apps/web/     React + TypeScript (Vite)
-branding/     Logos TRIGGER + cliente RLP (PDF de relatórios usa logo RLP)
+branding/     Logos TRIGGER + cliente RLP
 docker/       PHP, Nginx, MySQL (memória enxuta) + worker queue
-docs/         Lightsail/futuro + guias PDF de importação (parceiros e produtos)
+docs/         Deploy local→AWS, Lightsail, ADRs
 ```
 
-### Relatórios IA
+## Lightsail (recomendação)
 
-> **Congelado (adiado):** fora do menu/API por padrão (`RELATORIO_IA_HABILITADO=false`).
-> Código, tabelas, fila e IaProvedores **permanecem**. Reabrir: `true` na API +
-> `VITE_RELATORIO_IA_HABILITADO=true` e rebuild do front.
-
-Menu **Relatórios → Relatórios IA** (`relatorio.ler` / `relatorio.escrever`) — quando habilitado.
-
-1. Usuário descreve o relatório e escolhe retrato/paisagem (sugestões por fonte no catálogo).
-2. **Planejar e conferir** (fila): a IA monta um programa JSON allowlist; a UI mostra resumo em português, amostra e ajustes finos antes do PDF.
-3. Com a spec aprovada, o job **pula a IA** e executa só compiler → DomPDF (determinístico).
-4. **Gerar direto** preserva o fluxo clássico (prompt → IA no job → PDF).
-5. No detalhe: **Reprocessar** (mesma spec, dados atualizados) × **Replanejar com IA**.
-
-Fontes: orçamentos, parceiros, produtos, facas. O PDF declara recorte quando truncado (“Exibindo N de M”).
-
-Logs do worker: `make queue-logs`. Flags em `config/erp.php` (`RELATORIO_IA_*`).
-
-Operação (impacto computacional):
-
-- Teto de **8.000 células** (linhas × colunas) antes do DomPDF.
-- Pico de memória do job gravado em `relatorio_execucoes.memory_peak_mb`.
-- Retenção: `php artisan relatorios:purgar` (PDF > 180d; logs > 90d).
-- Host Lightsail 1 GB: `sudo bash scripts/lightsail-setup-swap.sh` + ver `docs/LIGHTSAIL_E_FUTURO.md`.
-
-## Lightsail Free Tier (recomendação)
-
-Ver `docs/LIGHTSAIL_E_FUTURO.md`. Resumo:
+Ver `docs/LIGHTSAIL_E_FUTURO.md` e `docs/DEPLOY_LOCAL_AWS.md`. Resumo:
 
 | Recurso | Escolha |
 |---------|---------|
-| Instância | **1 GB RAM** ($5) — 512 MB é apertado com MySQL |
-| SO | Ubuntu 24.04 (ou blueprint Docker) |
-| Compose | mysql + app + nginx no **mesmo** host |
-| TLS | Caddy/Nginx + Let's Encrypt no host |
-| Secrets | env no host / SSM — nunca na imagem |
-| Não usar no dia 1 | ALB, NAT, RDS, ElastiCache (custo fixo) |
+| Instância | **2 GB · 2 vCPU · 60 GB** (Ubuntu) |
+| Compose | `docker-compose.yml` + `docker-compose.aws.yml` |
+| TLS | Caddy/Nginx no host → `web:80` |
+| Estágios | `ERP_STAGE=homolog` depois `production` |
+| Secrets | `.env.aws` no host — nunca no git |
+| Não usar no dia 1 | ALB, NAT, RDS, ElastiCache; MySQL/API publicados |
 
-Após o 1º boot estável: `SEED_ON_BOOT=false`.
+Após o 1º boot estável na AWS: `SEED_ON_BOOT=false` (já forçado pelo entrypoint em homolog/production).
 
 ## Domínio (invariants que o código respeita)
 
 - Identidade dupla: `id` BIGINT + `codigo` legível  
 - Usuário nasce de **colaborador** (PAR)  
 - Soft-delete / inativar — sem apagar histórico  
-- Multi-empresa por `empresa_id` + header `X-Empresa-Id`  
+- Multi-empresa por `empresa_id` + header `X-Empresa-Id` (**TRIGGER → produto → licenciado → 1 instalação → N EMPs** — [`docs/MODELO_INSTALACAO_MULTI_EMPRESA.md`](docs/MODELO_INSTALACAO_MULTI_EMPRESA.md))  
 - EMP-00002 com venda/estoque **desligados** até homologação  
 - LAI / grupo 9.xx **proibido**  
 - **BEM ≠ G10:** patrimônio (`BEM-`) é ativo físico; `orc_catalogo_maquinas` é só tarifa ORC — ver [`docs/ADR_BEM_VS_ORC_MAQUINA.md`](docs/ADR_BEM_VS_ORC_MAQUINA.md)
 - **Unidades do SKU:** dual canônico (`unidade_comercial` ↔ `unidade_interna` + `fator_conversao`); largura/comprimento/gramatura são insumos em `atributos` — **não** unidades alternativas Sankhya — ver [`docs/ADR_UNIDADES_PRODUTO.md`](docs/ADR_UNIDADES_PRODUTO.md)
 - **Matriz ORC (R$/cm²):** parâmetro escalar `matriz_cm2` no Catálogo ORC (overlay híbrido); ORCs antigos mantêm snapshot — ver [`docs/ADR_ORC_PARAMETROS_ESCALARES.md`](docs/ADR_ORC_PARAMETROS_ESCALARES.md)
+
+## Licença e propriedade intelectual
+
+**Proteção total da TRIGGER.** Este repositório **NÃO** é open source. Público ≠ permissão para usar, clonar o produto ou comercializar.
+
+| | |
+|--|--|
+| Regime | Proprietário — reserva máxima — [`LICENSE`](LICENSE) (`LicenseRef-TRIGGER-Proprietary`) |
+| Titular | TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA (TRIGGER Data Intelligence) |
+| Objeto protegido | **Materiais TRIGGER**: código, docs, ADRs, schemas, domínio, motores, prompts, UX, marca, metodologias expressas e obras derivadas |
+| Sem contrato | Só estudo / lab não comercial / citação com atribuição |
+| Vedado | Uso comercial, SaaS, white-label não autorizado, clone/reimplementação substancial, blueprint para terceiros, treino de IA para fins comerciais |
+| Licenciados | Qualquer cliente com **contrato escrito** — só no escopo desse contrato |
+| MIT / Apache / GPL / CC | **Não** se aplicam aos Materiais TRIGGER |
+| Norma | [`docs/ADR_LICENCIAMENTO_E_IP.md`](docs/ADR_LICENCIAMENTO_E_IP.md) |
+
+Vale para **todos** os repositórios públicos e **todos** os licenciados. White-label do cliente na UI não altera a PI da TRIGGER.
+
+Dependências (Laravel, React, etc.) seguem **suas** licenças — isso não abre os Materiais TRIGGER.
+
+Pedidos comerciais / autorização: [https://www.triggerti.com](https://www.triggerti.com).
 
 ## Próximo (1.e+)
 

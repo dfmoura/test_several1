@@ -10,13 +10,26 @@ function pillVariant(status: string): string {
     .replace(/\s+/g, '_')
     .replace(/\//g, '_');
 
+  if (key === 'completa') {
+    return '--ativa';
+  }
+  if (key === 'aprovado') {
+    return '--aprovado';
+  }
   if (
     key === 'ativo' ||
     key === 'ativa' ||
-    key === 'completa' ||
-    key === 'aprovado'
+    key === 'recebida' ||
+    key === 'atendida' ||
+    key === 'decidida' ||
+    key === 'quitado' ||
+    key === 'ok' ||
+    key === 'encerrado' ||
+    key === 'aju_gerado' ||
+    key === 'confrontado' ||
+    key === 'contado_1'
   ) {
-    return key === 'completa' ? '--ativa' : `--${key === 'aprovado' ? 'aprovado' : key}`;
+    return '--ativo';
   }
 
   if (
@@ -27,7 +40,18 @@ function pillVariant(status: string): string {
     key === 'pendente_ratificacao' ||
     key === 'em_preparacao' ||
     key === 'enviado_p_aprovacao' ||
-    key === 'visualizado'
+    key === 'visualizado' ||
+    key === 'aguardando_pagamento' ||
+    key === 'aberta' ||
+    key === 'aberto' ||
+    key === 'parcial' ||
+    key === 'rascunho' ||
+    key === 'urgente' ||
+    key === 'em_contagem' ||
+    key === 'divergente' ||
+    key === 'recontado' ||
+    key === 'aju_pendente' ||
+    key === 'a_vencer'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';
@@ -38,6 +62,7 @@ function pillVariant(status: string): string {
     key === 'bloqueado' ||
     key === 'rejeitado' ||
     key === 'cancelado' ||
+    key === 'cancelada' ||
     key === 'vencido'
   ) {
     return '--bloqueado';

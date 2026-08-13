@@ -649,7 +649,7 @@ def build_story(styles):
                 ),
                 ("vinculo", "Não", "Tipo de vínculo do colaborador (texto livre).", "Ex.: CLT, PJ"),
                 ("cargo", "Não", "Cargo do colaborador.", "Texto"),
-                ("departamento", "Não", "Departamento / área.", "Texto até 64"),
+                ("departamento", "Não", "Departamento / área (código DEP- ou nome cadastrado).", "DEP-00001 ou Comercial"),
             ],
         )
     )

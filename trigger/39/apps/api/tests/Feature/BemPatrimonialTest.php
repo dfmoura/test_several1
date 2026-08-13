@@ -86,6 +86,8 @@ class BemPatrimonialTest extends TestCase
             ->assertJsonPath('data.codigo', 'BEM-00001')
             ->assertJsonPath('data.categoria', 'MAQUINA_GRAFICA')
             ->assertJsonPath('data.grupo_hora_maquina.nome', 'BETA')
+            ->assertJsonPath('data.local', 'Produção')
+            ->assertJsonPath('data.departamento.nome', 'Produção')
             ->assertJsonPath('data.capitalizacao.abaixo_do_minimo', false);
 
         $id = $create->json('data.id');

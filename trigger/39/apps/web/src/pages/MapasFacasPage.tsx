@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { PageHeader } from '../components/PageHeader';
+import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import {
@@ -8,7 +9,7 @@ import {
   formatoKind,
   formatoLabel,
 } from '../components/FacaShapeIcon';
-import { ApiError, api } from '../lib/api';
+import { ApiError, api, type UsuarioRef } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useTableSort } from '../lib/useTableSort';
 
@@ -35,6 +36,10 @@ type FacaMapa = {
   ativo: boolean;
   tamanho_raw?: string | null;
   tamanho_tipo?: string | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 type FacasListResponse = {
@@ -661,6 +666,8 @@ export function MapasFacasPage() {
                   <dd title={selected.cliente_nota || undefined}>{selected.cliente_nota || '—'}</dd>
                 </div>
               </dl>
+
+              <RegistroMetaStrip registro={selected} />
 
               {canWrite ? (
                 <div className="btn-row mapa-facas-detail-actions">

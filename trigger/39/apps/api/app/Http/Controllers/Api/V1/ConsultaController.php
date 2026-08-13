@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Empresa;
+use App\Services\Cadastros\DepartamentoService;
 use App\Services\Cadastros\FatorConversaoSugeridor;
+use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Cadastros\ProdutoGrupoService;
 use App\Services\Consulta\BrasilApiClient;
 use App\Services\Consulta\FiscalCatalogService;
@@ -17,6 +20,8 @@ class ConsultaController extends Controller
         private readonly BrasilApiClient $brasilApiClient,
         private readonly FiscalCatalogService $fiscalCatalogService,
         private readonly ProdutoGrupoService $produtoGrupoService,
+        private readonly NaturezaGerencialService $naturezaGerencialService,
+        private readonly DepartamentoService $departamentoService,
     ) {}
 
     public function cnpj(string $cnpj): JsonResponse
@@ -235,6 +240,47 @@ class ConsultaController extends Controller
             $validated['natureza'] ?? null,
             ! ($validated['todos'] ?? false)
         );
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Folhas ativas de naturezas gerenciais (picker futuro TIT/BX).
+     * Não confundir com /consulta/produto-grupos?natureza=COMPRA|VENDA.
+     */
+    public function naturezasGerenciais(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'grupo' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $grupo = isset($validated['grupo']) ? (int) $validated['grupo'] : null;
+        $data = $this->naturezaGerencialService
+            ->folhasAtivas($grupo, $validated['q'] ?? null)
+            ->map(fn ($n) => $this->naturezaGerencialService->toArray($n))
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Departamentos ativos da EMP (picker colaborador).
+     * Não confundir com centro de custo (financeiro).
+     */
+    public function departamentos(Request $request): JsonResponse
+    {
+        $empresa = app('empresa');
+        if (! $empresa instanceof Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $data = $this->departamentoService->consultaAtivos($empresa, $validated['q'] ?? null);
 
         return response()->json(['data' => $data]);
     }

@@ -1,0 +1,322 @@
+================================================================================
+PROMPT — SISTEMA DE ORÇAMENTO FLEXOGRÁFICO (ETIQUETAS) PARA REPLIT
+Uso: colar no Replit Agent (ou Agent Chat) e pedir para implementar em fases.
+Base: lógica e escopo equivalentes ao ERP RLP / TRIGGER (módulo ORC).
+================================================================================
+
+OBJETIVO
+--------
+Construir um app web completo de geração de orçamentos para gráfica flexográfica
+de etiquetas adesivas em bobina/rolo. Substituir o fluxo analógico de planilha
+Excel (.xlsm com VLOOKUPs e macros) por um sistema com:
+
+  1) motor de cálculo determinístico e testável;
+  2) catálogos editáveis (papel, máquina, acabamento, etc.);
+  3) mapa de facas;
+  4) wizard de orçamento com N faixas de quantidade;
+  5) visão interna (custos) × visão comercial (proposta ao cliente);
+  6) envio por link público para o cliente aprovar/recusar;
+  7) autenticação simples + papéis (vendedor / orçamentista / admin).
+
+O Replit deve entregar um protótipo funcional deployável no próprio Replit
+(Preview + Deploy). Priorize funcionar de ponta a ponta antes de polir UI.
+
+
+CONTEXTO DO NEGÓCIO
+-------------------
+- Produto: etiquetas impressas (flexografia) em BOPP, couchê, térmico, etc.
+- Orçamento = especificação do serviço + faca + tabelas de custo + N quantidades.
+- Cliente recebe consolidado comercial (sem ver custos internos).
+- Matriz/clichê cobrada só no 1º pedido daquele modelo (chave de matriz).
+- Arredondamento comercial SEMPRE para cima (serviço em múltiplos de R$ 10;
+  matriz em múltiplos de R$ 1).
+
+
+STACK OBRIGATÓRIA NO REPLIT (não inventar Laravel/Docker pesado)
+----------------------------------------------------------------
+Escolha UMA destas (preferência A):
+
+  A) Full-stack Next.js (App Router) + TypeScript + SQLite (better-sqlite3)
+     ou PostgreSQL (Replit DB / Neon se disponível).
+  B) Express + TypeScript API + React (Vite) SPA + SQLite.
+
+Requisitos técnicos:
+- Autenticação por sessão/cookie ou JWT simples (login com seed).
+- API REST própria (não misturar cálculo só no front).
+- Motor de cálculo em módulo puro (TypeScript), SEM UI, com testes unitários.
+- Seed com dados de demonstração (papéis, máquinas, acabamentos, facas, user admin).
+- README com: como rodar, login demo, fluxo feliz do orçamento.
+- UI em português (pt-BR), desktop-first, limpa e utilizável.
+- Persistência: orçamentos com snapshots (input + result + catalog no momento).
+
+
+NÃO FAZER NESTA VERSÃO (fora de escopo)
+---------------------------------------
+- ERP completo (compras, estoque, NF, financeiro, OP).
+- WhatsApp Business API / e-mail transacional real.
+- Conversão automática orçamento → pedido (PED).
+- Multi-empresa complexa / RBAC Spatie completo.
+- Importador completo do .xlsm oficial (pode seedar JSON manual).
+- DomPDF / geração PDF server-side (usar HTML print + CSS @media print).
+
+
+FASES DE IMPLEMENTAÇÃO (seguir nesta ordem)
+-------------------------------------------
+FASE 0 — Bootstrap
+  - Projeto rodando no Replit com hot reload.
+  - Login: admin@demo.com / Admin@123 e vendedor@demo.com / Demo@123.
+  - Layout: sidebar + área principal.
+  - Health check /api/health.
+
+FASE 1 — Motor de cálculo + testes golden
+  - Módulo `pricing-engine` (ou `lib/orcamentoMotor.ts`).
+  - Funções: excelCeiling, chaveMatriz, calcular(input, catalog).
+  - Testes unitários cobrindo pelo menos 1 caso completo com faixas.
+  - Catálogo inicial em JSON (pode depois migrar para tabelas).
+
+FASE 2 — Cadastros (CRUD admin)
+  - Papéis (nome, preco_m2, ativo)
+  - Acabamentos (nome, preco_m2, perda_m2, ativo)
+  - Máquinas + tarifa hora × cores
+  - Tipos de troca/parada (tipo, tempo_h)
+  - Tubetes, comissão %, imposto %, parâmetros gerais
+    (prazo_dias=12, validade_dias=7, tolerancia_qtd_pct=20,
+     valor_cm2_matriz, rpm_default, preco_caixa, preco_rebobinacao)
+  - Parceiros (cliente / vendedor) — cadastro simples
+  - Mapa de facas (CRUD + busca)
+
+FASE 3 — Wizard de orçamento
+  - Passos: cabeçalho → especificação → faca → faixas → resultado
+  - Ao escolher faca: preencher medida, puxada, Z, repetição, sugerir máquina
+  - Cálculo em tempo real (chamar API do motor)
+  - Salvar RASCUNHO / CALCULADO com snapshots
+  - Duplicar orçamento; listar com filtros (cliente, status, data)
+
+FASE 4 — Detalhe interno + proposta comercial
+  - Detalhe: breakdown técnico por faixa (uso interno)
+  - Consolidado comercial: material | acabamento | etiq/rolo | rolos |
+    etiquetas | total | unitário | valor rolo | matriz | prazo | validade
+  - Ficha HTML imprimível paisagem (uso interno) — botão Imprimir
+  - Página "Como calcula" explicando as regras (glossário curto)
+
+FASE 5 — Link público de aprovação
+  - Status: RASCUNHO/CALCULADO → ENVIADO/VISUALIZADO → APROVADO | REPROVADO
+  - Tabela links: token único, validade, ativo, usado_em, visualizacoes
+  - Enviar: gera URL /p/{token} + texto padrão para Ctrl+C
+  - Página pública: só DTO comercial (NUNCA custo/margem/comissão/imposto)
+  - Destinatário = contato autorizado do parceiro (nome + canal)
+  - Aprovar/recusar em 2 passos; após decisão o link fica indisponível
+  - REPROVADO pode reeditar → recalcular → reenviar (novo link)
+
+
+CAMPOS DE ENTRADA DO ORÇAMENTO
+------------------------------
+Cabeçalho:
+  - data, cliente (parceiro), vendedor, observação interna
+
+Especificação:
+  - medida / tamanho (via faca ou texto)
+  - largura_papel_cm
+  - puxada_cm (da faca)
+  - cores: 0 | 1 | 2 | 3 | 4 | 4V | 5 | 6 | 7 | 8
+  - papel (catálogo)
+  - acabamento (catálogo)
+  - qtde_modelos (default 1)
+  - qtde_colunas
+  - etiq_por_rolo
+  - tubete: 1" | 1" 1/2 | 3"
+  - Z (da faca; pode ser null em casos especiais)
+  - faca_id (mapa)
+  - repeticao (da faca)
+  - maquina_roda_servico + maquina (grupo de custo)
+  - imposto_pct (12–25)
+  - matriz: SIM | NAO
+  - coluna_rebobinacao (default 1)
+  - rpm (default ~1300)
+  - tipo_troca_produto
+
+Faixas (N):
+  - quantidade (etiquetas)
+  - comissao_pct (pode herdar)
+
+
+MOTOR DE CÁLCULO (espelhar planilha — NÃO inventar fórmulas)
+------------------------------------------------------------
+Produção (por quantidade Q):
+  metragem_linear = (puxada/100) * Q / qtde_colunas
+  hora_maquina = (metragem_linear / rpm) + 1
+  hora_troca_produto = tempo_parada_h * (qtde_modelos - 1)
+  hora_troca_bobina =
+      se metragem_linear < 1000 → 0
+      senão (((metragem_linear/1000) - 1) * 5) / 60
+  metragem_m2 = CEILING( (Q * largura_papel * puxada) / 10000 , 0.1 )
+  qtde_rolos = Q / etiq_por_rolo
+
+Perdas:
+  - perda_acerto: lookup por cores (tabela); regras especiais 4 / 4V / 5+ 
+  - perda_acabamento: lookup
+  - perda_troca_bobina_m2:
+      se metragem_linear ≤ 1000 → 0
+      senão (5 * (largura_papel - 0.75) * qtde_colunas / 100) * (metragem_linear/1000)
+
+Custos (R$):
+  valor_papel = (metragem_m2 + perda_acerto + perda_troca_bobina) * preco_papel_m2
+  valor_maquina = hora_maquina * tarifa_hora(maquina, cores)
+  valor_troca_produto = hora_troca_produto * tarifa_hora(...)
+  valor_troca_bobina = hora_troca_bobina * tarifa_hora(...)
+  tinta =
+      se cores=0 → 0
+      senão se (metragem_m2 + perda_acerto) ≤ 30 → cores * 10
+      senão (metragem_m2 + perda_acerto) * 0.40
+  acabamento = preco_acabamento_m2 * (metragem_m2 + perda_acerto + perda_acabamento)
+  rebobinacao = ((metragem_linear * qtde_colunas) / coluna_rebobinacao / 1000) * preco_rebobinacao
+  tubete = qtde_rolos * preco_tubete
+  valor_caixa = qtde_caixas * preco_caixa
+  valor_servico = soma(papel..caixa)
+
+Matriz (se Matriz=SIM e ainda não cobrada):
+  largura_matriz = largura_papel * qtde_colunas
+  valor_matriz_raw =
+    ((((Z * 3.175)/10) + 4) * (largura_matriz + 4) * qtde_cores) * valor_cm2
+  valor_matriz = CEILING(valor_matriz_raw, 1)
+  chave_matriz = hash estável de
+    {cliente, medida, z, cores, largura_cm, colunas}
+  Se chave já existe em matriz_cobradas → não cobrar de novo.
+
+Comercial:
+  comissao = valor_servico * (comissao_pct/100)
+  imposto = valor_servico * (imposto_pct/100)
+  servico_com_encargos = valor_servico + comissao + imposto
+  valor_etiqueta_apresentado = CEILING(servico_com_encargos, 10)
+  total_faixa = valor_etiqueta_apresentado + valor_matriz
+    (matriz tipicamente só na 1ª faixa / 1º pedido)
+
+IMPORTANTE:
+- Intermediários podem usar float (como Excel).
+- Teto comercial (ceiling) só no fechamento.
+- Parâmetros (5 min/troca bobina, R$/caixa, cm² matriz, arredondamentos)
+  DEVEM ser configuráveis no catálogo — nunca hardcoded no meio do motor.
+- Antes de inventar regra nova, preserve a lógica acima. Se ambíguo,
+  marque TODO de negócio e proponha — não "corrija" o preço em silêncio.
+
+
+MAPA DE FACAS (atributos mínimos)
+---------------------------------
+maquina, conjugada/obs, fornecedor, numero_faca, z, formato
+(RETA, REDONDA, OVAL, ESPECIAL, DESENHADA, GONDOLA, LACRE, PICOTE,
+ SERRILHA, TAG…), tamanho, puxada, largura, repeticao, cil_col,
+cliente_opcional, notas (ex.: "NAO USAR").
+
+Busca por: tamanho, formato, máquina, nº faca, cliente, texto livre.
+Seed com ~20–50 facas de exemplo (não precisa 450 no Replit).
+
+
+MODELO DE DADOS (mínimo)
+------------------------
+users(id, email, nome, papel: ADMIN|ORCAMENTISTA|VENDEDOR, password_hash)
+parceiros(id, nome, tipo_pf_pj, documento, papel_flags, ...)
+parceiro_contatos(id, parceiro_id, nome, email, whatsapp, autorizado_aprovar)
+facas(...atributos acima...)
+orc_catalogo_* (papeis, acabamentos, maquinas, hora_maquina, tipos_troca, ...)
+orcamentos(
+  id, codigo, versao, parceiro_id, cliente_nome, status,
+  input_snapshot JSON, result_snapshot JSON, catalog_snapshot JSON,
+  chave_matriz, cobra_matriz, valor_matriz,
+  prazo_entrega_dias, validade_dias, tolerancia_qtd_pct, observacao,
+  created_at, updated_at
+)
+matriz_cobradas(id, chave_matriz UNIQUE, cliente, orcamento_id, valor)
+orcamento_links_aprovacao(
+  id, orcamento_id UNIQUE, token UNIQUE, parceiro_contato_id,
+  ativo, expira_em, visualizacoes, usado_em, created_at
+)
+
+
+MÁQUINA DE ESTADOS DO ORÇAMENTO
+-------------------------------
+RASCUNHO / CALCULADO  → editável, excluível ("Em preparação")
+        │ enviar para aprovação
+        ▼
+ENVIADO / VISUALIZADO → imutável ("Enviado p/ aprovação")
+        │
+        ├─ APROVAR  → APROVADO   (travado; link inativo)
+        └─ RECUSAR  → REPROVADO  (editável de novo → reenvio)
+
+API autenticada (exemplos):
+  POST /api/auth/login
+  GET/POST /api/orcamentos
+  GET/PUT  /api/orcamentos/:id
+  POST     /api/orcamentos/:id/calcular
+  POST     /api/orcamentos/:id/enviar-aprovacao
+  GET      /api/orcamentos/:id/destinatarios-aprovacao
+  CRUD     /api/catalogo/*
+  CRUD     /api/facas
+  CRUD     /api/parceiros
+
+API pública (throttle):
+  GET  /api/publico/orcamentos/:token
+  POST /api/publico/orcamentos/:token/decidir
+       body: { acao: "APROVAR"|"RECUSAR", nome_confirmacao, faixa_escolhida? }
+
+
+PRINCÍPIOS DE PRODUTO (obrigatórios)
+------------------------------------
+1. Custo real + perdas + setup + overhead + imposto + comissão — nunca "no olho".
+2. Parametrizado: mudar preço no catálogo NÃO exige mudar código.
+3. Auditável: snapshot no save; reabrir mostra os mesmos números.
+4. N faixas de quantidade no mesmo orçamento.
+5. Separar cálculo interno × proposta comercial.
+6. Arredondar comercial sempre para cima.
+7. Ferramental (matriz) cobrado uma vez por chave.
+
+
+CRITÉRIOS DE ACEITE (Definition of Done)
+----------------------------------------
+[ ] Login funciona com users seed.
+[ ] Admin altera preço de um papel e o próximo cálculo usa o novo valor.
+[ ] Orçamento com 3–5 faixas calcula e persiste snapshots.
+[ ] Breakdown interno visível só logado; página pública sem custos.
+[ ] Link /p/{token} permite aprovar e recusar; depois fica indisponível.
+[ ] Status travam edição corretamente (ENVIADO/APROVADO).
+[ ] Matriz não é cobrada de novo se chave já está em matriz_cobradas.
+[ ] Testes do motor passam (npm test / vitest / jest).
+[ ] README explica fluxo feliz em < 15 linhas.
+[ ] App sobe no Replit com um comando (npm run dev) e porta correta.
+
+
+UX MÍNIMA
+---------
+- Lista de orçamentos com status em pill colorida.
+- Formulário em wizard (ou abas) sem poluição visual.
+- Resultado: tabela de faixas + totais destacados.
+- Botões: Salvar, Recalcular, Duplicar, Imprimir ficha, Enviar aprovação, Copiar link.
+- Página pública profissional, mobile-friendly (cliente abre no celular).
+- Sem cards demais; tipografia legível; pt-BR.
+
+
+DADOS DE DEMO (seed)
+--------------------
+- 1 empresa implícita
+- 3 usuários (admin, orçamentista, vendedor)
+- 5 clientes + 1 contato autorizado_aprovar cada
+- 8 papéis, 6 acabamentos, 4 máquinas com tarifas por cores
+- 30 facas variadas
+- 2 orçamentos exemplo (1 RASCUNHO, 1 ENVIADO com link ativo)
+
+
+INSTRUÇÃO FINAL AO AGENTE REPLIT
+--------------------------------
+1. Comece pelo motor + catálogo JSON + testes. Só depois a UI.
+2. Entregue fase a fase; ao fim de cada fase, diga o que falta.
+3. Não invente regras de preço — use as fórmulas deste prompt.
+4. Se faltar dado de tabela (perda papel, caixas), crie seed razoável
+   e documente no README como "parâmetro editável".
+5. Mantenha o código modular: `pricing-engine` separado de rotas/UI.
+6. Ao terminar a FASE 5, rode os testes e descreva o fluxo feliz
+   (login → novo orçamento → calcular → enviar → abrir link → aprovar).
+
+COMECE AGORA PELA FASE 0 E FASE 1.
+================================================================================
+═══════════════════════════════════════════════════════════════════════════════
+FIM DO PROMPT
+═══════════════════════════════════════════════════════════════════════════════

@@ -61,7 +61,7 @@ class EmpresaService
                 );
             }
 
-            $fresh = $empresa->fresh(['fiscaisHistorico', 'contasFinanceiras']);
+            $fresh = $empresa->fresh(['fiscaisHistorico', 'contasFinanceiras', ...Empresa::userStampWith()]);
             $this->auditLogger->log(
                 'ATUALIZAR',
                 'empresa',

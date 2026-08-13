@@ -1,6 +1,7 @@
 /**
- * Identidade canônica TRIGGER × licenciado.
- * Norma: docs/IDENTIDADE_TRIGGER.md (modelo ecossistema×produto de trigger/12).
+ * Identidade canônica: TRIGGER → produto → licenciado (EMP = contexto, não marca).
+ * Norma: docs/IDENTIDADE_TRIGGER.md · docs/MODELO_INSTALACAO_MULTI_EMPRESA.md
+ * (modelo ecossistema×produto de trigger/12).
  *
  * Não hardcode paths/labels de marca espalhados — consuma este módulo.
  */
@@ -23,7 +24,10 @@ export const BRAND = {
   },
   licensee: {
     shortName: 'RLP',
-    productName: 'ERP RLP',
+    /** Nome comercial do produto na UI (≠ licenciado, ≠ EMP) */
+    productName: 'FLEXOERP',
+    /** Rótulo UI da camada produto (não confundir com EMP) */
+    productLabel: 'Produto',
     logo: '/branding/cliente/logo-rlp.png',
     logoAlt: 'RLP Etiquetas',
     licensedLabel: 'Licenciado para',
@@ -41,3 +45,9 @@ export const BRAND = {
 } as const;
 
 export type Brand = typeof BRAND;
+
+/** `<title>` canônico: `{produto} · TRIGGER` (docs/IDENTIDADE_TRIGGER.md). */
+export function brandDocumentTitle(page?: string): string {
+  const base = `${BRAND.licensee.productName} · ${BRAND.vendor.shortName}`;
+  return page ? `${page} · ${base}` : base;
+}

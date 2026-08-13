@@ -1,0 +1,392 @@
+TRIGGER PROPRIETARY SOURCE-AVAILABLE LICENSE
+============================================
+MAXIMUM RESERVATION OF RIGHTS / RESERVA MÁXIMA DE DIREITOS
+
+Copyright (c) 2024–2026 TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA
+(“TRIGGER”, “TRIGGER Data Intelligence”)
+All Rights Reserved. Todos os direitos reservados.
+
+SPDX-License-Identifier: LicenseRef-TRIGGER-Proprietary
+
+This is NOT an open-source license. This is NOT the MIT License.
+Este NÃO é um software de código aberto. Esta NÃO é a Licença MIT.
+
+TRIGGER reserves ALL rights in its intellectual assets to the maximum extent
+permitted by law. Nothing in a public Git hosting page, README, demo, fork,
+star, clone, or silence constitutes a waiver or implied license.
+
+A TRIGGER reserva TODOS os direitos sobre seus ativos intelectuais na máxima
+extensão permitida por lei. Nada em página pública de Git, README, demo, fork,
+estrela, clone ou silêncio constitui renúncia ou licença implícita.
+
+
+0. PROTECTED SUBJECT MATTER / OBJETO PROTEGIDO (ÂMBITO TOTAL)
+--------------------------------------------------------------------------------
+
+This License protects the entire “TRIGGER Materials” (not only runnable code).
+
+Esta Licença protege o conjunto integral dos “Materiais TRIGGER” (não só
+código executável).
+
+“TRIGGER Materials” / “Materiais TRIGGER” means, without limitation, all of
+the following authored by or for TRIGGER, in any medium or format, whether
+or not marked “confidential”, and whether or not published:
+
+  (a) Source code, object code, scripts, IaC, CI/CD, Docker/Compose, Makefiles;
+  (b) Database schemas, migrations, seeds, invariants, domain models, ADRs;
+  (c) Documentation, manuals, backlogs, prompts, system prompts, playbooks;
+  (d) Architecture, module boundaries, workflows, RBAC/SoD maps, UX flows,
+      wireframes, visual identity rules, and product methodologies;
+  (e) Algorithms, calculation engines, pricing/ORC logic, compilers, planners,
+      validators, report programs, and similar technical solutions as expressed;
+  (f) Branding assets owned by TRIGGER (names, logos, trade dress, bylines);
+  (g) Know-how, methods, processes, checklists, and organized collections of
+      business/technical rules as expressed in the Materials;
+  (h) Any Derivative Work of the above.
+
+“Materiais TRIGGER” significa, sem limitação, todos os itens abaixo elaborados
+pela ou para a TRIGGER, em qualquer meio ou formato, marcados ou não como
+“confidencial”, publicados ou não:
+
+  (a) Código-fonte, código-objeto, scripts, IaC, CI/CD, Docker/Compose, Makefiles;
+  (b) Esquemas de banco, migrations, seeds, invariantes, modelos de domínio, ADRs;
+  (c) Documentação, manuais, backlogs, prompts, system prompts, playbooks;
+  (d) Arquitetura, fronteiras de módulo, fluxos, mapas RBAC/SoD, fluxos de UX,
+      wireframes, regras de identidade visual e metodologias de produto;
+  (e) Algoritmos, motores de cálculo, lógica de preço/ORC, compilers, planners,
+      validators, programas de relatório e soluções técnicas equivalentes
+      conforme expressas;
+  (f) Ativos de marca de titularidade da TRIGGER (nomes, logos, trade dress,
+      bylines);
+  (g) Know-how, métodos, processos, checklists e coleções organizadas de regras
+      de negócio/técnicas conforme expressas nos Materiais;
+  (h) Qualquer Obra Derivada do acima.
+
+“Derivative Work” / “Obra Derivada” means any work based upon, translated from,
+adapted from, rearranged from, extracted from, reimplemented from, or that
+substantially incorporates the structure, selection, arrangement, or
+expressive content of the TRIGGER Materials — including “clean-room”
+rewrites whose design was obtained by studying these Materials for the
+purpose of reproducing the same product, module, or competitive substitute.
+
+“Obra Derivada” significa qualquer obra baseada em, traduzida de, adaptada de,
+rearranjada de, extraída de, reimplementada a partir de, ou que incorpore de
+forma substancial a estrutura, seleção, disposição ou conteúdo expressivo dos
+Materiais TRIGGER — incluindo reescritas “clean-room” cujo desenho tenha sido
+obtido pelo estudo destes Materiais com o fim de reproduzir o mesmo produto,
+módulo ou substituto competitivo.
+
+“Third-Party Components” remain under their own licenses and are excluded from
+TRIGGER’s proprietary claim — but using them does NOT open-source or license
+any TRIGGER Materials.
+
+“Componentes de Terceiros” permanecem sob suas próprias licenças e ficam fora
+da reivindicação proprietária da TRIGGER — mas usá-los NÃO torna open source
+nem licencia quaisquer Materiais TRIGGER.
+
+
+1. PUBLIC VISIBILITY ≠ GRANT OF RIGHTS
+   VISIBILIDADE PÚBLICA ≠ CONCESSÃO DE DIREITOS
+--------------------------------------------------------------------------------
+
+Making any repository, gist, package, container image, demo, PDF, or document
+publicly visible does NOT grant permission to use, copy, modify, merge,
+publish, distribute, sublicense, sell, commercially exploit, train models on,
+scrape for product building, or create Derivative Works of the TRIGGER
+Materials, except as expressly authorized in §3 or in a separate written
+agreement signed by TRIGGER.
+
+Disponibilizar de forma pública qualquer repositório, gist, pacote, imagem de
+container, demo, PDF ou documento NÃO concede permissão para usar, copiar,
+modificar, fundir, publicar, distribuir, sublicenciar, vender, explorar
+comercialmente, treinar modelos sobre, raspar para construção de produto, ou
+criar Obras Derivadas dos Materiais TRIGGER, salvo autorização expressa no §3
+ou em contrato escrito assinado pela TRIGGER.
+
+
+2. COMMERCIAL USE / USO COMERCIAL
+--------------------------------------------------------------------------------
+
+“Commercial Use” means any use intended for or directed toward commercial
+advantage, monetary compensation, business operations, or competitive
+positioning, including without limitation:
+
+  (a) Offering the Materials (or a Derivative Work) as a product or service;
+  (b) SaaS, hosting, managed ERP, white-label, OEM, or reseller arrangements;
+  (c) Embedding in a paid product, proposal, RFP response, or client delivery;
+  (d) Consulting, freelance, or agency work that redistributes, reimplements,
+      or substantially copies the Materials for a paying client;
+  (e) Building, selling, or pitching a competing product that reproduces the
+      expressive architecture, domain model, workflows, or distinctive methods
+      obtained from the Materials;
+  (f) Training, fine-tuning, or systematically extracting the Materials into
+      AI/ML systems for Commercial Use;
+  (g) Any monetization of access to, copies of, or knowledge derived for
+      product substitution from the Materials.
+
+“Uso Comercial” significa qualquer uso destinado a ou orientado a vantagem
+comercial, contraprestação pecuniária, operação de negócio ou posicionamento
+competitivo, incluindo sem limitação:
+
+  (a) Oferecer os Materiais (ou Obra Derivada) como produto ou serviço;
+  (b) SaaS, hospedagem, ERP gerenciado, white-label, OEM ou revenda;
+  (c) Incorporar em produto pago, proposta, resposta a RFP ou entrega a cliente;
+  (d) Consultoria, freelance ou agência que redistribua, reimplemente ou copie
+      de forma substancial os Materiais para cliente pagante;
+  (e) Construir, vender ou pitchar produto concorrente que reproduza a
+      arquitetura expressiva, modelo de domínio, fluxos ou métodos distintivos
+      obtidos dos Materiais;
+  (f) Treinar, fine-tunar ou extrair sistematicamente os Materiais em sistemas
+      de IA/ML para Uso Comercial;
+  (g) Qualquer monetização de acesso, cópias ou conhecimento derivado para
+      substituição de produto a partir dos Materiais.
+
+
+3. LIMITED PERMISSIONS (WITHOUT A SEPARATE CONTRACT)
+   PERMISSÕES LIMITADAS (SEM CONTRATO SEPARADO)
+--------------------------------------------------------------------------------
+
+Subject to this License, and ONLY if you do not engage in Commercial Use and
+do not create a competing product, you may, without a separate written license:
+
+  (a) View and clone for personal study, evaluation, or technical review;
+  (b) Run locally or in a private non-production lab solely to evaluate
+      TRIGGER’s work;
+  (c) Fork on GitHub as a technical platform consequence (forks remain fully
+      subject to this License);
+  (d) Cite the public URL in non-commercial academic or portfolio discussion,
+      with clear attribution to TRIGGER Data Intelligence.
+
+Sujeito a esta Licença, e SOMENTE se você não praticar Uso Comercial e não
+criar produto concorrente, você pode, sem licença escrita separada:
+
+  (a) Visualizar e clonar para estudo pessoal, avaliação ou revisão técnica;
+  (b) Executar localmente ou em lab privado não-produtivo só para avaliar o
+      trabalho da TRIGGER;
+  (c) Fazer fork no GitHub como consequência técnica da plataforma (forks
+      permanecem integralmente sujeitos a esta Licença);
+  (d) Citar a URL pública em discussão acadêmica ou de portfólio não comercial,
+      com atribuição clara a TRIGGER Data Intelligence.
+
+These permissions are revocable, non-exclusive, non-transferable, royalty-free
+only within §3, and grant ZERO rights beyond §3. No implied licenses.
+
+Essas permissões são revogáveis, não exclusivas, intransferíveis, gratuitas
+somente no âmbito do §3, e concedem ZERO direitos além do §3. Sem licenças
+implícitas.
+
+
+4. STRICT PROHIBITIONS / PROIBIÇÕES ESTRITAS
+--------------------------------------------------------------------------------
+
+Except under a written agreement signed by TRIGGER (or an Authorized Licensee
+contract that expressly covers the intended act), you may NOT:
+
+  (a) Any Commercial Use of the TRIGGER Materials or Derivative Works;
+  (b) Sell, rent, lease, sublicense, assign, or commercially redistribute;
+  (c) Offer as hosted service, SaaS, managed product, or unauthorized
+      white-label;
+  (d) Copy, extract, translate, or reimplement substantial parts — including
+      domain models, ADRs, engines, prompts, or UX flows — to build the same
+      or substitutive product;
+  (e) Use the Materials as a specification, blueprint, or backlog to commission
+      a clone from third parties;
+  (f) Remove, obscure, or alter copyright, license, trademark, or attribution
+      notices (including “TRIGGER”, “TRIGGER Data Intelligence”, “Powered by
+      TRIGGER”, and licensee marks required by product rules);
+  (g) Use TRIGGER marks/trade dress — or any licensee marks appearing in the
+      Materials — to imply endorsement, partnership, or false origin;
+  (h) Publish the Materials (or substantial portions) under MIT, Apache, GPL,
+      Creative Commons, or any other open license;
+  (i) Claim authorship, co-authorship, or ownership of the Materials;
+  (j) Train or fine-tune AI/ML systems on the Materials for Commercial Use or
+      to generate competing implementations;
+  (k) Circumvent technical measures, scrape at scale for product substitution,
+      or strip notices via automation;
+  (l) Engage in unfair competition / parasitic exploitation of TRIGGER’s
+      reputation, organization of content, or distinctive product expression
+      (Lei 9.279/1996 and applicable unfair-competition rules).
+
+Salvo acordo escrito assinado pela TRIGGER (ou contrato de Licenciado
+Autorizado que cubra expressamente o ato), é VEDADO:
+
+  (a) Qualquer Uso Comercial dos Materiais TRIGGER ou Obras Derivadas;
+  (b) Vender, alugar, sublicenciar, ceder ou redistribuir comercialmente;
+  (c) Oferecer como serviço hospedado, SaaS, produto gerenciado ou white-label
+      não autorizado;
+  (d) Copiar, extrair, traduzir ou reimplementar partes substanciais —
+      incluindo modelos de domínio, ADRs, motores, prompts ou fluxos de UX —
+      para construir o mesmo produto ou substituto;
+  (e) Usar os Materiais como especificação, blueprint ou backlog para encomendar
+      um clone a terceiros;
+  (f) Remover, ocultar ou alterar avisos de copyright, licença, marca ou
+      atribuição;
+  (g) Usar marcas/trade dress da TRIGGER — ou de licenciados presentes nos
+      Materiais — para sugerir endosso, parceria ou origem falsa;
+  (h) Publicar os Materiais (ou partes substanciais) sob MIT, Apache, GPL,
+      Creative Commons ou qualquer outra licença aberta;
+  (i) Reivindicar autoria, coautoria ou titularidade dos Materiais;
+  (j) Treinar ou fine-tunar sistemas de IA/ML sobre os Materiais para Uso
+      Comercial ou para gerar implementações concorrentes;
+  (k) Contornar medidas técnicas, raspar em escala para substituição de produto
+      ou remover avisos por automação;
+  (l) Praticar concorrência desleal / exploração parasitária da reputação,
+      organização de conteúdo ou expressão distintiva de produto da TRIGGER
+      (Lei 9.279/1996 e normas aplicáveis de concorrência desleal).
+
+
+5. AUTHORIZED LICENSEES / LICENCIADOS AUTORIZADOS
+--------------------------------------------------------------------------------
+
+“Authorized Licensee” means any person or entity with a valid written
+commercial license or service agreement from TRIGGER covering the intended
+deployment, production use, customization, white-label, and/or Commercial Use.
+
+“Licenciado Autorizado” significa qualquer pessoa ou entidade com licença
+comercial ou contrato de serviço válido e escrito com a TRIGGER, abrangendo a
+implantação, uso em produção, customização, white-label e/ou Uso Comercial
+pretendidos.
+
+An Authorized Licensee’s rights come ONLY from that separate agreement — never
+from §3 alone. Scope (entities, environments, territory, term, branding) is
+defined solely in that contract. This License names no preferred customer; it
+binds equally every third party that is not an Authorized Licensee.
+
+Os direitos do Licenciado Autorizado vêm SOMENTE desse contrato separado —
+nunca só do §3. Escopo (pessoas, ambientes, território, prazo, marca) define-se
+apenas nesse contrato. Esta Licença não nomeia cliente preferencial; vincula
+igualmente todo terceiro que não seja Licenciado Autorizado.
+
+
+6. INTELLECTUAL PROPERTY PORTFOLIO / PORTFÓLIO DE PI (RESERVA TOTAL)
+--------------------------------------------------------------------------------
+
+TRIGGER asserts and reserves, to the maximum extent permitted by applicable
+law, all rights in and to the TRIGGER Materials, including:
+
+  (1) Copyright and software rights — Lei 9.610/1998, Lei 9.609/1998, Berne
+      Convention (expression of code, docs, schemas, UI, prompts, compilations);
+  (2) Trademark and trade dress — TRIGGER names, logos, product presentation;
+  (3) Trade secrets and confidential information — non-public Materials, keys,
+      credentials, client data, internal pricing, unpublished roadmaps (Lei
+      9.279/1996 and contractual confidentiality);
+  (4) Unfair competition protection — against slavish imitation, confusing
+      appropriation, and parasitic free-riding on TRIGGER’s expressive product
+      and organized know-how;
+  (5) Database / compilation protection where applicable — selection and
+      arrangement of domain catalogs, rules, and structured content;
+  (6) Moral rights of authors to the extent not waivable under Brazilian law;
+  (7) All other IP and related rights not expressly granted herein.
+
+A TRIGGER afirma e reserva, na máxima extensão permitida pela lei aplicável,
+todos os direitos sobre os Materiais TRIGGER, incluindo:
+
+  (1) Direitos autorais e de software — Lei 9.610/1998, Lei 9.609/1998,
+      Convenção de Berna (expressão de código, docs, schemas, UI, prompts,
+      compilações);
+  (2) Marca e trade dress — nomes TRIGGER, logos, apresentação de produto;
+  (3) Segredos de negócio e informação confidencial — Materiais não públicos,
+      chaves, credenciais, dados de cliente, preços internos, roadmaps não
+      publicados (Lei 9.279/1996 e confidencialidade contratual);
+  (4) Proteção contra concorrência desleal — imitação servil, apropriação
+      confusa e carona parasitária sobre o produto expressivo e o know-how
+      organizado da TRIGGER;
+  (5) Proteção de banco de dados / compilação quando aplicável — seleção e
+      disposição de catálogos de domínio, regras e conteúdo estruturado;
+  (6) Direitos morais dos autores na medida em que não sejam renunciáveis no
+      direito brasileiro;
+  (7) Todos os demais direitos de PI e conexos não expressamente concedidos.
+
+NOTICE ON “IDEAS”: Abstract ideas, procedures, methods, systems, or concepts
+in the abstract are not monopolized by copyright alone. TRIGGER does NOT
+claim a patent-like monopoly over pure abstract ideas. TRIGGER DOES claim
+full protection over (i) the concrete expression of those ideas in the
+Materials, (ii) distinctive organization and compilation, (iii) trademarks,
+(iv) trade secrets still confidential, and (v) unfair-competition remedies
+against parasitic copying of the product as expressed. Studying for personal
+learning under §3 does not authorize building a commercial clone.
+
+AVISO SOBRE “IDEIAS”: Ideias abstratas, procedimentos, métodos, sistemas ou
+conceitos em abstrato não são monopolizados só pelo direito autoral. A TRIGGER
+NÃO reivindica monopólio tipo patente sobre ideias puramente abstratas. A
+TRIGGER REIVINDICA proteção plena sobre (i) a expressão concreta dessas ideias
+nos Materiais, (ii) organização e compilação distintivas, (iii) marcas,
+(iv) segredos de negócio ainda confidenciais, e (v) remédios de concorrência
+desleal contra cópia parasitária do produto conforme expresso. Estudar para
+aprendizado pessoal sob o §3 não autoriza construir um clone comercial.
+
+All rights not expressly granted are exclusively reserved to
+TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA.
+
+Todos os direitos não expressamente concedidos são reservados exclusivamente à
+TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA.
+
+
+7. NO WARRANTY / SEM GARANTIA
+--------------------------------------------------------------------------------
+
+THE TRIGGER MATERIALS ARE PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY LAW,
+TRIGGER SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
+ARISING FROM THE MATERIALS OR THIS LICENSE.
+
+OS MATERIAIS TRIGGER SÃO FORNECIDOS “NO ESTADO EM QUE SE ENCONTRAM”, SEM
+GARANTIAS DE QUALQUER TIPO, EXPRESSAS OU IMPLÍCITAS, INCLUINDO COMERCIALIZAÇÃO,
+ADEQUAÇÃO A PROPÓSITO ESPECÍFICO E NÃO VIOLAÇÃO. NA MÁXIMA EXTENSÃO PERMITIDA
+POR LEI, A TRIGGER NÃO SERÁ RESPONSÁVEL POR QUALQUER RECLAMAÇÃO, DANO OU OUTRA
+RESPONSABILIDADE DECORRENTE DOS MATERIAIS OU DESTA LICENÇA.
+
+
+8. TERMINATION; SURVIVAL / RESCISÃO; SOBREVIVÊNCIA
+--------------------------------------------------------------------------------
+
+Any breach automatically terminates §3 permissions. Upon termination you must
+cease use and destroy copies obtained under §3, except copies retained solely
+as required by law or as inert Git history you do not further exploit.
+
+Sections 0, 1, 2, 4, 5, 6, 7, 8, 9, and 10 survive termination.
+
+Qualquer violação rescinde automaticamente as permissões do §3. Após a
+rescisão, cesse o uso e destrua cópias obtidas sob o §3, salvo retenção
+exigida por lei ou histórico Git inerte que você não explore ulteriormente.
+
+As seções 0, 1, 2, 4, 5, 6, 7, 8, 9 e 10 sobrevivem à rescisão.
+
+
+9. GOVERNING LAW; REMEDIES / LEI APLICÁVEL; REMÉDIOS
+--------------------------------------------------------------------------------
+
+This License is governed by the laws of the Federative Republic of Brazil.
+Exclusive venue: courts of the copyright holder’s principal place of business
+in Brazil, unless a commercial agreement states otherwise.
+
+TRIGGER may seek injunctive relief, damages, account of profits, takedown
+notices (including GitHub DMCA / platform notices), and any other remedy
+available at law or equity, without limiting other rights.
+
+Esta Licença rege-se pelas leis da República Federativa do Brasil. Foro
+exclusivo: comarca do principal estabelecimento do titular no Brasil, salvo
+disposição diversa em contrato comercial.
+
+A TRIGGER pode buscar tutela inibitória, perdas e danos, indenização,
+notificações de remoção (incluindo DMCA / avisos de plataforma) e qualquer
+outro remédio cabível, sem prejuízo de demais direitos.
+
+
+10. CONTACT / CONTATO
+--------------------------------------------------------------------------------
+
+Commercial licensing, authorization requests, and IP inquiries:
+Licenciamento comercial, pedidos de autorização e assuntos de PI:
+
+  TRIGGER Data Intelligence
+  https://www.triggerti.com
+
+Do not assume silence, a public fork, AI output, or “I found it on GitHub”
+creates a license. When in doubt: obtain written authorization from TRIGGER
+before any Commercial Use or Derivative Work beyond §3.
+
+Não presuma que silêncio, fork público, saída de IA ou “achei no GitHub” cria
+licença. Na dúvida: obtenha autorização escrita da TRIGGER antes de qualquer
+Uso Comercial ou Obra Derivada além do §3.

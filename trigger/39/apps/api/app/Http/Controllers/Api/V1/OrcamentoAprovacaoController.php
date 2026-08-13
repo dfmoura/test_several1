@@ -12,6 +12,18 @@ class OrcamentoAprovacaoController extends Controller
 {
     public function __construct(private readonly OrcamentoAprovacaoService $aprovacao) {}
 
+    public function destinatarios(Request $request, Orcamento $orcamento): JsonResponse
+    {
+        if (! $request->user()->can('orcamento.ler')) {
+            abort(403);
+        }
+        if ($orcamento->empresa_id !== app('empresa')->id) {
+            abort(404);
+        }
+
+        return response()->json(['data' => $this->aprovacao->listarDestinatarios($orcamento)]);
+    }
+
     public function enviar(Request $request, Orcamento $orcamento): JsonResponse
     {
         if (! $request->user()->can('orcamento.escrever')) {
@@ -22,14 +34,29 @@ class OrcamentoAprovacaoController extends Controller
         }
 
         $data = $request->validate([
-            'destino_envio' => ['nullable', 'string', 'max:255'],
+            'parceiro_contato_id' => ['nullable', 'integer', 'min:1'],
+            'usar_contato_legado' => ['sometimes', 'boolean'],
         ]);
 
-        $result = $this->aprovacao->enviarParaAprovacao(
-            $orcamento,
-            $data['destino_envio'] ?? null,
-        );
+        $result = $this->aprovacao->enviarParaAprovacao($orcamento, $data);
 
         return response()->json(['data' => $result]);
+    }
+
+    /**
+     * Prévia da proposta comercial (staff) — sem aprovar/recusar e sem consumir o link do cliente.
+     */
+    public function propostaComercial(Request $request, Orcamento $orcamento): JsonResponse
+    {
+        if (! $request->user()->can('orcamento.ler')) {
+            abort(403);
+        }
+        if ($orcamento->empresa_id !== app('empresa')->id) {
+            abort(404);
+        }
+
+        return response()->json([
+            'data' => $this->aprovacao->propostaComercialInterna($orcamento),
+        ]);
     }
 }

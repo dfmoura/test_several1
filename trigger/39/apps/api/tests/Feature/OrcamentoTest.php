@@ -163,10 +163,22 @@ class OrcamentoTest extends TestCase
 
         $updPayload = $this->payload();
         $updPayload['modelos'] = 8;
+        $updPayload['modelos_composicao'] = array_map(
+            static fn (int $i) => [
+                'ordem' => $i + 1,
+                'nome' => 'Arte '.($i + 1),
+                'percentual' => 12.5,
+            ],
+            range(0, 7)
+        );
+        // 8 × 12.5 = 100
         $update = $this->withHeaders($h)->putJson('/api/v1/orcamentos/'.$id, $updPayload);
         $update->assertOk();
         $this->assertSame(2, $update->json('data.versao'));
         $this->assertSame('CALCULADO', $update->json('data.status'));
+        $this->assertSame(8, $update->json('data.input_snapshot.modelos'));
+        $this->assertCount(8, $update->json('data.input_snapshot.modelos_composicao'));
+        $this->assertSame('Arte 1', $update->json('data.input_snapshot.modelos_composicao.0.nome'));
 
         $del = $this->withHeaders($h)->deleteJson('/api/v1/orcamentos/'.$id);
         $del->assertOk();
@@ -252,5 +264,59 @@ class OrcamentoTest extends TestCase
         $this->assertTrue($create->json('data.parceiro.is_prospect'));
         $this->assertTrue($create->json('data.input_snapshot.faca_nova'));
         $this->assertEqualsWithDelta(800.0, (float) $create->json('data.input_snapshot.valor_faca_nova'), 0.01);
+    }
+
+    public function test_snapshot_condicoes_comerciais_no_input(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->parceiro->update([
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
+        ]);
+
+        $payload = $this->payload();
+        $payload['condicao_pagamento'] = '14/28/42';
+        $payload['forma_pagamento'] = 'Boleto';
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $this->assertSame('14/28/42', $create->json('data.input_snapshot.condicao_pagamento'));
+        $this->assertSame('Boleto', $create->json('data.input_snapshot.forma_pagamento'));
+        // motor de preço intacto
+        $this->assertEqualsWithDelta(3090.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+    }
+
+    public function test_modelos_composicao_persiste_e_nao_altera_preco(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['modelos'] = 2;
+        $payload['modelos_composicao'] = [
+            ['nome' => 'maçã verde', 'percentual' => 30],
+            ['nome' => 'abacate', 'percentual' => 70],
+        ];
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $comp = $create->json('data.input_snapshot.modelos_composicao');
+        $this->assertCount(2, $comp);
+        $this->assertSame('maçã verde', $comp[0]['nome']);
+        $this->assertEqualsWithDelta(30.0, (float) $comp[0]['percentual'], 0.01);
+        $this->assertSame('abacate', $comp[1]['nome']);
+        $this->assertEqualsWithDelta(70.0, (float) $comp[1]['percentual'], 0.01);
+        // Preço com 2 modelos (não 7 do fixture) — só garante persistência + cálculo OK
+        $this->assertIsNumeric($create->json('data.result_snapshot.faixas.0.valor_etiqueta'));
+
+        $bad = $this->payload();
+        $bad['modelos'] = 2;
+        $bad['modelos_composicao'] = [
+            ['nome' => 'a', 'percentual' => 40],
+            ['nome' => 'b', 'percentual' => 40],
+        ];
+        $this->withHeaders($h)->postJson('/api/v1/orcamentos', $bad)->assertStatus(422);
     }
 }

@@ -2,12 +2,21 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
+import type { ModeloComposicaoForm } from '../lib/orcamentoForm';
+import {
+  buildGuiaProducaoLinhas,
+  GUIA_PRODUCAO_GRUPO_LABEL,
+  type OrcGuiaProducaoEspec,
+} from '../lib/orcamentoGuiaProducao';
 import { useTableSort } from '../lib/useTableSort';
+import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { SortableTh } from './SortableTh';
 import {
   OrcamentoFacaDesenho,
   type OrcamentoFacaDesenhoProps,
 } from './OrcamentoFacaDesenho';
+
+type AbaResultado = 'comercial' | 'interno' | 'producao';
 
 type Props = {
   calculo: OrcamentoResult;
@@ -16,6 +25,13 @@ type Props = {
   toleranciaQtdPct?: number | string;
   /** Desenho da faca (input_snapshot) — reforço visual na proposta */
   facaDesenho?: OrcamentoFacaDesenhoProps | null;
+  /** Composição nome+% — mesma visão da proposta ao cliente */
+  modelosComposicao?: ModeloComposicaoForm[] | null;
+  /**
+   * Especificação do ORC (form ou input_snapshot) — alimenta a Guia de produção.
+   * Sem isto a aba mostra aviso; não atrapalha as outras abas.
+   */
+  guiaEspec?: OrcGuiaProducaoEspec | null;
 };
 
 function ComercialFaixasTable({
@@ -107,17 +123,100 @@ function ComercialFaixasTable({
   );
 }
 
+function GuiaProducaoPanel({
+  espec,
+  faixa,
+  faixas,
+  faixaIndex,
+  onFaixa,
+  modelosComposicao,
+}: {
+  espec: OrcGuiaProducaoEspec | null | undefined;
+  faixa: OrcamentoFaixaResult | undefined;
+  faixas: OrcamentoFaixaResult[];
+  faixaIndex: number;
+  onFaixa: (i: number) => void;
+  modelosComposicao?: ModeloComposicaoForm[] | null;
+}) {
+  const linhas = useMemo(
+    () => buildGuiaProducaoLinhas(espec, faixa, modelosComposicao),
+    [espec, faixa, modelosComposicao],
+  );
+
+  return (
+    <>
+      <p className="orc-result-meta">
+        Lista operacional do que o cálculo prevê para produzir — sem preços. Baixa real e
+        SKU ficam na OP futura (estudo 32 · PRODUÇÃO).
+      </p>
+      {faixas.length > 1 ? (
+        <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
+          {faixas.map((fx, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`btn btn-sm ${faixaIndex === i ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => onFaixa(i)}
+            >
+              {Number(fx.quantidade).toLocaleString('pt-BR')} un.
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {!espec || linhas.length === 0 ? (
+        <p className="form-hint" style={{ margin: 0 }}>
+          Calcule com a especificação completa para montar a guia desta faixa.
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table orc-guia-producao-table">
+            <thead>
+              <tr>
+                <th>Grupo</th>
+                <th>Item</th>
+                <th>Especificação</th>
+                <th>Qtde / unidade</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((ln, i) => (
+                <tr key={`${ln.grupo}-${ln.item}-${i}`}>
+                  <td>
+                    <span className="orc-guia-grupo">{GUIA_PRODUCAO_GRUPO_LABEL[ln.grupo]}</span>
+                  </td>
+                  <td>
+                    <strong>{ln.item}</strong>
+                  </td>
+                  <td>{ln.especificacao}</td>
+                  <td className="orc-guia-qtd">{ln.quantidade}</td>
+                  <td className="orc-guia-nota">{ln.nota ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function OrcamentoResultado({
   calculo,
   prazoEntregaDias,
   validadeDias,
   toleranciaQtdPct,
   facaDesenho,
+  modelosComposicao,
+  guiaEspec,
 }: Props) {
-  const [aba, setAba] = useState<'comercial' | 'interno'>('comercial');
+  const [aba, setAba] = useState<AbaResultado>('comercial');
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
   const faixas = calculo.faixas ?? [];
   const detalhe = faixas[faixaDetalhe];
+  const modelosVisiveis = (modelosComposicao ?? []).filter(
+    (m) => String(m.nome ?? '').trim() !== '',
+  );
 
   const desenhoProps: OrcamentoFacaDesenhoProps | null = facaDesenho
     ? {
@@ -135,9 +234,11 @@ export function OrcamentoResultado({
   return (
     <section className="card orc-resultado">
       <div className="card-body">
-        <div className="orc-result-tabs">
+        <div className="orc-result-tabs" role="tablist" aria-label="Visões do orçamento">
           <button
             type="button"
+            role="tab"
+            aria-selected={aba === 'comercial'}
             className={aba === 'comercial' ? 'active' : ''}
             onClick={() => setAba('comercial')}
           >
@@ -145,10 +246,21 @@ export function OrcamentoResultado({
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={aba === 'interno'}
             className={aba === 'interno' ? 'active' : ''}
             onClick={() => setAba('interno')}
           >
             Breakdown interno
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'producao'}
+            className={aba === 'producao' ? 'active' : ''}
+            onClick={() => setAba('producao')}
+          >
+            Guia de produção
           </button>
         </div>
 
@@ -158,44 +270,62 @@ export function OrcamentoResultado({
           </div>
         ) : null}
 
-        <p className="orc-result-meta">
-          Matriz:{' '}
-          {calculo.cobra_matriz ? formatCurrency(calculo.valor_matriz) : 'Isenta'}
-          {(() => {
-            const snap = calculo.catalog_snapshot?.matriz_cm2;
-            const tarifa =
-              typeof snap === 'number'
-                ? snap
-                : typeof snap === 'string' && snap !== ''
-                  ? Number(snap)
-                  : null;
-            return tarifa != null && Number.isFinite(tarifa)
-              ? ` · tarifa ${Number(tarifa).toLocaleString('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 6,
-                })}/cm²`
-              : '';
-          })()}{' '}
-          · chave {calculo.chave_matriz}
-          {calculo.faca_nova
-            ? ` · Faca nova ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
-                calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
-              }`
-            : ''}
-          {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
-          {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
-          {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
-        </p>
+        {aba !== 'producao' ? (
+          <p className="orc-result-meta">
+            Matriz:{' '}
+            {calculo.cobra_matriz ? formatCurrency(calculo.valor_matriz) : 'Isenta'}
+            {(() => {
+              const snap = calculo.catalog_snapshot?.matriz_cm2;
+              const tarifa =
+                typeof snap === 'number'
+                  ? snap
+                  : typeof snap === 'string' && snap !== ''
+                    ? Number(snap)
+                    : null;
+              return tarifa != null && Number.isFinite(tarifa)
+                ? ` · tarifa ${Number(tarifa).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 6,
+                  })}/cm²`
+                : '';
+            })()}{' '}
+            · chave {calculo.chave_matriz}
+            {calculo.faca_nova
+              ? ` · Faca nova ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
+                  calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
+                }`
+              : ''}
+            {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
+            {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
+            {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
+          </p>
+        ) : null}
 
         {aba === 'comercial' ? (
-          <ComercialFaixasTable
-            faixas={faixas}
-            facaNova={Boolean(calculo.faca_nova)}
-            valorFacaNova={calculo.valor_faca_nova}
-          />
-        ) : (
+          <>
+            {modelosVisiveis.length > 0 ? (
+              <ModelosComposicaoTable
+                variant="data"
+                className="orc-modelos-resultado"
+                hint={null}
+                modelos={modelosVisiveis}
+                faixas={faixas.map((fx, i) => ({
+                  key: i,
+                  quantidade: Number(fx.quantidade) || 0,
+                }))}
+              />
+            ) : null}
+            <ComercialFaixasTable
+              faixas={faixas}
+              facaNova={Boolean(calculo.faca_nova)}
+              valorFacaNova={calculo.valor_faca_nova}
+            />
+          </>
+        ) : null}
+
+        {aba === 'interno' ? (
           <>
             <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
               {faixas.map((fx, i) => (
@@ -291,7 +421,18 @@ export function OrcamentoResultado({
               <Link to="/orcamentos/como-calcula">Ver como o orçamento calcula</Link>
             </p>
           </>
-        )}
+        ) : null}
+
+        {aba === 'producao' ? (
+          <GuiaProducaoPanel
+            espec={guiaEspec}
+            faixa={detalhe}
+            faixas={faixas}
+            faixaIndex={faixaDetalhe}
+            onFaixa={setFaixaDetalhe}
+            modelosComposicao={modelosVisiveis}
+          />
+        ) : null}
       </div>
     </section>
   );

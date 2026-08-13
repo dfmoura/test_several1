@@ -1,0 +1,20 @@
+# Overlay AWS (homologação e produção) — mesma instância Lightsail.
+# Ativado por: make up-aws
+#
+# Base já NÃO publica MySQL/API. Aqui só o nginx (web) escuta no host.
+# No host Ubuntu: Caddy/Nginx TLS 443 → 127.0.0.1:${WEB_PORT:-80}
+
+services:
+  app:
+    environment:
+      APP_DEBUG: ${APP_DEBUG:-false}
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-false}
+
+  queue:
+    environment:
+      APP_DEBUG: ${APP_DEBUG:-false}
+      SEED_ON_BOOT: "false"
+
+  web:
+    ports:
+      - "${WEB_PORT:-80}:80"

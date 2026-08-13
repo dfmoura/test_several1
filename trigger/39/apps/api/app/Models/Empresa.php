@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use App\Services\Cadastros\EmpresaFiscalRules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Empresa extends Model
 {
+    use HasUserStamps;
     use SoftDeletes;
 
     protected $fillable = [

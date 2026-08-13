@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Anexo A — Fluxograma do processo operacional ERP RLP Etiquetas. TRIGGER Data Intelligence.">
+  <title>Anexo A · Fluxo operacional | TRIGGER × RLP</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon-32-light.png" sizes="32x32">
+  <meta name="theme-color" content="#1a3568">
+  <link rel="stylesheet" href="assets/css/proposta.css">
+  <style>
+    :root {
+      --decide: #b45309;
+      --decide-soft: rgba(180, 83, 9, 0.12);
+      --ok: #15803d;
+      --ok-soft: rgba(21, 128, 61, 0.1);
+      --fail: #b91c1c;
+      --fail-soft: rgba(185, 28, 28, 0.08);
+      --lock: #64748b;
+    }
+
+    body.doc-anexo {
+      background: #dfe6f0;
+    }
+
+    body.doc-anexo .doc {
+      width: min(100% - 1rem, 1120px);
+      margin: 0.75rem auto 1.25rem;
+    }
+
+    .sheet {
+      padding: 0.7rem 0.85rem 0.55rem;
+    }
+
+    .head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.4rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head-left {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+    }
+
+    .head-left img {
+      height: 28px;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .head-titles h1 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .head-titles p {
+      margin: 0.12rem 0 0;
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-right: 0.3rem;
+      padding: 0.06rem 0.35rem;
+      font-size: 0.58rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--navy-dark);
+      background: var(--navy-soft);
+      border: 1px solid rgba(26, 53, 104, 0.2);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
+
+    .head-meta {
+      text-align: right;
+      font-size: 0.62rem;
+      color: var(--muted);
+      line-height: 1.35;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .head-meta strong {
+      display: block;
+      color: var(--navy-dark);
+      font-size: 0.68rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.75rem;
+      margin: 0 0 0.4rem;
+      font-size: 0.62rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+    }
+
+    .sw {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 2px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .sw--p { background: #fff; border-color: var(--navy); }
+    .sw--d { background: var(--decide-soft); border-color: var(--decide); transform: rotate(45deg); }
+    .sw--g { background: var(--ok-soft); border-color: var(--ok); }
+    .sw--l { background: #eef1f5; border-color: var(--lock); }
+    .sw--x { background: var(--fail-soft); border-color: var(--fail); }
+
+    /* ——— Fluxo horizontal em 1 página ——— */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.35rem;
+      align-items: stretch;
+    }
+
+    .col {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .col-h {
+      padding: 0.32rem 0.4rem 0.3rem;
+      background: var(--navy);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-height: 2.35rem;
+      justify-content: center;
+    }
+
+    .col-h strong {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.005em;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .col-h em {
+      display: block;
+      font-style: normal;
+      font-size: 0.56rem;
+      font-weight: 550;
+      letter-spacing: 0.02em;
+      opacity: 0.78;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .col-b {
+      padding: 0.35rem 0.35rem 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.22rem;
+      flex: 1;
+    }
+
+    .n {
+      padding: 0.28rem 0.35rem;
+      border: 1px solid var(--navy);
+      border-radius: 4px;
+      background: #fff;
+      font-size: 0.62rem;
+      font-weight: 650;
+      color: var(--navy-dark);
+      line-height: 1.25;
+      text-align: center;
+    }
+
+    .n small {
+      display: block;
+      margin-top: 0.08rem;
+      font-size: 0.56rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .n--lock {
+      border-color: var(--lock);
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .n--gate {
+      border-color: var(--ok);
+      background: var(--ok-soft);
+      color: #14532d;
+    }
+
+    .n--end {
+      border-color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .n--sub {
+      border-style: dashed;
+      border-color: rgba(26, 53, 104, 0.4);
+      background: var(--soft);
+    }
+
+    .n--fail {
+      border-color: var(--fail);
+      background: var(--fail-soft);
+      color: #7f1d1d;
+    }
+
+    .n--decide {
+      border-color: var(--decide);
+      background: var(--decide-soft);
+      color: #7c2d12;
+      font-weight: 700;
+    }
+
+    .arrow {
+      text-align: center;
+      color: var(--green);
+      font-size: 0.55rem;
+      font-weight: 700;
+      line-height: 1;
+      opacity: 0.9;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.22rem;
+    }
+
+    .split .n { font-size: 0.58rem; padding: 0.22rem 0.28rem; }
+
+    .tag {
+      display: block;
+      font-size: 0.52rem;
+      font-weight: 750;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin-bottom: 0.12rem;
+      text-align: center;
+    }
+
+    .tag--ok { color: #14532d; }
+    .tag--no { color: #9a3412; }
+    .tag--fail { color: #991b1b; }
+
+    .stock {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.18rem;
+    }
+
+    .stock div {
+      padding: 0.2rem 0.3rem;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: var(--soft);
+      font-size: 0.56rem;
+      color: var(--muted);
+      line-height: 1.25;
+      text-align: left;
+    }
+
+    .stock strong {
+      color: var(--navy-dark);
+      font-weight: 700;
+    }
+
+    .exc {
+      margin-top: 0.35rem;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 0.35rem;
+    }
+
+    .exc-box {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.35rem 0.45rem;
+      background: var(--soft);
+    }
+
+    .exc-box--fail {
+      border-color: rgba(185, 28, 28, 0.28);
+      background: var(--fail-soft);
+    }
+
+    .exc-box h3 {
+      margin: 0 0 0.2rem;
+      font-size: 0.68rem;
+      color: var(--navy-dark);
+    }
+
+    .exc-box--fail h3 { color: #7f1d1d; }
+
+    .exc-box p,
+    .exc-box ul {
+      margin: 0;
+      font-size: 0.6rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .exc-box ul {
+      padding-left: 0.85rem;
+    }
+
+    .exc-box li { margin-bottom: 0.06rem; }
+    .exc-box li:last-child { margin-bottom: 0; }
+
+    .exc-flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.15rem;
+      margin-top: 0.22rem;
+    }
+
+    .exc-flow .chip {
+      font-size: 0.55rem;
+      font-weight: 650;
+      padding: 0.1rem 0.28rem;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--navy-dark);
+    }
+
+    .exc-flow .chip--x {
+      border-color: rgba(185, 28, 28, 0.35);
+      color: #7f1d1d;
+      background: #fff;
+    }
+
+    .exc-flow .arr {
+      color: var(--green);
+      font-size: 0.55rem;
+      font-weight: 700;
+    }
+
+    .exc-flow .arr--x { color: var(--fail); }
+
+    .foot {
+      margin-top: 0.35rem;
+      padding-top: 0.28rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.58rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    @media (max-width: 900px) {
+      .board { grid-template-columns: 1fr; }
+      .exc { grid-template-columns: 1fr; }
+      .head { flex-direction: column; }
+      .head-meta { text-align: left; white-space: normal; }
+    }
+
+    @media print {
+      body.doc-anexo {
+        background: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body.doc-anexo .toolbar { display: none !important; }
+
+      body.doc-anexo .doc {
+        width: auto;
+        max-width: none;
+        margin: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 8mm 8mm 8mm;
+      }
+
+      body.doc-anexo .sheet {
+        padding: 0;
+      }
+
+      body.doc-anexo .head { margin-bottom: 0.28rem; padding-bottom: 0.22rem; }
+      body.doc-anexo .head-left img { height: 22px; }
+      body.doc-anexo .head-titles h1 { font-size: 10pt; }
+      body.doc-anexo .head-titles p { font-size: 7pt; }
+      body.doc-anexo .head-meta { font-size: 6.5pt; }
+      body.doc-anexo .legend { font-size: 6.5pt; margin-bottom: 0.28rem; gap: 0.25rem 0.55rem; }
+      body.doc-anexo .board { gap: 0.28rem; }
+      body.doc-anexo .col-h { padding: 0.22rem 0.3rem; min-height: 1.85rem; }
+      body.doc-anexo .col-h strong { font-size: 7.2pt; }
+      body.doc-anexo .col-h em { font-size: 5.9pt; }
+      body.doc-anexo .col-b { padding: 0.28rem; gap: 0.16rem; }
+      body.doc-anexo .n { font-size: 6.6pt; padding: 0.2rem 0.28rem; }
+      body.doc-anexo .n small { font-size: 5.8pt; }
+      body.doc-anexo .split .n { font-size: 6.2pt; }
+      body.doc-anexo .stock div { font-size: 5.9pt; }
+      body.doc-anexo .exc { margin-top: 0.28rem; gap: 0.28rem; }
+      body.doc-anexo .exc-box { padding: 0.28rem 0.35rem; }
+      body.doc-anexo .exc-box h3 { font-size: 7pt; }
+      body.doc-anexo .exc-box p,
+      body.doc-anexo .exc-box ul { font-size: 6.2pt; }
+      body.doc-anexo .exc-flow .chip { font-size: 5.8pt; }
+      body.doc-anexo .foot { font-size: 6pt; margin-top: 0.25rem; }
+
+      /* Força 1 página: evita quebra */
+      body.doc-anexo .sheet,
+      body.doc-anexo .board,
+      body.doc-anexo .exc,
+      body.doc-anexo .col {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body class="doc-anexo">
+  <div class="toolbar" role="navigation" aria-label="Ações do documento">
+    <div class="toolbar-brand">
+      <img src="assets/img/logo-trigger-mark.png" alt="" width="28" height="28">
+      <span>Anexo A · Fluxo operacional · ERP RLP</span>
+    </div>
+    <div class="toolbar-actions">
+      <a class="btn btn-secondary" href="index-v2.html">Voltar à proposta</a>
+      <a class="btn btn-secondary" href="anexo-cronograma.html">Anexo B · Cronograma</a>
+      <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF (paisagem)</button>
+    </div>
+  </div>
+
+  <article class="doc" aria-label="Anexo A — Fluxograma operacional">
+    <section class="sheet">
+
+      <header class="head">
+        <div class="head-left">
+          <img src="assets/img/logo-trigger-header.png" alt="TRIGGER Data Intelligence" width="120" height="50">
+          <div class="head-titles">
+            <h1><span class="badge">Anexo A</span> Fluxograma do processo operacional</h1>
+            <p>Do orçamento à baixa — com aprovação, sinal 50%, OP/OS, estoque, expedição, falha de transporte e devolução. Uma página · A4 paisagem.</p>
+          </div>
+        </div>
+        <div class="head-meta">
+          <strong>ERP-RLP-2026-01-v2</strong>
+          Proposta comercial · 11/08/2026<br>
+          TRIGGER × RLP Etiquetas
+        </div>
+      </header>
+
+      <div class="legend" aria-label="Legenda">
+        <span><i class="sw sw--p" aria-hidden="true"></i> Processo</span>
+        <span><i class="sw sw--d" aria-hidden="true"></i> Decisão</span>
+        <span><i class="sw sw--g" aria-hidden="true"></i> Gate financeiro</span>
+        <span><i class="sw sw--l" aria-hidden="true"></i> Bloqueio de edição</span>
+        <span><i class="sw sw--x" aria-hidden="true"></i> Exceção (falha / devolução)</span>
+      </div>
+
+      <div class="board" aria-label="Fluxo operacional completo">
+
+        <!-- COL 1: ORÇAMENTO -->
+        <div class="col">
+          <div class="col-h"><strong>1 · Orçamento</strong><em>edição → aprovação</em></div>
+          <div class="col-b">
+            <div class="n">Elaboração / edição<small>Itens, qtd., valores</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Envio p/ aprovação<small>Cliente recebe</small></div>
+            <div class="arrow">↓</div>
+            <div class="n n--lock">Bloqueado p/ edição<small>Só leitura após envio</small></div>
+            <div class="arrow">↓</div>
+            <div class="n n--decide">Aprovado?</div>
+            <div class="split">
+              <div>
+                <span class="tag tag--no">Não</span>
+                <div class="n n--sub">Volta à edição<small>Ajusta e reenvia</small></div>
+              </div>
+              <div>
+                <span class="tag tag--ok">Sim</span>
+                <div class="n n--gate">Segue → Pedido</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COL 2: PEDIDO -->
+        <div class="col">
+          <div class="col-h"><strong>2 · Pedido</strong><em>sinal · 1ª compra</em></div>
+          <div class="col-b">
+            <div class="n">Confirmação / geração do pedido<small>Vínculo ao orçamento</small></div>
+            <div class="arrow">↓</div>
+            <div class="n n--decide">1ª compra?</div>
+            <div class="split">
+              <div>
+                <span class="tag tag--ok">Sim</span>
+                <div class="n">Sinal 50%<small>Adiantamento PIX</small></div>
+                <div class="arrow">↓</div>
+                <div class="n n--gate">Reconhecimento no sistema<small>Gate obrigatório</small></div>
+              </div>
+              <div>
+                <span class="tag tag--no">Não</span>
+                <div class="n n--sub">Sem sinal<small>Segue direto</small></div>
+              </div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="n n--gate">Pedido liberado p/ produção</div>
+          </div>
+        </div>
+
+        <!-- COL 3: PRODUÇÃO -->
+        <div class="col">
+          <div class="col-h"><strong>3 · OP/OS · Produção</strong><em>insumos → produto acabado</em></div>
+          <div class="col-b">
+            <div class="n">Geração OP / OS<small>Insumos a utilizar</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Saída MP / insumo<small>Estoque → ordem</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Produção de fato<small>Execução até conclusão</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Atualização de estoque</div>
+            <div class="stock">
+              <div><strong>Consumido</strong> — usado na produção</div>
+              <div><strong>Retorno</strong> — sobra reentra no estoque</div>
+              <div><strong>PA</strong> — produto acabado disponível</div>
+            </div>
+            <div class="arrow">↓</div>
+            <div class="n">Atualiz. orçamento / pedido<small>Readequação ±20%</small></div>
+          </div>
+        </div>
+
+        <!-- COL 4: EXPEDIÇÃO + FATURA + TRANSPORTE -->
+        <div class="col">
+          <div class="col-h"><strong>4 · Expedição · Fatura</strong><em>transporte · ocorrência</em></div>
+          <div class="col-b">
+            <div class="n">Expedição / preparação PA<small>Separação e embalagem</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Faturamento / título<small>Contas a receber</small></div>
+            <div class="arrow">↓</div>
+            <div class="n">Entrega / transporte<small>Despacho ao cliente</small></div>
+            <div class="arrow">↓</div>
+            <div class="n n--decide">Transporte OK?</div>
+            <div class="split">
+              <div>
+                <span class="tag tag--fail">Falha</span>
+                <div class="n n--fail">Ocorrência de transporte<small>Avaria, extravio, recusa em trânsito</small></div>
+                <div class="arrow">↓</div>
+                <div class="n n--sub">Tratativa / reenvio ou devolução logística</div>
+              </div>
+              <div>
+                <span class="tag tag--ok">OK</span>
+                <div class="n n--gate">Chegada ao cliente</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COL 5: ENTREGA → BAIXA / DEVOLUÇÃO -->
+        <div class="col">
+          <div class="col-h"><strong>5 · Entrega · Financeiro</strong><em>confirmação → baixa</em></div>
+          <div class="col-b">
+            <div class="n">Confirmação de entrega<small>Recebimento físico</small></div>
+            <div class="arrow">↓</div>
+            <div class="n n--decide">Aceite do cliente?</div>
+            <div class="split">
+              <div>
+                <span class="tag tag--fail">Não</span>
+                <div class="n n--fail">Devolução<small>Parcial ou total</small></div>
+                <div class="arrow">↓</div>
+                <div class="n n--sub">Estorno estoque / título<small>Ajuste financeiro</small></div>
+              </div>
+              <div>
+                <span class="tag tag--ok">Sim</span>
+                <div class="n">Recebimento financeiro<small>Pagamento / conciliação</small></div>
+                <div class="arrow">↓</div>
+                <div class="n n--end">Baixa do título<small>Ciclo encerrado</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="exc" aria-label="Exceções e regras-chave">
+        <div class="exc-box">
+          <h3>Regras de bloqueio e sinal</h3>
+          <ul>
+            <li>Após envio para aprovação, orçamento <strong>não edita</strong>; só rejeição libera.</li>
+            <li>Aprovado → pedido; rejeitado → edição e novo envio.</li>
+            <li>1ª compra: sinal <strong>50%</strong>; fluxo só segue com valor reconhecido.</li>
+          </ul>
+        </div>
+        <div class="exc-box exc-box--fail">
+          <h3>Falha no transporte</h3>
+          <p>Avaria, extravio, atraso crítico ou recusa em trânsito.</p>
+          <div class="exc-flow">
+            <span class="chip chip--x">Ocorrência</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Tratativa</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Reenvio</span>
+            <span class="arr">ou</span>
+            <span class="chip chip--x">Devolução logística</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Ajuste estoque / título</span>
+          </div>
+        </div>
+        <div class="exc-box exc-box--fail">
+          <h3>Devolução (pós-entrega)</h3>
+          <p>Cliente não aceita (qualidade, divergência, pedido). Parcial ou total.</p>
+          <div class="exc-flow">
+            <span class="chip chip--x">Devolução</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Entrada PA no estoque</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Estorno / ajuste do título</span>
+            <span class="arr arr--x">→</span>
+            <span class="chip">Baixa / quitação ajustada</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="foot">
+        <span><strong>TRIGGER</strong> · CNPJ 53.369.941/0001-63 · Anexo A da proposta ERP-RLP-2026-01-v2 · confidencial</span>
+        <span>Impressão: A4 paisagem · 1 página · <a href="index-v2.html">voltar à proposta</a> · <a href="anexo-cronograma.html">Anexo B</a></span>
+      </footer>
+    </section>
+  </article>
+</body>
+</html>

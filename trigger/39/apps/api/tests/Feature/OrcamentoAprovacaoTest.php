@@ -6,6 +6,7 @@ use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
+use App\Models\ParceiroContato;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -48,6 +49,31 @@ class OrcamentoAprovacaoTest extends TestCase
             'papel_cliente' => true,
             'situacao' => 'ATIVO',
             'is_prospect' => false,
+            'whatsapp' => '31999998888',
+            'contato_nome' => 'Maria Compradora',
+            // Crédito liberado → sem adiantamento PIX (cenário B). PIX = AdiantamentoOrcamentoTest.
+            'limite_credito' => '10000.00',
+        ]);
+
+        ParceiroContato::query()->create([
+            'parceiro_id' => $this->parceiro->id,
+            'nome' => 'Maria Compradora',
+            'funcao' => 'Compras',
+            'whatsapp' => '31999998888',
+            'email' => 'maria@cliente.test',
+            'principal' => true,
+            'autorizado_aprovar' => true,
+            'ordem' => 0,
+        ]);
+
+        ParceiroContato::query()->create([
+            'parceiro_id' => $this->parceiro->id,
+            'nome' => 'João Financeiro',
+            'funcao' => 'Financeiro',
+            'email' => 'joao@cliente.test',
+            'principal' => false,
+            'autorizado_aprovar' => false,
+            'ordem' => 1,
         ]);
 
         $this->comercial = User::query()->create([
@@ -118,19 +144,60 @@ class OrcamentoAprovacaoTest extends TestCase
         $id = $this->criarOrcamento();
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
 
-        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
+        $dest->assertOk();
+        $this->assertCount(1, $dest->json('data.destinatarios'));
+        $this->assertSame('Maria Compradora', $dest->json('data.destinatarios.0.nome'));
+        $contatoId = $dest->json('data.destinatarios.0.parceiro_contato_id');
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao", [
+            'parceiro_contato_id' => $contatoId,
+        ]);
         $env->assertOk();
         $this->assertSame('ENVIADO', $env->json('data.orcamento.status'));
         $this->assertFalse($env->json('data.orcamento.editavel'));
+        $this->assertSame('Maria Compradora', $env->json('data.destinatario.nome'));
+        $this->assertStringContainsString('Maria', $env->json('data.mensagem'));
         $url = $env->json('data.url');
         $this->assertStringContainsString('/p/', $url);
         $this->assertStringContainsString($env->json('data.token'), $env->json('data.mensagem'));
+        $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
+        $this->assertStringContainsString('não encaminhe', $env->json('data.mensagem'));
 
         $upd = $this->withHeaders($h)->putJson("/api/v1/orcamentos/{$id}", $this->payload());
         $upd->assertStatus(422);
 
         $del = $this->withHeaders($h)->deleteJson("/api/v1/orcamentos/{$id}");
         $del->assertStatus(422);
+    }
+
+    public function test_exige_destinatario_quando_ha_varios_autorizados(): void
+    {
+        ParceiroContato::query()->create([
+            'parceiro_id' => $this->parceiro->id,
+            'nome' => 'Ana Diretora',
+            'funcao' => 'Diretora',
+            'whatsapp' => '31988887777',
+            'principal' => false,
+            'autorizado_aprovar' => true,
+            'ordem' => 2,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao", []);
+        $fail->assertStatus(422);
+
+        $lista = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
+        $this->assertCount(2, $lista->json('data.destinatarios'));
+        $cid = $lista->json('data.destinatarios.1.parceiro_contato_id');
+
+        $ok = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao", [
+            'parceiro_contato_id' => $cid,
+        ]);
+        $ok->assertOk();
+        $this->assertSame('Ana Diretora', $ok->json('data.destinatario.nome'));
     }
 
     public function test_cliente_aprova_pelo_link_e_link_some(): void
@@ -144,6 +211,8 @@ class OrcamentoAprovacaoTest extends TestCase
         $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
         $pub->assertOk();
         $this->assertSame('VISUALIZADO', $pub->json('data.status'));
+        $this->assertSame('Maria Compradora', $pub->json('data.destinatario.nome'));
+        $this->assertStringContainsString('Maria Compradora', $pub->json('data.destinatario.instrucao'));
         $this->assertArrayNotHasKey('imposto', $pub->json('data'));
         $this->assertArrayHasKey('faixas', $pub->json('data'));
         // DTO comercial não vaza composição de custo
@@ -213,5 +282,66 @@ class OrcamentoAprovacaoTest extends TestCase
         $t2->assertOk();
         $this->assertTrue($t2->json('data.reutilizado'));
         $this->assertSame($t1, $t2->json('data.token'));
+    }
+
+    public function test_proposta_publica_expoe_composicao_dos_modelos(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['modelos'] = 2;
+        $payload['modelos_composicao'] = [
+            ['nome' => 'maçã verde', 'percentual' => 30],
+            ['nome' => 'abacate', 'percentual' => 70],
+        ];
+
+        $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload)->json('data.id');
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
+        $pub->assertOk();
+        $this->assertSame(2, $pub->json('data.descricao.modelos'));
+        $this->assertSame('maçã verde', $pub->json('data.descricao.modelos_composicao.0.nome'));
+        $this->assertEqualsWithDelta(30.0, (float) $pub->json('data.descricao.modelos_composicao.0.percentual'), 0.01);
+        $this->assertSame('abacate', $pub->json('data.descricao.modelos_composicao.1.nome'));
+        $this->assertEqualsWithDelta(70.0, (float) $pub->json('data.descricao.modelos_composicao.1.percentual'), 0.01);
+        // Continua sem vazar breakdown de custo
+        $this->assertArrayNotHasKey('valor_papel', $pub->json('data.faixas.0'));
+    }
+
+    public function test_previa_interna_sem_decidir_e_sem_consumir_link(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $id = $this->criarOrcamento();
+        $prev = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $prev->assertOk();
+        $this->assertSame('preview', $prev->json('data.modo'));
+        $this->assertTrue($prev->json('data.somente_leitura'));
+        $this->assertFalse($prev->json('data.disponivel'));
+        $this->assertArrayHasKey('faixas', $prev->json('data'));
+        $this->assertArrayNotHasKey('valor_papel', $prev->json('data.faixas.0'));
+
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        // Prévia não marca VISUALIZADO
+        $this->assertSame('ENVIADO', Orcamento::query()->findOrFail($id)->status);
+
+        $prev2 = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $prev2->assertOk();
+        $this->assertSame('preview', $prev2->json('data.modo'));
+        $this->assertSame('ENVIADO', Orcamento::query()->findOrFail($id)->status);
+
+        // Link do cliente continua decidível
+        $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
+        $pub->assertOk();
+        $this->assertTrue($pub->json('data.disponivel'));
+        $this->assertNotSame('preview', $pub->json('data.modo'));
     }
 }

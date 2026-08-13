@@ -199,6 +199,8 @@ export type AuthEmpresa = {
   razao_social: string;
   nome_fantasia: string | null;
   padrao: boolean;
+  venda_ativa?: boolean;
+  estoque_ativo?: boolean;
 };
 
 export type AuthMeResponse = {
@@ -241,6 +243,11 @@ export type EmpresaContaFinanceira = {
   observacao: string | null;
 };
 
+export type UsuarioRef = {
+  id: number;
+  name: string;
+};
+
 export type Empresa = {
   id: number;
   codigo: string;
@@ -277,6 +284,10 @@ export type Empresa = {
   fiscal_pendencias_emissao?: string[];
   fiscais_historico?: EmpresaFiscalHistorico[];
   contas_financeiras?: EmpresaContaFinanceira[];
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type ParceiroContato = {
@@ -287,6 +298,7 @@ export type ParceiroContato = {
   whatsapp: string | null;
   email: string | null;
   principal: boolean;
+  autorizado_aprovar?: boolean;
   ordem?: number;
 };
 
@@ -412,7 +424,13 @@ export type Parceiro = {
   cfop_entrada_padrao: string | null;
   vinculo: string | null;
   cargo: string | null;
+  departamento_id: number | null;
   departamento: string | null;
+  departamento_ref?: { id: number; codigo: string; nome: string; ativo: boolean } | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type ProdutoDescricaoSugestao = {
@@ -458,10 +476,17 @@ export type Produto = {
   custo_medio: string | null;
   estoque_minimo: string | null;
   lead_time_dias: number | null;
+  controla_lote?: boolean;
+  controla_validade?: boolean;
+  prazo_validade_dias?: number | null;
   gtin: string | null;
   situacao: string;
   atributos: Record<string, unknown> | null;
   grupo_catalogo?: ProdutoGrupo | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type ProdutoGrupo = {
@@ -505,6 +530,8 @@ export type BemPatrimonial = {
     nome_fantasia: string | null;
   } | null;
   local: string | null;
+  departamento_id: number | null;
+  departamento?: { id: number; codigo: string; nome: string; ativo: boolean } | null;
   responsavel: string | null;
   responsavel_user_id: number | null;
   status: string;
@@ -523,6 +550,443 @@ export type BemPatrimonial = {
     abaixo_do_minimo: boolean;
     mensagem: string | null;
   } | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+/** Natureza gerencial financeira (NAT-1.01.01). ≠ produto_grupos.natureza. */
+export type Departamento = {
+  id: number;
+  empresa_id: number;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type NaturezaGerencial = {
+  id: number;
+  codigo: string;
+  codigo_exibicao: string;
+  grupo: number;
+  grupo_nome: string;
+  nivel: number;
+  parent_id: number | null;
+  nome: string;
+  descricao: string | null;
+  aceita_lancamento: boolean;
+  ativo: boolean;
+  ordenacao: number;
+  children?: NaturezaGerencial[];
+};
+
+export type CompraNecessidade = {
+  id: number;
+  codigo: string;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    descricao_comercial: string | null;
+  } | null;
+  qtde: string;
+  unidade: string;
+  necessario_em: string | null;
+  motivo: string | null;
+  prioridade: string;
+  status: string;
+  observacao: string | null;
+};
+
+export type CotacaoItem = {
+  id: number;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    descricao_comercial?: string | null;
+  } | null;
+  qtde: string;
+  unidade: string;
+};
+
+export type CotacaoProposta = {
+  id: number;
+  cotacao_item_id: number;
+  fornecedor_id: number;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia: string | null;
+  } | null;
+  valor_unitario: string;
+  frete: string | null;
+  prazo_dias: number | null;
+  validade: string | null;
+  condicao_pagamento: string | null;
+  vencedora: boolean;
+};
+
+export type Cotacao = {
+  id: number;
+  codigo: string;
+  status: string;
+  necessidade_id: number | null;
+  prazo_resposta: string | null;
+  observacao: string | null;
+  itens?: CotacaoItem[];
+  propostas?: CotacaoProposta[];
+  ordem_compra?: { id: number; codigo: string } | null;
+};
+
+export type OrdemCompraItem = {
+  id: number;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    descricao_comercial?: string | null;
+    familia?: string;
+    unidade_comercial?: string | null;
+    unidade_interna?: string | null;
+    controla_lote?: boolean;
+    controla_validade?: boolean;
+    prazo_validade_dias?: number | null;
+  } | null;
+  qtde_pedida: string;
+  qtde_recebida: string;
+  unidade: string;
+  valor_unitario: string;
+  valor_total: string;
+};
+
+export type OrdemCompra = {
+  id: number;
+  codigo: string;
+  fornecedor_id: number;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia: string | null;
+  } | null;
+  cotacao_id: number | null;
+  necessidade_id: number | null;
+  origem: string;
+  urgente: boolean;
+  status: string;
+  condicao_pagamento: string | null;
+  previsao_entrega: string | null;
+  valor_total: string;
+  observacao: string | null;
+  itens?: OrdemCompraItem[];
+};
+
+export type ReceberXmlWarning = {
+  nivel: 'INFO' | 'ALERTA' | 'CRITICO' | string;
+  codigo: string;
+  mensagem: string;
+};
+
+export type ReceberXmlParcela = {
+  n_dup: string | null;
+  vencimento: string;
+  valor: string;
+};
+
+export type ReceberXmlPreview = {
+  nf: {
+    chave: string | null;
+    numero: string | null;
+    serie: string | null;
+    data_emissao: string | null;
+    vencimento_sugerido: string | null;
+    valor_nf: string | null;
+    totais?: Record<string, string | null> | null;
+    parcelas?: ReceberXmlParcela[];
+    destinatario?: { cnpj_cpf: string | null };
+    emitente: {
+      cnpj_cpf: string | null;
+      razao_social: string | null;
+      nome_fantasia: string | null;
+    };
+  };
+  warnings: ReceberXmlWarning[];
+  linhas: Array<{
+    n_item: number;
+    c_prod: string;
+    x_prod: string | null;
+    ncm: string | null;
+    u_com: string | null;
+    q_com: string;
+    v_un_com: string;
+    v_prod: string;
+    cfop: string | null;
+    match: {
+      ordem_compra_item_id: number | null;
+      produto_id: number | null;
+      confianca: string;
+      motivo: string;
+    };
+  }>;
+  sugerido_receber: {
+    nf_chave: string | null;
+    nf_numero: string | null;
+    nf_data: string | null;
+    nf_valor?: string | null;
+    nf_totais?: Record<string, string | null> | null;
+    vencimento: string | null;
+    parcelas?: ReceberXmlParcela[];
+    itens: Array<{
+      ordem_compra_item_id: number;
+      qtde_recebida: string;
+      lote_codigo?: string | null;
+      lote_data_entrada?: string | null;
+      lote_data_validade?: string | null;
+      lote_data_fabricacao?: string | null;
+    }>;
+  };
+};
+
+export type EstoqueLote = {
+  id: number;
+  produto_id: number;
+  produto?: { id: number; codigo: string; descricao_fiscal: string } | null;
+  codigo: string;
+  data_entrada: string | null;
+  data_fabricacao: string | null;
+  data_validade: string | null;
+  qtde: string;
+  unidade: string;
+  origem_tipo: string;
+  status: string;
+  status_label: string;
+};
+
+export type EstoqueSaldo = {
+  id: number;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    descricao_comercial?: string | null;
+    familia?: string;
+    unidade_interna?: string | null;
+    controla_lote?: boolean;
+    controla_validade?: boolean;
+  } | null;
+  qtde: string;
+  unidade: string;
+  custo_medio: string;
+  controla_lote?: boolean;
+  lotes_count?: number;
+  validade_status?: string | null;
+  proxima_validade?: string | null;
+  lotes?: EstoqueLote[];
+};
+
+export type EstoqueMovimento = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  nf_chave: string | null;
+  nf_numero: string | null;
+  nf_data: string | null;
+  conferido_em: string;
+  motivo_codigo?: string | null;
+  ajuste_id?: number | null;
+  ordem_compra?: { id: number; codigo: string } | null;
+};
+
+export type ReposicaoItem = {
+  produto_id: number;
+  produto: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    grupo: string | null;
+    unidade_comercial: string | null;
+    unidade_interna: string | null;
+    fator_conversao: string;
+    custo_medio: string;
+    lead_time_dias: number | null;
+  };
+  estoque_minimo: string;
+  saldo: string;
+  em_transito: string;
+  disponivel: string;
+  faltante_interna: string;
+  faltante_comercial: string;
+  unidade_interna: string;
+  unidade_comercial: string;
+};
+
+export type EstoqueAjuste = {
+  id: number;
+  codigo: string;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    unidade_interna: string | null;
+  } | null;
+  origem: string;
+  motivo_codigo: string;
+  motivo_nome: string | null;
+  motivo_complemento: string | null;
+  qtde_sistema: string;
+  qtde_contada: string;
+  qtde_diferenca: string;
+  valor_ajuste?: string | null;
+  alcada?: string | null;
+  unidade: string;
+  checklist_confirmado: boolean;
+  status: string;
+  solicitado_por?: { id: number; name: string } | null;
+  aprovado_por?: { id: number; name: string } | null;
+  aprovado_em: string | null;
+  movimento_id: number | null;
+  movimento?: { id: number; codigo: string; tipo: string } | null;
+  observacao: string | null;
+  causa_raiz?: string | null;
+  ciencia_diretoria?: boolean;
+  ciencia_contabilidade?: boolean;
+  divergencia_relevante?: boolean;
+  aviso_fiscal?: string | null;
+  inventario_item_id?: number | null;
+  inventario_id?: number | null;
+  created_at: string | null;
+};
+
+export type EstoqueAjusteMeta = {
+  origens: string[];
+  statuses: string[];
+  alcadas?: string[];
+  faixas?: { lider_ate: string; gestor_ate: string };
+  motivos: Array<{ codigo: string; nome: string }>;
+};
+
+export type EstoqueInventarioItem = {
+  id: number;
+  inventario_id: number;
+  produto_id: number;
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    unidade_interna: string | null;
+  } | null;
+  unidade: string;
+  qtde_sistema_corte?: string;
+  qtde_1: string | null;
+  contado_por_1?: { id: number; name: string } | null;
+  qtde_2: string | null;
+  contado_por_2?: { id: number; name: string } | null;
+  qtde_final: string | null;
+  qtde_diferenca?: string | null;
+  status: string;
+  ajuste_id: number | null;
+  ajuste?: { id: number; codigo: string; status: string } | null;
+  checklist_confirmado: boolean;
+};
+
+export type EstoqueInventario = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  status: string;
+  iniciado_em: string | null;
+  encerrado_em: string | null;
+  acuracidade_pct: string | null;
+  skus_contados: number | null;
+  skus_ok: number | null;
+  itens_count: number;
+  observacao: string | null;
+  itens?: EstoqueInventarioItem[];
+  created_at: string | null;
+};
+
+export type EstoqueInventarioMeta = {
+  tipos: string[];
+  statuses: string[];
+  item_statuses: string[];
+  motivos?: Array<{ codigo: string; nome: string }>;
+};
+
+export type EstoqueExtrato = {
+  produto: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    unidade_interna: string | null;
+    controla_lote?: boolean;
+    controla_validade?: boolean;
+  };
+  saldo: { qtde: string; unidade: string; custo_medio: string };
+  lotes?: EstoqueLote[];
+  movimentos: Array<{
+    movimento_id: number | null;
+    movimento_codigo: string | null;
+    tipo: string | null;
+    motivo_codigo: string | null;
+    qtde: string;
+    unidade: string;
+    valor_unitario: string;
+    valor_total: string;
+    custo_medio_apos: string;
+    lote?: { id: number; codigo: string; data_entrada?: string | null; data_validade?: string | null } | null;
+    conferido_em: string | null;
+    created_at: string | null;
+  }>;
+  movimentos_count: number;
+};
+
+export type Titulo = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  origem?: string | null;
+  parceiro_id: number;
+  parceiro?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia: string | null;
+  } | null;
+  natureza_id: number;
+  orcamento_id?: number | null;
+  orcamento?: { id: number; codigo: string; financeiro_status: string | null } | null;
+  documento: string | null;
+  parcela?: number | null;
+  n_dup?: string | null;
+  emissao: string;
+  vencimento: string;
+  valor: string;
+  saldo: string;
+  status: string;
+  cobrancas?: Array<{
+    id: number;
+    codigo: string;
+    provider: string;
+    status: string;
+    pix_copia_cola: string | null;
+    pix_qr_base64: string | null;
+    linha_digitavel: string | null;
+    vencimento: string | null;
+  }>;
 };
 
 export type Usuario = {
@@ -727,6 +1191,7 @@ export type Orcamento = {
   parceiro_id: number;
   cliente_nome: string;
   status: string;
+  status_exibicao?: string | null;
   editavel: boolean;
   enviavel?: boolean;
   aguardando_cliente?: boolean;
@@ -746,11 +1211,16 @@ export type Orcamento = {
   aceite_nome_cliente?: string | null;
   aceite_faixa_index?: number | null;
   motivo_decisao?: string | null;
+  financeiro_status?: string | null;
+  adiantamento_titulo_id?: number | null;
   link_aprovacao?: {
     ativo: boolean;
     expira_em: string | null;
     visualizacoes: number;
     usado_em: string | null;
+    destino_nome?: string | null;
+    destino_funcao?: string | null;
+    canal_envio?: string | null;
   } | null;
   parceiro?: {
     id: number;
@@ -759,27 +1229,191 @@ export type Orcamento = {
     nome_fantasia: string | null;
     is_prospect: boolean;
   } | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
   created_at: string | null;
   updated_at: string | null;
+};
+
+export type PedidoItem = {
+  id: number;
+  ordem: number;
+  necessidade: string;
+  familia_fiscal: string | null;
+  descricao: string;
+  especificacao?: Record<string, unknown> | null;
+  qtde_pedida: string;
+  qtde_produzida: string;
+  qtde_faturavel: string;
+  unidade: string;
+  preco_unitario: string | null;
+  valor_total: string | null;
+  status: string;
+  produto_pa?: { id: number; codigo: string; descricao_fiscal: string } | null;
+};
+
+export type Pedido = {
+  id: number;
+  codigo: string;
+  status: string;
+  faixa_index: number;
+  tolerancia_qtd_pct: string;
+  prazo_entrega_dias: number | null;
+  observacao: string | null;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  orcamento?: {
+    id: number;
+    codigo: string;
+    status?: string | null;
+    financeiro_status?: string | null;
+  } | null;
+  itens: PedidoItem[];
+  ordens_producao?: Array<{
+    id: number;
+    codigo: string;
+    status: string;
+    pedido_item_id?: number;
+    qtde_planejada: string;
+    qtde_boa: string | null;
+  }>;
+  ordens_servico?: Array<{
+    id: number;
+    codigo: string;
+    status: string;
+    pedido_item_id?: number;
+    qtde_planejada: string;
+    qtde_executada: string | null;
+  }>;
+  snapshot?: Record<string, unknown> | null;
+  created_at: string | null;
+};
+
+export type OrdemProducaoMaterial = {
+  id: number;
+  produto: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    unidade_interna: string | null;
+    familia: string;
+  } | null;
+  componente?: string | null;
+  origem_texto?: string | null;
+  qtde_planejada?: string;
+  qtde_requisitada: string;
+  qtde_consumida: string;
+  qtde_retorno: string;
+  qtde_perda: string;
+  unidade: string;
+  pendente?: boolean;
+  saida_movimento_id: number | null;
+  retorno_movimento_id: number | null;
+};
+
+export type OrdemProducao = {
+  id: number;
+  codigo: string;
+  status: string;
+  qtde_planejada: string;
+  qtde_boa: string | null;
+  qtde_refugo: string;
+  fora_tolerancia: boolean;
+  motivo_fora_tolerancia: string | null;
+  custo_materiais: string | null;
+  pedido?: {
+    id: number;
+    codigo: string;
+    status: string;
+    tolerancia_qtd_pct?: string | null;
+  } | null;
+  pedido_item?: {
+    id: number;
+    descricao: string;
+    necessidade: string;
+    qtde_pedida?: string;
+  } | null;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  materiais?: OrdemProducaoMaterial[];
+  pa_movimento?: { id: number; codigo: string; tipo: string } | null;
+  observacao?: string | null;
+  pode_devolver_ao_pedido?: boolean;
+  motivo_cancelamento?: string | null;
+  iniciada_em: string | null;
+  concluida_em: string | null;
+  cancelada_em?: string | null;
+  created_at: string | null;
 };
 
 export type OrcamentoEnvioAprovacao = {
   url: string;
   token: string;
   mensagem: string;
+  /** Deep link wa.me / mailto com a mensagem pronta (quando o canal permite). */
+  canal_url?: string | null;
   expira_em: string | null;
   reutilizado: boolean;
+  destinatario?: {
+    parceiro_contato_id: number | null;
+    nome: string | null;
+    funcao: string | null;
+    canal: string | null;
+    destino: string | null;
+  };
   orcamento: Orcamento;
 };
 
+export type OrcamentoDestinatarioAprovacao = {
+  parceiro_contato_id: number | null;
+  nome: string;
+  funcao: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  telefone: string | null;
+  canal: string;
+  destino: string;
+  autorizado_aprovar: boolean;
+  principal: boolean;
+  legado: boolean;
+};
+
+export type OrcamentoAdiantamentoPublico = {
+  exigido: boolean;
+  financeiro_status: string | null;
+  status_exibicao?: string | null;
+  titulo_codigo: string;
+  titulo_status: string;
+  cob_codigo: string | null;
+  cob_status: string | null;
+  provider?: string | null;
+  pode_simular_pagamento?: boolean;
+  valor: string;
+  saldo: string;
+  percentual: string;
+  vencimento: string | null;
+  pix_copia_cola: string | null;
+  pix_qr_base64: string | null;
+  linha_digitavel: string | null;
+  pago: boolean;
+};
+
 export type OrcamentoPropostaPublica = {
+  modo?: 'proposta' | 'pagamento' | 'preview' | string;
+  mensagem?: string;
+  status_exibicao?: string | null;
   codigo: string;
   versao: number;
   status: string;
   vencido: boolean;
   disponivel: boolean;
+  somente_leitura?: boolean;
+  financeiro_status?: string | null;
   expira_em: string | null;
   cliente_nome: string;
+  destinatario?: {
+    nome: string | null;
+    funcao: string | null;
+    instrucao: string;
+  };
   empresa: {
     nome_fantasia: string | null;
     razao_social: string | null;
@@ -789,7 +1423,7 @@ export type OrcamentoPropostaPublica = {
     municipio: string | null;
     uf: string | null;
   };
-  descricao: {
+  descricao?: {
     medida: string | null;
     papel: string | null;
     acabamento: string | null;
@@ -799,14 +1433,22 @@ export type OrcamentoPropostaPublica = {
     puxada_cm: number | null;
     formato_faca: string | null;
     faca_nova: boolean;
+    modelos?: number | null;
+    modelos_composicao?: Array<{
+      ordem: number;
+      nome: string;
+      percentual: number;
+    }> | null;
   };
-  prazo_entrega_dias: number;
-  validade_dias: number;
-  tolerancia_qtd_pct: number;
-  cobra_matriz: boolean;
-  valor_matriz: number;
-  matriz_nota: string | null;
-  faixas: Array<{
+  prazo_entrega_dias?: number;
+  validade_dias?: number;
+  tolerancia_qtd_pct?: number;
+  condicao_pagamento?: string | null;
+  forma_pagamento?: string | null;
+  cobra_matriz?: boolean;
+  valor_matriz?: number;
+  matriz_nota?: string | null;
+  faixas?: Array<{
     index: number;
     quantidade: number;
     valor_total: number;
@@ -817,7 +1459,8 @@ export type OrcamentoPropostaPublica = {
     valor_matriz: number;
     valor_faca_nova: number;
   }>;
-  observacao_comercial: string | null;
+  observacao_comercial?: string | null;
+  adiantamento?: OrcamentoAdiantamentoPublico | null;
 };
 
 export type OrcamentoCatalogo = {
@@ -843,41 +1486,6 @@ export type OrcCatalogoResumo = {
   matriz_cm2_fonte?: 'database' | 'json_fallback' | string;
   fonte: 'database' | 'json_fallback' | string;
   nota: string;
-};
-
-export type Relatorio = {
-  id: number;
-  codigo: string;
-  titulo: string | null;
-  prompt: string;
-  orientacao: 'retrato' | 'paisagem' | string;
-  status: string;
-  erro_mensagem: string | null;
-  downloadable: boolean;
-  /** PDF removido pela retenção (registro mantido). */
-  arquivo_expirado?: boolean;
-  reprocessavel: boolean;
-  replanejavel?: boolean;
-  resumo_legivel?: string | null;
-  criado_por?: { id: number; name: string } | null;
-  created_at: string | null;
-  updated_at: string | null;
-  programa?: {
-    titulo?: string;
-    fonte?: string;
-    colunas?: string[];
-    filtros?: unknown[];
-    ordenacao?: unknown[];
-    limite?: number;
-    totais?: unknown[];
-  } | null;
-  contexto_flags?: { incluir_credito?: boolean } | null;
-  provedor_ia?: {
-    id: number;
-    nome: string;
-    provedor: string;
-    modelo: string | null;
-  } | null;
 };
 
 export const fiscalConsulta = {

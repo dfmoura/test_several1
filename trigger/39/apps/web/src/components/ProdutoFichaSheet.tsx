@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatCest, formatNcm } from './FiscalCombobox';
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { Produto } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -13,6 +14,7 @@ import {
   formatUnitPrice,
   naturezaGrupoLabel,
 } from '../lib/format';
+import { decideUnidadesConversaoUi } from '../lib/produtoUnidadesConversaoUi';
 
 /** Fallbacks estáticos — mesmas opções usadas no formulário quando a API não responde. */
 const ORIGEM_LABEL: Record<number, string> = {
@@ -142,6 +144,11 @@ export function ProdutoFichaSheet({
   const grupoEstoque = attrStr(p.atributos, 'grupo_estoque');
   const showDimensoes = Boolean(largura || comprimento || gramatura || grupoEstoque);
 
+  const unidadesUi = decideUnidadesConversaoUi({
+    unidadeComercial: p.unidade_comercial,
+    unidadeInterna: p.unidade_interna,
+  });
+
   const showReforma = Boolean(
     p.cst_cbs || p.cclass_trib || p.aliquota_cbs,
   );
@@ -223,25 +230,29 @@ export function ProdutoFichaSheet({
           </div>
         </Section>
 
-        <Section title="Unidades e conversão">
+        <Section title={unidadesUi.sectionTitle}>
           <div className="ficha-kv-grid cols-2">
             <Kv label="Unidade comercial" value={dash(p.unidade_comercial)} />
             <Kv
               label="Unidade de estoque"
               value={dash(p.unidade_interna ?? p.unidade_comercial)}
             />
-            <Kv label="Fator de conversão" value={formatFactor(p.fator_conversao)} wide />
-            <Kv
-              label="Convenção"
-              value={
-                p.unidade_comercial
-                  ? `1 ${p.unidade_comercial} = ${formatFactor(p.fator_conversao) ?? '…'} × ${
-                      p.unidade_interna || p.unidade_comercial
-                    }`
-                  : '—'
-              }
-              wide
-            />
+            {unidadesUi.showFator ? (
+              <Kv label="Fator de conversão" value={formatFactor(p.fator_conversao)} wide />
+            ) : null}
+            {unidadesUi.showEquacao ? (
+              <Kv
+                label="Convenção"
+                value={
+                  p.unidade_comercial
+                    ? `1 ${p.unidade_comercial} = ${formatFactor(p.fator_conversao) ?? '…'} × ${
+                        p.unidade_interna || p.unidade_comercial
+                      }`
+                    : '—'
+                }
+                wide
+              />
+            ) : null}
           </div>
         </Section>
       </div>
@@ -279,6 +290,12 @@ export function ProdutoFichaSheet({
           <Kv
             label="Lead time"
             value={p.lead_time_dias != null ? `${p.lead_time_dias} dia(s)` : '—'}
+          />
+          <Kv label="Controla lote" value={p.controla_lote ? 'Sim' : 'Não'} />
+          <Kv label="Controla validade" value={p.controla_validade ? 'Sim' : 'Não'} />
+          <Kv
+            label="Prazo validade"
+            value={p.prazo_validade_dias != null ? `${p.prazo_validade_dias} dia(s)` : '—'}
           />
         </div>
       </Section>
@@ -319,6 +336,8 @@ export function ProdutoFichaSheet({
         Família fiscal permanente (Camada A) · especificação sob medida vive no ORC/PED — não
         neste cadastro (estudo 32).
       </p>
+
+      <RegistroMetaStrip registro={p} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>

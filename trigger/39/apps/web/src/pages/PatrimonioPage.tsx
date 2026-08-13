@@ -25,7 +25,7 @@ const SORT = {
   codigo: (b: BemPatrimonial) => b.codigo,
   descricao: (b: BemPatrimonial) => b.descricao,
   categoria: (b: BemPatrimonial) => bemCategoriaLabel(b.categoria),
-  local: (b: BemPatrimonial) => b.local,
+  local: (b: BemPatrimonial) => b.departamento?.nome ?? b.local,
   aquisicao: (b: BemPatrimonial) => b.adquirido_em,
   valor: (b: BemPatrimonial) =>
     b.valor_aquisicao != null ? Number(b.valor_aquisicao) : null,
@@ -89,7 +89,7 @@ export function PatrimonioPage() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Código, descrição, marca, série, local"
+                placeholder="Código, descrição, marca, série, departamento"
               />
             </div>
             <div className="form-group" style={{ minWidth: 180 }}>
@@ -143,7 +143,7 @@ export function PatrimonioPage() {
                     Categoria
                   </SortableTh>
                   <SortableTh column="local" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                    Local
+                    Departamento
                   </SortableTh>
                   <SortableTh column="aquisicao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Aquisição
@@ -182,7 +182,7 @@ export function PatrimonioPage() {
                       )}
                     </td>
                     <td>{bemCategoriaLabel(b.categoria)}</td>
-                    <td>{b.local ?? '—'}</td>
+                    <td>{b.departamento?.nome ?? b.local ?? '—'}</td>
                     <td>{formatDate(b.adquirido_em)}</td>
                     <td>{formatCurrency(b.valor_aquisicao)}</td>
                     <td>{b.grupo_hora_maquina?.nome ?? '—'}</td>

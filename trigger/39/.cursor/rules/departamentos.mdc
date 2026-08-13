@@ -1,0 +1,32 @@
+---
+description: Invariante Departamento (DEP) ≠ Centro de custo; local BEM = DEP
+globs: "**/Departamento*.php,**/Departamentos*.tsx,**/BemPatrimonial*.php,**/Patrimonio*.tsx,**/ADR_DEPARTAMENTOS*.md"
+alwaysApply: false
+---
+
+# Fronteira Departamentos (DEP)
+
+Norma: `docs/ADR_DEPARTAMENTOS.md` · estudo `../32` `CADASTRO_PARCEIROS.txt` · `PATRIMONIO_CONTROLE.txt`.
+
+## Donos
+
+- **`departamentos` (`DEP-`)** = unidade organizacional da EMP.
+- **Centro de custo (`cc_id`, futuro)** = *onde* financeiro do lançamento — **não** é DEP.
+- **`bens_patrimoniais.departamento_id`** = local/setor do ativo — **é** o DEP; `local` = espelho do nome.
+- **`parceiros.departamento_id`** = departamento do colaborador; `departamento` = espelho do nome.
+
+## Faça
+
+- Escopar por `empresa_id`; listar/filtrar pela EMP do contexto.
+- Preferir soft-inativar; nunca hard-delete com vínculos (PAR ou BEM).
+- Picker via `GET /consulta/departamentos` (ativos) no colaborador e no patrimônio.
+- Manter DEP ≠ CC ≠ NAT ≠ CFIN.
+
+## Não faça
+
+- Fundir com centro de custo ou natureza gerencial.
+- Reabrir `BEM.local` como texto livre fonte da verdade.
+- Catálogo global sem EMP.
+- Hierarquia de DEP ou automação de perfil RBAC sem ADR.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

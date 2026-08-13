@@ -89,7 +89,7 @@ class NfeEmitenteExtractor
         ];
     }
 
-    private function loadXml(string $xmlContent): SimpleXMLElement
+    protected function loadXml(string $xmlContent): SimpleXMLElement
     {
         $trimmed = trim($xmlContent);
         if ($trimmed === '') {
@@ -117,7 +117,7 @@ class NfeEmitenteExtractor
         }
     }
 
-    private function findInfNFe(SimpleXMLElement $xml): ?SimpleXMLElement
+    protected function findInfNFe(SimpleXMLElement $xml): ?SimpleXMLElement
     {
         $candidates = [
             $xml,
@@ -158,7 +158,7 @@ class NfeEmitenteExtractor
         return null;
     }
 
-    private function extractChave(SimpleXMLElement $inf, SimpleXMLElement $root): ?string
+    protected function extractChave(SimpleXMLElement $inf, SimpleXMLElement $root): ?string
     {
         $attrs = $inf->attributes();
         if ($attrs !== null && isset($attrs['Id'])) {
@@ -251,7 +251,7 @@ class NfeEmitenteExtractor
         };
     }
 
-    private function child(?SimpleXMLElement $parent, string $localName): ?SimpleXMLElement
+    protected function child(?SimpleXMLElement $parent, string $localName): ?SimpleXMLElement
     {
         if ($parent === null) {
             return null;
@@ -273,7 +273,7 @@ class NfeEmitenteExtractor
         return null;
     }
 
-    private function text(?SimpleXMLElement $parent, string $localName): ?string
+    protected function text(?SimpleXMLElement $parent, string $localName): ?string
     {
         $node = $this->child($parent, $localName);
         if ($node === null) {
@@ -285,7 +285,7 @@ class NfeEmitenteExtractor
         return $value === '' ? null : $value;
     }
 
-    private function nullable(?string $value): ?string
+    protected function nullable(?string $value): ?string
     {
         if ($value === null) {
             return null;
@@ -295,7 +295,7 @@ class NfeEmitenteExtractor
         return $trimmed === '' ? null : $trimmed;
     }
 
-    private function digits(?string $value): ?string
+    protected function digits(?string $value): ?string
     {
         if ($value === null) {
             return null;
@@ -305,7 +305,7 @@ class NfeEmitenteExtractor
         return $digits === '' ? null : $digits;
     }
 
-    private function upper(?string $value): ?string
+    protected function upper(?string $value): ?string
     {
         $v = $this->nullable($value);
 

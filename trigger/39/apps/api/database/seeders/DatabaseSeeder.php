@@ -4,13 +4,14 @@ namespace Database\Seeders;
 
 use App\Models\BemPatrimonial;
 use App\Models\CodigoSequence;
+use App\Models\Departamento;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\ParametroEmpresa;
 use App\Models\Parceiro;
-use App\Models\Produto;
 use App\Models\User;
+use App\Services\Cadastros\DepartamentoService;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -33,11 +34,25 @@ class DatabaseSeeder extends Seeder
         'produto.fiscal',
         'patrimonio.ler',
         'patrimonio.escrever',
+        'departamento.ler',
+        'departamento.escrever',
+        'natureza_gerencial.ler',
+        'natureza_gerencial.escrever',
         'orcamento.ler',
         'orcamento.escrever',
         'orcamento.catalogo.gerir',
-        'relatorio.ler',
-        'relatorio.escrever',
+        // BL-033
+        'compras.ler',
+        'compras.escrever',
+        'estoque.ler',
+        'estoque.escrever',
+        'estoque.aprovar',
+        'estoque.aprovar_gestor',
+        'financeiro.ler',
+        'financeiro.escrever',
+        // BL-044
+        'producao.ler',
+        'producao.escrever',
     ];
 
     private const ROLES = [
@@ -54,28 +69,73 @@ class DatabaseSeeder extends Seeder
     /** @var array<string, list<string>> */
     private const ROLE_PERMISSIONS = [
         'ADMIN' => self::PERMISSIONS,
-        'FISCAL' => ['parceiro.ler', 'produto.ler', 'produto.fiscal'],
+        'FISCAL' => [
+            'parceiro.ler',
+            'produto.ler',
+            'produto.fiscal',
+            'compras.ler',
+            'estoque.ler',
+        ],
         'FINANCEIRO' => [
             'parceiro.ler',
             'parceiro.bancario',
             'credito.escrever',
             'patrimonio.ler',
             'patrimonio.escrever',
+            'departamento.ler',
+            'departamento.escrever',
+            'natureza_gerencial.ler',
+            'natureza_gerencial.escrever',
+            'financeiro.ler',
+            'financeiro.escrever',
+            'estoque.ler',
+            'compras.ler',
+            'producao.ler',
         ],
         'COMERCIAL' => [
             'parceiro.ler',
             'parceiro.escrever',
             'produto.ler',
             'produto.escrever',
+            'departamento.ler',
             'orcamento.ler',
             'orcamento.escrever',
-            'relatorio.ler',
-            'relatorio.escrever',
+            'producao.ler',
         ],
-        'PRODUCAO' => ['produto.ler', 'patrimonio.ler'],
-        'COMPRAS' => ['parceiro.ler', 'parceiro.escrever', 'produto.ler', 'produto.escrever', 'patrimonio.ler'],
-        'EXPEDICAO' => ['parceiro.ler', 'produto.ler'],
-        'CONSULTA' => ['parceiro.ler', 'produto.ler', 'orcamento.ler', 'relatorio.ler', 'patrimonio.ler'],
+        'PRODUCAO' => [
+            'produto.ler',
+            'patrimonio.ler',
+            'compras.ler',
+            'estoque.ler',
+            'estoque.escrever',
+            'producao.ler',
+            'producao.escrever',
+        ],
+        'COMPRAS' => [
+            'parceiro.ler',
+            'parceiro.escrever',
+            'produto.ler',
+            'produto.escrever',
+            'patrimonio.ler',
+            'departamento.ler',
+            'compras.ler',
+            'compras.escrever',
+            'estoque.ler',
+            'estoque.escrever',
+        ],
+        'EXPEDICAO' => ['parceiro.ler', 'produto.ler', 'producao.ler'],
+        'CONSULTA' => [
+            'parceiro.ler',
+            'produto.ler',
+            'orcamento.ler',
+            'patrimonio.ler',
+            'departamento.ler',
+            'natureza_gerencial.ler',
+            'compras.ler',
+            'estoque.ler',
+            'financeiro.ler',
+            'producao.ler',
+        ],
     ];
 
     public function run(): void
@@ -88,17 +148,18 @@ class DatabaseSeeder extends Seeder
 
         $this->seedParametros($emp1, $emp2);
         $this->seedColaboradoresAndUsers($emp1, $emp2);
+        $this->seedDepartamentos($emp1, $emp2);
         $this->call(FiscalCatalogSeeder::class);
         $this->call(ProdutoGrupoSeeder::class);
+        $this->call(NaturezaGerencialSeeder::class);
         $this->call(OrcamentoCatalogoSeeder::class);
         $this->call(FacasMapaSeeder::class);
-        $this->seedProdutos($emp1);
-        // Garante vínculo grupo_id nos produtos seedados após o cadastro.
+        // 89 famílias Camada A (estudo 32) + demos PA/SVC — sequences incluídas.
+        $this->call(ProdutoCadastroSeeder::class);
         app(\App\Services\Cadastros\ProdutoGrupoService::class)->backfillProdutos();
 
         $this->seedCliente($emp1);
         $this->seedBensPatrimoniais($emp1);
-        $this->seedCodigoSequences($emp1);
     }
 
     private function seedRolesAndPermissions(): void
@@ -333,73 +394,29 @@ class DatabaseSeeder extends Seeder
         );
     }
 
-    private function seedProdutos(Empresa $emp1): void
+    private function seedDepartamentos(Empresa $emp1, Empresa $emp2): void
     {
-        $grupoIds = \App\Models\ProdutoGrupo::query()->pluck('id', 'codigo');
+        $service = app(DepartamentoService::class);
+        $service->ensureCanonicos($emp1);
+        $service->ensureCanonicos($emp2);
 
-        $produtos = [
-            [
-                'codigo' => 'MP-PAP-001',
-                'familia' => 'MP',
-                'grupo' => 'MP-PAP',
-                'grupo_id' => $grupoIds['MP-PAP'] ?? null,
-                'descricao_fiscal' => 'PAPEL COUCHE AUTOADESIVO BOBINA',
-                'ncm' => '48114190',
-                'tipo_item_sped' => '01',
-                'unidade_comercial' => 'KG',
-                'unidade_interna' => 'M2',
-                'fator_conversao' => '0.0450000000',
-                'cfop_entrada_padrao' => '2101',
-                'atributos' => ['grupo_estoque' => '10'],
-            ],
-            [
-                'codigo' => 'PA-ETQ-001',
-                'familia' => 'PA',
-                'grupo' => 'PA-ETQ',
-                'grupo_id' => $grupoIds['PA-ETQ'] ?? null,
-                'descricao_fiscal' => 'ETIQUETAS BOPP',
-                'descricao_comercial' => 'Etiquetas em filme plástico autoadesivo',
-                'ncm' => '39191090',
-                'tipo_item_sped' => '04',
-                'unidade_comercial' => 'MIL',
-                'csosn' => '102',
-                'cfop_saida_padrao' => '5101',
-                'preco_tabela' => '180.000000',
-                'atributos' => ['grupo_estoque' => '80'],
-            ],
-            [
-                'codigo' => 'REV-RIB-001',
-                'familia' => 'REV',
-                'grupo' => 'REV-RIB',
-                'grupo_id' => $grupoIds['REV-RIB'] ?? null,
-                'descricao_fiscal' => 'RIBBON CERA 110x300',
-                'ncm' => '96121000',
-                'tipo_item_sped' => '00',
-                'unidade_comercial' => 'UN',
-                'csosn' => '102',
-                'cfop_entrada_padrao' => '2102',
-                'cfop_saida_padrao' => '5102',
-                'preco_tabela' => '45.000000',
-                'atributos' => ['grupo_estoque' => '60'],
-            ],
-            [
-                'codigo' => 'SVC-001',
-                'familia' => 'SVC',
-                'grupo' => 'SVC',
-                'grupo_id' => $grupoIds['SVC'] ?? null,
-                'descricao_fiscal' => 'REBOBINACAO / ACERTO DE BOBINA',
-                'tipo_item_sped' => '09',
-                'unidade_comercial' => 'UN',
-                'csosn' => '400',
-                'preco_tabela' => '250.000000',
-            ],
-        ];
+        $operacional = Departamento::query()
+            ->where('empresa_id', $emp1->id)
+            ->whereRaw('LOWER(nome) = ?', ['operacional'])
+            ->first();
 
-        foreach ($produtos as $data) {
-            Produto::query()->updateOrCreate(
-                ['empresa_id' => $emp1->id, 'codigo' => $data['codigo']],
-                $data
-            );
+        if ($operacional) {
+            Parceiro::query()
+                ->where('empresa_id', $emp1->id)
+                ->where('papel_colaborador', true)
+                ->where(function ($q) use ($operacional) {
+                    $q->whereNull('departamento_id')
+                        ->orWhere('departamento', 'Operacional');
+                })
+                ->update([
+                    'departamento_id' => $operacional->id,
+                    'departamento' => $operacional->nome,
+                ]);
         }
     }
 
@@ -448,6 +465,24 @@ class DatabaseSeeder extends Seeder
             ->where('nome', $nome)
             ->value('id');
 
+        $depId = static function (string $nome) use ($emp1): ?int {
+            $id = Departamento::query()
+                ->where('empresa_id', $emp1->id)
+                ->whereRaw('LOWER(nome) = ?', [mb_strtolower($nome)])
+                ->value('id');
+
+            if ($id) {
+                return (int) $id;
+            }
+
+            $created = app(DepartamentoService::class)->create($emp1, [
+                'nome' => $nome,
+                'ativo' => true,
+            ]);
+
+            return (int) $created['id'];
+        };
+
         $bens = [
             [
                 'codigo' => 'BEM-00001',
@@ -457,6 +492,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => null,
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('BETA'),
@@ -471,6 +507,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => '160',
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('160'),
@@ -485,6 +522,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => null,
                 'numero_serie' => null,
                 'local' => 'TI / Escritório',
+                'departamento_id' => $depId('TI / Escritório'),
                 'responsavel' => 'TI',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => null,
@@ -499,6 +537,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => '250',
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('250'),
@@ -513,6 +552,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => null,
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('ETIRAMA'),
@@ -527,6 +567,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => null,
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('BATIDA'),
@@ -541,6 +582,7 @@ class DatabaseSeeder extends Seeder
                 'modelo' => 'SPX',
                 'numero_serie' => null,
                 'local' => 'Produção',
+                'departamento_id' => $depId('Produção'),
                 'responsavel' => 'Produção',
                 'status' => BemPatrimonial::STATUS_ATIVO,
                 'orc_catalogo_maquina_id' => $grupoId('MODULAR'),
@@ -563,22 +605,5 @@ class DatabaseSeeder extends Seeder
             ['empresa_id' => null, 'prefixo' => 'BEM'],
             ['proximo' => 8]
         );
-    }
-
-    private function seedCodigoSequences(Empresa $emp1): void
-    {
-        $sequences = [
-            ['empresa_id' => $emp1->id, 'prefixo' => 'MP-PAP', 'proximo' => 2],
-            ['empresa_id' => $emp1->id, 'prefixo' => 'PA-ETQ', 'proximo' => 2],
-            ['empresa_id' => $emp1->id, 'prefixo' => 'REV-RIB', 'proximo' => 2],
-            ['empresa_id' => $emp1->id, 'prefixo' => 'SVC', 'proximo' => 2],
-        ];
-
-        foreach ($sequences as $seq) {
-            CodigoSequence::query()->updateOrCreate(
-                ['empresa_id' => $seq['empresa_id'], 'prefixo' => $seq['prefixo']],
-                ['proximo' => $seq['proximo']]
-            );
-        }
     }
 }

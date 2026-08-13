@@ -4,6 +4,7 @@ import { OrcamentoFichaSheet } from '../components/OrcamentoFichaSheet';
 import { api, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { voltarDaFicha } from '../lib/fichaNav';
+import { brandDocumentTitle } from '../lib/brand';
 
 export function OrcamentoFichaPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +55,7 @@ export function OrcamentoFichaPage() {
     if (!orcamento) return;
     document.title = `Cálculo ${orcamento.codigo} · ${orcamento.cliente_nome}`;
     return () => {
-      document.title = 'ERP RLP';
+      document.title = brandDocumentTitle();
     };
   }, [orcamento]);
 

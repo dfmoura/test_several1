@@ -14,11 +14,242 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-032`
+`BL-047`
 
 ---
 
 ## Itens
+
+### BL-046 · [produção] Devolver OP ao PED (sem saída requisitada)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-12 — OP não requisitada poder voltar ao pedido; sem estragar; estudo 32
+- **Referência:** `docs/ADR_PRODUCAO_PED_OP_ESTOQUE.md` · `../32` UC-PRD-001/004 · GERACAO_PEDIDO §7 · PRODUCAO_OPERACIONAL_GERENCIAL
+- **Decisão:** OP sem MOV de produção → `CANCELADA` com motivo; item `PENDENTE`; PED `LIBERADO` se não houver outra ordem aberta; nova OP permitida. Com saída → bloqueio (sem estorno).
+- **Aceite:**
+  - [x] API `POST /ordens-producao/{id}/devolver-ao-pedido`
+  - [x] Restaura item/PED; não apaga OP; não mexe estoque
+  - [x] UX na ficha da OP + reabrir no pedido
+  - [x] Testes: devolve sem saída; recusa com saída; reabre OP
+- **Fora de escopo:** estorno de SAIDA_PRODUCAO; cancelar PED; devolver OS
+- **Entregue em:** 2026-08-12
+
+### BL-045 · [estoque/cadastros] Lote + data de entrada + validade (FEFO)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-12 — lote do produto em estoque (quem tiver); entrada e vencimento; reorganizar em teste; estudo 32
+- **Referência:** `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · `../32/CONTROLE_ESTOQUE_PROFISSIONAL.txt` §6
+- **Decisão:** Flag no SKU; `estoque_lotes` + MOV.item.lote_id; CM no SKU; FEFO na saída; XML rastro só preenche; virada gera 1–2 lotes; backfill se saldo já existe
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migration flags + lotes + FKs
+  - [x] Writer único + entrada/AJU/OP/virada/consulta
+  - [x] UX saldos/lotes/extrato/cadastro/receber
+  - [x] Testes + seed/repopulação
+- **Fora de escopo:** endereço; contagem INV por lote; empenho; custo FIFO; etiqueta de rolo; CQ
+- **Entregue em:** 2026-08-12
+
+### BL-044 · [produção/estoque/comercial] PED → OP/OS → saída/retorno/PA ±tolerância
+- **Status:** Fechado (2026-08-12)
+- **Origem:** Chat 2026-08-12 — pós-aprovação/baixa adiantamento: gerar OP/OS, saída MP, produção, estoque consumido/retorno/PA, readequação ±20%; estudo 32; sem estragar
+- **Referência:** `docs/ADR_PRODUCAO_PED_OP_ESTOQUE.md` · `../32` GERACAO_PEDIDO · PRODUCAO · ESTOQUE_FLUXO · CONCLUSAO · M03
+- **Decisão:** ORC `LIBERADO` → PED idempotente → OP (PRODUCAO) / OS (SERVICO); MOV `SAIDA_PRODUCAO` / `ENTRADA_SOBRA` / `ENTRADA_PA` via writer; conclusão com ±`tolerancia_qtd_pct`; PA família `PA-ETQ`; sem app PCP paralelo
+- **Entrega:**
+  - [x] ADR + migrations PED/OP/OS + permissões `producao.*`
+  - [x] `PedidoService` no gatilho de liberação financeira
+  - [x] OP: requisitar + concluir (retorno/perda/PA/readequação)
+  - [x] OS leve (concluir sem PA)
+  - [x] UI Pedidos / OP / OS
+  - [x] `ProducaoPedOpEstoqueTest` + regressão adiantamento/aprovação
+- **Fora de escopo:** empenho com saldo reservado; lote/FIFO; CQ; faturamento Focus; CRT; NEC automática; reabertura OP
+
+### BL-043 · [comercial/produção] Guia de produção no ORC (pós-cálculo)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-12 — após calcular, guia de tudo que será utilizado para produzir; sem estragar; estudo 32
+- **Referência:** `docs/ADR_ORC_GUIA_PRODUCAO.md` · `../32/GERACAO_ORCAMENTO.txt` §1.5/§9.2/§10 · `../32/PRODUCAO_OPERACIONAL_GERENCIAL.txt` §2.2/§2.6
+- **Decisão:** 3ª aba interna **Guia de produção** (consumos físicos, sem R$); derivação do snapshot; motor/proposta/breakdown intactos; fora do link público
+- **Aceite:**
+  - [x] ADR
+  - [x] Helper `orcamentoGuiaProducao.ts` + aba em `OrcamentoResultado`
+  - [x] Form + detalhe passam especificação
+  - [x] Sem alteração no motor / DTO público
+- **Fora de escopo:** SKU/empenho OP; impressão dedicada; exposição ao cliente
+- **Entregue em:** 2026-08-12
+
+### BL-042 · [estoque] Inventário profissional + ajuste (INV → AJU + alçadas + extrato)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-12 — ajuste profissional respeitando estudo 32; sem estragar BL-036/espinha OC
+- **Referência:** `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `../32/AJUSTE_ESTOQUE_INVENTARIO.txt`
+- **Decisão:** INV cego 1ª/2ª → AJU com alçadas → MOV via writer; avulsa permanece; extrato SKU; congelamento leve; sem NF/OP/SPED
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migration INV + FKs AJU + `estoque.aprovar_gestor`
+  - [x] APIs inventário / extrato / alçada
+  - [x] UI Inventários + extrato
+  - [x] Feature tests + regressão BL-036 / multi-EMP
+- **Fora de escopo:** OP/sobra/REM; lote/endereço; Focus 5.927; Bloco H; ABC automático
+- **Entregue em:** 2026-08-12
+
+### BL-041 · [comercial] Snapshot condição/forma no ORC (input_snapshot)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-12 — seguir BL-040; sem estragar motor/PED
+- **Referência:** `docs/ADR_CONDICOES_COMERCIAIS_PAR.md` (emenda) · estudo 32 FATURAMENTO / GERACAO_PEDIDO
+- **Decisão:** `condicao_pagamento` + `forma_pagamento` no `input_snapshot` (sem coluna SQL); prefill do PAR; UI form/detalhe/ficha/proposta pública; motor intacto
+- **Aceite:**
+  - [x] Validação + persistência no snapshot
+  - [x] Prefill ao escolher parceiro
+  - [x] Ficha / detalhe / link público
+  - [x] Teste `test_snapshot_condicoes_comerciais_no_input`
+- **Fora de escopo:** COND-; CRT; PED; colunas SQL em orcamentos
+- **Entregue em:** 2026-08-12
+
+### BL-040 · [cadastros/comercial/compras] Condições comerciais do PAR (defaults → documento)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-12 — Parceiros → Condições comerciais; estudo 32; sem estragar
+- **Referência:** `docs/ADR_CONDICOES_COMERCIAIS_PAR.md` · `../32/CADASTRO_PARCEIROS.txt` · `FATURAMENTO_GERACAO_COBRANCA.txt`
+- **Decisão:** PAR = defaults (forma canônica + sugestões de condição); OC prefill editável; ORC só hint; sem COND-/CRT/schema ORC
+- **Aceite:**
+  - [x] ADR
+  - [x] UX Parceiros + ficha
+  - [x] Prefill condição na nova OC
+  - [x] Hint de defaults no ORC (sem persistir)
+- **Fora de escopo:** COND-; motor CRT; snapshot condição no ORC/PED; comissão/tabela preço
+- **Entregue em:** 2026-08-12
+
+### BL-039 · [compras/fiscal/ux] Avisos XML acionáveis (dest EMP + IPI)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-11 — tratar avisos do XML Colacril (dest UDI × EMP RLP; parcelas 4170,50 × OC 3800)
+- **Referência:** `ADR_ENTRADA_XML_PARCELAS.md` · `MODELO_INSTALACAO_MULTI_EMPRESA.md` · NF estudo 32 `…577306…`
+- **Decisão:** warnings estruturados `INFO|ALERTA`; dest sugere EMP correta; diff = IPI/frete vira INFO; UI por nível + totais NF
+- **Aceite:**
+  - [x] Mensagens com CNPJ/EMP sugerida
+  - [x] IPI classificado INFO
+  - [x] Teste com XML real Colacril + regressão
+- **Entregue em:** 2026-08-11
+
+### BL-038 · [compras/financeiro/fiscal] Parcelas XML → multi-TIT na entrada
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-11 — XML deve popular financeiro; coerência contábil/fiscal; estudo 32; sem estragar BL-037
+- **Referência:** `docs/ADR_ENTRADA_XML_PARCELAS.md` · `ADR_ENTRADA_XML_ASSIST.md` · `../32` CONTABILIDADE_FISCAL_SEM_FECHAMENTO · RECEBIMENTO_BAIXA · M06/M07
+- **Decisão:** `cobr.dup` → N TIT PAGAR (NAT 5.06) no mesmo `receber()`; fallback 1 TIT; MOV guarda `nf_valor`/`nf_totais`; estoque continua OC; ERP não fecha SPED
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Extractor todas as dups + totais
+  - [x] `receber` com `parcelas[]` + UI editável
+  - [x] Teste multi-TIT + regressão 1 TIT / XML assist
+- **Fora de escopo:** SPED/ECD; rateio IPI no custo; Focus; COB a pagar
+- **Entregue em:** 2026-08-11
+
+### BL-037 · [compras/estoque/fiscal] Assistência XML na entrada (UC-CPR-004 lean)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-11 — continuar implementação profissional pós BL-036; estudo 32 UC-CPR-004
+- **Referência:** `docs/ADR_ENTRADA_XML_ASSIST.md` · `ADR_COMPRAS_ATE_ESTOQUE.md` · `../32/CASOS_USO_M07_COMPRAS.txt`
+- **Decisão:** preview XML → prefill NF/vencimento/de-para → humano confirma `receber()`; persiste `cProd`; sem Focus/auto-lançar
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] `NfeCompraExtractor` + `produto_fornecedor_codigos`
+  - [x] `POST …/receber/xml/preview` + maps no receber
+  - [x] UI upload na OC
+  - [x] `EntradaXmlAssistTest` + regressão compras/estoque
+- **Fora de escopo:** Focus download; entrada sem OC; multi-TIT por dup; inventário cego
+- **Entregue em:** 2026-08-11
+
+### BL-036 · [estoque/compras] Reposição por mínimo + AJU (contagem avulsa)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-11 — estoque completo com ajuste; pedido por mínimo/gerencial; fluxo OC→receber→TIT→BX; estudo 32; sem estragar BL-033
+- **Referência:** `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `ADR_COMPRAS_ATE_ESTOQUE.md` · `../32` CONTROLE/AJUSTE
+- **Decisão:** lista A repor → OC DIRETA; AJU PENDENTE → `estoque.aprovar` → MOV AJUSTE; NEC/COT fora do menu; kit seed MP/EMB/REV com mínimos
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migration AJU + `estoque.aprovar`
+  - [x] APIs reposição + ajustes
+  - [x] UI A repor / Ajustes
+  - [x] `EstoqueReposicaoAjusteTest` + regressão `ComprasAteEstoqueTest`
+- **Fora de escopo:** Focus/cProd; inventário cego completo; UI NEC/COT; OP/saídas
+- **Entregue em:** 2026-08-11
+
+### BL-035 · [comercial/financeiro] Adiantamento PIX no aceite ORC + spine CR/COB/BankProvider
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-11 — 1º pedido / limite 0: PIX na tela de aprovação; aguardar adiantamento; BX libera; estudo 32; Inter como exemplo
+- **Referência:** `docs/ADR_ORC_ADIANTAMENTO_PIX.md` · `../32/APROVACAO_ORCAMENTO_CLIENTE.txt` §5.1 · `../32/INTEGRACAO_BANCARIA_MULTI_PROVIDER.txt`
+- **Decisão:** aceite = APROVADO no clique; `financeiro_status` AGUARDA_ADIANTAMENTO|LIBERADO; TIT RECEBER + COB + Mock/Inter BankProvider; webhook idempotente
+- **Aceite:**
+  - [x] Aprovar com limite 0 emite PIX (copia-e-cola) na resposta / tela pública
+  - [x] GET pós-aceite `modo=pagamento` enquanto aguarda
+  - [x] Webhook mock baixa 1× e libera ORC; 2º = DUPLICADO
+  - [x] Contas a receber UI + badge financeiro no ORC
+  - [x] `AdiantamentoOrcamentoTest` + regressão `OrcamentoAprovacaoTest` / `MultiEmpresaAceiteTest`
+- **Fora de escopo:** PED/OP; CRT crédito; CNAB; Sicoob prod; WhatsApp API
+
+### BL-034 · [arquitetura/qualidade] Aceite automatizado multi-empresa (§7.B)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-11 — fechar entendimento instalação×EMP×ambientes; próximo passo = teste de aceite
+- **Referência:** `docs/MODELO_INSTALACAO_MULTI_EMPRESA.md` §7.B · middleware `SetEmpresaContext` · `hasEmpresaAccess`
+- **Decisão:** um Feature test canônico cobre vínculo, 403, troca de contexto, isolamento de listagem e CFIN por EMP (sem retestar Focus — já em `FiscalHubTest`)
+- **Aceite:**
+  - [x] `MultiEmpresaAceiteTest` 6/6
+  - [x] Norma §7.B aponta o filtro phpunit
+- **Fora de escopo:** smoke de Lightsail/portas; SoD compras≠financeiro; seletor visual no header (manual)
+
+### BL-033 · [compras/estoque/financeiro] Fluxo insumos → estoque (NEC→[COT]→OC→MOV→TIT→BX)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-10 — comprar insumos/MP/embalagens até estoque; estudo 32; recomendar e decidir sem burocratizar; implementar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `COMPRAS_COTACAO_URGENCIA.txt` · `CASOS_USO_M07_COMPRAS.txt`
+  - `CONTROLE_ESTOQUE_PROFISSIONAL.txt` · `RECEBIMENTO_BAIXA_COBRANCA.txt`
+  - `NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt` · `CODIFICACAO_INFORMACOES_SISTEMA.txt`
+- **Referência (padrão 39):** ADR `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · NAT/CFIN/unidades · BL-014 XML fornecedor · BL-032 NAT
+- **Decisão (fechada):** espinha `NEC → [COT] → OC → entrada NF×OC×conferência → MOV → TIT → BX`; COT pulável; sem REQ pesada; TIT estoque = NAT `5.06` (não `2.01`); SoD COMPRAS≠FINANCEIRO
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migrations + models + CodigoGenerator (NEC/COT/OC/MOV/TIT/BX)
+  - [x] Services + APIs + permissões RBAC
+  - [x] UI Compras / Estoque / Contas a pagar
+  - [x] Teste Feature fluxo feliz + fronteira NAT (`ComprasAteEstoqueTest` 3/3)
+  - [x] Diagrama atualizado
+- **Fora de escopo:** Focus auto-download, de-para cProd, OP/UC-CPR-005, remessa industrial, entrada sem OC, CR/COB, inventário/AJU
+- **Entregue em:** 2026-08-10
+- **Arquivos:**
+  - `ADR_COMPRAS_ATE_ESTOQUE.md` · `.cursor/rules/compras-estoque.mdc`
+  - migrations `2026_08_10_140000_*` / `140100_*`
+  - Services `Compras/*` · `Estoque/*` · `Financeiro/TituloService`
+  - Controllers + rotas API · pages `Compras*` · `EstoquePage` · `ContasPagarPage`
+  - `ComprasAteEstoqueTest.php` · NAT `5.06` no catálogo
+
+### BL-032 · [financeiro/arquitetura] Naturezas gerenciais receita/despesa (fundação NAT)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-10 — estrutura naturezas receita/despesa; amarração contábil plano de contas só pensada, não fazer; estudo 32; recomendar e decidir sem estragar
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt`
+  - `CONTABILIDADE_FISCAL_SEM_FECHAMENTO.txt`
+  - `DECISAO_NAO_IMPLEMENTAR_LAI_NO_ERP.txt`
+  - `CODIFICACAO_INFORMACOES_SISTEMA.txt`
+- **Referência (padrão 39):** catálogo global `produto_grupos` + seed; ADR BEM/unidades; CFIN ≠ ledger
+- **Decisão (fechada):** árvore gerencial grupos **1–5** (`naturezas_gerenciais`, exibição `NAT-1.01.01`); **não** enum flat; **não** plano de contas; **não** reutilizar `produto_grupos.natureza`; seed + editar nome/descrição + soft-inativar; sem folhas custom; sem TIT/BX/de-para nesta entrega
+- **Aceite:**
+  - [x] ADR `docs/ADR_NATUREZAS_GERENCIAIS.md` + regra Cursor
+  - [x] Migration + model + CatalogData + seeder idempotente
+  - [x] Service + APIs + consulta folhas ativas + permissões
+  - [x] UI catálogo em árvore
+  - [x] Teste de fronteira + diagrama
+- **Fora de escopo:** plano de contas, de-para contador, TIT/COB/BX, CC, DRE UI, defaults por operação, LAI/grupo 9
+- **Entregue em:** 2026-08-10
+- **Arquivos:**
+  - `NaturezaGerencial*` · `NaturezasGerenciaisPage` · `ADR_NATUREZAS_GERENCIAIS.md`
+  - `.cursor/rules/naturezas-gerenciais.mdc`
+  - testes `NaturezaGerencialBoundaryTest` · `NaturezaGerencialTest`
 
 ### BL-031 · [comercial] Link público de aprovação do ORC (cliente)
 - **Status:** Feito
@@ -34,6 +265,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - [x] Migration + model + service + APIs auth/pública
   - [x] UI detalhe: Enviar / Copiar link
   - [x] Página pública profissional aprovar/recusar
+  - [x] Destinatário oficial (`autorizado_aprovar`) + seleção no envio + instrução na página
   - [x] Testes Feature de fluxo completo
   - [x] Diagrama + ADR
 
@@ -279,26 +511,26 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - `EmpresaContasFinanceirasTest`
 
 ### BL-020 · [relatorios] Congelar Relatórios IA (adiar pós-core; código intacto)
-- **Status:** Feito
+- **Status:** Removido (2026-08-11) — módulo + Dompdf retirados do sistema; ver migration `2026_08_11_120000_drop_relatorios_module`
 - **Prioridade:** P1
 - **Origem:** Chat 2026-08-07 — PDF engessa UX; análise HTML vs PDF; decisão híbrido futuro; adiar enquanto foco é cadastro/ORC; não apagar
 - **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32` (M10 gerencial CSV/PDF futuro — sem Relatórios IA)
-- **Decisão:** **Feature flag master OFF**. Não hard-delete. Não tocar IaProvedores, migrations, queue Compose, DomPDF package.
+- **Decisão original:** **Feature flag master OFF**. Não hard-delete. Não tocar IaProvedores, migrations, queue Compose, DomPDF package.
   - API: middleware `relatorio.ia` → 404 se `RELATORIO_IA_HABILITADO=false` (default).
   - Jobs: no-op se flag OFF.
   - SPA: menu/dashboard/rotas só com `VITE_RELATORIO_IA_HABILITADO=true`.
   - Testes: phpunit força flag ON; testes do módulo preservados.
   - Futuro (reabrir): HTML preview + PDF export do mesmo documento (plano profissional).
-- **Aceite:**
+- **Aceite (histórico do freeze):**
   - [x] Menu Relatórios e card dashboard ocultos por padrão
   - [x] Rotas SPA `/relatorios*` ausentes com flag OFF
   - [x] API `/api/v1/relatorios*` → 404 com flag OFF
   - [x] Código/services/jobs/tabelas/permissions seed preservados
   - [x] IaProvedores intocado
   - [x] README + .env.example documentam reabertura
-- **Fora de escopo:** apagar código, dropar tabelas, evoluir layout HTML/PDF agora
+- **Fora de escopo (no freeze):** apagar código, dropar tabelas, evoluir layout HTML/PDF agora
 - **Entregue em:** 2026-08-07
-- **Reabrir:** `RELATORIO_IA_HABILITADO=true` + `VITE_RELATORIO_IA_HABILITADO=true` + rebuild web
+- **Remoção definitiva:** 2026-08-11 — código, Dompdf, UI, flags, permissions e tabelas removidos; IaProvedores e fichas HTML print preservados
 
 ### BL-019 · [cadastros] Ficha da empresa para impressão (HTML retrato)
 - **Status:** Feito
@@ -332,7 +564,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - `CADASTRO_PRODUTOS_COMPRA.txt` (MP/EMB/REV; atributos bobina)
   - `CASOS_USO_M01_CADASTROS.txt` (UC-CAD-003)
 - **Referência (padrão 39):** BL-015 ficha do parceiro (`ParceiroFichaSheet` + HTML print A4)
-- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF). DomPDF fora — Relatórios IA permanece o PDF arquivável; ficha é snapshot operacional do cadastro.
+- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF). DomPDF fora; ficha é snapshot operacional do cadastro.
 - **Aceite:**
   - [x] Botão “Imprimir ficha” na tela do produto (somente edição, nova aba)
   - [x] Layout retrato A4 com marca RLP + Powered by TRIGGER (mesmo CSS `.ficha-*`)
@@ -377,11 +609,11 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Origem:** Chat 2026-08-07 — melhorar identificação da TRIGGER em todo o sistema; modelo profissional; referência `trigger/12`; não forçar como herói nem apagar
 - **Referência (padrão):** `/home/dfmoura/Documents/test_several1/trigger/12` (ecossistema × nós/produto; atribuição “por Trigger”; navy+verde)
 - **Problema:** textos misturados (“Desenvolvido por” × “Powered by”), alt inconsistente, `favicon.svg` ainda Vite/roxo, paths/labels hardcoded espalhados — risco de apagar ou forçar a marca sem regra
-- **Decisão:** três camadas (licenciado herói · TRIGGER atribuição permanente · EMP contexto); UI = “Desenvolvido por”+logo; documentos = “Powered by TRIGGER”; fonte única `brand.ts` + `config('erp.brand')`; doc `docs/IDENTIDADE_TRIGGER.md`
+- **Decisão:** quatro camadas (TRIGGER atribuição · produto **FLEXOERP** · licenciado herói · EMP contexto); UI = “Desenvolvido por”+logo; documentos = “Powered by TRIGGER”; fonte única `brand.ts` + `config('erp.brand')`; docs `IDENTIDADE_TRIGGER.md` + `MODELO_INSTALACAO_MULTI_EMPRESA.md` (glossário). *Refino 2026-08-11:* produto nomeado FLEXOERP (antes “ERP RLP”); RLP permanece licenciado.
 - **Aceite:**
   - [x] Doc normativa + README/LIGHTSAIL alinhados
   - [x] `TriggerAttribution` + `brand.ts` usados em login, BrandBar, ficha
-  - [x] Byline **por Trigger Data Intelligence** sob ERP RLP (sidebar + login)
+  - [x] Byline **por Trigger Data Intelligence** sob o produto (sidebar + login)
   - [x] Rodapé com marca + nome completo em tipografia contida (sem TRIGGER display estourado)
   - [x] PDF via `config('erp.brand.attribution_print')`
   - [x] Favicon SVG = marca navy TRIGGER
@@ -395,7 +627,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
   - `CADASTRO_PARCEIROS.txt` (PAR único + seções identificação/endereço/contatos/fiscal/financeiro)
   - `CASOS_USO_M01_CADASTROS.txt` (UC-CAD-001 “abre ficha”; UC-CAD-007 bancário SoD)
-- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF no browser). PDF DomPDF ficou de fora — Relatórios IA permanece o caminho de PDF arquivável; ficha é snapshot de consulta/impressão operacional.
+- **Decisão:** **HTML pronto para impressão** (A4 retrato, `window.print` / Salvar como PDF no browser). DomPDF fora; ficha é snapshot de consulta/impressão operacional.
 - **Objetivo:** operador abre o PAR e gera/visualiza uma ficha limpa para imprimir, sem QSA, respeitando SoD de crédito/bancário.
 - **Aceite:**
   - [x] Botão “Imprimir ficha” na tela do parceiro existente (nova aba)
@@ -497,7 +729,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - Guia PDF §12; testes Unit/Feature (fixture Fedrigoni)
 
 ### BL-013 · [ops] Higiene computacional Relatórios IA (swap, mem_limit, células, retenção, M2)
-- **Status:** Feito
+- **Status:** Removido (2026-08-11) — regras de DomPDF/retenção saíram com o módulo; mem_limits Compose e swap Lightsail permanecem
 - **Prioridade:** P1
 - **Origem:** `docs/relatorios-ia-impacto-computacional-trigger39.txt` §8 R1/R4/R6/R7/R8 + §9 M2
 - **Decisão (fechada):**
@@ -514,7 +746,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Entregue em:** 2026-08-05
 
 ### BL-009 · [relatorios] Planejar → conferir → gerar (humano no loop, via fila)
-- **Status:** Feito
+- **Status:** Removido (2026-08-11) — módulo Relatórios IA retirado
 - **Prioridade:** P1
 - **Origem:** `docs/relatorios-ia-plano-profissional-trigger39.txt` + impacto computacional (Fase 2 pela fila, não síncrono)
 - **Decisão (fechada):**
@@ -544,7 +776,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Entregue em:** 2026-08-05
 
 ### BL-007 · [relatorios] Exatidão do compiler (ordenação, agregação, período, truncamento)
-- **Status:** Feito
+- **Status:** Removido (2026-08-11) — módulo Relatórios IA retirado
 - **Prioridade:** P0
 - **Origem:** Chat 2026-08-05 — Relatórios IA / auditoria de exatidão
 - **Decisão (fechada):**
@@ -588,7 +820,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Entregue em:** 2026-08-05
 
 ### BL-005 · [ia] Relatórios com IA (prompt → programa allowlist → PDF)
-- **Status:** Feito
+- **Status:** Removido (2026-08-11) — módulo + Dompdf retirados; IaClient/provedores preservados
 - **Prioridade:** P1
 - **Origem:** Chat 2026-08-04 — criar/gerenciar relatórios via prompt; IA gera a melhor programação segura; PDF retrato/paisagem com logo, título e rodapé
 - **Referência:** provedores BL-001 (`app/Services/Ia/`), padrão CRUD/API do ORC

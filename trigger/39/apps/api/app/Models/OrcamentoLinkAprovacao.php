@@ -11,12 +11,15 @@ class OrcamentoLinkAprovacao extends Model
 
     protected $fillable = [
         'orcamento_id',
+        'parceiro_contato_id',
         'token',
         'ativo',
         'expira_em',
         'enviado_em',
         'canal_envio',
         'destino_envio',
+        'destino_nome',
+        'destino_funcao',
         'visualizacoes',
         'usado_em',
     ];
@@ -35,6 +38,11 @@ class OrcamentoLinkAprovacao extends Model
     public function orcamento(): BelongsTo
     {
         return $this->belongsTo(Orcamento::class);
+    }
+
+    public function parceiroContato(): BelongsTo
+    {
+        return $this->belongsTo(ParceiroContato::class, 'parceiro_contato_id');
     }
 
     public function isDisponivel(): bool

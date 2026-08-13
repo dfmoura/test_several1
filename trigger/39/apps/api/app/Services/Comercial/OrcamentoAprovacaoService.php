@@ -4,28 +4,101 @@ namespace App\Services\Comercial;
 
 use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
+use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
+use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Aceite do cliente via link (ADR_ORC_LINK_APROVACAO / estudo 32).
- * Sem PED, crédito ou WhatsApp nesta entrega.
+ * Destinatário = contato oficial autorizado do cadastro (sem WhatsApp API / PED).
+ * Pós-aceite: adiantamento PIX quando política exige (ADR_ORC_ADIANTAMENTO_PIX).
  */
 class OrcamentoAprovacaoService
 {
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly OrcamentoService $orcamentoService,
+        private readonly AdiantamentoService $adiantamento,
     ) {}
 
     /**
-     * Gera (ou reusa) link e marca ENVIADO. Retorno pronto para Ctrl+C.
+     * Contatos do parceiro elegíveis para receber o link.
      *
-     * @return array{url: string, token: string, mensagem: string, expira_em: string, reutilizado: bool, orcamento: array<string, mixed>}
+     * @return array{destinatarios: list<array<string, mixed>>, aviso: string|null}
      */
-    public function enviarParaAprovacao(Orcamento $orcamento, ?string $destinoEnvio = null): array
+    public function listarDestinatarios(Orcamento $orcamento): array
+    {
+        $parceiro = Parceiro::query()
+            ->with(['contatos' => fn ($q) => $q->orderByDesc('autorizado_aprovar')->orderByDesc('principal')->orderBy('ordem')->orderBy('id')])
+            ->find($orcamento->parceiro_id);
+
+        if ($parceiro === null) {
+            return ['destinatarios' => [], 'aviso' => 'Parceiro do orçamento não encontrado.'];
+        }
+
+        $destinatarios = [];
+        foreach ($parceiro->contatos as $c) {
+            $canal = $this->canalPreferido($c->whatsapp, $c->email, $c->telefone);
+            if ($canal === null) {
+                continue;
+            }
+            if (! $c->autorizado_aprovar && ! $c->principal) {
+                continue;
+            }
+            $destinatarios[] = [
+                'parceiro_contato_id' => $c->id,
+                'nome' => $c->nome !== '' ? $c->nome : 'Contato',
+                'funcao' => $c->funcao,
+                'whatsapp' => $c->whatsapp,
+                'email' => $c->email,
+                'telefone' => $c->telefone,
+                'canal' => $canal['canal'],
+                'destino' => $canal['destino'],
+                'autorizado_aprovar' => (bool) $c->autorizado_aprovar,
+                'principal' => (bool) $c->principal,
+                'legado' => false,
+            ];
+        }
+
+        // Prioriza autorizados; se só houver principal sem flag (dados antigos), mantém.
+        $autorizados = array_values(array_filter($destinatarios, fn ($d) => $d['autorizado_aprovar']));
+        if ($autorizados !== []) {
+            $destinatarios = $autorizados;
+        }
+
+        $aviso = null;
+        if ($destinatarios === []) {
+            $legado = $this->destinatarioLegado($parceiro);
+            if ($legado !== null) {
+                $destinatarios[] = $legado;
+                $aviso = 'Nenhum contato com flag “autorizado a aprovar”. Usando dados principais do cadastro — cadastre um contato oficial quando possível.';
+            } else {
+                $aviso = 'Cadastre no parceiro um contato autorizado a aprovar (com WhatsApp ou e-mail) antes de enviar o link.';
+            }
+        } elseif ($autorizados === [] && $destinatarios !== []) {
+            $aviso = 'Nenhum contato marcado como autorizado a aprovar — exibindo o principal. Marque o aprovador no cadastro do parceiro.';
+        }
+
+        return ['destinatarios' => $destinatarios, 'aviso' => $aviso];
+    }
+
+    /**
+     * @param  array{parceiro_contato_id?: int|null, usar_contato_legado?: bool}  $opts
+     * @return array{
+     *   url: string,
+     *   token: string,
+     *   mensagem: string,
+     *   canal_url: string|null,
+     *   expira_em: string,
+     *   reutilizado: bool,
+     *   destinatario: array<string, mixed>,
+     *   orcamento: array<string, mixed>
+     * }
+     */
+    public function enviarParaAprovacao(Orcamento $orcamento, array $opts = []): array
     {
         if (! $orcamento->isEnviavel()) {
             throw ValidationException::withMessages([
@@ -40,17 +113,23 @@ class OrcamentoAprovacaoService
             app()->instance('empresa', $orcamento->empresa);
         }
 
+        $destinatario = $this->resolverDestinatario($orcamento, $opts);
+
         $dias = max(1, (int) $orcamento->validade_dias);
         $agora = now();
         $expiraEm = $agora->copy()->addDays($dias);
         $reutilizado = false;
 
-        $link = DB::transaction(function () use ($orcamento, $destinoEnvio, $agora, $expiraEm, &$reutilizado) {
+        $link = DB::transaction(function () use ($orcamento, $destinatario, $agora, $expiraEm, &$reutilizado) {
             $orcamento->refresh();
             $existente = OrcamentoLinkAprovacao::query()
                 ->where('orcamento_id', $orcamento->id)
                 ->lockForUpdate()
                 ->first();
+
+            $mesmoDestino = $existente
+                && (int) ($existente->parceiro_contato_id ?? 0) === (int) ($destinatario['parceiro_contato_id'] ?? 0)
+                && (string) ($existente->destino_envio ?? '') === (string) $destinatario['destino'];
 
             if (
                 $existente
@@ -59,41 +138,43 @@ class OrcamentoAprovacaoService
                 && $existente->expira_em !== null
                 && $existente->expira_em->isFuture()
                 && $orcamento->aguardandoCliente()
+                && $mesmoDestino
             ) {
                 $existente->fill([
                     'enviado_em' => $agora,
-                    'canal_envio' => 'MANUAL',
-                    'destino_envio' => $destinoEnvio ?? $existente->destino_envio,
+                    'canal_envio' => $destinatario['canal'],
+                    'destino_envio' => $destinatario['destino'],
+                    'destino_nome' => $destinatario['nome'],
+                    'destino_funcao' => $destinatario['funcao'],
+                    'parceiro_contato_id' => $destinatario['parceiro_contato_id'],
                 ]);
                 $existente->save();
                 $reutilizado = true;
                 $link = $existente;
             } else {
                 $token = $this->novoToken();
+                $payload = [
+                    'token' => $token,
+                    'ativo' => true,
+                    'expira_em' => $expiraEm,
+                    'enviado_em' => $agora,
+                    'canal_envio' => $destinatario['canal'],
+                    'destino_envio' => $destinatario['destino'],
+                    'destino_nome' => $destinatario['nome'],
+                    'destino_funcao' => $destinatario['funcao'],
+                    'parceiro_contato_id' => $destinatario['parceiro_contato_id'],
+                    'visualizacoes' => 0,
+                    'usado_em' => null,
+                ];
                 if ($existente) {
-                    $existente->fill([
-                        'token' => $token,
-                        'ativo' => true,
-                        'expira_em' => $expiraEm,
-                        'enviado_em' => $agora,
-                        'canal_envio' => 'MANUAL',
-                        'destino_envio' => $destinoEnvio,
-                        'visualizacoes' => 0,
-                        'usado_em' => null,
-                    ]);
+                    $existente->fill($payload);
                     $existente->save();
                     $link = $existente;
                 } else {
-                    $link = OrcamentoLinkAprovacao::query()->create([
-                        'orcamento_id' => $orcamento->id,
-                        'token' => $token,
-                        'ativo' => true,
-                        'expira_em' => $expiraEm,
-                        'enviado_em' => $agora,
-                        'canal_envio' => 'MANUAL',
-                        'destino_envio' => $destinoEnvio,
-                        'visualizacoes' => 0,
-                    ]);
+                    $link = OrcamentoLinkAprovacao::query()->create(array_merge(
+                        ['orcamento_id' => $orcamento->id],
+                        $payload,
+                    ));
                 }
             }
 
@@ -127,6 +208,9 @@ class OrcamentoAprovacaoService
                 'expira_em' => $link->expira_em?->toIso8601String(),
                 'reutilizado' => $reutilizado,
                 'lembrete' => $lembrete,
+                'destinatario' => $destinatario['nome'],
+                'canal' => $destinatario['canal'],
+                'parceiro_contato_id' => $destinatario['parceiro_contato_id'],
             ]);
 
             return $link;
@@ -134,33 +218,66 @@ class OrcamentoAprovacaoService
 
         $url = $this->publicUrl($link->token);
         $orcamento = $orcamento->fresh(['parceiro', 'empresa', 'linkAprovacao']);
+        $mensagem = $this->mensagemPadrao($orcamento, $link, $url);
+        $canalUrl = $this->canalDeepLink(
+            (string) ($link->canal_envio ?? ''),
+            (string) ($link->destino_envio ?? ''),
+            $mensagem,
+            $orcamento,
+        );
 
         return [
             'url' => $url,
             'token' => $link->token,
-            'mensagem' => $this->mensagemPadrao($orcamento, $url, $link->expira_em?->toDateString()),
+            'mensagem' => $mensagem,
+            'canal_url' => $canalUrl,
             'expira_em' => $link->expira_em?->toIso8601String(),
             'reutilizado' => $reutilizado,
+            'destinatario' => [
+                'parceiro_contato_id' => $link->parceiro_contato_id,
+                'nome' => $link->destino_nome,
+                'funcao' => $link->destino_funcao,
+                'canal' => $link->canal_envio,
+                'destino' => $link->destino_envio,
+            ],
             'orcamento' => $this->orcamentoService->show($orcamento),
         ];
     }
 
     /**
-     * Proposta comercial para o cliente. Link inativo/usado → indisponível.
-     *
      * @return array<string, mixed>
      */
     public function propostaPublica(string $token): array
     {
         $link = $this->findLinkOrFail($token);
-
-        if (! $link->ativo || $link->usado_em !== null) {
-            throw new HttpException(410, 'Esta proposta não está mais disponível.');
-        }
-
         $orcamento = $link->orcamento;
         if ($orcamento === null || $orcamento->trashed()) {
             throw new HttpException(404, 'Proposta não encontrada.');
+        }
+
+        // Pós-aceite com PIX pendente: DTO só de pagamento (estudo 32 §5.1).
+        if (
+            $orcamento->status === Orcamento::STATUS_APROVADO
+            && $orcamento->financeiro_status === AdiantamentoService::FIN_AGUARDA_ADIANTAMENTO
+            && $link->usado_em !== null
+        ) {
+            if ($orcamento->empresa) {
+                app()->instance('empresa', $orcamento->empresa);
+            }
+
+            return $this->dtoPagamentoPublico($orcamento->fresh(['empresa', 'adiantamentoTitulo.cobrancas']), $link);
+        }
+
+        if (
+            $orcamento->status === Orcamento::STATUS_APROVADO
+            && $orcamento->financeiro_status === AdiantamentoService::FIN_LIBERADO
+            && $link->usado_em !== null
+        ) {
+            throw new HttpException(410, 'Pagamento confirmado. Esta proposta não está mais disponível.');
+        }
+
+        if (! $link->ativo || $link->usado_em !== null) {
+            throw new HttpException(410, 'Esta proposta não está mais disponível.');
         }
 
         if (in_array($orcamento->status, [Orcamento::STATUS_APROVADO, Orcamento::STATUS_REPROVADO], true)) {
@@ -182,6 +299,49 @@ class OrcamentoAprovacaoService
         }
 
         return $this->dtoComercial($orcamento->fresh(['empresa']), $link->fresh(), $vencido);
+    }
+
+    /**
+     * Prévia comercial autenticada (staff) — mesma visão do cliente, sem token e sem decidir.
+     *
+     * @return array<string, mixed>
+     */
+    public function propostaComercialInterna(Orcamento $orcamento): array
+    {
+        $orcamento->loadMissing('empresa');
+
+        return $this->dtoComercial($orcamento, null, false, 'preview');
+    }
+
+    /**
+     * Polling do adiantamento após aceite.
+     *
+     * @return array<string, mixed>
+     */
+    public function adiantamentoPublico(string $token): array
+    {
+        $link = $this->findLinkOrFail($token);
+        $orcamento = $link->orcamento;
+        if ($orcamento === null || $orcamento->trashed()) {
+            throw new HttpException(404, 'Proposta não encontrada.');
+        }
+
+        if ($orcamento->status !== Orcamento::STATUS_APROVADO) {
+            throw new HttpException(409, 'Orçamento ainda não foi aprovado.');
+        }
+
+        if ($orcamento->empresa) {
+            app()->instance('empresa', $orcamento->empresa);
+        }
+
+        $dto = $this->adiantamento->dtoPublico($orcamento->fresh(['empresa', 'adiantamentoTitulo.cobrancas']));
+
+        return [
+            'codigo' => $orcamento->codigo,
+            'status' => $orcamento->status,
+            'financeiro_status' => $orcamento->financeiro_status,
+            'adiantamento' => $dto,
+        ];
     }
 
     /**
@@ -232,6 +392,145 @@ class OrcamentoAprovacaoService
     }
 
     /**
+     * @param  array{parceiro_contato_id?: int|null, usar_contato_legado?: bool}  $opts
+     * @return array{parceiro_contato_id: int|null, nome: string, funcao: string|null, canal: string, destino: string, legado: bool}
+     */
+    private function resolverDestinatario(Orcamento $orcamento, array $opts): array
+    {
+        $lista = $this->listarDestinatarios($orcamento);
+        $destinatarios = $lista['destinatarios'];
+
+        if ($destinatarios === []) {
+            throw ValidationException::withMessages([
+                'parceiro_contato_id' => [
+                    $lista['aviso'] ?? 'Cadastre um contato autorizado a aprovar no parceiro (WhatsApp ou e-mail).',
+                ],
+            ]);
+        }
+
+        // Lembrete sem trocar destinatário: reusa o do link ativo se ainda elegível.
+        if ($orcamento->aguardandoCliente() && empty($opts['parceiro_contato_id']) && empty($opts['usar_contato_legado'])) {
+            $orcamento->loadMissing('linkAprovacao');
+            $link = $orcamento->linkAprovacao;
+            if ($link && $link->destino_nome && $link->destino_envio) {
+                return [
+                    'parceiro_contato_id' => $link->parceiro_contato_id,
+                    'nome' => (string) $link->destino_nome,
+                    'funcao' => $link->destino_funcao,
+                    'canal' => (string) ($link->canal_envio ?: 'WHATSAPP'),
+                    'destino' => (string) $link->destino_envio,
+                    'legado' => $link->parceiro_contato_id === null,
+                ];
+            }
+        }
+
+        $contatoId = isset($opts['parceiro_contato_id']) ? (int) $opts['parceiro_contato_id'] : null;
+        $usarLegado = (bool) ($opts['usar_contato_legado'] ?? false);
+
+        if ($contatoId) {
+            foreach ($destinatarios as $d) {
+                if ((int) $d['parceiro_contato_id'] === $contatoId) {
+                    return [
+                        'parceiro_contato_id' => $contatoId,
+                        'nome' => (string) $d['nome'],
+                        'funcao' => $d['funcao'] ?? null,
+                        'canal' => (string) $d['canal'],
+                        'destino' => (string) $d['destino'],
+                        'legado' => false,
+                    ];
+                }
+            }
+            throw ValidationException::withMessages([
+                'parceiro_contato_id' => ['Contato inválido ou sem permissão/canal para aprovar este orçamento.'],
+            ]);
+        }
+
+        if ($usarLegado) {
+            foreach ($destinatarios as $d) {
+                if (! empty($d['legado'])) {
+                    return [
+                        'parceiro_contato_id' => null,
+                        'nome' => (string) $d['nome'],
+                        'funcao' => $d['funcao'] ?? null,
+                        'canal' => (string) $d['canal'],
+                        'destino' => (string) $d['destino'],
+                        'legado' => true,
+                    ];
+                }
+            }
+        }
+
+        // Se só há um elegível, aceita implícito (UX).
+        if (count($destinatarios) === 1) {
+            $d = $destinatarios[0];
+
+            return [
+                'parceiro_contato_id' => $d['parceiro_contato_id'] ?? null,
+                'nome' => (string) $d['nome'],
+                'funcao' => $d['funcao'] ?? null,
+                'canal' => (string) $d['canal'],
+                'destino' => (string) $d['destino'],
+                'legado' => (bool) ($d['legado'] ?? false),
+            ];
+        }
+
+        throw ValidationException::withMessages([
+            'parceiro_contato_id' => ['Selecione o contato oficial que receberá o link de aprovação.'],
+        ]);
+    }
+
+    /**
+     * @return array{parceiro_contato_id: null, nome: string, funcao: string|null, whatsapp: ?string, email: ?string, telefone: ?string, canal: string, destino: string, autorizado_aprovar: bool, principal: bool, legado: true}|null
+     */
+    private function destinatarioLegado(Parceiro $parceiro): ?array
+    {
+        $canal = $this->canalPreferido($parceiro->whatsapp, $parceiro->email, $parceiro->telefone);
+        if ($canal === null) {
+            return null;
+        }
+        $nome = trim((string) ($parceiro->contato_nome ?: $parceiro->razao_social));
+        if ($nome === '') {
+            $nome = 'Responsável';
+        }
+
+        return [
+            'parceiro_contato_id' => null,
+            'nome' => $nome,
+            'funcao' => $parceiro->contato_funcao,
+            'whatsapp' => $parceiro->whatsapp,
+            'email' => $parceiro->email,
+            'telefone' => $parceiro->telefone,
+            'canal' => $canal['canal'],
+            'destino' => $canal['destino'],
+            'autorizado_aprovar' => true,
+            'principal' => true,
+            'legado' => true,
+        ];
+    }
+
+    /**
+     * @return array{canal: string, destino: string}|null
+     */
+    private function canalPreferido(?string $whatsapp, ?string $email, ?string $telefone): ?array
+    {
+        $wa = preg_replace('/\D+/', '', (string) $whatsapp) ?: null;
+        $tel = preg_replace('/\D+/', '', (string) $telefone) ?: null;
+        $mail = trim((string) $email) ?: null;
+
+        if ($wa !== null && strlen($wa) >= 10) {
+            return ['canal' => 'WHATSAPP', 'destino' => $wa];
+        }
+        if ($mail !== null && filter_var($mail, FILTER_VALIDATE_EMAIL)) {
+            return ['canal' => 'EMAIL', 'destino' => $mail];
+        }
+        if ($tel !== null && strlen($tel) >= 10) {
+            return ['canal' => 'TELEFONE', 'destino' => $tel];
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -258,7 +557,19 @@ class OrcamentoAprovacaoService
         }
 
         $agora = now();
-        DB::transaction(function () use ($orcamento, $link, $nome, $faixaIndex, $data, $ip, $userAgent, $agora) {
+        $adiantamentoOut = null;
+
+        DB::transaction(function () use (
+            $orcamento,
+            $link,
+            $nome,
+            $faixaIndex,
+            $data,
+            $ip,
+            $userAgent,
+            $agora,
+            &$adiantamentoOut,
+        ) {
             $before = ['status' => $orcamento->status];
             $orcamento->fill([
                 'status' => Orcamento::STATUS_APROVADO,
@@ -278,18 +589,36 @@ class OrcamentoAprovacaoService
             ]);
             $link->save();
 
+            $orcamento->loadMissing(['empresa', 'parceiro']);
+            $emit = $this->adiantamento->emitirDoOrcamento($orcamento->fresh(['empresa', 'parceiro']), $faixaIndex);
+            $adiantamentoOut = $emit['adiantamento'] ?? null;
+            $finStatus = $emit['financeiro_status'] ?? AdiantamentoService::FIN_LIBERADO;
+
             $this->audit->log('APROVAR_LINK_CLIENTE', 'Orcamento', $orcamento->id, $before, [
                 'status' => Orcamento::STATUS_APROVADO,
                 'faixa_index' => $faixaIndex,
                 'nome' => $nome,
+                'destinatario' => $link->destino_nome,
+                'financeiro_status' => $finStatus,
+                'adiantamento' => $adiantamentoOut !== null,
             ]);
         });
+
+        $orcamento->refresh();
+        $mensagem = $adiantamentoOut !== null
+            ? 'Proposta aceita. Conclua o pagamento do PIX abaixo — o orçamento fica aguardando pagamento até a confirmação.'
+            : 'Proposta aprovada. Em breve a equipe dará andamento.';
 
         return [
             'ok' => true,
             'status' => Orcamento::STATUS_APROVADO,
+            'status_exibicao' => $adiantamentoOut !== null
+                ? 'AGUARDANDO_PAGAMENTO'
+                : Orcamento::STATUS_APROVADO,
             'codigo' => $orcamento->codigo,
-            'mensagem' => 'Proposta aprovada. Em breve a equipe dará andamento.',
+            'mensagem' => $mensagem,
+            'financeiro_status' => $orcamento->financeiro_status,
+            'adiantamento' => $adiantamentoOut,
         ];
     }
 
@@ -330,6 +659,7 @@ class OrcamentoAprovacaoService
             $this->audit->log('RECUSAR_LINK_CLIENTE', 'Orcamento', $orcamento->id, $before, [
                 'status' => Orcamento::STATUS_REPROVADO,
                 'motivo' => $orcamento->motivo_decisao,
+                'destinatario' => $link->destino_nome,
             ]);
         });
 
@@ -362,7 +692,6 @@ class OrcamentoAprovacaoService
 
     private function novoToken(): string
     {
-        // 48 bytes → 64 chars base64url — impossível adivinhar.
         return rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
     }
 
@@ -376,30 +705,72 @@ class OrcamentoAprovacaoService
         return $base.'/p/'.$token;
     }
 
-    private function mensagemPadrao(Orcamento $orcamento, string $url, ?string $validadeYmd): string
+    private function mensagemPadrao(Orcamento $orcamento, OrcamentoLinkAprovacao $link, string $url): string
     {
         $empresa = $orcamento->empresa;
         $nomeEmpresa = $empresa?->nome_fantasia ?: ($empresa?->razao_social ?: 'RLP Etiquetas');
-        $validade = $validadeYmd
-            ? \Carbon\Carbon::parse($validadeYmd)->format('d/m/Y')
+        $validade = $link->expira_em
+            ? $link->expira_em->format('d/m/Y')
             : '—';
+        $contato = trim((string) ($link->destino_nome ?: 'olá'));
+        $primeiro = explode(' ', $contato)[0] ?: $contato;
 
-        return "Olá! Segue a proposta {$orcamento->codigo} v{$orcamento->versao} da {$nomeEmpresa}:\n"
+        // Estudo 32 §3.1 / §3.4: texto padrão + link pessoal (token = acesso). Sem senha no canal.
+        return "Olá, {$primeiro}! Segue a proposta {$orcamento->codigo} v{$orcamento->versao} da {$nomeEmpresa}:\n"
             ."{$url}\n"
-            ."Válida até {$validade}. Para aprovar, abra o link e confirme.\n"
+            ."Válida até {$validade}. Abra o link (acesso pessoal — não encaminhe) para ver, aprovar ou recusar.\n"
             .'Qualquer dúvida, estou à disposição.';
+    }
+
+    /**
+     * Deep link do canal (WhatsApp / e-mail) com a mensagem já montada — UX do comercial.
+     */
+    private function canalDeepLink(string $canal, string $destino, string $mensagem, Orcamento $orcamento): ?string
+    {
+        $destino = trim($destino);
+        if ($destino === '') {
+            return null;
+        }
+
+        if ($canal === 'WHATSAPP') {
+            $n = preg_replace('/\D+/', '', $destino) ?: '';
+            if (strlen($n) < 10) {
+                return null;
+            }
+            // BR sem DDI → assume 55 (cadastro costuma vir sem país).
+            if (strlen($n) <= 11) {
+                $n = '55'.$n;
+            }
+
+            return 'https://wa.me/'.$n.'?text='.rawurlencode($mensagem);
+        }
+
+        if ($canal === 'EMAIL' && filter_var($destino, FILTER_VALIDATE_EMAIL)) {
+            $assunto = 'Proposta '.$orcamento->codigo.' v'.$orcamento->versao;
+
+            return 'mailto:'.$destino
+                .'?subject='.rawurlencode($assunto)
+                .'&body='.rawurlencode($mensagem);
+        }
+
+        return null;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function dtoComercial(Orcamento $orcamento, OrcamentoLinkAprovacao $link, bool $vencido): array
-    {
+    private function dtoComercial(
+        Orcamento $orcamento,
+        ?OrcamentoLinkAprovacao $link,
+        bool $vencido,
+        string $modo = 'proposta',
+    ): array {
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
         $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
         $valorFaca = (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0);
+        $somenteLeitura = $modo === 'preview' || $link === null;
 
         $faixas = [];
         foreach (($result['faixas'] ?? []) as $idx => $fx) {
@@ -427,14 +798,29 @@ class OrcamentoAprovacaoService
             ];
         }
 
+        $destinoNome = $link?->destino_nome;
+        $destinoFuncao = $link?->destino_funcao;
+
         return [
             'codigo' => $orcamento->codigo,
             'versao' => $orcamento->versao,
             'status' => $orcamento->status,
-            'vencido' => $vencido,
-            'disponivel' => ! $vencido && $link->ativo && $link->usado_em === null,
-            'expira_em' => $link->expira_em?->toIso8601String(),
+            'vencido' => $somenteLeitura ? false : $vencido,
+            'disponivel' => $somenteLeitura
+                ? false
+                : (! $vencido && $link !== null && $link->ativo && $link->usado_em === null),
+            'somente_leitura' => $somenteLeitura,
+            'expira_em' => $somenteLeitura ? null : $link?->expira_em?->toIso8601String(),
             'cliente_nome' => $orcamento->cliente_nome,
+            'destinatario' => [
+                'nome' => $destinoNome,
+                'funcao' => $destinoFuncao,
+                'instrucao' => $somenteLeitura
+                    ? 'Prévia interna da proposta. Aprovar ou recusar só pelo link pessoal enviado ao destinatário.'
+                    : ($destinoNome
+                        ? 'Esta proposta foi enviada para aprovação de '.$destinoNome.'. Somente esta pessoa deve aprovar ou recusar.'
+                        : 'Somente o destinatário deste link deve aprovar ou recusar a proposta.'),
+            ],
             'empresa' => [
                 'nome_fantasia' => $empresa?->nome_fantasia,
                 'razao_social' => $empresa?->razao_social,
@@ -454,16 +840,99 @@ class OrcamentoAprovacaoService
                 'puxada_cm' => $input['puxada_cm'] ?? null,
                 'formato_faca' => $input['formato_faca'] ?? null,
                 'faca_nova' => $facaNova,
+                'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
+                'modelos_composicao' => $this->modelosComposicaoPublica($input),
             ],
             'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
             'validade_dias' => $orcamento->validade_dias,
             'tolerancia_qtd_pct' => (float) $orcamento->tolerancia_qtd_pct,
+            'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
+            'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
             'cobra_matriz' => (bool) $orcamento->cobra_matriz,
             'valor_matriz' => (float) $orcamento->valor_matriz,
             'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,
             'faixas' => $faixas,
-            // Observação interna do ORC NÃO vai para o cliente (pode ter margem/custo).
             'observacao_comercial' => null,
+            'modo' => $modo,
+            'financeiro_status' => $orcamento->financeiro_status,
+            'adiantamento' => null,
+        ];
+    }
+
+    private function nullIfEmptySnap(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $s = trim((string) $value);
+
+        return $s === '' ? null : $s;
+    }
+
+    /**
+     * Composição de artes para a proposta ao cliente (só linhas com nome).
+     *
+     * @param  array<string, mixed>  $input
+     * @return list<array{ordem: int, nome: string, percentual: float}>|null
+     */
+    private function modelosComposicaoPublica(array $input): ?array
+    {
+        $raw = $input['modelos_composicao'] ?? null;
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $out = [];
+        foreach (array_values($raw) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $nome = trim((string) ($row['nome'] ?? ''));
+            if ($nome === '') {
+                continue;
+            }
+            $out[] = [
+                'ordem' => (int) ($row['ordem'] ?? $i + 1),
+                'nome' => $nome,
+                'percentual' => round((float) ($row['percentual'] ?? 0), 4),
+            ];
+        }
+
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dtoPagamentoPublico(Orcamento $orcamento, OrcamentoLinkAprovacao $link): array
+    {
+        $empresa = $orcamento->empresa;
+        $adi = $this->adiantamento->dtoPublico($orcamento);
+
+        return [
+            'modo' => 'pagamento',
+            'codigo' => $orcamento->codigo,
+            'versao' => $orcamento->versao,
+            'status' => $orcamento->status,
+            'vencido' => false,
+            'disponivel' => false,
+            'financeiro_status' => $orcamento->financeiro_status,
+            'expira_em' => $link->expira_em?->toIso8601String(),
+            'cliente_nome' => $orcamento->cliente_nome,
+            'empresa' => [
+                'nome_fantasia' => $empresa?->nome_fantasia,
+                'razao_social' => $empresa?->razao_social,
+                'cnpj' => $empresa?->cnpj,
+                'telefone' => $empresa?->telefone,
+                'email' => $empresa?->email,
+                'municipio' => $empresa?->municipio,
+                'uf' => $empresa?->uf,
+            ],
+            'adiantamento' => $adi,
+            'mensagem' => ($adi['pago'] ?? false)
+                ? 'Pagamento confirmado. Orçamento aprovado.'
+                : 'Proposta aceita. Conclua o pagamento do PIX abaixo — o orçamento fica aguardando pagamento até a confirmação.',
+            'status_exibicao' => ($adi['pago'] ?? false) ? 'APROVADO' : 'AGUARDANDO_PAGAMENTO',
         ];
     }
 }

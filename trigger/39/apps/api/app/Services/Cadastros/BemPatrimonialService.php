@@ -13,7 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class BemPatrimonialService
 {
-    public function __construct(private readonly CodigoGenerator $codigos) {}
+    public function __construct(
+        private readonly CodigoGenerator $codigos,
+        private readonly DepartamentoService $departamentoService,
+    ) {}
 
     /**
      * @return list<array<string, mixed>>
@@ -21,7 +24,12 @@ class BemPatrimonialService
     public function list(Empresa $empresa, ?string $q = null, ?string $categoria = null, ?string $status = null): array
     {
         $query = BemPatrimonial::query()
-            ->with(['fornecedor:id,codigo,razao_social,nome_fantasia', 'grupoHoraMaquina:id,nome,ativo'])
+            ->with([
+                'fornecedor:id,codigo,razao_social,nome_fantasia',
+                'departamento:id,codigo,nome,ativo',
+                'grupoHoraMaquina:id,nome,ativo',
+                ...BemPatrimonial::userStampWith(),
+            ])
             ->where('empresa_id', $empresa->id)
             ->orderByDesc('id');
 
@@ -42,7 +50,10 @@ class BemPatrimonialService
                     ->orWhere('modelo', 'like', $like)
                     ->orWhere('numero_serie', 'like', $like)
                     ->orWhere('placa', 'like', $like)
-                    ->orWhere('local', 'like', $like);
+                    ->orWhere('local', 'like', $like)
+                    ->orWhereHas('departamento', function ($d) use ($like) {
+                        $d->where('nome', 'like', $like)->orWhere('codigo', 'like', $like);
+                    });
             });
         }
 
@@ -57,6 +68,7 @@ class BemPatrimonialService
     {
         $this->assertRelations($empresa, $data);
         $payload = $this->normalize($data);
+        $payload = $this->applyDepartamento($empresa, $data, $payload);
 
         $bem = DB::transaction(function () use ($empresa, $payload) {
             $codigo = $this->codigos->nextCode(null, 'BEM');
@@ -69,7 +81,12 @@ class BemPatrimonialService
             ]);
         });
 
-        $bem->load(['fornecedor:id,codigo,razao_social,nome_fantasia', 'grupoHoraMaquina:id,nome,ativo']);
+        $bem->load([
+            'fornecedor:id,codigo,razao_social,nome_fantasia',
+            'departamento:id,codigo,nome,ativo',
+            'grupoHoraMaquina:id,nome,ativo',
+            ...BemPatrimonial::userStampWith(),
+        ]);
 
         return $this->toOut($bem, $this->metaCapitalizacao($empresa, $bem));
     }
@@ -83,10 +100,16 @@ class BemPatrimonialService
         $empresa = $bem->empresa ?? Empresa::query()->findOrFail($bem->empresa_id);
         $this->assertRelations($empresa, $data);
         $payload = $this->normalize($data, partial: true);
+        $payload = $this->applyDepartamento($empresa, $data, $payload);
 
         $bem->fill($payload);
         $bem->save();
-        $bem->load(['fornecedor:id,codigo,razao_social,nome_fantasia', 'grupoHoraMaquina:id,nome,ativo']);
+        $bem->load([
+            'fornecedor:id,codigo,razao_social,nome_fantasia',
+            'departamento:id,codigo,nome,ativo',
+            'grupoHoraMaquina:id,nome,ativo',
+            ...BemPatrimonial::userStampWith(),
+        ]);
 
         return $this->toOut($bem, $this->metaCapitalizacao($empresa, $bem));
     }
@@ -96,7 +119,12 @@ class BemPatrimonialService
      */
     public function show(BemPatrimonial $bem): array
     {
-        $bem->load(['fornecedor:id,codigo,razao_social,nome_fantasia', 'grupoHoraMaquina:id,nome,ativo']);
+        $bem->load([
+            'fornecedor:id,codigo,razao_social,nome_fantasia',
+            'departamento:id,codigo,nome,ativo',
+            'grupoHoraMaquina:id,nome,ativo',
+            ...BemPatrimonial::userStampWith(),
+        ]);
         $empresa = $bem->empresa ?? Empresa::query()->findOrFail($bem->empresa_id);
 
         return $this->toOut($bem, $this->metaCapitalizacao($empresa, $bem));
@@ -226,7 +254,7 @@ class BemPatrimonialService
         $keys = [
             'descricao', 'categoria', 'marca', 'modelo', 'numero_serie',
             'adquirido_em', 'valor_aquisicao', 'nf_numero', 'fornecedor_id',
-            'local', 'responsavel', 'responsavel_user_id', 'status',
+            'responsavel', 'responsavel_user_id', 'status',
             'garantia_ate', 'placa', 'renavam', 'vida_util_meses',
             'orc_catalogo_maquina_id', 'capitalizado', 'observacao',
             'baixado_em', 'motivo_baixa',
@@ -272,11 +300,64 @@ class BemPatrimonialService
     }
 
     /**
+     * Fonte da verdade: departamento_id. `local` = espelho do nome (ADR-039-DEP-001).
+     * Texto `local` legado (sem id) resolve/cria DEP na EMP.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function applyDepartamento(Empresa $empresa, array $data, array $payload): array
+    {
+        $hasId = array_key_exists('departamento_id', $data);
+        $hasLocal = array_key_exists('local', $data);
+
+        if (! $hasId && ! $hasLocal) {
+            return $payload;
+        }
+
+        if ($hasId) {
+            $id = $data['departamento_id'];
+            if ($id === null || $id === '') {
+                $payload['departamento_id'] = null;
+                $payload['local'] = null;
+
+                return $payload;
+            }
+
+            $resolved = $this->departamentoService->resolveId($empresa, $id, null, false);
+            $payload['departamento_id'] = $resolved;
+            $payload['local'] = $this->departamentoService->mirrorNome($resolved);
+
+            return $payload;
+        }
+
+        $texto = is_string($data['local'] ?? null) ? trim((string) $data['local']) : '';
+        if ($texto === '') {
+            $payload['departamento_id'] = null;
+            $payload['local'] = null;
+
+            return $payload;
+        }
+
+        $resolved = $this->departamentoService->resolveId($empresa, null, $texto, true);
+        $payload['departamento_id'] = $resolved;
+        $payload['local'] = $this->departamentoService->mirrorNome($resolved);
+
+        return $payload;
+    }
+
+    /**
      * @param  array<string, mixed>|null  $meta
      * @return array<string, mixed>
      */
     public function toOut(BemPatrimonial $bem, ?array $meta = null): array
     {
+        $bem->loadMissing([
+            'departamento:id,codigo,nome,ativo',
+            ...BemPatrimonial::userStampWith(),
+        ]);
+
         return [
             'id' => $bem->id,
             'empresa_id' => $bem->empresa_id,
@@ -297,6 +378,13 @@ class BemPatrimonialService
                 'nome_fantasia' => $bem->fornecedor->nome_fantasia,
             ] : null,
             'local' => $bem->local,
+            'departamento_id' => $bem->departamento_id,
+            'departamento' => $bem->departamento ? [
+                'id' => $bem->departamento->id,
+                'codigo' => $bem->departamento->codigo,
+                'nome' => $bem->departamento->nome,
+                'ativo' => (bool) $bem->departamento->ativo,
+            ] : null,
             'responsavel' => $bem->responsavel,
             'responsavel_user_id' => $bem->responsavel_user_id,
             'status' => $bem->status,
@@ -316,6 +404,8 @@ class BemPatrimonialService
             'motivo_baixa' => $bem->motivo_baixa,
             'created_at' => optional($bem->created_at)?->toIso8601String(),
             'updated_at' => optional($bem->updated_at)?->toIso8601String(),
+            'criado_por' => BemPatrimonial::userStampFrom($bem->criador),
+            'atualizado_por' => BemPatrimonial::userStampFrom($bem->atualizador),
             'capitalizacao' => $meta,
         ];
     }

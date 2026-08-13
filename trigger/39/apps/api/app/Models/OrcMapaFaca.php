@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class OrcMapaFaca extends Model
 {
+    use HasUserStamps;
+
     protected $table = 'orc_mapa_facas';
 
     protected $fillable = [

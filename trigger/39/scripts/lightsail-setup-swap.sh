@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# R1 — Swapfile de 2 GB no host Lightsail (1 GB RAM).
-# Pré-requisito operacional do compose com mem_limits (~1 GB somados).
+# Swapfile de 2 GB no host Lightsail (1–2 GB RAM).
+# Rede de segurança do compose com mem_limits (~1 GB somados).
+# Em host 2 GB a folga é maior; o swap continua recomendado.
 # Idempotente: não recria se /swapfile já existir e estiver ativo.
 #
 # Uso (como root no host Ubuntu):

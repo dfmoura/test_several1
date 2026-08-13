@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
-import { ApiError, api, type BemPatrimonial, type Parceiro } from '../lib/api';
+import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
+import { ApiError, api, type BemPatrimonial, type Departamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { bemCategoriaLabel, bemStatusLabel } from '../lib/patrimonio';
@@ -16,7 +17,8 @@ type FormData = {
   valor_aquisicao: string;
   nf_numero: string;
   fornecedor_id: string;
-  local: string;
+  departamento_id: string;
+  departamento_nome: string;
   responsavel: string;
   status: string;
   garantia_ate: string;
@@ -48,7 +50,8 @@ const emptyForm = (): FormData => ({
   valor_aquisicao: '',
   nf_numero: '',
   fornecedor_id: '',
-  local: '',
+  departamento_id: '',
+  departamento_nome: '',
   responsavel: '',
   status: 'ATIVO',
   garantia_ate: '',
@@ -73,7 +76,8 @@ function fromBem(b: BemPatrimonial): FormData {
     valor_aquisicao: b.valor_aquisicao ?? '',
     nf_numero: b.nf_numero ?? '',
     fornecedor_id: b.fornecedor_id != null ? String(b.fornecedor_id) : '',
-    local: b.local ?? '',
+    departamento_id: b.departamento_id != null ? String(b.departamento_id) : '',
+    departamento_nome: b.departamento?.nome ?? b.local ?? '',
     responsavel: b.responsavel ?? '',
     status: b.status,
     garantia_ate: b.garantia_ate ?? '',
@@ -100,7 +104,7 @@ function toPayload(form: FormData): Record<string, unknown> {
     valor_aquisicao: form.valor_aquisicao !== '' ? form.valor_aquisicao : null,
     nf_numero: form.nf_numero || null,
     fornecedor_id: form.fornecedor_id ? parseInt(form.fornecedor_id, 10) : null,
-    local: form.local || null,
+    departamento_id: form.departamento_id ? parseInt(form.departamento_id, 10) : null,
     responsavel: form.responsavel || null,
     status: form.status,
     garantia_ate: form.garantia_ate || null,
@@ -143,11 +147,13 @@ export function PatrimonioFormPage() {
   const [codigo, setCodigo] = useState<string | null>(null);
   const [capitalizacao, setCapitalizacao] = useState<CapitalizacaoMeta | null>(null);
   const [fornecedores, setFornecedores] = useState<Parceiro[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [maquinasOrc, setMaquinasOrc] = useState<CatalogoMaquina[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
 
   const update = (patch: Partial<FormData>) => setForm((prev) => ({ ...prev, ...patch }));
 
@@ -167,8 +173,9 @@ export function PatrimonioFormPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [parRes, listMeta] = await Promise.all([
+        const [parRes, depRes, listMeta] = await Promise.all([
           api.get<{ data: Parceiro[] }>('/parceiros?papel=fornecedor'),
+          api.get<{ data: Departamento[] }>('/consulta/departamentos'),
           api.get<{
             data: BemPatrimonial[];
             meta: {
@@ -178,6 +185,7 @@ export function PatrimonioFormPage() {
           }>('/bens'),
         ]);
         setFornecedores(parRes.data);
+        setDepartamentos(depRes.data);
         setCapitalizacao(listMeta.meta.capitalizacao);
         setMaquinasOrc(listMeta.meta.grupos_hora_maquina ?? []);
       } catch {
@@ -185,6 +193,21 @@ export function PatrimonioFormPage() {
       }
     })();
   }, []);
+
+  const departamentosOptions = useMemo(() => {
+    const list = [...departamentos];
+    const currentId = form.departamento_id ? Number(form.departamento_id) : null;
+    if (currentId && !list.some((d) => d.id === currentId)) {
+      list.unshift({
+        id: currentId,
+        empresa_id: 0,
+        codigo: '',
+        nome: form.departamento_nome || 'Departamento atual',
+        ativo: false,
+      });
+    }
+    return list;
+  }, [departamentos, form.departamento_id, form.departamento_nome]);
 
   useEffect(() => {
     if (isNew || !id) {
@@ -198,6 +221,12 @@ export function PatrimonioFormPage() {
         if (cancelled) return;
         setForm(fromBem(res.data));
         setCodigo(res.data.codigo);
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         if (res.data.capitalizacao) setCapitalizacao(res.data.capitalizacao);
       } catch {
         if (!cancelled) setError('Bem patrimonial não encontrado.');
@@ -225,6 +254,12 @@ export function PatrimonioFormPage() {
         const res = await api.put<{ data: BemPatrimonial }>(`/bens/${id}`, payload);
         setForm(fromBem(res.data));
         setCodigo(res.data.codigo);
+        setAutoria({
+          criado_por: res.data.criado_por,
+          atualizado_por: res.data.atualizado_por,
+          created_at: res.data.created_at,
+          updated_at: res.data.updated_at,
+        });
         if (res.data.capitalizacao) setCapitalizacao(res.data.capitalizacao);
       }
     } catch (err) {
@@ -291,6 +326,7 @@ export function PatrimonioFormPage() {
       {avisoCapitalizacao && <div className="alert alert-warning">{avisoCapitalizacao}</div>}
 
       <form onSubmit={(e) => void handleSubmit(e)}>
+        {!isNew ? <RegistroMetaStrip registro={autoria} /> : null}
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <div className="form-section">
@@ -474,12 +510,26 @@ export function PatrimonioFormPage() {
               <h3>Localização</h3>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Local / setor</label>
-                  <input
-                    value={form.local}
+                  <label>Departamento</label>
+                  <select
+                    value={form.departamento_id}
                     disabled={!canWrite}
-                    onChange={(e) => update({ local: e.target.value })}
-                  />
+                    onChange={(e) => update({ departamento_id: e.target.value })}
+                  >
+                    <option value="">— Selecione —</option>
+                        {departamentosOptions.map((d) => (
+                          <option key={d.id} value={String(d.id)}>
+                            {d.codigo ? `${d.codigo} — ${d.nome}` : d.nome}
+                            {d.ativo === false ? ' (inativo)' : ''}
+                          </option>
+                        ))}
+                  </select>
+                  {canWrite ? (
+                    <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                      Local / setor do ativo = departamento da empresa.{' '}
+                      <Link to="/departamentos">Cadastro de departamentos</Link>.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="form-group">
                   <label>Responsável</label>

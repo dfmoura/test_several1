@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Parceiro extends Model
 {
+    use HasUserStamps;
     use SoftDeletes;
 
     protected $fillable = [
@@ -72,6 +74,7 @@ class Parceiro extends Model
         'vinculo',
         'cargo',
         'departamento',
+        'departamento_id',
         'admissao_em',
         'desligamento_em',
         'banco_codigo',
@@ -127,6 +130,11 @@ class Parceiro extends Model
     public function vendedor(): BelongsTo
     {
         return $this->belongsTo(Parceiro::class, 'vendedor_parceiro_id');
+    }
+
+    public function departamentoRef(): BelongsTo
+    {
+        return $this->belongsTo(Departamento::class, 'departamento_id');
     }
 
     public function user(): HasOne

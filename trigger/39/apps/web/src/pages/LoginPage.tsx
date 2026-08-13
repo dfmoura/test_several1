@@ -46,9 +46,13 @@ export function LoginPage() {
 
       <div className="login-form-panel">
         <div className="login-form-card">
+          <p className="login-product-eyebrow">{BRAND.licensee.productLabel}</p>
           <h1>{BRAND.licensee.productName}</h1>
           <TriggerByline className="login-product-byline" />
-          <p className="subtitle">Acesse o sistema de gestão industrial</p>
+          <p className="subtitle">
+            Sistema da TRIGGER licenciado para {BRAND.licensee.shortName}. Depois do login, você
+            opera na empresa ativa (EMP) — filiais do mesmo grupo, não outro produto.
+          </p>
 
           {error && <div className="alert alert-error">{error}</div>}
 

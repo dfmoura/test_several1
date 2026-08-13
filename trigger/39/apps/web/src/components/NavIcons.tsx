@@ -139,18 +139,6 @@ export function IconAi({ className }: IconProps) {
   );
 }
 
-export function IconReport({ className }: IconProps) {
-  return (
-    <IconBase className={className}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <path d="M14 2v6h6" />
-      <path d="M8 13h2" />
-      <path d="M8 17h8" />
-      <path d="M14 13h2" />
-    </IconBase>
-  );
-}
-
 export function IconHub({ className }: IconProps) {
   return (
     <IconBase className={className}>
@@ -207,6 +195,69 @@ export function IconPencil({ className }: IconProps) {
     <IconBase className={className}>
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </IconBase>
+  );
+}
+
+/** Departamentos organizacionais (DEP-). */
+export function IconDepartamento({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 21v-6h6v6" />
+      <path d="M9 10h.01" />
+      <path d="M15 10h.01" />
+      <path d="M12 10h.01" />
+    </IconBase>
+  );
+}
+
+/** Naturezas gerenciais — árvore / classificação. */
+export function IconNatureza({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 3v18" />
+      <path d="M12 8h7" />
+      <path d="M12 14h5" />
+      <path d="M12 20h3" />
+      <circle cx="12" cy="5" r="2" />
+      <circle cx="19" cy="8" r="1.5" />
+      <circle cx="17" cy="14" r="1.5" />
+      <circle cx="15" cy="20" r="1.5" />
+    </IconBase>
+  );
+}
+
+/** Compras — carrinho / OC. */
+export function IconCompras({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <circle cx="9" cy="20" r="1" />
+      <circle cx="18" cy="20" r="1" />
+      <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H7" />
+    </IconBase>
+  );
+}
+
+/** Estoque — caixas. */
+export function IconEstoque({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <path d="M3.27 6.96 12 12.01l8.73-5.05" />
+      <path d="M12 22.08V12" />
+    </IconBase>
+  );
+}
+
+/** Financeiro — contas a pagar. */
+export function IconFinanceiro({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h4" />
     </IconBase>
   );
 }

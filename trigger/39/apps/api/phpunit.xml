@@ -31,7 +31,5 @@
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
-        <!-- Módulo congelado em runtime (default false); testes exercitam o código com flag ON. -->
-        <env name="RELATORIO_IA_HABILITADO" value="true" force="true"/>
     </php>
 </phpunit>

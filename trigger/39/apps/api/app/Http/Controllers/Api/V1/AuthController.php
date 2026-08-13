@@ -88,6 +88,8 @@ class AuthController extends Controller
                 'razao_social' => $e->razao_social,
                 'nome_fantasia' => $e->nome_fantasia,
                 'padrao' => (bool) $e->pivot->padrao,
+                'venda_ativa' => (bool) $e->venda_ativa,
+                'estoque_ativo' => (bool) $e->estoque_ativo,
             ]),
             'empresa_contexto' => app()->bound('empresa') ? [
                 'id' => app('empresa')->id,

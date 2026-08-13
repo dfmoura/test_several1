@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { CnaeSecundario, Empresa, EmpresaContaFinanceira, SocioQsa } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -426,6 +427,8 @@ export function EmpresaFichaSheet({
       <p className="ficha-note">
         Multi-CNPJ oficial · empresa_id + EMP-NNNNN · sem LAI / natureza 9.xx (estudo 32).
       </p>
+
+      <RegistroMetaStrip registro={e} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>Uso interno · empresa / EMP · emitido por {emitidoPor}</span>

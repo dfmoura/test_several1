@@ -4,6 +4,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Estágio do caminho local → AWS (homolog → production)
+    |--------------------------------------------------------------------------
+    |
+    | Norma operacional: docs/DEPLOY_LOCAL_AWS.md
+    | Valores: local | homolog | production
+    | Health expõe o stage (sem secrets) para validar a virada de chave.
+    |
+    */
+
+    'stage' => env('ERP_STAGE', env('APP_ENV', 'local')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Bootstrap / demo credentials (local & first deploy)
     |--------------------------------------------------------------------------
     |
@@ -33,7 +46,7 @@ return [
         'vendor_full' => 'TRIGGER Data Intelligence',
         'vendor_url' => 'https://www.triggerti.com',
         'attribution_print' => 'Powered by TRIGGER',
-        'licensee_product' => 'ERP RLP',
+        'licensee_product' => 'FLEXOERP',
     ],
 
     /*
@@ -47,39 +60,6 @@ return [
     */
 
     'ia_http_timeout_sec' => (float) env('IA_HTTP_TIMEOUT_SEC', 45),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Relatórios IA — flags aditivas (rollback = desligar env)
-    |--------------------------------------------------------------------------
-    |
-    | Spec v1 permanece válida sempre. Recursos novos degradam com segurança.
-    | Ver docs/relatorios-ia-plano-profissional-trigger39.txt §12.
-    |
-    | relatorio_ia_habilitado (master): false = módulo congelado (API 404,
-    | jobs no-op). Código, tabelas e IaProvedores permanecem. Reabrir = true.
-    |
-    */
-
-    'relatorio_ia_habilitado' => filter_var(env('RELATORIO_IA_HABILITADO', false), FILTER_VALIDATE_BOOLEAN),
-
-    'relatorio_ia_autocorrecao' => filter_var(env('RELATORIO_IA_AUTOCORRECAO', true), FILTER_VALIDATE_BOOLEAN),
-    'relatorio_ia_json_mode' => filter_var(env('RELATORIO_IA_JSON_MODE', true), FILTER_VALIDATE_BOOLEAN),
-    'relatorio_ia_log_prompt' => filter_var(env('RELATORIO_IA_LOG_PROMPT', false), FILTER_VALIDATE_BOOLEAN),
-    'relatorio_ia_planejar_endpoint' => filter_var(env('RELATORIO_IA_PLANEJAR_ENDPOINT', true), FILTER_VALIDATE_BOOLEAN),
-    'relatorio_ia_planejar_cache_sec' => (int) env('RELATORIO_IA_PLANEJAR_CACHE_SEC', 600),
-    'relatorio_ia_rate_planejar' => env('RELATORIO_IA_RATE_PLANEJAR', '20,1'),
-    'relatorio_ia_rate_gerar' => env('RELATORIO_IA_RATE_GERAR', '10,1'),
-
-    // Guard-rail DomPDF: células = linhas × colunas (impacto §8-R4).
-    'relatorio_celulas_max' => (int) env('RELATORIO_CELULAS_MAX', 8000),
-
-    // Retenção operacional (impacto §7 / §8-R6). 0 = desliga aquele critério.
-    'relatorio_pdf_retencao_dias' => (int) env('RELATORIO_PDF_RETENCAO_DIAS', 180),
-    'relatorio_execucao_retencao_dias' => (int) env('RELATORIO_EXECUCAO_RETENCAO_DIAS', 90),
-
-    // Timeout dedicado da narrativa (Fase 5) — independente do IA_HTTP_TIMEOUT_SEC.
-    'relatorio_ia_narrativa_timeout_sec' => (float) env('RELATORIO_IA_NARRATIVA_TIMEOUT_SEC', 20),
 
     /*
     |--------------------------------------------------------------------------
@@ -106,5 +86,18 @@ return [
     */
 
     'orcamento_public_base_url' => env('ORCAMENTO_PUBLIC_BASE_URL', env('APP_URL', 'http://localhost:8039')),
+
+    /*
+    |--------------------------------------------------------------------------
+    | BankProvider (boleto / BolePix / PIX)
+    |--------------------------------------------------------------------------
+    |
+    | mock = local/CI (sem mTLS). inter = sandbox/prod Inter (credenciais EMP).
+    | ADR: docs/ADR_ORC_ADIANTAMENTO_PIX.md
+    |
+    */
+
+    'bank_provider' => env('BANK_PROVIDER', 'mock'),
+    'bank_http_timeout_sec' => (float) env('BANK_HTTP_TIMEOUT_SEC', 30),
 
 ];

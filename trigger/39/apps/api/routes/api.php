@@ -2,22 +2,34 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BemPatrimonialController;
+use App\Http\Controllers\Api\V1\CompraNecessidadeController;
 use App\Http\Controllers\Api\V1\ConsultaController;
+use App\Http\Controllers\Api\V1\DepartamentoController;
+use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaController;
+use App\Http\Controllers\Api\V1\EstoqueController;
+use App\Http\Controllers\Api\V1\EstoqueInventarioController;
+use App\Http\Controllers\Api\V1\EstoqueOperacionalController;
 use App\Http\Controllers\Api\V1\FacasController;
 use App\Http\Controllers\Api\V1\FiscalHubController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IaProvedorController;
+use App\Http\Controllers\Api\V1\NaturezaGerencialController;
 use App\Http\Controllers\Api\V1\OrcamentoAprovacaoController;
 use App\Http\Controllers\Api\V1\OrcamentoCatalogoController;
 use App\Http\Controllers\Api\V1\OrcamentoController;
 use App\Http\Controllers\Api\V1\OrcamentoPublicoController;
+use App\Http\Controllers\Api\V1\OrdemCompraController;
+use App\Http\Controllers\Api\V1\OrdemProducaoController;
+use App\Http\Controllers\Api\V1\OrdemServicoController;
+use App\Http\Controllers\Api\V1\PedidoController;
 use App\Http\Controllers\Api\V1\ParametroController;
 use App\Http\Controllers\Api\V1\ParceiroController;
 use App\Http\Controllers\Api\V1\ParceiroImportController;
 use App\Http\Controllers\Api\V1\ProdutoController;
 use App\Http\Controllers\Api\V1\ProdutoImportController;
-use App\Http\Controllers\Api\V1\RelatorioController;
+use App\Http\Controllers\Api\V1\TituloController;
+use App\Http\Controllers\Api\V1\WebhookBancarioController;
 use App\Http\Controllers\Api\V1\UsuarioController;
 use App\Http\Middleware\SetEmpresaContext;
 use Illuminate\Support\Facades\Route;
@@ -31,10 +43,20 @@ Route::prefix('v1')->group(function () {
     Route::middleware('throttle:60,1')->group(function () {
         Route::get('/publico/orcamentos/{token}', [OrcamentoPublicoController::class, 'show'])
             ->where('token', '[A-Za-z0-9_-]{20,128}');
+        Route::get('/publico/orcamentos/{token}/adiantamento', [OrcamentoPublicoController::class, 'adiantamento'])
+            ->where('token', '[A-Za-z0-9_-]{20,128}');
+        Route::post('/publico/orcamentos/{token}/simular-pagamento-pix', [OrcamentoPublicoController::class, 'simularPagamento'])
+            ->where('token', '[A-Za-z0-9_-]{20,128}')
+            ->middleware('throttle:10,1');
         Route::post('/publico/orcamentos/{token}/decidir', [OrcamentoPublicoController::class, 'decidir'])
             ->where('token', '[A-Za-z0-9_-]{20,128}')
             ->middleware('throttle:20,1');
     });
+
+    // Webhooks bancários (BankProvider) — sem Sanctum; idempotência no inbox.
+    Route::post('/webhooks/bancarios/{provider}', WebhookBancarioController::class)
+        ->where('provider', 'mock|inter')
+        ->middleware('throttle:120,1');
 
     Route::middleware(['auth:sanctum', SetEmpresaContext::class])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -93,6 +115,64 @@ Route::prefix('v1')->group(function () {
         Route::put('/bens/{bem}', [BemPatrimonialController::class, 'update']);
         Route::delete('/bens/{bem}', [BemPatrimonialController::class, 'destroy']);
 
+        Route::get('/departamentos', [DepartamentoController::class, 'index']);
+        Route::post('/departamentos', [DepartamentoController::class, 'store']);
+        Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
+        Route::put('/departamentos/{departamento}', [DepartamentoController::class, 'update']);
+        Route::delete('/departamentos/{departamento}', [DepartamentoController::class, 'destroy']);
+
+        // BL-033 — Compras → Estoque → TIT
+        Route::get('/compra-necessidades', [CompraNecessidadeController::class, 'index']);
+        Route::post('/compra-necessidades', [CompraNecessidadeController::class, 'store']);
+        Route::get('/compra-necessidades/{compraNecessidade}', [CompraNecessidadeController::class, 'show']);
+        Route::put('/compra-necessidades/{compraNecessidade}', [CompraNecessidadeController::class, 'update']);
+        Route::post('/compra-necessidades/{compraNecessidade}/cancelar', [CompraNecessidadeController::class, 'cancel']);
+
+        Route::get('/cotacoes', [CotacaoController::class, 'index']);
+        Route::post('/cotacoes', [CotacaoController::class, 'store']);
+        Route::get('/cotacoes/{cotacao}', [CotacaoController::class, 'show']);
+        Route::post('/cotacoes/{cotacao}/propostas', [CotacaoController::class, 'addProposta']);
+        Route::post('/cotacoes/{cotacao}/decidir', [CotacaoController::class, 'decidir']);
+
+        Route::get('/ordens-compra', [OrdemCompraController::class, 'index']);
+        Route::post('/ordens-compra', [OrdemCompraController::class, 'store']);
+        Route::get('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'show']);
+        Route::post('/ordens-compra/{ordemCompra}/cancelar', [OrdemCompraController::class, 'cancel']);
+        Route::post('/ordens-compra/{ordemCompra}/receber', [EstoqueController::class, 'receber']);
+        Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview', [EstoqueController::class, 'receberXmlPreview']);
+
+        Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
+        Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);
+        Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
+        Route::get('/estoque/produtos/{produto}/extrato', [EstoqueController::class, 'extrato']);
+
+        // BL-036 — Reposição (mínimo) + AJU
+        Route::get('/estoque/reposicao', [EstoqueOperacionalController::class, 'reposicao']);
+        Route::post('/estoque/reposicao/gerar-oc', [EstoqueOperacionalController::class, 'gerarOcReposicao']);
+        Route::get('/estoque/ajustes', [EstoqueOperacionalController::class, 'ajustesIndex']);
+        Route::post('/estoque/ajustes', [EstoqueOperacionalController::class, 'ajustesStore']);
+        Route::post('/estoque/ajustes/{estoqueAjuste}/aprovar', [EstoqueOperacionalController::class, 'ajustesAprovar']);
+        Route::post('/estoque/ajustes/{estoqueAjuste}/rejeitar', [EstoqueOperacionalController::class, 'ajustesRejeitar']);
+        Route::post('/estoque/ajustes/{estoqueAjuste}/cancelar', [EstoqueOperacionalController::class, 'ajustesCancelar']);
+
+        // BL-042 — Inventário profissional
+        Route::get('/estoque/inventarios', [EstoqueInventarioController::class, 'index']);
+        Route::post('/estoque/inventarios', [EstoqueInventarioController::class, 'store']);
+        Route::get('/estoque/inventarios/{estoqueInventario}', [EstoqueInventarioController::class, 'show']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/contar-1', [EstoqueInventarioController::class, 'contar1']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/contar-2', [EstoqueInventarioController::class, 'contar2']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/gerar-ajuste', [EstoqueInventarioController::class, 'gerarAjuste']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/encerrar', [EstoqueInventarioController::class, 'encerrar']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/cancelar', [EstoqueInventarioController::class, 'cancelar']);
+
+        Route::get('/titulos', [TituloController::class, 'index']);
+        Route::get('/titulos/{titulo}', [TituloController::class, 'show']);
+        Route::post('/titulos/{titulo}/baixar', [TituloController::class, 'baixar']);
+
+        Route::get('/naturezas-gerenciais', [NaturezaGerencialController::class, 'index']);
+        Route::get('/naturezas-gerenciais/{naturezaGerencial}', [NaturezaGerencialController::class, 'show']);
+        Route::patch('/naturezas-gerenciais/{naturezaGerencial}', [NaturezaGerencialController::class, 'update']);
+
         Route::get('/orcamentos/catalogo', [OrcamentoController::class, 'catalog']);
         Route::post('/orcamentos/calcular', [OrcamentoController::class, 'calcular']);
         Route::get('/orcamentos', [OrcamentoController::class, 'index']);
@@ -101,6 +181,23 @@ Route::prefix('v1')->group(function () {
         Route::put('/orcamentos/{orcamento}', [OrcamentoController::class, 'update']);
         Route::delete('/orcamentos/{orcamento}', [OrcamentoController::class, 'destroy']);
         Route::post('/orcamentos/{orcamento}/enviar-aprovacao', [OrcamentoAprovacaoController::class, 'enviar']);
+        Route::get('/orcamentos/{orcamento}/destinatarios-aprovacao', [OrcamentoAprovacaoController::class, 'destinatarios']);
+        Route::get('/orcamentos/{orcamento}/proposta-comercial', [OrcamentoAprovacaoController::class, 'propostaComercial']);
+
+        // BL-044 — PED / OP / OS
+        Route::get('/pedidos', [PedidoController::class, 'index']);
+        Route::get('/pedidos/{pedido}', [PedidoController::class, 'show']);
+        Route::post('/pedidos/{pedido}/abrir-op', [PedidoController::class, 'abrirOp']);
+        Route::post('/pedidos/{pedido}/abrir-os', [PedidoController::class, 'abrirOs']);
+        Route::get('/ordens-producao', [OrdemProducaoController::class, 'index']);
+        Route::get('/ordens-producao/{ordemProducao}', [OrdemProducaoController::class, 'show']);
+        Route::post('/ordens-producao/{ordemProducao}/requisitar', [OrdemProducaoController::class, 'requisitar']);
+        Route::post('/ordens-producao/{ordemProducao}/requisitar-pendentes', [OrdemProducaoController::class, 'requisitarPendentes']);
+        Route::post('/ordens-producao/{ordemProducao}/concluir', [OrdemProducaoController::class, 'concluir']);
+        Route::post('/ordens-producao/{ordemProducao}/devolver-ao-pedido', [OrdemProducaoController::class, 'devolverAoPedido']);
+        Route::get('/ordens-servico', [OrdemServicoController::class, 'index']);
+        Route::get('/ordens-servico/{ordemServico}', [OrdemServicoController::class, 'show']);
+        Route::post('/ordens-servico/{ordemServico}/concluir', [OrdemServicoController::class, 'concluir']);
 
         Route::get('/orcamento-catalogo/resumo', [OrcamentoCatalogoController::class, 'resumo']);
         Route::post('/orcamento-catalogo/seed', [OrcamentoCatalogoController::class, 'seed']);
@@ -126,21 +223,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/facas/{faca}', [FacasController::class, 'show'])->whereNumber('faca');
         Route::patch('/facas/{faca}/ativo', [FacasController::class, 'setAtivo'])->whereNumber('faca');
 
-        Route::middleware('relatorio.ia')->group(function () {
-            Route::get('/relatorios/catalogo', [RelatorioController::class, 'catalogo']);
-            Route::get('/relatorios', [RelatorioController::class, 'index']);
-            Route::post('/relatorios', [RelatorioController::class, 'store'])
-                ->middleware('throttle:'.config('erp.relatorio_ia_rate_gerar', '10,1'));
-            Route::post('/relatorios/planejar', [RelatorioController::class, 'planejar'])
-                ->middleware('throttle:'.config('erp.relatorio_ia_rate_planejar', '20,1'));
-            Route::get('/relatorios/planejamentos/{planejamento}', [RelatorioController::class, 'showPlanejamento']);
-            Route::get('/relatorios/{relatorio}', [RelatorioController::class, 'show']);
-            Route::post('/relatorios/{relatorio}/reprocessar', [RelatorioController::class, 'reprocessar']);
-            Route::post('/relatorios/{relatorio}/replanejar', [RelatorioController::class, 'replanejar']);
-            Route::delete('/relatorios/{relatorio}', [RelatorioController::class, 'destroy']);
-            Route::get('/relatorios/{relatorio}/download', [RelatorioController::class, 'download']);
-        });
-
         Route::get('/consulta/cnpj/{cnpj}', [ConsultaController::class, 'cnpj']);
         Route::get('/consulta/cep/{cep}', [ConsultaController::class, 'cep']);
         Route::get('/consulta/bancos', [ConsultaController::class, 'bancos']);
@@ -157,5 +239,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/consulta/unidades', [ConsultaController::class, 'unidadesMedida']);
         Route::get('/consulta/fator-conversao', [ConsultaController::class, 'fatorConversao']);
         Route::get('/consulta/produto-grupos', [ConsultaController::class, 'produtoGrupos']);
+        Route::get('/consulta/naturezas-gerenciais', [ConsultaController::class, 'naturezasGerenciais']);
+        Route::get('/consulta/departamentos', [ConsultaController::class, 'departamentos']);
     });
 });

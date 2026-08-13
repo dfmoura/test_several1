@@ -10,6 +10,8 @@ use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoMotor;
+use App\Services\Financeiro\AdiantamentoService;
+use App\Support\ModelosComposicao;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -48,7 +50,10 @@ class OrcamentoService
     public function list(Empresa $empresa, array $filters = []): array
     {
         $q = Orcamento::query()
-            ->with('parceiro:id,codigo,razao_social,nome_fantasia,is_prospect')
+            ->with([
+                'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
+                ...Orcamento::userStampWith(),
+            ])
             ->where('empresa_id', $empresa->id)
             ->orderByDesc('id');
 
@@ -75,6 +80,7 @@ class OrcamentoService
         $orcamento->loadMissing([
             'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
             'linkAprovacao',
+            ...Orcamento::userStampWith(),
         ]);
 
         return $this->toOut($orcamento);
@@ -251,6 +257,8 @@ class OrcamentoService
      */
     private function buildMotorInput(array $data, Parceiro $parceiro, Empresa $empresa): array
     {
+        $data = ModelosComposicao::ensureInPayload($data);
+
         $input = [
             'cliente' => $parceiro->razao_social,
             'parceiro_id' => $parceiro->id,
@@ -261,6 +269,8 @@ class OrcamentoService
             'papel' => $data['papel'],
             'acabamento' => $data['acabamento'],
             'modelos' => (int) $data['modelos'],
+            // Snapshot operacional — não entra nas fórmulas R1–R20 do motor.
+            'modelos_composicao' => $data['modelos_composicao'],
             'colunas' => (int) $data['colunas'],
             'etiq_por_rolo' => (int) $data['etiq_por_rolo'],
             'tubete' => $data['tubete'],
@@ -315,6 +325,8 @@ class OrcamentoService
             'validade_dias' => (int) ($data['validade_dias'] ?? 7),
             'tolerancia_qtd_pct' => (float) ($data['tolerancia_qtd_pct'] ?? 20),
             'observacao' => $data['observacao'] ?? null,
+            'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
+            'forma_pagamento' => $this->nullIfEmpty($data['forma_pagamento'] ?? null),
             'faca_nova' => (bool) ($data['faca_nova'] ?? $input['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? $input['formato_faca'] ?? null,
             'valor_faca_nova' => (float) ($data['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0),
@@ -322,6 +334,16 @@ class OrcamentoService
                 ? ($data['prazo_faca_dias'] !== null ? (int) $data['prazo_faca_dias'] : null)
                 : ($input['prazo_faca_dias'] ?? null),
         ]);
+    }
+
+    private function nullIfEmpty(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $s = trim((string) $value);
+
+        return $s === '' ? null : $s;
     }
 
     /**
@@ -358,6 +380,8 @@ class OrcamentoService
     /** @return array<string, mixed> */
     private function toOut(Orcamento $o): array
     {
+        $o->loadMissing(Orcamento::userStampWith());
+
         return [
             'id' => $o->id,
             'empresa_id' => $o->empresa_id,
@@ -368,6 +392,7 @@ class OrcamentoService
             'parceiro_id' => $o->parceiro_id,
             'cliente_nome' => $o->cliente_nome,
             'status' => $o->status,
+            'status_exibicao' => $this->statusExibicao($o),
             'editavel' => $o->isEditavel(),
             'enviavel' => $o->isEnviavel(),
             'aguardando_cliente' => $o->aguardandoCliente(),
@@ -387,13 +412,18 @@ class OrcamentoService
             'aceite_nome_cliente' => $o->aceite_nome_cliente,
             'aceite_faixa_index' => $o->aceite_faixa_index,
             'motivo_decisao' => $o->motivo_decisao,
+            'financeiro_status' => $o->financeiro_status,
+            'adiantamento_titulo_id' => $o->adiantamento_titulo_id,
             'link_aprovacao' => $o->relationLoaded('linkAprovacao') && $o->linkAprovacao
                 ? [
                     'ativo' => (bool) $o->linkAprovacao->ativo,
                     'expira_em' => $o->linkAprovacao->expira_em?->toIso8601String(),
                     'visualizacoes' => $o->linkAprovacao->visualizacoes,
                     'usado_em' => $o->linkAprovacao->usado_em?->toIso8601String(),
-                    // URL só via enviar-aprovacao (evita vazar token em listagens).
+                    'destino_nome' => $o->linkAprovacao->destino_nome,
+                    'destino_funcao' => $o->linkAprovacao->destino_funcao,
+                    'canal_envio' => $o->linkAprovacao->canal_envio,
+                    // destino_envio (telefone/e-mail) só no painel de envio — não na listagem pública do ORC.
                 ]
                 : null,
             'parceiro' => $o->relationLoaded('parceiro') && $o->parceiro
@@ -405,6 +435,8 @@ class OrcamentoService
                     'is_prospect' => (bool) $o->parceiro->is_prospect,
                 ]
                 : null,
+            'criado_por' => Orcamento::userStampFrom($o->criador),
+            'atualizado_por' => Orcamento::userStampFrom($o->atualizador),
             'created_at' => $o->created_at?->toIso8601String(),
             'updated_at' => $o->updated_at?->toIso8601String(),
         ];
@@ -419,5 +451,21 @@ class OrcamentoService
         }
 
         return number_format((float) $valor, 4, '.', '');
+    }
+
+    /**
+     * Rótulo operacional para UI (estudo: aceite comercial vs liberação financeira).
+     * APROVADO + AGUARDA_ADIANTAMENTO → "Aguardando pagamento".
+     */
+    private function statusExibicao(Orcamento $o): string
+    {
+        if (
+            $o->status === Orcamento::STATUS_APROVADO
+            && $o->financeiro_status === AdiantamentoService::FIN_AGUARDA_ADIANTAMENTO
+        ) {
+            return 'AGUARDANDO_PAGAMENTO';
+        }
+
+        return $o->status;
     }
 }

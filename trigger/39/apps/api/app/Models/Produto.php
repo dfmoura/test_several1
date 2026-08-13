@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUserStamps;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Produto extends Model
 {
+    use HasUserStamps;
     use SoftDeletes;
 
     public const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'];
@@ -40,6 +42,9 @@ class Produto extends Model
         'custo_medio',
         'estoque_minimo',
         'lead_time_dias',
+        'controla_lote',
+        'controla_validade',
+        'prazo_validade_dias',
         'gtin',
         'situacao',
         'atributos',
@@ -56,6 +61,9 @@ class Produto extends Model
             'custo_medio' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_UNIT_PRICE,
             'estoque_minimo' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_QTY,
             'aliquota_cbs' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_PERCENT,
+            'controla_lote' => 'boolean',
+            'controla_validade' => 'boolean',
+            'prazo_validade_dias' => 'integer',
             'atributos' => 'array',
         ];
     }
