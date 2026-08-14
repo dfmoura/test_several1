@@ -30,6 +30,7 @@ import {
   formatCnpj,
   formatCurrency,
   formatDate,
+  formatLatLng,
   formatPhone,
   onlyDigits,
 } from '../lib/format';
@@ -62,6 +63,7 @@ type EmpresaForm = {
   ie: string;
   ie_status: string;
   im: string;
+  im_obrigatoria_nfse: boolean;
   iest: string;
   regime: string;
   crt: number;
@@ -77,6 +79,8 @@ type EmpresaForm = {
   uf: string;
   cep: string;
   ibge: string;
+  origem_latitude: string;
+  origem_longitude: string;
   venda_ativa: boolean;
   estoque_ativo: boolean;
   situacao: string;
@@ -205,6 +209,7 @@ function toForm(emp: Empresa): EmpresaForm {
     ie: emp.ie ?? '',
     ie_status: emp.ie_status ?? 'NAO_VERIFICADA',
     im: emp.im ?? '',
+    im_obrigatoria_nfse: Boolean(emp.im_obrigatoria_nfse),
     iest: emp.iest ?? '',
     regime,
     crt: emp.crt ?? defaultCrtForRegime(regime),
@@ -220,6 +225,8 @@ function toForm(emp: Empresa): EmpresaForm {
     uf: emp.uf ?? '',
     cep: emp.cep ?? '',
     ibge: emp.ibge ?? '',
+    origem_latitude: emp.origem_latitude ?? '',
+    origem_longitude: emp.origem_longitude ?? '',
     venda_ativa: emp.venda_ativa,
     estoque_ativo: emp.estoque_ativo,
     situacao: emp.situacao,
@@ -268,7 +275,7 @@ export function EmpresasPage() {
   const [tab, setTab] = useState<Tab>('Identificação');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | null>(null);
+  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | 'origem-geo' | null>(null);
   const [cnpjUnlocked, setCnpjUnlocked] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -464,6 +471,36 @@ export function EmpresasPage() {
     }
   };
 
+  const consultarOrigemPeloCep = async () => {
+    if (!form) return;
+    const digits = onlyDigits(form.cep);
+    if (digits.length !== 8) {
+      setError('Informe o CEP cadastral da empresa para sugerir a origem.');
+      return;
+    }
+    setConsulting('origem-geo');
+    setError('');
+    setMessage('');
+    try {
+      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}?geo=1`);
+      const d = res.data;
+      if (d.latitude && d.longitude) {
+        update({ origem_latitude: d.latitude, origem_longitude: d.longitude });
+        setMessage(
+          `Origem sugerida pelo CEP (${formatLatLng(d.latitude, d.longitude)}). Ajuste se a planta for outro ponto. Salvar confirma.`,
+        );
+      } else if (d.geo_sem_ponto) {
+        setError('Este CEP não tem ponto geográfico. Informe a origem da planta à mão.');
+      } else {
+        setError('Consulta de posição indisponível. Informe a origem à mão.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Consulta de posição indisponível.');
+    } finally {
+      setConsulting(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!selected || !form || !canEdit) return;
     const cnpjDigits = onlyDigits(form.cnpj);
@@ -528,6 +565,7 @@ export function EmpresasPage() {
   const pendenciasEmissao = selected?.fiscal_pendencias_emissao ?? [];
   const fiscalCompleto = Boolean(selected?.cadastro_fiscal_completo);
   const aptoNfe = Boolean(selected?.apto_emissao_nfe);
+  const aptoNfse = Boolean(selected?.apto_emissao_nfse);
 
   return (
     <>
@@ -618,6 +656,9 @@ export function EmpresasPage() {
               </div>
               <div className={`fiscal-status-chip${aptoNfe ? ' is-ok' : ' is-muted'}`}>
                 {aptoNfe ? 'Apto para emissão NF-e' : 'Não apto para emissão NF-e'}
+              </div>
+              <div className={`fiscal-status-chip${aptoNfse ? ' is-ok' : ' is-muted'}`}>
+                {aptoNfse ? 'Apto para emissão NFS-e' : 'Não apto para emissão NFS-e'}
               </div>
             </div>
 
@@ -732,9 +773,28 @@ export function EmpresasPage() {
                       value={form.im}
                       disabled={!canEdit}
                       onChange={(e) => update({ im: e.target.value })}
-                      placeholder="Para NFS-e"
+                      placeholder="Opcional"
                     />
-                    <span className="form-hint">Necessária se emitir NFS-e no município</span>
+                    <span className="form-hint">
+                      Nem todo município exige IM para emitir nota. NF-e nunca exige. NFS-e só se o
+                      município exigir — marque abaixo.
+                    </span>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="emp-im-obrigatoria">Município e NFS-e</label>
+                    <label
+                      htmlFor="emp-im-obrigatoria"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}
+                    >
+                      <input
+                        id="emp-im-obrigatoria"
+                        type="checkbox"
+                        disabled={!canEdit}
+                        checked={form.im_obrigatoria_nfse}
+                        onChange={(e) => update({ im_obrigatoria_nfse: e.target.checked })}
+                      />
+                      Este município exige inscrição municipal para NFS-e
+                    </label>
                   </div>
                   <div className="form-group">
                     <label>IEST (substituto tributário)</label>
@@ -1236,6 +1296,48 @@ export function EmpresasPage() {
                       <option value="1">Sim</option>
                       <option value="0">Não</option>
                     </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Latitude (origem)</label>
+                    <input
+                      value={form.origem_latitude}
+                      disabled={!canEdit}
+                      placeholder="-18.9219"
+                      inputMode="decimal"
+                      onChange={(e) => update({ origem_latitude: e.target.value.trim() })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Longitude (origem)</label>
+                    <input
+                      value={form.origem_longitude}
+                      disabled={!canEdit}
+                      placeholder="-48.2943"
+                      inputMode="decimal"
+                      onChange={(e) => update({ origem_longitude: e.target.value.trim() })}
+                    />
+                  </div>
+                  <div className="form-group span-2">
+                    <label>Origem operacional</label>
+                    <div className="input-action">
+                      <input
+                        readOnly
+                        value={formatLatLng(form.origem_latitude, form.origem_longitude) || '—'}
+                        aria-label="Origem operacional latitude e longitude"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={!canEdit || consulting === 'origem-geo'}
+                        onClick={() => void consultarOrigemPeloCep()}
+                      >
+                        {consulting === 'origem-geo' ? '…' : 'Preencher pelo CEP'}
+                      </button>
+                    </div>
+                    <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
+                      Ponto A da rota de carro até o parceiro (planta). Não é o endereço fiscal da
+                      NF-e — pode ser informado à mão.
+                    </p>
                   </div>
                 </div>
               </div>

@@ -12,6 +12,7 @@ import { BRAND } from '../lib/brand';
 import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
+import { formatValorFrete, modoEntregaLabel } from '../lib/orcamentoFrete';
 
 /**
  * Ficha operacional do ORC — uso interno (não é proposta ao cliente).
@@ -211,6 +212,11 @@ export function OrcamentoFichaSheet({
             <span className="ficha-chip ficha-chip-muted">Prospect</span>
           ) : null}
           {facaNova ? <span className="ficha-chip ficha-chip-muted">Faca nova</span> : null}
+          {result?.frete ? (
+            <span className="ficha-chip ficha-chip-muted">
+              {modoEntregaLabel(result.frete.modo)}
+            </span>
+          ) : null}
           <span className="ficha-chip ficha-chip-muted">Uso interno</span>
         </div>
       </div>
@@ -330,21 +336,13 @@ export function OrcamentoFichaSheet({
               />
             </div>
             <div className="ficha-orc-faca-meta">
-              <Kv label="Medida" value={snap(input, 'medida')} />
-              <Kv label="Formato" value={formatoLabel(formato)} />
               <Kv label="Tipo" value={facaNova ? 'FACA NOVA' : formatoKind(formato)} />
-              <Kv label="Z" value={snap(input, 'z')} />
-              <Kv label="Puxada" value={cmBr(input.puxada_cm as string | number, 4)} />
-              <Kv label="Largura" value={cmBr(input.largura_cm as string | number)} />
-              <Kv label="Máquina" value={snap(input, 'maquina')} />
-              <Kv
-                label="Valor / prazo"
-                value={
-                  facaNova
-                    ? `${money(valorFacaNova)}${prazoFaca ? ` · +${prazoFaca}d` : ''}`
-                    : '—'
-                }
-              />
+              {facaNova ? (
+                <Kv
+                  label="Valor / prazo"
+                  value={`${money(valorFacaNova)}${prazoFaca ? ` · +${prazoFaca}d` : ''}`}
+                />
+              ) : null}
             </div>
           </div>
         ) : (
@@ -452,6 +450,7 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">Valor rolo</th>
                   <th className="ficha-th-num">Matriz</th>
                   {facaNova ? <th className="ficha-th-num">Faca nova</th> : null}
+                  {result?.frete ? <th className="ficha-th-num">Frete est.</th> : null}
                   <th className="ficha-th-num">Total</th>
                 </tr>
               </thead>
@@ -481,6 +480,11 @@ export function OrcamentoFichaSheet({
                           {money(fx.valor_faca_nova ?? valorFacaNova)}
                         </td>
                       ) : null}
+                      {result?.frete ? (
+                        <td className="ficha-td-num">
+                          {formatValorFrete(fx.valor_frete, fx.frete_somavel)}
+                        </td>
+                      ) : null}
                       <td className="ficha-td-num">
                         <strong>{money(total)}</strong>
                       </td>
@@ -493,6 +497,9 @@ export function OrcamentoFichaSheet({
               Matriz — somente no 1º pedido
               {result?.chave_matriz ? ` · chave ${result.chave_matriz}` : ''}
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
+              {result?.frete
+                ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — linha à parte, não no unitário.`
+                : ''}
             </p>
           </Section>
         </>

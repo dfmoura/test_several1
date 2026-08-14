@@ -177,4 +177,49 @@ class ProspectRapidoTest extends TestCase
         $res->assertCreated();
         $this->assertSame('PAR-00011', $res->json('data.codigo'));
     }
+
+    public function test_persiste_endereco_origem_e_whatsapp_so_digitos(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $res = $this->withHeaders($h)->postJson('/api/v1/parceiros/prospect-rapido', [
+            'nome' => 'Padaria Centro',
+            'whatsapp' => '(34) 98888-3512',
+            'cep' => '38400-123',
+            'logradouro' => 'Rua das Flores',
+            'numero' => '100',
+            'complemento' => 'Loja 2',
+            'bairro' => 'Centro',
+            'municipio' => 'Uberlândia',
+            'uf' => 'MG',
+            'ibge' => '3170206',
+            'origem_lead' => 'WhatsApp',
+        ]);
+
+        $res->assertCreated();
+        $this->assertSame('34988883512', $res->json('data.whatsapp'));
+        $this->assertSame('38400123', $res->json('data.cep'));
+        $this->assertSame('Rua das Flores', $res->json('data.logradouro'));
+        $this->assertSame('100', $res->json('data.numero'));
+        $this->assertSame('Loja 2', $res->json('data.complemento'));
+        $this->assertSame('Centro', $res->json('data.bairro'));
+        $this->assertSame('Uberlândia', $res->json('data.municipio'));
+        $this->assertSame('3170206', $res->json('data.ibge'));
+        $this->assertSame('WhatsApp', $res->json('data.origem_lead'));
+    }
+
+    public function test_origem_lead_invalida_retorna_422(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->withHeaders($h)->postJson('/api/v1/parceiros/prospect-rapido', [
+            'nome' => 'Lead ruim',
+            'whatsapp' => '31999998888',
+            'municipio' => 'BH',
+            'uf' => 'MG',
+            'origem_lead' => 'panfleto-na-porta',
+        ])->assertStatus(422);
+    }
 }

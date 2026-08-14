@@ -23,6 +23,7 @@ class Empresa extends Model
         'ie_status',
         'ie_consultado_em',
         'im',
+        'im_obrigatoria_nfse',
         'iest',
         'regime',
         'crt',
@@ -39,6 +40,8 @@ class Empresa extends Model
         'uf',
         'cep',
         'ibge',
+        'origem_latitude',
+        'origem_longitude',
         'venda_ativa',
         'estoque_ativo',
         'logo_path',
@@ -48,8 +51,11 @@ class Empresa extends Model
 
     protected $appends = [
         'apto_emissao_nfe',
+        'apto_emissao_nfse',
         'fiscal_pendencias',
         'fiscal_pendencias_emissao',
+        'fiscal_pendencias_nfse',
+        'fiscal_pendencias_emissao_nfse',
     ];
 
     protected function casts(): array
@@ -59,9 +65,12 @@ class Empresa extends Model
             'venda_ativa' => 'boolean',
             'estoque_ativo' => 'boolean',
             'cadastro_fiscal_completo' => 'boolean',
+            'im_obrigatoria_nfse' => 'boolean',
             'ie_consultado_em' => 'datetime',
             'regime_desde' => 'date',
             'cnaes_secundarios' => 'array',
+            'origem_latitude' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_COORD,
+            'origem_longitude' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_COORD,
         ];
     }
 
@@ -102,9 +111,22 @@ class Empresa extends Model
             ->withTimestamps();
     }
 
+    public function temOrigemOperacional(): bool
+    {
+        $lat = $this->origem_latitude;
+        $lng = $this->origem_longitude;
+
+        return $lat !== null && $lat !== '' && $lng !== null && $lng !== '';
+    }
+
     public function getAptoEmissaoNfeAttribute(): bool
     {
         return EmpresaFiscalRules::evaluate($this->attributesToFiscalArray())['apto_emissao_nfe'];
+    }
+
+    public function getAptoEmissaoNfseAttribute(): bool
+    {
+        return EmpresaFiscalRules::evaluate($this->attributesToFiscalArray())['apto_emissao_nfse'];
     }
 
     /**
@@ -124,6 +146,22 @@ class Empresa extends Model
     }
 
     /**
+     * @return list<string>
+     */
+    public function getFiscalPendenciasNfseAttribute(): array
+    {
+        return EmpresaFiscalRules::evaluate($this->attributesToFiscalArray())['pendencias_nfse'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getFiscalPendenciasEmissaoNfseAttribute(): array
+    {
+        return EmpresaFiscalRules::evaluate($this->attributesToFiscalArray())['pendencias_emissao_nfse'];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function attributesToFiscalArray(): array
@@ -134,6 +172,7 @@ class Empresa extends Model
             'ie' => $this->ie,
             'ie_status' => $this->ie_status,
             'im' => $this->im,
+            'im_obrigatoria_nfse' => $this->im_obrigatoria_nfse,
             'iest' => $this->iest,
             'regime' => $this->regime,
             'crt' => $this->crt,

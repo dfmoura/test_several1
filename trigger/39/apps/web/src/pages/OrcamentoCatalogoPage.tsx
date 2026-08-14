@@ -6,9 +6,10 @@ import { StatusPill } from '../components/StatusPill';
 import { ApiError, api, type OrcCatalogoResumo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { bemStatusLabel } from '../lib/patrimonio';
+import { formatKgFaixa } from '../lib/orcamentoFrete';
 import { useTableSort } from '../lib/useTableSort';
 
-type TabId = 'papeis' | 'acabamentos' | 'trocas' | 'maquinas' | 'matriz';
+type TabId = 'papeis' | 'acabamentos' | 'trocas' | 'maquinas' | 'matriz' | 'frete';
 
 type PapelRow = {
   id: number;
@@ -61,6 +62,16 @@ type ParametroRow = {
   ordem: number;
 };
 
+type FaixaFreteRow = {
+  id: number;
+  kg_ate: string | null;
+  preco_por_km: string | null;
+  minimo_rs: string | null;
+  ativo: boolean;
+  ordem: number;
+  acima: boolean;
+};
+
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   { id: 'papeis', label: 'Papel', hint: 'R$/m² usado no custo de material' },
   { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m²' },
@@ -78,6 +89,11 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
     id: 'matriz',
     label: 'Matriz (clichê)',
     hint: 'R$/cm² vigente — GERACAO §4.12 · só 1º pedido',
+  },
+  {
+    id: 'frete',
+    label: 'Frete',
+    hint: 'Faixas de kg com R$/km dinâmicas · peso estimado da caixa · não é TMS',
   },
 ];
 
@@ -107,6 +123,7 @@ export function OrcamentoCatalogoPage() {
   const [trocas, setTrocas] = useState<TipoTrocaRow[]>([]);
   const [maquinas, setMaquinas] = useState<MaquinaRow[]>([]);
   const [parametros, setParametros] = useState<ParametroRow[]>([]);
+  const [faixasFrete, setFaixasFrete] = useState<FaixaFreteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -117,13 +134,14 @@ export function OrcamentoCatalogoPage() {
     setLoading(true);
     setError('');
     try {
-      const [r, p, a, t, m, params] = await Promise.all([
+      const [r, p, a, t, m, params, ff] = await Promise.all([
         api.get<{ data: OrcCatalogoResumo }>('/orcamento-catalogo/resumo'),
         api.get<{ data: PapelRow[] }>('/orcamento-catalogo/papeis'),
         api.get<{ data: AcabamentoRow[] }>('/orcamento-catalogo/acabamentos'),
         api.get<{ data: TipoTrocaRow[] }>('/orcamento-catalogo/tipos-troca'),
         api.get<{ data: MaquinaRow[] }>('/orcamento-catalogo/maquinas'),
         api.get<{ data: ParametroRow[] }>('/orcamento-catalogo/parametros'),
+        api.get<{ data: FaixaFreteRow[] }>('/orcamento-catalogo/faixas-frete'),
       ]);
       setResumo(r.data);
       setPapeis(p.data);
@@ -131,6 +149,7 @@ export function OrcamentoCatalogoPage() {
       setTrocas(t.data);
       setMaquinas(m.data);
       setParametros(params.data);
+      setFaixasFrete(ff.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao carregar catálogo');
     } finally {
@@ -227,6 +246,10 @@ export function OrcamentoCatalogoPage() {
                   : '—'}
               </strong>
             </div>
+            <div>
+              <span>Faixas de frete</span>
+              <strong>{resumo.faixas_frete ?? 0}</strong>
+            </div>
           </div>
           <p className="catalogo-nota">{resumo.nota}</p>
         </div>
@@ -315,6 +338,17 @@ export function OrcamentoCatalogoPage() {
             <MatrizParametrosPanel
               rows={parametros}
               resumo={resumo}
+              onSaved={async (msg) => {
+                setMessage(msg);
+                await load();
+              }}
+              onError={setError}
+            />
+          ) : null}
+          {tab === 'frete' ? (
+            <FreteCatalogoPanel
+              faixas={faixasFrete}
+              parametros={parametros}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -456,6 +490,260 @@ function MatrizParametrosPanel({
         )}
       </div>
     </div>
+  );
+}
+
+function FreteCatalogoPanel({
+  faixas,
+  parametros,
+  onSaved,
+  onError,
+}: {
+  faixas: FaixaFreteRow[];
+  parametros: ParametroRow[];
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const peso = parametros.find((r) => r.chave === 'peso_caixa_kg') ?? null;
+  const [pesoVal, setPesoVal] = useState(peso != null ? String(peso.valor) : '');
+  const [savingPeso, setSavingPeso] = useState(false);
+
+  useEffect(() => {
+    setPesoVal(peso != null ? String(peso.valor) : '');
+  }, [peso]);
+
+  const savePeso = async () => {
+    if (!peso) {
+      onError('Parâmetro peso_caixa_kg ainda não semeado. Use “Importar ausentes do oficial”.');
+      return;
+    }
+    const n = num(pesoVal);
+    if (!Number.isFinite(n) || n < 0) {
+      onError('Informe o peso estimado da caixa em kg (≥ 0).');
+      return;
+    }
+    setSavingPeso(true);
+    onError('');
+    try {
+      await api.put(`/orcamento-catalogo/parametros/${peso.chave}`, {
+        valor: n,
+        ativo: n > 0,
+      });
+      await onSaved(
+        n > 0
+          ? `Peso da caixa atualizado para ${n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} kg.`
+          : 'Peso da caixa zerado — Entregar não soma frete até cadastrar um peso.',
+      );
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSavingPeso(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: '1rem' }}>
+      <div className="card">
+        <div className="card-body" style={{ display: 'grid', gap: '0.85rem', maxWidth: '36rem' }}>
+          <p className="catalogo-nota" style={{ margin: 0 }}>
+            Carga estimada no ORC = caixas da faixa × este peso. Sem campo livre de kg no wizard.
+            R$ vazio = sob consulta (não inventa). Seed vem inativo até o comercial preencher.
+          </p>
+          {!peso ? (
+            <div className="empty-state">
+              Peso da caixa ainda não semeado. Use “Importar ausentes do oficial”.
+            </div>
+          ) : (
+            <div className="form-grid">
+              <div className="form-group">
+                <label>
+                  {peso.rotulo} ({peso.unidade ?? 'kg'})
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.001"
+                  value={pesoVal}
+                  disabled={savingPeso}
+                  onChange={(e) => setPesoVal(e.target.value)}
+                />
+                <span className="field-note">
+                  {peso.ativo && Number(peso.valor) > 0
+                    ? 'Vigente nos novos ORCs'
+                    : 'Inativo ou vazio — Entregar não soma até gravar um peso maior que zero'}
+                </span>
+              </div>
+              <div className="form-group" style={{ alignSelf: 'end' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={savingPeso || num(pesoVal) === Number(peso.valor)}
+                  onClick={() => void savePeso()}
+                >
+                  {savingPeso ? 'Salvando…' : 'Salvar peso'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <FaixasFreteTable rows={faixas} onSaved={onSaved} onError={onError} />
+    </div>
+  );
+}
+
+const FRETE_SORT = {
+  kg_ate: (row: FaixaFreteRow) => (row.acima ? Number.POSITIVE_INFINITY : Number(row.kg_ate) || 0),
+  preco: (row: FaixaFreteRow) => (row.preco_por_km != null ? Number(row.preco_por_km) : -1),
+  minimo: (row: FaixaFreteRow) => (row.minimo_rs != null ? Number(row.minimo_rs) : -1),
+  status: (row: FaixaFreteRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
+};
+
+function FaixasFreteTable({
+  rows,
+  onSaved,
+  onError,
+}: {
+  rows: FaixaFreteRow[];
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, FRETE_SORT);
+
+  return (
+    <div className="card">
+      <div className="table-wrap">
+        {rows.length === 0 ? (
+          <div className="empty-state">
+            Nenhuma faixa de frete. Use “Importar ausentes do oficial” ou “Novo item”.
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <SortableTh column="kg_ate" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Faixa
+                </SortableTh>
+                <SortableTh column="preco" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  R$/km
+                </SortableTh>
+                <SortableTh column="minimo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Mínimo R$
+                </SortableTh>
+                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  Status
+                </SortableTh>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((row) => (
+                <FaixaFreteEditRow key={row.id} row={row} onSaved={onSaved} onError={onError} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FaixaFreteEditRow({
+  row,
+  onSaved,
+  onError,
+}: {
+  row: FaixaFreteRow;
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const [preco, setPreco] = useState(row.preco_por_km ?? '');
+  const [minimo, setMinimo] = useState(row.minimo_rs ?? '');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setPreco(row.preco_por_km ?? '');
+    setMinimo(row.minimo_rs ?? '');
+  }, [row.preco_por_km, row.minimo_rs]);
+
+  const dirty =
+    (preco.trim() || '') !== (row.preco_por_km ?? '') ||
+    (minimo.trim() || '') !== (row.minimo_rs ?? '');
+
+  const save = async (patch: Record<string, unknown>) => {
+    setSaving(true);
+    onError('');
+    try {
+      await api.put(`/orcamento-catalogo/faixas-frete/${row.id}`, patch);
+      await onSaved(`Faixa “${formatKgFaixa(row.kg_ate, row.acima)}” atualizada.`);
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <tr className={row.ativo ? undefined : 'row-inactive'}>
+      <td>
+        <strong>{formatKgFaixa(row.kg_ate, row.acima)}</strong>
+        {row.acima ? (
+          <span className="field-note" style={{ display: 'block' }}>
+            Último degrau — kg até vazio
+          </span>
+        ) : null}
+      </td>
+      <td>
+        <input
+          type="text"
+          inputMode="decimal"
+          className="input-compact"
+          value={preco}
+          placeholder="—"
+          disabled={saving}
+          onChange={(e) => setPreco(e.target.value)}
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          inputMode="decimal"
+          className="input-compact"
+          value={minimo}
+          placeholder="—"
+          disabled={saving}
+          onChange={(e) => setMinimo(e.target.value)}
+        />
+      </td>
+      <td>
+        <StatusPill status={row.ativo ? 'ATIVO' : 'INATIVO'} />
+      </td>
+      <td>
+        <div className="btn-row">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={saving || !dirty}
+            onClick={() =>
+              void save({
+                preco_por_km: preco.trim() === '' ? null : preco.trim(),
+                minimo_rs: minimo.trim() === '' ? null : minimo.trim(),
+              })
+            }
+          >
+            Salvar
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={saving}
+            onClick={() => void save({ ativo: !row.ativo })}
+          >
+            {row.ativo ? 'Inativar' : 'Reativar'}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -1104,6 +1392,9 @@ function NewItemForm({
   const [preco, setPreco] = useState('');
   const [perda, setPerda] = useState('0');
   const [tempoMin, setTempoMin] = useState('0');
+  const [kgAte, setKgAte] = useState('');
+  const [precoKm, setPrecoKm] = useState('');
+  const [minimoRs, setMinimoRs] = useState('');
   const [saving, setSaving] = useState(false);
 
   const title =
@@ -1113,7 +1404,9 @@ function NewItemForm({
         ? 'Novo acabamento'
         : tab === 'trocas'
           ? 'Novo tipo de troca'
-          : 'Nova máquina (G10)';
+          : tab === 'frete'
+            ? 'Nova faixa de frete'
+            : 'Nova máquina (G10)';
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -1139,6 +1432,16 @@ function NewItemForm({
           tempo_min: num(tempoMin),
         });
         await onSaved(`Tipo troca “${nome.trim()}” criado.`);
+      } else if (tab === 'frete') {
+        await api.post('/orcamento-catalogo/faixas-frete', {
+          kg_ate: kgAte.trim() === '' ? null : kgAte.trim(),
+          preco_por_km: precoKm.trim() === '' ? null : precoKm.trim(),
+          minimo_rs: minimoRs.trim() === '' ? null : minimoRs.trim(),
+          ativo: false,
+        });
+        await onSaved(
+          `Faixa “${kgAte.trim() === '' ? 'Acima' : `até ${kgAte.trim()} kg`}” criada (inativa até preencher R$ e reativar).`,
+        );
       } else {
         await api.post('/orcamento-catalogo/maquinas', {
           nome: nome.trim().toUpperCase(),
@@ -1159,16 +1462,52 @@ function NewItemForm({
         <h2 style={{ fontSize: '1.05rem', marginTop: 0, color: 'var(--navy)' }}>{title}</h2>
         <form onSubmit={(e) => void handleSubmit(e)}>
           <div className="form-grid">
-            <div className="form-group span-2">
-              <label>{tab === 'trocas' ? 'Tipo *' : 'Nome *'}</label>
-              <input
-                value={nome}
-                required
-                minLength={tab === 'maquinas' ? 1 : 2}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder={tab === 'maquinas' ? 'ex: BETA' : 'ex: BOPP BRILHO'}
-              />
-            </div>
+            {tab === 'frete' ? (
+              <>
+                <div className="form-group">
+                  <label>Kg até</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={kgAte}
+                    onChange={(e) => setKgAte(e.target.value)}
+                    placeholder="vazio = acima"
+                  />
+                  <span className="field-note">Contínua em relação às faixas existentes.</span>
+                </div>
+                <div className="form-group">
+                  <label>R$/km</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={precoKm}
+                    onChange={(e) => setPrecoKm(e.target.value)}
+                    placeholder="vazio = sob consulta"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Mínimo R$</label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={minimoRs}
+                    onChange={(e) => setMinimoRs(e.target.value)}
+                    placeholder="—"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="form-group span-2">
+                <label>{tab === 'trocas' ? 'Tipo *' : 'Nome *'}</label>
+                <input
+                  value={nome}
+                  required
+                  minLength={tab === 'maquinas' ? 1 : 2}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder={tab === 'maquinas' ? 'ex: BETA' : 'ex: BOPP BRILHO'}
+                />
+              </div>
+            )}
             {tab === 'papeis' || tab === 'acabamentos' ? (
               <div className="form-group">
                 <label>R$/m² *</label>

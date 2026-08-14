@@ -11,6 +11,7 @@ import {
   formatCnpjCpf,
   formatCurrency,
   formatDate,
+  formatLatLng,
   formatPhone,
 } from '../lib/format';
 import { ieStatusLabel } from '../lib/parceiroFiscal';
@@ -176,6 +177,7 @@ export function EmpresaFichaSheet({
           value={e.cadastro_fiscal_completo ? 'Completo' : 'Incompleto'}
         />
         <Kv label="Apto emissão NF-e" value={yesNo(e.apto_emissao_nfe)} />
+        <Kv label="Apto emissão NFS-e" value={yesNo(e.apto_emissao_nfse)} />
         <Kv label="CRT" value={e.crt != null ? crtLabel(e.crt) : '—'} />
       </div>
 
@@ -240,6 +242,10 @@ export function EmpresaFichaSheet({
           <Kv label="Status IE" value={e.ie_status ? ieStatusLabel(e.ie_status) : '—'} />
           <Kv label="IE consultada" value={formatDate(e.ie_consultado_em)} />
           <Kv label="IM" value={dash(e.im)} />
+          <Kv
+            label="IM obrigatória NFS-e"
+            value={e.im_obrigatoria_nfse ? 'Sim (município exige)' : 'Não'}
+          />
           <Kv label="IEST" value={dash(e.iest)} />
           <Kv label="Regime" value={regimeLabel(e.regime)} />
           <Kv label="CRT" value={e.crt != null ? crtLabel(e.crt) : '—'} />
@@ -363,6 +369,13 @@ export function EmpresaFichaSheet({
           <Kv label="Venda ativa" value={yesNo(e.venda_ativa)} />
           <Kv label="Estoque ativo" value={yesNo(e.estoque_ativo)} />
           <Kv label="Código" value={e.codigo} />
+          {formatLatLng(e.origem_latitude, e.origem_longitude) ? (
+            <Kv
+              label="Origem operacional"
+              value={formatLatLng(e.origem_latitude, e.origem_longitude)}
+              wide
+            />
+          ) : null}
         </div>
         {vendaOff ? (
           <p className="ficha-note">

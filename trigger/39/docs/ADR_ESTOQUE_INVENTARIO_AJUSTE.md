@@ -50,6 +50,12 @@ Enquanto o AJU está `PENDENTE` (sem MOV), o solicitante ou quem tem `estoque.ap
 Não é exclusão física: o documento permanece no histórico. Aprovado/rejeitado não cancela.  
 Se veio de INV, o item volta a `RECONTADO` para eventual novo AJU.
 
+### Cancelar inventário (não encerrado)
+
+Enquanto o INV não está `ENCERRADO` e nenhum item gerou AJU, quem tem `estoque.escrever` pode **cancelar** → status `CANCELADO`.  
+Não é exclusão física: o documento permanece no histórico (estudo 32 — ficha de contagem / auditoria). SKUs deixam de ficar congelados.  
+Encerrado, já cancelado, ou com AJU gerado: não cancela. Se o AJU ainda estiver `PENDENTE`, cancele o AJU primeiro (item volta a `RECONTADO`).
+
 ---
 
 ## RBAC
@@ -57,7 +63,7 @@ Se veio de INV, o item volta a `RECONTADO` para eventual novo AJU.
 | Permissão | Uso |
 |-----------|-----|
 | `estoque.ler` | Ver INV / extrato / AJU |
-| `estoque.escrever` | Abrir INV, contar, gerar AJU, solicitar avulsa |
+| `estoque.escrever` | Abrir INV, contar, gerar AJU, solicitar avulsa, cancelar INV aberto |
 | `estoque.aprovar` | Aprovar/rejeitar AJU (faixa baixa) |
 | `estoque.aprovar_gestor` | Faixas médias/altas e ciência GERAL/VIRADA |
 

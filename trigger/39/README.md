@@ -18,7 +18,7 @@ Base normativa: `../32` (domínio, cadastros, RBAC, Lightsail/AWS Cenário D) ·
 |------|---------|
 | **1.a** | Login Sanctum, usuários = colaboradores (PAR papel COLABORADOR), perfis RBAC/SoD |
 | **1.b** | Empresas EMP-00001 / EMP-00002 + parâmetros versionados |
-| **1.c** | Cadastro único de parceiros (papéis, crédito, CNPJ/CEP via BrasilAPI/ViaCEP) |
+| **1.c** | Cadastro único de parceiros (papéis, crédito, CNPJ/CEP via BrasilAPI/ViaCEP, posição lat/lng do CEP) |
 | **1.d** | Produtos por família MP · EMB · REV · PA · SVC · FAC + **grupos canônicos** (MP-PAP, PA-ETQ, REV-RIB…) |
 
 **Fora desta entrega:** orçamento (1.e), compras, OP, NF, financeiro operacional.
@@ -108,6 +108,7 @@ Após o 1º boot estável na AWS: `SEED_ON_BOOT=false` (já forçado pelo entryp
 - **BEM ≠ G10:** patrimônio (`BEM-`) é ativo físico; `orc_catalogo_maquinas` é só tarifa ORC — ver [`docs/ADR_BEM_VS_ORC_MAQUINA.md`](docs/ADR_BEM_VS_ORC_MAQUINA.md)
 - **Unidades do SKU:** dual canônico (`unidade_comercial` ↔ `unidade_interna` + `fator_conversao`); largura/comprimento/gramatura são insumos em `atributos` — **não** unidades alternativas Sankhya — ver [`docs/ADR_UNIDADES_PRODUTO.md`](docs/ADR_UNIDADES_PRODUTO.md)
 - **Matriz ORC (R$/cm²):** parâmetro escalar `matriz_cm2` no Catálogo ORC (overlay híbrido); ORCs antigos mantêm snapshot — ver [`docs/ADR_ORC_PARAMETROS_ESCALARES.md`](docs/ADR_ORC_PARAMETROS_ESCALARES.md)
+- **Frete estimado ORC:** faixas de kg no Catálogo (aba Frete) + Retirar/Entregar no fechamento; **não** no motor R1–R20 — ver [`docs/ADR_ORC_FRETE_ESTIMADO.md`](docs/ADR_ORC_FRETE_ESTIMADO.md)
 
 ## Licença e propriedade intelectual
 

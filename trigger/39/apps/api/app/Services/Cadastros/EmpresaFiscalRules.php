@@ -204,7 +204,15 @@ class EmpresaFiscalRules
      * Avalia completude fiscal do emitente e aptidão para emitir NF-e.
      *
      * @param  array<string, mixed>  $attrs
-     * @return array{completo: bool, apto_emissao_nfe: bool, pendencias: list<string>, pendencias_emissao: list<string>}
+     * @return array{
+     *   completo: bool,
+     *   apto_emissao_nfe: bool,
+     *   apto_emissao_nfse: bool,
+     *   pendencias: list<string>,
+     *   pendencias_emissao: list<string>,
+     *   pendencias_nfse: list<string>,
+     *   pendencias_emissao_nfse: list<string>
+     * }
      */
     public static function evaluate(array $attrs): array
     {
@@ -290,11 +298,36 @@ class EmpresaFiscalRules
             $pendenciasEmissao[] = 'Venda desligada nesta empresa (EMP-00002 até parecer Contador+Direção)';
         }
 
+        $pendenciasNfse = [];
+        foreach ($pendencias as $p) {
+            if (! str_contains($p, 'Inscrição estadual')) {
+                $pendenciasNfse[] = $p;
+            }
+        }
+        $im = trim((string) ($attrs['im'] ?? ''));
+        $imObrigatoria = (bool) ($attrs['im_obrigatoria_nfse'] ?? false);
+        if ($imObrigatoria && $im === '') {
+            $pendenciasNfse[] = 'Inscrição municipal (este município exige IM para NFS-e)';
+        }
+
+        $pendenciasEmissaoNfse = [];
+        foreach ($pendenciasEmissao as $p) {
+            if (! str_contains($p, 'IE ')) {
+                $pendenciasEmissaoNfse[] = $p;
+            }
+        }
+        if ($imObrigatoria && $im === '') {
+            $pendenciasEmissaoNfse[] = 'Inscrição municipal exigida neste município para NFS-e';
+        }
+
         return [
             'completo' => $completo,
             'apto_emissao_nfe' => $completo && $pendenciasEmissao === [],
+            'apto_emissao_nfse' => $pendenciasNfse === [] && $pendenciasEmissaoNfse === [],
             'pendencias' => $pendencias,
             'pendencias_emissao' => $pendenciasEmissao,
+            'pendencias_nfse' => $pendenciasNfse,
+            'pendencias_emissao_nfse' => $pendenciasEmissaoNfse,
         ];
     }
 

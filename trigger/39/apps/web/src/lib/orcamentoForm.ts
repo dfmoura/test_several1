@@ -102,6 +102,8 @@ export type OrcForm = {
   /** Snapshot comercial desta proposta (defaults do PAR; não altera o motor). */
   condicao_pagamento: string;
   forma_pagamento: string;
+  /** Fechamento: Retirar (padrão) × Entregar — ADR_ORC_FRETE_ESTIMADO. */
+  modo_entrega: 'RETIRAR' | 'ENTREGAR';
 };
 
 export type OrcCatalogo = {
@@ -231,6 +233,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     prazo_faca_dias: '',
     condicao_pagamento: '',
     forma_pagamento: '',
+    modo_entrega: 'RETIRAR',
   };
 }
 
@@ -295,6 +298,7 @@ export function formFromSnapshot(
         : Number(snap.prazo_faca_dias),
     condicao_pagamento: String(snap.condicao_pagamento ?? ''),
     forma_pagamento: String(snap.forma_pagamento ?? ''),
+    modo_entrega: String(snap.modo_entrega).toUpperCase() === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
   };
 }
 
@@ -338,6 +342,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       : null,
     condicao_pagamento: form.condicao_pagamento.trim() || null,
     forma_pagamento: form.forma_pagamento.trim() || null,
+    modo_entrega: form.modo_entrega === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
   };
 }
 

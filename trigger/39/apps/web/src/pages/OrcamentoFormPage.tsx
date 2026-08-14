@@ -31,6 +31,8 @@ import {
   type OrcCatalogo,
   type OrcForm,
 } from '../lib/orcamentoForm';
+import { formatKmCarro } from '../lib/format';
+import { MODO_ENTREGAR, MODO_RETIRAR } from '../lib/orcamentoFrete';
 
 /** Reconstrói a faca a partir do snapshot — desenho visível ao editar (sem faca_id no ORC). */
 function facaSelFromForm(form: OrcForm): FacaRecord | null {
@@ -50,12 +52,32 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
   };
 }
 
+function kmHintParceiro(p: Parceiro | null, empId: number | null): string {
+  if (!p) return 'Escolha o parceiro para usar o km gravado até o destino.';
+  const entrega =
+    (p.enderecos_entrega ?? []).find((e) => e.principal) ?? (p.enderecos_entrega ?? [])[0];
+  if (
+    entrega &&
+    entrega.distancia_empresa_id === empId &&
+    entrega.distancia_km != null &&
+    String(entrega.distancia_km) !== ''
+  ) {
+    const km = formatKmCarro(entrega.distancia_km, entrega.distancia_fonte);
+    return `Destino: entrega${entrega.apelido ? ` (${entrega.apelido})` : ''} · ${km || 'km pendente'}. Frete no fechamento, sem nova rota.`;
+  }
+  if (p.distancia_empresa_id === empId && p.distancia_km != null && String(p.distancia_km) !== '') {
+    const km = formatKmCarro(p.distancia_km, p.distancia_fonte);
+    return `Destino: endereço fiscal · ${km || 'km pendente'}. Frete no fechamento, sem nova rota.`;
+  }
+  return 'Sem km desta empresa até o destino. Calcule Posição e distância no cadastro do parceiro — Entregar não inventa valor.';
+}
+
 export function OrcamentoFormPage() {
   const { id } = useParams();
   const location = useLocation();
   const isNew = location.pathname.endsWith('/novo') || id === 'novo';
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, empresaId } = useAuth();
   const canWrite = hasPermission('orcamento.escrever');
 
   const [catalog, setCatalog] = useState<OrcCatalogo | null>(null);
@@ -207,6 +229,12 @@ export function OrcamentoFormPage() {
     }));
     setCalculo(null);
     setErro(null);
+    if (p?.id && !p.enderecos_entrega) {
+      void api
+        .get<{ data: Parceiro }>(`/parceiros/${p.id}`)
+        .then((res) => setParceiroSel(res.data))
+        .catch(() => undefined);
+    }
   };
 
   const vincularParceiro = (p: Pick<Parceiro, 'id'> & Partial<Parceiro>) => {
@@ -472,6 +500,35 @@ export function OrcamentoFormPage() {
                   <p className="form-hint" style={{ margin: 0 }}>
                     Condições desta proposta (snapshot). Prefill ao escolher o parceiro · editáveis
                     aqui · não alteram o cálculo de preço · PED/TIT futuros usam este valor.
+                  </p>
+                </div>
+                <div className="form-group span-full">
+                  <label>
+                    Entrega desta proposta{' '}
+                    <span className="field-note">fechamento · padrão Retirar</span>
+                  </label>
+                  <div className="orc-modo-tabs" role="radiogroup" aria-label="Modo de entrega">
+                    <button
+                      type="button"
+                      className={form.modo_entrega === MODO_RETIRAR ? 'active' : ''}
+                      disabled={!canWrite}
+                      onClick={() => setField('modo_entrega', MODO_RETIRAR)}
+                    >
+                      Retirar no local
+                    </button>
+                    <button
+                      type="button"
+                      className={form.modo_entrega === MODO_ENTREGAR ? 'active' : ''}
+                      disabled={!canWrite}
+                      onClick={() => setField('modo_entrega', MODO_ENTREGAR)}
+                    >
+                      Entregar
+                    </button>
+                  </div>
+                  <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
+                    {form.modo_entrega === MODO_ENTREGAR
+                      ? kmHintParceiro(parceiroSel, empresaId)
+                      : 'Retirar não cobra frete. O km do cadastro pode aparecer só como contexto.'}
                   </p>
                 </div>
               </div>

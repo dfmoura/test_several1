@@ -11,6 +11,7 @@ use App\Models\OrdemCompraItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Financeiro\TituloService;
+use App\Services\Fiscal\NfeEntradaService;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ class EstoqueEntradaService
         private readonly TituloService $titulos,
         private readonly EstoqueSaldoWriter $saldos,
         private readonly EstoqueCongelamento $congelamento,
+        private readonly NfeEntradaService $nfeEntradas,
     ) {}
 
     /**
@@ -50,6 +52,20 @@ class EstoqueEntradaService
 
         $natureza = $this->resolveNatureza($data['natureza_id'] ?? null);
         $nfChave = $this->normalizeNfChave($data['nf_chave'] ?? null);
+        $xmlContent = $this->normalizeXml($data['xml'] ?? null);
+        $nfeSnapshot = null;
+        if ($xmlContent !== null) {
+            $nfeSnapshot = $this->nfeEntradas->interpretar($xmlContent);
+            $chaveXml = is_string($nfeSnapshot['chave_nfe'] ?? null) ? $nfeSnapshot['chave_nfe'] : null;
+            if ($chaveXml !== null && $nfChave !== null && $chaveXml !== $nfChave) {
+                throw ValidationException::withMessages([
+                    'nf_chave' => ['Chave informada diverge da chave do XML. Confira o documento antes de receber.'],
+                ]);
+            }
+            if ($nfChave === null && $chaveXml !== null) {
+                $nfChave = $chaveXml;
+            }
+        }
 
         if ($nfChave !== null) {
             $dup = EstoqueMovimento::query()
@@ -70,7 +86,7 @@ class EstoqueEntradaService
             ]);
         }
 
-        $movimento = DB::transaction(function () use ($empresa, $oc, $data, $natureza, $nfChave, $itensRaw) {
+        $movimento = DB::transaction(function () use ($empresa, $oc, $data, $natureza, $nfChave, $itensRaw, $xmlContent, $nfeSnapshot) {
             $oc = OrdemCompra::query()->lockForUpdate()->findOrFail($oc->id);
             $oc->load('itens.produto');
 
@@ -234,16 +250,27 @@ class EstoqueEntradaService
                 $parcelas
             );
 
+            if ($xmlContent !== null && $nfeSnapshot !== null) {
+                $this->nfeEntradas->gravar(
+                    $empresa,
+                    $movimento,
+                    $oc,
+                    $xmlContent,
+                    $nfeSnapshot,
+                    is_array($data['cprod_maps'] ?? null) ? $data['cprod_maps'] : [],
+                );
+            }
+
             return $movimento;
         });
 
-        return $this->toOut($movimento->fresh());
+        return $this->toOut($movimento->fresh(), true);
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function toOut(EstoqueMovimento $mov): array
+    public function toOut(EstoqueMovimento $mov, bool $nfeDetalhe = false): array
     {
         $mov->load([
             'itens.produto:id,codigo,descricao_fiscal,familia,unidade_interna',
@@ -252,8 +279,12 @@ class EstoqueEntradaService
             'titulos.natureza:id,codigo,codigo_exibicao,nome',
             'titulos.parceiro:id,codigo,razao_social',
             'ordemCompra:id,codigo,status',
+            'nfeEntrada',
             ...EstoqueMovimento::userStampWith(),
         ]);
+        if ($nfeDetalhe) {
+            $mov->load('nfeEntrada.itens');
+        }
 
         $titulosOut = $mov->titulos->map(fn ($t) => $this->titulos->toOut($t))->values()->all();
 
@@ -313,6 +344,7 @@ class EstoqueEntradaService
             ])->values()->all(),
             'titulo' => $titulosOut[0] ?? null,
             'titulos' => $titulosOut,
+            'nfe_entrada' => NfeEntradaService::toOut($mov->nfeEntrada, $nfeDetalhe),
             'created_at' => optional($mov->created_at)?->toIso8601String(),
             'updated_at' => optional($mov->updated_at)?->toIso8601String(),
             'criado_por' => EstoqueMovimento::userStampFrom($mov->criador),
@@ -545,6 +577,24 @@ class EstoqueEntradaService
         }
 
         return $natureza;
+    }
+
+    private function normalizeXml(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $xml = trim($value);
+        if ($xml === '') {
+            return null;
+        }
+        if (strlen($xml) > 5_242_880) {
+            throw ValidationException::withMessages([
+                'xml' => ['XML excede o tamanho máximo (5 MB).'],
+            ]);
+        }
+
+        return $xml;
     }
 
     private function normalizeNfChave(mixed $value): ?string

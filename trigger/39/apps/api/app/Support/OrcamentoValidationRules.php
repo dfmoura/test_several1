@@ -60,6 +60,10 @@ final class OrcamentoValidationRules
             // Não entram no motor de preço; PED/TIT futuros consomem este snapshot.
             'condicao_pagamento' => ['nullable', 'string', 'max:64'],
             'forma_pagamento' => ['nullable', 'string', 'max:32'],
+            // Fechamento: frete estimado (ADR_ORC_FRETE_ESTIMADO). Default RETIRAR.
+            'modo_entrega' => ['nullable', 'string', Rule::in(['RETIRAR', 'ENTREGAR'])],
+            // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
+            'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],
         ];
     }
 

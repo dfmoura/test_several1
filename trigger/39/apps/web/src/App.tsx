@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { useAuth } from './lib/auth';
 import { DashboardPage } from './pages/DashboardPage';
+import { DocumentoFiscalFichaPage } from './pages/DocumentoFiscalFichaPage';
 import { EmpresaFichaPage } from './pages/EmpresaFichaPage';
 import { EmpresasPage } from './pages/EmpresasPage';
 import { FiscalHubsPage } from './pages/FiscalHubsPage';
@@ -34,6 +35,8 @@ import { ProdutosPage } from './pages/ProdutosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { ContasPagarPage } from './pages/ContasPagarPage';
 import { ContasReceberPage } from './pages/ContasReceberPage';
+import { FaturamentoDetailPage } from './pages/FaturamentoDetailPage';
+import { FaturamentosPage } from './pages/FaturamentosPage';
 import { ComprasCotacoesPage } from './pages/ComprasCotacoesPage';
 import { ComprasNecessidadesPage } from './pages/ComprasNecessidadesPage';
 import { ComprasOrdemDetailPage } from './pages/ComprasOrdemDetailPage';
@@ -46,9 +49,13 @@ import { EstoqueInventariosPage } from './pages/EstoqueInventariosPage';
 import { EstoquePage } from './pages/EstoquePage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
+import { PedidoFichaPage } from './pages/PedidoFichaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
+import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
+import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
+import { RastreioInsumosPage } from './pages/RastreioInsumosPage';
 
 function LoadingScreen() {
   return (
@@ -69,13 +76,16 @@ function PermissionRoute({
   permission,
   children,
 }: {
-  permission: string;
+  permission: string | string[];
   children: ReactNode;
 }) {
   const { hasPermission, initialized, user } = useAuth();
   if (!initialized) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!hasPermission(permission)) return <Navigate to="/" replace />;
+  const ok = Array.isArray(permission)
+    ? permission.some((p) => hasPermission(p))
+    : hasPermission(permission);
+  if (!ok) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -284,6 +294,22 @@ export default function App() {
             </PermissionRoute>
           }
         />
+        <Route
+          path="financeiro/faturamentos"
+          element={
+            <PermissionRoute permission="faturamento.ler">
+              <FaturamentosPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="financeiro/faturamentos/:id"
+          element={
+            <PermissionRoute permission="faturamento.ler">
+              <FaturamentoDetailPage />
+            </PermissionRoute>
+          }
+        />
 
         <Route
           path="orcamentos"
@@ -371,6 +397,14 @@ export default function App() {
           element={
             <PermissionRoute permission="producao.ler">
               <OrdemProducaoDetailPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="rastreio"
+          element={
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <RastreioInsumosPage />
             </PermissionRoute>
           }
         />
@@ -474,6 +508,72 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="orcamento.ler">
               <OrcamentoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pedidos/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <PedidoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/ordens-producao/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <OrdemProducaoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/ordens-producao/:id/rastreio"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <RastreioInsumosFichaPage kind="op" />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pedidos/:id/rastreio"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <RastreioInsumosFichaPage kind="pedido" />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/rastreio/lotes/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
+              <RastreioInsumosFichaPage kind="lote" />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/financeiro/faturamentos/:id/nf/:docId/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="faturamento.ler">
+              <DocumentoFiscalFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

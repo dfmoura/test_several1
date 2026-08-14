@@ -49,6 +49,8 @@ class Titulo extends Model
         'ordem_compra_id',
         'movimento_id',
         'orcamento_id',
+        'pedido_id',
+        'faturamento_id',
         'origem',
         'documento',
         'parcela',
@@ -99,6 +101,16 @@ class Titulo extends Model
     public function orcamento(): BelongsTo
     {
         return $this->belongsTo(Orcamento::class, 'orcamento_id');
+    }
+
+    public function pedido(): BelongsTo
+    {
+        return $this->belongsTo(Pedido::class, 'pedido_id');
+    }
+
+    public function faturamento(): BelongsTo
+    {
+        return $this->belongsTo(Faturamento::class, 'faturamento_id');
     }
 
     public function cobrancas(): HasMany

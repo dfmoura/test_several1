@@ -127,11 +127,12 @@ class ParceiroService
     public function createProspectRapido(Empresa $empresa, array $data): Parceiro
     {
         $nome = trim((string) ($data['nome'] ?? ''));
-        $whatsapp = trim((string) ($data['whatsapp'] ?? ''));
+        $whatsapp = $this->digitsOrNull($data['whatsapp'] ?? null) ?? '';
         $email = trim((string) ($data['email'] ?? ''));
         $municipio = trim((string) ($data['municipio'] ?? ''));
         $uf = strtoupper(trim((string) ($data['uf'] ?? '')));
         $cnpj = $this->digitsOrNull($data['cnpj_cpf'] ?? null);
+        $origem = trim((string) ($data['origem_lead'] ?? ''));
 
         if ($nome === '') {
             throw ValidationException::withMessages(['nome' => ['Informe o nome do prospect.']]);
@@ -154,11 +155,18 @@ class ParceiroService
             'is_prospect' => true,
             'papel_cliente' => false,
             'limite_credito' => 0,
+            'cep' => $this->digitsOrNull($data['cep'] ?? null),
+            'logradouro' => $this->nullableString($data['logradouro'] ?? null),
+            'numero' => $this->nullableString($data['numero'] ?? null),
+            'complemento' => $this->nullableString($data['complemento'] ?? null),
+            'bairro' => $this->nullableString($data['bairro'] ?? null),
             'municipio' => $municipio,
             'uf' => $uf,
+            'ibge' => $this->digitsOrNull($data['ibge'] ?? null),
             'whatsapp' => $whatsapp !== '' ? $whatsapp : null,
             'telefone' => $whatsapp !== '' ? $whatsapp : null,
             'email' => $email !== '' ? $email : null,
+            'origem_lead' => $origem !== '' ? $origem : null,
             'situacao' => 'ATIVO',
         ]);
     }
@@ -169,12 +177,13 @@ class ParceiroService
         $this->assertCnpjUnique($empresa->id, $data['cnpj_cpf'] ?? null);
         $contatos = $this->normalizeContatos($data['contatos'] ?? null);
         $contas = $this->normalizeContas($data['contas_bancarias'] ?? null);
-        $enderecosEntrega = $this->normalizeEnderecosEntrega($data['enderecos_entrega'] ?? null);
+        $enderecosEntrega = $this->normalizeEnderecosEntrega($data['enderecos_entrega'] ?? null, $empresa);
 
         return DB::transaction(function () use ($empresa, $data, $contatos, $contas, $enderecosEntrega) {
             $codigo = $data['codigo'] ?? $this->codigoGenerator->nextCode($empresa->id, 'PAR', 5);
 
             $attributes = $this->mapAttributes($data);
+            $attributes = $this->applyDistanciaCarro($attributes, $data, $empresa);
             $attributes = $this->applyDepartamento($empresa, $data, $attributes);
             $attributes = array_merge($attributes, $this->denormalizeFromRelations($contatos, $contas, $attributes));
             $attributes = $this->applyFiscalRules($attributes, []);
@@ -213,10 +222,11 @@ class ParceiroService
         $hasContatos = array_key_exists('contatos', $data);
         $hasContas = array_key_exists('contas_bancarias', $data);
         $hasEnderecosEntrega = array_key_exists('enderecos_entrega', $data);
+        $empresa = $parceiro->empresa ?? Empresa::query()->findOrFail($parceiro->empresa_id);
         $contatos = $hasContatos ? $this->normalizeContatos($data['contatos']) : null;
         $contas = $hasContas ? $this->normalizeContas($data['contas_bancarias']) : null;
         $enderecosEntrega = $hasEnderecosEntrega
-            ? $this->normalizeEnderecosEntrega($data['enderecos_entrega'])
+            ? $this->normalizeEnderecosEntrega($data['enderecos_entrega'], $empresa)
             : null;
 
         $before = $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()])->toArray();
@@ -228,6 +238,7 @@ class ParceiroService
         ) {
             $empresa = $parceiro->empresa ?? Empresa::query()->findOrFail($parceiro->empresa_id);
             $attributes = $this->mapAttributes($data);
+            $attributes = $this->applyDistanciaCarro($attributes, $data, $empresa);
             $attributes = $this->applyDepartamento($empresa, $data, $attributes);
 
             if ($hasContatos || $hasContas) {
@@ -424,10 +435,12 @@ class ParceiroService
             'cnae', 'cnaes_secundarios',
             'situacao', 'motivo_bloqueio',
             'cadastro_fiscal_completo', 'emite_documento_fiscal', 'is_prospect',
+            'origem_lead',
             'papel_cliente', 'papel_fornecedor', 'papel_colaborador',
             'papel_transportadora', 'papel_banco', 'papel_entidade',
             'papel_vendedor', 'papel_contador',
             'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'cep', 'ibge',
+            'latitude', 'longitude', 'distancia_km',
             'telefone', 'whatsapp', 'email', 'email_xml', 'contato_nome', 'contato_funcao',
             'limite_credito', 'credito_utilizado', 'condicao_pagamento', 'forma_pagamento',
             'vendedor_parceiro_id', 'comissao_percentual',
@@ -455,6 +468,49 @@ class ParceiroService
         }
 
         return PadraoDecimal::canonicalizeFields($mapped, PadraoDecimal::parceiroFieldScales());
+    }
+
+    /**
+     * Km é EMP×B. O cliente não escolhe distancia_empresa_id.
+     *
+     * @param  array<string, mixed>  $mapped
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyDistanciaCarro(array $mapped, array $data, Empresa $empresa): array
+    {
+        unset($mapped['distancia_empresa_id'], $mapped['distancia_fonte'], $mapped['distancia_calculada_em']);
+
+        if (! array_key_exists('distancia_km', $data)) {
+            return $mapped;
+        }
+
+        $km = $mapped['distancia_km'] ?? null;
+        if ($km === null || $km === '') {
+            $mapped['distancia_km'] = null;
+            $mapped['distancia_fonte'] = null;
+            $mapped['distancia_calculada_em'] = null;
+            $mapped['distancia_empresa_id'] = null;
+
+            return $mapped;
+        }
+
+        $fonte = isset($data['distancia_fonte']) ? (string) $data['distancia_fonte'] : \App\Services\Consulta\OpenRouteServiceClient::FONTE;
+        $fontesOk = [
+            \App\Services\Consulta\OpenRouteServiceClient::FONTE,
+            \App\Services\Consulta\OpenRouteServiceClient::FONTE_MESMO_PONTO,
+        ];
+        if (! in_array($fonte, $fontesOk, true)) {
+            $fonte = \App\Services\Consulta\OpenRouteServiceClient::FONTE;
+        }
+
+        $mapped['distancia_fonte'] = $fonte;
+        $mapped['distancia_empresa_id'] = $empresa->id;
+        $mapped['distancia_calculada_em'] = ! empty($data['distancia_calculada_em'])
+            ? $data['distancia_calculada_em']
+            : now();
+
+        return $mapped;
     }
 
     /**
@@ -633,7 +689,7 @@ class ParceiroService
      * @param  list<array<string, mixed>>|null  $rows
      * @return list<array<string, mixed>>
      */
-    private function normalizeEnderecosEntrega(?array $rows): array
+    private function normalizeEnderecosEntrega(?array $rows, Empresa $empresa): array
     {
         if ($rows === null) {
             return [];
@@ -657,6 +713,18 @@ class ParceiroService
             }
             $cep = $this->digitsOrNull($row['cep'] ?? null);
             $ibge = $this->digitsOrNull($row['ibge'] ?? null);
+            $coords = PadraoDecimal::canonicalizeFields(
+                [
+                    'latitude' => $row['latitude'] ?? null,
+                    'longitude' => $row['longitude'] ?? null,
+                    'distancia_km' => $row['distancia_km'] ?? null,
+                ],
+                [
+                    'latitude' => PadraoDecimal::SCALE_COORD,
+                    'longitude' => PadraoDecimal::SCALE_COORD,
+                    'distancia_km' => PadraoDecimal::SCALE_DISTANCE,
+                ]
+            );
             $responsavelNome = $this->nullableString($row['responsavel_nome'] ?? null);
             $responsavelTelefone = $this->digitsOrNull($row['responsavel_telefone'] ?? null);
             $responsavelDocumento = $this->nullableString($row['responsavel_documento'] ?? null);
@@ -709,6 +777,14 @@ class ParceiroService
                 throw ValidationException::withMessages($errors);
             }
 
+            $stamped = $this->applyDistanciaCarro(
+                [
+                    'distancia_km' => $coords['distancia_km'] ?? null,
+                ],
+                $row,
+                $empresa
+            );
+
             $normalized[] = [
                 'apelido' => $apelido,
                 'logradouro' => $logradouro,
@@ -719,6 +795,12 @@ class ParceiroService
                 'uf' => $uf,
                 'cep' => $cep,
                 'ibge' => $ibge,
+                'latitude' => $coords['latitude'],
+                'longitude' => $coords['longitude'],
+                'distancia_km' => $stamped['distancia_km'] ?? null,
+                'distancia_fonte' => $stamped['distancia_fonte'] ?? null,
+                'distancia_calculada_em' => $stamped['distancia_calculada_em'] ?? null,
+                'distancia_empresa_id' => $stamped['distancia_empresa_id'] ?? null,
                 'responsavel_nome' => $responsavelNome,
                 'responsavel_telefone' => $responsavelTelefone,
                 'responsavel_documento' => $responsavelDocumento,

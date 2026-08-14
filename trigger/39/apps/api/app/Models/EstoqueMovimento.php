@@ -101,6 +101,11 @@ class EstoqueMovimento extends Model
         return $this->hasMany(Titulo::class, 'movimento_id')->orderBy('parcela')->orderBy('id');
     }
 
+    public function nfeEntrada(): HasOne
+    {
+        return $this->hasOne(NfeEntrada::class, 'movimento_id');
+    }
+
     public function ajuste(): BelongsTo
     {
         return $this->belongsTo(EstoqueAjuste::class, 'ajuste_id');

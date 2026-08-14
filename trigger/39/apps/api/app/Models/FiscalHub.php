@@ -32,6 +32,8 @@ class FiscalHub extends Model
         'ambiente_ativo',
         'padrao',
         'ativo',
+        'emissao_habilitada',
+        'emissao_habilitada_em',
         'base_url_homologacao',
         'base_url_producao',
         'token_homologacao_criptografada',
@@ -55,6 +57,8 @@ class FiscalHub extends Model
         return [
             'padrao' => 'boolean',
             'ativo' => 'boolean',
+            'emissao_habilitada' => 'boolean',
+            'emissao_habilitada_em' => 'datetime',
             'ultimo_teste_ok' => 'boolean',
             'ultimo_teste_em' => 'datetime',
             'meta' => 'array',

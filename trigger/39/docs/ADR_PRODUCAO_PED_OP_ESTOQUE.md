@@ -76,6 +76,10 @@ Não apaga a OP. Não mexe em saldo. Não cancela o PED comercial.
 
 Com qualquer saída já requisitada → bloqueio. Estorno de estoque / retrabalho permanece fora de escopo (estudo 32: primeiro encerra/estorna OP, depois o PED).
 
+### Rastreio de insumos (genealogia)
+
+Após qualquer `SAIDA_PRODUCAO`, a OP (e o PED) expõem a genealogia dos insumos: lote + NF + fornecedor + OC, composta dos MOV já gravados. Ver `ADR_RASTREIO_INSUMOS_PRODUCAO.md`. Não cria saldo, lote de PA nem RMA.
+
 ## Fora de escopo (esta entrega)
 
 - Empenho com saldo `empenhado` separado / FIFO de lote  

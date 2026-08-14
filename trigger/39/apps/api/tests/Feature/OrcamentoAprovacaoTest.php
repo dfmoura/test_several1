@@ -217,6 +217,14 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertArrayHasKey('faixas', $pub->json('data'));
         // DTO comercial não vaza composição de custo
         $this->assertArrayNotHasKey('valor_papel', $pub->json('data.faixas.0'));
+        $this->assertSame('RETIRAR', $pub->json('data.frete.modo'));
+        $this->assertSame('Retirada no local', $pub->json('data.frete.texto'));
+        $this->assertFalse($pub->json('data.frete.somavel'));
+        $this->assertEqualsWithDelta(
+            (float) $pub->json('data.faixas.0.valor_etiqueta') + (float) $pub->json('data.faixas.0.valor_matriz'),
+            (float) $pub->json('data.faixas.0.valor_total'),
+            0.02,
+        );
 
         $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
             'acao' => 'APROVAR',

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import {
@@ -16,7 +17,7 @@ import {
   invStatusLabel,
   invTipoLabel,
 } from '../lib/comprasUi';
-import { formatDateTime } from '../lib/format';
+import { formatDateTime, formatQty } from '../lib/format';
 
 type ItemAction = 'contar1' | 'contar2' | 'gerar';
 
@@ -40,9 +41,10 @@ function InventarioList() {
   const [tipo, setTipo] = useState('ROTATIVO');
   const [selected, setSelected] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [inv, prd] = await Promise.all([
         api.get<{ data: EstoqueInventario[]; meta: EstoqueInventarioMeta }>('/estoque/inventarios'),
@@ -54,7 +56,7 @@ function InventarioList() {
         prd.data.filter((p) => p.familia === 'MP' || p.familia === 'EMB' || p.familia === 'REV'),
       );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -84,22 +86,35 @@ function InventarioList() {
     }
   };
 
+  const cancelar = async (inv: EstoqueInventario) => {
+    if (!canWrite || !inv.pode_cancelar) return;
+    if (
+      !window.confirm(
+        `Cancelar ${inv.codigo}? O registro permanece no histórico como CANCELADO. SKUs em contagem são liberados.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setCancelingId(inv.id);
+    try {
+      await api.post(`/estoque/inventarios/${inv.id}/cancelar`);
+      await load(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao cancelar.');
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Inventários"
         description="Contagem cega, confrontação e recontagem. Divergência gera AJU com alçada — o saldo só muda após aprovação."
-        actions={
-          <>
-            <Link to="/estoque" className="btn btn-secondary">
-              Saldos
-            </Link>
-            <Link to="/estoque/ajustes" className="btn btn-secondary">
-              Ajustes
-            </Link>
-          </>
-        }
       />
+
+      <EstoqueModuleNav />
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -170,6 +185,18 @@ function InventarioList() {
       )}
 
       <div className="card">
+        {!loading && lista.length > 0 ? (
+          <div className="card-body" style={{ paddingBottom: 0 }}>
+            <span className="form-hint">
+              {lista.length} inventário(s) nesta EMP
+              {lista.filter((i) => !['ENCERRADO', 'CANCELADO'].includes(i.status)).length
+                ? ` · ${
+                    lista.filter((i) => !['ENCERRADO', 'CANCELADO'].includes(i.status)).length
+                  } em aberto`
+                : ''}
+            </span>
+          </div>
+        ) : null}
         <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
@@ -204,6 +231,16 @@ function InventarioList() {
                         <Link to={`/estoque/inventarios/${inv.id}`} className="btn btn-secondary btn-sm">
                           Abrir
                         </Link>
+                        {canWrite && inv.pode_cancelar ? (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={cancelingId === inv.id}
+                            onClick={() => void cancelar(inv)}
+                          >
+                            {cancelingId === inv.id ? 'Cancelando…' : 'Cancelar'}
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -331,12 +368,46 @@ function InventarioDetail({ id }: { id: number }) {
     }
   };
 
+  const cancelar = async () => {
+    if (!inv || !inv.pode_cancelar) return;
+    if (
+      !window.confirm(
+        `Cancelar ${inv.codigo}? O registro permanece no histórico como CANCELADO. SKUs em contagem são liberados.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setSaving(true);
+    try {
+      await api.post(`/estoque/inventarios/${id}/cancelar`);
+      closeAction();
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao cancelar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading && !inv) {
-    return <div className="loading">Carregando…</div>;
+    return (
+      <>
+        <PageHeader title="Inventário" description="Carregando…" />
+        <EstoqueModuleNav />
+        <div className="loading">Carregando…</div>
+      </>
+    );
   }
 
   if (!inv) {
-    return <div className="alert alert-error">{error || 'Inventário não encontrado.'}</div>;
+    return (
+      <>
+        <PageHeader title="Inventário" description="Não encontrado." />
+        <EstoqueModuleNav />
+        <div className="alert alert-error">{error || 'Inventário não encontrado.'}</div>
+      </>
+    );
   }
 
   const aberto = !['ENCERRADO', 'CANCELADO'].includes(inv.status);
@@ -346,15 +417,23 @@ function InventarioDetail({ id }: { id: number }) {
     <>
       <PageHeader
         title={inv.codigo}
-        description={`${invTipoLabel(inv.tipo)}${
-          inv.acuracidade_pct ? ` · acuracidade ${inv.acuracidade_pct}%` : ''
-        }`}
+        description={`${invTipoLabel(inv.tipo)} · contagem cega. Saldo do sistema só aparece na confrontação.`}
         actions={
-          <>
+          <div className="btn-row">
             <StatusPill status={invStatusLabel(inv.status)} />
             <Link to="/estoque/inventarios" className="btn btn-secondary">
               Lista
             </Link>
+            {canWrite && inv.pode_cancelar ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={saving}
+                onClick={() => void cancelar()}
+              >
+                Cancelar inventário
+              </button>
+            ) : null}
             {canWrite && aberto && (
               <button
                 type="button"
@@ -365,11 +444,40 @@ function InventarioDetail({ id }: { id: number }) {
                 Encerrar
               </button>
             )}
-          </>
+          </div>
         }
       />
 
+      <EstoqueModuleNav />
+
       {error && <div className="alert alert-error">{error}</div>}
+
+      <div className="card" style={{ marginBottom: '1rem' }}>
+        <div className="card-body">
+          <div className="detail-meta">
+            <div>
+              <span>Tipo</span>
+              <strong>{invTipoLabel(inv.tipo)}</strong>
+            </div>
+            <div>
+              <span>SKUs</span>
+              <strong>{inv.itens_count}</strong>
+            </div>
+            <div>
+              <span>Acuracidade</span>
+              <strong>{inv.acuracidade_pct ? `${inv.acuracidade_pct}%` : '—'}</strong>
+            </div>
+            <div>
+              <span>Início</span>
+              <strong>{formatDateTime(inv.iniciado_em)}</strong>
+            </div>
+            <div>
+              <span>Encerrado</span>
+              <strong>{formatDateTime(inv.encerrado_em)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: activeItem && actionMode ? '1rem' : undefined }}>
         <div className="table-wrap table-wrap--freeze">
@@ -400,24 +508,26 @@ function InventarioDetail({ id }: { id: number }) {
                     <strong>{item.produto?.codigo}</strong>
                     <div className="muted">{item.produto?.descricao_fiscal}</div>
                   </td>
-                  <td>
+                  <td className="num">
                     {item.qtde_sistema_corte !== undefined
-                      ? `${item.qtde_sistema_corte} ${item.unidade}`
+                      ? `${formatQty(item.qtde_sistema_corte)} ${item.unidade}`
                       : '— (cego)'}
                   </td>
-                  <td>
-                    {item.qtde_1 ?? '—'}
+                  <td className="num">
+                    {item.qtde_1 != null ? formatQty(item.qtde_1) : '—'}
                     {item.contado_por_1 && (
                       <div className="muted">{item.contado_por_1.name}</div>
                     )}
                   </td>
-                  <td>
-                    {item.qtde_2 ?? '—'}
+                  <td className="num">
+                    {item.qtde_2 != null ? formatQty(item.qtde_2) : '—'}
                     {item.contado_por_2 && (
                       <div className="muted">{item.contado_por_2.name}</div>
                     )}
                   </td>
-                  <td>{item.qtde_diferenca ?? '—'}</td>
+                  <td className="num">
+                    {item.qtde_diferenca != null ? formatQty(item.qtde_diferenca) : '—'}
+                  </td>
                   <td>
                     <StatusPill status={invItemStatusLabel(item.status)} />
                     {item.ajuste && (
@@ -567,12 +677,15 @@ function InventarioDetail({ id }: { id: number }) {
                 </p>
                 {activeItem.qtde_diferenca != null && (
                   <p style={{ marginBottom: '1rem' }}>
-                    Diferença: <strong>{activeItem.qtde_diferenca}</strong> {activeItem.unidade}
+                    Diferença: <strong>{formatQty(activeItem.qtde_diferenca)}</strong>{' '}
+                    {activeItem.unidade}
                     {activeItem.qtde_final != null && (
                       <span className="muted">
                         {' '}
-                        · contado {activeItem.qtde_final} · sistema{' '}
-                        {activeItem.qtde_sistema_corte ?? '—'}
+                        · contado {formatQty(activeItem.qtde_final)} · sistema{' '}
+                        {activeItem.qtde_sistema_corte != null
+                          ? formatQty(activeItem.qtde_sistema_corte)
+                          : '—'}
                       </span>
                     )}
                   </p>

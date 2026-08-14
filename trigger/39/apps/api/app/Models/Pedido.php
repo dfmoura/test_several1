@@ -7,6 +7,7 @@ use App\Support\PadraoDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pedido extends Model
@@ -20,6 +21,8 @@ class Pedido extends Model
 
     public const STATUS_PRODUZIDO = 'PRODUZIDO';
 
+    public const STATUS_FATURADO = 'FATURADO';
+
     public const STATUS_CANCELADO = 'CANCELADO';
 
     /** @var list<string> */
@@ -27,6 +30,7 @@ class Pedido extends Model
         self::STATUS_LIBERADO,
         self::STATUS_EM_PRODUCAO,
         self::STATUS_PRODUZIDO,
+        self::STATUS_FATURADO,
         self::STATUS_CANCELADO,
     ];
 
@@ -87,5 +91,15 @@ class Pedido extends Model
     public function ordensServico(): HasMany
     {
         return $this->hasMany(OrdemServico::class);
+    }
+
+    public function faturamentos(): HasMany
+    {
+        return $this->hasMany(Faturamento::class);
+    }
+
+    public function faturamento(): HasOne
+    {
+        return $this->hasOne(Faturamento::class)->where('status', Faturamento::STATUS_CONFIRMADO);
     }
 }

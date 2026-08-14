@@ -1,0 +1,30 @@
+---
+description: Frete estimado do ORC fica no fechamento, nunca no motor R1–R20
+globs: "**/Orcamento*.php,**/OrcCatalogoFaixaFrete.php,**/OrcamentoCatalogo*.tsx,**/OrcamentoFormPage.tsx,**/OrcamentoResultado.tsx,**/OrcamentoPropostaView.tsx,**/OrcamentoFichaSheet.tsx,**/orcamentoForm.ts,**/ADR_ORC_FRETE*.md"
+alwaysApply: false
+---
+
+# Frete estimado no ORC
+
+Norma: `docs/ADR_ORC_FRETE_ESTIMADO.md` · estudo `../32` GERACAO §1.5–1.6 / FRETE_TRANSPORTADORAS · BL-057/058.
+
+## Donos
+
+- **Catálogo:** `orc_catalogo_faixas_frete` (linhas) + `peso_caixa_kg` (escalar na aba Frete).
+- **Km:** PAR / entrega, `distancia_empresa_id` da EMP atual (BL-056). Sem ORS no calcular.
+- **Fechamento:** `OrcamentoFreteEstimadoService` depois do motor. Snapshot em `result.frete`.
+
+## Faça
+
+- Default **Retirar**. Entregar só soma se km + peso + faixa com R$ existirem.
+- Fórmula `máx(mínimo, R$/km × km)`, teto para cima em centavos. Linha à parte — não no unitário.
+- Faixas contínuas; “acima” = último `kg_ate` nulo; R$ vazio = sob consulta.
+
+## Não faça
+
+- Mexer em R1–R20 / `valor_etiqueta` por causa do frete.
+- Default Entregar; seed de preço; campo R$ livre no wizard.
+- Recalcular rota no ORC; diluir no papel/hora-máquina; `parametros_empresa`.
+- NF/TIT/natureza 1.01.05 / CUB / CT-e sem ADR novo.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

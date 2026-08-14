@@ -49,6 +49,8 @@ Operador pode desligar/ligar no cadastro. Validade sem lote é inválida (o sist
 
 **Consumo:** FEFO automático na saída (OP) se o lote não for informado. Vencido **não bloqueia** a fábrica (CQ/quarentena fora de escopo); a UI marca `VENCIDO` / `A VENCER` (60 dias).
 
+**Genealogia (BL-054):** a OP/PED leem `SAIDA_PRODUCAO.item.lote_id` e resolvem origens (`ENTRADA_COMPRA` / NF / fornecedor) **até o instante da saída**. Ver `ADR_RASTREIO_INSUMOS_PRODUCAO.md`. Lote de PA continua fora.
+
 **Entrada OC:** SKU com lote exige código + data de entrada (default: data da NF ou hoje). Validade: informada, ou derivada de `prazo_validade_dias`. XML `rastro` (nLote/dFab/dVal) só **preenche** — humano confirma.
 
 **AJU / INV:** contagem por lote fica fora desta entrega. Ajuste positivo em SKU com lote cria/usa o lote informado (ou sintético `AJU-…` / `INV-…`); negativo consome FEFO. Virada A03 grava `lote_payload` (1–2 lotes de abertura) no mesmo AJU.

@@ -18,14 +18,14 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
-import { formatCurrency, formatDateTime, formatPhone } from '../lib/format';
+import { formatDateTime, formatPhone } from '../lib/format';
 import {
   displaySnap,
   isOrcEditavel,
   isOrcEnviavel,
-  statusOrcLabel,
   statusOrcPill,
 } from '../lib/orcamentoForm';
+import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number };
@@ -206,8 +206,6 @@ export function OrcamentoDetailPage() {
       ['Tubete', input.tubete],
       ['Col. rebob.', input.coluna_rebobinacao],
       ['Matriz', input.matriz],
-      ['Valor faca nova', input.faca_nova ? input.valor_faca_nova : null],
-      ['Prazo faca (d)', input.faca_nova ? input.prazo_faca_dias : null],
       ['Imposto %', input.imposto_pct],
       ['Troca produto', input.tipo_troca_produto],
       ['RPM', input.rpm],
@@ -450,16 +448,16 @@ export function OrcamentoDetailPage() {
               <strong>
                 {orc.parceiro?.codigo ?? '—'} — {orc.cliente_nome}
                 {orc.parceiro?.is_prospect ? ' (prospect)' : ''}
-              </strong>
-            </div>
-            <div>
-              <span>Versão</span>
-              <strong>v{orc.versao}</strong>
-            </div>
-            <div>
-              <span>Matriz</span>
-              <strong>
-                {orc.cobra_matriz ? formatCurrency(orc.valor_matriz) : 'Isenta'}
+                {orc.result_snapshot?.frete ? (
+                  <span className="field-note">
+                    {' '}
+                    · {modoEntregaLabel(orc.result_snapshot.frete.modo)}
+                  </span>
+                ) : String(input.modo_entrega ?? '').toUpperCase() === 'ENTREGAR' ? (
+                  <span className="field-note"> · Entregar</span>
+                ) : (
+                  <span className="field-note"> · Retirar no local</span>
+                )}
               </strong>
             </div>
             <div>
@@ -492,10 +490,15 @@ export function OrcamentoDetailPage() {
                 <strong>{formatDateTime(orc.enviado_em)}</strong>
               </div>
             ) : null}
-            {orc.visualizado_em ? (
+            {orc.visualizado_em || orc.link_aprovacao?.visualizacoes ? (
               <div>
                 <span>Visualizado</span>
-                <strong>{formatDateTime(orc.visualizado_em)}</strong>
+                <strong>
+                  {orc.visualizado_em ? formatDateTime(orc.visualizado_em) : '—'}
+                  {orc.link_aprovacao?.visualizacoes
+                    ? ` · ${orc.link_aprovacao.visualizacoes}× no link`
+                    : ''}
+                </strong>
               </div>
             ) : null}
             {orc.decidido_em ? (
@@ -517,27 +520,18 @@ export function OrcamentoDetailPage() {
           ) : null}
 
           <p className="orc-lock-note">{lockNote}</p>
-          <p className="orc-lock-note" style={{ marginTop: '0.35rem' }}>
-            Situação: <strong>{statusOrcLabel(orc.status, orc.financeiro_status)}</strong>
-            {orc.link_aprovacao?.visualizacoes
-              ? ` · ${orc.link_aprovacao.visualizacoes} visualização(ões) do link`
-              : ''}
-          </p>
         </div>
       </div>
 
-      {facaDesenho ? (
-        <div className="card orc-faca-card" style={{ marginBottom: '1rem' }}>
-          <div className="card-body">
-            <OrcamentoFacaDesenho {...facaDesenho} variant="featured" />
-          </div>
-        </div>
-      ) : null}
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className={`card${facaDesenho ? ' orc-faca-card' : ''}`} style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-            Especificação (snapshot)
+          {facaDesenho ? (
+            <div className="orc-spec-faca">
+              <OrcamentoFacaDesenho {...facaDesenho} variant="featured" />
+            </div>
+          ) : null}
+          <h3 className="orc-section-title" style={{ marginTop: facaDesenho ? '1rem' : 0 }}>
+            Especificação
           </h3>
           <div className="orc-spec-grid">
             {specTiles.map(([label, value]) => (
@@ -570,10 +564,7 @@ export function OrcamentoDetailPage() {
       {orc.result_snapshot ? (
         <OrcamentoResultado
           calculo={orc.result_snapshot}
-          prazoEntregaDias={orc.prazo_entrega_dias}
-          validadeDias={orc.validade_dias}
-          toleranciaQtdPct={orc.tolerancia_qtd_pct}
-          facaDesenho={facaDesenho}
+          echoEspecificacao={false}
           guiaEspec={especFromSnapshot(orc.input_snapshot)}
           modelosComposicao={modelosComp.map((m, i) => ({
             ordem: Number(m.ordem) || i + 1,

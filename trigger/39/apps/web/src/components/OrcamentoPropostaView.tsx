@@ -166,6 +166,11 @@ export function OrcamentoPropostaView({
                         ? ` · unit. ${formatCurrency(fx.valor_unitario)}`
                         : ''}
                       {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
+                      {proposta.frete?.modo === 'ENTREGAR'
+                        ? fx.frete_somavel && fx.valor_frete != null
+                          ? ` · frete est. ${formatCurrency(fx.valor_frete)}`
+                          : ' · frete a combinar'
+                        : ''}
                     </span>
                   </div>
                 </label>
@@ -200,6 +205,11 @@ export function OrcamentoPropostaView({
             {proposta.forma_pagamento ? (
               <li>
                 Forma de pagamento: <strong>{proposta.forma_pagamento}</strong>
+              </li>
+            ) : null}
+            {proposta.frete ? (
+              <li>
+                Frete: <strong>{proposta.frete.texto}</strong>
               </li>
             ) : null}
           </ul>

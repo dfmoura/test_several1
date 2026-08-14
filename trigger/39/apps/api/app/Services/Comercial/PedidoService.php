@@ -82,22 +82,16 @@ class PedidoService
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode((int) $orcamento->empresa_id, 'PED-'.$ano, 5);
 
-            $qtde = PadraoDecimal::roundHalfUp(
-                (string) ($faixa['quantidade'] ?? 0),
-                PadraoDecimal::SCALE_QTY
-            );
+            $travado = PrecoTravadoPedido::daFaixa($faixa);
+            $qtde = $travado['qtde_faixa'];
             if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
                     'quantidade' => ['Faixa aprovada sem quantidade válida.'],
                 ]);
             }
 
-            $preco = isset($faixa['valor_etiqueta'])
-                ? PadraoDecimal::roundHalfUp((string) $faixa['valor_etiqueta'], PadraoDecimal::SCALE_UNIT_PRICE)
-                : null;
-            $total = isset($faixa['valor_total'])
-                ? PadraoDecimal::roundHalfUp((string) $faixa['valor_total'], PadraoDecimal::SCALE_MONEY)
-                : null;
+            $preco = $travado['preco_unitario'];
+            $total = $travado['valor_comercial'];
 
             $descricao = $this->montarDescricao($input, $faixa);
 
@@ -159,7 +153,7 @@ class PedidoService
     {
         $query = Pedido::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['parceiro:id,codigo,razao_social', 'orcamento:id,codigo', 'itens'])
+            ->with(['parceiro:id,codigo,razao_social', 'orcamento:id,codigo', 'itens', 'faturamento'])
             ->orderByDesc('id');
 
         if ($status) {
@@ -189,6 +183,7 @@ class PedidoService
             'itens.produtoPa:id,codigo,descricao_fiscal',
             'ordensProducao',
             'ordensServico',
+            'faturamento',
         ]);
 
         return $this->toOut($pedido, true);
@@ -239,6 +234,20 @@ class PedidoService
                 ] : null,
             ])->all(),
             'created_at' => optional($p->created_at)?->toIso8601String(),
+            'apto_faturar' => $p->status === Pedido::STATUS_FATURADO
+                ? false
+                : ($p->status === Pedido::STATUS_PRODUZIDO),
+            'faturamento' => $p->relationLoaded('faturamento') && $p->faturamento
+                ? [
+                    'id' => $p->faturamento->id,
+                    'codigo' => $p->faturamento->codigo,
+                    'status' => $p->faturamento->status,
+                    'nf_status' => $p->faturamento->nf_status,
+                    'valor_bruto' => (string) $p->faturamento->valor_bruto,
+                    'valor_adiantamento' => (string) $p->faturamento->valor_adiantamento,
+                    'valor_a_cobrar' => (string) $p->faturamento->valor_a_cobrar,
+                ]
+                : null,
         ];
 
         if ($detalhe) {

@@ -30,5 +30,9 @@ class OrcamentoCatalogoSeeder extends Seeder
             $result['criados']['tarifas'],
             $result['criados']['parametros'] ?? 0,
         ));
+        $this->command?->info(sprintf(
+            'Catálogo ORC frete: faixas +%d (R$ vazio / inativas até o comercial preencher)',
+            $result['criados']['faixas_frete'] ?? 0,
+        ));
     }
 }

@@ -88,7 +88,7 @@ export function ContasReceberPage() {
     <>
       <PageHeader
         title="Contas a receber"
-        description="Títulos a receber (TIT-) — adiantamento de orçamento e futuras cobranças. Baixa (BX-) contra CFIN; webhook PIX também baixa automaticamente."
+        description="Títulos a receber (TIT-) — adiantamento de orçamento e faturamento do pedido. Baixa (BX-) contra CFIN; webhook PIX também baixa automaticamente."
       />
 
       {msg && <div className="alert alert-success">{msg}</div>}

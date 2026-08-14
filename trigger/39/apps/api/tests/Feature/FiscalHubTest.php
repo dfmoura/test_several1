@@ -235,7 +235,10 @@ class FiscalHubTest extends TestCase
         $res->assertOk()->assertJsonPath('ok', true);
         $this->assertTrue((bool) FiscalHub::query()->find($id)?->ultimo_teste_ok);
         $this->assertSame('homologacao', FiscalHub::query()->find($id)?->ultimo_teste_ambiente);
+        $this->assertTrue((bool) FiscalHub::query()->find($id)?->emissao_habilitada);
         $this->assertStringContainsString('Conexão OK', (string) $res->json('mensagem'));
+        $this->assertStringContainsString('Emissão automática ativada', (string) $res->json('mensagem'));
+        $this->assertTrue((bool) $res->json('emissao_habilitada'));
     }
 
     public function test_client_rejeita_token(): void

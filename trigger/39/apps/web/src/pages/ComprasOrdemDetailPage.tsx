@@ -6,6 +6,7 @@ import {
   ApiError,
   api,
   type NaturezaGerencial,
+  type NfeEntradaEspelho,
   type OrdemCompra,
   type ReceberXmlParcela,
   type ReceberXmlPreview,
@@ -13,6 +14,93 @@ import {
 import { useAuth } from '../lib/auth';
 import { ocStatusLabel } from '../lib/comprasUi';
 import { formatCurrency, formatDate } from '../lib/format';
+
+function idDestLabel(id: string | null | undefined): string {
+  if (id === '1') return 'Interna';
+  if (id === '2') return 'Interestadual';
+  if (id === '3') return 'Exterior';
+  return id || '—';
+}
+
+function dash(value: string | null | undefined): string {
+  return value && value !== '' ? value : '—';
+}
+
+function EspelhoFiscalPanel({
+  espelho,
+  titulo,
+}: {
+  espelho: NfeEntradaEspelho;
+  titulo: string;
+}) {
+  return (
+    <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+      <strong>{titulo}</strong>
+      <div className="muted" style={{ margin: '0.35rem 0 0.75rem' }}>
+        Impostos como no XML, sem recálculo. Guardado para o livro de entrada — o ERP não
+        faz escrituração oficial.
+      </div>
+      <p style={{ marginBottom: '0.5rem' }}>
+        NF {dash(espelho.numero)}
+        {espelho.serie ? ` série ${espelho.serie}` : ''}
+        {' · '}
+        {dash(espelho.nat_op)}
+        {' · '}
+        {idDestLabel(espelho.id_dest)}
+        {espelho.emit_uf ? ` · UF ${espelho.emit_uf}` : ''}
+        {espelho.emit_crt ? ` · CRT ${espelho.emit_crt}` : ''}
+      </p>
+      <p style={{ marginBottom: '0.75rem' }}>
+        BC {dash(espelho.totais.v_bc)}
+        {' · ICMS '}
+        {dash(espelho.totais.v_icms)}
+        {' · IPI '}
+        {dash(espelho.totais.v_ipi)}
+        {' · PIS '}
+        {dash(espelho.totais.v_pis)}
+        {' · COFINS '}
+        {dash(espelho.totais.v_cofins)}
+        {' · ST '}
+        {dash(espelho.totais.v_st)}
+        {espelho.totais.v_nf ? ` · vNF ${espelho.totais.v_nf}` : ''}
+      </p>
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>CFOP</th>
+              <th>NCM</th>
+              <th>Orig</th>
+              <th>CST</th>
+              <th>Alíq.</th>
+              <th>ICMS</th>
+              <th>IPI</th>
+              <th>PIS</th>
+              <th>COFINS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {espelho.itens.map((item) => (
+              <tr key={item.n_item}>
+                <td>{item.n_item}</td>
+                <td>{dash(item.cfop)}</td>
+                <td>{dash(item.ncm)}</td>
+                <td>{dash(item.orig)}</td>
+                <td>{dash(item.cst)}</td>
+                <td>{dash(item.p_icms)}</td>
+                <td>{dash(item.v_icms)}</td>
+                <td>{dash(item.v_ipi)}</td>
+                <td>{dash(item.v_pis)}</td>
+                <td>{dash(item.v_cofins)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 export function ComprasOrdemDetailPage() {
   const { id } = useParams();
@@ -27,6 +115,7 @@ export function ComprasOrdemDetailPage() {
   const [receiving, setReceiving] = useState(false);
   const [xmlLoading, setXmlLoading] = useState(false);
   const [xmlPreview, setXmlPreview] = useState<ReceberXmlPreview | null>(null);
+  const [xmlContent, setXmlContent] = useState<string | null>(null);
   const [lineMap, setLineMap] = useState<Record<number, string>>({});
 
   const [nfNumero, setNfNumero] = useState('');
@@ -126,6 +215,8 @@ export function ComprasOrdemDetailPage() {
     setMsg(null);
     setXmlLoading(true);
     try {
+      const text = await file.text();
+      setXmlContent(text);
       const fd = new FormData();
       fd.append('file', file);
       const res = await api.postForm<{ data: ReceberXmlPreview }>(
@@ -137,6 +228,7 @@ export function ComprasOrdemDetailPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Falha ao ler XML.');
       setXmlPreview(null);
+      setXmlContent(null);
     } finally {
       setXmlLoading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -237,6 +329,9 @@ export function ComprasOrdemDetailPage() {
         itens,
         cprod_maps: cprod_maps.length ? cprod_maps : undefined,
       };
+      if (xmlContent) {
+        payload.xml = xmlContent;
+      }
 
       if (parcelas.length > 0) {
         payload.parcelas = parcelas.map((p, i) => ({
@@ -250,13 +345,23 @@ export function ComprasOrdemDetailPage() {
         payload.vencimento = vencimento;
       }
 
-      await api.post(`/ordens-compra/${oc.id}/receber`, payload);
-      setMsg(
-        parcelas.length > 1
-          ? `Entrada conferida: estoque atualizado e ${parcelas.length} títulos a pagar gerados.`
-          : 'Entrada conferida: estoque atualizado e título a pagar gerado.',
-      );
+      await api.post<{ data: { nfe_entrada?: { numero: string | null; xml_armazenado?: boolean } | null } }>(
+        `/ordens-compra/${oc.id}/receber`,
+        payload,
+      ).then((res) => {
+        const nfe = res.data.nfe_entrada;
+        const titulosMsg =
+          parcelas.length > 1
+            ? `estoque atualizado e ${parcelas.length} títulos a pagar gerados`
+            : 'estoque atualizado e título a pagar gerado';
+        setMsg(
+          nfe?.xml_armazenado
+            ? `Entrada conferida: ${titulosMsg}. Espelho fiscal da NF ${nfe.numero ?? nfNumero} guardado.`
+            : `Entrada conferida: ${titulosMsg}.`,
+        );
+      });
       setXmlPreview(null);
+      setXmlContent(null);
       setParcelas([]);
       setNfValor(null);
       setNfTotais(null);
@@ -342,6 +447,16 @@ export function ComprasOrdemDetailPage() {
             </div>
           </div>
 
+          {(oc.nfe_entradas ?? [])
+            .filter((n) => n.espelho)
+            .map((n) => (
+              <EspelhoFiscalPanel
+                key={n.id}
+                titulo={`Espelho fiscal guardado · NF ${n.numero ?? n.chave}`}
+                espelho={n.espelho!}
+              />
+            ))}
+
           {canReceive && (
             <form onSubmit={(e) => void receber(e)}>
               <div className="card" style={{ marginBottom: '1rem' }}>
@@ -351,7 +466,8 @@ export function ComprasOrdemDetailPage() {
                     <p className="muted" style={{ marginBottom: '1rem' }}>
                       Um ato: confere a nota com a OC e lança MOV no estoque + título(s) a pagar
                       (NAT 5.06). XML preenche itens e parcelas — a confirmação é humana. Estoque
-                      usa preços da OC; pagar segue as duplicatas da NF.
+                      usa preços da OC; pagar segue as duplicatas da NF. Com XML, o sistema guarda
+                      o espelho fiscal (impostos como na nota) para o livro de entrada futuro.
                     </p>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -364,6 +480,10 @@ export function ComprasOrdemDetailPage() {
                         onChange={(e) => void onXmlFile(e.target.files?.[0] ?? null)}
                       />
                       {xmlLoading && <div className="muted">Lendo XML…</div>}
+                      <p className="muted" style={{ marginTop: '0.35rem' }}>
+                        Sem XML a entrada operacional segue; não fica matéria-prima fiscal desta
+                        nota.
+                      </p>
                     </div>
 
                     {xmlPreview && xmlPreview.warnings.length > 0 && (
@@ -403,6 +523,13 @@ export function ComprasOrdemDetailPage() {
                         {' · '}
                         vNF {xmlPreview.nf.valor_nf ?? xmlPreview.nf.totais.v_nf ?? '—'}
                       </p>
+                    )}
+
+                    {xmlPreview?.espelho && (
+                      <EspelhoFiscalPanel
+                        titulo="Espelho fiscal da NF (será guardado na confirmação)"
+                        espelho={xmlPreview.espelho}
+                      />
                     )}
 
                     {xmlPreview && (

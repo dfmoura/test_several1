@@ -19,6 +19,7 @@ class CodigoGenerator
         'USR' => ['table' => 'users', 'column' => 'codigo', 'scoped' => false],
         'EMP' => ['table' => 'empresas', 'column' => 'codigo', 'scoped' => false],
         'HUB' => ['table' => 'fiscal_hubs', 'column' => 'codigo', 'scoped' => true],
+        'DFS' => ['table' => 'documento_fiscal_saidas', 'column' => 'codigo', 'scoped' => true],
         'CFIN' => ['table' => 'empresa_contas_financeiras', 'column' => 'codigo', 'scoped' => false],
         'BEM' => ['table' => 'bens_patrimoniais', 'column' => 'codigo', 'scoped' => false],
         'DEP' => ['table' => 'departamentos', 'column' => 'codigo', 'scoped' => true],
@@ -116,7 +117,9 @@ class CodigoGenerator
         // BL-033 — NEC/COT/OC/MOV/TIT/BX com ano (ex.: NEC-2026)
         // BL-034 — COB-AAAA
         // BL-044 — PED/OP/OS-AAAA
-        if (preg_match('/^(NEC|COT|OC|MOV|TIT|BX|COB|PED|OP|OS)-\d{4}$/', $prefix, $m) === 1) {
+        // BL-049 — FAT-AAAA
+        // BL-051 — DFS-AAAA
+        if (preg_match('/^(NEC|COT|OC|MOV|TIT|BX|COB|PED|OP|OS|FAT|DFS)-\d{4}$/', $prefix, $m) === 1) {
             $tables = [
                 'NEC' => 'compra_necessidades',
                 'COT' => 'cotacoes',
@@ -128,6 +131,8 @@ class CodigoGenerator
                 'PED' => 'pedidos',
                 'OP' => 'ordens_producao',
                 'OS' => 'ordens_servico',
+                'FAT' => 'faturamentos',
+                'DFS' => 'documento_fiscal_saidas',
             ];
 
             return ['table' => $tables[$m[1]], 'column' => 'codigo', 'scoped' => true];

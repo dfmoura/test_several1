@@ -8,6 +8,8 @@ import {
   formatCnae,
   formatCnpjCpf,
   formatDecimalBr,
+  formatKmCarro,
+  formatLatLng,
   formatPhone,
   DECIMAL_SCALE,
 } from '../lib/format';
@@ -233,6 +235,12 @@ export function ParceiroFichaSheet({
             />
             <Kv label="CEP" value={p.cep ? formatCep(p.cep) : '—'} />
             <Kv label="IBGE" value={dash(p.ibge)} />
+            {formatLatLng(p.latitude, p.longitude) ? (
+              <Kv label="Posição" value={formatLatLng(p.latitude, p.longitude)} wide />
+            ) : null}
+            {formatKmCarro(p.distancia_km, p.distancia_fonte) ? (
+              <Kv label="Distância" value={formatKmCarro(p.distancia_km, p.distancia_fonte)} wide />
+            ) : null}
           </div>
         </Section>
 
@@ -240,6 +248,7 @@ export function ParceiroFichaSheet({
           <div className="ficha-kv-grid cols-2">
             <Kv label="Telefone" value={formatPhone(p.telefone) || '—'} />
             <Kv label="WhatsApp" value={formatPhone(p.whatsapp) || '—'} />
+            {p.origem_lead ? <Kv label="Origem do lead" value={p.origem_lead} /> : null}
             <Kv label="E-mail" value={dash(p.email)} wide />
             <Kv label="E-mail XML/DANFE" value={dash(p.email_xml)} wide />
             {showLegadoContato ? (
@@ -286,6 +295,12 @@ export function ParceiroFichaSheet({
                     <br />
                     {[e.bairro, [e.municipio, e.uf].filter(Boolean).join('/')].filter(Boolean).join(' · ')}
                     {e.cep ? ` · ${formatCep(e.cep)}` : ''}
+                    {formatLatLng(e.latitude, e.longitude)
+                      ? ` · ${formatLatLng(e.latitude, e.longitude)}`
+                      : ''}
+                    {formatKmCarro(e.distancia_km, e.distancia_fonte)
+                      ? ` · ${formatKmCarro(e.distancia_km, e.distancia_fonte)}`
+                      : ''}
                     {e.observacoes ? (
                       <>
                         <br />

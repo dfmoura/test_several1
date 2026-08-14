@@ -9,6 +9,7 @@ use App\Models\OrdemCompraItem;
 use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Fiscal\NfeEntradaService;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -129,6 +130,7 @@ class OrdemCompraService
             'itens.produto:id,codigo,descricao_fiscal,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
             'necessidade:id,codigo,status',
             'cotacao:id,codigo,status',
+            'movimentos.nfeEntrada.itens',
             ...OrdemCompra::userStampWith(),
         ]);
 
@@ -215,6 +217,13 @@ class OrdemCompraService
             'updated_at' => optional($oc->updated_at)?->toIso8601String(),
             'criado_por' => OrdemCompra::userStampFrom($oc->criador),
             'atualizado_por' => OrdemCompra::userStampFrom($oc->atualizador),
+            'nfe_entradas' => $oc->relationLoaded('movimentos')
+                ? $oc->movimentos
+                    ->map(fn ($m) => NfeEntradaService::toOut($m->nfeEntrada, true))
+                    ->filter()
+                    ->values()
+                    ->all()
+                : [],
         ];
     }
 

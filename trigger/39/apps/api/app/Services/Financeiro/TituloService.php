@@ -6,9 +6,11 @@ use App\Models\Cobranca;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\EstoqueMovimento;
+use App\Models\Faturamento;
 use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
 use App\Models\OrdemCompra;
+use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Models\TituloBaixa;
 use App\Services\Codigo\CodigoGenerator;
@@ -54,6 +56,8 @@ class TituloService
                 'natureza:id,codigo,codigo_exibicao,nome',
                 'ordemCompra:id,codigo',
                 'orcamento:id,codigo,financeiro_status',
+                'pedido:id,codigo',
+                'faturamento:id,codigo',
                 'cobrancas',
                 'baixas',
                 ...Titulo::userStampWith(),
@@ -107,6 +111,48 @@ class TituloService
             'orcamento_id' => $orcamento->id,
             'origem' => AdiantamentoService::ORIGEM_ADIANTAMENTO,
             'documento' => $orcamento->codigo,
+            'emissao' => $emissao,
+            'vencimento' => $vencimento,
+            'valor' => $valor,
+            'saldo' => $valor,
+            'status' => Titulo::STATUS_ABERTO,
+            'observacao' => $observacao,
+        ]);
+    }
+
+    public function criarReceberFatura(
+        Empresa $empresa,
+        Pedido $pedido,
+        Faturamento $faturamento,
+        NaturezaGerencial $natureza,
+        string $valor,
+        string $emissao,
+        string $vencimento,
+        int $parcela,
+        int $totalParcelas,
+        ?string $observacao,
+    ): Titulo {
+        $ano = (int) now()->year;
+        $codigo = $this->codigos->nextCode($empresa->id, 'TIT-'.$ano, 5);
+        $nDup = $totalParcelas > 1 ? str_pad((string) $parcela, 3, '0', STR_PAD_LEFT) : null;
+        $doc = $faturamento->codigo;
+        if ($nDup) {
+            $doc .= '-'.$nDup;
+        }
+
+        return Titulo::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => $codigo,
+            'tipo' => Titulo::TIPO_RECEBER,
+            'parceiro_id' => $pedido->parceiro_id,
+            'natureza_id' => $natureza->id,
+            'orcamento_id' => $pedido->orcamento_id,
+            'pedido_id' => $pedido->id,
+            'faturamento_id' => $faturamento->id,
+            'origem' => FaturamentoService::ORIGEM_FATURA,
+            'documento' => $doc,
+            'parcela' => $parcela,
+            'n_dup' => $nDup,
             'emissao' => $emissao,
             'vencimento' => $vencimento,
             'valor' => $valor,
@@ -191,6 +237,35 @@ class TituloService
         }
 
         return $titulos;
+    }
+
+    public function cancelarAberto(Titulo $titulo, string $motivo): Titulo
+    {
+        if ($titulo->status === Titulo::STATUS_CANCELADO) {
+            return $titulo;
+        }
+
+        if ($titulo->status !== Titulo::STATUS_ABERTO) {
+            throw ValidationException::withMessages([
+                'titulo' => ['Título '.$titulo->codigo.' não está aberto — não é possível estornar o faturamento.'],
+            ]);
+        }
+
+        $titulo->loadMissing('baixas');
+        if ($titulo->baixas->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'titulo' => ['Título '.$titulo->codigo.' já possui baixa — não é possível estornar o faturamento.'],
+            ]);
+        }
+
+        $titulo->status = Titulo::STATUS_CANCELADO;
+        $titulo->saldo = PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+        $obs = trim((string) $titulo->observacao);
+        $nota = 'Estorno: '.$motivo;
+        $titulo->observacao = $obs === '' ? $nota : $obs.' · '.$nota;
+        $titulo->save();
+
+        return $titulo;
     }
 
     /**
@@ -307,6 +382,8 @@ class TituloService
             'natureza:id,codigo,codigo_exibicao,nome',
             'ordemCompra:id,codigo',
             'orcamento:id,codigo,financeiro_status',
+            'pedido:id,codigo',
+            'faturamento:id,codigo',
             'cobrancas',
             'baixas.contaFinanceira:id,codigo,descricao',
             ...Titulo::userStampWith(),
@@ -339,6 +416,16 @@ class TituloService
                 'id' => $t->orcamento->id,
                 'codigo' => $t->orcamento->codigo,
                 'financeiro_status' => $t->orcamento->financeiro_status,
+            ] : null,
+            'pedido_id' => $t->pedido_id,
+            'pedido' => $t->pedido ? [
+                'id' => $t->pedido->id,
+                'codigo' => $t->pedido->codigo,
+            ] : null,
+            'faturamento_id' => $t->faturamento_id,
+            'faturamento' => $t->faturamento ? [
+                'id' => $t->faturamento->id,
+                'codigo' => $t->faturamento->codigo,
             ] : null,
             'documento' => $t->documento,
             'parcela' => $t->parcela,

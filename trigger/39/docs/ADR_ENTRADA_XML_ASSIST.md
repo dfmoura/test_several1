@@ -44,6 +44,7 @@ Warnings (não bloqueiam): emitente ≠ fornecedor OC; dest ≠ CNPJ EMP.
 - Focus download / manifestação SEFAZ  
 - Entrada sem OC  
 - Multi-TIT por parcelas da NF → **BL-038** / `ADR_ENTRADA_XML_PARCELAS.md`  
+- Espelho fiscal / persistência do XML → **BL-048** / `ADR_ENTRADA_XML_ESPELHO.md`  
 - Validação de assinatura / escrituração  
 
 ---

@@ -12,6 +12,7 @@ import {
   IconDashboard,
   IconDepartamento,
   IconEstoque,
+  IconEye,
   IconFaca,
   IconFinanceiro,
   IconGuide,
@@ -114,6 +115,13 @@ const NAV_GROUPS: NavGroup[] = [
         isActivePath: (pathname) =>
           pathname === '/ordens-producao' || pathname.startsWith('/ordens-producao/'),
       },
+      {
+        to: '/rastreio',
+        label: 'Rastreio',
+        icon: IconEye,
+        permission: 'producao.ler',
+        isActivePath: (pathname) => pathname === '/rastreio' || pathname.startsWith('/rastreio/'),
+      },
     ],
   },
   {
@@ -157,6 +165,14 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Contas a receber',
         icon: IconFinanceiro,
         permission: 'financeiro.ler',
+      },
+      {
+        to: '/financeiro/faturamentos',
+        label: 'Faturamentos',
+        icon: IconFinanceiro,
+        permission: 'faturamento.ler',
+        isActivePath: (pathname) =>
+          pathname === '/financeiro/faturamentos' || pathname.startsWith('/financeiro/faturamentos/'),
       },
     ],
   },

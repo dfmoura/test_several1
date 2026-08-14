@@ -141,6 +141,7 @@ final class CompraValidationRules
             'cprod_maps.*.c_prod' => ['required_with:cprod_maps', 'string', 'max:60'],
             'cprod_maps.*.produto_id' => ['required_with:cprod_maps', 'integer', 'exists:produtos,id'],
             'cprod_maps.*.x_prod' => ['nullable', 'string', 'max:240'],
+            'xml' => ['nullable', 'string', 'max:5242880'],
         ];
     }
 

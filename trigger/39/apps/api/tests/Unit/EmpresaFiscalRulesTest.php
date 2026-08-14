@@ -92,6 +92,7 @@ class EmpresaFiscalRulesTest extends TestCase
 
         $this->assertTrue($result['completo']);
         $this->assertTrue($result['apto_emissao_nfe']);
+        $this->assertTrue($result['apto_emissao_nfse']);
         $this->assertSame([], $result['pendencias']);
         $this->assertSame([], $result['pendencias_emissao']);
     }
@@ -145,5 +146,43 @@ class EmpresaFiscalRulesTest extends TestCase
 
         $this->assertTrue($result['completo']);
         $this->assertFalse($result['apto_emissao_nfe']);
+    }
+
+    public function test_im_nao_e_obrigatoria_por_padrao_nem_para_nfse(): void
+    {
+        $base = [
+            'cnpj' => '01423183000110',
+            'razao_social' => 'RLP',
+            'ie' => '7023251210034',
+            'ie_status' => 'OK',
+            'regime' => 'SIMPLES_NACIONAL',
+            'crt' => 1,
+            'cnae' => '1813099',
+            'logradouro' => 'Rua A',
+            'numero' => '1',
+            'bairro' => 'Centro',
+            'municipio' => 'Uberlandia',
+            'uf' => 'MG',
+            'cep' => '38400328',
+            'ibge' => '3170206',
+            'situacao' => 'ATIVA',
+            'venda_ativa' => true,
+        ];
+
+        $semIm = EmpresaFiscalRules::evaluate($base);
+        $this->assertTrue($semIm['apto_emissao_nfe']);
+        $this->assertTrue($semIm['apto_emissao_nfse']);
+        $this->assertSame([], $semIm['pendencias_nfse']);
+
+        $exige = EmpresaFiscalRules::evaluate($base + ['im_obrigatoria_nfse' => true]);
+        $this->assertTrue($exige['apto_emissao_nfe']);
+        $this->assertFalse($exige['apto_emissao_nfse']);
+        $this->assertNotEmpty($exige['pendencias_nfse']);
+
+        $comIm = EmpresaFiscalRules::evaluate($base + [
+            'im_obrigatoria_nfse' => true,
+            'im' => '123456',
+        ]);
+        $this->assertTrue($comIm['apto_emissao_nfse']);
     }
 }

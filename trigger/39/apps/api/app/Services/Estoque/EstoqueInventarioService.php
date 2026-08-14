@@ -33,6 +33,9 @@ class EstoqueInventarioService
         $query = EstoqueInventario::query()
             ->with([...EstoqueInventario::userStampWith()])
             ->withCount('itens')
+            ->withExists(['itens as tem_ajuste' => function ($q) {
+                $q->whereNotNull('ajuste_id');
+            }])
             ->where('empresa_id', $empresa->id)
             ->orderByDesc('id');
 
@@ -363,31 +366,46 @@ class EstoqueInventarioService
     }
 
     /**
+     * Aborta inventário ainda sem AJU. Não é exclusão física: permanece CANCELADO
+     * no histórico e libera o congelamento dos SKUs (estudo 32 / ADR).
+     *
      * @return array<string, mixed>
      */
     public function cancelar(Empresa $empresa, EstoqueInventario $inv): array
     {
         $this->assertEmpresa($empresa, $inv);
 
-        if ($inv->status === EstoqueInventario::STATUS_ENCERRADO) {
-            throw ValidationException::withMessages([
-                'status' => ['Inventário encerrado não pode ser cancelado.'],
-            ]);
-        }
+        return DB::transaction(function () use ($empresa, $inv) {
+            $inv = EstoqueInventario::query()->lockForUpdate()->findOrFail($inv->id);
+            $this->assertEmpresa($empresa, $inv);
 
-        $comAjuste = $inv->itens()->whereNotNull('ajuste_id')->exists();
-        if ($comAjuste) {
-            throw ValidationException::withMessages([
-                'status' => ['Inventário com ajuste gerado não pode ser cancelado.'],
-            ]);
-        }
+            if ($inv->status === EstoqueInventario::STATUS_ENCERRADO) {
+                throw ValidationException::withMessages([
+                    'status' => ['Inventário encerrado não pode ser cancelado.'],
+                ]);
+            }
 
-        $inv->status = EstoqueInventario::STATUS_CANCELADO;
-        $inv->save();
+            if ($inv->status === EstoqueInventario::STATUS_CANCELADO) {
+                throw ValidationException::withMessages([
+                    'status' => ['Inventário já cancelado.'],
+                ]);
+            }
 
-        $inv->itens()->update(['status' => EstoqueInventarioItem::STATUS_OK]);
+            $comAjuste = $inv->itens()->whereNotNull('ajuste_id')->exists();
+            if ($comAjuste) {
+                throw ValidationException::withMessages([
+                    'status' => ['Inventário com ajuste gerado não pode ser cancelado.'],
+                ]);
+            }
 
-        return $this->show($empresa, $inv->fresh(), false);
+            $inv->status = EstoqueInventario::STATUS_CANCELADO;
+            $inv->save();
+
+            // Libera congelamento mesmo se algum leitor olhar só o status do item.
+            $inv->itens()->update(['status' => EstoqueInventarioItem::STATUS_OK]);
+
+            return $this->show($empresa, $inv->fresh(), false);
+        });
     }
 
     /**
@@ -425,6 +443,7 @@ class EstoqueInventarioService
             'skus_contados' => $inv->skus_contados,
             'skus_ok' => $inv->skus_ok,
             'itens_count' => $inv->itens_count ?? $inv->itens()->count(),
+            'pode_cancelar' => $this->podeCancelar($inv),
             'observacao' => $inv->observacao,
             'created_at' => optional($inv->created_at)?->toIso8601String(),
             'criado_por' => EstoqueInventario::userStampFrom($inv->criador),
@@ -546,6 +565,22 @@ class EstoqueInventarioService
         if ($item->inventario_id !== $inv->id || $item->empresa_id !== $empresa->id) {
             abort(404);
         }
+    }
+
+    private function podeCancelar(EstoqueInventario $inv): bool
+    {
+        if (in_array($inv->status, [
+            EstoqueInventario::STATUS_ENCERRADO,
+            EstoqueInventario::STATUS_CANCELADO,
+        ], true)) {
+            return false;
+        }
+
+        if (array_key_exists('tem_ajuste', $inv->getAttributes())) {
+            return ! (bool) $inv->getAttribute('tem_ajuste');
+        }
+
+        return ! $inv->itens()->whereNotNull('ajuste_id')->exists();
     }
 
     private function assertInvAberto(EstoqueInventario $inv): void

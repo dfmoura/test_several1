@@ -1,0 +1,46 @@
+# Fronteira Faturamento → TIT/COB (adiantamento a apropriar)
+
+Norma: `docs/ADR_FATURAMENTO_COBRANCA.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · estudo `../32` FATURAMENTO / MAPA_FATURAMENTO / CONCLUSAO_PRODUCAO / RECEBIMENTO_BAIXA / CASOS_USO_M05 · UC-PLT-007 · BL-049/050/051.
+
+## Espinha
+
+```
+PED PRODUZIDO → preview → FAT- → apropria sinal → TIT saldo → COB (PIX/Boleto)
+                         └→ DocumentoFiscalSaida (NFE e/ou NFSE) → Focus se hub apto
+```
+
+TIT/COB nascem no FAT mesmo se a NF ainda não autorizou. Sinal (TIT `ADIANTAMENTO`) já existia no aceite.
+
+Estorno (NF pendente ou rejeitada, nada processando/autorizado): FAT `ESTORNADO` + TIT/COB do saldo cancelados + PED `PRODUZIDO` → pode faturar de novo. Não apagar. Não mexer no sinal. Não tocar estoque.
+
+## Faça
+
+- Faturar só PED `PRODUZIDO` com `qtde_faturavel` > 0. Unitário = `valor_etiqueta / quantidade` da faixa (motor: `valor_etiqueta` é o **total** das etiquetas, não o preço por peça). Matriz e faca são fixos.
+- Apropriar `min(sinal quitado, valor da fatura)`; saldo gera 1..N TIT `origem=FATURA`.
+- Condição do snapshot (à vista / DDL / 14/28/42 / % sinal). Sinal da condição não vira 2ª cobrança se já houve adiantamento.
+- COB via `BankProvider` só para PIX/Boleto. Humano confirma (não auto na OP).
+- Permissão `faturamento.escrever` (COMERCIAL/FINANCEIRO/FISCAL/ADMIN). PRODUÇÃO não fatura nem estorna.
+- Natureza folha `1.01.01` (PA) / `1.01.03` (SVC) / `1.01.02` (REV).
+- Isolar por `empresa_id` do contexto.
+- Estornar só FAT vigente com NF pendente/rejeitada, TIT do saldo abertos (ou nenhum) e COB não paga; motivo obrigatório; cancelar COB no provider.
+- PA/REV → NF-e; SVC → NFS-e. Numeração só do Focus. Hub: teste OK do ambiente ativo liga emissão automática.
+- IM opcional; NFS-e só exige se `im_obrigatoria_nfse`.
+- Sem hub: prévia da nota (`PLANEJADO` + JSON Focus) e DANFE/DANFSe HTML A4 imprimível (homolog e produção). Não inventar chave/XML/`nfeProc`.
+
+## Não faça
+
+- Inventar série/número/chave de NF (nem XML `nfeProc` falso “para ver a nota”).
+- Baixar estoque PA/REV no FAT (nem no estorno — PA nunca saiu).
+- Recobrar o adiantamento já baixado; cancelar TIT `ADIANTAMENTO` no estorno.
+- Multiplicar quantidade pelo `valor_etiqueta` do motor (é o total da faixa).
+- Faturar PED `LIBERADO` / `EM_PRODUCAO` / `CANCELADO`.
+- Segundo FAT **vigente** no mesmo PED (estornados ficam no histórico).
+- Estornar com NF autorizada/processando, TIT pago/parcial, COB paga ou BX.
+- Apagar FAT/TIT/COB.
+- Desfazer FAT porque o Focus rejeitou a nota.
+- Exigir IM para NF-e ou para NFS-e sem a flag municipal.
+- Catálogo `COND-` ou motor CRT sem ADR.
+- Auto-faturar na conclusão da OP/OS.
+- Tratar este estorno como cancelamento Focus ou DEV-.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_FATURAMENTO_COBRANCA.md` / `docs/ADR_EMISSAO_NFE_NFSE.md`.

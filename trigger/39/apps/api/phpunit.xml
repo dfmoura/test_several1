@@ -31,5 +31,7 @@
         <env name="QUEUE_CONNECTION" value="sync" force="true"/>
         <env name="SESSION_DRIVER" value="array" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+        <env name="ORS_API_KEY" value="test-ors-key" force="true"/>
+        <env name="ORS_BASE" value="https://api.openrouteservice.org" force="true"/>
     </php>
 </phpunit>

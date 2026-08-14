@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { ApiError, api, type Parceiro, type ReposicaoItem } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { formatQty } from '../lib/format';
 
 type RowState = {
   selected: boolean;
@@ -84,9 +85,14 @@ export function ComprasReposicaoPage() {
         title="A repor"
         description="Sugestão por estoque mínimo (MP/EMB/REV), descontando saldo e OC em trânsito. Confirme fornecedor e preços para gerar a OC."
         actions={
-          <Link to="/compras/ordens" className="btn btn-secondary">
-            Ordens
-          </Link>
+          <div className="btn-row">
+            <Link to="/estoque" className="btn btn-secondary">
+              Estoque
+            </Link>
+            <Link to="/compras/ordens" className="btn btn-secondary">
+              Ordens
+            </Link>
+          </div>
         }
       />
 
@@ -103,6 +109,17 @@ export function ComprasReposicaoPage() {
             </div>
           ) : (
             <>
+              <div className="detail-meta" style={{ marginBottom: '1rem' }}>
+                <div>
+                  <span>Itens abaixo do mínimo</span>
+                  <strong>{itens.length}</strong>
+                </div>
+                <div>
+                  <span>Selecionados para OC</span>
+                  <strong>{selectedCount}</strong>
+                </div>
+              </div>
+
               <div className="form-grid" style={{ marginBottom: '1rem' }}>
                 <label>
                   Fornecedor
@@ -162,16 +179,16 @@ export function ComprasReposicaoPage() {
                             <div className="muted">{item.produto.descricao_fiscal}</div>
                           </td>
                           <td>
-                            {item.estoque_minimo} {item.unidade_interna}
+                            {formatQty(item.estoque_minimo)} {item.unidade_interna}
                           </td>
                           <td>
-                            {item.saldo} {item.unidade_interna}
+                            {formatQty(item.saldo)} {item.unidade_interna}
                           </td>
                           <td>
-                            {item.em_transito} {item.unidade_interna}
+                            {formatQty(item.em_transito)} {item.unidade_interna}
                           </td>
                           <td>
-                            {item.faltante_comercial} {item.unidade_comercial}
+                            {formatQty(item.faltante_comercial)} {item.unidade_comercial}
                           </td>
                           <td>
                             <input

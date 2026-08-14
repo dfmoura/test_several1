@@ -48,6 +48,14 @@ class PadraoDecimalTest extends TestCase
         $this->assertSame('10.1234', PadraoDecimal::roundFloor('10.1234', 4));
     }
 
+    public function test_round_ceil_teto_comercial_em_centavos(): void
+    {
+        $this->assertSame('15.01', PadraoDecimal::roundCeil('15.001', PadraoDecimal::SCALE_MONEY));
+        $this->assertSame('25.00', PadraoDecimal::roundCeil('25.00', PadraoDecimal::SCALE_MONEY));
+        $this->assertSame('8.00', PadraoDecimal::roundCeil('8', PadraoDecimal::SCALE_MONEY));
+        $this->assertSame('0.01', PadraoDecimal::roundCeil('0.0001', PadraoDecimal::SCALE_MONEY));
+    }
+
     public function test_escalas_oficiais(): void
     {
         $this->assertSame(2, PadraoDecimal::SCALE_MONEY);

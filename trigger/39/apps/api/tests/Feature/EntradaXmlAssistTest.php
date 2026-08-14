@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Empresa;
 use App\Models\EstoqueMovimento;
 use App\Models\NaturezaGerencial;
+use App\Models\NfeEntrada;
+use App\Models\NfeEntradaItem;
 use App\Models\OrdemCompra;
 use App\Models\Parceiro;
 use App\Models\Produto;
@@ -12,6 +14,7 @@ use App\Models\ProdutoFornecedorCodigo;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -166,6 +169,8 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.tipo', EstoqueMovimento::TIPO_ENTRADA_COMPRA)
             ->assertJsonPath('data.titulo.natureza.codigo', '5.06');
+
+        $this->assertDatabaseCount('nfe_entradas', 0);
 
         $this->assertDatabaseHas('produto_fornecedor_codigos', [
             'empresa_id' => $this->empresa->id,
@@ -346,6 +351,16 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertStringContainsString('370.50', $ipi['mensagem']);
         $this->assertSame('4170.50', $preview->json('data.nf.valor_nf'));
         $this->assertCount(4, $preview->json('data.nf.parcelas'));
+        $this->assertSame('2', $preview->json('data.espelho.id_dest'));
+        $this->assertSame('PR', $preview->json('data.espelho.emit_uf'));
+        $this->assertSame('5', $preview->json('data.espelho.itens.0.orig'));
+        $this->assertSame('00', $preview->json('data.espelho.itens.0.cst'));
+        $this->assertSame('6101', $preview->json('data.espelho.itens.0.cfop'));
+        $this->assertSame('12.00', $preview->json('data.espelho.itens.0.p_icms'));
+        $this->assertSame('456.00', $preview->json('data.espelho.itens.0.v_icms'));
+        $this->assertSame('370.50', $preview->json('data.espelho.itens.0.v_ipi'));
+        $this->assertSame('55.18', $preview->json('data.espelho.itens.0.v_pis'));
+        $this->assertSame('254.14', $preview->json('data.espelho.totais.v_cofins'));
     }
 
     public function test_preview_rejeita_oc_outra_empresa(): void
@@ -375,5 +390,135 @@ class EntradaXmlAssistTest extends TestCase
                 'file' => UploadedFile::fake()->createWithContent('nfe.xml', $xml),
             ])
             ->assertNotFound();
+    }
+
+    public function test_receber_com_xml_persiste_espelho_fiscal(): void
+    {
+        Storage::fake('local');
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '1000.0000',
+                        'valor_unitario' => '3.800000',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $ocItemId = $oc->json('data.itens.0.id');
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_colacril_udi.xml'));
+        $this->assertNotFalse($xml);
+
+        $receber = $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
+                'nf_chave' => '41260403514129000106550040005773061452788002',
+                'nf_numero' => '577306',
+                'nf_data' => '2026-04-10',
+                'nf_valor' => '4170.50',
+                'vencimento' => '2026-05-10',
+                'natureza_id' => $this->nat506->id,
+                'xml' => $xml,
+                'itens' => [
+                    [
+                        'ordem_compra_item_id' => $ocItemId,
+                        'qtde_recebida' => '1000.0000',
+                    ],
+                ],
+                'cprod_maps' => [
+                    [
+                        'c_prod' => '301A4G12N',
+                        'produto_id' => $this->produto->id,
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.nfe_entrada.chave', '41260403514129000106550040005773061452788002')
+            ->assertJsonPath('data.nfe_entrada.xml_armazenado', true)
+            ->assertJsonPath('data.nfe_entrada.serie', '4')
+            ->assertJsonPath('data.nfe_entrada.espelho.itens.0.v_icms', '456.00')
+            ->assertJsonPath('data.nfe_entrada.espelho.totais.v_ipi', '370.50');
+
+        $this->assertDatabaseHas('nfe_entradas', [
+            'empresa_id' => $this->empresa->id,
+            'chave' => '41260403514129000106550040005773061452788002',
+            'id_dest' => '2',
+            'emit_uf' => 'PR',
+            'emit_crt' => '3',
+            'numero' => '577306',
+        ]);
+        $this->assertDatabaseHas('nfe_entrada_itens', [
+            'c_prod' => '301A4G12N',
+            'orig' => '5',
+            'cst_icms' => '00',
+            'cfop' => '6101',
+            'v_icms' => '456.00',
+            'v_ipi' => '370.50',
+            'v_pis' => '55.18',
+            'v_cofins' => '254.14',
+            'produto_id' => $this->produto->id,
+        ]);
+
+        $entrada = NfeEntrada::query()->firstOrFail();
+        $this->assertSame($receber->json('data.id'), $entrada->movimento_id);
+        Storage::disk('local')->assertExists($entrada->xml_path);
+        $this->assertSame(hash('sha256', $xml), $entrada->xml_sha256);
+        $this->assertSame(1, NfeEntradaItem::query()->count());
+
+        $this->withHeaders($h)
+            ->getJson("/api/v1/ordens-compra/{$ocId}")
+            ->assertOk()
+            ->assertJsonPath('data.nfe_entradas.0.numero', '577306')
+            ->assertJsonPath('data.nfe_entradas.0.espelho.itens.0.orig', '5')
+            ->assertJsonPath('data.nfe_entradas.0.espelho.itens.0.v_pis', '55.18');
+    }
+
+    public function test_receber_xml_chave_divergente_nao_lanca(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '100.0000',
+                        'valor_unitario' => '2.500000',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_tubete.xml'));
+        $this->assertNotFalse($xml);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$oc->json('data.id')}/receber", [
+                'nf_chave' => '35260800000000000000550010000000011000000099',
+                'nf_numero' => '1001',
+                'nf_data' => '2026-08-11',
+                'vencimento' => '2026-09-11',
+                'natureza_id' => $this->nat506->id,
+                'xml' => $xml,
+                'itens' => [
+                    [
+                        'ordem_compra_item_id' => $oc->json('data.itens.0.id'),
+                        'qtde_recebida' => '100.0000',
+                    ],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['nf_chave']);
+
+        $this->assertDatabaseCount('estoque_movimentos', 0);
+        $this->assertDatabaseCount('nfe_entradas', 0);
     }
 }

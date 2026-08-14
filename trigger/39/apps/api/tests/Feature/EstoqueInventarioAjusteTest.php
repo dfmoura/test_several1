@@ -402,4 +402,134 @@ class EstoqueInventarioAjusteTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.acuracidade_pct', '100.0000');
     }
+
+    public function test_cancelar_inventario_aberto_libera_sku(): void
+    {
+        Sanctum::actingAs($this->contador1);
+        $h = $this->headers();
+
+        $inv = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/inventarios', [
+                'tipo' => 'ROTATIVO',
+                'produto_ids' => [$this->produto->id],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.pode_cancelar', true);
+
+        $invId = $inv->json('data.id');
+        $itemId = $inv->json('data.itens.0.id');
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$invId}/itens/{$itemId}/contar-1", [
+                'qtde' => '90.0000',
+            ])
+            ->assertOk();
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->produto->id,
+                'motivo_codigo' => 'A01',
+                'qtde_contada' => '99.0000',
+                'checklist_confirmado' => true,
+            ])
+            ->assertStatus(422);
+
+        $this->withHeaders($h)
+            ->getJson('/api/v1/estoque/inventarios')
+            ->assertOk()
+            ->assertJsonPath('data.0.pode_cancelar', true);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$invId}/cancelar")
+            ->assertOk()
+            ->assertJsonPath('data.status', EstoqueInventario::STATUS_CANCELADO)
+            ->assertJsonPath('data.pode_cancelar', false);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$invId}/cancelar")
+            ->assertStatus(422);
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->produto->id,
+                'motivo_codigo' => 'A01',
+                'qtde_contada' => '99.0000',
+                'checklist_confirmado' => true,
+            ])
+            ->assertCreated();
+    }
+
+    public function test_nao_cancela_inventario_encerrado_nem_com_ajuste(): void
+    {
+        Sanctum::actingAs($this->contador1);
+        $h = $this->headers();
+
+        $ok = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/inventarios', [
+                'tipo' => 'ROTATIVO',
+                'produto_ids' => [$this->produto->id],
+            ])
+            ->assertCreated();
+
+        $okId = $ok->json('data.id');
+        $okItem = $ok->json('data.itens.0.id');
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$okId}/itens/{$okItem}/contar-1", [
+                'qtde' => '100.0000',
+            ])
+            ->assertOk();
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$okId}/encerrar")
+            ->assertOk();
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$okId}/cancelar")
+            ->assertStatus(422);
+
+        $this->withHeaders($h)
+            ->getJson("/api/v1/estoque/inventarios/{$okId}")
+            ->assertOk()
+            ->assertJsonPath('data.pode_cancelar', false);
+
+        $div = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/inventarios', [
+                'tipo' => 'ROTATIVO',
+                'produto_ids' => [$this->produto->id],
+            ])
+            ->assertCreated();
+
+        $divId = $div->json('data.id');
+        $divItem = $div->json('data.itens.0.id');
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$divId}/itens/{$divItem}/contar-1", [
+                'qtde' => '90.0000',
+            ])
+            ->assertOk();
+
+        Sanctum::actingAs($this->contador2);
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$divId}/itens/{$divItem}/contar-2", [
+                'qtde' => '90.0000',
+            ])
+            ->assertOk();
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$divId}/itens/{$divItem}/gerar-ajuste", [
+                'checklist_confirmado' => true,
+                'motivo_codigo' => 'A01',
+            ])
+            ->assertCreated();
+
+        $this->withHeaders($h)
+            ->getJson("/api/v1/estoque/inventarios/{$divId}")
+            ->assertOk()
+            ->assertJsonPath('data.pode_cancelar', false);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/inventarios/{$divId}/cancelar")
+            ->assertStatus(422);
+    }
 }

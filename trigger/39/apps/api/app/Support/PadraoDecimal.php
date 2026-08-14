@@ -54,6 +54,12 @@ final class PadraoDecimal
     /** Espessura (mm). */
     public const SCALE_THICKNESS = 4;
 
+    /** Coordenada WGS84 (lat/lng). Nunca float. */
+    public const SCALE_COORD = 7;
+
+    /** Distância de rota (km). 3 casas = precisão de metro. */
+    public const SCALE_DISTANCE = 3;
+
     // --- Precisões NUMERIC(p,s) ----------------------------------------------
 
     public const PRECISION_MONEY = 15;
@@ -75,6 +81,12 @@ final class PadraoDecimal
     public const PRECISION_WEIGHT = 12;
 
     public const PRECISION_THICKNESS = 9;
+
+    public const PRECISION_COORD_LAT = 10;
+
+    public const PRECISION_COORD_LNG = 11;
+
+    public const PRECISION_DISTANCE = 8;
 
     /**
      * Campos de produto → escala (§2).
@@ -117,7 +129,56 @@ final class PadraoDecimal
             'limite_credito' => self::SCALE_MONEY,
             'credito_utilizado' => self::SCALE_MONEY,
             'comissao_percentual' => self::SCALE_PERCENT,
+            'latitude' => self::SCALE_COORD,
+            'longitude' => self::SCALE_COORD,
+            'distancia_km' => self::SCALE_DISTANCE,
         ];
+    }
+
+    /**
+     * Origem operacional da EMP (ponto A da rota).
+     *
+     * @return array<string, int>
+     */
+    public static function empresaFieldScales(): array
+    {
+        return [
+            'origem_latitude' => self::SCALE_COORD,
+            'origem_longitude' => self::SCALE_COORD,
+        ];
+    }
+
+    /**
+     * Latitude / longitude WGS84 (nullable).
+     *
+     * @return list<\Closure|string>
+     */
+    public static function coordinateRules(string $axis): array
+    {
+        $max = $axis === 'latitude' || str_contains($axis, 'latitude') ? '90' : '180';
+        $rules = self::rules(self::SCALE_COORD);
+        $rules[] = function (string $attribute, mixed $value, \Closure $fail) use ($max): void {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            try {
+                $canonical = self::parseStrict($value, self::SCALE_COORD);
+            } catch (InvalidArgumentException) {
+                return;
+            }
+
+            if ($canonical === null) {
+                return;
+            }
+
+            if (bccomp($canonical, $max, self::SCALE_COORD) > 0
+                || bccomp($canonical, '-'.$max, self::SCALE_COORD) < 0) {
+                $fail('Coordenada fora do intervalo WGS84.');
+            }
+        };
+
+        return $rules;
     }
 
     /**
@@ -287,6 +348,32 @@ final class PadraoDecimal
         }
 
         return $rounded;
+    }
+
+    /**
+     * Teto comercial para cima (§1.6) — frete estimado e totais que não podem
+     * arredondar para baixo. Não substitui HALF_UP como modo global.
+     */
+    public static function roundCeil(string $canonical, int $scale): string
+    {
+        if (! extension_loaded('bcmath')) {
+            throw new InvalidArgumentException('extensão bcmath é obrigatória para aritmética decimal.');
+        }
+
+        if (str_starts_with($canonical, '-')) {
+            throw new InvalidArgumentException('roundCeil não se aplica a valor negativo.');
+        }
+
+        $truncated = bcadd($canonical, '0', $scale);
+        if (bccomp($canonical, $truncated, max($scale + 8, 12)) > 0) {
+            $step = $scale === 0
+                ? '1'
+                : '0.'.str_repeat('0', $scale - 1).'1';
+
+            return bcadd($truncated, $step, $scale);
+        }
+
+        return $truncated;
     }
 
     /**

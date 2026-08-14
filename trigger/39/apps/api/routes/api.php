@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\EstoqueController;
 use App\Http\Controllers\Api\V1\EstoqueInventarioController;
 use App\Http\Controllers\Api\V1\EstoqueOperacionalController;
 use App\Http\Controllers\Api\V1\FacasController;
+use App\Http\Controllers\Api\V1\FaturamentoController;
 use App\Http\Controllers\Api\V1\FiscalHubController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IaProvedorController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\V1\OrdemCompraController;
 use App\Http\Controllers\Api\V1\OrdemProducaoController;
 use App\Http\Controllers\Api\V1\OrdemServicoController;
 use App\Http\Controllers\Api\V1\PedidoController;
+use App\Http\Controllers\Api\V1\RastreioInsumosController;
 use App\Http\Controllers\Api\V1\ParametroController;
 use App\Http\Controllers\Api\V1\ParceiroController;
 use App\Http\Controllers\Api\V1\ParceiroImportController;
@@ -195,9 +197,21 @@ Route::prefix('v1')->group(function () {
         Route::post('/ordens-producao/{ordemProducao}/requisitar-pendentes', [OrdemProducaoController::class, 'requisitarPendentes']);
         Route::post('/ordens-producao/{ordemProducao}/concluir', [OrdemProducaoController::class, 'concluir']);
         Route::post('/ordens-producao/{ordemProducao}/devolver-ao-pedido', [OrdemProducaoController::class, 'devolverAoPedido']);
+        Route::get('/rastreio', [RastreioInsumosController::class, 'buscar']);
+        Route::get('/rastreio/ordens-producao/{ordemProducao}', [RastreioInsumosController::class, 'ordemProducao']);
+        Route::get('/rastreio/pedidos/{pedido}', [RastreioInsumosController::class, 'pedido']);
+        Route::get('/rastreio/lotes/{estoqueLote}', [RastreioInsumosController::class, 'lote']);
         Route::get('/ordens-servico', [OrdemServicoController::class, 'index']);
         Route::get('/ordens-servico/{ordemServico}', [OrdemServicoController::class, 'show']);
         Route::post('/ordens-servico/{ordemServico}/concluir', [OrdemServicoController::class, 'concluir']);
+
+        Route::get('/faturamentos', [FaturamentoController::class, 'index']);
+        Route::get('/faturamentos/{faturamento}', [FaturamentoController::class, 'show']);
+        Route::post('/faturamentos/{faturamento}/estornar', [FaturamentoController::class, 'estornar']);
+        Route::post('/faturamentos/{faturamento}/emitir-nf', [FaturamentoController::class, 'emitirNf']);
+        Route::post('/faturamentos/{faturamento}/consultar-nf', [FaturamentoController::class, 'consultarNf']);
+        Route::get('/pedidos/{pedido}/faturamento-preview', [FaturamentoController::class, 'preview']);
+        Route::post('/pedidos/{pedido}/faturar', [FaturamentoController::class, 'faturar']);
 
         Route::get('/orcamento-catalogo/resumo', [OrcamentoCatalogoController::class, 'resumo']);
         Route::post('/orcamento-catalogo/seed', [OrcamentoCatalogoController::class, 'seed']);
@@ -215,6 +229,9 @@ Route::prefix('v1')->group(function () {
         Route::put('/orcamento-catalogo/maquinas/{maquina}', [OrcamentoCatalogoController::class, 'updateMaquina']);
         Route::get('/orcamento-catalogo/parametros', [OrcamentoCatalogoController::class, 'parametros']);
         Route::put('/orcamento-catalogo/parametros/{chave}', [OrcamentoCatalogoController::class, 'updateParametro']);
+        Route::get('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'faixasFrete']);
+        Route::post('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'storeFaixaFrete']);
+        Route::put('/orcamento-catalogo/faixas-frete/{faixaFrete}', [OrcamentoCatalogoController::class, 'updateFaixaFrete']);
 
         Route::get('/facas/resumo', [FacasController::class, 'resumo']);
         Route::post('/facas/seed', [FacasController::class, 'seed']);

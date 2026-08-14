@@ -9,6 +9,7 @@ use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
+use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Comercial\Orcamento\OrcamentoMotor;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\ModelosComposicao;
@@ -21,6 +22,7 @@ class OrcamentoService
         private readonly OrcamentoMotor $motor,
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $audit,
+        private readonly OrcamentoFreteEstimadoService $freteEstimado,
     ) {}
 
     /** @return array<string, mixed> */
@@ -40,7 +42,7 @@ class OrcamentoService
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $input = $this->buildMotorInput($data, $parceiro, $empresa);
 
-        return $this->enrichResult($this->motor->calcular($input), $data);
+        return $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
     }
 
     /**
@@ -94,7 +96,7 @@ class OrcamentoService
     {
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $input = $this->buildMotorInput($data, $parceiro, $empresa);
-        $result = $this->enrichResult($this->motor->calcular($input), $data);
+        $result = $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
 
         $orcamento = DB::transaction(function () use ($empresa, $parceiro, $data, $input, $result) {
             $ano = (int) now()->year;
@@ -150,7 +152,7 @@ class OrcamentoService
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $input = $this->buildMotorInput($data, $parceiro, $empresa);
-        $result = $this->enrichResult($this->motor->calcular($input), $data);
+        $result = $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
 
         $before = [
             'versao' => $orcamento->versao,
@@ -327,6 +329,8 @@ class OrcamentoService
             'observacao' => $data['observacao'] ?? null,
             'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmpty($data['forma_pagamento'] ?? null),
+            'modo_entrega' => $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null),
+            'necessidade' => $this->necessidadeSnapshot($data['necessidade'] ?? $input['necessidade'] ?? null),
             'faca_nova' => (bool) ($data['faca_nova'] ?? $input['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? $input['formato_faca'] ?? null,
             'valor_faca_nova' => (float) ($data['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0),
@@ -346,14 +350,24 @@ class OrcamentoService
         return $s === '' ? null : $s;
     }
 
+    private function necessidadeSnapshot(mixed $value): ?string
+    {
+        $s = $this->nullIfEmpty($value);
+        if ($s === null) {
+            return null;
+        }
+
+        return strtoupper($s);
+    }
+
     /**
-     * Anexa metadados de FACA NOVA ao result sem alterar fórmulas R1–R20 do motor.
+     * Anexa FACA NOVA e frete estimado ao result sem alterar fórmulas R1–R20.
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function enrichResult(array $result, array $data): array
+    private function enrichResult(array $result, array $data, Parceiro $parceiro, Empresa $empresa): array
     {
         $facaNova = (bool) ($data['faca_nova'] ?? false);
         $valorFaca = $facaNova ? max(0.0, (float) ($data['valor_faca_nova'] ?? 0)) : 0.0;
@@ -374,7 +388,7 @@ class OrcamentoService
             }
         }
 
-        return $result;
+        return $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa);
     }
 
     /** @return array<string, mixed> */

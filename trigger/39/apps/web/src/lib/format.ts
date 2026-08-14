@@ -23,6 +23,13 @@ export function formatCep(value: string | null | undefined): string {
   return digits.replace(/^(\d{5})(\d{3})$/, '$1-$2');
 }
 
+/** Máscara de digitação CEP (#####-###). Armazena só dígitos. */
+export function formatCepInput(value: string | null | undefined): string {
+  const digits = (value ?? '').replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
 /** Formata CNAE 7 dígitos como 0000-0/00 */
 export function formatCnae(value: string | number | null | undefined): string {
   const digits = String(value ?? '').replace(/\D/g, '');
@@ -41,6 +48,15 @@ export function formatPhone(value: string | null | undefined): string {
   return value ?? '';
 }
 
+/** Máscara de digitação WhatsApp (celular 11 dígitos). Armazena só dígitos. */
+export function formatWhatsAppInput(value: string | null | undefined): string {
+  const digits = (value ?? '').replace(/\D/g, '').slice(0, 11);
+  if (!digits) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 /** Escalas oficiais — PADRAO_DECIMAL_CALCULOS §2 (DOC-13). */
 export const DECIMAL_SCALE = {
   money: 2,
@@ -53,6 +69,7 @@ export const DECIMAL_SCALE = {
   gramatura: 2,
   weight: 3,
   thickness: 4,
+  distance: 3,
 } as const;
 
 /**
@@ -115,6 +132,34 @@ export function formatPercent(value: string | number | null | undefined): string
 export function decimalStep(scale: number): string {
   if (scale <= 0) return '1';
   return `0.${'0'.repeat(scale - 1)}1`;
+}
+
+/** WGS84 — notação canônica com ponto (GIS). Vazio se faltar um dos eixos. */
+export function formatLatLng(
+  lat: string | number | null | undefined,
+  lng: string | number | null | undefined,
+): string {
+  if (lat === null || lat === undefined || lat === '' || lng === null || lng === undefined || lng === '') {
+    return '';
+  }
+  const a = String(lat).trim();
+  const b = String(lng).trim();
+  if (!/^-?\d+(\.\d+)?$/.test(a) || !/^-?\d+(\.\d+)?$/.test(b)) {
+    return '';
+  }
+  const trim = (v: string) => v.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  return `${trim(a)}, ${trim(b)}`;
+}
+
+/** Distância de carro (1 casa na UI). Vazio se não houver km. */
+export function formatKmCarro(
+  km: string | number | null | undefined,
+  fonte?: string | null,
+): string {
+  const formatted = formatDecimalBr(km, 1);
+  if (formatted === '—') return '';
+  if (fonte === 'mesmo_ponto') return `${formatted} km`;
+  return `${formatted} km de carro (OpenStreetMap)`;
 }
 
 export function formatDate(value: string | null | undefined): string {

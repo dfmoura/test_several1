@@ -20,6 +20,12 @@ class ParceiroEnderecoEntrega extends Model
         'uf',
         'cep',
         'ibge',
+        'latitude',
+        'longitude',
+        'distancia_km',
+        'distancia_fonte',
+        'distancia_calculada_em',
+        'distancia_empresa_id',
         'responsavel_nome',
         'responsavel_telefone',
         'responsavel_documento',
@@ -33,6 +39,10 @@ class ParceiroEnderecoEntrega extends Model
         return [
             'principal' => 'boolean',
             'ordem' => 'integer',
+            'latitude' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_COORD,
+            'longitude' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_COORD,
+            'distancia_km' => 'decimal:'.\App\Support\PadraoDecimal::SCALE_DISTANCE,
+            'distancia_calculada_em' => 'datetime',
         ];
     }
 

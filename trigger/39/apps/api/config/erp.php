@@ -67,11 +67,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | Tokens cifados com Laravel Crypt. Homolog ≠ produção (UC-INT-001).
-    | Cliente mínimo: autenticação + teste; emissão NF é fase futura.
+    | Teste OK do ambiente ativo habilita emissão automática de NF-e/NFS-e.
     |
     */
 
     'fiscal_hub_http_timeout_sec' => (float) env('FISCAL_HUB_HTTP_TIMEOUT_SEC', 20),
+
+    'fiscal_hub_emit_timeout_sec' => (float) env('FISCAL_HUB_EMIT_TIMEOUT_SEC', 40),
 
     /*
     |--------------------------------------------------------------------------
@@ -99,5 +101,22 @@ return [
 
     'bank_provider' => env('BANK_PROVIDER', 'mock'),
     'bank_http_timeout_sec' => (float) env('BANK_HTTP_TIMEOUT_SEC', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenRouteService (distância de carro EMP → PAR)
+    |--------------------------------------------------------------------------
+    |
+    | Chave só no backend. Proibido router.project-osrm.org.
+    | Cadência Tipo A (estudo 32): evento humano + cache. Nunca no browser.
+    |
+    */
+
+    'ors' => [
+        'key' => env('ORS_API_KEY', ''),
+        'base' => env('ORS_BASE', 'https://api.openrouteservice.org'),
+        'timeout_sec' => (float) env('ORS_HTTP_TIMEOUT_SEC', 8),
+        'cache_ttl_days' => (int) env('ORS_CACHE_TTL_DAYS', 90),
+    ],
 
 ];

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -30,6 +31,9 @@ class LimparDadosOperacionais extends Command
         'cobrancas',
         'titulo_baixas',
         'titulos',
+        'faturamento_itens',
+        'documento_fiscal_saidas',
+        'faturamentos',
         'orcamento_links_aprovacao',
         'matriz_cobradas',
         'ordem_producao_materiais',
@@ -39,6 +43,8 @@ class LimparDadosOperacionais extends Command
         'pedidos',
         'orcamentos',
         'estoque_movimento_itens',
+        'nfe_entrada_itens',
+        'nfe_entradas',
         'estoque_movimentos',
         'estoque_ajustes',
         'estoque_inventario_itens',
@@ -158,6 +164,16 @@ class LimparDadosOperacionais extends Command
 
     private function breakCircularRefs(): void
     {
+        if (Schema::hasTable('faturamentos') && Schema::hasColumn('faturamentos', 'adiantamento_titulo_id')) {
+            DB::table('faturamentos')->update(['adiantamento_titulo_id' => null]);
+            $this->line('· faturamentos.adiantamento_titulo_id → null');
+        }
+
+        if (Schema::hasTable('titulos') && Schema::hasColumn('titulos', 'faturamento_id')) {
+            DB::table('titulos')->update(['faturamento_id' => null, 'pedido_id' => null]);
+            $this->line('· titulos.faturamento_id / pedido_id → null');
+        }
+
         if (Schema::hasTable('orcamentos') && Schema::hasColumn('orcamentos', 'adiantamento_titulo_id')) {
             DB::table('orcamentos')->update(['adiantamento_titulo_id' => null]);
             $this->line('· orcamentos.adiantamento_titulo_id → null');
@@ -206,6 +222,9 @@ class LimparDadosOperacionais extends Command
             'cobrancas',
             'titulo_baixas',
             'titulos',
+            'faturamento_itens',
+            'documento_fiscal_saidas',
+            'faturamentos',
             'orcamento_links_aprovacao',
             'matriz_cobradas',
             'ordem_producao_materiais',
@@ -215,6 +234,8 @@ class LimparDadosOperacionais extends Command
             'pedidos',
             'orcamentos',
             'estoque_movimento_itens',
+            'nfe_entrada_itens',
+            'nfe_entradas',
             'estoque_movimentos',
             'estoque_ajustes',
             'estoque_inventario_itens',
@@ -232,6 +253,11 @@ class LimparDadosOperacionais extends Command
 
         foreach ($steps as $table) {
             $this->truncateIfExists($table);
+        }
+
+        if (Storage::disk('local')->exists('nfe-entradas')) {
+            Storage::disk('local')->deleteDirectory('nfe-entradas');
+            $this->line('· storage nfe-entradas removido');
         }
     }
 

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Parceiro;
 use App\Services\Cadastros\ParceiroService;
+use App\Support\OrigemLead;
 use App\Support\ParceiroValidationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ParceiroController extends Controller
 {
@@ -50,10 +52,16 @@ class ParceiroController extends Controller
             'nome' => ['required', 'string', 'max:255'],
             'whatsapp' => ['nullable', 'string', 'max:32'],
             'email' => ['nullable', 'email', 'max:255'],
+            'cep' => ['nullable', 'string', 'max:10'],
+            'logradouro' => ['nullable', 'string', 'max:255'],
+            'numero' => ['nullable', 'string', 'max:32'],
+            'complemento' => ['nullable', 'string', 'max:255'],
+            'bairro' => ['nullable', 'string', 'max:255'],
             'municipio' => ['required', 'string', 'max:120'],
             'uf' => ['required', 'string', 'size:2'],
+            'ibge' => ['nullable', 'string', 'max:7'],
             'cnpj_cpf' => ['nullable', 'string', 'max:18'],
-            'origem_lead' => ['nullable', 'string', 'max:120'],
+            'origem_lead' => ['nullable', 'string', Rule::in(OrigemLead::OPCOES)],
             'forcar' => ['sometimes', 'boolean'],
         ]);
 

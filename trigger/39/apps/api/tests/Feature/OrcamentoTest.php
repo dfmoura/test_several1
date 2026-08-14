@@ -138,6 +138,8 @@ class OrcamentoTest extends TestCase
 
         $res->assertOk();
         $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertSame('RETIRAR', $res->json('data.frete.modo'));
+        $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
         $this->assertSame(0, Orcamento::query()->count());
     }
 

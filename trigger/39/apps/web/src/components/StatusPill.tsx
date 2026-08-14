@@ -27,7 +27,12 @@ function pillVariant(status: string): string {
     key === 'encerrado' ||
     key === 'aju_gerado' ||
     key === 'confrontado' ||
-    key === 'contado_1'
+    key === 'contado_1' ||
+    key === 'liberado' ||
+    key === 'produzido' ||
+    key === 'faturado' ||
+    key === 'concluida' ||
+    key === 'requisitado'
   ) {
     return '--ativo';
   }
@@ -51,7 +56,11 @@ function pillVariant(status: string): string {
     key === 'divergente' ||
     key === 'recontado' ||
     key === 'aju_pendente' ||
-    key === 'a_vencer'
+    key === 'a_vencer' ||
+    key === 'em_producao' ||
+    key === 'em_andamento' ||
+    key === 'planejada' ||
+    key === 'nf_pendente'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';
@@ -63,6 +72,8 @@ function pillVariant(status: string): string {
     key === 'rejeitado' ||
     key === 'cancelado' ||
     key === 'cancelada' ||
+    key === 'estornado' ||
+    key === 'estornada' ||
     key === 'vencido'
   ) {
     return '--bloqueado';

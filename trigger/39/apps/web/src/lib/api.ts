@@ -258,6 +258,7 @@ export type Empresa = {
   ie_status: string | null;
   ie_consultado_em: string | null;
   im: string | null;
+  im_obrigatoria_nfse?: boolean;
   iest: string | null;
   regime: string | null;
   crt: number | null;
@@ -274,14 +275,19 @@ export type Empresa = {
   uf: string | null;
   cep: string | null;
   ibge: string | null;
+  origem_latitude?: string | null;
+  origem_longitude?: string | null;
   venda_ativa: boolean;
   estoque_ativo: boolean;
   logo_path: string | null;
   situacao: string;
   cadastro_fiscal_completo: boolean;
   apto_emissao_nfe?: boolean;
+  apto_emissao_nfse?: boolean;
   fiscal_pendencias?: string[];
   fiscal_pendencias_emissao?: string[];
+  fiscal_pendencias_nfse?: string[];
+  fiscal_pendencias_emissao_nfse?: string[];
   fiscais_historico?: EmpresaFiscalHistorico[];
   contas_financeiras?: EmpresaContaFinanceira[];
   criado_por?: UsuarioRef | null;
@@ -325,6 +331,12 @@ export type ParceiroEnderecoEntrega = {
   uf: string | null;
   cep: string | null;
   ibge: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  distancia_km?: string | null;
+  distancia_fonte?: string | null;
+  distancia_calculada_em?: string | null;
+  distancia_empresa_id?: number | null;
   responsavel_nome: string;
   responsavel_telefone: string | null;
   responsavel_documento: string | null;
@@ -380,6 +392,7 @@ export type Parceiro = {
   cnaes_secundarios: Array<{ codigo: string; descricao?: string | null }> | null;
   situacao: string;
   is_prospect: boolean;
+  origem_lead: string | null;
   cadastro_fiscal_completo: boolean;
   emite_documento_fiscal: boolean;
   apto_emissao_nfe?: boolean;
@@ -401,6 +414,12 @@ export type Parceiro = {
   uf: string | null;
   cep: string | null;
   ibge: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  distancia_km?: string | null;
+  distancia_fonte?: string | null;
+  distancia_calculada_em?: string | null;
+  distancia_empresa_id?: number | null;
   telefone: string | null;
   whatsapp: string | null;
   email: string | null;
@@ -687,6 +706,54 @@ export type OrdemCompra = {
   valor_total: string;
   observacao: string | null;
   itens?: OrdemCompraItem[];
+  nfe_entradas?: NfeEntradaResumo[];
+};
+
+export type NfeEntradaEspelho = {
+  nat_op: string | null;
+  id_dest: string | null;
+  modelo: string | null;
+  serie: string | null;
+  numero: string | null;
+  emit_uf: string | null;
+  emit_crt: string | null;
+  totais: {
+    v_bc: string | null;
+    v_icms: string | null;
+    v_ipi: string | null;
+    v_pis: string | null;
+    v_cofins: string | null;
+    v_st: string | null;
+    v_nf: string | null;
+  };
+  itens: Array<{
+    n_item: number;
+    cfop: string | null;
+    ncm: string | null;
+    orig: string | null;
+    cst: string | null;
+    p_icms: string | null;
+    v_icms: string | null;
+    v_ipi: string | null;
+    v_pis: string | null;
+    v_cofins: string | null;
+    v_prod: string | null;
+  }>;
+};
+
+export type NfeEntradaResumo = {
+  id: number;
+  chave: string;
+  modelo: string | null;
+  serie: string | null;
+  numero: string | null;
+  nat_op: string | null;
+  id_dest: string | null;
+  emit_uf?: string | null;
+  emit_crt?: string | null;
+  emit_nome?: string | null;
+  xml_armazenado: boolean;
+  espelho?: NfeEntradaEspelho;
 };
 
 export type ReceberXmlWarning = {
@@ -711,13 +778,20 @@ export type ReceberXmlPreview = {
     valor_nf: string | null;
     totais?: Record<string, string | null> | null;
     parcelas?: ReceberXmlParcela[];
-    destinatario?: { cnpj_cpf: string | null };
+    destinatario?: { cnpj_cpf: string | null; ie?: string | null; uf?: string | null };
     emitente: {
       cnpj_cpf: string | null;
       razao_social: string | null;
       nome_fantasia: string | null;
+      ie?: string | null;
+      uf?: string | null;
+      crt?: string | null;
     };
+    nat_op?: string | null;
+    id_dest?: string | null;
+    modelo?: string | null;
   };
+  espelho?: NfeEntradaEspelho;
   warnings: ReceberXmlWarning[];
   linhas: Array<{
     n_item: number;
@@ -793,6 +867,15 @@ export type EstoqueSaldo = {
   lotes?: EstoqueLote[];
 };
 
+export type EstoqueMovimentoItem = {
+  id: number;
+  produto_id: number;
+  produto?: { id: number; codigo: string; descricao_fiscal: string } | null;
+  qtde: string;
+  unidade: string;
+  lote?: { id: number; codigo: string; data_validade?: string | null } | null;
+};
+
 export type EstoqueMovimento = {
   id: number;
   codigo: string;
@@ -800,10 +883,20 @@ export type EstoqueMovimento = {
   nf_chave: string | null;
   nf_numero: string | null;
   nf_data: string | null;
+  nf_valor?: string | null;
   conferido_em: string;
+  observacao?: string | null;
   motivo_codigo?: string | null;
   ajuste_id?: number | null;
+  fornecedor?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia?: string | null;
+  } | null;
   ordem_compra?: { id: number; codigo: string } | null;
+  nfe_entrada?: { id: number; numero: string | null; xml_armazenado: boolean } | null;
+  itens?: EstoqueMovimentoItem[];
 };
 
 export type ReposicaoItem = {
@@ -913,6 +1006,7 @@ export type EstoqueInventario = {
   skus_contados: number | null;
   skus_ok: number | null;
   itens_count: number;
+  pode_cancelar?: boolean;
   observacao: string | null;
   itens?: EstoqueInventarioItem[];
   created_at: string | null;
@@ -942,6 +1036,10 @@ export type EstoqueExtrato = {
     movimento_codigo: string | null;
     tipo: string | null;
     motivo_codigo: string | null;
+    ajuste_id?: number | null;
+    ordem_compra_id?: number | null;
+    nf_numero?: string | null;
+    nf_data?: string | null;
     qtde: string;
     unidade: string;
     valor_unitario: string;
@@ -969,6 +1067,10 @@ export type Titulo = {
   natureza_id: number;
   orcamento_id?: number | null;
   orcamento?: { id: number; codigo: string; financeiro_status: string | null } | null;
+  pedido_id?: number | null;
+  pedido?: { id: number; codigo: string } | null;
+  faturamento_id?: number | null;
+  faturamento?: { id: number; codigo: string } | null;
   documento: string | null;
   parcela?: number | null;
   n_dup?: string | null;
@@ -1050,6 +1152,8 @@ export type FiscalHub = {
   ultimo_teste_em: string | null;
   ultimo_teste_ok: boolean | null;
   ultimo_teste_msg: string | null;
+  emissao_habilitada?: boolean;
+  emissao_habilitada_em?: string | null;
   meta?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -1115,6 +1219,17 @@ export type CepConsulta = {
   localidade?: string;
   uf?: string;
   ibge?: string;
+  latitude?: string | null;
+  longitude?: string | null;
+  geo_fonte?: string | null;
+  geo_cache?: boolean;
+  geo_erro?: string | null;
+  geo_sem_ponto?: boolean;
+  distancia_km?: string | null;
+  distancia_fonte?: string | null;
+  distancia_cache?: boolean;
+  distancia_atribuicao?: string | null;
+  distancia_erro?: string | null;
 };
 
 export type FiscalCatalogItem = {
@@ -1167,6 +1282,21 @@ export type OrcamentoFaixaResult = {
   valor_total: number;
   valor_faca_nova?: number;
   valor_total_com_faca?: number;
+  kg_est?: string | number | null;
+  faixa_frete_kg_ate?: string | number | null;
+  preco_por_km?: string | number | null;
+  minimo_rs?: string | number | null;
+  valor_frete?: string | number | null;
+  frete_somavel?: boolean;
+};
+
+export type OrcamentoFreteSnap = {
+  modo: 'RETIRAR' | 'ENTREGAR' | string;
+  km?: string | number | null;
+  destino?: 'fiscal' | 'entrega' | string | null;
+  destino_label?: string | null;
+  peso_caixa_kg?: string | number | null;
+  motivo?: string | null;
 };
 
 export type OrcamentoResult = {
@@ -1179,6 +1309,7 @@ export type OrcamentoResult = {
   valor_faca_nova?: number;
   prazo_faca_dias?: number | null;
   formato_faca?: string | null;
+  frete?: OrcamentoFreteSnap | null;
 };
 
 export type Orcamento = {
@@ -1285,6 +1416,188 @@ export type Pedido = {
     qtde_executada: string | null;
   }>;
   snapshot?: Record<string, unknown> | null;
+  apto_faturar?: boolean;
+  faturamento?: {
+    id: number;
+    codigo: string;
+    status: string;
+    nf_status: string;
+    valor_bruto: string;
+    valor_adiantamento: string;
+    valor_a_cobrar: string;
+  } | null;
+  rastreio?: RastreioDocumento;
+  created_at: string | null;
+};
+
+export type FaturamentoParcela = {
+  parcela: number;
+  dias: number;
+  valor: string;
+  vencimento: string;
+  rotulo: string;
+  sinal?: boolean;
+};
+
+export type DocumentoFiscalPreviaItem = {
+  numero: number | string;
+  codigo?: string | null;
+  descricao: string;
+  ncm?: string;
+  cfop?: string;
+  csosn?: string;
+  unidade?: string;
+  quantidade?: string;
+  valor_unitario?: string;
+  valor?: string;
+};
+
+export type DocumentoFiscalPrevia = {
+  oficial: boolean;
+  formato_envio: string;
+  rotulo: string;
+  modelo?: string;
+  aviso: string;
+  natureza?: string;
+  informacoes_adicionais?: string;
+  data_emissao?: string;
+  competencia?: string;
+  serie_envio?: number | null;
+  numero?: number | null;
+  chave?: string | null;
+  protocolo?: string | null;
+  emitente?: {
+    nome?: string | null;
+    nome_fantasia?: string | null;
+    cnpj?: string;
+    ie?: string | null;
+    im?: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    bairro?: string | null;
+    endereco?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    cep?: string | null;
+    telefone?: string | null;
+    crt?: number | null;
+  };
+  destinatario?: {
+    nome?: string;
+    documento?: string;
+    endereco?: string | null;
+    bairro?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    cep?: string;
+    email?: string;
+    ie?: string;
+  };
+  itens?: DocumentoFiscalPreviaItem[];
+  duplicatas?: Array<{ numero: string; vencimento: string; valor: string }>;
+  valor_total?: string;
+  pedido?: string | null;
+  faturamento?: string | null;
+};
+
+export type DocumentoFiscalSaida = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  modelo: string;
+  status: string;
+  ambiente: string | null;
+  ref: string;
+  serie: number | null;
+  numero: number | null;
+  chave: string | null;
+  protocolo: string | null;
+  mensagem: string | null;
+  valor: string;
+  enviado_em?: string | null;
+  autorizado_em?: string | null;
+  previa?: DocumentoFiscalPrevia;
+  envio_hub?: Record<string, unknown> | null;
+};
+
+export type FiscalPreview = {
+  documentos: Array<{ tipo: string; rotulo: string; valor: string; itens: number }>;
+  hub: {
+    apto: boolean;
+    mensagem: string;
+    codigo: string | null;
+    ambiente: string | null;
+    emissao_habilitada: boolean;
+  };
+  apto_emissao: boolean;
+  emissao_automatica: boolean;
+  pendencias: string[];
+  avisos: string[];
+  precisa_nfe: boolean;
+  precisa_nfse: boolean;
+};
+
+export type FaturamentoPreview = {
+  ja_faturado: boolean;
+  apto: boolean;
+  pode_estornar?: boolean;
+  faturamento?: Faturamento | null;
+  fiscal?: FiscalPreview;
+  valor_itens?: string;
+  valor_matriz?: string;
+  valor_faca?: string;
+  preco_unitario?: string;
+  qtde_faturavel?: string;
+  qtde_pedida?: string;
+  valor_bruto?: string;
+  valor_adiantamento?: string;
+  valor_a_cobrar?: string;
+  adiantamento?: { id: number; codigo: string; valor: string; status: string } | null;
+  condicao_pagamento?: string;
+  forma_pagamento?: string;
+  emite_cobranca?: boolean;
+  itens?: Array<{
+    pedido_item_id: number;
+    descricao: string;
+    qtde: string;
+    unidade: string;
+    preco_unitario: string | null;
+    valor: string;
+  }>;
+  parcelas?: FaturamentoParcela[];
+  avisos?: string[];
+  bloqueios?: string[];
+};
+
+export type Faturamento = {
+  id: number;
+  codigo: string;
+  status: string;
+  nf_status: string;
+  valor_bruto: string;
+  valor_adiantamento: string;
+  valor_a_cobrar: string;
+  condicao_pagamento?: string | null;
+  forma_pagamento?: string | null;
+  faturado_em?: string | null;
+  estornado_em?: string | null;
+  motivo_estorno?: string | null;
+  pode_estornar?: boolean;
+  bloqueios_estorno?: string[];
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  pedido?: { id: number; codigo: string; status: string } | null;
+  orcamento?: { id: number; codigo: string } | null;
+  itens?: Array<{
+    id: number;
+    descricao: string;
+    qtde: string;
+    unidade: string | null;
+    preco_unitario: string | null;
+    valor: string;
+  }>;
+  titulos?: Titulo[];
+  adiantamento?: { id: number; codigo: string; valor: string; status: string } | null;
+  documentos_fiscais?: DocumentoFiscalSaida[];
   created_at: string | null;
 };
 
@@ -1342,6 +1655,148 @@ export type OrdemProducao = {
   concluida_em: string | null;
   cancelada_em?: string | null;
   created_at: string | null;
+  rastreio?: RastreioDocumento;
+};
+
+export type RastreioParceiro = {
+  id: number;
+  codigo?: string | null;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
+};
+
+export type RastreioOrigem = {
+  tipo: string;
+  movimento_id: number | null;
+  movimento_codigo: string | null;
+  qtde: string;
+  unidade: string;
+  nf_numero: string | null;
+  nf_chave: string | null;
+  nf_data: string | null;
+  oc?: { id: number; codigo: string } | null;
+  fornecedor?: RastreioParceiro | null;
+  nfe_entrada?: {
+    id: number;
+    numero: string | null;
+    serie: string | null;
+    chave: string | null;
+    data_emissao: string | null;
+    xml_armazenado: boolean;
+  } | null;
+  ajuste?: { id: number; codigo: string; motivo: string | null } | null;
+  created_at: string | null;
+  fallback_lote?: boolean;
+};
+
+export type RastreioLoteLinha = {
+  lote: {
+    id: number;
+    codigo: string;
+    data_entrada: string | null;
+    data_fabricacao: string | null;
+    data_validade: string | null;
+    origem_tipo: string;
+    nf_numero: string | null;
+  } | null;
+  qtde_baixada: string;
+  unidade: string;
+  origens: RastreioOrigem[];
+  lote_misto: boolean;
+  rastreavel_fornecedor: boolean;
+  observacao: string | null;
+};
+
+export type RastreioInsumo = {
+  material_id: number;
+  componente?: string | null;
+  origem_texto?: string | null;
+  produto: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    unidade_interna: string | null;
+    controla_lote: boolean;
+  } | null;
+  unidade: string;
+  qtde_planejada: string;
+  qtde_requisitada: string;
+  qtde_retorno: string;
+  qtde_perda: string;
+  qtde_liquida: string;
+  pendente: boolean;
+  saida_movimento?: { id: number; codigo: string; created_at: string | null } | null;
+  lotes: RastreioLoteLinha[];
+  sem_lote: boolean;
+  rastreavel_fornecedor: boolean;
+  observacao: string | null;
+};
+
+export type RastreioResumo = {
+  insumos_com_saida: number;
+  lotes: number;
+  notas: number;
+  fornecedores: number;
+  sem_rastro_fornecedor: number;
+  pronto_para_fornecedor: boolean;
+};
+
+export type RastreioOpRef = {
+  id: number;
+  codigo: string;
+  status: string;
+  qtde_boa: string | null;
+  concluida_em: string | null;
+  item?: string | null;
+};
+
+export type RastreioDocumento = {
+  tipo: 'OP' | 'PED' | 'LOTE';
+  op?: RastreioOpRef | null;
+  pedido?: { id: number; codigo: string; status: string } | null;
+  cliente?: RastreioParceiro | null;
+  pa?: { movimento_id: number; codigo: string; qtde_boa: string | null } | null;
+  insumos?: RastreioInsumo[];
+  ops?: Array<{ op: RastreioOpRef; resumo: RastreioResumo; insumos: RastreioInsumo[] }>;
+  lote?: {
+    id: number;
+    codigo: string;
+    data_entrada: string | null;
+    data_fabricacao: string | null;
+    data_validade: string | null;
+    origem_tipo: string;
+    nf_numero: string | null;
+  };
+  produto?: {
+    id: number;
+    codigo: string;
+    descricao_fiscal: string;
+    familia: string;
+    unidade_interna: string | null;
+    controla_lote: boolean;
+  } | null;
+  origens?: RastreioOrigem[];
+  consumos?: Array<{
+    qtde: string;
+    unidade: string;
+    movimento: { id: number; codigo: string; created_at: string | null };
+    op: RastreioOpRef;
+    pedido: { id: number; codigo: string; status: string } | null;
+    cliente: RastreioParceiro | null;
+  }>;
+  resumo?: RastreioResumo & { ops?: number; notas?: number; rastreavel_fornecedor?: boolean };
+};
+
+export type RastreioHit = {
+  tipo: 'OP' | 'PED' | 'LOTE' | 'NF';
+  id: number;
+  codigo: string;
+  rotulo: string;
+  status?: string;
+  produto_id?: number;
+  movimento_id?: number;
+  lote_ids?: number[];
 };
 
 export type OrcamentoEnvioAprovacao = {
@@ -1445,6 +1900,11 @@ export type OrcamentoPropostaPublica = {
   tolerancia_qtd_pct?: number;
   condicao_pagamento?: string | null;
   forma_pagamento?: string | null;
+  frete?: {
+    modo: string;
+    texto: string;
+    somavel: boolean;
+  } | null;
   cobra_matriz?: boolean;
   valor_matriz?: number;
   matriz_nota?: string | null;
@@ -1458,6 +1918,8 @@ export type OrcamentoPropostaPublica = {
     rolos: number | null;
     valor_matriz: number;
     valor_faca_nova: number;
+    valor_frete?: number | null;
+    frete_somavel?: boolean;
   }>;
   observacao_comercial?: string | null;
   adiantamento?: OrcamentoAdiantamentoPublico | null;
@@ -1482,6 +1944,7 @@ export type OrcCatalogoResumo = {
   tipos_troca: number;
   maquinas: number;
   parametros?: number;
+  faixas_frete?: number;
   matriz_cm2?: number;
   matriz_cm2_fonte?: 'database' | 'json_fallback' | string;
   fonte: 'database' | 'json_fallback' | string;

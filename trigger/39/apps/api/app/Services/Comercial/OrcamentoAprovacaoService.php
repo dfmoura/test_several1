@@ -6,6 +6,7 @@ use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
+use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -785,6 +786,11 @@ class OrcamentoAprovacaoService
                 ? (float) ($fx['valor_total_com_faca'] ?? ($valorTotal + $valorFaca))
                 : $valorTotal;
 
+            $valorFrete = array_key_exists('valor_frete', $fx) && $fx['valor_frete'] !== null && $fx['valor_frete'] !== ''
+                ? round((float) $fx['valor_frete'], 2)
+                : null;
+            $freteSomavel = (bool) ($fx['frete_somavel'] ?? false);
+
             $faixas[] = [
                 'index' => (int) $idx,
                 'quantidade' => $qtd,
@@ -795,6 +801,8 @@ class OrcamentoAprovacaoService
                 'rolos' => $rolos > 0 ? (int) round($rolos) : null,
                 'valor_matriz' => round((float) ($fx['valor_matriz'] ?? 0), 2),
                 'valor_faca_nova' => $facaNova ? round((float) ($fx['valor_faca_nova'] ?? $valorFaca), 2) : 0,
+                'valor_frete' => $valorFrete,
+                'frete_somavel' => $freteSomavel,
             ];
         }
 
@@ -848,6 +856,7 @@ class OrcamentoAprovacaoService
             'tolerancia_qtd_pct' => (float) $orcamento->tolerancia_qtd_pct,
             'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
+            'frete' => $this->fretePublico($input, $result, $faixas),
             'cobra_matriz' => (bool) $orcamento->cobra_matriz,
             'valor_matriz' => (float) $orcamento->valor_matriz,
             'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,
@@ -856,6 +865,41 @@ class OrcamentoAprovacaoService
             'modo' => $modo,
             'financeiro_status' => $orcamento->financeiro_status,
             'adiantamento' => null,
+        ];
+    }
+
+    /**
+     * CONSOLIDADO: valor, não fórmula (GERACAO §1.5 / ADR_ORC_FRETE_ESTIMADO).
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $result
+     * @param  list<array<string, mixed>>  $faixas
+     * @return array{modo: string, texto: string, somavel: bool}
+     */
+    private function fretePublico(array $input, array $result, array $faixas): array
+    {
+        $snap = is_array($result['frete'] ?? null) ? $result['frete'] : [];
+        $modo = strtoupper((string) ($snap['modo'] ?? $input['modo_entrega'] ?? OrcamentoFreteEstimadoService::MODO_RETIRAR));
+        if ($modo !== OrcamentoFreteEstimadoService::MODO_ENTREGAR) {
+            return [
+                'modo' => OrcamentoFreteEstimadoService::MODO_RETIRAR,
+                'texto' => 'Retirada no local',
+                'somavel' => false,
+            ];
+        }
+
+        $somavel = false;
+        foreach ($faixas as $fx) {
+            if (($fx['frete_somavel'] ?? false) && $fx['valor_frete'] !== null) {
+                $somavel = true;
+                break;
+            }
+        }
+
+        return [
+            'modo' => OrcamentoFreteEstimadoService::MODO_ENTREGAR,
+            'texto' => $somavel ? 'Entrega — frete estimado' : 'Entrega — frete a combinar',
+            'somavel' => $somavel,
         ];
     }
 

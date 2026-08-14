@@ -90,7 +90,6 @@ class EstoqueController extends Controller
 
         $data = $request->validate(CompraValidationRules::receber());
         $maps = $data['cprod_maps'] ?? [];
-        unset($data['cprod_maps']);
 
         $out = $this->entrada->receber($this->empresa(), $ordemCompra, $data);
 

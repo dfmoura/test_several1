@@ -7,6 +7,7 @@ use App\Models\EmpresaContaFinanceira;
 use App\Models\EmpresaFiscalHistorico;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
+use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,16 +31,18 @@ class EmpresaService
 
             $beforeSnapshot = $empresa->load(['fiscaisHistorico', 'contasFinanceiras'])->toArray();
             $current = $empresa->only([
-                'cnpj', 'razao_social', 'nome_fantasia', 'ie', 'im', 'iest',
+                'cnpj', 'razao_social', 'nome_fantasia', 'ie', 'im', 'im_obrigatoria_nfse', 'iest',
                 'ie_status', 'ie_consultado_em', 'regime', 'crt', 'regime_desde',
                 'cnae', 'cnaes_secundarios', 'email', 'telefone',
                 'logradouro', 'numero', 'complemento', 'bairro', 'municipio',
-                'uf', 'cep', 'ibge', 'venda_ativa', 'estoque_ativo',
+                'uf', 'cep', 'ibge', 'origem_latitude', 'origem_longitude',
+                'venda_ativa', 'estoque_ativo',
                 'logo_path', 'situacao', 'cadastro_fiscal_completo',
             ]);
 
             $incoming = $this->mapAttributes($data);
             $incoming = $this->applyFiscalRules($incoming, $current);
+            $this->assertOrigemCompleta($incoming, $current);
 
             if ($incoming !== []) {
                 $empresa->update($incoming);
@@ -420,8 +423,11 @@ class EmpresaService
 
         unset(
             $incoming['apto_emissao_nfe'],
+            $incoming['apto_emissao_nfse'],
             $incoming['fiscal_pendencias'],
             $incoming['fiscal_pendencias_emissao'],
+            $incoming['fiscal_pendencias_nfse'],
+            $incoming['fiscal_pendencias_emissao_nfse'],
             $incoming['motivo_vigencia_fiscal'],
         );
 
@@ -435,11 +441,12 @@ class EmpresaService
     private function mapAttributes(array $data): array
     {
         $fields = [
-            'cnpj', 'razao_social', 'nome_fantasia', 'ie', 'im', 'iest',
+            'cnpj', 'razao_social', 'nome_fantasia', 'ie', 'im', 'im_obrigatoria_nfse', 'iest',
             'ie_status', 'ie_consultado_em', 'regime', 'crt', 'regime_desde',
             'cnae', 'cnaes_secundarios', 'email', 'telefone',
             'logradouro', 'numero', 'complemento', 'bairro', 'municipio',
-            'uf', 'cep', 'ibge', 'venda_ativa', 'estoque_ativo',
+            'uf', 'cep', 'ibge', 'origem_latitude', 'origem_longitude',
+            'venda_ativa', 'estoque_ativo',
             'logo_path', 'situacao',
         ];
 
@@ -461,7 +468,31 @@ class EmpresaService
             $mapped[$field] = $value;
         }
 
-        return $mapped;
+        return PadraoDecimal::canonicalizeFields($mapped, PadraoDecimal::empresaFieldScales());
+    }
+
+    /**
+     * Origem operacional: os dois eixos ou nenhum.
+     *
+     * @param  array<string, mixed>  $incoming
+     * @param  array<string, mixed>  $current
+     */
+    private function assertOrigemCompleta(array $incoming, array $current): void
+    {
+        $lat = array_key_exists('origem_latitude', $incoming)
+            ? $incoming['origem_latitude']
+            : ($current['origem_latitude'] ?? null);
+        $lng = array_key_exists('origem_longitude', $incoming)
+            ? $incoming['origem_longitude']
+            : ($current['origem_longitude'] ?? null);
+
+        $hasLat = $lat !== null && $lat !== '';
+        $hasLng = $lng !== null && $lng !== '';
+        if ($hasLat !== $hasLng) {
+            throw ValidationException::withMessages([
+                'origem_latitude' => ['Informe latitude e longitude da origem operacional, ou deixe ambos vazios.'],
+            ]);
+        }
     }
 
     /**

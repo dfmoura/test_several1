@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ApiError, api, type Parceiro } from '../lib/api';
+import { useRef, useState } from 'react';
+import { ApiError, api, type CepConsulta, type Parceiro } from '../lib/api';
+import { formatCepInput, formatWhatsAppInput, onlyDigits } from '../lib/format';
+import { ORIGENS_LEAD } from '../lib/origemLead';
 
 const UFS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -33,8 +35,14 @@ type FormState = {
   nome: string;
   whatsapp: string;
   email: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
   municipio: string;
   uf: string;
+  ibge: string;
   cnpj_cpf: string;
   origem_lead: string;
 };
@@ -43,11 +51,22 @@ const empty: FormState = {
   nome: '',
   whatsapp: '',
   email: '',
+  cep: '',
+  logradouro: '',
+  numero: '',
+  complemento: '',
+  bairro: '',
   municipio: '',
   uf: 'MG',
+  ibge: '',
   cnpj_cpf: '',
   origem_lead: '',
 };
+
+function blankToNull(value: string): string | null {
+  const t = value.trim();
+  return t === '' ? null : t;
+}
 
 export function ProspectRapidoPanel({
   open,
@@ -59,8 +78,12 @@ export function ProspectRapidoPanel({
 }: Props) {
   const [form, setForm] = useState<FormState>(empty);
   const [pending, setPending] = useState(false);
+  const [consultingCep, setConsultingCep] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [cepOk, setCepOk] = useState<string | null>(null);
   const [candidatos, setCandidatos] = useState<ProspectCandidato[]>([]);
+  const lastCepConsultado = useRef('');
+  const cepSeq = useRef(0);
 
   if (!open) return null;
 
@@ -68,6 +91,68 @@ export function ProspectRapidoPanel({
     setForm((prev) => ({ ...prev, [key]: value }));
     setCandidatos([]);
     setErro(null);
+    if (key === 'cep') setCepOk(null);
+  };
+
+  const aplicarCep = (d: CepConsulta) => {
+    const uf = String(d.uf ?? '').trim().toUpperCase();
+    setForm((prev) => ({
+      ...prev,
+      logradouro: d.logradouro?.trim() || prev.logradouro,
+      complemento: d.complemento?.trim() || prev.complemento,
+      bairro: d.bairro?.trim() || prev.bairro,
+      municipio: d.localidade?.trim() || prev.municipio,
+      uf: uf.length === 2 ? uf : prev.uf,
+      ibge: d.ibge?.trim() || prev.ibge,
+    }));
+    setCandidatos([]);
+    const temLogradouro = Boolean(d.logradouro?.trim());
+    setCepOk(
+      temLogradouro
+        ? 'Endereço encontrado — complete o número (e o complemento, se houver).'
+        : 'CEP encontrado (sem logradouro) — complete rua, número e bairro.',
+    );
+  };
+
+  const consultarCep = async (digitsArg?: string) => {
+    if (disabled || pending) return;
+    const cep = digitsArg ?? onlyDigits(form.cep);
+    if (cep.length !== 8) {
+      setErro('Informe um CEP com 8 dígitos para buscar o endereço.');
+      setCepOk(null);
+      return;
+    }
+    if (consultingCep && lastCepConsultado.current === cep) return;
+
+    const seq = ++cepSeq.current;
+    lastCepConsultado.current = cep;
+    setConsultingCep(true);
+    setErro(null);
+    setCepOk(null);
+    try {
+      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${cep}`);
+      if (seq !== cepSeq.current) return;
+      aplicarCep(res.data);
+    } catch (e) {
+      if (seq !== cepSeq.current) return;
+      lastCepConsultado.current = '';
+      setCepOk(null);
+      setErro(e instanceof ApiError ? e.message : 'CEP não encontrado.');
+    } finally {
+      if (seq === cepSeq.current) setConsultingCep(false);
+    }
+  };
+
+  const onCepChange = (raw: string) => {
+    const digits = onlyDigits(raw).slice(0, 8);
+    set('cep', digits);
+    if (digits.length !== 8) {
+      lastCepConsultado.current = '';
+      return;
+    }
+    if (digits !== lastCepConsultado.current) {
+      void consultarCep(digits);
+    }
   };
 
   const criar = async (forcar: boolean) => {
@@ -82,7 +167,7 @@ export function ProspectRapidoPanel({
       return;
     }
     if (!form.municipio.trim() || form.uf.length !== 2) {
-      setErro('Informe cidade e UF.');
+      setErro('Informe cidade e UF (busque pelo CEP ou preencha).');
       return;
     }
 
@@ -93,14 +178,22 @@ export function ProspectRapidoPanel({
         nome,
         whatsapp: form.whatsapp.trim() || null,
         email: form.email.trim() || null,
+        cep: form.cep.trim() || null,
+        logradouro: blankToNull(form.logradouro),
+        numero: blankToNull(form.numero),
+        complemento: blankToNull(form.complemento),
+        bairro: blankToNull(form.bairro),
         municipio: form.municipio.trim(),
         uf: form.uf.toUpperCase(),
+        ibge: form.ibge.trim() || null,
         cnpj_cpf: form.cnpj_cpf.trim() || null,
         origem_lead: form.origem_lead.trim() || null,
         forcar,
       });
       setForm(empty);
       setCandidatos([]);
+      setCepOk(null);
+      lastCepConsultado.current = '';
       onCreated(res.data);
       onClose();
     } catch (e) {
@@ -116,14 +209,16 @@ export function ProspectRapidoPanel({
     }
   };
 
+  const busy = disabled || pending;
+
   return (
     <div className={`prospect-rapido${embedded ? ' prospect-rapido--embedded' : ''}`}>
       <div className="prospect-rapido-head">
         <div>
           <strong>{embedded ? 'Cadastro mínimo do prospect' : 'Novo prospect (cadastro mínimo)'}</strong>
           <p className="form-hint" style={{ margin: '0.25rem 0 0' }}>
-            Nome + (WhatsApp ou e-mail) + cidade/UF (~30s). Gera PAR real — texto livre de cliente
-            é proibido. Cadastro completo só na conversão em pedido.
+            Nome + (WhatsApp ou e-mail) + cidade/UF (~30s). CEP busca o endereço; o restante
+            você completa se souber. Cadastro fiscal completo só na conversão em pedido.
           </p>
         </div>
         {!embedded ? (
@@ -142,17 +237,20 @@ export function ProspectRapidoPanel({
             value={form.nome}
             onChange={(e) => set('nome', e.target.value)}
             placeholder="Como o contato se apresentou"
-            disabled={disabled || pending}
+            disabled={busy}
             autoFocus
           />
         </div>
         <div className="form-group">
           <label>WhatsApp</label>
           <input
-            value={form.whatsapp}
-            onChange={(e) => set('whatsapp', e.target.value)}
-            placeholder="(31) 9xxxx-xxxx"
-            disabled={disabled || pending}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={formatWhatsAppInput(form.whatsapp)}
+            onChange={(e) => set('whatsapp', onlyDigits(e.target.value).slice(0, 11))}
+            placeholder="(31) 99999-9999"
+            disabled={busy}
           />
         </div>
         <div className="form-group">
@@ -162,7 +260,72 @@ export function ProspectRapidoPanel({
             value={form.email}
             onChange={(e) => set('email', e.target.value)}
             placeholder="opcional se tiver WhatsApp"
-            disabled={disabled || pending}
+            disabled={busy}
+          />
+        </div>
+        <div className="form-group">
+          <label>
+            CEP <span className="field-note">busca endereço</span>
+          </label>
+          <div className="input-action">
+            <input
+              inputMode="numeric"
+              autoComplete="postal-code"
+              value={formatCepInput(form.cep)}
+              onChange={(e) => onCepChange(e.target.value)}
+              onBlur={(e) => {
+                const digits = onlyDigits(e.target.value);
+                if (digits.length === 8 && lastCepConsultado.current !== digits) {
+                  void consultarCep(digits);
+                }
+              }}
+              placeholder="00000-000"
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={busy || consultingCep}
+              onClick={() => void consultarCep()}
+            >
+              {consultingCep ? '…' : 'Buscar'}
+            </button>
+          </div>
+          {cepOk ? <p className="form-hint" style={{ margin: 0 }}>{cepOk}</p> : null}
+        </div>
+        <div className="form-group span-2">
+          <label>Logradouro</label>
+          <input
+            value={form.logradouro}
+            onChange={(e) => set('logradouro', e.target.value)}
+            placeholder="preenchido pelo CEP — ajuste se preciso"
+            disabled={busy}
+          />
+        </div>
+        <div className="form-group">
+          <label>Número</label>
+          <input
+            value={form.numero}
+            onChange={(e) => set('numero', e.target.value)}
+            placeholder="s/n se não houver"
+            disabled={busy}
+          />
+        </div>
+        <div className="form-group">
+          <label>Complemento</label>
+          <input
+            value={form.complemento}
+            onChange={(e) => set('complemento', e.target.value)}
+            placeholder="sala, loja…"
+            disabled={busy}
+          />
+        </div>
+        <div className="form-group">
+          <label>Bairro</label>
+          <input
+            value={form.bairro}
+            onChange={(e) => set('bairro', e.target.value)}
+            disabled={busy}
           />
         </div>
         <div className="form-group">
@@ -170,7 +333,8 @@ export function ProspectRapidoPanel({
           <input
             value={form.municipio}
             onChange={(e) => set('municipio', e.target.value)}
-            disabled={disabled || pending}
+            placeholder="pelo CEP ou manual"
+            disabled={busy}
           />
         </div>
         <div className="form-group">
@@ -178,7 +342,7 @@ export function ProspectRapidoPanel({
           <select
             value={form.uf}
             onChange={(e) => set('uf', e.target.value)}
-            disabled={disabled || pending}
+            disabled={busy}
           >
             {UFS.map((u) => (
               <option key={u} value={u}>
@@ -193,17 +357,23 @@ export function ProspectRapidoPanel({
             value={form.cnpj_cpf}
             onChange={(e) => set('cnpj_cpf', e.target.value)}
             placeholder="se informado espontaneamente"
-            disabled={disabled || pending}
+            disabled={busy}
           />
         </div>
         <div className="form-group">
           <label>Origem do lead (opc.)</label>
-          <input
+          <select
             value={form.origem_lead}
             onChange={(e) => set('origem_lead', e.target.value)}
-            placeholder="indicação, site, WhatsApp…"
-            disabled={disabled || pending}
-          />
+            disabled={busy}
+          >
+            <option value="">Não informado</option>
+            {ORIGENS_LEAD.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -237,6 +407,8 @@ export function ProspectRapidoPanel({
                     onReuse(c);
                     setForm(empty);
                     setCandidatos([]);
+                    setCepOk(null);
+                    lastCepConsultado.current = '';
                     onClose();
                   }}
                 >
@@ -259,7 +431,7 @@ export function ProspectRapidoPanel({
           <button
             type="button"
             className="btn btn-primary"
-            disabled={disabled || pending}
+            disabled={busy}
             onClick={() => void criar(false)}
           >
             {pending ? 'Salvando…' : 'Criar prospect e usar no ORC'}

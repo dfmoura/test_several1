@@ -10,6 +10,7 @@ use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Cadastros\ProdutoGrupoService;
 use App\Services\Consulta\BrasilApiClient;
 use App\Services\Consulta\FiscalCatalogService;
+use App\Services\Consulta\OpenRouteServiceClient;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class ConsultaController extends Controller
 {
     public function __construct(
         private readonly BrasilApiClient $brasilApiClient,
+        private readonly OpenRouteServiceClient $openRouteServiceClient,
         private readonly FiscalCatalogService $fiscalCatalogService,
         private readonly ProdutoGrupoService $produtoGrupoService,
         private readonly NaturezaGerencialService $naturezaGerencialService,
@@ -35,15 +37,92 @@ class ConsultaController extends Controller
         }
     }
 
-    public function cep(string $cep): JsonResponse
+    public function cep(Request $request, string $cep): JsonResponse
     {
         try {
-            return response()->json(['data' => $this->brasilApiClient->getCep($cep)]);
+            $data = $this->brasilApiClient->getCep($cep);
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (RequestException $e) {
             return response()->json(['message' => 'Consulta CEP indisponível.'], $e->response?->status() ?? 502);
         }
+
+        $wantRota = $request->boolean('rota');
+        $wantGeo = $request->boolean('geo') || $wantRota;
+
+        if ($wantGeo) {
+            try {
+                $geo = $this->brasilApiClient->getCepGeo($cep);
+            } catch (\InvalidArgumentException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            $data['latitude'] = $geo['latitude'];
+            $data['longitude'] = $geo['longitude'];
+            $data['geo_fonte'] = $geo['fonte'];
+            $data['geo_cache'] = $geo['cache_hit'];
+            if ($geo['sem_ponto']) {
+                $data['geo_sem_ponto'] = true;
+            }
+            if ($geo['erro'] !== null) {
+                $data['geo_erro'] = $geo['erro'];
+            }
+        }
+
+        if ($wantRota) {
+            $empresa = app('empresa');
+            if (! $empresa instanceof Empresa) {
+                abort(400, 'Empresa não selecionada.');
+            }
+            $data = $this->enrichRotaCarro($data, $empresa);
+        }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Passo 2 da BL-056: só calcula km se B (lat/lng) ok. Falha de rota não apaga B.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function enrichRotaCarro(array $data, Empresa $empresa): array
+    {
+        $data['distancia_km'] = null;
+        $data['distancia_fonte'] = null;
+        $data['distancia_cache'] = false;
+        $data['distancia_atribuicao'] = OpenRouteServiceClient::ATRIBUICAO;
+
+        $latB = $data['latitude'] ?? null;
+        $lngB = $data['longitude'] ?? null;
+        if ($latB === null || $latB === '' || $lngB === null || $lngB === '') {
+            $data['distancia_erro'] = ! empty($data['geo_sem_ponto']) ? 'sem_ponto' : ($data['geo_erro'] ?? 'sem_destino');
+
+            return $data;
+        }
+
+        if (! $this->openRouteServiceClient->empresaTemOrigem($empresa)) {
+            $data['distancia_erro'] = 'sem_origem';
+
+            return $data;
+        }
+
+        $rota = $this->openRouteServiceClient->drivingCarKm(
+            (string) $empresa->origem_latitude,
+            (string) $empresa->origem_longitude,
+            (string) $latB,
+            (string) $lngB,
+        );
+
+        $data['distancia_km'] = $rota['distancia_km'];
+        $data['distancia_fonte'] = $rota['fonte'];
+        $data['distancia_cache'] = $rota['cache_hit'];
+        $data['distancia_atribuicao'] = $rota['atribuicao'];
+        if ($rota['erro'] !== null) {
+            $data['distancia_erro'] = $rota['erro'];
+        }
+
+        return $data;
     }
 
     public function bancos(): JsonResponse

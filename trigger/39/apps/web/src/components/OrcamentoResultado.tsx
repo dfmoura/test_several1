@@ -4,6 +4,11 @@ import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import type { ModeloComposicaoForm } from '../lib/orcamentoForm';
 import {
+  formatValorFrete,
+  freteMotivoLabel,
+  modoEntregaLabel,
+} from '../lib/orcamentoFrete';
+import {
   buildGuiaProducaoLinhas,
   GUIA_PRODUCAO_GRUPO_LABEL,
   type OrcGuiaProducaoEspec,
@@ -32,16 +37,24 @@ type Props = {
    * Sem isto a aba mostra aviso; não atrapalha as outras abas.
    */
   guiaEspec?: OrcGuiaProducaoEspec | null;
+  /**
+   * true (padrão): prévia CONSOLIDADO após Calcular (faca, modelos, prazo).
+   * false: o detalhe já mostrou spec/faca/condições — só números do motor
+   * (estudo 32 · GERACAO §1.5: cálculo ≠ eco da ficha).
+   */
+  echoEspecificacao?: boolean;
 };
 
 function ComercialFaixasTable({
   faixas,
   facaNova,
   valorFacaNova,
+  mostrarFrete,
 }: {
   faixas: OrcamentoFaixaResult[];
   facaNova: boolean;
   valorFacaNova?: number;
+  mostrarFrete: boolean;
 }) {
   const sortGetters = useMemo(
     () => ({
@@ -89,6 +102,9 @@ function ComercialFaixasTable({
                 Faca nova
               </SortableTh>
             ) : null}
+            {mostrarFrete ? (
+              <th>Frete est.</th>
+            ) : null}
             <SortableTh column="total" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Total
             </SortableTh>
@@ -110,6 +126,9 @@ function ComercialFaixasTable({
                 <td>{formatCurrency(fx.valor_matriz)}</td>
                 {facaNova ? (
                   <td>{formatCurrency(fx.valor_faca_nova ?? valorFacaNova ?? 0)}</td>
+                ) : null}
+                {mostrarFrete ? (
+                  <td>{formatValorFrete(fx.valor_frete, fx.frete_somavel)}</td>
                 ) : null}
                 <td>
                   <strong>{formatCurrency(facaNova ? totalComFaca : fx.valor_total)}</strong>
@@ -209,6 +228,7 @@ export function OrcamentoResultado({
   facaDesenho,
   modelosComposicao,
   guiaEspec,
+  echoEspecificacao = true,
 }: Props) {
   const [aba, setAba] = useState<AbaResultado>('comercial');
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
@@ -264,7 +284,7 @@ export function OrcamentoResultado({
           </button>
         </div>
 
-        {desenhoProps && aba === 'comercial' ? (
+        {echoEspecificacao && desenhoProps && aba === 'comercial' ? (
           <div className="orc-resultado-faca">
             <OrcamentoFacaDesenho {...desenhoProps} variant="inline" />
           </div>
@@ -297,15 +317,22 @@ export function OrcamentoResultado({
                   calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
                 }`
               : ''}
-            {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
-            {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
-            {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
+            {echoEspecificacao && prazoEntregaDias != null
+              ? ` · prazo ${prazoEntregaDias} d.úteis`
+              : ''}
+            {echoEspecificacao && validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
+            {echoEspecificacao && toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
+            {calculo.frete
+              ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                  calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
+                }`
+              : ''}
           </p>
         ) : null}
 
         {aba === 'comercial' ? (
           <>
-            {modelosVisiveis.length > 0 ? (
+            {echoEspecificacao && modelosVisiveis.length > 0 ? (
               <ModelosComposicaoTable
                 variant="data"
                 className="orc-modelos-resultado"
@@ -321,7 +348,27 @@ export function OrcamentoResultado({
               faixas={faixas}
               facaNova={Boolean(calculo.faca_nova)}
               valorFacaNova={calculo.valor_faca_nova}
+              mostrarFrete={Boolean(calculo.frete)}
             />
+            {calculo.frete ? (
+              <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
+                {calculo.frete.modo === 'ENTREGAR'
+                  ? [
+                      calculo.frete.km != null && calculo.frete.km !== ''
+                        ? `${formatDecimalBr(calculo.frete.km, 1)} km`
+                        : null,
+                      calculo.frete.peso_caixa_kg
+                        ? `${formatDecimalBr(calculo.frete.peso_caixa_kg, 3)} kg/caixa`
+                        : null,
+                      freteMotivoLabel(calculo.frete.motivo),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : freteMotivoLabel(calculo.frete.motivo)}
+                {' '}
+                · linha à parte, não entra no unitário da etiqueta
+              </p>
+            ) : null}
           </>
         ) : null}
 
@@ -408,6 +455,12 @@ export function OrcamentoResultado({
                   <span>Total c/ matriz</span>
                   <strong>{formatCurrency(detalhe.valor_total)}</strong>
                 </div>
+                {calculo.frete ? (
+                  <div className="breakdown-total">
+                    <span>Frete estimado</span>
+                    <strong>{formatValorFrete(detalhe.valor_frete, detalhe.frete_somavel)}</strong>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {detalhe && Number(detalhe.metragem) < 1000 ? (

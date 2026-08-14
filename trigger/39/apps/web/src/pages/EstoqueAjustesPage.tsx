@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { StatusPill } from '../components/StatusPill';
 import {
   ApiError,
@@ -11,7 +11,13 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ajStatusLabel } from '../lib/comprasUi';
-import { formatCurrency, formatDateTime } from '../lib/format';
+import { ajuAlcadaLabel, ajuOrigemLabel } from '../lib/estoqueUi';
+import { formatCurrency, formatDateTime, formatQty } from '../lib/format';
+import { formatApiFieldErrors } from '../lib/usuarios';
+
+function sameUser(a?: number | null, b?: number | null): boolean {
+  return a != null && b != null && Number(a) === Number(b);
+}
 
 export function EstoqueAjustesPage() {
   const { hasPermission, user } = useAuth();
@@ -27,6 +33,7 @@ export function EstoqueAjustesPage() {
   const [saving, setSaving] = useState(false);
   const [de, setDe] = useState('');
   const [ate, setAte] = useState('');
+  const [statusFiltro, setStatusFiltro] = useState('PENDENTE');
 
   const [produtoId, setProdutoId] = useState('');
   const [motivo, setMotivo] = useState('A01');
@@ -47,6 +54,7 @@ export function EstoqueAjustesPage() {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
+      if (statusFiltro) qs.set('status', statusFiltro);
       if (de) qs.set('de', de);
       if (ate) qs.set('ate', ate);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
@@ -59,6 +67,12 @@ export function EstoqueAjustesPage() {
       setProdutos(
         prd.data.filter((p) => p.familia === 'MP' || p.familia === 'EMB' || p.familia === 'REV'),
       );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? formatApiFieldErrors(err.details, err.message)
+          : 'Falha ao carregar ajustes.',
+      );
     } finally {
       setLoading(false);
     }
@@ -67,6 +81,11 @@ export function EstoqueAjustesPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (selectedId == null) return;
+    document.getElementById('aju-conferir')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedId]);
 
   const selectedProduto = produtos.find((p) => String(p.id) === produtoId);
   const produtoControlaLote = !!selectedProduto?.controla_lote;
@@ -117,7 +136,11 @@ export function EstoqueAjustesPage() {
       setMsg('Solicitação de ajuste registrada.');
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao solicitar ajuste.');
+      setError(
+        err instanceof ApiError
+          ? formatApiFieldErrors(err.details, err.message)
+          : 'Falha ao solicitar ajuste.',
+      );
     } finally {
       setSaving(false);
     }
@@ -139,7 +162,9 @@ export function EstoqueAjustesPage() {
       closeAprovar();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao aprovar.');
+      setError(
+        err instanceof ApiError ? formatApiFieldErrors(err.details, err.message) : 'Falha ao aprovar.',
+      );
     } finally {
       setSaving(false);
     }
@@ -158,7 +183,11 @@ export function EstoqueAjustesPage() {
       closeAprovar();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao rejeitar.');
+      setError(
+        err instanceof ApiError
+          ? formatApiFieldErrors(err.details, err.message)
+          : 'Falha ao rejeitar.',
+      );
     } finally {
       setSaving(false);
     }
@@ -179,38 +208,36 @@ export function EstoqueAjustesPage() {
       if (selectedId === id) closeAprovar();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao cancelar.');
+      setError(
+        err instanceof ApiError
+          ? formatApiFieldErrors(err.details, err.message)
+          : 'Falha ao cancelar.',
+      );
     }
   };
 
   const motivoFiscal = ['A04', 'A06', 'A09'].includes(motivo);
+  const solicitanteSouEu = sameUser(user?.id, selected?.solicitado_por?.id);
   const podeAprovarSelecionado =
-    selected &&
+    !!selected &&
     selected.status === 'PENDENTE' &&
     canAprovar &&
+    !solicitanteSouEu &&
     ((selected.alcada ?? 'LIDER') === 'LIDER' || canGestor);
 
   return (
     <>
       <PageHeader
         title="Ajustes de estoque"
-        description="Contagem avulsa ou inventário gera AJU pendente. Aprovação com alçada lança o movimento — o saldo nunca é editado na tela."
-        actions={
-          <>
-            <Link to="/estoque/inventarios" className="btn btn-secondary">
-              Inventários
-            </Link>
-            <Link to="/estoque" className="btn btn-secondary">
-              Saldos
-            </Link>
-          </>
-        }
+        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento, nunca na tela."
       />
+
+      <EstoqueModuleNav />
 
       {msg && <div className="alert alert-success">{msg}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
-      {canWrite && (
+      {canWrite && !selected && (
         <form onSubmit={submit} className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <div className="form-section">
@@ -326,7 +353,21 @@ export function EstoqueAjustesPage() {
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
+          <p className="muted" style={{ margin: '0 0 0.85rem' }}>
+            Fila da alçada. Quem solicitou não aprova. Pendente pode ser cancelado — o registro
+            permanece no histórico.
+          </p>
           <div className="form-grid" style={{ alignItems: 'end' }}>
+            <div className="form-group">
+              <label>Situação</label>
+              <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
+                <option value="PENDENTE">Pendentes (fila)</option>
+                <option value="">Todas</option>
+                <option value="APROVADO">Aprovados</option>
+                <option value="REJEITADO">Rejeitados</option>
+                <option value="CANCELADO">Cancelados</option>
+              </select>
+            </div>
             <div className="form-group">
               <label>De</label>
               <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
@@ -338,19 +379,166 @@ export function EstoqueAjustesPage() {
             <div className="form-group">
               <label>&nbsp;</label>
               <button type="button" className="btn btn-secondary" onClick={() => void load()}>
-                Filtrar período
+                Filtrar
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: selected ? '1rem' : undefined }}>
+      {selected && selected.status === 'PENDENTE' && (
+        <form
+          id="aju-conferir"
+          onSubmit={(e) => void aprovar(e)}
+          style={{ marginBottom: '1rem' }}
+        >
+          <div className="card">
+            <div className="card-body">
+              <div className="form-section">
+                <h3>Conferir {selected.codigo}</h3>
+                <div className="detail-meta" style={{ marginBottom: '1rem' }}>
+                  <div>
+                    <span>Produto</span>
+                    <strong>{selected.produto?.codigo}</strong>
+                  </div>
+                  <div>
+                    <span>Sistema</span>
+                    <strong>
+                      {formatQty(selected.qtde_sistema)} {selected.unidade}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Contado</span>
+                    <strong>
+                      {formatQty(selected.qtde_contada)} {selected.unidade}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Diferença</span>
+                    <strong>
+                      {formatQty(selected.qtde_diferenca)} {selected.unidade}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Valor</span>
+                    <strong>
+                      {selected.valor_ajuste != null
+                        ? formatCurrency(selected.valor_ajuste)
+                        : '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Alçada</span>
+                    <strong>{ajuAlcadaLabel(selected.alcada)}</strong>
+                  </div>
+                  <div>
+                    <span>Origem</span>
+                    <strong>{ajuOrigemLabel(selected.origem)}</strong>
+                  </div>
+                  <div>
+                    <span>Solicitado por</span>
+                    <strong>{selected.solicitado_por?.name ?? '—'}</strong>
+                  </div>
+                </div>
+                <p className="muted" style={{ marginTop: 0, marginBottom: '1rem' }}>
+                  {selected.produto?.descricao_fiscal}
+                  {selected.motivo_codigo
+                    ? ` · ${selected.motivo_codigo} ${selected.motivo_nome ?? ''}`
+                    : ''}
+                </p>
+
+                {solicitanteSouEu && (
+                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+                    Quem solicitou o ajuste não pode aprová-lo (segregação de funções). Entre com
+                    outro usuário que tenha alçada de estoque.
+                  </div>
+                )}
+
+                {(selected.divergencia_relevante || selected.alcada === 'DIRECAO') && (
+                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group span-2">
+                      <label>Causa raiz</label>
+                      <input
+                        value={causaAprovar}
+                        onChange={(e) => setCausaAprovar(e.target.value)}
+                        placeholder="Obrigatória em divergência relevante / alçada direção"
+                        required={
+                          !!selected.divergencia_relevante || selected.alcada === 'DIRECAO'
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selected.alcada === 'DIRECAO' && canGestor && (
+                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={cienciaDir}
+                          onChange={(e) => setCienciaDir(e.target.checked)}
+                          required
+                        />
+                        <span>Ciência diretoria</span>
+                      </label>
+                    </div>
+                    <div className="form-group">
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={cienciaCont}
+                          onChange={(e) => setCienciaCont(e.target.checked)}
+                          required
+                        />
+                        <span>Ciência contabilidade</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {(selected.alcada ?? 'LIDER') !== 'LIDER' && !canGestor && (
+                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+                    Esta solicitação exige alçada de gestor.
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  {podeAprovarSelecionado && (
+                    <button type="submit" className="btn btn-primary" disabled={saving}>
+                      {saving ? 'Aprovando…' : 'Aprovar e lançar movimento'}
+                    </button>
+                  )}
+                  {podeAprovarSelecionado && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={saving}
+                      onClick={() => void rejeitar()}
+                    >
+                      Rejeitar
+                    </button>
+                  )}
+                  <button type="button" className="btn btn-secondary" onClick={closeAprovar}>
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      <div className="card">
         <div className="table-wrap table-wrap--freeze">
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : ajustes.length === 0 ? (
-            <div className="empty-state">Nenhum ajuste solicitado.</div>
+            <div className="empty-state">
+              {statusFiltro === 'PENDENTE'
+                ? 'Nenhum ajuste pendente de aprovação.'
+                : 'Nenhum ajuste neste filtro.'}
+            </div>
           ) : (
             <table className="data-table">
               <thead>
@@ -378,20 +566,20 @@ export function EstoqueAjustesPage() {
                   >
                     <td>
                       {a.codigo}
-                      <div className="muted">{a.origem.replace(/_/g, ' ')}</div>
+                      <div className="muted">{ajuOrigemLabel(a.origem)}</div>
                     </td>
                     <td>
                       <strong>{a.produto?.codigo}</strong>
                       <div className="muted">{a.produto?.descricao_fiscal}</div>
                     </td>
-                    <td>
-                      {a.qtde_sistema} {a.unidade}
+                    <td className="num">
+                      {formatQty(a.qtde_sistema)} {a.unidade}
                     </td>
-                    <td>
-                      {a.qtde_contada} {a.unidade}
+                    <td className="num">
+                      {formatQty(a.qtde_contada)} {a.unidade}
                     </td>
-                    <td>
-                      {a.qtde_diferenca}
+                    <td className="num">
+                      {formatQty(a.qtde_diferenca)}
                       <div className="muted">
                         {a.valor_ajuste != null ? formatCurrency(a.valor_ajuste) : '—'}
                       </div>
@@ -402,7 +590,7 @@ export function EstoqueAjustesPage() {
                       {a.aviso_fiscal && <div className="muted">{a.aviso_fiscal}</div>}
                     </td>
                     <td>
-                      {a.alcada || '—'}
+                      {ajuAlcadaLabel(a.alcada)}
                       {a.divergencia_relevante && <div className="muted">Relevante</div>}
                     </td>
                     <td>
@@ -417,7 +605,7 @@ export function EstoqueAjustesPage() {
                       <div className="table-actions">
                         {a.status === 'PENDENTE' &&
                           canWrite &&
-                          (user?.id === a.solicitado_por?.id || canAprovar) && (
+                          (sameUser(user?.id, a.solicitado_por?.id) || canAprovar) && (
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
@@ -436,7 +624,11 @@ export function EstoqueAjustesPage() {
                           </button>
                         )}
                         {a.status === 'PENDENTE' && !canAprovar && (
-                          <span className="muted">Aguardando aprovação</span>
+                          <span className="muted">
+                            {sameUser(user?.id, a.solicitado_por?.id)
+                              ? 'Você solicitou — outro usuário com alçada aprova'
+                              : 'Aguardando quem tem alçada de estoque'}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -447,93 +639,6 @@ export function EstoqueAjustesPage() {
           )}
         </div>
       </div>
-
-      {selected && selected.status === 'PENDENTE' && (
-        <form onSubmit={(e) => void aprovar(e)}>
-          <div className="card">
-            <div className="card-body">
-              <div className="form-section">
-                <h3>
-                  Conferir {selected.codigo}
-                </h3>
-                <p className="muted" style={{ marginBottom: '1rem' }}>
-                  {selected.produto?.codigo} — {selected.produto?.descricao_fiscal}
-                  {' · '}Δ {selected.qtde_diferenca} {selected.unidade}
-                  {selected.valor_ajuste != null && (
-                    <> · {formatCurrency(selected.valor_ajuste)}</>
-                  )}
-                  {selected.alcada && <> · alçada {selected.alcada}</>}
-                </p>
-
-                {(selected.divergencia_relevante || selected.alcada === 'DIRECAO') && (
-                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
-                    <div className="form-group span-2">
-                      <label>Causa raiz</label>
-                      <input
-                        value={causaAprovar}
-                        onChange={(e) => setCausaAprovar(e.target.value)}
-                        placeholder="Obrigatória em divergência relevante / alçada direção"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {selected.alcada === 'DIRECAO' && canGestor && (
-                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
-                    <div className="form-group">
-                      <label className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={cienciaDir}
-                          onChange={(e) => setCienciaDir(e.target.checked)}
-                        />
-                        <span>Ciência diretoria</span>
-                      </label>
-                    </div>
-                    <div className="form-group">
-                      <label className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={cienciaCont}
-                          onChange={(e) => setCienciaCont(e.target.checked)}
-                        />
-                        <span>Ciência contabilidade</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {(selected.alcada ?? 'LIDER') !== 'LIDER' && !canGestor && (
-                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-                    Esta solicitação exige alçada de gestor.
-                  </div>
-                )}
-
-                <div className="form-actions">
-                  {podeAprovarSelecionado && (
-                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                      {saving ? 'Aprovando…' : 'Aprovar'}
-                    </button>
-                  )}
-                  {podeAprovarSelecionado && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={saving}
-                      onClick={() => void rejeitar()}
-                    >
-                      Rejeitar
-                    </button>
-                  )}
-                  <button type="button" className="btn btn-secondary" onClick={closeAprovar}>
-                    Fechar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </form>
-      )}
     </>
   );
 }

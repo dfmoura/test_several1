@@ -14,11 +14,264 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-047`
+`BL-059`
 
 ---
 
 ## Itens
+
+### BL-055 · [cadastros] Lat/lng do parceiro (API free, evento humano)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-13 — distância de carro EMP→PAR; um botão; estudo 32; sem estragar
+- **Depende de:** —
+- **Destrava:** BL-056
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `APIS_FREE_CONSULTA_CADENCIA.txt` §3.2 / §6 / §8 — Tipo A, cache, nunca crawling, nunca API no browser
+  - `CADASTRO_PARCEIROS.txt` — endereço fiscal NF-e; entrega à parte (BL-022)
+  - UC-CAD-006 — consulta CNPJ/CEP com cache; falha não trava o save
+- **Referência (padrão 39):** `GET /consulta/cep` + `BrasilApiClient` + `api_cache` (ViaCEP, TTL 90d); aba Endereço do PAR; botão Consultar CNPJ (preenche, Salvar confirma)
+- **Decisão (fechada):**
+  1. Fonte de B = **endereço cadastral** (CEP já na tela), não GPS do aparelho.
+  2. ViaCEP **permanece** dono de logradouro/IBGE (NF-e). BrasilAPI CEP v2 **só** enriquece `latitude`/`longitude` (`location.coordinates`).
+  3. Colunas `latitude`/`longitude` (decimal) em `parceiros`. Opcional nas linhas de `parceiro_enderecos_entrega` (mesmo serviço; lista vazia = fiscal).
+  4. Um botão na aba Endereço: **“Posição e distância”** — nesta BL só o passo 1 (captura B). Passo 2 (km) entra na BL-056 no **mesmo** botão.
+  5. Botão preenche campos; **Salvar** do PAR confirma. Sem save implícito. Sem mapa na v1.
+  6. Cache `api_cache` chave `cep_geo:{cep}`; TTL 90d. Backend only. Timeout 5–8s. Falha → lat/lng vazios, save livre.
+- **Aceite:**
+  - [x] Migration PAR (+ entrega opcional) + DTO
+  - [x] Consulta geo no `BrasilApiClient` / `GET /consulta/cep` enriquecido (sem quebrar ViaCEP/IBGE)
+  - [x] Botão na aba Endereço; permissão `parceiro.escrever`
+  - [x] Testes: hit de cache, CEP sem ponto, falha API não bloqueia save, EMP isolation
+- **Fora de escopo:** km de carro; openrouteservice; GPS; mapa; motor ORC; frete; origem EMP
+- **Não fazer:** expor BrasilAPI no frontend; substituir ViaCEP; crawlear CEP; travar cadastro
+- **Entregue em:** 2026-08-13
+- **Implementação (39):**
+  - `BrasilApiClient::getCepGeo` + `GET /consulta/cep/{cep}?geo=1` (opt-in; default ViaCEP intacto)
+  - Colunas `latitude`/`longitude` em `parceiros` e `parceiro_enderecos_entrega`
+  - Botão **Posição e distância** nas abas Endereço e Entrega; Salvar confirma
+  - `ConsultaCepGeoTest`
+
+### BL-056 · [cadastros] Km de carro EMP (origem fixa) → PAR
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-13 — ponto A fixo na planta; ponto B no PAR; OSM de verdade; estudo 32
+- **Depende de:** BL-055
+- **Destrava:** BL-058
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `APIS_FREE_CONSULTA_CADENCIA.txt` — Tipo A, cache, chave no backend, 429/backoff
+  - `FRETE_TRANSPORTADORAS.txt` — isto **não** é TMS; só distância estimada
+- **Referência (padrão 39):** mesmo botão da BL-055; origem na **EMP** (não `parametros_empresa`); `X-Empresa-Id`
+- **Decisão (fechada):**
+  1. Ponto A = origem operacional da EMP (`origem_latitude` / `origem_longitude` no cadastro da empresa). Ex. planta `-18.9219, -48.2943`. Não hardcoded.
+  2. Rota = **openrouteservice** `driving-car`. **Proibido** `router.project-osrm.org` (demo).
+  3. Mesmo botão: **1)** B (BL-055) → **2)** só se B ok, A→B de carro. Grava `distancia_km`, fonte, data, `distancia_empresa_id` (km é EMP×B, não atributo universal do PAR).
+  4. Cache por A+B. Quota humana. Se rota falhar: lat/lng ficam; km = “—”.
+  5. UI: *“2,4 km de carro (OpenStreetMap)”*. Sem mapa. Ficha PAR: linha discreta se houver km da EMP atual.
+- **Aceite:**
+  - [x] Origem A na EMP + km no PAR (com EMP que calculou)
+  - [x] Cliente ORS no backend (chave env); timeout; cache; atribuição OSM
+  - [x] Botão em sequência 1→2; EMP-00002 não herda km da EMP-00001
+  - [x] Testes: sem A, sem B, 429, cache hit, isolamento EMP
+- **Fora de escopo:** catálogo R$/km; wizard ORC; NF; GPS; OSRM demo; Nominatim em produção
+- **Não fazer:** chamar rota na listagem ou a cada abertura de tela; km sem EMP
+- **Entregue em:** 2026-08-13
+- **Implementação (39):**
+  - Origem operacional `origem_latitude`/`origem_longitude` no cadastro da EMP (aba Operação); seed EMP-00001 planta `-18.9219, -48.2943`
+  - `OpenRouteServiceClient` `driving-car` (chave `ORS_API_KEY`); cache `ors_drive:{A}:{B}` 90d; 429 sem retry
+  - `GET /consulta/cep/{cep}?geo=1&rota=1` — passo 1 B, passo 2 A→B só se B ok
+  - `distancia_km` + fonte + data + `distancia_empresa_id` no PAR e na entrega; Salvar confirma
+  - Mesmo botão **Posição e distância**; ficha: linha discreta se houver km da EMP atual
+  - `ConsultaRotaCarroTest`
+
+### BL-057 · [comercial] Catálogo ORC — faixas de peso (R$/km dinâmicas)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-13 — até X kg = R$/km; campos dinâmicos; perfil etiqueta em rolo; estudo 32
+- **Depende de:** — (pode em paralelo a BL-055/056)
+- **Destrava:** BL-058
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `GERACAO_ORCAMENTO.txt` §1.1–1.2 — parâmetro cadastrado, nunca R$ solto no cálculo
+  - `GERACAO_ORCAMENTO.txt` §4.11 — caixa 1″=20 rolos / 3″=12 rolos
+  - `FRETE_TRANSPORTADORAS.txt` §3 — tabela, mínimo; não TMS
+  - `FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt` — catálogo N linhas; liberdade zero para inventar
+  - `ADR_ORC_PARAMETROS_ESCALARES.md` — tarifa ORC ≠ `parametros_empresa`
+- **Referência (padrão 39):** Catálogo ORC abas Papel/Acabamento (CRUD linhas, `orcamento.catalogo.gerir`); **não** `orc_catalogo_parametros` (escalar único)
+- **Decisão (fechada):**
+  1. Nova aba **Frete**: tabela filha de faixas **dinâmicas** (adicionar / inativar / reordenar). Não hardcode de 5 inputs.
+  2. Política recomendada no seed (kg já recortados, **R$ vazio**, inativas até o comercial preencher): **20 / 50 / 100 / 200 kg + acima**. N livre; dia 1 = essas 5.
+  3. Colunas por faixa: `kg_ate`, `preco_por_km`, `minimo_rs`, `ativo`, `ordem`. Contínuas, sem furo. “Acima” = último `kg_ate` nulo; R$ vazio = sob consulta (não sugere).
+  4. Fórmula (usada na BL-058): `máximo(mínimo, preco_por_km × km)`, arredonda para cima (§1.6).
+  5. Escalar auxiliar na mesma aba: `peso_caixa_kg` (estimativa de carga = `qtde_caixas` × este peso) — sem campo livre de kg no wizard.
+  6. Sem matriz km×kg. Sem seed de preço inventado.
+- **Aceite:**
+  - [x] Tabela + CRUD + aba Frete no Catálogo ORC
+  - [x] Seed 5 faixas de kg sem R$; seed não sobrescreve edição
+  - [x] Validação: faixas contínuas; `preco_por_km`/`minimo` com `PadraoDecimal`
+  - [x] Testes admin + permissão `orcamento.catalogo.gerir`
+- **Fora de escopo:** lookup no ORC (BL-058); CUB; CEP; transportadora; natureza 1.01.05; motor R1–R20
+- **Não fazer:** misturar em `parametros_empresa`; campo R$ no wizard; 10 degraus estilo Correios no seed
+- **Entregue em:** 2026-08-13
+- **Implementação (39):**
+  - Tabela `orc_catalogo_faixas_frete` + model `OrcCatalogoFaixaFrete`
+  - Seed 20/50/100/200 kg + acima, R$ vazio, inativas; `peso_caixa_kg` na mesma aba (escalar em `orc_catalogo_parametros`)
+  - CRUD `GET/POST /orcamento-catalogo/faixas-frete` · `PUT .../{faixaFrete}` · permissão `orcamento.catalogo.gerir`
+  - Aba Frete no Catálogo ORC; seed não sobrescreve edição
+  - `OrcamentoCatalogoTest`
+
+### BL-058 · [comercial] ORC — Retirar no local × Entregar (frete estimado no fechamento)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-13 — retira ignora cálculo; entregar = faixa R$/km × km do destino; ao final do preço; estudo 32
+- **Depende de:** BL-056 · BL-057
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `GERACAO_ORCAMENTO.txt` §1.3 snapshot · §1.5 interno ≠ CONSOLIDADO · §1.6 arredonda para cima · §6 “condições de pagamento e frete”
+  - `FRETE_TRANSPORTADORAS.txt` — Cliente retira | frota | transportadora; frete cobrado ≠ pago
+  - `GORDURA_ORCAMENTO_COMPENSA_OU_NAO.txt` — não esconder no papel
+  - `CADASTRO_PARCEIROS.txt` + BL-022 — entrega padrão do PAR; sem snapshot ORC/PED nesta BL
+- **Referência (padrão 39):** wizard já excelente; fechamento como **matriz** (linha à parte, não no unitário); `input_snapshot` / `result_snapshot`; chip ao lado do parceiro
+- **Decisão (fechada):**
+  1. No ORC, opção **Retirar no local** | **Entregar**. Padrão = **Retirar** (não inflar). Retirar → frete R$ 0; km pode aparecer só como contexto.
+  2. **Entregar** → ao **fechamento** (não no motor R1–R20): peso est. da faixa (`qtde_caixas` × `peso_caixa_kg`) escolhe a faixa de kg vigente → `máximo(mínimo, R$/km × km)`. Destino = lat/lng da **entrega principal** se houver; senão **fiscal** do PAR. Km = o gravado na BL-056 para a EMP atual (sem nova chamada ORS no calcular).
+  3. Peso (e portanto a faixa de R$/km) **pode diferir por faixa de quantidade**. Km é o mesmo. Matriz continua uma vez. Frete **não** entra no unitário da etiqueta.
+  4. Sem km, sem faixa, sem peso_caixa, ou “acima” sem tarifa → não inventa; frete “—” e Entregar não soma. ORC calcula igual hoje.
+  5. Snapshot: modo, km, destino (fiscal|entrega), kg est., faixa, tarifa, mínimo, R$ por faixa de qtd. Mudar catálogo depois **não** altera ORC gravado (§1.3).
+  6. Proposta cliente (§6): linha Frete estimado se Entregar; sem R$/km na composição interna. CONSOLIDADO público: valor, não fórmula.
+  7. ADR curto na execução (`docs/ADR_ORC_FRETE_ESTIMADO.md`).
+- **Aceite:**
+  - [x] ADR + opção Retirar/Entregar no wizard (fechamento)
+  - [x] Lookup catálogo + km do PAR da EMP; linha no resultado / ficha interna
+  - [x] Retirar = 0; Entregar sem dados = não soma; motor R1–R20 inalterado
+  - [x] Snapshot auditável; EMP isolation; testes Feature
+- **Fora de escopo:** NF modalidade/CIF Focus; natureza 1.01.05; TIT de frete; CUB; CT-e; recálculo de rota no ORC; campo R$ livre; gordura; transportadora
+- **Não fazer:** três chamadas ORS; diluir frete no papel/hora-máquina; default Entregar
+- **Entregue em:** 2026-08-13
+- **Implementação (39):**
+  - ADR-039-ORC-005 `docs/ADR_ORC_FRETE_ESTIMADO.md` · regra `.cursor/rules/orc-frete-estimado.mdc`
+  - `OrcamentoFreteEstimadoService` pós-motor; `PadraoDecimal::roundCeil`; default RETIRAR
+  - Wizard Retirar/Entregar; resultado / ficha / proposta (CONSOLIDADO: valor, não R$/km)
+  - Snapshot `input.modo_entrega` + `result.frete`; catálogo novo não altera ORC gravado
+  - `OrcamentoFreteEstimadoTest` · canário BRAHVA 3090 intacto
+
+### BL-054 · [produção/estoque] Rastreio de insumos após produzir (lote + NF + fornecedor)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — depois de produzir, rastrear corretamente todos os insumos (lote, notas) mesmo com o PA já no cliente, para reportar ao fornecedor; estudo 32; sem estragar
+- **Referência:** `docs/ADR_RASTREIO_INSUMOS_PRODUCAO.md` · `ADR_PRODUCAO_PED_OP_ESTOQUE.md` · `ADR_ESTOQUE_LOTE_VALIDADE.md` · `../32` CONTROLE_ESTOQUE §6 · CONCLUSAO_PRODUCAO §2 · POS_VENDA_RMA §1–5 · UC-EST-001
+- **Decisão:** Genealogia **composta** dos MOV oficiais (`SAIDA_PRODUCAO.lote_id` → `ENTRADA_COMPRA` até o instante da saída). Sem tabela nova, sem lote de PA, sem RMA. Busca OP/PED/lote/NF/cliente; ficha A4 para o fornecedor; SKU sem lote não inventa origem; lote misto lista todas as NFs.
+- **Aceite:**
+  - [x] ADR + emendas lote/OP + regra Cursor
+  - [x] `RastreioInsumosService` + `GET /rastreio` (busca, OP, PED, lote)
+  - [x] Painel na OP e no PED + busca Produção → Rastreio
+  - [x] Ficha impressa (OP/PED/lote)
+  - [x] Testes: NF+lote, tempo, lote misto, EMB sem rastro, busca, EMP
+- **Fora de escopo:** RMA; lote de PA; etiqueta de rolo; FIFO de custo; CQ
+- **Entregue em:** 2026-08-13
+
+### BL-053 · [fiscal] Impressão da nota (DANFE / DANFSe) sem hub
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — imprimir a **nota** (NF-e e, no mesmo caminho, NFS-e) mesmo sem hub, em homologação e produção; não a ficha cadastral do ERP
+- **Referência:** `docs/ADR_EMISSAO_NFE_NFSE.md` · layout `../28` (`danfe.ts` / `danfse-v2.ts`) · exemplo `../32/nfe_venda` · rota satélite `fichaNav` + `window.print`
+- **Decisão:** HTML A4 retrato no visual DANFE (canhoto, emitente, chave, destinatário, duplicatas, impostos, transporte 9, itens) e DANFSe (prestador, tomador, discriminação). Sem hub: número/série/chave/protocolo = **—**; marca **PRÉVIA SEM VALOR FISCAL**. Homologação autorizada: selo SEFAZ de homologação. DomPDF fora. Mesma `ref` no retry.
+- **Aceite:**
+  - [x] `DocumentoFiscalFichaSheet` layout DANFE / DANFSe + `DocumentoFiscalFichaPage`
+  - [x] Rota satélite `/financeiro/faturamentos/:id/nf/:docId/ficha`
+  - [x] Botão “Imprimir nota” na prévia (FAT e PED)
+  - [x] Prévia API com endereço emitente / duplicatas / CSOSN
+- **Fora de escopo:** DomPDF; XML/`nfeProc` e DANFE oficiais do Focus; barcode/QR de chave falsa; e-mail da nota
+- **Entregue em:** 2026-08-13
+
+### BL-052 · [fiscal] Prévia da NF-e/NFS-e sem hub (JSON Focus, sem XML falso)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — não cadastrar hub homolog/prod agora; ver notas e conteúdo como se o pipeline já existisse; estudo 32; sem estragar
+- **Referência:** `docs/ADR_EMISSAO_NFE_NFSE.md` · emenda `docs/ADR_FATURAMENTO_COBRANCA.md` · `../32` FATURAMENTO §3–4 · UC-FIS-001/002 · UC-INT-001
+- **Decisão:** `PLANEJADO` grava o payload Focus na planejação; UI mostra prévia humana + JSON de envio com selo “não é documento autorizado”; chave/número/XML SEFAZ só na resposta real; mesma `ref` no retry quando o hub for cadastrado
+- **Aceite:**
+  - [x] Payload na planejação (e backfill se vazio)
+  - [x] API `previa` + `envio_hub` (sem `_meta`, sem número SEFAZ)
+  - [x] UI FAT/PED com prévia e JSON
+  - [x] Testes: sem hub NFe/NFSe, GET, hub OK continua oficial
+- **Fora de escopo:** mock Focus `AUTORIZADO`; XML `nfeProc` forjado; DANFE servidor; baixa PA
+- **Entregue em:** 2026-08-13
+
+### BL-051 · [fiscal] Emissão NF-e / NFS-e no faturar (hub Focus)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — Pedidos / Faturar e gerar cobranças já apto a emitir NF-e e NFS-e; teste como hub Focus; ativação automática quando hub OK; IM não obrigatória em todos os municípios; estudo 32; layout 28; sem estragar
+- **Referência:** `docs/ADR_EMISSAO_NFE_NFSE.md` · emenda `docs/ADR_FATURAMENTO_COBRANCA.md` · `../32` FATURAMENTO §3 · UC-FIS-001/002/005 · `../28` FOCUS_NFE_MAPEAMENTO + modelos nfe/nfse
+- **Decisão:** FAT+TIT/COB intactos; planeja DocumentoFiscalSaida (PA/REV→NF-e, SVC→NFS-e); POST Focus após commit se hub padrão com teste OK do ambiente ativo (`emissao_habilitada` automático); numeração só na resposta; IM opcional salvo `im_obrigatoria_nfse`; retry mesma `ref`; estoque PA continua só na autorização
+- **Aceite:**
+  - [x] ADR + emenda FAT + regra Cursor
+  - [x] Adapter Focus emitir/consultar NFe e NFSe Nacional
+  - [x] Planejar no faturar + emitir se hub apto + retry/consultar
+  - [x] Cadastro EMP: IM opcional + flag municipal NFS-e
+  - [x] Hub: teste OK liga emissão automática
+  - [x] UI Pedidos / FAT / Hubs / Empresas
+  - [x] Testes: sem hub, NFe, NFSe sem IM, retry idempotente, EMP, IM opcional
+- **Fora de escopo:** baixa PA; cancelamento Focus; DANFE servidor; split dual de um item PA
+- **Entregue em:** 2026-08-13
+
+### BL-050 · [comercial/financeiro] Estorno do FAT com NF pendente (refaturar)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — pedido faturado, NF pendente, poder estornar nota e cobrança para fazer de novo; estudo 32; sem estragar
+- **Referência:** `docs/ADR_FATURAMENTO_COBRANCA.md` (emenda) · `../32` FATURAMENTO §6 · MAPA §11 · UC-PLT-007 · UC-FIS cancelamento (não aplicável: NF ainda não existe)
+- **Decisão:** FAT vigente + `nf_status=PENDENTE` + TIT do saldo abertos → estorno compensatório (motivo) → cancela COB/TIT FATURA → FAT `ESTORNADO` → PED `PRODUZIDO`; sinal e estoque intactos; novo FAT permitido; nunca apagar
+- **Aceite:**
+  - [x] ADR emenda + regra Cursor
+  - [x] Unique vigente (não 1 FAT físico / PED)
+  - [x] API `POST /faturamentos/{id}/estornar` + UI PED/FAT
+  - [x] Testes: feliz, refaturar, sinal intacto, TIT pago, NF autorizada, motivo, SoD, EMP, idempotência
+- **Fora de escopo:** cancelamento Focus de NF autorizada; DEV-; estorno com TIT já baixado
+- **Entregue em:** 2026-08-13
+
+### BL-049 · [comercial/financeiro] Faturamento do PED + cobrança do saldo (sinal a apropriar)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — produção concluída; seguir faturamento e cobranças; caso com adiantamento/sinal; estudo 32; sem estragar
+- **Referência:** `docs/ADR_FATURAMENTO_COBRANCA.md` · `../32` FATURAMENTO_GERACAO_COBRANCA · MAPA_FATURAMENTO_EXPLICADO · CONCLUSAO_PRODUCAO · RECEBIMENTO_BAIXA · UC-FIS-001 · UC-FIN-001/002
+- **Decisão:** PED `PRODUZIDO` → FAT- (preview humano) → apropria sinal quitado → TIT/COB só do saldo; preço e qtde_faturavel travados; 1 FAT/PED; sem Focus/baixa PA
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] FAT + itens + TIT.pedido/faturamento + permissões
+  - [x] Parser de condição + apropriação de sinal
+  - [x] API preview/faturar + UI no PED e fila
+  - [x] Testes (sem sinal, com sinal, parcelas, idempotência, EMP)
+- **Fora de escopo:** Focus NF-e; baixa PA; parcial; ENT-; cancel/DEV; COND-/CRT
+- **Entregue em:** 2026-08-13
+
+### BL-048 · [compras/fiscal] Espelho fiscal na entrada (XML + snapshot)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-13 — entrada da nota deve capturar o máximo (base do livro de entrada); estudo 32; persistir agora, livro/export no final; sem estragar BL-037/038
+- **Referência:** `docs/ADR_ENTRADA_XML_ESPELHO.md` · `../32` CONTABILIDADE_FISCAL_SEM_FECHAMENTO · PADRAO_DECIMAL §5.4 · CONTROLE_ESTOQUE §4 · REVISAO_ICMS_ST · REVISAO_ANTECIPACAO_ICMS_MG
+- **Decisão:** no `receber()`, se XML presente → `nfe_entrada` (arquivo privado + itens/impostos copiados); MOV/TIT intactos; sem XML a OC ainda recebe; UI só leitura “Espelho fiscal”; ERP não escrituração
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Extrator acréscimo (CST/orig/ICMS/IPI/PIS/COFINS/idDest)
+  - [x] Tabelas `nfe_entradas` / `nfe_entrada_itens` + storage
+  - [x] Preview `espelho` + XML no confirmar
+  - [x] Teste Colacril + regressão sem XML / chave divergente
+- **Fora de escopo:** livro/export UI; Focus; SPED; antecipação MG como guia; rateio IPI no CM
+- **Entregue em:** 2026-08-13
+
+### BL-047 · [produção] Ficha impressa PED + OP
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-12 — ficha em Pedidos e Ordens de produção; estudo 32; sem estragar
+- **Referência (padrão 39):** shell `.ficha-*` + `fichaNav` + `window.print` (BL-015/018/019/024/027)
+- **Estudo 32:** `GERACAO_PEDIDO.txt` (PED = documento-mestre) · `PRODUCAO_OPERACIONAL_GERENCIAL.txt` §2.6 (chão sem preço/margem) · `CASOS_USO_M03` UC-PRD-001
+- **Decisão (fechada):** HTML A4 **retrato** (não paisagem — paisagem é do cálculo ORC). DomPDF fora. Snapshot operacional: spec + guia física + materiais; **sem** R$ de venda/custo. Rotas satélite fora do AppShell.
+- **Aceite:**
+  - [x] `PedidoFichaSheet` + `PedidoFichaPage` em `/pedidos/:id/ficha`
+  - [x] `OrdemProducaoFichaSheet` + `OrdemProducaoFichaPage` em `/ordens-producao/:id/ficha`
+  - [x] Botão “Imprimir ficha” no detalhe de cada um (nova aba via `fichaNav`)
+  - [x] Guia de produção física reusa `orcamentoGuiaProducao` (faixa sem dinheiro)
+- **Fora de escopo:** PDF servidor; ficha de OS; preço na ficha de chão; e-mail da ficha
+- **Entregue em:** 2026-08-12
 
 ### BL-046 · [produção] Devolver OP ao PED (sem saída requisitada)
 - **Status:** Feito

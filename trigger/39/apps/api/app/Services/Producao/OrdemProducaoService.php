@@ -14,6 +14,7 @@ use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Estoque\EstoqueCongelamento;
 use App\Services\Estoque\EstoqueSaldoWriter;
+use App\Services\Producao\RastreioInsumosService;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class OrdemProducaoService
         private readonly EstoqueSaldoWriter $saldos,
         private readonly EstoqueCongelamento $congelamento,
         private readonly OpBomDeriver $bom,
+        private readonly RastreioInsumosService $rastreio,
     ) {}
 
     /**
@@ -856,6 +858,10 @@ class OrdemProducaoService
                 'saida_movimento_id' => $m->saida_movimento_id,
                 'retorno_movimento_id' => $m->retorno_movimento_id,
             ])->all();
+            $out['rastreio'] = $this->rastreio->paraOp(
+                Empresa::query()->findOrFail($o->empresa_id),
+                $o
+            );
         }
 
         return $out;

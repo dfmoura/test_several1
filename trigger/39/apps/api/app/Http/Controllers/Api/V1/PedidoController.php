@@ -9,6 +9,7 @@ use App\Models\PedidoItem;
 use App\Services\Comercial\PedidoService;
 use App\Services\Producao\OrdemProducaoService;
 use App\Services\Producao\OrdemServicoService;
+use App\Services\Producao\RastreioInsumosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,7 @@ class PedidoController extends Controller
         private readonly PedidoService $pedidos,
         private readonly OrdemProducaoService $ops,
         private readonly OrdemServicoService $oss,
+        private readonly RastreioInsumosService $rastreio,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -43,7 +45,10 @@ class PedidoController extends Controller
         $this->authorizeRead($request);
         $this->assertEmpresa($pedido);
 
-        return response()->json(['data' => $this->pedidos->show($pedido)]);
+        $data = $this->pedidos->show($pedido);
+        $data['rastreio'] = $this->rastreio->paraPedido($this->empresa(), $pedido);
+
+        return response()->json(['data' => $data]);
     }
 
     public function abrirOp(Request $request, Pedido $pedido): JsonResponse

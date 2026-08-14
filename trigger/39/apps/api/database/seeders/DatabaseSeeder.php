@@ -53,6 +53,9 @@ class DatabaseSeeder extends Seeder
         // BL-044
         'producao.ler',
         'producao.escrever',
+        // BL-049
+        'faturamento.ler',
+        'faturamento.escrever',
     ];
 
     private const ROLES = [
@@ -75,6 +78,10 @@ class DatabaseSeeder extends Seeder
             'produto.fiscal',
             'compras.ler',
             'estoque.ler',
+            'faturamento.ler',
+            'faturamento.escrever',
+            'financeiro.ler',
+            'producao.ler',
         ],
         'FINANCEIRO' => [
             'parceiro.ler',
@@ -91,6 +98,8 @@ class DatabaseSeeder extends Seeder
             'estoque.ler',
             'compras.ler',
             'producao.ler',
+            'faturamento.ler',
+            'faturamento.escrever',
         ],
         'COMERCIAL' => [
             'parceiro.ler',
@@ -101,6 +110,8 @@ class DatabaseSeeder extends Seeder
             'orcamento.ler',
             'orcamento.escrever',
             'producao.ler',
+            'faturamento.ler',
+            'faturamento.escrever',
         ],
         'PRODUCAO' => [
             'produto.ler',
@@ -110,6 +121,7 @@ class DatabaseSeeder extends Seeder
             'estoque.escrever',
             'producao.ler',
             'producao.escrever',
+            'faturamento.ler',
         ],
         'COMPRAS' => [
             'parceiro.ler',
@@ -123,7 +135,7 @@ class DatabaseSeeder extends Seeder
             'estoque.ler',
             'estoque.escrever',
         ],
-        'EXPEDICAO' => ['parceiro.ler', 'produto.ler', 'producao.ler'],
+        'EXPEDICAO' => ['parceiro.ler', 'produto.ler', 'producao.ler', 'faturamento.ler'],
         'CONSULTA' => [
             'parceiro.ler',
             'produto.ler',
@@ -135,6 +147,7 @@ class DatabaseSeeder extends Seeder
             'estoque.ler',
             'financeiro.ler',
             'producao.ler',
+            'faturamento.ler',
         ],
     ];
 
@@ -216,6 +229,13 @@ class DatabaseSeeder extends Seeder
 
         if ($emp1->trashed()) {
             $emp1->restore();
+        }
+
+        if ($emp1->origem_latitude === null || $emp1->origem_longitude === null) {
+            $emp1->forceFill([
+                'origem_latitude' => '-18.9219000',
+                'origem_longitude' => '-48.2943000',
+            ])->save();
         }
 
         $emp2 = Empresa::withTrashed()->firstOrCreate(

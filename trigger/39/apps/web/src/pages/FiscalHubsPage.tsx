@@ -268,7 +268,7 @@ export function FiscalHubsPage() {
     <>
       <PageHeader
         title="Hubs fiscais"
-        description="Cadastro do hub que conversa com o fisco (Focus NFe etc.) — tokens e vínculo da empresa"
+        description="Cadastro do hub que conversa com o fisco (Focus NFe). Teste OK no ambiente ativo liga a emissão automática de NF-e e NFS-e."
         actions={
           <button type="button" className="btn btn-primary" onClick={startCreate}>
             Novo hub
@@ -519,6 +519,11 @@ export function FiscalHubsPage() {
                     </td>
                     <td>
                       <StatusPill status={h.ativo ? 'ATIVO' : 'INATIVO'} />
+                      {h.emissao_habilitada ? (
+                        <div className="muted" style={{ fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                          Emissão automática
+                        </div>
+                      ) : null}
                     </td>
                     <td>
                       {h.ultimo_teste_em ? (

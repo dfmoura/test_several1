@@ -1358,6 +1358,13 @@ table.data-table td {
   border-bottom: 1px solid var(--border);
 }
 
+table.data-table th.num,
+table.data-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 table.data-table th {
   font-size: 0.78rem;
   text-transform: uppercase;
@@ -1464,6 +1471,13 @@ table.data-table tbody tr:hover {
 
 table.data-table tbody tr.clickable {
   cursor: pointer;
+}
+
+table.data-table th.acoes,
+table.data-table td.acoes {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
 /* Status pill */
@@ -1726,6 +1740,92 @@ table.data-table tbody tr.clickable {
 
 .fiscal-historico-table {
   font-size: 0.82rem;
+}
+
+.nf-previa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nf-previa {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.nf-previa--rascunho {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.nf-previa-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.nf-previa-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.nf-previa-head h4 {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.nf-previa-banner {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(214, 158, 46, 0.1);
+  border: 1px solid rgba(214, 158, 46, 0.28);
+  color: #8a6d1d;
+  font-size: 0.82rem;
+}
+
+.nf-previa-banner.is-ok {
+  background: rgba(39, 174, 96, 0.08);
+  border-color: rgba(39, 174, 96, 0.22);
+  color: var(--success);
+}
+
+.nf-previa-meta {
+  margin-bottom: 0.5rem;
+}
+
+.nf-previa-envio {
+  margin-top: 0.75rem;
+}
+
+.nf-previa-envio summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nf-previa-json {
+  margin: 0.6rem 0 0;
+  padding: 0.75rem 0.85rem;
+  max-height: 22rem;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface-elevated, #0f172a0a);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Dashboard */
@@ -2507,18 +2607,21 @@ table.data-table tbody tr.clickable {
   background: rgba(26, 53, 104, 0.04);
 }
 
+.detail-meta,
 .orc-detail-meta {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
   gap: 0.85rem 1rem;
 }
 
+.detail-meta > div,
 .orc-detail-meta > div {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
+.detail-meta span,
 .orc-detail-meta span {
   font-size: 0.72rem;
   font-weight: 700;
@@ -2527,6 +2630,7 @@ table.data-table tbody tr.clickable {
   color: var(--text-muted);
 }
 
+.detail-meta strong,
 .orc-detail-meta strong {
   font-size: 0.92rem;
   font-weight: 600;
@@ -2699,6 +2803,12 @@ table.data-table tbody tr.clickable {
 
 .orc-resultado-faca {
   margin: 0.75rem 0 0.35rem;
+}
+
+.orc-spec-faca {
+  padding-bottom: 0.95rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .orc-faca-desenho--compact {
@@ -3849,6 +3959,379 @@ tr.row-inactive td {
   line-height: 1.28;
 }
 
+.ficha-sheet-nf {
+  position: relative;
+  overflow: hidden;
+}
+
+.ficha-sheet-nf.ficha-sheet-rascunho::before {
+  content: 'PRÉVIA';
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  font-family: var(--font-display);
+  font-size: 42pt;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--navy);
+  opacity: 0.07;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+.ficha-nf-banner {
+  margin: 2.5mm 0 3mm;
+  padding: 2mm 2.5mm;
+  border: 1pt solid #c9a227;
+  background: #fff8e6;
+  color: #6b5410;
+  font-size: 8pt;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.ficha-nf-banner.is-ok {
+  border-color: #6aa37a;
+  background: #eef8f1;
+  color: #1e6b3a;
+}
+
+.ficha-sheet-nf > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* DANFE / DANFSe — documento auxiliar da nota (prévia imprimível, estudo 32 / layout 28) */
+.danfe-sheet {
+  position: relative;
+  overflow: hidden;
+  font-size: 7pt;
+  line-height: 1.2;
+  color: #111;
+  padding: 6mm 6mm 5mm;
+}
+
+.danfe-watermark {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-28deg);
+  font-family: var(--font-display);
+  font-size: 28pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1a3568;
+  opacity: 0.08;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+.danfe-sheet > * {
+  position: relative;
+  z-index: 1;
+}
+
+.danfe-lbl {
+  display: block;
+  font-size: 5.2pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #444;
+  line-height: 1.1;
+}
+
+.danfe-val {
+  display: block;
+  font-size: 7.2pt;
+  min-height: 1.1em;
+  white-space: pre-wrap;
+}
+
+.danfe-val.is-bold {
+  font-weight: 700;
+}
+
+.danfe-cell {
+  border: 0.7pt solid #000;
+  padding: 1pt 2.5pt 2pt;
+  min-height: 7.2mm;
+  box-sizing: border-box;
+}
+
+.danfe-row {
+  display: flex;
+}
+
+.danfe-row > * {
+  flex: 1;
+}
+
+.danfe-row .w-58 { flex: 0 0 58%; }
+.danfe-row .w-42 { flex: 0 0 42%; }
+.danfe-row .w-34 { flex: 0 0 34%; }
+.danfe-row .w-33 { flex: 0 0 33%; }
+.danfe-row .w-24 { flex: 0 0 24%; }
+.danfe-row .w-22 { flex: 0 0 22%; }
+.danfe-row .w-20 { flex: 0 0 20%; }
+.danfe-row .w-18 { flex: 0 0 18%; }
+.danfe-row .w-16 { flex: 0 0 16%; }
+.danfe-row .w-14 { flex: 0 0 14%; }
+.danfe-row .w-12 { flex: 0 0 12%; }
+.danfe-row .w-08 { flex: 0 0 8%; }
+.danfe-row .w-06 { flex: 0 0 6%; }
+.danfe-row .w-40 { flex: 0 0 40%; }
+.danfe-row .w-48 { flex: 0 0 48%; }
+.danfe-row .w-38 { flex: 0 0 38%; }
+.danfe-row .w-66 { flex: 0 0 66%; }
+
+.danfe-canhoto {
+  display: flex;
+  border: 0.7pt solid #000;
+}
+
+.danfe-canhoto-main {
+  flex: 1;
+  padding: 2pt 4pt;
+}
+
+.danfe-canhoto-txt {
+  margin: 0;
+  font-size: 5.8pt;
+}
+
+.danfe-canhoto-meta {
+  margin: 2pt 0;
+  font-size: 6.5pt;
+}
+
+.danfe-canhoto-sign {
+  display: flex;
+  gap: 12mm;
+  border-top: 0.5pt solid #000;
+  padding-top: 1pt;
+  margin-top: 2pt;
+  font-size: 5pt;
+  text-transform: uppercase;
+  color: #444;
+}
+
+.danfe-canhoto-nf {
+  width: 28mm;
+  border-left: 0.7pt solid #000;
+  padding: 3pt 4pt;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 8pt;
+}
+
+.danfe-cut {
+  text-align: center;
+  color: #666;
+  letter-spacing: 1pt;
+  font-size: 5pt;
+  margin: 1.5mm 0;
+}
+
+.danfe-head {
+  display: flex;
+}
+
+.danfe-emit,
+.danfe-title,
+.danfe-chave {
+  border: 0.7pt solid #000;
+  padding: 2pt 3pt;
+  min-height: 28mm;
+}
+
+.danfe-emit {
+  flex: 0 0 42%;
+}
+
+.danfe-title {
+  flex: 0 0 18%;
+  text-align: center;
+}
+
+.danfe-chave {
+  flex: 0 0 40%;
+}
+
+.danfe-logo {
+  height: 18px;
+  width: auto;
+  display: block;
+  margin: 1pt 0 2pt;
+}
+
+.danfe-emit strong,
+.danfe-title strong {
+  display: block;
+  font-size: 8pt;
+}
+
+.danfe-title strong {
+  font-size: 13pt;
+  letter-spacing: 0.04em;
+}
+
+.danfe-title span,
+.danfe-io {
+  display: block;
+  font-size: 5.8pt;
+}
+
+.danfe-io.is-out {
+  font-weight: 700;
+  margin: 2pt 0;
+}
+
+.danfe-addr {
+  margin: 1pt 0 0;
+  font-family: inherit;
+  font-size: 6.2pt;
+  white-space: pre-wrap;
+}
+
+.danfe-chave-num {
+  display: block;
+  font-size: 7pt;
+  letter-spacing: 0.02em;
+  text-align: center;
+  margin: 4pt 0;
+}
+
+.danfe-chave-empty,
+.danfe-consulta,
+.danfe-homolog {
+  margin: 2pt 0 0;
+  font-size: 6pt;
+  text-align: center;
+}
+
+.danfe-homolog {
+  font-weight: 700;
+  color: #8a5a00;
+}
+
+.danfe-sec {
+  margin: 2.2mm 0 1pt;
+  font-size: 6.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.danfe-dups {
+  display: flex;
+  border: 0.7pt solid #000;
+}
+
+.danfe-dup {
+  flex: 1;
+  padding: 2pt 4pt;
+  border-right: 0.5pt solid #000;
+  font-size: 6.5pt;
+  display: flex;
+  flex-direction: column;
+  gap: 1pt;
+}
+
+.danfe-dup:last-child {
+  border-right: 0;
+}
+
+.danfe-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6.2pt;
+}
+
+.danfe-items th,
+.danfe-items td {
+  border: 0.5pt solid #000;
+  padding: 1.5pt 2pt;
+  vertical-align: top;
+}
+
+.danfe-items th {
+  background: #f0f0f0;
+  font-size: 5.2pt;
+  text-transform: uppercase;
+}
+
+.danfe-items td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.danfe-adic {
+  display: flex;
+}
+
+.danfe-adic > div {
+  border: 0.7pt solid #000;
+  padding: 2pt 3pt;
+  min-height: 16mm;
+}
+
+.danfe-adic > div:first-child {
+  flex: 0 0 62%;
+}
+
+.danfe-adic > div:last-child {
+  flex: 0 0 38%;
+}
+
+.danfe-adic p {
+  margin: 2pt 0 0;
+  font-size: 6.4pt;
+}
+
+.danfe-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 3mm;
+  font-size: 6pt;
+  color: #444;
+}
+
+.danfse-band {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  border: 0.7pt solid #000;
+  padding: 3mm 3mm;
+}
+
+.danfse-band-title {
+  flex: 1;
+  text-align: center;
+}
+
+.danfse-band-title strong {
+  display: block;
+  font-size: 14pt;
+  letter-spacing: 0.06em;
+}
+
+.danfse-band-num {
+  width: 38mm;
+  text-align: right;
+}
+
+.danfse-disc {
+  border: 0.7pt solid #000;
+  padding: 3pt 4pt;
+  min-height: 18mm;
+  font-size: 7.5pt;
+}
+
 /* Masthead */
 .ficha-masthead {
   display: flex;
@@ -4261,6 +4744,11 @@ tr.row-inactive td {
   min-width: 18mm;
 }
 
+/* PED/OP: faca solta na seção (não colada à tabela do ORC paisagem). */
+.ficha-orc-faca.ficha-orc-faca-standalone {
+  border-top: 0.35pt solid var(--border);
+}
+
 .ficha-obs {
   margin: 0;
   padding: 1.2mm 1.8mm;
@@ -4379,6 +4867,11 @@ tr.row-inactive td {
   margin: 8mm;
 }
 
+@page danfe-a4 {
+  size: A4 portrait;
+  margin: 6mm;
+}
+
 /* A4 paisagem — cálculo ORC interno (Excel aba ORÇAMENTO) */
 @page ficha-orc-a4 {
   size: A4 landscape;
@@ -4404,10 +4897,34 @@ tr.row-inactive td {
     page: ficha-a4;
   }
 
+  body.ficha-print-mode .ficha-sheet.danfe-sheet {
+    page: danfe-a4;
+    padding: 0;
+    font-size: 7pt;
+  }
+
   body.ficha-print-mode .ficha-sheet.ficha-sheet-orc {
     page: ficha-orc-a4;
     width: auto;
     max-width: none;
+  }
+
+  body.ficha-print-mode .ficha-sheet-nf.ficha-sheet-rascunho::before {
+    opacity: 0.09;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .ficha-nf-banner {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .danfe-watermark,
+  body.ficha-print-mode .danfe-items th,
+  body.ficha-print-mode .danfe-homolog {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   body.ficha-print-mode .no-print {
@@ -5319,6 +5836,61 @@ tr.row-inactive td {
 .nat-stats {
   margin: 0.75rem 0 0;
   font-size: 0.85rem;
+}
+
+/* Estoque — leitura operacional (posição, kardex, INV, AJU) */
+.tabs.estoque-module-nav {
+  margin-bottom: 1rem;
+}
+
+.tabs.estoque-module-nav .tab {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tab .tab-count {
+  margin-left: 0.4rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.tab.active .tab-count {
+  color: var(--navy);
+  opacity: 0.65;
+}
+
+.qty-in {
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.qty-out {
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.qty-adj {
+  font-variant-numeric: tabular-nums;
+}
+
+button.linkish {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+button.linkish:hover {
+  opacity: 0.85;
 }
 
 

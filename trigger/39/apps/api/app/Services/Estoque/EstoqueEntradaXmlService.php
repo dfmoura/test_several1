@@ -132,6 +132,14 @@ class EstoqueEntradaXmlService
                 'v_un_com' => $xmlItem['v_un_com'],
                 'v_prod' => $xmlItem['v_prod'],
                 'cfop' => $xmlItem['cfop'],
+                'orig' => $xmlItem['orig'] ?? null,
+                'cst_icms' => $xmlItem['cst_icms'] ?? null,
+                'csosn' => $xmlItem['csosn'] ?? null,
+                'p_icms' => $xmlItem['p_icms'] ?? null,
+                'v_icms' => $xmlItem['v_icms'] ?? null,
+                'v_ipi' => $xmlItem['v_ipi'] ?? null,
+                'v_pis' => $xmlItem['v_pis'] ?? null,
+                'v_cofins' => $xmlItem['v_cofins'] ?? null,
                 'rastros' => $xmlItem['rastros'] ?? [],
                 'match' => $match,
             ];
@@ -231,13 +239,22 @@ class EstoqueEntradaXmlService
                 'parcelas' => $parcelas,
                 'destinatario' => [
                     'cnpj_cpf' => $nfe['dest_cnpj'] ?? $nfe['dest_cpf'] ?? null,
+                    'ie' => $nfe['dest_ie'] ?? null,
+                    'uf' => $nfe['dest_uf'] ?? null,
                 ],
                 'emitente' => [
                     'cnpj_cpf' => $nfe['emit']['cnpj_cpf'] ?? null,
                     'razao_social' => $nfe['emit']['razao_social'] ?? null,
                     'nome_fantasia' => $nfe['emit']['nome_fantasia'] ?? null,
+                    'ie' => $nfe['emit']['ie'] ?? null,
+                    'uf' => $nfe['emit']['uf'] ?? null,
+                    'crt' => $nfe['emit']['crt'] ?? null,
                 ],
+                'nat_op' => $nfe['nat_op'] ?? null,
+                'id_dest' => $nfe['id_dest'] ?? null,
+                'modelo' => $nfe['modelo'] ?? null,
             ],
+            'espelho' => $this->montarEspelho($nfe, $linhas),
             'warnings' => $warnings,
             'linhas' => $linhas,
             'sugerido_receber' => [
@@ -397,6 +414,52 @@ class EstoqueEntradaXmlService
             'produto_id' => null,
             'confianca' => 'NENHUMA',
             'motivo' => 'selecione o item da OC',
+        ];
+    }
+
+    /**
+     * Espelho só leitura — matéria-prima do livro, não escrituração.
+     *
+     * @param  array<string, mixed>  $nfe
+     * @param  list<array<string, mixed>>  $linhas
+     * @return array<string, mixed>
+     */
+    private function montarEspelho(array $nfe, array $linhas): array
+    {
+        $totais = $nfe['totais'] ?? [];
+
+        return [
+            'nat_op' => $nfe['nat_op'] ?? null,
+            'id_dest' => $nfe['id_dest'] ?? null,
+            'modelo' => $nfe['modelo'] ?? null,
+            'serie' => $nfe['serie'] ?? null,
+            'numero' => $nfe['numero'] ?? null,
+            'emit_uf' => $nfe['emit']['uf'] ?? null,
+            'emit_crt' => $nfe['emit']['crt'] ?? null,
+            'totais' => [
+                'v_bc' => $totais['v_bc'] ?? null,
+                'v_icms' => $totais['v_icms'] ?? null,
+                'v_ipi' => $totais['v_ipi'] ?? null,
+                'v_pis' => $totais['v_pis'] ?? null,
+                'v_cofins' => $totais['v_cofins'] ?? null,
+                'v_st' => $totais['v_st'] ?? null,
+                'v_nf' => $totais['v_nf'] ?? $nfe['valor_nf'] ?? null,
+            ],
+            'itens' => array_map(static function (array $linha): array {
+                return [
+                    'n_item' => $linha['n_item'],
+                    'cfop' => $linha['cfop'] ?? null,
+                    'ncm' => $linha['ncm'] ?? null,
+                    'orig' => $linha['orig'] ?? null,
+                    'cst' => $linha['cst_icms'] ?? $linha['csosn'] ?? null,
+                    'p_icms' => $linha['p_icms'] ?? null,
+                    'v_icms' => $linha['v_icms'] ?? null,
+                    'v_ipi' => $linha['v_ipi'] ?? null,
+                    'v_pis' => $linha['v_pis'] ?? null,
+                    'v_cofins' => $linha['v_cofins'] ?? null,
+                    'v_prod' => $linha['v_prod'] ?? null,
+                ];
+            }, $linhas),
         ];
     }
 

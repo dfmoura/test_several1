@@ -39,7 +39,7 @@ class FiscalHubService
             'total' => $rows->count(),
             'ativos' => $rows->where('ativo', true)->count(),
             'padrao_id' => $padrao?->id,
-            'aviso' => 'Homologação e produção usam tokens e URLs distintos. Emissões oficiais só com ambiente produção e token de produção. Documentação: https://doc.focusnfe.com.br/reference/introducao',
+            'aviso' => 'Homologação e produção usam tokens e URLs distintos. Teste OK no ambiente ativo liga a emissão automática de NF-e/NFS-e. Emissões oficiais só com ambiente produção e token de produção. Documentação: https://doc.focusnfe.com.br/reference/introducao',
         ];
     }
 
@@ -146,6 +146,10 @@ class FiscalHubService
         }
         if (array_key_exists('ativo', $data)) {
             $row->ativo = (bool) $data['ativo'];
+            if (! $row->ativo) {
+                $row->emissao_habilitada = false;
+                $row->emissao_habilitada_em = null;
+            }
         }
 
         if (! empty($data['token_homologacao']) && is_string($data['token_homologacao'])) {
@@ -176,6 +180,8 @@ class FiscalHubService
                 ]);
             }
             $row->ambiente_ativo = $ambiente;
+            $row->emissao_habilitada = false;
+            $row->emissao_habilitada_em = null;
         }
 
         $this->validarUrlsProvedor($row->provedor, [
@@ -265,13 +271,25 @@ class FiscalHubService
         $row->ultimo_teste_ambiente = $ambiente;
         $row->ultimo_teste_em = now();
         $row->ultimo_teste_ok = (bool) ($resultado['ok'] ?? false);
-        $row->ultimo_teste_msg = mb_substr((string) ($resultado['mensagem'] ?? ''), 0, 300);
+        $msg = (string) ($resultado['mensagem'] ?? '');
+
+        if ($row->ultimo_teste_ok && $ambiente === $row->ambiente_ativo && $row->ativo) {
+            $row->emissao_habilitada = true;
+            $row->emissao_habilitada_em = now();
+            $msg = rtrim($msg, '.').'. Emissão automática ativada para '.$ambiente.'.';
+        } elseif ($ambiente === $row->ambiente_ativo) {
+            $row->emissao_habilitada = false;
+            $row->emissao_habilitada_em = null;
+        }
+
+        $row->ultimo_teste_msg = mb_substr($msg, 0, 300);
         $row->save();
 
         return [
             'ok' => (bool) $row->ultimo_teste_ok,
             'mensagem' => (string) $row->ultimo_teste_msg,
             'ambiente' => $ambiente,
+            'emissao_habilitada' => (bool) $row->emissao_habilitada,
             'hub' => $this->toOut($row->fresh()),
         ];
     }
@@ -288,6 +306,8 @@ class FiscalHubService
             'ambiente_ativo' => $row->ambiente_ativo,
             'padrao' => $row->padrao,
             'ativo' => $row->ativo,
+            'emissao_habilitada' => (bool) $row->emissao_habilitada,
+            'emissao_habilitada_em' => $row->emissao_habilitada_em?->toIso8601String(),
             'base_url_homologacao' => $row->base_url_homologacao,
             'base_url_producao' => $row->base_url_producao,
             'base_url_homologacao_efetiva' => $this->urlEfetivaSegura($row, 'homologacao'),
