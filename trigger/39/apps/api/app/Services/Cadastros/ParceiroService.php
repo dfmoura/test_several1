@@ -7,6 +7,7 @@ use App\Models\Parceiro;
 use App\Models\ParceiroFiscalHistorico;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Comercial\VendedorResolver;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class ParceiroService
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $auditLogger,
         private readonly DepartamentoService $departamentoService,
+        private readonly VendedorResolver $vendedores,
     ) {}
 
     public function list(Empresa $empresa, ?string $q = null, ?string $papel = null, int $limit = 50)
@@ -29,6 +31,7 @@ class ParceiroService
                 'contasBancarias',
                 'enderecosEntrega',
                 'departamentoRef:id,codigo,nome,ativo',
+                'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
                 ...Parceiro::userStampWith(),
             ])
             ->orderBy('razao_social');
@@ -185,6 +188,7 @@ class ParceiroService
             $attributes = $this->mapAttributes($data);
             $attributes = $this->applyDistanciaCarro($attributes, $data, $empresa);
             $attributes = $this->applyDepartamento($empresa, $data, $attributes);
+            $this->assertVendedorVinculo($empresa, $attributes['vendedor_parceiro_id'] ?? null);
             $attributes = array_merge($attributes, $this->denormalizeFromRelations($contatos, $contas, $attributes));
             $attributes = $this->applyFiscalRules($attributes, []);
 
@@ -240,6 +244,9 @@ class ParceiroService
             $attributes = $this->mapAttributes($data);
             $attributes = $this->applyDistanciaCarro($attributes, $data, $empresa);
             $attributes = $this->applyDepartamento($empresa, $data, $attributes);
+            if (array_key_exists('vendedor_parceiro_id', $attributes)) {
+                $this->assertVendedorVinculo($empresa, $attributes['vendedor_parceiro_id']);
+            }
 
             if ($hasContatos || $hasContas) {
                 $currentContatos = $hasContatos
@@ -495,9 +502,25 @@ class ParceiroService
             return $mapped;
         }
 
+        try {
+            $canon = PadraoDecimal::parse((string) $km);
+        } catch (\InvalidArgumentException) {
+            $canon = null;
+        }
+        // 0,0 km não é rota (centroide de CEP). Não persistir.
+        if ($canon === null || bccomp($canon, '0', PadraoDecimal::SCALE_DISTANCE) === 0) {
+            $mapped['distancia_km'] = null;
+            $mapped['distancia_fonte'] = null;
+            $mapped['distancia_calculada_em'] = null;
+            $mapped['distancia_empresa_id'] = null;
+
+            return $mapped;
+        }
+
         $fonte = isset($data['distancia_fonte']) ? (string) $data['distancia_fonte'] : \App\Services\Consulta\OpenRouteServiceClient::FONTE;
         $fontesOk = [
             \App\Services\Consulta\OpenRouteServiceClient::FONTE,
+            \App\Services\Consulta\OpenRouteServiceClient::FONTE_OSM,
             \App\Services\Consulta\OpenRouteServiceClient::FONTE_MESMO_PONTO,
         ];
         if (! in_array($fonte, $fontesOk, true)) {
@@ -967,6 +990,11 @@ class ParceiroService
                 'papel' => ['Informe ao menos um papel para o parceiro (ou marque como prospect).'],
             ]);
         }
+    }
+
+    private function assertVendedorVinculo(Empresa $empresa, mixed $vendedorId): void
+    {
+        $this->vendedores->resolve($empresa, $vendedorId);
     }
 
     private function assertCnpjUnique(int $empresaId, ?string $cnpjCpf, ?int $ignoreId = null): void

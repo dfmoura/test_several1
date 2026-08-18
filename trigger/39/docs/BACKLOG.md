@@ -14,11 +14,300 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-059`
+`BL-068`
 
 ---
 
 ## Itens
+
+### BL-067 · [domínio/comercial/fiscal] Separar industrialização × serviço × cessão de bem
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-18 — prestação de serviço (rebobinação, manutenção) e comodato de impressora não podem viver no mesmo bolo da NF-e de etiqueta; estudo 32; exemplo NFS-e `../21`; sem estragar industrialização
+- **Depende de:** BL-044 · BL-049 · BL-051 · BL-023
+- **Destrava:** Locação cobrada com TIT (depois); hora-máquina no preço do serviço (GERACAO §10.3)
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CADASTRO_PRODUTOS_VENDA.txt` §1 / §5.6 — PA × REV × SVC; rebobinação pendente NF-e×NFS-e
+  - `ORDEM_SERVICO.txt` — OS ≠ OP; sem oficina paralela
+  - `GERACAO_ORCAMENTO.txt` §2 / §10.3 — tipos de ORC; serviço avulso = hora + embalagem
+  - `PATRIMONIO_CONTROLE.txt` — BEM `CEDIDO`
+  - `CASOS_USO_M05` UC-FIS-001 AL1
+- **Referência (padrão 39):** `docs/ADR_OPERACOES_SAIDA.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · NFS-e `../21` · Focus `../28`
+- **Decisão (fechada):**
+  1. Três trilhos: industrialização (ORC R1–R20 → OP → NF-e); serviço (ORC comercial → OS → NFS-e Nacional); cessão (CES- no BEM, sem FAT/NF).
+  2. Etiqueta que circula permanece NF-e. NFS-e 13.05 não substitui industrialização.
+  3. Serviço: catálogo `REBOBINACAO`/`ACERTO`/`AVULSO`/`MANUTENCAO`; preço informado; sem faca/papel.
+  4. Comodato: `documento_fiscal=NENHUM`. Locação ≠ ISS (SV 31). Manutenção cobrada = serviço.
+  5. Motor R1–R20 intacto. Códigos ISS no catálogo (não hardcoded 130501 para tudo).
+- **Aceite:**
+  - [x] ORC de serviço sem medida/papel/cores
+  - [x] PED OS + FAT TIT 1.01.03 + DFS NFS-e com cTrib do catálogo
+  - [x] Comodato cede BEM, zero FAT/DFS
+  - [x] Cessão no ORC é recusada (UX aponta patrimônio)
+  - [x] Industrialização inalterada
+- **Fora de escopo:** locação com TIT recorrente; componentes R1–R20 só-máquina; split dual PA
+- **Não fazer:** NFS-e de etiqueta vendida; NF no comodato; segundo ERP de oficina
+- **Entregue em:** 2026-08-18
+- **Implementação (39):**
+  - ADR-039-DOM-002 `docs/ADR_OPERACOES_SAIDA.md` · regra `.cursor/rules/operacoes-saida.mdc`
+  - `CatalogoServicoSaida` · `OrcamentoServicoPrecificador` · `CessaoBem`
+  - `PrestacaoServicoAteFaturamentoTest` · `CessaoBemTest`
+
+### BL-066 · [estoque/fiscal] SAIDA_VENDA na NF-e Focus autorizada
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-18 — mapa de faturamento; seguir o estudo 32 sem estragar FAT/TIT/ENT/stub
+- **Depende de:** BL-044 · BL-049 · BL-051 · BL-065
+- **Destrava:** Cancelamento Focus com estorno de estoque (próximo); DEV-
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt` §4.3 / §5 — NF-e autorizada → MOV `SAIDA_VENDA` (PA ou REV)
+  - `MAPA_FATURAMENTO_EXPLICADO.txt` §8 — baixa PA/REV no evento de autorização; rejeição não baixa
+  - `FATURAMENTO_GERACAO_COBRANCA.txt` §3 — só NF autorizada baixa estoque
+  - `CASOS_USO_M05` UC-FIS-001 — pós-condição de autorização
+- **Referência (padrão 39):** `docs/MAPA_FATURAMENTO.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · `EstoqueSaldoWriter`
+- **Decisão (fechada):**
+  1. Baixa **somente** `DocumentoFiscalSaida` `AUTORIZADO` origem `FOCUS` tipo NFE. Stub, prévia, NFS-e e rejeição **não** mexem em saldo.
+  2. MOV `SAIDA_VENDA` via `EstoqueSaldoWriter`. 1 MOV por DFS (idempotente). Liga `pedido_id` + `faturamento_id` + `documento_fiscal_saida_id` + chave 44.
+  3. Quantidade = linha de produto do FAT (`qtde_faturavel`). Matriz/clichê e faca nova **não** baixam.
+  4. SKU = `pedido_itens.produto_pa_id` (PA; REV quando houver SKU). Sem SKU: aviso, não bloqueia FAT, não inventa produto.
+  5. Saldo insuficiente / SKU congelado: **bloqueia o POST Focus** (checklist). Se a NF já autorizou (consultar assíncrono): não desfaz a nota; registra mensagem; sem segundo MOV.
+  6. FAT/TIT/COB/ENT intactos. Estorno comercial continua bloqueado com NF oficial.
+- **Aceite:**
+  - [x] Focus autoriza NFE com PA em saldo → `SAIDA_VENDA` + saldo desce a qtde faturada
+  - [x] Stub / prévia / NFS-e → zero MOV
+  - [x] Retry / consultar → 1 MOV
+  - [x] Promoção STUB→Focus → baixa só na promoção
+  - [x] Matriz/faca não somam quantidade
+  - [x] Sem SKU: FAT e NF seguem; sem MOV
+  - [x] Saldo insuficiente bloqueia emissão, não o FAT
+  - [x] EMP isolada (MOV na EMP do DFS; testes de NF/FAT existentes)
+- **Fora de escopo:** cancelamento Focus; estorno de `SAIDA_VENDA`; DEV-; lote de PA; faturamento parcial
+- **Não fazer:** baixar no FAT; baixar no stub; inventar SKU; desfazer NF porque faltou saldo depois da autorização
+- **Entregue em:** 2026-08-18
+- **Implementação (39):**
+  - `EstoqueSaidaVendaService` · `estoque_movimentos.documento_fiscal_saida_id` / `faturamento_id`
+  - Hook em `EmissaoFiscalService::aplicarResultado`
+  - Checklist bloqueia POST se SKU sem saldo
+  - `SaidaVendaNfAutorizadaTest`
+
+### BL-065 · [fiscal] Emissor de teste sem A1 (stub local, hub sempre ganha)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-18 — sem certificado A1 no hub Focus e sem upload no ERP; completar o fluxo NF no teste local com chaves sintéticas; não atrapalhar quando A1/hub estiver ok (local, homolog, produção); estudo 32; sem estragar
+- **Depende de:** BL-051 · BL-052 · BL-053 · BL-006
+- **Destrava:** UAT do pipeline FAT→DFS→DANFE sem A1; promoção à autorização Focus na mesma `ref`
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `HOMOLOGACAO_ERP_RLP.txt` H0.2 / 2.1 / R-HML-02 — DEV = mock; HML = Focus homolog + A1 homolog; PROD = Focus prod
+  - `CASOS_USO_M05_FISCAL.txt` UC-FIS-001/005 — numeração só da SEFAZ via Focus; A1 por empresa_id no hub
+  - `ESPECIFICACAO_SOFTWARE_ERP_RLP.txt` RF-FAT-01 — não inventar numeração SEFAZ
+  - `CASOS_USO_M09_INTEGRACOES.txt` UC-INT-001 — homolog ≠ prod
+- **Referência (padrão 39):** `BANK_PROVIDER=mock` · `docs/ADR_EMISSAO_NFE_NFSE.md` · BL-006 (A1 fora do ERP)
+- **Decisão (fechada):**
+  1. A1 continua na Focus, não no FLEXOERP. Sem upload de certificado.
+  2. `FISCAL_EMISSOR=stub` só em `ERP_STAGE=local|testing`. Homolog e production ignoram o flag.
+  3. Hub Focus apto **sempre ganha**. Stub só na ausência do hub.
+  4. Stub grava `autorizacao_origem=STUB`, protocolo `SIM-`, chave 44 com DV (tpEmis=9). Sem XML `nfeProc`. `oficial=false`.
+  5. Mesma `ref`: quando o hub ficar apto, emitir-nf promove STUB → FOCUS (substitui numeração).
+  6. Estorno e estoque PA: stub não trava / não baixa. Focus autorizado continua a regra atual.
+- **Aceite:**
+  - [x] Policy bloqueia homolog/production
+  - [x] Sem hub + stub: AUTORIZADO STUB, chave, pode estornar
+  - [x] Hub apto: Focus, stub morto
+  - [x] Promoção mesma ref
+  - [x] Testes existentes sem hub continuam PLANEJADO (phpunit `FISCAL_EMISSOR=focus`)
+- **Fora de escopo:** upload A1; XML `nfeProc`; baixa PA; Focus homolog sem certificado
+- **Não fazer:** fingir autorização SEFAZ; stub em homolog/prod; chave oficial sem origem STUB
+- **Entregue em:** 2026-08-18
+- **Implementação (39):**
+  - `FiscalEmissorPolicy` · `FiscalEmissorStub` · `NfeChaveAcesso`
+  - `documento_fiscal_saidas.autorizacao_origem`
+  - `FISCAL_EMISSOR` em `.env` / Compose
+
+### BL-064 · [financeiro] Carteira operacional (aging + ficha + BX completa + avulso)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-18 — melhorar o financeiro no padrão do sistema; estudo 32; sem estragar TIT/COB/BX
+- **Depende de:** BL-021 · BL-032 · BL-033 · BL-035 · BL-049 · BL-061 · BL-063
+- **Destrava:** DRE M10 (depois); conciliação OFX; juros/desconto/perda; estorno de BX
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `CASOS_USO_M06_FINANCEIRO.txt` UC-FIN-005/006
+  - `RECEBIMENTO_BAIXA_COBRANCA.txt` §3–5, §7, §9
+  - `NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt`
+  - `CASOS_USO_M10_GERENCIAL.txt` — DRE é outra tela
+- **Referência (padrão 39):** `docs/ADR_NATUREZAS_GERENCIAIS.md` · `docs/ADR_FATURAMENTO_COBRANCA.md` · Painel (KPI receber/pagar)
+- **Decisão (fechada):**
+  1. Espinha TIT/COB/BX intacta. Carteira = aging + ficha + forma na BX + lançamento pontual.
+  2. Faixas: a vencer / vence hoje / 1–30 / 31–60 / 61–90 / 90+. UI padrão em aberto.
+  3. Previsão operacional = receber − pagar em aberto. Não é DRE.
+  4. Avulso (`origem=AVULSO`) para o que não nasce de FAT/OC/CFE. NAT reservadas bloqueadas.
+  5. Cancelar avulso só ABERTO sem BX. Nunca apagar.
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] GET `/titulos` com situacao/faixa + meta aging/previsão
+  - [x] POST avulso + cancelar; forma canônica na BX
+  - [x] UI unificada receber/pagar (aging, ficha, baixa, lançamento)
+  - [x] Painel aterra na faixa vencida
+  - [x] Testes: aging, avulso, NAT reservada, SoD, EMP, regressão listagem
+- **Fora de escopo:** DRE; WhatsApp; OFX/CNAB; juros/desconto/perda; estorno de BX; TIT de frete
+- **Não fazer:** bypass FAT/OC/COM via avulso; LAI; fingir DRE no financeiro
+- **Entregue em:** 2026-08-18
+- **Implementação (39):**
+  - ADR-039-FIN-002 `docs/ADR_CARTEIRA_FINANCEIRA.md` · regra `.cursor/rules/carteira-financeira.mdc`
+  - `TituloAging` + `TituloService` carteira/avulso · UI `TitulosCarteiraPage`
+
+### BL-063 · [plataforma/ux] Painel = cockpit gerencial da EMP (não sitemap)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-16 — Painel organizado como dashboard gerencial; bloco de identidade enxuto; remover Prioridades; estudo 32; sem estragar
+- **Depende de:** — (read model sobre módulos já existentes)
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `INDICE_FLUXO_OPERACIONAL.txt` — cadeia ORC→PED→OP→FAT→ENT→BX
+  - `CASOS_USO_M11_PLATAFORMA.txt` — home conforme perfil; EMP do contexto
+  - `CASOS_USO_M10_GERENCIAL.txt` — DRE interno é outra tela; Painel **não** finge DRE
+- **Referência (padrão 39):** `docs/MODELO_INSTALACAO_MULTI_EMPRESA.md` §6 · `docs/IDENTIDADE_TRIGGER.md` (EMP ≠ marca)
+- **Decisão (fechada):**
+  1. Menu lateral permanece o catálogo. Painel não duplica atalhos por área (Prioridades sai).
+  2. Identidade produto/licenciado/TRIGGER fica no shell. Painel só EMP ativa + perfil + flags venda/estoque.
+  3. Um GET `/painel` por EMP: cadeia (contagens/saldos) + filas (só o que pede ação). RBAC omite o bloco; isolamento por `empresa_id`.
+  4. Sem DRE/SPED no home. Sem N chamadas de listagem na SPA.
+- **Aceite:**
+  - [x] Faixa compacta EMP + flags; sem cards de produto/licenciado
+  - [x] Sem seção Prioridades
+  - [x] KPIs da cadeia + Atenção; 403/isolamento por EMP
+  - [x] Perfil comercial não vê financeiro/produção
+- **Fora de escopo:** DRE M10; gráficos; ranking de vendedor; mapa de facas no home
+- **Não fazer:** voltar sitemap no Painel; tratar EMP como marca; inventar indicadores sem documento
+- **Entregue em:** 2026-08-16
+- **Implementação (39):**
+  - `PainelService` + `GET /api/v1/painel` + `PainelTest`
+  - `DashboardPage` + CSS do cockpit
+
+### BL-062 · [qualidade] Homologação E2E ORC → COM PAGA sem A1/hub
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-16 — teste completo do orçamento até baixa e pagamento da comissão; certificado A1 ainda não entra; estudo 32; sem estragar
+- **Depende de:** BL-044 · BL-049 · BL-051/052 · BL-060 · BL-061
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `INDICE_FLUXO_OPERACIONAL.txt` — cadeia ORC→PED→OP→FAT→ENT→BX
+  - `HOMOLOGACAO_ERP_RLP.txt` H0.1 / H0.2 / 6.1 — homologar o fluxo; Focus homolog ≠ prod; sem A1 não inventar NF
+  - `COMISSOES_VENDEDORES_DETALHADO.txt` — COM- na BX, CFE-, TIT 3.01.05
+  - `FATURAMENTO_GERACAO_COBRANCA.txt` · `ENTREGA_CONFIRMACAO_CLIENTE.txt` · `RECEBIMENTO_BAIXA_COBRANCA.txt`
+- **Referência (padrão 39):** BL-052 prévia sem hub · BL-061 COM- · canário BRAHVA
+- **Decisão (fechada):**
+  1. Cadeia feliz automatizada via API real (motor BRAHVA + vendedor 3%), sem atalho de fixture no meio.
+  2. Sem hub/A1: FAT + TIT/COB + DocumentoFiscalSaida `PLANEJADO` (prévia). Zero chave/número/XML falso.
+  3. Ordem canônica: ORC → aceite (crédito OK) → PED → OP → FAT → ENT balcão → BX receber → COM PREVISTA → CFE → TIT PAGAR 3.01.05 → BX → COM PAGA.
+  4. Provas de fronteira no mesmo roteiro: matriz fora da base; ENT não gera COM; PRODUÇÃO não fatura; COMERCIAL não fecha CFE.
+  5. Seed: vendedor demo `PAR-00011` (3%) + contato autorizador no cliente exemplo — para UAT na UI, sem mudar o motor.
+- **Aceite:**
+  - [x] Feature `OrcamentoAteComissaoE2ETest` ponta a ponta
+  - [x] Sem hub: `nf_status=PENDENTE`, DFS `PLANEJADO`, chave nula
+  - [x] COM só na BX; paga após CFE+TIT+BX; natureza 3.01.05
+  - [x] Seed vendedor + contato (idempotente)
+- **Fora de escopo:** upload A1; mock Focus AUTORIZADO; XML `nfeProc` forjado; TMS; DEV-
+- **Não fazer:** inventar NF autorizada para “completar” o teste; pular OP/ENT; pagar comissão no faturar
+- **Entregue em:** 2026-08-16
+- **Implementação (39):**
+  - `apps/api/tests/Feature/OrcamentoAteComissaoE2ETest.php`
+  - `DatabaseSeeder::seedCliente` — `PAR-00011` vendedor + contato no `PAR-00010`
+
+### BL-061 · [comercial/financeiro] Vendedor no ORC + COM- sobre o recebido
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-16 — vendedores já no PAR; colocar no orçamento com comissão; fechar para pagar a partir da baixa do cliente; entrega no transporte segue ENT- + BX negociada; estudo 32; sem estragar
+- **Depende de:** BL-049 · BL-050 · BL-060
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `COMISSOES_VENDEDORES_DETALHADO.txt` — base RECEBIDO, COM-, fechamento, natureza 3.01.05
+  - `GERACAO_ORCAMENTO.txt` §3.1 — vendedor define %
+  - `RECEBIMENTO_BAIXA_COBRANCA.txt` — BX ≠ entrega
+  - `CASOS_USO_M06` UC-FIN-008
+  - `ENTREGA_CONFIRMACAO_CLIENTE.txt` — eixos distintos
+- **Referência (padrão 39):** PAR `papel_vendedor` / `comissao_percentual` / `vendedor_parceiro_id`; motor ORC já usa `comissao_pct` na formação do preço; TIT/BX e ENT- já existem
+- **Decisão (fechada):**
+  1. Vendedor no ORC (FK + snapshot). Prefill do cliente; % do cadastro nas faixas; alíquota paga = % da faixa aceita.
+  2. Base RECEBIDO: COM- na BX do TIT da venda (etiquetas; sem frete/ferramental). Sinal só na apropriação do FAT.
+  3. Ciclo PREVISTA → CFE- LIBERADA → TIT PAGAR 3.01.05 → PAGA. 1 vendedor por ORC.
+  4. ENT- intacto: transporte confirma entrega; baixa segue a condição; comissão não nasce no romaneio.
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migration COM/CFE + vendedor no ORC/PED + permissões
+  - [x] ORC/PAR UI vendedor; apuração na BX; fechamento + TIT
+  - [x] Painel no PED; tela Comissões
+  - [x] Testes: BX, sinal, sem vendedor, SoD, EMP, residual, estorno FAT
+- **Fora de escopo:** rateio multi-vendedor; base FATURADO; meta; DEV-; extrato só-meu
+- **Não fazer:** auto-COM no faturar/ENT; relêr PAR depois do snapshot; incluir frete na base
+- **Entregue em:** 2026-08-16
+- **Implementação (39):**
+  - ADR-039-COM-001 `docs/ADR_COMISSAO_VENDEDOR.md` · regra `.cursor/rules/comissao-vendedor.mdc`
+  - `Comissao` + `ComissaoFechamento` + `ComissaoService` · rotas `/comissoes*` · UI `/financeiro/comissoes`
+
+### BL-060 · [expedição/logística] ENT- após faturar (balcão × transporte + confirmação)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-16 — produto na expedição, nota e cobrança já geradas; organizar retirada no balcão × transporte, confirmar entrega e seguir baixa conforme negociado; estudo 32; sem estragar
+- **Depende de:** BL-049 · BL-051/052 · BL-058
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `ENTREGA_CONFIRMACAO_CLIENTE.txt` — ENT-, modos, confirmação, eixos distintos
+  - `FRETE_TRANSPORTADORAS.txt` — sem TMS; transportadora = PAR
+  - `GERACAO_PEDIDO.txt` §4 — `EM_ENTREGA` / `ENTREGUE` / `ENCERRADO`
+  - `RECEBIMENTO_BAIXA_COBRANCA.txt` §5 — BX não é confirmação de entrega
+  - `CASOS_USO_M06` UC-FIN-010 · `DECISAO_MODELO_DOMINIO` §5.1 · RN-10
+- **Referência (padrão 39):** FAT/TIT já nascem no faturar; modo `RETIRAR`/`ENTREGAR` no snapshot ORC; Contas a receber já baixa TIT
+- **Decisão (fechada):**
+  1. Agregado `ENT-AAAA-NNNNN` no módulo `expedicao/` — não dentro de TIT.
+  2. Fila = PED `FATURADO`. Expedir gera ENT vigente (1 por PED). `RETIRAR` → aguarda no balcão; `ENTREGAR` → frota/transportadora/outro em trânsito.
+  3. Confirmar com prova mínima (nome no balcão; canhoto/rastreio/obs no transporte) → PED `ENTREGUE`.
+  4. TIT intactos; CTA para Contas a receber se saldo aberto. `ENCERRADO` só com entrega ok + receber quitado.
+  5. Política NF antes de expedir = SIM: sem hub a prévia basta; hub apto exige autorizada.
+  6. Recusa/cancelamento histórico; PED volta a `FATURADO`. Estorno FAT bloqueado após expedir.
+- **Aceite:**
+  - [x] ADR + regra Cursor
+  - [x] Migration ENT + permissões `expedicao.*` + status PED
+  - [x] API preview/expedir/confirmar/recusar/cancelar + fila
+  - [x] UI Expedição + card no PED + romaneio imprimível
+  - [x] Testes: balcão, transporte, SoD, NF, EMP, encerrar, estorno bloqueado
+- **Fora de escopo:** TMS; CT-e; WhatsApp; foto; parcial; DEV-; baixa PA no ENT
+- **Não fazer:** auto-baixa na confirmação; romaneio no TIT; expedir sem FAT
+- **Entregue em:** 2026-08-16
+- **Implementação (39):**
+  - ADR-039-EXP-001 `docs/ADR_ENTREGA_EXPEDICAO.md` · regra `.cursor/rules/expedicao-entrega.mdc`
+  - `Entrega` + `EntregaService` · rotas `/entregas*` · UI `/expedicao`
+
+
+
+### BL-059 · [cadastros] CEP multi-fonte (completar campos que uma API omite)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-14 — ViaCEP/BrasilAPI nem sempre devolvem logradouro/bairro/IBGE; estudo 32; sem estragar
+- **Depende de:** BL-055 (contrato ViaCEP + geo opt-in)
+- **Destrava:** —
+- **Referência (domínio):** `/home/dfmoura/Documents/test_several1/trigger/32`
+  - `APIS_FREE_CONSULTA_CADENCIA.txt` §3.2 / §6.3 / §7.6 / §8 — Tipo A, cache, fallback em cadeia, nunca crawling, nunca API no browser
+  - `CADASTRO_PARCEIROS.txt` — IBGE obrigatório na NF-e; endereço é sugestão (Salvar confirma)
+- **Referência (padrão 39):** `GET /consulta/cep` + `api_cache` TTL 90d; aba Endereço PAR/EMP; prospect rápido; XML IBGE via CEP
+- **Decisão (fechada):**
+  1. ViaCEP **permanece** o contrato (logradouro, bairro, localidade, UF, IBGE). BrasilAPI CEP v2 **não** entra no endereço — continua só geo (BL-055).
+  2. Se ViaCEP estiver completo (rua + bairro + município + UF + IBGE) → para. Cadência: 1 req.
+  3. Se falhar ou omitir campo → **um** round paralelo: BrasilAPI CEP v1 (rua) + OpenCEP (IBGE). Merge **só preenche vazio**; nunca sobrescreve ViaCEP.
+  4. Cache `cep:{cep}` do **resultado mesclado**. Cache legado incompleto (só ViaCEP) reconsulta **uma** vez. Falha de rede não é cacheada.
+  5. CEP genérico (só cidade) continua 200; operador completa rua. Todas as APIs fora → 502; inexistente → 422. Cadastro nunca trava.
+  6. Backend only. Timeout 5s. UX: não apagar campo já digitado; aviso discreto se rua/IBGE ainda vazios.
+  7. **ViaCEP canônico** `GET https://viacep.com.br/ws/{cep}/json/` — primária do CEP; se cair, entra de novo no round de fallback. **Consultar CNPJ** (estudo 32 §7.1): 1 CEP (ViaCEP em cadeia) só se o cartão omitir IBGE/rua; não sobrescreve RFB; falha de CEP não derruba o CNPJ.
+- **Aceite:**
+  - [x] `CepLookupService` + `BrasilApiClient::getCep` delega (call sites intactos)
+  - [x] Completa IBGE/logradouro quando a primária omite
+  - [x] Geo/rota intactos; ViaCEP completo não chama fallback
+  - [x] Testes: completo, merge, primária fora, 502, 422, cache, legado, CEP genérico
+- **Fora de escopo:** geo; crawling; tabela IBGE local; chave paga
+- **Não fazer:** expor provedor no browser; substituir ViaCEP quando ele já tem o dado; misturar lat/lng no endereço
+- **Entregue em:** 2026-08-14
+- **Implementação (39):**
+  - `CepLookupService` · config `erp.cep` · `ConsultaCepFallbackTest`
+  - PAR / EMP / prospect: `patchEnderecoFromCep` + `mensagemCepImportado`
 
 ### BL-055 · [cadastros] Lat/lng do parceiro (API free, evento humano)
 - **Status:** Feito
@@ -153,6 +442,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - Wizard Retirar/Entregar; resultado / ficha / proposta (CONSOLIDADO: valor, não R$/km)
   - Snapshot `input.modo_entrega` + `result.frete`; catálogo novo não altera ORC gravado
   - `OrcamentoFreteEstimadoTest` · canário BRAHVA 3090 intacto
+- **Emenda 2026-08-15:** Entregar → origem **Calculada** (padrão, catálogo) | **Manual** (um R$ da proposta, igual em todas as quantidades, sem exigir km). Snapshot `origem_frete` + `valor_frete_manual`. CONSOLIDADO não vaza origem. R$ solto sem origem explícita continua proibido.
 
 ### BL-054 · [produção/estoque] Rastreio de insumos após produzir (lote + NF + fornecedor)
 - **Status:** Feito

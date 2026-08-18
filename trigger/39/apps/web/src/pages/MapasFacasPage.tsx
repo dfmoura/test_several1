@@ -64,6 +64,7 @@ const MAQUINAS = ['BETA', '160', '250', 'ETIRAMA', 'BATIDA', 'MODULAR'];
 const FACA_SORT = {
   formato: (f: FacaMapa) => formatoLabel(f.formato),
   medida: (f: FacaMapa) => f.medida,
+  n_facas: (f: FacaMapa) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaMapa) => f.maquina_catalogo,
   z: (f: FacaMapa) => (f.z != null ? Number(f.z) : null),
   rep: (f: FacaMapa) => (f.repeticao != null ? Number(f.repeticao) : null),
@@ -153,7 +154,7 @@ export function MapasFacasPage() {
   const [nova, setNova] = useState<NovaForm>(EMPTY_NOVA);
   const [novaErro, setNovaErro] = useState('');
 
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
 
   const formatosLista = formatos.length ? formatos : FORMATOS_PADRAO;
 
@@ -442,6 +443,16 @@ export function MapasFacasPage() {
             {loading
               ? 'Carregando…'
               : `${total} faca${total === 1 ? '' : 's'} · ${items.length} na tela`}
+            {!loading ? (
+              <span
+                className="mapa-facas-sort-hint"
+                title="Clique no cabeçalho ordena por uma coluna. Shift+clique soma o próximo critério (desempate)."
+              >
+                {sorts.length > 1
+                  ? ` · ${sorts.length} critérios`
+                  : ' · Shift+clique soma'}
+              </span>
+            ) : null}
           </p>
         </div>
       </div>
@@ -458,19 +469,29 @@ export function MapasFacasPage() {
                 <table className="data-table mapa-facas-table">
                   <thead>
                     <tr>
-                      <SortableTh column="formato" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Formato
                       </SortableTh>
-                      <SortableTh column="medida" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Medida
                       </SortableTh>
-                      <SortableTh column="maquina" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      <SortableTh
+                        column="n_facas"
+                        className="num"
+                        sorts={sorts} sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="N facas"
+                      >
+                        N facas
+                      </SortableTh>
+                      <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Máquina
                       </SortableTh>
                       <SortableTh
                         column="z"
                         className="num"
-                        sortKey={sortKey}
+                        sorts={sorts} sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                         label="Z"
@@ -480,7 +501,7 @@ export function MapasFacasPage() {
                       <SortableTh
                         column="rep"
                         className="num"
-                        sortKey={sortKey}
+                        sorts={sorts} sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                         label="REP"
@@ -490,16 +511,16 @@ export function MapasFacasPage() {
                       <SortableTh
                         column="puxada"
                         className="num"
-                        sortKey={sortKey}
+                        sorts={sorts} sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                       >
                         Puxada
                       </SortableTh>
-                      <SortableTh column="fornecedor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      <SortableTh column="fornecedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Fornecedor
                       </SortableTh>
-                      <SortableTh column="nota" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Nota
                       </SortableTh>
                     </tr>
@@ -507,7 +528,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="mapa-facas-empty-cell">
+                        <td colSpan={9} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -554,6 +575,7 @@ export function MapasFacasPage() {
                                 ) : null}
                               </div>
                             </td>
+                            <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
                             <td className="maquina">{f.maquina_catalogo || '—'}</td>
                             <td className="num">{fmtNum(f.z, 1)}</td>
                             <td className="num">{fmtNum(f.repeticao, 2)}</td>

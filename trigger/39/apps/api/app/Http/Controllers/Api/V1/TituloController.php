@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\Titulo;
 use App\Services\Financeiro\TituloService;
-use App\Support\CompraValidationRules;
+use App\Support\TituloValidationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,28 +18,22 @@ class TituloController extends Controller
     {
         $this->authorizeRead($request);
 
-        $validated = $request->validate(array_merge(
-            CompraValidationRules::listFilters(Titulo::class),
-            ['tipo' => ['nullable', 'string', 'in:PAGAR,RECEBER']],
-        ));
+        $validated = $request->validate(TituloValidationRules::listFilters());
 
         $tipo = strtoupper((string) ($validated['tipo'] ?? Titulo::TIPO_PAGAR));
-        $empresa = $this->empresa();
-        $q = $validated['q'] ?? null;
-        $status = $validated['status'] ?? null;
-        $parceiroId = isset($validated['parceiro_id']) ? (int) $validated['parceiro_id'] : null;
+        $out = $this->service->listCarteira($this->empresa(), $tipo, $validated);
 
-        $data = $tipo === Titulo::TIPO_RECEBER
-            ? $this->service->listReceber($empresa, $q, $status, $parceiroId)
-            : $this->service->listPagar($empresa, $q, $status, $parceiroId);
+        return response()->json($out);
+    }
 
-        return response()->json([
-            'data' => $data,
-            'meta' => [
-                'tipo' => $tipo,
-                'statuses' => Titulo::STATUSES,
-            ],
-        ]);
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorizeWrite($request);
+
+        $data = $request->validate(TituloValidationRules::criarAvulso());
+        $titulo = $this->service->criarAvulso($this->empresa(), $data);
+
+        return response()->json(['data' => $this->service->toOut($titulo)], 201);
     }
 
     public function show(Request $request, Titulo $titulo): JsonResponse
@@ -55,11 +49,22 @@ class TituloController extends Controller
         $this->authorizeWrite($request);
         $this->assertEmpresa($titulo);
 
-        $data = $request->validate(CompraValidationRules::baixarTitulo());
+        $data = $request->validate(TituloValidationRules::baixar());
 
         return response()->json([
             'data' => $this->service->baixar($this->empresa(), $titulo, $data),
         ], 201);
+    }
+
+    public function cancelar(Request $request, Titulo $titulo): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($titulo);
+
+        $data = $request->validate(TituloValidationRules::cancelar());
+        $titulo = $this->service->cancelarAvulso($this->empresa(), $titulo, $data['motivo']);
+
+        return response()->json(['data' => $this->service->toOut($titulo)]);
     }
 
     private function authorizeRead(Request $request): void

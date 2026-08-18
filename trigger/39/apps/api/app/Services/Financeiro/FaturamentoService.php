@@ -3,6 +3,7 @@
 namespace App\Services\Financeiro;
 
 use App\Models\Cobranca;
+use App\Models\DocumentoFiscalSaida;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\Faturamento;
@@ -24,7 +25,7 @@ use RuntimeException;
 /**
  * Faturamento do PED PRODUZIDO + TIT/COB do saldo (estudo 32 / ADR_FATURAMENTO_COBRANCA).
  * NF-e/NFS-e: planeja no mesmo FAT e emite via hub Focus se estiver habilitado (ADR_EMISSAO_NFE_NFSE).
- * Não baixa PA. Estorno só com NF pendente/rejeitada (BL-050).
+ * Baixa PA/REV só na NF-e Focus autorizada (SAIDA_VENDA). Estorno só com NF pendente/rejeitada (BL-050).
  */
 class FaturamentoService
 {
@@ -220,6 +221,8 @@ class FaturamentoService
 
             $this->emissao->planejar($empresa, $fat);
 
+            app(ComissaoService::class)->apurarApropriacaoSinal($locked, $fat);
+
             return $fat;
         });
 
@@ -261,6 +264,8 @@ class FaturamentoService
             }
 
             $this->cancelarCobrancasDoFaturamento($empresa, $fat);
+
+            app(ComissaoService::class)->estornarDoFaturamento($fat, $motivo);
 
             $fat->load(['titulos.baixas']);
             foreach ($fat->titulos as $titulo) {
@@ -326,6 +331,9 @@ class FaturamentoService
             'codigo' => $f->codigo,
             'status' => $f->status,
             'nf_status' => $f->nf_status,
+            'nf_simulada' => $f->relationLoaded('documentosFiscais')
+                && $f->documentosFiscais->isNotEmpty()
+                && $f->documentosFiscais->every(fn ($d) => $d->eSimulado()),
             'valor_bruto' => (string) $f->valor_bruto,
             'valor_adiantamento' => (string) $f->valor_adiantamento,
             'valor_a_cobrar' => (string) $f->valor_a_cobrar,
@@ -443,7 +451,7 @@ class FaturamentoService
             $itens[] = [
                 'pedido_item_id' => $pedidoItemId,
                 'ordem' => $ordem,
-                'descricao' => 'Matriz / clichê',
+                'descricao' => FaturamentoItem::DESC_MATRIZ,
                 'unidade' => 'UN',
                 'qtde' => '1.0000',
                 'preco_unitario' => PadraoDecimal::roundHalfUp($valorMatriz, PadraoDecimal::SCALE_UNIT_PRICE),
@@ -456,7 +464,7 @@ class FaturamentoService
             $itens[] = [
                 'pedido_item_id' => $pedidoItemId,
                 'ordem' => $ordem,
-                'descricao' => 'Ferramental (faca nova)',
+                'descricao' => FaturamentoItem::DESC_FACA,
                 'unidade' => 'UN',
                 'qtde' => '1.0000',
                 'preco_unitario' => PadraoDecimal::roundHalfUp($valorFaca, PadraoDecimal::SCALE_UNIT_PRICE),
@@ -638,10 +646,15 @@ class FaturamentoService
         if ($fat->status !== Faturamento::STATUS_CONFIRMADO) {
             $bloqueios[] = 'Só o faturamento vigente pode ser estornado.';
         }
-        if (! in_array($fat->nf_status, [self::NF_PENDENTE, Faturamento::NF_REJEITADA], true)) {
-            $bloqueios[] = 'Estorno só é permitido enquanto a nota estiver pendente ou rejeitada. Nota autorizada ou em processamento segue cancelamento fiscal.';
-        }
         $fat->loadMissing('documentosFiscais');
+        if (! in_array($fat->nf_status, [self::NF_PENDENTE, Faturamento::NF_REJEITADA], true)) {
+            $soStub = $fat->documentosFiscais->isNotEmpty()
+                && $fat->documentosFiscais->contains(fn ($d) => $d->eSimulado())
+                && ! $fat->documentosFiscais->contains(fn ($d) => $d->bloqueiaEstornoFat());
+            if (! $soStub) {
+                $bloqueios[] = 'Estorno só é permitido enquanto a nota estiver pendente ou rejeitada. Nota autorizada ou em processamento segue cancelamento fiscal.';
+            }
+        }
         foreach ($fat->documentosFiscais as $doc) {
             if ($doc->bloqueiaEstornoFat()) {
                 $bloqueios[] = 'Documento fiscal '.$doc->codigo.' está '.$doc->status.' — cancele a nota no hub antes de estornar o faturamento.';
@@ -664,6 +677,14 @@ class FaturamentoService
                     $bloqueios[] = 'Cobrança '.$cob->codigo.' já está paga.';
                 }
             }
+        }
+
+        if (app(\App\Services\Expedicao\EntregaService::class)->pedidoTemEntregaVigenteOuFechada((int) $fat->empresa_id, (int) $fat->pedido_id)) {
+            $bloqueios[] = 'Há romaneio de entrega neste pedido — cancele a expedição antes de estornar o faturamento.';
+        }
+
+        if (app(ComissaoService::class)->temComissaoNaoPrevista((int) $fat->empresa_id, (int) $fat->id)) {
+            $bloqueios[] = 'Há comissão já liberada ou paga neste faturamento — cancele o fechamento antes de estornar.';
         }
 
         return array_values(array_unique($bloqueios));

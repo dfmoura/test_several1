@@ -1,6 +1,6 @@
 # Fronteira Faturamento → TIT/COB (adiantamento a apropriar)
 
-Norma: `docs/ADR_FATURAMENTO_COBRANCA.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · estudo `../32` FATURAMENTO / MAPA_FATURAMENTO / CONCLUSAO_PRODUCAO / RECEBIMENTO_BAIXA / CASOS_USO_M05 · UC-PLT-007 · BL-049/050/051.
+Norma: `docs/MAPA_FATURAMENTO.md` (visão única as-built) · `docs/ADR_FATURAMENTO_COBRANCA.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · estudo `../32` FATURAMENTO / MAPA_FATURAMENTO / CONCLUSAO_PRODUCAO / RECEBIMENTO_BAIXA / CASOS_USO_M05 · UC-PLT-007 · BL-049/050/051/066.
 
 ## Espinha
 
@@ -9,7 +9,7 @@ PED PRODUZIDO → preview → FAT- → apropria sinal → TIT saldo → COB (PIX
                          └→ DocumentoFiscalSaida (NFE e/ou NFSE) → Focus se hub apto
 ```
 
-TIT/COB nascem no FAT mesmo se a NF ainda não autorizou. Sinal (TIT `ADIANTAMENTO`) já existia no aceite.
+TIT/COB nascem no FAT mesmo se a NF ainda não autorizou. Sinal (TIT `ADIANTAMENTO`) já existia no aceite. Romaneio ENT- é outro eixo (`docs/ADR_ENTREGA_EXPEDICAO.md`) — não mora neste agregado.
 
 Estorno (NF pendente ou rejeitada, nada processando/autorizado): FAT `ESTORNADO` + TIT/COB do saldo cancelados + PED `PRODUZIDO` → pode faturar de novo. Não apagar. Não mexer no sinal. Não tocar estoque.
 
@@ -23,14 +23,17 @@ Estorno (NF pendente ou rejeitada, nada processando/autorizado): FAT `ESTORNADO`
 - Natureza folha `1.01.01` (PA) / `1.01.03` (SVC) / `1.01.02` (REV).
 - Isolar por `empresa_id` do contexto.
 - Estornar só FAT vigente com NF pendente/rejeitada, TIT do saldo abertos (ou nenhum) e COB não paga; motivo obrigatório; cancelar COB no provider.
-- PA/REV → NF-e; SVC → NFS-e. Numeração só do Focus. Hub: teste OK do ambiente ativo liga emissão automática.
+- PA/REV → NF-e; SVC → NFS-e Nacional (catálogo de serviço). Numeração só do Focus. Hub: teste OK do ambiente ativo liga emissão automática.
+- Comodato de BEM não passa por FAT/NF (`docs/ADR_OPERACOES_SAIDA.md`).
 - IM opcional; NFS-e só exige se `im_obrigatoria_nfse`.
-- Sem hub: prévia da nota (`PLANEJADO` + JSON Focus) e DANFE/DANFSe HTML A4 imprimível (homolog e produção). Não inventar chave/XML/`nfeProc`.
+- Sem hub: prévia da nota (`PLANEJADO` + JSON Focus) e DANFE/DANFSe HTML A4 imprimível (homolog e produção). Não inventar chave/XML/`nfeProc` **como se fossem do fisco**.
+- Local sem A1: `FISCAL_EMISSOR=stub` autoriza origem `STUB` (selo de teste). Homolog/prod ignoram. Hub apto sempre ganha.
+- Baixa PA/REV (`SAIDA_VENDA`) **só** na NF-e Focus autorizada. Stub/prévia/NFS-e não baixam. Sem SKU no item: aviso, não inventa produto.
 
 ## Não faça
 
-- Inventar série/número/chave de NF (nem XML `nfeProc` falso “para ver a nota”).
-- Baixar estoque PA/REV no FAT (nem no estorno — PA nunca saiu).
+- Inventar série/número/chave de NF (nem XML `nfeProc` falso “para ver a nota”) **como se fossem do fisco**. Stub local (`origem=STUB`) não é Focus e some quando o hub estiver apto.
+- Baixar estoque PA/REV no FAT (nem no estorno comercial — PA nunca saiu neste ramo; na NF oficial a baixa é `SAIDA_VENDA` e o estorno comercial já está bloqueado).
 - Recobrar o adiantamento já baixado; cancelar TIT `ADIANTAMENTO` no estorno.
 - Multiplicar quantidade pelo `valor_etiqueta` do motor (é o total da faixa).
 - Faturar PED `LIBERADO` / `EM_PRODUCAO` / `CANCELADO`.

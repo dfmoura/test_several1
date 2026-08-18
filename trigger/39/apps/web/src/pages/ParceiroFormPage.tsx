@@ -3,25 +3,29 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
 import { QsaSociosPanel } from '../components/QsaSociosPanel';
 import { SortableTh } from '../components/SortableTh';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import {
   api,
+  mensagemCepImportado,
+  patchEnderecoFromCep,
   type BancoConsulta,
   type CepConsulta,
   type CnaeSecundario,
   type CnpjConsulta,
   type Departamento,
   type Parceiro,
+  type ParceiroVinculo,
   type ParceiroContaBancaria,
   type ParceiroContato,
   type ParceiroEnderecoEntrega,
   type ParceiroFiscalHistorico,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { DECIMAL_SCALE, decimalStep, formatCep, formatCnpjCpf, formatKmCarro, formatLatLng, formatPhone, onlyDigits } from '../lib/format';
+import { DECIMAL_SCALE, decimalStep, formatCep, formatCnpjCpf, formatKmCarro, formatKmCarroDaEmpresa, formatLatLng, formatPhone, kmCarroEhZero, onlyDigits } from '../lib/format';
 import {
   CONDICOES_PAGAMENTO_SUGESTOES,
   FORMAS_PAGAMENTO,
@@ -117,6 +121,7 @@ type EnderecoEntregaForm = {
   distancia_km: string;
   distancia_fonte: string;
   distancia_calculada_em: string;
+  distancia_empresa_id: number | null;
   responsavel_nome: string;
   responsavel_telefone: string;
   responsavel_documento: string;
@@ -171,6 +176,7 @@ type ParceiroFormData = {
   distancia_km: string;
   distancia_fonte: string;
   distancia_calculada_em: string;
+  distancia_empresa_id: number | null;
   telefone: string;
   whatsapp: string;
   email: string;
@@ -178,6 +184,8 @@ type ParceiroFormData = {
   limite_credito: string;
   condicao_pagamento: string;
   forma_pagamento: string;
+  vendedor_parceiro_id: number | '';
+  comissao_percentual: string;
   tipo_fornecimento: string;
   cfop_entrada_padrao: string;
   vinculo: string;
@@ -276,6 +284,7 @@ function emptyEnderecoEntrega(principal = false): EnderecoEntregaForm {
     distancia_km: '',
     distancia_fonte: '',
     distancia_calculada_em: '',
+    distancia_empresa_id: null,
     responsavel_nome: '',
     responsavel_telefone: '',
     responsavel_documento: '',
@@ -331,6 +340,7 @@ const emptyForm = (): ParceiroFormData => ({
   distancia_km: '',
   distancia_fonte: '',
   distancia_calculada_em: '',
+  distancia_empresa_id: null,
   telefone: '',
   whatsapp: '',
   email: '',
@@ -338,6 +348,8 @@ const emptyForm = (): ParceiroFormData => ({
   limite_credito: '',
   condicao_pagamento: '',
   forma_pagamento: '',
+  vendedor_parceiro_id: '',
+  comissao_percentual: '',
   tipo_fornecimento: '',
   cfop_entrada_padrao: '',
   vinculo: '',
@@ -430,9 +442,10 @@ function mapEnderecosEntrega(p: Parceiro): EnderecoEntregaForm[] {
       ibge: e.ibge ?? '',
       latitude: e.latitude ?? '',
       longitude: e.longitude ?? '',
-      distancia_km: e.distancia_km ?? '',
+      distancia_km: e.distancia_km && !kmCarroEhZero(e.distancia_km) ? String(e.distancia_km) : '',
       distancia_fonte: e.distancia_fonte ?? '',
       distancia_calculada_em: e.distancia_calculada_em ?? '',
+      distancia_empresa_id: e.distancia_empresa_id ?? null,
       responsavel_nome: e.responsavel_nome ?? '',
       responsavel_telefone: e.responsavel_telefone ?? '',
       responsavel_documento: e.responsavel_documento ?? '',
@@ -491,9 +504,10 @@ function fromParceiro(p: Parceiro): ParceiroFormData {
     ibge: p.ibge ?? '',
     latitude: p.latitude ?? '',
     longitude: p.longitude ?? '',
-    distancia_km: p.distancia_km ?? '',
+    distancia_km: p.distancia_km && !kmCarroEhZero(p.distancia_km) ? String(p.distancia_km) : '',
     distancia_fonte: p.distancia_fonte ?? '',
     distancia_calculada_em: p.distancia_calculada_em ?? '',
+    distancia_empresa_id: p.distancia_empresa_id ?? null,
     telefone: p.telefone ?? '',
     whatsapp: p.whatsapp ?? '',
     email: p.email ?? '',
@@ -501,6 +515,8 @@ function fromParceiro(p: Parceiro): ParceiroFormData {
     limite_credito: p.limite_credito ?? '',
     condicao_pagamento: p.condicao_pagamento ?? '',
     forma_pagamento: p.forma_pagamento ?? '',
+    vendedor_parceiro_id: p.vendedor_parceiro_id ?? '',
+    comissao_percentual: p.comissao_percentual ?? '',
     tipo_fornecimento: p.tipo_fornecimento ?? '',
     cfop_entrada_padrao: p.cfop_entrada_padrao ?? '',
     vinculo: p.vinculo ?? '',
@@ -574,7 +590,7 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
           ibge: e.ibge ? onlyDigits(e.ibge) : null,
           latitude: e.latitude || null,
           longitude: e.longitude || null,
-          distancia_km: e.distancia_km || null,
+          distancia_km: kmCarroEhZero(e.distancia_km) ? null : e.distancia_km || null,
           distancia_fonte: e.distancia_fonte || null,
           distancia_calculada_em: e.distancia_calculada_em || null,
           responsavel_nome: e.responsavel_nome || null,
@@ -634,7 +650,7 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
     ibge: form.ibge ? onlyDigits(form.ibge) : null,
     latitude: form.latitude || null,
     longitude: form.longitude || null,
-    distancia_km: form.distancia_km || null,
+    distancia_km: kmCarroEhZero(form.distancia_km) ? null : form.distancia_km || null,
     distancia_fonte: form.distancia_fonte || null,
     distancia_calculada_em: form.distancia_calculada_em || null,
     telefone: form.telefone ? onlyDigits(form.telefone) : principalContato?.telefone ?? null,
@@ -644,6 +660,8 @@ function toPayload(form: ParceiroFormData): Record<string, unknown> {
     limite_credito: form.limite_credito === '' ? undefined : form.limite_credito,
     condicao_pagamento: form.condicao_pagamento || null,
     forma_pagamento: form.forma_pagamento || null,
+    vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
+    comissao_percentual: form.comissao_percentual === '' ? null : form.comissao_percentual,
     tipo_fornecimento: form.tipo_fornecimento || null,
     cfop_entrada_padrao: form.cfop_entrada_padrao || null,
     vinculo: form.vinculo || null,
@@ -660,17 +678,136 @@ function bankLabel(b: BancoConsulta): string {
   return `${code}${b.fullName || b.name}`;
 }
 
+/** Cadência Tipo A (estudo 32): pausa entre provedores no mesmo clique humano. */
+function pausaEntreProvedores(): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, 800);
+  });
+}
+
+const DISTANCIA_CAMPO_ERRO: Record<string, string> = {
+  chave_ausente: 'Sem serviço de rota',
+  chave_invalida: 'Sem serviço de rota',
+  geo_impreciso: 'CEP impreciso — não é 0 km',
+  sem_origem: 'Sem origem da empresa',
+  cota: 'Cota temporária — tente de novo',
+  sem_rota: 'Sem rota de carro',
+  sem_ponto: 'CEP sem ponto no mapa',
+  sem_destino: 'Sem posição do CEP',
+  provedor_proibido: 'Rota não permitida',
+  indisponivel: 'Rota indisponível',
+};
+
+const DISTANCIA_ERRO_HINT: Record<string, string> = {
+  sem_origem:
+    'Cadastre a origem operacional da empresa (aba Operação) — sem o ponto A o km fica vazio.',
+  chave_ausente:
+    'Serviço de rota não configurado. O sistema não inventa km.',
+  chave_invalida:
+    'Serviço de rota indisponível. O sistema não inventa km.',
+  cota: 'Cota temporária do serviço de rota. Espere um pouco e clique de novo em Posição e distância.',
+  sem_rota: 'Não há rota de carro até este ponto.',
+  geo_impreciso:
+    'O CEP do parceiro caiu no mesmo ponto do mapa que a origem. Isso não é 0 km — é falta de precisão de rua.',
+  sem_destino: 'Sem posição do CEP ainda.',
+  sem_ponto: 'Este CEP não tem ponto geográfico.',
+  provedor_proibido: 'Provedor de rota não permitido.',
+  indisponivel: 'Rota indisponível no momento. Espere um pouco e tente de novo.',
+};
+
+function DistanciaCarroField({
+  km,
+  fonte,
+  distanciaEmpresaId,
+  empresaId,
+  fase,
+  erro,
+  origemLat,
+  origemLng,
+  destinoLat,
+  destinoLng,
+}: {
+  km: string;
+  fonte: string;
+  distanciaEmpresaId: number | null;
+  empresaId: number | null;
+  fase?: 'posicao' | 'rota' | null;
+  erro?: string | null;
+  origemLat?: string;
+  origemLng?: string;
+  destinoLat?: string;
+  destinoLng?: string;
+}) {
+  const txt = formatKmCarroDaEmpresa(km, fonte, distanciaEmpresaId, empresaId);
+  const outraEmp =
+    Boolean(km) &&
+    !kmCarroEhZero(km) &&
+    distanciaEmpresaId != null &&
+    empresaId != null &&
+    Number(distanciaEmpresaId) !== Number(empresaId);
+  const zeroOuMesmoPonto = kmCarroEhZero(km) || fonte === 'mesmo_ponto';
+  const pontoA = formatLatLng(origemLat, origemLng);
+  const pontoB = formatLatLng(destinoLat, destinoLng);
+  const pontosIguais = Boolean(pontoA && pontoB && pontoA === pontoB);
+
+  const valor =
+    fase === 'posicao'
+      ? 'Pesquisando posição do parceiro…'
+      : fase === 'rota'
+        ? 'Calculando rota de carro…'
+        : (erro && DISTANCIA_CAMPO_ERRO[erro])
+          || (zeroOuMesmoPonto
+            ? (fonte === 'mesmo_ponto' ? 'Mesmo ponto — não é rota' : '—')
+            : txt || '—');
+
+  const hint = txt && !zeroOuMesmoPonto
+    ? 'Rota de carro da planta até este endereço. Recalcule se o endereço mudar. Salvar confirma.'
+    : fase
+      ? 'Aguarde — primeiro o ponto do parceiro, depois a rota (não inventa km).'
+      : erro && DISTANCIA_ERRO_HINT[erro]
+        ? DISTANCIA_ERRO_HINT[erro]
+        : pontosIguais
+          ? 'Origem e destino iguais — o CEP da cidade não é a planta. A origem fica na empresa (aba Operação).'
+          : zeroOuMesmoPonto
+            ? 'Zero não é distância de carro. Clique de novo em Posição e distância.'
+            : outraEmp
+              ? 'Há km de outra empresa. Use Posição e distância nesta empresa para gravar o km daqui.'
+              : 'A = planta da empresa. B = endereço deste parceiro (pesquisado). A rota é entre esses dois pontos.';
+
+  return (
+    <div className="form-group span-2">
+      <label>Distância de carro</label>
+      <input
+        readOnly
+        value={valor}
+        aria-label="Distância de carro"
+        aria-busy={Boolean(fase)}
+      />
+      <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
+        <strong>A (planta):</strong> {pontoA || '—'}
+        {' · '}
+        <strong>B (parceiro):</strong> {pontoB || '—'}
+      </p>
+      <p className="form-hint" style={{ margin: '0.2rem 0 0' }}>
+        {hint}
+      </p>
+    </div>
+  );
+}
+
 export function ParceiroFormPage() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'novo';
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, empresaId, empresas } = useAuth();
+  const origemEmp = empresas.find((e) => e.id === empresaId);
   const canWrite = hasPermission('parceiro.escrever');
   const canCredito = hasPermission('credito.escrever');
   const canBancario = hasPermission('parceiro.bancario');
 
   const [tab, setTab] = useState<Tab>('Identificação');
   const [form, setForm] = useState<ParceiroFormData>(emptyForm());
+  const [vendedorPadraoSel, setVendedorPadraoSel] = useState<ParceiroVinculo | null>(null);
   const [consulta, setConsulta] = useState<CnpjConsulta | null>(null);
   const [bancos, setBancos] = useState<BancoConsulta[]>([]);
   const [bancosLoading, setBancosLoading] = useState(false);
@@ -682,6 +819,9 @@ export function ParceiroFormPage() {
   >(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [distanciaFase, setDistanciaFase] = useState<'posicao' | 'rota' | null>(null);
+  const [distanciaErro, setDistanciaErro] = useState<string | null>(null);
+  const [distanciaAlvo, setDistanciaAlvo] = useState<'fiscal' | string | null>(null);
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const loadTokenRef = useRef(0);
 
@@ -702,6 +842,7 @@ export function ParceiroFormPage() {
         if (token !== loadTokenRef.current) return;
         const mapped = fromParceiro(res.data);
         setForm(mapped);
+        setVendedorPadraoSel(res.data.vendedor ?? null);
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -939,15 +1080,8 @@ export function ParceiroFormPage() {
     try {
       const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
       const d = res.data;
-      updateEnderecoEntrega(key, {
-        logradouro: d.logradouro ?? row?.logradouro ?? '',
-        complemento: d.complemento ?? row?.complemento ?? '',
-        bairro: d.bairro ?? row?.bairro ?? '',
-        municipio: d.localidade ?? row?.municipio ?? '',
-        uf: d.uf ?? row?.uf ?? '',
-        ibge: d.ibge ?? row?.ibge ?? '',
-      });
-      setMessage('Endereço de entrega importado via CEP.');
+      updateEnderecoEntrega(key, patchEnderecoFromCep(d, row ?? {}));
+      setMessage(mensagemCepImportado(d, true));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro na consulta CEP.');
     } finally {
@@ -1017,15 +1151,10 @@ export function ParceiroFormPage() {
       const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
       const d = res.data;
       update({
-        logradouro: d.logradouro ?? form.logradouro,
-        complemento: d.complemento ?? form.complemento,
-        bairro: d.bairro ?? form.bairro,
-        municipio: d.localidade ?? form.municipio,
-        uf: d.uf ?? form.uf,
-        ibge: d.ibge ?? form.ibge,
+        ...patchEnderecoFromCep(d, form),
         area_incentivada: suggestAreaIncentivada(d.uf ?? form.uf, form.suframa) || form.area_incentivada,
       });
-      setMessage('Endereço importado via CEP.');
+      setMessage(mensagemCepImportado(d));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro na consulta CEP.');
     } finally {
@@ -1041,6 +1170,7 @@ export function ParceiroFormPage() {
     distancia_km: string;
     distancia_fonte: string;
     distancia_calculada_em: string;
+    distancia_empresa_id: number | null;
     ok: boolean;
     aviso: string;
   } => {
@@ -1050,34 +1180,50 @@ export function ParceiroFormPage() {
       distancia_km: '',
       distancia_fonte: '',
       distancia_calculada_em: '',
+      distancia_empresa_id: null as number | null,
     };
     const kmPatch = {
-      distancia_km: d.distancia_km ?? '',
-      distancia_fonte: d.distancia_fonte ?? '',
-      distancia_calculada_em: d.distancia_km ? new Date().toISOString() : '',
+      distancia_km:
+        d.distancia_erro || kmCarroEhZero(d.distancia_km) ? '' : (d.distancia_km ?? ''),
+      distancia_fonte:
+        d.distancia_erro || kmCarroEhZero(d.distancia_km) ? '' : (d.distancia_fonte ?? ''),
+      distancia_calculada_em:
+        d.distancia_erro || kmCarroEhZero(d.distancia_km) || !d.distancia_km
+          ? ''
+          : new Date().toISOString(),
+      distancia_empresa_id:
+        d.distancia_erro || kmCarroEhZero(d.distancia_km) || !d.distancia_km ? null : empresaId,
     };
 
     const avisoRota = (base: string): string => {
+      if (d.distancia_erro) {
+        switch (d.distancia_erro) {
+          case 'sem_origem':
+            return `${base} Cadastre a origem operacional da empresa para obter o km de carro.`;
+          case 'cota':
+            return `${base} Distância: —. Cota temporária; tente de novo em instantes.`;
+          case 'geo_impreciso':
+            return `${base} Distância: não é 0 km — o CEP não tem precisão de rua.`;
+          case 'chave_ausente':
+          case 'chave_invalida':
+            return `${base} Distância: sem serviço de rota (não inventa km).`;
+          case 'sem_rota':
+            return `${base} Distância: —. Não há rota de carro até este ponto.`;
+          case 'provedor_proibido':
+            return `${base} Distância: —.`;
+          default:
+            return `${base} Distância: —.`;
+        }
+      }
+      if (kmCarroEhZero(d.distancia_km) || d.distancia_fonte === 'mesmo_ponto') {
+        return `${base} Distância: mesmo CEP — o sistema não grava 0 km.`;
+      }
       const kmTxt = formatKmCarro(d.distancia_km, d.distancia_fonte);
       if (kmTxt) {
         const cache = d.distancia_cache ? ' (cache)' : '';
         return `${kmTxt}${cache}. Salve o cadastro para confirmar.`;
       }
-      switch (d.distancia_erro) {
-        case 'sem_origem':
-          return `${base} Cadastre a origem operacional da empresa para obter o km de carro.`;
-        case 'cota':
-          return `${base} Distância: —. Cota temporária; tente de novo em instantes.`;
-        case 'chave_ausente':
-        case 'chave_invalida':
-          return `${base} Distância: —. Serviço de rota não configurado.`;
-        case 'sem_rota':
-          return `${base} Distância: —. Não há rota de carro até este ponto.`;
-        case 'provedor_proibido':
-          return `${base} Distância: —.`;
-        default:
-          return `${base} Distância: —.`;
-      }
+      return `${base} Distância: —.`;
     };
 
     if (d.latitude && d.longitude) {
@@ -1105,32 +1251,88 @@ export function ParceiroFormPage() {
     };
   };
 
+  const buscarGeoParceiro = async (endereco: {
+    logradouro: string;
+    numero: string;
+    municipio: string;
+    uf: string;
+    cep: string;
+  }): Promise<CepConsulta> => {
+    const qs = new URLSearchParams();
+    if (endereco.logradouro) qs.set('logradouro', endereco.logradouro);
+    if (endereco.numero) qs.set('numero', endereco.numero);
+    if (endereco.municipio) qs.set('municipio', endereco.municipio);
+    if (endereco.uf) qs.set('uf', endereco.uf);
+    const cepDigits = onlyDigits(endereco.cep);
+    if (cepDigits.length === 8) qs.set('cep', cepDigits);
+    const res = await api.get<{ data: CepConsulta }>(`/consulta/geo-endereco?${qs.toString()}`);
+    return res.data;
+  };
+
+  const buscarRotaCarro = async (lat: string, lng: string): Promise<CepConsulta> => {
+    const qs = new URLSearchParams({ lat, lng });
+    const res = await api.get<{ data: CepConsulta }>(`/consulta/rota?${qs.toString()}`);
+    return { ...res.data, latitude: lat, longitude: lng };
+  };
+
   const consultarPosicao = async () => {
     const digits = onlyDigits(form.cep ?? '');
-    if (digits.length !== 8) {
-      setError('Informe um CEP válido com 8 dígitos para capturar a posição.');
+    const temEndereco = Boolean(form.logradouro && form.municipio && form.uf);
+    const pontoExistente = Boolean(form.latitude && form.longitude);
+    if (!temEndereco && digits.length !== 8 && !pontoExistente) {
+      setError('Informe o endereço do parceiro (logradouro, município e UF) ou um CEP.');
       return;
     }
     setConsulting('geo');
+    setDistanciaAlvo('fiscal');
+    setDistanciaErro(null);
     setError('');
     try {
-      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}?geo=1&rota=1`);
-      const geo = aplicarPosicaoEDistancia(res.data);
-      update({
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        distancia_km: geo.distancia_km,
-        distancia_fonte: geo.distancia_fonte,
-        distancia_calculada_em: geo.distancia_calculada_em,
+      setDistanciaFase('posicao');
+      const geoRes = await buscarGeoParceiro({
+        logradouro: form.logradouro,
+        numero: form.numero,
+        municipio: form.municipio,
+        uf: form.uf,
+        cep: form.cep,
       });
-      if (geo.ok) {
-        setMessage(geo.aviso);
-      } else {
-        setError(geo.aviso);
+      const geo = aplicarPosicaoEDistancia(geoRes);
+      const lat = geo.latitude || form.latitude;
+      const lng = geo.longitude || form.longitude;
+      update({
+        latitude: lat,
+        longitude: lng,
+        distancia_km: '',
+        distancia_fonte: '',
+        distancia_calculada_em: '',
+        distancia_empresa_id: null,
+      });
+      if (!lat || !lng) {
+        setDistanciaErro(geoRes.erro ?? geoRes.geo_erro ?? (geoRes.sem_ponto || geoRes.geo_sem_ponto ? 'sem_ponto' : 'sem_destino'));
+        setError('Não foi possível pesquisar o ponto deste endereço.');
+        return;
       }
+      setMessage(`Ponto do parceiro: ${formatLatLng(lat, lng)}. Calculando rota da planta…`);
+      await pausaEntreProvedores();
+      setDistanciaFase('rota');
+      const rotaData = await buscarRotaCarro(lat, lng);
+      const full = aplicarPosicaoEDistancia(rotaData);
+      update({
+        latitude: lat,
+        longitude: lng,
+        distancia_km: full.distancia_km,
+        distancia_fonte: full.distancia_fonte,
+        distancia_calculada_em: full.distancia_calculada_em,
+        distancia_empresa_id: full.distancia_empresa_id,
+      });
+      setDistanciaErro(rotaData.distancia_erro ?? null);
+      if (full.ok) setMessage(full.aviso);
+      else setError(full.aviso);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Consulta de posição indisponível.');
+      setDistanciaErro('indisponivel');
     } finally {
+      setDistanciaFase(null);
       setConsulting(null);
     }
   };
@@ -1138,30 +1340,62 @@ export function ParceiroFormPage() {
   const consultarPosicaoEntrega = async (key: string) => {
     const row = form.enderecos_entrega.find((e) => e.key === key);
     const digits = onlyDigits(row?.cep ?? '');
-    if (digits.length !== 8) {
-      setError('Informe um CEP válido com 8 dígitos no endereço de entrega.');
+    const temEndereco = Boolean(row?.logradouro && row?.municipio && row?.uf);
+    const pontoExistente = Boolean(row?.latitude && row?.longitude);
+    if (!temEndereco && digits.length !== 8 && !pontoExistente) {
+      setError('Informe o endereço de entrega (logradouro, município e UF) ou um CEP.');
       return;
     }
     setConsulting(`geo-ee:${key}`);
+    setDistanciaAlvo(key);
+    setDistanciaErro(null);
     setError('');
     try {
-      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}?geo=1&rota=1`);
-      const geo = aplicarPosicaoEDistancia(res.data);
-      updateEnderecoEntrega(key, {
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        distancia_km: geo.distancia_km,
-        distancia_fonte: geo.distancia_fonte,
-        distancia_calculada_em: geo.distancia_calculada_em,
+      setDistanciaFase('posicao');
+      const geoRes = await buscarGeoParceiro({
+        logradouro: row?.logradouro ?? '',
+        numero: row?.numero ?? '',
+        municipio: row?.municipio ?? '',
+        uf: row?.uf ?? '',
+        cep: row?.cep ?? '',
       });
-      if (geo.ok) {
-        setMessage(geo.aviso);
-      } else {
-        setError(geo.aviso);
+      const geo = aplicarPosicaoEDistancia(geoRes);
+      const lat = geo.latitude || row?.latitude || '';
+      const lng = geo.longitude || row?.longitude || '';
+      updateEnderecoEntrega(key, {
+        latitude: lat,
+        longitude: lng,
+        distancia_km: '',
+        distancia_fonte: '',
+        distancia_calculada_em: '',
+        distancia_empresa_id: null,
+      });
+      if (!lat || !lng) {
+        setDistanciaErro(geoRes.erro ?? geoRes.geo_erro ?? (geoRes.sem_ponto || geoRes.geo_sem_ponto ? 'sem_ponto' : 'sem_destino'));
+        setError('Não foi possível pesquisar o ponto deste endereço de entrega.');
+        return;
       }
+      setMessage(`Ponto do parceiro: ${formatLatLng(lat, lng)}. Calculando rota da planta…`);
+      await pausaEntreProvedores();
+      setDistanciaFase('rota');
+      const rotaData = await buscarRotaCarro(lat, lng);
+      const full = aplicarPosicaoEDistancia(rotaData);
+      updateEnderecoEntrega(key, {
+        latitude: lat,
+        longitude: lng,
+        distancia_km: full.distancia_km,
+        distancia_fonte: full.distancia_fonte,
+        distancia_calculada_em: full.distancia_calculada_em,
+        distancia_empresa_id: full.distancia_empresa_id,
+      });
+      setDistanciaErro(rotaData.distancia_erro ?? null);
+      if (full.ok) setMessage(full.aviso);
+      else setError(full.aviso);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Consulta de posição indisponível.');
+      setDistanciaErro('indisponivel');
     } finally {
+      setDistanciaFase(null);
       setConsulting(null);
     }
   };
@@ -1253,6 +1487,7 @@ export function ParceiroFormPage() {
       } else {
         const res = await api.put<{ data: Parceiro }>(`/parceiros/${id}`, payload);
         setForm(fromParceiro(res.data));
+        setVendedorPadraoSel(res.data.vendedor ?? null);
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -1490,9 +1725,14 @@ export function ParceiroFormPage() {
                                 distancia_km: '',
                                 distancia_fonte: '',
                                 distancia_calculada_em: '',
+                                distancia_empresa_id: null,
                               }
                             : {}),
                         });
+                        if (cep !== form.cep) {
+                          setDistanciaAlvo(null);
+                          setDistanciaErro(null);
+                        }
                       }}
                     />
                     <button
@@ -1563,7 +1803,7 @@ export function ParceiroFormPage() {
                   />
                 </div>
                 <div className="form-group span-2">
-                  <label>Posição do CEP cadastral</label>
+                  <label>Posição deste endereço</label>
                   <div className="input-action">
                     <input
                       readOnly
@@ -1581,10 +1821,22 @@ export function ParceiroFormPage() {
                     </button>
                   </div>
                   <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                    {formatKmCarro(form.distancia_km, form.distancia_fonte) ||
-                      'Usa o CEP da sede (não o GPS). O botão preenche posição e, se houver origem da empresa, o km de carro. Salvar confirma.'}
+                    Pesquisa o ponto do parceiro (rua) e calcula a rota até a planta da empresa.
+                    A planta não é o CEP. Salvar confirma.
                   </p>
                 </div>
+                <DistanciaCarroField
+                  km={form.distancia_km}
+                  fonte={form.distancia_fonte}
+                  distanciaEmpresaId={form.distancia_empresa_id}
+                  empresaId={empresaId}
+                  fase={distanciaAlvo === 'fiscal' ? distanciaFase : null}
+                  erro={distanciaAlvo === 'fiscal' ? distanciaErro : null}
+                  origemLat={origemEmp?.origem_latitude ?? ''}
+                  origemLng={origemEmp?.origem_longitude ?? ''}
+                  destinoLat={form.latitude}
+                  destinoLng={form.longitude}
+                />
               </div>
             </div>
           )}
@@ -1625,8 +1877,8 @@ export function ParceiroFormPage() {
 
               {form.entrega_mesmo_fiscal ? (
                 <p className="form-hint">
-                  A entrega usa o endereço fiscal cadastrado na aba Endereço. Nenhum local
-                  adicional será gravado.
+                  A entrega usa o endereço fiscal cadastrado na aba Endereço — inclusive a
+                  distância de carro. Nenhum local adicional será gravado.
                 </p>
               ) : (
                 <>
@@ -1734,7 +1986,7 @@ export function ParceiroFormPage() {
                               <input
                                 value={formatCep(end.cep)}
                                 disabled={fieldDisabled('write')}
-                                onChange={(e) =>
+                                onChange={(e) => {
                                   updateEnderecoEntrega(end.key, {
                                     cep: onlyDigits(e.target.value),
                                     ...(onlyDigits(e.target.value) !== end.cep
@@ -1744,10 +1996,15 @@ export function ParceiroFormPage() {
                                           distancia_km: '',
                                           distancia_fonte: '',
                                           distancia_calculada_em: '',
+                                          distancia_empresa_id: null,
                                         }
                                       : {}),
-                                  })
-                                }
+                                  });
+                                  if (onlyDigits(e.target.value) !== end.cep) {
+                                    setDistanciaAlvo(null);
+                                    setDistanciaErro(null);
+                                  }
+                                }}
                               />
                               <button
                                 type="button"
@@ -1860,10 +2117,19 @@ export function ParceiroFormPage() {
                                 {consulting === `geo-ee:${end.key}` ? '…' : 'Posição e distância'}
                               </button>
                             </div>
-                            <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                              {formatKmCarro(end.distancia_km, end.distancia_fonte) || '—'}
-                            </p>
                           </div>
+                          <DistanciaCarroField
+                            km={end.distancia_km}
+                            fonte={end.distancia_fonte}
+                            distanciaEmpresaId={end.distancia_empresa_id}
+                            empresaId={empresaId}
+                            fase={distanciaAlvo === end.key ? distanciaFase : null}
+                            erro={distanciaAlvo === end.key ? distanciaErro : null}
+                            origemLat={origemEmp?.origem_latitude ?? ''}
+                            origemLng={origemEmp?.origem_longitude ?? ''}
+                            destinoLat={end.latitude}
+                            destinoLng={end.longitude}
+                          />
                           <div className="form-group span-2">
                             <label>Observações</label>
                             <input
@@ -2399,6 +2665,40 @@ export function ParceiroFormPage() {
                   </select>
                   <span className="form-hint">PIX · boleto · transferência · cartão.</span>
                 </div>
+                {form.papel_cliente || form.is_prospect ? (
+                  <div className="form-group span-full">
+                    <ParceiroCombobox
+                      label="Vendedor padrão"
+                      papel="vendedor"
+                      value={vendedorPadraoSel}
+                      onChange={(v) => {
+                        setVendedorPadraoSel(v);
+                        update({ vendedor_parceiro_id: v ? v.id : '' });
+                      }}
+                      disabled={fieldDisabled('write')}
+                      placeholder="Vendedor habitual deste cliente…"
+                      hint="Prefill no orçamento. A comissão efetiva fica no documento (snapshot)."
+                      emptyMessage="Nenhum vendedor cadastrado nesta EMP."
+                    />
+                  </div>
+                ) : null}
+                {form.papel_vendedor ? (
+                  <div className="form-group">
+                    <label>Comissão % padrão</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.percent)}
+                      value={form.comissao_percentual}
+                      disabled={fieldDisabled('write')}
+                      onChange={(e) => update({ comissao_percentual: e.target.value })}
+                    />
+                    <span className="form-hint">
+                      Alíquota sugerida no ORC. Paga-se o % da faixa aceita, após a baixa do
+                      recebimento do cliente — não no faturar.
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="panel-title">
@@ -2573,34 +2873,34 @@ const PARCEIRO_HISTORICO_SORT = {
 };
 
 function ParceiroHistoricoFiscalTable({ rows }: { rows: ParceiroFiscalHistorico[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PARCEIRO_HISTORICO_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, PARCEIRO_HISTORICO_SORT);
 
   return (
     <table className="data-table fiscal-historico-table">
       <thead>
         <tr>
-          <SortableTh column="inicio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="inicio" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Início
           </SortableTh>
-          <SortableTh column="fim" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="fim" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Fim
           </SortableTh>
-          <SortableTh column="ie" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="ie" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             IE
           </SortableTh>
-          <SortableTh column="ind" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="ind" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             ind
           </SortableTh>
-          <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Status
           </SortableTh>
-          <SortableTh column="regime" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="regime" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Regime
           </SortableTh>
-          <SortableTh column="finalidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="finalidade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Finalidade
           </SortableTh>
-          <SortableTh column="motivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+          <SortableTh column="motivo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
             Motivo
           </SortableTh>
         </tr>

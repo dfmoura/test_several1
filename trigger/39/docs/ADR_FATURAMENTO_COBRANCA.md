@@ -4,7 +4,8 @@
 **Data:** 2026-08-13  
 **Contexto 39:** BL-049 · BL-050  
 **Norma:** `../32` — `FATURAMENTO_GERACAO_COBRANCA.txt` · `MAPA_FATURAMENTO_EXPLICADO.txt` · `CONCLUSAO_PRODUCAO.txt` · `RECEBIMENTO_BAIXA_COBRANCA.txt` · `CASOS_USO_M05` UC-FIS-001/004 · `CASOS_USO_M06` UC-FIN-001/002  
-**Relacionada:** `ADR_PRODUCAO_PED_OP_ESTOQUE.md` · `ADR_ORC_ADIANTAMENTO_PIX.md` · `ADR_CONDICOES_COMERCIAIS_PAR.md` · `ADR_NATUREZAS_GERENCIAIS.md`
+**Visão as-built:** `MAPA_FATURAMENTO.md` (eixos FAT × DFS × TIT × ENT × COM — não substitui esta ADR)  
+**Relacionada:** `ADR_PRODUCAO_PED_OP_ESTOQUE.md` · `ADR_ORC_ADIANTAMENTO_PIX.md` · `ADR_CONDICOES_COMERCIAIS_PAR.md` · `ADR_NATUREZAS_GERENCIAIS.md` · `ADR_EMISSAO_NFE_NFSE.md` · `ADR_ENTREGA_EXPEDICAO.md` · `ADR_COMISSAO_VENDEDOR.md` · `ADR_CARTEIRA_FINANCEIRA.md`
 
 ---
 
@@ -14,7 +15,7 @@ OP/OS concluída deixa o PED `PRODUZIDO` com `qtde_faturavel` (quantidade boa ±
 
 O sinal (quando houve) já existe: TIT `origem=ADIANTAMENTO` quitado no aceite, **sem NF**. O estudo manda apropriar esse valor contra a fatura — não cobrar de novo.
 
-Focus NFe (`FocusNfeClient`) emite NF-e/NFS-e no mesmo faturar quando o hub está apto (`docs/ADR_EMISSAO_NFE_NFSE.md`). TIT/COB não esperam a autorização. Estoque PA continua só na NF autorizada.
+Focus NFe (`FocusNfeClient`) emite NF-e/NFS-e no mesmo faturar quando o hub está apto (`docs/ADR_EMISSAO_NFE_NFSE.md`). TIT/COB não esperam a autorização. Estoque PA/REV baixa **só** na NF Focus autorizada (`SAIDA_VENDA`, BL-066) — nunca no commit do FAT nem no stub.
 
 ## Decisão
 
@@ -38,7 +39,7 @@ PED PRODUZIDO (qtde_faturavel > 0)
 | **Sinal = apropriação** | TIT de adiantamento permanece (histórico). FAT registra `valor_adiantamento`. Condição “50% sinal + …” **não** gera outra parcela de sinal. |
 | **Condição do snapshot** | PED herda `input` do ORC. Parser leve (à vista, N DDL, 14/28/42, % sinal). Sem catálogo `COND-`. |
 | **COB só PIX/Boleto** | Reusa `BankProvider`. Transferência/Cartão → TIT sem COB. |
-| **Sem baixa de PA** | Estudo: estoque PA só na NF autorizada. `ENTRADA_PA` da OP permanece. |
+| **Baixa PA/REV só na NF oficial** | Estudo: estoque na autorização Focus. `ENTRADA_PA` da OP permanece até lá. Stub/prévia não baixam. |
 | **1 FAT vigente : 1 PED** | Fase 1 alinhada a 1 PED : 1 item. Parcial (UC-FIS-004) fica para quando houver NF. Estorno (emenda) libera novo FAT no mesmo PED. |
 | **SoD** | `faturamento.escrever` ≠ `producao.escrever`. PRODUÇÃO não fatura. |
 
@@ -103,12 +104,15 @@ Enquanto o hub Focus da EMP não estiver cadastrado e testado, o FAT continua v�
 
 Detalhe: `docs/ADR_EMISSAO_NFE_NFSE.md`.
 
+## Emenda — baixa de estoque na NF oficial (BL-066)
+
+A autorização Focus da NF-e dispara `SAIDA_VENDA` da quantidade faturada (SKU do item do PED). Não altera TIT/COB. Detalhe: `docs/ADR_EMISSAO_NFE_NFSE.md`.
+
 ## Fora de escopo
 
-- Cancelamento de NF autorizada (Focus + prazo legal)  
-- Baixa de estoque PA/REV na autorização  
+- Cancelamento de NF autorizada (Focus + prazo legal) e estorno do `SAIDA_VENDA`  
 - Faturamento parcial / várias FAT vigentes no mesmo PED  
-- ENT- / romaneio / WhatsApp da NF  
+- ENT- / romaneio / WhatsApp da NF — romaneio em `docs/ADR_ENTREGA_EXPEDICAO.md` (BL-060)  
 - Devolução DEV-  
 - Motor CRT / catálogo `COND-`  
 - Faturamento antecipado (NF antes de produzir) — alçada excepcional do estudo  

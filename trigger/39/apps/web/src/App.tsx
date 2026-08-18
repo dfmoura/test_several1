@@ -37,6 +37,7 @@ import { ContasPagarPage } from './pages/ContasPagarPage';
 import { ContasReceberPage } from './pages/ContasReceberPage';
 import { FaturamentoDetailPage } from './pages/FaturamentoDetailPage';
 import { FaturamentosPage } from './pages/FaturamentosPage';
+import { ComissoesPage } from './pages/ComissoesPage';
 import { ComprasCotacoesPage } from './pages/ComprasCotacoesPage';
 import { ComprasNecessidadesPage } from './pages/ComprasNecessidadesPage';
 import { ComprasOrdemDetailPage } from './pages/ComprasOrdemDetailPage';
@@ -56,6 +57,9 @@ import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
 import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
 import { RastreioInsumosPage } from './pages/RastreioInsumosPage';
+import { ExpedicaoPage } from './pages/ExpedicaoPage';
+import { EntregaDetailPage } from './pages/EntregaDetailPage';
+import { EntregaFichaPage } from './pages/EntregaFichaPage';
 
 function LoadingScreen() {
   return (
@@ -310,6 +314,14 @@ export default function App() {
             </PermissionRoute>
           }
         />
+        <Route
+          path="financeiro/comissoes"
+          element={
+            <PermissionRoute permission={['comissao.ler', 'financeiro.ler']}>
+              <ComissoesPage />
+            </PermissionRoute>
+          }
+        />
 
         <Route
           path="orcamentos"
@@ -413,6 +425,22 @@ export default function App() {
           element={
             <PermissionRoute permission="producao.ler">
               <OrdemServicoDetailPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="expedicao"
+          element={
+            <PermissionRoute permission="expedicao.ler">
+              <ExpedicaoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="expedicao/:id"
+          element={
+            <PermissionRoute permission="expedicao.ler">
+              <EntregaDetailPage />
             </PermissionRoute>
           }
         />
@@ -574,6 +602,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="faturamento.ler">
               <DocumentoFiscalFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/expedicao/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="expedicao.ler">
+              <EntregaFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

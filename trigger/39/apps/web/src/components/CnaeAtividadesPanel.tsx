@@ -18,17 +18,17 @@ const CNAE_SEC_SORT = {
 };
 
 function CnaesSecundariosTable({ items }: { items: CnaeSecundario[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(items, CNAE_SEC_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(items, CNAE_SEC_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CNAE
             </SortableTh>
-            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="descricao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Descrição
             </SortableTh>
           </tr>

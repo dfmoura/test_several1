@@ -104,6 +104,12 @@ export function pedChipClass(status: string | null | undefined): string {
       return 'situacao-em_manutencao';
     case 'PRODUZIDO':
       return 'situacao-cedido';
+    case 'FATURADO':
+    case 'EM_ENTREGA':
+      return 'situacao-em_manutencao';
+    case 'ENTREGUE':
+    case 'ENCERRADO':
+      return 'situacao-ativo';
     case 'CANCELADO':
       return 'situacao-baixado';
     default:

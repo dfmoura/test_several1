@@ -24,7 +24,7 @@ export function ComprasOrdensPage() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(ordens, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(ordens, SORT);
 
   const load = async (search?: string, st?: string) => {
     setLoading(true);
@@ -105,19 +105,19 @@ export function ComprasOrdensPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="fornecedor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="fornecedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Fornecedor
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
-                  <SortableTh column="total" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="total" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Total
                   </SortableTh>
-                  <SortableTh column="previsao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="previsao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Previsão
                   </SortableTh>
                 </tr>

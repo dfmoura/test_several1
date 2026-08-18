@@ -107,6 +107,7 @@ export function UsuariosPage() {
 
   const {
     sorted: sortedUsers,
+    sorts,
     sortKey,
     sortDir,
     requestSort,
@@ -624,25 +625,25 @@ export function UsuariosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Nome
                   </SortableTh>
-                  <SortableTh column="email" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="E-mail">
+                  <SortableTh column="email" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="E-mail">
                     E-mail
                   </SortableTh>
-                  <SortableTh column="colaborador" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="colaborador" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Colaborador
                   </SortableTh>
-                  <SortableTh column="perfis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="perfis" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Perfis
                   </SortableTh>
-                  <SortableTh column="empresas" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="empresas" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Empresas
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
                   <th></th>

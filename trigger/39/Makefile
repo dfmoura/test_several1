@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional shell health doctor web-build orc-rbac queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema shell health doctor web-build orc-rbac queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8039 → ERR_CONNECTION_REFUSED
@@ -73,11 +73,21 @@ seed-produtos-cadastro:
 seed-estoque-virada:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:seed-estoque-virada $(ARGS)
 
-# Limpa operacional (PAR/PRD/ORC/OC/estoque/TIT) preservando ADMIN + seu PAR.
-# Plataforma (EMP, RBAC, catálogos, naturezas, DEP, BEM, CFIN) permanece.
-# Atenção: irreversível. Preferir --dry-run antes se duvidar.
+# Limpa operacional (PAR/PRD/ORC/PED/OP/FAT/OC/estoque/TIT) preservando ADMIN + seu PAR.
+# Plataforma (EMP, RBAC, catálogos, naturezas, DEP, BEM, CFIN, hubs) e audit_log permanecem.
+# Atenção: irreversível nos documentos. Preferir make limpar-sistema (repor cadastro + virada).
+# Uso: make limpar-operacional
+#      make limpar-operacional ARGS='--dry-run'
 limpar-operacional:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-operacional --force $(ARGS)
+
+# Higiene canônica do lab/homolog (estudo 32: virada por cadastro + saldo, sem histórico de teste).
+# 1) documentos/lixo  2) seed idempotente (users, PAR, 89 famílias, BEM)  3) AJU A03 de abertura.
+# Não herda ARGS de limpar-operacional (dry-run não deve repor estoque).
+limpar-sistema:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-operacional --force
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan db:seed --force
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:seed-estoque-virada
 
 orc-rbac:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan orcamento:ensure-rbac

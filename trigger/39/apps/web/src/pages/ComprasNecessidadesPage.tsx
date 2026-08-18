@@ -30,7 +30,7 @@ export function ComprasNecessidadesPage() {
   const [prioridade, setPrioridade] = useState('NORMAL');
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
   const load = async () => {
     setLoading(true);
@@ -152,27 +152,27 @@ export function ComprasNecessidadesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="produto" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="produto" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Produto
                   </SortableTh>
-                  <SortableTh column="qtde" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="qtde" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Qtde
                   </SortableTh>
                   <SortableTh
                     column="prioridade"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                   >
                     Prioridade
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
-                  <SortableTh column="quando" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="quando" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Quando
                   </SortableTh>
                 </tr>

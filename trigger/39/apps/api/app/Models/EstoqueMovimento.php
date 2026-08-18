@@ -24,12 +24,15 @@ class EstoqueMovimento extends Model
 
     public const TIPO_ENTRADA_PA = 'ENTRADA_PA';
 
+    public const TIPO_SAIDA_VENDA = 'SAIDA_VENDA';
+
     public const TIPOS = [
         self::TIPO_ENTRADA_COMPRA,
         self::TIPO_AJUSTE,
         self::TIPO_SAIDA_PRODUCAO,
         self::TIPO_ENTRADA_SOBRA,
         self::TIPO_ENTRADA_PA,
+        self::TIPO_SAIDA_VENDA,
     ];
 
     protected $table = 'estoque_movimentos';
@@ -53,6 +56,8 @@ class EstoqueMovimento extends Model
         'pedido_id',
         'ordem_producao_id',
         'ordem_servico_id',
+        'faturamento_id',
+        'documento_fiscal_saida_id',
     ];
 
     protected function casts(): array
@@ -124,5 +129,15 @@ class EstoqueMovimento extends Model
     public function ordemServico(): BelongsTo
     {
         return $this->belongsTo(OrdemServico::class, 'ordem_servico_id');
+    }
+
+    public function faturamento(): BelongsTo
+    {
+        return $this->belongsTo(Faturamento::class);
+    }
+
+    public function documentoFiscalSaida(): BelongsTo
+    {
+        return $this->belongsTo(DocumentoFiscalSaida::class, 'documento_fiscal_saida_id');
     }
 }

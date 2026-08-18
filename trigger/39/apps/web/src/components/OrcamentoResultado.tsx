@@ -4,9 +4,13 @@ import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import type { ModeloComposicaoForm } from '../lib/orcamentoForm';
 import {
+  explicarFechamentoFrete,
   formatValorFrete,
   freteMotivoLabel,
   modoEntregaLabel,
+  ORIGEM_MANUAL,
+  origemFreteLabel,
+  totalPropostaFaixa,
 } from '../lib/orcamentoFrete';
 import {
   buildGuiaProducaoLinhas,
@@ -43,6 +47,8 @@ type Props = {
    * (estudo 32 · GERACAO §1.5: cálculo ≠ eco da ficha).
    */
   echoEspecificacao?: boolean;
+  /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
+  modoServico?: boolean;
 };
 
 function ComercialFaixasTable({
@@ -50,11 +56,13 @@ function ComercialFaixasTable({
   facaNova,
   valorFacaNova,
   mostrarFrete,
+  modoServico,
 }: {
   faixas: OrcamentoFaixaResult[];
   facaNova: boolean;
   valorFacaNova?: number;
   mostrarFrete: boolean;
+  modoServico?: boolean;
 }) {
   const sortGetters = useMemo(
     () => ({
@@ -67,45 +75,41 @@ function ComercialFaixasTable({
       matriz: (fx: OrcamentoFaixaResult) => Number(fx.valor_matriz) || 0,
       faca_nova: (fx: OrcamentoFaixaResult) =>
         Number(fx.valor_faca_nova ?? valorFacaNova ?? 0),
-      total: (fx: OrcamentoFaixaResult) => {
-        const totalComFaca =
-          fx.valor_total_com_faca != null
-            ? Number(fx.valor_total_com_faca)
-            : Number(fx.valor_total) + Number(valorFacaNova ?? 0);
-        return facaNova ? totalComFaca : Number(fx.valor_total);
-      },
+      total: (fx: OrcamentoFaixaResult) => totalPropostaFaixa(fx, facaNova, valorFacaNova),
     }),
     [facaNova, valorFacaNova],
   );
 
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(faixas, sortGetters);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(faixas, sortGetters);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="quantidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="quantidade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Qtd.
             </SortableTh>
-            <SortableTh column="etiqueta" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-              Etiqueta
+            <SortableTh column="etiqueta" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              {modoServico ? 'Serviço' : 'Etiqueta'}
             </SortableTh>
-            <SortableTh column="unitario" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="unitario" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Unitário
             </SortableTh>
-            <SortableTh column="matriz" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            {modoServico ? null : (
+            <SortableTh column="matriz" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Matriz
             </SortableTh>
+            )}
             {facaNova ? (
-              <SortableTh column="faca_nova" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+              <SortableTh column="faca_nova" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                 Faca nova
               </SortableTh>
             ) : null}
             {mostrarFrete ? (
               <th>Frete est.</th>
             ) : null}
-            <SortableTh column="total" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="total" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Total
             </SortableTh>
           </tr>
@@ -114,16 +118,13 @@ function ComercialFaixasTable({
           {sorted.map((fx, i) => {
             const q = Number(fx.quantidade) || 1;
             const et = Number(fx.valor_etiqueta) || 0;
-            const totalComFaca =
-              fx.valor_total_com_faca != null
-                ? Number(fx.valor_total_com_faca)
-                : Number(fx.valor_total) + Number(valorFacaNova ?? 0);
+            const total = totalPropostaFaixa(fx, facaNova, valorFacaNova);
             return (
               <tr key={i}>
                 <td>{q.toLocaleString('pt-BR')}</td>
                 <td>{formatCurrency(et)}</td>
                 <td>{formatCurrency(et / q)}</td>
-                <td>{formatCurrency(fx.valor_matriz)}</td>
+                {modoServico ? null : <td>{formatCurrency(fx.valor_matriz)}</td>}
                 {facaNova ? (
                   <td>{formatCurrency(fx.valor_faca_nova ?? valorFacaNova ?? 0)}</td>
                 ) : null}
@@ -131,7 +132,7 @@ function ComercialFaixasTable({
                   <td>{formatValorFrete(fx.valor_frete, fx.frete_somavel)}</td>
                 ) : null}
                 <td>
-                  <strong>{formatCurrency(facaNova ? totalComFaca : fx.valor_total)}</strong>
+                  <strong>{formatCurrency(total)}</strong>
                 </td>
               </tr>
             );
@@ -229,7 +230,9 @@ export function OrcamentoResultado({
   modelosComposicao,
   guiaEspec,
   echoEspecificacao = true,
+  modoServico = false,
 }: Props) {
+  const servico = modoServico || calculo.tipo_operacao === 'SERVICO';
   const [aba, setAba] = useState<AbaResultado>('comercial');
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
   const faixas = calculo.faixas ?? [];
@@ -238,18 +241,21 @@ export function OrcamentoResultado({
     (m) => String(m.nome ?? '').trim() !== '',
   );
 
-  const desenhoProps: OrcamentoFacaDesenhoProps | null = facaDesenho
-    ? {
-        ...facaDesenho,
-        formato: facaDesenho.formato || calculo.formato_faca,
-        facaNova: facaDesenho.facaNova ?? Boolean(calculo.faca_nova),
-      }
-    : calculo.formato_faca
+  const desenhoProps: OrcamentoFacaDesenhoProps | null = servico
+    ? null
+    : facaDesenho
       ? {
-          formato: calculo.formato_faca,
-          facaNova: Boolean(calculo.faca_nova),
+          ...facaDesenho,
+          formato: facaDesenho.formato || calculo.formato_faca,
+          facaNova: facaDesenho.facaNova ?? Boolean(calculo.faca_nova),
         }
-      : null;
+      : calculo.formato_faca
+        ? {
+            formato: calculo.formato_faca,
+            facaNova: Boolean(calculo.faca_nova),
+          }
+        : null;
+  const abaAtiva: AbaResultado = servico ? 'comercial' : aba;
 
   return (
     <section className="card orc-resultado">
@@ -258,40 +264,53 @@ export function OrcamentoResultado({
           <button
             type="button"
             role="tab"
-            aria-selected={aba === 'comercial'}
-            className={aba === 'comercial' ? 'active' : ''}
+            aria-selected={abaAtiva === 'comercial'}
+            className={abaAtiva === 'comercial' ? 'active' : ''}
             onClick={() => setAba('comercial')}
           >
             Proposta comercial
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={aba === 'interno'}
-            className={aba === 'interno' ? 'active' : ''}
-            onClick={() => setAba('interno')}
-          >
-            Breakdown interno
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={aba === 'producao'}
-            className={aba === 'producao' ? 'active' : ''}
-            onClick={() => setAba('producao')}
-          >
-            Guia de produção
-          </button>
+          {servico ? null : (
+            <>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={abaAtiva === 'interno'}
+                className={abaAtiva === 'interno' ? 'active' : ''}
+                onClick={() => setAba('interno')}
+              >
+                Breakdown interno
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={abaAtiva === 'producao'}
+                className={abaAtiva === 'producao' ? 'active' : ''}
+                onClick={() => setAba('producao')}
+              >
+                Guia de produção
+              </button>
+            </>
+          )}
         </div>
 
-        {echoEspecificacao && desenhoProps && aba === 'comercial' ? (
+        {echoEspecificacao && desenhoProps && abaAtiva === 'comercial' ? (
           <div className="orc-resultado-faca">
             <OrcamentoFacaDesenho {...desenhoProps} variant="inline" />
           </div>
         ) : null}
 
-        {aba !== 'producao' ? (
+        {abaAtiva !== 'producao' ? (
           <p className="orc-result-meta">
+            {servico ? (
+              <>
+                Preço comercial informado · teto para cima em múltiplo de R$ 10 · NFS-e Nacional
+                {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
+                {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
+                {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
+              </>
+            ) : (
+              <>
             Matriz:{' '}
             {calculo.cobra_matriz ? formatCurrency(calculo.valor_matriz) : 'Isenta'}
             {(() => {
@@ -324,13 +343,19 @@ export function OrcamentoResultado({
             {echoEspecificacao && toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
             {calculo.frete
               ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                  origemFreteLabel(calculo.frete.origem)
+                    ? ` · ${origemFreteLabel(calculo.frete.origem)?.toLowerCase()}`
+                    : ''
+                }${
                   calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
                 }`
               : ''}
+              </>
+            )}
           </p>
         ) : null}
 
-        {aba === 'comercial' ? (
+        {abaAtiva === 'comercial' ? (
           <>
             {echoEspecificacao && modelosVisiveis.length > 0 ? (
               <ModelosComposicaoTable
@@ -349,30 +374,42 @@ export function OrcamentoResultado({
               facaNova={Boolean(calculo.faca_nova)}
               valorFacaNova={calculo.valor_faca_nova}
               mostrarFrete={Boolean(calculo.frete)}
+              modoServico={servico}
             />
             {calculo.frete ? (
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
                 {calculo.frete.modo === 'ENTREGAR'
-                  ? [
-                      calculo.frete.km != null && calculo.frete.km !== ''
-                        ? `${formatDecimalBr(calculo.frete.km, 1)} km`
-                        : null,
+                  ? String(calculo.frete.origem).toUpperCase() === ORIGEM_MANUAL
+                    ? [
+                        'Origem manual',
+                        calculo.frete.destino_label || null,
+                        freteMotivoLabel(calculo.frete.motivo),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : [
+                      (() => {
+                        const kmTxt = formatDecimalBr(calculo.frete.km, 3);
+                        return kmTxt !== '—' && !/^0,0+$/.test(kmTxt) ? `${kmTxt} km` : null;
+                      })(),
+                      calculo.frete.destino_label || null,
                       calculo.frete.peso_caixa_kg
                         ? `${formatDecimalBr(calculo.frete.peso_caixa_kg, 3)} kg/caixa`
                         : null,
-                      freteMotivoLabel(calculo.frete.motivo),
+                      freteMotivoLabel(calculo.frete.motivo) ??
+                        'máx(mínimo da faixa, R$/km × km), teto para cima',
                     ]
                       .filter(Boolean)
                       .join(' · ')
                   : freteMotivoLabel(calculo.frete.motivo)}
                 {' '}
-                · linha à parte, não entra no unitário da etiqueta
+                · linha à parte: não entra no unitário; se levantado, compõe o total
               </p>
             ) : null}
           </>
         ) : null}
 
-        {aba === 'interno' ? (
+        {abaAtiva === 'interno' ? (
           <>
             <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
               {faixas.map((fx, i) => (
@@ -461,7 +498,24 @@ export function OrcamentoResultado({
                     <strong>{formatValorFrete(detalhe.valor_frete, detalhe.frete_somavel)}</strong>
                   </div>
                 ) : null}
+                {calculo.faca_nova || detalhe.frete_somavel ? (
+                  <div className="breakdown-total">
+                    <span>Total da proposta</span>
+                    <strong>
+                      {formatCurrency(
+                        totalPropostaFaixa(detalhe, Boolean(calculo.faca_nova), calculo.valor_faca_nova),
+                      )}
+                    </strong>
+                  </div>
+                ) : null}
               </div>
+            ) : null}
+            {detalhe && calculo.frete?.modo === 'ENTREGAR' ? (
+              <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
+                {explicarFechamentoFrete(detalhe, calculo.frete.km, calculo.frete.origem) ??
+                  freteMotivoLabel(calculo.frete.motivo) ??
+                  'Frete fora do unitário da etiqueta (R1–R20 intacto).'}
+              </p>
             ) : null}
             {detalhe && Number(detalhe.metragem) < 1000 ? (
               <p className="orc-result-meta" style={{ marginTop: '0.75rem' }}>
@@ -476,7 +530,7 @@ export function OrcamentoResultado({
           </>
         ) : null}
 
-        {aba === 'producao' ? (
+        {abaAtiva === 'producao' ? (
           <GuiaProducaoPanel
             espec={guiaEspec}
             faixa={detalhe}

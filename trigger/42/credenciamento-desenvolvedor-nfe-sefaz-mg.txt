@@ -1,0 +1,346 @@
+CREDENCIAMENTO DA EMPRESA DESENVOLVEDORA PARA NF-e NA SEFAZ-MG
+Passo a passo para software house / desenvolvedor habilitado
+Atualizado em: 18/08/2026
+Fonte principal: Portaria SRE n. 277/2025 e Decreto n. 49.127/2025 (RICMS/MG)
+
+==============================================================================
+1. LEIA ISTO PRIMEIRO: SAO DUAS COISAS DIFERENTES
+==============================================================================
+
+A) CREDENCIAMENTO DA EMPRESA DESENVOLVEDORA (o que voce quer agora)
+   - Cadastro da SUA empresa (software house) junto a SEF/MG.
+   - Identifica quem desenvolve o sistema emissor de NF-e / NFC-e.
+   - Base legal: Decreto 49.127/2025 (anexa ao RICMS/MG) + Portaria SRE 277/2025.
+   - Feito no sitio eletronico da SEF/MG, com certificado digital da empresa
+     ou conta gov.br.
+
+B) CREDENCIAMENTO DO CONTRIBUINTE EMISSOR (o cliente que emite a nota)
+   - Cadastro da empresa MINEIRA que vai emitir a NF-e.
+   - Feito no SIARE, pelo proprio contribuinte (IE ativa).
+   - Sem isso, a SEFAZ-MG NAO autoriza NF-e em producao, mesmo com software
+     pronto.
+
+Resumo: voce se credencia como desenvolvedor. O cliente se credencia como
+emissor. Os dois precisam estar ok para a nota sair.
+
+==============================================================================
+2. QUEM ESTA OBRIGADO HOJE
+==============================================================================
+
+Portaria SRE n. 277, de 09/12/2025 (DOE-MG 10/12/2025).
+Efeitos praticos a partir de 02/02/2026.
+
+Obrigatorio credenciar a software house quando o sistema for usado por
+contribuinte classificado na CNAE 4731-8
+(comercio varejista de combustiveis para veiculos automotores).
+
+Para esses contribuintes, tambem e obrigatorio preencher o Grupo ZD
+(Informacoes do Responsavel Tecnico) em TODA NF-e e NFC-e.
+
+O Decreto 49.127/2025 ja determina, no RICMS/MG, que a empresa
+desenvolvedora de software para emissao de NF-e e NFC-e devera
+credenciar-se junto a SEF. A Portaria 277 detalhou o procedimento e,
+neste momento, tornou a exigencia obrigatoria para postos de combustivel.
+
+Recomendacao: credencie mesmo se ainda nao atender posto de combustivel.
+O Fisco pode ampliar o alcance depois.
+
+==============================================================================
+3. O QUE SEPARAR ANTES DE COMECAR (CHECKLIST)
+==============================================================================
+
+[ ] CNPJ ativo da empresa desenvolvedora
+[ ] Contrato social / CNAE de desenvolvimento de software (conferir no CNPJ)
+[ ] Certificado digital e-CNPJ padrao ICP-Brasil (A1 ou A3), em nome da
+    empresa desenvolvedora (nao use certificado de cliente)
+[ ] Conta gov.br do representante legal (nivel prata ou ouro), caso o
+    portal peca login gov.br
+[ ] Dados do responsavel tecnico:
+      - nome completo
+      - CPF
+      - e-mail institucional
+      - telefone com DDD
+[ ] Nome comercial do software emissor (ex.: "Sistema X NF-e")
+[ ] Lista de clientes mineiros que usam (ou vao usar) o sistema,
+    principalmente se houver CNAE 4731-8
+[ ] Computador com leitor de certificado / token e Java/navegador
+    atualizado, se for A3
+
+==============================================================================
+4. PASSOS DO CREDENCIAMENTO DA SOFTWARE HOUSE NA SEF/MG
+==============================================================================
+
+PASSO 1 - Leia a norma oficial
+--------------------------------
+Portaria SRE 277/2025:
+https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/portarias/2025/port_subsec277_2025.html
+
+Decreto 49.127/2025 (altera o RICMS/MG):
+https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/decretos/2025/d49127_2025.html
+
+Portal SPED MG (avisos de NF-e):
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
+
+PASSO 2 - Acesse o ambiente eletronico da SEF/MG
+--------------------------------
+Art. 3 da Portaria 277: o credenciamento e feito no sitio eletronico
+da SEF, com:
+  - certificado digital da empresa desenvolvedora, OU
+  - conta gov.br da empresa / representante.
+
+Pontos de entrada oficiais:
+  - Portal da SEF/MG:     https://www.fazenda.mg.gov.br
+  - Portal SPED MG:       https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
+  - SIARE:                https://www2.fazenda.mg.gov.br/sol/
+
+Procure no portal o modulo de credenciamento de empresas desenvolvedoras
+de software para NF-e / NFC-e (aviso da Portaria 277 na pagina da NF-e).
+
+PASSO 3 - Autentique-se
+--------------------------------
+1. Conecte o certificado e-CNPJ da SUA empresa (ou faca login gov.br).
+2. Confirme que o CNPJ exibido e o da desenvolvedora, nao o de cliente.
+3. Aceite os termos de uso, se o sistema apresentar.
+
+PASSO 4 - Preencha o cadastro da desenvolvedora
+--------------------------------
+Informe, em geral, o seguinte (tenha tudo em maos):
+
+  Dados da empresa
+  - CNPJ
+  - razao social
+  - nome fantasia
+  - endereco
+  - CNAE
+  - telefone e e-mail institucionais
+
+  Dados do software
+  - nome do aplicativo emissor
+  - versao
+  - documentos que o sistema emite (NF-e modelo 55 e/ou NFC-e modelo 65)
+
+  Dados do responsavel tecnico (Grupo ZD)
+  - nome da pessoa de contato
+  - e-mail
+  - telefone
+
+PASSO 5 - Envie e guarde o comprovante
+--------------------------------
+1. Revise os dados.
+2. Confirme o pedido.
+3. Salve protocolo / comprovante em PDF.
+4. Anote data e CNPJ credenciado.
+
+PASSO 6 - Confira se ficou ativo
+--------------------------------
+Volte ao mesmo portal e consulte a situacao.
+Se nao houver consulta, ligue no 155 (LigMinas) ou (31) 3303-7995
+e peca confirmacao do credenciamento da desenvolvedora.
+
+==============================================================================
+5. DEPOIS DO CREDENCIAMENTO: O QUE O SOFTWARE PRECISA FAZER
+==============================================================================
+
+Credenciar a empresa NAO autoriza nota automaticamente.
+O sistema ainda precisa falar com os webservices da SEFAZ-MG.
+
+5.1. Implementar o leiaute nacional da NF-e
+--------------------------------
+Use o Manual de Orientacao do Contribuinte (MOC) e as Notas Tecnicas
+no Portal Nacional da NF-e:
+https://www.nfe.fazenda.gov.br/portal/
+
+Downloads MG (schemas, cadeia de certificados, regras facultativas):
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/downloads/
+
+5.2. Preencher o Grupo ZD (infRespTec) no XML
+--------------------------------
+Campos (NT 2018.001 / NT 2018.005):
+
+  CNPJ      = CNPJ da empresa desenvolvedora (ZD02)
+  xContato  = nome da pessoa de contato (ZD04)
+  email     = e-mail da empresa (ZD05)
+  fone      = telefone com DDD (ZD06)
+  idCSRT    = identificador do CSRT, SE a SEF/MG fornecer (ZD08)
+  hashCSRT  = hash do CSRT, SE a SEF/MG fornecer (ZD09)
+
+Para CNAE 4731-8 em MG, o Grupo ZD e OBRIGATORIO desde 02/02/2026.
+Para os demais CNAEs, preencha mesmo assim: ajuda o Fisco a falar
+com voce e evita rejeicao futura.
+
+CSRT (Codigo de Seguranca do Responsavel Tecnico):
+so preencha idCSRT/hashCSRT se a SEF/MG publicar o codigo no portal
+de credenciamento. Se o estado ainda nao emitir CSRT, envie so
+CNPJ + contato + e-mail + telefone.
+
+5.3. Usar os webservices da SEFAZ-MG
+--------------------------------
+Portal:
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/webservices/
+
+HOMOLOGACAO (testes, sem validade juridica) - prefixo hnfe:
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRetAutorizacao4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeConsultaProtocolo4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeStatusServico4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeInutilizacao4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRecepcaoEvento4
+  https://hnfe.fazenda.mg.gov.br/nfe2/services/CadConsultaCadastro4
+
+PRODUCAO (nota valida) - prefixo nfe:
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeRetAutorizacao4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeConsultaProtocolo4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeStatusServico4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeInutilizacao4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/NFeRecepcaoEvento4
+  https://nfe.fazenda.mg.gov.br/nfe2/services/CadConsultaCadastro4
+
+5.4. Instalar a cadeia de certificados da SEFAZ-MG
+--------------------------------
+Baixe no Portal SPED MG > NF-e > Downloads
+("Download da Cadeia de Certificacao da SEFAZ/MG").
+Sem isso, a conexao SSL com o webservice falha.
+
+5.5. Testar em homologacao
+--------------------------------
+1. O contribuinte-teste precisa estar credenciado em homologacao no SIARE.
+2. Use tpAmb = 2 (homologacao).
+3. No nome do destinatario, use a razao social de teste exigida pelo MOC
+   (historicamente: "NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR
+   FISCAL"). Confirme o texto vigente no MOC atual.
+4. Teste: autorizacao, consulta, cancelamento, inutilizacao, carta de
+   correcao / eventos, e rejeicoes comuns.
+5. So va para producao depois que homologacao estiver estavel.
+
+==============================================================================
+6. O QUE O SEU CLIENTE MINEIRO PRECISA FAZER NO SIARE
+==============================================================================
+
+Servico oficial:
+https://www.mg.gov.br/servico/credenciar-junto-sef-como-emissor-de-documentos-fiscais-eletronicos-nf-e-nfc-e-bp-e-ct-e-e
+
+SIARE:
+https://www2.fazenda.mg.gov.br/sol/
+
+Pre-requisitos do cliente:
+  - Inscricao Estadual ativa em MG
+  - cadastro no SIARE
+  - certificado digital ICP-Brasil (e-CNPJ do ESTABELECIMENTO emissor)
+
+Passos do cliente (emissor):
+
+1. Entrar no SIARE.
+   Usuario = Inscricao Estadual
+   Informar IE + CPF do Responsavel Master + senha
+   (ou login com certificado digital).
+
+2. Menu esquerdo: Documentos Eletronicos > Credenciar Emissor.
+
+3. Selecionar a IE e o documento (NF-e, modelo 55).
+
+4. Clicar em "+" e preencher os dados, inclusive:
+   - tipo de certificado e autoridade certificadora
+   - identificacao do aplicativo (nome do SEU software)
+   - nome da software house (sua empresa)
+   - responsaveis de negocio e de T.I.
+
+5. Confirmar. Homologacao libera na hora.
+
+6. Esperar 2 horas (regra atual do Portal MG) e voltar em:
+   Documentos Eletronicos > Liberacao de acesso ao ambiente de producao.
+
+7. Se for NFC-e, anotar o CSC (Codigo de Seguranca do Contribuinte)
+   gerado no credenciamento.
+
+Atualizar dados depois:
+Documentos Eletronicos > Atualizar Emissor.
+
+Importante: o cliente precisa cadastrar o NOME DO SEU APLICATIVO
+e o NOME DA SUA SOFTWARE HOUSE no SIARE. Oriente isso no onboarding.
+
+==============================================================================
+7. ORDEM PRATICA RECOMENDADA (DO ZERO ATE NOTA EM PRODUCAO)
+==============================================================================
+
+  1. Emitir / renovar e-CNPJ da desenvolvedora.
+  2. Credenciar a software house no portal da SEF/MG (Portaria 277).
+  3. Implementar XML da NF-e + assinatura digital + Grupo ZD.
+  4. Apontar o sistema para os webservices de HOMOLOGACAO da SEFAZ-MG.
+  5. Pedir ao cliente-teste o credenciamento de emissor no SIARE
+     (ambiente de homologacao).
+  6. Autorizar notas de teste ate zerar rejeicoes.
+  7. Cliente libera PRODUCAO no SIARE (apos a espera minima).
+  8. Trocar tpAmb para 1 e apontar para os webservices de producao.
+  9. Emitir a primeira NF-e real e guardar o XML autorizado + protocolo.
+ 10. Se o cliente for posto (CNAE 4731-8), conferir Grupo ZD em 100%
+     das notas.
+
+==============================================================================
+8. ERROS COMUNS
+==============================================================================
+
+- Usar certificado do CLIENTE para credenciar a DESENVOLVEDORA.
+- Achar que credenciar a software house ja habilita o cliente a emitir.
+- Ir para producao sem testar em homologacao.
+- Nao preencher Grupo ZD para posto de combustivel em MG.
+- Cliente sem IE ativa ou sem "Liberacao de acesso ao ambiente de producao".
+- Cadeia de certificados da SEFAZ-MG desatualizada (SSL recusado).
+- Consumo indevido dos webservices (muitas consultas). A SEFAZ pode
+  bloquear o CNPJ da desenvolvedora.
+
+==============================================================================
+9. LINKS OFICIAIS
+==============================================================================
+
+SEF/MG
+https://www.fazenda.mg.gov.br
+
+Portaria SRE 277/2025
+https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/portarias/2025/port_subsec277_2025.html
+
+Decreto 49.127/2025
+https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/decretos/2025/d49127_2025.html
+
+Portal SPED MG - NF-e
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
+
+Credenciamento do emissor (contribuinte)
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/credenciamento/
+
+Webservices MG
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/webservices/
+
+Downloads (schemas, certificados, manuais)
+https://portalsped.fazenda.mg.gov.br/spedmg/nfe/downloads/
+
+SIARE
+https://www2.fazenda.mg.gov.br/sol/
+
+Portal MG - servico de credenciamento de emissor
+https://www.mg.gov.br/servico/credenciar-junto-sef-como-emissor-de-documentos-fiscais-eletronicos-nf-e-nfc-e-bp-e-ct-e-e
+
+Portal Nacional da NF-e (MOC e Notas Tecnicas)
+https://www.nfe.fazenda.gov.br/portal/
+
+==============================================================================
+10. CONTATOS SEF/MG
+==============================================================================
+
+Fale Conosco: pelo site da SEF/MG
+LigMinas 155 (todo o estado de MG)
+(31) 3303-7995 (outros estados / celular)
+0800 020 0155 (atendimento a pessoas com deficiencia)
+
+Endereco SEF/MG:
+Rodovia Papa Joao Paulo II, 4001
+Predio Gerais (6o e 7o andares)
+Bairro Serra Verde - Belo Horizonte/MG
+CEP 31630-901
+
+==============================================================================
+FIM
+Este arquivo e um roteiro operacional. Confira sempre o texto vigente
+no portal da SEF/MG antes de protocolar, porque menus e prazos do SIARE
+podem mudar.
+==============================================================================

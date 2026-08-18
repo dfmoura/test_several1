@@ -12,6 +12,7 @@ use App\Models\ParametroEmpresa;
 use App\Models\Titulo;
 use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -336,12 +337,11 @@ class AdiantamentoService
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
         $valorFaca = (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0);
-        $valorTotal = (float) ($fx['valor_total'] ?? 0);
-        $total = $facaNova
-            ? (float) ($fx['valor_total_com_faca'] ?? ($valorTotal + $valorFaca))
-            : $valorTotal;
+        if ($facaNova && ($fx['valor_total_com_faca'] ?? null) === null) {
+            $fx['valor_total_com_faca'] = (float) ($fx['valor_total'] ?? 0) + $valorFaca;
+        }
 
-        return PadraoDecimal::roundHalfUp((string) $total, PadraoDecimal::SCALE_MONEY);
+        return OrcamentoFreteEstimadoService::totalPropostaFaixa($fx);
     }
 
     private function paramBool(Empresa $empresa, string $chave, bool $default): bool

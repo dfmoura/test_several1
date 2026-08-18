@@ -1,0 +1,108 @@
+
+1º SEMANA - Apresentação do componente - orientação geral
+Voltar
+
+Caro(a) aluno(a),
+
+ 
+
+Seja muito bem-vindo(a) à etapa final do processo de desenvolvimento do seu curso: o componente "Trabalho de conclusão de curso: relato de experiência do projeto integrado".
+
+Neste componente você consolidará todo o conhecimento adquirido durante a execução do projeto de extensão desenvolvido no âmbito do componente "Projeto Integrado - Extensão", transformando sua experiência prática em um relato estruturado e reflexivo. O objetivo principal é documentar, analisar e compartilhar os desafios, aprendizados, resultados e impactos gerados pelo seu projeto, fortalecendo sua capacidade de comunicação técnica e crítica.
+
+ 
+
+Objetivos do componente
+
+    Sistematização da Experiência: capacitar você a organizar e relatar de forma clara e objetiva todas as etapas do projeto, desde o diagnóstico inicial até a implementação da solução tecnológica.
+    Análise Crítica e Reflexiva: promover a reflexão sobre os sucessos, dificuldades e lições aprendidas durante a intervenção, relacionando-os com os conhecimentos teóricos e práticos do curso.
+    Comunicação de Resultados: incentivar a elaboração de relatos que possam ser compartilhados com a comunidade acadêmica e a sociedade, destacando o valor social e tecnológico do projeto.
+
+ 
+
+O componente adota uma metodologia baseada em projetos
+
+Metodologia:
+
+O componente será desenvolvido em quatro etapas sequenciais:
+
+    Sistematização da Experiência:
+        Revisão e organização de todo o material produzido durante o projeto (registros, dados, protótipos, feedback da comunidade).
+        Elaboração de um diagnóstico reflexivo sobre o processo, destacando decisões técnicas, adaptações realizadas e interações com a organização parceira.
+    Normas ABNT para trabalhos acadêmicos
+        Caracterização de referências e citações e seu papel em um trabalho acadêmico.
+        Explicação sobre a elaboração das referências utilizadas em um trabalho acadêmico.
+        Identificação dos tipos de citações e seus usos em um trabalho acadêmico.
+    Análise Crítica e Produção do Relato:
+        Redação de um documento estruturado (relatório técnico, artigo, portfólio multimídia) que contextualize o projeto, descreva metodologias, resultados e impactos.
+        Inclusão de uma autoavaliação, destacando competências desenvolvidas e pontos de melhoria identificados.
+    Apresentação e Disseminação:
+        Elaboração de uma apresentação oral ou virtual para compartilhar o projeto com colegas, professores e, se possível, representantes da comunidade beneficiada.
+        Uso de recursos audiovisuais (vídeos, infográficos) para ilustrar a intervenção e seu valor prático.
+
+Ao final da disciplina, você terá produzido:
+
+    Um relato de experiência detalhado, que servirá como registro acadêmico e portfólio profissional.
+    Uma apresentação multimídia ou documento técnico que demonstre sua capacidade de síntese, análise e comunicação.
+
+ 
+
+Com isso, terá uma visão crítica sobre o papel da tecnologia como agente de transformação social, alinhada aos princípios éticos e de sustentabilidade.
+
+ 
+
+Posto isso, o caminharemos pelo seguinte roteiro de estudos neste componente:
+
+ 
+
+ - SEMANA 1 – Sistematização da experiência
+
+ - SEMANA 2 – (não há conteúdo)
+
+ - SEMANA 3 – Normas ABNT para redação do relato
+
+ - SEMANA 4 – (não há conteúdo)
+
+- SEMANA 5 – Redação acadêmica
+
+ - SEMANA 6 – (não há conteúdo)
+
+ - SEMANA 7 – Apresentação do resultado
+
+ 
+
+Dessa forma, todo o conteúdo sobre o "Trabalho de conclusão de curso: relato de experiência do projeto integrado" voltado à área de TI será concluído.
+
+Fique tranquilo(a)! O material foi pensado para tornar seu aprendizado eficiente e, ao mesmo tempo, agradável. Com dedicação, tenho certeza de que tudo correrá bem, e você se sentirá realizado pelo conhecimento adquirido e assimilado
+
+Para que a sua trajetória nesse estudo seja leve e produtiva, leia algumas dicas importantes.
+
+Como estudar requer planejamento e disciplina, e o estudo organizado rende muito mais, estas Orientações de Estudo têm por objetivo ajudá-lo (a) a criar uma espécie de trilha ou rota para que sua aprendizagem ocorra de forma contínua e gradual, com o máximo de aproveitamento e um mínimo de energia e tempo. Essas orientações foram divididas em três partes:
+
+Na primeira tela você encontrará as orientações gerais sobre o componente ao longo do bimestre.
+
+Na segunda tela, acontece a enumeração das atividades de cada semana.
+
+ A terceira tela é destinada ao detalhamento de tais atividades.
+
+Ah, outra dica muito importante: sempre que tiver dúvidas, retome a leitura das orientações e estude novamente os materiais indicados na semana. Volte e releia quantas vezes for necessário. A dúvida persiste? Não desanime. Escreva para o seu professor tutor via Tira Dúvidas. Ele estará disponível para auxiliar você.
+
+ 
+
+Ferramentas de estudo:
+
+Videoaula: nela, o professor se ocupará do conteúdo de seu componente, ou de parte dele, colocará em destaque os conceitos mais importantes ou desenvolverá algum aspecto que tenha relação direta com o conteúdo do componente e que possa complementá-lo. Além das videoaulas de conteúdo de cada semana, na Semana 09, você assistirá a um vídeo de orientação para a prova.
+
+ACQFs (AO): as Avaliações Continuadas Questões Fechadas (Atividade Objetiva) oportunizarão a você demonstrar o seu conhecimento. É uma atividade pontuada e deve ser feita depois de estudar o material didático e assistir às videoaulas de conteúdo.
+
+ACQA (AD): Avaliação Continuada Questão Aberta (Atividade Discursiva) – por meio dela, você terá a oportunidade de discorrer acerca da pergunta proposta, explicitando seu ponto de vista, fundamentando-o por meio de argumentos baseados em seus estudos. Essa atividade ficará disponível da Semana 01 à Semana 07, para que você tenha tempo de pesquisar, refletir e redigir sua resposta.
+
+Tira-dúvidas: é uma ferramenta de interação entre você, seus colegas e o professor-tutor do componente, destinada a tirar dúvidas dos conteúdos que estão sendo estudados e das atividades que estão sendo realizadas.
+
+Sejam bem-vindos e vamos aos estudos!
+
+Contem comigo, sempre!
+
+Abraços
+
+Prof. Leonardo C. de Assis.

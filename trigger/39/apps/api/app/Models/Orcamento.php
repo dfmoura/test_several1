@@ -81,6 +81,7 @@ class Orcamento extends Model
         'codigo',
         'versao',
         'parceiro_id',
+        'vendedor_parceiro_id',
         'cliente_nome',
         'status',
         'input_snapshot',
@@ -136,6 +137,11 @@ class Orcamento extends Model
     public function parceiro(): BelongsTo
     {
         return $this->belongsTo(Parceiro::class);
+    }
+
+    public function vendedor(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'vendedor_parceiro_id');
     }
 
     public function linkAprovacao(): HasOne

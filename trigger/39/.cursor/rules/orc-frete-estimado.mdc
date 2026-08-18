@@ -1,6 +1,6 @@
 ---
 description: Frete estimado do ORC fica no fechamento, nunca no motor R1–R20
-globs: "**/Orcamento*.php,**/OrcCatalogoFaixaFrete.php,**/OrcamentoCatalogo*.tsx,**/OrcamentoFormPage.tsx,**/OrcamentoResultado.tsx,**/OrcamentoPropostaView.tsx,**/OrcamentoFichaSheet.tsx,**/orcamentoForm.ts,**/ADR_ORC_FRETE*.md"
+globs: "**/Orcamento*.php,**/OrcCatalogoFaixaFrete.php,**/OrcamentoCatalogo*.tsx,**/OrcamentoFormPage.tsx,**/OrcamentoResultado.tsx,**/OrcamentoPropostaView.tsx,**/OrcamentoFichaSheet.tsx,**/orcamentoForm.ts,**/orcamentoFrete.ts,**/ADR_ORC_FRETE*.md"
 alwaysApply: false
 ---
 
@@ -13,18 +13,21 @@ Norma: `docs/ADR_ORC_FRETE_ESTIMADO.md` · estudo `../32` GERACAO §1.5–1.6 / 
 - **Catálogo:** `orc_catalogo_faixas_frete` (linhas) + `peso_caixa_kg` (escalar na aba Frete).
 - **Km:** PAR / entrega, `distancia_empresa_id` da EMP atual (BL-056). Sem ORS no calcular.
 - **Fechamento:** `OrcamentoFreteEstimadoService` depois do motor. Snapshot em `result.frete`.
+- **Origem (Entregar):** `CALCULADA` (padrão, catálogo) ou `MANUAL` (um R$ da proposta).
 
 ## Faça
 
-- Default **Retirar**. Entregar só soma se km + peso + faixa com R$ existirem.
-- Fórmula `máx(mínimo, R$/km × km)`, teto para cima em centavos. Linha à parte — não no unitário.
-- Faixas contínuas; “acima” = último `kg_ate` nulo; R$ vazio = sob consulta.
+- Default **Retirar**. Em Entregar, padrão **Calculada**.
+- Calculada: só soma se km + peso + faixa com R$ existirem. Fórmula `máx(mínimo, R$/km × km)`, teto para cima em centavos.
+- Manual: R$ único em todas as quantidades; não exige km; teto em centavos; R$ 0 não infla. Fotografia `origem_frete` + `valor_frete_manual`.
+- Linha à parte — não no unitário. Frete somável **compõe** o total da proposta. Cliente = prospect. CONSOLIDADO: valor, não origem.
 
 ## Não faça
 
 - Mexer em R1–R20 / `valor_etiqueta` por causa do frete.
-- Default Entregar; seed de preço; campo R$ livre no wizard.
+- Default Entregar; seed de preço; R$ solto sem origem Manual.
 - Recalcular rota no ORC; diluir no papel/hora-máquina; `parametros_empresa`.
 - NF/TIT/natureza 1.01.05 / CUB / CT-e sem ADR novo.
+- Mostrar Calculada/Manual na proposta ao cliente.
 
 Se a tarefa exigir violar isto → parar e citar a ADR.

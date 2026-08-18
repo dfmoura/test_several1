@@ -38,6 +38,28 @@ class Titulo extends Model
         self::STATUS_CANCELADO,
     ];
 
+    public const ORIGEM_AVULSO = 'AVULSO';
+
+    public const FORMAS = [
+        'PIX',
+        'BOLETO',
+        'TED',
+        'DINHEIRO',
+        'CARTAO',
+        'COMPENSACAO',
+        'PERMUTA',
+    ];
+
+    /** Naturezas com espinha própria — avulso não pode usá-las. */
+    public const NAT_RESERVADAS_AVULSO = [
+        '1.01.01',
+        '1.01.02',
+        '1.01.03',
+        '1.01.04',
+        '3.01.05',
+        '5.06',
+    ];
+
     protected $table = 'titulos';
 
     protected $fillable = [

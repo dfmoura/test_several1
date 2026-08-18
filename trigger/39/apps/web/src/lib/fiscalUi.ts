@@ -1,6 +1,7 @@
 /** Rótulos fiscais de saída (NF-e / NFS-e) — espelham o servidor. */
 
-export function nfStatusLabel(status: string | null | undefined): string {
+export function nfStatusLabel(status: string | null | undefined, simulada?: boolean): string {
+  if (simulada && status === 'AUTORIZADA') return 'Autorizada (teste)';
   switch (status) {
     case 'PENDENTE':
       return 'NF pendente';
@@ -23,7 +24,8 @@ export function docFiscalTipoLabel(tipo: string): string {
   return tipo;
 }
 
-export function docFiscalStatusLabel(status: string): string {
+export function docFiscalStatusLabel(status: string, simulada?: boolean): string {
+  if (simulada && status === 'AUTORIZADO') return 'Autorizada (teste)';
   switch (status) {
     case 'PLANEJADO':
       return 'Planejada';

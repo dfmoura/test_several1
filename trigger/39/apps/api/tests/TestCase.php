@@ -38,6 +38,8 @@ abstract class TestCase extends BaseTestCase
             'CACHE_STORE' => 'array',
             'QUEUE_CONNECTION' => 'sync',
             'SESSION_DRIVER' => 'array',
+            'FISCAL_EMISSOR' => 'focus',
+            'ERP_STAGE' => 'testing',
         ];
 
         foreach ($vars as $key => $value) {

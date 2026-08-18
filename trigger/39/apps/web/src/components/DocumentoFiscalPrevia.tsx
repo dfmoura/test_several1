@@ -28,7 +28,9 @@ function linhaEndereco(doc: DocumentoFiscalSaida): string {
  */
 export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false }: Props) {
   const previa = doc.previa;
-  const oficial = previa?.oficial === true || doc.status === 'AUTORIZADO';
+  const oficial = previa?.oficial === true;
+  const simulada = previa?.simulada === true;
+  const comNumeracao = oficial || simulada;
   const itens = previa?.itens ?? [];
   const envio = doc.envio_hub ?? null;
   const nfse = doc.tipo === 'NFSE';
@@ -37,7 +39,9 @@ export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false 
     <article className={`nf-previa${oficial ? '' : ' nf-previa--rascunho'}`}>
       <header className="nf-previa-head">
         <div>
-          <p className="nf-previa-kicker">{oficial ? 'Documento fiscal' : 'Prévia da nota'}</p>
+          <p className="nf-previa-kicker">
+            {oficial ? 'Documento fiscal' : simulada ? 'Autorização de teste' : 'Prévia da nota'}
+          </p>
           <h4>
             {previa?.rotulo ?? docFiscalTipoLabel(doc.tipo)} · <code>{doc.codigo}</code>
           </h4>
@@ -55,7 +59,7 @@ export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false 
           >
             Imprimir nota
           </a>
-          <StatusPill status={docFiscalStatusLabel(doc.status)} />
+          <StatusPill status={docFiscalStatusLabel(doc.status, simulada)} />
         </div>
       </header>
 
@@ -63,6 +67,20 @@ export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false 
         {previa?.aviso ??
           'Prévia — aguardando hub Focus. Não é documento fiscal autorizado.'}
       </p>
+
+      {doc.saida_estoque ? (
+        <p className="form-hint">
+          Estoque baixado na autorização: <code>{doc.saida_estoque.codigo}</code>
+          {doc.saida_estoque.itens?.length
+            ? ` · ${doc.saida_estoque.itens
+                .map(
+                  (i) =>
+                    `${i.produto_codigo ?? 'SKU'} ${formatDecimalBr(i.qtde, 4)} ${i.unidade}`,
+                )
+                .join(' · ')}`
+            : ''}
+        </p>
+      ) : null}
 
       <div className="detail-meta nf-previa-meta">
         <div>
@@ -92,7 +110,7 @@ export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false 
         <div>
           <span>Número / chave</span>
           <strong>
-            {oficial && doc.numero != null
+            {comNumeracao && doc.numero != null
               ? `${doc.serie ?? '—'} / ${doc.numero}`
               : '— (só na autorização)'}
           </strong>

@@ -27,8 +27,8 @@ function activateRow(e: KeyboardEvent, go: () => void) {
   }
 }
 
-function nfLabel(status: string): string {
-  return nfStatusLabel(status);
+function nfLabel(status: string, simulada?: boolean): string {
+  return nfStatusLabel(status, simulada);
 }
 
 function fatStatusLabel(status: string): string {
@@ -43,7 +43,7 @@ export function FaturamentosPage() {
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, SORT);
 
   const load = async (search?: string) => {
     setLoading(true);
@@ -107,36 +107,36 @@ export function FaturamentosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Documento
                   </SortableTh>
-                  <SortableTh column="pedido" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="pedido" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Pedido
                   </SortableTh>
                   <SortableTh
                     column="parceiro"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                   >
                     Cliente
                   </SortableTh>
-                  <SortableTh column="bruto" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="bruto" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Valor
                   </SortableTh>
-                  <SortableTh column="sinal" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="sinal" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Sinal
                   </SortableTh>
-                  <SortableTh column="saldo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="saldo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     A cobrar
                   </SortableTh>
-                  <SortableTh column="nf" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="nf" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     NF-e
                   </SortableTh>
-                  <SortableTh column="criado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="criado" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Em
                   </SortableTh>
                 </tr>
@@ -174,7 +174,7 @@ export function FaturamentosPage() {
                       <td>{formatCurrency(f.valor_adiantamento)}</td>
                       <td>{formatCurrency(f.valor_a_cobrar)}</td>
                       <td>
-                        <StatusPill status={nfLabel(f.nf_status)} />
+                        <StatusPill status={nfLabel(f.nf_status, f.nf_simulada)} />
                       </td>
                       <td>{formatDate(f.created_at)}</td>
                     </tr>

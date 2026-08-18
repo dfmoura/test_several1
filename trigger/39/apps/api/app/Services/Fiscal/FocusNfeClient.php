@@ -225,6 +225,7 @@ class FocusNfeClient
             'serie' => $serie !== null && $serie !== '' ? (string) $serie : null,
             'protocolo' => isset($body['protocolo']) ? (string) $body['protocolo'] : null,
             'mensagem' => $msg,
+            'origem' => \App\Models\DocumentoFiscalSaida::ORIGEM_FOCUS,
             'body' => $body,
         ];
     }

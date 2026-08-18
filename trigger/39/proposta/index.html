@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Proposta comercial v3: implantação FLEXOERP · RLP Etiquetas. Pacote R$ 25.000 · 2 meses · licença bonificada. TRIGGER Data Intelligence.">
+  <title>Proposta Comercial v3 · FLEXOERP RLP | TRIGGER</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon-32-light.png" sizes="32x32">
+  <meta name="theme-color" content="#1a3568">
+  <link rel="stylesheet" href="assets/css/proposta.css">
+  <style>
+    .ver-badge {
+      display: inline-block;
+      margin-left: 0.35rem;
+      padding: 0.08rem 0.35rem;
+      font-size: 0.62rem;
+      font-weight: 750;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--navy-dark);
+      background: var(--green-soft);
+      border: 1px solid rgba(124, 181, 24, 0.35);
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+
+    .gift {
+      margin: 0.4rem 0 0;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid rgba(124, 181, 24, 0.4);
+      border-radius: var(--radius);
+      background: var(--green-soft);
+    }
+
+    .gift h4 {
+      margin: 0 0 0.12rem;
+      font-size: 0.72rem;
+      color: var(--navy-dark);
+    }
+
+    .gift p {
+      margin: 0;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .done-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem;
+      margin-top: 0.35rem;
+      align-items: start;
+    }
+
+    .done-item {
+      padding: 0.4rem 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .done-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    .done-item h4 {
+      margin: 0 0 0.12rem;
+      font-size: 0.72rem;
+      color: var(--navy-dark);
+    }
+
+    .done-item p {
+      margin: 0;
+      font-size: 0.7rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .protect {
+      margin: 0.45rem 0 0;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid rgba(26, 53, 104, 0.22);
+      border-radius: var(--radius);
+      background: var(--navy-soft);
+    }
+
+    .protect h4 {
+      margin: 0 0 0.18rem;
+      font-size: 0.72rem;
+      color: var(--navy-dark);
+    }
+
+    .protect ul {
+      margin: 0;
+      padding-left: 0.95rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .protect li { margin-bottom: 0.12rem; }
+    .protect li:last-child { margin-bottom: 0; }
+
+    body.doc-v3 .invest-table tr.invest-total td {
+      font-weight: 750;
+      color: var(--navy-dark);
+      background: var(--navy-soft);
+      border-bottom: none;
+      font-size: 0.84rem;
+      padding-top: 0.35rem;
+    }
+
+    body.doc-v3 .flow { justify-content: space-between; }
+
+    body.doc-v3 .phase--split .deliverables,
+    body.doc-v3 .phase--dense .deliverables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 0.75rem;
+    }
+
+    body.doc-v3 .doc-footer--inline {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-top: 0.65rem;
+      padding-top: 0.4rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .month-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin-top: 0.35rem;
+    }
+
+    .month-card {
+      padding: 0.45rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--soft);
+    }
+
+    .month-card h4 {
+      margin: 0 0 0.15rem;
+      font-size: 0.78rem;
+      color: var(--navy-dark);
+    }
+
+    .month-card p {
+      margin: 0;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .pay-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin: 0.4rem 0 0.15rem;
+    }
+
+    .pay-card {
+      padding: 0.45rem 0.55rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .pay-card--in {
+      border-color: rgba(26, 53, 104, 0.28);
+      background: var(--navy-soft);
+    }
+
+    .pay-card--out {
+      border-color: rgba(124, 181, 24, 0.4);
+      background: var(--green-soft);
+    }
+
+    .pay-card h4 {
+      margin: 0 0 0.1rem;
+      font-size: 0.72rem;
+      color: var(--navy-dark);
+    }
+
+    .pay-card .val {
+      display: block;
+      font-size: 1.05rem;
+      font-weight: 750;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .pay-card p {
+      margin: 0.12rem 0 0;
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    @media (max-width: 720px) {
+      .done-grid,
+      .month-row,
+      .pay-strip { grid-template-columns: 1fr; }
+      .done-item:last-child:nth-child(odd) { grid-column: auto; }
+      body.doc-v3 .phase--split .deliverables,
+      body.doc-v3 .phase--dense .deliverables { grid-template-columns: 1fr; }
+      body.doc-v3 .doc-footer--inline { flex-direction: column; gap: 0.25rem; }
+    }
+
+    @media print {
+      /* Uma página A4 retrato — densifica e anula padding de proposta.css */
+      @page {
+        size: A4 portrait;
+        margin: 6mm;
+      }
+
+      html, body.doc-v3 {
+        background: #fff !important;
+        color: var(--ink);
+        font-size: 6.6pt;
+        line-height: 1.2;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        width: 198mm;
+        height: 285mm;
+        overflow: hidden !important;
+      }
+
+      body.doc-v3 .toolbar { display: none !important; }
+
+      body.doc-v3 .doc {
+        width: 198mm !important;
+        max-width: none !important;
+        height: 285mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        overflow: hidden !important;
+        display: flex;
+        flex-direction: column;
+        gap: 0.18rem;
+      }
+
+      body.doc-v3 .page {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        width: auto;
+        min-height: 0 !important;
+        max-height: none;
+        overflow: visible;
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+        break-before: auto !important;
+        page-break-before: auto !important;
+      }
+
+      body.doc-v3 .page + .page {
+        border-top: none !important;
+        margin-top: 0.18rem !important;
+        padding-top: 0 !important;
+        break-before: auto !important;
+        page-break-before: auto !important;
+      }
+
+      body.doc-v3 .cover-logo { height: 18px !important; width: auto; }
+      body.doc-v3 .cover-top { margin-bottom: 0.15rem !important; }
+      body.doc-v3 .cover-meta { font-size: 5.4pt !important; line-height: 1.2 !important; }
+      body.doc-v3 .doc-kicker { font-size: 5.2pt !important; margin-bottom: 0.04rem !important; }
+      body.doc-v3 .cover h1 { font-size: 11pt !important; margin-bottom: 0.1rem !important; line-height: 1.1 !important; }
+      body.doc-v3 .cover-lead {
+        font-size: 6.2pt !important;
+        margin-bottom: 0.15rem !important;
+        line-height: 1.2 !important;
+        max-width: none !important;
+      }
+
+      body.doc-v3 .parties { margin-bottom: 0.15rem !important; gap: 0.18rem !important; }
+      body.doc-v3 .party { padding: 0.16rem 0.28rem !important; }
+      body.doc-v3 .party-label { font-size: 5pt !important; }
+      body.doc-v3 .party strong { font-size: 6.4pt !important; }
+      body.doc-v3 .party p { font-size: 5.6pt !important; line-height: 1.2 !important; }
+
+      body.doc-v3 .snapshot { padding: 0.18rem 0.2rem !important; }
+      body.doc-v3 .snap-label { font-size: 5pt !important; }
+      body.doc-v3 .snap-value { font-size: 7.5pt !important; }
+
+      body.doc-v3 .section { margin-top: 0.18rem !important; }
+      body.doc-v3 .page > .section:first-child,
+      body.doc-v3 .page--cover .section:first-of-type { margin-top: 0.15rem !important; }
+      body.doc-v3 .page--phases > .section,
+      body.doc-v3 .page--invest > .section,
+      body.doc-v3 .page--close > .section:first-child { margin-top: 0 !important; }
+
+      body.doc-v3 .section-head {
+        margin-bottom: 0.1rem !important;
+        padding-bottom: 0.06rem !important;
+      }
+      body.doc-v3 .section-head h2 { font-size: 8pt !important; }
+      body.doc-v3 .section-head p { font-size: 5.6pt !important; }
+
+      body.doc-v3 .section > p,
+      body.doc-v3 .section p {
+        font-size: 6pt !important;
+        margin-bottom: 0.08rem !important;
+        line-height: 1.2 !important;
+      }
+
+      body.doc-v3 .flow {
+        margin-top: 0.08rem !important;
+        padding: 0.12rem 0.18rem !important;
+        justify-content: space-between;
+      }
+      body.doc-v3 .flow-step { font-size: 5.4pt !important; padding: 0.06rem 0.16rem !important; }
+
+      body.doc-v3 .month-row { gap: 0.16rem !important; margin-top: 0.12rem !important; }
+      body.doc-v3 .month-card { padding: 0.14rem 0.22rem !important; }
+      body.doc-v3 .month-card h4 { font-size: 6.2pt !important; }
+      body.doc-v3 .month-card p { font-size: 5.6pt !important; }
+
+      body.doc-v3 .gift { margin-top: 0.12rem !important; padding: 0.14rem 0.22rem !important; }
+      body.doc-v3 .gift h4 { font-size: 6pt !important; }
+      body.doc-v3 .gift p { font-size: 5.6pt !important; }
+
+      body.doc-v3 .phases {
+        gap: 0.12rem !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+      }
+      body.doc-v3 .phase { break-inside: auto !important; page-break-inside: auto !important; }
+      body.doc-v3 .phase-head { padding: 0.1rem 0.22rem !important; }
+      body.doc-v3 .phase-title h3 { font-size: 6.4pt !important; }
+      body.doc-v3 .phase-title > div > span { font-size: 5.2pt !important; }
+      body.doc-v3 .phase-num {
+        width: 1rem !important;
+        height: 1rem !important;
+        color: #fff;
+        background: var(--navy);
+        line-height: 1;
+        font-size: 0.55rem !important;
+      }
+      body.doc-v3 .phase-price { font-size: 5.4pt !important; }
+      body.doc-v3 .phase-body { padding: 0.1rem 0.22rem 0.12rem !important; }
+      body.doc-v3 .deliverables { gap: 0.02rem !important; }
+      body.doc-v3 .deliverables li { font-size: 5.4pt !important; line-height: 1.15 !important; }
+      body.doc-v3 .phase--dense .deliverables,
+      body.doc-v3 .phase--split .deliverables {
+        grid-template-columns: 1fr !important;
+      }
+      body.doc-v3 .note {
+        margin-top: 0.06rem !important;
+        padding: 0.08rem 0.16rem !important;
+        font-size: 5.2pt !important;
+        line-height: 1.15 !important;
+      }
+
+      body.doc-v3 .invest-table {
+        font-size: 6.2pt !important;
+        margin-top: 0.1rem !important;
+        width: 100%;
+      }
+      body.doc-v3 .invest-table th,
+      body.doc-v3 .invest-table td { padding: 0.1rem 0.22rem !important; }
+      body.doc-v3 .invest-table tr.invest-total td {
+        font-size: 7pt !important;
+        padding-top: 0.12rem !important;
+      }
+
+      body.doc-v3 .pay-strip { gap: 0.16rem !important; margin: 0.12rem 0 0.06rem !important; }
+      body.doc-v3 .pay-card { padding: 0.14rem 0.22rem !important; }
+      body.doc-v3 .pay-card h4 { font-size: 5.6pt !important; }
+      body.doc-v3 .pay-card .val { font-size: 8.5pt !important; }
+      body.doc-v3 .pay-card p { font-size: 5.2pt !important; }
+
+      body.doc-v3 .terms {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 0.12rem !important;
+        margin-top: 0.14rem !important;
+        align-items: stretch;
+      }
+      body.doc-v3 .term-card { padding: 0.1rem 0.16rem !important; }
+      body.doc-v3 .term-card h4 { font-size: 5.6pt !important; margin-bottom: 0.02rem !important; }
+      body.doc-v3 .term-card p { font-size: 5.2pt !important; line-height: 1.15 !important; }
+
+      body.doc-v3 .exclude {
+        margin-top: 0.12rem !important;
+        padding: 0.1rem 0.18rem !important;
+      }
+      body.doc-v3 .exclude h4,
+      body.doc-v3 .protect h4 { font-size: 5.6pt !important; }
+      body.doc-v3 .exclude ul,
+      body.doc-v3 .protect ul {
+        font-size: 5.2pt !important;
+        line-height: 1.15 !important;
+      }
+      body.doc-v3 .protect {
+        margin-top: 0.1rem !important;
+        padding: 0.1rem 0.18rem !important;
+      }
+
+      body.doc-v3 .check-grid { gap: 0.1rem 0.4rem !important; }
+      body.doc-v3 .check-grid li {
+        font-size: 5.6pt !important;
+        margin-bottom: 0.02rem !important;
+        line-height: 1.15 !important;
+      }
+
+      body.doc-v3 .done-grid {
+        gap: 0.1rem !important;
+        margin-top: 0.1rem !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        align-items: start;
+      }
+      body.doc-v3 .done-item { padding: 0.1rem 0.16rem !important; }
+      body.doc-v3 .done-item:last-child:nth-child(odd) { grid-column: auto !important; }
+      body.doc-v3 .done-item h4 { font-size: 5.6pt !important; }
+      body.doc-v3 .done-item p { font-size: 5.2pt !important; line-height: 1.15 !important; }
+
+      body.doc-v3 .page--close .section { margin-top: 0.14rem !important; }
+      body.doc-v3 .page--close .section:first-child { margin-top: 0 !important; }
+
+      body.doc-v3 .accept-box {
+        margin-top: 0.12rem !important;
+        padding: 0.18rem 0.28rem 0.16rem !important;
+      }
+      body.doc-v3 .accept-box > p {
+        font-size: 5.4pt !important;
+        line-height: 1.18 !important;
+        margin-bottom: 0.16rem !important;
+      }
+      body.doc-v3 .sign-grid { gap: 0.25rem 0.4rem !important; }
+      body.doc-v3 .sign-block h4 { font-size: 5.4pt !important; margin-bottom: 0.16rem !important; }
+      body.doc-v3 .sign-field { font-size: 5.4pt !important; }
+      body.doc-v3 .sign-field span {
+        min-height: 0.55rem !important;
+        margin-top: 0.04rem !important;
+      }
+      body.doc-v3 .sign-fields { gap: 0.1rem !important; }
+      body.doc-v3 .sign-line {
+        margin-top: 0.4rem !important;
+        padding-top: 0.1rem !important;
+        font-size: 5.4pt !important;
+      }
+      body.doc-v3 .doc-footer--inline {
+        margin-top: 0.14rem !important;
+        padding-top: 0.1rem !important;
+        font-size: 5pt !important;
+      }
+
+      /* Não forçar blocos inteiros — isso gerava 2ª/3ª página */
+      body.doc-v3 .term-card,
+      body.doc-v3 .exclude,
+      body.doc-v3 .protect,
+      body.doc-v3 .done-item,
+      body.doc-v3 .parties,
+      body.doc-v3 .snapshot,
+      body.doc-v3 .invest-table,
+      body.doc-v3 .flow,
+      body.doc-v3 .month-card,
+      body.doc-v3 .pay-card,
+      body.doc-v3 .gift,
+      body.doc-v3 .accept-box,
+      body.doc-v3 .phase,
+      body.doc-v3 .section:has(.accept-box) {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+      }
+
+      body.doc-v3 a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body class="doc-v3">
+  <div class="toolbar" role="banner">
+    <div class="toolbar-brand">
+      <img src="assets/img/logo-trigger-header.png" alt="TRIGGER" width="78" height="32">
+      <span>Proposta comercial · FLEXOERP RLP <span class="ver-badge">v3</span></span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF (1 página)</button>
+      <a class="btn btn-secondary" href="anexo-fluxo-operacional.html">Anexo A · Fluxo</a>
+      <a class="btn btn-secondary" href="anexo-cronograma.html">Anexo B · Cronograma</a>
+      <a class="btn btn-secondary" href="mailto:diogo.moura@triggerti.com?subject=Aceite%20Proposta%20FLEXOERP%20RLP%20v3.0">Aceitar por e-mail</a>
+    </div>
+  </div>
+
+  <article class="doc" aria-label="Proposta comercial v3">
+
+    <!-- ========== PÁGINA 1: Capa + resumo ========== -->
+    <section class="page page--cover">
+      <header class="cover">
+        <div class="cover-top">
+          <img class="cover-logo" src="assets/img/logo-trigger-header.png" alt="TRIGGER Data Intelligence" width="140" height="58">
+          <div class="cover-meta">
+            <strong>Proposta comercial</strong>
+            Versão 3.0 · 16/08/2026<br>
+            Validade: 30 dias<br>
+            Ref.: ERP-RLP-2026-01-v3
+          </div>
+        </div>
+
+        <span class="doc-kicker">Pacote de implantação · produto existente</span>
+        <h1>FLEXOERP operacional para a RLP Etiquetas</h1>
+        <p class="cover-lead">
+          Implantação, configuração, treinamentos, homologação e virada de produção
+          do <strong>FLEXOERP</strong> (produto TRIGGER já construído): do orçamento ao caixa,
+          em <strong>até 2 meses</strong>, preço único
+          <strong>R$&nbsp;25.000</strong>, pagamento <strong>20/80</strong>,
+          <strong>licença de uso bonificada (sem mensalidade)</strong> e produção
+          somente após quitação da parcela de entrega.
+        </p>
+
+        <div class="parties">
+          <div class="party">
+            <div class="party-label">Contratante</div>
+            <strong>RLP Etiquetas Auto Adesivos Ltda</strong>
+            <p>
+              CNPJ 01.423.183/0001-10 (operação principal)<br>
+              CNPJ 58.820.046/0001-37 (multi-empresa no ERP)
+            </p>
+          </div>
+          <div class="party">
+            <div class="party-label">Contratada</div>
+            <strong>TRIGGER Desenvolvimento Profissional Ltda</strong>
+            <p>
+              CNPJ 53.369.941/0001-63<br>
+              triggerti.com · diogo.moura@triggerti.com
+            </p>
+          </div>
+        </div>
+
+        <div class="snapshot" aria-label="Resumo do investimento">
+          <div class="snap-item">
+            <span class="snap-label">Pacote</span>
+            <span class="snap-value">R$&nbsp;25.000</span>
+          </div>
+          <div class="snap-item">
+            <span class="snap-label">Entrada (20%)</span>
+            <span class="snap-value">R$&nbsp;5.000</span>
+          </div>
+          <div class="snap-item">
+            <span class="snap-label">Entrega (80%)</span>
+            <span class="snap-value">R$&nbsp;20.000</span>
+          </div>
+          <div class="snap-item">
+            <span class="snap-label">Licença</span>
+            <span class="snap-value">Bonificada</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>1. O que esta proposta entrega</h2>
+          <p>Implantação de produto pronto — não é construção do ERP nestes 60 dias.</p>
+        </div>
+        <p>
+          A RLP passa a operar o ciclo comercial-industrial-financeiro no
+          <strong>FLEXOERP</strong>, em ambiente homologado e, após aceite e
+          quitação da parcela de entrega, em produção. O escopo contratado é
+          <strong>exclusivamente</strong> o detalhado nesta proposta: configurar,
+          treinar, homologar e virar. O que não estiver listado não está incluído.
+          Critérios de “pronto” constam na seção 6.
+        </p>
+        <div class="flow" aria-label="Fluxo operacional">
+          <span class="flow-step">Orçamento</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Pedido</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">OP / OS</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Produção</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Estoque</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Expedição</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Faturamento</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Entrega</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Baixa</span>
+        </div>
+        <p class="note" style="margin-top: 0.35rem;">
+          Detalhamento com decisões, bloqueios e exceções:
+          <a href="anexo-fluxo-operacional.html"><strong>Anexo A — Fluxo operacional</strong></a>.
+          Calendário de 8 semanas com atividades concomitantes:
+          <a href="anexo-cronograma.html"><strong>Anexo B — Cronograma de implantação</strong></a>.
+        </p>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>2. Como trabalhamos</h2>
+          <p>Dois meses. Um preço. Duas parcelas. Produção só depois do 80%.</p>
+        </div>
+        <div class="month-row">
+          <div class="month-card">
+            <h4>Mês 1 — Implantação</h4>
+            <p>Ambiente, cadastros, fluxos no ar em homologação. Frentes podem correr em paralelo (Anexo B).</p>
+          </div>
+          <div class="month-card">
+            <h4>Mês 2 — Homologação e virada</h4>
+            <p>Treinamento, homologação, ajustes, aceite por escrito e go-live — só após os R$&nbsp;20.000.</p>
+          </div>
+        </div>
+        <div class="pay-strip" aria-label="Parcelas">
+          <div class="pay-card pay-card--in">
+            <h4>Entrada · 20%</h4>
+            <span class="val">R$&nbsp;5.000</span>
+            <p>Assinatura e kickoff. Libera implantação em homologação.</p>
+          </div>
+          <div class="pay-card pay-card--out">
+            <h4>Entrega · 80%</h4>
+            <span class="val">R$&nbsp;20.000</span>
+            <p>Aceite da homologação e <strong>antes</strong> da virada. Go-live só depois.</p>
+          </div>
+        </div>
+        <div class="gift">
+          <h4>Licença bonificada — o “presente” ao cliente</h4>
+          <p>
+            Uso da versão que entrar em produção, para os dois CNPJs, <strong>sem boleto mensal</strong>.
+            Código e produto permanecem da TRIGGER. Pedido novo (evolução, manutenção contínua,
+            outro módulo) = <strong>proposta nova</strong>, com valor próprio — não os R$&nbsp;800
+            de pacote opcional de suporte, nem desconto sobre este pacote.
+          </p>
+        </div>
+        <p style="margin-top: 0.35rem;">
+          Aceite da homologação: por escrito ou <strong>tácito em 5 dias úteis</strong>
+          após demonstração formal. Sem aceite, o 80% vira discussão — e a virada não ocorre.
+          Quanto mais rápida a colaboração da RLP (acessos, dados, feedback), mais cedo
+          a operação pode fechar dentro da janela de 60 dias.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== PÁGINA 2: Escopo ========== -->
+    <section class="page page--phases">
+      <div class="section">
+        <div class="section-head">
+          <h2>3. Escopo do pacote</h2>
+          <p>Entregáveis do pacote único de R$&nbsp;25.000. Frentes concomitantes — ver Anexo B.</p>
+        </div>
+
+        <div class="phases">
+
+          <article class="phase phase--split">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">A</span>
+                <div>
+                  <h3>Fundação e plataforma</h3>
+                  <span>Ambiente seguro · empresas · usuários · parâmetros</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 1</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">A.1</span> Ambiente de acesso (login seguro, usuários e perfis RBAC).</span></li>
+                <li><span><span class="code">A.2</span> Cadastro das empresas EMP-00001 / EMP-00002 (dados cadastrais, fiscais e parâmetros).</span></li>
+                <li><span><span class="code">A.3</span> Homologação AWS (ou equivalente) com privilégio mínimo; checklist de backup e stage.</span></li>
+              </ul>
+              <p class="note"><strong>Já no kickoff:</strong> A1, credenciais bancárias e acessos AWS (custeio RLP). Ver início/acessos e sigilo na seção 4.</p>
+            </div>
+          </article>
+
+          <article class="phase phase--split">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">B</span>
+                <div>
+                  <h3>Cadastros e comercial</h3>
+                  <span>Parceiros · produtos · orçamento até o envio</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 1</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">B.1</span> Cadastro de parceiros (cliente, fornecedor, colaborador, vendedor, bancos, entidades); clientes com limite de crédito.</span></li>
+                <li><span><span class="code">B.2</span> Cadastro de produtos (famílias e grupos canônicos da operação).</span></li>
+                <li><span><span class="code">B.3</span> Orçamento completo até o envio / link de aprovação ao cliente.</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="phase phase--split">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">C</span>
+                <div>
+                  <h3>Compras, estoque e CAP</h3>
+                  <span>Virada de saldo · ponto de pedido · entrada · pagar</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 1</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">C.1</span> Ajuste de saldo inicial de estoque (virada operacional).</span></li>
+                <li><span><span class="code">C.2</span> Monitoramento de ponto de pedido / requisição.</span></li>
+                <li><span><span class="code">C.3</span> Pedido de compra, conferência e entrada de estoque.</span></li>
+                <li><span><span class="code">C.4</span> Contas a pagar.</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="phase phase--dense">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">D</span>
+                <div>
+                  <h3>Pedido, sinal e produção</h3>
+                  <span>Do aceite à OP/OS e ao retorno de material</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 1</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">D.1</span> Confirmação / geração do pedido a partir do orçamento aprovado.</span></li>
+                <li><span><span class="code">D.2</span> Integração bancária PIX: sinal / adiantamento (1ª compra) e reconhecimento no sistema.</span></li>
+                <li><span><span class="code">D.3</span> Geração de OP / OS; saída de MP / insumo; produção e conclusão.</span></li>
+                <li><span><span class="code">D.4</span> Readequação do pedido em até ±20%; entrada de sobra de MP / insumo.</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="phase phase--split">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">E</span>
+                <div>
+                  <h3>Faturamento, entrega e financeiro</h3>
+                  <span>Cobrança · expedição · baixa · conciliação · devolução</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 1–2</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">E.1</span> Faturamento / cobrança (contas a receber).</span></li>
+                <li><span><span class="code">E.2</span> Expedição, entrega e confirmação de recebimento.</span></li>
+                <li><span><span class="code">E.3</span> Recebimento / baixa da cobrança e conciliação básica.</span></li>
+                <li><span><span class="code">E.4</span> Devolução (parcial ou total) com ajuste de estoque e título.</span></li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="phase phase--split">
+            <div class="phase-head">
+              <div class="phase-title">
+                <span class="phase-num">F</span>
+                <div>
+                  <h3>Gestão, treino, homologação e go-live</h3>
+                  <span>BI · capacitação · aceite · virada</span>
+                </div>
+              </div>
+              <div class="phase-price">Mês 2</div>
+            </div>
+            <div class="phase-body">
+              <ul class="deliverables">
+                <li><span><span class="code">F.1</span> Relatórios, dashboards e BI alinhados ao fluxo A–E.</span></li>
+                <li><span><span class="code">F.2</span> Treinamento dos usuários-chave por área.</span></li>
+                <li><span><span class="code">F.3</span> Homologação formal + ajustes de configuração no escopo.</span></li>
+                <li><span><span class="code">F.4</span> Go-live (produção) — somente após aceite e pagamento dos R$&nbsp;20.000.</span></li>
+              </ul>
+              <p class="note">Até a virada: ambiente de homologação. Produção não sobe com parcela de entrega pendente.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PÁGINA 3: Investimento ========== -->
+    <section class="page page--invest">
+      <div class="section">
+        <div class="section-head">
+          <h2>4. Investimento e condições</h2>
+          <p>Valores em Real (BRL). Pacote fechado. Sem mensalidade de licença.</p>
+        </div>
+
+        <table class="invest-table">
+          <thead>
+            <tr>
+              <th>Parcela</th>
+              <th>Quando</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Entrada (20%)</td>
+              <td>Assinatura e kickoff</td>
+              <td>R$&nbsp;5.000,00</td>
+            </tr>
+            <tr>
+              <td>Entrega (80%)</td>
+              <td>Aceite da homologação e antes da virada</td>
+              <td>R$&nbsp;20.000,00</td>
+            </tr>
+            <tr class="invest-total">
+              <td colspan="2">Total do pacote (implantação + treinamentos + homologação + produção)</td>
+              <td>R$&nbsp;25.000,00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="terms">
+          <div class="term-card">
+            <h4>Forma de pagamento</h4>
+            <p><strong>R$&nbsp;5.000</strong> na assinatura. <strong>R$&nbsp;20.000</strong> no aceite da homologação (ou tácito em 5 dias úteis após demonstração formal por escrito), <strong>antes</strong> do go-live.</p>
+          </div>
+          <div class="term-card">
+            <h4>Gate de produção</h4>
+            <p><strong>Go-live só depois dos R$&nbsp;20.000 confirmados.</strong> Até lá, ambiente de homologação. Sem quitação da entrega, não há virada.</p>
+          </div>
+          <div class="term-card">
+            <h4>Licença de uso (bonificada)</h4>
+            <p>Incluída neste pacote, sem mensalidade, da versão que entrar em produção, para os dois CNPJs. Código e produto continuam da TRIGGER. Pedido novo = proposta nova.</p>
+          </div>
+          <div class="term-card">
+            <h4>Hypercare (30 dias)</h4>
+            <p>Após a virada: <strong>30 dias corridos</strong> só para <strong>defeito</strong> do que foi implantado neste pacote. Plantão, dúvida de rotina e evolução <strong>não</strong> entram.</p>
+          </div>
+          <div class="term-card">
+            <h4>Suporte pós-hypercare (opcional)</h4>
+            <p>Pacote exemplo: <strong>R$&nbsp;800/mês</strong>, até 4h em horário comercial para dúvidas e correção de defeitos. O cliente <strong>não é obrigado</strong>; a TRIGGER não fica de plantão grátis.</p>
+          </div>
+          <div class="term-card">
+            <h4>Manutenção e novos desenvolvimentos</h4>
+            <p>Após o Hypercare, manutenção contínua e evoluções são <strong>negociadas à parte</strong>, em proposta própria, com valor novo — <strong>não</strong> os R$&nbsp;800 do pacote opcional de suporte.</p>
+          </div>
+          <div class="term-card">
+            <h4>Propriedade intelectual</h4>
+            <p>Código, produto, ADRs, UX e componentes permanecem da <strong>TRIGGER</strong>. A RLP recebe licença de uso contratual da versão implantada.</p>
+          </div>
+          <div class="term-card">
+            <h4>Prazo</h4>
+            <p>Alvo: <strong>2 meses</strong> corridos após kickoff com acessos liberados. Aceleração é desejável; idle da RLP suspende prazos da TRIGGER (ver idle abaixo).</p>
+          </div>
+          <div class="term-card">
+            <h4>Início / acessos e sigilo</h4>
+            <p>Kickoff na semana seguinte ao pagamento da entrada, com A1, credenciais bancárias e acessos AWS (privilégio mínimo). Titularidade e custeio da RLP. TRIGGER usa privilégio mínimo e trata credenciais como confidenciais. RLP responde por revogação e compartilhamento interno inadequado.</p>
+          </div>
+          <div class="term-card">
+            <h4>Idle do cliente</h4>
+            <p>Sem dados/acessos/feedback: prazos TRIGGER suspendem. Idle &gt; 15 dias úteis: remanejamento; &gt; 45 dias úteis: rescisão do remanescente, retendo a entrada.</p>
+          </div>
+          <div class="term-card">
+            <h4>Rescisão e inadimplência</h4>
+            <p>Entrada não reembolsável após kickoff. Inadimplência da parcela de entrega autoriza retenção em homologação e <strong>não</strong> promove produção. Rescisão sem justa causa pela RLP: valores já devidos + entrada.</p>
+          </div>
+          <div class="term-card">
+            <h4>Validade e reajuste</h4>
+            <p>Válida por 30 dias a contar de 16/08/2026. Após aceite, valores fixos; paralisação &gt; 90 dias corridos por fato da RLP: remanescente reajustável pelo IPCA.</p>
+          </div>
+        </div>
+
+        <div class="exclude">
+          <h4>Não incluído neste valor (custos / responsabilidades da RLP)</h4>
+          <ul>
+            <li><strong>AWS</strong> (conta e consumo), domínio e <strong>certificado A1</strong></li>
+            <li><strong>APIs e serviços pagos</strong>: WhatsApp (API oficial / BSP), IA e hub de NF-e (ex.: Focus NFe)</li>
+            <li>Tarifas bancárias (boleto / PIX) e custos de instituições financeiras</li>
+            <li>Serviços do contador, obrigações fiscais oficiais e decisões de regime / multi-CNPJ</li>
+            <li>Plantão, suporte contínuo (salvo pacote opcional) e customizações fora da lista</li>
+          </ul>
+        </div>
+
+        <div class="exclude" style="margin-top: 0.35rem;">
+          <h4>Limites de responsabilidade e escopo</h4>
+          <ul>
+            <li><strong>Escopo fechado:</strong> só os itens A–F e os critérios de pronto da seção 6.</li>
+            <li><strong>Não é serviço contábil/tributário:</strong> hub de NF-e e contador da RLP respondem pela conformidade oficial.</li>
+            <li><strong>Defeito</strong> do implantado: sanável no Hypercare; <strong>mudança de regra / evolução</strong> = novo escopo e nova proposta.</li>
+          </ul>
+        </div>
+
+        <div class="protect">
+          <h4>Limite indenizatório (cap)</h4>
+          <ul>
+            <li>Responsabilidade total da TRIGGER limitada ao valor efetivamente pago pela RLP nos <strong>12 meses</strong> anteriores ao evento.</li>
+            <li><strong>Excluídos:</strong> lucros cessantes, perda de receita, dano reputacional e danos indiretos/consequenciais.</li>
+            <li>Cap não se aplica a dolo ou culpa grave comprovados da TRIGGER, nem a violação intencional de confidencialidade.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PÁGINA 4: Premissas e aceite ========== -->
+    <section class="page page--close">
+      <div class="section">
+        <div class="section-head">
+          <h2>5. Premissas e colaboração da RLP</h2>
+          <p>O que precisamos para fechar em até 2 meses — quanto mais rápido o cliente, melhor.</p>
+        </div>
+        <div class="check-grid">
+          <ul>
+            <li>Patrocinador na Direção para decisões de prazo e escopo</li>
+            <li>Usuário-chave por área (Comercial, Financeiro, Produção, Fiscal)</li>
+            <li>Lista priorizada de clientes e produtos da virada</li>
+            <li>Inventário de estoque e posição financeira na data combinada</li>
+          </ul>
+          <ul>
+            <li><strong>A1</strong>, <strong>credenciais bancárias</strong> e <strong>acessos AWS</strong> no kickoff</li>
+            <li>Contratação/custeio das APIs pagas quando forem usadas</li>
+            <li>Feedback de homologação em até 5 dias úteis</li>
+            <li>Contador alinhado; decisões multi-empresa com Contador + Direção</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>6. Critérios de aceite e “pronto”</h2>
+          <p>Demonstração por escrito, checklist objetivo e gate dos R$&nbsp;20.000.</p>
+        </div>
+        <p>
+          A TRIGGER apresenta demonstração de homologação <strong>por escrito</strong>
+          (e-mail ou ata com data e itens). A RLP devolve, em até <strong>5 dias úteis</strong>,
+          apontamentos objetivos, ou confirma o aceite. Sem retorno, considera-se aceite
+          tácito para faturamento da parcela de entrega. <strong>Go-live somente após
+          confirmação do pagamento dos R$&nbsp;20.000.</strong> Apontamentos fora do escopo = nova proposta.
+        </p>
+
+        <div class="done-grid">
+          <div class="done-item">
+            <h4>Fundação / cadastros: pronto quando</h4>
+            <p>Usuários autenticam com perfis; EMP-00001/00002 cadastradas; parceiro → produto → orçamento até envio demonstrado.</p>
+          </div>
+          <div class="done-item">
+            <h4>Compras / estoque: pronto quando</h4>
+            <p>Saldo inicial na data combinada; requisição → compra → entrada → CAP ponta a ponta em homologação.</p>
+          </div>
+          <div class="done-item">
+            <h4>Pedido / produção: pronto quando</h4>
+            <p>Pedido → adiantamento PIX (1ª compra), OP/OS, saída de MP, produção/conclusão, ±20% e retorno de sobra homologados.</p>
+          </div>
+          <div class="done-item">
+            <h4>Financeiro / entrega: pronto quando</h4>
+            <p>Cobrança, entrega/confirmação, baixa, conciliação básica e devolução demonstrados na amostra.</p>
+          </div>
+          <div class="done-item">
+            <h4>Pacote pronto para virada quando</h4>
+            <p>Treinamento dos usuários-chave realizado; BI do fluxo disponível; checklist de virada assinado ou aceito; R$&nbsp;20.000 quitados → go-live.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>7. Aceite formal</h2>
+          <p>Preenchimento e assinatura: documento pronto para arquivo e impressão.</p>
+        </div>
+
+        <div class="accept-box">
+          <p>
+            Declaramos estar de acordo com o pacote de implantação do FLEXOERP
+            (itens A–F e critérios de pronto), o investimento único de
+            <strong>R$&nbsp;25.000,00</strong> (<strong>R$&nbsp;5.000</strong> na assinatura e
+            <strong>R$&nbsp;20.000</strong> no aceite da homologação, antes da virada),
+            o go-live somente após quitação da parcela de entrega,
+            a <strong>licença de uso bonificada sem mensalidade</strong> da versão em produção
+            para os dois CNPJs, o Hypercare de 30 dias apenas para defeito do implantado,
+            o suporte contínuo como opcional (ex.: R$&nbsp;800/mês) e a negociação à parte de
+            manutenção/evolução após o Hypercare, a propriedade intelectual da TRIGGER,
+            o termo de acessos, idle, rescisão e limite indenizatório, e o custeio de
+            AWS, A1, APIs, tarifas bancárias e contador pela RLP.
+            Proposta v3.0 · Ref. ERP-RLP-2026-01-v3.
+          </p>
+
+          <div class="sign-grid">
+            <div class="sign-block">
+              <h4>Pela RLP Etiquetas Auto Adesivos Ltda</h4>
+              <div class="sign-fields">
+                <div class="sign-field">Nome<span></span></div>
+                <div class="sign-field">Cargo<span></span></div>
+                <div class="sign-field">Data<span></span></div>
+              </div>
+              <div class="sign-line">Assinatura</div>
+            </div>
+            <div class="sign-block">
+              <h4>Pela TRIGGER Desenvolvimento Profissional Ltda</h4>
+              <div class="sign-fields">
+                <div class="sign-field">Nome<span></span></div>
+                <div class="sign-field">Cargo<span></span></div>
+                <div class="sign-field">Data<span></span></div>
+              </div>
+              <div class="sign-line">Assinatura</div>
+            </div>
+          </div>
+
+          <footer class="doc-footer doc-footer--inline">
+            <span><strong>TRIGGER</strong> · CNPJ 53.369.941/0001-63 · triggerti.com · diogo.moura@triggerti.com</span>
+            <span>ERP-RLP-2026-01-v3 · confidencial · © 2026</span>
+          </footer>
+        </div>
+      </div>
+    </section>
+
+  </article>
+</body>
+</html>

@@ -167,34 +167,21 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
     {
         return [
             'parceiro_id' => $this->parceiro->id,
+            'tipo_operacao' => 'SERVICO',
+            'tipo_servico' => 'REBOBINACAO',
             'necessidade' => PedidoItem::NEC_SERVICO,
-            'medida' => '10,0X5,0',
-            'largura_cm' => 11.0,
-            'puxada_cm' => 5.2,
-            'cores' => 1,
-            'papel' => 'BOPP BRILHO',
-            'acabamento' => 'SEM ACABAMENTO',
-            'modelos' => 1,
-            'colunas' => 1,
-            'etiq_por_rolo' => 2000,
-            'tubete' => '1"',
-            'z' => 80.0,
-            'maquina' => 'MODULAR',
-            'maquina_roda_servico' => 'MODULAR',
-            'imposto_pct' => 16.0,
-            'matriz' => 'NAO',
-            'coluna_rebobinacao' => 2,
-            'tipo_troca_produto' => 'SEM PARADA',
-            'rpm' => 1000.0,
+            'descricao_servico' => 'Rebobinação de bobina de etiqueta do cliente. Material do cliente — sem PA próprio.',
+            'material_cliente' => true,
+            'unidade' => 'RL',
             'faixas' => [
-                ['quantidade' => 50000, 'comissao_pct' => 0],
+                ['quantidade' => 20, 'valor_unitario' => 85, 'comissao_pct' => 0],
             ],
             'prazo_entrega_dias' => 5,
             'validade_dias' => 7,
             'tolerancia_qtd_pct' => 20,
             'condicao_pagamento' => '28 DDL',
             'forma_pagamento' => 'PIX',
-            'observacao' => 'Rebobinação / acerto de bobina do cliente. Material do cliente — sem PA próprio.',
+            'observacao' => 'Rebobinação / acerto de bobina do cliente.',
         ];
     }
 
@@ -215,6 +202,9 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
 
         $orc = Orcamento::query()->findOrFail($orcId);
         $this->assertSame(PedidoItem::NEC_SERVICO, $orc->input_snapshot['necessidade'] ?? null);
+        $this->assertSame('SERVICO', $orc->input_snapshot['tipo_operacao'] ?? null);
+        $this->assertSame('REBOBINACAO', $orc->input_snapshot['tipo_servico'] ?? null);
+        $this->assertArrayNotHasKey('medida', $orc->input_snapshot);
         $this->assertGreaterThan(0, (float) ($orc->result_snapshot['faixas'][0]['valor_etiqueta'] ?? 0));
         $this->assertSame(0.0, (float) ($orc->result_snapshot['valor_matriz'] ?? -1));
 
@@ -240,9 +230,10 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
         $item = $pedido->itens()->first();
         $this->assertNotNull($item);
         $this->assertSame(PedidoItem::NEC_SERVICO, $item->necessidade);
-        $this->assertSame('SVC', $item->familia_fiscal);
+        $this->assertSame('SVC-001', $item->familia_fiscal);
         $this->assertNull($item->produto_pa_id);
-        $this->assertSame('50000.0000', (string) $item->qtde_pedida);
+        $this->assertSame('20.0000', (string) $item->qtde_pedida);
+        $this->assertSame('RL', $item->unidade);
 
         $itemId = (int) $item->id;
         $pedida = (string) $item->qtde_pedida;
@@ -317,7 +308,7 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
         $this->assertSame($prev->json('data.valor_a_cobrar'), $fat->json('data.valor_a_cobrar'));
         $this->assertSame($qtdeExec, $fat->json('data.itens.0.qtde'));
         $this->assertCount(1, $fat->json('data.itens'));
-        $this->assertSame('SVC', (string) Faturamento::query()->first()?->itens()->value('familia_fiscal'));
+        $this->assertSame('SVC-001', (string) Faturamento::query()->first()?->itens()->value('familia_fiscal'));
 
         $this->assertSame('NFSE', $fat->json('data.documentos_fiscais.0.tipo'));
         $this->assertSame('PLANEJADO', $fat->json('data.documentos_fiscais.0.status'));
@@ -325,6 +316,7 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
         $this->assertNull($fat->json('data.documentos_fiscais.0.chave'));
         $this->assertNull($fat->json('data.documentos_fiscais.0.numero'));
         $this->assertSame('01423183000110', $fat->json('data.documentos_fiscais.0.envio_hub.cnpj_prestador'));
+        $this->assertSame('140101', $fat->json('data.documentos_fiscais.0.envio_hub.codigo_tributacao_nacional_iss'));
         $this->assertArrayNotHasKey('numero_dps', $fat->json('data.documentos_fiscais.0.envio_hub'));
         $this->assertArrayNotHasKey('inscricao_municipal_prestador', $fat->json('data.documentos_fiscais.0.envio_hub'));
 

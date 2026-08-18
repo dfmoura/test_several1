@@ -201,6 +201,8 @@ export type AuthEmpresa = {
   padrao: boolean;
   venda_ativa?: boolean;
   estoque_ativo?: boolean;
+  origem_latitude?: string | null;
+  origem_longitude?: string | null;
 };
 
 export type AuthMeResponse = {
@@ -209,6 +211,45 @@ export type AuthMeResponse = {
   permissions: string[];
   empresas: AuthEmpresa[];
   empresa_contexto: { id: number; codigo: string } | null;
+};
+
+export type PainelCard = {
+  id: string;
+  label: string;
+  hint: string;
+  valor: number | string;
+  formato: 'inteiro' | 'moeda';
+  to: string;
+  alerta: boolean;
+};
+
+export type PainelFila = {
+  id: string;
+  label: string;
+  hint: string;
+  count: number;
+  to: string;
+};
+
+export type PainelData = {
+  empresa: {
+    id: number;
+    codigo: string;
+    nome: string;
+    venda_ativa: boolean;
+    estoque_ativo: boolean;
+  };
+  modulos: {
+    comercial: boolean;
+    pedidos: boolean;
+    producao: boolean;
+    expedicao: boolean;
+    compras: boolean;
+    estoque: boolean;
+    financeiro: boolean;
+  };
+  cadeia: PainelCard[];
+  filas: PainelFila[];
 };
 
 export type EmpresaFiscalHistorico = {
@@ -369,6 +410,20 @@ export type ParceiroFiscalHistorico = {
   motivo: string | null;
 };
 
+/** Resumo de PAR aninhado (vendedor no ORC/PED/cliente) — não é o cadastro completo. */
+export type ParceiroVinculo = {
+  id: number;
+  codigo: string;
+  razao_social: string;
+  nome_fantasia?: string | null;
+  comissao_percentual?: string | null;
+  papel_vendedor?: boolean;
+  is_prospect?: boolean;
+  cnpj_cpf?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+};
+
 export type Parceiro = {
   id: number;
   empresa_id: number;
@@ -434,6 +489,9 @@ export type Parceiro = {
   credito_utilizado: string | null;
   condicao_pagamento: string | null;
   forma_pagamento: string | null;
+  vendedor_parceiro_id?: number | null;
+  comissao_percentual?: string | null;
+  vendedor?: ParceiroVinculo | null;
   banco_codigo: string | null;
   banco_nome: string | null;
   agencia: string | null;
@@ -573,6 +631,23 @@ export type BemPatrimonial = {
   atualizado_por?: UsuarioRef | null;
   created_at?: string | null;
   updated_at?: string | null;
+};
+
+export type CessaoBem = {
+  id: number;
+  codigo: string;
+  tipo: string;
+  status: string;
+  iniciado_em: string | null;
+  encerra_previsto_em: string | null;
+  encerrado_em: string | null;
+  motivo_encerramento: string | null;
+  valor_mensal: string | null;
+  documento_fiscal: string;
+  observacao: string | null;
+  aviso_fiscal: string;
+  bem?: { id: number; codigo: string; descricao: string; status: string } | null;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
 };
 
 /** Natureza gerencial financeira (NAT-1.01.01). ≠ produto_grupos.natureza. */
@@ -1052,6 +1127,38 @@ export type EstoqueExtrato = {
   movimentos_count: number;
 };
 
+export type TituloBaixa = {
+  id: number;
+  codigo: string;
+  valor: string;
+  pago_em: string | null;
+  forma: string | null;
+  observacao: string | null;
+  conta_financeira?: { id: number; codigo: string; descricao: string } | null;
+};
+
+export type TituloAgingFaixa = {
+  id: string;
+  label: string;
+  count: number;
+  saldo: string;
+};
+
+export type TituloCarteiraMeta = {
+  tipo: string;
+  statuses: string[];
+  formas: string[];
+  faixas: Array<{ id: string; label: string }>;
+  aging: TituloAgingFaixa[];
+  aberto: { count: number; saldo: string };
+  previsao: {
+    receber_saldo: string;
+    pagar_saldo: string;
+    liquido: string;
+    legenda: string;
+  };
+};
+
 export type Titulo = {
   id: number;
   codigo: string;
@@ -1065,6 +1172,14 @@ export type Titulo = {
     nome_fantasia: string | null;
   } | null;
   natureza_id: number;
+  natureza?: {
+    id: number;
+    codigo: string;
+    codigo_exibicao: string;
+    nome: string;
+  } | null;
+  ordem_compra_id?: number | null;
+  ordem_compra?: { id: number; codigo: string } | null;
   orcamento_id?: number | null;
   orcamento?: { id: number; codigo: string; financeiro_status: string | null } | null;
   pedido_id?: number | null;
@@ -1079,6 +1194,10 @@ export type Titulo = {
   valor: string;
   saldo: string;
   status: string;
+  observacao?: string | null;
+  dias_atraso?: number;
+  faixa_aging?: string | null;
+  vencido?: boolean;
   cobrancas?: Array<{
     id: number;
     codigo: string;
@@ -1089,6 +1208,7 @@ export type Titulo = {
     linha_digitavel: string | null;
     vencimento: string | null;
   }>;
+  baixas?: TituloBaixa[];
 };
 
 export type Usuario = {
@@ -1219,18 +1339,63 @@ export type CepConsulta = {
   localidade?: string;
   uf?: string;
   ibge?: string;
+  fonte?: string;
   latitude?: string | null;
   longitude?: string | null;
   geo_fonte?: string | null;
   geo_cache?: boolean;
   geo_erro?: string | null;
   geo_sem_ponto?: boolean;
+  sem_ponto?: boolean;
+  erro?: string | null;
   distancia_km?: string | null;
   distancia_fonte?: string | null;
   distancia_cache?: boolean;
   distancia_atribuicao?: string | null;
   distancia_erro?: string | null;
+  origem_latitude?: string | null;
+  origem_longitude?: string | null;
 };
+
+/** Preenche endereço sem apagar o que o operador já digitou quando a API omite o campo. */
+export function patchEnderecoFromCep(
+  d: CepConsulta,
+  current: {
+    logradouro?: string;
+    complemento?: string;
+    bairro?: string;
+    municipio?: string;
+    uf?: string;
+    ibge?: string;
+  },
+): {
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  municipio: string;
+  uf: string;
+  ibge: string;
+} {
+  return {
+    logradouro: d.logradouro?.trim() || current.logradouro || '',
+    complemento: d.complemento?.trim() || current.complemento || '',
+    bairro: d.bairro?.trim() || current.bairro || '',
+    municipio: d.localidade?.trim() || current.municipio || '',
+    uf: (d.uf?.trim() || current.uf || '').toUpperCase(),
+    ibge: d.ibge?.trim() || current.ibge || '',
+  };
+}
+
+export function mensagemCepImportado(d: CepConsulta, entrega = false): string {
+  const prefix = entrega ? 'Endereço de entrega importado via CEP' : 'Endereço importado via CEP';
+  if (!d.logradouro?.trim() || !d.bairro?.trim()) {
+    return `${prefix} — complete logradouro e bairro se estiverem vazios.`;
+  }
+  if (!d.ibge?.trim()) {
+    return `${prefix} — confira o código IBGE.`;
+  }
+  return `${prefix}.`;
+}
 
 export type FiscalCatalogItem = {
   codigo: string;
@@ -1282,6 +1447,7 @@ export type OrcamentoFaixaResult = {
   valor_total: number;
   valor_faca_nova?: number;
   valor_total_com_faca?: number;
+  valor_total_proposta?: string | number | null;
   kg_est?: string | number | null;
   faixa_frete_kg_ate?: string | number | null;
   preco_por_km?: string | number | null;
@@ -1292,15 +1458,19 @@ export type OrcamentoFaixaResult = {
 
 export type OrcamentoFreteSnap = {
   modo: 'RETIRAR' | 'ENTREGAR' | string;
+  origem?: 'CALCULADA' | 'MANUAL' | string | null;
   km?: string | number | null;
   destino?: 'fiscal' | 'entrega' | string | null;
   destino_label?: string | null;
   peso_caixa_kg?: string | number | null;
+  valor_informado?: string | number | null;
   motivo?: string | null;
 };
 
 export type OrcamentoResult = {
-  chave_matriz: string;
+  tipo_operacao?: string;
+  tipo_servico?: string;
+  chave_matriz: string | null;
   cobra_matriz: boolean;
   valor_matriz: number;
   faixas: OrcamentoFaixaResult[];
@@ -1320,12 +1490,14 @@ export type Orcamento = {
   codigo: string;
   versao: number;
   parceiro_id: number;
+  vendedor_parceiro_id?: number | null;
   cliente_nome: string;
   status: string;
   status_exibicao?: string | null;
   editavel: boolean;
   enviavel?: boolean;
   aguardando_cliente?: boolean;
+  tipo_operacao?: string;
   input_snapshot: Record<string, unknown> | null;
   result_snapshot: OrcamentoResult | null;
   chave_matriz: string | null;
@@ -1360,6 +1532,7 @@ export type Orcamento = {
     nome_fantasia: string | null;
     is_prospect: boolean;
   } | null;
+  vendedor?: ParceiroVinculo | null;
   criado_por?: UsuarioRef | null;
   atualizado_por?: UsuarioRef | null;
   created_at: string | null;
@@ -1392,6 +1565,7 @@ export type Pedido = {
   prazo_entrega_dias: number | null;
   observacao: string | null;
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  vendedor?: { id: number; codigo: string; razao_social: string } | null;
   orcamento?: {
     id: number;
     codigo: string;
@@ -1454,6 +1628,7 @@ export type DocumentoFiscalPreviaItem = {
 
 export type DocumentoFiscalPrevia = {
   oficial: boolean;
+  simulada?: boolean;
   formato_envio: string;
   rotulo: string;
   modelo?: string;
@@ -1506,6 +1681,7 @@ export type DocumentoFiscalSaida = {
   tipo: string;
   modelo: string;
   status: string;
+  autorizacao_origem?: string | null;
   ambiente: string | null;
   ref: string;
   serie: number | null;
@@ -1516,6 +1692,18 @@ export type DocumentoFiscalSaida = {
   valor: string;
   enviado_em?: string | null;
   autorizado_em?: string | null;
+  saida_estoque?: {
+    id: number;
+    codigo: string;
+    tipo: string;
+    nf_chave?: string | null;
+    itens?: Array<{
+      produto_id: number;
+      produto_codigo?: string | null;
+      qtde: string;
+      unidade: string;
+    }>;
+  } | null;
   previa?: DocumentoFiscalPrevia;
   envio_hub?: Record<string, unknown> | null;
 };
@@ -1530,7 +1718,9 @@ export type FiscalPreview = {
     emissao_habilitada: boolean;
   };
   apto_emissao: boolean;
+  apto_cadastro?: boolean;
   emissao_automatica: boolean;
+  emissor_teste?: { ativo: boolean; mensagem: string };
   pendencias: string[];
   avisos: string[];
   precisa_nfe: boolean;
@@ -1574,6 +1764,7 @@ export type Faturamento = {
   codigo: string;
   status: string;
   nf_status: string;
+  nf_simulada?: boolean;
   valor_bruto: string;
   valor_adiantamento: string;
   valor_a_cobrar: string;
@@ -1599,6 +1790,96 @@ export type Faturamento = {
   adiantamento?: { id: number; codigo: string; valor: string; status: string } | null;
   documentos_fiscais?: DocumentoFiscalSaida[];
   created_at: string | null;
+};
+
+export type EntregaDestino = {
+  tipo?: string;
+  label?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+  cep?: string | null;
+  responsavel?: string | null;
+};
+
+export type Entrega = {
+  id: number;
+  codigo: string;
+  modo: string;
+  tipo_saida: string;
+  status: string;
+  volumes: number;
+  peso_kg?: string | null;
+  qtde: string;
+  unidade?: string | null;
+  rastreio?: string | null;
+  expedido_em?: string | null;
+  confirmado_em?: string | null;
+  destino?: EntregaDestino | null;
+  observacao?: string | null;
+  prova_tipo?: string | null;
+  prova_nome?: string | null;
+  prova_documento?: string | null;
+  prova_obs?: string | null;
+  motivo_recusa?: string | null;
+  motivo_cancelamento?: string | null;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  pedido?: { id: number; codigo: string; status: string } | null;
+  faturamento?: { id: number; codigo: string; nf_status: string } | null;
+  transportadora?: { id: number; codigo: string; razao_social: string } | null;
+  titulos_abertos?: Array<{
+    id: number;
+    codigo: string;
+    saldo: string;
+    vencimento: string | null;
+    status: string;
+  }>;
+  created_at: string | null;
+};
+
+export type EntregaPreview = {
+  ja_expedido: boolean;
+  apto: boolean;
+  pode_confirmar?: boolean;
+  pode_cancelar?: boolean;
+  pode_recusar?: boolean;
+  acao: string;
+  modo: string;
+  tipo_saida_sugerido: string;
+  destino?: EntregaDestino | null;
+  qtde?: string;
+  unidade?: string | null;
+  descricao?: string | null;
+  faturamento?: {
+    id: number;
+    codigo: string;
+    nf_status: string;
+    valor_a_cobrar?: string;
+    condicao_pagamento?: string | null;
+    forma_pagamento?: string | null;
+  } | null;
+  titulos_abertos?: Entrega['titulos_abertos'];
+  avisos?: string[];
+  bloqueios?: string[];
+  entrega?: Entrega | null;
+};
+
+export type EntregaFilaItem = {
+  pedido_id: number;
+  pedido_codigo: string;
+  pedido_status: string;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  modo: string;
+  tipo_saida_sugerido: string;
+  destino_label?: string | null;
+  apto: boolean;
+  acao: string;
+  entrega?: Entrega | null;
+  faturamento?: EntregaPreview['faturamento'];
+  bloqueios?: string[];
 };
 
 export type OrdemProducaoMaterial = {
@@ -1894,7 +2175,12 @@ export type OrcamentoPropostaPublica = {
       nome: string;
       percentual: number;
     }> | null;
+    tipo_servico?: string | null;
+    descricao_servico?: string | null;
+    material_cliente?: boolean | null;
+    unidade?: string | null;
   };
+  tipo_operacao?: string;
   prazo_entrega_dias?: number;
   validade_dias?: number;
   tolerancia_qtd_pct?: number;
@@ -2030,6 +2316,60 @@ export const fiscalConsulta = {
       `/consulta/produto-grupos${qs ? `?${qs}` : ''}`
     );
   },
+};
+
+export type Comissao = {
+  id: number;
+  codigo: string;
+  status: string;
+  origem_evento: string;
+  aliquota: string;
+  base_valor: string;
+  valor: string;
+  observacao?: string | null;
+  vendedor?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia?: string | null;
+  } | null;
+  pedido?: { id: number; codigo: string } | null;
+  orcamento?: { id: number; codigo: string } | null;
+  faturamento?: { id: number; codigo: string } | null;
+  titulo?: { id: number; codigo: string } | null;
+  fechamento?: { id: number; codigo: string; status: string } | null;
+  titulo_pagar?: { id: number; codigo: string; status: string; saldo: string } | null;
+  created_at?: string | null;
+};
+
+export type ComissaoFechamento = {
+  id: number;
+  codigo: string;
+  status: string;
+  periodo_inicio: string | null;
+  periodo_fim: string | null;
+  vencimento: string | null;
+  valor_total: string;
+  observacao?: string | null;
+  comissoes?: Comissao[];
+  created_at?: string | null;
+};
+
+export type ComissaoPedidoResumo = {
+  pedido_id: number;
+  pedido_codigo: string;
+  vendedor?: {
+    id: number;
+    codigo?: string;
+    razao_social?: string;
+    nome_fantasia?: string | null;
+  } | null;
+  aliquota: string | null;
+  base_etiquetas: string | null;
+  comissao_potencial: string | null;
+  totais: Record<string, string>;
+  linhas: Comissao[];
+  elegivel: boolean;
 };
 
 export function sugerirDescricaoProduto(payload: {

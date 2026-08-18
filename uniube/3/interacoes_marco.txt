@@ -1,0 +1,97 @@
+[14:45, 20/5/2026] Diogo Moura: Boa tarde Marco Aurelio
+[14:45, 20/5/2026] Diogo Moura: Acabei de falar com a Lecia
+[14:45, 20/5/2026] Marco Aurélio OSB Uberlândia: Boa tarde Diogo
+[14:45, 20/5/2026] Marco Aurélio OSB Uberlândia: ela conversou comigo
+[14:45, 20/5/2026] Diogo Moura: Sim
+[14:45, 20/5/2026] Diogo Moura: Que dia podemos marcar
+[14:46, 20/5/2026] Diogo Moura: Para conversar
+[14:46, 20/5/2026] Marco Aurélio OSB Uberlândia: Então, normalmente vamos uma vez por semana ao escritório para fazermos os acompanhamentos, ver alguns detalhes
+[14:47, 20/5/2026] Marco Aurélio OSB Uberlândia: será amanhã a tarde na Aciub
+[14:47, 20/5/2026] Diogo Moura: Certo
+[14:47, 20/5/2026] Diogo Moura: Que horário da sua preferencia
+[14:47, 20/5/2026] Marco Aurélio OSB Uberlândia: 14:30
+[14:47, 20/5/2026] Diogo Moura: Combinado
+[14:50, 20/5/2026] Diogo Moura: Obrigado pela atencao
+[14:51, 20/5/2026] Marco Aurélio OSB Uberlândia: eu quem agradeço
+[11:52, 10/6/2026] Diogo Moura: Ola Marco, bom dia!
+[11:52, 10/6/2026] Diogo Moura: Hoje estarei firme as 14:30
+[11:52, 10/6/2026] Marco Aurélio OSB Uberlândia: Opa
+[11:52, 10/6/2026] Marco Aurélio OSB Uberlândia: Bom dia
+[11:52, 10/6/2026] Marco Aurélio OSB Uberlândia: Td bom?
+[11:52, 10/6/2026] Marco Aurélio OSB Uberlândia: blz
+[11:53, 10/6/2026] Diogo Moura: Mesmo que ainda esteja em fase exploratoria... avancei em alguns aspectos do projeto... (sem querer passar o carro na frente dos bois)
+[11:53, 10/6/2026] Marco Aurélio OSB Uberlândia: Ok, bom conversarmos
+[11:53, 10/6/2026] Diogo Moura: Irei mostrar as ideias... acho que mais uns 2 encontros... a gente passa dessa fase exploratoria...
+[11:56, 10/6/2026] Marco Aurélio OSB Uberlândia: vou levar um datashow para ficar melhor
+[13:15, 10/6/2026] Diogo Moura: Opa
+[11:55, 11/6/2026] Marco Aurélio OSB Uberlândia: Bom dia Diogo
+[11:55, 11/6/2026] Marco Aurélio OSB Uberlândia: Td bem?
+[13:24, 11/6/2026] Diogo Moura: Boa tarde
+[13:24, 11/6/2026] Diogo Moura: Joia
+[13:25, 11/6/2026] Marco Aurélio OSB Uberlândia: Ontem ficou uma coisa para ter perguntar e conversando, acabei esquecendo
+[13:25, 11/6/2026] Diogo Moura: Opa
+[13:28, 11/6/2026] Marco Aurélio OSB Uberlândia: seria possível extrairmos estatísticas de participação de empresas, % de vitória, Quais tipos de objetos ou licitação participa e % de empresas que participam quando esta participa?
+[13:29, 11/6/2026] Diogo Moura: Tem sim
+[13:29, 11/6/2026] Diogo Moura: Gerar uma evoluçao historica
+[13:30, 11/6/2026] Diogo Moura: De um fornecedor
+[13:30, 11/6/2026] Marco Aurélio OSB Uberlândia: mais ou menos seria isso
+[13:30, 11/6/2026] Diogo Moura: Com vários indicadores chave
+[13:30, 11/6/2026] Marco Aurélio OSB Uberlândia: o que gostaria de avaliar, existem histórias que empresas participam para favorecer uma e vão fazendo rodizio nas vitórias
+[13:31, 11/6/2026] Diogo Moura: Entendi
+[13:31, 11/6/2026] Diogo Moura: Top
+[13:31, 11/6/2026] Diogo Moura: Tem sim
+[13:31, 11/6/2026] Marco Aurélio OSB Uberlândia: então gostaria de analisar pela estatística
+[13:31, 11/6/2026] Marco Aurélio OSB Uberlândia: e mais uma coisa
+[13:32, 11/6/2026] Marco Aurélio OSB Uberlândia: Gostaria de te convidar para ser voluntário no Observatório Social, aceita?
+[13:33, 11/6/2026] Diogo Moura: Opa
+[13:34, 11/6/2026] Diogo Moura: Serei sim oficialmente depois de dezembro
+[13:35, 11/6/2026] Marco Aurélio OSB Uberlândia: Pq só depois de dezembro? É qdo termina seu projeto?
+[13:35, 11/6/2026] Diogo Moura: Sim acaba já a faculdade
+[13:38, 11/6/2026] Marco Aurélio OSB Uberlândia: Mas pode ficar tranquilo, não tem a obrigação de estar toda a semana no Observatório, pode encaixar dentro de sua disponibilidade e podemos deixar como está para não gerar obrigações de fazer curso e atender requisitos exigidos pelo Observatório. 
+
+De qualquer forma, até este projeto ser concluído estaremos sempre em contato. E aos poucos podemos idealizar outras possibilidades
+[13:39, 11/6/2026] Diogo Moura: Eu ficarei firme me envolverei ao maximo
+[13:40, 11/6/2026] Marco Aurélio OSB Uberlândia: Tenho ideias como a da fotografia e outras, eu acredito que se conseguirmos usar ao máximo a tecnologia ao nosso favor conseguiremos melhorar nossas informações e trabalhos.
+[13:41, 11/6/2026] Marco Aurélio OSB Uberlândia: Outra coisa que me surgiu, teria como integrar o dashboard com nosso site?
+[13:51, 11/6/2026] Diogo Moura: sim é bem possivel depois de pronto vamo gerar um link publico, quem administra o site so vai ter que colocar um link para acessar
+[13:53, 11/6/2026] Marco Aurélio OSB Uberlândia: Blz
+[13:54, 11/6/2026] Marco Aurélio OSB Uberlândia: Com nosso contato constante vamos fazendo pouco a pouco essas implementações
+[11:08, 17/6/2026] Diogo Moura: Olá, bom dia!
+
+Ainda não concluí a disponibilização do sistema na nuvem. Para não desperdiçarmos tempo, na próxima semana irei até aí já com os acessos configurados naquela estrutura.
+
+Qualquer novidade, eu aviso. Obrigado!
+[11:42, 17/6/2026] Diogo Moura: se eu conseguir acabar antes te aviso e faço call
+[12:40, 17/6/2026] Marco Aurélio OSB Uberlândia: Ok
+[12:43, 17/6/2026] Marco Aurélio OSB Uberlândia: Boa tarde
+[16:51, 17/6/2026] Marco Aurélio OSB Uberlândia: Prezados(as),
+O Observatório Social do Brasil – Uberlândia/MG convida você para acompanhar a Prestação de Contas referente ao 1º Quadrimestre de 2026, oportunidade em que apresentaremos os resultados e ações realizadas no período.
+Data: 17/06/2026
+Horário: 17:00 h
+ 
+A apresentação será online pelo Microsoft Teams conforme link abaixo:
+
+https://teams.microsoft.com/meet/293643851486324?p=c1YrqyXTlpbFm1pu3O
+[17:39, 19/6/2026] Diogo Moura: Ola boa tarde!
+[17:40, 19/6/2026] Diogo Moura: Eu encontrei um plano gratuito da Oracle para hospedar a aplicação com todas as limitações de uso cadastradas.
+[17:42, 19/6/2026] Diogo Moura: Estou efetuando as verificações de madrugada pois é o unico horario que o fluxo é menor....
+[17:42, 19/6/2026] Diogo Moura: Assim que criar tudo eu aviso...
+[17:42, 19/6/2026] Diogo Moura: Acredito que ate semana que vem a gente tem tudo em maos...
+[17:43, 19/6/2026] Diogo Moura: Nem adianta eu mostrar nada pois so esta no meu setup...
+[17:58, 19/6/2026] Marco Aurélio OSB Uberlândia: Blz
+[17:58, 19/6/2026] Marco Aurélio OSB Uberlândia: Estrutura melhor para pode mostrar
+[18:57, 19/6/2026] Diogo Moura: beleza... compensa esperar...
+[10:14, 22/6/2026] Diogo Moura: Ola Bom dia
+[11:06, 22/6/2026] Marco Aurélio OSB Uberlândia: Bom dia
+[11:46, 22/6/2026] Diogo Moura: Quarta feira estarei ai firme,
+[11:53, 22/6/2026] Marco Aurélio OSB Uberlândia: Ok
+[11:55, 22/6/2026] Diogo Moura: o trem ja esta funcionando... (sem considerar as customizações...)
+[11:55, 22/6/2026] Diogo Moura: mas estou definindo esta questao do servidor...
+[11:55, 22/6/2026] Diogo Moura: sem custo...
+[11:56, 22/6/2026] Marco Aurélio OSB Uberlândia: Opa
+[11:56, 22/6/2026] Marco Aurélio OSB Uberlândia: Notícia boa
+[11:57, 22/6/2026] Diogo Moura: sem eu burocratizar demais o processo... acionei alguns contatos mencionando o que precisamos...
+[11:57, 22/6/2026] Marco Aurélio OSB Uberlândia: Legal
+[11:57, 22/6/2026] Diogo Moura: mas acredito que estamos no caminho
+[11:58, 22/6/2026] Marco Aurélio OSB Uberlândia: Essa notícia é importante
+[11:58, 22/6/2026] Diogo Moura: se ficar muito complicado e demorado de mais... a gente coloca direto em um daqueles notebook's mesmo...

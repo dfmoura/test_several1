@@ -90,6 +90,8 @@ class AuthController extends Controller
                 'padrao' => (bool) $e->pivot->padrao,
                 'venda_ativa' => (bool) $e->venda_ativa,
                 'estoque_ativo' => (bool) $e->estoque_ativo,
+                'origem_latitude' => $e->origem_latitude,
+                'origem_longitude' => $e->origem_longitude,
             ]),
             'empresa_contexto' => app()->bound('empresa') ? [
                 'id' => app('empresa')->id,

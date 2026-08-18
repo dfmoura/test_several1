@@ -46,7 +46,7 @@ export function ParceirosPage() {
   const [q, setQ] = useState('');
   const [papel, setPapel] = useState('');
   const [loading, setLoading] = useState(true);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(parceiros, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(parceiros, SORT);
 
   const load = async (search?: string, papelFilter?: string) => {
     setLoading(true);
@@ -131,28 +131,28 @@ export function ParceirosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Razão social
                   </SortableTh>
                   <SortableTh
                     column="documento"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                     label="CNPJ ou CPF"
                   >
                     CNPJ/CPF
                   </SortableTh>
-                  <SortableTh column="papeis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="papeis" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Papéis
                   </SortableTh>
-                  <SortableTh column="fiscal" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="fiscal" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Fiscal
                   </SortableTh>
-                  <SortableTh column="situacao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="situacao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Situação
                   </SortableTh>
                 </tr>

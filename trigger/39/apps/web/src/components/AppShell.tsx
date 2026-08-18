@@ -125,6 +125,18 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Expedição',
+    items: [
+      {
+        to: '/expedicao',
+        label: 'Expedição',
+        icon: IconEstoque,
+        permission: 'expedicao.ler',
+        isActivePath: (pathname) => pathname === '/expedicao' || pathname.startsWith('/expedicao/'),
+      },
+    ],
+  },
+  {
     label: 'Compras',
     items: [
       {
@@ -173,6 +185,12 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'faturamento.ler',
         isActivePath: (pathname) =>
           pathname === '/financeiro/faturamentos' || pathname.startsWith('/financeiro/faturamentos/'),
+      },
+      {
+        to: '/financeiro/comissoes',
+        label: 'Comissões',
+        icon: IconFinanceiro,
+        permission: 'comissao.ler',
       },
     ],
   },

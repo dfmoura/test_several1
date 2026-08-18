@@ -151,15 +151,40 @@ export function formatLatLng(
   return `${trim(a)}, ${trim(b)}`;
 }
 
-/** Distância de carro (1 casa na UI). Vazio se não houver km. */
+/** Distância de carro (1 casa na UI). Zero sem rota real não se exibe — não é 0,0 km. */
+export function kmCarroEhZero(km: string | number | null | undefined): boolean {
+  if (km == null || km === '') return false;
+  const n = Number(String(km).trim().replace(',', '.'));
+  return Number.isFinite(n) && n === 0;
+}
+
 export function formatKmCarro(
   km: string | number | null | undefined,
   fonte?: string | null,
 ): string {
+  if (fonte === 'mesmo_ponto' || kmCarroEhZero(km)) {
+    return '';
+  }
   const formatted = formatDecimalBr(km, 1);
-  if (formatted === '—') return '';
-  if (fonte === 'mesmo_ponto') return `${formatted} km`;
+  if (formatted === '—' || /^0,0+$/.test(formatted)) return '';
   return `${formatted} km de carro (OpenStreetMap)`;
+}
+
+/** Km é EMP×destino. Vazio se o valor for de outra empresa. */
+export function formatKmCarroDaEmpresa(
+  km: string | number | null | undefined,
+  fonte: string | null | undefined,
+  distanciaEmpresaId: number | null | undefined,
+  empresaAtualId: number | null | undefined,
+): string {
+  if (
+    distanciaEmpresaId != null &&
+    empresaAtualId != null &&
+    Number(distanciaEmpresaId) !== Number(empresaAtualId)
+  ) {
+    return '';
+  }
+  return formatKmCarro(km, fonte);
 }
 
 export function formatDate(value: string | null | undefined): string {

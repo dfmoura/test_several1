@@ -299,7 +299,7 @@ export function EstoquePage() {
                   <tr>
                     <SortableTh
                       column="produto"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                     >
@@ -307,7 +307,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="familia"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                     >
@@ -315,7 +315,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="qtde"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                       className="num"
@@ -324,7 +324,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="unidade"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                     >
@@ -332,7 +332,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="custo"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                       className="num"
@@ -341,7 +341,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="valor"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                       className="num"
@@ -350,7 +350,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="validade"
-                      sortKey={saldosSort.sortKey}
+                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
                     >
@@ -422,7 +422,7 @@ export function EstoquePage() {
                   <tr>
                     <SortableTh
                       column="produto"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                     >
@@ -430,7 +430,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="codigo"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                     >
@@ -438,7 +438,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="entrada"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                     >
@@ -446,7 +446,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="validade"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                     >
@@ -454,7 +454,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="qtde"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                       className="num"
@@ -463,7 +463,7 @@ export function EstoquePage() {
                     </SortableTh>
                     <SortableTh
                       column="status"
-                      sortKey={lotesSort.sortKey}
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
                       sortDir={lotesSort.sortDir}
                       onSort={lotesSort.requestSort}
                     >
@@ -524,7 +524,7 @@ export function EstoquePage() {
                 <tr>
                   <SortableTh
                     column="codigo"
-                    sortKey={movsSort.sortKey}
+                    sorts={movsSort.sorts} sortKey={movsSort.sortKey}
                     sortDir={movsSort.sortDir}
                     onSort={movsSort.requestSort}
                   >
@@ -532,7 +532,7 @@ export function EstoquePage() {
                   </SortableTh>
                   <SortableTh
                     column="tipo"
-                    sortKey={movsSort.sortKey}
+                    sorts={movsSort.sorts} sortKey={movsSort.sortKey}
                     sortDir={movsSort.sortDir}
                     onSort={movsSort.requestSort}
                   >
@@ -540,7 +540,7 @@ export function EstoquePage() {
                   </SortableTh>
                   <SortableTh
                     column="documento"
-                    sortKey={movsSort.sortKey}
+                    sorts={movsSort.sorts} sortKey={movsSort.sortKey}
                     sortDir={movsSort.sortDir}
                     onSort={movsSort.requestSort}
                   >
@@ -548,7 +548,7 @@ export function EstoquePage() {
                   </SortableTh>
                   <SortableTh
                     column="sku"
-                    sortKey={movsSort.sortKey}
+                    sorts={movsSort.sorts} sortKey={movsSort.sortKey}
                     sortDir={movsSort.sortDir}
                     onSort={movsSort.requestSort}
                   >
@@ -556,7 +556,7 @@ export function EstoquePage() {
                   </SortableTh>
                   <SortableTh
                     column="conferido"
-                    sortKey={movsSort.sortKey}
+                    sorts={movsSort.sorts} sortKey={movsSort.sortKey}
                     sortDir={movsSort.sortDir}
                     onSort={movsSort.requestSort}
                   >

@@ -9,7 +9,9 @@ use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Support\CatalogoServicoSaida;
 use App\Support\PadraoDecimal;
+use App\Support\TipoOperacaoSaida;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -76,9 +78,16 @@ class PedidoService
         $faixa = $this->faixaAprovada($orcamento, $faixaIndex);
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $necessidade = $this->resolverNecessidade($input);
+        $tipoOp = TipoOperacaoSaida::fromInput($input['tipo_operacao'] ?? $necessidade);
+        if ($tipoOp === TipoOperacaoSaida::SERVICO) {
+            $necessidade = PedidoItem::NEC_SERVICO;
+        }
         $paProduto = $this->resolverProdutoPa($orcamento->empresa, $necessidade);
+        $servico = $necessidade === PedidoItem::NEC_SERVICO
+            ? CatalogoServicoSaida::get((string) ($input['tipo_servico'] ?? CatalogoServicoSaida::AVULSO))
+            : null;
 
-        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixa, $input, $necessidade, $paProduto) {
+        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixa, $input, $necessidade, $paProduto, $servico) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode((int) $orcamento->empresa_id, 'PED-'.$ano, 5);
 
@@ -100,6 +109,7 @@ class PedidoService
                 'codigo' => $codigo,
                 'orcamento_id' => $orcamento->id,
                 'parceiro_id' => $orcamento->parceiro_id,
+                'vendedor_parceiro_id' => $orcamento->vendedor_parceiro_id,
                 'status' => Pedido::STATUS_LIBERADO,
                 'faixa_index' => $faixaIndex,
                 'tolerancia_qtd_pct' => $orcamento->tolerancia_qtd_pct ?? '20',
@@ -113,29 +123,28 @@ class PedidoService
                 'observacao' => $orcamento->observacao,
             ]);
 
+            $unidade = 'MIL';
+            $familia = 'PA-ETQ';
+            if ($servico !== null) {
+                $familia = $servico['familia_fiscal'];
+                $unidade = strtoupper(trim((string) ($input['unidade'] ?? $servico['unidade_padrao']))) ?: $servico['unidade_padrao'];
+            } elseif ($necessidade === PedidoItem::NEC_SERVICO) {
+                $familia = 'SVC';
+                $unidade = 'UN';
+            }
+
             PedidoItem::query()->create([
                 'empresa_id' => $orcamento->empresa_id,
                 'pedido_id' => $pedido->id,
                 'ordem' => 1,
                 'necessidade' => $necessidade,
-                'familia_fiscal' => $necessidade === PedidoItem::NEC_SERVICO ? 'SVC' : 'PA-ETQ',
+                'familia_fiscal' => $familia,
                 'descricao' => $descricao,
-                'especificacao' => [
-                    'medida' => $input['medida'] ?? null,
-                    'papel' => $input['papel'] ?? null,
-                    'cores' => $input['cores'] ?? null,
-                    'acabamento' => $input['acabamento'] ?? null,
-                    'maquina' => $input['maquina'] ?? null,
-                    'tubete' => $input['tubete'] ?? null,
-                    'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
-                    'largura_cm' => $input['largura_cm'] ?? null,
-                    'puxada_cm' => $input['puxada_cm'] ?? null,
-                    'modelos_composicao' => $input['modelos_composicao'] ?? null,
-                ],
+                'especificacao' => $this->montarEspecificacao($input, $servico),
                 'qtde_pedida' => $qtde,
                 'qtde_produzida' => '0',
                 'qtde_faturavel' => '0',
-                'unidade' => 'MIL',
+                'unidade' => $unidade,
                 'preco_unitario' => $preco,
                 'valor_total' => $total,
                 'status' => PedidoItem::STATUS_PENDENTE,
@@ -153,7 +162,7 @@ class PedidoService
     {
         $query = Pedido::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['parceiro:id,codigo,razao_social', 'orcamento:id,codigo', 'itens', 'faturamento'])
+            ->with(['parceiro:id,codigo,razao_social', 'vendedor:id,codigo,razao_social', 'orcamento:id,codigo', 'itens', 'faturamento'])
             ->orderByDesc('id');
 
         if ($status) {
@@ -179,7 +188,8 @@ class PedidoService
     {
         $pedido->load([
             'parceiro:id,codigo,razao_social',
-            'orcamento:id,codigo,status,financeiro_status,tolerancia_qtd_pct',
+            'vendedor:id,codigo,razao_social,nome_fantasia',
+            'orcamento:id,codigo,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
             'itens.produtoPa:id,codigo,descricao_fiscal',
             'ordensProducao',
             'ordensServico',
@@ -206,6 +216,11 @@ class PedidoService
                 'id' => $p->parceiro->id,
                 'codigo' => $p->parceiro->codigo,
                 'razao_social' => $p->parceiro->razao_social,
+            ] : null,
+            'vendedor' => $p->vendedor ? [
+                'id' => $p->vendedor->id,
+                'codigo' => $p->vendedor->codigo,
+                'razao_social' => $p->vendedor->razao_social,
             ] : null,
             'orcamento' => $p->orcamento ? [
                 'id' => $p->orcamento->id,
@@ -327,6 +342,15 @@ class PedidoService
      */
     private function montarDescricao(array $input, array $faixa): string
     {
+        $servicoDesc = trim((string) ($input['descricao_servico'] ?? ''));
+        if ($servicoDesc !== '') {
+            $q = isset($faixa['quantidade'])
+                ? PadraoDecimal::roundHalfUp((string) $faixa['quantidade'], 0)
+                : null;
+
+            return mb_substr($q ? $servicoDesc.' · Q '.$q : $servicoDesc, 0, 255);
+        }
+
         $parts = array_filter([
             $input['medida'] ?? null,
             isset($input['papel']) ? (string) $input['papel'] : null,
@@ -338,5 +362,44 @@ class PedidoService
         $desc = implode(' · ', $parts);
 
         return $desc !== '' ? mb_substr($desc, 0, 255) : 'Item do pedido';
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>|null  $servico
+     * @return array<string, mixed>
+     */
+    private function montarEspecificacao(array $input, ?array $servico): array
+    {
+        if ($servico !== null || TipoOperacaoSaida::isServico($input['tipo_operacao'] ?? $input['necessidade'] ?? null)) {
+            $cat = $servico ?? CatalogoServicoSaida::get((string) ($input['tipo_servico'] ?? CatalogoServicoSaida::AVULSO));
+
+            return [
+                'tipo_operacao' => TipoOperacaoSaida::SERVICO,
+                'tipo_servico' => $cat['codigo'],
+                'descricao_servico' => $input['descricao_servico'] ?? $cat['descricao_padrao'],
+                'material_cliente' => (bool) ($input['material_cliente'] ?? $cat['material_cliente_padrao']),
+                'unidade' => $input['unidade'] ?? $cat['unidade_padrao'],
+                'horas_maquina' => $input['horas_maquina'] ?? null,
+                'maquina' => $input['maquina'] ?? null,
+                'cessao_bem_id' => $input['cessao_bem_id'] ?? null,
+                'codigo_tributacao_nacional_iss' => $input['codigo_tributacao_nacional_iss'] ?? $cat['codigo_tributacao_nacional_iss'],
+                'codigo_nbs' => $input['codigo_nbs'] ?? $cat['codigo_nbs'],
+            ];
+        }
+
+        return [
+            'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
+            'medida' => $input['medida'] ?? null,
+            'papel' => $input['papel'] ?? null,
+            'cores' => $input['cores'] ?? null,
+            'acabamento' => $input['acabamento'] ?? null,
+            'maquina' => $input['maquina'] ?? null,
+            'tubete' => $input['tubete'] ?? null,
+            'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
+            'largura_cm' => $input['largura_cm'] ?? null,
+            'puxada_cm' => $input['puxada_cm'] ?? null,
+            'modelos_composicao' => $input['modelos_composicao'] ?? null,
+        ];
     }
 }

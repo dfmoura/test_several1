@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\PadraoDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DocumentoFiscalSaida extends Model
 {
@@ -30,6 +31,10 @@ class DocumentoFiscalSaida extends Model
 
     public const STATUS_CANCELADO = 'CANCELADO';
 
+    public const ORIGEM_FOCUS = 'FOCUS';
+
+    public const ORIGEM_STUB = 'STUB';
+
     /** @var list<string> */
     public const TIPOS = [self::TIPO_NFE, self::TIPO_NFSE];
 
@@ -43,6 +48,7 @@ class DocumentoFiscalSaida extends Model
         'tipo',
         'modelo',
         'status',
+        'autorizacao_origem',
         'ambiente',
         'ref',
         'serie',
@@ -96,20 +102,42 @@ class DocumentoFiscalSaida extends Model
         return $this->belongsTo(FiscalHub::class);
     }
 
+    public function saidaEstoque(): HasOne
+    {
+        return $this->hasOne(EstoqueMovimento::class, 'documento_fiscal_saida_id');
+    }
+
     public function podeEnviar(): bool
     {
-        return in_array($this->status, [
+        if (in_array($this->status, [
             self::STATUS_PLANEJADO,
             self::STATUS_ERRO,
             self::STATUS_REJEITADO,
-        ], true);
+        ], true)) {
+            return true;
+        }
+
+        // Stub local pode ser promovido à autorização Focus (mesma ref) quando o hub ficar apto.
+        return $this->status === self::STATUS_AUTORIZADO && $this->eSimulado();
+    }
+
+    public function eOficial(): bool
+    {
+        return $this->status === self::STATUS_AUTORIZADO && ! $this->eSimulado();
+    }
+
+    public function eSimulado(): bool
+    {
+        return $this->status === self::STATUS_AUTORIZADO
+            && $this->autorizacao_origem === self::ORIGEM_STUB;
     }
 
     public function bloqueiaEstornoFat(): bool
     {
-        return in_array($this->status, [
-            self::STATUS_PROCESSANDO,
-            self::STATUS_AUTORIZADO,
-        ], true);
+        if ($this->status === self::STATUS_PROCESSANDO) {
+            return true;
+        }
+
+        return $this->eOficial();
     }
 }

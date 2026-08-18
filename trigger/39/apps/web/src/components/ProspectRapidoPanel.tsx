@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ApiError, api, type CepConsulta, type Parceiro } from '../lib/api';
+import { ApiError, api, patchEnderecoFromCep, type CepConsulta, type Parceiro } from '../lib/api';
 import { formatCepInput, formatWhatsAppInput, onlyDigits } from '../lib/format';
 import { ORIGENS_LEAD } from '../lib/origemLead';
 
@@ -95,15 +95,9 @@ export function ProspectRapidoPanel({
   };
 
   const aplicarCep = (d: CepConsulta) => {
-    const uf = String(d.uf ?? '').trim().toUpperCase();
     setForm((prev) => ({
       ...prev,
-      logradouro: d.logradouro?.trim() || prev.logradouro,
-      complemento: d.complemento?.trim() || prev.complemento,
-      bairro: d.bairro?.trim() || prev.bairro,
-      municipio: d.localidade?.trim() || prev.municipio,
-      uf: uf.length === 2 ? uf : prev.uf,
-      ibge: d.ibge?.trim() || prev.ibge,
+      ...patchEnderecoFromCep(d, prev),
     }));
     setCandidatos([]);
     const temLogradouro = Boolean(d.logradouro?.trim());

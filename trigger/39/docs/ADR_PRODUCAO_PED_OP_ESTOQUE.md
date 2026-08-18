@@ -39,6 +39,7 @@ ORC APROVADO + LIBERADO
 | `SAIDA_PRODUCAO` | − saldo MP/EMB | `ordem_producao_id` |
 | `ENTRADA_SOBRA` | + saldo mesmo SKU | retorno obrigatório na conclusão |
 | `ENTRADA_PA` | + saldo família PA | qtde boa liberada |
+| `SAIDA_VENDA` | − saldo PA/REV | NF-e Focus autorizada (`documento_fiscal_saida_id`) — não a OP |
 
 Saldo só via `EstoqueSaldoWriter` (nunca update direto).
 

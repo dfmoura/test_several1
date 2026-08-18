@@ -25,7 +25,8 @@ import {
   isOrcEnviavel,
   statusOrcPill,
 } from '../lib/orcamentoForm';
-import { modoEntregaLabel } from '../lib/orcamentoFrete';
+import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
+import { modoEntregaLabel, origemFreteLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number };
@@ -195,7 +196,18 @@ export function OrcamentoDetailPage() {
     ? modelosCompRaw
     : [];
 
-  const specTiles: Array<[string, unknown]> = (
+  const isServico = tipoOperacaoFromSnap(input) === 'SERVICO';
+  const specTiles: Array<[string, unknown]> = isServico
+    ? (
+        [
+          ['Tipo', tipoServicoLabel(String(input.tipo_servico ?? ''))],
+          ['Descrição', input.descricao_servico],
+          ['Unidade', input.unidade],
+          ['Material do cliente', input.material_cliente ? 'Sim' : 'Não'],
+          ['NFS-e (ISS)', input.codigo_tributacao_nacional_iss],
+        ] as Array<[string, unknown]>
+      ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '')
+    : (
     [
       ['Cores', input.cores],
       ['Papel', input.papel],
@@ -452,6 +464,9 @@ export function OrcamentoDetailPage() {
                   <span className="field-note">
                     {' '}
                     · {modoEntregaLabel(orc.result_snapshot.frete.modo)}
+                    {origemFreteLabel(orc.result_snapshot.frete.origem)
+                      ? ` · ${origemFreteLabel(orc.result_snapshot.frete.origem)?.toLowerCase()}`
+                      : ''}
                   </span>
                 ) : String(input.modo_entrega ?? '').toUpperCase() === 'ENTREGAR' ? (
                   <span className="field-note"> · Entregar</span>
@@ -460,6 +475,14 @@ export function OrcamentoDetailPage() {
                 )}
               </strong>
             </div>
+            {orc.vendedor ? (
+              <div>
+                <span>Vendedor</span>
+                <strong>
+                  {orc.vendedor.codigo} — {orc.vendedor.razao_social}
+                </strong>
+              </div>
+            ) : null}
             <div>
               <span>Prazo / validade</span>
               <strong>
@@ -564,13 +587,18 @@ export function OrcamentoDetailPage() {
       {orc.result_snapshot ? (
         <OrcamentoResultado
           calculo={orc.result_snapshot}
+          modoServico={isServico}
           echoEspecificacao={false}
-          guiaEspec={especFromSnapshot(orc.input_snapshot)}
-          modelosComposicao={modelosComp.map((m, i) => ({
-            ordem: Number(m.ordem) || i + 1,
-            nome: String(m.nome ?? ''),
-            percentual: Number(m.percentual) || 0,
-          }))}
+          guiaEspec={isServico ? null : especFromSnapshot(orc.input_snapshot)}
+          modelosComposicao={
+            isServico
+              ? null
+              : modelosComp.map((m, i) => ({
+                  ordem: Number(m.ordem) || i + 1,
+                  nome: String(m.nome ?? ''),
+                  percentual: Number(m.percentual) || 0,
+                }))
+          }
         />
       ) : (
         <p style={{ color: 'var(--text-muted)' }}>Sem resultado calculado.</p>

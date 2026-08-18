@@ -8,6 +8,7 @@ use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Support\TipoOperacaoSaida;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -782,9 +783,11 @@ class OrcamentoAprovacaoService
             $valorTotal = (float) ($fx['valor_total'] ?? 0);
             $valorEtiqueta = (float) ($fx['valor_etiqueta'] ?? 0);
             $rolos = (float) ($fx['rolos'] ?? 0);
-            $totalComFaca = $facaNova
-                ? (float) ($fx['valor_total_com_faca'] ?? ($valorTotal + $valorFaca))
-                : $valorTotal;
+            $fxNorm = $fx;
+            if ($facaNova && ($fxNorm['valor_total_com_faca'] ?? null) === null) {
+                $fxNorm['valor_total_com_faca'] = $valorTotal + $valorFaca;
+            }
+            $totalProposta = (float) OrcamentoFreteEstimadoService::totalPropostaFaixa($fxNorm);
 
             $valorFrete = array_key_exists('valor_frete', $fx) && $fx['valor_frete'] !== null && $fx['valor_frete'] !== ''
                 ? round((float) $fx['valor_frete'], 2)
@@ -794,7 +797,7 @@ class OrcamentoAprovacaoService
             $faixas[] = [
                 'index' => (int) $idx,
                 'quantidade' => $qtd,
-                'valor_total' => round($totalComFaca, 2),
+                'valor_total' => round($totalProposta, 2),
                 'valor_unitario' => $qtd > 0 ? round($valorEtiqueta / $qtd, 6) : null,
                 'valor_etiqueta' => round($valorEtiqueta, 2),
                 'valor_rolo' => $rolos > 0 ? round($valorTotal / $rolos, 2) : null,
@@ -838,6 +841,9 @@ class OrcamentoAprovacaoService
                 'municipio' => $empresa?->municipio,
                 'uf' => $empresa?->uf,
             ],
+            'tipo_operacao' => TipoOperacaoSaida::fromInput(
+                $input['tipo_operacao'] ?? $input['necessidade'] ?? null
+            ),
             'descricao' => [
                 'medida' => $input['medida'] ?? null,
                 'papel' => $input['papel'] ?? null,
@@ -850,6 +856,10 @@ class OrcamentoAprovacaoService
                 'faca_nova' => $facaNova,
                 'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
                 'modelos_composicao' => $this->modelosComposicaoPublica($input),
+                'tipo_servico' => $input['tipo_servico'] ?? null,
+                'descricao_servico' => $input['descricao_servico'] ?? null,
+                'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
+                'unidade' => $input['unidade'] ?? null,
             ],
             'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
             'validade_dias' => $orcamento->validade_dias,
@@ -896,9 +906,17 @@ class OrcamentoAprovacaoService
             }
         }
 
+        $origem = strtoupper((string) ($snap['origem'] ?? $input['origem_frete'] ?? ''));
+        $texto = 'Entrega — frete a combinar';
+        if ($somavel) {
+            $texto = 'Entrega — frete estimado';
+        } elseif ($origem === OrcamentoFreteEstimadoService::ORIGEM_MANUAL) {
+            $texto = 'Entrega — sem cobrança de frete';
+        }
+
         return [
             'modo' => OrcamentoFreteEstimadoService::MODO_ENTREGAR,
-            'texto' => $somavel ? 'Entrega — frete estimado' : 'Entrega — frete a combinar',
+            'texto' => $texto,
             'somavel' => $somavel,
         ];
     }

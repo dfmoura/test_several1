@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Orcamento;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 final class OrcamentoValidationRules
 {
@@ -12,8 +13,27 @@ final class OrcamentoValidationRules
      */
     public static function calcularRules(): array
     {
-        return [
-            'parceiro_id' => ['required', 'integer'],
+        $tipo = TipoOperacaoSaida::fromInput(request('tipo_operacao') ?? request('necessidade'));
+        if ($tipo === TipoOperacaoSaida::CESSAO_BEM) {
+            return [
+                'tipo_operacao' => ['required', 'string'],
+                'parceiro_id' => ['nullable', 'integer'],
+            ];
+        }
+        if ($tipo === TipoOperacaoSaida::SERVICO) {
+            return self::servicoRules();
+        }
+
+        return self::industrializacaoRules();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function industrializacaoRules(): array
+    {
+        return array_merge(self::comuns(), [
+            'tipo_operacao' => ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
             'medida' => ['required', 'string', 'max:64'],
             'largura_cm' => ['required', 'numeric', 'gt:0'],
             'puxada_cm' => ['required', 'numeric', 'gt:0'],
@@ -52,19 +72,33 @@ final class OrcamentoValidationRules
             'formato_faca' => ['nullable', 'string', 'max:64'],
             'valor_faca_nova' => ['nullable', 'numeric', 'min:0'],
             'prazo_faca_dias' => ['nullable', 'integer', 'min:0', 'max:365'],
-            'prazo_entrega_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
-            'validade_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
-            'tolerancia_qtd_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'observacao' => ['nullable', 'string', 'max:4000'],
-            // Defaults comerciais do PAR → snapshot desta proposta (ADR_CONDICOES_COMERCIAIS_PAR).
-            // Não entram no motor de preço; PED/TIT futuros consomem este snapshot.
-            'condicao_pagamento' => ['nullable', 'string', 'max:64'],
-            'forma_pagamento' => ['nullable', 'string', 'max:32'],
-            // Fechamento: frete estimado (ADR_ORC_FRETE_ESTIMADO). Default RETIRAR.
-            'modo_entrega' => ['nullable', 'string', Rule::in(['RETIRAR', 'ENTREGAR'])],
             // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
             'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],
-        ];
+        ]);
+    }
+
+    /**
+     * Prestação de serviço — sem BOM de etiqueta (ADR_OPERACOES_SAIDA).
+     *
+     * @return array<string, mixed>
+     */
+    public static function servicoRules(): array
+    {
+        return array_merge(self::comuns(), [
+            'tipo_operacao' => ['required', 'string', Rule::in([TipoOperacaoSaida::SERVICO])],
+            'tipo_servico' => ['required', 'string', Rule::in(CatalogoServicoSaida::TIPOS)],
+            'descricao_servico' => ['required', 'string', 'min:3', 'max:2000'],
+            'material_cliente' => ['sometimes', 'boolean'],
+            'unidade' => ['nullable', 'string', 'max:8'],
+            'horas_maquina' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'maquina' => ['nullable', 'string', 'max:64'],
+            'cessao_bem_id' => ['nullable', 'integer'],
+            'faixas' => ['required', 'array', 'min:1'],
+            'faixas.*.quantidade' => ['required', 'numeric', 'gt:0'],
+            'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
+            'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'necessidade' => ['nullable', 'string', Rule::in(['SERVICO'])],
+        ]);
     }
 
     /**
@@ -76,6 +110,48 @@ final class OrcamentoValidationRules
             'q' => ['nullable', 'string', 'max:120'],
             'status' => ['nullable', 'string', Rule::in(Orcamento::STATUSES)],
             'parceiro_id' => ['nullable', 'integer'],
+            'vendedor_parceiro_id' => ['nullable', 'integer'],
+        ];
+    }
+
+    public static function after(Validator $validator): void
+    {
+        $tipo = TipoOperacaoSaida::fromInput($validator->getData()['tipo_operacao'] ?? null);
+        if ($tipo === TipoOperacaoSaida::CESSAO_BEM) {
+            $validator->errors()->add(
+                'tipo_operacao',
+                'Cessão de equipamento (comodato) não é orçamento. Cadastre no patrimônio do bem — não gera NFS-e nem NF-e.'
+            );
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function comuns(): array
+    {
+        return [
+            'parceiro_id' => ['required', 'integer'],
+            'prazo_entrega_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'validade_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'tolerancia_qtd_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'observacao' => ['nullable', 'string', 'max:4000'],
+            'condicao_pagamento' => ['nullable', 'string', 'max:64'],
+            'forma_pagamento' => ['nullable', 'string', 'max:32'],
+            'vendedor_parceiro_id' => ['nullable', 'integer'],
+            'modo_entrega' => ['nullable', 'string', Rule::in(['RETIRAR', 'ENTREGAR'])],
+            'origem_frete' => ['nullable', 'string', Rule::in(['CALCULADA', 'MANUAL'])],
+            'valor_frete_manual' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                Rule::requiredIf(static function () {
+                    $modo = strtoupper(trim((string) request('modo_entrega', '')));
+                    $origem = strtoupper(trim((string) request('origem_frete', '')));
+
+                    return $modo === 'ENTREGAR' && $origem === 'MANUAL';
+                }),
+            ],
         ];
     }
 }

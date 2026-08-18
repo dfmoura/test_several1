@@ -1,0 +1,42 @@
+---
+description: Expedição ENT- é eixo logístico; não mora no TIT e não baixa sozinho
+globs: "**/Entrega*.php,**/Entrega*.tsx,**/Expedicao*.tsx,**/expedicaoUi.ts,**/ADR_ENTREGA*.md,**/FaturamentoService.php,**/TituloService.php,**/Pedido.php"
+alwaysApply: false
+---
+
+# Fronteira Expedição → ENT (eixo logístico ≠ TIT/BX)
+
+Norma: `docs/ADR_ENTREGA_EXPEDICAO.md` · estudo `../32` ENTREGA_CONFIRMACAO_CLIENTE / FRETE_TRANSPORTADORAS / UC-FIN-010 / DECISAO §5.1 · BL-060.
+
+## Espinha
+
+```
+PED FATURADO → ENT- (RETIRAR/balcão | ENTREGAR/transporte) → PED ENTREGUE
+TIT/COB já existem no FAT → BX conforme a condição (não no confirmar)
+PED ENCERRADO = entregue + nenhum receber em aberto
+```
+
+Módulo `expedicao/`. ENT consulta PED + FAT; não vive dentro do agregado Título.
+
+## Faça
+
+- Expedir só PED `FATURADO` com FAT vigente. 1 ENT vigente por PED.
+- Modo do snapshot (`RETIRAR` × `ENTREGAR`). Balcão confirma na hora com nome; transporte registra despacho e depois a prova.
+- Política `politica_nf_antes_expedir` (default SIM): sem hub a prévia + FAT basta; hub apto exige NF autorizada; `PROCESSANDO` bloqueia.
+- Permissão `expedicao.escrever` (EXPEDICAO/PRODUCAO/ADMIN). FINANCEIRO só `expedicao.ler`.
+- Recusa/cancelamento: motivo; ENT histórica; PED volta a `FATURADO`; novo ENT permitido.
+- Isolar por `empresa_id` do contexto.
+- CTA de recebimento após confirmar se houver TIT aberto — não baixar sozinho.
+
+## Não faça
+
+- Romaneio dentro de TIT/COB/BX.
+- Auto-baixa na confirmação (à vista, prazo ou sinal).
+- Expedir PED `PRODUZIDO` sem faturar.
+- Segundo ENT vigente no mesmo PED.
+- Estornar FAT depois de expedir.
+- MOV/estoque PA no ENT.
+- TMS, CT-e, WhatsApp, foto obrigatória, entrega parcial, DEV- nesta fase.
+- Confirmar entrega sem gravar no ENT-.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_ENTREGA_EXPEDICAO.md`.

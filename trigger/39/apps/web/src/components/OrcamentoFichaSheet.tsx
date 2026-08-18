@@ -12,7 +12,7 @@ import { BRAND } from '../lib/brand';
 import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
-import { formatValorFrete, modoEntregaLabel } from '../lib/orcamentoFrete';
+import { formatValorFrete, modoEntregaLabel, origemFreteLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
 
 /**
  * Ficha operacional do ORC — uso interno (não é proposta ao cliente).
@@ -118,9 +118,7 @@ function faixaTotal(
   facaNova: boolean,
   valorFacaNova: number,
 ): number {
-  if (!facaNova) return Number(fx.valor_total) || 0;
-  if (fx.valor_total_com_faca != null) return Number(fx.valor_total_com_faca) || 0;
-  return (Number(fx.valor_total) || 0) + valorFacaNova;
+  return totalPropostaFaixa(fx, facaNova, valorFacaNova);
 }
 
 export type OrcamentoFichaSheetProps = {
@@ -215,6 +213,9 @@ export function OrcamentoFichaSheet({
           {result?.frete ? (
             <span className="ficha-chip ficha-chip-muted">
               {modoEntregaLabel(result.frete.modo)}
+              {origemFreteLabel(result.frete.origem)
+                ? ` · ${origemFreteLabel(result.frete.origem)}`
+                : ''}
             </span>
           ) : null}
           <span className="ficha-chip ficha-chip-muted">Uso interno</span>
@@ -234,6 +235,14 @@ export function OrcamentoFichaSheet({
             [dash(input.condicao_pagamento as string), formaPagamentoLabel(input.forma_pagamento as string)]
               .filter((v) => v && v !== '—')
               .join(' · ') || '—'
+          }
+        />
+        <Kv
+          label="Vendedor"
+          value={
+            orc.vendedor
+              ? `${orc.vendedor.codigo} — ${orc.vendedor.razao_social}`
+              : 'Venda direta'
           }
         />
         <Kv label="Cadastrado por" value={orc.criado_por?.name ?? '—'} />
@@ -498,7 +507,9 @@ export function OrcamentoFichaSheet({
               {result?.chave_matriz ? ` · chave ${result.chave_matriz}` : ''}
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
               {result?.frete
-                ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — linha à parte, não no unitário.`
+                ? String(result.frete.origem).toUpperCase() === 'MANUAL'
+                  ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — valor informado nesta proposta (mesmo em todas as quantidades); linha à parte: não no unitário; se levantado, compõe o total.`
+                  : ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — máx(mínimo da faixa, R$/km × km), linha à parte: não no unitário; se levantado, compõe o total.`
                 : ''}
             </p>
           </Section>

@@ -1,0 +1,37 @@
+observatorio  Info
+
+1 GB RAM, 2 vCPUs, 40 GB SSD
+Ubuntu
+AWS Region
+São Paulo, Zone A
+(sa-east-1a)
+Instance type
+General purpose
+Networking type
+Dual-stack
+Change networking type
+Public IPv4 address
+56.124.122.152
+Private IPv4 address
+172.26.14.145
+Public IPv6 address
+2600:1f1e:4ee:f800:96f4:29d8:9a8d:7c79
+Instance status
+Running
+
+    Connect
+    Metrics
+    Snapshots
+    Storage
+    Networking
+    Domains
+    Tags
+    History
+    Help & assistance
+
+Connect to your instance  Info
+
+You can connect using your browser, or your own compatible SSH client.
+Use your browser  Info
+
+Connect using our browser-based SSH client.

@@ -8,6 +8,8 @@ import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import {
   api,
+  mensagemCepImportado,
+  patchEnderecoFromCep,
   type BancoConsulta,
   type CepConsulta,
   type CnpjConsulta,
@@ -275,7 +277,7 @@ export function EmpresasPage() {
   const [tab, setTab] = useState<Tab>('Identificação');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | 'origem-geo' | null>(null);
+  const [consulting, setConsulting] = useState<'cnpj' | 'cep' | null>(null);
   const [cnpjUnlocked, setCnpjUnlocked] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -455,47 +457,10 @@ export function EmpresasPage() {
     try {
       const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}`);
       const d = res.data;
-      update({
-        logradouro: d.logradouro ?? form.logradouro,
-        complemento: d.complemento ?? form.complemento,
-        bairro: d.bairro ?? form.bairro,
-        municipio: d.localidade ?? form.municipio,
-        uf: d.uf ?? form.uf,
-        ibge: d.ibge ?? form.ibge,
-      });
-      setMessage('Endereço importado via CEP (ViaCEP).');
+      update(patchEnderecoFromCep(d, form));
+      setMessage(mensagemCepImportado(d));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro na consulta CEP.');
-    } finally {
-      setConsulting(null);
-    }
-  };
-
-  const consultarOrigemPeloCep = async () => {
-    if (!form) return;
-    const digits = onlyDigits(form.cep);
-    if (digits.length !== 8) {
-      setError('Informe o CEP cadastral da empresa para sugerir a origem.');
-      return;
-    }
-    setConsulting('origem-geo');
-    setError('');
-    setMessage('');
-    try {
-      const res = await api.get<{ data: CepConsulta }>(`/consulta/cep/${digits}?geo=1`);
-      const d = res.data;
-      if (d.latitude && d.longitude) {
-        update({ origem_latitude: d.latitude, origem_longitude: d.longitude });
-        setMessage(
-          `Origem sugerida pelo CEP (${formatLatLng(d.latitude, d.longitude)}). Ajuste se a planta for outro ponto. Salvar confirma.`,
-        );
-      } else if (d.geo_sem_ponto) {
-        setError('Este CEP não tem ponto geográfico. Informe a origem da planta à mão.');
-      } else {
-        setError('Consulta de posição indisponível. Informe a origem à mão.');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Consulta de posição indisponível.');
     } finally {
       setConsulting(null);
     }
@@ -1271,9 +1236,17 @@ export function EmpresasPage() {
             {tab === 'Operação' && (
               <div className="form-section">
                 <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                  EMP-00002 permanece com venda/estoque desligados até parecer Contador +
-                  Direção (MULTI_EMPRESA_CNPJS_E_LIVROS).
+                  Origem operacional = ponto A da rota de carro até o parceiro (planta). Sem este
+                  ponto o km no cadastro do parceiro fica —. Não é o endereço fiscal da NF-e.
+                  {selected?.codigo === 'EMP-00002'
+                    ? ' EMP-00002 permanece com venda/estoque desligados até parecer Contador + Direção (MULTI_EMPRESA_CNPJS_E_LIVROS).'
+                    : ''}
                 </p>
+                {!(form.origem_latitude && form.origem_longitude) ? (
+                  <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                    Ainda sem origem. Informe a planta (lat/lng) e Salvar. Não use o CEP.
+                  </p>
+                ) : null}
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Venda ativa</label>
@@ -1302,7 +1275,7 @@ export function EmpresasPage() {
                     <input
                       value={form.origem_latitude}
                       disabled={!canEdit}
-                      placeholder="-18.9219"
+                      placeholder="-18.9219317"
                       inputMode="decimal"
                       onChange={(e) => update({ origem_latitude: e.target.value.trim() })}
                     />
@@ -1312,31 +1285,21 @@ export function EmpresasPage() {
                     <input
                       value={form.origem_longitude}
                       disabled={!canEdit}
-                      placeholder="-48.2943"
+                      placeholder="-48.2943462"
                       inputMode="decimal"
                       onChange={(e) => update({ origem_longitude: e.target.value.trim() })}
                     />
                   </div>
                   <div className="form-group span-2">
-                    <label>Origem operacional</label>
-                    <div className="input-action">
-                      <input
-                        readOnly
-                        value={formatLatLng(form.origem_latitude, form.origem_longitude) || '—'}
-                        aria-label="Origem operacional latitude e longitude"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={!canEdit || consulting === 'origem-geo'}
-                        onClick={() => void consultarOrigemPeloCep()}
-                      >
-                        {consulting === 'origem-geo' ? '…' : 'Preencher pelo CEP'}
-                      </button>
-                    </div>
+                    <label>Origem operacional (planta)</label>
+                    <input
+                      readOnly
+                      value={formatLatLng(form.origem_latitude, form.origem_longitude) || '—'}
+                      aria-label="Origem operacional latitude e longitude"
+                    />
                     <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                      Ponto A da rota de carro até o parceiro (planta). Não é o endereço fiscal da
-                      NF-e — pode ser informado à mão.
+                      Ponto A da rota. É a planta, não o CEP fiscal. Não preencher pelo CEP —
+                      o centroide da cidade colide com o parceiro e finge 0 km.
                     </p>
                   </div>
                 </div>
@@ -1382,32 +1345,32 @@ const HISTORICO_FISCAL_SORT = {
 };
 
 function HistoricoFiscalTable({ rows }: { rows: EmpresaFiscalHistorico[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, HISTORICO_FISCAL_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, HISTORICO_FISCAL_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="inicio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="inicio" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Início
             </SortableTh>
-            <SortableTh column="fim" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="fim" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Fim
             </SortableTh>
-            <SortableTh column="ie" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="ie" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               IE
             </SortableTh>
-            <SortableTh column="ie_status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="ie_status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status IE
             </SortableTh>
-            <SortableTh column="regime" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="regime" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Regime
             </SortableTh>
-            <SortableTh column="crt" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="crt" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CRT
             </SortableTh>
-            <SortableTh column="motivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="motivo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Motivo
             </SortableTh>
           </tr>

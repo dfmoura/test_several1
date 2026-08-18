@@ -1,257 +1,181 @@
-import type { ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
+import { StatusPill } from '../components/StatusPill';
 import {
-  IconAi,
+  IconArrow,
   IconAsset,
-  IconBuilding,
-  IconDepartamento,
-  IconFaca,
-  IconHub,
-  IconNatureza,
+  IconEstoque,
+  IconFinanceiro,
   IconOrcamento,
-  IconPartners,
-  IconProduct,
-  IconSettings,
-  IconUsers,
 } from '../components/NavIcons';
 import { useAuth } from '../lib/auth';
-import { BRAND } from '../lib/brand';
+import { api, type PainelCard, type PainelData } from '../lib/api';
+import { formatCurrency } from '../lib/format';
 
-type DashLink = {
-  to: string;
-  title: string;
-  blurb: string;
-  icon: ComponentType<{ className?: string }>;
-  visible: boolean;
+const KPI_ICON: Record<string, ComponentType<{ className?: string }>> = {
+  orcamentos: IconOrcamento,
+  pedidos: IconOrcamento,
+  producao: IconAsset,
+  expedicao: IconEstoque,
+  receber: IconFinanceiro,
+  pagar: IconFinanceiro,
 };
 
-type DashArea = {
-  id: string;
-  label: string;
-  links: DashLink[];
-};
+function formatKpi(card: PainelCard): string {
+  if (card.formato === 'moeda') {
+    return formatCurrency(card.valor);
+  }
+  return Number(card.valor).toLocaleString('pt-BR');
+}
 
 export function DashboardPage() {
-  const { hasPermission, hasAnyPermission, user, empresas, empresaId, roles } = useAuth();
+  const { user, empresas, empresaId, roles } = useAuth();
   const currentEmpresa = empresas.find((e) => e.id === empresaId);
   const empresaNome = currentEmpresa
     ? (currentEmpresa.nome_fantasia ?? currentEmpresa.razao_social)
     : null;
   const firstName = user?.name?.split(' ')[0] ?? 'usuário';
+  const vendaOn = currentEmpresa?.venda_ativa !== false;
+  const estoqueOn = currentEmpresa?.estoque_ativo !== false;
 
-  /**
-   * Prioridades por área — não é sitemap (isso é o menu lateral).
-   * Escala com M01–M11: novos módulos entram no grupo certo, sem lista infinita.
-   */
-  const areas: DashArea[] = [
-    {
-      id: 'comercial',
-      label: 'Comercial',
-      links: [
-        {
-          to: '/orcamentos',
-          title: 'Orçamentos',
-          blurb: 'Rascunhos e cálculo',
-          icon: IconOrcamento,
-          visible: hasPermission('orcamento.ler'),
-        },
-        {
-          to: '/mapa-facas',
-          title: 'Mapa de facas',
-          blurb: 'Catálogo com desenho',
-          icon: IconFaca,
-          visible: hasPermission('orcamento.ler'),
-        },
-      ],
-    },
-    {
-      id: 'cadastros',
-      label: 'Cadastros',
-      links: [
-        {
-          to: '/parceiros',
-          title: 'Parceiros',
-          blurb: 'Clientes e fornecedores',
-          icon: IconPartners,
-          visible: hasPermission('parceiro.ler'),
-        },
-        {
-          to: '/produtos',
-          title: 'Produtos',
-          blurb: 'MP, acabados e serviços',
-          icon: IconProduct,
-          visible: hasPermission('produto.ler'),
-        },
-        {
-          to: '/patrimonio',
-          title: 'Patrimônio',
-          blurb: 'Máquinas e bens (BEM)',
-          icon: IconAsset,
-          visible: hasPermission('patrimonio.ler'),
-        },
-        {
-          to: '/departamentos',
-          title: 'Departamentos',
-          blurb: 'Áreas organizacionais (DEP)',
-          icon: IconDepartamento,
-          visible: hasPermission('departamento.ler'),
-        },
-        {
-          to: '/naturezas-gerenciais',
-          title: 'Naturezas gerenciais',
-          blurb: 'Receita, custo e despesa (NAT)',
-          icon: IconNatureza,
-          visible: hasPermission('natureza_gerencial.ler'),
-        },
-        {
-          to: '/empresas',
-          title: 'Empresas',
-          blurb: 'Multi-CNPJ e filiais',
-          icon: IconBuilding,
-          visible: true,
-        },
-      ],
-    },
-    {
-      id: 'administracao',
-      label: 'Administração',
-      links: [
-        {
-          to: '/usuarios',
-          title: 'Usuários',
-          blurb: 'Contas e perfis',
-          icon: IconUsers,
-          visible: hasPermission('usuarios.gerir'),
-        },
-        {
-          to: '/parametros',
-          title: 'Parâmetros',
-          blurb: 'Regras da empresa',
-          icon: IconSettings,
-          visible: hasPermission('parametros.gerir'),
-        },
-        {
-          to: '/ia-provedores',
-          title: 'Provedores de IA',
-          blurb: 'Tokens e endpoints',
-          icon: IconAi,
-          visible: hasPermission('ia.provedores.gerir'),
-        },
-        {
-          to: '/fiscal-hubs',
-          title: 'Hubs fiscais',
-          blurb: 'Focus e integrações',
-          icon: IconHub,
-          visible: hasPermission('fiscal.hubs.gerir'),
-        },
-      ],
-    },
-  ]
-    .map((area) => ({
-      ...area,
-      links: area.links.filter((link) => link.visible),
-    }))
-    .filter((area) => area.links.length > 0);
+  const [painel, setPainel] = useState<PainelData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setErro(null);
+    void api
+      .get<{ data: PainelData }>('/painel')
+      .then((res) => {
+        if (alive) setPainel(res.data);
+      })
+      .catch((e: unknown) => {
+        if (alive) setErro(e instanceof Error ? e.message : 'Falha ao carregar o painel.');
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [empresaId]);
 
   return (
     <>
       <PageHeader
-        title={`Olá, ${firstName}`}
-        description={`${BRAND.licensee.productName} · licenciado para ${BRAND.licensee.shortName}. Tudo abaixo vale só para a empresa ativa (EMP) — não é a marca nem outro sistema.`}
+        title="Painel"
+        description={`Olá, ${firstName}. Números e filas da empresa ativa — o menu cobre o restante.`}
       />
 
-      <section className="dash-context" aria-label="Contexto da sessão">
-        <div className="dash-context-item">
-          <span className="dash-context-label">{BRAND.licensee.productLabel}</span>
-          <strong>{BRAND.licensee.productName}</strong>
-          <span className="dash-context-note">Obra TRIGGER · byline no menu</span>
-        </div>
-        <div className="dash-context-item">
-          <span className="dash-context-label">Licenciado</span>
-          <strong>{BRAND.licensee.shortName}</strong>
-          <span className="dash-context-note">Contrato · logo no menu</span>
-        </div>
-        <div className="dash-context-item">
-          <span className="dash-context-label">Empresa ativa</span>
-          {currentEmpresa ? (
-            <div className="empresa-active empresa-active--dash">
-              <span className="empresa-code">{currentEmpresa.codigo}</span>
-              <span className="empresa-name">{empresaNome}</span>
-            </div>
-          ) : (
-            <strong>Nenhuma selecionada</strong>
-          )}
-          {empresas.length > 1 ? (
-            <span className="dash-context-note">
-              Troque no topo · {empresas.length} liberadas nesta conta
-            </span>
-          ) : (
-            <span className="dash-context-note">Uma EMP nesta conta — sem seletor</span>
-          )}
-        </div>
-        <div className="dash-context-item">
-          <span className="dash-context-label">Perfil</span>
-          <strong>{roles.length ? roles.join(', ') : '—'}</strong>
+      <section className="dash-context" aria-label="Empresa ativa">
+        {currentEmpresa ? (
+          <div className="empresa-active empresa-active--dash">
+            <span className="empresa-code">{currentEmpresa.codigo}</span>
+            <span className="empresa-name">{empresaNome}</span>
+          </div>
+        ) : (
+          <strong>Nenhuma EMP selecionada</strong>
+        )}
+        {roles.length > 0 ? (
+          <span className="dash-context-role">{roles.join(' · ')}</span>
+        ) : null}
+        <StatusPill status={vendaOn ? 'VENDA ATIVA' : 'VENDA OFF'} />
+        <StatusPill status={estoqueOn ? 'ESTOQUE ATIVO' : 'ESTOQUE OFF'} />
+        {empresas.length > 1 ? (
           <span className="dash-context-note">
-            {currentEmpresa
-              ? [
-                  currentEmpresa.venda_ativa === false ? 'Venda off' : 'Venda on',
-                  currentEmpresa.estoque_ativo === false ? 'Estoque off' : 'Estoque on',
-                ].join(' · ')
-              : 'Ações permitidas'}
+            Troque no topo · {empresas.length} liberadas nesta conta
           </span>
-        </div>
+        ) : null}
       </section>
 
-      <section className="dash-priorities" aria-label="Prioridades por área">
-        <div className="dash-section-head">
-          <h2>Prioridades</h2>
-          <p>Entrada por área de trabalho. O menu lateral cobre o catálogo completo.</p>
+      {(!vendaOn || !estoqueOn) && (
+        <div className="alert alert-warning" role="status">
+          {!vendaOn && !estoqueOn
+            ? 'Venda e estoque desligados nesta EMP — operação comercial e de saldo ficam fora daqui.'
+            : !vendaOn
+              ? 'Venda desligada nesta EMP — comercial e faturamento não operam aqui.'
+              : 'Estoque desligado nesta EMP — saldos e movimentação não operam aqui.'}
         </div>
+      )}
 
-        <div className="dash-area-stack">
-          {areas.map((area) => (
-            <div key={area.id} className="dash-area">
-              <h3 className="dash-area-label">{area.label}</h3>
-              <div className="dash-tile-grid">
-                {area.links.map((link) => {
-                  const Icon = link.icon;
+      {erro ? (
+        <div className="alert alert-error" role="alert">
+          {erro}
+        </div>
+      ) : (
+        <>
+          <section className="dash-cadeia" aria-label="Cadeia operacional">
+            <div className="dash-section-head">
+              <h2>Em curso</h2>
+              <p>Do orçamento ao caixa — só desta EMP.</p>
+            </div>
+
+            {loading ? (
+              <p className="loading">Carregando o painel…</p>
+            ) : painel && painel.cadeia.length > 0 ? (
+              <div className="dash-kpi-grid">
+                {painel.cadeia.map((card) => {
+                  const Icon = KPI_ICON[card.id] ?? IconOrcamento;
                   return (
-                    <Link key={link.to} to={link.to} className="dash-tile">
-                      <span className="dash-tile-icon">
+                    <Link
+                      key={card.id}
+                      to={card.to}
+                      className={`dash-kpi${card.alerta ? ' dash-kpi--alerta' : ''}`}
+                    >
+                      <span className="dash-kpi-icon">
                         <Icon />
                       </span>
-                      <span className="dash-tile-text">
-                        <span className="dash-tile-title">{link.title}</span>
-                        <span className="dash-tile-blurb">{link.blurb}</span>
-                      </span>
+                      <span className="dash-kpi-label">{card.label}</span>
+                      <strong className="dash-kpi-value">{formatKpi(card)}</strong>
+                      <span className="dash-kpi-hint">{card.hint}</span>
                     </Link>
                   );
                 })}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ) : (
+              <div className="card">
+                <div className="card-body">
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                    Seu perfil possui acesso limitado. Entre em contato com o administrador para
+                    solicitar permissões adicionais.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
 
-      {!hasAnyPermission(
-        'parceiro.ler',
-        'produto.ler',
-        'patrimonio.ler',
-        'departamento.ler',
-        'orcamento.ler',
-        'usuarios.gerir',
-        'parametros.gerir',
-      ) && (
-        <div className="card" style={{ marginTop: '1.5rem' }}>
-          <div className="card-body">
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-              Seu perfil possui acesso limitado. Entre em contato com o administrador para
-              solicitar permissões adicionais.
-            </p>
-          </div>
-        </div>
+          {!loading && painel && painel.cadeia.length > 0 ? (
+            <section className="dash-filas" aria-label="Filas que pedem ação">
+              <div className="dash-section-head">
+                <h2>Atenção</h2>
+                <p>
+                  {painel.filas.length > 0
+                    ? 'O que pede ação agora nesta EMP.'
+                    : 'Nada pendente nesta EMP no momento.'}
+                </p>
+              </div>
+              {painel.filas.length > 0 ? (
+                <ul className="dash-fila-list">
+                  {painel.filas.map((fila) => (
+                    <li key={fila.id}>
+                      <Link to={fila.to} className="dash-fila">
+                        <span className="dash-fila-text">
+                          <span className="dash-fila-title">{fila.label}</span>
+                          <span className="dash-fila-hint">{fila.hint}</span>
+                        </span>
+                        <span className="dash-fila-count">{fila.count}</span>
+                        <IconArrow />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ) : null}
+        </>
       )}
     </>
   );

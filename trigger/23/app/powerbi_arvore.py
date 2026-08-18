@@ -14,7 +14,7 @@ from app.database import PbiContrato, PbiContratoResponsavel, PbiProcessoLicitat
 _CTR_OPTS = (
     selectinload(PbiContrato.orgao),
     selectinload(PbiContrato.fornecedor),
-    selectinload(PbiContrato.processo_licitatorio),
+    selectinload(PbiContrato.processo_licitatorio).selectinload(PbiProcessoLicitatorio.observador),
     selectinload(PbiContrato.observador),
 )
 _RESP_OPTS = (
@@ -23,6 +23,9 @@ _RESP_OPTS = (
     selectinload(PbiContratoResponsavel.orgao),
     selectinload(PbiContratoResponsavel.fornecedor),
     selectinload(PbiContratoResponsavel.observador),
+    selectinload(PbiContratoResponsavel.contrato)
+    .selectinload(PbiContrato.processo_licitatorio)
+    .selectinload(PbiProcessoLicitatorio.observador),
 )
 
 

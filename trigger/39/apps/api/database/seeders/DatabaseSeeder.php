@@ -10,6 +10,7 @@ use App\Models\EmpresaContaFinanceira;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\ParametroEmpresa;
 use App\Models\Parceiro;
+use App\Models\ParceiroContato;
 use App\Models\User;
 use App\Services\Cadastros\DepartamentoService;
 use Illuminate\Database\Seeder;
@@ -56,6 +57,12 @@ class DatabaseSeeder extends Seeder
         // BL-049
         'faturamento.ler',
         'faturamento.escrever',
+        // BL-060
+        'expedicao.ler',
+        'expedicao.escrever',
+        // BL-061
+        'comissao.ler',
+        'comissao.escrever',
     ];
 
     private const ROLES = [
@@ -82,6 +89,8 @@ class DatabaseSeeder extends Seeder
             'faturamento.escrever',
             'financeiro.ler',
             'producao.ler',
+            'expedicao.ler',
+            'comissao.ler',
         ],
         'FINANCEIRO' => [
             'parceiro.ler',
@@ -100,6 +109,9 @@ class DatabaseSeeder extends Seeder
             'producao.ler',
             'faturamento.ler',
             'faturamento.escrever',
+            'expedicao.ler',
+            'comissao.ler',
+            'comissao.escrever',
         ],
         'COMERCIAL' => [
             'parceiro.ler',
@@ -112,6 +124,8 @@ class DatabaseSeeder extends Seeder
             'producao.ler',
             'faturamento.ler',
             'faturamento.escrever',
+            'expedicao.ler',
+            'comissao.ler',
         ],
         'PRODUCAO' => [
             'produto.ler',
@@ -122,6 +136,8 @@ class DatabaseSeeder extends Seeder
             'producao.ler',
             'producao.escrever',
             'faturamento.ler',
+            'expedicao.ler',
+            'expedicao.escrever',
         ],
         'COMPRAS' => [
             'parceiro.ler',
@@ -135,7 +151,14 @@ class DatabaseSeeder extends Seeder
             'estoque.ler',
             'estoque.escrever',
         ],
-        'EXPEDICAO' => ['parceiro.ler', 'produto.ler', 'producao.ler', 'faturamento.ler'],
+        'EXPEDICAO' => [
+            'parceiro.ler',
+            'produto.ler',
+            'producao.ler',
+            'faturamento.ler',
+            'expedicao.ler',
+            'expedicao.escrever',
+        ],
         'CONSULTA' => [
             'parceiro.ler',
             'produto.ler',
@@ -148,6 +171,8 @@ class DatabaseSeeder extends Seeder
             'financeiro.ler',
             'producao.ler',
             'faturamento.ler',
+            'expedicao.ler',
+            'comissao.ler',
         ],
     ];
 
@@ -231,12 +256,10 @@ class DatabaseSeeder extends Seeder
             $emp1->restore();
         }
 
-        if ($emp1->origem_latitude === null || $emp1->origem_longitude === null) {
-            $emp1->forceFill([
-                'origem_latitude' => '-18.9219000',
-                'origem_longitude' => '-48.2943000',
-            ])->save();
-        }
+        $emp1->forceFill([
+            'origem_latitude' => '-18.9219317',
+            'origem_longitude' => '-48.2943462',
+        ])->save();
 
         $emp2 = Empresa::withTrashed()->firstOrCreate(
             ['codigo' => 'EMP-00002'],
@@ -316,6 +339,7 @@ class DatabaseSeeder extends Seeder
             ['chave' => 'emp_00002_venda_habilitada', 'valor' => 'NÃO', 'status' => 'APROVADO'],
             ['chave' => 'lai_no_erp', 'valor' => 'NÃO', 'status' => 'APROVADO'],
             ['chave' => 'valor_minimo_capitalizar_bem', 'valor' => '1000', 'status' => 'APROVADO'],
+            ['chave' => 'politica_nf_antes_expedir', 'valor' => 'SIM', 'status' => 'APROVADO'],
         ];
 
         foreach ($parametrosEmp1 as $param) {
@@ -442,7 +466,25 @@ class DatabaseSeeder extends Seeder
 
     private function seedCliente(Empresa $emp1): void
     {
-        Parceiro::query()->firstOrCreate(
+        $vendedor = Parceiro::query()->firstOrCreate(
+            ['empresa_id' => $emp1->id, 'codigo' => 'PAR-00011'],
+            [
+                'tipo_pessoa' => 'PF',
+                'razao_social' => 'VENDEDOR EXEMPLO',
+                'nome_fantasia' => 'Vendedor Exemplo',
+                'papel_vendedor' => true,
+                'situacao' => 'ATIVO',
+                'is_prospect' => false,
+                'comissao_percentual' => '3.0000',
+            ]
+        );
+        if (! $vendedor->papel_vendedor) {
+            $vendedor->papel_vendedor = true;
+            $vendedor->comissao_percentual = $vendedor->comissao_percentual ?: '3.0000';
+            $vendedor->save();
+        }
+
+        $cliente = Parceiro::query()->firstOrCreate(
             ['empresa_id' => $emp1->id, 'codigo' => 'PAR-00010'],
             [
                 'tipo_pessoa' => 'PJ',
@@ -454,6 +496,9 @@ class DatabaseSeeder extends Seeder
                 'cadastro_fiscal_completo' => true,
                 'limite_credito' => '50000.00',
                 'credito_utilizado' => '0.00',
+                'vendedor_parceiro_id' => $vendedor->id,
+                'condicao_pagamento' => '28 DDL',
+                'forma_pagamento' => 'PIX',
                 'logradouro' => 'Av. Brasil',
                 'numero' => '500',
                 'bairro' => 'Centro',
@@ -461,16 +506,34 @@ class DatabaseSeeder extends Seeder
                 'uf' => 'MG',
                 'cep' => '38400100',
                 'email' => 'compras@cliente-exemplo.com.br',
+                'whatsapp' => '34988880010',
+                'contato_nome' => 'Compras Exemplo',
+            ]
+        );
+        if (! $cliente->vendedor_parceiro_id) {
+            $cliente->vendedor_parceiro_id = $vendedor->id;
+            $cliente->save();
+        }
+
+        ParceiroContato::query()->firstOrCreate(
+            ['parceiro_id' => $cliente->id, 'principal' => true],
+            [
+                'nome' => 'Compras Exemplo',
+                'funcao' => 'Compras',
+                'whatsapp' => '34988880010',
+                'email' => 'compras@cliente-exemplo.com.br',
+                'autorizado_aprovar' => true,
+                'ordem' => 0,
             ]
         );
 
-        // PAR-00010 é código explícito do seed — sequência precisa ficar à frente.
+        // PAR-00010/00011 são códigos explícitos do seed — sequência precisa ficar à frente.
         $seq = CodigoSequence::query()->firstOrCreate(
             ['empresa_id' => $emp1->id, 'prefixo' => 'PAR'],
-            ['proximo' => 11]
+            ['proximo' => 12]
         );
-        if ((int) $seq->proximo < 11) {
-            $seq->update(['proximo' => 11]);
+        if ((int) $seq->proximo < 12) {
+            $seq->update(['proximo' => 12]);
         }
     }
 

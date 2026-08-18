@@ -18,26 +18,26 @@ const QSA_SORT = {
 };
 
 function QsaSociosTable({ socios }: { socios: SocioQsa[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(socios, QSA_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(socios, QSA_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Nome
             </SortableTh>
-            <SortableTh column="qualificacao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="qualificacao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Qualificação
             </SortableTh>
-            <SortableTh column="cpf" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cpf" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CPF/CNPJ
             </SortableTh>
-            <SortableTh column="entrada" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="entrada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Entrada
             </SortableTh>
-            <SortableTh column="faixa" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="faixa" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Faixa etária
             </SortableTh>
           </tr>

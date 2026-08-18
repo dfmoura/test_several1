@@ -10,7 +10,7 @@ TRIGGER → FLEXOERP (produto) → RLP (licenciado) → 1 instalação → EMP-0
 
 O mesmo esqueleto vale para outro contrato (outro licenciado → EMPs X/Y/Z). Norma: [`docs/MODELO_INSTALACAO_MULTI_EMPRESA.md`](docs/MODELO_INSTALACAO_MULTI_EMPRESA.md).
 
-Base normativa: `../32` (domínio, cadastros, RBAC, Lightsail/AWS Cenário D) · Proposta comercial: `../37` · Esboço anterior: `../36`.
+Base normativa: `../32` (domínio, cadastros, RBAC, Lightsail/AWS Cenário D) · Proposta comercial v3: [`proposta/`](proposta/) (pacote R$ 25.000 · 20/80 · licença bonificada) · Histórico: `../37`.
 
 ## Escopo desta fase
 
@@ -70,6 +70,12 @@ Parar:
 
 ```bash
 make down
+```
+
+Higiene do banco **local/homolog** (documentos de teste → cadastro canônico + saldo de virada; plataforma e `audit_log` intactos):
+
+```bash
+make limpar-sistema
 ```
 
 ## Estrutura

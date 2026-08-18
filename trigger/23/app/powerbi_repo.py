@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import ColumnElement, delete, select
 from sqlalchemy.orm import Session
 
 from app.database import (
-    POWERBI_CAMPOS_PRESERVADOS_SYNC,
     PbiContrato,
     PbiContratoResponsavel,
     PbiFornecedor,
@@ -118,12 +118,23 @@ def find_contrato(
     return db.scalar(stmt.order_by(PbiContrato.id.desc()))
 
 
-def _preservar_observador(novo: Any, existente: Any | None) -> None:
-    if not existente:
-        return
-    for campo in POWERBI_CAMPOS_PRESERVADOS_SYNC:
-        if getattr(existente, campo, None) is not None:
-            setattr(novo, campo, getattr(existente, campo))
+def _snapshot_observador(
+    db: Session,
+    model: type,
+    chave_fn: Callable[[Any], tuple],
+    where: ColumnElement[bool] | None = None,
+) -> dict[tuple, int]:
+    """Fotografa observador_id pela chave natural ANTES do DELETE da recoleta."""
+    stmt = select(model)
+    if where is not None:
+        stmt = stmt.where(where)
+    out: dict[tuple, int] = {}
+    for row in db.scalars(stmt).all():
+        oid = row.observador_id
+        if oid is None:
+            continue
+        out[chave_fn(row)] = oid
+    return out
 
 
 def importar_processos(
@@ -132,6 +143,12 @@ def importar_processos(
     fonte_ano: int,
 ) -> tuple[int, int, int]:
     """Importa licitações → órgãos + processos licitatórios."""
+    preservados = _snapshot_observador(
+        db,
+        PbiProcessoLicitatorio,
+        lambda p: (p.ano_processo, p.orgao_id, p.processo, p.modalidade),
+        PbiProcessoLicitatorio.fonte_ano_coleta == fonte_ano,
+    )
     removidos = db.execute(
         delete(PbiProcessoLicitatorio).where(PbiProcessoLicitatorio.fonte_ano_coleta == fonte_ano)
     ).rowcount
@@ -157,16 +174,9 @@ def importar_processos(
             continue
         vistos.add(chave)
 
-        existente = db.scalar(
-            select(PbiProcessoLicitatorio).where(
-                PbiProcessoLicitatorio.ano_processo == payload["ano_processo"],
-                PbiProcessoLicitatorio.orgao_id == orgao.id,
-                PbiProcessoLicitatorio.processo == payload["processo"],
-                PbiProcessoLicitatorio.modalidade == payload["modalidade"],
-            )
-        )
         obj = PbiProcessoLicitatorio(orgao_id=orgao.id, **payload)
-        _preservar_observador(obj, existente)
+        if chave in preservados:
+            obj.observador_id = preservados[chave]
         db.add(obj)
         inseridos += 1
 
@@ -180,6 +190,19 @@ def importar_contratos(
     fonte_ano: int,
 ) -> tuple[int, int, int]:
     """Importa contratos → órgãos, fornecedores, vínculo com processo."""
+    preservados = _snapshot_observador(
+        db,
+        PbiContrato,
+        lambda c: (
+            c.ano_contrato,
+            c.orgao_id,
+            c.nr_contrato,
+            c.nr_aditivo,
+            c.nr_parcela,
+            c.processo,
+        ),
+        PbiContrato.fonte_ano_coleta == fonte_ano,
+    )
     removidos = db.execute(
         delete(PbiContrato).where(PbiContrato.fonte_ano_coleta == fonte_ano)
     ).rowcount
@@ -223,23 +246,14 @@ def importar_contratos(
             continue
         vistos.add(chave)
 
-        existente = db.scalar(
-            select(PbiContrato).where(
-                PbiContrato.ano_contrato == payload["ano_contrato"],
-                PbiContrato.orgao_id == orgao.id,
-                PbiContrato.nr_contrato == payload["nr_contrato"],
-                PbiContrato.nr_aditivo == payload["nr_aditivo"],
-                PbiContrato.nr_parcela == payload["nr_parcela"],
-                PbiContrato.processo == payload["processo"],
-            )
-        )
         obj = PbiContrato(
             orgao_id=orgao.id,
             fornecedor_id=fornecedor.id if fornecedor else None,
             processo_id=processo_ref.id if processo_ref else None,
             **payload,
         )
-        _preservar_observador(obj, existente)
+        if chave in preservados:
+            obj.observador_id = preservados[chave]
         db.add(obj)
         inseridos += 1
 

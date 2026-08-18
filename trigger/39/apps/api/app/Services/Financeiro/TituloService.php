@@ -10,11 +10,14 @@ use App\Models\Faturamento;
 use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
 use App\Models\OrdemCompra;
+use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Models\TituloBaixa;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
+use App\Support\TituloAging;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -25,11 +28,51 @@ class TituloService
     ) {}
 
     /**
+     * @param  array<string, mixed>  $filters
+     * @return array{data: list<array<string, mixed>>, meta: array<string, mixed>}
+     */
+    public function listCarteira(Empresa $empresa, string $tipo, array $filters = []): array
+    {
+        $query = $this->baseQuery($empresa, $tipo);
+        $this->applyBusca($query, $filters['q'] ?? null);
+        $this->applyParceiroNatureza($query, $filters);
+
+        $resumo = $this->montarResumo(clone $query, $empresa);
+
+        $this->applySituacao($query, $filters['situacao'] ?? null, $filters['status'] ?? null);
+        $this->applyFaixa($query, $filters['faixa'] ?? null);
+
+        $data = $query
+            ->orderBy('vencimento')
+            ->orderBy('codigo')
+            ->get()
+            ->map(fn (Titulo $t) => $this->toOut($t))
+            ->all();
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'tipo' => $tipo,
+                'statuses' => Titulo::STATUSES,
+                'formas' => Titulo::FORMAS,
+                'faixas' => TituloAging::labels(),
+                'aging' => $resumo['aging'],
+                'aberto' => $resumo['aberto'],
+                'previsao' => $resumo['previsao'],
+            ],
+        ];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function listPagar(Empresa $empresa, ?string $q = null, ?string $status = null, ?int $parceiroId = null): array
     {
-        return $this->listByTipo($empresa, Titulo::TIPO_PAGAR, $q, $status, $parceiroId);
+        return $this->listCarteira($empresa, Titulo::TIPO_PAGAR, [
+            'q' => $q,
+            'status' => $status,
+            'parceiro_id' => $parceiroId,
+        ])['data'];
     }
 
     /**
@@ -37,56 +80,11 @@ class TituloService
      */
     public function listReceber(Empresa $empresa, ?string $q = null, ?string $status = null, ?int $parceiroId = null): array
     {
-        return $this->listByTipo($empresa, Titulo::TIPO_RECEBER, $q, $status, $parceiroId);
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function listByTipo(
-        Empresa $empresa,
-        string $tipo,
-        ?string $q = null,
-        ?string $status = null,
-        ?int $parceiroId = null,
-    ): array {
-        $query = Titulo::query()
-            ->with([
-                'parceiro:id,codigo,razao_social,nome_fantasia',
-                'natureza:id,codigo,codigo_exibicao,nome',
-                'ordemCompra:id,codigo',
-                'orcamento:id,codigo,financeiro_status',
-                'pedido:id,codigo',
-                'faturamento:id,codigo',
-                'cobrancas',
-                'baixas',
-                ...Titulo::userStampWith(),
-            ])
-            ->where('empresa_id', $empresa->id)
-            ->where('tipo', $tipo)
-            ->orderByDesc('id');
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        if ($parceiroId) {
-            $query->where('parceiro_id', $parceiroId);
-        }
-
-        if ($q) {
-            $like = '%'.$q.'%';
-            $query->where(function ($inner) use ($like) {
-                $inner->where('codigo', 'like', $like)
-                    ->orWhere('documento', 'like', $like)
-                    ->orWhereHas('parceiro', function ($pq) use ($like) {
-                        $pq->where('codigo', 'like', $like)
-                            ->orWhere('razao_social', 'like', $like);
-                    });
-            });
-        }
-
-        return $query->get()->map(fn (Titulo $t) => $this->toOut($t))->all();
+        return $this->listCarteira($empresa, Titulo::TIPO_RECEBER, [
+            'q' => $q,
+            'status' => $status,
+            'parceiro_id' => $parceiroId,
+        ])['data'];
     }
 
     public function criarReceberAdiantamento(
@@ -160,6 +158,106 @@ class TituloService
             'status' => Titulo::STATUS_ABERTO,
             'observacao' => $observacao,
         ]);
+    }
+
+    public function criarPagarComissao(
+        Empresa $empresa,
+        int $vendedorParceiroId,
+        NaturezaGerencial $natureza,
+        string $valor,
+        string $emissao,
+        string $vencimento,
+        string $documento,
+        ?string $observacao,
+    ): Titulo {
+        $ano = (int) now()->year;
+        $codigo = $this->codigos->nextCode($empresa->id, 'TIT-'.$ano, 5);
+
+        return Titulo::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => $codigo,
+            'tipo' => Titulo::TIPO_PAGAR,
+            'parceiro_id' => $vendedorParceiroId,
+            'natureza_id' => $natureza->id,
+            'origem' => ComissaoService::ORIGEM_TITULO,
+            'documento' => $documento,
+            'parcela' => 1,
+            'emissao' => $emissao,
+            'vencimento' => $vencimento,
+            'valor' => $valor,
+            'saldo' => $valor,
+            'status' => Titulo::STATUS_ABERTO,
+            'observacao' => $observacao,
+        ]);
+    }
+
+    /**
+     * Lançamento pontual (origem AVULSO). Não substitui FAT/OC/CFE.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function criarAvulso(Empresa $empresa, array $data): Titulo
+    {
+        $tipo = strtoupper((string) $data['tipo']);
+        if (! in_array($tipo, Titulo::TIPOS, true)) {
+            throw ValidationException::withMessages([
+                'tipo' => ['Tipo deve ser PAGAR ou RECEBER.'],
+            ]);
+        }
+
+        $parceiro = Parceiro::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', (int) $data['parceiro_id'])
+            ->first();
+        if (! $parceiro) {
+            throw ValidationException::withMessages([
+                'parceiro_id' => ['Parceiro inválido para a empresa.'],
+            ]);
+        }
+
+        $natureza = $this->assertNaturezaAvulso($tipo, (int) $data['natureza_id'], $data['observacao'] ?? null);
+
+        $valor = PadraoDecimal::parseStrict((string) $data['valor'], PadraoDecimal::SCALE_MONEY);
+        if ($valor === null || bccomp($valor, '0', PadraoDecimal::SCALE_MONEY) <= 0) {
+            throw ValidationException::withMessages([
+                'valor' => ['Valor deve ser maior que zero.'],
+            ]);
+        }
+
+        $ano = (int) now()->year;
+        $codigo = $this->codigos->nextCode($empresa->id, 'TIT-'.$ano, 5);
+
+        return Titulo::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => $codigo,
+            'tipo' => $tipo,
+            'parceiro_id' => $parceiro->id,
+            'natureza_id' => $natureza->id,
+            'origem' => Titulo::ORIGEM_AVULSO,
+            'documento' => $this->nullIfEmpty($data['documento'] ?? null),
+            'parcela' => 1,
+            'emissao' => $data['emissao'],
+            'vencimento' => $data['vencimento'],
+            'valor' => $valor,
+            'saldo' => $valor,
+            'status' => Titulo::STATUS_ABERTO,
+            'observacao' => $this->nullIfEmpty($data['observacao'] ?? null),
+        ]);
+    }
+
+    public function cancelarAvulso(Empresa $empresa, Titulo $titulo, string $motivo): Titulo
+    {
+        if ($titulo->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        if ($titulo->origem !== Titulo::ORIGEM_AVULSO) {
+            throw ValidationException::withMessages([
+                'titulo' => ['Só o lançamento pontual pode ser cancelado por aqui. Títulos de fatura, compra, adiantamento ou comissão seguem o documento de origem.'],
+            ]);
+        }
+
+        return $this->cancelarAberto($titulo, $motivo);
     }
 
     /**
@@ -364,6 +462,15 @@ class TituloService
         if ($tituloFresh && $tituloFresh->tipo === Titulo::TIPO_RECEBER) {
             // Lazy resolve evita ciclo no container se AdiantamentoService injeta TituloService.
             app(AdiantamentoService::class)->liberarSeAdiantamentoQuitado($tituloFresh);
+            if ($tituloFresh->pedido_id) {
+                $pedido = Pedido::query()->find($tituloFresh->pedido_id);
+                if ($pedido) {
+                    app(\App\Services\Expedicao\EntregaService::class)->tentarEncerrarPedido($pedido);
+                }
+            }
+        }
+        if ($tituloFresh) {
+            app(ComissaoService::class)->apurarBaixa($tituloFresh, $baixa);
         }
 
         return [
@@ -389,6 +496,12 @@ class TituloService
             ...Titulo::userStampWith(),
         ]);
 
+        $dias = $t->vencimento
+            ? TituloAging::diasAtraso($t->vencimento)
+            : 0;
+        $faixa = TituloAging::faixa($dias);
+        $emAberto = in_array($t->status, [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL], true);
+
         return [
             'id' => $t->id,
             'empresa_id' => $t->empresa_id,
@@ -410,6 +523,10 @@ class TituloService
                 'nome' => $t->natureza->nome,
             ] : null,
             'ordem_compra_id' => $t->ordem_compra_id,
+            'ordem_compra' => $t->ordemCompra ? [
+                'id' => $t->ordemCompra->id,
+                'codigo' => $t->ordemCompra->codigo,
+            ] : null,
             'movimento_id' => $t->movimento_id,
             'orcamento_id' => $t->orcamento_id,
             'orcamento' => $t->orcamento ? [
@@ -436,6 +553,9 @@ class TituloService
             'saldo' => (string) $t->saldo,
             'status' => $t->status,
             'observacao' => $t->observacao,
+            'dias_atraso' => $emAberto ? $dias : 0,
+            'faixa_aging' => $emAberto ? $faixa : null,
+            'vencido' => $emAberto && TituloAging::vencido($dias),
             'cobrancas' => $t->relationLoaded('cobrancas')
                 ? $t->cobrancas->map(fn (Cobranca $c) => [
                     'id' => $c->id,
@@ -497,5 +617,237 @@ class TituloService
         }
 
         return $value;
+    }
+
+    private function baseQuery(Empresa $empresa, string $tipo): Builder
+    {
+        return Titulo::query()
+            ->with([
+                'parceiro:id,codigo,razao_social,nome_fantasia',
+                'natureza:id,codigo,codigo_exibicao,nome',
+                'ordemCompra:id,codigo',
+                'orcamento:id,codigo,financeiro_status',
+                'pedido:id,codigo',
+                'faturamento:id,codigo',
+                'cobrancas',
+                'baixas.contaFinanceira:id,codigo,descricao',
+                ...Titulo::userStampWith(),
+            ])
+            ->where('empresa_id', $empresa->id)
+            ->where('tipo', $tipo);
+    }
+
+    private function applyBusca(Builder $query, ?string $q): void
+    {
+        if ($q === null || trim($q) === '') {
+            return;
+        }
+
+        $like = '%'.$q.'%';
+        $query->where(function ($inner) use ($like) {
+            $inner->where('codigo', 'like', $like)
+                ->orWhere('documento', 'like', $like)
+                ->orWhereHas('parceiro', function ($pq) use ($like) {
+                    $pq->where('codigo', 'like', $like)
+                        ->orWhere('razao_social', 'like', $like)
+                        ->orWhere('nome_fantasia', 'like', $like);
+                })
+                ->orWhereHas('pedido', fn ($p) => $p->where('codigo', 'like', $like))
+                ->orWhereHas('faturamento', fn ($p) => $p->where('codigo', 'like', $like))
+                ->orWhereHas('ordemCompra', fn ($p) => $p->where('codigo', 'like', $like))
+                ->orWhereHas('natureza', function ($nq) use ($like) {
+                    $nq->where('codigo', 'like', $like)
+                        ->orWhere('codigo_exibicao', 'like', $like)
+                        ->orWhere('nome', 'like', $like);
+                });
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyParceiroNatureza(Builder $query, array $filters): void
+    {
+        if (! empty($filters['parceiro_id'])) {
+            $query->where('parceiro_id', (int) $filters['parceiro_id']);
+        }
+        if (! empty($filters['natureza_id'])) {
+            $query->where('natureza_id', (int) $filters['natureza_id']);
+        }
+    }
+
+    private function applySituacao(Builder $query, ?string $situacao, ?string $status): void
+    {
+        if ($status) {
+            $query->where('status', $status);
+
+            return;
+        }
+
+        $sit = strtolower((string) $situacao);
+        if ($sit === 'aberto') {
+            $query->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL]);
+        }
+    }
+
+    private function applyFaixa(Builder $query, ?string $faixa): void
+    {
+        if ($faixa === null || $faixa === '') {
+            return;
+        }
+
+        $hoje = now()->toDateString();
+        $query->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL]);
+
+        match ($faixa) {
+            TituloAging::A_VENCER => $query->whereDate('vencimento', '>', $hoje),
+            TituloAging::VENCE_HOJE => $query->whereDate('vencimento', '=', $hoje),
+            TituloAging::VENCIDO => $query->whereDate('vencimento', '<', $hoje),
+            TituloAging::D_1_30 => $query
+                ->whereDate('vencimento', '<', $hoje)
+                ->whereDate('vencimento', '>=', now()->subDays(30)->toDateString()),
+            TituloAging::D_31_60 => $query
+                ->whereDate('vencimento', '<', now()->subDays(30)->toDateString())
+                ->whereDate('vencimento', '>=', now()->subDays(60)->toDateString()),
+            TituloAging::D_61_90 => $query
+                ->whereDate('vencimento', '<', now()->subDays(60)->toDateString())
+                ->whereDate('vencimento', '>=', now()->subDays(90)->toDateString()),
+            TituloAging::D_90_MAIS => $query->whereDate('vencimento', '<', now()->subDays(90)->toDateString()),
+            default => null,
+        };
+    }
+
+    /**
+     * @return array{aging: list<array<string, mixed>>, aberto: array<string, mixed>, previsao: array<string, mixed>}
+     */
+    private function montarResumo(Builder $base, Empresa $empresa): array
+    {
+        $abertos = (clone $base)
+            ->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL])
+            ->get(['id', 'vencimento', 'saldo']);
+
+        $saldos = [];
+        $contagens = [];
+        foreach (TituloAging::FAIXAS as $id) {
+            $saldos[$id] = '0.00';
+            $contagens[$id] = 0;
+        }
+
+        $abertoSaldo = '0.00';
+        foreach ($abertos as $t) {
+            $saldo = PadraoDecimal::roundHalfUp((string) $t->saldo, PadraoDecimal::SCALE_MONEY);
+            $abertoSaldo = PadraoDecimal::roundHalfUp(
+                bcadd($abertoSaldo, $saldo, PadraoDecimal::SCALE_MONEY + 2),
+                PadraoDecimal::SCALE_MONEY
+            );
+            $faixa = $t->vencimento
+                ? TituloAging::faixaDeVencimento($t->vencimento)
+                : TituloAging::VENCE_HOJE;
+            $contagens[$faixa]++;
+            $saldos[$faixa] = PadraoDecimal::roundHalfUp(
+                bcadd($saldos[$faixa], $saldo, PadraoDecimal::SCALE_MONEY + 2),
+                PadraoDecimal::SCALE_MONEY
+            );
+        }
+
+        $aging = [];
+        foreach (TituloAging::labels() as $label) {
+            $id = $label['id'];
+            $aging[] = [
+                'id' => $id,
+                'label' => $label['label'],
+                'count' => $contagens[$id],
+                'saldo' => $saldos[$id],
+            ];
+        }
+
+        $receber = $this->saldoAbertoTipo($empresa, Titulo::TIPO_RECEBER);
+        $pagar = $this->saldoAbertoTipo($empresa, Titulo::TIPO_PAGAR);
+        $liquido = PadraoDecimal::roundHalfUp(
+            bcsub($receber, $pagar, PadraoDecimal::SCALE_MONEY + 2),
+            PadraoDecimal::SCALE_MONEY
+        );
+
+        return [
+            'aging' => $aging,
+            'aberto' => [
+                'count' => $abertos->count(),
+                'saldo' => $abertoSaldo,
+            ],
+            'previsao' => [
+                'receber_saldo' => $receber,
+                'pagar_saldo' => $pagar,
+                'liquido' => $liquido,
+                'legenda' => 'Títulos em aberto nesta EMP — não é DRE nem contabilidade oficial.',
+            ],
+        ];
+    }
+
+    private function saldoAbertoTipo(Empresa $empresa, string $tipo): string
+    {
+        $sum = Titulo::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('tipo', $tipo)
+            ->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL])
+            ->sum('saldo');
+
+        return PadraoDecimal::roundHalfUp((string) $sum, PadraoDecimal::SCALE_MONEY);
+    }
+
+    private function assertNaturezaAvulso(string $tipo, int $naturezaId, mixed $observacao): NaturezaGerencial
+    {
+        $natureza = NaturezaGerencial::query()->find($naturezaId);
+        if (! $natureza) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Natureza gerencial inválida.'],
+            ]);
+        }
+
+        if (! in_array((int) $natureza->grupo, NaturezaGerencial::GRUPOS, true)) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Natureza deve pertencer aos grupos 1–5.'],
+            ]);
+        }
+
+        if (! $natureza->aceita_lancamento) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Natureza deve aceitar lançamento (folha).'],
+            ]);
+        }
+
+        if (! $natureza->ativo) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Natureza gerencial inativa.'],
+            ]);
+        }
+
+        if (in_array($natureza->codigo, Titulo::NAT_RESERVADAS_AVULSO, true)) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Esta natureza nasce do faturamento, da compra ou da comissão — não use lançamento pontual.'],
+            ]);
+        }
+
+        $grupo = (int) $natureza->grupo;
+        if ($tipo === Titulo::TIPO_RECEBER && ! in_array($grupo, [1, 5], true)) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Contas a receber usam natureza de receita (grupo 1) ou movimentação (grupo 5).'],
+            ]);
+        }
+        if ($tipo === Titulo::TIPO_PAGAR && ! in_array($grupo, [2, 3, 4, 5], true)) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Contas a pagar usam natureza de custo, despesa, investimento ou movimentação (grupos 2–5).'],
+            ]);
+        }
+
+        if ($natureza->codigo === '1.04.04') {
+            $obs = is_string($observacao) ? trim($observacao) : '';
+            if ($obs === '') {
+                throw ValidationException::withMessages([
+                    'observacao' => ['Descrição obrigatória para natureza 1.04.04 (outras receitas).'],
+                ]);
+            }
+        }
+
+        return $natureza;
     }
 }

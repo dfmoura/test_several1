@@ -570,35 +570,35 @@ const CSV_PREVIEW_SORT = {
 };
 
 function CsvPreviewTable({ rows }: { rows: CsvPreviewRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_PREVIEW_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_PREVIEW_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Linha
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="razao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Razão social
             </SortableTh>
-            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cnpj" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CNPJ/CPF
             </SortableTh>
-            <SortableTh column="cidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cidade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Cidade/UF
             </SortableTh>
-            <SortableTh column="enrichment" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="enrichment" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               API CNPJ
             </SortableTh>
-            <SortableTh column="papeis" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="papeis" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Papéis
             </SortableTh>
-            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
             </SortableTh>
           </tr>
@@ -649,38 +649,38 @@ const XML_PREVIEW_SORT = {
 };
 
 function XmlPreviewTable({ rows }: { rows: XmlPreviewRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, XML_PREVIEW_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, XML_PREVIEW_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               #
             </SortableTh>
-            <SortableTh column="arquivo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="arquivo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Arquivo
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="acao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="acao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Ação
             </SortableTh>
-            <SortableTh column="emitente" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="emitente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Emitente
             </SortableTh>
-            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cnpj" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CNPJ
             </SortableTh>
-            <SortableTh column="cidade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cidade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Cidade/UF
             </SortableTh>
-            <SortableTh column="origem" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="origem" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Origem dados
             </SortableTh>
-            <SortableTh column="avisos" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="avisos" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Avisos / erros
             </SortableTh>
           </tr>
@@ -741,29 +741,29 @@ const CSV_RESULT_SORT = {
 };
 
 function CsvResultTable({ rows }: { rows: CsvCommitRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_RESULT_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, CSV_RESULT_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Linha
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Código
             </SortableTh>
-            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="razao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Razão social
             </SortableTh>
-            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cnpj" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CNPJ/CPF
             </SortableTh>
-            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
             </SortableTh>
           </tr>
@@ -801,29 +801,29 @@ const XML_RESULT_SORT = {
 };
 
 function XmlResultTable({ rows }: { rows: XmlCommitRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, XML_RESULT_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, XML_RESULT_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               #
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Código
             </SortableTh>
-            <SortableTh column="razao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="razao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Razão social
             </SortableTh>
-            <SortableTh column="cnpj" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="cnpj" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               CNPJ
             </SortableTh>
-            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
             </SortableTh>
           </tr>

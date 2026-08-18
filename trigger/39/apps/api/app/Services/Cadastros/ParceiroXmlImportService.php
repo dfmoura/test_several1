@@ -708,7 +708,8 @@ class ParceiroXmlImportService
         $viaIbge = $this->digitsOrNull($remote['ibge'] ?? null);
         if ($viaIbge !== null) {
             $payload['ibge'] = $viaIbge;
-            $sources['ibge'] = 'viacep';
+            $fonte = trim((string) ($remote['fonte'] ?? ''));
+            $sources['ibge'] = $fonte !== '' ? $fonte : 'viacep';
         }
 
         return $payload;

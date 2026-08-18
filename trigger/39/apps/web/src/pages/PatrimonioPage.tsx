@@ -41,7 +41,7 @@ export function PatrimonioPage() {
   const [categoria, setCategoria] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(bens, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(bens, SORT);
 
   const load = async (search?: string, cat?: string, st?: string) => {
     setLoading(true);
@@ -133,34 +133,34 @@ export function PatrimonioPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="descricao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Descrição
                   </SortableTh>
-                  <SortableTh column="categoria" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="categoria" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Categoria
                   </SortableTh>
-                  <SortableTh column="local" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="local" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Departamento
                   </SortableTh>
-                  <SortableTh column="aquisicao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="aquisicao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Aquisição
                   </SortableTh>
-                  <SortableTh column="valor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="valor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Valor
                   </SortableTh>
                   <SortableTh
                     column="grupo"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                     label="Grupo ORC"
                   >
                     Grupo ORC
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
                 </tr>

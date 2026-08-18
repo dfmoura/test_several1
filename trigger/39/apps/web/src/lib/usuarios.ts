@@ -39,7 +39,7 @@ export const ROLE_CATALOG = [
   {
     id: 'EXPEDICAO',
     label: 'Expedição',
-    summary: 'Separação, conferência e despacho (opcional na Fase 1).',
+    summary: 'Separação, romaneio e confirmação de entrega (balcão ou transporte).',
     tone: 'ops',
   },
   {

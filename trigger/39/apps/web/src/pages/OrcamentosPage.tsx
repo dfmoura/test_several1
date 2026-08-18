@@ -12,7 +12,18 @@ import { api, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDateTime } from '../lib/format';
 import { isOrcEditavel, statusOrcPill } from '../lib/orcamentoForm';
+import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
+import { totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { useTableSort } from '../lib/useTableSort';
+
+function totalPrimeiraFaixa(o: Orcamento): number | null {
+  const primeiro = o.result_snapshot?.faixas?.[0];
+  if (!primeiro) return null;
+  const facaNova = Boolean(o.input_snapshot?.faca_nova ?? o.result_snapshot?.faca_nova);
+  const raw = o.result_snapshot?.valor_faca_nova ?? o.input_snapshot?.valor_faca_nova;
+  const valorFaca = typeof raw === 'number' || typeof raw === 'string' ? raw : null;
+  return totalPropostaFaixa(primeiro, facaNova, valorFaca);
+}
 
 const SORT = {
   codigo: (o: Orcamento) => o.codigo,
@@ -21,10 +32,7 @@ const SORT = {
   versao: (o: Orcamento) => o.versao,
   matriz: (o: Orcamento) =>
     o.cobra_matriz && o.valor_matriz != null ? Number(o.valor_matriz) : null,
-  faixa: (o: Orcamento) => {
-    const primeiro = o.result_snapshot?.faixas?.[0];
-    return primeiro?.valor_total != null ? Number(primeiro.valor_total) : null;
-  },
+  faixa: (o: Orcamento) => totalPrimeiraFaixa(o),
   atualizado: (o: Orcamento) => o.updated_at,
 };
 
@@ -37,7 +45,7 @@ export function OrcamentosPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(lista, SORT);
 
   const load = async (search?: string, statusFilter?: string) => {
     setLoading(true);
@@ -134,19 +142,19 @@ export function OrcamentosPage() {
               <table className="data-table orcamentos-table">
                 <thead>
                   <tr>
-                    <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Código
                     </SortableTh>
                     <th>Faca</th>
-                    <SortableTh column="parceiro" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh column="parceiro" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Parceiro
                     </SortableTh>
-                    <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Status
                     </SortableTh>
                     <SortableTh
                       column="versao"
-                      sortKey={sortKey}
+                      sorts={sorts} sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
                       label="Versão"
@@ -156,7 +164,7 @@ export function OrcamentosPage() {
                     </SortableTh>
                     <SortableTh
                       column="matriz"
-                      sortKey={sortKey}
+                      sorts={sorts} sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
                       className="num"
@@ -165,7 +173,7 @@ export function OrcamentosPage() {
                     </SortableTh>
                     <SortableTh
                       column="faixa"
-                      sortKey={sortKey}
+                      sorts={sorts} sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
                       label="Primeira faixa"
@@ -173,7 +181,7 @@ export function OrcamentosPage() {
                     >
                       1ª faixa
                     </SortableTh>
-                    <SortableTh column="atualizado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh column="atualizado" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Atualizado
                     </SortableTh>
                     <th className="acoes">Ações</th>
@@ -181,10 +189,9 @@ export function OrcamentosPage() {
                 </thead>
                 <tbody>
                   {sorted.map((o) => {
-                    const faixas = o.result_snapshot?.faixas ?? [];
-                    const primeiro = faixas[0];
                     const editavel = isOrcEditavel(o.status) && o.editavel;
                     const faca = facaDesenhoFromSnapshot(o.input_snapshot);
+                    const totalPrimeira = totalPrimeiraFaixa(o);
                     return (
                       <tr
                         key={o.id}
@@ -201,6 +208,9 @@ export function OrcamentosPage() {
                       >
                         <td className="codigo">
                           <strong>{o.codigo}</strong>
+                          <div className="muted" style={{ fontSize: '0.8em' }}>
+                            {tipoOperacaoLabel(o.tipo_operacao ?? tipoOperacaoFromSnap(o.input_snapshot))}
+                          </div>
                         </td>
                         <td className="faca">
                           {faca ? (
@@ -211,6 +221,11 @@ export function OrcamentosPage() {
                         </td>
                         <td className="parceiro" title={o.cliente_nome}>
                           {o.cliente_nome}
+                          {o.vendedor ? (
+                            <div className="muted" style={{ fontSize: '0.8em' }}>
+                              {o.vendedor.codigo}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="status">
                           <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
@@ -220,7 +235,7 @@ export function OrcamentosPage() {
                           {o.cobra_matriz ? formatCurrency(o.valor_matriz) : '—'}
                         </td>
                         <td className="num">
-                          {primeiro ? formatCurrency(primeiro.valor_total) : '—'}
+                          {totalPrimeira != null ? formatCurrency(totalPrimeira) : '—'}
                         </td>
                         <td>{formatDateTime(o.updated_at)}</td>
                         <td

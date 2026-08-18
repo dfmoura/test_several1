@@ -1,0 +1,36 @@
+---
+description: Comissão COM- nasce na BX do cliente; vendedor é snapshot do ORC
+globs: "**/Comissao*.php,**/Comissao*.tsx,**/comissaoUi.ts,**/ADR_COMISSAO*.md,**/OrcamentoService.php,**/TituloService.php,**/FaturamentoService.php,**/OrcamentoFormPage.tsx"
+alwaysApply: false
+---
+
+# Fronteira Comissão → COM- (eixo gerencial ≠ ENT ≠ TIT do cliente)
+
+Norma: `docs/ADR_COMISSAO_VENDEDOR.md` · estudo `../32` COMISSOES_VENDEDORES_DETALHADO / UC-FIN-008 · BL-061.
+
+## Espinha
+
+```
+ORC (vendedor + % faixa) → PED → FAT
+BX do TIT RECEBER da venda (ou apropriação do sinal no FAT) → COM- PREVISTA
+CFE- libera → TIT PAGAR 3.01.05 → BX → COM- PAGA
+ENT- não paga comissão
+```
+
+## Faça
+
+- Vendedor = PAR `papel_vendedor` da mesma EMP. Snapshot no ORC; PED herda.
+- Alíquota paga = `%` da faixa aceita. Cadastro só preenche.
+- Base RECEBIDO: etiquetas faturadas, proporcional ao bruto da FAT. Sem frete/matriz/faca.
+- Sinal: COM- na apropriação do FAT, não na BX do adiantamento solto.
+- `comissao.escrever` = FINANCEIRO. Isolar `empresa_id`.
+- Estorno FAT só com COM- PREVISTA (ou nenhuma). Nunca apagar.
+
+## Não faça
+
+- Pagar no faturar ou no confirmar ENT-.
+- Relêr `%` do PAR depois do documento travado.
+- COM- sem vendedor. Rateio multi-vendedor. Base FATURADO.
+- Zap/planilha no lugar de COM-. Misturar EMP.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_COMISSAO_VENDEDOR.md`.

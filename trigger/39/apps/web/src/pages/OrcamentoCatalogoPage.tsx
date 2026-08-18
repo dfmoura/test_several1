@@ -609,7 +609,7 @@ function FaixasFreteTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, FRETE_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, FRETE_SORT);
 
   return (
     <div className="card">
@@ -622,16 +622,16 @@ function FaixasFreteTable({
           <table className="data-table">
             <thead>
               <tr>
-                <SortableTh column="kg_ate" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="kg_ate" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Faixa
                 </SortableTh>
-                <SortableTh column="preco" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="preco" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/km
                 </SortableTh>
-                <SortableTh column="minimo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="minimo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Mínimo R$
                 </SortableTh>
-                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
                 </SortableTh>
                 <th />
@@ -756,7 +756,7 @@ function PapeisTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PAPEL_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, PAPEL_SORT);
 
   return (
     <div className="card">
@@ -767,13 +767,13 @@ function PapeisTable({
           <table className="data-table">
             <thead>
               <tr>
-                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Nome
                 </SortableTh>
-                <SortableTh column="preco_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/m²
                 </SortableTh>
-                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
                 </SortableTh>
                 <th />
@@ -876,7 +876,7 @@ function AcabamentosTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, ACABAMENTO_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, ACABAMENTO_SORT);
 
   return (
     <div className="card">
@@ -887,16 +887,16 @@ function AcabamentosTable({
           <table className="data-table">
             <thead>
               <tr>
-                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Nome
                 </SortableTh>
-                <SortableTh column="preco_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="preco_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   R$/m²
                 </SortableTh>
-                <SortableTh column="perda_m2" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="perda_m2" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Perda m²
                 </SortableTh>
-                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
                 </SortableTh>
                 <th />
@@ -1021,7 +1021,7 @@ function TrocasTable({
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, TROCA_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, TROCA_SORT);
 
   return (
     <div className="card">
@@ -1032,16 +1032,16 @@ function TrocasTable({
           <table className="data-table">
             <thead>
               <tr>
-                <SortableTh column="tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="tipo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Tipo
                 </SortableTh>
-                <SortableTh column="tempo_min" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="tempo_min" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Minutos
                 </SortableTh>
-                <SortableTh column="tempo_h" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="tempo_h" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Horas (motor)
                 </SortableTh>
-                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
                 </SortableTh>
                 <th />
@@ -1172,7 +1172,7 @@ function MaquinasTable({
     return g;
   }, [coresCols]);
 
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, sortGetters);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, sortGetters);
 
   return (
     <div className="card">
@@ -1190,14 +1190,14 @@ function MaquinasTable({
           <table className="data-table data-table-tarifas">
             <thead>
               <tr>
-                <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Máquina
                 </SortableTh>
                 {coresCols.map((c) => (
                   <SortableTh
                     key={c}
                     column={`tarifa_${c}`}
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                     label={`Tarifa ${c} cores`}
@@ -1205,10 +1205,10 @@ function MaquinasTable({
                     <span title={`Cores ${c}`}>{c}c</span>
                   </SortableTh>
                 ))}
-                <SortableTh column="patrimonio" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="patrimonio" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Patrimônio
                 </SortableTh>
-                <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
                 </SortableTh>
                 <th />

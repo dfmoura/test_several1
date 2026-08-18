@@ -93,6 +93,7 @@ export function FiscalHubsPage() {
 
   const {
     sorted,
+    sorts,
     sortKey,
     sortDir,
     requestSort,
@@ -268,7 +269,7 @@ export function FiscalHubsPage() {
     <>
       <PageHeader
         title="Hubs fiscais"
-        description="Cadastro do hub que conversa com o fisco (Focus NFe). Teste OK no ambiente ativo liga a emissão automática de NF-e e NFS-e."
+        description="Cadastro do hub que conversa com o fisco (Focus NFe). O certificado digital A1 fica na Focus, não neste sistema — aqui entram só os tokens da API. Teste OK no ambiente ativo liga a emissão automática. Sem A1 na Focus, o ambiente local autoriza a nota só para teste do fluxo (sem valor fiscal)."
         actions={
           <button type="button" className="btn btn-primary" onClick={startCreate}>
             Novo hub
@@ -461,27 +462,27 @@ export function FiscalHubsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
-                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Nome
                   </SortableTh>
-                  <SortableTh column="provedor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="provedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Provedor
                   </SortableTh>
-                  <SortableTh column="ambiente" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="ambiente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Ambiente
                   </SortableTh>
-                  <SortableTh column="tokens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="tokens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Tokens
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
                   <SortableTh
                     column="teste"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                     label="Último teste"

@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class BrasilApiClient
 {
+    public function __construct(private readonly CepLookupService $cepLookup) {}
+
     public function getCnpj(string $cnpj): array
     {
         $digits = preg_replace('/\D/', '', $cnpj) ?? '';
@@ -22,7 +24,7 @@ class BrasilApiClient
         $cacheKey = 'cnpj:'.$digits;
         $cached = $this->getCached($cacheKey);
         if ($cached !== null) {
-            return $cached;
+            return $this->enrichCnpjAddressFromCep($cached);
         }
 
         $base = rtrim((string) env('BRASILAPI_BASE', 'https://brasilapi.com.br/api'), '/');
@@ -35,7 +37,7 @@ class BrasilApiClient
         }
 
         $payload = is_array($response->json()) ? $response->json() : [];
-        $normalized = $this->normalizeCnpjPayload($payload);
+        $normalized = $this->enrichCnpjAddressFromCep($this->normalizeCnpjPayload($payload));
         $this->storeCache($cacheKey, 'brasilapi_cnpj', $normalized, now()->addDays(30));
 
         return $normalized;
@@ -43,35 +45,7 @@ class BrasilApiClient
 
     public function getCep(string $cep): array
     {
-        $digits = preg_replace('/\D/', '', $cep) ?? '';
-
-        if (strlen($digits) !== 8) {
-            throw new \InvalidArgumentException('CEP deve conter 8 dígitos.');
-        }
-
-        $cacheKey = 'cep:'.$digits;
-        $cached = $this->getCached($cacheKey);
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        $viaCepBase = rtrim((string) env('VIACEP_BASE', 'https://viacep.com.br/ws'), '/');
-        $response = Http::timeout(8)
-            ->acceptJson()
-            ->get("{$viaCepBase}/{$digits}/json/");
-
-        if ($response->failed()) {
-            throw new RequestException($response);
-        }
-
-        $payload = $response->json();
-        if (isset($payload['erro']) && $payload['erro'] === true) {
-            throw new \RuntimeException('CEP não encontrado.');
-        }
-
-        $this->storeCache($cacheKey, 'viacep', $payload, now()->addDays(90));
-
-        return $payload;
+        return $this->cepLookup->getCep($cep);
     }
 
     /**
@@ -292,6 +266,54 @@ class BrasilApiClient
         });
 
         return $items;
+    }
+
+    /**
+     * Estudo 32 §7.1: depois do CNPJ, 1 consulta CEP (ViaCEP em cadeia) só se
+     * faltar IBGE ou rua. Não sobrescreve o cartão CNPJ. Falha de CEP não derruba o CNPJ.
+     *
+     * @param  array<string, mixed>  $cnpj
+     * @return array<string, mixed>
+     */
+    private function enrichCnpjAddressFromCep(array $cnpj): array
+    {
+        $cep = preg_replace('/\D/', '', (string) ($cnpj['cep'] ?? '')) ?? '';
+        if (strlen($cep) !== 8) {
+            return $cnpj;
+        }
+
+        $ibge = trim((string) ($cnpj['ibge'] ?? ($cnpj['codigo_municipio_ibge'] ?? '')));
+        $logradouro = trim((string) ($cnpj['logradouro'] ?? ''));
+        $bairro = trim((string) ($cnpj['bairro'] ?? ''));
+        if ($ibge !== '' && $logradouro !== '' && $bairro !== '') {
+            return $cnpj;
+        }
+
+        try {
+            $cepData = $this->cepLookup->getCep($cep);
+        } catch (\Throwable) {
+            return $cnpj;
+        }
+
+        $fill = [
+            'logradouro' => $cepData['logradouro'] ?? null,
+            'bairro' => $cepData['bairro'] ?? null,
+            'municipio' => $cepData['localidade'] ?? null,
+            'uf' => $cepData['uf'] ?? null,
+            'ibge' => $cepData['ibge'] ?? null,
+        ];
+        foreach ($fill as $key => $value) {
+            $current = trim((string) ($cnpj[$key] ?? ''));
+            $incoming = is_string($value) ? trim($value) : '';
+            if ($current === '' && $incoming !== '') {
+                $cnpj[$key] = $incoming;
+            }
+        }
+        if (trim((string) ($cnpj['codigo_municipio_ibge'] ?? '')) === '' && trim((string) ($cnpj['ibge'] ?? '')) !== '') {
+            $cnpj['codigo_municipio_ibge'] = $cnpj['ibge'];
+        }
+
+        return $cnpj;
     }
 
     /**

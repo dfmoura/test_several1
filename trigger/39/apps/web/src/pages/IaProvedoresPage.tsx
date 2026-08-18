@@ -106,6 +106,7 @@ export function IaProvedoresPage() {
 
   const {
     sorted,
+    sorts,
     sortKey,
     sortDir,
     requestSort,
@@ -398,27 +399,27 @@ export function IaProvedoresPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="nome" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="nome" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Nome
                   </SortableTh>
-                  <SortableTh column="tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="tipo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Tipo
                   </SortableTh>
-                  <SortableTh column="modelo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="modelo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Modelo
                   </SortableTh>
-                  <SortableTh column="key" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="Key">
+                  <SortableTh column="key" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="Key">
                     Key
                   </SortableTh>
-                  <SortableTh column="prioridade" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="prioridade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Prioridade
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
                   <SortableTh
                     column="teste"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                     label="Último teste"

@@ -420,4 +420,119 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertArrayNotHasKey('inscricao_municipal_prestador', $ok->json('data.documentos_fiscais.0.envio_hub'));
         $this->assertNull($ok->json('data.documentos_fiscais.0.chave'));
     }
+
+    public function test_stub_autoriza_fluxo_completo_sem_hub_sem_xml(): void
+    {
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
+        Http::fake();
+
+        $ped = $this->criarPedidoProduzido();
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('AUTORIZADA', $ok->json('data.nf_status'));
+        $this->assertTrue($ok->json('data.nf_simulada'));
+        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('STUB', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.oficial'));
+        $this->assertTrue($ok->json('data.documentos_fiscais.0.previa.simulada'));
+        $this->assertNotNull($ok->json('data.documentos_fiscais.0.chave'));
+        $this->assertNotNull($ok->json('data.documentos_fiscais.0.numero'));
+        $this->assertStringStartsWith('SIM-', (string) $ok->json('data.documentos_fiscais.0.protocolo'));
+        $this->assertTrue($ok->json('data.pode_estornar'));
+        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
+        $this->assertArrayNotHasKey('numero', $payload);
+        Http::assertNothingSent();
+
+        $fatId = (int) $ok->json('data.id');
+        $est = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/estornar", [
+            'motivo' => 'Refazer após autorização de teste',
+        ]);
+        $est->assertOk();
+        $this->assertSame('ESTORNADO', $est->json('data.status'));
+        $this->assertSame('CANCELADO', DocumentoFiscalSaida::query()->value('status'));
+    }
+
+    public function test_stub_ignorado_quando_hub_apto(): void
+    {
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
+        $this->habilitarHub();
+        Http::fake([
+            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
+                'status' => 'autorizado',
+                'chave' => '31260601423183000110550010000061121000000014',
+                'numero' => 6112,
+                'serie' => 1,
+                'protocolo' => '131260000000001',
+            ], 200),
+        ]);
+
+        $ped = $this->criarPedidoProduzido();
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('FOCUS', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertTrue($ok->json('data.documentos_fiscais.0.previa.oficial'));
+        $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.simulada'));
+        $this->assertSame('31260601423183000110550010000061121000000014', $ok->json('data.documentos_fiscais.0.chave'));
+        $this->assertFalse($ok->json('data.nf_simulada'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/nfe?ref='));
+    }
+
+    public function test_stub_promove_para_focus_com_a_mesma_ref(): void
+    {
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
+        $ped = $this->criarPedidoProduzido();
+        $a = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $a->assertCreated();
+        $ref = $a->json('data.documentos_fiscais.0.ref');
+        $fatId = $a->json('data.id');
+        $this->assertSame('STUB', $a->json('data.documentos_fiscais.0.autorizacao_origem'));
+
+        $this->habilitarHub();
+        Http::fake([
+            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
+                'status' => 'autorizado',
+                'chave' => '31260601423183000110550010000061131000000011',
+                'numero' => 6113,
+                'serie' => 1,
+                'protocolo' => '131260000000002',
+            ], 200),
+        ]);
+
+        $b = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/emitir-nf");
+        $b->assertOk();
+        $this->assertSame($ref, $b->json('data.documentos_fiscais.0.ref'));
+        $this->assertSame('FOCUS', $b->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertTrue($b->json('data.documentos_fiscais.0.previa.oficial'));
+        $this->assertSame('31260601423183000110550010000061131000000011', $b->json('data.documentos_fiscais.0.chave'));
+        $this->assertSame(1, DocumentoFiscalSaida::query()->count());
+        $this->assertFalse($b->json('data.pode_estornar'));
+    }
+
+    public function test_stub_morto_em_homolog_e_producao(): void
+    {
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'homolog']);
+        $ped = $this->criarPedidoProduzido();
+        $hml = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $hml->assertCreated();
+        $this->assertSame('PLANEJADO', $hml->json('data.documentos_fiscais.0.status'));
+        $this->assertNull($hml->json('data.documentos_fiscais.0.chave'));
+
+        config(['erp.stage' => 'production']);
+        $ped2 = $this->criarPedidoProduzido();
+        $prod = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped2->id}/faturar");
+        $prod->assertCreated();
+        $this->assertSame('PLANEJADO', $prod->json('data.documentos_fiscais.0.status'));
+        $this->assertNull($prod->json('data.documentos_fiscais.0.chave'));
+    }
+
+    public function test_preview_stub_liga_emissao_automatica_de_teste(): void
+    {
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
+        $ped = $this->criarPedidoProduzido();
+        $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/faturamento-preview");
+        $prev->assertOk();
+        $this->assertTrue($prev->json('data.fiscal.emissor_teste.ativo'));
+        $this->assertTrue($prev->json('data.fiscal.emissao_automatica'));
+        $this->assertTrue($prev->json('data.fiscal.apto_cadastro'));
+    }
 }

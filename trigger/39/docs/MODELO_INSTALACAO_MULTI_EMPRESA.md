@@ -117,7 +117,7 @@ EMP-00001 em homolog **não** é a EMP-00001 de produção — são bancos/insta
 
 1. Login → EMP padrão (ou a única).
 2. Header sempre mostra **Empresa ativa**; se N>1 → seletor + aviso ao trocar; telas remountam no novo contexto.
-3. Painel explica o escopo e flags venda/estoque da EMP ativa.
+3. Painel = cockpit da EMP ativa (cadeia ORC→PED→OP→expedição→TIT e filas). Mostra EMP + flags venda/estoque — **sem** repetir produto/licenciado/TRIGGER (isso é o shell).
 4. Tudo na tela/gravação = **só** da EMP ativa.
 5. **Perfil** limita *ações* (ex.: compras ≠ financeiro); **EMP** limita *dados*.
 6. Zero Docker / AWS / `ERP_STAGE` na UI operacional.

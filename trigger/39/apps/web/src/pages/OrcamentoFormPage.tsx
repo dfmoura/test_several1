@@ -12,6 +12,7 @@ import {
   type Orcamento,
   type OrcamentoResult,
   type Parceiro,
+  type ParceiroVinculo,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import {
@@ -31,8 +32,21 @@ import {
   type OrcCatalogo,
   type OrcForm,
 } from '../lib/orcamentoForm';
-import { formatKmCarro } from '../lib/format';
-import { MODO_ENTREGAR, MODO_RETIRAR } from '../lib/orcamentoFrete';
+import {
+  TIPO_CESSAO_BEM,
+  TIPO_INDUSTRIALIZACAO,
+  TIPO_SERVICO,
+  type TipoOperacaoSaida,
+  type TipoServicoSaida,
+} from '../lib/operacoesSaida';
+import {
+  hintFreteEntregar,
+  hintFreteManual,
+  MODO_ENTREGAR,
+  MODO_RETIRAR,
+  ORIGEM_CALCULADA,
+  ORIGEM_MANUAL,
+} from '../lib/orcamentoFrete';
 
 /** Reconstrói a faca a partir do snapshot — desenho visível ao editar (sem faca_id no ORC). */
 function facaSelFromForm(form: OrcForm): FacaRecord | null {
@@ -52,26 +66,6 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
   };
 }
 
-function kmHintParceiro(p: Parceiro | null, empId: number | null): string {
-  if (!p) return 'Escolha o parceiro para usar o km gravado até o destino.';
-  const entrega =
-    (p.enderecos_entrega ?? []).find((e) => e.principal) ?? (p.enderecos_entrega ?? [])[0];
-  if (
-    entrega &&
-    entrega.distancia_empresa_id === empId &&
-    entrega.distancia_km != null &&
-    String(entrega.distancia_km) !== ''
-  ) {
-    const km = formatKmCarro(entrega.distancia_km, entrega.distancia_fonte);
-    return `Destino: entrega${entrega.apelido ? ` (${entrega.apelido})` : ''} · ${km || 'km pendente'}. Frete no fechamento, sem nova rota.`;
-  }
-  if (p.distancia_empresa_id === empId && p.distancia_km != null && String(p.distancia_km) !== '') {
-    const km = formatKmCarro(p.distancia_km, p.distancia_fonte);
-    return `Destino: endereço fiscal · ${km || 'km pendente'}. Frete no fechamento, sem nova rota.`;
-  }
-  return 'Sem km desta empresa até o destino. Calcule Posição e distância no cadastro do parceiro — Entregar não inventa valor.';
-}
-
 export function OrcamentoFormPage() {
   const { id } = useParams();
   const location = useLocation();
@@ -82,6 +76,7 @@ export function OrcamentoFormPage() {
 
   const [catalog, setCatalog] = useState<OrcCatalogo | null>(null);
   const [parceiroSel, setParceiroSel] = useState<Parceiro | null>(null);
+  const [vendedorSel, setVendedorSel] = useState<ParceiroVinculo | null>(null);
   const [parceiroModo, setParceiroModo] = useState<'cadastrado' | 'prospect'>('cadastrado');
   const [form, setForm] = useState<OrcForm>(() => defaultOrcForm(null));
   const [facaSel, setFacaSel] = useState<FacaRecord | null>(null);
@@ -123,11 +118,24 @@ export function OrcamentoFormPage() {
           } else if (!cancelled) {
             setParceiroSel(null);
           }
+          if (nextForm.vendedor_parceiro_id !== '') {
+            try {
+              const vend = await api.get<{ data: Parceiro }>(
+                `/parceiros/${nextForm.vendedor_parceiro_id}`,
+              );
+              if (!cancelled) setVendedorSel(vend.data);
+            } catch {
+              if (!cancelled) setVendedorSel(orc.data.vendedor ?? null);
+            }
+          } else if (!cancelled) {
+            setVendedorSel(orc.data.vendedor ?? null);
+          }
         } else {
           setForm(defaultOrcForm(catRes.data));
           setCalculo(null);
           setFacaSel(null);
           setParceiroSel(null);
+          setVendedorSel(null);
         }
       } catch (e) {
         if (!cancelled) {
@@ -219,8 +227,24 @@ export function OrcamentoFormPage() {
   const zManual = !facaSel || facaIncompleta || facaSel.z == null || facaNova;
   const medidaManual = !facaSel || facaNova;
 
+  const aplicarVendedor = (v: ParceiroVinculo | null, aplicarPct = true) => {
+    setVendedorSel(v);
+    const pct = v?.comissao_percentual != null ? Number(v.comissao_percentual) : null;
+    setForm((prev) => ({
+      ...prev,
+      vendedor_parceiro_id: v ? v.id : '',
+      faixas:
+        aplicarPct && pct != null && Number.isFinite(pct)
+          ? prev.faixas.map((f) => ({ ...f, comissao_pct: pct }))
+          : prev.faixas,
+    }));
+    setCalculo(null);
+    setErro(null);
+  };
+
   const aplicarParceiro = (p: Parceiro | null) => {
     setParceiroSel(p);
+    const vendDefault = p?.vendedor ?? null;
     setForm((prev) => ({
       ...prev,
       parceiro_id: p ? p.id : '',
@@ -232,8 +256,16 @@ export function OrcamentoFormPage() {
     if (p?.id && !p.enderecos_entrega) {
       void api
         .get<{ data: Parceiro }>(`/parceiros/${p.id}`)
-        .then((res) => setParceiroSel(res.data))
+        .then((res) => {
+          setParceiroSel(res.data);
+          const vend = res.data.vendedor;
+          if (vend && !vendedorSel) {
+            aplicarVendedor(vend);
+          }
+        })
         .catch(() => undefined);
+    } else if (vendDefault && !vendedorSel) {
+      aplicarVendedor(vendDefault);
     }
   };
 
@@ -305,7 +337,16 @@ export function OrcamentoFormPage() {
   const addFaixa = () => {
     setForm((prev) => ({
       ...prev,
-      faixas: [...prev.faixas, { quantidade: 1000, comissao_pct: 0 }],
+      faixas: [
+        ...prev.faixas,
+        prev.tipo_operacao === TIPO_SERVICO
+          ? {
+              quantidade: 1,
+              comissao_pct: 0,
+              valor_unitario: prev.faixas[0]?.valor_unitario || 50,
+            }
+          : { quantidade: 1000, comissao_pct: 0 },
+      ],
     }));
     setCalculo(null);
   };
@@ -318,15 +359,64 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
+  const setTipoOperacao = (tipo: TipoOperacaoSaida) => {
+    setForm((prev) => {
+      const next = { ...prev, tipo_operacao: tipo };
+      if (tipo === TIPO_SERVICO) {
+        const cat = catalog?.tipos_servico?.find((t) => t.codigo === prev.tipo_servico);
+        next.material_cliente = cat?.material_cliente_padrao ?? true;
+        next.unidade_servico = cat?.unidade_padrao ?? 'RL';
+        if (!next.descricao_servico && cat?.descricao_padrao) {
+          next.descricao_servico = cat.descricao_padrao;
+        }
+        next.faixas = [
+          {
+            quantidade: 20,
+            comissao_pct: prev.faixas[0]?.comissao_pct ?? 0,
+            valor_unitario: 50,
+          },
+        ];
+      }
+      if (tipo === TIPO_INDUSTRIALIZACAO && prev.tipo_operacao === TIPO_SERVICO) {
+        next.faixas = [
+          { quantidade: 5000, comissao_pct: 3 },
+          { quantidade: 10000, comissao_pct: 2.5 },
+          { quantidade: 20000, comissao_pct: 2 },
+        ];
+      }
+      return next;
+    });
+    setCalculo(null);
+  };
+
   const validateClient = (): string | null => {
+    if (form.tipo_operacao === TIPO_CESSAO_BEM) {
+      return 'Cessão de equipamento não é orçamento. Cadastre no patrimônio.';
+    }
     if (form.parceiro_id === '') {
       return parceiroModo === 'prospect'
         ? 'Crie o prospect (ou reutilize um cadastro parecido) antes de calcular.'
         : 'Selecione o parceiro cadastrado (texto livre de cliente é proibido).';
     }
+    if (form.tipo_operacao === TIPO_SERVICO) {
+      if (form.descricao_servico.trim().length < 3) return 'Descreva o serviço (mín. 3 caracteres).';
+      if (form.faixas.length === 0) return 'Inclua ao menos uma quantidade.';
+      if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades devem ser > 0.';
+      if (form.faixas.some((f) => !f.valor_unitario || f.valor_unitario <= 0)) {
+        return 'Informe o valor unitário do serviço em cada faixa.';
+      }
+      return null;
+    }
     if (!form.medida.trim()) return 'Informe a medida.';
     if (form.largura_cm <= 0 || form.puxada_cm <= 0) return 'Largura e puxada devem ser > 0.';
     if (form.faca_nova && form.valor_faca_nova < 0) return 'Valor da faca nova inválido.';
+    if (
+      form.modo_entrega === MODO_ENTREGAR &&
+      form.origem_frete === ORIGEM_MANUAL &&
+      (form.valor_frete_manual === '' || Number(form.valor_frete_manual) < 0)
+    ) {
+      return 'Informe o valor do frete (origem Manual).';
+    }
     if (form.faixas.length === 0) return 'Inclua ao menos uma faixa de quantidade.';
     if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades das faixas devem ser > 0.';
     const compErr = validarModelosComposicao(form.modelos, form.modelos_composicao);
@@ -415,6 +505,55 @@ export function OrcamentoFormPage() {
 
       <div className="card orc-wizard">
         <div className="card-body">
+          <section className="orc-section">
+            <h3 className="orc-section-title">O que você está propondo?</h3>
+            <p className="form-hint" style={{ marginTop: 0 }}>
+              Industrialização de etiqueta, prestação de serviço e comodato de impressora não são a
+              mesma operação — cada uma tem documento e caminho próprios.
+            </p>
+            <div className="orc-modo-tabs" role="tablist" aria-label="Tipo de operação">
+              {(
+                catalog?.tipos_operacao ?? [
+                  {
+                    codigo: TIPO_INDUSTRIALIZACAO,
+                    label: 'Produção de etiquetas',
+                    resumo: '',
+                  },
+                  { codigo: TIPO_SERVICO, label: 'Prestação de serviço', resumo: '' },
+                  { codigo: TIPO_CESSAO_BEM, label: 'Cessão de equipamento', resumo: '' },
+                ]
+              ).map((t) => (
+                <button
+                  key={t.codigo}
+                  type="button"
+                  role="tab"
+                  aria-selected={form.tipo_operacao === t.codigo}
+                  className={form.tipo_operacao === t.codigo ? 'active' : ''}
+                  disabled={!canWrite}
+                  title={t.resumo}
+                  onClick={() => setTipoOperacao(t.codigo as TipoOperacaoSaida)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {form.tipo_operacao === TIPO_CESSAO_BEM ? (
+              <div className="form-hint" style={{ marginTop: '0.85rem' }}>
+                <p>
+                  Comodato (aluguel gratuito de impressora) <strong>não gera NFS-e nem NF-e</strong>{' '}
+                  e não passa por este orçamento. Cadastre a cessão no bem patrimonial. Locação
+                  cobrada também não é ISS. Se cobrar manutenção, volte aqui e escolha prestação de
+                  serviço.
+                </p>
+                <Link to="/patrimonio" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+                  Ir ao patrimônio
+                </Link>
+              </div>
+            ) : null}
+          </section>
+
+          {form.tipo_operacao !== TIPO_CESSAO_BEM ? (
+            <>
           {/* 1. Parceiro — modos exclusivos (ORCAMENTO_PROSPECT) */}
           <section className="orc-section">
             <h3 className="orc-section-title">1. Parceiro</h3>
@@ -496,10 +635,22 @@ export function OrcamentoFormPage() {
                     ))}
                   </select>
                 </div>
+                <ParceiroCombobox
+                  className="span-full"
+                  label="Vendedor"
+                  papel="vendedor"
+                  value={vendedorSel}
+                  onChange={(v) => aplicarVendedor(v, true)}
+                  disabled={!canWrite}
+                  placeholder="Buscar vendedor cadastrado…"
+                  hint="Opcional. Prefill do cliente · % do cadastro preenche as faixas · a comissão só é paga após a baixa do recebimento."
+                  emptyMessage="Nenhum vendedor encontrado. Cadastre o papel Vendedor no parceiro e informe a comissão %."
+                />
                 <div className="form-group span-full">
                   <p className="form-hint" style={{ margin: 0 }}>
                     Condições desta proposta (snapshot). Prefill ao escolher o parceiro · editáveis
-                    aqui · não alteram o cálculo de preço · PED/TIT futuros usam este valor.
+                    aqui · não alteram o cálculo de preço · PED/TIT futuros usam este valor. Venda
+                    direta: deixe o vendedor em branco.
                   </p>
                 </div>
                 <div className="form-group span-full">
@@ -507,7 +658,7 @@ export function OrcamentoFormPage() {
                     Entrega desta proposta{' '}
                     <span className="field-note">fechamento · padrão Retirar</span>
                   </label>
-                  <div className="orc-modo-tabs" role="radiogroup" aria-label="Modo de entrega">
+                  <div className="orc-modo-tabs" role="radiogroup" aria-label="Modo de entrega" style={{ marginBottom: form.modo_entrega === MODO_ENTREGAR ? '0.2rem' : undefined }}>
                     <button
                       type="button"
                       className={form.modo_entrega === MODO_RETIRAR ? 'active' : ''}
@@ -525,11 +676,69 @@ export function OrcamentoFormPage() {
                       Entregar
                     </button>
                   </div>
-                  <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                    {form.modo_entrega === MODO_ENTREGAR
-                      ? kmHintParceiro(parceiroSel, empresaId)
-                      : 'Retirar não cobra frete. O km do cadastro pode aparecer só como contexto.'}
-                  </p>
+                  {form.modo_entrega === MODO_ENTREGAR ? (
+                    <>
+                      <label style={{ marginTop: '0.55rem' }}>
+                        Origem do frete{' '}
+                        <span className="field-note">padrão Calculada</span>
+                      </label>
+                      <div
+                        className="orc-modo-tabs orc-modo-tabs-sub"
+                        role="radiogroup"
+                        aria-label="Origem do frete"
+                      >
+                        <button
+                          type="button"
+                          className={form.origem_frete === ORIGEM_CALCULADA ? 'active' : ''}
+                          disabled={!canWrite}
+                          onClick={() => setField('origem_frete', ORIGEM_CALCULADA)}
+                        >
+                          Calculada
+                        </button>
+                        <button
+                          type="button"
+                          className={form.origem_frete === ORIGEM_MANUAL ? 'active' : ''}
+                          disabled={!canWrite}
+                          onClick={() => setField('origem_frete', ORIGEM_MANUAL)}
+                        >
+                          Manual
+                        </button>
+                      </div>
+                      {form.origem_frete === ORIGEM_MANUAL ? (
+                        <div className="form-group manual-field" style={{ margin: '0.65rem 0 0' }}>
+                          <label>
+                            Valor do frete (R$) *{' '}
+                            <span className="field-note">único · todas as quantidades</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            inputMode="decimal"
+                            value={form.valor_frete_manual === '' ? '' : form.valor_frete_manual}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              setField(
+                                'valor_frete_manual',
+                                raw === '' ? '' : Number(raw),
+                              );
+                            }}
+                            disabled={!canWrite}
+                            placeholder="0,00"
+                          />
+                        </div>
+                      ) : null}
+                      <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
+                        {form.origem_frete === ORIGEM_MANUAL
+                          ? hintFreteManual()
+                          : hintFreteEntregar(parceiroSel, empresaId, catalog?.frete)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
+                      Retirar não cobra frete. O km do cadastro não entra no preço.
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -544,6 +753,8 @@ export function OrcamentoFormPage() {
             )}
           </section>
 
+          {form.tipo_operacao === TIPO_INDUSTRIALIZACAO ? (
+            <>
           {/* 2. Faca / dimensões — mapa oficial (padrão 36) */}
           <section className="orc-section">
             <h3 className="orc-section-title">2. Faca (mapa oficial)</h3>
@@ -980,11 +1191,105 @@ export function OrcamentoFormPage() {
               </div>
             </div>
           </section>
+            </>
+          ) : null}
+
+          {form.tipo_operacao === TIPO_SERVICO ? (
+            <section className="orc-section">
+              <h3 className="orc-section-title">2. Serviço</h3>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                Material do cliente, sem produto acabado próprio. Gera ordem de serviço e NFS-e
+                Nacional — não NF-e de etiqueta.
+              </p>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Tipo *</label>
+                  <select
+                    value={form.tipo_servico}
+                    disabled={!canWrite}
+                    onChange={(e) => {
+                      const codigo = e.target.value as TipoServicoSaida;
+                      const cat = catalog?.tipos_servico?.find((t) => t.codigo === codigo);
+                      setForm((prev) => ({
+                        ...prev,
+                        tipo_servico: codigo,
+                        unidade_servico: cat?.unidade_padrao ?? prev.unidade_servico,
+                        material_cliente: cat?.material_cliente_padrao ?? prev.material_cliente,
+                        descricao_servico: prev.descricao_servico.trim()
+                          ? prev.descricao_servico
+                          : (cat?.descricao_padrao ?? ''),
+                      }));
+                      setCalculo(null);
+                    }}
+                  >
+                    {(catalog?.tipos_servico ?? []).map((t) => (
+                      <option key={t.codigo} value={t.codigo}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Unidade</label>
+                  <input
+                    value={form.unidade_servico}
+                    maxLength={8}
+                    disabled={!canWrite}
+                    onChange={(e) => setField('unidade_servico', e.target.value.toUpperCase())}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Prazo (d.úteis)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.prazo_entrega_dias}
+                    onChange={(e) => setField('prazo_entrega_dias', Number(e.target.value) || 1)}
+                    disabled={!canWrite}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Validade (dias)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.validade_dias}
+                    onChange={(e) => setField('validade_dias', Number(e.target.value) || 1)}
+                    disabled={!canWrite}
+                  />
+                </div>
+                <div className="form-group span-full">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={form.material_cliente}
+                      disabled={!canWrite}
+                      onChange={(e) => setField('material_cliente', e.target.checked)}
+                    />{' '}
+                    Material do cliente (não entra no estoque próprio)
+                  </label>
+                </div>
+                <div className="form-group span-full">
+                  <label>Descrição do serviço *</label>
+                  <textarea
+                    rows={3}
+                    value={form.descricao_servico}
+                    disabled={!canWrite}
+                    onChange={(e) => setField('descricao_servico', e.target.value)}
+                  />
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {/* 5. Faixas */}
           <section className="orc-section">
             <div className="orc-section-head">
-              <h3 className="orc-section-title">5. Faixas de quantidade (escada)</h3>
+              <h3 className="orc-section-title">
+                {form.tipo_operacao === TIPO_SERVICO
+                  ? '3. Quantidade e valor'
+                  : '5. Faixas de quantidade (escada)'}
+              </h3>
               {canWrite ? (
                 <button type="button" className="btn btn-secondary btn-sm" onClick={addFaixa}>
                   + Faixa
@@ -992,7 +1297,9 @@ export function OrcamentoFormPage() {
               ) : null}
             </div>
             <p className="form-hint" style={{ marginTop: 0 }}>
-              N faixas no mesmo ORC — o cliente escolhe uma na aprovação (fora deste CRUD).
+              {form.tipo_operacao === TIPO_SERVICO
+                ? 'Preço comercial informado (sem explosão de papel/faca). Teto para cima em múltiplo de R$ 10. NFS-e sai com o total da faixa escolhida.'
+                : 'N faixas no mesmo ORC — o cliente escolhe uma na aprovação. Comissão % entra no preço e, com vendedor, é a alíquota paga após a baixa do cliente (não no faturar nem na entrega).'}
             </p>
             {form.faixas.map((f, i) => (
               <div key={i} className="form-grid faixa-row">
@@ -1006,6 +1313,21 @@ export function OrcamentoFormPage() {
                     disabled={!canWrite}
                   />
                 </div>
+                {form.tipo_operacao === TIPO_SERVICO ? (
+                  <div className="form-group">
+                    <label>Valor unitário (R$)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={f.valor_unitario ?? ''}
+                      onChange={(e) =>
+                        setFaixa(i, 'valor_unitario', Number(e.target.value) || 0)
+                      }
+                      disabled={!canWrite}
+                    />
+                  </div>
+                ) : null}
                 <div className="form-group">
                   <label>Comissão %</label>
                   <input
@@ -1063,18 +1385,27 @@ export function OrcamentoFormPage() {
               </button>
             </div>
           ) : null}
+            </>
+          ) : null}
         </div>
       </div>
 
-      {calculo ? (
+      {calculo && form.tipo_operacao !== TIPO_CESSAO_BEM ? (
         <div style={{ marginTop: '1rem' }}>
           <OrcamentoResultado
             calculo={calculo}
+            modoServico={form.tipo_operacao === TIPO_SERVICO}
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}
             toleranciaQtdPct={form.tolerancia_qtd_pct}
-            modelosComposicao={form.modelos_composicao}
-            guiaEspec={{
+            modelosComposicao={
+              form.tipo_operacao === TIPO_SERVICO ? null : form.modelos_composicao
+            }
+            echoEspecificacao={form.tipo_operacao !== TIPO_SERVICO}
+            guiaEspec={
+              form.tipo_operacao === TIPO_SERVICO
+                ? null
+                : {
               medida: form.medida,
               largura_cm: form.largura_cm,
               puxada_cm: form.puxada_cm,
@@ -1094,8 +1425,12 @@ export function OrcamentoFormPage() {
               formato_faca: form.formato_faca,
               matriz: form.matriz,
               valor_faca_nova: form.valor_faca_nova,
-            }}
-            facaDesenho={{
+            }
+            }
+            facaDesenho={
+              form.tipo_operacao === TIPO_SERVICO
+                ? null
+                : {
               formato: form.formato_faca || calculo.formato_faca,
               medida: form.medida,
               larguraCm: form.largura_cm,
@@ -1103,13 +1438,17 @@ export function OrcamentoFormPage() {
               z: form.z === '' ? null : form.z,
               maquina: form.maquina,
               facaNova: form.faca_nova,
-            }}
+            }
+            }
           />
         </div>
       ) : (
         <p className="form-hint" style={{ marginTop: '1rem' }}>
-          Calcule para visualizar a proposta comercial, o breakdown interno e a guia de
-          produção (insumos e recursos).
+          {form.tipo_operacao === TIPO_SERVICO
+            ? 'Calcule para visualizar o total comercial do serviço (NFS-e Nacional).'
+            : form.tipo_operacao === TIPO_CESSAO_BEM
+              ? 'Cessão de equipamento não passa por este cálculo — use o patrimônio.'
+              : 'Calcule para visualizar a proposta comercial, o breakdown interno e a guia de produção (insumos e recursos).'}
         </p>
       )}
     </>

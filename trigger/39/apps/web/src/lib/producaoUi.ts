@@ -5,6 +5,9 @@ const PED_LABELS: Record<string, string> = {
   EM_PRODUCAO: 'Em produção',
   PRODUZIDO: 'Produzido',
   FATURADO: 'Faturado',
+  EM_ENTREGA: 'Em entrega',
+  ENTREGUE: 'Entregue',
+  ENCERRADO: 'Encerrado',
   CANCELADO: 'Cancelado',
 };
 

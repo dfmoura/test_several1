@@ -1,0 +1,58 @@
+
+
+    Início / Submissões 
+
+Submissões
+O cadastro no sistema e posterior acesso, por meio de login e senha, são obrigatórios para a submissão de trabalhos, bem como para acompanhar o processo editorial em curso. Acesso em uma conta existente ou Registrar uma nova conta.
+Condições para submissão
+Como parte do processo de submissão, os autores são obrigados a verificar a conformidade da submissão em relação a todos os itens listados a seguir. As submissões que não estiverem de acordo com as normas serão devolvidas aos autores.
+
+    A contribuição é original e inédita, e não está sendo avaliada para publicação por outra revista; caso contrário, deve-se justificar em "Comentários ao editor".
+    O arquivo da submissão está em formato Microsoft Word, OpenOffice ou RTF.
+    Onde disponível, os URLs para as referências foram fornecidos.
+    O texto está em espaço simples; usa uma fonte de 12-pontos; emprega itálico em vez de sublinhado (exceto em endereços URL); as figuras e tabelas estão inseridas no texto, não no final do documento na forma de anexos.
+    O texto segue os padrões de estilo e requisitos bibliográficos descritos em Diretrizes para Autores, na página Sobre a Revista.
+
+Diretrizes para Autores
+
+NORMAS
+
+Os originais enviados para publicação devem ter, no máximo, 20 (vinte) páginas e, no mí­nimo, 05 (cinco) páginas, incluindo espaços, gráficos, figuras, bibliografia, notas de rodapé, anexos.
+
+O texto deve conter:
+
+a) Título em língua portuguesa e inglesa . Usar letra maiúscula apenas na primeira letra, nomes próprios ou siglas.
+
+b) Resumo, em português e em inglês, contendo até 250 (duzentos e cinquenta) palavras, ressaltando o objetivo, o método, os resultados e as conclusões. A primeira frase deve ser significativa explicando o tema principal do texto.
+
+c) Palavras-chave (no máximo cinco), em português e inglês, indicadas abaixo do resumo e separadas entre si por ponto e vírgula. finalizadas por ponto.
+
+d) O corpo do texto deverá conter, minimamente, introdução, metodologia, resultados e conclusão.
+
+e) Referências, conforme normas atualizadas da ABNT, apresentadas ao final do texto. Os destaques deverão ser em negrito. 
+
+Informações no texto ou referências que possam identificar os autores devem ser suprimidas, usando XXX, e enviadas separadamente em documento suplementar com a devida indicação.
+
+Os dados de identificação dos autores deverão ser digitados diretamente nos campos apropriados da página de cadastramento do artigo e do/a(s) autor/a(s) no sistema SEER, incluindo nome completo, endereço postal, telefone e e-mail para contato com os leitores, ORCID, breve descrição do currículo e filiação institucional. Esses dados não devem constar do arquivo Word (ou compatível) que será submetido pelo portal.
+
+As citações devem obedecer a NBR 10520 da ABNT, indicadas no texto pelo sistema de chamada autor-data.
+
+Inserir ilustrações (figuras, tabelas, gráficos, mapas, dentre outras) no próprio texto. Essas devem ser de boa qualidade, contendo título, legenda e fonte. No caso de fotografias, é necessário o nome do fotógrafo e a sua autorização para uso da imagem, assim como a autorização das pessoas fotografadas, no caso em seja possível o reconhecimento facial.
+
+As notas de rodapé devem ser inseridas na página em que são indicadas.
+
+FORMATAÇÃO
+
+Deve seguir o modelo do template disponível no link a seguir: 
+
+Baixe aqui
+Artigos
+
+Política padrão de seção
+Declaração de Direito Autoral
+
+Os textos submetidos e aprovados pelo Conselho Editorial da Revista de Engenharia, TI e Inovação, serão publicados, e seus autores poderão dispor deles para posteriores publicações, sempre fazendo constar a edição original (título, Revista Profissão Docente, volume, número, ano de publicação e paginação do texto referido). Todos os artigos dessa Revista são de inteira responsabilidade de seus autores, não cabendo qualquer responsabilidade legal sobre seu conteúdo à Revista ou à Universidade de Uberaba.
+ 
+Política de Privacidade
+
+Os nomes e endereços informados nesta revista serão usados exclusivamente para os serviços prestados por esta publicação, não sendo disponibilizados para outras finalidades ou a terceiros.

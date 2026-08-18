@@ -38,6 +38,7 @@ class ConsultaRotaCarroTest extends TestCase
             'estoque_ativo' => true,
             'origem_latitude' => '-18.9219000',
             'origem_longitude' => '-48.2943000',
+            'cep' => '38400328',
         ]);
 
         $this->user = User::query()->create([
@@ -52,6 +53,9 @@ class ConsultaRotaCarroTest extends TestCase
         $this->user->empresas()->attach($this->empresa->id);
 
         Sanctum::actingAs($this->user);
+
+        // Compose pode injetar ORS_API_KEY vazio; o teste usa Http::fake, não a rede.
+        config(['erp.ors.key' => 'test-ors-key']);
     }
 
     public function test_geo_sem_rota_nao_chama_ors(): void
@@ -192,19 +196,41 @@ class ConsultaRotaCarroTest extends TestCase
         $this->assertSame(1, $this->countOrs());
     }
 
-    public function test_chave_ausente_nao_chama_ors(): void
+    public function test_sem_chave_ors_usa_roteamento_osm(): void
     {
         config(['erp.ors.key' => '']);
         $this->fakeApis();
 
         $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
-            ->getJson('/api/v1/consulta/cep/38400328?geo=1&rota=1')
+            ->getJson('/api/v1/consulta/rota?lat=-18.9186100&lng=-48.2772200')
             ->assertOk()
-            ->assertJsonPath('data.latitude', '-18.9186000')
-            ->assertJsonPath('data.distancia_km', null)
-            ->assertJsonPath('data.distancia_erro', 'chave_ausente');
+            ->assertJsonPath('data.distancia_km', '2.400')
+            ->assertJsonPath('data.distancia_fonte', 'osm_routing')
+            ->assertJsonPath('data.origem_latitude', '-18.9219000');
 
         $this->assertSame(0, $this->countOrs());
+        $this->assertSame(1, $this->countOsmRouting());
+        $this->assertTrue(
+            collect(Http::recorded())->contains(
+                fn (array $pair) => str_contains($pair[0]->url(), 'routing.openstreetmap.de')
+                    && ! str_contains($pair[0]->url(), 'project-osrm.org')
+            )
+        );
+    }
+
+    public function test_geo_endereco_pesquisa_rua_nao_centroide_cep(): void
+    {
+        $this->fakeApis();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/consulta/geo-endereco?logradouro=Avenida+Joao+Naves&numero=100&municipio=Uberlandia&uf=MG&cep=38400370')
+            ->assertOk()
+            ->assertJsonPath('data.latitude', '-18.9100000')
+            ->assertJsonPath('data.longitude', '-48.2600000')
+            ->assertJsonPath('data.fonte', 'nominatim');
+
+        $this->assertSame(1, $this->countNominatim());
+        $this->assertSame(0, $this->countBrasilApiCepV2());
     }
 
     public function test_emp_b_nao_herda_km_da_emp_a(): void
@@ -283,6 +309,95 @@ class ConsultaRotaCarroTest extends TestCase
             ->assertJsonPath('data.origem_longitude', '-48.2943000');
     }
 
+    public function test_ceps_diferentes_mesmo_centroide_nao_inventa_zero(): void
+    {
+        $this->empresa->update([
+            'origem_latitude' => '-18.9186000',
+            'origem_longitude' => '-48.2772000',
+        ]);
+        $this->fakeApis();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/consulta/cep/38400370?geo=1&rota=1')
+            ->assertOk()
+            ->assertJsonPath('data.latitude', '-18.9186000')
+            ->assertJsonPath('data.distancia_km', null)
+            ->assertJsonPath('data.distancia_erro', 'geo_impreciso');
+
+        $this->assertSame(0, $this->countOrs());
+    }
+
+    public function test_mesmo_cep_mesmo_ponto_grava_zero_honesto(): void
+    {
+        $this->empresa->update([
+            'origem_latitude' => '-18.9186000',
+            'origem_longitude' => '-48.2772000',
+        ]);
+        $this->fakeApis();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/consulta/cep/38400328?geo=1&rota=1')
+            ->assertOk()
+            ->assertJsonPath('data.distancia_km', '0.000')
+            ->assertJsonPath('data.distancia_fonte', 'mesmo_ponto')
+            ->assertJsonMissingPath('data.distancia_erro');
+
+        $this->assertSame(0, $this->countOrs());
+    }
+
+    public function test_nao_persiste_zero_km_no_parceiro(): void
+    {
+        $res = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->postJson('/api/v1/parceiros', [
+                'razao_social' => 'Zero Km',
+                'tipo_pessoa' => 'PJ',
+                'papel_cliente' => true,
+                'cep' => '38400370',
+                'latitude' => '-18.9186',
+                'longitude' => '-48.2772',
+                'distancia_km' => '0.000',
+                'distancia_fonte' => 'mesmo_ponto',
+            ])
+            ->assertCreated();
+
+        $this->assertNull($res->json('data.distancia_km'));
+        $this->assertNull($res->json('data.distancia_fonte'));
+        $this->assertNull($res->json('data.distancia_empresa_id'));
+    }
+
+    public function test_rota_usa_lat_lng_da_base_e_do_destino(): void
+    {
+        $this->fakeApis();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/consulta/rota?lat=-18.9186100&lng=-48.2772200')
+            ->assertOk()
+            ->assertJsonPath('data.latitude', '-18.9186100')
+            ->assertJsonPath('data.longitude', '-48.2772200')
+            ->assertJsonPath('data.distancia_km', '2.400')
+            ->assertJsonPath('data.distancia_fonte', 'openrouteservice');
+
+        $this->assertSame(1, $this->countOrs());
+        $this->assertSame(0, $this->countBrasilApiCepV2());
+    }
+
+    public function test_rota_sem_origem_nao_chama_ors(): void
+    {
+        $this->empresa->update([
+            'origem_latitude' => null,
+            'origem_longitude' => null,
+        ]);
+        $this->fakeApis();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/consulta/rota?lat=-18.9186100&lng=-48.2772200')
+            ->assertOk()
+            ->assertJsonPath('data.distancia_km', null)
+            ->assertJsonPath('data.distancia_erro', 'sem_origem');
+
+        $this->assertSame(0, $this->countOrs());
+    }
+
     public function test_origem_incompleta_e_rejeitada(): void
     {
         $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
@@ -301,7 +416,9 @@ class ConsultaRotaCarroTest extends TestCase
         Http::fake([
             'viacep.com.br/*' => Http::response($this->viaCepUberlandia(), 200),
             'brasilapi.com.br/api/cep/v2/*' => Http::response($brasilApi ?? $this->brasilApiUberlandia(), 200),
+            'nominatim.openstreetmap.org/*' => Http::response($this->nominatimStreet(), 200),
             'api.openrouteservice.org/*' => Http::response($this->orsDrivingCar(), 200),
+            'routing.openstreetmap.de/*' => Http::response($this->osmRouting(), 200),
             '*' => Http::response('unexpected', 599),
         ]);
     }
@@ -369,10 +486,54 @@ class ConsultaRotaCarroTest extends TestCase
         ];
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function nominatimStreet(): array
+    {
+        return [
+            [
+                'lat' => '-18.9100000',
+                'lon' => '-48.2600000',
+                'display_name' => 'Avenida João Naves de Ávila, Uberlândia, MG',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function osmRouting(): array
+    {
+        return [
+            'code' => 'Ok',
+            'routes' => [
+                [
+                    'distance' => 2400,
+                    'duration' => 400,
+                ],
+            ],
+        ];
+    }
+
     private function countOrs(): int
     {
         return collect(Http::recorded())
             ->filter(fn (array $pair) => str_contains($pair[0]->url(), 'openrouteservice.org'))
+            ->count();
+    }
+
+    private function countOsmRouting(): int
+    {
+        return collect(Http::recorded())
+            ->filter(fn (array $pair) => str_contains($pair[0]->url(), 'routing.openstreetmap.de'))
+            ->count();
+    }
+
+    private function countNominatim(): int
+    {
+        return collect(Http::recorded())
+            ->filter(fn (array $pair) => str_contains($pair[0]->url(), 'nominatim.openstreetmap.org'))
             ->count();
     }
 

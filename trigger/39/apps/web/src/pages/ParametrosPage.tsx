@@ -28,7 +28,7 @@ const SORT = {
 export function ParametrosPage() {
   const [parametros, setParametros] = useState<Parametro[]>([]);
   const [loading, setLoading] = useState(true);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(parametros, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(parametros, SORT);
   const [editing, setEditing] = useState<Parametro | null>(null);
   const [chave, setChave] = useState('');
   const [valor, setValor] = useState('');
@@ -143,16 +143,16 @@ export function ParametrosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="chave" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="chave" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Chave
                   </SortableTh>
-                  <SortableTh column="valor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="valor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Valor
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
-                  <SortableTh column="versao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="versao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Versão
                   </SortableTh>
                   <th></th>

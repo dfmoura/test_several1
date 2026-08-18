@@ -11,8 +11,11 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Comercial\Orcamento\OrcamentoMotor;
+use App\Services\Comercial\Orcamento\OrcamentoServicoPrecificador;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Support\CatalogoServicoSaida;
 use App\Support\ModelosComposicao;
+use App\Support\TipoOperacaoSaida;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -20,15 +23,22 @@ class OrcamentoService
 {
     public function __construct(
         private readonly OrcamentoMotor $motor,
+        private readonly OrcamentoServicoPrecificador $servicoPrecificador,
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $audit,
         private readonly OrcamentoFreteEstimadoService $freteEstimado,
+        private readonly VendedorResolver $vendedores,
     ) {}
 
     /** @return array<string, mixed> */
     public function catalogMeta(): array
     {
-        return OrcamentoCatalogo::load()->metaForUi();
+        $meta = OrcamentoCatalogo::load()->metaForUi();
+        $meta['frete'] = $this->freteEstimado->catalogoVigente();
+        $meta['tipos_operacao'] = TipoOperacaoSaida::metaForUi();
+        $meta['tipos_servico'] = CatalogoServicoSaida::metaForUi();
+
+        return $meta;
     }
 
     /**
@@ -40,9 +50,9 @@ class OrcamentoService
     public function calcularPreview(Empresa $empresa, array $data): array
     {
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
-        $input = $this->buildMotorInput($data, $parceiro, $empresa);
+        [$input, $result] = $this->precificar($empresa, $parceiro, $data);
 
-        return $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
+        return $this->enrichResult($result, $data, $parceiro, $empresa);
     }
 
     /**
@@ -54,6 +64,7 @@ class OrcamentoService
         $q = Orcamento::query()
             ->with([
                 'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
+                'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
                 ...Orcamento::userStampWith(),
             ])
             ->where('empresa_id', $empresa->id)
@@ -64,6 +75,9 @@ class OrcamentoService
         }
         if (! empty($filters['parceiro_id'])) {
             $q->where('parceiro_id', (int) $filters['parceiro_id']);
+        }
+        if (! empty($filters['vendedor_parceiro_id'])) {
+            $q->where('vendedor_parceiro_id', (int) $filters['vendedor_parceiro_id']);
         }
         if (! empty($filters['q'])) {
             $term = '%'.$filters['q'].'%';
@@ -81,6 +95,7 @@ class OrcamentoService
     {
         $orcamento->loadMissing([
             'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
+            'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
             'linkAprovacao',
             ...Orcamento::userStampWith(),
         ]);
@@ -95,10 +110,11 @@ class OrcamentoService
     public function create(Empresa $empresa, array $data): array
     {
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
-        $input = $this->buildMotorInput($data, $parceiro, $empresa);
-        $result = $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
+        $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
+        [$input, $bruto] = $this->precificar($empresa, $parceiro, $data);
+        $result = $this->enrichResult($bruto, $data, $parceiro, $empresa);
 
-        $orcamento = DB::transaction(function () use ($empresa, $parceiro, $data, $input, $result) {
+        $orcamento = DB::transaction(function () use ($empresa, $parceiro, $vendedor, $data, $input, $result) {
             $ano = (int) now()->year;
             $prefix = 'ORC-'.$ano;
             $codigo = $this->codigoGenerator->nextCode($empresa->id, $prefix, 5);
@@ -106,7 +122,7 @@ class OrcamentoService
             $parts = explode('-', $codigo);
             $numero = (int) end($parts);
 
-            $snapshotInput = $this->persistableInput($input, $data);
+            $snapshotInput = $this->persistableInput($input, $data, $vendedor);
 
             $orc = Orcamento::query()->create([
                 'empresa_id' => $empresa->id,
@@ -115,6 +131,7 @@ class OrcamentoService
                 'codigo' => $codigo,
                 'versao' => 1,
                 'parceiro_id' => $parceiro->id,
+                'vendedor_parceiro_id' => $vendedor?->id,
                 'cliente_nome' => $parceiro->razao_social,
                 'status' => Orcamento::STATUS_CALCULADO,
                 'input_snapshot' => $snapshotInput,
@@ -151,8 +168,9 @@ class OrcamentoService
 
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
-        $input = $this->buildMotorInput($data, $parceiro, $empresa);
-        $result = $this->enrichResult($this->motor->calcular($input), $data, $parceiro, $empresa);
+        $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
+        [$input, $bruto] = $this->precificar($empresa, $parceiro, $data);
+        $result = $this->enrichResult($bruto, $data, $parceiro, $empresa);
 
         $before = [
             'versao' => $orcamento->versao,
@@ -160,7 +178,7 @@ class OrcamentoService
             'parceiro_id' => $orcamento->parceiro_id,
         ];
 
-        DB::transaction(function () use ($orcamento, $parceiro, $data, $input, $result, $before) {
+        DB::transaction(function () use ($orcamento, $parceiro, $vendedor, $data, $input, $result, $before) {
             // Recálculo após recusa: volta a preparação e invalida link antigo.
             if ($orcamento->status === Orcamento::STATUS_REPROVADO) {
                 $link = $orcamento->linkAprovacao()->lockForUpdate()->first();
@@ -173,9 +191,10 @@ class OrcamentoService
             $orcamento->fill([
                 'versao' => $orcamento->versao + 1,
                 'parceiro_id' => $parceiro->id,
+                'vendedor_parceiro_id' => $vendedor?->id,
                 'cliente_nome' => $parceiro->razao_social,
                 'status' => Orcamento::STATUS_CALCULADO,
-                'input_snapshot' => $this->persistableInput($input, $data),
+                'input_snapshot' => $this->persistableInput($input, $data, $vendedor),
                 'result_snapshot' => $result,
                 'chave_matriz' => $result['chave_matriz'],
                 'cobra_matriz' => $result['cobra_matriz'],
@@ -205,7 +224,7 @@ class OrcamentoService
             ]);
         });
 
-        return $this->show($orcamento->fresh(['parceiro']));
+        return $this->show($orcamento->fresh(['parceiro', 'vendedor']));
     }
 
     public function destroy(Orcamento $orcamento): void
@@ -255,6 +274,61 @@ class OrcamentoService
 
     /**
      * @param  array<string, mixed>  $data
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>}
+     */
+    private function precificar(Empresa $empresa, Parceiro $parceiro, array $data): array
+    {
+        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)) {
+            $input = $this->buildServicoInput($data, $parceiro);
+
+            return [$input, $this->servicoPrecificador->calcular($input)];
+        }
+
+        $input = $this->buildMotorInput($data, $parceiro, $empresa);
+
+        return [$input, $this->motor->calcular($input)];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function buildServicoInput(array $data, Parceiro $parceiro): array
+    {
+        $tipo = CatalogoServicoSaida::get((string) ($data['tipo_servico'] ?? CatalogoServicoSaida::AVULSO));
+        $material = array_key_exists('material_cliente', $data)
+            ? (bool) $data['material_cliente']
+            : $tipo['material_cliente_padrao'];
+        $desc = trim((string) ($data['descricao_servico'] ?? ''));
+        if ($desc === '') {
+            $desc = $tipo['descricao_padrao'];
+        }
+
+        return [
+            'cliente' => $parceiro->razao_social,
+            'parceiro_id' => $parceiro->id,
+            'tipo_operacao' => TipoOperacaoSaida::SERVICO,
+            'tipo_servico' => $tipo['codigo'],
+            'descricao_servico' => $desc,
+            'material_cliente' => $material,
+            'unidade' => strtoupper(trim((string) ($data['unidade'] ?? $tipo['unidade_padrao']))) ?: $tipo['unidade_padrao'],
+            'horas_maquina' => isset($data['horas_maquina']) ? (float) $data['horas_maquina'] : null,
+            'maquina' => $data['maquina'] ?? null,
+            'cessao_bem_id' => isset($data['cessao_bem_id']) ? (int) $data['cessao_bem_id'] : null,
+            'familia_fiscal' => $tipo['familia_fiscal'],
+            'codigo_tributacao_nacional_iss' => $tipo['codigo_tributacao_nacional_iss'],
+            'codigo_nbs' => $tipo['codigo_nbs'],
+            'necessidade' => 'SERVICO',
+            'faixas' => array_map(static fn (array $f) => [
+                'quantidade' => (float) $f['quantidade'],
+                'valor_unitario' => (float) $f['valor_unitario'],
+                'comissao_pct' => (float) ($f['comissao_pct'] ?? 0),
+            ], $data['faixas']),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function buildMotorInput(array $data, Parceiro $parceiro, Empresa $empresa): array
@@ -264,6 +338,7 @@ class OrcamentoService
         $input = [
             'cliente' => $parceiro->razao_social,
             'parceiro_id' => $parceiro->id,
+            'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
             'medida' => $data['medida'],
             'largura_cm' => (float) $data['largura_cm'],
             'puxada_cm' => (float) $data['puxada_cm'],
@@ -318,9 +393,12 @@ class OrcamentoService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function persistableInput(array $input, array $data): array
+    private function persistableInput(array $input, array $data, ?Parceiro $vendedor = null): array
     {
         unset($input['matriz_ja_cobrada']);
+
+        $modo = $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null);
+        $origem = $this->freteEstimado->normalizarOrigem($modo, $data['origem_frete'] ?? null);
 
         return array_merge($input, [
             'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? 12),
@@ -329,8 +407,32 @@ class OrcamentoService
             'observacao' => $data['observacao'] ?? null,
             'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmpty($data['forma_pagamento'] ?? null),
-            'modo_entrega' => $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null),
+            'vendedor_parceiro_id' => $vendedor?->id,
+            'vendedor_nome' => $vendedor?->razao_social,
+            'vendedor_codigo' => $vendedor?->codigo,
+            'comissao_aliquota' => $vendedor?->comissao_percentual !== null
+                ? (string) $vendedor->comissao_percentual
+                : null,
+            'modo_entrega' => $modo,
+            'origem_frete' => $origem,
+            'valor_frete_manual' => $this->freteEstimado->valorFreteManualSnapshot(
+                $modo,
+                $origem,
+                $data['valor_frete_manual'] ?? null,
+            ),
             'necessidade' => $this->necessidadeSnapshot($data['necessidade'] ?? $input['necessidade'] ?? null),
+            'tipo_operacao' => TipoOperacaoSaida::fromInput(
+                $data['tipo_operacao'] ?? $input['tipo_operacao'] ?? $data['necessidade'] ?? $input['necessidade'] ?? null
+            ),
+            'tipo_servico' => $input['tipo_servico'] ?? $data['tipo_servico'] ?? null,
+            'descricao_servico' => $input['descricao_servico'] ?? $data['descricao_servico'] ?? null,
+            'material_cliente' => (bool) ($input['material_cliente'] ?? $data['material_cliente'] ?? false),
+            'unidade' => $input['unidade'] ?? $data['unidade'] ?? null,
+            'horas_maquina' => $input['horas_maquina'] ?? $data['horas_maquina'] ?? null,
+            'cessao_bem_id' => $input['cessao_bem_id'] ?? $data['cessao_bem_id'] ?? null,
+            'codigo_tributacao_nacional_iss' => $input['codigo_tributacao_nacional_iss'] ?? null,
+            'codigo_nbs' => $input['codigo_nbs'] ?? null,
+            'familia_fiscal' => $input['familia_fiscal'] ?? null,
             'faca_nova' => (bool) ($data['faca_nova'] ?? $input['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? $input['formato_faca'] ?? null,
             'valor_faca_nova' => (float) ($data['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0),
@@ -362,6 +464,7 @@ class OrcamentoService
 
     /**
      * Anexa FACA NOVA e frete estimado ao result sem alterar fórmulas R1–R20.
+     * Frete somável compõe valor_total_proposta (não o unitário / valor_total do motor).
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
@@ -369,6 +472,10 @@ class OrcamentoService
      */
     private function enrichResult(array $result, array $data, Parceiro $parceiro, Empresa $empresa): array
     {
+        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $result['tipo_operacao'] ?? null)) {
+            $data['faca_nova'] = false;
+            $data['valor_faca_nova'] = 0;
+        }
         $facaNova = (bool) ($data['faca_nova'] ?? false);
         $valorFaca = $facaNova ? max(0.0, (float) ($data['valor_faca_nova'] ?? 0)) : 0.0;
         $prazoFaca = $facaNova && isset($data['prazo_faca_dias']) && $data['prazo_faca_dias'] !== null
@@ -404,6 +511,7 @@ class OrcamentoService
             'codigo' => $o->codigo,
             'versao' => $o->versao,
             'parceiro_id' => $o->parceiro_id,
+            'vendedor_parceiro_id' => $o->vendedor_parceiro_id,
             'cliente_nome' => $o->cliente_nome,
             'status' => $o->status,
             'status_exibicao' => $this->statusExibicao($o),
@@ -412,6 +520,9 @@ class OrcamentoService
             'aguardando_cliente' => $o->aguardandoCliente(),
             'input_snapshot' => $o->input_snapshot,
             'result_snapshot' => $o->result_snapshot,
+            'tipo_operacao' => TipoOperacaoSaida::fromInput(
+                is_array($o->input_snapshot) ? ($o->input_snapshot['tipo_operacao'] ?? $o->input_snapshot['necessidade'] ?? null) : null
+            ),
             'chave_matriz' => $o->chave_matriz,
             'cobra_matriz' => $o->cobra_matriz,
             'valor_matriz' => $o->valor_matriz,
@@ -447,6 +558,17 @@ class OrcamentoService
                     'razao_social' => $o->parceiro->razao_social,
                     'nome_fantasia' => $o->parceiro->nome_fantasia,
                     'is_prospect' => (bool) $o->parceiro->is_prospect,
+                ]
+                : null,
+            'vendedor' => $o->relationLoaded('vendedor') && $o->vendedor
+                ? [
+                    'id' => $o->vendedor->id,
+                    'codigo' => $o->vendedor->codigo,
+                    'razao_social' => $o->vendedor->razao_social,
+                    'nome_fantasia' => $o->vendedor->nome_fantasia,
+                    'comissao_percentual' => $o->vendedor->comissao_percentual !== null
+                        ? (string) $o->vendedor->comissao_percentual
+                        : null,
                 ]
                 : null,
             'criado_por' => Orcamento::userStampFrom($o->criador),

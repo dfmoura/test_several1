@@ -69,11 +69,17 @@ return [
     | Tokens cifados com Laravel Crypt. Homolog ≠ produção (UC-INT-001).
     | Teste OK do ambiente ativo habilita emissão automática de NF-e/NFS-e.
     |
+    | fiscal_emissor: focus (padrão) | stub
+    | stub = autorização sintética só em local/testing, e só se o hub NÃO estiver apto.
+    | Homologação e produção ignoram stub (estudo 32: HML usa Focus homolog + A1).
+    |
     */
 
     'fiscal_hub_http_timeout_sec' => (float) env('FISCAL_HUB_HTTP_TIMEOUT_SEC', 20),
 
     'fiscal_hub_emit_timeout_sec' => (float) env('FISCAL_HUB_EMIT_TIMEOUT_SEC', 40),
+
+    'fiscal_emissor' => env('FISCAL_EMISSOR', 'focus'),
 
     /*
     |--------------------------------------------------------------------------
@@ -117,6 +123,31 @@ return [
         'base' => env('ORS_BASE', 'https://api.openrouteservice.org'),
         'timeout_sec' => (float) env('ORS_HTTP_TIMEOUT_SEC', 8),
         'cache_ttl_days' => (int) env('ORS_CACHE_TTL_DAYS', 90),
+        'osm_routing_base' => env('OSM_ROUTING_BASE', 'https://routing.openstreetmap.de/routed-car'),
+    ],
+
+    'nominatim' => [
+        'base' => env('NOMINATIM_BASE', 'https://nominatim.openstreetmap.org'),
+        'timeout_sec' => (float) env('NOMINATIM_HTTP_TIMEOUT_SEC', 8),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | CEP (endereço NF-e)
+    |--------------------------------------------------------------------------
+    |
+    | ViaCEP é o contrato (logradouro/IBGE). BrasilAPI CEP v1 e OpenCEP só
+    | completam campo vazio ou entram se a primária cair. Estudo 32 §3.2 / §6.3.
+    | Geo (lat/lng) continua em getCepGeo — não mistura aqui.
+    |
+    */
+
+    'cep' => [
+        'timeout_sec' => (float) env('CEP_HTTP_TIMEOUT_SEC', 5),
+        'cache_ttl_days' => (int) env('CEP_CACHE_TTL_DAYS', 90),
+        'viacep_base' => env('VIACEP_BASE', 'https://viacep.com.br/ws'),
+        'brasilapi_base' => env('BRASILAPI_BASE', 'https://brasilapi.com.br/api'),
+        'opencep_base' => env('OPENCEP_BASE', 'https://opencep.com/v1'),
     ],
 
 ];

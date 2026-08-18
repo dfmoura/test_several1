@@ -314,6 +314,14 @@ export function OrcamentoComoCalculaPage() {
                   Tintagem: até 30 m² (com perda de acerto) → R$ 10 por cor; acima → R$ 0,40/m².
                   Rebobinação: (metragem × colunas ÷ col. rebob. ÷ 1.000) × preço do catálogo.
                 </p>
+                <p className="calc-formula-note">
+                  Frete entra depois do motor, no fechamento. Entregar: <strong>Calculada</strong>{' '}
+                  (peso = caixas × peso da caixa escolhe a faixa; valor = máx(mínimo,
+                  R$/km × km), teto para cima) ou <strong>Manual</strong> um R$ da
+                  proposta (mesmo valor em todas as quantidades; não exige km). Não dilui
+                  no unitário nem altera R1–R20. Default da proposta é Retirar (R$ 0);
+                  em Entregar o padrão é Calculada.
+                </p>
               </div>
             </div>
           </section>
@@ -442,8 +450,8 @@ export function OrcamentoComoCalculaPage() {
                   <h3>Cliente vê (futuro envio)</h3>
                   <ul>
                     <li>Material, medida, acabamento, cores</li>
-                    <li>Faixas: total, unitário, valor do rolo</li>
-                    <li>Matriz (nota: só no 1º pedido)</li>
+                    <li>Faixas: total (com frete se levantado), unitário, valor do rolo</li>
+                    <li>Matriz (nota: só no 1º pedido) e frete estimado quando Entregar</li>
                     <li>Prazo, validade e tolerância de quantidade</li>
                   </ul>
                 </div>
@@ -476,6 +484,15 @@ export function OrcamentoComoCalculaPage() {
                 <li>
                   <strong>Catálogo alimenta o motor</strong> — alterações valem em novos
                   cálculos; ORCs já salvos permanecem com o snapshot antigo.
+                </li>
+                <li>
+                  <strong>Frete estimado</strong> — Entregar usa origem Calculada (km já
+                  gravado no parceiro desta empresa × R$/km da faixa de peso do catálogo,
+                  com mínimo) ou Manual (um R$ informado, igual em todas as quantidades,
+                  sem exigir km). Sem km ou sem tarifa na Calculada, não inventa valor.
+                  Retirar = R$ 0. Frete levantado compõe o total da proposta (cliente ou
+                  prospect) e não entra no unitário da etiqueta. O cliente vê o valor, não
+                  se foi calculado ou informado.
                 </li>
                 <li>
                   <strong>Pré-fluxo atual</strong> — nesta fase só RASCUNHO / CALCULADO

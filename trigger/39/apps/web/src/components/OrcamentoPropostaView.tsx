@@ -4,6 +4,7 @@ import { TriggerAttribution } from './TriggerAttribution';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCnpj, formatCurrency, formatDateTime, formatPhone } from '../lib/format';
+import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 type Props = {
   proposta: OrcamentoPropostaPublica;
@@ -82,7 +83,32 @@ export function OrcamentoPropostaView({
         </section>
 
         <section className="orc-pub-card">
-          <h2>Especificação</h2>
+          <h2>{proposta.tipo_operacao === 'SERVICO' ? 'Serviço' : 'Especificação'}</h2>
+          {proposta.tipo_operacao === 'SERVICO' ? (
+            <dl className="orc-pub-spec">
+              <div>
+                <dt>Descrição</dt>
+                <dd>{desc?.descricao_servico || 'Prestação de serviço'}</dd>
+              </div>
+              <div>
+                <dt>Tipo</dt>
+                <dd>{tipoServicoLabel(desc?.tipo_servico) || 'Serviço'}</dd>
+              </div>
+              {desc?.unidade ? (
+                <div>
+                  <dt>Unidade</dt>
+                  <dd>{desc.unidade}</dd>
+                </div>
+              ) : null}
+              {desc?.material_cliente ? (
+                <div>
+                  <dt>Material</dt>
+                  <dd>Do cliente</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : (
+            <>
           <dl className="orc-pub-spec">
             <div>
               <dt>Material</dt>
@@ -132,6 +158,8 @@ export function OrcamentoPropostaView({
               }))}
             />
           ) : null}
+            </>
+          )}
         </section>
 
         <section className="orc-pub-card">
@@ -159,7 +187,12 @@ export function OrcamentoPropostaView({
                     onChange={() => onFaixaChange?.(fx.index)}
                   />
                   <div>
-                    <strong>{fx.quantidade.toLocaleString('pt-BR')} etiquetas</strong>
+                    <strong>
+                      {fx.quantidade.toLocaleString('pt-BR')}{' '}
+                      {proposta.tipo_operacao === 'SERVICO'
+                        ? desc?.unidade || 'un.'
+                        : 'etiquetas'}
+                    </strong>
                     <span>
                       Total {formatCurrency(fx.valor_total)}
                       {fx.valor_unitario != null
@@ -168,7 +201,7 @@ export function OrcamentoPropostaView({
                       {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
                       {proposta.frete?.modo === 'ENTREGAR'
                         ? fx.frete_somavel && fx.valor_frete != null
-                          ? ` · frete est. ${formatCurrency(fx.valor_frete)}`
+                          ? ` · inclui frete est. ${formatCurrency(fx.valor_frete)}`
                           : ' · frete a combinar'
                         : ''}
                     </span>

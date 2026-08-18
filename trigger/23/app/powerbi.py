@@ -120,6 +120,8 @@ class ContratoGrupoOut(BaseModel):
     ds_objeto_contrato: str | None = None
     qtd_eventos: int
     valor_total: str | None = None
+    observador_id: int | None = None
+    observador_nome: str | None = None
     eventos: list[ContratoOut]
     responsaveis: list["ResponsavelOut"]
 
@@ -199,7 +201,31 @@ def _proc_out(row: PbiProcessoLicitatorio, db: Session | None = None) -> Process
     )
 
 
+def _obs_do_processo(proc: PbiProcessoLicitatorio | None) -> tuple[int | None, str | None]:
+    if proc is None:
+        return None, None
+    nome = proc.observador.nome if proc.observador else None
+    return proc.observador_id, nome
+
+
+def _obs_exibido(
+    herdado_id: int | None,
+    herdado_nome: str | None,
+    proprio_id: int | None,
+    proprio,
+) -> tuple[int | None, str | None]:
+    if herdado_id is not None:
+        return herdado_id, herdado_nome
+    nome = proprio.nome if proprio else None
+    return proprio_id, nome
+
+
 def _ctr_out(row: PbiContrato) -> ContratoOut:
+    oid, onome = _obs_exibido(
+        *_obs_do_processo(row.processo_licitatorio),
+        row.observador_id,
+        row.observador,
+    )
     return ContratoOut(
         id=row.id,
         orgao_id=row.orgao_id,
@@ -218,13 +244,19 @@ def _ctr_out(row: PbiContrato) -> ContratoOut:
         processo=row.processo,
         vr_inicial=row.vr_inicial,
         fonte_ano_coleta=row.fonte_ano_coleta,
-        observador_id=row.observador_id,
-        observador_nome=row.observador.nome if row.observador else None,
+        observador_id=oid,
+        observador_nome=onome,
         coletado_em=row.coletado_em,
     )
 
 
 def _resp_out(row: PbiContratoResponsavel) -> ResponsavelOut:
+    proc = row.contrato.processo_licitatorio if row.contrato else None
+    oid, onome = _obs_exibido(
+        *_obs_do_processo(proc),
+        row.observador_id,
+        row.observador,
+    )
     return ResponsavelOut(
         id=row.id,
         contrato_id=row.contrato_id,
@@ -242,8 +274,8 @@ def _resp_out(row: PbiContratoResponsavel) -> ResponsavelOut:
         dt_inicio=row.dt_inicio,
         nr_contrato=row.nr_contrato,
         objeto_contrato=row.objeto_contrato,
-        observador_id=row.observador_id,
-        observador_nome=row.observador.nome if row.observador else None,
+        observador_id=oid,
+        observador_nome=onome,
         coletado_em=row.coletado_em,
     )
 
@@ -255,7 +287,7 @@ _PROC_OPTS = (
 _CTR_OPTS = (
     selectinload(PbiContrato.orgao),
     selectinload(PbiContrato.fornecedor),
-    selectinload(PbiContrato.processo_licitatorio),
+    selectinload(PbiContrato.processo_licitatorio).selectinload(PbiProcessoLicitatorio.observador),
     selectinload(PbiContrato.observador),
 )
 _RESP_OPTS = (
@@ -264,6 +296,9 @@ _RESP_OPTS = (
     selectinload(PbiContratoResponsavel.orgao),
     selectinload(PbiContratoResponsavel.fornecedor),
     selectinload(PbiContratoResponsavel.observador),
+    selectinload(PbiContratoResponsavel.contrato)
+    .selectinload(PbiContrato.processo_licitatorio)
+    .selectinload(PbiProcessoLicitatorio.observador),
 )
 
 
@@ -303,6 +338,66 @@ def _filtro_texto_gestor(t: str):
         PbiFornecedor.razao_social.ilike(t),
         PbiOrgao.nome.ilike(t),
         PbiPapel.descricao.ilike(t),
+    )
+
+
+def _filtro_obs_processo(observador_id: int | None):
+    return condicao_observador(PbiProcessoLicitatorio.observador_id, observador_id)
+
+
+def _aplicar_obs_via_processo_contrato(stmt, count, observador_id: int | None):
+    """Contratos/eventos herdam o observador do processo licitatório."""
+    filtro = _filtro_obs_processo(observador_id)
+    if filtro is None:
+        return stmt, count
+    join_on = PbiContrato.processo_id == PbiProcessoLicitatorio.id
+    stmt = stmt.outerjoin(PbiProcessoLicitatorio, join_on).where(filtro)
+    if count is not None:
+        count = count.outerjoin(PbiProcessoLicitatorio, join_on).where(filtro)
+    return stmt, count
+
+
+def _aplicar_obs_via_processo_gestor(stmt, count, observador_id: int | None):
+    """Responsáveis herdam o observador do processo (via contrato)."""
+    filtro = _filtro_obs_processo(observador_id)
+    if filtro is None:
+        return stmt, count
+    stmt = (
+        stmt.outerjoin(PbiContrato, PbiContratoResponsavel.contrato_id == PbiContrato.id)
+        .outerjoin(PbiProcessoLicitatorio, PbiContrato.processo_id == PbiProcessoLicitatorio.id)
+        .where(filtro)
+    )
+    if count is not None:
+        count = (
+            count.outerjoin(PbiContrato, PbiContratoResponsavel.contrato_id == PbiContrato.id)
+            .outerjoin(PbiProcessoLicitatorio, PbiContrato.processo_id == PbiProcessoLicitatorio.id)
+            .where(filtro)
+        )
+    return stmt, count
+
+
+def _contrato_grupo_out(g: dict[str, Any], resps: list) -> ContratoGrupoOut:
+    ch = g["chave"]
+    eventos_out = [_ctr_out(ev) for ev in g["eventos"]]
+    obs_id = next((e.observador_id for e in eventos_out if e.observador_id), None)
+    obs_nome = next((e.observador_nome for e in eventos_out if e.observador_nome), None)
+    return ContratoGrupoOut(
+        orgao_id=ch["orgao_id"],
+        orgao_nome=g["orgao_nome"],
+        ano_contrato=ch["ano_contrato"],
+        nr_contrato=ch["nr_contrato"],
+        fornecedor_id=ch.get("fornecedor_id") or None,
+        fornecedor_nome=g["fornecedor_nome"],
+        processo=ch.get("processo"),
+        ano_processo=ch.get("ano_processo"),
+        processo_id=g.get("processo_id"),
+        ds_objeto_contrato=g["ds_objeto_contrato"],
+        qtd_eventos=g["qtd_eventos"],
+        valor_total=g["valor_total"],
+        observador_id=obs_id,
+        observador_nome=obs_nome,
+        eventos=eventos_out,
+        responsaveis=[_resp_out(r) for r in resps],
     )
 
 
@@ -641,24 +736,7 @@ def arvore_licitacao(lid: int, db: Session = Depends(get_db)):
             fornecedor_id=ch.get("fornecedor_id") or None,
             objeto_contrato=g.get("ds_objeto_contrato"),
         )
-        grupos.append(
-            ContratoGrupoOut(
-                orgao_id=ch["orgao_id"],
-                orgao_nome=g["orgao_nome"],
-                ano_contrato=ch["ano_contrato"],
-                nr_contrato=ch["nr_contrato"],
-                fornecedor_id=ch.get("fornecedor_id") or None,
-                fornecedor_nome=g["fornecedor_nome"],
-                processo=ch.get("processo"),
-                ano_processo=ch.get("ano_processo"),
-                processo_id=g.get("processo_id"),
-                ds_objeto_contrato=g["ds_objeto_contrato"],
-                qtd_eventos=g["qtd_eventos"],
-                valor_total=g["valor_total"],
-                eventos=[_ctr_out(ev) for ev in g["eventos"]],
-                responsaveis=[_resp_out(r) for r in resps],
-            )
-        )
+        grupos.append(_contrato_grupo_out(g, resps))
 
     return ArvoreLicitacaoOut(
         licitacao=_proc_out(row, db),
@@ -703,9 +781,7 @@ def listar_contratos_agrupados(
         if not orgao_joined:
             stmt = stmt.join(PbiOrgao)
         stmt = stmt.join(PbiFornecedor, isouter=True).where(_filtro_texto_contrato(t))
-    filtro_obs = condicao_observador(PbiContrato.observador_id, observador_id)
-    if filtro_obs is not None:
-        stmt = stmt.where(filtro_obs)
+    stmt, _ = _aplicar_obs_via_processo_contrato(stmt, None, observador_id)
 
     eventos = list(db.scalars(stmt).all())
     grupos = agrupar_eventos(eventos)
@@ -721,24 +797,7 @@ def listar_contratos_agrupados(
             fornecedor_id=ch.get("fornecedor_id") or None,
             objeto_contrato=g.get("ds_objeto_contrato"),
         )
-        items.append(
-            ContratoGrupoOut(
-                orgao_id=ch["orgao_id"],
-                orgao_nome=g["orgao_nome"],
-                ano_contrato=ch["ano_contrato"],
-                nr_contrato=ch["nr_contrato"],
-                fornecedor_id=ch.get("fornecedor_id") or None,
-                fornecedor_nome=g["fornecedor_nome"],
-                processo=ch.get("processo"),
-                ano_processo=ch.get("ano_processo"),
-                processo_id=g.get("processo_id"),
-                ds_objeto_contrato=g["ds_objeto_contrato"],
-                qtd_eventos=g["qtd_eventos"],
-                valor_total=g["valor_total"],
-                eventos=[_ctr_out(ev) for ev in g["eventos"]],
-                responsaveis=[_resp_out(r) for r in resps],
-            )
-        )
+        items.append(_contrato_grupo_out(g, resps))
     return {"total": total, "items": items, "limit": limit, "offset": offset}
 
 
@@ -795,10 +854,7 @@ def listar_contratos(
         f = _filtro_texto_contrato(t)
         stmt = stmt.join(PbiFornecedor, isouter=True).where(f)
         count = count.join(PbiFornecedor, isouter=True).where(f)
-    filtro_obs = condicao_observador(PbiContrato.observador_id, observador_id)
-    if filtro_obs is not None:
-        stmt = stmt.where(filtro_obs)
-        count = count.where(filtro_obs)
+    stmt, count = _aplicar_obs_via_processo_contrato(stmt, count, observador_id)
     total = db.scalar(count) or 0
     rows = db.scalars(
         stmt.order_by(PbiContrato.ano_contrato.desc(), PbiContrato.nr_contrato)
@@ -878,10 +934,7 @@ def listar_gestores(
         f = _filtro_texto_gestor(t)
         stmt = stmt.join(PbiPessoa).where(f)
         count = count.join(PbiPessoa).where(f)
-    filtro_obs = condicao_observador(PbiContratoResponsavel.observador_id, observador_id)
-    if filtro_obs is not None:
-        stmt = stmt.where(filtro_obs)
-        count = count.where(filtro_obs)
+    stmt, count = _aplicar_obs_via_processo_gestor(stmt, count, observador_id)
     total = db.scalar(count) or 0
     rows = db.scalars(
         stmt.order_by(
@@ -908,11 +961,15 @@ def _patch_observador(db: Session, row: Any, payload: PowerBiObservadorUpdate) -
     if payload.observador_id is not None:
         if payload.observador_id == 0:
             row.observador_id = None
+            row.observador = None
         else:
             obs = db.get(Observador, payload.observador_id)
-            if not obs or not obs.ativo:
+            if not obs:
+                raise HTTPException(400, "Observador inválido")
+            if not obs.ativo and row.observador_id != payload.observador_id:
                 raise HTTPException(400, "Observador inválido ou inativo")
             row.observador_id = payload.observador_id
+            row.observador = obs
 
 
 @router.patch("/api/powerbi/licitacoes/{lid}", response_model=ProcessoOut)
@@ -924,7 +981,9 @@ def atualizar_licitacao_pbi(lid: int, payload: PowerBiObservadorUpdate, db: Sess
         raise HTTPException(404, "Não encontrada")
     _patch_observador(db, row, payload)
     db.commit()
-    db.refresh(row)
+    row = db.scalar(
+        select(PbiProcessoLicitatorio).options(*_PROC_OPTS).where(PbiProcessoLicitatorio.id == lid)
+    )
     return _proc_out(row)
 
 

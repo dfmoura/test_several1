@@ -32,7 +32,7 @@ export function PedidosPage() {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(pedidos, SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(pedidos, SORT);
 
   const load = async (search?: string, st?: string) => {
     setLoading(true);
@@ -64,7 +64,7 @@ export function PedidosPage() {
     <>
       <PageHeader
         title="Pedidos"
-        description="Nascem do orçamento liberado (crédito ou adiantamento baixado). Produção abre OP/OS; pedido produzido segue para faturamento."
+        description="Nascem do orçamento liberado (crédito ou adiantamento baixado). Produção abre OP/OS; pedido produzido segue para faturamento e depois à expedição."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}
@@ -88,6 +88,9 @@ export function PedidosPage() {
                 <option value="EM_PRODUCAO">Em produção</option>
                 <option value="PRODUZIDO">Produzido</option>
                 <option value="FATURADO">Faturado</option>
+                <option value="EM_ENTREGA">Em entrega</option>
+                <option value="ENTREGUE">Entregue</option>
+                <option value="ENCERRADO">Encerrado</option>
                 <option value="CANCELADO">Cancelado</option>
               </select>
             </div>
@@ -119,35 +122,35 @@ export function PedidosPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Código
                   </SortableTh>
                   <SortableTh
                     column="parceiro"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                   >
                     Cliente
                   </SortableTh>
-                  <SortableTh column="item" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="item" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Item
                   </SortableTh>
                   <SortableTh
                     column="orcamento"
-                    sortKey={sortKey}
+                    sorts={sorts} sortKey={sortKey}
                     sortDir={sortDir}
                     onSort={requestSort}
                   >
                     ORC
                   </SortableTh>
-                  <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status
                   </SortableTh>
-                  <SortableTh column="prazo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="prazo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Prazo
                   </SortableTh>
-                  <SortableTh column="criado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                  <SortableTh column="criado" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Criado
                   </SortableTh>
                 </tr>
@@ -167,7 +170,14 @@ export function PedidosPage() {
                       <td>
                         <strong>{p.codigo}</strong>
                       </td>
-                      <td>{p.parceiro?.razao_social ?? '—'}</td>
+                      <td>
+                        {p.parceiro?.razao_social ?? '—'}
+                        {p.vendedor ? (
+                          <div className="muted" style={{ fontSize: '0.8em' }}>
+                            {p.vendedor.codigo}
+                          </div>
+                        ) : null}
+                      </td>
                       <td>{p.itens[0]?.descricao ?? '—'}</td>
                       <td
                         onClick={(e) => e.stopPropagation()}

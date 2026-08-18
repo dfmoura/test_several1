@@ -15,8 +15,8 @@ function fatStatusLabel(status: string): string {
   return status.replace(/_/g, ' ');
 }
 
-function nfLabel(status: string): string {
-  return nfStatusLabel(status);
+function nfLabel(status: string, simulada?: boolean): string {
+  return nfStatusLabel(status, simulada);
 }
 
 export function FaturamentoDetailPage() {
@@ -80,7 +80,11 @@ export function FaturamentoDetailPage() {
     try {
       const res = await api.post<{ data: Faturamento }>(`/faturamentos/${fat.id}/emitir-nf`);
       setFat(res.data);
-      setMsg('Envio ao hub Focus concluído. Confira o status das notas abaixo.');
+      setMsg(
+        res.data.nf_simulada
+          ? 'Autorização de teste concluída. Sem valor fiscal — o hub Focus substitui esta numeração quando estiver apto.'
+          : 'Envio ao hub Focus concluído. Confira o status das notas abaixo.',
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível emitir as notas.');
     } finally {
@@ -121,6 +125,14 @@ export function FaturamentoDetailPage() {
             {fat?.pedido?.id ? (
               <Link to={`/pedidos/${fat.pedido.id}`} className="btn btn-secondary">
                 {fat.pedido.codigo}
+              </Link>
+            ) : null}
+            {fat?.pedido?.id &&
+            fat.status === 'CONFIRMADO' &&
+            fat.pedido.status &&
+            ['FATURADO', 'EM_ENTREGA', 'ENTREGUE', 'ENCERRADO'].includes(fat.pedido.status) ? (
+              <Link to="/expedicao" className="btn btn-secondary">
+                Expedição
               </Link>
             ) : null}
           </div>
@@ -172,7 +184,7 @@ export function FaturamentoDetailPage() {
                 <div>
                   <span>Notas</span>
                   <strong>
-                    <StatusPill status={nfLabel(fat.nf_status)} />
+                    <StatusPill status={nfLabel(fat.nf_status, fat.nf_simulada)} />
                   </strong>
                 </div>
                 <div>
@@ -189,7 +201,9 @@ export function FaturamentoDetailPage() {
               ) : (
                 <p className="form-hint" style={{ marginBottom: 0 }}>
                   {fat.nf_status === 'AUTORIZADA'
-                    ? 'Nota autorizada no hub Focus. O estoque de produto acabado só baixa neste momento.'
+                    ? fat.nf_simulada
+                      ? 'Autorização de teste (sem certificado A1). Sem valor fiscal. Quando o hub Focus estiver apto, envie este mesmo documento — a numeração sintética é substituída.'
+                      : 'Nota autorizada no hub Focus. O estoque de produto acabado só baixa neste momento.'
                     : 'A cobrança do saldo já foi gerada. A nota abaixo é prévia do que irá ao hub Focus — pendências de cadastro não desfazem o faturamento. Sem chave, número ou XML autorizado até o hub responder.'}
                 </p>
               )}
@@ -202,9 +216,10 @@ export function FaturamentoDetailPage() {
                 <div className="form-section">
                   <h3>Notas fiscais</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    NF-e para produto e NFS-e para serviço. Numeração vem do fisco — o sistema não
-                    inventa série nem chave. Enquanto o hub não autorizar, você vê a prévia e o JSON
-                    de envio.
+                    NF-e para produto e NFS-e para serviço. Numeração fiscal vem do fisco — o sistema não
+                    inventa série nem chave. Sem o certificado A1 no hub Focus, o ambiente local pode
+                    autorizar só para teste (marca visível, sem valor fiscal). Quando o hub estiver apto,
+                    o mesmo documento é enviado de verdade.
                   </p>
                 </div>
                 <div className="nf-previa-list">
@@ -220,7 +235,7 @@ export function FaturamentoDetailPage() {
                       disabled={busy}
                       onClick={() => void emitirNf()}
                     >
-                      Enviar / reenviar ao hub
+                      {fat.nf_simulada ? 'Enviar ao hub Focus (substituir teste)' : 'Enviar / reenviar ao hub'}
                     </button>
                     <button
                       type="button"

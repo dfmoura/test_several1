@@ -112,7 +112,7 @@ class ParceiroController extends Controller
         $this->authorizeRead($request);
         $this->assertEmpresa($parceiro);
 
-        $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', ...Parceiro::userStampWith()]);
+        $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', 'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor', ...Parceiro::userStampWith()]);
 
         return response()->json(['data' => $parceiro]);
     }

@@ -20,6 +20,7 @@ export type FacaRecord = Record<string, unknown> & {
   maquina_catalogo?: string;
   maquina_origem?: string;
   largura_faca?: number | null;
+  n_facas?: number | null;
   completa?: boolean;
   cliente_nota?: string | null;
   fornecedor?: string | null;
@@ -99,6 +100,7 @@ export function buildFacaNova(partial?: Partial<FacaRecord>): FacaRecord {
 const FACA_SORT = {
   formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
   medida: (f: FacaRecord) => String(f.medida || ''),
+  n_facas: (f: FacaRecord) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaRecord) => String(f.maquina_catalogo || ''),
   z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
   rep: (f: FacaRecord) => (f.repeticao != null ? Number(f.repeticao) : null),
@@ -118,7 +120,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const { sorted: sortedItems, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
+  const { sorted: sortedItems, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
 
   const [novaMedida, setNovaMedida] = useState('');
   const [novaFormato, setNovaFormato] = useState('RETA');
@@ -290,6 +292,10 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                 </div>
                 <div className="faca-chips">
                   <div className="faca-chip">
+                    <span>N facas</span>
+                    {isNova || value.n_facas == null ? '—' : fmtNum(value.n_facas, 0)}
+                  </div>
+                  <div className="faca-chip">
                     <span>Z</span>
                     {fmtNum(value.z, 0)}
                   </div>
@@ -360,7 +366,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                 <p className="faca-modal-sub">
                   {mode === 'nova'
                     ? 'Medida ainda não está no mapa. Simule no ORC com custo/prazo cotados — cadastro oficial só após aprovação.'
-                    : 'Fonte oficial · medida, formato, Z, REP e puxada vêm juntos. Clique na linha para selecionar.'}
+                    : 'Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na linha para selecionar · Shift+clique no cabeçalho soma ordenação.'}
                 </p>
               </div>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
@@ -448,6 +454,11 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                   <p className="hint auto-note">
                     {loading ? 'Carregando…' : `${total} faca(s)`}
                     {erro ? ` · ${erro}` : ''}
+                    {!loading && !erro
+                      ? sorts.length > 1
+                        ? ` · ${sorts.length} critérios`
+                        : ' · Shift+clique soma ordenação'
+                      : ''}
                   </p>
                   {!loading && total === 0 ? (
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => setMode('nova')}>
@@ -460,25 +471,35 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                   <table className="faca-table">
                     <thead>
                       <tr>
-                        <SortableTh column="formato" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Formato
                         </SortableTh>
-                        <SortableTh column="medida" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Medida
                         </SortableTh>
-                        <SortableTh column="maquina" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh
+                          column="n_facas"
+                          className="num"
+                          sorts={sorts} sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={requestSort}
+                          label="N facas"
+                        >
+                          N facas
+                        </SortableTh>
+                        <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Máquina
                         </SortableTh>
-                        <SortableTh column="z" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="z" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Z
                         </SortableTh>
-                        <SortableTh column="rep" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="rep" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           REP
                         </SortableTh>
-                        <SortableTh column="puxada" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="puxada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Puxada
                         </SortableTh>
-                        <SortableTh column="nota" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                           Nota
                         </SortableTh>
                       </tr>
@@ -486,7 +507,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                     <tbody>
                       {!items.length && !loading ? (
                         <tr>
-                          <td colSpan={7} className="faca-empty">
+                          <td colSpan={8} className="faca-empty">
                             Nenhuma faca neste filtro. Use a aba <strong>Faca nova</strong> para
                             orçar medida inexistente.
                           </td>
@@ -517,6 +538,9 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                                 ) : (
                                   String(f.medida || '—')
                                 )}
+                              </td>
+                              <td className="num">
+                                {f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}
                               </td>
                               <td>{String(f.maquina_catalogo || '')}</td>
                               <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>

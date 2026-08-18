@@ -149,6 +149,9 @@ class FocusPayloadBuilder
         $emissao = now()->timezone('America/Sao_Paulo')->format('Y-m-d\TH:i:sP');
         $crt = (int) ($empresa->crt ?? 1);
         $opSimp = in_array($crt, [1, 2, 4], true) ? 3 : 1;
+        $espec = is_array($itens[0]['especificacao'] ?? null) ? $itens[0]['especificacao'] : [];
+        $cTrib = preg_replace('/\D/', '', (string) ($espec['codigo_tributacao_nacional_iss'] ?? '')) ?: FiscalSaidaDefaults::C_TRIB_NAC;
+        $nbs = preg_replace('/\D/', '', (string) ($espec['codigo_nbs'] ?? '')) ?: FiscalSaidaDefaults::C_NBS;
 
         $payload = $this->compact([
             'data_emissao' => $emissao,
@@ -171,8 +174,8 @@ class FocusPayloadBuilder
             'codigo_municipio_tomador' => $munToma !== '' ? $munToma : null,
             'uf_tomador' => strtoupper(trim((string) $toma->uf)),
             'codigo_municipio_prestacao' => $munEmp,
-            'codigo_tributacao_nacional_iss' => FiscalSaidaDefaults::C_TRIB_NAC,
-            'codigo_nbs' => FiscalSaidaDefaults::C_NBS,
+            'codigo_tributacao_nacional_iss' => $cTrib,
+            'codigo_nbs' => $nbs,
             'descricao_servico' => mb_substr($desc !== '' ? $desc : 'Serviço', 0, 2000),
             'valor_servico' => $valor,
             'tributacao_iss' => FiscalSaidaDefaults::TRIBUTACAO_ISS,
@@ -220,6 +223,7 @@ class FocusPayloadBuilder
                 'preco_unitario' => (string) $i->preco_unitario,
                 'valor' => (string) $i->valor,
                 'familia_fiscal' => $i->familia_fiscal ?: $pedidoItem?->familia_fiscal,
+                'especificacao' => is_array($pedidoItem?->especificacao) ? $pedidoItem->especificacao : [],
                 'produto_pa_id' => $pedidoItem?->produto_pa_id,
                 'produto' => $pedidoItem?->produtoPa,
             ];

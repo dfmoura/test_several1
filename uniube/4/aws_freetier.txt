@@ -1,0 +1,24 @@
+Free plan status
+
+Credits remaining
+    $120.00 USD
+Days remaining
+    150 days
+
+Your free access to AWS services will end on Jan 13, 2027 or when you have depleted all credits. To ensure uninterrupted AWS access, see upgrading your plan for details.
+Account ID
+7679-2511-8697
+Account name
+varandas
+Account color
+Unset
+
+    Account
+    Organization
+    Service Quotas
+    Billing and Cost Management
+    Security credentials
+
+
+
+

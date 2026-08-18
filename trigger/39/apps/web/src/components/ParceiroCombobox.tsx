@@ -6,7 +6,7 @@ import {
   useState,
   type KeyboardEvent,
 } from 'react';
-import { api, type Parceiro } from '../lib/api';
+import { api, type Parceiro, type ParceiroVinculo } from '../lib/api';
 import { formatCnpjCpf } from '../lib/format';
 
 export type ParceiroPapelFiltro =
@@ -23,7 +23,7 @@ export type ParceiroPapelFiltro =
 
 type Props = {
   label: string;
-  value: Parceiro | null;
+  value: ParceiroVinculo | null;
   onChange: (parceiro: Parceiro | null) => void;
   papel?: ParceiroPapelFiltro;
   disabled?: boolean;
@@ -34,12 +34,12 @@ type Props = {
   emptyMessage?: string;
 };
 
-function displayName(p: Pick<Parceiro, 'nome_fantasia' | 'razao_social' | 'is_prospect'>): string {
+function displayName(p: ParceiroVinculo): string {
   const name = (p.nome_fantasia?.trim() || p.razao_social || '').trim();
   return p.is_prospect ? `${name} (prospect)` : name;
 }
 
-function optionMeta(p: Parceiro): string | null {
+function optionMeta(p: ParceiroVinculo): string | null {
   const parts: string[] = [];
   if (p.cnpj_cpf) parts.push(formatCnpjCpf(p.cnpj_cpf));
   if (p.municipio) {
@@ -51,11 +51,11 @@ function optionMeta(p: Parceiro): string | null {
   return parts.length ? parts.join(' · ') : null;
 }
 
-function selectedLabel(p: Parceiro): string {
+function selectedLabel(p: ParceiroVinculo): string {
   return `${p.codigo} — ${displayName(p)}`;
 }
 
-function SelectedSummary({ parceiro }: { parceiro: Parceiro }) {
+function SelectedSummary({ parceiro }: { parceiro: ParceiroVinculo }) {
   const meta = optionMeta(parceiro);
   return (
     <p className="parceiro-vinculo" style={{ margin: '0.35rem 0 0' }}>

@@ -1,0 +1,165 @@
+Análise — mostrar proposta para a Luana (RLP / Reta Etiquetas)
+Data: 18/08/2026
+Contexto: pensar, sem codar. Não é vergonha desistir.
+
+--------------------------------------------------------------------------------
+CONCLUSÃO
+--------------------------------------------------------------------------------
+
+O atraso não é preguiça. É o corpo já tendo a resposta que a cabeça ainda
+está negociando: não é hora de apresentar essa proposta.
+
+Não é vergonha desistir. Vergonha seria ir lá vender um sistema embrionário,
+cobrar R$ 25 mil em fases e fingir que o comentário do esposo não existe.
+
+
+--------------------------------------------------------------------------------
+O QUE ESTÁ TRAVANDO DE VERDADE
+--------------------------------------------------------------------------------
+
+São três coisas, e nenhuma se resolve com PDF bonito.
+
+1. Não há produto para mostrar.
+   Há diagnóstico, fluxo e uma proposta. Isso não é o que a Luana precisa ver.
+   Ela precisa ver orçamento → pedido → OS → NF → boleto funcionando no dia a
+   dia dela. Sistema que “ainda precisa de validação” não é proposta. É promessa.
+
+2. O iQuattro não é um detalhe.
+   Planos: https://iquattro.com.br/planos/
+   Cobre exatamente o que ela descreveu: orçamento, pedido, PCP/OS, faturamento,
+   financeiro, boleto. Tem vertical de indústrias de rótulos e etiquetas, time,
+   telefone, suporte. A partir de R$ 974/mês para indústria. A disputa é com um
+   produto pronto da mesma praça, não com “planilha vs. sistema”.
+
+3. A frase do esposo é o critério de decisão.
+   “E se alguém morrer, como a gente fica?” não é drama. É o ponto certo.
+   ERP de fábrica não pode depender de uma pessoa. Isso não se responde com
+   mensalidade de R$ 300. Mensalidade sem empresa por trás piora o medo: eles
+   pagam todo mês e continuam reféns de uma pessoa.
+
+Essa frase não tem resposta honesta hoje. Código escrow, sócio, time, produto
+maduro — nada disso está na mesa. Então não dá para “fugir” do óbvio. Dá para
+respeitar.
+
+
+--------------------------------------------------------------------------------
+O QUE NÃO FAZER
+--------------------------------------------------------------------------------
+
+- Não ir pessoalmente “mostrar a proposta” para não enrolar. Isso é enrolar
+  com cara de profissionalismo.
+- Não mandar o HTML/PDF como consolo. Documento sem sistema só cria expectativa.
+- Não sumir. Silêncio depois do “vamos conversar de novo” é pior do que um
+  não claro.
+- Não inventar mensalidade para parecer SaaS. SaaS de uma pessoa com produto
+  incompleto é o pior dos dois mundos: eles assumem o risco de software sob
+  medida E o risco de fornecedor único.
+
+
+--------------------------------------------------------------------------------
+PESSOALMENTE OU ZAP
+--------------------------------------------------------------------------------
+
+Zap. Curto. Esta semana.
+
+Pessoalmente serve para fechar negócio ou para uma conversa difícil em relação
+longa e pessoal. Aqui o recado é: “olhei com cuidado e não vou seguir.” Isso
+não precisa de reunião na fábrica. Reunião força a Luana a parar a operação
+para ouvir um não — e ainda abre espaço para recuar, justificar demais ou
+acabar prometendo prazo.
+
+Se já existe visita marcada, cancelar no zap com a mesma franqueza.
+Não ir “só para explicar”.
+
+
+--------------------------------------------------------------------------------
+COMO FALAR (SEM DUMP DE ANSIEDADE)
+--------------------------------------------------------------------------------
+
+Uma mensagem. Sem desculpa longa. Sem jogar o iQuattro como se fosse vendedor
+deles. Sem deixar porta aberta falsa.
+
+Texto sugerido:
+
+  Luana, boa tarde.
+
+  Te devo um retorno claro.
+
+  Olhei o fluxo de vocês (orçamento → pedido → OS → NF/boleto) com calma.
+  O que a RLP precisa já existe em sistema pronto para indústria de rótulos,
+  com empresa e suporte por trás.
+
+  Eu não tenho, hoje, um produto maduro o suficiente para colocar na operação
+  de vocês, nem uma estrutura que responda o ponto que o Roberto levantou:
+  continuidade, se eu não estiver.
+
+  Por isso não vou apresentar proposta. Agradeço o tempo de vocês e as
+  conversas. Se quiserem, posso indicar o caminho de um sistema já
+  especializado — sem compromisso.
+
+  Abraço,
+  Diogo
+
+O último parágrafo é opcional. Se não quiser ficar no meio, cortar.
+O essencial é: não vou apresentar proposta, por quê em uma frase, obrigado.
+
+Se for citar o iQuattro, citar como opção de mercado, não como “substituto
+do meu projeto”. Exemplo: “vale conversar com quem já atende esse segmento,
+tipo iQuattro.” Só isso. Sem comparar preço, sem defender, sem parecer que
+fez o dever de casa deles no lugar do seu.
+
+
+--------------------------------------------------------------------------------
+COMO SABER SE ESTÁ CERTO
+--------------------------------------------------------------------------------
+
+Se a frase sincera for “ainda não está pronto, mas talvez eles toquem mesmo
+assim” — não mandar proposta.
+
+Se a frase sincera for “se eu morrer, eles ficam na mão” — não mandar proposta.
+
+Se a frase sincera for “o iQuattro já faz isso” — não mandar proposta.
+
+Desistir aqui não é desistir de ser desenvolvedor. É não vender risco
+operacional para quem fabrica etiqueta e precisa do sistema no chão, não
+no slide.
+
+Mandar o zap. Depois parar. Não ficar explicando em três mensagens.
+O alívio vem no envio, não na reunião que está sendo adiada.
+
+
+--------------------------------------------------------------------------------
+CONTEXTO DA CONVERSA (ZAP)
+--------------------------------------------------------------------------------
+
+[08:54, 24/7/2026] Diogo Moura: Bom dia
+[08:55, 24/7/2026] Diogo Moura: é o Diogo desenvolvedor de sistema que conversou na ultima quarta...
+[08:55, 24/7/2026] Diogo Moura: Neste zap eu falo com Luana
+[09:12, 24/7/2026] Diogo Moura: Melhor ir ai né.... duvida simples
+[09:15, 24/7/2026] Reta Etiquetas Luana: Bom dia Diogo
+[09:15, 24/7/2026] Reta Etiquetas Luana: Tudo bem?
+Pode falar
+[09:15, 24/7/2026] Reta Etiquetas Luana: Eu vou te respondendo
+[09:18, 24/7/2026] Diogo Moura: certo,
+voce mostrou o orçamento...depois quando vira pedido e OS
+minha duvida é desse orçamento o que vai virar
+Venda de Produto = NFE
+Prestação de Serviço = NFSe
+[09:19, 24/7/2026] Reta Etiquetas Luana: Depois do pedido
+[09:19, 24/7/2026] Reta Etiquetas Luana: A ordem é
+Orçamento
+Pedido
+Os
+Fecha o pedido após impressão
+Gera NF e boleto
+[09:20, 24/7/2026] Diogo Moura: Certo
+[09:26, 24/7/2026] Diogo Moura: Por exemplo....
+[09:28, 24/7/2026] Diogo Moura: Em qual parte deste orçamento (ou de qualquer outro documento) está prevista a prestação de serviço? A entrega dos produtos eu já entendi, mas não encontrei nenhuma indicação de execução de serviço.
+[09:29, 24/7/2026] Diogo Moura: Talvez se eu for ai é mais fácil né...
+[09:29, 24/7/2026] Diogo Moura: mas vou seguir aki e os detalhes eu vou deixando pra depois...
+[09:34, 24/7/2026] Diogo Moura: Outro detalhe é que nesta analise nao contemplarei o Processo de Importações mas esta aberto para tal.
+[09:36, 24/7/2026] Diogo Moura: So pra finalizar... quando for possivel encaminhar alugmas  notas de venda de produto e serviço emitidas.... pdf e xml...
+[09:54, 24/7/2026] Diogo Moura: Roberto ja me passou...
+[17:27, 28/7/2026] Diogo Moura: Luana, boa tarde!
+[17:28, 28/7/2026] Diogo Moura: Gostaria de verificar se amanhã ou outro dia, vcs tem disponibilidade para conversarmos novamente.
+[17:28, 28/7/2026] Reta Etiquetas Luana: Boa tarde

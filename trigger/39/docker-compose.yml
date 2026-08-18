@@ -86,11 +86,14 @@ services:
       DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo@123}
       BRASILAPI_BASE: https://brasilapi.com.br/api
       VIACEP_BASE: https://viacep.com.br/ws
+      OPENCEP_BASE: ${OPENCEP_BASE:-https://opencep.com/v1}
+      CEP_HTTP_TIMEOUT_SEC: ${CEP_HTTP_TIMEOUT_SEC:-5}
       ORS_API_KEY: ${ORS_API_KEY:-}
       ORS_BASE: ${ORS_BASE:-https://api.openrouteservice.org}
       ORS_HTTP_TIMEOUT_SEC: ${ORS_HTTP_TIMEOUT_SEC:-8}
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
       IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
+      FISCAL_EMISSOR: ${FISCAL_EMISSOR:-focus}
     depends_on:
       mysql:
         condition: service_healthy

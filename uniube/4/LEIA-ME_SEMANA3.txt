@@ -1,0 +1,45 @@
+ACQA Semana 3: relatorio academico (ABNT)
+Trabalho de Conclusao de Curso: Relato de Experiencia do Projeto Integrado
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVO PRINCIPAL PARA POSTAR NA PLATAFORMA:
+  Relatorio_Semana3_Relato_Academico_ABNT.pdf
+
+ARQUIVO EDITAVEL (Word / LibreOffice):
+  Relatorio_Semana3_Relato_Academico_ABNT.docx
+
+ANTES DE ENVIAR:
+  [ ] Confirme se o Polo esta correto (Uberlandia)
+  [ ] Confirme se o nome esta como voce usa na plataforma
+  [ ] Confirme o RA 1030125-2
+  [ ] Releia a secao 2.3.1 (interacao) e, se quiser, acrescente 2 ou 3 frases suas
+      sobre algum encontro
+  [ ] Se a plataforma pedir anexo separado, use a pasta evidencias/
+
+O RELATORIO SEGUE O ROTEIRO DA SEMANA 3:
+  1) Introducao: apresentacao do tema, problema, justificativa e objetivos
+  2) Desenvolvimento: fundamentacao teorica, metodologia, resultados e discussoes
+     Metodologia descreve a execucao da acao (nao foi curso): periodo, reunioes
+     semanais, duas apresentacoes (ACIUB 30 min; Teams 1h30), material (o proprio
+     sistema + artigo RETII) e oferta (software no dominio da entidade).
+     Resultados reaproveitam a interacao e as evidencias da Semana 1.
+  3) Conclusao: achados e desdobramentos (voluntariado, AWS jan/2027, vereadores
+     fora, rodizio ainda pela metade)
+  4) Referencias em ABNT (NBR 6023), citacoes autor-data (NBR 10520),
+     apresentacao (NBR 14724)
+
+O QUE NAO MUDA EM RELACAO A SEMANA 1:
+  - A acao e um SISTEMA DE INFORMACAO DE APOIO em producao, nao oficina.
+  - O problema da entidade e a coleta manual na planilha Cronograma.
+  - A API de Dados Abertos do Compras.gov entrou DEPOIS; o chamado 56398424
+    continua so como exemplo de risco da arquitetura (secao 2.3.3).
+  - Ganho indireto: a equipe passou a saber o que e API.
+
+SISTEMA:
+  https://licitacoes.osbrasiluberlandia.org/
+
+PARA REGERAR:
+  python3 gerar_relatorio_semana3.py
+
+SEM TRAÇO TIPOGRAFICO (em dash / en dash) no PDF nem no DOCX.

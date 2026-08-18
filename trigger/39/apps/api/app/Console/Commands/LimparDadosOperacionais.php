@@ -11,10 +11,10 @@ use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Limpeza cadenciada do operacional — preserva plataforma (EMP, RBAC, catálogos,
- * naturezas, departamentos, BEM, CFIN) e apenas o usuário ADMIN + parceiro dele.
+ * naturezas, departamentos, BEM, CFIN, hubs, IA) e apenas o usuário ADMIN + PAR dele.
  *
- * Estudo 32: cadastros e documentos operacionais são dados de negócio; não confundir
- * com seed de plataforma (roles, EMP, parâmetros, catálogo ORC/fiscal).
+ * Estudo 32: documentos (ORC/PED/OP/FAT/OC/MOV/TIT) ≠ cadastro de virada ≠ seed de
+ * plataforma. audit_log nunca se apaga para “limpar” (SEGURANCA_NUVEM_AWS).
  */
 class LimparDadosOperacionais extends Command
 {
@@ -23,16 +23,28 @@ class LimparDadosOperacionais extends Command
                             {--force : Executa sem confirmação interativa}
                             {--admin-email= : E-mail do admin a preservar (default: config erp.admin_email)}';
 
-    protected $description = 'Limpa parceiros/produtos/ORC/OC/estoque/TIT (CP/CR) preservando só o ADMIN e seu PAR';
+    protected $description = 'Limpa operacional (PAR/PRD/ORC/PED/OP/FAT/OC/estoque/TIT) preservando ADMIN+PAR, plataforma e audit_log';
+
+    /** Prefixos de documento (raiz). No banco vivem também como ORC-2026, PED-2026, … */
+    private const DOC_PREFIX_ROOTS = [
+        'ORC', 'OC', 'MOV', 'TIT', 'BX', 'AJU', 'NEC', 'COT', 'COB', 'PFC',
+        'PED', 'OP', 'OS', 'FAT', 'DFS', 'INV', 'ENT', 'COM', 'CFE', 'CES',
+    ];
 
     /** @var list<string> */
     private const OPERATIONAL_TABLES = [
+        'jobs',
+        'job_batches',
+        'failed_jobs',
         'webhook_inbox',
         'cobrancas',
         'titulo_baixas',
         'titulos',
+        'comissoes',
+        'comissao_fechamentos',
         'faturamento_itens',
         'documento_fiscal_saidas',
+        'entregas',
         'faturamentos',
         'orcamento_links_aprovacao',
         'matriz_cobradas',
@@ -42,6 +54,7 @@ class LimparDadosOperacionais extends Command
         'pedido_itens',
         'pedidos',
         'orcamentos',
+        'cessoes_bem',
         'estoque_movimento_itens',
         'nfe_entrada_itens',
         'nfe_entradas',
@@ -159,6 +172,11 @@ class LimparDadosOperacionais extends Command
             $rows[] = [$table, $total, $remove];
         }
 
+        // Estudo 32 / SEGURANCA: audit_log não se apaga para “limpar”.
+        if (Schema::hasTable('audit_logs')) {
+            $rows[] = ['audit_logs (preservar)', (int) DB::table('audit_logs')->count(), 0];
+        }
+
         return $rows;
     }
 
@@ -218,12 +236,18 @@ class LimparDadosOperacionais extends Command
     {
         // Ordem: folhas → documentos → cadastros dependentes.
         $steps = [
+            'jobs',
+            'job_batches',
+            'failed_jobs',
             'webhook_inbox',
             'cobrancas',
+            'comissoes',
+            'comissao_fechamentos',
             'titulo_baixas',
             'titulos',
             'faturamento_itens',
             'documento_fiscal_saidas',
+            'entregas',
             'faturamentos',
             'orcamento_links_aprovacao',
             'matriz_cobradas',
@@ -233,6 +257,7 @@ class LimparDadosOperacionais extends Command
             'pedido_itens',
             'pedidos',
             'orcamentos',
+            'cessoes_bem',
             'estoque_movimento_itens',
             'nfe_entrada_itens',
             'nfe_entradas',
@@ -289,15 +314,26 @@ class LimparDadosOperacionais extends Command
                 ->update(['vendedor_parceiro_id' => null]);
         }
 
-        // Tabelas de plataforma que podem carimbar users a remover.
+        // Plataforma que permanece: nullificar carimbos de users que vão sair.
         $stampTables = [
             'audit_logs' => ['user_id'],
-            'bens_patrimoniais' => ['criado_por', 'atualizado_por'],
+            'bens_patrimoniais' => ['criado_por', 'atualizado_por', 'responsavel_user_id'],
             'empresa_fiscal_historicos' => ['alterado_por'],
+            'empresa_contas_financeiras' => ['criado_por', 'atualizado_por'],
             'empresas' => ['criado_por', 'atualizado_por'],
+            'departamentos' => ['criado_por', 'atualizado_por'],
+            'naturezas_gerenciais' => ['criado_por', 'atualizado_por'],
             'orc_mapa_facas' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_papeis' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_acabamentos' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_tipos_troca' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_maquinas' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_parametros' => ['criado_por', 'atualizado_por'],
+            'orc_catalogo_faixas_frete' => ['criado_por', 'atualizado_por'],
             'parametros_empresa' => ['alterado_por'],
             'parceiros' => ['criado_por', 'atualizado_por'],
+            'fiscal_hubs' => ['criado_por', 'atualizado_por'],
+            'ia_provedores' => ['criado_por', 'atualizado_por'],
         ];
 
         foreach ($stampTables as $table => $cols) {
@@ -417,19 +453,24 @@ class LimparDadosOperacionais extends Command
             ->where('prefixo', 'USR')
             ->update(['proximo' => $usrNext]);
 
-        // Documentos / produtos: reinicia em 1 (próximo código = 00001).
-        $docPrefixes = ['ORC', 'OC', 'MOV', 'TIT', 'BX', 'AJU', 'NEC', 'COT', 'COB', 'PFC'];
+        // Documentos: raiz (legado) e máscara anual (ORC-2026, PED-2026, DFS-2026…).
         DB::table('codigo_sequences')
-            ->whereIn('prefixo', $docPrefixes)
+            ->where(function ($q) {
+                $q->whereIn('prefixo', self::DOC_PREFIX_ROOTS);
+                foreach (self::DOC_PREFIX_ROOTS as $root) {
+                    $q->orWhere('prefixo', 'like', $root.'-%');
+                }
+            })
             ->update(['proximo' => 1]);
 
-        // Prefixo de família de produto (MP-PAP, etc.): reinicia.
+        // Prefixo de família de produto (MP-PAP, FAC-RETA, SVC…).
         DB::table('codigo_sequences')
             ->where(function ($q) {
                 $q->where('prefixo', 'like', 'MP-%')
                     ->orWhere('prefixo', 'like', 'EMB-%')
                     ->orWhere('prefixo', 'like', 'PA-%')
                     ->orWhere('prefixo', 'like', 'REV-%')
+                    ->orWhere('prefixo', 'like', 'FAC-%')
                     ->orWhere('prefixo', 'SVC');
             })
             ->update(['proximo' => 1]);

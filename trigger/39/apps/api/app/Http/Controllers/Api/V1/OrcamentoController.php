@@ -8,6 +8,7 @@ use App\Services\Comercial\OrcamentoService;
 use App\Support\OrcamentoValidationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class OrcamentoController extends Controller
 {
@@ -42,7 +43,7 @@ class OrcamentoController extends Controller
     {
         $this->authorizeWrite($request);
 
-        $data = $request->validate(OrcamentoValidationRules::calcularRules());
+        $data = $this->validatedCalculo($request);
         $result = $this->orcamentoService->calcularPreview(app('empresa'), $data);
 
         return response()->json(['data' => $result]);
@@ -52,7 +53,7 @@ class OrcamentoController extends Controller
     {
         $this->authorizeWrite($request);
 
-        $data = $request->validate(OrcamentoValidationRules::calcularRules());
+        $data = $this->validatedCalculo($request);
         $orcamento = $this->orcamentoService->create(app('empresa'), $data);
 
         return response()->json(['data' => $orcamento], 201);
@@ -63,7 +64,7 @@ class OrcamentoController extends Controller
         $this->authorizeWrite($request);
         $this->assertEmpresa($orcamento);
 
-        $data = $request->validate(OrcamentoValidationRules::calcularRules());
+        $data = $this->validatedCalculo($request);
         $updated = $this->orcamentoService->update($orcamento, $data);
 
         return response()->json(['data' => $updated]);
@@ -98,5 +99,16 @@ class OrcamentoController extends Controller
         if ($orcamento->empresa_id !== app('empresa')->id) {
             abort(404);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedCalculo(Request $request): array
+    {
+        $validator = Validator::make($request->all(), OrcamentoValidationRules::calcularRules());
+        $validator->after(static fn ($v) => OrcamentoValidationRules::after($v));
+
+        return $validator->validate();
     }
 }

@@ -10,6 +10,7 @@ use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Cadastros\ProdutoGrupoService;
 use App\Services\Consulta\BrasilApiClient;
 use App\Services\Consulta\FiscalCatalogService;
+use App\Services\Consulta\NominatimClient;
 use App\Services\Consulta\OpenRouteServiceClient;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class ConsultaController extends Controller
     public function __construct(
         private readonly BrasilApiClient $brasilApiClient,
         private readonly OpenRouteServiceClient $openRouteServiceClient,
+        private readonly NominatimClient $nominatimClient,
         private readonly FiscalCatalogService $fiscalCatalogService,
         private readonly ProdutoGrupoService $produtoGrupoService,
         private readonly NaturezaGerencialService $naturezaGerencialService,
@@ -41,8 +43,12 @@ class ConsultaController extends Controller
     {
         try {
             $data = $this->brasilApiClient->getCep($cep);
-        } catch (\InvalidArgumentException|\RuntimeException $e) {
+        } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\RuntimeException $e) {
+            $status = (int) $e->getCode() === 502 ? 502 : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
         } catch (RequestException $e) {
             return response()->json(['message' => 'Consulta CEP indisponível.'], $e->response?->status() ?? 502);
         }
@@ -74,8 +80,75 @@ class ConsultaController extends Controller
             if (! $empresa instanceof Empresa) {
                 abort(400, 'Empresa não selecionada.');
             }
-            $data = $this->enrichRotaCarro($data, $empresa);
+            $data = $this->enrichRotaCarro($data, $empresa, $cep);
         }
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * Ponto B do parceiro: rua + município (Nominatim). CEP só se a rua não resolver.
+     * Não usa a origem da EMP. Não inventa centroide como se fosse a planta.
+     */
+    public function geoEndereco(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'logradouro' => ['nullable', 'string', 'max:180'],
+            'numero' => ['nullable', 'string', 'max:30'],
+            'municipio' => ['nullable', 'string', 'max:80'],
+            'uf' => ['nullable', 'string', 'max:2'],
+            'cep' => ['nullable', 'string', 'max:9'],
+        ]);
+
+        $nom = $this->nominatimClient->searchEndereco(
+            (string) ($validated['logradouro'] ?? ''),
+            (string) ($validated['numero'] ?? ''),
+            (string) ($validated['municipio'] ?? ''),
+            (string) ($validated['uf'] ?? ''),
+        );
+
+        if ($nom['latitude'] && $nom['longitude']) {
+            return response()->json(['data' => $nom]);
+        }
+
+        $cep = preg_replace('/\D/', '', (string) ($validated['cep'] ?? '')) ?? '';
+        if (strlen($cep) === 8) {
+            try {
+                $geo = $this->brasilApiClient->getCepGeo($cep);
+            } catch (\InvalidArgumentException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return response()->json(['data' => $geo]);
+        }
+
+        return response()->json(['data' => $nom]);
+    }
+
+    /**
+     * Km de carro: origem operacional da EMP (A) → lat/lng do destino (B).
+     * Não usa CEP. Não inventa linha reta. Não altera B.
+     */
+    public function rota(Request $request): JsonResponse
+    {
+        $empresa = app('empresa');
+        if (! $empresa instanceof Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+
+        $validated = $request->validate([
+            'lat' => array_merge(['required'], \App\Support\PadraoDecimal::coordinateRules('latitude')),
+            'lng' => array_merge(['required'], \App\Support\PadraoDecimal::coordinateRules('longitude')),
+        ]);
+
+        $data = $this->enrichRotaCarro(
+            [
+                'latitude' => $validated['lat'],
+                'longitude' => $validated['lng'],
+            ],
+            $empresa,
+            null,
+        );
 
         return response()->json(['data' => $data]);
     }
@@ -86,12 +159,14 @@ class ConsultaController extends Controller
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function enrichRotaCarro(array $data, Empresa $empresa): array
+    private function enrichRotaCarro(array $data, Empresa $empresa, ?string $cepConsultado = null): array
     {
         $data['distancia_km'] = null;
         $data['distancia_fonte'] = null;
         $data['distancia_cache'] = false;
         $data['distancia_atribuicao'] = OpenRouteServiceClient::ATRIBUICAO;
+        $data['origem_latitude'] = $empresa->origem_latitude;
+        $data['origem_longitude'] = $empresa->origem_longitude;
 
         $latB = $data['latitude'] ?? null;
         $lngB = $data['longitude'] ?? null;
@@ -122,7 +197,25 @@ class ConsultaController extends Controller
             $data['distancia_erro'] = $rota['erro'];
         }
 
+        // Só no fluxo CEP: dois CEPs no mesmo centroide não são 0 km.
+        // Com lat/lng explícitos (A da EMP × B do parceiro), o ponto é o que está gravado.
+        if ($cepConsultado !== null
+            && ($rota['fonte'] ?? null) === OpenRouteServiceClient::FONTE_MESMO_PONTO
+            && $this->cepsDistintos($empresa->cep, $cepConsultado)) {
+            $data['distancia_km'] = null;
+            $data['distancia_fonte'] = null;
+            $data['distancia_erro'] = 'geo_impreciso';
+        }
+
         return $data;
+    }
+
+    private function cepsDistintos(mixed $cepA, mixed $cepB): bool
+    {
+        $a = preg_replace('/\D/', '', (string) $cepA) ?? '';
+        $b = preg_replace('/\D/', '', (string) $cepB) ?? '';
+
+        return strlen($a) === 8 && strlen($b) === 8 && $a !== $b;
     }
 
     public function bancos(): JsonResponse

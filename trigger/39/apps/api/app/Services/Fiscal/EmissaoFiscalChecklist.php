@@ -7,6 +7,7 @@ use App\Models\Faturamento;
 use App\Models\Pedido;
 use App\Services\Cadastros\EmpresaFiscalRules;
 use App\Services\Cadastros\ParceiroFiscalRules;
+use App\Services\Estoque\EstoqueSaidaVendaService;
 use App\Support\PadraoDecimal;
 
 /**
@@ -17,6 +18,8 @@ class EmissaoFiscalChecklist
 {
     public function __construct(
         private readonly FiscalHubResolver $hubs,
+        private readonly FiscalEmissorPolicy $emissorPolicy,
+        private readonly EstoqueSaidaVendaService $saidaVenda,
     ) {}
 
     /**
@@ -72,9 +75,15 @@ class EmissaoFiscalChecklist
             }
         }
 
-        if (! ($hub['apto'] ?? false)) {
+        $pendenciasCadastro = array_values(array_unique(array_filter($pendencias)));
+        $stub = $this->emissorPolicy->diagnostico((bool) ($hub['apto'] ?? false));
+
+        if (! ($hub['apto'] ?? false) && ! $stub['ativo']) {
             $pendencias[] = $hub['mensagem'] ?? 'Hub fiscal ainda não está apto a emitir.';
         }
+
+        $pendencias = array_merge($pendencias, $this->saidaVenda->pendenciasEmissao($empresa, $pedido, $itensFat));
+        $avisos = array_merge($avisos, $this->saidaVenda->avisosEmissao($empresa, $pedido, $itensFat));
 
         if ($precisaNfe) {
             $avisos[] = 'NF-e de produto (mercadoria) via Focus, modelo 55.';
@@ -85,16 +94,23 @@ class EmissaoFiscalChecklist
                 $avisos[] = 'Inscrição municipal omitida — este município não exige IM para NFS-e.';
             }
         }
+        if ($stub['ativo'] && $stub['mensagem'] !== '') {
+            $avisos[] = $stub['mensagem'];
+        }
 
         $pendencias = array_values(array_unique(array_filter($pendencias)));
+        $aptoCadastro = $pendenciasCadastro === [] && $planos !== [];
         $apto = $pendencias === [] && $planos !== [];
 
         return [
             'documentos' => $planos,
             'hub' => $hub,
+            'emissor_teste' => $stub,
+            'apto_cadastro' => $aptoCadastro,
             'apto_emissao' => $apto,
-            'emissao_automatica' => $apto && (bool) ($hub['apto'] ?? false),
+            'emissao_automatica' => $aptoCadastro && ((bool) ($hub['apto'] ?? false) || $stub['ativo']),
             'pendencias' => $pendencias,
+            'pendencias_cadastro' => $pendenciasCadastro,
             'avisos' => $avisos,
             'precisa_nfe' => $precisaNfe,
             'precisa_nfse' => $precisaNfse,
@@ -116,6 +132,7 @@ class EmissaoFiscalChecklist
                 'qtde' => (string) $i->qtde,
                 'unidade' => $i->unidade,
                 'preco_unitario' => (string) $i->preco_unitario,
+                'pedido_item_id' => $i->pedido_item_id,
             ];
         }
         $pedido = $fat->pedido ?? new Pedido;

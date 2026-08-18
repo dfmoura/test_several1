@@ -299,38 +299,38 @@ const PRODUTO_PREVIEW_SORT = {
 };
 
 function ProdutoPreviewTable({ rows }: { rows: ImportPreviewRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_PREVIEW_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_PREVIEW_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Linha
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="familia" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="familia" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Família
             </SortableTh>
-            <SortableTh column="grupo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="grupo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Grupo
             </SortableTh>
-            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="descricao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Descrição fiscal
             </SortableTh>
-            <SortableTh column="ncm" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="ncm" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               NCM
             </SortableTh>
-            <SortableTh column="unidades" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="unidades" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Unidades
             </SortableTh>
-            <SortableTh column="catalogo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="catalogo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Grupo catálogo
             </SortableTh>
-            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
             </SortableTh>
           </tr>
@@ -376,29 +376,29 @@ const PRODUTO_RESULT_SORT = {
 };
 
 function ProdutoResultTable({ rows }: { rows: ImportCommitRow[] }) {
-  const { sorted, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_RESULT_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(rows, PRODUTO_RESULT_SORT);
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="line" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="line" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Linha
             </SortableTh>
-            <SortableTh column="status" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Status
             </SortableTh>
-            <SortableTh column="codigo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="codigo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Código
             </SortableTh>
-            <SortableTh column="familia_grupo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="familia_grupo" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Família/Grupo
             </SortableTh>
-            <SortableTh column="descricao" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="descricao" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Descrição fiscal
             </SortableTh>
-            <SortableTh column="mensagens" sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
             </SortableTh>
           </tr>

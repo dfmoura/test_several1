@@ -26,6 +26,7 @@ Extensões:
 - XML só preenche; humano confirma conferência.
 - SKU com `controla_lote`: entrada/saída/ajuste amarram `estoque_lotes` (código, data de entrada, validade). Custo médio permanece no SKU. Consumo FEFO se o lote não for informado.
 - Genealogia pós-OP: leitura de `SAIDA_PRODUCAO` + origens do lote até o instante da saída (fornecedor/NF/OC). Sem tabela paralela; sem inventar NF em SKU sem lote.
+- NF-e Focus autorizada → MOV `SAIDA_VENDA` (PA/REV da qtde faturada). Stub/prévia/NFS-e não baixam. Saldo só via `EstoqueSaldoWriter`.
 - Substratos/tintas (política do grupo) controlam lote; EMB/REV/PA não — estudo 32 §6.2. Validade em adesivos/tintas/foils.
 - Estoque/custo = OC; pagar = parcelas NF (ou 1 vencimento); divergência IPI/frete = warning, não segundo saldo.
 - Trilha fiscal mínima no MOV (`nf_valor`/`nf_totais`); XML confirmado → `nfe_entrada` (arquivo + impostos **verbatim**). ERP **não** fecha contabilidade/SPED; AJU **não** emite NF-e.
@@ -41,6 +42,7 @@ Extensões:
 - Entrada sem OC, Focus auto-download, OP/remessa sem ADR.
 - Auto-gerar OC sem confirmação; aprovar o próprio AJU.
 - Auto-receber no upload de XML.
+- Baixar PA/REV no faturar, no stub ou na NFS-e.
 - Recalcular imposto do XML / inflar MOV com CST/ICMS de item / UI de “livro oficial” ou SPED.
 - Obrigar XML para receber a OC.
 - Receber OC ou AJU avulso em SKU congelado por inventário aberto.

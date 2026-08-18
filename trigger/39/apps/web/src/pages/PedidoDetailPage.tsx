@@ -5,6 +5,8 @@ import { StatusPill } from '../components/StatusPill';
 import { DocumentoFiscalPreviaCard } from '../components/DocumentoFiscalPrevia';
 import { api, type FaturamentoPreview, type Pedido } from '../lib/api';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
+import { ExpedicaoPedidoPanel } from '../components/ExpedicaoPedidoPanel';
+import { ComissaoPedidoPanel } from '../components/ComissaoPedidoPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
@@ -30,7 +32,13 @@ export function PedidoDetailPage() {
     try {
       const res = await api.get<{ data: Pedido }>(`/pedidos/${id}`);
       setPedido(res.data);
-      if (res.data.status === 'PRODUZIDO' || res.data.status === 'FATURADO') {
+      if (
+        res.data.status === 'PRODUZIDO' ||
+        res.data.status === 'FATURADO' ||
+        res.data.status === 'EM_ENTREGA' ||
+        res.data.status === 'ENTREGUE' ||
+        res.data.status === 'ENCERRADO'
+      ) {
         try {
           const prev = await api.get<{ data: FaturamentoPreview }>(
             `/pedidos/${res.data.id}/faturamento-preview`,
@@ -196,6 +204,14 @@ export function PedidoDetailPage() {
                   <span>Tolerância</span>
                   <strong>±{pedido.tolerancia_qtd_pct}%</strong>
                 </div>
+                {pedido.vendedor ? (
+                  <div>
+                    <span>Vendedor</span>
+                    <strong>
+                      {pedido.vendedor.codigo} — {pedido.vendedor.razao_social}
+                    </strong>
+                  </div>
+                ) : null}
                 {readeq ? (
                   <div>
                     <span>Readequação</span>
@@ -248,7 +264,7 @@ export function PedidoDetailPage() {
                       <div>
                         <span>Notas</span>
                         <strong>
-                          <StatusPill status={nfStatusLabel(preview.faturamento.nf_status)} />
+                          <StatusPill status={nfStatusLabel(preview.faturamento.nf_status, preview.faturamento.nf_simulada)} />
                         </strong>
                       </div>
                     </div>
@@ -267,9 +283,9 @@ export function PedidoDetailPage() {
                     {hasPermission('faturamento.escrever') && preview.pode_estornar ? (
                       <div style={{ marginTop: '1rem' }}>
                         <p className="form-hint">
-                          A nota ainda não foi autorizada. Estornar cancela as cobranças deste faturamento
-                          e devolve o pedido à fila — o sinal já recebido permanece. O documento FAT
-                          fica no histórico.
+                          {preview.faturamento.nf_simulada
+                            ? 'Autorização de teste não trava o estorno. Estornar cancela as cobranças e devolve o pedido à fila — o sinal já recebido permanece.'
+                            : 'A nota ainda não foi autorizada. Estornar cancela as cobranças deste faturamento e devolve o pedido à fila — o sinal já recebido permanece. O documento FAT fica no histórico.'}
                         </p>
                         {!estornarAberto ? (
                           <button
@@ -403,7 +419,9 @@ export function PedidoDetailPage() {
                         <p className="form-hint" style={{ marginTop: 0 }}>
                           {preview.fiscal.documentos.map((d) => d.rotulo).join(' e ') || 'Documento fiscal'}
                           {preview.fiscal.emissao_automatica
-                            ? ' — o hub Focus está apto; a nota será enviada ao confirmar.'
+                            ? preview.fiscal.emissor_teste?.ativo
+                              ? ' — autorização de teste (sem certificado A1, sem valor fiscal). Quando o hub Focus estiver apto, o mesmo documento é enviado de verdade.'
+                              : ' — o hub Focus está apto; a nota será enviada ao confirmar.'
                             : ` — ${preview.fiscal.hub.mensagem}`}
                         </p>
                         {preview.fiscal.avisos.map((a) => (
@@ -432,7 +450,11 @@ export function PedidoDetailPage() {
                           onClick={() => void faturar()}
                         >
                           Faturar e gerar cobranças
-                          {preview.fiscal?.emissao_automatica ? ' e emitir nota' : ''}
+                          {preview.fiscal?.emissor_teste?.ativo
+                            ? ' e autorizar nota de teste'
+                            : preview.fiscal?.emissao_automatica
+                              ? ' e emitir nota'
+                              : ''}
                         </button>
                       </div>
                     ) : null}
@@ -441,6 +463,17 @@ export function PedidoDetailPage() {
               </div>
             </div>
           ) : null}
+
+          {['FATURADO', 'EM_ENTREGA', 'ENTREGUE', 'ENCERRADO'].includes(pedido.status) ? (
+            <ExpedicaoPedidoPanel
+              pedidoId={pedido.id}
+              pedidoCodigo={pedido.codigo}
+              pedidoStatus={pedido.status}
+              onChanged={() => void load()}
+            />
+          ) : null}
+
+          <ComissaoPedidoPanel pedidoId={pedido.id} pedidoStatus={pedido.status} />
 
           <div className="card">
             <div className="card-body">

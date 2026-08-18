@@ -1,0 +1,179 @@
+Estou realizando um trabalho extensionista na uniube para 
+para conhecer de fato uma organização da sociedade civil atuante na região,
+conhecendo seu trabalho e de alguma forma contribuir em alguma vertente da TT
+relacionado ao meu curso de 'Sistemas de Informação' e estudo.
+
+
+Escolhi o 'Observatório Social do Brasil - Uberlândia ' 
+https://www.osbrasiluberlandia.org/
+
+OBSERVATORIO SOCIAL DO BRASIL - UBERLANDIA/MG
+23.497.346/0001-42
+
+
+CÓDIGO E DESCRIÇÃO DA ATIVIDADE ECONÔMICA PRINCIPAL
+94.99-5-00 - Atividades associativas não especificadas anteriormente
+CÓDIGO E DESCRIÇÃO DAS ATIVIDADES ECONÔMICAS SECUNDÁRIAS
+94.30-8-00 - Atividades de associações de defesa de direitos sociais
+94.93-6-00 - Atividades de organizações associativas ligadas à cultura e à arte
+
+
+Contato
+Endereço: Av. Vasconcelos Costa, nº 1500 - Sala 3 - Anexo I  - Bairro Martins
+Uberlândia-MG
+CEP: 38.400 452
+Telefone: (34) 3239-1529
+
+
+Contatos principais no momento:
+MARCO AURELIO FREITAS SANTOS - 34 9979 6169
+LUCAS PEREIRA CARDOSO - 34 99970 4604 
+
+
+
+O trabalho incial: 
+Se destaca em entender da melhor forma possivel a ataução da entidade para depois definir os proximos passos.
+
+
+Frentes de atuação da ong:
+Acompanhamento de licitações de prefeitura municipal de uberlandia com respectivas autarquias.
+
+
+| Sigla   | Nome/Razão Social                                                           | CNPJ                                                    |
+| ------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| PMU     | Município de Uberlândia (Prefeitura Municipal de Uberlândia)                | **18.431.312/0001-15** ([JusBrasil][1])                 |
+| DMAE    | Departamento Municipal de Água e Esgoto                                     | *(não localizado com segurança nas fontes consultadas)* |
+| FUTEL   | Fundação Uberlandense do Turismo, Esporte e Lazer                           | *(não localizado com segurança nas fontes consultadas)* |
+| EMAM    | Empresa Municipal de Apoio e Manutenção                                     | *(não localizado com segurança nas fontes consultadas)* |
+| PRODAUB | Processamento de Dados de Uberlândia                                        | **25.523.986/0001-05** ([Informe Cadastral][2])         |
+| IPREMU  | Instituto de Previdência dos Servidores Públicos do Município de Uberlândia | **22.224.976/0001-80** ([Serasa Experian][3])           |
+| FERUB   | Fundação de Excelência Rural de Uberlândia                                  | **21.238.316/0001-96** ([Serasa Experian][4])           |
+| ARESAN  | Agência de Regulação dos Serviços de Saneamento Básico de Uberlândia        | *(não localizado com segurança nas fontes consultadas)* |
+
+[1]: https://www.jusbrasil.com.br/nome/secretaria-municipal-de-governo/cnpj-MzZ2AyE0zkD?utm_source=chatgpt.com "Secretaria Municipal de Governo, Minas Gerais/MG, 18.431.312/0001-15 | Consulta Processos"
+[2]: https://www.informecadastral.com.br/cnpj/prodaub-processamento-de-dados-de-uberlandia-25523986000105?utm_source=chatgpt.com "CNPJ: 25.523.986/0001-05 - Prodaub - Processamento de Dados de Uberlandia - Informe Cadastral"
+[3]: https://empresas.serasaexperian.com.br/consulta-gratis/INSTITUTO-DE-PREVIDENCIA-DOS-SERVIDORES-PUBLICOS-DO-MUNICIPIO-DE-UBERLANDIA---IPREMU-22224976000180?utm_source=chatgpt.com "INSTITUTO DE PREVIDENCIA DOS SERVIDORES PUBLICOS DO MUNICIPIO DE UBERLANDIA - IPREMU - 22224976000180 | Consulte aqui!"
+[4]: https://empresas.serasaexperian.com.br/consulta-gratis/FUNDACAO-DE-EXCELENCIA-RURAL-DE-UBERLANDIA-21238316000196?utm_source=chatgpt.com "FUNDACAO DE EXCELENCIA RURAL DE UBERLANDIA - 21238316000196 | Consulte aqui!"
+
+
+
+Acompanhamento de atuação do vereadores da camara municipal de uberlandia frente as seus trabalhos de acompanhamento e fiscalização do executivo.
+
+
+
+Operacional 1:
+
+1) Colaboradores acessm o site da prefeitura extraem as informações de licitação:
+https://weblicitacoes.uberlandia.mg.gov.br/weblicitacoes/f/n/licitacoescon?evento=y&descricaoEmpresaLicitacao=1&modoJanelaPlc=popup#
+DIARIO OFICIAL = DEMONSTRA FISCAIS DE CONTRATO
+
+
+2) Populam uma planilha 'Cronograma', print arquivo Cronograma.jpeg
+
+
+3) E a partir deste controle geram um acompanhamento das licitações, print arquivo Acompanhamento_1.jpeg e Acompanhamento_2.jpeg
+* Neste site são feitos os acomanhamentos das licitações: https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras
+Alguns codigo de 'Unidade compradora':
+926922 - PMU
+926287 - DMAE
+926038 - FUTEL
+931351 - ARESAN
+930403 - FERUB
+929315 - EMAM
+929301 - IPREMU
+*Para o trabalho com o Observatório Social, o fluxo prático é: buscar por siglaUf=MG e filtrar localmente por codigoMunicipioIbge == 3170206.
+
+
+* Neste operacional são feitos em paralelo as analises e entendimentos de cada contexto das licitações, com base nesta analises, continuamente são tomadas ações pertinentes, geração de informações consolidadas para apresentações a cada quadrimestre.
+
+
+Operacional 2:
+
+São feitos monitoramento de redes sociais de cada vereador para analisar sua atuação:
+VERIFICACAO DO VEREADORES 
+QUAIS PROJETOS ELES SUBMENTEM
+QUAIS FISCALIZACOES ELES FAZEM 
+
+SUA PRESENÇA = A partir das listas de presença das sessões que participam.
+
+
+
+Nestes power bi tem um consolidado sobre as licitações que a prefeitura de uberlandia, tem delay de atualização:
+https://app.powerbi.com/view?r=eyJrIjoiMzk4ZWFhYmYtMjdjMC00Yzk4LTkxNTAtNzM2MzM0YTAwYWE0IiwidCI6IjdmNWY0YjY0LTcwZDAtNDMwZi1iMDc2LWE0ODg2MmI4NjUxOCJ9
+https://app.powerbi.com/view?r=eyJrIjoiODg0NzIyMzQtZTBjNC00ZGQ2LWIyNjctMTg1ZTdkNWNmNTM5IiwidCI6IjdmNWY0YjY0LTcwZDAtNDMwZi1iMDc2LWE0ODg2MmI4NjUxOCJ9
+
+'licitações'
+"ANOPROCESSO";"CHAVE";"DSHABILITACAO";"DTABERTURA";"DTHABILITACAO";"DTHOMOLOGACAO";"DTJULGAMENTO";"EMPRESA";"MODALIDADE";"OBJETO";"PROCESSO";"SITUACAO";"SOLICITANTE";"VALORLICITACAO"
+
+'contratos'
+ANOCONTRATO;ANOPROCESSO;DSOBJETOCONTRATO;DTASSINATURA;EMPRESA;NMPESSOA;NRADITIVO;NRCONTRATO;NRPARCELA;PROCESSO;VRINICIAL
+
+'gestores e fiscais'
+ANOCONTRATO;DSORGAO;DSPAPEIS;DTASSINATURA;DTFIM;DTINICIO;FORNECEDOR;NMPESSOAPAPEL;NRCONTRATO;OBJETOCONTRATO
+
+
+
+As siglas mais utilizadas para as secretarias da Prefeitura Municipal de Uberlândia são as seguintes:
+
+Secretaria	Sigla
+Secretaria Municipal de Administração	SMA
+Secretaria Municipal de Agronegócio	SMAgro
+Secretaria Municipal de Comunicação	SECOM
+Controladoria-Geral do Município	CGM
+Secretaria Municipal de Cultura e Turismo	SMCT
+Secretaria Municipal de Desenvolvimento Econômico e Inovação	SMDEI
+Secretaria Municipal de Desenvolvimento Social	SMDS
+Secretaria Municipal de Educação	SME
+Secretaria Municipal de Finanças	SMF
+Secretaria Municipal de Gestão Ambiental e Sustentabilidade	SMGAS
+Secretaria Municipal de Gestão Estratégica	SMGE
+Secretaria Municipal de Governo	SEGOV
+Secretaria Municipal de Habitação	SMH
+Secretaria Municipal de Infraestrutura	SMI
+Secretaria Municipal da Juventude	SEJUV
+Secretaria Municipal de Planejamento Urbano	SEPLAN
+Procuradoria-Geral do Município	PGM
+Secretaria Municipal de Saúde	SMS
+Secretaria Municipal de Segurança Integrada	SMSI
+Secretaria Municipal de Serviços Urbanos	SMSU
+Secretaria Municipal de Trânsito e Transportes	SETTRAN
+
+
+
+
+API Compras.gov.br
+1.0.0 
+OAS 3.1
+/v3/api-docs
+Compras Públicas em Dados Abertos
+https://dadosabertos.compras.gov.br/swagger-ui/index.html#/
+
+
+| Código | Modalidade                |
+| ------ | ------------------------- |
+| **1**  | Leilão                    |
+| **2**  | Diálogo Competitivo       |
+| **3**  | Concurso                  |
+| **4**  | Concorrência - Eletrônica |
+| **5**  | Concorrência - Presencial |
+| **6**  | Pregão - Eletrônico       |
+| **7**  | Pregão - Presencial       |
+| **8**  | Dispensa de Licitação     |
+| **9**  | Inexigibilidade           |
+| **10** | Manifestação de Interesse |
+| **11** | Pré-qualificação          |
+| **12** | Credenciamento            |
+
+
+Portal Nacional de Contratações Públicas - PNCP
+Manuais
+https://www.gov.br/pncp/pt-br/pncp/manuais
+
+
+
+base do projeto:
+
+dfmoura@dfmoura-Nitro-ANV15-52:~/Documents/test_several1/uniube/1/licitacoes-hub$
+subir projeto
+docker compose up --build -d
+

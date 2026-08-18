@@ -1,0 +1,116 @@
+================================================================================
+ETAPAS DA PROPOSTA — FLEXOERP × RLP Etiquetas
+TRIGGER Data Intelligence × RLP
+Proposta ERP-RLP-2026-01-v3 · Anexo B (Cronograma)
+Duração: até 8 semanas (teto 2 meses) | frentes concomitantes
+Pacote único R$ 25.000 · 20/80 · licença bonificada · sem mensalidade
+================================================================================
+
+0 · PRÉ-KICKOFF
+    Assinatura · entrada · acessos
+    Prazo: ~1 semana | Valor: R$ 5.000 (entrada / 20%)
+    ----------------------------------------------------------------
+    - Aceite formal da proposta
+    - Pagamento da entrada (20%)
+    - Kickoff na semana seguinte
+    - A1, credenciais bancárias e AWS (privilégio mínimo)
+
+    Critério de avanço: inicia implantação com entrada confirmada e acessos.
+
+
+MÊS 1 — IMPLANTAÇÃO (S1–S4)
+    Ambiente, cadastros e fluxos no ar em homologação.
+    Frentes A–E correm em paralelo (não são gates de pagamento).
+
+
+A · FUNDAÇÃO E PLATAFORMA                                          S1–S2
+    ----------------------------------------------------------------
+    A.1  Ambiente de acesso (login seguro, usuários e perfis RBAC)
+    A.2  Cadastro EMP-00001 / EMP-00002 (dados, fiscais, parâmetros)
+    A.3  Homologação AWS, backup e stage isolado
+
+    Pronta quando: usuários autenticam; empresas no ar.
+
+
+B · CADASTROS E COMERCIAL                                          S1–S4
+    (paralelo a C a partir de S2)
+    ----------------------------------------------------------------
+    B.1  Parceiros (cliente, fornecedor, colaborador, vendedor,
+         bancos, entidades); clientes com limite de crédito
+    B.2  Cadastro de produtos (famílias canônicas)
+    B.3  Orçamento completo até o envio / link de aprovação
+
+    Pronta quando: parceiro → produto → orçamento até envio demonstrado.
+
+
+C · COMPRAS, ESTOQUE E CONTAS A PAGAR                              S2–S4
+    (paralelo a B e, depois, a D)
+    ----------------------------------------------------------------
+    C.1  Ajuste de saldo inicial de estoque (virada operacional)
+    C.2  Monitoramento de ponto de pedido / requisição
+    C.3  Pedido de compra, conferência e entrada de estoque
+    C.4  Contas a pagar
+
+    Pronta quando: requisição → compra → entrada → CAP ponta a ponta.
+
+
+D · PEDIDO, SINAL E PRODUÇÃO                                       S3–S5
+    (paralelo a E)
+    ----------------------------------------------------------------
+    D.1  Confirmação / geração do pedido a partir do orçamento
+    D.2  Integração bancária PIX: sinal / adiantamento (1ª compra)
+    D.3  OP / OS; saída de MP; produção e conclusão
+    D.4  Readequação ±20%; entrada de sobra de MP / insumo
+
+    Pronta quando: ciclo pedido → produção → readequação homologado.
+
+
+E · FATURAMENTO, ENTREGA E FINANCEIRO                              S3–S5
+    (paralelo a D)
+    ----------------------------------------------------------------
+    E.1  Faturamento / cobrança (contas a receber)
+    E.2  Expedição, entrega e confirmação
+    E.3  Recebimento / baixa e conciliação básica
+    E.4  Devolução (parcial ou total) com ajuste de estoque e título
+
+    Pronta quando: cobrança → entrega → baixa e devolução na amostra.
+
+
+MÊS 2 — TREINO, HOMOLOGAÇÃO E VIRADA (S5–S8)
+
+
+F · GESTÃO, TREINO, HOMOLOGAÇÃO E GO-LIVE                          S5–S8
+    ----------------------------------------------------------------
+    F.1  Relatórios, dashboards e BI do fluxo A–E                   S5–S6
+    F.2  Treinamento dos usuários-chave (salas em paralelo)        S5–S6
+    F.3  Homologação formal + ajustes de configuração no escopo    S6–S7
+    F.4  Go-live — somente após aceite e R$ 20.000 quitados        S8
+
+    Pronta quando: treino feito; BI no ar; checklist de virada;
+    R$ 20.000 confirmados → produção.
+
+
+================================================================================
+RESUMO FINANCEIRO
+--------------------------------------------------------------------------------
+Entrada (assinatura e kickoff) .................. R$  5.000
+Entrega (aceite da homologação, antes da virada)  R$ 20.000
+                                          TOTAL  R$ 25.000
+
+Licença de uso .................................. BONIFICADA (sem mensalidade)
+Hypercare (30 dias após virada) ................. só defeito do implantado
+Suporte contínuo ................................ opcional (ex.: R$ 800/mês)
+Manutenção / novos desenvolvimentos ............. proposta nova (não os R$ 800)
+
+
+GATES
+--------------------------------------------------------------------------------
+- Kickoff: entrada R$ 5.000 + acessos
+- Homologação: demonstração por escrito → aceite RLP
+  (ou tácito em 5 dias úteis)
+- Go-live só depois dos R$ 20.000 confirmados. Até lá, HML.
+- Semanas = estimativa a partir do kickoff; 8 semanas é teto.
+  Aceleração é desejável se a RLP entregar dados e feedback cedo.
+- Idle RLP suspende prazos TRIGGER.
+
+================================================================================

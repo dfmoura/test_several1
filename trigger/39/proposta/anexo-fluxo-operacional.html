@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Anexo A — Mapa do fluxo operacional FLEXOERP RLP. TRIGGER Data Intelligence.">
+  <title>Anexo A · Fluxo operacional | TRIGGER × RLP</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon-32-light.png" sizes="32x32">
+  <meta name="theme-color" content="#1a3568">
+  <link rel="stylesheet" href="assets/css/proposta.css">
+  <style>
+    :root {
+      --decide: #b45309;
+      --decide-soft: rgba(180, 83, 9, 0.12);
+      --ok: #15803d;
+      --ok-soft: rgba(21, 128, 61, 0.1);
+      --fail: #b91c1c;
+      --fail-soft: rgba(185, 28, 28, 0.08);
+      --lock: #64748b;
+    }
+
+    body.doc-anexo { background: #dfe6f0; }
+
+    body.doc-anexo .doc {
+      width: min(100% - 1rem, 1180px);
+      margin: 0.7rem auto 1.2rem;
+    }
+
+    .sheet { padding: 0.65rem 0.8rem 0.5rem; }
+
+    .head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.7rem;
+      margin-bottom: 0.35rem;
+      padding-bottom: 0.28rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head-left {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-width: 0;
+    }
+
+    .head-left img { height: 26px; width: auto; flex-shrink: 0; }
+
+    .head-titles h1 {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .head-titles p {
+      margin: 0.1rem 0 0;
+      font-size: 0.66rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-right: 0.28rem;
+      padding: 0.05rem 0.32rem;
+      font-size: 0.55rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--navy-dark);
+      background: var(--navy-soft);
+      border: 1px solid rgba(26, 53, 104, 0.2);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
+
+    .head-meta {
+      text-align: right;
+      font-size: 0.6rem;
+      color: var(--muted);
+      line-height: 1.32;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .head-meta strong {
+      display: block;
+      color: var(--navy-dark);
+      font-size: 0.66rem;
+    }
+
+    .spine {
+      display: grid;
+      grid-template-columns: 7.2rem repeat(5, 1fr);
+      align-items: stretch;
+      margin-bottom: 0.28rem;
+    }
+
+    .spine-lab {
+      font-size: 0.52rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      padding-left: 0.15rem;
+    }
+
+    .spine-steps {
+      grid-column: 2 / -1;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    .spine-steps::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 0.72rem;
+      height: 2px;
+      background: var(--green);
+      opacity: 0.85;
+      z-index: 0;
+    }
+
+    .sp {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.18rem;
+      text-align: center;
+    }
+
+    .sp i {
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-style: normal;
+      font-size: 0.68rem;
+      font-weight: 750;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 3px #fff;
+    }
+
+    .sp span {
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: var(--navy-dark);
+      line-height: 1.15;
+    }
+
+    .sp em {
+      display: block;
+      font-style: normal;
+      font-size: 0.5rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.28rem 0.7rem;
+      margin: 0 0 0.32rem;
+      font-size: 0.58rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.24rem;
+    }
+
+    .sw {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 2px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .sw--p { background: #fff; border-color: var(--navy); }
+    .sw--d { background: var(--decide-soft); border-color: var(--decide); }
+    .sw--g { background: var(--ok-soft); border-color: var(--ok); }
+    .sw--x { background: var(--fail-soft); border-color: var(--fail); }
+    .sw--e { background: #f1f5f9; border-color: #d5dbe3; }
+
+    .map {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 7.2rem repeat(5, 1fr);
+    }
+
+    .gh {
+      background: var(--navy);
+      color: #fff;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 0.28rem 0.35rem;
+      text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.12);
+      line-height: 1.2;
+    }
+
+    .gh:last-child { border-right: none; }
+
+    .gh small {
+      display: block;
+      font-weight: 500;
+      opacity: 0.78;
+      font-size: 0.5rem;
+      margin-top: 0.04rem;
+    }
+
+    .gh--lab {
+      text-align: left;
+      padding-left: 0.45rem;
+      font-size: 0.52rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: #16305e;
+    }
+
+    .lh {
+      background: var(--soft);
+      color: var(--navy-dark);
+      font-size: 0.62rem;
+      font-weight: 750;
+      padding: 0.4rem 0.45rem;
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      line-height: 1.2;
+    }
+
+    .lh small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.5rem;
+      margin-top: 0.08rem;
+    }
+
+    .cell {
+      border-top: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 0.32rem 0.35rem 0.34rem;
+      min-height: 4.1rem;
+      background: #fff;
+    }
+
+    .cell:nth-child(6n) { border-right: none; }
+
+    .cell--empty {
+      background: #f7f8fa;
+    }
+
+    .cell--empty .idle {
+      font-size: 0.5rem;
+      color: #c0c7d1;
+      letter-spacing: 0.08em;
+    }
+
+    .act {
+      font-size: 0.6rem;
+      font-weight: 650;
+      color: var(--navy-dark);
+      line-height: 1.28;
+    }
+
+    .act + .act { margin-top: 0.22rem; }
+
+    .act small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.54rem;
+      line-height: 1.25;
+    }
+
+    .pill {
+      display: inline-block;
+      margin-top: 0.12rem;
+      padding: 0.06rem 0.28rem;
+      border-radius: 3px;
+      font-size: 0.5rem;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
+
+    .pill--go {
+      background: var(--ok-soft);
+      color: #14532d;
+      border: 1px solid rgba(21, 128, 61, 0.28);
+    }
+
+    .pill--ask {
+      background: var(--decide-soft);
+      color: #7c2d12;
+      border: 1px solid rgba(180, 83, 9, 0.32);
+    }
+
+    .pill--stop {
+      background: var(--fail-soft);
+      color: #7f1d1d;
+      border: 1px solid rgba(185, 28, 28, 0.28);
+    }
+
+    .pill--lock {
+      background: #eef1f5;
+      color: #334155;
+      border: 1px solid #d5dbe3;
+    }
+
+    .cell--ask { background: var(--decide-soft); }
+    .cell--go { background: var(--ok-soft); }
+    .cell--stop { background: var(--fail-soft); }
+    .cell--par { background: rgba(26, 53, 104, 0.035); }
+
+    .notes {
+      margin-top: 0.32rem;
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 0.3rem;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.32rem 0.4rem;
+      background: var(--soft);
+    }
+
+    .note--x {
+      border-color: rgba(185, 28, 28, 0.28);
+      background: var(--fail-soft);
+    }
+
+    .note h3 {
+      margin: 0 0 0.12rem;
+      font-size: 0.64rem;
+      color: var(--navy-dark);
+    }
+
+    .note--x h3 { color: #7f1d1d; }
+
+    .note p,
+    .note ul {
+      margin: 0;
+      font-size: 0.58rem;
+      color: var(--muted);
+      line-height: 1.32;
+    }
+
+    .note ul { padding-left: 0.85rem; }
+    .note li { margin-bottom: 0.04rem; }
+    .note li:last-child { margin-bottom: 0; }
+
+    .chain {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.14rem;
+      margin-top: 0.16rem;
+    }
+
+    .chain b {
+      font-size: 0.54rem;
+      font-weight: 650;
+      padding: 0.08rem 0.26rem;
+      border-radius: 3px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--navy-dark);
+    }
+
+    .chain b.x {
+      border-color: rgba(185, 28, 28, 0.35);
+      color: #7f1d1d;
+    }
+
+    .chain i {
+      font-style: normal;
+      color: var(--green);
+      font-size: 0.54rem;
+      font-weight: 700;
+    }
+
+    .chain i.x { color: var(--fail); }
+
+    .foot {
+      margin-top: 0.3rem;
+      padding-top: 0.22rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.56rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .foot a { color: var(--navy); }
+
+    @media screen and (max-width: 900px) {
+      .head { flex-direction: column; }
+      .head-meta { text-align: left; white-space: normal; }
+      .spine, .grid { display: block; }
+      .lh { border-top: 2px solid var(--navy); }
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 5mm;
+      }
+
+      html, body.doc-anexo {
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color: var(--ink);
+      }
+
+      body.doc-anexo .toolbar { display: none !important; }
+
+      body.doc-anexo .doc {
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+      }
+
+      body.doc-anexo .sheet {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      body.doc-anexo .spine { display: none !important; }
+
+      body.doc-anexo .head {
+        margin: 0 0 0.18rem !important;
+        padding: 0 0 0.12rem !important;
+      }
+      body.doc-anexo .head-left img { height: 18px !important; }
+      body.doc-anexo .head-titles h1 { font-size: 9.5pt !important; }
+      body.doc-anexo .head-titles p { font-size: 6.5pt !important; line-height: 1.2 !important; }
+      body.doc-anexo .head-meta { font-size: 6pt !important; }
+
+      body.doc-anexo .legend {
+        font-size: 6pt !important;
+        margin: 0 0 0.14rem !important;
+        gap: 0.16rem 0.5rem !important;
+      }
+
+      body.doc-anexo .map {
+        margin-bottom: 0.16rem !important;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      /* CRÍTICO: não deixar o @media screen (max-width) virar display:block no print */
+      body.doc-anexo .grid {
+        display: grid !important;
+        grid-template-columns: 6.4rem repeat(5, 1fr) !important;
+        grid-auto-rows: auto !important;
+      }
+
+      body.doc-anexo .gh {
+        font-size: 6.4pt !important;
+        padding: 0.16rem 0.2rem !important;
+        line-height: 1.12 !important;
+      }
+      body.doc-anexo .gh small {
+        font-size: 5.4pt !important;
+        margin-top: 0.02rem !important;
+      }
+      body.doc-anexo .gh--lab { font-size: 5.6pt !important; }
+
+      body.doc-anexo .lh {
+        font-size: 6.4pt !important;
+        padding: 0.16rem 0.22rem !important;
+        line-height: 1.12 !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      body.doc-anexo .lh small { font-size: 5.4pt !important; }
+
+      body.doc-anexo .cell {
+        padding: 0.14rem 0.18rem !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      body.doc-anexo .act {
+        font-size: 6.1pt !important;
+        line-height: 1.18 !important;
+        margin: 0 !important;
+      }
+      body.doc-anexo .act + .act { margin-top: 0.08rem !important; }
+      body.doc-anexo .act small { font-size: 5.5pt !important; }
+      body.doc-anexo .pill {
+        font-size: 5.4pt !important;
+        padding: 0.05rem 0.14rem !important;
+        line-height: 1.12 !important;
+        margin-top: 0.06rem !important;
+      }
+      body.doc-anexo .idle { font-size: 6pt !important; opacity: 0.45; }
+
+      body.doc-anexo .notes {
+        display: grid !important;
+        margin-top: 0.14rem !important;
+        gap: 0.16rem !important;
+        grid-template-columns: 1.25fr 1fr 1fr !important;
+      }
+      body.doc-anexo .note { padding: 0.14rem 0.2rem !important; }
+      body.doc-anexo .note h3 {
+        font-size: 6.5pt !important;
+        margin-bottom: 0.06rem !important;
+      }
+      body.doc-anexo .note p,
+      body.doc-anexo .note ul {
+        font-size: 5.7pt !important;
+        line-height: 1.18 !important;
+      }
+      body.doc-anexo .note ul { padding-left: 0.75rem !important; margin: 0 !important; }
+      body.doc-anexo .chain {
+        gap: 0.08rem !important;
+        margin-top: 0.06rem !important;
+        flex-wrap: wrap;
+      }
+      body.doc-anexo .chain b {
+        font-size: 5.5pt !important;
+        padding: 0.05rem 0.12rem !important;
+      }
+
+      body.doc-anexo .foot {
+        font-size: 5.6pt !important;
+        margin-top: 0.1rem !important;
+        padding-top: 0.08rem !important;
+      }
+
+      body.doc-anexo .sheet,
+      body.doc-anexo .map,
+      body.doc-anexo .notes,
+      body.doc-anexo .grid {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+      }
+
+      body.doc-anexo a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body class="doc-anexo">
+  <div class="toolbar" role="navigation" aria-label="Ações do documento">
+    <div class="toolbar-brand">
+      <img src="assets/img/logo-trigger-mark.png" alt="" width="28" height="28">
+      <span>Anexo A · Fluxo operacional · FLEXOERP RLP</span>
+    </div>
+    <div class="toolbar-actions">
+      <a class="btn btn-secondary" href="index.html">Voltar à proposta</a>
+      <a class="btn btn-secondary" href="anexo-cronograma.html">Anexo B · Cronograma</a>
+      <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF (paisagem)</button>
+    </div>
+  </div>
+
+  <article class="doc" aria-label="Anexo A — Mapa do fluxo operacional">
+    <section class="sheet">
+
+      <header class="head">
+        <div class="head-left">
+          <img src="assets/img/logo-trigger-header.png" alt="TRIGGER Data Intelligence" width="120" height="50">
+          <div class="head-titles">
+            <h1><span class="badge">Anexo A</span> Mapa do fluxo operacional</h1>
+            <p>Quem faz o quê, na ordem do tempo — do orçamento à baixa. Uma página · A4 paisagem.</p>
+          </div>
+        </div>
+        <div class="head-meta">
+          <strong>ERP-RLP-2026-01-v3</strong>
+          Proposta comercial · 16/08/2026<br>
+          TRIGGER × RLP Etiquetas
+        </div>
+      </header>
+
+      <div class="spine" aria-hidden="true">
+        <div class="spine-lab">Caminho</div>
+        <div class="spine-steps">
+          <div class="sp"><i>1</i><span>Orçamento<em>elaborar e enviar</em></span></div>
+          <div class="sp"><i>2</i><span>Pedido<em>sinal, se 1ª compra</em></span></div>
+          <div class="sp"><i>3</i><span>Produção<em>OP/OS e estoque</em></span></div>
+          <div class="sp"><i>4</i><span>Fatura e envio<em>nota, título, transporte</em></span></div>
+          <div class="sp"><i>5</i><span>Entrega e baixa<em>aceite e caixa</em></span></div>
+        </div>
+      </div>
+
+      <div class="legend" aria-label="Legenda">
+        <span><i class="sw sw--p" aria-hidden="true"></i> Atuação da área</span>
+        <span><i class="sw sw--d" aria-hidden="true"></i> Decisão (sim / não)</span>
+        <span><i class="sw sw--g" aria-hidden="true"></i> Gate — só segue se ok</span>
+        <span><i class="sw sw--x" aria-hidden="true"></i> Exceção</span>
+        <span><i class="sw sw--e" aria-hidden="true"></i> Área não atua nesta etapa</span>
+      </div>
+
+      <div class="map">
+        <div class="grid" role="table" aria-label="Raias do fluxo operacional">
+
+          <div class="gh gh--lab">Área</div>
+          <div class="gh">1 · Orçamento<small>até o cliente decidir</small></div>
+          <div class="gh">2 · Pedido<small>até liberar a fábrica</small></div>
+          <div class="gh">3 · Produção<small>insumo → produto</small></div>
+          <div class="gh">4 · Fatura e envio<small>cobrar e despachar</small></div>
+          <div class="gh">5 · Entrega e baixa<small>receber e encerrar</small></div>
+
+          <div class="lh">Cliente<small>quem compra</small></div>
+          <div class="cell cell--ask">
+            <div class="act">Recebe o link e responde<small>aprova ou pede ajuste</small></div>
+            <span class="pill pill--ask">Aprovado? Não → volta · Sim → pedido</span>
+          </div>
+          <div class="cell">
+            <div class="act">Na 1ª compra, paga o sinal<small>50% via PIX</small></div>
+          </div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell">
+            <div class="act">Aguarda a entrega</div>
+          </div>
+          <div class="cell cell--ask">
+            <div class="act">Confere o que chegou<small>aceita ou recusa</small></div>
+            <span class="pill pill--ask">Aceite? Não → devolução · Sim → paga o saldo</span>
+          </div>
+
+          <div class="lh">Comercial<small>orçar e vender</small></div>
+          <div class="cell">
+            <div class="act">Monta o orçamento<small>itens, quantidades, valores</small></div>
+            <div class="act">Envia o link de aprovação</div>
+            <span class="pill pill--lock">Depois do envio: só leitura</span>
+          </div>
+          <div class="cell cell--go">
+            <div class="act">Gera o pedido<small>copia o orçamento aprovado — não muda preço</small></div>
+            <span class="pill pill--go">Pedido só nasce com o sim no link</span>
+          </div>
+          <div class="cell">
+            <div class="act">Ajusta o pedido se a produção variar<small>até ±20%</small></div>
+          </div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+
+          <div class="lh">Produção<small>e estoque</small></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--go">
+            <div class="act">Entra na fila da fábrica<small>só com pedido liberado</small></div>
+            <span class="pill pill--go">Gate: sinal reconhecido, se 1ª compra</span>
+          </div>
+          <div class="cell">
+            <div class="act">Abre OP ou OS · baixa material · produz</div>
+            <div class="act">Estoque<small>consumido · sobra que volta · produto acabado</small></div>
+          </div>
+          <div class="cell">
+            <div class="act">Separa e embala o acabado</div>
+          </div>
+          <div class="cell cell--stop">
+            <div class="act">Se houver devolução<small>o acabado reentra no estoque</small></div>
+          </div>
+
+          <div class="lh">Expedição<small>e transporte</small></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--ask">
+            <div class="act">Despacha ao cliente</div>
+            <span class="pill pill--ask">Transporte ok?</span>
+            <div class="act" style="margin-top:0.18rem"><small>Não: avaria, extravio ou recusa em trânsito → tratativa, reenvio ou volta</small></div>
+          </div>
+          <div class="cell cell--go">
+            <div class="act">Confirma que chegou<small>recebimento físico</small></div>
+            <span class="pill pill--go">Pronto para o financeiro baixar</span>
+          </div>
+
+          <div class="lh">Financeiro<small>crédito e caixa</small></div>
+          <div class="cell">
+            <div class="act">Olha o limite de crédito<small>cliente sem limite vende só à vista</small></div>
+          </div>
+          <div class="cell cell--go">
+            <div class="act">Na 1ª compra, reconhece o PIX de 50%</div>
+            <span class="pill pill--go">Sem este reconhecimento a fábrica não começa</span>
+          </div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell">
+            <div class="act">Emite a nota e o título<small>contas a receber</small></div>
+          </div>
+          <div class="cell cell--go">
+            <div class="act">Recebe, concilia e dá baixa</div>
+            <span class="pill pill--go">Ciclo encerrado</span>
+          </div>
+
+          <div class="lh">Compras<small>em paralelo</small></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--par">
+            <div class="act">Se faltar material na OP<small>não resolve no zap — fica no sistema</small></div>
+            <div class="act">Necessidade → cotação → compra → entrada → contas a pagar</div>
+          </div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+          <div class="cell cell--empty"><span class="idle">—</span></div>
+
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note">
+          <h3>Três regras que não abrem exceção</h3>
+          <ul>
+            <li>Orçamento enviado <strong>não se edita</strong>. Para mudar, recusa e novo envio.</li>
+            <li>Pedido só existe com o <strong>sim no link</strong>. Combinado no telefone não gera produção.</li>
+            <li>1ª compra: sinal de <strong>50%</strong> reconhecido no sistema. Sem isso, a OP não abre.</li>
+          </ul>
+        </div>
+        <div class="note note--x">
+          <h3>Se o transporte falhar</h3>
+          <div class="chain">
+            <b class="x">Ocorrência</b><i class="x">→</i>
+            <b>Tratativa</b><i class="x">→</i>
+            <b>Reenvio</b><i>ou</i>
+            <b class="x">Volta logística</b>
+          </div>
+        </div>
+        <div class="note note--x">
+          <h3>Se o cliente não aceitar</h3>
+          <div class="chain">
+            <b class="x">Devolução</b><i class="x">→</i>
+            <b>Acabado volta ao estoque</b><i class="x">→</i>
+            <b>Ajuste do título</b>
+          </div>
+        </div>
+      </div>
+
+      <footer class="foot">
+        <span><strong>TRIGGER</strong> · CNPJ 53.369.941/0001-63 · Anexo A da proposta ERP-RLP-2026-01-v3 · confidencial</span>
+        <span>Impressão: A4 paisagem · 1 página · <a href="index.html">voltar à proposta</a> · <a href="anexo-cronograma.html">Anexo B</a></span>
+      </footer>
+    </section>
+  </article>
+</body>
+</html>

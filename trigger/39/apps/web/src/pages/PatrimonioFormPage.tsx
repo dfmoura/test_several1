@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
-import { ApiError, api, type BemPatrimonial, type Departamento, type Parceiro } from '../lib/api';
+import { ApiError, api, type BemPatrimonial, type CessaoBem, type Departamento, type Parceiro } from '../lib/api';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { bemCategoriaLabel, bemStatusLabel } from '../lib/patrimonio';
@@ -154,6 +155,10 @@ export function PatrimonioFormPage() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
+  const [cessoes, setCessoes] = useState<CessaoBem[]>([]);
+  const [cessaoPar, setCessaoPar] = useState<Parceiro | null>(null);
+  const [cessaoObs, setCessaoObs] = useState('');
+  const [cessaoPending, setCessaoPending] = useState(false);
 
   const update = (patch: Partial<FormData>) => setForm((prev) => ({ ...prev, ...patch }));
 
@@ -228,6 +233,8 @@ export function PatrimonioFormPage() {
           updated_at: res.data.updated_at,
         });
         if (res.data.capitalizacao) setCapitalizacao(res.data.capitalizacao);
+        const ces = await api.get<{ data: CessaoBem[] }>(`/cessoes-bem?bem_id=${id}`);
+        if (!cancelled) setCessoes(ces.data);
       } catch {
         if (!cancelled) setError('Bem patrimonial não encontrado.');
       } finally {
@@ -638,6 +645,112 @@ export function PatrimonioFormPage() {
             </div>
           </div>
         )}
+
+        {!isNew && id ? (
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div className="card-body">
+              <div className="form-section">
+                <h3>Cessão ao cliente (comodato)</h3>
+                <p className="form-hint">
+                  Empréstimo de impressora/equipamento. Não gera NFS-e nem NF-e. Locação cobrada
+                  também não é ISS. Manutenção cobrada é orçamento de serviço.
+                </p>
+                {cessoes
+                  .filter((c) => c.status === 'VIGENTE')
+                  .map((c) => (
+                    <div key={c.id} className="form-grid" style={{ marginBottom: '0.75rem' }}>
+                      <div className="form-group span-2">
+                        <strong>{c.codigo}</strong> · {c.parceiro?.razao_social} · desde{' '}
+                        {c.iniciado_em}
+                        <div className="muted">{c.aviso_fiscal}</div>
+                      </div>
+                      {canWrite ? (
+                        <div className="form-group">
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={cessaoPending}
+                            onClick={() => {
+                              const motivo = window.prompt('Motivo do encerramento (devolução)?');
+                              if (!motivo || motivo.trim().length < 3) return;
+                              setCessaoPending(true);
+                              void api
+                                .post(`/cessoes-bem/${c.id}/encerrar`, { motivo: motivo.trim() })
+                                .then(() =>
+                                  api.get<{ data: CessaoBem[] }>(`/cessoes-bem?bem_id=${id}`),
+                                )
+                                .then((r) => {
+                                  setCessoes(r.data);
+                                  update({ status: 'ATIVO' });
+                                })
+                                .catch((err) =>
+                                  setError(err instanceof Error ? err.message : 'Falha ao encerrar'),
+                                )
+                                .finally(() => setCessaoPending(false));
+                            }}
+                          >
+                            Encerrar cessão
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                {canWrite && !cessoes.some((c) => c.status === 'VIGENTE') ? (
+                  <div className="form-grid">
+                    <ParceiroCombobox
+                      className="span-2"
+                      label="Cliente que fica com o bem"
+                      papel="orcavel"
+                      value={cessaoPar}
+                      onChange={setCessaoPar}
+                      disabled={cessaoPending}
+                    />
+                    <div className="form-group span-2">
+                      <label>Observação</label>
+                      <input
+                        value={cessaoObs}
+                        onChange={(e) => setCessaoObs(e.target.value)}
+                        placeholder="Termo de comodato, local, responsável…"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={cessaoPending || !cessaoPar}
+                        onClick={() => {
+                          if (!cessaoPar) return;
+                          setCessaoPending(true);
+                          setError('');
+                          void api
+                            .post<{ data: CessaoBem }>('/cessoes-bem', {
+                              bem_id: Number(id),
+                              parceiro_id: cessaoPar.id,
+                              tipo: 'COMODATO',
+                              observacao: cessaoObs || null,
+                            })
+                            .then(() => api.get<{ data: CessaoBem[] }>(`/cessoes-bem?bem_id=${id}`))
+                            .then((r) => {
+                              setCessoes(r.data);
+                              setCessaoPar(null);
+                              setCessaoObs('');
+                              update({ status: 'CEDIDO' });
+                            })
+                            .catch((err) =>
+                              setError(err instanceof ApiError ? err.message : 'Falha ao ceder'),
+                            )
+                            .finally(() => setCessaoPending(false));
+                        }}
+                      >
+                        Ceder em comodato
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">

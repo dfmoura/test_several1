@@ -119,7 +119,9 @@ class CodigoGenerator
         // BL-044 — PED/OP/OS-AAAA
         // BL-049 — FAT-AAAA
         // BL-051 — DFS-AAAA
-        if (preg_match('/^(NEC|COT|OC|MOV|TIT|BX|COB|PED|OP|OS|FAT|DFS)-\d{4}$/', $prefix, $m) === 1) {
+        // BL-060 — ENT-AAAA
+        // BL-061 — COM-AAAA / CFE-AAAA
+        if (preg_match('/^(NEC|COT|OC|MOV|TIT|BX|COB|PED|OP|OS|FAT|DFS|ENT|COM|CFE|CES)-\d{4}$/', $prefix, $m) === 1) {
             $tables = [
                 'NEC' => 'compra_necessidades',
                 'COT' => 'cotacoes',
@@ -133,6 +135,10 @@ class CodigoGenerator
                 'OS' => 'ordens_servico',
                 'FAT' => 'faturamentos',
                 'DFS' => 'documento_fiscal_saidas',
+                'ENT' => 'entregas',
+                'COM' => 'comissoes',
+                'CFE' => 'comissao_fechamentos',
+                'CES' => 'cessoes_bem',
             ];
 
             return ['table' => $tables[$m[1]], 'column' => 'codigo', 'scoped' => true];

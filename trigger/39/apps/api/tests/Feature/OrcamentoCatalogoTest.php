@@ -274,6 +274,27 @@ class OrcamentoCatalogoTest extends TestCase
             ->assertJsonPath('data.matriz_cm2', 0.42);
     }
 
+    public function test_catalogo_ui_inclui_frete_vigente(): void
+    {
+        app(OrcamentoCatalogoAdminService::class)->seedFromJson();
+
+        \App\Models\OrcCatalogoParametro::query()
+            ->where('chave', \App\Models\OrcCatalogoParametro::CHAVE_PESO_CAIXA_KG)
+            ->update(['valor' => '0.100', 'ativo' => true]);
+        $faixa20 = \App\Models\OrcCatalogoFaixaFrete::query()
+            ->whereNotNull('kg_ate')
+            ->orderBy('kg_ate')
+            ->firstOrFail();
+        $faixa20->update(['preco_por_km' => '3.80', 'minimo_rs' => '80.00', 'ativo' => true]);
+
+        $res = $this->asComercial()->getJson('/api/v1/orcamentos/catalogo');
+        $res->assertOk();
+        $res->assertJsonPath('data.frete.peso_caixa_kg', '0.100');
+        $this->assertSame('3.800000', $res->json('data.frete.faixas.0.preco_por_km'));
+        $this->assertSame('80.00', $res->json('data.frete.faixas.0.minimo_rs'));
+        $this->assertTrue($res->json('data.frete.faixas.0.acima') === false);
+    }
+
     public function test_seed_faixas_frete_sem_preco_e_inativas(): void
     {
         $service = app(OrcamentoCatalogoAdminService::class);

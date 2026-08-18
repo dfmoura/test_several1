@@ -1,0 +1,59 @@
+ACQA Semana 1: sistematizacao de evidencias
+Trabalho de Conclusao de Curso: Relato de Experiencia do Projeto Integrado
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVO PRINCIPAL PARA POSTAR NA PLATAFORMA:
+  Relatorio_Semana1_Sistematizacao_Evidencias.pdf
+
+ARQUIVO EDITAVEL (Word / LibreOffice):
+  Relatorio_Semana1_Sistematizacao_Evidencias.docx
+
+ANTES DE ENVIAR:
+  [ ] Confirme se o Polo esta correto (Uberlandia)
+  [ ] Confirme se o nome esta como voce usa na plataforma
+  [ ] Confirme o RA 1030125-2
+  [ ] Releia a secao 2 (interacao) e, se quiser, acrescente 2 ou 3 frases suas
+      sobre algum encontro
+  [ ] Se a plataforma pedir anexo separado, use a pasta evidencias/
+
+O RELATORIO SEGUE O ROTEIRO DA SEMANA 1:
+  1) Capa (UNIUBE, Sistemas de Informacao, autoria, titulo, data)
+     Titulo deixa claro: desenvolvimento e implantacao de um SISTEMA DE INFORMACAO
+     DE APOIO ao OSB Uberlandia (coleta, consulta e analise de licitacoes).
+  2) Introducao (organizacao parceira, problema, cenario e contexto)
+     Ja no primeiro paragrafo: criou, implantou e colocou em uso o sistema de apoio.
+     Ganho indireto: a equipe nao sabia o que era API nem que ja existia API federal
+     de transparencia das compras (Dados Abertos do Compras.gov).
+  3) Interacao com a organizacao parceira (facilidades e dificuldades)
+  4) Proposta de solucao / intervencao adotada
+     Secao 3.1: o sistema de apoio criado (software em producao, nao oficina).
+  5) Registros de evidencias (print da tela: login, mapa de localidade e CNPJs vencedores,
+     diagramas, volume, depoimentos; 4.6 so como exemplo de risco da API)
+  6) Referencias
+
+COMPLEMENTO (problema_api_federal.txt) - NAO EH O PROBLEMA DA ENTIDADE:
+  A API de Dados Abertos do Compras.gov entrou DEPOIS que o sistema ja existia.
+  O caso (chamado 56398424) eh so um exemplo de risco da arquitetura:
+  se a API externa parar, o modulo Compras.gov deixa de atualizar.
+  No relatorio isso NAO entra mais na secao 1.2 (problema da entidade).
+  Entra em: 2.3 (dificuldade tecnica, breve), 3.2 (limite de acoplamento),
+  Quadro 3 (uma linha), 4.6 e Quadro 5 (demonstracao).
+
+EVIDENCIAS:
+  evidencias/01_tela_login.png
+  evidencias/02_tela_mapa_homologados.png
+  evidencias/07_tela_cnpjs_vencedores.png
+  evidencias/04_fluxo.png
+  evidencias/05_arquitetura.png
+  evidencias/06_modalidades_2025.png
+  evidencias/00_logo_osb.png
+  problema_api_federal.txt   (transcricao do chamado 56398424; anexo extra se a plataforma pedir)
+
+SISTEMA:
+  https://licitacoes.osbrasiluberlandia.org/
+
+PARA REGERAR:
+  python3 gerar_relatorio_semana1.py
+
+PRAZO DA ACQA: 08/08/2026 a 12/09/2026. Valor: 15 pontos

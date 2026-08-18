@@ -66,6 +66,7 @@ class ParceiroValidationRules
             'limite_credito' => PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY),
             'credito_utilizado' => PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY),
             'comissao_percentual' => PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT),
+            'vendedor_parceiro_id' => ['nullable', 'integer'],
             'condicao_pagamento' => ['nullable', 'string', 'max:64'],
             'forma_pagamento' => ['nullable', 'string', 'max:32'],
             'banco_codigo' => ['nullable', 'string', 'max:8'],

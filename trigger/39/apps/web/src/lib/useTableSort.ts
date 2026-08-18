@@ -2,6 +2,12 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 export type SortDir = 'asc' | 'desc';
 
+/** Um critério da cadeia (1º, 2º, …). */
+export type SortSpec = { key: string; dir: SortDir };
+
+/** Clique no cabeçalho: Shift soma/tira critério (Excel / grade profissional). */
+export type SortGesture = { shiftKey?: boolean };
+
 /** Valores aceitos pelos getters de coluna. */
 export type Comparable = string | number | boolean | null | undefined | Date;
 
@@ -45,56 +51,109 @@ export function compareComparable(a: Comparable, b: Comparable): number {
   });
 }
 
+function isAdditive(gesture?: SortGesture | boolean): boolean {
+  if (typeof gesture === 'boolean') return gesture;
+  return Boolean(gesture?.shiftKey);
+}
+
+/**
+ * Clique: substitui a cadeia (1º clique = asc; mesma coluna alterna).
+ * Shift+clique: soma critério; na coluna já presente, asc → desc → tira (se houver outros).
+ */
+export function nextSorts(
+  prev: readonly SortSpec[],
+  column: string,
+  additive: boolean,
+): SortSpec[] {
+  const idx = prev.findIndex((s) => s.key === column);
+
+  if (!additive) {
+    if (prev.length === 1 && idx === 0) {
+      return [{ key: column, dir: prev[0].dir === 'asc' ? 'desc' : 'asc' }];
+    }
+    return [{ key: column, dir: 'asc' }];
+  }
+
+  if (idx === -1) {
+    return [...prev, { key: column, dir: 'asc' }];
+  }
+
+  const cur = prev[idx];
+  if (cur.dir === 'asc') {
+    return prev.map((s, i) => (i === idx ? { key: s.key, dir: 'desc' as const } : s));
+  }
+
+  if (prev.length === 1) {
+    return [{ key: column, dir: 'asc' }];
+  }
+
+  return prev.filter((_, i) => i !== idx);
+}
+
 export function sortRows<T>(
   rows: readonly T[],
-  key: string | null,
-  dir: SortDir,
+  sorts: readonly SortSpec[],
   getters: SortGetters<T>,
 ): T[] {
-  if (!key || !getters[key]) return rows.slice();
-  const get = getters[key];
-  const mul = dir === 'asc' ? 1 : -1;
+  if (!sorts.length) return rows.slice();
   return rows.slice().sort((ra, rb) => {
-    const c = compareComparable(get(ra), get(rb));
-    return c === 0 ? 0 : c * mul;
+    for (const spec of sorts) {
+      const get = getters[spec.key];
+      if (!get) continue;
+      const c = compareComparable(get(ra), get(rb));
+      if (c !== 0) return spec.dir === 'asc' ? c : -c;
+    }
+    return 0;
   });
 }
 
 export type TableSortState = {
+  sorts: SortSpec[];
+  /** Primeiro critério — compatível com telas que ainda leem um único eixo. */
   sortKey: string | null;
   sortDir: SortDir;
-  requestSort: (column: string) => void;
+  requestSort: (column: string, gesture?: SortGesture | boolean) => void;
 };
+
+function initialSorts(options?: {
+  initialKey?: string | null;
+  initialDir?: SortDir;
+  initialSorts?: SortSpec[];
+}): SortSpec[] {
+  if (options?.initialSorts?.length) return options.initialSorts;
+  if (options?.initialKey) {
+    return [{ key: options.initialKey, dir: options.initialDir ?? 'asc' }];
+  }
+  return [];
+}
 
 /**
  * Ordenação client-side para listagens já materializadas (sem paginação server-side).
- * 1º clique = asc; clique na mesma coluna alterna asc/desc.
+ * Clique = um critério; Shift+clique = soma (desempate), no padrão de grade profissional.
  */
 export function useTableSort<T>(
   rows: readonly T[],
   getters: SortGetters<T>,
-  options?: { initialKey?: string | null; initialDir?: SortDir },
+  options?: { initialKey?: string | null; initialDir?: SortDir; initialSorts?: SortSpec[] },
 ): TableSortState & { sorted: T[] } {
-  const [sortKey, setSortKey] = useState<string | null>(options?.initialKey ?? null);
-  const [sortDir, setSortDir] = useState<SortDir>(options?.initialDir ?? 'asc');
+  const [sorts, setSorts] = useState<SortSpec[]>(() => initialSorts(options));
   const gettersRef = useRef(getters);
   gettersRef.current = getters;
 
   const sorted = useMemo(
-    () => sortRows(rows, sortKey, sortDir, gettersRef.current),
-    [rows, sortKey, sortDir],
+    () => sortRows(rows, sorts, gettersRef.current),
+    [rows, sorts],
   );
 
-  const requestSort = useCallback((column: string) => {
-    setSortKey((prev) => {
-      if (prev === column) {
-        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-        return prev;
-      }
-      setSortDir('asc');
-      return column;
-    });
+  const requestSort = useCallback((column: string, gesture?: SortGesture | boolean) => {
+    setSorts((prev) => nextSorts(prev, column, isAdditive(gesture)));
   }, []);
 
-  return { sorted, sortKey, sortDir, requestSort };
+  return {
+    sorted,
+    sorts,
+    sortKey: sorts[0]?.key ?? null,
+    sortDir: sorts[0]?.dir ?? 'asc',
+    requestSort,
+  };
 }

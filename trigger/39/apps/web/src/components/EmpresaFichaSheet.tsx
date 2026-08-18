@@ -375,7 +375,9 @@ export function EmpresaFichaSheet({
               value={formatLatLng(e.origem_latitude, e.origem_longitude)}
               wide
             />
-          ) : null}
+          ) : (
+            <Kv label="Origem operacional" value="—" wide />
+          )}
         </div>
         {vendaOff ? (
           <p className="ficha-note">

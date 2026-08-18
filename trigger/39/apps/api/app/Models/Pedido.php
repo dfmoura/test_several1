@@ -23,6 +23,12 @@ class Pedido extends Model
 
     public const STATUS_FATURADO = 'FATURADO';
 
+    public const STATUS_EM_ENTREGA = 'EM_ENTREGA';
+
+    public const STATUS_ENTREGUE = 'ENTREGUE';
+
+    public const STATUS_ENCERRADO = 'ENCERRADO';
+
     public const STATUS_CANCELADO = 'CANCELADO';
 
     /** @var list<string> */
@@ -31,6 +37,9 @@ class Pedido extends Model
         self::STATUS_EM_PRODUCAO,
         self::STATUS_PRODUZIDO,
         self::STATUS_FATURADO,
+        self::STATUS_EM_ENTREGA,
+        self::STATUS_ENTREGUE,
+        self::STATUS_ENCERRADO,
         self::STATUS_CANCELADO,
     ];
 
@@ -45,6 +54,7 @@ class Pedido extends Model
         'codigo',
         'orcamento_id',
         'parceiro_id',
+        'vendedor_parceiro_id',
         'status',
         'faixa_index',
         'tolerancia_qtd_pct',
@@ -78,6 +88,11 @@ class Pedido extends Model
         return $this->belongsTo(Parceiro::class);
     }
 
+    public function vendedor(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'vendedor_parceiro_id');
+    }
+
     public function itens(): HasMany
     {
         return $this->hasMany(PedidoItem::class)->orderBy('ordem');
@@ -101,5 +116,15 @@ class Pedido extends Model
     public function faturamento(): HasOne
     {
         return $this->hasOne(Faturamento::class)->where('status', Faturamento::STATUS_CONFIRMADO);
+    }
+
+    public function entregas(): HasMany
+    {
+        return $this->hasMany(Entrega::class);
+    }
+
+    public function entrega(): HasOne
+    {
+        return $this->hasOne(Entrega::class)->whereIn('status', Entrega::STATUSES_VIGENTES);
     }
 }

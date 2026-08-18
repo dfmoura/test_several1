@@ -2,14 +2,17 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BemPatrimonialController;
+use App\Http\Controllers\Api\V1\CessaoBemController;
 use App\Http\Controllers\Api\V1\CompraNecessidadeController;
 use App\Http\Controllers\Api\V1\ConsultaController;
+use App\Http\Controllers\Api\V1\ComissaoController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaController;
 use App\Http\Controllers\Api\V1\EstoqueController;
 use App\Http\Controllers\Api\V1\EstoqueInventarioController;
 use App\Http\Controllers\Api\V1\EstoqueOperacionalController;
+use App\Http\Controllers\Api\V1\EntregaController;
 use App\Http\Controllers\Api\V1\FacasController;
 use App\Http\Controllers\Api\V1\FaturamentoController;
 use App\Http\Controllers\Api\V1\FiscalHubController;
@@ -20,6 +23,7 @@ use App\Http\Controllers\Api\V1\OrcamentoAprovacaoController;
 use App\Http\Controllers\Api\V1\OrcamentoCatalogoController;
 use App\Http\Controllers\Api\V1\OrcamentoController;
 use App\Http\Controllers\Api\V1\OrcamentoPublicoController;
+use App\Http\Controllers\Api\V1\PainelController;
 use App\Http\Controllers\Api\V1\OrdemCompraController;
 use App\Http\Controllers\Api\V1\OrdemProducaoController;
 use App\Http\Controllers\Api\V1\OrdemServicoController;
@@ -63,6 +67,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', SetEmpresaContext::class])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::get('/painel', [PainelController::class, 'show']);
 
         Route::get('/empresas', [EmpresaController::class, 'index']);
         Route::get('/empresas/{empresa}', [EmpresaController::class, 'show']);
@@ -116,6 +121,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/bens/{bem}', [BemPatrimonialController::class, 'show']);
         Route::put('/bens/{bem}', [BemPatrimonialController::class, 'update']);
         Route::delete('/bens/{bem}', [BemPatrimonialController::class, 'destroy']);
+        Route::get('/cessoes-bem', [CessaoBemController::class, 'index']);
+        Route::post('/cessoes-bem', [CessaoBemController::class, 'store']);
+        Route::get('/cessoes-bem/{cessaoBem}', [CessaoBemController::class, 'show']);
+        Route::post('/cessoes-bem/{cessaoBem}/encerrar', [CessaoBemController::class, 'encerrar']);
 
         Route::get('/departamentos', [DepartamentoController::class, 'index']);
         Route::post('/departamentos', [DepartamentoController::class, 'store']);
@@ -168,8 +177,18 @@ Route::prefix('v1')->group(function () {
         Route::post('/estoque/inventarios/{estoqueInventario}/cancelar', [EstoqueInventarioController::class, 'cancelar']);
 
         Route::get('/titulos', [TituloController::class, 'index']);
+        Route::post('/titulos', [TituloController::class, 'store']);
         Route::get('/titulos/{titulo}', [TituloController::class, 'show']);
         Route::post('/titulos/{titulo}/baixar', [TituloController::class, 'baixar']);
+        Route::post('/titulos/{titulo}/cancelar', [TituloController::class, 'cancelar']);
+
+        Route::get('/comissoes', [ComissaoController::class, 'index']);
+        Route::get('/comissoes/fechamentos', [ComissaoController::class, 'fechamentos']);
+        Route::post('/comissoes/fechamentos', [ComissaoController::class, 'fechar']);
+        Route::get('/comissoes/fechamentos/{comissaoFechamento}', [ComissaoController::class, 'showFechamento']);
+        Route::post('/comissoes/fechamentos/{comissaoFechamento}/gerar-pagamento', [ComissaoController::class, 'gerarPagamento']);
+        Route::post('/comissoes/fechamentos/{comissaoFechamento}/cancelar', [ComissaoController::class, 'cancelarFechamento']);
+        Route::get('/pedidos/{pedido}/comissao', [ComissaoController::class, 'resumoPedido']);
 
         Route::get('/naturezas-gerenciais', [NaturezaGerencialController::class, 'index']);
         Route::get('/naturezas-gerenciais/{naturezaGerencial}', [NaturezaGerencialController::class, 'show']);
@@ -213,6 +232,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/pedidos/{pedido}/faturamento-preview', [FaturamentoController::class, 'preview']);
         Route::post('/pedidos/{pedido}/faturar', [FaturamentoController::class, 'faturar']);
 
+        Route::get('/entregas/fila', [EntregaController::class, 'fila']);
+        Route::get('/entregas', [EntregaController::class, 'index']);
+        Route::get('/entregas/{entrega}', [EntregaController::class, 'show']);
+        Route::get('/pedidos/{pedido}/entrega-preview', [EntregaController::class, 'preview']);
+        Route::post('/pedidos/{pedido}/expedir', [EntregaController::class, 'expedir']);
+        Route::post('/entregas/{entrega}/confirmar', [EntregaController::class, 'confirmar']);
+        Route::post('/entregas/{entrega}/recusar', [EntregaController::class, 'recusar']);
+        Route::post('/entregas/{entrega}/cancelar', [EntregaController::class, 'cancelar']);
+
         Route::get('/orcamento-catalogo/resumo', [OrcamentoCatalogoController::class, 'resumo']);
         Route::post('/orcamento-catalogo/seed', [OrcamentoCatalogoController::class, 'seed']);
         Route::get('/orcamento-catalogo/papeis', [OrcamentoCatalogoController::class, 'papeis']);
@@ -242,6 +270,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/consulta/cnpj/{cnpj}', [ConsultaController::class, 'cnpj']);
         Route::get('/consulta/cep/{cep}', [ConsultaController::class, 'cep']);
+        Route::get('/consulta/rota', [ConsultaController::class, 'rota']);
+        Route::get('/consulta/geo-endereco', [ConsultaController::class, 'geoEndereco']);
         Route::get('/consulta/bancos', [ConsultaController::class, 'bancos']);
         Route::get('/consulta/ncm', [ConsultaController::class, 'ncm']);
         Route::get('/consulta/cest', [ConsultaController::class, 'cest']);

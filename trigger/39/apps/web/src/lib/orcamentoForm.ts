@@ -1,3 +1,11 @@
+import {
+  TIPO_INDUSTRIALIZACAO,
+  TIPO_SERVICO,
+  tipoOperacaoFromSnap,
+  type TipoOperacaoSaida,
+  type TipoServicoSaida,
+} from './operacoesSaida';
+
 export const CORES_OPCOES = [
   { value: '0', label: '0 (lisa)' },
   { value: '1', label: '1' },
@@ -60,6 +68,8 @@ export function statusOrcPill(status: string, financeiroStatus?: string | null):
 export type FaixaForm = {
   quantidade: number;
   comissao_pct: number;
+  /** Só prestação de serviço — preço comercial informado. */
+  valor_unitario?: number;
 };
 
 /** Arte / modelo operacional — % da quantidade do serviço (soma = 100). */
@@ -70,6 +80,12 @@ export type ModeloComposicaoForm = {
 };
 
 export type OrcForm = {
+  tipo_operacao: TipoOperacaoSaida;
+  tipo_servico: TipoServicoSaida;
+  descricao_servico: string;
+  material_cliente: boolean;
+  unidade_servico: string;
+  horas_maquina: number | '';
   parceiro_id: number | '';
   medida: string;
   largura_cm: number;
@@ -102,8 +118,14 @@ export type OrcForm = {
   /** Snapshot comercial desta proposta (defaults do PAR; não altera o motor). */
   condicao_pagamento: string;
   forma_pagamento: string;
+  /** PAR papel vendedor — define % e quem recebe COM- após a baixa. */
+  vendedor_parceiro_id: number | '';
   /** Fechamento: Retirar (padrão) × Entregar — ADR_ORC_FRETE_ESTIMADO. */
   modo_entrega: 'RETIRAR' | 'ENTREGAR';
+  /** Só em Entregar. Padrão Calculada (catálogo). */
+  origem_frete: 'CALCULADA' | 'MANUAL';
+  /** R$ único da proposta quando origem Manual. Vazio = não informado. */
+  valor_frete_manual: number | '';
 };
 
 export type OrcCatalogo = {
@@ -117,6 +139,24 @@ export type OrcCatalogo = {
   imposto_pct_default: number;
   /** Tarifa vigente R$/cm² — mesma fonte do motor (catálogo / JSON). */
   matriz_cm2?: number;
+  tipos_operacao?: Array<{ codigo: string; label: string; resumo: string }>;
+  tipos_servico?: Array<{
+    codigo: string;
+    label: string;
+    familia_fiscal: string;
+    unidade_padrao: string;
+    material_cliente_padrao: boolean;
+    descricao_padrao: string;
+  }>;
+  frete?: {
+    peso_caixa_kg?: string | number | null;
+    faixas?: Array<{
+      kg_ate: string | number | null;
+      acima: boolean;
+      preco_por_km: string | number | null;
+      minimo_rs: string | number | null;
+    }>;
+  };
 };
 
 /** Equal-split canônico (soma = 100); preserva nomes nas posições existentes. */
@@ -199,6 +239,12 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
   const maquinas = catalog?.maquinas ?? [];
   const tipos = catalog?.tipos_troca_produto ?? [];
   return {
+    tipo_operacao: TIPO_INDUSTRIALIZACAO,
+    tipo_servico: 'REBOBINACAO',
+    descricao_servico: '',
+    material_cliente: true,
+    unidade_servico: 'RL',
+    horas_maquina: '',
     parceiro_id: '',
     medida: '',
     largura_cm: 0,
@@ -233,7 +279,10 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     prazo_faca_dias: '',
     condicao_pagamento: '',
     forma_pagamento: '',
+    vendedor_parceiro_id: '',
     modo_entrega: 'RETIRAR',
+    origem_frete: 'CALCULADA',
+    valor_frete_manual: '',
   };
 }
 
@@ -259,6 +308,13 @@ export function formFromSnapshot(
 
   return {
     ...base,
+    tipo_operacao: tipoOperacaoFromSnap(snap),
+    tipo_servico: (String(snap.tipo_servico || 'REBOBINACAO').toUpperCase() as TipoServicoSaida) || 'REBOBINACAO',
+    descricao_servico: String(snap.descricao_servico ?? ''),
+    material_cliente: snap.material_cliente !== false,
+    unidade_servico: String(snap.unidade ?? 'RL'),
+    horas_maquina:
+      snap.horas_maquina == null || snap.horas_maquina === '' ? '' : Number(snap.horas_maquina),
     parceiro_id:
       snap.parceiro_id == null || snap.parceiro_id === ''
         ? ''
@@ -284,6 +340,7 @@ export function formFromSnapshot(
     faixas: faixasRaw.map((f) => ({
       quantidade: Number(f.quantidade) || 0,
       comissao_pct: Number(f.comissao_pct) || 0,
+      valor_unitario: Number(f.valor_unitario) || undefined,
     })),
     prazo_entrega_dias: Number(snap.prazo_entrega_dias) || 12,
     validade_dias: Number(snap.validade_dias) || 7,
@@ -298,12 +355,60 @@ export function formFromSnapshot(
         : Number(snap.prazo_faca_dias),
     condicao_pagamento: String(snap.condicao_pagamento ?? ''),
     forma_pagamento: String(snap.forma_pagamento ?? ''),
+    vendedor_parceiro_id:
+      snap.vendedor_parceiro_id == null || snap.vendedor_parceiro_id === ''
+        ? ''
+        : Number(snap.vendedor_parceiro_id),
     modo_entrega: String(snap.modo_entrega).toUpperCase() === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
+    origem_frete: String(snap.origem_frete).toUpperCase() === 'MANUAL' ? 'MANUAL' : 'CALCULADA',
+    valor_frete_manual:
+      snap.valor_frete_manual == null || snap.valor_frete_manual === ''
+        ? ''
+        : Number(snap.valor_frete_manual),
   };
 }
 
 export function payloadFromForm(form: OrcForm): Record<string, unknown> {
+  if (form.tipo_operacao === TIPO_SERVICO) {
+    return {
+      tipo_operacao: TIPO_SERVICO,
+      necessidade: 'SERVICO',
+      tipo_servico: form.tipo_servico,
+      descricao_servico: form.descricao_servico.trim(),
+      material_cliente: form.material_cliente,
+      unidade: form.unidade_servico || 'UN',
+      horas_maquina: form.horas_maquina === '' ? null : form.horas_maquina,
+      maquina: form.maquina || null,
+      parceiro_id: form.parceiro_id === '' ? null : form.parceiro_id,
+      faixas: form.faixas.map((f) => ({
+        quantidade: f.quantidade,
+        valor_unitario: Number(f.valor_unitario) || 0,
+        comissao_pct: f.comissao_pct,
+      })),
+      prazo_entrega_dias: form.prazo_entrega_dias,
+      validade_dias: form.validade_dias,
+      tolerancia_qtd_pct: form.tolerancia_qtd_pct,
+      observacao: form.observacao || null,
+      condicao_pagamento: form.condicao_pagamento.trim() || null,
+      forma_pagamento: form.forma_pagamento.trim() || null,
+      vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
+      modo_entrega: form.modo_entrega === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
+      origem_frete:
+        form.modo_entrega === 'ENTREGAR'
+          ? form.origem_frete === 'MANUAL'
+            ? 'MANUAL'
+            : 'CALCULADA'
+          : null,
+      valor_frete_manual:
+        form.modo_entrega === 'ENTREGAR' && form.origem_frete === 'MANUAL' && form.valor_frete_manual !== ''
+          ? form.valor_frete_manual
+          : null,
+    };
+  }
+
   return {
+    tipo_operacao: TIPO_INDUSTRIALIZACAO,
+    necessidade: 'PRODUCAO',
     parceiro_id: form.parceiro_id === '' ? null : form.parceiro_id,
     medida: form.medida,
     largura_cm: form.largura_cm,
@@ -342,7 +447,18 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       : null,
     condicao_pagamento: form.condicao_pagamento.trim() || null,
     forma_pagamento: form.forma_pagamento.trim() || null,
+    vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
     modo_entrega: form.modo_entrega === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
+    origem_frete:
+      form.modo_entrega === 'ENTREGAR'
+        ? form.origem_frete === 'MANUAL'
+          ? 'MANUAL'
+          : 'CALCULADA'
+        : null,
+    valor_frete_manual:
+      form.modo_entrega === 'ENTREGAR' && form.origem_frete === 'MANUAL' && form.valor_frete_manual !== ''
+        ? form.valor_frete_manual
+        : null,
   };
 }
 

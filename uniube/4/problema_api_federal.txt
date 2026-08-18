@@ -1,0 +1,329 @@
+Nº 56398424
+API Dados Abertos: contratação divulgada no PNCP não retornada (UASG 926922 — 18431312000620-1-000341/2026)
+
+Chamado aberto via Portal em 07/08/2026 13:14
+
+Atendimento iniciado em 07/08/2026 15:36
+
+Solucionado em 13/08/2026 08:18
+
+Chave de ativação do chamado: 94441
+
+Solicitado por: diogo ferreira moura, 058.161.826-25, diogomou@gmail.com, 5534999909660
+
+Criado por: diogo ferreira moura, diogomou@gmail.com
+SLA de Atendimento: 59.58%
+SLA de Solução: 32.29%
+​
+Categoria*
+​
+​
+>
+​
+​
+>
+​
+​
+>
+​
+
+Descrição
+
+Assunto
+
+Incidente de inconsistência / atraso de replicação entre o PNCP (consulta oficial) e a API de Dados Abertos do Compras.gov.br (módulo Contratações — Lei 14.133/2021).
+
+
+Resumo
+
+A contratação abaixo está publicada e consultável no PNCP, porém não é retornada pela API Dados Abertos do Compras.gov.br — nem por busca direta por número de controle PNCP, nem por listagem filtrada por unidade, modalidade e período de publicação. Isso impede a ingestão automática por sistemas que consomem exclusivamente o endpoint de Dados Abertos.
+
+
+Identificação da contratação
+
+• Id contratação PNCP / númeroControlePNCP: 18431312000620-1-000341/2026
+
+• Órgão: MUNICÍPIO DE UBERLÂNDIA
+
+• Unidade compradora (UASG): 926922 — MMG-SECRETARIA MUN. DE ADMINIS. DE UBERLÂNDIA
+
+• Modalidade: Pregão - Eletrônico
+
+• Amparo legal: Lei 14.133/2021, Art. 28, I
+
+• Tipo: Edital
+
+• Registro de preço: Sim
+
+• Fonte orçamentária: Municipal
+
+• Data de divulgação no PNCP: 27/07/2026
+
+• Situação: Divulgada no PNCP
+
+• Início de recebimento de propostas: 28/07/2026 08:00 (horário de Brasília)
+
+• Fim de recebimento de propostas: 12/08/2026 09:00 (horário de Brasília)
+
+• Fonte de origem / acompanhamento: Compras.gov.br (Comprasnet)
+
+• Link de acompanhamento ( CompraNet ):
+
+ https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras/acompanhamento-compra?compra=92692205002262026
+
+• Consulta PNCP (API), com retorno HTTP 200 e dados da contratação:
+
+ https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341
+
+
+Evidência — PNCP (OK)
+
+A contratação existe e responde corretamente na API de consulta do PNCP (HTTP 200), incluindo numeroControlePNCP = 18431312000620-1-000341/2026 e linkSistemaOrigem apontando para a compra 92692205002262026.
+
+
+Evidência — API Dados Abertos Compras.gov.br (FALHA / AUSÊNCIA)
+
+1) Busca por ID
+
+GET https://dadosabertos.compras.gov.br/modulo-contratacoes/1.1_consultarContratacoes_PNCP_14133_Id
+
+Parâmetros:
+
+ codigo=18431312000620-1-000341/2026
+
+ tipo=numeroControlePNCPCompra
+
+Resultado observado (2026-08-07):
+
+ HTTP 200
+
+ totalRegistros=0
+
+ resultado=[]
+
+
+Para comparação, registros imediatemente anteriores da mesma série/UASG retornam normalmente, por exemplo:
+
+ • 18431312000620-1-000334/2026 → totalRegistros=1 (dataPublicacaoPncp=2026-07-23T15:02:18; unidadeOrgaoCodigoUnidade=926922)
+
+ • 18431312000620-1-000333/2026 → totalRegistros=1 (dataPublicacaoPncp=2026-07-23T07:00:30; unidadeOrgaoCodigoUnidade=926922)
+
+
+2) Listagem por filtros oficiais
+
+GET https://dadosabertos.compras.gov.br/modulo-contratacoes/1_consultarContratacoes_PNCP_14133
+
+Parâmetros tipicamente utilizados:
+
+ unidadeOrgaoCodigoUnidade=926922
+
+ dataPublicacaoPncpInicial=2026-07-25
+
+ dataPublicacaoPncpFinal=2026-07-29
+
+ codigoModalidade=5  (Pregão - Eletrônico)
+
+Resultado observado: totalRegistros=0
+
+
+Também testado para as modalidades 3, 5, 6, 7 e 12 no mesmo intervalo: sem registros.
+
+Janelas posteriores (ex.: 2026-08-01 a 2026-08-07) igualmente sem novos registros para a UASG 926922.
+
+
+3) Lacuna sequencial
+
+Para o CNPJ 18431312000620 / ano 2026, a série via Dados Abertos (consulta por ID) está ausente a partir do sequencial 000335 em diante (000335 a pelo menos 000345 = 0 registros), enquanto o PNCP já contém ao menos o sequencial 000341.
+
+
+Comportamento esperado
+
+• Contratação divulgada no PNCP deve tornar-se consultável na API Dados Abertos em prazo operacional razoável e documentável.
+
+• No mínimo, a busca por numeroControlePNCP no endpoint 1.1 deve retornar o registro correspondente após a divulgação no PNCP.
+
+
+Comportamento obtido
+
+• PNCP: registro disponível.
+
+• Dados Abertos: registro inexistente (vazio), apesar de filtros corretos e de registros anteriores da mesma UASG estarem presentes até 23/07/2026 (sequencial 000334).
+
+
+Impacto
+
+Sistemas integrados que consomem a API Dados Abertos (endpoint de contratações PNCP 14.133) ficam defasados em relação ao portal PNCP. Editais ativos — inclusive com prazo de propostas ainda aberto — deixam de ser capturados automaticamente, com risco operacional e de transparência para quem depende dessa API como fonte de sincronização.
+
+
+Solicitação
+
+1) Verificar a carga/replicação do módulo Contratações PNCP 14.133 na API Dados Abertos para a UASG 926922 a partir de 24/07/2026.
+
+2) Incluir/disponibilizar o registro 18431312000620-1-000341/2026 (e, se confirmada a lacuna, os sequenciais intermediários/posteriores ainda ausentes).
+
+3) Informar, se possível, a causa (fila de carga, falha de sincronismo, filtro interno, atraso operacional) e o prazo estimado de normalização.
+
+4) Se houver SLA ou periodicidade oficial de atualização PNCP → Dados Abertos, favor indicar referência documental.
+
+
+Ambiente / data da verificação
+
+• Data/hora da verificação: 07/08/2026 (horário de Brasília)
+
+• APIs consultadas:
+
+ – https://pncp.gov.br/api/consulta/...
+
+ – https://dadosabertos.compras.gov.br/modulo-contratacoes/...
+
+• Não se trata de falha do consumidor: o próprio endpoint 1.1 da API federal retorna vazio para o número de controle, enquanto o PNCP confirma a existência do registro.
+
+
+Agradecemos a análise e o retorno com o protocolo do atendimento.
+Anexos
+
+Campos Personalizados
+Modalidade da licitação *
+Número/Ano da Compra *
+Número da UASG *
+
+Ação
+
+
+Anexe seus arquivos
+Arraste seus arquivos ou clique aqui para selecionar
+
+PNCP – 3º Nível07/08/2026 15:37
+
+Prezado(a) usuário(a),
+
+
+Agradecemos o seu contato e informamos que a sua solicitação foi recebida e encaminhada para o
+
+setor técnico responsável.
+
+
+Você pode acompanhar o andamento da sua solicitação em tempo real no link do nosso Portal de
+
+Serviços: https://portaldeservicos.gestao.gov.br/pt#/
+
+
+
+Além disso, por meio do Portal de Serviços, você também poderá:
+
+
+*Visualizar as interações entre você e o setor técnico;
+
+
+*Complementar informações à sua solicitação, se solicitado;
+
+
+* Reabrir o seu chamado, caso entenda que a solução apresentada não está adequada.
+
+
+Informamos que o tempo de resposta poderá variar dependendo da demanda atual do setor
+
+técnico e da complexidade da solução.
+
+
+No entanto, garantimos que faremos o possível para atender à sua solicitação o mais brevemente
+
+possível.
+
+
+Assim que a sua solicitação for solucionada, você receberá um e-mail com a respectiva devolutiva.
+
+Caso tenha alguma dúvida ou precise de mais informações, entre em contato conosco por meio do
+
+nosso Portal de Serviços.
+
+
+Atenciosamente,
+
+Equipe de Suporte Técnico.
+
+PNCP – 3º Nível10/08/2026 13:41
+
+Prezado(a),
+
+
+Gostaríamos de informar que seu chamado foi recebido e já está em análise pela equipe responsável. Pedimos que aguarde o retorno através deste mesmo número de chamado.
+
+
+Recomendamos que acompanhe as notícias e atualizações fornecidas no portal do PNCP, no site oficial do Ministério da Gestão e da Inovação em Serviços Públicos - MGI, acessível em https://www.gov.br/pncp/pt-br e da nossa FAQ https://www.gov.br/pncp/pt-br/pncp/perguntas-e-respostas
+
+
+Atenciosamente,
+
+Equipe Suporte Técnico.
+
+diogo ferreira moura13/08/2026 06:10
+
+como posso saber sobre o andamento do chamado?
+
+PNCP – 3º Nível13/08/2026 08:18
+
+Prezados,
+
+
+Encaminhamos para análise relato referente à contratação `18431312000620-1-000341/2026`, da UASG `926922`.
+
+
+A contratação está publicada e disponível para consulta no PNCP:
+
+
+https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341
+
+
+Contudo, ao pesquisar o mesmo número de controle na API de Dados Abertos do Compras.gov.br, nenhum registro é localizado:
+
+
+https://dadosabertos.compras.gov.br/modulo-contratacoes/1.1_consultarContratacoes_PNCP_14133_Id?tipo=numeroControlePNCPCompra&codigo=18431312000620-1-000341%2F2026
+
+
+O usuário também relata a ausência de outras contratações da mesma unidade em consultas realizadas por período e modalidade.
+
+
+Solicitamos, por gentileza, a análise do caso por essa equipe e o retorno para subsidiar a resposta ao usuário.
+
+
+Atenciosamente,
+
+Equipe de Suporte Técnico.
+
+diogo ferreira moura13/08/2026 17:59
+
+Gostaríamos de confirmar se houve alguma atualização, alteração ou manutenção na API de Dados Abertos do Compras.gov.br ou no processo de replicação dos dados do PNCP, pois aparentemente não estão sendo disponibilizados novos registros desde o dia 06/08/2026. Poderiam verificar se existe alguma instabilidade, atraso de carga ou previsão de normalização?
+
+PNCP – 3º Nível14/08/2026 16:04
+
+Prezado(a),
+
+
+Gostaríamos de informar que seu chamado foi recebido e já está em análise pela equipe responsável. Pedimos que aguarde o retorno através deste mesmo número de chamado.
+
+
+Recomendamos que acompanhe as notícias e atualizações fornecidas no portal do PNCP, no site oficial do Ministério da Gestão e da Inovação em Serviços Públicos - MGI, acessível em https://www.gov.br/pncp/pt-br e da nossa FAQ https://www.gov.br/pncp/pt-br/pncp/perguntas-e-respostas
+
+
+Atenciosamente,
+
+Equipe Suporte Técnico.
+
+SIASG - 3º Nível17/08/2026 14:05
+
+Prezado(a) usuário(a),
+
+ 
+
+Informamos que seu chamado está sendo analisado por nossa equipe. Estamos trabalhando para encontrar a solução mais adequada e atendê-lo o mais rápido possível.
+
+ 
+
+Solicitamos que aguarde o término da análise e acompanhe o andamento de sua solicitação por meio deste chamado.
+
+ 
+
+Atenciosamente,
+
+Equipe de Suporte Técnico. 

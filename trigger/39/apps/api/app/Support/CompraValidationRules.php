@@ -150,13 +150,7 @@ final class CompraValidationRules
      */
     public static function baixarTitulo(): array
     {
-        return [
-            'conta_financeira_id' => ['required', 'integer', 'exists:empresa_contas_financeiras,id'],
-            'valor' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY, false)),
-            'pago_em' => ['required', 'date'],
-            'forma' => ['nullable', 'string', 'max:32'],
-            'observacao' => ['nullable', 'string', 'max:2000'],
-        ];
+        return TituloValidationRules::baixar();
     }
 
     /**

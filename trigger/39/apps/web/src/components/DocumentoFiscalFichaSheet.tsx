@@ -63,7 +63,8 @@ function serieFmt(s: number | null | undefined): string {
  */
 export function DocumentoFiscalFichaSheet({ fat, doc, empresaNome, emitidoPor, emitidoEm }: Props) {
   const p = doc.previa;
-  const oficial = p?.oficial === true || doc.status === 'AUTORIZADO';
+  const oficial = p?.oficial === true;
+  const simulada = p?.simulada === true;
   const nfse = doc.tipo === 'NFSE';
 
   return nfse ? (
@@ -74,6 +75,7 @@ export function DocumentoFiscalFichaSheet({ fat, doc, empresaNome, emitidoPor, e
       emitidoPor={emitidoPor}
       emitidoEm={emitidoEm}
       oficial={oficial}
+      simulada={simulada}
     />
   ) : (
     <DanfeLayout
@@ -83,6 +85,7 @@ export function DocumentoFiscalFichaSheet({ fat, doc, empresaNome, emitidoPor, e
       emitidoPor={emitidoPor}
       emitidoEm={emitidoEm}
       oficial={oficial}
+      simulada={simulada}
     />
   );
 }
@@ -91,23 +94,40 @@ function homologacao(doc: DocumentoFiscalSaida): boolean {
   return (doc.ambiente ?? '').toLowerCase() === 'homologacao';
 }
 
-function seloFiscal({ oficial, homolog }: { oficial: boolean; homolog: boolean }): string | null {
+function seloFiscal({
+  oficial,
+  simulada,
+  homolog,
+}: {
+  oficial: boolean;
+  simulada: boolean;
+  homolog: boolean;
+}): string | null {
+  if (simulada) return 'SIMULADA — SEM VALOR FISCAL (SEM CERTIFICADO A1)';
   if (!oficial) return 'PRÉVIA — SEM VALOR FISCAL';
   if (homolog) return 'AMBIENTE DE HOMOLOGAÇÃO — SEM VALOR FISCAL';
   return null;
 }
 
-function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { oficial: boolean }) {
+function DanfeLayout({
+  fat,
+  doc,
+  emitidoPor,
+  emitidoEm,
+  oficial,
+  simulada,
+}: Props & { oficial: boolean; simulada: boolean }) {
   const p = doc.previa;
   const emit = p?.emitente;
   const dest = p?.destinatario;
   const itens = p?.itens ?? [];
   const dups = p?.duplicatas ?? [];
   const total = p?.valor_total ?? doc.valor;
-  const chave = oficial ? doc.chave ?? p?.chave : null;
-  const numero = oficial ? nfeNumero(doc.numero) : '—';
-  const serie = oficial ? serieFmt(doc.serie) : '—';
-  const selo = seloFiscal({ oficial, homolog: homologacao(doc) });
+  const comNumeracao = oficial || simulada;
+  const chave = comNumeracao ? doc.chave ?? p?.chave : null;
+  const numero = comNumeracao ? nfeNumero(doc.numero) : '—';
+  const serie = comNumeracao ? serieFmt(doc.serie) : '—';
+  const selo = seloFiscal({ oficial, simulada, homolog: homologacao(doc) });
   const emitLinha = [
     [emit?.logradouro, emit?.numero].filter(Boolean).join(', '),
     [emit?.bairro, emit?.cep ? formatCep(emit.cep) : ''].filter(Boolean).join(' — '),
@@ -123,7 +143,11 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
       className={`ficha-sheet danfe-sheet${oficial ? '' : ' danfe-sheet-rascunho'}`}
       aria-label="DANFE — Documento Auxiliar da NF-e"
     >
-      {!oficial ? <div className="danfe-watermark" aria-hidden>PRÉVIA SEM VALOR FISCAL</div> : null}
+      {!oficial ? (
+        <div className="danfe-watermark" aria-hidden>
+          {simulada ? 'SIMULADA SEM VALOR FISCAL' : 'PRÉVIA SEM VALOR FISCAL'}
+        </div>
+      ) : null}
 
       <div className="danfe-canhoto">
         <div className="danfe-canhoto-main">
@@ -132,7 +156,7 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
             NOTA FISCAL ELETRÔNICA INDICADA AO LADO.
           </p>
           <p className="danfe-canhoto-meta">
-            EMISSÃO: {oficial ? formatDate(p?.data_emissao) : '—'} · VALOR TOTAL: {money(total)} ·
+            EMISSÃO: {comNumeracao ? formatDate(p?.data_emissao) : '—'} · VALOR TOTAL: {money(total)} ·
             DESTINATÁRIO: {dest?.nome ?? '—'}
           </p>
           <div className="danfe-canhoto-sign">
@@ -181,7 +205,7 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
         <Cell label="Natureza da operação" value={p?.natureza} className="w-58" />
         <Cell
           label="Protocolo de autorização de uso"
-          value={oficial && (doc.protocolo || p?.protocolo) ? String(doc.protocolo ?? p?.protocolo) : '—'}
+          value={comNumeracao && (doc.protocolo || p?.protocolo) ? String(doc.protocolo ?? p?.protocolo) : '—'}
           className="w-42"
         />
       </div>
@@ -195,7 +219,7 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
       <div className="danfe-row">
         <Cell label="Nome / razão social" value={dest?.nome} className="w-58" />
         <Cell label="CNPJ / CPF" value={dest?.documento ? formatCnpjCpf(dest.documento) : ' '} className="w-24" />
-        <Cell label="Data da emissão" value={oficial ? formatDate(p?.data_emissao) : '—'} className="w-18" />
+        <Cell label="Data da emissão" value={comNumeracao ? formatDate(p?.data_emissao) : '—'} className="w-18" />
       </div>
       <div className="danfe-row">
         <Cell label="Endereço" value={dest?.endereco} className="w-48" />
@@ -297,14 +321,16 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
           <p>
             {oficial
               ? ' '
-              : 'Prévia operacional — hub Focus ainda não autorizou. Sem valor fiscal. Numeração só da SEFAZ.'}
+              : simulada
+                ? 'Autorização de teste — sem certificado A1. Sem valor fiscal. Não consultar no portal da NF-e.'
+                : 'Prévia operacional — hub Focus ainda não autorizou. Sem valor fiscal. Numeração só da SEFAZ.'}
           </p>
         </div>
       </div>
 
       <footer className="danfe-foot">
         <span>
-          {oficial ? 'DANFE' : 'Prévia DANFE'} · {fat.codigo} · {emitidoPor} ·{' '}
+          {oficial ? 'DANFE' : simulada ? 'DANFE de teste' : 'Prévia DANFE'} · {fat.codigo} · {emitidoPor} ·{' '}
           {emitidoEm.toLocaleString('pt-BR')}
         </span>
         <TriggerAttribution variant="print" className="ficha-powered" logoClassName="ficha-trigger" />
@@ -313,22 +339,34 @@ function DanfeLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { ofi
   );
 }
 
-function DanfseLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { oficial: boolean }) {
+function DanfseLayout({
+  fat,
+  doc,
+  emitidoPor,
+  emitidoEm,
+  oficial,
+  simulada,
+}: Props & { oficial: boolean; simulada: boolean }) {
   const p = doc.previa;
   const emit = p?.emitente;
   const dest = p?.destinatario;
   const item = p?.itens?.[0];
   const total = p?.valor_total ?? doc.valor;
-  const numero = oficial && doc.numero != null ? String(doc.numero) : '—';
-  const serie = oficial && doc.serie != null ? String(doc.serie) : '—';
-  const selo = seloFiscal({ oficial, homolog: homologacao(doc) });
+  const comNumeracao = oficial || simulada;
+  const numero = comNumeracao && doc.numero != null ? String(doc.numero) : '—';
+  const serie = comNumeracao && doc.serie != null ? String(doc.serie) : '—';
+  const selo = seloFiscal({ oficial, simulada, homolog: homologacao(doc) });
 
   return (
     <article
       className={`ficha-sheet danfe-sheet danfse-sheet${oficial ? '' : ' danfe-sheet-rascunho'}`}
       aria-label="DANFSe — Documento Auxiliar da NFS-e"
     >
-      {!oficial ? <div className="danfe-watermark" aria-hidden>PRÉVIA SEM VALOR FISCAL</div> : null}
+      {!oficial ? (
+        <div className="danfe-watermark" aria-hidden>
+          {simulada ? 'SIMULADA SEM VALOR FISCAL' : 'PRÉVIA SEM VALOR FISCAL'}
+        </div>
+      ) : null}
 
       <div className="danfse-band">
         <img src={BRAND.licensee.logo} alt="" className="danfe-logo" />
@@ -408,7 +446,7 @@ function DanfseLayout({ fat, doc, emitidoPor, emitidoEm, oficial }: Props & { of
 
       <footer className="danfe-foot">
         <span>
-          {oficial ? 'DANFSe' : 'Prévia DANFSe'} · {fat.codigo} · {emitidoPor} ·{' '}
+          {oficial ? 'DANFSe' : simulada ? 'DANFSe de teste' : 'Prévia DANFSe'} · {fat.codigo} · {emitidoPor} ·{' '}
           {emitidoEm.toLocaleString('pt-BR')}
         </span>
         <TriggerAttribution variant="print" className="ficha-powered" logoClassName="ficha-trigger" />

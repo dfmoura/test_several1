@@ -119,4 +119,9 @@ class Faturamento extends Model
     {
         return $this->hasMany(DocumentoFiscalSaida::class)->orderBy('tipo');
     }
+
+    public function saidasEstoque(): HasMany
+    {
+        return $this->hasMany(EstoqueMovimento::class)->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA);
+    }
 }

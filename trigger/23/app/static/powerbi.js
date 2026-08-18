@@ -5,6 +5,7 @@
 
 let pbiDataset = "licitacoes";
 let pbiAtualId = null;
+let pbiObsIdAtual = null;
 let pbiLastItems = [];
 let pbiFiltrosCarregados = false;
 let pbiSortKey = null;
@@ -13,9 +14,9 @@ let pbiSortDir = "asc";
 const PBI_DATASETS = {
   licitacoes: {
     label: "Licitações (processos)", endpoint: "licitacoes",
-    cols: ["processo", "ano_processo", "situacao", "modalidade", "objeto", "solicitante",
+    cols: ["processo", "ano_processo", "situacao", "observador_nome", "modalidade", "objeto", "solicitante",
       "dt_abertura", "dt_homologacao", "valor_licitacao", "orgao_nome", "contratos_info"],
-    headers: ["PROCESSO", "ANO", "SITUAÇÃO", "MODALIDADE", "OBJETO", "SOLICITANTE",
+    headers: ["PROCESSO", "ANO", "SITUAÇÃO", "OBSERVADOR", "MODALIDADE", "OBJETO", "SOLICITANTE",
       "ABERTURA", "HOMOLOG.", "VALOR", "EMPRESA", "CONTRATOS"],
     colClass: { objeto: "col-desc", ano_processo: "col-num", valor_licitacao: "col-num" },
     arvore: true,
@@ -23,8 +24,8 @@ const PBI_DATASETS = {
   contratos: {
     label: "Contratos (agrupados)", endpoint: "contratos-agrupados",
     cols: ["nr_contrato", "ano_contrato", "processo", "ano_processo", "fornecedor_nome",
-      "orgao_nome", "ds_objeto_contrato", "qtd_eventos", "valor_total"],
-    headers: ["Nº CONTRATO", "ANO", "PROCESSO", "ANO PROC.", "FORNECEDOR", "EMPRESA", "OBJETO", "EVENTOS", "VALOR"],
+      "orgao_nome", "observador_nome", "ds_objeto_contrato", "qtd_eventos", "valor_total"],
+    headers: ["Nº CONTRATO", "ANO", "PROCESSO", "ANO PROC.", "FORNECEDOR", "EMPRESA", "OBSERVADOR", "OBJETO", "EVENTOS", "VALOR"],
     colClass: {
       ds_objeto_contrato: "col-desc", ano_contrato: "col-num", ano_processo: "col-num",
       qtd_eventos: "col-num", valor_total: "col-num",
@@ -34,15 +35,15 @@ const PBI_DATASETS = {
   eventos: {
     label: "Eventos do contrato", endpoint: "contratos",
     cols: ["processo", "fornecedor_nome", "nr_contrato", "nr_aditivo", "nr_parcela",
-      "dt_assinatura", "ds_objeto_contrato", "vr_inicial", "ano_contrato", "orgao_nome"],
-    headers: ["PROCESSO", "FORNECEDOR", "Nº CONTRATO", "ADITIVO", "PARCELA", "ASSINATURA", "OBJETO", "VALOR", "ANO", "EMPRESA"],
+      "dt_assinatura", "observador_nome", "ds_objeto_contrato", "vr_inicial", "ano_contrato", "orgao_nome"],
+    headers: ["PROCESSO", "FORNECEDOR", "Nº CONTRATO", "ADITIVO", "PARCELA", "ASSINATURA", "OBSERVADOR", "OBJETO", "VALOR", "ANO", "EMPRESA"],
     colClass: { ds_objeto_contrato: "col-desc", vr_inicial: "col-num", ano_contrato: "col-num" },
   },
   gestores: {
     label: "Responsáveis (gestores e fiscais)", endpoint: "gestores",
     cols: ["nr_contrato", "ano_contrato", "fornecedor_nome", "pessoa_nome", "papel_descricao",
-      "orgao_nome", "dt_inicio", "dt_fim", "objeto_contrato"],
-    headers: ["Nº CONTRATO", "ANO", "FORNECEDOR", "PESSOA", "PAPEL", "ÓRGÃO", "INÍCIO", "FIM", "OBJETO"],
+      "orgao_nome", "observador_nome", "dt_inicio", "dt_fim", "objeto_contrato"],
+    headers: ["Nº CONTRATO", "ANO", "FORNECEDOR", "PESSOA", "PAPEL", "ÓRGÃO", "OBSERVADOR", "INÍCIO", "FIM", "OBJETO"],
     colClass: { objeto_contrato: "col-desc", ano_contrato: "col-num" },
   },
 };
@@ -249,11 +250,12 @@ function abrirPbiModalFromRow(row) {
 const PBI_LIC_IDENT = [
   ["processo", "Nº processo"], ["ano_processo", "Ano"], ["modalidade", "Modalidade"],
   ["situacao", "Situação"], ["solicitante", "Solicitante"], ["orgao_nome", "Empresa"],
+  ["observador_nome", "Observador"],
 ];
 const PBI_LIC_CRONO = [["dt_abertura", "Abertura"], ["dt_habilitacao", "Habilitação"], ["dt_julgamento", "Julgamento"], ["dt_homologacao", "Homologação"]];
 const PBI_CTR_IDENT = [
   ["fornecedor_nome", "Fornecedor"], ["orgao_nome", "Empresa"],
-  ["qtd_eventos", "Eventos"], ["valor_total", "Valor total"],
+  ["qtd_eventos", "Eventos"], ["valor_total", "Valor total"], ["observador_nome", "Observador"],
 ];
 
 function pbiPainel(campos, obj) {
@@ -319,21 +321,39 @@ function pbiRenderArvore(arvore) {
   return html;
 }
 
-async function carregarPbiObservadores() {
-  const obs = await api("/api/observadores?ativos=true").catch(() => []);
+async function carregarPbiObservadores(atual) {
   const sel = $("#edit-pbi-observador");
-  if (sel) sel.innerHTML = '<option value="">Nenhum</option>' + obs.map((o) => `<option value="${o.id}">${esc(o.nome)}</option>`).join("");
+  if (!sel) return false;
+  const obs = await api("/api/observadores?ativos=true").catch(() => null);
+  if (!Array.isArray(obs)) {
+    return false;
+  }
+  const lista = [...obs];
+  const atualId = atual?.observador_id;
+  if (atualId && !lista.some((o) => o.id === atualId)) {
+    lista.push({ id: atualId, nome: atual.observador_nome || `Observador #${atualId}` });
+  }
+  sel.innerHTML = '<option value="">Nenhum</option>' +
+    lista.map((o) => `<option value="${o.id}">${esc(o.nome)}</option>`).join("");
+  sel.value = atualId ? String(atualId) : "";
+  return true;
 }
 
 async function abrirPbiArvore(id) {
   pbiAtualId = id;
+  pbiObsIdAtual = null;
   const arvore = await api(`/api/powerbi/licitacoes/${id}/arvore`);
   $("#modal-pbi-titulo").textContent = `Processo ${arvore.licitacao.processo}/${arvore.licitacao.ano_processo} · ${arvore.licitacao.orgao_nome || ""}`;
   $("#modal-pbi-info").innerHTML = pbiRenderArvore(arvore);
   $("#modal-pbi-objeto-wrap").hidden = true;
   $("#form-pbi-obs").hidden = false;
-  await carregarPbiObservadores();
-  $("#edit-pbi-observador").value = arvore.licitacao.observador_id || "";
+  const msg = $("#pbi-obs-msg");
+  if (msg) msg.textContent = "";
+  const ok = await carregarPbiObservadores(arvore.licitacao);
+  pbiObsIdAtual = arvore.licitacao.observador_id || null;
+  if (!ok && pbiObsIdAtual) {
+    if (msg) msg.textContent = "Não foi possível carregar a lista de observadores. O vínculo atual foi mantido.";
+  }
   $("#modal-pbi").showModal();
 }
 
@@ -356,10 +376,10 @@ function abrirPbiModalFromRow(row) {
   const campos = cfg.endpoint === "gestores"
     ? [["nr_contrato", "Nº contrato"], ["ano_contrato", "Ano"], ["fornecedor_nome", "Fornecedor"],
        ["pessoa_nome", "Pessoa"], ["papel_descricao", "Papel"], ["orgao_nome", "Órgão"],
-       ["dt_inicio", "Início"], ["dt_fim", "Fim"], ["dt_assinatura", "Assinatura"]]
+       ["observador_nome", "Observador"], ["dt_inicio", "Início"], ["dt_fim", "Fim"], ["dt_assinatura", "Assinatura"]]
     : [["processo", "Processo"], ["fornecedor_nome", "Fornecedor"], ["nr_contrato", "Nº contrato"],
        ["nr_aditivo", "Aditivo"], ["nr_parcela", "Parcela"], ["dt_assinatura", "Assinatura"],
-       ["vr_inicial", "Valor"], ["ano_contrato", "Ano contrato"], ["orgao_nome", "Empresa"]];
+       ["observador_nome", "Observador"], ["vr_inicial", "Valor"], ["ano_contrato", "Ano contrato"], ["orgao_nome", "Empresa"]];
   const painel = pbiPainel(campos, row);
   $("#modal-pbi-info").innerHTML = painel
     ? `<section class="detail-panel"><dl class="detail-grid">${painel}</dl></section>`
@@ -402,13 +422,39 @@ wireSortableHeaders($("#pbi-tabela-head"), (key, dir) => {
 $("#modal-pbi-fechar")?.addEventListener("click", () => $("#modal-pbi").close());
 $("#form-pbi-obs")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  if (!pbiAtualId || pbiDataset !== "licitacoes") return;
-  const obs = $("#edit-pbi-observador").value;
+  if (!pbiAtualId) return;
+  const sel = $("#edit-pbi-observador");
+  const msg = $("#pbi-obs-msg");
+  if (!sel) return;
+  if (sel.options.length <= 1 && pbiObsIdAtual) {
+    const aviso = "Lista de observadores indisponível. O vínculo não foi alterado.";
+    if (msg) msg.textContent = aviso;
+    else alert(aviso);
+    return;
+  }
+  const obs = sel.value;
+  const btn = e.target.querySelector("button[type=submit]");
+  if (btn) btn.disabled = true;
   try {
-    await api(`/api/powerbi/licitacoes/${pbiAtualId}`, { method: "PATCH", body: JSON.stringify({ observador_id: obs ? parseInt(obs, 10) : 0 }) });
-    $("#modal-pbi").close();
+    const saved = await api(`/api/powerbi/licitacoes/${pbiAtualId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ observador_id: obs ? parseInt(obs, 10) : 0 }),
+    });
+    pbiObsIdAtual = saved.observador_id || null;
+    if (msg) {
+      msg.textContent = saved.observador_nome
+        ? `Observador salvo: ${saved.observador_nome}`
+        : "Observador removido deste processo.";
+    }
+    const arvore = await api(`/api/powerbi/licitacoes/${pbiAtualId}/arvore`).catch(() => null);
+    if (arvore) $("#modal-pbi-info").innerHTML = pbiRenderArvore(arvore);
     buscarPbi();
-  } catch (err) { alert(err.message); }
+  } catch (err) {
+    if (msg) msg.textContent = err.message;
+    else alert(err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 });
 
 let pbiIniciado = false;

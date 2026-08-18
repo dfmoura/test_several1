@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Anexo B — Cronograma de implantação FLEXOERP RLP. 8 semanas concomitantes. TRIGGER Data Intelligence.">
+  <title>Anexo B · Cronograma | TRIGGER × RLP</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon-32-light.png" sizes="32x32">
+  <meta name="theme-color" content="#1a3568">
+  <link rel="stylesheet" href="assets/css/proposta.css">
+  <style>
+    :root {
+      --gate: #15803d;
+      --gate-soft: rgba(21, 128, 61, 0.1);
+      --hold: #b45309;
+      --hold-soft: rgba(180, 83, 9, 0.12);
+      --pre: #64748b;
+      --pre-soft: #eef1f5;
+    }
+
+    body.doc-anexo { background: #dfe6f0; }
+
+    body.doc-anexo .doc {
+      width: min(100% - 1rem, 820px);
+      margin: 0.75rem auto 1.25rem;
+    }
+
+    .sheet { padding: 0.65rem 0.75rem 0.5rem; }
+
+    .head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.6rem;
+      margin-bottom: 0.32rem;
+      padding-bottom: 0.28rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head-left {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-width: 0;
+    }
+
+    .head-left img { height: 26px; width: auto; flex-shrink: 0; }
+
+    .head-titles h1 {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .head-titles p {
+      margin: 0.1rem 0 0;
+      font-size: 0.64rem;
+      color: var(--muted);
+      line-height: 1.28;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-right: 0.28rem;
+      padding: 0.05rem 0.32rem;
+      font-size: 0.55rem;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--navy-dark);
+      background: var(--navy-soft);
+      border: 1px solid rgba(26, 53, 104, 0.2);
+      border-radius: 3px;
+      vertical-align: middle;
+    }
+
+    .head-meta {
+      text-align: right;
+      font-size: 0.58rem;
+      color: var(--muted);
+      line-height: 1.32;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .head-meta strong {
+      display: block;
+      color: var(--navy-dark);
+      font-size: 0.64rem;
+    }
+
+    .snap {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.22rem;
+      margin-bottom: 0.32rem;
+    }
+
+    .snap-item {
+      padding: 0.22rem 0.28rem;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--soft);
+      text-align: center;
+    }
+
+    .snap-item span {
+      display: block;
+      font-size: 0.48rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .snap-item strong {
+      display: block;
+      margin-top: 0.04rem;
+      font-size: 0.66rem;
+      color: var(--navy-dark);
+      line-height: 1.2;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.22rem 0.55rem;
+      margin: 0 0 0.26rem;
+      font-size: 0.56rem;
+      color: var(--muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.22rem;
+    }
+
+    .sw {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 2px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+
+    .sw--work { background: var(--navy); border-color: var(--navy); }
+    .sw--aceite { background: var(--hold-soft); border-color: var(--hold); }
+    .sw--gate { background: var(--gate-soft); border-color: var(--gate); }
+    .sw--pre { background: var(--pre-soft); border-color: var(--pre); }
+    .sw--mile { background: var(--green); border-color: var(--green); border-radius: 50%; }
+    .sw--par { background: var(--navy-soft); border-color: var(--navy); }
+
+    .gantt-wrap {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      overflow: hidden;
+      background: #fff;
+      margin-bottom: 0.32rem;
+    }
+
+    .gantt {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 0.54rem;
+    }
+
+    .gantt th,
+    .gantt td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid rgba(26, 53, 104, 0.06);
+      padding: 0;
+      vertical-align: middle;
+    }
+
+    .gantt thead th {
+      background: var(--navy);
+      color: #fff;
+      font-weight: 650;
+      font-size: 0.5rem;
+      letter-spacing: 0.02em;
+      text-align: center;
+      padding: 0.18rem 0.06rem;
+      border-right-color: rgba(255, 255, 255, 0.12);
+      border-bottom: none;
+    }
+
+    .gantt thead th.lab {
+      text-align: left;
+      padding-left: 0.35rem;
+      width: 22%;
+      font-size: 0.54rem;
+    }
+
+    .gantt thead th.m1 { background: #16305e; }
+    .gantt thead th.m2 { background: #1f4a2e; }
+
+    .gantt tbody th {
+      text-align: left;
+      padding: 0.16rem 0.35rem;
+      font-size: 0.52rem;
+      font-weight: 650;
+      color: var(--navy-dark);
+      background: var(--soft);
+      line-height: 1.15;
+      width: 22%;
+    }
+
+    .gantt tbody th small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 0.46rem;
+      margin-top: 0.01rem;
+    }
+
+    .gantt tbody tr:last-child th,
+    .gantt tbody tr:last-child td { border-bottom: none; }
+
+    .gantt td {
+      height: 1.28rem;
+      position: relative;
+    }
+
+    .bar {
+      position: absolute;
+      top: 16%;
+      bottom: 16%;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.44rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      line-height: 1;
+      z-index: 1;
+      margin-left: 1px;
+    }
+
+    .bar--pre {
+      background: var(--pre-soft);
+      border: 1px solid var(--pre);
+      color: #334155;
+    }
+
+    .bar--work {
+      background: var(--navy);
+      color: #fff;
+      border: 1px solid var(--navy-dark);
+    }
+
+    .bar--aceite {
+      background: var(--hold-soft);
+      border: 1px solid var(--hold);
+      color: #7c2d12;
+    }
+
+    .bar--live {
+      background: var(--green);
+      border: 1px solid #5a8f10;
+      color: #fff;
+    }
+
+    /* 9 colunas: P S1–S8 */
+    .cP  { left: calc(100% / 9 * 0); width: calc(100% / 9 * 1 - 2px); }
+    .s12 { left: calc(100% / 9 * 1); width: calc(100% / 9 * 2 - 2px); }
+    .s13 { left: calc(100% / 9 * 1); width: calc(100% / 9 * 3 - 2px); }
+    .s24 { left: calc(100% / 9 * 2); width: calc(100% / 9 * 3 - 2px); }
+    .s35 { left: calc(100% / 9 * 3); width: calc(100% / 9 * 3 - 2px); }
+    .s45 { left: calc(100% / 9 * 4); width: calc(100% / 9 * 2 - 2px); }
+    .s57 { left: calc(100% / 9 * 5); width: calc(100% / 9 * 3 - 2px); }
+    .s7  { left: calc(100% / 9 * 7); width: calc(100% / 9 * 1 - 2px); }
+    .s8  { left: calc(100% / 9 * 8); width: calc(100% / 9 * 1 - 2px); }
+
+    .months {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.28rem;
+      margin-bottom: 0.28rem;
+    }
+
+    .mo {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .mo-h {
+      padding: 0.22rem 0.38rem;
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .mo--2 .mo-h { background: #1f4a2e; }
+
+    .mo-h strong {
+      display: block;
+      font-size: 0.66rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .mo-h em {
+      display: block;
+      font-style: normal;
+      font-size: 0.5rem;
+      opacity: 0.82;
+      line-height: 1.2;
+    }
+
+    .mo-b { padding: 0.28rem 0.38rem 0.32rem; }
+
+    .trk { margin-bottom: 0.28rem; }
+    .trk:last-child { margin-bottom: 0; }
+
+    .trk h4 {
+      margin: 0 0 0.08rem;
+      font-size: 0.58rem;
+      color: var(--navy-dark);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.3rem;
+    }
+
+    .trk h4 span {
+      font-size: 0.48rem;
+      font-weight: 650;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .trk ul {
+      margin: 0;
+      padding-left: 0.85rem;
+      font-size: 0.52rem;
+      color: var(--muted);
+      line-height: 1.28;
+    }
+
+    .trk li { margin-bottom: 0.02rem; }
+    .trk li:last-child { margin-bottom: 0; }
+
+    .trk .code {
+      font-weight: 700;
+      color: var(--navy-dark);
+      font-size: 0.5rem;
+    }
+
+    .weeks {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.5rem;
+      margin-bottom: 0.28rem;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .weeks th {
+      background: var(--navy);
+      color: #fff;
+      font-weight: 650;
+      text-align: left;
+      padding: 0.16rem 0.28rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.02em;
+    }
+
+    .weeks td {
+      padding: 0.12rem 0.28rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      line-height: 1.25;
+      color: var(--muted);
+    }
+
+    .weeks tr:last-child td { border-bottom: none; }
+    .weeks td.w { width: 9%; font-weight: 700; color: var(--navy-dark); white-space: nowrap; }
+    .weeks td.own { width: 16%; color: var(--navy-dark); font-weight: 650; }
+    .weeks tbody tr:nth-child(even) td { background: var(--soft); }
+
+    .rules {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr 1fr;
+      gap: 0.24rem;
+    }
+
+    .rule {
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.26rem 0.34rem;
+      background: var(--soft);
+    }
+
+    .rule--gate { border-color: rgba(21, 128, 61, 0.28); background: var(--gate-soft); }
+    .rule--hold { border-color: rgba(180, 83, 9, 0.28); background: var(--hold-soft); }
+
+    .rule h3 {
+      margin: 0 0 0.1rem;
+      font-size: 0.58rem;
+      color: var(--navy-dark);
+    }
+
+    .rule--gate h3 { color: #14532d; }
+    .rule--hold h3 { color: #7c2d12; }
+
+    .rule p,
+    .rule ul {
+      margin: 0;
+      font-size: 0.52rem;
+      color: var(--muted);
+      line-height: 1.26;
+    }
+
+    .rule ul { padding-left: 0.8rem; }
+    .rule li { margin-bottom: 0.02rem; }
+    .rule li:last-child { margin-bottom: 0; }
+
+    .foot {
+      margin-top: 0.26rem;
+      padding-top: 0.2rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 0.4rem;
+      font-size: 0.52rem;
+      color: var(--muted);
+      line-height: 1.28;
+    }
+
+    .foot a { color: var(--navy); }
+
+    @media (max-width: 720px) {
+      .snap { grid-template-columns: 1fr 1fr; }
+      .months, .rules { grid-template-columns: 1fr; }
+      .head { flex-direction: column; }
+      .head-meta { text-align: left; white-space: normal; }
+      .gantt thead th:not(.lab),
+      .gantt tbody td { display: none; }
+      .gantt tbody th { width: auto; }
+    }
+
+    .print-body {
+      display: contents;
+    }
+
+    @media print {
+      /* A4 paisagem · 1 página · tipografia legível */
+      @page {
+        size: A4 landscape;
+        margin: 4.5mm;
+      }
+
+      html, body.doc-anexo {
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color: var(--ink);
+      }
+
+      body.doc-anexo .toolbar { display: none !important; }
+
+      body.doc-anexo .doc {
+        width: auto !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+      }
+
+      body.doc-anexo .sheet { padding: 0 !important; margin: 0 !important; }
+
+      body.doc-anexo .head {
+        margin-bottom: 0.14rem !important;
+        padding-bottom: 0.1rem !important;
+      }
+      body.doc-anexo .head-left img { height: 18px !important; }
+      body.doc-anexo .head-titles h1 { font-size: 9.2pt !important; }
+      body.doc-anexo .head-titles p { font-size: 6.2pt !important; line-height: 1.2 !important; }
+      body.doc-anexo .head-meta { font-size: 5.8pt !important; }
+
+      body.doc-anexo .snap {
+        gap: 0.14rem !important;
+        margin-bottom: 0.12rem !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+      }
+      body.doc-anexo .snap-item { padding: 0.12rem 0.2rem !important; }
+      body.doc-anexo .snap-item span { font-size: 5.2pt !important; }
+      body.doc-anexo .snap-item strong { font-size: 7pt !important; }
+
+      body.doc-anexo .legend {
+        font-size: 5.8pt !important;
+        margin-bottom: 0.12rem !important;
+        gap: 0.14rem 0.45rem !important;
+      }
+
+      body.doc-anexo .gantt-wrap { margin-bottom: 0.14rem !important; }
+      body.doc-anexo .gantt thead th {
+        font-size: 5.8pt !important;
+        padding: 0.1rem 0.06rem !important;
+      }
+      body.doc-anexo .gantt thead th.lab { font-size: 6pt !important; width: 15% !important; }
+      body.doc-anexo .gantt tbody th {
+        font-size: 6pt !important;
+        padding: 0.08rem 0.22rem !important;
+        width: 15% !important;
+      }
+      body.doc-anexo .gantt tbody th small { font-size: 5pt !important; }
+      body.doc-anexo .gantt td { height: 0.82rem !important; }
+      body.doc-anexo .bar { font-size: 5.2pt !important; }
+
+      body.doc-anexo .print-body {
+        display: grid !important;
+        grid-template-columns: 0.95fr 1.05fr !important;
+        gap: 0.2rem !important;
+        align-items: start;
+        margin-bottom: 0.12rem !important;
+      }
+
+      body.doc-anexo .months {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 0.14rem !important;
+        margin-bottom: 0 !important;
+      }
+
+      body.doc-anexo .mo-h { padding: 0.1rem 0.22rem !important; }
+      body.doc-anexo .mo-h strong { font-size: 6.6pt !important; }
+      body.doc-anexo .mo-h em { font-size: 5.4pt !important; }
+      body.doc-anexo .mo-b { padding: 0.1rem 0.2rem 0.1rem !important; }
+      body.doc-anexo .trk { margin-bottom: 0.06rem !important; }
+      body.doc-anexo .trk h4 { font-size: 6pt !important; margin-bottom: 0.04rem !important; }
+      body.doc-anexo .trk ul {
+        font-size: 5.5pt !important;
+        line-height: 1.18 !important;
+        padding-left: 0.7rem !important;
+      }
+
+      body.doc-anexo .weeks {
+        font-size: 5.4pt !important;
+        margin-bottom: 0 !important;
+        width: 100%;
+      }
+      body.doc-anexo .weeks th {
+        font-size: 5.4pt !important;
+        padding: 0.08rem 0.14rem !important;
+      }
+      body.doc-anexo .weeks td {
+        padding: 0.06rem 0.14rem !important;
+        line-height: 1.16 !important;
+        vertical-align: top;
+      }
+      body.doc-anexo .weeks td.w { font-size: 6pt !important; }
+      body.doc-anexo .weeks .own { white-space: nowrap; font-size: 5.2pt !important; }
+
+      body.doc-anexo .rules {
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 0.14rem !important;
+      }
+      body.doc-anexo .rule { padding: 0.1rem 0.18rem !important; }
+      body.doc-anexo .rule h3 { font-size: 6.2pt !important; margin-bottom: 0.06rem !important; }
+      body.doc-anexo .rule p,
+      body.doc-anexo .rule ul {
+        font-size: 5.4pt !important;
+        line-height: 1.18 !important;
+        padding-left: 0.7rem !important;
+      }
+      body.doc-anexo .rule li { margin-bottom: 0.02rem !important; }
+
+      body.doc-anexo .foot {
+        font-size: 5.4pt !important;
+        margin-top: 0.1rem !important;
+        padding-top: 0.08rem !important;
+      }
+
+      body.doc-anexo .gantt-wrap,
+      body.doc-anexo .print-body,
+      body.doc-anexo .months,
+      body.doc-anexo .weeks,
+      body.doc-anexo .rules,
+      body.doc-anexo .mo,
+      body.doc-anexo .rule {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+      }
+
+      body.doc-anexo a {
+        text-decoration: none;
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body class="doc-anexo">
+  <div class="toolbar" role="navigation" aria-label="Ações do documento">
+    <div class="toolbar-brand">
+      <img src="assets/img/logo-trigger-mark.png" alt="" width="28" height="28">
+      <span>Anexo B · Cronograma · FLEXOERP RLP</span>
+    </div>
+    <div class="toolbar-actions">
+      <a class="btn btn-secondary" href="index.html">Voltar à proposta</a>
+      <a class="btn btn-secondary" href="anexo-fluxo-operacional.html">Anexo A · Fluxo</a>
+      <button class="btn btn-primary" type="button" onclick="window.print()">Imprimir / PDF (paisagem)</button>
+    </div>
+  </div>
+
+  <article class="doc" aria-label="Anexo B — Cronograma de implantação">
+    <section class="sheet">
+
+      <header class="head">
+        <div class="head-left">
+          <img src="assets/img/logo-trigger-header.png" alt="TRIGGER Data Intelligence" width="120" height="50">
+          <div class="head-titles">
+            <h1><span class="badge">Anexo B</span> Cronograma — 8 semanas, frentes concomitantes</h1>
+            <p>
+              Implantação do produto FLEXOERP (já construído): configurar, treinar, homologar e virar.
+              8 semanas é o teto; aceleração é desejável. Uma página · A4 paisagem.
+            </p>
+          </div>
+        </div>
+        <div class="head-meta">
+          <strong>ERP-RLP-2026-01-v3</strong>
+          Proposta comercial · 16/08/2026<br>
+          TRIGGER × RLP Etiquetas
+        </div>
+      </header>
+
+      <div class="snap" aria-label="Resumo do prazo">
+        <div class="snap-item">
+          <span>Marco zero</span>
+          <strong>Entrada R$ 5.000</strong>
+        </div>
+        <div class="snap-item">
+          <span>Teto</span>
+          <strong>2 meses · 8 sem.</strong>
+        </div>
+        <div class="snap-item">
+          <span>Modo</span>
+          <strong>Frentes em paralelo</strong>
+        </div>
+        <div class="snap-item">
+          <span>Aceite HML</span>
+          <strong>escrito ou 5 du</strong>
+        </div>
+        <div class="snap-item">
+          <span>Go-live</span>
+          <strong>após R$ 20.000</strong>
+        </div>
+      </div>
+
+      <div class="legend" aria-label="Legenda">
+        <span><i class="sw sw--pre" aria-hidden="true"></i> Pré-kickoff (assinatura / 20%)</span>
+        <span><i class="sw sw--work" aria-hidden="true"></i> Execução TRIGGER (concomitante)</span>
+        <span><i class="sw sw--aceite" aria-hidden="true"></i> Homologação / aceite RLP</span>
+        <span><i class="sw sw--mile" aria-hidden="true"></i> Go-live (só após 80%)</span>
+        <span><i class="sw sw--par" aria-hidden="true"></i> Barras na mesma semana = paralelo</span>
+        <span>P = pré-kickoff · S1 = 1ª semana após kickoff · Mês 1 = S1–S4 · Mês 2 = S5–S8</span>
+      </div>
+
+      <div class="gantt-wrap" aria-label="Cronograma Gantt concomitante">
+        <table class="gantt">
+          <thead>
+            <tr>
+              <th class="lab">Frente</th>
+              <th>P</th>
+              <th class="m1">S1</th><th class="m1">S2</th><th class="m1">S3</th><th class="m1">S4</th>
+              <th class="m2">S5</th><th class="m2">S6</th><th class="m2">S7</th><th class="m2">S8</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0 · Assinatura / kickoff<small>entrada 20% · acessos</small></th>
+              <td colspan="9"><span class="bar bar--pre cP">R$ 5 mil</span></td>
+            </tr>
+            <tr>
+              <th>A · Plataforma<small>login · EMP · AWS HML</small></th>
+              <td colspan="9"><span class="bar bar--work s12">A.1–A.3</span></td>
+            </tr>
+            <tr>
+              <th>B · Cadastros<small>parceiros · produtos · crédito</small></th>
+              <td colspan="9"><span class="bar bar--work s13">B.1–B.2</span></td>
+            </tr>
+            <tr>
+              <th>B · Comercial<small>orçamento até o link</small></th>
+              <td colspan="9"><span class="bar bar--work s24">B.3</span></td>
+            </tr>
+            <tr>
+              <th>C · Compras / estoque / CAP<small>paralelo ao comercial</small></th>
+              <td colspan="9"><span class="bar bar--work s24">C.1–C.4</span></td>
+            </tr>
+            <tr>
+              <th>D · Pedido / produção<small>PIX · OP/OS · sobra</small></th>
+              <td colspan="9"><span class="bar bar--work s35">D.1–D.4</span></td>
+            </tr>
+            <tr>
+              <th>E · Fat. / entrega / fin.<small>paralelo à produção</small></th>
+              <td colspan="9"><span class="bar bar--work s35">E.1–E.4</span></td>
+            </tr>
+            <tr>
+              <th>F · BI + treino + UAT<small>por área, em paralelo</small></th>
+              <td colspan="9"><span class="bar bar--work s57">F.1–F.3</span></td>
+            </tr>
+            <tr>
+              <th>Aceite · 80% · go-live<small>produção só após quitação</small></th>
+              <td colspan="9">
+                <span class="bar bar--aceite s7">Aceite</span>
+                <span class="bar bar--live s8">F.4</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="print-body" aria-label="Detalhe mensal e semanal">
+      <div class="months" aria-label="Detalhe por mês">
+        <article class="mo">
+          <div class="mo-h">
+            <strong>Mês 1 — Implantação (S1–S4)</strong>
+            <em>Ambiente, cadastros e fluxos no ar em homologação</em>
+          </div>
+          <div class="mo-b">
+            <div class="trk">
+              <h4>A · Fundação e plataforma <span>S1–S2</span></h4>
+              <ul>
+                <li><span class="code">A.1</span> Login seguro, usuários e perfis RBAC/SoD</li>
+                <li><span class="code">A.2</span> EMP-00001 / EMP-00002, dados fiscais e parâmetros</li>
+                <li><span class="code">A.3</span> AWS HML, backup, stage isolado de produção</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>B · Cadastros e comercial <span>S1–S4 · paralelo a C</span></h4>
+              <ul>
+                <li><span class="code">B.1</span> Parceiros (cliente, fornecedor, colaborador, vendedor, bancos); limite de crédito</li>
+                <li><span class="code">B.2</span> Produtos (famílias MP · EMB · REV · PA · SVC · FAC)</li>
+                <li><span class="code">B.3</span> Orçamento completo até envio / link de aprovação</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>C · Compras, estoque e CAP <span>S2–S4 · paralelo a B/D</span></h4>
+              <ul>
+                <li><span class="code">C.1</span> Saldo inicial de estoque (virada operacional)</li>
+                <li><span class="code">C.2–C.3</span> Ponto de pedido, OC, conferência e entrada</li>
+                <li><span class="code">C.4</span> Contas a pagar</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>D + E · Produção e financeiro <span>S3–S4 (segue no mês 2)</span></h4>
+              <ul>
+                <li><span class="code">D.1–D.4</span> Pedido, PIX 1ª compra, OP/OS, MP, ±20%, sobra</li>
+                <li><span class="code">E.1–E.4</span> Cobrança, expedição, baixa, conciliação, devolução</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="mo mo--2">
+          <div class="mo-h">
+            <strong>Mês 2 — Homologação e virada (S5–S8)</strong>
+            <em>Treino, UAT, aceite, 80% e go-live</em>
+          </div>
+          <div class="mo-b">
+            <div class="trk">
+              <h4>D + E · Fechamento dos fluxos <span>S5</span></h4>
+              <ul>
+                <li>Amostra ponta a ponta: ORC → PED → OP/OS → NF/TIT → ENT → BX</li>
+                <li>Exceções na amostra: devolução, ocorrência de transporte, readequação ±20%</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>F.1 + F.2 · BI e treino (concomitante) <span>S5–S6</span></h4>
+              <ul>
+                <li><span class="code">F.1</span> Dashboards do fluxo A–E (Direção)</li>
+                <li><span class="code">F.2</span> Treino em paralelo: Comercial · Produção/Estoque · Financeiro · Direção</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>F.3 · Homologação formal <span>S6–S7</span></h4>
+              <ul>
+                <li>Roteiros UAT em HML (sem dinheiro/NF de produção)</li>
+                <li>Ajustes de <strong>configuração</strong> no escopo A–F</li>
+                <li>Demonstração por escrito (e-mail/ata) → aceite ou 5 dias úteis tácitos</li>
+              </ul>
+            </div>
+            <div class="trk">
+              <h4>F.4 · Parcela 80% e go-live <span>S7–S8</span></h4>
+              <ul>
+                <li>Aceite homologa o pacote; <strong>R$ 20.000 antes da virada</strong></li>
+                <li>Checklist de cutover; produção só com 80% quitado</li>
+                <li>Após virada: Hypercare 30 dias (só defeito do implantado)</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <table class="weeks" aria-label="Semana a semana">
+        <thead>
+          <tr>
+            <th>Sem.</th>
+            <th>O que acontece (frentes simultâneas)</th>
+            <th>Quem</th>
+            <th>Pronto na semana quando</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="w">P</td>
+            <td>Aceite da proposta · pagamento R$ 5.000 · agendar kickoff · liberar A1, banco e AWS (privilégio mínimo)</td>
+            <td class="own">RLP + TRIGGER</td>
+            <td>Entrada confirmada e acessos na mesa</td>
+          </tr>
+          <tr>
+            <td class="w">S1</td>
+            <td>Ambiente HML, usuários/perfis, empresas/parâmetros · início da carga priorizada de parceiros e produtos</td>
+            <td class="own">TRIGGER (RLP dados)</td>
+            <td>Login funciona; EMP-00001/00002 no ar</td>
+          </tr>
+          <tr>
+            <td class="w">S2</td>
+            <td>Cadastros seguem · orçamento até envio em paralelo com ponto de pedido, OC e saldo inicial de estoque</td>
+            <td class="own">TRIGGER + key users</td>
+            <td>Parceiro → produto → 1º ORC; estoque com data combinada</td>
+          </tr>
+          <tr>
+            <td class="w">S3</td>
+            <td>Pedido + PIX 1ª compra + OP/OS em paralelo com faturamento, expedição e CAP</td>
+            <td class="own">TRIGGER + key users</td>
+            <td>Ciclo industrial e financeiro demonstráveis em HML</td>
+          </tr>
+          <tr>
+            <td class="w">S4</td>
+            <td>Fecha Mês 1: ±20%, sobra, devolução, conciliação · rascunho dos painéis · pré-treino</td>
+            <td class="own">TRIGGER</td>
+            <td>Fluxos A–E no ar em homologação</td>
+          </tr>
+          <tr>
+            <td class="w">S5</td>
+            <td>Amostra ponta a ponta · BI · treino Comercial e Produção/Estoque (salas paralelas)</td>
+            <td class="own">TRIGGER + RLP</td>
+            <td>Key users operam o fluxo feliz na amostra</td>
+          </tr>
+          <tr>
+            <td class="w">S6</td>
+            <td>Treino Financeiro e Direção · UAT formal · ajustes de configuração · evidências (ORC-/PED-/chave)</td>
+            <td class="own">TRIGGER + RLP</td>
+            <td>Apontamentos objetivos registrados</td>
+          </tr>
+          <tr>
+            <td class="w">S7</td>
+            <td>Demonstração por escrito · aceite (ou tácito 5 du) · faturamento dos R$ 20.000 · checklist de virada</td>
+            <td class="own">RLP (aceite) · TRIGGER</td>
+            <td>Aceite + 80% em cobrança; produção ainda não sobe</td>
+          </tr>
+          <tr>
+            <td class="w">S8</td>
+            <td>Confirmação dos R$ 20.000 · cutover · go-live · início do Hypercare (30 dias, só defeito)</td>
+            <td class="own">TRIGGER (após 80%)</td>
+            <td>Produção no ar; HML preservado</td>
+          </tr>
+        </tbody>
+      </div>
+
+      </table>
+
+      <div class="rules" aria-label="Regras de prazo e avanço">
+        <div class="rule rule--gate">
+          <h3>Gates (proposta §2 e §4)</h3>
+          <ul>
+            <li><strong>Kickoff</strong> só com entrada de R$ 5.000 e acessos.</li>
+            <li>Homologação: demonstração por escrito → aceite RLP ou <strong>tácito em 5 dias úteis</strong>.</li>
+            <li><strong>Go-live somente após R$ 20.000 confirmados.</strong> Até lá, só HML.</li>
+            <li>Sem aceite, o 80% vira discussão — e a virada não ocorre.</li>
+          </ul>
+        </div>
+        <div class="rule rule--hold">
+          <h3>Dependências da RLP (aceleram o prazo)</h3>
+          <ul>
+            <li>A1, banco e AWS no kickoff (não na S8).</li>
+            <li>Lista priorizada de clientes/produtos e inventário na data combinada.</li>
+            <li>Key user por área nas sessões de treino (S5–S6).</li>
+            <li>Feedback de UAT em até 5 dias úteis.</li>
+          </ul>
+        </div>
+        <div class="rule">
+          <h3>Contagem, idle e Hypercare</h3>
+          <ul>
+            <li>Semanas = estimativa a partir do kickoff; 8 sem. é teto, não piso.</li>
+            <li>Idle RLP suspende prazos TRIGGER (&gt;15 du remaneja; &gt;45 du rescinde, entrada retida).</li>
+            <li>Pós-virada: 30 dias só para <strong>defeito</strong> do implantado. Plantão, dúvida e evolução = proposta nova (não os R$ 800 opcionais).</li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="foot">
+        <span><strong>TRIGGER</strong> · CNPJ 53.369.941/0001-63 · Anexo B da proposta ERP-RLP-2026-01-v3 · confidencial</span>
+        <span>Impressão: A4 paisagem · 1 página · <a href="index.html">voltar à proposta</a> · <a href="anexo-fluxo-operacional.html">Anexo A</a></span>
+      </footer>
+    </section>
+  </article>
+</body>
+</html>

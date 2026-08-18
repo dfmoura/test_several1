@@ -1,0 +1,105 @@
+SUBMISSÃO RETII (Revista de Engenharia, TI e Inovação)
+ISSN 2966-2508  |  https://revistas.uniube.br/index.php/retii
+Fluxo: 1. Início; 2. Transferência do manuscrito; 3. Inserir metadados; 4. Confirmação; 5. Próximos passos
+
+==============================================================================
+ARQUIVOS
+==============================================================================
+Enviar no passo 2 (manuscrito):
+  artigo_retii_manuscrito_cego.docx
+  (Word, identificação suprimida com XXX; é ESTE o arquivo principal)
+
+Documento suplementar (passo 2, como suplementar, ou junto dos metadados):
+  identificacao_autores.docx
+
+Cópia de arquivo (não enviar ao portal, fica com o autor):
+  artigo_retii_versao_identificada.docx
+
+==============================================================================
+PASSO 1. INÍCIO
+==============================================================================
+Idioma da submissão: Português (pt_BR)   (idioma principal)
+Seção: Artigos
+Política de seção: Política padrão de seção
+
+Requisitos (marcar todos):
+  [x] A contribuição é original e inédita, e não está sendo avaliada por outra revista
+  [x] O arquivo está em Microsoft Word
+  [x] URLs das referências foram fornecidos onde disponíveis
+  [x] Texto em espaço simples; fonte 12 pontos; itálico em vez de sublinhado
+       (exceto URL); figuras e tabelas no texto, não em anexo
+  [x] O texto segue as Diretrizes para Autores
+
+Declarações:
+  [x] Sim, concordo com a declaração de direitos autorais
+  [x] Sim, concordo com a coleta e o armazenamento de dados (privacidade)
+
+==============================================================================
+COMENTÁRIOS PARA O EDITOR (colar no campo)
+==============================================================================
+Prezados editores,
+
+Encaminho manuscrito original e inédito, não submetido a outro periódico, para a
+seção de Artigos, na área de Sistemas de Informação.
+
+O texto descreve o desenvolvimento de um sistema de informação para coleta e
+análise de licitações públicas, atendendo demanda do Observatório Social do
+Brasil de Uberlândia/MG (CNPJ 23.497.346/0001-42). A identificação do autor foi
+suprimida no arquivo principal, conforme as Diretrizes para Autores, e segue em
+documento suplementar.
+
+Coloco-me à disposição.
+
+Atenciosamente,
+Diogo Ferreira Moura
+Universidade de Uberaba (UNIUBE)
+Curso de Sistemas de Informação
+CPF 058.161.826-25
+Telefone: +55 (34) 99990-9660
+ORCID: 0009-0009-1988-7741
+diogo.moura@triggerti.com
+
+==============================================================================
+PASSO 3. METADADOS
+==============================================================================
+Título:
+  Sistema de informação para coleta e análise de licitações públicas: apoio ao Observatório Social do Brasil em Uberlândia/MG
+
+Título (inglês), se o formulário tiver campo separado:
+  Information system for collecting and analyzing public procurement data: supporting the Social Observatory of Brazil in Uberlândia, MG
+
+Resumo: (colar o do manuscrito; abaixo do teto de 200 palavras do template)
+
+Palavras-chave:
+  sistemas de informação; dados abertos; licitações públicas; controle social; observatório social.
+
+Keywords:
+  information systems; open data; public procurement; social control; social observatory.
+
+Autor:
+  Nome: Diogo Ferreira Moura
+  Autor correspondente: sim
+  E-mail: diogo.moura@triggerti.com
+  Telefone: +55 (34) 99990-9660
+  Endereço postal: Av. Araguari, 2815, ap. 304, Bairro Daniel Fonseca, Uberlândia/MG, CEP 38400-313
+  Cidade/UF: Uberlândia/MG
+  Filiação: Universidade de Uberaba (UNIUBE)
+  Unidade / curso: Sistemas de Informação
+  País: Brasil
+  Bio: Graduando em Sistemas de Informação pela Universidade de Uberaba. Atua com desenvolvimento de sistemas de informação aplicados a dados públicos e à operação de organizações da sociedade civil.
+  ORCID: 0009-0009-1988-7741
+  URL ORCID: https://orcid.org/0009-0009-1988-7741
+
+Não colocar o CPF no corpo do artigo. O CPF entra só no cadastro pessoal do SEER
+e neste comentário ao editor / documento suplementar, se a secretaria pedir.
+
+==============================================================================
+CONFERÊNCIA RÁPIDA (normas RETII)
+==============================================================================
+- 5 a 20 páginas, figuras no texto: sim
+- Título PT + EN, caixa de sentença: sim
+- Resumo PT + EN, primeira frase com o tema: sim
+- Palavras-chave ≤ 5, ponto e vírgula, ponto final: sim
+- Introdução, metodologia, resultados, conclusão: sim
+- Citações autor-data (NBR 10520) e referências ABNT com destaque em negrito: sim
+- Identificação ausente no Word do portal: sim (versão cega)

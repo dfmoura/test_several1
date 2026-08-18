@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
+import { useAuth } from '../lib/auth';
 import type { Parceiro } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
@@ -8,7 +9,7 @@ import {
   formatCnae,
   formatCnpjCpf,
   formatDecimalBr,
-  formatKmCarro,
+  formatKmCarroDaEmpresa,
   formatLatLng,
   formatPhone,
   DECIMAL_SCALE,
@@ -160,6 +161,13 @@ export function ParceiroFichaSheet({
   showBancario,
   showCredito,
 }: ParceiroFichaSheetProps) {
+  const { empresaId } = useAuth();
+  const kmFiscal = formatKmCarroDaEmpresa(
+    p.distancia_km,
+    p.distancia_fonte,
+    p.distancia_empresa_id,
+    empresaId,
+  );
   const papeis = PAPEIS.filter((item) => Boolean(p[item.key])).map((item) => item.label);
   const contatos = [...(p.contatos ?? [])].sort((a, b) => {
     if (a.principal !== b.principal) return a.principal ? -1 : 1;
@@ -238,9 +246,7 @@ export function ParceiroFichaSheet({
             {formatLatLng(p.latitude, p.longitude) ? (
               <Kv label="Posição" value={formatLatLng(p.latitude, p.longitude)} wide />
             ) : null}
-            {formatKmCarro(p.distancia_km, p.distancia_fonte) ? (
-              <Kv label="Distância" value={formatKmCarro(p.distancia_km, p.distancia_fonte)} wide />
-            ) : null}
+            <Kv label="Distância de carro" value={kmFiscal || '—'} wide />
           </div>
         </Section>
 
@@ -298,9 +304,14 @@ export function ParceiroFichaSheet({
                     {formatLatLng(e.latitude, e.longitude)
                       ? ` · ${formatLatLng(e.latitude, e.longitude)}`
                       : ''}
-                    {formatKmCarro(e.distancia_km, e.distancia_fonte)
-                      ? ` · ${formatKmCarro(e.distancia_km, e.distancia_fonte)}`
-                      : ''}
+                    {` · Distância: ${
+                      formatKmCarroDaEmpresa(
+                        e.distancia_km,
+                        e.distancia_fonte,
+                        e.distancia_empresa_id,
+                        empresaId,
+                      ) || '—'
+                    }`}
                     {e.observacoes ? (
                       <>
                         <br />
@@ -433,6 +444,24 @@ export function ParceiroFichaSheet({
               <Kv label="Crédito utilizado" value={p.papel_cliente ? 'Restrito' : '—'} />
             </>
           )}
+          <Kv
+            label="Vendedor padrão"
+            value={
+              p.vendedor
+                ? `${p.vendedor.codigo} — ${p.vendedor.nome_fantasia || p.vendedor.razao_social}`
+                : '—'
+            }
+          />
+          {p.papel_vendedor ? (
+            <Kv
+              label="Comissão %"
+              value={
+                p.comissao_percentual != null && String(p.comissao_percentual).trim() !== ''
+                  ? `${formatDecimalBr(p.comissao_percentual, DECIMAL_SCALE.percent)}%`
+                  : '—'
+              }
+            />
+          ) : null}
         </div>
         {!showCredito && p.papel_cliente ? (
           <p className="ficha-note">Valores de crédito omitidos · sem alçada <code>credito.escrever</code>.</p>
