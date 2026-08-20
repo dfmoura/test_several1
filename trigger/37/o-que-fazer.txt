@@ -1,0 +1,95 @@
+O QUE FAZER — FLEXORC (só orçamento até o envio)
+Data: 19/08/2026
+Produto: /Documents/test_several1/trigger/43
+Cliente desta conversa: Luana / RLP
+
+Isto NÃO é o ERP de R$ 25 mil. É outro produto.
+NÃO enviar o PDF em 43/proposta (ainda é o pacote cheio).
+
+
+--------------------------------------------------------------------------------
+ANTES DE MANDAR QUALQUER ZAP
+--------------------------------------------------------------------------------
+
+1. Conferir se a Luana RESPONDEU o zap de ontem (encerramento do ERP).
+   - Se NÃO respondeu: não mandar hoje. Esperar até amanhã, ou esperar ela falar.
+   - Se respondeu e fechou a porta: não reabrir.
+   - Se respondeu e deixou conversa aberta: pode mandar o texto abaixo.
+
+2. Ter um orçamento REAL dela (o que você já viu na fábrica) para mostrar
+   na tela. Não usar só o seed admin@rlp.com.br.
+
+3. Ter o FLEXORC no ar, testado por você, ponta a ponta:
+   prospect → calcular → enviar link → aceite → PIX do sinal.
+   Se isso falhar na sua máquina, não marca reunião.
+
+4. Ter um PREÇO no papel, só da fatia (não falar no primeiro zap).
+   Não usar “25 mil dividido”. Não inventar na hora.
+
+
+--------------------------------------------------------------------------------
+ZAP (se a regra 1 deixar)
+--------------------------------------------------------------------------------
+
+Luana, boa tarde.
+
+O que eu falei sobre o sistema inteiro permanece: não vou assumir ERP, pedido, OS nem nota.
+
+O que eu tenho para mostrar é só o orçamento até o envio: montar, mandar o link para o cliente, aceite e sinal no PIX.
+
+Se quiserem ver em 20 minutos, combinamos. Se não fizer sentido, deixa como está.
+
+Mandar UMA vez. Se ela não responder: parar. Não explicar de novo. Não ligar. Não ir na fábrica.
+
+
+--------------------------------------------------------------------------------
+SE ELA TOPAR OS 20 MINUTOS
+--------------------------------------------------------------------------------
+
+Formato: tela compartilhada ou ir aí. 20 minutos, relógio.
+
+Minuto 0 — falar ANTES de abrir o sistema:
+  “Isso não substitui o que vocês já fazem depois do orçamento.
+   Pedido, OS, NF e boleto continuam como hoje.”
+
+Minutos 1–15 — mostrar com o orçamento real dela:
+  1. cliente ou prospect
+  2. calcular
+  3. enviar o link
+  4. o cliente vê só a proposta
+  5. aceite → PIX do sinal
+
+Minuto 16 — UMA pergunta:
+  “Isso tira trabalho de vocês no orçamento, ou vocês já resolvem isso hoje?”
+
+Minuto 17–20:
+  - Se fria: “Combinado. Obrigado.” Sair.
+  - Se quente: falar o preço da fatia. Combinar próximo passo (teste na semana, não contrato na hora).
+
+Se o Roberto estiver na sala:
+  Não vender isto como resposta a “e se alguém morrer”.
+  Frase: se pararem de usar, voltam ao orçamento de hoje; a fábrica não fica refém.
+
+
+--------------------------------------------------------------------------------
+SE ELA NÃO TOPAR, OU NÃO RESPONDER
+--------------------------------------------------------------------------------
+
+Assunto RLP encerrado de novo. Não há terceiro zap.
+
+O FLEXORC continua no 43. Próxima conversa = OUTRA empresa, mesmo roteiro
+de 20 minutos, sem a frase “o que eu falei ontem”.
+
+
+--------------------------------------------------------------------------------
+NÃO FAZER
+--------------------------------------------------------------------------------
+
+- Mandar proposta/PDF/HTML do ERP
+- Falar de RH neste recado
+- Dizer “me arrependi” ou “esquece o que eu falei”
+- Prometer que depois liga pedido, OS, estoque, NF
+- Baixar o preço do pacote de R$ 25 mil
+- Inventar mensalidade na hora
+- Ir pessoalmente sem ela ter pedido os 20 minutos
+- Segundo zap de cobrança

@@ -1,0 +1,14 @@
+.env
+.env.aws
+.env.aws.bak*
+apps/api/.env
+apps/api/vendor/
+apps/api/storage/*.key
+apps/api/.phpunit.result.cache
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.npm-cache/
+.idea/
+.vscode/
+*.log
+.DS_Store

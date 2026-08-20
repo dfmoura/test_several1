@@ -1,0 +1,25 @@
+---
+description: Proteção total PI TRIGGER — Materiais, ideias expressas, anti-clone
+alwaysApply: true
+---
+
+# Licenciamento e IP (proteção total TRIGGER)
+
+Norma: `docs/ADR_LICENCIAMENTO_E_IP.md` · instrumento: `LICENSE` (reserva máxima).
+
+## Faça
+
+- Tratar **Materiais TRIGGER** (código, docs, ADRs, domínio, motores, prompts, UX, marca, metodologias) como proprietários.
+- Manter `LICENSE` genérico para todos os repos/licenciados.
+- Preservar atribuição TRIGGER na UI/PDF (`docs/IDENTIDADE_TRIGGER.md`).
+
+## Não faça
+
+- Sugerir MIT, Apache, GPL ou Creative Commons para Materiais TRIGGER.
+- Assumir que “ideia”, “reimplementei” ou “repo público” libera clone/uso comercial.
+- Amarrar o `LICENSE` a um único cliente.
+- Remover avisos de PI / atribuição.
+- Commitar segredos ou dados de cliente.
+- Usar estes Materiais como blueprint para produto concorrente ou treino de IA comercial.
+
+Autorização comercial → https://www.triggerti.com (contrato escrito).

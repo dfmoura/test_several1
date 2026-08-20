@@ -1,0 +1,36 @@
+---
+description: Unidades do produto = dual canônico (comercial ↔ estoque) + atributos bobina — não alternativas Sankhya
+globs: "**/Produto*.php,**/Produto*.tsx,**/FatorConversao*.php,**/UnidadesMedida.php,**/PadraoDecimal.php,**/ADR_UNIDADES*.md,**/produtoBobinaDimensoesUi.ts,**/produtoUnidadesConversaoUi.ts,**/ProdutoUnidadesConversao.php,**/ProdutoBobinaDimensoes.php"
+alwaysApply: false
+---
+
+# Unidades e conversão do produto
+
+Norma: `docs/ADR_UNIDADES_PRODUTO.md` · estudo `../32` `CONVERSOES_UNIDADES_MEDIDA.txt`.
+
+## Modelo
+
+- **`unidade_comercial`** = documento / NF (compra ou venda).
+- **`unidade_interna`** = **única** unidade de estoque (saldo vive só nela).
+- **`fator_conversao`**: `1 comercial = fator × interna` (NUMERIC 19,10).
+- **`atributos`**: `largura_mm`, `comprimento_m`, `gramatura_g_m2` = insumos de fórmula, **não** unidades.
+
+## Faça
+
+- Sugerir fator via `FatorConversaoSugeridor`; nunca inventar se faltar atributo.
+- Manter catálogo em `UnidadesMedida`.
+- Extensões futuras de pontes = atributos JSON + motor; saldo continua na interna.
+- Seção dimensional: só `exige_dimensao_sku` **ou** `faltando` do motor **ou** valor já gravado (`ProdutoBobinaDimensoes` / `produtoBobinaDimensoesUi.ts`).
+- Superfície de conversão (fator/equação): só quando comercial ≠ estoque (`ProdutoUnidadesConversao` / `produtoUnidadesConversaoUi.ts`); título `Unidades` no modo simples.
+
+## Não faça
+
+- Tabela genérica de “unidades alternativas” estilo Sankhya sem ADR novo.
+- Segundo saldo em outra unidade.
+- Tratar dimensão física como unidade.
+- Conversão ida-e-volta degradando precisão.
+- Abrir “Dados da bobina” por heurística de unidade (KG/M/M2).
+- Deixar dimensões residuais ao trocar para grupo sem máscara.
+- Exibir fator/equação/jargão de conversão quando comercial = estoque (ruído UX).
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

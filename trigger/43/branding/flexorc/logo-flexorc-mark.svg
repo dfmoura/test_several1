@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="FLEXORC">
+  <rect width="128" height="128" rx="28" fill="#1a3568"/>
+  <rect x="26" y="32" width="76" height="64" rx="12" fill="#7cb518"/>
+  <rect x="40" y="46" width="14" height="40" rx="7" fill="#1a3568"/>
+  <rect x="40" y="46" width="46" height="14" rx="7" fill="#1a3568"/>
+  <rect x="40" y="66" width="28" height="14" rx="7" fill="#1a3568"/>
+</svg>

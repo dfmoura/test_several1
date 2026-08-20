@@ -16,8 +16,6 @@ from app.auth.middleware import AuthMiddleware
 from app.coleta_api import router as coleta_router
 from app.compras.api import router as compras_router
 from app.config import BASE_DIR
-from app.cobertura_bases import router as cobertura_bases_router
-from app.consulta_processo import router as consulta_processo_router
 from app.dashboard_gerencial import router as dashboard_router
 from app.database import init_db
 from app.distribuicao_localidade import router as distribuicao_localidade_router
@@ -57,9 +55,7 @@ app.include_router(coleta_router)
 app.include_router(observadores_router)
 app.include_router(compras_router)
 app.include_router(dashboard_router)
-app.include_router(cobertura_bases_router)
 app.include_router(distribuicao_localidade_router)
-app.include_router(consulta_processo_router)
 app.include_router(propostas_abertas_router)
 app.include_router(analise_preco_router)
 app.include_router(orgaos_router)

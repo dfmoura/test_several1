@@ -1,0 +1,153 @@
+# Base Compose — caminho canônico local → Lightsail (homolog → produção).
+# Seguro por padrão: MySQL e API NÃO publicam porta no host.
+#
+# Local (dev):     make up          → inclui docker-compose.local.yml
+# AWS homolog/prod: make up-aws     → inclui docker-compose.aws.yml
+#
+# NÃO rode só este arquivo no notebook: containers sobem sem :8043
+# → browser ERR_CONNECTION_REFUSED. Use make up / make doctor.
+#
+# Ver docs/DEPLOY_LOCAL_AWS.md
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: erp43_mysql
+    command:
+      [
+        "--default-authentication-plugin=mysql_native_password",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+        "--innodb-buffer-pool-size=128M",
+        "--max-connections=40",
+        "--performance-schema=OFF",
+        "--skip-name-resolve",
+      ]
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-erp_rlp}
+      MYSQL_USER: ${DB_USERNAME:-erp}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-erp_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+    volumes:
+      - mysqldata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/erp.cnf:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-p${DB_ROOT_PASSWORD:-root_secret}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    # Cap no host ≤2 GB: sob pressão, preferir OOM no queue (recuperável) a no mysql.
+    mem_limit: 384m
+
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp43_app
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+      - ./branding:/var/www/branding:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
+    environment: &app_env
+      APP_NAME: ${APP_NAME:-FLEXORC}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${APP_KEY:-}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8043}
+      ERP_STAGE: ${ERP_STAGE:-local}
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-erp_rlp}
+      DB_USERNAME: ${DB_USERNAME:-erp}
+      DB_PASSWORD: ${DB_PASSWORD:-erp_secret}
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:8043,127.0.0.1:8043,localhost:5173,127.0.0.1:5173}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8043}
+      ORCAMENTO_PUBLIC_BASE_URL: ${ORCAMENTO_PUBLIC_BASE_URL:-}
+      DEFAULT_EMPRESA_CODIGO: ${DEFAULT_EMPRESA_CODIGO:-EMP-00001}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@rlp.com.br}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo@123}
+      BRASILAPI_BASE: https://brasilapi.com.br/api
+      VIACEP_BASE: https://viacep.com.br/ws
+      OPENCEP_BASE: ${OPENCEP_BASE:-https://opencep.com/v1}
+      CEP_HTTP_TIMEOUT_SEC: ${CEP_HTTP_TIMEOUT_SEC:-5}
+      ORS_API_KEY: ${ORS_API_KEY:-}
+      ORS_BASE: ${ORS_BASE:-https://api.openrouteservice.org}
+      ORS_HTTP_TIMEOUT_SEC: ${ORS_HTTP_TIMEOUT_SEC:-8}
+      SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
+      IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
+      FISCAL_EMISSOR: ${FISCAL_EMISSOR:-focus}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 192m
+
+  queue:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp43_queue
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+      - ./branding:/var/www/branding:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
+    environment:
+      <<: *app_env
+      SEED_ON_BOOT: "false"
+    command:
+      [
+        "php",
+        "-d",
+        "memory_limit=384M",
+        "artisan",
+        "queue:work",
+        "database",
+        "--sleep=1",
+        "--tries=1",
+        "--timeout=240",
+        "--max-time=3600",
+      ]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+    # Worker pronto para jobs futuros (Focus, e-mail, etc.). Hoje ocioso — ok.
+    mem_limit: 384m
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: erp43_web
+    volumes:
+      - ./branding:/var/www/branding:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    mem_limit: 48m
+
+volumes:
+  mysqldata:

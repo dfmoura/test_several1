@@ -7,8 +7,6 @@ from fastapi.testclient import TestClient
 
 from app.database import (
     CompraContratacao,
-    OrgaoConsolidado,
-    OrgaoVinculo,
     PbiOrgao,
     PbiProcessoLicitatorio,
     SessionLocal,
@@ -200,13 +198,6 @@ def test_endpoints_usam_data_canonica_e_preservam_ano_legado(client):
         assert powerbi.status_code == 200
         assert powerbi.json()["total"] == 1
 
-        consulta = client.get(
-            "/api/consulta-processo/buscar",
-            params={**params_periodo, "processo": processo},
-        )
-        assert consulta.status_code == 200
-        assert consulta.json()["total_registros"] == 2
-
         propostas = client.get(
             "/api/propostas-abertas/resumo",
             params={**params_periodo, "texto": processo},
@@ -217,79 +208,5 @@ def test_endpoints_usam_data_canonica_e_preservam_ano_legado(client):
         db.query(PbiProcessoLicitatorio).filter_by(processo=processo).delete()
         db.query(CompraContratacao).filter_by(chave_compra=processo).delete()
         db.query(PbiOrgao).filter(PbiOrgao.nome == f"Teste período endpoint {token}").delete()
-        db.commit()
-        db.close()
-
-
-def test_consulta_por_numero_compra_cruza_processo_com_powerbi(client):
-    token = uuid4().hex[:8]
-    uasg = f"T{token[:7]}"
-    nome_orgao = f"Órgão compra {token}"
-    numero_compra = f"900{token[:4]}/2096"
-    processo_api = "98765/2096"
-
-    db = SessionLocal()
-    try:
-        consolidado = OrgaoConsolidado(nome=nome_orgao, sigla=f"C{token[:4]}")
-        orgao_pbi = PbiOrgao(nome=nome_orgao)
-        db.add_all([consolidado, orgao_pbi])
-        db.flush()
-        db.add_all(
-            [
-                OrgaoVinculo(
-                    orgao_consolidado_id=consolidado.id,
-                    fonte="compras_api",
-                    chave=uasg,
-                ),
-                OrgaoVinculo(
-                    orgao_consolidado_id=consolidado.id,
-                    fonte="powerbi",
-                    chave=nome_orgao,
-                ),
-                CompraContratacao(
-                    ano=2096,
-                    chave_compra=f"CHAVE-{token}",
-                    id_compra=f"ID-{token}",
-                    numero=numero_compra,
-                    unidade_compradora=uasg,
-                    unidade_nome=nome_orgao,
-                    processo=processo_api,
-                ),
-                PbiProcessoLicitatorio(
-                    orgao_id=orgao_pbi.id,
-                    ano_processo=2096,
-                    processo="98765",
-                    modalidade="Teste",
-                    fonte_ano_coleta=2096,
-                ),
-            ]
-        )
-        db.commit()
-
-        busca = client.get(
-            "/api/consulta-processo/buscar",
-            params={"numero_compra": numero_compra, "ano": 2096},
-        )
-        assert busca.status_code == 200
-        payload = busca.json()
-        assert payload["numero_compra"] == numero_compra
-        assert payload["total_registros"] == 2
-        assert payload["grupos"][0]["cobertura"] == {"api": True, "powerbi": True}
-
-        detalhe = client.get(
-            "/api/consulta-processo/detalhe",
-            params={"numero_compra": numero_compra, "ano": 2096},
-        )
-        assert detalhe.status_code == 200
-        assert detalhe.json()["cobertura"]["nas_duas"] is True
-
-        sem_filtro = client.get("/api/consulta-processo/detalhe")
-        assert sem_filtro.status_code == 400
-    finally:
-        db.query(CompraContratacao).filter_by(chave_compra=f"CHAVE-{token}").delete()
-        db.query(PbiProcessoLicitatorio).filter_by(orgao_id=orgao_pbi.id).delete()
-        db.query(OrgaoVinculo).filter_by(orgao_consolidado_id=consolidado.id).delete()
-        db.query(PbiOrgao).filter_by(id=orgao_pbi.id).delete()
-        db.query(OrgaoConsolidado).filter_by(id=consolidado.id).delete()
         db.commit()
         db.close()

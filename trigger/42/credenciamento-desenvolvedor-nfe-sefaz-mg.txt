@@ -81,26 +81,76 @@ https://www.fazenda.mg.gov.br/empresas/legislacao_tributaria/decretos/2025/d4912
 Portal SPED MG (avisos de NF-e):
 https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
 
-PASSO 2 - Acesse o ambiente eletronico da SEF/MG
+PASSO 2 - Abra o Portal SPED (tela de partida)
 --------------------------------
-Art. 3 da Portaria 277: o credenciamento e feito no sitio eletronico
-da SEF, com:
-  - certificado digital da empresa desenvolvedora, OU
-  - conta gov.br da empresa / representante.
+Tela correta de documentacao nacional:
+https://www.gov.br/sped/pt-br
 
-Pontos de entrada oficiais:
-  - Portal da SEF/MG:     https://www.fazenda.mg.gov.br
-  - Portal SPED MG:       https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
-  - SIARE:                https://www2.fazenda.mg.gov.br/sol/
+O que aparece na home:
+  - Escrituracoes digitais
+  - DOCUMENTOS FISCAIS          <-- clique aqui para NF-e / NFC-e / CT-e
+  - PAINEIS ESTATISTICOS
 
-Procure no portal o modulo de credenciamento de empresas desenvolvedoras
-de software para NF-e / NFC-e (aviso da Portaria 277 na pagina da NF-e).
+Atalhos na mesma pagina (NF-e, CT-e, ECD, ECF, EFD...):
+  ATENCAO: o atalho "NF-e" desta home vai para ESTATISTICAS
+  (quantos emitentes por UF/CNAE), NAO para credenciamento.
+  Nao use esse atalho para se cadastrar como desenvolvedor.
 
-PASSO 3 - Autentique-se
+Caminho certo na home:
+  1. Clique em DOCUMENTOS FISCAIS
+     https://www.gov.br/sped/pt-br/assuntos/documentos-fiscais
+  2. Abra NF-e (documentacao tecnica nacional).
+     O portal tecnico da NF-e continua neste endereco:
+     https://www.nfe.fazenda.gov.br/portal/
+  3. La baixe MOC, Notas Tecnicas e schemas XML.
+
+Essa tela do SPED e PUBLICA. Nao existe nela um botao
+"credenciar desenvolvedor habilitado para gerar NF-e em MG".
+
+PASSO 3 - Autentique-se (o que fazer NESTA tela)
 --------------------------------
-1. Conecte o certificado e-CNPJ da SUA empresa (ou faca login gov.br).
-2. Confirme que o CNPJ exibido e o da desenvolvedora, nao o de cliente.
-3. Aceite os termos de uso, se o sistema apresentar.
+O canto superior direito do gov.br tem "Entrar".
+Isso e o login generico da conta gov.br.
+
+NAO use esse "Entrar" da pagina do SPED para o credenciamento
+de software house em Minas Gerais. Ele so autentica no
+ambiente federal (conteudo/servicos gov.br). Nao habilita
+sua empresa na SEFAZ-MG.
+
+Como autenticar de verdade, conforme a Portaria SRE 277/2025:
+
+  A) Credenciamento da DESENVOLVEDORA (sua empresa) em MG
+     Onde: sitio eletronico da SEF/MG, nao o portal SPED.
+     Com:  e-CNPJ da desenvolvedora  OU  conta gov.br
+           do representante legal (nivel prata ou ouro).
+
+     Entradas:
+       Portal SEF/MG:   https://www.fazenda.mg.gov.br
+       Portal SPED MG:  https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
+       SIARE:           https://www2.fazenda.mg.gov.br/sol/
+
+     Na pagina da NF-e do SPED MG, procure o aviso da
+     Portaria 277 e o modulo de credenciamento de empresas
+     desenvolvedoras de software.
+
+     Depois:
+       1. Conecte o token/A1 (e-CNPJ da SUA empresa) ou
+          faca login gov.br do socio/administrador.
+       2. Confira se o CNPJ na tela e o da desenvolvedora,
+          nao o de cliente.
+       3. Aceite os termos, se aparecerem.
+
+  B) Autenticacao para o SISTEMA GERAR NF-e
+     Nao e login em site. E certificado digital na conexao
+     HTTPS (autenticacao mutua) com os webservices da
+     SEFAZ-MG. O certificado e o e-CNPJ do ESTABELECIMENTO
+     EMISSOR (seu cliente mineiro), nao o da software house.
+
+Resumo do passo 3:
+  Portal SPED nacional  = documentacao (sem cadastro MG)
+  "Entrar" do gov.br    = login federal (nao credencia MG)
+  SEF/MG + e-CNPJ/gov.br = credenciamento da desenvolvedora
+  Webservice + e-CNPJ do cliente = autorizacao da nota
 
 PASSO 4 - Preencha o cadastro da desenvolvedora
 --------------------------------
@@ -292,6 +342,15 @@ e o NOME DA SUA SOFTWARE HOUSE no SIARE. Oriente isso no onboarding.
 ==============================================================================
 9. LINKS OFICIAIS
 ==============================================================================
+
+Portal SPED nacional (documentacao)
+https://www.gov.br/sped/pt-br
+
+Documentos Fiscais no SPED
+https://www.gov.br/sped/pt-br/assuntos/documentos-fiscais
+
+Portal Nacional da NF-e (MOC e Notas Tecnicas)
+https://www.nfe.fazenda.gov.br/portal/
 
 SEF/MG
 https://www.fazenda.mg.gov.br

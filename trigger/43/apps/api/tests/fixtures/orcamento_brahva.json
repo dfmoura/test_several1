@@ -1,0 +1,79 @@
+{
+  "arquivo": "15-07 BRAHVA.xlsm",
+  "cliente": "BRAHVA",
+  "medida": "8,0X12,4",
+  "largura_cm": 9.0,
+  "puxada_cm": 12.36885,
+  "cores": 5,
+  "papel": "BOPP PRATA BXT",
+  "acabamento": "VERNIZ",
+  "modelos": 7,
+  "colunas": 1,
+  "etiq_por_rolo": 1000,
+  "tubete": "3\"",
+  "z": 80.0,
+  "faca": "DESENHADA",
+  "repeticao": 2,
+  "maquina_roda_servico": "MODULAR",
+  "maquina": "MODULAR",
+  "imposto_pct": 16.0,
+  "matriz": "SIM",
+  "coluna_rebobinacao": 1,
+  "tipo_troca_produto": "PRETO INTEIRO",
+  "rpm": 1000.0,
+  "overrides": {
+    "papel": {
+      "BOPP PRATA BXT": 8.0
+    },
+    "tinta_acima_m2": 0.8
+  },
+  "faixas": [
+    {
+      "quantidade": 7000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 3090.0,
+        "matriz": 536.0,
+        "total": 3626.0,
+        "metragem": 865.8195000000001,
+        "m2": 78.0,
+        "hora_maq": 1.8658195000000002,
+        "valor_servico": 2655.9910265000003,
+        "perda_papel_troca_produto": 126.0,
+        "valor_papel_troca_produto": 1008.0
+      }
+    },
+    {
+      "quantidade": 10000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 3550.0,
+        "matriz": 536.0,
+        "total": 4086.0,
+        "metragem": 1236.885,
+        "m2": 111.4,
+        "hora_maq": 2.236885,
+        "valor_servico": 3054.490103,
+        "perda_papel_troca_produto": 126.0,
+        "valor_papel_troca_produto": 1008.0
+      }
+    },
+    {
+      "quantidade": 14000,
+      "comissao_pct": 0.0,
+      "excel": {
+        "etiqueta": 4170.0,
+        "matriz": 536.0,
+        "total": 4706.0,
+        "metragem": 1731.6390000000001,
+        "m2": 155.9,
+        "hora_maq": 2.7316390000000004,
+        "valor_servico": 3591.8401442,
+        "perda_papel_troca_produto": 126.0,
+        "valor_papel_troca_produto": 1008.0
+      }
+    }
+  ],
+  "papel_preco_arquivo": 8.0,
+  "tinta_c3": 0.8
+}

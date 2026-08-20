@@ -1,0 +1,33 @@
+---
+description: Superfície FLEXORC vs esqueleto herdado do FLEXOERP — não expandir ERP nesta pasta
+alwaysApply: true
+---
+
+# Superfície do produto (esta instalação)
+
+Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md`.
+
+**FLEXORC** nesta pasta: orçamento até o envio (link + sinal/PIX) + cadastro de clientes/prospects + self-service de empresa.
+
+## Superfície (UX / menu)
+
+Painel, empresa, parceiros, patrimônio/departamentos se já existirem no cadastro, ORC, mapa de facas, catálogo ORC, parâmetros, usuários, sinal/a receber, onboarding ASAAS.
+
+Sem cadastro de **Produtos** (SKU): insumo/preço do ORC é o catálogo da EMP.
+
+## Esqueleto (não apagar, não oferecer)
+
+PED, OP, estoque, compras, cadastro de SKU (`/produtos`), NF-e/NFS-e, faturamento de saída, expedição, comissão: **permanecem no código** (motor, FK, testes). A UI canônica **não** os promove no menu.
+
+ADRs de produção/fiscal/estoque nesta pasta documentam o esqueleto herdado de `../39` — não autorizam nova tela ERP aqui.
+
+## Faça
+
+- Mudança de ORC/PAR/onboarding/sinal: manter isolamento `empresa_id` e o motor R1–R20.
+- Se o trabalho for do ERP completo: `../39` (FLEXOERP), não esta pasta.
+
+## Não faça
+
+- Apagar serviços/migrations/testes de PED/estoque/fiscal “porque o FLEXORC não mostra”.
+- Recolocar estoque/pedido/NF ou o cadastro de Produtos no menu.
+- Copiar proposta comercial FLEXOERP×RLP, prompts Replit ou backlog do 39 para cá.

@@ -1,0 +1,29 @@
+# Fronteira operações de saída (não misturar os bolos)
+
+Norma: `docs/ADR_OPERACOES_SAIDA.md` · estudo `../32` CADASTRO_PRODUTOS_VENDA / ORDEM_SERVICO / GERACAO_ORCAMENTO §2 §10.3 / PATRIMONIO · NFS-e `../21` · Focus `../28`.
+
+## Trilhos
+
+```
+INDUSTRIALIZAÇÃO  ORC R1–R20 → OP → NF-e 55 → PA
+SERVIÇO           ORC comercial → OS → NFS-e Nacional → sem PA
+CESSÃO DE BEM     CES- no patrimônio (comodato) → BEM CEDIDO → sem FAT/NF
+```
+
+## Faça
+
+- Primeira escolha no comercial: o que está vendendo. Default = industrialização (não quebrar o que já opera).
+- Serviço: catálogo curto (`REBOBINACAO` / `ACERTO` / `AVULSO` / `MANUTENCAO`). Preço informado; sem faca/papel/cores.
+- NFS-e só no item `SVC-*`. Códigos ISS do catálogo, não copiar `130501` da etiqueta.
+- Comodato: `CES-` + BEM `CEDIDO`. Sem nota. Locação cobrada ≠ ISS (SV 31). Manutenção cobrada = serviço.
+- Isolar `empresa_id`. OS no mesmo PED — sem oficina paralela.
+
+## Não faça
+
+- Mandar etiqueta que circula para NFS-e 13.05 (ICMS / NF-e).
+- Emitir NF no comodato.
+- Rodar o motor R1–R20 para “fazer parecer” um serviço.
+- SKU eterno por rebobinação pontual.
+- Fundir BEM com grupo G10 do ORC.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_OPERACOES_SAIDA.md`.

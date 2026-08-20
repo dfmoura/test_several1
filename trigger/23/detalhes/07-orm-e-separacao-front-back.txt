@@ -95,7 +95,7 @@ Separação correta = responsabilidades diferentes:
     - Autenticação, autorização, cookies de sessão
     - Coleta (httpx → APIs externas)
     - Persistência (SQLAlchemy → SQLite)
-    - Regras e agregações (dashboard, cobertura, CNPJ, IA)
+    - Regras e agregações (dashboard, CNPJ, IA)
     - Expõe JSON em rotas /api/*
 
   FRONT-END (navegador)

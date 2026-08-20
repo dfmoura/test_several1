@@ -112,12 +112,6 @@
         <button class="nav-btn" data-page="localidade" data-roles="admin,consulta">
           <span class="nav-ico" aria-hidden="true">⌖</span> Mapa · Localidade
         </button>
-        <button class="nav-btn" data-page="consulta" data-roles="admin,consulta">
-          <span class="nav-ico" aria-hidden="true">⌕</span> Consulta · Processo
-        </button>
-        <button class="nav-btn" data-page="cobertura" data-roles="admin,consulta">
-          <span class="nav-ico" aria-hidden="true">⧉</span> Cobertura · Bases
-        </button>
         <button class="nav-btn" data-page="vencedores" data-roles="admin,consulta">
           <span class="nav-ico" aria-hidden="true">◇</span> CNPJs vencedores
         </button>
@@ -527,137 +521,6 @@
             <pre id="coleta-log" class="log">Aguardando início da coleta…</pre>
             <div id="coleta-result" class="result hidden"></div>
           </div>
-        </section>
-
-        <!-- ============ COBERTURA · BASES ============ -->
-        <section id="page-cobertura" class="page">
-          <div class="panel filters-panel">
-            <p class="muted">
-              Compara as duas bases pela mesma chave do painel e da consulta:
-              <strong>órgão consolidado + ano + nº do processo</strong>.
-              Liste o que existe só no <strong>Compras.gov</strong> ou só no <strong>Power BI</strong>.
-            </p>
-            <form id="form-cob-filtros" class="filters-grid">
-              <label class="field">
-                <span>Período</span>
-                <select id="cob-filtro-periodo">
-                  <option value="ano">Ano</option>
-                  <option value="quadrimestre">Quadrimestre</option>
-                  <option value="intervalo">Intervalo</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Ano de referência</span>
-                <select id="cob-filtro-ano"><option value="">Todos</option></select>
-              </label>
-              <label class="field" hidden><span>Quadrimestre</span><select id="cob-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
-              <label class="field" hidden><span>Data inicial</span><input type="date" id="cob-filtro-data-inicial" /></label>
-              <label class="field" hidden><span>Data final</span><input type="date" id="cob-filtro-data-final" /></label>
-              <div class="field field-wide">
-                <span>Power BI · data de referência</span>
-                <label class="chk-label" title="Quando a data de abertura estiver vazia, o filtro do Power BI usa a data de homologação">
-                  <input type="checkbox" id="cob-filtro-fallback-homologacao" checked />
-                  Sem abertura → usar homologação
-                </label>
-              </div>
-              <label class="field">
-                <span>Órgão consolidado</span>
-                <select id="cob-filtro-orgao"><option value="">Todos</option></select>
-              </label>
-              <label class="field">
-                <span>Modalidade consolidada</span>
-                <div id="cob-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
-              </label>
-              <div class="field-actions">
-                <button type="submit" class="btn primary" id="btn-cob-atualizar">Atualizar</button>
-                <button type="button" class="btn ghost" id="btn-cob-limpar">Limpar</button>
-              </div>
-            </form>
-            <p id="cob-filtros-resumo" class="meta-line"></p>
-          </div>
-
-          <div id="cob-kpis" class="cob-kpis" aria-live="polite"></div>
-
-          <div class="panel cob-workspace">
-            <div class="cob-vistas" role="tablist" aria-label="Vista de cobertura">
-              <button type="button" class="cob-vista-btn active" data-vista="em_ambas" role="tab" aria-selected="true">
-                Nas duas bases
-              </button>
-              <button type="button" class="cob-vista-btn" data-vista="somente_compras" role="tab" aria-selected="false">
-                Só no Compras.gov
-              </button>
-              <button type="button" class="cob-vista-btn" data-vista="somente_powerbi" role="tab" aria-selected="false">
-                Só no Power BI
-              </button>
-              <button type="button" class="cob-vista-btn" data-vista="sem_chave_compras" role="tab" aria-selected="false">
-                Sem chave · Compras.gov
-              </button>
-              <button type="button" class="cob-vista-btn" data-vista="sem_chave_powerbi" role="tab" aria-selected="false">
-                Sem chave · Power BI
-              </button>
-            </div>
-            <p id="cob-vista-desc" class="cob-vista-desc muted"></p>
-            <div id="cob-lista" class="cob-lista">
-              <p class="muted loading-line">Carregando…</p>
-            </div>
-            <div id="cob-paginacao" class="cob-paginacao" hidden></div>
-          </div>
-        </section>
-
-        <!-- ============ CONSULTA · PROCESSO ============ -->
-        <section id="page-consulta" class="page">
-          <div class="panel filters-panel">
-            <p class="muted">
-              Visão unificada do mesmo processo licitatório nas duas bases:
-              <strong>Compras.gov · PNCP</strong> e <strong>Power BI · PMU</strong>.
-              Consulte pelo processo ou pelo número da compra. O cruzamento usa
-              órgão consolidado + ano + número do processo.
-            </p>
-            <form id="form-cp-filtros" class="filters-grid">
-              <label class="field field-wide">
-                <span>Processo</span>
-                <input type="text" id="cp-filtro-processo" placeholder="Ex.: 63, PE 63/2025, 5302023" autocomplete="off" />
-              </label>
-              <label class="field field-wide">
-                <span>Nº da compra</span>
-                <input type="text" id="cp-filtro-numero-compra" placeholder="Ex.: 90063/2025" autocomplete="off" />
-              </label>
-              <label class="field">
-                <span>Período</span>
-                <select id="cp-filtro-periodo"><option value="ano">Ano</option><option value="quadrimestre">Quadrimestre</option><option value="intervalo">Intervalo</option></select>
-              </label>
-              <label class="field">
-                <span>Ano de referência</span>
-                <select id="cp-filtro-ano"><option value="">Todos</option></select>
-              </label>
-              <label class="field" hidden><span>Quadrimestre</span><select id="cp-filtro-quadrimestre"><option value="">Selecione</option><option value="1">1º · jan–abr</option><option value="2">2º · mai–ago</option><option value="3">3º · set–dez</option></select></label>
-              <label class="field" hidden><span>Data inicial</span><input type="date" id="cp-filtro-data-inicial" /></label>
-              <label class="field" hidden><span>Data final</span><input type="date" id="cp-filtro-data-final" /></label>
-              <div class="field field-wide">
-                <span>Power BI · data de referência</span>
-                <label class="chk-label" title="Quando a data de abertura estiver vazia, o filtro do Power BI usa a data de homologação">
-                  <input type="checkbox" id="cp-filtro-fallback-homologacao" checked />
-                  Sem abertura → usar homologação
-                </label>
-              </div>
-              <label class="field">
-                <span>Órgão consolidado</span>
-                <select id="cp-filtro-orgao"><option value="">Todos</option></select>
-              </label>
-              <label class="field">
-                <span>Modalidade</span>
-                <div id="cp-filtro-modalidade" class="ms" data-placeholder="Todas"></div>
-              </label>
-              <div class="field-actions">
-                <button type="submit" class="btn primary" id="btn-cp-buscar">Consultar</button>
-                <button type="button" class="btn ghost" id="btn-cp-limpar">Limpar</button>
-              </div>
-            </form>
-            <p id="cp-consulta-meta" class="meta-line"></p>
-          </div>
-
-          <div id="cp-picker" class="hidden"></div>
-          <div id="cp-resultado" class="cp-resultado hidden"></div>
         </section>
 
         <!-- ============ CNPJs VENCEDORES ============ -->
@@ -1838,9 +1701,7 @@
   <script src="/static/auth.js?v=osb3"></script>
   <script src="/static/coleta.js?v=osb4"></script>
   <script src="/static/dashboard.js?v=osb9"></script>
-  <script src="/static/cobertura.js?v=osb2"></script>
   <script src="/static/localidade.js?v=osb9"></script>
-  <script src="/static/consulta_processo.js?v=osb10"></script>
   <script src="/static/propostas_abertas.js?v=osb14"></script>
   <script src="/static/compras.js?v=osb12"></script>
   <script src="/static/vencedores_cnpj.js?v=osb13"></script>

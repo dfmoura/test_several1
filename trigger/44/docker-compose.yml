@@ -1,0 +1,134 @@
+services:
+  api:
+    build: .
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    container_name: zapvia-api
+    restart: unless-stopped
+    ports:
+      - "8144:8000"
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zapvia:zapvia@postgres:5432/zapvia
+      DATABASE_URL_SYNC: postgresql://zapvia:zapvia@postgres:5432/zapvia
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zapvia:zapvia@rabbitmq:5672/zapvia
+      PUBLIC_BASE_URL: http://localhost:8144
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [zapvia-net]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  worker:
+    build: .
+    command: ["python", "-m", "app.worker"]
+    container_name: zapvia-worker
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://zapvia:zapvia@postgres:5432/zapvia
+      DATABASE_URL_SYNC: postgresql://zapvia:zapvia@postgres:5432/zapvia
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://zapvia:zapvia@rabbitmq:5672/zapvia
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [zapvia-net]
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: zapvia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zapvia
+      POSTGRES_PASSWORD: zapvia
+      POSTGRES_DB: zapvia
+    ports:
+      - "5444:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks: [zapvia-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zapvia -d zapvia"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: zapvia-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6384:6379"
+    volumes:
+      - redis_data:/data
+    networks: [zapvia-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: zapvia-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: zapvia
+      RABBITMQ_DEFAULT_PASS: zapvia
+      RABBITMQ_DEFAULT_VHOST: zapvia
+    ports:
+      - "5674:5672"
+      - "15644:15672"
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    networks: [zapvia-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: zapvia-pgadmin
+    profiles: ["tools"]
+    restart: unless-stopped
+    ports:
+      - "5054:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks: [zapvia-net]
+
+volumes:
+  pg_data:
+  redis_data:
+  rabbit_data:
+
+networks:
+  zapvia-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.44.0.0/24

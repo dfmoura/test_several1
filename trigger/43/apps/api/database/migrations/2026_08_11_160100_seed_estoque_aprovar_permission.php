@@ -1,0 +1,57 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+
+/**
+ * BL-036 — estoque.aprovar (SoD: quem conta ≠ quem aprova AJU).
+ */
+return new class extends Migration
+{
+    private const PERMISSION = 'estoque.aprovar';
+
+    /** @var array<string, list<string>> */
+    private const ROLE_GRANTS = [
+        'ADMIN' => [self::PERMISSION],
+        // COMPRAS/PRODUCAO criam AJU (estoque.escrever); não aprovam o próprio.
+    ];
+
+    public function up(): void
+    {
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        Permission::findOrCreate(self::PERMISSION, 'web');
+
+        foreach (self::ROLE_GRANTS as $roleName => $perms) {
+            $role = Role::findOrCreate($roleName, 'web');
+            foreach ($perms as $perm) {
+                if (! $role->hasPermissionTo($perm)) {
+                    $role->givePermissionTo($perm);
+                }
+            }
+        }
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+
+    public function down(): void
+    {
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        foreach (self::ROLE_GRANTS as $roleName => $perms) {
+            $role = Role::query()->where('name', $roleName)->where('guard_name', 'web')->first();
+            if ($role) {
+                $role->revokePermissionTo($perms);
+            }
+        }
+
+        Permission::query()
+            ->where('guard_name', 'web')
+            ->where('name', self::PERMISSION)
+            ->delete();
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+};

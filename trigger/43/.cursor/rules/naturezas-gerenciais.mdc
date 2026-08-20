@@ -1,0 +1,33 @@
+---
+description: Invariante Natureza gerencial (NAT) ≠ produto.natureza ≠ plano contábil
+globs: "**/NaturezaGerencial*.php,**/NaturezasGerenciais*.tsx,**/naturezas*.ts,**/ADR_NATUREZAS*.md"
+alwaysApply: false
+---
+
+# Fronteira Naturezas Gerenciais (NAT)
+
+Norma: `docs/ADR_NATUREZAS_GERENCIAIS.md` · estudo `../32` `NATUREZAS_GERENCIAIS_RECEITA_DESPESA.txt` · BL-032.
+
+## Donos
+
+- **`naturezas_gerenciais` (`NAT-1.01.01`)** = classificação gerencial de dinheiro (grupos 1–5).
+- **`produto_grupos.natureza` (`COMPRA|VENDA|AMBOS`)** = orientação do SKU — **não** é NAT.
+- **`empresa_contas_financeiras` (CFIN-)** = tesouraria — **não** é NAT.
+- Plano de contas do contador = fora do ERP; ponte futura = de-para, sem CoA nativo.
+
+## Faça
+
+- Seed da árvore canônica; só folhas com `aceita_lancamento`.
+- Labels de UI/API: **Natureza gerencial** / `natureza_gerencial`.
+- Quando existir TIT/BX: FK `natureza_id` em folha ativa dos grupos 1–5.
+- Manter soft-inativar; nunca hard-delete de código seedado.
+
+## Não faça
+
+- Fundir com `produto_grupos.natureza` ou reutilizar o campo.
+- Grupo 9 / LAI / “caixa 2” / livro auxiliar.
+- Plano de contas oficial, ECD ou partidas dobradas “de passagem”.
+- Criar folhas custom ou alterar `codigo`/`grupo` sem ADR novo.
+- Amarrar ORC/BEM/produto a NAT sem TIT e sem ADR.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

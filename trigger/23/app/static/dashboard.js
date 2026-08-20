@@ -45,13 +45,13 @@ function dashCruzamento(id, cruz) {
   if (cruz.somente_esta_base) {
     extras.push(`<span>Somente aqui: <strong>${fmtNum(cruz.somente_esta_base)}</strong></span>`);
   }
-  const linkCob = `<a href="#cobertura" class="dash-cruz-link" data-cob-vista="${id === "api" ? "somente_compras" : "somente_powerbi"}">Ver lista</a>`;
+  const metaHtml = extras.length ? `<div class="dash-cruz-meta">${extras.join(" · ")}</div>` : "";
   return `<section class="dash-cruzamento">
     <h4>Presença na outra base
       <span class="dash-hint" title="Cruzamento por órgão consolidado + ano + nº do processo">ⓘ</span>
     </h4>
     <div class="dash-cruz-kpis">${cards}</div>
-    ${extras.length ? `<div class="dash-cruz-meta">${extras.join(" · ")} · ${linkCob}</div>` : `<div class="dash-cruz-meta">${linkCob}</div>`}
+    ${metaHtml}
   </section>`;
 }
 
@@ -185,17 +185,3 @@ $("#btn-dash-limpar")?.addEventListener("click", () => {
 });
 
 registrarPagina("dashboard", carregarDashboard);
-
-document.addEventListener("click", (ev) => {
-  const link = ev.target.closest?.(".dash-cruz-link");
-  if (!link) return;
-  ev.preventDefault();
-  const vista = link.dataset.cobVista;
-  if (vista) {
-    window.OSB = window.OSB || {};
-    window.OSB._cobVistaPendente = vista;
-  }
-  if (typeof window.OSB?.irParaPagina === "function") {
-    window.OSB.irParaPagina("cobertura");
-  }
-});

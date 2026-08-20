@@ -2,7 +2,7 @@
 
 ## Contexto do projeto
 
-Observatório de Licitações (Observatório Social Uberlândia). App FastAPI + SQLite + frontend em `app/static/` (shell com páginas: Painel, Mapa, Consulta, CNPJs vencedores, Propostas abertas, Coleta, Compras.gov, Power BI, Vínculos, Observadores, Setup). Hoje **não há autenticação**.
+Observatório de Licitações (Observatório Social Uberlândia). App FastAPI + SQLite + frontend em `app/static/` (shell com páginas: Painel, Mapa, CNPJs vencedores, Propostas abertas, Coleta, Compras.gov, Power BI, Vínculos, Observadores, Setup). Hoje **não há autenticação**.
 
 ## Objetivo
 
@@ -12,7 +12,7 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
 
 1. **Login por usuário/senha** (sessão cookie no servidor). Sem OAuth/Cognito.
 2. **Papéis iniciais:**
-   - `consulta` — leitura das telas de análise (Painel, Mapa, Consulta, CNPJs vencedores, Propostas abertas em modo leitura). **Não** acessa Setup, Coleta nem dispara job de CNPJs pendentes (nem APIs dessas áreas).
+   - `consulta` — leitura das telas de análise (Painel, Mapa, CNPJs vencedores, Propostas abertas em modo leitura). **Não** acessa Setup, Coleta nem dispara job de CNPJs pendentes (nem APIs dessas áreas).
    - `admin` (ou `operacao`) — acesso total, inclusive Setup, Coleta, disparo/cancelamento de CNPJs pendentes e gestão de usuários.
 3. **Limites rígidos:**
    - no máximo **1** usuário `admin`
