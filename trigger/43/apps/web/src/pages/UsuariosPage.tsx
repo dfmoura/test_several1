@@ -14,6 +14,7 @@ import {
   rolesCompatibleWith,
 } from '../lib/usuarios';
 import { useTableSort } from '../lib/useTableSort';
+import { sessaoAcessoUsuariosHint } from '../lib/sessaoAcesso';
 
 type Mode = 'closed' | 'create' | 'edit';
 
@@ -315,11 +316,32 @@ export function UsuariosPage() {
     }
   };
 
+  const handleLiberarSessao = async (user: Usuario) => {
+    if (
+      !confirm(
+        `Encerrar a sessão ativa de ${user.name}? A pessoa precisará entrar de novo. Use isto se o acesso ficou aberto em outro lugar.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.post(`/usuarios/${user.id}/liberar-sessao`);
+      setMessage(`Sessão de ${user.name} encerrada.`);
+      await load();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(formatApiFieldErrors(err.details, err.message));
+      } else {
+        setError(err instanceof Error ? err.message : 'Erro ao liberar sessão.');
+      }
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Usuários"
-        description="Acesso individual vinculado a colaborador · perfis RBAC com segregação de funções"
+        description={sessaoAcessoUsuariosHint()}
         actions={
           mode === 'closed' ? (
             <button type="button" className="btn btn-primary" onClick={openCreate}>
@@ -342,8 +364,8 @@ export function UsuariosPage() {
             <div className="usuario-form-intro">
               <h2>{mode === 'create' ? 'Criar usuário' : `Editar ${editing?.codigo}`}</h2>
               <p>
-                Login individual por e-mail corporativo. Permissões vêm só do perfil —
-                nunca avulsas. Em caso de desligamento, desative (não exclua).
+                Só o administrador master cria usuários e entrega e-mail/senha para o login.
+                Permissões vêm só do perfil — nunca avulsas. Em desligamento, desative (não exclua).
               </p>
             </div>
 
@@ -475,8 +497,8 @@ export function UsuariosPage() {
             <section className="usuario-section">
               <h3>3. Perfil de acesso (função)</h3>
               <p className="usuario-section-hint">
-                Prefira um perfil. Um segundo perfil só é permitido se compatível com a
-                matriz de segregação. ADMIN é exceção — não use como login do dia a dia.
+                Prefira um perfil. Um segundo perfil só é permitido se as funções forem
+                compatíveis. Perfil administrador é exceção — não use no dia a dia.
               </p>
               {sodError && (
                 <div className="alert alert-warning" style={{ marginBottom: '0.85rem' }}>
@@ -678,6 +700,11 @@ export function UsuariosPage() {
                       </td>
                       <td>
                         <StatusPill status={u.ativo ? 'ATIVO' : 'INATIVO'} />
+                        {u.sessao_ativa && (
+                          <span className="role-pill" style={{ marginLeft: '0.35rem' }}>
+                            Conectado
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div className="table-actions">
@@ -688,6 +715,15 @@ export function UsuariosPage() {
                           >
                             Editar
                           </button>
+                          {u.sessao_ativa && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              onClick={() => void handleLiberarSessao(u)}
+                            >
+                              Liberar sessão
+                            </button>
+                          )}
                           {u.ativo && authUser?.id !== u.id ? (
                             <button
                               type="button"

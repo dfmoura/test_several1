@@ -1,0 +1,58 @@
+# Overlay de produção: TLS na borda, dados só na rede Docker, tetos de memória.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Requer no .env: DOMAIN, ACME_EMAIL, APP_ENV=production, PUBLIC_BASE_URL=https://$DOMAIN
+#
+# Capacidade alvo: Lightsail/EC2 com ≥4 GB RAM (recomendado 8 GB com Evolution/QR).
+# Somatório dos limites ≈ 3.4 GB + SO/swap — evita OOM silencioso. O custo AWS
+# neste desenho é a VM fixa (não bill por request).
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: zapvia-caddy
+    restart: unless-stopped
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Defina DOMAIN no .env (ex. zap.seudominio.com)}
+      ACME_EMAIL: ${ACME_EMAIL:?Defina ACME_EMAIL no .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [zapvia-net]
+
+  api:
+    mem_limit: 512m
+
+  worker:
+    mem_limit: 512m
+
+  postgres:
+    mem_limit: 768m
+
+  redis:
+    mem_limit: 320m
+
+  rabbitmq:
+    mem_limit: 512m
+
+  evolution:
+    environment:
+      SERVER_URL: http://evolution:8080
+    mem_limit: 1280m
+
+volumes:
+  caddy_data:
+  caddy_config:

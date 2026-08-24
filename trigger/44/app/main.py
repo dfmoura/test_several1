@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, billing, health, me, messages, senders, webhook
+from app.api.routes import auth, billing, health, me, messages, meta, senders, webhook
 from app.config import get_settings
 from app.core.logging import get_logger, setup_logging
 from app.core.middleware import RequestIdMiddleware
@@ -56,6 +56,11 @@ async def lifespan(app: FastAPI):
     app.state.publisher = QueuePublisher(app.state.rabbit_conn)
     await app.state.publisher.connect()
     logger.info("api_started", app=settings.app_name, env=settings.app_env)
+    if settings.is_production and settings.registration_mode_normalized == "open":
+        logger.warning(
+            "registration_open_in_production",
+            hint="Use REGISTRATION_MODE=bootstrap or closed on a private host",
+        )
     try:
         yield
     finally:
@@ -76,22 +81,24 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    docs_on = not settings.is_production
     app = FastAPI(
         title="ZapVia",
         description=(
-            "SaaS de envio WhatsApp Business via API oficial (Cloud API). "
-            "Cadastre-se, assine, conecte o número e envie com a API key do remetente."
+            "API de envio WhatsApp Business. Conecte o número via QR (Baileys) "
+            "ou Cloud API e envie com a API key do remetente."
         ),
         version="1.0.0",
         lifespan=lifespan,
-        docs_url="/docs" if not settings.is_production else None,
-        redoc_url="/redoc" if not settings.is_production else None,
+        docs_url="/docs" if docs_on else None,
+        redoc_url="/redoc" if docs_on else None,
+        openapi_url="/openapi.json" if docs_on else None,
     )
 
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.is_development else [settings.public_base_url],
+        allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -105,6 +112,7 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(health.router)
+    app.include_router(meta.router)
     app.include_router(auth.router)
     app.include_router(billing.router)
     app.include_router(senders.router)

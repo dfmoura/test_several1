@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Banking\Asaas\AsaasWebhookAuthenticator;
+use App\Services\Banking\Inter\InterBillingClient;
 use App\Services\Financeiro\WebhookBancarioService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class WebhookBancarioController extends Controller
     public function __construct(
         private readonly WebhookBancarioService $service,
         private readonly AsaasWebhookAuthenticator $asaasAuth,
+        private readonly InterBillingClient $interBilling,
     ) {}
 
     public function __invoke(Request $request, string $provider): JsonResponse
@@ -30,11 +32,36 @@ class WebhookBancarioController extends Controller
             }
         }
 
+        if ($provider === 'inter') {
+            $token = $request->header('x-inter-webhook-token')
+                ?? $request->header('X-Webhook-Token')
+                ?? $request->header('Authorization');
+            if (is_string($token) && str_starts_with($token, 'Bearer ')) {
+                $token = substr($token, 7);
+            }
+            if (! $this->interBilling->webhookSecretConfere(is_string($token) ? $token : null)) {
+                \Illuminate\Support\Facades\Log::warning('inter.webhook.token_invalido', [
+                    'ip' => $request->ip(),
+                ]);
+
+                return response()->json(['message' => 'Token inválido.'], 401);
+            }
+        }
+
         $payload = $request->all();
         if ($payload === []) {
             $raw = $request->getContent();
             $decoded = json_decode($raw, true);
             $payload = is_array($decoded) ? $decoded : [];
+        }
+
+        if ($provider === 'inter') {
+            \Illuminate\Support\Facades\Log::info('inter.webhook.recebido', [
+                'keys' => array_keys($payload),
+                'codigoSolicitacao' => $payload['codigoSolicitacao'] ?? $payload['codigo_solicitacao'] ?? null,
+                'situacao' => $payload['situacao'] ?? $payload['status'] ?? null,
+                'seuNumero' => $payload['seuNumero'] ?? $payload['seu_numero'] ?? null,
+            ]);
         }
 
         $empresaHint = $request->header('X-Empresa-Id');

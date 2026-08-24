@@ -95,7 +95,8 @@ def test_api_docs_curl_does_not_splice_truncated_prefix():
     docs = build_api_docs(S())
     assert "…" not in docs.curl
     assert "6KGQRKG" not in docs.curl
-    assert "Bearer COLE_A_API_KEY_COMPLETA" in docs.curl
+    assert "Bearer $ZAPVIA_API_KEY" in docs.curl
+    assert any("gere uma nova" in n for n in docs.notes)
     with_key = build_api_docs(S(), api_key_hint="zpv_live_abc")
     assert "Bearer zpv_live_abc" in with_key.curl
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\ConsultaController;
 use App\Http\Controllers\Api\V1\ComissaoController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
+use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
 use App\Http\Controllers\Api\V1\EmpresaController;
 use App\Http\Controllers\Api\V1\EstoqueController;
 use App\Http\Controllers\Api\V1\EstoqueInventarioController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\FacasController;
 use App\Http\Controllers\Api\V1\FaturamentoController;
 use App\Http\Controllers\Api\V1\FiscalHubController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ImplantacaoController;
 use App\Http\Controllers\Api\V1\IaProvedorController;
 use App\Http\Controllers\Api\V1\NaturezaGerencialController;
 use App\Http\Controllers\Api\V1\OrcamentoAprovacaoController;
@@ -40,13 +42,18 @@ use App\Http\Controllers\Api\V1\TituloController;
 use App\Http\Controllers\Api\V1\WebhookAsaasAutorizacaoSaqueController;
 use App\Http\Controllers\Api\V1\WebhookBancarioController;
 use App\Http\Controllers\Api\V1\UsuarioController;
+use App\Http\Controllers\Api\V1\ConsolePlataformaController;
+use App\Http\Controllers\Api\V1\InterIntegracaoController;
+use App\Http\Controllers\Api\V1\BillingCatalogoController;
+use App\Http\Middleware\EnsurePlatformOperator;
 use App\Http\Middleware\SetEmpresaContext;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', HealthController::class);
 
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:12,1');
     Route::post('/auth/registrar-conta', [EmpresaOnboardingController::class, 'storeConta'])
         ->middleware('throttle:8,1');
     Route::post('/auth/registrar-empresa', [EmpresaOnboardingController::class, 'store'])
@@ -80,6 +87,29 @@ Route::prefix('v1')->group(function () {
         ->where('provider', 'mock|inter|asaas')
         ->middleware('throttle:120,1');
 
+    Route::middleware(['auth:sanctum', EnsurePlatformOperator::class])
+        ->prefix('plataforma')
+        ->group(function () {
+            Route::get('/metricas', [ConsolePlataformaController::class, 'metricas']);
+            Route::get('/contas', [ConsolePlataformaController::class, 'contas']);
+            Route::post('/contas', [ConsolePlataformaController::class, 'criarConta'])
+                ->middleware('throttle:20,1');
+            Route::get('/contas/{conta}', [ConsolePlataformaController::class, 'conta'])
+                ->whereNumber('conta');
+            Route::post('/contas/{conta}/cortesia', [ConsolePlataformaController::class, 'bonificar'])
+                ->whereNumber('conta')
+                ->middleware('throttle:30,1');
+            Route::get('/auditoria', [ConsolePlataformaController::class, 'auditoria']);
+            Route::get('/integracoes/inter', [InterIntegracaoController::class, 'show']);
+            Route::put('/integracoes/inter', [InterIntegracaoController::class, 'update'])
+                ->middleware('throttle:20,1');
+            Route::post('/integracoes/inter/testar', [InterIntegracaoController::class, 'testar'])
+                ->middleware('throttle:10,1');
+            Route::get('/billing/catalogo', [BillingCatalogoController::class, 'show']);
+            Route::put('/billing/catalogo', [BillingCatalogoController::class, 'update'])
+                ->middleware('throttle:20,1');
+        });
+
     Route::middleware(['auth:sanctum', SetEmpresaContext::class])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -92,9 +122,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/ativacao/recebimento', [EmpresaAtivacaoController::class, 'recebimento']);
         Route::post('/ativacao/catalogo/conferir', [EmpresaAtivacaoController::class, 'conferirCatalogo']);
 
+        Route::get('/implantacao', [ImplantacaoController::class, 'show']);
+        Route::patch('/implantacao/{codigo}', [ImplantacaoController::class, 'validar'])
+            ->where('codigo', '[A-Z0-9_]{2,32}')
+            ->middleware('throttle:60,1');
+
         Route::get('/empresas', [EmpresaController::class, 'index']);
         Route::get('/empresas/{empresa}', [EmpresaController::class, 'show']);
         Route::put('/empresas/{empresa}', [EmpresaController::class, 'update']);
+        Route::get('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'show']);
+        Route::post('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'store']);
+        Route::delete('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'destroy']);
 
         Route::get('/parametros', [ParametroController::class, 'index']);
         Route::put('/parametros', [ParametroController::class, 'upsert']);
@@ -119,6 +157,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update']);
         Route::patch('/usuarios/{usuario}/deactivate', [UsuarioController::class, 'deactivate']);
         Route::patch('/usuarios/{usuario}/activate', [UsuarioController::class, 'activate']);
+        Route::post('/usuarios/{usuario}/liberar-sessao', [UsuarioController::class, 'liberarSessao']);
 
         Route::get('/parceiros', [ParceiroController::class, 'index']);
         Route::post('/parceiros', [ParceiroController::class, 'store']);

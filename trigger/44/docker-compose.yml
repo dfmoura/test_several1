@@ -1,18 +1,29 @@
+# Logging capped so discos Lightsail/EC2 não estouram com JSON infinito.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   api:
     build: .
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     container_name: zapvia-api
     restart: unless-stopped
+    logging: *default-logging
     ports:
-      - "8144:8000"
+      - "127.0.0.1:8144:8000"
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+asyncpg://zapvia:zapvia@postgres:5432/zapvia
-      DATABASE_URL_SYNC: postgresql://zapvia:zapvia@postgres:5432/zapvia
+      RUN_MIGRATIONS: "1"
+      DATABASE_URL: postgresql+asyncpg://zapvia:${POSTGRES_PASSWORD:-zapvia}@postgres:5432/zapvia
+      DATABASE_URL_SYNC: postgresql://zapvia:${POSTGRES_PASSWORD:-zapvia}@postgres:5432/zapvia
       REDIS_URL: redis://redis:6379/0
-      RABBITMQ_URL: amqp://zapvia:zapvia@rabbitmq:5672/zapvia
-      PUBLIC_BASE_URL: http://localhost:8144
+      RABBITMQ_URL: amqp://zapvia:${RABBITMQ_PASSWORD:-zapvia}@rabbitmq:5672/zapvia
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8144}
+      EVOLUTION_URL: http://evolution:8080
+      EVOLUTION_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,6 +31,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      evolution:
+        condition: service_started
     networks: [zapvia-net]
     healthcheck:
       test:
@@ -39,12 +52,16 @@ services:
     command: ["python", "-m", "app.worker"]
     container_name: zapvia-worker
     restart: unless-stopped
+    logging: *default-logging
     env_file: [.env]
     environment:
-      DATABASE_URL: postgresql+asyncpg://zapvia:zapvia@postgres:5432/zapvia
-      DATABASE_URL_SYNC: postgresql://zapvia:zapvia@postgres:5432/zapvia
+      RUN_MIGRATIONS: "0"
+      DATABASE_URL: postgresql+asyncpg://zapvia:${POSTGRES_PASSWORD:-zapvia}@postgres:5432/zapvia
+      DATABASE_URL_SYNC: postgresql://zapvia:${POSTGRES_PASSWORD:-zapvia}@postgres:5432/zapvia
       REDIS_URL: redis://redis:6379/0
-      RABBITMQ_URL: amqp://zapvia:zapvia@rabbitmq:5672/zapvia
+      RABBITMQ_URL: amqp://zapvia:${RABBITMQ_PASSWORD:-zapvia}@rabbitmq:5672/zapvia
+      EVOLUTION_URL: http://evolution:8080
+      EVOLUTION_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,20 +69,36 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      evolution:
+        condition: service_started
     networks: [zapvia-net]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import time; from pathlib import Path; p=Path('/tmp/zapvia-worker-heartbeat'); assert p.is_file() and time.time()-p.stat().st_mtime < 90",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
 
   postgres:
     image: postgres:16-alpine
     container_name: zapvia-postgres
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: zapvia
-      POSTGRES_PASSWORD: zapvia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zapvia}
       POSTGRES_DB: zapvia
     ports:
-      - "5444:5432"
+      - "127.0.0.1:5444:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
     networks: [zapvia-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zapvia -d zapvia"]
@@ -77,9 +110,10 @@ services:
     image: redis:7-alpine
     container_name: zapvia-redis
     restart: unless-stopped
+    logging: *default-logging
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6384:6379"
+      - "127.0.0.1:6384:6379"
     volumes:
       - redis_data:/data
     networks: [zapvia-net]
@@ -93,13 +127,14 @@ services:
     image: rabbitmq:3.13-management-alpine
     container_name: zapvia-rabbitmq
     restart: unless-stopped
+    logging: *default-logging
     environment:
       RABBITMQ_DEFAULT_USER: zapvia
-      RABBITMQ_DEFAULT_PASS: zapvia
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-zapvia}
       RABBITMQ_DEFAULT_VHOST: zapvia
     ports:
-      - "5674:5672"
-      - "15644:15672"
+      - "127.0.0.1:5674:5672"
+      - "127.0.0.1:15644:15672"
     volumes:
       - rabbit_data:/var/lib/rabbitmq
     networks: [zapvia-net]
@@ -109,13 +144,44 @@ services:
       timeout: 10s
       retries: 10
 
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: zapvia-evolution
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:8145:8080"
+    environment:
+      SERVER_URL: ${EVOLUTION_PUBLIC_URL:-http://localhost:8145}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_KEY:-change-me-evolution-key-strong}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://zapvia:${POSTGRES_PASSWORD:-zapvia}@postgres:5432/evolution
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evo_zapvia
+      WEBHOOK_GLOBAL_ENABLED: "true"
+      WEBHOOK_GLOBAL_URL: http://api:8000/v1/webhooks/evolution
+      WEBHOOK_EVENTS_CONNECTION_UPDATE: "true"
+      QRCODE_LIMIT: "30"
+      LOG_LEVEL: ERROR,WARN,INFO
+    volumes:
+      - evolution_data:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [zapvia-net]
+
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: zapvia-pgadmin
     profiles: ["tools"]
     restart: unless-stopped
+    logging: *default-logging
     ports:
-      - "5054:80"
+      - "127.0.0.1:5054:80"
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@local.dev
       PGADMIN_DEFAULT_PASSWORD: admin
@@ -125,6 +191,7 @@ volumes:
   pg_data:
   redis_data:
   rabbit_data:
+  evolution_data:
 
 networks:
   zapvia-net:

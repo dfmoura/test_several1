@@ -8,10 +8,10 @@ import { useTableSort } from '../lib/useTableSort';
 /** Rótulos canônicos — estudo 32 / PARAMETROS_EMPRESA_OFICIAIS. */
 const PARAM_HINTS: Record<string, string> = {
   valor_minimo_capitalizar_bem:
-    'Patrimônio · valor mínimo (R$) para capitalizar bem (gerencial; depreciação oficial = contador)',
-  empresa_default: 'Empresa padrão sugerida no login',
-  emp_00002_venda_habilitada: 'EMP-00002 · venda/estoque só após homologação',
-  lai_no_erp: 'Proibido grupo natureza 9.xx / LAI no ERP',
+    'Valor mínimo (R$) para capitalizar bem no patrimônio',
+  empresa_default: 'Empresa sugerida no login',
+  emp_00002_venda_habilitada: 'Libera venda na segunda empresa (quando aplicável)',
+  lai_no_erp: 'Bloqueia naturezas de livro auxiliar indevidas',
 };
 
 function paramHint(chave: string): string | null {
@@ -76,7 +76,7 @@ export function ParametrosPage() {
     setMessage('');
     try {
       await api.put('/parametros', { chave: chave.trim(), valor });
-      setMessage('Parâmetro salvo. Status: PENDENTE_RATIFICACAO.');
+      setMessage('Parâmetro salvo. Aguardando ratificação.');
       startNew();
       await load();
     } catch (err) {

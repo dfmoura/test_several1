@@ -259,6 +259,51 @@ class FacasMapaTest extends TestCase
         $this->assertSame('PERFIL FACAS', $perfil->fresh()->fornecedor);
         $this->assertSame('RESINA', $resina->fresh()->fornecedor);
         $this->assertEquals(4.4, (float) $perfil->fresh()->puxada);
+        $this->assertFalse($res->json('data.materializado'));
+        $this->assertSame(0, $res->json('data.materializados'));
+    }
+
+    public function test_alinhar_materializa_mapa_da_emp_antes_de_atualizar_rotulos(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $hdr = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        // Template compartilhado (sem cópia da EMP) — cenário pós-limpeza / EMP antiga.
+        OrcMapaFaca::query()->create([
+            'empresa_id' => null,
+            'medida' => '6,6X6,6',
+            'formato' => 'RETA',
+            'faca' => 'RETA',
+            'maquina_catalogo' => 'BETA',
+            'puxada' => 6.6,
+            'z' => 66,
+            'fornecedor' => 'PERFIL',
+            'completa' => true,
+            'ativo' => true,
+            'label' => '6,6X6,6 · RETA',
+        ]);
+
+        Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-PERF2',
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => 'PERFIL INDUSTRIA DE FACAS ROTATIVAS LTDA',
+            'nome_fantasia' => 'PERFIL FACAS',
+            'papel_fornecedor' => true,
+            'situacao' => 'ATIVO',
+        ]);
+
+        $this->assertSame(0, OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->count());
+
+        $res = $this->withHeaders($hdr)->postJson('/api/v1/facas/alinhar-fornecedores');
+        $res->assertOk();
+        $this->assertTrue($res->json('data.materializado'));
+        $this->assertGreaterThan(0, $res->json('data.materializados'));
+        $this->assertSame(0, OrcMapaFaca::query()->whereNull('empresa_id')->where('fornecedor', 'PERFIL FACAS')->count());
+        $this->assertGreaterThan(
+            0,
+            OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->where('fornecedor', 'PERFIL FACAS')->count(),
+        );
     }
 
     public function test_seed_por_empresa_nao_emite_alter_table_dentro_de_transacao(): void

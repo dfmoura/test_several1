@@ -169,10 +169,11 @@ T = {
         "pouco estruturado. O problema do Observatório é desse tipo. O objetivo não é emitir empenho. "
         "É observar um conjunto de pregões e verificar se o padrão de vitórias se repete, se o preço "
         "destoa, se o fiscal está nomeado. O sistema não responde sozinho. Ele organiza a consulta. "
-        "Batini e Scannapieco (2016) listam dimensões de qualidade de dado que, no projeto, viraram "
-        "regra simples: não inventar campo que a fonte não tem; não apagar anotação do observador quando "
-        "a coleta roda de novo; aceitar que o painel municipal atrasa em relação ao PNCP e mostrar as "
-        "duas pontas, em vez de escolher uma e fingir que a outra não existe."
+        "Moreira et al. (2020), em estudo de acesso aberto sobre qualidade na recuperação de dados "
+        "governamentais, tratam dimensões como acurácia, completude, consistência e pontualidade. No "
+        "projeto, isso virou regra simples: não inventar campo que a fonte não tem; não apagar anotação "
+        "do observador quando a coleta roda de novo; aceitar que o painel municipal atrasa em relação "
+        "ao PNCP e mostrar as duas pontas, em vez de escolher uma e fingir que a outra não existe."
     ),
     "teo4": (
         "Do lado da engenharia, Pressman e Maxim (2021) e Sommerville (2018) sustentam o desenvolvimento "
@@ -554,51 +555,55 @@ TAB1 = [
     ["Contratos (linhas)", "2.152", "556", "Inclui aditivos/parcelas na origem"],
     ["Gestores e fiscais", "n/a", "36.399", "Base acumulada, não anualizada"],
 ]
+# Referencias NBR 6023:2018.
+# DOI so quando Crossref/editor confirma a mesma obra citada.
+# Livro comercial sem DOI: ISBN da edicao citada (nao inventar DOI).
+# Lei, norma ABNT e portal: URL oficial, sem DOI.
 REFS = [
     "<b>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS.</b> <i>NBR 14724: informação e documentação: trabalhos acadêmicos: apresentação.</i> Rio de Janeiro: ABNT, 2011.",
     "<b>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS.</b> <i>NBR 6023: informação e documentação: referências: elaboração.</i> Rio de Janeiro: ABNT, 2018.",
     "<b>ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS.</b> <i>NBR 10520: informação e documentação: citações em documentos.</i> Rio de Janeiro: ABNT, 2023.",
-    "<b>BATINI, Carlo; SCANNAPIECO, Monica.</b> <i>Data and information quality: dimensions, principles and techniques.</i> Cham: Springer, 2016.",
-    "<b>BRASIL.</b> <i>Decreto n. 8.777, de 11 de maio de 2016.</i> Institui a Política de Dados Abertos do Poder Executivo federal. Diário Oficial da União: seção 1, Brasília, DF, 12 maio 2016. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/decreto/d8777.htm. Acesso em: 18 ago. 2026.",
-    "<b>BRASIL.</b> <i>Lei n. 12.527, de 18 de novembro de 2011.</i> Regula o acesso a informações. Diário Oficial da União: seção 1, Brasília, DF, 18 nov. 2011. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm. Acesso em: 18 ago. 2026.",
-    "<b>BRASIL.</b> <i>Lei n. 14.133, de 1 de abril de 2021.</i> Lei de Licitações e Contratos Administrativos. Diário Oficial da União: seção 1, Brasília, DF, 1 abr. 2021. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm. Acesso em: 18 ago. 2026.",
-    "<b>BRASIL.</b> <i>Portal de Serviços.</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://portaldeservicos.gestao.gov.br/. Acesso em: 18 ago. 2026.",
-    "<b>COMPRAS.GOV.BR.</b> <i>Acompanhamento de compras (Comprasnet).</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras. Acesso em: 18 ago. 2026.",
-    "<b>COMPRAS.GOV.BR.</b> <i>Compras públicas em dados abertos.</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://dadosabertos.compras.gov.br/swagger-ui/index.html. Acesso em: 18 ago. 2026.",
-    "<b>GIL, Antonio Carlos.</b> <i>Como elaborar projetos de pesquisa.</i> 7. ed. São Paulo: Atlas, 2022.",
-    "<b>LAUDON, Kenneth C.; LAUDON, Jane P.</b> <i>Sistemas de informação gerenciais.</i> 11. ed. São Paulo: Pearson, 2014.",
-    "<b>OBSERVATÓRIO SOCIAL DO BRASIL DE UBERLÂNDIA.</b> <i>Página institucional.</i> Uberlândia, [2026]. Disponível em: https://www.osbrasiluberlandia.org/. Acesso em: 18 ago. 2026.",
-    "<b>PINHO, José Antonio Gomes de; SACRAMENTO, Ana Rita Silva.</b> Accountability: já podemos traduzi-la para o português? <i>Revista de Administração Pública</i>, Rio de Janeiro, v. 43, n. 6, p. 1343-1368, nov./dez. 2009. Disponível em: https://doi.org/10.1590/s0034-76122009000600006. Acesso em: 18 ago. 2026.",
-    "<b>PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS.</b> <i>API de consulta: contratação 18431312000620-1-000341/2026.</i> Brasília, DF: Governo Federal, 2026. Disponível em: https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341. Acesso em: 18 ago. 2026.",
-    "<b>PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS.</b> <i>Manuais do PNCP.</i> Brasília, DF: Governo Federal, [2026]. Disponível em: https://www.gov.br/pncp/pt-br/pncp/manuais. Acesso em: 18 ago. 2026.",
-    "<b>PREFEITURA MUNICIPAL DE UBERLÂNDIA.</b> <i>Painel de licitações e contratos (dados abertos).</i> Uberlândia, [2026]. Disponível em: https://app.powerbi.com/. Acesso em: 18 ago. 2026.",
-    "<b>PRESSMAN, Roger S.; MAXIM, Bruce R.</b> <i>Engenharia de software: uma abordagem profissional.</i> 9. ed. Porto Alegre: AMGH, 2021.",
-    "<b>SOMMERVILLE, Ian.</b> <i>Engenharia de software.</i> 10. ed. São Paulo: Pearson, 2018.",
-    "<b>YIN, Robert K.</b> <i>Estudo de caso: planejamento e métodos.</i> 5. ed. Porto Alegre: Bookman, 2015.",
-    "<b>ZUIDERWIJK, Anneke; JANSSEN, Marijn.</b> Open data policies, their implementation and impact: a framework for comparison. <i>Government Information Quarterly</i>, [s. l.], v. 31, n. 1, p. 17-29, 2014. Disponível em: https://doi.org/10.1016/j.giq.2013.04.003. Acesso em: 18 ago. 2026.",
+    "<b>BRASIL.</b> <i>Decreto n. 8.777, de 11 de maio de 2016.</i> Institui a Política de Dados Abertos do Poder Executivo federal. Diário Oficial da União: seção 1, Brasília, DF, 12 maio 2016. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/decreto/d8777.htm. Acesso em: 21 ago. 2026.",
+    "<b>BRASIL.</b> <i>Lei n. 12.527, de 18 de novembro de 2011.</i> Regula o acesso a informações. Diário Oficial da União: seção 1, Brasília, DF, 18 nov. 2011. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm. Acesso em: 21 ago. 2026.",
+    "<b>BRASIL.</b> <i>Lei n. 14.133, de 1 de abril de 2021.</i> Lei de Licitações e Contratos Administrativos. Diário Oficial da União: seção 1, Brasília, DF, 1 abr. 2021. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm. Acesso em: 21 ago. 2026.",
+    "<b>BRASIL.</b> <i>Portal de Serviços.</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://portaldeservicos.gestao.gov.br/. Acesso em: 21 ago. 2026.",
+    "<b>COMPRAS.GOV.BR.</b> <i>Acompanhamento de compras (Comprasnet).</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras. Acesso em: 21 ago. 2026.",
+    "<b>COMPRAS.GOV.BR.</b> <i>Compras públicas em dados abertos.</i> Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://dadosabertos.compras.gov.br/swagger-ui/index.html. Acesso em: 21 ago. 2026.",
+    "<b>GIL, Antonio Carlos.</b> <i>Como elaborar projetos de pesquisa.</i> 7. ed. São Paulo: Atlas, 2022. ISBN 978-65-5977-163-9.",
+    "<b>LAUDON, Kenneth C.; LAUDON, Jane P.</b> <i>Sistemas de informação gerenciais.</i> 11. ed. São Paulo: Pearson, 2014. ISBN 978-85-4300-585-0.",
+    "<b>MOREIRA, Fábio Mosso et al.</b> A qualidade na recuperação de dados governamentais: um estudo sobre dados de políticas públicas na internet. <i>Perspectivas em Ciência da Informação</i>, Belo Horizonte, v. 25, n. 2, p. 103-132, abr./jun. 2020. DOI: https://doi.org/10.1590/1981-5344/3994. Acesso em: 21 ago. 2026.",
+    "<b>OBSERVATÓRIO SOCIAL DO BRASIL DE UBERLÂNDIA.</b> <i>Página institucional.</i> Uberlândia, [2026]. Disponível em: https://www.osbrasiluberlandia.org/. Acesso em: 21 ago. 2026.",
+    "<b>PINHO, José Antonio Gomes de; SACRAMENTO, Ana Rita Silva.</b> Accountability: já podemos traduzi-la para o português? <i>Revista de Administração Pública</i>, Rio de Janeiro, v. 43, n. 6, p. 1343-1368, nov./dez. 2009. DOI: https://doi.org/10.1590/S0034-76122009000600006. Acesso em: 21 ago. 2026.",
+    "<b>PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS.</b> <i>API de consulta: contratação 18431312000620-1-000341/2026.</i> Brasília, DF: Governo Federal, 2026. Disponível em: https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341. Acesso em: 21 ago. 2026.",
+    "<b>PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS.</b> <i>Manuais do PNCP.</i> Brasília, DF: Governo Federal, [2026]. Disponível em: https://www.gov.br/pncp/pt-br/pncp/manuais. Acesso em: 21 ago. 2026.",
+    "<b>PREFEITURA MUNICIPAL DE UBERLÂNDIA.</b> <i>Painel de licitações e contratos (dados abertos).</i> Uberlândia, [2026]. Disponível em: https://app.powerbi.com/. Acesso em: 21 ago. 2026.",
+    "<b>PRESSMAN, Roger S.; MAXIM, Bruce R.</b> <i>Engenharia de software: uma abordagem profissional.</i> 9. ed. Porto Alegre: AMGH, 2021. ISBN 978-65-5804-010-1.",
+    "<b>SOMMERVILLE, Ian.</b> <i>Engenharia de software.</i> 10. ed. São Paulo: Pearson, 2018. ISBN 978-85-4302-497-4.",
+    "<b>YIN, Robert K.</b> <i>Estudo de caso: planejamento e métodos.</i> 5. ed. Porto Alegre: Bookman, 2015. ISBN 978-85-8260-231-7.",
+    "<b>ZUIDERWIJK, Anneke; JANSSEN, Marijn.</b> Open data policies, their implementation and impact: a framework for comparison. <i>Government Information Quarterly</i>, [s. l.], v. 31, n. 1, p. 17-29, 2014. DOI: https://doi.org/10.1016/j.giq.2013.04.003. Acesso em: 21 ago. 2026.",
 ]
 REFS_PLAIN = [
     "ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. NBR 14724: informação e documentação: trabalhos acadêmicos: apresentação. Rio de Janeiro: ABNT, 2011.",
     "ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. NBR 6023: informação e documentação: referências: elaboração. Rio de Janeiro: ABNT, 2018.",
     "ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. NBR 10520: informação e documentação: citações em documentos. Rio de Janeiro: ABNT, 2023.",
-    "BATINI, Carlo; SCANNAPIECO, Monica. Data and information quality: dimensions, principles and techniques. Cham: Springer, 2016.",
-    "BRASIL. Decreto n. 8.777, de 11 de maio de 2016. Institui a Política de Dados Abertos do Poder Executivo federal. Diário Oficial da União: seção 1, Brasília, DF, 12 maio 2016. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/decreto/d8777.htm. Acesso em: 18 ago. 2026.",
-    "BRASIL. Lei n. 12.527, de 18 de novembro de 2011. Regula o acesso a informações. Diário Oficial da União: seção 1, Brasília, DF, 18 nov. 2011. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm. Acesso em: 18 ago. 2026.",
-    "BRASIL. Lei n. 14.133, de 1 de abril de 2021. Lei de Licitações e Contratos Administrativos. Diário Oficial da União: seção 1, Brasília, DF, 1 abr. 2021. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm. Acesso em: 18 ago. 2026.",
-    "BRASIL. Portal de Serviços. Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://portaldeservicos.gestao.gov.br/. Acesso em: 18 ago. 2026.",
-    "COMPRAS.GOV.BR. Acompanhamento de compras (Comprasnet). Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras. Acesso em: 18 ago. 2026.",
-    "COMPRAS.GOV.BR. Compras públicas em dados abertos. Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://dadosabertos.compras.gov.br/swagger-ui/index.html. Acesso em: 18 ago. 2026.",
-    "GIL, Antonio Carlos. Como elaborar projetos de pesquisa. 7. ed. São Paulo: Atlas, 2022.",
-    "LAUDON, Kenneth C.; LAUDON, Jane P. Sistemas de informação gerenciais. 11. ed. São Paulo: Pearson, 2014.",
-    "OBSERVATÓRIO SOCIAL DO BRASIL DE UBERLÂNDIA. Página institucional. Uberlândia, [2026]. Disponível em: https://www.osbrasiluberlandia.org/. Acesso em: 18 ago. 2026.",
-    "PINHO, José Antonio Gomes de; SACRAMENTO, Ana Rita Silva. Accountability: já podemos traduzi-la para o português? Revista de Administração Pública, Rio de Janeiro, v. 43, n. 6, p. 1343-1368, nov./dez. 2009. Disponível em: https://doi.org/10.1590/s0034-76122009000600006. Acesso em: 18 ago. 2026.",
-    "PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS. API de consulta: contratação 18431312000620-1-000341/2026. Brasília, DF: Governo Federal, 2026. Disponível em: https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341. Acesso em: 18 ago. 2026.",
-    "PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS. Manuais do PNCP. Brasília, DF: Governo Federal, [2026]. Disponível em: https://www.gov.br/pncp/pt-br/pncp/manuais. Acesso em: 18 ago. 2026.",
-    "PREFEITURA MUNICIPAL DE UBERLÂNDIA. Painel de licitações e contratos (dados abertos). Uberlândia, [2026]. Disponível em: https://app.powerbi.com/. Acesso em: 18 ago. 2026.",
-    "PRESSMAN, Roger S.; MAXIM, Bruce R. Engenharia de software: uma abordagem profissional. 9. ed. Porto Alegre: AMGH, 2021.",
-    "SOMMERVILLE, Ian. Engenharia de software. 10. ed. São Paulo: Pearson, 2018.",
-    "YIN, Robert K. Estudo de caso: planejamento e métodos. 5. ed. Porto Alegre: Bookman, 2015.",
-    "ZUIDERWIJK, Anneke; JANSSEN, Marijn. Open data policies, their implementation and impact: a framework for comparison. Government Information Quarterly, [s. l.], v. 31, n. 1, p. 17-29, 2014. Disponível em: https://doi.org/10.1016/j.giq.2013.04.003. Acesso em: 18 ago. 2026.",
+    "BRASIL. Decreto n. 8.777, de 11 de maio de 2016. Institui a Política de Dados Abertos do Poder Executivo federal. Diário Oficial da União: seção 1, Brasília, DF, 12 maio 2016. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2016/decreto/d8777.htm. Acesso em: 21 ago. 2026.",
+    "BRASIL. Lei n. 12.527, de 18 de novembro de 2011. Regula o acesso a informações. Diário Oficial da União: seção 1, Brasília, DF, 18 nov. 2011. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2011/lei/l12527.htm. Acesso em: 21 ago. 2026.",
+    "BRASIL. Lei n. 14.133, de 1 de abril de 2021. Lei de Licitações e Contratos Administrativos. Diário Oficial da União: seção 1, Brasília, DF, 1 abr. 2021. Disponível em: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm. Acesso em: 21 ago. 2026.",
+    "BRASIL. Portal de Serviços. Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://portaldeservicos.gestao.gov.br/. Acesso em: 21 ago. 2026.",
+    "COMPRAS.GOV.BR. Acompanhamento de compras (Comprasnet). Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://cnetmobile.estaleiro.serpro.gov.br/comprasnet-web/public/compras. Acesso em: 21 ago. 2026.",
+    "COMPRAS.GOV.BR. Compras públicas em dados abertos. Brasília, DF: Ministério da Gestão e da Inovação em Serviços Públicos, [2026]. Disponível em: https://dadosabertos.compras.gov.br/swagger-ui/index.html. Acesso em: 21 ago. 2026.",
+    "GIL, Antonio Carlos. Como elaborar projetos de pesquisa. 7. ed. São Paulo: Atlas, 2022. ISBN 978-65-5977-163-9.",
+    "LAUDON, Kenneth C.; LAUDON, Jane P. Sistemas de informação gerenciais. 11. ed. São Paulo: Pearson, 2014. ISBN 978-85-4300-585-0.",
+    "MOREIRA, Fábio Mosso et al. A qualidade na recuperação de dados governamentais: um estudo sobre dados de políticas públicas na internet. Perspectivas em Ciência da Informação, Belo Horizonte, v. 25, n. 2, p. 103-132, abr./jun. 2020. DOI: https://doi.org/10.1590/1981-5344/3994. Acesso em: 21 ago. 2026.",
+    "OBSERVATÓRIO SOCIAL DO BRASIL DE UBERLÂNDIA. Página institucional. Uberlândia, [2026]. Disponível em: https://www.osbrasiluberlandia.org/. Acesso em: 21 ago. 2026.",
+    "PINHO, José Antonio Gomes de; SACRAMENTO, Ana Rita Silva. Accountability: já podemos traduzi-la para o português? Revista de Administração Pública, Rio de Janeiro, v. 43, n. 6, p. 1343-1368, nov./dez. 2009. DOI: https://doi.org/10.1590/S0034-76122009000600006. Acesso em: 21 ago. 2026.",
+    "PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS. API de consulta: contratação 18431312000620-1-000341/2026. Brasília, DF: Governo Federal, 2026. Disponível em: https://pncp.gov.br/api/consulta/v1/orgaos/18431312000620/compras/2026/341. Acesso em: 21 ago. 2026.",
+    "PORTAL NACIONAL DE CONTRATAÇÕES PÚBLICAS. Manuais do PNCP. Brasília, DF: Governo Federal, [2026]. Disponível em: https://www.gov.br/pncp/pt-br/pncp/manuais. Acesso em: 21 ago. 2026.",
+    "PREFEITURA MUNICIPAL DE UBERLÂNDIA. Painel de licitações e contratos (dados abertos). Uberlândia, [2026]. Disponível em: https://app.powerbi.com/. Acesso em: 21 ago. 2026.",
+    "PRESSMAN, Roger S.; MAXIM, Bruce R. Engenharia de software: uma abordagem profissional. 9. ed. Porto Alegre: AMGH, 2021. ISBN 978-65-5804-010-1.",
+    "SOMMERVILLE, Ian. Engenharia de software. 10. ed. São Paulo: Pearson, 2018. ISBN 978-85-4302-497-4.",
+    "YIN, Robert K. Estudo de caso: planejamento e métodos. 5. ed. Porto Alegre: Bookman, 2015. ISBN 978-85-8260-231-7.",
+    "ZUIDERWIJK, Anneke; JANSSEN, Marijn. Open data policies, their implementation and impact: a framework for comparison. Government Information Quarterly, [s. l.], v. 31, n. 1, p. 17-29, 2014. DOI: https://doi.org/10.1016/j.giq.2013.04.003. Acesso em: 21 ago. 2026.",
 ]
 
 

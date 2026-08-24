@@ -251,12 +251,17 @@ export function MapasFacasPage() {
           sem_match: { rotulo: string; facas: number }[];
           ambiguos: { rotulo: string; facas: number }[];
           mapa: { de: string; para: string; facas: number; parceiro: string }[];
+          materializado?: boolean;
+          materializados?: number;
         };
       }>('/facas/alinhar-fornecedores');
       const d = res.data;
       const linhas = d.mapa.map((m) => `${m.de} → ${m.para} (${m.facas})`);
       const pendentes = d.sem_match.map((s) => `${s.rotulo} (${s.facas})`);
       const partes = [
+        d.materializado && d.materializados
+          ? `mapa da empresa materializado (${d.materializados} facas)`
+          : '',
         `${d.atualizados} faca(s) atualizada(s)`,
         d.ja_alinhados ? `${d.ja_alinhados} já alinhada(s)` : '',
         linhas.length ? `mapeamento: ${linhas.join('; ')}` : '',
@@ -473,16 +478,6 @@ export function MapasFacasPage() {
             <div className="mapa-facas-metric">
               <span>Inativas</span>
               <strong>{resumo.inativas}</strong>
-            </div>
-            <div
-              className="mapa-facas-fonte"
-              title={
-                resumo.fonte === 'database'
-                  ? 'Dados vindos do banco'
-                  : 'Fallback JSON do estudo 32'
-              }
-            >
-              Fonte · {resumo.fonte === 'database' ? 'Banco' : 'JSON'}
             </div>
           </section>
         ) : null}

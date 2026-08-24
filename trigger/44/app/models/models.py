@@ -103,7 +103,8 @@ class Sender(Base):
         String(40), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    phone_e164: Mapped[str] = mapped_column(String(20), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    phone_e164: Mapped[str | None] = mapped_column(String(20), nullable=True)
     channel: Mapped[str] = mapped_column(
         String(40), nullable=False, default=ChannelKind.WHATSAPP_BUSINESS.value
     )
@@ -113,6 +114,7 @@ class Sender(Base):
     phone_number_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     waba_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
     access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evolution_instance: Mapped[str | None] = mapped_column(String(80), nullable=True)
     api_key_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     api_key_prefix: Mapped[str] = mapped_column(String(40), nullable=False)
     status: Mapped[str] = mapped_column(
@@ -125,6 +127,9 @@ class Sender(Base):
         Boolean, nullable=False, default=False
     )
     last_healthy_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_connected_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -143,6 +148,8 @@ class Sender(Base):
     __table_args__ = (
         Index("ix_senders_api_key_prefix", "api_key_prefix"),
         Index("ix_senders_account_id", "account_id"),
+        Index("ix_senders_evolution_instance", "evolution_instance"),
+        Index("ix_senders_account_label", "account_id", "label"),
         UniqueConstraint("account_id", "phone_e164", name="uq_senders_account_phone"),
     )
 
@@ -164,6 +171,7 @@ class Message(Base):
     type: Mapped[str] = mapped_column(String(20), nullable=False, default="text")
     body: Mapped[str] = mapped_column(Text, nullable=False)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="api")
     priority: Mapped[str] = mapped_column(String(16), nullable=False, default="normal")
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=MessageStatus.QUEUED.value
@@ -206,6 +214,7 @@ class Message(Base):
         Index("ix_messages_status", "status"),
         Index("ix_messages_sender_status", "sender_id", "status"),
         Index("ix_messages_account_id", "account_id"),
+        Index("ix_messages_queued_recovery", "status", "attempts", "queued_at"),
     )
 
 

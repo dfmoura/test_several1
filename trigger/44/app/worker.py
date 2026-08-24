@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import json
 import signal
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import redis.asyncio as redis
 from aio_pika import IncomingMessage
@@ -20,8 +22,9 @@ from app.queue.topology import (
     declare_sender_queues,
     queue_name,
 )
-from app.repositories import SenderRepository
+from app.repositories import MessageRepository, SenderRepository
 from app.services.dispatch import DispatchService
+from app.services.ingest import IngestService
 from app.services.rate_limit import RateLimiter
 
 logger = get_logger(__name__)
@@ -74,6 +77,39 @@ async def _consume_sender(
         raise
 
 
+async def _recover_stuck(publisher: QueuePublisher) -> None:
+    async with async_session_factory() as session:
+        ingest = IngestService(session, publisher)
+        unpublished = await ingest.recover_unpublished()
+        stale = await ingest.recover_stale_processing()
+        if unpublished or stale:
+            await session.commit()
+
+
+async def _purge_retention(days: int) -> int:
+    if days <= 0:
+        return 0
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    total = 0
+    async with async_session_factory() as session:
+        repo = MessageRepository(session)
+        while True:
+            deleted = await repo.purge_older_than(cutoff, limit=500)
+            if not deleted:
+                break
+            total += deleted
+            await session.commit()
+            if deleted < 500:
+                break
+    return total
+
+
+def _touch_heartbeat(path: str) -> None:
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(datetime.now(timezone.utc).isoformat(), encoding="utf-8")
+
+
 async def _health_pass() -> None:
     """Token Cloud API is persistent; this only flags revoked credentials — never drops a QR session."""
     async with async_session_factory() as session:
@@ -103,8 +139,6 @@ async def _health_pass() -> None:
             finally:
                 await provider.close()
             if ok:
-                from datetime import datetime, timezone
-
                 sender.last_healthy_at = datetime.now(timezone.utc)
                 if sender.status == SenderStatus.CREDENTIALS_INVALID.value:
                     sender.status = SenderStatus.ACTIVE.value
@@ -132,6 +166,7 @@ async def run_worker() -> None:
     consumers: list[asyncio.Task] = []
     known: set[str] = set()
     last_health = 0.0
+    last_retention = 0.0
 
     async def refresh_consumers() -> None:
         nonlocal consumers, known
@@ -175,10 +210,15 @@ async def run_worker() -> None:
 
     try:
         while not _shutdown.is_set():
+            _touch_heartbeat(settings.worker_heartbeat_path)
             try:
                 await refresh_consumers()
             except Exception as exc:
                 logger.error("refresh_consumers_error", error=str(exc))
+            try:
+                await _recover_stuck(publisher)
+            except Exception as exc:
+                logger.error("recover_stuck_error", error=str(exc))
             now = loop.time()
             if now - last_health >= settings.credential_health_interval_seconds:
                 try:
@@ -186,6 +226,18 @@ async def run_worker() -> None:
                     last_health = now
                 except Exception as exc:
                     logger.error("health_pass_error", error=str(exc))
+            if now - last_retention >= settings.retention_purge_interval_seconds:
+                try:
+                    purged = await _purge_retention(settings.message_retention_days)
+                    last_retention = now
+                    if purged:
+                        logger.info(
+                            "message_retention_purged",
+                            deleted=purged,
+                            days=settings.message_retention_days,
+                        )
+                except Exception as exc:
+                    logger.error("retention_purge_error", error=str(exc))
             try:
                 await asyncio.wait_for(_shutdown.wait(), timeout=10.0)
             except TimeoutError:

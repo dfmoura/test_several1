@@ -7,14 +7,21 @@ use App\Models\ContaAtivacao;
 use App\Support\FlexorcSuperficie;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Auth\SessaoAcessoService;
+use App\Services\Plataforma\EmpresaAtivacaoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly SessaoAcessoService $sessaoAcesso,
+        private readonly EmpresaAtivacaoService $ativacao,
+    ) {}
 
     public function login(Request $request): JsonResponse
     {
@@ -22,6 +29,7 @@ class AuthController extends Controller
             'email' => ['nullable', 'email', 'required_without:conta'],
             'conta' => ['nullable', 'string', 'max:32', 'required_without:email'],
             'password' => ['required', 'string'],
+            'encerrar_sessao_anterior' => ['sometimes', 'boolean'],
         ]);
 
         $email = isset($credentials['email']) ? strtolower(trim((string) $credentials['email'])) : '';
@@ -49,16 +57,24 @@ class AuthController extends Controller
             ]);
         }
 
+        $substituir = (bool) ($credentials['encerrar_sessao_anterior'] ?? false);
+        $token = $this->sessaoAcesso->emitir($user, [
+            'substituir_ativa' => $substituir,
+            'token_atual' => $request->bearerToken(),
+        ]);
+
         $user->update(['ultimo_login_em' => now()]);
-        $token = $user->createToken('api')->plainTextToken;
 
         auth()->setUser($user);
         $this->auditLogger->log('LOGIN', 'usuario', $user->id, null, [
             'email' => $user->email,
             'conta' => $user->codigo,
+            'substituiu_sessao' => $substituir,
         ]);
+        auth()->forgetGuards();
 
         $user->load('empresas');
+        $billingAviso = $this->ativacao->avisoBillingConta($user);
 
         return response()->json([
             'token' => $token,
@@ -75,13 +91,19 @@ class AuthController extends Controller
                 'razao_social' => $e->razao_social,
                 'nome_fantasia' => $e->nome_fantasia,
             ])->values()->all(),
+            'billing_aviso' => $billingAviso,
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-        $request->user()->currentAccessToken()?->delete();
+        $token = $user->currentAccessToken();
+        if ($token instanceof PersonalAccessToken) {
+            $this->sessaoAcesso->encerrarTokenAtual($token);
+        } else {
+            $this->sessaoAcesso->encerrarSessoes($user);
+        }
         $this->auditLogger->log('LOGOUT', 'usuario', $user->id);
 
         return response()->json(['message' => 'Logout realizado.']);
@@ -124,7 +146,10 @@ class AuthController extends Controller
                 'max_empresas' => ContaAtivacao::maxEmpresasPorConta(),
                 'empresas_count' => $user->empresas->count(),
             ],
+            'billing_aviso' => $this->ativacao->avisoBillingConta($user),
             'produto_flexorc' => FlexorcSuperficie::dto(),
+            'console_plataforma' => $user->getRoleNames()->contains(\App\Support\PlatformRbac::ROLE)
+                || in_array('plataforma.operar', $user->getAllPermissions()->pluck('name')->all(), true),
         ]);
     }
 

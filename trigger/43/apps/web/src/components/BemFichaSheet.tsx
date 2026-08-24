@@ -219,8 +219,8 @@ export function BemFichaSheet({ bem: b, empresaNome, emitidoPor, emitidoEm }: Be
       ) : null}
 
       <p className="ficha-note">
-        Controle patrimonial <strong>gerencial</strong> (estudo 32 · PATRIMONIO_CONTROLE). Não substitui
-        o imobilizado nem a depreciação fiscal/contábil do contador. Etiqueta física sugerida:{' '}
+        Controle patrimonial <strong>gerencial</strong>. Não substitui o imobilizado nem a
+        depreciação fiscal/contábil do contador. Etiqueta física sugerida:{' '}
         <code>{b.codigo}</code>.
       </p>
 

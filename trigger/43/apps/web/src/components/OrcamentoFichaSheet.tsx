@@ -277,7 +277,7 @@ export function OrcamentoFichaSheet({
               <th>Tubete</th>
               <th>Z</th>
               <th>Formato / faca</th>
-              <th>Máquina (G10)</th>
+              <th>Máquina</th>
               <th>Imposto %</th>
               <th>Matriz</th>
               <th>Col. rebob.</th>
@@ -495,19 +495,21 @@ export function OrcamentoFichaSheet({
             </table>
             <p className="ficha-empty" style={{ borderTop: 0 }}>
               Matriz — somente no 1º pedido
-              {result?.chave_matriz ? ` · chave ${result.chave_matriz}` : ''}
+              {result?.cobra_matriz
+                ? ` · matriz ${formatCurrency(result.valor_matriz)}`
+                : ' · matriz isenta'}
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
               {result?.frete
                 ? String(result.frete.origem).toUpperCase() === 'MANUAL'
-                  ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — valor informado nesta proposta (mesmo em todas as quantidades); linha à parte: não no unitário; se levantado, compõe o total.`
-                  : ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — máx(mínimo da faixa, R$/km × km), linha à parte: não no unitário; se levantado, compõe o total.`
+                  ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — valor informado nesta proposta; linha à parte, fora do unitário.`
+                  : ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — estimado por km e peso; linha à parte, fora do unitário.`
                 : ''}
             </p>
           </Section>
         </>
       ) : (
         <Section title="Resultado">
-          <p className="ficha-empty">Sem resultado calculado neste ORC.</p>
+          <p className="ficha-empty">Sem resultado calculado neste orçamento.</p>
         </Section>
       )}
 
@@ -518,14 +520,14 @@ export function OrcamentoFichaSheet({
       ) : null}
 
       <p className="ficha-note">
-        <strong>Uso interno</strong> — espelho da aba ORÇAMENTO (cálculo completo). Não é a
-        proposta CONSOLIDADO ao cliente (estudo 32 · GERACAO §1.5 / §6). Motor R1–R20 · G10.
+        <strong>Uso interno</strong> — cálculo completo deste orçamento. Não é a proposta enviada
+        ao cliente.
       </p>
 
       <RegistroMetaStrip registro={orc} className="ficha-autoria" />
 
       <footer className="ficha-footer">
-        <span>Uso interno · cálculo ORC · emitido por {emitidoPor}</span>
+        <span>Uso interno · orçamento · emitido por {emitidoPor}</span>
         <TriggerAttribution
           variant="print"
           className="ficha-powered"

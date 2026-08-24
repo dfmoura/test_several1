@@ -4,6 +4,7 @@ import { ContaFlexorcFatura } from '../components/ContaFlexorcFatura';
 import { OnboardingShell } from '../components/OnboardingShell';
 import { api, type AtivacaoData } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { BRAND } from '../lib/brand';
 
 export function CadastroPagamentoPage() {
   const { user, initialized } = useAuth();
@@ -56,12 +57,18 @@ export function CadastroPagamentoPage() {
   }
 
   const paga = Boolean(ativacao?.conta?.paga);
+  const temEmpresa = Boolean(ativacao?.passos.some((p) => p.id === 'empresa' && p.feito));
+  const dest = paga && !temEmpresa ? '/empresas/nova' : '/';
+  const cta = paga
+    ? temEmpresa
+      ? `Entrar no ${BRAND.product.name}`
+      : 'Cadastrar a empresa'
+    : 'Usar agora — empresas depois de entrar';
 
   return (
     <OnboardingShell
-      step={2}
       title="Mensalidade da conta"
-      subtitle="Você paga a TRIGGER pelo FLEXORC. Depois, logado, o administrador cadastra até 3 empresas nesta conta."
+      subtitle={`Você paga a TRIGGER pelo ${BRAND.product.name}. Depois, o administrador master cadastra até 3 empresas e os usuários desta conta.`}
       maxWidth={640}
     >
       {erro ? (
@@ -77,8 +84,8 @@ export function CadastroPagamentoPage() {
       )}
 
       <div className="btn-row" style={{ marginTop: '1rem' }}>
-        <button type="button" className="btn btn-primary" onClick={() => navigate('/', { replace: true })}>
-          {paga ? 'Entrar no FLEXORC' : 'Usar agora — empresas depois de entrar'}
+        <button type="button" className="btn btn-primary" onClick={() => navigate(dest, { replace: true })}>
+          {cta}
         </button>
       </div>
     </OnboardingShell>

@@ -32,10 +32,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Identidade TRIGGER × produto FLEXORC
+    | Identidade TRIGGER × produto FLEXOERP
     |--------------------------------------------------------------------------
     |
     | Norma: docs/IDENTIDADE_TRIGGER.md (SaaS: produto = herói; EMP = contexto).
+    | Transição: docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md
     | UI front: apps/web/src/lib/brand.ts — manter strings alinhadas.
     | Atribuição permanente e não-herói: nunca omitir em PDF/ficha.
     |
@@ -46,7 +47,7 @@ return [
         'vendor_full' => 'TRIGGER Data Intelligence',
         'vendor_url' => 'https://www.triggerti.com',
         'attribution_print' => 'Powered by TRIGGER',
-        'licensee_product' => 'FLEXORC',
+        'licensee_product' => 'FLEXOERP',
     ],
 
     /*
@@ -97,17 +98,75 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | FLEXORC — fatia comercial desta instalação
+    | E-mail automático da proposta (ao enviar link)
     |--------------------------------------------------------------------------
     |
-    | ate_envio_link=true (padrão 43): ORC até enviar link aprovar/reprovar.
-    | Esqueleto de sinal/financeiro permanece no motor; não expõe na UX nem
-    | dispara PIX no aceite. ADR: docs/ADR_FATIA_COMERCIAL_SAAS.md
+    | Motor = MAIL_* da instalação. Reply-To = empresas.email.
+    | Destino = e-mail do contato/parceiro. Sem SMTP por EMP.
+    | ADR: docs/ADR_ORC_EMAIL_PROPOSTA.md
     |
     */
 
+    'orcamento_email_auto' => filter_var(env('ORCAMENTO_EMAIL_AUTO', true), FILTER_VALIDATE_BOOL),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp automático da proposta (ViaZap)
+    |--------------------------------------------------------------------------
+    |
+    | Motor = VIAZAP_* da instalação. Destino = WhatsApp do contato/parceiro.
+    | Fail-soft; clipboard + wa.me permanecem. ADR: docs/ADR_ORC_WHATSAPP_VIAZAP.md
+    |
+    */
+
+    'orcamento_whatsapp_auto' => filter_var(env('ORCAMENTO_WHATSAPP_AUTO', true), FILTER_VALIDATE_BOOL),
+
+    'viazap' => [
+        'base_url' => env('VIAZAP_BASE_URL', ''),
+        'token' => env('VIAZAP_TOKEN', ''),
+        'timeout_sec' => (int) env('VIAZAP_TIMEOUT_SEC', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | FLEXORC — fatia comercial desta instalação
+    |--------------------------------------------------------------------------
+    |
+    | ate_envio_link=false (padrão 43): fatia completa — link + aceite + sinal PIX.
+    | true = recorte “até envio do link” (sem sinal/menu financeiro); motor intacto.
+    | ADR: docs/ADR_FATIA_COMERCIAL_SAAS.md · docs/ADR_ORC_ADIANTAMENTO_PIX.md
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sessão de acesso (Sanctum PAT)
+    |--------------------------------------------------------------------------
+    |
+    | Uma sessão viva por usuário; teto de usuários distintos simultâneos na
+    | instalação; idle desliza pelo last_used_at. Operador PLATAFORMA não
+    | consome assento. ADR: docs/ADR_SESSAO_ACESSO.md
+    |
+    */
+
+    'auth' => [
+        'idle_minutes' => (int) env('AUTH_IDLE_MINUTES', 30),
+        'max_usuarios_simultaneos' => (int) env('AUTH_MAX_USUARIOS_SIMULTANEOS', 6),
+        'token_name' => env('AUTH_SESSION_TOKEN_NAME', 'api'),
+    ],
+
     'flexorc' => [
-        'ate_envio_link' => filter_var(env('FLEXORC_ATE_ENVIO_LINK', true), FILTER_VALIDATE_BOOL),
+        'ate_envio_link' => filter_var(env('FLEXORC_ATE_ENVIO_LINK', false), FILTER_VALIDATE_BOOL),
+        /*
+         | Alta pública de conta master (POST /auth/registrar-conta|registrar-empresa).
+         | Padrão false: login só acessa; master nasce via CLI (plataforma:criar-conta)
+         | ou lab com flag true. Usuários da conta: só o ADMIN em /usuarios.
+         | ADR: docs/ADR_ATIVACAO_EMPRESA.md
+         */
+        'public_conta_registration' => filter_var(
+            env('FLEXORC_PUBLIC_CONTA_REGISTRATION', false),
+            FILTER_VALIDATE_BOOL
+        ),
     ],
 
     /*
@@ -134,11 +193,19 @@ return [
     */
 
     'billing' => [
+        // mock | asaas (cartão recorrente) | inter (PIX BolePix por ciclo)
         'provider' => env('BILLING_PROVIDER', env('ASAAS_API_KEY') ? 'asaas' : 'mock'),
-        'valor' => env('FLEXORC_BILLING_VALUE', '297.00'),
-        'ciclo' => env('FLEXORC_BILLING_CYCLE', 'MONTHLY'),
-        'descricao' => env('FLEXORC_BILLING_DESCRICAO', 'Mensalidade da conta FLEXORC'),
-        'max_empresas_conta' => (int) env('FLEXORC_MAX_EMPRESAS_CONTA', 3),
+        'valor' => env('FLEXOERP_BILLING_VALUE', env('FLEXORC_BILLING_VALUE', '297.00')),
+        'ciclo' => env('FLEXOERP_BILLING_CYCLE', env('FLEXORC_BILLING_CYCLE', 'MONTHLY')),
+        'descricao' => env('FLEXOERP_BILLING_DESCRICAO', env('FLEXORC_BILLING_DESCRICAO', 'Mensalidade da conta FLEXOERP')),
+        'max_empresas_conta' => (int) env('FLEXOERP_MAX_EMPRESAS_CONTA', env('FLEXORC_MAX_EMPRESAS_CONTA', 3)),
+        // Cobrança sempre antecipada: 1ª fatura no fim da cortesia (ou hoje).
+        'cobranca_antecipada' => (bool) env('FLEXOERP_BILLING_ANTECIPADA', env('FLEXORC_BILLING_ANTECIPADA', true)),
+        // Aviso na UI / comando ops quando a cortesia está a N dias do fim sem meio autenticado.
+        // Inter: mesma janela para oferecer renovação PIX.
+        'alerta_cortesia_dias' => (int) env('FLEXOERP_ALERTA_CORTESIA_DIAS', env('FLEXORC_ALERTA_CORTESIA_DIAS', 7)),
+        // TTL operacional do QR PIX Inter (horas). Também expira no dataVencimento da cobrança.
+        'inter_pix_ttl_horas' => (int) env('FLEXOERP_INTER_PIX_TTL_HORAS', env('FLEXORC_INTER_PIX_TTL_HORAS', 3)),
     ],
 
     'asaas' => [
@@ -148,6 +215,29 @@ return [
         'webhook_token' => env('ASAAS_WEBHOOK_TOKEN', ''),
         'saque_webhook_token' => env('ASAAS_SAQUE_WEBHOOK_TOKEN', ''),
         'http_timeout_sec' => (float) env('ASAAS_HTTP_TIMEOUT_SEC', 20),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cofre A1 — identidade da EMP (não é emissão SEFAZ)
+    |--------------------------------------------------------------------------
+    |
+    | Envio da proposta self-service exige A1 vigente com CNPJ idêntico.
+    | No upload, produção recusa divergência; local/homolog/teste só avisam.
+    | ADR: docs/ADR_CERTIFICADO_A1_EMPRESA.md · docs/ADR_ATIVACAO_EMPRESA.md
+    |
+    */
+
+    'certificado_a1' => [
+        'exige_cnpj_identico' => filter_var(
+            env(
+                'A1_EXIGE_CNPJ_IDENTICO',
+                env('APP_ENV') === 'production' || env('ERP_STAGE') === 'production'
+            ),
+            FILTER_VALIDATE_BOOL
+        ),
+        // Soft alert (banner/UI) enquanto ainda vigente — espelha alerta_cortesia_dias.
+        'alerta_dias' => max(1, (int) env('A1_ALERTA_DIAS', 30)),
     ],
 
     /*

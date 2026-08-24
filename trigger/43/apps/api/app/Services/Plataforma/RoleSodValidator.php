@@ -37,6 +37,12 @@ class RoleSodValidator
 
         $set = array_fill_keys($normalized, true);
 
+        if (isset($set['PLATAFORMA']) && count($normalized) > 1) {
+            throw ValidationException::withMessages([
+                'roles' => ['Segregação de funções: PLATAFORMA não combina com perfis da conta FLEXORC.'],
+            ]);
+        }
+
         foreach (self::INCOMPATIBLE_PAIRS as [$a, $b, $message]) {
             if (isset($set[$a], $set[$b])) {
                 throw ValidationException::withMessages([

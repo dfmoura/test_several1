@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUserStamps;
+use App\Models\Concerns\BelongsToEmpresa;
 use App\Support\PadraoDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Titulo extends Model
 {
     use HasUserStamps;
+    use BelongsToEmpresa;
     use SoftDeletes;
 
     public const TIPO_PAGAR = 'PAGAR';

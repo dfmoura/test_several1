@@ -4,16 +4,24 @@ namespace App\Services\Plataforma;
 
 use App\Models\BemPatrimonial;
 use App\Models\Empresa;
+use App\Models\Entrega;
+use App\Models\EstoqueAjuste;
 use App\Models\Orcamento;
+use App\Models\OrdemCompra;
+use App\Models\OrdemProducao;
 use App\Models\Parceiro;
+use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Models\User;
+use App\Services\Estoque\EstoqueReposicaoService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\FlexorcSuperficie;
 use App\Support\PadraoDecimal;
 
 /**
- * Cockpit desta fatia: cadastro de parceiros + patrimônio + ORC até o envio.
+ * Cockpit de ação desta fatia (docs/ADR_PAINEL_COCKPIT.md):
+ * filas com count>0 + KPIs da superfície comercial (parceiros, patrimônio, ORC→sinal, pedidos).
+ * UI ordena Atenção → Em curso; este serviço só monta o contrato.
  */
 class PainelService
 {
@@ -26,7 +34,23 @@ class PainelService
         Orcamento::STATUS_REPROVADO,
     ];
 
-    public function __construct(private readonly EmpresaAtivacaoService $ativacao) {}
+    /** @var list<string> */
+    private const OP_EM_CURSO = [
+        OrdemProducao::STATUS_ABERTA,
+        OrdemProducao::STATUS_EM_ANDAMENTO,
+    ];
+
+    /** @var list<string> */
+    private const PED_EM_CURSO = [
+        Pedido::STATUS_LIBERADO,
+        Pedido::STATUS_EM_PRODUCAO,
+        Pedido::STATUS_PRODUZIDO,
+    ];
+
+    public function __construct(
+        private readonly EmpresaAtivacaoService $ativacao,
+        private readonly EstoqueReposicaoService $reposicao,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -37,8 +61,14 @@ class PainelService
         $filas = [];
 
         $comercial = $user->can('orcamento.ler');
+        $pedidos = $user->can('producao.ler');
+        $producao = $pedidos;
+        $faturamento = $user->can('faturamento.ler');
+        $expedicao = $user->can('expedicao.ler');
+        $compras = $user->can('compras.ler');
+        $estoque = $user->can('estoque.ler');
         $financeiro = FlexorcSuperficie::expoeFinanceiro()
-            && ($user->can('financeiro.ler') || $comercial);
+            && $user->can('financeiro.ler');
 
         if ($comercial) {
             $orcCurso = $this->contar(Orcamento::class, $empresa, self::ORC_EM_CURSO);
@@ -69,6 +99,66 @@ class PainelService
                 '/parceiros',
                 false,
             );
+        }
+
+        if ($pedidos) {
+            $pedCurso = $this->contar(Pedido::class, $empresa, self::PED_EM_CURSO);
+            $cadeia[] = $this->card(
+                'pedidos',
+                'Pedidos',
+                'Liberados ou em execução',
+                $pedCurso,
+                'inteiro',
+                '/pedidos',
+                $pedCurso > 0,
+            );
+            $this->fila($filas, 'ped_curso', 'Pedidos em curso', 'Aguardando produção ou faturamento', $pedCurso, '/pedidos');
+        }
+
+        if ($producao) {
+            $opCurso = $this->contar(OrdemProducao::class, $empresa, self::OP_EM_CURSO);
+            $cadeia[] = $this->card(
+                'ordens_producao',
+                'Ordens de produção',
+                'Abertas ou em andamento',
+                $opCurso,
+                'inteiro',
+                '/ordens-producao',
+                $opCurso > 0,
+            );
+            $this->fila($filas, 'op_curso', 'OP em andamento', 'Chão de fábrica aguardando conclusão', $opCurso, '/ordens-producao');
+        }
+
+        if ($faturamento) {
+            $pedFaturar = $this->contar(Pedido::class, $empresa, [Pedido::STATUS_PRODUZIDO]);
+            $cadeia[] = $this->card(
+                'faturamentos',
+                'Faturamentos',
+                'Pedidos produzidos aguardando faturar',
+                $pedFaturar,
+                'inteiro',
+                '/financeiro/faturamentos',
+                $pedFaturar > 0,
+            );
+            $this->fila($filas, 'ped_faturar', 'Prontos para faturar', 'Produzidos, ainda sem NF/TIT', $pedFaturar, '/financeiro/faturamentos');
+        }
+
+        if ($expedicao) {
+            $expPendente = Pedido::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereIn('status', [Pedido::STATUS_FATURADO, Pedido::STATUS_EM_ENTREGA])
+                ->count();
+            $cadeia[] = $this->card(
+                'expedicao',
+                'Expedição',
+                'Faturados à espera de saída',
+                $expPendente,
+                'inteiro',
+                '/expedicao',
+                $expPendente > 0,
+            );
+            $entCurso = $this->contar(Entrega::class, $empresa, Entrega::STATUSES_VIGENTES);
+            $this->fila($filas, 'exp_curso', 'Entregas em curso', 'Retirada ou transporte aguardando confirmação', $entCurso, '/expedicao');
         }
 
         if ($user->can('patrimonio.ler')) {
@@ -105,6 +195,7 @@ class PainelService
 
         if ($financeiro) {
             $receber = $this->titulosAbertos($empresa, Titulo::TIPO_RECEBER);
+            $pagar = $this->titulosAbertos($empresa, Titulo::TIPO_PAGAR);
             $cadeia[] = $this->card(
                 'receber',
                 'A receber',
@@ -114,7 +205,29 @@ class PainelService
                 '/financeiro/contas-a-receber?situacao=aberto',
                 $receber['vencidos'] > 0,
             );
+            $cadeia[] = $this->card(
+                'pagar',
+                'A pagar',
+                'Fornecedores e demais títulos em aberto',
+                $pagar['saldo'],
+                'moeda',
+                '/financeiro/contas-a-pagar?situacao=aberto',
+                $pagar['vencidos'] > 0,
+            );
             $this->fila($filas, 'tit_receber_vencido', 'Receber vencido', 'Títulos do cliente em atraso', $receber['vencidos'], '/financeiro/contas-a-receber?situacao=aberto&faixa=VENCIDO');
+            $this->fila($filas, 'tit_pagar_vencido', 'Pagar vencido', 'Títulos a fornecedor em atraso', $pagar['vencidos'], '/financeiro/contas-a-pagar?situacao=aberto&faixa=VENCIDO');
+        }
+
+        if ($compras) {
+            $ocAbertas = $this->contar(OrdemCompra::class, $empresa, OrdemCompra::STATUSES_RECEBIVEIS);
+            $aRepor = count($this->reposicao->list($empresa));
+            $this->fila($filas, 'oc_abertas', 'Ordens de compra em aberto', 'A receber ou parciais', $ocAbertas, '/compras/ordens');
+            $this->fila($filas, 'reposicao', 'A repor', 'Saldo abaixo do mínimo gerencial', $aRepor, '/compras/reposicao');
+        }
+
+        if ($estoque) {
+            $ajustes = $this->contar(EstoqueAjuste::class, $empresa, [EstoqueAjuste::STATUS_PENDENTE]);
+            $this->fila($filas, 'ajustes', 'Ajustes de estoque pendentes', 'Aguardando alçada', $ajustes, '/estoque/ajustes');
         }
 
         return [
@@ -127,11 +240,11 @@ class PainelService
             ],
             'modulos' => [
                 'comercial' => $comercial,
-                'pedidos' => false,
-                'producao' => false,
-                'expedicao' => false,
-                'compras' => false,
-                'estoque' => false,
+                'pedidos' => $pedidos,
+                'producao' => $producao,
+                'expedicao' => $expedicao,
+                'compras' => $compras,
+                'estoque' => $estoque,
                 'financeiro' => $financeiro,
             ],
             'cadeia' => $cadeia,

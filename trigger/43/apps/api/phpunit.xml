@@ -36,6 +36,9 @@
         <env name="FISCAL_EMISSOR" value="focus" force="true"/>
         <env name="ERP_STAGE" value="testing" force="true"/>
         <env name="ASAAS_API_KEY" value="" force="true"/>
+        <env name="ASAAS_WEBHOOK_TOKEN" value="" force="true"/>
+        <env name="ASAAS_SAQUE_WEBHOOK_TOKEN" value="" force="true"/>
         <env name="BILLING_PROVIDER" value="mock" force="true"/>
+        <env name="FLEXORC_ATE_ENVIO_LINK" value="false" force="true"/>
     </php>
 </phpunit>

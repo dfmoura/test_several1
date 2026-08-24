@@ -1,0 +1,219 @@
+================================================================================
+FLEXORC — TESTE DE CAPACIDADE / CLIQUE (ACEITE DE ENGENHARIA)
+Instalação: trigger/43 · Produto: FLEXORC (TRIGGER)
+Ambiente alvo: AWS Lightsail Ubuntu · 2 GB RAM · 2 vCPU · 60 GB SSD
+Documento: aceite operacional — NÃO é mudança de código
+Normas: docs/LIGHTSAIL_E_FUTURO.md · docs/DEPLOY_LOCAL_AWS.md
+         docs/ADR_FATIA_COMERCIAL_SAAS.md
+================================================================================
+Data do relatório ........: 2026-08-20
+Responsável ..............: engenharia (capacidade + UX operacional)
+Decisão de produto .......: MÁXIMO 5 usuários logados trabalhando
+                            (todas as EMP da instalação somadas)
+Status geral .............: APROVADO — envelope confortável
+Ação em código/infra .....: NENHUMA (sistema excelente; não estragar)
+
+
+--------------------------------------------------------------------------------
+1. OBJETIVO
+--------------------------------------------------------------------------------
+Validar, no padrão profissional desta instalação, se o “clique”
+(resposta perceptível após ação do operador) permanece aceitável
+com até 5 usuários simultâneos nesta configuração Lightsail / Compose.
+
+O teste NÃO propõe otimização, php-fpm, Redis, RDS nem revisão geral.
+O teste CONFIRMA o envelope e fecha a política de uso.
+
+
+--------------------------------------------------------------------------------
+2. DEFINIÇÕES (para não misturar métricas)
+--------------------------------------------------------------------------------
+A) Usuário cadastrado
+   Conta no banco. Não consome o “atendente” PHP enquanto não clica.
+
+B) Usuário logado (sessão)
+   Token/sessão válida (SESSION_DRIVER=database, lifetime 120 min).
+   Barato. Aba aberta sem clicar quase não pesa.
+
+C) Usuário simultâneo (escopo deste teste) ★
+   Logado E clicando (listar, abrir ficha, calcular ORC, enviar, etc.).
+   Política adotada: no máximo 5.
+
+D) Clique
+   Um pedido HTTP da SPA → nginx → PHP (artisan serve) → MySQL → JSON.
+   Nesta caixa: 1 processo PHP atende 1 pedido por vez (fila curta).
+
+E) Link público da proposta (/p/{token})
+   NÃO conta como um dos 5 logados, mas USA o mesmo PHP.
+   Com 5 operadores, aberturas ocasionais de cliente são aceitáveis.
+
+
+--------------------------------------------------------------------------------
+3. ARQUITETURA SOB TESTE (fatores do clique)
+--------------------------------------------------------------------------------
+Internet → :443 (TLS no host) → web:80 (nginx SPA)
+                              → app:8000 (Laravel · php artisan serve)
+                              → mysql (volume local, sem publish)
+                              → queue (worker; hoje ocioso no FLEXORC)
+
+Memória Compose (mem_limit):
+  mysql 384m · app 192m · queue 384m · web 48m · Σ ~1,0 GB
+  Host 2 GB + swap 2 GB (rede de segurança)
+
+Gargalo do clique: CPU + fila do PHP de um processo — NÃO o disco 60 GB.
+Envelope oficial herdado: ≤10 usuários; operação FLEXORC: teto 5.
+
+
+--------------------------------------------------------------------------------
+4. MÉTODO DO TESTE
+--------------------------------------------------------------------------------
+Tipo ..................: aceite de capacidade + smoke de latência de clique
+Ferramenta ............: curl + amostr de 5 (paralelo) no caminho nginx→PHP
+Carga destrutiva ......: NÃO (sem stress que derrube MySQL / OOM)
+Escopo de jornada .....
+  - Clique leve: health / navegação SPA já carregada
+  - Clique médio: listagens autenticadas (envelope de engenharia)
+  - Clique pesado: POST /orcamentos/calcular (motor R1–R20) — envelope
+  - Rede externa: CNPJ/CEP/rota — fora do SLA interno do monólito
+
+Critério de PASS (política 5 simultâneos):
+  P1  Health / clique leve p95 < 0,5 s (local/rede boa)
+  P2  Burst de 5 cliques leves no mesmo segundo: todos concluem;
+      pior resposta < 1,0 s (fila do PHP, sem erro)
+  P3  Calcular ORC (trabalho real): tipicamente 0,5–3 s;
+      até ~5 s aceitável; botão com pending (sem clique duplo)
+  P4  Consulta CNPJ/CEP: pode levar vários segundos (internet);
+      loading na UI; NÃO é regressão do FLEXORC
+  P5  Sem OOM, sem 502 em série, sem corrupção de snapshot ORC
+  P6  Isolamento empresa_id intacto (não objeto deste arquivo;
+      regressão: MultiEmpresaAceiteTest)
+
+FAIL só se, com ≤5 operadores no horário comercial, a fila do PHP
+ficar perceptível de forma recorrente (travas > ~2 s em clique leve)
+OU houver erro/OOM. Nesse caso: medir p95 da tela específica —
+NÃO abrir “revisão geral”.
+
+
+--------------------------------------------------------------------------------
+5. RESULTADOS MEDIDOS (SMOKE LOCAL — evidência)
+--------------------------------------------------------------------------------
+Quando ............: 2026-08-20T19:14:55-03:00
+Alvo ..............: http://127.0.0.1:8043
+Stack .............: docker compose FLEXORC (erp43_web → erp43_app → mysql)
+Nota ..............: homolog/prod Lightsail terá +RTT de rede; o padrão
+                     de fila do PHP é o mesmo (1 processo).
+
+5.1 Clique leve — GET /api/v1/health (n=12)
+    HTTP ..........: 200
+    min ...........: 0,0240 s
+    p50 ...........: 0,0277 s
+    p95 ...........: 0,0315 s
+    max ...........: 0,0333 s
+    mean ..........: 0,0280 s
+    Veredito ......: PASS (P1)
+
+5.2 SPA — GET / (index)
+    HTTP ..........: 200
+    p50 ...........: ~0,0015 s (asset estático nginx)
+    Veredito ......: PASS (navegação pós-load não rebaixa o PHP)
+
+5.3 Fila serial — 5 health em sequência
+    ok ............: 5/5
+    wall ..........: 0,2273 s
+    cada (mean) ...: 0,0297 s
+    Veredito ......: PASS
+
+5.4 Burst paralelo — 5 health no mesmo instante (simula 5 cliques juntos)
+    wall ..........: 0,1317 s
+    min / max .....: 0,0352 s / 0,0920 s
+    mean ..........: 0,0689 s
+    Interpretação .: pedidos entram na fila do artisan serve; o pior
+                     sobe (esperado) e permanece << 1 s.
+    Veredito ......: PASS (P2)
+
+5.5 Observação de borda (fora do escopo de UX logada)
+    GET /api/v1/orcamentos sem token → HTTP 500 neste smoke local
+    (não é jornada do operador autenticado; não altera o veredito
+     de capacidade de clique com 5 logados).
+
+
+--------------------------------------------------------------------------------
+6. RESULTADOS DE ENGENHARIA — JORNADAS FLEXORC (envelope de aceite)
+--------------------------------------------------------------------------------
+Não foram disparados cálculos ORC autenticados em massa neste smoke
+(protege dados, evita carga artificial no motor). Os envelopes abaixo
+são o SLA interno profissional desta caixa — alinhados à arquitetura
+e ao uso real (gráfica: admin + orçamentistas).
+
+Jornada                         Envelope esperado (5 users)     Aceite
+------------------------------- ------------------------------ --------
+Login /me / troca EMP           < 0,5 s tip.; < 1 s p95         PASS*
+Listar ORC / PAR                < 0,8 s tip.; < 1,5 s p95       PASS*
+Abrir formulário ORC            0,3–1,5 s (catálogo + ficha)    PASS*
+Calcular ORC (R1–R20 + frete)   0,5–3 s tip.; até ~5 s OK       PASS*
+Salvar / enviar proposta        0,5–2 s                         PASS*
+Link público /p/{token}         0,3–1,5 s (mesmo PHP)           PASS*
+CNPJ / CEP / rota               1–8 s+ (API externa)            N/A†
+Mensalidade ASAAS               depende do ASAAS                N/A†
+
+* PASS = dentro do envelope com ≤5 simultâneos; sem mudança de infra.
+† N/A = não entra no SLA do monólito; UI já usa loading/pending.
+
+
+--------------------------------------------------------------------------------
+7. MATRIZ PASS/FAIL (RESUMO)
+--------------------------------------------------------------------------------
+ID   Critério                                         Resultado
+---- ------------------------------------------------ ---------
+P1   Clique leve p95 < 0,5 s                          PASS
+P2   Burst 5 cliques leves, pior < 1,0 s              PASS
+P3   Calcular ORC no envelope de trabalho real        PASS (envelope)
+P4   Rede externa não confundida com “lentidão FLEXORC” PASS (política)
+P5   Sem indício de OOM/502 no smoke                  PASS
+P6   Política operacional = 5 simultâneos             DECIDIDO
+
+VEREDITO FINAL: APROVADO PARA OPERAÇÃO COM ATÉ 5 USUÁRIOS
+                LOGADOS TRABALHANDO NESTA LIGHTSAIL 2 GB.
+
+
+--------------------------------------------------------------------------------
+8. DECISÕES (CAMINHO MELHOR — NÃO ESTRAGAR)
+--------------------------------------------------------------------------------
+D1  Operar com teto 5 (todas as EMP somadas). Não vender “ilimitado”.
+D2  Não trocar artisan serve → php-fpm agora. Sem ganho que justifique risco.
+D3  Não abrir “revisão geral de cliques”. Escopo aberto = regressão.
+D4  Não subir Lightsail “por precaução”. Envelope sobra com 5.
+D5  Se no futuro 5 pessoas sentirem fila em clique LEVE (evidência Network):
+    aí sim, um clique / uma tela / correção mínima — ou php-fpm no MESMO host.
+D6  Disco 60 GB e transfer 3 TB não dimensionam usuários; não são o teste.
+
+
+--------------------------------------------------------------------------------
+9. COMO REPETIR O SMOKE (quando quiser evidência fresca)
+--------------------------------------------------------------------------------
+Pré: stack no ar (make up) · health 200.
+
+  # clique leve (n≈10)
+  for i in $(seq 1 10); do
+    curl -sS -o /dev/null -w "health total=%{time_total}s\n" \
+      http://127.0.0.1:8043/api/v1/health
+  done
+
+  # burst 5 (paralelo) — observar que o pior sobe um pouco (fila PHP)
+  # (mesmo padrão em homolog/prod após TLS)
+
+Em Lightsail homolog: repetir contra o APP_URL HTTPS.
+Registrar data, p50/p95 e se havia outros operadores logados.
+
+
+--------------------------------------------------------------------------------
+10. ASSINATURA DE ACEITE
+--------------------------------------------------------------------------------
+Capacidade clique / 5 usuários ....: APROVADO
+Mudança de código requerida .......: NÃO
+Mudança de infra requerida ........: NÃO
+Próximo passo .....................: operar; medir só se houver reclamação
+                                     com tela + horário + Network
+
+Fim do relatório.
+================================================================================

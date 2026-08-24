@@ -15,6 +15,8 @@ class EmpresaOnboardingController extends Controller
 
     public function storeConta(Request $request): JsonResponse
     {
+        $this->assertPublicContaRegistrationEnabled();
+
         $data = $request->validate($this->regrasConta());
         $out = $this->onboarding->registrarConta($data);
 
@@ -36,6 +38,8 @@ class EmpresaOnboardingController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->assertPublicContaRegistrationEnabled();
+
         $data = $request->validate(array_merge($this->regrasConta(), $this->regrasEmpresa()));
         $out = $this->onboarding->registrar($data);
 
@@ -45,6 +49,15 @@ class EmpresaOnboardingController extends Controller
             'empresa' => $this->payloadEmpresa($out['empresa']),
             'user' => $this->payloadUser($out['user']),
         ], 201);
+    }
+
+    private function assertPublicContaRegistrationEnabled(): void
+    {
+        if (config('erp.flexorc.public_conta_registration')) {
+            return;
+        }
+
+        abort(403, 'Cadastro público de conta desativado. Solicite acesso ao administrador master.');
     }
 
     /**

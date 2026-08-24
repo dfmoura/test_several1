@@ -10,9 +10,25 @@ from app.core.security import (
     verify_secret,
 )
 from app.domain.enums import AccountStatus
-from app.domain.exceptions import ConflictError, UnauthorizedError
+from app.domain.exceptions import ConflictError, ForbiddenError, UnauthorizedError
 from app.models import Account
 from app.repositories import AccountRepository, AuditRepository
+
+REGISTRATION_CLOSED_MSG = (
+    "Cadastro fechado nesta instância. Entre com a conta do operador."
+)
+
+
+def registration_allowed(mode: str, account_count: int) -> bool:
+    """open = SaaS; bootstrap = só a primeira conta; closed = ninguém."""
+    normalized = (mode or "open").lower().strip()
+    if normalized == "open":
+        return True
+    if normalized == "closed":
+        return False
+    if normalized == "bootstrap":
+        return account_count <= 0
+    return False
 
 
 class AccountService:
@@ -21,7 +37,14 @@ class AccountService:
         self.accounts = AccountRepository(session)
         self.audit = AuditRepository(session)
 
+    async def registration_is_open(self) -> bool:
+        settings = get_settings()
+        count = await self.accounts.count()
+        return registration_allowed(settings.registration_mode_normalized, count)
+
     async def register(self, name: str, email: str, password: str) -> tuple[Account, str]:
+        if not await self.registration_is_open():
+            raise ForbiddenError("registration_closed", REGISTRATION_CLOSED_MSG)
         email_n = email.lower().strip()
         existing = await self.accounts.find_by_email(email_n)
         if existing:
@@ -35,6 +58,11 @@ class AccountService:
         )
         await self.accounts.create(account)
         await self.audit.log("account_register", account_id=account.id)
+        settings = get_settings()
+        if settings.billing_auto_activate:
+            from app.services.billing import BillingService
+
+            await BillingService(self.session).checkout(account)
         return account, create_access_token(account.id)
 
     async def login(self, email: str, password: str) -> tuple[Account, str]:

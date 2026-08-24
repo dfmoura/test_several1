@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema shell health doctor web-build orc-rbac queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -11,7 +11,7 @@ up:
 	@echo ""
 	@echo "→ http://localhost:8043  (SPA + API)  [ERP_STAGE=local]"
 	@echo "→ http://localhost:8043/api/v1/health"
-	@echo "Login: admin@rlp.com.br / Admin@123  ·  Cadastro: /cadastro"
+	@echo "Login: /login  ·  conta master: plataforma:criar-conta  ·  alinhar: make alinhar-primeiro-cadastro EMAIL=…"
 
 down:
 	$(COMPOSE_LOCAL) --env-file .env down
@@ -89,15 +89,78 @@ limpar-sistema:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan db:seed --force
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:seed-estoque-virada
 
+# Conta FLEXORC canônica: preserva o e-mail + operador TRIGGER; remove demais contas/EMPs.
+# O livro da conta (PAR/ORC/catálogo) permanece. Não restaura demo RLP.
+# Uso: make promover-conta EMAIL=varandasdorio1@gmail.com
+#      make promover-conta EMAIL=… ARGS='--dry-run'
+promover-conta:
+	@test -n "$(EMAIL)" || (echo "Informe EMAIL=…"; exit 1)
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan plataforma:promover-conta $(EMAIL) --force $(ARGS)
+
+# Zera o livro de UMA conta FLEXORC (EMPs + ORC/TIT/PAR/catálogo). Preserva login + mensalidade.
+# Uso: make limpar-livro-conta EMAIL=varandasdorio1@gmail.com
+#      make limpar-livro-conta EMAIL=… ARGS='--dry-run'
+limpar-livro-conta:
+	@test -n "$(EMAIL)" || (echo "Informe EMAIL=…"; exit 1)
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan plataforma:limpar-livro-conta $(EMAIL) --force $(ARGS)
+
+# Primeiro cadastro FLEXORC: conta vira USR-00001; remove legado demo RLP.
+# Uso: make alinhar-primeiro-cadastro EMAIL=varandasdorio1@gmail.com
+#      make alinhar-primeiro-cadastro EMAIL=… ARGS='--dry-run'
+alinhar-primeiro-cadastro:
+	@test -n "$(EMAIL)" || (echo "Informe EMAIL=…"; exit 1)
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan plataforma:alinhar-primeiro-cadastro $(EMAIL) --force $(ARGS)
+
 orc-rbac:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan orcamento:ensure-rbac
 	@echo "Saia e entre de novo no browser (Ctrl+Shift+R)."
+
+# Console TRIGGER (lab): RBAC + operador + phpunit ConsolePlataformaTest.
+# Override: PLATAFORMA_OPS_EMAIL=… PLATAFORMA_OPS_PASSWORD=… make plataforma-pronto
+plataforma-pronto:
+	@chmod +x scripts/plataforma-pronto.sh
+	./scripts/plataforma-pronto.sh
 
 shell:
 	$(COMPOSE_LOCAL) --env-file .env exec app sh
 
 health:
 	curl -sS http://localhost:8043/api/v1/health; echo
+
+# Regressão FLEXORC: multi-EMP + fatia comercial (norma §7.B + ORC/sinal/onboarding).
+ci-flexorc:
+	@chmod +x scripts/ci-flexorc.sh
+	./scripts/ci-flexorc.sh
+
+# Ensaio ASAAS ≈ produção (tunnel flexorc + webhook). Norma: docs/ADR_ENSAIO_ASAAS_FLEXORC.md
+ensaio-asaas:
+	@chmod +x scripts/ensaio-asaas-ready.sh
+	./scripts/ensaio-asaas-ready.sh
+
+ensaio-asaas-ativar:
+	@chmod +x scripts/ensaio-asaas-ready.sh
+	./scripts/ensaio-asaas-ready.sh --ativar
+	@echo "→ make down && make up   depois: make ensaio-asaas"
+
+ensaio-asaas-desativar:
+	@chmod +x scripts/ensaio-asaas-ready.sh
+	./scripts/ensaio-asaas-ready.sh --desativar
+	@echo "→ make down && make up"
+
+# Requer sudo: aponta flexorc.triggerti.com → :8043 e reinicia cloudflared
+ensaio-asaas-tunnel:
+	@chmod +x scripts/fix-cloudflared-flexorc-8043.sh
+	@echo "Execute: sudo bash scripts/fix-cloudflared-flexorc-8043.sh"
+	@echo "Depois:  make ensaio-asaas"
+
+# Cadastro atual ≈ produção: cortesia acabou, 1ª mensalidade vence hoje. Não apaga EMP/PAR/ORC.
+# Uso: make cenario-mensalidade-pos-cortesia
+#      make cenario-mensalidade-pos-cortesia EMAIL=seu@email.com
+#      make cenario-mensalidade-pos-cortesia EMAIL=… ARGS='--dry-run'
+cenario-mensalidade-pos-cortesia:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan plataforma:abrir-cobranca-pos-cortesia $(EMAIL) --force $(ARGS)
+	@echo "→ Login: http://localhost:8043/login  ·  cai em /conta/mensalidade"
+	@echo "→ Pagar agora (cartão ASAAS sandbox). Webhook: make ensaio-asaas"
 
 web-build:
 	cd apps/web && npm ci && npm run build

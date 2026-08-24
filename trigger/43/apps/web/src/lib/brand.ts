@@ -1,10 +1,10 @@
 /**
- * Identidade canônica FLEXORC (SaaS TRIGGER).
- * Norma: docs/IDENTIDADE_TRIGGER.md · docs/ADR_FATIA_COMERCIAL_SAAS.md
+ * Identidade canônica FLEXOERP (SaaS TRIGGER).
+ * Norma: docs/IDENTIDADE_TRIGGER.md · docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md
  *
  * Camadas (não misturar):
  *   TRIGGER (fornecedor, atribuição discreta, favicon)
- *     → FLEXORC (produto = herói da UI — logo própria)
+ *     → FLEXOERP (produto = herói da UI — logo própria)
  *       → EMP (contexto operacional, nunca marca)
  *
  * Não hardcode paths/labels de marca espalhados — consuma este módulo.
@@ -27,12 +27,12 @@ export const BRAND = {
     },
   },
   product: {
-    name: 'FLEXORC',
+    name: 'FLEXOERP',
     label: 'Produto',
-    tagline: 'Orçamento comercial',
-    logo: '/branding/flexorc/logo-flexorc.svg',
-    mark: '/branding/flexorc/logo-flexorc-mark.svg',
-    logoAlt: 'FLEXORC',
+    tagline: 'ERP para gráficas',
+    logo: '/branding/flexoerp/logo-flexoerp.svg',
+    mark: '/branding/flexoerp/logo-flexoerp-mark.svg',
+    logoAlt: 'FLEXOERP',
     byline: 'por Trigger Data Intelligence',
   },
   /**
@@ -40,12 +40,12 @@ export const BRAND = {
    * Campos mantidos para fichas/proposta e para a fórmula `{produto} · TRIGGER`.
    */
   licensee: {
-    shortName: 'FLEXORC',
-    productName: 'FLEXORC',
+    shortName: 'FLEXOERP',
+    productName: 'FLEXOERP',
     productLabel: 'Produto',
-    logo: '/branding/flexorc/logo-flexorc-mark.svg',
-    logoAlt: 'FLEXORC',
-    licensedLabel: 'Orçamento comercial',
+    logo: '/branding/flexoerp/logo-flexoerp-mark.svg',
+    logoAlt: 'FLEXOERP',
+    licensedLabel: 'ERP para gráficas',
     byline: 'por Trigger Data Intelligence',
   },
   attribution: {

@@ -326,7 +326,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                 {isNova ? (
                   <p className="faca-warn">
                     Faca nova: informe medida, puxada, Z e o valor/prazo cotados. Entra no mapa só
-                    após aprovação do ORC (GERACAO §7.3).
+                    após a aprovação do orçamento.
                   </p>
                 ) : incompleta ? (
                   <p className="faca-warn">

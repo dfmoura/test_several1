@@ -84,9 +84,12 @@ EMP-00001 em homolog **não** é a EMP-00001 de produção — são bancos/insta
 | Papel | Faz | Não faz |
 |-------|-----|---------|
 | **TRIGGER / TI** | Subir stack, TLS, firewall, snapshot, dump, restore, `.env.aws` | Operar OC/ORC no lugar do usuário |
-| **Admin do licenciado** | Usuários ↔ EMPs, parâmetros, perfis, contas CFIN | Abrir MySQL na internet, editar Docker no dia a dia |
+| **Operador TRIGGER** (`PLATAFORMA`) | Console `/plataforma`: contas FLEXORC, billing, leitura transversal (esta instalação SaaS) | Menu do cliente; `empresa_user`; impersonar; atribuir-se pelo `/usuarios` |
+| **Admin da conta** (`ADMIN`) | Usuários ↔ EMPs **da própria conta**, parâmetros, cadastros | Ver outras contas; permissões `plataforma.*` |
 | **Usuário operacional** | Trabalhar na **EMP ativa** (ORC, OC, estoque, financeiro conforme RBAC) | Acessar EMP sem vínculo; misturar livros |
 | **Cliente externo** (ORC) | Aceitar ORC em `/p/{token}` | Login no ERP |
+
+Norma do console: [`ADR_CONSOLE_PLATAFORMA.md`](ADR_CONSOLE_PLATAFORMA.md). No FLEXOERP (`../39`) o admin do licenciado continua o master da instalação única; aqui o master é o **pagador da conta**.
 
 ---
 
@@ -117,7 +120,7 @@ EMP-00001 em homolog **não** é a EMP-00001 de produção — são bancos/insta
 
 1. Login → EMP padrão (ou a única).
 2. Header sempre mostra **Empresa ativa**; se N>1 → seletor + aviso ao trocar; telas remountam no novo contexto.
-3. Painel = cockpit da EMP ativa (cadeia ORC→PED→OP→expedição→TIT e filas). Mostra EMP + flags venda/estoque — **sem** repetir produto/licenciado/TRIGGER (isso é o shell).
+3. Painel = **cockpit de ação** da EMP ativa ([`ADR_PAINEL_COCKPIT.md`](ADR_PAINEL_COCKPIT.md)): filas primeiro, KPIs compactos (≤6), sem mural/relatório. EMP ativa no shell — **sem** repetir produto/licenciado/TRIGGER no corpo.
 4. Tudo na tela/gravação = **só** da EMP ativa.
 5. **Perfil** limita *ações* (ex.: compras ≠ financeiro); **EMP** limita *dados*.
 6. Zero Docker / AWS / `ERP_STAGE` na UI operacional.
@@ -146,6 +149,7 @@ Automatizado: `apps/api/tests/Feature/MultiEmpresaAceiteTest.php` (`php vendor/b
 - [x] Usuário com **2+** EMPs: troca de contexto via `X-Empresa-Id` *(teste)*; seletor no header = UX manual
 - [x] Usuário **sem** vínculo a EMP-B: API com `X-Empresa-Id` de B → **403** *(teste)*
 - [x] Cadastro feito em EMP-A **não** aparece nas listagens de EMP-B *(parceiros — teste)*
+- [x] Show/update por ID de registro de outra EMP → **404** (enumeração `/parceiros/{id}` — teste)
 - [x] Contas financeiras estão **por EMP**, não globais *(teste)*; hub Focus = `FiscalHubTest::test_escopo_por_empresa`
 
 ### C — Perfis e operação mínima

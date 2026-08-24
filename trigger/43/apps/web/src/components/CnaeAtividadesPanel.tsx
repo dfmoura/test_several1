@@ -92,7 +92,7 @@ export function CnaeAtividadesPanel({
       ) : cnaesSecundarios.length === 0 ? (
         <div className="empty-panel">
           Nenhum CNAE secundário retornado pela Receita para este CNPJ.
-          {canEdit ? ' Use “Consultar” na aba Identificação para atualizar pela BrasilAPI.' : ''}
+          {canEdit ? ' Use “Consultar” na aba Identificação para atualizar.' : ''}
         </div>
       ) : (
         <CnaesSecundariosTable items={cnaesSecundarios} />

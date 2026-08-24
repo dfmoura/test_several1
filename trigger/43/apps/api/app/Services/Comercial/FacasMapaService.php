@@ -75,9 +75,11 @@ class FacasMapaService
                 $maxId = max($maxId, $id);
                 $payload = $this->normalizeRow($row, forSeed: true);
                 $payload['empresa_id'] = $empresaId;
+                // Sem fallback ao template: senão EMP vazia “enxerga” o compartilhado e nunca materializa.
                 $existing = $empresaId === null
                     ? OrcMapaFaca::query()->find($id)
-                    : $this->scopedQuery($empresaId)
+                    : OrcMapaFaca::query()
+                        ->where('empresa_id', $empresaId)
                         ->where('medida', $payload['medida'] ?? null)
                         ->where('formato', $payload['formato'] ?? null)
                         ->where('faca', $payload['faca'] ?? null)
@@ -162,6 +164,47 @@ class FacasMapaService
     }
 
     /**
+     * Materializa o mapa oficial na EMP se ela ainda só enxerga o template compartilhado.
+     * Idempotente — não altera geometria nem sobrescreve linhas já da EMP.
+     *
+     * @return array{criados: int, existentes: int, fonte: string, materializado: bool}
+     */
+    public function ensureMapaEmpresa(?int $empresaId = null): array
+    {
+        if (! $this->tablesReady()) {
+            throw ValidationException::withMessages([
+                'mapa' => 'Persistência do mapa indisponível — rode migrations/seed.',
+            ]);
+        }
+
+        $empresaId ??= CatalogoOrcEmpresa::id();
+        if ($empresaId === null) {
+            throw ValidationException::withMessages([
+                'empresa' => 'Empresa do contexto é obrigatória para materializar o mapa.',
+            ]);
+        }
+
+        $ownedCount = OrcMapaFaca::query()->where('empresa_id', $empresaId)->count();
+        if ($ownedCount > 0) {
+            return [
+                'criados' => 0,
+                'existentes' => $ownedCount,
+                'fonte' => 'MAPA DE FACAS 20260715 ATUAL',
+                'materializado' => false,
+            ];
+        }
+
+        $seed = $this->seedFromJson(null, false, $empresaId);
+
+        return [
+            'criados' => $seed['criados'],
+            'existentes' => $seed['existentes'],
+            'fonte' => $seed['fonte'],
+            'materializado' => $seed['criados'] > 0,
+        ];
+    }
+
+    /**
      * Cadastra faca nova no mapa oficial (pós-aprovação / manutenção comercial).
      *
      * @param  array<string, mixed>  $data
@@ -175,10 +218,8 @@ class FacasMapaService
             ]);
         }
 
-        // Garante seed antes do 1º cadastro manual (evita mapa só com a nova).
-        if (! $this->usingDatabase()) {
-            $this->seedFromJson();
-        }
+        // Não criar 1 faca da EMP sobre o template compartilhado — materializa o mapa completo antes.
+        $this->ensureMapaEmpresa();
 
         $payload = $this->normalizeRow($data, forSeed: false);
         $payload['empresa_id'] = CatalogoOrcEmpresa::id();
@@ -206,7 +247,7 @@ class FacasMapaService
             ]);
         }
 
-        $faca = $this->scopedQuery()->whereKey($id)->first();
+        $faca = $this->resolverFacaEscrita($id);
         if (! $faca) {
             abort(404, 'Faca não encontrada no mapa.');
         }
@@ -253,7 +294,7 @@ class FacasMapaService
             ]);
         }
 
-        $faca = $this->scopedQuery()->whereKey($id)->first();
+        $faca = $this->resolverFacaEscrita($id);
         if (! $faca) {
             abort(404, 'Faca não encontrada no mapa.');
         }
@@ -866,14 +907,17 @@ class FacasMapaService
 
     /**
      * Alinha `orc_mapa_facas.fornecedor` (rótulo legado) ao nome do PAR fornecedor da EMP.
-     * Não cria parceiro, não altera geometria, não toca rótulos sem match único.
+     * Materializa o mapa na EMP se ainda estiver só no template. Não cria parceiro,
+     * não altera geometria, não toca rótulos sem match único.
      *
      * @return array{
      *   atualizados: int,
      *   ja_alinhados: int,
      *   sem_match: list<array{rotulo: string, facas: int}>,
      *   ambiguos: list<array{rotulo: string, facas: int}>,
-     *   mapa: list<array{de: string, para: string, facas: int, parceiro: string}>
+     *   mapa: list<array{de: string, para: string, facas: int, parceiro: string}>,
+     *   materializado: bool,
+     *   materializados: int
      * }
      */
     public function alinharFornecedoresParceiros(?int $empresaId = null): array
@@ -889,6 +933,9 @@ class FacasMapaService
                 'mapa' => 'Persistência indisponível para alinhar fornecedores.',
             ]);
         }
+
+        // Sem cópia da EMP o aligner não toca o template compartilhado (correto) — materializa antes.
+        $ensure = $this->ensureMapaEmpresa($empresaId);
 
         $index = $this->indiceFornecedoresParceiros($empresaId);
         $query = OrcMapaFaca::query()
@@ -961,7 +1008,36 @@ class FacasMapaService
             'sem_match' => $semMatch,
             'ambiguos' => $ambiguos,
             'mapa' => $mapa,
+            'materializado' => (bool) $ensure['materializado'],
+            'materializados' => (int) $ensure['criados'],
         ];
+    }
+
+    /**
+     * Resolve faca para escrita na EMP. Nunca grava no template compartilhado (empresa_id nulo).
+     */
+    private function resolverFacaEscrita(int $id): ?OrcMapaFaca
+    {
+        $empresaId = CatalogoOrcEmpresa::id();
+        $faca = $this->scopedQuery()->whereKey($id)->first();
+        if (! $faca) {
+            return null;
+        }
+
+        // Já é da EMP (ou contexto sem EMP / template direto).
+        if ($empresaId === null || (int) ($faca->empresa_id ?? 0) === $empresaId) {
+            return $faca;
+        }
+
+        // Estava no template: materializa e re-resolve pela chave natural (ids do JSON ≠ ids da EMP).
+        $this->ensureMapaEmpresa($empresaId);
+
+        return $this->scopedQuery($empresaId)
+            ->where('medida', $faca->medida)
+            ->where('formato', $faca->formato)
+            ->where('faca', $faca->faca)
+            ->where('maquina_catalogo', $faca->maquina_catalogo)
+            ->first();
     }
 
     /**

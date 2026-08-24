@@ -5,10 +5,12 @@ namespace App\Services\Plataforma;
 use App\Models\Parceiro;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Auth\SessaoAcessoService;
 use App\Services\Codigo\CodigoGenerator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\PlatformRbac;
 use Spatie\Permission\Models\Role;
 
 class UsuarioService
@@ -17,6 +19,7 @@ class UsuarioService
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $auditLogger,
         private readonly RoleSodValidator $roleSodValidator,
+        private readonly SessaoAcessoService $sessaoAcesso,
     ) {}
 
     /**
@@ -37,6 +40,7 @@ class UsuarioService
                     $query->orWhereHas('empresas', fn ($q) => $q->whereIn('empresas.id', $empresaIds));
                 }
             })
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', PlatformRbac::ROLE))
             ->orderBy('name')
             ->limit($limit)
             ->get();
@@ -145,6 +149,9 @@ class UsuarioService
             $user->vigencia_ate = $data['vigencia_ate'];
         }
 
+        $revogarSessao = ! empty($data['password'])
+            || (array_key_exists('ativo', $data) && ! (bool) $data['ativo']);
+
         $user->save();
 
         if (isset($data['roles'])) {
@@ -183,6 +190,11 @@ class UsuarioService
         }
 
         $user = $user->fresh(['roles', 'empresas', 'parceiro']);
+
+        if ($revogarSessao) {
+            $this->sessaoAcesso->encerrarSessoes($user);
+        }
+
         $this->auditLogger->log('ATUALIZAR', 'usuario', $user->id, $before, [
             'email' => $user->email,
             'ativo' => $user->ativo,
@@ -204,6 +216,28 @@ class UsuarioService
         $this->assertCanManage($actor, $user);
 
         return $this->update($actor, $user, ['ativo' => true]);
+    }
+
+    /**
+     * Encerra a sessão viva do usuário (admin) — libera a conta para novo login.
+     *
+     * @return array{usuario: User, sessoes_encerradas: int}
+     */
+    public function liberarSessao(User $actor, User $user): array
+    {
+        $this->assertCanManage($actor, $user);
+        $ativas = $this->sessaoAcesso->possuiSessaoAtiva($user) ? 1 : 0;
+        $encerradas = $this->sessaoAcesso->encerrarSessoes($user);
+
+        $this->auditLogger->log('SESSAO_LIBERADA', 'usuario', $user->id, null, [
+            'por' => $actor->id,
+            'sessoes_encerradas' => $encerradas,
+        ]);
+
+        return [
+            'usuario' => $user->fresh(['roles', 'empresas', 'parceiro']) ?? $user,
+            'sessoes_encerradas' => max($ativas, $encerradas),
+        ];
     }
 
     public function assertCanManage(User $actor, User $target): void
@@ -325,6 +359,16 @@ class UsuarioService
      */
     private function assertRolesExist(array $roles): void
     {
+        $proibidos = array_values(array_filter(
+            $roles,
+            fn ($r) => PlatformRbac::isPapelProibidoNoTenant((string) $r),
+        ));
+        if ($proibidos !== []) {
+            throw ValidationException::withMessages([
+                'roles' => ['O perfil PLATAFORMA não pode ser atribuído pela conta FLEXORC.'],
+            ]);
+        }
+
         $valid = Role::query()->whereIn('name', $roles)->pluck('name')->all();
         $invalid = array_values(array_diff($roles, $valid));
 

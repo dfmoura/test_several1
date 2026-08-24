@@ -1049,7 +1049,7 @@ export function OrcamentoFormPage() {
             <div className="form-grid">
               <div className="form-group">
                 <label>
-                  Máquina (custo G10) * <span className="field-note">define R$/h</span>
+                  Máquina (hora) * <span className="field-note">define R$/h</span>
                 </label>
                 <select
                   value={form.maquina}
@@ -1091,7 +1091,7 @@ export function OrcamentoFormPage() {
                   <div className="form-group manual-field">
                     <label>
                       Valor faca nova (R$) *{' '}
-                      <span className="field-note">custo cotado — GERACAO §7.3</span>
+                      <span className="field-note">custo cotado pelo fornecedor</span>
                     </label>
                     <input
                       type="number"
@@ -1450,7 +1450,7 @@ export function OrcamentoFormPage() {
             ? 'Calcule para visualizar o total comercial do serviço (NFS-e Nacional).'
             : form.tipo_operacao === TIPO_CESSAO_BEM
               ? 'Cessão de equipamento não passa por este cálculo — use o patrimônio.'
-              : 'Calcule para visualizar a proposta comercial, o breakdown interno e a guia de produção (insumos e recursos).'}
+              : 'Calcule para visualizar a proposta comercial, a composição do custo e a guia de produção.'}
         </p>
       )}
     </>

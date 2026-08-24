@@ -39,8 +39,15 @@ except Exception as exc:
     raise
 PY
 
-echo "[entrypoint] Running Alembic migrations..."
-python - <<'PY'
+# Só a API aplica migrations (RUN_MIGRATIONS=1). O worker pula para evitar
+# corrida Alembic no cold start (api + worker no mesmo entrypoint).
+case "${RUN_MIGRATIONS:-1}" in
+  0|false|FALSE|no|NO)
+    echo "[entrypoint] Skipping Alembic migrations (RUN_MIGRATIONS=${RUN_MIGRATIONS})"
+    ;;
+  *)
+    echo "[entrypoint] Running Alembic migrations..."
+    python - <<'PY'
 import time, subprocess, sys
 last = 1
 for i in range(1, 8):
@@ -52,6 +59,8 @@ for i in range(1, 8):
     time.sleep(2)
 sys.exit(last)
 PY
+    ;;
+esac
 
 echo "[entrypoint] Starting application: $*"
 exec "$@"

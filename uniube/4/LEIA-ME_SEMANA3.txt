@@ -29,6 +29,25 @@ O RELATORIO SEGUE O ROTEIRO DA SEMANA 3:
   4) Referencias em ABNT (NBR 6023), citacoes autor-data (NBR 10520),
      apresentacao (NBR 14724)
 
+REFERENCIAS (criterio, sem inventar DOI):
+  COM DOI em acesso aberto (nao usar paywall):
+    - Moreira et al. (2020) SciELO  10.1590/1981-5344/3994
+      (substituiu Batini/Scannapieco 2016, cujo DOI Springer e pago)
+    - Pinho; Sacramento (2009)      10.1590/S0034-76122009000600006
+    - Zuiderwijk; Janssen (2014)    10.1016/j.giq.2013.04.003
+      (Elsevier: DOI existe; se a biblioteca nao liberar, use o PDF institucional
+       ou peca outra troca; a citacao no texto permanece correta)
+  COM ISBN (livro comercial sem DOI da edicao citada):
+    - Gil 2022           978-65-5977-163-9
+    - Laudon 2014        978-85-4300-585-0
+    - Pressman 2021      978-65-5804-010-1
+    - Sommerville 2018   978-85-4302-497-4
+    - Yin 2015           978-85-8260-231-7
+  SEM DOI (correto assim):
+    - Normas ABNT NBR 14724/6023/10520
+    - Leis e decreto (URL Planalto)
+    - Portais Compras.gov, PNCP, OSB, Power BI, Portal de Servicos
+
 O QUE NAO MUDA EM RELACAO A SEMANA 1:
   - A acao e um SISTEMA DE INFORMACAO DE APOIO em producao, nao oficina.
   - O problema da entidade e a coleta manual na planilha Cronograma.

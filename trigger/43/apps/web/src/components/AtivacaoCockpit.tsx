@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError, api, type AtivacaoData, type AtivacaoPasso } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { BRAND } from '../lib/brand';
 
 type Props = {
   data: AtivacaoData;
@@ -18,6 +19,7 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
   const passo = (id: string): AtivacaoPasso | undefined => data.passos.find((p) => p.id === id);
   const pagamento = passo('pagamento');
   const recebimento = passo('recebimento');
+  const certificadoA1 = passo('certificado_a1');
 
   const run = async (id: string, fn: () => Promise<AtivacaoData>) => {
     setErro('');
@@ -65,8 +67,8 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
         <h2>{compact ? 'Forma de pagamento' : 'Nesta empresa'}</h2>
         <p>
           {compact
-            ? 'Mensalidade da conta FLEXORC: a gráfica paga a TRIGGER no ASAAS.'
-            : 'Cadastros e o primeiro orçamento desta empresa. A mensalidade fica na conta FLEXORC.'}
+            ? `Mensalidade da conta ${BRAND.product.name} — pagamento à TRIGGER.`
+            : `Cadastros e o primeiro orçamento desta empresa. A mensalidade fica na conta ${BRAND.product.name}.`}
         </p>
       </div>
 
@@ -91,7 +93,7 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
             </div>
             <div className="ativacao-acao">
               {p.id === 'pagamento' && !p.feito ? (
-                <Link to="/cadastro/pagamento" className="btn btn-primary btn-sm">
+                <Link to="/conta/mensalidade" className="btn btn-primary btn-sm">
                   Ver a fatura
                 </Link>
               ) : null}
@@ -117,7 +119,18 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
                 </Link>
               ) : null}
 
-              {p.id !== 'pagamento' && p.id !== 'recebimento' && p.id !== 'catalogo' && !p.feito && p.to ? (
+              {p.id === 'certificado_a1' && !p.feito && p.to ? (
+                <Link to={p.to} className="btn btn-primary btn-sm">
+                  Enviar certificado
+                </Link>
+              ) : null}
+
+              {p.id !== 'pagamento' &&
+              p.id !== 'recebimento' &&
+              p.id !== 'catalogo' &&
+              p.id !== 'certificado_a1' &&
+              !p.feito &&
+              p.to ? (
                 <Link to={p.to} className="btn btn-secondary btn-sm">
                   {p.id === 'parceiro' ? 'Cadastrar' : p.id === 'orcamento' ? 'Orçar' : 'Abrir'}
                 </Link>
@@ -129,13 +142,20 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
 
       {pagamento && !pagamento.feito && produtoFlexorc.sinal ? (
         <p className="ativacao-nota">
-          A mensalidade é a conta FLEXORC (você → TRIGGER). O PIX abaixo é para receber o sinal do
+          A mensalidade é a conta {BRAND.product.name} (você → TRIGGER). O PIX abaixo é para receber o sinal do
           seu cliente.
         </p>
       ) : null}
 
-      {recebimento?.feito && !data.pode_enviar_orcamento ? (
+      {recebimento?.feito && !data.pode_enviar_orcamento && !pagamento?.feito ? (
         <p className="ativacao-nota">O envio da proposta fica liberado depois da mensalidade.</p>
+      ) : null}
+
+      {pagamento?.feito && certificadoA1 && !certificadoA1.feito && !data.pode_enviar_orcamento ? (
+        <p className="ativacao-nota">
+          O envio da proposta fica liberado depois do certificado digital válido desta empresa
+          (mesmo CNPJ, dentro da validade).
+        </p>
       ) : null}
     </section>
   );

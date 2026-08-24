@@ -5,10 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logging import get_logger
 from app.core.security import API_KEY_PREFIX, verify_api_key
 from app.domain.enums import SenderStatus
-from app.domain.exceptions import ForbiddenError, UnauthorizedError
+from app.domain.exceptions import UnauthorizedError
 from app.models import Sender
 from app.repositories import SenderRepository, SubscriptionRepository
 from app.services.billing import BillingService
+from app.services.send_gate import SenderGate
 
 logger = get_logger(__name__)
 
@@ -44,33 +45,8 @@ class SenderAuthService:
             raise UnauthorizedError("Remetente revogado")
 
         if for_send:
-            sub = await self.subs.get_for_account(matched.account_id)
-            if not self.billing.is_active(sub):
-                raise ForbiddenError(
-                    "subscription_inactive",
-                    "Mensalidade inativa. Regularize no painel para continuar enviando.",
-                )
-            if matched.status == SenderStatus.PAUSED.value:
-                raise ForbiddenError("sender_paused", "Remetente pausado")
-            if matched.status == SenderStatus.CREDENTIALS_INVALID.value:
-                raise ForbiddenError(
-                    "credentials_invalid",
-                    "Credencial Cloud API inválida. Atualize o token no painel — a API key permanece a mesma.",
-                )
-            if matched.status == SenderStatus.PENDING.value:
-                raise ForbiddenError(
-                    "not_connected",
-                    "WhatsApp Business ainda não foi conectado",
-                )
-            if matched.status != SenderStatus.ACTIVE.value:
-                raise ForbiddenError(
-                    "sender_inactive",
-                    f"Remetente com status {matched.status}",
-                )
-            if matched.channel != "whatsapp_business":
-                raise ForbiddenError(
-                    "business_only",
-                    "Somente WhatsApp Business é suportado",
-                )
+            await SenderGate(billing=self.billing, subs=self.subs).require_ready(
+                matched
+            )
 
         return matched

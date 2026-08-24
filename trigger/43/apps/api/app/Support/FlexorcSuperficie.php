@@ -13,7 +13,7 @@ final class FlexorcSuperficie
     /** Orçamento até enviar link de aprovar/reprovar — sem sinal PIX nem menu financeiro. */
     public static function ateEnvioLink(): bool
     {
-        return (bool) config('erp.flexorc.ate_envio_link', true);
+        return (bool) config('erp.flexorc.ate_envio_link', false);
     }
 
     public static function expoeFinanceiro(): bool

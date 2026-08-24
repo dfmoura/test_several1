@@ -161,6 +161,7 @@ export function PatrimonioFormPage() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const [cessoes, setCessoes] = useState<CessaoBem[]>([]);
@@ -228,6 +229,9 @@ export function PatrimonioFormPage() {
       return;
     }
     let cancelled = false;
+    setNotFound(false);
+    setError('');
+    setLoading(true);
     void (async () => {
       try {
         const res = await api.get<{ data: BemPatrimonial }>(`/bens/${id}`);
@@ -242,9 +246,15 @@ export function PatrimonioFormPage() {
         });
         if (res.data.capitalizacao) setCapitalizacao(res.data.capitalizacao);
         const ces = await api.get<{ data: CessaoBem[] }>(`/cessoes-bem?bem_id=${id}`);
-        if (!cancelled) setCessoes(ces.data);
+        if (!cancelled) {
+          setCessoes(ces.data);
+          setNotFound(false);
+        }
       } catch {
-        if (!cancelled) setError('Bem patrimonial não encontrado.');
+        if (!cancelled) {
+          setNotFound(true);
+          setError('Bem patrimonial não encontrado.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -302,6 +312,18 @@ export function PatrimonioFormPage() {
 
   if (loading) {
     return <div className="loading">Carregando…</div>;
+  }
+
+  if (notFound) {
+    return (
+      <>
+        <PageHeader title="Bem patrimonial" description="Não encontrado" />
+        <div className="alert alert-error">{error || 'Bem patrimonial não encontrado.'}</div>
+        <Link to="/patrimonio" className="btn btn-secondary">
+          Voltar à lista
+        </Link>
+      </>
+    );
   }
 
   const fieldErr = (key: string) =>
@@ -565,14 +587,15 @@ export function PatrimonioFormPage() {
           <div className="card" style={{ marginBottom: '1rem' }}>
             <div className="card-body">
               <div className="form-section">
-                <h3>Produção · hora-máquina (ORC)</h3>
+                <h3>Produção · hora-máquina</h3>
                 <p style={{ marginTop: 0, opacity: 0.8, fontSize: '0.9rem' }}>
-                  O bem físico é este cadastro. O grupo G10 é só a tarifa R$/h — duas máquinas da
-                  mesma classe compartilham o grupo (não duplicar). Tarifas editam-se no catálogo.
+                  O bem físico é este cadastro. O grupo de hora-máquina é só a tarifa R$/h — duas
+                  máquinas da mesma classe compartilham o grupo (não duplicar). Tarifas editam-se no
+                  catálogo.
                   {canOpenCatalogoOrc ? (
                     <>
                       {' '}
-                      <Link to="/orcamento-catalogo">Catálogo ORC · hora-máquina</Link>
+                      <Link to="/orcamento-catalogo">Catálogo · hora-máquina</Link>
                     </>
                   ) : null}
                 </p>

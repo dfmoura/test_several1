@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
+import { PlatformShell } from './components/PlatformShell';
 import { useAuth } from './lib/auth';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentoFiscalFichaPage } from './pages/DocumentoFiscalFichaPage';
@@ -9,8 +10,9 @@ import { EmpresasPage } from './pages/EmpresasPage';
 import { FiscalHubsPage } from './pages/FiscalHubsPage';
 import { IaProvedoresPage } from './pages/IaProvedoresPage';
 import { CadastroEmpresaPage } from './pages/CadastroEmpresaPage';
-import { CadastroContaPage } from './pages/CadastroContaPage';
 import { CadastroPagamentoPage } from './pages/CadastroPagamentoPage';
+import { MensalidadeContaPage } from './pages/MensalidadeContaPage';
+import { ImplantacaoPage } from './pages/ImplantacaoPage';
 import { LoginPage } from './pages/LoginPage';
 import { MapasFacasPage } from './pages/MapasFacasPage';
 import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
@@ -62,6 +64,12 @@ import { RastreioInsumosPage } from './pages/RastreioInsumosPage';
 import { ExpedicaoPage } from './pages/ExpedicaoPage';
 import { EntregaDetailPage } from './pages/EntregaDetailPage';
 import { EntregaFichaPage } from './pages/EntregaFichaPage';
+import { PlataformaPainelPage } from './pages/PlataformaPainelPage';
+import { PlataformaInterIntegracaoPage } from './pages/PlataformaInterIntegracaoPage';
+import { PlataformaMensalidadePage } from './pages/PlataformaMensalidadePage';
+import { PlataformaContasPage } from './pages/PlataformaContasPage';
+import { PlataformaContaDetailPage } from './pages/PlataformaContaDetailPage';
+import { PlataformaAuditoriaPage } from './pages/PlataformaAuditoriaPage';
 
 function LoadingScreen() {
   return (
@@ -75,6 +83,24 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, initialized } = useAuth();
   if (!initialized) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function FlexorcRoute({ children }: { children: ReactNode }) {
+  const { consolePlataforma, initialized, user } = useAuth();
+  if (!initialized) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (consolePlataforma) return <Navigate to="/plataforma" replace />;
+  return <>{children}</>;
+}
+
+function PlatformRoute({ children }: { children: ReactNode }) {
+  const { hasPermission, consolePlataforma, initialized, user } = useAuth();
+  if (!initialized) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!(consolePlataforma || hasPermission('plataforma.operar'))) {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -99,21 +125,50 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/cadastro" element={<Navigate to="/cadastro/conta" replace />} />
-      <Route path="/cadastro/conta" element={<CadastroContaPage />} />
+      <Route path="/cadastro" element={<Navigate to="/login" replace />} />
+      <Route path="/cadastro/conta" element={<Navigate to="/login" replace />} />
       <Route path="/cadastro/empresa" element={<Navigate to="/empresas/nova" replace />} />
       <Route path="/cadastro/pagamento" element={<CadastroPagamentoPage />} />
       <Route path="/p/:token" element={<OrcamentoPublicoPage />} />
 
       <Route
+        path="/plataforma"
         element={
           <ProtectedRoute>
-            <AppShell />
+            <PlatformRoute>
+              <PlatformShell />
+            </PlatformRoute>
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PlataformaPainelPage />} />
+        <Route path="contas" element={<PlataformaContasPage />} />
+        <Route path="contas/:id" element={<PlataformaContaDetailPage />} />
+        <Route path="integracoes/inter" element={<PlataformaInterIntegracaoPage />} />
+        <Route path="configuracao/mensalidade" element={<PlataformaMensalidadePage />} />
+        <Route path="auditoria" element={<PlataformaAuditoriaPage />} />
+      </Route>
+
+      <Route
+        element={
+          <ProtectedRoute>
+            <FlexorcRoute>
+              <AppShell />
+            </FlexorcRoute>
           </ProtectedRoute>
         }
       >
         <Route index element={<DashboardPage />} />
         <Route path="empresas" element={<EmpresasPage />} />
+        <Route path="conta/mensalidade" element={<MensalidadeContaPage />} />
+        <Route
+          path="implantacao"
+          element={
+            <PermissionRoute permission="implantacao.ler">
+              <ImplantacaoPage />
+            </PermissionRoute>
+          }
+        />
         <Route
           path="empresas/nova"
           element={

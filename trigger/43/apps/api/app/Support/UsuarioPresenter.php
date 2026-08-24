@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Parceiro;
 use App\Models\User;
+use App\Services\Auth\SessaoAcessoService;
 use Illuminate\Support\Collection;
 
 /**
@@ -14,7 +15,7 @@ final class UsuarioPresenter
     /**
      * @return array<string, mixed>
      */
-    public static function present(User $user): array
+    public static function present(User $user, ?bool $sessaoAtiva = null): array
     {
         $user->loadMissing(['roles', 'empresas', 'parceiro']);
 
@@ -28,6 +29,7 @@ final class UsuarioPresenter
             'empresa_default_id' => $user->empresa_default_id,
             'vigencia_ate' => $user->vigencia_ate?->toDateString(),
             'ultimo_login_em' => $user->ultimo_login_em?->toIso8601String(),
+            'sessao_ativa' => $sessaoAtiva ?? app(SessaoAcessoService::class)->possuiSessaoAtiva($user),
             'tipo' => $user->parceiro_id !== null ? 'colaborador' : 'conta',
             'roles' => $user->getRoleNames()->values()->all(),
             'empresas' => $user->empresas->map(fn ($empresa) => [
@@ -47,7 +49,15 @@ final class UsuarioPresenter
      */
     public static function presentMany(Collection $users): array
     {
-        return $users->map(fn (User $user) => self::present($user))->values()->all();
+        $ativas = array_fill_keys(
+            app(SessaoAcessoService::class)->idsComSessaoAtiva($users->pluck('id')->all()),
+            true,
+        );
+
+        return $users
+            ->map(fn (User $user) => self::present($user, isset($ativas[$user->id])))
+            ->values()
+            ->all();
     }
 
     /**

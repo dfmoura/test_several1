@@ -61,6 +61,20 @@ class SenderConnectIn(BaseModel):
     phone_number_id: str | None = Field(default=None, max_length=80)
     waba_id: str | None = Field(default=None, max_length=80)
     access_token: str | None = Field(default=None, max_length=4000)
+    label: str | None = Field(
+        default=None,
+        max_length=80,
+        description="Rótulo interno (ex.: nome do sistema/cliente consumidor)",
+    )
+    sender_id: str | None = Field(
+        default=None,
+        max_length=40,
+        description="Atualiza este remetente; omita para criar ou resolver pelo telefone",
+    )
+    as_new: bool = Field(
+        default=False,
+        description="Força criação de um novo remetente (multi-número na mesma conta)",
+    )
 
     @field_validator("phone")
     @classmethod
@@ -68,18 +82,40 @@ class SenderConnectIn(BaseModel):
         return validate_phone_e164(v)
 
 
+class SenderPairIn(BaseModel):
+    name: str = Field(..., min_length=2, max_length=120)
+    business_confirmed: bool = False
+    label: str | None = Field(
+        default=None,
+        max_length=80,
+        description="Rótulo interno (ex.: nome do sistema/cliente consumidor)",
+    )
+    sender_id: str | None = Field(
+        default=None,
+        max_length=40,
+        description="Renova o QR deste remetente; omita com 0/1 remetente ou use as_new",
+    )
+    as_new: bool = Field(
+        default=False,
+        description="Cadastra um novo número (novo remetente + fila + API key)",
+    )
+
+
 class SenderOut(BaseModel):
     id: str
     name: str
-    phone_e164: str
+    label: str | None = None
+    phone_e164: str | None = None
     channel: str
     provider: str
     phone_number_id: str | None
     waba_id: str | None
+    evolution_instance: str | None = None
     api_key_prefix: str
     status: str
     rate_limit_per_minute: int
     last_healthy_at: datetime | None
+    last_connected_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -89,10 +125,26 @@ class SenderCreated(SenderOut):
     api_key: str = Field(..., description="Exibida uma única vez")
 
 
+class PairOut(BaseModel):
+    sender: SenderOut
+    qrcode_base64: str | None = None
+    instance: str | None = None
+    detail: str
+    api_key: str | None = Field(
+        default=None,
+        description="Presente só na primeira criação do remetente",
+    )
+
+
 class MessagePortalCreate(BaseModel):
     to: str
     body: str = Field(..., min_length=1, max_length=4096)
     external_id: str | None = Field(default=None, max_length=200)
+    sender_id: str | None = Field(
+        default=None,
+        max_length=40,
+        description="Remetente da conta; padrão = o mais recente ativo",
+    )
 
     @field_validator("to")
     @classmethod
@@ -129,6 +181,7 @@ class MessageOut(BaseModel):
     to: str | None = None
     type: str | None = None
     body: str | None = None
+    source: str | None = None
     attempts: int | None = None
     last_error: str | None = None
     provider_message_id: str | None = None
@@ -141,6 +194,29 @@ class MessageOut(BaseModel):
     metadata: dict[str, Any] | None = None
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_message(cls, msg: Any) -> MessageOut:
+        return cls(
+            id=msg.id,
+            external_id=msg.external_id,
+            status=msg.status,
+            sender_id=msg.sender_id,
+            to=msg.to_phone,
+            type=msg.type,
+            body=msg.body,
+            source=getattr(msg, "source", None),
+            attempts=msg.attempts,
+            last_error=msg.last_error,
+            provider_message_id=msg.provider_message_id,
+            created_at=msg.created_at,
+            queued_at=msg.queued_at,
+            processing_at=msg.processing_at,
+            sent_at=msg.sent_at,
+            failed_at=msg.failed_at,
+            dead_at=msg.dead_at,
+            metadata=msg.metadata_json,
+        )
 
 
 class ApiDocsOut(BaseModel):
@@ -156,9 +232,24 @@ class MeOut(BaseModel):
     account: AccountOut
     subscription: SubscriptionOut
     sender: SenderOut | None
+    senders: list[SenderOut] = Field(default_factory=list)
     onboarding_step: str
     ready_to_send: bool
+    pairing_enabled: bool = False
+    deployment_mode: str = "saas"
+    registration_mode: str = "open"
+    billing_auto_activate: bool = False
     api_docs: ApiDocsOut | None = None
+    selected_sender_id: str | None = None
+
+
+class PublicMetaOut(BaseModel):
+    app: str
+    deployment_mode: str
+    registration_mode: str
+    registration_open: bool
+    pairing_enabled: bool
+    billing_auto_activate: bool
 
 
 class HealthOut(BaseModel):

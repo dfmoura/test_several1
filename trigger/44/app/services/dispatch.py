@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.ids import mask_phone, truncate_body
 from app.core.logging import get_logger
-from app.domain.enums import DeliveryEventType, MessageStatus, SenderStatus
+from app.domain.enums import DeliveryEventType, MessageStatus, SenderStatus, WhatsAppProviderKind
 from app.domain.exceptions import PermanentSendError, TransientSendError
 from app.integrations.whatsapp.factory import build_whatsapp_provider
 from app.queue.topology import QueuePublisher
@@ -123,18 +123,25 @@ class DispatchService:
 
         token = SenderService.decrypt_token(sender)
         provider = build_whatsapp_provider(sender.provider)
+        provider_ref = (
+            sender.evolution_instance
+            if sender.provider == WhatsAppProviderKind.BAILEYS.value
+            and sender.evolution_instance
+            else sender.phone_number_id
+        ) or ""
         try:
-            healthy = await provider.health(
-                phone_number_id=sender.phone_number_id or "",
-                access_token=token,
-            )
-            if not healthy:
-                sender.status = SenderStatus.CREDENTIALS_INVALID.value
-                await self.senders.save(sender)
-                raise PermanentSendError(
-                    "credentials_invalid",
-                    "Cloud API token rejected — update credentials in the portal",
+            if sender.provider == WhatsAppProviderKind.CLOUD.value:
+                healthy = await provider.health(
+                    phone_number_id=provider_ref,
+                    access_token=token,
                 )
+                if not healthy:
+                    sender.status = SenderStatus.CREDENTIALS_INVALID.value
+                    await self.senders.save(sender)
+                    raise PermanentSendError(
+                        "credentials_invalid",
+                        "Cloud API token rejected — update credentials in the portal",
+                    )
 
             logger.info(
                 "sending_message",
@@ -145,7 +152,7 @@ class DispatchService:
                 body=truncate_body(msg.body) if self.settings.is_development else None,
             )
             result = await provider.send_text(
-                phone_number_id=sender.phone_number_id or "",
+                phone_number_id=provider_ref,
                 access_token=token,
                 to=msg.to_phone,
                 body=msg.body,

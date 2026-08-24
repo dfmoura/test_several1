@@ -16,15 +16,18 @@ class SubscriptionStatus(StrEnum):
 
 class SenderStatus(StrEnum):
     PENDING = "pending"
+    PENDING_PAIR = "pending_pair"
     ACTIVE = "active"
     PAUSED = "paused"
     CREDENTIALS_INVALID = "credentials_invalid"
+    REBIND_REQUIRED = "rebind_required"
     REVOKED = "revoked"
 
 
 class WhatsAppProviderKind(StrEnum):
     SANDBOX = "sandbox"
     CLOUD = "cloud"
+    BAILEYS = "baileys"
 
 
 class ChannelKind(StrEnum):
@@ -47,6 +50,13 @@ class MessageType(StrEnum):
 class MessagePriority(StrEnum):
     NORMAL = "normal"
     HIGH = "high"
+
+
+class IntakeSource(StrEnum):
+    """Origem da intenção de envio. Todas convergem no mesmo pipeline."""
+
+    API = "api"
+    PORTAL = "portal"
 
 
 class DeliveryEventType(StrEnum):

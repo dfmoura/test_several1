@@ -81,33 +81,44 @@ curl -sS https://erp.seudominio.com.br/api/v1/health
 
 **APP_KEY:** se mantiver o mesmo banco/dados cifrados (tokens IA/Focus), **preserve a chave da homolog**. Só gere chave nova com banco novo consciente.
 
-## Subdomínio da proposta (`flexorc`)
+## Subdomínio da proposta (`flexoerp` · alias `flexorc`)
 
-O link de aprovação do ORC usa `ORCAMENTO_PUBLIC_BASE_URL` (prod: `https://flexorc.triggerti.com`).
+O link de aprovação do ORC usa `ORCAMENTO_PUBLIC_BASE_URL`. Canônico: `https://flexoerp.triggerti.com`. **Alias legado:** `flexorc.triggerti.com` (mesmo vhost — ADR `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md`).
 
-1. DNS: CNAME `flexorc.triggerti.com` → **mesmo** alvo do ERP (não é site separado nem R2).
-2. TLS + vhost do nginx/Caddy aceitam o host `flexorc.*` e servem o mesmo SPA/API.
-3. Em `.env.aws`: `ORCAMENTO_PUBLIC_BASE_URL=https://flexorc.triggerti.com` e inclua o host em `SANCTUM_STATEFUL_DOMAINS` se login no mesmo domínio for necessário (a página `/p/{token}` é pública e não usa Sanctum).
+1. DNS: CNAME `flexoerp.triggerti.com` → **mesmo** alvo do ERP; manter `flexorc.*` como alias até cutover completo.
+2. TLS + vhost do nginx/Caddy aceitam os hosts `flexoerp.*` e `flexorc.*` e servem o mesmo SPA/API.
+3. Em `.env.aws`: `ORCAMENTO_PUBLIC_BASE_URL=https://flexoerp.triggerti.com` (ou `flexorc.*` durante transição) e inclua o host em `SANCTUM_STATEFUL_DOMAINS` se login no mesmo domínio for necessário (a página `/p/{token}` é pública e não usa Sanctum).
 4. Credenciais Cloudflare/R2 ficam só no vault/`.env` — **nunca** no git. R2 não hospeda a página de aprovação.
 
 ### Teste local com flexorc via Tunnel
 
-Enquanto o ERP ainda roda no notebook (`make up` → porta **8039**), dá para servir o link do cliente em `https://flexorc.triggerti.com` com o Cloudflare Tunnel já usado pelo painel (`triggerti-painel`):
+Enquanto o ERP ainda roda no notebook (`make up` → porta **8043** nesta instalação), dá para servir o link do cliente e o **webhook ASAAS** em `https://flexorc.triggerti.com` com o Cloudflare Tunnel:
 
 1. Incluir **antes** do catch-all no config do tunnel (em máquinas com serviço systemd: `/etc/cloudflared/config.yml`; senão `~/.cloudflared/config.yml`):
 
 ```yaml
   - hostname: flexorc.triggerti.com
-    service: http://localhost:8039
+    service: http://localhost:8043
 ```
 
 2. DNS (uma vez): `cloudflared tunnel route dns --overwrite-dns triggerti-painel flexorc.triggerti.com`
 3. Reiniciar o conector: `systemctl restart cloudflared` (ou `cloudflared tunnel run triggerti-painel`).
-4. No `.env` local: `ORCAMENTO_PUBLIC_BASE_URL=https://flexorc.triggerti.com` (mantenha `APP_URL`/`FRONTEND_URL` em `http://localhost:8039` para o comercial).
-5. Suba o stack (`make up`).
-6. Smoke: `curl -sS https://flexorc.triggerti.com/api/v1/health` (espera `"stage":"local"`) e envie um ORC — a mensagem deve trazer `https://flexorc.triggerti.com/p/...`.
+4. Ativar ensaio de billing (base pública + token webhook):
 
-**Atenção:** com o tunnel ligado o app local fica público. Pare o conector / desligue a regra quando não estiver testando.
+```bash
+make ensaio-asaas-ativar
+make down && make up
+make ensaio-asaas
+```
+
+5. No painel ASAAS (**sandbox**): webhook de eventos → `https://flexorc.triggerti.com/api/v1/webhooks/bancarios/asaas` com o token impresso / em `ASAAS_WEBHOOK_TOKEN`.
+6. Smoke: `curl -sS https://flexorc.triggerti.com/api/v1/health` e autenticar mensalidade (cartão) no app.
+
+`APP_URL` / `FRONTEND_URL` podem permanecer em `http://localhost:8043` (UI no notebook). Só `ORCAMENTO_PUBLIC_BASE_URL` aponta para o flexorc no ensaio.
+
+**Atenção:** com o tunnel ligado o app local fica público. Desative quando não testar: `make ensaio-asaas-desativar` e/ou pare o conector.
+
+Norma do ensaio de mensalidade: [`ADR_ENSAIO_ASAAS_FLEXORC.md`](ADR_ENSAIO_ASAAS_FLEXORC.md).
 
 ## O que NÃO muda entre estágios
 
@@ -136,6 +147,8 @@ Infra mínima abaixo. Aceite completo (multi-empresa + key user): [`MODELO_INSTA
 | `make up-aws` | AWS com `.env.aws` |
 | `make aws-check` | Valida `.env.aws` |
 | `make promote-prod` | Checklist de virada |
+| `make ensaio-asaas` | Valida tunnel + ASAAS (webhook/Checkout) |
+| `make ensaio-asaas-ativar` / `desativar` | Liga/desliga `ORCAMENTO_PUBLIC_BASE_URL` → flexorc |
 | `make down` / `make down-aws` | Para stack |
 
 Ver também: [`LIGHTSAIL_E_FUTURO.md`](LIGHTSAIL_E_FUTURO.md) · [`MODELO_INSTALACAO_MULTI_EMPRESA.md`](MODELO_INSTALACAO_MULTI_EMPRESA.md).

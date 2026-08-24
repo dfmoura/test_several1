@@ -22,10 +22,6 @@ function dash(value: string | number | null | undefined): string {
   return s === '' ? '—' : s;
 }
 
-function yesNo(value: boolean | null | undefined): string {
-  return value ? 'Sim' : 'Não';
-}
-
 function situacaoLabel(s: string | null | undefined): string {
   const map: Record<string, string> = {
     ATIVO: 'Ativo',
@@ -176,9 +172,7 @@ export function EmpresaFichaSheet({
           label="Cadastro fiscal"
           value={e.cadastro_fiscal_completo ? 'Completo' : 'Incompleto'}
         />
-        <Kv label="Apto emissão NF-e" value={yesNo(e.apto_emissao_nfe)} />
-        <Kv label="Apto emissão NFS-e" value={yesNo(e.apto_emissao_nfse)} />
-        <Kv label="CRT" value={e.crt != null ? crtLabel(e.crt) : '—'} />
+        <Kv label="Regime (CRT)" value={e.crt != null ? crtLabel(e.crt) : '—'} />
       </div>
 
       <div className="ficha-columns">
@@ -255,7 +249,7 @@ export function EmpresaFichaSheet({
 
       <Section title="QSA — Sócios e administradores">
         {consultaReceita === 'loading' ? (
-          <p className="ficha-note">Consultando quadro societário na Receita (BrasilAPI)…</p>
+          <p className="ficha-note">Consultando quadro societário na Receita…</p>
         ) : socios.length === 0 ? (
           <p className="ficha-note">
             {consultaReceita === 'erro'
@@ -359,30 +353,28 @@ export function EmpresaFichaSheet({
           </table>
         )}
         <p className="ficha-note">
-          Conta financeira = tesouraria da EMP (destino de BX). Diferente das contas do parceiro.
+          Conta financeira = tesouraria desta empresa (destino de baixas). Diferente das contas do
+          parceiro.
         </p>
       </Section>
 
       <Section title="Operação">
         <div className="ficha-kv-grid cols-4">
           <Kv label="Situação" value={situacaoLabel(e.situacao)} />
-          <Kv label="Venda ativa" value={yesNo(e.venda_ativa)} />
-          <Kv label="Estoque ativo" value={yesNo(e.estoque_ativo)} />
           <Kv label="Código" value={e.codigo} />
           {formatLatLng(e.origem_latitude, e.origem_longitude) ? (
             <Kv
-              label="Origem operacional"
+              label="Origem da planta"
               value={formatLatLng(e.origem_latitude, e.origem_longitude)}
               wide
             />
           ) : (
-            <Kv label="Origem operacional" value="—" wide />
+            <Kv label="Origem da planta" value="—" wide />
           )}
         </div>
         {vendaOff ? (
           <p className="ficha-note">
-            Venda desligada neste CNPJ · alinhar a MULTI_EMPRESA (estudo 32): não emitir NF de
-            produto até parecer Contador + Direção.
+            Venda desligada neste CNPJ — alinhar com a direção antes de emitir nota de produto.
           </p>
         ) : null}
       </Section>
@@ -424,29 +416,26 @@ export function EmpresaFichaSheet({
         </Section>
       ) : null}
 
-      {pendencias.length > 0 || pendenciasEmissao.length > 0 ? (
+      {pendencias.length > 0 ? (
         <Section title="Pendências cadastrais">
-          {pendencias.length > 0 ? (
-            <p className="ficha-inline-list">
-              <strong>Cadastro:</strong> {pendencias.join(' · ')}
-            </p>
-          ) : null}
-          {pendenciasEmissao.length > 0 ? (
-            <p className="ficha-inline-list">
-              <strong>Emissão NF-e:</strong> {pendenciasEmissao.join(' · ')}
-            </p>
-          ) : null}
+          <p className="ficha-inline-list">
+            <strong>Cadastro:</strong> {pendencias.join(' · ')}
+          </p>
         </Section>
       ) : null}
 
-      <p className="ficha-note">
-        Multi-CNPJ oficial · empresa_id + EMP-NNNNN · sem LAI / natureza 9.xx (estudo 32).
-      </p>
+      {pendenciasEmissao.length > 0 ? (
+        <Section title="Bloqueios de emissão">
+          <p className="ficha-inline-list">
+            <strong>Emissão:</strong> {pendenciasEmissao.join(' · ')}
+          </p>
+        </Section>
+      ) : null}
 
       <RegistroMetaStrip registro={e} className="ficha-autoria" />
 
       <footer className="ficha-footer">
-        <span>Uso interno · empresa / EMP · emitido por {emitidoPor}</span>
+        <span>Uso interno · empresa · emitido por {emitidoPor}</span>
         <TriggerAttribution
           variant="print"
           className="ficha-powered"

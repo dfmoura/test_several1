@@ -17,7 +17,7 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 | **Tabela `orcamento_links_aprovacao`** (1:1) | Token longo, validade, visualizações, `ativo`/`usado_em` — sem expor `id` sequencial. |
 | **Destinatário = contato oficial autorizado** | Estudo §1.4 / §3.4: sem senha no link; identificação = canal + token. Proibido número/e-mail avulso no envio. Flag `parceiro_contatos.autorizado_aprovar`. |
 | **DTO só comercial no público** | Nunca custo, margem, comissão, imposto (estudo §3). Página declara **quem** deve decidir. |
-| **Clipboard + texto padrão + deep link do canal** | “Olá, [contato]! …” + botão Abrir WhatsApp/e-mail. WhatsApp Business API fica para BL futuro. |
+| **Clipboard + texto padrão + deep link do canal** | “Olá, [contato]! …” + botão Abrir WhatsApp/e-mail. E-mail automático: `ADR_ORC_EMAIL_PROPOSTA.md`. WhatsApp ViaZap: `ADR_ORC_WHATSAPP_VIAZAP.md` (fail-soft; clipboard intacto). |
 | **Prévia interna ≠ link do cliente** | “Abrir proposta” no ERP abre `/orcamentos/{id}/proposta` (autenticado, `modo: preview`, sem decidir). Aprovar/recusar só em `/p/{token}`. |
 | **Sem senha no link** | Estudo §3.4: atrito mataria adesão mobile; segurança = token longo + destinatário oficial + uso único. |
 | **Sem host estático (R2/Pages) da proposta** | Fonte da verdade = ERP; aprovar/recusar atualiza o banco na hora. R2 só para anexos privados (futuro). |
@@ -72,5 +72,7 @@ Após aprovar **ou** rejeitar, GET do token responde **indisponível** (não mos
 - DNS: CNAME `flexorc.triggerti.com` → mesmo alvo do ERP (Lightsail/ALB). Em prod: `ORCAMENTO_PUBLIC_BASE_URL=https://flexorc.triggerti.com`.
 - Nova versão após `REPROVADO` invalida link antigo (já inativo) e exige novo envio.
 - PED / crédito / WhatsApp Business / object storage (R2) ficam explicitamente para BLs futuros.
+- E-mail transacional ao enviar o link: `docs/ADR_ORC_EMAIL_PROPOSTA.md` (motor `MAIL_*` + Reply-To `empresas.email`).
+- WhatsApp transacional (ViaZap): `docs/ADR_ORC_WHATSAPP_VIAZAP.md` (motor `VIAZAP_*`; fail-soft).
 - Pós-aceite com adiantamento PIX: ver `docs/ADR_ORC_ADIANTAMENTO_PIX.md` (`financeiro_status`, COB, BankProvider). O status comercial permanece `APROVADO`; a BX libera prontidão financeira, não “reaprova” o ORC.
 - Vocabulário: a página pública **não** é “webhook”; webhooks no ERP = Focus/banco/Meta.

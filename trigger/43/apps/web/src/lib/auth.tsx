@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   api,
+  AUTH_EXPIRED_EVENT,
   getEmpresaId,
   getToken,
   setEmpresaId,
@@ -16,13 +17,14 @@ import {
   type AuthEmpresa,
   type AuthMeResponse,
   type AuthUser,
+  type BillingAviso,
   type ProdutoFlexorcSuperficie,
 } from './api';
 
 const SUPERFICIE_PADRAO: ProdutoFlexorcSuperficie = {
-  ate_envio_link: true,
-  sinal: false,
-  financeiro: false,
+  ate_envio_link: false,
+  sinal: true,
+  financeiro: true,
 };
 
 type AuthState = {
@@ -33,12 +35,19 @@ type AuthState = {
   empresaId: number | null;
   maxEmpresas: number;
   produtoFlexorc: ProdutoFlexorcSuperficie;
+  consolePlataforma: boolean;
+  billingAviso: BillingAviso | null;
   loading: boolean;
   initialized: boolean;
 };
 
 type AuthContextValue = AuthState & {
-  login: (email: string, password: string, conta?: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    conta?: string,
+    opts?: { encerrarSessaoAnterior?: boolean },
+  ) => Promise<AuthMeResponse>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setEmpresa: (id: number) => void;
@@ -72,6 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     empresaId: null,
     maxEmpresas: 3,
     produtoFlexorc: SUPERFICIE_PADRAO,
+    consolePlataforma: false,
+    billingAviso: null,
     loading: false,
     initialized: false,
   });
@@ -87,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       empresaId,
       maxEmpresas: me.conta_flexorc?.max_empresas ?? 3,
       produtoFlexorc: me.produto_flexorc ?? SUPERFICIE_PADRAO,
+      consolePlataforma: Boolean(me.console_plataforma),
+      billingAviso: me.billing_aviso ?? null,
       loading: false,
       initialized: true,
     });
@@ -104,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         empresaId: null,
         maxEmpresas: 3,
         produtoFlexorc: SUPERFICIE_PADRAO,
+        consolePlataforma: false,
+        billingAviso: null,
         loading: false,
         initialized: true,
       }));
@@ -125,6 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         empresaId: null,
         maxEmpresas: 3,
         produtoFlexorc: SUPERFICIE_PADRAO,
+        consolePlataforma: false,
+        billingAviso: null,
         loading: false,
         initialized: true,
       });
@@ -135,13 +152,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const onExpired = () => {
+      setEmpresaId(null);
+      setState({
+        user: null,
+        roles: [],
+        permissions: [],
+        empresas: [],
+        empresaId: null,
+        maxEmpresas: 3,
+        produtoFlexorc: SUPERFICIE_PADRAO,
+        consolePlataforma: false,
+        billingAviso: null,
+        loading: false,
+        initialized: true,
+      });
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, []);
+
   const login = useCallback(
-    async (email: string, password: string, conta?: string) => {
+    async (
+      email: string,
+      password: string,
+      conta?: string,
+      opts?: { encerrarSessaoAnterior?: boolean },
+    ) => {
       setState((prev) => ({ ...prev, loading: true }));
-      const { token } = await api.login(email, password, conta);
-      setToken(token);
-      const me = await api.me();
-      applyMe(me);
+      try {
+        const { token } = await api.login(email, password, conta, opts);
+        setToken(token);
+        const me = await api.me();
+        applyMe(me);
+        return me;
+      } catch (err) {
+        setState((prev) => ({ ...prev, loading: false }));
+        throw err;
+      }
     },
     [applyMe],
   );
@@ -164,6 +213,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         empresaId: null,
         maxEmpresas: 3,
         produtoFlexorc: SUPERFICIE_PADRAO,
+        consolePlataforma: false,
+        billingAviso: null,
         loading: false,
         initialized: true,
       });
@@ -181,12 +232,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? state.permissions
         : Object.values(state.permissions ?? {});
       if (perms.includes(permission)) return true;
-      // Superusuário operacional: ADMIN enxerga todos os módulos no shell.
-      // A API continua autorizando via Spatie can() (papéis sincronizados no boot).
+      if (permission.startsWith('plataforma.')) {
+        return state.roles.includes('PLATAFORMA') || state.consolePlataforma;
+      }
+      // Superusuário da conta FLEXORC: enxerga módulos do produto, não o console TRIGGER.
       if (state.roles.includes('ADMIN')) return true;
       return false;
     },
-    [state.permissions, state.roles],
+    [state.permissions, state.roles, state.consolePlataforma],
   );
 
   const hasAnyPermission = useCallback(

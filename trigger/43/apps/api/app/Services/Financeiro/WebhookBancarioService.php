@@ -31,8 +31,8 @@ class WebhookBancarioService
     {
         $provider = strtolower(trim($provider));
 
-        if ($provider === 'asaas' && $this->ativacao->ehEventoBilling($payload)) {
-            $billing = $this->ativacao->aplicarWebhookBilling($payload);
+        if (in_array($provider, ['asaas', 'inter'], true) && $this->ativacao->ehEventoBilling($payload, $provider)) {
+            $billing = $this->ativacao->aplicarWebhookBilling($payload, $provider);
 
             return [
                 'resultado' => $billing['resultado'] ?? 'PROCESSADO',

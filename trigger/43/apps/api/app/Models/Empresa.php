@@ -105,6 +105,11 @@ class Empresa extends Model
             ->orderBy('id');
     }
 
+    public function certificadoA1(): HasOne
+    {
+        return $this->hasOne(EmpresaCertificadoA1::class);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'empresa_user')

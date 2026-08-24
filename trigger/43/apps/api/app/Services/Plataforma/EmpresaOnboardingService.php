@@ -19,13 +19,16 @@ use App\Services\Comercial\Orcamento\OrcamentoCatalogoAdminService;
 use App\Services\Consulta\BrasilApiClient;
 use App\Services\Consulta\GeoEnderecoService;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Services\Auth\SessaoAcessoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
 /**
- * Alta pública: 1) conta de acesso (USR)  2) mensalidade da conta FLEXORC.
- * EMP (até 3) entra depois, logado, pelo master. Isolamento: empresa_id + empresa_user.
+ * Provisionamento de conta: 1) USR master (ADMIN)  2) mensalidade da conta FLEXORC.
+ * Alta HTTP pública só com erp.flexorc.public_conta_registration; senão CLI
+ * plataforma:criar-conta. EMP (até 3) e usuários da conta: master logado.
+ * Isolamento: empresa_id + empresa_user.
  */
 class EmpresaOnboardingService
 {
@@ -44,6 +47,7 @@ class EmpresaOnboardingService
         private readonly NaturezaGerencialService $naturezas,
         private readonly BrasilApiClient $brasilApiClient,
         private readonly GeoEnderecoService $geoEnderecoService,
+        private readonly SessaoAcessoService $sessaoAcesso,
     ) {}
 
     /**
@@ -77,7 +81,7 @@ class EmpresaOnboardingService
 
             $this->ativacao->provisionarConta($user);
 
-            $token = $user->createToken('api')->plainTextToken;
+            $token = $this->sessaoAcesso->emitir($user);
 
             return compact('user', 'token');
         });

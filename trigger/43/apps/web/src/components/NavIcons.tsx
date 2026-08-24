@@ -262,6 +262,28 @@ export function IconEstoque({ className }: IconProps) {
   );
 }
 
+/** Mensalidade da conta FLEXORC (você → TRIGGER). */
+export function IconMensalidade({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+      <path d="M6 15h2" />
+      <circle cx="17" cy="15" r="1.5" />
+    </IconBase>
+  );
+}
+
+/** Implantação / aceite de go-live. */
+export function IconImplantacao({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </IconBase>
+  );
+}
+
 /** Financeiro — contas a pagar. */
 export function IconFinanceiro({ className }: IconProps) {
   return (

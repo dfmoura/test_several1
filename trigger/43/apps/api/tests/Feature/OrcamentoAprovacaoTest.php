@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\OrcamentoPropostaMail;
 use App\Models\Empresa;
 use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
@@ -9,6 +10,8 @@ use App\Models\Parceiro;
 use App\Models\ParceiroContato;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -355,5 +358,170 @@ class OrcamentoAprovacaoTest extends TestCase
         $pub->assertOk();
         $this->assertTrue($pub->json('data.disponivel'));
         $this->assertNotSame('preview', $pub->json('data.modo'));
+    }
+
+    public function test_enviar_dispara_email_ao_contato_mesmo_com_whatsapp_preferido(): void
+    {
+        Mail::fake();
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertTrue($env->json('data.email_enviado'));
+        $this->assertSame('maria@cliente.test', $env->json('data.email_destino'));
+        $this->assertNull($env->json('data.email_motivo'));
+        // Canal preferido continua WhatsApp (clipboard / wa.me intactos).
+        $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
+
+        Mail::assertSent(OrcamentoPropostaMail::class, function (OrcamentoPropostaMail $mail) {
+            return $mail->hasTo('maria@cliente.test')
+                && $mail->hasReplyTo('comercial@rlp.test')
+                && str_contains($mail->url, '/p/');
+        });
+    }
+
+    public function test_enviar_sem_email_no_cadastro_nao_quebra_link(): void
+    {
+        Mail::fake();
+
+        ParceiroContato::query()
+            ->where('parceiro_id', $this->parceiro->id)
+            ->where('autorizado_aprovar', true)
+            ->update(['email' => null]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertSame('ENVIADO', $env->json('data.orcamento.status'));
+        $this->assertFalse($env->json('data.email_enviado'));
+        $this->assertSame('sem_email_cadastro', $env->json('data.email_motivo'));
+        $this->assertStringContainsString('/p/', $env->json('data.url'));
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_flag_orcamento_email_auto_desliga_envio(): void
+    {
+        Mail::fake();
+        config(['erp.orcamento_email_auto' => false]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertFalse($env->json('data.email_enviado'));
+        $this->assertSame('desligado', $env->json('data.email_motivo'));
+        Mail::assertNothingSent();
+    }
+
+    public function test_enviar_dispara_whatsapp_via_viazap_mesmo_com_email_no_cadastro(): void
+    {
+        Mail::fake();
+        Http::fake([
+            '*/v1/messages' => Http::response(['id' => 'msg_1', 'status' => 'queued'], 202),
+        ]);
+        config([
+            'erp.viazap.base_url' => 'https://viazap.test',
+            'erp.viazap.token' => 'zpv_test_token',
+            'erp.orcamento_whatsapp_auto' => true,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertTrue($env->json('data.zap_enviado'));
+        $this->assertSame('5531999998888', $env->json('data.zap_destino'));
+        $this->assertNull($env->json('data.zap_motivo'));
+        $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
+
+        Http::assertSent(function ($request) {
+            $body = $request->data();
+
+            return str_contains($request->url(), '/v1/messages')
+                && $request->hasHeader('Authorization', 'Bearer zpv_test_token')
+                && ($body['external_id'] ?? '') === Orcamento::query()->orderByDesc('id')->value('codigo')
+                && ($body['to'] ?? '') === '5531999998888'
+                && ($body['type'] ?? '') === 'text'
+                && str_contains((string) ($body['body'] ?? ''), '/p/');
+        });
+    }
+
+    public function test_enviar_sem_whatsapp_no_cadastro_nao_quebra_link(): void
+    {
+        Mail::fake();
+        Http::fake();
+        config([
+            'erp.viazap.base_url' => 'https://viazap.test',
+            'erp.viazap.token' => 'zpv_test_token',
+            'erp.orcamento_whatsapp_auto' => true,
+        ]);
+
+        ParceiroContato::query()
+            ->where('parceiro_id', $this->parceiro->id)
+            ->where('autorizado_aprovar', true)
+            ->update(['whatsapp' => null]);
+        $this->parceiro->update(['whatsapp' => null]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertSame('ENVIADO', $env->json('data.orcamento.status'));
+        $this->assertFalse($env->json('data.zap_enviado'));
+        $this->assertSame('sem_whatsapp_cadastro', $env->json('data.zap_motivo'));
+        $this->assertStringContainsString('/p/', $env->json('data.url'));
+
+        Http::assertNothingSent();
+    }
+
+    public function test_flag_orcamento_whatsapp_auto_desliga_envio(): void
+    {
+        Http::fake();
+        config([
+            'erp.viazap.base_url' => 'https://viazap.test',
+            'erp.viazap.token' => 'zpv_test_token',
+            'erp.orcamento_whatsapp_auto' => false,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertFalse($env->json('data.zap_enviado'));
+        $this->assertSame('desligado', $env->json('data.zap_motivo'));
+        Http::assertNothingSent();
+    }
+
+    public function test_falha_viazap_nao_quebra_envio_do_link(): void
+    {
+        Mail::fake();
+        Http::fake([
+            '*/v1/messages' => Http::response(['error' => 'unavailable'], 503),
+        ]);
+        config([
+            'erp.viazap.base_url' => 'https://viazap.test',
+            'erp.viazap.token' => 'zpv_test_token',
+            'erp.orcamento_whatsapp_auto' => true,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertSame('ENVIADO', $env->json('data.orcamento.status'));
+        $this->assertFalse($env->json('data.zap_enviado'));
+        $this->assertSame('falha_envio', $env->json('data.zap_motivo'));
+        $this->assertStringContainsString('/p/', $env->json('data.url'));
+        $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
     }
 }

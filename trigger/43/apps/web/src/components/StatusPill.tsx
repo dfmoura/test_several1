@@ -32,7 +32,11 @@ function pillVariant(status: string): string {
     key === 'produzido' ||
     key === 'faturado' ||
     key === 'concluida' ||
-    key === 'requisitado'
+    key === 'requisitado' ||
+    key === 'em_dia' ||
+    key === 'paga' ||
+    key === 'vigente' ||
+    key === 'cortesia'
   ) {
     return '--ativo';
   }
@@ -57,13 +61,16 @@ function pillVariant(status: string): string {
     key === 'recontado' ||
     key === 'aju_pendente' ||
     key === 'a_vencer' ||
+    key === 'ainda_nao_valido' ||
     key === 'em_producao' ||
     key === 'em_andamento' ||
     key === 'planejada' ||
-    key === 'nf_pendente'
+    key === 'nf_pendente' ||
+    key === 'suspensa'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';
+    if (key === 'suspensa') return '--bloqueado';
     return '--pendente';
   }
 

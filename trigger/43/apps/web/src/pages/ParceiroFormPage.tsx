@@ -819,6 +819,7 @@ export function ParceiroFormPage() {
   >(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [distanciaFase, setDistanciaFase] = useState<'posicao' | 'rota' | null>(null);
   const [distanciaErro, setDistanciaErro] = useState<string | null>(null);
   const [distanciaAlvo, setDistanciaAlvo] = useState<'fiscal' | string | null>(null);
@@ -836,6 +837,9 @@ export function ParceiroFormPage() {
   useEffect(() => {
     if (isNew) return;
     const token = ++loadTokenRef.current;
+    setNotFound(false);
+    setError('');
+    setLoading(true);
     void (async () => {
       try {
         const res = await api.get<{ data: Parceiro }>(`/parceiros/${id}`);
@@ -850,6 +854,7 @@ export function ParceiroFormPage() {
           updated_at: res.data.updated_at,
         });
         setConsulta(null);
+        setNotFound(false);
 
         const digits = onlyDigits(mapped.cnpj_cpf);
         if (mapped.tipo_pessoa === 'PJ' && digits.length === 14) {
@@ -857,6 +862,7 @@ export function ParceiroFormPage() {
         }
       } catch {
         if (token !== loadTokenRef.current) return;
+        setNotFound(true);
         setError('Parceiro não encontrado.');
       } finally {
         if (token === loadTokenRef.current) {
@@ -1504,6 +1510,18 @@ export function ParceiroFormPage() {
   };
 
   if (loading) return <div className="loading">Carregando parceiro…</div>;
+
+  if (notFound) {
+    return (
+      <>
+        <PageHeader title="Parceiro" description="Não encontrado" />
+        <div className="alert alert-error">{error || 'Parceiro não encontrado.'}</div>
+        <Link to="/parceiros" className="btn btn-secondary">
+          Voltar à lista
+        </Link>
+      </>
+    );
+  }
 
   const readOnly = !canWrite && !canCredito && !canBancario;
   const fieldDisabled = (area: 'write' | 'credito' | 'bancario') => {
@@ -2710,7 +2728,7 @@ export function ParceiroFormPage() {
                 )}
               </div>
               <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
-                Uma ou mais contas · marque a principal · bancos via BrasilAPI
+                Uma ou mais contas · marque a principal · bancos consultados automaticamente
                 {bancosLoading ? ' · carregando catálogo…' : bancos.length ? ` · ${bancos.length} bancos` : ''}
               </p>
 

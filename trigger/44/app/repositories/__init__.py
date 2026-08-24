@@ -3,10 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import DeliveryEventType, MessageStatus
+
+_TERMINAL_MESSAGE_STATUSES = (
+    MessageStatus.SENT.value,
+    MessageStatus.FAILED.value,
+    MessageStatus.DEAD.value,
+)
 from app.models import (
     Account,
     AuditLog,
@@ -34,6 +40,10 @@ class AccountRepository:
             select(Account).where(Account.email == email.lower().strip())
         )
         return result.scalar_one_or_none()
+
+    async def count(self) -> int:
+        result = await self.session.execute(select(func.count()).select_from(Account))
+        return int(result.scalar_one() or 0)
 
     async def save(self, account: Account) -> Account:
         await self.session.flush()
@@ -87,6 +97,7 @@ class SenderRepository:
         return list(result.scalars().all())
 
     async def get_primary_for_account(self, account_id: str) -> Sender | None:
+        """Most recently created sender (compat + default selection)."""
         result = await self.session.execute(
             select(Sender)
             .where(Sender.account_id == account_id)
@@ -95,11 +106,39 @@ class SenderRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_account(
+        self, account_id: str, sender_id: str
+    ) -> Sender | None:
+        result = await self.session.execute(
+            select(Sender).where(
+                Sender.id == sender_id,
+                Sender.account_id == account_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def find_by_account_phone(
+        self, account_id: str, phone_e164: str
+    ) -> Sender | None:
+        result = await self.session.execute(
+            select(Sender).where(
+                Sender.account_id == account_id,
+                Sender.phone_e164 == phone_e164,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def find_by_prefix(self, prefix: str) -> list[Sender]:
         result = await self.session.execute(
             select(Sender).where(Sender.api_key_prefix == prefix)
         )
         return list(result.scalars().all())
+
+    async def find_by_instance(self, instance: str) -> Sender | None:
+        result = await self.session.execute(
+            select(Sender).where(Sender.evolution_instance == instance)
+        )
+        return result.scalar_one_or_none()
 
     async def save(self, sender: Sender) -> Sender:
         await self.session.flush()
@@ -168,8 +207,50 @@ class MessageRepository:
         result = await self.session.execute(stmt)
         return {row[0]: row[1] for row in result.all()}
 
+    async def list_unpublished(
+        self, older_than: datetime, limit: int = 100
+    ) -> list[Message]:
+        result = await self.session.execute(
+            select(Message)
+            .where(
+                Message.status == MessageStatus.QUEUED.value,
+                Message.queued_at.is_not(None),
+                Message.queued_at <= older_than,
+                or_(
+                    Message.attempts == 0,
+                    Message.last_error.is_(None),
+                ),
+            )
+            .order_by(Message.queued_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def list_stale_processing(
+        self, older_than: datetime, limit: int = 50
+    ) -> list[Message]:
+        result = await self.session.execute(
+            select(Message)
+            .where(
+                Message.status == MessageStatus.PROCESSING.value,
+                Message.processing_at.is_not(None),
+                Message.processing_at <= older_than,
+            )
+            .order_by(Message.processing_at.asc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def claim(self, message_id: str) -> Message | None:
-        msg = await self.get(message_id)
+        result = await self.session.execute(
+            select(Message)
+            .where(
+                Message.id == message_id,
+                Message.status == MessageStatus.QUEUED.value,
+            )
+            .with_for_update(skip_locked=True)
+        )
+        msg = result.scalar_one_or_none()
         if not msg:
             return None
         msg.status = MessageStatus.PROCESSING.value
@@ -201,6 +282,26 @@ class MessageRepository:
         msg.status = MessageStatus.QUEUED.value
         msg.queued_at = datetime.now(timezone.utc)
         await self.session.flush()
+
+    async def purge_older_than(
+        self, cutoff: datetime, *, limit: int = 500
+    ) -> int:
+        """Remove mensagens terminais antigas (delivery_events em CASCADE)."""
+        result = await self.session.execute(
+            select(Message.id)
+            .where(
+                Message.created_at < cutoff,
+                Message.status.in_(_TERMINAL_MESSAGE_STATUSES),
+            )
+            .order_by(Message.created_at.asc())
+            .limit(limit)
+        )
+        ids = list(result.scalars().all())
+        if not ids:
+            return 0
+        await self.session.execute(delete(Message).where(Message.id.in_(ids)))
+        await self.session.flush()
+        return len(ids)
 
 
 class DeliveryEventRepository:

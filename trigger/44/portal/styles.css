@@ -117,6 +117,13 @@ pre.mono {
 .banner.warn { background: #fff6e5; color: var(--warn); }
 .banner.err { background: #fde8e6; color: var(--danger); }
 .banner.key { background: #102246; color: #eaf6d4; font-family: var(--mono); word-break: break-all; }
+.key-reveal {
+  display: flex; gap: 0.75rem; align-items: flex-start; justify-content: space-between;
+  background: var(--navy-deep); color: #eaf6d4; font-family: var(--mono);
+  padding: 1rem; border-radius: 12px; word-break: break-all;
+}
+.key-reveal code { color: inherit; font: inherit; flex: 1; }
+.key-reveal .btn { flex-shrink: 0; }
 .send-form { max-width: 520px; }
 .send-form textarea { resize: vertical; min-height: 5rem; }
 
@@ -141,10 +148,43 @@ pre.mono {
   padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 650;
 }
 .status-pill.active { background: #e8f7ee; color: var(--ok); }
-.status-pill.pending, .status-pill.billing, .status-pill.connect { background: #fff6e5; color: var(--warn); }
+.status-pill.pending, .status-pill.pending_pair, .status-pill.rebind_required,
+.status-pill.billing, .status-pill.connect, .status-pill.credentials_invalid { background: #fff6e5; color: var(--warn); }
 .status-pill.none, .status-pill.paused { background: #eef1f6; color: var(--muted); }
 
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; margin-bottom: 1.1rem; }
+.pair-card { border-color: rgba(124, 181, 24, 0.35); }
+dialog#qrDialog {
+  border: 0; border-radius: var(--radius); padding: 0;
+  box-shadow: var(--shadow); max-width: min(420px, 92vw);
+}
+dialog#qrDialog::backdrop { background: rgba(16, 34, 70, 0.45); }
+.qr-box { padding: 1.35rem 1.4rem 1.2rem; display: grid; gap: 0.75rem; justify-items: center; text-align: center; }
+.qr-box h3 { margin: 0; font-family: var(--display); }
+.qr-box img {
+  width: min(260px, 70vw); height: auto; border-radius: 12px;
+  background: #fff; padding: 0.6rem; border: 1px solid var(--line);
+}
+.qr-box menu { display: flex; gap: 0.6rem; margin: 0.4rem 0 0; padding: 0; width: 100%; justify-content: center; }
+.qr-hint { font-size: 0.82rem; margin: 0; }
+
+.flow {
+  list-style: none; margin: 1rem 0; padding: 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem;
+}
+.flow li {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 12px;
+  padding: 0.75rem 0.8rem;
+}
+.flow .n {
+  display: block; font-family: var(--display); color: var(--navy);
+  font-size: 1.05rem; margin-bottom: 0.15rem;
+}
+.flow strong { display: block; font-size: 0.92rem; }
+.flow p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.8rem; }
+.status-pill.queued { background: #eef4ff; color: var(--navy); }
+.status-pill.processing { background: #fff6e5; color: var(--warn); }
+.status-pill.sent { background: #e8f7ee; color: var(--ok); }
+.status-pill.failed, .status-pill.dead { background: #fde8e6; color: var(--danger); }
 .table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .table th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem; border-bottom: 1px solid var(--line); }
 .table td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -153,6 +193,36 @@ pre.mono {
 }
 
 @media (max-width: 900px) {
-  .hero, .auth-layout, .app-shell, .grid-3, .stats { grid-template-columns: 1fr; }
+  .hero, .auth-layout, .app-shell, .grid-3, .stats, .flow { grid-template-columns: 1fr; }
   .auth-aside { min-height: 220px; }
 }
+
+.sender-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+.sender-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  min-width: 11rem;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sender-chip:hover { border-color: var(--navy); }
+.sender-chip.active {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--navy) 20%, transparent);
+}
+.sender-chip strong { font-size: 0.95rem; }
+.sender-chip span { color: var(--muted); font-size: 0.85rem; }

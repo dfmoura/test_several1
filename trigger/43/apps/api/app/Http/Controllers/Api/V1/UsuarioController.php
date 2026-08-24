@@ -94,6 +94,18 @@ class UsuarioController extends Controller
         return response()->json(['data' => UsuarioPresenter::present($user)]);
     }
 
+    public function liberarSessao(Request $request, User $usuario): JsonResponse
+    {
+        $actor = $this->authorizeGerir($request);
+        $out = $this->usuarioService->liberarSessao($actor, $usuario);
+
+        return response()->json([
+            'ok' => true,
+            'sessoes_encerradas' => $out['sessoes_encerradas'],
+            'data' => UsuarioPresenter::present($out['usuario']),
+        ]);
+    }
+
     private function authorizeGerir(Request $request): User
     {
         /** @var User $user */

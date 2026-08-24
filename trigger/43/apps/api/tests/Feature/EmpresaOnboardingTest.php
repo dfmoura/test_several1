@@ -21,6 +21,7 @@ class EmpresaOnboardingTest extends TestCase
     {
         parent::setUp();
         $this->fakeConsultaExternaIndisponivel();
+        config(['erp.flexorc.public_conta_registration' => true]);
 
         foreach ([
             'empresas.gerir',
@@ -45,6 +46,29 @@ class EmpresaOnboardingTest extends TestCase
 
         $admin = Role::findOrCreate('ADMIN', 'web');
         $admin->syncPermissions(Permission::all());
+    }
+
+    public function test_alta_publica_de_conta_recusada_quando_flag_desligada(): void
+    {
+        config(['erp.flexorc.public_conta_registration' => false]);
+
+        $this->postJson('/api/v1/auth/registrar-conta', [
+            'admin_name' => 'Ana Admin',
+            'admin_email' => 'ana@bloqueada.test',
+            'admin_password' => 'SenhaForte1',
+        ])->assertForbidden();
+
+        $this->postJson('/api/v1/auth/registrar-empresa', [
+            'cnpj' => '34661762000150',
+            'razao_social' => 'GRAFICA BLOQUEADA LTDA',
+            'municipio' => 'Uberlandia',
+            'uf' => 'MG',
+            'admin_name' => 'Ana Admin',
+            'admin_email' => 'ana@bloqueada.test',
+            'admin_password' => 'SenhaForte1',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['email' => 'ana@bloqueada.test']);
     }
 
     public function test_empresa_se_cadastra_isolada_com_catalogo_proprio(): void
@@ -166,23 +190,32 @@ class EmpresaOnboardingTest extends TestCase
             'X-Empresa-Id' => (string) $empresaId,
         ];
         $at = $this->withHeaders($headers)->getJson('/api/v1/ativacao')->assertOk();
-        $this->assertTrue($at->json('data.pronta'));
+        $this->assertFalse($at->json('data.pronta'));
         $this->assertFalse($at->json('data.pagamento_pendente'));
-        $this->assertTrue($at->json('data.pode_enviar_orcamento'));
+        $this->assertTrue($at->json('data.certificado_a1_pendente'));
+        $this->assertFalse($at->json('data.pode_enviar_orcamento'));
+        $this->assertSame('certificado_a1', $at->json('data.proximo'));
+        $this->assertSame($codigo, $at->json('data.conta.pagador.codigo'));
+        $this->assertSame('Carla Conta', $at->json('data.conta.pagador.razao_social'));
+        $this->assertSame('Em dia', $at->json('data.conta.status_label'));
 
-        $login = $this->postJson('/api/v1/auth/login', [
+        $this->flushHeaders();
+
+        $loginOcupado = $this->postJson('/api/v1/auth/login', [
             'email' => 'carla@grafica-ramificada.com.br',
             'conta' => $codigo,
             'password' => 'SenhaForte1',
+        ])->assertStatus(409);
+        $this->assertSame('SESSAO_OCUPADA', $loginOcupado->json('code'));
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'conta' => $codigo,
+            'password' => 'SenhaForte1',
+            'encerrar_sessao_anterior' => true,
         ])->assertOk();
         $this->assertSame($codigo, $login->json('user.codigo'));
         $this->assertNotEmpty($login->json('empresas.0.codigo'));
         $this->assertSame($empresaId, (int) $login->json('empresas.0.id'));
-
-        $this->postJson('/api/v1/auth/login', [
-            'conta' => $codigo,
-            'password' => 'SenhaForte1',
-        ])->assertOk();
 
         $this->postJson('/api/v1/auth/login', [
             'email' => 'carla@grafica-ramificada.com.br',

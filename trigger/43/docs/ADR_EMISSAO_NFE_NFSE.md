@@ -92,7 +92,7 @@ Alterar esta ADR exige alinhamento explícito ao estudo 32 e ao contrato Focus d
 
 ## Emenda — emissor de teste sem A1 (BL-065)
 
-O certificado A1 mora na **Focus NFe**, não no ERP (BL-006). Sem A1 no hub, Focus homolog/prod não autoriza. Estudo 32: DEV usa mock; HML usa Focus homolog + A1 de homolog; PROD usa Focus prod + A1 de prod.
+O certificado A1 mora na **Focus NFe**, não no emissor do ERP (BL-006). O cofre cifrado por EMP (`ADR_CERTIFICADO_A1_EMPRESA.md`) é cadastro seguro na ficha Empresas — **não** substitui o A1 no hub Focus para autorização SEFAZ. Sem A1 no hub, Focus homolog/prod não autoriza. Estudo 32: DEV usa mock; HML usa Focus homolog + A1 de homolog; PROD usa Focus prod + A1 de prod.
 
 ```
 FISCAL_EMISSOR=stub   só local/testing

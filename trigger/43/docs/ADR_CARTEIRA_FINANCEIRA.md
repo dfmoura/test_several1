@@ -29,7 +29,7 @@ TIT (verdade) + NAT 1–5 + CFIN
 
 | Escolha | Motivo |
 |---------|--------|
-| **Aging no TIT, não no Painel** | UC-FIN-006 vive em Contas a receber/pagar. Painel continua KPI + fila; o clique aterra na faixa. |
+| **Aging no TIT, não no Painel** | UC-FIN-006 vive em Contas a receber/pagar. Painel = KPI + fila (`ADR_PAINEL_COCKPIT`); o clique aterra na faixa. |
 | **Faixas 1–30 / 31–60 / 61–90 / 90+ + vence hoje** | Estudo §9 (0–30–60–90+). “Vence hoje” é ação do dia; não mistura com a vencer. |
 | **Situação padrão na UI: em aberto** | Quitado/cancelado polui a operação. API sem filtro continua devolvendo todos (compatível). |
 | **Previsão = TIT em aberto, caixa × caixa** | A receber − a pagar da EMP. **Não** é DRE, competência nem SPED. Label explícito. |

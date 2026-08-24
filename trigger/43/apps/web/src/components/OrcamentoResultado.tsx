@@ -165,8 +165,7 @@ function GuiaProducaoPanel({
   return (
     <>
       <p className="orc-result-meta">
-        Lista operacional do que o cálculo prevê para produzir — sem preços. Baixa real e
-        SKU ficam na OP futura (estudo 32 · PRODUÇÃO).
+        Lista operacional do que o cálculo prevê para produzir — sem preços.
       </p>
       {faixas.length > 1 ? (
         <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
@@ -278,7 +277,7 @@ export function OrcamentoResultado({
                 className={abaAtiva === 'interno' ? 'active' : ''}
                 onClick={() => setAba('interno')}
               >
-                Breakdown interno
+                Composição do custo
               </button>
               <button
                 type="button"
@@ -303,7 +302,7 @@ export function OrcamentoResultado({
           <p className="orc-result-meta">
             {servico ? (
               <>
-                Preço comercial informado · teto para cima em múltiplo de R$ 10 · NFS-e Nacional
+                Preço comercial informado · arredondamento para cima em múltiplo de R$ 10
                 {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
                 {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
                 {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
@@ -328,8 +327,7 @@ export function OrcamentoResultado({
                     maximumFractionDigits: 6,
                   })}/cm²`
                 : '';
-            })()}{' '}
-            · chave {calculo.chave_matriz}
+            })()}
             {calculo.faca_nova
               ? ` · Faca nova ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
                   calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
@@ -396,13 +394,13 @@ export function OrcamentoResultado({
                         ? `${formatDecimalBr(calculo.frete.peso_caixa_kg, 3)} kg/caixa`
                         : null,
                       freteMotivoLabel(calculo.frete.motivo) ??
-                        'máx(mínimo da faixa, R$/km × km), teto para cima',
+                        'estimado por km e peso da caixa',
                     ]
                       .filter(Boolean)
                       .join(' · ')
                   : freteMotivoLabel(calculo.frete.motivo)}
                 {' '}
-                · linha à parte: não entra no unitário; se levantado, compõe o total
+                · linha à parte, fora do unitário
               </p>
             ) : null}
           </>
@@ -513,13 +511,12 @@ export function OrcamentoResultado({
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
                 {explicarFechamentoFrete(detalhe, calculo.frete.km, calculo.frete.origem) ??
                   freteMotivoLabel(calculo.frete.motivo) ??
-                  'Frete fora do unitário da etiqueta (R1–R20 intacto).'}
+                  'Frete à parte — não entra no unitário da etiqueta.'}
               </p>
             ) : null}
             {detalhe && Number(detalhe.metragem) < 1000 ? (
               <p className="orc-result-meta" style={{ marginTop: '0.75rem' }}>
-                Metragem &lt; 1000 m — sem cobrança típica de troca de bobina (motor R1–R20 ·
-                GERACAO_ORCAMENTO).
+                Metragem abaixo de 1.000 m — sem cobrança típica de troca de bobina.
               </p>
             ) : null}
           </>

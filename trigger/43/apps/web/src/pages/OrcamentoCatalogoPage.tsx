@@ -82,18 +82,18 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   },
   {
     id: 'maquinas',
-    label: 'Hora-máquina (G10)',
+    label: 'Hora-máquina',
     hint: 'Tarifas R$/h · a máquina física cadastra-se no Patrimônio',
   },
   {
     id: 'matriz',
     label: 'Matriz (clichê)',
-    hint: 'R$/cm² vigente — GERACAO §4.12 · só 1º pedido',
+    hint: 'R$/cm² vigente · só no 1º pedido',
   },
   {
     id: 'frete',
     label: 'Frete',
-    hint: 'Faixas de kg com R$/km dinâmicas · peso estimado da caixa · não é TMS',
+    hint: 'Faixas de kg com R$/km · peso estimado da caixa',
   },
 ];
 
@@ -171,7 +171,7 @@ export function OrcamentoCatalogoPage() {
     setMessage('');
     try {
       await api.post('/orcamento-catalogo/seed', { force: false });
-      setMessage('Itens ausentes importados do catálogo oficial (valores existentes preservados).');
+      setMessage('Itens ausentes completados com o modelo inicial (valores existentes preservados).');
       await load();
     } catch (e) {
       setError(fieldErrors(e));
@@ -186,7 +186,7 @@ export function OrcamentoCatalogoPage() {
     <>
       <PageHeader
         title="Catálogo do orçamento"
-        description="Bases de cálculo amarradas ao motor. Nesta empresa o modelo inicial vale até você conferir; orçamentos já salvos mantêm o snapshot."
+        description="Preços e bases desta empresa. O modelo inicial vale até você conferir; orçamentos já salvos mantêm o que foi usado na época."
         actions={
           <div className="btn-row">
             <button
@@ -195,7 +195,7 @@ export function OrcamentoCatalogoPage() {
               disabled={saving || loading}
               onClick={() => void handleSeed()}
             >
-              Importar ausentes do oficial
+              Completar itens ausentes
             </button>
             {tab !== 'matriz' && tab !== 'maquinas' ? (
               <button
@@ -255,9 +255,9 @@ export function OrcamentoCatalogoPage() {
         <div className="card catalogo-resumo" style={{ marginBottom: '1rem' }}>
           <div className="card-body catalogo-resumo-grid">
             <div>
-              <span>Fonte ativa</span>
+              <span>Preços</span>
               <strong>
-                {resumo.fonte === 'database' ? 'Banco (editável)' : 'JSON (fallback)'}
+                {resumo.fonte === 'database' ? 'Desta empresa' : 'Modelo inicial'}
               </strong>
             </div>
             <div>
@@ -273,7 +273,7 @@ export function OrcamentoCatalogoPage() {
               <strong>{resumo.tipos_troca}</strong>
             </div>
             <div>
-              <span>Máquinas G10</span>
+              <span>Máquinas</span>
               <strong>{resumo.maquinas}</strong>
             </div>
             <div>
@@ -439,7 +439,7 @@ function MatrizParametrosPanel({
 
   const save = async () => {
     if (!matriz) {
-      onError('Parâmetro matriz_cm2 ainda não semeado. Use “Importar ausentes do oficial”.');
+      onError('Tarifa de matriz ainda não criada. Use “Completar itens ausentes”.');
       return;
     }
     const n = num(valor);
@@ -468,7 +468,7 @@ function MatrizParametrosPanel({
         </p>
         {!matriz ? (
           <div className="empty-state">
-            Nenhum parâmetro semeado. Use “Importar ausentes do oficial” para criar matriz_cm2.
+            Nenhuma tarifa de matriz ainda. Use “Completar itens ausentes”.
           </div>
         ) : (
           <>
@@ -485,10 +485,10 @@ function MatrizParametrosPanel({
                 disabled={saving || !matriz.ativo}
               />
               <span className="field-note">
-                Fonte:{' '}
-                {resumo?.matriz_cm2_fonte === 'database' ? 'banco (editável)' : 'JSON (fallback)'} ·
-                chave <code>{matriz.chave}</code>
-                {!matriz.ativo ? ' · inativo (motor usa JSON)' : ''}
+                {resumo?.matriz_cm2_fonte === 'database'
+                  ? 'Tarifa desta empresa'
+                  : 'Modelo inicial — edite e salve para gravar nesta empresa'}
+                {!matriz.ativo ? ' · inativa (orçamentos usam o modelo padrão)' : ''}
               </span>
             </div>
             <div className="btn-row">
@@ -514,7 +514,7 @@ function MatrizParametrosPanel({
                       });
                       await onSaved(
                         matriz.ativo
-                          ? 'Matriz inativada — motor volta ao JSON até reativar.'
+                          ? 'Matriz inativada — orçamentos voltam ao modelo padrão até reativar.'
                           : 'Matriz reativada no catálogo.',
                       );
                     } catch (e) {
@@ -556,7 +556,7 @@ function FreteCatalogoPanel({
 
   const savePeso = async () => {
     if (!peso) {
-      onError('Parâmetro peso_caixa_kg ainda não semeado. Use “Importar ausentes do oficial”.');
+      onError('Peso da caixa ainda não criado. Use “Completar itens ausentes”.');
       return;
     }
     const n = num(pesoVal);
@@ -593,7 +593,7 @@ function FreteCatalogoPanel({
           </p>
           {!peso ? (
             <div className="empty-state">
-              Peso da caixa ainda não semeado. Use “Importar ausentes do oficial”.
+              Peso da caixa ainda não criado. Use “Completar itens ausentes”.
             </div>
           ) : (
             <div className="form-grid">
@@ -658,7 +658,7 @@ function FaixasFreteTable({
       <div className="table-wrap">
         {rows.length === 0 ? (
           <div className="empty-state">
-            Nenhuma faixa de frete. Use “Importar ausentes do oficial” ou “Novo item”.
+            Nenhuma faixa de frete. Use “Completar itens ausentes” ou “Novo item”.
           </div>
         ) : (
           <table className="data-table">
@@ -804,7 +804,7 @@ function PapeisTable({
     <div className="card">
       <div className="table-wrap">
         {rows.length === 0 ? (
-          <div className="empty-state">Nenhum papel cadastrado. Use “Importar ausentes do oficial”.</div>
+          <div className="empty-state">Nenhum papel cadastrado. Use “Completar itens ausentes”.</div>
         ) : (
           <table className="data-table">
             <thead>
@@ -994,7 +994,7 @@ function AcabamentoEditRow({
         <strong>{row.nome}</strong>
         {row.eh_rebobinacao ? (
           <span className="field-note" style={{ display: 'block' }}>
-            Uso interno de rebobinação — oculto no select do ORC
+            Uso interno de rebobinação — não aparece no orçamento
           </span>
         ) : null}
       </td>
@@ -1081,7 +1081,7 @@ function TrocasTable({
                   Minutos
                 </SortableTh>
                 <SortableTh column="tempo_h" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                  Horas (motor)
+                  Horas
                 </SortableTh>
                 <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                   Status
@@ -1236,8 +1236,8 @@ function MaquinasTable({
       <div className="table-wrap table-wrap-scroll">
         {rows.length === 0 ? (
           <div className="empty-state">
-            Nenhum grupo hora-máquina. Cadastre a máquina no patrimônio para originar o grupo, ou
-            importe o catálogo oficial.
+            Nenhum grupo de hora-máquina. Cadastre a máquina no patrimônio ou use “Completar itens
+            ausentes”.
           </div>
         ) : (
           <table className="data-table data-table-tarifas">

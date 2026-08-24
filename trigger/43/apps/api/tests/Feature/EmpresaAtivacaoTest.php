@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\EmpresaAtivacao;
+use App\Models\EmpresaCertificadoA1;
 use App\Models\OrcCatalogoPapel;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
@@ -25,6 +26,7 @@ class EmpresaAtivacaoTest extends TestCase
     {
         parent::setUp();
         $this->fakeConsultaExternaIndisponivel();
+        config(['erp.flexorc.public_conta_registration' => true]);
 
         foreach ([
             'empresas.gerir',
@@ -100,15 +102,23 @@ class EmpresaAtivacaoTest extends TestCase
 
         $at = $this->withHeaders($out['headers'])->getJson('/api/v1/ativacao')->assertOk();
         $this->assertSame('self_service', $at->json('data.origem'));
-        $this->assertTrue($at->json('data.pronta'));
+        $this->assertFalse($at->json('data.pronta'));
         $this->assertTrue($at->json('data.pagamento_pendente'));
+        $this->assertTrue($at->json('data.certificado_a1_pendente'));
         $this->assertFalse($at->json('data.pode_enviar_orcamento'));
         $this->assertSame('pagamento', $at->json('data.proximo'));
-        $this->assertSame('FLEXORC', $at->json('data.conta.produto'));
+        $this->assertSame('FLEXOERP', $at->json('data.conta.produto'));
         $this->assertSame('TRIGGER', $at->json('data.conta.fornecedor'));
-        $this->assertSame('GRAFICA NOVA LTDA', $at->json('data.conta.pagador.razao_social'));
+        $this->assertSame('Ana Admin', $at->json('data.conta.pagador.razao_social'));
         $this->assertFalse($at->json('data.conta.paga'));
         $this->assertNotEmpty($at->json('data.conta.valor_formatado'));
+        $this->assertSame('Aguardando pagamento', $at->json('data.conta.status_label'));
+        $this->assertNull($at->json('data.conta.proxima_cobranca_em'));
+        $this->assertNull($at->json('data.conta.dias_ate_proxima'));
+        $this->assertContains('Cartão de crédito', $at->json('data.conta.meios'));
+        $this->assertSame(['Cartão de crédito'], $at->json('data.conta.meios'));
+        $pagamentoPasso = collect($at->json('data.passos'))->firstWhere('id', 'pagamento');
+        $this->assertSame('/conta/mensalidade', $pagamentoPasso['to'] ?? null);
 
         $painel = $this->withHeaders($out['headers'])->getJson('/api/v1/painel')->assertOk();
         $this->assertSame('self_service', $painel->json('data.ativacao.origem'));
@@ -123,8 +133,18 @@ class EmpresaAtivacaoTest extends TestCase
         $this->withHeaders($h)
             ->postJson('/api/v1/ativacao/pagamento/confirmar-demo')
             ->assertOk()
-            ->assertJsonPath('data.pode_enviar_orcamento', true)
-            ->assertJsonPath('data.billing_status', EmpresaAtivacao::BILLING_ATIVA);
+            ->assertJsonPath('data.pode_enviar_orcamento', false)
+            ->assertJsonPath('data.certificado_a1_pendente', true)
+            ->assertJsonPath('data.billing_status', EmpresaAtivacao::BILLING_ATIVA)
+            ->assertJsonPath('data.proximo', 'certificado_a1');
+
+        $apos = $this->withHeaders($h)->getJson('/api/v1/ativacao')->assertOk();
+        $this->assertTrue($apos->json('data.conta.paga'));
+        $this->assertSame('Em dia', $apos->json('data.conta.status_label'));
+        $this->assertNotNull($apos->json('data.conta.proxima_cobranca_em'));
+        $this->assertIsInt($apos->json('data.conta.dias_ate_proxima'));
+        $this->assertGreaterThanOrEqual(0, $apos->json('data.conta.dias_ate_proxima'));
+        $this->assertNotEmpty($apos->json('data.conta.renovacao_label'));
 
         $this->withHeaders($h)
             ->postJson('/api/v1/ativacao/recebimento', ['pix_chave' => 'ana@grafica-nova.com.br'])
@@ -142,6 +162,46 @@ class EmpresaAtivacaoTest extends TestCase
         $this->assertNotNull(
             EmpresaAtivacao::query()->where('empresa_id', $out['empresa_id'])->value('catalogo_conferido_em')
         );
+
+        $this->gravarA1Apto(Empresa::query()->findOrFail($out['empresa_id']));
+        $liberada = $this->withHeaders($h)->getJson('/api/v1/ativacao')->assertOk();
+        $this->assertTrue($liberada->json('data.pode_enviar_orcamento'));
+        $this->assertTrue($liberada->json('data.pronta'));
+        $this->assertFalse($liberada->json('data.certificado_a1_pendente'));
+        $this->assertFalse($liberada->json('data.certificado_a1_alerta'));
+        $this->assertSame('VIGENTE', $liberada->json('data.certificado_a1_status'));
+    }
+
+    public function test_ativacao_alerta_automatico_quando_a1_a_vencer(): void
+    {
+        config(['erp.certificado_a1.alerta_dias' => 30]);
+        $out = $this->cadastrarEmpresa();
+        $h = $out['headers'];
+        $empresa = Empresa::query()->findOrFail($out['empresa_id']);
+
+        $this->withHeaders($h)->postJson('/api/v1/ativacao/pagamento/confirmar-demo')->assertOk();
+
+        EmpresaCertificadoA1::query()->create([
+            'empresa_id' => $empresa->id,
+            'pfx_cipher' => 'cipher-teste',
+            'senha_cipher' => 'cipher-teste',
+            'arquivo_nome' => 'a-vencer.pfx',
+            'tamanho_bytes' => 12,
+            'cnpj_certificado' => preg_replace('/\D/', '', (string) $empresa->cnpj),
+            'valido_de' => now()->subMonth(),
+            'valido_ate' => now()->addDays(5),
+            'fingerprint_sha256' => hash('sha256', 'a1-ativacao-a-vencer'),
+            'uploaded_at' => now()->subMonth(),
+        ]);
+
+        $at = $this->withHeaders($h)->getJson('/api/v1/ativacao')->assertOk();
+        $this->assertFalse($at->json('data.certificado_a1_pendente'));
+        $this->assertTrue($at->json('data.pode_enviar_orcamento'));
+        $this->assertTrue($at->json('data.certificado_a1_alerta'));
+        $this->assertSame('A_VENCER', $at->json('data.certificado_a1_status'));
+        $this->assertSame('urgent', $at->json('data.certificado_a1_alerta_nivel'));
+        $this->assertSame(5, $at->json('data.certificado_a1_dias_para_vencer'));
+        $this->assertNotEmpty($at->json('data.certificado_a1_mensagem'));
     }
 
     public function test_envio_do_orcamento_exige_pagamento_na_emp_self_service(): void
@@ -190,6 +250,32 @@ class EmpresaAtivacaoTest extends TestCase
             ->assertJsonValidationErrors(['pagamento']);
 
         $this->withHeaders($h)->postJson('/api/v1/ativacao/pagamento/confirmar-demo')->assertOk();
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$orc->id}/enviar-aprovacao")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['certificado_a1']);
+
+        EmpresaCertificadoA1::query()->create([
+            'empresa_id' => $empresa->id,
+            'pfx_cipher' => 'cipher-teste',
+            'senha_cipher' => 'cipher-teste',
+            'arquivo_nome' => 'outro.pfx',
+            'tamanho_bytes' => 12,
+            'cnpj_certificado' => '00000000000191',
+            'valido_de' => now()->subDay(),
+            'valido_ate' => now()->addYear(),
+            'fingerprint_sha256' => hash('sha256', 'a1-divergente-'.$empresa->id),
+            'uploaded_at' => now(),
+        ]);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$orc->id}/enviar-aprovacao")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['certificado_a1']);
+
+        EmpresaCertificadoA1::query()->where('empresa_id', $empresa->id)->delete();
+        $this->gravarA1Apto($empresa);
 
         $this->withHeaders($h)
             ->postJson("/api/v1/orcamentos/{$orc->id}/enviar-aprovacao")
@@ -246,10 +332,11 @@ class EmpresaAtivacaoTest extends TestCase
         $this->assertSame('legado', $res->json('data.origem'));
         $this->assertTrue($res->json('data.pronta'));
         $this->assertTrue($res->json('data.pode_enviar_orcamento'));
+        $this->assertFalse($res->json('data.certificado_a1_pendente'));
         $this->assertNull($res->json('data.conta'));
     }
 
-    public function test_repor_demo_remove_empresa_fora_do_seed(): void
+    public function test_repor_demo_remove_todas_emps_e_contas_flexorc(): void
     {
         Empresa::query()->create([
             'codigo' => 'EMP-00001',
@@ -288,8 +375,8 @@ class EmpresaAtivacaoTest extends TestCase
 
         $this->artisan('plataforma:repor-demo', ['--force' => true])->assertSuccessful();
 
-        $this->assertDatabaseHas('empresas', ['codigo' => 'EMP-00001']);
-        $this->assertDatabaseHas('empresas', ['codigo' => 'EMP-00002']);
+        $this->assertDatabaseMissing('empresas', ['codigo' => 'EMP-00001']);
+        $this->assertDatabaseMissing('empresas', ['codigo' => 'EMP-00002']);
         $this->assertDatabaseMissing('empresas', ['codigo' => 'EMP-00003']);
         $this->assertDatabaseMissing('users', ['email' => 'ensaio@test.local']);
         $this->assertDatabaseMissing('parceiros', ['razao_social' => 'joao']);
@@ -307,5 +394,21 @@ class EmpresaAtivacaoTest extends TestCase
         }
 
         return null;
+    }
+
+    private function gravarA1Apto(Empresa $empresa): void
+    {
+        EmpresaCertificadoA1::query()->create([
+            'empresa_id' => $empresa->id,
+            'pfx_cipher' => 'cipher-teste',
+            'senha_cipher' => 'cipher-teste',
+            'arquivo_nome' => 'empresa.pfx',
+            'tamanho_bytes' => 12,
+            'cnpj_certificado' => preg_replace('/\D/', '', (string) $empresa->cnpj),
+            'valido_de' => now()->subDay(),
+            'valido_ate' => now()->addYear(),
+            'fingerprint_sha256' => hash('sha256', 'teste-a1-'.$empresa->id),
+            'uploaded_at' => now(),
+        ]);
     }
 }

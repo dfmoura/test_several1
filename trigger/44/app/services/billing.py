@@ -89,12 +89,30 @@ class BillingService:
         return sub
 
 
-def onboarding_step(sub_active: bool, sender: Sender | None) -> str:
+def onboarding_step(
+    sub_active: bool,
+    sender: Sender | None = None,
+    senders: list[Sender] | None = None,
+) -> str:
     if not sub_active:
         return OnboardingStep.BILLING.value
-    if not sender or sender.status != SenderStatus.ACTIVE.value:
-        return OnboardingStep.CONNECT.value
-    return OnboardingStep.READY.value
+    rows = senders if senders is not None else ([sender] if sender else [])
+    if any(s.status == SenderStatus.ACTIVE.value for s in rows):
+        return OnboardingStep.READY.value
+    return OnboardingStep.CONNECT.value
+
+
+def pick_sender_for_docs(
+    senders: list[Sender], preferred_id: str | None = None
+) -> Sender | None:
+    if preferred_id:
+        for s in senders:
+            if s.id == preferred_id:
+                return s
+    active = [s for s in senders if s.status == SenderStatus.ACTIVE.value]
+    if active:
+        return active[0]
+    return senders[0] if senders else None
 
 
 def build_api_docs(sender: Sender | None, api_key_hint: str | None = None) -> ApiDocsOut | None:
@@ -105,7 +123,8 @@ def build_api_docs(sender: Sender | None, api_key_hint: str | None = None) -> Ap
     url = f"{base}/v1/messages"
     # Never splice api_key_prefix (it is truncated with "…") into the curl —
     # that produced copy-paste tokens like "zpv_live_6KGQRKG…SEU_TOKEN".
-    key = api_key_hint or "COLE_A_API_KEY_COMPLETA"
+    # Placeholder is an env-var name, not a token the user should hunt for.
+    key = api_key_hint or "$ZAPVIA_API_KEY"
     body = {
         "external_id": "pedido-1001",
         "to": "5534999999999",
@@ -123,13 +142,24 @@ def build_api_docs(sender: Sender | None, api_key_hint: str | None = None) -> Ap
         f'    "body": "Seu pedido #1001 foi confirmado."\n'
         f"  }}'"
     )
+    label_bit = f" ({sender.label})" if getattr(sender, "label", None) else ""
     notes = [
-        "A API key identifica o WhatsApp Business já cadastrado. O destino vai no campo `to`.",
-        "Somente WhatsApp Business. A autenticação da Cloud API é persistente (token), não sessão de QR.",
-        "Resposta 202 = enfileirada. Consulte GET /v1/messages/by-external/{external_id}.",
+        "A API key (zpv_live_…) autentica o seu sistema e amarra o envio a este remetente"
+        f"{label_bit}. Não é senha da conta, não é sessão do painel, não é token da Meta "
+        "e não é o prefixo truncado que o painel mostra.",
+        "Cada número WhatsApp = um remetente = uma API key = uma fila `q.sender.{id}`. "
+        "Nos seus sistemas, guarde a key no setup da entidade que envia (loja, cliente, unidade).",
+        "O QR só conecta o remetente. A requisição traz destino (`to`) e texto (`body`); "
+        "o Zap que envia já está no cadastro.",
+        "Se não guardou a key na conexão, gere uma nova em Como enviar. O WhatsApp permanece "
+        "conectado; a key anterior deixa de funcionar.",
+        "Resposta 202 = enfileirada em `q.sender.{id}`. Consulte "
+        "GET /v1/messages/by-external/{external_id} com o mesmo Bearer.",
         "external_id é idempotente por remetente: reenviar o mesmo id não duplica a mensagem.",
-        "Na Cloud API, texto livre respeita a janela de 24h da Meta; o sandbox local não aplica essa regra.",
-        "A key completa já começa com zpv_live_. Não prefixe de novo e não quebre a linha no header Authorization.",
+        "A key completa já começa com zpv_live_. Não prefixe de novo e não quebre o header "
+        "Authorization no meio da linha.",
+        "Na Cloud API, texto livre respeita a janela de 24h da Meta; sandbox/QR local não aplica "
+        "essa regra.",
     ]
     return ApiDocsOut(
         method="POST",

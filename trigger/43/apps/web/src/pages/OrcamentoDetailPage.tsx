@@ -427,6 +427,20 @@ export function OrcamentoDetailPage() {
               {envio.destinatario?.nome
                 ? `Para ${envio.destinatario.nome}${envio.destinatario.funcao ? ` (${envio.destinatario.funcao})` : ''}${envio.destinatario.canal ? ` · ${envio.destinatario.canal}` : ''}. `
                 : ''}
+              {envio.zap_enviado && envio.zap_destino
+                ? `WhatsApp enviado para ${formatPhone(envio.zap_destino) || envio.zap_destino}. `
+                : envio.zap_motivo === 'sem_whatsapp_cadastro'
+                  ? 'Contato sem WhatsApp no cadastro — use e-mail ou copie o texto. '
+                  : envio.zap_motivo === 'falha_envio'
+                    ? 'Não foi possível enviar o WhatsApp agora — use o canal abaixo. '
+                    : ''}
+              {envio.email_enviado && envio.email_destino
+                ? `E-mail enviado para ${envio.email_destino}. `
+                : envio.email_motivo === 'sem_email_cadastro'
+                  ? 'Contato sem e-mail no cadastro — use WhatsApp ou copie o texto. '
+                  : envio.email_motivo === 'falha_envio'
+                    ? 'Não foi possível enviar o e-mail agora — use o canal abaixo. '
+                    : ''}
               O link é pessoal e único — não encaminhe. Cole ou abra o canal abaixo; após
               aprovar/recusar o sistema atualiza sozinho e o link deixa de funcionar.
             </p>

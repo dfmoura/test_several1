@@ -1,6 +1,9 @@
 const TOKEN_KEY = 'flexorc_token';
 const EMPRESA_KEY = 'flexorc_empresa_id';
 
+export const AUTH_EXPIRED_EVENT = 'flexorc-auth-expired';
+export const AUTH_EXPIRED_MSG_KEY = 'flexorc_auth_msg';
+
 export class ApiError extends Error {
   status: number;
   details?: Record<string, string[]>;
@@ -18,6 +21,26 @@ export class ApiError extends Error {
     this.details = details;
     this.payload = payload;
   }
+
+  get code(): string | undefined {
+    const code = this.payload?.code;
+    return typeof code === 'string' ? code : undefined;
+  }
+}
+
+function notifyAuthExpired(message: string, code?: string): void {
+  if (!getToken()) {
+    return;
+  }
+  try {
+    sessionStorage.setItem(AUTH_EXPIRED_MSG_KEY, message);
+  } catch {
+    /* ignore quota / private mode */
+  }
+  setToken(null);
+  window.dispatchEvent(
+    new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { message, code } }),
+  );
 }
 
 export function getToken(): string | null {
@@ -93,12 +116,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       (payload as { message?: string })?.message ??
       `Erro ${response.status}`;
     const details = (payload as { errors?: Record<string, string[]> })?.errors;
-    throw new ApiError(
-      message,
-      response.status,
-      details,
-      payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : undefined,
-    );
+    const jsonPayload =
+      payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : undefined;
+    if (response.status === 401 && !options.skipAuth) {
+      notifyAuthExpired(
+        message,
+        typeof jsonPayload?.code === 'string' ? jsonPayload.code : undefined,
+      );
+    }
+    throw new ApiError(message, response.status, details, jsonPayload);
   }
 
   return payload as T;
@@ -121,13 +147,22 @@ async function downloadFile(path: string, filename: string, empresaId?: number |
   const response = await fetch(`/api/v1${path}`, { headers });
   if (!response.ok) {
     let message = `Erro ${response.status}`;
+    let jsonPayload: Record<string, unknown> | undefined;
     try {
       const payload = await response.json();
+      jsonPayload =
+        payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : undefined;
       message = (payload as { message?: string })?.message ?? message;
     } catch {
       // ignore
     }
-    throw new ApiError(message, response.status);
+    if (response.status === 401) {
+      notifyAuthExpired(
+        message,
+        typeof jsonPayload?.code === 'string' ? jsonPayload.code : undefined,
+      );
+    }
+    throw new ApiError(message, response.status, undefined, jsonPayload);
   }
 
   const blob = await response.blob();
@@ -169,7 +204,12 @@ export const api = {
   download: (path: string, filename: string, empresaId?: number | null) =>
     downloadFile(path, filename, empresaId),
 
-  login: (email: string, password: string, conta?: string) =>
+  login: (
+    email: string,
+    password: string,
+    conta?: string,
+    opts?: { encerrarSessaoAnterior?: boolean },
+  ) =>
     request<{
       token: string;
       token_type: string;
@@ -181,6 +221,7 @@ export const api = {
         ...(email.trim() ? { email: email.trim() } : {}),
         ...(conta?.trim() ? { conta: conta.trim() } : {}),
         password,
+        ...(opts?.encerrarSessaoAnterior ? { encerrar_sessao_anterior: true } : {}),
       },
       skipAuth: true,
     }),
@@ -220,6 +261,75 @@ export const api = {
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
 
   me: () => request<AuthMeResponse>('/auth/me'),
+
+  plataformaMetricas: () => request<{ data: PlataformaMetricas }>('/plataforma/metricas'),
+
+  plataformaContas: (params?: { q?: string; saude?: string; status?: string; page?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set('q', params.q);
+    if (params?.saude && params.saude !== 'todas') qs.set('saude', params.saude);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.page && params.page > 1) qs.set('page', String(params.page));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return request<{ data: PlataformaContaResumo[]; meta: PlataformaListaMeta }>(
+      `/plataforma/contas${suffix}`,
+    );
+  },
+
+  plataformaCriarConta: (body: {
+    name: string;
+    email: string;
+    password?: string;
+    cortesia_dias?: number;
+    cortesia_motivo?: string;
+  }) =>
+    request<{ data: PlataformaContaResumo & { senha_temporaria?: string } }>('/plataforma/contas', {
+      method: 'POST',
+      body,
+    }),
+
+  plataformaConta: (id: number) =>
+    request<{ data: PlataformaContaDetalhe }>(`/plataforma/contas/${id}`),
+
+  plataformaBonificarConta: (
+    id: number,
+    body: { dias?: number; ate?: string; motivo?: string; encerrar?: boolean; revogar?: boolean },
+  ) =>
+    request<{ data: PlataformaContaResumo }>(`/plataforma/contas/${id}/cortesia`, {
+      method: 'POST',
+      body,
+    }),
+
+  plataformaInterIntegracao: () =>
+    request<{ data: InterIntegracaoData }>('/plataforma/integracoes/inter'),
+
+  plataformaSalvarInterIntegracao: (body: Record<string, string | boolean>) =>
+    request<{ data: InterIntegracaoData }>('/plataforma/integracoes/inter', {
+      method: 'PUT',
+      body,
+    }),
+
+  plataformaTestarInterIntegracao: () =>
+    request<{ data: { ok: boolean; mensagem: string } }>('/plataforma/integracoes/inter/testar', {
+      method: 'POST',
+      body: {},
+    }),
+
+  plataformaBillingCatalogo: () =>
+    request<{ data: BillingCatalogoData }>('/plataforma/billing/catalogo'),
+
+  plataformaSalvarBillingCatalogo: (body: { valor: number; ciclo?: string; descricao?: string }) =>
+    request<{ data: BillingCatalogoData }>('/plataforma/billing/catalogo', {
+      method: 'PUT',
+      body,
+    }),
+
+  plataformaAuditoria: (page?: number) => {
+    const suffix = page && page > 1 ? `?page=${page}` : '';
+    return request<{ data: PlataformaAuditoriaItem[]; meta: PlataformaListaMeta }>(
+      `/plataforma/auditoria${suffix}`,
+    );
+  },
 };
 
 export type AuthUser = {
@@ -252,6 +362,16 @@ export type ProdutoFlexorcSuperficie = {
   financeiro: boolean;
 };
 
+export type BillingAviso = {
+  tipo: 'cortesia' | 'cortesia_encerrada' | 'pendente' | 'suspensa' | string;
+  titulo: string;
+  mensagem: string;
+  acao: string;
+  to: string;
+  dias_restantes: number | null;
+  valor_formatado: string | null;
+};
+
 export type AuthMeResponse = {
   user: AuthUser;
   roles: string[];
@@ -259,7 +379,155 @@ export type AuthMeResponse = {
   empresas: AuthEmpresa[];
   empresa_contexto: { id: number; codigo: string } | null;
   conta_flexorc?: { max_empresas: number; empresas_count: number };
+  billing_aviso?: BillingAviso | null;
   produto_flexorc?: ProdutoFlexorcSuperficie;
+  console_plataforma?: boolean;
+};
+
+export type PlataformaListaMeta = {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+};
+
+export type InterIntegracaoData = {
+  configurado: boolean;
+  ativo: boolean;
+  operador: string | null;
+  ambiente: string;
+  tem_client_id: boolean;
+  tem_client_secret: boolean;
+  tem_certificado: boolean;
+  tem_chave: boolean;
+  tem_webhook_secret: boolean;
+  billing_provider_atual: string;
+  webhook_url: string;
+  documentacao: string;
+  front_base: string;
+};
+
+export type BillingCatalogoData = {
+  fonte: 'banco' | 'env';
+  valor: number;
+  ciclo: string;
+  ciclo_label: string;
+  descricao: string;
+  vigente_desde: string | null;
+  atualizado_em: string | null;
+  billing_provider: string;
+  impacto: {
+    contas_em_dia: number;
+    mrr_estimado: number;
+  };
+  env_fallback: {
+    valor: number;
+    ciclo: string;
+    descricao: string;
+  };
+  sync?: {
+    pix_invalidados: number;
+    asaas_atualizadas: number;
+    asaas_ignoradas: number;
+    asaas_erros: string[];
+  };
+  alterado?: boolean;
+};
+
+export type PlataformaMetricas = {
+  contas: {
+    total: number;
+    em_dia: number;
+    cortesia: number;
+    pendente: number;
+    suspensa: number;
+  };
+  novas_7d: number;
+  novas_30d: number;
+  mrr_estimado: number;
+  valor_mensalidade: number;
+  ciclo: string;
+  max_empresas_conta: number;
+};
+
+export type PlataformaCortesia = {
+  vigente: boolean;
+  ate: string;
+  ate_formatada: string;
+  dias_restantes: number | null;
+  motivo: string | null;
+  concedida_em?: string | null;
+};
+
+export type PlataformaContaResumo = {
+  id: number;
+  user_id: number;
+  master: {
+    id: number;
+    codigo: string;
+    name: string;
+    email: string;
+    ativo: boolean;
+    ultimo_login_em: string | null;
+    created_at: string | null;
+  } | null;
+  billing_status: string;
+  billing_provider: string | null;
+  billing_customer_ref: string | null;
+  billing_subscription_ref: string | null;
+  billing_metodo_em: string | null;
+  pagamento_autenticado: boolean;
+  acesso_liberado?: boolean;
+  cortesia: PlataformaCortesia | null;
+  saude: 'em_dia' | 'cortesia' | 'pendente' | 'suspensa' | string;
+  saude_label: string;
+  empresas_count: number;
+  usuarios_count: number;
+  max_empresas: number;
+  created_at: string | null;
+  senha_temporaria?: string;
+};
+
+export type PlataformaContaDetalhe = PlataformaContaResumo & {
+  empresas: {
+    id: number;
+    codigo: string;
+    cnpj: string | null;
+    razao_social: string;
+    nome_fantasia: string | null;
+    situacao: string;
+    self_service: boolean;
+    billing_status: string | null;
+    catalogo_conferido: boolean;
+  }[];
+  usuarios: {
+    id: number;
+    codigo: string;
+    name: string;
+    email: string;
+    ativo: boolean;
+    ultimo_login_em: string | null;
+    roles: string[];
+    empresas: { id: number; codigo: string }[];
+  }[];
+  fatura: {
+    valor: number;
+    ciclo: string;
+    descricao: string;
+    fornecedor: string;
+    produto: string;
+  };
+};
+
+export type PlataformaAuditoriaItem = {
+  id: number;
+  acao: string;
+  entidade: string | null;
+  entidade_id: number | null;
+  para: Record<string, unknown> | null;
+  ip: string | null;
+  created_at: string | null;
+  user: { id: number; name: string; email: string; codigo: string } | null;
 };
 
 export type PainelCard = {
@@ -331,24 +599,114 @@ export type ContaFlexorcFatura = {
   cofre: string;
   status: string;
   status_label: string;
+  modo?: 'pago' | 'cortesia' | 'cortesia_encerrada' | 'pendente' | 'suspensa' | string;
   paga: boolean;
+  pagamento_autenticado?: boolean;
   pago_em: string | null;
+  proxima_cobranca_em?: string | null;
+  proxima_cobranca_formatada?: string | null;
+  dias_ate_proxima?: number | null;
+  renovacao_label?: string;
+  cobranca_antecipada?: boolean;
+  primeira_cobranca_em?: string | null;
+  primeira_cobranca_formatada?: string | null;
+  alerta_cortesia?: boolean;
+  alerta_cortesia_nivel?: 'info' | 'warning' | 'urgent' | null;
+  cortesia?: {
+    vigente: boolean;
+    ate: string;
+    ate_formatada: string;
+    dias_restantes: number | null;
+    motivo: string | null;
+    alerta?: boolean;
+    alerta_nivel?: 'info' | 'warning' | 'urgent' | null;
+  } | null;
   camada_esta: string;
   camada_nao_e: string;
+  pix_copia_cola?: string | null;
+  pix_qr_base64?: string | null;
+  pix_vencimento?: string | null;
+  pix_expira_em?: string | null;
+  pode_gerar_pix?: boolean;
 };
 
 export type AtivacaoData = {
   origem: 'self_service' | 'legado';
   pronta: boolean;
   pagamento_pendente?: boolean;
+  certificado_a1_pendente?: boolean;
+  certificado_a1_alerta?: boolean;
+  certificado_a1_alerta_nivel?: 'info' | 'warning' | 'urgent' | null;
+  certificado_a1_status?: string | null;
+  certificado_a1_dias_para_vencer?: number | null;
+  certificado_a1_valido_ate?: string | null;
+  certificado_a1_mensagem?: string | null;
   pode_enviar_orcamento: boolean;
   billing_provider: string;
   billing_status: string;
   checkout_url: string | null;
+  pix_copia_cola?: string | null;
+  pix_qr_base64?: string | null;
+  pix_vencimento?: string | null;
+  pix_expira_em?: string | null;
+  pix_expirado?: boolean;
+  pode_gerar_pix?: boolean;
   pode_confirmar_demo: boolean;
   proximo: string | null;
   passos: AtivacaoPasso[];
   conta?: ContaFlexorcFatura | null;
+};
+
+export type ImplantacaoStatus = 'PENDENTE' | 'OK' | 'RECUSADO' | 'NA';
+
+export type ImplantacaoEvidencia = {
+  ok: boolean;
+  label: string;
+};
+
+export type ImplantacaoItem = {
+  codigo: string;
+  nome: string;
+  porque: string;
+  onda: number;
+  onda_nome: string;
+  superficie: 'flexorc' | 'erp';
+  elo: boolean;
+  paralelo: boolean;
+  rota: string | null;
+  linha: string;
+  status_dev: ImplantacaoStatus;
+  status_cliente: ImplantacaoStatus;
+  obs_dev: string | null;
+  obs_cliente: string | null;
+  validado_dev_em: string | null;
+  validado_cliente_em: string | null;
+  validado_dev_por_nome: string | null;
+  validado_cliente_por_nome: string | null;
+  evidencia: ImplantacaoEvidencia | null;
+};
+
+export type ImplantacaoResumoBloco = {
+  total: number;
+  aceitos: number;
+  prontos_para_cliente: number;
+  pendentes_dev: number;
+  bloqueados: number;
+  na: number;
+  pct_aceitos: number;
+};
+
+export type ImplantacaoMatriz = {
+  empresa: { id: number; codigo: string; nome: string };
+  resumo: {
+    geral: ImplantacaoResumoBloco;
+    flexorc: ImplantacaoResumoBloco;
+    erp: ImplantacaoResumoBloco;
+    ja_operamos_ate: { codigo: string; nome: string } | null;
+    proximo_elo: { codigo: string; nome: string; linha?: string } | null;
+  };
+  ondas: { onda: number; nome: string }[];
+  itens: ImplantacaoItem[];
 };
 
 export type EmpresaFiscalHistorico = {
@@ -381,6 +739,33 @@ export type EmpresaContaFinanceira = {
   saldo_abertura: string | number | null;
   saldo_abertura_em: string | null;
   observacao: string | null;
+};
+
+/** Metadados do cofre A1 — nunca inclui PFX/senha. */
+export type EmpresaCertificadoA1 = {
+  cadastrado: boolean;
+  arquivo_nome?: string | null;
+  tamanho_bytes?: number | null;
+  subject_cn?: string | null;
+  issuer_cn?: string | null;
+  serial?: string | null;
+  fingerprint_sha256?: string | null;
+  cnpj_certificado?: string | null;
+  cnpj_bate_com_empresa?: boolean | null;
+  apto_operacao?: boolean;
+  valido_de?: string | null;
+  valido_ate?: string | null;
+  dias_para_vencer?: number | null;
+  status?: 'VIGENTE' | 'A_VENCER' | 'VENCIDO' | 'AINDA_NAO_VALIDO' | string;
+  alerta?: boolean;
+  alerta_nivel?: 'info' | 'warning' | 'urgent' | null;
+  pendencias?: string[];
+  uploaded_at?: string | null;
+  uploaded_by?: number | null;
+  tem_senha?: boolean;
+  aviso?: string;
+  aviso_cofre?: string;
+  message?: string;
 };
 
 export type UsuarioRef = {
@@ -1321,6 +1706,7 @@ export type Usuario = {
   empresa_default_id: number | null;
   vigencia_ate?: string | null;
   ultimo_login_em?: string | null;
+  sessao_ativa?: boolean;
   roles?: string[];
   empresas?: Array<{
     id: number;
@@ -2213,6 +2599,14 @@ export type OrcamentoEnvioAprovacao = {
   canal_url?: string | null;
   expira_em: string | null;
   reutilizado: boolean;
+  /** Motor da instalação enviou e-mail ao cadastro (ADR_ORC_EMAIL_PROPOSTA). */
+  email_enviado?: boolean;
+  email_destino?: string | null;
+  email_motivo?: string | null;
+  /** Motor ViaZap enviou WhatsApp ao cadastro (ADR_ORC_WHATSAPP_VIAZAP). */
+  zap_enviado?: boolean;
+  zap_destino?: string | null;
+  zap_motivo?: string | null;
   destinatario?: {
     parceiro_contato_id: number | null;
     nome: string | null;

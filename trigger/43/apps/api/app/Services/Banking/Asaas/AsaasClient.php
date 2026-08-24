@@ -49,6 +49,23 @@ final class AsaasClient
     }
 
     /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    public function put(string $path, array $body, ?string $idempotencyKey = null): array
+    {
+        $headers = [];
+        if ($idempotencyKey) {
+            $headers['Idempotency-Key'] = $idempotencyKey;
+        }
+
+        return $this->decode(
+            $this->http()->withHeaders($headers)->put($this->url($path), $body),
+            $path,
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function get(string $path): array

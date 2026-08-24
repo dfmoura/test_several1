@@ -15,11 +15,279 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-070`
+`BL-086`
 
 ---
 
 ## Itens
+
+### BL-085 · [produto/menu] Onda 5 (Caixa) — carteira + compras + estoque no menu + Painel
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — sequência ondas pós saída (BL-084); fechar superfície ERP operacional
+- **Depende de:** BL-084 · ADR_CARTEIRA_FINANCEIRA · ADR_COMPRAS_ATE_ESTOQUE · ADR_NATUREZAS_GERENCIAIS
+- **Referência:** `ImplantacaoCatalogo` onda 5 · `flexorc-superficie.mdc`
+- **Decisão (fechada):**
+  1. Promover **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque**, **Naturezas gerenciais**; rastreio/produtos/comissão/fluxo fora.
+  2. Rotas F5_* com tela canônica; F5_BANCO/F5_FLUXO sem rota (paralelo futuro).
+  3. Painel: `modulos.compras|estoque` + card pagar + filas OC/reposição/ajustes/vencidos.
+- **Aceite:**
+  - [x] Menu AppShell · matriz implantação
+  - [x] PainelService + regra superfície
+  - [ ] Aceite onda 5 na EMP piloto (operacional)
+  - [x] PHPUnit Painel + implantação
+- **Fora de escopo:** Rastreio · produtos SKU · comissão · fluxo de caixa · rename billing FLEXORC-*
+- **Entregue em:** 2026-08-24
+
+### BL-084 · [produto/menu] Onda 4 (Saída) — Faturamento + Expedição no menu + Painel
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — sequência ondas pós OP (BL-083)
+- **Depende de:** BL-083 · ADR_IMPLANTACAO_ACEITE · ADR_FATURAMENTO_COBRANCA · ADR_ENTREGA_EXPEDICAO
+- **Referência:** `ImplantacaoCatalogo` onda 4 · `flexorc-superficie.mdc`
+- **Decisão (fechada):**
+  1. Promover **Faturamentos** (Financeiro) e **Expedição** ao menu; estoque/compras/rastreio/NF avulso fora.
+  2. `F4_FATURAR.rota = /financeiro/faturamentos` · `F4_EXPEDIR.rota = /expedicao`.
+  3. Painel: `modulos.expedicao` + cards/filas faturamento (ped produzido) e expedição (ped faturado + ENT vigente).
+- **Aceite:**
+  - [x] Menu AppShell · matriz implantação
+  - [x] PainelService + regra superfície
+  - [ ] Aceite onda 4 na EMP piloto (operacional)
+  - [x] PHPUnit Painel + implantação
+- **Fora de escopo:** Estoque · compras · rastreio · comissão · contas a pagar · rename billing FLEXORC-*
+- **Entregue em:** 2026-08-24
+
+### BL-083 · [produto/menu] Onda 3 (OP) no menu + Painel produção
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — implantação completa; sequência ondas
+- **Depende de:** BL-081 · ADR_IMPLANTACAO_ACEITE · ADR_PRODUCAO_PED_OP_ESTOQUE
+- **Referência:** `ImplantacaoCatalogo` onda 3 · `flexorc-superficie.mdc`
+- **Decisão (fechada):**
+  1. Promover **Ordens de produção** ao menu (grupo Produção); rastreio/expedição/NF fora.
+  2. `F3_OP_OS.rota = /ordens-producao`.
+  3. Painel: `modulos.producao` + card/fila OP em curso.
+- **Aceite:**
+  - [x] Menu AppShell · matriz implantação
+  - [x] PainelService + regra superfície
+  - [ ] Aceite onda 3 na EMP piloto (operacional)
+  - [x] PHPUnit Painel + implantação
+- **Fora de escopo:** Rastreio no menu · estoque · faturamento · expedição
+- **Entregue em:** 2026-08-24
+
+### BL-081 · [produto/menu] Onda 2 (Pedido) no menu + gate rebrand FLEXOERP
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — implantação sempre completa; marca única FLEXOERP
+- **Depende de:** BL-080 · ADR_IMPLANTACAO_ACEITE · ADR_PRODUCAO_PED_OP_ESTOQUE
+- **Referência:** `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md` § Gate fase 1
+- **Decisão (fechada):**
+  1. Promover PED (onda 2) ao menu canônico antes de renomear FLEXORC → FLEXOERP na UI.
+  2. Aceite dev × cliente na EMP piloto conforme matriz.
+  3. Rebrand (`brand.ts`, assets, PDF, proposta) **no mesmo PR** que o menu honesto.
+  4. Billing/webhook IDs legado `FLEXORC-*` intactos (fase 3 separada).
+- **Aceite:**
+  - [x] Menu AppShell com Pedido (+ dependências visíveis mínimas)
+  - [ ] Matriz onda 2 aceita na EMP piloto (operacional)
+  - [x] Identidade FLEXOERP (wordmark + tagline) · checklist §6 parcial
+  - [x] PHPUnit verde · smoke login / proposta pública (parcial — suite billing)
+- **Fora de escopo:** DNS flexoerp · rename env billing · apagar código esqueleto
+- **Entregue em:** 2026-08-24 (código; aceite piloto pendente operação)
+
+### BL-082 · [produto/infra] DNS flexoerp + alias legado + prefixos billing novos
+- **Status:** Feito (código) · DNS cutover = operação
+- **Prioridade:** P2
+- **Origem:** ADR_TRANSICAO_FLEXORC_FLEXOERP.md fase 3
+- **Depende de:** BL-081
+- **Decisão (fechada):**
+  1. `flexoerp.triggerti.com` em paralelo; `flexorc.*` como alias.
+  2. Novos ciclos usam `FLEXOERP-CONTA-*`; legado intacto em webhooks.
+  3. Alias env `FLEXOERP_*` opcional; `FLEXORC_*` continua lido.
+- **Aceite:**
+  - [x] `BillingReference` + testes unitários
+  - [x] Gateways ASAAS/Inter emitem FLEXOERP-* e resolvem legado
+  - [x] `erp.php` alias env · `.env.example` · `DEPLOY_LOCAL_AWS.md`
+  - [ ] DNS/Tunnel flexoerp (ops)
+- **Entregue em:** 2026-08-24
+
+### BL-080 · [produto/identidade] Norma de transição FLEXORC → FLEXOERP
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — unificar produto sem quebrar runtime
+- **Referência:** `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md`
+- **Decisão (fechada):**
+  1. Destino = FLEXOERP; sequência superfície → marca → infra.
+  2. Fase 0: ADR + backlog; **zero** alteração de `brand.ts`, billing ou menu.
+  3. Gate fase 1 documentado; BL-081 executa o rebrand.
+- **Aceite:**
+  - [x] ADR aceito
+  - [x] BL-081 registrado com dependências
+- **Entregue em:** 2026-08-24
+
+### BL-079 · [implantacao] Matriz de aceite de go-live
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-24 — tela de implantação com validação dev × cliente
+- **Depende de:** ADR_ATIVACAO_EMPRESA · ADR_FATIA_COMERCIAL_SAAS
+- **Referência:** `docs/ADR_IMPLANTACAO_ACEITE.md`
+- **Decisão (fechada):**
+  1. Catálogo versionado (`ImplantacaoCatalogo`) + aceite dual por EMP.
+  2. UI `/implantacao` (Administração); não funde com `/ativacao`.
+  3. Superfície `flexorc` vs `erp` honesta; evidência automática opcional.
+  4. Permissões `implantacao.ler|validar_dev|validar_cliente`.
+- **Aceite:**
+  - [x] ADR + migration + API GET/PATCH
+  - [x] Tela com ondas, filtros, dual aceite
+  - [x] Testes Feature (isolamento multi-EMP)
+- **Entregue em:** 2026-08-24
+
+### BL-078 · [orc/ux] E-mail da proposta (EMP + cadastro do cliente)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-08-21 — e-mail padrão da EMP; destino = cadastro; sem SMTP self-service
+- **Depende de:** ADR_ORC_LINK_APROVACAO
+- **Referência:** `docs/ADR_ORC_EMAIL_PROPOSTA.md`
+- **Decisão (fechada):**
+  1. Motor na instalação (`MAIL_*`); flag `ORCAMENTO_EMAIL_AUTO`.
+  2. Reply-To = `empresas.email` (aba Contato); From = `MAIL_FROM_*`.
+  3. Destino = e-mail do contato autorizado / legado; dispara em `enviarParaAprovacao` (fail-soft).
+  4. Clipboard + WhatsApp intactos; sem SMTP por EMP; andamentos ficam para BL futuro.
+- **Aceite:**
+  - [x] Envio com e-mail no contato → `email_enviado` + Mail
+  - [x] Sem e-mail no cadastro → link/clipboard seguem; `email_motivo=sem_email_cadastro`
+  - [x] UX EMP + painel pós-envio
+  - [x] Testes Feature + ADR
+- **Entregue em:** 2026-08-21
+
+### BL-077 · [plataforma/billing] Cenário pós-cortesia no cadastro atual
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-21 — ver mensalidade de fato com o cadastro atual, cortesia acabou
+- **Depende de:** BL-075 · BL-076 · ADR_ATIVACAO_EMPRESA
+- **Referência:** `docs/ADR_ATIVACAO_EMPRESA.md` · `docs/ADR_CONSOLE_PLATAFORMA.md`
+- **Decisão (fechada):**
+  1. Encerrar cortesia ≠ revogar: `cortesia_ate` no passado, histórico permanece; login cai em `/conta/mensalidade`.
+  2. Lab: `plataforma:abrir-cobranca-pos-cortesia` / `make cenario-mensalidade-pos-cortesia` reabre cobrança demo sem apagar EMP/PAR/ORC.
+  3. UX `cortesia_encerrada`: banner + fatura + checkout `nextDueDate` hoje. Duas camadas intactas.
+- **Aceite:**
+  - [x] Aviso `cortesia_encerrada` no login/`/auth/me`; modo na fatura
+  - [x] Comando não apaga empresas; recoloca PENDENTE se o pagamento era demo
+  - [x] Console: Encerrar cortesia (histórico) distinto de Revogar registro
+- **Entregue em:** 2026-08-21
+
+### BL-076 · [plataforma/ops] Ensaio ASAAS ≈ produção (flexorc + webhook)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-21 — simular produção local com https://flexorc.triggerti.com
+- **Depende de:** BL-075 · tunnel flexorc · ADR_ATIVACAO_EMPRESA
+- **Referência:** `docs/ADR_ENSAIO_ASAAS_FLEXORC.md` · `docs/DEPLOY_LOCAL_AWS.md`
+- **Decisão (fechada):**
+  1. Stack local + `ORCAMENTO_PUBLIC_BASE_URL=https://flexorc.triggerti.com` (tunnel → :8043).
+  2. `APP_URL`/`FRONTEND_URL` ficam em localhost; webhook/retorno usam flexorc.
+  3. Script `ensaio-asaas-ready` + `make ensaio-asaas{,-ativar,-desativar}`; ASAAS sandbox + token.
+  4. Não injetar `ASAAS_*=` vazio no Compose (não apaga chave de `apps/api/.env`).
+- **Aceite:**
+  - [x] ADR + deploy (porta 8043) + README
+  - [x] `make ensaio-asaas` valida health local/público e imprime URL do webhook
+  - [x] ativar/desativar só muda ORCAMENTO (+ token se faltar)
+- **Entregue em:** 2026-08-21
+
+### BL-075 · [plataforma/billing] Mensalidade antecipada + fim de cortesia (produção)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-21 — cobranças sempre antecipadas; cortesia → ASAAS recorrente
+- **Depende de:** BL-069 · BL-071 · BL-073 · ADR_ATIVACAO_EMPRESA
+- **Referência:** `docs/ADR_ATIVACAO_EMPRESA.md`
+- **Decisão (fechada):**
+  1. Cobrança **sempre antecipada** (ciclo pago antes de usar). Checkout ASAAS `nextDueDate` = fim da cortesia vigente, senão hoje.
+  2. Aviso UI ≤7 dias (`alerta_cortesia`) + banner no AppShell; comando ops diário `plataforma:avisar-cortesia-billing`.
+  3. Webhook ASAAS: confirmação → `ATIVA`; atraso/cancelamento → `SUSPENSA` (bloqueia envio).
+  4. Sem Inter no billing da conta; duas camadas intactas (mensalidade ≠ sinal).
+- **Aceite:**
+  - [x] Fatura expõe `cobranca_antecipada`, `primeira_cobranca_em`, `alerta_cortesia`
+  - [x] Cortesia acabando sem meio → banner + CTA autenticar
+  - [x] `PAYMENT_OVERDUE` / cancelamento → `SUSPENSA`; novo `PAYMENT_RECEIVED` → `ATIVA`
+  - [x] Testes feature + ADR atualizado
+- **Entregue em:** 2026-08-21
+
+### BL-074 · [auth/ux] Sessão única, teto 5 simultâneos, idle 30 min
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-21 — mesmo usuário não loga em dois lugares; máx. 5 pessoas; 30 min sem uso
+- **Depende de:** Sanctum PAT já usado no login · referência UX `../23`
+- **Referência:** `docs/ADR_SESSAO_ACESSO.md`
+- **Decisão (fechada):**
+  1. PAT Sanctum é a sessão viva (sem tabela paralela). Uma por usuário; 409 + takeover autenticado.
+  2. Teto 5 usuários distintos na instalação; operador `PLATAFORMA` não consome assento.
+  3. Idle 30 min via `last_used_at` no callback Sanctum (antes de renovar). Admin libera sessão em Usuários.
+- **Aceite:**
+  - [x] Segundo login 409; `encerrar_sessao_anterior` derruba a órfã
+  - [x] 6º usuário distinto 409; vaga libera no logout/idle
+  - [x] 31 min sem uso → 401 `SESSAO_INATIVA`; UI takeover + Liberar sessão
+- **Entregue em:** 2026-08-21
+
+### BL-073 · [plataforma] Provisionar master + cortesia (bonificação)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-20 — setup admin geral: gerar master e período free visível na mensalidade
+- **Depende de:** BL-070 · ADR_CONSOLE_PLATAFORMA · ADR_ATIVACAO_EMPRESA
+- **Decisão (fechada):**
+  1. Escrita no console: `POST /plataforma/contas` + `POST …/cortesia`; permissões `provisionar` / `bonificar`.
+  2. Cortesia em `conta_ativacoes.cortesia_ate` — **não** finge ASAAS; `acessoLiberado()` = pago **ou** cortesia; MRR só contas autenticadas.
+  3. UI cliente `/conta/mensalidade`: bloco “Período cortesia TRIGGER” (dias restantes + Free + tabela após).
+  4. CLI: `--cortesia-dias` em `plataforma:criar-conta` + `plataforma:bonificar-conta`.
+- **Aceite:**
+  - [x] Operador cria master e bonifica; admin da conta 403
+  - [x] Cortesia libera ativação; ASAAS permanece autenticável
+  - [x] Indicativo claro na fatura do cliente
+- **Entregue em:** 2026-08-20
+
+### BL-072 · [plataforma/ux] Envio da proposta só com A1 válido da EMP
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-20 — usar o sistema depois do A1 da empresa cadastrada; funil de produção (cadastro → pagamento → EMP → A1 → ORC)
+- **Depende de:** BL-068 · ADR_ATIVACAO_EMPRESA · ADR_CERTIFICADO_A1_EMPRESA
+- **Decisão (fechada):**
+  1. Portão no mesmo ponto do billing: `pode_enviar_orcamento` = conta paga **e** A1 apto da EMP (vigente + CNPJ idêntico). Rascunho livre.
+  2. Produção recusa upload com CNPJ divergente; local/homolog/teste avisam. Checagem de apto é sempre na hora do envio.
+  3. Cockpit: passo obrigatório `certificado_a1` → `/empresas?tab=a1`. Banner A1 depois da mensalidade. Legado intacto.
+- **Aceite:**
+  - [x] Self-service sem A1 não envia (422 `certificado_a1`); com A1 apto envia
+  - [x] CNPJ divergente e vencido não são aptos; produção recusa divergente no upload
+  - [x] Legado / phpunit / isolamento `empresa_id` intactos
+- **Entregue em:** 2026-08-20
+
+### BL-071 · [plataforma/ux] Status da mensalidade no app (ciclo + meios)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-20 — pagador sem tela de status / dias até a próxima / formas de pagar
+- **Depende de:** BL-069 · ADR_ATIVACAO_EMPRESA
+- **Decisão (fechada):**
+  1. Tela canônica `/conta/mensalidade` no AppShell (Administração), reutiliza fatura `GET /ativacao.conta`.
+  2. DTO ganha `proxima_cobranca_em`, `dias_ate_proxima`, `renovacao_label` (âncora `billing_metodo_em` + ciclo config — sem polling ASAAS).
+  3. Duas camadas intactas: mensalidade ≠ sinal. Alta `/cadastro/pagamento` permanece; retorno ASAAS → `/conta/mensalidade`.
+- **Aceite:**
+  - [x] Menu Mensalidade + status Em dia / dias / meios
+  - [x] Banner e cockpit apontam para a tela
+  - [x] Teste ciclo após confirmar-demo
+- **Entregue em:** 2026-08-20
+
+### BL-070 · [plataforma] Console TRIGGER — contas e billing (leitura)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-08-19 — ver quem está no sistema e pagando, sem acesso do cliente
+- **Depende de:** ADR_ATIVACAO_EMPRESA · ADR_FATIA_COMERCIAL_SAAS
+- **Referência:** `docs/ADR_CONSOLE_PLATAFORMA.md`
+- **Decisão (fechada):**
+  1. Papel `PLATAFORMA` + `plataforma.*`; nunca no catálogo/onboarding; CLI `plataforma:criar-operador`.
+  2. API `/api/v1/plataforma/*` sem `SetEmpresaContext`; `ADMIN` do cliente → 403.
+  3. UX `/plataforma` fora do AppShell FLEXORC; unidade = conta (`conta_ativacoes`).
+  4. Fase 1 read-only (métricas, contas, EMP, usuários, auditoria). Sem impersonação.
+- **Aceite:**
+  - [x] phpunit `ConsolePlataformaTest` (suite pronta; rodar com Docker/`phpunit` no ambiente)
+  - [x] Menu FLEXORC sem o console
+  - [x] Operador CLI vê contas; pagador não
+- **Entregue em:** 2026-08-19
 
 ### BL-068 · [plataforma/ux] Ativação profissional (você → empresa → ASAAS → cadastros → ORC)
 - **Status:** Feito
@@ -36,6 +304,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - [x] Cadastro em etapas; empresa nova sem clientes/ORC
   - [x] Demo/webhook autenticam billing; PIX do sinal separado
   - [x] Cockpit de primeiros passos; empty states; sem jargão estoque/venda no painel
+  - [x] Painel = cockpit de ação (ADR_PAINEL_COCKPIT): filas → KPIs; sem mural
   - [x] Testes EmpresaAtivacaoTest + onboarding isolado
 - **Entregue em:** 2026-08-19
 

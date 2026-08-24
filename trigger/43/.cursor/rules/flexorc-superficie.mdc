@@ -1,33 +1,34 @@
 ---
-description: Superfície FLEXORC vs esqueleto herdado do FLEXOERP — não expandir ERP nesta pasta
+description: Superfície FLEXOERP completa (ondas 2–5) no menu; exceções e cadastros avançados por implantação
 alwaysApply: true
 ---
 
 # Superfície do produto (esta instalação)
 
-Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md`.
+Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · transição: `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md`.
 
-**FLEXORC** nesta pasta: orçamento até o envio (link + sinal/PIX) + cadastro de clientes/prospects + self-service de empresa.
+**FLEXOERP** nesta pasta: cadeia operacional ORC → PED → OP → FAT → ENT → caixa, com **Compras/Estoque** e carteira financeira (receber/pagar) no menu. Cadastros + self-service + mensalidade da conta.
 
 ## Superfície (UX / menu)
 
-Painel, empresa, parceiros, patrimônio/departamentos se já existirem no cadastro, ORC, mapa de facas, catálogo ORC, parâmetros, usuários, sinal/a receber, onboarding ASAAS.
+Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, patrimônio, departamentos, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque**, catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
 
-Sem cadastro de **Produtos** (SKU): insumo/preço do ORC é o catálogo da EMP.
+Sem cadastro de **Produtos** (SKU) no menu: insumo/preço do ORC é o catálogo da EMP.
 
-## Esqueleto (não apagar, não oferecer)
+## Esqueleto (não apagar, não oferecer no menu até implantação)
 
-PED, OP, estoque, compras, cadastro de SKU (`/produtos`), NF-e/NFS-e, faturamento de saída, expedição, comissão: **permanecem no código** (motor, FK, testes). A UI canônica **não** os promove no menu.
+Rastreio dedicado, cadastro de SKU (`/produtos`), comissões, fluxo de caixa, conciliação bancária plena, hubs fiscais/IA na administração: **permanecem no código** (motor, FK, testes). Onda 6 (devolução/avaria) opera nos fluxos existentes — sem item de menu próprio.
 
-ADRs de produção/fiscal/estoque nesta pasta documentam o esqueleto herdado de `../39` — não autorizam nova tela ERP aqui.
+ADRs de produção/fiscal/estoque nesta pasta documentam o esqueleto herdado de `../39`.
 
 ## Faça
 
-- Mudança de ORC/PAR/onboarding/sinal: manter isolamento `empresa_id` e o motor R1–R20.
-- Se o trabalho for do ERP completo: `../39` (FLEXOERP), não esta pasta.
+- Mudança operacional (ORC/PAR/PED/OP/FAT/ENT/TIT/OC/estoque): manter isolamento `empresa_id` e o motor R1–R20.
+- Promover novo módulo ao menu **somente** com gate de implantação (`ADR_TRANSICAO_FLEXORC_FLEXOERP.md`).
 
 ## Não faça
 
-- Apagar serviços/migrations/testes de PED/estoque/fiscal “porque o FLEXORC não mostra”.
-- Recolocar estoque/pedido/NF ou o cadastro de Produtos no menu.
-- Copiar proposta comercial FLEXOERP×RLP, prompts Replit ou backlog do 39 para cá.
+- Apagar serviços/migrations/testes “porque o menu não mostra”.
+- Recolocar rastreio/produtos/comissão no menu sem gate de implantação.
+- Empilhar gráfico, aging, histórico ou módulo esqueleto no Painel — slot só para fila/KPI de ação.
+- Renomear IDs legado `FLEXORC-CONTA-*` em billing/webhooks.

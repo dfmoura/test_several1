@@ -47,7 +47,7 @@ export function CadastroEmpresaPage() {
     return <div className="loading">Carregando…</div>;
   }
   if (!user) {
-    return <Navigate to="/cadastro/conta" replace />;
+    return <Navigate to="/login" replace />;
   }
   if (!podeGerir) {
     return <Navigate to="/empresas" replace />;

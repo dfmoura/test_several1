@@ -14,6 +14,7 @@ use App\Models\ParceiroContato;
 use App\Models\User;
 use App\Services\Cadastros\DepartamentoService;
 use Illuminate\Database\Seeder;
+use App\Support\PlatformRbac;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -63,6 +64,10 @@ class DatabaseSeeder extends Seeder
         // BL-061
         'comissao.ler',
         'comissao.escrever',
+        // BL-079 — matriz de aceite de implantação
+        'implantacao.ler',
+        'implantacao.validar_dev',
+        'implantacao.validar_cliente',
     ];
 
     private const ROLES = [
@@ -178,6 +183,7 @@ class DatabaseSeeder extends Seeder
             'faturamento.ler',
             'expedicao.ler',
             'comissao.ler',
+            'implantacao.ler',
         ],
     ];
 
@@ -185,24 +191,32 @@ class DatabaseSeeder extends Seeder
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
+        // FLEXORC: seed de plataforma (RBAC + catálogos globais). Sem demo RLP /
+        // EMP-00001 — o primeiro USR nasce via plataforma:criar-conta (ou flag lab
+        // de alta pública) / plataforma:alinhar-primeiro-cadastro. Catálogo ORC/facas nascem por EMP no onboarding.
         $this->seedRolesAndPermissions();
-        $emp1 = $this->seedEmpresas();
-        $emp2 = Empresa::query()->where('codigo', 'EMP-00002')->firstOrFail();
-
-        $this->seedParametros($emp1, $emp2);
-        $this->seedColaboradoresAndUsers($emp1, $emp2);
-        $this->seedDepartamentos($emp1, $emp2);
+        $this->seedGlobalSequences();
         $this->call(FiscalCatalogSeeder::class);
         $this->call(ProdutoGrupoSeeder::class);
         $this->call(NaturezaGerencialSeeder::class);
-        $this->call(OrcamentoCatalogoSeeder::class);
-        $this->call(FacasMapaSeeder::class);
-        // 89 famílias Camada A (estudo 32) + demos PA/SVC — sequences incluídas.
-        $this->call(ProdutoCadastroSeeder::class);
         app(\App\Services\Cadastros\ProdutoGrupoService::class)->backfillProdutos();
+    }
 
-        $this->seedCliente($emp1);
-        $this->seedBensPatrimoniais($emp1);
+    /** Sequências prontas para o primeiro /cadastro (USR-00001 / EMP-00001). */
+    private function seedGlobalSequences(): void
+    {
+        CodigoSequence::query()->firstOrCreate(
+            ['empresa_id' => null, 'prefixo' => 'USR'],
+            ['proximo' => 1]
+        );
+        CodigoSequence::query()->firstOrCreate(
+            ['empresa_id' => null, 'prefixo' => 'EMP'],
+            ['proximo' => 1]
+        );
+        CodigoSequence::query()->firstOrCreate(
+            ['empresa_id' => null, 'prefixo' => 'CFIN'],
+            ['proximo' => 1]
+        );
     }
 
     private function seedRolesAndPermissions(): void
@@ -222,6 +236,8 @@ class DatabaseSeeder extends Seeder
 
             $role->syncPermissions(self::ROLE_PERMISSIONS[$roleName] ?? []);
         }
+
+        PlatformRbac::ensure();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }

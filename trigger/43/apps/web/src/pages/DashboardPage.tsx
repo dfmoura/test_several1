@@ -31,10 +31,6 @@ function formatKpi(card: PainelCard): string {
 
 export function DashboardPage() {
   const { user, empresas, empresaId, hasPermission, maxEmpresas } = useAuth();
-  const currentEmpresa = empresas.find((e) => e.id === empresaId);
-  const empresaNome = currentEmpresa
-    ? (currentEmpresa.nome_fantasia ?? currentEmpresa.razao_social)
-    : null;
   const firstName = user?.name?.split(' ')[0] ?? 'usuário';
 
   const [painel, setPainel] = useState<PainelData | null>(null);
@@ -70,6 +66,9 @@ export function DashboardPage() {
     setPainel((prev) => (prev ? { ...prev, ativacao: next } : prev));
   };
 
+  const temCadeia = Boolean(painel && painel.cadeia.length > 0);
+  const temFilas = Boolean(painel && painel.filas.length > 0);
+
   return (
     <>
       <PageHeader
@@ -78,28 +77,16 @@ export function DashboardPage() {
           empresas.length === 0
             ? `Cadastre a empresa que você opera — até ${maxEmpresas} nesta conta.`
             : mostraAtivacao
-              ? 'A empresa já está liberada para uso. Catálogo, parceiros e patrimônio ficam nesta história.'
-              : ativacao?.pagamento_pendente
-                ? 'A mensalidade FLEXORC ainda não foi paga — você orça, mas o envio espera o ASAAS.'
-                : 'Orçamentos, parceiros e patrimônio desta empresa.'
+              ? ativacao?.proximo === 'certificado_a1'
+                ? 'Envie o certificado digital desta empresa para liberar o envio da proposta.'
+                : 'Conclua os primeiros passos desta empresa para orçar com segurança.'
+              : ativacao?.conta?.modo === 'cortesia_encerrada'
+                ? 'A cortesia encerrou — pague a mensalidade antecipada para voltar a enviar propostas.'
+                : ativacao?.pagamento_pendente
+                ? 'A mensalidade ainda está em aberto — você orça, mas o envio da proposta espera a confirmação.'
+                : 'O que pede ação agora nesta empresa.'
         }`}
       />
-
-      <section className="dash-context" aria-label="Empresa ativa">
-        {currentEmpresa ? (
-          <div className="empresa-active empresa-active--dash">
-            <span className="empresa-code">{currentEmpresa.codigo}</span>
-            <span className="empresa-name">{empresaNome}</span>
-          </div>
-        ) : (
-          <strong>Nenhuma empresa nesta conta ainda</strong>
-        )}
-        {empresas.length > 1 ? (
-          <span className="dash-context-note">
-            Troque no topo · {empresas.length} liberadas nesta conta
-          </span>
-        ) : null}
-      </section>
 
       {erro ? (
         <div className="alert alert-error" role="alert">
@@ -134,58 +121,14 @@ export function DashboardPage() {
 
       {erro ? null : (
         <>
-          <section className="dash-cadeia" aria-label="Cadeia operacional">
-            <div className="dash-section-head">
-              <h2>{mostraAtivacao ? 'O que você vai acompanhar' : 'Em curso'}</h2>
-              <p>Do orçamento ao envio do link de aprovação.</p>
-            </div>
-
-            {loading && !painel ? (
-              <p className="loading">Carregando o painel…</p>
-            ) : empresas.length === 0 ? (
-              <p className="form-hint" style={{ margin: 0 }}>
-                Os indicadores aparecem depois da primeira empresa.
-              </p>
-            ) : painel && painel.cadeia.length > 0 ? (
-              <div className="dash-kpi-grid">
-                {painel.cadeia.map((card) => {
-                  const Icon = KPI_ICON[card.id] ?? IconOrcamento;
-                  return (
-                    <Link
-                      key={card.id}
-                      to={card.to}
-                      className={`dash-kpi${card.alerta ? ' dash-kpi--alerta' : ''}`}
-                    >
-                      <span className="dash-kpi-icon">
-                        <Icon />
-                      </span>
-                      <span className="dash-kpi-label">{card.label}</span>
-                      <strong className="dash-kpi-value">{formatKpi(card)}</strong>
-                      <span className="dash-kpi-hint">{card.hint}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="card">
-                <div className="card-body">
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                    Seu perfil possui acesso limitado. Entre em contato com o administrador para
-                    solicitar permissões adicionais.
-                  </p>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {!loading && painel && painel.cadeia.length > 0 && painel.filas.length > 0 ? (
+          {!loading && temCadeia && temFilas ? (
             <section className="dash-filas" aria-label="Filas que pedem ação">
               <div className="dash-section-head">
                 <h2>Atenção</h2>
                 <p>O que pede ação agora nesta empresa.</p>
               </div>
               <ul className="dash-fila-list">
-                {painel.filas.map((fila) => (
+                {painel!.filas.map((fila) => (
                   <li key={fila.id}>
                     <Link to={fila.to} className="dash-fila">
                       <span className="dash-fila-text">
@@ -201,8 +144,8 @@ export function DashboardPage() {
             </section>
           ) : null}
 
-          {!loading && painel && !mostraAtivacao && painel.filas.length === 0 ? (
-            <section className="dash-filas">
+          {!loading && painel && !mostraAtivacao && temCadeia && !temFilas ? (
+            <section className="dash-filas dash-filas--empty">
               <div className="empty-state empty-state--cta">
                 <p>Nada pendente nesta empresa.</p>
                 <div className="btn-row">
@@ -216,6 +159,54 @@ export function DashboardPage() {
               </div>
             </section>
           ) : null}
+
+          <section className="dash-cadeia" aria-label="Indicadores em curso">
+            <div className="dash-section-head">
+              <h2>{mostraAtivacao ? 'O que você vai acompanhar' : 'Em curso'}</h2>
+              <p>
+                {mostraAtivacao
+                  ? 'Indicadores desta empresa após os primeiros passos.'
+                  : 'Status resumido — detalhe nas telas do módulo.'}
+              </p>
+            </div>
+
+            {loading && !painel ? (
+              <p className="loading">Carregando o painel…</p>
+            ) : empresas.length === 0 ? (
+              <p className="form-hint" style={{ margin: 0 }}>
+                Os indicadores aparecem depois da primeira empresa.
+              </p>
+            ) : temCadeia ? (
+              <div className="dash-kpi-grid">
+                {painel!.cadeia.map((card) => {
+                  const Icon = KPI_ICON[card.id] ?? IconOrcamento;
+                  return (
+                    <Link
+                      key={card.id}
+                      to={card.to}
+                      className={`dash-kpi${card.alerta ? ' dash-kpi--alerta' : ''}`}
+                      title={card.hint}
+                    >
+                      <span className="dash-kpi-icon">
+                        <Icon />
+                      </span>
+                      <span className="dash-kpi-label">{card.label}</span>
+                      <strong className="dash-kpi-value">{formatKpi(card)}</strong>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="card">
+                <div className="card-body">
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                    Seu perfil possui acesso limitado. Entre em contato com o administrador para
+                    solicitar permissões adicionais.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
         </>
       )}
     </>

@@ -62,7 +62,7 @@ Norma: [`IDENTIDADE_TRIGGER.md`](IDENTIDADE_TRIGGER.md) · camadas: [`MODELO_INS
 2. MySQL **sem** publish (`docker-compose.aws.yml`)  
 3. `ERP_STAGE=homolog|production`, `APP_DEBUG=false`, `SEED_ON_BOOT=false`  
 4. `APP_KEY` estável; secrets só em `.env.aws` (fora do git)  
-5. Certificado A1 / tokens Focus só cifrados  
+5. Certificado A1 / tokens Focus só cifrados — cofre A1 por EMP: `ADR_CERTIFICADO_A1_EMPRESA.md`  
 6. SoD: COMPRAS ≠ FINANCEIRO  
 
 Antes de `make up-aws`:

@@ -182,6 +182,72 @@ class MultiEmpresaAceiteTest extends TestCase
         $this->assertNotContains('Parceiro Só A', $razoesB);
     }
 
+    /**
+     * Enumeração de URL (/parceiros/{id}): registro de outra EMP não vaza (404, não 403).
+     * Mesmo com vínculo às duas EMPs, o contexto ativo delimita o livro.
+     */
+    public function test_show_e_update_parceiro_de_outra_emp_por_id_retorna_404(): void
+    {
+        Sanctum::actingAs($this->ambas);
+
+        $parA = Parceiro::query()->create([
+            'empresa_id' => $this->empA->id,
+            'codigo' => 'PAR-IDORA',
+            'razao_social' => 'Visível só em A',
+            'situacao' => 'ATIVO',
+        ]);
+        $parB = Parceiro::query()->create([
+            'empresa_id' => $this->empB->id,
+            'codigo' => 'PAR-IDORB',
+            'razao_social' => 'Segredo da EMP B',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->getJson('/api/v1/parceiros/'.$parB->id)
+            ->assertNotFound();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->putJson('/api/v1/parceiros/'.$parB->id, ['razao_social' => 'Tentativa cruzada'])
+            ->assertNotFound();
+
+        $this->assertSame(
+            'Segredo da EMP B',
+            Parceiro::query()->findOrFail($parB->id)->razao_social
+        );
+
+        $ok = $this->withHeader('X-Empresa-Id', (string) $this->empB->id)
+            ->getJson('/api/v1/parceiros/'.$parB->id);
+        $ok->assertOk();
+        $this->assertSame('Segredo da EMP B', $ok->json('data.razao_social'));
+        $this->assertSame($this->empB->id, $ok->json('data.empresa_id'));
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->getJson('/api/v1/parceiros/'.$parA->id)
+            ->assertOk()
+            ->assertJsonPath('data.razao_social', 'Visível só em A');
+    }
+
+    public function test_usuario_de_uma_emp_nao_le_parceiro_alheio_por_enumeracao_de_id(): void
+    {
+        Sanctum::actingAs($this->soA);
+
+        $parB = Parceiro::query()->create([
+            'empresa_id' => $this->empB->id,
+            'codigo' => 'PAR-IDORX',
+            'razao_social' => 'Fora do vínculo',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->getJson('/api/v1/parceiros/'.$parB->id)
+            ->assertNotFound();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empB->id)
+            ->getJson('/api/v1/parceiros/'.$parB->id)
+            ->assertForbidden();
+    }
+
     public function test_contas_financeiras_sao_por_empresa(): void
     {
         Sanctum::actingAs($this->ambas);

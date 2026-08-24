@@ -17,8 +17,9 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Aceite do cliente via link (ADR_ORC_LINK_APROVACAO / estudo 32).
- * Destinatário = contato oficial autorizado do cadastro (sem WhatsApp API / PED).
+ * Destinatário = contato oficial autorizado do cadastro.
  * Pós-aceite: adiantamento PIX quando política exige (ADR_ORC_ADIANTAMENTO_PIX).
+ * E-mail: ADR_ORC_EMAIL_PROPOSTA · WhatsApp ViaZap: ADR_ORC_WHATSAPP_VIAZAP.
  */
 class OrcamentoAprovacaoService
 {
@@ -27,6 +28,8 @@ class OrcamentoAprovacaoService
         private readonly OrcamentoService $orcamentoService,
         private readonly AdiantamentoService $adiantamento,
         private readonly EmpresaAtivacaoService $ativacao,
+        private readonly OrcamentoPropostaEmailService $propostaEmail,
+        private readonly OrcamentoPropostaWhatsAppService $propostaWhatsApp,
     ) {}
 
     /**
@@ -100,6 +103,12 @@ class OrcamentoAprovacaoService
      *   expira_em: string,
      *   reutilizado: bool,
      *   destinatario: array<string, mixed>,
+     *   email_enviado: bool,
+     *   email_destino: string|null,
+     *   email_motivo: string|null,
+     *   zap_enviado: bool,
+     *   zap_destino: string|null,
+     *   zap_motivo: string|null,
      *   orcamento: array<string, mixed>
      * }
      */
@@ -117,9 +126,9 @@ class OrcamentoAprovacaoService
         if ($orcamento->empresa) {
             app()->instance('empresa', $orcamento->empresa);
             if (! $this->ativacao->podeEnviarOrcamento($orcamento->empresa)) {
-                throw ValidationException::withMessages([
-                    'pagamento' => [$this->ativacao->mensagemBloqueioEnvio()],
-                ]);
+                throw ValidationException::withMessages(
+                    $this->ativacao->errosBloqueioEnvio($orcamento->empresa),
+                );
             }
         }
 
@@ -236,6 +245,23 @@ class OrcamentoAprovacaoService
             $orcamento,
         );
 
+        $emailMeta = ['enviado' => false, 'destino' => null, 'motivo' => 'sem_empresa'];
+        if ($orcamento->empresa) {
+            $emailMeta = $this->propostaEmail->tentarEnviarAposLink(
+                $orcamento,
+                $orcamento->empresa,
+                $url,
+                $destinatario,
+                $link->expira_em?->toIso8601String(),
+            );
+        }
+
+        $zapMeta = $this->propostaWhatsApp->tentarEnviarAposLink(
+            $orcamento,
+            $destinatario,
+            $mensagem,
+        );
+
         return [
             'url' => $url,
             'token' => $link->token,
@@ -250,6 +276,12 @@ class OrcamentoAprovacaoService
                 'canal' => $link->canal_envio,
                 'destino' => $link->destino_envio,
             ],
+            'email_enviado' => (bool) $emailMeta['enviado'],
+            'email_destino' => $emailMeta['destino'],
+            'email_motivo' => $emailMeta['motivo'],
+            'zap_enviado' => (bool) $zapMeta['enviado'],
+            'zap_destino' => $zapMeta['destino'],
+            'zap_motivo' => $zapMeta['motivo'],
             'orcamento' => $this->orcamentoService->show($orcamento),
         ];
     }
@@ -404,7 +436,7 @@ class OrcamentoAprovacaoService
 
     /**
      * @param  array{parceiro_contato_id?: int|null, usar_contato_legado?: bool}  $opts
-     * @return array{parceiro_contato_id: int|null, nome: string, funcao: string|null, canal: string, destino: string, legado: bool}
+     * @return array{parceiro_contato_id: int|null, nome: string, funcao: string|null, canal: string, destino: string, email: string|null, legado: bool}
      */
     private function resolverDestinatario(Orcamento $orcamento, array $opts): array
     {
@@ -424,7 +456,7 @@ class OrcamentoAprovacaoService
             $orcamento->loadMissing('linkAprovacao');
             $link = $orcamento->linkAprovacao;
             if ($link && $link->destino_nome && $link->destino_envio) {
-                return [
+                $base = [
                     'parceiro_contato_id' => $link->parceiro_contato_id,
                     'nome' => (string) $link->destino_nome,
                     'funcao' => $link->destino_funcao,
@@ -432,6 +464,9 @@ class OrcamentoAprovacaoService
                     'destino' => (string) $link->destino_envio,
                     'legado' => $link->parceiro_contato_id === null,
                 ];
+                $base['email'] = $this->propostaEmail->resolverEmailDestino($orcamento, $base);
+
+                return $base;
             }
         }
 
@@ -447,6 +482,7 @@ class OrcamentoAprovacaoService
                         'funcao' => $d['funcao'] ?? null,
                         'canal' => (string) $d['canal'],
                         'destino' => (string) $d['destino'],
+                        'email' => $this->emailLimpo($d['email'] ?? null),
                         'legado' => false,
                     ];
                 }
@@ -465,6 +501,7 @@ class OrcamentoAprovacaoService
                         'funcao' => $d['funcao'] ?? null,
                         'canal' => (string) $d['canal'],
                         'destino' => (string) $d['destino'],
+                        'email' => $this->emailLimpo($d['email'] ?? null),
                         'legado' => true,
                     ];
                 }
@@ -481,6 +518,7 @@ class OrcamentoAprovacaoService
                 'funcao' => $d['funcao'] ?? null,
                 'canal' => (string) $d['canal'],
                 'destino' => (string) $d['destino'],
+                'email' => $this->emailLimpo($d['email'] ?? null),
                 'legado' => (bool) ($d['legado'] ?? false),
             ];
         }
@@ -488,6 +526,13 @@ class OrcamentoAprovacaoService
         throw ValidationException::withMessages([
             'parceiro_contato_id' => ['Selecione o contato oficial que receberá o link de aprovação.'],
         ]);
+    }
+
+    private function emailLimpo(mixed $email): ?string
+    {
+        $mail = trim((string) $email);
+
+        return ($mail !== '' && filter_var($mail, FILTER_VALIDATE_EMAIL)) ? $mail : null;
     }
 
     /**

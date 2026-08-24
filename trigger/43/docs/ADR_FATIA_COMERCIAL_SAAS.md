@@ -26,5 +26,5 @@ O estudo 32 **proíbe três sistemas distribuídos**. O caminho correto é a **m
 - Menu: clientes/parceiros, ORC, catálogo, facas, parâmetros, sinal/a receber. Sem cadastro de SKU (**Produtos**): o preço comercial vive no **catálogo ORC**, não na ficha de item.
 - `POST /api/v1/auth/registrar-empresa` provisiona EMP + admin + catálogo + facas + `orc.adiantamento_*`.
 - API de PED/estoque/SKU **permanece no código** (não estragar o motor/FK); a superfície de produto não a oferece.
-- Jornada do cliente novo: você → mensalidade ASAAS → (logado) até 3 EMP → cadastros da norma → ORC. Detalhe: `docs/ADR_ATIVACAO_EMPRESA.md`.
-- Identidade: o **FLEXORC** é o herói da UI (logo própria, paleta navy/verde da TRIGGER); a TRIGGER permanece na atribuição; a EMP é só contexto. Norma: `docs/IDENTIDADE_TRIGGER.md`.
+- Jornada do cliente novo: você → mensalidade ASAAS → (logado) até 3 EMP → A1 apto da EMP → cadastros da norma → ORC. Detalhe: `docs/ADR_ATIVACAO_EMPRESA.md`.
+- Identidade: o **FLEXORC** é o herói da UI (logo própria, paleta navy/verde da TRIGGER); a TRIGGER permanece na atribuição; a EMP é só contexto. Norma: `docs/IDENTIDADE_TRIGGER.md`. Transição para marca única **FLEXOERP**: `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md` (gate: menu onda 2+ antes do rebrand).

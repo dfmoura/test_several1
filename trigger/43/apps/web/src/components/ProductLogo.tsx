@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * Logo do produto FLEXORC (herói da UI). Atribuição TRIGGER continua em TriggerAttribution.
+ * Logo do produto FLEXOERP (herói da UI). Atribuição TRIGGER continua em TriggerAttribution.
  * `mark` — nó do ecossistema (sidebar, header, ficha). `lockup` — asset combinado (marca + Syne).
  */
 export function ProductLogo({ variant = 'mark', className, decorative = false }: Props) {

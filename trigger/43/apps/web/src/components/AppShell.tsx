@@ -6,11 +6,17 @@ import { ProductLogo } from './ProductLogo';
 import { TriggerByline } from './TriggerAttribution';
 import {
   IconBuilding,
+  IconAsset,
   IconCatalog,
+  IconCompras,
   IconDashboard,
   IconDepartamentos,
+  IconEstoque,
   IconFaca,
   IconFinanceiro,
+  IconImplantacao,
+  IconMensalidade,
+  IconNatureza,
   IconOrcamento,
   IconPartners,
   IconPatrimonio,
@@ -50,6 +56,12 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/departamentos', label: 'Departamentos', icon: IconDepartamentos, permission: 'departamento.ler' },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
+      {
+        to: '/naturezas-gerenciais',
+        label: 'Naturezas gerenciais',
+        icon: IconNatureza,
+        permission: 'natureza_gerencial.ler',
+      },
     ],
   },
   {
@@ -67,22 +79,105 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconFaca,
         permission: 'orcamento.ler',
       },
+      {
+        to: '/pedidos',
+        label: 'Pedidos',
+        icon: IconOrcamento,
+        permission: 'producao.ler',
+        isActivePath: (pathname) =>
+          pathname === '/pedidos' || pathname.startsWith('/pedidos/'),
+      },
+    ],
+  },
+  {
+    label: 'Produção',
+    items: [
+      {
+        to: '/ordens-producao',
+        label: 'Ordens de produção',
+        icon: IconAsset,
+        permission: 'producao.ler',
+        isActivePath: (pathname) =>
+          pathname === '/ordens-producao' || pathname.startsWith('/ordens-producao/'),
+      },
+    ],
+  },
+  {
+    label: 'Expedição',
+    items: [
+      {
+        to: '/expedicao',
+        label: 'Expedição',
+        icon: IconEstoque,
+        permission: 'expedicao.ler',
+        isActivePath: (pathname) =>
+          pathname === '/expedicao' || pathname.startsWith('/expedicao/'),
+      },
+    ],
+  },
+  {
+    label: 'Compras',
+    items: [
+      {
+        to: '/compras/ordens',
+        label: 'Ordens de compra',
+        icon: IconCompras,
+        permission: 'compras.ler',
+        isActivePath: (pathname) =>
+          pathname === '/compras/ordens' || pathname.startsWith('/compras/ordens/'),
+      },
+      {
+        to: '/compras/reposicao',
+        label: 'A repor',
+        icon: IconCompras,
+        permission: 'compras.ler',
+      },
+      {
+        to: '/estoque',
+        label: 'Estoque',
+        icon: IconEstoque,
+        permission: 'estoque.ler',
+        isActivePath: (pathname) =>
+          pathname === '/estoque' || pathname.startsWith('/estoque/'),
+      },
     ],
   },
   {
     label: 'Financeiro',
     items: [
       {
-        to: '/financeiro/contas-a-receber',
-        label: 'Sinal e a receber',
+        to: '/financeiro/contas-a-pagar',
+        label: 'Contas a pagar',
         icon: IconFinanceiro,
         permission: 'financeiro.ler',
+      },
+      {
+        to: '/financeiro/contas-a-receber',
+        label: 'Contas a receber',
+        icon: IconFinanceiro,
+        permission: 'financeiro.ler',
+      },
+      {
+        to: '/financeiro/faturamentos',
+        label: 'Faturamentos',
+        icon: IconFinanceiro,
+        permission: 'faturamento.ler',
+        isActivePath: (pathname) =>
+          pathname === '/financeiro/faturamentos' ||
+          pathname.startsWith('/financeiro/faturamentos/'),
       },
     ],
   },
   {
     label: 'Administração',
     items: [
+      { to: '/conta/mensalidade', label: 'Mensalidade', icon: IconMensalidade, permission: null },
+      {
+        to: '/implantacao',
+        label: 'Implantação',
+        icon: IconImplantacao,
+        permission: 'implantacao.ler',
+      },
       { to: '/usuarios', label: 'Usuários', icon: IconUsers, permission: 'usuarios.gerir' },
       { to: '/parametros', label: 'Parâmetros', icon: IconSettings, permission: 'parametros.gerir' },
       {
@@ -96,7 +191,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export function AppShell() {
-  const { user, roles, empresas, empresaId, setEmpresa, logout, hasPermission, maxEmpresas, produtoFlexorc } =
+  const { user, empresas, empresaId, setEmpresa, logout, hasPermission, maxEmpresas, produtoFlexorc } =
     useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -289,10 +384,11 @@ export function AppShell() {
             <div className="user-menu">
               <div>
                 <div className="user-name">{user?.name}</div>
-                <div className="user-role">
-                  {user?.codigo ? <span className="user-conta">{user.codigo}</span> : null}
-                  {roles.length > 0 ? ` · ${roles.join(', ')}` : null}
-                </div>
+                {user?.codigo ? (
+                  <div className="user-role">
+                    <span className="user-conta">{user.codigo}</span>
+                  </div>
+                ) : null}
               </div>
               <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
                 Sair
@@ -318,8 +414,69 @@ export function AppShell() {
 }
 
 function MensalidadePendenteBanner({ empresaId }: { empresaId: number | null }) {
-  const [pendente, setPendente] = useState(false);
+  const { billingAviso } = useAuth();
+  const [pendente, setPendente] = useState<'pagamento' | 'a1' | 'a1_a_vencer' | 'cortesia' | null>(
+    null,
+  );
   const [valor, setValor] = useState<string | null>(null);
+  const [cortesiaCopy, setCortesiaCopy] = useState<{
+    dias: number | null;
+    primeira: string | null;
+    titulo: string | null;
+    mensagem: string | null;
+  }>({
+    dias: null,
+    primeira: null,
+    titulo: null,
+    mensagem: null,
+  });
+  const [a1Copy, setA1Copy] = useState<{
+    dias: number | null;
+    validoAte: string | null;
+    mensagem: string | null;
+    nivel: 'warning' | 'urgent' | null;
+  }>({
+    dias: null,
+    validoAte: null,
+    mensagem: null,
+    nivel: null,
+  });
+
+  useEffect(() => {
+    if (!billingAviso) return;
+    if (billingAviso.tipo === 'cortesia') {
+      setPendente('cortesia');
+      setValor(billingAviso.valor_formatado);
+      setCortesiaCopy({
+        dias: billingAviso.dias_restantes,
+        primeira: null,
+        titulo: billingAviso.titulo,
+        mensagem: billingAviso.mensagem,
+      });
+      return;
+    }
+    if (billingAviso.tipo === 'cortesia_encerrada') {
+      setPendente('pagamento');
+      setValor(billingAviso.valor_formatado);
+      setCortesiaCopy({
+        dias: 0,
+        primeira: null,
+        titulo: billingAviso.titulo,
+        mensagem: billingAviso.mensagem,
+      });
+      return;
+    }
+    if (billingAviso.tipo === 'pendente' || billingAviso.tipo === 'suspensa') {
+      setPendente('pagamento');
+      setValor(billingAviso.valor_formatado);
+      setCortesiaCopy({
+        dias: null,
+        primeira: null,
+        titulo: billingAviso.titulo,
+        mensagem: billingAviso.mensagem,
+      });
+    }
+  }, [billingAviso]);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,33 +485,180 @@ function MensalidadePendenteBanner({ empresaId }: { empresaId: number | null }) 
       .then((res) => {
         if (cancelled) return;
         const d = res.data;
-        const due = d.origem === 'self_service' && Boolean(d.pagamento_pendente);
-        setPendente(due);
-        setValor(d.conta?.valor_formatado ?? null);
+        if (d.origem !== 'self_service') {
+          if (!billingAviso) setPendente(null);
+          return;
+        }
+        if (d.conta?.modo === 'cortesia_encerrada' && !d.conta.pagamento_autenticado) {
+          setPendente('pagamento');
+          setValor(d.conta.valor_formatado ?? null);
+          setCortesiaCopy({
+            dias: 0,
+            primeira: d.conta.primeira_cobranca_formatada ?? null,
+            titulo: 'Cortesia encerrada — pague para continuar',
+            mensagem: d.conta.renovacao_label ?? null,
+          });
+          return;
+        }
+        if (d.pagamento_pendente) {
+          setPendente('pagamento');
+          setValor(d.conta?.valor_formatado ?? null);
+          setCortesiaCopy({
+            dias: null,
+            primeira: null,
+            titulo: null,
+            mensagem: null,
+          });
+          return;
+        }
+        if (d.conta?.alerta_cortesia && !d.conta.pagamento_autenticado) {
+          setPendente('cortesia');
+          setValor(d.conta.valor_formatado ?? null);
+          setCortesiaCopy({
+            dias: d.conta.dias_ate_proxima ?? d.conta.cortesia?.dias_restantes ?? null,
+            primeira: d.conta.primeira_cobranca_formatada ?? null,
+            titulo: null,
+            mensagem: null,
+          });
+          return;
+        }
+        if (d.conta?.modo === 'cortesia' && !d.conta.pagamento_autenticado) {
+          setPendente('cortesia');
+          setValor(d.conta.valor_formatado ?? null);
+          setCortesiaCopy({
+            dias: d.conta.dias_ate_proxima ?? d.conta.cortesia?.dias_restantes ?? null,
+            primeira: d.conta.primeira_cobranca_formatada ?? null,
+            titulo: null,
+            mensagem: null,
+          });
+          return;
+        }
+        if (d.certificado_a1_pendente) {
+          setPendente('a1');
+          setValor(null);
+          setA1Copy({
+            dias: d.certificado_a1_dias_para_vencer ?? null,
+            validoAte: d.certificado_a1_valido_ate ?? null,
+            mensagem: d.certificado_a1_mensagem ?? null,
+            nivel: 'urgent',
+          });
+          return;
+        }
+        if (
+          d.certificado_a1_alerta &&
+          (d.certificado_a1_status === 'A_VENCER' || d.certificado_a1_alerta_nivel)
+        ) {
+          setPendente('a1_a_vencer');
+          setValor(null);
+          setA1Copy({
+            dias: d.certificado_a1_dias_para_vencer ?? null,
+            validoAte: d.certificado_a1_valido_ate ?? null,
+            mensagem: d.certificado_a1_mensagem ?? null,
+            nivel: d.certificado_a1_alerta_nivel === 'urgent' ? 'urgent' : 'warning',
+          });
+          return;
+        }
+        if (!billingAviso) setPendente(null);
       })
       .catch(() => {
-        if (!cancelled) setPendente(false);
+        if (!cancelled && !billingAviso) setPendente(null);
       });
     return () => {
       cancelled = true;
     };
-  }, [empresaId]);
+  }, [empresaId, billingAviso]);
 
   if (!pendente) {
     return null;
   }
 
+  if (pendente === 'a1') {
+    return (
+      <div className="billing-banner" role="status">
+        <div>
+          <strong>Certificado A1 desta empresa</strong>
+          <span>
+            {a1Copy.mensagem ??
+              'Envie o certificado digital válido (mesmo CNPJ do cadastro) para liberar o envio da proposta.'}
+          </span>
+        </div>
+        <Link to="/empresas?tab=a1" className="btn btn-primary btn-sm">
+          Enviar certificado
+        </Link>
+      </div>
+    );
+  }
+
+  if (pendente === 'a1_a_vencer') {
+    const dias = a1Copy.dias;
+    const urgente = a1Copy.nivel === 'urgent';
+    return (
+      <div
+        className={`billing-banner${urgente ? ' billing-banner--urgente' : ' billing-banner--cortesia'}`}
+        role="status"
+      >
+        <div>
+          <strong>
+            {dias === 0
+              ? 'Certificado A1 vence hoje'
+              : dias === 1
+                ? 'Certificado A1 vence amanhã'
+                : `Certificado A1 vence em ${dias ?? '—'} dias`}
+          </strong>
+          <span>
+            {a1Copy.mensagem ??
+              'Substitua o arquivo na ficha da empresa antes do vencimento para não bloquear o envio da proposta.'}
+          </span>
+        </div>
+        <Link to="/empresas?tab=a1" className="btn btn-primary btn-sm">
+          Substituir certificado
+        </Link>
+      </div>
+    );
+  }
+
+  if (pendente === 'cortesia') {
+    const dias = cortesiaCopy.dias;
+    const primeira = cortesiaCopy.primeira;
+    return (
+      <div className="billing-banner billing-banner--cortesia" role="status">
+        <div>
+          <strong>{cortesiaCopy.titulo ?? 'Cortesia — autentique a mensalidade'}</strong>
+          <span>
+            {cortesiaCopy.mensagem ??
+              `${
+                dias === 0
+                  ? 'Encerra hoje.'
+                  : dias === 1
+                    ? 'Encerra amanhã.'
+                    : `Restam ${dias ?? '—'} dias.`
+              } ${valor ? `${valor} · ` : ''}1ª cobrança antecipada${
+                primeira ? ` em ${primeira}` : ''
+              }. Sem isto o envio fica bloqueado ao fim da cortesia.`}
+          </span>
+        </div>
+        <Link to="/conta/mensalidade" className="btn btn-primary btn-sm">
+          Autenticar mensalidade
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="billing-banner" role="status">
+    <div
+      className={`billing-banner${cortesiaCopy.titulo?.includes('encerrada') ? ' billing-banner--urgente' : ''}`}
+      role="status"
+    >
       <div>
-        <strong>Mensalidade FLEXORC em aberto</strong>
+        <strong>{cortesiaCopy.titulo ?? `Mensalidade ${BRAND.product.name} em aberto`}</strong>
         <span>
-          {valor ? `${valor} · ` : ''}Você paga a TRIGGER no ASAAS. Sem isto o envio da
-          proposta fica bloqueado.
+          {cortesiaCopy.mensagem ??
+            `${valor ? `${valor} · ` : ''}Regularize a mensalidade antecipada da conta. Sem isto o
+          envio da proposta fica bloqueado.`}
         </span>
       </div>
-      <Link to="/cadastro/pagamento" className="btn btn-primary btn-sm">
-        Pagar agora
+      <Link to="/conta/mensalidade" className="btn btn-primary btn-sm">
+        {cortesiaCopy.titulo?.includes('encerrada') ? 'Pagar agora' : 'Ver mensalidade'}
       </Link>
     </div>
   );

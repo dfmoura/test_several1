@@ -24,7 +24,6 @@ function getPapeis(p: Parceiro): string[] {
 }
 
 function fiscalSortKey(p: Parceiro): string {
-  if (p.apto_emissao_nfe) return 'Apto NF-e';
   if (p.cadastro_fiscal_completo) return 'Completo';
   if (p.is_prospect) return 'Prospect';
   return 'Incompleto';
@@ -176,13 +175,11 @@ export function ParceirosPage() {
                     <td>{formatCnpjCpf(p.cnpj_cpf) || '—'}</td>
                     <td>{getPapeis(p).join(', ') || '—'}</td>
                     <td>
-                      {p.apto_emissao_nfe
-                        ? 'Apto NF-e'
-                        : p.cadastro_fiscal_completo
-                          ? 'Completo'
-                          : p.is_prospect
-                            ? 'Prospect'
-                            : 'Incompleto'}
+                      {p.cadastro_fiscal_completo
+                        ? 'Completo'
+                        : p.is_prospect
+                          ? 'Prospect'
+                          : 'Incompleto'}
                     </td>
                     <td>
                       <StatusPill status={p.situacao} />

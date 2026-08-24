@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
@@ -9,12 +9,14 @@ import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import {
   api,
+  ApiError,
   mensagemCepImportado,
   patchEnderecoFromCep,
   type BancoConsulta,
   type CepConsulta,
   type CnpjConsulta,
   type Empresa,
+  type EmpresaCertificadoA1,
   type EmpresaContaFinanceira,
   type EmpresaFiscalHistorico,
 } from '../lib/api';
@@ -33,6 +35,7 @@ import {
   formatCnpj,
   formatCurrency,
   formatDate,
+  formatDateTime,
   formatLatLng,
   formatPhone,
   onlyDigits,
@@ -100,8 +103,26 @@ const TABS = [
   'Sócios',
   'Histórico',
   'Operação',
+  'Certificado A1',
 ] as const;
 type Tab = (typeof TABS)[number];
+
+function fieldErrors(err: unknown): string {
+  if (err instanceof ApiError && err.details) {
+    return Object.entries(err.details)
+      .flatMap(([k, msgs]) => msgs.map((m) => `${k}: ${m}`))
+      .join(' ');
+  }
+  return err instanceof Error ? err.message : 'Erro inesperado.';
+}
+
+function certStatusLabel(status?: string | null): string {
+  if (status === 'A_VENCER') return 'A vencer';
+  if (status === 'VENCIDO') return 'Vencido';
+  if (status === 'VIGENTE') return 'Vigente';
+  if (status === 'AINDA_NAO_VALIDO') return 'Ainda não válido';
+  return status ?? '—';
+}
 
 const REGIMES = [
   { value: 'SIMPLES_NACIONAL', label: 'Simples Nacional' },
@@ -269,7 +290,8 @@ function applyCnpjToForm(form: EmpresaForm, d: CnpjConsulta): EmpresaForm {
 }
 
 export function EmpresasPage() {
-  const { hasPermission, maxEmpresas } = useAuth();
+  const { hasPermission, maxEmpresas, empresaId } = useAuth();
+  const [params] = useSearchParams();
   const canEdit = hasPermission('empresas.gerir');
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [selected, setSelected] = useState<Empresa | null>(null);
@@ -284,7 +306,15 @@ export function EmpresasPage() {
   const [error, setError] = useState('');
   const [bancos, setBancos] = useState<BancoConsulta[]>([]);
   const [bancosLoading, setBancosLoading] = useState(false);
+  const [cert, setCert] = useState<EmpresaCertificadoA1 | null>(null);
+  const [certLoading, setCertLoading] = useState(false);
+  const [certUploading, setCertUploading] = useState(false);
+  const [certRemoving, setCertRemoving] = useState(false);
+  const [certFile, setCertFile] = useState<File | null>(null);
+  const [certSenha, setCertSenha] = useState('');
+  const certFileRef = useRef<HTMLInputElement | null>(null);
   const selectedIdRef = useRef<number | null>(null);
+  const openedFromQuery = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -312,6 +342,28 @@ export function EmpresasPage() {
     })();
   }, [tab, bancos.length, bancosLoading]);
 
+  useEffect(() => {
+    if (!selected || tab !== 'Certificado A1') return;
+    const empId = selected.id;
+    setCertLoading(true);
+    void (async () => {
+      try {
+        const res = await api.get<{ data: EmpresaCertificadoA1 }>(
+          `/empresas/${empId}/certificado-a1`,
+          empId,
+        );
+        if (selectedIdRef.current !== empId) return;
+        setCert(res.data);
+      } catch (err) {
+        if (selectedIdRef.current !== empId) return;
+        setCert(null);
+        setError(fieldErrors(err));
+      } finally {
+        if (selectedIdRef.current === empId) setCertLoading(false);
+      }
+    })();
+  }, [selected, tab]);
+
   const bancosByCode = useMemo(() => {
     const map = new Map<string, BancoConsulta>();
     for (const b of bancos) {
@@ -338,7 +390,7 @@ export function EmpresasPage() {
       setForm(applyCnpjToForm(base, d));
       setConsulta(d);
       if (!silent) {
-        setMessage('Dados do CNPJ importados da Receita (BrasilAPI). Confira IE/IM antes de salvar.');
+        setMessage('Dados do CNPJ importados da Receita. Confira IE e IM antes de salvar.');
       }
     } catch (err) {
       if (selectedIdRef.current !== empresaId) return;
@@ -352,15 +404,19 @@ export function EmpresasPage() {
     }
   };
 
-  const openEdit = (emp: Empresa) => {
+  const openEdit = (emp: Empresa, initialTab: Tab = 'Identificação') => {
     selectedIdRef.current = emp.id;
     setSelected(emp);
     setForm(toForm(emp));
     setConsulta(null);
-    setTab('Identificação');
+    setTab(initialTab);
     setCnpjUnlocked(!emp.cnpj);
     setMessage('');
     setError('');
+    setCert(null);
+    setCertFile(null);
+    setCertSenha('');
+    if (certFileRef.current) certFileRef.current.value = '';
 
     void (async () => {
       try {
@@ -382,6 +438,86 @@ export function EmpresasPage() {
         }
       }
     })();
+  };
+
+  useEffect(() => {
+    if (openedFromQuery.current || loading || empresas.length === 0) {
+      return;
+    }
+    const tabQuery = (params.get('tab') ?? '').toLowerCase();
+    if (tabQuery !== 'a1' && tabQuery !== 'certificado-a1' && tabQuery !== 'certificado') {
+      return;
+    }
+    const emp = empresas.find((e) => e.id === empresaId) ?? empresas[0];
+    if (!emp) {
+      return;
+    }
+    openedFromQuery.current = true;
+    openEdit(emp, 'Certificado A1');
+  }, [loading, empresas, empresaId, params]);
+
+  const uploadCertificadoA1 = async () => {
+    if (!selected || !canEdit) return;
+    if (!certFile) {
+      setError('Selecione o arquivo .pfx ou .p12 do certificado A1.');
+      return;
+    }
+    if (!certSenha) {
+      setError('Informe a senha do certificado A1.');
+      return;
+    }
+    setCertUploading(true);
+    setError('');
+    setMessage('');
+    try {
+      const fd = new FormData();
+      fd.append('arquivo', certFile);
+      fd.append('senha', certSenha);
+      const res = await api.postForm<{ data: EmpresaCertificadoA1 }>(
+        `/empresas/${selected.id}/certificado-a1`,
+        fd,
+        selected.id,
+      );
+      setCert(res.data);
+      setCertFile(null);
+      setCertSenha('');
+      if (certFileRef.current) certFileRef.current.value = '';
+      setMessage(
+        res.data.aviso
+          ? `Certificado A1 armazenado no cofre. ${res.data.aviso}`
+          : 'Certificado A1 armazenado no cofre com proteção.',
+      );
+    } catch (err) {
+      setError(fieldErrors(err));
+    } finally {
+      setCertUploading(false);
+    }
+  };
+
+  const removerCertificadoA1 = async () => {
+    if (!selected || !canEdit || !cert?.cadastrado) return;
+    if (
+      !window.confirm(
+        'Remover o certificado A1 do cofre desta empresa? O arquivo cifrado será apagado. Esta ação não pode ser desfeita.',
+      )
+    ) {
+      return;
+    }
+    setCertRemoving(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await api.delete<{ data: EmpresaCertificadoA1 }>(
+        `/empresas/${selected.id}/certificado-a1`,
+        selected.id,
+      );
+      setCert(res.data);
+      setMessage('Certificado A1 removido do cofre.');
+    } catch (err) {
+      setError(fieldErrors(err));
+    } finally {
+      setCertRemoving(false);
+    }
   };
 
   const update = (patch: Partial<EmpresaForm>) => {
@@ -566,60 +702,74 @@ export function EmpresasPage() {
   const pendencias = selected?.fiscal_pendencias ?? [];
   const pendenciasEmissao = selected?.fiscal_pendencias_emissao ?? [];
   const fiscalCompleto = Boolean(selected?.cadastro_fiscal_completo);
-  const aptoNfe = Boolean(selected?.apto_emissao_nfe);
-  const aptoNfse = Boolean(selected?.apto_emissao_nfse);
+  const aptoEmissao = Boolean(selected?.apto_emissao_nfe);
+  const certPendencias = cert?.pendencias ?? [];
+  const certTabHint =
+    cert?.apto_operacao && cert.status === 'A_VENCER'
+      ? ' · a vencer'
+      : cert?.apto_operacao
+        ? ' · ok'
+        : cert?.cadastrado
+          ? ' · pendente'
+          : '';
 
   return (
-    <>
+    <div className="empresas-page">
       <PageHeader
         title="Empresas"
-        description={`Livros isolados desta conta — até ${maxEmpresas} CNPJs. Cadastro fiscal com consulta BrasilAPI.`}
+        description={`Empresas desta conta — até ${maxEmpresas} CNPJs. Cadastro com consulta à Receita Federal.`}
+        actions={
+          canEdit && empresas.length < maxEmpresas ? (
+            <Link to="/empresas/nova" className="btn btn-primary">
+              {empresas.length === 0 ? 'Cadastrar primeira empresa' : 'Nova empresa'}
+            </Link>
+          ) : undefined
+        }
       />
 
-      {canEdit && empresas.length < maxEmpresas ? (
-        <div className="btn-row" style={{ marginBottom: '1rem' }}>
-          <Link to="/empresas/nova" className="btn btn-primary">
-            {empresas.length === 0 ? 'Cadastrar primeira empresa' : 'Nova empresa'}
-          </Link>
-        </div>
-      ) : null}
+      <div className="empresas-layout">
+        <aside className="empresas-rail" aria-label="Empresas da conta">
+          <div className="empresas-rail-head">
+            <span className="empresas-rail-title">Empresas</span>
+            <span className="empresas-rail-count">
+              {empresas.length}/{maxEmpresas}
+            </span>
+          </div>
+          {empresas.length === 0 ? (
+            <div className="empresas-rail-empty">Nenhuma empresa nesta conta ainda.</div>
+          ) : (
+            <ul className="empresas-rail-list">
+              {empresas.map((emp) => {
+                const active = selected?.id === emp.id;
+                const label = emp.nome_fantasia ?? emp.razao_social;
+                return (
+                  <li key={emp.id}>
+                    <button
+                      type="button"
+                      className={`empresas-rail-item${active ? ' is-active' : ''}`}
+                      aria-current={active ? 'true' : undefined}
+                      onClick={() => openEdit(emp)}
+                    >
+                      <div className="empresas-rail-item-top">
+                        <strong>{emp.codigo}</strong>
+                        <StatusPill status={emp.situacao} />
+                      </div>
+                      <span className="empresas-rail-item-name">{label}</span>
+                      <span className="empresas-rail-item-meta">
+                        {formatCnpj(emp.cnpj)}
+                        {emp.municipio ? ` · ${emp.municipio}/${emp.uf}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </aside>
 
-      <div className="card-grid" style={{ marginBottom: '1.5rem' }}>
-        {empresas.length === 0 ? (
-          <div className="empty-state">Nenhuma empresa nesta conta ainda.</div>
-        ) : null}
-        {empresas.map((emp) => (
-          <button
-            key={emp.id}
-            type="button"
-            className="card-link"
-            style={{
-              cursor: 'pointer',
-              textAlign: 'left',
-              border: selected?.id === emp.id ? '2px solid var(--green)' : undefined,
-            }}
-            onClick={() => openEdit(emp)}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <h3>{emp.codigo}</h3>
-              <StatusPill status={emp.situacao} />
-            </div>
-            <p>{emp.nome_fantasia ?? emp.razao_social}</p>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-              {formatCnpj(emp.cnpj)} · {emp.municipio}/{emp.uf}
-              {emp.crt != null ? ` · CRT ${emp.crt}` : ''}
-            </p>
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {emp.venda_ativa && <StatusPill status="VENDA ATIVA" />}
-              {emp.estoque_ativo && <StatusPill status="ESTOQUE ATIVO" />}
-              {!emp.venda_ativa && <StatusPill status="VENDA OFF" />}
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {selected && form && (
-        <div className="card">
+        <section className="empresas-detail" aria-label="Detalhe da empresa">
+          {selected && form ? (
+        <div className="card empresas-detail-card">
           <div className="card-body">
             <RegistroMetaStrip registro={selected} />
             <div className="empresa-header">
@@ -663,21 +813,31 @@ export function EmpresasPage() {
             {message && <div className="alert alert-success">{message}</div>}
             {error && <div className="alert alert-error">{error}</div>}
 
-            <div className="fiscal-status-row">
+            <div className="fiscal-status-row empresas-status-row">
               <div className={`fiscal-status-chip${fiscalCompleto ? ' is-ok' : ' is-warn'}`}>
                 {fiscalCompleto ? 'Cadastro fiscal completo' : 'Cadastro fiscal incompleto'}
               </div>
-              <div className={`fiscal-status-chip${aptoNfe ? ' is-ok' : ' is-muted'}`}>
-                {aptoNfe ? 'Apto para emissão NF-e' : 'Não apto para emissão NF-e'}
+              <div className={`fiscal-status-chip${aptoEmissao ? ' is-ok' : ' is-muted'}`}>
+                {aptoEmissao ? 'Apto para emissão NF-e' : 'Não apto para emissão NF-e'}
               </div>
-              <div className={`fiscal-status-chip${aptoNfse ? ' is-ok' : ' is-muted'}`}>
-                {aptoNfse ? 'Apto para emissão NFS-e' : 'Não apto para emissão NFS-e'}
-              </div>
+              {cert?.cadastrado ? (
+                <div
+                  className={`fiscal-status-chip${
+                    cert.apto_operacao
+                      ? cert.status === 'A_VENCER'
+                        ? ' is-warn'
+                        : ' is-ok'
+                      : ' is-warn'
+                  }`}
+                >
+                  A1 · {certStatusLabel(cert.status)}
+                </div>
+              ) : null}
             </div>
 
             {!fiscalCompleto && pendencias.length > 0 && (
               <div className="alert alert-warning fiscal-pendencias">
-                <strong>Pendências de cadastro do emitente:</strong>
+                <strong>Pendências do cadastro:</strong>
                 <ul>
                   {pendencias.map((item) => (
                     <li key={item}>{item}</li>
@@ -694,12 +854,15 @@ export function EmpresasPage() {
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
+                <span className="form-hint" style={{ display: 'block', marginTop: '0.5rem' }}>
+                  Confira a inscrição estadual e o status da IE (SINTEGRA/CCC) na aba Identificação.
+                </span>
               </div>
             )}
 
             {cnpjUnlocked && Boolean(selected.cnpj) && (
               <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
-                CNPJ desbloqueado — alterar muda a identidade jurídica desta EMP-.
+                CNPJ desbloqueado — alterar muda a identidade jurídica desta empresa.
               </p>
             )}
 
@@ -719,6 +882,7 @@ export function EmpresasPage() {
                     : ''}
                   {t === 'Contas' && contasCount > 0 ? ` · ${contasCount}` : ''}
                   {t === 'Sócios' && socios.length > 0 ? ` · ${socios.length}` : ''}
+                  {t === 'Certificado A1' && certTabHint}
                 </button>
               ))}
             </div>
@@ -727,7 +891,7 @@ export function EmpresasPage() {
               <div className="form-section">
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Código interno</label>
+                    <label>Código</label>
                     <input value={selected.codigo} disabled />
                   </div>
                   <div className="form-group">
@@ -764,10 +928,10 @@ export function EmpresasPage() {
                       onChange={(e) => update({ ie: e.target.value })}
                       placeholder="Informar manualmente"
                     />
-                    <span className="form-hint">Não retornada pela API free — obrigatória no emit da NF-e</span>
+                    <span className="form-hint">Informe manualmente — a consulta à Receita não devolve IE</span>
                   </div>
                   <div className="form-group">
-                    <label>Status da IE (SINTEGRA/CCC)</label>
+                    <label>Status da IE</label>
                     <select
                       value={form.ie_status}
                       disabled={!canEdit}
@@ -779,6 +943,11 @@ export function EmpresasPage() {
                         </option>
                       ))}
                     </select>
+                    {form.ie_status === 'NAO_VERIFICADA' && form.ie.trim() !== '' && form.ie.trim().toUpperCase() !== 'ISENTO' ? (
+                      <span className="form-hint">
+                        IE informada, mas ainda não verificada — emissão NF-e fica bloqueada até status OK.
+                      </span>
+                    ) : null}
                   </div>
                   <div className="form-group">
                     <label>Inscrição municipal (IM)</label>
@@ -789,12 +958,12 @@ export function EmpresasPage() {
                       placeholder="Opcional"
                     />
                     <span className="form-hint">
-                      Nem todo município exige IM para emitir nota. NF-e nunca exige. NFS-e só se o
-                      município exigir — marque abaixo.
+                      Opcional na maioria dos municípios. Marque abaixo se o seu município exigir IM
+                      para nota de serviço.
                     </span>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="emp-im-obrigatoria">Município e NFS-e</label>
+                    <label htmlFor="emp-im-obrigatoria">Município exige IM</label>
                     <label
                       htmlFor="emp-im-obrigatoria"
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}
@@ -845,7 +1014,7 @@ export function EmpresasPage() {
                     )}
                   </div>
                   <div className="form-group">
-                    <label>CRT (NF-e emit)</label>
+                    <label>Código de regime (CRT)</label>
                     <select
                       value={form.crt}
                       disabled={!canEdit || allowedCrtsForRegime(form.regime).length === 1}
@@ -858,7 +1027,8 @@ export function EmpresasPage() {
                       ))}
                     </select>
                     <span className="form-hint">
-                      Obrigatório no XML da NF-e. No Simples, use CRT 2 se ultrapassar o sublimite.
+                      Código do regime tributário. No Simples, use 2 se a empresa ultrapassar o
+                      sublimite.
                     </span>
                   </div>
                   <div className="form-group">
@@ -942,7 +1112,7 @@ export function EmpresasPage() {
                         update({ ibge: onlyDigits(e.target.value).slice(0, 7) })
                       }
                     />
-                    <span className="form-hint">Obrigatório para NF-e (cMun)</span>
+                    <span className="form-hint">Código do município (IBGE)</span>
                   </div>
                   <div className="form-group span-2">
                     <label>Logradouro</label>
@@ -1003,13 +1173,18 @@ export function EmpresasPage() {
               <div className="form-section">
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>E-mail</label>
+                    <label>E-mail comercial</label>
                     <input
                       type="email"
                       value={form.email}
                       disabled={!canEdit}
                       onChange={(e) => update({ email: e.target.value })}
+                      placeholder="orcamentos@suaempresa.com.br"
                     />
+                    <p className="form-hint" style={{ marginTop: '0.35rem', marginBottom: 0 }}>
+                      Usado como resposta (Reply-To) quando o sistema envia a proposta por e-mail
+                      ao cliente. O envio em si é da instalação — você não configura SMTP aqui.
+                    </p>
                   </div>
                   <div className="form-group">
                     <label>Telefone</label>
@@ -1048,7 +1223,7 @@ export function EmpresasPage() {
                 </div>
                 <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
                   Tesouraria desta EMP · uma ou mais (banco, caixa ou aplicação) · destino futuro de
-                  baixas e implantação de saldo · bancos via BrasilAPI
+                  Contas da empresa para recebimentos e saldo inicial · bancos consultados automaticamente
                   {bancosLoading
                     ? ' · carregando catálogo…'
                     : bancos.length
@@ -1284,43 +1459,18 @@ export function EmpresasPage() {
             {tab === 'Operação' && (
               <div className="form-section">
                 <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                  Origem operacional = ponto A da rota de carro até o parceiro (planta). Sem este
-                  ponto o km no cadastro do parceiro fica —. Não é o endereço fiscal da NF-e.
-                  {selected?.codigo === 'EMP-00002'
-                    ? ' EMP-00002 permanece com venda/estoque desligados até parecer Contador + Direção (MULTI_EMPRESA_CNPJS_E_LIVROS).'
-                    : ''}
+                  Origem da planta = ponto de partida para estimar km até o cliente. Sem este ponto
+                  a distância no cadastro do parceiro fica em branco. Não substitui o endereço
+                  fiscal da empresa.
                 </p>
                 {!(form.origem_latitude && form.origem_longitude) ? (
                   <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                    Ainda sem origem. Localize pelo endereço fiscal da ficha (rua) ou informe lat/lng e
-                    Salvar. O CEP só entra se a rua não resolver.
+                    Ainda sem origem. Localize pelo endereço da ficha e salve.
                   </p>
                 ) : null}
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Venda ativa</label>
-                    <select
-                      value={form.venda_ativa ? '1' : '0'}
-                      disabled={!canEdit}
-                      onChange={(e) => update({ venda_ativa: e.target.value === '1' })}
-                    >
-                      <option value="1">Sim</option>
-                      <option value="0">Não</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Estoque ativo</label>
-                    <select
-                      value={form.estoque_ativo ? '1' : '0'}
-                      disabled={!canEdit}
-                      onChange={(e) => update({ estoque_ativo: e.target.value === '1' })}
-                    >
-                      <option value="1">Sim</option>
-                      <option value="0">Não</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Latitude (origem)</label>
+                    <label>Latitude</label>
                     <input
                       value={form.origem_latitude}
                       disabled={!canEdit}
@@ -1330,7 +1480,7 @@ export function EmpresasPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Longitude (origem)</label>
+                    <label>Longitude</label>
                     <input
                       value={form.origem_longitude}
                       disabled={!canEdit}
@@ -1340,12 +1490,12 @@ export function EmpresasPage() {
                     />
                   </div>
                   <div className="form-group span-2">
-                    <label>Origem operacional (planta)</label>
+                    <label>Origem da planta</label>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <input
                         readOnly
                         value={formatLatLng(form.origem_latitude, form.origem_longitude) || '—'}
-                        aria-label="Origem operacional latitude e longitude"
+                        aria-label="Origem da planta"
                         style={{ flex: 1 }}
                       />
                       {canEdit ? (
@@ -1360,14 +1510,197 @@ export function EmpresasPage() {
                       ) : null}
                     </div>
                     <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                      Ponto A da rota. Preferência: rua + número (Nominatim). CEP é último recurso —
-                      o centroide da cidade pode coincidir com o parceiro e fingir 0 km.
+                      Prefira rua e número. Se usar só o CEP, o ponto pode cair no centro da cidade
+                      e a distância ficar imprecisa.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
+            {tab === 'Certificado A1' && (
+              <div className="form-section">
+                <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                  Certificado digital A1 (.pfx/.p12). Arquivo e senha ficam protegidos no servidor —
+                  o sistema não devolve o conteúdo depois do envio. O envio da proposta desta
+                  empresa só libera com certificado válido (mesmo CNPJ do cadastro e dentro da
+                  validade). A validade é lida do arquivo e acompanhada automaticamente.
+                </p>
+
+                {certPendencias.length > 0 ? (
+                  <div className="alert alert-warning fiscal-pendencias" style={{ marginBottom: '1rem' }}>
+                    <strong>
+                      {cert?.status === 'A_VENCER'
+                        ? 'Atenção — certificado a vencer:'
+                        : 'Pendências do certificado A1:'}
+                    </strong>
+                    <ul>
+                      {certPendencias.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                    {cert?.status === 'A_VENCER' ? (
+                      <span className="form-hint" style={{ display: 'block', marginTop: '0.5rem' }}>
+                        Substitua o arquivo antes do vencimento para não bloquear o envio da proposta.
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {certLoading ? (
+                  <p className="form-hint">Carregando status do cofre…</p>
+                ) : cert?.cadastrado ? (
+                  <div className="form-grid" style={{ marginBottom: '1.25rem' }}>
+                    <div className="form-group">
+                      <label>Status</label>
+                      <div style={{ paddingTop: '0.35rem' }}>
+                        <StatusPill status={certStatusLabel(cert.status)} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Arquivo</label>
+                      <input readOnly value={cert.arquivo_nome || '—'} />
+                    </div>
+                    <div className="form-group span-2">
+                      <label>Titular (CN)</label>
+                      <input readOnly value={cert.subject_cn || '—'} />
+                    </div>
+                    <div className="form-group span-2">
+                      <label>Emissor</label>
+                      <input readOnly value={cert.issuer_cn || '—'} />
+                    </div>
+                    <div className="form-group">
+                      <label>CNPJ no certificado</label>
+                      <input
+                        readOnly
+                        value={
+                          cert.cnpj_certificado
+                            ? formatCnpj(cert.cnpj_certificado)
+                            : 'Não identificado'
+                        }
+                      />
+                      {cert.cnpj_bate_com_empresa === false ? (
+                        <span className="form-hint">
+                          Difere do CNPJ desta empresa — o envio da proposta permanece bloqueado.
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="form-group">
+                      <label>Validade</label>
+                      <input
+                        readOnly
+                        value={
+                          cert.valido_ate
+                            ? `${formatDate(cert.valido_de ?? undefined)} → ${formatDate(cert.valido_ate)}`
+                            : '—'
+                        }
+                      />
+                      {typeof cert.dias_para_vencer === 'number' ? (
+                        <span className="form-hint">
+                          {cert.dias_para_vencer < 0
+                            ? 'Vencido'
+                            : `${cert.dias_para_vencer} dia(s) restantes`}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="form-group span-2">
+                      <label>Identificação do certificado</label>
+                      <input
+                        readOnly
+                        value={cert.fingerprint_sha256 || '—'}
+                        style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Enviado em</label>
+                      <input readOnly value={formatDateTime(cert.uploaded_at) || '—'} />
+                    </div>
+                    <div className="form-group">
+                      <label>Senha no cofre</label>
+                      <input readOnly value={cert.tem_senha ? '•••••••• (cifrada)' : '—'} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+                    Nenhum certificado A1 no cofre desta empresa.
+                  </div>
+                )}
+
+                {cert?.aviso || cert?.aviso_cofre ? (
+                  <p className="form-hint" style={{ marginBottom: '1rem' }}>
+                    {cert.aviso ?? cert.aviso_cofre}
+                  </p>
+                ) : null}
+
+                {canEdit ? (
+                  <>
+                    <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>
+                      {cert?.cadastrado ? 'Substituir certificado' : 'Enviar certificado'}
+                    </h3>
+                    <div className="form-grid">
+                      <div className="form-group span-2">
+                        <label htmlFor="empresa-a1-arquivo">Arquivo A1 (.pfx / .p12)</label>
+                        <input
+                          id="empresa-a1-arquivo"
+                          ref={certFileRef}
+                          type="file"
+                          accept=".pfx,.p12,application/x-pkcs12"
+                          disabled={certUploading || certRemoving}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0] ?? null;
+                            setCertFile(f);
+                            setError('');
+                          }}
+                        />
+                        <span className="form-hint">Máximo 2 MB. Só modelo A1 (arquivo).</span>
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="empresa-a1-senha">Senha do certificado</label>
+                        <input
+                          id="empresa-a1-senha"
+                          type="password"
+                          autoComplete="new-password"
+                          value={certSenha}
+                          disabled={certUploading || certRemoving}
+                          onChange={(e) => setCertSenha(e.target.value)}
+                          placeholder="Senha do .pfx"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-actions" style={{ marginTop: '0.75rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={certUploading || certRemoving || !certFile || !certSenha}
+                        onClick={() => void uploadCertificadoA1()}
+                      >
+                        {certUploading
+                          ? 'Enviando…'
+                          : cert?.cadastrado
+                            ? 'Substituir no cofre'
+                            : 'Armazenar no cofre'}
+                      </button>
+                      {cert?.cadastrado ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={certUploading || certRemoving}
+                          onClick={() => void removerCertificadoA1()}
+                        >
+                          {certRemoving ? 'Removendo…' : 'Remover do cofre'}
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="form-hint" style={{ margin: 0 }}>
+                    Apenas quem gerencia empresas pode alterar o certificado A1.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {tab !== 'Certificado A1' ? (
             <div className="form-actions">
               {canEdit ? (
                 <button
@@ -1385,14 +1718,27 @@ export function EmpresasPage() {
               )}
               {consulta && (
                 <span className="form-hint">
-                  Fonte: BrasilAPI · QSA consultivo · CNAEs secundários gravados no salvar
+                  Dados da Receita Federal importados nesta consulta
                 </span>
               )}
             </div>
+            ) : null}
           </div>
         </div>
-      )}
-    </>
+          ) : (
+            <div className="card empresas-detail-card">
+              <div className="card-body">
+                <div className="empty-state empresas-detail-empty">
+                  {empresas.length === 0
+                    ? 'Cadastre a primeira empresa para começar.'
+                    : 'Selecione uma empresa na lista.'}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
   );
 }
 

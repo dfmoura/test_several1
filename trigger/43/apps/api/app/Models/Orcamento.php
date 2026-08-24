@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasUserStamps;
+use App\Models\Concerns\BelongsToEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Orcamento extends Model
 {
     use HasUserStamps;
+    use BelongsToEmpresa;
     use SoftDeletes;
 
     public const STATUS_RASCUNHO = 'RASCUNHO';

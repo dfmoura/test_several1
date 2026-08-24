@@ -41,6 +41,7 @@ class PainelTest extends TestCase
         foreach ([
             'orcamento.ler',
             'producao.ler',
+            'faturamento.ler',
             'expedicao.ler',
             'compras.ler',
             'estoque.ler',
@@ -90,6 +91,7 @@ class PainelTest extends TestCase
         $this->admin = $this->user('admin.painel@test.local', 'USR-PNL1', [
             'orcamento.ler',
             'producao.ler',
+            'faturamento.ler',
             'expedicao.ler',
             'compras.ler',
             'estoque.ler',
@@ -140,11 +142,22 @@ class PainelTest extends TestCase
         $ids = array_column($res->json('data.cadeia'), 'id');
         $this->assertContains('orcamentos', $ids);
         $this->assertContains('parceiros', $ids);
-        $this->assertNotContains('sinal', $ids);
+        if (\App\Support\FlexorcSuperficie::emiteSinalNoAceite()) {
+            $this->assertContains('sinal', $ids);
+        } else {
+            $this->assertNotContains('sinal', $ids);
+        }
+        $this->assertNotContains('receber', $ids);
         $this->assertNotContains('pedidos', $ids);
+        $this->assertNotContains('faturamentos', $ids);
+        $this->assertNotContains('expedicao', $ids);
+        $this->assertNotContains('pagar', $ids);
         $this->assertTrue($res->json('data.modulos.comercial'));
         $this->assertFalse($res->json('data.modulos.financeiro'));
         $this->assertFalse($res->json('data.modulos.producao'));
+        $this->assertFalse($res->json('data.modulos.expedicao'));
+        $this->assertFalse($res->json('data.modulos.compras'));
+        $this->assertFalse($res->json('data.modulos.estoque'));
     }
 
     public function test_titulo_vencido_entra_na_fila(): void
@@ -178,7 +191,14 @@ class PainelTest extends TestCase
         $this->assertSame('150.00', $this->cardValor($res->json('data.cadeia'), 'receber'));
         $this->assertTrue($this->card($res->json('data.cadeia'), 'receber')['alerta']);
         $this->assertSame(1, $this->filaCount($res->json('data.filas'), 'tit_receber_vencido'));
-        $this->assertNull($this->card($res->json('data.cadeia'), 'pedidos'));
+        $this->assertNotNull($this->card($res->json('data.cadeia'), 'pedidos'));
+        $this->assertNotNull($this->card($res->json('data.cadeia'), 'ordens_producao'));
+        $this->assertNotNull($this->card($res->json('data.cadeia'), 'faturamentos'));
+        $this->assertNotNull($this->card($res->json('data.cadeia'), 'expedicao'));
+        $this->assertNotNull($this->card($res->json('data.cadeia'), 'pagar'));
+        $this->assertTrue($res->json('data.modulos.expedicao'));
+        $this->assertTrue($res->json('data.modulos.compras'));
+        $this->assertTrue($res->json('data.modulos.estoque'));
     }
 
     public function test_sem_vinculo_na_emp_retorna_403(): void
