@@ -249,7 +249,7 @@ class PainelService
             ],
             'cadeia' => $cadeia,
             'filas' => $filas,
-            'ativacao' => $this->ativacao->dto($empresa),
+            'ativacao' => $this->ativacao->dto($empresa, $user),
         ];
     }
 

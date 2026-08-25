@@ -64,7 +64,9 @@ a {
   text-decoration: none;
 }
 
-a:hover {
+/* Links de texto: hover verde. Botões (.btn) são componente próprio — não herdam cor de âncora
+   (senão Link.btn-primary no hover fica texto = fundo green-dark e some o rótulo). */
+a:hover:not(.btn) {
   color: var(--green-dark);
 }
 
@@ -685,12 +687,15 @@ textarea {
 
 .btn-primary {
   background: var(--green);
-  color: #fff;
+  color: var(--text-inverse);
   border-color: var(--green-dark);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled),
+.btn-primary:focus-visible:not(:disabled) {
   background: var(--green-dark);
+  color: var(--text-inverse);
+  border-color: var(--green-dark);
 }
 
 .btn-secondary {
@@ -699,9 +704,11 @@ textarea {
   border-color: var(--border-strong);
 }
 
-.btn-secondary:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled),
+.btn-secondary:focus-visible:not(:disabled) {
   background: var(--surface);
   border-color: var(--navy-light);
+  color: var(--navy);
 }
 
 .btn-ghost {
@@ -710,13 +717,20 @@ textarea {
   border-color: transparent;
 }
 
-.btn-ghost:hover:not(:disabled) {
+.btn-ghost:hover:not(:disabled),
+.btn-ghost:focus-visible:not(:disabled) {
   background: var(--surface);
+  color: var(--navy);
 }
 
 .btn-danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--text-inverse);
+}
+
+.btn-danger:hover:not(:disabled),
+.btn-danger:focus-visible:not(:disabled) {
+  color: var(--text-inverse);
 }
 
 .btn-sm {
@@ -4547,7 +4561,11 @@ table.data-table td.acoes {
 /* 39 button aliases used by FacaPicker port */
 .btn.sm { padding: 0.35rem 0.75rem; font-size: 0.82rem; }
 .btn.ghost { background: transparent; color: var(--navy); border-color: transparent; }
-.btn.ghost:hover:not(:disabled) { background: var(--surface); }
+.btn.ghost:hover:not(:disabled),
+.btn.ghost:focus-visible:not(:disabled) {
+  background: var(--surface);
+  color: var(--navy);
+}
 .hint.auto-note { font-size: 0.82rem; color: var(--text-muted); margin: 0.35rem 0; }
 .muted { color: var(--text-muted); }
 

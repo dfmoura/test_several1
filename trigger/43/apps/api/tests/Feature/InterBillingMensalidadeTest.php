@@ -170,6 +170,52 @@ class InterBillingMensalidadeTest extends TestCase
         $this->assertTrue((bool) $res->json('data.pode_gerar_pix') || filled($res->json('data.pix_copia_cola')));
     }
 
+    public function test_pix_permanece_no_get_com_empresa_no_contexto_mesmo_com_outra_conta(): void
+    {
+        Http::fake([
+            '*/oauth/v2/token' => Http::response(['access_token' => 'tok_test', 'expires_in' => 3600], 200),
+            '*/cobranca/v3/cobrancas' => Http::response(['codigoSolicitacao' => 'sol_stay'], 200),
+            '*/cobranca/v3/cobrancas/sol_stay' => Http::response([
+                'pix' => [
+                    'pixCopiaECola' => '00020126580014br.gov.bcb.pix0136stay',
+                    'qrCode' => base64_encode('qrstay'),
+                ],
+                'situacao' => 'A_RECEBER',
+            ], 200),
+        ]);
+
+        $emp = $this->master->empresas()->first();
+        $this->assertNotNull($emp);
+
+        // Outra conta na mesma EMP, id maior — o fallback antigo preferia esta e sumia o PIX.
+        $outro = User::query()->create([
+            'codigo' => 'USR-INT2',
+            'name' => 'Outro Admin',
+            'email' => 'inter-outro@cliente.test',
+            'password' => bcrypt('Admin@123'),
+            'ativo' => true,
+        ]);
+        $outro->assignRole('ADMIN');
+        $outro->empresas()->attach([$emp->id => ['padrao' => false]]);
+        ContaAtivacao::query()->create([
+            'user_id' => $outro->id,
+            'billing_status' => ContaAtivacao::BILLING_PENDENTE,
+            'billing_provider' => 'inter',
+        ]);
+
+        Sanctum::actingAs($this->master, ['*']);
+        $headers = ['X-Empresa-Id' => (string) $emp->id];
+
+        $post = $this->withHeaders($headers)->postJson('/api/v1/ativacao/pagamento')->assertOk();
+        $pix = $post->json('data.pix_copia_cola');
+        $this->assertNotEmpty($pix);
+
+        $get = $this->withHeaders($headers)->getJson('/api/v1/ativacao')->assertOk();
+        $this->assertSame($pix, $get->json('data.pix_copia_cola'));
+        $this->assertSame($pix, $get->json('data.conta.pix_copia_cola'));
+        $this->assertSame('inter', $get->json('data.billing_provider'));
+    }
+
     public function test_pix_expirado_por_ttl_cancela_e_permite_novo(): void
     {
         Http::fake([

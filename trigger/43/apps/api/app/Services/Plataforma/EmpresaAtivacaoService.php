@@ -87,19 +87,28 @@ class EmpresaAtivacaoService
     /**
      * @return array<string, mixed>
      */
-    public function dto(Empresa $empresa): array
+    public function dto(Empresa $empresa, ?User $viewer = null): array
     {
         $empresa->loadMissing(['ativacao', 'contasFinanceiras']);
         $row = $empresa->ativacao;
         if ($row === null) {
+            // EMP sem linha de ativação (legado): mensalidade continua na ContaAtivacao do USR.
+            if ($viewer !== null) {
+                return $this->dtoDaConta($viewer);
+            }
+
             return $this->dtoLegado($empresa);
         }
 
-        $contaMaster = $this->contaAtivacaoDaEmpresa($empresa);
+        // Mensalidade é da conta (USR), não da EMP: com viewer, preferir a ContaAtivacao dele.
+        // Sem isso o GET /ativacao (com X-Empresa-Id) lia outra conta da EMP e o PIX
+        // gerado no POST sumia no polling da tela Mensalidade.
+        $contaMaster = $this->contaAtivacaoParaLeitura($empresa, $viewer);
         $contaMaster?->loadMissing('user');
         if ($contaMaster !== null) {
             $this->aplicarSuspensaoCicloInterSeVencido($contaMaster);
             $this->sanearResiduoAsaasSeInter($contaMaster);
+            $this->reconciliarPixInterSePago($contaMaster);
             $this->expirarPixInterSeNecessario($contaMaster);
             $contaMaster->refresh();
         }
@@ -1384,6 +1393,27 @@ class EmpresaAtivacaoService
 
         return $contas->first(fn (ContaAtivacao $c) => $c->acessoLiberado())
             ?? $contas->first();
+    }
+
+    /**
+     * Conta de cobrança para DTO de ativação/fatura.
+     * Prioridade: ContaAtivacao do usuário logado (se vinculado à EMP) → fallback histórico da EMP.
+     */
+    private function contaAtivacaoParaLeitura(Empresa $empresa, ?User $viewer): ?ContaAtivacao
+    {
+        if ($viewer !== null) {
+            $vinculado = $empresa->users()
+                ->where('users.id', $viewer->id)
+                ->exists();
+            if ($vinculado) {
+                $propria = ContaAtivacao::query()->where('user_id', $viewer->id)->first();
+                if ($propria !== null) {
+                    return $propria;
+                }
+            }
+        }
+
+        return $this->contaAtivacaoDaEmpresa($empresa);
     }
 
     private function contaPrincipal(Empresa $empresa): ?EmpresaContaFinanceira

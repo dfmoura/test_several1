@@ -23,31 +23,12 @@ class EmpresaAtivacaoController extends Controller
     public function iniciarPagamento(Request $request): JsonResponse
     {
         // Mensalidade é da conta FLEXORC (ADR_ATIVACAO_EMPRESA), não da EMP do contexto.
-        $data = $this->ativacao->iniciarPagamentoConta($this->usuario($request));
+        $user = $this->usuario($request);
+        $data = $this->ativacao->iniciarPagamentoConta($user);
         $empresa = $this->empresaOuNull();
         if ($empresa instanceof Empresa) {
-            $dto = $this->ativacao->dto($empresa);
-            // Mensalidade é da conta — preservar campos do pagamento (PIX/checkout).
-            foreach ([
-                'checkout_url',
-                'pix_copia_cola',
-                'pix_qr_base64',
-                'pix_vencimento',
-                'pix_expira_em',
-                'pix_expirado',
-                'pode_gerar_pix',
-                'billing_provider',
-                'billing_status',
-            ] as $key) {
-                if (array_key_exists($key, $data)) {
-                    $dto[$key] = $data[$key];
-                }
-            }
-            if (isset($data['conta']) && is_array($data['conta'])) {
-                $dto['conta'] = $data['conta'];
-            }
-
-            return response()->json(['data' => $dto]);
+            // dto(..., $user) já lê a ContaAtivacao do pagador logado (PIX da mensalidade).
+            return response()->json(['data' => $this->ativacao->dto($empresa, $user)]);
         }
 
         return response()->json(['data' => $data]);
@@ -55,10 +36,11 @@ class EmpresaAtivacaoController extends Controller
 
     public function confirmarPagamentoDemo(Request $request): JsonResponse
     {
-        $data = $this->ativacao->confirmarPagamentoDemoConta($this->usuario($request));
+        $user = $this->usuario($request);
+        $data = $this->ativacao->confirmarPagamentoDemoConta($user);
         $empresa = $this->empresaOuNull();
         if ($empresa instanceof Empresa) {
-            return response()->json(['data' => $this->ativacao->dto($empresa)]);
+            return response()->json(['data' => $this->ativacao->dto($empresa, $user)]);
         }
 
         return response()->json(['data' => $data]);
@@ -83,12 +65,13 @@ class EmpresaAtivacaoController extends Controller
      */
     private function resolverDto(Request $request): array
     {
+        $user = $this->usuario($request);
         $empresa = $this->empresaOuNull();
         if ($empresa instanceof Empresa) {
-            return $this->ativacao->dto($empresa);
+            return $this->ativacao->dto($empresa, $user);
         }
 
-        return $this->ativacao->dtoDaConta($this->usuario($request));
+        return $this->ativacao->dtoDaConta($user);
     }
 
     private function usuario(Request $request): User
