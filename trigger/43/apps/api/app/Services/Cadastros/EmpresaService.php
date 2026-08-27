@@ -5,19 +5,297 @@ namespace App\Services\Cadastros;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\EmpresaFiscalHistorico;
+use App\Models\Parceiro;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class EmpresaService
 {
+    /**
+     * Tabelas de movimento/documento que impedem exclusão da EMP virgem.
+     * Provisionamento (DEP, CFIN, catálogo ORC, facas, parâmetros, ativação, BEM modelo)
+     * não bloqueia — nasce no abrir-empresa.
+     *
+     * @var list<array{table: string, label: string}>
+     */
+    private const BLOQUEIOS_OPERACIONAIS = [
+        ['table' => 'orcamentos', 'label' => 'orçamentos'],
+        ['table' => 'pedidos', 'label' => 'pedidos'],
+        ['table' => 'ordens_producao', 'label' => 'ordens de produção'],
+        ['table' => 'ordens_servico', 'label' => 'ordens de serviço'],
+        ['table' => 'faturamentos', 'label' => 'faturamentos'],
+        ['table' => 'entregas', 'label' => 'entregas / expedição'],
+        ['table' => 'titulos', 'label' => 'títulos financeiros'],
+        ['table' => 'cobrancas', 'label' => 'cobranças'],
+        ['table' => 'comissoes', 'label' => 'comissões'],
+        ['table' => 'comissao_fechamentos', 'label' => 'fechamentos de comissão'],
+        ['table' => 'estoque_movimentos', 'label' => 'movimentos de estoque'],
+        ['table' => 'estoque_ajustes', 'label' => 'ajustes de estoque'],
+        ['table' => 'estoque_inventarios', 'label' => 'inventários'],
+        ['table' => 'estoque_lotes', 'label' => 'lotes de estoque'],
+        ['table' => 'nfe_entradas', 'label' => 'NF-e de entrada'],
+        ['table' => 'documento_fiscal_saidas', 'label' => 'documentos fiscais de saída'],
+        ['table' => 'ordens_compra', 'label' => 'ordens de compra'],
+        ['table' => 'cotacoes', 'label' => 'cotações'],
+        ['table' => 'compra_necessidades', 'label' => 'necessidades de compra'],
+        ['table' => 'produtos', 'label' => 'produtos (SKU)'],
+        ['table' => 'cessoes_bem', 'label' => 'cessões de patrimônio'],
+    ];
+
+    /**
+     * Filhos de provisionamento / satélites — apagados no purge da EMP virgem.
+     * Ordem alinhada a LimparLivroConta (filhos antes de pais).
+     *
+     * @var list<string>
+     */
+    private const PURGE_TABELAS_EMP = [
+        'cobrancas',
+        'comissoes',
+        'comissao_fechamentos',
+        'titulo_baixas',
+        'titulos',
+        'faturamento_itens',
+        'documento_fiscal_saidas',
+        'entregas',
+        'faturamentos',
+        'orcamento_links_aprovacao',
+        'matriz_cobradas',
+        'ordem_producao_materiais',
+        'ordens_producao',
+        'ordens_servico',
+        'pedido_itens',
+        'pedidos',
+        'orcamentos',
+        'cessoes_bem',
+        'estoque_movimento_itens',
+        'nfe_entrada_itens',
+        'nfe_entradas',
+        'estoque_movimentos',
+        'estoque_ajustes',
+        'estoque_inventario_itens',
+        'estoque_inventarios',
+        'estoque_lotes',
+        'estoque_saldos',
+        'ordem_compra_itens',
+        'ordens_compra',
+        'cotacao_propostas',
+        'cotacao_itens',
+        'cotacoes',
+        'compra_necessidades',
+        'produto_fornecedor_codigos',
+        'produtos',
+        'webhook_inbox',
+        'empresa_bank_credentials',
+        'empresa_ativacoes',
+        'empresa_certificados_a1',
+        'empresa_fiscal_historicos',
+        'implantacao_aceites',
+        'bens_patrimoniais',
+        'orc_catalogo_faixas_frete',
+        'orc_catalogo_papeis',
+        'orc_catalogo_acabamentos',
+        'orc_catalogo_tipos_troca',
+        'orc_catalogo_hora_maquina',
+        'orc_catalogo_maquinas',
+        'orc_catalogo_parametros',
+        'orc_mapa_facas',
+        'parametros_empresa',
+        'fiscal_hubs',
+        'departamentos',
+        'empresa_contas_financeiras',
+        'codigo_sequences',
+        'parceiros',
+    ];
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly CodigoGenerator $codigoGenerator,
     ) {}
+
+    /**
+     * Preflight: EMP só pode ser excluída se ainda for “virgem”
+     * — sem cadeia operacional e sem cadastro comercial além do provisionamento.
+     *
+     * @return array{pode_excluir: bool, bloqueios: list<string>, mensagem: string}
+     */
+    public function avaliarExclusao(Empresa $empresa): array
+    {
+        $bloqueios = $this->listarBloqueiosExclusao($empresa);
+        $pode = $bloqueios === [];
+
+        return [
+            'pode_excluir' => $pode,
+            'bloqueios' => $bloqueios,
+            'mensagem' => $pode
+                ? 'Empresa sem dependências operacionais. Pode ser excluída.'
+                : 'Empresa em uso. Inative (situação INATIVA) em vez de excluir. Bloqueios: '
+                    .implode('; ', $bloqueios).'.',
+        ];
+    }
+
+    /**
+     * Exclui EMP virgem de forma definitiva (purge + hard delete).
+     * Libera o CNPJ para novo cadastro — não deixa fantasma soft-deleted.
+     */
+    public function softDeleteSeOrfa(Empresa $empresa): void
+    {
+        $avaliacao = $this->avaliarExclusao($empresa);
+        if (! $avaliacao['pode_excluir']) {
+            throw ValidationException::withMessages([
+                'empresa' => [$avaliacao['mensagem']],
+            ]);
+        }
+
+        DB::transaction(function () use ($empresa) {
+            $before = $empresa->load(['fiscaisHistorico', 'contasFinanceiras'])->toArray();
+            $empresaId = (int) $empresa->id;
+            $codigo = $empresa->codigo;
+
+            // Audita antes do hard delete (FK de audit_logs.empresa_id).
+            $this->auditLogger->log(
+                'EXCLUIR',
+                'empresa',
+                $empresaId,
+                $before,
+                ['purged' => true, 'codigo' => $codigo]
+            );
+
+            $this->purgeLivroEmpresa($empresaId);
+        });
+    }
+
+    /**
+     * Remove satélites + linha empresas (hard). Só chamar após avaliarExclusao OK.
+     */
+    private function purgeLivroEmpresa(int $empresaId): void
+    {
+        $parceiroIds = [];
+        if (Schema::hasTable('parceiros')) {
+            $parceiroIds = DB::table('parceiros')->where('empresa_id', $empresaId)->pluck('id')->all();
+        }
+
+        if ($parceiroIds !== [] && Schema::hasColumn('users', 'parceiro_id')) {
+            DB::table('users')->whereIn('parceiro_id', $parceiroIds)->update(['parceiro_id' => null]);
+        }
+
+        foreach (['parceiro_contatos', 'parceiro_contas_bancarias', 'parceiro_enderecos_entrega', 'parceiro_fiscal_historicos'] as $sat) {
+            if ($parceiroIds !== [] && Schema::hasTable($sat)) {
+                DB::table($sat)->whereIn('parceiro_id', $parceiroIds)->delete();
+            }
+        }
+
+        if (Schema::hasTable('parceiros') && Schema::hasColumn('parceiros', 'vendedor_parceiro_id') && $parceiroIds !== []) {
+            DB::table('parceiros')->whereIn('id', $parceiroIds)->update(['vendedor_parceiro_id' => null]);
+        }
+
+        if (Schema::hasTable('orcamento_links_aprovacao') && Schema::hasTable('orcamentos')) {
+            $orcIds = DB::table('orcamentos')->where('empresa_id', $empresaId)->pluck('id');
+            if ($orcIds->isNotEmpty()) {
+                DB::table('orcamento_links_aprovacao')->whereIn('orcamento_id', $orcIds)->delete();
+            }
+        }
+
+        foreach (self::PURGE_TABELAS_EMP as $table) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'empresa_id')) {
+                continue;
+            }
+            DB::table($table)->where('empresa_id', $empresaId)->delete();
+        }
+
+        if (Schema::hasTable('empresa_user')) {
+            DB::table('empresa_user')->where('empresa_id', $empresaId)->delete();
+        }
+
+        if (Schema::hasColumn('users', 'empresa_default_id')) {
+            $userIds = DB::table('users')->where('empresa_default_id', $empresaId)->pluck('id');
+            DB::table('users')->where('empresa_default_id', $empresaId)->update(['empresa_default_id' => null]);
+            foreach ($userIds as $userId) {
+                $user = User::query()->find((int) $userId);
+                if ($user === null) {
+                    continue;
+                }
+                $outra = $user->empresas()->orderBy('codigo')->value('empresas.id');
+                if ($outra !== null) {
+                    $user->update(['empresa_default_id' => $outra]);
+                }
+            }
+        }
+
+        if (Schema::hasTable('audit_logs') && Schema::hasColumn('audit_logs', 'empresa_id')) {
+            DB::table('audit_logs')->where('empresa_id', $empresaId)->update(['empresa_id' => null]);
+        }
+
+        // Hard delete (inclui soft-deleted prévio).
+        DB::table('empresas')->where('id', $empresaId)->delete();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listarBloqueiosExclusao(Empresa $empresa): array
+    {
+        $bloqueios = [];
+        $empresaId = (int) $empresa->id;
+
+        foreach (self::BLOQUEIOS_OPERACIONAIS as $item) {
+            if (! Schema::hasTable($item['table'])) {
+                continue;
+            }
+            $count = (int) DB::table($item['table'])->where('empresa_id', $empresaId)->count();
+            if ($count > 0) {
+                $bloqueios[] = "{$count} {$item['label']}";
+            }
+        }
+
+        $usuarios = (int) DB::table('empresa_user')->where('empresa_id', $empresaId)->count();
+        if ($usuarios > 1) {
+            $bloqueios[] = "{$usuarios} usuários vinculados (somente o administrador da abertura pode excluir EMP virgem)";
+        }
+
+        $parceirosComerciais = Parceiro::query()
+            ->where('empresa_id', $empresaId)
+            ->where(function ($q) {
+                $q->where('papel_cliente', true)
+                    ->orWhere('papel_fornecedor', true);
+            })
+            ->count();
+        if ($parceirosComerciais > 0) {
+            $bloqueios[] = "{$parceirosComerciais} parceiro(s) cliente/fornecedor";
+        }
+
+        $parceirosExtra = Parceiro::query()
+            ->where('empresa_id', $empresaId)
+            ->count();
+        // Provisionamento cria 1 PAR (administrador). Qualquer adicional bloqueia.
+        if ($parceirosExtra > 1) {
+            $bloqueios[] = "{$parceirosExtra} parceiros (além do administrador provisionado)";
+        }
+
+        // BEM além do modelo inicial (seed usa observação canônica).
+        if (Schema::hasTable('bens_patrimoniais')) {
+            $q = DB::table('bens_patrimoniais')->where('empresa_id', $empresaId);
+            if (Schema::hasColumn('bens_patrimoniais', 'deleted_at')) {
+                $q->whereNull('deleted_at');
+            }
+            $bensExtras = (int) $q
+                ->where(function ($inner) {
+                    $inner->whereNull('observacao')
+                        ->orWhere('observacao', 'not like', 'Modelo inicial:%');
+                })
+                ->count();
+            if ($bensExtras > 0) {
+                $bloqueios[] = "{$bensExtras} bem(ns) patrimonial(is) além do modelo inicial";
+            }
+        }
+
+        return $bloqueios;
+    }
 
     /**
      * @param  array<string, mixed>  $data

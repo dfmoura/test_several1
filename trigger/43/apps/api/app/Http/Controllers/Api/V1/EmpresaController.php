@@ -117,6 +117,37 @@ class EmpresaController extends Controller
         return response()->json(['data' => $updated]);
     }
 
+    public function exclusaoPreflight(Request $request, Empresa $empresa): JsonResponse
+    {
+        $this->authorizePermission($request, 'empresas.gerir');
+
+        if (! $request->user()->hasEmpresaAccess($empresa->id)) {
+            abort(403);
+        }
+
+        return response()->json(['data' => $this->empresaService->avaliarExclusao($empresa)]);
+    }
+
+    public function destroy(Request $request, Empresa $empresa): JsonResponse
+    {
+        $this->authorizePermission($request, 'empresas.gerir');
+
+        if (! $request->user()->hasEmpresaAccess($empresa->id)) {
+            abort(403);
+        }
+
+        $id = $empresa->id;
+        $codigo = $empresa->codigo;
+        $this->empresaService->softDeleteSeOrfa($empresa);
+
+        return response()->json([
+            'ok' => true,
+            'id' => $id,
+            'codigo' => $codigo,
+            'message' => 'Empresa excluída. O CNPJ fica disponível para um novo cadastro.',
+        ]);
+    }
+
     private function authorizePermission(Request $request, string $permission): void
     {
         if (! $request->user()->can($permission)) {

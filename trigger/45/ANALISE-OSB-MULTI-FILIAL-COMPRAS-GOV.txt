@@ -1,0 +1,1124 @@
+================================================================================
+  ANÁLISE ARQUITETURAL — OSB MULTI-FILIAL · COMPRAS.GOV
+  Novo sistema · rede nacional OSB (greenfield)
+================================================================================
+
+Documento      : Análise técnica e decisões de arquitetura
+Referência     : /home/dfmoura/Documents/test_several1/trigger/23 (somente estudo;
+                 **sem migração** de dados, código legado ou tabelas acessórias)
+Escopo         : EXCLUSIVAMENTE Compras.gov / PNCP (API Dados Abertos)
+Exclusões      : Fontes de licitações/contratos fora da API Compras.gov / PNCP
+Complementos   : APIs públicas gratuitas — CNPJ, CEP e geocodificação (OpenStreetMap)
+Abordagem      : **Projeto novo do zero** — schema, usuários e coletas iniciam vazios
+Data           : 2026-08-25
+Versão         : 1.4
+
+
+================================================================================
+SUMÁRIO EXECUTIVO
+================================================================================
+
+Este estudo trata **somente** do domínio Compras.gov / PNCP. Trata-se de um
+**sistema novo**, construído do zero: banco vazio, tabelas acessórias novas,
+usuários criados no bootstrap e coleta iniciando pela API oficial sem importar
+dados de instalações anteriores.
+
+O projeto em trigger/23 serve apenas como **referência de padrões** (coleta PNCP,
+normalizers, auth, Docker) — não há migração, compatibilidade retroativa nem
+reaproveitamento de SQLite/CSV existentes.
+
+O protótipo de referência era municipal (OSB Uberlândia, singleton, 4 usuários).
+O novo sistema nasce já multi-filial:
+
+A construção exige:
+
+  1. Hierarquia Matriz → Filiais (cidades) → UASGs
+  2. Matriz OSB Nacional: CNPJ 10.498.528/0001-96 (sede)
+  3. Filiais por cidade, ex.: OSB Uberlândia 23.497.346/0001-42
+  4. Sede: 1 admin + 3 consulta (administração centralizada de todas filiais)
+  5. Cada filial: 4 usuários de consulta (somente leitura da própria unidade)
+  6. Sede com visão consolidada/analítica; filiais isoladas por escopo
+  7. Coleta Compras.gov inalterada na origem (mesma API), 1×/dia de madrugada
+  8. Escala proporcional: cada nova cidade aumenta volume de coleta
+  9. Docker, cloud-agnostic, poliglota-ready
+ 10. Enriquecimento CNPJ via APIs públicas gratuitas (Brasil API + Receita WS)
+ 11. Resolução de endereço/CEP via APIs CEP gratuitas + lat/lng via OpenStreetMap
+ 12. **Janela greenfield**: acertar banco, schema, migrations e pacotes **agora**
+     — sem dívida técnica herdada do protótipo municipal
+
+**Decisão recomendada (melhor caminho):**
+
+  Novo monólito FastAPI com separação lógica front/back, modelo multi-filial
+  desde o dia 1, **PostgreSQL + Alembic** desde a Fase 0 (SQLite só em testes
+  unitários), pacotes `models/` por domínio, escopo centralizado em `escopo.py`,
+  cache unificado de APIs externas. Coleta por filial com fila sequencial —
+  sem microserviços na v1.
+
+
+================================================================================
+1. REFERÊNCIA DE ESTUDO (trigger/23 — não migrar)
+================================================================================
+
+1.1 Stack e deploy
+------------------
+  - Python 3.12, FastAPI 2.x, SQLAlchemy 2.x (Declarative)
+  - SQLite em data/licitacoes.db (volume Docker)
+  - Frontend estático em app/static/ (HTML/CSS/JS modular)
+  - Docker Compose: serviço app (+ Caddy opcional HTTPS)
+  - Healthcheck /api/health, backup scripts, testes pytest (66+ passed)
+
+1.2 Modelo de domínio Compras.gov (já implementado)
+----------------------------------------------------
+  Camadas conforme DIAGRAMA-RELACIONAMENTO-API-COMPRAS-GOV.txt:
+
+    compras_orgaos          → dimensão órgão (módulo 05)
+    compras_uasgs           → dimensão UASG (módulo 05)
+    compras_fornecedores    → dimensão fornecedor + cache CNPJ (módulo 10)
+    compras_contratacoes    → contratações PNCP 14.133 (módulo 07)
+    compras_itens           → itens de contratação
+    compras_contratos       → contratos vinculados
+    catalogo (CATMAT/CATSER) → referência compartilhada
+
+  Índices únicos nas chaves naturais (codigo_uasg, numero_controle_pncp, etc.)
+  Campos internos preservados na coleta (observador_id, marcações OSB).
+
+1.3 O que a referência fazia (não levar para o novo sistema)
+------------------------------------------------------------
+  Protótipo municipal com `sistema_raiz` singleton (id=1), um IBGE, catálogo
+  UASG e Setup acoplados a uma única cidade. **No greenfield isso não existe:**
+  nascem `organizacao` + `unidade_observatorio` + filiais desde o bootstrap.
+
+1.4 Coleta Compras.gov (modelo a replicar, código novo)
+-------------------------------------------------
+  - Orquestrador: app/compras/orquestrador.py
+  - Hub de coleta: app/coleta_hub.py — neste estudo, **apenas** fonte `compras`
+  - Fases padrão: ["07", "07-resultados", "05"] (contratações + UASGs)
+  - Cliente HTTP: app/compras/client.py (ComprasGovClient)
+  - Parâmetros: UASGs ativas, anos, modalidades, delay entre requests
+  - Agendamento: app/agendamento.py — thread interna, fuso America/Sao_Paulo
+  - Cadeia noturna: coleta → CNPJs pendentes → (opcional) IA mercado
+
+1.5 Autenticação atual
+----------------------
+  - Papéis: admin | consulta
+  - Tetos globais: MAX_ADMIN=1, MAX_CONSULTA=3 (config.py / env)
+  - Sessão cookie server-side, 1 sessão ativa por conta
+  - Admin: Setup, Coleta, gestão usuários
+  - Consulta: telas analíticas, sem Setup/Coleta
+  - Sem conceito de filial, escopo ou tenant
+
+1.6 Padrões reutilizáveis da referência (implementação nova)
+------------------------------------------------------------
+  ✓ Schema oficial PNCP e normalizers (reescrever/adaptar, não copiar DB)
+  ✓ Pipeline de coleta com heartbeat/stale lock
+  ✓ Auth middleware + bloqueio backend por papel/escopo
+  ✓ Agendamento com persistência em tabelas novas
+  ✓ Deploy único Docker + volume data/ vazio na primeira subida
+  ✓ Separação lógica front (JS) / back (FastAPI)
+
+1.7 Enriquecimento e mapas (referência trigger/23)
+-----------------------------------------------------------
+  CNPJ (fornecedores / raiz filial):
+    - app/compras/cnpj_publico.py — cadeia com fallback e cache (30 dias)
+    - Hoje: BrasilAPI → Minha Receita → CNPJá → Pública CNPJ.ws
+
+  Mapa de localidade:
+    - app/distribuicao_localidade.py + app/static/localidade.js (Leaflet)
+    - Agregação por UF/município a partir de fornecedores enriquecidos
+    - Basemap: OpenStreetMap (Leaflet)
+
+  Lacunas para o novo sistema multi-filial:
+    - Padronizar cadeia CNPJ: **Brasil API → Receita WS** (demais como fallback)
+    - Módulo CEP dedicado (ainda não isolado)
+    - Geocodificação lat/lng persistida (Nominatim / OSM) — não só IBGE/UF
+    - Cache e rate limit centralizados na sede (escala com N filiais)
+
+
+================================================================================
+2. VISÃO DO NOVO SISTEMA — HIERARQUIA OSB
+================================================================================
+
+2.1 Árvore organizacional (conceito de negócio)
+-----------------------------------------------
+
+                    ┌─────────────────────────────────────┐
+                    │  MATRIZ OSB (SEDE)                  │
+                    │  CNPJ: 10.498.528/0001-96           │
+                    │  Escopo: NACIONAL · visão total     │
+                    │  Usuários: 1 admin + 3 consulta     │
+                    │  Administra: todas filiais          │
+                    └──────────────┬──────────────────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           │                       │                       │
+           ▼                       ▼                       ▼
+  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+  │ FILIAL          │   │ FILIAL          │   │ FILIAL          │
+  │ Uberlândia/MG   │   │ Cidade B/UF     │   │ Cidade N/UF     │
+  │ 23.497.346/     │   │ CNPJ OSB local  │   │ ...             │
+  │ 0001-42         │   │                 │   │                 │
+  │ 4 × consulta    │   │ 4 × consulta    │   │ 4 × consulta    │
+  └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
+           │                     │                     │
+     UASGs municipais      UASGs municipais      UASGs municipais
+     (Compras.gov)         (Compras.gov)         (Compras.gov)
+
+  Exemplo de filial seed (primeiro cadastro manual pela sede):
+    926922 PMU, 926287 DMAE, 926038 FUTEL, 931351 ARESAN,
+    930403 FERUB, 929315 EMAM, 929301 IPREMU, 925010 Câmara
+
+2.2 Princípios de ramificação (decisões)
+----------------------------------------
+
+  A) Matriz ≠ município monitorado
+     O CNPJ 10.498.528/0001-96 ancora a organização OSB nacional (sede).
+     Cada filial tem CNPJ próprio da entidade OSB local e IBGE do município
+     onde atua — não confundir CNPJ da OSC com CNPJ dos órgãos públicos
+     monitorados (prefeitura, autarquias etc.).
+
+  B) UASGs pertencem à filial, não à matriz
+     A sede enxerga todas; a filial enxerga só as UASGs que aderiu no Setup.
+
+  C) Administração só na sede
+     Filiais não têm admin local — reduz superfície de ataque, garante
+     política uniforme de coleta, tokens IA, agendamento e cadastro.
+
+  D) Dados transacionais particionados por filial
+     Contratações/itens/contratos filtrados via UASG → observatorio_id.
+     Dimensões globais (fornecedor, catálogo) compartilhadas com deduplicação.
+
+  E) Compras.gov é a **única** fonte de dados
+     Todo observatório (sede e filiais) opera exclusivamente sobre a API
+     Dados Abertos Compras.gov / PNCP. Sem CSV municipal, sem painéis
+     externos, sem segunda base paralela.
+
+
+================================================================================
+3. MODELO DE DADOS RECOMENDADO
+================================================================================
+
+3.1 Entidades principais (schema greenfield)
+--------------------------------------------
+
+  Todas as tabelas abaixo são **criadas novas** na primeira instalação.
+  Não há `sistema_raiz`, `sistema_unidades_compradoras` nem equivalentes
+  legados — apenas o modelo multi-filial descrito aqui.
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ organizacao                                                              │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                    INT                                             │
+  │ cnpj                     VARCHAR(14) UNIQUE  — 10498528000196 (matriz)  │
+  │ razao_social             VARCHAR(300)                                     │
+  │ tipo                     ENUM('matriz')     — reservado expansão          │
+  │ ativo                    BOOLEAN DEFAULT true                             │
+  │ criado_em / atualizado_em DATETIME                                        │
+  └──────────────────────────────────────────────────────────────────────────┘
+                                    │ 1:N
+                                    ▼
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ unidade_observatorio  (filial = 1 município OSB)                          │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                    INT                                             │
+  │ FK organizacao_id        INT NOT NULL                                     │
+  │ cnpj                     VARCHAR(14) UNIQUE  — CNPJ OSB local             │
+  │ slug                     VARCHAR(80) UNIQUE  — uberlandia-mg (URL/UI)     │
+  │ nome_exibicao            VARCHAR(200)        — OSB Uberlândia             │
+  │ codigo_municipio_ibge    INT NOT NULL                                     │
+  │ uf                       CHAR(2) NOT NULL                                 │
+  │ nome_municipio           VARCHAR(120)                                     │
+  │ ativo                    BOOLEAN DEFAULT true                             │
+  │ config_json              TEXT              — defaults coleta, anos, etc.  │
+  │ ...campos enriquecimento CNPJ (via Brasil API no cadastro filial)...      │
+  └──────────────────────────────────────────────────────────────────────────┘
+                                    │ 1:N
+                                    ▼
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ unidade_compradora  (UASGs aderidas por filial no Setup sede)            │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                    INT                                             │
+  │ FK unidade_observatorio_id INT NOT NULL                                   │
+  │ codigo_uasg              VARCHAR(10) NOT NULL                             │
+  │ nome                     VARCHAR(200)                                   │
+  │ ativo                    BOOLEAN DEFAULT true                             │
+  │ UNIQUE (unidade_observatorio_id, codigo_uasg)                             │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Catálogo municipal (`uasg_catalogo_municipio`): FK unidade_observatorio_id,
+  sincronizado via API Compras.gov módulo 05 por filial.
+
+3.2 Usuários e escopo
+---------------------
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ usuarios                                                                 │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                                                                    │
+  │ username              UNIQUE                                             │
+  │ senha_hash                                                               │
+  │ papel                 admin | consulta                                   │
+  │ escopo                sede | filial                                      │
+  │ FK unidade_observatorio_id  NULL se escopo=sede, NOT NULL se filial       │
+  │ ativo                                                                    │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Regras de teto (por escopo, não global):
+
+    SEDE:
+      max_admin_sede     = 1
+      max_consulta_sede  = 3
+
+    FILIAL (por unidade_observatorio_id):
+      max_admin_filial   = 0   ← filial NÃO tem admin
+      max_consulta_filial = 4
+
+  Username: recomenda-se prefixo ou namespace implícito via escopo
+  (ex.: sede.admin, uberlandia.consulta1) — evita colisão cross-filial.
+
+  Constantes configuráveis via env (12-factor):
+    AUTH_MAX_ADMIN_SEDE=1
+    AUTH_MAX_CONSULTA_SEDE=3
+    AUTH_MAX_CONSULTA_FILIAL=4
+
+3.3 Particionamento dos dados Compras.gov
+-----------------------------------------
+
+  Opção recomendada: **filtro por UASG → observatório** (sem duplicar fatos)
+
+    - compras_uasgs permanece dimensão global (codigo_uasg UNIQUE nacional)
+    - Nova tabela ponte: observatorio_uasg (unidade_observatorio_id, codigo_uasg)
+    - Queries de filial: JOIN contratação → uasg → observatorio_uasg
+                         WHERE unidade_observatorio_id = :ctx
+    - Queries sede consolidada: sem filtro OU filtro opcional por filial
+
+  Alternativa (descartada para v1): observatorio_id em cada linha fato
+    — mais simples de filtrar, porém redundante e arriscado na coleta
+    (UASG já é chave natural de escopo municipal).
+
+  Campos internos OSB (observador_id etc.): permanecem; escopo validado
+  na API ao vincular observador à filial do usuário.
+
+3.4 Coleta e agendamento multi-filial
+-------------------------------------
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ coleta_agendamento_config  (global sede — 1 registro ou por filial)      │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ horario_diario, fuso, ativo, cadeia_cnpj, cadeia_ia, ...                 │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ coleta_fila_execucao                                                     │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                                                                    │
+  │ FK unidade_observatorio_id                                               │
+  │ status: pendente | executando | ok | erro                                │
+  │ iniciado_em, finalizado_em, resumo_json, log_truncado                    │
+  │ UNIQUE parcial: 1 executando por filial; lock global opcional            │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  Agendamento sede (02:00 America/Sao_Paulo):
+    1. Admin configura janela e ordem das filiais ativas
+    2. Scheduler monta fila coleta_fila_execucao para cada filial
+    3. Worker processa SEQUENCIALMENTE (respeita rate limit API Compras.gov)
+    4. Por filial: executar pipeline Compras.gov com UASGs da filial
+    5. Ao fim de cada filial OK → job CNPJs pendentes **da filial**
+    6. Registra execucao agregada + detalhe por filial no Setup sede
+
+3.5 Bootstrap inicial (primeira instalação — sem migração)
+----------------------------------------------------------
+
+  Sequência na subida do container / primeiro acesso:
+
+    1. `alembic upgrade head` cria **todas** as tabelas vazias (camadas A–E,
+       seção 4.4) — não usar create_all em produção
+    2. Seed mínimo: `organizacao` matriz OSB (CNPJ 10.498.528/0001-96)
+    3. Bootstrap auth: primeiro usuário vira `sede.admin` (tela ou env)
+    4. Admin sede cadastra filiais (ex.: Uberlândia 23.497.346/0001-42 + IBGE)
+    5. Sync UASGs por filial → aderir unidades no Setup
+    6. Primeira coleta manual ou agendada popula dados **somente via API**
+
+  Não importar:
+    - licitacoes.db / CSVs / backups do trigger/23
+    - usuários, sessões ou configs de instalação anterior
+    - rotinas de compat (`obter_raiz`, singleton id=1, etc.)
+
+  Coexistência: trigger/23 e o novo sistema podem rodar em paralelo (portas
+  diferentes) até o corte operacional — sem sync entre bases.
+
+
+================================================================================
+4. MELHORIAS ESTRUTURAIS E BANCO — MOMENTO DE ACERTAR TUDO (GREENFIELD)
+================================================================================
+
+Com a visão consolidada (matriz → filiais → UASGs → coleta → CNPJ/CEP/OSM),
+**este é o único momento** em que mudar estrutura tem custo baixo. Depois que
+filiais entrarem em produção, refactor de schema dói. Decisão: **não replicar**
+limitações do trigger/23; implementar o desenho certo desde a Fase 0.
+
+4.1 Princípio orientador
+------------------------
+
+  Referência trigger/23 = prova de conceito municipal (SQLite monolítico,
+  database.py único ~1400 linhas, `_migrate_*` ad hoc, singleton, sem tenant).
+
+  Novo sistema = produto nacional multi-filial. Copiar **lógica de integração
+  PNCP**; **não** copiar forma de persistência nem organização de código.
+
+4.2 Banco de dados — PostgreSQL desde o dia 1 (decisão)
+-------------------------------------------------------
+
+  ┌────────────────────┬─────────────────────┬──────────────────────────────┐
+  │ Aspecto            │ Referência (evitar) │ Greenfield (adotar)          │
+  ├────────────────────┼─────────────────────┼──────────────────────────────┤
+  │ SGBD produção      │ SQLite arquivo      │ PostgreSQL 16+ (container)   │
+  │ SQLite             │ produção            │ só pytest / dev offline      │
+  │ Migrations         │ create_all + patches│ Alembic versionado           │
+  │ Tipos JSON         │ TEXT + json.dumps   │ JSONB (Postgres)             │
+  │ Datas              │ DATETIME naive      │ TIMESTAMPTZ (UTC)            │
+  │ Valores monetários │ float / string      │ NUMERIC(18,4)                │
+  │ Concorrência coleta│ lock em memória     │ advisory lock / fila DB      │
+  │ Backup             │ copiar arquivo .db  │ pg_dump / volume + retenção  │
+  └────────────────────┴─────────────────────┴──────────────────────────────┘
+
+  Docker Compose (produção):
+    services: app + postgres (+ caddy profile https)
+    DATABASE_URL=postgresql+psycopg://osb:***@postgres:5432/osb_licitacoes
+
+  Motivos para Postgres **agora** (não “depois de 10 filiais”):
+    - Multi-filial + coleta noturna + fila + geocode = escritas concorrentes
+    - JSONB para config filial, resumo coleta, payload cache
+    - Índices parciais (ex.: sessões ativas, fila pendente)
+    - Escalar cloud sem trocar SGBD no meio do caminho
+
+4.3 Migrations — Alembic (obrigatório)
+--------------------------------------
+
+  Nunca depender de `Base.metadata.create_all()` em produção.
+
+  Estrutura:
+    alembic/
+      versions/
+        001_organizacao_auth.py
+        002_compras_core.py
+        003_geo_cache.py
+        004_coleta_fila.py
+        ...
+
+  Bootstrap pós-migrate:
+    - seed `organizacao` matriz (SQL ou script idempotente `scripts/seed.py`)
+    - bootstrap admin via API ou env
+
+  Testes: SQLite in-memory ou Postgres efêmero (testcontainers opcional).
+
+4.4 Organização do schema — camadas lógicas
+-------------------------------------------
+
+  Prefixos / schemas Postgres (ou prefixo tabela) para clareza:
+
+  CAMADA A — TENANT OSB (multi-filial)
+    organizacao
+    unidade_observatorio
+    unidade_compradora
+    uasg_catalogo_municipio
+    observatorio_uasg          ← ponte escopo (substitui “filtro implícito”)
+
+  CAMADA B — COMPRAS.GOV / PNCP (fatos e dimensões oficiais)
+    orgao, uasg, fornecedor, modalidade, catalogo_item
+    contratacao, contratacao_item, contratacao_resultado, contrato
+    (+ staging opcional: coleta_staging_json — ver 4.5)
+
+  CAMADA C — OSB INTERNO (marcações do observatório)
+    observador                 ← FK unidade_observatorio_id (não global solto)
+    contratacao_anotacao       ← observador, tags, notas (separar de payload PNCP)
+    auditoria_evento           ← sede admin: quem fez o quê (v1, não “fase 2”)
+
+  CAMADA D — OPERAÇÃO
+    usuario, sessao
+    coleta_agendamento_config
+    coleta_fila_execucao
+    coleta_execucao_log        ← log truncado por filial/run
+
+  CAMADA E — ENRIQUECIMENTO EXTERNO (cache unificado)
+    api_cache                  ← CNPJ, CEP, geocode (tipo + chave + JSONB + TTL)
+    endereco_geocode           ← ou subtipo em api_cache + tabela normalizada
+
+  Regra: fatos PNCP **nunca** misturam colunas OSB no mesmo UPDATE da coleta.
+  Campos internos em tabelas C ou JSONB sidecar com FK explícita.
+
+4.5 Melhorias no modelo Compras.gov (vs referência)
+---------------------------------------------------
+
+  a) Nomenclatura limpa (sem prefixo `compras_` redundante se schema `pncp`):
+       pncp.contratacao em vez de compras_contratacoes — opcional, mas legível.
+
+  b) Chaves naturais indexadas desde o início:
+       UNIQUE numero_controle_pncp
+       UNIQUE (codigo_uasg) em uasg
+       UNIQUE ni_fornecedor em fornecedor
+       INDEX (codigo_uasg, ano_compra) em contratacao
+       INDEX (unidade_observatorio_id) via join uasg — ver ponte
+
+  c) Resultados homologados (07.3) como entidade explícita — já na referência;
+     garantir FK fornecedor + item + contratacao sem ambiguidade.
+
+  d) Staging opcional (recomendado para robustez de coleta):
+       coleta_staging (id, fonte, endpoint, chave, payload_jsonb, coletado_em)
+     Pipeline: API → staging → upsert normalizado (permite replay/debug).
+
+  e) Preservação na sync (padrão já validado):
+       CAMPOS_PRESERVADOS = observador_id, anotacoes internas
+     Coleta oficial não apaga marcações OSB.
+
+  f) Eliminar do greenfield:
+       - tabelas weblicitacoes / licitacoes portal prefeitura (fora escopo)
+       - qualquer resquício Power BI
+       - sistema_raiz, SistemaConfig monolítico
+
+4.6 Multi-tenant — escopo na arquitetura, não só na query
+---------------------------------------------------------
+
+  Decisão revisada (melhor que só JOIN UASG):
+
+    unidade_compradora liga filial ↔ codigo_uasg (adesão Setup)
+    contratacao.codigo_uasg → join unidade_compradora → filial
+
+  Opcional performance (recomendado se >20 filiais):
+    contratacao.unidade_observatorio_id denormalizado na coleta
+    (preenchido no upsert a partir da UASG — acelera dashboard sede)
+
+  observador.unidade_observatorio_id NOT NULL — observador é da filial
+  usuario: CHECK (escopo=sede → filial_id IS NULL; escopo=filial → NOT NULL)
+
+  escopo.py (único ponto):
+    resolve_ctx(request) → uasgs_permitidas | filial_id | consolidado
+    apply_escopo(stmt, ctx) → modifica SQLAlchemy select
+
+4.7 Cache unificado — api_cache (substituir blobs espalhados)
+-------------------------------------------------------------
+
+  Uma tabela para Brasil API, Receita WS, ViaCEP, Nominatim:
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ api_cache                                                                │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                                                                    │
+  │ tipo              cnpj | cep | geocode                                   │
+  │ chave             CNPJ 14 díg / CEP 8 díg / hash endereço                  │
+  │ payload_jsonb     resposta normalizada + raw opcional                      │
+  │ fonte             brasilapi | receita_ws | viacep | nominatim              │
+  │ valido_ate        TIMESTAMPTZ (TTL por tipo: CNPJ 30d, CEP 90d…)         │
+  │ criado_em / atualizado_em                                                │
+  │ UNIQUE (tipo, chave)                                                     │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  fornecedor.api_cache_id FK opcional; geocode reutilizável entre fornecedores.
+
+4.8 Código — estrutura de pacotes (não monolito database.py)
+------------------------------------------------------------
+
+  app/
+    models/                    ← SQLAlchemy Declarative (fatiado)
+      base.py
+      organizacao.py
+      auth.py
+      pncp/                    ← contratacao, uasg, fornecedor…
+      geo.py
+      coleta.py
+      cache.py
+    schemas/                   ← Pydantic (API request/response)
+    services/                  ← regra de negócio
+      escopo.py
+      coleta_orquestrador.py
+      cnpj_enriquecimento.py
+      cep_resolver.py
+      geocode_osm.py
+    repositories/              ← queries reutilizáveis (opcional thin layer)
+    api/routers/               ← FastAPI routers finos
+    db/
+      session.py
+      migrations/              ← Alembic
+
+  main.py: compõe routers + lifespan apenas.
+
+4.9 Auditoria e config — incluir na v1
+--------------------------------------
+
+  auditoria_evento (sede):
+    id, usuario_id, acao, entidade, entidade_id, detalhe_jsonb, criado_em
+  Ações: criar_filial, aderir_uasg, criar_usuario, disparar_coleta, login_admin
+
+  config filial: JSONB em unidade_observatorio.config com schema validado:
+    { "ano_inicial_coleta": 2023, "modalidades": [5,6], "fases": ["07","05"] }
+
+4.10 Checklist — o que acertar antes da primeira filial em produção
+---------------------------------------------------------------------
+
+  □ Postgres + Alembic + seed matriz
+  □ Modelos fatiados + escopo.py testado
+  □ api_cache unificado
+  □ observador e usuário amarrados à filial
+  □ TIMESTAMPTZ + NUMERIC monetário
+  □ Índices de dashboard (filial, ano, uasg)
+  □ coleta_fila_execucao + logs por run
+  □ auditoria_evento mínima
+  □ Sem tabelas/código fora de escopo (portal prefeitura, Power BI)
+  □ Docker Compose: app + postgres + volume + healthcheck ambos
+
+
+================================================================================
+5. AUTORIZAÇÃO E ISOLAMENTO (RBAC + ESCOPO)
+================================================================================
+
+5.1 Matriz de permissões
+------------------------
+
+  ┌──────────────────┬─────────────┬─────────────┬─────────────────────────────┐
+  │ Papel + Escopo   │ Setup       │ Coleta      │ Telas analíticas            │
+  ├──────────────────┼─────────────┼─────────────┼─────────────────────────────┤
+  │ sede.admin       │ TODAS filiais│ TODAS + fila│ Consolidado + drill-down    │
+  │ sede.consulta    │ —           │ —           │ Consolidado (leitura)       │
+  │ filial.consulta  │ —           │ —           │ Só própria filial           │
+  └──────────────────┴─────────────┴─────────────┴─────────────────────────────┘
+
+5.2 Implementação técnica (FastAPI)
+-----------------------------------
+
+  - Contexto de request após login:
+      ctx = {
+        "usuario_id": ...,
+        "escopo": "sede" | "filial",
+        "unidade_observatorio_id": int | None,
+        "papel": "admin" | "consulta",
+        "uasgs_permitidas": list[str] | "*"   # sede admin/consulta = *
+      }
+
+  - Dependency `require_admin_sede` para Setup global, gestão filiais/usuários
+  - Dependency `get_escopo_uasgs(db, ctx)` injetada em todos routers compras
+  - Middleware existente (AuthMiddleware) estendido para carregar ctx completo
+  - Frontend: `/api/auth/me` retorna escopo + filial + permissoes.paginas
+  - Sede admin: seletor de filial no header (consolidado vs filial X)
+
+5.3 Garantias de segurança
+--------------------------
+
+  - Toda rota /api/compras/*, /api/dashboard/* aplica filtro UASG no SQLAlchemy
+  - Tentativa de acessar codigo_uasg fora do escopo → 404 (não 403, evita leak)
+  - Admin sede audita ações sensíveis (tabela auditoria_evento — v1, seção 4.9)
+  - Sessão única por conta mantida (já implementado)
+
+
+================================================================================
+6. COLETA COMPRAS.GOV EM ESCALA
+================================================================================
+
+6.1 Impacto do crescimento
+--------------------------
+
+  Cada nova filial adiciona:
+    - N uasgs × M anos × modalidades × fases (07, 07-resultados, 05)
+    - Enriquecimento CNPJ vencedores (job pendentes) proporcional ao volume
+    - Tempo de janela noturna cresce linearmente (~ linear com UASGs)
+
+  Estimativa operacional (ordem de grandeza):
+    - 1 filial (8 UASGs, 2 anos): ~15–45 min (experiência Uberlândia)
+    - 10 filiais: ~2,5–7,5 h se sequencial na mesma janela
+    - 30 filiais: exige janela estendida ou paralelismo controlado
+
+6.2 Estratégia de orquestração (recomendada v1 → v2)
+----------------------------------------------------
+
+  V1 (implementar primeiro — alinhada ao código atual):
+    - Fila sequencial por filial dentro do scheduler existente
+    - Rate limit global: COMPRAS_PNCP_REQUEST_DELAY_SEC (já existe)
+    - Lock: 1 job coleta global OR 1 job por filial (escolher 1 global v1)
+    - Horário configurável sede; filiais não disparam coleta manual
+
+  V2 (quando > ~15 filiais ou janela > 4h):
+    - Worker coleta em container separado (mesma imagem, CMD diferente)
+    - Fila persistida + semáforo HTTP (Redis opcional)
+    - Postgres advisory locks para jobs
+
+  NÃO recomendado agora:
+    - Celery/RabbitMQ/Kafka para 3–10 filiais (overengineering vs detalhes/00)
+    - Coleta paralela irrestrita (risco 429/throttle Compras.gov)
+
+6.3 API Compras.gov — inalterada na origem
+------------------------------------------
+
+  Base: https://dadosabertos.compras.gov.br
+  Cliente: ComprasGovClient (httpx, paginação, delay)
+  Módulos: 05 UASG, 07 Contratações, 07 Itens/Resultados, 10 Fornecedor, 01/02 Catálogo
+
+  Por filial, parâmetros de coleta:
+    - unidadeOrgaoCodigoUnidade = cada UASG ativa da filial
+    - codigoMunicipioIbge = IBGE da filial (sync catálogo UASG)
+    - Anos: config filial ou global sede (ano_inicial → corrente)
+
+6.4 Sincronização de UASGs por filial
+-------------------------------------
+
+  Reutilizar fluxo Setup (sincronizar catálogo município → aderir UASGs):
+    - Endpoint sede: POST /api/sistema/filiais/{id}/uasgs/sync
+    - Admin sede cadastra filial (CNPJ OSB + IBGE) → sync automático
+    - Filial consulta não vê Setup; sede escolhe UASGs monitoradas
+
+
+================================================================================
+7. APIS PÚBLICAS GRATUITAS — CNPJ, CEP E OPENSTREETMAP
+================================================================================
+
+Camada complementar ao Compras.gov: enriquece fornecedores vencedores, sedes
+de filiais OSB e endereços para plotagem geográfica. Todas gratuitas; exigem
+cache agressivo, fallback encadeado e respeito a limites de uso.
+
+7.1 CNPJ — Brasil API + Receita WS (decisão oficial)
+----------------------------------------------------
+
+  Objetivo:
+    - QSA, CNAEs, porte, natureza jurídica, endereço completo (logradouro, CEP)
+    - Cadastro/atualização de unidade_observatorio (CNPJ OSB filial)
+    - Job noturno de CNPJs pendentes (vencedores sem enriquecimento)
+
+  Cadeia recomendada (ordem de tentativa):
+
+    1) Brasil API (primária)
+       GET https://brasilapi.com.br/api/cnpj/v1/{cnpj}
+       - Gratuita, JSON estável, boa cobertura de campos
+       - Tratar 404 (CNPJ inexistente) vs 429/5xx (fallback)
+
+    2) Receita WS — Pública CNPJ.ws (secundária)
+       GET https://publica.cnpj.ws/cnpj/{cnpj}
+       - Fallback quando Brasil API falha ou está indisponível
+       - Normalizar payload diferente para o mesmo schema interno
+
+    3) Fallbacks opcionais (já no trigger/23 — manter só se necessário):
+       - Minha Receita (https://minhareceita.org/{cnpj})
+       - CNPJá Open (https://open.cnpja.com/office/{cnpj})
+
+  Schema interno único (independente da fonte):
+    cnpj, razao_social, nome_fantasia, situacao_cadastral, porte, cnae_principal,
+    cnaes_secundarios[], logradouro, numero, complemento, bairro, cep, uf,
+    codigo_municipio_ibge, municipio, qsa[], fonte_cnpj, cnpj_dados_json,
+    enriquecido_em
+
+  Persistência:
+    - fornecedor + endereco_geocode / api_cache (tabelas novas)
+    - unidade_observatorio (CNPJ filial OSB)
+    - TTL via api_cache.valido_ate (CNPJ 30d, CEP 90d…)
+
+  Rate limit / fila multi-filial:
+    - Intervalo entre consultas: CNPJ_PUBLICO_LOTE_INTERVALO_SEC (ex.: 3s)
+    - Backoff em 429: CNPJ_PUBLICO_LOTE_BACKOFF_SEC (ex.: 30s)
+    - Job por filial na cadeia noturna; semáforo global entre filiais
+
+7.2 CEP — APIs públicas gratuitas
+---------------------------------
+
+  Objetivo:
+    - Completar/normalizar endereço quando Compras.gov ou CNPJ trazem só CEP
+    - Obter logradouro, bairro, município, UF, IBGE antes da geocodificação
+
+  Cadeia recomendada:
+
+    1) Brasil API CEP (primária)
+       GET https://brasilapi.com.br/api/cep/v2/{cep}
+       - Retorna CEP, state, city, neighborhood, street, location (coords IBGE)
+
+    2) ViaCEP (secundária)
+       GET https://viacep.com.br/ws/{cep}/json/
+       - Amplamente usada; tratar campo "erro": true
+
+    3) OpenCEP (terciária)
+       GET https://opencep.com/v1/{cep}
+       - Fallback simples, JSON enxuto
+
+  Módulo sugerido: app/endereco/cep_publico.py
+    - consultar_cep(cep) → dict normalizado
+    - validar CEP (8 dígitos); aceitar com/sem hífen
+    - cache em tabela api_cache (tipo=cep) — seção 4.7
+
+  Fluxo:
+    endereço incompleto → consulta CEP → merge campos faltantes → geocode OSM
+
+7.3 Geocodificação — OpenStreetMap (Nominatim)
+----------------------------------------------
+
+  Objetivo:
+    - latitude / longitude para plotar fornecedores, filiais OSB e agregações
+    - Mapas sede (Brasil) e filial (regional)
+
+  Serviço: Nominatim (OpenStreetMap Foundation)
+    GET https://nominatim.openstreetmap.org/search
+      ?q={endereco_completo}&format=json&limit=1&countrycodes=br
+
+  Regras de uso (obrigatórias):
+    - User-Agent identificável: OSB-Observatorio/{versao} (+ e-mail contato)
+    - Máximo ~1 requisição/segundo (NOMINATIM_MIN_INTERVAL_SEC=1.1)
+    - Cache persistente — NUNCA geocodificar o mesmo endereço duas vezes
+    - Atribuição OSM visível no mapa: "© OpenStreetMap contributors"
+
+  Alternativa de coordenadas:
+    - Brasil API CEP v2 já pode trazer location.coordinates (lat/lng)
+    - Preferir CEP v2 quando disponível; Nominatim só se faltar lat/lng
+
+  Persistência sugerida:
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ endereco_geocode                                                         │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ PK id                                                                    │
+  │ chave_endereco     VARCHAR(500) UNIQUE  — hash ou string canônica        │
+  │ cep, logradouro, numero, bairro, municipio, uf                           │
+  │ latitude           DECIMAL(9,6)                                          │
+  │ longitude          DECIMAL(9,6)                                          │
+  │ fonte              nominatim | brasilapi_cep | manual                    │
+  │ precisao           VARCHAR(40)  — rooftop / approximate / centroid       │
+  │ geocodificado_em   DATETIME                                              │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+  FK opcional: compras_fornecedores.geocode_id, unidade_observatorio.geocode_id
+
+7.4 Visualização — Leaflet + tiles OpenStreetMap
+------------------------------------------------
+
+  Biblioteca: Leaflet.js (já usada em localidade.js)
+
+  Tiles (decisão — substituir Carto por OSM):
+    https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    - attribution: © OpenStreetMap contributors
+    - maxZoom conforme política OSM (tipicamente 19)
+
+  Camadas do mapa:
+
+    Sede (consolidado):
+      - Marcadores das filiais OSB (lat/lng da sede municipal OSB ou prefeitura-ref)
+      - Coroplético Brasil por UF / heatmap municípios (vencedores agregados)
+      - Drill-down: clique filial → zoom região
+
+    Filial:
+      - Mapa regional (município + entorno)
+      - Bolhas/calor: fornecedores vencedores com coords OSM
+      - Filtro: valor homologado | quantidade | porte
+
+  Backend:
+    - GET /api/geo/distribuicao — estendido com lat/lng quando geocode_id presente
+    - GET /api/geo/filiais — pontos das unidades_observatorio para mapa sede
+    - Escopo: filial recebe só coords da própria filial + vencedores do escopo
+
+7.5 Orquestração na cadeia noturna
+----------------------------------
+
+  Por filial, após coleta Compras.gov OK:
+
+    1. Job CNPJs pendentes → Brasil API → Receita WS (fallback)
+    2. Para endereços com CEP sem logradouro → consulta CEP (Brasil API → ViaCEP)
+    3. Para registros sem lat/lng → fila geocode Nominatim (1 req/s global)
+    4. Atualizar agregações /api/geo/distribuicao
+
+  Prioridade geocode:
+    a) Filiais OSB (poucas, uma vez)
+    b) Fornecedores vencedores recorrentes (top N por valor)
+    c) Demais pendentes (fila background)
+
+7.6 Variáveis de ambiente (12-factor)
+-------------------------------------
+
+  # CNPJ
+  CNPJ_PUBLICO_BRASILAPI_URL=https://brasilapi.com.br/api/cnpj/v1/{cnpj}
+  CNPJ_PUBLICO_RECEITA_WS_URL=https://publica.cnpj.ws/cnpj/{cnpj}
+  CNPJ_PUBLICO_CACHE_DIAS=30
+  CNPJ_PUBLICO_LOTE_INTERVALO_SEC=3
+
+  # CEP
+  CEP_BRASILAPI_URL=https://brasilapi.com.br/api/cep/v2/{cep}
+  CEP_VIACEP_URL=https://viacep.com.br/ws/{cep}/json/
+  CEP_CACHE_DIAS=90
+
+  # OpenStreetMap / Nominatim
+  NOMINATIM_URL=https://nominatim.openstreetmap.org/search
+  NOMINATIM_USER_AGENT=OSB-Observatorio/2.0 (contato@osb.org.br)
+  NOMINATIM_MIN_INTERVAL_SEC=1.1
+  OSM_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
+
+7.7 Riscos e boas práticas
+--------------------------
+
+  Risco                         Mitigação
+  ─────────────────────────────────────────────────────────────────────────
+  Bloqueio Nominatim (429/403)  Cache + 1 req/s + User-Agent válido
+  Brasil API fora do ar         Fallback Receita WS → demais cadeia
+  Volume CNPJ explode c/ filiais Cache 30d + priorizar vencedores novos
+  Endereço impreciso no mapa    Exibir precisao; centroid IBGE como fallback
+  Termos de uso OSM             Atribuição no mapa + link openstreetmap.org
+
+
+================================================================================
+8. VISÃO CONSOLIDADA (SEDE) VS FILIAL (UX/PRODUTO)
+================================================================================
+
+8.1 Sede — painéis
+------------------
+
+  - Dashboard nacional: KPIs agregados (valor homologado, nº contratações,
+    fornecedores distintos, ranking filiais)
+  - Mapa Brasil (OpenStreetMap): filiais OSB geolocalizadas, heatmap vencedores
+  - Drill-down: clicar filial → mesmas telas Compras.gov filtradas
+  - Coleta: status fila, última execução por filial, logs resumidos
+  - Setup: CRUD filiais, usuários sede/filiais, agendamento, tokens IA
+
+8.2 Filial — painéis
+--------------------
+
+  - Mesmas telas analíticas Compras.gov (Painel, Mapa OSM, CNPJs vencedores,
+    Propostas abertas, consulta contratações) — sem Coleta/Setup
+  - Mapa: Leaflet + tiles OSM; pins de fornecedores com lat/lng geocodificados
+  - Branding: logo/nome OSB {Cidade}
+  - Filtros pré-aplicados às UASGs da filial (usuário não escolhe outra cidade)
+
+8.3 Princípios UX
+-----------------
+
+  - Progressive disclosure: sede vê camadas (macro → filial → UASG → processo)
+  - Filial: mesma UX analítica Compras.gov, escopo fixo da própria unidade
+  - Design system único (style.css, shell.js) — variáveis CSS por filial opcional
+  - Mobile: leitura ok; Setup sede desktop-first
+
+
+================================================================================
+9. ARQUITETURA DE DEPLOY — DOCKER · CLOUD-AGNOSTIC · POLÍGLOTA
+================================================================================
+
+9.1 Decisão: monólito modular (manter)
+--------------------------------------
+
+  Razões (validadas em 07-orm-e-separacao-front-back.txt):
+    - OSC, equipe enxuta, baixa concorrência de usuários simultâneos
+    - Um healthcheck, um backup, um artefato
+    - Front estático + API = deploy em qualquer cloud com Docker
+
+9.2 Docker Compose (produção — Postgres incluído)
+--------------------------------------
+
+  services:
+    postgres:
+      image: postgres:16-alpine
+      environment:
+        POSTGRES_DB: osb_licitacoes
+        POSTGRES_USER: osb
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      volumes:
+        - pg_data:/var/lib/postgresql/data
+      healthcheck: pg_isready
+
+    app:
+      image: osb-licitacoes:${VERSION}
+      depends_on:
+        postgres:
+          condition: service_healthy
+      environment:
+        DATABASE_URL: postgresql+psycopg://osb:${POSTGRES_PASSWORD}@postgres:5432/osb_licitacoes
+        AUTH_MAX_ADMIN_SEDE: 1
+        AUTH_MAX_CONSULTA_SEDE: 3
+        AUTH_MAX_CONSULTA_FILIAL: 4
+        ORGANIZACAO_CNPJ_MATRIZ: 10498528000196
+        APP_PORT: 8096
+        # CNPJ / CEP / OSM — ver seção 7.6
+        NOMINATIM_USER_AGENT: OSB-Observatorio/2.0 (contato@osb.org.br)
+      volumes:
+        - app_data:/app/data   # backups, exports — não o PG data dir
+      healthcheck: GET /api/health
+
+    caddy:  # profile https — qualquer VPS (Oracle, AWS, Azure, GCP, Hetzner)
+      ...
+
+  Dev local (opcional): DATABASE_URL sqlite para pytest; Compose prod = Postgres.
+
+  Poliglota / multi-cloud:
+    - 12-factor: config via env, sem hardcode de provedor
+    - Postgres gerenciado (RDS, Neon, Supabase) = só trocar DATABASE_URL
+    - pg_dump agendado; retenção configurável
+    - Sem SDK proprietário obrigatório
+
+9.3 SQLite — apenas testes / dev offline
+----------------------------------------
+
+  SQLite **não** é alvo de produção neste projeto.
+
+  Uso permitido:
+    - pytest com `:memory:` ou arquivo temp
+    - desenvolvedor sem Docker (DATABASE_URL sqlite opcional)
+
+9.4 Observabilidade mínima
+----------------------------------------
+
+  - /api/health com checks.database
+  - Logs estruturados JSON (opcional env LOG_FORMAT=json)
+  - Métricas coleta: duração/filial, registros/ filial, erros 429
+  - Backup diário data/ retenção 7 (já existe)
+
+
+================================================================================
+10. ESTRUTURA DE CÓDIGO (projeto greenfield)
+================================================================================
+
+  Repositório **novo** (trigger/45). Ver layout completo na seção 4.8.
+
+  alembic/ + app/models/ + app/services/ + app/api/routers/
+  Sem database.py monolítico; sem _migrate_* ad hoc.
+
+  tests/
+    test_bootstrap.py        ← migrate + seed matriz + 1º admin
+    test_escopo_filial.py
+    test_limites_usuarios_multi.py
+    test_coleta_fila.py
+    test_cnpj_publico_cadeia.py
+    test_cep_publico.py
+    test_geocode_osm.py
+    test_api_cache_ttl.py
+
+
+================================================================================
+11. ROADMAP DE IMPLEMENTAÇÃO (ORDEM RECOMENDADA)
+================================================================================
+
+  FASE 0 — Greenfield + fundação (1 sprint)
+    □ Repo trigger/45: Docker Compose app + postgres
+    □ Alembic: migration 001 (organizacao, auth, auditoria_evento)
+    □ Seed matriz + bootstrap sede.admin
+    □ healthcheck app + postgres
+
+  FASE 1 — Modelo completo (sprint 1–2)
+    □ Migrations 002–004: pncp core, geo/api_cache, coleta_fila
+    □ models/ fatiados + escopo.py + testes isolamento
+    □ auth escopo sede/filial, tetos por filial
+
+  FASE 2 — Setup sede (sprint 2)
+    □ UI admin: cadastrar filial (CNPJ OSB, IBGE)
+    □ Sync UASGs por filial
+    □ Gestão usuários sede + filial (4 consulta/filial)
+
+  FASE 3 — Coleta multi-filial (sprint 3)
+    □ coleta_fila_execucao + agendamento sequencial
+    □ Status coleta por filial no Setup sede
+    □ Job CNPJs escopado por filial (Brasil API → Receita WS)
+
+  FASE 3b — CEP + geocodificação OSM (sprint 3–4)
+    □ Módulos cep_publico.py + geocode_osm.py + tabelas cache
+    □ Integrar na cadeia noturna pós-CNPJ
+    □ localidade.js: tiles OpenStreetMap + pins lat/lng
+
+  FASE 4 — Dashboard consolidado sede (sprint 4)
+    □ KPIs agregados, seletor filial, mapa multi-cidade
+    □ Ajustes UX filial (branding)
+
+  FASE 5 — Produção multi-cloud (sprint 5)
+    □ pg_dump backup script + documentação deploy
+    □ Load test coleta N filiais simuladas
+
+  FORA DE ESCOPO (todo o projeto deste estudo):
+    - Migração/importação de dados ou schema do trigger/23
+    - Qualquer fonte de dados que não seja Compras.gov / PNCP (+ APIs CNPJ/CEP/OSM)
+    - Admin local por filial
+    - SSO/OAuth
+    - Microserviços
+
+
+================================================================================
+12. RISCOS E MITIGAÇÕES
+================================================================================
+
+  Risco                          Mitigação
+  ─────────────────────────────────────────────────────────────────────────
+  Duplicar esforço com trigger/23  Greenfield claro; referência só padrões
+  Vazamento dados cross-filial   Filtro UASG centralizado em escopo.py + tests
+  Timeout coleta muitas filiais Fila sequencial + janela 01:00–06:00 configurável
+  Throttle API Compras.gov       Delay global + backoff 429 + log sede
+  SQLite lock concorrência       Postgres prod; SQLite só testes
+  Complexidade Setup             Admin só sede; wizard cadastro filial
+  CNPJ matriz vs filial confuso  UI labels claros; validação CNPJ OSB por filial
+  Nominatim bloqueia IP         Cache + 1 req/s + User-Agent; coords via CEP v2
+
+
+================================================================================
+13. DECISÕES FINAIS — MELHOR CAMINHO (CONSOLIDADO)
+================================================================================
+
+  ┌─────┬────────────────────────────────────┬───────────────────────────────┐
+  │ #   │ Tema                               │ Decisão                       │
+  ├─────┼────────────────────────────────────┼───────────────────────────────┤
+  │  1   │ Abordagem                          │ Greenfield — zero migração    │
+  │  2   │ Momento estrutural                 │ Acertar banco/schema **agora**│
+  │  3   │ Topologia                          │ Matriz → Filial(cidade) → UASG│
+  │  4   │ CNPJ matriz                        │ 10.498.528/0001-96 (sede)     │
+  │  5   │ Usuários sede                      │ 1 admin + 3 consulta          │
+  │  6   │ Usuários filial                    │ 4 consulta (sem admin local)  │
+  │  7   │ Administração                      │ Centralizada na sede          │
+  │  8   │ Isolamento dados                   │ Escopo via UASG + filial      │
+  │  9   │ ORM / stack                        │ SQLAlchemy 2 + FastAPI        │
+  │ 10   │ Migrations                         │ Alembic (não create_all prod) │
+  │ 11   │ Banco produção                     │ PostgreSQL 16+ desde Fase 0   │
+  │ 12   │ Modelos código                     │ app/models/ fatiado (não mono)│
+  │ 13   │ Cache externo                      │ Tabela api_cache unificada    │
+  │ 14   │ Front/back                         │ Separação lógica, deploy único│
+  │ 15   │ Coleta                             │ Mesma API; fila por filial/dia│
+  │ 16   │ Agendamento                        │ Scheduler interno + fila DB   │
+  │ 17   │ Deploy                             │ Docker Compose app+postgres   │
+  │ 18   │ Cloud                              │ Agnóstico (DATABASE_URL env)   │
+  │ 19   │ Microserviços                      │ NÃO na v1                     │
+  │ 20   │ Fonte licitações                   │ Somente Compras.gov / PNCP    │
+  │ 21   │ CNPJ enriquecimento                │ Brasil API → Receita WS       │
+  │ 22   │ CEP                                │ Brasil API → ViaCEP → OpenCEP │
+  │ 23   │ Lat/lng e mapas                    │ Nominatim OSM + Leaflet tiles │
+  └─────┴────────────────────────────────────┴───────────────────────────────┘
+
+
+================================================================================
+14. REFERÊNCIAS (trigger/23 — padrões only, sem migração)
+================================================================================
+
+  Usar trigger/23 como biblioteca de ideias e snippets de integração PNCP.
+  **Não** copiar data/, licitacoes.db, usuários nem configs.
+
+  detalhes/DIAGRAMA-RELACIONAMENTO-API-COMPRAS-GOV.txt
+  detalhes/07-orm-e-separacao-front-back.txt
+  app/compras/ (client, orquestrador, normalizers — reimplementar/adaptar)
+  app/compras/cnpj_publico.py — cadeia CNPJ
+  app/static/localidade.js — Leaflet (adaptar tiles OSM)
+
+  Referências externas (APIs gratuitas):
+  https://brasilapi.com.br/docs
+  https://publica.cnpj.ws (Receita WS)
+  https://viacep.com.br
+  https://nominatim.org/release-docs/develop/api/Search/
+  https://wiki.openstreetmap.org/wiki/Tile_usage_policy
+
+
+================================================================================
+15. GLOSSÁRIO
+================================================================================
+
+  OSB          Observatório Social do Brasil
+  Sede/Matriz  Organização nacional (CNPJ 10.498.528/0001-96)
+  Filial       Unidade OSB municipal (ex.: Uberlândia)
+  UASG         Unidade Administrativa de Serviços Gerais (Compras.gov)
+  PNCP         Portal Nacional de Contratações Públicas
+  RLS lógico   Row-Level Security via filtros ORM (não DB nativo)
+  Escopo       Conjunto de UASGs/filiais visíveis ao usuário logado
+  Greenfield   Projeto novo; banco e tabelas acessórias começam vazios
+  Bootstrap    Primeira subida: Alembic migrate + seed matriz + admin sede
+  Alembic      Migrations versionadas do schema SQLAlchemy
+  api_cache    Tabela unificada de cache CNPJ/CEP/geocode (JSONB + TTL)
+  Brasil API   API pública gratuita (CNPJ, CEP e outros cadastros)
+  Receita WS   publica.cnpj.ws — consulta CNPJ gratuita (fallback)
+  Nominatim    Serviço de geocodificação do OpenStreetMap (lat/lng)
+  OSM          OpenStreetMap — mapas e tiles livres com atribuição
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================
+
+Próximo passo sugerido: **Fase 0** em trigger/45 — Docker (app + postgres),
+Alembic migration 001, seed matriz OSB, bootstrap admin sede. Só então
+cadastrar a primeira filial e disparar a primeira coleta Compras.gov.

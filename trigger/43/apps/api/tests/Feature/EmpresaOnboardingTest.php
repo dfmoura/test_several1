@@ -280,6 +280,39 @@ class EmpresaOnboardingTest extends TestCase
             ->assertJsonFragment(['cnpj' => ['Este CNPJ já é o demo EMP-00001 (RLP ETIQUETAS AUTO ADESIVOS LTDA). Use outro CNPJ para abrir uma empresa nova.']]);
     }
 
+    public function test_cnpj_ativo_nao_demo_nao_usa_rotulo_demo(): void
+    {
+        Empresa::query()->create([
+            'codigo' => 'EMP-00002',
+            'cnpj' => '53369941000163',
+            'razao_social' => 'TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA',
+            'municipio' => 'Uberlandia',
+            'uf' => 'MG',
+            'situacao' => 'ATIVA',
+        ]);
+
+        $conta = $this->postJson('/api/v1/auth/registrar-conta', [
+            'admin_name' => 'Nova',
+            'admin_email' => 'nova-trigger@teste.com.br',
+            'admin_password' => 'SenhaForte1',
+        ])->assertCreated();
+
+        $this->withToken((string) $conta->json('token'))
+            ->postJson('/api/v1/auth/abrir-empresa', [
+                'cnpj' => '53369941000163',
+                'razao_social' => 'Tentativa',
+                'municipio' => 'Uberlandia',
+                'uf' => 'MG',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['cnpj'])
+            ->assertJsonFragment([
+                'cnpj' => [
+                    'Este CNPJ já possui empresa nesta plataforma (EMP-00002 — TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA).',
+                ],
+            ]);
+    }
+
     public function test_alta_geocodifica_planta_pela_rua_nao_pelo_cep(): void
     {
         $this->fakeConsultaExterna([

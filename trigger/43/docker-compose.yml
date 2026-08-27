@@ -59,12 +59,15 @@ services:
       - ./apps/api:/var/www/html
       - ./branding:/var/www/branding:ro
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/openssl.cnf:/usr/local/etc/ssl/openssl-erp.cnf:ro
       - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
     environment: &app_env
       APP_NAME: ${APP_NAME:-FLEXORC}
       APP_ENV: ${APP_ENV:-local}
       # Não injetar APP_KEY vazio aqui: sobrescreve apps/api/.env e quebra BankCrypto (Inter/ASAAS).
       APP_DEBUG: ${APP_DEBUG:-true}
+      # PKCS#12 A1 ICP-Brasil (3DES/RC2) — docs/ADR_CERTIFICADO_A1_EMPRESA.md
+      OPENSSL_CONF: /usr/local/etc/ssl/openssl-erp.cnf
       APP_URL: ${APP_URL:-http://localhost:8043}
       ERP_STAGE: ${ERP_STAGE:-local}
       LOG_CHANNEL: stderr
@@ -110,6 +113,7 @@ services:
       - ./apps/api:/var/www/html
       - ./branding:/var/www/branding:ro
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/99-erp.ini:ro
+      - ./docker/php/openssl.cnf:/usr/local/etc/ssl/openssl-erp.cnf:ro
       - ./docker/php/entrypoint.sh:/usr/local/bin/erp-entrypoint:ro
     environment:
       <<: *app_env

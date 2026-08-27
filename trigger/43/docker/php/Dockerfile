@@ -10,7 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY php.ini /usr/local/etc/php/conf.d/99-erp.ini
+RUN mkdir -p /usr/local/etc/ssl
+COPY openssl.cnf /usr/local/etc/ssl/openssl-erp.cnf
 COPY entrypoint.sh /usr/local/bin/erp-entrypoint
+ENV OPENSSL_CONF=/usr/local/etc/ssl/openssl-erp.cnf
 RUN chmod +x /usr/local/bin/erp-entrypoint \
     && usermod -u 1000 www-data && groupmod -g 1000 www-data
 

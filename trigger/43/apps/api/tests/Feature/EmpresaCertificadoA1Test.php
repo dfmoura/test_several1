@@ -239,6 +239,33 @@ class EmpresaCertificadoA1Test extends TestCase
         }
     }
 
+    public function test_cnpj_no_serial_number_estilo_icp_brasil_e_apto(): void
+    {
+        Sanctum::actingAs($this->admin);
+        $pfx = $this->gerarPfxTemporario($this->senha, '11.222.333/0001-81', true);
+
+        try {
+            $upload = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+                ->post(
+                    "/api/v1/empresas/{$this->empresa->id}/certificado-a1",
+                    [
+                        'arquivo' => new UploadedFile($pfx, 'icp-brasil.pfx', 'application/x-pkcs12', null, true),
+                        'senha' => $this->senha,
+                    ],
+                    ['Accept' => 'application/json'],
+                );
+
+            $upload->assertCreated()
+                ->assertJsonPath('data.cadastrado', true)
+                ->assertJsonPath('data.cnpj_certificado', '11222333000181')
+                ->assertJsonPath('data.cnpj_bate_com_empresa', true)
+                ->assertJsonPath('data.apto_operacao', true);
+        } finally {
+            @unlink($pfx);
+            @rmdir(dirname($pfx));
+        }
+    }
+
     public function test_certificado_vencido_nao_e_apto(): void
     {
         EmpresaCertificadoA1::query()->create([
@@ -304,7 +331,7 @@ class EmpresaCertificadoA1Test extends TestCase
         $this->assertStringContainsString('a vencer', mb_strtolower($res['pendencias'][0]));
     }
 
-    private function gerarPfxTemporario(string $senha, string $cnpjNoCn = '11.222.333/0001-81'): string
+    private function gerarPfxTemporario(string $senha, string $cnpjNoCn = '11.222.333/0001-81', bool $cnpjSoNoSerial = false): string
     {
         $dir = sys_get_temp_dir().'/flexorc_a1_'.uniqid('', true);
         mkdir($dir, 0700, true);
@@ -316,12 +343,19 @@ class EmpresaCertificadoA1Test extends TestCase
         ]);
         $this->assertNotFalse($key, 'Falha ao gerar chave RSA de teste.');
 
+        $digits = preg_replace('/\D/', '', $cnpjNoCn) ?? $cnpjNoCn;
+        $dn = [
+            'countryName' => 'BR',
+            'organizationName' => 'Empresa A1 LTDA',
+            'commonName' => $cnpjSoNoSerial ? 'Empresa A1 Teste' : 'Empresa A1 Teste:'.$cnpjNoCn,
+        ];
+        if ($cnpjSoNoSerial) {
+            $dn['serialNumber'] = $digits;
+            $dn['organizationalUnitName'] = $cnpjNoCn;
+        }
+
         $csr = openssl_csr_new(
-            [
-                'commonName' => 'Empresa A1 Teste:'.$cnpjNoCn,
-                'countryName' => 'BR',
-                'organizationName' => 'Empresa A1 LTDA',
-            ],
+            $dn,
             $key,
             ['digest_alg' => 'sha256'],
         );

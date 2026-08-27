@@ -1,0 +1,43 @@
+# OpenSSL 3 — cofre A1 (PKCS#12 ICP-Brasil).
+# Muitos .pfx/.p12 brasileiros usam 3DES/RC2; o provider default do OpenSSL 3
+# recusa esses algoritmos. Sem o legacy, o upload falha como "senha incorreta".
+#
+# Este arquivo substitui OPENSSL_CONF do PHP: precisa de [req] (CSR/testes)
+# além dos providers. TLS outbound permanece MinProtocol/SECLEVEL abaixo.
+# ADR: docs/ADR_CERTIFICADO_A1_EMPRESA.md
+
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+ssl_conf = ssl_sect
+
+[provider_sect]
+default = default_sect
+legacy = legacy_sect
+
+[default_sect]
+activate = 1
+
+[legacy_sect]
+activate = 1
+
+[ssl_sect]
+system_default = system_default_sect
+
+[system_default_sect]
+MinProtocol = TLSv1.2
+CipherString = DEFAULT:@SECLEVEL=2
+
+# Necessário quando OPENSSL_CONF aponta para este arquivo (openssl_csr_new / phpunit).
+[req]
+default_bits = 2048
+default_md = sha256
+distinguished_name = req_distinguished_name
+string_mask = utf8only
+prompt = no
+
+[req_distinguished_name]
+countryName = BR
+organizationName = FLEXOERP
+commonName = localhost

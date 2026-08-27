@@ -1,0 +1,33 @@
+{
+  "name": "@nfe/application",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@nfe/domain": "workspace:*",
+    "@nfe/sefaz-client": "workspace:*",
+    "@nfe/shared": "workspace:*",
+    "@nfe/xml": "workspace:*",
+    "drizzle-orm": "^0.38.2",
+    "ioredis": "^5.4.2",
+    "minio": "^8.0.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

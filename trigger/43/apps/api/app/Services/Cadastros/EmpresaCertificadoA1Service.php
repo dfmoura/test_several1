@@ -321,12 +321,12 @@ class EmpresaCertificadoA1Service
         }
 
         $certs = [];
+        while (openssl_error_string() !== false) {
+            // fila residual do OpenSSL — só os erros desta leitura importam
+        }
         $ok = @openssl_pkcs12_read($bytes, $certs, $senha);
         if (! $ok || empty($certs['cert'])) {
-            throw ValidationException::withMessages([
-                'senha' => ['Senha incorreta ou arquivo PKCS#12 inválido.'],
-                'arquivo' => ['Não foi possível abrir o certificado A1 (.pfx/.p12).'],
-            ]);
+            throw ValidationException::withMessages($this->mensagensFalhaPkcs12());
         }
 
         $parsed = openssl_x509_parse($certs['cert']);
@@ -371,9 +371,48 @@ class EmpresaCertificadoA1Service
             'issuer_cn' => $issuerCn,
             'serial' => $serial,
             'fingerprint_sha256' => strtolower($fp),
-            'cnpj_certificado' => $this->extrairCnpj($subject, $subjectCn),
+            'cnpj_certificado' => $this->extrairCnpj($subject, $subjectCn)
+                ?? $this->extrairCnpjDeTexto((string) ($parsed['name'] ?? '')),
             'valido_de' => $de,
             'valido_ate' => $ate,
+        ];
+    }
+
+    /**
+     * Mensagem de falha do PKCS#12 sem vazar dump do OpenSSL.
+     *
+     * @return array<string, list<string>>
+     */
+    private function mensagensFalhaPkcs12(): array
+    {
+        $blob = '';
+        while (($msg = openssl_error_string()) !== false) {
+            $blob .= ' '.$msg;
+        }
+        $blob = mb_strtolower($blob);
+
+        if (str_contains($blob, 'mac verify') || str_contains($blob, 'pkcs12 mac')) {
+            return [
+                'senha' => ['Senha incorreta para este certificado A1.'],
+                'arquivo' => ['Não foi possível abrir o arquivo com a senha informada.'],
+            ];
+        }
+
+        if (
+            str_contains($blob, 'unsupported')
+            || str_contains($blob, 'legacy')
+            || str_contains($blob, 'digital envelope routines')
+            || str_contains($blob, 'evp_decrypt')
+        ) {
+            return [
+                'arquivo' => ['Não foi possível abrir este A1 (formato PKCS#12 antigo). Confirme a senha; se persistir, o servidor precisa do provedor OpenSSL legacy.'],
+                'senha' => ['Confira a senha do arquivo .pfx/.p12.'],
+            ];
+        }
+
+        return [
+            'senha' => ['Senha incorreta ou arquivo PKCS#12 inválido.'],
+            'arquivo' => ['Não foi possível abrir o certificado A1 (.pfx/.p12).'],
         ];
     }
 
@@ -435,18 +474,39 @@ class EmpresaCertificadoA1Service
         if ($subjectCn) {
             $candidatos[] = $subjectCn;
         }
-
-        foreach ($candidatos as $texto) {
-            if (preg_match('/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/', $texto, $m)) {
-                $digits = preg_replace('/\D/', '', $m[1]) ?? '';
-                if (strlen($digits) === 14) {
-                    return $digits;
+        foreach ($subject as $v) {
+            if (is_string($v)) {
+                $candidatos[] = $v;
+            } elseif (is_array($v)) {
+                foreach ($v as $item) {
+                    if (is_string($item)) {
+                        $candidatos[] = $item;
+                    }
                 }
             }
-            $only = preg_replace('/\D/', '', $texto) ?? '';
-            if (strlen($only) === 14) {
-                return $only;
+        }
+
+        foreach ($candidatos as $texto) {
+            $achado = $this->extrairCnpjDeTexto($texto);
+            if ($achado !== null) {
+                return $achado;
             }
+        }
+
+        return null;
+    }
+
+    private function extrairCnpjDeTexto(string $texto): ?string
+    {
+        if (preg_match('/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})/', $texto, $m)) {
+            $digits = preg_replace('/\D/', '', $m[1]) ?? '';
+            if (strlen($digits) === 14) {
+                return $digits;
+            }
+        }
+        $only = preg_replace('/\D/', '', $texto) ?? '';
+        if (strlen($only) === 14) {
+            return $only;
         }
 
         return null;

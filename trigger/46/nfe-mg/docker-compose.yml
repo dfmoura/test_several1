@@ -1,0 +1,278 @@
+name: nfe-mg
+
+x-app-env: &app-env
+  NFE_AMBIENTE: ${NFE_AMBIENTE:-dev}
+  NFE_UF: ${NFE_UF:-MG}
+  NFE_CUF: ${NFE_CUF:-31}
+  NFE_CERT_KEK: ${NFE_CERT_KEK:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+  NFE_CERT_REQUIRED: ${NFE_CERT_REQUIRED:-false}
+  NFE_API_KEY: ${NFE_API_KEY:-dev-api-key-change-in-production}
+  NFE_JWT_SECRET: ${NFE_JWT_SECRET:-dev-jwt-secret-change-in-production}
+  DATABASE_URL: postgresql://nfe:nfe@postgres:5432/nfe
+  REDIS_URL: redis://redis:6379
+  RABBITMQ_URL: amqp://nfe:nfe@rabbitmq:5672
+  MINIO_ENDPOINT: minio
+  MINIO_PORT: 9000
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-nfe}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-nfe-secret-key}
+  MINIO_BUCKET: nfe-xml
+  MINIO_USE_SSL: "false"
+  NFE_SEFAZ_MOCK: ${NFE_SEFAZ_MOCK:-true}
+  NFE_DANFE_URL: http://nfe-danfe:3001
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  traefik:
+    image: traefik:v3.2
+    profiles: ["dev", "homolog", "prod"]
+    ports:
+      - "${NFE_HOST_PORT_TRAEFIK:-19180}:80"
+      - "${NFE_HOST_PORT_TRAEFIK_DASHBOARD:-19181}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - nfe-public
+      - nfe-app
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      POSTGRES_USER: nfe
+      POSTGRES_PASSWORD: nfe
+      POSTGRES_DB: nfe
+    ports:
+      - "${NFE_HOST_PORT_POSTGRES:-16432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - nfe-data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nfe"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["dev", "homolog", "prod"]
+    ports:
+      - "${NFE_HOST_PORT_REDIS:-17379}:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - nfe-data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      RABBITMQ_DEFAULT_USER: nfe
+      RABBITMQ_DEFAULT_PASS: nfe
+    ports:
+      - "${NFE_HOST_PORT_RABBITMQ_UI:-19672}:15672"
+    volumes:
+      - mqdata:/var/lib/rabbitmq
+    networks:
+      - nfe-data
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    profiles: ["dev", "homolog", "prod"]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-nfe}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-nfe-secret-key}
+    ports:
+      - "${NFE_HOST_PORT_MINIO_CONSOLE:-19111}:9001"
+    volumes:
+      - miniodata:/data
+    networks:
+      - nfe-data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  migrate:
+    image: node:22-alpine
+    profiles: ["dev", "homolog", "prod"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql://nfe:nfe@postgres:5432/nfe
+    command: sh -c "npm install --prefix /opt/migrate pg@8.13.1 && NODE_PATH=/opt/migrate/node_modules node scripts/migrate.js"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nfe-data
+
+  nfe-api:
+    build:
+      context: .
+      dockerfile: infra/docker/nfe-api/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+      NFE_API_PORT: 3000
+    volumes:
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${NFE_HOST_PORT_API:-19100}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - nfe-app
+      - nfe-data
+      - nfe-egress
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nfe-api.rule=PathPrefix(`/`)"
+      - "traefik.http.services.nfe-api.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nfe-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/nfe-worker/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./secrets:/run/secrets:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - nfe-app
+      - nfe-data
+      - nfe-egress
+
+  nfe-danfe:
+    build:
+      context: .
+      dockerfile: infra/docker/nfe-danfe/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      <<: *app-env
+    volumes:
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${NFE_HOST_PORT_DANFE:-19101}:3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+    networks:
+      - nfe-app
+      - nfe-data
+
+  nfe-web:
+    build:
+      context: .
+      dockerfile: infra/docker/nfe-web/Dockerfile
+    profiles: ["dev", "homolog", "prod"]
+    environment:
+      NFE_API_URL: http://nfe-api:3000
+      NFE_API_KEY: ${NFE_API_KEY:-dev-api-key-change-in-production}
+      NFE_WEB_PORT: 3002
+      NFE_WEB_PASSWORD: ${NFE_WEB_PASSWORD:-admin}
+      NFE_WEB_SESSION_SECRET: ${NFE_WEB_SESSION_SECRET:-dev-session-secret-nfe-mg}
+      NODE_ENV: production
+    ports:
+      - "${NFE_HOST_PORT_WEB:-19102}:3002"
+    depends_on:
+      nfe-api:
+        condition: service_healthy
+    networks:
+      - nfe-app
+      - nfe-public
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: ["homolog", "prod"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "${NFE_HOST_PORT_PROMETHEUS:-19190}:9090"
+    networks:
+      - nfe-obs
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    profiles: ["homolog", "prod"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "${NFE_HOST_PORT_GRAFANA:-19200}:3000"
+    networks:
+      - nfe-obs
+
+networks:
+  nfe-public:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.10.0/24
+  nfe-app:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.11.0/24
+  nfe-data:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.12.0/24
+  nfe-obs:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.13.0/24
+  nfe-egress:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.14.0/24
+
+volumes:
+  pgdata:
+  redisdata:
+  mqdata:
+  miniodata:
+  promdata:
+  grafanadata:

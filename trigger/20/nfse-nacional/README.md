@@ -59,6 +59,20 @@ docker compose --profile dev up -d --build
 
 Aguarde os containers ficarem saudáveis (cerca de 30–60 s na primeira vez).
 
+**Atalho recomendado** (sobe a stack e valida com smoke test — não remove volumes):
+
+```bash
+pnpm docker:ready
+# ou: bash scripts/dev-ready.sh
+```
+
+Somente validar um ambiente já no ar:
+
+```bash
+pnpm smoke
+# ou: bash scripts/smoke-test.sh
+```
+
 Verificar status:
 
 ```bash
@@ -300,18 +314,3 @@ pnpm --filter @nfse/danfse preview docs/example/seu-arquivo.xml saida.pdf
 ## Licença
 
 Uso interno — integração fiscal Brasil.
-
-
-
-### 
-Se acontecer de novo
-cd /home/dfmoura/Documents/test_several1/trigger/20/nfse-nacional
-docker compose --profile dev ps
-docker compose --profile dev up -d nfse-web
-Para subir tudo:
-
-docker compose --profile dev up -d --build
-Para ver por que o web caiu:
-
-docker compose logs nfse-web --tail 50
-Se ainda não abrir, me diga o que aparece em docker compose ps.

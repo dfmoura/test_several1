@@ -130,6 +130,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/empresas', [EmpresaController::class, 'index']);
         Route::get('/empresas/{empresa}', [EmpresaController::class, 'show']);
         Route::put('/empresas/{empresa}', [EmpresaController::class, 'update']);
+        Route::get('/empresas/{empresa}/exclusao-preflight', [EmpresaController::class, 'exclusaoPreflight']);
+        Route::delete('/empresas/{empresa}', [EmpresaController::class, 'destroy']);
         Route::get('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'show']);
         Route::post('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'store']);
         Route::delete('/empresas/{empresa}/certificado-a1', [EmpresaCertificadoA1Controller::class, 'destroy']);

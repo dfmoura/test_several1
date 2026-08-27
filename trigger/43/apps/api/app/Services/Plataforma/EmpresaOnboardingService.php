@@ -32,6 +32,17 @@ use Spatie\Permission\Models\Role;
  */
 class EmpresaOnboardingService
 {
+    /**
+     * CNPJs do seed legado RLP (quando ainda existem no banco lab).
+     * NÃO incluir CNPJ real da TRIGGER nem de licenciados.
+     *
+     * @var list<string>
+     */
+    private const CNPJS_DEMO_SEED = [
+        '01423183000110', // RLP EMP-00001 seed
+        '58820046000137', // UDI EMP-00002 seed
+    ];
+
     public static function maxEmpresasPorConta(): int
     {
         return ContaAtivacao::maxEmpresasPorConta();
@@ -114,15 +125,15 @@ class EmpresaOnboardingService
         }
 
         if (Empresa::withTrashed()->where('cnpj', $cnpj)->exists()) {
-            $existente = Empresa::withTrashed()->where('cnpj', $cnpj)->first();
-            $codigo = $existente?->codigo ?: '';
-            $nome = $existente?->razao_social ?: '';
-            $demo = in_array($codigo, ['EMP-00001', 'EMP-00002'], true);
+            $existente = Empresa::withTrashed()->where('cnpj', $cnpj)->firstOrFail();
+            $codigo = $existente->codigo ?: '';
+            $nome = $existente->razao_social ?: '';
+            $demoSeed = in_array($cnpj, self::CNPJS_DEMO_SEED, true);
 
             throw ValidationException::withMessages([
-                'cnpj' => $demo
+                'cnpj' => $demoSeed
                     ? "Este CNPJ já é o demo {$codigo} ({$nome}). Use outro CNPJ para abrir uma empresa nova."
-                    : "Este CNPJ já possui empresa nesta plataforma ({$codigo}).",
+                    : "Este CNPJ já possui empresa nesta plataforma ({$codigo} — {$nome}).",
             ]);
         }
 

@@ -24,6 +24,11 @@ x-app-env: &app-env
   MINIO_USE_SSL: "false"
   NFSE_SYNC_INTERVAL_SEC: ${NFSE_SYNC_INTERVAL_SEC:-300}
   NFSE_GOV_MOCK: ${NFSE_GOV_MOCK:-true}
+  NFSE_CADASTRO_ENABLED: ${NFSE_CADASTRO_ENABLED:-true}
+  NFSE_CADASTRO_CACHE_TTL_SEC: ${NFSE_CADASTRO_CACHE_TTL_SEC:-86400}
+  NFSE_PREFEITURA_TELEFONE: ${NFSE_PREFEITURA_TELEFONE:-}
+  NFSE_PREFEITURA_EMAIL: ${NFSE_PREFEITURA_EMAIL:-}
+  NFSE_PREFEITURA_CONTATOS: ${NFSE_PREFEITURA_CONTATOS:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   NFSE_DANFSE_URL: http://nfse-danfse:3001
 
@@ -266,17 +271,33 @@ services:
     networks:
       - nfse-obs
 
+# Subnets fixas evitam "all predefined address pools have been fully subnetted"
 networks:
   nfse-public:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.10.0/24
   nfse-app:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.11.0/24
   nfse-data:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.12.0/24
   nfse-obs:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.13.0/24
   nfse-egress:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.14.0/24
 
 volumes:
   pgdata:

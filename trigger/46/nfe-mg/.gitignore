@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+.turbo/
+secrets/*.pfx
+secrets/*.p12
+secrets/*.senha
+secrets/*.pem
+.DS_Store
+coverage/
+*.tsbuildinfo

@@ -100,7 +100,7 @@ export function CadastroEmpresaPage() {
       const res = await api.abrirEmpresa(form);
       setEmpresaId(res.empresa.id);
       await refresh();
-      navigate('/empresas', { replace: true });
+      navigate('/empresas?tab=a1', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         const first = Object.values(err.details ?? {})[0]?.[0];
@@ -117,7 +117,7 @@ export function CadastroEmpresaPage() {
     <>
       <PageHeader
         title={empresas.length === 0 ? 'Cadastrar empresa' : 'Nova empresa'}
-        description={`CNPJ desta operação. Parceiros, preços e orçamentos ficam isolados. Até ${maxEmpresas} empresas nesta conta.`}
+        description={`CNPJ desta operação. Parceiros, preços e orçamentos ficam isolados. Até ${maxEmpresas} empresas nesta conta. Depois do cadastro, envie o certificado A1 desta empresa.`}
       />
 
       {error && <div className="alert alert-error">{error}</div>}

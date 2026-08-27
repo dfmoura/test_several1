@@ -1,0 +1,980 @@
+================================================================================
+  JUSTIFICATIVA DE PROJETO — POR QUE CADA ITEM DA NOVA ESTRUTURA FAZ SENTIDO
+  OSB Multi-filial · Compras.gov / PNCP (greenfield)
+================================================================================
+
+Documento      : Rationale de engenharia — decisão fechada, item a item
+Companion de   : ANALISE-OSB-MULTI-FILIAL-COMPRAS-GOV.txt (v1.4)
+Escopo         : EXCLUSIVAMENTE Compras.gov / PNCP + APIs públicas CNPJ/CEP/OSM
+Natureza       : Este arquivo NÃO altera o estudo. Explica o “porquê”.
+Status         : Decisões da análise REAFIRMADAS — melhor caminho, sem reabrir
+Data           : 2026-08-25
+Versão         : 1.0
+
+
+================================================================================
+COMO LER ESTE DOCUMENTO
+================================================================================
+
+A análise (v1.4) define O QUE construir. Este texto responde, para cada
+peça da estrutura:
+
+  1. Qual problema de negócio ou técnico ela resolve
+  2. Por que esta forma — e não a alternativa óbvia
+  3. Qual disciplina a valida (dados, segurança, arquitetura, UX, ops)
+  4. O que quebraria se o item fosse omitido ou desenhado de outro jeito
+
+Lentes usadas em todas as decisões (conselho multidisciplinar):
+
+  Engenharia de software  — coesão, acoplamento, testabilidade, evolução
+  Sistemas / ops          — um artefato, observabilidade, backup, 12-factor
+  Dados                   — chaves naturais, normalização, cache, tipos certos
+  Arquitetura             — limites de contexto, tenant, fila, escala real
+  Segurança               — menor privilégio, isolamento, auditoria, 404 vs 403
+  UX / produto            — sede vê o país; filial vê a cidade; zero vazamento
+  Organização OSB         — matriz nacional ≠ OSC municipal ≠ órgão público
+
+Regra deste documento: recomendar e decidir o melhor caminho. Quando há
+trade-off, a opção adotada na análise v1.4 é a correta para este sistema
+(OSC, equipe enxuta, API pública com rate limit, rede nacional desde o dia 1).
+
+
+================================================================================
+0. PRINCÍPIOS QUE GOVERNAM TODA A ESTRUTURA
+================================================================================
+
+P1. Greenfield deliberado
+    O protótipo municipal (trigger/23) prova a integração PNCP. Não prova
+    o modelo nacional. Copiar schema singleton + SQLite + database.py
+    monolítico seria carregar dívida no único momento em que ela ainda
+    custa barato. Decisão: copiar a LÓGICA de coleta; não copiar a FORMA
+    de persistência nem a organização de código.
+
+P2. Um domínio, uma fonte
+    Compras.gov / PNCP é a única fonte de licitações/contratos. CNPJ, CEP
+    e OSM são enriquecimento — não segunda verdade operacional. Isso
+    impede schema híbrido, duas coletas e duas UIs de “a mesma contratação”.
+
+P3. Tenant = município OSB, não = linha de fato PNCP
+    A contratação é nacional (chave PNCP). O observatório é local (UASGs
+    aderidas). Isolar pelo vínculo filial↔UASG preserva a verdade da API
+    e aplica o recorte institucional no lugar certo.
+
+P4. Administração concentrada, leitura distribuída
+    Quem configura coleta, usuários e filiais é a sede. Quem lê o município
+    é a filial. Superfície de ataque menor, política uniforme, UX simples
+    para voluntário local.
+
+P5. Complexidade só onde a física obriga
+    A API Compras.gov tem delay e 429. Por isso há fila sequencial, não
+    microserviços. O banco terá escrita concorrente (N filiais + cache +
+    geocode). Por isso há PostgreSQL no dia 1, não “quando doer”.
+
+P6. Um ponto de verdade por preocupação
+    Escopo em escopo.py. Cache em api_cache. Migrations no Alembic.
+    Fatos PNCP sem colunas OSB no mesmo UPDATE. Quem precisa mudar uma
+    regra acha um arquivo — não vinte ifs espalhados.
+
+
+================================================================================
+1. DECISÕES MACRO — POR QUE CADA UMA FAZ SENTIDO DE FATO
+================================================================================
+
+A tabela da seção 13 da análise é o contrato. Abaixo, o rationale de cada
+linha — alternativa descartada e custo de errar.
+
+
+--------------------------------------------------------------------------------
+1.1  Abordagem = Greenfield — zero migração
+--------------------------------------------------------------------------------
+
+Problema
+  O singleton `sistema_raiz` (id=1) e o teto global de 4 usuários descrevem
+  UM município. Qualquer “evolução in-place” mistura Uberlândia operacional
+  com schema nacional incompleto.
+
+Por que greenfield é o melhor caminho
+  - Banco vazio = índices, tipos (TIMESTAMPTZ, NUMERIC, JSONB) e FKs certos
+    na primeira migration — sem patches `_migrate_*` eternizados
+  - Usuários e sessões novos = papéis sede/filial sem heurística de
+    “esse admin antigo vira o quê”
+  - Coleta inicia pela API oficial = uma verdade, auditável, repetível
+  - trigger/23 pode coexistir em outra porta até o corte — sem sync
+
+Descartado
+  Big-bang de migração SQLite→Postgres com mapeamento de sistema_raiz.
+  Custo: semanas de compat, risco de dado sujo, e ainda nasceria o modelo
+  errado (tenant grudado no fato).
+
+Se não fizesse assim
+  A primeira filial nova herdaria gambiarras do município piloto. A rede
+  nacional pagaria o preço do protótipo para sempre.
+
+
+--------------------------------------------------------------------------------
+1.2  Momento estrutural = acertar banco/schema AGORA
+--------------------------------------------------------------------------------
+
+Problema
+  Depois que 5–10 filiais produzem anotações, observadores e fila de coleta,
+  mudar UNIQUE, tipo monetário ou ponte de escopo exige downtime e rewrite
+  de histórico.
+
+Por que agora
+  Janela greenfield: custo de mudança ≈ custo de acertar. Depois, custo
+  cresce com N filiais × volume PNCP × marcações OSB.
+
+Disciplina
+  Arquitetura de dados: “schema last” só vale em prototipação. Produto
+  nacional com isolamento de tenant é schema first.
+
+Se não fizesse assim
+  Refactor de produção com coleta noturna no ar — o pior momento possível.
+
+
+--------------------------------------------------------------------------------
+1.3  Topologia = Matriz → Filial (cidade) → UASG
+--------------------------------------------------------------------------------
+
+Problema de negócio
+  OSB Nacional (CNPJ 10.498.528/0001-96) não compra pela prefeitura de
+  Uberlândia. OSB Uberlândia (23.497.346/0001-42) não é a UASG 926922.
+  Três identidades distintas: OSC nacional, OSC municipal, órgão público.
+
+Por que esta árvore — e não “tenant plano” ou “só UASG”
+  - Matriz ancora a organização (um registro, CNPJ único nacional)
+  - Filial ancora o município monitorado (IBGE + CNPJ OSB local)
+  - UASG ancora a unidade compradora da API (chave natural Compras.gov)
+
+  A ramificação espelha o organograma real da rede e o recorte da API
+  (unidadeOrgaoCodigoUnidade + codigoMunicipioIbge). Modelo mental único
+  para admin, voluntário e desenvolvedor.
+
+Descartado
+  a) Só lista de UASGs globais — filial não existe como entidade; branding,
+     teto de usuários e mapa municipal ficam artificiais
+  b) Multi-tenant SaaS genérico (org_id em tudo) — mistura OSC com órgão
+     público; explode colunas; dificulta dimensão nacional compartilhada
+     (fornecedor, catálogo)
+
+Se não fizesse assim
+  Relatórios “por cidade” virariam filtro ad hoc. Cadastro de filial
+  não teria onde pendurar usuários, config de coleta e UASGs aderidas.
+
+
+--------------------------------------------------------------------------------
+1.4  CNPJ matriz = 10.498.528/0001-96 (sede)
+--------------------------------------------------------------------------------
+
+Por que o CNPJ da matriz é âncora, não “nome fantasia”
+  - Identidade jurídica estável da OSC nacional
+  - Seed idempotente (UNIQUE cnpj) — instalações diferentes nascem iguais
+  - Distingue, na UI e no banco, OSC nacional ≠ OSC municipal ≠ fornecedor
+    vencedor (também CNPJ, outra tabela)
+
+Campo `tipo = matriz` reservado
+  Evita inventar “holding” agora. Se um dia houver federação regional,
+  o enum cresce sem trocar PK.
+
+UX
+  Labels explícitos: “CNPJ OSB Nacional” vs “CNPJ OSB {Cidade}” vs
+  “CNPJ do órgão / fornecedor”. O risco de o admin colar o CNPJ da
+  prefeitura no cadastro da filial é o erro nº 1 de operação — a
+  estrutura existe também para a UI impedir isso.
+
+
+--------------------------------------------------------------------------------
+1.5  Usuários sede = 1 admin + 3 consulta
+--------------------------------------------------------------------------------
+
+Continuidade deliberada
+  O teto municipal (1+3) funcionou: poucos operadores, sessão única,
+  superfície pequena. A sede herda o mesmo contrato institucional —
+  administração nacional não precisa de dezenas de admins.
+
+Por que 3 consulta na sede (não 4, não ilimitado)
+  - 1 admin concentra Setup/Coleta/tokens — dual-control não é requisito
+    desta OSC neste estágio
+  - 3 leitores nacionais cobrem coordenação + diretoria + análise
+  - Ilimitado na sede criaria contas “porque sim” e dilataria sessões
+
+12-factor
+  AUTH_MAX_ADMIN_SEDE / AUTH_MAX_CONSULTA_SEDE via env — teto de produto,
+  não constante cravada no binário. Mudar política não exige release
+  de schema.
+
+Se não fizesse assim
+  Ou a sede fica sem leitura consolidada (só o admin vê o país), ou
+  vira um diretório de contas sem governança.
+
+
+--------------------------------------------------------------------------------
+1.6  Usuários filial = 4 consulta (sem admin local)
+--------------------------------------------------------------------------------
+
+Por que 4 — e não 3, e não admin
+  Voluntariado municipal precisa de mais leitores que a sede (núcleo
+  local, plantão, formação). Quatro é o teto que escala linear com
+  filiais sem explodir sessões nem suporte.
+
+Por que ZERO admin na filial (decisão de segurança e de produto)
+  Admin local poderia: alterar UASGs monitoradas, disparar coleta,
+  criar usuários, ver tokens. Isso:
+    - quebra política nacional de coleta (rate limit é global)
+    - cria drift de cadastro (filial A monitora UASG de filial B)
+    - aumenta superfície (N filiais × 1 admin = N contas privilegiadas)
+
+  Melhor caminho: sede administra; filial lê. É o padrão de observatório
+  em rede (núcleo + unidades) — não o padrão de SaaS self-service.
+
+CHECK no banco
+  max_admin_filial = 0 não é só UI. Constraint + service de teto.
+  Botão escondido não é controle.
+
+
+--------------------------------------------------------------------------------
+1.7  Administração centralizada na sede
+--------------------------------------------------------------------------------
+
+Ops
+  Um agendamento, uma janela noturna, uma cadeia CNPJ/CEP/OSM, um
+  semáforo HTTP. N filiais não podem apertar “coletar agora” ao mesmo
+  tempo — a API Compras.gov é o gargalo compartilhado.
+
+UX
+  Setup é desktop-first e complexo (filial + IBGE + UASGs + usuários).
+  Voluntário municipal não deve carregar essa carga cognitiva.
+  Progressive disclosure: sede vê camadas; filial vê o município pronto.
+
+Auditoria
+  Toda ação privilegiada tem autor na sede (auditoria_evento). Rastreio
+  único — essencial em OSC com rotatividade de voluntários.
+
+
+--------------------------------------------------------------------------------
+1.8  Isolamento de dados = escopo via UASG + filial
+--------------------------------------------------------------------------------
+
+A contratação PNCP não “pertence” à OSB. Pertence ao órgão (UASG).
+A OSB ADERE a um conjunto de UASGs. Portanto o isolamento correto é:
+
+  usuario → (escopo filial) → unidade_observatorio
+           → unidade_compradora / observatorio_uasg
+           → codigo_uasg
+           → contratacao
+
+Por que NÃO copiar observatorio_id em toda linha fato na v1
+  - Redundância: a mesma UASG em duas filiais (caso raro, mas possível
+    em regiões metropolitanas) geraria duplicata ou conflito de dono
+  - Coleta oficial upserta pela chave PNCP — injetar tenant no fato
+    mistura verdade da API com recorte institucional
+  - JOIN na ponte é o modelo canônico; denormalizar é OTIMIZAÇÃO
+    (recomendada só se >20 filiais / dashboard sede lento)
+
+Por que RLS lógico (ORM) e não RLS nativo Postgres na v1
+  - Um ponto de código (escopo.py) testável em pytest com SQLite
+  - RLS nativo é excelente depois — exige policies por role de conexão;
+    o app hoje usa um usuário de banco. Introduzir RLS cedo sem roles
+    por tenant é teatro de segurança
+  - Caminho aberto: a ponte UASG já é a predicado que uma policy
+    futura reutiliza
+
+404 em vez de 403
+  IDOR clássico: “UASG 926922 existe mas não é sua”. 403 confirma
+  existência. 404 não vaza o catálogo nacional para a filial.
+
+
+--------------------------------------------------------------------------------
+1.9  ORM / stack = SQLAlchemy 2 + FastAPI
+--------------------------------------------------------------------------------
+
+Por que manter (não Django, não Nest, não Go)
+  - Integração PNCP, normalizers e auth cookie já validados nesse stack
+  - FastAPI = OpenAPI de graça, deps de escopo naturais, async httpx
+    para APIs externas
+  - SQLAlchemy 2 = mesmo modelo em Postgres (prod) e SQLite (pytest)
+  - Equipe/OSC: Python é o menor custo de manutenção deste domínio
+
+Descartado
+  Reescrever em outro idioma “porque poliglota”. Poliglota aqui significa
+  o ARTEFATO rodar em qualquer nuvem (Docker + DATABASE_URL), não N
+  linguagens no mesmo produto. N linguagens na v1 = N deploys, N
+  toolchains, zero ganho de coleta.
+
+
+--------------------------------------------------------------------------------
+1.10  Migrations = Alembic (nunca create_all em produção)
+--------------------------------------------------------------------------------
+
+create_all cria o que o metadata Python acha que existe. Não versiona
+diff, não reproduz ambiente, não audita o que mudou entre filiais.
+
+Alembic
+  - 001 organizacao/auth → 002 pncp → 003 geo/cache → 004 fila
+    = ordem de dependência real (tenant antes de fato, fato antes de
+    cache, cache antes de job)
+  - Instalações novas: `alembic upgrade head` é o bootstrap
+  - Instalações futuras: uma revisão = uma mudança revisável em PR
+
+Se não fizesse assim
+  Cada servidor “meio migrado” vira um floco de neve. Multi-filial
+  em várias VPS tornaria isso ingovernável.
+
+
+--------------------------------------------------------------------------------
+1.11  Banco produção = PostgreSQL 16+ desde a Fase 0
+--------------------------------------------------------------------------------
+
+Esta é a decisão que mais diferencia o greenfield do protótipo.
+
+Por que NÃO SQLite em produção (mesmo com 1 filial no dia 1)
+  Carga real do sistema nacional, mesmo pequeno:
+    - escrita da coleta noturna
+    - fila de execução
+    - lote CNPJ (1 req / ~3s, mas N filiais em cadeia)
+    - geocode Nominatim (1 req/s) persistindo lat/lng
+    - sessões cookie
+    - dashboards sede lendo agregado
+  SQLite serializa writers. O protótipo municipal sobrevivia com 1
+  writer. O produto nacional nasce com vários. Trocar SGBD depois
+  de dados em produção é o refactor que este estudo existe para evitar.
+
+Por que Postgres 16+ (não MySQL, não Mongo)
+  - JSONB nativo (config filial, payload cache, resumo coleta)
+  - TIMESTAMPTZ (coleta em America/Sao_Paulo, persistir UTC)
+  - NUMERIC(18,4) para valores homologados — float mente em dinheiro
+    público; OSC não pode somar KPIs nacionais com erro de ponto flutuante
+  - Índices parciais (fila pendente, sessão ativa)
+  - Advisory lock (v2 de coleta) sem Redis obrigatório
+  - Ecossistema cloud-agnostic: RDS, Cloud SQL, Neon, Supabase, container
+
+SQLite permanece
+  Somente pytest / dev offline. Isso é disciplina, não indecisão:
+  testes rápidos sem Docker; produção com o SGBD certo.
+
+Se não fizesse assim
+  “Migramos para Postgres nas 10 filiais” = reescrever tipos, JSON, locks
+  e backup no pior momento (já tem dado, já tem voluntário usando).
+
+
+--------------------------------------------------------------------------------
+1.12  Modelos código = app/models/ fatiado (não database.py monolítico)
+--------------------------------------------------------------------------------
+
+O arquivo único de ~1400 linhas do protótipo mistura tenant, PNCP,
+auth e patches. Em multi-filial isso vira conflito permanente de merge
+e impede dono claro de domínio.
+
+Fatiamento por contexto (não por “tipo de arquivo” genérico):
+
+  models/organizacao.py   tenant OSB
+  models/pncp/            verdade da API
+  models/auth.py          identidade
+  models/coleta.py        operação
+  models/geo.py + cache   enriquecimento
+  models/base.py          DeclarativeBase único
+
+Isso é bounded context leve dentro de um monólito — o máximo de
+modularidade que a equipe enxuta aproveita sem RPC.
+
+
+--------------------------------------------------------------------------------
+1.13  Cache externo = tabela api_cache unificada
+--------------------------------------------------------------------------------
+
+Três APIs gratuitas (CNPJ, CEP, Nominatim) × N filiais = explosão de
+chamadas se cada módulo tiver blob próprio.
+
+Uma tabela (tipo, chave, JSONB, fonte, valido_ate)
+  - TTL por tipo (CNPJ 30d, CEP 90d, geocode praticamente infinito)
+  - Dedup nacional: o mesmo fornecedor vence em 3 cidades — 1 consulta
+  - Fallback encadeado grava a fonte que respondeu
+  - Semáforo global respeita 429 de TODAS as origens
+
+Descartado
+  Colunas cnpj_json, cep_json, lat, lng espalhadas em fornecedor.
+  Impossível expirar, impossível reprocessar, impossível auditar fonte.
+
+
+--------------------------------------------------------------------------------
+1.14  Front/back = separação lógica, deploy único
+--------------------------------------------------------------------------------
+
+Separação LÓGICA (JS consome /api; HTML não mistura SQL) já está
+validada. Separação FÍSICA (SPA Node + API + CDN) na v1:
+
+  - dobra artefatos e CORS
+  - não aumenta isolamento de tenant (isso é backend)
+  - OSC não tem time de front dedicado para pipeline Vite/SSR
+
+Melhor caminho: FastAPI serve static + API. Qualquer VPS, um healthcheck,
+um container. No dia em que o front precisar de app nativo, a API já
+é o contrato.
+
+
+--------------------------------------------------------------------------------
+1.15  Coleta = mesma API; fila por filial / dia
+--------------------------------------------------------------------------------
+
+Inalterada na origem
+  dadosabertos.compras.gov.br não muda porque a OSB virou nacional.
+  Cliente, paginação, delay, módulos 05/07/10 permanecem o padrão
+  comprovado.
+
+Fila por filial
+  Cada cidade = N UASGs × anos × fases. Sem fila, uma filial lenta
+  trava as outras no mesmo thread “coletar tudo”. Com fila:
+    - status por unidade no Setup sede (ops visível)
+    - retry pontual (filial X falhou; Y e Z ok)
+    - janela noturna mensurável (duração/filial)
+
+Sequencial na v1 (não paralelo)
+  Rate limit é GLOBAL. Paralelo irrestrito = 429 em massa = coleta
+  pior, não melhor. Paralelismo só na v2 com semáforo HTTP e quando
+  a janela ultrapassar ~4h / ~15 filiais.
+
+
+--------------------------------------------------------------------------------
+1.16  Agendamento = scheduler interno + fila no banco
+--------------------------------------------------------------------------------
+
+Por que não Celery/Rabbit/Kafka na v1
+  1 job/dia, N filiais em série, um processo. Fila no Postgres é
+  persistência + visibilidade + lock. Broker externo adiciona peça
+  que a OSC teria de operar 24h para ganho zero neste volume.
+
+Por que persistir a fila (não só thread in-memory)
+  Restart do container no meio da madrugada: thread morre; fila no
+  banco retoma. Heartbeat/stale lock já era lição do protótipo —
+  agora o lock é por filial, não “o sistema inteiro”.
+
+
+--------------------------------------------------------------------------------
+1.17  Deploy = Docker Compose app + postgres
+--------------------------------------------------------------------------------
+
+Um comando sobe o sistema. Healthcheck em cadeia (postgres healthy
+→ app sobe). Volume pg_data ≠ volume app_data (backups/exports).
+
+Por que Compose e não Kubernetes na v1
+  Uma instância, uma OSC, um nó. K8s é plataforma. Este produto
+  precisa de aplicativo reproduzível. Compose roda em laptop, VPS
+  e, se um dia couber, vira spec para qualquer orquestrador.
+
+
+--------------------------------------------------------------------------------
+1.18  Cloud = agnóstico (DATABASE_URL via env)
+--------------------------------------------------------------------------------
+
+12-factor real:
+  - nenhum SDK de provedor no código de domínio
+  - Postgres gerenciado = trocar URL
+  - Caddy profile https = TLS em qualquer VPS
+  - Nominatim/Brasil API = HTTP público, não VPC proprietária
+
+“Poliglota” neste projeto = o binário não fala a língua da nuvem.
+Fala HTTP + SQL. Isso é o que permite Oracle/AWS/Azure/GCP/Hetzner
+sem fork.
+
+
+--------------------------------------------------------------------------------
+1.19  Microserviços = NÃO na v1
+--------------------------------------------------------------------------------
+
+Microserviço se justifica com: times independentes, escalas
+independentes, falhas isoladas que compensam a rede. Aqui:
+
+  - um time enxuto
+  - gargalo = API externa, não CPU da app
+  - falha de “serviço de coleta” separado ainda derruba o produto
+    do dia seguinte (dado velho)
+
+Extrair worker (mesma imagem, CMD diferente) na v2 é o passo certo —
+separação de COMPUTE, não de domínio. Domínio fatiado em pacotes
+Python já entrega o isolamento intelectual.
+
+
+--------------------------------------------------------------------------------
+1.20  Fonte de licitações = somente Compras.gov / PNCP
+--------------------------------------------------------------------------------
+
+Uma contratação, uma chave (numero_controle_pncp), um normalizer.
+Segunda fonte (portal local, CSV, painel externo) cria:
+
+  - duas granularidades de “processo”
+  - matching heurístico eternamente quebrado
+  - UI “qual número eu olho?”
+  - coleta e schema que não generalizam para a próxima cidade
+
+Rede nacional só é viável com a API que já é nacional. Esta decisão
+não é restrição de escopo de sprint — é condição de existência do
+produto multi-filial.
+
+
+--------------------------------------------------------------------------------
+1.21  CNPJ = Brasil API → Receita WS
+--------------------------------------------------------------------------------
+
+Objetivo do enriquecimento: QSA, CNAE, porte, endereço — para mapa,
+perfil de vencedor e cadastro da filial OSB. Não é a fonte da
+contratação (isso é PNCP).
+
+Por que esta cadeia
+  1) Brasil API — JSON estável, gratuita, um GET, boa cobertura
+  2) Receita WS (publica.cnpj.ws) — fallback real quando 429/5xx
+  3) Demais (Minha Receita, CNPJá) — só se as duas falharem;
+     cada fonte extra é normalizer extra e risco de ToS
+
+Schema interno único
+  A UI e o fornecedor não conhecem “formato Brasil API”. Conhecem
+  o DTO OSB. Trocar primária no futuro não quebra tela nem tabela.
+
+TTL 30 dias
+  Situação cadastral muda; endereço muda pouco. 30d equilibra
+  frescor × cota gratuita × N filiais no mesmo cache nacional.
+
+
+--------------------------------------------------------------------------------
+1.22  CEP = Brasil API → ViaCEP → OpenCEP
+--------------------------------------------------------------------------------
+
+CNPJ às vezes traz CEP sem logradouro; PNCP às vezes traz endereço
+parcial. Geocode ruim começa em CEP ruim.
+
+Cadeia de 3
+  Independência: se uma cair, as outras cobrem. ViaCEP é a mais
+  conhecida (campo erro:true explícito). OpenCEP é terciária enxuta.
+  Três é o máximo útil — quarta API de CEP não aumenta acerto,
+  só latência e código.
+
+CEP antes de Nominatim
+  Endereço canônico (logradouro+cidade+UF) reduz ambiguidade do
+  geocoder e poupa a cota de 1 req/s do OSM.
+
+
+--------------------------------------------------------------------------------
+1.23  Lat/lng e mapas = Nominatim OSM + Leaflet + tiles OSM
+--------------------------------------------------------------------------------
+
+Por que OSM e não Google Maps / Mapbox
+  - custo zero na escala OSC
+  - tiles + geocode + atribuição no mesmo ecossistema
+  - já havia Leaflet no protótipo; troca-se o tile, não a lib
+
+Regras Nominatim são ARQUITETURA, não “detalhe de mapa”
+  User-Agent identificável, 1 req/s, cache eterno da chave de
+  endereço, atribuição visível. Sem isso o IP da sede é bloqueado
+  e o mapa nacional some. Por isso endereco_geocode + api_cache
+  existem no schema — não no localStorage do browser.
+
+Preferir coords do CEP v2 quando existirem
+  Economiza Nominatim e costuma bastar para bolha municipal.
+  Nominatim fica para endereço completo / rooftop quando o CEP
+  não traz location.
+
+
+================================================================================
+2. MODELO DE DADOS — POR QUE CADA ENTIDADE EXISTE
+================================================================================
+
+Cada tabela abaixo ou protege uma invariante de negócio, ou evita uma
+classe de bug. Não há tabela “por se acaso”.
+
+
+--------------------------------------------------------------------------------
+2.1  CAMADA A — TENANT OSB
+--------------------------------------------------------------------------------
+
+organizacao
+  Invariante: existe UMA matriz. Seed pelo CNPJ 10498528000196.
+  Sem esta tabela, “sede” seria um boolean em filial ou um id mágico —
+  os dois apodrecem quando a rede cresce.
+  tipo ENUM('matriz') hoje: honestidade. Não fingir multi-org SaaS.
+
+unidade_observatorio
+  É A filial. Um município OSB = um CNPJ OSB local + um IBGE + um slug.
+  slug (uberlandia-mg): URL, username prefix, branding, logs — estável
+  se o nome fantasia mudar.
+  config_json/JSONB: ano_inicial, modalidades, fases — variação local
+  SEM fork de código e SEM colunas novas a cada pedido de Setup.
+  Schema Pydantic valida o JSON; JSON solto não é “schemaless feliz”,
+  é contrato versionável dentro da filial.
+
+unidade_compradora
+  Adesão explícita no Setup sede. Catálogo municipal pode listar 80
+  UASGs; o observatório monitora 8. Sem esta tabela, coleta puxaria
+  o município inteiro (volume e ruído) ou exigiria flag na dimensão
+  global uasg (contaminando o fato nacional).
+  UNIQUE (unidade_observatorio_id, codigo_uasg): a mesma UASG pode
+  teoricamente aparecer em duas filiais; não pode duplicar DENTRO
+  da mesma.
+
+uasg_catalogo_municipio
+  Espelho do módulo 05 por IBGE da filial. É staging de escolha, não
+  fato de contratação. Separar catálogo de adesão permite “sincronizar
+  de novo” sem apagar o que a sede já aderiu.
+
+observatorio_uasg (ponte)
+  Predicado de escopo. Substitui o filtro implícito do singleton.
+  Toda query analítica da filial passa aqui. Testes de isolamento
+  atacam esta ponte — se ela estiver certa, o resto do RLS lógico
+  está certo.
+
+
+--------------------------------------------------------------------------------
+2.2  CAMADA B — COMPRAS.GOV / PNCP
+--------------------------------------------------------------------------------
+
+orgao, uasg, fornecedor, modalidade, catalogo_item
+  Dimensões NACIONAIS. Fornecedor que vence em Uberlândia e na cidade B
+  é a mesma pessoa jurídica (ni_fornecedor UNIQUE). Duplicar por filial
+  mentiria o ranking nacional da sede e dobraria o cache CNPJ.
+
+contratacao, contratacao_item, contratacao_resultado, contrato
+  Fatos da API. Chave natural numero_controle_pncp UNIQUE — idempotência
+  da coleta. INDEX (codigo_uasg, ano_compra) — o recorte que a UI e a
+  filial realmente usam.
+
+Nomenclatura limpa (schema pncp / nomes sem prefixo compras_ redundante)
+  No protótipo o prefixo distinguia de outra fonte. Aqui só existe
+  esta fonte. Nome curto = modelo mental = código.
+
+coleta_staging_json (opcional, recomendado)
+  API → JSONB bruto → upsert normalizado. Replay quando o normalizer
+  evolui; debug quando a API muda um campo; não re-bater a origem
+  (ética de cota + velocidade). Custo de disco irrelevante frente
+  ao custo de coleta perdida.
+
+Regra de ouro
+  UPDATE da coleta NÃO toca colunas OSB. CAMPOS_PRESERVADOS / tabelas
+  da camada C. Senão a madrugada apaga o trabalho do observador.
+
+
+--------------------------------------------------------------------------------
+2.3  CAMADA C — OSB INTERNO
+--------------------------------------------------------------------------------
+
+observador
+  Pessoa da filial, não “usuário global solto”. FK unidade_observatorio_id
+  NOT NULL. Marcações de um município não vazam para outro nem na sede
+  consolidada sem contexto.
+
+contratacao_anotacao
+  Sidecar: tags, notas, vínculo observador. Separar do payload PNCP
+  é a diferença entre produto de observatório e dump da API.
+
+auditoria_evento na v1 (não “fase 2”)
+  criar_filial, aderir_uasg, criar_usuario, disparar_coleta, login_admin.
+  OSC com rotatividade: sem trilha, incidente de acesso não tem história.
+  JSONB de detalhe evita 15 colunas nulas. Volume baixo (ações de sede).
+
+
+--------------------------------------------------------------------------------
+2.4  CAMADA D — OPERAÇÃO
+--------------------------------------------------------------------------------
+
+usuario
+  papel XOR escopo amarrados por CHECK:
+    sede  → unidade_observatorio_id IS NULL
+    filial → unidade_observatorio_id NOT NULL
+  Impede o estado “admin de lugar nenhum” e o estado “consulta sede
+  preso numa filial”. Username UNIQUE global + prefixo recomendado
+  (sede.admin, uberlandia.consulta1) evita colisão humana.
+
+sessao
+  1 sessão ativa por conta — contrato já validado. Em rede nacional
+  importa MAIS: conta compartilhada em núcleo municipal é o modo
+  real de uso; sessão única força disciplina e permite “liberar”
+  pela sede.
+
+coleta_agendamento_config
+  Horário e fuso na sede (America/Sao_Paulo). Filial não agenda.
+  Uma janela, um relógio, um rate limit.
+
+coleta_fila_execucao
+  Máquina de estados: pendente | executando | ok | erro.
+  UNIQUE parcial “1 executando por filial” + lock global v1 =
+  respeito à API. resumo_json + log_truncado = ops sem ELK.
+
+coleta_execucao_log
+  Detalhe por run/filial além do resumo. Truncado de propósito:
+  log infinito em SQLite/volume já foi lição; Postgres não é desculpa
+  para unbound blob.
+
+
+--------------------------------------------------------------------------------
+2.5  CAMADA E — ENRIQUECIMENTO
+--------------------------------------------------------------------------------
+
+api_cache
+  Ver 1.13. UNIQUE (tipo, chave) é a invariante que impede thundering
+  herd na primeira coleta nacional.
+
+endereco_geocode
+  Endereço canônico + lat/lng + precisão + fonte.
+  Por que tabela própria além do cache:
+    - cache guarda o JSON cru/normalizado da API
+    - geocode é dimensão reutilizável (N fornecedores, 1 ponto)
+  precisao (rooftop / approximate / centroid): UX honesta no mapa —
+  bolha municipal não deve parecer porta da empresa.
+
+
+Tipos que parecem detalhe e são estrutura
+
+  TIMESTAMPTZ     coleta, cache, sessão — “02:00 em Uberlândia” vs UTC
+  NUMERIC(18,4)   soma nacional de valores homologados sem erro binário
+  JSONB           config, payload, auditoria — indexável depois se preciso
+  CHAR(2) uf      dimensão geográfica estável
+  VARCHAR(14) cnpj dígitos só — formatação é UI, não banco
+
+
+================================================================================
+3. PACOTES DE CÓDIGO — POR QUE ESTE LAYOUT
+================================================================================
+
+app/models/           verdade persistida, fatiada por contexto
+app/schemas/          contrato HTTP (Pydantic) ≠ modelo ORM
+app/services/         regra: escopo, orquestração, CNPJ, CEP, geocode
+app/repositories/     queries repetidas (thin) — evita SQL nos routers
+app/api/routers/      finos: auth dep + chama service
+app/db/session.py     um SessionLocal, um engine
+alembic/              história do schema
+main.py               só composição + lifespan
+
+Por que services/escopo.py é o arquivo mais importante do sistema
+  Se o filtro de UASG viver em 12 routers, a 13ª rota vaza dados.
+  Um apply_escopo(stmt, ctx) testado é a cerca. Segurança de tenant
+  em monólito é disciplina de ponto único, não mesh de sidecars.
+
+Por que routers finos
+  FastAPI deps brilham quando o handler não tem regra. Teste de
+  isolamento mocka o ctx; teste de coleta mocka o client HTTP.
+  Misturar os dois no mesmo arquivo é o database.py do passado.
+
+Por que NÃO hexagonal/clean architecture completa
+  Ports & adapters completos (4 camadas de interface) são certos
+  para plataforma com 5 times. Aqui aumentam arquivos sem reduzir
+  risco. O fatiamento adotado é o sweet spot: domínio visível,
+  I/O nas bordas, zero teatro.
+
+tests/ listados na análise — por que exatamente esses
+  test_bootstrap              instalação reproduzível (a primeira hora)
+  test_escopo_filial          a cerca de dados (o risco nº 1)
+  test_limites_usuarios_multi tetos sede/filial (contrato institucional)
+  test_coleta_fila            estados e lock (ops da madrugada)
+  test_cnpj/cep/geocode/cache cadeia e TTL (cota gratuita)
+
+
+================================================================================
+4. AUTORIZAÇÃO, UX E PRODUTO — POR QUE CADA SUPERFÍCIE
+================================================================================
+
+Matriz RBAC (sede.admin / sede.consulta / filial.consulta)
+
+  Três papéis efetivos, dois enums no banco (papel × escopo).
+  Não criar papel “admin_filial” “para o futuro”: o futuro seria
+  usado no dia 2 por pressão local, e a decisão 1.6 morreria.
+
+  sede.consulta vê consolidado e NÃO vê Setup.
+    Coordenação nacional precisa de número; não precisa de token IA.
+    Separar “ver o país” de “mudar o país” é o menor privilégio
+    que a sede consegue sem inventar 5 papéis.
+
+Seletor de filial no header (só sede)
+  Progressive disclosure clássico: macro → unidade → UASG → processo.
+  Sem seletor, a sede ou vê sopa nacional inútil ou replica 30 URLs.
+  Filial NÃO tem seletor — o município já é o mundo. Esconder a
+  escolha é UX, não falta de feature.
+
+Branding OSB {Cidade}
+  Identidade local aumenta adesão do voluntário. Design system único
+  (CSS variables) evita fork visual. Filial não ganha tema livre —
+  ganha nome e logo no casco estável.
+
+Mapa sede vs mapa filial
+  Sede: Brasil, pins de filiais OSB, heatmap de vencedores, drill-down.
+  Filial: município + entorno, bolhas de fornecedores do ESCUDO.
+  O mesmo Leaflet, dois recortes. Geocode sem escopo vaza endereço
+  de fornecedor de outra cidade — por isso /api/geo/* também passa
+  por escopo.py.
+
+Mobile: leitura ok; Setup desktop-first
+  Voluntário consulta no celular. Admin sede configura em mesa.
+  Não gastar sprint em Setup responsivo perfeito — o usuário de
+  Setup não é o de ônibus.
+
+404 em IDOR, menu filtrado por /api/auth/me
+  UI mentir (esconder botão) nunca foi suficiente (protótipo já
+  bloqueava API). O novo sistema replica: permissoes.paginas no me
+  + backend surdo a papel errado.
+
+
+================================================================================
+5. COLETA E CADEIA NOTURNA — POR QUE ESTA ORDEM
+================================================================================
+
+Por filial, após OK da API Compras.gov:
+
+  1. CNPJs pendentes     (vencedores novos — maior valor analítico)
+  2. CEP incompleto      (prepara endereço)
+  3. Geocode Nominatim   (o mais lento e o mais bloqueável)
+  4. Agregações geo      (só com coords estáveis)
+
+Inverter (geocode antes de CNPJ) gastaria 1 req/s em endereço ruim.
+Paralelizar as três APIs no mesmo segundo violaria Nominatim e
+talvez Brasil API. A ordem é física, não estética.
+
+Prioridade de geocode
+  a) Filiais OSB (N pequeno, uma vez) — mapa sede nasceria vazio
+  b) Top vencedores por valor — 80/20 do insight
+  c) Fila do resto — background, não bloqueia dashboard
+
+Lock global v1 vs lock por filial
+  v1: 1 coleta no cluster. Simples, correto com 1 instância.
+  v2: advisory lock Postgres quando houver worker separado.
+  Escolher 1 global agora evita a ilusão de paralelismo que a
+  API puniria.
+
+
+================================================================================
+6. BOOTSTRAP — POR QUE ESTA SEQUÊNCIA
+================================================================================
+
+  alembic upgrade head     schema completo, vazio, versionado
+  seed organizacao matriz  âncora jurídica (idempotente no CNPJ)
+  bootstrap sede.admin     alguém entra; ninguém mais é admin
+  admin cadastra filiais   cidade nasce com CNPJ OSB + IBGE
+  sync UASGs + adesão      recorte explícito
+  primeira coleta API      dados só da origem oficial
+
+Qualquer outra ordem cria estado ilegal:
+  usuário sem org, filial sem IBGE, coleta sem UASG, admin em filial.
+
+O que NÃO entra no bootstrap
+  licitacoes.db, CSV, usuários do protótipo, obter_raiz(), id=1.
+  Coexistência por porta diferente até o corte operacional.
+
+
+================================================================================
+7. ROADMAP — POR QUE ESTA ORDEM DE FASES
+================================================================================
+
+Fase 0  Docker + Postgres + Alembic 001 + seed + health
+        Sem isso, qualquer tela é demo mentindo persistência.
+
+Fase 1  Schema completo + models fatiados + escopo.py + tetos
+        A cerca ANTES das telas. UI sem escopo é vazamento bonito.
+
+Fase 2  Setup sede (CRUD filial, UASG, usuários)
+        Só faz sentido com tenant e tetos já testados.
+
+Fase 3  Fila de coleta + CNPJ escopado
+        Coleta sem fila em multi-filial é thread único frágil.
+        CNPJ na cadeia porque o mapa e o painel de vencedores
+        dependem dele.
+
+Fase 3b CEP + Nominatim + tiles OSM
+        Depois do CNPJ: endereço existe. Antes, geocode chuta.
+
+Fase 4  Dashboard consolidado sede + branding filial
+        Agregar o que já está isolado. Consolidar antes de isolar
+        é construir o ranking nacional em cima de vazamento.
+
+Fase 5  Backup pg_dump, docs multi-cloud, load test N filiais
+        Produção é disciplina de restore e de janela noturna,
+        não de feature nova.
+
+Esta ordem é o melhor caminho porque cada fase só consome
+invariantes já fechadas. Inverter Fase 4 e Fase 1 é o erro
+clássico de “dashboard primeiro”.
+
+
+================================================================================
+8. O QUE FICOU FORA — E POR QUE ISSO TAMBÉM É ESTRUTURA
+================================================================================
+
+Migração trigger/23
+  Ver 1.1. Fora = proteção do modelo nacional.
+
+Outras fontes de licitação
+  Ver 1.20. Fora = condição de existência multi-cidade.
+
+Admin local por filial
+  Ver 1.6. Fora = segurança e política de coleta.
+
+SSO/OAuth
+  Fora na v1: cookie server-side + teto pequeno já atende OSC.
+  Enum de papel permanece extensível; não se constrói IdP agora.
+
+Microserviços / Celery / Redis obrigatório
+  Ver 1.16 e 1.19. Fora até o gatilho mensurável (~15 filiais ou
+  janela > 4h). Introduzir agora é operar plataforma, não observatório.
+
+RLS nativo Postgres
+  Adiável: a ponte UASG já é o predicado. Policies no dia em que
+  houver roles de conexão por tenant — não antes.
+
+Denormalizar unidade_observatorio_id em contratacao
+  Otimização explícita se dashboard sede sofrer em >20 filiais.
+  Não é modelo canônico. Fazer cedo espalha tenant no fato PNCP
+  sem necessidade.
+
+
+================================================================================
+9. SÍNTESE — POR QUE A ESTRUTURA INTEIRA É COERENTE
+================================================================================
+
+Lida de ponta a ponta, a estrutura é um único argumento:
+
+  A rede OSB é hierárquica (matriz → cidade → órgão).
+  A API Compras.gov é nacional, lenta e única fonte confiável.
+  O enriquecimento é público, gratuito e bloqueável.
+  A equipe é enxuta e o deploy precisa ser qualquer nuvem.
+
+Portanto:
+
+  Tenant no organograma OSB, não no fato PNCP.
+  Postgres + Alembic no dia 1, porque a concorrência é real.
+  Fila sequencial, porque o gargalo é a origem.
+  Cache unificado, porque a cota é compartilhada.
+  Admin só na sede, porque a política é nacional.
+  Escopo num único módulo, porque vazamento é o risco existencial.
+  Monólito modular + Docker, porque o produto é um, não uma malha.
+  Front estático no mesmo artefato, porque a API já é o contrato.
+  Greenfield, porque este é o último momento barato de acertar.
+
+Nenhum item é ornamento. Tirar um força compensação pior:
+
+  Sem ponte UASG     → filtro copiado em toda query → vazamento
+  Sem api_cache      → 429 nas APIs free na 3ª filial
+  Sem fila           → uma cidade derruba a madrugada inteira
+  Sem Alembic        → N servidores, N schemas
+  Sem Postgres       → lock de escrita na primeira cadeia geo
+  Sem auditoria v1   → incidente sem história
+  Sem greenfield     → nacional em cima de singleton municipal
+
+O melhor caminho permanece o da análise v1.4. Este documento não
+reabre decisões: demonstra que cada peça resiste a escrutínio de
+engenharia de software, dados, arquitetura, segurança, UX e operação.
+
+
+================================================================================
+10. CONTRATO COM A ANÁLISE
+================================================================================
+
+  Alterar ANALISE-OSB-MULTI-FILIAL-COMPRAS-GOV.txt     → NÃO
+  Reabrir tabela da seção 13                           → NÃO
+  Implementar fora da ordem das fases                  → NÃO recomendado
+  Próximo passo operacional                            → Fase 0
+
+  Fase 0: Docker (app + postgres), Alembic 001,
+          seed matriz OSB 10.498.528/0001-96,
+          bootstrap sede.admin, healthcheck dos dois serviços.
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================
+
+Companion de ANALISE-OSB-MULTI-FILIAL-COMPRAS-GOV.txt v1.4
+As 23 decisões da seção 13 estão reafirmadas como o melhor caminho.

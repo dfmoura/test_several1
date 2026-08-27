@@ -12,6 +12,7 @@ import {
   ApiError,
   mensagemCepImportado,
   patchEnderecoFromCep,
+  setEmpresaId,
   type BancoConsulta,
   type CepConsulta,
   type CnpjConsulta,
@@ -106,6 +107,12 @@ const TABS = [
   'Certificado A1',
 ] as const;
 type Tab = (typeof TABS)[number];
+
+type ExclusaoPreflight = {
+  pode_excluir: boolean;
+  bloqueios: string[];
+  mensagem: string;
+};
 
 function fieldErrors(err: unknown): string {
   if (err instanceof ApiError && err.details) {
@@ -290,7 +297,7 @@ function applyCnpjToForm(form: EmpresaForm, d: CnpjConsulta): EmpresaForm {
 }
 
 export function EmpresasPage() {
-  const { hasPermission, maxEmpresas, empresaId } = useAuth();
+  const { hasPermission, maxEmpresas, empresaId, refresh, setEmpresa } = useAuth();
   const [params] = useSearchParams();
   const canEdit = hasPermission('empresas.gerir');
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -310,6 +317,9 @@ export function EmpresasPage() {
   const [certLoading, setCertLoading] = useState(false);
   const [certUploading, setCertUploading] = useState(false);
   const [certRemoving, setCertRemoving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [exclusao, setExclusao] = useState<ExclusaoPreflight | null>(null);
+  const [exclusaoLoading, setExclusaoLoading] = useState(false);
   const [certFile, setCertFile] = useState<File | null>(null);
   const [certSenha, setCertSenha] = useState('');
   const certFileRef = useRef<HTMLInputElement | null>(null);
@@ -341,6 +351,38 @@ export function EmpresasPage() {
       }
     })();
   }, [tab, bancos.length, bancosLoading]);
+
+  useEffect(() => {
+    if (!selected || !canEdit) {
+      setExclusao(null);
+      setExclusaoLoading(false);
+      return;
+    }
+    const empId = selected.id;
+    setExclusaoLoading(true);
+    setExclusao(null);
+    void (async () => {
+      try {
+        const res = await api.get<{ data: ExclusaoPreflight }>(
+          `/empresas/${empId}/exclusao-preflight`,
+          empId,
+        );
+        if (selectedIdRef.current !== empId) return;
+        setExclusao(res.data);
+      } catch {
+        if (selectedIdRef.current !== empId) return;
+        // Fail-closed: sem preflight, não habilita exclusão.
+        setExclusao({
+          pode_excluir: false,
+          bloqueios: ['Não foi possível verificar dependências'],
+          mensagem:
+            'Não foi possível verificar se a empresa pode ser excluída. Use situação INATIVA se necessário.',
+        });
+      } finally {
+        if (selectedIdRef.current === empId) setExclusaoLoading(false);
+      }
+    })();
+  }, [selected?.id, canEdit]);
 
   useEffect(() => {
     if (!selected || tab !== 'Certificado A1') return;
@@ -416,6 +458,8 @@ export function EmpresasPage() {
     setCert(null);
     setCertFile(null);
     setCertSenha('');
+    setExclusao(null);
+    setExclusaoLoading(Boolean(canEdit));
     if (certFileRef.current) certFileRef.current.value = '';
 
     void (async () => {
@@ -682,6 +726,80 @@ export function EmpresasPage() {
     }
   };
 
+  const excluirEmpresa = async () => {
+    if (!selected || !canEdit || deleting || exclusaoLoading) return;
+    if (!exclusao?.pode_excluir) {
+      setError(
+        exclusao?.mensagem ??
+          'Empresa com dependências. Inative (situação INATIVA) em vez de excluir.',
+      );
+      return;
+    }
+    setError('');
+    setMessage('');
+
+    // Revalida na hora do clique (corrida com outro usuário / outro aba).
+    try {
+      const pre = await api.get<{ data: ExclusaoPreflight }>(
+        `/empresas/${selected.id}/exclusao-preflight`,
+        selected.id,
+      );
+      setExclusao(pre.data);
+      if (!pre.data.pode_excluir) {
+        setError(pre.data.mensagem);
+        return;
+      }
+    } catch (err) {
+      setError(fieldErrors(err));
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Excluir a empresa ${selected.codigo} (${selected.razao_social})?\n\n` +
+          'Só é permitido enquanto não houver orçamentos, pedidos, financeiro ou outros movimentos. ' +
+          'A empresa será removida definitivamente e o CNPJ ficará livre para um novo cadastro.',
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    const excluidaId = selected.id;
+    try {
+      await api.delete(`/empresas/${excluidaId}`, excluidaId);
+      const restantes = empresas.filter((e) => e.id !== excluidaId);
+      setEmpresas(restantes);
+      setSelected(null);
+      setForm(null);
+      setConsulta(null);
+      setCert(null);
+      setExclusao(null);
+      setMessage('Empresa excluída. O CNPJ ficou livre — pode cadastrar de novo se precisar.');
+      const proxima = restantes[0];
+      // Limpa o header antes do refresh — senão /auth/me recebe X-Empresa-Id da EMP excluída (403).
+      setEmpresaId(proxima?.id ?? null);
+      if (proxima) {
+        setEmpresa(proxima.id);
+      }
+      await refresh();
+    } catch (err) {
+      setError(fieldErrors(err));
+      // Recarrega preflight — pode ter surgido dependência.
+      try {
+        const pre = await api.get<{ data: ExclusaoPreflight }>(
+          `/empresas/${excluidaId}/exclusao-preflight`,
+          excluidaId,
+        );
+        setExclusao(pre.data);
+      } catch {
+        /* mantém estado anterior */
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="loading">Carregando empresas…</div>;
 
   const cnpjLocked = Boolean(selected?.cnpj) && !cnpjUnlocked;
@@ -807,8 +925,55 @@ export function EmpresasPage() {
                     {consulting === 'cnpj' ? 'Consultando…' : 'Atualizar da Receita'}
                   </button>
                 )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    disabled={
+                      deleting ||
+                      saving ||
+                      exclusaoLoading ||
+                      !exclusao ||
+                      !exclusao.pode_excluir
+                    }
+                    onClick={() => void excluirEmpresa()}
+                    aria-disabled={
+                      deleting ||
+                      saving ||
+                      exclusaoLoading ||
+                      !exclusao ||
+                      !exclusao.pode_excluir
+                    }
+                    title={
+                      exclusaoLoading
+                        ? 'Verificando se a empresa pode ser excluída…'
+                        : exclusao?.pode_excluir
+                          ? 'Excluir somente se ainda não houver movimentos operacionais'
+                          : exclusao?.mensagem ||
+                            'Empresa com dependências — inative em vez de excluir'
+                    }
+                  >
+                    {deleting
+                      ? 'Excluindo…'
+                      : exclusaoLoading
+                        ? 'Verificando…'
+                        : 'Excluir empresa'}
+                  </button>
+                )}
               </div>
             </div>
+
+            {canEdit && exclusao && !exclusao.pode_excluir && (
+              <p className="form-hint" role="status">
+                Exclusão indisponível — empresa já possui vínculos
+                {exclusao.bloqueios.length > 0
+                  ? ` (${exclusao.bloqueios.slice(0, 3).join('; ')}${
+                      exclusao.bloqueios.length > 3 ? '…' : ''
+                    })`
+                  : ''}
+                . Para desativar o CNPJ no dia a dia, use situação INATIVA.
+              </p>
+            )}
 
             {message && <div className="alert alert-success">{message}</div>}
             {error && <div className="alert alert-error">{error}</div>}

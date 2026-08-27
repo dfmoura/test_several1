@@ -52,6 +52,14 @@ A validade (`valido_de` / `valido_ate`) vem do PKCS#12 no upload. Em toda leitur
 - Soft alert (padrão cortesia): `certificado_a1_alerta` + `dias_para_vencer` no `GET /ativacao`; banner no AppShell; lista `pendencias` na guia A1 (mesmo padrão da IE / bloqueios de emissão).
 - Ops: `plataforma:avisar-certificado-a1` diário (08:05) — espelha `avisar-cortesia-billing`.
 
+## Emenda — PKCS#12 ICP-Brasil no OpenSSL 3
+
+A1 reais (3DES/RC2) exigem o **provider legacy** do OpenSSL 3. Sem ele, `openssl_pkcs12_read` falha e a UI parece “senha incorreta”.
+
+- Imagem PHP: `OPENSSL_CONF` → `docker/php/openssl.cnf` (default + legacy; TLS outbound inalterado).
+- Superfície: a mesma (`Empresas` → guia Certificado A1). Sem endpoint paralelo, sem PFX em disco, sem CLI de upload.
+- CNPJ: extraído de CN, `serialNumber`, OU/O e DN completo (padrão ICP-Brasil).
+
 ## Proibido
 
 1. Devolver PFX, senha ou cipher na API/UI/logs.  

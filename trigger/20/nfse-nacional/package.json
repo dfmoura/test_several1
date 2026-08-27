@@ -16,7 +16,9 @@
     "typecheck": "turbo run typecheck",
     "db:migrate": "node scripts/migrate.js",
     "docker:up": "docker compose --profile dev up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "docker:ready": "bash scripts/dev-ready.sh",
+    "smoke": "bash scripts/smoke-test.sh"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -1,0 +1,276 @@
+================================================================================
+  ESTUDO — MÓDULO NF-e MG · SOFTHOUSE · HOMOLOGAÇÃO DIRETA SEFAZ-MG
+================================================================================
+
+Documento   : Viabilidade e plano prático
+Escopo      : NF-e modelo 55 · vendedores de produto · MG · ambiente de testes
+Data        : 2026-08-26
+Versão      : 1.0
+
+
+================================================================================
+RESPOSTA DIRETA
+================================================================================
+
+  SIM — dá para desenvolver direto na SEFAZ-MG (Web Services próprios de MG).
+
+  NÃO — não dá para homologar emissão “de verdade” sem certificado A1 do
+        emitente (seu cliente vendedor). Seu A1 de prestadora não assina NF-e
+        de produto de terceiro.
+
+  SIM — o caminho que você descreveu é o correto: sistema multi-tenant onde
+        cada cliente cadastra IE + certificado A1 dele; você integra direto
+        nos endpoints de homologação de MG.
+
+
+================================================================================
+1. PAPEIS — QUEM PRECISA DE QUÊ
+================================================================================
+
+  ┌─────────────────────┬──────────────────────────────────────────────────┐
+  │ Ator                │ O que precisa                                    │
+  ├─────────────────────┼──────────────────────────────────────────────────┤
+  │ Sua softhouse       │ CNPJ · A1 próprio (NFSe / contrato) · SEM IE     │
+  │                     │ Não emite NF-e de produto em nome próprio        │
+  ├─────────────────────┼──────────────────────────────────────────────────┤
+  │ Cliente vendedor    │ IE MG ativa · CNPJ · A1 e-CNPJ do emitente       │
+  │ (emitente ICMS)     │ Credenciamento NF-e no SIARE (homologação)       │
+  ├─────────────────────┼──────────────────────────────────────────────────┤
+  │ SEFAZ-MG            │ Autoriza NF-e cuja IE é de MG (UF autorizadora)  │
+  └─────────────────────┴──────────────────────────────────────────────────┘
+
+  IE é do cliente. Certificado de assinatura do XML deve conter CNPJ do
+  estabelecimento emitente (ou matriz). Regra oficial SEFAZ-MG.
+
+
+================================================================================
+2. O QUE SEU A1 SERVE (E O QUE NÃO SERVE)
+================================================================================
+
+  SERVE
+    · Credenciamento da softhouse onde exigido (ex.: postos — Portaria SRE
+      277/2025, CNAE 4731-8; vigência credenciamento dev. a partir 02/02/2026)
+    · NFSe da sua empresa prestadora
+    · TLS mútua na transmissão (qualquer A1 ICP-Brasil pode transmitir)
+
+  NÃO SERVE
+    · Assinar <NFe> com CNPJ/IE do cliente → rejeição na autorização
+    · Substituir credenciamento SIARE do cliente emitente
+    · “Simular” emitente sem certificado compatível com o XML
+
+
+================================================================================
+3. HOMOLOGAÇÃO SEM A1 DO CLIENTE — LIMITE REAL
+================================================================================
+
+  Sem A1 do cliente você CONSEGUE:
+    · Montar XML NF-e 4.00 conforme layout SEFAZ
+    · Validar contra XSD (schemas oficiais)
+    · Gerar chave de acesso, DANFE preview, persistência, filas
+    · Chamar NFeStatusServico4 (teste de conectividade TLS)
+    · Testes unitários com mock de retorno da SEFAZ
+
+  Sem A1 do cliente você NÃO CONSEGUE:
+    · Autorizar nota em homologação com dados reais do cliente
+    · Testar ciclo completo: envio → recibo → protocolo → XML autorizado
+    · Validar regras de negócio da SEF-MG ligadas a IE/CNPJ do emitente
+
+  Conclusão prática: desenvolva ~70% do módulo sem certificado de cliente;
+  para os ~30% restantes (integração real), use UM cliente piloto que já
+  emite NF-e e empreste o A1 de homologação (ou gere A1 só para testes).
+
+
+================================================================================
+4. CREDENCIAMENTO — QUEM FAZ O QUÊ NO SIARE
+================================================================================
+
+  Passo obrigatório do CLIENTE (não da softhouse, salvo exceções):
+
+    1. Login SIARE: https://www2.fazenda.mg.gov.br/sol/
+    2. Menu: Documentos Eletrônicos → Credenciar Emissor → NF-e
+    3. Ambiente: Homologação (liberação imediata)
+    4. Preencher responsáveis (negócio + TI)
+    5. Identificação do aplicativo:
+         · Desenvolvimento: "Desenvolvido por terceiros"
+         · Nome do aplicativo: [seu produto]
+         · Software house desenvolvedora: [sua razão social]
+    6. Produção: só após homologação (+ prazo SEF-MG, tip. até 12h do
+       próximo dia útil para solicitar liberação produção)
+
+  Softhouse SEM credenciamento próprio para varejo comum de produtos.
+  Exceção: contribuintes CNAE 4731-8 (postos) → Portaria SRE 277/2025 exige
+  credenciamento da empresa desenvolvedora + grupo ZD (responsável técnico)
+  no XML a partir de 02/02/2026.
+
+
+================================================================================
+5. INTEGRAÇÃO DIRETA SEFAZ-MG (SEM SVRS PARA AUTORIZAÇÃO MG)
+================================================================================
+
+  MG é autorizadora própria. Endpoints homologação (NF-e 4.00):
+
+    NFeStatusServico4      https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeStatusServico4
+    NFeAutorizacao4        https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4
+    NFeRetAutorizacao4     https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRetAutorizacao4
+    NFeConsultaProtocolo4  https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeConsultaProtocolo4
+    NFeInutilizacao4       https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeInutilizacao4
+    NFeRecepcaoEvento4     https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRecepcaoEvento4
+    CadConsultaCadastro4   https://hnfe.fazenda.mg.gov.br/nfe2/services/CadConsultaCadastro4
+
+  Produção: prefixo nfe. (em vez de hnfe.)
+
+  Fonte oficial: portalsped.fazenda.mg.gov.br/spedmg/nfe/webservices/
+
+  tpAmb no XML:
+    · 2 = Homologação
+    · 1 = Produção
+
+  Observação: ambiente homologação MG é apagado periodicamente (~6 meses);
+  notas não têm validade jurídica.
+
+
+================================================================================
+6. FLUXO TÉCNICO MÍNIMO (AUTORIZAÇÃO)
+================================================================================
+
+  1. Montar infNFe (emit = CNPJ/IE/série/número do cliente)
+  2. Assinar XML com A1 do cliente (CNPJ emitente)
+  3. Montar lote enviNFe → assinar lote (mesmo certificado)
+  4. POST SOAP NFeAutorizacao4 (TLS com certificado cliente)
+  5. Obter nRec → NFeRetAutorizacao4 (polling)
+  6. Protocolo 100 = autorizada → armazenar procNFe
+  7. Eventos (cancelamento, CC-e): NFeRecepcaoEvento4
+
+  Certificado usado na transmissão deve ser o mesmo que consulta o retorno
+  (regra SEFAZ para resgatar resposta do lote).
+
+
+================================================================================
+7. MODELO DE PRODUTO — CLIENTE SÓ PLUGA CREDENCIAIS
+================================================================================
+
+  Cadastro por emitente (tenant):
+
+    · CNPJ + IE MG + razão social + endereço fiscal
+    · Certificado A1 (.pfx) + senha — criptografado em repouso (KMS/vault)
+    · Ambiente: homolog | produção
+    · Séries e numeração (último número, inutilizados)
+    · Regime tributário · CRT · CFOPs padrão · perfil de impostos
+    · CSC / ID Token — só se for NFC-e (modelo 65), não NF-e modelo 55
+
+  O cliente NÃO “passa login SIARE” para seu sistema emitir por ele.
+  SIARE é credenciamento manual no portal. Seu sistema consome Web Service
+  com certificado dele após credenciado.
+
+  UX alvo:
+    · Wizard: upload A1 → teste StatusServico → nota teste homologação
+    · Checklist: “Credenciou no SIARE?” (link + print opcional)
+    · Troca homolog → produção: flip de flag + validação série
+
+
+================================================================================
+8. STACK SUGERIDA (OBJETIVA)
+================================================================================
+
+  Opção A — mais rápida (recomendada para MVP homologação):
+    · Biblioteca NF-e madura (ex.: foco nfe / erpbrasil.edoc / ACBr via bridge)
+    · Backend Python ou Node
+    · Armazenamento seguro de PFX por tenant
+    · Fila assíncrona para RetAutorizacao
+
+  Opção B — controle total:
+    · Gerar XML + assinatura XML-DSig manualmente
+    · SOAP 1.2 + mutual TLS
+    · Mais trabalho; só se quiser zero dependência fiscal
+
+  Documentação base:
+    · MOC NF-e 7.0 (Receita/EN)
+    · Schemas PL_009 (v4.00)
+    · Anexo MG — regras e tabelas facultativas SEF-MG
+
+
+================================================================================
+9. PLANO EM FASES (SÓ HOMOLOGAÇÃO PRIMEIRO)
+================================================================================
+
+  Fase 0 — Preparação (sem certificado cliente)
+    · Estrutura multi-tenant + modelo emitente
+    · CRUD produtos/clientes destinatários
+    · Gerador XML + validação XSD
+    · DANFE HTML/PDF (layout simplificado)
+
+  Fase 1 — Piloto homologação (1 cliente que já emite)
+    · Cliente credencia SIARE homologação apontando seu software
+    · Cliente sobe A1 no seu sistema
+    · StatusServico OK
+    · 1 NF-e homologação autorizada (destinatário fictício padrão SEFAZ)
+    · Consulta protocolo + download procNFe
+    · Cancelamento em homologação
+
+  Fase 2 — Robustez
+    · Inutilização numeração
+    · Carta de correção
+    · Contingência (FS-DA / EPEC — se aplicável ao perfil)
+    · Log de rejeições + retry idempotente
+
+  Fase 3 — Produção (quando cliente liberar)
+    · Mesmo código, tpAmb=1, URLs produção
+    · Cliente solicita produção no SIARE
+    · Go-live controlado (série piloto, volume baixo)
+
+
+================================================================================
+10. RISCOS E CUIDADOS
+================================================================================
+
+  · Guardar PFX: LGPD + responsabilidade contratual; nunca logar senha
+  · Validade certificado: alerta 30/15/7 dias antes de expirar
+  · IE inativa ou não credenciada → rejeição antes do XML
+  · Homologação apagada periodicamente — não usar como arquivo fiscal
+  · Postos combustível: exigência extra Portaria 277/2025 (cred. dev. + ZD)
+  · Atualizações de layout/nota técnica: monitorar portal SPED MG
+
+
+================================================================================
+11. CHECKLIST GO/NO-GO HOMOLOGAÇÃO
+================================================================================
+
+  [ ] Cliente piloto com IE MG ativa
+  [ ] Cliente credenciado NF-e homologação no SIARE
+  [ ] A1 e-CNPJ do cliente (CNPJ compatível com emit no XML)
+  [ ] Série de homologação definida (ex.: 900+ ou conforme prática local)
+  [ ] tpAmb=2 em todas as chamadas
+  [ ] URLs hnfe.fazenda.mg.gov.br configuradas
+  [ ] Primeira nota autorizada (cStat 100)
+  [ ] procNFe armazenado e DANFE conferido
+
+
+================================================================================
+12. DECISÃO RECOMENDADA
+================================================================================
+
+  Viável e alinhado ao que você quer:
+
+    · Softhouse sem IE → OK para desenvolver e comercializar ERP/emissor
+    · Integração direta SEFAZ-MG → OK (MG não usa SVRS para autorizar MG)
+    · Homologação primeiro → OK, mas exige A1 de UM emitente real (piloto)
+    · Produto final → tenant com certificado + dados fiscais do cliente;
+      SIARE continua sendo passo manual do cliente (5–10 min, uma vez)
+
+  Próximo passo concreto: fechar 1 cliente vendedor MG disposto a homologar
+  com você; paralelamente implementar Fase 0 sem depender dele.
+
+
+================================================================================
+REFERÊNCIAS
+================================================================================
+
+  SIARE MG              https://www2.fazenda.mg.gov.br/sol/
+  SPED MG NF-e          https://portalsped.fazenda.mg.gov.br/spedmg/nfe/
+  Web Services MG       https://portalsped.fazenda.mg.gov.br/spedmg/nfe/webservices/
+  Manual credenciamento https://portalsped.fazenda.mg.gov.br/spedmg/nfe/download/manual_cadastro.pdf
+  Portal NF-e nacional  https://www.nfe.fazenda.gov.br/
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

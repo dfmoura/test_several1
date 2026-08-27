@@ -59,6 +59,7 @@ Duas camadas de dinheiro (não misturar):
 - Login (`/login`) **não** oferece cadastro; `/cadastro` e `/cadastro/conta` redirecionam para login.
 - Usuários da conta: só o ADMIN com `usuarios.gerir` em `POST /usuarios` (credenciais entregues fora do app).
 - `POST /auth/abrir-empresa` (logado, master) abre EMP + catálogo modelo + CFIN + `empresa_ativacoes`; herda pagamento se a conta já pagou. Teto: 3 EMP por conta.
+- **Exclusão de EMP virgem:** `DELETE /empresas/{id}` (+ preflight) com `empresas.gerir` e vínculo. Só se não houver cadeia operacional nem cadastro comercial além do provisionamento. **Purge definitivo** (remove provisionamento + linha `empresas`) — libera o CNPJ para novo cadastro; não deixa fantasma soft-deleted. Rótulo “demo” só para CNPJs do seed RLP legado. EMP em uso → `situacao=INATIVA`. Purge em massa de conta: ops `plataforma:limpar-livro-conta`.
 - `GET /ativacao` funciona sem EMP (fatura da conta) ou com EMP (passos operacionais).
 - `GET /ativacao` inclui `conta` (fatura: pagador, valor, ciclo, meios, `proxima_cobranca_em`, `dias_ate_proxima`, `cobranca_antecipada`, `primeira_cobranca_em`, `alerta_cortesia`). Checkout ASAAS é `RECURRENT` MONTHLY com `nextDueDate` = fim da cortesia vigente (ou hoje).
 - UI canônica de mensalidade: `/conta/mensalidade` (status + renovação + aviso de cortesia); `/cadastro/pagamento` permanece para quem já autenticou.
