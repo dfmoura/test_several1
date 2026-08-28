@@ -464,7 +464,9 @@ class OrcamentoAprovacaoService
                     'destino' => (string) $link->destino_envio,
                     'legado' => $link->parceiro_contato_id === null,
                 ];
+                // Dual-canal: e-mail e WhatsApp resolvem pelo cadastro mesmo no lembrete.
                 $base['email'] = $this->propostaEmail->resolverEmailDestino($orcamento, $base);
+                $base['whatsapp'] = $this->propostaWhatsApp->resolverWhatsAppDestino($orcamento, $base);
 
                 return $base;
             }
@@ -476,15 +478,7 @@ class OrcamentoAprovacaoService
         if ($contatoId) {
             foreach ($destinatarios as $d) {
                 if ((int) $d['parceiro_contato_id'] === $contatoId) {
-                    return [
-                        'parceiro_contato_id' => $contatoId,
-                        'nome' => (string) $d['nome'],
-                        'funcao' => $d['funcao'] ?? null,
-                        'canal' => (string) $d['canal'],
-                        'destino' => (string) $d['destino'],
-                        'email' => $this->emailLimpo($d['email'] ?? null),
-                        'legado' => false,
-                    ];
+                    return $this->destinatarioEnvioFromLista($d, false);
                 }
             }
             throw ValidationException::withMessages([
@@ -495,15 +489,7 @@ class OrcamentoAprovacaoService
         if ($usarLegado) {
             foreach ($destinatarios as $d) {
                 if (! empty($d['legado'])) {
-                    return [
-                        'parceiro_contato_id' => null,
-                        'nome' => (string) $d['nome'],
-                        'funcao' => $d['funcao'] ?? null,
-                        'canal' => (string) $d['canal'],
-                        'destino' => (string) $d['destino'],
-                        'email' => $this->emailLimpo($d['email'] ?? null),
-                        'legado' => true,
-                    ];
+                    return $this->destinatarioEnvioFromLista($d, true);
                 }
             }
         }
@@ -512,15 +498,7 @@ class OrcamentoAprovacaoService
         if (count($destinatarios) === 1) {
             $d = $destinatarios[0];
 
-            return [
-                'parceiro_contato_id' => $d['parceiro_contato_id'] ?? null,
-                'nome' => (string) $d['nome'],
-                'funcao' => $d['funcao'] ?? null,
-                'canal' => (string) $d['canal'],
-                'destino' => (string) $d['destino'],
-                'email' => $this->emailLimpo($d['email'] ?? null),
-                'legado' => (bool) ($d['legado'] ?? false),
-            ];
+            return $this->destinatarioEnvioFromLista($d, (bool) ($d['legado'] ?? false));
         }
 
         throw ValidationException::withMessages([
@@ -533,6 +511,40 @@ class OrcamentoAprovacaoService
         $mail = trim((string) $email);
 
         return ($mail !== '' && filter_var($mail, FILTER_VALIDATE_EMAIL)) ? $mail : null;
+    }
+
+    /**
+     * Payload de envio com e-mail e WhatsApp do cadastro (dual-canal automático).
+     *
+     * @param  array<string, mixed>  $d
+     * @return array{
+     *   parceiro_contato_id: int|null,
+     *   nome: string,
+     *   funcao: string|null,
+     *   canal: string,
+     *   destino: string,
+     *   email: string|null,
+     *   whatsapp: string|null,
+     *   legado: bool
+     * }
+     */
+    private function destinatarioEnvioFromLista(array $d, bool $legado): array
+    {
+        $wa = preg_replace('/\D+/', '', (string) ($d['whatsapp'] ?? '')) ?: null;
+        if ($wa !== null && strlen($wa) < 10) {
+            $wa = null;
+        }
+
+        return [
+            'parceiro_contato_id' => isset($d['parceiro_contato_id']) ? (int) $d['parceiro_contato_id'] : null,
+            'nome' => (string) $d['nome'],
+            'funcao' => $d['funcao'] ?? null,
+            'canal' => (string) $d['canal'],
+            'destino' => (string) $d['destino'],
+            'email' => $this->emailLimpo($d['email'] ?? null),
+            'whatsapp' => $wa,
+            'legado' => $legado,
+        ];
     }
 
     /**

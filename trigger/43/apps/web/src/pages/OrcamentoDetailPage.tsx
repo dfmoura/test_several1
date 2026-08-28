@@ -420,12 +420,14 @@ export function OrcamentoDetailPage() {
         <div className="card orc-share-card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-              Mensagem para o destinatário
+              {envio.zap_enviado || envio.email_enviado
+                ? 'Proposta enviada'
+                : 'Mensagem para o destinatário'}
               {copiado ? <span className="orc-share-ok"> · texto copiado</span> : null}
             </h3>
             <p className="orc-share-hint">
               {envio.destinatario?.nome
-                ? `Para ${envio.destinatario.nome}${envio.destinatario.funcao ? ` (${envio.destinatario.funcao})` : ''}${envio.destinatario.canal ? ` · ${envio.destinatario.canal}` : ''}. `
+                ? `Para ${envio.destinatario.nome}${envio.destinatario.funcao ? ` (${envio.destinatario.funcao})` : ''}. `
                 : ''}
               {envio.zap_enviado && envio.zap_destino
                 ? `WhatsApp enviado para ${formatPhone(envio.zap_destino) || envio.zap_destino}. `
@@ -441,8 +443,9 @@ export function OrcamentoDetailPage() {
                   : envio.email_motivo === 'falha_envio'
                     ? 'Não foi possível enviar o e-mail agora — use o canal abaixo. '
                     : ''}
-              O link é pessoal e único — não encaminhe. Cole ou abra o canal abaixo; após
-              aprovar/recusar o sistema atualiza sozinho e o link deixa de funcionar.
+              O link é pessoal e único — não encaminhe. Clipboard e canal manual continuam
+              disponíveis abaixo; após aprovar/recusar o sistema atualiza sozinho e o link
+              deixa de funcionar.
             </p>
             <textarea
               className="orc-share-text"
