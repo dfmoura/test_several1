@@ -346,6 +346,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/orcamento-catalogo/faixas-frete/{faixaFrete}', [OrcamentoCatalogoController::class, 'updateFaixaFrete']);
 
         Route::get('/facas/resumo', [FacasController::class, 'resumo']);
+        Route::get('/facas/sugestao-n-facas', [FacasController::class, 'sugestaoNFacas']);
         Route::post('/facas/seed', [FacasController::class, 'seed']);
         Route::post('/facas/alinhar-fornecedores', [FacasController::class, 'alinharFornecedores']);
         Route::get('/facas', [FacasController::class, 'index']);

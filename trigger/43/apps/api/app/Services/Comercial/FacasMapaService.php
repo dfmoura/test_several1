@@ -221,6 +221,13 @@ class FacasMapaService
         // Não criar 1 faca da EMP sobre o template compartilhado — materializa o mapa completo antes.
         $this->ensureMapaEmpresa();
 
+        if (
+            (! array_key_exists('n_facas', $data) || $data['n_facas'] === null || $data['n_facas'] === '')
+            && ! empty($data['maquina_catalogo'])
+        ) {
+            $data['n_facas'] = $this->sugerirProximoNFacas((string) $data['maquina_catalogo'])['sugerido'];
+        }
+
         $payload = $this->normalizeRow($data, forSeed: false);
         $payload['empresa_id'] = CatalogoOrcEmpresa::id();
         $this->assertNoDuplicateAtiva($payload);
@@ -315,6 +322,14 @@ class FacasMapaService
             $n = $data['n_facas'];
             $faca->n_facas = ($n === null || $n === '') ? null : (int) $n;
         }
+        if (array_key_exists('valor_pago', $data)) {
+            $vp = $data['valor_pago'];
+            if ($vp === null || $vp === '') {
+                $faca->valor_pago = null;
+            } elseif (is_numeric($vp)) {
+                $faca->valor_pago = round((float) $vp, 2);
+            }
+        }
         foreach (['cilindro', 'colunas_mapa', 'conjugada', 'fornecedor', 'cliente_nota'] as $col) {
             if (! array_key_exists($col, $data)) {
                 continue;
@@ -367,6 +382,54 @@ class FacasMapaService
             'completas' => $completas,
             'incompletas' => count($all) - $completas,
             'fonte' => 'json_fallback',
+        ];
+    }
+
+    /**
+     * Próximo N facas sugerido para cadastro na máquina (último cadastrado + 1).
+     * Considera ativas e inativas — o número já utilizado permanece reservado.
+     *
+     * @return array{maquina_catalogo: string, ultimo_n_facas: int|null, sugerido: int}
+     */
+    public function sugerirProximoNFacas(string $maquinaCatalogo): array
+    {
+        $maquina = strtoupper(trim($maquinaCatalogo));
+        if ($maquina === '') {
+            throw ValidationException::withMessages([
+                'maquina_catalogo' => 'Máquina é obrigatória para sugerir N facas.',
+            ]);
+        }
+
+        if ($this->usingDatabase()) {
+            $ultimo = $this->scopedQuery()
+                ->whereNotNull('n_facas')
+                ->where(function (Builder $w) use ($maquina) {
+                    $w->whereRaw('UPPER(maquina_catalogo) = ?', [$maquina])
+                        ->orWhereRaw('UPPER(COALESCE(maquina_origem,\'\')) = ?', [$maquina]);
+                })
+                ->max('n_facas');
+        } else {
+            $ultimo = null;
+            foreach ($this->allFromJson() as $f) {
+                if (! is_array($f) || ! array_key_exists('n_facas', $f) || $f['n_facas'] === null || $f['n_facas'] === '') {
+                    continue;
+                }
+                $mq = strtoupper(trim((string) ($f['maquina_catalogo'] ?? '')));
+                $orig = strtoupper(trim((string) ($f['maquina_origem'] ?? '')));
+                if ($mq !== $maquina && $orig !== $maquina) {
+                    continue;
+                }
+                $n = (int) $f['n_facas'];
+                $ultimo = $ultimo === null ? $n : max($ultimo, $n);
+            }
+        }
+
+        $ultimoInt = $ultimo === null ? null : (int) $ultimo;
+
+        return [
+            'maquina_catalogo' => $maquina,
+            'ultimo_n_facas' => $ultimoInt,
+            'sugerido' => ($ultimoInt ?? 0) + 1,
         ];
     }
 
@@ -650,6 +713,14 @@ class FacasMapaService
         $nFacas = $row['n_facas'] ?? null;
         $nFacas = $nFacas === null || $nFacas === '' ? null : (int) $nFacas;
 
+        $valorPago = $this->nullableFloat($row['valor_pago'] ?? null);
+        if ($valorPago !== null) {
+            $valorPago = round($valorPago, 2);
+            if ($valorPago < 0) {
+                throw ValidationException::withMessages(['valor_pago' => 'Valor pago não pode ser negativo.']);
+            }
+        }
+
         return [
             'medida' => $medida,
             'tamanho_raw' => $tamanhoRaw !== '' ? $tamanhoRaw : null,
@@ -668,6 +739,7 @@ class FacasMapaService
             'colunas_mapa' => ($col = trim((string) ($row['colunas_mapa'] ?? ''))) !== '' ? $col : null,
             'conjugada' => ($cj = trim((string) ($row['conjugada'] ?? ''))) !== '' ? $cj : null,
             'fornecedor' => ($fo = trim((string) ($row['fornecedor'] ?? ''))) !== '' ? $fo : null,
+            'valor_pago' => $valorPago,
             'cliente_nota' => ($cn = trim((string) ($row['cliente_nota'] ?? ''))) !== '' ? $cn : null,
             'completa' => $completa,
             'label' => $label,
@@ -740,6 +812,7 @@ class FacasMapaService
             'colunas_mapa' => $f->colunas_mapa,
             'conjugada' => $f->conjugada,
             'fornecedor' => $f->fornecedor,
+            'valor_pago' => $f->valor_pago,
             'cliente_nota' => $f->cliente_nota,
             'completa' => (bool) $f->completa,
             'label' => $f->label,
@@ -761,7 +834,7 @@ class FacasMapaService
             'nota_redonda' => 'Formato REDONDA: TAMANHO = diâmetro (Ø).',
             'nota_rep' => 'REP = REPETIÇÃO.',
             'nota_manual' => 'Facas incompletas exigem puxada/Z manuais.',
-            'nota_ciclo' => 'Geometria não é editável: cadastre nova e inative a antiga. Nota, fornecedor e grupo ORC podem ser ajustados.',
+            'nota_ciclo' => 'Geometria não é editável: cadastre nova e inative a antiga. Nota, fornecedor, valor pago e grupo ORC podem ser ajustados.',
         ];
     }
 

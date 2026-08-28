@@ -6264,6 +6264,25 @@ tr.row-inactive td {
   max-width: 760px;
 }
 
+.mapa-facas-nova {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.mapa-facas-nova-actions {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  background: var(--surface-elevated);
+  border-top: 1px solid var(--border, rgba(15, 23, 42, 0.12));
+}
+
 .mapa-facas-nova-preview {
   display: flex;
   gap: 1rem;

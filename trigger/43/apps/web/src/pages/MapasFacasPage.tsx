@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { FornecedorMapaCombobox } from '../components/FornecedorMapaCombobox';
 import { PageHeader } from '../components/PageHeader';
 import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
@@ -32,6 +32,7 @@ type FacaMapa = {
   colunas_mapa?: string | null;
   conjugada?: string | null;
   fornecedor?: string | null;
+  valor_pago?: number | null;
   cliente_nota?: string | null;
   completa: boolean;
   label?: string | null;
@@ -70,6 +71,7 @@ const FACA_SORT = {
   rep: (f: FacaMapa) => (f.repeticao != null ? Number(f.repeticao) : null),
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
   fornecedor: (f: FacaMapa) => f.fornecedor,
+  valor_pago: (f: FacaMapa) => (f.valor_pago != null ? Number(f.valor_pago) : null),
   nota: (f: FacaMapa) => f.cliente_nota,
 };
 
@@ -78,6 +80,13 @@ function fmtNum(v: unknown, d = 2): string {
   const n = Number(v);
   if (Number.isNaN(n)) return String(v);
   return n.toLocaleString('pt-BR', { maximumFractionDigits: d });
+}
+
+function fmtMoney(v: unknown): string {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (Number.isNaN(n)) return '—';
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function fieldErrors(err: unknown): string {
@@ -110,6 +119,7 @@ type NovaForm = {
   colunas_mapa: string;
   conjugada: string;
   fornecedor: string;
+  valor_pago: string;
   cliente_nota: string;
 };
 
@@ -127,6 +137,7 @@ const EMPTY_NOVA: NovaForm = {
   colunas_mapa: '',
   conjugada: '',
   fornecedor: '',
+  valor_pago: '',
   cliente_nota: '',
 };
 
@@ -153,6 +164,8 @@ export function MapasFacasPage() {
   const [selected, setSelected] = useState<FacaMapa | null>(null);
   const [showNova, setShowNova] = useState(false);
   const [nova, setNova] = useState<NovaForm>(EMPTY_NOVA);
+  const novaNFacasManual = useRef(false);
+  const sugestaoNFacasReq = useRef(0);
   const [novaErro, setNovaErro] = useState('');
   const [editMeta, setEditMeta] = useState({
     maquina_catalogo: '',
@@ -161,6 +174,7 @@ export function MapasFacasPage() {
     colunas_mapa: '',
     conjugada: '',
     fornecedor: '',
+    valor_pago: '',
     cliente_nota: '',
   });
 
@@ -178,9 +192,62 @@ export function MapasFacasPage() {
       colunas_mapa: selected.colunas_mapa ?? '',
       conjugada: selected.conjugada ?? '',
       fornecedor: selected.fornecedor ?? '',
+      valor_pago: selected.valor_pago != null ? String(selected.valor_pago) : '',
       cliente_nota: selected.cliente_nota ?? '',
     });
   }, [selected]);
+
+  const carregarSugestaoNFacas = useCallback(async (maquina: string) => {
+    const m = maquina.trim();
+    if (!m || novaNFacasManual.current) return;
+    const reqId = ++sugestaoNFacasReq.current;
+    try {
+      const qs = new URLSearchParams({ maquina_catalogo: m });
+      const res = await api.get<{ data: { sugerido: number } }>(`/facas/sugestao-n-facas?${qs}`);
+      if (reqId !== sugestaoNFacasReq.current || novaNFacasManual.current) return;
+      setNova((p) =>
+        p.maquina_catalogo.trim() === m ? { ...p, n_facas: String(res.data.sugerido) } : p,
+      );
+    } catch {
+      // Sugestão opcional — o usuário pode preencher manualmente.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showNova) return;
+    const m = nova.maquina_catalogo.trim();
+    if (!m || novaNFacasManual.current) return;
+    const delay = maquinasLista.length > 0 ? 0 : 350;
+    const t = window.setTimeout(() => {
+      void carregarSugestaoNFacas(m);
+    }, delay);
+    return () => window.clearTimeout(t);
+  }, [showNova, nova.maquina_catalogo, maquinasLista.length, carregarSugestaoNFacas]);
+
+  const onMaquinaNovaChange = (maquina: string) => {
+    setNova((p) => ({ ...p, maquina_catalogo: maquina }));
+  };
+
+  const abrirNovaFaca = () => {
+    const maquinaInicial = maquina || maquinasLista[0] || '';
+    novaNFacasManual.current = false;
+    sugestaoNFacasReq.current += 1;
+    setNova({
+      ...EMPTY_NOVA,
+      maquina_catalogo: maquinaInicial,
+      formato: formatosLista[0] ?? 'RETA',
+    });
+    setNovaErro('');
+    setShowNova(true);
+  };
+
+  const fecharNovaFaca = () => {
+    if (saving) return;
+    novaNFacasManual.current = false;
+    sugestaoNFacasReq.current += 1;
+    setNovaErro('');
+    setShowNova(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -305,6 +372,15 @@ export function MapasFacasPage() {
       setError('Nº de facas inválido.');
       return;
     }
+    const valorPago = editMeta.valor_pago.trim() === '' ? null : numOrNull(editMeta.valor_pago);
+    if (valorPago != null && Number.isNaN(valorPago)) {
+      setError('Valor pago inválido.');
+      return;
+    }
+    if (valorPago != null && valorPago < 0) {
+      setError('Valor pago não pode ser negativo.');
+      return;
+    }
     setSaving(true);
     setError('');
     setMessage('');
@@ -316,6 +392,7 @@ export function MapasFacasPage() {
         colunas_mapa: editMeta.colunas_mapa.trim() || null,
         conjugada: editMeta.conjugada.trim() || null,
         fornecedor: editMeta.fornecedor.trim() || null,
+        valor_pago: valorPago,
         cliente_nota: editMeta.cliente_nota.trim() || null,
       });
       setMessage(`Faca #${selected.id}: dados operacionais atualizados.`);
@@ -348,12 +425,25 @@ export function MapasFacasPage() {
 
   const submitNova = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canWrite) return;
+    if (!canWrite) {
+      setNovaErro('Sem permissão para cadastrar facas no mapa.');
+      return;
+    }
     setNovaErro('');
 
     const medida = nova.medida.trim();
     if (!medida) {
       setNovaErro('Informe a medida.');
+      return;
+    }
+    const maquinaCatalogo = nova.maquina_catalogo.trim();
+    if (!maquinaCatalogo) {
+      setNovaErro('Selecione a máquina (grupo ORC).');
+      return;
+    }
+    const formato = nova.formato.trim();
+    if (!formato) {
+      setNovaErro('Informe o formato.');
       return;
     }
     const puxada = numOrNull(nova.puxada);
@@ -362,6 +452,7 @@ export function MapasFacasPage() {
     const largura = numOrNull(nova.largura_faca);
     const diametro = numOrNull(nova.diametro_cm);
     const nFacas = nova.n_facas.trim() === '' ? null : Number(nova.n_facas);
+    const valorPago = nova.valor_pago.trim() === '' ? null : numOrNull(nova.valor_pago);
 
     for (const [label, val] of [
       ['Puxada', puxada],
@@ -369,14 +460,19 @@ export function MapasFacasPage() {
       ['Repetição', repeticao],
       ['Largura', largura],
       ['Diâmetro', diametro],
+      ['Valor pago', valorPago],
     ] as const) {
       if (val != null && Number.isNaN(val)) {
         setNovaErro(`${label} inválida.`);
         return;
       }
     }
-    if (nFacas != null && Number.isNaN(nFacas)) {
+    if (nFacas != null && (Number.isNaN(nFacas) || nFacas < 0)) {
       setNovaErro('Nº de facas inválido.');
+      return;
+    }
+    if (valorPago != null && valorPago < 0) {
+      setNovaErro('Valor pago não pode ser negativo.');
       return;
     }
 
@@ -386,8 +482,8 @@ export function MapasFacasPage() {
     try {
       const res = await api.post<{ data: FacaMapa }>('/facas', {
         medida,
-        formato: nova.formato,
-        maquina_catalogo: nova.maquina_catalogo,
+        formato,
+        maquina_catalogo: maquinaCatalogo,
         puxada,
         z,
         repeticao,
@@ -398,12 +494,19 @@ export function MapasFacasPage() {
         colunas_mapa: nova.colunas_mapa.trim() || null,
         conjugada: nova.conjugada.trim() || null,
         fornecedor: nova.fornecedor.trim() || null,
+        valor_pago: valorPago,
         cliente_nota: nova.cliente_nota.trim() || null,
       });
-      setMessage(`Faca #${res.data.id} cadastrada no mapa.`);
       setShowNova(false);
+      novaNFacasManual.current = false;
       setNova(EMPTY_NOVA);
       setSelected(res.data);
+      setQ('');
+      setFormato('');
+      setMaquina('');
+      setSoCompletas(false);
+      setIncluirInativas(false);
+      setMessage(`Faca #${res.data.id} (${res.data.medida}) cadastrada no mapa.`);
       await load();
     } catch (err) {
       setNovaErro(fieldErrors(err));
@@ -416,7 +519,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Formatos e máquinas vêm do mapa e do catálogo ORC. Geometria existente não se edita — ajuste nota, fornecedor e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Formatos e máquinas vêm do mapa e do catálogo ORC. Geometria existente não se edita — ajuste nota, fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             {canWrite ? (
@@ -442,12 +545,7 @@ export function MapasFacasPage() {
                   type="button"
                   className="btn btn-primary"
                   disabled={saving}
-                  onClick={() => {
-                    const firstMaq = maquinasLista[0] ?? '';
-                    setNova({ ...EMPTY_NOVA, maquina_catalogo: firstMaq, formato: formatosLista[0] ?? 'RETA' });
-                    setNovaErro('');
-                    setShowNova(true);
-                  }}
+                  onClick={abrirNovaFaca}
                 >
                   Nova faca
                 </button>
@@ -613,6 +711,17 @@ export function MapasFacasPage() {
                       <SortableTh column="fornecedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Fornecedor
                       </SortableTh>
+                      <SortableTh
+                        column="valor_pago"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="Valor pago"
+                      >
+                        Valor pago
+                      </SortableTh>
                       <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Nota
                       </SortableTh>
@@ -621,7 +730,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="mapa-facas-empty-cell">
+                        <td colSpan={10} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -682,6 +791,7 @@ export function MapasFacasPage() {
                             <td className="fornecedor" title={f.fornecedor || undefined}>
                               {f.fornecedor || '—'}
                             </td>
+                            <td className="num">{fmtMoney(f.valor_pago)}</td>
                             <td className="nota" title={f.cliente_nota || undefined}>
                               {f.cliente_nota || '—'}
                             </td>
@@ -700,7 +810,7 @@ export function MapasFacasPage() {
           {!selected ? (
             <div className="card-body mapa-facas-detail-empty">
               <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (medida, puxada, Z) não é editável. Nota, fornecedor e grupo ORC podem acompanhar a operação desta empresa.</p>
+              <p className="hint">Geometria (medida, puxada, Z) não é editável. Nota, fornecedor, valor pago e grupo ORC podem acompanhar a operação desta empresa.</p>
             </div>
           ) : (
             <div className="card-body mapa-facas-detail-body">
@@ -739,6 +849,10 @@ export function MapasFacasPage() {
                 <div>
                   <dt>Fornecedor</dt>
                   <dd title={selected.fornecedor || undefined}>{selected.fornecedor || '—'}</dd>
+                </div>
+                <div>
+                  <dt>Valor pago</dt>
+                  <dd>{fmtMoney(selected.valor_pago)}</dd>
                 </div>
                 <div>
                   <dt>Conjugada</dt>
@@ -854,6 +968,15 @@ export function MapasFacasPage() {
                       onChange={(fornecedor) => setEditMeta((p) => ({ ...p, fornecedor }))}
                       disabled={!canWrite}
                     />
+                    <label className="form-group">
+                      <span>Valor pago (R$)</span>
+                      <input
+                        value={editMeta.valor_pago}
+                        onChange={(e) => setEditMeta((p) => ({ ...p, valor_pago: e.target.value }))}
+                        inputMode="decimal"
+                        placeholder="ex.: 1250,00"
+                      />
+                    </label>
                     <label className="form-group span-full">
                       <span>Conjugada</span>
                       <input
@@ -897,7 +1020,7 @@ export function MapasFacasPage() {
             type="button"
             className="faca-modal-backdrop"
             aria-label="Fechar"
-            onClick={() => !saving && setShowNova(false)}
+            onClick={fecharNovaFaca}
           />
           <div className="faca-modal-panel mapa-facas-nova-panel">
             <div className="faca-modal-head">
@@ -907,7 +1030,12 @@ export function MapasFacasPage() {
                   Após aprovação de FACA NOVA no ORC, registre aqui a geometria definitiva.
                 </p>
               </div>
-              <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setShowNova(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={saving}
+                onClick={fecharNovaFaca}
+              >
                 Fechar
               </button>
             </div>
@@ -942,27 +1070,27 @@ export function MapasFacasPage() {
                 </label>
                 <label className="form-group">
                   <span>Formato *</span>
-                  <input
-                    list="mapa-facas-formatos"
+                  <select
                     value={nova.formato}
-                    onChange={(e) =>
-                      setNova((p) => ({ ...p, formato: e.target.value.toUpperCase() }))
-                    }
-                    placeholder="RETA, REDONDA, ou o formato da casa"
+                    onChange={(e) => setNova((p) => ({ ...p, formato: e.target.value }))}
                     required
-                  />
-                  <datalist id="mapa-facas-formatos">
+                  >
+                    {nova.formato && !formatosLista.includes(nova.formato) ? (
+                      <option value={nova.formato}>{nova.formato}</option>
+                    ) : null}
                     {formatosLista.map((f) => (
-                      <option key={f} value={f} />
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
                     ))}
-                  </datalist>
+                  </select>
                 </label>
                 <label className="form-group">
                   <span>Máquina *</span>
                   {maquinasLista.length > 0 ? (
                     <select
                       value={nova.maquina_catalogo}
-                      onChange={(e) => setNova((p) => ({ ...p, maquina_catalogo: e.target.value }))}
+                      onChange={(e) => onMaquinaNovaChange(e.target.value)}
                       required
                     >
                       <option value="" disabled>
@@ -977,9 +1105,7 @@ export function MapasFacasPage() {
                   ) : (
                     <input
                       value={nova.maquina_catalogo}
-                      onChange={(e) =>
-                        setNova((p) => ({ ...p, maquina_catalogo: e.target.value.toUpperCase() }))
-                      }
+                      onChange={(e) => onMaquinaNovaChange(e.target.value.toUpperCase())}
                       placeholder="Código do grupo hora-máquina"
                       required
                     />
@@ -1029,9 +1155,13 @@ export function MapasFacasPage() {
                   <span>N facas</span>
                   <input
                     value={nova.n_facas}
-                    onChange={(e) => setNova((p) => ({ ...p, n_facas: e.target.value }))}
+                    onChange={(e) => {
+                      novaNFacasManual.current = true;
+                      setNova((p) => ({ ...p, n_facas: e.target.value }));
+                    }}
                     inputMode="numeric"
                   />
+                  <span className="hint">Sugerido automaticamente (último N da máquina + 1). Editável.</span>
                 </label>
                 <label className="form-group">
                   <span>Cilindro</span>
@@ -1051,6 +1181,15 @@ export function MapasFacasPage() {
                   value={nova.fornecedor}
                   onChange={(fornecedor) => setNova((p) => ({ ...p, fornecedor }))}
                 />
+                <label className="form-group">
+                  <span>Valor pago (R$)</span>
+                  <input
+                    value={nova.valor_pago}
+                    onChange={(e) => setNova((p) => ({ ...p, valor_pago: e.target.value }))}
+                    inputMode="decimal"
+                    placeholder="ex.: 1250,00"
+                  />
+                </label>
                 <label className="form-group span-full">
                   <span>Conjugada</span>
                   <input
@@ -1069,8 +1208,8 @@ export function MapasFacasPage() {
 
               {novaErro ? <div className="alert alert-error">{novaErro}</div> : null}
 
-              <div className="btn-row" style={{ marginTop: '1rem' }}>
-                <button type="button" className="btn btn-secondary" disabled={saving} onClick={() => setShowNova(false)}>
+              <div className="btn-row mapa-facas-nova-actions">
+                <button type="button" className="btn btn-secondary" disabled={saving} onClick={fecharNovaFaca}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>

@@ -198,13 +198,91 @@ class FacasMapaTest extends TestCase
             'cliente_nota' => 'PAR-CASA A',
             'fornecedor' => 'Ferramental X',
             'n_facas' => 2,
+            'valor_pago' => 1250.50,
         ]);
         $patch->assertOk();
         $this->assertSame('PAR-CASA A', $patch->json('data.cliente_nota'));
         $this->assertSame('Ferramental X', $patch->json('data.fornecedor'));
         $this->assertSame(2, $patch->json('data.n_facas'));
+        $this->assertEquals(1250.50, (float) $patch->json('data.valor_pago'));
         $this->assertEquals($puxada, $patch->json('data.puxada'));
         $this->assertSame('3,3X3,3', $patch->json('data.medida'));
+    }
+
+    public function test_sugere_proximo_n_facas_por_maquina(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $hdr = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $maquina = 'MAQ-SUG-'.substr(uniqid(), -6);
+
+        OrcMapaFaca::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'medida' => '1,1X1,1',
+            'formato' => 'RETA',
+            'faca' => 'RETA',
+            'maquina_catalogo' => $maquina,
+            'puxada' => 1.1,
+            'z' => 11,
+            'n_facas' => 40,
+            'completa' => true,
+            'ativo' => true,
+            'label' => '1,1X1,1 · RETA',
+        ]);
+        OrcMapaFaca::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'medida' => '2,2X2,2',
+            'formato' => 'RETA',
+            'faca' => 'RETA',
+            'maquina_catalogo' => $maquina,
+            'puxada' => 2.2,
+            'z' => 22,
+            'n_facas' => 17,
+            'completa' => true,
+            'ativo' => false,
+            'label' => '2,2X2,2 · RETA',
+        ]);
+
+        $res = $this->withHeaders($hdr)->getJson('/api/v1/facas/sugestao-n-facas?maquina_catalogo='.$maquina);
+        $res->assertOk();
+        $this->assertSame(strtoupper($maquina), $res->json('data.maquina_catalogo'));
+        $this->assertSame(40, $res->json('data.ultimo_n_facas'));
+        $this->assertSame(41, $res->json('data.sugerido'));
+
+        $vazio = $this->withHeaders($hdr)->getJson('/api/v1/facas/sugestao-n-facas?maquina_catalogo=MAQ-NOVA-'.uniqid());
+        $vazio->assertOk();
+        $this->assertNull($vazio->json('data.ultimo_n_facas'));
+        $this->assertSame(1, $vazio->json('data.sugerido'));
+    }
+
+    public function test_create_preenche_n_facas_quando_ausente(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $hdr = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $maquina = 'MAQ-AUTO-'.substr(uniqid(), -6);
+
+        OrcMapaFaca::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'medida' => '3,3X3,3',
+            'formato' => 'RETA',
+            'faca' => 'RETA',
+            'maquina_catalogo' => $maquina,
+            'puxada' => 3.3,
+            'z' => 33,
+            'n_facas' => 7,
+            'completa' => true,
+            'ativo' => true,
+            'label' => '3,3X3,3 · RETA',
+        ]);
+
+        $create = $this->withHeaders($hdr)->postJson('/api/v1/facas', [
+            'medida' => '4,4X4,4',
+            'formato' => 'RETA',
+            'maquina_catalogo' => $maquina,
+            'puxada' => 4.4,
+            'z' => 44,
+        ]);
+        $create->assertCreated();
+        $this->assertSame(8, $create->json('data.n_facas'));
     }
 
     public function test_alinha_rotulo_legado_ao_parceiro_fornecedor_unico(): void

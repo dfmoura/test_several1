@@ -18,6 +18,21 @@ class FacasController extends Controller
         return response()->json(['data' => $this->facasMapaService->resumo()]);
     }
 
+    public function sugestaoNFacas(Request $request): JsonResponse
+    {
+        if (! $request->user()) {
+            abort(401);
+        }
+
+        $data = $request->validate([
+            'maquina_catalogo' => ['required', 'string', 'max:64'],
+        ]);
+
+        return response()->json([
+            'data' => $this->facasMapaService->sugerirProximoNFacas((string) $data['maquina_catalogo']),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         // Qualquer usuário autenticado no contexto (mesmo padrão do 36 / FacaPicker).
@@ -94,6 +109,7 @@ class FacasController extends Controller
             'colunas_mapa' => ['nullable', 'string', 'max:64'],
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
+            'valor_pago' => ['nullable', 'numeric', 'gte:0'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
             'completa' => ['nullable', 'boolean'],
         ]);
@@ -115,6 +131,7 @@ class FacasController extends Controller
             'colunas_mapa' => ['nullable', 'string', 'max:64'],
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
+            'valor_pago' => ['nullable', 'numeric', 'gte:0'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
         ]);
 
