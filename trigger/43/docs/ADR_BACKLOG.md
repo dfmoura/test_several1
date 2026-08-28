@@ -24,11 +24,14 @@ Situação derivada: `ABERTO` (`concluido_em` null) · `CONCLUIDO` (preenchido).
 
 - Escopo: `empresa_id` + soft delete.
 - API: `GET/POST /backlog`, `PUT`, `POST …/concluir`, `POST …/reabrir`, `DELETE`.
-- Permissões: `backlog.ler` / `backlog.escrever` — concessão direta a `USR-00019` (não nos papéis Spatie).
-- API: `USR-00019` autorizado por código; demais só via Spatie `can()` (testes).
-- UI: menu/rota usam permissão **exata** do `/me` (sem bypass ADMIN).
+- Permissões: `backlog.ler` (consulta) nos papéis operacionais; `backlog.escrever` só em `USR-00019` (concessão direta, não em papel).
+- Papéis com `backlog.ler`: ADMIN, FINANCEIRO, COMERCIAL, COMPRAS, FISCAL, PRODUCAO, EXPEDICAO, CONSULTA.
+- Grant persistido em `role_has_permissions` (insertOrIgnore) — não confiar só em `hasPermissionTo`/cache Spatie.
+- `DatabaseSeeder` inclui `backlog.ler` (evita `syncPermissions` apagar no `SEED_ON_BOOT`); boot: `backlog:ensure-rbac`.
+- API: leitura/`escrita` via `BacklogAuthorization` (= `getAllPermissions`, mesmo critério do `/me`).
+- UI: menu/rota usam `backlog.ler` (padrão dos demais módulos); formulário e ações só com `backlog.escrever` explícito.
 - `User::$guard_name = web` — Spatie + Sanctum.
-- UI: Cadastros → **Backlog** (lista + lançar + concluir).
+- UI: Cadastros → **Backlog** (consulta para todos com ler; lançar/concluir só quem escreve).
 
 ## Proibido
 

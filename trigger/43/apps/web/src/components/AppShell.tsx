@@ -36,7 +36,7 @@ type NavItem = {
   permission: string | null;
   /** Qualquer uma das permissões (OR). Ignorado se `permission` for null. */
   permissionsAny?: string[];
-  /** Exige permissão no `/me` (sem bypass ADMIN) — ex.: backlog lab. */
+  /** Exige permissão no `/me` (sem bypass ADMIN) — reservado a gates especiais. */
   exactPermission?: boolean;
   /** Custom active match (overrides default NavLink matching). */
   isActivePath?: (pathname: string) => boolean;
@@ -66,12 +66,11 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'condicao_pagamento.ler',
         permissionsAny: ['parceiro.ler', 'compras.ler', 'orcamento.ler'],
       },
-      {
+        {
         to: '/backlog',
         label: 'Backlog',
         icon: IconBacklog,
         permission: 'backlog.ler',
-        exactPermission: true,
       },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
@@ -90,6 +89,12 @@ const NAV_GROUPS: NavGroup[] = [
         to: '/orcamentos',
         label: 'Orçamentos',
         icon: IconOrcamento,
+        permission: 'orcamento.ler',
+      },
+      {
+        to: '/orcamentos/como-calcula',
+        label: 'Como calcula',
+        icon: IconCatalog,
         permission: 'orcamento.ler',
       },
       {

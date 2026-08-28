@@ -99,29 +99,45 @@ class OrcamentoCatalogoAdminService
 
         DB::transaction(function () use ($raw, $forceOverwrite, $empresaId, &$criados, &$existentes) {
             if (Schema::hasTable('orc_catalogo_parametros')) {
-                $defs = [
-                    OrcCatalogoParametro::CHAVE_MATRIZ_CM2 => [
-                        'valor' => (float) ($raw['matriz_cm2'] ?? 0.28),
-                        'rotulo' => 'Matriz / clichê',
-                        'unidade' => 'R$/cm²',
-                        'ordem' => 10,
-                        'ativo' => true,
-                    ],
-                    OrcCatalogoParametro::CHAVE_PESO_CAIXA_KG => [
-                        'valor' => 0,
-                        'rotulo' => 'Peso estimado por caixa',
-                        'unidade' => 'kg',
-                        'ordem' => 20,
-                        'ativo' => false,
-                    ],
+                $meta = OrcCatalogoParametro::metaConhecidas();
+                $tinta = is_array($raw['tinta'] ?? null) ? $raw['tinta'] : [];
+                $tubete = is_array($raw['tubete'] ?? null) ? $raw['tubete'] : [];
+                $perda03 = is_array($raw['perda_papel_0_3'] ?? null) ? $raw['perda_papel_0_3'] : [];
+
+                $valoresJson = [
+                    OrcCatalogoParametro::CHAVE_MATRIZ_CM2 => (float) ($raw['matriz_cm2'] ?? $meta[OrcCatalogoParametro::CHAVE_MATRIZ_CM2]['default']),
+                    OrcCatalogoParametro::CHAVE_PESO_CAIXA_KG => 0.0,
+                    OrcCatalogoParametro::CHAVE_SETUP_HORAS => (float) ($raw['setup_horas'] ?? $meta[OrcCatalogoParametro::CHAVE_SETUP_HORAS]['default']),
+                    OrcCatalogoParametro::CHAVE_LIMITE_METRAGEM_BOBINA => (float) ($raw['limite_metragem_bobina'] ?? $meta[OrcCatalogoParametro::CHAVE_LIMITE_METRAGEM_BOBINA]['default']),
+                    OrcCatalogoParametro::CHAVE_MINUTOS_TROCA_BOBINA => (float) ($raw['minutos_troca_bobina'] ?? $meta[OrcCatalogoParametro::CHAVE_MINUTOS_TROCA_BOBINA]['default']),
+                    OrcCatalogoParametro::CHAVE_CEILING_ETIQUETA => (float) ($raw['ceiling_etiqueta'] ?? $meta[OrcCatalogoParametro::CHAVE_CEILING_ETIQUETA]['default']),
+                    OrcCatalogoParametro::CHAVE_PRECO_CAIXA => (float) ($raw['preco_caixa'] ?? $meta[OrcCatalogoParametro::CHAVE_PRECO_CAIXA]['default']),
+                    OrcCatalogoParametro::CHAVE_TINTA_FAIXA_M2 => (float) ($tinta['faixa_m2'] ?? $meta[OrcCatalogoParametro::CHAVE_TINTA_FAIXA_M2]['default']),
+                    OrcCatalogoParametro::CHAVE_TINTA_ATE_30_POR_COR => (float) ($tinta['valor_ate_30_por_cor'] ?? $meta[OrcCatalogoParametro::CHAVE_TINTA_ATE_30_POR_COR]['default']),
+                    OrcCatalogoParametro::CHAVE_TINTA_ACIMA_M2 => (float) ($tinta['valor_acima_m2'] ?? $meta[OrcCatalogoParametro::CHAVE_TINTA_ACIMA_M2]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_PAPEL_F6 => (float) ($raw['perda_papel_f6'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_PAPEL_F6]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_4V => (float) ($raw['perda_acerto_m_4v'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_4V]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_5 => (float) ($raw['perda_acerto_m_5'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_5]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_6 => (float) ($raw['perda_acerto_m_6'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_6]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_7 => (float) ($raw['perda_acerto_m_7'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_7]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_8 => (float) ($raw['perda_acerto_m_8'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_8]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_PAPEL_0 => (float) ($perda03['0'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_PAPEL_0]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_PAPEL_1 => (float) ($perda03['1'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_PAPEL_1]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_PAPEL_2 => (float) ($perda03['2'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_PAPEL_2]['default']),
+                    OrcCatalogoParametro::CHAVE_PERDA_PAPEL_3 => (float) ($perda03['3'] ?? $meta[OrcCatalogoParametro::CHAVE_PERDA_PAPEL_3]['default']),
+                    OrcCatalogoParametro::CHAVE_TUBETE_1 => (float) ($tubete['1"'] ?? $meta[OrcCatalogoParametro::CHAVE_TUBETE_1]['default']),
+                    OrcCatalogoParametro::CHAVE_TUBETE_1_5 => (float) ($tubete['1" 1/2'] ?? $meta[OrcCatalogoParametro::CHAVE_TUBETE_1_5]['default']),
+                    OrcCatalogoParametro::CHAVE_TUBETE_3 => (float) ($tubete['3"'] ?? $meta[OrcCatalogoParametro::CHAVE_TUBETE_3]['default']),
                 ];
-                foreach ($defs as $chave => $def) {
+
+                foreach ($meta as $chave => $def) {
+                    $valor = $valoresJson[$chave] ?? $def['default'];
                     $row = $this->scoped(OrcCatalogoParametro::query(), $empresaId)->where('chave', $chave)->first();
                     if ($row) {
                         $existentes['parametros']++;
                         if ($forceOverwrite) {
                             $row->update([
-                                'valor' => $def['valor'],
+                                'valor' => $valor,
                                 'rotulo' => $def['rotulo'],
                                 'unidade' => $def['unidade'],
                                 'ativo' => $def['ativo'],
@@ -133,7 +149,7 @@ class OrcamentoCatalogoAdminService
                     OrcCatalogoParametro::query()->create([
                         'empresa_id' => $empresaId,
                         'chave' => $chave,
-                        'valor' => $def['valor'],
+                        'valor' => $valor,
                         'rotulo' => $def['rotulo'],
                         'unidade' => $def['unidade'],
                         'ativo' => $def['ativo'],
@@ -829,7 +845,60 @@ class OrcamentoCatalogoAdminService
             'unidade' => $p->unidade,
             'ativo' => (bool) $p->ativo,
             'ordem' => (int) $p->ordem,
+            'grupo' => OrcCatalogoParametro::grupoDaChave($p->chave),
             'updated_at' => $p->updated_at?->toISOString(),
+        ];
+    }
+
+    /**
+     * Registro de regras do motor + parâmetros vigentes da EMP.
+     *
+     * @return array<string, mixed>
+     */
+    public function regrasComParametros(): array
+    {
+        $base = OrcamentoMotorRegras::catalogo();
+        $params = $this->listParametros(true);
+        $byChave = [];
+        foreach ($params as $p) {
+            $byChave[$p['chave']] = $p;
+        }
+
+        $regras = [];
+        foreach ($base['regras'] as $regra) {
+            $vinculos = [];
+            foreach ($regra['parametros'] as $chave) {
+                $vinculos[] = $byChave[$chave] ?? [
+                    'chave' => $chave,
+                    'valor' => OrcCatalogoParametro::metaConhecidas()[$chave]['default'] ?? null,
+                    'rotulo' => OrcCatalogoParametro::metaConhecidas()[$chave]['rotulo'] ?? $chave,
+                    'unidade' => OrcCatalogoParametro::metaConhecidas()[$chave]['unidade'] ?? null,
+                    'ativo' => false,
+                    'grupo' => OrcCatalogoParametro::grupoDaChave($chave),
+                    'fonte' => 'json_fallback',
+                ];
+            }
+            $regras[] = array_merge($regra, ['parametros_vigentes' => $vinculos]);
+        }
+
+        $cat = OrcamentoCatalogo::load();
+
+        return [
+            'motor_version' => $base['motor_version'],
+            'regras' => $regras,
+            'constantes_estruturais' => $base['constantes_estruturais'],
+            'parametros' => $params,
+            'vigente' => [
+                'matriz_cm2' => $cat->matrizCm2,
+                'setup_horas' => $cat->setupHoras,
+                'limite_metragem_bobina' => $cat->limiteMetragemBobina,
+                'minutos_troca_bobina' => $cat->minutosTrocaBobina,
+                'ceiling_etiqueta' => $cat->ceilingEtiqueta,
+                'preco_caixa' => $cat->precoCaixa,
+                'tinta_faixa_m2' => $cat->tintaFaixaM2,
+                'tinta_valor_ate_30_por_cor' => $cat->tintaAte30PorCor,
+                'tinta_valor_acima_m2' => $cat->tintaAcimaM2,
+            ],
         ];
     }
 

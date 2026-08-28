@@ -7,6 +7,7 @@ use App\Models\BacklogItem;
 use App\Models\Empresa;
 use App\Models\User;
 use App\Services\Cadastros\BacklogService;
+use App\Support\BacklogAuthorization;
 use App\Support\BacklogValidationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,9 +15,6 @@ use Illuminate\Validation\Rule;
 
 class BacklogController extends Controller
 {
-    /** Lab: único usuário operacional autorizado (ADR_BACKLOG.md). */
-    private const USUARIO_CODIGO = 'USR-00019';
-
     public function __construct(private readonly BacklogService $service) {}
 
     public function index(Request $request): JsonResponse
@@ -104,47 +102,17 @@ class BacklogController extends Controller
     private function authorizeRead(Request $request): void
     {
         $user = $request->user();
-        if ($this->podeConsultar($user)) {
-            return;
+        if (! $user instanceof User || ! BacklogAuthorization::canRead($user)) {
+            abort(403, 'Sem permissão para consultar o backlog.');
         }
-
-        abort(403, 'Sem permissão para consultar o backlog.');
     }
 
     private function authorizeWrite(Request $request): void
     {
         $user = $request->user();
-        if ($this->podeEscrever($user)) {
-            return;
+        if (! $user instanceof User || ! BacklogAuthorization::canWrite($user)) {
+            abort(403, 'Sem permissão para lançar ou alterar o backlog.');
         }
-
-        abort(403, 'Sem permissão para lançar ou alterar o backlog.');
-    }
-
-    private function podeConsultar(mixed $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->codigo === self::USUARIO_CODIGO) {
-            return true;
-        }
-
-        return $user->can('backlog.ler');
-    }
-
-    private function podeEscrever(mixed $user): bool
-    {
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->codigo === self::USUARIO_CODIGO) {
-            return true;
-        }
-
-        return $user->can('backlog.escrever');
     }
 
     private function empresa(): Empresa

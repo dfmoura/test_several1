@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
@@ -9,7 +9,16 @@ import { bemStatusLabel } from '../lib/patrimonio';
 import { formatKgFaixa } from '../lib/orcamentoFrete';
 import { useTableSort } from '../lib/useTableSort';
 
-type TabId = 'papeis' | 'acabamentos' | 'trocas' | 'maquinas' | 'matriz' | 'frete';
+type TabId =
+  | 'papeis'
+  | 'acabamentos'
+  | 'trocas'
+  | 'maquinas'
+  | 'matriz'
+  | 'frete'
+  | 'parametros'
+  | 'perdas'
+  | 'embalagem';
 
 type PapelRow = {
   id: number;
@@ -60,6 +69,7 @@ type ParametroRow = {
   unidade: string | null;
   ativo: boolean;
   ordem: number;
+  grupo?: string;
 };
 
 type FaixaFreteRow = {
@@ -86,6 +96,21 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
     hint: 'Tarifas R$/h · a máquina física cadastra-se no Patrimônio',
   },
   {
+    id: 'parametros',
+    label: 'Parâmetros do motor',
+    hint: 'Setup, limite bobina, teto comercial e tinta — alimentam R1–R20',
+  },
+  {
+    id: 'perdas',
+    label: 'Perdas',
+    hint: 'Acerto por cores (m² / metros) usados no motor',
+  },
+  {
+    id: 'embalagem',
+    label: 'Embalagem',
+    hint: 'Preço de caixa e tubetes',
+  },
+  {
     id: 'matriz',
     label: 'Matriz (clichê)',
     hint: 'R$/cm² vigente · só no 1º pedido',
@@ -96,6 +121,14 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
     hint: 'Faixas de kg com R$/km · peso estimado da caixa',
   },
 ];
+
+const TAB_SEM_NOVO: TabId[] = ['matriz', 'maquinas', 'parametros', 'perdas', 'embalagem'];
+
+const GRUPO_POR_TAB: Partial<Record<TabId, string[]>> = {
+  parametros: ['motor', 'tinta'],
+  perdas: ['perdas'],
+  embalagem: ['embalagem'],
+};
 
 const CORES_PADRAO = ['0', '1', '2', '3', '4', '4V', '5', '6', '7', '8'];
 
@@ -117,7 +150,11 @@ export function OrcamentoCatalogoPage() {
   const { hasPermission } = useAuth();
   const canSeePatrimonio = hasPermission('patrimonio.ler');
   const canWritePatrimonio = hasPermission('patrimonio.escrever');
-  const [tab, setTab] = useState<TabId>('papeis');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab: TabId =
+    tabFromUrl && TABS.some((t) => t.id === tabFromUrl) ? (tabFromUrl as TabId) : 'papeis';
+  const [tab, setTab] = useState<TabId>(initialTab);
   const [resumo, setResumo] = useState<OrcCatalogoResumo | null>(null);
   const [papeis, setPapeis] = useState<PapelRow[]>([]);
   const [acabamentos, setAcabamentos] = useState<AcabamentoRow[]>([]);
@@ -186,9 +223,12 @@ export function OrcamentoCatalogoPage() {
     <>
       <PageHeader
         title="Catálogo do orçamento"
-        description="Preços e bases desta empresa. O modelo inicial vale até você conferir; orçamentos já salvos mantêm o que foi usado na época."
+        description="Preços, perdas e parâmetros do motor desta empresa. Orçamentos já salvos mantêm o snapshot da época."
         actions={
           <div className="btn-row">
+            <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
+              Como calcula
+            </Link>
             <button
               type="button"
               className="btn btn-secondary"
@@ -197,7 +237,7 @@ export function OrcamentoCatalogoPage() {
             >
               Completar itens ausentes
             </button>
-            {tab !== 'matriz' && tab !== 'maquinas' ? (
+            {TAB_SEM_NOVO.includes(tab) ? null : (
               <button
                 type="button"
                 className="btn btn-primary"
@@ -206,7 +246,7 @@ export function OrcamentoCatalogoPage() {
               >
                 Novo item
               </button>
-            ) : null}
+            )}
             {tab === 'maquinas' && canWritePatrimonio ? (
               <Link to="/patrimonio/novo" className="btn btn-primary">
                 Cadastrar máquina no patrimônio
@@ -308,6 +348,7 @@ export function OrcamentoCatalogoPage() {
               setTab(t.id);
               setShowNew(false);
               setMessage('');
+              setSearchParams(t.id === 'papeis' ? {} : { tab: t.id }, { replace: true });
             }}
           >
             {t.label}
@@ -321,9 +362,9 @@ export function OrcamentoCatalogoPage() {
         <p className="loading">Carregando…</p>
       ) : (
         <>
-          {showNew && tab !== 'matriz' && tab !== 'maquinas' ? (
+          {showNew && !TAB_SEM_NOVO.includes(tab) ? (
             <NewItemForm
-              tab={tab}
+              tab={tab as Exclude<TabId, 'matriz' | 'maquinas' | 'parametros' | 'perdas' | 'embalagem'>}
               onCancel={() => setShowNew(false)}
               onSaved={async (msg) => {
                 setShowNew(false);
@@ -376,6 +417,18 @@ export function OrcamentoCatalogoPage() {
               onError={setError}
             />
           ) : null}
+          {tab === 'parametros' || tab === 'perdas' || tab === 'embalagem' ? (
+            <ParametrosGrupoPanel
+              rows={parametros}
+              grupos={GRUPO_POR_TAB[tab] ?? []}
+              titulo={tabMeta.label}
+              onSaved={async (msg) => {
+                setMessage(msg);
+                await load();
+              }}
+              onError={setError}
+            />
+          ) : null}
           {tab === 'matriz' ? (
             <MatrizParametrosPanel
               rows={parametros}
@@ -409,6 +462,163 @@ const PAPEL_SORT = {
   preco_m2: (row: PapelRow) => Number(row.preco_m2),
   status: (row: PapelRow) => (row.ativo ? 'ATIVO' : 'INATIVO'),
 };
+
+function ParametrosGrupoPanel({
+  rows,
+  grupos,
+  titulo,
+  onSaved,
+  onError,
+}: {
+  rows: ParametroRow[];
+  grupos: string[];
+  titulo: string;
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const filtered = useMemo(
+    () =>
+      rows
+        .filter((r) => r.grupo && grupos.includes(r.grupo))
+        .slice()
+        .sort((a, b) => a.ordem - b.ordem || a.chave.localeCompare(b.chave)),
+    [rows, grupos],
+  );
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    for (const r of filtered) {
+      next[r.chave] = String(r.valor);
+    }
+    setDrafts(next);
+  }, [filtered]);
+
+  const save = async (row: ParametroRow) => {
+    const n = num(drafts[row.chave] ?? '');
+    if (!Number.isFinite(n) || n < 0) {
+      onError(`Informe um valor válido para ${row.rotulo} (≥ 0).`);
+      return;
+    }
+    setSavingKey(row.chave);
+    onError('');
+    try {
+      await api.put(`/orcamento-catalogo/parametros/${row.chave}`, { valor: n });
+      await onSaved(`${row.rotulo} atualizado.`);
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const toggleAtivo = async (row: ParametroRow) => {
+    setSavingKey(row.chave);
+    onError('');
+    try {
+      await api.put(`/orcamento-catalogo/parametros/${row.chave}`, { ativo: !row.ativo });
+      await onSaved(
+        row.ativo
+          ? `${row.rotulo} inativado — orçamentos usam o modelo padrão até reativar.`
+          : `${row.rotulo} reativado.`,
+      );
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  if (filtered.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-body">
+          <div className="empty-state">
+            Nenhum parâmetro de {titulo.toLowerCase()} ainda. Use “Completar itens ausentes”.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Estes valores alimentam o motor R1–R20 desta empresa. Inativar volta ao modelo inicial.
+          Orçamentos já salvos mantêm o snapshot da época. A álgebra permanece fixa — só os
+          coeficientes mudam.
+        </p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Parâmetro</th>
+                <th>Valor</th>
+                <th>Unidade</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row) => {
+                const dirty =
+                  Number((drafts[row.chave] ?? '').replace(',', '.')) !== Number(row.valor);
+                const busy = savingKey === row.chave;
+                return (
+                  <tr key={row.chave}>
+                    <td>
+                      <strong>{row.rotulo}</strong>
+                      <div className="field-note">{row.chave}</div>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min={0}
+                        step="any"
+                        value={drafts[row.chave] ?? ''}
+                        disabled={busy || !row.ativo}
+                        onChange={(e) =>
+                          setDrafts((prev) => ({ ...prev, [row.chave]: e.target.value }))
+                        }
+                        style={{ maxWidth: '8rem' }}
+                      />
+                    </td>
+                    <td>{row.unidade ?? '—'}</td>
+                    <td>
+                      <StatusPill status={row.ativo ? 'ATIVO' : 'INATIVO'} />
+                    </td>
+                    <td>
+                      <div className="btn-row">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={busy || !dirty || !row.ativo}
+                          onClick={() => void save(row)}
+                        >
+                          {busy ? '…' : 'Salvar'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          disabled={busy}
+                          onClick={() => void toggleAtivo(row)}
+                        >
+                          {row.ativo ? 'Inativar' : 'Reativar'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MatrizParametrosPanel({
   rows,
@@ -1445,7 +1655,7 @@ function NewItemForm({
   onSaved,
   onError,
 }: {
-  tab: Exclude<TabId, 'matriz' | 'maquinas'>;
+  tab: Exclude<TabId, 'matriz' | 'maquinas' | 'parametros' | 'perdas' | 'embalagem'>;
   onCancel: () => void;
   onSaved: (msg: string) => Promise<void>;
   onError: (msg: string) => void;

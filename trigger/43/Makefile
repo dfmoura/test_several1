@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -115,6 +115,11 @@ orc-rbac:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan orcamento:ensure-rbac
 	@echo "Saia e entre de novo no browser (Ctrl+Shift+R)."
 
+# Fórmulas ORC parametrizadas: seed de parâmetros do motor em todas as EMPs + testes + SPA.
+formulas-orc-pronto:
+	@chmod +x scripts/formulas-orc-pronto.sh
+	./scripts/formulas-orc-pronto.sh
+
 # Condições de pagamento: RBAC + seed canônico + rebuild SPA (menu Cadastros).
 condicao-pagamento-pronto:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan migrate --force
@@ -124,6 +129,18 @@ condicao-pagamento-pronto:
 	@echo ""
 	@echo "→ http://localhost:8043/condicoes-pagamento"
 	@echo "→ Cadastros → Condições de pagamento  ·  hard refresh Ctrl+Shift+R"
+
+# Backlog: RBAC consulta nos papéis + cache + rebuild SPA.
+backlog-pronto:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan migrate --force
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan cache:clear
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan permission:cache-reset
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan backlog:ensure-rbac
+	$(COMPOSE_LOCAL) --env-file .env exec app php vendor/bin/phpunit --filter BacklogTest
+	$(MAKE) web-build
+	@echo ""
+	@echo "→ http://localhost:8043/backlog"
+	@echo "→ Cadastros → Backlog  ·  hard refresh Ctrl+Shift+R  ·  logout/login se a sessão for antiga"
 
 # Console TRIGGER (lab): RBAC + operador + phpunit ConsolePlataformaTest.
 # Override: PLATAFORMA_OPS_EMAIL=… PLATAFORMA_OPS_PASSWORD=… make plataforma-pronto

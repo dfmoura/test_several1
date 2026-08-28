@@ -20,6 +20,7 @@ import { BacklogPage } from './pages/BacklogPage';
 import { CondicoesPagamentoPage } from './pages/CondicoesPagamentoPage';
 import { DepartamentosPage } from './pages/DepartamentosPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
+import { OrcamentoComoCalculaPage } from './pages/OrcamentoComoCalculaPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
 import { OrcamentoFichaPage } from './pages/OrcamentoFichaPage';
 import { OrcamentoFichaClientePage } from './pages/OrcamentoFichaClientePage';
@@ -279,7 +280,7 @@ export default function App() {
         <Route
           path="backlog"
           element={
-            <PermissionRoute permission="backlog.ler" exact>
+            <PermissionRoute permission="backlog.ler">
               <BacklogPage />
             </PermissionRoute>
           }
@@ -447,7 +448,14 @@ export default function App() {
             </PermissionRoute>
           }
         />
-        <Route path="orcamentos/como-calcula" element={<Navigate to="/orcamentos" replace />} />
+        <Route
+          path="orcamentos/como-calcula"
+          element={
+            <PermissionRoute permission="orcamento.ler">
+              <OrcamentoComoCalculaPage />
+            </PermissionRoute>
+          }
+        />
         <Route
           path="orcamentos/:id/editar"
           element={

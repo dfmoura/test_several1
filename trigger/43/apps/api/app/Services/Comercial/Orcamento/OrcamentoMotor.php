@@ -113,13 +113,31 @@ final class OrcamentoMotor
             'chave_matriz' => $ck,
             'cobra_matriz' => $cobra,
             'valor_matriz' => $valorMatriz,
+            'motor_version' => OrcamentoMotorRegras::MOTOR_VERSION,
             'faixas' => $faixasOut,
             'catalog_snapshot' => [
                 'papel' => $cat->papel,
+                'tinta_faixa_m2' => $cat->tintaFaixaM2,
+                'tinta_valor_ate_30_por_cor' => $cat->tintaAte30PorCor,
                 'tinta_acima_m2' => $cat->tintaAcimaM2,
                 'preco_caixa' => $cat->precoCaixa,
                 'matriz_cm2' => $cat->matrizCm2,
+                'setup_horas' => $cat->setupHoras,
+                'limite_metragem_bobina' => $cat->limiteMetragemBobina,
+                'minutos_troca_bobina' => $cat->minutosTrocaBobina,
+                'ceiling_etiqueta' => $cat->ceilingEtiqueta,
+                'perda_papel_f6' => $cat->perdaPapelF6,
+                'perda_papel_0_3' => $cat->perdaPapel03,
+                'perda_acerto_m' => [
+                    '4V' => $cat->perdaAcertoM4v,
+                    '5' => $cat->perdaAcertoM5,
+                    '6' => $cat->perdaAcertoM6,
+                    '7' => $cat->perdaAcertoM7,
+                    '8' => $cat->perdaAcertoM8,
+                ],
+                'tubete' => $cat->tubete,
                 'acabamentos' => $cat->acabamentos,
+                'motor_version' => OrcamentoMotorRegras::MOTOR_VERSION,
             ],
         ];
     }
@@ -182,7 +200,8 @@ final class OrcamentoMotor
             $horaTrocaBobina = 0.0;
             $temTrocaBobina = false;
         } else {
-            $horaTrocaBobina = ((($metragem / 1000.0) - 1) * 5) / 60.0;
+            $minutos = $cat->minutosTrocaBobina;
+            $horaTrocaBobina = ((($metragem / 1000.0) - 1) * $minutos) / 60.0;
             $temTrocaBobina = true;
         }
         // R5
@@ -284,17 +303,20 @@ final class OrcamentoMotor
         if ($k === '4') {
             return ($larguraCm + 1) / 100.0 * $cat->perdaPapelF6;
         }
-        if (in_array($k, ['4V', '5'], true)) {
-            return ($larguraCm / 100.0) * 250.0;
+        if ($k === '4V') {
+            return ($larguraCm / 100.0) * $cat->perdaAcertoM4v;
+        }
+        if ($k === '5') {
+            return ($larguraCm / 100.0) * $cat->perdaAcertoM5;
         }
         if ($k === '6') {
-            return ($larguraCm / 100.0) * 260.0;
+            return ($larguraCm / 100.0) * $cat->perdaAcertoM6;
         }
         if ($k === '7') {
-            return ($larguraCm / 100.0) * 270.0;
+            return ($larguraCm / 100.0) * $cat->perdaAcertoM7;
         }
         if ($k === '8') {
-            return ($larguraCm / 100.0) * 280.0;
+            return ($larguraCm / 100.0) * $cat->perdaAcertoM8;
         }
         throw new \InvalidArgumentException("Cores não suportadas: {$k}");
     }

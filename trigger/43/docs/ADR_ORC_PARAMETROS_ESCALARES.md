@@ -45,6 +45,7 @@ Proibido digitar R$/cm² no formulário comercial do dia a dia (parâmetro cadas
 - Promover `preco_caixa`, faixas de tinta etc. na mesma tabela.
 - UC-PLT-005 / TAB com vigência início/fim + ratificação — ADR novo.
 - Matriz de compatibilidade (máquina × cores…) — outro ADR.
+- **Entregue em 43:** ver `ADR_ORC_MOTOR_REGRAS.md` (escalares do motor + registro de regras).
 
 ## Proibido (regressão)
 

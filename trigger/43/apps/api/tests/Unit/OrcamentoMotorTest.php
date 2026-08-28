@@ -90,4 +90,39 @@ class OrcamentoMotorTest extends TestCase
         $this->assertSame(0.0, $result['valor_matriz']);
         $this->assertSame(0.0, $result['faixas'][0]['valor_matriz']);
     }
+
+    public function test_motor_version_and_catalog_snapshot_incluem_escalares(): void
+    {
+        $fixturePath = dirname(__DIR__).'/fixtures/orcamento_brahva.json';
+        $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+
+        $motor = new OrcamentoMotor;
+        $result = $motor->calcular([
+            'cliente' => $fx['cliente'],
+            'medida' => $fx['medida'],
+            'largura_cm' => $fx['largura_cm'],
+            'puxada_cm' => $fx['puxada_cm'],
+            'cores' => $fx['cores'],
+            'papel' => $fx['papel'],
+            'acabamento' => $fx['acabamento'],
+            'modelos' => $fx['modelos'],
+            'colunas' => $fx['colunas'],
+            'etiq_por_rolo' => $fx['etiq_por_rolo'],
+            'tubete' => $fx['tubete'],
+            'z' => $fx['z'],
+            'maquina' => $fx['maquina'],
+            'imposto_pct' => $fx['imposto_pct'],
+            'matriz' => $fx['matriz'],
+            'tipo_troca_produto' => $fx['tipo_troca_produto'],
+            'rpm' => $fx['rpm'],
+            'overrides' => $fx['overrides'],
+            'faixas' => [['quantidade' => $fx['faixas'][0]['quantidade'], 'comissao_pct' => 0]],
+        ]);
+
+        $this->assertSame(1, $result['motor_version']);
+        $this->assertArrayHasKey('setup_horas', $result['catalog_snapshot']);
+        $this->assertArrayHasKey('ceiling_etiqueta', $result['catalog_snapshot']);
+        $this->assertArrayHasKey('minutos_troca_bobina', $result['catalog_snapshot']);
+        $this->assertSame(1, $result['catalog_snapshot']['motor_version']);
+    }
 }

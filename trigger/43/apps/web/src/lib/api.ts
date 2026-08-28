@@ -2006,6 +2006,7 @@ export type OrcamentoResult = {
   chave_matriz: string | null;
   cobra_matriz: boolean;
   valor_matriz: number;
+  motor_version?: number;
   faixas: OrcamentoFaixaResult[];
   catalog_snapshot?: Record<string, unknown>;
   faca_nova?: boolean;

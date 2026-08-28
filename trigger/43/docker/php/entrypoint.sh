@@ -88,6 +88,9 @@ php artisan facas:ensure-mapa --no-interaction || true
 php artisan condicao-pagamento:ensure-rbac --no-interaction || true
 php artisan condicao-pagamento:ensure-sugestoes --no-interaction || true
 
+# Backlog: consulta nos papéis (após seed — syncPermissions não pode apagar backlog.ler).
+php artisan backlog:ensure-rbac --no-interaction || true
+
 php artisan storage:link 2>/dev/null || true
 
 exec "$@"

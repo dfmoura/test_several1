@@ -207,6 +207,16 @@ class OrcamentoCatalogoController extends Controller
         return response()->json(['data' => $this->service->updateParametro($chave, $data)]);
     }
 
+    public function regras(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->can('orcamento.catalogo.gerir') && ! $user->can('orcamento.ler')) {
+            abort(403, 'Permissão orcamento.ler ou orcamento.catalogo.gerir necessária.');
+        }
+
+        return response()->json(['data' => $this->service->regrasComParametros()]);
+    }
+
     public function faixasFrete(Request $request): JsonResponse
     {
         $this->authorizeManage($request);

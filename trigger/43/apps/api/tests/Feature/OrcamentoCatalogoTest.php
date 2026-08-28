@@ -378,4 +378,71 @@ class OrcamentoCatalogoTest extends TestCase
             ])
             ->assertStatus(422);
     }
+
+    public function test_escalares_motor_overlay_e_regras_endpoint(): void
+    {
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson(null, false, $this->empresa->id);
+
+        $this->assertGreaterThanOrEqual(
+            20,
+            \App\Models\OrcCatalogoParametro::query()->where('empresa_id', $this->empresa->id)->count(),
+        );
+
+        \App\Models\OrcCatalogoParametro::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('chave', 'setup_horas')
+            ->update(['valor' => 1.5, 'ativo' => true]);
+        \App\Models\OrcCatalogoParametro::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('chave', 'ceiling_etiqueta')
+            ->update(['valor' => 5, 'ativo' => true]);
+
+        $cat = OrcamentoCatalogo::load(null, $this->empresa->id);
+        $this->assertSame(1.5, $cat->setupHoras);
+        $this->assertSame(5.0, $cat->ceilingEtiqueta);
+        $this->assertSame(1.5, $cat->metaForUi()['setup_horas']);
+
+        $this->asComercial()
+            ->getJson('/api/v1/orcamento-catalogo/regras')
+            ->assertOk()
+            ->assertJsonPath('data.motor_version', 1)
+            ->assertJsonFragment(['id' => 'R1_metragem'])
+            ->assertJsonFragment(['id' => 'FECHAMENTO']);
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/parametros/setup_horas', ['valor' => 2])
+            ->assertOk()
+            ->assertJsonPath('data.valor', 2)
+            ->assertJsonPath('data.grupo', 'motor');
+    }
+
+    public function test_escalares_isolados_por_empresa(): void
+    {
+        $empB = Empresa::query()->create([
+            'codigo' => 'EMP-CAT2',
+            'razao_social' => 'Empresa Catálogo B',
+            'nome_fantasia' => 'Cat B',
+            'cnpj' => '00000000000272',
+            'situacao' => 'ATIVA',
+        ]);
+
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson(null, false, $this->empresa->id);
+        $service->seedFromJson(null, false, $empB->id);
+
+        \App\Models\OrcCatalogoParametro::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('chave', 'setup_horas')
+            ->update(['valor' => 3, 'ativo' => true]);
+        \App\Models\OrcCatalogoParametro::query()
+            ->where('empresa_id', $empB->id)
+            ->where('chave', 'setup_horas')
+            ->update(['valor' => 1, 'ativo' => true]);
+
+        $catA = OrcamentoCatalogo::load(null, $this->empresa->id);
+        $catB = OrcamentoCatalogo::load(null, $empB->id);
+        $this->assertSame(3.0, $catA->setupHoras);
+        $this->assertSame(1.0, $catB->setupHoras);
+    }
 }

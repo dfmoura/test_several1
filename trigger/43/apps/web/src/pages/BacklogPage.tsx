@@ -8,7 +8,7 @@ import { formatDateTime } from '../lib/format';
 type SituacaoFiltro = 'abertos' | 'concluidos' | 'todos';
 
 export function BacklogPage() {
-  const { hasGrantedPermission } = useAuth();
+  const { hasGrantedPermission, refresh } = useAuth();
   const canWrite = hasGrantedPermission('backlog.escrever');
 
   const [rows, setRows] = useState<BacklogItem[]>([]);
@@ -49,7 +49,18 @@ export function BacklogPage() {
   );
 
   useEffect(() => {
-    void load();
+    let cancelled = false;
+    void (async () => {
+      await refresh();
+      if (!cancelled) {
+        await load();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Montagem: sincroniza /me antes da 1ª leitura (RBAC pode ter mudado no servidor).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -152,7 +163,11 @@ export function BacklogPage() {
     <>
       <PageHeader
         title="Backlog"
-        description="Tarefas desta empresa (BLG-). Lançamento e conclusão com data automática; na conclusão, registre uma observação opcional."
+        description={
+          canWrite
+            ? 'Tarefas desta empresa (BLG-). Lançamento e conclusão com data automática; na conclusão, registre uma observação opcional.'
+            : 'Tarefas desta empresa (BLG-). Consulta da situação e do histórico — lançamento e alterações restritos.'
+        }
       />
 
       <div className="card" style={{ marginBottom: '1rem' }}>
@@ -234,13 +249,13 @@ export function BacklogPage() {
                   <th style={{ width: '9rem' }}>Concluída em</th>
                   <th>Observação da conclusão</th>
                   <th style={{ width: '7rem' }}>Situação</th>
-                  <th style={{ width: '14rem' }}>Ações</th>
+                  {canWrite ? <th style={{ width: '14rem' }}>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="muted" style={{ padding: '1.25rem' }}>
+                    <td colSpan={canWrite ? 7 : 6} className="muted" style={{ padding: '1.25rem' }}>
                       Nenhuma tarefa neste filtro.
                       {canWrite ? ' Lance a primeira acima.' : null}
                     </td>
@@ -292,8 +307,8 @@ export function BacklogPage() {
                         <td>
                           <StatusPill status={aberto ? 'ABERTO' : 'CONCLUIDO'} />
                         </td>
-                        <td>
-                          {canWrite ? (
+                        {canWrite ? (
+                          <td>
                             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                               {isEditing ? (
                                 <>
@@ -386,10 +401,8 @@ export function BacklogPage() {
                                 </>
                               )}
                             </div>
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })

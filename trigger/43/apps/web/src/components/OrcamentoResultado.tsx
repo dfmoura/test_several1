@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import type { ModeloComposicaoForm } from '../lib/orcamentoForm';
@@ -49,6 +50,149 @@ type Props = {
   /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
   modoServico?: boolean;
 };
+
+function snapNum(snapshot: Record<string, unknown> | undefined, key: string): string | null {
+  if (!snapshot) return null;
+  const v = snapshot[key];
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    return v.toLocaleString('pt-BR', { maximumFractionDigits: 6 });
+  }
+  if (typeof v === 'string' && v !== '' && Number.isFinite(Number(v))) {
+    return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 6 });
+  }
+  return null;
+}
+
+function FluxoCalculoPanel({
+  detalhe,
+  snapshot,
+  motorVersion,
+}: {
+  detalhe: OrcamentoFaixaResult;
+  snapshot?: Record<string, unknown>;
+  motorVersion: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const linhas = [
+    {
+      regra: 'R1 · Metragem',
+      valor: `${formatDecimalBr(detalhe.metragem, 1)} m`,
+      param: null as string | null,
+    },
+    {
+      regra: 'R2 · Área',
+      valor: `${formatDecimalBr(detalhe.m2, 2)} m²`,
+      param: null,
+    },
+    {
+      regra: 'R3 · Hora-máquina',
+      valor: `${formatDecimalBr(detalhe.hora_maq, 3)} h`,
+      param: snapNum(snapshot, 'setup_horas')
+        ? `setup_horas = ${snapNum(snapshot, 'setup_horas')} h`
+        : null,
+    },
+    {
+      regra: 'R4 · Troca bobina',
+      valor: `${formatDecimalBr(detalhe.hora_troca_bobina, 3)} h`,
+      param: [
+        snapNum(snapshot, 'limite_metragem_bobina')
+          ? `limite = ${snapNum(snapshot, 'limite_metragem_bobina')} m`
+          : null,
+        snapNum(snapshot, 'minutos_troca_bobina')
+          ? `minutos = ${snapNum(snapshot, 'minutos_troca_bobina')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || null,
+    },
+    {
+      regra: 'R6 · Perda acerto',
+      valor: `${formatDecimalBr(detalhe.perda_acerto, 2)} m²`,
+      param: snapNum(snapshot, 'perda_papel_f6')
+        ? `F6 = ${snapNum(snapshot, 'perda_papel_f6')}`
+        : null,
+    },
+    {
+      regra: 'CUSTO · Papel',
+      valor: formatCurrency(detalhe.valor_papel),
+      param: null,
+    },
+    {
+      regra: 'CUSTO · Tinta',
+      valor: formatCurrency(detalhe.valor_tinta),
+      param: [
+        snapNum(snapshot, 'tinta_faixa_m2')
+          ? `faixa = ${snapNum(snapshot, 'tinta_faixa_m2')} m²`
+          : null,
+        snapNum(snapshot, 'tinta_acima_m2')
+          ? `acima = ${snapNum(snapshot, 'tinta_acima_m2')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ') || null,
+    },
+    {
+      regra: 'FECHAMENTO · Teto',
+      valor: formatCurrency(detalhe.valor_etiqueta),
+      param: snapNum(snapshot, 'ceiling_etiqueta')
+        ? `ceiling = R$ ${snapNum(snapshot, 'ceiling_etiqueta')}`
+        : null,
+    },
+    {
+      regra: 'MATRIZ',
+      valor: formatCurrency(detalhe.valor_matriz),
+      param: snapNum(snapshot, 'matriz_cm2')
+        ? `matriz_cm2 = ${snapNum(snapshot, 'matriz_cm2')} R$/cm²`
+        : null,
+    },
+  ];
+
+  return (
+    <div className="orc-fluxo-calculo" style={{ marginTop: '1rem' }}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        {open ? 'Ocultar fluxo do cálculo' : 'Como chegou neste valor'}
+      </button>
+      {open ? (
+        <div className="card" style={{ marginTop: '0.65rem' }}>
+          <div className="card-body" style={{ display: 'grid', gap: '0.65rem' }}>
+            <p className="orc-result-meta" style={{ margin: 0 }}>
+              Rastreio interno · motor v{motorVersion} · parâmetros do snapshot deste ORC
+              (não da tarifa atual do catálogo).{' '}
+              <Link to="/orcamentos/como-calcula">Ver regras →</Link>
+            </p>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Regra</th>
+                    <th>Resultado</th>
+                    <th>Parâmetro no snapshot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linhas.map((ln) => (
+                    <tr key={ln.regra}>
+                      <td>
+                        <strong>{ln.regra}</strong>
+                      </td>
+                      <td>{ln.valor}</td>
+                      <td className="field-note">{ln.param ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function ComercialFaixasTable({
   faixas,
@@ -506,6 +650,19 @@ export function OrcamentoResultado({
                   </div>
                 ) : null}
               </div>
+            ) : null}
+            {detalhe ? (
+              <FluxoCalculoPanel
+                detalhe={detalhe}
+                snapshot={calculo.catalog_snapshot}
+                motorVersion={
+                  typeof calculo.motor_version === 'number'
+                    ? calculo.motor_version
+                    : typeof calculo.catalog_snapshot?.motor_version === 'number'
+                      ? (calculo.catalog_snapshot.motor_version as number)
+                      : 1
+                }
+              />
             ) : null}
             {detalhe && calculo.frete?.modo === 'ENTREGAR' ? (
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>

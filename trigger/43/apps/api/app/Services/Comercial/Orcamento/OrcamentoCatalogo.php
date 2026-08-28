@@ -13,9 +13,10 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Catálogo de preços do motor ORC — port fiel de trigger/36 catalog.py.
  *
- * Fonte híbrida (estudo 32): as 4 bases editáveis (papel, acabamento,
- * tipo troca, máquina G10) + escalares (matriz_cm2) vêm do banco quando
- * populados; demais parâmetros e fallback continuam em catalog_oficial.json.
+ * Fonte híbrida (estudo 32 / ADR_ORC_MOTOR_REGRAS): bases editáveis (papel,
+ * acabamento, tipo troca, máquina G10) + escalares do motor (matriz, setup,
+ * perdas, tinta, tubete…) vêm do banco quando populados; demais parâmetros e
+ * fallback continuam em catalog_oficial.json.
  * Lookup inclui inativos (ORCs antigos); metaForUi só lista ativos.
  */
 final class OrcamentoCatalogo
@@ -89,7 +90,14 @@ final class OrcamentoCatalogo
         public float $precoCaixa = 7.0,
         public float $setupHoras = 1.0,
         public float $limiteMetragemBobina = 1000.0,
+        public float $minutosTrocaBobina = 5.0,
         public float $ceilingEtiqueta = 10.0,
+        /** Metros de acerto por faixa de cores (≥4V). */
+        public float $perdaAcertoM4v = 250.0,
+        public float $perdaAcertoM5 = 250.0,
+        public float $perdaAcertoM6 = 260.0,
+        public float $perdaAcertoM7 = 270.0,
+        public float $perdaAcertoM8 = 280.0,
         /** @var array<string, array<string, mixed>> */
         public array $caixaEmpacotamento = [],
         public string $rebobinacaoNome = 'REBOBINAÇÃO',
@@ -197,7 +205,13 @@ final class OrcamentoCatalogo
             precoCaixa: (float) ($raw['preco_caixa'] ?? 7),
             setupHoras: (float) ($raw['setup_horas'] ?? 1),
             limiteMetragemBobina: (float) ($raw['limite_metragem_bobina'] ?? 1000),
+            minutosTrocaBobina: (float) ($raw['minutos_troca_bobina'] ?? 5),
             ceilingEtiqueta: (float) ($raw['ceiling_etiqueta'] ?? 10),
+            perdaAcertoM4v: (float) ($raw['perda_acerto_m_4v'] ?? 250),
+            perdaAcertoM5: (float) ($raw['perda_acerto_m_5'] ?? 250),
+            perdaAcertoM6: (float) ($raw['perda_acerto_m_6'] ?? 260),
+            perdaAcertoM7: (float) ($raw['perda_acerto_m_7'] ?? 270),
+            perdaAcertoM8: (float) ($raw['perda_acerto_m_8'] ?? 280),
             caixaEmpacotamento: $caixaEmp,
         );
     }
@@ -214,13 +228,7 @@ final class OrcamentoCatalogo
 
         try {
             if (Schema::hasTable('orc_catalogo_parametros')) {
-                $matriz = CatalogoOrcEmpresa::apply(OrcCatalogoParametro::query(), $empresaId, true)
-                    ->where('chave', OrcCatalogoParametro::CHAVE_MATRIZ_CM2)
-                    ->where('ativo', true)
-                    ->first();
-                if ($matriz) {
-                    $cat->matrizCm2 = (float) $matriz->valor;
-                }
+                self::applyParametrosOverlay($cat, $empresaId);
             }
 
             $papeisQ = CatalogoOrcEmpresa::apply(OrcCatalogoPapel::query(), $empresaId, true);
@@ -342,6 +350,24 @@ final class OrcamentoCatalogo
         }
         if (array_key_exists('matriz_cm2', $overrides) && $overrides['matriz_cm2'] !== null) {
             $cat->matrizCm2 = (float) $overrides['matriz_cm2'];
+        }
+        if (array_key_exists('setup_horas', $overrides) && $overrides['setup_horas'] !== null) {
+            $cat->setupHoras = (float) $overrides['setup_horas'];
+        }
+        if (array_key_exists('limite_metragem_bobina', $overrides) && $overrides['limite_metragem_bobina'] !== null) {
+            $cat->limiteMetragemBobina = (float) $overrides['limite_metragem_bobina'];
+        }
+        if (array_key_exists('minutos_troca_bobina', $overrides) && $overrides['minutos_troca_bobina'] !== null) {
+            $cat->minutosTrocaBobina = (float) $overrides['minutos_troca_bobina'];
+        }
+        if (array_key_exists('ceiling_etiqueta', $overrides) && $overrides['ceiling_etiqueta'] !== null) {
+            $cat->ceilingEtiqueta = (float) $overrides['ceiling_etiqueta'];
+        }
+        if (array_key_exists('tinta_faixa_m2', $overrides) && $overrides['tinta_faixa_m2'] !== null) {
+            $cat->tintaFaixaM2 = (float) $overrides['tinta_faixa_m2'];
+        }
+        if (array_key_exists('tinta_valor_ate_30_por_cor', $overrides) && $overrides['tinta_valor_ate_30_por_cor'] !== null) {
+            $cat->tintaAte30PorCor = (float) $overrides['tinta_valor_ate_30_por_cor'];
         }
         if (isset($overrides['acabamentos']) && is_array($overrides['acabamentos'])) {
             $cat->acabamentos = $this->acabamentos;
@@ -552,7 +578,104 @@ final class OrcamentoCatalogo
             'tipos_troca_produto' => array_values($tiposTroca),
             'imposto_pct_default' => 16.0,
             'matriz_cm2' => $this->matrizCm2,
+            'setup_horas' => $this->setupHoras,
+            'limite_metragem_bobina' => $this->limiteMetragemBobina,
+            'minutos_troca_bobina' => $this->minutosTrocaBobina,
+            'ceiling_etiqueta' => $this->ceilingEtiqueta,
+            'preco_caixa' => $this->precoCaixa,
+            'tinta_faixa_m2' => $this->tintaFaixaM2,
+            'tinta_valor_ate_30_por_cor' => $this->tintaAte30PorCor,
+            'tinta_valor_acima_m2' => $this->tintaAcimaM2,
+            'motor_version' => OrcamentoMotorRegras::MOTOR_VERSION,
         ];
+    }
+
+    /**
+     * Aplica escalares ativos de orc_catalogo_parametros sobre o catálogo JSON.
+     */
+    private static function applyParametrosOverlay(self $cat, ?int $empresaId): void
+    {
+        $rows = CatalogoOrcEmpresa::apply(OrcCatalogoParametro::query(), $empresaId, true)
+            ->where('ativo', true)
+            ->get()
+            ->keyBy('chave');
+
+        $val = static function (string $chave) use ($rows): ?float {
+            $row = $rows->get($chave);
+            if (! $row) {
+                return null;
+            }
+
+            return (float) $row->valor;
+        };
+
+        if (($v = $val(OrcCatalogoParametro::CHAVE_MATRIZ_CM2)) !== null) {
+            $cat->matrizCm2 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_SETUP_HORAS)) !== null) {
+            $cat->setupHoras = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_LIMITE_METRAGEM_BOBINA)) !== null) {
+            $cat->limiteMetragemBobina = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_MINUTOS_TROCA_BOBINA)) !== null) {
+            $cat->minutosTrocaBobina = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_CEILING_ETIQUETA)) !== null) {
+            $cat->ceilingEtiqueta = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PRECO_CAIXA)) !== null) {
+            $cat->precoCaixa = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_TINTA_FAIXA_M2)) !== null) {
+            $cat->tintaFaixaM2 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_TINTA_ATE_30_POR_COR)) !== null) {
+            $cat->tintaAte30PorCor = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_TINTA_ACIMA_M2)) !== null) {
+            $cat->tintaAcimaM2 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_PAPEL_F6)) !== null) {
+            $cat->perdaPapelF6 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_4V)) !== null) {
+            $cat->perdaAcertoM4v = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_5)) !== null) {
+            $cat->perdaAcertoM5 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_6)) !== null) {
+            $cat->perdaAcertoM6 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_7)) !== null) {
+            $cat->perdaAcertoM7 = $v;
+        }
+        if (($v = $val(OrcCatalogoParametro::CHAVE_PERDA_ACERTO_M_8)) !== null) {
+            $cat->perdaAcertoM8 = $v;
+        }
+
+        foreach ([
+            '0' => OrcCatalogoParametro::CHAVE_PERDA_PAPEL_0,
+            '1' => OrcCatalogoParametro::CHAVE_PERDA_PAPEL_1,
+            '2' => OrcCatalogoParametro::CHAVE_PERDA_PAPEL_2,
+            '3' => OrcCatalogoParametro::CHAVE_PERDA_PAPEL_3,
+        ] as $k => $chave) {
+            if (($v = $val($chave)) !== null) {
+                $cat->perdaPapel03[$k] = $v;
+            }
+        }
+
+        $tubeteMap = [
+            '1"' => OrcCatalogoParametro::CHAVE_TUBETE_1,
+            '1" 1/2' => OrcCatalogoParametro::CHAVE_TUBETE_1_5,
+            '3"' => OrcCatalogoParametro::CHAVE_TUBETE_3,
+        ];
+        foreach ($tubeteMap as $nome => $chave) {
+            if (($v = $val($chave)) !== null) {
+                $cat->tubete[self::norm($nome)] = $v;
+            }
+        }
     }
 
     public static function norm(string $s): string
