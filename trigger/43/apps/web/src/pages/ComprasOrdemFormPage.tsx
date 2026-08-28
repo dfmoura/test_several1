@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { ApiError, api, type Parceiro, type Produto } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { CONDICOES_PAGAMENTO_SUGESTOES } from '../lib/condicoesComerciais';
 
 type ItemRow = {
   produto_id: string;
@@ -109,17 +109,11 @@ export function ComprasOrdemFormPage() {
                   />
                   <div className="form-group">
                     <label>Condição de pagamento</label>
-                    <input
-                      list="oc-condicao-pagamento-sugestoes"
+                    <CondicaoPagamentoInput
                       value={condicao}
                       placeholder="Sugerida pelo fornecedor"
-                      onChange={(e) => setCondicao(e.target.value)}
+                      onChange={setCondicao}
                     />
-                    <datalist id="oc-condicao-pagamento-sugestoes">
-                      {CONDICOES_PAGAMENTO_SUGESTOES.map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
                     <span className="form-hint">
                       Prefill do PAR ao escolher o fornecedor · editável nesta OC (snapshot).
                     </span>

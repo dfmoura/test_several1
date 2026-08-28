@@ -12,7 +12,7 @@ export const FORMAS_PAGAMENTO = [
 
 export type FormaPagamentoCanonico = (typeof FORMAS_PAGAMENTO)[number]['value'];
 
-/** Sugestões de condição (texto livre; motor de parcelas = fatia futura COND-). */
+/** Sugestões canônicas iniciais (seed) — runtime usa cadastro por EMP. */
 export const CONDICOES_PAGAMENTO_SUGESTOES = [
   'À vista',
   'PIX antecipado',
@@ -24,7 +24,6 @@ export const CONDICOES_PAGAMENTO_SUGESTOES = [
   '14/28',
   '14/28/42',
   '28/35/42',
-  '50% sinal + 50% 28 DDL',
 ] as const;
 
 const FORMAS_SET = new Set<string>(FORMAS_PAGAMENTO.map((f) => f.value));

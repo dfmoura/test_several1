@@ -84,6 +84,10 @@ php artisan orcamento:ensure-rbac --no-interaction || true
 # Mapa de facas: importa itens ausentes do JSON oficial (idempotente).
 php artisan facas:ensure-mapa --no-interaction || true
 
+# Condições de pagamento: RBAC + sugestões canônicas por EMP (idempotente).
+php artisan condicao-pagamento:ensure-rbac --no-interaction || true
+php artisan condicao-pagamento:ensure-sugestoes --no-interaction || true
+
 php artisan storage:link 2>/dev/null || true
 
 exec "$@"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
+use App\Services\Cadastros\CondicaoPagamentoSugestaoService;
 use App\Services\Cadastros\DepartamentoService;
 use App\Services\Cadastros\FatorConversaoSugeridor;
 use App\Services\Cadastros\NaturezaGerencialService;
@@ -26,6 +27,7 @@ class ConsultaController extends Controller
         private readonly ProdutoGrupoService $produtoGrupoService,
         private readonly NaturezaGerencialService $naturezaGerencialService,
         private readonly DepartamentoService $departamentoService,
+        private readonly CondicaoPagamentoSugestaoService $condicaoPagamentoSugestaoService,
     ) {}
 
     public function cnpj(string $cnpj): JsonResponse
@@ -440,6 +442,25 @@ class ConsultaController extends Controller
         ]);
 
         $data = $this->departamentoService->consultaAtivos($empresa, $validated['q'] ?? null);
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function condicoesPagamentoSugestoes(Request $request): JsonResponse
+    {
+        $empresa = app('empresa');
+        if (! $empresa instanceof Empresa) {
+            abort(400, 'Empresa não selecionada.');
+        }
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $data = $this->condicaoPagamentoSugestaoService->consultaAtivos(
+            $empresa,
+            $validated['q'] ?? null,
+        );
 
         return response()->json(['data' => $data]);
     }

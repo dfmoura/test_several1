@@ -1145,6 +1145,16 @@ export type Departamento = {
   updated_at?: string | null;
 };
 
+export type CondicaoPagamentoSugestao = {
+  id: number;
+  empresa_id: number;
+  texto: string;
+  ordenacao: number;
+  ativo: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type BacklogItem = {
   id: number;
   empresa_id: number;

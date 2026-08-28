@@ -17,6 +17,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MapasFacasPage } from './pages/MapasFacasPage';
 import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
 import { BacklogPage } from './pages/BacklogPage';
+import { CondicoesPagamentoPage } from './pages/CondicoesPagamentoPage';
 import { DepartamentosPage } from './pages/DepartamentosPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
@@ -255,6 +256,22 @@ export default function App() {
           element={
             <PermissionRoute permission="departamento.ler">
               <DepartamentosPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
+          path="condicoes-pagamento"
+          element={
+            <PermissionRoute
+              permission={[
+                'condicao_pagamento.ler',
+                'parceiro.ler',
+                'compras.ler',
+                'orcamento.ler',
+              ]}
+            >
+              <CondicoesPagamentoPage />
             </PermissionRoute>
           }
         />

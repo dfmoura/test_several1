@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CnaeAtividadesPanel } from '../components/CnaeAtividadesPanel';
+import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { CnpjConsultaMetaStrip } from '../components/CnpjConsultaMetaStrip';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
@@ -27,7 +28,6 @@ import {
 import { useAuth } from '../lib/auth';
 import { DECIMAL_SCALE, decimalStep, formatCep, formatCnpjCpf, formatKmCarro, formatKmCarroDaEmpresa, formatLatLng, formatPhone, kmCarroEhZero, onlyDigits } from '../lib/format';
 import {
-  CONDICOES_PAGAMENTO_SUGESTOES,
   FORMAS_PAGAMENTO,
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
@@ -2649,20 +2649,17 @@ export function ParceiroFormPage() {
                 )}
                 <div className="form-group">
                   <label>Condição de pagamento padrão</label>
-                  <input
-                    list="par-condicao-pagamento-sugestoes"
+                  <CondicaoPagamentoInput
                     value={form.condicao_pagamento}
                     disabled={fieldDisabled('write')}
                     placeholder="ex.: 28 DDL, 14/28/42, à vista"
                     maxLength={64}
-                    onChange={(e) => update({ condicao_pagamento: e.target.value })}
+                    showCadastroLink
+                    onChange={(v) => update({ condicao_pagamento: v })}
                   />
-                  <datalist id="par-condicao-pagamento-sugestoes">
-                    {CONDICOES_PAGAMENTO_SUGESTOES.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                  <span className="form-hint">Texto livre · sugestões do estudo · máx. 64.</span>
+                  <span className="form-hint">
+                    Digite ou escolha na lista · texto livre permitido (snapshot no documento).
+                  </span>
                 </div>
                 <div className="form-group">
                   <label>Forma de pagamento preferida</label>

@@ -11,6 +11,7 @@ use App\Models\Parceiro;
 use App\Models\ParceiroContato;
 use App\Models\User;
 use App\Services\Cadastros\BemPatrimonialService;
+use App\Services\Cadastros\CondicaoPagamentoSugestaoService;
 use App\Services\Cadastros\DepartamentoService;
 use App\Services\Cadastros\NaturezaGerencialService;
 use App\Services\Codigo\CodigoGenerator;
@@ -54,6 +55,7 @@ class EmpresaOnboardingService
         private readonly FacasMapaService $facas,
         private readonly BemPatrimonialService $patrimonio,
         private readonly DepartamentoService $departamentos,
+        private readonly CondicaoPagamentoSugestaoService $condicoesPagamento,
         private readonly EmpresaAtivacaoService $ativacao,
         private readonly NaturezaGerencialService $naturezas,
         private readonly BrasilApiClient $brasilApiClient,
@@ -171,6 +173,7 @@ class EmpresaOnboardingService
             $this->catalogo->seedFromJson(null, false, $empresa->id);
             $this->facas->seedFromJson(null, false, $empresa->id);
             $this->departamentos->ensureCanonicos($empresa);
+            $this->condicoesPagamento->ensureCanonicos($empresa);
             $this->patrimonio->seedModeloInicial($empresa);
             $this->ativacao->provisionar($empresa);
             $this->ativacao->herdarPagamentoDaConta($user, $empresa);

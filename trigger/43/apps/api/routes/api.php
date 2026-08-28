@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\CompraNecessidadeController;
 use App\Http\Controllers\Api\V1\ConsultaController;
 use App\Http\Controllers\Api\V1\ComissaoController;
 use App\Http\Controllers\Api\V1\BacklogController;
+use App\Http\Controllers\Api\V1\CondicaoPagamentoSugestaoController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
@@ -200,6 +201,13 @@ Route::prefix('v1')->group(function () {
         Route::put('/departamentos/{departamento}', [DepartamentoController::class, 'update']);
         Route::delete('/departamentos/{departamento}', [DepartamentoController::class, 'destroy']);
 
+        Route::get('/condicoes-pagamento-sugestoes', [CondicaoPagamentoSugestaoController::class, 'index']);
+        Route::post('/condicoes-pagamento-sugestoes', [CondicaoPagamentoSugestaoController::class, 'store']);
+        Route::post('/condicoes-pagamento-sugestoes/seed-canonicos', [CondicaoPagamentoSugestaoController::class, 'seedCanonicos']);
+        Route::get('/condicoes-pagamento-sugestoes/{condicaoPagamentoSugestao}', [CondicaoPagamentoSugestaoController::class, 'show']);
+        Route::put('/condicoes-pagamento-sugestoes/{condicaoPagamentoSugestao}', [CondicaoPagamentoSugestaoController::class, 'update']);
+        Route::delete('/condicoes-pagamento-sugestoes/{condicaoPagamentoSugestao}', [CondicaoPagamentoSugestaoController::class, 'destroy']);
+
         Route::get('/backlog', [BacklogController::class, 'index']);
         Route::post('/backlog', [BacklogController::class, 'store']);
         Route::get('/backlog/{backlogItem}', [BacklogController::class, 'show']);
@@ -366,5 +374,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/consulta/produto-grupos', [ConsultaController::class, 'produtoGrupos']);
         Route::get('/consulta/naturezas-gerenciais', [ConsultaController::class, 'naturezasGerenciais']);
         Route::get('/consulta/departamentos', [ConsultaController::class, 'departamentos']);
+        Route::get('/consulta/condicoes-pagamento-sugestoes', [ConsultaController::class, 'condicoesPagamentoSugestoes']);
     });
 });

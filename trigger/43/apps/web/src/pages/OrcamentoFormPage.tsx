@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { PageHeader } from '../components/PageHeader';
@@ -17,7 +18,6 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import {
-  CONDICOES_PAGAMENTO_SUGESTOES,
   FORMAS_PAGAMENTO,
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
@@ -605,19 +605,13 @@ export function OrcamentoFormPage() {
                 />
                 <div className="form-group">
                   <label>Condição de pagamento</label>
-                  <input
-                    list="orc-condicao-pagamento-sugestoes"
+                  <CondicaoPagamentoInput
                     value={form.condicao_pagamento}
                     maxLength={64}
                     placeholder="ex.: 28 DDL · prefill do PAR"
                     disabled={!canWrite}
-                    onChange={(e) => setField('condicao_pagamento', e.target.value)}
+                    onChange={(v) => setField('condicao_pagamento', v)}
                   />
-                  <datalist id="orc-condicao-pagamento-sugestoes">
-                    {CONDICOES_PAGAMENTO_SUGESTOES.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
                 </div>
                 <div className="form-group">
                   <label>Forma de pagamento</label>

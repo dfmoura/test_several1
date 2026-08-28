@@ -7031,4 +7031,34 @@ button.linkish:hover {
   color: var(--text-muted, #64748b);
 }
 
+.condicao-pagamento-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.condicao-pagamento-field select,
+.condicao-pagamento-field input {
+  width: 100%;
+}
+
+.condicao-pagamento-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--navy, #1a3568);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.condicao-pagamento-toggle:hover {
+  color: var(--accent, #2563eb);
+}
+
+.condicao-pagamento-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 

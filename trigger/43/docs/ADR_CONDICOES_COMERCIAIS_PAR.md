@@ -17,7 +17,7 @@ Parceiros → Financeiro → **Condições comerciais** guarda defaults. Documen
 | **Documento = snapshot** | OC e ORC travam a condição efetiva; títulos não “relêem” o PAR. |
 | **ORC: só `input_snapshot`** | Sem coluna nova em `orcamentos`; mesmo padrão de faca/prazo no JSON. Motor R1–R20 intacto. |
 | **Forma canônica curta** | PIX · Boleto · Transferência · Cartão (UI); string no banco; legado preservado. |
-| **Condição = texto + sugestões** | Sem catálogo `COND-` até existir gerador de TIT. |
+| **Condição = texto + sugestões** | Sem catálogo `COND-` até existir gerador de TIT. Sugestões **configuráveis por EMP** (`condicao_pagamento_sugestoes`) — autocomplete apenas; documento guarda texto livre. |
 | **Limite continua SoD** | Só `credito.escrever`; default 0 → sinal/à vista (adiantamento). |
 | **OC = prefill editável** | Ao escolher fornecedor, copia condição do PAR. |
 | **ORC = prefill + snapshot** | Ao escolher parceiro, preenche; salvar grava no `input_snapshot`; proposta pública e ficha exibem. |
@@ -38,7 +38,8 @@ PAR (defaults)
 
 ## Consequências
 
-- Lib `apps/web/src/lib/condicoesComerciais.ts` compartilhada.  
+- Lib `apps/web/src/lib/condicoesComerciais.ts` — seed/fallback estático; runtime via `GET /consulta/condicoes-pagamento-sugestoes`.  
+- Cadastro admin: **Cadastros → Condições de pagamento** (por EMP).  
 - Validação API: `condicao_pagamento` / `forma_pagamento` opcionais no payload do ORC.  
 - Proposta pública: seção **Condições** inclui pagamento quando informado.  
 - Multi-EMP: PAR e ORC já escopados por `empresa_id`.  

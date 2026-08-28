@@ -34,6 +34,8 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
   permission: string | null;
+  /** Qualquer uma das permissões (OR). Ignorado se `permission` for null. */
+  permissionsAny?: string[];
   /** Exige permissão no `/me` (sem bypass ADMIN) — ex.: backlog lab. */
   exactPermission?: boolean;
   /** Custom active match (overrides default NavLink matching). */
@@ -57,6 +59,13 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/empresas', label: 'Empresas', icon: IconBuilding, permission: null },
       { to: '/departamentos', label: 'Departamentos', icon: IconDepartamentos, permission: 'departamento.ler' },
+      {
+        to: '/condicoes-pagamento',
+        label: 'Condições de pagamento',
+        icon: IconFinanceiro,
+        permission: 'condicao_pagamento.ler',
+        permissionsAny: ['parceiro.ler', 'compras.ler', 'orcamento.ler'],
+      },
       {
         to: '/backlog',
         label: 'Backlog',
@@ -216,6 +225,10 @@ export function AppShell() {
     ...group,
     items: group.items.filter((item) => {
       if (!item.permission) return true;
+      if (item.permissionsAny?.length) {
+        const check = item.exactPermission ? hasGrantedPermission : hasPermission;
+        if (item.permissionsAny.some((p) => check(p))) return true;
+      }
       return item.exactPermission
         ? hasGrantedPermission(item.permission)
         : hasPermission(item.permission);
