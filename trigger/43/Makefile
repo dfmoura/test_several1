@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -41,6 +41,10 @@ down-aws:
 
 aws-check:
 	./scripts/aws-ready-check.sh $${ERP_ENV_FILE:-.env.aws}
+
+# Extrai MAIL_*/VIAZAP_* do apps/api/.env local → arquivo para mesclar no .env.aws (Lightsail).
+export-envio-proposta:
+	./scripts/export-envio-proposta-env.sh $${OUT:-/tmp/flexoerp-envio-proposta.env}
 
 promote-prod:
 	./scripts/promote-homolog-to-production.sh

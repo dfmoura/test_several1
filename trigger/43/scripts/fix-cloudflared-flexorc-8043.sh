@@ -1,40 +1,55 @@
 #!/usr/bin/env bash
-# Corrige o Cloudflare Tunnel: flexorc → porta 8043 (instalação 43).
-# Requer sudo (o serviço systemd usa /etc/cloudflared/config.yml).
-#
-# Uso: sudo bash scripts/fix-cloudflared-flexorc-8043.sh
+# Alinha o tunnel Cloudflare do flexorc à porta desta instalação (8043).
+# Causa clássica de HTTPS 502: /etc/cloudflared ainda aponta para 8039 (legado).
+# Uso (com sudo no host do notebook):
+#   sudo bash scripts/fix-cloudflared-flexorc-8043.sh
 #
 set -euo pipefail
 
-TARGET=8043
-FILES=(/etc/cloudflared/config.yml)
-if [[ -f "${HOME}/.cloudflared/config.yml" ]]; then
-  FILES+=("${HOME}/.cloudflared/config.yml")
+CFG="${CLOUDFLARED_CONFIG:-/etc/cloudflared/config.yml}"
+
+if [[ ! -f "$CFG" ]]; then
+  echo "FAIL: $CFG não encontrado" >&2
+  exit 1
 fi
 
-for f in "${FILES[@]}"; do
-  if [[ ! -f "$f" ]]; then
-    echo "skip: $f ausente"
-    continue
-  fi
-  if grep -q 'hostname: flexorc.triggerti.com' "$f"; then
-    sed -i '/hostname: flexorc.triggerti.com/{n;s|service: http://localhost:[0-9]*|service: http://localhost:'"$TARGET"'|;}' "$f"
-    echo "OK  $f → localhost:$TARGET"
-    grep -A1 'hostname: flexorc.triggerti.com' "$f"
-  else
-    echo "WARN $f sem hostname flexorc.triggerti.com"
-  fi
-done
-
-if systemctl is-enabled cloudflared >/dev/null 2>&1; then
-  systemctl restart cloudflared
-  sleep 2
-  systemctl is-active cloudflared
-  echo "OK  cloudflared reiniciado"
-else
-  echo "WARN cloudflared não está como serviço systemd — reinicie o túnel manualmente"
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "Rode com sudo: sudo bash $0" >&2
+  exit 1
 fi
 
+cp -a "$CFG" "${CFG}.bak.$(date +%Y%m%d%H%M%S)"
+
+# Só a linha de service imediatamente após flexorc.triggerti.com
+python3 - <<'PY' "$CFG"
+import sys
+from pathlib import Path
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines(keepends=True)
+out = []
+i = 0
+changed = False
+while i < len(lines):
+    out.append(lines[i])
+    if "hostname: flexorc.triggerti.com" in lines[i] and i + 1 < len(lines):
+        nxt = lines[i + 1]
+        if "localhost:8039" in nxt:
+            lines[i + 1] = nxt.replace("localhost:8039", "localhost:8043")
+            changed = True
+        elif "localhost:8043" in nxt:
+            pass
+        i += 1
+        out.append(lines[i])
+    i += 1
+path.write_text("".join(out))
+print("changed" if changed else "already_8043_or_custom")
+PY
+
+systemctl restart cloudflared
+sleep 2
+systemctl is-active cloudflared
+echo "Smoke:"
+curl -sS -m 15 https://flexorc.triggerti.com/api/v1/health || true
 echo
-echo "Smoke: curl -sS https://flexorc.triggerti.com/api/v1/health"
-curl -sfS -m 8 https://flexorc.triggerti.com/api/v1/health; echo
+curl -sS -m 10 https://viazap.triggerti.com/health || true
+echo

@@ -17,7 +17,8 @@ O envio da proposta já gera link + texto para clipboard + deep link (`wa.me` / 
 | **Destino = WhatsApp do contato/parceiro** | Mesma regra do link: só cadastro oficial (`parceiro_contatos` / legado). |
 | **Disparo no `enviarParaAprovacao`** | Após gravar o link; envia se houver WhatsApp válido — mesmo quando o canal preferido é e-mail. |
 | **`body` = `mensagemPadrao()`** | Uma fonte de texto (Zap, clipboard, wa.me). |
-| **`external_id` = `orcamento.codigo`** | Rastreio/idempotência no ViaZap. |
+| **`external_id` = `{codigo}:{YmdHis}`** | ViaZap é idempotente por remetente: o mesmo id **não** reenvia. Cada Enviar/reenviar precisa de id novo; o código do ORC fica no prefixo para rastreio. |
+| **`VIAZAP_BASE_URL` absoluta `https://…`** | Container AWS não usa `localhost:8144`; canônico = tunnel `https://viazap.triggerti.com` → notebook `:8144`. |
 | **Fail-soft** | Falha do ViaZap **não** desfaz status/link/clipboard. Resposta expõe `zap_enviado`. |
 | **Sem config = silencioso** | Sem `VIAZAP_BASE_URL` + `VIAZAP_TOKEN`, retorna `zap_motivo: desligado` (não alarmar dev). |
 | **Clipboard + wa.me permanecem** | Canal manual como fallback. |
@@ -39,11 +40,15 @@ enviar aprovação
 | Instalação | `VIAZAP_BASE_URL`, `VIAZAP_TOKEN`, `VIAZAP_TIMEOUT_SEC` · flag `ORCAMENTO_WHATSAPP_AUTO` (padrão true) |
 | Parceiro | `parceiro_contatos.whatsapp` ou `parceiros.whatsapp` (legado) |
 
-**Produção/dev com Docker:** usar `https://viazap.triggerti.com` (não `localhost:8144` — o container não alcança o host).
+**Produção/dev com Docker:** usar `https://viazap.triggerti.com` (não `localhost:8144` — o container não alcança o host).  
+**AWS:** `VIAZAP_*` no `.env.aws` (gitignored). Sem token → `zap_motivo: desligado`. Health: `envio_proposta.viazap_configurado`.
+
+**AWS → ViaZap:** a Lightsail chama `https://viazap.triggerti.com` (Cloudflare Tunnel → `localhost:8144` no notebook). O QR/sessão WhatsApp e o processo ViaZap precisam estar **no ar no host do tunnel**; senão a API pode aceitar (202) e a entrega falha, ou o POST nem chega.
 
 ## Consequências
 
 - ViaZap indisponível: comercial usa clipboard/wa.me; link e e-mail seguem.
 - Sem WhatsApp no contato: não dispara; e-mail/clipboard seguem.
+- Reenviar proposta gera novo `external_id` (novo disparo na fila do remetente).
 - Andamentos (visualizou / aprovou) ficam para BL futuro.
 - WhatsApp por EMP continua **proibido** sem ADR novo.

@@ -12,8 +12,8 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 
 | Escolha | Motivo |
 |---------|--------|
-| **Mesmo monólito** + rota SPA `/p/:token` | Um deploy; subdomínio `flexorc.triggerti.com` aponta para o mesmo app (CNAME/host). Sem microserviço. |
-| **Base URL configurável** `ORCAMENTO_PUBLIC_BASE_URL` | Local = `APP_URL`; prod = `https://flexorc.triggerti.com`. Link absoluto no Ctrl+C. |
+| **Mesmo monólito** + rota SPA `/p/:token` | Um deploy; host oficial aponta para o mesmo app. Sem microserviço. |
+| **Base URL configurável** `ORCAMENTO_PUBLIC_BASE_URL` | Local/ensaio: tunnel `flexorc`; **homolog/prod:** `https://flexoerp001.triggerti.com` (`ADR_HOST_INSTALACAO_FLEXOERP001`). |
 | **Tabela `orcamento_links_aprovacao`** (1:1) | Token longo, validade, visualizações, `ativo`/`usado_em` — sem expor `id` sequencial. |
 | **Destinatário = contato oficial autorizado** | Estudo §1.4 / §3.4: sem senha no link; identificação = canal + token. Proibido número/e-mail avulso no envio. Flag `parceiro_contatos.autorizado_aprovar`. |
 | **DTO só comercial no público** | Nunca custo, margem, comissão, imposto (estudo §3). Página declara **quem** deve decidir. |
@@ -69,7 +69,7 @@ Após aprovar **ou** rejeitar, GET do token responde **indisponível** (não mos
 ## Consequências
 
 - Nginx/Caddy: host `flexorc.*` serve o mesmo SPA; path `/p/*` e `/api/v1/publico/*`.
-- DNS: CNAME `flexorc.triggerti.com` → mesmo alvo do ERP (Lightsail/ALB). Em prod: `ORCAMENTO_PUBLIC_BASE_URL=https://flexorc.triggerti.com`.
+- DNS: `flexoerp001.triggerti.com` → Lightsail. Em homolog/prod: `ORCAMENTO_PUBLIC_BASE_URL=https://flexoerp001.triggerti.com`. Lab/ensaio: tunnel `flexorc` (`ADR_HOST_INSTALACAO_FLEXOERP001` · `ADR_ENSAIO_ASAAS_FLEXORC`).
 - Nova versão após `REPROVADO` invalida link antigo (já inativo) e exige novo envio.
 - PED / crédito / WhatsApp Business / object storage (R2) ficam explicitamente para BLs futuros.
 - E-mail transacional ao enviar o link: `docs/ADR_ORC_EMAIL_PROPOSTA.md` (motor `MAIL_*` + Reply-To `empresas.email`).

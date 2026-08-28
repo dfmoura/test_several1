@@ -101,8 +101,10 @@ class OrcamentoPropostaEmailService
         if ($contatoId > 0) {
             $contato = ParceiroContato::query()->find($contatoId);
             $viaContato = $this->emailValido($contato?->email);
-
-            return $viaContato;
+            if ($viaContato !== null) {
+                return $viaContato;
+            }
+            // Contato sem e-mail: ADR permite cair no e-mail do cadastro do parceiro.
         }
 
         $parceiro = Parceiro::query()->find($orcamento->parceiro_id);

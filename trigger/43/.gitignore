@@ -12,3 +12,7 @@ apps/web/.npm-cache/
 .vscode/
 *.log
 .DS_Store
+
+# Bloco SMTP/ViaZap exportado (nunca no git)
+.envio-proposta.env*
+*.envio-proposta.env

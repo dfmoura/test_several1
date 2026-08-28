@@ -60,9 +60,9 @@ class OrcamentoAprovacaoService
                 'parceiro_contato_id' => $c->id,
                 'nome' => $c->nome !== '' ? $c->nome : 'Contato',
                 'funcao' => $c->funcao,
-                'whatsapp' => $c->whatsapp,
-                'email' => $c->email,
-                'telefone' => $c->telefone,
+                'whatsapp' => $c->whatsapp ?: $parceiro->whatsapp,
+                'email' => $c->email ?: $parceiro->email,
+                'telefone' => $c->telefone ?: $parceiro->telefone,
                 'canal' => $canal['canal'],
                 'destino' => $canal['destino'],
                 'autorizado_aprovar' => (bool) $c->autorizado_aprovar,
@@ -783,18 +783,25 @@ class OrcamentoAprovacaoService
     private function mensagemPadrao(Orcamento $orcamento, OrcamentoLinkAprovacao $link, string $url): string
     {
         $empresa = $orcamento->empresa;
-        $nomeEmpresa = $empresa?->nome_fantasia ?: ($empresa?->razao_social ?: 'RLP Etiquetas');
+        $nomeEmpresa = $empresa?->nome_fantasia ?: ($empresa?->razao_social ?: 'nossa empresa');
         $validade = $link->expira_em
             ? $link->expira_em->format('d/m/Y')
             : '—';
         $contato = trim((string) ($link->destino_nome ?: 'olá'));
         $primeiro = explode(' ', $contato)[0] ?: $contato;
 
-        // Estudo 32 §3.1 / §3.4: texto padrão + link pessoal (token = acesso). Sem senha no canal.
-        return "Olá, {$primeiro}! Segue a proposta {$orcamento->codigo} v{$orcamento->versao} da {$nomeEmpresa}:\n"
+        // Fonte única Zap + clipboard + wa.me (ADR_ORC_WHATSAPP_VIAZAP).
+        // Link /p/{token} = ver, aprovar ou recusar (sem botões Meta nesta fatia).
+        return "Olá, {$primeiro}.\n"
+            ."\n"
+            ."Segue a proposta comercial *{$orcamento->codigo}* (v{$orcamento->versao}) da *{$nomeEmpresa}*.\n"
+            ."\n"
+            ."Para visualizar, aprovar ou recusar, abra o link abaixo (acesso pessoal — não encaminhe):\n"
             ."{$url}\n"
-            ."Válida até {$validade}. Abra o link (acesso pessoal — não encaminhe) para ver, aprovar ou recusar.\n"
-            .'Qualquer dúvida, estou à disposição.';
+            ."\n"
+            ."Validade: {$validade}.\n"
+            ."\n"
+            .'Qualquer dúvida, estamos à disposição.';
     }
 
     /**
@@ -821,7 +828,7 @@ class OrcamentoAprovacaoService
         }
 
         if ($canal === 'EMAIL' && filter_var($destino, FILTER_VALIDATE_EMAIL)) {
-            $assunto = 'Proposta '.$orcamento->codigo.' v'.$orcamento->versao;
+            $assunto = 'Proposta comercial '.$orcamento->codigo.' v'.$orcamento->versao;
 
             return 'mailto:'.$destino
                 .'?subject='.rawurlencode($assunto)

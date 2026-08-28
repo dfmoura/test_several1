@@ -45,16 +45,24 @@ class OrcamentoPropostaWhatsAppService
             return ['enviado' => false, 'destino' => null, 'motivo' => 'sem_whatsapp_cadastro'];
         }
 
-        $baseUrl = rtrim((string) config('erp.viazap.base_url'), '/');
-        $token = (string) config('erp.viazap.token');
+        $baseUrl = $this->viazapBaseUrl();
+        if ($baseUrl === null) {
+            return ['enviado' => false, 'destino' => $destino, 'motivo' => 'desligado'];
+        }
+
+        $token = trim((string) config('erp.viazap.token', ''));
         $timeout = max(3, (int) config('erp.viazap.timeout_sec', 10));
+        // ViaZap: mesmo external_id no mesmo remetente NÃO reenvia (idempotência).
+        // Cada clique em Enviar/reenviar precisa de id único; o código do ORC fica no prefixo.
+        $externalId = sprintf('%s:%s', $orcamento->codigo, now()->format('YmdHis'));
 
         try {
             $response = Http::timeout($timeout)
                 ->withToken($token)
                 ->acceptJson()
+                ->asJson()
                 ->post($baseUrl.'/v1/messages', [
-                    'external_id' => (string) $orcamento->codigo,
+                    'external_id' => $externalId,
                     'to' => $destino,
                     'type' => 'text',
                     'body' => $mensagem,
@@ -65,6 +73,7 @@ class OrcamentoPropostaWhatsAppService
                     'orcamento_id' => $orcamento->id,
                     'empresa_id' => $orcamento->empresa_id,
                     'destino' => $destino,
+                    'external_id' => $externalId,
                     'status' => $response->status(),
                     'erro' => $response->body(),
                 ]);
@@ -72,12 +81,22 @@ class OrcamentoPropostaWhatsAppService
                 return ['enviado' => false, 'destino' => $destino, 'motivo' => 'falha_envio'];
             }
 
+            Log::info('orcamento.proposta_whatsapp_ok', [
+                'orcamento_id' => $orcamento->id,
+                'empresa_id' => $orcamento->empresa_id,
+                'destino' => $destino,
+                'external_id' => $externalId,
+                'viazap_status' => $response->json('status'),
+                'viazap_id' => $response->json('id'),
+            ]);
+
             return ['enviado' => true, 'destino' => $destino, 'motivo' => null];
         } catch (Throwable $e) {
             Log::warning('orcamento.proposta_whatsapp_falhou', [
                 'orcamento_id' => $orcamento->id,
                 'empresa_id' => $orcamento->empresa_id,
                 'destino' => $destino,
+                'external_id' => $externalId,
                 'erro' => $e->getMessage(),
             ]);
 
@@ -107,8 +126,10 @@ class OrcamentoPropostaWhatsAppService
             : 0;
         if ($contatoId > 0) {
             $contato = ParceiroContato::query()->find($contatoId);
-
-            return $this->normalizarTelefone($contato?->whatsapp);
+            $viaContato = $this->normalizarTelefone($contato?->whatsapp);
+            if ($viaContato !== null) {
+                return $viaContato;
+            }
         }
 
         $parceiro = Parceiro::query()->find($orcamento->parceiro_id);
@@ -118,10 +139,23 @@ class OrcamentoPropostaWhatsAppService
 
     public function viazapConfigurado(): bool
     {
-        $baseUrl = trim((string) config('erp.viazap.base_url', ''));
         $token = trim((string) config('erp.viazap.token', ''));
 
-        return $baseUrl !== '' && $token !== '';
+        return $this->viazapBaseUrl() !== null && $token !== '';
+    }
+
+    /**
+     * Base absoluta https?://… (sem scheme o HTTP client falha com
+     * “URI must include a scheme and host”).
+     */
+    private function viazapBaseUrl(): ?string
+    {
+        $baseUrl = rtrim(trim((string) config('erp.viazap.base_url', '')), '/');
+        if ($baseUrl === '' || ! preg_match('#^https?://#i', $baseUrl)) {
+            return null;
+        }
+
+        return $baseUrl;
     }
 
     private function normalizarTelefone(mixed $telefone): ?string

@@ -31,7 +31,7 @@ class OrcamentoPropostaMail extends Mailable
     public function envelope(): Envelope
     {
         $nomeEmpresa = $this->empresa->nome_fantasia ?: $this->empresa->razao_social ?: 'Proposta';
-        $assunto = 'Proposta '.$this->orcamento->codigo.' v'.$this->orcamento->versao.' — '.$nomeEmpresa;
+        $assunto = 'Proposta comercial '.$this->orcamento->codigo.' v'.$this->orcamento->versao.' — '.$nomeEmpresa;
 
         $replyTo = [];
         if ($this->replyToAddress !== null && $this->replyToAddress !== '') {

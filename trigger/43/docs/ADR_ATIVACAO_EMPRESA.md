@@ -66,7 +66,7 @@ Duas camadas de dinheiro (não misturar):
 - Webhook `/webhooks/bancarios/asaas` confirma billing **e** baixa COB operacional; eventos de atraso/cancelamento marcam `SUSPENSA`.
 - Ops: `plataforma:avisar-cortesia-billing` (diário 08:00) lista contas com cortesia acabando sem meio autenticado.
 - Lab ≈ produção no cadastro atual: `plataforma:abrir-cobranca-pos-cortesia` / `make cenario-mensalidade-pos-cortesia` encerra a cortesia, recoloca a mensalidade em aberto (sem apagar EMP/PAR/ORC) e o login cai em `/conta/mensalidade`.
-- Ensaio local ≈ produção (tunnel flexorc + webhook ASAAS): `docs/ADR_ENSAIO_ASAAS_FLEXORC.md` · `make ensaio-asaas`.
+- Ensaio local ≈ produção (tunnel **lab** `flexorc` + webhook ASAAS): `docs/ADR_ENSAIO_ASAAS_FLEXORC.md` · `make ensaio-asaas`. Homolog/prod online: host oficial `https://flexoerp001.triggerti.com` (`docs/ADR_HOST_INSTALACAO_FLEXOERP001.md`).
 - Saques ASAAS: URL distinta `/webhooks/bancarios/asaas/autorizar-saque` — fail-closed (`docs/ADR_ASAAS_AUTORIZACAO_SAQUE.md`).
 - Enviar proposta na EMP self-service exige mensalidade autenticada **ou** cortesia vigente **e** A1 apto (vigente + CNPJ idêntico). Rascunho livre. Legado sem `empresa_ativacoes` não entra no portão.
 - `GET /ativacao` inclui `certificado_a1_pendente`, alerta de vigência (`certificado_a1_alerta`, `certificado_a1_status`, `certificado_a1_dias_para_vencer`) e o passo `certificado_a1` (`/empresas?tab=a1`).

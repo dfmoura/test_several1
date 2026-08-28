@@ -6,7 +6,9 @@
 
 ## Contexto
 
-A mensalidade FLEXORC usa Checkout ASAAS **recorrente (cartão)**. A confirmação depende de **webhook HTTPS**. `localhost` não recebe o ASAAS. O subdomínio `https://flexorc.triggerti.com` já serve o link público do ORC via Cloudflare Tunnel no notebook — o mesmo canal cobre o ensaio de billing antes da AWS.
+A mensalidade FLEXORC usa Checkout ASAAS **recorrente (cartão)**. A confirmação depende de **webhook HTTPS**. `localhost` não recebe o ASAAS. No **lab**, `https://flexorc.triggerti.com` (Cloudflare Tunnel → notebook `:8043`) cobre o ensaio de billing **antes** da AWS.
+
+**Homolog/produção online** usam o host oficial `https://flexoerp001.triggerti.com` na Lightsail — não o tunnel. Ver `ADR_HOST_INSTALACAO_FLEXOERP001.md`.
 
 ## Decisão
 
@@ -33,7 +35,7 @@ Retorno Checkout → flexorc…/conta/mensalidade?retorno=asaas
 
 - Apontar webhook de **produção** ASAAS para o notebook  
 - Misturar chave sandbox com conta ASAAS production  
-- Substituir o tunnel por deploy AWS neste ADR (AWS = `make up-aws` + DNS definitivo)
+- Substituir o tunnel por deploy AWS neste ADR (AWS = `make up-aws` + DNS `flexoerp001.triggerti.com` — `ADR_HOST_INSTALACAO_FLEXOERP001`)
 
 ## Consequências
 

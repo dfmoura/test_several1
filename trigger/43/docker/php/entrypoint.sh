@@ -30,6 +30,37 @@ if printf '%s' "$ENV_KEY" | grep -qE '^base64:[A-Za-z0-9+/=]{20,}$'; then
   fi
 fi
 
+# Proposta ORC (MAIL_* / VIAZAP_*): Compose injeta string vazia quando a chave
+# não está no .env / .env.aws. Variável de ambiente vazia ganha do arquivo do
+# volume e “desliga” SMTP/ViaZap que só existem em apps/api/.env (caso local).
+# Remover do ambiente os vazios; valores preenchidos (AWS) permanecem e mandam.
+# Também espelha no .env do volume (artisan serve / próximos boots leem o arquivo).
+_erp_set_env_file() {
+  _k="$1"
+  _v="$2"
+  if grep -qE "^${_k}=" .env 2>/dev/null; then
+    # Escapa separadores do sed; valores com newline não são suportados (secrets de 1 linha).
+    _esc=$(printf '%s' "$_v" | sed -e 's/[\\/&]/\\\\&/g')
+    sed -i "s|^${_k}=.*|${_k}=${_esc}|" .env
+  else
+    printf '%s=%s\n' "$_k" "$_v" >> .env
+  fi
+}
+for _erp_key in \
+  ORCAMENTO_EMAIL_AUTO MAIL_MAILER MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD \
+  MAIL_SCHEME MAIL_FROM_ADDRESS MAIL_FROM_NAME \
+  ORCAMENTO_WHATSAPP_AUTO VIAZAP_BASE_URL VIAZAP_TOKEN VIAZAP_TIMEOUT_SEC
+do
+  eval "_erp_val=\${${_erp_key}-}"
+  if [ -z "$_erp_val" ]; then
+    unset "$_erp_key" 2>/dev/null || true
+  else
+    _erp_set_env_file "$_erp_key" "$_erp_val"
+  fi
+done
+unset _erp_key _erp_val _k _v _esc 2>/dev/null || true
+unset -f _erp_set_env_file 2>/dev/null || true
+
 # Garante MySQL do Compose (evita cair no sqlite do skeleton)
 if [ -n "$DB_CONNECTION" ]; then
   sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=${DB_CONNECTION}/" .env

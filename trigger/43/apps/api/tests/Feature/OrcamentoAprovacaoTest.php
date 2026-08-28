@@ -390,6 +390,7 @@ class OrcamentoAprovacaoTest extends TestCase
             ->where('parceiro_id', $this->parceiro->id)
             ->where('autorizado_aprovar', true)
             ->update(['email' => null]);
+        $this->parceiro->update(['email' => null]);
 
         $id = $this->criarOrcamento();
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
@@ -402,6 +403,26 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertStringContainsString('/p/', $env->json('data.url'));
 
         Mail::assertNothingSent();
+    }
+
+    public function test_enviar_usa_email_do_parceiro_se_contato_sem_email(): void
+    {
+        Mail::fake();
+
+        ParceiroContato::query()
+            ->where('parceiro_id', $this->parceiro->id)
+            ->where('autorizado_aprovar', true)
+            ->update(['email' => null]);
+        $this->parceiro->update(['email' => 'financeiro@parceiro.test']);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertTrue($env->json('data.email_enviado'));
+        $this->assertSame('financeiro@parceiro.test', $env->json('data.email_destino'));
+        Mail::assertSent(OrcamentoPropostaMail::class, fn (OrcamentoPropostaMail $m) => $m->hasTo('financeiro@parceiro.test'));
     }
 
     public function test_flag_orcamento_email_auto_desliga_envio(): void
@@ -443,10 +464,11 @@ class OrcamentoAprovacaoTest extends TestCase
 
         Http::assertSent(function ($request) {
             $body = $request->data();
+            $codigo = (string) Orcamento::query()->orderByDesc('id')->value('codigo');
 
             return str_contains($request->url(), '/v1/messages')
                 && $request->hasHeader('Authorization', 'Bearer zpv_test_token')
-                && ($body['external_id'] ?? '') === Orcamento::query()->orderByDesc('id')->value('codigo')
+                && str_starts_with((string) ($body['external_id'] ?? ''), $codigo.':')
                 && ($body['to'] ?? '') === '5531999998888'
                 && ($body['type'] ?? '') === 'text'
                 && str_contains((string) ($body['body'] ?? ''), '/p/');

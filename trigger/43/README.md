@@ -45,7 +45,8 @@ make up
   (`ops@triggerti.com` / `Ops@Trigger43` — só local; não é o cliente)  
   No console: **Nova conta master** e, no detalhe, **Bonificar (cortesia)**.  
 - Mensalidade: cobrança **antecipada** no ASAAS (Checkout recorrente, cartão). Com cortesia, a 1ª cobrança cai no fim da bonificação; aviso na UI e `plataforma:avisar-cortesia-billing`.
-- Ensaio ≈ produção (webhook + retorno via `https://flexorc.triggerti.com`): `make ensaio-asaas-ativar` · `docs/ADR_ENSAIO_ASAAS_FLEXORC.md`
+- Ensaio ≈ produção no **lab** (webhook + retorno via tunnel `https://flexorc.triggerti.com`): `make ensaio-asaas-ativar` · `docs/ADR_ENSAIO_ASAAS_FLEXORC.md`  
+- Homolog/prod online: host oficial `https://flexoerp001.triggerti.com` · `docs/ADR_HOST_INSTALACAO_FLEXOERP001.md` · `docs/DEPLOY_LOCAL_AWS.md`
 - Cortesia acabou no cadastro atual (EMP/clientes/ORC intactos): `make cenario-mensalidade-pos-cortesia` → login cai em **Mensalidade**; **Pagar agora** (cartão ASAAS).
 
 ## Fluxo feliz

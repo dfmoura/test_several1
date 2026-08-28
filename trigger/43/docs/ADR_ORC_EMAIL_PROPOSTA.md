@@ -38,6 +38,9 @@ enviar aprovação
 | EMP | `empresas.email` (Reply-To / identidade comercial) |
 | Parceiro | `parceiro_contatos.email` ou `parceiros.email` (legado) |
 
+**Local:** costuma viver em `apps/api/.env` (gitignored).  
+**AWS:** canônico em `.env.aws` — Compose injeta; `aws-ready-check` e `/api/v1/health` → `envio_proposta` validam. Git **não** leva o segredo (`docs/DEPLOY_LOCAL_AWS.md`).
+
 ## Consequências
 
 - Produção precisa de mailer real (SMTP/Resend/SES) na instalação; local/CI podem usar `log`/`array`.

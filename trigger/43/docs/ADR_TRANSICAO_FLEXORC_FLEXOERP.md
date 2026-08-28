@@ -61,7 +61,7 @@ Migrar **sem quebrar** integrações existentes:
 
 | Legado | Política |
 |--------|----------|
-| `flexorc.triggerti.com` | Alias até cutover DNS; novo host `flexoerp.triggerti.com` em paralelo |
+| `flexorc.triggerti.com` | **Lab/ensaio** (tunnel → notebook). Host oficial desta instalação: `flexoerp001.triggerti.com` (`ADR_HOST_INSTALACAO_FLEXOERP001`) |
 | `FLEXORC-CONTA-*` / `FLEXORC_INTER_*` | **Não renomear** IDs já emitidos; novos ciclos podem usar prefixo `FLEXOERP-` |
 | Env `FLEXORC_*` | Manter leitura; adicionar alias `FLEXOERP_*` opcional; deprecar em doc, não em runtime |
 | Console `/plataforma` | Rótulo “Operação FLEXOERP”; entidade continua `conta_ativacoes` |
@@ -117,7 +117,7 @@ Não confundir **licenciado** (contrato white-label no 39) com **conta SaaS** (p
 
 - [x] Prefixos billing novos (`BillingReference`) + webhooks dual-prefix
 - [x] Docs deploy / alias env
-- [ ] DNS `flexoerp.triggerti.com` (alias legado)
+- [ ] DNS `flexoerp001.triggerti.com` (oficial) · `flexorc` só lab — `ADR_HOST_INSTALACAO_FLEXOERP001`
 - [ ] Console plataforma (rótulos) — parcial via BRAND
 
 ## Referências

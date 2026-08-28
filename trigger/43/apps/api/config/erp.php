@@ -88,7 +88,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Base absoluta do link Ctrl+C (sem barra final). Em produção aponta para o
-    | subdomínio comercial, ex.: https://flexorc.triggerti.com
+    | Homolog/prod: https://flexoerp001.triggerti.com (ADR_HOST_INSTALACAO_FLEXOERP001).
+    | Lab/ensaio: tunnel https://flexorc.triggerti.com → notebook.
     | Local: deixa vazio para cair em APP_URL (http://localhost:8043).
     | Path fixo: /p/{token}  ·  ADR: docs/ADR_ORC_LINK_APROVACAO.md
     |

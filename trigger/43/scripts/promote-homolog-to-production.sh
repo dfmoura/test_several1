@@ -10,10 +10,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "=== Virada homolog → production (ERP RLP / TRIGGER) ==="
+echo "=== Virada homolog → production (FLEXOERP / TRIGGER) ==="
 echo
 echo "Este script NÃO sobe containers nem migra dados automaticamente."
-echo "Caminho canônico: docs/DEPLOY_LOCAL_AWS.md"
+echo "Host oficial: https://flexoerp001.triggerti.com"
+echo "Caminho: docs/DEPLOY_LOCAL_AWS.md · docs/ADR_HOST_INSTALACAO_FLEXOERP001.md"
 echo
 
 confirm() {
@@ -25,10 +26,11 @@ confirm() {
 echo "Checklist obrigatório:"
 confirm "1) Snapshot da instância Lightsail feito?" || { echo "Pare e tire snapshot."; exit 1; }
 confirm "2) Dump MySQL guardado fora da instância?" || { echo "Pare e faça dump."; exit 1; }
-confirm "3) APP_KEY da homolog será reutilizada (dados cifrados) OU banco novo consciente?" || { echo "Defina a estratégia de chave."; exit 1; }
+confirm "3) APP_KEY preservada (A1/Focus cifrados) OU banco novo consciente?" || { echo "Defina a estratégia de chave — não regenere se já há A1."; exit 1; }
 confirm "4) Senhas DB/admin trocadas (nada de TROCAR_* / Admin@123)?" || { echo "Edite senhas primeiro."; exit 1; }
 confirm "5) Focus/IA apontando para PRODUÇÃO (não homolog) se for o caso?" || { echo "Confira hubs fiscais / provedores."; exit 1; }
-confirm "6) Domínio TLS (443) e ORCAMENTO_PUBLIC_BASE_URL corretos?" || { echo "Ajuste URLs."; exit 1; }
+confirm "6) TLS + URLs em https://flexoerp001.triggerti.com (não flexorc/tunnel)?" || { echo "Ajuste APP_URL / ORCAMENTO_PUBLIC_BASE_URL."; exit 1; }
+confirm "7) MAIL_* + VIAZAP_* no .env.aws (envio proposta)?" || { echo "make export-envio-proposta e mescle."; exit 1; }
 
 echo
 if [[ -f .env.aws ]]; then
@@ -36,17 +38,22 @@ if [[ -f .env.aws ]]; then
   echo "Backup do .env.aws atual criado (se ainda não existia bak)."
 fi
 
-if confirm "Copiar .env.aws.production.example → .env.aws agora (você edita senhas/URL/KEY em seguida)?"; then
-  cp .env.aws.production.example .env.aws
-  echo "Criado .env.aws — EDITE APP_KEY, senhas e domínios antes de up-aws."
+if confirm "Copiar .env.aws.production.example → .env.aws agora (você edita senhas/KEY em seguida; NÃO perca APP_KEY atual)?"; then
+  if [[ -f .env.aws ]]; then
+    echo "AVISO: há .env.aws — faça backup e mescle APP_KEY/senhas/MAIL/VIAZAP manualmente."
+    echo "Não sobrescreva às cegas se o banco já tem A1."
+  else
+    cp .env.aws.production.example .env.aws
+    echo "Criado .env.aws — EDITE APP_KEY, senhas, MAIL_*, VIAZAP_* antes de up-aws."
+  fi
 fi
 
 echo
 echo "Próximos comandos:"
-echo "  1. Editar .env.aws (APP_KEY, senhas, URLs)"
+echo "  1. Editar .env.aws (PRESERVE APP_KEY; MAIL_*/VIAZAP_*; URLs flexoerp001)"
 echo "  2. ./scripts/aws-ready-check.sh .env.aws"
 echo "  3. make up-aws"
-echo "  4. curl -sS https://SEU_DOMINIO/api/v1/health   → stage=production, debug=false"
-echo "  5. Login admin + smoke: OC → receber → TIT; ORC link público"
+echo "  4. curl -sS https://flexoerp001.triggerti.com/api/v1/health"
+echo "  5. Login + A1 apto + ORC link em flexoerp001 + smoke envio"
 echo
 echo "Virada concluída só depois do health + smoke OK."

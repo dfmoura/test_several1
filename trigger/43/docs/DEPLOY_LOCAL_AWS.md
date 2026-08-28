@@ -56,10 +56,13 @@ Arquivos:
 ```bash
 cp .env.aws.homolog.example .env.aws
 # Edite: APP_KEY, senhas, APP_URL, SANCTUM_*, ORCAMENTO_PUBLIC_BASE_URL
+# Obrigatório para Zap/e-mail da proposta: MAIL_* (smtp) + VIAZAP_* (token)
+# — git NÃO leva apps/api/.env; copie do motor local para .env.aws
 ./scripts/aws-ready-check.sh .env.aws
 make up-aws
 curl -sS https://homolog.seudominio.com.br/api/v1/health
 # espera: "stage":"homolog", "debug":false
+# espera: envio_proposta.mail_smtp_pronto=true e viazap_configurado=true
 ```
 
 Regras do entrypoint em `homolog` / `production`:
@@ -68,57 +71,83 @@ Regras do entrypoint em `homolog` / `production`:
 - Seed inicial (banco vazio): seed **manual** uma vez  
 - `APP_DEBUG=true` + `ERP_STAGE=production` → **boot recusado**
 
+### Por que Zap/e-mail funcionam no notebook e “morrem” na AWS
+
+O código do envio (link + dual-canal) é o mesmo. O que **não** viaja no `git pull` / rsync do repo:
+
+| Onde | Papel |
+|------|--------|
+| `apps/api/.env` (local, gitignored) | SMTP + `VIAZAP_TOKEN` que você configurou no lab |
+| `.env.aws` (Lightsail, gitignored) | Fonte canônica na AWS — Compose injeta no container |
+
+Sem `MAIL_MAILER=smtp` + credenciais e sem `VIAZAP_BASE_URL` + `VIAZAP_TOKEN` no `.env.aws`, o motor responde fail-soft (`email_motivo` / `zap_motivo`: `desligado` ou só `log`) — o link e o clipboard continuam, mas o disparo automático não sai.
+
+Checklist após editar `.env.aws`:
+
+```bash
+# No notebook (gera arquivo com MAIL_*/VIAZAP_* a partir do lab):
+make export-envio-proposta
+# Copie /tmp/flexoerp-envio-proposta.env para a Lightsail e mescle no .env.aws
+
+./scripts/aws-ready-check.sh .env.aws   # FAIL se production sem SMTP/ViaZap
+make up-aws
+curl -sS https://SEU_HOST/api/v1/health   # bloco envio_proposta
+```
+
+Normas: [`ADR_ORC_EMAIL_PROPOSTA.md`](ADR_ORC_EMAIL_PROPOSTA.md) · [`ADR_ORC_WHATSAPP_VIAZAP.md`](ADR_ORC_WHATSAPP_VIAZAP.md).
+
 ## Virada para produção
 
 ```bash
 ./scripts/promote-homolog-to-production.sh
-# snapshot + dump + editar .env.aws
+# snapshot + dump + editar .env.aws (ERP_STAGE=production; PRESERVE APP_KEY)
 ./scripts/aws-ready-check.sh .env.aws
 make up-aws
-curl -sS https://erp.seudominio.com.br/api/v1/health
+curl -sS https://flexoerp001.triggerti.com/api/v1/health
 # espera: "stage":"production", "debug":false
 ```
 
-**APP_KEY:** se mantiver o mesmo banco/dados cifrados (tokens IA/Focus), **preserve a chave da homolog**. Só gere chave nova com banco novo consciente.
+**APP_KEY:** se mantiver o mesmo banco/dados cifrados (A1 / tokens IA/Focus), **preserve a chave**. Só gere chave nova com banco novo consciente. Norma: [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md) · [`ADR_CERTIFICADO_A1_EMPRESA.md`](ADR_CERTIFICADO_A1_EMPRESA.md).
 
-## Subdomínio da proposta (`flexoerp` · alias `flexorc`)
+## Host oficial × lab (tunnel)
 
-O link de aprovação do ORC usa `ORCAMENTO_PUBLIC_BASE_URL`. Canônico: `https://flexoerp.triggerti.com`. **Alias legado:** `flexorc.triggerti.com` (mesmo vhost — ADR `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md`).
+| Papel | Host | Onde |
+|-------|------|------|
+| **Oficial (homolog/prod)** | `https://flexoerp001.triggerti.com` | Lightsail — login, `/p/{token}`, webhooks |
+| **Lab / ensaio** | `https://flexorc.triggerti.com` | Cloudflare Tunnel → notebook `:8043` |
 
-1. DNS: CNAME `flexoerp.triggerti.com` → **mesmo** alvo do ERP; manter `flexorc.*` como alias até cutover completo.
-2. TLS + vhost do nginx/Caddy aceitam os hosts `flexoerp.*` e `flexorc.*` e servem o mesmo SPA/API.
-3. Em `.env.aws`: `ORCAMENTO_PUBLIC_BASE_URL=https://flexoerp.triggerti.com` (ou `flexorc.*` durante transição) e inclua o host em `SANCTUM_STATEFUL_DOMAINS` se login no mesmo domínio for necessário (a página `/p/{token}` é pública e não usa Sanctum).
-4. Credenciais Cloudflare/R2 ficam só no vault/`.env` — **nunca** no git. R2 não hospeda a página de aprovação.
+Norma fechada: [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md).
 
-### Teste local com flexorc via Tunnel
+### Homolog / produção (Lightsail)
 
-Enquanto o ERP ainda roda no notebook (`make up` → porta **8043** nesta instalação), dá para servir o link do cliente e o **webhook ASAAS** em `https://flexorc.triggerti.com` com o Cloudflare Tunnel:
-
-1. Incluir **antes** do catch-all no config do tunnel (em máquinas com serviço systemd: `/etc/cloudflared/config.yml`; senão `~/.cloudflared/config.yml`):
-
-```yaml
-  - hostname: flexorc.triggerti.com
-    service: http://localhost:8043
-```
-
-2. DNS (uma vez): `cloudflared tunnel route dns --overwrite-dns triggerti-painel flexorc.triggerti.com`
-3. Reiniciar o conector: `systemctl restart cloudflared` (ou `cloudflared tunnel run triggerti-painel`).
-4. Ativar ensaio de billing (base pública + token webhook):
+1. DNS `flexoerp001.triggerti.com` → IP/alvo da Lightsail.  
+2. TLS no host (Caddy/Nginx): `443 → 127.0.0.1:80` (container `web`).  
+3. Em `.env.aws` (mesmo valor nos três):
 
 ```bash
-make ensaio-asaas-ativar
-make down && make up
-make ensaio-asaas
+APP_URL=https://flexoerp001.triggerti.com
+FRONTEND_URL=https://flexoerp001.triggerti.com
+ORCAMENTO_PUBLIC_BASE_URL=https://flexoerp001.triggerti.com
+SANCTUM_STATEFUL_DOMAINS=flexoerp001.triggerti.com
 ```
 
-5. No painel ASAAS (**sandbox**): webhook de eventos → `https://flexorc.triggerti.com/api/v1/webhooks/bancarios/asaas` com o token impresso / em `ASAAS_WEBHOOK_TOKEN`.
-6. Smoke: `curl -sS https://flexorc.triggerti.com/api/v1/health` e autenticar mensalidade (cartão) no app.
+4. **Não** aponte `ORCAMENTO_PUBLIC_BASE_URL` para `flexorc` na AWS (tunnel de lab).  
+5. Credenciais Cloudflare/R2 só no vault/`.env` — **nunca** no git. R2 não hospeda a página de aprovação.
 
-`APP_URL` / `FRONTEND_URL` podem permanecer em `http://localhost:8043` (UI no notebook). Só `ORCAMENTO_PUBLIC_BASE_URL` aponta para o flexorc no ensaio.
+### Lab: flexorc via Tunnel (notebook)
 
-**Atenção:** com o tunnel ligado o app local fica público. Desative quando não testar: `make ensaio-asaas-desativar` e/ou pare o conector.
+Enquanto o ERP roda no notebook (`make up` → **8043**), o tunnel serve link ORC + webhook ASAAS **só para ensaio**:
 
-Norma do ensaio de mensalidade: [`ADR_ENSAIO_ASAAS_FLEXORC.md`](ADR_ENSAIO_ASAAS_FLEXORC.md).
+1. Em `/etc/cloudflared/config.yml` (antes do catch-all), `flexorc.triggerti.com` → `http://localhost:8043` (não 8039). Script: `sudo bash scripts/fix-cloudflared-flexorc-8043.sh`.  
+2. DNS (uma vez): `cloudflared tunnel route dns --overwrite-dns triggerti-painel flexorc.triggerti.com`  
+3. Ensaio: `make ensaio-asaas-ativar` → reiniciar stack → `make ensaio-asaas`  
+4. ASAAS sandbox: webhook → `https://flexorc.triggerti.com/api/v1/webhooks/bancarios/asaas`  
+5. UI pode continuar em `http://localhost:8043`; só `ORCAMENTO_PUBLIC_BASE_URL` usa o flexorc no ensaio.  
+6. Desative quando não testar: `make ensaio-asaas-desativar`.
+
+Em homolog/prod online, webhooks e links vão para **flexoerp001**, não para o tunnel.
+
+Norma do ensaio: [`ADR_ENSAIO_ASAAS_FLEXORC.md`](ADR_ENSAIO_ASAAS_FLEXORC.md).
 
 ## O que NÃO muda entre estágios
 
@@ -132,9 +161,11 @@ Norma do ensaio de mensalidade: [`ADR_ENSAIO_ASAAS_FLEXORC.md`](ADR_ENSAIO_ASAAS
 Infra mínima abaixo. Aceite completo (multi-empresa + key user): [`MODELO_INSTALACAO_MULTI_EMPRESA.md`](MODELO_INSTALACAO_MULTI_EMPRESA.md) §7.
 
 - [ ] `/api/v1/health` → stage esperado, debug false  
+- [ ] `envio_proposta` no health → `mail_smtp_pronto` + `viazap_configurado` (se dual-canal automático)  
 - [ ] Login admin  
 - [ ] Cadastro rápido (parceiro ou produto)  
-- [ ] ORC + link público `/p/{token}`  
+- [ ] ORC + link público em `https://flexoerp001.triggerti.com/p/{token}` + smoke envio (e-mail/Zap)  
+- [ ] A1 da EMP piloto ainda apto (mesma `APP_KEY`)  
 - [ ] OC → receber → TIT (e BX se perfil financeiro)  
 - [ ] MySQL **não** responde em IP público:3306  
 - [ ] Troca/isolamento EMP (se N empresas) — ver modelo §7.B  
@@ -146,9 +177,10 @@ Infra mínima abaixo. Aceite completo (multi-empresa + key user): [`MODELO_INSTA
 | `make up` | Local |
 | `make up-aws` | AWS com `.env.aws` |
 | `make aws-check` | Valida `.env.aws` |
+| `make export-envio-proposta` | Extrai SMTP/ViaZap do `apps/api/.env` local para colar no `.env.aws` |
 | `make promote-prod` | Checklist de virada |
 | `make ensaio-asaas` | Valida tunnel + ASAAS (webhook/Checkout) |
 | `make ensaio-asaas-ativar` / `desativar` | Liga/desliga `ORCAMENTO_PUBLIC_BASE_URL` → flexorc |
 | `make down` / `make down-aws` | Para stack |
 
-Ver também: [`LIGHTSAIL_E_FUTURO.md`](LIGHTSAIL_E_FUTURO.md) · [`MODELO_INSTALACAO_MULTI_EMPRESA.md`](MODELO_INSTALACAO_MULTI_EMPRESA.md).
+Ver também: [`LIGHTSAIL_E_FUTURO.md`](LIGHTSAIL_E_FUTURO.md) · [`MODELO_INSTALACAO_MULTI_EMPRESA.md`](MODELO_INSTALACAO_MULTI_EMPRESA.md) · [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md).

@@ -35,7 +35,7 @@ Próximo ciclo → novo PIX
 ## Consequências
 
 - Ops: cadastrar operador / clientId / secret / `.crt`+`.key` no console; `BILLING_PROVIDER=inter` no `.env`
-- Webhook no Internet Banking Inter: **`https://flexorc.triggerti.com/api/v1/webhooks/bancarios/inter`** no ensaio (mesmo tunnel do ASAAS — `ORCAMENTO_PUBLIC_BASE_URL`). `APP_URL` local continua `localhost:8043`
+- Webhook no Internet Banking Inter: **ensaio lab** → `https://flexorc.triggerti.com/api/v1/webhooks/bancarios/inter` (tunnel). **Homolog/prod** → `https://flexoerp001.triggerti.com/api/v1/webhooks/bancarios/inter` (`ORCAMENTO_PUBLIC_BASE_URL`). `APP_URL` local continua `localhost:8043` no lab.
 - **Pull de reconciliação:** `GET /ativacao` consulta o Inter se houver PIX aberto (rate-limit ~20s). Cobre lab/túnel quando o webhook não chega.
 - UI `/conta/mensalidade`: painel PIX + polling (não redirect Checkout)
 - Emissão exige EMP da conta com **CNPJ válido** (pagador Inter); `seuNumero` curto `FC…` (limite do banco)

@@ -97,6 +97,22 @@ services:
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
       IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
       FISCAL_EMISSOR: ${FISCAL_EMISSOR:-focus}
+      # Proposta ORC — e-mail + WhatsApp (ADR_ORC_EMAIL_PROPOSTA · ADR_ORC_WHATSAPP_VIAZAP).
+      # Fonte canônica na AWS: .env.aws (git NÃO leva segredo). Vazio no Compose
+      # é removido no entrypoint para não apagar apps/api/.env (mesmo padrão APP_KEY).
+      ORCAMENTO_EMAIL_AUTO: ${ORCAMENTO_EMAIL_AUTO:-true}
+      MAIL_MAILER: ${MAIL_MAILER:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      ORCAMENTO_WHATSAPP_AUTO: ${ORCAMENTO_WHATSAPP_AUTO:-true}
+      VIAZAP_BASE_URL: ${VIAZAP_BASE_URL:-}
+      VIAZAP_TOKEN: ${VIAZAP_TOKEN:-}
+      VIAZAP_TIMEOUT_SEC: ${VIAZAP_TIMEOUT_SEC:-10}
     depends_on:
       mysql:
         condition: service_healthy
