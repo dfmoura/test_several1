@@ -21,13 +21,14 @@ import {
   FORMAS_PAGAMENTO,
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
+import { ModelosComposicaoEditor } from '../components/ModelosComposicaoEditor';
 import {
   CORES_OPCOES,
-  alocarQuantidadePorModelo,
+  aplicarQuantidadeModeloFaixa,
   defaultOrcForm,
   formFromSnapshot,
+  matrizQuantidadesModelos,
   payloadFromForm,
-  somaPercentualModelos,
   syncModelosComposicao,
   validarModelosComposicao,
   type OrcCatalogo,
@@ -316,22 +317,27 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
-  const setModeloComposicao = (
-    index: number,
-    key: 'nome' | 'percentual',
-    value: string | number,
-  ) => {
-    setForm((prev) => {
-      const modelos_composicao = prev.modelos_composicao.map((m, i) =>
-        i === index
-          ? {
-              ...m,
-              [key]: key === 'nome' ? String(value) : Number(value) || 0,
-            }
-          : m,
-      );
-      return { ...prev, modelos_composicao };
-    });
+  const setModeloComposicaoNome = (index: number, nome: string) => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: prev.modelos_composicao.map((m, i) =>
+        i === index ? { ...m, nome } : m,
+      ),
+    }));
+    setCalculo(null);
+  };
+
+  const setModeloQuantidadeFaixa = (faixaIdx: number, modeloIdx: number, qtd: number) => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: aplicarQuantidadeModeloFaixa(
+        prev.modelos_composicao,
+        prev.faixas,
+        faixaIdx,
+        modeloIdx,
+        qtd,
+      ),
+    }));
     setCalculo(null);
   };
 
@@ -420,7 +426,7 @@ export function OrcamentoFormPage() {
     }
     if (form.faixas.length === 0) return 'Inclua ao menos uma faixa de quantidade.';
     if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades das faixas devem ser > 0.';
-    const compErr = validarModelosComposicao(form.modelos, form.modelos_composicao);
+    const compErr = validarModelosComposicao(form.modelos, form.modelos_composicao, form.faixas);
     if (compErr) return compErr;
     return null;
   };
@@ -642,7 +648,7 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                   placeholder="Buscar vendedor cadastrado…"
                   hint="Opcional. Prefill do cliente · % do cadastro preenche as faixas · a comissão só é paga após a baixa do recebimento."
-                  emptyMessage="Nenhum vendedor encontrado. Cadastre o papel Vendedor no parceiro e informe a comissão %."
+                  emptyMessage="Nenhum vendedor encontrado. Cadastre a classificação Vendedor no parceiro e informe a comissão %."
                 />
                 <div className="form-group span-full">
                   <p className="form-hint" style={{ margin: 0 }}>
@@ -974,73 +980,6 @@ export function OrcamentoFormPage() {
                 />
               </div>
             </div>
-
-            <div className="orc-modelos-composicao">
-              <div className="orc-section-head" style={{ marginTop: '0.85rem' }}>
-                <h4 className="orc-subsection-title">Composição dos modelos</h4>
-                <span
-                  className={`orc-modelos-soma${
-                    Math.abs(somaPercentualModelos(form.modelos_composicao) - 100) > 0.01
-                      ? ' is-invalid'
-                      : ' is-ok'
-                  }`}
-                >
-                  Soma {somaPercentualModelos(form.modelos_composicao)}%
-                </span>
-              </div>
-              <p className="form-hint" style={{ marginTop: 0 }}>
-                Nome de cada arte e % da quantidade do serviço (soma 100%). Aparece na proposta
-                ao cliente com a quantidade inteira por faixa; produção e pedido futuros seguem o
-                mesmo rateio. O preço usa só a quantidade de modelos.
-              </p>
-              {(() => {
-                const faixasQtd = form.faixas.filter((f) => f.quantidade > 0);
-                const alocPorFaixa = faixasQtd.map((f) =>
-                  alocarQuantidadePorModelo(f.quantidade, form.modelos_composicao),
-                );
-                return form.modelos_composicao.map((m, i) => {
-                  const qtdsPreview = alocPorFaixa.map((aloc) =>
-                    (aloc[i]?.quantidade ?? 0).toLocaleString('pt-BR'),
-                  );
-                  return (
-                    <div key={m.ordem} className="form-grid faixa-row orc-modelo-row">
-                      <div className="form-group orc-modelo-nome">
-                        <label>Modelo {i + 1}</label>
-                        <input
-                          type="text"
-                          maxLength={120}
-                          placeholder="Ex.: bob esponja, maçã verde…"
-                          value={m.nome}
-                          onChange={(e) => setModeloComposicao(i, 'nome', e.target.value)}
-                          disabled={!canWrite}
-                        />
-                      </div>
-                      <div className="form-group orc-modelo-pct">
-                        <label>% quantidade</label>
-                        <input
-                          type="number"
-                          min={0.01}
-                          max={100}
-                          step={0.01}
-                          value={m.percentual}
-                          onChange={(e) =>
-                            setModeloComposicao(i, 'percentual', Number(e.target.value) || 0)
-                          }
-                          disabled={!canWrite || form.modelos === 1}
-                        />
-                        {qtdsPreview.length > 0 ? (
-                          <p className="orc-modelo-qtd-preview" title="Quantidade inteira por faixa">
-                            {qtdsPreview.length === 1
-                              ? `→ ${qtdsPreview[0]} un.`
-                              : `→ ${qtdsPreview.join(' · ')} un./faixa`}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
           </section>
 
           {/* 4. Produção / ferramental */}
@@ -1366,6 +1305,42 @@ export function OrcamentoFormPage() {
               />
             </div>
           </section>
+
+          {form.tipo_operacao !== TIPO_SERVICO ? (
+            <section className="orc-section">
+              <div className="orc-section-head">
+                <h3 className="orc-section-title">6. Composição dos modelos</h3>
+                {(() => {
+                  const faixasOk = form.faixas.filter((f) => f.quantidade > 0);
+                  const matriz = matrizQuantidadesModelos(faixasOk, form.modelos_composicao);
+                  const allOk =
+                    faixasOk.length === 0 ||
+                    matriz.every(
+                      (row, fi) =>
+                        row.reduce((s, q) => s + q, 0) === Math.floor(faixasOk[fi].quantidade) &&
+                        row.every((q) => q > 0),
+                    );
+                  return faixasOk.length > 0 ? (
+                    <span className={`orc-modelos-soma${allOk ? ' is-ok' : ' is-invalid'}`}>
+                      {allOk ? 'Totais conferem' : 'Ajuste as quantidades'}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                Distribua a quantidade de cada faixa entre as artes. A soma por coluna deve fechar
+                o total da faixa. Aparece na proposta ao cliente; produção e pedido futuros seguem
+                o mesmo rateio. O preço usa só a quantidade de modelos (campo acima).
+              </p>
+              <ModelosComposicaoEditor
+                modelos={form.modelos_composicao}
+                faixas={form.faixas}
+                canWrite={canWrite}
+                onNomeChange={setModeloComposicaoNome}
+                onQuantidadeChange={setModeloQuantidadeFaixa}
+              />
+            </section>
+          ) : null}
 
           {canWrite ? (
             <div className="btn-row" style={{ marginTop: '1.25rem' }}>

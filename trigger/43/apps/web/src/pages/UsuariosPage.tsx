@@ -375,7 +375,7 @@ export function UsuariosPage() {
                 colaboradoresDisponiveis.length === 0 ? (
                   <div className="alert alert-warning">
                     Não há colaboradores ativos sem usuário. Cadastre o colaborador em{' '}
-                    <Link to="/parceiros/novo">Parceiros</Link> (papel Colaborador) e
+                    <Link to="/parceiros/novo">Parceiros</Link> (classificação Colaborador) e
                     volte aqui.
                   </div>
                 ) : (

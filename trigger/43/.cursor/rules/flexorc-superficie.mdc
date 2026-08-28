@@ -11,7 +11,7 @@ Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · transição: `docs/ADR_TRANSICAO_FL
 
 ## Superfície (UX / menu)
 
-Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, patrimônio, departamentos, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque**, catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
+Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, patrimônio, departamentos, **backlog**, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque**, catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
 
 Sem cadastro de **Produtos** (SKU) no menu: insumo/preço do ORC é o catálogo da EMP.
 

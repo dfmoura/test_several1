@@ -1145,6 +1145,19 @@ export type Departamento = {
   updated_at?: string | null;
 };
 
+export type BacklogItem = {
+  id: number;
+  empresa_id: number;
+  codigo: string;
+  tarefa: string;
+  situacao: 'ABERTO' | 'CONCLUIDO';
+  lancado_em: string | null;
+  concluido_em: string | null;
+  observacao_conclusao: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type NaturezaGerencial = {
   id: number;
   codigo: string;

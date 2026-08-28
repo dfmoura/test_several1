@@ -9,7 +9,7 @@ export type ModeloComposicaoRow = {
   percentual?: number;
 };
 
-/** Faixa de quantidade do ORC — base do rateio inteiro por %. */
+/** Faixa de quantidade do ORC — base do rateio inteiro por modelo. */
 export type FaixaQuantidadeRef = {
   key: string | number;
   quantidade: number;
@@ -21,7 +21,7 @@ type Variant = 'pub' | 'data' | 'ficha';
 
 type Props = {
   modelos: ModeloComposicaoRow[];
-  /** 1+ faixas do ORC; qtd inteira = floor(Q×% / 100), resto no último. */
+  /** 1+ faixas do ORC; quantidade inteira por arte (rateio canônico). */
   faixas?: FaixaQuantidadeRef[];
   variant?: Variant;
   className?: string;
@@ -29,11 +29,6 @@ type Props = {
   title?: string | null;
   hint?: string | null;
 };
-
-function formatPct(value: number | undefined): string {
-  if (value == null || !Number.isFinite(Number(value))) return '—';
-  return `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
-}
 
 function formatQtd(value: number): string {
   return Math.max(0, Math.floor(value) || 0).toLocaleString('pt-BR');
@@ -48,7 +43,7 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
 }
 
 /**
- * Tabela canônica: nome + % + quantidade(s) inteira(s) por faixa.
+ * Tabela canônica: nome + quantidade(s) inteira(s) por faixa.
  * Visual apenas — mesmo rateio de `alocarQuantidadePorModelo` / PED futuro.
  */
 export function ModelosComposicaoTable({
@@ -70,10 +65,10 @@ export function ModelosComposicaoTable({
 
   const defaultHint =
     alocPorFaixa.length === 0
-      ? 'Distribuição percentual da quantidade por arte neste serviço.'
+      ? 'Distribuição da quantidade por arte neste serviço.'
       : alocPorFaixa.length === 1
-        ? 'Distribuição da quantidade por arte neste serviço (% e quantidade inteira).'
-        : 'Distribuição por arte: % fixo e quantidade inteira em cada faixa.';
+        ? 'Quantidade de cada arte neste serviço.'
+        : 'Quantidade de cada arte em cada faixa de quantidade.';
 
   const tableClass =
     variant === 'pub'
@@ -115,25 +110,23 @@ export function ModelosComposicaoTable({
             <tr>
               <th style={variant === 'ficha' ? { width: '3rem' } : undefined}>#</th>
               <th>{variant === 'pub' ? 'Modelo' : 'Modelo (arte)'}</th>
-              <th
-                style={variant === 'ficha' ? { width: '7rem' } : undefined}
-                className="orc-modelo-pct-col"
-              >
-                % quantidade
-              </th>
-              {alocPorFaixa.map((fx) => (
-                <th
-                  key={fx.key}
-                  className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
-                  title={
-                    alocPorFaixa.length > 1
-                      ? `Quantidade inteira na faixa de ${formatQtd(fx.quantidade)}`
-                      : 'Quantidade inteira (rateio do %)'
-                  }
-                >
-                  {alocPorFaixa.length === 1 ? 'Quantidade' : formatQtd(fx.quantidade)}
-                </th>
-              ))}
+              {alocPorFaixa.length === 0 ? (
+                <th className="orc-modelo-qtd-col">Quantidade</th>
+              ) : (
+                alocPorFaixa.map((fx) => (
+                  <th
+                    key={fx.key}
+                    className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                    title={
+                      alocPorFaixa.length > 1
+                        ? `Quantidade inteira na faixa de ${formatQtd(fx.quantidade)}`
+                        : 'Quantidade inteira por arte'
+                    }
+                  >
+                    {alocPorFaixa.length === 1 ? 'Quantidade' : formatQtd(fx.quantidade)}
+                  </th>
+                ))
+              )}
             </tr>
           </thead>
           <tbody>
@@ -141,18 +134,36 @@ export function ModelosComposicaoTable({
               <tr key={`${m.ordem}-${m.nome}`}>
                 <td>{m.ordem || i + 1}</td>
                 <td>{m.nome}</td>
-                <td className="orc-modelo-pct-col">{formatPct(m.percentual)}</td>
+                {alocPorFaixa.length === 0 ? (
+                  <td className="orc-modelo-qtd-col">—</td>
+                ) : (
+                  alocPorFaixa.map((fx) => (
+                    <td
+                      key={fx.key}
+                      className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                    >
+                      {formatQtd(fx.alocados[i]?.quantidade ?? 0)}
+                    </td>
+                  ))
+                )}
+              </tr>
+            ))}
+          </tbody>
+          {alocPorFaixa.length > 1 ? (
+            <tfoot>
+              <tr className="orc-modelos-table-total">
+                <td colSpan={2}>Total</td>
                 {alocPorFaixa.map((fx) => (
                   <td
                     key={fx.key}
                     className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
                   >
-                    {formatQtd(fx.alocados[i]?.quantidade ?? 0)}
+                    {formatQtd(fx.quantidade)}
                   </td>
                 ))}
               </tr>
-            ))}
-          </tbody>
+            </tfoot>
+          ) : null}
         </table>
       </div>
     </div>

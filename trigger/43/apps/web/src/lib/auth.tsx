@@ -52,6 +52,8 @@ type AuthContextValue = AuthState & {
   refresh: () => Promise<void>;
   setEmpresa: (id: number) => void;
   hasPermission: (permission: string) => boolean;
+  /** Só permissões explícitas do `/me` — sem bypass de papel ADMIN. */
+  hasGrantedPermission: (permission: string) => boolean;
   hasAnyPermission: (...permissions: string[]) => boolean;
 };
 
@@ -226,12 +228,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, empresaId: id }));
   }, []);
 
+  const permissionList = useCallback((): string[] => {
+    return Array.isArray(state.permissions)
+      ? state.permissions
+      : Object.values(state.permissions ?? {});
+  }, [state.permissions]);
+
+  const hasGrantedPermission = useCallback(
+    (permission: string) => permissionList().includes(permission),
+    [permissionList],
+  );
+
   const hasPermission = useCallback(
     (permission: string) => {
-      const perms = Array.isArray(state.permissions)
-        ? state.permissions
-        : Object.values(state.permissions ?? {});
-      if (perms.includes(permission)) return true;
+      if (hasGrantedPermission(permission)) return true;
       if (permission.startsWith('plataforma.')) {
         return state.roles.includes('PLATAFORMA') || state.consolePlataforma;
       }
@@ -239,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (state.roles.includes('ADMIN')) return true;
       return false;
     },
-    [state.permissions, state.roles, state.consolePlataforma],
+    [hasGrantedPermission, state.roles, state.consolePlataforma],
   );
 
   const hasAnyPermission = useCallback(
@@ -255,9 +265,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refresh,
       setEmpresa,
       hasPermission,
+      hasGrantedPermission,
       hasAnyPermission,
     }),
-    [state, login, logout, refresh, setEmpresa, hasPermission, hasAnyPermission],
+    [state, login, logout, refresh, setEmpresa, hasPermission, hasGrantedPermission, hasAnyPermission],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

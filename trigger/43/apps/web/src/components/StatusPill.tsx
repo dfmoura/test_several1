@@ -32,6 +32,7 @@ function pillVariant(status: string): string {
     key === 'produzido' ||
     key === 'faturado' ||
     key === 'concluida' ||
+    key === 'concluido' ||
     key === 'requisitado' ||
     key === 'em_dia' ||
     key === 'paga' ||

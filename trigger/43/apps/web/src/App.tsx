@@ -16,6 +16,7 @@ import { ImplantacaoPage } from './pages/ImplantacaoPage';
 import { LoginPage } from './pages/LoginPage';
 import { MapasFacasPage } from './pages/MapasFacasPage';
 import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
+import { BacklogPage } from './pages/BacklogPage';
 import { DepartamentosPage } from './pages/DepartamentosPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
@@ -106,17 +107,21 @@ function PlatformRoute({ children }: { children: ReactNode }) {
 
 function PermissionRoute({
   permission,
+  exact = false,
   children,
 }: {
   permission: string | string[];
+  /** Sem bypass ADMIN — só permissão explícita do `/me`. */
+  exact?: boolean;
   children: ReactNode;
 }) {
-  const { hasPermission, initialized, user } = useAuth();
+  const { hasPermission, hasGrantedPermission, initialized, user } = useAuth();
   if (!initialized) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  const check = exact ? hasGrantedPermission : hasPermission;
   const ok = Array.isArray(permission)
-    ? permission.some((p) => hasPermission(p))
-    : hasPermission(permission);
+    ? permission.some((p) => check(p))
+    : check(permission);
   if (!ok) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -250,6 +255,15 @@ export default function App() {
           element={
             <PermissionRoute permission="departamento.ler">
               <DepartamentosPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
+          path="backlog"
+          element={
+            <PermissionRoute permission="backlog.ler" exact>
+              <BacklogPage />
             </PermissionRoute>
           }
         />

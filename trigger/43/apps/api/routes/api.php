@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CessaoBemController;
 use App\Http\Controllers\Api\V1\CompraNecessidadeController;
 use App\Http\Controllers\Api\V1\ConsultaController;
 use App\Http\Controllers\Api\V1\ComissaoController;
+use App\Http\Controllers\Api\V1\BacklogController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
@@ -198,6 +199,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
         Route::put('/departamentos/{departamento}', [DepartamentoController::class, 'update']);
         Route::delete('/departamentos/{departamento}', [DepartamentoController::class, 'destroy']);
+
+        Route::get('/backlog', [BacklogController::class, 'index']);
+        Route::post('/backlog', [BacklogController::class, 'store']);
+        Route::get('/backlog/{backlogItem}', [BacklogController::class, 'show']);
+        Route::put('/backlog/{backlogItem}', [BacklogController::class, 'update']);
+        Route::post('/backlog/{backlogItem}/concluir', [BacklogController::class, 'concluir']);
+        Route::post('/backlog/{backlogItem}/reabrir', [BacklogController::class, 'reabrir']);
+        Route::delete('/backlog/{backlogItem}', [BacklogController::class, 'destroy']);
 
         // BL-033 — Compras → Estoque → TIT
         Route::get('/compra-necessidades', [CompraNecessidadeController::class, 'index']);

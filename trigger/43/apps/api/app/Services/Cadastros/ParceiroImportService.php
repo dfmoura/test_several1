@@ -469,7 +469,7 @@ class ParceiroImportService
         }
 
         if (! $this->hasAnyPapel($validated)) {
-            $errors[] = 'Informe ao menos um papel para o parceiro.';
+            $errors[] = 'Informe ao menos uma classificação para o parceiro.';
         }
 
         $cnpj = $this->digitsOrNull($validated['cnpj_cpf'] ?? null);

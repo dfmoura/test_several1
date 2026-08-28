@@ -17,6 +17,13 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
+    /**
+     * Spatie + Sanctum: permissões/roles vivem no guard web (não "sanctum").
+     *
+     * @var string
+     */
+    protected $guard_name = 'web';
+
     protected $fillable = [
         'name',
         'email',

@@ -105,7 +105,7 @@ export function ComprasOrdemFormPage() {
                     onChange={aplicarDefaultsFornecedor}
                     required
                     placeholder="Buscar fornecedor por nome, código ou CNPJ…"
-                    hint="PAR com papel fornecedor · busca no cadastro (não lista tudo de uma vez)."
+                    hint="PAR classificado como fornecedor · busca no cadastro (não lista tudo de uma vez)."
                   />
                   <div className="form-group">
                     <label>Condição de pagamento</label>

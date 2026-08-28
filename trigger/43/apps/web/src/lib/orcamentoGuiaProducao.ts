@@ -238,7 +238,6 @@ export function buildGuiaProducaoLinhas(
         item: `Arte ${row.ordem}`,
         especificacao: row.nome,
         quantidade: qty(row.quantidade, 0, 'etiq.'),
-        nota: `${formatDecimalBr(row.percentual, 2)}% da faixa`,
       });
     }
   } else {

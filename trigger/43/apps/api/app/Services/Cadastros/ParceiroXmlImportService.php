@@ -141,7 +141,7 @@ class ParceiroXmlImportService
                         $results[] = [
                             'line' => $line,
                             'status' => 'ignorado',
-                            'errors' => ['Parceiro já possui papel fornecedor.'],
+                            'errors' => ['Parceiro já possui classificação fornecedor.'],
                             'id' => $parceiro->id,
                             'codigo' => $parceiro->codigo,
                             'razao_social' => $parceiro->razao_social,

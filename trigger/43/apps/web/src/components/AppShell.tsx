@@ -7,6 +7,7 @@ import { TriggerByline } from './TriggerAttribution';
 import {
   IconBuilding,
   IconAsset,
+  IconBacklog,
   IconCatalog,
   IconCompras,
   IconDashboard,
@@ -33,6 +34,8 @@ type NavItem = {
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
   permission: string | null;
+  /** Exige permissão no `/me` (sem bypass ADMIN) — ex.: backlog lab. */
+  exactPermission?: boolean;
   /** Custom active match (overrides default NavLink matching). */
   isActivePath?: (pathname: string) => boolean;
 };
@@ -54,6 +57,13 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/empresas', label: 'Empresas', icon: IconBuilding, permission: null },
       { to: '/departamentos', label: 'Departamentos', icon: IconDepartamentos, permission: 'departamento.ler' },
+      {
+        to: '/backlog',
+        label: 'Backlog',
+        icon: IconBacklog,
+        permission: 'backlog.ler',
+        exactPermission: true,
+      },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
       {
@@ -191,7 +201,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export function AppShell() {
-  const { user, empresas, empresaId, setEmpresa, logout, hasPermission, maxEmpresas, produtoFlexorc } =
+  const { user, empresas, empresaId, setEmpresa, logout, hasPermission, hasGrantedPermission, maxEmpresas, produtoFlexorc } =
     useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -204,7 +214,12 @@ export function AppShell() {
 
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.permission || hasPermission(item.permission)),
+    items: group.items.filter((item) => {
+      if (!item.permission) return true;
+      return item.exactPermission
+        ? hasGrantedPermission(item.permission)
+        : hasPermission(item.permission);
+    }),
   }))
     .filter((group) => produtoFlexorc.financeiro || group.label !== 'Financeiro')
     .filter((group) => group.items.length > 0);

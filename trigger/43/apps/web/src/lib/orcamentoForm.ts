@@ -72,7 +72,10 @@ export type FaixaForm = {
   valor_unitario?: number;
 };
 
-/** Arte / modelo operacional — % da quantidade do serviço (soma = 100). */
+/**
+ * Arte / modelo operacional.
+ * UI edita quantidades por faixa; `percentual` persiste no snapshot (Σ = 100) para PED/OP.
+ */
 export type ModeloComposicaoForm = {
   ordem: number;
   nome: string;
@@ -184,14 +187,81 @@ export function somaPercentualModelos(rows: ModeloComposicaoForm[]): number {
   return Math.round(rows.reduce((s, r) => s + (Number(r.percentual) || 0), 0) * 10000) / 10000;
 }
 
+/** Matriz [faixaIdx][modeloIdx] — quantidade inteira alocada por arte. */
+export function matrizQuantidadesModelos(
+  faixas: FaixaForm[],
+  rows: ModeloComposicaoForm[],
+): number[][] {
+  return faixas.map((f) =>
+    alocarQuantidadePorModelo(f.quantidade, rows).map((r) => r.quantidade),
+  );
+}
+
+/** Atualiza percentuais a partir das quantidades informadas numa faixa (soma = total da faixa). */
+export function composicaoFromQuantidadesFaixa(
+  prev: ModeloComposicaoForm[],
+  quantidades: number[],
+  faixaTotal: number,
+): ModeloComposicaoForm[] {
+  const total = Math.max(0, Math.floor(faixaTotal) || 0);
+  const n = quantidades.length;
+  if (n === 0) return prev;
+  if (n === 1) {
+    return prev.map((m, i) => (i === 0 ? { ...m, percentual: 100 } : m));
+  }
+
+  const pcts: number[] = [];
+  let acc = 0;
+  for (let i = 0; i < n; i++) {
+    if (i === n - 1) {
+      pcts.push(Math.round((100 - acc) * 10000) / 10000);
+    } else {
+      const q = Math.max(0, Math.floor(quantidades[i]) || 0);
+      const pct = total > 0 ? Math.round((q / total) * 10000) / 100 : 0;
+      pcts.push(pct);
+      acc += pct;
+    }
+  }
+
+  return prev.map((m, i) => ({ ...m, percentual: pcts[i] ?? m.percentual }));
+}
+
+/**
+ * Aplica edição de quantidade numa célula (faixa × modelo).
+ * O último modelo absorve o resto para fechar o total da faixa.
+ */
+export function aplicarQuantidadeModeloFaixa(
+  composicao: ModeloComposicaoForm[],
+  faixas: FaixaForm[],
+  faixaIdx: number,
+  modeloIdx: number,
+  newQtd: number,
+): ModeloComposicaoForm[] {
+  const faixaTotal = Math.max(0, Math.floor(faixas[faixaIdx]?.quantidade) || 0);
+  const n = composicao.length;
+  const current = alocarQuantidadePorModelo(faixaTotal, composicao);
+  const qs = current.map((r) => r.quantidade);
+  qs[modeloIdx] = Math.max(0, Math.floor(newQtd) || 0);
+
+  if (n === 1) {
+    qs[0] = faixaTotal;
+  } else if (modeloIdx !== n - 1) {
+    const sumOthers = qs.slice(0, n - 1).reduce((s, q) => s + q, 0);
+    qs[n - 1] = Math.max(0, faixaTotal - sumOthers);
+  }
+
+  return composicaoFromQuantidadesFaixa(composicao, qs, faixaTotal);
+}
+
 /** Mensagem de validação da composição; null se OK. */
 export function validarModelosComposicao(
   modelos: number,
   rows: ModeloComposicaoForm[],
+  faixas?: FaixaForm[],
 ): string | null {
   const n = Math.max(1, Math.floor(modelos) || 1);
   if (rows.length !== n) {
-    return `Detalhe exatamente ${n} modelo(s) (nome + % da quantidade).`;
+    return `Detalhe exatamente ${n} modelo(s) (nome + quantidade por faixa).`;
   }
   for (let i = 0; i < rows.length; i++) {
     const nome = String(rows[i]?.nome ?? '').trim();
@@ -200,13 +270,31 @@ export function validarModelosComposicao(
     }
     const pct = Number(rows[i]?.percentual);
     if (!(pct > 0) || pct > 100) {
-      return `Percentual do modelo ${i + 1} deve ser > 0 e ≤ 100.`;
+      return `Quantidade do modelo ${i + 1} deve ser > 0 em cada faixa.`;
     }
   }
   const soma = somaPercentualModelos(rows);
   if (Math.abs(soma - 100) > 0.01) {
-    return `A soma dos % dos modelos deve ser 100% (atual: ${soma}%).`;
+    return `A distribuição entre modelos deve fechar o total de cada faixa.`;
   }
+
+  if (faixas && faixas.length > 0) {
+    for (let fi = 0; fi < faixas.length; fi++) {
+      const fq = Math.floor(faixas[fi]?.quantidade) || 0;
+      if (fq <= 0) continue;
+      const aloc = alocarQuantidadePorModelo(fq, rows);
+      const somaQtd = aloc.reduce((s, r) => s + r.quantidade, 0);
+      if (somaQtd !== fq) {
+        return `Faixa ${fi + 1}: soma dos modelos (${somaQtd.toLocaleString('pt-BR')}) difere do total (${fq.toLocaleString('pt-BR')}).`;
+      }
+      for (let mi = 0; mi < aloc.length; mi++) {
+        if (aloc[mi].quantidade <= 0) {
+          return `Modelo ${mi + 1}: quantidade deve ser > 0 na faixa ${fi + 1}.`;
+        }
+      }
+    }
+  }
+
   return null;
 }
 

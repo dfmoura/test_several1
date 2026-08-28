@@ -293,7 +293,7 @@ class OrdemCompraService
 
         if (! $parceiro->papel_fornecedor) {
             throw ValidationException::withMessages([
-                'fornecedor_id' => ['Parceiro deve ter papel de fornecedor.'],
+                'fornecedor_id' => ['Parceiro deve ter classificação de fornecedor.'],
             ]);
         }
 

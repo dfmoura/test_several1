@@ -35,7 +35,7 @@ final class VendedorResolver
 
         if (! $vendedor->papel_vendedor) {
             throw ValidationException::withMessages([
-                'vendedor_parceiro_id' => ['Parceiro informado não tem papel de vendedor.'],
+                'vendedor_parceiro_id' => ['Parceiro informado não tem classificação de vendedor.'],
             ]);
         }
 

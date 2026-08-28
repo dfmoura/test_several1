@@ -3539,6 +3539,111 @@ table.data-table td.acoes {
   border-top: 1px dashed var(--border);
 }
 
+.orc-modelos-composicao-editor {
+  margin-top: 0.35rem;
+}
+
+.orc-modelos-editor-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.orc-modelos-editor-table {
+  width: 100%;
+  min-width: min(100%, 28rem);
+  max-width: min(64rem, 100%);
+  font-size: 0.88rem;
+}
+
+.orc-modelos-editor-table th,
+.orc-modelos-editor-table td {
+  padding: 0.4rem 0.55rem;
+  vertical-align: middle;
+}
+
+.orc-modelos-editor-table th.orc-modelo-ord-col,
+.orc-modelos-editor-table td.orc-modelo-ord-col {
+  width: 2.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.orc-modelos-editor-table th.orc-modelo-nome-col,
+.orc-modelos-editor-table td.orc-modelo-nome-col {
+  min-width: 10rem;
+}
+
+.orc-modelo-nome-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--surface, #fff);
+}
+
+.orc-modelo-nome-input:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.orc-modelo-qtd-input {
+  width: 100%;
+  min-width: 5.5rem;
+  max-width: 8rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.88rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--surface, #fff);
+}
+
+.orc-modelo-qtd-input.is-invalid {
+  border-color: var(--danger, #b42318);
+  background: color-mix(in srgb, var(--danger, #b42318) 4%, var(--surface, #fff));
+}
+
+.orc-modelo-qtd-input:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: var(--bg-muted, #f4f6f8);
+}
+
+.orc-modelo-qtd-placeholder {
+  color: var(--text-muted);
+}
+
+.orc-modelos-editor-total td {
+  font-weight: 650;
+  font-size: 0.82rem;
+  border-top: 2px solid var(--border);
+  background: color-mix(in srgb, var(--navy, #0f2744) 4%, transparent);
+}
+
+.orc-modelos-total-cell.is-ok .orc-modelos-total-val {
+  color: var(--success, #1b7a3d);
+}
+
+.orc-modelos-total-cell.is-invalid .orc-modelos-total-val {
+  color: var(--danger, #b42318);
+}
+
+.orc-modelos-total-ref {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.orc-modelos-table-total td {
+  font-weight: 650;
+  font-size: 0.82rem;
+  border-top: 2px solid var(--border);
+  background: color-mix(in srgb, var(--navy, #0f2744) 4%, transparent);
+}
+
 .orc-modelos-soma {
   font-size: 0.8rem;
   font-weight: 650;
@@ -3579,10 +3684,6 @@ table.data-table td.acoes {
   line-height: 1.25;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-}
-
-.orc-modelo-pct-col {
-  white-space: nowrap;
 }
 
 .orc-modelos-table th.orc-modelo-qtd-col,

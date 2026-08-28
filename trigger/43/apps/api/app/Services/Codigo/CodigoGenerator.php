@@ -23,6 +23,7 @@ class CodigoGenerator
         'CFIN' => ['table' => 'empresa_contas_financeiras', 'column' => 'codigo', 'scoped' => false],
         'BEM' => ['table' => 'bens_patrimoniais', 'column' => 'codigo', 'scoped' => false],
         'DEP' => ['table' => 'departamentos', 'column' => 'codigo', 'scoped' => true],
+        'BLG' => ['table' => 'backlog_itens', 'column' => 'codigo', 'scoped' => true],
     ];
 
     public function nextCode(?int $empresaId, string $prefix, int $pad = 5): string

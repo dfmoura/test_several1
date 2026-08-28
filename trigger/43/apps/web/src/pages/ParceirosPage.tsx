@@ -74,7 +74,7 @@ export function ParceirosPage() {
     <>
       <PageHeader
         title="Parceiros"
-        description="Cadastro único PAR: cliente, prospect, fornecedor e demais papéis. Um prospect (nome, contato, cidade) já permite orçar."
+        description="Cadastro único PAR: cliente, prospect, fornecedor e demais classificações. Um prospect (nome, contato, cidade) já permite orçar."
         actions={
           hasPermission('parceiro.escrever') ? (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -101,9 +101,9 @@ export function ParceirosPage() {
               />
             </div>
             <div className="form-group" style={{ minWidth: 160 }}>
-              <label>Papel</label>
+              <label>Classificação</label>
               <select value={papel} onChange={(e) => setPapel(e.target.value)}>
-                <option value="">Todos</option>
+                <option value="">Todas</option>
                 {PAPEIS.map((p) => (
                   <option key={p} value={p}>
                     {papelLabel(p)}
@@ -153,7 +153,7 @@ export function ParceirosPage() {
                     CNPJ/CPF
                   </SortableTh>
                   <SortableTh column="papeis" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                    Papéis
+                    Classificação
                   </SortableTh>
                   <SortableTh column="fiscal" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Fiscal

@@ -65,7 +65,7 @@ function resolveParceiro(value: string, rows: Parceiro[]): Parceiro | null {
 }
 
 /**
- * Busca de fornecedor para o mapa de facas — reutiliza PAR com papel fornecedor.
+ * Busca de fornecedor para o mapa de facas — reutiliza PAR classificado como fornecedor.
  * Persiste o rótulo em `orc_mapa_facas.fornecedor` (texto legado preservado).
  */
 export function FornecedorMapaCombobox({
@@ -74,9 +74,9 @@ export function FornecedorMapaCombobox({
   onChange,
   disabled = false,
   placeholder = 'Buscar fornecedor por nome, código ou CNPJ…',
-  hint = 'PAR com papel fornecedor · busca no cadastro de parceiros.',
+  hint = 'PAR classificado como fornecedor · busca no cadastro de parceiros.',
   className,
-  emptyMessage = 'Nenhum fornecedor encontrado. Cadastre em Parceiros com papel fornecedor.',
+  emptyMessage = 'Nenhum fornecedor encontrado. Cadastre em Parceiros com classificação Fornecedor.',
 }: Props) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);

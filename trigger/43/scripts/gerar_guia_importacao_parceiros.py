@@ -254,7 +254,7 @@ def build_story(styles):
     story.append(Spacer(1, 0.6 * cm))
     tip = Table(
         [[Paragraph(
-            "<b>Como usar:</b> baixe o modelo CSV → preencha CNPJ + papel (dados cadastrais "
+            "<b>Como usar:</b> baixe o modelo CSV → preencha CNPJ + classificação (dados cadastrais "
             "vêm da API na simulação) → simule → confira a atualização CNPJ → confirme. "
             "Limite: 500 linhas. Codificação UTF-8. Separador preferencial: ponto e vírgula (;).",
             styles["tip"],
@@ -280,7 +280,7 @@ def build_story(styles):
         "1. Regras gerais do arquivo",
         "2. Atualização automática via API CNPJ",
         "3. Campos booleanos (sim/não)",
-        "4. Identificação e papéis",
+        "4. Identificação e classificação",
         "5. Situação e flags",
         "6. Dados fiscais manuais (escolhas)",
         "7. Contato complementar",
@@ -308,7 +308,7 @@ def build_story(styles):
     story.append(
         Paragraph(
             "<b>Obrigatórios mínimos por linha (PJ com CNPJ):</b> <font face='Courier'>cnpj_cpf</font> "
-            "(14 dígitos) e ao menos um papel (coluna <font face='Courier'>papeis</font> ou "
+            "(14 dígitos) e ao menos uma classificação (coluna <font face='Courier'>papeis</font> ou "
             "<font face='Courier'>papel_*</font>). Na simulação, razão social, fantasia, endereço, "
             "telefone, e-mail e regime sugerido são atualizados pela API do CNPJ.",
             styles["body"],
@@ -388,7 +388,7 @@ def build_story(styles):
     )
 
     # 4
-    story.append(Paragraph("4. Identificação e papéis", styles["h1"]))
+    story.append(Paragraph("4. Identificação e classificação", styles["h1"]))
     story.append(
         field_table(
             styles,
@@ -420,13 +420,13 @@ def build_story(styles):
                 (
                     "papeis",
                     "Sim*",
-                    "Atalho: lista de papéis na mesma célula. Separadores: ; , | /",
+                    "Atalho: lista de classificações na mesma célula. Separadores: ; , | /",
                     "cliente;fornecedor;vendedor …",
                 ),
                 (
                     "papel_*",
                     "Sim*",
-                    "Alternativa: marque cada papel em coluna própria (booleano).",
+                    "Alternativa: marque cada classificação em coluna própria (booleano).",
                     "sim / nao (ver seção 3)",
                 ),
             ],
@@ -436,7 +436,7 @@ def build_story(styles):
     story.append(
         choice_box(
             styles,
-            "Valores aceitos em papeis (escreva em minúsculas)",
+            "Valores aceitos em papeis (classificações — escreva em minúsculas)",
             [
                 "cliente",
                 "fornecedor",
@@ -451,7 +451,7 @@ def build_story(styles):
     )
     story.append(
         Paragraph(
-            "* É obrigatório haver ao menos um papel ativo — por <font face='Courier'>papeis</font> "
+            "* É obrigatório haver ao menos uma classificação ativa — por <font face='Courier'>papeis</font> "
             "ou por qualquer <font face='Courier'>papel_*</font> = sim.",
             styles["body"],
         )
@@ -638,7 +638,7 @@ def build_story(styles):
                 (
                     "tipo_fornecimento",
                     "Não",
-                    "Classificação do fornecedor (quando papel_fornecedor).",
+                    "Classificação do fornecedor (quando classificação fornecedor).",
                     "MERCADORIA | SERVICO | UTILIDADE | TRIBUTO",
                 ),
                 (
@@ -664,7 +664,7 @@ def build_story(styles):
             styles["body"],
         )
     )
-    story.append(Paragraph("Exemplo B — Fornecedor com IE (papéis por coluna)", styles["h2"]))
+    story.append(Paragraph("Exemplo B — Fornecedor com IE (classificações por coluna)", styles["h2"]))
     story.append(
         Paragraph(
             "<font face='Courier' size='8'>tipo_pessoa=PJ; cnpj_cpf=99888777000166; "
@@ -682,7 +682,7 @@ def build_story(styles):
             styles["body"],
         )
     )
-    story.append(Paragraph("Exemplo D — Cliente + vendedor (múltiplos papéis)", styles["h2"]))
+    story.append(Paragraph("Exemplo D — Cliente + vendedor (múltiplas classificações)", styles["h2"]))
     story.append(
         Paragraph(
             "<font face='Courier' size='8'>papeis=cliente;vendedor &nbsp;ou&nbsp; "
@@ -694,7 +694,7 @@ def build_story(styles):
     # 11
     story.append(Paragraph("11. Erros comuns", styles["h1"]))
     bullets = [
-        "Esquecer papel → “Informe ao menos um papel para o parceiro.”",
+        "Esquecer classificação → “Informe ao menos uma classificação para o parceiro.”",
         "PJ só com CNPJ inválido/inacessível e sem razao_social → informe razao_social ou corrija o CNPJ.",
         "Escrever valor de escolha com acento/espaço (ex.: Simples Nacional) → use SIMPLES_NACIONAL.",
         "CNPJ já cadastrado → a linha falha; a importação não atualiza registros existentes.",
@@ -713,7 +713,7 @@ def build_story(styles):
     story.append(Spacer(1, 0.5 * cm))
     story.append(
         Paragraph(
-            "Fluxo recomendado: preencha CNPJ + papel (+ fiscal manual se souber) → simule e "
+            "Fluxo recomendado: preencha CNPJ + classificação (+ fiscal manual se souber) → simule e "
             "confira a coluna “API CNPJ” na tela → confirme. A simulação não grava nada; só a "
             "confirmação cria os parceiros.",
             styles["body"],
@@ -729,7 +729,7 @@ def build_story(styles):
             "Na tela <b>Parceiros → Importar</b>, use a aba <b>XML NF-e (Fornecedor)</b>. "
             "Envie um ou mais arquivos <font face='Courier'>.xml</font> de NF-e modelo 55 "
             "(ou um <font face='Courier'>.zip</font> com vários XMLs). O sistema extrai o "
-            "<b>emitente</b>, consulta o cartão CNPJ (BrasilAPI) e prepara o cadastro com papel "
+            "<b>emitente</b>, consulta o cartão CNPJ (BrasilAPI) e prepara o cadastro com classificação "
             "<b>fornecedor</b>. Limite: 20 XMLs por lote.",
             styles["body"],
         )
@@ -770,8 +770,8 @@ def build_story(styles):
     )
     story.append(Paragraph("CNPJ já cadastrado", styles["h2"]))
     bullets_xml = [
-        "Já tem papel fornecedor → linha informativa; não duplica; link para o cadastro.",
-        "Existe sem papel fornecedor → confirmação apenas adiciona o papel (não sobrescreve endereço).",
+        "Já tem classificação fornecedor → linha informativa; não duplica; link para o cadastro.",
+        "Existe sem classificação fornecedor → confirmação apenas inclui Fornecedor (não sobrescreve endereço).",
         "CNPJ novo → cria PAR-##### com os campos mapeados após você confirmar a simulação.",
         "Destinatário do XML diferente do CNPJ da empresa ativa → aviso na prévia.",
         "Transportadora no XML → aviso; cadastro separado não é feito neste fluxo.",

@@ -987,7 +987,7 @@ class ParceiroService
 
         if (! in_array(true, $flags, true)) {
             throw ValidationException::withMessages([
-                'papel' => ['Informe ao menos um papel para o parceiro (ou marque como prospect).'],
+                'papel' => ['Informe ao menos uma classificação para o parceiro (ou marque como prospect).'],
             ]);
         }
     }

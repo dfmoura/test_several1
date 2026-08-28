@@ -50,7 +50,7 @@ const PAPEIS = [
   { key: 'papel_contador', label: 'Contador' },
 ] as const;
 
-const BASE_TABS = ['Identificação', 'Endereço', 'Entrega', 'Fiscal', 'Contatos', 'Papéis', 'Financeiro'] as const;
+const BASE_TABS = ['Identificação', 'Endereço', 'Entrega', 'Fiscal', 'Contatos', 'Classificação', 'Financeiro'] as const;
 const PJ_ONLY_TABS = ['Atividades', 'Sócios'] as const;
 type BaseTab = (typeof BASE_TABS)[number];
 type PjTab = (typeof PJ_ONLY_TABS)[number];
@@ -66,7 +66,7 @@ function tabsForTipoPessoa(tipo: string): Tab[] {
       'Fiscal',
       'Sócios',
       'Contatos',
-      'Papéis',
+      'Classificação',
       'Financeiro',
     ];
   }
@@ -2599,10 +2599,10 @@ export function ParceiroFormPage() {
             </div>
           )}
 
-          {tab === 'Papéis' && (
+          {tab === 'Classificação' && (
             <div className="form-section">
               <p className="form-hint" style={{ marginBottom: '1rem' }}>
-                Selecione ao menos um papel para o parceiro.
+                Marque como este parceiro se relaciona com a empresa (ao menos uma classificação).
               </p>
               <div className="checkbox-grid">
                 {PAPEIS.map(({ key, label }) => (

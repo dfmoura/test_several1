@@ -351,7 +351,7 @@ export function ParceiroImportPage() {
               </a>
             </div>
             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
-              O guia lista as colunas do modelo (papéis, fiscal manual, contato, banco). Para PF,
+              O guia lista as colunas do modelo (classificação, fiscal manual, contato, banco). Para PF,
               informe <code>razao_social</code> no CSV — não há consulta automática de CPF.
             </p>
 
@@ -390,12 +390,12 @@ export function ParceiroImportPage() {
             <p style={{ margin: 0 }}>
               Envie um ou mais XML de NF-e de entrada (modelo 55) ou um ZIP com XMLs. O sistema
               extrai o <strong>emitente</strong>, consulta o cartão CNPJ (BrasilAPI) e prepara o
-              cadastro de parceiro com papel <strong>Fornecedor</strong>. Nada é gravado até a
+              cadastro de parceiro com classificação <strong>Fornecedor</strong>. Nada é gravado até a
               confirmação. Não é entrada fiscal — só cadastro.
             </p>
             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.85 }}>
-              Se o CNPJ já existir com papel fornecedor, a linha fica informativa. Se existir sem o
-              papel, a confirmação apenas adiciona o papel (sem sobrescrever endereço). Máximo 20
+              Se o CNPJ já existir como fornecedor, a linha fica informativa. Se existir sem essa
+              classificação, a confirmação apenas inclui Fornecedor (sem sobrescrever endereço). Máximo 20
               XMLs por lote.
             </p>
             <div>
@@ -531,7 +531,7 @@ export function ParceiroImportPage() {
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               <Stat label="Enviadas" value={xmlResult.total} />
               <Stat label="Criados" value={xmlResult.criados} />
-              <Stat label="Papel adicionado" value={xmlResult.atualizados} />
+              <Stat label="Fornecedor incluído" value={xmlResult.atualizados} />
               <Stat label="Ignorados" value={xmlResult.ignorados} />
               <Stat label="Falhas" value={xmlResult.falhas} />
             </div>
@@ -596,7 +596,7 @@ function CsvPreviewTable({ rows }: { rows: CsvPreviewRow[] }) {
               API CNPJ
             </SortableTh>
             <SortableTh column="papeis" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-              Papéis
+              Classificação
             </SortableTh>
             <SortableTh column="mensagens" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
               Mensagens
@@ -892,7 +892,7 @@ function xmlAcaoLabel(acao?: XmlPreviewRow['acao']): string {
     case 'criar':
       return 'Criar fornecedor';
     case 'adicionar_papel':
-      return 'Add papel fornecedor';
+      return 'Incluir fornecedor';
     case 'nenhuma':
       return 'Já é fornecedor';
     default:
@@ -905,7 +905,7 @@ function xmlCommitStatusLabel(status: XmlCommitRow['status']): string {
     case 'criado':
       return 'Criado';
     case 'atualizado':
-      return 'Papel adicionado';
+      return 'Fornecedor incluído';
     case 'ignorado':
       return 'Ignorado';
     default:
