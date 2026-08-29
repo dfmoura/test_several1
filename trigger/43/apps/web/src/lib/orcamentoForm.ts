@@ -5,6 +5,13 @@ import {
   type TipoOperacaoSaida,
   type TipoServicoSaida,
 } from './operacoesSaida';
+import {
+  overridesForApi,
+  parseOverridesFromSnap,
+  type OrcOverrides,
+} from './orcamentoParametrosAjuste';
+
+export type { OrcOverrides } from './orcamentoParametrosAjuste';
 
 export const CORES_OPCOES = [
   { value: '0', label: '0 (lisa)' },
@@ -129,6 +136,11 @@ export type OrcForm = {
   origem_frete: 'CALCULADA' | 'MANUAL';
   /** R$ único da proposta quando origem Manual. Vazio = não informado. */
   valor_frete_manual: number | '';
+  /**
+   * Ajustes de parâmetro só deste ORC (catálogo EMP permanece).
+   * Vazio = motor usa tarifas vigentes / default.
+   */
+  overrides: OrcOverrides;
 };
 
 export type OrcCatalogo = {
@@ -371,6 +383,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     modo_entrega: 'RETIRAR',
     origem_frete: 'CALCULADA',
     valor_frete_manual: '',
+    overrides: {},
   };
 }
 
@@ -453,6 +466,7 @@ export function formFromSnapshot(
       snap.valor_frete_manual == null || snap.valor_frete_manual === ''
         ? ''
         : Number(snap.valor_frete_manual),
+    overrides: parseOverridesFromSnap(snap.overrides),
   };
 }
 
@@ -547,6 +561,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       form.modo_entrega === 'ENTREGAR' && form.origem_frete === 'MANUAL' && form.valor_frete_manual !== ''
         ? form.valor_frete_manual
         : null,
+    overrides: overridesForApi(form.overrides),
   };
 }
 

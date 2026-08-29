@@ -137,6 +137,11 @@ final class OrcamentoMotor
                 ],
                 'tubete' => $cat->tubete,
                 'acabamentos' => $cat->acabamentos,
+                'hora_parada_h' => $cat->horaParadaH,
+                'hora_maquina' => $cat->horaMaquina,
+                'tarifas_resolvidas' => $cat->tarifasResolvidas($input),
+                'imposto_pct' => (float) ($input['imposto_pct'] ?? 16),
+                'overrides' => is_array($input['overrides'] ?? null) ? $input['overrides'] : null,
                 'motor_version' => OrcamentoMotorRegras::MOTOR_VERSION,
             ],
         ];

@@ -24,6 +24,7 @@ import {
   isOrcEditavel,
   isOrcEnviavel,
   statusOrcPill,
+  type OrcOverrides,
 } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
 import { modoEntregaLabel, origemFreteLabel } from '../lib/orcamentoFrete';
@@ -663,6 +664,30 @@ export function OrcamentoDetailPage() {
                   nome: String(m.nome ?? ''),
                   percentual: Number(m.percentual) || 0,
                 }))
+          }
+          parametrosAjuste={
+            isServico
+              ? null
+              : (() => {
+                  const faixasIn = Array.isArray(input.faixas)
+                    ? (input.faixas as Array<{ comissao_pct?: number }>)
+                    : [];
+                  return {
+                    papel: String(input.papel ?? ''),
+                    acabamento: String(input.acabamento ?? ''),
+                    maquina: String(input.maquina ?? ''),
+                    cores: String(input.cores ?? ''),
+                    tubete: String(input.tubete ?? ''),
+                    tipoTroca: String(input.tipo_troca_produto ?? ''),
+                    impostoPct: Number(input.imposto_pct) || 16,
+                    comissaoPct: Number(faixasIn[0]?.comissao_pct) || 0,
+                    comissaoPctByFaixa: faixasIn.map((f) => Number(f.comissao_pct) || 0),
+                    overrides:
+                      input.overrides && typeof input.overrides === 'object'
+                        ? (input.overrides as OrcOverrides)
+                        : {},
+                  };
+                })()
           }
         />
       ) : (

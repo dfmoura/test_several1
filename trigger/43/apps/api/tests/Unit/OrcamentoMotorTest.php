@@ -124,5 +124,78 @@ class OrcamentoMotorTest extends TestCase
         $this->assertArrayHasKey('ceiling_etiqueta', $result['catalog_snapshot']);
         $this->assertArrayHasKey('minutos_troca_bobina', $result['catalog_snapshot']);
         $this->assertSame(1, $result['catalog_snapshot']['motor_version']);
+        $this->assertArrayHasKey('tarifas_resolvidas', $result['catalog_snapshot']);
+        $tarifas = $result['catalog_snapshot']['tarifas_resolvidas'];
+        $this->assertEqualsWithDelta(8.0, (float) $tarifas['preco_papel'], 0.001);
+        $this->assertEqualsWithDelta(0.8, (float) $tarifas['tinta_acima_m2'], 0.001);
+        $this->assertSame($fx['papel'], $tarifas['papel']);
+        $this->assertArrayHasKey('taxa_hora_maquina', $tarifas);
+        $this->assertArrayHasKey('preco_caixa', $tarifas);
+    }
+
+    public function test_override_hora_maquina_e_tubete_reflete_no_resultado(): void
+    {
+        $fixturePath = dirname(__DIR__).'/fixtures/orcamento_brahva.json';
+        $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+
+        $motor = new OrcamentoMotor;
+        $base = $motor->calcular([
+            'cliente' => $fx['cliente'],
+            'medida' => $fx['medida'],
+            'largura_cm' => $fx['largura_cm'],
+            'puxada_cm' => $fx['puxada_cm'],
+            'cores' => $fx['cores'],
+            'papel' => $fx['papel'],
+            'acabamento' => $fx['acabamento'],
+            'modelos' => $fx['modelos'],
+            'colunas' => $fx['colunas'],
+            'etiq_por_rolo' => $fx['etiq_por_rolo'],
+            'tubete' => $fx['tubete'],
+            'z' => $fx['z'],
+            'maquina' => $fx['maquina'],
+            'imposto_pct' => $fx['imposto_pct'],
+            'matriz' => $fx['matriz'],
+            'tipo_troca_produto' => $fx['tipo_troca_produto'],
+            'rpm' => $fx['rpm'],
+            'overrides' => $fx['overrides'],
+            'faixas' => [['quantidade' => 7000, 'comissao_pct' => 0]],
+        ]);
+
+        $adj = $motor->calcular([
+            'cliente' => $fx['cliente'],
+            'medida' => $fx['medida'],
+            'largura_cm' => $fx['largura_cm'],
+            'puxada_cm' => $fx['puxada_cm'],
+            'cores' => $fx['cores'],
+            'papel' => $fx['papel'],
+            'acabamento' => $fx['acabamento'],
+            'modelos' => $fx['modelos'],
+            'colunas' => $fx['colunas'],
+            'etiq_por_rolo' => $fx['etiq_por_rolo'],
+            'tubete' => $fx['tubete'],
+            'z' => $fx['z'],
+            'maquina' => $fx['maquina'],
+            'imposto_pct' => $fx['imposto_pct'],
+            'matriz' => $fx['matriz'],
+            'tipo_troca_produto' => $fx['tipo_troca_produto'],
+            'rpm' => $fx['rpm'],
+            'overrides' => array_merge($fx['overrides'], [
+                'preco_caixa' => 99.0,
+                'hora_maquina' => [
+                    $fx['maquina'] => ['5' => 1.0],
+                ],
+            ]),
+            'faixas' => [['quantidade' => 7000, 'comissao_pct' => 0]],
+        ]);
+
+        $this->assertLessThan(
+            (float) $base['faixas'][0]['valor_maquina'],
+            (float) $adj['faixas'][0]['valor_maquina'],
+        );
+        $this->assertEqualsWithDelta(99.0, (float) $adj['catalog_snapshot']['tarifas_resolvidas']['preco_caixa'], 0.001);
+        $this->assertGreaterThan(
+            (float) $base['faixas'][0]['valor_caixa'],
+            (float) $adj['faixas'][0]['valor_caixa'],
+        );
     }
 }

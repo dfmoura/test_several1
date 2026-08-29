@@ -3813,6 +3813,42 @@ table.data-table td.acoes {
   background: rgba(26, 53, 104, 0.04);
 }
 
+.orc-fluxo-subtitulo {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.02em;
+}
+
+.orc-params-ajuste-table th,
+.orc-params-ajuste-table td {
+  vertical-align: middle;
+}
+
+.orc-params-ajuste-table .orc-params-valor {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.orc-params-ajuste-table .orc-params-input {
+  width: 6.5rem;
+  max-width: 100%;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.orc-params-ajuste-table .orc-params-unidade {
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .detail-meta,
 .orc-detail-meta {
   display: grid;

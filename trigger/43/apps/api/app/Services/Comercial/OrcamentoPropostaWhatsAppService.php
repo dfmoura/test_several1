@@ -37,38 +37,76 @@ class OrcamentoPropostaWhatsAppService
         }
 
         if (! $this->viazapConfigurado()) {
+            Log::notice('orcamento.proposta_whatsapp_skip', [
+                'orcamento_id' => $orcamento->id,
+                'empresa_id' => $orcamento->empresa_id,
+                'motivo' => 'desligado',
+                'base_url' => (string) config('erp.viazap.base_url', ''),
+            ]);
+
             return ['enviado' => false, 'destino' => null, 'motivo' => 'desligado'];
         }
 
         $destino = $this->resolverWhatsAppDestino($orcamento, $destinatario);
         if ($destino === null) {
+            Log::notice('orcamento.proposta_whatsapp_skip', [
+                'orcamento_id' => $orcamento->id,
+                'empresa_id' => $orcamento->empresa_id,
+                'motivo' => 'sem_whatsapp_cadastro',
+            ]);
+
             return ['enviado' => false, 'destino' => null, 'motivo' => 'sem_whatsapp_cadastro'];
         }
 
         $baseUrl = $this->viazapBaseUrl();
         if ($baseUrl === null) {
+            Log::warning('orcamento.proposta_whatsapp_skip', [
+                'orcamento_id' => $orcamento->id,
+                'empresa_id' => $orcamento->empresa_id,
+                'motivo' => 'base_url_invalida',
+                'base_url' => (string) config('erp.viazap.base_url', ''),
+            ]);
+
             return ['enviado' => false, 'destino' => $destino, 'motivo' => 'desligado'];
         }
 
         $token = trim((string) config('erp.viazap.token', ''));
         $timeout = max(3, (int) config('erp.viazap.timeout_sec', 10));
-        // ViaZap: mesmo external_id no mesmo remetente NÃO reenvia (idempotência).
-        // Cada clique em Enviar/reenviar precisa de id único; o código do ORC fica no prefixo.
-        $externalId = sprintf('%s:%s', $orcamento->codigo, now()->format('YmdHis'));
+        // ViaZap: mesmo external_id no remetente devolve 200 e NÃO reenvia.
+        // Id único por clique (código + instante + sufixo) evita falso "enviado".
+        $externalId = $this->novoExternalId((string) $orcamento->codigo);
 
         try {
-            $response = Http::timeout($timeout)
+            $client = Http::timeout($timeout)
                 ->withToken($token)
                 ->acceptJson()
-                ->asJson()
-                ->post($baseUrl.'/v1/messages', [
-                    'external_id' => $externalId,
-                    'to' => $destino,
-                    'type' => 'text',
-                    'body' => $mensagem,
-                ]);
+                ->asJson();
 
-            if (! $response->successful()) {
+            $payload = [
+                'external_id' => $externalId,
+                'to' => $destino,
+                'type' => 'text',
+                'body' => $mensagem,
+            ];
+
+            $response = $client->post($baseUrl.'/v1/messages', $payload);
+
+            // 200 = replay idempotente (mensagem antiga). Força um id novo e tenta 1×.
+            if ($response->status() === 200) {
+                Log::notice('orcamento.proposta_whatsapp_replay', [
+                    'orcamento_id' => $orcamento->id,
+                    'empresa_id' => $orcamento->empresa_id,
+                    'destino' => $destino,
+                    'external_id' => $externalId,
+                    'viazap_id' => $response->json('id'),
+                ]);
+                $externalId = $this->novoExternalId((string) $orcamento->codigo);
+                $payload['external_id'] = $externalId;
+                $response = $client->post($baseUrl.'/v1/messages', $payload);
+            }
+
+            // Só 202 = mensagem nova na fila. 200 (após retry) ainda seria replay.
+            if ($response->status() !== 202) {
                 Log::warning('orcamento.proposta_whatsapp_falhou', [
                     'orcamento_id' => $orcamento->id,
                     'empresa_id' => $orcamento->empresa_id,
@@ -86,6 +124,7 @@ class OrcamentoPropostaWhatsAppService
                 'empresa_id' => $orcamento->empresa_id,
                 'destino' => $destino,
                 'external_id' => $externalId,
+                'http_status' => $response->status(),
                 'viazap_status' => $response->json('status'),
                 'viazap_id' => $response->json('id'),
             ]);
@@ -102,6 +141,14 @@ class OrcamentoPropostaWhatsAppService
 
             return ['enviado' => false, 'destino' => $destino, 'motivo' => 'falha_envio'];
         }
+    }
+
+    /**
+     * Identificador único por disparo (prefixo = código do ORC para rastreio no ViaZap).
+     */
+    private function novoExternalId(string $codigo): string
+    {
+        return sprintf('%s:%s:%s', $codigo, now()->format('YmdHis'), bin2hex(random_bytes(3)));
     }
 
     /**
@@ -147,10 +194,13 @@ class OrcamentoPropostaWhatsAppService
     /**
      * Base absoluta https?://… (sem scheme o HTTP client falha com
      * “URI must include a scheme and host”).
+     * Aceita valor legado com barras escapadas (https:\/\/…) — bug do sed no entrypoint.
      */
     private function viazapBaseUrl(): ?string
     {
-        $baseUrl = rtrim(trim((string) config('erp.viazap.base_url', '')), '/');
+        $raw = trim((string) config('erp.viazap.base_url', ''));
+        // stripslashes: https:\/\/host → https://host (dotenv/FPM sem env do Compose).
+        $baseUrl = rtrim(stripslashes($raw), '/');
         if ($baseUrl === '' || ! preg_match('#^https?://#i', $baseUrl)) {
             return null;
         }

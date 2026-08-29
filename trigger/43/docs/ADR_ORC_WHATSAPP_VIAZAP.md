@@ -17,7 +17,7 @@ O envio da proposta já gera link + texto para clipboard + deep link (`wa.me` / 
 | **Destino = WhatsApp do contato/parceiro** | Mesma regra do link: só cadastro oficial (`parceiro_contatos` / legado). |
 | **Disparo no `enviarParaAprovacao`** | Após gravar o link; envia se houver WhatsApp válido — mesmo quando o canal preferido é e-mail. |
 | **`body` = `mensagemPadrao()`** | Uma fonte de texto (Zap, clipboard, wa.me). |
-| **`external_id` = `{codigo}:{YmdHis}`** | ViaZap é idempotente por remetente: o mesmo id **não** reenvia. Cada Enviar/reenviar precisa de id novo; o código do ORC fica no prefixo para rastreio. |
+| **`external_id` = `{codigo}:{YmdHis}:{hex}`** | ViaZap é idempotente por remetente: o mesmo id devolve **200** e **não** reenvia. Cada Enviar/reenviar usa id novo; se vier 200 (replay), o motor tenta 1× com outro id. |
 | **`VIAZAP_BASE_URL` absoluta `https://…`** | Container AWS não usa `localhost:8144`; canônico = tunnel `https://viazap.triggerti.com` → notebook `:8144`. |
 | **Fail-soft** | Falha do ViaZap **não** desfaz status/link/clipboard. Resposta expõe `zap_enviado`. |
 | **Sem config = silencioso** | Sem `VIAZAP_BASE_URL` + `VIAZAP_TOKEN`, retorna `zap_motivo: desligado` (não alarmar dev). |
@@ -49,6 +49,6 @@ enviar aprovação
 
 - ViaZap indisponível: comercial usa clipboard/wa.me; link e e-mail seguem.
 - Sem WhatsApp no contato: não dispara; e-mail/clipboard seguem.
-- Reenviar proposta gera novo `external_id` (novo disparo na fila do remetente).
+- Reenviar proposta gera novo `external_id` (`{codigo}:{YmdHis}:{hex}`); se o ViaZap devolver 200 (replay), o motor retenta 1×. Só HTTP **202** conta como `zap_enviado`.
 - Andamentos (visualizou / aprovou) ficam para BL futuro.
 - WhatsApp por EMP continua **proibido** sem ADR novo.

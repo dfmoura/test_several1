@@ -39,8 +39,9 @@ _erp_set_env_file() {
   _k="$1"
   _v="$2"
   if grep -qE "^${_k}=" .env 2>/dev/null; then
-    # Escapa separadores do sed; valores com newline não são suportados (secrets de 1 linha).
-    _esc=$(printf '%s' "$_v" | sed -e 's/[\\/&]/\\\\&/g')
+    # Delimitador | — NÃO escapar '/' (senão .env grava https:\/\/… e o FPM
+    # lê URL inválida; ViaZap fica "desligado" sem POST). Escapar \ | & para o sed.
+    _esc=$(printf '%s' "$_v" | sed -e 's/[\\|&]/\\\\&/g')
     sed -i "s|^${_k}=.*|${_k}=${_esc}|" .env
   else
     printf '%s=%s\n' "$_k" "$_v" >> .env

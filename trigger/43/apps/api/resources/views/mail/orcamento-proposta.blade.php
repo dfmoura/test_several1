@@ -17,17 +17,20 @@
                 Encaminhamos a proposta comercial <strong>{{ $codigo }}</strong>
                 (versão {{ $versao }}) da <strong>{{ $nomeEmpresa }}</strong>.
               </p>
-              <p style="margin:0 0 22px;">
-                No link abaixo você visualiza os detalhes e pode <strong>aprovar</strong> ou <strong>recusar</strong> a proposta.
-                O acesso é pessoal — por favor, não encaminhe.
+              <p style="margin:0 0 12px;">
+                No link abaixo, você poderá consultar todos os detalhes da proposta e também
+                <strong>aprovar</strong> ou <strong>recusar</strong>.
+              </p>
+              <p style="margin:0 0 12px;">
+                O acesso é pessoal. Por favor, não compartilhe este link.
                 @if ($expiraEmLabel)
-                  Validade: <strong>{{ $expiraEmLabel }}</strong>.
+                  Validade da proposta: <strong>{{ $expiraEmLabel }}</strong>.
                 @endif
               </p>
               <p style="margin:0 0 10px;text-align:center;">
                 <a href="{{ $url }}"
                    style="display:inline-block;background:#1a3568;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:4px;font-weight:600;font-size:14px;letter-spacing:0.02em;">
-                  Abrir proposta — aprovar ou recusar
+                  Acesse a proposta
                 </a>
               </p>
               <p style="margin:0 0 8px;font-size:12px;color:#78716c;word-break:break-all;line-height:1.45;">
@@ -39,7 +42,7 @@
                 </p>
               @endif
               <p style="margin:20px 0 0;font-size:14px;color:#44403c;">
-                Atenciosamente,<br>
+                Ficamos à disposição para qualquer dúvida!<br>
                 <strong>{{ $nomeEmpresa }}</strong>
               </p>
             </td>

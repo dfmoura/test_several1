@@ -452,6 +452,36 @@ export function OrcamentoFormPage() {
     }
   };
 
+  const handleAplicarParametros = async (a: {
+    overrides: OrcForm['overrides'];
+    imposto_pct: number;
+    comissao_pct: number;
+    faixaIndex: number;
+  }) => {
+    const nextForm: OrcForm = {
+      ...form,
+      overrides: a.overrides,
+      imposto_pct: a.imposto_pct,
+      faixas: form.faixas.map((f, i) =>
+        i === a.faixaIndex ? { ...f, comissao_pct: a.comissao_pct } : f,
+      ),
+    };
+    setForm(nextForm);
+    setPending(true);
+    setErro(null);
+    try {
+      const res = await api.post<{ data: OrcamentoResult }>(
+        '/orcamentos/calcular',
+        payloadFromForm(nextForm),
+      );
+      setCalculo(res.data);
+    } catch (e) {
+      setErro(e instanceof ApiError ? e.message : 'Falha ao recalcular com ajustes');
+    } finally {
+      setPending(false);
+    }
+  };
+
   const handleSalvar = async () => {
     if (!canWrite) return;
     const v = validateClient();
@@ -1373,6 +1403,28 @@ export function OrcamentoFormPage() {
               form.tipo_operacao === TIPO_SERVICO ? null : form.modelos_composicao
             }
             echoEspecificacao={form.tipo_operacao !== TIPO_SERVICO}
+            parametrosAjuste={
+              form.tipo_operacao === TIPO_SERVICO || !canWrite
+                ? null
+                : {
+                    papel: form.papel,
+                    acabamento: form.acabamento,
+                    maquina: form.maquina,
+                    cores: String(form.cores),
+                    tubete: form.tubete,
+                    tipoTroca: form.tipo_troca_produto,
+                    impostoPct: form.imposto_pct,
+                    comissaoPct: form.faixas[0]?.comissao_pct ?? 0,
+                    comissaoPctByFaixa: form.faixas.map((f) => f.comissao_pct),
+                    overrides: form.overrides,
+                  }
+            }
+            onAplicarParametros={
+              form.tipo_operacao === TIPO_SERVICO || !canWrite
+                ? undefined
+                : handleAplicarParametros
+            }
+            aplicandoParametros={pending}
             guiaEspec={
               form.tipo_operacao === TIPO_SERVICO
                 ? null

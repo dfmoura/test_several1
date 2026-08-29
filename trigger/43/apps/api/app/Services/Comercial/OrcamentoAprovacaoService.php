@@ -791,17 +791,22 @@ class OrcamentoAprovacaoService
         $primeiro = explode(' ', $contato)[0] ?: $contato;
 
         // Fonte única Zap + clipboard + wa.me (ADR_ORC_WHATSAPP_VIAZAP).
-        // Link /p/{token} = ver, aprovar ou recusar (sem botões Meta nesta fatia).
-        return "Olá, {$primeiro}.\n"
+        // URL sozinha na linha → WhatsApp vira link clicável; /p/{token} = ver/aprovar/recusar.
+        return "Olá, {$primeiro}! 👋\n"
             ."\n"
-            ."Segue a proposta comercial *{$orcamento->codigo}* (v{$orcamento->versao}) da *{$nomeEmpresa}*.\n"
+            ."Encaminhamos a proposta comercial {$orcamento->codigo} (versão {$orcamento->versao}) da {$nomeEmpresa}.\n"
             ."\n"
-            ."Para visualizar, aprovar ou recusar, abra o link abaixo (acesso pessoal — não encaminhe):\n"
+            ."📄 No link abaixo, você poderá consultar todos os detalhes da proposta e também aprovar ou recusar.\n"
+            ."\n"
+            ."🔐 O acesso é pessoal. Por favor, não compartilhe este link.\n"
+            ."\n"
+            ."📅 Validade da proposta: {$validade}\n"
+            ."\n"
+            ."👉 Acesse a proposta:\n"
             ."{$url}\n"
             ."\n"
-            ."Validade: {$validade}.\n"
-            ."\n"
-            .'Qualquer dúvida, estamos à disposição.';
+            ."Ficamos à disposição para qualquer dúvida!\n"
+            ."{$nomeEmpresa}";
     }
 
     /**

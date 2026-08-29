@@ -325,6 +325,9 @@ final class OrcamentoCatalogo
         // Clone é shallow — copiar arrays mutáveis.
         $cat->papel = $this->papel;
         $cat->acabamentos = $this->acabamentos;
+        $cat->tubete = $this->tubete;
+        $cat->horaParadaH = $this->horaParadaH;
+        $cat->horaMaquina = $this->horaMaquina;
         $cat->papeisAtivosUi = $this->papeisAtivosUi;
         $cat->acabamentosAtivosUi = $this->acabamentosAtivosUi;
         $cat->tiposTrocaAtivosUi = $this->tiposTrocaAtivosUi;
@@ -335,9 +338,8 @@ final class OrcamentoCatalogo
         }
 
         if (isset($overrides['papel']) && is_array($overrides['papel'])) {
-            $cat->papel = $this->papel;
             foreach ($overrides['papel'] as $k => $v) {
-                if ($v !== null) {
+                if ($v !== null && $v !== '') {
                     $cat->papel[self::norm((string) $k)] = (float) $v;
                 }
             }
@@ -370,15 +372,96 @@ final class OrcamentoCatalogo
             $cat->tintaAte30PorCor = (float) $overrides['tinta_valor_ate_30_por_cor'];
         }
         if (isset($overrides['acabamentos']) && is_array($overrides['acabamentos'])) {
-            $cat->acabamentos = $this->acabamentos;
             foreach ($overrides['acabamentos'] as $k => $v) {
-                if ($v !== null) {
+                if ($v !== null && $v !== '') {
                     $cat->acabamentos[self::norm((string) $k)] = (float) $v;
                 }
             }
         }
+        if (isset($overrides['tubete']) && is_array($overrides['tubete'])) {
+            foreach ($overrides['tubete'] as $k => $v) {
+                if ($v !== null && $v !== '') {
+                    $cat->tubete[self::norm((string) $k)] = (float) $v;
+                }
+            }
+        }
+        if (isset($overrides['hora_parada_h']) && is_array($overrides['hora_parada_h'])) {
+            foreach ($overrides['hora_parada_h'] as $k => $v) {
+                if ($v !== null && $v !== '') {
+                    $cat->horaParadaH[self::norm((string) $k)] = (float) $v;
+                }
+            }
+        }
+        if (isset($overrides['hora_maquina']) && is_array($overrides['hora_maquina'])) {
+            foreach ($overrides['hora_maquina'] as $maq => $rates) {
+                if (! is_array($rates)) {
+                    continue;
+                }
+                try {
+                    $maqKey = $cat->normalizarMaquina((string) $maq);
+                } catch (\Throwable) {
+                    $maqKey = self::norm((string) $maq);
+                }
+                $bloco = $cat->horaMaquina[$maqKey] ?? [];
+                foreach ($rates as $c => $t) {
+                    if ($t !== null && $t !== '') {
+                        $bloco[(string) $c] = (float) $t;
+                    }
+                }
+                $cat->horaMaquina[$maqKey] = $bloco;
+            }
+        }
 
         return $cat;
+    }
+
+    /**
+     * Tarifas efetivas deste ORC (catálogo + overrides) para o item selecionado.
+     * Fotografia auditável no catalog_snapshot — UI “Como chegou neste valor”.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    public function tarifasResolvidas(array $input): array
+    {
+        $papel = (string) ($input['papel'] ?? '');
+        $acabamento = (string) ($input['acabamento'] ?? '');
+        $maquina = (string) ($input['maquina'] ?? '');
+        $cores = $input['cores'] ?? null;
+        $tubete = (string) ($input['tubete'] ?? '');
+        $tipoTroca = (string) ($input['tipo_troca_produto'] ?? 'SEM PARADA');
+        $rebobNome = $this->rebobinacaoNome;
+
+        $taxa = 0.0;
+        try {
+            $taxa = $maquina !== '' && $cores !== null && $cores !== ''
+                ? $this->taxaHoraMaquina($maquina, $cores)
+                : 0.0;
+        } catch (\Throwable) {
+            $taxa = 0.0;
+        }
+
+        return [
+            'preco_papel' => $papel !== '' ? $this->precoPapel($papel) : null,
+            'papel' => $papel !== '' ? $papel : null,
+            'taxa_hora_maquina' => $taxa > 0 ? $taxa : null,
+            'maquina' => $maquina !== '' ? $maquina : null,
+            'cores' => $cores,
+            'hora_parada_troca' => $tipoTroca !== '' ? $this->horaParada($tipoTroca) : null,
+            'tipo_troca_produto' => $tipoTroca !== '' ? $tipoTroca : null,
+            'minutos_troca_bobina' => $this->minutosTrocaBobina,
+            'limite_metragem_bobina' => $this->limiteMetragemBobina,
+            'tinta_faixa_m2' => $this->tintaFaixaM2,
+            'tinta_valor_ate_30_por_cor' => $this->tintaAte30PorCor,
+            'tinta_acima_m2' => $this->tintaAcimaM2,
+            'preco_acabamento' => $acabamento !== '' ? $this->precoAcabamento($acabamento) : null,
+            'acabamento' => $acabamento !== '' ? $acabamento : null,
+            'preco_rebobinacao' => $this->precoRebobinacao(),
+            'rebobinacao' => $rebobNome,
+            'preco_tubete' => $tubete !== '' ? $this->precoTubete($tubete) : null,
+            'tubete' => $tubete !== '' ? $tubete : null,
+            'preco_caixa' => $this->precoCaixa,
+        ];
     }
 
     public function precoPapel(string $nome): float

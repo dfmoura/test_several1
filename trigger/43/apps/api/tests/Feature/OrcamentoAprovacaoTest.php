@@ -165,7 +165,9 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertStringContainsString('/p/', $url);
         $this->assertStringContainsString($env->json('data.token'), $env->json('data.mensagem'));
         $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
-        $this->assertStringContainsString('não encaminhe', $env->json('data.mensagem'));
+        $this->assertStringContainsString('não compartilhe', $env->json('data.mensagem'));
+        $this->assertStringContainsString('aprovar ou recusar', $env->json('data.mensagem'));
+        $this->assertStringContainsString('Acesse a proposta:', $env->json('data.mensagem'));
 
         $upd = $this->withHeaders($h)->putJson("/api/v1/orcamentos/{$id}", $this->payload());
         $upd->assertStatus(422);
@@ -545,5 +547,44 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertSame('falha_envio', $env->json('data.zap_motivo'));
         $this->assertStringContainsString('/p/', $env->json('data.url'));
         $this->assertStringContainsString('wa.me/', (string) $env->json('data.canal_url'));
+    }
+
+    public function test_replay_idempotente_viazap_retenta_com_novo_external_id(): void
+    {
+        Mail::fake();
+        Http::fake([
+            '*/v1/messages' => Http::sequence()
+                ->push(['id' => 'msg_old', 'status' => 'sent'], 200)
+                ->push(['id' => 'msg_new', 'status' => 'queued'], 202),
+        ]);
+        config([
+            'erp.viazap.base_url' => 'https://viazap.test',
+            'erp.viazap.token' => 'zpv_test_token',
+            'erp.orcamento_whatsapp_auto' => true,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $this->assertTrue($env->json('data.zap_enviado'));
+        $this->assertNull($env->json('data.zap_motivo'));
+
+        Http::assertSentCount(2);
+        $ids = [];
+        Http::assertSent(function ($request) use (&$ids) {
+            if (! str_contains($request->url(), '/v1/messages')) {
+                return false;
+            }
+            $ids[] = (string) ($request->data()['external_id'] ?? '');
+
+            return true;
+        });
+        $this->assertCount(2, $ids);
+        $this->assertNotSame($ids[0], $ids[1]);
+        $codigo = (string) Orcamento::query()->findOrFail($id)->codigo;
+        $this->assertTrue(str_starts_with($ids[0], $codigo.':'));
+        $this->assertTrue(str_starts_with($ids[1], $codigo.':'));
     }
 }

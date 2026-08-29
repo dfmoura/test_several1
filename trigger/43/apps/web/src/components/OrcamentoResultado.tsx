@@ -1,8 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
-import type { ModeloComposicaoForm } from '../lib/orcamentoForm';
+import type { ModeloComposicaoForm, OrcOverrides } from '../lib/orcamentoForm';
+import {
+  aplicarDraftParametros,
+  buildParametrosAjusteLinhas,
+  parseTarifasResolvidas,
+  valorOverrideAtual,
+  type ParametroAjusteId,
+} from '../lib/orcamentoParametrosAjuste';
 import {
   explicarFechamentoFrete,
   formatValorFrete,
@@ -27,6 +34,29 @@ import {
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
 
+export type ParametrosAjusteCtx = {
+  papel: string;
+  acabamento: string;
+  maquina: string;
+  cores: string;
+  tubete: string;
+  tipoTroca: string;
+  rebobinacaoNome?: string;
+  impostoPct: number;
+  /** Comissão da faixa ativa (ou fallback). */
+  comissaoPct: number;
+  /** Comissão por índice de faixa — preferido quando há várias. */
+  comissaoPctByFaixa?: number[];
+  overrides: OrcOverrides;
+};
+
+export type ParametrosAjusteApply = {
+  overrides: OrcOverrides;
+  imposto_pct: number;
+  comissao_pct: number;
+  faixaIndex: number;
+};
+
 type Props = {
   calculo: OrcamentoResult;
   prazoEntregaDias?: number;
@@ -49,6 +79,13 @@ type Props = {
   echoEspecificacao?: boolean;
   /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
   modoServico?: boolean;
+  /**
+   * Contexto para ajustar parâmetros “ao seu entendimento” (só formulário editável).
+   * Sem isto o painel é somente leitura (detalhe / snapshot).
+   */
+  parametrosAjuste?: ParametrosAjusteCtx | null;
+  onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
+  aplicandoParametros?: boolean;
 };
 
 function snapNum(snapshot: Record<string, unknown> | undefined, key: string): string | null {
@@ -63,16 +100,59 @@ function snapNum(snapshot: Record<string, unknown> | undefined, key: string): st
   return null;
 }
 
+function formatParamValue(v: number | null, unidade: string): string {
+  if (v == null || !Number.isFinite(v)) return '—';
+  const n = v.toLocaleString('pt-BR', {
+    minimumFractionDigits: unidade === '%' || unidade === 'min' || unidade === 'h' ? 0 : 2,
+    maximumFractionDigits: 6,
+  });
+  return `${n} ${unidade}`;
+}
+
 function FluxoCalculoPanel({
   detalhe,
   snapshot,
   motorVersion,
+  faixaIndex,
+  parametrosAjuste,
+  onAplicarParametros,
+  aplicandoParametros,
 }: {
   detalhe: OrcamentoFaixaResult;
   snapshot?: Record<string, unknown>;
   motorVersion: number;
+  faixaIndex: number;
+  parametrosAjuste?: ParametrosAjusteCtx | null;
+  onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
+  aplicandoParametros?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
+  const editavel = Boolean(parametrosAjuste && onAplicarParametros);
+
+  const tarifas = useMemo(() => parseTarifasResolvidas(snapshot), [snapshot]);
+  const impostoPct =
+    parametrosAjuste?.impostoPct ??
+    (typeof snapshot?.imposto_pct === 'number'
+      ? snapshot.imposto_pct
+      : Number(snapshot?.imposto_pct) || 16);
+  const comissaoPct = parametrosAjuste?.comissaoPct ?? 0;
+
+  const paramLinhas = useMemo(
+    () =>
+      buildParametrosAjusteLinhas({
+        tarifas,
+        detalhe,
+        comissaoPct,
+        impostoPct,
+      }),
+    [tarifas, detalhe, comissaoPct, impostoPct],
+  );
+
+  useEffect(() => {
+    setDraft({});
+  }, [faixaIndex, snapshot, parametrosAjuste?.overrides]);
+
   const linhas = [
     {
       regra: 'R1 · Metragem',
@@ -115,7 +195,9 @@ function FluxoCalculoPanel({
     {
       regra: 'CUSTO · Papel',
       valor: formatCurrency(detalhe.valor_papel),
-      param: null,
+      param: tarifas.preco_papel != null
+        ? `${formatParamValue(tarifas.preco_papel, 'R$/m²')}${tarifas.papel ? ` · ${tarifas.papel}` : ''}`
+        : null,
     },
     {
       regra: 'CUSTO · Tinta',
@@ -147,6 +229,36 @@ function FluxoCalculoPanel({
     },
   ];
 
+  const handleAplicar = () => {
+    if (!parametrosAjuste || !onAplicarParametros) return;
+    const tintaUsaAcima =
+      tarifas.tinta_faixa_m2 != null
+        ? Number(detalhe.m2) > Number(tarifas.tinta_faixa_m2)
+        : true;
+    const applied = aplicarDraftParametros({
+      draft,
+      overridesBase: parametrosAjuste.overrides,
+      ctx: {
+        papel: parametrosAjuste.papel,
+        acabamento: parametrosAjuste.acabamento,
+        maquina: parametrosAjuste.maquina,
+        cores: parametrosAjuste.cores,
+        tubete: parametrosAjuste.tubete,
+        tipoTroca: parametrosAjuste.tipoTroca,
+        rebobinacaoNome: parametrosAjuste.rebobinacaoNome ?? tarifas.rebobinacao ?? 'REBOBINAÇÃO',
+        comissaoPct: parametrosAjuste.comissaoPct,
+        impostoPct: parametrosAjuste.impostoPct,
+        tintaUsaAcima,
+      },
+    });
+    void onAplicarParametros({
+      ...applied,
+      faixaIndex,
+    });
+  };
+
+  const draftDirty = Object.keys(draft).length > 0;
+
   return (
     <div className="orc-fluxo-calculo" style={{ marginTop: '1rem' }}>
       <button
@@ -159,33 +271,155 @@ function FluxoCalculoPanel({
       </button>
       {open ? (
         <div className="card" style={{ marginTop: '0.65rem' }}>
-          <div className="card-body" style={{ display: 'grid', gap: '0.65rem' }}>
+          <div className="card-body" style={{ display: 'grid', gap: '0.85rem' }}>
             <p className="orc-result-meta" style={{ margin: 0 }}>
               Rastreio interno · motor v{motorVersion} · parâmetros do snapshot deste ORC
               (não da tarifa atual do catálogo).{' '}
               <Link to="/orcamentos/como-calcula">Ver regras →</Link>
             </p>
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Regra</th>
-                    <th>Resultado</th>
-                    <th>Parâmetro no snapshot</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {linhas.map((ln) => (
-                    <tr key={ln.regra}>
-                      <td>
-                        <strong>{ln.regra}</strong>
-                      </td>
-                      <td>{ln.valor}</td>
-                      <td className="field-note">{ln.param ?? '—'}</td>
+
+            <div>
+              <h3 className="orc-fluxo-subtitulo">Parâmetros utilizados no cálculo</h3>
+              <p className="orc-result-meta" style={{ margin: '0 0 0.55rem' }}>
+                {editavel
+                  ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Preencha “Ao seu entendimento” só onde quiser divergir; vazio volta ao default. Comissão e imposto estim. alteram a faixa / o ORC.'
+                  : 'Fotografia das tarifas efetivas neste orçamento (somente leitura).'}
+              </p>
+              <div className="table-wrap">
+                <table className="data-table orc-params-ajuste-table">
+                  <thead>
+                    <tr>
+                      <th>Componente</th>
+                      <th>Parâmetro</th>
+                      <th>Valor usado</th>
+                      <th>Resultado</th>
+                      {editavel ? <th>Ao seu entendimento</th> : null}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paramLinhas.map((ln) => {
+                      const tintaUsaAcima =
+                        tarifas.tinta_faixa_m2 != null
+                          ? Number(detalhe.m2) > Number(tarifas.tinta_faixa_m2)
+                          : true;
+                      const existente =
+                        parametrosAjuste != null
+                          ? valorOverrideAtual(ln.id, parametrosAjuste.overrides, {
+                              papel: parametrosAjuste.papel,
+                              acabamento: parametrosAjuste.acabamento,
+                              maquina: parametrosAjuste.maquina,
+                              cores: parametrosAjuste.cores,
+                              tubete: parametrosAjuste.tubete,
+                              tipoTroca: parametrosAjuste.tipoTroca,
+                              rebobinacaoNome:
+                                parametrosAjuste.rebobinacaoNome ??
+                                tarifas.rebobinacao ??
+                                'REBOBINAÇÃO',
+                              comissaoPct,
+                              impostoPct,
+                              tintaUsaAcima,
+                            })
+                          : ln.id === 'comissao' || ln.id === 'imposto'
+                            ? ln.valorUsado
+                            : null;
+                      const draftVal = draft[ln.draftKey];
+                      const showDraft =
+                        draftVal !== undefined
+                          ? draftVal
+                          : existente != null
+                            ? String(existente)
+                            : '';
+                      return (
+                        <tr key={ln.id}>
+                          <td>
+                            <strong>{ln.label}</strong>
+                          </td>
+                          <td className="field-note">{ln.parametro}</td>
+                          <td className="orc-params-valor">
+                            {formatParamValue(ln.valorUsado, ln.unidade)}
+                          </td>
+                          <td>
+                            {ln.resultadoRs != null ? formatCurrency(ln.resultadoRs) : '—'}
+                          </td>
+                          {editavel ? (
+                            <td>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                className="orc-params-input"
+                                aria-label={`Ajuste ${ln.label}`}
+                                placeholder={
+                                  ln.valorUsado != null
+                                    ? ln.valorUsado.toLocaleString('pt-BR', {
+                                        maximumFractionDigits: 6,
+                                      })
+                                    : 'default'
+                                }
+                                value={showDraft}
+                                onChange={(e) =>
+                                  setDraft((prev) => ({
+                                    ...prev,
+                                    [ln.draftKey]: e.target.value,
+                                  }))
+                                }
+                              />
+                              <span className="orc-params-unidade">{ln.unidade}</span>
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {editavel ? (
+                <div className="btn-row" style={{ marginTop: '0.65rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={aplicandoParametros || !draftDirty}
+                    onClick={handleAplicar}
+                  >
+                    {aplicandoParametros ? 'Recalculando…' : 'Aplicar e recalcular'}
+                  </button>
+                  {draftDirty ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={aplicandoParametros}
+                      onClick={() => setDraft({})}
+                    >
+                      Descartar rascunho
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <h3 className="orc-fluxo-subtitulo">Trilha das regras (R1–R20)</h3>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Regra</th>
+                      <th>Resultado</th>
+                      <th>Parâmetro no snapshot</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linhas.map((ln) => (
+                      <tr key={ln.regra}>
+                        <td>
+                          <strong>{ln.regra}</strong>
+                        </td>
+                        <td>{ln.valor}</td>
+                        <td className="field-note">{ln.param ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -373,6 +607,9 @@ export function OrcamentoResultado({
   guiaEspec,
   echoEspecificacao = true,
   modoServico = false,
+  parametrosAjuste = null,
+  onAplicarParametros,
+  aplicandoParametros = false,
 }: Props) {
   const servico = modoServico || calculo.tipo_operacao === 'SERVICO';
   const [aba, setAba] = useState<AbaResultado>('comercial');
@@ -655,6 +892,19 @@ export function OrcamentoResultado({
               <FluxoCalculoPanel
                 detalhe={detalhe}
                 snapshot={calculo.catalog_snapshot}
+                faixaIndex={faixaDetalhe}
+                parametrosAjuste={
+                  parametrosAjuste
+                    ? {
+                        ...parametrosAjuste,
+                        comissaoPct:
+                          parametrosAjuste.comissaoPctByFaixa?.[faixaDetalhe] ??
+                          parametrosAjuste.comissaoPct,
+                      }
+                    : null
+                }
+                onAplicarParametros={onAplicarParametros}
+                aplicandoParametros={aplicandoParametros}
                 motorVersion={
                   typeof calculo.motor_version === 'number'
                     ? calculo.motor_version
