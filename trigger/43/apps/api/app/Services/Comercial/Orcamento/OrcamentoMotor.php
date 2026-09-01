@@ -213,8 +213,10 @@ final class OrcamentoMotor
         $horaTrocaProd = $cat->horaParada($tipoTroca) * ($modelos - 1);
         // R6–R8
         $perdaAcerto = $this->perdaAcertoM2($inp['cores'], $largura, $cat);
-        $perdaAcab = $cat->perdaAcab((string) $inp['acabamento']);
-        $perdaPapelTroca = $this->perdaPapelTrocaProdutoM2($inp['cores'], $largura, $modelos, $cat);
+        $perdaTroca = $this->perdaTrocaProdutoM2($inp['cores'], $largura, $modelos, $colunas, $cat);
+        $perdaAcab = $cat->usaTintaMatriz()
+            ? $cat->perdaAcabM2((string) $inp['acabamento'], $largura, $colunas)
+            : $cat->perdaAcab((string) $inp['acabamento']);
         if ($metragem <= $limite) {
             $perdaBobinaM2 = 0.0;
         } else {
@@ -228,23 +230,30 @@ final class OrcamentoMotor
 
         $taxa = $cat->taxaHoraMaquina((string) $inp['maquina'], $inp['cores']);
         $precoPapel = $cat->precoPapel((string) $inp['papel']);
-        $valorPapel = ($m2 + $perdaAcerto + $perdaBobinaM2) * $precoPapel;
+        $valorPapel = ($m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2) * $precoPapel;
         $valorMaquina = $taxa * $horaMaq;
         $valorTrocaProduto = $taxa * $horaTrocaProd;
         $valorTrocaBobina = $temTrocaBobina ? $taxa * $horaTrocaBobina : 0.0;
-        $valorPapelTrocaProduto = $perdaPapelTroca * $precoPapel;
+        $valorPapelTrocaProduto = $cat->usaTintaMatriz() ? 0.0 : $perdaTroca * $precoPapel;
 
-        $areaTinta = $m2 + $perdaAcerto;
-        if ($areaTinta <= $cat->tintaFaixaM2) {
-            $ck = $this->coresKey($inp['cores']);
-            $ncores = $ck === '4V' ? 4.0 : (float) $inp['cores'];
-            $valorTinta = $ncores * $cat->tintaAte30PorCor;
+        if ($cat->usaTintaMatriz()) {
+            $areaTinta = $m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2;
+            $valorTinta = $cat->tintaMatrizRate($areaTinta, $inp['cores']) * $areaTinta;
         } else {
-            $valorTinta = $areaTinta * $cat->tintaAcimaM2;
+            $areaTinta = $m2 + $perdaAcerto;
+            if ($areaTinta <= $cat->tintaFaixaM2) {
+                $ck = $this->coresKey($inp['cores']);
+                $ncores = $ck === '4V' ? 4.0 : (float) $inp['cores'];
+                $valorTinta = $ncores * $cat->tintaAte30PorCor;
+            } else {
+                $valorTinta = $areaTinta * $cat->tintaAcimaM2;
+            }
         }
 
-        $valorAcabamento = $cat->precoAcabamento((string) $inp['acabamento'])
-            * ($m2 + $perdaAcerto + $perdaAcab);
+        $valorAcabamento = $cat->usaTintaMatriz()
+            ? $cat->precoAcabamento((string) $inp['acabamento']) * ($m2 + $perdaAcab)
+            : $cat->precoAcabamento((string) $inp['acabamento'])
+                * ($m2 + $perdaAcerto + $perdaAcab);
         $valorRebob = (($metragem * $colunas) / $colReb / 1000.0) * $cat->precoRebobinacao();
         $valorTubete = ($q / $etiq) * $cat->precoTubete((string) $inp['tubete']);
         $valorCaixa = $qtdeCaixas * $cat->precoCaixa;
@@ -273,7 +282,7 @@ final class OrcamentoMotor
             'hora_troca_bobina' => $horaTrocaBobina,
             'perda_acerto' => $perdaAcerto,
             'perda_acabamento' => $perdaAcab,
-            'perda_papel_troca_produto' => $perdaPapelTroca,
+            'perda_papel_troca_produto' => $perdaTroca,
             'perda_bobina_m2' => $perdaBobinaM2,
             'rolos' => $rolos,
             'qtde_caixas' => $qtdeCaixas,
@@ -324,6 +333,25 @@ final class OrcamentoMotor
             return ($larguraCm / 100.0) * $cat->perdaAcertoM8;
         }
         throw new \InvalidArgumentException("Cores não suportadas: {$k}");
+    }
+
+    public function perdaTrocaProdutoM2(
+        mixed $cores,
+        float $larguraCm,
+        int $modelos,
+        int $colunas,
+        OrcamentoCatalogo $cat,
+    ): float {
+        if ($cat->usaTintaMatriz()) {
+            if ($colunas <= 0) {
+                return 0.0;
+            }
+            $fator = $cat->perdaTrocaM2Fator($cores);
+
+            return ($larguraCm / 100.0) * $fator * $colunas;
+        }
+
+        return $this->perdaPapelTrocaProdutoM2($cores, $larguraCm, $modelos, $cat);
     }
 
     public function perdaPapelTrocaProdutoM2(

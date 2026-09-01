@@ -1,4 +1,4 @@
--- Dados do pagador por licença (preenchidos via consulta CNPJ).
+-- Dados do pagador por licença (PJ via consulta CNPJ; PF preenchimento manual).
 -- Aplicar no SQL Editor do Supabase após as migrations de licenses.
 
 alter table public.licenses
@@ -8,7 +8,7 @@ alter table public.licenses
   add column if not exists pagador_uf text,
   add column if not exists pagador_cep text;
 
-comment on column public.licenses.pagador_nome is 'Razão social / nome do pagador (Inter).';
+comment on column public.licenses.pagador_nome is 'Razão social (PJ) ou nome completo (PF) do pagador (Inter).';
 comment on column public.licenses.pagador_endereco is 'Endereço do pagador para cobrança Inter.';
 comment on column public.licenses.pagador_cidade is 'Cidade do pagador.';
 comment on column public.licenses.pagador_uf is 'UF do pagador (2 letras).';

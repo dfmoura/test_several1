@@ -20,4 +20,5 @@ RUN chmod +x /usr/local/bin/erp-entrypoint \
 WORKDIR /var/www/html
 EXPOSE 8000
 ENTRYPOINT ["erp-entrypoint"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# --no-reload: entrypoint sincroniza apps/api/.env no boot; reload geraria restart em loop.
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]

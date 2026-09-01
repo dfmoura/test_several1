@@ -341,6 +341,8 @@ Route::prefix('v1')->group(function () {
         Route::put('/orcamento-catalogo/maquinas/{maquina}', [OrcamentoCatalogoController::class, 'updateMaquina']);
         Route::get('/orcamento-catalogo/parametros', [OrcamentoCatalogoController::class, 'parametros']);
         Route::put('/orcamento-catalogo/parametros/{chave}', [OrcamentoCatalogoController::class, 'updateParametro']);
+        Route::get('/orcamento-catalogo/estruturas', [OrcamentoCatalogoController::class, 'estruturas']);
+        Route::put('/orcamento-catalogo/estruturas/{chave}', [OrcamentoCatalogoController::class, 'updateEstrutura']);
         Route::get('/orcamento-catalogo/regras', [OrcamentoCatalogoController::class, 'regras']);
         Route::get('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'faixasFrete']);
         Route::post('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'storeFaixaFrete']);

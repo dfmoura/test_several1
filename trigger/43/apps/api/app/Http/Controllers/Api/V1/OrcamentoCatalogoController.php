@@ -207,6 +207,23 @@ class OrcamentoCatalogoController extends Controller
         return response()->json(['data' => $this->service->updateParametro($chave, $data)]);
     }
 
+    public function estruturas(Request $request): JsonResponse
+    {
+        $this->authorizeManage($request);
+
+        return response()->json(['data' => $this->service->listEstruturas()]);
+    }
+
+    public function updateEstrutura(Request $request, string $chave): JsonResponse
+    {
+        $this->authorizeManage($request);
+        $data = $request->validate([
+            'payload' => ['required', 'array'],
+        ]);
+
+        return response()->json(['data' => $this->service->updateEstrutura($chave, $data)]);
+    }
+
     public function regras(Request $request): JsonResponse
     {
         $user = $request->user();

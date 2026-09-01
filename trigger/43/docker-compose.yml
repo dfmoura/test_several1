@@ -6,6 +6,8 @@
 #
 # NÃO rode só este arquivo no notebook: containers sobem sem :8043
 # → browser ERR_CONNECTION_REFUSED. Use make up / make doctor.
+# `docker compose up --build` (sem -d) prende o terminal; Ctrl+C derruba tudo.
+# Local: make up  ou  docker compose up -d --build  (COMPOSE_FILE no .env).
 #
 # Ver docs/DEPLOY_LOCAL_AWS.md
 

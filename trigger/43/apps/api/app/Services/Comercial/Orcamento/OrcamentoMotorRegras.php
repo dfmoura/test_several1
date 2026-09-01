@@ -10,7 +10,7 @@ use App\Models\OrcCatalogoParametro;
  */
 final class OrcamentoMotorRegras
 {
-    public const MOTOR_VERSION = 1;
+    public const MOTOR_VERSION = 2;
 
     /**
      * @return array{
@@ -119,6 +119,16 @@ final class OrcamentoMotorRegras
                 'catalogo_tab' => 'trocas',
             ],
             [
+                'id' => 'R5b_perda_troca_produto_m2',
+                'grupo' => 'perdas',
+                'titulo' => 'Perda troca produto (m²)',
+                'resumo' => 'rv4 col. E — fator m² × largura × colunas.',
+                'formula' => '(largura ÷ 100) × fator(cores) × colunas',
+                'parametrizado' => true,
+                'parametros' => [],
+                'catalogo_tab' => 'perdas',
+            ],
+            [
                 'id' => 'R6_perda_acerto',
                 'grupo' => 'perdas',
                 'titulo' => 'Perda de acerto',
@@ -193,15 +203,11 @@ final class OrcamentoMotorRegras
                 'id' => 'CUSTO_tinta',
                 'grupo' => 'custos',
                 'titulo' => 'Valor tinta',
-                'resumo' => 'Faixa por cor ou R$/m² acima.',
-                'formula' => 'se área ≤ faixa: cores × valor_por_cor · senão: área × valor_acima',
+                'resumo' => 'Matriz TINTA (2) rv4 ou faixa legada v1.',
+                'formula' => 'v2: taxa(MTS×cor) × área (matriz TINTA (2) rv4)',
                 'parametrizado' => true,
-                'parametros' => [
-                    OrcCatalogoParametro::CHAVE_TINTA_FAIXA_M2,
-                    OrcCatalogoParametro::CHAVE_TINTA_ATE_30_POR_COR,
-                    OrcCatalogoParametro::CHAVE_TINTA_ACIMA_M2,
-                ],
-                'catalogo_tab' => 'parametros',
+                'parametros' => [],
+                'catalogo_tab' => 'tinta',
             ],
             [
                 'id' => 'CUSTO_acabamento',
@@ -218,7 +224,7 @@ final class OrcamentoMotorRegras
                 'grupo' => 'custos',
                 'titulo' => 'Tubete e caixa',
                 'resumo' => 'Embalagem unitária.',
-                'formula' => 'rolos × preco_tubete + caixas × preco_caixa',
+                'formula' => 'rolos × preco_tubete + CEILING(rolos ÷ rolos_por_caixa) × preco_caixa',
                 'parametrizado' => true,
                 'parametros' => [
                     OrcCatalogoParametro::CHAVE_TUBETE_1,

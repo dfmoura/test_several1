@@ -1,0 +1,39 @@
+{
+  "arquivo": "ORcAMENTO_OFICIAL_rv4.xlsm",
+  "fonte": "ORÇAMENTO linha 13 — motor v2 (fórmulas canônicas linha 14+)",
+  "cliente": "SABORIO",
+  "medida": "4,8 REDONDA",
+  "largura_cm": 8.5,
+  "puxada_cm": 8.2459,
+  "cores": 6,
+  "papel": "BOPP TRANSPARENTE",
+  "acabamento": "SEM ACABAMENTO",
+  "modelos": 2,
+  "colunas": 3,
+  "etiq_por_rolo": 1000,
+  "tubete": "3\"",
+  "z": null,
+  "maquina": "MODULAR",
+  "imposto_pct": 16.0,
+  "matriz": "NAO",
+  "coluna_rebobinacao": 1,
+  "tipo_troca_produto": "PRETO INTEIRO+BORDA+CALÇO",
+  "rpm": 1000.0,
+  "faixas": [
+    {
+      "quantidade": 40000,
+      "comissao_pct": 0.0,
+      "motor_v2": {
+        "etiqueta": 3520.0,
+        "matriz": 0.0,
+        "total": 3520.0,
+        "m2": 280.4,
+        "metragem": 1099.45333333333,
+        "hora_maq": 2.09945333333333,
+        "perda_papel_troca_produto": 5.41875,
+        "valor_tinta": 139.138589025,
+        "valor_servico": 3027.64332719167
+      }
+    }
+  ]
+}

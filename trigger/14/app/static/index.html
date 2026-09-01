@@ -3,224 +3,384 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Supabase CRUD Local</title>
-  <link rel="stylesheet" href="/static/style.css?v=20260709" />
+  <title>Licenças e cobranças — Trigger TI</title>
+  <link rel="stylesheet" href="/static/style.css?v=20260831f" />
 </head>
 <body>
+  <a class="skip-link" href="#main-panel">Ir para o conteúdo</a>
+
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
-        <h1>Licenças & Cobranças</h1>
-        <p>Supabase + Inter (Trigger TI) — gestão B2B</p>
+        <h1>Licenças e cobranças</h1>
+        <p>Trigger TI · gestão B2B (Supabase + Inter)</p>
       </div>
-      <div class="header-actions">
-        <button type="button" id="btn-toggle-inter" class="ghost" aria-expanded="false">Inter</button>
-        <button type="button" id="btn-toggle-apps" class="ghost" aria-expanded="false">Apps</button>
-        <button type="button" id="btn-toggle-config" class="ghost" aria-expanded="true">Credenciais</button>
-      </div>
+      <nav class="header-actions" aria-label="Configurações">
+        <button type="button" id="btn-toggle-inter" class="ghost" aria-expanded="false" aria-controls="inter-section" title="Credenciais e webhook do Banco Inter">
+          Banco Inter
+        </button>
+        <button type="button" id="btn-toggle-apps" class="ghost" aria-expanded="false" aria-controls="apps-section" title="Apps e preços padrão">
+          Apps e preços
+        </button>
+        <button type="button" id="btn-toggle-config" class="ghost" aria-expanded="true" aria-controls="config-section" title="Conexão com o Supabase">
+          Supabase
+        </button>
+      </nav>
     </header>
 
     <div class="app-body" id="app-body">
-      <aside class="side-panel card" id="sidebar">
+      <aside class="side-panel card" id="sidebar" aria-label="Painel de configuração">
         <section class="sidebar-section" id="inter-section" hidden>
           <div class="section-head">
-            <h2>Inter Trigger TI</h2>
+            <div class="section-title-block">
+              <p class="section-kicker">Setup · 2 de 3</p>
+              <h2>Banco Inter (Trigger TI)</h2>
+            </div>
           </div>
-          <p class="panel-hint">Credenciais separadas do Inter dos condomínios. Cobrança de licenças B2B.</p>
+          <p class="panel-hint">Conta PJ da Trigger TI — separada do Inter dos condomínios. Usada só para cobrança de licenças.</p>
           <div class="config-body">
-            <label>Client ID <input type="text" id="inter-client-id" /></label>
-            <label>Client Secret <input type="password" id="inter-client-secret" placeholder="deixe vazio para manter" /></label>
-            <label>Conta corrente <input type="text" id="inter-conta" placeholder="538375221 — só números, sem hífen" /></label>
-            <label class="checkbox-row"><input type="checkbox" id="inter-sandbox" /> Sandbox</label>
-            <label>Escopos <input type="text" id="inter-scopes" value="boleto-cobranca.read boleto-cobranca.write" /></label>
-            <label>URL pública (webhook) <input type="url" id="inter-webhook-url" placeholder="https://seu-dominio.com" /></label>
-            <label>Token webhook <input type="text" id="inter-webhook-token" placeholder="gerado automaticamente" readonly /></label>
-            <label>Dias p/ vencimento <input type="number" id="inter-dias-venc" min="1" max="60" value="7" /></label>
-            <label>Endereço fallback pagador <input type="text" id="inter-endereco" value="A informar" /></label>
-            <div class="grid-3">
-              <label>Cidade <input type="text" id="inter-cidade" value="Belo Horizonte" /></label>
-              <label>UF <input type="text" id="inter-uf" maxlength="2" value="MG" /></label>
-              <label>CEP <input type="text" id="inter-cep" value="30130000" /></label>
-            </div>
-            <div class="upload-row">
-              <label>Certificado .crt <input type="file" id="inter-cert-file" accept=".crt,.pem" /></label>
-              <label>Chave .key <input type="file" id="inter-key-file" accept=".key,.pem" /></label>
-            </div>
-            <div class="actions">
-              <button type="button" id="btn-inter-test">Testar</button>
-              <button type="button" id="btn-inter-save" class="primary">Salvar</button>
-            </div>
-            <div class="actions">
-              <button type="button" id="btn-inter-webhook-info">Ver webhook</button>
-              <button type="button" id="btn-inter-webhook-register">Registrar no Inter</button>
-            </div>
-            <p id="inter-status" class="status"></p>
-            <pre id="inter-webhook-info" class="code-block" hidden></pre>
+            <fieldset class="config-fieldset">
+              <legend>Conta e certificados</legend>
+              <label>Client ID <input type="text" id="inter-client-id" autocomplete="off" /></label>
+              <label>Client Secret <input type="password" id="inter-client-secret" placeholder="deixe vazio para manter" autocomplete="off" /></label>
+              <label>Conta corrente <input type="text" id="inter-conta" placeholder="só números, sem hífen" inputmode="numeric" /></label>
+              <label class="checkbox-row"><input type="checkbox" id="inter-sandbox" /> Sandbox</label>
+              <label>Escopos <input type="text" id="inter-scopes" value="boleto-cobranca.read boleto-cobranca.write" /></label>
+              <div class="upload-row">
+                <label>Certificado .crt <input type="file" id="inter-cert-file" accept=".crt,.pem" /></label>
+                <label>Chave .key <input type="file" id="inter-key-file" accept=".key,.pem" /></label>
+              </div>
+              <div class="actions">
+                <button type="button" id="btn-inter-test">Testar</button>
+                <button type="button" id="btn-inter-save" class="primary">Salvar</button>
+              </div>
+            </fieldset>
+
+            <fieldset class="config-fieldset">
+              <legend>Vencimento e endereço fallback</legend>
+              <label>Dias p/ vencimento <input type="number" id="inter-dias-venc" min="1" max="60" value="7" /></label>
+              <label>Endereço fallback pagador <input type="text" id="inter-endereco" value="A informar" /></label>
+              <div class="grid-3">
+                <label>Cidade <input type="text" id="inter-cidade" value="Belo Horizonte" /></label>
+                <label>UF <input type="text" id="inter-uf" maxlength="2" value="MG" /></label>
+                <label>CEP <input type="text" id="inter-cep" value="30130000" inputmode="numeric" /></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="config-fieldset">
+              <legend>Webhook</legend>
+              <label>URL pública (webhook) <input type="url" id="inter-webhook-url" placeholder="https://seu-dominio.com" /></label>
+              <label>Token webhook <input type="text" id="inter-webhook-token" placeholder="gerado automaticamente" readonly /></label>
+              <div class="actions">
+                <button type="button" id="btn-inter-webhook-info">Ver webhook</button>
+                <button type="button" id="btn-inter-webhook-register">Registrar no Inter</button>
+              </div>
+              <p id="inter-webhook-url-display" class="webhook-url-display" hidden></p>
+              <details id="inter-webhook-debug" class="webhook-debug" hidden>
+                <summary>Detalhes técnicos (JSON)</summary>
+                <pre id="inter-webhook-info" class="code-block"></pre>
+              </details>
+            </fieldset>
+
+            <p id="inter-status" class="status" role="status" aria-live="polite"></p>
           </div>
         </section>
 
         <section class="sidebar-section" id="apps-section" hidden>
           <div class="section-head">
-            <h2>Apps (app_id)</h2>
+            <div class="section-title-block">
+              <p class="section-kicker">Setup · 3 de 3</p>
+              <h2>Apps e preços</h2>
+            </div>
           </div>
           <p class="panel-hint">
-            Cada app tem preços próprios (implantação + mensalidade). A cobrança usa o app_id da licença.
+            Cada app tem preços próprios. A cobrança usa o app vinculado à licença.
           </p>
           <ul id="apps-list" class="apps-list"></ul>
           <div class="add-app">
-            <input type="text" id="new-app-id" placeholder="ex: meuapp" />
+            <label class="sr-only" for="new-app-id">Identificador do app</label>
+            <input type="text" id="new-app-id" placeholder="ex: mycondominio" autocomplete="off" />
             <button type="button" id="btn-add-app" class="primary">Cadastrar</button>
           </div>
           <div class="grid-2 add-app-pricing">
             <label>Implantação padrão (R$) <input type="number" id="new-app-valor-impl" step="0.01" min="0" value="500" /></label>
             <label>Mensalidade padrão (R$) <input type="number" id="new-app-valor-mensal" step="0.01" min="0" value="99" /></label>
           </div>
-          <p id="apps-status" class="status"></p>
+          <p id="apps-status" class="status" role="status" aria-live="polite"></p>
         </section>
 
         <section class="sidebar-section" id="config-section">
           <div class="section-head">
-            <h2>Credenciais</h2>
+            <div class="section-title-block">
+              <p class="section-kicker">Setup · 1 de 3</p>
+              <h2>Supabase</h2>
+            </div>
           </div>
+          <p class="panel-hint">URL do projeto e Service Role Key. Necessário para carregar licenças e cobranças.</p>
           <div id="config-body" class="config-body">
             <label>
               URL do Supabase
-              <input type="url" id="supabase-url" placeholder="https://xxx.supabase.co" />
+              <input type="url" id="supabase-url" placeholder="https://xxx.supabase.co" autocomplete="off" />
             </label>
             <label>
               Service Role Key
-              <input type="password" id="service-role" placeholder="sua_service_role_key" />
+              <input type="password" id="service-role" placeholder="cole a chave — deixe vazio para manter a salva" autocomplete="off" />
             </label>
             <div class="actions">
               <button type="button" id="btn-test">Testar</button>
               <button type="button" id="btn-save-config" class="primary">Salvar</button>
             </div>
-            <p id="config-status" class="status"></p>
+            <p id="config-status" class="status" role="status" aria-live="polite"></p>
           </div>
         </section>
       </aside>
 
-      <main class="main-panel card" id="crud-section">
+      <main class="main-panel card" id="main-panel">
         <div class="main-head">
-          <div class="toolbar">
-            <label class="toolbar-field">
-              Tabela
-              <select id="table-select">
-                <option value="">Selecione…</option>
-              </select>
-            </label>
-            <label class="toolbar-field toolbar-grow">
-              Nome manual
-              <input type="text" id="table-name" placeholder="ex: produtos" />
-            </label>
-            <label class="toolbar-field" id="toolbar-app-field" hidden>
-              App para novo registro
-              <select id="default-app-select">
-                <option value="">Selecione o app…</option>
-              </select>
-            </label>
+          <div class="work-intro">
+            <h2 class="work-title">Operação do dia a dia</h2>
+            <p class="work-hint">Pagamento antecipado: cadastre → cobre → cliente paga → Sync/webhook libera o app. Sem pagamento confirmado, o app permanece bloqueado.</p>
+            <ol class="process-rail" aria-label="Processo operacional">
+              <li class="process-step">
+                <span class="process-num" aria-hidden="true">1</span>
+                <span class="process-label">Cadastrar</span>
+                <span class="process-desc">Nova licença</span>
+              </li>
+              <li class="process-step">
+                <span class="process-num" aria-hidden="true">2</span>
+                <span class="process-label">Priorizar</span>
+                <span class="process-desc">Agenda</span>
+              </li>
+              <li class="process-step">
+                <span class="process-num" aria-hidden="true">3</span>
+                <span class="process-label">Cobrar</span>
+                <span class="process-desc">Inicial ou mensal</span>
+              </li>
+              <li class="process-step">
+                <span class="process-num" aria-hidden="true">4</span>
+                <span class="process-label">Enviar</span>
+                <span class="process-desc">PDF / Pix</span>
+              </li>
+              <li class="process-step">
+                <span class="process-num" aria-hidden="true">5</span>
+                <span class="process-label">Confirmar</span>
+                <span class="process-desc">Webhook ou Sync</span>
+              </li>
+            </ol>
+          </div>
+          <div class="toolbar" role="toolbar" aria-label="Ações do dia a dia">
             <div class="toolbar-actions">
-              <button type="button" id="btn-load" class="primary">Carregar</button>
-              <button type="button" id="btn-new" class="primary">Novo</button>
+              <button type="button" id="btn-new" class="primary">Nova licença</button>
+              <button type="button" id="btn-refresh" class="primary">Atualizar</button>
             </div>
           </div>
-          <p id="crud-status" class="status toolbar-status"></p>
+          <details class="advanced-tables" id="advanced-tables">
+            <summary>Outras tabelas (avançado)</summary>
+            <div class="advanced-tables-body">
+              <label class="toolbar-field">
+                Tabela
+                <select id="table-select">
+                  <option value="licenses">Licenças</option>
+                </select>
+              </label>
+              <label class="toolbar-field toolbar-grow">
+                Nome da tabela (opcional)
+                <input type="text" id="table-name" placeholder="ex: billing_charges" autocomplete="off" spellcheck="false" />
+              </label>
+              <div class="toolbar-actions">
+                <button type="button" id="btn-load">Carregar</button>
+              </div>
+              <p class="panel-hint">Escolha a tabela na lista e clique em <strong>Carregar</strong>. O campo opcional é só para outro nome de tabela do Supabase — não digite a chave da licença (TRIG-…).</p>
+            </div>
+          </details>
+          <p id="crud-status" class="status toolbar-status" role="status" aria-live="polite"></p>
         </div>
 
         <div class="main-content">
-        <div class="billing-schedule-panel card-inset" id="billing-schedule-panel" hidden>
-          <div class="schedule-head">
-            <div class="schedule-title-row">
-              <h3>Agenda de cobranças</h3>
-              <p class="panel-hint schedule-hint">
-                Prioriza o que emitir ou acompanhar. Renovação: +32 dias por pagamento · carência no app: +7 dias.
+          <section class="billing-schedule-panel card-inset" id="billing-schedule-panel" hidden aria-labelledby="schedule-heading">
+            <div class="schedule-head">
+              <div class="schedule-title-row">
+                <div class="section-title-block">
+                  <p class="section-kicker">Priorizar</p>
+                  <h2 id="schedule-heading">Agenda</h2>
+                </div>
+                <p class="panel-hint schedule-hint">
+                  Quem precisa de cobrança agora. Renovação: +32 dias por pagamento · carência no app: +7 dias.
+                </p>
+              </div>
+              <div class="schedule-toolbar">
+                <div class="schedule-summary" id="schedule-summary" aria-live="polite"></div>
+                <label class="schedule-filter">
+                  <input type="checkbox" id="schedule-show-ok" />
+                  Mostrar em dia
+                </label>
+                <button type="button" id="btn-schedule-refresh" class="ghost">Atualizar agenda</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="schedule-table">
+                <caption class="sr-only">Agenda de cobranças por prioridade</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Prioridade</th>
+                    <th scope="col">Licença</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Válido até</th>
+                    <th scope="col">Emitir a partir de</th>
+                    <th scope="col">Recomendação</th>
+                    <th scope="col">Valor est.</th>
+                    <th scope="col">Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="data-panel" aria-labelledby="data-panel-title">
+            <div class="data-panel-head" id="data-panel-head">
+              <div class="section-title-block">
+                <p class="section-kicker" id="data-panel-kicker">Cadastrar</p>
+                <h2 id="data-panel-title">Licenças</h2>
+              </div>
+              <p class="panel-hint data-panel-hint" id="data-panel-hint">
+                Cadastro e status de cada cliente. Use <strong>Cobrar</strong> na linha para selecionar e emitir.
               </p>
             </div>
-            <div class="schedule-toolbar">
-              <div class="schedule-summary" id="schedule-summary" aria-live="polite"></div>
-              <label class="schedule-filter">
-                <input type="checkbox" id="schedule-show-ok" />
-                Mostrar em dia
-              </label>
-              <button type="button" id="btn-schedule-refresh" class="ghost">Atualizar agenda</button>
+            <div class="table-wrap" id="table-wrap" hidden>
+              <table id="data-table">
+                <caption class="sr-only" id="data-table-caption">Lista de licenças</caption>
+                <thead></thead>
+                <tbody></tbody>
+              </table>
             </div>
-          </div>
-          <div class="table-wrap">
-            <table id="schedule-table">
-              <thead>
-                <tr>
-                  <th>Prioridade</th>
-                  <th>Licença</th>
-                  <th>Cliente</th>
-                  <th>Válido até</th>
-                  <th>Emitir a partir de</th>
-                  <th>Recomendação</th>
-                  <th>Valor est.</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
+            <div class="empty-state" id="empty-state">
+              <p>
+                Conecte o <strong>Supabase</strong> no canto superior. Com credenciais salvas, as licenças abrem automaticamente.
+              </p>
+            </div>
+          </section>
 
-        <div class="billing-toolbar" id="billing-toolbar" hidden>
-          <span class="billing-label">Cobrança Inter:</span>
-          <input type="text" id="billing-license-key" placeholder="license_key da linha ou digite…" />
-          <button type="button" id="btn-billing-initial">Cobrança inicial</button>
-          <button type="button" id="btn-billing-monthly">Mensalidade</button>
-          <button type="button" id="btn-billing-refresh">Atualizar cobranças</button>
-        </div>
-
-        <div class="billing-panel card-inset" id="billing-panel" hidden>
-          <h3>Cobranças emitidas</h3>
-          <div class="table-wrap">
-            <table id="billing-table">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Valor</th>
-                  <th>Vencimento</th>
-                  <th>Status</th>
-                  <th>Inter</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="billing-toolbar" id="billing-toolbar" hidden>
+            <div class="section-title-block billing-toolbar-title">
+              <p class="section-kicker">Cobrar</p>
+              <p class="billing-label">Emitir cobrança</p>
+            </div>
+            <p class="billing-toolbar-hint">
+              <strong>Cobrança inicial</strong> = implantação + 1ª mensalidade · <strong>Mensalidade</strong> = renovação recorrente ·
+              <strong>Cortesia</strong> = libera o app por X dias sem boleto (piloto / acordo comercial).
+              Valor sugerido pelo app; altere só nesta emissão (título ainda não emitido). Após emitir no Inter, o valor fica fixo — cancele e reemita se precisar mudar.
+            </p>
+            <div class="billing-selected" id="billing-selected">
+              <span class="billing-label">Licença selecionada</span>
+              <strong id="billing-selected-label">Nenhuma — use Cobrar na lista ou na agenda</strong>
+            </div>
+            <label class="sr-only" for="billing-license-key">Chave da licença</label>
+            <input
+              type="text"
+              id="billing-license-key"
+              placeholder="TRIG-2026-0001"
+              autocomplete="off"
+            />
+            <div class="billing-valor-field" id="billing-valor-field">
+              <label for="billing-valor">Valor (R$)</label>
+              <input
+                type="number"
+                id="billing-valor"
+                min="0.01"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="0,00"
+                title="Valor desta emissão. Editável enquanto o título ainda não foi emitido."
+              />
+              <button type="button" id="btn-billing-valor-reset" class="ghost" title="Restaurar valor padrão do app">
+                Padrão
+              </button>
+            </div>
+            <p class="billing-valor-hint" id="billing-valor-hint" hidden></p>
+            <button type="button" id="btn-billing-initial" title="Implantação + 1ª mensalidade">Cobrança inicial</button>
+            <button type="button" id="btn-billing-monthly" title="Mensalidade recorrente">Mensalidade</button>
+            <div class="billing-courtesy-field" id="billing-courtesy-field">
+              <label for="billing-courtesy-days">Cortesia (dias)</label>
+              <input
+                type="number"
+                id="billing-courtesy-days"
+                min="1"
+                max="90"
+                step="1"
+                value="7"
+                list="billing-courtesy-presets"
+                inputmode="numeric"
+                title="Período de cortesia (1–90 dias). Empilha se a licença ainda estiver válida."
+              />
+              <datalist id="billing-courtesy-presets">
+                <option value="7"></option>
+                <option value="15"></option>
+                <option value="30"></option>
+              </datalist>
+              <label class="sr-only" for="billing-courtesy-motivo">Motivo da cortesia</label>
+              <input
+                type="text"
+                id="billing-courtesy-motivo"
+                maxlength="200"
+                placeholder="Motivo (opcional)"
+                autocomplete="off"
+                title="Registrado nas notas da licença para auditoria"
+              />
+              <button
+                type="button"
+                id="btn-billing-courtesy"
+                class="ghost"
+                title="Libera o app por X dias sem emitir cobrança"
+              >
+                Gerar cortesia
+              </button>
+            </div>
+            <button type="button" id="btn-billing-refresh" class="ghost">Atualizar cobranças</button>
           </div>
-        </div>
 
-        <div class="data-panel">
-          <div class="table-wrap" id="table-wrap" hidden>
-            <table id="data-table">
-              <thead></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="empty-state" id="empty-state">
-            <p>Selecione uma tabela e clique em <strong>Carregar</strong> para ver os dados.</p>
-          </div>
-        </div>
+          <section class="billing-panel card-inset" id="billing-panel" hidden aria-labelledby="billing-panel-title">
+            <div class="section-title-block">
+              <p class="section-kicker">Enviar e confirmar</p>
+              <h2 id="billing-panel-title">Cobranças da licença selecionada</h2>
+            </div>
+            <p class="panel-hint">PDF e Pix para enviar ao cliente. Use <strong>Sync</strong> se o webhook ainda não confirmou o pagamento.</p>
+            <div class="table-wrap">
+              <table id="billing-table">
+                <caption class="sr-only">Cobranças emitidas da licença selecionada</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Valor</th>
+                    <th scope="col">Vencimento</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Inter</th>
+                    <th scope="col">Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
 
-        <footer class="pagination" id="pagination" hidden>
-          <button type="button" id="btn-prev">Anterior</button>
-          <span id="page-info"></span>
-          <button type="button" id="btn-next">Próxima</button>
-        </footer>
+          <footer class="pagination" id="pagination" hidden>
+            <button type="button" id="btn-prev">Anterior</button>
+            <span id="page-info"></span>
+            <button type="button" id="btn-next">Próxima</button>
+          </footer>
         </div>
       </main>
     </div>
   </div>
 
-  <dialog id="record-modal">
+  <dialog id="record-modal" aria-labelledby="modal-title">
     <form method="dialog" id="record-form" class="modal-form">
       <div class="modal-head">
         <h3 id="modal-title">Registro</h3>
         <button type="button" id="btn-close-modal" class="ghost">Fechar</button>
       </div>
       <div id="form-fields" class="form-fields"></div>
-      <p id="form-status" class="status"></p>
+      <p id="form-status" class="status" role="status" aria-live="polite"></p>
       <div class="actions modal-actions">
         <button type="button" id="btn-delete-modal" class="danger" hidden>Excluir</button>
         <button type="submit" id="btn-save-modal" class="primary">Salvar</button>
@@ -228,6 +388,6 @@
     </form>
   </dialog>
 
-  <script src="/static/app.js?v=20260615b"></script>
+  <script src="/static/app.js?v=20260831f"></script>
 </body>
 </html>

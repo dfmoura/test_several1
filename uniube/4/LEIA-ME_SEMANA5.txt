@@ -1,0 +1,73 @@
+ACQA Semana 5: elementos do relatorio (pre, textuais e pos-textuais)
+Trabalho de Conclusao de Curso: Relato de Experiencia do Projeto Integrado
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVO PRINCIPAL PARA POSTAR NA PLATAFORMA:
+  Relatorio_Semana5_Elementos_Relatorio_ABNT.pdf
+
+ARQUIVO EDITAVEL (Word / LibreOffice):
+  Relatorio_Semana5_Elementos_Relatorio_ABNT.docx
+
+ANTES DE ENVIAR:
+  [ ] Confirme se o Polo esta correto (Uberlandia)
+  [ ] Confirme se o nome esta como voce usa na plataforma
+  [ ] Confirme o RA 1030125-2
+  [ ] Releia o RESUMO (cerca de 230 palavras) e as palavras-chave
+  [ ] Se quiser, acrescente 2 ou 3 frases suas na secao 4.1 (interacao)
+  [ ] Se a plataforma pedir anexo separado, use a pasta evidencias/
+
+O RELATORIO SEGUE O ROTEIRO DA SEMANA 5 (videoaula + ACQA):
+  PRE-TEXTUAIS
+    1) Capa (UNIUBE, Sistemas de Informacao, autoria, titulo, data)
+    2) Sumario
+    3) Resumo (contexto, objetivo, material/metodo, resultado, conclusao)
+       + palavras-chave
+  TEXTUAIS
+    1) Introducao (tema, problema, justificativa, objetivos)
+    2) Fundamentacao teorica (controle social, dados abertos, SI, engenharia)
+       (optou-se por fundamentacao, nao revisao de literatura ampla)
+    3) Material e metodos (ciencias exatas / SI: receita pratica)
+       3.1 Natureza e percurso
+       3.2 Material (VM AWS, FastAPI, SQLite, Docker, fontes)
+       3.3 Metodos (incremental, reunioes, duas apresentacoes)
+    4) Resultados (interacao, evidencias, exemplo de risco da API)
+    5) Conclusao (achados, limites, desdobramentos)
+  POS-TEXTUAIS
+    Referencias em ABNT (NBR 6023), citacoes autor-data (NBR 10520),
+    apresentacao (NBR 14724)
+
+DIFERENCA EM RELACAO A SEMANA 3:
+  - Entrou RESUMO obrigatorio (pre-textual)
+  - Secoes textuais passaram a ser de primeiro nivel (nao mais aninhadas
+    sob "Desenvolvimento")
+  - Metodologia virou Material e Metodos, com subsecoes Material / Metodos
+    (conforme a videoaula desta semana)
+  - Figuras com legenda abaixo da imagem (NBR)
+  - Data da capa: Setembro de 2026 (prazo da ACQA)
+
+REFERENCIAS (criterio, sem inventar DOI; so acesso aberto quando houver DOI):
+  SUBSTITUICAO (paywall Elsevier removida):
+    - Zuiderwijk; Janssen (2014) GIQ  -> retirada
+    - Silva (2024) Em Questao / SciELO  10.1590/1808-5245.30.138332
+      (reuso de dados abertos do governo brasileiro; DGABr)
+  DEMAIS COM DOI em acesso aberto:
+    - Moreira et al. (2020) SciELO  10.1590/1981-5344/3994
+    - Pinho; Sacramento (2009)      10.1590/S0034-76122009000600006
+
+O QUE NAO MUDA:
+  - A acao e um SISTEMA DE INFORMACAO DE APOIO em producao, nao oficina
+  - O problema da entidade e a coleta manual na planilha Cronograma
+  - A API de Dados Abertos do Compras.gov entrou DEPOIS; o chamado 56398424
+    continua so como exemplo de risco da arquitetura (secao 4.3)
+  - Ganho indireto: a equipe passou a saber o que e API
+
+SISTEMA:
+  https://licitacoes.osbrasiluberlandia.org/
+
+PARA REGERAR:
+  python3 gerar_relatorio_semana5.py
+
+SEM TRACO TIPOGRAFICO (em dash / en dash) no PDF nem no DOCX.
+
+PRAZO DA ACQA: 29/08/2026 a 19/09/2026. Valor: 25 pontos

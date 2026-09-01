@@ -48,6 +48,8 @@ Painel local para operar licenças B2B (`mycondominio`, `estsankhya`) no Supabas
 **Cobrança inicial** = implantação assistida + 1ª mensalidade (valor único).  
 **Mensalidade** = cobrança recorrente manual (job automático ainda não implementado).
 
+**Modelo prepaid:** o app só libera depois do pagamento confirmado (`implantacao_paga` + `valido_ate`). Cadastro não libera uso. Renovação mensal: pagar antecipado empilha +32 dias; atraso reinicia a partir da data do pagamento (+7 dias de carência no app após o vencimento).
+
 ---
 
 ## Antes de começar
@@ -79,16 +81,18 @@ cd /home/dfmoura/Documents/test_several1/trigger/14
 docker compose up --build
 
 # 2. Abrir no navegador
-# http://localhost:8090
+# http://localhost:8091
 ```
 
 No painel, nesta ordem:
 
-1. **Credenciais** → URL + Service Role Key → Testar → Salvar  
-2. **Inter** → Client ID/Secret + `.crt`/`.key` → Testar → Salvar  
-3. Tabela `licenses` → **Carregar** → **Novo** → preencher licença com CNPJ  
-4. **Cobrança inicial** → enviar PDF/Pix ao cliente  
+1. **Supabase** → URL + Service Role Key → Testar → Salvar  
+2. **Banco Inter** → Client ID/Secret + `.crt`/`.key` → Testar → Salvar  
+3. Com credenciais salvas, o painel **abre nas licenças** (agenda + lista). Use **Nova licença** (CPF ou CNPJ)  
+4. **Cobrar** na linha (ou na agenda) → **Cobrança inicial** → enviar PDF/Pix ao cliente  
 5. Após pagamento → **Sync** (ou aguardar webhook) → app libera
+
+> **Atualizar** recarrega licenças/agenda. **Outras tabelas (avançado)** → **Carregar** só se precisar consultar outra tabela (ex.: `billing_charges`).
 
 ---
 
@@ -211,7 +215,7 @@ Abra: **http://localhost:8090**
 | Implantação (R$) | `500.00` |
 | Mensalidade (R$) | `99.00` |
 | Dias p/ vencimento | `7` |
-| Endereço / Cidade / UF / CEP | fallback só se a licença não tiver pagador (use CNPJ na licença) |
+| Endereço / Cidade / UF / CEP | fallback só se a licença não tiver pagador (prefira CPF/CNPJ + endereço na licença) |
 
 3. Selecione **Certificado .crt** e **Chave .key**
 4. Clique **Testar** → *Conexão OK* (`https://cdpj.partners.bancointer.com.br` ou sandbox)
@@ -278,19 +282,22 @@ Aponte `https://seu-dominio.com` para a máquina que roda o painel (porta 8090).
 
 | Campo | O que informar |
 |-------|----------------|
-| CNPJ | 14 dígitos → clique **Buscar CNPJ** (consulta BrasilAPI / Receita) |
-| Nome / endereço do pagador | Preenchidos pela busca; revise se necessário |
+| Tipo de pagador | **Pessoa jurídica (CNPJ)** ou **Pessoa física (CPF)** |
+| CPF / CNPJ | PJ: 14 dígitos → **Buscar CNPJ** (BrasilAPI / Receita). PF: 11 dígitos (sem busca automática) |
+| Nome / endereço do pagador | PJ: preenchidos pela busca (revise se necessário). PF: preencha nome completo, endereço, cidade, UF e CEP |
 | App | `mycondominio` ou `estsankhya` |
 | Notas internas | Opcional |
+
+> O campo no banco continua se chamando `cnpj`, mas aceita **CPF (11)** ou **CNPJ (14)**. Na cobrança Inter, `tipoPessoa` é `FISICA` ou `JURIDICA` conforme o documento.
 
 O painel define automaticamente:
 
 | Campo | Valor automático |
 |-------|------------------|
 | `license_key` | Sequencial `TRIG-ANO-NNNN` |
-| `implantacao_paga` | `false` |
+| `implantacao_paga` | `false` (**sempre** — app bloqueado até pagar) |
 | `ativa` | `true` (habilitada no sistema; app ainda bloqueado) |
-| `valido_ate` | +30 dias (renovado ao pagar) |
+| `valido_ate` | hoje (período prepaid só começa após pagamento confirmado) |
 
 4. Clique **Salvar** — anote a chave exibida (ex.: `TRIG-2026-0003`) para enviar ao cliente depois do pagamento
 
@@ -304,7 +311,7 @@ A cobrança inicial inclui **implantação + 1ª mensalidade** em um único bole
 
 1. Na linha da licença, clique **Cobrar** (ou digite a `license_key` na barra de cobrança)
 2. Clique **Cobrança inicial**
-3. Valor = Implantação + Mensalidade (configurados na Fase C)
+3. Valor = Implantação + Mensalidade (padrão do app). Na barra **Cobrar**, o campo **Valor (R$)** pode ser ajustado **antes de emitir** (negociação pontual). Depois de emitido no Inter, o valor fica fixo — cancele e reemita se precisar mudar.
 
 **Como verificar:** em *Cobranças emitidas*, status `EMITIDA`, com botões **PDF**, **Pix** e **Cancelar** (se precisar refazer).
 
@@ -324,7 +331,7 @@ Envie o PDF ou o Pix copia e cola ao cliente.
 | Campo | Valor esperado após pagamento |
 |-------|-------------------------------|
 | `implantacao_paga` | `true` |
-| `valido_ate` | +32 dias a partir do pagamento |
+| `valido_ate` | **+32 dias a partir da data do pagamento** (não do cadastro) |
 | `ativa` | `true` |
 
 **Como verificar no app:** informe a `license_key` → o app deve liberar (sem *Implantação ainda não confirmada*).
@@ -363,8 +370,8 @@ Marque cada item ao concluir:
 
 - [ ] Tabelas `licenses` e `billing_charges` existem no Supabase
 - [ ] Edge Functions `license-status` e `license-activate` respondem
-- [ ] Painel abre em http://localhost:8090
-- [ ] Supabase conectado (Carregar tabela `licenses` OK)
+- [ ] Painel abre em http://localhost:8091
+- [ ] Supabase conectado (licenças abrem automaticamente)
 - [ ] Inter **Testar** retorna Conexão OK
 - [ ] Webhook registrado no Inter (ou Sync manual disponível)
 - [ ] Cobrança inicial emitida com PDF/Pix
@@ -377,16 +384,35 @@ Marque cada item ao concluir:
 
 ### Novo cliente
 
-1. **Novo** na tabela `licenses` (com CNPJ)
-2. **Cobrança inicial** → enviar ao cliente
+1. **Nova licença** (CPF ou CNPJ) — o painel já abre em licenças quando o Supabase está conectado
+2. **Cobrar** na linha → **Cobrança inicial** → enviar ao cliente
 3. Aguardar pagamento (webhook ou **Sync**)
 4. Fazer implantação assistida
 5. Cliente ativa o app
 
 ### Renovar mensalidade
 
-1. **Mensalidade** → enviar ao cliente
-2. Aguardar pagamento (webhook ou **Sync**)
+1. Na **Agenda** (ou **Cobrar** na lista) selecione a licença
+2. **Mensalidade** → enviar ao cliente
+3. Aguardar pagamento (webhook ou **Sync**)
+
+### Cortesia (piloto / liberação sem boleto)
+
+Use quando precisar liberar o app por um período sem emitir cobrança Inter (demonstração, acordo comercial, extensão pontual).
+
+1. Selecione a licença (**Cobrar** na lista/agenda)
+2. Informe **Cortesia (dias)** (1–90; atalhos 7 / 15 / 30) e, se quiser, o **motivo**
+3. Clique **Gerar cortesia** → confirme
+
+Efeitos (controlados pelo painel — não edite `valido_ate` / `implantacao_paga` à mão):
+
+| Campo | O que acontece |
+|-------|----------------|
+| `implantacao_paga` | passa a `true` (app pode liberar) |
+| `valido_ate` | +X dias a partir de hoje, ou empilha se ainda vigente |
+| `notas` | linha de auditoria `[Cortesia …]` |
+
+**Depois da cortesia:** renovação comercial = **Mensalidade** (a cobrança inicial fica bloqueada porque a implantação já foi liberada). Se ainda precisar cobrar implantação na conversão, ajuste o **Valor (R$)** na mensalidade.
 
 ### Parar / reiniciar o painel
 
@@ -409,7 +435,8 @@ docker compose up -d
 | Cobrança emitida, licença não atualiza | Webhook inacessível | Use **Sync** na cobrança |
 | Webhook parou de funcionar | URL ngrok mudou | Atualize URL pública → **Registrar no Inter** |
 | *Tabela billing_charges não existe* | Migration não aplicada | Execute `migrations/20260609000000_billing_charges.sql` |
-| *Licença precisa de CPF/CNPJ válido* | Campo `cnpj` vazio ou inválido | Preencha com 11 ou 14 dígitos |
+| *Licença precisa de CPF/CNPJ válido* | Campo `cnpj` vazio ou inválido | Preencha CPF (11) ou CNPJ (14) com dígitos verificadores corretos |
+| *Para pessoa física, preencha…* | Licença PF sem endereço | Informe nome, endereço, cidade, UF e CEP do pagador |
 | *Já existe cobrança em aberto* | Cobrança anterior não paga | **Sync** ou aguarde pagamento antes de emitir outra |
 | Cancelar: *xContaCorrente* inválido | Conta com hífen (`53837522-1`) | Use só dígitos: `538375221` → **Inter** → Salvar → **Cancelar** |
 | Cancelar não reflete no Inter | Conta corrente vazia ou situação `BAIXADO` | Preencha conta (só números) → **Cancelar** ou **Sync** |
@@ -452,11 +479,12 @@ data/
 | GET | `/api/inter/webhook/info` | URL de callback |
 | POST | `/api/inter/webhook/register` | Registrar webhook no Inter |
 | POST | `/api/inter/webhook?token=…` | Callback de pagamento |
-| POST | `/api/billing/charges/initial` | Implantação + 1ª mensalidade |
-| POST | `/api/billing/charges/monthly` | Mensalidade |
+| POST | `/api/billing/charges/initial` | Implantação + 1ª mensalidade (`valor_nominal` opcional) |
+| POST | `/api/billing/charges/monthly` | Mensalidade (`valor_nominal` opcional) |
+| POST | `/api/billing/licenses/courtesy` | Cortesia: libera app por `days` (1–90), `motivo` opcional |
 | POST | `/api/billing/charges/{id}/sync` | Consultar status no Inter |
 | POST | `/api/billing/charges/{id}/cancel` | Cancelar cobrança EMITIDA no Inter |
-| GET | `/api/cnpj/{cnpj}` | Consultar CNPJ (BrasilAPI) e dados do pagador |
+| GET | `/api/cnpj/{cnpj}` | Consultar CNPJ (BrasilAPI) e dados do pagador (somente PJ) |
 | GET | `/api/billing/charges/{id}/pdf` | PDF da cobrança |
 | GET | `/api/billing/charges` | Listar cobranças |
 

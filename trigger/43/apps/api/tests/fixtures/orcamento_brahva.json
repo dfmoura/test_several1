@@ -32,45 +32,45 @@
       "quantidade": 7000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 3090.0,
+        "etiqueta": 1900.0,
         "matriz": 536.0,
-        "total": 3626.0,
+        "total": 2436.0,
         "metragem": 865.8195000000001,
         "m2": 78.0,
         "hora_maq": 1.8658195000000002,
-        "valor_servico": 2655.9910265000003,
-        "perda_papel_troca_produto": 126.0,
-        "valor_papel_troca_produto": 1008.0
+        "valor_servico": 1634.9990265000001,
+        "perda_papel_troca_produto": 1.53,
+        "valor_papel_troca_produto": 0.0
       }
     },
     {
       "quantidade": 10000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 3550.0,
+        "etiqueta": 2360.0,
         "matriz": 536.0,
-        "total": 4086.0,
+        "total": 2896.0,
         "metragem": 1236.885,
         "m2": 111.4,
         "hora_maq": 2.236885,
-        "valor_servico": 3054.490103,
-        "perda_papel_troca_produto": 126.0,
-        "valor_papel_troca_produto": 1008.0
+        "valor_servico": 2027.4242320375001,
+        "perda_papel_troca_produto": 1.53,
+        "valor_papel_troca_produto": 0.0
       }
     },
     {
       "quantidade": 14000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 4170.0,
+        "etiqueta": 2960.0,
         "matriz": 536.0,
-        "total": 4706.0,
+        "total": 3496.0,
         "metragem": 1731.6390000000001,
         "m2": 155.9,
         "hora_maq": 2.7316390000000004,
-        "valor_servico": 3591.8401442,
-        "perda_papel_troca_produto": 126.0,
-        "valor_papel_troca_produto": 1008.0
+        "valor_servico": 2547.364509798125,
+        "perda_papel_troca_produto": 1.53,
+        "valor_papel_troca_produto": 0.0
       }
     }
   ],

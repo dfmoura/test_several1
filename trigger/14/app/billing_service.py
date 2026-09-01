@@ -17,6 +17,8 @@ from app.license_helpers import enrich_license_pagador
 from app.supabase_client import SupabaseClient
 
 RENEWAL_DAYS = 32
+COURTESY_DAYS_MIN = 1
+COURTESY_DAYS_MAX = 90
 BILLING_TABLE = "billing_charges"
 LICENSES_TABLE = "licenses"
 
@@ -190,19 +192,50 @@ class BillingService:
             params["license_key"] = f"eq.{normalize_license_key(license_key)}"
         return await self._rest_get(BILLING_TABLE, params)
 
-    async def create_initial_charge(self, license_key: str) -> dict[str, Any]:
+    @staticmethod
+    def _resolve_emit_valor(
+        catalog_valor: float,
+        valor_nominal: float | None,
+        *,
+        app_id: str | None,
+        kind_label: str,
+    ) -> float:
+        """Valor efetivo da emissão: override pontual ou catálogo do app."""
+        if valor_nominal is not None:
+            valor = round(float(valor_nominal), 2)
+            if valor <= 0:
+                raise BillingError("Informe um valor maior que zero para emitir a cobrança.")
+            return valor
+        valor = round(float(catalog_valor), 2)
+        if valor <= 0:
+            raise BillingError(
+                f"Configure o valor de {kind_label} para o app '{app_id or '?'}'."
+            )
+        return valor
+
+    async def create_initial_charge(
+        self,
+        license_key: str,
+        *,
+        valor_nominal: float | None = None,
+    ) -> dict[str, Any]:
         key = normalize_license_key(license_key)
         license_row = await self._ensure_license_pagador(await self._fetch_license(key))
         if license_row.get("implantacao_paga"):
-            raise BillingError("Implantação já está paga para esta licença.")
+            raise BillingError(
+                "Implantação já liberada (pagamento ou cortesia). "
+                "Para renovar, use Mensalidade (ajuste o valor se ainda precisar cobrar implantação)."
+            )
         await self._ensure_no_open_charge(key, "INITIAL")
 
         valor_impl, valor_mensal = self._pricing_for_license(license_row)
-        valor_total = round(valor_impl + valor_mensal, 2)
-        if valor_total <= 0:
-            raise BillingError(
-                f"Configure valores de implantação e mensalidade para o app '{license_row.get('app_id')}'."
-            )
+        catalog_total = round(valor_impl + valor_mensal, 2)
+        valor_total = self._resolve_emit_valor(
+            catalog_total,
+            valor_nominal,
+            app_id=license_row.get("app_id"),
+            kind_label="implantação e mensalidade",
+        )
 
         vencimento = date.today() + timedelta(days=int(self.config.dias_vencimento))
         seu_numero = build_seu_numero("INITIAL", key)
@@ -236,18 +269,83 @@ class BillingService:
         created = await self._rest_post(BILLING_TABLE, row)
         return created[0] if created else row
 
-    async def create_monthly_charge(self, license_key: str) -> dict[str, Any]:
+    async def grant_courtesy(
+        self,
+        license_key: str,
+        *,
+        days: int,
+        motivo: str | None = None,
+    ) -> dict[str, Any]:
+        """Libera licença por período de cortesia (sem cobrança Inter).
+
+        - Define implantacao_paga=true (necessário para o app liberar).
+        - Estende valido_ate: empilha se ainda válido; senão a partir de hoje.
+        - Registra auditoria em notas (sem migration / sem alterar billing_charges).
+
+        Conversão comercial depois: emitir Mensalidade (cobrança inicial fica
+        bloqueada porque a implantação foi liberada pela cortesia).
+        """
+        key = normalize_license_key(license_key)
+        days_int = int(days)
+        if days_int < COURTESY_DAYS_MIN or days_int > COURTESY_DAYS_MAX:
+            raise BillingError(
+                f"Informe entre {COURTESY_DAYS_MIN} e {COURTESY_DAYS_MAX} dias de cortesia."
+            )
+
+        row = await self._fetch_license(key)
+        today = date.today()
+        previous_end = parse_date(row.get("valido_ate"))
+        base = previous_end if previous_end and previous_end > today else today
+        new_end = base + timedelta(days=days_int)
+        motivo_clean = " ".join(str(motivo or "").split()).strip()[:200]
+
+        note_line = (
+            f"[Cortesia {today.strftime('%d/%m/%Y')}] +{days_int} dia(s) "
+            f"→ válido até {new_end.strftime('%d/%m/%Y')}"
+        )
+        if motivo_clean:
+            note_line = f"{note_line}. Motivo: {motivo_clean}"
+
+        existing_notes = str(row.get("notas") or "").rstrip()
+        notas = f"{existing_notes}\n{note_line}".strip() if existing_notes else note_line
+
+        patch: dict[str, Any] = {
+            "ativa": True,
+            "implantacao_paga": True,
+            "valido_ate": format_date_utc(new_end),
+            "notas": notas,
+        }
+        updated_rows = await self._rest_patch_license(key, patch)
+        license_out = updated_rows[0] if updated_rows else {**row, **patch}
+
+        return {
+            "license": license_out,
+            "days": days_int,
+            "valido_ate_anterior": format_date_utc(previous_end) if previous_end else None,
+            "valido_ate": format_date_utc(new_end),
+            "implantacao_liberada": not bool(row.get("implantacao_paga")),
+            "note": note_line,
+        }
+
+    async def create_monthly_charge(
+        self,
+        license_key: str,
+        *,
+        valor_nominal: float | None = None,
+    ) -> dict[str, Any]:
         key = normalize_license_key(license_key)
         license_row = await self._ensure_license_pagador(await self._fetch_license(key))
         if not license_row.get("implantacao_paga"):
             raise BillingError("Emita e confirme a cobrança inicial antes da mensalidade.")
         await self._ensure_no_open_charge(key, "MONTHLY")
 
-        _, valor_mensal = self._pricing_for_license(license_row)
-        if valor_mensal <= 0:
-            raise BillingError(
-                f"Configure o valor da mensalidade para o app '{license_row.get('app_id')}'."
-            )
+        _, valor_mensal_catalog = self._pricing_for_license(license_row)
+        valor_mensal = self._resolve_emit_valor(
+            valor_mensal_catalog,
+            valor_nominal,
+            app_id=license_row.get("app_id"),
+            kind_label="mensalidade",
+        )
 
         vencimento = date.today() + timedelta(days=int(self.config.dias_vencimento))
         seu_numero = build_seu_numero("MONTHLY", key)
@@ -391,17 +489,29 @@ class BillingService:
         return updated
 
     async def _renew_license(self, license_key: str, charge_type: str) -> None:
+        """Libera/renova só após pagamento confirmado (modelo prepaid).
+
+        INITIAL: período começa na data do pagamento (+32 dias).
+        MONTHLY: se pagar antecipado, empilha sobre valido_ate; se atrasado, a partir de hoje.
+        """
         row = await self._fetch_license(license_key)
         today = date.today()
-        current_end = parse_date(row.get("valido_ate")) or today
-        base = current_end if current_end > today else today
-        new_end = base + timedelta(days=RENEWAL_DAYS)
+        charge = (charge_type or "").upper()
+        needs_implantacao = charge == "INITIAL" or not row.get("implantacao_paga")
+
+        if needs_implantacao:
+            # Cobrança inicial: 1ª mensalidade cobrada antecipadamente — validade desde o pagamento.
+            new_end = today + timedelta(days=RENEWAL_DAYS)
+        else:
+            current_end = parse_date(row.get("valido_ate")) or today
+            base = current_end if current_end > today else today
+            new_end = base + timedelta(days=RENEWAL_DAYS)
 
         patch: dict[str, Any] = {
             "ativa": True,
             "valido_ate": format_date_utc(new_end),
         }
-        if charge_type == "INITIAL" or not row.get("implantacao_paga"):
+        if needs_implantacao:
             patch["implantacao_paga"] = True
 
         await self._rest_patch_license(license_key, patch)
@@ -435,11 +545,13 @@ class BillingService:
         return str(codigo)
 
     def _build_pagador(self, license_row: dict[str, Any]) -> dict[str, Any]:
+        from app.documents import DocumentError, validate_cpf_cnpj
+
         cnpj_raw = str(license_row.get("cnpj") or "")
-        cpf_cnpj = normalize_digits(cnpj_raw)
-        if len(cpf_cnpj) not in (11, 14):
-            raise BillingError("Licença precisa de CPF/CNPJ válido (11 ou 14 dígitos).")
-        tipo_pessoa = "JURIDICA" if len(cpf_cnpj) == 14 else "FISICA"
+        try:
+            cpf_cnpj, tipo_pessoa = validate_cpf_cnpj(cnpj_raw)
+        except DocumentError as exc:
+            raise BillingError(str(exc)) from exc
 
         nome = (
             license_row.get("pagador_nome")
@@ -452,10 +564,15 @@ class BillingService:
         cep_raw = license_row.get("pagador_cep") or self.config.pagador_cep
         cep = normalize_digits(str(cep_raw)).zfill(8)[:8]
 
+        if not str(nome).strip():
+            raise BillingError("Nome do pagador é obrigatório na licença.")
         if not str(endereco).strip() or str(endereco).strip().lower() == "a informar":
-            raise BillingError(
-                "Dados do pagador incompletos. Informe o CNPJ na licença para buscar o endereço."
+            hint = (
+                "Busque o CNPJ na licença para preencher o endereço."
+                if tipo_pessoa == "JURIDICA"
+                else "Para pessoa física, preencha o endereço completo do pagador na licença."
             )
+            raise BillingError(f"Dados do pagador incompletos. {hint}")
         if not str(cidade).strip() or not str(uf).strip() or len(cep) != 8:
             raise BillingError("Cidade, UF e CEP do pagador são obrigatórios na licença.")
 

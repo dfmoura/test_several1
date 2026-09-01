@@ -38,6 +38,10 @@ fi
 _erp_set_env_file() {
   _k="$1"
   _v="$2"
+  _cur="$(grep -E "^${_k}=" .env 2>/dev/null | head -1 | cut -d= -f2- || true)"
+  if [ "$_cur" = "$_v" ]; then
+    return 0
+  fi
   if grep -qE "^${_k}=" .env 2>/dev/null; then
     # Delimitador | — NÃO escapar '/' (senão .env grava https:\/\/… e o FPM
     # lê URL inválida; ViaZap fica "desligado" sem POST). Escapar \ | & para o sed.
@@ -103,10 +107,12 @@ if [ "$ERP_STAGE" = "production" ] && [ "${APP_DEBUG:-false}" = "true" ]; then
   exit 1
 fi
 
+echo "erp-entrypoint: migrate (ERP_STAGE=${ERP_STAGE})…"
 php artisan config:clear || true
 php artisan migrate --force --no-interaction
 
 if [ "${SEED_ON_BOOT:-false}" = "true" ]; then
+  echo "erp-entrypoint: db:seed (SEED_ON_BOOT=true)…"
   php artisan db:seed --force --no-interaction
 fi
 
@@ -124,5 +130,7 @@ php artisan condicao-pagamento:ensure-sugestoes --no-interaction || true
 php artisan backlog:ensure-rbac --no-interaction || true
 
 php artisan storage:link 2>/dev/null || true
+
+echo "erp-entrypoint: pronto — iniciando $(printf '%s' "$*" | cut -c1-60)…"
 
 exec "$@"

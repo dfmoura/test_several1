@@ -1,0 +1,28 @@
+Apresentacao TCC (Aula-04)
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVO:
+  apresentacao/Apresentacao_TCC_Relato_OSB_Uberlandia.pptx
+
+REGRAS APLICADAS:
+  - 9 slides (faixa 8 a 10)
+  - Roteiro de 7 a 10 minutos
+  - Pouco texto; prints e diagramas no centro
+  - Sem traco tipografico (em dash / en dash)
+  - Sem ponto mediano
+  - Separadores com hifen simples (-) ou seta (-> / >)
+
+ESTRUTURA:
+  01 Capa
+  02 Organizacao parceira e problema
+  03 Proposta de intervencao
+  04 Material e metodos
+  05 Arquitetura e fluxo
+  06 Evidencias (prints)
+  07 Resultados e retorno
+  08 Conclusao
+  09 Referencias e encerramento
+
+PARA REGERAR:
+  python3 gerar_apresentacao_tcc.py

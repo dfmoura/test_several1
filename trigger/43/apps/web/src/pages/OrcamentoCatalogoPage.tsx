@@ -17,6 +17,7 @@ type TabId =
   | 'matriz'
   | 'frete'
   | 'parametros'
+  | 'tinta'
   | 'perdas'
   | 'embalagem';
 
@@ -82,6 +83,27 @@ type FaixaFreteRow = {
   acima: boolean;
 };
 
+type EstruturaRow = {
+  id?: number;
+  chave: string;
+  payload: Record<string, unknown> | null;
+  fonte?: string;
+  updated_at?: string | null;
+};
+
+type TintaMatrizPayload = {
+  thresholds: number[];
+  rates: Record<string, number[]>;
+};
+
+type PerdaTrocaPayload = Record<string, number>;
+
+type CaixaEmpRow = {
+  caixa_id?: number | null;
+  medida?: string;
+  rolos_por_caixa: number;
+};
+
 const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   { id: 'papeis', label: 'Papel', hint: 'R$/m² usado no custo de material' },
   { id: 'acabamentos', label: 'Acabamento', hint: 'R$/m² + perda m²' },
@@ -98,17 +120,22 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   {
     id: 'parametros',
     label: 'Parâmetros do motor',
-    hint: 'Setup, limite bobina, teto comercial e tinta — alimentam R1–R20',
+    hint: 'Setup, limite bobina e teto comercial — alimentam R1–R20',
+  },
+  {
+    id: 'tinta',
+    label: 'Tinta (rv4)',
+    hint: 'Matriz TINTA (2): faixa MTS × cores → R$/m² — motor v2',
   },
   {
     id: 'perdas',
     label: 'Perdas',
-    hint: 'Acerto por cores (m² / metros) usados no motor',
+    hint: 'Acerto por cores + troca produto (fator m² rv4)',
   },
   {
     id: 'embalagem',
     label: 'Embalagem',
-    hint: 'Preço de caixa e tubetes',
+    hint: 'Tubete, caixa, rolos por caixa (rv4)',
   },
   {
     id: 'matriz',
@@ -122,13 +149,19 @@ const TABS: Array<{ id: TabId; label: string; hint: string }> = [
   },
 ];
 
-const TAB_SEM_NOVO: TabId[] = ['matriz', 'maquinas', 'parametros', 'perdas', 'embalagem'];
+const TAB_SEM_NOVO: TabId[] = ['matriz', 'maquinas', 'parametros', 'tinta', 'perdas', 'embalagem'];
 
 const GRUPO_POR_TAB: Partial<Record<TabId, string[]>> = {
-  parametros: ['motor', 'tinta'],
+  parametros: ['motor'],
   perdas: ['perdas'],
   embalagem: ['embalagem'],
 };
+
+const CORES_TROCA_PRODUTO = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
+
+const TUBETES_EMBALAGEM = ['1"', '1" 1/2', '3"'];
+
+const CORES_TINTA_MATRIZ = ['1', '2', '3', '4'];
 
 const CORES_PADRAO = ['0', '1', '2', '3', '4', '4V', '5', '6', '7', '8'];
 
@@ -162,6 +195,7 @@ export function OrcamentoCatalogoPage() {
   const [maquinas, setMaquinas] = useState<MaquinaRow[]>([]);
   const [parametros, setParametros] = useState<ParametroRow[]>([]);
   const [faixasFrete, setFaixasFrete] = useState<FaixaFreteRow[]>([]);
+  const [estruturas, setEstruturas] = useState<EstruturaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -173,7 +207,7 @@ export function OrcamentoCatalogoPage() {
     setLoading(true);
     setError('');
     try {
-      const [r, p, a, t, m, params, ff, at] = await Promise.all([
+      const [r, p, a, t, m, params, ff, est, at] = await Promise.all([
         api.get<{ data: OrcCatalogoResumo }>('/orcamento-catalogo/resumo'),
         api.get<{ data: PapelRow[] }>('/orcamento-catalogo/papeis'),
         api.get<{ data: AcabamentoRow[] }>('/orcamento-catalogo/acabamentos'),
@@ -181,6 +215,7 @@ export function OrcamentoCatalogoPage() {
         api.get<{ data: MaquinaRow[] }>('/orcamento-catalogo/maquinas'),
         api.get<{ data: ParametroRow[] }>('/orcamento-catalogo/parametros'),
         api.get<{ data: FaixaFreteRow[] }>('/orcamento-catalogo/faixas-frete'),
+        api.get<{ data: EstruturaRow[] }>('/orcamento-catalogo/estruturas'),
         api.get<{ data: AtivacaoData }>('/ativacao').catch(() => null),
       ]);
       setResumo(r.data);
@@ -190,6 +225,7 @@ export function OrcamentoCatalogoPage() {
       setMaquinas(m.data);
       setParametros(params.data);
       setFaixasFrete(ff.data);
+      setEstruturas(est.data);
       setAtivacao(at?.data ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Falha ao carregar catálogo');
@@ -418,10 +454,42 @@ export function OrcamentoCatalogoPage() {
             />
           ) : null}
           {tab === 'parametros' || tab === 'perdas' || tab === 'embalagem' ? (
-            <ParametrosGrupoPanel
-              rows={parametros}
-              grupos={GRUPO_POR_TAB[tab] ?? []}
-              titulo={tabMeta.label}
+            <>
+              {tab === 'perdas' ? (
+                <PerdaTrocaProdutoPanel
+                  estruturas={estruturas}
+                  onSaved={async (msg) => {
+                    setMessage(msg);
+                    await load();
+                  }}
+                  onError={setError}
+                />
+              ) : null}
+              {tab === 'embalagem' ? (
+                <CaixaEmpacotamentoPanel
+                  estruturas={estruturas}
+                  onSaved={async (msg) => {
+                    setMessage(msg);
+                    await load();
+                  }}
+                  onError={setError}
+                />
+              ) : null}
+              <ParametrosGrupoPanel
+                rows={parametros}
+                grupos={GRUPO_POR_TAB[tab] ?? []}
+                titulo={tabMeta.label}
+                onSaved={async (msg) => {
+                  setMessage(msg);
+                  await load();
+                }}
+                onError={setError}
+              />
+            </>
+          ) : null}
+          {tab === 'tinta' ? (
+            <TintaMatrizPanel
+              estruturas={estruturas}
               onSaved={async (msg) => {
                 setMessage(msg);
                 await load();
@@ -614,6 +682,357 @@ function ParametrosGrupoPanel({
               })}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function estruturaPayload<T>(estruturas: EstruturaRow[], chave: string): T | null {
+  const row = estruturas.find((e) => e.chave === chave);
+  if (!row?.payload || typeof row.payload !== 'object') {
+    return null;
+  }
+  return row.payload as T;
+}
+
+function TintaMatrizPanel({
+  estruturas,
+  onSaved,
+  onError,
+}: {
+  estruturas: EstruturaRow[];
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const source = estruturaPayload<TintaMatrizPayload>(estruturas, 'tinta_matriz');
+  const [thresholds, setThresholds] = useState<number[]>(source?.thresholds ?? []);
+  const [rates, setRates] = useState<Record<string, number[]>>(source?.rates ?? {});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const s = estruturaPayload<TintaMatrizPayload>(estruturas, 'tinta_matriz');
+    if (s) {
+      setThresholds(s.thresholds);
+      setRates(s.rates);
+    }
+  }, [estruturas]);
+
+  const updateRate = (col: string, idx: number, raw: string) => {
+    const n = num(raw);
+    if (!Number.isFinite(n) || n < 0) {
+      return;
+    }
+    setRates((prev) => {
+      const colRates = [...(prev[col] ?? thresholds.map(() => 0))];
+      colRates[idx] = n;
+      return { ...prev, [col]: colRates };
+    });
+  };
+
+  const save = async () => {
+    setSaving(true);
+    onError('');
+    try {
+      const payload: TintaMatrizPayload = {
+        thresholds,
+        rates: Object.fromEntries(
+          CORES_TINTA_MATRIZ.map((col) => [col, rates[col] ?? thresholds.map(() => 0)]),
+        ),
+      };
+      await api.put('/orcamento-catalogo/estruturas/tinta_matriz', { payload });
+      await onSaved('Matriz de tinta (rv4) atualizada.');
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (thresholds.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-body empty-state">
+          Matriz TINTA (2) ausente — use “Completar itens ausentes” ou sincronize o catálogo rv4.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Planilha rv4 · aba TINTA (2). O motor v2 usa esta matriz para calcular o valor da tinta
+          (R$/m² por faixa de metragem × número de cores). Substitui os parâmetros legados de tinta.
+        </p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Faixa MTS (até m²)</th>
+                {CORES_TINTA_MATRIZ.map((c) => (
+                  <th key={c}>{c} cor(es)</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {thresholds.map((t, idx) => (
+                <tr key={`${t}-${idx}`}>
+                  <td>{t}</td>
+                  {CORES_TINTA_MATRIZ.map((col) => (
+                    <td key={col}>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.0001"
+                        value={rates[col]?.[idx] ?? ''}
+                        disabled={saving}
+                        onChange={(e) => updateRate(col, idx, e.target.value)}
+                        style={{ maxWidth: '5.5rem' }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void save()}>
+            {saving ? 'Salvando…' : 'Salvar matriz de tinta'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PerdaTrocaProdutoPanel({
+  estruturas,
+  onSaved,
+  onError,
+}: {
+  estruturas: EstruturaRow[];
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const src = estruturaPayload<PerdaTrocaPayload>(estruturas, 'perda_troca_m2_fator') ?? {};
+    const next: Record<string, string> = {};
+    for (const c of CORES_TROCA_PRODUTO) {
+      next[c] = src[c] != null ? String(src[c]) : '0';
+    }
+    setDrafts(next);
+  }, [estruturas]);
+
+  const save = async () => {
+    const payload: PerdaTrocaPayload = {};
+    for (const c of CORES_TROCA_PRODUTO) {
+      const n = num(drafts[c] ?? '');
+      if (!Number.isFinite(n) || n < 0) {
+        onError(`Fator inválido para ${c} cores.`);
+        return;
+      }
+      payload[c] = n;
+    }
+    setSaving(true);
+    onError('');
+    try {
+      await api.put('/orcamento-catalogo/estruturas/perda_troca_m2_fator', { payload });
+      await onSaved('Fatores de troca produto (rv4) atualizados.');
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Troca produto (rv4)</h3>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Planilha rv4 · PERDA DE ACERTO col. E. Fator m² por quantidade de cores — distinto das
+          perdas de acerto abaixo.
+        </p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Cores</th>
+                <th>Fator m²</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CORES_TROCA_PRODUTO.map((c) => (
+                <tr key={c}>
+                  <td>{c}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.0001"
+                      value={drafts[c] ?? ''}
+                      disabled={saving}
+                      onChange={(e) => setDrafts((prev) => ({ ...prev, [c]: e.target.value }))}
+                      style={{ maxWidth: '8rem' }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void save()}>
+            {saving ? 'Salvando…' : 'Salvar troca produto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CaixaEmpacotamentoPanel({
+  estruturas,
+  onSaved,
+  onError,
+}: {
+  estruturas: EstruturaRow[];
+  onSaved: (msg: string) => Promise<void>;
+  onError: (msg: string) => void;
+}) {
+  const [drafts, setDrafts] = useState<
+    Record<string, { medida: string; rolos: string; caixaId: string }>
+  >({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const src = estruturaPayload<Record<string, CaixaEmpRow>>(estruturas, 'caixa_empacotamento') ?? {};
+    const next: Record<string, { medida: string; rolos: string; caixaId: string }> = {};
+    for (const tub of TUBETES_EMBALAGEM) {
+      const row = src[tub];
+      next[tub] = {
+        medida: row?.medida ?? '',
+        rolos: row?.rolos_por_caixa != null ? String(row.rolos_por_caixa) : '',
+        caixaId: row?.caixa_id != null ? String(row.caixa_id) : '',
+      };
+    }
+    setDrafts(next);
+  }, [estruturas]);
+
+  const save = async () => {
+    const payload: Record<string, CaixaEmpRow> = {};
+    for (const tub of TUBETES_EMBALAGEM) {
+      const d = drafts[tub];
+      if (!d) {
+        continue;
+      }
+      const rolos = parseInt(d.rolos, 10);
+      if (!Number.isFinite(rolos) || rolos < 1) {
+        continue;
+      }
+      payload[tub] = {
+        medida: d.medida.trim(),
+        rolos_por_caixa: rolos,
+        caixa_id: d.caixaId.trim() === '' ? null : parseInt(d.caixaId, 10),
+      };
+    }
+    if (Object.keys(payload).length === 0) {
+      onError('Informe rolos por caixa para ao menos um tubete.');
+      return;
+    }
+    setSaving(true);
+    onError('');
+    try {
+      await api.put('/orcamento-catalogo/estruturas/caixa_empacotamento', { payload });
+      await onSaved('Capacidade de caixa por tubete (rv4) atualizada.');
+    } catch (e) {
+      onError(fieldErrors(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="card-body" style={{ display: 'grid', gap: '1rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--navy)' }}>Rolos por caixa (rv4)</h3>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Define quantas caixas o motor calcula (R9) e o peso estimado para frete.
+        </p>
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tubete</th>
+                <th>Medida caixa</th>
+                <th>Rolos / caixa</th>
+                <th>ID caixa (ref.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TUBETES_EMBALAGEM.map((tub) => (
+                <tr key={tub}>
+                  <td>{tub}</td>
+                  <td>
+                    <input
+                      type="text"
+                      value={drafts[tub]?.medida ?? ''}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [tub]: { ...prev[tub], medida: e.target.value },
+                        }))
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={drafts[tub]?.rolos ?? ''}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [tub]: { ...prev[tub], rolos: e.target.value },
+                        }))
+                      }
+                      style={{ maxWidth: '6rem' }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={drafts[tub]?.caixaId ?? ''}
+                      disabled={saving}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [tub]: { ...prev[tub], caixaId: e.target.value },
+                        }))
+                      }
+                      style={{ maxWidth: '5rem' }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => void save()}>
+            {saving ? 'Salvando…' : 'Salvar empacotamento'}
+          </button>
         </div>
       </div>
     </div>

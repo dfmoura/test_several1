@@ -1,15 +1,17 @@
 import re
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 import httpx
 
 from app.cnpj_lookup import CnpjLookupError, fetch_cnpj_pagador, normalize_digits
+from app.documents import DocumentError, validate_cpf_cnpj
 from app.supabase_client import SupabaseClient
 
 LICENSE_TABLE = "licenses"
 LICENSE_KEY_RE = re.compile(r"^TRIG-(\d{4})-(\d+)$", re.IGNORECASE)
-DEFAULT_VALIDO_ATE_DAYS = 30
+# Liberação prepaid: só Sync/webhook (ou correção excepcional no Supabase).
+LICENSE_PAYMENT_LOCKED_FIELDS = frozenset({"implantacao_paga", "valido_ate"})
 
 
 def normalize_license_key(raw: str) -> str:
@@ -54,13 +56,14 @@ async def generate_next_license_key(client: SupabaseClient) -> str:
 
 
 def apply_license_create_defaults(data: dict[str, Any]) -> dict[str, Any]:
+    """Pré-cadastro prepaid: app bloqueado até pagamento confirmado (Sync/webhook)."""
     out = dict(data)
-    if "implantacao_paga" not in out:
-        out["implantacao_paga"] = False
+    # Sempre forçar — pagamento antecipado; nunca liberar na criação.
+    out["implantacao_paga"] = False
     if "ativa" not in out:
         out["ativa"] = True
-    if "valido_ate" not in out:
-        out["valido_ate"] = (date.today() + timedelta(days=DEFAULT_VALIDO_ATE_DAYS)).isoformat()
+    # Sem período pago: placeholder = hoje (renovado +32 dias só após PAGA).
+    out["valido_ate"] = date.today().isoformat()
     if "plano" not in out:
         out["plano"] = "mensal"
     if out.get("license_key"):
@@ -77,24 +80,70 @@ def _pagador_complete(data: dict[str, Any]) -> bool:
     )
 
 
+def _pagador_nome(data: dict[str, Any]) -> str:
+    return str(data.get("pagador_nome") or data.get("condominio_nome") or "").strip()
+
+
+def _require_pagador_manual(data: dict[str, Any], *, tipo_label: str) -> None:
+    if not _pagador_nome(data):
+        raise CnpjLookupError(
+            f"Para {tipo_label}, informe o nome do pagador."
+        )
+    if not _pagador_complete(data):
+        raise CnpjLookupError(
+            f"Para {tipo_label}, preencha endereço, cidade, UF e CEP do pagador."
+        )
+    cep = normalize_digits(str(data.get("pagador_cep") or ""))
+    if len(cep) != 8:
+        raise CnpjLookupError("CEP do pagador deve ter 8 dígitos.")
+    uf = str(data.get("pagador_uf") or "").strip()
+    if len(uf) != 2:
+        raise CnpjLookupError("UF do pagador deve ter 2 letras.")
+
+
 async def enrich_license_pagador(
     data: dict[str, Any],
     *,
     required: bool = False,
     force: bool = False,
 ) -> dict[str, Any]:
+    """
+    Enriquece dados do pagador.
+    - PJ (CNPJ 14): consulta Receita e preenche endereço.
+    - PF (CPF 11): sem consulta pública confiável — exige dados manuais.
+    """
     out = dict(data)
-    cnpj = normalize_digits(str(out.get("cnpj") or ""))
-    if len(cnpj) != 14:
+    raw = str(out.get("cnpj") or "")
+    if not normalize_digits(raw):
         if required:
-            raise CnpjLookupError("Informe um CNPJ válido (14 dígitos).")
+            raise CnpjLookupError("Informe CPF (11 dígitos) ou CNPJ (14 dígitos).")
         return out
-    if _pagador_complete(out) and not force:
+
+    try:
+        digits, tipo = validate_cpf_cnpj(raw)
+    except DocumentError as exc:
+        if required:
+            raise CnpjLookupError(str(exc)) from exc
+        return out
+
+    out["cnpj"] = digits
+
+    if tipo == "FISICA":
+        if not out.get("pagador_nome") and out.get("condominio_nome"):
+            out["pagador_nome"] = str(out["condominio_nome"]).strip()
+        if required:
+            _require_pagador_manual(out, tipo_label="pessoa física (CPF)")
+        return out
+
+    # JURIDICA — consulta CNPJ quando endereço incompleto ou force.
+    if _pagador_complete(out) and _pagador_nome(out) and not force:
         return out
     try:
-        pagador = await fetch_cnpj_pagador(cnpj)
+        pagador = await fetch_cnpj_pagador(digits)
     except CnpjLookupError:
         if required:
+            if _pagador_complete(out) and _pagador_nome(out):
+                return out
             raise
         return out
     for key in (
@@ -109,7 +158,8 @@ async def enrich_license_pagador(
                 out[key] = pagador[key]
     if not out.get("condominio_nome") and pagador.get("pagador_nome"):
         out["condominio_nome"] = pagador["pagador_nome"]
-    out["cnpj"] = cnpj
+    if required:
+        _require_pagador_manual(out, tipo_label="pessoa jurídica (CNPJ)")
     return out
 
 

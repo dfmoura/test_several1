@@ -45,8 +45,8 @@ class PrecoTravadoPedidoTest extends TestCase
     {
         $t = PrecoTravadoPedido::daFaixa([
             'quantidade' => 7000,
-            'valor_etiqueta' => 3090,
-            'valor_total' => 3626,
+            'valor_etiqueta' => 1900,
+            'valor_total' => 2436,
         ]);
 
         $this->assertSame('536.00', $t['valor_matriz']);

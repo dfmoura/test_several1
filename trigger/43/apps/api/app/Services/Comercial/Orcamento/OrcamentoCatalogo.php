@@ -3,6 +3,7 @@
 namespace App\Services\Comercial\Orcamento;
 
 use App\Models\OrcCatalogoAcabamento;
+use App\Models\OrcCatalogoEstrutura;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
 use App\Models\OrcCatalogoParametro;
@@ -65,6 +66,14 @@ final class OrcamentoCatalogo
         public float $tintaFaixaM2 = 30.0,
         public float $tintaAte30PorCor = 10.0,
         public float $tintaAcimaM2 = 0.4,
+        /**
+         * Matriz TINTA (2) — rv4: faixa MTS × coluna de cor → R$/m².
+         *
+         * @var array{thresholds: list<float>, rates: array<string, list<float>>}|null
+         */
+        public ?array $tintaMatriz = null,
+        /** @var array<string, float> fator m² (PERDA DE ACERTO col E) × larg/100 × modelos */
+        public array $perdaTrocaM2Fator = [],
         /** @var array<string, float> */
         public array $acabamentos = [],
         /** @var array<string, float> */
@@ -131,6 +140,30 @@ final class OrcamentoCatalogo
             $perda03[(string) $k] = (float) $v;
         }
 
+        $perdaTroca = [];
+        foreach ($raw['perda_troca_m2_fator'] ?? [] as $k => $v) {
+            $perdaTroca[self::loadCoresKey((string) $k)] = (float) $v;
+        }
+        if ($perdaTroca === [] && is_array($raw['perda_papel_acerto_ml'] ?? null)) {
+            foreach ($raw['perda_papel_acerto_ml'] as $k => $ml) {
+                $key = self::loadCoresKey((string) $k);
+                $perdaTroca[$key] = (float) $ml * 0.085;
+            }
+        }
+
+        $tintaMatriz = null;
+        if (is_array($raw['tinta_matriz'] ?? null)) {
+            $tm = $raw['tinta_matriz'];
+            $thresholds = array_map(static fn ($x) => (float) $x, $tm['thresholds'] ?? []);
+            $rates = [];
+            foreach ($tm['rates'] ?? [] as $col => $vals) {
+                $rates[(string) $col] = array_map(static fn ($x) => (float) $x, $vals);
+            }
+            if ($thresholds !== [] && $rates !== []) {
+                $tintaMatriz = ['thresholds' => $thresholds, 'rates' => $rates];
+            }
+        }
+
         $papel = [];
         foreach ($raw['papel'] as $k => $v) {
             $papel[self::norm((string) $k)] = (float) $v;
@@ -187,6 +220,8 @@ final class OrcamentoCatalogo
             tintaFaixaM2: (float) ($tinta['faixa_m2'] ?? $raw['tinta_faixa_m2'] ?? 30),
             tintaAte30PorCor: (float) ($tinta['valor_ate_30_por_cor'] ?? $raw['tinta_ate_30_por_cor'] ?? 10),
             tintaAcimaM2: (float) ($tinta['valor_acima_m2'] ?? $raw['tinta_acima_m2'] ?? 0.4),
+            tintaMatriz: $tintaMatriz,
+            perdaTrocaM2Fator: $perdaTroca,
             acabamentos: $acabamentos,
             perdaAcabamento: $perdaAcab,
             perdaPapelAcertoMl: self::loadCoresMl($raw['perda_papel_acerto_ml'] ?? []),
@@ -229,6 +264,9 @@ final class OrcamentoCatalogo
         try {
             if (Schema::hasTable('orc_catalogo_parametros')) {
                 self::applyParametrosOverlay($cat, $empresaId);
+            }
+            if (Schema::hasTable('orc_catalogo_estruturas')) {
+                self::applyEstruturasOverlay($cat, $empresaId);
             }
 
             $papeisQ = CatalogoOrcEmpresa::apply(OrcCatalogoPapel::query(), $empresaId, true);
@@ -477,6 +515,70 @@ final class OrcamentoCatalogo
     public function perdaAcab(string $nome): float
     {
         return (float) $this->lookup($this->perdaAcabamento, $nome);
+    }
+
+    /** rv4: PERDA ACABAMENTO × (largura/100) × colunas (ORÇAMENTO K). */
+    public function perdaAcabM2(string $nome, float $larguraCm, int $colunas): float
+    {
+        if ($this->perdaAcab($nome) <= 0.0) {
+            return 0.0;
+        }
+
+        return $this->perdaAcab($nome) * ($larguraCm / 100.0) * max(0, $colunas);
+    }
+
+    public function perdaTrocaM2Fator(mixed $cores): float
+    {
+        $k = self::loadCoresKey($this->coresKeyRaw($cores));
+        if (in_array($k, ['0', ''], true)) {
+            return 0.0;
+        }
+        if (! array_key_exists($k, $this->perdaTrocaM2Fator)) {
+            throw new \InvalidArgumentException("Cores sem PERDA DE ACERTO (troca): {$k}");
+        }
+
+        return (float) $this->perdaTrocaM2Fator[$k];
+    }
+
+    /**
+     * rv4 TINTA (2): INDEX por faixa MTS × coluna de cor.
+     */
+    public function tintaMatrizRate(float $areaM2, mixed $cores): float
+    {
+        if ($this->tintaMatriz === null) {
+            return $this->tintaAcimaM2;
+        }
+        $thresholds = $this->tintaMatriz['thresholds'];
+        $rates = $this->tintaMatriz['rates'];
+        if ($thresholds === []) {
+            return $this->tintaAcimaM2;
+        }
+
+        $k = self::loadCoresKey($this->coresKeyRaw($cores));
+        $col = ((int) $k) >= 4 || $k === '4V' ? '4' : $k;
+        if (! isset($rates[$col])) {
+            $col = '4';
+        }
+        $colRates = $rates[$col];
+
+        $idx = count($thresholds) - 1;
+        if ($areaM2 > 300.0) {
+            $idx = count($thresholds) - 1;
+        } else {
+            for ($i = 0; $i < count($thresholds); $i++) {
+                if ($areaM2 <= $thresholds[$i]) {
+                    $idx = $i;
+                    break;
+                }
+            }
+        }
+
+        return (float) ($colRates[$idx] ?? $this->tintaAcimaM2);
+    }
+
+    public function usaTintaMatriz(): bool
+    {
+        return $this->tintaMatriz !== null;
     }
 
     public function perdaPapelAcertoMetros(mixed $cores): float
@@ -761,6 +863,97 @@ final class OrcamentoCatalogo
         }
     }
 
+    private static function applyEstruturasOverlay(self $cat, ?int $empresaId): void
+    {
+        $rows = CatalogoOrcEmpresa::apply(OrcCatalogoEstrutura::query(), $empresaId, true)
+            ->get()
+            ->keyBy('chave');
+
+        $tm = $rows->get(OrcCatalogoEstrutura::CHAVE_TINTA_MATRIZ)?->payload;
+        if (is_array($tm) && ($normalized = self::normalizeTintaMatrizPayload($tm)) !== null) {
+            $cat->tintaMatriz = $normalized;
+        }
+
+        $pt = $rows->get(OrcCatalogoEstrutura::CHAVE_PERDA_TROCA_M2_FATOR)?->payload;
+        if (is_array($pt) && ($fator = self::normalizePerdaTrocaPayload($pt)) !== []) {
+            $cat->perdaTrocaM2Fator = $fator;
+        }
+
+        $ce = $rows->get(OrcCatalogoEstrutura::CHAVE_CAIXA_EMPACOTAMENTO)?->payload;
+        if (is_array($ce) && ($emp = self::normalizeCaixaEmpacotamentoPayload($ce)) !== []) {
+            $cat->caixaEmpacotamento = $emp;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{thresholds: list<float>, rates: array<string, list<float>>}|null
+     */
+    public static function normalizeTintaMatrizPayload(array $payload): ?array
+    {
+        $thresholds = array_map(static fn ($x) => (float) $x, $payload['thresholds'] ?? []);
+        $rates = [];
+        foreach ($payload['rates'] ?? [] as $col => $vals) {
+            if (! is_array($vals)) {
+                continue;
+            }
+            $rates[(string) $col] = array_map(static fn ($x) => (float) $x, $vals);
+        }
+        if ($thresholds === [] || $rates === []) {
+            return null;
+        }
+        foreach ($rates as $colRates) {
+            if (count($colRates) !== count($thresholds)) {
+                return null;
+            }
+        }
+
+        return ['thresholds' => $thresholds, 'rates' => $rates];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, float>
+     */
+    public static function normalizePerdaTrocaPayload(array $payload): array
+    {
+        $out = [];
+        foreach ($payload as $k => $v) {
+            if (! is_numeric($v)) {
+                continue;
+            }
+            $out[self::loadCoresKey((string) $k)] = (float) $v;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, array<string, mixed>>
+     */
+    public static function normalizeCaixaEmpacotamentoPayload(array $payload): array
+    {
+        $out = [];
+        foreach ($payload as $k => $v) {
+            if (! is_array($v)) {
+                continue;
+            }
+            $tubete = self::norm((string) $k);
+            $rolos = (int) ($v['rolos_por_caixa'] ?? 0);
+            if ($rolos < 1) {
+                continue;
+            }
+            $out[$tubete] = [
+                'caixa_id' => isset($v['caixa_id']) ? (int) $v['caixa_id'] : null,
+                'medida' => isset($v['medida']) ? trim((string) $v['medida']) : '',
+                'rolos_por_caixa' => $rolos,
+            ];
+        }
+
+        return $out;
+    }
+
     public static function norm(string $s): string
     {
         return preg_replace('/\s+/u', ' ', trim($s)) ?? trim($s);
@@ -776,6 +969,34 @@ final class OrcamentoCatalogo
         return $t;
     }
 
+    private static function loadCoresKey(string $k): string
+    {
+        $key = strtoupper(trim($k));
+        if ($key !== '4V' && is_numeric($key)) {
+            return (string) (int) (float) $key;
+        }
+
+        return $key;
+    }
+
+    private function coresKeyRaw(mixed $cores): string
+    {
+        if ($cores === null) {
+            return '';
+        }
+        if (is_string($cores)) {
+            return strtoupper(trim($cores));
+        }
+        if (is_float($cores) && $cores == (int) $cores) {
+            return (string) (int) $cores;
+        }
+        if (is_int($cores)) {
+            return (string) $cores;
+        }
+
+        return trim((string) $cores);
+    }
+
     /**
      * @param  array<string|int, mixed>  $raw
      * @return array<string, float>
@@ -784,13 +1005,7 @@ final class OrcamentoCatalogo
     {
         $out = [];
         foreach ($raw as $k => $v) {
-            $key = strtoupper(trim((string) $k));
-            if ($key !== '4V') {
-                if (is_numeric($key)) {
-                    $key = (string) (int) (float) $key;
-                }
-            }
-            $out[$key] = (float) $v;
+            $out[self::loadCoresKey((string) $k)] = (float) $v;
         }
 
         return $out;

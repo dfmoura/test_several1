@@ -1,0 +1,294 @@
+Olá! Sejam muito bem-vindos e bem-vindas à Universidade Beraba no âmbito da Projeitoria
+de Educação e Distância. Nós vamos discutir hoje a sequência de atividades tornejadas
+para o componente Trabalho de Conclusão de Curso relato de Experiência de um Projeto
+Integrado. Eu sou o professor Leonardo Assis e nós vamos discutir hoje, dando sequência
+nesse planejamento, explicações e orientações sobre os itens de um relatório, como o nome
+da própria disciplina sugere, Trabalho de Conclusão de Curso relato de Experiências
+de um Projeto Integrado. Veja a palavra relato aí, remete a relatório, você vai discursar
+então sobre a experiência que você teve no ano do desenvolvimento do outro componente
+na última etapa que vocês fizeram chamado Projeto Integrado Extensão. Veja, naquele
+momento você elaborou um plano, um projeto é um plano para uma atividade que seria executada.
+Agora chegou o momento de sistematizar a forma de apresentar os resultados que vocês
+encontraram pelo desenvolvimento dessa ação. Então no Projeto Integrado a gente ocupava-se
+de uma redação de algo que viria a acontecer no futuro e agora a gente vai relatar o que
+já aconteceu. Então vamos lá. O objetivo dessa aula vai ser esclarecer e orientar
+a cerca desses requisitos pela elaboração do relatório sobre a sua experiência durante o
+desenvolvimento do Projeto Integrado Extensão e nós vamos dar um enfoque aqui na metodologia
+e nos resultados. Então vamos lá. Para discutir os itens do relatório a gente se baseou nas normas
+e a ação brasileira de normas técnicas que definem procedimentos e normas então para
+a apresentação de trabalhos acadêmicos, apresentação e referências de trabalhos
+acadêmicos. Também pode ser consultada o manual de normas para apresentação de
+documentos acadêmicos da Universidade Uberaba que está disponível nesse documento está disponível
+no site da biblioteca central. Bom aqui nessa figura pessoal nós temos aqui três tipos de
+elementos em torno desse relatório que vai ser um documento acadêmico do seu trabalho de
+conclusão de curso. Os elementos ditos pré-textuais, depois os elementos textuais e por
+exemplo os elementos post-textuais. Então vejam que a organização desses elementos é em torno
+ou corna é em torno dos elementos textuais que são o principal corpo do trabalho vamos dizer sim.
+Mas sobre os elementos então comentando particularmente cada um deles os pré-textuais
+envolvem aí itens obrigatórios todos eles na verdade envolvem itens obrigatórios e itens
+opcionais. Vamos lá, os pré-textuais, os pré-textuais incluem a capa que é um itens
+obrigatório, depois dedicatório, aguardacimentos e epígrafes são opcionais e são uma forma do
+próprio autor daquele trabalho, né, coloca um pouco de si sobre o trabalho, né, ou seja, vou
+fazer isso a alguém, vou agradecer a algumas pessoas, alguém ou algumas outras algumas pessoas
+ou instituições ou entidades enfim que te ajudaram a concluir que o trabalho foi importante
+pelo trabalho e a epígrafe que é aquela frase que a gente geralmente vê nos documentos acadêmicos
+do trabalho de conclusão de curso, dissertação e tese, que é uma frase que representa o seu
+pensamento, o seu estado de espírito naquele momento do desenvolvimento do trabalho. Geralmente
+é uma frase de um pensador, de um filósofo, de um ou uma, né, perdão cientista, então que a gente
+tem ali, esses itens são opcionais então e de decisão do próprio autor. Depois a gente tem um
+resumo que é obrigatório, o resumo é um parágrafo tipicamente em torno de duzentos,
+cento e cinquenta a trezentas palavras, né, geralmente a gente vê com duzentos um pouco mais,
+que contém um conjunto de frases que perpassa aí pelos principais aspectos dos trabalhos,
+de um contexto introdutório, o relato dos objetivos, o principal aspecto metodológico,
+o principal resultado obtido e a conclusão ou considerações, ok? Bom, depois a gente passa
+por uma série de listas que são opcionais, lista de ilustrações, lista de tabelas, lista de
+abreviaturas e siglas e lista de símbolos, são todos elementos pretestuais opcionais, porque
+vai depender muito da natureza do seu trabalho, tá? Ele é opcional até certo ponto, deixa eu
+explicar. Se o seu trabalho tem muitas figuras, vai ser interessante colocar a lista de ilustrações
+ou e a mesma coisa com tabelas, né? Vai ser interessante e importante ter a lista de tabelas,
+assim como lista de abreviaturas, no caso de muitos acrônicos, né, pelo texto e
+lista de símbolos, caso seu trabalho tem um viés mais na área de engenharia, de matemática, né? Que
+a gente usa muitos símbolos diferentes aí do cotidiano, mas então depende muito, são opcionais,
+deixando enfático aqui, né? Mas dependendo da natureza do seu trabalho. E depois o sumário,
+que traz a relação de cada sessão do documento e a localização da respectiva página.
+Bom, então deixamos aqui os elementos pretestuais e passamos para os elementos testuais. Os testuais
+vão envolver a introdução, o desenvolvimento e a conclusão. Todos os itens são obrigatórios
+e eu vou discriminar. O principal conteúdo dessa aula eu vou comentar particularmente,
+cada um deles com vocês. Depois a gente tem os elementos, então, post-testuais,
+neles a gente tem como itens obrigatórias referências, né? Então a lista de referências,
+documentos, obras literárias que foram consultadas para te ajudar, embazar o texto do seu documento.
+E por fim, a gente tem glossário, que é opcional, o apêndice, que é opcional e o anexo também,
+que são todos itens opcionais. A diferença do apêndice e do anexo está no seguinte,
+o apêndice é algum material importante para o entendimento do seu trabalho,
+só que esse material foi produzido por você. O anexo é um material também importante
+para o entendimento do seu trabalho, mas não foi produzido por você, é de outro autor.
+Então, para enfatizar aqui um exemplo, para dar um exemplo, imagine que você desenvolveu um
+software e queira apresentar no apêndice um trefo do seu código, é muito normal,
+então usar o apêndice para apresentar esse trefo de código, uma estrutura de dados,
+uma loja que você fez por desenvolvimento que acha interessante. Então esse item vem no apêndice.
+E o caso do anexo, então, qual é a diferença se você me perguntar, né? Eu diria que o anexo
+vai ser para você usar, por exemplo, você aplicou uma análise estatística no seu dado
+e tem não uma distribuição de Q², essa análise estatística usou um teste Q², um teste T,
+um teste de distribuição normal, enfim, qualquer que seja o teste estatístico,
+e você precisa daquela tabela do teste de interpretação dos p-valores para poder
+ir dos níveis de confiança para poder dar subsídios para o leitor entender o resultado
+da sua análise. Então, a tabela não foi produzida por você, mas é importante para o seu trabalho.
+Então isso é o típico material que vem como anexo, um laudo que você fez de uma análise
+química e um laboratório, entre outros exemplos, tá bom? Bom, vamos lá. Então esses itens como
+eu disse, opcionais, porque pode depender da natureza do seu trabalho e da sua ideia, né,
+da sua intenção realmente de incluí-los ou não. Então vamos lá para os elementos textuais. A gente
+passa pela introdução que representa a abordagem do problema e o contexto do trabalho. Eu vou
+adentrar em mais detalhes sobre essa introdução logo em seguida. O desenvolvimento inclui a
+revisão de literatura, o fundamentação teórica, o material e método dos metodologias e os resultados.
+E, por fim, as conclusões ou considerações finais caso seu trabalho não seja conclusivo,
+mas mereça e considerações, né, a respeito do resultado. E aí a gente vai falar também sobre
+isso. Eu vou falar também com vocês sobre isso no final. Bom, introdução, pessoal, é um item,
+tem uma sessão muito importante do seu documento acadêmico, porque ele começa,
+ele vai cativar o leitor ali na introdução. A primeira vitória do trabalho, com certeza,
+é o resumo, né, mas depois daquele parágrafo o leitor vai começar pela introdução e vai,
+muitas vezes, ser cativado ali na introdução para continuar a leitura ou não. Então ela é
+uma parte importante. É uma parte inicial, inclusive uma parte inicial do texto, onde você
+começa expondo o tema relacionando com as obras de referências, de literatura que você consultou
+para te ajudar a construir o entendimento que você adquiriu sobre o tema. Depois você apresenta
+a problemática, qual é a situação que está em contorno do problema, a justificativa,
+então, para procurar uma proposta de solução. Depois, a descrição sobre, no caso do projeto
+integrado de extensão, sobre a interação com a organização parceira e a proposta da solução
+que você chegou à conclusão de que seria interessante para resolver ou amenizar aquele
+problema. E vejam, eu deixei em destaque essa parte porque eu já pedi esse trecho, esse texto na primeira
+atividade, salvingano, primeira ou segunda atividade, dessa nossa construção aqui do relatório. Então
+você vai aproveitar essa parte também. E, por fim, a demonstração de como o trabalho foi
+desenvolvido e, no final, no último parágrafo da introdução, você reserva para apresentar o
+objetivo. O objetivo sempre é uma frase iniciada com um verbo no infinitivo, indicando uma ação,
+descrever, analisar, relacionar, apresentar, indicando uma ação. E aí a ação que você
+efetivamente fez naquele desenvolvimento do trabalho. Então vamos lá. Escarecido a introdução,
+vamos passar para os elementos textuais do desenvolvimento. Te mencionava a importância da
+revisão de literatura, da alimentação teórica como um item do desenvolvimento do trabalho.
+Bom, vejam, pessoal, esses são dois itens importantes, porque nele você pode escolher duas
+abordagens. A revisão de literatura vai ser um processo de análise e síntese de pesquisas,
+artigos, livros e fontes de outras obras que já foram publicadas sobre aquele tema, né,
+com o objetivo de mapear, trazer o conhecimento do leitor, o estado atual do desenvolvimento
+daquela aplicação daquela área, identificando eventuais lacunas, ou seja, áreas em que o
+desenvolvimento do trabalho daquela área, de pesquisa daquela área, de atuação, de
+um projeto de extensão ainda não foram perfeitamente preenchidos e contextualizar
+também o problema do estudo, né, a gente ajuda isso tudo, porque quando você se baseia em trabalho
+semelhantes, que é o que a revisão de literatura vai trazer sobre o mesmo, o mesmo tema, você tem
+de ter uma leitura, né, do em que estado se encontra atualmente as as publicações, né, os
+achados sobre aquele tema. Então isso ajuda muito a situar o leitor dependendo da natureza do trabalho.
+Dependendo da natureza do trabalho, pode ser mais interessante uma fundamentação teórica.
+A fundamentação teórica, diferente da revisão de literatura, ela se refere à seleção e aplicação
+de teorias, conceitos, modelos que sustentam a abordagem que você está usando para o desenvolvimento
+daquele trabalho. Fornece então a base de conceitos, definições, né, para interpretar os dados e
+orientar a investigação. Então se você usa, por exemplo, adotou uma tecnologia nova, um tema
+que ainda não tem um desenvolvimento muito difundido, ou, pelo contrário, é uma coisa que
+tem um desenvolvimento bem difundido, mas você precisa ou gostaria de trazer aí definições que
+vão ajudar a esclarecer o leitor a respeito, aí você traz na fundamentação teórica,
+então teorias, conceitos que vão subsidiar quem vai ler de informação para poder entender o seu
+trabalho, tá bom? Então são dois aspectos diferentes. Bom, pessoal, agora nós chegamos
+na metodologia. A metodologia ou material e métodos é um item fundamental do trabalho acadêmico,
+porque ele se baseia, esse fundamento aí, no método científico, que consiste em
+trazer elementos para quem está lendo aquele documento acadêmico sobre o como fazer, como
+foi desenvolvido, quais aspectos foram importantes para poder executar aquele trabalho, para que
+outras pessoas possam repetir em outras ocasiões e outros lugares. Então a gente tem a diferença
+clássica entre material e método e objetivo e metodologias, considerando que material e métodos
+são mais objetivos, muito mais usados e observados na área das ciências exatas, e a metodologia é um
+pouco mais teórica e conceitual, mais usado em outras ciências humanas, sociais aplicadas, por
+exemplo. Então vamos lá. A metodologia vai servir um conjunto de abordagens, estratégias, procedimentos
+que você fez, executou durante a atividade extensionalista, explicando como que ela foi
+conduzida. Por exemplo, se você organizou um curso, planejou lá no projeto integrado extensão,
+ministrar um curso, um workshop, uma oficina, como que ela aconteceu? Ela foi de modo presencial,
+ou foi online? Qual que o público, o alvo pretendido, você conseguiu atingir esse público, usou
+como se estruturou o documento, que temas você percorreu para discutir com as pessoas e ensiná-las.
+Enfim, elementos que vão te trazer, vão permitir que eu trazer para o leitor, como fazer se quiser
+aplicar essa metodologia, esse curso em outros ambientes. Se foi um site que você elaborou,
+quais recursos tecnológicos, linguagens e ferramentas você usou, ou tem nesse site, por
+exemplo, um banco de dados, como que for arquitetura, o modelo de dados, enfim, elementos que vão
+permitir a pessoa entender e reproduzir. A metodologia, então, é mais ampla e teórica,
+ela define, então, o caminho que foi usado para desenvolver aquela atividade. Já o material
+e métodos funcionam como uma receita, eu falo, porque ela tem uma descrição detalhada e prática
+de quais recursos foram usados para poder fazer a atividade. Hardware, software, equipamentos,
+dispositivos, instrumentos, seria o material. Se a gente fizer analogia com a receita,
+imagina uma receita de boa, o que eu preciso? Em termos de equipamentos, vou precisar de uma
+batedeira para o bolo, uma colher, um forno, uma forma. Enfim, o que eu precisar de insumos ali,
+às vezes, os próprios ingredientes, vão vir aqui, seria o material. E, no caso de um curso,
+eu vou precisar de tantos computadores, ou de um computador, se for online, conexão com a internet,
+quais recursos eu utilizei. E depois, o método vai se concentrar nos passos específicos que
+foram usados para poder executar aquela atividade. Seriam a descrição de técnicas,
+procedimentos, processos, entre outros aspectos que sejam interessantes de informar, como foi
+exercido efetivamente aquela atividade. Então, no método, fazendo essa analogia com a receita,
+seria o modo de preparo. Eu misturo a farinha, o leite, o ovo, misturo por um determinado tempo,
+depois leva a forma, depois leva essa forma ao forno, por tantos minutos, a tantos graus Celsius,
+então, ela é mais concreta e operacional, dizendo, efetivamente, o como fazer. Por isso,
+mais usado na área de ciências exatas. Mas são um item fundamental do trabalho.
+Bom, pessoal, agora chegamos num outro item do desenvolvimento do trabalho muito importante,
+que são os resultados. O resultado é uma sessão destinada a apresentar, de forma objetiva e clara,
+os dados que você obteve durante a execução dessa atividade estencionista. Nessa etapa,
+os achados, o que você encontrou, as suas percepções, são expostos de forma organizada e,
+muitas vezes, usam o auxílio de tabelas, quadros e figuras. Eu vou descrever com mais detalhes esses
+três elementos aqui, que frequentemente são usados para apresentar resultados. Nos resultados,
+pessoal, não há espaço aqui para interpretações ou julgamentos de valor, ou seja, interpretações
+e vais. Você vai colocar o que você observou, de fato, tentando ficar de forma equilibrada,
+apresentar de forma equilibrada o que você encontrou. O foco em descreve-feialmente o que você observou,
+coletou, garantindo que eles sejam claros esses resultados. E vão incluir, no caso do relatório,
+o relato de experiência do projeto integrado, informações sobre o cenário encontrado,
+o contexto e as evidências da atividade que foi realizada. Vejam que, novamente, eu destaquei
+cenário, contexto e as evidências, porque foi uma atividade que eu soltei em atividades passadas,
+foi um exercício que eu soltei uma CQA de atividades passadas. Vocês vão aproveitar aqui.
+E essa sessão fornece também a base para sustentar as análises e as conclusões que virão.
+Então, é muito importante apresentar o resultado que você obteve, conforme você obteve.
+Vamos aqui, então, para tabelas. Bom, pessoal, tabelas, quadros e figuras são itens
+que são frequentemente utilizados ao longo do texto para ajudar o leitor a compreender determinado
+aspecto do seu trabalho no resultado especificamente para ajudar a compilar informações e apresentar
+de forma resumida uma série de informações. Agora, vamos comentar sobre as diferenças e semelhanças
+de cada um deles. As tabelas são fundamentalmente usadas para apresentar dados quantitativos,
+ou seja, números, valores numérios, estatísticas, resultados de testes estatísticos, resultados
+que foram medidos, são mensuráveis, portanto. A sua estrutura é composta por colunas e linhas,
+mas as bordas laterais vão sempre permanecer abertas. Isso é uma definição de normas,
+da ABNT, Associação Brasil de Normas Técnicas. Já os quadros são destinados a apresentar dados
+qualitativos ou textuais, como classificações, comparações, teorias, esquemas conceituais,
+vantagens e desvantagens, por exemplo. Sua estrutura é fechada com linhas horizontais e
+verticais, mas forma uma moldura completa, ou seja, as laterais são fechadas, o que na tabela
+não é. Isso diferencia quadros e figuras. Então, se você tem informações textuais,
+automaticamente elas devem ser apresentadas num quadro. Se você tem informações numéricas, elas
+devem ser apresentadas em tabelas. E as figuras? As figuras são usadas de forma genérica aqui para
+qualquer tipo de informação que não seja quadro ou tabela. Então, você vai usar a figura,
+por exemplo, para apresentar uma fotografia do registro de um curso que você deu, um gráfico
+com, por exemplo, de dispersão entre duas variáveis. Vai usar a figura também para
+apresentar um mapa, qualquer que seja a informação pictórica, que tenha uma figura, tem uma imagem,
+uma ilustração, para ser apresentada, que não seja quadro e nem tabela, vai se enquadrar aqui
+na definição de figura. Cada figura, cada tabela, cada quadro, tem um nome individual que permite
+você identificar no texto. Daí vem a relação de vista de tabelas, vista de quadros, vista de
+ilustrações. E como é que você identifica individualmente cada um? Primeira vez que um quadro,
+um quadro, por exemplo, aparece no seu trabalho, você chama de quadro um. Eventualmente, no decorrer
+do texto, você precisa apresentar um novo quadro. Esse vai ser o quadro dois. Na legenda, você
+identifica o que significa aqui, a pre-informação. E aí, se precisar de novamente mais um quadro,
+ele aparecer novamente no texto, mas adiante, ele será um quadro três e assim por diante. Na
+ordem que ele aparece, você usa um algarismo arábico, sequencial, e vai nomeando as tabelas
+e quadros e figuras. O mesmo que eu expliquei para quadro, vale para tabela, vale para figuras.
+E uma coisa importante antes de passar para frente, que nós vamos ver mais algumas características
+desses itens, é que eles devem estar sempre referenciados no texto. O que eu quero dizer com isso?
+Você não pode colocar, vim descrever num parágrafo, colocar a figura, a legenda dela e seguir
+deixando a interpretação da informação importante que aquele quadro tabela ou figura trouxe
+para o leitor. Na verdade, você tem que indicar o que ele deve observar naquele quadro, na tabela,
+na figura. Então, é um erro comum que a gente observe em trabalhos acadêmicos, né? Mas é
+importante, então, que esse erro não ocorra você fazendo a referência devido à citação dele no
+texto. Por exemplo, na figura, observa-se a fotografia do curso realizado, por exemplo, né?
+Então, na construção do parágrafo, foi importante destacar, você quis trazer uma imagem, né,
+que é uma figura, no caso, uma fotografia do curso que você ministrou e registrou um print
+da tela das pessoas acompanhando o seu curso online. Então, você vai lá, indica, né, que no
+texto que na figura 1, 2, na figura x qualquer, né, sendo x um número aí, dentro da relação que você tem,
+na figura tal, observa-se a quantidade de pessoas presentes no curso, por exemplo, né? Então,
+é importante falar no texto da figura para depois colocar a figura. Não deixa ela,
+não deixa nenhuma delas, nem tabela, nem quadra, nem figura, para a interpretação só do leitor. Você
+deve conduz-lo, né? Conduz-la, conduz-lo, leitor ou a leitora, pelo seu trabalho, para expor a sua
+ideia, né? No seu ponto de vista. Então, vamos lá.
+Pessoal, agora esse quadro é um quadro síntese aí de alguns desses elementos que constam, né,
+nos três tipos de recursos que a gente usa, tabelas, quadros e figuras, né? Por exemplo,
+a tabela em relação às bordas, como eu disse, né, esse quadro resume, aberta nas laterais,
+quadro fechado nas extremidades, na figura sem borda, conteúdo, tabela, dados numéricos,
+com cabeçados claros, unidades de medida, né? Se você vai apresentar algum dado de temperatura,
+então, em forma lá no cabeçado da tabela, temperatura em graus Celsius, se é uma medida de
+extensão, essa extensão em metros, quilômetros, centímetros, né? É o, coisas do tipo. O quadro,
+tem isso organizado, conceitos, classificações, como eu sugeri aqui de exemplo, né? Vantagens,
+desvantagens, né? A figura, usada para gráficos, ilustrações, fotografias, imagens ou
+qualquer outros tipos de elementos pictóricos. O título e enumeração, no caso da tabela,
+eles vêm acima, né? O exemplo, tabela 1, dados demográficos, como está aí. O quadro,
+acima do quadro também, quadro 1, quadro 2, classificação teônica. E na figura,
+discordando um pouco da tabela e do quadro, a regenda vem logo abaixo da figura, né? Então,
+abaixo da imagem, por exemplo, figura 1, gráfico dos resultados, do experimento. Fonte e notas,
+tem um item importante, né? Se você pegou, por exemplo, você está usando a figura de um outro
+autor, a fonte é a indicação da obra, né? Da referência de onde você tirou, do autor que
+você tirou. Então, pode simplesmente pegar um, assim como o regino pode pegar o texto de um outro
+autor e incluir, sem dar os devidos créditos, que são feitos através das referências, né?
+Porque isso caracteriza, caracterizaria plágio, uma violação da lei de direitos autorais, né?
+Então, você deve referenciar, inclusive, as figuras. Se a figura foi trazida de um livro, de um artigo,
+um outro tipo de tese, de serpação, enfim, qualquer outro tipo de documento, uma monografia,
+você deve indicar o autor que produziu aquela figura. Se você achou interessante, encontre uma
+figura importante para o seu trabalho, que estava em outro idioma, inglês, por exemplo, e você traz
+aquela figura, redesenha ela, você mesmo, mas a ideia da concepção da figura não foi sua,
+é de outro autor, mas você traduziu o que está lá dentro, aí você coloca, por exemplo,
+que o autor, aquela figura é adaptada de e o autor, que foi o de fato que fez a concepção
+daquela figura a primeira vez, tá? Mas, enfim, a fonte e as notas vão ser na tabela, inseridas
+abaixo, com o tamanho da fonte do texto um pouco reduzido. Exemplo, você pode ter usado fontes de
+dados, no caso de dados demográficos, a fonte pode ser o IBGE, Instituto Brasiliano de Geografia
+Estatística, quadro, também, posicionadas abaixo do quadro, com explicações do contextuais
+ali, que são importantes. No caso da figura, indicada imediatamente abaixo da figura, também,
+se for de autoria própria, agora, se você teve a concepção daquela figura totalmente sua,
+ou foi uma foto que você tirou do curso, como eu comentei, o print da tela,
+todas essas são imagens, mas a fonte delas foi você, então você é o autor, então você vai
+colocar nesse caso, se a autoria for própria, autor é entre parênteses o ano, que é o ano
+corrente, sempre que vai ser o ano que tiver sido produzido o documento, e ou pode usar também
+os dizeres, elaborado pelo autor, então a fonte daquele quadro, daquela figura, vai ser elaborado
+pelo autor. Veja um exemplo aqui desse quadro mesmo que foi eu que fiz, eu mesmo fiz e estou trazendo
+para vocês, a fonte, elaborado pelo autor, o quadro, como só tem esse quadro, não tem quadro 1,
+quadro 2, tem uma figura também no começo do texto, não tem a figura 1, figura 2, deixei aqui
+só como quadro, e a legenda dele, informações comparativas entre tabelas, quadros e figuras,
+vejam que essa informação sintetiza bem o que traz de conteúdo no quadro, no objeto que eu trouxe,
+e por fim a referência no texto citada em maiusco, porque é uma entidade, é citada com o T maiusco
+no caso da tabela, a mesma coisa, o Q maiusco no caso do quadro e o F maiusco no caso da
+figura, tá bom? Bom, aqui eu acho que a gente esgotou os elementos de quadro, tabelas e figuras,
+então vamos para as conclusões, elementos textuais agora, conclusão, terceiro item dos
+elementos obrigatórios ali dos elementos textuais, eu vou falar da conclusão e dos
+ou considerações finais, a conclusão representa o fechamento do trabalho, os principais achados
+são resumidos e interpretados em relação aos objetivos, ou seja, você cumpriu ou não
+os objetivos, cumpriu parcialmente, cumpriu totalmente os objetivos inicialmente propostos,
+elas evidenciam a relevância acadêmica e prática do seu trabalho, o quão aqui foi importante,
+apontando impactos no campo teórico, na solução de problemas que foram reais no caso da atividade
+extensionista, é comum incluir também na conclusão sugestões para outros trabalhos,
+se for desenvolvido novamente, aspectos que foram limitadores ou dificultosos para a execução
+da atividade, que você chama a atenção do leitor nessa parte, indicando aí aspectos que ainda
+não foram explorados, novos caminhos que podem ser sugeridos aí e seguidos com base nos resultados
+que você obteve, na experiência que você obteve, a diferença que eu comentava da conclusão
+com considerações finais e que a conclusão realmente fecha o trabalho e as considerações
+finais não necessariamente você descorre, descreve esses itens todos na forma de considerações,
+parágrafos mais extensos aí sobre o seu trabalho, então a conclusão é muito menor um parágrafo
+dois, geralmente um item de sessão pequeno, conclusivo, como diz o próprio sugério, o próprio nome
+e considerações finais não, eu posso descorrer mais sobre os achados aí do meu trabalho,
+então em resumo pessoal, a gente tinha isso para apresentar, para conversar com vocês,
+os itens do relatório, falamos sobre os elementos textuais de introdução, desenvolvimento,
+conclusão, com enfoque aí no metodologia e resultados e descrevemos aí
+ou menorizadamente tabelas, quadros e figuras, a utilidade desse elemento na construção do seu
+texto e do seu relatório, então espero que com essas orientações também a gente vai formatando
+aí um documento final bem interessante para descrever a sua experiência no relatório,
+no projeto integrado, perdão, através do seu relatório e encerrar aí o seu trabalho de
+conclusão de curso, ou sigam, assistam e leiam as indicações aí do material,
+aqui a gente tem as referências que foram utilizadas e eu agradeço a todos.

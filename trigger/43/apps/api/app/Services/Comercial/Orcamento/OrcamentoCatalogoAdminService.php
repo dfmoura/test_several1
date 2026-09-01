@@ -3,6 +3,7 @@
 namespace App\Services\Comercial\Orcamento;
 
 use App\Models\OrcCatalogoAcabamento;
+use App\Models\OrcCatalogoEstrutura;
 use App\Models\OrcCatalogoFaixaFrete;
 use App\Models\OrcCatalogoHoraMaquina;
 use App\Models\OrcCatalogoMaquina;
@@ -57,6 +58,9 @@ class OrcamentoCatalogoAdminService
             'parametros' => Schema::hasTable('orc_catalogo_parametros')
                 ? $this->scoped(OrcCatalogoParametro::query())->count()
                 : 0,
+            'estruturas' => Schema::hasTable('orc_catalogo_estruturas')
+                ? $this->scoped(OrcCatalogoEstrutura::query())->count()
+                : 0,
             'faixas_frete' => Schema::hasTable('orc_catalogo_faixas_frete')
                 ? $this->scoped(OrcCatalogoFaixaFrete::query())->count()
                 : 0,
@@ -85,6 +89,7 @@ class OrcamentoCatalogoAdminService
             'maquinas' => 0,
             'tarifas' => 0,
             'parametros' => 0,
+            'estruturas' => 0,
             'faixas_frete' => 0,
         ];
         $existentes = [
@@ -94,6 +99,7 @@ class OrcamentoCatalogoAdminService
             'maquinas' => 0,
             'tarifas' => 0,
             'parametros' => 0,
+            'estruturas' => 0,
             'faixas_frete' => 0,
         ];
 
@@ -156,6 +162,28 @@ class OrcamentoCatalogoAdminService
                         'ordem' => $def['ordem'],
                     ]);
                     $criados['parametros']++;
+                }
+            }
+
+            if (Schema::hasTable('orc_catalogo_estruturas')) {
+                foreach ($this->estruturasPayloadFromRaw($raw) as $chave => $payload) {
+                    if ($payload === null || $payload === []) {
+                        continue;
+                    }
+                    $row = $this->scoped(OrcCatalogoEstrutura::query(), $empresaId)->where('chave', $chave)->first();
+                    if ($row) {
+                        $existentes['estruturas']++;
+                        if ($forceOverwrite) {
+                            $row->update(['payload' => $payload]);
+                        }
+                        continue;
+                    }
+                    OrcCatalogoEstrutura::query()->create([
+                        'empresa_id' => $empresaId,
+                        'chave' => $chave,
+                        'payload' => $payload,
+                    ]);
+                    $criados['estruturas']++;
                 }
             }
 
@@ -622,7 +650,67 @@ class OrcamentoCatalogoAdminService
             && Schema::hasTable('orc_catalogo_maquinas')
             && Schema::hasTable('orc_catalogo_hora_maquina')
             && Schema::hasTable('orc_catalogo_parametros')
+            && Schema::hasTable('orc_catalogo_estruturas')
             && Schema::hasTable('orc_catalogo_faixas_frete');
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function listEstruturas(): array
+    {
+        if (! Schema::hasTable('orc_catalogo_estruturas')) {
+            return [];
+        }
+
+        $jsonFallback = $this->estruturasPayloadFromRaw(
+            json_decode((string) file_get_contents(resource_path('data/orcamento/catalog_oficial.json')), true, 512, JSON_THROW_ON_ERROR),
+        );
+
+        $out = [];
+        foreach (OrcCatalogoEstrutura::CHAVES_CONHECIDAS as $chave) {
+            $row = $this->scoped(OrcCatalogoEstrutura::query())->where('chave', $chave)->first();
+            if ($row) {
+                $out[] = $this->estruturaOut($row, 'database');
+            } else {
+                $out[] = [
+                    'chave' => $chave,
+                    'payload' => $jsonFallback[$chave] ?? null,
+                    'fonte' => 'json_fallback',
+                    'updated_at' => null,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /** @param  array<string, mixed>  $data */
+    public function updateEstrutura(string $chave, array $data): array
+    {
+        if (! in_array($chave, OrcCatalogoEstrutura::CHAVES_CONHECIDAS, true)) {
+            throw ValidationException::withMessages(['chave' => ['Estrutura desconhecida.']]);
+        }
+        if (! isset($data['payload']) || ! is_array($data['payload'])) {
+            throw ValidationException::withMessages(['payload' => ['Payload inválido.']]);
+        }
+
+        $payload = $this->validateEstruturaPayload($chave, $data['payload']);
+        $row = $this->scoped(OrcCatalogoEstrutura::query())->where('chave', $chave)->first();
+        $de = $row ? $this->estruturaOut($row, 'database') : null;
+
+        if ($row) {
+            $row->update(['payload' => $payload]);
+        } else {
+            $row = OrcCatalogoEstrutura::query()->create([
+                'empresa_id' => $this->empresaId(),
+                'chave' => $chave,
+                'payload' => $payload,
+            ]);
+        }
+
+        $para = $this->estruturaOut($row->fresh(), 'database');
+        $this->audit->log('orc_catalogo.estrutura.atualizar', 'orc_catalogo_estruturas', $row->id, $de, $para);
+
+        return $para;
     }
 
     /** @return list<array<string, mixed>> */
@@ -1014,5 +1102,118 @@ class OrcamentoCatalogoAdminService
     private function scoped(Builder $query, ?int $empresaId = null): Builder
     {
         return CatalogoOrcEmpresa::apply($query, $empresaId ?? $this->empresaId(), false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return array<string, array<string, mixed>|list<mixed>|null>
+     */
+    private function estruturasPayloadFromRaw(array $raw): array
+    {
+        $tinta = is_array($raw['tinta_matriz'] ?? null)
+            ? OrcamentoCatalogo::normalizeTintaMatrizPayload($raw['tinta_matriz'])
+            : null;
+
+        $perda = is_array($raw['perda_troca_m2_fator'] ?? null)
+            ? OrcamentoCatalogo::normalizePerdaTrocaPayload($raw['perda_troca_m2_fator'])
+            : [];
+
+        $caixa = is_array($raw['caixa_empacotamento'] ?? null)
+            ? OrcamentoCatalogo::normalizeCaixaEmpacotamentoPayload($raw['caixa_empacotamento'])
+            : [];
+
+        return [
+            OrcCatalogoEstrutura::CHAVE_TINTA_MATRIZ => $tinta,
+            OrcCatalogoEstrutura::CHAVE_PERDA_TROCA_M2_FATOR => $perda !== [] ? $perda : null,
+            OrcCatalogoEstrutura::CHAVE_CAIXA_EMPACOTAMENTO => $caixa !== [] ? $caixa : null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function validateEstruturaPayload(string $chave, array $payload): array
+    {
+        return match ($chave) {
+            OrcCatalogoEstrutura::CHAVE_TINTA_MATRIZ => $this->validateTintaMatrizPayload($payload),
+            OrcCatalogoEstrutura::CHAVE_PERDA_TROCA_M2_FATOR => $this->validatePerdaTrocaPayload($payload),
+            OrcCatalogoEstrutura::CHAVE_CAIXA_EMPACOTAMENTO => $this->validateCaixaEmpacotamentoPayload($payload),
+            default => throw ValidationException::withMessages(['chave' => ['Estrutura desconhecida.']]),
+        };
+    }
+
+    /** @param  array<string, mixed>  $payload
+     * @return array{thresholds: list<float>, rates: array<string, list<float>>}
+     */
+    private function validateTintaMatrizPayload(array $payload): array
+    {
+        $normalized = OrcamentoCatalogo::normalizeTintaMatrizPayload($payload);
+        if ($normalized === null) {
+            throw ValidationException::withMessages([
+                'payload' => ['Matriz de tinta inválida: thresholds e rates (1–4) devem ter o mesmo tamanho.'],
+            ]);
+        }
+        foreach ($normalized['thresholds'] as $i => $t) {
+            if ($t < 0) {
+                throw ValidationException::withMessages(['payload' => ["Threshold #{$i} inválido."]]);
+            }
+        }
+        foreach ($normalized['rates'] as $col => $vals) {
+            $colKey = (string) $col;
+            if (! in_array($colKey, ['1', '2', '3', '4'], true)) {
+                throw ValidationException::withMessages(['payload' => ["Coluna de cores inválida: {$colKey}."]]);
+            }
+            foreach ($vals as $rate) {
+                if ($rate < 0) {
+                    throw ValidationException::withMessages(['payload' => ['Tarifa R$/m² não pode ser negativa.']]);
+                }
+            }
+        }
+
+        return $normalized;
+    }
+
+    /** @param  array<string, mixed>  $payload
+     * @return array<string, float>
+     */
+    private function validatePerdaTrocaPayload(array $payload): array
+    {
+        $normalized = OrcamentoCatalogo::normalizePerdaTrocaPayload($payload);
+        if ($normalized === []) {
+            throw ValidationException::withMessages(['payload' => ['Informe ao menos um fator de troca produto.']]);
+        }
+        foreach ($normalized as $cores => $fator) {
+            if ($fator < 0) {
+                throw ValidationException::withMessages(['payload' => ["Fator inválido para {$cores} cores."]]);
+            }
+        }
+
+        return $normalized;
+    }
+
+    /** @param  array<string, mixed>  $payload
+     * @return array<string, array<string, mixed>>
+     */
+    private function validateCaixaEmpacotamentoPayload(array $payload): array
+    {
+        $normalized = OrcamentoCatalogo::normalizeCaixaEmpacotamentoPayload($payload);
+        if ($normalized === []) {
+            throw ValidationException::withMessages(['payload' => ['Informe rolos por caixa para ao menos um tubete.']]);
+        }
+
+        return $normalized;
+    }
+
+    /** @return array<string, mixed> */
+    private function estruturaOut(OrcCatalogoEstrutura $row, string $fonte): array
+    {
+        return [
+            'id' => $row->id,
+            'chave' => $row->chave,
+            'payload' => $row->payload,
+            'fonte' => $fonte,
+            'updated_at' => $row->updated_at?->toISOString(),
+        ];
     }
 }

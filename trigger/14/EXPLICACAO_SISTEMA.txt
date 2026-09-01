@@ -96,13 +96,18 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
     Arquivo: app/license_helpers.py
     - Gera chaves sequenciais: TRIG-2026-0001, TRIG-2026-0002...
     - Preenche defaults ao criar licença
-    - Enriquece dados do pagador via CNPJ
+    - Enriquece pagador: PJ via CNPJ; PF exige dados manuais
+
+4.5b Documentos do pagador
+    Arquivo: app/documents.py
+    - Valida CPF (11) e CNPJ (14) com dígitos verificadores
+    - Classifica tipoPessoa FISICA / JURIDICA para a API Inter
 
 4.6 Consulta CNPJ
     Arquivo: app/cnpj_lookup.py
     - Tenta várias APIs públicas em sequência (BrasilAPI, MinhaReceita,
       OpenCNPJ, CNPJa, CNPJ.ws) com fallback automático
-    - Preenche nome, endereço, cidade, UF e CEP do pagador
+    - Preenche nome, endereço, cidade, UF e CEP do pagador (somente PJ)
 
 
 5. ONDE FICAM OS DADOS
@@ -163,13 +168,15 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
 6.1 PRÉ-CADASTRO DE LICENÇA (ainda NÃO libera o app)
 
     1. Operador abre painel → tabela licenses → Novo
-    2. Informa CNPJ → painel busca dados na Receita (BrasilAPI etc.)
+    2. Escolhe tipo de pagador:
+         - PJ: informa CNPJ → painel busca dados na Receita (BrasilAPI etc.)
+         - PF: informa CPF + nome e endereço completos (sem consulta automática)
     3. Seleciona app_id (mycondominio ou estsankhya)
     4. Painel define automaticamente:
          - license_key = TRIG-ANO-NNNN (sequencial)
-         - implantacao_paga = false
+         - implantacao_paga = false (sempre — pagamento antecipado)
          - ativa = true
-         - valido_ate = hoje + 30 dias
+         - valido_ate = hoje (período só começa após pagamento)
     5. Licença salva no Supabase
     6. App AINDA BLOQUEADO: implantacao_paga=false impede uso
 
@@ -180,7 +187,8 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
          - Licença existe
          - implantacao_paga ainda é false
          - Não há cobrança INITIAL com status EMITIDA em aberto
-         - CNPJ/endereço do pagador estão completos
+         - CPF/CNPJ e endereço do pagador estão completos
+         - Inter recebe tipoPessoa FISICA (11) ou JURIDICA (14)
     3. Valor = valor_implantacao + valor_mensalidade (config Inter, ex: 500+99)
     4. Vencimento = hoje + dias_vencimento (padrão 7 dias)
     5. Emite cobrança na API Inter (boleto + Pix)
@@ -196,8 +204,9 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
       3. BillingService localiza cobrança por codigo_solicitacao ou seu_numero
       4. Atualiza status para PAGA
       5. Chama _renew_license():
-           - implantacao_paga = true (se cobrança INITIAL)
-           - valido_ate estendido +32 dias a partir do fim atual ou hoje
+           - INITIAL: implantacao_paga = true; valido_ate = hoje + 32 dias
+             (período começa no pagamento — não empilha placeholder do cadastro)
+           - MONTHLY: valido_ate +32 dias a partir do fim atual (se futuro) ou hoje
            - ativa = true
       6. Marca license_updated = true na cobrança
 
@@ -231,8 +240,13 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
 7. REGRAS DE NEGÓCIO IMPORTANTES
 --------------------------------------------------------------------------------
 
+  - Modelo prepaid: usar o app exige pagamento confirmado antes
   - Renovação: +32 dias (RENEWAL_DAYS) a cada pagamento confirmado
-  - Pré-cadastro: valido_ate inicial = +30 dias (só placeholder)
+  - Pré-cadastro: implantacao_paga=false; valido_ate=hoje (placeholder)
+  - INITIAL pago: validade = data do pagamento + 32 dias
+  - MONTHLY pago antecipado: empilha sobre valido_ate; atrasado: a partir de hoje
+  - Cortesia: libera app sem cobrança Inter (1–90 dias); define implantacao_paga=true;
+    empilha valido_ate; audita em notas. Conversão depois = Mensalidade
   - Só 1 cobrança EMITIDA por tipo (INITIAL ou MONTHLY) por licença
   - seu_numero: máximo 15 caracteres na Inter
       INITIAL:  I + license_key sem hífens
@@ -253,7 +267,7 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
   Apps         → cadastro de app_id permitidos
   Tabela licenses → CRUD genérico via OpenAPI do Supabase + formulário
                     especial para nova licença (CNPJ, busca automática)
-  Cobranças    → emitir inicial/mensalidade, PDF, Pix, Sync, Cancelar
+  Cobranças    → emitir inicial/mensalidade, cortesia, PDF, Pix, Sync, Cancelar
 
 
 9. API REST DO PAINEL (referência)
@@ -292,6 +306,7 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
     GET       /api/billing/charges
     POST      /api/billing/charges/initial
     POST      /api/billing/charges/monthly
+    POST      /api/billing/licenses/courtesy   ← libera app por X dias (sem Inter)
     POST      /api/billing/charges/{id}/sync
     POST      /api/billing/charges/{id}/cancel
     GET       /api/billing/charges/{id}/pdf
@@ -353,6 +368,7 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
   Pagamentos:  Banco Inter API Cobrança v3 (OAuth mTLS)
   Container:   Docker (Dockerfile + docker-compose.yml)
   CNPJ:        APIs públicas (BrasilAPI, MinhaReceita, OpenCNPJ, etc.)
+  Documentos:  CPF/CNPJ com validação de dígitos (PF e PJ)
 
 
 13. ESTRUTURA DE ARQUIVOS
@@ -365,6 +381,7 @@ NUNCA misture credenciais, certificados ou contas entre esses dois mundos.
   │   ├── inter_client.py      ← cliente HTTP Inter
   │   ├── inter_config.py      ← factory e config Inter
   │   ├── license_helpers.py   ← geração de chaves e defaults
+  │   ├── documents.py         ← validação CPF/CNPJ (PF/PJ)
   │   ├── cnpj_lookup.py       ← consulta CNPJ multi-provider
   │   ├── supabase_client.py   ← cliente REST Supabase
   │   ├── schema.py            ← validação dinâmica via OpenAPI

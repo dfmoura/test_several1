@@ -26,12 +26,26 @@ if ! $COMPOSE ps --status running 2>/dev/null | grep -qE 'erp43_app|app'; then
 fi
 
 echo ""
-echo "== Seed catálogo ORC (parâmetros do motor em todas as EMPs) =="
-$COMPOSE exec -T app php artisan orcamento:ensure-catalogo
+echo "== Sync catálogo ORC a partir do xlsm oficial (rv4) =="
+XLSM_DEFAULT="$ROOT/apps/api/resources/data/orcamento/ORcAMENTO_OFICIAL_rv4.xlsm"
+if [[ -z "${ORC_XLSM:-}" && -f "$XLSM_DEFAULT" ]]; then
+  ORC_XLSM="$XLSM_DEFAULT"
+elif [[ -z "${ORC_XLSM:-}" ]]; then
+  ORC_XLSM="/home/dfmoura/Downloads/ORcAMENTO_OFICIAL_rv4.xlsm"
+fi
+python3 scripts/sync_orcamento_from_xlsm.py --xlsm "$ORC_XLSM"
 
 echo ""
-echo "== Testes regressão motor + catálogo =="
-$COMPOSE exec -T app php vendor/bin/phpunit --filter 'OrcamentoMotorTest|OrcamentoCatalogoTest' || {
+echo "== Seed catálogo ORC (parâmetros do motor em todas as EMPs) =="
+$COMPOSE exec -T app php artisan orcamento:ensure-catalogo --force
+
+echo ""
+echo "== Seed mapa de facas (rv4 → todas as EMPs) =="
+$COMPOSE exec -T app php artisan facas:ensure-mapa --force
+
+echo ""
+echo "== Testes regressão ORC (motor v2 + catálogo + frete + API) =="
+$COMPOSE exec -T app php vendor/bin/phpunit --filter 'Orcamento' || {
   echo "WARN: phpunit falhou — confira o log acima antes de testar na UI."
   exit 1
 }
@@ -42,8 +56,9 @@ make web-build
 
 echo ""
 echo "Pronto para testar:"
-echo "  http://localhost:8043/orcamento-catalogo          (abas Parâmetros · Perdas · Embalagem)"
-echo "  http://localhost:8043/orcamento-catalogo?tab=parametros"
+echo "  http://localhost:8043/orcamento-catalogo?tab=tinta"
+echo "  http://localhost:8043/orcamento-catalogo?tab=perdas"
+echo "  http://localhost:8043/orcamento-catalogo?tab=embalagem"
 echo "  http://localhost:8043/orcamentos/como-calcula"
 echo "  http://localhost:8043/orcamentos/novo             (Calcular → Composição do custo → Como chegou neste valor)"
 echo ""

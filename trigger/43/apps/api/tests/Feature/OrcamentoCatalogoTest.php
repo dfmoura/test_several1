@@ -406,7 +406,7 @@ class OrcamentoCatalogoTest extends TestCase
         $this->asComercial()
             ->getJson('/api/v1/orcamento-catalogo/regras')
             ->assertOk()
-            ->assertJsonPath('data.motor_version', 1)
+            ->assertJsonPath('data.motor_version', 2)
             ->assertJsonFragment(['id' => 'R1_metragem'])
             ->assertJsonFragment(['id' => 'FECHAMENTO']);
 
@@ -444,5 +444,57 @@ class OrcamentoCatalogoTest extends TestCase
         $catB = OrcamentoCatalogo::load(null, $empB->id);
         $this->assertSame(3.0, $catA->setupHoras);
         $this->assertSame(1.0, $catB->setupHoras);
+    }
+
+    public function test_estruturas_rv4_editaveis_e_motor_usa_db(): void
+    {
+        $service = app(OrcamentoCatalogoAdminService::class);
+        $service->seedFromJson(null, false, $this->empresa->id);
+
+        $this->asAdmin()
+            ->getJson('/api/v1/orcamento-catalogo/estruturas')
+            ->assertOk()
+            ->assertJsonFragment(['chave' => 'tinta_matriz'])
+            ->assertJsonFragment(['chave' => 'perda_troca_m2_fator'])
+            ->assertJsonFragment(['chave' => 'caixa_empacotamento']);
+
+        $payloadTinta = [
+            'thresholds' => [20.0, 30.0],
+            'rates' => [
+                '1' => [0.8, 0.7],
+                '2' => [0.9, 0.8],
+                '3' => [1.0, 0.9],
+                '4' => [2.0, 1.6],
+            ],
+        ];
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/estruturas/tinta_matriz', ['payload' => $payloadTinta])
+            ->assertOk()
+            ->assertJsonPath('data.chave', 'tinta_matriz');
+
+        $cat = OrcamentoCatalogo::load(null, $this->empresa->id);
+        $this->assertTrue($cat->usaTintaMatriz());
+        $this->assertSame(0.7, $cat->tintaMatrizRate(25.0, 1));
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/estruturas/perda_troca_m2_fator', [
+                'payload' => ['1' => 0.99, '2' => 1.5],
+            ])
+            ->assertOk();
+
+        $cat2 = OrcamentoCatalogo::load(null, $this->empresa->id);
+        $this->assertSame(0.99, $cat2->perdaTrocaM2Fator(1));
+
+        $this->asAdmin()
+            ->putJson('/api/v1/orcamento-catalogo/estruturas/caixa_empacotamento', [
+                'payload' => [
+                    '3"' => ['medida' => '500x300', 'rolos_por_caixa' => 10, 'caixa_id' => 6],
+                ],
+            ])
+            ->assertOk();
+
+        $cat3 = OrcamentoCatalogo::load(null, $this->empresa->id);
+        $this->assertSame(10, $cat3->rolosPorCaixa('3"'));
     }
 }

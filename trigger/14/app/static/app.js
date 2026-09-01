@@ -50,7 +50,34 @@ const state = {
   offset: 0,
   editingId: null,
   apps: [],
+  selectedLicenseKey: "",
+  selectedLicenseName: "",
+  modalOpener: null,
+  scheduleItems: [],
+  billingCatalogValor: null,
+  billingValorLocked: false,
 };
+
+const LICENSE_LIST_COLUMNS = [
+  "license_key",
+  "condominio_nome",
+  "app_id",
+  "valido_ate",
+  "implantacao_paga",
+  "ativa",
+];
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function smoothScrollIntoView(el) {
+  if (!el) return;
+  el.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "nearest",
+  });
+}
 
 function setStatus(el, msg, ok = true) {
   el.textContent = msg;
@@ -88,13 +115,53 @@ function getConfigPayload() {
   };
 }
 
-function getTable() {
-  const manual = $("table-name").value.trim();
-  const selected = $("table-select").value.trim();
-  const table = manual || selected;
-  if (!table) throw new Error("Selecione ou informe uma tabela.");
-  return table;
+function isLikelyTableName(name) {
+  // Identificadores SQL/Postgres: sem hífen (evita confundir com TRIG-2026-0001).
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(String(name || "").trim());
 }
+
+function getTable() {
+  const advanced = $("advanced-tables");
+  if (!advanced?.open) {
+    return state.table || "licenses";
+  }
+
+  const selected = ($("table-select")?.value || "").trim();
+  const manual = ($("table-name")?.value || "").trim();
+
+  // Preferir o select. Só usar "nome manual" se for um identificador de tabela válido.
+  if (manual && isLikelyTableName(manual)) {
+    return manual;
+  }
+  if (manual && !isLikelyTableName(manual)) {
+    if (selected) {
+      $("table-name").value = selected;
+      return selected;
+    }
+    throw new Error(
+      `"${manual}" não é nome de tabela. Escolha na lista ou digite ex.: billing_charges. Para uma licença, use Cobrar na lista/agenda.`,
+    );
+  }
+  return selected || state.table || "licenses";
+}
+
+const TABLE_LABELS = {
+  licenses: "Licenças",
+  billing_charges: "Cobranças (histórico)",
+};
+
+const CHARGE_TYPE_LABELS = {
+  INITIAL: "Inicial",
+  MONTHLY: "Mensalidade",
+};
+
+const CHARGE_STATUS_LABELS = {
+  EMITIDA: "Emitida",
+  PAGA: "Paga",
+  CANCELADA: "Cancelada",
+  EXPIRADA: "Expirada",
+  ATRASADA: "Atrasada",
+};
 
 function displayValue(value) {
   if (value === null || value === undefined) return "—";
@@ -123,7 +190,7 @@ function tableHasAppId() {
 }
 
 function populateAppSelects(selected = "") {
-  const selects = [$("default-app-select")];
+  const selects = [];
   $("form-fields")
     ?.querySelectorAll("select[data-column='app_id']")
     .forEach((el) => selects.push(el));
@@ -146,12 +213,8 @@ function populateAppSelects(selected = "") {
 }
 
 function updateAppToolbar() {
-  const field = $("toolbar-app-field");
-  const hasAppId = tableHasAppId();
-  field.hidden = !hasAppId;
-  if (hasAppId) {
-    populateAppSelects($("default-app-select").value);
-  }
+  // App fica só no modal de criação/edição.
+  populateAppSelects();
 }
 
 async function loadApps() {
@@ -159,7 +222,6 @@ async function loadApps() {
   state.apps = normalizeAppsList(data.apps);
   renderAppsList();
   populateAppSelects();
-  updateAppToolbar();
 }
 
 function renderAppsList() {
@@ -292,11 +354,15 @@ const LICENSE_HIDDEN_ON_CREATE = new Set([
   "updated_at",
 ]);
 
+/** Liberação só após pagamento (Sync/webhook) — não editar à mão no formulário. */
+const LICENSE_PAYMENT_LOCKED_ON_EDIT = new Set(["implantacao_paga", "valido_ate"]);
+
 const LICENSE_FIELD_LABELS = {
+  id: "ID",
   license_key: "Chave de licença",
   condominio_nome: "Nome do condomínio / cliente",
-  cnpj: "CNPJ",
-  pagador_nome: "Nome do pagador (razão social)",
+  cnpj: "CPF / CNPJ",
+  pagador_nome: "Nome do pagador",
   pagador_endereco: "Endereço do pagador",
   pagador_cidade: "Cidade",
   pagador_uf: "UF",
@@ -309,28 +375,129 @@ const LICENSE_FIELD_LABELS = {
   notas: "Notas internas",
   device_id: "Aparelho vinculado",
   ativada_em: "Ativada no app em",
+  created_at: "Criado em",
+  updated_at: "Atualizado em",
 };
 
 const LICENSE_FIELD_HINTS = {
   license_key: "Gerada automaticamente (ex.: TRIG-2026-0001). O cliente usará no app.",
-  cnpj: "14 dígitos. Ao buscar, preenche nome e endereço via Receita Federal (BrasilAPI).",
-  pagador_nome: "Preenchido pela consulta CNPJ. Usado no boleto/Pix do Inter.",
+  cnpj: "CPF (11) ou CNPJ (14). PJ: Buscar CNPJ preenche endereço. PF: preencha nome e endereço manualmente.",
+  pagador_nome: "Razão social (PJ) ou nome completo (PF). Usado no boleto/Pix do Inter.",
   pagador_endereco: "Logradouro do pagador na cobrança.",
   pagador_cidade: "Cidade do pagador.",
   pagador_uf: "UF com 2 letras.",
   pagador_cep: "Somente números (8 dígitos).",
+  implantacao_paga:
+    "Só muda após pagamento (Sync/webhook) ou Cortesia. App bloqueado enquanto for falso.",
+  valido_ate:
+    "Prepaid: +32 dias por pagamento, ou dias de Cortesia. Não alterar manualmente.",
+  ativa: "Desligue para suspender o cliente. Não libera o app se a implantação ainda não foi paga.",
   device_id: "Preenchido quando o cliente ativa o app no celular.",
   ativada_em: "Preenchido quando o cliente ativa o app no celular.",
 };
 
-function normalizeCnpjDigits(value) {
+function normalizeDocDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+/** @deprecated use normalizeDocDigits */
+function normalizeCnpjDigits(value) {
+  return normalizeDocDigits(value);
+}
+
+function detectTipoPessoa(raw) {
+  const digits = normalizeDocDigits(raw);
+  if (digits.length === 11) return "FISICA";
+  if (digits.length === 14) return "JURIDICA";
+  return null;
+}
+
+function getFormTipoPessoa() {
+  const checked = $("form-fields")?.querySelector('input[name="tipo_pessoa"]:checked');
+  return checked?.value === "FISICA" ? "FISICA" : "JURIDICA";
+}
+
+function setFormTipoPessoa(tipo) {
+  const value = tipo === "FISICA" ? "FISICA" : "JURIDICA";
+  const radio = $("form-fields")?.querySelector(`input[name="tipo_pessoa"][value="${value}"]`);
+  if (radio) radio.checked = true;
+  syncTipoPessoaUi();
+}
+
+function syncTipoPessoaUi() {
+  const tipo = getFormTipoPessoa();
+  const isPf = tipo === "FISICA";
+  const lookupBtn = $("form-fields")?.querySelector("[data-cnpj-lookup]");
+  if (lookupBtn) {
+    lookupBtn.hidden = isPf;
+    lookupBtn.disabled = isPf;
+  }
+  const docInput = $("form-fields")?.querySelector('[data-column="cnpj"]');
+  if (docInput) {
+    docInput.placeholder = isPf ? "00000000000" : "00000000000000";
+    docInput.maxLength = isPf ? 14 : 18;
+  }
+  const hint = $("form-fields")?.querySelector("[data-tipo-pessoa-hint]");
+  if (hint) {
+    hint.textContent = isPf
+      ? "Pessoa física: preencha nome completo e endereço do pagador (não há consulta automática de CPF)."
+      : "Pessoa jurídica: use Buscar CNPJ para preencher razão social e endereço pela Receita.";
+  }
+  const nomeLabel = $("form-fields")?.querySelector('[data-column="pagador_nome"]')
+    ?.closest(".field")
+    ?.querySelector(".field-label");
+  if (nomeLabel) {
+    nomeLabel.textContent = isPf ? "Nome do pagador (completo) *" : "Nome do pagador (razão social)";
+  }
+}
+
+function buildTipoPessoaField(initialTipo) {
+  const wrap = document.createElement("div");
+  wrap.className = "field tipo-pessoa-field";
+  const title = document.createElement("span");
+  title.className = "field-label";
+  title.textContent = "Tipo de pagador";
+  wrap.appendChild(title);
+
+  const row = document.createElement("div");
+  row.className = "tipo-pessoa-row";
+  [
+    { value: "JURIDICA", label: "Pessoa jurídica (CNPJ)" },
+    { value: "FISICA", label: "Pessoa física (CPF)" },
+  ].forEach(({ value, label }) => {
+    const lab = document.createElement("label");
+    lab.className = "tipo-pessoa-option";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "tipo_pessoa";
+    radio.value = value;
+    radio.checked = value === initialTipo;
+    radio.addEventListener("change", () => {
+      syncTipoPessoaUi();
+      const doc = $("form-fields")?.querySelector('[data-column="cnpj"]');
+      if (doc && !doc.disabled) {
+        const digits = normalizeDocDigits(doc.value);
+        if (value === "FISICA" && digits.length === 14) doc.value = "";
+        if (value === "JURIDICA" && digits.length === 11) doc.value = "";
+      }
+    });
+    lab.appendChild(radio);
+    lab.appendChild(document.createTextNode(label));
+    row.appendChild(lab);
+  });
+  wrap.appendChild(row);
+
+  const hint = document.createElement("small");
+  hint.className = "field-hint";
+  hint.dataset.tipoPessoaHint = "1";
+  wrap.appendChild(hint);
+  return wrap;
+}
+
 async function lookupCnpjAndFill(rawCnpj) {
-  const digits = normalizeCnpjDigits(rawCnpj);
+  const digits = normalizeDocDigits(rawCnpj);
   if (digits.length !== 14) {
-    setStatus($("form-status"), "Informe um CNPJ com 14 dígitos.", false);
+    setStatus($("form-status"), "Informe um CNPJ com 14 dígitos para buscar na Receita.", false);
     return;
   }
   setStatus($("form-status"), "Consultando CNPJ na Receita…");
@@ -350,6 +517,7 @@ async function lookupCnpjAndFill(rawCnpj) {
     if (input.dataset.inputType === "boolean") return;
     input.value = map[col];
   });
+  setFormTipoPessoa("JURIDICA");
   setStatus($("form-status"), `CNPJ OK: ${data.razao_social || data.pagador_nome}`);
 }
 
@@ -414,8 +582,11 @@ function buildField(col, value) {
   let input;
   const type = col.input_type;
   const licenseKeyLocked = isLicensesTable() && col.name === "license_key" && Boolean(state.editingId);
+  const paymentLocked =
+    isLicensesTable() && Boolean(state.editingId) && LICENSE_PAYMENT_LOCKED_ON_EDIT.has(col.name);
   const disabled =
     licenseKeyLocked ||
+    paymentLocked ||
     (col.read_only && (state.editingId ? ["id", "created_at"].includes(col.name) : col.name === "id"));
 
   if (type === "boolean") {
@@ -475,6 +646,7 @@ function buildField(col, value) {
     const lookupBtn = document.createElement("button");
     lookupBtn.type = "button";
     lookupBtn.textContent = "Buscar CNPJ";
+    lookupBtn.dataset.cnpjLookup = "1";
     lookupBtn.disabled = disabled;
     lookupBtn.addEventListener("click", async () => {
       try {
@@ -483,8 +655,13 @@ function buildField(col, value) {
         setStatus($("form-status"), err.message, false);
       }
     });
+    input.addEventListener("input", () => {
+      const tipo = detectTipoPessoa(input.value);
+      if (tipo) setFormTipoPessoa(tipo);
+    });
     input.addEventListener("blur", () => {
-      if (normalizeCnpjDigits(input.value).length === 14) {
+      const digits = normalizeDocDigits(input.value);
+      if (digits.length === 14 && getFormTipoPessoa() === "JURIDICA") {
         lookupCnpjAndFill(input.value).catch((err) => {
           setStatus($("form-status"), err.message, false);
         });
@@ -611,7 +788,6 @@ function setInterPanelVisible(visible) {
   $("inter-section").hidden = !visible;
   const btn = $("btn-toggle-inter");
   btn.setAttribute("aria-expanded", String(visible));
-  btn.textContent = visible ? "Ocultar Inter" : "Inter";
   updateSidebarVisibility();
 }
 
@@ -619,7 +795,6 @@ function setAppsPanelVisible(visible) {
   $("apps-section").hidden = !visible;
   const btn = $("btn-toggle-apps");
   btn.setAttribute("aria-expanded", String(visible));
-  btn.textContent = visible ? "Ocultar apps" : "Apps";
   updateSidebarVisibility();
 }
 
@@ -627,8 +802,111 @@ function setConfigPanelVisible(visible) {
   $("config-section").hidden = !visible;
   const btn = $("btn-toggle-config");
   btn.setAttribute("aria-expanded", String(visible));
-  btn.textContent = visible ? "Ocultar credenciais" : "Credenciais";
   updateSidebarVisibility();
+}
+
+function columnLabel(colName) {
+  if (isLicensesTable() && LICENSE_FIELD_LABELS[colName]) {
+    return LICENSE_FIELD_LABELS[colName];
+  }
+  return colName;
+}
+
+function updateWorkChrome() {
+  const licenses = isLicensesTable();
+  const btnNew = $("btn-new");
+  const dataTitle = $("data-panel-title");
+  const dataKicker = $("data-panel-kicker");
+  const dataHint = $("data-panel-hint");
+  const caption = $("data-table-caption");
+  const workIntro = document.querySelector(".work-intro");
+
+  if (btnNew) btnNew.textContent = licenses ? "Nova licença" : "Novo";
+  if (dataTitle) {
+    dataTitle.textContent = licenses
+      ? "Licenças"
+      : TABLE_LABELS[state.table] || state.table || "Dados";
+  }
+  if (dataKicker) {
+    dataKicker.textContent = licenses ? "Cadastrar" : "Consulta avançada";
+  }
+  if (dataHint) {
+    dataHint.innerHTML = licenses
+      ? "Cadastro e status de cada cliente. Use <strong>Cobrar</strong> na linha para selecionar e emitir."
+      : "Visualização direta da tabela no Supabase. Para cobrança de licenças, volte à tabela Licenças.";
+  }
+  if (caption) {
+    caption.textContent = licenses
+      ? "Lista de licenças"
+      : `Registros da tabela ${state.table || ""}`;
+  }
+  if (workIntro) workIntro.hidden = !licenses;
+}
+
+function formatDisplayDate(value) {
+  if (!value) return "—";
+  const raw = String(value).slice(0, 10);
+  const [y, m, d] = raw.split("-");
+  if (!y || !m || !d) return String(value);
+  return `${d}/${m}/${y}`;
+}
+
+function listColumns() {
+  const all = state.schema?.columns?.map((c) => c.name) || Object.keys(state.rows[0] || {});
+  if (!isLicensesTable()) return all;
+  const present = new Set(all);
+  return LICENSE_LIST_COLUMNS.filter((name) => present.has(name));
+}
+
+function updateLicenseSelectionUI() {
+  const label = $("billing-selected-label");
+  const title = $("billing-panel-title");
+  const key = state.selectedLicenseKey;
+  const name = state.selectedLicenseName;
+
+  if (label) {
+    if (!key) {
+      label.textContent = "Nenhuma — use Cobrar na lista ou na agenda";
+    } else if (name) {
+      label.textContent = `${key} — ${name}`;
+    } else {
+      label.textContent = key;
+    }
+  }
+  if (title) {
+    if (!key) {
+      title.textContent = "Cobranças da licença selecionada";
+    } else if (name) {
+      title.textContent = `Cobranças de ${key} — ${name}`;
+    } else {
+      title.textContent = `Cobranças de ${key}`;
+    }
+  }
+
+  document.querySelectorAll("#data-table tbody tr[aria-selected]").forEach((tr) => {
+    const selected = tr.dataset.licenseKey === key;
+    tr.setAttribute("aria-selected", selected ? "true" : "false");
+    tr.classList.toggle("row-selected", selected);
+  });
+}
+
+function selectLicense(licenseKey, licenseName = "", { scroll = true } = {}) {
+  const key = String(licenseKey || "").trim().toUpperCase();
+  state.selectedLicenseKey = key;
+  state.selectedLicenseName = String(licenseName || "").trim();
+  if (key) {
+    $("billing-license-key").value = key;
+    if (!state.selectedLicenseName) {
+      const row = state.rows.find((r) => String(r.license_key || "").toUpperCase() === key);
+      if (row?.condominio_nome) state.selectedLicenseName = row.condominio_nome;
+    }
+  }
+  updateLicenseSelectionUI();
+  syncBillingValorField({ force: true });
+  loadBillingCharges();
+  if (scroll && key) {
+    smoothScrollIntoView($("billing-panel"));
+  }
 }
 
 function setEmptyState(message) {
@@ -645,34 +923,59 @@ function renderTable() {
   const tbody = table.querySelector("tbody");
   thead.innerHTML = "";
   tbody.innerHTML = "";
+  updateWorkChrome();
 
   if (!state.rows.length) {
-    setEmptyState(`Nenhum registro em <strong>${state.table}</strong>. Clique em <strong>Novo</strong> para criar.`);
+    const emptyMsg = isLicensesTable()
+      ? "Nenhuma licença cadastrada. Clique em <strong>Nova licença</strong> para o primeiro cliente."
+      : `Nenhum registro em <strong>${state.table}</strong>. Clique em <strong>Novo</strong> para criar.`;
+    setEmptyState(emptyMsg);
     return;
   }
 
   $("empty-state").hidden = true;
 
-  const columns = state.schema?.columns?.map((c) => c.name) || Object.keys(state.rows[0]);
+  const columns = listColumns();
   const pk = state.schema?.primary_key || "id";
 
   const headRow = document.createElement("tr");
   columns.forEach((col) => {
     const th = document.createElement("th");
-    th.textContent = col;
+    th.scope = "col";
+    th.textContent = columnLabel(col);
+    th.title = col;
     headRow.appendChild(th);
   });
   const actionTh = document.createElement("th");
+  actionTh.scope = "col";
   actionTh.textContent = "Ações";
   headRow.appendChild(actionTh);
   thead.appendChild(headRow);
 
   state.rows.forEach((row) => {
     const tr = document.createElement("tr");
+    const licenseKey = row.license_key ? String(row.license_key) : "";
+    if (isLicensesTable() && licenseKey) {
+      tr.dataset.licenseKey = licenseKey.toUpperCase();
+      tr.setAttribute("aria-selected", "false");
+      tr.tabIndex = 0;
+      tr.addEventListener("click", (event) => {
+        if (event.target.closest("button")) return;
+        selectLicense(licenseKey, row.condominio_nome || "");
+      });
+      tr.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        selectLicense(licenseKey, row.condominio_nome || "");
+      });
+    }
+
     columns.forEach((col) => {
       const td = document.createElement("td");
-      td.textContent = displayValue(row[col]);
-      td.title = displayValue(row[col]);
+      let text = displayValue(row[col]);
+      if (col === "valido_ate" && row[col]) text = formatDisplayDate(row[col]);
+      td.textContent = text;
+      td.title = text;
       tr.appendChild(td);
     });
     const actions = document.createElement("td");
@@ -680,15 +983,18 @@ function renderTable() {
     const editBtn = document.createElement("button");
     editBtn.type = "button";
     editBtn.textContent = "Editar";
+    if (licenseKey) editBtn.setAttribute("aria-label", `Editar ${licenseKey}`);
     editBtn.addEventListener("click", () => openModal("edit", row[pk], row));
     actions.appendChild(editBtn);
-    if (isLicensesTable() && row.license_key) {
+    if (isLicensesTable() && licenseKey) {
       const billBtn = document.createElement("button");
       billBtn.type = "button";
       billBtn.textContent = "Cobrar";
+      billBtn.setAttribute("aria-label", `Cobrar ${licenseKey}`);
+      billBtn.title = `Selecionar ${licenseKey} para cobrança`;
       billBtn.addEventListener("click", () => {
-        $("billing-license-key").value = row.license_key;
-        loadBillingCharges();
+        selectLicense(licenseKey, row.condominio_nome || "");
+        setStatus($("crud-status"), `Licença ${licenseKey} selecionada para cobrança.`);
       });
       actions.appendChild(billBtn);
     }
@@ -697,6 +1003,7 @@ function renderTable() {
   });
 
   wrap.hidden = false;
+  updateLicenseSelectionUI();
 }
 
 function renderPagination() {
@@ -715,7 +1022,12 @@ function renderPagination() {
 
 async function openModal(mode, id = null, row = {}) {
   state.editingId = mode === "edit" ? id : null;
-  if (mode === "edit") {
+  state.modalOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  if (mode === "edit" && isLicensesTable()) {
+    $("modal-title").textContent = row.license_key
+      ? `Editar licença ${row.license_key}`
+      : `Editar licença #${id}`;
+  } else if (mode === "edit") {
     $("modal-title").textContent = `Editar #${id}`;
   } else if (isLicensesTable()) {
     $("modal-title").textContent = "Nova licença (pré-cadastro)";
@@ -726,10 +1038,6 @@ async function openModal(mode, id = null, row = {}) {
   $("form-status").textContent = "";
 
   const draft = { ...row };
-  if (mode === "create" && tableHasAppId() && !draft.app_id) {
-    const defaultApp = $("default-app-select").value;
-    if (defaultApp) draft.app_id = defaultApp;
-  }
   if (mode === "create" && !isLicensesTable() && !draft.ativada_em) {
     draft.ativada_em = nowAtivadaEm();
   }
@@ -744,8 +1052,8 @@ async function openModal(mode, id = null, row = {}) {
     intro.className = "form-intro";
     intro.id = "license-create-intro";
     const pagadorHint = schemaHasPagadorColumns()
-      ? "Busque o CNPJ para preencher o endereço do pagador."
-      : "Informe o CNPJ (endereço do pagador é buscado automaticamente na cobrança).";
+      ? "Escolha PF ou PJ. CNPJ busca endereço na Receita; CPF exige nome e endereço manuais."
+      : "Informe CPF ou CNPJ do pagador. Endereço incompleto é resolvido na cobrança (PJ) ou deve estar na licença (PF).";
     intro.textContent = `Pré-cadastro: ${pagadorHint} A chave é gerada ao salvar.`;
     fields.appendChild(intro);
     try {
@@ -755,39 +1063,91 @@ async function openModal(mode, id = null, row = {}) {
       // Preview opcional; o backend gera ao salvar.
     }
   }
+  if (isLicensesTable()) {
+    const detected = detectTipoPessoa(draft.cnpj) || "JURIDICA";
+    fields.appendChild(buildTipoPessoaField(detected));
+  }
   formColumns(mode).forEach((col) => {
     fields.appendChild(buildField(col, draft[col.name]));
   });
+  if (isLicensesTable()) {
+    syncTipoPessoaUi();
+  }
 
   $("record-modal").showModal();
+}
+
+function restoreModalFocus() {
+  const opener = state.modalOpener;
+  state.modalOpener = null;
+  if (opener && document.contains(opener) && typeof opener.focus === "function") {
+    opener.focus();
+  }
 }
 
 async function loadTables() {
   try {
     const { tables } = await api("/api/tables");
     const select = $("table-select");
-    const current = select.value;
-    select.innerHTML = '<option value="">Selecione uma tabela</option>';
-    tables.forEach((name) => {
+    const current = select.value || "licenses";
+    select.innerHTML = "";
+    const preferred = ["licenses", "billing_charges"];
+    const ordered = [
+      ...preferred.filter((name) => tables.includes(name)),
+      ...tables.filter((name) => !preferred.includes(name)),
+    ];
+    ordered.forEach((name) => {
       const opt = document.createElement("option");
       opt.value = name;
-      opt.textContent = name;
+      opt.textContent = TABLE_LABELS[name] || name;
       select.appendChild(opt);
     });
-    if (current) select.value = current;
+    if (current && [...select.options].some((o) => o.value === current)) {
+      select.value = current;
+    } else if ([...select.options].some((o) => o.value === "licenses")) {
+      select.value = "licenses";
+    }
+    if (!$("table-name").value.trim()) {
+      $("table-name").value = select.value;
+    }
   } catch {
     // credenciais ainda não configuradas
   }
 }
 
+async function tryOpenLicensesWorkspace() {
+  const select = $("table-select");
+  const hasLicenses = [...select.options].some((o) => o.value === "licenses");
+  if (!hasLicenses) {
+    setStatus(
+      $("crud-status"),
+      "Supabase conectado, mas a tabela licenses não foi encontrada. Verifique as migrations.",
+      false,
+    );
+    return;
+  }
+  select.value = "licenses";
+  $("table-name").value = "licenses";
+  state.offset = 0;
+  await loadData();
+}
+
 async function loadData() {
-  state.table = getTable();
-  $("table-name").value = state.table;
-  $("table-select").value = state.table;
+  const table = getTable();
+  if (!isLikelyTableName(table)) {
+    throw new Error(
+      `"${table}" não é nome de tabela. Escolha Licenças ou billing_charges. Para uma licença, use Cobrar.`,
+    );
+  }
 
   const data = await api(
-    `/api/tables/${encodeURIComponent(state.table)}?limit=${state.limit}&offset=${state.offset}`
+    `/api/tables/${encodeURIComponent(table)}?limit=${state.limit}&offset=${state.offset}`
   );
+  state.table = table;
+  $("table-name").value = table;
+  if ([...$("table-select").options].some((o) => o.value === table)) {
+    $("table-select").value = table;
+  }
   state.schema = data.schema;
   state.rows = data.rows;
   state.total = data.total;
@@ -795,7 +1155,9 @@ async function loadData() {
   renderPagination();
   updateAppToolbar();
   updateBillingPanel();
-  setStatus($("crud-status"), `${data.rows.length} de ${data.total} registro(s) em "${state.table}".`);
+  updateWorkChrome();
+  const label = TABLE_LABELS[state.table] || state.table;
+  setStatus($("crud-status"), `${data.rows.length} de ${data.total} registro(s) · ${label}.`);
 }
 
 async function saveRecord() {
@@ -809,7 +1171,7 @@ async function saveRecord() {
     });
     const created = result.rows?.[0];
     if (isLicensesTable() && created?.license_key) {
-      $("billing-license-key").value = created.license_key;
+      selectLicense(created.license_key, created.condominio_nome || "", { scroll: false });
       setStatus($("crud-status"), `Licença criada: ${created.license_key}. Emita a cobrança inicial.`);
     } else {
       setStatus($("crud-status"), "Registro criado.");
@@ -845,12 +1207,32 @@ async function loadConfig() {
     const config = await api("/api/config");
     if (config.configured) {
       $("supabase-url").value = config.url;
-      setStatus($("config-status"), "Credenciais salvas. Carregue uma tabela para começar.");
+      setStatus($("config-status"), "Supabase conectado. Carregando licenças…");
       setConfigPanelVisible(false);
       await loadTables();
+      try {
+        await tryOpenLicensesWorkspace();
+      } catch (err) {
+        setStatus($("crud-status"), err.message, false);
+        setConfigPanelVisible(true);
+        setStatus(
+          $("config-status"),
+          "Não foi possível carregar os dados. Confira a Service Role Key e clique em Salvar.",
+          false,
+        );
+      }
+    } else {
+      if (config.url) $("supabase-url").value = config.url;
+      setStatus(
+        $("config-status"),
+        "Informe a Service Role Key e clique em Salvar para continuar.",
+        false,
+      );
+      setConfigPanelVisible(true);
     }
   } catch (err) {
     setStatus($("config-status"), err.message, false);
+    setConfigPanelVisible(true);
   }
 }
 
@@ -882,6 +1264,12 @@ $("btn-save-config").addEventListener("click", async () => {
     await api("/api/config", { method: "POST", body: JSON.stringify(getConfigPayload()) });
     setStatus($("config-status"), "Credenciais salvas.");
     await loadTables();
+    try {
+      await tryOpenLicensesWorkspace();
+      setConfigPanelVisible(false);
+    } catch (err) {
+      setStatus($("crud-status"), err.message, false);
+    }
   } catch (err) {
     setStatus($("config-status"), err.message, false);
   }
@@ -889,7 +1277,28 @@ $("btn-save-config").addEventListener("click", async () => {
 
 $("btn-load").addEventListener("click", async () => {
   try {
+    const advanced = $("advanced-tables");
+    if (advanced && !advanced.open) advanced.open = true;
+    const selected = ($("table-select")?.value || "").trim();
+    const manual = ($("table-name")?.value || "").trim();
+    if (manual && !isLikelyTableName(manual) && selected) {
+      $("table-name").value = selected;
+    }
     state.offset = 0;
+    await loadData();
+  } catch (err) {
+    setStatus($("crud-status"), err.message, false);
+  }
+});
+
+$("btn-refresh").addEventListener("click", async () => {
+  try {
+    state.offset = 0;
+    if (!state.table || !isLikelyTableName(state.table)) {
+      state.table = "licenses";
+      $("table-select").value = "licenses";
+      $("table-name").value = "licenses";
+    }
     await loadData();
   } catch (err) {
     setStatus($("crud-status"), err.message, false);
@@ -899,16 +1308,15 @@ $("btn-load").addEventListener("click", async () => {
 $("btn-new").addEventListener("click", async () => {
   try {
     await loadApps();
-    if (!state.schema || state.table !== getTable()) {
-      state.table = getTable();
+    const table = state.table || "licenses";
+    if (!state.schema || state.table !== table) {
+      state.table = table;
       const schema = await api(`/api/tables/${encodeURIComponent(state.table)}/schema`);
       state.schema = schema;
-      updateAppToolbar();
     }
-    if (tableHasAppId() && !$("default-app-select").value) {
-      setStatus($("crud-status"), "Selecione o app antes de criar o registro.", false);
-      $("toolbar-app-field").hidden = false;
-      $("default-app-select").focus();
+    if (tableHasAppId() && !appIdList().length) {
+      setStatus($("crud-status"), "Cadastre um app em Apps e preços antes de criar a licença.", false);
+      openSidebarPanel("apps");
       return;
     }
     openModal("create");
@@ -973,12 +1381,146 @@ $("btn-delete-modal").addEventListener("click", async () => {
 
 $("btn-close-modal").addEventListener("click", () => $("record-modal").close());
 
+$("record-modal").addEventListener("close", () => {
+  restoreModalFocus();
+});
+
 $("table-select").addEventListener("change", () => {
   $("table-name").value = $("table-select").value;
 });
 
+$("billing-license-key").addEventListener("change", () => {
+  const key = $("billing-license-key").value.trim();
+  if (!key) {
+    state.selectedLicenseKey = "";
+    state.selectedLicenseName = "";
+    updateLicenseSelectionUI();
+    syncBillingValorField({ force: true });
+    return;
+  }
+  selectLicense(key, "", { scroll: false });
+});
+
 function isLicensesTable() {
   return state.table?.toLowerCase() === "licenses";
+}
+
+function findAppPricing(appId) {
+  const id = String(appId || "").trim().toLowerCase();
+  if (!id) return null;
+  return state.apps.find((app) => app.app_id === id) || null;
+}
+
+function findScheduleItem(licenseKey) {
+  const key = String(licenseKey || "").trim().toUpperCase();
+  if (!key) return null;
+  return (state.scheduleItems || []).find(
+    (item) => String(item.license_key || "").toUpperCase() === key,
+  ) || null;
+}
+
+function catalogValorForLicense(licenseKey) {
+  const key = String(licenseKey || "").trim().toUpperCase();
+  if (!key) return null;
+  const schedule = findScheduleItem(key);
+  if (schedule?.estimated_value != null && !schedule.open_charge) {
+    return Number(schedule.estimated_value);
+  }
+  const row = state.rows.find((r) => String(r.license_key || "").toUpperCase() === key);
+  if (!row) return schedule?.estimated_value != null ? Number(schedule.estimated_value) : null;
+  const pricing = findAppPricing(row.app_id);
+  if (!pricing) return schedule?.estimated_value != null ? Number(schedule.estimated_value) : null;
+  if (!row.implantacao_paga) {
+    return Math.round((Number(pricing.valor_implantacao) + Number(pricing.valor_mensalidade)) * 100) / 100;
+  }
+  return Math.round(Number(pricing.valor_mensalidade) * 100) / 100;
+}
+
+function formatMoneyInput(value) {
+  if (value == null || Number.isNaN(Number(value))) return "";
+  return Number(value).toFixed(2);
+}
+
+function syncBillingValorField({ force = false } = {}) {
+  const input = $("billing-valor");
+  const hint = $("billing-valor-hint");
+  const resetBtn = $("btn-billing-valor-reset");
+  if (!input) return;
+
+  const key = getBillingLicenseKey();
+  const schedule = findScheduleItem(key);
+  const openCharge = schedule?.open_charge;
+  const previousCatalog = state.billingCatalogValor;
+  const catalog = catalogValorForLicense(key);
+  const currentRaw = String(input.value || "").trim();
+  const matchesPreviousCatalog =
+    previousCatalog != null && currentRaw === formatMoneyInput(previousCatalog);
+  state.billingCatalogValor = catalog;
+
+  if (openCharge?.valor_nominal != null) {
+    state.billingValorLocked = true;
+    input.value = formatMoneyInput(openCharge.valor_nominal);
+    input.readOnly = true;
+    input.title = "Título já emitido no Inter — valor fixo. Cancele e reemita para alterar.";
+    if (resetBtn) resetBtn.disabled = true;
+    if (hint) {
+      hint.hidden = false;
+      hint.textContent =
+        "Há cobrança EMITIDA em aberto: valor bloqueado. Use Sync/Cancelar na lista de cobranças.";
+    }
+    return;
+  }
+
+  state.billingValorLocked = false;
+  input.readOnly = false;
+  input.title = "Valor desta emissão. Editável enquanto o título ainda não foi emitido.";
+  if (resetBtn) resetBtn.disabled = !key || catalog == null;
+  // Preserva edição manual no refresh; force ao trocar de licença.
+  if (catalog != null && (force || !currentRaw || matchesPreviousCatalog)) {
+    input.value = formatMoneyInput(catalog);
+  } else if (!key) {
+    input.value = "";
+  }
+  if (hint) {
+    if (!key) {
+      hint.hidden = true;
+      hint.textContent = "";
+    } else if (catalog != null) {
+      hint.hidden = false;
+      hint.textContent = `Sugestão do app: R$ ${formatMoneyInput(catalog)}. Altere se esta emissão for diferente.`;
+    } else {
+      hint.hidden = false;
+      hint.textContent = "Sem preço do app — informe o valor ou cadastre o app em Apps e preços.";
+    }
+  }
+}
+
+function readBillingValorForEmit() {
+  if (state.billingValorLocked) {
+    throw new Error(
+      "Já existe título emitido em aberto. Cancele no Inter (ou aguarde o pagamento) antes de emitir outro.",
+    );
+  }
+  const raw = String($("billing-valor")?.value || "").trim().replace(",", ".");
+  if (!raw) return null;
+  const valor = Number(raw);
+  if (!Number.isFinite(valor) || valor <= 0) {
+    throw new Error("Informe um valor válido maior que zero.");
+  }
+  return Math.round(valor * 100) / 100;
+}
+
+function resetBillingValorToCatalog() {
+  if (state.billingValorLocked) return;
+  const catalog = state.billingCatalogValor ?? catalogValorForLicense(getBillingLicenseKey());
+  const input = $("billing-valor");
+  if (!input) return;
+  if (catalog == null) {
+    setStatus($("crud-status"), "Não há valor padrão do app para esta licença.", false);
+    return;
+  }
+  input.value = formatMoneyInput(catalog);
+  setStatus($("crud-status"), `Valor restaurado para o padrão do app (R$ ${formatMoneyInput(catalog)}).`);
 }
 
 function updateBillingPanel() {
@@ -1021,9 +1563,12 @@ async function loadBillingSchedule() {
   if (!isLicensesTable()) return;
   try {
     const data = await api(`/api/billing/schedule${scheduleQueryString()}`);
+    state.scheduleItems = data.items || [];
     renderScheduleSummary(data.summary || {});
-    renderScheduleTable(data.items || []);
+    renderScheduleTable(state.scheduleItems);
+    syncBillingValorField();
   } catch (err) {
+    state.scheduleItems = [];
     renderScheduleSummary({});
     renderScheduleTable([]);
     setStatus($("crud-status"), err.message, false);
@@ -1063,27 +1608,33 @@ function renderScheduleSummary(summary) {
   }
 }
 
-function createScheduleActionButton(label, onClick) {
+function createScheduleActionButton(label, onClick, ariaLabel = "") {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "ghost";
   btn.textContent = label;
+  if (ariaLabel) btn.setAttribute("aria-label", ariaLabel);
   btn.addEventListener("click", onClick);
   return btn;
 }
 
 function focusLicenseBilling(licenseKey) {
-  $("billing-license-key").value = licenseKey;
-  loadBillingCharges();
-  $("billing-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const row = state.rows.find((r) => String(r.license_key || "").toUpperCase() === String(licenseKey).toUpperCase());
+  selectLicense(licenseKey, row?.condominio_nome || "");
 }
 
-async function emitBillingForKey(licenseKey, type) {
+async function emitBillingForKey(licenseKey, type, { useToolbarValor = false } = {}) {
   const path = type === "initial" ? "/api/billing/charges/initial" : "/api/billing/charges/monthly";
-  await api(path, { method: "POST", body: JSON.stringify({ license_key: licenseKey }) });
+  const body = { license_key: licenseKey };
+  if (useToolbarValor) {
+    const valor = readBillingValorForEmit();
+    if (valor != null) body.valor_nominal = valor;
+  }
+  await api(path, { method: "POST", body: JSON.stringify(body) });
+  const valorMsg = body.valor_nominal != null ? ` (R$ ${Number(body.valor_nominal).toFixed(2)})` : "";
   setStatus(
     $("crud-status"),
-    `Cobrança ${type === "initial" ? "inicial" : "mensal"} emitida para ${licenseKey}.`,
+    `Cobrança ${type === "initial" ? "inicial" : "mensal"} emitida para ${licenseKey}${valorMsg}.`,
   );
   await loadBillingSchedule();
   await loadBillingCharges();
@@ -1116,7 +1667,11 @@ function renderScheduleTable(items) {
     tr.appendChild(priorityTd);
 
     const keyTd = document.createElement("td");
-    const keyBtn = createScheduleActionButton(item.license_key, () => focusLicenseBilling(item.license_key));
+    const keyBtn = createScheduleActionButton(
+      item.license_key,
+      () => focusLicenseBilling(item.license_key),
+      `Selecionar licença ${item.license_key}`,
+    );
     keyBtn.className = "ghost linkish";
     keyTd.appendChild(keyBtn);
     tr.appendChild(keyTd);
@@ -1190,7 +1745,7 @@ function renderScheduleTable(items) {
 function getBillingLicenseKey() {
   const manual = $("billing-license-key").value.trim();
   if (manual) return manual.toUpperCase();
-  const pk = state.schema?.primary_key || "id";
+  if (state.selectedLicenseKey) return state.selectedLicenseKey;
   const rowWithKey = state.rows.find((r) => r.license_key);
   return rowWithKey?.license_key || "";
 }
@@ -1285,18 +1840,20 @@ function renderBillingTable(charges) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
     td.colSpan = 6;
-    td.textContent = "Nenhuma cobrança emitida.";
+    td.textContent = "Nenhuma cobrança emitida para esta licença.";
     tr.appendChild(td);
     tbody.appendChild(tr);
     return;
   }
   charges.forEach((c) => {
     const tr = document.createElement("tr");
+    const typeKey = String(c.charge_type || "").toUpperCase();
+    const statusKey = String(c.status || "").toUpperCase();
     const cols = [
-      c.charge_type,
+      CHARGE_TYPE_LABELS[typeKey] || c.charge_type,
       `R$ ${Number(c.valor_nominal).toFixed(2)}`,
-      c.data_vencimento,
-      c.status,
+      formatDisplayDate(c.data_vencimento),
+      CHARGE_STATUS_LABELS[statusKey] || c.status,
       c.inter_situacao || "—",
     ];
     cols.forEach((text) => {
@@ -1309,12 +1866,14 @@ function renderBillingTable(charges) {
     syncBtn.type = "button";
     syncBtn.className = "ghost";
     syncBtn.textContent = "Sync";
+    syncBtn.title = "Consultar pagamento no Inter e atualizar a licença";
     syncBtn.addEventListener("click", async () => {
       try {
         await api(`/api/billing/charges/${encodeURIComponent(c.id)}/sync`, { method: "POST" });
         await loadBillingSchedule();
         await loadBillingCharges();
         await loadData();
+        setStatus($("crud-status"), "Sync concluído.");
       } catch (err) {
         setStatus($("crud-status"), err.message, false);
       }
@@ -1348,6 +1907,7 @@ function renderBillingTable(charges) {
       pdfBtn.type = "button";
       pdfBtn.className = "ghost";
       pdfBtn.textContent = "PDF";
+      pdfBtn.title = "Abrir boleto em PDF";
       pdfBtn.addEventListener("click", async () => {
         try {
           const data = await api(`/api/billing/charges/${encodeURIComponent(c.id)}/pdf`);
@@ -1367,7 +1927,7 @@ function renderBillingTable(charges) {
       pixBtn.type = "button";
       pixBtn.className = "ghost";
       pixBtn.textContent = "Pix";
-      pixBtn.title = c.pix_copia_cola;
+      pixBtn.title = "Copiar Pix copia e cola";
       pixBtn.addEventListener("click", async () => {
         await navigator.clipboard.writeText(c.pix_copia_cola);
         setStatus($("crud-status"), "Pix copia e cola copiado.");
@@ -1382,14 +1942,76 @@ function renderBillingTable(charges) {
 async function emitBilling(type) {
   const licenseKey = getBillingLicenseKey();
   if (!licenseKey) {
-    setStatus($("crud-status"), "Informe license_key para emitir cobrança.", false);
+    setStatus(
+      $("crud-status"),
+      "Selecione uma licença na agenda/lista ou digite a chave antes de emitir.",
+      false,
+    );
     return;
   }
   try {
-    await emitBillingForKey(licenseKey, type);
+    await emitBillingForKey(licenseKey, type, { useToolbarValor: true });
   } catch (err) {
     setStatus($("crud-status"), err.message, false);
   }
+}
+
+function readCourtesyDays() {
+  const raw = String($("billing-courtesy-days")?.value || "").trim();
+  const days = Number.parseInt(raw, 10);
+  if (!Number.isFinite(days) || days < 1 || days > 90) {
+    throw new Error("Informe entre 1 e 90 dias de cortesia.");
+  }
+  return days;
+}
+
+function formatDateBrFromIso(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = String(iso).slice(0, 10).split("-");
+  if (!y || !m || !d) return String(iso);
+  return `${d}/${m}/${y}`;
+}
+
+async function grantCourtesy() {
+  const licenseKey = getBillingLicenseKey();
+  if (!licenseKey) {
+    setStatus(
+      $("crud-status"),
+      "Selecione uma licença na agenda/lista ou digite a chave antes da cortesia.",
+      false,
+    );
+    return;
+  }
+  const days = readCourtesyDays();
+  const motivo = String($("billing-courtesy-motivo")?.value || "").trim();
+  const row = state.rows.find((r) => String(r.license_key || "").toUpperCase() === licenseKey);
+  const implantacaoJa = Boolean(row?.implantacao_paga);
+  const avisoImplantacao = implantacaoJa
+    ? ""
+    : "\n\nA implantação será liberada (implantacao_paga=true). Depois, renovação comercial = Mensalidade.";
+  const ok = window.confirm(
+    `Gerar cortesia de ${days} dia(s) para ${licenseKey}?` +
+      `\n\nO app será liberado sem cobrança Inter. A validade empilha se ainda estiver vigente.` +
+      avisoImplantacao +
+      (motivo ? `\n\nMotivo: ${motivo}` : ""),
+  );
+  if (!ok) return;
+
+  const body = { license_key: licenseKey, days };
+  if (motivo) body.motivo = motivo;
+  const result = await api("/api/billing/licenses/courtesy", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  const ate = formatDateBrFromIso(result.valido_ate);
+  setStatus(
+    $("crud-status"),
+    `Cortesia de ${result.days} dia(s) aplicada em ${licenseKey} → válido até ${ate}.`,
+  );
+  if ($("billing-courtesy-motivo")) $("billing-courtesy-motivo").value = "";
+  await loadBillingSchedule();
+  await loadBillingCharges();
+  await loadData();
 }
 
 $("btn-toggle-inter").addEventListener("click", async () => {
@@ -1425,13 +2047,21 @@ $("btn-inter-test").addEventListener("click", async () => {
 $("btn-inter-webhook-info").addEventListener("click", async () => {
   try {
     const info = await api("/api/inter/webhook/info");
-    $("inter-webhook-info").hidden = false;
-    $("inter-webhook-info").textContent = JSON.stringify(info, null, 2);
+    const urlDisplay = $("inter-webhook-url-display");
+    const debug = $("inter-webhook-debug");
+    const jsonEl = $("inter-webhook-info");
     if (info.callback_url) {
+      urlDisplay.hidden = false;
+      urlDisplay.textContent = `URL de callback: ${info.callback_url}`;
       const tokenMatch = info.callback_url.match(/token=([^&]+)/);
       if (tokenMatch) setInputValue("inter-webhook-token", decodeURIComponent(tokenMatch[1]));
+    } else {
+      urlDisplay.hidden = false;
+      urlDisplay.textContent = "Webhook ainda sem URL de callback configurada.";
     }
-    setStatus($("inter-status"), "Webhook info carregada.");
+    debug.hidden = false;
+    jsonEl.textContent = JSON.stringify(info, null, 2);
+    setStatus($("inter-status"), "Webhook carregado.");
   } catch (err) {
     setStatus($("inter-status"), err.message, false);
   }
@@ -1460,6 +2090,18 @@ $("btn-billing-monthly").addEventListener("click", async () => {
   } catch (err) {
     setStatus($("crud-status"), err.message, false);
   }
+});
+
+$("btn-billing-courtesy")?.addEventListener("click", async () => {
+  try {
+    await grantCourtesy();
+  } catch (err) {
+    setStatus($("crud-status"), err.message, false);
+  }
+});
+
+$("btn-billing-valor-reset")?.addEventListener("click", () => {
+  resetBillingValorToCatalog();
 });
 
 $("btn-billing-refresh").addEventListener("click", async () => {

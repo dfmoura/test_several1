@@ -44,6 +44,7 @@ class EnsureOrcamentoCatalogo extends Command
             'maquinas' => 0,
             'tarifas' => 0,
             'parametros' => 0,
+            'estruturas' => 0,
             'faixas_frete' => 0,
         ];
 
@@ -52,7 +53,8 @@ class EnsureOrcamentoCatalogo extends Command
         foreach ($template['criados'] as $k => $n) {
             $totais[$k] = ($totais[$k] ?? 0) + $n;
         }
-        $this->line('Template (empresa_id nulo): parâmetros +'.($template['criados']['parametros'] ?? 0));
+        $this->line('Template (empresa_id nulo): parâmetros +'.($template['criados']['parametros'] ?? 0)
+            .' · estruturas +'.($template['criados']['estruturas'] ?? 0));
 
         $ids = Empresa::query()->orderBy('id')->pluck('id');
         foreach ($ids as $id) {
@@ -61,15 +63,16 @@ class EnsureOrcamentoCatalogo extends Command
                 $totais[$k] = ($totais[$k] ?? 0) + $n;
             }
             $this->line(sprintf(
-                'EMP id=%d: parâmetros +%d',
+                'EMP id=%d: parâmetros +%d · estruturas +%d',
                 $id,
                 $chunk['criados']['parametros'] ?? 0,
+                $chunk['criados']['estruturas'] ?? 0,
             ));
         }
 
         $this->info('Seed catálogo (criados): '.json_encode($totais, JSON_UNESCAPED_UNICODE));
         $this->info('Resumo (contexto CLI / template): '.json_encode($service->resumo(), JSON_UNESCAPED_UNICODE));
-        $this->comment('UI: Administração → Catálogo ORC → abas Parâmetros / Perdas / Embalagem · Como calcula');
+        $this->comment('UI: Administração → Catálogo ORC → Tinta (rv4) · Perdas · Embalagem · Como calcula');
 
         return self::SUCCESS;
     }

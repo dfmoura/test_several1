@@ -148,7 +148,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
 
         $res = $this->asComercial()->postJson('/api/v1/orcamentos/calcular', $this->payload());
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $this->assertSame('RETIRAR', $res->json('data.frete.modo'));
         $this->assertSame('0.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
@@ -162,7 +162,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
             'modo_entrega' => 'ENTREGAR',
         ]));
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $this->assertSame('sem_km', $res->json('data.frete.motivo'));
         $this->assertNull($res->json('data.faixas.0.valor_frete'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
@@ -181,7 +181,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
             'modo_entrega' => 'ENTREGAR',
         ]));
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $this->assertSame('sem_km', $res->json('data.frete.motivo'));
         $this->assertNull($res->json('data.faixas.0.valor_frete'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
@@ -206,7 +206,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertTrue($res->json('data.faixas.0.frete_somavel'));
         // 1.50 × 10 = 15 < mínimo 25 → 25.00
         $this->assertSame('25.00', $res->json('data.faixas.0.valor_frete'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_km_de_outra_emp_nao_entra_no_calculo(): void
@@ -287,7 +287,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertSame('fiscal', $res->json('data.frete.destino'));
         $this->assertSame('4.000', $res->json('data.frete.km'));
         $this->assertSame('8.00', $res->json('data.faixas.0.valor_frete'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_snapshot_nao_muda_quando_catalogo_muda(): void
@@ -372,7 +372,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
             'modo_entrega' => 'ENTREGAR',
         ]));
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
 
         // BRAHVA: 7 e 10 rolos → 1 caixa (tubete 3" / 12); 14 rolos → 2 caixas.
         $this->assertSame(1, (int) $res->json('data.faixas.0.qtde_caixas'));
@@ -400,12 +400,12 @@ class OrcamentoFreteEstimadoTest extends TestCase
             'modo_entrega' => 'ENTREGAR',
         ]));
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $motor = (float) $res->json('data.faixas.0.valor_total');
-        $this->assertEqualsWithDelta(3626.0, $motor, 0.01);
+        $this->assertEqualsWithDelta(2436.0, $motor, 0.01);
         $this->assertSame('25.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertTrue($res->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3651.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertSame('2461.00', $res->json('data.faixas.0.valor_total_proposta'));
 
         $create = $this->asComercial()->postJson('/api/v1/orcamentos', $this->payload([
             'modo_entrega' => 'ENTREGAR',
@@ -414,11 +414,11 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $id = $create->json('data.id');
         $pub = $this->asComercial()->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
         $pub->assertOk();
-        $this->assertEqualsWithDelta(3651.0, (float) $pub->json('data.faixas.0.valor_total'), 0.01);
+        $this->assertEqualsWithDelta(2461.0, (float) $pub->json('data.faixas.0.valor_total'), 0.01);
         $this->assertEqualsWithDelta(25.0, (float) $pub->json('data.faixas.0.valor_frete'), 0.01);
         $this->assertTrue($pub->json('data.faixas.0.frete_somavel'));
         $this->assertTrue($pub->json('data.frete.somavel'));
-        $this->assertEqualsWithDelta(3090.0, (float) $pub->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $pub->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_prospect_com_km_frete_compoe_igual_ao_cliente(): void
@@ -443,11 +443,11 @@ class OrcamentoFreteEstimadoTest extends TestCase
             'modo_entrega' => 'ENTREGAR',
         ]));
         $res->assertOk();
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
-        $this->assertEqualsWithDelta(3626.0, (float) $res->json('data.faixas.0.valor_total'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2436.0, (float) $res->json('data.faixas.0.valor_total'), 0.01);
         $this->assertSame('25.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertTrue($res->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3651.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertSame('2461.00', $res->json('data.faixas.0.valor_total_proposta'));
 
         $create = $this->asComercial()->postJson('/api/v1/orcamentos', $this->payload([
             'parceiro_id' => $prospect->id,
@@ -455,8 +455,8 @@ class OrcamentoFreteEstimadoTest extends TestCase
         ]));
         $create->assertCreated();
         $this->assertTrue($create->json('data.parceiro.is_prospect'));
-        $this->assertSame('3651.00', $create->json('data.result_snapshot.faixas.0.valor_total_proposta'));
-        $this->assertEqualsWithDelta(3626.0, (float) $create->json('data.result_snapshot.faixas.0.valor_total'), 0.01);
+        $this->assertSame('2461.00', $create->json('data.result_snapshot.faixas.0.valor_total_proposta'));
+        $this->assertEqualsWithDelta(2436.0, (float) $create->json('data.result_snapshot.faixas.0.valor_total'), 0.01);
     }
 
     public function test_retirar_e_sem_km_nao_infla_total_proposta(): void
@@ -470,7 +470,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $retirar = $this->asComercial()->postJson('/api/v1/orcamentos/calcular', $this->payload());
         $retirar->assertOk();
         $this->assertFalse($retirar->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3626.00', $retirar->json('data.faixas.0.valor_total_proposta'));
+        $this->assertSame('2436.00', $retirar->json('data.faixas.0.valor_total_proposta'));
 
         $this->parceiro->update(['distancia_km' => null, 'distancia_empresa_id' => null]);
         $semKm = $this->asComercial()->postJson('/api/v1/orcamentos/calcular', $this->payload([
@@ -478,7 +478,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         ]));
         $semKm->assertOk();
         $this->assertFalse($semKm->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3626.00', $semKm->json('data.faixas.0.valor_total_proposta'));
+        $this->assertSame('2436.00', $semKm->json('data.faixas.0.valor_total_proposta'));
     }
 
     public function test_entregar_sem_origem_continua_calculada(): void
@@ -496,7 +496,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $res->assertOk();
         $this->assertSame('CALCULADA', $res->json('data.frete.origem'));
         $this->assertSame('25.00', $res->json('data.faixas.0.valor_frete'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_entregar_manual_soma_mesmo_sem_km(): void
@@ -516,10 +516,10 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertSame('80.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertSame('80.00', $res->json('data.faixas.2.valor_frete'));
         $this->assertTrue($res->json('data.faixas.0.frete_somavel'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $motor = (float) $res->json('data.faixas.0.valor_total');
-        $this->assertEqualsWithDelta(3626.0, $motor, 0.01);
-        $this->assertSame('3706.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertEqualsWithDelta(2436.0, $motor, 0.01);
+        $this->assertSame('2516.00', $res->json('data.faixas.0.valor_total_proposta'));
     }
 
     public function test_entregar_manual_zero_nao_infla(): void
@@ -534,8 +534,8 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $res->assertOk();
         $this->assertSame('0.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3626.00', $res->json('data.faixas.0.valor_total_proposta'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertSame('2436.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_entregar_manual_exige_valor(): void
@@ -566,7 +566,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertNull($res->json('data.frete.origem'));
         $this->assertSame('0.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertFalse($res->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3626.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertSame('2436.00', $res->json('data.faixas.0.valor_total_proposta'));
     }
 
     public function test_manual_teto_para_cima_e_snapshot_nao_muda_com_catalogo(): void
@@ -587,7 +587,7 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertSame('80.01', $create->json('data.input_snapshot.valor_frete_manual'));
         $this->assertSame('80.01', $create->json('data.result_snapshot.faixas.0.valor_frete'));
         $this->assertSame('80.01', $create->json('data.result_snapshot.faixas.2.valor_frete'));
-        $this->assertEqualsWithDelta(3090.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
 
         OrcCatalogoFaixaFrete::query()->update(['preco_por_km' => '1.00']);
 
@@ -619,9 +619,9 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $res->assertOk();
         $this->assertSame('40.00', $res->json('data.faixas.0.valor_frete'));
         $this->assertTrue($res->json('data.faixas.0.frete_somavel'));
-        $this->assertSame('3666.00', $res->json('data.faixas.0.valor_total_proposta'));
-        $this->assertEqualsWithDelta(3090.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
-        $this->assertEqualsWithDelta(3626.0, (float) $res->json('data.faixas.0.valor_total'), 0.01);
+        $this->assertSame('2476.00', $res->json('data.faixas.0.valor_total_proposta'));
+        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2436.0, (float) $res->json('data.faixas.0.valor_total'), 0.01);
     }
 
     public function test_proposta_publica_manual_nao_vaza_origem(): void
@@ -640,6 +640,6 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $this->assertTrue($pub->json('data.frete.somavel'));
         $this->assertSame('Entrega — frete estimado', $pub->json('data.frete.texto'));
         $this->assertArrayNotHasKey('origem', $pub->json('data.frete'));
-        $this->assertEqualsWithDelta(3090.0, (float) $pub->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(1900.0, (float) $pub->json('data.faixas.0.valor_etiqueta'), 0.01);
     }
 }

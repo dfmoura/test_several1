@@ -7,6 +7,8 @@ from typing import Any, Callable
 
 import httpx
 
+from app.documents import is_valid_cnpj, normalize_digits
+
 BRASILAPI_CNPJ_URL = "https://brasilapi.com.br/api/cnpj/v1/{cnpj}"
 MINHARECEITA_CNPJ_URL = "https://minhareceita.org/{cnpj}"
 OPENCNPJ_URL = "https://api.opencnpj.org/{cnpj}"
@@ -15,19 +17,23 @@ CNPJWS_PUBLICA_URL = "https://publica.cnpj.ws/cnpj/{cnpj}"
 
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
+# Reexport para imports existentes.
+__all__ = [
+    "CnpjLookupError",
+    "fetch_cnpj_pagador",
+    "normalize_digits",
+    "validate_cnpj_digits",
+]
+
 
 class CnpjLookupError(Exception):
     pass
 
 
-def normalize_digits(value: str) -> str:
-    return "".join(ch for ch in value if ch.isdigit())
-
-
 def validate_cnpj_digits(cnpj: str) -> str:
     digits = normalize_digits(cnpj)
-    if len(digits) != 14:
-        raise CnpjLookupError("CNPJ deve ter 14 dígitos.")
+    if len(digits) != 14 or not is_valid_cnpj(digits):
+        raise CnpjLookupError("CNPJ inválido. Informe 14 dígitos válidos.")
     return digits
 
 

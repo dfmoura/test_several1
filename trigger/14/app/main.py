@@ -33,7 +33,12 @@ from app.inter_config import (
     webhook_callback_url,
 )
 from app.cnpj_lookup import CnpjLookupError, fetch_cnpj_pagador
-from app.license_helpers import enrich_license_pagador, finalize_license_create, generate_next_license_key
+from app.license_helpers import (
+    enrich_license_pagador,
+    finalize_license_create,
+    generate_next_license_key,
+    LICENSE_PAYMENT_LOCKED_FIELDS,
+)
 from app.schema import (
     ValidationError,
     filter_to_schema,
@@ -88,8 +93,27 @@ class InterConfigIn(BaseModel):
     pagador_cep: str = "30130000"
 
 
-class LicenseKeyIn(BaseModel):
+class ChargeEmitIn(BaseModel):
+    """Emissão de cobrança. valor_nominal opcional: override só nesta emissão (antes do Inter)."""
+
     license_key: str
+    valor_nominal: float | None = Field(
+        default=None,
+        gt=0,
+        description="Se informado, substitui o valor padrão do app somente nesta emissão.",
+    )
+
+
+class CourtesyIn(BaseModel):
+    """Liberação operacional por cortesia (sem cobrança Inter)."""
+
+    license_key: str
+    days: int = Field(default=7, ge=1, le=90, description="Dias de cortesia (1–90).")
+    motivo: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Motivo interno (auditoria em notas).",
+    )
 
 
 def billing_http_error(exc: Exception) -> HTTPException:
@@ -119,8 +143,13 @@ def get_or_create_inter_config(db: Session) -> InterBillingConfig:
 
 def get_client(db: Session) -> SupabaseClient:
     config = db.query(SupabaseConfig).filter(SupabaseConfig.id == 1).first()
-    if not config:
+    if not config or not config.url:
         raise HTTPException(status_code=400, detail="Configure as credenciais do Supabase primeiro.")
+    if not (config.service_role_key or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Service Role Key ausente. Abra Supabase, cole a chave e clique em Salvar.",
+        )
     return SupabaseClient(config.url, config.service_role_key)
 
 
@@ -189,25 +218,45 @@ def get_config(db: Session = Depends(get_db)):
     config = db.query(SupabaseConfig).filter(SupabaseConfig.id == 1).first()
     if not config:
         return ConfigOut(url="", configured=False)
-    return ConfigOut(url=config.url, configured=True)
+    configured = bool(config.url and (config.service_role_key or "").strip())
+    return ConfigOut(url=config.url or "", configured=configured)
 
 
 @app.post("/api/config")
 def save_config(body: ConfigIn, db: Session = Depends(get_db)):
+    url = body.url.rstrip("/")
+    new_key = (body.service_role_key or "").strip()
     config = db.query(SupabaseConfig).filter(SupabaseConfig.id == 1).first()
     if config:
-        config.url = body.url.rstrip("/")
-        config.service_role_key = body.service_role_key
+        config.url = url
+        if new_key:
+            config.service_role_key = new_key
+        elif not (config.service_role_key or "").strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Informe a Service Role Key (o campo está vazio e não há chave salva).",
+            )
     else:
-        config = SupabaseConfig(id=1, url=body.url.rstrip("/"), service_role_key=body.service_role_key)
+        if not new_key:
+            raise HTTPException(status_code=400, detail="Informe a Service Role Key.")
+        config = SupabaseConfig(id=1, url=url, service_role_key=new_key)
         db.add(config)
     db.commit()
     return {"ok": True}
 
 
 @app.post("/api/config/test")
-async def test_config(body: ConfigIn):
-    client = SupabaseClient(body.url, body.service_role_key)
+async def test_config(body: ConfigIn, db: Session = Depends(get_db)):
+    url = (body.url or "").rstrip("/")
+    key = (body.service_role_key or "").strip()
+    if not key:
+        stored = db.query(SupabaseConfig).filter(SupabaseConfig.id == 1).first()
+        if stored and (stored.service_role_key or "").strip():
+            key = stored.service_role_key.strip()
+            url = url or stored.url
+    if not url or not key:
+        raise HTTPException(status_code=400, detail="Informe URL e Service Role Key para testar.")
+    client = SupabaseClient(url, key)
     try:
         ok = await client.test_connection()
     except httpx.HTTPError as exc:
@@ -357,6 +406,17 @@ async def update_row(table: str, row_id: str, body: RowIn, db: Session = Depends
     cleaned = handle_validation("update", schema, body.data)
     if not cleaned:
         raise HTTPException(status_code=422, detail=["Informe ao menos um campo para atualizar."])
+    if table.lower() == "licenses":
+        locked = LICENSE_PAYMENT_LOCKED_FIELDS.intersection(cleaned)
+        if locked:
+            raise HTTPException(
+                status_code=422,
+                detail=[
+                    f"Campo(s) {', '.join(sorted(locked))} só mudam após pagamento confirmado "
+                    "(Sync ou webhook) ou via Cortesia no painel. "
+                    "Correção excepcional: Table Editor no Supabase."
+                ],
+            )
     ensure_registered_app_id(db, cleaned)
     if table.lower() == "licenses" and "cnpj" in cleaned:
         try:
@@ -556,21 +616,42 @@ async def list_billing_charges(
 
 
 @app.post("/api/billing/charges/initial")
-async def create_initial_billing_charge(body: LicenseKeyIn, db: Session = Depends(get_db)):
+async def create_initial_billing_charge(body: ChargeEmitIn, db: Session = Depends(get_db)):
     try:
         service = build_billing_service(db)
-        charge = await service.create_initial_charge(body.license_key)
+        charge = await service.create_initial_charge(
+            body.license_key,
+            valor_nominal=body.valor_nominal,
+        )
         return {"charge": charge}
     except Exception as exc:
         raise billing_http_error(exc) from exc
 
 
 @app.post("/api/billing/charges/monthly")
-async def create_monthly_billing_charge(body: LicenseKeyIn, db: Session = Depends(get_db)):
+async def create_monthly_billing_charge(body: ChargeEmitIn, db: Session = Depends(get_db)):
     try:
         service = build_billing_service(db)
-        charge = await service.create_monthly_charge(body.license_key)
+        charge = await service.create_monthly_charge(
+            body.license_key,
+            valor_nominal=body.valor_nominal,
+        )
         return {"charge": charge}
+    except Exception as exc:
+        raise billing_http_error(exc) from exc
+
+
+@app.post("/api/billing/licenses/courtesy")
+async def grant_license_courtesy(body: CourtesyIn, db: Session = Depends(get_db)):
+    """Libera app por X dias sem emitir cobrança (piloto / cortesia comercial)."""
+    try:
+        service = build_billing_service(db)
+        result = await service.grant_courtesy(
+            body.license_key,
+            days=body.days,
+            motivo=body.motivo,
+        )
+        return result
     except Exception as exc:
         raise billing_http_error(exc) from exc
 

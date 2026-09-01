@@ -2773,6 +2773,7 @@ export type OrcCatalogoResumo = {
   tipos_troca: number;
   maquinas: number;
   parametros?: number;
+  estruturas?: number;
   faixas_frete?: number;
   matriz_cm2?: number;
   matriz_cm2_fonte?: 'database' | 'json_fallback' | string;
