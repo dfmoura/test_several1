@@ -4096,6 +4096,40 @@ table.data-table td.acoes {
   line-height: 1.15;
 }
 
+.faca-posicao-badge--symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 5px;
+  border: 1px solid rgba(26, 53, 104, 0.22);
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.faca-posicao-badge--symbol.faca-posicao-badge--sm {
+  width: 1.2rem;
+  height: 1.2rem;
+  font-size: 0.74rem;
+  border-radius: 4px;
+}
+
+.orc-faca-desenho--compact .orc-faca-desenho-leading {
+  gap: 0.28rem;
+  align-items: center;
+}
+
+.orcamentos-table td.faca .faca-posicao-badge--symbol {
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.68rem;
+}
+
 .orc-faca-desenho-visual {
   display: flex;
   flex-direction: column;

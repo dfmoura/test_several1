@@ -6,8 +6,8 @@ import {
 
 type Props = {
   codigo: string | null | undefined;
-  /** dock = grade 2×2 (leitura); pill = destaque compacto */
-  variant?: 'dock' | 'pill';
+  /** dock = grade 2×2; pill = cápsula; symbol = só a seta ativa (listas) */
+  variant?: 'dock' | 'pill' | 'symbol';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 };
@@ -37,6 +37,18 @@ export function FacaPosicaoBadge({
           <span className="faca-posicao-badge__text-kicker">Posição</span>
           <span className="faca-posicao-badge__text-label">{opt.rotulo}</span>
         </span>
+      </span>
+    );
+  }
+
+  if (variant === 'symbol') {
+    return (
+      <span
+        className={`faca-posicao-badge faca-posicao-badge--symbol faca-posicao-badge--${size}${className ? ` ${className}` : ''}`}
+        title={`Posição: ${opt.rotulo}`}
+        aria-label={`Posição no cilindro: ${opt.rotulo}`}
+      >
+        <span aria-hidden="true">{opt.simbolo}</span>
       </span>
     );
   }

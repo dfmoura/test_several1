@@ -189,7 +189,7 @@ export function OrcamentoFacaDesenho({
         <div className="orc-faca-desenho-leading">
           <FacaDesenhoVisual props={props} variant="compact" tipo={tipo} label={label} />
           {isFacaPosicao(posicao) ? (
-            <FacaPosicaoBadge codigo={posicao} size="sm" />
+            <FacaPosicaoBadge codigo={posicao} variant="symbol" size="sm" />
           ) : null}
         </div>
         <div className="orc-faca-desenho-compact-text">
