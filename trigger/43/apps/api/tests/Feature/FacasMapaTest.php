@@ -199,14 +199,40 @@ class FacasMapaTest extends TestCase
             'fornecedor' => 'Ferramental X',
             'n_facas' => 2,
             'valor_pago' => 1250.50,
+            'colunas_mapa' => '3',
+            'contorno_svg' => '<path d="M10 10 L90 90"/>',
         ]);
         $patch->assertOk();
         $this->assertSame('PAR-CASA A', $patch->json('data.cliente_nota'));
         $this->assertSame('Ferramental X', $patch->json('data.fornecedor'));
         $this->assertSame(2, $patch->json('data.n_facas'));
         $this->assertEquals(1250.50, (float) $patch->json('data.valor_pago'));
+        $this->assertSame('3', $patch->json('data.colunas_mapa'));
+        $this->assertStringContainsString('<path', strtolower((string) $patch->json('data.contorno_svg')));
         $this->assertEquals($puxada, $patch->json('data.puxada'));
         $this->assertSame('3,3X3,3', $patch->json('data.medida'));
+    }
+
+    public function test_rejeita_contorno_svg_malicioso(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        app(FacasMapaService::class)->seedFromJson();
+        $hdr = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $create = $this->withHeaders($hdr)->postJson('/api/v1/facas', [
+            'medida' => '2,2X2,2',
+            'formato' => 'DESENHADA',
+            'maquina_catalogo' => 'BETA',
+            'puxada' => 2.2,
+            'z' => 22,
+        ])->assertCreated();
+        $id = (int) $create->json('data.id');
+
+        $patch = $this->withHeaders($hdr)->patchJson("/api/v1/facas/{$id}", [
+            'contorno_svg' => '<svg><script>alert(1)</script></svg>',
+        ]);
+        $patch->assertStatus(422);
+        $this->assertArrayHasKey('contorno_svg', $patch->json('errors'));
     }
 
     public function test_sugere_proximo_n_facas_por_maquina(): void
@@ -399,5 +425,21 @@ class FacasMapaTest extends TestCase
             collect($sqls)->contains(fn (string $sql) => str_contains(strtolower($sql), 'alter table')),
             'ALTER TABLE no seed do mapa quebra a alta da empresa no MySQL (commit implícito).',
         );
+    }
+
+    public function test_posicao_faca_persiste_no_mapa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+
+        app(FacasMapaService::class)->seedFromJson(null, false, $this->empresa->id);
+        $faca = OrcMapaFaca::query()->where('empresa_id', $this->empresa->id)->where('completa', true)->firstOrFail();
+
+        $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->patchJson("/api/v1/facas/{$faca->id}", ['posicao' => 'CIMA'])
+            ->assertOk()
+            ->assertJsonPath('data.posicao', 'CIMA');
+
+        $faca->refresh();
+        $this->assertSame('CIMA', $faca->posicao);
     }
 }

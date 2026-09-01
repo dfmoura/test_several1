@@ -321,4 +321,22 @@ class OrcamentoTest extends TestCase
         ];
         $this->withHeaders($h)->postJson('/api/v1/orcamentos', $bad)->assertStatus(422);
     }
+
+    public function test_faca_posicao_persiste_no_snapshot_sem_alterar_preco(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['faca_posicao'] = 'CIMA';
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $this->assertSame('CIMA', $create->json('data.input_snapshot.faca_posicao'));
+        $this->assertEqualsWithDelta(1900.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos', array_merge($payload, ['faca_posicao' => 'INVALIDO']))
+            ->assertStatus(422);
+    }
 }

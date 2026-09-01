@@ -1,5 +1,6 @@
 import type { OrcamentoFaixaResult } from './api';
 import { formatDecimalBr } from './format';
+import { facaPosicaoLabel } from './facaPosicao';
 import {
   alocarQuantidadePorModelo,
   type ModeloComposicaoForm,
@@ -26,6 +27,7 @@ export type OrcGuiaProducaoEspec = {
   rpm?: number | string | null;
   z?: number | string | null;
   faca_nova?: boolean | null;
+  faca_posicao?: string | null;
   formato_faca?: string | null;
   matriz?: string | null;
   valor_faca_nova?: number | string | null;
@@ -109,6 +111,7 @@ export function buildGuiaProducaoLinhas(
 
   const medida = txt(espec.medida);
   const formato = txt(espec.formato_faca, '');
+  const posFaca = facaPosicaoLabel(txt(espec.faca_posicao, '') || null);
   const z = num(espec.z);
   const facaNova = Boolean(espec.faca_nova);
   const matrizFlag = String(espec.matriz ?? 'SIM').toUpperCase();
@@ -117,7 +120,7 @@ export function buildGuiaProducaoLinhas(
   linhas.push({
     grupo: 'ferramental',
     item: facaNova ? 'Faca nova' : 'Faca',
-    especificacao: [medida, formato || null, z != null ? `Z ${formatDecimalBr(z, 0)}` : null]
+    especificacao: [medida, formato || null, posFaca, z != null ? `Z ${formatDecimalBr(z, 0)}` : null]
       .filter(Boolean)
       .join(' · '),
     quantidade: facaNova ? '1 un.' : 'conforme mapa',
@@ -278,6 +281,7 @@ export function especFromSnapshot(
     rpm: snap.rpm as number | string | undefined,
     z: snap.z as number | string | null | undefined,
     faca_nova: Boolean(snap.faca_nova),
+    faca_posicao: (snap.faca_posicao as string | null | undefined) ?? null,
     formato_faca: (snap.formato_faca as string | null | undefined) ?? null,
     matriz: snap.matriz as string | undefined,
     valor_faca_nova: snap.valor_faca_nova as number | string | undefined,

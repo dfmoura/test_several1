@@ -10,6 +10,7 @@ import {
   parseOverridesFromSnap,
   type OrcOverrides,
 } from './orcamentoParametrosAjuste';
+import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
 
 export type { OrcOverrides } from './orcamentoParametrosAjuste';
 
@@ -125,6 +126,12 @@ export type OrcForm = {
   formato_faca: string;
   valor_faca_nova: number;
   prazo_faca_dias: number | '';
+  /** Visual da faca no mapa — snapshot; não entra no motor R1–R20 */
+  faca_colunas_mapa: string;
+  faca_posicao: FacaPosicaoCodigo | '';
+  faca_contorno_svg: string;
+  faca_diametro_cm: number | '';
+  faca_tamanho_tipo: string;
   /** Snapshot comercial desta proposta (defaults do PAR; não altera o motor). */
   condicao_pagamento: string;
   forma_pagamento: string;
@@ -377,6 +384,11 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     formato_faca: '',
     valor_faca_nova: 0,
     prazo_faca_dias: '',
+    faca_colunas_mapa: '',
+    faca_posicao: '',
+    faca_contorno_svg: '',
+    faca_diametro_cm: '',
+    faca_tamanho_tipo: '',
     condicao_pagamento: '',
     forma_pagamento: '',
     vendedor_parceiro_id: '',
@@ -454,6 +466,18 @@ export function formFromSnapshot(
       snap.prazo_faca_dias == null || snap.prazo_faca_dias === ''
         ? ''
         : Number(snap.prazo_faca_dias),
+    faca_colunas_mapa: String(snap.faca_colunas_mapa ?? ''),
+    faca_posicao: isFacaPosicao(String(snap.faca_posicao ?? ''))
+      ? (String(snap.faca_posicao) as FacaPosicaoCodigo)
+      : '',
+    faca_contorno_svg: String(snap.faca_contorno_svg ?? ''),
+    faca_diametro_cm:
+      snap.faca_diametro_cm == null || snap.faca_diametro_cm === ''
+        ? snap.diametro_cm == null || snap.diametro_cm === ''
+          ? ''
+          : Number(snap.diametro_cm)
+        : Number(snap.faca_diametro_cm),
+    faca_tamanho_tipo: String(snap.faca_tamanho_tipo ?? snap.tamanho_tipo ?? ''),
     condicao_pagamento: String(snap.condicao_pagamento ?? ''),
     forma_pagamento: String(snap.forma_pagamento ?? ''),
     vendedor_parceiro_id:
@@ -547,6 +571,12 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
         ? null
         : form.prazo_faca_dias
       : null,
+    faca_colunas_mapa: form.faca_colunas_mapa.trim() || null,
+    faca_posicao: form.faca_posicao || null,
+    faca_contorno_svg: form.faca_contorno_svg.trim() || null,
+    faca_diametro_cm:
+      form.faca_diametro_cm === '' ? null : Number(form.faca_diametro_cm) || null,
+    faca_tamanho_tipo: form.faca_tamanho_tipo.trim() || null,
     condicao_pagamento: form.condicao_pagamento.trim() || null,
     forma_pagamento: form.forma_pagamento.trim() || null,
     vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,

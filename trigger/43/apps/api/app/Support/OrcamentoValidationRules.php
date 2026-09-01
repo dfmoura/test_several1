@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Orcamento;
+use App\Support\FacaPosicao;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -87,6 +88,11 @@ final class OrcamentoValidationRules
             'formato_faca' => ['nullable', 'string', 'max:64'],
             'valor_faca_nova' => ['nullable', 'numeric', 'min:0'],
             'prazo_faca_dias' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'faca_colunas_mapa' => ['nullable', 'string', 'max:64'],
+            'faca_posicao' => FacaPosicao::validationRule(),
+            'faca_contorno_svg' => ['nullable', 'string', 'max:32768'],
+            'faca_diametro_cm' => ['nullable', 'numeric', 'gt:0'],
+            'faca_tamanho_tipo' => ['nullable', 'string', 'max:32'],
             // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
             'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],
         ]);

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import {
-  aspectFromOrcDims,
   facaDesenhoFromSnapshot,
+  OrcamentoFacaDesenho,
 } from './OrcamentoFacaDesenho';
-import { FacaShapeIcon, formatoKind, formatoLabel } from './FacaShapeIcon';
+import { formatoLabel } from './FacaShapeIcon';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import type { OrcamentoFaixaResult } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
@@ -108,34 +108,16 @@ export function FichaEspecificacaoSection({ spec }: { spec: Record<string, unkno
 export function FichaFacaSection({ spec }: { spec: Record<string, unknown> }) {
   const faca = facaDesenhoFromSnapshot(spec);
   const formato = faca?.formato || (spec.formato_faca != null ? String(spec.formato_faca) : '');
-  const facaNova = Boolean(spec.faca_nova);
   if (!faca && !formato) return null;
-
-  const aspect = aspectFromOrcDims(
-    spec.largura_cm as string | number,
-    spec.puxada_cm as string | number,
-  );
 
   return (
     <FichaSection title="Faca">
       <div className="ficha-orc-faca ficha-orc-faca-standalone">
-        <div className="ficha-orc-faca-icon">
-          <FacaShapeIcon
-            formato={formato || 'RETA'}
-            aspect={aspect}
-            size={40}
-            title={formatoLabel(formato)}
-          />
-        </div>
-        <div className="ficha-orc-faca-meta">
-          <FichaKv label="Medida" value={snap(spec, 'medida')} />
-          <FichaKv label="Formato" value={formato ? formatoLabel(formato) : '—'} />
-          <FichaKv label="Tipo" value={facaNova ? 'FACA NOVA' : formatoKind(formato)} />
-          <FichaKv label="Z" value={snap(spec, 'z')} />
-          <FichaKv label="Puxada" value={cmBr(spec.puxada_cm, 4)} />
-          <FichaKv label="Largura" value={cmBr(spec.largura_cm)} />
-          <FichaKv label="Máquina" value={snap(spec, 'maquina')} />
-        </div>
+        <OrcamentoFacaDesenho
+          {...(faca ?? { formato, facaNova: Boolean(spec.faca_nova) })}
+          variant="documento"
+          audience="interno"
+        />
       </div>
     </FichaSection>
   );

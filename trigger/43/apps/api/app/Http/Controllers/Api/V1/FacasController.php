@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Comercial\FacasMapaService;
+use App\Support\FacaPosicao;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -107,6 +108,8 @@ class FacasController extends Controller
             'n_facas' => ['nullable', 'integer', 'min:0'],
             'cilindro' => ['nullable', 'string', 'max:32'],
             'colunas_mapa' => ['nullable', 'string', 'max:64'],
+            'posicao' => FacaPosicao::validationRule(),
+            'contorno_svg' => ['nullable', 'string', 'max:32768'],
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],
@@ -129,6 +132,8 @@ class FacasController extends Controller
             'n_facas' => ['nullable', 'integer', 'min:0'],
             'cilindro' => ['nullable', 'string', 'max:32'],
             'colunas_mapa' => ['nullable', 'string', 'max:64'],
+            'posicao' => FacaPosicao::validationRule(),
+            'contorno_svg' => ['nullable', 'string', 'max:32768'],
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],

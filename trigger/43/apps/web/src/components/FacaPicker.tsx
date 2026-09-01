@@ -8,6 +8,7 @@ import {
   formatoKind,
   formatoLabel,
 } from './FacaShapeIcon';
+import { FacaSilhuetaReal, facaSilhuetaFromRecord } from './FacaSilhuetaReal';
 import { SortableTh } from './SortableTh';
 
 export type FacaRecord = Record<string, unknown> & {
@@ -22,10 +23,14 @@ export type FacaRecord = Record<string, unknown> & {
   maquina_origem?: string;
   largura_faca?: number | null;
   n_facas?: number | null;
+  colunas_mapa?: string | null;
+  posicao?: string | null;
+  contorno_svg?: string | null;
+  diametro_cm?: number | null;
+  tamanho_tipo?: string | null;
   completa?: boolean;
   cliente_nota?: string | null;
   fornecedor?: string | null;
-  tamanho_tipo?: string;
   label?: string;
   /** GERACAO 7.3 — não está no mapa; custo/prazo no ORC; cadastra após aprovação */
   faca_nova?: boolean;
@@ -527,7 +532,12 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                             >
                               <td>
                                 <div className="faca-row-formato">
-                                  <FacaShapeIcon formato={fmt} aspect={aspectRow} size={32} />
+                                  <FacaSilhuetaReal
+                                    {...facaSilhuetaFromRecord(f)}
+                                    size={28}
+                                    variant="compact"
+                                  />
+                                  <FacaShapeIcon formato={fmt} aspect={aspectRow} size={24} />
                                   <span>{formatoLabel(fmt)}</span>
                                 </div>
                               </td>

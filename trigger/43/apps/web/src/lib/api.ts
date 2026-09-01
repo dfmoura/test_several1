@@ -2712,6 +2712,7 @@ export type OrcamentoPropostaPublica = {
     puxada_cm: number | null;
     formato_faca: string | null;
     faca_nova: boolean;
+    faca_posicao?: string | null;
     modelos?: number | null;
     modelos_composicao?: Array<{
       ordem: number;

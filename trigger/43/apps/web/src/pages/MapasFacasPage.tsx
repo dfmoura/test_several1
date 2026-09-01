@@ -10,8 +10,15 @@ import {
   formatoKind,
   formatoLabel,
 } from '../components/FacaShapeIcon';
+import {
+  FacaSilhuetaReal,
+  facaSilhuetaFromRecord,
+} from '../components/FacaSilhuetaReal';
 import { ApiError, api, type UsuarioRef } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { FacaSilhuetaPosicaoDock } from '../components/FacaSilhuetaPosicaoDock';
+import { FacaPosicaoBadge } from '../components/FacaPosicaoBadge';
+import { isFacaPosicao } from '../lib/facaPosicao';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
 import { useTableSort } from '../lib/useTableSort';
 
@@ -30,6 +37,8 @@ type FacaMapa = {
   n_facas?: number | null;
   cilindro?: string | null;
   colunas_mapa?: string | null;
+  posicao?: string | null;
+  contorno_svg?: string | null;
   conjugada?: string | null;
   fornecedor?: string | null;
   valor_pago?: number | null;
@@ -117,6 +126,8 @@ type NovaForm = {
   n_facas: string;
   cilindro: string;
   colunas_mapa: string;
+  posicao: string;
+  contorno_svg: string;
   conjugada: string;
   fornecedor: string;
   valor_pago: string;
@@ -135,6 +146,8 @@ const EMPTY_NOVA: NovaForm = {
   n_facas: '',
   cilindro: '',
   colunas_mapa: '',
+  posicao: '',
+  contorno_svg: '',
   conjugada: '',
   fornecedor: '',
   valor_pago: '',
@@ -172,6 +185,8 @@ export function MapasFacasPage() {
     n_facas: '',
     cilindro: '',
     colunas_mapa: '',
+    posicao: '',
+    contorno_svg: '',
     conjugada: '',
     fornecedor: '',
     valor_pago: '',
@@ -190,6 +205,8 @@ export function MapasFacasPage() {
       n_facas: selected.n_facas != null ? String(selected.n_facas) : '',
       cilindro: selected.cilindro ?? '',
       colunas_mapa: selected.colunas_mapa ?? '',
+      posicao: isFacaPosicao(selected.posicao ?? '') ? selected.posicao! : '',
+      contorno_svg: selected.contorno_svg ?? '',
       conjugada: selected.conjugada ?? '',
       fornecedor: selected.fornecedor ?? '',
       valor_pago: selected.valor_pago != null ? String(selected.valor_pago) : '',
@@ -390,6 +407,8 @@ export function MapasFacasPage() {
         n_facas: nFacas,
         cilindro: editMeta.cilindro.trim() || null,
         colunas_mapa: editMeta.colunas_mapa.trim() || null,
+        posicao: editMeta.posicao || null,
+        contorno_svg: editMeta.contorno_svg.trim() || null,
         conjugada: editMeta.conjugada.trim() || null,
         fornecedor: editMeta.fornecedor.trim() || null,
         valor_pago: valorPago,
@@ -418,6 +437,9 @@ export function MapasFacasPage() {
       z: Number.isNaN(z as number) ? null : z,
       largura_faca: Number.isNaN(largura as number) ? null : largura,
       diametro_cm: Number.isNaN(diametro as number) ? null : diametro,
+      colunas_mapa: nova.colunas_mapa.trim() || null,
+      posicao: nova.posicao || null,
+      contorno_svg: nova.contorno_svg.trim() || null,
       maquina_catalogo: nova.maquina_catalogo,
       completa: puxada != null && !Number.isNaN(puxada) && z != null && !Number.isNaN(z),
     } as FacaMapa;
@@ -492,6 +514,8 @@ export function MapasFacasPage() {
         n_facas: nFacas,
         cilindro: nova.cilindro.trim() || null,
         colunas_mapa: nova.colunas_mapa.trim() || null,
+        posicao: nova.posicao || null,
+        contorno_svg: nova.contorno_svg.trim() || null,
         conjugada: nova.conjugada.trim() || null,
         fornecedor: nova.fornecedor.trim() || null,
         valor_pago: valorPago,
@@ -519,7 +543,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Formatos e máquinas vêm do mapa e do catálogo ORC. Geometria existente não se edita — ajuste nota, fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Vocabulário (RETA/REDONDA…) + silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste nota, fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             {canWrite ? (
@@ -663,6 +687,9 @@ export function MapasFacasPage() {
                       <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Formato
                       </SortableTh>
+                      <th className="mapa-facas-th-silhueta" scope="col">
+                        Silhueta
+                      </th>
                       <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Medida
                       </SortableTh>
@@ -730,7 +757,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="mapa-facas-empty-cell">
+                        <td colSpan={11} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -764,6 +791,13 @@ export function MapasFacasPage() {
                                 <FacaShapeIcon formato={f.formato} aspect={aspect} size={24} />
                                 <span>{formatoLabel(f.formato)}</span>
                               </div>
+                            </td>
+                            <td className="mapa-facas-silhueta-cell">
+                              <FacaSilhuetaReal
+                                {...facaSilhuetaFromRecord(f)}
+                                size={30}
+                                variant="compact"
+                              />
                             </td>
                             <td className="medida">
                               <div className="mapa-facas-medida-cell">
@@ -815,17 +849,34 @@ export function MapasFacasPage() {
           ) : (
             <div className="card-body mapa-facas-detail-body">
               <div className="mapa-facas-detail-head">
-                <div
-                  className={`mapa-facas-detail-visual${selected.completa ? '' : ' is-incomplete'}`}
-                  title={formatoLabel(selected.formato)}
-                >
-                  <FacaShapeIcon
-                    formato={selected.formato}
-                    aspect={facaAspectFromRecord(selected)}
-                    size={72}
-                  />
-                  <span>{formatoKind(selected.formato)}</span>
-                </div>
+                <FacaSilhuetaPosicaoDock
+                  className="mapa-facas-detail-leading"
+                  id="mapa-faca-posicao"
+                  label="Posição"
+                  value={isFacaPosicao(editMeta.posicao) ? editMeta.posicao : ''}
+                  disabled={!canWrite}
+                  onChange={(v) => setEditMeta((p) => ({ ...p, posicao: v }))}
+                  visual={
+                    <div
+                      className={`mapa-facas-detail-visual${selected.completa ? '' : ' is-incomplete'}`}
+                      title={formatoLabel(selected.formato)}
+                    >
+                      <FacaSilhuetaReal
+                        {...facaSilhuetaFromRecord(selected)}
+                        size={80}
+                        variant="featured"
+                      />
+                      <div className="mapa-facas-detail-vocab">
+                        <FacaShapeIcon
+                          formato={selected.formato}
+                          aspect={facaAspectFromRecord(selected)}
+                          size={22}
+                        />
+                        <span>{formatoKind(selected.formato)}</span>
+                      </div>
+                    </div>
+                  }
+                />
                 <div>
                   <div className="mapa-facas-detail-kicker">#{selected.id}</div>
                   <h2>{selected.medida}</h2>
@@ -889,6 +940,16 @@ export function MapasFacasPage() {
                 <div>
                   <dt>Colunas</dt>
                   <dd>{selected.colunas_mapa || '—'}</dd>
+                </div>
+                <div>
+                  <dt>Posição</dt>
+                  <dd>
+                    {isFacaPosicao(selected.posicao) ? (
+                      <FacaPosicaoBadge codigo={selected.posicao} variant="pill" size="sm" />
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
                 </div>
                 <div className="full">
                   <dt>Nota / cliente</dt>
@@ -960,7 +1021,31 @@ export function MapasFacasPage() {
                       <input
                         value={editMeta.colunas_mapa}
                         onChange={(e) => setEditMeta((p) => ({ ...p, colunas_mapa: e.target.value }))}
+                        placeholder="1, 2, 3…"
                       />
+                    </label>
+                    <label className="form-group span-full">
+                      <span>Contorno SVG (desenhada)</span>
+                      <textarea
+                        className="mapa-facas-svg-input"
+                        value={editMeta.contorno_svg}
+                        onChange={(e) => setEditMeta((p) => ({ ...p, contorno_svg: e.target.value }))}
+                        rows={4}
+                        placeholder="Cole o SVG exportado do Corel (contorno de corte). Opcional — RETA/REDONDA/OVAL usam medidas automaticamente."
+                      />
+                      {editMeta.contorno_svg.trim() ? (
+                        <div className="mapa-facas-svg-preview" aria-label="Prévia do contorno">
+                          <FacaSilhuetaReal
+                            formato={selected.formato}
+                            medida={selected.medida}
+                            colunasMapa={editMeta.colunas_mapa}
+                            contornoSvg={editMeta.contorno_svg}
+                            size={56}
+                            variant="featured"
+                            showColunasBadge={false}
+                          />
+                        </div>
+                      ) : null}
                     </label>
                     <FornecedorMapaCombobox
                       className="span-full"
@@ -1041,19 +1126,37 @@ export function MapasFacasPage() {
             </div>
 
             <form className="mapa-facas-nova" onSubmit={(e) => void submitNova(e)}>
-              <div className="mapa-facas-nova-preview" aria-hidden>
-                <FacaShapeIcon
-                  formato={previewNova.formato}
-                  aspect={facaAspectFromRecord(previewNova)}
-                  size={96}
+              <div className="mapa-facas-nova-preview-row">
+                <FacaSilhuetaPosicaoDock
+                  className="mapa-facas-nova-preview"
+                  id="mapa-faca-nova-posicao"
+                  label="Posição"
+                  value={isFacaPosicao(nova.posicao) ? nova.posicao : ''}
+                  onChange={(v) => setNova((p) => ({ ...p, posicao: v }))}
+                  visual={
+                    <div className="mapa-facas-nova-visual">
+                      <FacaSilhuetaReal
+                        {...facaSilhuetaFromRecord(previewNova)}
+                        size={72}
+                        variant="featured"
+                      />
+                      <FacaShapeIcon
+                        formato={previewNova.formato}
+                        aspect={facaAspectFromRecord(previewNova)}
+                        size={36}
+                      />
+                    </div>
+                  }
                 />
-                <div>
+                <div className="mapa-facas-nova-copy" aria-hidden>
                   <strong>{previewNova.medida}</strong>
                   <span>
                     {formatoKind(previewNova.formato)} · {previewNova.maquina_catalogo}
                   </span>
                   <span className="hint">
-                    {previewNova.completa ? 'Completa (puxada + Z)' : 'Incompleta — ORC pedirá puxada/Z manuais'}
+                    {previewNova.completa
+                      ? 'Completa (puxada + Z)'
+                      : 'Incompleta — ORC pedirá puxada/Z manuais'}
                   </span>
                 </div>
               </div>
@@ -1175,6 +1278,17 @@ export function MapasFacasPage() {
                   <input
                     value={nova.colunas_mapa}
                     onChange={(e) => setNova((p) => ({ ...p, colunas_mapa: e.target.value }))}
+                    placeholder="1, 2, 3…"
+                  />
+                </label>
+                <label className="form-group span-full">
+                  <span>Contorno SVG (desenhada)</span>
+                  <textarea
+                    className="mapa-facas-svg-input"
+                    value={nova.contorno_svg}
+                    onChange={(e) => setNova((p) => ({ ...p, contorno_svg: e.target.value }))}
+                    rows={3}
+                    placeholder="Opcional — SVG do contorno exportado do Corel."
                   />
                 </label>
                 <FornecedorMapaCombobox

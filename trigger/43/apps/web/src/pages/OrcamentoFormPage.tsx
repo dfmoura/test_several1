@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
+import { FacaSilhuetaPosicaoDock } from '../components/FacaSilhuetaPosicaoDock';
+import { isFacaPosicao, type FacaPosicaoCodigo } from '../lib/facaPosicao';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
+import {
+  facaDesenhoFromForm,
+  OrcamentoFacaDesenho,
+} from '../components/OrcamentoFacaDesenho';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { ProspectRapidoPanel } from '../components/ProspectRapidoPanel';
 import {
@@ -63,6 +69,11 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
     puxada: form.puxada_cm || null,
     z: form.z === '' ? null : form.z,
     largura_faca: form.largura_cm || null,
+    colunas_mapa: form.faca_colunas_mapa || null,
+    posicao: form.faca_posicao || null,
+    contorno_svg: form.faca_contorno_svg || null,
+    diametro_cm: form.faca_diametro_cm === '' ? null : form.faca_diametro_cm,
+    tamanho_tipo: form.faca_tamanho_tipo || null,
     cliente_nota: form.faca_nova ? null : 'snapshot do ORC',
     label: form.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento',
   };
@@ -196,6 +207,7 @@ export function OrcamentoFormPage() {
         formato_faca: '',
         valor_faca_nova: 0,
         prazo_faca_dias: '',
+        faca_posicao: '',
       }));
       return;
     }
@@ -220,8 +232,22 @@ export function OrcamentoFormPage() {
       formato_faca: formato,
       valor_faca_nova: isNova ? prev.valor_faca_nova : 0,
       prazo_faca_dias: isNova ? prev.prazo_faca_dias : '',
+      faca_colunas_mapa: isNova ? '' : String(faca.colunas_mapa ?? ''),
+      faca_posicao: isNova
+        ? prev.faca_posicao
+        : isFacaPosicao(String(faca.posicao ?? ''))
+          ? (String(faca.posicao) as FacaPosicaoCodigo)
+          : '',
+      faca_contorno_svg: isNova ? '' : String(faca.contorno_svg ?? ''),
+      faca_diametro_cm:
+        faca.diametro_cm != null && !Number.isNaN(Number(faca.diametro_cm))
+          ? Number(faca.diametro_cm)
+          : '',
+      faca_tamanho_tipo: isNova ? '' : String(faca.tamanho_tipo ?? ''),
     }));
   };
+
+  const facaDesenhoPreview = facaDesenhoFromForm(form);
 
   const facaIncompleta = facaSel != null && facaSel.completa === false;
   const facaNova = form.faca_nova || facaSel?.faca_nova === true;
@@ -792,6 +818,21 @@ export function OrcamentoFormPage() {
               maquinasCatalogo={catalog?.maquinas ?? []}
               disabled={!canWrite}
             />
+            {facaDesenhoPreview ? (
+              <FacaSilhuetaPosicaoDock
+                className="orc-form-faca-desenho"
+                id="faca-posicao"
+                label="Posição no cilindro"
+                hint="Ficha · guia de produção"
+                value={form.faca_posicao}
+                disabled={!canWrite}
+                onChange={(v) => {
+                  setField('faca_posicao', v);
+                  setCalculo(null);
+                }}
+                visual={<OrcamentoFacaDesenho {...facaDesenhoPreview} variant="inline" />}
+              />
+            ) : null}
             <div className="form-grid faca-auto-fields">
               <div className={`form-group${medidaManual ? ' manual-field' : ' auto-field'}`}>
                 <label>
@@ -1453,11 +1494,15 @@ export function OrcamentoFormPage() {
             facaDesenho={
               form.tipo_operacao === TIPO_SERVICO
                 ? null
-                : {
+                : facaDesenhoFromForm(form) ?? {
               formato: form.formato_faca || calculo.formato_faca,
               medida: form.medida,
               larguraCm: form.largura_cm,
               puxadaCm: form.puxada_cm,
+              diametroCm: form.faca_diametro_cm === '' ? null : form.faca_diametro_cm,
+              tamanhoTipo: form.faca_tamanho_tipo || null,
+              colunasMapa: form.faca_colunas_mapa || null,
+              contornoSvg: form.faca_contorno_svg || null,
               z: form.z === '' ? null : form.z,
               maquina: form.maquina,
               facaNova: form.faca_nova,

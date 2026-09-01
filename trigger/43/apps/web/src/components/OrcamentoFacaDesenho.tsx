@@ -1,13 +1,15 @@
 /**
- * Apresentação do desenho da faca no orçamento.
- * Reusa FacaShapeIcon (mesmo vocabulário do FacaPicker / mapa oficial).
- * Silhueta por formato — não é CAD anexado (GERACAO §3 / UC-CAD-004).
+ * Apresentação do desenho da faca no orçamento, ficha e proposta.
+ * Vocabulário (FacaShapeIcon) + silhueta real (FacaSilhuetaReal) — mesmo padrão do mapa.
  */
 import {
   FacaShapeIcon,
   formatoKind,
   formatoLabel,
 } from './FacaShapeIcon';
+import { FacaSilhuetaReal } from './FacaSilhuetaReal';
+import { FacaPosicaoBadge } from './FacaPosicaoBadge';
+import { isFacaPosicao } from '../lib/facaPosicao';
 
 export type OrcamentoFacaDesenhoAudience = 'interno' | 'cliente';
 
@@ -16,6 +18,13 @@ export type OrcamentoFacaDesenhoProps = {
   medida?: string | null;
   larguraCm?: number | string | null;
   puxadaCm?: number | string | null;
+  diametroCm?: number | string | null;
+  tamanhoTipo?: string | null;
+  /** Colunas no mapa (1×, 2×, 3×…) — distinto de colunas de rebobinação do ORC */
+  colunasMapa?: string | null;
+  /** Posição no cilindro: CIMA | BAIXO | ESQUERDA | DIREITA */
+  posicao?: string | null;
+  contornoSvg?: string | null;
   z?: number | string | null;
   maquina?: string | null;
   facaNova?: boolean;
@@ -58,11 +67,80 @@ function chipVal(v: number | string | null | undefined, suffix = ''): string {
   return suffix ? `${s} ${suffix}` : s;
 }
 
+function badgeSize(variant: OrcamentoFacaDesenhoProps['variant']): 'sm' | 'md' | 'lg' {
+  switch (variant) {
+    case 'compact':
+      return 'sm';
+    case 'documento':
+      return 'lg';
+    default:
+      return 'md';
+  }
+}
+
+function silhuetaSize(variant: OrcamentoFacaDesenhoProps['variant']): number {
+  switch (variant) {
+    case 'compact':
+      return 28;
+    case 'inline':
+      return 44;
+    case 'documento':
+      return 88;
+    default:
+      return 64;
+  }
+}
+
+function FacaDesenhoVisual({
+  props,
+  variant,
+  tipo,
+  label,
+}: {
+  props: OrcamentoFacaDesenhoProps;
+  variant: NonNullable<OrcamentoFacaDesenhoProps['variant']>;
+  tipo: string;
+  label: string;
+}) {
+  const fmt = (props.formato || '').trim() || 'RETA';
+  const aspect = aspectFromOrcDims(props.larguraCm, props.puxadaCm);
+  const silSize = silhuetaSize(variant);
+  const vocabSize = variant === 'compact' ? 18 : variant === 'documento' ? 24 : 22;
+
+  return (
+    <div className={`orc-faca-desenho-visual orc-faca-desenho-visual--${variant}`} title={label}>
+      <FacaSilhuetaReal
+        formato={fmt}
+        medida={props.medida}
+        larguraCm={props.larguraCm}
+        puxadaCm={props.puxadaCm}
+        diametroCm={props.diametroCm}
+        tamanhoTipo={props.tamanhoTipo}
+        colunasMapa={props.colunasMapa}
+        contornoSvg={props.contornoSvg}
+        size={silSize}
+        variant={variant === 'compact' ? 'compact' : 'featured'}
+      />
+      <div className="orc-faca-desenho-vocab">
+        <FacaShapeIcon formato={fmt} aspect={aspect} size={vocabSize} />
+        {variant !== 'compact' ? (
+          <span className="orc-faca-desenho-caption">{tipo}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function OrcamentoFacaDesenho({
   formato,
   medida,
   larguraCm,
   puxadaCm,
+  diametroCm,
+  tamanhoTipo,
+  colunasMapa,
+  posicao,
+  contornoSvg,
   z,
   maquina,
   facaNova = false,
@@ -70,11 +148,28 @@ export function OrcamentoFacaDesenho({
   audience = 'interno',
   className,
 }: OrcamentoFacaDesenhoProps) {
+  const props: OrcamentoFacaDesenhoProps = {
+    formato,
+    medida,
+    larguraCm,
+    puxadaCm,
+    diametroCm,
+    tamanhoTipo,
+    colunasMapa,
+    posicao,
+    contornoSvg,
+    z,
+    maquina,
+    facaNova,
+    variant,
+    audience,
+    className,
+  };
+
   const fmt = (formato || '').trim();
   if (!fmt && !medida) return null;
 
   const tipo = facaNova ? 'FACA NOVA' : formatoKind(fmt);
-  const aspect = aspectFromOrcDims(larguraCm, puxadaCm);
   const label = formatoLabel(fmt);
   const title = medida?.trim() || label || tipo;
   const cliente = audience === 'cliente';
@@ -91,7 +186,12 @@ export function OrcamentoFacaDesenho({
   if (variant === 'compact') {
     return (
       <div className={rootClass} title={`${label}${medida ? ` · ${medida}` : ''}`}>
-        <FacaShapeIcon formato={fmt || 'RETA'} aspect={aspect} size={28} />
+        <div className="orc-faca-desenho-leading">
+          <FacaDesenhoVisual props={props} variant="compact" tipo={tipo} label={label} />
+          {isFacaPosicao(posicao) ? (
+            <FacaPosicaoBadge codigo={posicao} size="sm" />
+          ) : null}
+        </div>
         <div className="orc-faca-desenho-compact-text">
           <strong>{medida?.trim() || label}</strong>
           <span>{tipo}</span>
@@ -99,8 +199,6 @@ export function OrcamentoFacaDesenho({
       </div>
     );
   }
-
-  const size = variant === 'inline' ? 44 : variant === 'documento' ? 88 : 64;
 
   const largura = chipVal(larguraCm, 'cm');
   const puxada = chipVal(puxadaCm, 'cm');
@@ -129,9 +227,11 @@ export function OrcamentoFacaDesenho({
 
   return (
     <div className={rootClass} role="group" aria-label={`Desenho da faca: ${tipo} · ${title}`}>
-      <div className="orc-faca-desenho-visual" title={label}>
-        <FacaShapeIcon formato={fmt || 'RETA'} aspect={aspect} size={size} />
-        <span className="orc-faca-desenho-caption">{tipo}</span>
+      <div className="orc-faca-desenho-leading">
+        <FacaDesenhoVisual props={props} variant={variant} tipo={tipo} label={label} />
+        {isFacaPosicao(posicao) ? (
+          <FacaPosicaoBadge codigo={posicao} size={badgeSize(variant)} />
+        ) : null}
       </div>
 
       <div className="orc-faca-desenho-body">
@@ -154,13 +254,29 @@ export function OrcamentoFacaDesenho({
         {variant === 'featured' || variant === 'documento' ? (
           <p className="orc-faca-desenho-hint">
             {cliente
-              ? 'Silhueta do formato da etiqueta — referência visual, não substitui a arte final.'
-              : 'Silhueta pelo formato do mapa oficial — referência visual da faca escolhida.'}
+              ? 'Silhueta real da etiqueta — referência visual, não substitui a arte final.'
+              : 'Silhueta real pelas medidas do mapa (e colunas quando cadastradas). Referência visual da faca escolhida.'}
           </p>
         ) : null}
       </div>
     </div>
   );
+}
+
+function snapStr(input: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const v = input[key];
+    if (v != null && String(v).trim() !== '') return String(v);
+  }
+  return '';
+}
+
+function snapNum(input: Record<string, unknown>, ...keys: string[]): number | string | null {
+  for (const key of keys) {
+    const v = input[key];
+    if (v != null && v !== '') return v as number | string;
+  }
+  return null;
 }
 
 /** Extrai props de desenho a partir do input_snapshot do ORC. */
@@ -176,8 +292,47 @@ export function facaDesenhoFromSnapshot(
     medida: medida || null,
     larguraCm: input.largura_cm as number | string | null | undefined,
     puxadaCm: input.puxada_cm as number | string | null | undefined,
+    diametroCm: snapNum(input, 'faca_diametro_cm', 'diametro_cm'),
+    tamanhoTipo: snapStr(input, 'faca_tamanho_tipo', 'tamanho_tipo') || null,
+    colunasMapa: snapStr(input, 'faca_colunas_mapa') || null,
+    posicao: snapStr(input, 'faca_posicao') || null,
+    contornoSvg: snapStr(input, 'faca_contorno_svg') || null,
     z: input.z as number | string | null | undefined,
     maquina: input.maquina != null ? String(input.maquina) : null,
+    facaNova: Boolean(input.faca_nova),
+  };
+}
+
+/** Monta props a partir do form / faca selecionada (rascunho do ORC). */
+export function facaDesenhoFromForm(input: {
+  formato_faca?: string;
+  medida?: string;
+  largura_cm?: number;
+  puxada_cm?: number;
+  z?: number | '';
+  maquina?: string;
+  faca_nova?: boolean;
+  faca_colunas_mapa?: string;
+  faca_posicao?: string;
+  faca_contorno_svg?: string;
+  faca_diametro_cm?: number | '';
+  faca_tamanho_tipo?: string;
+}): OrcamentoFacaDesenhoProps | null {
+  const formato = input.formato_faca?.trim() ?? '';
+  const medida = input.medida?.trim() ?? '';
+  if (!formato && !medida) return null;
+  return {
+    formato: formato || null,
+    medida: medida || null,
+    larguraCm: input.largura_cm,
+    puxadaCm: input.puxada_cm,
+    diametroCm: input.faca_diametro_cm === '' ? null : input.faca_diametro_cm,
+    tamanhoTipo: input.faca_tamanho_tipo || null,
+    colunasMapa: input.faca_colunas_mapa?.trim() || null,
+    posicao: input.faca_posicao?.trim() || null,
+    contornoSvg: input.faca_contorno_svg?.trim() || null,
+    z: input.z === '' ? null : input.z,
+    maquina: input.maquina || null,
     facaNova: Boolean(input.faca_nova),
   };
 }
@@ -191,6 +346,10 @@ export function facaDesenhoFromPropostaDescricao(
         largura_cm?: number | string | null;
         puxada_cm?: number | string | null;
         faca_nova?: boolean | null;
+        faca_colunas_mapa?: string | null;
+        faca_contorno_svg?: string | null;
+        faca_diametro_cm?: number | string | null;
+        faca_posicao?: string | null;
       }
     | null
     | undefined,
@@ -204,6 +363,10 @@ export function facaDesenhoFromPropostaDescricao(
     medida: medida || null,
     larguraCm: desc.largura_cm,
     puxadaCm: desc.puxada_cm,
+    diametroCm: desc.faca_diametro_cm,
+    colunasMapa: desc.faca_colunas_mapa,
+    contornoSvg: desc.faca_contorno_svg,
+    posicao: desc.faca_posicao,
     facaNova: Boolean(desc.faca_nova),
     audience: 'cliente',
   };

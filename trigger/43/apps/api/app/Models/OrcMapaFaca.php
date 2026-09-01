@@ -29,6 +29,8 @@ class OrcMapaFaca extends Model
         'n_facas',
         'cilindro',
         'colunas_mapa',
+        'posicao',
+        'contorno_svg',
         'conjugada',
         'fornecedor',
         'valor_pago',

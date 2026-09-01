@@ -7,6 +7,8 @@ use App\Models\OrcMapaFaca;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
 use App\Support\CatalogoOrcEmpresa;
+use App\Support\ContornoSvgSanitizer;
+use App\Support\FacaPosicao;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +29,10 @@ class FacasMapaService
     /** @var list<array<string, mixed>>|null */
     private static ?array $jsonCache = null;
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly ContornoSvgSanitizer $contornoSvgSanitizer,
+    ) {}
 
     public function tablesReady(): bool
     {
@@ -336,6 +341,23 @@ class FacasMapaService
             }
             $v = trim((string) ($data[$col] ?? ''));
             $faca->{$col} = $v !== '' ? $v : null;
+        }
+        if (array_key_exists('posicao', $data)) {
+            $faca->posicao = FacaPosicao::normalize($data['posicao']);
+        }
+        if (array_key_exists('contorno_svg', $data)) {
+            $raw = $data['contorno_svg'];
+            if ($raw === null || trim((string) $raw) === '') {
+                $faca->contorno_svg = null;
+            } else {
+                $sanitized = $this->contornoSvgSanitizer->sanitize((string) $raw);
+                if ($sanitized === null) {
+                    throw ValidationException::withMessages([
+                        'contorno_svg' => 'SVG inválido ou não permitido. Exporte apenas o contorno (path) do Corel/Illustrator.',
+                    ]);
+                }
+                $faca->contorno_svg = $sanitized;
+            }
         }
 
         $faca->label = $this->buildLabel(
@@ -721,6 +743,16 @@ class FacasMapaService
             }
         }
 
+        $contornoSvg = null;
+        if (array_key_exists('contorno_svg', $row) && $row['contorno_svg'] !== null && trim((string) $row['contorno_svg']) !== '') {
+            $contornoSvg = $this->contornoSvgSanitizer->sanitize((string) $row['contorno_svg']);
+            if ($contornoSvg === null && ! $forSeed) {
+                throw ValidationException::withMessages([
+                    'contorno_svg' => 'SVG inválido ou não permitido. Exporte apenas o contorno (path) do Corel/Illustrator.',
+                ]);
+            }
+        }
+
         return [
             'medida' => $medida,
             'tamanho_raw' => $tamanhoRaw !== '' ? $tamanhoRaw : null,
@@ -737,6 +769,8 @@ class FacasMapaService
             'n_facas' => $nFacas,
             'cilindro' => ($c = trim((string) ($row['cilindro'] ?? ''))) !== '' ? $c : null,
             'colunas_mapa' => ($col = trim((string) ($row['colunas_mapa'] ?? ''))) !== '' ? $col : null,
+            'posicao' => $this->normalizePosicaoOptional($row['posicao'] ?? null, $forSeed),
+            'contorno_svg' => $contornoSvg,
             'conjugada' => ($cj = trim((string) ($row['conjugada'] ?? ''))) !== '' ? $cj : null,
             'fornecedor' => ($fo = trim((string) ($row['fornecedor'] ?? ''))) !== '' ? $fo : null,
             'valor_pago' => $valorPago,
@@ -810,6 +844,8 @@ class FacasMapaService
             'n_facas' => $f->n_facas,
             'cilindro' => $f->cilindro,
             'colunas_mapa' => $f->colunas_mapa,
+            'posicao' => $f->posicao,
+            'contorno_svg' => $f->contorno_svg,
             'conjugada' => $f->conjugada,
             'fornecedor' => $f->fornecedor,
             'valor_pago' => $f->valor_pago,
@@ -884,6 +920,23 @@ class FacasMapaService
         if (! $ok) {
             throw ValidationException::withMessages([
                 'maquina_catalogo' => 'Máquina deve existir no catálogo ORC desta empresa (ou cadastre o grupo hora-máquina).',
+            ]);
+        }
+    }
+
+    private function normalizePosicaoOptional(mixed $value, bool $forSeed): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        try {
+            return FacaPosicao::normalize($value);
+        } catch (ValidationException) {
+            if ($forSeed) {
+                return null;
+            }
+            throw ValidationException::withMessages([
+                'posicao' => ['Posição inválida. Use CIMA, BAIXO, ESQUERDA ou DIREITA.'],
             ]);
         }
     }

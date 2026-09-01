@@ -14,6 +14,8 @@ use App\Services\Comercial\Orcamento\OrcamentoMotor;
 use App\Services\Comercial\Orcamento\OrcamentoServicoPrecificador;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
+use App\Support\ContornoSvgSanitizer;
+use App\Support\FacaPosicao;
 use App\Support\ModelosComposicao;
 use App\Support\TipoOperacaoSaida;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +30,7 @@ class OrcamentoService
         private readonly AuditLogger $audit,
         private readonly OrcamentoFreteEstimadoService $freteEstimado,
         private readonly VendedorResolver $vendedores,
+        private readonly ContornoSvgSanitizer $contornoSvgSanitizer,
     ) {}
 
     /** @return array<string, mixed> */
@@ -439,7 +442,50 @@ class OrcamentoService
             'prazo_faca_dias' => array_key_exists('prazo_faca_dias', $data)
                 ? ($data['prazo_faca_dias'] !== null ? (int) $data['prazo_faca_dias'] : null)
                 : ($input['prazo_faca_dias'] ?? null),
+            'faca_colunas_mapa' => $this->nullIfEmpty($data['faca_colunas_mapa'] ?? $input['faca_colunas_mapa'] ?? null),
+            'faca_posicao' => $this->normalizeFacaPosicao($data['faca_posicao'] ?? $input['faca_posicao'] ?? null),
+            'faca_contorno_svg' => $this->sanitizeFacaContornoSvg($data['faca_contorno_svg'] ?? $input['faca_contorno_svg'] ?? null),
+            'faca_diametro_cm' => $this->nullablePositiveFloat($data['faca_diametro_cm'] ?? $input['faca_diametro_cm'] ?? null),
+            'faca_tamanho_tipo' => $this->nullIfEmpty($data['faca_tamanho_tipo'] ?? $input['faca_tamanho_tipo'] ?? null),
         ]);
+    }
+
+    private function sanitizeFacaContornoSvg(mixed $raw): ?string
+    {
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+
+        $sanitized = $this->contornoSvgSanitizer->sanitize((string) $raw);
+        if ($sanitized === null) {
+            throw ValidationException::withMessages([
+                'faca_contorno_svg' => 'SVG inválido ou não permitido.',
+            ]);
+        }
+
+        return $sanitized;
+    }
+
+    private function normalizeFacaPosicao(mixed $raw): ?string
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return FacaPosicao::normalize($raw);
+    }
+
+    private function nullablePositiveFloat(mixed $v): ?float
+    {
+        if ($v === null || $v === '') {
+            return null;
+        }
+        if (! is_numeric($v)) {
+            return null;
+        }
+        $n = (float) $v;
+
+        return $n > 0 ? $n : null;
     }
 
     private function nullIfEmpty(mixed $value): ?string
