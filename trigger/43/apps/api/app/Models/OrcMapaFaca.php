@@ -35,6 +35,7 @@ class OrcMapaFaca extends Model
         'fornecedor',
         'valor_pago',
         'cliente_nota',
+        'obs',
         'completa',
         'label',
         'ativo',

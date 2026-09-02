@@ -196,6 +196,7 @@ class FacasMapaTest extends TestCase
 
         $patch = $this->withHeaders($hdr)->patchJson("/api/v1/facas/{$id}", [
             'cliente_nota' => 'PAR-CASA A',
+            'obs' => '2 colunas — 1 estragada',
             'fornecedor' => 'Ferramental X',
             'n_facas' => 2,
             'valor_pago' => 1250.50,
@@ -204,6 +205,7 @@ class FacasMapaTest extends TestCase
         ]);
         $patch->assertOk();
         $this->assertSame('PAR-CASA A', $patch->json('data.cliente_nota'));
+        $this->assertSame('2 colunas — 1 estragada', $patch->json('data.obs'));
         $this->assertSame('Ferramental X', $patch->json('data.fornecedor'));
         $this->assertSame(2, $patch->json('data.n_facas'));
         $this->assertEquals(1250.50, (float) $patch->json('data.valor_pago'));

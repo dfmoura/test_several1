@@ -335,7 +335,7 @@ class FacasMapaService
                 $faca->valor_pago = round((float) $vp, 2);
             }
         }
-        foreach (['cilindro', 'colunas_mapa', 'conjugada', 'fornecedor', 'cliente_nota'] as $col) {
+        foreach (['cilindro', 'colunas_mapa', 'conjugada', 'fornecedor', 'cliente_nota', 'obs'] as $col) {
             if (! array_key_exists($col, $data)) {
                 continue;
             }
@@ -517,7 +517,7 @@ class FacasMapaService
             $q->where(function ($w) use ($qq) {
                 foreach ([
                     'label', 'medida', 'tamanho_raw', 'formato', 'faca',
-                    'cliente_nota', 'maquina_catalogo', 'maquina_origem',
+                    'cliente_nota', 'obs', 'maquina_catalogo', 'maquina_origem',
                     'fornecedor', 'conjugada',
                 ] as $col) {
                     $w->orWhereRaw('UPPER(COALESCE('.$col.",'')) LIKE ?", [$qq]);
@@ -614,7 +614,7 @@ class FacasMapaService
             $facas = array_values(array_filter($facas, static function (array $f) use ($qq) {
                 foreach ([
                     'label', 'medida', 'tamanho_raw', 'formato', 'faca',
-                    'cliente_nota', 'maquina_catalogo', 'maquina_origem',
+                    'cliente_nota', 'obs', 'maquina_catalogo', 'maquina_origem',
                     'fornecedor', 'conjugada',
                 ] as $key) {
                     if (str_contains(strtoupper((string) ($f[$key] ?? '')), $qq)) {
@@ -775,6 +775,7 @@ class FacasMapaService
             'fornecedor' => ($fo = trim((string) ($row['fornecedor'] ?? ''))) !== '' ? $fo : null,
             'valor_pago' => $valorPago,
             'cliente_nota' => ($cn = trim((string) ($row['cliente_nota'] ?? ''))) !== '' ? $cn : null,
+            'obs' => ($ob = trim((string) ($row['obs'] ?? ''))) !== '' ? $ob : null,
             'completa' => $completa,
             'label' => $label,
             'ativo' => array_key_exists('ativo', $row) ? (bool) $row['ativo'] : true,
@@ -850,6 +851,7 @@ class FacasMapaService
             'fornecedor' => $f->fornecedor,
             'valor_pago' => $f->valor_pago,
             'cliente_nota' => $f->cliente_nota,
+            'obs' => $f->obs,
             'completa' => (bool) $f->completa,
             'label' => $f->label,
             'ativo' => (bool) $f->ativo,

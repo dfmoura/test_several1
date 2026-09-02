@@ -197,7 +197,7 @@ class EmpresaOnboardingTest extends TestCase
         $this->assertSame('certificado_a1', $at->json('data.proximo'));
         $this->assertSame($codigo, $at->json('data.conta.pagador.codigo'));
         $this->assertSame('Carla Conta', $at->json('data.conta.pagador.razao_social'));
-        $this->assertSame('Em dia', $at->json('data.conta.status_label'));
+        $this->assertSame('Licença ativa', $at->json('data.conta.status_label'));
 
         $this->flushHeaders();
 

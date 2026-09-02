@@ -148,7 +148,7 @@ export function AtivacaoCockpit({ data, onUpdated, compact = false }: Props) {
       ) : null}
 
       {recebimento?.feito && !data.pode_enviar_orcamento && !pagamento?.feito ? (
-        <p className="ativacao-nota">O envio da proposta fica liberado depois da mensalidade.</p>
+        <p className="ativacao-nota">O envio da proposta libera quando a licença estiver ativa.</p>
       ) : null}
 
       {pagamento?.feito && certificadoA1 && !certificadoA1.feito && !data.pode_enviar_orcamento ? (

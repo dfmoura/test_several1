@@ -496,27 +496,26 @@ export function ContaFlexorcFatura({ data, onUpdated, retorno, variant = 'onboar
                 role="status"
               >
                 {dias === 0
-                  ? `A cortesia encerra hoje. Autentique a mensalidade agora — a 1ª cobrança antecipada é ${primeiraFmt ?? 'hoje'}.`
+                  ? `Licença ativa · cortesia encerra hoje. 1ª mensalidade em ${primeiraFmt ?? 'hoje'}.`
                   : dias === 1
-                    ? `A cortesia encerra amanhã. Autentique o meio: a 1ª cobrança antecipada será em ${primeiraFmt ?? '—'}.`
-                    : `Restam ${dias ?? '—'} dias de cortesia. Autentique a mensalidade: 1ª cobrança antecipada em ${primeiraFmt ?? '—'}.`}
+                    ? `Licença ativa · cortesia encerra amanhã. 1ª mensalidade em ${primeiraFmt ?? '—'}.`
+                    : `Licença ativa · cortesia por mais ${dias ?? '—'} dias. 1ª mensalidade em ${primeiraFmt ?? '—'}.`}
               </div>
             ) : null}
             {!permanente ? (
               <div className="alert alert-cortesia" role="status">
-                Cortesia ativa. Cadastre a empresa (menu Empresas), envie o certificado digital e
-                siga para o primeiro orçamento. A mensalidade é cobrada de forma antecipada no fim
-                da cortesia.
+                Licença ativa no período cortesia. Cadastre a empresa, envie o certificado digital e
+                siga para o primeiro orçamento. A 1ª mensalidade ocorre no fim da cortesia.
               </div>
             ) : pagoAsaas ? (
               <div className="alert alert-info" role="status">
-                Meio autenticado. A 1ª cobrança antecipada ocorre em {primeiraFmt ?? '—'}; depois
-                {ehInter ? ' um novo PIX será gerado a cada ciclo.' : ' o ASAAS renova no ciclo.'}
+                Licença ativa · meio autenticado. 1ª cobrança em {primeiraFmt ?? '—'}; depois
+                {ehInter ? ' um novo PIX a cada ciclo.' : ' o ASAAS renova no ciclo.'}
               </div>
             ) : (
               <div className="alert alert-cortesia" role="status">
-                Período cortesia TRIGGER. Autentique a mensalidade antes do fim — cobrança
-                antecipada em {primeiraFmt ?? '—'}.
+                Licença ativa · cortesia TRIGGER até {conta.cortesia?.ate_formatada ?? '—'}. A
+                mensalidade detalhada fica nesta tela quando quiser antecipar.
               </div>
             )}
             {!pagoAsaas ? (

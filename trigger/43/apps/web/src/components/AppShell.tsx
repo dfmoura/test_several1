@@ -252,6 +252,7 @@ export function AppShell() {
     : null;
   const labelEmpresa = (emp: { codigo: string; nome_fantasia: string | null; razao_social: string }) =>
     `${emp.codigo} · ${emp.nome_fantasia ?? emp.razao_social}`;
+  const licenca = useLicencaConta(empresaId);
 
   useEffect(() => {
     if (!empresaFlash) return;
@@ -335,6 +336,7 @@ export function AppShell() {
           </div>
 
           <div className="header-controls">
+            <LicencaStatusChip state={licenca} />
             {(empresas.length > 0 || hasPermission('empresas.gerir')) && (
               <div
                 className={
@@ -439,7 +441,7 @@ export function AppShell() {
         )}
 
         <main className="app-content">
-          <MensalidadePendenteBanner empresaId={empresaId} />
+          <ContaAcaoBanner state={licenca} />
           {/* Remonta a tela ao trocar EMP — listagens e formulários usam o novo contexto. */}
           <Outlet key={empresaId ?? 'sem-empresa'} />
         </main>
@@ -448,232 +450,267 @@ export function AppShell() {
   );
 }
 
-function MensalidadePendenteBanner({ empresaId }: { empresaId: number | null }) {
-  const { billingAviso } = useAuth();
-  const [pendente, setPendente] = useState<'pagamento' | 'a1' | 'a1_a_vencer' | 'cortesia' | null>(
-    null,
-  );
-  const [valor, setValor] = useState<string | null>(null);
-  const [cortesiaCopy, setCortesiaCopy] = useState<{
-    dias: number | null;
-    primeira: string | null;
-    titulo: string | null;
-    mensagem: string | null;
-  }>({
-    dias: null,
-    primeira: null,
-    titulo: null,
-    mensagem: null,
-  });
-  const [a1Copy, setA1Copy] = useState<{
-    dias: number | null;
-    validoAte: string | null;
-    mensagem: string | null;
-    nivel: 'warning' | 'urgent' | null;
-  }>({
-    dias: null,
-    validoAte: null,
-    mensagem: null,
-    nivel: null,
-  });
+type LicencaUi =
+  | { surface: 'none' }
+  | {
+      surface: 'chip';
+      tom: 'ok' | 'aviso';
+      titulo: string;
+      detalhe: string;
+      to: string;
+    }
+  | {
+      surface: 'banner';
+      kind: 'pagamento' | 'a1' | 'a1_a_vencer';
+      urgente?: boolean;
+      titulo: string;
+      mensagem: string;
+      valor: string | null;
+      dias: number | null;
+      cta: string;
+      to: string;
+    };
 
-  useEffect(() => {
-    if (!billingAviso) return;
-    if (billingAviso.tipo === 'cortesia') {
-      setPendente('cortesia');
-      setValor(billingAviso.valor_formatado);
-      setCortesiaCopy({
-        dias: billingAviso.dias_restantes,
-        primeira: null,
-        titulo: billingAviso.titulo,
-        mensagem: billingAviso.mensagem,
-      });
-      return;
-    }
-    if (billingAviso.tipo === 'cortesia_encerrada') {
-      setPendente('pagamento');
-      setValor(billingAviso.valor_formatado);
-      setCortesiaCopy({
-        dias: 0,
-        primeira: null,
-        titulo: billingAviso.titulo,
-        mensagem: billingAviso.mensagem,
-      });
-      return;
-    }
-    if (billingAviso.tipo === 'pendente' || billingAviso.tipo === 'suspensa') {
-      setPendente('pagamento');
-      setValor(billingAviso.valor_formatado);
-      setCortesiaCopy({
-        dias: null,
-        primeira: null,
-        titulo: billingAviso.titulo,
-        mensagem: billingAviso.mensagem,
-      });
-    }
-  }, [billingAviso]);
+function diasFrase(dias: number | null, hoje: string, amanha: string, nDias: (n: number) => string): string {
+  if (dias === 0) return hoje;
+  if (dias === 1) return amanha;
+  if (typeof dias === 'number') return nDias(dias);
+  return '—';
+}
+
+function useLicencaConta(empresaId: number | null): LicencaUi {
+  const { billingAviso } = useAuth();
+  const [ui, setUi] = useState<LicencaUi>({ surface: 'none' });
 
   useEffect(() => {
     let cancelled = false;
+
+    const fromAvisoBloqueio = (): LicencaUi | null => {
+      if (!billingAviso) return null;
+      if (
+        billingAviso.tipo === 'cortesia_encerrada' ||
+        billingAviso.tipo === 'pendente' ||
+        billingAviso.tipo === 'suspensa'
+      ) {
+        return {
+          surface: 'banner',
+          kind: 'pagamento',
+          urgente: billingAviso.tipo === 'cortesia_encerrada' || billingAviso.tipo === 'suspensa',
+          titulo: billingAviso.titulo,
+          mensagem: billingAviso.mensagem,
+          valor: billingAviso.valor_formatado,
+          dias: billingAviso.dias_restantes,
+          cta: billingAviso.tipo === 'cortesia_encerrada' ? 'Regularizar' : 'Ver mensalidade',
+          to: billingAviso.to || '/conta/mensalidade',
+        };
+      }
+      return null;
+    };
+
+    const fromAvisoChip = (): LicencaUi | null => {
+      if (!billingAviso) return null;
+      if (billingAviso.tipo !== 'cortesia' && billingAviso.tipo !== 'ativa') return null;
+      const dias = billingAviso.dias_restantes;
+      const aviso =
+        billingAviso.tipo === 'cortesia' &&
+        typeof dias === 'number' &&
+        dias <= 7;
+      const detalhe =
+        billingAviso.mensagem ||
+        (billingAviso.tipo === 'cortesia'
+          ? diasFrase(
+              dias,
+              'cortesia encerra hoje',
+              'cortesia encerra amanhã',
+              (n) => `cortesia · ${n} dias`,
+            )
+          : diasFrase(
+              dias,
+              'renovação hoje',
+              'renovação amanhã',
+              (n) => `${n} dias até a próxima mensalidade`,
+            ));
+      return {
+        surface: 'chip',
+        tom: aviso ? 'aviso' : 'ok',
+        titulo: billingAviso.titulo || 'Licença ativa',
+        detalhe,
+        to: billingAviso.to || '/conta/mensalidade',
+      };
+    };
+
+    const bloqueio = fromAvisoBloqueio();
+    if (bloqueio) {
+      setUi(bloqueio);
+    } else {
+      const chip = fromAvisoChip();
+      if (chip) setUi(chip);
+    }
+
     void api
       .get<{ data: AtivacaoData }>('/ativacao')
       .then((res) => {
         if (cancelled) return;
         const d = res.data;
         if (d.origem !== 'self_service') {
-          if (!billingAviso) setPendente(null);
+          if (!billingAviso) setUi({ surface: 'none' });
           return;
         }
-        if (d.conta?.modo === 'cortesia_encerrada' && !d.conta.pagamento_autenticado) {
-          setPendente('pagamento');
-          setValor(d.conta.valor_formatado ?? null);
-          setCortesiaCopy({
-            dias: 0,
-            primeira: d.conta.primeira_cobranca_formatada ?? null,
-            titulo: 'Cortesia encerrada — pague para continuar',
-            mensagem: d.conta.renovacao_label ?? null,
+
+        const conta = d.conta;
+        const bloqueado =
+          Boolean(d.pagamento_pendente) ||
+          (conta?.modo === 'cortesia_encerrada' && !conta.pagamento_autenticado) ||
+          conta?.modo === 'suspensa';
+
+        if (bloqueado) {
+          const encerrada = conta?.modo === 'cortesia_encerrada';
+          const suspensa = conta?.modo === 'suspensa';
+          setUi({
+            surface: 'banner',
+            kind: 'pagamento',
+            urgente: encerrada || suspensa,
+            titulo: suspensa
+              ? 'Licença suspensa'
+              : encerrada
+                ? 'Licença — cortesia encerrada'
+                : 'Licença aguardando pagamento',
+            mensagem:
+              conta?.renovacao_label ??
+              (conta?.valor_formatado
+                ? `${conta.valor_formatado} · Regularize em Mensalidade para liberar o envio da proposta.`
+                : 'Regularize em Mensalidade para liberar o envio da proposta.'),
+            valor: conta?.valor_formatado ?? null,
+            dias: conta?.dias_ate_proxima ?? null,
+            cta: encerrada || suspensa ? 'Regularizar' : 'Ver mensalidade',
+            to: '/conta/mensalidade',
           });
           return;
         }
-        if (d.pagamento_pendente) {
-          setPendente('pagamento');
-          setValor(d.conta?.valor_formatado ?? null);
-          setCortesiaCopy({
-            dias: null,
-            primeira: null,
-            titulo: null,
-            mensagem: null,
-          });
-          return;
-        }
-        if (d.conta?.alerta_cortesia && !d.conta.pagamento_autenticado) {
-          setPendente('cortesia');
-          setValor(d.conta.valor_formatado ?? null);
-          setCortesiaCopy({
-            dias: d.conta.dias_ate_proxima ?? d.conta.cortesia?.dias_restantes ?? null,
-            primeira: d.conta.primeira_cobranca_formatada ?? null,
-            titulo: null,
-            mensagem: null,
-          });
-          return;
-        }
-        if (d.conta?.modo === 'cortesia' && !d.conta.pagamento_autenticado) {
-          setPendente('cortesia');
-          setValor(d.conta.valor_formatado ?? null);
-          setCortesiaCopy({
-            dias: d.conta.dias_ate_proxima ?? d.conta.cortesia?.dias_restantes ?? null,
-            primeira: d.conta.primeira_cobranca_formatada ?? null,
-            titulo: null,
-            mensagem: null,
-          });
-          return;
-        }
+
         if (d.certificado_a1_pendente) {
-          setPendente('a1');
-          setValor(null);
-          setA1Copy({
+          setUi({
+            surface: 'banner',
+            kind: 'a1',
+            urgente: true,
+            titulo: 'Certificado A1 desta empresa',
+            mensagem:
+              d.certificado_a1_mensagem ??
+              'Envie o certificado digital válido (mesmo CNPJ do cadastro) para liberar o envio da proposta.',
+            valor: null,
             dias: d.certificado_a1_dias_para_vencer ?? null,
-            validoAte: d.certificado_a1_valido_ate ?? null,
-            mensagem: d.certificado_a1_mensagem ?? null,
-            nivel: 'urgent',
+            cta: 'Enviar certificado',
+            to: '/empresas?tab=a1',
           });
           return;
         }
+
         if (
           d.certificado_a1_alerta &&
           (d.certificado_a1_status === 'A_VENCER' || d.certificado_a1_alerta_nivel)
         ) {
-          setPendente('a1_a_vencer');
-          setValor(null);
-          setA1Copy({
-            dias: d.certificado_a1_dias_para_vencer ?? null,
-            validoAte: d.certificado_a1_valido_ate ?? null,
-            mensagem: d.certificado_a1_mensagem ?? null,
-            nivel: d.certificado_a1_alerta_nivel === 'urgent' ? 'urgent' : 'warning',
+          const dias = d.certificado_a1_dias_para_vencer ?? null;
+          const urgente = d.certificado_a1_alerta_nivel === 'urgent';
+          setUi({
+            surface: 'banner',
+            kind: 'a1_a_vencer',
+            urgente,
+            titulo: diasFrase(
+              dias,
+              'Certificado A1 vence hoje',
+              'Certificado A1 vence amanhã',
+              (n) => `Certificado A1 vence em ${n} dias`,
+            ),
+            mensagem:
+              d.certificado_a1_mensagem ??
+              'Substitua o arquivo na ficha da empresa antes do vencimento para não bloquear o envio da proposta.',
+            valor: null,
+            dias,
+            cta: 'Substituir certificado',
+            to: '/empresas?tab=a1',
           });
           return;
         }
-        if (!billingAviso) setPendente(null);
+
+        const dias =
+          conta?.dias_ate_proxima ?? conta?.cortesia?.dias_restantes ?? null;
+        const cortesia = conta?.modo === 'cortesia';
+        const alerta =
+          Boolean(conta?.alerta_cortesia) ||
+          Boolean(conta?.cortesia?.alerta) ||
+          (cortesia && typeof dias === 'number' && dias <= 7) ||
+          (conta?.modo === 'pago' && typeof dias === 'number' && dias <= 7);
+
+        if (conta && (conta.paga || cortesia || conta.modo === 'pago')) {
+          const detalhe = cortesia
+            ? diasFrase(
+                dias,
+                'cortesia encerra hoje',
+                'cortesia encerra amanhã',
+                (n) => `cortesia · ${n} dias`,
+              )
+            : diasFrase(
+                dias,
+                'renovação hoje',
+                'renovação amanhã',
+                (n) => `${n} dias até a próxima mensalidade`,
+              );
+          setUi({
+            surface: 'chip',
+            tom: alerta ? 'aviso' : 'ok',
+            titulo: 'Licença ativa',
+            detalhe,
+            to: '/conta/mensalidade',
+          });
+          return;
+        }
+
+        if (!billingAviso) setUi({ surface: 'none' });
       })
       .catch(() => {
-        if (!cancelled && !billingAviso) setPendente(null);
+        if (!cancelled && !billingAviso) setUi({ surface: 'none' });
       });
+
     return () => {
       cancelled = true;
     };
   }, [empresaId, billingAviso]);
 
-  if (!pendente) {
-    return null;
-  }
+  return ui;
+}
 
-  if (pendente === 'a1') {
-    return (
-      <div className="billing-banner" role="status">
-        <div>
-          <strong>Certificado A1 desta empresa</strong>
-          <span>
-            {a1Copy.mensagem ??
-              'Envie o certificado digital válido (mesmo CNPJ do cadastro) para liberar o envio da proposta.'}
-          </span>
-        </div>
-        <Link to="/empresas?tab=a1" className="btn btn-primary btn-sm">
-          Enviar certificado
-        </Link>
-      </div>
-    );
-  }
+function LicencaStatusChip({ state }: { state: LicencaUi }) {
+  if (state.surface !== 'chip') return null;
+  return (
+    <Link
+      to={state.to}
+      className={`licenca-status${state.tom === 'aviso' ? ' licenca-status--aviso' : ''}`}
+      title={`${state.titulo} · ${state.detalhe}`}
+    >
+      <strong>{state.titulo}</strong>
+      <span aria-hidden>·</span>
+      <span>{state.detalhe}</span>
+    </Link>
+  );
+}
 
-  if (pendente === 'a1_a_vencer') {
-    const dias = a1Copy.dias;
-    const urgente = a1Copy.nivel === 'urgent';
+function ContaAcaoBanner({ state }: { state: LicencaUi }) {
+  if (state.surface !== 'banner') return null;
+
+  if (state.kind === 'a1' || state.kind === 'a1_a_vencer') {
     return (
       <div
-        className={`billing-banner${urgente ? ' billing-banner--urgente' : ' billing-banner--cortesia'}`}
+        className={`billing-banner${
+          state.urgente ? ' billing-banner--urgente' : ' billing-banner--cortesia'
+        }`}
         role="status"
       >
         <div>
-          <strong>
-            {dias === 0
-              ? 'Certificado A1 vence hoje'
-              : dias === 1
-                ? 'Certificado A1 vence amanhã'
-                : `Certificado A1 vence em ${dias ?? '—'} dias`}
-          </strong>
-          <span>
-            {a1Copy.mensagem ??
-              'Substitua o arquivo na ficha da empresa antes do vencimento para não bloquear o envio da proposta.'}
-          </span>
+          <strong>{state.titulo}</strong>
+          <span>{state.mensagem}</span>
         </div>
-        <Link to="/empresas?tab=a1" className="btn btn-primary btn-sm">
-          Substituir certificado
-        </Link>
-      </div>
-    );
-  }
-
-  if (pendente === 'cortesia') {
-    const dias = cortesiaCopy.dias;
-    const primeira = cortesiaCopy.primeira;
-    return (
-      <div className="billing-banner billing-banner--cortesia" role="status">
-        <div>
-          <strong>{cortesiaCopy.titulo ?? 'Cortesia — autentique a mensalidade'}</strong>
-          <span>
-            {cortesiaCopy.mensagem ??
-              `${
-                dias === 0
-                  ? 'Encerra hoje.'
-                  : dias === 1
-                    ? 'Encerra amanhã.'
-                    : `Restam ${dias ?? '—'} dias.`
-              } ${valor ? `${valor} · ` : ''}1ª cobrança antecipada${
-                primeira ? ` em ${primeira}` : ''
-              }. Sem isto o envio fica bloqueado ao fim da cortesia.`}
-          </span>
-        </div>
-        <Link to="/conta/mensalidade" className="btn btn-primary btn-sm">
-          Autenticar mensalidade
+        <Link to={state.to} className="btn btn-primary btn-sm">
+          {state.cta}
         </Link>
       </div>
     );
@@ -681,19 +718,15 @@ function MensalidadePendenteBanner({ empresaId }: { empresaId: number | null }) 
 
   return (
     <div
-      className={`billing-banner${cortesiaCopy.titulo?.includes('encerrada') ? ' billing-banner--urgente' : ''}`}
+      className={`billing-banner${state.urgente ? ' billing-banner--urgente' : ''}`}
       role="status"
     >
       <div>
-        <strong>{cortesiaCopy.titulo ?? `Mensalidade ${BRAND.product.name} em aberto`}</strong>
-        <span>
-          {cortesiaCopy.mensagem ??
-            `${valor ? `${valor} · ` : ''}Regularize a mensalidade antecipada da conta. Sem isto o
-          envio da proposta fica bloqueado.`}
-        </span>
+        <strong>{state.titulo}</strong>
+        <span>{state.mensagem}</span>
       </div>
-      <Link to="/conta/mensalidade" className="btn btn-primary btn-sm">
-        {cortesiaCopy.titulo?.includes('encerrada') ? 'Pagar agora' : 'Ver mensalidade'}
+      <Link to={state.to} className="btn btn-primary btn-sm">
+        {state.cta}
       </Link>
     </div>
   );

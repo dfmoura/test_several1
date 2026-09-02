@@ -2839,6 +2839,61 @@ table.data-table td.acoes {
   background: color-mix(in srgb, #ef4444 10%, #fff);
 }
 
+/* Status discreto da licença (conta em dia / cortesia) — chrome do header, não do conteúdo */
+.licenca-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(18rem, 42vw);
+  padding: 0.32rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--success) 32%, var(--border));
+  background: color-mix(in srgb, var(--success) 9%, #fff);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.licenca-status:hover {
+  border-color: color-mix(in srgb, var(--success) 48%, var(--border));
+  background: color-mix(in srgb, var(--success) 14%, #fff);
+  color: var(--text-muted);
+}
+
+.licenca-status strong {
+  color: var(--navy-dark);
+  font-weight: 600;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.licenca-status span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.licenca-status--aviso {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, #f59e0b 11%, #fff);
+}
+
+.licenca-status--aviso:hover {
+  border-color: color-mix(in srgb, var(--warning) 55%, var(--border));
+  background: color-mix(in srgb, #f59e0b 16%, #fff);
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .licenca-status {
+    display: none;
+  }
+}
+
 .camadas-dinheiro {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -7097,7 +7152,9 @@ tr.row-inactive td {
   color: var(--navy);
 }
 
-.mapa-facas-table td.nota {
+.mapa-facas-table td.nota,
+.mapa-facas-table td.cliente,
+.mapa-facas-table td.obs {
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;

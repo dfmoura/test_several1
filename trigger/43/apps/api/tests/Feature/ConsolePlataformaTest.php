@@ -230,7 +230,7 @@ class ConsolePlataformaTest extends TestCase
         $at = $this->getJson('/api/v1/ativacao')->assertOk()->json('data');
         $this->assertFalse($at['pagamento_pendente']);
         $this->assertSame('PENDENTE', $at['billing_status']);
-        $this->assertSame('Cortesia', $at['conta']['status_label']);
+        $this->assertSame('Licença ativa', $at['conta']['status_label']);
         $this->assertSame('cortesia', $at['conta']['modo']);
         $this->assertTrue($at['conta']['paga']);
         $this->assertFalse($at['conta']['pagamento_autenticado']);
@@ -318,7 +318,7 @@ class ConsolePlataformaTest extends TestCase
         ])->getJson('/api/v1/ativacao')->assertOk()->json('data');
 
         $this->assertSame('cortesia', $at['conta']['modo']);
-        $this->assertSame('Cortesia', $at['conta']['status_label']);
+        $this->assertSame('Licença ativa', $at['conta']['status_label']);
         $this->assertTrue($at['conta']['cortesia']['vigente']);
         $this->assertSame('piloto', $at['conta']['cortesia']['motivo']);
         $this->assertNotNull($at['conta']['dias_ate_proxima']);

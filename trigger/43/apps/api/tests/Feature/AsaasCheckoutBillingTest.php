@@ -159,8 +159,10 @@ class AsaasCheckoutBillingTest extends TestCase
 
         $me = $this->getJson('/api/v1/auth/me')->assertOk();
         $this->assertSame('cortesia', $me->json('billing_aviso.tipo'));
-        $this->assertSame('autenticar', $me->json('billing_aviso.acao'));
+        $this->assertSame('Licença ativa', $me->json('billing_aviso.titulo'));
+        $this->assertSame('ver', $me->json('billing_aviso.acao'));
         $this->assertSame('/conta/mensalidade', $me->json('billing_aviso.to'));
+        $this->assertIsInt($me->json('billing_aviso.dias_restantes'));
     }
 
     public function test_checkout_atualiza_customer_incompleto_antes_de_abrir(): void

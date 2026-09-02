@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { ClienteMapaCombobox } from '../components/ClienteMapaCombobox';
 import { FornecedorMapaCombobox } from '../components/FornecedorMapaCombobox';
 import { PageHeader } from '../components/PageHeader';
 import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
@@ -46,6 +47,7 @@ type FacaMapa = {
   fornecedor?: string | null;
   valor_pago?: number | null;
   cliente_nota?: string | null;
+  obs?: string | null;
   completa: boolean;
   label?: string | null;
   ativo: boolean;
@@ -84,7 +86,8 @@ const FACA_SORT = {
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
   fornecedor: (f: FacaMapa) => f.fornecedor,
   valor_pago: (f: FacaMapa) => (f.valor_pago != null ? Number(f.valor_pago) : null),
-  nota: (f: FacaMapa) => f.cliente_nota,
+  cliente: (f: FacaMapa) => f.cliente_nota,
+  obs: (f: FacaMapa) => f.obs,
 };
 
 function fmtNum(v: unknown, d = 2): string {
@@ -135,6 +138,7 @@ type NovaForm = {
   fornecedor: string;
   valor_pago: string;
   cliente_nota: string;
+  obs: string;
 };
 
 const EMPTY_NOVA: NovaForm = {
@@ -155,6 +159,7 @@ const EMPTY_NOVA: NovaForm = {
   fornecedor: '',
   valor_pago: '',
   cliente_nota: '',
+  obs: '',
 };
 
 export function MapasFacasPage() {
@@ -194,6 +199,7 @@ export function MapasFacasPage() {
     fornecedor: '',
     valor_pago: '',
     cliente_nota: '',
+    obs: '',
   });
 
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
@@ -214,6 +220,7 @@ export function MapasFacasPage() {
       fornecedor: selected.fornecedor ?? '',
       valor_pago: selected.valor_pago != null ? String(selected.valor_pago) : '',
       cliente_nota: selected.cliente_nota ?? '',
+      obs: selected.obs ?? '',
     });
   }, [selected]);
 
@@ -416,6 +423,7 @@ export function MapasFacasPage() {
         fornecedor: editMeta.fornecedor.trim() || null,
         valor_pago: valorPago,
         cliente_nota: editMeta.cliente_nota.trim() || null,
+        obs: editMeta.obs.trim() || null,
       });
       setMessage(`Faca #${selected.id}: dados operacionais atualizados.`);
       setSelected(res.data);
@@ -523,6 +531,7 @@ export function MapasFacasPage() {
         fornecedor: nova.fornecedor.trim() || null,
         valor_pago: valorPago,
         cliente_nota: nova.cliente_nota.trim() || null,
+        obs: nova.obs.trim() || null,
       });
       setShowNova(false);
       novaNFacasManual.current = false;
@@ -546,7 +555,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste nota, fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             {canWrite ? (
@@ -612,7 +621,7 @@ export function MapasFacasPage() {
             className="mapa-facas-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar medida, cliente, fornecedor…"
+            placeholder="Buscar medida, cliente, obs., fornecedor…"
             aria-label="Buscar facas"
           />
           <select
@@ -752,15 +761,18 @@ export function MapasFacasPage() {
                       >
                         Valor pago
                       </SortableTh>
-                      <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Nota
+                      <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Cliente
+                      </SortableTh>
+                      <SortableTh column="obs" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Obs.
                       </SortableTh>
                     </tr>
                   </thead>
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="mapa-facas-empty-cell">
+                        <td colSpan={12} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -837,8 +849,11 @@ export function MapasFacasPage() {
                               {f.fornecedor || '—'}
                             </td>
                             <td className="num">{fmtMoney(f.valor_pago)}</td>
-                            <td className="nota" title={f.cliente_nota || undefined}>
+                            <td className="cliente" title={f.cliente_nota || undefined}>
                               {f.cliente_nota || '—'}
+                            </td>
+                            <td className="obs" title={f.obs || undefined}>
+                              {f.obs || '—'}
                             </td>
                           </tr>
                         );
@@ -855,7 +870,7 @@ export function MapasFacasPage() {
           {!selected ? (
             <div className="card-body mapa-facas-detail-empty">
               <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (medida, puxada, Z) não é editável. Nota, fornecedor, valor pago e grupo ORC podem acompanhar a operação desta empresa.</p>
+              <p className="hint">Geometria (medida, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago e grupo ORC podem acompanhar a operação desta empresa.</p>
             </div>
           ) : (
             <div className="card-body mapa-facas-detail-body">
@@ -977,9 +992,13 @@ export function MapasFacasPage() {
                       : '—'}
                   </dd>
                 </div>
-                <div className="full">
-                  <dt>Nota / cliente</dt>
+                <div>
+                  <dt>Cliente</dt>
                   <dd title={selected.cliente_nota || undefined}>{selected.cliente_nota || '—'}</dd>
+                </div>
+                <div className="full">
+                  <dt>Obs.</dt>
+                  <dd title={selected.obs || undefined}>{selected.obs || '—'}</dd>
                 </div>
               </dl>
 
@@ -1085,11 +1104,19 @@ export function MapasFacasPage() {
                         onChange={(e) => setEditMeta((p) => ({ ...p, conjugada: e.target.value }))}
                       />
                     </label>
+                    <ClienteMapaCombobox
+                      className="span-full"
+                      value={editMeta.cliente_nota}
+                      onChange={(cliente_nota) => setEditMeta((p) => ({ ...p, cliente_nota }))}
+                      disabled={!canWrite}
+                    />
                     <label className="form-group span-full">
-                      <span>Nota / parceiro</span>
+                      <span>Obs.</span>
                       <input
-                        value={editMeta.cliente_nota}
-                        onChange={(e) => setEditMeta((p) => ({ ...p, cliente_nota: e.target.value }))}
+                        value={editMeta.obs}
+                        onChange={(e) => setEditMeta((p) => ({ ...p, obs: e.target.value }))}
+                        maxLength={500}
+                        placeholder="Observação operacional da faca…"
                       />
                     </label>
                   </div>
@@ -1336,11 +1363,18 @@ export function MapasFacasPage() {
                     onChange={(e) => setNova((p) => ({ ...p, conjugada: e.target.value }))}
                   />
                 </label>
+                <ClienteMapaCombobox
+                  className="span-full"
+                  value={nova.cliente_nota}
+                  onChange={(cliente_nota) => setNova((p) => ({ ...p, cliente_nota }))}
+                />
                 <label className="form-group span-full">
-                  <span>Nota / cliente</span>
+                  <span>Obs.</span>
                   <input
-                    value={nova.cliente_nota}
-                    onChange={(e) => setNova((p) => ({ ...p, cliente_nota: e.target.value }))}
+                    value={nova.obs}
+                    onChange={(e) => setNova((p) => ({ ...p, obs: e.target.value }))}
+                    maxLength={500}
+                    placeholder="Observação operacional da faca…"
                   />
                 </label>
               </div>

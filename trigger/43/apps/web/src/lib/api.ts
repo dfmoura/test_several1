@@ -377,10 +377,10 @@ export type ProdutoFlexorcSuperficie = {
 };
 
 export type BillingAviso = {
-  tipo: 'cortesia' | 'cortesia_encerrada' | 'pendente' | 'suspensa' | string;
+  tipo: 'cortesia' | 'cortesia_encerrada' | 'pendente' | 'suspensa' | 'ativa' | string;
   titulo: string;
   mensagem: string;
-  acao: string;
+  acao: 'autenticar' | 'ver' | string;
   to: string;
   dias_restantes: number | null;
   valor_formatado: string | null;

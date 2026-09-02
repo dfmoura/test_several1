@@ -81,9 +81,9 @@ export function DashboardPage() {
                 ? 'Envie o certificado digital desta empresa para liberar o envio da proposta.'
                 : 'Conclua os primeiros passos desta empresa para orçar com segurança.'
               : ativacao?.conta?.modo === 'cortesia_encerrada'
-                ? 'A cortesia encerrou — pague a mensalidade antecipada para voltar a enviar propostas.'
+                ? 'A licença precisa de renovação para voltar a enviar propostas.'
                 : ativacao?.pagamento_pendente
-                ? 'A mensalidade ainda está em aberto — você orça, mas o envio da proposta espera a confirmação.'
+                ? 'A licença aguarda pagamento — o envio da proposta libera após a confirmação.'
                 : 'O que pede ação agora nesta empresa.'
         }`}
       />

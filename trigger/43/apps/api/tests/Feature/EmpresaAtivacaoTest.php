@@ -140,7 +140,7 @@ class EmpresaAtivacaoTest extends TestCase
 
         $apos = $this->withHeaders($h)->getJson('/api/v1/ativacao')->assertOk();
         $this->assertTrue($apos->json('data.conta.paga'));
-        $this->assertSame('Em dia', $apos->json('data.conta.status_label'));
+        $this->assertSame('Licença ativa', $apos->json('data.conta.status_label'));
         $this->assertNotNull($apos->json('data.conta.proxima_cobranca_em'));
         $this->assertIsInt($apos->json('data.conta.dias_ate_proxima'));
         $this->assertGreaterThanOrEqual(0, $apos->json('data.conta.dias_ate_proxima'));

@@ -114,6 +114,7 @@ class FacasController extends Controller
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
+            'obs' => ['nullable', 'string', 'max:500'],
             'completa' => ['nullable', 'boolean'],
         ]);
 
@@ -138,6 +139,7 @@ class FacasController extends Controller
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
+            'obs' => ['nullable', 'string', 'max:500'],
         ]);
 
         $row = $this->facasMapaService->updateMetadados($faca, $data);

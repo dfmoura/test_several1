@@ -186,11 +186,11 @@ class EmpresaAtivacaoService
         $pagoAsaas = $row->pagamentoAutenticado();
         $provider = $this->billing->providerNome();
         $hintPagamento = match (true) {
-            $pagoAsaas && $provider === 'inter' => 'Conta paga — PIX Inter confirmado',
-            $pagoAsaas => 'Conta paga — a TRIGGER recebeu pelo ASAAS',
-            $row->cortesiaVigente() => 'Período cortesia TRIGGER — autentique a mensalidade antecipada antes do fim',
+            $pagoAsaas && $provider === 'inter' => 'Licença ativa — PIX Inter confirmado',
+            $pagoAsaas => 'Licença ativa — mensalidade em dia',
+            $row->cortesiaVigente() => 'Licença ativa — período cortesia TRIGGER',
             $row->cortesiaEncerrada() && $provider === 'inter' => 'Cortesia encerrada — pague a mensalidade via PIX para continuar',
-            $row->cortesiaEncerrada() => 'Cortesia encerrada — pague a mensalidade antecipada no cartão para continuar',
+            $row->cortesiaEncerrada() => 'Cortesia encerrada — pague a mensalidade para continuar',
             $provider === 'inter' => 'Você paga a TRIGGER. PIX na tela (QR + copia-e-cola); o '.ProductBrand::name().' não guarda o comprovante do banco.',
             default => 'Você paga a TRIGGER. Cartão no ASAAS (recorrente); o '.ProductBrand::name().' não vê o cartão.',
         };
@@ -278,8 +278,8 @@ class EmpresaAtivacaoService
         if ($row->billing_status === ContaAtivacao::BILLING_SUSPENSA) {
             return [
                 'tipo' => 'suspensa',
-                'titulo' => 'Mensalidade suspensa',
-                'mensagem' => 'Regularize a mensalidade '.ProductBrand::name().' no ASAAS para voltar a enviar propostas.',
+                'titulo' => 'Licença suspensa',
+                'mensagem' => 'Regularize a mensalidade em Mensalidade para voltar a enviar propostas.',
                 'acao' => 'autenticar',
                 'to' => $to,
                 'dias_restantes' => null,
@@ -289,21 +289,18 @@ class EmpresaAtivacaoService
 
         if ($row->cortesiaVigente() && ! $row->pagamentoAutenticado()) {
             $dias = (int) now()->startOfDay()->diffInDays($row->cortesia_ate->copy()->startOfDay());
-            $primeira = $this->billing->primeiraCobrancaEm($row->cortesia_ate)
-                ->timezone(config('app.timezone'))
-                ->format('d/m/Y');
+            $mensagem = match (true) {
+                $dias === 0 => 'cortesia encerra hoje',
+                $dias === 1 => 'cortesia encerra amanhã',
+                default => "cortesia · {$dias} dias",
+            };
 
             return [
                 'tipo' => 'cortesia',
-                'titulo' => $dias <= $this->billing->alertaCortesiaDias()
-                    ? 'Cortesia acabando — autentique a mensalidade'
-                    : 'Período cortesia — autentique a mensalidade',
-                'mensagem' => $dias === 0
-                    ? "A cortesia encerra hoje. 1ª cobrança antecipada em {$primeira} ({$valor})."
-                    : ($dias === 1
-                        ? "A cortesia encerra amanhã. 1ª cobrança antecipada em {$primeira} ({$valor})."
-                        : "Restam {$dias} dias de cortesia. 1ª cobrança antecipada em {$primeira} ({$valor})."),
-                'acao' => 'autenticar',
+                'titulo' => 'Licença ativa',
+                'mensagem' => $mensagem,
+                // Acesso liberado: status discreto (não redireciona no login).
+                'acao' => 'ver',
                 'to' => $to,
                 'dias_restantes' => $dias,
                 'valor_formatado' => $valor,
@@ -316,8 +313,8 @@ class EmpresaAtivacaoService
 
                 return [
                     'tipo' => 'cortesia_encerrada',
-                    'titulo' => 'Cortesia encerrada — pague para continuar',
-                    'mensagem' => "O período cortesia encerrou em {$ate}. {$valor} no cartão (ASAAS), antecipado, para voltar a enviar propostas.",
+                    'titulo' => 'Licença — cortesia encerrada',
+                    'mensagem' => "Encerrou em {$ate}. Regularize a mensalidade ({$valor}) para voltar a enviar propostas.",
                     'acao' => 'autenticar',
                     'to' => $to,
                     'dias_restantes' => 0,
@@ -327,11 +324,35 @@ class EmpresaAtivacaoService
 
             return [
                 'tipo' => 'pendente',
-                'titulo' => 'Mensalidade '.ProductBrand::name().' em aberto',
-                'mensagem' => "{$valor} · Regularize a mensalidade antecipada. Sem isto o envio da proposta fica bloqueado.",
+                'titulo' => 'Licença aguardando pagamento',
+                'mensagem' => "{$valor} · Regularize em Mensalidade para liberar o envio da proposta.",
                 'acao' => 'autenticar',
                 'to' => $to,
                 'dias_restantes' => null,
+                'valor_formatado' => $valor,
+            ];
+        }
+
+        if ($row->pagamentoAutenticado()) {
+            $ciclo = $this->billing->cicloStatus(
+                $row->billing_metodo_em,
+                true,
+            );
+            $dias = $ciclo['dias_ate_proxima'];
+            $mensagem = match (true) {
+                ! is_int($dias) => $ciclo['renovacao_label'] ?: 'mensalidade em dia',
+                $dias === 0 => 'renovação hoje',
+                $dias === 1 => 'renovação amanhã',
+                default => "{$dias} dias até a próxima mensalidade",
+            };
+
+            return [
+                'tipo' => 'ativa',
+                'titulo' => 'Licença ativa',
+                'mensagem' => $mensagem,
+                'acao' => 'ver',
+                'to' => $to,
+                'dias_restantes' => is_int($dias) ? $dias : null,
                 'valor_formatado' => $valor,
             ];
         }
@@ -979,16 +1000,16 @@ class EmpresaAtivacaoService
             $formatada = $conta->cortesia_ate->timezone(config('app.timezone'))->format('d/m/Y');
             if ($pagoAsaas) {
                 $label = $dias === 0
-                    ? 'Meio autenticado · 1ª cobrança antecipada hoje ('.$primeiraFmt.')'
+                    ? 'Licença ativa · 1ª cobrança hoje ('.$primeiraFmt.')'
                     : ($dias === 1
-                        ? 'Meio autenticado · 1ª cobrança antecipada amanhã ('.$primeiraFmt.')'
-                        : 'Meio autenticado · 1ª cobrança antecipada em '.$dias.' dias ('.$primeiraFmt.')');
+                        ? 'Licença ativa · 1ª cobrança amanhã ('.$primeiraFmt.')'
+                        : 'Licença ativa · 1ª cobrança em '.$dias.' dias ('.$primeiraFmt.')');
             } else {
                 $label = $dias === 0
-                    ? 'Cortesia encerra hoje · autentique a mensalidade antecipada'
+                    ? 'Licença ativa · cortesia encerra hoje'
                     : ($dias === 1
-                        ? 'Cortesia encerra amanhã · 1ª cobrança em '.$primeiraFmt
-                        : 'Cortesia por mais '.$dias.' dias · 1ª cobrança antecipada em '.$primeiraFmt);
+                        ? 'Licença ativa · cortesia encerra amanhã'
+                        : 'Licença ativa · cortesia por mais '.$dias.' dias');
             }
             $ciclo = [
                 'proxima_cobranca_em' => $primeira->toDateString(),
@@ -1013,8 +1034,8 @@ class EmpresaAtivacaoService
 
         $statusLabel = match ($modo) {
             'suspensa' => 'Suspensa',
-            'pago' => 'Em dia',
-            'cortesia' => 'Cortesia',
+            'pago' => 'Licença ativa',
+            'cortesia' => 'Licença ativa',
             'cortesia_encerrada' => 'Cortesia encerrada',
             default => 'Aguardando pagamento',
         };
