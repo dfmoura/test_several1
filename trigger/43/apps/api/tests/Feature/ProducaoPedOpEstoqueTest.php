@@ -345,6 +345,53 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertSame(1, Pedido::query()->where('orcamento_id', $orc->id)->count());
     }
 
+    public function test_show_orcamento_liberado_inclui_pedido_e_show_ped_com_ordens(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $orcId = (int) $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos', $this->payload())
+            ->assertCreated()
+            ->json('data.id');
+
+        $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$orcId}/destinatarios-aprovacao");
+        $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$orcId}/enviar-aprovacao", [
+            'parceiro_contato_id' => $dest->json('data.destinatarios.0.parceiro_contato_id'),
+        ]);
+        $token = OrcamentoLinkAprovacao::query()->where('orcamento_id', $orcId)->value('token');
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'nome_cliente' => 'Prod Cliente',
+            'faixa_index' => 0,
+        ])->assertOk();
+
+        $showOrc = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$orcId}");
+        $showOrc->assertOk();
+        $this->assertSame('LIBERADO', $showOrc->json('data.financeiro_status'));
+        $this->assertNotNull($showOrc->json('data.pedido'));
+        $this->assertSame($showOrc->json('data.pedido.codigo'), Pedido::query()->where('orcamento_id', $orcId)->value('codigo'));
+        $this->assertSame(Pedido::STATUS_LIBERADO, $showOrc->json('data.pedido.status'));
+
+        $pedidoId = (int) $showOrc->json('data.pedido.id');
+        $itemId = (int) Pedido::query()->findOrFail($pedidoId)->itens()->value('id');
+
+        Sanctum::actingAs($this->producao);
+        $opId = (int) $this->withHeaders($h)->postJson("/api/v1/pedidos/{$pedidoId}/abrir-op", [
+            'pedido_item_id' => $itemId,
+        ])->assertCreated()->json('data.id');
+
+        $showPed = $this->withHeaders($h)->getJson("/api/v1/pedidos/{$pedidoId}");
+        $showPed->assertOk();
+        $this->assertSame($pedidoId, (int) $showPed->json('data.id'));
+        $this->assertNotEmpty($showPed->json('data.ordens_producao'));
+        $this->assertSame($opId, (int) $showPed->json('data.ordens_producao.0.id'));
+        $this->assertArrayHasKey('materiais_resumo', $showPed->json('data.ordens_producao.0'));
+        $this->assertGreaterThan(0, (int) $showPed->json('data.ordens_producao.0.materiais_resumo.total'));
+        $this->assertArrayHasKey('entrega', $showPed->json('data'));
+        $this->assertNull($showPed->json('data.entrega'));
+    }
+
     public function test_conclusao_fora_tolerancia_exige_override(): void
     {
         Sanctum::actingAs($this->comercial);

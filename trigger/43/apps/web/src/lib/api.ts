@@ -2097,6 +2097,8 @@ export type Orcamento = {
   motivo_decisao?: string | null;
   financeiro_status?: string | null;
   adiantamento_titulo_id?: number | null;
+  /** PED 1:1 após LIBERADO — continuidade operacional (MAPA_FLUXO_POS_ORC). */
+  pedido?: { id: number; codigo: string; status: string } | null;
   link_aprovacao?: {
     ativo: boolean;
     expira_em: string | null;
@@ -2165,6 +2167,11 @@ export type Pedido = {
     pedido_item_id?: number;
     qtde_planejada: string;
     qtde_boa: string | null;
+    materiais_resumo?: {
+      total: number;
+      pendentes: number;
+      requisitados: number;
+    };
   }>;
   ordens_servico?: Array<{
     id: number;
@@ -2185,6 +2192,7 @@ export type Pedido = {
     valor_adiantamento: string;
     valor_a_cobrar: string;
   } | null;
+  entrega?: { id: number; codigo: string; status: string } | null;
   rastreio?: RastreioDocumento;
   created_at: string | null;
 };

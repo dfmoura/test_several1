@@ -55,3 +55,56 @@ export function opStatusLabel(status: string): string {
 export function opMaterialStatusLabel(status: string): string {
   return MAT_LABELS[status] ?? status.replace(/_/g, ' ');
 }
+
+/** Resumo leve de linhas de material na OP (empenho leve → requisição). */
+export function opMaterialResumoLabel(resumo: {
+  total: number;
+  pendentes: number;
+  requisitados: number;
+}): string {
+  if (resumo.total <= 0) {
+    return 'Sem linhas de material';
+  }
+  if (resumo.pendentes === 0) {
+    return `Requisitado (${resumo.requisitados}/${resumo.total})`;
+  }
+  if (resumo.requisitados === 0) {
+    return `Pendente (${resumo.pendentes}/${resumo.total})`;
+  }
+  return `Parcial · ${resumo.requisitados} requisitado(s), ${resumo.pendentes} pendente(s)`;
+}
+
+/** Passo corrente da OP para a faixa de andamento no chão. */
+export function opPassoAtual(op: {
+  status: string;
+  materiais?: Array<{ pendente?: boolean }> | null;
+}): 'separar' | 'produzir' | 'concluir' | 'pedido' {
+  if (op.status === 'CONCLUIDA' || op.status === 'CANCELADA') {
+    return 'pedido';
+  }
+  const mats = op.materiais ?? [];
+  const temPendencia = mats.some((m) => m.pendente);
+  const temSaida = mats.some((m) => !m.pendente);
+  if (mats.length > 0 && temPendencia && !temSaida) {
+    return 'separar';
+  }
+  if (op.status === 'ABERTA' && (!temSaida || mats.length === 0)) {
+    return 'separar';
+  }
+  if (op.status === 'EM_ANDAMENTO' || temSaida) {
+    return temPendencia ? 'produzir' : 'concluir';
+  }
+  return 'separar';
+}
+
+/** Consumo apontado na conclusão: requisitado − retorno − perda. */
+export function qtdeConsumidaApontada(
+  requisitada: string | number,
+  retorno: string | number,
+  perda: string | number,
+): number {
+  const r = Number(requisitada) || 0;
+  const ret = Number(retorno) || 0;
+  const p = Number(perda) || 0;
+  return Math.max(0, r - ret - p);
+}

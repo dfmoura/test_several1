@@ -32,6 +32,7 @@ import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
 import { normalizeUrlArte } from '../lib/urlArte';
 import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
+import { pedStatusLabel } from '../lib/producaoUi';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number };
 
@@ -612,6 +613,49 @@ export function OrcamentoDetailPage() {
           <p className="orc-lock-note">{lockNote}</p>
         </div>
       </div>
+
+      {produtoFlexorc.financeiro &&
+      (orc.financeiro_status === 'AGUARDA_ADIANTAMENTO' ||
+        orc.financeiro_status === 'LIBERADO') ? (
+        <div className="card orc-continuidade-card" style={{ marginBottom: '1rem' }}>
+          <div className="card-body">
+            <h3 className="orc-section-title" style={{ marginTop: 0 }}>
+              Continuidade operacional
+            </h3>
+            {orc.financeiro_status === 'AGUARDA_ADIANTAMENTO' ? (
+              <p className="orc-share-hint" style={{ marginBottom: 0 }}>
+                Pedido operacional após confirmação do sinal. Enquanto o PIX não for baixado, a
+                produção não abre.
+              </p>
+            ) : orc.pedido ? (
+              <div className="orc-continuidade-row">
+                <div>
+                  <p className="orc-share-hint" style={{ marginBottom: '0.35rem' }}>
+                    Orçamento liberado. Segue no pedido com o andamento de produção e expedição.
+                  </p>
+                  <div className="orc-continuidade-meta">
+                    <span>{orc.pedido.codigo}</span>
+                    <StatusPill status={pedStatusLabel(orc.pedido.status)} />
+                  </div>
+                </div>
+                <Link to={`/pedidos/${orc.pedido.id}`} className="btn btn-primary">
+                  Ver pedido {orc.pedido.codigo}
+                </Link>
+              </div>
+            ) : (
+              <div className="orc-continuidade-row">
+                <p className="orc-share-hint" style={{ marginBottom: 0 }}>
+                  Liberado financeiramente, mas o pedido ainda não aparece neste orçamento. Consulte a
+                  lista de pedidos pela referência {orc.codigo}.
+                </p>
+                <Link to="/pedidos" className="btn btn-secondary">
+                  Abrir pedidos
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className={`card${facaDesenho ? ' orc-faca-card' : ''}`} style={{ marginBottom: '1rem' }}>
         <div className="card-body">

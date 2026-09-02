@@ -7,7 +7,8 @@ import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { opMaterialStatusLabel, opStatusLabel } from '../lib/producaoUi';
+import { opMaterialStatusLabel, opStatusLabel, qtdeConsumidaApontada } from '../lib/producaoUi';
+import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
 
 type MatForm = { material_id: number; qtde_retorno: string; qtde_perda: string };
 
@@ -148,7 +149,11 @@ export function OrdemProducaoDetailPage() {
         },
       );
       setOp(res.data);
-      setMsg('OP concluída · PA e readequação gravados.');
+      setMsg(
+        res.data.pedido
+          ? `OP concluída · PA e readequação gravados. Pedido ${res.data.pedido.codigo} atualizado.`
+          : 'OP concluída · PA e readequação gravados.',
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao concluir.');
     } finally {
@@ -193,6 +198,8 @@ export function OrdemProducaoDetailPage() {
 
   const tol = op?.pedido?.tolerancia_qtd_pct ?? '20';
   const materiaisRequisitados = (op?.materiais ?? []).filter((m) => !m.pendente);
+  const materiaisPendentes = (op?.materiais ?? []).filter((m) => m.pendente);
+  const podeConcluirComSaida = materiaisRequisitados.length > 0;
 
   return (
     <>
@@ -293,6 +300,8 @@ export function OrdemProducaoDetailPage() {
             </div>
           </div>
 
+          <OpAndamentoPassos op={op} />
+
           <div className="card" style={{ marginBottom: '1rem' }}>
             <div className="card-body">
               <div
@@ -305,9 +314,16 @@ export function OrdemProducaoDetailPage() {
                 }}
               >
                 <div className="form-section" style={{ marginBottom: 0 }}>
-                  <h3>Materiais</h3>
+                  <h3>1 · Separação de insumos</h3>
                   <p className="muted" style={{ margin: 0 }}>
-                    Pré-preenchidos do orçamento (papel, tubete, caixa). Confira e requisite a saída.
+                    Linhas do orçamento (papel, tubete, caixa). Requisitar baixa o saldo no estoque.
+                    O empenho leve só pré-preenche — não movimenta.
+                    {hasPermission('estoque.ler') ? (
+                      <>
+                        {' '}
+                        <Link to="/estoque">Abrir estoque</Link>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 {aberta &&
@@ -515,12 +531,21 @@ export function OrdemProducaoDetailPage() {
             <div className="card">
               <div className="card-body">
                 <div className="form-section">
-                  <h3>Concluir produção</h3>
+                  <h3>3 · Concluir produção</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Informe retorno/perda de cada material (consumido = requisitado − retorno −
-                    perda). Quantidade boa dentro de ±{tol}% readequa o pedido automaticamente.
+                    <strong>Retorno</strong> volta ao estoque (sobra). <strong>Perda</strong> não
+                    retorna. Consumo = requisitado − retorno − perda. Quantidade boa (PA) dentro de ±
+                    {tol}% readequa o pedido; fora da faixa exige motivo.
                   </p>
                 </div>
+
+                {!podeConcluirComSaida ? (
+                  <p className="muted" style={{ marginBottom: '1rem' }}>
+                    {materiaisPendentes.length > 0
+                      ? 'Requisite ao menos uma saída de material antes de concluir — senão não há ajuste de estoque nem apontamento de retorno/perda.'
+                      : 'Inclua e requisite material (ou confira o casamento do snapshot) antes de concluir.'}
+                  </p>
+                ) : null}
 
                 {materiaisRequisitados.length > 0 ? (
                   <div className="table-wrap" style={{ marginBottom: '1rem' }}>
@@ -529,8 +554,9 @@ export function OrdemProducaoDetailPage() {
                         <tr>
                           <th>SKU</th>
                           <th>Requisitado</th>
-                          <th>Retorno</th>
+                          <th>Retorno (estoque)</th>
                           <th>Perda</th>
+                          <th>Consumo</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -540,6 +566,11 @@ export function OrdemProducaoDetailPage() {
                             qtde_retorno: '0',
                             qtde_perda: '0',
                           };
+                          const consumo = qtdeConsumidaApontada(
+                            m.qtde_requisitada,
+                            form.qtde_retorno,
+                            form.qtde_perda,
+                          );
                           return (
                             <tr key={m.id}>
                               <td>
@@ -568,6 +599,9 @@ export function OrdemProducaoDetailPage() {
                                     aria-label={`Perda ${m.produto?.codigo ?? m.id}`}
                                   />
                                 </div>
+                              </td>
+                              <td>
+                                {formatDecimalBr(consumo, 4)} {m.unidade}
                               </td>
                             </tr>
                           );
@@ -609,11 +643,104 @@ export function OrdemProducaoDetailPage() {
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={busy || !qtdeBoa}
+                    disabled={busy || !qtdeBoa || !podeConcluirComSaida}
                     onClick={() => void concluir()}
                   >
                     Concluir OP
                   </button>
+                  {op.pedido ? (
+                    <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-secondary">
+                      {op.pedido.codigo}
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {op.status === 'CONCLUIDA' ? (
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <div className="card-body">
+                <div className="form-section">
+                  <h3>Resultado da produção</h3>
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Estoque ajustado (retorno/perda) e pedido readequado. Segue o faturamento pelo
+                    pedido.
+                  </p>
+                </div>
+                <div className="detail-meta" style={{ marginBottom: '1rem' }}>
+                  <div>
+                    <span>Qtde boa (PA)</span>
+                    <strong>
+                      {op.qtde_boa != null ? formatDecimalBr(Number(op.qtde_boa), 0) : '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Refugo</span>
+                    <strong>{formatDecimalBr(Number(op.qtde_refugo || 0), 0)}</strong>
+                  </div>
+                  {op.pa_movimento ? (
+                    <div>
+                      <span>MOV PA</span>
+                      <strong>{op.pa_movimento.codigo}</strong>
+                    </div>
+                  ) : null}
+                  {op.fora_tolerancia ? (
+                    <div>
+                      <span>Fora da tolerância</span>
+                      <strong>{op.motivo_fora_tolerancia ?? 'Sim'}</strong>
+                    </div>
+                  ) : null}
+                </div>
+                {(op.materiais ?? []).filter((m) => !m.pendente).length > 0 ? (
+                  <div className="table-wrap" style={{ marginBottom: '1rem' }}>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>Requisitado</th>
+                          <th>Retorno</th>
+                          <th>Perda</th>
+                          <th>Consumo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(op.materiais ?? [])
+                          .filter((m) => !m.pendente)
+                          .map((m) => (
+                            <tr key={m.id}>
+                              <td>
+                                {m.produto?.codigo} — {m.produto?.descricao_fiscal}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_retorno), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_perda), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_consumida), 4)} {m.unidade}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                <div className="btn-row">
+                  {op.pedido ? (
+                    <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-primary">
+                      Continuar no pedido {op.pedido.codigo}
+                    </Link>
+                  ) : null}
+                  {hasPermission('estoque.ler') ? (
+                    <Link to="/estoque" className="btn btn-secondary">
+                      Ver estoque
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             </div>

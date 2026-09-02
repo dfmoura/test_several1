@@ -158,20 +158,51 @@ export function EstoquePage() {
     <>
       <PageHeader
         title="Estoque"
-        description="Saldo em unidade interna. Nada entra ou sai sem documento — compra, OP, sobra, PA ou ajuste aprovado."
+        description="Saldo em unidade interna. Nada entra ou sai sem documento — compra (NF na OC), OP, sobra, PA ou ajuste aprovado."
         actions={
           <div className="btn-row">
+            {hasPermission('produto.ler') ? (
+              <Link to="/produtos" className="btn btn-secondary">
+                Produtos
+              </Link>
+            ) : null}
             <Link to="/compras/reposicao" className="btn btn-secondary">
               A repor
             </Link>
-            <Link to="/compras/ordens" className="btn btn-secondary">
-              Ordens de compra
+            <Link to="/compras/ordens" className="btn btn-primary">
+              Receber por OC / NF-e
             </Link>
           </div>
         }
       />
 
       <EstoqueModuleNav />
+
+      <div className="card estoque-continuidade-card" style={{ marginBottom: '1rem' }}>
+        <div className="card-body">
+          <h3 className="orc-section-title" style={{ marginTop: 0 }}>
+            Entrada e documentos
+          </h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            A NF-e de entrada confere-se na <strong>ordem de compra</strong> (XML assist + humano
+            confirma). O estoque registra o movimento e o espelho fiscal; saldo inicial/legado usa
+            ajuste A03. Sem entrada sem OC.
+          </p>
+          <div className="btn-row">
+            <Link to="/compras/ordens" className="btn btn-primary">
+              Abrir ordens de compra
+            </Link>
+            <Link to="/estoque/ajustes" className="btn btn-secondary">
+              Ajustes / virada
+            </Link>
+            {hasPermission('produto.ler') ? (
+              <Link to="/produtos" className="btn btn-secondary">
+                Cadastro de produtos
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
 
       {!loading && (
         <div className="card" style={{ marginBottom: '1rem' }}>

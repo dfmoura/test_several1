@@ -13,6 +13,7 @@ import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '..
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { necessidadeLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
+import { PedidoAndamentoOperacional } from '../components/PedidoAndamentoOperacional';
 
 export function PedidoDetailPage() {
   const { id } = useParams();
@@ -225,6 +226,8 @@ export function PedidoDetailPage() {
               </div>
             </div>
           </div>
+
+          <PedidoAndamentoOperacional pedido={pedido} />
 
           {preview ? (
             <div className="card" style={{ marginBottom: '1rem' }}>

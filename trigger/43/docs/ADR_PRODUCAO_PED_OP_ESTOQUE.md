@@ -3,7 +3,8 @@
 **Status:** Aceito  
 **Data:** 2026-08-12  
 **Contexto 39:** BL-044  
-**Norma:** `../32` — `GERACAO_PEDIDO.txt` · `PRODUCAO_OPERACIONAL_GERENCIAL.txt` · `CASOS_USO_M03_PRODUCAO.txt` · `ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt` · `CONCLUSAO_PRODUCAO.txt` · `ORDEM_SERVICO.txt` · `CADASTRO_PRODUTOS_VENDA.txt`
+**Norma:** `../32` — `GERACAO_PEDIDO.txt` · `PRODUCAO_OPERACIONAL_GERENCIAL.txt` · `CASOS_USO_M03_PRODUCAO.txt` · `ESTOQUE_FLUXO_SAIDA_RETORNO_PA.txt` · `CONCLUSAO_PRODUCAO.txt` · `ORDEM_SERVICO.txt` · `CADASTRO_PRODUTOS_VENDA.txt`  
+**Mapa instalação 43:** [`MAPA_FLUXO_POS_ORC.md`](MAPA_FLUXO_POS_ORC.md) (continuidade UX ORC→PED→andamento; superfície × esqueleto)
 
 ---
 

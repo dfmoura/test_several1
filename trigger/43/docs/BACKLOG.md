@@ -15,11 +15,66 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-086`
+`BL-089`
 
 ---
 
 ## Itens
+
+### BL-088 · [produto/estoque/ux] Produtos no menu + continuidade NF-e entrada
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-02 — produtos/estoque/NF entrada como eixo preponderante
+- **Depende de:** BL-085 · ADR_COMPRAS_ATE_ESTOQUE · ADR_ENTRADA_XML_ASSIST · MAPA_FLUXO_POS_ORC
+- **Referência:** `F5_PRODUTOS` · `flexorc-superficie.mdc` · `EstoquePage` · `ProdutosPage`
+- **Decisão (fechada):**
+  1. Promover **Produtos** ao menu Cadastros (`produto.ler`); gate implantação `F5_PRODUTOS`.
+  2. NF-e de entrada continua na **OC** (XML assist); Estoque ganha card de continuidade + CTA.
+  3. Ajuste A03 = virada/legado na copy de AJU; sem novo escritor de saldo.
+  4. Anti-explosão PA mantida (família + spec); preço comercial ORC intacto.
+- **Aceite:**
+  - [x] Menu Produtos + catalog F5_PRODUTOS
+  - [x] Continuidade Estoque/Produtos/NF via OC
+  - [x] Norma superfície + mapa + fatia emendada
+  - [x] PHPUnit implantação
+- **Fora de escopo:** Download Focus/SEFAZ · entrada sem OC · NEC/COT no menu · hub rastreio
+- **Entregue em:** 2026-09-02
+
+### BL-087 · [op/ux] Passos da OP — separação, retorno/perda e continuidade PED
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-02 — onda seguinte ao BL-086 (soft-polish OP)
+- **Depende de:** BL-086 · ADR_PRODUCAO_PED_OP_ESTOQUE
+- **Referência:** `docs/MAPA_FLUXO_POS_ORC.md` · `OrdemProducaoDetailPage`
+- **Decisão (fechada):**
+  1. Motor OP intacto; UX com faixa de passos + copy retorno vs perda + consumo.
+  2. Concluir só com ao menos uma saída requisitada (guarda de chão).
+  3. Após `CONCLUIDA`: resultado + CTA pedido/estoque.
+  4. Sem reabrir `/produtos`; sem empenho pesado.
+- **Aceite:**
+  - [x] Passos + conclusão/resultado na OP
+  - [x] Mapa atualizado
+  - [x] Regressão PHPUnit produção
+- **Fora de escopo:** Empenho reservado · menu Produtos · OS polish profundo
+- **Entregue em:** 2026-09-02
+
+### BL-086 · [orc/ped/ux] Continuidade pós-ORC — sinal PED + andamento + mapa
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-02 — fluxo após aprovação/sinal sem reescrever motor
+- **Depende de:** BL-081 · BL-083 · ADR_PRODUCAO_PED_OP_ESTOQUE · ADR_ORC_ADIANTAMENTO_PIX
+- **Referência:** `docs/MAPA_FLUXO_POS_ORC.md` · estudo `../32` timeline PED
+- **Decisão (fechada):**
+  1. Motor PED/OP/estoque intacto; gap = UX de continuidade.
+  2. Show ORC expõe `pedido {id,codigo,status}`; CTA Ver pedido quando `LIBERADO`.
+  3. PED detalhe: bloco Andamento operacional com códigos (ORC→OP/OS→FAT/ENT).
+  4. `/produtos` permanece fora do menu (gate implantação).
+- **Aceite:**
+  - [x] Mapa canônico em docs
+  - [x] API + CTA ORC + timeline PED
+  - [x] PHPUnit show ORC com pedido
+- **Fora de escopo:** Empenho pesado · menu Produtos · PCP OEE · multi-item PED
+- **Entregue em:** 2026-09-02
 
 ### BL-085 · [produto/menu] Onda 5 (Caixa) — carteira + compras + estoque no menu + Painel
 - **Status:** Feito

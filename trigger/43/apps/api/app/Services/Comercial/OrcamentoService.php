@@ -102,6 +102,7 @@ class OrcamentoService
             'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
             'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
             'linkAprovacao',
+            'pedido:id,codigo,status,orcamento_id',
             ...Orcamento::userStampWith(),
         ]);
 
@@ -589,6 +590,13 @@ class OrcamentoService
             'motivo_decisao' => $o->motivo_decisao,
             'financeiro_status' => $o->financeiro_status,
             'adiantamento_titulo_id' => $o->adiantamento_titulo_id,
+            'pedido' => $o->relationLoaded('pedido') && $o->pedido
+                ? [
+                    'id' => $o->pedido->id,
+                    'codigo' => $o->pedido->codigo,
+                    'status' => $o->pedido->status,
+                ]
+                : null,
             'link_aprovacao' => $o->relationLoaded('linkAprovacao') && $o->linkAprovacao
                 ? [
                     'ativo' => (bool) $o->linkAprovacao->ativo,

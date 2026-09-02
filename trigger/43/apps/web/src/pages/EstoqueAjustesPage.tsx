@@ -229,7 +229,7 @@ export function EstoqueAjustesPage() {
     <>
       <PageHeader
         title="Ajustes de estoque"
-        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento, nunca na tela."
+        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento. Motivo A03 = virada/saldo inicial (legado); inventário cíclico nasce em Inventários."
       />
 
       <EstoqueModuleNav />

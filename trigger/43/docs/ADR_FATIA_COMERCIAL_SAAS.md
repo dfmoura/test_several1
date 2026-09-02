@@ -23,8 +23,9 @@ O estudo 32 **proíbe três sistemas distribuídos**. O caminho correto é a **m
 
 ## Consequências
 
-- Menu: clientes/parceiros, ORC, catálogo, facas, parâmetros, sinal/a receber. Sem cadastro de SKU (**Produtos**): o preço comercial vive no **catálogo ORC**, não na ficha de item.
+- Menu (fatia inicial): clientes/parceiros, ORC, catálogo, facas, parâmetros, sinal/a receber. Preço comercial da etiqueta sob medida vive no **catálogo ORC**, não na ficha de item.
+- **Emenda 2026-09-02 (BL-088):** na superfície FLEXOERP completa desta instalação, o cadastro **Produtos (SKU)** entra no menu Cadastros com gate `F5_PRODUTOS` — MP/EMB/REV operacionais para compra/estoque/OP; PA sob encomenda permanece família + spec (anti-explosão). Ver `docs/MAPA_FLUXO_POS_ORC.md` · `.cursor/rules/flexorc-superficie.mdc`.
 - `POST /api/v1/auth/registrar-empresa` provisiona EMP + admin + catálogo + facas + `orc.adiantamento_*`.
-- API de PED/estoque/SKU **permanece no código** (não estragar o motor/FK); a superfície de produto não a oferece.
+- API de PED/estoque/SKU **permanece no código** (não estragar o motor/FK); a superfície promove módulos por onda/implantação.
 - Jornada do cliente novo: você → mensalidade ASAAS → (logado) até 3 EMP → A1 apto da EMP → cadastros da norma → ORC. Detalhe: `docs/ADR_ATIVACAO_EMPRESA.md`.
 - Identidade: o **FLEXORC** é o herói da UI (logo própria, paleta navy/verde da TRIGGER); a TRIGGER permanece na atribuição; a EMP é só contexto. Norma: `docs/IDENTIDADE_TRIGGER.md`. Transição para marca única **FLEXOERP**: `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md` (gate: menu onda 2+ antes do rebrand).

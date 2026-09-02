@@ -74,20 +74,45 @@ export function ProdutosPage() {
     <>
       <PageHeader
         title="Produtos"
-        description="Família fiscal + grupo canônico (MP-PAP, MP-TIN, PA-ETQ, REV-RIB…)"
+        description="SKU operacional (MP/EMB/REV) para compra, estoque e OP. Preço de etiqueta sob medida fica no catálogo ORC — PA sob encomenda usa família + spec, sem milhares de códigos."
         actions={
-          hasPermission('produto.escrever') ? (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Link to="/produtos/importar" className="btn btn-secondary">
-                Importar CSV
+          <div className="btn-row">
+            {hasPermission('estoque.ler') ? (
+              <Link to="/estoque" className="btn btn-secondary">
+                Estoque
               </Link>
-              <Link to="/produtos/novo" className="btn btn-primary">
-                Novo produto
+            ) : null}
+            {hasPermission('compras.ler') ? (
+              <Link to="/compras/ordens" className="btn btn-secondary">
+                Ordens de compra
               </Link>
-            </div>
-          ) : undefined
+            ) : null}
+            {hasPermission('produto.escrever') ? (
+              <>
+                <Link to="/produtos/importar" className="btn btn-secondary">
+                  Importar CSV
+                </Link>
+                <Link to="/produtos/novo" className="btn btn-primary">
+                  Novo produto
+                </Link>
+              </>
+            ) : null}
+          </div>
         }
       />
+
+      <div className="card estoque-continuidade-card" style={{ marginBottom: '1rem' }}>
+        <div className="card-body">
+          <h3 className="orc-section-title" style={{ marginTop: 0 }}>
+            Papel no fluxo
+          </h3>
+          <p className="muted" style={{ marginTop: 0, marginBottom: 0 }}>
+            Cadastre insumos e revenda com unidade comercial × interna. A NF-e de entrada casa o
+            item do XML com o SKU na OC; a OP baixa esses materiais na separação. Famílias PA/SVC
+            são poucas — a especificação viaja no pedido.
+          </p>
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">

@@ -106,14 +106,23 @@ class SeedEstoqueViradaCommand extends Command
             ?: (string) config('erp.admin_email', 'admin@rlp.com.br');
 
         $user = User::query()->where('email', $email)->where('ativo', true)->first();
+
         if (! $user) {
-            $this->error("Aprovador não encontrado: {$email}");
+            $user = User::query()
+                ->where('ativo', true)
+                ->orderBy('id')
+                ->get()
+                ->first(fn (User $u) => $u->can('estoque.aprovar'));
+        }
+
+        if (! $user) {
+            $this->error("Aprovador não encontrado (config: {$email}). Informe --aprovador=email.");
 
             return null;
         }
 
         if (! $user->can('estoque.aprovar')) {
-            $this->error("{$email} sem permissão estoque.aprovar.");
+            $this->error("{$user->email} sem permissão estoque.aprovar.");
 
             return null;
         }

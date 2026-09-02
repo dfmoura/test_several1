@@ -5,30 +5,34 @@ alwaysApply: true
 
 # Superfície do produto (esta instalação)
 
-Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · transição: `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md`.
+Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · transição: `docs/ADR_TRANSICAO_FLEXORC_FLEXOERP.md` · mapa: `docs/MAPA_FLUXO_POS_ORC.md`.
 
-**FLEXOERP** nesta pasta: cadeia operacional ORC → PED → OP → FAT → ENT → caixa, com **Compras/Estoque** e carteira financeira (receber/pagar) no menu. Cadastros + self-service + mensalidade da conta.
+**FLEXOERP** nesta pasta: cadeia operacional ORC → PED → OP → FAT → ENT → caixa, com **Compras/Estoque**, **Produtos (SKU)** e carteira financeira no menu. Cadastros + self-service + mensalidade da conta.
 
 ## Superfície (UX / menu)
 
-Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, patrimônio, departamentos, **backlog**, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque**, catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
+Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, **produtos** (MP/EMB/REV + famílias PA/SVC), patrimônio, departamentos, **backlog**, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor), **Estoque** (saldos · lotes · MOV · inventários · ajustes), catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
 
-Sem cadastro de **Produtos** (SKU) no menu: insumo/preço do ORC é o catálogo da EMP.
+**Produtos (SKU):** cadastro operacional para compra/estoque/OP. Preço comercial da etiqueta sob medida continua no **catálogo ORC** da EMP. PA sob encomenda = família `PA-ETQ-*` + spec no PED — **não** explodir SKU por arte/cliente (`CADASTRO_PRODUTOS_VENDA` / estudo 32). Gate: `F5_PRODUTOS` em `ImplantacaoCatalogo`.
+
+**NF-e de entrada:** na **OC** (XML assist + conferência humana → `receber`); Estoque mostra saldos/MOV/espelho e aponta para a OC. Sem entrada sem OC.
 
 ## Esqueleto (não apagar, não oferecer no menu até implantação)
 
-Rastreio dedicado, cadastro de SKU (`/produtos`), comissões, fluxo de caixa, conciliação bancária plena, hubs fiscais/IA na administração: **permanecem no código** (motor, FK, testes). Onda 6 (devolução/avaria) opera nos fluxos existentes — sem item de menu próprio.
+Rastreio hub dedicado, comissões, fluxo de caixa, conciliação bancária plena, hubs fiscais/IA na administração: **permanecem no código** (motor, FK, testes). Onda 6 (devolução/avaria) opera nos fluxos existentes — sem item de menu próprio.
 
 ADRs de produção/fiscal/estoque nesta pasta documentam o esqueleto herdado de `../39`.
 
 ## Faça
 
-- Mudança operacional (ORC/PAR/PED/OP/FAT/ENT/TIT/OC/estoque): manter isolamento `empresa_id` e o motor R1–R20.
+- Mudança operacional (ORC/PAR/PED/OP/FAT/ENT/TIT/OC/estoque/produto): manter isolamento `empresa_id` e o motor R1–R20.
 - Promover novo módulo ao menu **somente** com gate de implantação (`ADR_TRANSICAO_FLEXORC_FLEXOERP.md`).
+- Entrada de estoque só via OC/receber ou AJU/INV aprovado — saldo via `EstoqueSaldoWriter` + MOV.
 
 ## Não faça
 
 - Apagar serviços/migrations/testes “porque o menu não mostra”.
-- Recolocar rastreio/produtos/comissão no menu sem gate de implantação.
+- Recolocar rastreio/comissão/fluxo no menu sem gate de implantação.
 - Empilhar gráfico, aging, histórico ou módulo esqueleto no Painel — slot só para fila/KPI de ação.
 - Renomear IDs legado `FLEXORC-CONTA-*` em billing/webhooks.
+- Inventar milhares de PA-ETQ por arte; entrada de NF sem OC; segundo escritor de saldo.

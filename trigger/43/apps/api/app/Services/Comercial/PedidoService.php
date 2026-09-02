@@ -195,9 +195,10 @@ class PedidoService
             'vendedor:id,codigo,razao_social,nome_fantasia',
             'orcamento:id,codigo,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
             'itens.produtoPa:id,codigo,descricao_fiscal',
-            'ordensProducao',
+            'ordensProducao.materiais',
             'ordensServico',
             'faturamento',
+            'entrega:id,pedido_id,codigo,status',
         ]);
 
         return $this->toOut($pedido, true);
@@ -268,18 +269,36 @@ class PedidoService
                     'valor_a_cobrar' => (string) $p->faturamento->valor_a_cobrar,
                 ]
                 : null,
+            'entrega' => $p->relationLoaded('entrega') && $p->entrega
+                ? [
+                    'id' => $p->entrega->id,
+                    'codigo' => $p->entrega->codigo,
+                    'status' => $p->entrega->status,
+                ]
+                : null,
         ];
 
         if ($detalhe) {
             $out['snapshot'] = $p->snapshot;
-            $out['ordens_producao'] = $p->ordensProducao->map(fn ($o) => [
-                'id' => $o->id,
-                'codigo' => $o->codigo,
-                'status' => $o->status,
-                'pedido_item_id' => $o->pedido_item_id,
-                'qtde_planejada' => (string) $o->qtde_planejada,
-                'qtde_boa' => $o->qtde_boa !== null ? (string) $o->qtde_boa : null,
-            ])->all();
+            $out['ordens_producao'] = $p->ordensProducao->map(function ($o) {
+                $mats = $o->relationLoaded('materiais') ? $o->materiais : collect();
+                $pendentes = $mats->filter(fn ($m) => $m->saida_movimento_id === null)->count();
+                $requisitados = $mats->filter(fn ($m) => $m->saida_movimento_id !== null)->count();
+
+                return [
+                    'id' => $o->id,
+                    'codigo' => $o->codigo,
+                    'status' => $o->status,
+                    'pedido_item_id' => $o->pedido_item_id,
+                    'qtde_planejada' => (string) $o->qtde_planejada,
+                    'qtde_boa' => $o->qtde_boa !== null ? (string) $o->qtde_boa : null,
+                    'materiais_resumo' => [
+                        'total' => $mats->count(),
+                        'pendentes' => $pendentes,
+                        'requisitados' => $requisitados,
+                    ],
+                ];
+            })->all();
             $out['ordens_servico'] = $p->ordensServico->map(fn ($o) => [
                 'id' => $o->id,
                 'codigo' => $o->codigo,

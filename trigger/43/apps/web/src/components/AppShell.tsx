@@ -22,6 +22,7 @@ import {
   IconOrcamento,
   IconPartners,
   IconPatrimonio,
+  IconProduct,
   IconSettings,
   IconUsers,
 } from './NavIcons';
@@ -75,6 +76,14 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'backlog.ler',
       },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
+      {
+        to: '/produtos',
+        label: 'Produtos',
+        icon: IconProduct,
+        permission: 'produto.ler',
+        isActivePath: (pathname) =>
+          pathname === '/produtos' || pathname.startsWith('/produtos/'),
+      },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
       {
         to: '/naturezas-gerenciais',

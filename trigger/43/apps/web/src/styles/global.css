@@ -7688,6 +7688,142 @@ tr.row-inactive td {
   resize: vertical;
 }
 
+.orc-continuidade-card {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.orc-continuidade-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+}
+
+.orc-continuidade-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+.ped-andamento {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ped-andamento-step {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 9rem) 1fr;
+  gap: 0.5rem 1rem;
+  align-items: start;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ped-andamento-step:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ped-andamento-label {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ped-andamento-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  min-width: 0;
+}
+
+.ped-andamento-body .muted {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .ped-andamento-step {
+    grid-template-columns: 1fr;
+  }
+}
+
+.estoque-continuidade-card {
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.op-passos-card {
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.op-passos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.op-passo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.op-passo strong {
+  font-size: 0.92rem;
+}
+
+.op-passo .muted {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.op-passo--active {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.op-passo--done {
+  border-color: rgba(124, 181, 24, 0.4);
+  background: rgba(124, 181, 24, 0.08);
+}
+
+.op-passos-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .op-passos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .op-passos {
+    grid-template-columns: 1fr;
+  }
+}
+
 .orc-pub {
   min-height: 100vh;
   padding: 1.5rem 1rem 2.5rem;
