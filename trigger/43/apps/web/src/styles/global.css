@@ -7892,6 +7892,36 @@ tr.row-inactive td {
   line-height: 1.55;
 }
 
+.orc-pub-cond-extra {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.orc-pub-disposicoes {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border, #e5e7eb);
+}
+
+.orc-pub-disposicoes h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.orc-pub-conds--disposicoes {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.orc-pub-conds--disposicoes li + li {
+  margin-top: 0.35rem;
+}
+
 /* Prova de arte (URL pública) — link seguro; sem embed */
 .orc-url-arte-cta {
   display: inline-flex;

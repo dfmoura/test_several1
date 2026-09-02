@@ -8,6 +8,10 @@ import {
 } from './OrcamentoFacaDesenho';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 import { BRAND } from '../lib/brand';
+import {
+  disposicoesGeraisProposta,
+  textoToleranciaQuantidade,
+} from '../lib/orcamentoDisposicoesComerciais';
 import { formatCnpj, formatCurrency, formatDateTime, formatPhone } from '../lib/format';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
@@ -242,6 +246,10 @@ export function OrcamentoPropostaView({
             </li>
             <li>
               Tolerância de quantidade: <strong>±{proposta.tolerancia_qtd_pct}%</strong>
+              <span className="orc-pub-cond-extra">
+                {' '}
+                — {textoToleranciaQuantidade()}
+              </span>
             </li>
             {proposta.condicao_pagamento ? (
               <li>
@@ -255,10 +263,18 @@ export function OrcamentoPropostaView({
             ) : null}
             {proposta.frete ? (
               <li>
-                Frete: <strong>{proposta.frete.texto}</strong>
+                Frete desta proposta: <strong>{proposta.frete.texto}</strong>
               </li>
             ) : null}
           </ul>
+          <div className="orc-pub-disposicoes">
+            <h3>Disposições gerais</h3>
+            <ul className="orc-pub-conds orc-pub-conds--disposicoes">
+              {disposicoesGeraisProposta(proposta.empresa).map((texto) => (
+                <li key={texto}>{texto}</li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         <OrcamentoUrlArteBlock url={proposta.url_arte} variant="pub" />
