@@ -5,6 +5,7 @@ import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Pedido } from '../lib/api';
 import { formatDate } from '../lib/format';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { pedStatusLabel } from '../lib/producaoUi';
 import { useTableSort } from '../lib/useTableSort';
 
@@ -192,7 +193,7 @@ export function PedidosPage() {
                       <td>
                         <StatusPill status={pedStatusLabel(p.status)} />
                       </td>
-                      <td>{p.prazo_entrega_dias != null ? `${p.prazo_entrega_dias} d.úteis` : '—'}</td>
+                      <td>{p.prazo_entrega_dias != null ? prazoEntregaCompleto(p) : '—'}</td>
                       <td>{formatDate(p.created_at)}</td>
                     </tr>
                   );

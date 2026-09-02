@@ -97,7 +97,6 @@ class EmpresaService
         'empresa_fiscal_historicos',
         'implantacao_aceites',
         'bens_patrimoniais',
-        'orc_catalogo_faixas_frete',
         'orc_catalogo_papeis',
         'orc_catalogo_acabamentos',
         'orc_catalogo_tipos_troca',

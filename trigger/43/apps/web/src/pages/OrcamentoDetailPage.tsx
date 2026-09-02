@@ -6,6 +6,7 @@ import {
 } from '../components/OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from '../components/ModelosComposicaoTable';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
+import { OrcamentoUrlArteBlock } from '../components/OrcamentoUrlArteBlock';
 import { PageHeader } from '../components/PageHeader';
 import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
 import { StatusPill } from '../components/StatusPill';
@@ -19,6 +20,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDateTime, formatPhone } from '../lib/format';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
   displaySnap,
   isOrcEditavel,
@@ -27,7 +29,8 @@ import {
   type OrcOverrides,
 } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
-import { modoEntregaLabel, origemFreteLabel } from '../lib/orcamentoFrete';
+import { normalizeUrlArte } from '../lib/urlArte';
+import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number };
@@ -530,14 +533,12 @@ export function OrcamentoDetailPage() {
                   <span className="field-note">
                     {' '}
                     · {modoEntregaLabel(orc.result_snapshot.frete.modo)}
-                    {origemFreteLabel(orc.result_snapshot.frete.origem)
-                      ? ` · ${origemFreteLabel(orc.result_snapshot.frete.origem)?.toLowerCase()}`
-                      : ''}
                   </span>
-                ) : String(input.modo_entrega ?? '').toUpperCase() === 'ENTREGAR' ? (
-                  <span className="field-note"> · Entregar</span>
                 ) : (
-                  <span className="field-note"> · Retirar no local</span>
+                  <span className="field-note">
+                    {' '}
+                    · {modoEntregaLabel(String(input.modo_entrega ?? ''))}
+                  </span>
                 )}
               </strong>
             </div>
@@ -552,7 +553,7 @@ export function OrcamentoDetailPage() {
             <div>
               <span>Prazo / validade</span>
               <strong>
-                {orc.prazo_entrega_dias} d.úteis · {orc.validade_dias} dias · ±
+                {prazoEntregaCompleto(orc)} · {orc.validade_dias} dias · ±
                 {orc.tolerancia_qtd_pct}%
               </strong>
             </div>
@@ -641,6 +642,9 @@ export function OrcamentoDetailPage() {
                 quantidade: Number(fx.quantidade) || 0,
               }))}
             />
+          ) : null}
+          {normalizeUrlArte(input.url_arte) ? (
+            <OrcamentoUrlArteBlock url={normalizeUrlArte(input.url_arte)} variant="inline" />
           ) : null}
           {orc.observacao ? (
             <p style={{ marginBottom: 0, marginTop: '0.85rem' }}>

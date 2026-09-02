@@ -1,6 +1,6 @@
 # ADR — Sessão de acesso (única, teto simultâneo, idle)
 
-**Status:** Aceito · **Data:** 2026-08-21  
+**Status:** Aceito · **Data:** 2026-08-21 · **Emenda:** 2026-09-02 (presence)  
 **Norma:** `MODELO_INSTALACAO_MULTI_EMPRESA.md` · `ADR_FATIA_COMERCIAL_SAAS.md` · `ADR_CONSOLE_PLATAFORMA.md`  
 **Referência de UX:** `../23` (uma sessão por conta + «Encerrar sessão anterior e entrar»)
 
@@ -16,6 +16,7 @@ O FLEXORC autentica por **Bearer Sanctum** (`personal_access_tokens`), não por 
 | **Uma sessão viva por usuário** | Segundo login → **409** `SESSAO_OCUPADA`. Senha válida + `encerrar_sessao_anterior=true` derruba a órfã (self-service, como no 23). Admin **Libera sessão** em Usuários. |
 | **Teto = 6 usuários distintos** com PAT vivo | Assento da instalação (licenciado), não por EMP. 7º login → **409** `SESSOES_LIMITE` (sem takeover — a vaga é de outra pessoa). |
 | **Idle = 30 min** pelo `last_used_at` (ou `created_at` se nunca usado) | Sanctum `expiration` conta desde a criação, não desde o último ato. Callback `authenticateAccessTokensUsing` recusa **antes** de renovar `last_used_at`. |
+| **Presence SPA (emenda 2026-09-02)** | Idle continua sendo gap **sem request**. O SPA envia `POST /auth/ping` só com **atividade recente de UI** na aba visível (≈⅓ do idle), e avisa ~5 min antes do corte. Digitar no ORC não derruba; aba abandonada libera o assento. |
 | **Operador `PLATAFORMA` não consome assento** | Console TRIGGER não pode bloquear o cliente. Continua sujeito a sessão única e idle. |
 | Constantes em `config/erp.php` (`erp.auth.*`) | Fácil de alterar depois (`AUTH_IDLE_MINUTES`, `AUTH_MAX_USUARIOS_SIMULTANEOS`). |
 
@@ -27,6 +28,8 @@ Login (senha ok)
 ```
 
 Pedido autenticado: PAT ocioso → apaga + 401 `SESSAO_INATIVA`. Usuário inativo → 401 `USUARIO_INATIVO`. Logout e desativar/trocar senha revogam o PAT.
+
+Presence: `POST /auth/ping` (throttle) e campo `sessao` em `/auth/me` expõem `idle_minutes` / teto. Qualquer API autenticada OK também desliza `last_used_at` (Sanctum).
 
 ## Fora de escopo
 
@@ -40,6 +43,7 @@ Pedido autenticado: PAT ocioso → apaga + 401 `SESSAO_INATIVA`. Usuário inativ
 - Motor: `SessaoAcessoService` é a única emissão de PAT de acesso (`AuthController`, alta de conta).
 - UI login: CTA **Encerrar sessão anterior e entrar** só no 409 `SESSAO_OCUPADA`.
 - UI Usuários: pill **Conectado** + **Liberar sessão**.
-- SPA: 401 autenticado limpa o token e volta ao login com a mensagem (inatividade inclusive).
-- Testes: `SessaoAcessoTest` + onboarding (login após alta = 409 até takeover).
+- SPA: 401 autenticado limpa o token e volta ao login com a mensagem (inatividade inclusive); bootstrap `/me` com rede/5xx **não** apaga o PAT (retry).
+- SPA: banner «Manter sessão» perto do idle; hint de login menciona uso contínuo.
+- Testes: `SessaoAcessoTest` (idle + ping/presença) + onboarding (login após alta = 409 até takeover).
 - Isolamento `empresa_id` intacto — sessão é do usuário da instalação, não da EMP.

@@ -8,7 +8,7 @@ export const SESSAO_ACESSO = {
 } as const;
 
 export function sessaoAcessoLoginHint(): string {
-  return `Uma sessão por usuário · até ${SESSAO_ACESSO.maxUsuariosSimultaneos} pessoas conectadas · inatividade de ${SESSAO_ACESSO.idleMinutes} minutos encerra o acesso.`;
+  return `Uma sessão por usuário · até ${SESSAO_ACESSO.maxUsuariosSimultaneos} pessoas conectadas · inatividade de ${SESSAO_ACESSO.idleMinutes} minutos encerra o acesso (uso contínuo na tela mantém a sessão).`;
 }
 
 export function sessaoAcessoUsuariosHint(): string {

@@ -43,8 +43,9 @@ modelos (preço)  ←→  len(modelos_composicao)  (validado)
 
 ### UX
 
-- Campo **Modelos** continua na especificação técnica.
-- Bloco **Composição dos modelos** logo abaixo: N linhas (nome + %), soma ao vivo, % travado em 100% se N=1.
+- Campo **Modelos** continua na especificação técnica (custo / setup).
+- No formulário comercial, **faixas (escada)** e **composição dos modelos** formam **uma seção** (“Quantidades — escada e artes”), com duas subseções: a escada define os totais por coluna; a composição rateia cada total entre as artes (nome + qtd por faixa na UI; `%` no snapshot). Soma ao vivo; % travado em 100% se N=1.
+- Payloads permanecem distintos (`faixas[]` no motor; `modelos_composicao[]` só no snapshot) — união é de superfície, não de esquema.
 - Detalhe, ficha interna, aba **Proposta comercial** e **link público** (`/p/…`) mostram a tabela (nome + % + quantidade inteira por faixa).
 - Quantidade inteira = mesmo rateio canônico (`floor(Q×%/100)`, resto no último) — **só apresentação**; não altera o motor.
 - API pública: `descricao.modelos` + `descricao.modelos_composicao` em `dtoComercial` (só linhas com nome; sem custos internos).

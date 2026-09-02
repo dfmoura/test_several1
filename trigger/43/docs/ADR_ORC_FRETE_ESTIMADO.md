@@ -1,77 +1,67 @@
-# ADR-039-ORC-005 — Frete estimado no ORC (catálogo de faixas × fechamento)
+# ADR-039-ORC-005 — Entrega da proposta + frete opcional (informativo)
 
 **Status:** Aceito  
-**Data:** 2026-08-13 · emenda 2026-08-15 (origem Calculada | Manual)  
-**Contexto 39:** comercial · BL-057 + BL-058  
-**Norma:** `../32` — `GERACAO_ORCAMENTO.txt` §1.1–1.3 / §1.5–1.6 / §4.11 / §6 · `FRETE_TRANSPORTADORAS.txt` · `FLEXIBILIDADE_LIMITES_CUSTOMIZACAO_ORCAMENTO.txt` · `GORDURA_ORCAMENTO_COMPENSA_OU_NAO.txt` · `ADR_ORC_PARAMETROS_ESCALARES.md`
+**Data:** 2026-08-13 · emenda 2026-08-15 (Calculada|Manual) · **emenda 2026-09-02** (trinca de modos; frete a definir; fim do catálogo de faixas)  
+**Contexto 39/43:** comercial  
+**Norma:** `../32` — `GERACAO_ORCAMENTO.txt` §1.1–1.3 / §1.5–1.6 · `FRETE_TRANSPORTADORAS.txt` · `ADR_ORC_PARAMETROS_ESCALARES.md` · `ADR_ENTREGA_EXPEDICAO.md`
 
 ---
 
 ## Decisão
 
-Frete no ORC é **estimado no fechamento**, nunca no motor R1–R20 e nunca diluído no papel/hora-máquina.
+Frete no ORC é **informação comercial opcional no fechamento**, nunca no motor R1–R20 e nunca diluído no papel/hora-máquina.
 
 ```
-Catálogo ORC · aba Frete          PAR (BL-056)              Wizard
-  faixas kg (R$/km, mínimo)   +   km EMP→destino     +   Retirar | Entregar
-  peso_caixa_kg                   (gravado, sem ORS)        default = Retirar
-                                                         Entregar → Calculada | Manual
-                    ↓                                         (padrão Calculada)
-         fechamento
-           Calculada: máx(mínimo, R$/km × km)  ↑ centavos
-           Manual:    R$ informado (único, todas as qtd) ↑ centavos
-                    ↓
-         snapshot (input.modo_entrega + origem_frete + result.frete)
+Wizard · Entrega desta proposta
+  Retirar no local | Entrega própria | Entrega terceiros
+       ↓
+  própria / terceiros → valor R$ opcional (vazio = a definir)
+       ↓
+  snapshot (input.modo_entrega + valor_frete_manual + result.frete)
 ```
 
 | Papel | Onde | Significado |
 |-------|------|-------------|
-| **Catálogo (vigente)** | `orc_catalogo_faixas_frete` + `peso_caixa_kg` | Tarifas para **novos** cálculos **Calculada** |
-| **Km** | PAR fiscal ou entrega principal, `distancia_empresa_id` = EMP atual | Distância de carro já gravada (BL-056) — só Calculada |
-| **Manual** | `input.origem_frete` + `valor_frete_manual` | Exceção formal do fechamento (análoga à faca nova cotada) — não inventa tarifa de catálogo |
-| **Histórico do ORC** | `input_snapshot.modo_entrega` + `origem_frete` + `result_snapshot.frete` | Fotografia — catálogo novo **não** altera ORC gravado (§1.3) |
+| **Modo** | `input_snapshot.modo_entrega` | `RETIRAR` \| `ENTREGA_PROPRIA` \| `ENTREGA_TERCEIROS` (default Retirar) |
+| **Valor** | `input.valor_frete_manual` + `result.frete` | Opcional em própria/terceiros. Vazio → **a definir** (após produção). |
+| **Histórico** | snapshots | Fotografia — não recalcula ORC gravado (§1.3) |
 
-**Não** usar `parametros_empresa`. **Não** misturar faixas em `orc_catalogo_parametros` (escalar único). `peso_caixa_kg` sim é escalar nessa tabela, editado na **mesma aba Frete**.
+**Não** há catálogo de faixas kg × R$/km. **Não** usar `parametros_empresa` para frete. **Não** somar frete em `valor_total_proposta`, adiantamento, PED, FAT ou comissão.
 
 ---
 
 ## Regras
 
-1. **Default Retirar** — não inflar a proposta. Retirar → R$ 0; km só contexto. Origem de frete não se aplica.
-2. **Entregar · Calculada (padrão)** — peso est. = `qtde_caixas` × `peso_caixa_kg` escolhe a faixa vigente (`kg_ate` contínuo; último nulo = “acima”). Fórmula: `máximo(mínimo, preco_por_km × km)`, teto comercial **para cima em centavos** (§1.6). O múltiplo de R$ 10 continua só no serviço da etiqueta (motor).
-3. **Entregar · Manual** — orçamentista informa **um** R$ da proposta (cotação de transportadora, cortesia, acordo). Mesmo valor em **todas** as faixas de quantidade. Não exige km, peso nem faixa. Teto para cima em centavos. R$ 0 informado = entrega sem cobrança (não infla). Ausente/vazio = 422. Analogia: `valor_faca_nova` — número cotado no fechamento, não no motor (§1.1).
-4. **Destino** — entrega principal do PAR se houver; senão endereço fiscal. Sem nova chamada ORS no calcular. Km/destino continuam contexto no snapshot mesmo em Manual (não geram R$).
-5. **Peso (e portanto R$ Calculada) pode diferir por faixa de quantidade.** Km é o mesmo. Manual não varia por faixa. Frete **não** entra no unitário da etiqueta nem em `valor_total` do motor (R1–R20 intacto).
-6. **Não inventar (Calculada)** — sem km da EMP, sem peso, sem faixa ativa, ou “acima”/faixa sem R$ → frete “—” (`valor_frete` nulo); Entregar não soma. ORC calcula igual hoje. Manual **não** usa essa trava: o valor informado é a fotografia.
-7. **Total da proposta** — quando o frete é levantado (`frete_somavel`), **compõe** `valor_total_proposta` no fechamento: motor (+ faca nova) + frete. Mesma regra para **cliente e prospect** (estudo 32 · ORCAMENTO_PROSPECT §4.1). Calculada sem km, “a combinar” — não infla.
-8. **CONSOLIDADO** — Total já inclui o frete somável; linha de valor, não R$/km nem “calculada/manual”. Interno pode mostrar origem, faixa e tarifa. Cliente não vê composição do motor (§1.5).
-9. **Fora** — NF modalidade/CIF, natureza 1.01.05, TIT de frete, CUB, CT-e, transportadora, gordura, R$ avulso no motor, Manual sem origem explícita.
+1. **Default Retirar** — não inflar a proposta. Retirar → frete R$ 0.
+2. **Entrega própria / terceiros** — valor digitável a qualquer momento do fechamento; se omitido, UI e proposta mostram **a definir**. R$ 0 informado = sem cobrança.
+3. **Frete nunca é somável** — não compõe total da proposta, unitário, sinal, PED nem FAT. Informação para o comercial e para a proposta ao cliente.
+4. **Destino / km** — contexto opcional no snapshot (PAR); não gera R$. Sem ORS no calcular.
+5. **Expedição (ENT-)** — `RETIRAR` → balcão; `ENTREGA_PROPRIA` (e legado `ENTREGAR`) → frota; `ENTREGA_TERCEIROS` → transportadora. Eixo logístico distinto (`ADR_ENTREGA_EXPEDICAO`).
+6. **Legado** — ORCs com `ENTREGAR` + Calculada/Manual: ao reeditar, normalizam para `ENTREGA_PROPRIA`; fotografia antiga de `valor_total_proposta` permanece.
+7. **Fora** — NF modalidade/CIF, natureza 1.01.05, TIT de frete, CUB, CT-e, gordura no motor.
 
 ---
 
 ## Consequências
 
-**Agora:** comercial cadastra faixas (seed 20/50/100/200 kg + acima, R$ vazio, inativas); orçamentista escolhe Retirar/Entregar; em Entregar, Calculada (catálogo) ou Manual (R$ da proposta); snapshot auditável.
+**Agora:** orçamentista escolhe um dos três modos; em entrega, frete opcional (a definir); catálogo ORC sem aba Frete; tabela `orc_catalogo_faixas_frete` removida.
 
-**Futuro (outro ADR):** TIT/natureza 1.01.05, modalidade Focus, CUB, romaneio ENT-.
+**Futuro (outro ADR):** TIT/natureza 1.01.05, modalidade Focus, CUB, romaneio com valor de frete operacional.
 
 ## Proibido (regressão)
 
 1. Alterar fórmulas R1–R20 por causa do frete.
-2. Default Entregar.
+2. Default entrega (própria ou terceiros).
 3. Recalcular rota no ORC (ORS/OSRM).
-4. Seed de preço inventado.
-5. Diluir frete no papel, hora-máquina ou unitário.
+4. Reintroduzir faixas kg × R$/km no catálogo sem ADR novo.
+5. Diluir frete no papel, hora-máquina, unitário, total da proposta, PED ou FAT.
 6. Misturar tarifa ORC em `parametros_empresa`.
-7. Campo R$ solto no wizard **sem** origem Manual explícita (isso viraria override do motor).
-8. Vazamento de “Calculada/Manual” na proposta ao cliente.
+7. Exigir valor de frete para calcular/salvar ORC.
 
 ---
 
 ## Rastreio
 
-- Model `OrcCatalogoFaixaFrete` · escalar `peso_caixa_kg` · `OrcamentoFreteEstimadoService`
-- Admin `OrcamentoCatalogoAdminService` · UI aba Frete
-- `OrcamentoService::enrichResult` (pós-motor) · wizard / resultado / ficha / proposta pública
-- Snapshot: `modo_entrega`, `origem_frete` (`CALCULADA`|`MANUAL`), `valor_frete_manual`
-- Testes: `OrcamentoCatalogoTest` (faixas) · `OrcamentoFreteEstimadoTest`
+- `OrcamentoFreteEstimadoService` · wizard / resultado / ficha / proposta pública
+- Snapshot: `modo_entrega`, `valor_frete_manual` (opcional)
+- Testes: `OrcamentoFreteEstimadoTest`

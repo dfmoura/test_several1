@@ -8,6 +8,7 @@ use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Calendario\DiasUteisService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
 use App\Support\PadraoDecimal;
@@ -20,7 +21,10 @@ use Illuminate\Validation\ValidationException;
  */
 class PedidoService
 {
-    public function __construct(private readonly CodigoGenerator $codigos) {}
+    public function __construct(
+        private readonly CodigoGenerator $codigos,
+        private readonly DiasUteisService $diasUteis,
+    ) {}
 
     /**
      * Idempotente: se ORC já tem PED, devolve; se LIBERADO, cria.
@@ -211,6 +215,7 @@ class PedidoService
             'faixa_index' => $p->faixa_index,
             'tolerancia_qtd_pct' => (string) $p->tolerancia_qtd_pct,
             'prazo_entrega_dias' => $p->prazo_entrega_dias,
+            ...$this->diasUteis->previsaoParaPedido($p),
             'observacao' => $p->observacao,
             'parceiro' => $p->parceiro ? [
                 'id' => $p->parceiro->id,

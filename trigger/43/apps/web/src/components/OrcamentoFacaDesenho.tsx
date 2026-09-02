@@ -1,15 +1,16 @@
 /**
- * Apresentação do desenho da faca no orçamento, ficha e proposta.
- * Vocabulário (FacaShapeIcon) + silhueta real (FacaSilhuetaReal) — mesmo padrão do mapa.
+ * Apresentação do desenho da faca no formulário, ficha operacional, detalhe e proposta comercial.
+ * Única imagem: silhueta real (FacaSilhuetaReal). Formato/tipo em texto.
+ * Superfície comercial oculta Z/máquina (audience=cliente) mas exibe a silhueta.
  */
 import {
-  FacaShapeIcon,
   formatoKind,
   formatoLabel,
 } from './FacaShapeIcon';
+import { FacaApresentacao } from './FacaApresentacao';
 import { FacaSilhuetaReal } from './FacaSilhuetaReal';
-import { FacaPosicaoBadge } from './FacaPosicaoBadge';
-import { isFacaPosicao } from '../lib/facaPosicao';
+import { formatColunasMapaLabel } from '../lib/facaSilhueta';
+import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
 
 export type OrcamentoFacaDesenhoAudience = 'interno' | 'cliente';
 
@@ -22,7 +23,7 @@ export type OrcamentoFacaDesenhoProps = {
   tamanhoTipo?: string | null;
   /** Colunas no mapa (1×, 2×, 3×…) — distinto de colunas de rebobinação do ORC */
   colunasMapa?: string | null;
-  /** Posição no cilindro: CIMA | BAIXO | ESQUERDA | DIREITA */
+  /** Posição no cilindro (snapshot) — seta sobreposta à área da silhueta */
   posicao?: string | null;
   contornoSvg?: string | null;
   z?: number | string | null;
@@ -67,17 +68,6 @@ function chipVal(v: number | string | null | undefined, suffix = ''): string {
   return suffix ? `${s} ${suffix}` : s;
 }
 
-function badgeSize(variant: OrcamentoFacaDesenhoProps['variant']): 'sm' | 'md' | 'lg' {
-  switch (variant) {
-    case 'compact':
-      return 'sm';
-    case 'documento':
-      return 'lg';
-    default:
-      return 'md';
-  }
-}
-
 function silhuetaSize(variant: OrcamentoFacaDesenhoProps['variant']): number {
   switch (variant) {
     case 'compact':
@@ -94,21 +84,25 @@ function silhuetaSize(variant: OrcamentoFacaDesenhoProps['variant']): number {
 function FacaDesenhoVisual({
   props,
   variant,
-  tipo,
   label,
 }: {
   props: OrcamentoFacaDesenhoProps;
   variant: NonNullable<OrcamentoFacaDesenhoProps['variant']>;
-  tipo: string;
   label: string;
 }) {
   const fmt = (props.formato || '').trim() || 'RETA';
-  const aspect = aspectFromOrcDims(props.larguraCm, props.puxadaCm);
   const silSize = silhuetaSize(variant);
-  const vocabSize = variant === 'compact' ? 18 : variant === 'documento' ? 24 : 22;
+  const posTip = isFacaPosicao(props.posicao)
+    ? ` · posição ${facaPosicaoLabel(props.posicao)}`
+    : '';
 
   return (
-    <div className={`orc-faca-desenho-visual orc-faca-desenho-visual--${variant}`} title={label}>
+    <FacaApresentacao
+      className={`orc-faca-desenho-visual orc-faca-desenho-visual--${variant}`}
+      title={`${label}${posTip}`}
+      posicao={props.posicao}
+      size={variant === 'compact' ? 'compact' : 'featured'}
+    >
       <FacaSilhuetaReal
         formato={fmt}
         medida={props.medida}
@@ -121,13 +115,7 @@ function FacaDesenhoVisual({
         size={silSize}
         variant={variant === 'compact' ? 'compact' : 'featured'}
       />
-      <div className="orc-faca-desenho-vocab">
-        <FacaShapeIcon formato={fmt} aspect={aspect} size={vocabSize} />
-        {variant !== 'compact' ? (
-          <span className="orc-faca-desenho-caption">{tipo}</span>
-        ) : null}
-      </div>
-    </div>
+    </FacaApresentacao>
   );
 }
 
@@ -173,6 +161,7 @@ export function OrcamentoFacaDesenho({
   const label = formatoLabel(fmt);
   const title = medida?.trim() || label || tipo;
   const cliente = audience === 'cliente';
+  const colsFaca = !facaNova ? formatColunasMapaLabel(colunasMapa) ?? '1×' : null;
   const rootClass = [
     'orc-faca-desenho',
     `orc-faca-desenho--${variant}`,
@@ -187,14 +176,14 @@ export function OrcamentoFacaDesenho({
     return (
       <div className={rootClass} title={`${label}${medida ? ` · ${medida}` : ''}`}>
         <div className="orc-faca-desenho-leading">
-          <FacaDesenhoVisual props={props} variant="compact" tipo={tipo} label={label} />
-          {isFacaPosicao(posicao) ? (
-            <FacaPosicaoBadge codigo={posicao} variant="symbol" size="sm" />
-          ) : null}
+          <FacaDesenhoVisual props={props} variant="compact" label={label} />
         </div>
         <div className="orc-faca-desenho-compact-text">
           <strong>{medida?.trim() || label}</strong>
-          <span>{tipo}</span>
+          <span>
+            {tipo}
+            {colsFaca ? ` · ${colsFaca}` : ''}
+          </span>
         </div>
       </div>
     );
@@ -209,6 +198,10 @@ export function OrcamentoFacaDesenho({
       <Chip label="Tipo" value={tipo} warn={facaNova} />
       {medida?.trim() ? <Chip label="Medida" value={medida.trim()} /> : null}
       {label && label !== '—' && label !== title ? <Chip label="Formato" value={label} /> : null}
+      {colsFaca ? <Chip label="Cols. faca" value={colsFaca} /> : null}
+      {isFacaPosicao(posicao) ? (
+        <Chip label="Posição" value={facaPosicaoLabel(posicao) ?? String(posicao)} />
+      ) : null}
       {largura !== '—' ? <Chip label="Largura" value={largura} /> : null}
       {puxada !== '—' ? <Chip label="Puxada" value={puxada} /> : null}
       {!cliente && zVal !== '—' ? <Chip label="Z" value={zVal} /> : null}
@@ -218,6 +211,7 @@ export function OrcamentoFacaDesenho({
 
   const metaLine = [
     label && label !== title ? label : null,
+    colsFaca ? `${colsFaca} cols. faca` : null,
     !cliente && maquina ? String(maquina) : null,
     facaNova && !cliente ? 'não cadastrada no mapa' : null,
     facaNova && cliente ? 'Faca a desenvolver para este modelo' : null,
@@ -228,10 +222,7 @@ export function OrcamentoFacaDesenho({
   return (
     <div className={rootClass} role="group" aria-label={`Desenho da faca: ${tipo} · ${title}`}>
       <div className="orc-faca-desenho-leading">
-        <FacaDesenhoVisual props={props} variant={variant} tipo={tipo} label={label} />
-        {isFacaPosicao(posicao) ? (
-          <FacaPosicaoBadge codigo={posicao} size={badgeSize(variant)} />
-        ) : null}
+        <FacaDesenhoVisual props={props} variant={variant} label={label} />
       </div>
 
       <div className="orc-faca-desenho-body">
@@ -337,7 +328,7 @@ export function facaDesenhoFromForm(input: {
   };
 }
 
-/** Extrai props comerciais a partir do DTO da proposta (sem Z/máquina). */
+/** Monta props comerciais a partir do DTO da proposta (sem Z/máquina). Usado em ficha/prévia operacional se necessário. */
 export function facaDesenhoFromPropostaDescricao(
   desc:
     | {

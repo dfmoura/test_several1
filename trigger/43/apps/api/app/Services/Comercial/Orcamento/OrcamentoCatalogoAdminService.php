@@ -4,7 +4,6 @@ namespace App\Services\Comercial\Orcamento;
 
 use App\Models\OrcCatalogoAcabamento;
 use App\Models\OrcCatalogoEstrutura;
-use App\Models\OrcCatalogoFaixaFrete;
 use App\Models\OrcCatalogoHoraMaquina;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
@@ -33,7 +32,6 @@ class OrcamentoCatalogoAdminService
      *   tipos_troca: int,
      *   maquinas: int,
      *   parametros: int,
-     *   faixas_frete: int,
      *   matriz_cm2: float,
      *   matriz_cm2_fonte: string,
      *   fonte: string,
@@ -61,9 +59,6 @@ class OrcamentoCatalogoAdminService
             'estruturas' => Schema::hasTable('orc_catalogo_estruturas')
                 ? $this->scoped(OrcCatalogoEstrutura::query())->count()
                 : 0,
-            'faixas_frete' => Schema::hasTable('orc_catalogo_faixas_frete')
-                ? $this->scoped(OrcCatalogoFaixaFrete::query())->count()
-                : 0,
             'matriz_cm2' => $cat->matrizCm2,
             'matriz_cm2_fonte' => $matrizFromDb ? 'database' : 'json_fallback',
             'fonte' => $hasDb ? 'database' : 'json_fallback',
@@ -90,7 +85,6 @@ class OrcamentoCatalogoAdminService
             'tarifas' => 0,
             'parametros' => 0,
             'estruturas' => 0,
-            'faixas_frete' => 0,
         ];
         $existentes = [
             'papeis' => 0,
@@ -100,7 +94,6 @@ class OrcamentoCatalogoAdminService
             'tarifas' => 0,
             'parametros' => 0,
             'estruturas' => 0,
-            'faixas_frete' => 0,
         ];
 
         DB::transaction(function () use ($raw, $forceOverwrite, $empresaId, &$criados, &$existentes) {
@@ -112,7 +105,6 @@ class OrcamentoCatalogoAdminService
 
                 $valoresJson = [
                     OrcCatalogoParametro::CHAVE_MATRIZ_CM2 => (float) ($raw['matriz_cm2'] ?? $meta[OrcCatalogoParametro::CHAVE_MATRIZ_CM2]['default']),
-                    OrcCatalogoParametro::CHAVE_PESO_CAIXA_KG => 0.0,
                     OrcCatalogoParametro::CHAVE_SETUP_HORAS => (float) ($raw['setup_horas'] ?? $meta[OrcCatalogoParametro::CHAVE_SETUP_HORAS]['default']),
                     OrcCatalogoParametro::CHAVE_LIMITE_METRAGEM_BOBINA => (float) ($raw['limite_metragem_bobina'] ?? $meta[OrcCatalogoParametro::CHAVE_LIMITE_METRAGEM_BOBINA]['default']),
                     OrcCatalogoParametro::CHAVE_MINUTOS_TROCA_BOBINA => (float) ($raw['minutos_troca_bobina'] ?? $meta[OrcCatalogoParametro::CHAVE_MINUTOS_TROCA_BOBINA]['default']),
@@ -186,40 +178,6 @@ class OrcamentoCatalogoAdminService
                     $criados['estruturas']++;
                 }
             }
-
-            if (Schema::hasTable('orc_catalogo_faixas_frete')) {
-                foreach (OrcCatalogoFaixaFrete::SEED_KG_ATE as $i => $kgAte) {
-                    $q = $this->scoped(OrcCatalogoFaixaFrete::query(), $empresaId);
-                    if ($kgAte === null) {
-                        $q->whereNull('kg_ate');
-                    } else {
-                        $q->where('kg_ate', $kgAte);
-                    }
-                    $row = $q->first();
-                    if ($row) {
-                        $existentes['faixas_frete']++;
-                        if ($forceOverwrite) {
-                            $row->update([
-                                'preco_por_km' => null,
-                                'minimo_rs' => null,
-                                'ativo' => false,
-                                'ordem' => ($i + 1) * 10,
-                            ]);
-                        }
-                        continue;
-                    }
-                    OrcCatalogoFaixaFrete::query()->create([
-                        'empresa_id' => $empresaId,
-                        'kg_ate' => $kgAte,
-                        'preco_por_km' => null,
-                        'minimo_rs' => null,
-                        'ativo' => false,
-                        'ordem' => ($i + 1) * 10,
-                    ]);
-                    $criados['faixas_frete']++;
-                }
-            }
-
             $ordem = 0;
             foreach ($raw['papel'] ?? [] as $nome => $preco) {
                 $nome = OrcamentoCatalogo::norm((string) $nome);
@@ -650,8 +608,7 @@ class OrcamentoCatalogoAdminService
             && Schema::hasTable('orc_catalogo_maquinas')
             && Schema::hasTable('orc_catalogo_hora_maquina')
             && Schema::hasTable('orc_catalogo_parametros')
-            && Schema::hasTable('orc_catalogo_estruturas')
-            && Schema::hasTable('orc_catalogo_faixas_frete');
+            && Schema::hasTable('orc_catalogo_estruturas');
     }
 
     /** @return list<array<string, mixed>> */
@@ -767,160 +724,6 @@ class OrcamentoCatalogoAdminService
         return $para;
     }
 
-    /** @return list<array<string, mixed>> */
-    public function listFaixasFrete(bool $incluirInativos = true): array
-    {
-        if (! Schema::hasTable('orc_catalogo_faixas_frete')) {
-            return [];
-        }
-
-        $q = $this->scoped(OrcCatalogoFaixaFrete::query())
-            ->orderByRaw('kg_ate is null')
-            ->orderBy('kg_ate')
-            ->orderBy('ordem');
-        if (! $incluirInativos) {
-            $q->where('ativo', true);
-        }
-
-        return $q->get()->map(fn (OrcCatalogoFaixaFrete $f) => $this->faixaFreteOut($f))->all();
-    }
-
-    /** @param  array<string, mixed>  $data */
-    public function createFaixaFrete(array $data): array
-    {
-        $payload = $this->normalizeFaixaFretePayload($data, null);
-        $payload['empresa_id'] = $this->empresaId();
-        $this->assertFaixasContinuas(null, $payload);
-        $row = OrcCatalogoFaixaFrete::query()->create($payload);
-        $this->audit->log('orc_catalogo.faixa_frete.criar', 'orc_catalogo_faixa_frete', $row->id, null, $this->faixaFreteOut($row));
-
-        return $this->faixaFreteOut($row);
-    }
-
-    /** @param  array<string, mixed>  $data */
-    public function updateFaixaFrete(OrcCatalogoFaixaFrete $faixa, array $data): array
-    {
-        $de = $this->faixaFreteOut($faixa);
-        $payload = $this->normalizeFaixaFretePayload($data, $faixa);
-        $merged = array_merge([
-            'kg_ate' => $faixa->kg_ate,
-            'preco_por_km' => $faixa->preco_por_km,
-            'minimo_rs' => $faixa->minimo_rs,
-            'ativo' => (bool) $faixa->ativo,
-            'ordem' => (int) $faixa->ordem,
-        ], $payload);
-        $this->assertFaixasContinuas($faixa->id, $merged);
-        $faixa->fill($payload);
-        $faixa->save();
-        $para = $this->faixaFreteOut($faixa->fresh());
-        $this->audit->log('orc_catalogo.faixa_frete.atualizar', 'orc_catalogo_faixa_frete', $faixa->id, $de, $para);
-
-        return $para;
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    private function normalizeFaixaFretePayload(array $data, ?OrcCatalogoFaixaFrete $atual): array
-    {
-        $out = [];
-        if (array_key_exists('kg_ate', $data) || $atual === null) {
-            $raw = $data['kg_ate'] ?? null;
-            $out['kg_ate'] = ($raw === null || $raw === '')
-                ? null
-                : PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_WEIGHT);
-        }
-        if (array_key_exists('preco_por_km', $data) || $atual === null) {
-            $raw = $data['preco_por_km'] ?? null;
-            $out['preco_por_km'] = ($raw === null || $raw === '')
-                ? null
-                : PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_UNIT_PRICE);
-        }
-        if (array_key_exists('minimo_rs', $data) || $atual === null) {
-            $raw = $data['minimo_rs'] ?? null;
-            $out['minimo_rs'] = ($raw === null || $raw === '')
-                ? null
-                : PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_MONEY);
-        }
-        if (array_key_exists('ativo', $data)) {
-            $out['ativo'] = (bool) $data['ativo'];
-        } elseif ($atual === null) {
-            $out['ativo'] = false;
-        }
-        if (array_key_exists('ordem', $data)) {
-            $out['ordem'] = (int) $data['ordem'];
-        } elseif ($atual === null) {
-            $out['ordem'] = (int) $this->scoped(OrcCatalogoFaixaFrete::query())->max('ordem') + 10;
-        }
-
-        return $out;
-    }
-
-    /**
-     * Faixas contínuas: kg_ate único e estritamente crescente; no máximo um “acima” (nulo).
-     *
-     * @param  array<string, mixed>  $pending
-     */
-    private function assertFaixasContinuas(?int $ignoreId, array $pending): void
-    {
-        $rows = $this->scoped(OrcCatalogoFaixaFrete::query())
-            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
-            ->get(['id', 'kg_ate'])
-            ->map(fn (OrcCatalogoFaixaFrete $f) => $this->decOrNull($f->kg_ate))
-            ->all();
-        $rows[] = array_key_exists('kg_ate', $pending)
-            ? $this->decOrNull($pending['kg_ate'] ?? null)
-            : null;
-
-        $nulls = 0;
-        $finitos = [];
-        foreach ($rows as $kg) {
-            if ($kg === null) {
-                $nulls++;
-                continue;
-            }
-            $finitos[] = $kg;
-        }
-        if ($nulls > 1) {
-            throw ValidationException::withMessages([
-                'kg_ate' => ['Só pode haver uma faixa “acima” (kg até vazio).'],
-            ]);
-        }
-
-        usort($finitos, static fn (string $a, string $b) => bccomp($a, $b, PadraoDecimal::SCALE_WEIGHT));
-        for ($i = 1, $n = count($finitos); $i < $n; $i++) {
-            if (bccomp($finitos[$i], $finitos[$i - 1], PadraoDecimal::SCALE_WEIGHT) <= 0) {
-                throw ValidationException::withMessages([
-                    'kg_ate' => ['Faixas devem ser contínuas e sem kg repetido (ex.: 20 / 50 / 100).'],
-                ]);
-            }
-        }
-    }
-
-    private function decOrNull(mixed $value): ?string
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return PadraoDecimal::parse((string) $value);
-    }
-
-    /** @return array<string, mixed> */
-    private function faixaFreteOut(OrcCatalogoFaixaFrete $f): array
-    {
-        return [
-            'id' => $f->id,
-            'kg_ate' => $f->kg_ate !== null && $f->kg_ate !== '' ? (string) $f->kg_ate : null,
-            'preco_por_km' => $f->preco_por_km !== null && $f->preco_por_km !== '' ? (string) $f->preco_por_km : null,
-            'minimo_rs' => $f->minimo_rs !== null && $f->minimo_rs !== '' ? (string) $f->minimo_rs : null,
-            'ativo' => (bool) $f->ativo,
-            'ordem' => (int) $f->ordem,
-            'acima' => $f->isAcima(),
-            'updated_at' => $f->updated_at?->toISOString(),
-        ];
-    }
 
     /** @return array<string, mixed> */
     private function parametroOut(OrcCatalogoParametro $p): array

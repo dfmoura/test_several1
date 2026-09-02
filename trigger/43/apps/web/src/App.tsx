@@ -19,6 +19,7 @@ import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
 import { BacklogPage } from './pages/BacklogPage';
 import { CondicoesPagamentoPage } from './pages/CondicoesPagamentoPage';
 import { DepartamentosPage } from './pages/DepartamentosPage';
+import { FeriadosPage } from './pages/FeriadosPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
 import { OrcamentoComoCalculaPage } from './pages/OrcamentoComoCalculaPage';
 import { OrcamentoDetailPage } from './pages/OrcamentoDetailPage';
@@ -257,6 +258,15 @@ export default function App() {
           element={
             <PermissionRoute permission="departamento.ler">
               <DepartamentosPage />
+            </PermissionRoute>
+          }
+        />
+
+        <Route
+          path="feriados"
+          element={
+            <PermissionRoute permission="feriado.ler">
+              <FeriadosPage />
             </PermissionRoute>
           }
         />

@@ -2,14 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api } from '../lib/api';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
 import { useTableSort } from '../lib/useTableSort';
-import {
-  FacaShapeIcon,
-  facaAspectFromRecord,
-  formatoKind,
-  formatoLabel,
-} from './FacaShapeIcon';
+import { formatoKind, formatoLabel } from './FacaShapeIcon';
+import { FacaApresentacao } from './FacaApresentacao';
 import { FacaSilhuetaReal, facaSilhuetaFromRecord } from './FacaSilhuetaReal';
 import { SortableTh } from './SortableTh';
+import { formatColunasMapaLabel } from '../lib/facaSilhueta';
+import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
 
 export type FacaRecord = Record<string, unknown> & {
   id?: number;
@@ -32,7 +30,10 @@ export type FacaRecord = Record<string, unknown> & {
   cliente_nota?: string | null;
   fornecedor?: string | null;
   label?: string;
-  /** GERACAO 7.3 — não está no mapa; custo/prazo no ORC; cadastra após aprovação */
+  /**
+   * GERACAO 7.3 — legado em ORCs já gravados.
+   * Novos ORCs só selecionam faca do mapa oficial (cadastro em Mapa de facas).
+   */
   faca_nova?: boolean;
 };
 
@@ -77,23 +78,6 @@ async function listFacas(params: {
   return api.get<FacasResponse>(`/facas${suffix}`);
 }
 
-export function buildFacaNova(partial?: Partial<FacaRecord>): FacaRecord {
-  return {
-    faca_nova: true,
-    completa: false,
-    medida: partial?.medida ?? '',
-    formato: partial?.formato ?? 'RETA',
-    faca: partial?.formato ?? 'RETA',
-    maquina_catalogo: partial?.maquina_catalogo ?? '',
-    puxada: partial?.puxada ?? null,
-    z: partial?.z ?? null,
-    repeticao: null,
-    largura_faca: partial?.largura_faca ?? null,
-    label: 'FACA NOVA (simulada)',
-    cliente_nota: 'Faca nova — cadastrar no mapa após aprovação',
-  };
-}
-
 const FACA_SORT = {
   formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
   medida: (f: FacaRecord) => String(f.medida || ''),
@@ -105,9 +89,13 @@ const FACA_SORT = {
   nota: (f: FacaRecord) => String(f.cliente_nota || f.fornecedor || ''),
 };
 
-export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = false }: Props) {
+export function FacaPicker({
+  value,
+  onChange,
+  maquinasCatalogo = [],
+  disabled = false,
+}: Props) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<'busca' | 'nova'>('busca');
   const [q, setQ] = useState('');
   const [maquina, setMaquina] = useState('');
   const [formato, setFormato] = useState('');
@@ -119,13 +107,6 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted: sortedItems, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
-
-  const [novaMedida, setNovaMedida] = useState('');
-  const [novaFormato, setNovaFormato] = useState('RETA');
-  const [novaMaquina, setNovaMaquina] = useState('');
-  const [novaPuxada, setNovaPuxada] = useState('');
-  const [novaZ, setNovaZ] = useState('');
-  const [novaErro, setNovaErro] = useState<string | null>(null);
 
   const maquinas = useMemo(
     () => mergeVocabulario(maquinasCatalogo, maquinasApi),
@@ -165,12 +146,12 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
   }, [open]);
 
   useEffect(() => {
-    if (!open || mode !== 'busca') return;
+    if (!open) return;
     const t = window.setTimeout(() => {
       void load();
     }, q ? 220 : 0);
     return () => window.clearTimeout(t);
-  }, [open, load, q, mode]);
+  }, [open, load, q]);
 
   useEffect(() => {
     listFacas({ so_completas: true })
@@ -181,12 +162,7 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
       .catch(() => undefined);
   }, []);
 
-  function abrir(tab: 'busca' | 'nova' = 'busca') {
-    setMode(tab);
-    setNovaErro(null);
-    if (tab === 'nova') {
-      setNovaMaquina((prev) => prev || maquinas[0] || '');
-    }
+  function abrir() {
     setOpen(true);
   }
 
@@ -195,42 +171,11 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
     setOpen(false);
   }
 
-  function confirmarNova() {
-    const medida = novaMedida.trim();
-    if (!medida) {
-      setNovaErro('Informe a medida da faca nova.');
-      return;
-    }
-    const maq = novaMaquina || maquinas[0] || '';
-    if (!maq) {
-      setNovaErro('Informe a máquina (grupo hora-máquina do catálogo).');
-      return;
-    }
-    const puxada = novaPuxada === '' ? null : Number(novaPuxada);
-    const z = novaZ === '' ? null : Number(novaZ);
-    if (puxada != null && (Number.isNaN(puxada) || puxada <= 0)) {
-      setNovaErro('Puxada inválida.');
-      return;
-    }
-    if (z != null && (Number.isNaN(z) || z < 0)) {
-      setNovaErro('Z inválido.');
-      return;
-    }
-    onChange(
-      buildFacaNova({
-        medida,
-        formato: novaFormato,
-        maquina_catalogo: maq,
-        puxada,
-        z,
-      }),
-    );
-    setOpen(false);
-  }
-
   const incompleta = value != null && value.completa === false;
   const isNova = value?.faca_nova === true;
-  const aspect = value ? facaAspectFromRecord(value) : undefined;
+  const colsFaca =
+    value && !isNova ? formatColunasMapaLabel(String(value.colunas_mapa ?? '')) ?? '1×' : null;
+  const posicaoMapa = String(value?.posicao ?? '');
 
   return (
     <div className={`faca-picker${isNova ? ' is-nova' : ''}`}>
@@ -238,24 +183,16 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
         <div className="faca-summary-main">
           <div className="faca-summary-top">
             <span className="faca-kicker">
-              {isNova ? 'Faca nova (simulada)' : 'Faca do mapa oficial'}
+              {isNova ? 'Faca nova (legado nesta proposta)' : 'Faca do mapa oficial'}
             </span>
             <div className="faca-summary-actions">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm faca-btn"
                 disabled={disabled}
-                onClick={() => abrir('busca')}
+                onClick={() => abrir()}
               >
                 {value && !isNova ? 'Trocar faca' : 'Buscar no mapa'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={disabled}
-                onClick={() => abrir('nova')}
-              >
-                Orçar faca nova
               </button>
             </div>
           </div>
@@ -263,13 +200,21 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
           {value ? (
             <div className="faca-summary-body">
               <div className="faca-summary-visual" title={formatoLabel(value.formato || value.faca)}>
-                <FacaShapeIcon
-                  formato={String(value.formato || value.faca || '')}
-                  aspect={aspect}
-                  size={52}
-                />
+                <FacaApresentacao
+                  className="faca-summary-apresentacao"
+                  title={formatoLabel(value.formato || value.faca)}
+                  posicao={posicaoMapa}
+                  size="featured"
+                >
+                  <FacaSilhuetaReal
+                    {...facaSilhuetaFromRecord(value)}
+                    size={56}
+                    variant="featured"
+                  />
+                </FacaApresentacao>
                 <span className="faca-shape-caption">
                   {isNova ? 'NOVA' : formatoKind(String(value.formato || value.faca || ''))}
+                  {isFacaPosicao(posicaoMapa) ? ` · ${facaPosicaoLabel(posicaoMapa)}` : ''}
                 </span>
               </div>
               <div className="faca-summary-text">
@@ -299,6 +244,12 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                     <span>N facas</span>
                     {isNova || value.n_facas == null ? '—' : fmtNum(value.n_facas, 0)}
                   </div>
+                  {colsFaca ? (
+                    <div className="faca-chip" title="Colunas da faca no mapa (não é coluna de rebobinação)">
+                      <span>Cols. faca</span>
+                      {colsFaca}
+                    </div>
+                  ) : null}
                   <div className="faca-chip">
                     <span>Z</span>
                     {fmtNum(value.z, 0)}
@@ -330,8 +281,9 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
                 </div>
                 {isNova ? (
                   <p className="faca-warn">
-                    Faca nova: informe medida, puxada, Z e o valor/prazo cotados. Entra no mapa só
-                    após a aprovação do orçamento.
+                    Proposta legada com faca nova. Valor e prazo cotados permanecem em Produção /
+                    ferramental. Para novos orçamentos, cadastre a geometria em Mapa de facas e
+                    selecione-a aqui.
                   </p>
                 ) : incompleta ? (
                   <p className="faca-warn">
@@ -342,16 +294,9 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
             </div>
           ) : (
             <div className="faca-summary-empty">
-              <div className="faca-shape-strip" aria-hidden>
-                {FORMATOS_CANONICOS.map((f) => (
-                  <div key={f} className="faca-shape-strip-item">
-                    <FacaShapeIcon formato={f} size={28} />
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="muted" style={{ margin: '0.65rem 0 0' }}>
-                Busque no mapa oficial ou orçe como faca nova se a medida ainda não existir.
+              <p className="muted" style={{ margin: 0 }}>
+                Busque e selecione uma faca do mapa oficial. Medidas novas devem ser cadastradas em
+                Mapa de facas.
               </p>
             </div>
           )}
@@ -364,13 +309,10 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
           <div className="faca-modal-panel">
             <header className="faca-modal-head">
               <div>
-                <h2 id="faca-modal-title">
-                  {mode === 'nova' ? 'Orçar faca nova' : 'Mapa de facas'}
-                </h2>
+                <h2 id="faca-modal-title">Mapa de facas</h2>
                 <p className="faca-modal-sub">
-                  {mode === 'nova'
-                    ? 'Medida ainda não está no mapa. Simule no ORC com custo/prazo cotados — cadastro oficial só após aprovação.'
-                    : 'Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na linha para selecionar · Shift+clique no cabeçalho soma ordenação.'}
+                  Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na
+                  linha para selecionar · Shift+clique no cabeçalho soma ordenação.
                 </p>
               </div>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
@@ -378,295 +320,174 @@ export function FacaPicker({ value, onChange, maquinasCatalogo = [], disabled = 
               </button>
             </header>
 
-            <div className="faca-modal-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'busca'}
-                className={mode === 'busca' ? 'active' : ''}
-                onClick={() => setMode('busca')}
-              >
-                Buscar no mapa
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'nova'}
-                className={mode === 'nova' ? 'active' : ''}
-                onClick={() => setMode('nova')}
-              >
-                Faca nova
-              </button>
+            <div className="faca-filters">
+              <label className="faca-filter-field faca-busca-wrap">
+                <span>Buscar</span>
+                <input
+                  type="search"
+                  value={q}
+                  autoFocus
+                  placeholder="Medida, Ø, cliente, fornecedor…"
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </label>
+              <label className="faca-filter-field">
+                <span>Máquina</span>
+                <select value={maquina} onChange={(e) => setMaquina(e.target.value)}>
+                  <option value="">Todas</option>
+                  {maquinas.map((m) => (
+                    <option key={m} value={m}>
+                      {maquinaLabel(m)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="faca-filter-field">
+                <span>Formato</span>
+                <select value={formato} onChange={(e) => setFormato(e.target.value)}>
+                  <option value="">Todos</option>
+                  {formatosLista.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="faca-check">
+                <input
+                  type="checkbox"
+                  checked={soCompletas}
+                  onChange={(e) => setSoCompletas(e.target.checked)}
+                />
+                <span>Só completas</span>
+              </label>
             </div>
 
-            {mode === 'busca' ? (
-              <>
-                <div className="faca-filters">
-                  <label className="faca-filter-field faca-busca-wrap">
-                    <span>Buscar</span>
-                    <input
-                      type="search"
-                      value={q}
-                      autoFocus
-                      placeholder="Medida, Ø, cliente, fornecedor…"
-                      onChange={(e) => setQ(e.target.value)}
-                    />
-                  </label>
-                  <label className="faca-filter-field">
-                    <span>Máquina</span>
-                    <select value={maquina} onChange={(e) => setMaquina(e.target.value)}>
-                      <option value="">Todas</option>
-                      {maquinas.map((m) => (
-                        <option key={m} value={m}>
-                          {maquinaLabel(m)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="faca-filter-field">
-                    <span>Formato</span>
-                    <select value={formato} onChange={(e) => setFormato(e.target.value)}>
-                      <option value="">Todos</option>
-                      {formatosLista.map((f) => (
-                        <option key={f} value={f}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="faca-check">
-                    <input
-                      type="checkbox"
-                      checked={soCompletas}
-                      onChange={(e) => setSoCompletas(e.target.checked)}
-                    />
-                    <span>Só completas</span>
-                  </label>
-                </div>
-
-                {formato ? (
-                  <div className="faca-formato-preview">
-                    <FacaShapeIcon formato={formato} size={40} />
-                    <div>
-                      <strong>{formato}</strong>
-                      <span className="muted"> · formato filtrado no mapa</span>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="faca-toolbar">
-                  <p className="hint auto-note">
-                    {loading ? 'Carregando…' : `${total} faca(s)`}
-                    {erro ? ` · ${erro}` : ''}
-                    {!loading && !erro
-                      ? sorts.length > 1
-                        ? ` · ${sorts.length} critérios`
-                        : ' · Shift+clique soma ordenação'
-                      : ''}
-                  </p>
-                  {!loading && total === 0 ? (
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => setMode('nova')}>
-                      Orçar como faca nova
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="faca-table-wrap">
-                  <table className="faca-table">
-                    <thead>
-                      <tr>
-                        <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Formato
-                        </SortableTh>
-                        <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Medida
-                        </SortableTh>
-                        <SortableTh
-                          column="n_facas"
-                          className="num"
-                          sorts={sorts} sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={requestSort}
-                          label="N facas"
-                        >
-                          N facas
-                        </SortableTh>
-                        <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Máquina
-                        </SortableTh>
-                        <SortableTh column="z" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Z
-                        </SortableTh>
-                        <SortableTh column="rep" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          REP
-                        </SortableTh>
-                        <SortableTh column="puxada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Puxada
-                        </SortableTh>
-                        <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                          Nota
-                        </SortableTh>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!items.length && !loading ? (
-                        <tr>
-                          <td colSpan={8} className="faca-empty">
-                            Nenhuma faca neste filtro. Use a aba <strong>Faca nova</strong> para
-                            orçar medida inexistente.
-                          </td>
-                        </tr>
-                      ) : (
-                        sortedItems.map((f) => {
-                          const selected = value?.id != null && value.id === f.id && !isNova;
-                          const aspectRow = facaAspectFromRecord(f);
-                          const fmt = String(f.formato || f.faca || '');
-                          return (
-                            <tr
-                              key={String(f.id ?? f.label)}
-                              className={`faca-row${selected ? ' selected' : ''}${
-                                f.completa === false ? ' incompleta' : ''
-                              }`}
-                              onClick={() => escolher(f)}
-                              title={String(f.label || '')}
-                            >
-                              <td>
-                                <div className="faca-row-formato">
-                                  <FacaSilhuetaReal
-                                    {...facaSilhuetaFromRecord(f)}
-                                    size={28}
-                                    variant="compact"
-                                  />
-                                  <FacaShapeIcon formato={fmt} aspect={aspectRow} size={24} />
-                                  <span>{formatoLabel(fmt)}</span>
-                                </div>
-                              </td>
-                              <td className="medida">
-                                {String(f.tamanho_tipo) === 'diametro' ? (
-                                  <span className="badge-diam">{String(f.medida)}</span>
-                                ) : (
-                                  String(f.medida || '—')
-                                )}
-                              </td>
-                              <td className="num">
-                                {f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}
-                              </td>
-                              <td>{String(f.maquina_catalogo || '')}</td>
-                              <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>
-                              <td className="num">
-                                {f.repeticao != null ? fmtNum(f.repeticao, 4) : '—'}
-                              </td>
-                              <td className="num">
-                                {f.puxada != null ? (
-                                  fmtNum(f.puxada)
-                                ) : (
-                                  <em className="warn-txt">manual</em>
-                                )}
-                              </td>
-                              <td className="nota">{String(f.cliente_nota || f.fornecedor || '')}</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : (
-              <div className="faca-nova-form">
-                {novaErro ? <p className="form-error">{novaErro}</p> : null}
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Medida *</label>
-                    <input
-                      value={novaMedida}
-                      onChange={(e) => setNovaMedida(e.target.value)}
-                      placeholder="ex.: 8,0X12,4 ou Ø50"
-                      autoFocus
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Formato *</label>
-                    <input
-                      list="faca-picker-formatos"
-                      value={novaFormato}
-                      onChange={(e) => setNovaFormato(e.target.value.toUpperCase())}
-                    />
-                    <datalist id="faca-picker-formatos">
-                      {formatosLista.map((f) => (
-                        <option key={f} value={f} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div className="form-group">
-                    <label>Máquina *</label>
-                    {maquinas.length > 0 ? (
-                      <select
-                        value={novaMaquina || maquinas[0] || ''}
-                        onChange={(e) => setNovaMaquina(e.target.value)}
-                      >
-                        {maquinas.map((m) => (
-                          <option key={m} value={m}>
-                            {maquinaLabel(m)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={novaMaquina}
-                        onChange={(e) => setNovaMaquina(e.target.value.toUpperCase())}
-                        placeholder="Grupo hora-máquina"
-                      />
-                    )}
-                  </div>
-                  <div className="form-group">
-                    <label>Puxada estimada (cm)</label>
-                    <input
-                      type="number"
-                      step="0.00001"
-                      value={novaPuxada}
-                      onChange={(e) => setNovaPuxada(e.target.value)}
-                      placeholder="pode completar no formulário"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Z estimado</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={novaZ}
-                      onChange={(e) => setNovaZ(e.target.value)}
-                      placeholder="opcional agora"
-                    />
-                  </div>
-                  <div className="form-group faca-nova-preview-field">
-                    <label>Prévia</label>
-                    <div className="faca-formato-preview" style={{ margin: 0 }}>
-                      <FacaShapeIcon formato={novaFormato} size={40} />
-                      <div>
-                        <strong>{novaMedida || '—'}</strong>
-                        <span className="muted">
-                          {' '}
-                          · {novaFormato} · {novaMaquina || maquinas[0]}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <p className="form-hint">
-                  O valor cotado da faca e o prazo extra ficam na seção <strong>Produção /
-                  ferramental</strong> do orçamento. O mapa oficial não é alterado nesta etapa.
-                </p>
-                <div className="btn-row">
-                  <button type="button" className="btn btn-primary" onClick={confirmarNova}>
-                    Usar faca nova no ORC
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setMode('busca')}>
-                    Voltar ao mapa
-                  </button>
+            {formato ? (
+              <div className="faca-formato-preview">
+                <FacaSilhuetaReal formato={formato} size={40} variant="compact" />
+                <div>
+                  <strong>{formato}</strong>
+                  <span className="muted"> · formato filtrado no mapa</span>
                 </div>
               </div>
-            )}
+            ) : null}
+
+            <div className="faca-toolbar">
+              <p className="hint auto-note">
+                {loading ? 'Carregando…' : `${total} faca(s)`}
+                {erro ? ` · ${erro}` : ''}
+                {!loading && !erro
+                  ? sorts.length > 1
+                    ? ` · ${sorts.length} critérios`
+                    : ' · Shift+clique soma ordenação'
+                  : ''}
+              </p>
+            </div>
+
+            <div className="faca-table-wrap">
+              <table className="faca-table">
+                <thead>
+                  <tr>
+                    <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Formato
+                    </SortableTh>
+                    <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Medida
+                    </SortableTh>
+                    <SortableTh
+                      column="n_facas"
+                      className="num"
+                      sorts={sorts} sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="N facas"
+                    >
+                      N facas
+                    </SortableTh>
+                    <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Máquina
+                    </SortableTh>
+                    <SortableTh column="z" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Z
+                    </SortableTh>
+                    <SortableTh column="rep" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      REP
+                    </SortableTh>
+                    <SortableTh column="puxada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Puxada
+                    </SortableTh>
+                    <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                      Nota
+                    </SortableTh>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!items.length && !loading ? (
+                    <tr>
+                      <td colSpan={8} className="faca-empty">
+                        Nenhuma faca neste filtro. Ajuste a busca ou cadastre a medida em{' '}
+                        <strong>Mapa de facas</strong>.
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedItems.map((f) => {
+                      const selected = value?.id != null && value.id === f.id && !isNova;
+                      const fmt = String(f.formato || f.faca || '');
+                      return (
+                        <tr
+                          key={String(f.id ?? f.label)}
+                          className={`faca-row${selected ? ' selected' : ''}${
+                            f.completa === false ? ' incompleta' : ''
+                          }`}
+                          onClick={() => escolher(f)}
+                          title={String(f.label || '')}
+                        >
+                          <td>
+                            <div className="faca-row-formato">
+                              <FacaApresentacao
+                                posicao={String(f.posicao ?? '')}
+                                size="compact"
+                              >
+                                <FacaSilhuetaReal
+                                  {...facaSilhuetaFromRecord(f)}
+                                  size={28}
+                                  variant="compact"
+                                />
+                              </FacaApresentacao>
+                              <span>{formatoLabel(fmt)}</span>
+                            </div>
+                          </td>
+                          <td className="medida">
+                            {String(f.tamanho_tipo) === 'diametro' ? (
+                              <span className="badge-diam">{String(f.medida)}</span>
+                            ) : (
+                              String(f.medida || '—')
+                            )}
+                          </td>
+                          <td className="num">
+                            {f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}
+                          </td>
+                          <td>{String(f.maquina_catalogo || '')}</td>
+                          <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>
+                          <td className="num">
+                            {f.repeticao != null ? fmtNum(f.repeticao, 4) : '—'}
+                          </td>
+                          <td className="num">
+                            {f.puxada != null ? (
+                              fmtNum(f.puxada)
+                            ) : (
+                              <em className="warn-txt">manual</em>
+                            )}
+                          </td>
+                          <td className="nota">{String(f.cliente_nota || f.fornecedor || '')}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : null}

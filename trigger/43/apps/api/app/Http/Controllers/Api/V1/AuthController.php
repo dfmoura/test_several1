@@ -150,7 +150,31 @@ class AuthController extends Controller
             'produto_flexorc' => FlexorcSuperficie::dto(),
             'console_plataforma' => $user->getRoleNames()->contains(\App\Support\PlatformRbac::ROLE)
                 || in_array('plataforma.operar', $user->getAllPermissions()->pluck('name')->all(), true),
+            'sessao' => $this->sessaoDto(),
         ]);
+    }
+
+    /**
+     * Keepalive leve: renova last_used_at via Sanctum sem montar /me.
+     * Presence do SPA (ADR_SESSAO_ACESSO) — não altera idle/teto/sessão única.
+     */
+    public function ping(Request $request): JsonResponse
+    {
+        return response()->json([
+            'ok' => true,
+            'sessao' => $this->sessaoDto(),
+        ]);
+    }
+
+    /**
+     * @return array{idle_minutes: int, max_usuarios_simultaneos: int}
+     */
+    private function sessaoDto(): array
+    {
+        return [
+            'idle_minutes' => $this->sessaoAcesso->idleMinutes(),
+            'max_usuarios_simultaneos' => $this->sessaoAcesso->maxUsuariosSimultaneos(),
+        ];
     }
 
     private function resolverUsuarioLogin(?string $email, ?string $conta): ?User

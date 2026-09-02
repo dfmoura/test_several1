@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { FacaPosicaoCodigo } from '../lib/facaPosicao';
-import { FacaPosicaoSelector } from './FacaPosicaoSelector';
+import { FacaPosicaoCampo } from './FacaPosicaoCampo';
 
 type Props = {
   visual: ReactNode;
@@ -8,13 +8,13 @@ type Props = {
   onChange: (value: FacaPosicaoCodigo | '') => void;
   disabled?: boolean;
   id?: string;
-  label?: string;
   hint?: string;
   className?: string;
 };
 
 /**
- * Silhueta da faca + seletor ↑ ↓ ← → encostado à direita (padrão operacional ORC / mapa).
+ * Silhueta + checkbox opcional de posição ↑ ↓ ← → (padrão operacional mapa / ORC).
+ * O `visual` deve usar FacaApresentacao para preview ao vivo da seta.
  */
 export function FacaSilhuetaPosicaoDock({
   visual,
@@ -22,26 +22,22 @@ export function FacaSilhuetaPosicaoDock({
   onChange,
   disabled,
   id,
-  label = 'Posição',
   hint,
   className,
 }: Props) {
   return (
     <div className={`faca-silhueta-posicao${className ? ` ${className}` : ''}`}>
       <div className="faca-silhueta-posicao__visual">{visual}</div>
-      <aside className="faca-silhueta-posicao__dock" aria-labelledby={id ? `${id}-label` : undefined}>
-        <span id={id ? `${id}-label` : undefined} className="faca-silhueta-posicao__dock-label">
-          {label}
-        </span>
-        <FacaPosicaoSelector
+      <aside className="faca-silhueta-posicao__dock">
+        <FacaPosicaoCampo
           id={id}
           variant="dock"
-          showHint={false}
           value={value}
           onChange={onChange}
           disabled={disabled}
+          checkboxLabel="Informar posição da faca"
+          hint={hint}
         />
-        {hint ? <p className="faca-silhueta-posicao__dock-hint">{hint}</p> : null}
       </aside>
     </div>
   );

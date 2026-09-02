@@ -6,7 +6,7 @@ use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use Tests\TestCase;
 
 /**
- * Fechamento comercial: frete somável compõe o total; motor intacto.
+ * Fechamento comercial: frete nunca compõe o total; motor intacto.
  */
 class OrcamentoFreteTotalPropostaTest extends TestCase
 {
@@ -25,36 +25,27 @@ class OrcamentoFreteTotalPropostaTest extends TestCase
         ]));
     }
 
-    public function test_frete_somavel_compoe_o_total(): void
+    public function test_frete_informado_nao_compoe_o_total(): void
     {
-        $this->assertSame('3651.00', OrcamentoFreteEstimadoService::comporTotalProposta([
+        $this->assertSame('3626.00', OrcamentoFreteEstimadoService::comporTotalProposta([
             'valor_total' => 3626,
             'valor_frete' => '25.00',
             'frete_somavel' => true,
         ]));
-    }
-
-    public function test_faca_mais_frete_somavel(): void
-    {
-        $this->assertSame('4451.00', OrcamentoFreteEstimadoService::comporTotalProposta([
-            'valor_total' => 3626,
-            'valor_total_com_faca' => 4426,
-            'valor_frete' => '25.00',
-            'frete_somavel' => true,
-        ]));
-    }
-
-    public function test_frete_nao_somavel_nao_infla(): void
-    {
         $this->assertSame('3626.00', OrcamentoFreteEstimadoService::comporTotalProposta([
             'valor_total' => 3626,
             'valor_frete' => '99.00',
             'frete_somavel' => false,
         ]));
-        $this->assertSame('3626.00', OrcamentoFreteEstimadoService::comporTotalProposta([
+    }
+
+    public function test_faca_com_frete_ainda_so_faca(): void
+    {
+        $this->assertSame('4426.00', OrcamentoFreteEstimadoService::comporTotalProposta([
             'valor_total' => 3626,
-            'valor_frete' => '0.00',
-            'frete_somavel' => false,
+            'valor_total_com_faca' => 4426,
+            'valor_frete' => '25.00',
+            'frete_somavel' => true,
         ]));
     }
 

@@ -131,6 +131,27 @@ class SessaoAcessoTest extends TestCase
         $this->loginOk($c->email);
     }
 
+    public function test_ping_renova_last_used_e_presenca_adianta_idle(): void
+    {
+        $user = $this->criarUsuario('ping-presenca@test.local');
+        $token = $this->loginOk($user->email)->json('token');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/auth/ping')
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('sessao.idle_minutes', 30)
+            ->assertJsonPath('sessao.max_usuarios_simultaneos', 2);
+
+        $this->travel(25)->minutes();
+        $this->withToken($token)->postJson('/api/v1/auth/ping')->assertOk();
+
+        $this->travel(25)->minutes();
+        $this->withToken($token)->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('sessao.idle_minutes', 30);
+    }
+
     public function test_admin_libera_sessao_orfa(): void
     {
         [$admin, $alvo] = $this->criarAdminEAlvo('admin-sessao@test.local', 'alvo@test.local');

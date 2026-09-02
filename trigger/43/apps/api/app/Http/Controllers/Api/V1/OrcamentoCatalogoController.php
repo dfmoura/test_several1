@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrcCatalogoAcabamento;
-use App\Models\OrcCatalogoFaixaFrete;
 use App\Models\OrcCatalogoMaquina;
 use App\Models\OrcCatalogoPapel;
 use App\Models\OrcCatalogoTipoTroca;
@@ -232,45 +231,6 @@ class OrcamentoCatalogoController extends Controller
         }
 
         return response()->json(['data' => $this->service->regrasComParametros()]);
-    }
-
-    public function faixasFrete(Request $request): JsonResponse
-    {
-        $this->authorizeManage($request);
-
-        return response()->json(['data' => $this->service->listFaixasFrete()]);
-    }
-
-    public function storeFaixaFrete(Request $request): JsonResponse
-    {
-        $this->authorizeManage($request);
-        $data = $request->validate($this->faixaFreteRules(false));
-
-        return response()->json(['data' => $this->service->createFaixaFrete($data)], 201);
-    }
-
-    public function updateFaixaFrete(Request $request, OrcCatalogoFaixaFrete $faixaFrete): JsonResponse
-    {
-        $this->authorizeManage($request);
-        $data = $request->validate($this->faixaFreteRules(true));
-
-        return response()->json(['data' => $this->service->updateFaixaFrete($faixaFrete, $data)]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function faixaFreteRules(bool $partial): array
-    {
-        $sometimes = $partial ? ['sometimes'] : [];
-
-        return [
-            'kg_ate' => array_merge($sometimes, PadraoDecimal::rules(PadraoDecimal::SCALE_WEIGHT)),
-            'preco_por_km' => array_merge($sometimes, PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE)),
-            'minimo_rs' => array_merge($sometimes, PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY)),
-            'ativo' => array_merge($sometimes, ['boolean']),
-            'ordem' => array_merge($sometimes, ['integer', 'min:0', 'max:9999']),
-        ];
     }
 
     private function authorizeManage(Request $request): void

@@ -1,0 +1,25 @@
+# Fronteira Feriados (FER)
+
+Norma: `docs/ADR_FERIADOS.md`
+
+## Donos
+
+- **`feriados`** = calendário operacional por EMP (nacional, estadual, municipal, empresa).
+- **`DiasUteisService`** = conversão d.úteis → `data_entrega_prevista` (derivada, não promessa armazenada).
+- **`orcamentos.prazo_entrega_dias`** / **`pedidos.prazo_entrega_dias`** = promessa escalar (inalterada).
+
+## Faça
+
+- Escopar feriados por `empresa_id`.
+- Usar `DiasUteisService` em ORC/PED/proposta — nunca duplicar regra no frontend.
+- Exibir dias úteis **e** data prevista nas fichas e proposta.
+- Seed nacionais via `POST /feriados/seed-nacionais` (fixos; móveis = cadastro manual).
+
+## Não faça
+
+- Feriado global sem EMP.
+- Persistir `data_entrega_prevista` como fonte da verdade no documento.
+- Alterar motor R1–R20 ou `validade_dias` (corridos) sem ADR.
+- Recalcular prazo histórico retroativamente ao editar feriados passados sem decisão explícita.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

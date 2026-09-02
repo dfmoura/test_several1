@@ -157,22 +157,17 @@ final class OrcamentoValidationRules
             'validade_dias' => ['nullable', 'integer', 'min:1', 'max:365'],
             'tolerancia_qtd_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'observacao' => ['nullable', 'string', 'max:4000'],
+            // Prova pública da arte (PDF/imagem/Drive/Figma…) — só URL; sem embed no ERP.
+            'url_arte' => UrlArtePublica::validationRule(),
             'condicao_pagamento' => ['nullable', 'string', 'max:64'],
             'forma_pagamento' => ['nullable', 'string', 'max:32'],
             'vendedor_parceiro_id' => ['nullable', 'integer'],
-            'modo_entrega' => ['nullable', 'string', Rule::in(['RETIRAR', 'ENTREGAR'])],
-            'origem_frete' => ['nullable', 'string', Rule::in(['CALCULADA', 'MANUAL'])],
-            'valor_frete_manual' => [
+            'modo_entrega' => [
                 'nullable',
-                'numeric',
-                'min:0',
-                Rule::requiredIf(static function () {
-                    $modo = strtoupper(trim((string) request('modo_entrega', '')));
-                    $origem = strtoupper(trim((string) request('origem_frete', '')));
-
-                    return $modo === 'ENTREGAR' && $origem === 'MANUAL';
-                }),
+                'string',
+                Rule::in(['RETIRAR', 'ENTREGA_PROPRIA', 'ENTREGA_TERCEIROS', 'ENTREGAR']),
             ],
+            'valor_frete_manual' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

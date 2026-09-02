@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
-import { formatCurrency, formatDecimalBr } from '../lib/format';
+import { formatCurrency } from '../lib/format';
+import { prazoUtilLabel } from '../lib/prazoEntrega';
 import type { ModeloComposicaoForm, OrcOverrides } from '../lib/orcamentoForm';
 import {
   aplicarDraftParametros,
@@ -11,12 +12,10 @@ import {
   type ParametroAjusteId,
 } from '../lib/orcamentoParametrosAjuste';
 import {
-  explicarFechamentoFrete,
   formatValorFrete,
   freteMotivoLabel,
+  modoComFrete,
   modoEntregaLabel,
-  ORIGEM_MANUAL,
-  origemFreteLabel,
   totalPropostaFaixa,
 } from '../lib/orcamentoFrete';
 import {
@@ -27,10 +26,6 @@ import {
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { SortableTh } from './SortableTh';
-import {
-  OrcamentoFacaDesenho,
-  type OrcamentoFacaDesenhoProps,
-} from './OrcamentoFacaDesenho';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
 
@@ -55,6 +50,8 @@ export type ParametrosAjusteApply = {
   imposto_pct: number;
   comissao_pct: number;
   faixaIndex: number;
+  /** Comissão por índice quando o usuário ajustou mais de uma faixa de uma vez. */
+  comissaoPctByFaixa?: number[];
 };
 
 type Props = {
@@ -62,8 +59,6 @@ type Props = {
   prazoEntregaDias?: number;
   validadeDias?: number;
   toleranciaQtdPct?: number | string;
-  /** Desenho da faca (input_snapshot) — reforço visual na proposta */
-  facaDesenho?: OrcamentoFacaDesenhoProps | null;
   /** Composição nome+% — mesma visão da proposta ao cliente */
   modelosComposicao?: ModeloComposicaoForm[] | null;
   /**
@@ -72,9 +67,10 @@ type Props = {
    */
   guiaEspec?: OrcGuiaProducaoEspec | null;
   /**
-   * true (padrão): prévia CONSOLIDADO após Calcular (faca, modelos, prazo).
-   * false: o detalhe já mostrou spec/faca/condições — só números do motor
+   * true (padrão): prévia CONSOLIDADO após Calcular (modelos, prazo).
+   * false: o detalhe já mostrou spec/condições — só números do motor
    * (estudo 32 · GERACAO §1.5: cálculo ≠ eco da ficha).
+   * Silhueta da faca fica no formulário e na ficha operacional — não na aba comercial.
    */
   echoEspecificacao?: boolean;
   /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
@@ -88,18 +84,6 @@ type Props = {
   aplicandoParametros?: boolean;
 };
 
-function snapNum(snapshot: Record<string, unknown> | undefined, key: string): string | null {
-  if (!snapshot) return null;
-  const v = snapshot[key];
-  if (typeof v === 'number' && Number.isFinite(v)) {
-    return v.toLocaleString('pt-BR', { maximumFractionDigits: 6 });
-  }
-  if (typeof v === 'string' && v !== '' && Number.isFinite(Number(v))) {
-    return Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 6 });
-  }
-  return null;
-}
-
 function formatParamValue(v: number | null, unidade: string): string {
   if (v == null || !Number.isFinite(v)) return '—';
   const n = v.toLocaleString('pt-BR', {
@@ -109,25 +93,25 @@ function formatParamValue(v: number | null, unidade: string): string {
   return `${n} ${unidade}`;
 }
 
-function FluxoCalculoPanel({
-  detalhe,
+function ParametrosCalculoPanel({
+  faixas,
   snapshot,
   motorVersion,
-  faixaIndex,
+  calculo,
   parametrosAjuste,
   onAplicarParametros,
   aplicandoParametros,
 }: {
-  detalhe: OrcamentoFaixaResult;
+  faixas: OrcamentoFaixaResult[];
   snapshot?: Record<string, unknown>;
   motorVersion: number;
-  faixaIndex: number;
+  calculo: OrcamentoResult;
   parametrosAjuste?: ParametrosAjusteCtx | null;
   onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
   aplicandoParametros?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
+  const [globalDraft, setGlobalDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
+  const [comissaoDraftByFaixa, setComissaoDraftByFaixa] = useState<Record<number, string>>({});
   const editavel = Boolean(parametrosAjuste && onAplicarParametros);
 
   const tarifas = useMemo(() => parseTarifasResolvidas(snapshot), [snapshot]);
@@ -136,107 +120,53 @@ function FluxoCalculoPanel({
     (typeof snapshot?.imposto_pct === 'number'
       ? snapshot.imposto_pct
       : Number(snapshot?.imposto_pct) || 16);
-  const comissaoPct = parametrosAjuste?.comissaoPct ?? 0;
-
-  const paramLinhas = useMemo(
-    () =>
-      buildParametrosAjusteLinhas({
-        tarifas,
-        detalhe,
-        comissaoPct,
-        impostoPct,
-      }),
-    [tarifas, detalhe, comissaoPct, impostoPct],
-  );
 
   useEffect(() => {
-    setDraft({});
-  }, [faixaIndex, snapshot, parametrosAjuste?.overrides]);
+    setGlobalDraft({});
+    setComissaoDraftByFaixa({});
+  }, [snapshot, parametrosAjuste?.overrides, faixas]);
 
-  const linhas = [
-    {
-      regra: 'R1 · Metragem',
-      valor: `${formatDecimalBr(detalhe.metragem, 1)} m`,
-      param: null as string | null,
-    },
-    {
-      regra: 'R2 · Área',
-      valor: `${formatDecimalBr(detalhe.m2, 2)} m²`,
-      param: null,
-    },
-    {
-      regra: 'R3 · Hora-máquina',
-      valor: `${formatDecimalBr(detalhe.hora_maq, 3)} h`,
-      param: snapNum(snapshot, 'setup_horas')
-        ? `setup_horas = ${snapNum(snapshot, 'setup_horas')} h`
-        : null,
-    },
-    {
-      regra: 'R4 · Troca bobina',
-      valor: `${formatDecimalBr(detalhe.hora_troca_bobina, 3)} h`,
-      param: [
-        snapNum(snapshot, 'limite_metragem_bobina')
-          ? `limite = ${snapNum(snapshot, 'limite_metragem_bobina')} m`
-          : null,
-        snapNum(snapshot, 'minutos_troca_bobina')
-          ? `minutos = ${snapNum(snapshot, 'minutos_troca_bobina')}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null,
-    },
-    {
-      regra: 'R6 · Perda acerto',
-      valor: `${formatDecimalBr(detalhe.perda_acerto, 2)} m²`,
-      param: snapNum(snapshot, 'perda_papel_f6')
-        ? `F6 = ${snapNum(snapshot, 'perda_papel_f6')}`
-        : null,
-    },
-    {
-      regra: 'CUSTO · Papel',
-      valor: formatCurrency(detalhe.valor_papel),
-      param: tarifas.preco_papel != null
-        ? `${formatParamValue(tarifas.preco_papel, 'R$/m²')}${tarifas.papel ? ` · ${tarifas.papel}` : ''}`
-        : null,
-    },
-    {
-      regra: 'CUSTO · Tinta',
-      valor: formatCurrency(detalhe.valor_tinta),
-      param: [
-        snapNum(snapshot, 'tinta_faixa_m2')
-          ? `faixa = ${snapNum(snapshot, 'tinta_faixa_m2')} m²`
-          : null,
-        snapNum(snapshot, 'tinta_acima_m2')
-          ? `acima = ${snapNum(snapshot, 'tinta_acima_m2')}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null,
-    },
-    {
-      regra: 'FECHAMENTO · Teto',
-      valor: formatCurrency(detalhe.valor_etiqueta),
-      param: snapNum(snapshot, 'ceiling_etiqueta')
-        ? `ceiling = R$ ${snapNum(snapshot, 'ceiling_etiqueta')}`
-        : null,
-    },
-    {
-      regra: 'MATRIZ',
-      valor: formatCurrency(detalhe.valor_matriz),
-      param: snapNum(snapshot, 'matriz_cm2')
-        ? `matriz_cm2 = ${snapNum(snapshot, 'matriz_cm2')} R$/cm²`
-        : null,
-    },
-  ];
+  const draftDirty =
+    Object.keys(globalDraft).length > 0 || Object.keys(comissaoDraftByFaixa).length > 0;
+
+  const setDraftField = (faixaIndex: number, id: ParametroAjusteId, value: string) => {
+    if (id === 'comissao') {
+      setComissaoDraftByFaixa((prev) => ({ ...prev, [faixaIndex]: value }));
+      return;
+    }
+    setGlobalDraft((prev) => ({ ...prev, [id]: value }));
+  };
 
   const handleAplicar = () => {
-    if (!parametrosAjuste || !onAplicarParametros) return;
+    if (!parametrosAjuste || !onAplicarParametros || faixas.length === 0) return;
+
+    const firstFaixa = faixas[0];
     const tintaUsaAcima =
       tarifas.tinta_faixa_m2 != null
-        ? Number(detalhe.m2) > Number(tarifas.tinta_faixa_m2)
+        ? Number(firstFaixa.m2) > Number(tarifas.tinta_faixa_m2)
         : true;
+
+    const mergedDraft: Partial<Record<ParametroAjusteId, string>> = { ...globalDraft };
+    const comissaoPctByFaixa = faixas.map((_, i) => {
+      const raw = comissaoDraftByFaixa[i];
+      if (raw !== undefined && raw.trim() !== '') {
+        const n = Number(raw.replace(',', '.'));
+        if (Number.isFinite(n) && n >= 0) return n;
+      }
+      return parametrosAjuste.comissaoPctByFaixa?.[i] ?? parametrosAjuste.comissaoPct;
+    });
+
+    let applyFaixaIndex = 0;
+    for (let i = 0; i < faixas.length; i += 1) {
+      if (i in comissaoDraftByFaixa) {
+        mergedDraft.comissao = comissaoDraftByFaixa[i];
+        applyFaixaIndex = i;
+        break;
+      }
+    }
+
     const applied = aplicarDraftParametros({
-      draft,
+      draft: mergedDraft,
       overridesBase: parametrosAjuste.overrides,
       ctx: {
         papel: parametrosAjuste.papel,
@@ -246,182 +176,340 @@ function FluxoCalculoPanel({
         tubete: parametrosAjuste.tubete,
         tipoTroca: parametrosAjuste.tipoTroca,
         rebobinacaoNome: parametrosAjuste.rebobinacaoNome ?? tarifas.rebobinacao ?? 'REBOBINAÇÃO',
-        comissaoPct: parametrosAjuste.comissaoPct,
+        comissaoPct: comissaoPctByFaixa[applyFaixaIndex] ?? parametrosAjuste.comissaoPct,
         impostoPct: parametrosAjuste.impostoPct,
         tintaUsaAcima,
       },
     });
+
     void onAplicarParametros({
       ...applied,
-      faixaIndex,
+      faixaIndex: applyFaixaIndex,
+      comissaoPctByFaixa,
     });
   };
 
-  const draftDirty = Object.keys(draft).length > 0;
+  const facaNova = Boolean(calculo.faca_nova);
+  const mostrarFrete = Boolean(calculo.frete);
+
+  const faixasComLinhas = useMemo(
+    () =>
+      faixas.map((detalhe, faixaIndex) => {
+        const comissaoPct =
+          parametrosAjuste?.comissaoPctByFaixa?.[faixaIndex] ??
+          parametrosAjuste?.comissaoPct ??
+          0;
+        return {
+          detalhe,
+          faixaIndex,
+          quantidadeLabel: Number(detalhe.quantidade).toLocaleString('pt-BR'),
+          comissaoPct,
+          linhas: buildParametrosAjusteLinhas({
+            tarifas,
+            detalhe,
+            comissaoPct,
+            impostoPct,
+          }),
+        };
+      }),
+    [faixas, tarifas, impostoPct, parametrosAjuste?.comissaoPct, parametrosAjuste?.comissaoPctByFaixa],
+  );
+
+  const componenteRows = useMemo(() => {
+    if (faixasComLinhas.length === 0) return [];
+    return faixasComLinhas[0].linhas.map((base) => ({
+      id: base.id,
+      label: base.label,
+      parametro: base.parametro,
+      unidade: base.unidade,
+      draftKey: base.draftKey,
+      celulas: faixasComLinhas.map((fx) => ({
+        faixaIndex: fx.faixaIndex,
+        quantidadeLabel: fx.quantidadeLabel,
+        detalhe: fx.detalhe,
+        comissaoPct: fx.comissaoPct,
+        linha: fx.linhas.find((ln) => ln.id === base.id)!,
+      })),
+    }));
+  }, [faixasComLinhas]);
+
+  const faixaBandClass = (faixaIndex: number) =>
+    faixaIndex % 2 === 1 ? 'orc-params-faixa-band' : '';
+
+  const colsPorFaixa = editavel ? 3 : 2;
+  const faixaBorderClass = (faixaIndex: number) =>
+    faixaIndex > 0 ? 'orc-params-faixa-border' : '';
+
+  const comparativoStyle = {
+    '--orc-faixas': faixas.length,
+  } as CSSProperties;
+
+  const faixaGridSpan = (faixaIndex: number) => ({
+    gridColumn: `${2 + faixaIndex * colsPorFaixa} / span ${colsPorFaixa}`,
+  });
+
+  const renderAjusteInput = (cell: (typeof componenteRows)[number]['celulas'][number]) => {
+    if (!parametrosAjuste) return null;
+    const ln = cell.linha;
+    const tintaUsaAcima =
+      tarifas.tinta_faixa_m2 != null
+        ? Number(cell.detalhe.m2) > Number(tarifas.tinta_faixa_m2)
+        : true;
+    const existente = valorOverrideAtual(ln.id, parametrosAjuste.overrides, {
+      papel: parametrosAjuste.papel,
+      acabamento: parametrosAjuste.acabamento,
+      maquina: parametrosAjuste.maquina,
+      cores: parametrosAjuste.cores,
+      tubete: parametrosAjuste.tubete,
+      tipoTroca: parametrosAjuste.tipoTroca,
+      rebobinacaoNome: parametrosAjuste.rebobinacaoNome ?? tarifas.rebobinacao ?? 'REBOBINAÇÃO',
+      comissaoPct: cell.comissaoPct,
+      impostoPct,
+      tintaUsaAcima,
+    });
+    const draftVal =
+      ln.id === 'comissao' ? comissaoDraftByFaixa[cell.faixaIndex] : globalDraft[ln.draftKey];
+    const showDraft =
+      draftVal !== undefined ? draftVal : existente != null ? String(existente) : '';
+    return (
+      <div className="orc-params-input-wrap">
+        <input
+          type="text"
+          inputMode="decimal"
+          className="orc-params-input"
+          aria-label={`Ajuste ${ln.label} · ${cell.quantidadeLabel} un. (${ln.unidade})`}
+          placeholder={
+            ln.valorUsado != null
+              ? ln.valorUsado.toLocaleString('pt-BR', { maximumFractionDigits: 6 })
+              : 'default'
+          }
+          value={showDraft}
+          onChange={(e) => setDraftField(cell.faixaIndex, ln.draftKey, e.target.value)}
+        />
+        <span className="orc-params-unidade" title={ln.unidade}>
+          {ln.unidade}
+        </span>
+      </div>
+    );
+  };
 
   return (
-    <div className="orc-fluxo-calculo" style={{ marginTop: '1rem' }}>
-      <button
-        type="button"
-        className="btn btn-secondary btn-sm"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+    <div className="orc-parametros-calculo">
+      <p className="orc-result-meta" style={{ margin: '0 0 0.85rem' }}>
+        Rastreio interno · motor v{motorVersion} · parâmetros do snapshot deste ORC (não da tarifa
+        atual do catálogo).{' '}
+        <Link to="/orcamentos/como-calcula">Ver regras →</Link>
+      </p>
+
+      <h3 className="orc-fluxo-subtitulo">Parâmetros utilizados no cálculo</h3>
+      <p className="orc-result-meta" style={{ margin: '0 0 0.75rem' }}>
+        {editavel
+          ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Em Ajustar, digite em qualquer faixa — parâmetros de custo alteram o ORC inteiro; comissão e imposto estim. alteram a faixa correspondente. Vazio volta ao default.'
+          : 'Fotografia das tarifas efetivas neste orçamento (somente leitura).'}
+      </p>
+
+      <div
+        className={`orc-params-comparativo ${editavel ? '' : 'orc-params-comparativo--leitura'}`}
+        style={comparativoStyle}
+        role="table"
+        aria-label="Parâmetros utilizados no cálculo por faixa"
       >
-        {open ? 'Ocultar fluxo do cálculo' : 'Como chegou neste valor'}
-      </button>
-      {open ? (
-        <div className="card" style={{ marginTop: '0.65rem' }}>
-          <div className="card-body" style={{ display: 'grid', gap: '0.85rem' }}>
-            <p className="orc-result-meta" style={{ margin: 0 }}>
-              Rastreio interno · motor v{motorVersion} · parâmetros do snapshot deste ORC
-              (não da tarifa atual do catálogo).{' '}
-              <Link to="/orcamentos/como-calcula">Ver regras →</Link>
-            </p>
-
-            <div>
-              <h3 className="orc-fluxo-subtitulo">Parâmetros utilizados no cálculo</h3>
-              <p className="orc-result-meta" style={{ margin: '0 0 0.55rem' }}>
-                {editavel
-                  ? 'Valor usado = default do catálogo (ou ajuste já gravado neste ORC). Preencha “Ao seu entendimento” só onde quiser divergir; vazio volta ao default. Comissão e imposto estim. alteram a faixa / o ORC.'
-                  : 'Fotografia das tarifas efetivas neste orçamento (somente leitura).'}
-              </p>
-              <div className="table-wrap">
-                <table className="data-table orc-params-ajuste-table">
-                  <thead>
-                    <tr>
-                      <th>Componente</th>
-                      <th>Parâmetro</th>
-                      <th>Valor usado</th>
-                      <th>Resultado</th>
-                      {editavel ? <th>Ao seu entendimento</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paramLinhas.map((ln) => {
-                      const tintaUsaAcima =
-                        tarifas.tinta_faixa_m2 != null
-                          ? Number(detalhe.m2) > Number(tarifas.tinta_faixa_m2)
-                          : true;
-                      const existente =
-                        parametrosAjuste != null
-                          ? valorOverrideAtual(ln.id, parametrosAjuste.overrides, {
-                              papel: parametrosAjuste.papel,
-                              acabamento: parametrosAjuste.acabamento,
-                              maquina: parametrosAjuste.maquina,
-                              cores: parametrosAjuste.cores,
-                              tubete: parametrosAjuste.tubete,
-                              tipoTroca: parametrosAjuste.tipoTroca,
-                              rebobinacaoNome:
-                                parametrosAjuste.rebobinacaoNome ??
-                                tarifas.rebobinacao ??
-                                'REBOBINAÇÃO',
-                              comissaoPct,
-                              impostoPct,
-                              tintaUsaAcima,
-                            })
-                          : ln.id === 'comissao' || ln.id === 'imposto'
-                            ? ln.valorUsado
-                            : null;
-                      const draftVal = draft[ln.draftKey];
-                      const showDraft =
-                        draftVal !== undefined
-                          ? draftVal
-                          : existente != null
-                            ? String(existente)
-                            : '';
-                      return (
-                        <tr key={ln.id}>
-                          <td>
-                            <strong>{ln.label}</strong>
-                          </td>
-                          <td className="field-note">{ln.parametro}</td>
-                          <td className="orc-params-valor">
-                            {formatParamValue(ln.valorUsado, ln.unidade)}
-                          </td>
-                          <td>
-                            {ln.resultadoRs != null ? formatCurrency(ln.resultadoRs) : '—'}
-                          </td>
-                          {editavel ? (
-                            <td>
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                className="orc-params-input"
-                                aria-label={`Ajuste ${ln.label}`}
-                                placeholder={
-                                  ln.valorUsado != null
-                                    ? ln.valorUsado.toLocaleString('pt-BR', {
-                                        maximumFractionDigits: 6,
-                                      })
-                                    : 'default'
-                                }
-                                value={showDraft}
-                                onChange={(e) =>
-                                  setDraft((prev) => ({
-                                    ...prev,
-                                    [ln.draftKey]: e.target.value,
-                                  }))
-                                }
-                              />
-                              <span className="orc-params-unidade">{ln.unidade}</span>
-                            </td>
-                          ) : null}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+        <div className="orc-params-comparativo-scroll">
+          <div className="orc-params-grid orc-params-grid--faixa-labels" role="row">
+            <div className="orc-params-cell orc-params-cell-comp orc-params-sticky" role="columnheader" />
+            {faixasComLinhas.map((fx) => (
+              <div
+                key={fx.faixaIndex}
+                className={`orc-params-cell orc-params-faixa-label ${faixaBorderClass(fx.faixaIndex)} ${faixaBandClass(fx.faixaIndex)}`}
+                style={faixaGridSpan(fx.faixaIndex)}
+                role="columnheader"
+              >
+                {fx.quantidadeLabel} un.
               </div>
-              {editavel ? (
-                <div className="btn-row" style={{ marginTop: '0.65rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    disabled={aplicandoParametros || !draftDirty}
-                    onClick={handleAplicar}
-                  >
-                    {aplicandoParametros ? 'Recalculando…' : 'Aplicar e recalcular'}
-                  </button>
-                  {draftDirty ? (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={aplicandoParametros}
-                      onClick={() => setDraft({})}
-                    >
-                      Descartar rascunho
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            <div>
-              <h3 className="orc-fluxo-subtitulo">Trilha das regras (R1–R20)</h3>
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Regra</th>
-                      <th>Resultado</th>
-                      <th>Parâmetro no snapshot</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {linhas.map((ln) => (
-                      <tr key={ln.regra}>
-                        <td>
-                          <strong>{ln.regra}</strong>
-                        </td>
-                        <td>{ln.valor}</td>
-                        <td className="field-note">{ln.param ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            ))}
           </div>
+
+          <div className="orc-params-grid orc-params-grid--head" role="row">
+            <div
+              className="orc-params-cell orc-params-cell-comp orc-params-sticky orc-params-head-comp"
+              role="columnheader"
+            >
+              Componente
+            </div>
+            {faixasComLinhas.map((fx) => (
+              <Fragment key={fx.faixaIndex}>
+                <div
+                  className={`orc-params-cell orc-params-head-sub ${faixaBorderClass(fx.faixaIndex)} ${faixaBandClass(fx.faixaIndex)}`}
+                  role="columnheader"
+                >
+                  Valor usado
+                </div>
+                <div
+                  className={`orc-params-cell orc-params-head-sub ${faixaBandClass(fx.faixaIndex)}`}
+                  role="columnheader"
+                >
+                  Resultado
+                </div>
+                {editavel ? (
+                  <div
+                    className={`orc-params-cell orc-params-head-sub ${faixaBandClass(fx.faixaIndex)}`}
+                    role="columnheader"
+                  >
+                    Ajustar
+                  </div>
+                ) : null}
+              </Fragment>
+            ))}
+          </div>
+
+          {componenteRows.map((row) => (
+            <div key={row.id} className="orc-params-grid orc-params-grid--body" role="row">
+              <div
+                className="orc-params-cell orc-params-cell-comp orc-params-sticky"
+                role="rowheader"
+              >
+                <strong>{row.label}</strong>
+                <div className="field-note">{row.parametro}</div>
+              </div>
+              {row.celulas.map((cell) => (
+                <Fragment key={cell.faixaIndex}>
+                  <div
+                    className={`orc-params-cell orc-params-valor num ${faixaBorderClass(cell.faixaIndex)} ${faixaBandClass(cell.faixaIndex)}`}
+                    role="cell"
+                  >
+                    {formatParamValue(cell.linha.valorUsado, cell.linha.unidade)}
+                  </div>
+                  <div
+                    className={`orc-params-cell orc-params-resultado num ${faixaBandClass(cell.faixaIndex)}`}
+                    role="cell"
+                  >
+                    {cell.linha.resultadoRs != null
+                      ? formatCurrency(cell.linha.resultadoRs)
+                      : '—'}
+                  </div>
+                  {editavel ? (
+                    <div
+                      className={`orc-params-cell orc-params-ajuste-cell ${faixaBandClass(cell.faixaIndex)}`}
+                      role="cell"
+                    >
+                      {renderAjusteInput(cell)}
+                    </div>
+                  ) : null}
+                </Fragment>
+              ))}
+            </div>
+          ))}
+
+          <h3 className="orc-fluxo-subtitulo orc-params-totais-titulo">Totais</h3>
+
+          <div className="orc-params-totais-divider" aria-hidden="true" />
+
+          <div className="orc-params-grid orc-params-grid--totais orc-params-grid--totais-head" role="row">
+            <div className="orc-params-cell orc-params-cell-comp orc-params-sticky" role="columnheader" />
+            {faixasComLinhas.map((fx) => (
+              <div
+                key={fx.faixaIndex}
+                className={`orc-params-cell orc-params-faixa-label ${faixaBorderClass(fx.faixaIndex)} ${faixaBandClass(fx.faixaIndex)}`}
+                style={faixaGridSpan(fx.faixaIndex)}
+                role="columnheader"
+              >
+                {fx.quantidadeLabel} un.
+              </div>
+            ))}
+          </div>
+
+          {(
+            [
+              { label: 'Serviço arredondado', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_etiqueta) },
+              { label: 'Matriz', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_matriz) },
+              ...(facaNova
+                ? [
+                    {
+                      label: 'Faca nova',
+                      valor: (fx: OrcamentoFaixaResult) =>
+                        formatCurrency(fx.valor_faca_nova ?? calculo.valor_faca_nova ?? 0),
+                    },
+                  ]
+                : []),
+              ...(mostrarFrete
+                ? [
+                    {
+                      label: 'Frete',
+                      valor: (fx: OrcamentoFaixaResult) =>
+                        formatValorFrete(fx.valor_frete, {
+                          aDefinir: modoComFrete(calculo.frete?.modo),
+                        }),
+                    },
+                  ]
+                : []),
+              {
+                label: 'Total da proposta',
+                destaque: true,
+                valor: (fx: OrcamentoFaixaResult) =>
+                  formatCurrency(totalPropostaFaixa(fx, facaNova, calculo.valor_faca_nova)),
+              },
+            ] as const
+          ).map((linha) => (
+            <div
+              key={linha.label}
+              className={`orc-params-grid orc-params-grid--totais ${'destaque' in linha && linha.destaque ? 'orc-params-grid--totais-destaque' : ''}`}
+              role="row"
+            >
+              <div
+                className="orc-params-cell orc-params-cell-comp orc-params-sticky"
+                role="rowheader"
+              >
+                {linha.label}
+              </div>
+              {faixas.map((fx, i) => (
+                <div
+                  key={i}
+                  className={`orc-params-cell orc-params-total-valor num ${faixaBorderClass(i)} ${faixaBandClass(i)}`}
+                  style={faixaGridSpan(i)}
+                  role="cell"
+                >
+                  {'destaque' in linha && linha.destaque ? (
+                    <strong>{linha.valor(fx)}</strong>
+                  ) : (
+                    linha.valor(fx)
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {mostrarFrete && modoComFrete(calculo.frete?.modo) ? (
+        <p className="orc-result-meta" style={{ margin: '0.55rem 0 0' }}>
+          {freteMotivoLabel(calculo.frete?.motivo) ??
+            'Frete informativo — não entra no total nem no unitário.'}
+        </p>
+      ) : null}
+
+      {editavel ? (
+        <div className="btn-row" style={{ marginTop: '0.85rem' }}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={aplicandoParametros || !draftDirty}
+            onClick={handleAplicar}
+          >
+            {aplicandoParametros ? 'Recalculando…' : 'Aplicar e recalcular'}
+          </button>
+          {draftDirty ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={aplicandoParametros}
+              onClick={() => {
+                setGlobalDraft({});
+                setComissaoDraftByFaixa({});
+              }}
+            >
+              Descartar rascunho
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -433,60 +521,199 @@ function ComercialFaixasTable({
   facaNova,
   valorFacaNova,
   mostrarFrete,
+  freteADefinir,
   modoServico,
+  etiqPorRolo,
 }: {
   faixas: OrcamentoFaixaResult[];
   facaNova: boolean;
   valorFacaNova?: number;
   mostrarFrete: boolean;
+  freteADefinir?: boolean;
   modoServico?: boolean;
+  /** Embalagem comercial (input) — constante em todas as faixas. */
+  etiqPorRolo?: number | null;
 }) {
+  const etiqRolo = Number(etiqPorRolo);
+  const etiqRoloOk = Number.isFinite(etiqRolo) && etiqRolo > 0;
+
   const sortGetters = useMemo(
     () => ({
       quantidade: (fx: OrcamentoFaixaResult) => Number(fx.quantidade) || 0,
       etiqueta: (fx: OrcamentoFaixaResult) => Number(fx.valor_etiqueta) || 0,
+      etiq_por_rolo: () => (etiqRoloOk ? etiqRolo : 0),
+      rolos: (fx: OrcamentoFaixaResult) => Number(fx.rolos) || 0,
+      etiquetas: (fx: OrcamentoFaixaResult) => Number(fx.quantidade) || 0,
+      total_etiquetas: (fx: OrcamentoFaixaResult) => Number(fx.valor_etiqueta) || 0,
       unitario: (fx: OrcamentoFaixaResult) => {
         const q = Number(fx.quantidade) || 1;
         return (Number(fx.valor_etiqueta) || 0) / q;
       },
-      matriz: (fx: OrcamentoFaixaResult) => Number(fx.valor_matriz) || 0,
-      faca_nova: (fx: OrcamentoFaixaResult) =>
-        Number(fx.valor_faca_nova ?? valorFacaNova ?? 0),
+      valor_rolo: (fx: OrcamentoFaixaResult) => {
+        const et = Number(fx.valor_etiqueta) || 0;
+        const rolos = Number(fx.rolos) || 0;
+        return rolos > 0 ? et / rolos : 0;
+      },
       total: (fx: OrcamentoFaixaResult) => totalPropostaFaixa(fx, facaNova, valorFacaNova),
     }),
-    [facaNova, valorFacaNova],
+    [facaNova, valorFacaNova, etiqRolo, etiqRoloOk],
   );
 
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(faixas, sortGetters);
+
+  if (modoServico) {
+    return (
+      <div className="table-wrap">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <SortableTh
+                column="quantidade"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Qtd.
+              </SortableTh>
+              <SortableTh
+                column="etiqueta"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Serviço
+              </SortableTh>
+              <SortableTh
+                column="unitario"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+              >
+                Unitário
+              </SortableTh>
+              {mostrarFrete ? <th className="num">Frete</th> : null}
+              <SortableTh
+                column="total"
+                sorts={sorts}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={requestSort}
+                className="num"
+                label="Total da proposta"
+              >
+                Total
+              </SortableTh>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((fx, i) => {
+              const q = Number(fx.quantidade) || 1;
+              const et = Number(fx.valor_etiqueta) || 0;
+              const total = totalPropostaFaixa(fx, facaNova, valorFacaNova);
+              return (
+                <tr key={i}>
+                  <td className="num">{q.toLocaleString('pt-BR')}</td>
+                  <td className="num">{formatCurrency(et)}</td>
+                  <td className="num">{formatCurrency(et / q)}</td>
+                  {mostrarFrete ? (
+                    <td className="num">
+                      {formatValorFrete(fx.valor_frete, { aDefinir: freteADefinir })}
+                    </td>
+                  ) : null}
+                  <td className="num">
+                    <strong>{formatCurrency(total)}</strong>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <div className="table-wrap">
       <table className="data-table">
         <thead>
           <tr>
-            <SortableTh column="quantidade" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-              Qtd.
+            <SortableTh
+              column="etiq_por_rolo"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+            >
+              Etiq. por rolo
             </SortableTh>
-            <SortableTh column="etiqueta" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-              {modoServico ? 'Serviço' : 'Etiqueta'}
+            <SortableTh
+              column="rolos"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+            >
+              Rolos
             </SortableTh>
-            <SortableTh column="unitario" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            <SortableTh
+              column="etiquetas"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+            >
+              Etiquetas
+            </SortableTh>
+            <SortableTh
+              column="total_etiquetas"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+              label="Total das etiquetas"
+            >
+              Total
+            </SortableTh>
+            <SortableTh
+              column="unitario"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+            >
               Unitário
             </SortableTh>
-            {modoServico ? null : (
-            <SortableTh column="matriz" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-              Matriz
+            <SortableTh
+              column="valor_rolo"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+            >
+              Valor rolo
             </SortableTh>
-            )}
-            {facaNova ? (
-              <SortableTh column="faca_nova" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                Faca nova
-              </SortableTh>
-            ) : null}
-            {mostrarFrete ? (
-              <th>Frete est.</th>
-            ) : null}
-            <SortableTh column="total" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+            {mostrarFrete ? <th className="num">Frete</th> : null}
+            <SortableTh
+              column="total"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+              label="Total da proposta"
+            >
               Total
             </SortableTh>
           </tr>
@@ -495,20 +722,34 @@ function ComercialFaixasTable({
           {sorted.map((fx, i) => {
             const q = Number(fx.quantidade) || 1;
             const et = Number(fx.valor_etiqueta) || 0;
+            const rolos = Number(fx.rolos) || 0;
+            const valorRolo = rolos > 0 ? et / rolos : null;
+            const etiqFaixa = etiqRoloOk
+              ? etiqRolo
+              : rolos > 0 && q > 0
+                ? Math.round(q / rolos)
+                : null;
             const total = totalPropostaFaixa(fx, facaNova, valorFacaNova);
             return (
               <tr key={i}>
-                <td>{q.toLocaleString('pt-BR')}</td>
-                <td>{formatCurrency(et)}</td>
-                <td>{formatCurrency(et / q)}</td>
-                {modoServico ? null : <td>{formatCurrency(fx.valor_matriz)}</td>}
-                {facaNova ? (
-                  <td>{formatCurrency(fx.valor_faca_nova ?? valorFacaNova ?? 0)}</td>
-                ) : null}
+                <td className="num">
+                  {etiqFaixa != null ? etiqFaixa.toLocaleString('pt-BR') : '—'}
+                </td>
+                <td className="num">
+                  {rolos > 0 ? Math.round(rolos).toLocaleString('pt-BR') : '—'}
+                </td>
+                <td className="num">{q.toLocaleString('pt-BR')}</td>
+                <td className="num">{formatCurrency(et)}</td>
+                <td className="num">{formatCurrency(et / q)}</td>
+                <td className="num">
+                  {valorRolo != null ? formatCurrency(valorRolo) : '—'}
+                </td>
                 {mostrarFrete ? (
-                  <td>{formatValorFrete(fx.valor_frete, fx.frete_somavel)}</td>
+                  <td className="num">
+                    {formatValorFrete(fx.valor_frete, { aDefinir: freteADefinir })}
+                  </td>
                 ) : null}
-                <td>
+                <td className="num">
                   <strong>{formatCurrency(total)}</strong>
                 </td>
               </tr>
@@ -602,7 +843,6 @@ export function OrcamentoResultado({
   prazoEntregaDias,
   validadeDias,
   toleranciaQtdPct,
-  facaDesenho,
   modelosComposicao,
   guiaEspec,
   echoEspecificacao = true,
@@ -620,20 +860,6 @@ export function OrcamentoResultado({
     (m) => String(m.nome ?? '').trim() !== '',
   );
 
-  const desenhoProps: OrcamentoFacaDesenhoProps | null = servico
-    ? null
-    : facaDesenho
-      ? {
-          ...facaDesenho,
-          formato: facaDesenho.formato || calculo.formato_faca,
-          facaNova: facaDesenho.facaNova ?? Boolean(calculo.faca_nova),
-        }
-      : calculo.formato_faca
-        ? {
-            formato: calculo.formato_faca,
-            facaNova: Boolean(calculo.faca_nova),
-          }
-        : null;
   const abaAtiva: AbaResultado = servico ? 'comercial' : aba;
 
   return (
@@ -658,7 +884,7 @@ export function OrcamentoResultado({
                 className={abaAtiva === 'interno' ? 'active' : ''}
                 onClick={() => setAba('interno')}
               >
-                Composição do custo
+                Composição comercial
               </button>
               <button
                 type="button"
@@ -673,18 +899,17 @@ export function OrcamentoResultado({
           )}
         </div>
 
-        {echoEspecificacao && desenhoProps && abaAtiva === 'comercial' ? (
-          <div className="orc-resultado-faca">
-            <OrcamentoFacaDesenho {...desenhoProps} variant="inline" />
-          </div>
-        ) : null}
-
         {abaAtiva !== 'producao' ? (
           <p className="orc-result-meta">
             {servico ? (
               <>
                 Preço comercial informado · arredondamento para cima em múltiplo de R$ 10
-                {prazoEntregaDias != null ? ` · prazo ${prazoEntregaDias} d.úteis` : ''}
+                {prazoEntregaDias != null
+                  ? ` · ${prazoUtilLabel(
+                      calculo.prazo_efetivo_dias ?? prazoEntregaDias,
+                      calculo.data_entrega_prevista,
+                    )}`
+                  : ''}
                 {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
                 {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
               </>
@@ -715,16 +940,15 @@ export function OrcamentoResultado({
                 }`
               : ''}
             {echoEspecificacao && prazoEntregaDias != null
-              ? ` · prazo ${prazoEntregaDias} d.úteis`
+              ? ` · ${prazoUtilLabel(
+                  calculo.prazo_efetivo_dias ?? prazoEntregaDias,
+                  calculo.data_entrega_prevista,
+                )}`
               : ''}
             {echoEspecificacao && validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
             {echoEspecificacao && toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
             {calculo.frete
               ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
-                  origemFreteLabel(calculo.frete.origem)
-                    ? ` · ${origemFreteLabel(calculo.frete.origem)?.toLowerCase()}`
-                    : ''
-                }${
                   calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
                 }`
               : ''}
@@ -752,181 +976,46 @@ export function OrcamentoResultado({
               facaNova={Boolean(calculo.faca_nova)}
               valorFacaNova={calculo.valor_faca_nova}
               mostrarFrete={Boolean(calculo.frete)}
+              freteADefinir={modoComFrete(calculo.frete?.modo)}
               modoServico={servico}
+              etiqPorRolo={
+                guiaEspec?.etiq_por_rolo != null && guiaEspec.etiq_por_rolo !== ''
+                  ? Number(guiaEspec.etiq_por_rolo)
+                  : null
+              }
             />
             {calculo.frete ? (
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
-                {calculo.frete.modo === 'ENTREGAR'
-                  ? String(calculo.frete.origem).toUpperCase() === ORIGEM_MANUAL
-                    ? [
-                        'Origem manual',
-                        calculo.frete.destino_label || null,
-                        freteMotivoLabel(calculo.frete.motivo),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                    : [
-                      (() => {
-                        const kmTxt = formatDecimalBr(calculo.frete.km, 3);
-                        return kmTxt !== '—' && !/^0,0+$/.test(kmTxt) ? `${kmTxt} km` : null;
-                      })(),
-                      calculo.frete.destino_label || null,
-                      calculo.frete.peso_caixa_kg
-                        ? `${formatDecimalBr(calculo.frete.peso_caixa_kg, 3)} kg/caixa`
-                        : null,
-                      freteMotivoLabel(calculo.frete.motivo) ??
-                        'estimado por km e peso da caixa',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')
-                  : freteMotivoLabel(calculo.frete.motivo)}
+                {[
+                  modoEntregaLabel(calculo.frete.modo),
+                  calculo.frete.destino_label || null,
+                  freteMotivoLabel(calculo.frete.motivo),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
                 {' '}
-                · linha à parte, fora do unitário
+                · informativo, fora do total e do unitário
               </p>
             ) : null}
           </>
         ) : null}
 
         {abaAtiva === 'interno' ? (
-          <>
-            <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
-              {faixas.map((fx, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`btn btn-sm ${faixaDetalhe === i ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setFaixaDetalhe(i)}
-                >
-                  {Number(fx.quantidade).toLocaleString('pt-BR')} un.
-                </button>
-              ))}
-            </div>
-            {detalhe ? (
-              <div className="breakdown-grid">
-                <div>
-                  <span>Papel</span>
-                  <strong>{formatCurrency(detalhe.valor_papel)}</strong>
-                </div>
-                <div>
-                  <span>Máquina</span>
-                  <strong>{formatCurrency(detalhe.valor_maquina)}</strong>
-                </div>
-                <div>
-                  <span>Troca produto</span>
-                  <strong>{formatCurrency(detalhe.valor_troca_produto)}</strong>
-                </div>
-                <div>
-                  <span>Troca bobina</span>
-                  <strong>{formatCurrency(detalhe.valor_troca_bobina)}</strong>
-                </div>
-                <div>
-                  <span>Tinta</span>
-                  <strong>{formatCurrency(detalhe.valor_tinta)}</strong>
-                </div>
-                <div>
-                  <span>Acabamento</span>
-                  <strong>{formatCurrency(detalhe.valor_acabamento)}</strong>
-                </div>
-                <div>
-                  <span>Rebobinação</span>
-                  <strong>{formatCurrency(detalhe.valor_rebobinacao)}</strong>
-                </div>
-                <div>
-                  <span>Tubete</span>
-                  <strong>{formatCurrency(detalhe.valor_tubete)}</strong>
-                </div>
-                <div>
-                  <span>Caixa</span>
-                  <strong>{formatCurrency(detalhe.valor_caixa)}</strong>
-                </div>
-                <div>
-                  <span>Comissão</span>
-                  <strong>{formatCurrency(detalhe.comissao)}</strong>
-                </div>
-                <div>
-                  <span>Imposto (est.)</span>
-                  <strong>{formatCurrency(detalhe.imposto)}</strong>
-                </div>
-                <div>
-                  <span>Metragem</span>
-                  <strong>{formatDecimalBr(detalhe.metragem, 1)} m</strong>
-                </div>
-                <div>
-                  <span>m²</span>
-                  <strong>{formatDecimalBr(detalhe.m2, 2)}</strong>
-                </div>
-                <div>
-                  <span>Rolos / caixas</span>
-                  <strong>
-                    {Number(detalhe.rolos).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} /{' '}
-                    {detalhe.qtde_caixas}
-                  </strong>
-                </div>
-                <div className="breakdown-total">
-                  <span>Serviço arredondado</span>
-                  <strong>{formatCurrency(detalhe.valor_etiqueta)}</strong>
-                </div>
-                <div className="breakdown-total">
-                  <span>Total c/ matriz</span>
-                  <strong>{formatCurrency(detalhe.valor_total)}</strong>
-                </div>
-                {calculo.frete ? (
-                  <div className="breakdown-total">
-                    <span>Frete estimado</span>
-                    <strong>{formatValorFrete(detalhe.valor_frete, detalhe.frete_somavel)}</strong>
-                  </div>
-                ) : null}
-                {calculo.faca_nova || detalhe.frete_somavel ? (
-                  <div className="breakdown-total">
-                    <span>Total da proposta</span>
-                    <strong>
-                      {formatCurrency(
-                        totalPropostaFaixa(detalhe, Boolean(calculo.faca_nova), calculo.valor_faca_nova),
-                      )}
-                    </strong>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            {detalhe ? (
-              <FluxoCalculoPanel
-                detalhe={detalhe}
-                snapshot={calculo.catalog_snapshot}
-                faixaIndex={faixaDetalhe}
-                parametrosAjuste={
-                  parametrosAjuste
-                    ? {
-                        ...parametrosAjuste,
-                        comissaoPct:
-                          parametrosAjuste.comissaoPctByFaixa?.[faixaDetalhe] ??
-                          parametrosAjuste.comissaoPct,
-                      }
-                    : null
-                }
-                onAplicarParametros={onAplicarParametros}
-                aplicandoParametros={aplicandoParametros}
-                motorVersion={
-                  typeof calculo.motor_version === 'number'
-                    ? calculo.motor_version
-                    : typeof calculo.catalog_snapshot?.motor_version === 'number'
-                      ? (calculo.catalog_snapshot.motor_version as number)
-                      : 1
-                }
-              />
-            ) : null}
-            {detalhe && calculo.frete?.modo === 'ENTREGAR' ? (
-              <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
-                {explicarFechamentoFrete(detalhe, calculo.frete.km, calculo.frete.origem) ??
-                  freteMotivoLabel(calculo.frete.motivo) ??
-                  'Frete à parte — não entra no unitário da etiqueta.'}
-              </p>
-            ) : null}
-            {detalhe && Number(detalhe.metragem) < 1000 ? (
-              <p className="orc-result-meta" style={{ marginTop: '0.75rem' }}>
-                Metragem abaixo de 1.000 m — sem cobrança típica de troca de bobina.
-              </p>
-            ) : null}
-          </>
+          <ParametrosCalculoPanel
+            faixas={faixas}
+            calculo={calculo}
+            snapshot={calculo.catalog_snapshot}
+            parametrosAjuste={parametrosAjuste}
+            onAplicarParametros={onAplicarParametros}
+            aplicandoParametros={aplicandoParametros}
+            motorVersion={
+              typeof calculo.motor_version === 'number'
+                ? calculo.motor_version
+                : typeof calculo.catalog_snapshot?.motor_version === 'number'
+                  ? (calculo.catalog_snapshot.motor_version as number)
+                  : 1
+            }
+          />
         ) : null}
 
         {abaAtiva === 'producao' ? (

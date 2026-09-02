@@ -45,7 +45,6 @@ class EnsureOrcamentoCatalogo extends Command
             'tarifas' => 0,
             'parametros' => 0,
             'estruturas' => 0,
-            'faixas_frete' => 0,
         ];
 
         // Template da instalação (fallback quando EMP ainda não tem linha).

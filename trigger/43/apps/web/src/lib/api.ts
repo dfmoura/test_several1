@@ -1,3 +1,5 @@
+import { markSessaoServerTouch } from './sessaoTouch';
+
 const TOKEN_KEY = 'flexorc_token';
 const EMPRESA_KEY = 'flexorc_empresa_id';
 
@@ -127,6 +129,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new ApiError(message, response.status, details, jsonPayload);
   }
 
+  if (!options.skipAuth && getToken()) {
+    markSessaoServerTouch();
+  }
+
   return payload as T;
 }
 
@@ -163,6 +169,10 @@ async function downloadFile(path: string, filename: string, empresaId?: number |
       );
     }
     throw new ApiError(message, response.status, undefined, jsonPayload);
+  }
+
+  if (getToken()) {
+    markSessaoServerTouch();
   }
 
   const blob = await response.blob();
@@ -261,6 +271,10 @@ export const api = {
   logout: () => request<{ message: string }>('/auth/logout', { method: 'POST' }),
 
   me: () => request<AuthMeResponse>('/auth/me'),
+
+  /** Presence keepalive — renova last_used_at sem montar o /me. */
+  pingSessao: () =>
+    request<{ ok: boolean; sessao: SessaoAcessoPolitica }>('/auth/ping', { method: 'POST' }),
 
   plataformaMetricas: () => request<{ data: PlataformaMetricas }>('/plataforma/metricas'),
 
@@ -372,6 +386,11 @@ export type BillingAviso = {
   valor_formatado: string | null;
 };
 
+export type SessaoAcessoPolitica = {
+  idle_minutes: number;
+  max_usuarios_simultaneos: number;
+};
+
 export type AuthMeResponse = {
   user: AuthUser;
   roles: string[];
@@ -382,6 +401,7 @@ export type AuthMeResponse = {
   billing_aviso?: BillingAviso | null;
   produto_flexorc?: ProdutoFlexorcSuperficie;
   console_plataforma?: boolean;
+  sessao?: SessaoAcessoPolitica;
 };
 
 export type PlataformaListaMeta = {
@@ -1143,6 +1163,24 @@ export type Departamento = {
   ativo: boolean;
   created_at?: string | null;
   updated_at?: string | null;
+};
+
+export type Feriado = {
+  id: number;
+  empresa_id: number;
+  data: string;
+  nome: string;
+  tipo: 'NACIONAL' | 'ESTADUAL' | 'MUNICIPAL' | 'EMPRESA';
+  recorrente_anual: boolean;
+  ativo: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type PrazoEntregaPrevisao = {
+  prazo_efetivo_dias: number;
+  prazo_referencia_em: string;
+  data_entrega_prevista: string | null;
 };
 
 export type CondicaoPagamentoSugestao = {
@@ -1990,14 +2028,17 @@ export type OrcamentoFaixaResult = {
 };
 
 export type OrcamentoFreteSnap = {
-  modo: 'RETIRAR' | 'ENTREGAR' | string;
-  origem?: 'CALCULADA' | 'MANUAL' | string | null;
+  modo: 'RETIRAR' | 'ENTREGA_PROPRIA' | 'ENTREGA_TERCEIROS' | 'ENTREGAR' | string;
   km?: string | number | null;
   destino?: 'fiscal' | 'entrega' | string | null;
   destino_label?: string | null;
-  peso_caixa_kg?: string | number | null;
   valor_informado?: string | number | null;
+  a_definir?: boolean;
   motivo?: string | null;
+  /** @deprecated Legado em snapshots anteriores. */
+  origem?: string | null;
+  /** @deprecated Legado em snapshots anteriores. */
+  peso_caixa_kg?: string | number | null;
 };
 
 export type OrcamentoResult = {
@@ -2013,6 +2054,9 @@ export type OrcamentoResult = {
   valor_faca_nova?: number;
   prazo_faca_dias?: number | null;
   formato_faca?: string | null;
+  prazo_efetivo_dias?: number;
+  prazo_referencia_em?: string | null;
+  data_entrega_prevista?: string | null;
   frete?: OrcamentoFreteSnap | null;
 };
 
@@ -2039,6 +2083,9 @@ export type Orcamento = {
   valor_matriz: string | number;
   prazo_entrega_dias: number;
   validade_dias: number;
+  prazo_efetivo_dias?: number;
+  prazo_referencia_em?: string | null;
+  data_entrega_prevista?: string | null;
   tolerancia_qtd_pct: string | number;
   observacao: string | null;
   enviado_em?: string | null;
@@ -2098,6 +2145,9 @@ export type Pedido = {
   faixa_index: number;
   tolerancia_qtd_pct: string;
   prazo_entrega_dias: number | null;
+  prazo_efetivo_dias?: number;
+  prazo_referencia_em?: string | null;
+  data_entrega_prevista?: string | null;
   observacao: string | null;
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
   vendedor?: { id: number; codigo: string; razao_social: string } | null;
@@ -2712,7 +2762,10 @@ export type OrcamentoPropostaPublica = {
     puxada_cm: number | null;
     formato_faca: string | null;
     faca_nova: boolean;
+    faca_colunas_mapa?: string | null;
     faca_posicao?: string | null;
+    faca_contorno_svg?: string | null;
+    faca_diametro_cm?: number | string | null;
     modelos?: number | null;
     modelos_composicao?: Array<{
       ordem: number;
@@ -2726,6 +2779,9 @@ export type OrcamentoPropostaPublica = {
   };
   tipo_operacao?: string;
   prazo_entrega_dias?: number;
+  prazo_efetivo_dias?: number;
+  prazo_referencia_em?: string | null;
+  data_entrega_prevista?: string | null;
   validade_dias?: number;
   tolerancia_qtd_pct?: number;
   condicao_pagamento?: string | null;
@@ -2752,6 +2808,8 @@ export type OrcamentoPropostaPublica = {
     frete_somavel?: boolean;
   }>;
   observacao_comercial?: string | null;
+  /** URL pública da prova de arte (PDF/imagem/Drive…). Só http(s). */
+  url_arte?: string | null;
   adiantamento?: OrcamentoAdiantamentoPublico | null;
 };
 
@@ -2775,7 +2833,6 @@ export type OrcCatalogoResumo = {
   maquinas: number;
   parametros?: number;
   estruturas?: number;
-  faixas_frete?: number;
   matriz_cm2?: number;
   matriz_cm2_fonte?: 'database' | 'json_fallback' | string;
   fonte: 'database' | 'json_fallback' | string;

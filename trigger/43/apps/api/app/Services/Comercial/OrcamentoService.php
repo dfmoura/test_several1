@@ -7,6 +7,7 @@ use App\Models\MatrizCobrada;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
+use App\Services\Calendario\DiasUteisService;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
@@ -18,6 +19,7 @@ use App\Support\ContornoSvgSanitizer;
 use App\Support\FacaPosicao;
 use App\Support\ModelosComposicao;
 use App\Support\TipoOperacaoSaida;
+use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -31,13 +33,13 @@ class OrcamentoService
         private readonly OrcamentoFreteEstimadoService $freteEstimado,
         private readonly VendedorResolver $vendedores,
         private readonly ContornoSvgSanitizer $contornoSvgSanitizer,
+        private readonly DiasUteisService $diasUteis,
     ) {}
 
     /** @return array<string, mixed> */
     public function catalogMeta(): array
     {
         $meta = OrcamentoCatalogo::load()->metaForUi();
-        $meta['frete'] = $this->freteEstimado->catalogoVigente();
         $meta['tipos_operacao'] = TipoOperacaoSaida::metaForUi();
         $meta['tipos_servico'] = CatalogoServicoSaida::metaForUi();
 
@@ -401,13 +403,13 @@ class OrcamentoService
         unset($input['matriz_ja_cobrada']);
 
         $modo = $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null);
-        $origem = $this->freteEstimado->normalizarOrigem($modo, $data['origem_frete'] ?? null);
 
         return array_merge($input, [
             'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? 12),
             'validade_dias' => (int) ($data['validade_dias'] ?? 7),
             'tolerancia_qtd_pct' => (float) ($data['tolerancia_qtd_pct'] ?? 20),
             'observacao' => $data['observacao'] ?? null,
+            'url_arte' => UrlArtePublica::normalize($data['url_arte'] ?? null),
             'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmpty($data['forma_pagamento'] ?? null),
             'vendedor_parceiro_id' => $vendedor?->id,
@@ -417,10 +419,8 @@ class OrcamentoService
                 ? (string) $vendedor->comissao_percentual
                 : null,
             'modo_entrega' => $modo,
-            'origem_frete' => $origem,
             'valor_frete_manual' => $this->freteEstimado->valorFreteManualSnapshot(
                 $modo,
-                $origem,
                 $data['valor_frete_manual'] ?? null,
             ),
             'necessidade' => $this->necessidadeSnapshot($data['necessidade'] ?? $input['necessidade'] ?? null),
@@ -541,7 +541,10 @@ class OrcamentoService
             }
         }
 
-        return $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa);
+        return array_merge(
+            $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa),
+            $this->diasUteis->previsaoPreview($empresa, $data, $result),
+        );
     }
 
     /** @return array<string, mixed> */
@@ -574,6 +577,7 @@ class OrcamentoService
             'valor_matriz' => $o->valor_matriz,
             'prazo_entrega_dias' => $o->prazo_entrega_dias,
             'validade_dias' => $o->validade_dias,
+            ...$this->diasUteis->previsaoParaOrcamento($o),
             'tolerancia_qtd_pct' => $o->tolerancia_qtd_pct,
             'observacao' => $o->observacao,
             'enviado_em' => $o->enviado_em?->toIso8601String(),

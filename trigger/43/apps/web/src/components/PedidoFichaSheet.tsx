@@ -11,6 +11,7 @@ import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
 import type { Pedido } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { necessidadeLabel, opStatusLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
 import {
   asPedidoSnap,
@@ -80,7 +81,7 @@ export function PedidoFichaSheet({
             {item ? necessidadeLabel(item.necessidade) : 'PED'}
           </span>
           {p.prazo_entrega_dias != null ? (
-            <span className="ficha-chip ficha-chip-muted">{p.prazo_entrega_dias} d.úteis</span>
+            <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(p)}</span>
           ) : null}
         </div>
       </div>
@@ -100,7 +101,10 @@ export function PedidoFichaSheet({
           <div className="ficha-kv-grid cols-2">
             <FichaKv label="Código" value={p.codigo} />
             <FichaKv label="Status" value={pedStatusLabel(p.status)} />
-            <FichaKv label="Prazo prometido" value={p.prazo_entrega_dias != null ? `${p.prazo_entrega_dias} dias úteis` : '—'} />
+            <FichaKv
+              label="Prazo prometido"
+              value={p.prazo_entrega_dias != null ? prazoEntregaCompleto(p) : '—'}
+            />
             <FichaKv label="Tolerância" value={`±${p.tolerancia_qtd_pct}%`} />
             <FichaKv label="Faixa aprovada" value={String(p.faixa_index + 1)} />
             <FichaKv

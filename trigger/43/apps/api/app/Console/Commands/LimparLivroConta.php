@@ -78,7 +78,6 @@ class LimparLivroConta extends Command
         'empresa_certificados_a1',
         'empresa_fiscal_historicos',
         'bens_patrimoniais',
-        'orc_catalogo_faixas_frete',
         'orc_catalogo_papeis',
         'orc_catalogo_acabamentos',
         'orc_catalogo_tipos_troca',

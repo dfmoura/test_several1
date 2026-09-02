@@ -27,7 +27,7 @@ class OrcamentoCatalogoSeeder extends Seeder
         } else {
             $result = ['criados' => [
                 'papeis' => 0, 'acabamentos' => 0, 'tipos_troca' => 0,
-                'maquinas' => 0, 'tarifas' => 0, 'parametros' => 0, 'faixas_frete' => 0,
+                'maquinas' => 0, 'tarifas' => 0, 'parametros' => 0,
             ]];
             foreach ($ids as $id) {
                 $chunk = $service->seedFromJson(null, false, (int) $id);
@@ -47,7 +47,6 @@ class OrcamentoCatalogoSeeder extends Seeder
         ));
         $this->command?->info(sprintf(
             'Catálogo ORC frete: faixas +%d (R$ vazio / inativas até o comercial preencher)',
-            $result['criados']['faixas_frete'] ?? 0,
         ));
     }
 }

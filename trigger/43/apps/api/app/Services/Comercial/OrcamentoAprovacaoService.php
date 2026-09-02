@@ -6,11 +6,13 @@ use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
+use App\Services\Calendario\DiasUteisService;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Plataforma\EmpresaAtivacaoService;
 use App\Support\FlexorcSuperficie;
 use App\Support\TipoOperacaoSaida;
+use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -30,6 +32,7 @@ class OrcamentoAprovacaoService
         private readonly EmpresaAtivacaoService $ativacao,
         private readonly OrcamentoPropostaEmailService $propostaEmail,
         private readonly OrcamentoPropostaWhatsAppService $propostaWhatsApp,
+        private readonly DiasUteisService $diasUteis,
     ) {}
 
     /**
@@ -952,6 +955,7 @@ class OrcamentoAprovacaoService
             ],
             'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
             'validade_dias' => $orcamento->validade_dias,
+            ...$this->diasUteis->previsaoParaOrcamento($orcamento),
             'tolerancia_qtd_pct' => (float) $orcamento->tolerancia_qtd_pct,
             'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
@@ -960,6 +964,7 @@ class OrcamentoAprovacaoService
             'valor_matriz' => (float) $orcamento->valor_matriz,
             'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,
             'faixas' => $faixas,
+            'url_arte' => $this->urlArtePublica($input),
             'observacao_comercial' => null,
             'modo' => $modo,
             'financeiro_status' => $orcamento->financeiro_status,
@@ -968,7 +973,7 @@ class OrcamentoAprovacaoService
     }
 
     /**
-     * CONSOLIDADO: valor, não fórmula (GERACAO §1.5 / ADR_ORC_FRETE_ESTIMADO).
+     * CONSOLIDADO: modo + texto. Frete não soma no total (ADR_ORC_FRETE_ESTIMADO).
      *
      * @param  array<string, mixed>  $input
      * @param  array<string, mixed>  $result
@@ -978,8 +983,10 @@ class OrcamentoAprovacaoService
     private function fretePublico(array $input, array $result, array $faixas): array
     {
         $snap = is_array($result['frete'] ?? null) ? $result['frete'] : [];
-        $modo = strtoupper((string) ($snap['modo'] ?? $input['modo_entrega'] ?? OrcamentoFreteEstimadoService::MODO_RETIRAR));
-        if ($modo !== OrcamentoFreteEstimadoService::MODO_ENTREGAR) {
+        $modo = app(OrcamentoFreteEstimadoService::class)
+            ->normalizarModo($snap['modo'] ?? $input['modo_entrega'] ?? null);
+
+        if ($modo === OrcamentoFreteEstimadoService::MODO_RETIRAR) {
             return [
                 'modo' => OrcamentoFreteEstimadoService::MODO_RETIRAR,
                 'texto' => 'Retirada no local',
@@ -987,26 +994,35 @@ class OrcamentoAprovacaoService
             ];
         }
 
-        $somavel = false;
+        $rotulo = $modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS
+            ? 'Entrega por terceiros'
+            : 'Entrega própria';
+
+        $valor = null;
         foreach ($faixas as $fx) {
-            if (($fx['frete_somavel'] ?? false) && $fx['valor_frete'] !== null) {
-                $somavel = true;
+            if ($fx['valor_frete'] !== null && $fx['valor_frete'] !== '') {
+                $valor = $fx['valor_frete'];
                 break;
             }
         }
+        if ($valor === null && ($snap['valor_informado'] ?? null) !== null && $snap['valor_informado'] !== '') {
+            $valor = $snap['valor_informado'];
+        }
 
-        $origem = strtoupper((string) ($snap['origem'] ?? $input['origem_frete'] ?? ''));
-        $texto = 'Entrega — frete a combinar';
-        if ($somavel) {
-            $texto = 'Entrega — frete estimado';
-        } elseif ($origem === OrcamentoFreteEstimadoService::ORIGEM_MANUAL) {
-            $texto = 'Entrega — sem cobrança de frete';
+        $texto = $rotulo.' — frete a definir';
+        if ($valor !== null && is_numeric($valor)) {
+            $n = (float) $valor;
+            if ($n <= 0) {
+                $texto = $rotulo.' — sem cobrança de frete';
+            } else {
+                $texto = $rotulo.' — frete R$ '.number_format($n, 2, ',', '.');
+            }
         }
 
         return [
-            'modo' => OrcamentoFreteEstimadoService::MODO_ENTREGAR,
+            'modo' => $modo,
             'texto' => $texto,
-            'somavel' => $somavel,
+            'somavel' => false,
         ];
     }
 
@@ -1018,6 +1034,16 @@ class OrcamentoAprovacaoService
         $s = trim((string) $value);
 
         return $s === '' ? null : $s;
+    }
+
+    /**
+     * URL pública da prova de arte — só http(s); nunca proxy/embed no ERP.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function urlArtePublica(array $input): ?string
+    {
+        return UrlArtePublica::normalize($input['url_arte'] ?? null);
     }
 
     /**

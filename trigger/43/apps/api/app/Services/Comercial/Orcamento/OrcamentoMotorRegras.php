@@ -254,16 +254,6 @@ final class OrcamentoMotorRegras
                 'parametros' => [OrcCatalogoParametro::CHAVE_MATRIZ_CM2],
                 'catalogo_tab' => 'matriz',
             ],
-            [
-                'id' => 'FRETE',
-                'grupo' => 'frete',
-                'titulo' => 'Frete estimado (pós-motor)',
-                'resumo' => 'Fora do R1–R20 — faixas kg × km.',
-                'formula' => 'máx(mínimo ; R$/km × km) — teto em centavos',
-                'parametrizado' => true,
-                'parametros' => [OrcCatalogoParametro::CHAVE_PESO_CAIXA_KG],
-                'catalogo_tab' => 'frete',
-            ],
         ];
     }
 }

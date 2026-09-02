@@ -4,11 +4,13 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import {
   api,
+  ApiError,
   AUTH_EXPIRED_EVENT,
   getEmpresaId,
   getToken,
@@ -20,6 +22,9 @@ import {
   type BillingAviso,
   type ProdutoFlexorcSuperficie,
 } from './api';
+import { SessaoIdleBanner } from '../components/SessaoIdleBanner';
+import { resolveSessaoPolitica } from './sessaoPresenca';
+import { SESSAO_ACESSO } from './sessaoAcesso';
 
 const SUPERFICIE_PADRAO: ProdutoFlexorcSuperficie = {
   ate_envio_link: false,
@@ -37,8 +42,10 @@ type AuthState = {
   produtoFlexorc: ProdutoFlexorcSuperficie;
   consolePlataforma: boolean;
   billingAviso: BillingAviso | null;
+  idleMinutes: number;
   loading: boolean;
   initialized: boolean;
+  bootError: string | null;
 };
 
 type AuthContextValue = AuthState & {
@@ -58,6 +65,25 @@ type AuthContextValue = AuthState & {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function emptyLoggedOut(partial?: Partial<AuthState>): AuthState {
+  return {
+    user: null,
+    roles: [],
+    permissions: [],
+    empresas: [],
+    empresaId: null,
+    maxEmpresas: 3,
+    produtoFlexorc: SUPERFICIE_PADRAO,
+    consolePlataforma: false,
+    billingAviso: null,
+    idleMinutes: SESSAO_ACESSO.idleMinutes,
+    loading: false,
+    initialized: true,
+    bootError: null,
+    ...partial,
+  };
+}
 
 function resolveEmpresaId(me: AuthMeResponse): number | null {
   const stored = getEmpresaId();
@@ -85,13 +111,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     produtoFlexorc: SUPERFICIE_PADRAO,
     consolePlataforma: false,
     billingAviso: null,
+    idleMinutes: SESSAO_ACESSO.idleMinutes,
     loading: false,
     initialized: false,
+    bootError: null,
   });
+  const restoreAttempts = useRef(0);
+  const restoreTimer = useRef<number | null>(null);
 
   const applyMe = useCallback((me: AuthMeResponse) => {
     const empresaId = resolveEmpresaId(me);
+    const politica = resolveSessaoPolitica(me.sessao);
     setEmpresaId(empresaId);
+    restoreAttempts.current = 0;
     setState({
       user: me.user,
       roles: me.roles,
@@ -102,74 +134,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       produtoFlexorc: me.produto_flexorc ?? SUPERFICIE_PADRAO,
       consolePlataforma: Boolean(me.console_plataforma),
       billingAviso: me.billing_aviso ?? null,
+      idleMinutes: politica.idleMinutes,
       loading: false,
       initialized: true,
+      bootError: null,
     });
+  }, []);
+
+  const clearSessionLocal = useCallback(() => {
+    setToken(null);
+    setEmpresaId(null);
+    setState(emptyLoggedOut());
   }, []);
 
   const refresh = useCallback(async () => {
     const token = getToken();
     if (!token) {
-      setState((prev) => ({
-        ...prev,
-        user: null,
-        roles: [],
-        permissions: [],
-        empresas: [],
-        empresaId: null,
-        maxEmpresas: 3,
-        produtoFlexorc: SUPERFICIE_PADRAO,
-        consolePlataforma: false,
-        billingAviso: null,
-        loading: false,
-        initialized: true,
-      }));
+      setState(emptyLoggedOut({ initialized: true }));
       return;
     }
 
-    setState((prev) => ({ ...prev, loading: true }));
+    setState((prev) => ({ ...prev, loading: true, bootError: null }));
     try {
       const me = await api.me();
       applyMe(me);
-    } catch {
-      setToken(null);
-      setEmpresaId(null);
-      setState({
-        user: null,
-        roles: [],
-        permissions: [],
-        empresas: [],
-        empresaId: null,
-        maxEmpresas: 3,
-        produtoFlexorc: SUPERFICIE_PADRAO,
-        consolePlataforma: false,
-        billingAviso: null,
+    } catch (err) {
+      const isAuthDeath = err instanceof ApiError && err.status === 401;
+      if (isAuthDeath || !getToken()) {
+        clearSessionLocal();
+        return;
+      }
+
+      // Rede/5xx: não destrói o PAT — re-tenta sem mandar ao login.
+      if (restoreAttempts.current < 3) {
+        restoreAttempts.current += 1;
+        const delay = 1500 * restoreAttempts.current;
+        setState((prev) => ({
+          ...prev,
+          loading: true,
+          initialized: false,
+          bootError: null,
+        }));
+        if (restoreTimer.current) window.clearTimeout(restoreTimer.current);
+        restoreTimer.current = window.setTimeout(() => {
+          void refresh();
+        }, delay);
+        return;
+      }
+
+      setState((prev) => ({
+        ...prev,
         loading: false,
-        initialized: true,
-      });
+        initialized: false,
+        bootError: 'Não foi possível validar a sessão. Verifique a conexão e tente de novo.',
+      }));
     }
-  }, [applyMe]);
+  }, [applyMe, clearSessionLocal]);
 
   useEffect(() => {
     void refresh();
+    return () => {
+      if (restoreTimer.current) window.clearTimeout(restoreTimer.current);
+    };
   }, [refresh]);
 
   useEffect(() => {
     const onExpired = () => {
       setEmpresaId(null);
-      setState({
-        user: null,
-        roles: [],
-        permissions: [],
-        empresas: [],
-        empresaId: null,
-        maxEmpresas: 3,
-        produtoFlexorc: SUPERFICIE_PADRAO,
-        consolePlataforma: false,
-        billingAviso: null,
-        loading: false,
-        initialized: true,
-      });
+      setState(emptyLoggedOut());
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
@@ -182,7 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       conta?: string,
       opts?: { encerrarSessaoAnterior?: boolean },
     ) => {
-      setState((prev) => ({ ...prev, loading: true }));
+      setState((prev) => ({ ...prev, loading: true, bootError: null }));
       try {
         const { token } = await api.login(email, password, conta, opts);
         setToken(token);
@@ -205,23 +237,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore logout errors */
     } finally {
-      setToken(null);
-      setEmpresaId(null);
-      setState({
-        user: null,
-        roles: [],
-        permissions: [],
-        empresas: [],
-        empresaId: null,
-        maxEmpresas: 3,
-        produtoFlexorc: SUPERFICIE_PADRAO,
-        consolePlataforma: false,
-        billingAviso: null,
-        loading: false,
-        initialized: true,
-      });
+      clearSessionLocal();
     }
-  }, []);
+  }, [clearSessionLocal]);
 
   const setEmpresa = useCallback((id: number) => {
     setEmpresaId(id);
@@ -271,7 +289,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [state, login, logout, refresh, setEmpresa, hasPermission, hasGrantedPermission, hasAnyPermission],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  if (state.bootError && getToken()) {
+    return (
+      <AuthContext.Provider value={value}>
+        <div className="loading" style={{ minHeight: '100vh', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ maxWidth: 360, textAlign: 'center' }}>{state.bootError}</p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              restoreAttempts.current = 0;
+              void refresh();
+            }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </AuthContext.Provider>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <SessaoIdleBanner enabled={Boolean(state.user)} idleMinutes={state.idleMinutes} />
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

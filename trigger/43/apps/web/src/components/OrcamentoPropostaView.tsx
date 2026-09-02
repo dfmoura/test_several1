@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
+import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
+import { TriggerAttribution } from './TriggerAttribution';
 import {
   facaDesenhoFromPropostaDescricao,
   OrcamentoFacaDesenho,
 } from './OrcamentoFacaDesenho';
-import { ModelosComposicaoTable } from './ModelosComposicaoTable';
-import { TriggerAttribution } from './TriggerAttribution';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCnpj, formatCurrency, formatDateTime, formatPhone } from '../lib/format';
+import { prazoUtilLabel } from '../lib/prazoEntrega';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 type Props = {
@@ -42,7 +44,7 @@ export function OrcamentoPropostaView({
   const desc = proposta.descricao;
   const faixas = proposta.faixas ?? [];
   const facaDesenho =
-    proposta.tipo_operacao === 'SERVICO' ? null : facaDesenhoFromPropostaDescricao(desc);
+    proposta.tipo_operacao !== 'SERVICO' ? facaDesenhoFromPropostaDescricao(desc) : null;
 
   return (
     <div className="orc-pub">
@@ -115,15 +117,6 @@ export function OrcamentoPropostaView({
             </dl>
           ) : (
             <>
-          {facaDesenho ? (
-            <div className="orc-pub-faca">
-              <OrcamentoFacaDesenho
-                {...facaDesenho}
-                variant="documento"
-                audience="cliente"
-              />
-            </div>
-          ) : null}
           <dl className="orc-pub-spec">
             <div>
               <dt>Material</dt>
@@ -156,6 +149,11 @@ export function OrcamentoPropostaView({
               <dd>{desc?.etiq_por_rolo?.toLocaleString('pt-BR') ?? '—'}</dd>
             </div>
           </dl>
+          {facaDesenho ? (
+            <div className="orc-spec-faca orc-pub-faca">
+              <OrcamentoFacaDesenho {...facaDesenho} variant="documento" audience="cliente" />
+            </div>
+          ) : null}
           {desc?.modelos_composicao && desc.modelos_composicao.length > 0 ? (
             <ModelosComposicaoTable
               variant="pub"
@@ -208,10 +206,10 @@ export function OrcamentoPropostaView({
                         ? ` · unit. ${formatCurrency(fx.valor_unitario)}`
                         : ''}
                       {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
-                      {proposta.frete?.modo === 'ENTREGAR'
-                        ? fx.frete_somavel && fx.valor_frete != null
-                          ? ` · inclui frete est. ${formatCurrency(fx.valor_frete)}`
-                          : ' · frete a combinar'
+                      {proposta.frete && proposta.frete.modo !== 'RETIRAR'
+                        ? fx.valor_frete != null
+                          ? ` · frete ${formatCurrency(fx.valor_frete)} (informativo)`
+                          : ' · frete a definir'
                         : ''}
                     </span>
                   </div>
@@ -231,7 +229,13 @@ export function OrcamentoPropostaView({
           <h2>Condições</h2>
           <ul className="orc-pub-conds">
             <li>
-              Prazo de entrega: <strong>{proposta.prazo_entrega_dias} dias úteis</strong>
+              Prazo de entrega:{' '}
+              <strong>
+                {prazoUtilLabel(
+                  proposta.prazo_efetivo_dias ?? proposta.prazo_entrega_dias,
+                  proposta.data_entrega_prevista,
+                )}
+              </strong>
             </li>
             <li>
               Validade da proposta: <strong>{proposta.validade_dias} dias</strong>
@@ -256,6 +260,8 @@ export function OrcamentoPropostaView({
             ) : null}
           </ul>
         </section>
+
+        <OrcamentoUrlArteBlock url={proposta.url_arte} variant="pub" />
 
         {acoes}
 

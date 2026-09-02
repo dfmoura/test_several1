@@ -536,9 +536,7 @@ class EntregaService
 
         return [
             'modo' => $modo,
-            'tipo_saida_sugerido' => $modo === Entrega::MODO_RETIRAR
-                ? Entrega::TIPO_BALCAO
-                : Entrega::TIPO_FROTA,
+            'tipo_saida_sugerido' => $this->tipoSaidaSugeridoDoPedido($pedido, $modo),
             'destino' => $destino,
             'qtde' => $item ? (string) $item->qtde_faturavel : '0',
             'unidade' => $item?->unidade,
@@ -618,11 +616,32 @@ class EntregaService
 
     private function modoDoPedido(Pedido $pedido): string
     {
+        $original = $this->modoEntregaOriginalDoPedido($pedido);
+
+        return in_array($original, OrcamentoFreteEstimadoService::MODOS_COM_FRETE, true)
+            ? Entrega::MODO_ENTREGAR
+            : Entrega::MODO_RETIRAR;
+    }
+
+    private function modoEntregaOriginalDoPedido(Pedido $pedido): string
+    {
         $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
         $input = is_array($snap['input'] ?? null) ? $snap['input'] : [];
-        $modo = strtoupper((string) ($input['modo_entrega'] ?? OrcamentoFreteEstimadoService::MODO_RETIRAR));
 
-        return $modo === Entrega::MODO_ENTREGAR ? Entrega::MODO_ENTREGAR : Entrega::MODO_RETIRAR;
+        return strtoupper((string) ($input['modo_entrega'] ?? OrcamentoFreteEstimadoService::MODO_RETIRAR));
+    }
+
+    private function tipoSaidaSugeridoDoPedido(Pedido $pedido, string $modoEnt): string
+    {
+        if ($modoEnt === Entrega::MODO_RETIRAR) {
+            return Entrega::TIPO_BALCAO;
+        }
+        $original = $this->modoEntregaOriginalDoPedido($pedido);
+        if ($original === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS) {
+            return Entrega::TIPO_TRANSPORTADORA;
+        }
+
+        return Entrega::TIPO_FROTA;
     }
 
     /**

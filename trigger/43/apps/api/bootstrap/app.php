@@ -53,7 +53,8 @@ return Application::configure(basePath: dirname(__DIR__))
             $mensagem = match ($codigo) {
                 SessaoAcessoService::CODIGO_SESSAO_INATIVA => 'Sessão encerrada por inatividade. Entre novamente.',
                 SessaoAcessoService::CODIGO_USUARIO_INATIVO => 'Usuário inativo.',
-                default => 'Não autenticado.',
+                // Token ausente/revogado (takeover, liberar sessão, logout noutro lugar).
+                default => 'Sessão encerrada. Entre novamente.',
             };
 
             return response()->json([

@@ -16,7 +16,7 @@ class ContornoSvgSanitizer
             return null;
         }
 
-        $svg = trim($raw);
+        $svg = $this->stripEnvelope(trim($raw));
         if ($svg === '') {
             return null;
         }
@@ -52,6 +52,45 @@ class ContornoSvgSanitizer
             $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">'.$svg.'</svg>';
         }
 
-        return $svg;
+        return $this->normalizeRootSvg($svg);
+    }
+
+    private function stripEnvelope(string $raw): string
+    {
+        $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
+        $raw = preg_replace('/<\?xml[^?]*\?>\s*/i', '', $raw) ?? $raw;
+        $raw = preg_replace('/<!DOCTYPE[^>]*>\s*/i', '', $raw) ?? $raw;
+
+        return trim($raw);
+    }
+
+    /** Dimensões fixas (mm/px) no `<svg>` raiz atrapalham escala responsiva — viewBox governa proporção. */
+    private function normalizeRootSvg(string $svg): string
+    {
+        $trimmed = ltrim($svg);
+        if (! str_starts_with(strtolower($trimmed), '<svg')) {
+            return $svg;
+        }
+
+        $normalized = preg_replace_callback(
+            '/^(\s*<svg\b)([^>]*)(>)/is',
+            function (array $m): string {
+                $attrs = preg_replace('/\s(width|height)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $m[2]) ?? $m[2];
+                $tag = $m[1].$attrs.$m[3];
+                if (! preg_match('/preserveAspectRatio\s*=/i', $tag)) {
+                    $tag = preg_replace('/^(\s*<svg\b)/i', '$1 preserveAspectRatio="xMidYMid meet"', $tag) ?? $tag;
+                }
+                if (! preg_match('/xmlns\s*=/i', $tag)) {
+                    $tag = preg_replace('/^(\s*<svg\b)/i', '$1 xmlns="http://www.w3.org/2000/svg"', $tag) ?? $tag;
+                }
+                // Preserva data-faca-cols="completo" (SVG já traz todas as vias).
+
+                return $tag;
+            },
+            $svg,
+            1
+        );
+
+        return trim($normalized ?? $svg);
     }
 }

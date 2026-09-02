@@ -329,7 +329,6 @@ class LimparDadosOperacionais extends Command
             'orc_catalogo_tipos_troca' => ['criado_por', 'atualizado_por'],
             'orc_catalogo_maquinas' => ['criado_por', 'atualizado_por'],
             'orc_catalogo_parametros' => ['criado_por', 'atualizado_por'],
-            'orc_catalogo_faixas_frete' => ['criado_por', 'atualizado_por'],
             'parametros_empresa' => ['alterado_por'],
             'parceiros' => ['criado_por', 'atualizado_por'],
             'fiscal_hubs' => ['criado_por', 'atualizado_por'],

@@ -10,7 +10,9 @@ use App\Http\Controllers\Api\V1\ConsultaController;
 use App\Http\Controllers\Api\V1\ComissaoController;
 use App\Http\Controllers\Api\V1\BacklogController;
 use App\Http\Controllers\Api\V1\CondicaoPagamentoSugestaoController;
+use App\Http\Controllers\Api\V1\CalendarioController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
+use App\Http\Controllers\Api\V1\FeriadoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
 use App\Http\Controllers\Api\V1\EmpresaController;
@@ -115,6 +117,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', SetEmpresaContext::class])->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/ping', [AuthController::class, 'ping'])
+            ->middleware('throttle:30,1');
         Route::post('/auth/abrir-empresa', [EmpresaOnboardingController::class, 'abrirEmpresa'])
             ->middleware('throttle:8,1');
         Route::get('/painel', [PainelController::class, 'show']);
@@ -200,6 +204,15 @@ Route::prefix('v1')->group(function () {
         Route::get('/departamentos/{departamento}', [DepartamentoController::class, 'show']);
         Route::put('/departamentos/{departamento}', [DepartamentoController::class, 'update']);
         Route::delete('/departamentos/{departamento}', [DepartamentoController::class, 'destroy']);
+
+        Route::get('/feriados', [FeriadoController::class, 'index']);
+        Route::post('/feriados', [FeriadoController::class, 'store']);
+        Route::post('/feriados/seed-nacionais', [FeriadoController::class, 'seedNacionais']);
+        Route::get('/feriados/{feriado}', [FeriadoController::class, 'show']);
+        Route::put('/feriados/{feriado}', [FeriadoController::class, 'update']);
+        Route::delete('/feriados/{feriado}', [FeriadoController::class, 'destroy']);
+
+        Route::get('/calendario/previsao-entrega', [CalendarioController::class, 'previsaoEntrega']);
 
         Route::get('/condicoes-pagamento-sugestoes', [CondicaoPagamentoSugestaoController::class, 'index']);
         Route::post('/condicoes-pagamento-sugestoes', [CondicaoPagamentoSugestaoController::class, 'store']);
@@ -344,9 +357,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/orcamento-catalogo/estruturas', [OrcamentoCatalogoController::class, 'estruturas']);
         Route::put('/orcamento-catalogo/estruturas/{chave}', [OrcamentoCatalogoController::class, 'updateEstrutura']);
         Route::get('/orcamento-catalogo/regras', [OrcamentoCatalogoController::class, 'regras']);
-        Route::get('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'faixasFrete']);
-        Route::post('/orcamento-catalogo/faixas-frete', [OrcamentoCatalogoController::class, 'storeFaixaFrete']);
-        Route::put('/orcamento-catalogo/faixas-frete/{faixaFrete}', [OrcamentoCatalogoController::class, 'updateFaixaFrete']);
 
         Route::get('/facas/resumo', [FacasController::class, 'resumo']);
         Route::get('/facas/sugestao-n-facas', [FacasController::class, 'sugestaoNFacas']);

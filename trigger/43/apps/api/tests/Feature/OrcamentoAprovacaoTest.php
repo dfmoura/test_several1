@@ -325,6 +325,47 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertArrayNotHasKey('valor_papel', $pub->json('data.faixas.0'));
     }
 
+    public function test_url_arte_persiste_e_aparece_na_proposta_publica(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $arte = 'https://drive.google.com/file/d/abc123/view';
+        $payload = $this->payload();
+        $payload['url_arte'] = $arte;
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $this->assertSame($arte, $create->json('data.input_snapshot.url_arte'));
+        $id = (int) $create->json('data.id');
+
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
+        $pub->assertOk();
+        $this->assertSame($arte, $pub->json('data.url_arte'));
+
+        $prev = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $prev->assertOk();
+        $this->assertSame($arte, $prev->json('data.url_arte'));
+    }
+
+    public function test_url_arte_rejeita_esquema_inseguro(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['url_arte'] = 'javascript:alert(1)';
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['url_arte']);
+    }
+
     public function test_previa_interna_sem_decidir_e_sem_consumir_link(): void
     {
         Sanctum::actingAs($this->comercial);

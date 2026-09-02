@@ -11,6 +11,7 @@ import {
   type OrcOverrides,
 } from './orcamentoParametrosAjuste';
 import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
+import { modoComFrete, normalizarModoEntrega } from './orcamentoFrete';
 
 export type { OrcOverrides } from './orcamentoParametrosAjuste';
 
@@ -122,6 +123,8 @@ export type OrcForm = {
   validade_dias: number;
   tolerancia_qtd_pct: number;
   observacao: string;
+  /** URL pública da prova de arte (PDF/imagem/Drive…). Opcional. */
+  url_arte: string;
   faca_nova: boolean;
   formato_faca: string;
   valor_faca_nova: number;
@@ -137,11 +140,9 @@ export type OrcForm = {
   forma_pagamento: string;
   /** PAR papel vendedor — define % e quem recebe COM- após a baixa. */
   vendedor_parceiro_id: number | '';
-  /** Fechamento: Retirar (padrão) × Entregar — ADR_ORC_FRETE_ESTIMADO. */
-  modo_entrega: 'RETIRAR' | 'ENTREGAR';
-  /** Só em Entregar. Padrão Calculada (catálogo). */
-  origem_frete: 'CALCULADA' | 'MANUAL';
-  /** R$ único da proposta quando origem Manual. Vazio = não informado. */
+  /** Fechamento: Retirar | Entrega própria | Entrega terceiros — ADR_ORC_FRETE_ESTIMADO. */
+  modo_entrega: 'RETIRAR' | 'ENTREGA_PROPRIA' | 'ENTREGA_TERCEIROS';
+  /** R$ opcional em entrega própria/terceiros. Vazio = a definir (não soma no total). */
   valor_frete_manual: number | '';
   /**
    * Ajustes de parâmetro só deste ORC (catálogo EMP permanece).
@@ -170,15 +171,6 @@ export type OrcCatalogo = {
     material_cliente_padrao: boolean;
     descricao_padrao: string;
   }>;
-  frete?: {
-    peso_caixa_kg?: string | number | null;
-    faixas?: Array<{
-      kg_ate: string | number | null;
-      acima: boolean;
-      preco_por_km: string | number | null;
-      minimo_rs: string | number | null;
-    }>;
-  };
 };
 
 /** Equal-split canônico (soma = 100); preserva nomes nas posições existentes. */
@@ -380,6 +372,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     validade_dias: 7,
     tolerancia_qtd_pct: 20,
     observacao: '',
+    url_arte: '',
     faca_nova: false,
     formato_faca: '',
     valor_faca_nova: 0,
@@ -393,7 +386,6 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     forma_pagamento: '',
     vendedor_parceiro_id: '',
     modo_entrega: 'RETIRAR',
-    origem_frete: 'CALCULADA',
     valor_frete_manual: '',
     overrides: {},
   };
@@ -459,6 +451,7 @@ export function formFromSnapshot(
     validade_dias: Number(snap.validade_dias) || 7,
     tolerancia_qtd_pct: Number(snap.tolerancia_qtd_pct) || 20,
     observacao: String(snap.observacao ?? ''),
+    url_arte: String(snap.url_arte ?? ''),
     faca_nova: Boolean(snap.faca_nova),
     formato_faca: String(snap.formato_faca ?? ''),
     valor_faca_nova: Number(snap.valor_faca_nova) || 0,
@@ -484,8 +477,7 @@ export function formFromSnapshot(
       snap.vendedor_parceiro_id == null || snap.vendedor_parceiro_id === ''
         ? ''
         : Number(snap.vendedor_parceiro_id),
-    modo_entrega: String(snap.modo_entrega).toUpperCase() === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
-    origem_frete: String(snap.origem_frete).toUpperCase() === 'MANUAL' ? 'MANUAL' : 'CALCULADA',
+    modo_entrega: normalizarModoEntrega(String(snap.modo_entrega ?? '')),
     valor_frete_manual:
       snap.valor_frete_manual == null || snap.valor_frete_manual === ''
         ? ''
@@ -515,18 +507,13 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       validade_dias: form.validade_dias,
       tolerancia_qtd_pct: form.tolerancia_qtd_pct,
       observacao: form.observacao || null,
+      url_arte: form.url_arte.trim() || null,
       condicao_pagamento: form.condicao_pagamento.trim() || null,
       forma_pagamento: form.forma_pagamento.trim() || null,
       vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
-      modo_entrega: form.modo_entrega === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
-      origem_frete:
-        form.modo_entrega === 'ENTREGAR'
-          ? form.origem_frete === 'MANUAL'
-            ? 'MANUAL'
-            : 'CALCULADA'
-          : null,
+      modo_entrega: form.modo_entrega,
       valor_frete_manual:
-        form.modo_entrega === 'ENTREGAR' && form.origem_frete === 'MANUAL' && form.valor_frete_manual !== ''
+        modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
           : null,
     };
@@ -563,6 +550,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     validade_dias: form.validade_dias,
     tolerancia_qtd_pct: form.tolerancia_qtd_pct,
     observacao: form.observacao || null,
+    url_arte: form.url_arte.trim() || null,
     faca_nova: form.faca_nova,
     formato_faca: form.formato_faca || null,
     valor_faca_nova: form.faca_nova ? form.valor_faca_nova : 0,
@@ -580,15 +568,9 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     condicao_pagamento: form.condicao_pagamento.trim() || null,
     forma_pagamento: form.forma_pagamento.trim() || null,
     vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
-    modo_entrega: form.modo_entrega === 'ENTREGAR' ? 'ENTREGAR' : 'RETIRAR',
-    origem_frete:
-      form.modo_entrega === 'ENTREGAR'
-        ? form.origem_frete === 'MANUAL'
-          ? 'MANUAL'
-          : 'CALCULADA'
-        : null,
+    modo_entrega: form.modo_entrega,
     valor_frete_manual:
-      form.modo_entrega === 'ENTREGAR' && form.origem_frete === 'MANUAL' && form.valor_frete_manual !== ''
+      modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
         ? form.valor_frete_manual
         : null,
     overrides: overridesForApi(form.overrides),

@@ -1,11 +1,12 @@
 /**
- * Silhueta real da faca no mapa — contorno paramétrico (RETA/REDONDA/OVAL + N colunas)
- * ou SVG opcional (DESENHADA). Complementa FacaShapeIcon (vocabulário).
+ * Silhueta real da faca — contorno paramétrico (RETA/REDONDA/OVAL + N colunas)
+ * ou SVG opcional (DESENHADA). Única imagem da faca no mapa e no ORC.
  */
 import type { ReactNode } from 'react';
 import { formatoKind } from './FacaShapeIcon';
 import {
   colunasParaDesenho,
+  contornoSvgParaExibicao,
   dimensoesFaca,
   parseColunasMapa,
   parseSvgViewBoxAspect,
@@ -105,12 +106,23 @@ function ParametricSilhueta({
   return <>{units}</>;
 }
 
-function SvgContorno({ svg, maxSize }: { svg: string; maxSize: number }) {
-  const aspect = parseSvgViewBoxAspect(svg);
-  const box = svgDisplayBox(aspect, maxSize);
+function SvgContorno({
+  svg,
+  maxSize,
+  fit = 'aspect',
+}: {
+  svg: string;
+  maxSize: number;
+  /** aspect = caixa proporcional; square = mesmo footprint das paramétricas (lista) */
+  fit?: 'aspect' | 'square';
+}) {
+  const box =
+    fit === 'square'
+      ? { w: maxSize, h: maxSize }
+      : svgDisplayBox(parseSvgViewBoxAspect(svg), maxSize);
   return (
     <div
-      className="faca-silhueta-svg-inner"
+      className={`faca-silhueta-svg-inner${fit === 'square' ? ' faca-silhueta-svg-inner--square' : ''}`}
       style={{ width: box.w, height: box.h }}
       dangerouslySetInnerHTML={{ __html: svg }}
       aria-hidden
@@ -165,12 +177,21 @@ export function FacaSilhuetaReal({
   let boxH = size;
 
   if (svgSafe) {
-    const innerMax = size - (variant === 'featured' ? 8 : 4);
-    const aspect = parseSvgViewBoxAspect(svgSafe);
-    const box = svgDisplayBox(aspect, innerMax);
-    boxW = box.w;
-    boxH = box.h;
-    body = <SvgContorno svg={svgSafe} maxSize={innerMax} />;
+    const compact = variant === 'compact';
+    const innerMax = size - (compact ? 4 : 8);
+    const svgDrawn = contornoSvgParaExibicao(svgSafe, colunasMapa, compact);
+    if (compact) {
+      // Lista: mesmo footprint quadrado das RETA/REDONDA/OVAL — evita SVG “espremido”.
+      boxW = size;
+      boxH = size;
+      body = <SvgContorno svg={svgDrawn} maxSize={innerMax} fit="square" />;
+    } else {
+      const aspect = parseSvgViewBoxAspect(svgDrawn);
+      const box = svgDisplayBox(aspect, innerMax);
+      boxW = box.w;
+      boxH = box.h;
+      body = <SvgContorno svg={svgDrawn} maxSize={innerMax} fit="aspect" />;
+    }
   } else if (dims) {
     const aspect = clamp(dims.largura / dims.altura, 0.35, 4);
     const stroke = 'currentColor';

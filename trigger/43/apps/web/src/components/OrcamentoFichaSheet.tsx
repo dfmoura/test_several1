@@ -2,14 +2,17 @@ import type { ReactNode } from 'react';
 import { facaDesenhoFromSnapshot, OrcamentoFacaDesenho } from './OrcamentoFacaDesenho';
 import { formatoLabel } from './FacaShapeIcon';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { Orcamento, OrcamentoFaixaResult } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
-import { formatValorFrete, modoEntregaLabel, origemFreteLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
+import { formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
+import { normalizeUrlArte } from '../lib/urlArte';
 
 /**
  * Ficha operacional do ORC — uso interno (não é proposta ao cliente).
@@ -206,9 +209,6 @@ export function OrcamentoFichaSheet({
           {result?.frete ? (
             <span className="ficha-chip ficha-chip-muted">
               {modoEntregaLabel(result.frete.modo)}
-              {origemFreteLabel(result.frete.origem)
-                ? ` · ${origemFreteLabel(result.frete.origem)}`
-                : ''}
             </span>
           ) : null}
           <span className="ficha-chip ficha-chip-muted">Uso interno</span>
@@ -220,7 +220,7 @@ export function OrcamentoFichaSheet({
         <Kv label="Matriz" value={`${matrizLabel}${matrizTarifa(catalogSnap)}`} />
         <Kv
           label="Prazo / validade"
-          value={`${orc.prazo_entrega_dias} d.úteis · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
+          value={`${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
         />
         <Kv
           label="Condição / forma"
@@ -450,7 +450,7 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">Valor rolo</th>
                   <th className="ficha-th-num">Matriz</th>
                   {facaNova ? <th className="ficha-th-num">Faca nova</th> : null}
-                  {result?.frete ? <th className="ficha-th-num">Frete est.</th> : null}
+                  {result?.frete ? <th className="ficha-th-num">Frete</th> : null}
                   <th className="ficha-th-num">Total</th>
                 </tr>
               </thead>
@@ -482,7 +482,9 @@ export function OrcamentoFichaSheet({
                       ) : null}
                       {result?.frete ? (
                         <td className="ficha-td-num">
-                          {formatValorFrete(fx.valor_frete, fx.frete_somavel)}
+                          {formatValorFrete(fx.valor_frete, {
+                            aDefinir: modoComFrete(result?.frete?.modo),
+                          })}
                         </td>
                       ) : null}
                       <td className="ficha-td-num">
@@ -500,9 +502,7 @@ export function OrcamentoFichaSheet({
                 : ' · matriz isenta'}
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
               {result?.frete
-                ? String(result.frete.origem).toUpperCase() === 'MANUAL'
-                  ? ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — valor informado nesta proposta; linha à parte, fora do unitário.`
-                  : ` Frete ${modoEntregaLabel(result.frete.modo).toLowerCase()} — estimado por km e peso; linha à parte, fora do unitário.`
+                ? ` Frete (${modoEntregaLabel(result.frete.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
                 : ''}
             </p>
           </Section>
@@ -512,6 +512,12 @@ export function OrcamentoFichaSheet({
           <p className="ficha-empty">Sem resultado calculado neste orçamento.</p>
         </Section>
       )}
+
+      {normalizeUrlArte(input.url_arte) ? (
+        <Section title="Arte para aprovação">
+          <OrcamentoUrlArteBlock url={normalizeUrlArte(input.url_arte)} variant="ficha" />
+        </Section>
+      ) : null}
 
       {orc.observacao ? (
         <Section title="Observação interna">

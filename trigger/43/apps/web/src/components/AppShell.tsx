@@ -8,6 +8,7 @@ import {
   IconBuilding,
   IconAsset,
   IconBacklog,
+  IconCalendario,
   IconCatalog,
   IconCompras,
   IconDashboard,
@@ -59,6 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/empresas', label: 'Empresas', icon: IconBuilding, permission: null },
       { to: '/departamentos', label: 'Departamentos', icon: IconDepartamentos, permission: 'departamento.ler' },
+      { to: '/feriados', label: 'Feriados', icon: IconCalendario, permission: 'feriado.ler' },
       {
         to: '/condicoes-pagamento',
         label: 'Condições de pagamento',

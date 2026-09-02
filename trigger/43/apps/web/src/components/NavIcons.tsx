@@ -75,6 +75,18 @@ export function IconDepartamentos({ className }: IconProps) {
   );
 }
 
+/** Feriados operacionais da EMP. */
+export function IconCalendario({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4" />
+      <path d="M8 2v4" />
+      <path d="M3 10h18" />
+    </IconBase>
+  );
+}
+
 /** Backlog operacional (BLG-). */
 export function IconBacklog({ className }: IconProps) {
   return (

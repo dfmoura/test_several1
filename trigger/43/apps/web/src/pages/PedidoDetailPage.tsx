@@ -10,6 +10,7 @@ import { ComissaoPedidoPanel } from '../components/ComissaoPedidoPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { necessidadeLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
 
@@ -197,7 +198,7 @@ export function PedidoDetailPage() {
                 <div>
                   <span>Prazo</span>
                   <strong>
-                    {pedido.prazo_entrega_dias != null ? `${pedido.prazo_entrega_dias} d.úteis` : '—'}
+                    {pedido.prazo_entrega_dias != null ? prazoEntregaCompleto(pedido) : '—'}
                   </strong>
                 </div>
                 <div>

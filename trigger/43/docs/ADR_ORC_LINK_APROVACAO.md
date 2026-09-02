@@ -21,6 +21,7 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 | **Prévia interna ≠ link do cliente** | “Abrir proposta” no ERP abre `/orcamentos/{id}/proposta` (autenticado, `modo: preview`, sem decidir). Aprovar/recusar só em `/p/{token}`. |
 | **Sem senha no link** | Estudo §3.4: atrito mataria adesão mobile; segurança = token longo + destinatário oficial + uso único. |
 | **Sem host estático (R2/Pages) da proposta** | Fonte da verdade = ERP; aprovar/recusar atualiza o banco na hora. R2 só para anexos privados (futuro). |
+| **URL da arte = referência externa** | Prova final (PDF/imagem/Drive…) em `input_snapshot.url_arte` — ver `ADR_ORC_URL_ARTE.md`. Sem embed. |
 | **Sem PED automático** | Aceite grava status `APROVADO` + faixa; conversão PED é BL seguinte. |
 
 ## Quem pode aprovar (clareza operacional)

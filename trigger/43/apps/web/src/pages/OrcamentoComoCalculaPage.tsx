@@ -157,7 +157,6 @@ export function OrcamentoComoCalculaPage() {
               </p>
               <ol className="calc-flow">
                 {(data?.regras ?? [])
-                  .filter((r) => !['FRETE'].includes(r.id))
                   .slice(0, 8)
                   .map((r, i) => (
                     <li key={r.id}>

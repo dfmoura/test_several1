@@ -10,9 +10,6 @@ class OrcCatalogoParametro extends Model
 
     public const CHAVE_MATRIZ_CM2 = 'matriz_cm2';
 
-    /** Estimativa de carga no ORC = qtde_caixas × este peso (aba Frete). */
-    public const CHAVE_PESO_CAIXA_KG = 'peso_caixa_kg';
-
     public const CHAVE_SETUP_HORAS = 'setup_horas';
 
     public const CHAVE_LIMITE_METRAGEM_BOBINA = 'limite_metragem_bobina';
@@ -58,7 +55,6 @@ class OrcCatalogoParametro extends Model
     /** Grupos de UI no catálogo ORC. */
     public const GRUPO_MATRIZ = 'matriz';
 
-    public const GRUPO_FRETE = 'frete';
 
     public const GRUPO_MOTOR = 'motor';
 
@@ -75,7 +71,6 @@ class OrcCatalogoParametro extends Model
      */
     public const CHAVES_CONHECIDAS = [
         self::CHAVE_MATRIZ_CM2,
-        self::CHAVE_PESO_CAIXA_KG,
         self::CHAVE_SETUP_HORAS,
         self::CHAVE_LIMITE_METRAGEM_BOBINA,
         self::CHAVE_MINUTOS_TROCA_BOBINA,
@@ -114,14 +109,6 @@ class OrcCatalogoParametro extends Model
                 'ordem' => 10,
                 'ativo' => true,
                 'default' => 0.28,
-            ],
-            self::CHAVE_PESO_CAIXA_KG => [
-                'grupo' => self::GRUPO_FRETE,
-                'rotulo' => 'Peso estimado por caixa',
-                'unidade' => 'kg',
-                'ordem' => 20,
-                'ativo' => false,
-                'default' => 0.0,
             ],
             self::CHAVE_SETUP_HORAS => [
                 'grupo' => self::GRUPO_MOTOR,
