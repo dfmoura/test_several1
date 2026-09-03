@@ -1,0 +1,439 @@
+================================================================================
+CONLICITAÇÃO / CONSULTE ONLINE — COMO FUNCIONA O SISTEMA
+Documento de mapeamento funcional (visão de produto)
+================================================================================
+
+Data deste documento: 2026-09-03
+Fontes: material público do site institucional e páginas de ferramentas
+  - https://conlicitacao.com.br/
+  - https://conlicitacao.com.br/ferramentas/banco-de-dados/
+  - https://conlicitacao.com.br/ferramentas/monitoramento-de-chat/
+  - https://conlicitacao.com.br/planos/
+  - https://consulteonline.conlicitacao.com.br/ (app / área logada)
+  - https://consulteonline.conlicitacao.com.br/banco_de_dados
+
+IMPORTANTE — LIMITES DESTE DOCUMENTO
+------------------------------------
+1) Este texto NÃO usa login, senha nem sessão autenticada.
+2) NÃO contém credenciais. Se você enviou senha em chat/e-mail, troque-a
+   imediatamente no ConLicitação e não compartilhe de novo.
+3) A área logada (Consulte Online) é SPA/protegida; a exploração profunda de
+   telas internas, APIs privadas e dados da conta exige uso manual pelo
+   titular da assinatura (ou exportações oficiais do próprio produto).
+4) O conteúdo abaixo descreve o MODELO DE NEGÓCIO E DE PRODUTO divulgado
+   publicamente: fluxo de valor, módulos, coleta de dados e jornada do
+   fornecedor. Não é engenharia reversa de código-fonte nem dump de APIs.
+
+
+================================================================================
+1. O QUE É O PRODUTO
+================================================================================
+
+O ConLicitação é uma plataforma B2B (só Pessoa Jurídica) para empresas que
+querem vender para o governo. O problema que resolve:
+
+  - Licitações brasileiras nascem em milhares de fontes (portais, Diários
+    Oficiais, jornais, unidades licitantes).
+  - Monitorar tudo manualmente é inviável.
+  - Depois de achar o edital, ainda há: documentos, prazos, chat do pregão,
+    recursos jurídicos, concorrência e acompanhamento de resultado.
+
+A proposta de valor é cobrir a jornada inteira: encontrar → organizar →
+habilitar → disputar → monitorar → analisar mercado/jurídico.
+
+Dois “mundos” de site:
+
+  A) Marketing / institucional
+     https://conlicitacao.com.br/
+     Vitrine, planos, blog, vendas, FAQ.
+
+  B) Aplicação do assinante (Consulte Online)
+     https://consulteonline.conlicitacao.com.br/
+     Área autenticada onde o usuário consulta o banco, gerencia processos,
+     documentos, chat, etc.
+     Rota destacada de busca:
+     https://consulteonline.conlicitacao.com.br/banco_de_dados
+
+
+================================================================================
+2. MODELO MENTAL DO SISTEMA (PIPELINE)
+================================================================================
+
+O produto opera como uma esteira de dados + ferramentas de operação:
+
+  [Fontes oficiais]          [Motor ConLicitação]           [Cliente]
+  -------------------        ----------------------         ------------------
+  Portais de compras    -->  Coleta tecnológica        -->  Banco de dados
+  Diários Oficiais      -->  + equipe humana           -->  Boletins e-mail
+  Jornais               -->  Análise / classificação   -->  Gerenciamento
+  Contato a unidades    -->  Indexação / filtros       -->  Docs / Chat / IA
+  (quando necessário)                                      Jurídico / Mercado
+
+Passos públicos declarados pela empresa:
+
+  1) Monitoramento e coleta diária das fontes oficiais
+     (avisos, alterações e resultados).
+  2) Análise e classificação humana + tecnológica
+     (“informações analisadas uma a uma”).
+  3) Disponibilização no banco consultável + alertas (boletins).
+  4) Ferramentas de gestão operacional (pasta do processo, docs, chat).
+  5) Camada de inteligência (mercado, concorrentes, IA jurídica/edital).
+  6) Serviços humanos (assessoria cadastral, consultoria jurídica,
+     capacitação).
+
+Cobertura declarada (marketing):
+  - Mais de 6.000 fontes oficiais monitoradas
+  - Coleta nacional (todos os estados)
+  - Mais de 500 portais no monitoramento de chat
+  - Base de avisos, editais e acompanhamentos
+  - Mix tecnologia + time especializado (admitem que 100% só por robô
+    não cobre tudo — daí a equipe humana)
+
+
+================================================================================
+3. ARQUITETURA LÓGICA (VISÃO FUNCIONAL, NÃO TÉCNICA INTERNA)
+================================================================================
+
+Em termos de produto, o sistema se organiza em camadas:
+
+  CAMADA 1 — AQUISIÇÃO DE DADOS
+  ------------------------------
+  Coletores / processos que varrem ou recebem publicações de:
+    - Portais eletrônicos (ex.: ComprasNet, Licitações-e, BEC-SP, Caixa, etc.)
+    - Diários Oficiais e jornais de grande circulação
+    - Outras fontes oficiais e, em casos, contato com unidades licitantes
+  Objetivo: capturar AVISO, EDITAL, ALTERAÇÃO, RESULTADO / ACOMPANHAMENTO.
+
+  CAMADA 2 — NORMALIZAÇÃO E CLASSIFICAÇÃO
+  ----------------------------------------
+  Cada registro vira um “objeto licitação” no banco, com metadados
+  (órgão, UASG/unidade, modalidade, objeto, datas, UF, valor quando houver,
+  situação, links/anexos, etc. — campos exatos variam por fonte).
+  Equipe classifica/ajusta para busca assertiva por segmento do cliente.
+
+  CAMADA 3 — DISTRIBUIÇÃO AO ASSINANTE
+  -------------------------------------
+  a) Pull: usuário busca no Consulte Online (banco_de_dados).
+  b) Push: boletins por e-mail (3x ao dia: manhã, tarde, noite),
+     filtrados pelo perfil/interesse da empresa.
+  c) Acompanhamentos: mudanças posteriores no processo.
+
+  CAMADA 4 — OPERAÇÃO DO LICITANTE
+  ---------------------------------
+  Gerenciar licitações (kanban/pasta do processo, time, tarefas).
+  Gestão de documentos de habilitação (validade, pendências).
+  Monitoramento de chat do pregão (alertas de convocação etc.).
+  Robô de lances (nos planos que incluem).
+
+  CAMADA 5 — INTELIGÊNCIA E SERVIÇOS
+  ----------------------------------
+  Análise de mercado e de concorrentes.
+  IA: Análise do Edital / Pergunte ao Edital, Consultor Jurídico,
+      Dr. Licita (petições/recursos), Especialista Virtual.
+  Assessoria cadastral (SICAF, CAUFESP, SIGA, CRCs).
+  Consultoria jurídica humana + conteúdos.
+
+Não há, no material público, detalhe de stack (linguagem, banco, cloud).
+O que se observa pelo domínio é um app web separado (consulteonline.*)
+do site de marketing (conlicitacao.com.br).
+
+
+================================================================================
+4. CONSULTE ONLINE — ÁREA LOGADA
+================================================================================
+
+URL base: https://consulteonline.conlicitacao.com.br/
+
+Papel: é o “sistema operacional” do assinante. O marketing vende; o
+Consulte Online entrega a ferramenta diária.
+
+4.1 Acesso
+----------
+- Login por e-mail + senha da conta da empresa assinante.
+- Produto B2B: contrato/assinatura vinculada a PJ.
+- Planos: Super, Premium, Advanced, Black (semestral / anual / bienal);
+  pagamento pix, boleto ou cartão (FAQ público).
+- O que cada plano libera (limites de usuários, estados, volume de
+  monitoramentos, robô etc.) muda comercialmente — a página de planos
+  lista o catálogo de módulos; a diferenciação fina é comercial.
+
+4.2 Banco de dados / Encontrar Licitações
+-----------------------------------------
+URL típica: .../banco_de_dados
+
+Nome comercial: “Encontrar Licitações” / “Banco de dados”.
+
+O que é:
+  Sistema de pesquisa online que armazena e disponibiliza avisos de
+  licitações e resultados extraídos de várias fontes.
+
+O que o usuário faz na prática (fluxo típico):
+  1. Abre o banco de dados.
+  2. Monta filtros (palavras-chave no objeto e no edital; demais filtros
+     avançados — UF, modalidade, órgão, datas, tipo de publicação etc.,
+     conforme a UI da assinatura).
+  3. Recebe lista de oportunidades.
+  4. Abre o detalhe: objeto, órgão, datas, documentos/edital, avisos.
+  5. Acompanha andamento / novidades (alterações, resultados).
+  6. (Opcional) Envia a oportunidade para “Gerenciar licitações”
+     (pasta de trabalho da equipe).
+
+Promessas de valor do módulo:
+  - Uma única tela em vez de dezenas de portais.
+  - Busca assertiva por interesse do negócio.
+  - Acompanhamento do andamento + avisos/comunicações.
+
+4.3 Boletins diários
+--------------------
+Canal push complementar ao pull do banco.
+
+- Frequência declarada: 3 envios/dia (manhã, tarde, noite).
+- Conteúdo: novas licitações, alterações e resultados alinhados ao perfil.
+- Objetivo: o usuário não depender só de entrar no site várias vezes.
+
+Relação com o banco:
+  Boletim = “o que chegou para você hoje”.
+  Banco = “pesquisa histórica / ampla / sob demanda”.
+
+4.4 Encontrar acompanhamentos
+-----------------------------
+Módulo listado nos planos, separado de “Encontrar licitações”.
+Foco: mudanças posteriores (retificações, adiamentos, resultados,
+publicações de acompanhamento), não só o aviso inicial.
+
+4.5 Gerenciar licitações
+------------------------
+Workspace operacional da equipe de vendas governamentais.
+
+Funções declaradas:
+  - Organização das licitações de interesse.
+  - Compartilhamento com o time.
+  - Controle de tarefas executadas.
+  - Integração com portais (notificações de suspensões, adiamentos,
+    impugnações, pedidos de esclarecimento).
+  - Histórico/registro de atividades para revisão e decisão.
+  - Integração com monitoramento, chat e documentos.
+
+Fluxo típico:
+  Achei no banco/boletim → marquei como de interesse → equipe divide
+  tarefas (proposta, docs, lances) → sistema avisa mudanças → decisão.
+
+4.6 Gestão de documentos
+------------------------
+Arquivo da habilitação da empresa:
+  - Centralizar documentos exigidos em editais.
+  - Controle de pendências e validade (evitar documento vencido na disputa).
+  - Coleta/organização ligada ao processo gerenciado.
+
+4.7 Monitoramento de chat
+-------------------------
+Problema: no pregão eletrônico, convocações e avisos no chat do portal
+passam rápido; perder mensagem = risco de desclassificação/penalidade.
+
+Solução declarada:
+  - Cobertura de 500+ portais.
+  - Alertas em tempo real de mensagens do chat.
+  - Avisos quando o pregão começa.
+  - Configuração de palavras-chave para filtrar o que interessa.
+  - Foco em: convocações urgentes, habilitação, prazos recursais,
+    decisões importantes.
+
+4.8 Robô de lances
+------------------
+Listado nos planos. Automação/assistência na fase de lances em portais
+suportados (cobertura e regras dependem do plano e do portal — detalhe
+operacional só na área logada / suporte comercial).
+
+4.9 Inteligência de mercado e concorrência
+------------------------------------------
+- Análise de mercado: resultados por segmento, preços praticados,
+  produtos/serviços mais demandados.
+- Análise de concorrentes: informações relevantes, inclusive sanções
+  e penalidades.
+
+Uso típico: precificação, escolha de disputa, due diligence de rival.
+
+4.10 Camada de IA / jurídico no produto
+---------------------------------------
+Nomes públicos:
+  - Análise do Edital / Pergunte ao Edital: resumo e Q&A sobre o edital.
+  - Consultor Jurídico / Especialista Virtual: consultas com IA.
+  - Dr. Licita: petições e recursos em minutos.
+  - Jurídico fácil + Suporte Jurídico (humano).
+  - Licitações Estratégicas, Contratos, Ata de Registro de Preços
+    (módulos de inteligência/acompanhamento listados nos planos).
+  - ConLicita Go (produto/app auxiliar listado nos planos).
+
+4.11 Serviços humanos acoplados
+-------------------------------
+Não são só “software”:
+  - Assessoria cadastral (SICAF, CAUFESP, SIGA, CRCs unificados).
+  - Consultoria jurídica e capacitação/treinamentos.
+  - Orientação para cadastramento e habilitação.
+
+
+================================================================================
+5. JORNADA DO USUÁRIO (PONTA A PONTA)
+================================================================================
+
+Etapa 0 — Contratação
+  Empresa assina plano (6/12/24 meses) → recebe acesso Consulte Online
+  → configura perfil de interesse (segmentos, regiões, palavras-chave).
+
+Etapa 1 — Entendimento de mercado
+  Usa análise de mercado/concorrentes para saber onde o governo compra
+  e a que preços.
+
+Etapa 2 — Acesso às oportunidades
+  Boletins (push) + Banco de dados (pull) + acompanhamentos.
+
+Etapa 3 — Triagem
+  Filtros → abre edital → (opcional) Pergunte ao Edital / resumo IA
+  → decide “vamos disputar?”.
+
+Etapa 4 — Organização documental e cadastros
+  Gestão de documentos + assessoria cadastral nos portais/CRCs.
+
+Etapa 5 — Gestão do processo
+  Gerenciar licitações: tarefas, time, prazos, atualizações do portal.
+
+Etapa 6 — Disputa
+  Monitorar chat + (se contratado) robô de lances + suporte jurídico
+  se houver recurso/impugnação (Dr. Licita / jurídico).
+
+Etapa 7 — Pós
+  Resultados no banco/acompanhamentos; análise para próximas disputas.
+
+
+================================================================================
+6. COMO OS DADOS DE LICITAÇÃO “CHEGAM” E FICAM UTILIZÁVEIS
+================================================================================
+
+Por que o produto “consegue utilizar normalmente” os dados (visão de
+negócio, não de código):
+
+  1) Agregação massiva
+     Em vez de o usuário ir a ComprasNet + Licitações-e + BEC + milhares
+     de prefeituras/DOs, o ConLicitação centraliza.
+
+  2) Dualidade máquina + humano
+     Tecnologia para volume; equipe para fontes difíceis, classificação
+     e qualidade (declarado explicitamente no FAQ).
+
+  3) Indexação para busca
+     Palavra-chave no objeto e no texto do edital + filtros avançados
+     tornam a base consultável como “Google interno de editais”.
+
+  4) Ciclo de vida do processo
+     Não só o aviso: alterações, resultados, acompanhamentos, chat.
+
+  5) Entrega multi-canal
+     UI logada + e-mail (boletins) + alertas de chat.
+
+  6) Contexto de operação
+     Dado sozinho não basta; o produto amarra dado → pasta → documento
+     → disputa → jurídico.
+
+Limite declarado:
+  - Licitações privadas: só quando publicadas em fontes oficiais
+    acessíveis; não há obrigatoriedade legal igual às públicas.
+
+
+================================================================================
+7. MAPA DE MÓDULOS (CATÁLOGO PÚBLICO DOS PLANOS)
+================================================================================
+
+Listados em https://conlicitacao.com.br/planos/ (aparecem nos planos
+Super / Premium / Advanced / Black na vitrine; a diferenciação comercial
+entre planos deve ser confirmada com o comercial):
+
+  - Boletins
+  - Encontrar licitações          (= banco de dados / Consulte Online)
+  - Encontrar acompanhamentos
+  - Gerenciar licitações
+  - ConLicita Go
+  - Análise de mercado
+  - Concorrentes
+  - Jurídico fácil
+  - Suporte Jurídico
+  - Gerenciar Documentos
+  - Monitorar chat
+  - Licitações Estratégicas
+  - Contratos
+  - Ata de Registro de Preços
+  - Pergunte ao Edital
+  - Especialista Virtual
+  - Dr. Licita
+  - Robô de Lances
+
+
+================================================================================
+8. RELAÇÃO COM O ECOSSISTEMA PÚBLICO DE COMPRAS
+================================================================================
+
+O ConLicitação NÃO substitui o portal onde a disputa ocorre.
+Ele agrega e opera em cima das publicações.
+
+Exemplos de fontes/portais do ecossistema (citados no próprio conteúdo
+educativo da empresa e no mercado):
+
+  - ComprasNet / compras.gov.br (+ SICAF)
+  - Licitações-e (Banco do Brasil)
+  - BEC-SP e portais estaduais/municipais
+  - Portal de licitações da Caixa
+  - PNCP (Portal Nacional de Contratações Públicas) — referência nacional
+    pós Lei 14.133/2021; agregadores do mercado em geral passam a
+    consumir/monitorar também esse eixo (detalhe de integração do
+    ConLicitação com PNCP não é especificado tecnicamente no material
+    institucional consultado)
+
+Participar da disputa continua exigindo:
+  cadastro no portal correspondente, certificado digital quando exigido,
+  envio de proposta/lances no sistema oficial do órgão.
+
+
+================================================================================
+9. O QUE NÃO FOI MAPEADO AQUI (ÁREA AUTENTICADA)
+================================================================================
+
+Sem login deliberado, este documento NÃO descreve com precisão:
+
+  - Layout exato de menus e telas do Consulte Online
+  - Lista completa de filtros e campos do /banco_de_dados
+  - Formato de exportação (CSV/PDF/API) se existir
+  - Endpoints/APIs privadas, payloads, autenticação JWT/session
+  - Regras finas de cota por plano
+  - Comportamento do robô de lances portal a portal
+  - Dados reais da sua conta/empresa
+
+Para completar o mapa “tela a tela”, o caminho seguro é:
+  1) Você logado no navegador, anotar menu lateral e cada rota.
+  2) Exportações oficiais / help interno / suporte ConLicitação.
+  3) NÃO colar senha em chats de IA, tickets públicos ou repositórios.
+
+
+================================================================================
+10. RESUMO EM UMA FRASE
+================================================================================
+
+O Consulte Online (ConLicitação) é um hub pago que coleta, classifica e
+entrega licitações públicas brasileiras em massa, e depois oferece
+ferramentas de gestão, documentos, chat, IA e jurídico para a empresa
+operar a disputa — enquanto a homologação e o lance final continuam nos
+portais oficiais do governo.
+
+
+================================================================================
+11. CONTATOS PÚBLICOS (INSTITUCIONAL)
+================================================================================
+
+  Site:   https://conlicitacao.com.br/
+  App:    https://consulteonline.conlicitacao.com.br/
+  Banco:  https://consulteonline.conlicitacao.com.br/banco_de_dados
+  Tel:    0800 11 14133
+  E-mail: contato (conforme rodapé do site institucional)
+
+
+================================================================================
+FIM DO DOCUMENTO
+================================================================================

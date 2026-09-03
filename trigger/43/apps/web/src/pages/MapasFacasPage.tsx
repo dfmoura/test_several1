@@ -807,8 +807,10 @@ export function MapasFacasPage() {
                             </td>
                             <td className="mapa-facas-silhueta-cell">
                               <FacaApresentacao
+                                className="mapa-facas-list-visual"
                                 posicao={f.posicao}
                                 size="compact"
+                                arrowWeight="fine"
                                 title={
                                   isFacaPosicao(f.posicao)
                                     ? facaPosicaoLabel(f.posicao) ?? undefined
@@ -817,7 +819,7 @@ export function MapasFacasPage() {
                               >
                                 <FacaSilhuetaReal
                                   {...facaSilhuetaFromRecord(f)}
-                                  size={32}
+                                  size={44}
                                   variant="compact"
                                 />
                               </FacaApresentacao>

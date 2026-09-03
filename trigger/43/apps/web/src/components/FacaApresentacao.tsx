@@ -11,6 +11,8 @@ type Props = {
   title?: string;
   /** compact = lista; featured = detalhe/ORC */
   size?: 'compact' | 'featured';
+  /** fine = lista densa: seta mais estreita para a silhueta ler primeiro */
+  arrowWeight?: 'regular' | 'fine';
 };
 
 /**
@@ -25,6 +27,7 @@ export function FacaApresentacao({
   style,
   title,
   size = 'featured',
+  arrowWeight = 'regular',
 }: Props) {
   const has = isFacaPosicao(posicao);
   const posLabel = has ? facaPosicaoLabel(posicao) : null;
@@ -44,7 +47,7 @@ export function FacaApresentacao({
       aria-label={posLabel ? `Silhueta da faca com posição ${posLabel}` : undefined}
     >
       <div className="faca-apresentacao__silhueta">{children}</div>
-      {has ? <FacaPosicaoOverlay codigo={posicao} /> : null}
+      {has ? <FacaPosicaoOverlay codigo={posicao} weight={arrowWeight} /> : null}
     </div>
   );
 }

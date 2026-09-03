@@ -4569,6 +4569,17 @@ table.data-table td.acoes {
   stroke-width: 1.1;
 }
 
+/* Lista do mapa: seta fina — a silhueta permanece o sujeito */
+.faca-apresentacao--compact .faca-posicao-overlay--fine .faca-posicao-overlay__g line {
+  stroke-width: 2.85;
+  opacity: 0.4;
+}
+
+.faca-apresentacao--compact .faca-posicao-overlay--fine .faca-posicao-overlay__g polygon {
+  opacity: 0.56;
+  stroke-width: 0.65;
+}
+
 /* orc-faca-desenho-visual agora é FacaApresentacao */
 .orc-faca-desenho-visual.faca-apresentacao {
   display: flex;
@@ -7198,11 +7209,11 @@ tr.row-inactive td {
 
 .mapa-facas-th-silhueta,
 .mapa-facas-silhueta-cell {
-  width: 3rem;
-  min-width: 3rem;
+  width: 4.5rem;
+  min-width: 4.5rem;
   text-align: center;
-  padding-left: 0.3rem !important;
-  padding-right: 0.3rem !important;
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
 }
 
 .mapa-facas-silhueta-cell {
@@ -7212,6 +7223,14 @@ tr.row-inactive td {
 .mapa-facas-silhueta-cell .faca-apresentacao--compact,
 .mapa-facas-silhueta-cell .faca-silhueta--compact {
   margin-inline: auto;
+}
+
+/* Palco da lista: área que agrupa silhueta + seta, um pouco maior que o desenho */
+.mapa-facas-silhueta-cell .mapa-facas-list-visual.faca-apresentacao--compact {
+  padding: 0.22rem;
+  min-width: 3.4rem;
+  min-height: 3.4rem;
+  box-sizing: border-box;
 }
 
 .faca-silhueta {
