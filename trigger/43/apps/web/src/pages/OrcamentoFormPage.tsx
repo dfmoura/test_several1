@@ -45,7 +45,6 @@ import {
   type TipoServicoSaida,
 } from '../lib/operacoesSaida';
 import {
-  hintFreteModo,
   MODO_ENTREGA_PROPRIA,
   MODO_ENTREGA_TERCEIROS,
   MODO_RETIRAR,
@@ -589,11 +588,7 @@ export function OrcamentoFormPage() {
       <div className="card orc-wizard">
         <div className="card-body">
           <section className="orc-section">
-            <h3 className="orc-section-title">O que você está propondo?</h3>
-            <p className="form-hint" style={{ marginTop: 0 }}>
-              Industrialização de etiqueta, prestação de serviço e comodato de impressora não são a
-              mesma operação — cada uma tem documento e caminho próprios.
-            </p>
+            <label className="orc-section-label">Tipo de operação</label>
             <div className="orc-modo-tabs" role="tablist" aria-label="Tipo de operação">
               {(
                 catalog?.tipos_operacao ?? [
@@ -621,14 +616,9 @@ export function OrcamentoFormPage() {
               ))}
             </div>
             {form.tipo_operacao === TIPO_CESSAO_BEM ? (
-              <div className="form-hint" style={{ marginTop: '0.85rem' }}>
-                <p>
-                  Comodato (aluguel gratuito de impressora) <strong>não gera NFS-e nem NF-e</strong>{' '}
-                  e não passa por este orçamento. Cadastre a cessão no bem patrimonial. Locação
-                  cobrada também não é ISS. Se cobrar manutenção, volte aqui e escolha prestação de
-                  serviço.
-                </p>
-                <Link to="/patrimonio" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
+              <div className="orc-cessao-aviso">
+                <p>Comodato não gera NFS-e/NF-e — cadastre no patrimônio.</p>
+                <Link to="/patrimonio" className="btn btn-primary btn-sm">
                   Ir ao patrimônio
                 </Link>
               </div>
@@ -639,61 +629,58 @@ export function OrcamentoFormPage() {
             <>
           {/* 1. Parceiro — modos exclusivos (ORCAMENTO_PROSPECT) */}
           <section className="orc-section">
-            <h3 className="orc-section-title">1. Parceiro</h3>
-            <p className="form-hint" style={{ marginTop: 0 }}>
-              Todo ORC aponta para cadastro PAR (cliente ou prospect). Texto livre de cliente é
-              proibido. Escolha um modo — um por vez.
-            </p>
-
-            <div className="orc-modo-tabs" role="tablist" aria-label="Origem do parceiro">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={parceiroModo === 'cadastrado'}
-                className={parceiroModo === 'cadastrado' ? 'active' : ''}
-                disabled={!canWrite && parceiroModo !== 'cadastrado'}
-                onClick={() => setParceiroModo('cadastrado')}
-              >
-                Parceiro cadastrado
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={parceiroModo === 'prospect'}
-                className={parceiroModo === 'prospect' ? 'active' : ''}
-                disabled={!canWrite}
-                onClick={() => setParceiroModo('prospect')}
-              >
-                Novo prospect
-              </button>
+            <div className="orc-section-head">
+              <label className="orc-section-label" style={{ margin: 0 }}>Parceiro</label>
+              <div className="orc-modo-tabs orc-modo-tabs-sub" style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={parceiroModo === 'cadastrado'}
+                  className={parceiroModo === 'cadastrado' ? 'active' : ''}
+                  disabled={!canWrite && parceiroModo !== 'cadastrado'}
+                  onClick={() => setParceiroModo('cadastrado')}
+                >
+                  Cadastrado
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={parceiroModo === 'prospect'}
+                  className={parceiroModo === 'prospect' ? 'active' : ''}
+                  disabled={!canWrite}
+                  onClick={() => setParceiroModo('prospect')}
+                >
+                  Novo prospect
+                </button>
+              </div>
             </div>
 
             {parceiroModo === 'cadastrado' ? (
               <div className="form-grid">
                 <ParceiroCombobox
                   className="span-full"
-                  label="Parceiro cadastrado"
+                  label="Parceiro *"
                   papel="orcavel"
                   value={parceiroSel}
                   onChange={aplicarParceiro}
                   required
                   disabled={!canWrite}
-                  placeholder="Buscar por nome, código, CNPJ, cidade ou WhatsApp…"
-                  hint="Cliente ou prospect · busca no cadastro PAR (não lista tudo de uma vez)."
+                  placeholder="Nome, código, CNPJ, cidade ou WhatsApp…"
                   emptyMessage="Nenhum parceiro orçável encontrado. Ajuste o termo ou use Novo prospect."
                 />
                 <div className="form-group">
-                  <label>Condição de pagamento</label>
+                  <label>Condição pgto.</label>
                   <CondicaoPagamentoInput
                     value={form.condicao_pagamento}
                     maxLength={64}
-                    placeholder="ex.: 28 DDL · prefill do PAR"
+                    placeholder="ex.: 28 DDL"
                     disabled={!canWrite}
                     onChange={(v) => setField('condicao_pagamento', v)}
+                    showHint={false}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Forma de pagamento</label>
+                  <label>Forma pgto.</label>
                   <select
                     value={form.forma_pagamento}
                     disabled={!canWrite}
@@ -712,34 +699,13 @@ export function OrcamentoFormPage() {
                     ))}
                   </select>
                 </div>
-                <ParceiroCombobox
-                  className="span-full"
-                  label="Vendedor"
-                  papel="vendedor"
-                  value={vendedorSel}
-                  onChange={(v) => aplicarVendedor(v, true)}
-                  disabled={!canWrite}
-                  placeholder="Buscar vendedor cadastrado…"
-                  hint="Opcional. Prefill do cliente · % do cadastro preenche as faixas · a comissão só é paga após a baixa do recebimento."
-                  emptyMessage="Nenhum vendedor encontrado. Cadastre a classificação Vendedor no parceiro e informe a comissão %."
-                />
-                <div className="form-group span-full">
-                  <p className="form-hint" style={{ margin: 0 }}>
-                    Condições desta proposta (snapshot). Prefill ao escolher o parceiro · editáveis
-                    aqui · não alteram o cálculo de preço · PED/TIT futuros usam este valor. Venda
-                    direta: deixe o vendedor em branco.
-                  </p>
-                </div>
-                <div className="form-group span-full">
-                  <label>
-                    Entrega desta proposta{' '}
-                    <span className="field-note">fechamento · padrão Retirar</span>
-                  </label>
+                <div className="form-group">
+                  <label>Entrega</label>
                   <div
                     className="orc-modo-tabs orc-modo-tabs-entrega"
                     role="radiogroup"
                     aria-label="Modo de entrega"
-                    style={{ marginBottom: modoComFrete(form.modo_entrega) ? '0.2rem' : undefined }}
+                    style={{ margin: 0 }}
                   >
                     <button
                       type="button"
@@ -750,7 +716,7 @@ export function OrcamentoFormPage() {
                         setField('valor_frete_manual', '');
                       }}
                     >
-                      Retirar no local
+                      Retirar
                     </button>
                     <button
                       type="button"
@@ -758,7 +724,7 @@ export function OrcamentoFormPage() {
                       disabled={!canWrite}
                       onClick={() => setField('modo_entrega', MODO_ENTREGA_PROPRIA)}
                     >
-                      Entrega própria
+                      Própria
                     </button>
                     <button
                       type="button"
@@ -766,34 +732,41 @@ export function OrcamentoFormPage() {
                       disabled={!canWrite}
                       onClick={() => setField('modo_entrega', MODO_ENTREGA_TERCEIROS)}
                     >
-                      Entrega terceiros
+                      Terceiros
                     </button>
                   </div>
-                  {modoComFrete(form.modo_entrega) ? (
-                    <div className="form-group manual-field" style={{ margin: '0.65rem 0 0' }}>
-                      <label>
-                        Valor do frete (R$){' '}
-                        <span className="field-note">opcional · a definir se vazio</span>
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        inputMode="decimal"
-                        value={form.valor_frete_manual === '' ? '' : form.valor_frete_manual}
-                        onChange={(e) => {
-                          const raw = e.target.value;
-                          setField('valor_frete_manual', raw === '' ? '' : Number(raw));
-                        }}
-                        disabled={!canWrite}
-                        placeholder="A definir"
-                      />
-                    </div>
-                  ) : null}
-                  <p className="form-hint" style={{ margin: '0.35rem 0 0' }}>
-                    {hintFreteModo(form.modo_entrega)}
-                  </p>
                 </div>
+                {modoComFrete(form.modo_entrega) ? (
+                  <div className="form-group">
+                    <label>
+                      Frete (R$) <span className="field-note">opc.</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      inputMode="decimal"
+                      value={form.valor_frete_manual === '' ? '' : form.valor_frete_manual}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setField('valor_frete_manual', raw === '' ? '' : Number(raw));
+                      }}
+                      disabled={!canWrite}
+                      placeholder="A definir"
+                    />
+                  </div>
+                ) : null}
+                <ParceiroCombobox
+                  className="span-full"
+                  label="Vendedor"
+                  papel="vendedor"
+                  value={vendedorSel}
+                  onChange={(v) => aplicarVendedor(v, true)}
+                  disabled={!canWrite}
+                  placeholder="Buscar vendedor…"
+                  hint="Opcional · define comissão %."
+                  emptyMessage="Nenhum vendedor encontrado. Cadastre a classificação Vendedor no parceiro."
+                />
               </div>
             ) : (
               <ProspectRapidoPanel
@@ -909,20 +882,6 @@ export function OrcamentoFormPage() {
             <h3 className="orc-section-title">3. Especificação técnica</h3>
             <div className="form-grid">
               <div className="form-group">
-                <label>Cores *</label>
-                <select
-                  value={form.cores}
-                  onChange={(e) => setField('cores', e.target.value)}
-                  disabled={!canWrite}
-                >
-                  {CORES_OPCOES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
                 <label>Papel *</label>
                 <select
                   value={form.papel}
@@ -946,6 +905,20 @@ export function OrcamentoFormPage() {
                   {(catalog?.acabamentos ?? []).map((a) => (
                     <option key={a} value={a}>
                       {a}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Cores *</label>
+                <select
+                  value={form.cores}
+                  onChange={(e) => setField('cores', e.target.value)}
+                  disabled={!canWrite}
+                >
+                  {CORES_OPCOES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
                     </option>
                   ))}
                 </select>

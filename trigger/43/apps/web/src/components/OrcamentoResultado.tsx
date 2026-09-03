@@ -554,6 +554,7 @@ function ComercialFaixasTable({
         const rolos = Number(fx.rolos) || 0;
         return rolos > 0 ? et / rolos : 0;
       },
+      matriz: (fx: OrcamentoFaixaResult) => Number(fx.valor_matriz) || 0,
       total: (fx: OrcamentoFaixaResult) => totalPropostaFaixa(fx, facaNova, valorFacaNova),
     }),
     [facaNova, valorFacaNova, etiqRolo, etiqRoloOk],
@@ -704,6 +705,17 @@ function ComercialFaixasTable({
             >
               Valor rolo
             </SortableTh>
+            <SortableTh
+              column="matriz"
+              sorts={sorts}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={requestSort}
+              className="num"
+              label="Matriz / clichê"
+            >
+              Matriz
+            </SortableTh>
             {mostrarFrete ? <th className="num">Frete</th> : null}
             <SortableTh
               column="total"
@@ -744,6 +756,7 @@ function ComercialFaixasTable({
                 <td className="num">
                   {valorRolo != null ? formatCurrency(valorRolo) : '—'}
                 </td>
+                <td className="num">{formatCurrency(fx.valor_matriz)}</td>
                 {mostrarFrete ? (
                   <td className="num">
                     {formatValorFrete(fx.valor_frete, { aDefinir: freteADefinir })}

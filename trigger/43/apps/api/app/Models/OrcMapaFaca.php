@@ -34,6 +34,7 @@ class OrcMapaFaca extends Model
         'conjugada',
         'fornecedor',
         'valor_pago',
+        'nf_numero',
         'cliente_nota',
         'obs',
         'completa',

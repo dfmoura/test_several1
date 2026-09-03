@@ -99,5 +99,5 @@ export function hintFreteModo(modo: ModoEntrega): string {
   if (modo === MODO_RETIRAR) {
     return 'Retirar não cobra frete.';
   }
-  return 'Valor opcional. Se em branco, fica a definir — costuma fechar após a produção. Não entra no total da proposta, no unitário nem em PED/FAT.';
+  return 'Valor opcional (a definir). Se vazio: a definir após a produção. Não entra no total/unitário nem em PED/FAT.';
 }

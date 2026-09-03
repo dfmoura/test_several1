@@ -335,7 +335,7 @@ class FacasMapaService
                 $faca->valor_pago = round((float) $vp, 2);
             }
         }
-        foreach (['cilindro', 'colunas_mapa', 'conjugada', 'fornecedor', 'cliente_nota', 'obs'] as $col) {
+        foreach (['cilindro', 'colunas_mapa', 'conjugada', 'fornecedor', 'cliente_nota', 'obs', 'nf_numero'] as $col) {
             if (! array_key_exists($col, $data)) {
                 continue;
             }
@@ -518,7 +518,7 @@ class FacasMapaService
                 foreach ([
                     'label', 'medida', 'tamanho_raw', 'formato', 'faca',
                     'cliente_nota', 'obs', 'maquina_catalogo', 'maquina_origem',
-                    'fornecedor', 'conjugada',
+                    'fornecedor', 'conjugada', 'nf_numero',
                 ] as $col) {
                     $w->orWhereRaw('UPPER(COALESCE('.$col.",'')) LIKE ?", [$qq]);
                 }
@@ -615,7 +615,7 @@ class FacasMapaService
                 foreach ([
                     'label', 'medida', 'tamanho_raw', 'formato', 'faca',
                     'cliente_nota', 'obs', 'maquina_catalogo', 'maquina_origem',
-                    'fornecedor', 'conjugada',
+                    'fornecedor', 'conjugada', 'nf_numero',
                 ] as $key) {
                     if (str_contains(strtoupper((string) ($f[$key] ?? '')), $qq)) {
                         return true;
@@ -774,6 +774,7 @@ class FacasMapaService
             'conjugada' => ($cj = trim((string) ($row['conjugada'] ?? ''))) !== '' ? $cj : null,
             'fornecedor' => ($fo = trim((string) ($row['fornecedor'] ?? ''))) !== '' ? $fo : null,
             'valor_pago' => $valorPago,
+            'nf_numero' => ($nf = trim((string) ($row['nf_numero'] ?? ''))) !== '' ? $nf : null,
             'cliente_nota' => ($cn = trim((string) ($row['cliente_nota'] ?? ''))) !== '' ? $cn : null,
             'obs' => ($ob = trim((string) ($row['obs'] ?? ''))) !== '' ? $ob : null,
             'completa' => $completa,
@@ -850,6 +851,7 @@ class FacasMapaService
             'conjugada' => $f->conjugada,
             'fornecedor' => $f->fornecedor,
             'valor_pago' => $f->valor_pago,
+            'nf_numero' => $f->nf_numero,
             'cliente_nota' => $f->cliente_nota,
             'obs' => $f->obs,
             'completa' => (bool) $f->completa,
@@ -872,7 +874,7 @@ class FacasMapaService
             'nota_redonda' => 'Formato REDONDA: TAMANHO = diâmetro (Ø).',
             'nota_rep' => 'REP = REPETIÇÃO.',
             'nota_manual' => 'Facas incompletas exigem puxada/Z manuais.',
-            'nota_ciclo' => 'Geometria não é editável: cadastre nova e inative a antiga. Nota, fornecedor, valor pago e grupo ORC podem ser ajustados.',
+            'nota_ciclo' => 'Geometria não é editável: cadastre nova e inative a antiga. Nota, fornecedor, valor pago, NF e grupo ORC podem ser ajustados.',
         ];
     }
 

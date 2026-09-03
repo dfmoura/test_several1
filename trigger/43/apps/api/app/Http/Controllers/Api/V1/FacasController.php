@@ -113,6 +113,7 @@ class FacasController extends Controller
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],
+            'nf_numero' => ['nullable', 'string', 'max:40'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
             'obs' => ['nullable', 'string', 'max:500'],
             'completa' => ['nullable', 'boolean'],
@@ -138,6 +139,7 @@ class FacasController extends Controller
             'conjugada' => ['nullable', 'string', 'max:160'],
             'fornecedor' => ['nullable', 'string', 'max:120'],
             'valor_pago' => ['nullable', 'numeric', 'gte:0'],
+            'nf_numero' => ['nullable', 'string', 'max:40'],
             'cliente_nota' => ['nullable', 'string', 'max:255'],
             'obs' => ['nullable', 'string', 'max:500'],
         ]);

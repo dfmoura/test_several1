@@ -8,6 +8,8 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 
   onChange: (value: string) => void;
   /** Exibe link para cadastro de sugestões (PAR). */
   showCadastroLink?: boolean;
+  /** Oculta o hint abaixo do campo (default true). */
+  showHint?: boolean;
 };
 
 /**
@@ -21,6 +23,7 @@ export function CondicaoPagamentoInput({
   placeholder,
   maxLength = 64,
   showCadastroLink = false,
+  showHint = true,
   ...rest
 }: Props) {
   const listId = useId();
@@ -43,16 +46,18 @@ export function CondicaoPagamentoInput({
           <option key={s} value={s} />
         ))}
       </datalist>
-      {showCadastroLink && hasAnyPermission('condicao_pagamento.ler', 'parceiro.ler', 'orcamento.ler') ? (
-        <span className="form-hint">
-          {sugestoes.length} condição(ões) cadastradas · texto livre permitido ·{' '}
-          <Link to="/condicoes-pagamento">gerenciar lista</Link>
-        </span>
-      ) : (
-        <span className="form-hint">
-          Digite uma condição ou selecione na lista ao focar o campo · máx. {maxLength} caracteres.
-        </span>
-      )}
+      {showHint ? (
+        showCadastroLink && hasAnyPermission('condicao_pagamento.ler', 'parceiro.ler', 'orcamento.ler') ? (
+          <span className="form-hint">
+            {sugestoes.length} condição(ões) cadastradas · texto livre permitido ·{' '}
+            <Link to="/condicoes-pagamento">gerenciar lista</Link>
+          </span>
+        ) : (
+          <span className="form-hint">
+            Digite uma condição ou selecione na lista ao focar o campo · máx. {maxLength} caracteres.
+          </span>
+        )
+      ) : null}
     </div>
   );
 }

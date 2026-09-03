@@ -46,6 +46,7 @@ type FacaMapa = {
   conjugada?: string | null;
   fornecedor?: string | null;
   valor_pago?: number | null;
+  nf_numero?: string | null;
   cliente_nota?: string | null;
   obs?: string | null;
   completa: boolean;
@@ -86,6 +87,7 @@ const FACA_SORT = {
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
   fornecedor: (f: FacaMapa) => f.fornecedor,
   valor_pago: (f: FacaMapa) => (f.valor_pago != null ? Number(f.valor_pago) : null),
+  nf_numero: (f: FacaMapa) => f.nf_numero,
   cliente: (f: FacaMapa) => f.cliente_nota,
   obs: (f: FacaMapa) => f.obs,
 };
@@ -137,6 +139,7 @@ type NovaForm = {
   conjugada: string;
   fornecedor: string;
   valor_pago: string;
+  nf_numero: string;
   cliente_nota: string;
   obs: string;
 };
@@ -158,6 +161,7 @@ const EMPTY_NOVA: NovaForm = {
   conjugada: '',
   fornecedor: '',
   valor_pago: '',
+  nf_numero: '',
   cliente_nota: '',
   obs: '',
 };
@@ -198,6 +202,7 @@ export function MapasFacasPage() {
     conjugada: '',
     fornecedor: '',
     valor_pago: '',
+    nf_numero: '',
     cliente_nota: '',
     obs: '',
   });
@@ -219,6 +224,7 @@ export function MapasFacasPage() {
       conjugada: selected.conjugada ?? '',
       fornecedor: selected.fornecedor ?? '',
       valor_pago: selected.valor_pago != null ? String(selected.valor_pago) : '',
+      nf_numero: selected.nf_numero ?? '',
       cliente_nota: selected.cliente_nota ?? '',
       obs: selected.obs ?? '',
     });
@@ -422,6 +428,7 @@ export function MapasFacasPage() {
         conjugada: editMeta.conjugada.trim() || null,
         fornecedor: editMeta.fornecedor.trim() || null,
         valor_pago: valorPago,
+        nf_numero: editMeta.nf_numero.trim() || null,
         cliente_nota: editMeta.cliente_nota.trim() || null,
         obs: editMeta.obs.trim() || null,
       });
@@ -530,6 +537,7 @@ export function MapasFacasPage() {
         conjugada: nova.conjugada.trim() || null,
         fornecedor: nova.fornecedor.trim() || null,
         valor_pago: valorPago,
+        nf_numero: nova.nf_numero.trim() || null,
         cliente_nota: nova.cliente_nota.trim() || null,
         obs: nova.obs.trim() || null,
       });
@@ -555,7 +563,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             {canWrite ? (
@@ -621,7 +629,7 @@ export function MapasFacasPage() {
             className="mapa-facas-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar medida, cliente, obs., fornecedor…"
+            placeholder="Buscar medida, cliente, obs., fornecedor, NF…"
             aria-label="Buscar facas"
           />
           <select
@@ -761,6 +769,9 @@ export function MapasFacasPage() {
                       >
                         Valor pago
                       </SortableTh>
+                      <SortableTh column="nf_numero" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="Nº NF">
+                        Nº NF
+                      </SortableTh>
                       <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Cliente
                       </SortableTh>
@@ -772,7 +783,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={12} className="mapa-facas-empty-cell">
+                        <td colSpan={13} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -851,6 +862,9 @@ export function MapasFacasPage() {
                               {f.fornecedor || '—'}
                             </td>
                             <td className="num">{fmtMoney(f.valor_pago)}</td>
+                            <td className="nf" title={f.nf_numero || undefined}>
+                              {f.nf_numero || '—'}
+                            </td>
                             <td className="cliente" title={f.cliente_nota || undefined}>
                               {f.cliente_nota || '—'}
                             </td>
@@ -872,7 +886,7 @@ export function MapasFacasPage() {
           {!selected ? (
             <div className="card-body mapa-facas-detail-empty">
               <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (medida, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago e grupo ORC podem acompanhar a operação desta empresa.</p>
+              <p className="hint">Geometria (medida, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
             </div>
           ) : (
             <div className="card-body mapa-facas-detail-body">
@@ -949,6 +963,10 @@ export function MapasFacasPage() {
                 <div>
                   <dt>Valor pago</dt>
                   <dd>{fmtMoney(selected.valor_pago)}</dd>
+                </div>
+                <div>
+                  <dt>Nº NF</dt>
+                  <dd title={selected.nf_numero || undefined}>{selected.nf_numero || '—'}</dd>
                 </div>
                 <div>
                   <dt>Conjugada</dt>
@@ -1097,6 +1115,16 @@ export function MapasFacasPage() {
                         onChange={(e) => setEditMeta((p) => ({ ...p, valor_pago: e.target.value }))}
                         inputMode="decimal"
                         placeholder="ex.: 1250,00"
+                      />
+                    </label>
+                    <label className="form-group">
+                      <span>Nº NF</span>
+                      <input
+                        value={editMeta.nf_numero}
+                        onChange={(e) => setEditMeta((p) => ({ ...p, nf_numero: e.target.value }))}
+                        maxLength={40}
+                        placeholder="ex.: 123456"
+                        autoComplete="off"
                       />
                     </label>
                     <label className="form-group span-full">
@@ -1356,6 +1384,16 @@ export function MapasFacasPage() {
                     onChange={(e) => setNova((p) => ({ ...p, valor_pago: e.target.value }))}
                     inputMode="decimal"
                     placeholder="ex.: 1250,00"
+                  />
+                </label>
+                <label className="form-group">
+                  <span>Nº NF</span>
+                  <input
+                    value={nova.nf_numero}
+                    onChange={(e) => setNova((p) => ({ ...p, nf_numero: e.target.value }))}
+                    maxLength={40}
+                    placeholder="ex.: 123456"
+                    autoComplete="off"
                   />
                 </label>
                 <label className="form-group span-full">

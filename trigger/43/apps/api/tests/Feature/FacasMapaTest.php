@@ -120,12 +120,19 @@ class FacasMapaTest extends TestCase
             'repeticao' => 1.5,
             'largura_faca' => 9.9,
             'cliente_nota' => 'TESTE MAPA',
+            'nf_numero' => 'NF-99001',
         ]);
         $create->assertCreated();
         $id = (int) $create->json('data.id');
         $this->assertTrue($create->json('data.ativo'));
         $this->assertTrue($create->json('data.completa'));
+        $this->assertSame('NF-99001', $create->json('data.nf_numero'));
         $this->assertStringContainsString('9,9X9,9', (string) $create->json('data.label'));
+
+        $porNf = $this->withHeaders($hdr)->getJson('/api/v1/facas?q=NF-99001');
+        $porNf->assertOk();
+        $this->assertSame(1, $porNf->json('total'));
+        $this->assertSame('NF-99001', $porNf->json('items.0.nf_numero'));
 
         $inativar = $this->withHeaders($hdr)->patchJson("/api/v1/facas/{$id}/ativo", ['ativo' => false]);
         $inativar->assertOk();
@@ -200,6 +207,7 @@ class FacasMapaTest extends TestCase
             'fornecedor' => 'Ferramental X',
             'n_facas' => 2,
             'valor_pago' => 1250.50,
+            'nf_numero' => '458721',
             'colunas_mapa' => '3',
             'contorno_svg' => '<path d="M10 10 L90 90"/>',
         ]);
@@ -209,6 +217,7 @@ class FacasMapaTest extends TestCase
         $this->assertSame('Ferramental X', $patch->json('data.fornecedor'));
         $this->assertSame(2, $patch->json('data.n_facas'));
         $this->assertEquals(1250.50, (float) $patch->json('data.valor_pago'));
+        $this->assertSame('458721', $patch->json('data.nf_numero'));
         $this->assertSame('3', $patch->json('data.colunas_mapa'));
         $this->assertStringContainsString('<path', strtolower((string) $patch->json('data.contorno_svg')));
         $this->assertEquals($puxada, $patch->json('data.puxada'));
