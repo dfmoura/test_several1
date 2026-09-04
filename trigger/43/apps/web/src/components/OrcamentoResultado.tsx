@@ -681,9 +681,9 @@ function ComercialFaixasTable({
               sortDir={sortDir}
               onSort={requestSort}
               className="num"
-              label="Total das etiquetas"
+              label="Subtotal das etiquetas"
             >
-              Total
+              Subtotal
             </SortableTh>
             <SortableTh
               column="unitario"
@@ -797,7 +797,9 @@ function GuiaProducaoPanel({
   return (
     <>
       <p className="orc-result-meta">
-        Lista operacional do que o cálculo prevê para produzir — sem preços.
+        Lista operacional na mesma sequência da composição comercial — consumos
+        físicos, sem preços. Troca produto e troca bobina em linhas próprias;
+        faca e artes ao final.
       </p>
       {faixas.length > 1 ? (
         <div className="btn-row" style={{ marginBottom: '0.75rem' }}>

@@ -87,6 +87,11 @@ function cm(value: unknown): string {
 /**
  * Lista operacional do que será usado para produzir a faixa selecionada.
  * Só quantidades físicas — sem R$ (PRODUCAO §2.6 / ADR-039-ORC-004).
+ *
+ * Ordem espelha a aba **Composição comercial** (`buildParametrosAjusteLinhas`):
+ * Papel → Máquina → Troca produto → Troca bobina → Tinta → Acabamento →
+ * Rebobinação → Tubete → Caixa; depois extras operacionais (Faca, Artes).
+ * Comissão / imposto / frete ficam de fora (proibidos na guia).
  */
 export function buildGuiaProducaoLinhas(
   espec: OrcGuiaProducaoEspec | null | undefined,
@@ -108,6 +113,9 @@ export function buildGuiaProducaoLinhas(
   const rolos = Number(faixa.rolos) || 0;
   const caixas = Number(faixa.qtde_caixas) || 0;
   const q = Number(faixa.quantidade) || 0;
+  const horaMaq = Number(faixa.hora_maq) || 0;
+  const horaTrocaProd = Number(faixa.hora_troca_prod) || 0;
+  const horaTrocaBobina = Number(faixa.hora_troca_bobina) || 0;
 
   const medida = txt(espec.medida);
   const formato = txt(espec.formato_faca, '');
@@ -116,24 +124,12 @@ export function buildGuiaProducaoLinhas(
   const facaNova = Boolean(espec.faca_nova);
   const matrizFlag = String(espec.matriz ?? 'SIM').toUpperCase();
   const cobraMatrizHint = ['SIM', 'S', 'YES', 'TRUE', '1'].includes(matrizFlag);
+  const tipoTroca = txt(espec.tipo_troca_produto, '');
 
-  linhas.push({
-    grupo: 'ferramental',
-    item: facaNova ? 'Faca nova' : 'Faca',
-    especificacao: [medida, formato || null, posFaca, z != null ? `Z ${formatDecimalBr(z, 0)}` : null]
-      .filter(Boolean)
-      .join(' · '),
-    quantidade: facaNova ? '1 un.' : 'conforme mapa',
-    nota: facaNova
-      ? 'Ferramental a fabricar / cotar (prazo extra na proposta).'
-      : cobraMatrizHint
-        ? 'Matriz conforme política do 1º pedido deste modelo.'
-        : undefined,
-  });
-
+  // 1 — Papel (mesmo slot da composição comercial)
   linhas.push({
     grupo: 'material',
-    item: 'Papel / filme',
+    item: 'Papel',
     especificacao: [
       txt(espec.papel),
       `largura ${cm(espec.largura_cm)}`,
@@ -152,6 +148,48 @@ export function buildGuiaProducaoLinhas(
       .join(' · '),
   });
 
+  // 2 — Máquina (tempo de impressão; trocas em linhas próprias abaixo)
+  linhas.push({
+    grupo: 'maquina',
+    item: 'Máquina',
+    especificacao: [
+      txt(espec.maquina),
+      txt(espec.cores) !== '—' ? `${txt(espec.cores)} cor(es)` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+    quantidade: qty(horaMaq, 2, 'h'),
+    nota:
+      num(espec.rpm) != null
+        ? `${formatDecimalBr(num(espec.rpm)!, 0)} rpm`
+        : undefined,
+  });
+
+  // 3 — Troca produto
+  linhas.push({
+    grupo: 'processo',
+    item: 'Troca produto',
+    especificacao: tipoTroca || 'conforme tipo de troca',
+    quantidade: horaTrocaProd > 0 ? qty(horaTrocaProd, 2, 'h') : '—',
+    nota:
+      perdaTroca > 0
+        ? `perda de papel na troca ${qty(perdaTroca, 2, 'm²')}`
+        : undefined,
+  });
+
+  // 4 — Troca bobina
+  linhas.push({
+    grupo: 'processo',
+    item: 'Troca bobina',
+    especificacao: 'parada / troca de bobina',
+    quantidade: horaTrocaBobina > 0 ? qty(horaTrocaBobina, 2, 'h') : '—',
+    nota:
+      perdaBobina > 0
+        ? `perda de papel ${qty(perdaBobina, 2, 'm²')}`
+        : undefined,
+  });
+
+  // 5 — Tinta
   const cores = txt(espec.cores);
   if (cores !== '—' && cores !== '0') {
     linhas.push({
@@ -163,6 +201,7 @@ export function buildGuiaProducaoLinhas(
     });
   }
 
+  // 6 — Acabamento
   const acab = txt(espec.acabamento);
   if (acab !== '—' && !/^sem\s/i.test(acab)) {
     linhas.push({
@@ -185,6 +224,15 @@ export function buildGuiaProducaoLinhas(
     });
   }
 
+  // 7 — Rebobinação
+  linhas.push({
+    grupo: 'processo',
+    item: 'Rebobinação',
+    especificacao: `coluna reb. ${txt(espec.coluna_rebobinacao, '1')}`,
+    quantidade: qty(metragem, 1, 'm lineares'),
+  });
+
+  // 8 — Tubete
   linhas.push({
     grupo: 'embalagem',
     item: 'Tubete',
@@ -193,6 +241,7 @@ export function buildGuiaProducaoLinhas(
     nota: `${txt(espec.etiq_por_rolo)} etiq./rolo · ${qty(q, 0, 'etiq.')}`,
   });
 
+  // 9 — Caixa
   linhas.push({
     grupo: 'embalagem',
     item: 'Caixa',
@@ -204,32 +253,19 @@ export function buildGuiaProducaoLinhas(
         : undefined,
   });
 
+  // Extras operacionais (Totais da composição: Matriz / Faca — sem R$)
   linhas.push({
-    grupo: 'maquina',
-    item: 'Máquina',
-    especificacao: txt(espec.maquina),
-    quantidade: qty(Number(faixa.hora_maq), 2, 'h'),
-    nota: [
-      num(espec.rpm) != null ? `${formatDecimalBr(num(espec.rpm)!, 0)} rpm` : null,
-      Number(faixa.hora_troca_prod) > 0
-        ? `troca produto ${qty(Number(faixa.hora_troca_prod), 2, 'h')}`
-        : null,
-      Number(faixa.hora_troca_bobina) > 0
-        ? `troca bobina ${qty(Number(faixa.hora_troca_bobina), 2, 'h')}`
-        : null,
-    ]
+    grupo: 'ferramental',
+    item: facaNova ? 'Faca nova' : 'Faca',
+    especificacao: [medida, formato || null, posFaca, z != null ? `Z ${formatDecimalBr(z, 0)}` : null]
       .filter(Boolean)
-      .join(' · ') || undefined,
-  });
-
-  linhas.push({
-    grupo: 'processo',
-    item: 'Rebobinação',
-    especificacao: `coluna reb. ${txt(espec.coluna_rebobinacao, '1')}`,
-    quantidade: qty(metragem, 1, 'm lineares'),
-    nota: txt(espec.tipo_troca_produto, '')
-      ? `troca de produto: ${txt(espec.tipo_troca_produto)}`
-      : undefined,
+      .join(' · '),
+    quantidade: facaNova ? '1 un.' : 'conforme mapa',
+    nota: facaNova
+      ? 'Ferramental a fabricar / cotar (prazo extra na proposta).'
+      : cobraMatrizHint
+        ? 'Matriz conforme política do 1º pedido deste modelo.'
+        : undefined,
   });
 
   const modelos = (modelosComposicao ?? []).filter((m) => String(m.nome ?? '').trim() !== '');

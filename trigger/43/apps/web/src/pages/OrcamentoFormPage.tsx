@@ -40,6 +40,7 @@ import { formatDate } from '../lib/format';
 import {
   TIPO_CESSAO_BEM,
   TIPO_INDUSTRIALIZACAO,
+  TIPO_OPERACAO_LABELS,
   TIPO_SERVICO,
   type TipoOperacaoSaida,
   type TipoServicoSaida,
@@ -589,18 +590,21 @@ export function OrcamentoFormPage() {
         <div className="card-body">
           <section className="orc-section">
             <label className="orc-section-label">Tipo de operação</label>
-            <div className="orc-modo-tabs" role="tablist" aria-label="Tipo de operação">
+            <div className="orc-modo-tabs orc-modo-tabs-tipo-op" role="tablist" aria-label="Tipo de operação">
               {(
                 catalog?.tipos_operacao ?? [
                   {
                     codigo: TIPO_INDUSTRIALIZACAO,
-                    label: 'Produção de etiquetas',
+                    label: TIPO_OPERACAO_LABELS[TIPO_INDUSTRIALIZACAO],
                     resumo: '',
                   },
-                  { codigo: TIPO_SERVICO, label: 'Prestação de serviço', resumo: '' },
-                  { codigo: TIPO_CESSAO_BEM, label: 'Cessão de equipamento', resumo: '' },
+                  { codigo: TIPO_SERVICO, label: TIPO_OPERACAO_LABELS[TIPO_SERVICO], resumo: '' },
+                  { codigo: TIPO_CESSAO_BEM, label: TIPO_OPERACAO_LABELS[TIPO_CESSAO_BEM], resumo: '' },
                 ]
-              ).map((t) => (
+              ).map((t) => {
+                const codigo = t.codigo as TipoOperacaoSaida;
+                const label = TIPO_OPERACAO_LABELS[codigo] ?? t.label;
+                return (
                 <button
                   key={t.codigo}
                   type="button"
@@ -609,11 +613,12 @@ export function OrcamentoFormPage() {
                   className={form.tipo_operacao === t.codigo ? 'active' : ''}
                   disabled={!canWrite}
                   title={t.resumo}
-                  onClick={() => setTipoOperacao(t.codigo as TipoOperacaoSaida)}
+                  onClick={() => setTipoOperacao(codigo)}
                 >
-                  {t.label}
+                  {label}
                 </button>
-              ))}
+                );
+              })}
             </div>
             {form.tipo_operacao === TIPO_CESSAO_BEM ? (
               <div className="orc-cessao-aviso">
@@ -756,6 +761,46 @@ export function OrcamentoFormPage() {
                     />
                   </div>
                 ) : null}
+                <div className="form-group">
+                  <label>Prazo (d.úteis)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.prazo_entrega_dias}
+                    onChange={(e) => setField('prazo_entrega_dias', Number(e.target.value) || 1)}
+                    disabled={!canWrite}
+                  />
+                  {previsaoEntrega?.data_entrega_prevista ? (
+                    <span className="field-note">
+                      Entrega prevista (hoje):{' '}
+                      <strong>{formatDate(previsaoEntrega.data_entrega_prevista)}</strong>
+                      {previsaoEntrega.prazo_efetivo_dias !== form.prazo_entrega_dias
+                        ? ` · ${previsaoEntrega.prazo_efetivo_dias} d.úteis efetivos`
+                        : null}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="form-group">
+                  <label>Validade (dias)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.validade_dias}
+                    onChange={(e) => setField('validade_dias', Number(e.target.value) || 1)}
+                    disabled={!canWrite}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tolerância qtd %</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={form.tolerancia_qtd_pct}
+                    onChange={(e) => setField('tolerancia_qtd_pct', Number(e.target.value) || 0)}
+                    disabled={!canWrite}
+                  />
+                </div>
                 <ParceiroCombobox
                   className="span-full"
                   label="Vendedor"
@@ -1097,46 +1142,6 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                 />
               </div>
-              <div className="form-group">
-                <label>Prazo (d.úteis)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.prazo_entrega_dias}
-                  onChange={(e) => setField('prazo_entrega_dias', Number(e.target.value) || 1)}
-                  disabled={!canWrite}
-                />
-                {previsaoEntrega?.data_entrega_prevista ? (
-                  <span className="field-note">
-                    Entrega prevista (hoje):{' '}
-                    <strong>{formatDate(previsaoEntrega.data_entrega_prevista)}</strong>
-                    {previsaoEntrega.prazo_efetivo_dias !== form.prazo_entrega_dias
-                      ? ` · ${previsaoEntrega.prazo_efetivo_dias} d.úteis efetivos`
-                      : null}
-                  </span>
-                ) : null}
-              </div>
-              <div className="form-group">
-                <label>Validade (dias)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.validade_dias}
-                  onChange={(e) => setField('validade_dias', Number(e.target.value) || 1)}
-                  disabled={!canWrite}
-                />
-              </div>
-              <div className="form-group">
-                <label>Tolerância qtd %</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  value={form.tolerancia_qtd_pct}
-                  onChange={(e) => setField('tolerancia_qtd_pct', Number(e.target.value) || 0)}
-                  disabled={!canWrite}
-                />
-              </div>
             </div>
           </section>
             </>
@@ -1184,32 +1189,6 @@ export function OrcamentoFormPage() {
                     maxLength={8}
                     disabled={!canWrite}
                     onChange={(e) => setField('unidade_servico', e.target.value.toUpperCase())}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Prazo (d.úteis)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.prazo_entrega_dias}
-                    onChange={(e) => setField('prazo_entrega_dias', Number(e.target.value) || 1)}
-                    disabled={!canWrite}
-                  />
-                  {previsaoEntrega?.data_entrega_prevista ? (
-                    <span className="field-note">
-                      Entrega prevista (hoje):{' '}
-                      <strong>{formatDate(previsaoEntrega.data_entrega_prevista)}</strong>
-                    </span>
-                  ) : null}
-                </div>
-                <div className="form-group">
-                  <label>Validade (dias)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.validade_dias}
-                    onChange={(e) => setField('validade_dias', Number(e.target.value) || 1)}
-                    disabled={!canWrite}
                   />
                 </div>
                 <div className="form-group span-full">

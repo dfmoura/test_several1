@@ -263,7 +263,12 @@ export function OrcamentoDetailPage() {
     <>
       <PageHeader
         title={orc.codigo}
-        description={`${orc.cliente_nome} · v${orc.versao}`}
+        description={
+          <>
+            <span className="page-header-lead">{orc.cliente_nome}</span>
+            <span className="page-header-aside"> · v{orc.versao}</span>
+          </>
+        }
         actions={
           <div className="btn-row">
             <Link to="/orcamentos" className="btn btn-secondary">
@@ -500,49 +505,39 @@ export function OrcamentoDetailPage() {
         </div>
       ) : null}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="card orc-detail-resumo" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <div className="orc-detail-meta">
-            <div>
-              <span>Status</span>
-              <strong>
-                <StatusPill status={statusOrcPill(orc.status, orc.financeiro_status)} />
-              </strong>
-            </div>
-            {produtoFlexorc.financeiro && orc.financeiro_status === 'AGUARDA_ADIANTAMENTO' ? (
-              <div>
-                <span>Financeiro</span>
-                <strong>Aguardando pagamento (PIX)</strong>
-              </div>
-            ) : produtoFlexorc.financeiro && orc.financeiro_status === 'LIBERADO' ? (
-              <div>
-                <span>Financeiro</span>
-                <strong>Liberado</strong>
-              </div>
-            ) : produtoFlexorc.financeiro && orc.financeiro_status ? (
-              <div>
-                <span>Financeiro</span>
-                <strong>{orc.financeiro_status}</strong>
-              </div>
-            ) : null}
-            <div>
+          <div className="orc-detail-resumo-head">
+            <div className="orc-detail-parceiro">
               <span>Parceiro</span>
-              <strong>
+              <strong className="orc-detail-parceiro-nome">
                 {orc.parceiro?.codigo ?? '—'} — {orc.cliente_nome}
-                {orc.parceiro?.is_prospect ? ' (prospect)' : ''}
-                {orc.result_snapshot?.frete ? (
-                  <span className="field-note">
-                    {' '}
-                    · {modoEntregaLabel(orc.result_snapshot.frete.modo)}
-                  </span>
-                ) : (
-                  <span className="field-note">
-                    {' '}
-                    · {modoEntregaLabel(String(input.modo_entrega ?? ''))}
-                  </span>
-                )}
+                {orc.parceiro?.is_prospect ? (
+                  <span className="orc-detail-parceiro-tag">Prospect</span>
+                ) : null}
               </strong>
+              <span className="orc-detail-parceiro-entrega">
+                {orc.result_snapshot?.frete
+                  ? modoEntregaLabel(orc.result_snapshot.frete.modo)
+                  : modoEntregaLabel(String(input.modo_entrega ?? ''))}
+              </span>
             </div>
+            <div className="orc-detail-status">
+              <span className="orc-detail-status-label">Status</span>
+              <div className="orc-detail-status-pills">
+                <StatusPill status={statusOrcPill(orc.status, orc.financeiro_status)} />
+                {produtoFlexorc.financeiro && orc.financeiro_status === 'LIBERADO' ? (
+                  <StatusPill status="Liberado" />
+                ) : produtoFlexorc.financeiro &&
+                  orc.financeiro_status === 'AGUARDA_ADIANTAMENTO' &&
+                  orc.status !== 'APROVADO' ? (
+                  <StatusPill status="Aguardando pagamento" />
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="orc-detail-meta">
             {orc.vendedor ? (
               <div>
                 <span>Vendedor</span>
@@ -605,7 +600,7 @@ export function OrcamentoDetailPage() {
           </div>
 
           {orc.motivo_decisao && orc.status === 'REPROVADO' ? (
-            <p style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+            <p className="orc-detail-motivo-recusa">
               <strong>Motivo da recusa:</strong> {orc.motivo_decisao}
             </p>
           ) : null}

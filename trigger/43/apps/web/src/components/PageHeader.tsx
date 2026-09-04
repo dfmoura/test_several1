@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 
 type PageHeaderProps = {
   title: string;
-  description?: string;
+  /** Texto simples ou markup (ex.: lead do cliente + meta da versão). */
+  description?: ReactNode;
   actions?: ReactNode;
 };
 
@@ -12,7 +13,9 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
       <div className="page-header-row">
         <div>
           <h1>{title}</h1>
-          {description && <p>{description}</p>}
+          {description != null && description !== '' && (
+            <p className="page-header-desc">{description}</p>
+          )}
         </div>
         {actions && <div className="page-header-actions">{actions}</div>}
       </div>

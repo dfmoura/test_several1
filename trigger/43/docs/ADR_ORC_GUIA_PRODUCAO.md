@@ -45,6 +45,10 @@ input_snapshot + result_snapshot.faixas[i]
 - Tab pill existente; default continua **Proposta comercial**.
 - Tabela legível (item · especificação · qtde/unidade · nota).
 - Hint curto: estimativa do orçamento; baixa real fica na OP futura.
+- **Sequência alinhada à Composição comercial** (`buildParametrosAjusteLinhas`):
+  Papel → Máquina → Troca produto → Troca bobina → Tinta → Acabamento →
+  Rebobinação → Tubete → Caixa; depois extras operacionais (Faca, Artes).
+  Comissão / imposto / frete **não** entram (regra 2 / Proibido §2).
 
 ---
 

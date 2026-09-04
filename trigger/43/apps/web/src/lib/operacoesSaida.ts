@@ -18,11 +18,18 @@ export function tipoOperacaoFromSnap(snap: Record<string, unknown> | null | unde
   return TIPO_INDUSTRIALIZACAO;
 }
 
+/** Rótulos de UI — espelham TipoOperacaoSaida::metaForUi() (API). */
+export const TIPO_OPERACAO_LABELS: Record<TipoOperacaoSaida, string> = {
+  [TIPO_INDUSTRIALIZACAO]: 'Venda de Produto',
+  [TIPO_SERVICO]: 'Prestação de serviços',
+  [TIPO_CESSAO_BEM]: 'Cessão de equipamento',
+};
+
 export function tipoOperacaoLabel(tipo: string | null | undefined): string {
   const t = String(tipo || '').toUpperCase();
-  if (t === TIPO_SERVICO) return 'Serviço';
-  if (t === TIPO_CESSAO_BEM) return 'Cessão';
-  return 'Etiquetas';
+  if (t === TIPO_SERVICO) return TIPO_OPERACAO_LABELS[TIPO_SERVICO];
+  if (t === TIPO_CESSAO_BEM) return TIPO_OPERACAO_LABELS[TIPO_CESSAO_BEM];
+  return TIPO_OPERACAO_LABELS[TIPO_INDUSTRIALIZACAO];
 }
 
 export function tipoServicoLabel(tipo: string | null | undefined): string {

@@ -57,12 +57,12 @@ final class TipoOperacaoSaida
         return [
             [
                 'codigo' => self::INDUSTRIALIZACAO,
-                'label' => 'Produção de etiquetas',
+                'label' => 'Venda de Produto',
                 'resumo' => 'Industrialização ou revenda. Orçamento técnico, ordem de produção e NF-e.',
             ],
             [
                 'codigo' => self::SERVICO,
-                'label' => 'Prestação de serviço',
+                'label' => 'Prestação de serviços',
                 'resumo' => 'Rebobinação, acerto, manutenção. Ordem de serviço e NFS-e Nacional. Sem produto acabado próprio.',
             ],
             [

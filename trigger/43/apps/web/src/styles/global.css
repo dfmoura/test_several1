@@ -637,10 +637,30 @@ textarea {
   color: var(--navy-dark);
 }
 
-.page-header p {
+.page-header p,
+.page-header-desc {
   margin: 0.35rem 0 0;
   color: var(--text-muted);
   font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+/* Sujeito do documento (cliente) — abaixo do código, acima da meta */
+.page-header-lead {
+  display: inline;
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy-dark);
+  line-height: 1.35;
+}
+
+.page-header-aside {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0;
 }
 
 .page-header-actions {
@@ -3594,6 +3614,11 @@ table.data-table td.acoes {
   max-width: 32rem;
 }
 
+.orc-modo-tabs.orc-modo-tabs-tipo-op {
+  max-width: min(48rem, 100%);
+  width: max-content;
+}
+
 .orc-modo-tabs button {
   flex: 1;
   border: 0;
@@ -3605,6 +3630,12 @@ table.data-table td.acoes {
   color: var(--text-muted);
   cursor: pointer;
   font-family: inherit;
+}
+
+.orc-modo-tabs.orc-modo-tabs-tipo-op button {
+  flex: 0 1 auto;
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
 }
 
 .orc-modo-tabs button:disabled {
@@ -3619,14 +3650,18 @@ table.data-table td.acoes {
 }
 
 .orc-modo-tabs.orc-modo-tabs-sub {
-  max-width: 22rem;
+  max-width: min(28rem, 100%);
+  width: max-content;
   margin: 0.35rem 0 0;
   padding: 0.2rem;
+  flex-shrink: 0;
 }
 
 .orc-modo-tabs.orc-modo-tabs-sub button {
+  flex: 0 1 auto;
+  white-space: nowrap;
   font-size: 0.82rem;
-  padding: 0.4rem 0.65rem;
+  padding: 0.4rem 0.85rem;
 }
 
 .orc-modo-tabs.orc-modo-tabs-entrega {
@@ -4266,10 +4301,177 @@ table.data-table td.acoes {
   color: var(--text);
 }
 
+/* Resumo do ORC — hierarquia: parceiro + status, depois meta secundária */
+.orc-detail-resumo > .card-body {
+  padding: 1rem 1.15rem 1.05rem;
+}
+
+.orc-detail-resumo-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.9rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.orc-detail-parceiro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.orc-detail-parceiro > span:first-child {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.orc-detail-parceiro-nome {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy-dark);
+  line-height: 1.3;
+}
+
+.orc-detail-parceiro-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  vertical-align: 0.15em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.orc-detail-parceiro-entrega {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.orc-detail-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(26, 53, 104, 0.04);
+  border: 1px solid var(--border);
+  min-width: 9.5rem;
+}
+
+.orc-detail-status-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.orc-detail-status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.orc-detail-status .status-pill {
+  font-size: 0.8rem;
+  padding: 0.32rem 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+/* Meta secundária em faixa (uma linha) — sem grid de 3 colunas */
+.orc-detail-resumo .orc-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0;
+  grid-template-columns: none;
+}
+
+.orc-detail-resumo .orc-detail-meta > div {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.4rem;
+  padding-right: 0.9rem;
+  margin-right: 0.9rem;
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+
+.orc-detail-resumo .orc-detail-meta > div:last-child {
+  border-right: none;
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.orc-detail-resumo .orc-detail-meta span {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.orc-detail-resumo .orc-detail-meta strong {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.orc-detail-motivo-recusa {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
 .orc-lock-note {
   margin: 0.85rem 0 0;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .orc-detail-resumo-head {
+    flex-direction: column;
+  }
+
+  .orc-detail-status {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .orc-detail-status-pills {
+    justify-content: flex-start;
+  }
+
+  .orc-detail-resumo .orc-detail-meta > div {
+    border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+    width: 100%;
+  }
 }
 
 .orc-spec-grid {
