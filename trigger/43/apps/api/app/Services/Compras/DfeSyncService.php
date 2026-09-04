@@ -162,6 +162,15 @@ class DfeSyncService
                 return;
             }
 
+            if ($resultado->rejeitado()) {
+                $this->marcarErro(
+                    $empresa,
+                    'SEFAZ rejeitou a consulta DF-e ('.$resultado->cStat.'): '.$resultado->xMotivo,
+                );
+
+                return;
+            }
+
             $maxLotes = (int) config('erp.dfe.max_lotes_por_corrida', 5);
             $continuar = $resultado->temDocumentos()
                 && ! $resultado->esgotado()
@@ -181,17 +190,17 @@ class DfeSyncService
             }
 
             $estado->refresh();
-            if ($resultado->esgotado() || $rodada >= $maxLotes) {
-                if ($resultado->esgotado()) {
-                    $estado->primeira_hidratacao_completa = true;
-                }
-                $estado->sync_status = DfeSyncEstado::STATUS_IDLE;
-                $estado->sync_mensagem = $resultado->esgotado()
-                    ? 'Sincronização concluída ('.$resultado->xMotivo.').'
-                    : 'Sincronização parcial — clique em Atualizar para continuar.';
-                $estado->ultima_sync_em = now();
-                $estado->save();
+            $estado->sync_status = DfeSyncEstado::STATUS_IDLE;
+            $estado->ultima_sync_em = now();
+            if ($resultado->esgotado()) {
+                $estado->primeira_hidratacao_completa = true;
+                $estado->sync_mensagem = 'Sincronização concluída ('.$resultado->xMotivo.').';
+            } elseif ($rodada >= $maxLotes) {
+                $estado->sync_mensagem = 'Sincronização parcial — clique em Atualizar para continuar.';
+            } else {
+                $estado->sync_mensagem = trim($resultado->cStat.' — '.$resultado->xMotivo);
             }
+            $estado->save();
         } catch (Throwable $e) {
             Log::warning('dfe.sync.falha', [
                 'empresa_id' => $empresaId,
@@ -365,6 +374,11 @@ class DfeSyncService
         $estado->sync_status = DfeSyncEstado::STATUS_ERRO;
         $estado->sync_mensagem = mb_substr($mensagem, 0, 500);
         $estado->ultima_sync_em = now();
+        // Hidratação só é “completa” após 137/138 real — não após rejeição/656.
+        $ult = str_pad(preg_replace('/\D/', '', (string) $estado->ultimo_nsu) ?: '0', 15, '0', STR_PAD_LEFT);
+        if ($ult === '000000000000000') {
+            $estado->primeira_hidratacao_completa = false;
+        }
         $estado->save();
 
         // Volta a IDLE após registrar erro — UI pode tentar de novo.

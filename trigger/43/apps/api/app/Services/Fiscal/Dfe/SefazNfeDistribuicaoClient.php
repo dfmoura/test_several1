@@ -158,15 +158,15 @@ final class SefazNfeDistribuicaoClient implements DfeDistribuicaoClient
 
     private function montarEnvelope(string $distXml): string
     {
-        $escaped = htmlspecialchars($distXml, ENT_XML1 | ENT_QUOTES, 'UTF-8');
-
+        // nfeDadosMsg deve carregar o distDFeInt como XML filho (não escapado).
+        // htmlspecialchars gerava "Rejeicao: XML mal formado" no AN.
         return '<?xml version="1.0" encoding="utf-8"?>'
             .'<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
             .' xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
             .' xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">'
             .'<soap12:Body>'
             .'<nfeDistDFeInteresse xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe">'
-            .'<nfeDadosMsg>'.$escaped.'</nfeDadosMsg>'
+            .'<nfeDadosMsg>'.$distXml.'</nfeDadosMsg>'
             .'</nfeDistDFeInteresse>'
             .'</soap12:Body>'
             .'</soap12:Envelope>';

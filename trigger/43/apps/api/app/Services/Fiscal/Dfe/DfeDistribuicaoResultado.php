@@ -23,10 +23,28 @@ final class DfeDistribuicaoResultado
         return $this->cStat === '138' && $this->documentos !== [];
     }
 
+    /** cStat de sucesso do DF-e: 137 (vazio) ou 138 (com docs). */
+    public function ok(): bool
+    {
+        return $this->cStat === '137' || $this->cStat === '138';
+    }
+
+    public function rejeitado(): bool
+    {
+        return ! $this->ok() && $this->cStat !== '';
+    }
+
     public function esgotado(): bool
     {
-        return $this->cStat === '137'
-            || ($this->ultNsu !== '' && $this->maxNsu !== '' && $this->ultNsu === $this->maxNsu);
+        if ($this->cStat === '137') {
+            return true;
+        }
+
+        // Só considera “em dia” com NSUs iguais após lote 138 bem-sucedido.
+        return $this->cStat === '138'
+            && $this->ultNsu !== ''
+            && $this->maxNsu !== ''
+            && $this->ultNsu === $this->maxNsu;
     }
 
     public function consumoIndevido(): bool
