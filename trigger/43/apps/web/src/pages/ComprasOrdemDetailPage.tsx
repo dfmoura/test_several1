@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import {
@@ -104,9 +104,11 @@ function EspelhoFiscalPanel({
 
 export function ComprasOrdemDetailPage() {
   const { id } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
+  const dfeAutoRef = useRef<string | null>(null);
   const [oc, setOc] = useState<OrdemCompra | null>(null);
   const [naturezas, setNaturezas] = useState<NaturezaGerencial[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +164,37 @@ export function ComprasOrdemDetailPage() {
     !!oc &&
     hasPermission('estoque.escrever') &&
     (oc.status === 'ABERTA' || oc.status === 'PARCIAL');
+
+  useEffect(() => {
+    const dfeId = searchParams.get('dfe');
+    if (!dfeId || !oc || !canReceive) return;
+    if (dfeAutoRef.current === dfeId) return;
+    dfeAutoRef.current = dfeId;
+    void (async () => {
+      setError(null);
+      setMsg(null);
+      setXmlLoading(true);
+      try {
+        const res = await api.post<{
+          data: { preview: ReceberXmlPreview; xml: string; documento: { id: number } };
+        }>(`/ordens-compra/${oc.id}/receber/xml/preview-dfe`, {
+          dfe_documento_id: Number(dfeId),
+        });
+        setXmlContent(res.data.xml);
+        applyXmlPreview(res.data.preview);
+        setMsg('XML da caixa DF-e carregado — confira o de-para e confirme. Nada foi lançado ainda.');
+        const next = new URLSearchParams(searchParams);
+        next.delete('dfe');
+        setSearchParams(next, { replace: true });
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Falha ao carregar XML da caixa DF-e.');
+      } finally {
+        setXmlLoading(false);
+      }
+    })();
+    // applyXmlPreview is stable enough for this one-shot load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [oc, canReceive, searchParams, setSearchParams]);
 
   const applyXmlPreview = (preview: ReceberXmlPreview) => {
     setXmlPreview(preview);

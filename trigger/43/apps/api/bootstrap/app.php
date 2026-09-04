@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('plataforma:avisar-cortesia-billing')->dailyAt('08:00');
         // Cofre A1: lista EMPs com certificado a vencer / vencido (valido_ate).
         $schedule->command('plataforma:avisar-certificado-a1')->dailyAt('08:05');
+        // Caixa DF-e: delta NSU (fora do pico) — BL-093.
+        $schedule->command('dfe:sync-delta')->dailyAt('06:15');
     })
     ->withMiddleware(function (Middleware $middleware) {
         // Auth por Bearer token (Sanctum personal access) — sem cookie/CSRF SPA.

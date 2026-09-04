@@ -74,6 +74,8 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 
 **NF-e de entrada (F5_NFE_ENT):** XML + conferência na **OC** (`receber`); Estoque lista MOV/espelho e aponta para a OC. Virada/legado = AJU A03. Sem entrada sem OC.
 
+**Caixa DF-e (F5_DFE_CX):** área estacionária em Compras (`/compras/nfe-destinadas`) — sync DF-e + buscar XML + amarrar OC → assist/`receber()`. Norma: `ADR_CAIXA_DFE_NFE_DESTINADAS.md`.
+
 **Fatia `ate_envio_link`:** sem sinal/financeiro na UX; PED não é disparado no aceite — não exibir CTA “Ver pedido” fantasma.
 
 ---
@@ -88,6 +90,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 | OP detalhe | **Passos da ordem**: separar → produzir → concluir (retorno/perda/PA) → pedido; resultado após `CONCLUIDA` |
 | Estoque | Card **Entrada e documentos** → OC (NF-e) · ajustes/virada · produtos |
 | Produtos | Papel no fluxo (compra/estoque/OP) + links Estoque/OC |
+| Compras (quando `F5_DFE_CX`) | **Caixa DF-e** → amarrar opcional à OC → assist/`receber()` |
 | Painel | Filas/KPI de ação apenas (`ADR_PAINEL_COCKPIT`) |
 
 Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dashboard paralelo.
@@ -111,5 +114,6 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  
 - Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)  
 - Compras→estoque: [`ADR_COMPRAS_ATE_ESTOQUE.md`](ADR_COMPRAS_ATE_ESTOQUE.md)  
+- Caixa DF-e: [`ADR_CAIXA_DFE_NFE_DESTINADAS.md`](ADR_CAIXA_DFE_NFE_DESTINADAS.md)  
 - Inventário/legado: [`ADR_ESTOQUE_INVENTARIO_AJUSTE.md`](ADR_ESTOQUE_INVENTARIO_AJUSTE.md)  
 - Saída: [`ADR_OPERACOES_SAIDA.md`](ADR_OPERACOES_SAIDA.md) · [`ADR_FATURAMENTO_COBRANCA.md`](ADR_FATURAMENTO_COBRANCA.md) · [`ADR_ENTREGA_EXPEDICAO.md`](ADR_ENTREGA_EXPEDICAO.md)

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\BacklogController;
 use App\Http\Controllers\Api\V1\CondicaoPagamentoSugestaoController;
 use App\Http\Controllers\Api\V1\CalendarioController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
+use App\Http\Controllers\Api\V1\DfeCaixaController;
 use App\Http\Controllers\Api\V1\FeriadoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
@@ -248,6 +249,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/ordens-compra/{ordemCompra}/cancelar', [OrdemCompraController::class, 'cancel']);
         Route::post('/ordens-compra/{ordemCompra}/receber', [EstoqueController::class, 'receber']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview', [EstoqueController::class, 'receberXmlPreview']);
+
+        // Caixa DF-e (BL-090) — leitura local; sync SEFAZ = BL-091
+        Route::get('/dfe-documentos', [DfeCaixaController::class, 'index']);
+        Route::get('/dfe-documentos/{dfeDocumento}', [DfeCaixaController::class, 'show']);
+        Route::post('/dfe-documentos/{dfeDocumento}/amarrar', [DfeCaixaController::class, 'amarrar']);
+        Route::post('/dfe-documentos/{dfeDocumento}/buscar-xml', [DfeCaixaController::class, 'buscarXml']);
+        Route::post('/dfe-documentos/{dfeDocumento}/sem-interesse', [DfeCaixaController::class, 'semInteresse']);
+        Route::get('/dfe-sync', [DfeCaixaController::class, 'syncEstado']);
+        Route::post('/dfe-sync', [DfeCaixaController::class, 'enfileirarSync']);
+        Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview-dfe', [DfeCaixaController::class, 'previewNaOc']);
 
         Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
         Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);

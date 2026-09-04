@@ -51,6 +51,7 @@ import { ComprasNecessidadesPage } from './pages/ComprasNecessidadesPage';
 import { ComprasOrdemDetailPage } from './pages/ComprasOrdemDetailPage';
 import { ComprasOrdemFormPage } from './pages/ComprasOrdemFormPage';
 import { ComprasOrdensPage } from './pages/ComprasOrdensPage';
+import { ComprasNfeDestinadasPage } from './pages/ComprasNfeDestinadasPage';
 import { ComprasReposicaoPage } from './pages/ComprasReposicaoPage';
 import { EstoqueAjustesPage } from './pages/EstoqueAjustesPage';
 import { EstoqueExtratoPage } from './pages/EstoqueExtratoPage';
@@ -310,6 +311,14 @@ export default function App() {
           element={
             <PermissionRoute permission="compras.ler">
               <ComprasOrdensPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="compras/nfe-destinadas"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfeDestinadasPage />
             </PermissionRoute>
           }
         />

@@ -48,7 +48,8 @@ O ERP **não** fecha SPED nem publica “Livro de Entradas” oficial. O espelho
 ## Fora de escopo
 
 - Tela/export “Livro de Entradas” / EFD C100·C170  
-- Focus download / manifestação SEFAZ  
+- Download Focus (permanece fora)  
+- Caixa DF-e / sync destinadas → **`ADR_CAIXA_DFE_NFE_DESTINADAS.md`** (XML ainda chega ao espelho só via `receber()` na OC)  
 - Apuração de crédito / antecipação MG como guia  
 - Rateio IPI no custo médio  
 - Entrada sem OC · validação de assinatura  

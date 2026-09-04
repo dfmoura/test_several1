@@ -162,6 +162,14 @@ const NAV_GROUPS: NavGroup[] = [
           pathname === '/compras/ordens' || pathname.startsWith('/compras/ordens/'),
       },
       {
+        to: '/compras/nfe-destinadas',
+        label: 'NF-e destinadas',
+        icon: IconCompras,
+        permission: 'compras.ler',
+        isActivePath: (pathname) =>
+          pathname === '/compras/nfe-destinadas' || pathname.startsWith('/compras/nfe-destinadas/'),
+      },
+      {
         to: '/compras/reposicao',
         label: 'A repor',
         icon: IconCompras,

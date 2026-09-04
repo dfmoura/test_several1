@@ -377,6 +377,17 @@ final class ImplantacaoCatalogo
                 'paralelo' => true,
             ],
             [
+                'codigo' => 'F5_DFE_CX',
+                'nome' => 'Caixa de NF-e destinadas (DF-e)',
+                'porque' => 'XML do fisco contra o CNPJ da EMP; amarrar à OC só o que quiser — sem Focus, sem auto-receber.',
+                'onda' => 5,
+                'superficie' => self::SUPERFICIE_ERP,
+                'elo' => false,
+                'rota' => '/compras/nfe-destinadas',
+                'evidencia' => null,
+                'paralelo' => true,
+            ],
+            [
                 'codigo' => 'F5_LAYOUT',
                 'nome' => 'Posições de estoque',
                 'porque' => 'Onde cada material fica (layout).',

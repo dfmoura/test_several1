@@ -27,11 +27,11 @@ Empresas → guia Certificado A1
 | Permissão `empresas.gerir` + `hasEmpresaAccess` | Mesmo rigor do restante do cadastro EMP |
 | Aviso se CNPJ do cert ≠ CNPJ da EMP | Local/homolog/teste: não bloqueia o **upload** (alerta). Produção (`A1_EXIGE_CNPJ_IDENTICO` / stage production): recusa o arquivo |
 | Apto operacional = vigente + CNPJ idêntico | Checado **na hora do envio**, não só no upload. Sem CNPJ extraído = não apto |
-| Emissão NF continua Focus | Não altera BL-006/BL-065; cofre ≠ emissor |
+| Emissão NF continua Focus | Não altera BL-006/BL-065; cofre ≠ emissor de saída |
 
 ## Emenda — identidade da EMP no self-service (BL-072)
 
-No FLEXORC, o A1 da EMP é **prova de identidade** (não autorização SEFAZ). Enviar proposta na EMP self-service exige:
+No FLEXORC, o A1 da EMP é **prova de identidade** (não autorização SEFAZ de emissão). Enviar proposta na EMP self-service exige:
 
 1. Mensalidade da conta autenticada (já existia).
 2. A1 **apto** daquela `empresa_id` (vigente + CNPJ do certificado = CNPJ cadastrado).
@@ -60,12 +60,17 @@ A1 reais (3DES/RC2) exigem o **provider legacy** do OpenSSL 3. Sem ele, `openssl
 - Superfície: a mesma (`Empresas` → guia Certificado A1). Sem endpoint paralelo, sem PFX em disco, sem CLI de upload.
 - CNPJ: extraído de CN, `serialNumber`, OU/O e DN completo (padrão ICP-Brasil).
 
+## Emenda — assinatura DF-e de entrada (caixa destinadas)
+
+Além da identidade, o mesmo cofre autentica o **NFeDistribuicaoDFe** (Ambiente Nacional) na caixa de NF-e destinadas — **sem Focus**, **sem** emissão de saída. Norma: `ADR_CAIXA_DFE_NFE_DESTINADAS.md`. PFX continua só em memória no job; sem GET do binário; só homolog/prod + A1 apto.
+
 ## Proibido
 
 1. Devolver PFX, senha ou cipher na API/UI/logs.  
 2. Gravar A1 em plaintext ou em volume compartilhado legível.  
 3. Confiar só em `X-Empresa-Id` sem vínculo `empresa_user`.  
-4. Tratar o cofre como autorização SEFAZ — emissão oficial só com hub Focus apto.
+4. Tratar o cofre como autorização de **emissão** SEFAZ de saída — emissão oficial só com hub Focus apto.  
+5. Usar o A1 do cofre para inventar numeração / XML de venda fora do Focus.
 
 ## API
 

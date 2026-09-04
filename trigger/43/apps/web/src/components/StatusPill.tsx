@@ -37,7 +37,9 @@ function pillVariant(status: string): string {
     key === 'em_dia' ||
     key === 'paga' ||
     key === 'vigente' ||
-    key === 'cortesia'
+    key === 'cortesia' ||
+    key === 'disponivel' ||
+    key === 'amarrada'
   ) {
     return '--ativo';
   }
@@ -67,7 +69,8 @@ function pillVariant(status: string): string {
     key === 'em_andamento' ||
     key === 'planejada' ||
     key === 'nf_pendente' ||
-    key === 'suspensa'
+    key === 'suspensa' ||
+    key === 'nova'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';
@@ -82,7 +85,8 @@ function pillVariant(status: string): string {
     key === 'cancelada' ||
     key === 'estornado' ||
     key === 'estornada' ||
-    key === 'vencido'
+    key === 'vencido' ||
+    key === 'sem_interesse'
   ) {
     return '--bloqueado';
   }

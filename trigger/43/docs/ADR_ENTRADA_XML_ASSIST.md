@@ -41,7 +41,8 @@ Warnings (não bloqueiam): emitente ≠ fornecedor OC; dest ≠ CNPJ EMP.
 
 ## Fora de escopo
 
-- Focus download / manifestação SEFAZ  
+- Download Focus (permanece fora)  
+- Caixa DF-e / sync NFeDistribuicaoDFe / manifestação → **`ADR_CAIXA_DFE_NFE_DESTINADAS.md`** (alimenta este assist; não o substitui)  
 - Entrada sem OC  
 - Multi-TIT por parcelas da NF → **BL-038** / `ADR_ENTRADA_XML_PARCELAS.md`  
 - Espelho fiscal / persistência do XML → **BL-048** / `ADR_ENTRADA_XML_ESPELHO.md`  

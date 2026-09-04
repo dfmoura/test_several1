@@ -27,6 +27,22 @@ class EstoqueEntradaXmlService
      */
     public function preview(Empresa $empresa, OrdemCompra $oc, UploadedFile $file): array
     {
+        $content = (string) file_get_contents($file->getRealPath());
+
+        return $this->previewFromContent($empresa, $oc, $content, 'file');
+    }
+
+    /**
+     * Preview a partir do XML já em string (upload ou caixa DF-e).
+     *
+     * @return array<string, mixed>
+     */
+    public function previewFromContent(
+        Empresa $empresa,
+        OrdemCompra $oc,
+        string $content,
+        string $erroCampo = 'file',
+    ): array {
         if ($oc->empresa_id !== $empresa->id) {
             abort(404);
         }
@@ -37,18 +53,17 @@ class EstoqueEntradaXmlService
             ]);
         }
 
-        $content = (string) file_get_contents($file->getRealPath());
         try {
             $nfe = $this->extractor->extractCompra($content);
         } catch (\InvalidArgumentException $e) {
             throw ValidationException::withMessages([
-                'file' => [$e->getMessage()],
+                $erroCampo => [$e->getMessage()],
             ]);
         }
 
         if ($nfe['itens'] === []) {
             throw ValidationException::withMessages([
-                'file' => ['XML sem itens de produto (det/prod).'],
+                $erroCampo => ['XML sem itens de produto (det/prod).'],
             ]);
         }
 

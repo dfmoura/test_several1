@@ -75,7 +75,7 @@ OC- (sempre)
 
 ## Fora de escopo (esta entrega)
 
-- Focus download automático / manifestação SEFAZ completa (XML: assistência BL-037 / ADR_ENTRADA_XML_ASSIST; chave/NF ainda podem ser manuais).  
+- Focus download automático (permanece fora). Caixa DF-e / destinadas → `ADR_CAIXA_DFE_NFE_DESTINADAS.md` (XML assist = BL-037 / ADR_ENTRADA_XML_ASSIST; chave/NF ainda podem ser manuais).  
 - De-para `cProd` sem confirmação humana (persistência após receber = BL-037).  
 - OP / empenho / UC-CPR-005 (OP parada).  
 - Remessa de industrialização externa.  

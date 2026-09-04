@@ -10,6 +10,7 @@ use App\Models\OrdemCompra;
 use App\Models\OrdemCompraItem;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Services\Compras\DfeAmarrarService;
 use App\Services\Financeiro\TituloService;
 use App\Services\Fiscal\NfeEntradaService;
 use App\Support\PadraoDecimal;
@@ -30,6 +31,7 @@ class EstoqueEntradaService
         private readonly EstoqueSaldoWriter $saldos,
         private readonly EstoqueCongelamento $congelamento,
         private readonly NfeEntradaService $nfeEntradas,
+        private readonly DfeAmarrarService $dfeAmarrar,
     ) {}
 
     /**
@@ -259,6 +261,10 @@ class EstoqueEntradaService
                     $nfeSnapshot,
                     is_array($data['cprod_maps'] ?? null) ? $data['cprod_maps'] : [],
                 );
+                $chaveEspelho = preg_replace('/\D/', '', (string) ($nfeSnapshot['chave_nfe'] ?? $nfChave ?? '')) ?? '';
+                if (strlen($chaveEspelho) === 44) {
+                    $this->dfeAmarrar->marcarRecebidaPorChave($empresa, $chaveEspelho, (int) $oc->id);
+                }
             }
 
             return $movimento;

@@ -243,6 +243,36 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Caixa DF-e — NFeDistribuicaoDFe (sem Focus)
+    |--------------------------------------------------------------------------
+    |
+    | Sync só em homolog/production + A1 apto. UI enfileira; job fala com o AN.
+    | driver=fake: testes / ensaio sem SEFAZ. Norma: ADR_CAIXA_DFE_NFE_DESTINADAS.
+    |
+    */
+
+    'dfe' => [
+        'driver' => env('DFE_DRIVER', 'sefaz'), // sefaz | fake
+        'stages_permitidos' => ['homolog', 'production'],
+        'timeout_sec' => (float) env('DFE_HTTP_TIMEOUT_SEC', 45),
+        'max_lotes_por_corrida' => max(1, (int) env('DFE_MAX_LOTES_CORRIDA', 5)),
+        'delay_entre_lotes_sec' => max(1, (int) env('DFE_DELAY_LOTES_SEC', 3)),
+        'xml_disk' => 'local',
+        'urls' => [
+            // Ambiente Nacional — destinadas (não é o autorizador SEFAZ-MG).
+            'homolog' => env(
+                'DFE_URL_HOMOLOG',
+                'https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx'
+            ),
+            'production' => env(
+                'DFE_URL_PRODUCTION',
+                'https://www1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx'
+            ),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | OpenRouteService (distância de carro EMP → PAR)
     |--------------------------------------------------------------------------
     |

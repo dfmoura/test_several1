@@ -15,11 +15,91 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-089`
+`BL-094`
 
 ---
 
 ## Itens
+
+### BL-093 · [compras/fiscal] Caixa DF-e — manifestação + sync delta
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-09-04 — implantação caixa NF-e destinadas
+- **Depende de:** BL-092 · ADR_CAIXA_DFE_NFE_DESTINADAS
+- **Decisão (fechada):**
+  1. Buscar XML completo via consChNFe (ciência registrada no resumo; fake cobre o fluxo).
+  2. Job periódico `dfe:sync-delta` (06:15) só delta NSU; sem sync no boot/login/Painel.
+  3. Anos anteriores sob demanda (filtro UI + mesma fila de sync).
+- **Aceite:**
+  - [x] Buscar XML + comando delta (`DfeAmarrarXmlTest`)
+  - [x] Agenda `dfe:sync-delta` · aceite dual `F5_DFE_CX` elegível após D+E
+- **Fora de escopo:** Focus · auto-receber · entrada sem OC · XML-DSig completo de evento no AN (evolução)
+- **Entregue em:** 2026-09-04
+
+### BL-092 · [compras/ux] Caixa DF-e — amarrar à OC (assist)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-04 — implantação caixa NF-e destinadas
+- **Depende de:** BL-091 · ADR_CAIXA_DFE_NFE_DESTINADAS · ADR_ENTRADA_XML_ASSIST
+- **Decisão (fechada):**
+  1. Ação “Amarrar / usar nesta OC” só em OC ABERTA/PARCIAL da EMP.
+  2. Injeta no **assist XML existente** (`preview-dfe` → mesmo preview/`receber()`).
+  3. Documentos não amarrados permanecem na caixa; `RECEBIDA` ao confirmar entrada com a chave.
+- **Aceite:**
+  - [x] Amarrar → preview/de-para na OC (`DfeAmarrarXmlTest`)
+  - [x] Sem segundo writer de saldo; sem entrada sem OC
+- **Fora de escopo:** Auto-receber · Focus · NEC/COT
+- **Entregue em:** 2026-09-04
+
+### BL-091 · [compras/fiscal] Caixa DF-e — sync NFeDistribuicaoDFe (leve)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-04 — implantação caixa NF-e destinadas
+- **Depende de:** BL-090 · ADR_CAIXA_DFE_NFE_DESTINADAS · ADR_CERTIFICADO_A1_EMPRESA
+- **Decisão (fechada):**
+  1. Adaptador DF-e AN com A1 do cofre (memória/temp 0600); **sem Focus**.
+  2. Job/fila por EMP; lotes + delay; UI “Atualizar do fisco” só enfileira.
+  3. 1ª hidratação progressiva; lista nunca espera SEFAZ.
+  4. Só `ERP_STAGE` homolog/production + A1 apto; `DFE_DRIVER=fake` para testes.
+- **Aceite:**
+  - [x] Sync enfileirado preenche a caixa sem travar API (`DfeSyncTest`)
+  - [x] Local sem stage/A1: mensagem clara; upload manual intacto
+- **Fora de escopo:** Manifestação completa · amarrar OC · Focus
+- **Entregue em:** 2026-09-04
+
+### BL-090 · [compras/ux] Caixa DF-e — modelo + UI estacionária + gate
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-04 — implantação caixa NF-e destinadas
+- **Depende de:** BL-089 · ADR_CAIXA_DFE_NFE_DESTINADAS · F5_COMPRAS · F5_NFE_ENT · F0_A1
+- **Decisão (fechada):**
+  1. Modelo local (NSU/cursor, chave, resumo, vínculo OC opcional, XML privado).
+  2. Menu Compras → NF-e destinadas; `F5_DFE_CX` no catálogo (onda 5); permissão `compras.ler` (padrão Compras).
+  3. UI lê só banco; vazia/parcial com honestidade; sem consulta SEFAZ no GET.
+- **Aceite:**
+  - [x] `F5_DFE_CX` no `ImplantacaoCatalogo` + menu
+  - [x] API/UI listagem local + isolamento `empresa_id`
+  - [x] PHPUnit `DfeCaixaTest`
+- **Fora de escopo:** Cliente DF-e · job sync · amarrar · Focus
+- **Entregue em:** 2026-09-04
+
+### BL-089 · [norma] Caixa DF-e — ADR + mapa + backlog fatiado
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-04 — NF-e destinadas via A1, sem Focus; área estacionária; sync leve
+- **Depende de:** ADR_ENTRADA_XML_ASSIST · ADR_CERTIFICADO_A1_EMPRESA · ADR_COMPRAS_ATE_ESTOQUE
+- **Referência:** `docs/ADR_CAIXA_DFE_NFE_DESTINADAS.md` · `MAPA_FLUXO_POS_ORC.md`
+- **Decisão (fechada):**
+  1. Caixa estacionária DF-e (AN) + A1 cofre; sem Focus; amarrar OC opcional.
+  2. Sync assíncrono NSU; 1ª carga ano atual progressiva; UI nunca espera fisco.
+  3. Implantação: `F5_DFE_CX` após F0_A1 + F5_COMPRAS + F5_NFE_ENT; fatias B→E = BL-090…093.
+  4. Espinha OC/assist/`receber()` e emissão Focus **intocadas**.
+- **Aceite:**
+  - [x] ADR aceita
+  - [x] Emendas A1 / assist / espelho / compras / mapa
+  - [x] Backlog BL-090…093 registrados
+- **Fora de escopo:** Código de runtime · menu · cliente SEFAZ
+- **Entregue em:** 2026-09-04
 
 ### BL-088 · [produto/estoque/ux] Produtos no menu + continuidade NF-e entrada
 - **Status:** Feito

@@ -1329,6 +1329,48 @@ export type OrdemCompra = {
   nfe_entradas?: NfeEntradaResumo[];
 };
 
+/** Caixa DF-e — NF-e destinadas (BL-090, leitura local). */
+export type DfeDocumento = {
+  id: number;
+  empresa_id: number;
+  nsu: string;
+  schema_dfe: string | null;
+  chave: string | null;
+  modelo: string | null;
+  serie: string | null;
+  numero: string | null;
+  data_emissao: string | null;
+  emit_cnpj: string | null;
+  emit_nome: string | null;
+  valor_total: string | null;
+  situacao: 'NOVA' | 'DISPONIVEL' | 'AMARRADA' | 'RECEBIDA' | 'SEM_INTERESSE' | string;
+  ordem_compra_id: number | null;
+  ordem_compra?: { id: number; codigo: string; status: string } | null;
+  tem_xml: boolean;
+  xml_disponivel?: boolean;
+  xml_busca?: string | null;
+  xml_busca_msg?: string | null;
+  resumo?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type DfeSyncEstado = {
+  empresa_id: number;
+  ultimo_nsu: string;
+  max_nsu: string | null;
+  sync_status: 'IDLE' | 'RUNNING' | 'ERRO' | string;
+  sync_mensagem: string | null;
+  ultima_sync_em: string | null;
+  primeira_hidratacao_completa: boolean;
+  ano_alvo_hidratacao: number | null;
+  total_documentos: number;
+  pode_sincronizar?: boolean;
+  sync_bloqueio?: string | null;
+  enfileirado?: boolean;
+  ja_em_andamento?: boolean;
+};
+
 export type NfeEntradaEspelho = {
   nat_op: string | null;
   id_dest: string | null;
