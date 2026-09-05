@@ -109,6 +109,21 @@ curl -sS https://flexoerp001.triggerti.com/api/v1/health
 
 Piloto DF-e (NF-e destinadas) após a virada: checklist em [`PILOTO_DFE_NFE_DESTINADAS.md`](PILOTO_DFE_NFE_DESTINADAS.md) · norma [`ADR_CAIXA_DFE_NFE_DESTINADAS.md`](ADR_CAIXA_DFE_NFE_DESTINADAS.md).
 
+### Paridade código local × Lightsail (DF-e)
+
+**Fonte da verdade:** git no notebook. A nuvem deve refletir o **mesmo commit/artefato** — não o contrário.
+
+1. Após hotfix de emergência (SCP), **commitar no local no mesmo dia**.  
+2. Conferir (só leitura, não mexe em `.env`/banco):
+
+```bash
+SSH_KEY=~/Downloads/LightsailDefaultKey-sa-east-1.pem \
+  ./scripts/check-dfe-code-parity.sh
+```
+
+3. Se houver `DIFF`/`FALTA`: alinhar arquivos a partir do local → rebuild `web` se front mudou → rodar o check de novo.  
+4. **Não** trocar `APP_KEY`, não restaurar dump, não misturar stage neste passo.
+
 **APP_KEY:** se mantiver o mesmo banco/dados cifrados (A1 / tokens IA/Focus), **preserve a chave**. Só gere chave nova com banco novo consciente. Norma: [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md) · [`ADR_CERTIFICADO_A1_EMPRESA.md`](ADR_CERTIFICADO_A1_EMPRESA.md).
 
 ## Host oficial × lab (tunnel)
