@@ -191,6 +191,39 @@ export function formatKmCarroDaEmpresa(
   return formatKmCarro(km, fonte);
 }
 
+/** Lista PAR: ok | falta (acionável) | bloqueado (sem endereço). */
+export function parceiroPosicaoStatus(
+  p: {
+    latitude?: string | null;
+    longitude?: string | null;
+    distancia_km?: string | null;
+    distancia_fonte?: string | null;
+    distancia_empresa_id?: number | null;
+    logradouro?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    cep?: string | null;
+  },
+  empresaAtualId: number | null | undefined,
+): 'ok' | 'faltando' | 'bloqueado' {
+  const temPonto = Boolean(p.latitude && p.longitude);
+  const kmDaEmp =
+    Boolean(p.distancia_km) &&
+    !kmCarroEhZero(p.distancia_km) &&
+    p.distancia_fonte !== 'mesmo_ponto' &&
+    p.distancia_empresa_id != null &&
+    empresaAtualId != null &&
+    Number(p.distancia_empresa_id) === Number(empresaAtualId);
+
+  if (temPonto && kmDaEmp) return 'ok';
+
+  const temEndereco = Boolean(p.logradouro && p.municipio && p.uf);
+  const cepOk = onlyDigits(p.cep ?? '').length === 8;
+  if (!temEndereco && !cepOk && !temPonto) return 'bloqueado';
+
+  return 'faltando';
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return '—';
   // Datas ISO só com dia evitam shift de fuso (new Date('YYYY-MM-DD') = UTC).

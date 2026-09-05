@@ -179,6 +179,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/parceiros/import/xml/commit', [ParceiroImportController::class, 'xmlCommit']);
         Route::get('/parceiros/{parceiro}', [ParceiroController::class, 'show']);
         Route::put('/parceiros/{parceiro}', [ParceiroController::class, 'update']);
+        Route::post('/parceiros/{parceiro}/posicao-distancia', [ParceiroController::class, 'atualizarPosicaoDistancia']);
 
         Route::get('/produtos', [ProdutoController::class, 'index']);
         Route::post('/produtos', [ProdutoController::class, 'store']);

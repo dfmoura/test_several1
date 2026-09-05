@@ -232,6 +232,16 @@ export function IconPencil({ className }: IconProps) {
   );
 }
 
+/** Lista PAR — posição / distância de carro. */
+export function IconMapPin({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11Z" />
+      <circle cx="12" cy="10" r="2.25" />
+    </IconBase>
+  );
+}
+
 /** Ações de listagem — baixar arquivo (ex.: XML). */
 export function IconDownload({ className }: IconProps) {
   return (

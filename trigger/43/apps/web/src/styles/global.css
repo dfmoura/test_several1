@@ -829,6 +829,45 @@ textarea {
   height: 1rem;
 }
 
+/* Lista PAR — coluna posição/distância (ícone discreto + cor semântica) */
+th.th-icon,
+td.td-icon {
+  width: 2.25rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.par-geo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.par-geo--ok {
+  color: var(--success);
+  opacity: 0.85;
+}
+
+.par-geo--faltando {
+  color: var(--warning);
+  opacity: 0.9;
+}
+
+.par-geo--bloqueado {
+  color: var(--text-muted);
+  opacity: 0.35;
+}
+
+button.par-geo--faltando:hover:not(:disabled) {
+  opacity: 1;
+  color: color-mix(in srgb, var(--warning) 70%, var(--navy));
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+}
+
 /* Forms */
 .form-grid {
   display: grid;

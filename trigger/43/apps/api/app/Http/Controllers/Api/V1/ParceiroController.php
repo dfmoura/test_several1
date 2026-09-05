@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Parceiro;
+use App\Services\Cadastros\ParceiroPosicaoDistanciaService;
 use App\Services\Cadastros\ParceiroService;
 use App\Support\OrigemLead;
 use App\Support\ParceiroValidationRules;
@@ -13,7 +14,10 @@ use Illuminate\Validation\Rule;
 
 class ParceiroController extends Controller
 {
-    public function __construct(private readonly ParceiroService $parceiroService) {}
+    public function __construct(
+        private readonly ParceiroService $parceiroService,
+        private readonly ParceiroPosicaoDistanciaService $posicaoDistanciaService,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -138,6 +142,24 @@ class ParceiroController extends Controller
         $parceiro = $this->parceiroService->update($parceiro, $data);
 
         return response()->json(['data' => $parceiro]);
+    }
+
+    /**
+     * Lista: ícone “Posição e distância” — geo + rota + grava no PAR (EMP atual).
+     */
+    public function atualizarPosicaoDistancia(Request $request, Parceiro $parceiro): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($parceiro);
+
+        $result = $this->posicaoDistanciaService->atualizarFiscal(app('empresa'), $parceiro);
+
+        $payload = ['data' => $result['parceiro']];
+        if ($result['erro'] !== null) {
+            $payload['distancia_erro'] = $result['erro'];
+        }
+
+        return response()->json($payload);
     }
 
     private function validateParceiro(Request $request, bool $partial = false): array
