@@ -116,6 +116,17 @@ class DfeAmarrarXmlTest extends TestCase
         $this->assertTrue($doc->temXml());
         $this->assertSame(DfeDocumento::SITUACAO_DISPONIVEL, $doc->situacao);
 
+        $chave = preg_replace('/\D/', '', (string) $doc->chave) ?: '';
+        $download = $this->withHeaders($h)
+            ->get("/api/v1/dfe-documentos/{$doc->id}/xml")
+            ->assertOk();
+        $this->assertStringContainsString('application/xml', (string) $download->headers->get('Content-Type'));
+        $this->assertStringContainsString('NFe-', (string) $download->headers->get('Content-Disposition'));
+        if (strlen($chave) === 44) {
+            $this->assertStringContainsString($chave, (string) $download->headers->get('Content-Disposition'));
+        }
+        $this->assertNotEmpty($download->streamedContent());
+
         $oc = $this->withHeaders($h)
             ->postJson('/api/v1/ordens-compra', [
                 'fornecedor_id' => $fornecedor->id,

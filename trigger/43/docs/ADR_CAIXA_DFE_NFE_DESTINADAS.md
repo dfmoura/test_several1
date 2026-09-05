@@ -59,6 +59,7 @@ Compras → Caixa DF-e (estacionária, gate F5_DFE_CX)
 - Não painel/cockpit; não hub fiscal genérico de administração.  
 - Pré-requisitos de implantação aceitos na EMP: `F0_A1` · `F5_COMPRAS` · `F5_NFE_ENT`.  
 - Upload manual na OC permanece plano B eterno.
+- **Download do XML** na lista (`GET …/dfe-documentos/{id}/xml`) quando já estiver no cofre — arquivo oficial; sem nova ida ao AN; escopo `empresa_id` + `compras.ler`.
 
 ### Modelo (diretriz)
 

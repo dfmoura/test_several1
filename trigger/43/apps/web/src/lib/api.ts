@@ -138,7 +138,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 async function downloadFile(path: string, filename: string, empresaId?: number | null): Promise<void> {
   const headers: Record<string, string> = {
-    Accept: 'text/csv, application/octet-stream, */*',
+    Accept: 'application/xml, text/xml, text/csv, application/octet-stream, */*',
   };
 
   const token = getToken();

@@ -13,6 +13,7 @@ use App\Services\Compras\DfeXmlCompletoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Caixa DF-e — leitura (BL-090) · sync (BL-091) · amarrar (BL-092) · XML completo (BL-093).
@@ -60,6 +61,17 @@ class DfeCaixaController extends Controller
         $this->assertEmpresaDoc($dfeDocumento);
 
         return response()->json(['data' => $this->service->show($dfeDocumento)]);
+    }
+
+    /**
+     * Download do XML oficial já no cofre (GET binário — sem nova ida ao AN).
+     */
+    public function downloadXml(Request $request, DfeDocumento $dfeDocumento): StreamedResponse
+    {
+        $this->authorizeRead($request);
+        $this->assertEmpresaDoc($dfeDocumento);
+
+        return $this->service->downloadXml($this->empresa(), $dfeDocumento);
     }
 
     public function syncEstado(Request $request): JsonResponse

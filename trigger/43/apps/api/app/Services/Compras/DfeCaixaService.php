@@ -5,6 +5,8 @@ namespace App\Services\Compras;
 use App\Models\DfeDocumento;
 use App\Models\DfeSyncEstado;
 use App\Models\Empresa;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Caixa DF-e — leitura local (BL-090). Sem chamada SEFAZ.
@@ -61,6 +63,42 @@ class DfeCaixaService
         $doc->loadMissing(['ordemCompra:id,codigo,status']);
 
         return $this->toOut($doc, detalhe: true);
+    }
+
+    /**
+     * Stream do XML oficial já persistido no cofre da EMP (sem nova chamada SEFAZ).
+     *
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
+    public function downloadXml(Empresa $empresa, DfeDocumento $doc)
+    {
+        if ($doc->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        if (! $doc->temXml() || ! filled($doc->xml_path)) {
+            throw ValidationException::withMessages([
+                'xml' => ['XML completo ainda não está na caixa. Use Buscar XML ou aguarde o sync.'],
+            ]);
+        }
+
+        $diskName = (string) config('erp.dfe.xml_disk', 'local');
+        $disk = Storage::disk($diskName);
+
+        if (! $disk->exists($doc->xml_path)) {
+            throw ValidationException::withMessages([
+                'xml' => ['Arquivo XML não encontrado no cofre. Tente Buscar XML novamente.'],
+            ]);
+        }
+
+        $chave = preg_replace('/\D/', '', (string) ($doc->chave ?? '')) ?: null;
+        $filename = $chave !== null && strlen($chave) === 44
+            ? 'NFe-'.$chave.'.xml'
+            : 'NFe-dfe-'.$doc->id.'.xml';
+
+        return $disk->download($doc->xml_path, $filename, [
+            'Content-Type' => 'application/xml; charset=utf-8',
+        ]);
     }
 
     /**

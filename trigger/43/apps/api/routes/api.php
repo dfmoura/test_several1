@@ -253,6 +253,7 @@ Route::prefix('v1')->group(function () {
         // Caixa DF-e (BL-090) — leitura local; sync SEFAZ = BL-091
         Route::get('/dfe-documentos', [DfeCaixaController::class, 'index']);
         Route::get('/dfe-documentos/{dfeDocumento}', [DfeCaixaController::class, 'show']);
+        Route::get('/dfe-documentos/{dfeDocumento}/xml', [DfeCaixaController::class, 'downloadXml']);
         Route::post('/dfe-documentos/{dfeDocumento}/amarrar', [DfeCaixaController::class, 'amarrar']);
         Route::post('/dfe-documentos/{dfeDocumento}/buscar-xml', [DfeCaixaController::class, 'buscarXml']);
         Route::post('/dfe-documentos/{dfeDocumento}/sem-interesse', [DfeCaixaController::class, 'semInteresse']);

@@ -151,6 +151,27 @@ export function ComprasNfeDestinadasPage() {
     }
   };
 
+  const baixarXml = async (doc: DfeDocumento) => {
+    if (!doc.tem_xml) return;
+    setBusyId(doc.id);
+    setAcaoErro(null);
+    try {
+      const nome =
+        doc.chave && doc.chave.replace(/\D/g, '').length === 44
+          ? `NFe-${doc.chave.replace(/\D/g, '')}.xml`
+          : `NFe-dfe-${doc.id}.xml`;
+      await api.download(`/dfe-documentos/${doc.id}/xml`, nome);
+    } catch (err) {
+      setAcaoErro(
+        err instanceof ApiError
+          ? err.details?.xml?.[0] ?? err.message
+          : 'Falha ao baixar XML.',
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const semInteresse = async (doc: DfeDocumento) => {
     setBusyId(doc.id);
     setAcaoErro(null);
@@ -380,7 +401,22 @@ export function ComprasNfeDestinadasPage() {
                         <span className="muted">—</span>
                       )}
                     </td>
-                    <td>{d.tem_xml ? 'Sim' : '—'}</td>
+                    <td>
+                      {d.tem_xml ? (
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ fontSize: '0.85rem' }}
+                          disabled={busyId === d.id}
+                          title="Baixar XML oficial do fisco (já na caixa)"
+                          onClick={() => void baixarXml(d)}
+                        >
+                          Baixar
+                        </button>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
                     {podeEscrever && (
                       <td>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
