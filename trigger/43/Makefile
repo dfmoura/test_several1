@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -77,8 +77,27 @@ seed-produtos-cadastro:
 seed-estoque-virada:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:seed-estoque-virada $(ARGS)
 
+# Gabarito 6×4×4 vãos (ADR_CADASTRO_INSUMO_VOLUME F4). Idempotente.
+# Uso: make seed-estoque-enderecos
+seed-estoque-enderecos:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:seed-estoque-enderecos $(ARGS)
+
 # Limpa operacional (PAR/PRD/ORC/PED/OP/FAT/OC/estoque/TIT) preservando ADMIN + seu PAR.
 # Plataforma (EMP, RBAC, catálogos, naturezas, DEP, BEM, CFIN, hubs) e audit_log permanecem.
+# Zera só o ledger de estoque da EMP (saldos/lotes/MOV/AJU/INV/NF-e entrada).
+# Preserva produtos, PAR, endereços, DF-e na caixa; reabre OC recebida. Lab only.
+# Uso: make limpar-estoque
+#      make limpar-estoque ARGS='--dry-run'
+#      make limpar-estoque ARGS='--empresa=EMP-00001'
+limpar-estoque:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-estoque --force $(ARGS)
+
+# Monta cenário local: estoque_ativo + OC + DF-e amostra amarrada (saldo continua 0 até você receber).
+# Uso: make preparar-ensaio-estoque
+#      make preparar-ensaio-estoque ARGS='--sem-amarrar'
+preparar-ensaio-estoque:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:preparar-ensaio-estoque $(ARGS)
+
 # Atenção: irreversível nos documentos. Preferir make limpar-sistema (repor cadastro + virada).
 # Uso: make limpar-operacional
 #      make limpar-operacional ARGS='--dry-run'

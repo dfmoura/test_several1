@@ -115,7 +115,7 @@ Piloto DF-e (NF-e destinadas) após a virada: checklist em [`PILOTO_DFE_NFE_DEST
 
 | Onde | O que fica igual | O que é só da nuvem (exceção legítima) |
 |------|------------------|----------------------------------------|
-| **Notebook** (`ERP_STAGE=local`) | UI caixa, API, amarrar, Baixar XML, jobs/testes, cofre A1 (código) | Sync SEFAZ desligado; use upload na OC ou `php artisan dfe:amostra-local` |
+| **Notebook** (`ERP_STAGE=local`) | UI caixa, API, amarrar, Baixar XML, jobs/testes, cofre A1 (código) | Sync SEFAZ desligado; use upload na OC, `php artisan dfe:amostra-local` ou `php artisan dfe:importar-xml-pasta /caminho` (XMLs reais → caixa) |
 | **Lightsail** (`homolog`/`production`) | Mesmo código DF-e/A1 | A1 **apto** no cofre + `APP_KEY` + sync AN |
 
 1. Após hotfix de emergência (SCP), **commitar no local no mesmo dia**.  
@@ -128,7 +128,7 @@ SSH_KEY=~/Downloads/LightsailDefaultKey-sa-east-1.pem \
 
 3. Se houver `DIFF`/`FALTA`: alinhar arquivos a partir do local → rebuild `web` se front mudou → rodar o check de novo.  
 4. **Não** trocar `APP_KEY`, não restaurar dump, não misturar stage neste passo.  
-5. Não exigir `dfe:amostra-local` na AWS — comando só de ensaio no notebook.
+5. Não exigir `dfe:amostra-local` / `dfe:importar-xml-pasta` na AWS — comandos só de ensaio no notebook.
 
 **APP_KEY:** se mantiver o mesmo banco/dados cifrados (A1 / tokens IA/Focus), **preserve a chave**. Só gere chave nova com banco novo consciente. Norma: [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md) · [`ADR_CERTIFICADO_A1_EMPRESA.md`](ADR_CERTIFICADO_A1_EMPRESA.md).
 

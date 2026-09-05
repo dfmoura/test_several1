@@ -110,18 +110,21 @@ class ProdutoImportTest extends TestCase
         $this->assertSame($original, $existing->descricao_fiscal);
     }
 
-    public function test_preview_requires_dimensions_for_dimensional_grupo(): void
+    public function test_preview_warns_nominal_dimensions_without_blocking_camada_a(): void
     {
+        // ADR_CADASTRO_INSUMO_VOLUME: L×C no SKU é nominal — Camada A / Exact não bloqueia.
         $csv = "familia;grupo;descricao_fiscal;fator_conversao\n"
             ."MP;MP-PAP;SEM DIMENSAO;12.5\n";
         $file = UploadedFile::fake()->createWithContent('dim.csv', $csv);
 
         $report = $this->importService->preview($this->empresa, $file);
 
-        $this->assertSame(0, $report['ok']);
-        $this->assertTrue(
-            collect($report['rows'][0]['errors'])->contains(fn ($e) => str_contains($e, 'largura_mm'))
-        );
+        $this->assertSame(1, $report['ok']);
+        $this->assertSame(0, $report['erro']);
+        $this->assertSame('ok', $report['rows'][0]['status']);
+        $warnings = collect($report['rows'][0]['preview']['warnings'] ?? []);
+        $this->assertTrue($warnings->contains(fn ($e) => str_contains((string) $e, 'largura_mm')));
+        $this->assertTrue($warnings->contains(fn ($e) => str_contains((string) $e, 'comprimento_m')));
     }
 
     public function test_commit_creates_valid_rows_via_service(): void

@@ -13,14 +13,14 @@ Norma: `docs/ADR_UNIDADES_PRODUTO.md` · estudo `../32` `CONVERSOES_UNIDADES_MED
 - **`unidade_comercial`** = documento / NF (compra ou venda).
 - **`unidade_interna`** = **única** unidade de estoque (saldo vive só nela).
 - **`fator_conversao`**: `1 comercial = fator × interna` (NUMERIC 19,10).
-- **`atributos`**: `largura_mm`, `comprimento_m`, `gramatura_g_m2` = insumos de fórmula, **não** unidades.
+- **`atributos`**: `largura_mm`, `comprimento_m`, `gramatura_g_m2` = insumos de fórmula / **nominais** (não identidade do SKU Exact — ver `ADR_CADASTRO_INSUMO_VOLUME.md`), **não** unidades.
 
 ## Faça
 
 - Sugerir fator via `FatorConversaoSugeridor`; nunca inventar se faltar atributo.
 - Manter catálogo em `UnidadesMedida`.
 - Extensões futuras de pontes = atributos JSON + motor; saldo continua na interna.
-- Seção dimensional: só `exige_dimensao_sku` **ou** `faltando` do motor **ou** valor já gravado (`ProdutoBobinaDimensoes` / `produtoBobinaDimensoesUi.ts`).
+- Seção dimensional: só `exige_dimensao_sku` **ou** `faltando` do motor **ou** valor já gravado (`ProdutoBobinaDimensoes` / `produtoBobinaDimensoesUi.ts`). Flag = oferece nominais, não obriga L×C como chave do SKU.
 - Superfície de conversão (fator/equação): só quando comercial ≠ estoque (`ProdutoUnidadesConversao` / `produtoUnidadesConversaoUi.ts`); título `Unidades` no modo simples.
 
 ## Não faça

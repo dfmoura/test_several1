@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\EmpresaController;
 use App\Http\Controllers\Api\V1\EstoqueController;
 use App\Http\Controllers\Api\V1\EstoqueInventarioController;
 use App\Http\Controllers\Api\V1\EstoqueOperacionalController;
+use App\Http\Controllers\Api\V1\EstoqueVolumeController;
 use App\Http\Controllers\Api\V1\EntregaController;
 use App\Http\Controllers\Api\V1\FacasController;
 use App\Http\Controllers\Api\V1\FaturamentoController;
@@ -257,12 +258,18 @@ Route::prefix('v1')->group(function () {
         Route::post('/dfe-documentos/{dfeDocumento}/amarrar', [DfeCaixaController::class, 'amarrar']);
         Route::post('/dfe-documentos/{dfeDocumento}/buscar-xml', [DfeCaixaController::class, 'buscarXml']);
         Route::post('/dfe-documentos/{dfeDocumento}/sem-interesse', [DfeCaixaController::class, 'semInteresse']);
+        Route::post('/dfe-documentos/{dfeDocumento}/fornecedor/preview', [DfeCaixaController::class, 'fornecedorPreview']);
+        Route::post('/dfe-documentos/{dfeDocumento}/fornecedor/commit', [DfeCaixaController::class, 'fornecedorCommit']);
         Route::get('/dfe-sync', [DfeCaixaController::class, 'syncEstado']);
         Route::post('/dfe-sync', [DfeCaixaController::class, 'enfileirarSync']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview-dfe', [DfeCaixaController::class, 'previewNaOc']);
 
         Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
         Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);
+        Route::get('/estoque/lotes/{estoqueLote}/etiqueta', [EstoqueVolumeController::class, 'etiqueta']);
+        Route::post('/estoque/lotes/{estoqueLote}/endereco', [EstoqueVolumeController::class, 'vincularEndereco']);
+        Route::get('/estoque/enderecos', [EstoqueVolumeController::class, 'enderecos']);
+        Route::post('/estoque/enderecos/seed', [EstoqueVolumeController::class, 'seedEnderecos']);
         Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
         Route::get('/estoque/produtos/{produto}/extrato', [EstoqueController::class, 'extrato']);
 

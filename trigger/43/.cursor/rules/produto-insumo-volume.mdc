@@ -1,0 +1,35 @@
+---
+description: Insumo bobina = SKU material + volume físico; cProd obrigatório; sem explosão L×C
+globs: "**/Produto*.php,**/Produto*.tsx,**/EstoqueLote*.php,**/EstoqueEntrada*.php,**/ProdutoImport*.php,**/ProdutoBobina*.php,**/produtoBobinaDimensoesUi.ts,**/ADR_CADASTRO_INSUMO*.md,**/ADR_ESTOQUE_LOTE*.md,**/ADR_UNIDADES*.md"
+alwaysApply: false
+---
+
+# Cadastro de insumo × volume (bobina)
+
+Norma: `docs/ADR_CADASTRO_INSUMO_VOLUME.md` · unidades: `ADR_UNIDADES_PRODUTO.md` · lote: `ADR_ESTOQUE_LOTE_VALIDADE.md`.
+
+## Modelo
+
+- **SKU** = identidade do **material** / programa comercial (EXACT 1000…), não de cada bobina.
+- **`produto_fornecedor_codigos`** = `cProd` + descrição do fornecedor — **regra**, não opção.
+- **Dimensões no produto** = nominais / fórmula (`largura_mm`, `comprimento_m`, `gramatura_g_m2`, `programa_compra`).
+- **Volume** = `estoque_lotes` (1 `nLote` Avery ≈ 1 bobina); dimensão **real** na conferência.
+- **Localização / QR** = fases posteriores — fora do cadastro de produto.
+
+## Faça
+
+- Camada A primeiro; Exact via `ProdutoCadastroExactData`; de-para por EMP + fornecedor + `cProd`.
+- Exact/variável: saldo tipicamente M2=M2; não criar SKU por 210×1000 vs 210×1020.
+- `exige_dimensao_sku` = oferece seção nominal; import sem L×C = warning, não erro.
+- Entrada: OC → assist (`lotes[]` de todos os rastros) → `receber()` / `EstoqueSaldoWriter`.
+- Volume: dimensão real + QR (`/estoque/lotes/:id/etiqueta`); vão via `estoque_enderecos` (6×4×4).
+
+## Não faça
+
+- Explodir SKU por largura×comprimento Exact.
+- Tratar dimensão nominal como estoque da bobina.
+- Auto-receber por `rastro`; entrada sem OC; segundo writer de saldo.
+- Endereço/QR no formulário de produto.
+- Reviver “L×C faz parte do SKU” do estudo 32 §2.1 sem ADR novo.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_CADASTRO_INSUMO_VOLUME.md`.

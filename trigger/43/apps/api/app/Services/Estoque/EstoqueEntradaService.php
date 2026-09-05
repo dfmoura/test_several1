@@ -397,6 +397,9 @@ class EstoqueEntradaService
                     'data_entrada' => $loteRaw['data_entrada'] ?? $dataEntradaDefault,
                     'data_validade' => $loteRaw['data_validade'] ?? null,
                     'data_fabricacao' => $loteRaw['data_fabricacao'] ?? null,
+                    'largura_mm' => $loteRaw['largura_mm'] ?? null,
+                    'comprimento_m' => $loteRaw['comprimento_m'] ?? null,
+                    'endereco_id' => isset($loteRaw['endereco_id']) ? (int) $loteRaw['endereco_id'] : null,
                 ];
             }
             if (bccomp($somaCom, $qtdeCom, PadraoDecimal::SCALE_QTY) !== 0) {
@@ -417,6 +420,9 @@ class EstoqueEntradaService
                 'data_entrada' => $raw['lote_data_entrada'] ?? $dataEntradaDefault,
                 'data_validade' => $raw['lote_data_validade'] ?? null,
                 'data_fabricacao' => $raw['lote_data_fabricacao'] ?? null,
+                'largura_mm' => $raw['lote_largura_mm'] ?? null,
+                'comprimento_m' => $raw['lote_comprimento_m'] ?? null,
+                'endereco_id' => isset($raw['lote_endereco_id']) ? (int) $raw['lote_endereco_id'] : null,
             ];
         }
 
@@ -459,6 +465,13 @@ class EstoqueEntradaService
                     'data_fabricacao' => $linha['data_fabricacao'] !== null && $linha['data_fabricacao'] !== ''
                         ? (string) $linha['data_fabricacao']
                         : null,
+                    'largura_mm' => $this->nullableDim($linha['largura_mm'] ?? null),
+                    'comprimento_m' => $this->nullableDim(
+                        $linha['comprimento_m'] ?? null,
+                        $linha['largura_mm'] ?? null,
+                        $linha['qtde_com'] ?? null
+                    ),
+                    'endereco_id' => $linha['endereco_id'] ?? null,
                     'nf_numero' => $nfNumero,
                     'origem_tipo' => \App\Models\EstoqueLote::ORIGEM_ENTRADA_COMPRA,
                 ],
@@ -466,6 +479,35 @@ class EstoqueEntradaService
         }
 
         return $out;
+    }
+
+    /**
+     * Dimensão opcional; se só largura + qtde M2, deriva comprimento = m² / (largura_mm/1000).
+     */
+    private function nullableDim(mixed $value, mixed $larguraMm = null, mixed $qtdeM2 = null): ?string
+    {
+        if ($value !== null && $value !== '') {
+            $parsed = PadraoDecimal::parseStrict((string) $value, PadraoDecimal::SCALE_DIM);
+
+            return $parsed;
+        }
+
+        if ($larguraMm === null || $larguraMm === '' || $qtdeM2 === null || $qtdeM2 === '') {
+            return null;
+        }
+
+        $largura = PadraoDecimal::parseStrict((string) $larguraMm, PadraoDecimal::SCALE_DIM);
+        $qtde = PadraoDecimal::parseStrict((string) $qtdeM2, PadraoDecimal::SCALE_QTY);
+        if ($largura === null || $qtde === null || bccomp($largura, '0', PadraoDecimal::SCALE_DIM) <= 0) {
+            return null;
+        }
+
+        $larguraM = bcdiv($largura, '1000', PadraoDecimal::SCALE_DIM + 6);
+
+        return PadraoDecimal::roundHalfUp(
+            bcdiv($qtde, $larguraM, PadraoDecimal::SCALE_DIM + 4),
+            PadraoDecimal::SCALE_DIM
+        );
     }
 
     /**

@@ -3,17 +3,20 @@
 namespace App\Support;
 
 /**
- * Espelho da regra de UI de dimensões de bobina (ADR-039-UNID-001).
+ * Espelho da regra de UI de dimensões de bobina (ADR-039-UNID-001 + ADR-043-CAD-001).
  *
  * A UI React usa a mesma decisão em `produtoBobinaDimensoesUi.ts`.
  * Este helper trava o contrato em teste PHP sem acoplar ao front.
+ *
+ * `exige_dimensao_sku` = oferece seção de dimensões **nominais** (conversão/OC),
+ * não identidade L×C do SKU (Exact/variável → volume na entrada).
  */
 final class ProdutoBobinaDimensoes
 {
     public const ATTR_KEYS = ['largura_mm', 'comprimento_m', 'gramatura_g_m2'];
 
     /**
-     * Grupos canônicos que EXIGEM máscara dimensional (estudo 32 — bobina no SKU).
+     * Grupos canônicos que abrem dimensões nominais de bobina.
      *
      * @return list<string>
      */

@@ -35,6 +35,10 @@ class EstoqueLote extends Model
         'origem_id',
         'nf_numero',
         'observacao',
+        'largura_mm',
+        'comprimento_m',
+        'endereco_id',
+        'qr_token',
     ];
 
     protected function casts(): array
@@ -44,6 +48,8 @@ class EstoqueLote extends Model
             'data_fabricacao' => 'date',
             'data_validade' => 'date',
             'qtde' => 'decimal:'.PadraoDecimal::SCALE_QTY,
+            'largura_mm' => 'decimal:'.PadraoDecimal::SCALE_DIM,
+            'comprimento_m' => 'decimal:'.PadraoDecimal::SCALE_DIM,
         ];
     }
 
@@ -57,6 +63,11 @@ class EstoqueLote extends Model
         return $this->belongsTo(Produto::class);
     }
 
+    public function endereco(): BelongsTo
+    {
+        return $this->belongsTo(EstoqueEndereco::class, 'endereco_id');
+    }
+
     public function movimentoItens(): HasMany
     {
         return $this->hasMany(EstoqueMovimentoItem::class, 'lote_id');
@@ -67,5 +78,22 @@ class EstoqueLote extends Model
         $data = $this->data_validade?->format('Y-m-d');
 
         return ProdutoLotePolitica::statusValidade($data, $hoje);
+    }
+
+    public function ensureQrToken(): string
+    {
+        if (is_string($this->qr_token) && $this->qr_token !== '') {
+            return $this->qr_token;
+        }
+
+        $this->qr_token = bin2hex(random_bytes(16));
+        $this->save();
+
+        return $this->qr_token;
+    }
+
+    public function qrPayload(): string
+    {
+        return 'VOL:'.$this->empresa_id.':'.$this->id.':'.$this->ensureQrToken();
     }
 }

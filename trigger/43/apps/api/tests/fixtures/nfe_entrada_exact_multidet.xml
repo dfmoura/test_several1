@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <protNFe>
+    <infProt>
+      <chNFe>35260943999630000124550020008895131508978129</chNFe>
+      <cStat>100</cStat>
+    </infProt>
+  </protNFe>
+  <NFe>
+    <infNFe Id="NFe35260943999630000124550020008895131508978129" versao="4.00">
+      <ide>
+        <mod>55</mod>
+        <nNF>889513</nNF>
+        <serie>2</serie>
+        <dhEmi>2026-09-02T06:49:52-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>43999630000124</CNPJ>
+        <xNome>AVERY DENNISON DO BRASIL LTDA</xNome>
+        <enderEmit>
+          <xLgr>ROD MIGUEL MELHADO CAMPOS</xLgr>
+          <nro>S/N</nro>
+          <xBairro>DISTRITO INDUSTRIAL</xBairro>
+          <xMun>Vinhedo</xMun>
+          <UF>SP</UF>
+          <CEP>13288003</CEP>
+        </enderEmit>
+      </emit>
+      <dest>
+        <CNPJ>01423183000110</CNPJ>
+        <xNome>RLP ETIQUETAS AUTO ADESIVOS LTDA</xNome>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>AAS029-EX4</cProd>
+          <xProd>FASSON ECOPRINT/S2045N/60G - EXACT 1000</xProd>
+          <NCM>48114190</NCM>
+          <CFOP>6101</CFOP>
+          <uCom>M2</uCom>
+          <qCom>820.0000</qCom>
+          <vUnCom>2.5800000000</vUnCom>
+          <vProd>2115.60</vProd>
+          <rastro>
+            <nLote>00081116-01-0006</nLote>
+            <qLote>205.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+          <rastro>
+            <nLote>00081116-01-0005</nLote>
+            <qLote>205.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+          <rastro>
+            <nLote>00081116-01-0013</nLote>
+            <qLote>205.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+          <rastro>
+            <nLote>00081116-01-0012</nLote>
+            <qLote>205.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>AAS029-EX4</cProd>
+          <xProd>FASSON ECOPRINT/S2045N/60G - EXACT 1000</xProd>
+          <NCM>48114190</NCM>
+          <CFOP>6101</CFOP>
+          <uCom>M2</uCom>
+          <qCom>420.0000</qCom>
+          <vUnCom>2.5800000000</vUnCom>
+          <vProd>1083.60</vProd>
+          <rastro>
+            <nLote>00081116-01-0014</nLote>
+            <qLote>210.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+          <rastro>
+            <nLote>00081116-01-0007</nLote>
+            <qLote>210.000</qLote>
+            <dFab>2026-08-30</dFab>
+            <dVal>2027-08-30</dVal>
+          </rastro>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>3200.00</vNF>
+          <vProd>3199.20</vProd>
+          <vIPI>0.80</vIPI>
+        </ICMSTot>
+      </total>
+      <cobr>
+        <dup>
+          <nDup>001</nDup>
+          <dVenc>2026-09-30</dVenc>
+          <vDup>3200.00</vDup>
+        </dup>
+      </cobr>
+    </infNFe>
+  </NFe>
+</nfeProc>

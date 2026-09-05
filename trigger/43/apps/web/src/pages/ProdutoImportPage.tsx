@@ -170,9 +170,10 @@ export function ProdutoImportPage() {
             <p style={{ margin: 0 }}>
               Envie um CSV UTF-8 (separador <code>;</code> ou <code>,</code>). Na simulação o sistema
               valida cada linha sem gravar e preenche NCM, unidades, CFOP e tipo SPED a partir do
-              grupo canônico (MP-PAP, PA-ETQ…) quando vazios. Grupos com bobina exigem{' '}
-              <code>largura_mm</code> e <code>comprimento_m</code>. Código já existente gera erro na
-              linha (insert-only — não atualiza). Estoque/saldo não entra nesta carga.
+              grupo canônico (MP-PAP, PA-ETQ…) quando vazios. Dimensões <code>largura_mm</code> /{' '}
+              <code>comprimento_m</code> são nominais (recomendadas); a bobina real entra como volume
+              na conferência. Código já existente gera erro na linha (insert-only — não atualiza).
+              Estoque/saldo não entra nesta carga.
             </p>
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>

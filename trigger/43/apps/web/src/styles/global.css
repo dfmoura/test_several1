@@ -818,6 +818,12 @@ textarea {
   outline-offset: 1px;
 }
 
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn-icon svg {
   width: 1rem;
   height: 1rem;

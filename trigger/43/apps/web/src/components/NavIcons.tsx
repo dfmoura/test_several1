@@ -232,6 +232,48 @@ export function IconPencil({ className }: IconProps) {
   );
 }
 
+/** Ações de listagem — baixar arquivo (ex.: XML). */
+export function IconDownload({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </IconBase>
+  );
+}
+
+/** Ações de listagem — buscar / obter do remoto (ex.: XML no fisco). */
+export function IconCloudDownload({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M4 14.9A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+      <path d="M12 12v9" />
+      <path d="m8 17 4 4 4-4" />
+    </IconBase>
+  );
+}
+
+/** Ações de listagem — amarrar / vincular. */
+export function IconLink({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </IconBase>
+  );
+}
+
+/** Ações de listagem — descartar / sem interesse. */
+export function IconBan({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m5.5 5.5 13 13" />
+    </IconBase>
+  );
+}
+
 /** Departamentos organizacionais (DEP-). */
 export function IconDepartamento({ className }: IconProps) {
   return (

@@ -133,7 +133,9 @@ class EstoqueEntradaXmlService
 
         foreach ($nfe['itens'] as $xmlItem) {
             $match = $this->sugerirMatch($xmlItem, $pendentes, $maps, $usedOcItemIds);
-            if ($match['ordem_compra_item_id'] !== null) {
+            // De-para: vários det do mesmo cProd agregam no mesmo item OC (Exact Avery).
+            // Demais estratégias continuam 1:1 via usedOcItemIds.
+            if ($match['ordem_compra_item_id'] !== null && ($match['motivo'] ?? '') !== 'de-para cProd') {
                 $usedOcItemIds[] = $match['ordem_compra_item_id'];
             }
 
@@ -179,16 +181,38 @@ class EstoqueEntradaXmlService
         $valorItensSugerido = '0';
         foreach ($sugeridosReceber as $ocItemId => $qtde) {
             $ocItem = $pendentes->firstWhere('id', (int) $ocItemId);
-            $rastro = $this->primeiroRastroDaOc($linhas, (int) $ocItemId);
+            $rastros = $this->rastrosDaOc($linhas, (int) $ocItemId);
             $itemSug = [
                 'ordem_compra_item_id' => (int) $ocItemId,
                 'qtde_recebida' => $qtde,
             ];
-            if ($rastro && $ocItem?->produto?->controla_lote) {
-                $itemSug['lote_codigo'] = $rastro['codigo'];
-                $itemSug['lote_data_fabricacao'] = $rastro['data_fabricacao'];
-                $itemSug['lote_data_validade'] = $rastro['data_validade'];
-                $itemSug['lote_data_entrada'] = $nfe['data_emissao'] ?? now()->toDateString();
+            if ($ocItem?->produto?->controla_lote && $rastros !== []) {
+                $dataEntrada = $nfe['data_emissao'] ?? now()->toDateString();
+                $lotes = [];
+                foreach ($rastros as $rastro) {
+                    $lotes[] = [
+                        'codigo' => $rastro['codigo'],
+                        'qtde' => $rastro['qtde'],
+                        'data_entrada' => $dataEntrada,
+                        'data_fabricacao' => $rastro['data_fabricacao'],
+                        'data_validade' => $rastro['data_validade'],
+                        'largura_mm' => null,
+                        'comprimento_m' => null,
+                    ];
+                }
+                $itemSug['lotes'] = $lotes;
+                // Compat legado (UI antiga / 1 volume):
+                $itemSug['lote_codigo'] = $lotes[0]['codigo'];
+                $itemSug['lote_data_fabricacao'] = $lotes[0]['data_fabricacao'];
+                $itemSug['lote_data_validade'] = $lotes[0]['data_validade'];
+                $itemSug['lote_data_entrada'] = $dataEntrada;
+                if (count($lotes) > 1) {
+                    $warnings[] = $this->warn(
+                        'INFO',
+                        'MULTI_VOLUME',
+                        'Item OC #'.$ocItemId.': '.count($lotes).' volumes (rastros) sugeridos — confira dimensões e confirme.'
+                    );
+                }
             }
             $itensReceber[] = $itemSug;
             if ($ocItem) {
@@ -344,13 +368,12 @@ class EstoqueEntradaXmlService
     {
         $cProd = (string) $xmlItem['c_prod'];
 
-        // 1) De-para explícito
+        // 1) De-para explícito — reutiliza o mesmo item OC (vários det Exact → 1 SKU)
         $map = $maps->get($cProd);
         if ($map) {
-            $item = $pendentes->first(function (OrdemCompraItem $i) use ($map, $usedOcItemIds) {
-                return $i->produto_id === $map->produto_id
-                    && ! in_array($i->id, $usedOcItemIds, true);
-            });
+            $item = $pendentes->first(
+                fn (OrdemCompraItem $i) => $i->produto_id === $map->produto_id
+            );
             if ($item) {
                 return [
                     'ordem_compra_item_id' => $item->id,
@@ -491,22 +514,66 @@ class EstoqueEntradaXmlService
     }
 
     /**
+     * Todos os rastros das linhas XML amarradas ao item da OC (F2 multi-volume).
+     *
      * @param  list<array<string, mixed>>  $linhas
-     * @return array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string}|null
+     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string}>
      */
-    private function primeiroRastroDaOc(array $linhas, int $ocItemId): ?array
+    private function rastrosDaOc(array $linhas, int $ocItemId): array
     {
+        $out = [];
+        $seen = [];
+
         foreach ($linhas as $linha) {
             if ((int) ($linha['match']['ordem_compra_item_id'] ?? 0) !== $ocItemId) {
                 continue;
             }
             $rastros = $linha['rastros'] ?? [];
-            if (is_array($rastros) && $rastros !== []) {
-                return $rastros[0];
+            if (! is_array($rastros)) {
+                continue;
+            }
+            foreach ($rastros as $rastro) {
+                if (! is_array($rastro)) {
+                    continue;
+                }
+                $codigo = trim((string) ($rastro['codigo'] ?? ''));
+                if ($codigo === '') {
+                    continue;
+                }
+                // Mesmo nLote em linhas distintas: acumula qtde.
+                if (isset($seen[$codigo])) {
+                    $idx = $seen[$codigo];
+                    $out[$idx]['qtde'] = PadraoDecimal::roundHalfUp(
+                        bcadd((string) $out[$idx]['qtde'], (string) ($rastro['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    );
+
+                    continue;
+                }
+                $seen[$codigo] = count($out);
+                $out[] = [
+                    'codigo' => $codigo,
+                    'qtde' => PadraoDecimal::roundHalfUp((string) ($rastro['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY),
+                    'data_fabricacao' => $rastro['data_fabricacao'] ?? null,
+                    'data_validade' => $rastro['data_validade'] ?? null,
+                ];
             }
         }
 
-        return null;
+        return $out;
+    }
+
+    /**
+     * @deprecated use rastrosDaOc — mantido só para leitura histórica
+     *
+     * @param  list<array<string, mixed>>  $linhas
+     * @return array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string}|null
+     */
+    private function primeiroRastroDaOc(array $linhas, int $ocItemId): ?array
+    {
+        $all = $this->rastrosDaOc($linhas, $ocItemId);
+
+        return $all[0] ?? null;
     }
 
     /**

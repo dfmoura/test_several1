@@ -1330,6 +1330,22 @@ export type OrdemCompra = {
 };
 
 /** Caixa DF-e — NF-e destinadas (BL-090, leitura local). */
+export type DfeFornecedorStatus =
+  | 'cadastrado'
+  | 'sem_papel'
+  | 'nao_cadastrado'
+  | 'pf'
+  | 'sem_cnpj'
+  | string;
+
+export type DfeFornecedorInfo = {
+  status: DfeFornecedorStatus;
+  parceiro_id: number | null;
+  codigo: string | null;
+  razao_social: string | null;
+  pode_cadastrar: boolean;
+};
+
 export type DfeDocumento = {
   id: number;
   empresa_id: number;
@@ -1350,6 +1366,7 @@ export type DfeDocumento = {
   xml_disponivel?: boolean;
   xml_busca?: string | null;
   xml_busca_msg?: string | null;
+  fornecedor?: DfeFornecedorInfo | null;
   resumo?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -1465,6 +1482,12 @@ export type ReceberXmlPreview = {
     v_un_com: string;
     v_prod: string;
     cfop: string | null;
+    rastros?: Array<{
+      codigo: string;
+      qtde: string;
+      data_fabricacao?: string | null;
+      data_validade?: string | null;
+    }>;
     match: {
       ordem_compra_item_id: number | null;
       produto_id: number | null;
@@ -1487,8 +1510,30 @@ export type ReceberXmlPreview = {
       lote_data_entrada?: string | null;
       lote_data_validade?: string | null;
       lote_data_fabricacao?: string | null;
+      lotes?: Array<{
+        codigo: string;
+        qtde: string;
+        data_entrada?: string | null;
+        data_fabricacao?: string | null;
+        data_validade?: string | null;
+        largura_mm?: string | null;
+        comprimento_m?: string | null;
+      }>;
     }>;
   };
+};
+
+export type EstoqueEndereco = {
+  id: number;
+  codigo: string;
+  prateleira: number;
+  coluna: number;
+  vao: number;
+  largura_m: string;
+  profundidade_m: string;
+  altura_m: string;
+  ativo: boolean;
+  qr_payload: string;
 };
 
 export type EstoqueLote = {
@@ -1504,6 +1549,12 @@ export type EstoqueLote = {
   origem_tipo: string;
   status: string;
   status_label: string;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+  endereco_id?: number | null;
+  endereco?: { id: number; codigo: string } | null;
+  qr_payload?: string | null;
+  etiqueta_url?: string | null;
 };
 
 export type EstoqueSaldo = {

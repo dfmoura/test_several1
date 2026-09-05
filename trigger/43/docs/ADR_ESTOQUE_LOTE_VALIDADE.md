@@ -84,3 +84,14 @@ Operador pode desligar/ligar no cadastro. Validade sem lote é inválida (o sist
 5. Apagar lote com movimento (rastreio).  
 
 Alterar esta ADR exige decisão explícita alinhada ao estudo 32.
+
+---
+
+## Emenda 2026-09-05 — lote como volume (bobina Exact)
+
+Norma complementar: **`ADR_CADASTRO_INSUMO_VOLUME.md`**.
+
+- Em substratos com `rastro` unitário (ex. Avery Exact), **1 `nLote` ≈ 1 volume físico**.  
+- Dimensão real (largura × comprimento) confirma-se na **entrada**, não no cadastro do SKU.  
+- Multi-`rastro` por linha de NF → N lotes/volumes (fase F2 do ADR de insumo). O assist atual que pré-preenche só o 1º rastro permanece até essa fase — **não** altera o writer de saldo.  
+- Endereço / QR do volume / QR do vão continuam **fora de escopo** desta ADR (fases F3–F4).

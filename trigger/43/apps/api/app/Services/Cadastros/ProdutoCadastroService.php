@@ -23,7 +23,7 @@ class ProdutoCadastroService
     ) {}
 
     /**
-     * @return array{familias: int, demos: int, sequences: int}
+     * @return array{familias: int, exact: int, demos: int, sequences: int, depara: int}
      */
     public function seedForEmpresa(Empresa $empresa, bool $incluirDemosVenda = true): array
     {
@@ -38,6 +38,12 @@ class ProdutoCadastroService
                 $familias++;
             }
 
+            $exact = 0;
+            foreach (ProdutoCadastroExactData::insumos() as $row) {
+                $this->upsertExact($empresa, $row, $grupoIds);
+                $exact++;
+            }
+
             $demos = 0;
             if ($incluirDemosVenda) {
                 foreach (ProdutoCadastroCatalogData::demosVenda() as $row) {
@@ -47,11 +53,14 @@ class ProdutoCadastroService
             }
 
             $sequences = $this->syncCodigoSequences($empresa);
+            $depara = app(ProdutoFornecedorCodigoService::class)->seedCatalogHints($empresa);
 
             return [
                 'familias' => $familias,
+                'exact' => $exact,
                 'demos' => $demos,
                 'sequences' => $sequences,
+                'depara' => $depara,
             ];
         });
     }
@@ -116,6 +125,51 @@ class ProdutoCadastroService
         ];
 
         $this->upsertProduto($empresa, $row['codigo'], $payload);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  \Illuminate\Support\Collection<string, int>  $grupoIds
+     */
+    private function upsertExact(Empresa $empresa, array $row, $grupoIds): void
+    {
+        $grupoCodigo = $row['grupo'];
+        $lote = ProdutoLotePolitica::paraGrupo($grupoCodigo);
+        $uCom = strtoupper((string) $row['unidade_comercial']);
+        $uInt = strtoupper((string) $row['unidade_interna']);
+
+        $this->upsertProduto($empresa, $row['codigo'], [
+            'familia' => $row['familia'],
+            'grupo' => $grupoCodigo,
+            'grupo_id' => $grupoIds[$grupoCodigo] ?? null,
+            'descricao_fiscal' => $row['descricao_fiscal'],
+            'descricao_comercial' => $row['descricao_comercial'] ?? null,
+            'ncm' => $row['ncm'],
+            'cest' => null,
+            'tipo_item_sped' => $row['tipo_item_sped'],
+            'unidade_comercial' => $uCom,
+            'unidade_interna' => $uInt,
+            'fator_conversao' => '1',
+            'cfop_entrada_padrao' => '2101',
+            'cfop_saida_padrao' => null,
+            'csosn' => null,
+            'gtin' => 'SEM GTIN',
+            'custo_medio' => '0',
+            'controla_lote' => $lote['controla_lote'],
+            'controla_validade' => $lote['controla_validade'],
+            'prazo_validade_dias' => $lote['prazo_validade_dias'],
+            'situacao' => 'ATIVO',
+            'atributos' => [
+                'camada_cadastro' => 'A',
+                'grupo_estoque' => $row['grupo_estoque'],
+                'ncm_situacao' => $row['ncm_situacao'],
+                'listagem_grupo' => $row['listagem_grupo'],
+                'programa_compra' => $row['programa_compra'],
+                'comprimento_m' => $row['comprimento_m_nominal'],
+                'origem_pendente_xml' => true,
+                'fonte_catalogo' => ProdutoCadastroExactData::FONTE,
+            ],
+        ]);
     }
 
     /**
@@ -191,6 +245,9 @@ class ProdutoCadastroService
         $prefixos = [];
 
         foreach (ProdutoCadastroCatalogData::familias() as $row) {
+            $prefixos[$row['grupo']] = true;
+        }
+        foreach (ProdutoCadastroExactData::insumos() as $row) {
             $prefixos[$row['grupo']] = true;
         }
         foreach (ProdutoCadastroCatalogData::demosVenda() as $row) {

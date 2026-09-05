@@ -464,15 +464,17 @@ class ProdutoImportService
             }
         }
 
+        // ADR_CADASTRO_INSUMO_VOLUME: dimensões no SKU são nominais (conversão/OC).
+        // Exact/variável não bloqueia Camada A — dimensão real vive no volume na entrada.
         if ($grupo && $grupo->exige_dimensao_sku) {
             $attrs = is_array($validated['atributos'] ?? null) ? $validated['atributos'] : [];
             $largura = $attrs['largura_mm'] ?? null;
             $comprimento = $attrs['comprimento_m'] ?? null;
             if ($largura === null || $largura === '' || ! $this->decimalGreaterThanZero($largura)) {
-                $errors[] = "Grupo {$grupo->codigo} exige largura_mm > 0 (SKU dimensional).";
+                $warnings[] = "Grupo {$grupo->codigo}: largura_mm nominal ausente (recomendado p/ conversão; bobina real = volume na entrada).";
             }
             if ($comprimento === null || $comprimento === '' || ! $this->decimalGreaterThanZero($comprimento)) {
-                $errors[] = "Grupo {$grupo->codigo} exige comprimento_m > 0 (SKU dimensional).";
+                $warnings[] = "Grupo {$grupo->codigo}: comprimento_m nominal ausente (recomendado p/ programa Exact / conversão).";
             }
         }
 

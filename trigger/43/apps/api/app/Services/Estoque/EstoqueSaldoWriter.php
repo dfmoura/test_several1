@@ -307,6 +307,19 @@ class EstoqueSaldoWriter
         $ref = $this->normalizarLoteRef($produto, $loteRef, $contexto, $qtde);
         $lote = $this->encontrarOuCriarLote($empresa, $produto, $ref);
 
+        if (! empty($ref['largura_mm']) && ($lote->largura_mm === null || $lote->largura_mm === '')) {
+            $lote->largura_mm = $ref['largura_mm'];
+        }
+        if (! empty($ref['comprimento_m']) && ($lote->comprimento_m === null || $lote->comprimento_m === '')) {
+            $lote->comprimento_m = $ref['comprimento_m'];
+        }
+        if (! empty($ref['endereco_id']) && $lote->endereco_id === null) {
+            $lote->endereco_id = $ref['endereco_id'];
+        }
+        if ($lote->qr_token === null || $lote->qr_token === '') {
+            $lote->qr_token = bin2hex(random_bytes(16));
+        }
+
         $nova = PadraoDecimal::roundHalfUp(
             bcadd((string) $lote->qtde, $qtde, PadraoDecimal::SCALE_QTY + 4),
             PadraoDecimal::SCALE_QTY
@@ -502,6 +515,11 @@ class EstoqueSaldoWriter
 
         unset($qtde);
 
+        $largura = $loteRef['largura_mm'] ?? null;
+        $largura = $largura !== null && $largura !== '' ? (string) $largura : null;
+        $comprimento = $loteRef['comprimento_m'] ?? null;
+        $comprimento = $comprimento !== null && $comprimento !== '' ? (string) $comprimento : null;
+
         return [
             'codigo' => mb_substr($codigo, 0, 60),
             'data_entrada' => $entrada,
@@ -509,6 +527,9 @@ class EstoqueSaldoWriter
             'data_fabricacao' => $fab,
             'lote_id' => isset($loteRef['lote_id']) ? (int) $loteRef['lote_id'] : null,
             'nf_numero' => isset($loteRef['nf_numero']) ? (string) $loteRef['nf_numero'] : null,
+            'largura_mm' => $largura,
+            'comprimento_m' => $comprimento,
+            'endereco_id' => isset($loteRef['endereco_id']) ? (int) $loteRef['endereco_id'] : null,
             'origem_tipo' => (string) ($loteRef['origem_tipo'] ?? match ($contexto) {
                 'ajuste' => EstoqueLote::ORIGEM_AJUSTE,
                 'backfill' => EstoqueLote::ORIGEM_BACKFILL,
@@ -552,6 +573,10 @@ class EstoqueSaldoWriter
             'origem_tipo' => $ref['origem_tipo'],
             'origem_id' => $ref['origem_id'],
             'nf_numero' => $ref['nf_numero'] ?? null,
+            'largura_mm' => $ref['largura_mm'] ?? null,
+            'comprimento_m' => $ref['comprimento_m'] ?? null,
+            'endereco_id' => $ref['endereco_id'] ?? null,
+            'qr_token' => bin2hex(random_bytes(16)),
         ]);
     }
 

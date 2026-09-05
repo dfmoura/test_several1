@@ -56,3 +56,13 @@ Warnings (não bloqueiam): emitente ≠ fornecedor OC; dest ≠ CNPJ EMP.
 2. Novo caminho de saldo paralelo a `receber()`.  
 3. Confiar só no header sem humano no loop.  
 4. Focus como dono do domínio.
+
+---
+
+## Emenda 2026-09-05 — multi-rastro / volumes
+
+Norma: **`ADR_CADASTRO_INSUMO_VOLUME.md`** (fase F2).
+
+- Hoje o preview pode sugerir lote a partir do **primeiro** `rastro` da linha — suficiente para tinta/batch, insuficiente para Exact com N bobinas.  
+- Evolução aceita: conferência lista **todos** os `rastro` → N volumes em `receber()`, soma = qtde da linha.  
+- De-para `cProd` → SKU permanece a âncora; descrição/código do fornecedor não se reescrevem.

@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
  */
 class DfeCaixaService
 {
+    public function __construct(
+        private readonly DfeFornecedorCadastroService $fornecedorCadastro,
+    ) {}
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -52,7 +56,13 @@ class DfeCaixaService
             });
         }
 
-        return $query->get()->map(fn (DfeDocumento $doc) => $this->toOut($doc))->all();
+        $docs = $query->get()->all();
+        $mapa = $this->fornecedorCadastro->mapaPorCnpj($empresa, $docs);
+
+        return array_map(
+            fn (DfeDocumento $doc) => $this->toOut($doc, detalhe: false, mapaFornecedor: $mapa),
+            $docs,
+        );
     }
 
     /**
@@ -61,8 +71,10 @@ class DfeCaixaService
     public function show(DfeDocumento $doc): array
     {
         $doc->loadMissing(['ordemCompra:id,codigo,status']);
+        $empresa = Empresa::query()->findOrFail($doc->empresa_id);
+        $mapa = $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc]);
 
-        return $this->toOut($doc, detalhe: true);
+        return $this->toOut($doc, detalhe: true, mapaFornecedor: $mapa);
     }
 
     /**
@@ -131,10 +143,19 @@ class DfeCaixaService
     }
 
     /**
+     * @param  array<string, array{status: string, parceiro_id: ?int, codigo: ?string, razao_social: ?string}>|null  $mapaFornecedor
      * @return array<string, mixed>
      */
-    public function toOut(DfeDocumento $doc, bool $detalhe = false): array
+    public function toOut(DfeDocumento $doc, bool $detalhe = false, ?array $mapaFornecedor = null): array
     {
+        $mapa = $mapaFornecedor;
+        if ($mapa === null) {
+            $empresa = Empresa::query()->find($doc->empresa_id);
+            $mapa = $empresa instanceof Empresa
+                ? $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc])
+                : [];
+        }
+
         $out = [
             'id' => $doc->id,
             'empresa_id' => $doc->empresa_id,
@@ -156,6 +177,7 @@ class DfeCaixaService
                 'status' => $doc->ordemCompra->status,
             ] : null,
             'tem_xml' => $doc->temXml(),
+            'fornecedor' => $this->fornecedorCadastro->resolverFornecedor($doc, $mapa),
             'created_at' => optional($doc->created_at)?->toIso8601String(),
             'updated_at' => optional($doc->updated_at)?->toIso8601String(),
         ];

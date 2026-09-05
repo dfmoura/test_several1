@@ -210,6 +210,74 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertSame(1, ProdutoFornecedorCodigo::query()->count());
     }
 
+    public function test_preview_multi_det_mesmo_cprod_agrega_um_item_oc(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->fornecedor->update([
+            'cnpj_cpf' => '43999630000124',
+            'razao_social' => 'AVERY DENNISON DO BRASIL LTDA',
+        ]);
+        $this->produto->update([
+            'codigo' => 'MP-PAP-013',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'FASSON ECOPRINT/S2045N/60G EXACT 1000',
+            'ncm' => '48114190',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'controla_lote' => true,
+        ]);
+
+        ProdutoFornecedorCodigo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'fornecedor_id' => $this->fornecedor->id,
+            'produto_id' => $this->produto->id,
+            'c_prod' => 'AAS029-EX4',
+            'x_prod' => 'FASSON ECOPRINT/S2045N/60G - EXACT 1000',
+        ]);
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [[
+                    'produto_id' => $this->produto->id,
+                    'qtde_pedida' => '1240.0000',
+                    'unidade' => 'M2',
+                    'valor_unitario' => '2.580000',
+                ]],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $ocItemId = $oc->json('data.itens.0.id');
+
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_exact_multidet.xml'));
+        $this->assertNotFalse($xml);
+
+        $preview = $this->withHeaders($h)
+            ->post("/api/v1/ordens-compra/{$ocId}/receber/xml/preview", [
+                'file' => UploadedFile::fake()->createWithContent('exact.xml', $xml),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.linhas.0.match.motivo', 'de-para cProd')
+            ->assertJsonPath('data.linhas.1.match.motivo', 'de-para cProd')
+            ->assertJsonPath('data.linhas.0.match.ordem_compra_item_id', $ocItemId)
+            ->assertJsonPath('data.linhas.1.match.ordem_compra_item_id', $ocItemId)
+            ->assertJsonPath('data.sugerido_receber.itens.0.qtde_recebida', '1240.0000');
+
+        $lotes = $preview->json('data.sugerido_receber.itens.0.lotes');
+        $this->assertIsArray($lotes);
+        $this->assertCount(6, $lotes);
+
+        $warnings = collect($preview->json('data.warnings') ?? []);
+        $this->assertNotNull(
+            $warnings->first(fn ($w) => ($w['codigo'] ?? null) === 'MULTI_VOLUME'),
+            'Deve avisar multi-volume dos rastros agregados'
+        );
+    }
+
     public function test_preview_e_receber_multi_titulos_das_parcelas_xml(): void
     {
         Sanctum::actingAs($this->user);

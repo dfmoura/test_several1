@@ -61,7 +61,7 @@ final class ProdutoGrupoCatalogData
                 'exige_dimensao_sku' => true,
                 'ncm_confirmado' => true,
                 'ordenacao' => 10,
-                'observacao' => 'Couché/fosco/térmico → NCM 4811.41.90. Tag sem adesivo → candidato 4810.13.89 (linha estoque 13). Origem conforme XML do fornecedor.',
+                'observacao' => 'Couché/fosco/térmico → NCM 4811.41.90. Tag sem adesivo → candidato 4810.13.89 (linha estoque 13). Origem conforme XML. Exact/variável: 1 SKU por material+programa; L×C real = volume (ADR_CADASTRO_INSUMO_VOLUME).',
             ],
             [
                 'codigo' => 'MP-FLM',
@@ -81,7 +81,7 @@ final class ProdutoGrupoCatalogData
                 'exige_dimensao_sku' => true,
                 'ncm_confirmado' => true,
                 'ordenacao' => 20,
-                'observacao' => 'Bobinas industriais > 20 cm → 3919.90.10 (padrão). Largura ≤ 20 cm → 3919.10.xx. Marca (Colacril/Fasson) entra na descrição/sigla FFF, não no código do grupo.',
+                'observacao' => 'Bobinas > 20 cm → 3919.90.10. Marca na descrição, não no grupo. Exact: de-para cProd; não explodir SKU por mm×m (ADR_CADASTRO_INSUMO_VOLUME).',
             ],
             [
                 'codigo' => 'MP-TEC',

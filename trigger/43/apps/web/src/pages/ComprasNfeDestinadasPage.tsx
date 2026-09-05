@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { IconBan, IconCloudDownload, IconDownload, IconLink } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
-import { api, ApiError, type DfeDocumento, type DfeSyncEstado, type OrdemCompra } from '../lib/api';
+import {
+  api,
+  ApiError,
+  type DfeDocumento,
+  type DfeFornecedorStatus,
+  type DfeSyncEstado,
+  type OrdemCompra,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate } from '../lib/format';
 import { useTableSort } from '../lib/useTableSort';
@@ -14,11 +22,76 @@ const SORT = {
   numero: (d: DfeDocumento) => d.numero,
   valor: (d: DfeDocumento) => Number(d.valor_total ?? 0),
   situacao: (d: DfeDocumento) => d.situacao,
+  fornecedor: (d: DfeDocumento) => d.fornecedor?.status ?? '',
+};
+
+type FornecedorPreviewRow = {
+  line: number;
+  status: 'ok' | 'info' | 'erro' | string;
+  acao?: 'criar' | 'adicionar_papel' | 'nenhuma' | null;
+  errors: string[];
+  warnings?: string[];
+  data: Record<string, unknown>;
+  parceiro_id?: number;
+  preview: {
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+    cnpj_cpf?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    ie?: string | null;
+    cnpj_status?: string | null;
+    parceiro_codigo?: string | null;
+    dest_aviso?: string | null;
+    enrichment?: {
+      status?: string;
+      filled?: string[];
+      message?: string | null;
+    };
+  };
 };
 
 function formatCnpj(cnpj: string | null): string {
   if (!cnpj || cnpj.length !== 14) return cnpj ?? '—';
   return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+}
+
+function fornecedorPillLabel(status: DfeFornecedorStatus | undefined): string {
+  switch (status) {
+    case 'cadastrado':
+      return 'Cadastrado';
+    case 'sem_papel':
+      return 'Sem papel';
+    case 'nao_cadastrado':
+      return 'Não cadastrado';
+    case 'pf':
+      return 'PF';
+    case 'sem_cnpj':
+      return 'Sem CNPJ';
+    default:
+      return status ?? '—';
+  }
+}
+
+function fornecedorTitle(doc: DfeDocumento, podeParceiro: boolean): string {
+  const f = doc.fornecedor;
+  if (!f) return '';
+  if (f.status === 'cadastrado') {
+    return f.codigo ? `Fornecedor ${f.codigo}` : 'Fornecedor cadastrado';
+  }
+  if (f.status === 'pf' || f.status === 'sem_cnpj') {
+    return 'Cadastro via XML de NF-e aplica-se a emitente PJ com CNPJ.';
+  }
+  if (!doc.tem_xml) {
+    return 'Busque o XML no fisco antes de cadastrar o fornecedor.';
+  }
+  if (!podeParceiro) {
+    return 'Sem permissão para cadastrar parceiro.';
+  }
+  if (f.status === 'sem_papel') {
+    return 'Parceiro existe sem classificação fornecedor — clique para adicionar o papel via XML.';
+  }
+  return 'Clique para simular o cadastro do fornecedor a partir do XML da nota.';
 }
 
 export function ComprasNfeDestinadasPage() {
@@ -38,9 +111,13 @@ export function ComprasNfeDestinadasPage() {
   const [ocs, setOcs] = useState<OrdemCompra[]>([]);
   const [ocId, setOcId] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [fornecedorDoc, setFornecedorDoc] = useState<DfeDocumento | null>(null);
+  const [fornecedorPreview, setFornecedorPreview] = useState<FornecedorPreviewRow | null>(null);
+  const [fornecedorBusy, setFornecedorBusy] = useState(false);
   const pollRef = useRef<number | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(docs, SORT);
   const podeEscrever = hasPermission('compras.escrever');
+  const podeParceiro = hasPermission('parceiro.escrever');
 
   const load = useCallback(async (search?: string, st?: string, year?: string) => {
     setLoading(true);
@@ -110,6 +187,8 @@ export function ComprasNfeDestinadasPage() {
 
   const abrirAmarrar = async (doc: DfeDocumento) => {
     setAcaoErro(null);
+    setFornecedorDoc(null);
+    setFornecedorPreview(null);
     setAmarrarDoc(doc);
     setOcId('');
     const [abertas, parciais] = await Promise.all([
@@ -185,10 +264,86 @@ export function ComprasNfeDestinadasPage() {
     }
   };
 
+  const fecharFornecedor = () => {
+    setFornecedorDoc(null);
+    setFornecedorPreview(null);
+    setFornecedorBusy(false);
+  };
+
+  const abrirFornecedor = async (doc: DfeDocumento) => {
+    const f = doc.fornecedor;
+    if (!f) return;
+
+    if (f.status === 'cadastrado' && f.parceiro_id) {
+      navigate(`/parceiros/${f.parceiro_id}`);
+      return;
+    }
+
+    if (!podeParceiro) return;
+    if (f.status === 'pf' || f.status === 'sem_cnpj') return;
+
+    if (!doc.tem_xml) {
+      setAcaoErro('Busque o XML no fisco antes de cadastrar o fornecedor.');
+      return;
+    }
+
+    if (f.status !== 'nao_cadastrado' && f.status !== 'sem_papel') return;
+
+    setAmarrarDoc(null);
+    setAcaoErro(null);
+    setFornecedorDoc(doc);
+    setFornecedorPreview(null);
+    setFornecedorBusy(true);
+    try {
+      const res = await api.post<{
+        data: { row: FornecedorPreviewRow; documento: DfeDocumento };
+      }>(`/dfe-documentos/${doc.id}/fornecedor/preview`, {});
+      setFornecedorPreview(res.data.row);
+      if (res.data.documento) {
+        setFornecedorDoc(res.data.documento);
+      }
+    } catch (err) {
+      setFornecedorDoc(null);
+      setAcaoErro(
+        err instanceof ApiError
+          ? err.details?.fornecedor?.[0] ?? err.message
+          : 'Falha ao simular o cadastro do fornecedor.',
+      );
+    } finally {
+      setFornecedorBusy(false);
+    }
+  };
+
+  const confirmarFornecedor = async () => {
+    if (!fornecedorDoc || !fornecedorPreview) return;
+    const acao = fornecedorPreview.acao;
+    if (acao !== 'criar' && acao !== 'adicionar_papel') return;
+
+    setFornecedorBusy(true);
+    setAcaoErro(null);
+    try {
+      await api.post(`/dfe-documentos/${fornecedorDoc.id}/fornecedor/commit`, {});
+      fecharFornecedor();
+      void load(q, situacao, ano);
+    } catch (err) {
+      setAcaoErro(
+        err instanceof ApiError
+          ? err.details?.fornecedor?.[0] ?? err.message
+          : 'Falha ao gravar o fornecedor.',
+      );
+    } finally {
+      setFornecedorBusy(false);
+    }
+  };
+
   const syncMsgLower = (sync?.sync_mensagem ?? '').toLowerCase();
   const nenhumDocumentoFisco =
     syncMsgLower.includes('nenhum documento') ||
     (Boolean(sync?.primeira_hidratacao_completa) && (sync?.total_documentos ?? 0) === 0);
+
+  const previewPodeConfirmar =
+    fornecedorPreview?.status === 'ok' &&
+    (fornecedorPreview.acao === 'criar' || fornecedorPreview.acao === 'adicionar_papel');
 
   return (
     <>
@@ -280,6 +435,103 @@ export function ComprasNfeDestinadasPage() {
         </div>
       )}
 
+      {(fornecedorDoc || fornecedorBusy) && (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card-body">
+            <strong>
+              {fornecedorPreview?.acao === 'adicionar_papel'
+                ? 'Adicionar papel fornecedor'
+                : 'Cadastrar fornecedor a partir do XML'}
+            </strong>
+            <div className="muted" style={{ marginBottom: '0.75rem' }}>
+              {fornecedorPreview?.preview.razao_social ??
+                fornecedorDoc?.emit_nome ??
+                'Emitente'}{' '}
+              · NF {fornecedorDoc?.numero ?? '—'}
+            </div>
+
+            {fornecedorBusy && !fornecedorPreview ? (
+              <div className="muted">Simulando cadastro a partir do XML do cofre…</div>
+            ) : fornecedorPreview ? (
+              <>
+                <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                  <div>
+                    <strong>{fornecedorPreview.preview.razao_social ?? '—'}</strong>
+                    {fornecedorPreview.preview.nome_fantasia ? (
+                      <span className="muted"> · {fornecedorPreview.preview.nome_fantasia}</span>
+                    ) : null}
+                  </div>
+                  <div className="muted" style={{ fontSize: '0.9rem' }}>
+                    {formatCnpj(fornecedorPreview.preview.cnpj_cpf ?? null)}
+                    {fornecedorPreview.preview.municipio
+                      ? ` · ${fornecedorPreview.preview.municipio}`
+                      : ''}
+                    {fornecedorPreview.preview.uf ? `/${fornecedorPreview.preview.uf}` : ''}
+                    {fornecedorPreview.preview.ie ? ` · IE ${fornecedorPreview.preview.ie}` : ''}
+                  </div>
+                  {fornecedorPreview.preview.parceiro_codigo && (
+                    <div className="muted" style={{ fontSize: '0.9rem' }}>
+                      Parceiro existente: {fornecedorPreview.preview.parceiro_codigo}
+                    </div>
+                  )}
+                </div>
+
+                {(fornecedorPreview.warnings?.length ?? 0) > 0 && (
+                  <ul className="muted" style={{ margin: '0 0 0.75rem', paddingLeft: '1.1rem', fontSize: '0.9rem' }}>
+                    {fornecedorPreview.warnings!.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {fornecedorPreview.errors.length > 0 && (
+                  <ul style={{ margin: '0 0 0.75rem', paddingLeft: '1.1rem', color: 'var(--danger, #b42318)' }}>
+                    {fornecedorPreview.errors.map((err) => (
+                      <li key={err}>{err}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {fornecedorPreview.status === 'info' && fornecedorPreview.acao === 'nenhuma' && (
+                  <div className="muted" style={{ marginBottom: '0.75rem' }}>
+                    Emitente já cadastrado como fornecedor
+                    {fornecedorPreview.preview.parceiro_codigo
+                      ? ` (${fornecedorPreview.preview.parceiro_codigo})`
+                      : ''}
+                    .
+                  </div>
+                )}
+              </>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+              {previewPodeConfirmar && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={fornecedorBusy}
+                  onClick={() => void confirmarFornecedor()}
+                >
+                  {fornecedorBusy
+                    ? 'Gravando…'
+                    : fornecedorPreview?.acao === 'adicionar_papel'
+                      ? 'Confirmar papel fornecedor'
+                      : 'Confirmar cadastro'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={fornecedorBusy}
+                onClick={fecharFornecedor}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -360,6 +612,15 @@ export function ComprasNfeDestinadasPage() {
                   <SortableTh column="emitente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Emitente
                   </SortableTh>
+                  <SortableTh
+                    column="fornecedor"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    Fornecedor
+                  </SortableTh>
                   <SortableTh column="numero" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Número
                   </SortableTh>
@@ -371,93 +632,144 @@ export function ComprasNfeDestinadasPage() {
                   </SortableTh>
                   <th>OC</th>
                   <th>XML</th>
-                  {podeEscrever && <th>Ações</th>}
+                  {podeEscrever && <th className="acoes">Ações</th>}
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((d) => (
-                  <tr key={d.id}>
-                    <td>{d.data_emissao ? formatDate(d.data_emissao) : '—'}</td>
-                    <td>
-                      <div>{d.emit_nome ?? '—'}</div>
-                      <div className="muted" style={{ fontSize: '0.85rem' }}>
-                        {formatCnpj(d.emit_cnpj)}
-                      </div>
-                    </td>
-                    <td>
-                      {d.serie ? `${d.serie}/` : ''}
-                      {d.numero ?? '—'}
-                    </td>
-                    <td>{d.valor_total != null ? formatCurrency(Number(d.valor_total)) : '—'}</td>
-                    <td>
-                      <StatusPill status={d.situacao} />
-                    </td>
-                    <td>
-                      {d.ordem_compra ? (
-                        <Link to={`/compras/ordens/${d.ordem_compra.id}?dfe=${d.id}`}>
-                          {d.ordem_compra.codigo}
-                        </Link>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {d.tem_xml ? (
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          style={{ fontSize: '0.85rem' }}
-                          disabled={busyId === d.id}
-                          title="Baixar XML oficial do fisco (já na caixa)"
-                          onClick={() => void baixarXml(d)}
-                        >
-                          Baixar
-                        </button>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    {podeEscrever && (
+                {sorted.map((d) => {
+                  const labelDoc =
+                    d.numero != null
+                      ? `NF ${d.serie ? `${d.serie}/` : ''}${d.numero}`
+                      : `documento ${d.id}`;
+                  const ocupado = busyId === d.id;
+                  const f = d.fornecedor;
+                  const pillLabel = fornecedorPillLabel(f?.status);
+                  const clicavel =
+                    f?.status === 'cadastrado' ||
+                    (podeParceiro &&
+                      (f?.status === 'nao_cadastrado' || f?.status === 'sem_papel'));
+                  const title = fornecedorTitle(d, podeParceiro);
+
+                  return (
+                    <tr key={d.id}>
+                      <td>{d.data_emissao ? formatDate(d.data_emissao) : '—'}</td>
                       <td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                          {!d.tem_xml && d.situacao !== 'SEM_INTERESSE' && d.situacao !== 'RECEBIDA' && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ fontSize: '0.85rem' }}
-                              disabled={busyId === d.id}
-                              onClick={() => void buscarXml(d)}
-                            >
-                              Buscar XML
-                            </button>
-                          )}
-                          {d.tem_xml && d.situacao !== 'RECEBIDA' && d.situacao !== 'SEM_INTERESSE' && (
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              style={{ fontSize: '0.85rem' }}
-                              disabled={busyId === d.id}
-                              onClick={() => void abrirAmarrar(d)}
-                            >
-                              Amarrar OC
-                            </button>
-                          )}
-                          {d.situacao !== 'RECEBIDA' && d.situacao !== 'SEM_INTERESSE' && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ fontSize: '0.85rem' }}
-                              disabled={busyId === d.id}
-                              onClick={() => void semInteresse(d)}
-                            >
-                              Sem interesse
-                            </button>
-                          )}
+                        <div>{d.emit_nome ?? '—'}</div>
+                        <div className="muted" style={{ fontSize: '0.85rem' }}>
+                          {formatCnpj(d.emit_cnpj)}
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td>
+                        {!f || f.status === 'pf' || f.status === 'sem_cnpj' ? (
+                          <span className="muted" title={title}>
+                            {pillLabel}
+                          </span>
+                        ) : f.status === 'cadastrado' && f.parceiro_id ? (
+                          <Link to={`/parceiros/${f.parceiro_id}`} title={title}>
+                            <StatusPill status={pillLabel} />
+                          </Link>
+                        ) : clicavel && podeParceiro ? (
+                          <button
+                            type="button"
+                            className="btn-link"
+                            style={{
+                              background: 'none',
+                              border: 0,
+                              padding: 0,
+                              cursor: 'pointer',
+                              font: 'inherit',
+                            }}
+                            disabled={ocupado || fornecedorBusy}
+                            title={title}
+                            aria-label={`${pillLabel} — ${labelDoc}`}
+                            onClick={() => void abrirFornecedor(d)}
+                          >
+                            <StatusPill status={pillLabel} />
+                          </button>
+                        ) : (
+                          <span title={title}>
+                            <StatusPill status={pillLabel} />
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {d.serie ? `${d.serie}/` : ''}
+                        {d.numero ?? '—'}
+                      </td>
+                      <td>{d.valor_total != null ? formatCurrency(Number(d.valor_total)) : '—'}</td>
+                      <td>
+                        <StatusPill status={d.situacao} />
+                      </td>
+                      <td>
+                        {d.ordem_compra ? (
+                          <Link to={`/compras/ordens/${d.ordem_compra.id}?dfe=${d.id}`}>
+                            {d.ordem_compra.codigo}
+                          </Link>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        {d.tem_xml ? (
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            disabled={ocupado}
+                            title="Baixar XML oficial do fisco (já na caixa)"
+                            aria-label={`Baixar XML de ${labelDoc}`}
+                            onClick={() => void baixarXml(d)}
+                          >
+                            <IconDownload />
+                          </button>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      {podeEscrever && (
+                        <td className="acoes">
+                          <div className="table-actions">
+                            {!d.tem_xml && d.situacao !== 'SEM_INTERESSE' && d.situacao !== 'RECEBIDA' && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                disabled={ocupado}
+                                title="Buscar XML no fisco"
+                                aria-label={`Buscar XML de ${labelDoc}`}
+                                onClick={() => void buscarXml(d)}
+                              >
+                                <IconCloudDownload />
+                              </button>
+                            )}
+                            {d.tem_xml && d.situacao !== 'RECEBIDA' && d.situacao !== 'SEM_INTERESSE' && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                disabled={ocupado}
+                                title="Amarrar à ordem de compra"
+                                aria-label={`Amarrar ${labelDoc} à OC`}
+                                onClick={() => void abrirAmarrar(d)}
+                              >
+                                <IconLink />
+                              </button>
+                            )}
+                            {d.situacao !== 'RECEBIDA' && d.situacao !== 'SEM_INTERESSE' && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                disabled={ocupado}
+                                title="Marcar sem interesse"
+                                aria-label={`Marcar ${labelDoc} sem interesse`}
+                                onClick={() => void semInteresse(d)}
+                              >
+                                <IconBan />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

@@ -157,7 +157,10 @@ class EstoqueConsultaService
     public function listLotes(Empresa $empresa, ?int $produtoId = null, ?string $status = null): array
     {
         $query = EstoqueLote::query()
-            ->with(['produto:id,codigo,descricao_fiscal,familia,unidade_interna,controla_lote,controla_validade'])
+            ->with([
+                'produto:id,codigo,descricao_fiscal,familia,unidade_interna,controla_lote,controla_validade',
+                'endereco:id,codigo',
+            ])
             ->where('empresa_id', $empresa->id)
             ->orderByRaw('data_validade IS NULL')
             ->orderBy('data_validade')
@@ -279,6 +282,16 @@ class EstoqueConsultaService
             'origem_tipo' => $lote->origem_tipo,
             'status' => $status,
             'status_label' => ProdutoLotePolitica::statusLabel($status),
+            'largura_mm' => $lote->largura_mm !== null ? (string) $lote->largura_mm : null,
+            'comprimento_m' => $lote->comprimento_m !== null ? (string) $lote->comprimento_m : null,
+            'endereco_id' => $lote->endereco_id,
+            'endereco' => $lote->relationLoaded('endereco') && $lote->endereco ? [
+                'id' => $lote->endereco->id,
+                'codigo' => $lote->endereco->codigo,
+            ] : null,
+            'qr_payload' => $lote->qr_token
+                ? 'VOL:'.$lote->empresa_id.':'.$lote->id.':'.$lote->qr_token
+                : null,
         ];
     }
 

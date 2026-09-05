@@ -9,11 +9,11 @@ namespace App\Services\Cadastros;
  * Padrão: CODIFICACAO_INFORMACOES_SISTEMA.txt + CADASTRO_PRODUTOS_COMPRA.txt
  * Grupos: ProdutoGrupoCatalogData (MP-PAP, MP-FLM, …)
  *
- * Camada A = família fiscal (89 SKUs). Camada B (bobina largura×comprimento)
- * nasce depois — ver CONTROLE_ESTOQUE_PROFISSIONAL.txt.
+ * Camada A = família fiscal (89 SKUs). Dimensão física da bobina = **volume**
+ * (ADR_CADASTRO_INSUMO_VOLUME) — não Camada B por L×C no SKU Exact.
  *
  * Unidades (ADR-039-UNID-001): na Camada A comercial = interna = UN da listagem
- * e fator 1. Não inventar ponte KG→M2 / RL→M sem gramatura/comprimento.
+ * e fator 1. Exact: ver ProdutoCadastroExactData (M2=M2).
  */
 final class ProdutoCadastroCatalogData
 {

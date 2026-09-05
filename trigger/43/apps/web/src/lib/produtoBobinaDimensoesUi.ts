@@ -1,12 +1,12 @@
 /**
  * Visibilidade dos campos dimensionais (bobina) no cadastro de produto.
  *
- * Fonte de verdade (ADR-039-UNID-001 / estudo 32):
- *  1. `produto_grupos.exige_dimensao_sku` — grupo de bobina / máscara dimensional
+ * Fonte de verdade (ADR-039-UNID-001 · ADR-043-CAD-001):
+ *  1. `produto_grupos.exige_dimensao_sku` — oferece dimensões **nominais** (não identidade L×C do SKU)
  *  2. Motor `FatorConversaoSugeridor` pediu explicitamente esses atributos
  *  3. Valores já gravados (edição / legado) — para não sumir com dado existente
  *
- * Proibido: heurística por “qualquer unidade KG/M/M2”.
+ * Dimensão real da bobina = volume na entrada. Proibido: heurística por unidade KG/M/M2.
  */
 
 export const BOBINA_DIM_KEYS = ['largura_mm', 'comprimento_m', 'gramatura_g_m2'] as const;
@@ -60,7 +60,7 @@ export function decideBobinaDimensoesUi(input: {
   if (input.exigeDimensaoSku) {
     return {
       showSection: true,
-      title: 'Dados da bobina (insumos da conversão)',
+      title: 'Dimensões nominais (referência de compra / conversão)',
       showLargura: true,
       showComprimento: true,
       showGramatura: true,

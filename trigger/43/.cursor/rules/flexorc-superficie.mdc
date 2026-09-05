@@ -13,7 +13,7 @@ Norma: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · transição: `docs/ADR_TRANSICAO_FL
 
 Painel (**cockpit de ação** — `docs/ADR_PAINEL_COCKPIT.md`), empresa, parceiros, **produtos** (MP/EMB/REV + famílias PA/SVC), patrimônio, departamentos, **backlog**, naturezas gerenciais, ORC, mapa de facas, **Pedidos**, **Ordens de produção**, **Faturamentos**, **Expedição**, **Contas a pagar/receber**, **Compras** (OC · a repor · **NF-e destinadas**), **Estoque** (saldos · lotes · MOV · inventários · ajustes), catálogo ORC, parâmetros, usuários, **mensalidade da conta**, implantação, onboarding ASAAS.
 
-**Produtos (SKU):** cadastro operacional para compra/estoque/OP. Preço comercial da etiqueta sob medida continua no **catálogo ORC** da EMP. PA sob encomenda = família `PA-ETQ-*` + spec no PED — **não** explodir SKU por arte/cliente (`CADASTRO_PRODUTOS_VENDA` / estudo 32). Gate: `F5_PRODUTOS` em `ImplantacaoCatalogo`.
+**Produtos (SKU):** cadastro operacional para compra/estoque/OP. Preço comercial da etiqueta sob medida continua no **catálogo ORC** da EMP. PA sob encomenda = família `PA-ETQ-*` + spec no PED — **não** explodir SKU por arte/cliente (`CADASTRO_PRODUTOS_VENDA` / estudo 32). Insumo Exact/bobina: SKU = material+programa; bobina física = volume — `docs/ADR_CADASTRO_INSUMO_VOLUME.md`. Gate: `F5_PRODUTOS` em `ImplantacaoCatalogo`.
 
 **NF-e de entrada:** na **OC** (XML assist + conferência humana → `receber`); Estoque mostra saldos/MOV/espelho e aponta para a OC. Sem entrada sem OC.
 

@@ -44,12 +44,22 @@ class ProdutoCadastroServiceTest extends TestCase
         $result = app(ProdutoCadastroService::class)->seedForEmpresa($empresa);
 
         $this->assertSame(89, $result['familias']);
+        $this->assertSame(4, $result['exact']);
         $this->assertSame(2, $result['demos']);
 
-        $this->assertSame(89, Produto::query()
+        $this->assertSame(89 + 4, Produto::query()
             ->where('empresa_id', $empresa->id)
             ->where('atributos->camada_cadastro', 'A')
             ->count());
+
+        $exact = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'MP-PAP-013')
+            ->firstOrFail();
+        $this->assertSame('M2', $exact->unidade_comercial);
+        $this->assertSame('M2', $exact->unidade_interna);
+        $this->assertSame('EXACT 1000', $exact->atributos['programa_compra'] ?? null);
+        $this->assertTrue((bool) $exact->controla_lote);
 
         $fosco = Produto::query()
             ->where('empresa_id', $empresa->id)
@@ -108,7 +118,7 @@ class ProdutoCadastroServiceTest extends TestCase
             ->where('empresa_id', $empresa->id)
             ->where('prefixo', 'MP-PAP')
             ->firstOrFail();
-        $this->assertSame(13, (int) $seqPap->proximo);
+        $this->assertSame(16, (int) $seqPap->proximo);
 
         $seqTin = CodigoSequence::query()
             ->where('empresa_id', $empresa->id)
@@ -225,7 +235,7 @@ class ProdutoCadastroServiceTest extends TestCase
         $service->seedForEmpresa($empresa);
 
         $this->assertSame(
-            89 + 2,
+            89 + 4 + 2,
             Produto::query()->where('empresa_id', $empresa->id)->count()
         );
     }

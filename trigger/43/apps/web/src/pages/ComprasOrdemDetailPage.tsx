@@ -132,6 +132,21 @@ export function ComprasOrdemDetailPage() {
   const [loteForms, setLoteForms] = useState<
     Record<number, { codigo: string; data_entrada: string; data_validade: string; data_fabricacao: string }>
   >({});
+  const [volumeForms, setVolumeForms] = useState<
+    Record<
+      number,
+      Array<{
+        codigo: string;
+        qtde: string;
+        data_entrada: string;
+        data_validade: string;
+        data_fabricacao: string;
+        largura_mm: string;
+        comprimento_m: string;
+      }>
+    >
+  >({});
+  const [enderecos, setEnderecos] = useState<Array<{ id: number; codigo: string }>>([]);
 
   const load = async () => {
     setLoading(true);
@@ -158,6 +173,10 @@ export function ComprasOrdemDetailPage() {
         const def = res.data.find((n) => n.codigo === '5.06');
         if (def) setNaturezaId(String(def.id));
       });
+    void api
+      .get<{ data: Array<{ id: number; codigo: string }> }>('/estoque/enderecos')
+      .then((res) => setEnderecos(res.data.map((e) => ({ id: e.id, codigo: e.codigo }))))
+      .catch(() => setEnderecos([]));
   }, [id]);
 
   const canReceive =
@@ -228,6 +247,37 @@ export function ComprasOrdemDetailPage() {
             data_validade: item.lote_data_validade || '',
             data_fabricacao: item.lote_data_fabricacao || '',
           };
+        }
+      }
+      return next;
+    });
+
+    setVolumeForms(() => {
+      const next: typeof volumeForms = {};
+      for (const item of sug.itens) {
+        const dataEntrada = item.lote_data_entrada || sug.nf_data || '';
+        if (item.lotes && item.lotes.length > 0) {
+          next[item.ordem_compra_item_id] = item.lotes.map((l) => ({
+            codigo: l.codigo,
+            qtde: l.qtde,
+            data_entrada: l.data_entrada || dataEntrada,
+            data_validade: l.data_validade || '',
+            data_fabricacao: l.data_fabricacao || '',
+            largura_mm: l.largura_mm || '',
+            comprimento_m: l.comprimento_m || '',
+          }));
+        } else if (item.lote_codigo) {
+          next[item.ordem_compra_item_id] = [
+            {
+              codigo: item.lote_codigo,
+              qtde: item.qtde_recebida,
+              data_entrada: dataEntrada,
+              data_validade: item.lote_data_validade || '',
+              data_fabricacao: item.lote_data_fabricacao || '',
+              largura_mm: '',
+              comprimento_m: '',
+            },
+          ];
         }
       }
       return next;
@@ -327,11 +377,24 @@ export function ComprasOrdemDetailPage() {
             qtde_recebida: qtdes[item.id] || '0',
           };
           if (item.produto?.controla_lote) {
-            const lote = loteForms[item.id];
-            row.lote_codigo = lote?.codigo || '';
-            row.lote_data_entrada = lote?.data_entrada || nfData || null;
-            row.lote_data_validade = lote?.data_validade || null;
-            row.lote_data_fabricacao = lote?.data_fabricacao || null;
+            const volumes = volumeForms[item.id];
+            if (volumes && volumes.length > 0) {
+              row.lotes = volumes.map((v) => ({
+                codigo: v.codigo,
+                qtde: v.qtde,
+                data_entrada: v.data_entrada || nfData || null,
+                data_validade: v.data_validade || null,
+                data_fabricacao: v.data_fabricacao || null,
+                largura_mm: v.largura_mm || null,
+                comprimento_m: v.comprimento_m || null,
+              }));
+            } else {
+              const lote = loteForms[item.id];
+              row.lote_codigo = lote?.codigo || '';
+              row.lote_data_entrada = lote?.data_entrada || nfData || null;
+              row.lote_data_validade = lote?.data_validade || null;
+              row.lote_data_fabricacao = lote?.data_fabricacao || null;
+            }
           }
           return row;
         })
@@ -771,63 +834,213 @@ export function ComprasOrdemDetailPage() {
                             }
                           />
                           {item.produto?.controla_lote && (
-                            <div className="form-grid" style={{ marginTop: '0.5rem' }}>
-                              <div className="form-group">
-                                <label>Lote do fornecedor</label>
-                                <input
-                                  value={loteForms[item.id]?.codigo ?? ''}
-                                  onChange={(e) =>
-                                    setLoteForms({
-                                      ...loteForms,
-                                      [item.id]: {
-                                        codigo: e.target.value,
-                                        data_entrada: loteForms[item.id]?.data_entrada || nfData,
-                                        data_validade: loteForms[item.id]?.data_validade || '',
-                                        data_fabricacao: loteForms[item.id]?.data_fabricacao || '',
-                                      },
-                                    })
-                                  }
-                                  required={Number(qtdes[item.id] || 0) > 0}
-                                />
-                              </div>
-                              <div className="form-group">
-                                <label>Data de entrada</label>
-                                <input
-                                  type="date"
-                                  value={loteForms[item.id]?.data_entrada || nfData}
-                                  onChange={(e) =>
-                                    setLoteForms({
-                                      ...loteForms,
-                                      [item.id]: {
-                                        codigo: loteForms[item.id]?.codigo || '',
-                                        data_entrada: e.target.value,
-                                        data_validade: loteForms[item.id]?.data_validade || '',
-                                        data_fabricacao: loteForms[item.id]?.data_fabricacao || '',
-                                      },
-                                    })
-                                  }
-                                />
-                              </div>
-                              {item.produto.controla_validade && (
-                                <div className="form-group">
-                                  <label>Vencimento</label>
-                                  <input
-                                    type="date"
-                                    value={loteForms[item.id]?.data_validade ?? ''}
-                                    onChange={(e) =>
-                                      setLoteForms({
-                                        ...loteForms,
-                                        [item.id]: {
-                                          codigo: loteForms[item.id]?.codigo || '',
-                                          data_entrada:
-                                            loteForms[item.id]?.data_entrada || nfData,
-                                          data_validade: e.target.value,
-                                          data_fabricacao:
-                                            loteForms[item.id]?.data_fabricacao || '',
+                            <div style={{ marginTop: '0.75rem' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  marginBottom: '0.35rem',
+                                }}
+                              >
+                                <strong style={{ fontSize: '0.9rem' }}>
+                                  Volumes / lotes
+                                  {(volumeForms[item.id]?.length ?? 0) > 1
+                                    ? ` (${volumeForms[item.id].length})`
+                                    : ''}
+                                </strong>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() =>
+                                    setVolumeForms({
+                                      ...volumeForms,
+                                      [item.id]: [
+                                        ...(volumeForms[item.id] ?? []),
+                                        {
+                                          codigo: '',
+                                          qtde: '',
+                                          data_entrada: nfData,
+                                          data_validade: '',
+                                          data_fabricacao: '',
+                                          largura_mm: '',
+                                          comprimento_m: '',
                                         },
-                                      })
-                                    }
-                                  />
+                                      ],
+                                    })
+                                  }
+                                >
+                                  + volume
+                                </button>
+                              </div>
+                              {(volumeForms[item.id]?.length ?? 0) === 0 ? (
+                                <div className="form-grid">
+                                  <div className="form-group">
+                                    <label>Lote do fornecedor</label>
+                                    <input
+                                      value={loteForms[item.id]?.codigo ?? ''}
+                                      onChange={(e) =>
+                                        setLoteForms({
+                                          ...loteForms,
+                                          [item.id]: {
+                                            codigo: e.target.value,
+                                            data_entrada: loteForms[item.id]?.data_entrada || nfData,
+                                            data_validade: loteForms[item.id]?.data_validade || '',
+                                            data_fabricacao: loteForms[item.id]?.data_fabricacao || '',
+                                          },
+                                        })
+                                      }
+                                      required={Number(qtdes[item.id] || 0) > 0}
+                                    />
+                                  </div>
+                                  <div className="form-group">
+                                    <label>Data de entrada</label>
+                                    <input
+                                      type="date"
+                                      value={loteForms[item.id]?.data_entrada || nfData}
+                                      onChange={(e) =>
+                                        setLoteForms({
+                                          ...loteForms,
+                                          [item.id]: {
+                                            codigo: loteForms[item.id]?.codigo || '',
+                                            data_entrada: e.target.value,
+                                            data_validade: loteForms[item.id]?.data_validade || '',
+                                            data_fabricacao: loteForms[item.id]?.data_fabricacao || '',
+                                          },
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  {item.produto.controla_validade && (
+                                    <div className="form-group">
+                                      <label>Vencimento</label>
+                                      <input
+                                        type="date"
+                                        value={loteForms[item.id]?.data_validade ?? ''}
+                                        onChange={(e) =>
+                                          setLoteForms({
+                                            ...loteForms,
+                                            [item.id]: {
+                                              codigo: loteForms[item.id]?.codigo || '',
+                                              data_entrada:
+                                                loteForms[item.id]?.data_entrada || nfData,
+                                              data_validade: e.target.value,
+                                              data_fabricacao:
+                                                loteForms[item.id]?.data_fabricacao || '',
+                                            },
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="table-wrap">
+                                  <table className="data-table">
+                                    <thead>
+                                      <tr>
+                                        <th>#</th>
+                                        <th>Lote / nLote</th>
+                                        <th>Qtde</th>
+                                        <th>Largura mm</th>
+                                        <th>Comp. m</th>
+                                        <th />
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {volumeForms[item.id].map((vol, vIdx) => (
+                                        <tr key={`${item.id}-vol-${vIdx}`}>
+                                          <td>{vIdx + 1}</td>
+                                          <td>
+                                            <input
+                                              value={vol.codigo}
+                                              required={Number(qtdes[item.id] || 0) > 0}
+                                              onChange={(e) => {
+                                                const next = [...volumeForms[item.id]];
+                                                next[vIdx] = { ...next[vIdx], codigo: e.target.value };
+                                                setVolumeForms({ ...volumeForms, [item.id]: next });
+                                              }}
+                                              style={{ width: '9rem' }}
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              inputMode="decimal"
+                                              value={vol.qtde}
+                                              required={Number(qtdes[item.id] || 0) > 0}
+                                              onChange={(e) => {
+                                                const next = [...volumeForms[item.id]];
+                                                next[vIdx] = { ...next[vIdx], qtde: e.target.value };
+                                                setVolumeForms({ ...volumeForms, [item.id]: next });
+                                              }}
+                                              style={{ width: '6rem' }}
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              inputMode="decimal"
+                                              placeholder="ex. 210"
+                                              value={vol.largura_mm}
+                                              onChange={(e) => {
+                                                const next = [...volumeForms[item.id]];
+                                                const largura = e.target.value;
+                                                let comprimento = next[vIdx].comprimento_m;
+                                                const q = Number(next[vIdx].qtde);
+                                                const l = Number(largura);
+                                                if (q > 0 && l > 0) {
+                                                  comprimento = (q / (l / 1000)).toFixed(3);
+                                                }
+                                                next[vIdx] = {
+                                                  ...next[vIdx],
+                                                  largura_mm: largura,
+                                                  comprimento_m: comprimento,
+                                                };
+                                                setVolumeForms({ ...volumeForms, [item.id]: next });
+                                              }}
+                                              style={{ width: '5rem' }}
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              inputMode="decimal"
+                                              value={vol.comprimento_m}
+                                              onChange={(e) => {
+                                                const next = [...volumeForms[item.id]];
+                                                next[vIdx] = {
+                                                  ...next[vIdx],
+                                                  comprimento_m: e.target.value,
+                                                };
+                                                setVolumeForms({ ...volumeForms, [item.id]: next });
+                                              }}
+                                              style={{ width: '5rem' }}
+                                            />
+                                          </td>
+                                          <td>
+                                            <button
+                                              type="button"
+                                              className="btn btn-secondary btn-sm"
+                                              onClick={() => {
+                                                const next = volumeForms[item.id].filter(
+                                                  (_, i) => i !== vIdx,
+                                                );
+                                                setVolumeForms({ ...volumeForms, [item.id]: next });
+                                              }}
+                                            >
+                                              Remover
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                  <p className="form-hint" style={{ marginTop: '0.35rem' }}>
+                                    Soma das qtdes dos volumes deve igualar a qtde recebida. Dimensão
+                                    real da bobina — não altera o SKU.
+                                    {enderecos.length > 0
+                                      ? ' Endereço (vão) pode ser vinculado depois na ficha do lote.'
+                                      : ''}
+                                  </p>
                                 </div>
                               )}
                             </div>

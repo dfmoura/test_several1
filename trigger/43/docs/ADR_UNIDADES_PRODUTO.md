@@ -91,6 +91,17 @@ Alterar esta ADR exige decisão explícita alinhada ao estudo 32 (Direção + en
 
 ---
 
+## Emenda 2026-09-05 — dimensões nominais ≠ identidade do SKU
+
+Norma complementar: **`ADR_CADASTRO_INSUMO_VOLUME.md`**.
+
+- `largura_mm` / `comprimento_m` / `gramatura_g_m2` no produto = **insumos de fórmula / referência de compra** (programa Exact, ponte de conversão).  
+- Dimensão **real** da bobina vive no **volume** (`estoque_lotes` / conferência) — não explode SKU por mm×m.  
+- `exige_dimensao_sku` do grupo = **oferece** seção dimensional nominal; **não** obriga L×C como chave do cadastro (Camada A / Exact).  
+- Preferência substrato Exact: comercial M2 = interna M2 (fator 1) quando a NF fatura em M2.
+
+---
+
 ## Rastreio no código
 
 - `UnidadesMedida` · `FatorConversaoSugeridor` · `PadraoDecimal` · `ProdutoBobinaDimensoes` · `ProdutoUnidadesConversao`

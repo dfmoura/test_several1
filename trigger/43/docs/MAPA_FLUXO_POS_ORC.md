@@ -70,7 +70,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 |-----------------|----------------------------------------|
 | Pedidos, OP, Estoque, Compras, **Produtos (SKU)**, FAT, ENT, carteira | Hub Rastreio, comissões, NEC/COT, fluxo de caixa pleno |
 
-**Produtos/SKU (F5_PRODUTOS):** MP/EMB/REV operacionais no menu Cadastros. Preço comercial da etiqueta sob medida = **catálogo ORC**. PA sob encomenda = família `PA-ETQ-*` + spec no PED (anti-explosão do estudo 32).
+**Produtos/SKU (F5_PRODUTOS):** MP/EMB/REV operacionais no menu Cadastros. Preço comercial da etiqueta sob medida = **catálogo ORC**. PA sob encomenda = família `PA-ETQ-*` + spec no PED (anti-explosão do estudo 32). Insumo bobina Exact: SKU = material+programa; bobina física = volume (`ADR_CADASTRO_INSUMO_VOLUME.md`) — não explodir SKU por L×C.
 
 **NF-e de entrada (F5_NFE_ENT):** XML + conferência na **OC** (`receber`); Estoque lista MOV/espelho e aponta para a OC. Virada/legado = AJU A03. Sem entrada sem OC.
 

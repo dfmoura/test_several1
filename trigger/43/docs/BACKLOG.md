@@ -15,11 +15,83 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-094`
+`BL-099`
 
 ---
 
 ## Itens
+
+### BL-098 · [estoque/wms] Localização — vãos + QR endereço (F4)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-09-05 — cadastro insumo → volume → prateleiras
+- **Depende de:** BL-097 · `ADR_CADASTRO_INSUMO_VOLUME.md` F4
+- **Decisão (fechada):**
+  1. Gabarito 6 prateleiras × 4 colunas × 4 vãos (1,50 × 0,60 × 1,00 m).
+  2. QR do vão; vínculo volume ↔ endereço; saldo oficial continua SKU (+ lote).
+- **Aceite:**
+  - [x] Endereços cadastráveis por EMP (`estoque_enderecos` + seed)
+  - [x] Guarda/leitura por QR (etiqueta + vínculo)
+- **Fora de escopo:** Slotting avançado · multi-depósito
+- **Entregue em:** 2026-09-05
+
+### BL-097 · [estoque/ux] Etiqueta / QR do volume (F3)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-09-05 — cadastro insumo → volume
+- **Depende de:** BL-096 · `ADR_CADASTRO_INSUMO_VOLUME.md` F3
+- **Decisão (fechada):**
+  1. Etiqueta interna: SKU, L×C real, nLote, NF, QR do volume.
+  2. Página `/estoque/lotes/:id/etiqueta`.
+- **Aceite:**
+  - [x] Impressão/etiqueta resolve volume no sistema
+- **Fora de escopo:** App leitor dedicado
+- **Entregue em:** 2026-09-05
+
+### BL-096 · [compras/estoque] Entrada multi-volume — N rastros → N lotes (F2)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-05 — Avery Exact 48 bobinas/item
+- **Depende de:** BL-095 · `ADR_CADASTRO_INSUMO_VOLUME.md` F2 · `ADR_ENTRADA_XML_ASSIST.md` (emenda)
+- **Decisão (fechada):**
+  1. Cada `rastro` → um `estoque_lotes` (qtde = qLote); soma = linha OC/NF.
+  2. Conferência: largura real + comprimento derivado (m²/largura) quando couber.
+  3. Única espinha `receber()` / `EstoqueSaldoWriter`; humano confirma.
+- **Aceite:**
+  - [x] Preview + UI volumes + receber N lotes
+  - [x] PHPUnit `EstoqueVolumeMultiTest`
+- **Fora de escopo:** Auto-receber · Focus
+- **Entregue em:** 2026-09-05
+
+### BL-095 · [cadastro/estoque] Cadastro Camada A + de-para + virada saldo (F1)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-05 — melhor caminho cadastro insumos
+- **Depende de:** BL-094 · `ADR_CADASTRO_INSUMO_VOLUME.md` F1 · lista 32 + XMLs `notas_entrada`
+- **Decisão (fechada):**
+  1. SKU = material+programa Exact; de-para cProd Avery; sem SKU por L×C.
+  2. Seed Exact + hints de-para; AJU/inventário permanece operação humana.
+- **Aceite:**
+  - [x] MP-PAP-013…015 + MP-FLM-015 + de-para catalog
+  - [ ] Contagem física na EMP (operação)
+- **Fora de escopo:** Multi-rastro (BL-096)
+- **Entregue em:** 2026-09-05
+
+### BL-094 · [norma] Cadastro insumo × volume — ADR + F0 alinhamento
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-05 — Avery Exact / cadastro insumos
+- **Depende de:** `ADR_UNIDADES_PRODUTO` · `ADR_ESTOQUE_LOTE_VALIDADE` · estudo 32 Camada A
+- **Referência:** `docs/ADR_CADASTRO_INSUMO_VOLUME.md`
+- **Decisão (fechada):**
+  1. SKU = material; volume = bobina; localização depois.
+  2. Dimensões no produto = nominais; import sem L×C = warning.
+  3. Fases F1–F5 no ADR; BL-095…098.
+- **Aceite:**
+  - [x] ADR + emendas UNID/LOTE/ASSIST
+  - [x] Regra Cursor `produto-insumo-volume.mdc`
+  - [x] Import/UX alinhados; teste import atualizado
+- **Entregue em:** 2026-09-05
 
 ### BL-093 · [compras/fiscal] Caixa DF-e — manifestação + sync delta
 - **Status:** Feito

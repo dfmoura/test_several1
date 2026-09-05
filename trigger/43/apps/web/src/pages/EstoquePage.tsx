@@ -49,7 +49,7 @@ const SORT_LOTE = {
 
 const TAB_HINT: Record<TabId, string> = {
   saldos: 'Saldo oficial em unidade interna. Custo médio móvel no SKU — lote só rastreia quantidade.',
-  lotes: 'Substratos e tintas controlam lote. Consumo FEFO quando o lote não é informado na baixa.',
+  lotes: 'Volume = bobina (nLote). Etiqueta/QR e vão na ficha do lote. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA e ajuste aprovado.',
 };
 
@@ -529,6 +529,13 @@ export function EstoquePage() {
                           <StatusPill status={l.status_label || validadeStatusLabel(l.status)} />
                         </td>
                         <td className="acoes" onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            to={`/estoque/lotes/${l.id}/etiqueta`}
+                            className="btn btn-secondary"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Etiqueta
+                          </Link>
                           {hasPermission('producao.ler') || hasPermission('estoque.ler') ? (
                             <Link
                               to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}

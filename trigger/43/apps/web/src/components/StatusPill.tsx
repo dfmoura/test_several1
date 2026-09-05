@@ -39,7 +39,8 @@ function pillVariant(status: string): string {
     key === 'vigente' ||
     key === 'cortesia' ||
     key === 'disponivel' ||
-    key === 'amarrada'
+    key === 'amarrada' ||
+    key === 'cadastrado'
   ) {
     return '--ativo';
   }
@@ -70,7 +71,9 @@ function pillVariant(status: string): string {
     key === 'planejada' ||
     key === 'nf_pendente' ||
     key === 'suspensa' ||
-    key === 'nova'
+    key === 'nova' ||
+    key === 'sem_papel' ||
+    key === 'nao_cadastrado'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';

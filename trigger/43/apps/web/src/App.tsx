@@ -57,6 +57,7 @@ import { EstoqueAjustesPage } from './pages/EstoqueAjustesPage';
 import { EstoqueExtratoPage } from './pages/EstoqueExtratoPage';
 import { EstoqueInventariosPage } from './pages/EstoqueInventariosPage';
 import { EstoquePage } from './pages/EstoquePage';
+import { EstoqueLoteEtiquetaPage } from './pages/EstoqueLoteEtiquetaPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
@@ -367,6 +368,14 @@ export default function App() {
           element={
             <PermissionRoute permission="estoque.ler">
               <EstoquePage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/lotes/:loteId/etiqueta"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueLoteEtiquetaPage />
             </PermissionRoute>
           }
         />

@@ -766,7 +766,9 @@ export function ProdutoFormPage() {
                       ? ` · NCM padrão ${formatNcmHint(selectedGrupo.ncm_padrao)}`
                       : ' · NCM a confirmar'}
                     {!selectedGrupo.ncm_confirmado ? ' (pendente contador)' : ''}
-                    {selectedGrupo.exige_dimensao_sku ? ' · exige máscara de bobina no estoque' : ''}
+                    {selectedGrupo.exige_dimensao_sku
+                      ? ' · dimensões nominais (bobina real = volume na entrada)'
+                      : ''}
                     {selectedGrupo.observacao ? ` — ${selectedGrupo.observacao}` : ''}
                   </span>
                 ) : (
@@ -785,8 +787,8 @@ export function ProdutoFormPage() {
                         <strong>{l.codigo}</strong> {l.nome}
                       </span>
                     ))}
-                    — gravadas na máscara de bobina no módulo de estoque; o código fiscal permanece{' '}
-                    {selectedGrupo.codigo}-nnn.
+                    — linha de estoque (GG) do material; o código fiscal permanece{' '}
+                    {selectedGrupo.codigo}-nnn. Dimensão física da bobina não entra no SKU.
                   </div>
                 </div>
               )}
@@ -968,7 +970,9 @@ export function ProdutoFormPage() {
                         disabled={readOnly}
                         onChange={(e) => update({ largura_mm: e.target.value })}
                       />
-                      <span className="form-hint">Ponte M ↔ M2 e conversões de bobina.</span>
+                      <span className="form-hint">
+                        Nominal / típica de compra. Bobina real confere-se no volume (entrada).
+                      </span>
                     </div>
                   )}
                   {showDimensoes.showComprimento && (
@@ -985,7 +989,9 @@ export function ProdutoFormPage() {
                         disabled={readOnly}
                         onChange={(e) => update({ comprimento_m: e.target.value })}
                       />
-                      <span className="form-hint">Ponte RL ↔ M (comprimento nominal do rolo).</span>
+                      <span className="form-hint">
+                        Nominal do programa (ex. EXACT 1000). Variação por bobina = volume.
+                      </span>
                     </div>
                   )}
                   {showDimensoes.showGramatura && (
@@ -1003,7 +1009,7 @@ export function ProdutoFormPage() {
                         onChange={(e) => update({ gramatura_g_m2: e.target.value })}
                       />
                       <span className="form-hint">
-                        Soma frontal + adesivo + liner. Ponte M2 ↔ KG.
+                        Soma frontal + adesivo + liner. Ponte M2 ↔ KG quando a NF é em KG.
                       </span>
                     </div>
                   )}

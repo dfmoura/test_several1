@@ -102,7 +102,8 @@ class DfeCaixaTest extends TestCase
             ->assertJsonPath('meta.sync.sync_status', 'IDLE')
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.emit_nome', 'Fornecedor Alfa')
-            ->assertJsonPath('data.0.tem_xml', false);
+            ->assertJsonPath('data.0.tem_xml', false)
+            ->assertJsonPath('data.0.fornecedor.status', 'nao_cadastrado');
 
         $this->assertArrayNotHasKey('xml_path', $lista->json('data.0'));
 
