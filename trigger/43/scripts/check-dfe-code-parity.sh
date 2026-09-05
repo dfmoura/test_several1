@@ -17,17 +17,34 @@ SSH_KEY="${SSH_KEY:-$HOME/Downloads/LightsailDefaultKey-sa-east-1.pem}"
 AWS_HOST="${AWS_HOST:-ubuntu@54.20.102.133}"
 AWS_APP_DIR="${AWS_APP_DIR:-/home/ubuntu/flexoerp}"
 
+# Domínio DF-e + cofre A1 (código). Não inclui dfe:amostra-local (só notebook).
+# Segredo/runtime (A1 cifrado, APP_KEY, ERP_STAGE) NÃO entram aqui — vivem só na nuvem.
 FILES=(
   apps/api/app/Services/Fiscal/Dfe/SefazNfeDistribuicaoClient.php
+  apps/api/app/Services/Fiscal/Dfe/DfeDistribuicaoClient.php
   apps/api/app/Services/Fiscal/Dfe/DfeDistribuicaoResultado.php
+  apps/api/app/Services/Fiscal/Dfe/DfeDocZip.php
+  apps/api/app/Services/Fiscal/Dfe/FakeDfeDistribuicaoClient.php
   apps/api/app/Services/Compras/DfeSyncService.php
   apps/api/app/Services/Compras/DfeCaixaService.php
+  apps/api/app/Services/Compras/DfeAmarrarService.php
+  apps/api/app/Services/Compras/DfeXmlCompletoService.php
+  apps/api/app/Jobs/SyncDfeEmpresaJob.php
+  apps/api/app/Jobs/BuscarXmlDfeDocumentoJob.php
+  apps/api/app/Console/Commands/SyncDfeDeltaCommand.php
+  apps/api/app/Models/DfeDocumento.php
+  apps/api/app/Models/DfeSyncEstado.php
   apps/api/app/Http/Controllers/Api/V1/DfeCaixaController.php
+  apps/api/app/Http/Controllers/Api/V1/EmpresaCertificadoA1Controller.php
+  apps/api/app/Services/Cadastros/EmpresaCertificadoA1Service.php
+  apps/api/app/Services/Cadastros/EmpresaCertificadoA1Materializer.php
   apps/api/routes/api.php
   apps/api/config/erp.php
   apps/web/src/pages/ComprasNfeDestinadasPage.tsx
   apps/web/src/lib/api.ts
   apps/api/tests/Feature/DfeAmarrarXmlTest.php
+  apps/api/tests/Feature/DfeCaixaTest.php
+  apps/api/tests/Feature/DfeSyncTest.php
   apps/api/tests/Unit/DfeSoapEnvelopeTest.php
 )
 
