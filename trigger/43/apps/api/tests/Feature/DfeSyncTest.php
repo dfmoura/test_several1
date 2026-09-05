@@ -111,6 +111,53 @@ class DfeSyncTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_cooldown_pos_656_bloqueia_reenfileirar_e_libera_depois(): void
+    {
+        config([
+            'erp.stage' => 'homolog',
+            'erp.dfe.driver' => 'fake',
+            'erp.dfe.cooldown_consumo_indevido_min' => 60,
+        ]);
+        [$empresa, $user] = $this->empresaCompras();
+        $this->gravarA1Apto($empresa);
+
+        \App\Models\DfeSyncEstado::query()->create([
+            'empresa_id' => $empresa->id,
+            'ultimo_nsu' => '0',
+            'sync_status' => \App\Models\DfeSyncEstado::STATUS_IDLE,
+            'sync_mensagem' => 'SEFAZ: consumo indevido (aguarde alguns minutos antes de atualizar de novo).',
+            'ultima_sync_em' => now()->subMinutes(5),
+            'ano_alvo_hidratacao' => (int) now()->year,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->getJson('/api/v1/dfe-documentos')
+            ->assertOk()
+            ->assertJsonPath('meta.sync.pode_sincronizar', false);
+
+        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->postJson('/api/v1/dfe-sync')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['sync']);
+
+        // Janela expirada → libera.
+        \App\Models\DfeSyncEstado::query()->where('empresa_id', $empresa->id)->update([
+            'ultima_sync_em' => now()->subMinutes(61),
+        ]);
+
+        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->getJson('/api/v1/dfe-documentos')
+            ->assertOk()
+            ->assertJsonPath('meta.sync.pode_sincronizar', true);
+
+        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+            ->postJson('/api/v1/dfe-sync')
+            ->assertOk()
+            ->assertJsonPath('data.enfileirado', true);
+    }
+
     /**
      * @return array{0: Empresa, 1: User}
      */
@@ -120,7 +167,7 @@ class DfeSyncTest extends TestCase
         Permission::findOrCreate('compras.escrever', 'web');
 
         $empresa = Empresa::query()->create([
-            'codigo' => 'EMP-DFES1',
+            'codigo' => 'EMP-DFES'.uniqid(),
             'razao_social' => 'Empresa Sync DF-e',
             'nome_fantasia' => 'DFES',
             'cnpj' => '11222333000181',
@@ -131,9 +178,9 @@ class DfeSyncTest extends TestCase
         ]);
 
         $user = User::query()->create([
-            'codigo' => 'USR-DFES1',
+            'codigo' => 'USR-DFES'.uniqid(),
             'name' => 'Compras Sync',
-            'email' => 'dfe-sync@test.local',
+            'email' => 'dfe-sync-'.uniqid().'@test.local',
             'password' => bcrypt('secret'),
             'ativo' => true,
             'empresa_default_id' => $empresa->id,

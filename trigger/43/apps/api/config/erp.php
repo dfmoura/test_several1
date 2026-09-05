@@ -257,6 +257,8 @@ return [
         'timeout_sec' => (float) env('DFE_HTTP_TIMEOUT_SEC', 45),
         'max_lotes_por_corrida' => max(1, (int) env('DFE_MAX_LOTES_CORRIDA', 5)),
         'delay_entre_lotes_sec' => max(1, (int) env('DFE_DELAY_LOTES_SEC', 3)),
+        // Após cStat 656, bloqueia novo “Atualizar” (anti martelo no AN).
+        'cooldown_consumo_indevido_min' => max(1, (int) env('DFE_COOLDOWN_656_MIN', 60)),
         'xml_disk' => 'local',
         'urls' => [
             // Ambiente Nacional — destinadas (não é o autorizador SEFAZ-MG).

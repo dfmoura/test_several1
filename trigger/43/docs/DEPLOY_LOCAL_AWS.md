@@ -107,6 +107,8 @@ curl -sS https://flexoerp001.triggerti.com/api/v1/health
 # espera: "stage":"production", "debug":false
 ```
 
+Piloto DF-e (NF-e destinadas) após a virada: checklist em [`PILOTO_DFE_NFE_DESTINADAS.md`](PILOTO_DFE_NFE_DESTINADAS.md) · norma [`ADR_CAIXA_DFE_NFE_DESTINADAS.md`](ADR_CAIXA_DFE_NFE_DESTINADAS.md).
+
 **APP_KEY:** se mantiver o mesmo banco/dados cifrados (A1 / tokens IA/Focus), **preserve a chave**. Só gere chave nova com banco novo consciente. Norma: [`ADR_HOST_INSTALACAO_FLEXOERP001.md`](ADR_HOST_INSTALACAO_FLEXOERP001.md) · [`ADR_CERTIFICADO_A1_EMPRESA.md`](ADR_CERTIFICADO_A1_EMPRESA.md).
 
 ## Host oficial × lab (tunnel)

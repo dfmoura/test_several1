@@ -82,6 +82,44 @@ Piloto: **uma EMP**, homolog primeiro; validar amarrar + `receber()` + espelho i
 
 ---
 
+## Emenda — go-live em rampa (produção)
+
+**Data:** 2026-09-04  
+**Roteiro operacional:** `PILOTO_DFE_NFE_DESTINADAS.md` · virada de stage: `DEPLOY_LOCAL_AWS.md` / `make promote-prod`
+
+### Ambiente Nacional = stage do app
+
+| `ERP_STAGE` | AN (`tpAmb` / URL DF-e) | Expectativa na caixa |
+|-------------|-------------------------|----------------------|
+| `homolog` | Homologação | Integração OK; **lista vazia com cStat 137 é sucesso** — NF-e comerciais reais quase nunca aparecem |
+| `production` | Produção | Notas destinadas ao CNPJ da EMP (quando o fisco tiver NSU) |
+| `local` | Sync desligado | Só upload XML na OC |
+
+Proibido apontar URL/tpAmb de **produção** com app em **homolog** (ou o inverso) “só para ver nota”. Confunde certificado, auditoria e aceite.
+
+### Rampa
+
+```
+Deploy (fix SOAP) → gate F5_DFE_CX em 1 EMP → promote-prod se ainda homolog
+  → um “Atualizar do fisco” → amarrar + receber() 1 NF (ou plano B upload)
+  → só então liberar mais EMPs do mesmo licenciado
+```
+
+### Cooldown pós-cStat 656
+
+Consumo indevido do AN: **não martelar** “Atualizar”. O ERP aplica cooldown configurável (`erp.dfe.cooldown_consumo_indevido_min`, padrão 60) e expõe `pode_sincronizar=false` + mensagem legível até liberar.
+
+### Critérios do piloto (pass / fail)
+
+**Pass:** (a) documentos na caixa **ou** 137 honesto; NSU/status coerentes; UI não fica presa em RUNNING; **e** (b) uma NF amarrada + `receber()` com estoque/espelho iguais ao fluxo manual — **ou** gap XML explícito (“Buscar XML” falhou) + upload na OC documentado.  
+**Fail / stop:** 656 recorrente por clique excessivo; job preso sem IDLE; binding/queue quebrados; regressão do envelope SOAP.
+
+### Plano B eterno
+
+Upload de XML na OC permanece. Não vender “baixa todas as NF com XML completo sempre” até o piloto com XML estável.
+
+---
+
 ## Emenda — cofre A1
 
 O A1 da EMP passa a ter **dois usos** explícitos (sem abrir emissão própria):
@@ -113,6 +151,8 @@ Emissão oficial de NF-e/NFS-e de **saída** permanece no hub Focus (`ADR_EMISSA
 5. Bloquear a UI / API operacional à espera do fisco.  
 6. Promover menu sem gate `F5_DFE_CX` e sem A1 apto em nuvem.  
 7. Entrada sem OC “porque o XML já está na caixa”.  
-8. Misturar EMP (`empresa_id` do contexto) ou confiar só no header.
+8. Misturar EMP (`empresa_id` do contexto) ou confiar só no header.  
+9. Misturar stage do app com URL/`tpAmb` DF-e de outro ambiente.  
+10. Ignorar cooldown pós-656 (martelar sync no AN).
 
 Alterar este ADR exige alinhamento explícito às ADRs de compras/estoque/A1 e ao estudo 32.

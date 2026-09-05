@@ -164,6 +164,11 @@ export function ComprasNfeDestinadasPage() {
     }
   };
 
+  const syncMsgLower = (sync?.sync_mensagem ?? '').toLowerCase();
+  const nenhumDocumentoFisco =
+    syncMsgLower.includes('nenhum documento') ||
+    (Boolean(sync?.primeira_hidratacao_completa) && (sync?.total_documentos ?? 0) === 0);
+
   return (
     <>
       <PageHeader
@@ -299,12 +304,30 @@ export function ComprasNfeDestinadasPage() {
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
             <div className="empty-state">
-              Nenhuma NF-e destinada neste filtro.
-              {sync?.pode_sincronizar
-                ? ' Clique em Atualizar do fisco para buscar documentos (em segundo plano).'
-                : ' Em ambientes locais o sync com o fisco fica desligado — use o upload de XML na '}
-              {!sync?.pode_sincronizar && <Link to="/compras/ordens">ordem de compra</Link>}
-              {!sync?.pode_sincronizar && '.'}
+              {sync?.sync_bloqueio ? (
+                <>
+                  {sync.sync_bloqueio} Enquanto isso, use o upload de XML na{' '}
+                  <Link to="/compras/ordens">ordem de compra</Link>.
+                </>
+              ) : nenhumDocumentoFisco ? (
+                <>
+                  O fisco não liberou documentos destinados a esta empresa neste ambiente. Em
+                  homologação a caixa costuma ficar vazia; em produção aparecem as NF-e emitidas
+                  contra o CNPJ. Plano B:{' '}
+                  <Link to="/compras/ordens">upload do XML na ordem de compra</Link>.
+                </>
+              ) : sync?.pode_sincronizar ? (
+                <>
+                  Nenhuma NF-e destinada neste filtro. Clique em Atualizar do fisco para buscar
+                  documentos (em segundo plano).
+                </>
+              ) : (
+                <>
+                  Nenhuma NF-e destinada neste filtro. Em ambientes locais o sync com o fisco fica
+                  desligado — use o upload de XML na <Link to="/compras/ordens">ordem de compra</Link>
+                  .
+                </>
+              )}
             </div>
           ) : (
             <table className="data-table">

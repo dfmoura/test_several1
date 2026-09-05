@@ -24,6 +24,9 @@ use Throwable;
  */
 class DfeSyncService
 {
+    /** Marcador estável em sync_mensagem após cStat 656 (cooldown sem migration). */
+    public const MARCA_CONSUMO_INDEVIDO = 'consumo indevido';
+
     public function __construct(
         private readonly DfeCaixaService $caixa,
         private readonly EmpresaCertificadoA1Service $a1,
@@ -52,7 +55,38 @@ class DfeSyncService
             return $this->a1->mensagemBloqueioOperacao($empresa);
         }
 
+        $cooldown = $this->motivoCooldownConsumoIndevido($empresa);
+        if ($cooldown !== null) {
+            return $cooldown;
+        }
+
         return null;
+    }
+
+    /**
+     * Bloqueio pós-cStat 656: ultima_sync_em + mensagem com marca, sem coluna extra.
+     */
+    public function motivoCooldownConsumoIndevido(Empresa $empresa): ?string
+    {
+        $estado = DfeSyncEstado::query()->where('empresa_id', $empresa->id)->first();
+        if ($estado === null || $estado->ultima_sync_em === null) {
+            return null;
+        }
+
+        $msg = mb_strtolower((string) $estado->sync_mensagem);
+        if (! str_contains($msg, self::MARCA_CONSUMO_INDEVIDO)) {
+            return null;
+        }
+
+        $janela = max(1, (int) config('erp.dfe.cooldown_consumo_indevido_min', 60));
+        $liberaEm = $estado->ultima_sync_em->copy()->addMinutes($janela);
+        if (now()->gte($liberaEm)) {
+            return null;
+        }
+
+        $restantes = (int) max(1, now()->diffInMinutes($liberaEm));
+
+        return 'Aguarde ~'.$restantes.' min — o fisco limitou consultas ('.self::MARCA_CONSUMO_INDEVIDO.'). Não clique de novo agora.';
     }
 
     /**
@@ -156,7 +190,7 @@ class DfeSyncService
             if ($resultado->consumoIndevido()) {
                 $this->marcarErro(
                     $empresa,
-                    'SEFAZ: consumo indevido (aguarde alguns minutos antes de atualizar de novo).',
+                    'SEFAZ: '.self::MARCA_CONSUMO_INDEVIDO.' (aguarde alguns minutos antes de atualizar de novo).',
                 );
 
                 return;
