@@ -142,6 +142,14 @@ export function ProdutoFichaSheet({
   const comprimento = attrStr(p.atributos, 'comprimento_m');
   const gramatura = attrStr(p.atributos, 'gramatura_g_m2');
   const grupoEstoque = attrStr(p.atributos, 'grupo_estoque');
+  const grupoEstoqueNome = p.grupo_catalogo?.grupos_estoque?.find(
+    (l) => l.codigo === grupoEstoque,
+  )?.nome;
+  const grupoEstoqueLabel = grupoEstoque
+    ? grupoEstoqueNome
+      ? `${grupoEstoque} — ${grupoEstoqueNome}`
+      : grupoEstoque
+    : '';
   const showDimensoes = Boolean(largura || comprimento || gramatura || grupoEstoque);
 
   const unidadesUi = decideUnidadesConversaoUi({
@@ -327,10 +335,45 @@ export function ProdutoFichaSheet({
                   : '—'
               }
             />
-            <Kv label="Grupo de estoque" value={dash(grupoEstoque)} />
+            <Kv label="Linha de estoque" value={dash(grupoEstoqueLabel)} />
           </div>
         </Section>
       ) : null}
+
+      <Section title="Códigos do fornecedor (de-para)">
+        {(p.fornecedor_codigos ?? []).length === 0 ? (
+          <p className="ficha-note" style={{ margin: 0 }}>
+            Nenhum cProd vinculado. Sem de-para a entrada assistida por XML não casa sozinha.
+          </p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Fornecedor</th>
+                  <th>cProd</th>
+                  <th>Descrição na NF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(p.fornecedor_codigos ?? []).map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      {row.fornecedor
+                        ? `${row.fornecedor.codigo} — ${
+                            row.fornecedor.nome_fantasia || row.fornecedor.razao_social
+                          }`
+                        : `Fornecedor #${row.fornecedor_id}`}
+                    </td>
+                    <td>{row.c_prod}</td>
+                    <td>{dash(row.x_prod)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
 
       <p className="ficha-note">
         Família fiscal permanente (Camada A) · especificação sob medida vive no ORC/PED — não

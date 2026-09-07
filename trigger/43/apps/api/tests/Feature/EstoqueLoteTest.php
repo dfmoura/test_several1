@@ -387,6 +387,7 @@ class EstoqueLoteTest extends TestCase
             ->assertCreated();
 
         $this->ocId = (int) $res->json('data.id');
+        $this->enviarOrdemCompra(['X-Empresa-Id' => (string) $this->empresa->id], $this->ocId);
 
         return (int) $res->json('data.itens.0.id');
     }

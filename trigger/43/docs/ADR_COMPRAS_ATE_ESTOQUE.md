@@ -12,11 +12,13 @@
 Espinha **operacional** (sem burocracia de NEC/COT nesta fase):
 
 ```
-OC- (sempre)
+OC- (rascunho → enviar ao fornecedor)
   → Entrada: NF × OC × conferência  →  MOV- (estoque + custo médio)
   → TIT- a pagar (nasce na entrada)
   → BX- (quando paga)
 ```
+
+Ciclo comercial da OC (`RASCUNHO` editável até enviar; e-mail fail-soft): `ADR_OC_RASCUNHO_ENVIO.md`.
 
 | Conceito | Prefixo | Papel |
 |----------|---------|--------|

@@ -77,6 +77,40 @@ export const DECIMAL_SCALE = {
 } as const;
 
 /**
+ * Limita casas decimais (half-up via toFixed) para payload/API.
+ * Vazio permanece vazio; não força zeros à direita além do arredondamento.
+ */
+export function clampDecimalScale(
+  value: string | number | null | undefined,
+  scale: number,
+): string {
+  if (value === null || value === undefined) return '';
+  const raw = String(value).trim().replace(',', '.');
+  if (raw === '') return '';
+  if (!/^-?\d+(\.\d+)?$/.test(raw)) return raw;
+  const dot = raw.indexOf('.');
+  if (dot === -1 || raw.length - dot - 1 <= scale) {
+    return raw;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  return n.toFixed(scale);
+}
+
+/**
+ * Comprimento (m) a partir de área (m²) e largura (mm) — escala dimensional.
+ */
+export function comprimentoFromAreaLargura(
+  qtdeM2: string | number,
+  larguraMm: string | number,
+): string {
+  const q = Number(String(qtdeM2).replace(',', '.'));
+  const l = Number(String(larguraMm).replace(',', '.'));
+  if (!(q > 0) || !(l > 0)) return '';
+  return clampDecimalScale(q / (l / 1000), DECIMAL_SCALE.dim);
+}
+
+/**
  * Exibição BR a partir de string canônica (sem float).
  * Formatação é só apresentação (§9) — nunca regrava o valor exibido.
  */

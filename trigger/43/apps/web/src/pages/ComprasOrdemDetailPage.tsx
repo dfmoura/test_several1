@@ -13,7 +13,56 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ocStatusLabel } from '../lib/comprasUi';
-import { formatCurrency, formatDate } from '../lib/format';
+import {
+  clampDecimalScale,
+  comprimentoFromAreaLargura,
+  DECIMAL_SCALE,
+  formatCnpjCpf,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatPhone,
+} from '../lib/format';
+
+function formatEndereco(parts: {
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+  cep?: string | null;
+}): string | null {
+  const line1 = [parts.logradouro, parts.numero ? `nº ${parts.numero}` : null, parts.complemento]
+    .filter(Boolean)
+    .join(', ');
+  const line2 = [parts.bairro, [parts.municipio, parts.uf].filter(Boolean).join('/'), parts.cep]
+    .filter(Boolean)
+    .join(' · ');
+  const full = [line1, line2].filter(Boolean).join(' · ');
+  return full || null;
+}
+
+function emailMotivoLabel(motivo: string | null | undefined): string {
+  if (motivo === 'sem_email_cadastro') return 'fornecedor sem e-mail no cadastro';
+  if (motivo === 'desligado') return 'envio de e-mail desligado na instalação';
+  if (motivo === 'falha_envio') return 'falha no envio (OC formalizada mesmo assim)';
+  if (motivo === 'sem_fornecedor') return 'fornecedor ausente';
+  return motivo || 'não enviado';
+}
+
+function apiErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) return fallback;
+  if (err.details) {
+    const msgs = Object.values(err.details).flat().filter(Boolean);
+    const unique = [...new Set(msgs)];
+    if (unique.length === 1) return unique[0]!;
+    if (unique.length > 1) {
+      return `${unique[0]} (+${unique.length - 1} validações).`;
+    }
+  }
+  return err.message || fallback;
+}
 
 function idDestLabel(id: string | null | undefined): string {
   if (id === '1') return 'Interna';
@@ -64,6 +113,17 @@ function EspelhoFiscalPanel({
         {dash(espelho.totais.v_st)}
         {espelho.totais.v_nf ? ` · vNF ${espelho.totais.v_nf}` : ''}
       </p>
+      {(espelho.totais.v_ibs || espelho.totais.v_cbs || espelho.totais.v_bc_ibs_cbs) && (
+        <p style={{ marginBottom: '0.75rem' }}>
+          IBS/CBS BC {dash(espelho.totais.v_bc_ibs_cbs)}
+          {' · IBS '}
+          {dash(espelho.totais.v_ibs)}
+          {' · CBS '}
+          {dash(espelho.totais.v_cbs)}
+          {espelho.totais.v_ibs_uf ? ` · IBS UF ${espelho.totais.v_ibs_uf}` : ''}
+          {espelho.totais.v_ibs_mun ? ` · IBS Mun ${espelho.totais.v_ibs_mun}` : ''}
+        </p>
+      )}
       <div className="table-wrap">
         <table className="data-table">
           <thead>
@@ -78,6 +138,11 @@ function EspelhoFiscalPanel({
               <th>IPI</th>
               <th>PIS</th>
               <th>COFINS</th>
+              <th>CST IBS/CBS</th>
+              <th>IBS</th>
+              <th>CBS</th>
+              <th>xPed</th>
+              <th>FCI</th>
             </tr>
           </thead>
           <tbody>
@@ -93,6 +158,16 @@ function EspelhoFiscalPanel({
                 <td>{dash(item.v_ipi)}</td>
                 <td>{dash(item.v_pis)}</td>
                 <td>{dash(item.v_cofins)}</td>
+                <td>
+                  {dash(item.cst_ibs_cbs)}
+                  {item.c_class_trib ? ` / ${item.c_class_trib}` : ''}
+                </td>
+                <td>{dash(item.v_ibs)}</td>
+                <td>{dash(item.v_cbs)}</td>
+                <td>{dash(item.x_ped)}</td>
+                <td style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.8rem' }}>
+                  {dash(item.n_fci)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -114,11 +189,15 @@ export function ComprasOrdemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [acting, setActing] = useState(false);
   const [receiving, setReceiving] = useState(false);
   const [xmlLoading, setXmlLoading] = useState(false);
   const [xmlPreview, setXmlPreview] = useState<ReceberXmlPreview | null>(null);
   const [xmlContent, setXmlContent] = useState<string | null>(null);
   const [lineMap, setLineMap] = useState<Record<number, string>>({});
+
+  const [lastMovimentoId, setLastMovimentoId] = useState<number | null>(null);
 
   const [nfNumero, setNfNumero] = useState('');
   const [nfChave, setNfChave] = useState('');
@@ -179,10 +258,89 @@ export function ComprasOrdemDetailPage() {
       .catch(() => setEnderecos([]));
   }, [id]);
 
+  const canWrite = hasPermission('compras.escrever');
+  const editavel = !!oc?.editavel || oc?.status === 'RASCUNHO';
   const canReceive =
     !!oc &&
     hasPermission('estoque.escrever') &&
     (oc.status === 'ABERTA' || oc.status === 'PARCIAL');
+  const canCancel =
+    !!oc &&
+    canWrite &&
+    (oc.status === 'RASCUNHO' || oc.status === 'ABERTA');
+  const canReenviarEmail =
+    !!oc && canWrite && (oc.status === 'ABERTA' || oc.status === 'PARCIAL');
+
+  const handleEnviar = async (reenviar = false) => {
+    if (!oc) return;
+    const confirmMsg = reenviar
+      ? `Reenviar a OC ${oc.codigo} por e-mail ao fornecedor?`
+      : `Enviar a OC ${oc.codigo} ao fornecedor? Após o envio, a OC deixa de ser editável e passa a contar em trânsito.`;
+    if (!window.confirm(confirmMsg)) return;
+    setSending(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: OrdemCompra }>(`/ordens-compra/${oc.id}/enviar`, {
+        reenviar_email: reenviar,
+      });
+      setOc(res.data);
+      if (res.data.email_enviado) {
+        setMsg(
+          reenviar
+            ? `E-mail reenviado para ${res.data.email_destino}.`
+            : `OC enviada. E-mail disparado para ${res.data.email_destino}.`,
+        );
+      } else {
+        setMsg(
+          reenviar
+            ? `Reenvio não concluído (${emailMotivoLabel(res.data.email_motivo)}).`
+            : `OC formalizada (enviada). E-mail não disparado: ${emailMotivoLabel(res.data.email_motivo)}.`,
+        );
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao enviar OC.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleExcluir = async () => {
+    if (!oc) return;
+    if (
+      !window.confirm(
+        `Excluir o rascunho ${oc.codigo}? A OC será cancelada e removida da lista (histórico preservado).`,
+      )
+    ) {
+      return;
+    }
+    setActing(true);
+    setError(null);
+    try {
+      await api.delete(`/ordens-compra/${oc.id}`);
+      navigate('/compras/ordens');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao excluir OC.');
+      setActing(false);
+    }
+  };
+
+  const handleCancelar = async () => {
+    if (!oc) return;
+    if (!window.confirm(`Cancelar a OC ${oc.codigo}?`)) return;
+    setActing(true);
+    setError(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: OrdemCompra }>(`/ordens-compra/${oc.id}/cancelar`);
+      setOc(res.data);
+      setMsg('OC cancelada.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao cancelar OC.');
+    } finally {
+      setActing(false);
+    }
+  };
 
   useEffect(() => {
     const dfeId = searchParams.get('dfe');
@@ -206,7 +364,7 @@ export function ComprasOrdemDetailPage() {
         next.delete('dfe');
         setSearchParams(next, { replace: true });
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Falha ao carregar XML da caixa DF-e.');
+        setError(err instanceof ApiError ? apiErrorMessage(err, 'Falha ao carregar XML da caixa DF-e.') : 'Falha ao carregar XML da caixa DF-e.');
       } finally {
         setXmlLoading(false);
       }
@@ -233,7 +391,10 @@ export function ComprasOrdemDetailPage() {
       nextQtdes[item.id] = '0';
     }
     for (const item of sug.itens) {
-      nextQtdes[item.ordem_compra_item_id] = item.qtde_recebida;
+      nextQtdes[item.ordem_compra_item_id] = clampDecimalScale(
+        item.qtde_recebida,
+        DECIMAL_SCALE.qty,
+      );
     }
     setQtdes(nextQtdes);
 
@@ -259,18 +420,18 @@ export function ComprasOrdemDetailPage() {
         if (item.lotes && item.lotes.length > 0) {
           next[item.ordem_compra_item_id] = item.lotes.map((l) => ({
             codigo: l.codigo,
-            qtde: l.qtde,
+            qtde: clampDecimalScale(l.qtde, DECIMAL_SCALE.qty),
             data_entrada: l.data_entrada || dataEntrada,
             data_validade: l.data_validade || '',
             data_fabricacao: l.data_fabricacao || '',
-            largura_mm: l.largura_mm || '',
-            comprimento_m: l.comprimento_m || '',
+            largura_mm: clampDecimalScale(l.largura_mm || '', DECIMAL_SCALE.dim),
+            comprimento_m: clampDecimalScale(l.comprimento_m || '', DECIMAL_SCALE.dim),
           }));
         } else if (item.lote_codigo) {
           next[item.ordem_compra_item_id] = [
             {
               codigo: item.lote_codigo,
-              qtde: item.qtde_recebida,
+              qtde: clampDecimalScale(item.qtde_recebida, DECIMAL_SCALE.qty),
               data_entrada: dataEntrada,
               data_validade: item.lote_data_validade || '',
               data_fabricacao: item.lote_data_fabricacao || '',
@@ -374,19 +535,19 @@ export function ComprasOrdemDetailPage() {
         .map((item) => {
           const row: Record<string, unknown> = {
             ordem_compra_item_id: item.id,
-            qtde_recebida: qtdes[item.id] || '0',
+            qtde_recebida: clampDecimalScale(qtdes[item.id] || '0', DECIMAL_SCALE.qty) || '0',
           };
           if (item.produto?.controla_lote) {
             const volumes = volumeForms[item.id];
             if (volumes && volumes.length > 0) {
               row.lotes = volumes.map((v) => ({
                 codigo: v.codigo,
-                qtde: v.qtde,
+                qtde: clampDecimalScale(v.qtde, DECIMAL_SCALE.qty),
                 data_entrada: v.data_entrada || nfData || null,
                 data_validade: v.data_validade || null,
                 data_fabricacao: v.data_fabricacao || null,
-                largura_mm: v.largura_mm || null,
-                comprimento_m: v.comprimento_m || null,
+                largura_mm: clampDecimalScale(v.largura_mm, DECIMAL_SCALE.dim) || null,
+                comprimento_m: clampDecimalScale(v.comprimento_m, DECIMAL_SCALE.dim) || null,
               }));
             } else {
               const lote = loteForms[item.id];
@@ -419,7 +580,10 @@ export function ComprasOrdemDetailPage() {
         nf_numero: nfNumero || null,
         nf_chave: nfChave || null,
         nf_data: nfData || null,
-        nf_valor: nfValor,
+        nf_valor:
+          nfValor != null && nfValor !== ''
+            ? clampDecimalScale(nfValor, DECIMAL_SCALE.money)
+            : null,
         nf_totais: nfTotais,
         natureza_id: naturezaId ? Number(naturezaId) : undefined,
         itens,
@@ -433,7 +597,7 @@ export function ComprasOrdemDetailPage() {
         payload.parcelas = parcelas.map((p, i) => ({
           n_dup: p.n_dup,
           vencimento: p.vencimento,
-          valor: p.valor,
+          valor: clampDecimalScale(p.valor, DECIMAL_SCALE.money),
           parcela: i + 1,
         }));
         payload.vencimento = parcelas[0]?.vencimento || vencimento || null;
@@ -441,11 +605,14 @@ export function ComprasOrdemDetailPage() {
         payload.vencimento = vencimento;
       }
 
-      await api.post<{ data: { nfe_entrada?: { numero: string | null; xml_armazenado?: boolean } | null } }>(
-        `/ordens-compra/${oc.id}/receber`,
-        payload,
-      ).then((res) => {
+      await api.post<{
+        data: {
+          id: number;
+          nfe_entrada?: { numero: string | null; xml_armazenado?: boolean } | null;
+        };
+      }>(`/ordens-compra/${oc.id}/receber`, payload).then((res) => {
         const nfe = res.data.nfe_entrada;
+        setLastMovimentoId(res.data.id);
         const titulosMsg =
           parcelas.length > 1
             ? `estoque atualizado e ${parcelas.length} títulos a pagar gerados`
@@ -463,7 +630,7 @@ export function ComprasOrdemDetailPage() {
       setNfTotais(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha no recebimento.');
+      setError(apiErrorMessage(err, 'Falha no recebimento.'));
     } finally {
       setReceiving(false);
     }
@@ -475,7 +642,13 @@ export function ComprasOrdemDetailPage() {
         title={oc?.codigo ?? 'Ordem de compra'}
         description={
           oc
-            ? `${oc.fornecedor?.razao_social ?? 'Ordem de compra'}`
+            ? `${oc.fornecedor?.razao_social ?? 'Ordem de compra'}${
+                oc.status === 'RASCUNHO'
+                  ? ' · rascunho — edite e envie ao fornecedor'
+                  : oc.enviado_em
+                    ? ` · enviada em ${formatDateTime(oc.enviado_em)}`
+                    : ''
+              }`
             : 'Carregando…'
         }
         actions={
@@ -483,6 +656,49 @@ export function ComprasOrdemDetailPage() {
             <Link to="/compras/ordens" className="btn btn-secondary">
               Voltar
             </Link>
+            {canWrite && editavel && (
+              <>
+                <Link to={`/compras/ordens/${oc!.id}/editar`} className="btn btn-secondary">
+                  Editar
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={acting}
+                  onClick={() => void handleExcluir()}
+                >
+                  Excluir
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={sending}
+                  onClick={() => void handleEnviar(false)}
+                >
+                  {sending ? 'Enviando…' : 'Enviar ao fornecedor'}
+                </button>
+              </>
+            )}
+            {canReenviarEmail && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={sending}
+                onClick={() => void handleEnviar(true)}
+              >
+                {sending ? 'Enviando…' : 'Reenviar e-mail'}
+              </button>
+            )}
+            {canCancel && !editavel && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={acting}
+                onClick={() => void handleCancelar()}
+              >
+                Cancelar OC
+              </button>
+            )}
             {hasPermission('financeiro.ler') && (
               <button
                 type="button"
@@ -497,7 +713,24 @@ export function ComprasOrdemDetailPage() {
       />
 
       {error && <div className="alert alert-error">{error}</div>}
-      {msg && <div className="alert alert-success">{msg}</div>}
+      {msg && (
+        <div className="alert alert-success">
+          <div>{msg}</div>
+          {lastMovimentoId != null && (
+            <div className="btn-row" style={{ marginTop: '0.75rem' }}>
+              <Link
+                className="btn btn-primary"
+                to={`/estoque/movimentos/${lastMovimentoId}/ficha-entrada`}
+              >
+                Ficha de entrada física (QR)
+              </Link>
+              <Link className="btn btn-secondary" to="/estoque/guardar">
+                Guardar no vão
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading || !oc ? (
         <div className="loading">Carregando…</div>
@@ -509,35 +742,138 @@ export function ComprasOrdemDetailPage() {
                 <StatusPill status={ocStatusLabel(oc.status)} />
                 {oc.urgente && <span className="muted">· urgente</span>}
                 <span>Total {formatCurrency(oc.valor_total)}</span>
-                <span className="muted">Previsão {formatDate(oc.previsao_entrega)}</span>
+                {oc.previsao_entrega && (
+                  <span className="muted">Previsão {formatDate(oc.previsao_entrega)}</span>
+                )}
+                {oc.origem && <span className="muted">· {oc.origem.toLowerCase()}</span>}
               </div>
+
+              {oc.status === 'RASCUNHO' && (
+                <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+                  Rascunho: você pode editar ou excluir. Ao <strong>enviar ao fornecedor</strong>, a
+                  OC fica travada, conta em trânsito na reposição e o sistema tenta o e-mail do
+                  cadastro do PAR.
+                </div>
+              )}
+
+              <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                <div className="form-group span-2">
+                  <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>Fornecedor</h3>
+                  <div>
+                    <strong>
+                      {oc.fornecedor?.codigo} —{' '}
+                      {oc.fornecedor?.nome_fantasia || oc.fornecedor?.razao_social || '—'}
+                    </strong>
+                  </div>
+                  {oc.fornecedor?.razao_social && oc.fornecedor?.nome_fantasia && (
+                    <div className="muted">{oc.fornecedor.razao_social}</div>
+                  )}
+                  {oc.fornecedor?.cnpj_cpf && (
+                    <div className="muted">CNPJ/CPF {formatCnpjCpf(oc.fornecedor.cnpj_cpf)}</div>
+                  )}
+                  {formatEndereco(oc.fornecedor ?? {}) && (
+                    <div className="muted">{formatEndereco(oc.fornecedor ?? {})}</div>
+                  )}
+                  <div className="muted">
+                    {[
+                      oc.fornecedor?.email,
+                      oc.fornecedor?.telefone
+                        ? formatPhone(oc.fornecedor.telefone)
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'Sem e-mail/telefone no cadastro'}
+                  </div>
+                </div>
+                <div className="form-group span-2">
+                  <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>Comprador (EMP)</h3>
+                  <div>
+                    <strong>
+                      {oc.empresa?.nome_fantasia || oc.empresa?.razao_social || '—'}
+                    </strong>
+                  </div>
+                  {oc.empresa?.cnpj && (
+                    <div className="muted">CNPJ {formatCnpjCpf(oc.empresa.cnpj)}</div>
+                  )}
+                  {formatEndereco(oc.empresa ?? {}) && (
+                    <div className="muted">{formatEndereco(oc.empresa ?? {})}</div>
+                  )}
+                  <div className="muted">
+                    {[oc.empresa?.email, oc.empresa?.telefone ? formatPhone(oc.empresa.telefone) : null]
+                      .filter(Boolean)
+                      .join(' · ') || '—'}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Condição de pagamento</label>
+                  <div>{oc.condicao_pagamento || '—'}</div>
+                </div>
+                <div className="form-group">
+                  <label>Previsão de entrega</label>
+                  <div>{formatDate(oc.previsao_entrega)}</div>
+                </div>
+                <div className="form-group">
+                  <label>Enviada em</label>
+                  <div>{oc.enviado_em ? formatDateTime(oc.enviado_em) : '—'}</div>
+                </div>
+                <div className="form-group">
+                  <label>Criada</label>
+                  <div>
+                    {oc.created_at ? formatDateTime(oc.created_at) : '—'}
+                    {oc.criado_por?.name ? ` · ${oc.criado_por.name}` : ''}
+                  </div>
+                </div>
+              </div>
+
+              {oc.observacao && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>Observação</h3>
+                  <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{oc.observacao}</p>
+                </div>
+              )}
 
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th>#</th>
                       <th>Produto</th>
-                      <th>Pedida</th>
+                      <th>Qtde pedida</th>
                       <th>Recebida</th>
+                      <th>Un.</th>
                       <th>Unit.</th>
                       <th>Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(oc.itens ?? []).map((item) => (
+                    {(oc.itens ?? []).map((item, idx) => (
                       <tr key={item.id}>
+                        <td>{item.ordem ?? idx + 1}</td>
                         <td>
-                          {item.produto?.codigo} —{' '}
+                          <strong>{item.produto?.codigo}</strong> —{' '}
                           {item.produto?.descricao_comercial || item.produto?.descricao_fiscal}
-                          <div className="muted">{item.unidade}</div>
+                          {item.produto?.familia && (
+                            <div className="muted">{item.produto.familia}</div>
+                          )}
                         </td>
                         <td>{item.qtde_pedida}</td>
                         <td>{item.qtde_recebida}</td>
+                        <td>{item.unidade}</td>
                         <td>{formatCurrency(item.valor_unitario)}</td>
                         <td>{formatCurrency(item.valor_total)}</td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'right' }}>
+                        <strong>Total</strong>
+                      </td>
+                      <td>
+                        <strong>{formatCurrency(oc.valor_total)}</strong>
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -635,6 +971,7 @@ export function ComprasOrdemDetailPage() {
                             <tr>
                               <th>Item NF</th>
                               <th>cProd / descrição</th>
+                              <th>Pedido / FCI</th>
                               <th>Qtde</th>
                               <th>Sugestão</th>
                               <th>Item da OC</th>
@@ -647,6 +984,24 @@ export function ComprasOrdemDetailPage() {
                                 <td>
                                   <strong>{linha.c_prod}</strong>
                                   <div className="muted">{linha.x_prod}</div>
+                                </td>
+                                <td>
+                                  {linha.x_ped ? (
+                                    <div>
+                                      <strong>xPed</strong> {linha.x_ped}
+                                      {linha.n_item_ped ? ` · #${linha.n_item_ped}` : ''}
+                                    </div>
+                                  ) : (
+                                    <span className="muted">—</span>
+                                  )}
+                                  {linha.n_fci ? (
+                                    <div
+                                      className="muted"
+                                      style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.75rem' }}
+                                    >
+                                      FCI {linha.n_fci}
+                                    </div>
+                                  ) : null}
                                 </td>
                                 <td>
                                   {linha.q_com} {linha.u_com}
@@ -822,31 +1177,32 @@ export function ComprasOrdemDetailPage() {
 
                   <div className="form-section">
                     <h3>Qtde a receber (un. comercial)</h3>
-                    <div className="form-grid">
+                    <div className="oc-receber-itens">
                       {(oc.itens ?? []).map((item) => (
-                        <div className="form-group span-2" key={item.id}>
-                          <label>{item.produto?.codigo}</label>
-                          <input
-                            inputMode="decimal"
-                            value={qtdes[item.id] ?? ''}
-                            onChange={(e) =>
-                              setQtdes({ ...qtdes, [item.id]: e.target.value })
-                            }
-                          />
+                        <div className="oc-receber-item" key={item.id}>
+                          <div className="oc-receber-item__head">
+                            <div className="form-group oc-receber-item__qtde">
+                              <label>
+                                {item.produto?.codigo}
+                                {item.produto?.descricao_comercial || item.produto?.descricao_fiscal
+                                  ? ` — ${item.produto?.descricao_comercial || item.produto?.descricao_fiscal}`
+                                  : ''}
+                              </label>
+                              <input
+                                inputMode="decimal"
+                                value={qtdes[item.id] ?? ''}
+                                onChange={(e) =>
+                                  setQtdes({ ...qtdes, [item.id]: e.target.value })
+                                }
+                              />
+                            </div>
+                          </div>
                           {item.produto?.controla_lote && (
-                            <div style={{ marginTop: '0.75rem' }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  marginBottom: '0.35rem',
-                                }}
-                              >
-                                <strong style={{ fontSize: '0.9rem' }}>
+                            <div className="oc-volumes-panel">
+                              <div className="oc-volumes-panel__bar">
+                                <strong>
                                   Volumes / lotes
-                                  {(volumeForms[item.id]?.length ?? 0) > 1
+                                  {(volumeForms[item.id]?.length ?? 0) > 0
                                     ? ` (${volumeForms[item.id].length})`
                                     : ''}
                                 </strong>
@@ -875,7 +1231,7 @@ export function ComprasOrdemDetailPage() {
                                 </button>
                               </div>
                               {(volumeForms[item.id]?.length ?? 0) === 0 ? (
-                                <div className="form-grid">
+                                <div className="form-grid oc-volumes-panel__single">
                                   <div className="form-group">
                                     <label>Lote do fornecedor</label>
                                     <input
@@ -936,112 +1292,140 @@ export function ComprasOrdemDetailPage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="table-wrap">
-                                  <table className="data-table">
-                                    <thead>
-                                      <tr>
-                                        <th>#</th>
-                                        <th>Lote / nLote</th>
-                                        <th>Qtde</th>
-                                        <th>Largura mm</th>
-                                        <th>Comp. m</th>
-                                        <th />
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {volumeForms[item.id].map((vol, vIdx) => (
-                                        <tr key={`${item.id}-vol-${vIdx}`}>
-                                          <td>{vIdx + 1}</td>
-                                          <td>
-                                            <input
-                                              value={vol.codigo}
-                                              required={Number(qtdes[item.id] || 0) > 0}
-                                              onChange={(e) => {
-                                                const next = [...volumeForms[item.id]];
-                                                next[vIdx] = { ...next[vIdx], codigo: e.target.value };
-                                                setVolumeForms({ ...volumeForms, [item.id]: next });
-                                              }}
-                                              style={{ width: '9rem' }}
-                                            />
-                                          </td>
-                                          <td>
-                                            <input
-                                              inputMode="decimal"
-                                              value={vol.qtde}
-                                              required={Number(qtdes[item.id] || 0) > 0}
-                                              onChange={(e) => {
-                                                const next = [...volumeForms[item.id]];
-                                                next[vIdx] = { ...next[vIdx], qtde: e.target.value };
-                                                setVolumeForms({ ...volumeForms, [item.id]: next });
-                                              }}
-                                              style={{ width: '6rem' }}
-                                            />
-                                          </td>
-                                          <td>
-                                            <input
-                                              inputMode="decimal"
-                                              placeholder="ex. 210"
-                                              value={vol.largura_mm}
-                                              onChange={(e) => {
-                                                const next = [...volumeForms[item.id]];
-                                                const largura = e.target.value;
-                                                let comprimento = next[vIdx].comprimento_m;
-                                                const q = Number(next[vIdx].qtde);
-                                                const l = Number(largura);
-                                                if (q > 0 && l > 0) {
-                                                  comprimento = (q / (l / 1000)).toFixed(3);
-                                                }
-                                                next[vIdx] = {
-                                                  ...next[vIdx],
-                                                  largura_mm: largura,
-                                                  comprimento_m: comprimento,
-                                                };
-                                                setVolumeForms({ ...volumeForms, [item.id]: next });
-                                              }}
-                                              style={{ width: '5rem' }}
-                                            />
-                                          </td>
-                                          <td>
-                                            <input
-                                              inputMode="decimal"
-                                              value={vol.comprimento_m}
-                                              onChange={(e) => {
-                                                const next = [...volumeForms[item.id]];
-                                                next[vIdx] = {
-                                                  ...next[vIdx],
-                                                  comprimento_m: e.target.value,
-                                                };
-                                                setVolumeForms({ ...volumeForms, [item.id]: next });
-                                              }}
-                                              style={{ width: '5rem' }}
-                                            />
-                                          </td>
-                                          <td>
-                                            <button
-                                              type="button"
-                                              className="btn btn-secondary btn-sm"
-                                              onClick={() => {
-                                                const next = volumeForms[item.id].filter(
-                                                  (_, i) => i !== vIdx,
-                                                );
-                                                setVolumeForms({ ...volumeForms, [item.id]: next });
-                                              }}
-                                            >
-                                              Remover
-                                            </button>
-                                          </td>
+                                <>
+                                  <div className="oc-volumes-scroll">
+                                    <table className="oc-volumes-table">
+                                      <thead>
+                                        <tr>
+                                          <th className="col-idx">#</th>
+                                          <th className="col-lote">Lote / nLote</th>
+                                          <th className="col-num">Qtde</th>
+                                          <th className="col-num">Largura mm</th>
+                                          <th className="col-num">Comp. m</th>
+                                          <th className="col-acoes" />
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                  <p className="form-hint" style={{ marginTop: '0.35rem' }}>
+                                      </thead>
+                                      <tbody>
+                                        {volumeForms[item.id].map((vol, vIdx) => (
+                                          <tr key={`${item.id}-vol-${vIdx}`}>
+                                            <td className="col-idx">{vIdx + 1}</td>
+                                            <td className="col-lote">
+                                              <input
+                                                value={vol.codigo}
+                                                required={Number(qtdes[item.id] || 0) > 0}
+                                                onChange={(e) => {
+                                                  const next = [...volumeForms[item.id]];
+                                                  next[vIdx] = {
+                                                    ...next[vIdx],
+                                                    codigo: e.target.value,
+                                                  };
+                                                  setVolumeForms({
+                                                    ...volumeForms,
+                                                    [item.id]: next,
+                                                  });
+                                                }}
+                                              />
+                                            </td>
+                                            <td className="col-num">
+                                              <input
+                                                inputMode="decimal"
+                                                value={vol.qtde}
+                                                required={Number(qtdes[item.id] || 0) > 0}
+                                                onChange={(e) => {
+                                                  const next = [...volumeForms[item.id]];
+                                                  const qtde = e.target.value;
+                                                  let comprimento = next[vIdx].comprimento_m;
+                                                  if (next[vIdx].largura_mm.trim()) {
+                                                    const derived = comprimentoFromAreaLargura(
+                                                      qtde,
+                                                      next[vIdx].largura_mm,
+                                                    );
+                                                    if (derived) comprimento = derived;
+                                                  }
+                                                  next[vIdx] = {
+                                                    ...next[vIdx],
+                                                    qtde,
+                                                    comprimento_m: comprimento,
+                                                  };
+                                                  setVolumeForms({
+                                                    ...volumeForms,
+                                                    [item.id]: next,
+                                                  });
+                                                }}
+                                              />
+                                            </td>
+                                            <td className="col-num">
+                                              <input
+                                                inputMode="decimal"
+                                                placeholder="210"
+                                                value={vol.largura_mm}
+                                                onChange={(e) => {
+                                                  const next = [...volumeForms[item.id]];
+                                                  const largura = e.target.value;
+                                                  const derived = comprimentoFromAreaLargura(
+                                                    next[vIdx].qtde,
+                                                    largura,
+                                                  );
+                                                  next[vIdx] = {
+                                                    ...next[vIdx],
+                                                    largura_mm: largura,
+                                                    comprimento_m:
+                                                      derived || next[vIdx].comprimento_m,
+                                                  };
+                                                  setVolumeForms({
+                                                    ...volumeForms,
+                                                    [item.id]: next,
+                                                  });
+                                                }}
+                                              />
+                                            </td>
+                                            <td className="col-num">
+                                              <input
+                                                inputMode="decimal"
+                                                value={vol.comprimento_m}
+                                                onChange={(e) => {
+                                                  const next = [...volumeForms[item.id]];
+                                                  next[vIdx] = {
+                                                    ...next[vIdx],
+                                                    comprimento_m: e.target.value,
+                                                  };
+                                                  setVolumeForms({
+                                                    ...volumeForms,
+                                                    [item.id]: next,
+                                                  });
+                                                }}
+                                              />
+                                            </td>
+                                            <td className="col-acoes">
+                                              <button
+                                                type="button"
+                                                className="btn btn-secondary btn-sm"
+                                                onClick={() => {
+                                                  const next = volumeForms[item.id].filter(
+                                                    (_, i) => i !== vIdx,
+                                                  );
+                                                  setVolumeForms({
+                                                    ...volumeForms,
+                                                    [item.id]: next,
+                                                  });
+                                                }}
+                                              >
+                                                Remover
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  <p className="form-hint oc-volumes-panel__hint">
                                     Soma das qtdes dos volumes deve igualar a qtde recebida. Dimensão
                                     real da bobina — não altera o SKU.
                                     {enderecos.length > 0
                                       ? ' Endereço (vão) pode ser vinculado depois na ficha do lote.'
                                       : ''}
                                   </p>
-                                </div>
+                                </>
                               )}
                             </div>
                           )}

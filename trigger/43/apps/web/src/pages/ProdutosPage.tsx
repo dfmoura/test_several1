@@ -77,6 +77,9 @@ export function ProdutosPage() {
         description="SKU operacional (MP/EMB/REV) para compra, estoque e OP. Preço de etiqueta sob medida fica no catálogo ORC — PA sob encomenda usa família + spec, sem milhares de códigos."
         actions={
           <div className="btn-row">
+            <Link to="/como-cadastra#produto-passos" className="btn btn-secondary">
+              Como cadastra
+            </Link>
             {hasPermission('estoque.ler') ? (
               <Link to="/estoque" className="btn btn-secondary">
                 Estoque
@@ -104,12 +107,17 @@ export function ProdutosPage() {
       <div className="card estoque-continuidade-card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-            Papel no fluxo
+            Como cadastrar (resumo)
           </h3>
+          <p className="muted" style={{ marginTop: 0, marginBottom: '0.65rem' }}>
+            Novo produto → escolha a <strong>família</strong> (MP/EMB/REV…) → o{' '}
+            <strong>grupo</strong> (MP-PAP, MP-FLM…) → descrição fiscal → unidade da nota. O
+            código nasce sozinho. Depois de salvar, amarre o <strong>cProd do fornecedor</strong>.
+            Bobina física e arte do cliente não viram SKU novo.
+          </p>
           <p className="muted" style={{ marginTop: 0, marginBottom: 0 }}>
-            Cadastre insumos e revenda com unidade comercial × interna. A NF-e de entrada casa o
-            item do XML com o SKU na OC; a OP baixa esses materiais na separação. Famílias PA/SVC
-            são poucas — a especificação viaja no pedido.
+            Passo a passo completo, exemplos e checklist:{' '}
+            <Link to="/como-cadastra#produto-passos">Como cadastra →</Link>
           </p>
         </div>
       </div>

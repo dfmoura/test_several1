@@ -18,6 +18,7 @@ import { MapasFacasPage } from './pages/MapasFacasPage';
 import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
 import { BacklogPage } from './pages/BacklogPage';
 import { CondicoesPagamentoPage } from './pages/CondicoesPagamentoPage';
+import { ComoCadastraPage } from './pages/ComoCadastraPage';
 import { DepartamentosPage } from './pages/DepartamentosPage';
 import { FeriadosPage } from './pages/FeriadosPage';
 import { OrcamentoCatalogoPage } from './pages/OrcamentoCatalogoPage';
@@ -58,6 +59,10 @@ import { EstoqueExtratoPage } from './pages/EstoqueExtratoPage';
 import { EstoqueInventariosPage } from './pages/EstoqueInventariosPage';
 import { EstoquePage } from './pages/EstoquePage';
 import { EstoqueLoteEtiquetaPage } from './pages/EstoqueLoteEtiquetaPage';
+import { EstoqueMovimentoFichaEntradaPage } from './pages/EstoqueMovimentoFichaEntradaPage';
+import { EstoqueEnderecosEtiquetasPage } from './pages/EstoqueEnderecosEtiquetasPage';
+import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage';
+import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
@@ -189,12 +194,24 @@ export default function App() {
         />
 
         <Route
+          path="como-cadastra"
+          element={
+            <PermissionRoute permission={['produto.ler', 'parceiro.ler']}>
+              <ComoCadastraPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="parceiros"
           element={
             <PermissionRoute permission="parceiro.ler">
               <ParceirosPage />
             </PermissionRoute>
           }
+        />
+        <Route
+          path="parceiros/como-cadastra"
+          element={<Navigate to="/como-cadastra#parceiro" replace />}
         />
         <Route
           path="parceiros/importar"
@@ -220,6 +237,10 @@ export default function App() {
               <ProdutosPage />
             </PermissionRoute>
           }
+        />
+        <Route
+          path="produtos/como-cadastra"
+          element={<Navigate to="/como-cadastra#produto" replace />}
         />
         <Route
           path="produtos/importar"
@@ -332,6 +353,14 @@ export default function App() {
           }
         />
         <Route
+          path="compras/ordens/:id/editar"
+          element={
+            <PermissionRoute permission="compras.escrever">
+              <ComprasOrdemFormPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="compras/ordens/:id"
           element={
             <PermissionRoute permission="compras.ler">
@@ -376,6 +405,38 @@ export default function App() {
           element={
             <PermissionRoute permission="estoque.ler">
               <EstoqueLoteEtiquetaPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/lotes/etiquetas"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueVolumesEtiquetasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/enderecos/etiquetas"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueEnderecosEtiquetasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/guardar"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueGuardarPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/movimentos/:movimentoId/ficha-entrada"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueMovimentoFichaEntradaPage />
             </PermissionRoute>
           }
         />

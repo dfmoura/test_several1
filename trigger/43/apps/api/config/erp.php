@@ -112,6 +112,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | E-mail automático da OC ao fornecedor (ao enviar)
+    |--------------------------------------------------------------------------
+    |
+    | Motor = MAIL_* da instalação. Reply-To = empresas.email.
+    | Destino = parceiros.email. Sem SMTP por EMP.
+    | ADR: docs/ADR_OC_RASCUNHO_ENVIO.md
+    |
+    */
+
+    'ordem_compra_email_auto' => filter_var(env('ORDEM_COMPRA_EMAIL_AUTO', true), FILTER_VALIDATE_BOOL),
+
+    /*
+    |--------------------------------------------------------------------------
     | WhatsApp automático da proposta (ViaZap)
     |--------------------------------------------------------------------------
     |

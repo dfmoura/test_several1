@@ -536,11 +536,12 @@ class EstoqueSaldoWriter
                 default => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
             }),
             'origem_id' => isset($loteRef['origem_id']) ? (int) $loteRef['origem_id'] : null,
+            'volume_novo' => ! empty($loteRef['volume_novo']),
         ];
     }
 
     /**
-     * @param  array{codigo: string, data_entrada: string, data_validade: ?string, data_fabricacao: ?string, lote_id?: ?int, nf_numero?: ?string, origem_tipo: string, origem_id: ?int}  $ref
+     * @param  array{codigo: string, data_entrada: string, data_validade: ?string, data_fabricacao: ?string, lote_id?: ?int, nf_numero?: ?string, origem_tipo: string, origem_id: ?int, volume_novo?: bool}  $ref
      */
     private function encontrarOuCriarLote(Empresa $empresa, Produto $produto, array $ref): EstoqueLote
     {
@@ -556,15 +557,24 @@ class EstoqueSaldoWriter
             }
         }
 
-        $lote = (clone $query)->where('codigo', $ref['codigo'])->first();
-        if ($lote) {
-            return $lote;
+        // Entrada física (receber): cada volume é identidade própria + QR.
+        // AJU/backfill ainda reutilizam o mesmo código de lote do fornecedor.
+        $volumeNovo = ! empty($ref['volume_novo']);
+        if (! $volumeNovo) {
+            $lote = (clone $query)->where('codigo', $ref['codigo'])->first();
+            if ($lote) {
+                return $lote;
+            }
         }
+
+        $codigo = $volumeNovo
+            ? $this->codigoVolumeDisponivel($empresa, $produto, (string) $ref['codigo'])
+            : (string) $ref['codigo'];
 
         return EstoqueLote::query()->create([
             'empresa_id' => $empresa->id,
             'produto_id' => $produto->id,
-            'codigo' => $ref['codigo'],
+            'codigo' => $codigo,
             'data_entrada' => $ref['data_entrada'],
             'data_fabricacao' => $ref['data_fabricacao'],
             'data_validade' => $ref['data_validade'],
@@ -577,6 +587,44 @@ class EstoqueSaldoWriter
             'comprimento_m' => $ref['comprimento_m'] ?? null,
             'endereco_id' => $ref['endereco_id'] ?? null,
             'qr_token' => bin2hex(random_bytes(16)),
+        ]);
+    }
+
+    /**
+     * Unique (empresa, produto, codigo): se o nLote do fornecedor já existe
+     * (várias bobinas do mesmo lote de fabricação), sufixa #2, #3…
+     */
+    private function codigoVolumeDisponivel(Empresa $empresa, Produto $produto, string $codigoBase): string
+    {
+        $base = mb_substr(trim($codigoBase), 0, 60);
+        if ($base === '') {
+            $base = 'VOL';
+        }
+
+        $exists = static function (string $codigo) use ($empresa, $produto): bool {
+            return EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('codigo', $codigo)
+                ->lockForUpdate()
+                ->exists();
+        };
+
+        if (! $exists($base)) {
+            return $base;
+        }
+
+        for ($i = 2; $i < 10000; $i++) {
+            $suffix = '#'.$i;
+            $maxBase = 60 - strlen($suffix);
+            $candidate = mb_substr($base, 0, max(1, $maxBase)).$suffix;
+            if (! $exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'lote_codigo' => ["Não foi possível gerar código único para o volume a partir de {$base}."],
         ]);
     }
 

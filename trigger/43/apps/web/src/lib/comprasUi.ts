@@ -1,7 +1,8 @@
 /** Labels de status — Compras · Estoque · Contas a pagar (BL-033). */
 
 const OC_LABELS: Record<string, string> = {
-  ABERTA: 'Aberta',
+  RASCUNHO: 'Rascunho',
+  ABERTA: 'Enviada',
   PARCIAL: 'Parcial',
   RECEBIDA: 'Recebida',
   CANCELADA: 'Cancelada',

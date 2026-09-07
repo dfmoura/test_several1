@@ -126,6 +126,7 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 
 - [x] SKUs Exact (MP-PAP-013…015, MP-FLM-015) + seed  
 - [x] De-para Avery canônico (quando CNPJ + SKU existem)  
+- [x] Evidência `notas_entrada` (33 SKUs + 87 de-para) via `ProdutoCadastroNfEntradaData` — sem SKU por largura Exact/Fedrigoni/Vertex  
 - [ ] Contagem física / AJU na EMP (operação humana)
 
 ### F2 — Entrada multi-volume (rastro → N lotes)
@@ -146,23 +147,31 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 
 - Etiqueta interna: SKU, descrição, L×C real, `nLote`, NF, data, QR do volume.  
 - Rota `/estoque/lotes/:id/etiqueta`.
+- **Ficha de entrada física (pós-receber):** `/estoque/movimentos/:id/ficha-entrada` — cabeçalho OC/NF + todos os volumes com QR + `xPed`/`nFCI` do espelho. Impressão browser (sem DomPDF no monólito).
 
 **Aceite F3**
 
 - [x] API etiqueta + QR payload  
 - [x] Página de impressão + link na listagem de lotes
+- [x] Ficha de entrada (MOV) com QR por volume + link pós-receber / listagem MOV
 
 ### F4 — Localização (WMS leve)
 
 - Modelo: 6 prateleiras × 4 colunas × 4 vãos (1,50 × 0,60 × 1,00 m).  
-- QR do vão; vínculo volume ↔ endereço.  
+- QR do vão: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`).  
+- Vínculo volume ↔ endereço.  
 - Comando `erp:seed-estoque-enderecos`.
+- **Etiquetas dos vãos:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
+- **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem vão”).  
+- **Guardar:** `/estoque/guardar` — ler `VOL:…` → ler `END:…` → `POST /estoque/guardar` (leitor USB / paste). Sem app dedicado (BL-097 fora).
 
 **Aceite F4**
 
 - [x] Tabela `estoque_enderecos` + seed 96 vãos  
 - [x] Vincular lote → vão na etiqueta  
-- [x] PHPUnit gabarito + vínculo
+- [x] PHPUnit gabarito + vínculo  
+- [x] Impressão QR dos vãos + resolve `END:`  
+- [x] Tela Guardar (volume → vão) + reimpressão de volumes
 
 ### F5 — Reposição → OC → ciclo fechado
 

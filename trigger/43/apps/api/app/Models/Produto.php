@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasUserStamps;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Produto extends Model
@@ -76,5 +77,10 @@ class Produto extends Model
     public function grupoCatalogo(): BelongsTo
     {
         return $this->belongsTo(ProdutoGrupo::class, 'grupo_id');
+    }
+
+    public function fornecedorCodigos(): HasMany
+    {
+        return $this->hasMany(ProdutoFornecedorCodigo::class);
     }
 }

@@ -1014,18 +1014,22 @@ export type Parceiro = {
   updated_at?: string | null;
 };
 
-export type ProdutoDescricaoSugestao = {
-  descricao_fiscal: string;
-  descricao_comercial: string;
-  origem: string;
-  racional: string;
-  avisos: string[];
-  similares: Array<{
+export type ProdutoFornecedorCodigo = {
+  id: number;
+  empresa_id: number;
+  fornecedor_id: number;
+  produto_id: number;
+  c_prod: string;
+  x_prod: string | null;
+  fornecedor?: {
     id: number;
     codigo: string;
-    descricao_fiscal: string;
-    similaridade: number;
-  }>;
+    razao_social: string;
+    nome_fantasia: string | null;
+    cnpj_cpf: string | null;
+  } | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type Produto = {
@@ -1064,6 +1068,7 @@ export type Produto = {
   situacao: string;
   atributos: Record<string, unknown> | null;
   grupo_catalogo?: ProdutoGrupo | null;
+  fornecedor_codigos?: ProdutoFornecedorCodigo[];
   criado_por?: UsuarioRef | null;
   atualizado_por?: UsuarioRef | null;
   created_at?: string | null;
@@ -1304,29 +1309,68 @@ export type OrdemCompraItem = {
   unidade: string;
   valor_unitario: string;
   valor_total: string;
+  ordem?: number;
+};
+
+export type OrdemCompraParceiro = {
+  id: number;
+  codigo: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj_cpf?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+  cep?: string | null;
+};
+
+export type OrdemCompraEmpresa = {
+  id: number;
+  codigo: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+  cep?: string | null;
 };
 
 export type OrdemCompra = {
   id: number;
   codigo: string;
   fornecedor_id: number;
-  fornecedor?: {
-    id: number;
-    codigo: string;
-    razao_social: string;
-    nome_fantasia: string | null;
-  } | null;
+  fornecedor?: OrdemCompraParceiro | null;
+  empresa?: OrdemCompraEmpresa | null;
   cotacao_id: number | null;
   necessidade_id: number | null;
   origem: string;
   urgente: boolean;
   status: string;
+  editavel?: boolean;
   condicao_pagamento: string | null;
   previsao_entrega: string | null;
   valor_total: string;
   observacao: string | null;
+  enviado_em?: string | null;
+  email_enviado?: boolean;
+  email_destino?: string | null;
+  email_motivo?: string | null;
   itens?: OrdemCompraItem[];
   nfe_entradas?: NfeEntradaResumo[];
+  criado_por?: { id: number; name: string } | null;
+  atualizado_por?: { id: number; name: string } | null;
+  created_at?: string | null;
 };
 
 /** Caixa DF-e — NF-e destinadas (BL-090, leitura local). */
@@ -1404,9 +1448,17 @@ export type NfeEntradaEspelho = {
     v_cofins: string | null;
     v_st: string | null;
     v_nf: string | null;
+    v_bc_ibs_cbs?: string | null;
+    v_ibs?: string | null;
+    v_cbs?: string | null;
+    v_ibs_uf?: string | null;
+    v_ibs_mun?: string | null;
   };
   itens: Array<{
     n_item: number;
+    c_prod?: string | null;
+    x_prod?: string | null;
+    produto_id?: number | null;
     cfop: string | null;
     ncm: string | null;
     orig: string | null;
@@ -1417,6 +1469,16 @@ export type NfeEntradaEspelho = {
     v_pis: string | null;
     v_cofins: string | null;
     v_prod: string | null;
+    cst_ibs_cbs?: string | null;
+    c_class_trib?: string | null;
+    v_bc_ibs_cbs?: string | null;
+    v_ibs?: string | null;
+    v_cbs?: string | null;
+    p_cbs?: string | null;
+    x_ped?: string | null;
+    n_item_ped?: string | null;
+    n_fci?: string | null;
+    inf_ad_prod?: string | null;
   }>;
 };
 
@@ -1482,6 +1544,9 @@ export type ReceberXmlPreview = {
     v_un_com: string;
     v_prod: string;
     cfop: string | null;
+    x_ped?: string | null;
+    n_item_ped?: string | null;
+    n_fci?: string | null;
     rastros?: Array<{
       codigo: string;
       qtde: string;
@@ -3074,14 +3139,4 @@ export type ComissaoPedidoResumo = {
   linhas: Comissao[];
   elegivel: boolean;
 };
-
-export function sugerirDescricaoProduto(payload: {
-  grupo_id: number;
-  texto_livre?: string;
-  largura_mm?: string;
-  comprimento_m?: string;
-  produto_id?: number;
-}) {
-  return api.post<{ data: ProdutoDescricaoSugestao }>('/produtos/sugerir-descricao', payload);
-}
 

@@ -48,7 +48,7 @@ class EstoqueEntradaService
 
         if (! in_array($oc->status, OrdemCompra::STATUSES_RECEBIVEIS, true)) {
             throw ValidationException::withMessages([
-                'status' => ['Ordem de compra deve estar ABERTA ou PARCIAL para receber.'],
+                'status' => ['Ordem de compra deve estar enviada (ABERTA) ou PARCIAL para receber. Rascunhos precisam ser enviados ao fornecedor antes.'],
             ]);
         }
 
@@ -474,6 +474,8 @@ class EstoqueEntradaService
                     'endereco_id' => $linha['endereco_id'] ?? null,
                     'nf_numero' => $nfNumero,
                     'origem_tipo' => \App\Models\EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+                    // Cada linha de lotes[] = 1 bobina física com QR próprio (não fundir por nLote).
+                    'volume_novo' => true,
                 ],
             ];
         }

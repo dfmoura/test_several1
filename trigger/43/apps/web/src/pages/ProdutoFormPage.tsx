@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FiscalCombobox, formatCest, formatNcm, type FiscalOption } from '../components/FiscalCombobox';
 import { PageHeader } from '../components/PageHeader';
+import { ProdutoFornecedorCodigosPanel } from '../components/ProdutoFornecedorCodigosPanel';
 import { RegistroMetaStrip, type RegistroAutoria } from '../components/RegistroMetaStrip';
-import { api, fiscalConsulta, sugerirDescricaoProduto, type Produto, type ProdutoDescricaoSugestao, type ProdutoGrupo } from '../lib/api';
+import { api, fiscalConsulta, type Produto, type ProdutoFornecedorCodigo, type ProdutoGrupo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
@@ -31,6 +32,29 @@ const FAMILIA_SPED_DEFAULT: Record<string, string> = {
   SVC: '09',
   FAC: '04',
 };
+
+/** Rótulo operacional da linha de estoque (atributo grupo_estoque / GG da máscara). */
+function linhaEstoqueLabel(
+  codigo: string,
+  linhas?: Array<{ codigo: string; nome: string }> | null,
+): string {
+  const nome = linhas?.find((l) => l.codigo === codigo)?.nome;
+  return nome ? `${codigo} — ${nome}` : codigo;
+}
+
+/** Alinha grupo_estoque ao catálogo do grupo canônico (padrao ou 1ª linha válida). */
+function alinharLinhaEstoque(
+  atual: string,
+  grupo: Pick<ProdutoGrupo, 'grupo_estoque_padrao' | 'grupos_estoque'>,
+): string {
+  const linhas = grupo.grupos_estoque ?? [];
+  const padrao = grupo.grupo_estoque_padrao ?? '';
+  if (linhas.length > 0) {
+    if (linhas.some((l) => l.codigo === atual)) return atual;
+    return padrao || linhas[0].codigo;
+  }
+  return padrao;
+}
 
 /** Fallback local se /consulta/unidades falhar — espelha UnidadesMedida (API). */
 const UNIDADES_FALLBACK: Array<{ codigo: string; descricao: string; uso?: string }> = [
@@ -303,10 +327,8 @@ export function ProdutoFormPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
-  const [textoLivreDesc, setTextoLivreDesc] = useState('');
-  const [descSugestao, setDescSugestao] = useState<ProdutoDescricaoSugestao | null>(null);
-  const [sugerindoDesc, setSugerindoDesc] = useState(false);
-  const [erroDescSugestao, setErroDescSugestao] = useState('');
+  const [fornecedorCodigos, setFornecedorCodigos] = useState<ProdutoFornecedorCodigo[]>([]);
+  const [avancadoOpen, setAvancadoOpen] = useState(false);
   useEffect(() => {
     void (async () => {
       try {
@@ -346,7 +368,21 @@ export function ProdutoFormPage() {
     void (async () => {
       try {
         const res = await api.get<{ data: Produto }>(`/produtos/${id}`);
-        setForm(fromProduto(res.data));
+        const loaded = fromProduto(res.data);
+        setForm(loaded);
+        setFornecedorCodigos(res.data.fornecedor_codigos ?? []);
+        setAvancadoOpen(
+          Boolean(
+            loaded.preco_tabela.trim() ||
+              loaded.estoque_minimo.trim() ||
+              loaded.lead_time_dias.trim() ||
+              loaded.controla_lote ||
+              loaded.controla_validade ||
+              loaded.prazo_validade_dias.trim() ||
+              (loaded.gtin.trim() && loaded.gtin.trim().toUpperCase() !== 'SEM GTIN') ||
+              loaded.situacao === 'INATIVO',
+          ),
+        );
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -556,9 +592,6 @@ export function ProdutoFormPage() {
     // Limpa grupos imediatamente para o efeito de default não aplicar catálogo da família anterior.
     setGrupos([]);
     setFatorManual(false);
-    setDescSugestao(null);
-    setErroDescSugestao('');
-    setTextoLivreDesc('');
     setForm((prev) => ({
       ...emptyForm(),
       familia,
@@ -579,55 +612,17 @@ export function ProdutoFormPage() {
       return;
     }
     setFatorManual(false);
-    setDescSugestao(null);
-    setErroDescSugestao('');
     setForm((prev) => {
       const next = applyGrupoDefaults(prev, grupo, isNew);
+      const alinhado = {
+        ...next,
+        grupo_estoque: alinharLinhaEstoque(next.grupo_estoque, grupo),
+      };
       // Saiu de grupo de bobina → limpa dimensões (não carregar “Dados da bobina” por resíduo).
       if (!grupo.exige_dimensao_sku) {
-        return { ...next, largura_mm: '', comprimento_m: '', gramatura_g_m2: '' };
+        return { ...alinhado, largura_mm: '', comprimento_m: '', gramatura_g_m2: '' };
       }
-      return next;
-    });
-  };
-
-  const handleSugerirDescricoes = async () => {
-    if (!form.grupo_id || !canWrite) return;
-    setSugerindoDesc(true);
-    setErroDescSugestao('');
-    try {
-      const res = await sugerirDescricaoProduto({
-        grupo_id: Number(form.grupo_id),
-        texto_livre: textoLivreDesc.trim() || undefined,
-        largura_mm: form.largura_mm || undefined,
-        comprimento_m: form.comprimento_m || undefined,
-        produto_id: !isNew && id ? Number(id) : undefined,
-      });
-      setDescSugestao(res.data);
-    } catch (err) {
-      setDescSugestao(null);
-      setErroDescSugestao(err instanceof Error ? err.message : 'Falha ao sugerir descrições.');
-    } finally {
-      setSugerindoDesc(false);
-    }
-  };
-
-  const aplicarDescricoes = (quais: 'fiscal' | 'comercial' | 'ambas') => {
-    if (!descSugestao) return;
-    const applyFiscal = quais === 'fiscal' || quais === 'ambas';
-    const applyComercial = quais === 'comercial' || quais === 'ambas';
-    const konflikts: string[] = [];
-    if (applyFiscal && form.descricao_fiscal.trim()) konflikts.push('Descrição fiscal');
-    if (applyComercial && form.descricao_comercial.trim()) konflikts.push('Descrição comercial');
-    if (konflikts.length > 0) {
-      const ok = window.confirm(
-        `${konflikts.join(' e ')} já preenchida(s). Substituir pela sugestão?`
-      );
-      if (!ok) return;
-    }
-    update({
-      ...(applyFiscal ? { descricao_fiscal: descSugestao.descricao_fiscal } : {}),
-      ...(applyComercial ? { descricao_comercial: descSugestao.descricao_comercial } : {}),
+      return alinhado;
     });
   };
 
@@ -635,6 +630,21 @@ export function ProdutoFormPage() {
     if (!canWrite && !canFiscal) return;
     if (!form.grupo_id) {
       setError('Selecione o grupo canônico do produto.');
+      setTab('comercial');
+      return;
+    }
+    const linhasEstoque = selectedGrupo?.grupos_estoque ?? [];
+    if (linhasEstoque.length > 1 && !form.grupo_estoque) {
+      setError('Selecione a linha de estoque do material (ex.: couché, fosco, térmico).');
+      setTab('comercial');
+      return;
+    }
+    if (
+      linhasEstoque.length > 0 &&
+      form.grupo_estoque &&
+      !linhasEstoque.some((l) => l.codigo === form.grupo_estoque)
+    ) {
+      setError('A linha de estoque não pertence ao grupo canônico selecionado.');
       setTab('comercial');
       return;
     }
@@ -672,9 +682,18 @@ export function ProdutoFormPage() {
     <>
       <PageHeader
         title={isNew ? 'Novo produto' : form.codigo}
-        description={isNew ? 'Cadastro de item' : form.descricao_fiscal}
+        description={
+          isNew
+            ? 'Ordem: família → grupo → descrição → unidade. Código gerado sozinho. De-para do fornecedor depois de salvar — veja Como cadastra se for a primeira vez.'
+            : form.descricao_fiscal
+        }
         actions={
           <>
+            {isNew ? (
+              <Link to="/como-cadastra#produto-passos" className="btn btn-secondary">
+                Como cadastra
+              </Link>
+            ) : null}
             {!isNew && id && (
               <a
                 href={`/produtos/${id}/ficha`}
@@ -755,7 +774,6 @@ export function ProdutoFormPage() {
                   {grupos.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.codigo} — {g.nome}
-                      {g.grupo_estoque_padrao ? ` · estoque GG ${g.grupo_estoque_padrao}` : ''}
                     </option>
                   ))}
                 </select>
@@ -769,6 +787,14 @@ export function ProdutoFormPage() {
                     {selectedGrupo.exige_dimensao_sku
                       ? ' · dimensões nominais (bobina real = volume na entrada)'
                       : ''}
+                    {selectedGrupo.grupos_estoque?.length === 1
+                      ? ` · linha de estoque ${linhaEstoqueLabel(
+                          selectedGrupo.grupos_estoque[0].codigo,
+                          selectedGrupo.grupos_estoque,
+                        )}`
+                      : !selectedGrupo.grupos_estoque?.length && selectedGrupo.grupo_estoque_padrao
+                        ? ` · linha de estoque ${selectedGrupo.grupo_estoque_padrao}`
+                        : ''}
                     {selectedGrupo.observacao ? ` — ${selectedGrupo.observacao}` : ''}
                   </span>
                 ) : (
@@ -780,96 +806,25 @@ export function ProdutoFormPage() {
               </div>
               {selectedGrupo?.grupos_estoque && selectedGrupo.grupos_estoque.length > 1 && (
                 <div className="form-group span-2">
-                  <label>Linhas de estoque (GG)</label>
-                  <div className="form-hint" style={{ marginTop: 0 }}>
+                  <label>Linha de estoque</label>
+                  <select
+                    value={form.grupo_estoque}
+                    disabled={readOnly}
+                    required
+                    onChange={(e) => update({ grupo_estoque: e.target.value })}
+                  >
+                    <option value="">Selecione a linha…</option>
                     {selectedGrupo.grupos_estoque.map((l) => (
-                      <span key={l.codigo} style={{ display: 'inline-block', marginRight: '0.85rem' }}>
-                        <strong>{l.codigo}</strong> {l.nome}
-                      </span>
+                      <option key={l.codigo} value={l.codigo}>
+                        {l.codigo} — {l.nome}
+                      </option>
                     ))}
-                    — linha de estoque (GG) do material; o código fiscal permanece{' '}
-                    {selectedGrupo.codigo}-nnn. Dimensão física da bobina não entra no SKU.
-                  </div>
-                </div>
-              )}
-              {canWrite && (
-                <div className="form-group span-2 produto-desc-sugerir">
-                  <label>Sugestão de descrições</label>
-                  <textarea
-                    rows={2}
-                    value={textoLivreDesc}
-                    disabled={!form.grupo_id || sugerindoDesc}
-                    placeholder="Opcional: como você chama o item, material, marca, medida… (ex.: bopp fosco, couchê 80g Fasson, ribbon cera 110x300)"
-                    onChange={(e) => setTextoLivreDesc(e.target.value)}
-                  />
-                  <div className="produto-desc-sugerir-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={!form.grupo_id || sugerindoDesc}
-                      onClick={() => void handleSugerirDescricoes()}
-                    >
-                      {sugerindoDesc ? 'Sugerindo…' : 'Sugerir descrições'}
-                    </button>
-                    <span className="form-hint">
-                      Motor por grupo + CNAE da empresa ativa. Confira e aplique — nada é gravado
-                      sozinho.
-                    </span>
-                  </div>
-                  {erroDescSugestao && <div className="form-error">{erroDescSugestao}</div>}
-                  {descSugestao && (
-                    <div className="produto-desc-preview">
-                      <div className="produto-desc-preview-row">
-                        <strong>Fiscal sugerida</strong>
-                        <span>{descSugestao.descricao_fiscal}</span>
-                      </div>
-                      <div className="produto-desc-preview-row">
-                        <strong>Comercial sugerida</strong>
-                        <span>{descSugestao.descricao_comercial}</span>
-                      </div>
-                      {descSugestao.racional && (
-                        <span className="form-hint">{descSugestao.racional}</span>
-                      )}
-                      {descSugestao.avisos.length > 0 && (
-                        <ul className="produto-desc-avisos">
-                          {descSugestao.avisos.map((a) => (
-                            <li key={a}>{a}</li>
-                          ))}
-                        </ul>
-                      )}
-                      {descSugestao.similares.length > 0 && (
-                        <div className="form-hint">
-                          Similares no grupo:{' '}
-                          {descSugestao.similares
-                            .map((s) => `${s.codigo} (${s.similaridade}%)`)
-                            .join(' · ')}
-                        </div>
-                      )}
-                      <div className="produto-desc-sugerir-actions">
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => aplicarDescricoes('ambas')}
-                        >
-                          Aplicar ambas
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => aplicarDescricoes('fiscal')}
-                        >
-                          Só fiscal
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => aplicarDescricoes('comercial')}
-                        >
-                          Só comercial
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  </select>
+                  <span className="form-hint">
+                    Subclasse do material no almoxarifado (ex.: couché, fosco, térmico). O código
+                    do SKU continua {selectedGrupo.codigo}-nnn — a linha não muda o prefixo
+                    fiscal. Dimensão física da bobina não entra no SKU.
+                  </span>
                 </div>
               )}
               <div className="form-group span-2">
@@ -1088,113 +1043,135 @@ export function ProdutoFormPage() {
                 </div>
               )}
 
-              <div className="fiscal-section-title span-2">Comercial / operação</div>
+              {!isNew && id && (
+                <ProdutoFornecedorCodigosPanel
+                  produtoId={Number(id)}
+                  canWrite={canWrite}
+                  initialRows={fornecedorCodigos}
+                />
+              )}
+              {isNew && (
+                <p className="form-hint span-2">
+                  Após criar o SKU, vincule aqui o cProd de cada fornecedor (de-para da NF-e).
+                </p>
+              )}
 
-              <div className="form-group">
-                <label>Preço tabela</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={decimalStep(DECIMAL_SCALE.unitPrice)}
-                  value={form.preco_tabela}
-                  disabled={readOnly}
-                  onChange={(e) => update({ preco_tabela: e.target.value })}
-                />
-                <span className="form-hint">Unitário: {DECIMAL_SCALE.unitPrice} casas (NUMERIC 19,6).</span>
-              </div>
-              <div className="form-group">
-                <label>Estoque mínimo</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder={decimalStep(DECIMAL_SCALE.qty)}
-                  value={form.estoque_minimo}
-                  disabled={readOnly}
-                  onChange={(e) => update({ estoque_minimo: e.target.value })}
-                />
-                <span className="form-hint">Quantidade: {DECIMAL_SCALE.qty} casas (NUMERIC 15,4).</span>
-              </div>
-              <div className="form-group">
-                <label>Lead time (dias)</label>
-                <input
-                  type="number"
-                  value={form.lead_time_dias}
-                  disabled={readOnly}
-                  onChange={(e) => update({ lead_time_dias: e.target.value })}
-                />
-              </div>
+              <details
+                className="produto-avancado span-2"
+                open={avancadoOpen}
+                onToggle={(e) => setAvancadoOpen((e.target as HTMLDetailsElement).open)}
+              >
+                <summary>Estoque, lote e operação</summary>
+                <div className="form-grid produto-avancado-grid">
+                  <div className="fiscal-section-title span-2">Comercial / operação</div>
 
-              <div className="fiscal-section-title span-2">Rastreabilidade</div>
-              <div className="form-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={form.controla_lote}
-                    disabled={readOnly}
-                    onChange={(e) => {
-                      const on = e.target.checked;
-                      update({
-                        controla_lote: on,
-                        controla_validade: on ? form.controla_validade : false,
-                        prazo_validade_dias: on ? form.prazo_validade_dias : '',
-                      });
-                    }}
-                  />{' '}
-                  Controla lote
-                </label>
-                <span className="form-hint">
-                  Substratos e tintas: sim. Tubete, caixa e ribbon: não.
-                </span>
-              </div>
-              <div className="form-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={form.controla_validade}
-                    disabled={readOnly || !form.controla_lote}
-                    onChange={(e) =>
-                      update({
-                        controla_validade: e.target.checked,
-                        controla_lote: e.target.checked ? true : form.controla_lote,
-                      })
-                    }
-                  />{' '}
-                  Controla validade
-                </label>
-                <span className="form-hint">Adesivos, tintas e foils — FEFO na saída.</span>
-              </div>
-              <div className="form-group">
-                <label>Prazo de validade (dias)</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.prazo_validade_dias}
-                  disabled={readOnly || !form.controla_lote}
-                  onChange={(e) => update({ prazo_validade_dias: e.target.value })}
-                />
-                <span className="form-hint">Sugere o vencimento na entrada (12–24 meses típicos).</span>
-              </div>
+                  <div className="form-group">
+                    <label>Preço tabela</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.unitPrice)}
+                      value={form.preco_tabela}
+                      disabled={readOnly}
+                      onChange={(e) => update({ preco_tabela: e.target.value })}
+                    />
+                    <span className="form-hint">Unitário: {DECIMAL_SCALE.unitPrice} casas (NUMERIC 19,6).</span>
+                  </div>
+                  <div className="form-group">
+                    <label>Estoque mínimo</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder={decimalStep(DECIMAL_SCALE.qty)}
+                      value={form.estoque_minimo}
+                      disabled={readOnly}
+                      onChange={(e) => update({ estoque_minimo: e.target.value })}
+                    />
+                    <span className="form-hint">Quantidade: {DECIMAL_SCALE.qty} casas (NUMERIC 15,4).</span>
+                  </div>
+                  <div className="form-group">
+                    <label>Lead time (dias)</label>
+                    <input
+                      type="number"
+                      value={form.lead_time_dias}
+                      disabled={readOnly}
+                      onChange={(e) => update({ lead_time_dias: e.target.value })}
+                    />
+                  </div>
 
-              <div className="form-group">
-                <label>GTIN</label>
-                <input
-                  value={form.gtin}
-                  disabled={readOnly}
-                  placeholder="SEM GTIN"
-                  onChange={(e) => update({ gtin: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Situação</label>
-                <select
-                  value={form.situacao}
-                  disabled={readOnly}
-                  onChange={(e) => update({ situacao: e.target.value })}
-                >
-                  <option value="ATIVO">Ativo</option>
-                  <option value="INATIVO">Inativo</option>
-                </select>
-              </div>
+                  <div className="fiscal-section-title span-2">Rastreabilidade</div>
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.controla_lote}
+                        disabled={readOnly}
+                        onChange={(e) => {
+                          const on = e.target.checked;
+                          update({
+                            controla_lote: on,
+                            controla_validade: on ? form.controla_validade : false,
+                            prazo_validade_dias: on ? form.prazo_validade_dias : '',
+                          });
+                        }}
+                      />{' '}
+                      Controla lote
+                    </label>
+                    <span className="form-hint">
+                      Substratos e tintas: sim. Tubete, caixa e ribbon: não.
+                    </span>
+                  </div>
+                  <div className="form-group">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={form.controla_validade}
+                        disabled={readOnly || !form.controla_lote}
+                        onChange={(e) =>
+                          update({
+                            controla_validade: e.target.checked,
+                            controla_lote: e.target.checked ? true : form.controla_lote,
+                          })
+                        }
+                      />{' '}
+                      Controla validade
+                    </label>
+                    <span className="form-hint">Adesivos, tintas e foils — FEFO na saída.</span>
+                  </div>
+                  <div className="form-group">
+                    <label>Prazo de validade (dias)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.prazo_validade_dias}
+                      disabled={readOnly || !form.controla_lote}
+                      onChange={(e) => update({ prazo_validade_dias: e.target.value })}
+                    />
+                    <span className="form-hint">Sugere o vencimento na entrada (12–24 meses típicos).</span>
+                  </div>
+
+                  <div className="form-group">
+                    <label>GTIN</label>
+                    <input
+                      value={form.gtin}
+                      disabled={readOnly}
+                      placeholder="SEM GTIN"
+                      onChange={(e) => update({ gtin: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Situação</label>
+                    <select
+                      value={form.situacao}
+                      disabled={readOnly}
+                      onChange={(e) => update({ situacao: e.target.value })}
+                    >
+                      <option value="ATIVO">Ativo</option>
+                      <option value="INATIVO">Inativo</option>
+                    </select>
+                  </div>
+                </div>
+              </details>
             </div>
           )}
 

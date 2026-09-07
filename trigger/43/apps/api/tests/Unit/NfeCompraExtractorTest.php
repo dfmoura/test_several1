@@ -39,6 +39,128 @@ class NfeCompraExtractorTest extends TestCase
         $this->assertSame('6101', $item['cfop']);
         $this->assertSame('39199010', $item['ncm']);
         $this->assertSame('12.00', $item['impostos']['icms']['pICMS']);
+        $this->assertSame('0A09E41E-3E1E-4958-9A73-5FF4F2327C49', $item['n_fci']);
+        $this->assertNull($item['x_ped']);
+        $this->assertSame('000', $item['cst_ibs_cbs']);
+        $this->assertSame('000001', $item['c_class_trib']);
+        $this->assertSame('3034.68', $item['v_bc_ibs_cbs']);
+        $this->assertSame('3.03', $item['v_ibs']);
+        $this->assertSame('27.31', $item['v_cbs']);
+        $this->assertSame('0.9000', $item['p_cbs']);
+        $this->assertSame('3034.68', $nfe['totais']['v_bc_ibs_cbs']);
+        $this->assertSame('3.03', $nfe['totais']['v_ibs']);
+        $this->assertSame('27.31', $nfe['totais']['v_cbs']);
+        $this->assertSame('000', $item['impostos']['ibscbs']['CST']);
+        $this->assertSame('27.31', $item['impostos']['ibscbs']['gIBSCBS']['gCBS']['vCBS']);
+    }
+
+    public function test_lote_em_inf_ad_prod_quando_sem_rastro(): void
+    {
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="NFe35260400000000000000550010000000011000000012" versao="4.00">
+      <ide><cUF>35</cUF><natOp>Compra</natOp><mod>55</mod><serie>1</serie><nNF>2</nNF>
+        <dhEmi>2026-08-26T10:00:00-03:00</dhEmi><tpNF>1</tpNF><idDest>1</idDest><finNFe>1</finNFe>
+      </ide>
+      <emit><CNPJ>00000000000191</CNPJ><xNome>Emit</xNome><enderEmit><UF>SP</UF></enderEmit><IE>123</IE><CRT>3</CRT></emit>
+      <dest><CNPJ>00000000000272</CNPJ></dest>
+      <det nItem="1">
+        <prod>
+          <cProd>TINTA-01</cProd><xProd>Tinta UV preta</xProd><NCM>32151100</NCM><CFOP>5102</CFOP>
+          <uCom>KG</uCom><qCom>25.0000</qCom><vUnCom>40.0000</vUnCom><vProd>1000.00</vProd>
+          <uTrib>KG</uTrib><qTrib>25.0000</qTrib><vUnTrib>40.0000</vUnTrib>
+        </prod>
+        <imposto/>
+        <infAdProd>LOTE: COL-4412 · Validade sob consulta. FCI nao se aplica.</infAdProd>
+      </det>
+      <total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vProd>1000.00</vProd><vNF>1000.00</vNF></ICMSTot></total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+XML;
+
+        $nfe = (new NfeCompraExtractor)->extractCompra($xml);
+        $item = $nfe['itens'][0];
+        $this->assertSame('LOTE: COL-4412 · Validade sob consulta. FCI nao se aplica.', $item['inf_ad_prod']);
+        $this->assertCount(1, $item['rastros']);
+        $this->assertSame('COL-4412', $item['rastros'][0]['codigo']);
+        $this->assertSame('25.0000', $item['rastros'][0]['qtde']);
+        $this->assertSame('inf_ad_prod', $item['rastros'][0]['fonte']);
+    }
+
+    public function test_rastro_oficial_prevalece_sobre_inf_ad_prod(): void
+    {
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="NFe35260400000000000000550010000000011000000013" versao="4.00">
+      <ide><cUF>35</cUF><natOp>Compra</natOp><mod>55</mod><serie>1</serie><nNF>3</nNF>
+        <dhEmi>2026-08-26T10:00:00-03:00</dhEmi><tpNF>1</tpNF><idDest>1</idDest><finNFe>1</finNFe>
+      </ide>
+      <emit><CNPJ>00000000000191</CNPJ><xNome>Emit</xNome><enderEmit><UF>SP</UF></enderEmit><IE>123</IE><CRT>3</CRT></emit>
+      <dest><CNPJ>00000000000272</CNPJ></dest>
+      <det nItem="1">
+        <prod>
+          <cProd>ABC</cProd><xProd>Papel</xProd><NCM>48114190</NCM><CFOP>5102</CFOP>
+          <uCom>KG</uCom><qCom>10.0000</qCom><vUnCom>5.00</vUnCom><vProd>50.00</vProd>
+          <rastro>
+            <nLote>RASTRO-01</nLote>
+            <qLote>10.0000</qLote>
+            <dFab>2026-01-15</dFab>
+            <dVal>2027-01-15</dVal>
+          </rastro>
+        </prod>
+        <imposto/>
+        <infAdProd>LOTE: TEXTO-99 ignorado quando ha rastro</infAdProd>
+      </det>
+      <total><ICMSTot><vNF>50.00</vNF><vProd>50.00</vProd></ICMSTot></total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+XML;
+
+        $nfe = (new NfeCompraExtractor)->extractCompra($xml);
+        $this->assertCount(1, $nfe['itens'][0]['rastros']);
+        $this->assertSame('RASTRO-01', $nfe['itens'][0]['rastros'][0]['codigo']);
+        $this->assertSame('rastro', $nfe['itens'][0]['rastros'][0]['fonte']);
+    }
+
+    public function test_extrai_x_ped_n_item_ped_e_n_fci_do_prod(): void
+    {
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="NFe35260400000000000000550010000000011000000010" versao="4.00">
+      <ide><cUF>35</cUF><natOp>Compra</natOp><mod>55</mod><serie>1</serie><nNF>1</nNF>
+        <dhEmi>2026-08-26T10:00:00-03:00</dhEmi><tpNF>1</tpNF><idDest>1</idDest><finNFe>1</finNFe>
+      </ide>
+      <emit><CNPJ>00000000000191</CNPJ><xNome>Emit</xNome><enderEmit><UF>SP</UF></enderEmit><IE>123</IE><CRT>3</CRT></emit>
+      <dest><CNPJ>00000000000272</CNPJ></dest>
+      <det nItem="1">
+        <prod>
+          <cProd>SKU1</cProd><xProd>Bobina teste</xProd><NCM>39199010</NCM><CFOP>5102</CFOP>
+          <uCom>M2</uCom><qCom>100.0000</qCom><vUnCom>1.0000</vUnCom><vProd>100.00</vProd>
+          <uTrib>M2</uTrib><qTrib>100.0000</qTrib><vUnTrib>1.0000</vUnTrib>
+          <xPed>2508261627</xPed><nItemPed>1</nItemPed>
+          <nFCI>72FDD80D-485A-42DA-832F-F8EA8E679F80</nFCI>
+        </prod>
+        <imposto/>
+      </det>
+      <total><ICMSTot><vBC>0.00</vBC><vICMS>0.00</vICMS><vProd>100.00</vProd><vNF>100.00</vNF></ICMSTot></total>
+    </infNFe>
+  </NFe>
+</nfeProc>
+XML;
+
+        $nfe = (new NfeCompraExtractor)->extractCompra($xml);
+        $item = $nfe['itens'][0];
+        $this->assertSame('2508261627', $item['x_ped']);
+        $this->assertSame('1', $item['n_item_ped']);
+        $this->assertSame('72FDD80D-485A-42DA-832F-F8EA8E679F80', $item['n_fci']);
     }
 
     public function test_item_sem_imposto_permanece_nulo(): void

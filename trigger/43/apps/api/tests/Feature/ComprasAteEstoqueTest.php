@@ -201,6 +201,8 @@ class ComprasAteEstoqueTest extends TestCase
         $ocId = $decidir->json('data.ordem_compra.id');
         $ocItemId = $decidir->json('data.ordem_compra.itens.0.id');
 
+        $this->enviarOrdemCompra($h, (int) $ocId);
+
         $receber = $this->withHeaders($h)
             ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
                 'nf_numero' => '12345',
@@ -274,10 +276,13 @@ class ComprasAteEstoqueTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.codigo', "OC-{$ano}-00001")
             ->assertJsonPath('data.origem', OrdemCompra::ORIGEM_DIRETA)
-            ->assertJsonPath('data.valor_total', '500.00');
+            ->assertJsonPath('data.valor_total', '500.00')
+            ->assertJsonPath('data.status', OrdemCompra::STATUS_RASCUNHO);
 
         $ocId = $oc->json('data.id');
         $ocItemId = $oc->json('data.itens.0.id');
+
+        $this->enviarOrdemCompra($h, (int) $ocId);
 
         $this->withHeaders($h)
             ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [

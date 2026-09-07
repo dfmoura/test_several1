@@ -16,7 +16,7 @@ class SeedProdutosCadastroCommand extends Command
                             {--empresa=EMP-00001 : Código da empresa (instalação)}
                             {--sem-demos : Não incluir PA-ETQ-001 / SVC-001}';
 
-    protected $description = 'Cadastra/atualiza Camada A (89 famílias) + Exact Avery + demos; tenta de-para se fornecedor existir';
+    protected $description = 'Cadastra/atualiza Camada A + Exact Avery + evidência notas_entrada + demos; de-para se fornecedor existir';
 
     public function handle(ProdutoCadastroService $service): int
     {
@@ -35,10 +35,11 @@ class SeedProdutosCadastroCommand extends Command
         );
 
         $this->info(sprintf(
-            'OK · %s · famílias=%d · exact=%d · demos=%d · sequences=%d · depara=%d',
+            'OK · %s · famílias=%d · exact=%d · nf_entrada=%d · demos=%d · sequences=%d · depara=%d',
             $codigo,
             $result['familias'],
             $result['exact'] ?? 0,
+            $result['nf_entrada'] ?? 0,
             $result['demos'],
             $result['sequences'],
             $result['depara'] ?? 0

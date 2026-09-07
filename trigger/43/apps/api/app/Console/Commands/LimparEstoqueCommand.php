@@ -12,24 +12,33 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Higiene de laboratório: zera o ledger de estoque de uma EMP para retestar
- * entrada/virada/AJU do zero — sem apagar cadastro (produto/PAR/plataforma).
+ * entrada/virada/AJU do zero.
  *
- * Preserva: produtos, parceiros, usuários, EMP, RBAC, endereços físicos, audit_log,
- * DF-e na caixa (volta RECEBIDA→AMARRADA/DISPONIVEL), OCs (reabre recebimento).
+ * Padrão (sem flags): preserva produtos, PAR, endereços, DF-e; reabre OC recebida.
+ * `--com-oc`: apaga OCs (+ NEC/COT da EMP) e desamarra DF-e (caixa permanece).
+ * `--com-produtos`: apaga SKUs + de-para da EMP (implica `--com-oc`; limpa materiais OP).
  *
- * Proibido em production. Para wipe total de documentos: erp:limpar-operacional.
+ * Não toca ORC/PED/FAT/parceiros/usuários/plataforma/audit_log.
+ * Proibido em production. Wipe total: erp:limpar-operacional.
  */
 class LimparEstoqueCommand extends Command
 {
     protected $signature = 'erp:limpar-estoque
                             {--empresa=EMP-00001 : Código da EMP (instalação)}
+                            {--com-oc : Apaga OCs (e NEC/COT) da EMP; desamarra DF-e}
+                            {--com-produtos : Apaga cadastro de produtos + de-para (implica --com-oc)}
                             {--dry-run : Só inventaria; não altera}
                             {--force : Executa sem confirmação interativa}';
 
-    protected $description = 'Zera ledger de estoque da EMP (saldos/lotes/MOV/AJU/INV/NF-e entrada) preservando cadastros';
+    protected $description = 'Zera ledger de estoque da EMP; opcionalmente OCs e cadastro de produtos';
 
     /** Prefixos de documento de estoque (raiz e máscara anual). */
     private const ESTOQUE_DOC_PREFIX_ROOTS = ['MOV', 'AJU', 'INV', 'ENT'];
+
+    /** Prefixos extras ao apagar OC / produtos. */
+    private const OC_DOC_PREFIX_ROOTS = ['OC', 'NEC', 'COT'];
+
+    private const PRODUTO_DOC_PREFIX_ROOTS = ['PRD', 'MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'];
 
     public function handle(): int
     {
@@ -50,10 +59,19 @@ class LimparEstoqueCommand extends Command
 
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
+        $comProdutos = (bool) $this->option('com-produtos');
+        $comOc = (bool) $this->option('com-oc') || $comProdutos;
         $empresaId = (int) $empresa->id;
 
-        $this->info("Limpeza de estoque · {$empresa->codigo} #{$empresaId} · stage={$stage}");
-        $counts = $this->inventory($empresaId);
+        $modo = 'ledger';
+        if ($comProdutos) {
+            $modo = 'ledger+OC+produtos';
+        } elseif ($comOc) {
+            $modo = 'ledger+OC';
+        }
+
+        $this->info("Limpeza de estoque · {$empresa->codigo} #{$empresaId} · stage={$stage} · modo={$modo}");
+        $counts = $this->inventory($empresaId, $comOc, $comProdutos);
         $this->table(['escopo', 'total', 'ação'], $counts);
 
         if ($dryRun) {
@@ -62,25 +80,45 @@ class LimparEstoqueCommand extends Command
             return self::SUCCESS;
         }
 
-        if (! $force && ! $this->confirm('Confirma zerar o ledger de estoque desta EMP? (irreversível)', false)) {
+        $prompt = match (true) {
+            $comProdutos => 'Confirma zerar estoque + apagar OCs + cadastro de produtos desta EMP?',
+            $comOc => 'Confirma zerar estoque + apagar OCs desta EMP?',
+            default => 'Confirma zerar o ledger de estoque desta EMP? (irreversível)',
+        };
+
+        if (! $force && ! $this->confirm($prompt, false)) {
             $this->warn('Cancelado.');
 
             return self::SUCCESS;
         }
 
-        DB::transaction(function () use ($empresaId) {
+        DB::transaction(function () use ($empresaId, $comOc, $comProdutos) {
             $this->breakCircularRefs($empresaId);
             $this->purgeTitulosDeEntrada($empresaId);
             $this->purgeNfeEntradas($empresaId);
             $this->purgeLedger($empresaId);
-            $this->reabrirOrdensCompra($empresaId);
-            $this->reabrirDfeRecebidos($empresaId);
-            $this->realignSequences($empresaId);
+
+            if ($comOc) {
+                $this->purgeCompras($empresaId);
+            } else {
+                $this->reabrirOrdensCompra($empresaId);
+                $this->reabrirDfeRecebidos($empresaId);
+            }
+
+            if ($comProdutos) {
+                $this->purgeProdutos($empresaId);
+            }
+
+            $this->realignSequences($empresaId, $comOc, $comProdutos);
         });
 
         $this->newLine();
-        $this->info('Estoque zerado.');
-        $this->table(['escopo', 'total', 'ação'], $this->inventory($empresaId));
+        $this->info(match (true) {
+            $comProdutos => 'Estoque, OCs e produtos zerados.',
+            $comOc => 'Estoque e OCs zerados.',
+            default => 'Estoque zerado.',
+        });
+        $this->table(['escopo', 'total', 'ação'], $this->inventory($empresaId, $comOc, $comProdutos));
 
         return self::SUCCESS;
     }
@@ -88,7 +126,7 @@ class LimparEstoqueCommand extends Command
     /**
      * @return list<array{0: string, 1: int|string, 2: string}>
      */
-    private function inventory(int $empresaId): array
+    private function inventory(int $empresaId, bool $comOc, bool $comProdutos): array
     {
         $rows = [];
         $empCount = function (string $table) use ($empresaId): int {
@@ -138,10 +176,28 @@ class LimparEstoqueCommand extends Command
         $rows[] = ['nfe_entrada_itens', $this->countNfeItens($empresaId), 'remover'];
         $rows[] = ['nfe_entradas', $empCount('nfe_entradas'), 'remover'];
         $rows[] = ['titulos (via MOV)', $titMov, 'remover'];
-        $rows[] = ['OC PARCIAL/RECEBIDA', $ocReabrir, '→ ABERTA + qtde_recebida=0'];
-        $rows[] = ['DF-e RECEBIDA', $dfeReabrir, '→ AMARRADA/DISPONIVEL'];
+
+        if ($comOc) {
+            $rows[] = ['ordens_compra', $empCount('ordens_compra'), 'remover'];
+            $rows[] = ['ordem_compra_itens', $this->countOcItens($empresaId), 'remover'];
+            $rows[] = ['compra_necessidades', $empCount('compra_necessidades'), 'remover'];
+            $rows[] = ['cotacoes', $empCount('cotacoes'), 'remover'];
+            $rows[] = ['DF-e amarradas', $this->countDfeAmarradas($empresaId), '→ DISPONIVEL (desamarrar)'];
+        } else {
+            $rows[] = ['OC PARCIAL/RECEBIDA', $ocReabrir, '→ ABERTA + qtde_recebida=0'];
+            $rows[] = ['DF-e RECEBIDA', $dfeReabrir, '→ AMARRADA/DISPONIVEL'];
+        }
+
         $rows[] = ['estoque_enderecos', $empCount('estoque_enderecos'), 'preservar'];
-        $rows[] = ['produtos', $empCount('produtos'), 'preservar'];
+
+        if ($comProdutos) {
+            $rows[] = ['produto_fornecedor_codigos', $empCount('produto_fornecedor_codigos'), 'remover'];
+            $rows[] = ['ordem_producao_materiais', $empCount('ordem_producao_materiais'), 'remover (FK produto)'];
+            $rows[] = ['produtos', $empCount('produtos'), 'remover'];
+        } else {
+            $rows[] = ['produtos', $empCount('produtos'), 'preservar'];
+        }
+
         if (Schema::hasTable('audit_logs')) {
             $rows[] = ['audit_logs', $empCount('audit_logs'), 'preservar'];
         }
@@ -259,7 +315,6 @@ class LimparEstoqueCommand extends Command
         $this->line("· nfe_entradas: {$n} → 0");
 
         if (Storage::disk('local')->exists('nfe-entradas')) {
-            // Só remove XMLs desta EMP se path for por id — limpeza best-effort do espelho local.
             Storage::disk('local')->deleteDirectory('nfe-entradas/'.$empresaId);
             $this->line('· storage nfe-entradas/'.$empresaId.' (se existir)');
         }
@@ -305,6 +360,89 @@ class LimparEstoqueCommand extends Command
         }
     }
 
+    /**
+     * Apaga OCs / NEC / COT da EMP e desamarra DF-e (caixa permanece DISPONIVEL).
+     */
+    private function purgeCompras(int $empresaId): void
+    {
+        if (Schema::hasTable('dfe_documentos')) {
+            $n = DB::table('dfe_documentos')
+                ->where('empresa_id', $empresaId)
+                ->whereNotNull('ordem_compra_id')
+                ->update([
+                    'ordem_compra_id' => null,
+                    'situacao' => DfeDocumento::SITUACAO_DISPONIVEL,
+                ]);
+            $this->line("· DF-e desamarradas: {$n} → DISPONIVEL");
+        }
+
+        $ocIds = Schema::hasTable('ordens_compra')
+            ? DB::table('ordens_compra')->where('empresa_id', $empresaId)->pluck('id')->all()
+            : [];
+
+        if ($ocIds !== [] && Schema::hasTable('ordem_compra_itens')) {
+            $n = DB::table('ordem_compra_itens')->whereIn('ordem_compra_id', $ocIds)->delete();
+            $this->line("· ordem_compra_itens: {$n} → 0");
+        }
+
+        if (Schema::hasTable('ordens_compra')) {
+            // SoftDeletes: delete físico para liberar código/unique e cadastro limpo.
+            $n = DB::table('ordens_compra')->where('empresa_id', $empresaId)->delete();
+            $this->line("· ordens_compra: {$n} → 0");
+        }
+
+        if (Schema::hasTable('cotacoes')) {
+            $cotIds = DB::table('cotacoes')->where('empresa_id', $empresaId)->pluck('id')->all();
+            if ($cotIds !== []) {
+                if (Schema::hasTable('cotacao_propostas')) {
+                    DB::table('cotacao_propostas')->whereIn('cotacao_id', $cotIds)->delete();
+                }
+                if (Schema::hasTable('cotacao_itens')) {
+                    DB::table('cotacao_itens')->whereIn('cotacao_id', $cotIds)->delete();
+                }
+                $n = DB::table('cotacoes')->where('empresa_id', $empresaId)->delete();
+                $this->line("· cotacoes: {$n} → 0");
+            }
+        }
+
+        if (Schema::hasTable('compra_necessidades')) {
+            $n = DB::table('compra_necessidades')->where('empresa_id', $empresaId)->delete();
+            $this->line("· compra_necessidades: {$n} → 0");
+        }
+    }
+
+    /**
+     * Remove SKUs + de-para da EMP. Pré-requisito: ledger e OCs já limpos.
+     * Materiais de OP são removidos (RESTRICT em produto_id); PED/ORC permanecem.
+     */
+    private function purgeProdutos(int $empresaId): void
+    {
+        if (Schema::hasTable('ordem_producao_materiais')) {
+            $n = DB::table('ordem_producao_materiais')->where('empresa_id', $empresaId)->delete();
+            $this->line("· ordem_producao_materiais: {$n} → 0");
+        }
+
+        if (Schema::hasTable('pedido_itens') && Schema::hasColumn('pedido_itens', 'produto_pa_id')) {
+            $n = DB::table('pedido_itens')
+                ->where('empresa_id', $empresaId)
+                ->whereNotNull('produto_pa_id')
+                ->update(['produto_pa_id' => null]);
+            if ($n > 0) {
+                $this->line("· pedido_itens.produto_pa_id: {$n} → null");
+            }
+        }
+
+        if (Schema::hasTable('produto_fornecedor_codigos')) {
+            $n = DB::table('produto_fornecedor_codigos')->where('empresa_id', $empresaId)->delete();
+            $this->line("· produto_fornecedor_codigos: {$n} → 0");
+        }
+
+        if (Schema::hasTable('produtos')) {
+            $n = DB::table('produtos')->where('empresa_id', $empresaId)->delete();
+            $this->line("· produtos: {$n} → 0");
+        }
+    }
+
     private function reabrirOrdensCompra(int $empresaId): void
     {
         if (! Schema::hasTable('ordens_compra')) {
@@ -318,7 +456,6 @@ class LimparEstoqueCommand extends Command
             ->all();
 
         if ($ocIds === []) {
-            // Ainda zera qtde_recebida residual em ABERTA (dados sujos de lab).
             if (Schema::hasTable('ordem_compra_itens')) {
                 $allOc = DB::table('ordens_compra')->where('empresa_id', $empresaId)->pluck('id')->all();
                 if ($allOc !== []) {
@@ -377,23 +514,38 @@ class LimparEstoqueCommand extends Command
         $this->line("· DF-e RECEBIDA → AMARRADA={$nAmar} DISPONIVEL={$nDisp}");
     }
 
-    private function realignSequences(int $empresaId): void
+    private function realignSequences(int $empresaId, bool $comOc = false, bool $comProdutos = false): void
     {
         if (! Schema::hasTable('codigo_sequences')) {
             return;
         }
 
+        $roots = self::ESTOQUE_DOC_PREFIX_ROOTS;
+        if ($comOc) {
+            $roots = array_merge($roots, self::OC_DOC_PREFIX_ROOTS);
+        }
+        if ($comProdutos) {
+            $roots = array_merge($roots, self::PRODUTO_DOC_PREFIX_ROOTS);
+        }
+
         DB::table('codigo_sequences')
             ->where('empresa_id', $empresaId)
-            ->where(function ($q) {
-                $q->whereIn('prefixo', self::ESTOQUE_DOC_PREFIX_ROOTS);
-                foreach (self::ESTOQUE_DOC_PREFIX_ROOTS as $root) {
+            ->where(function ($q) use ($roots) {
+                $q->whereIn('prefixo', $roots);
+                foreach ($roots as $root) {
                     $q->orWhere('prefixo', 'like', $root.'-%');
                 }
             })
             ->update(['proximo' => 1]);
 
-        $this->line('· sequences MOV/AJU/INV/ENT → 1');
+        $label = 'MOV/AJU/INV/ENT';
+        if ($comOc) {
+            $label .= '/OC';
+        }
+        if ($comProdutos) {
+            $label .= '/PRD';
+        }
+        $this->line("· sequences {$label} → 1");
     }
 
     /** @return list<int> */
@@ -447,5 +599,30 @@ class LimparEstoqueCommand extends Command
         }
 
         return (int) DB::table('nfe_entrada_itens')->whereIn('nfe_entrada_id', $ids)->count();
+    }
+
+    private function countOcItens(int $empresaId): int
+    {
+        if (! Schema::hasTable('ordens_compra') || ! Schema::hasTable('ordem_compra_itens')) {
+            return 0;
+        }
+        $ids = DB::table('ordens_compra')->where('empresa_id', $empresaId)->pluck('id')->all();
+        if ($ids === []) {
+            return 0;
+        }
+
+        return (int) DB::table('ordem_compra_itens')->whereIn('ordem_compra_id', $ids)->count();
+    }
+
+    private function countDfeAmarradas(int $empresaId): int
+    {
+        if (! Schema::hasTable('dfe_documentos')) {
+            return 0;
+        }
+
+        return (int) DB::table('dfe_documentos')
+            ->where('empresa_id', $empresaId)
+            ->whereNotNull('ordem_compra_id')
+            ->count();
     }
 }

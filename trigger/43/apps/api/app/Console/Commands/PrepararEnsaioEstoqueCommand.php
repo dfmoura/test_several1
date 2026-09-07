@@ -6,6 +6,7 @@ use App\Models\DfeDocumento;
 use App\Models\Empresa;
 use App\Models\ImplantacaoAceite;
 use App\Models\NaturezaGerencial;
+use App\Models\OrdemCompra;
 use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Models\User;
@@ -112,7 +113,12 @@ class PrepararEnsaioEstoqueCommand extends Command
                 'valor_unitario' => '25.075000',
             ]],
         ]);
-        $this->line("· OC {$ocOut['codigo']} ABERTA · item ".self::SKU.' × 10 KG');
+        $ocModel = \App\Models\OrdemCompra::query()->findOrFail((int) $ocOut['id']);
+        if ($ocModel->status === OrdemCompra::STATUS_RASCUNHO) {
+            $ocOut = $ocs->enviar($ocModel, $empresa);
+            $ocModel->refresh();
+        }
+        $this->line("· OC {$ocOut['codigo']} {$ocModel->status} · item ".self::SKU.' × 10 KG');
 
         $doc = DfeDocumento::query()
             ->where('empresa_id', $empresa->id)
@@ -125,8 +131,6 @@ class PrepararEnsaioEstoqueCommand extends Command
 
             return self::FAILURE;
         }
-
-        $ocModel = \App\Models\OrdemCompra::query()->findOrFail((int) $ocOut['id']);
 
         if (! $this->option('sem-amarrar')) {
             $amarrar->amarrar($empresa, $doc, $ocModel);

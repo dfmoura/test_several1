@@ -127,6 +127,7 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
 
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_tubete.xml'));
@@ -199,6 +200,7 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated();
 
         // XML qtde 100 ≠ 50 → ainda casa por cProd de-para
+        $this->enviarOrdemCompra($h, (int) $oc2->json('data.id'));
         $this->withHeaders($h)
             ->post("/api/v1/ordens-compra/{$oc2->json('data.id')}/receber/xml/preview", [
                 'file' => UploadedFile::fake()->createWithContent('nfe2.xml', $xml),
@@ -251,6 +253,7 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
 
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_exact_multidet.xml'));
@@ -297,6 +300,7 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
 
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_tubete_3dup.xml'));
@@ -394,6 +398,8 @@ class EntradaXmlAssistTest extends TestCase
             ])
             ->assertCreated();
 
+        $this->enviarOrdemCompra($h, (int) $oc->json('data.id'));
+
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_colacril_udi.xml'));
         $this->assertNotFalse($xml);
 
@@ -429,6 +435,12 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertSame('370.50', $preview->json('data.espelho.itens.0.v_ipi'));
         $this->assertSame('55.18', $preview->json('data.espelho.itens.0.v_pis'));
         $this->assertSame('254.14', $preview->json('data.espelho.totais.v_cofins'));
+        $this->assertSame('000', $preview->json('data.espelho.itens.0.cst_ibs_cbs'));
+        $this->assertSame('3.03', $preview->json('data.espelho.itens.0.v_ibs'));
+        $this->assertSame('27.31', $preview->json('data.espelho.itens.0.v_cbs'));
+        $this->assertSame('3034.68', $preview->json('data.espelho.totais.v_bc_ibs_cbs'));
+        $this->assertSame('3.03', $preview->json('data.espelho.totais.v_ibs'));
+        $this->assertSame('27.31', $preview->json('data.espelho.totais.v_cbs'));
     }
 
     public function test_preview_rejeita_oc_outra_empresa(): void
@@ -480,6 +492,7 @@ class EntradaXmlAssistTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_colacril_udi.xml'));
         $this->assertNotFalse($xml);
@@ -564,6 +577,8 @@ class EntradaXmlAssistTest extends TestCase
                 ],
             ])
             ->assertCreated();
+
+        $this->enviarOrdemCompra($h, (int) $oc->json('data.id'));
 
         $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_tubete.xml'));
         $this->assertNotFalse($xml);

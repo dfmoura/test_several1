@@ -134,6 +134,7 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($this->h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
 
         $this->withHeaders($this->h)
@@ -179,6 +180,87 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->assertSame('1000.00', (string) $lotes['00081111-01-0034']->comprimento_m);
     }
 
+    public function test_receber_mesmo_nlote_cria_volumes_distintos_com_qr(): void
+    {
+        $oc = $this->withHeaders($this->h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [[
+                    'produto_id' => $this->produto->id,
+                    'qtde_pedida' => '240.0000',
+                    'valor_unitario' => '10.000000',
+                ]],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($this->h, (int) $ocId);
+        $ocItemId = $oc->json('data.itens.0.id');
+
+        $mov = $this->withHeaders($this->h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
+                'natureza_id' => $this->nat506->id,
+                'nf_numero' => '173837',
+                'nf_data' => '2026-09-01',
+                'vencimento' => '2026-09-15',
+                'itens' => [[
+                    'ordem_compra_item_id' => $ocItemId,
+                    'qtde_recebida' => '240.0000',
+                    'lotes' => [
+                        [
+                            'codigo' => 'OCCE9921',
+                            'qtde' => '60.0000',
+                            'data_entrada' => '2026-09-01',
+                            'largura_mm' => '60',
+                        ],
+                        [
+                            'codigo' => 'OCCE9921',
+                            'qtde' => '80.0000',
+                            'data_entrada' => '2026-09-01',
+                            'largura_mm' => '80',
+                        ],
+                        [
+                            'codigo' => 'OCCE9921',
+                            'qtde' => '100.0000',
+                            'data_entrada' => '2026-09-01',
+                            'largura_mm' => '100',
+                        ],
+                    ],
+                ]],
+            ])
+            ->assertCreated();
+
+        $movId = (int) $mov->json('data.id');
+        $lotes = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->produto->id)
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(3, $lotes);
+        $this->assertSame('OCCE9921', (string) $lotes[0]->codigo);
+        $this->assertSame('OCCE9921#2', (string) $lotes[1]->codigo);
+        $this->assertSame('OCCE9921#3', (string) $lotes[2]->codigo);
+        $this->assertSame('60.0000', (string) $lotes[0]->qtde);
+        $this->assertSame('80.0000', (string) $lotes[1]->qtde);
+        $this->assertSame('100.0000', (string) $lotes[2]->qtde);
+
+        $tokens = $lotes->pluck('qr_token')->filter()->unique();
+        $this->assertCount(3, $tokens);
+
+        $ficha = $this->withHeaders($this->h)
+            ->getJson("/api/v1/estoque/movimentos/{$movId}/ficha-entrada")
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(3, $ficha['volumes_count']);
+        $payloads = collect($ficha['volumes'])->pluck('qr_payload')->unique();
+        $this->assertCount(3, $payloads);
+        foreach ($ficha['volumes'] as $vol) {
+            $this->assertStringStartsWith('VOL:'.$this->empresa->id.':', $vol['qr_payload']);
+        }
+    }
+
     public function test_seed_enderecos_e_vinculo_etiqueta(): void
     {
         $out = app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
@@ -213,6 +295,48 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.codigo', 'LOT-ETQ-1')
             ->assertJsonStructure(['data' => ['qr_payload', 'produto']]);
+
+        $volPayload = 'VOL:'.$this->empresa->id.':'.$lote->id.':'.$lote->fresh()->qr_token;
+        $endPayload = $end->qrPayload();
+
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/volumes/por-qr?payload='.urlencode($volPayload))
+            ->assertOk()
+            ->assertJsonPath('data.lote_id', $lote->id);
+
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($endPayload))
+            ->assertOk()
+            ->assertJsonPath('data.codigo', 'P01-C01-V01');
+
+        $lote2 = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-ETQ-2',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '5.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+
+        $end2 = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'P02-C03-V04')
+            ->firstOrFail();
+
+        $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/guardar', [
+                'volume_qr' => 'VOL:'.$this->empresa->id.':'.$lote2->id.':'.$lote2->qr_token,
+                'endereco_qr' => $end2->qrPayload(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.endereco.codigo', 'P02-C03-V04');
+
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?sem_endereco=1')
+            ->assertOk()
+            ->assertJsonPath('data.volumes_count', 0);
     }
 
     public function test_catalogo_exact_tem_4_insumos(): void

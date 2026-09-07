@@ -1556,6 +1556,11 @@ export function ParceiroFormPage() {
         description={isNew ? 'Cadastro de parceiro comercial' : form.razao_social}
         actions={
           <>
+            {isNew ? (
+              <Link to="/como-cadastra#parceiro" className="btn btn-secondary">
+                Como cadastra
+              </Link>
+            ) : null}
             {!isNew && id && (
               <a
                 href={`/parceiros/${id}/ficha`}

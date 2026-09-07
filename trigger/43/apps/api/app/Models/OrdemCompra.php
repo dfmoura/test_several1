@@ -26,6 +26,8 @@ class OrdemCompra extends Model
         self::ORIGEM_XML,
     ];
 
+    public const STATUS_RASCUNHO = 'RASCUNHO';
+
     public const STATUS_ABERTA = 'ABERTA';
 
     public const STATUS_PARCIAL = 'PARCIAL';
@@ -35,13 +37,25 @@ class OrdemCompra extends Model
     public const STATUS_CANCELADA = 'CANCELADA';
 
     public const STATUSES = [
+        self::STATUS_RASCUNHO,
         self::STATUS_ABERTA,
         self::STATUS_PARCIAL,
         self::STATUS_RECEBIDA,
         self::STATUS_CANCELADA,
     ];
 
+    /** Editável / excluível até o envio ao fornecedor (ADR_OC_RASCUNHO_ENVIO). */
+    public const STATUSES_EDITAVEIS = [
+        self::STATUS_RASCUNHO,
+    ];
+
     public const STATUSES_RECEBIVEIS = [
+        self::STATUS_ABERTA,
+        self::STATUS_PARCIAL,
+    ];
+
+    /** Conta como em trânsito na reposição. */
+    public const STATUSES_EM_TRANSITO = [
         self::STATUS_ABERTA,
         self::STATUS_PARCIAL,
     ];
@@ -61,6 +75,7 @@ class OrdemCompra extends Model
         'previsao_entrega',
         'valor_total',
         'observacao',
+        'enviado_em',
     ];
 
     protected function casts(): array
@@ -69,7 +84,13 @@ class OrdemCompra extends Model
             'urgente' => 'boolean',
             'previsao_entrega' => 'date',
             'valor_total' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'enviado_em' => 'datetime',
         ];
+    }
+
+    public function isEditavel(): bool
+    {
+        return in_array($this->status, self::STATUSES_EDITAVEIS, true);
     }
 
     public function empresa(): BelongsTo

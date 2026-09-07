@@ -82,7 +82,15 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconProduct,
         permission: 'produto.ler',
         isActivePath: (pathname) =>
-          pathname === '/produtos' || pathname.startsWith('/produtos/'),
+          pathname === '/produtos' ||
+          (pathname.startsWith('/produtos/') && !pathname.startsWith('/produtos/como-cadastra')),
+      },
+      {
+        to: '/como-cadastra',
+        label: 'Como cadastra',
+        icon: IconCatalog,
+        permission: 'produto.ler',
+        permissionsAny: ['produto.ler', 'parceiro.ler'],
       },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
       {

@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
-import { ApiError, api, type Parceiro, type Produto } from '../lib/api';
+import { ApiError, api, type OrdemCompra, type Parceiro, type Produto } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 type ItemRow = {
@@ -13,6 +13,8 @@ type ItemRow = {
 };
 
 export function ComprasOrdemFormPage() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('compras.escrever');
@@ -27,6 +29,7 @@ export function ComprasOrdemFormPage() {
   ]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
 
   useEffect(() => {
     void (async () => {
@@ -35,9 +38,57 @@ export function ComprasOrdemFormPage() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!id) return;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.get<{ data: OrdemCompra }>(`/ordens-compra/${id}`);
+        const oc = res.data;
+        if (!oc.editavel) {
+          setError('Esta OC já foi enviada e não pode ser editada.');
+          navigate(`/compras/ordens/${id}`, { replace: true });
+          return;
+        }
+        setFornecedor(
+          oc.fornecedor
+            ? ({
+                id: oc.fornecedor.id,
+                codigo: oc.fornecedor.codigo,
+                razao_social: oc.fornecedor.razao_social,
+                nome_fantasia: oc.fornecedor.nome_fantasia,
+                email: oc.fornecedor.email ?? null,
+                telefone: oc.fornecedor.telefone ?? null,
+                cnpj_cpf: oc.fornecedor.cnpj_cpf ?? null,
+                papel_fornecedor: true,
+              } as Parceiro)
+            : null,
+        );
+        setUrgente(oc.urgente);
+        setCondicao(oc.condicao_pagamento ?? '');
+        setPrevisao(oc.previsao_entrega ?? '');
+        setObservacao(oc.observacao ?? '');
+        setItens(
+          (oc.itens ?? []).map((i) => ({
+            produto_id: String(i.produto_id),
+            qtde_pedida: i.qtde_pedida,
+            valor_unitario: i.valor_unitario,
+          })),
+        );
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Falha ao carregar OC.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id, navigate]);
+
   const aplicarDefaultsFornecedor = (p: Parceiro | null) => {
     setFornecedor(p);
-    setCondicao(p?.condicao_pagamento?.trim() ?? '');
+    if (!isEdit || !condicao.trim()) {
+      setCondicao(p?.condicao_pagamento?.trim() ?? '');
+    }
   };
 
   const submit = async (e: FormEvent) => {
@@ -65,10 +116,12 @@ export function ComprasOrdemFormPage() {
             valor_unitario: i.valor_unitario,
           })),
       };
-      const res = await api.post<{ data: { id: number } }>('/ordens-compra', payload);
+      const res = isEdit
+        ? await api.put<{ data: { id: number } }>(`/ordens-compra/${id}`, payload)
+        : await api.post<{ data: { id: number } }>('/ordens-compra', payload);
       navigate(`/compras/ordens/${res.data.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao criar OC.');
+      setError(err instanceof ApiError ? err.message : 'Falha ao salvar OC.');
     } finally {
       setSaving(false);
     }
@@ -77,10 +130,17 @@ export function ComprasOrdemFormPage() {
   return (
     <>
       <PageHeader
-        title="Nova ordem de compra"
-        description="Informe fornecedor e itens. Confira NF × OC para entrar no estoque."
+        title={isEdit ? 'Editar ordem de compra' : 'Nova ordem de compra'}
+        description={
+          isEdit
+            ? 'Ajuste fornecedor, itens e condições enquanto a OC estiver em rascunho.'
+            : 'Salve em rascunho. Depois confira a ficha e envie ao fornecedor.'
+        }
         actions={
-          <Link to="/compras/ordens" className="btn btn-secondary">
+          <Link
+            to={isEdit ? `/compras/ordens/${id}` : '/compras/ordens'}
+            className="btn btn-secondary"
+          >
             Voltar
           </Link>
         }
@@ -89,7 +149,9 @@ export function ComprasOrdemFormPage() {
       {error && <div className="alert alert-error">{error}</div>}
 
       {!canWrite ? (
-        <div className="empty-state">Sem permissão para criar OC.</div>
+        <div className="empty-state">Sem permissão para {isEdit ? 'editar' : 'criar'} OC.</div>
+      ) : loading ? (
+        <div className="loading">Carregando…</div>
       ) : (
         <form onSubmit={(e) => void submit(e)}>
           <div className="card" style={{ marginBottom: '1rem' }}>
@@ -193,6 +255,18 @@ export function ComprasOrdemFormPage() {
                         }}
                       />
                     </div>
+                    {itens.length > 1 && (
+                      <div className="form-group">
+                        <label>&nbsp;</label>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setItens(itens.filter((_, i) => i !== idx))}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <div className="btn-row">
@@ -222,6 +296,7 @@ export function ComprasOrdemFormPage() {
                     value={observacao}
                     onChange={(e) => setObservacao(e.target.value)}
                     rows={3}
+                    placeholder="Instruções ao fornecedor, referência interna…"
                   />
                 </div>
               </div>
@@ -230,7 +305,7 @@ export function ComprasOrdemFormPage() {
 
           <div className="form-actions">
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Salvando…' : 'Emitir OC'}
+              {saving ? 'Salvando…' : isEdit ? 'Salvar alterações' : 'Salvar rascunho'}
             </button>
           </div>
         </form>

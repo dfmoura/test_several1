@@ -16,7 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class OrdemCompraService
 {
-    public function __construct(private readonly CodigoGenerator $codigos) {}
+    public function __construct(
+        private readonly CodigoGenerator $codigos,
+        private readonly OrdemCompraEmailService $email,
+    ) {}
 
     /**
      * @return list<array<string, mixed>>
@@ -25,8 +28,8 @@ class OrdemCompraService
     {
         $query = OrdemCompra::query()
             ->with([
-                'fornecedor:id,codigo,razao_social,nome_fantasia',
-                'itens.produto:id,codigo,descricao_fiscal,familia',
+                'fornecedor:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone',
+                'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia',
                 ...OrdemCompra::userStampWith(),
             ])
             ->where('empresa_id', $empresa->id)
@@ -47,7 +50,8 @@ class OrdemCompraService
                     ->orWhere('observacao', 'like', $like)
                     ->orWhereHas('fornecedor', function ($fq) use ($like) {
                         $fq->where('codigo', 'like', $like)
-                            ->orWhere('razao_social', 'like', $like);
+                            ->orWhere('razao_social', 'like', $like)
+                            ->orWhere('nome_fantasia', 'like', $like);
                     });
             });
         }
@@ -95,7 +99,7 @@ class OrdemCompraService
                 'necessidade_id' => $necessidade?->id,
                 'origem' => $data['origem'] ?? OrdemCompra::ORIGEM_DIRETA,
                 'urgente' => (bool) ($data['urgente'] ?? false),
-                'status' => OrdemCompra::STATUS_ABERTA,
+                'status' => OrdemCompra::STATUS_RASCUNHO,
                 'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
                 'previsao_entrega' => $data['previsao_entrega'] ?? null,
                 'valor_total' => $valorTotal,
@@ -121,16 +125,95 @@ class OrdemCompraService
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function update(OrdemCompra $oc, Empresa $empresa, array $data): array
+    {
+        $this->assertEditavel($oc);
+        $fornecedor = $this->assertFornecedor($empresa, (int) $data['fornecedor_id']);
+        $itensPayload = $this->normalizeItens($empresa, $data['itens'] ?? []);
+
+        DB::transaction(function () use ($oc, $data, $fornecedor, $itensPayload) {
+            $valorTotal = '0';
+            foreach ($itensPayload as $item) {
+                $valorTotal = bcadd($valorTotal, $item['valor_total'], PadraoDecimal::SCALE_MONEY);
+            }
+            $valorTotal = PadraoDecimal::roundHalfUp($valorTotal, PadraoDecimal::SCALE_MONEY);
+
+            $oc->fornecedor_id = $fornecedor->id;
+            $oc->urgente = (bool) ($data['urgente'] ?? false);
+            $oc->condicao_pagamento = $this->nullIfEmpty($data['condicao_pagamento'] ?? null);
+            $oc->previsao_entrega = $data['previsao_entrega'] ?? null;
+            $oc->valor_total = $valorTotal;
+            $oc->observacao = $this->nullIfEmpty($data['observacao'] ?? null);
+            $oc->save();
+
+            $oc->itens()->delete();
+            foreach ($itensPayload as $item) {
+                OrdemCompraItem::query()->create([
+                    'ordem_compra_id' => $oc->id,
+                    ...$item,
+                ]);
+            }
+        });
+
+        return $this->show($oc->fresh());
+    }
+
+    public function destroy(OrdemCompra $oc): void
+    {
+        $this->assertEditavel($oc);
+
+        DB::transaction(function () use ($oc) {
+            $oc->status = OrdemCompra::STATUS_CANCELADA;
+            $oc->save();
+            $oc->delete();
+        });
+    }
+
+    /**
+     * Formaliza a OC (RASCUNHO → ABERTA) e tenta e-mail ao fornecedor (fail-soft).
+     *
+     * @return array<string, mixed>
+     */
+    public function enviar(OrdemCompra $oc, Empresa $empresa, bool $reenviarEmail = false): array
+    {
+        if ($oc->status === OrdemCompra::STATUS_RASCUNHO) {
+            $oc->status = OrdemCompra::STATUS_ABERTA;
+            $oc->enviado_em = now();
+            $oc->save();
+        } elseif (! in_array($oc->status, OrdemCompra::STATUSES_RECEBIVEIS, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Só é possível enviar OC em rascunho (ou reenviar e-mail se já estiver aberta/parcial).'],
+            ]);
+        } elseif (! $reenviarEmail) {
+            throw ValidationException::withMessages([
+                'status' => ['OC já enviada. Use reenviar e-mail se precisar disparar de novo.'],
+            ]);
+        }
+
+        $emailMeta = $this->email->tentarEnviar($oc->fresh(), $empresa);
+        $out = $this->show($oc->fresh());
+        $out['email_enviado'] = $emailMeta['enviado'];
+        $out['email_destino'] = $emailMeta['destino'];
+        $out['email_motivo'] = $emailMeta['motivo'];
+
+        return $out;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function show(OrdemCompra $oc): array
     {
         $oc->load([
-            'fornecedor:id,codigo,razao_social,nome_fantasia',
-            'itens.produto:id,codigo,descricao_fiscal,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
+            'fornecedor',
+            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
             'necessidade:id,codigo,status',
             'cotacao:id,codigo,status',
             'movimentos.nfeEntrada.itens',
+            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
             ...OrdemCompra::userStampWith(),
         ]);
 
@@ -166,31 +249,63 @@ class OrdemCompraService
     public function toOut(OrdemCompra $oc): array
     {
         $oc->loadMissing([
-            'fornecedor:id,codigo,razao_social,nome_fantasia',
-            'itens.produto:id,codigo,descricao_fiscal,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
+            'fornecedor',
+            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
+            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
             ...OrdemCompra::userStampWith(),
         ]);
+
+        $fornecedor = $oc->fornecedor;
+        $empresa = $oc->relationLoaded('empresa') ? $oc->empresa : null;
 
         return [
             'id' => $oc->id,
             'empresa_id' => $oc->empresa_id,
             'codigo' => $oc->codigo,
             'fornecedor_id' => $oc->fornecedor_id,
-            'fornecedor' => $oc->fornecedor ? [
-                'id' => $oc->fornecedor->id,
-                'codigo' => $oc->fornecedor->codigo,
-                'razao_social' => $oc->fornecedor->razao_social,
-                'nome_fantasia' => $oc->fornecedor->nome_fantasia,
+            'fornecedor' => $fornecedor ? [
+                'id' => $fornecedor->id,
+                'codigo' => $fornecedor->codigo,
+                'razao_social' => $fornecedor->razao_social,
+                'nome_fantasia' => $fornecedor->nome_fantasia,
+                'cnpj_cpf' => $fornecedor->cnpj_cpf,
+                'email' => $fornecedor->email,
+                'telefone' => $fornecedor->telefone,
+                'logradouro' => $fornecedor->logradouro,
+                'numero' => $fornecedor->numero,
+                'complemento' => $fornecedor->complemento,
+                'bairro' => $fornecedor->bairro,
+                'municipio' => $fornecedor->municipio,
+                'uf' => $fornecedor->uf,
+                'cep' => $fornecedor->cep,
+            ] : null,
+            'empresa' => $empresa ? [
+                'id' => $empresa->id,
+                'codigo' => $empresa->codigo,
+                'razao_social' => $empresa->razao_social,
+                'nome_fantasia' => $empresa->nome_fantasia,
+                'cnpj' => $empresa->cnpj,
+                'email' => $empresa->email,
+                'telefone' => $empresa->telefone,
+                'logradouro' => $empresa->logradouro,
+                'numero' => $empresa->numero,
+                'complemento' => $empresa->complemento,
+                'bairro' => $empresa->bairro,
+                'municipio' => $empresa->municipio,
+                'uf' => $empresa->uf,
+                'cep' => $empresa->cep,
             ] : null,
             'cotacao_id' => $oc->cotacao_id,
             'necessidade_id' => $oc->necessidade_id,
             'origem' => $oc->origem,
             'urgente' => (bool) $oc->urgente,
             'status' => $oc->status,
+            'editavel' => $oc->isEditavel(),
             'condicao_pagamento' => $oc->condicao_pagamento,
             'previsao_entrega' => optional($oc->previsao_entrega)?->format('Y-m-d'),
             'valor_total' => (string) $oc->valor_total,
             'observacao' => $oc->observacao,
+            'enviado_em' => optional($oc->enviado_em)?->toIso8601String(),
             'itens' => $oc->itens->map(fn (OrdemCompraItem $item) => [
                 'id' => $item->id,
                 'produto_id' => $item->produto_id,
@@ -198,6 +313,7 @@ class OrdemCompraService
                     'id' => $item->produto->id,
                     'codigo' => $item->produto->codigo,
                     'descricao_fiscal' => $item->produto->descricao_fiscal,
+                    'descricao_comercial' => $item->produto->descricao_comercial,
                     'familia' => $item->produto->familia,
                     'unidade_comercial' => $item->produto->unidade_comercial,
                     'unidade_interna' => $item->produto->unidade_interna,
@@ -225,6 +341,18 @@ class OrdemCompraService
                     ->all()
                 : [],
         ];
+    }
+
+    private function assertEditavel(OrdemCompra $oc): void
+    {
+        if (! $oc->isEditavel()) {
+            throw ValidationException::withMessages([
+                'status' => [
+                    'Ordem de compra não editável após o envio ao fornecedor. '
+                    .'Cancele (se ainda sem recebimento) ou gere uma nova OC.',
+                ],
+            ]);
+        }
     }
 
     /**
@@ -313,7 +441,6 @@ class OrdemCompraService
             ]);
         }
 
-        // Preferido MP|EMB|REV; permite qualquer produto estocável (não SVC).
         if ($produto->familia === 'SVC') {
             throw ValidationException::withMessages([
                 $field => ['Serviço não pode ser comprado para estoque.'],

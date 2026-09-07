@@ -86,9 +86,12 @@ seed-estoque-enderecos:
 # Plataforma (EMP, RBAC, catálogos, naturezas, DEP, BEM, CFIN, hubs) e audit_log permanecem.
 # Zera só o ledger de estoque da EMP (saldos/lotes/MOV/AJU/INV/NF-e entrada).
 # Preserva produtos, PAR, endereços, DF-e na caixa; reabre OC recebida. Lab only.
+# Compras+cadastro (ensaio do zero): ARGS='--com-produtos' (implica apagar OCs).
 # Uso: make limpar-estoque
 #      make limpar-estoque ARGS='--dry-run'
 #      make limpar-estoque ARGS='--empresa=EMP-00001'
+#      make limpar-estoque ARGS='--com-produtos'
+#      make limpar-estoque ARGS='--com-oc'
 limpar-estoque:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-estoque --force $(ARGS)
 

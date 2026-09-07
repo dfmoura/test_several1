@@ -298,6 +298,7 @@ class EstoqueInventarioAjusteTest extends TestCase
             ->assertCreated();
 
         $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
         $ocItemId = $oc->json('data.itens.0.id');
 
         $this->withHeaders($h)

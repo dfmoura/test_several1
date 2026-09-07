@@ -96,7 +96,9 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
         $total = $this->child($inf, 'total');
         $icmsTot = $this->child($total, 'ICMSTot');
 
-        return [
+        $ibsTot = $this->extractIbsCbsTotais($total);
+
+        return array_merge([
             'v_nf' => $this->nullable($this->text($icmsTot, 'vNF')),
             'v_prod' => $this->nullable($this->text($icmsTot, 'vProd')),
             'v_ipi' => $this->nullable($this->text($icmsTot, 'vIPI')),
@@ -114,6 +116,45 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'v_ipi_devol' => $this->nullable($this->text($icmsTot, 'vIPIDevol')),
             'v_fcp' => $this->nullable($this->text($icmsTot, 'vFCP')),
             'v_fcp_st' => $this->nullable($this->text($icmsTot, 'vFCPST')),
+        ], $ibsTot);
+    }
+
+    /**
+     * Totais IBSCBSTot (reforma tributária) — cópia fiel, sem recálculo.
+     *
+     * @return array<string, ?string>
+     */
+    private function extractIbsCbsTotais(?SimpleXMLElement $total): array
+    {
+        $empty = [
+            'v_bc_ibs_cbs' => null,
+            'v_ibs' => null,
+            'v_cbs' => null,
+            'v_ibs_uf' => null,
+            'v_ibs_mun' => null,
+        ];
+        if ($total === null) {
+            return $empty;
+        }
+
+        $ibsTot = $this->child($total, 'IBSCBSTot');
+        if ($ibsTot === null) {
+            return $empty;
+        }
+
+        $gIbs = $this->child($ibsTot, 'gIBS');
+        $gCbs = $this->child($ibsTot, 'gCBS');
+        $gUf = $this->child($gIbs, 'gIBSUF');
+        $gMun = $this->child($gIbs, 'gIBSMun');
+
+        return [
+            'v_bc_ibs_cbs' => $this->nullable($this->text($ibsTot, 'vBCIBSCBS')),
+            'v_ibs' => $this->nullable($this->text($gIbs, 'vIBS'))
+                ?? $this->nullable($this->text($ibsTot, 'vIBS')),
+            'v_cbs' => $this->nullable($this->text($gCbs, 'vCBS'))
+                ?? $this->nullable($this->text($ibsTot, 'vCBS')),
+            'v_ibs_uf' => $this->nullable($this->text($gUf, 'vIBSUF')),
+            'v_ibs_mun' => $this->nullable($this->text($gMun, 'vIBSMun')),
         ];
     }
 
@@ -224,15 +265,23 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
         $nItem = $nItemAttr > 0 ? $nItemAttr : ($nItemChild > 0 ? $nItemChild : $fallbackN);
 
         $impostos = $this->extractImpostos($det);
+        $xProd = $this->nullable($this->text($prod, 'xProd'));
+        $infAdProd = $this->nullable($this->text($det, 'infAdProd'));
+        $qCom = $this->decimalOrZero($this->text($prod, 'qCom'));
+        $rastros = $this->extractRastros($prod);
+        // Alguns emitentes não usam prod/rastro e colocam o lote em infAdProd / xProd.
+        if ($rastros === []) {
+            $rastros = $this->rastrosFromInformacaoProduto($infAdProd, $xProd, $qCom);
+        }
 
         return [
             'n_item' => $nItem,
             'c_prod' => $cProd,
-            'x_prod' => $this->nullable($this->text($prod, 'xProd')),
+            'x_prod' => $xProd,
             'ncm' => $this->digits($this->text($prod, 'NCM')),
             'cest' => $this->digits($this->text($prod, 'CEST')),
             'u_com' => $this->upper($this->text($prod, 'uCom')),
-            'q_com' => $this->decimalOrZero($this->text($prod, 'qCom')),
+            'q_com' => $qCom,
             'v_un_com' => $this->decimalOrZero($this->text($prod, 'vUnCom')),
             'v_prod' => $this->decimalOrZero($this->text($prod, 'vProd')),
             'u_trib' => $this->upper($this->text($prod, 'uTrib')),
@@ -241,6 +290,11 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'v_frete' => $this->nullable($this->text($prod, 'vFrete')),
             'v_desc' => $this->nullable($this->text($prod, 'vDesc')),
             'v_outro' => $this->nullable($this->text($prod, 'vOutro')),
+            // Pedido do comprador na NF (prod/xPed · prod/nItemPed) + FCI (prod/nFCI).
+            'x_ped' => $this->nullable($this->text($prod, 'xPed')),
+            'n_item_ped' => $this->nullable($this->text($prod, 'nItemPed')),
+            'n_fci' => $this->normalizeFci($this->nullable($this->text($prod, 'nFCI'))),
+            'inf_ad_prod' => $infAdProd,
             'orig' => $impostos['orig'],
             'cst_icms' => $impostos['cst_icms'],
             'csosn' => $impostos['csosn'],
@@ -258,9 +312,32 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'cst_cofins' => $impostos['cst_cofins'],
             'p_cofins' => $impostos['p_cofins'],
             'v_cofins' => $impostos['v_cofins'],
+            'cst_ibs_cbs' => $impostos['cst_ibs_cbs'],
+            'c_class_trib' => $impostos['c_class_trib'],
+            'v_bc_ibs_cbs' => $impostos['v_bc_ibs_cbs'],
+            'v_ibs' => $impostos['v_ibs'],
+            'v_cbs' => $impostos['v_cbs'],
+            'p_cbs' => $impostos['p_cbs'],
+            'p_ibs_uf' => $impostos['p_ibs_uf'],
+            'v_ibs_uf' => $impostos['v_ibs_uf'],
+            'p_ibs_mun' => $impostos['p_ibs_mun'],
+            'v_ibs_mun' => $impostos['v_ibs_mun'],
             'impostos' => $impostos['raw'],
-            'rastros' => $this->extractRastros($prod),
+            'rastros' => $rastros,
         ];
+    }
+
+    /**
+     * nFCI: UUID canônico em maiúsculas (como no XML SEFAZ), sem espaços.
+     */
+    private function normalizeFci(?string $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $v = strtoupper(trim($raw));
+
+        return $v === '' ? null : $v;
     }
 
     /**
@@ -288,6 +365,16 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'cst_cofins' => null,
             'p_cofins' => null,
             'v_cofins' => null,
+            'cst_ibs_cbs' => null,
+            'c_class_trib' => null,
+            'v_bc_ibs_cbs' => null,
+            'v_ibs' => null,
+            'v_cbs' => null,
+            'p_cbs' => null,
+            'p_ibs_uf' => null,
+            'v_ibs_uf' => null,
+            'p_ibs_mun' => null,
+            'v_ibs_mun' => null,
             'raw' => null,
         ];
 
@@ -300,6 +387,7 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
         $ipiGrp = $this->firstTaxGroup($this->child($imposto, 'IPI'), ['cEnq', 'clEnq', 'CNPJProd', 'cSelo', 'qSelo']);
         $pisGrp = $this->firstTaxGroup($this->child($imposto, 'PIS'), []);
         $cofinsGrp = $this->firstTaxGroup($this->child($imposto, 'COFINS'), []);
+        $ibs = $this->extractIbsCbsItem($imposto);
 
         $cstIcms = $this->nullable($this->text($icmsGrp, 'CST'));
         $csosn = $this->nullable($this->text($icmsGrp, 'CSOSN'));
@@ -309,6 +397,15 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'ipi' => $this->elementMap($ipiGrp),
             'pis' => $this->elementMap($pisGrp),
             'cofins' => $this->elementMap($cofinsGrp),
+            'ibscbs' => $ibs['raw'],
+        ];
+
+        $rawEmpty = $raw === [
+            'icms' => null,
+            'ipi' => null,
+            'pis' => null,
+            'cofins' => null,
+            'ibscbs' => null,
         ];
 
         return [
@@ -329,7 +426,86 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'cst_cofins' => $this->nullable($this->text($cofinsGrp, 'CST')),
             'p_cofins' => $this->nullable($this->text($cofinsGrp, 'pCOFINS')),
             'v_cofins' => $this->nullable($this->text($cofinsGrp, 'vCOFINS')),
-            'raw' => $raw === ['icms' => null, 'ipi' => null, 'pis' => null, 'cofins' => null] ? null : $raw,
+            'cst_ibs_cbs' => $ibs['cst_ibs_cbs'],
+            'c_class_trib' => $ibs['c_class_trib'],
+            'v_bc_ibs_cbs' => $ibs['v_bc_ibs_cbs'],
+            'v_ibs' => $ibs['v_ibs'],
+            'v_cbs' => $ibs['v_cbs'],
+            'p_cbs' => $ibs['p_cbs'],
+            'p_ibs_uf' => $ibs['p_ibs_uf'],
+            'v_ibs_uf' => $ibs['v_ibs_uf'],
+            'p_ibs_mun' => $ibs['p_ibs_mun'],
+            'v_ibs_mun' => $ibs['v_ibs_mun'],
+            'raw' => $rawEmpty ? null : $raw,
+        ];
+    }
+
+    /**
+     * Grupo IBSCBS do item (CST / cClassTrib / gIBSCBS) — cópia fiel.
+     *
+     * @return array<string, mixed>
+     */
+    private function extractIbsCbsItem(SimpleXMLElement $imposto): array
+    {
+        $empty = [
+            'cst_ibs_cbs' => null,
+            'c_class_trib' => null,
+            'v_bc_ibs_cbs' => null,
+            'v_ibs' => null,
+            'v_cbs' => null,
+            'p_cbs' => null,
+            'p_ibs_uf' => null,
+            'v_ibs_uf' => null,
+            'p_ibs_mun' => null,
+            'v_ibs_mun' => null,
+            'raw' => null,
+        ];
+
+        $ibs = $this->child($imposto, 'IBSCBS');
+        if ($ibs === null) {
+            return $empty;
+        }
+
+        $g = $this->child($ibs, 'gIBSCBS');
+        $gCbs = $this->child($g, 'gCBS');
+        $gUf = $this->child($g, 'gIBSUF');
+        $gMun = $this->child($g, 'gIBSMun');
+
+        $cst = $this->nullable($this->text($ibs, 'CST'));
+        $cClass = $this->nullable($this->text($ibs, 'cClassTrib'));
+        $vBc = $this->nullable($this->text($g, 'vBC'));
+        $vIbs = $this->nullable($this->text($g, 'vIBS'));
+        $pCbs = $this->nullable($this->text($gCbs, 'pCBS'));
+        $vCbs = $this->nullable($this->text($gCbs, 'vCBS'));
+        $pUf = $this->nullable($this->text($gUf, 'pIBSUF'));
+        $vUf = $this->nullable($this->text($gUf, 'vIBSUF'));
+        $pMun = $this->nullable($this->text($gMun, 'pIBSMun'));
+        $vMun = $this->nullable($this->text($gMun, 'vIBSMun'));
+
+        $raw = [
+            'CST' => $cst,
+            'cClassTrib' => $cClass,
+            'gIBSCBS' => $g === null ? null : [
+                'vBC' => $vBc,
+                'vIBS' => $vIbs,
+                'gCBS' => $this->elementMap($gCbs),
+                'gIBSUF' => $this->elementMap($gUf),
+                'gIBSMun' => $this->elementMap($gMun),
+            ],
+        ];
+
+        return [
+            'cst_ibs_cbs' => $cst,
+            'c_class_trib' => $cClass,
+            'v_bc_ibs_cbs' => $vBc,
+            'v_ibs' => $vIbs,
+            'v_cbs' => $vCbs,
+            'p_cbs' => $pCbs,
+            'p_ibs_uf' => $pUf,
+            'v_ibs_uf' => $vUf,
+            'p_ibs_mun' => $pMun,
+            'v_ibs_mun' => $vMun,
+            'raw' => $raw,
         ];
     }
 
@@ -404,7 +580,7 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
     }
 
     /**
-     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string}>
+     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string, fonte: string}>
      */
     private function extractRastros(SimpleXMLElement $prod): array
     {
@@ -423,6 +599,7 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
                     'qtde' => $this->decimalOrZero($this->text($rastro, 'qLote')),
                     'data_fabricacao' => $this->toDate($this->nullable($this->text($rastro, 'dFab'))),
                     'data_validade' => $this->toDate($this->nullable($this->text($rastro, 'dVal'))),
+                    'fonte' => 'rastro',
                 ];
             }
             if ($out !== []) {
@@ -431,6 +608,88 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
         }
 
         return $out;
+    }
+
+    /**
+     * Fallback quando o emitente coloca o lote em infAdProd / xProd (sem prod/rastro).
+     * Conservador: só códigos explícitos rotulados como lote/nLote — não inventa a partir de FCI/texto livre.
+     *
+     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string, fonte: string}>
+     */
+    private function rastrosFromInformacaoProduto(?string $infAdProd, ?string $xProd, string $qCom): array
+    {
+        $blob = trim(implode(' ', array_filter([$infAdProd, $xProd], static fn ($v) => is_string($v) && trim($v) !== '')));
+        if ($blob === '') {
+            return [];
+        }
+
+        $codigos = [];
+        $patterns = [
+            '/\b(?:n[º°o.]?\s*)?(?:do\s+)?lotes?\s*[:=\-]?\s*([A-Z0-9][A-Z0-9.\-\/_]{1,40})/iu',
+            '/\bnLote\s*[:=\-]?\s*([A-Z0-9][A-Z0-9.\-\/_]{1,40})/iu',
+        ];
+        foreach ($patterns as $pattern) {
+            if (! preg_match_all($pattern, $blob, $m)) {
+                continue;
+            }
+            foreach ($m[1] as $raw) {
+                $codigo = $this->normalizeLoteCodigo($raw);
+                if ($codigo === null) {
+                    continue;
+                }
+                $codigos[$codigo] = true;
+            }
+        }
+
+        if ($codigos === []) {
+            return [];
+        }
+
+        $lista = array_keys($codigos);
+        $n = count($lista);
+        $out = [];
+        if ($n === 1) {
+            $out[] = [
+                'codigo' => $lista[0],
+                'qtde' => $qCom,
+                'data_fabricacao' => null,
+                'data_validade' => null,
+                'fonte' => 'inf_ad_prod',
+            ];
+
+            return $out;
+        }
+
+        // Vários lotes no texto sem qtde individual: qtde 0 — humano confere no assist.
+        foreach ($lista as $codigo) {
+            $out[] = [
+                'codigo' => $codigo,
+                'qtde' => '0',
+                'data_fabricacao' => null,
+                'data_validade' => null,
+                'fonte' => 'inf_ad_prod',
+            ];
+        }
+
+        return $out;
+    }
+
+    private function normalizeLoteCodigo(string $raw): ?string
+    {
+        $codigo = trim($raw);
+        $codigo = rtrim($codigo, '.,;:)');
+        if ($codigo === '' || strlen($codigo) < 2) {
+            return null;
+        }
+        // Evita capturar UUID de FCI / tokens fiscais.
+        if (preg_match('/^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i', $codigo)) {
+            return null;
+        }
+        if (preg_match('/^(CBS|IBS|ICMS|IPI|PIS|COFINS|FCI|NCM|CFOP)$/i', $codigo)) {
+            return null;
+        }
+
+        return $codigo;
     }
 
     private function toDate(?string $raw): ?string

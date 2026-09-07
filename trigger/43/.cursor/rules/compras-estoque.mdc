@@ -1,14 +1,15 @@
 # Fronteira Compras → Estoque → Contas a pagar
 
-Norma: `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `docs/ADR_ENTRADA_XML_ASSIST.md` · `docs/ADR_ENTRADA_XML_PARCELAS.md` · `docs/ADR_ENTRADA_XML_ESPELHO.md` · `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · `docs/ADR_RASTREIO_INSUMOS_PRODUCAO.md` · estudo `../32` M07/M04/M06 · BL-033/036/037/038/042/045/048/054.
+Norma: `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · `docs/ADR_OC_RASCUNHO_ENVIO.md` · `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `docs/ADR_ENTRADA_XML_ASSIST.md` · `docs/ADR_ENTRADA_XML_PARCELAS.md` · `docs/ADR_ENTRADA_XML_ESPELHO.md` · `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · `docs/ADR_RASTREIO_INSUMOS_PRODUCAO.md` · estudo `../32` M07/M04/M06 · BL-033/036/037/038/042/045/048/054.
 
 ## Espinha (dia a dia)
 
-`OC → NF×OC×conferência → MOV → TIT → BX`
+`OC (rascunho → enviar) → NF×OC×conferência → MOV → TIT → BX`
 
 Extensões:
 
-- **A repor:** saldo × `estoque_minimo` (− trânsito) → OC DIRETA (humano confirma).
+- **OC rascunho:** criar/A repor → `RASCUNHO` editável/excluível; `enviar` → `ABERTA` + e-mail fail-soft ao fornecedor (`ADR_OC_RASCUNHO_ENVIO.md`). Trânsito e receber só após envio.
+- **A repor:** saldo × `estoque_minimo` (− trânsito `ABERTA|PARCIAL`) → OC DIRETA rascunho (humano confirma).
 - **AJU avulsa:** contagem → pendente → `estoque.aprovar` (+ alçada) → MOV `AJUSTE` (SoD). Pendente pode **cancelar** (status CANCELADO; sem apagar histórico).
 - **INV → AJU (BL-042):** inventário cego 1ª/2ª → checklist → AJU origem `INV_*`/`VIRADA` → alçada → MOV; extrato SKU; congelamento do SKU em contagem. INV aberto (sem AJU) pode **cancelar** (CANCELADO; sem apagar histórico; libera congelamento). Encerrado não cancela.
 - **XML assist (BL-037/038/048):** upload → preview/de-para/parcelas `dup` + **espelho fiscal** → **mesmo** `receber()` — nunca auto-lança; N TIT se parcelas; XML+snapshot em `nfe_entrada` se o XML vier na confirmação.

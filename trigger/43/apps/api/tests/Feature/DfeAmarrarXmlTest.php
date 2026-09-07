@@ -141,6 +141,7 @@ class DfeAmarrarXmlTest extends TestCase
             ->assertCreated();
 
         $ocId = (int) $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
 
         $this->withHeaders($h)
             ->postJson("/api/v1/dfe-documentos/{$doc->id}/amarrar", [

@@ -6,7 +6,9 @@ use App\Models\CodigoSequence;
 use App\Models\Empresa;
 use App\Models\Produto;
 use App\Services\Cadastros\ProdutoCadastroCatalogData;
+use App\Services\Cadastros\ProdutoCadastroNfEntradaData;
 use App\Services\Cadastros\ProdutoCadastroService;
+use App\Services\Cadastros\ProdutoFornecedorDeParaCatalogData;
 use App\Services\Cadastros\ProdutoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,6 +16,28 @@ use Tests\TestCase;
 class ProdutoCadastroServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_catalogo_nf_entrada_sem_explodir_largura(): void
+    {
+        $insumos = ProdutoCadastroNfEntradaData::insumos();
+        $this->assertCount(ProdutoCadastroNfEntradaData::TOTAL, $insumos);
+
+        $codigos = array_column($insumos, 'codigo');
+        $this->assertCount(count($codigos), array_unique($codigos));
+        $this->assertContains('MP-PAP-016', $codigos);
+        $this->assertContains('MP-FLM-016', $codigos);
+        $this->assertContains('EMB-TUB-004', $codigos);
+
+        // Vertex: 1 SKU (larguras só no de-para)
+        $this->assertSame(1, count(array_filter($codigos, fn ($c) => $c === 'MP-PAP-016')));
+
+        $maps = ProdutoFornecedorDeParaCatalogData::maps();
+        $this->assertCount(ProdutoFornecedorDeParaCatalogData::TOTAL, $maps);
+        $vertexMaps = array_filter($maps, fn ($m) => $m['produto_codigo'] === 'MP-PAP-016');
+        $this->assertGreaterThanOrEqual(7, count($vertexMaps));
+        $fedrigoni = array_filter($maps, fn ($m) => $m['produto_codigo'] === 'MP-FLM-018');
+        $this->assertGreaterThanOrEqual(9, count($fedrigoni));
+    }
 
     public function test_catalogo_tem_89_familias_sem_duplicar_cian(): void
     {
@@ -45,9 +69,10 @@ class ProdutoCadastroServiceTest extends TestCase
 
         $this->assertSame(89, $result['familias']);
         $this->assertSame(4, $result['exact']);
+        $this->assertSame(33, $result['nf_entrada']);
         $this->assertSame(2, $result['demos']);
 
-        $this->assertSame(89 + 4, Produto::query()
+        $this->assertSame(89 + 4 + 33, Produto::query()
             ->where('empresa_id', $empresa->id)
             ->where('atributos->camada_cadastro', 'A')
             ->count());
@@ -60,6 +85,13 @@ class ProdutoCadastroServiceTest extends TestCase
         $this->assertSame('M2', $exact->unidade_interna);
         $this->assertSame('EXACT 1000', $exact->atributos['programa_compra'] ?? null);
         $this->assertTrue((bool) $exact->controla_lote);
+
+        $vertex = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'MP-PAP-016')
+            ->firstOrFail();
+        $this->assertSame('M2', $vertex->unidade_comercial);
+        $this->assertSame('VERTEX 5030', $vertex->atributos['programa_compra'] ?? null);
 
         $fosco = Produto::query()
             ->where('empresa_id', $empresa->id)
@@ -101,6 +133,13 @@ class ProdutoCadastroServiceTest extends TestCase
         $this->assertSame('102', $ribbon->csosn);
         $this->assertFalse((bool) $ribbon->controla_lote);
 
+        $ribbonAxr = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'REV-RIB-006')
+            ->firstOrFail();
+        $this->assertSame('2102', $ribbonAxr->cfop_entrada_padrao);
+        $this->assertSame('UN', $ribbonAxr->unidade_comercial);
+
         $this->assertTrue((bool) $fosco->controla_lote);
         $this->assertTrue((bool) $fosco->controla_validade);
         $this->assertSame(548, (int) $fosco->prazo_validade_dias);
@@ -118,13 +157,13 @@ class ProdutoCadastroServiceTest extends TestCase
             ->where('empresa_id', $empresa->id)
             ->where('prefixo', 'MP-PAP')
             ->firstOrFail();
-        $this->assertSame(16, (int) $seqPap->proximo);
+        $this->assertSame(21, (int) $seqPap->proximo);
 
         $seqTin = CodigoSequence::query()
             ->where('empresa_id', $empresa->id)
             ->where('prefixo', 'MP-TIN')
             ->firstOrFail();
-        $this->assertSame(27, (int) $seqTin->proximo);
+        $this->assertSame(28, (int) $seqTin->proximo);
     }
 
     public function test_catalogo_tintas_26_familias_ncm_un_lote(): void
@@ -186,8 +225,9 @@ class ProdutoCadastroServiceTest extends TestCase
         $codigos = $list->pluck('codigo');
         $this->assertTrue($codigos->contains('MP-TIN-001'));
         $this->assertTrue($codigos->contains('MP-TIN-026'));
+        $this->assertTrue($codigos->contains('MP-TIN-027'));
         $this->assertSame(
-            26,
+            27,
             $codigos->filter(fn (string $c) => str_starts_with($c, 'MP-TIN-'))->count()
         );
     }
@@ -235,7 +275,7 @@ class ProdutoCadastroServiceTest extends TestCase
         $service->seedForEmpresa($empresa);
 
         $this->assertSame(
-            89 + 4 + 2,
+            89 + 4 + 33 + 2,
             Produto::query()->where('empresa_id', $empresa->id)->count()
         );
     }

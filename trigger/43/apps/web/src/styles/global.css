@@ -885,6 +885,10 @@ button.par-geo--faltando:hover:not(:disabled) {
   grid-column: span 2;
 }
 
+.form-grid > .span-2 {
+  grid-column: span 2;
+}
+
 .form-group.span-full {
   grid-column: 1 / -1;
 }
@@ -931,49 +935,46 @@ button.par-geo--faltando:hover:not(:disabled) {
   color: var(--danger);
 }
 
-.produto-desc-sugerir {
-  padding-top: 0.15rem;
+.produto-avancado {
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.85rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
-.produto-desc-sugerir-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
+.produto-avancado > summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  list-style-position: outside;
+}
+
+.produto-avancado-grid {
+  margin-top: 0.85rem;
+}
+
+.produto-depara {
   margin-top: 0.35rem;
 }
 
-.produto-desc-preview {
-  margin-top: 0.65rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+.produto-depara-lead {
+  margin: 0 0 0.65rem;
 }
 
-.produto-desc-preview-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  font-size: 0.9rem;
+.produto-depara-table {
+  margin-bottom: 0.75rem;
 }
 
-.produto-desc-preview-row strong {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+.produto-depara-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
-.produto-desc-avisos {
-  margin: 0.15rem 0 0;
-  padding-left: 1.1rem;
-  font-size: 0.78rem;
-  color: var(--text-muted);
+.produto-depara-add {
+  margin-top: 0.35rem;
 }
 
 .checkbox-grid {
@@ -1517,7 +1518,9 @@ button.par-geo--faltando:hover:not(:disabled) {
 
 /* Títulos / lead dentro do form-grid (aba Comercial do produto) */
 .form-grid > .fiscal-section-title,
-.form-grid > .produto-unidades-lead {
+.form-grid > .produto-unidades-lead,
+.form-grid > .produto-avancado,
+.form-grid > .produto-depara {
   grid-column: 1 / -1;
 }
 
@@ -1673,6 +1676,127 @@ button.par-geo--faltando:hover:not(:disabled) {
 /* Table */
 .table-wrap {
   overflow-x: auto;
+}
+
+/** Volumes/lotes na conferência da OC — largura do card, scroll só vertical. */
+.oc-receber-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.oc-receber-item__qtde {
+  max-width: 22rem;
+}
+
+.oc-volumes-panel {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 92%, var(--border));
+  overflow: hidden;
+}
+
+.oc-volumes-panel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.oc-volumes-panel__bar strong {
+  font-size: 0.9rem;
+}
+
+.oc-volumes-panel__single {
+  padding: 0.75rem;
+}
+
+.oc-volumes-panel__hint {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.65rem;
+}
+
+.oc-volumes-scroll {
+  width: 100%;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.oc-volumes-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 0.86rem;
+}
+
+.oc-volumes-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  white-space: nowrap;
+}
+
+.oc-volumes-table td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  vertical-align: middle;
+}
+
+.oc-volumes-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.oc-volumes-table .col-idx {
+  width: 2.25rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-volumes-table .col-lote {
+  width: auto;
+}
+
+.oc-volumes-table .col-num {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.oc-volumes-table .col-acoes {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.oc-volumes-table .col-lote input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.oc-volumes-table .col-num input {
+  width: 6.75rem;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-volumes-table input {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
 }
 
 /**

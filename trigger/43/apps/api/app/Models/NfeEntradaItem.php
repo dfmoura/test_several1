@@ -44,6 +44,9 @@ class NfeEntradaItem extends Model
         'v_frete',
         'v_desc',
         'v_outro',
+        'x_ped',
+        'n_item_ped',
+        'n_fci',
         'impostos',
         'ordem',
     ];

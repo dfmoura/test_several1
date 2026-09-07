@@ -22,9 +22,10 @@ estoque_mínimo (unidade_interna) × saldo × OC em trânsito
 ```
 
 - `estoque_minimo` comparado em **unidade_interna**.
-- Em trânsito = pendente de OC `ABERTA|PARCIAL` convertido para interna.
+- Em trânsito = pendente de OC `ABERTA|PARCIAL` (já enviada) convertido para interna. **`RASCUNHO` não conta** (`ADR_OC_RASCUNHO_ENVIO.md`).
 - Faltante comercial = faltante interna ÷ `fator_conversao` (para a OC).
 - NEC/COT continuam API-only (ADR-039-CPR-001).
+- Gerar OC pela reposição cria **rascunho**; humano envia ao fornecedor na ficha da OC.
 
 ### B) Ajuste (contagem avulsa)
 

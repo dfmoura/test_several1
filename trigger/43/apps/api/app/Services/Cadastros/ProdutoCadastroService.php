@@ -23,7 +23,7 @@ class ProdutoCadastroService
     ) {}
 
     /**
-     * @return array{familias: int, exact: int, demos: int, sequences: int, depara: int}
+     * @return array{familias: int, exact: int, nf_entrada: int, demos: int, sequences: int, depara: int}
      */
     public function seedForEmpresa(Empresa $empresa, bool $incluirDemosVenda = true): array
     {
@@ -40,8 +40,14 @@ class ProdutoCadastroService
 
             $exact = 0;
             foreach (ProdutoCadastroExactData::insumos() as $row) {
-                $this->upsertExact($empresa, $row, $grupoIds);
+                $this->upsertEvidenciaNf($empresa, $row, $grupoIds, ProdutoCadastroExactData::FONTE);
                 $exact++;
+            }
+
+            $nfEntrada = 0;
+            foreach (ProdutoCadastroNfEntradaData::insumos() as $row) {
+                $this->upsertEvidenciaNf($empresa, $row, $grupoIds, ProdutoCadastroNfEntradaData::FONTE);
+                $nfEntrada++;
             }
 
             $demos = 0;
@@ -58,6 +64,7 @@ class ProdutoCadastroService
             return [
                 'familias' => $familias,
                 'exact' => $exact,
+                'nf_entrada' => $nfEntrada,
                 'demos' => $demos,
                 'sequences' => $sequences,
                 'depara' => $depara,
@@ -128,18 +135,41 @@ class ProdutoCadastroService
     }
 
     /**
+     * Exact Avery + evidência notas_entrada — M2=M2 / UN=UN sem inventar fator.
+     *
      * @param  array<string, mixed>  $row
      * @param  \Illuminate\Support\Collection<string, int>  $grupoIds
      */
-    private function upsertExact(Empresa $empresa, array $row, $grupoIds): void
+    private function upsertEvidenciaNf(Empresa $empresa, array $row, $grupoIds, string $fonte): void
     {
         $grupoCodigo = $row['grupo'];
+        $familia = (string) $row['familia'];
         $lote = ProdutoLotePolitica::paraGrupo($grupoCodigo);
         $uCom = strtoupper((string) $row['unidade_comercial']);
         $uInt = strtoupper((string) $row['unidade_interna']);
 
+        $cfopEntrada = match ($familia) {
+            'REV' => '2102',
+            default => '2101',
+        };
+
+        $atributos = [
+            'camada_cadastro' => 'A',
+            'grupo_estoque' => $row['grupo_estoque'],
+            'ncm_situacao' => $row['ncm_situacao'],
+            'listagem_grupo' => $row['listagem_grupo'],
+            'origem_pendente_xml' => true,
+            'fonte_catalogo' => $fonte,
+        ];
+        if (! empty($row['programa_compra'])) {
+            $atributos['programa_compra'] = $row['programa_compra'];
+        }
+        if (! empty($row['comprimento_m_nominal'])) {
+            $atributos['comprimento_m'] = $row['comprimento_m_nominal'];
+        }
+
         $this->upsertProduto($empresa, $row['codigo'], [
-            'familia' => $row['familia'],
+            'familia' => $familia,
             'grupo' => $grupoCodigo,
             'grupo_id' => $grupoIds[$grupoCodigo] ?? null,
             'descricao_fiscal' => $row['descricao_fiscal'],
@@ -150,25 +180,16 @@ class ProdutoCadastroService
             'unidade_comercial' => $uCom,
             'unidade_interna' => $uInt,
             'fator_conversao' => '1',
-            'cfop_entrada_padrao' => '2101',
-            'cfop_saida_padrao' => null,
-            'csosn' => null,
+            'cfop_entrada_padrao' => $cfopEntrada,
+            'cfop_saida_padrao' => $familia === 'REV' ? '5102' : null,
+            'csosn' => $familia === 'REV' ? '102' : null,
             'gtin' => 'SEM GTIN',
             'custo_medio' => '0',
             'controla_lote' => $lote['controla_lote'],
             'controla_validade' => $lote['controla_validade'],
             'prazo_validade_dias' => $lote['prazo_validade_dias'],
             'situacao' => 'ATIVO',
-            'atributos' => [
-                'camada_cadastro' => 'A',
-                'grupo_estoque' => $row['grupo_estoque'],
-                'ncm_situacao' => $row['ncm_situacao'],
-                'listagem_grupo' => $row['listagem_grupo'],
-                'programa_compra' => $row['programa_compra'],
-                'comprimento_m' => $row['comprimento_m_nominal'],
-                'origem_pendente_xml' => true,
-                'fonte_catalogo' => ProdutoCadastroExactData::FONTE,
-            ],
+            'atributos' => $atributos,
         ]);
     }
 
@@ -248,6 +269,9 @@ class ProdutoCadastroService
             $prefixos[$row['grupo']] = true;
         }
         foreach (ProdutoCadastroExactData::insumos() as $row) {
+            $prefixos[$row['grupo']] = true;
+        }
+        foreach (ProdutoCadastroNfEntradaData::insumos() as $row) {
             $prefixos[$row['grupo']] = true;
         }
         foreach (ProdutoCadastroCatalogData::demosVenda() as $row) {

@@ -175,7 +175,8 @@ class EstoqueReposicaoService
     }
 
     /**
-     * Pendente em OC ABERTA/PARCIAL convertido para unidade_interna.
+     * Pendente em OC ABERTA/PARCIAL (já enviada) convertido para unidade_interna.
+     * Rascunho não entra (ADR_OC_RASCUNHO_ENVIO).
      *
      * @param  list<int>  $produtoIds
      * @return array<int, string>
@@ -187,10 +188,7 @@ class EstoqueReposicaoService
             ->whereIn('produto_id', $produtoIds)
             ->whereHas('ordemCompra', function ($q) use ($empresa) {
                 $q->where('empresa_id', $empresa->id)
-                    ->whereIn('status', [
-                        OrdemCompra::STATUS_ABERTA,
-                        OrdemCompra::STATUS_PARCIAL,
-                    ]);
+                    ->whereIn('status', OrdemCompra::STATUSES_EM_TRANSITO);
             })
             ->get();
 

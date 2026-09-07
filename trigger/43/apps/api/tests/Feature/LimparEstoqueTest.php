@@ -276,4 +276,129 @@ class LimparEstoqueTest extends TestCase
             '--force' => true,
         ])->assertFailed();
     }
+
+    public function test_com_oc_e_produtos_apaga_compras_e_cadastro(): void
+    {
+        $empresa = Empresa::query()->create([
+            'codigo' => 'EMP-00001',
+            'razao_social' => 'RLP Etiquetas',
+            'nome_fantasia' => 'RLP',
+            'cnpj' => '01423183000110',
+            'situacao' => 'ATIVA',
+            'venda_ativa' => true,
+            'estoque_ativo' => true,
+        ]);
+
+        $par = Parceiro::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'PAR-00001',
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => 'Fornecedor Teste',
+            'papel_fornecedor' => true,
+            'situacao' => 'ATIVO',
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin@rlp.com.br',
+            'password' => 'secret',
+            'codigo' => 'USR-00001',
+            'ativo' => true,
+            'parceiro_id' => $par->id,
+            'empresa_default_id' => $empresa->id,
+        ]);
+
+        $produto = Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'MP-PAP-001',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'Papel teste',
+            'unidade_comercial' => 'KG',
+            'unidade_interna' => 'KG',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+
+        if (DB::getSchemaBuilder()->hasTable('produto_fornecedor_codigos')) {
+            DB::table('produto_fornecedor_codigos')->insert([
+                'empresa_id' => $empresa->id,
+                'produto_id' => $produto->id,
+                'fornecedor_id' => $par->id,
+                'c_prod' => 'X1',
+                'x_prod' => 'Papel X',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        DB::table('estoque_saldos')->insert([
+            'empresa_id' => $empresa->id,
+            'produto_id' => $produto->id,
+            'qtde' => '10.0000',
+            'unidade' => 'KG',
+            'custo_medio' => '1.000000',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $ocId = DB::table('ordens_compra')->insertGetId([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'OC-00001',
+            'fornecedor_id' => $par->id,
+            'origem' => OrdemCompra::ORIGEM_DIRETA,
+            'status' => OrdemCompra::STATUS_ABERTA,
+            'valor_total' => '0.00',
+            'criado_por' => $user->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('ordem_compra_itens')->insert([
+            'ordem_compra_id' => $ocId,
+            'produto_id' => $produto->id,
+            'qtde_pedida' => '50.0000',
+            'qtde_recebida' => '0.0000',
+            'unidade' => 'KG',
+            'valor_unitario' => '10.000000',
+            'valor_total' => '500.00',
+            'ordem' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        if (DB::getSchemaBuilder()->hasTable('dfe_documentos')) {
+            DB::table('dfe_documentos')->insert([
+                'empresa_id' => $empresa->id,
+                'nsu' => '9',
+                'schema_dfe' => 'resNFe',
+                'chave' => str_repeat('9', 44),
+                'situacao' => DfeDocumento::SITUACAO_AMARRADA,
+                'ordem_compra_id' => $ocId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->artisan('erp:limpar-estoque', [
+            '--empresa' => 'EMP-00001',
+            '--com-produtos' => true,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame(0, (int) DB::table('estoque_saldos')->where('empresa_id', $empresa->id)->count());
+        $this->assertSame(0, (int) DB::table('ordens_compra')->where('empresa_id', $empresa->id)->count());
+        $this->assertSame(0, (int) DB::table('produtos')->where('empresa_id', $empresa->id)->count());
+        if (DB::getSchemaBuilder()->hasTable('produto_fornecedor_codigos')) {
+            $this->assertSame(0, (int) DB::table('produto_fornecedor_codigos')->where('empresa_id', $empresa->id)->count());
+        }
+        $this->assertSame(1, (int) DB::table('parceiros')->where('id', $par->id)->count());
+
+        if (DB::getSchemaBuilder()->hasTable('dfe_documentos')) {
+            $dfe = DB::table('dfe_documentos')->where('chave', str_repeat('9', 44))->first();
+            $this->assertNotNull($dfe);
+            $this->assertNull($dfe->ordem_compra_id);
+            $this->assertSame(DfeDocumento::SITUACAO_DISPONIVEL, $dfe->situacao);
+        }
+    }
 }

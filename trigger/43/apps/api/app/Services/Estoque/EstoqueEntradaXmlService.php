@@ -157,6 +157,20 @@ class EstoqueEntradaXmlService
                 'v_ipi' => $xmlItem['v_ipi'] ?? null,
                 'v_pis' => $xmlItem['v_pis'] ?? null,
                 'v_cofins' => $xmlItem['v_cofins'] ?? null,
+                'cst_ibs_cbs' => $xmlItem['cst_ibs_cbs'] ?? null,
+                'c_class_trib' => $xmlItem['c_class_trib'] ?? null,
+                'v_bc_ibs_cbs' => $xmlItem['v_bc_ibs_cbs'] ?? null,
+                'v_ibs' => $xmlItem['v_ibs'] ?? null,
+                'v_cbs' => $xmlItem['v_cbs'] ?? null,
+                'p_cbs' => $xmlItem['p_cbs'] ?? null,
+                'p_ibs_uf' => $xmlItem['p_ibs_uf'] ?? null,
+                'v_ibs_uf' => $xmlItem['v_ibs_uf'] ?? null,
+                'p_ibs_mun' => $xmlItem['p_ibs_mun'] ?? null,
+                'v_ibs_mun' => $xmlItem['v_ibs_mun'] ?? null,
+                'x_ped' => $xmlItem['x_ped'] ?? null,
+                'n_item_ped' => $xmlItem['n_item_ped'] ?? null,
+                'n_fci' => $xmlItem['n_fci'] ?? null,
+                'inf_ad_prod' => $xmlItem['inf_ad_prod'] ?? null,
                 'rastros' => $xmlItem['rastros'] ?? [],
                 'match' => $match,
             ];
@@ -189,14 +203,18 @@ class EstoqueEntradaXmlService
             if ($ocItem?->produto?->controla_lote && $rastros !== []) {
                 $dataEntrada = $nfe['data_emissao'] ?? now()->toDateString();
                 $lotes = [];
+                $fonteInfAd = false;
                 foreach ($rastros as $rastro) {
+                    if (($rastro['fonte'] ?? 'rastro') === 'inf_ad_prod') {
+                        $fonteInfAd = true;
+                    }
                     $lotes[] = [
                         'codigo' => $rastro['codigo'],
                         'qtde' => $rastro['qtde'],
                         'data_entrada' => $dataEntrada,
                         'data_fabricacao' => $rastro['data_fabricacao'],
                         'data_validade' => $rastro['data_validade'],
-                        'largura_mm' => null,
+                        'largura_mm' => $rastro['largura_mm'] ?? null,
                         'comprimento_m' => null,
                     ];
                 }
@@ -206,6 +224,13 @@ class EstoqueEntradaXmlService
                 $itemSug['lote_data_fabricacao'] = $lotes[0]['data_fabricacao'];
                 $itemSug['lote_data_validade'] = $lotes[0]['data_validade'];
                 $itemSug['lote_data_entrada'] = $dataEntrada;
+                if ($fonteInfAd) {
+                    $warnings[] = $this->warn(
+                        'INFO',
+                        'LOTE_INF_AD_PROD',
+                        'Item OC #'.$ocItemId.': lote sugerido a partir da informação adicional do produto (infAdProd/xProd) — confira o código e a quantidade.'
+                    );
+                }
                 if (count($lotes) > 1) {
                     $warnings[] = $this->warn(
                         'INFO',
@@ -482,10 +507,17 @@ class EstoqueEntradaXmlService
                 'v_cofins' => $totais['v_cofins'] ?? null,
                 'v_st' => $totais['v_st'] ?? null,
                 'v_nf' => $totais['v_nf'] ?? $nfe['valor_nf'] ?? null,
+                'v_bc_ibs_cbs' => $totais['v_bc_ibs_cbs'] ?? null,
+                'v_ibs' => $totais['v_ibs'] ?? null,
+                'v_cbs' => $totais['v_cbs'] ?? null,
+                'v_ibs_uf' => $totais['v_ibs_uf'] ?? null,
+                'v_ibs_mun' => $totais['v_ibs_mun'] ?? null,
             ],
             'itens' => array_map(static function (array $linha): array {
                 return [
                     'n_item' => $linha['n_item'],
+                    'c_prod' => $linha['c_prod'] ?? null,
+                    'x_prod' => $linha['x_prod'] ?? null,
                     'cfop' => $linha['cfop'] ?? null,
                     'ncm' => $linha['ncm'] ?? null,
                     'orig' => $linha['orig'] ?? null,
@@ -496,6 +528,16 @@ class EstoqueEntradaXmlService
                     'v_pis' => $linha['v_pis'] ?? null,
                     'v_cofins' => $linha['v_cofins'] ?? null,
                     'v_prod' => $linha['v_prod'] ?? null,
+                    'cst_ibs_cbs' => $linha['cst_ibs_cbs'] ?? null,
+                    'c_class_trib' => $linha['c_class_trib'] ?? null,
+                    'v_bc_ibs_cbs' => $linha['v_bc_ibs_cbs'] ?? null,
+                    'v_ibs' => $linha['v_ibs'] ?? null,
+                    'v_cbs' => $linha['v_cbs'] ?? null,
+                    'p_cbs' => $linha['p_cbs'] ?? null,
+                    'x_ped' => $linha['x_ped'] ?? null,
+                    'n_item_ped' => $linha['n_item_ped'] ?? null,
+                    'n_fci' => $linha['n_fci'] ?? null,
+                    'inf_ad_prod' => $linha['inf_ad_prod'] ?? null,
                 ];
             }, $linhas),
         ];
@@ -514,24 +556,36 @@ class EstoqueEntradaXmlService
     }
 
     /**
-     * Todos os rastros das linhas XML amarradas ao item da OC (F2 multi-volume).
+     * Volumes sugeridos a partir das linhas XML amarradas ao item da OC (F2).
+     *
+     * Cada ocorrência de rastro (ou cada det com rastro) vira um volume — mesmo
+     * nLote em bobinas distintas NÃO se funde (etiqueta/QR por volume físico).
+     * Dentro do mesmo det, rastros idênticos ainda acumulam.
      *
      * @param  list<array<string, mixed>>  $linhas
-     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string}>
+     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string, fonte?: string, largura_mm?: ?string}>
      */
     private function rastrosDaOc(array $linhas, int $ocItemId): array
     {
         $out = [];
-        $seen = [];
 
         foreach ($linhas as $linha) {
             if ((int) ($linha['match']['ordem_compra_item_id'] ?? 0) !== $ocItemId) {
                 continue;
             }
             $rastros = $linha['rastros'] ?? [];
-            if (! is_array($rastros)) {
+            if (! is_array($rastros) || $rastros === []) {
                 continue;
             }
+
+            $larguraDet = $this->sugerirLarguraMm(
+                is_string($linha['x_prod'] ?? null) ? $linha['x_prod'] : null,
+                is_string($linha['c_prod'] ?? null) ? $linha['c_prod'] : null,
+            );
+
+            // Dentro do mesmo det: acumula nLote repetido; entre dets: 1 volume cada.
+            $seenNoDet = [];
+            $volumesDet = [];
             foreach ($rastros as $rastro) {
                 if (! is_array($rastro)) {
                     continue;
@@ -540,27 +594,54 @@ class EstoqueEntradaXmlService
                 if ($codigo === '') {
                     continue;
                 }
-                // Mesmo nLote em linhas distintas: acumula qtde.
-                if (isset($seen[$codigo])) {
-                    $idx = $seen[$codigo];
-                    $out[$idx]['qtde'] = PadraoDecimal::roundHalfUp(
-                        bcadd((string) $out[$idx]['qtde'], (string) ($rastro['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY + 4),
+                $qtdeRastro = (string) ($rastro['qtde'] ?? '0');
+                if (bccomp($qtdeRastro, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    $qtdeRastro = (string) ($linha['q_com'] ?? '0');
+                }
+                if (isset($seenNoDet[$codigo])) {
+                    $idx = $seenNoDet[$codigo];
+                    $volumesDet[$idx]['qtde'] = PadraoDecimal::roundHalfUp(
+                        bcadd((string) $volumesDet[$idx]['qtde'], $qtdeRastro, PadraoDecimal::SCALE_QTY + 4),
                         PadraoDecimal::SCALE_QTY
                     );
 
                     continue;
                 }
-                $seen[$codigo] = count($out);
-                $out[] = [
+                $seenNoDet[$codigo] = count($volumesDet);
+                $volumesDet[] = [
                     'codigo' => $codigo,
-                    'qtde' => PadraoDecimal::roundHalfUp((string) ($rastro['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY),
+                    'qtde' => PadraoDecimal::roundHalfUp($qtdeRastro, PadraoDecimal::SCALE_QTY),
                     'data_fabricacao' => $rastro['data_fabricacao'] ?? null,
                     'data_validade' => $rastro['data_validade'] ?? null,
+                    'fonte' => (string) ($rastro['fonte'] ?? 'rastro'),
+                    'largura_mm' => $larguraDet,
                 ];
+            }
+
+            foreach ($volumesDet as $vol) {
+                $out[] = $vol;
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Heurística leve: "60 MM" em xProd ou sufixo numérico do cProd Exact (…110060).
+     */
+    private function sugerirLarguraMm(?string $xProd, ?string $cProd): ?string
+    {
+        if (is_string($xProd) && preg_match('/\b(\d{2,4})\s*MM\b/i', $xProd, $m)) {
+            return PadraoDecimal::roundHalfUp($m[1], PadraoDecimal::SCALE_DIM);
+        }
+        if (is_string($cProd) && preg_match('/(\d{2,3})$/', $cProd, $m)) {
+            $n = (int) $m[1];
+            if ($n >= 10 && $n <= 500) {
+                return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_DIM);
+            }
+        }
+
+        return null;
     }
 
     /**

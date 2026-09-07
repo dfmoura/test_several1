@@ -181,16 +181,24 @@ export function EstoquePage() {
       <div className="card estoque-continuidade-card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-            Entrada e documentos
+            Entrada e localização física
           </h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            A NF-e de entrada confere-se na <strong>ordem de compra</strong> (XML assist + humano
-            confirma). O estoque registra o movimento e o espelho fiscal; saldo inicial/legado usa
-            ajuste A03. Sem entrada sem OC.
+            A NF-e de entrada confere-se na <strong>ordem de compra</strong>. Depois: imprima QR dos
+            volumes e dos vãos; na tela <strong>Guardar</strong>, leia volume → leia vão.
           </p>
           <div className="btn-row">
             <Link to="/compras/ordens" className="btn btn-primary">
               Abrir ordens de compra
+            </Link>
+            <Link to="/estoque/guardar" className="btn btn-primary">
+              Guardar no vão
+            </Link>
+            <Link to="/estoque/lotes/etiquetas" className="btn btn-secondary">
+              Reimprimir volumes
+            </Link>
+            <Link to="/estoque/enderecos/etiquetas" className="btn btn-secondary">
+              Etiquetas dos vãos
             </Link>
             <Link to="/estoque/ajustes" className="btn btn-secondary">
               Ajustes / virada
@@ -500,6 +508,7 @@ export function EstoquePage() {
                     >
                       Situação
                     </SortableTh>
+                    <th>Vão</th>
                     <th className="acoes" />
                   </tr>
                 </thead>
@@ -528,6 +537,7 @@ export function EstoquePage() {
                         <td>
                           <StatusPill status={l.status_label || validadeStatusLabel(l.status)} />
                         </td>
+                        <td>{l.endereco?.codigo ?? <span className="muted">—</span>}</td>
                         <td className="acoes" onClick={(e) => e.stopPropagation()}>
                           <Link
                             to={`/estoque/lotes/${l.id}/etiqueta`}
@@ -536,6 +546,15 @@ export function EstoquePage() {
                           >
                             Etiqueta
                           </Link>
+                          {!l.endereco_id ? (
+                            <Link
+                              to="/estoque/guardar"
+                              className="btn btn-secondary"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Guardar
+                            </Link>
+                          ) : null}
                           {hasPermission('producao.ler') || hasPermission('estoque.ler') ? (
                             <Link
                               to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
@@ -600,6 +619,7 @@ export function EstoquePage() {
                   >
                     Conferido
                   </SortableTh>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -659,6 +679,11 @@ export function EstoquePage() {
                         )}
                       </td>
                       <td>{formatDate(m.conferido_em)}</td>
+                      <td onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                        {m.tipo === 'ENTRADA_COMPRA' ? (
+                          <Link to={`/estoque/movimentos/${m.id}/ficha-entrada`}>Ficha QR</Link>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

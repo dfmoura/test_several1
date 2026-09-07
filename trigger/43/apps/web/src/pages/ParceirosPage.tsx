@@ -167,16 +167,21 @@ export function ParceirosPage() {
         title="Parceiros"
         description="Cadastro único PAR: cliente, prospect, fornecedor e demais classificações. Um prospect (nome, contato, cidade) já permite orçar."
         actions={
-          canWrite ? (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Link to="/parceiros/importar" className="btn btn-secondary">
-                Importar CSV
-              </Link>
-              <Link to="/parceiros/novo" className="btn btn-primary">
-                Novo parceiro
-              </Link>
-            </div>
-          ) : undefined
+          <div className="btn-row">
+            <Link to="/como-cadastra#parceiro" className="btn btn-secondary">
+              Como cadastra
+            </Link>
+            {canWrite ? (
+              <>
+                <Link to="/parceiros/importar" className="btn btn-secondary">
+                  Importar CSV
+                </Link>
+                <Link to="/parceiros/novo" className="btn btn-primary">
+                  Novo parceiro
+                </Link>
+              </>
+            ) : null}
+          </div>
         }
       />
 

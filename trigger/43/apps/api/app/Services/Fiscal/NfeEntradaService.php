@@ -141,6 +141,9 @@ class NfeEntradaService
                     'v_frete' => $item['v_frete'] ?? null,
                     'v_desc' => $item['v_desc'] ?? null,
                     'v_outro' => $item['v_outro'] ?? null,
+                    'x_ped' => $item['x_ped'] ?? null,
+                    'n_item_ped' => $item['n_item_ped'] ?? null,
+                    'n_fci' => $item['n_fci'] ?? null,
                     'impostos' => $item['impostos'] ?? null,
                     'ordem' => $ordem,
                 ]);
@@ -202,20 +205,43 @@ class NfeEntradaService
                 'v_cofins' => $totais['v_cofins'] ?? null,
                 'v_st' => $totais['v_st'] ?? null,
                 'v_nf' => $totais['v_nf'] ?? null,
+                'v_bc_ibs_cbs' => $totais['v_bc_ibs_cbs'] ?? null,
+                'v_ibs' => $totais['v_ibs'] ?? null,
+                'v_cbs' => $totais['v_cbs'] ?? null,
+                'v_ibs_uf' => $totais['v_ibs_uf'] ?? null,
+                'v_ibs_mun' => $totais['v_ibs_mun'] ?? null,
             ],
-            'itens' => $entrada->itens->map(fn (NfeEntradaItem $item) => [
-                'n_item' => (int) $item->n_item,
-                'cfop' => $item->cfop,
-                'ncm' => $item->ncm,
-                'orig' => $item->orig,
-                'cst' => $item->cst_icms ?? $item->csosn,
-                'p_icms' => $item->p_icms,
-                'v_icms' => $item->v_icms,
-                'v_ipi' => $item->v_ipi,
-                'v_pis' => $item->v_pis,
-                'v_cofins' => $item->v_cofins,
-                'v_prod' => $item->v_prod,
-            ])->values()->all(),
+            'itens' => $entrada->itens->map(function (NfeEntradaItem $item) {
+                $ibs = is_array($item->impostos) ? ($item->impostos['ibscbs'] ?? null) : null;
+                $g = is_array($ibs) ? ($ibs['gIBSCBS'] ?? null) : null;
+                $gCbs = is_array($g) ? ($g['gCBS'] ?? null) : null;
+
+                return [
+                    'n_item' => (int) $item->n_item,
+                    'c_prod' => $item->c_prod,
+                    'x_prod' => $item->x_prod,
+                    'produto_id' => $item->produto_id,
+                    'cfop' => $item->cfop,
+                    'ncm' => $item->ncm,
+                    'orig' => $item->orig,
+                    'cst' => $item->cst_icms ?? $item->csosn,
+                    'p_icms' => $item->p_icms,
+                    'v_icms' => $item->v_icms,
+                    'v_ipi' => $item->v_ipi,
+                    'v_pis' => $item->v_pis,
+                    'v_cofins' => $item->v_cofins,
+                    'v_prod' => $item->v_prod,
+                    'cst_ibs_cbs' => is_array($ibs) ? ($ibs['CST'] ?? null) : null,
+                    'c_class_trib' => is_array($ibs) ? ($ibs['cClassTrib'] ?? null) : null,
+                    'v_bc_ibs_cbs' => is_array($g) ? ($g['vBC'] ?? null) : null,
+                    'v_ibs' => is_array($g) ? ($g['vIBS'] ?? null) : null,
+                    'v_cbs' => is_array($gCbs) ? ($gCbs['vCBS'] ?? null) : null,
+                    'p_cbs' => is_array($gCbs) ? ($gCbs['pCBS'] ?? null) : null,
+                    'x_ped' => $item->x_ped,
+                    'n_item_ped' => $item->n_item_ped,
+                    'n_fci' => $item->n_fci,
+                ];
+            })->values()->all(),
         ];
 
         return $out;

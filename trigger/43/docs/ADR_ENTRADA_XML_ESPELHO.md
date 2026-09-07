@@ -40,8 +40,11 @@ O ERP **não** fecha SPED nem publica “Livro de Entradas” oficial. O espelho
 ### Modelo
 
 - `nfe_entradas`: EMP + chave + série/número/modelo + ide (`natOp`, `idDest`) + emit/dest + totais + `xml_path` + `movimento_id`.  
-- `nfe_entrada_itens`: NCM, CEST, CFOP, orig, CST/CSOSN, bases/alíquotas/valores ICMS·IPI·PIS·COFINS (cópia) + `impostos` JSON cru.  
+- `nfe_entrada_itens`: NCM, CEST, CFOP, orig, CST/CSOSN, bases/alíquotas/valores ICMS·IPI·PIS·COFINS (cópia) + **IBSCBS** (CST/`cClassTrib`/`gIBSCBS` em `impostos.ibscbs` + totais `IBSCBSTot`) + `impostos` JSON cru + **`x_ped` / `n_item_ped` / `n_fci`** (`prod/xPed`, `prod/nItemPed`, `prod/nFCI` — cópia fiel).  
+- Lote: `prod/rastro` tem prioridade; se ausente, fallback conservador em `infAdProd`/`xProd` (rótulos `LOTE:` / `nLote`) — humano confirma no assist.  
 - Storage: disco `local` (privado) `nfe-entradas/{empresa_id}/{chave}.xml`.
+
+Pós-receber: ficha física com QR por volume → `GET /estoque/movimentos/{id}/ficha-entrada` (mesmo payload `VOL:…` da etiqueta F3).
 
 ---
 

@@ -108,6 +108,9 @@ export function EstoqueLoteEtiquetaPage() {
             <Link className="btn btn-secondary" to="/estoque">
               Estoque
             </Link>
+            <Link className="btn btn-secondary" to="/estoque/guardar">
+              Guardar no vão
+            </Link>
             <button type="button" className="btn btn-primary" onClick={() => window.print()}>
               Imprimir
             </button>

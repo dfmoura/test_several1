@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\V1\ParametroController;
 use App\Http\Controllers\Api\V1\ParceiroController;
 use App\Http\Controllers\Api\V1\ParceiroImportController;
 use App\Http\Controllers\Api\V1\ProdutoController;
+use App\Http\Controllers\Api\V1\ProdutoFornecedorCodigoController;
 use App\Http\Controllers\Api\V1\ProdutoImportController;
 use App\Http\Controllers\Api\V1\TituloController;
 use App\Http\Controllers\Api\V1\WebhookAsaasAutorizacaoSaqueController;
@@ -183,12 +184,15 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/produtos', [ProdutoController::class, 'index']);
         Route::post('/produtos', [ProdutoController::class, 'store']);
-        Route::post('/produtos/sugerir-descricao', [ProdutoController::class, 'sugerirDescricao']);
         Route::get('/produtos/import/template', [ProdutoImportController::class, 'template']);
         Route::post('/produtos/import/preview', [ProdutoImportController::class, 'preview']);
         Route::post('/produtos/import/commit', [ProdutoImportController::class, 'commit']);
         Route::get('/produtos/{produto}', [ProdutoController::class, 'show']);
         Route::put('/produtos/{produto}', [ProdutoController::class, 'update']);
+        Route::get('/produtos/{produto}/fornecedor-codigos', [ProdutoFornecedorCodigoController::class, 'index']);
+        Route::post('/produtos/{produto}/fornecedor-codigos', [ProdutoFornecedorCodigoController::class, 'store']);
+        Route::put('/produtos/{produto}/fornecedor-codigos/{fornecedorCodigo}', [ProdutoFornecedorCodigoController::class, 'update']);
+        Route::delete('/produtos/{produto}/fornecedor-codigos/{fornecedorCodigo}', [ProdutoFornecedorCodigoController::class, 'destroy']);
 
         Route::get('/bens', [BemPatrimonialController::class, 'index']);
         Route::post('/bens', [BemPatrimonialController::class, 'store']);
@@ -248,6 +252,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/ordens-compra', [OrdemCompraController::class, 'index']);
         Route::post('/ordens-compra', [OrdemCompraController::class, 'store']);
         Route::get('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'show']);
+        Route::put('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'update']);
+        Route::delete('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'destroy']);
+        Route::post('/ordens-compra/{ordemCompra}/enviar', [OrdemCompraController::class, 'enviar']);
         Route::post('/ordens-compra/{ordemCompra}/cancelar', [OrdemCompraController::class, 'cancel']);
         Route::post('/ordens-compra/{ordemCompra}/receber', [EstoqueController::class, 'receber']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview', [EstoqueController::class, 'receberXmlPreview']);
@@ -267,11 +274,16 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
         Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);
+        Route::get('/estoque/lotes/etiquetas', [EstoqueVolumeController::class, 'etiquetasVolumes']);
         Route::get('/estoque/lotes/{estoqueLote}/etiqueta', [EstoqueVolumeController::class, 'etiqueta']);
         Route::post('/estoque/lotes/{estoqueLote}/endereco', [EstoqueVolumeController::class, 'vincularEndereco']);
         Route::get('/estoque/enderecos', [EstoqueVolumeController::class, 'enderecos']);
+        Route::get('/estoque/enderecos/por-qr', [EstoqueVolumeController::class, 'resolverEndereco']);
         Route::post('/estoque/enderecos/seed', [EstoqueVolumeController::class, 'seedEnderecos']);
+        Route::get('/estoque/volumes/por-qr', [EstoqueVolumeController::class, 'resolverVolume']);
+        Route::post('/estoque/guardar', [EstoqueVolumeController::class, 'guardar']);
         Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
+        Route::get('/estoque/movimentos/{estoqueMovimento}/ficha-entrada', [EstoqueVolumeController::class, 'fichaEntrada']);
         Route::get('/estoque/produtos/{produto}/extrato', [EstoqueController::class, 'extrato']);
 
         // BL-036 — Reposição (mínimo) + AJU

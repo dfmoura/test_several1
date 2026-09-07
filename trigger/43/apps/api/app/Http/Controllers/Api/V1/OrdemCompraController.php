@@ -52,6 +52,46 @@ class OrdemCompraController extends Controller
         return response()->json(['data' => $this->service->show($ordemCompra)]);
     }
 
+    public function update(Request $request, OrdemCompra $ordemCompra): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($ordemCompra);
+
+        $data = $request->validate(CompraValidationRules::ordemCompraDireta());
+
+        return response()->json([
+            'data' => $this->service->update($ordemCompra, $this->empresa(), $data),
+        ]);
+    }
+
+    public function destroy(Request $request, OrdemCompra $ordemCompra): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($ordemCompra);
+
+        $this->service->destroy($ordemCompra);
+
+        return response()->json(null, 204);
+    }
+
+    public function enviar(Request $request, OrdemCompra $ordemCompra): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($ordemCompra);
+
+        $validated = $request->validate([
+            'reenviar_email' => ['sometimes', 'boolean'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->enviar(
+                $ordemCompra,
+                $this->empresa(),
+                (bool) ($validated['reenviar_email'] ?? false),
+            ),
+        ]);
+    }
+
     public function cancel(Request $request, OrdemCompra $ordemCompra): JsonResponse
     {
         $this->authorizeWrite($request);

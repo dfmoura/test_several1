@@ -150,16 +150,25 @@ class EstoqueReposicaoAjusteTest extends TestCase
             ])
             ->assertCreated()
             ->assertJsonPath('data.origem', OrdemCompra::ORIGEM_DIRETA)
-            ->assertJsonPath('data.valor_total', '250.00');
+            ->assertJsonPath('data.valor_total', '250.00')
+            ->assertJsonPath('data.status', OrdemCompra::STATUS_RASCUNHO);
+
+        $ocId = $oc->json('data.id');
+        $ocItemId = $oc->json('data.itens.0.id');
+
+        // Rascunho ainda NÃO conta em trânsito.
+        $this->withHeaders($h)
+            ->getJson('/api/v1/estoque/reposicao')
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+
+        $this->enviarOrdemCompra($h, (int) $ocId);
 
         // Em trânsito cobre o mínimo → some da lista.
         $this->withHeaders($h)
             ->getJson('/api/v1/estoque/reposicao')
             ->assertOk()
             ->assertJsonCount(0, 'data');
-
-        $ocId = $oc->json('data.id');
-        $ocItemId = $oc->json('data.itens.0.id');
 
         $receber = $this->withHeaders($h)
             ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [

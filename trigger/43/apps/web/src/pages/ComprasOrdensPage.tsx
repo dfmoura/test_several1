@@ -55,7 +55,7 @@ export function ComprasOrdensPage() {
     <>
       <PageHeader
         title="Ordens de compra"
-        description="Emita a OC, receba com NF × conferência e o material entra no estoque. Sem OC não entra saldo."
+        description="Prepare a OC em rascunho, envie ao fornecedor e receba com NF × conferência. Sem OC enviada não entra saldo."
         actions={
           hasPermission('compras.escrever') ? (
             <Link to="/compras/ordens/nova" className="btn btn-primary">
@@ -80,7 +80,8 @@ export function ComprasOrdensPage() {
               <label>Status</label>
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">Todos</option>
-                <option value="ABERTA">Aberta</option>
+                <option value="RASCUNHO">Rascunho</option>
+                <option value="ABERTA">Enviada</option>
                 <option value="PARCIAL">Parcial</option>
                 <option value="RECEBIDA">Recebida</option>
                 <option value="CANCELADA">Cancelada</option>
