@@ -72,6 +72,23 @@ class LimparDadosOperacionaisTest extends TestCase
         ]);
         $extraUser->empresas()->attach($empresa->id, ['padrao' => true]);
 
+        if (DB::getSchemaBuilder()->hasTable('conta_ativacoes')) {
+            DB::table('conta_ativacoes')->insert([
+                [
+                    'user_id' => $admin->id,
+                    'billing_status' => 'ATIVA',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'user_id' => $extraUser->id,
+                    'billing_status' => 'PENDENTE',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
         Produto::query()->create([
             'empresa_id' => $empresa->id,
             'codigo' => 'MP-PAP-999',
@@ -165,6 +182,10 @@ class LimparDadosOperacionaisTest extends TestCase
         $this->assertSame(1, DB::table('audit_logs')->count());
         $this->assertDatabaseHas('empresas', ['codigo' => 'EMP-00001']);
         $this->assertDatabaseHas('bens_patrimoniais', ['codigo' => 'BEM-00001']);
+        if (DB::getSchemaBuilder()->hasTable('conta_ativacoes')) {
+            $this->assertDatabaseHas('conta_ativacoes', ['user_id' => $admin->id]);
+            $this->assertDatabaseMissing('conta_ativacoes', ['user_id' => $extraUser->id]);
+        }
 
         $bem = BemPatrimonial::query()->where('codigo', 'BEM-00001')->first();
         $this->assertNotNull($bem);

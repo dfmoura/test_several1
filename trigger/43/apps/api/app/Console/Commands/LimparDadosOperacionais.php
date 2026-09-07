@@ -394,6 +394,13 @@ class LimparDadosOperacionais extends Command
             DB::table('empresa_user')->whereIn('user_id', $otherIds)->delete();
         }
 
+        // Mensalidade: RESTRICT em conta_ativacoes.user_id — apaga só dos users que saem.
+        // Conta do ADMIN permanece (billing da instalação).
+        if (Schema::hasTable('conta_ativacoes')) {
+            $nAtiv = DB::table('conta_ativacoes')->whereIn('user_id', $otherIds)->delete();
+            $this->line("· conta_ativacoes removidas (não-admin): {$nAtiv}");
+        }
+
         // Soft-deleted e ativos: hard delete dos demais.
         $n = DB::table('users')->whereIn('id', $otherIds)->delete();
         $this->line("· users removidos: {$n} (mantido #{$keepUserId})");

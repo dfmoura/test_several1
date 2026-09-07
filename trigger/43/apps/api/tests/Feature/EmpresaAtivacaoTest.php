@@ -304,7 +304,7 @@ class EmpresaAtivacaoTest extends TestCase
         ]);
     }
 
-    public function test_legado_sem_ativacao_nao_aparece_como_setup(): void
+    public function test_emp_sem_ativacao_nao_abre_setup_de_emp_e_le_fatura_da_conta(): void
     {
         Permission::findOrCreate('orcamento.ler', 'web');
         $emp = Empresa::query()->create([
@@ -329,11 +329,18 @@ class EmpresaAtivacaoTest extends TestCase
             ->getJson('/api/v1/ativacao')
             ->assertOk();
 
-        $this->assertSame('legado', $res->json('data.origem'));
+        // EMP seed sem empresa_ativacoes: não nasce cockpit de EMP (A1/catálogo).
+        // Com viewer, a mensalidade é da conta (USR) — dtoDaConta, não dtoLegado.
+        $this->assertSame('self_service', $res->json('data.origem'));
         $this->assertTrue($res->json('data.pronta'));
-        $this->assertTrue($res->json('data.pode_enviar_orcamento'));
         $this->assertFalse($res->json('data.certificado_a1_pendente'));
-        $this->assertNull($res->json('data.conta'));
+        $this->assertNotNull($res->json('data.conta'));
+        $this->assertTrue($res->json('data.pagamento_pendente'));
+        $this->assertFalse($res->json('data.pode_enviar_orcamento'));
+        $this->assertSame('pagamento', $res->json('data.proximo'));
+        $this->assertSame(['conta', 'pagamento', 'empresa'], collect($res->json('data.passos'))->pluck('id')->all());
+        $this->assertDatabaseMissing('empresa_ativacoes', ['empresa_id' => $emp->id]);
+        $this->assertDatabaseHas('conta_ativacoes', ['user_id' => $user->id]);
     }
 
     public function test_repor_demo_remove_todas_emps_e_contas_flexorc(): void
