@@ -19,6 +19,7 @@ class OrdemCompraService
     public function __construct(
         private readonly CodigoGenerator $codigos,
         private readonly OrdemCompraEmailService $email,
+        private readonly OcImpostoEstimativaService $impostoEstimativa,
     ) {}
 
     /**
@@ -79,17 +80,24 @@ class OrdemCompraService
             }
         }
 
-        $itensPayload = $this->normalizeItens($empresa, $data['itens'] ?? []);
+        $itensPayload = $this->normalizeItens($empresa, $fornecedor, $data['itens'] ?? []);
 
         $oc = DB::transaction(function () use ($empresa, $data, $fornecedor, $necessidade, $itensPayload) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'OC-'.$ano, 5);
 
             $valorTotal = '0';
+            $valorIpi = '0';
+            $valorIcms = '0';
             foreach ($itensPayload as $item) {
                 $valorTotal = bcadd($valorTotal, $item['valor_total'], PadraoDecimal::SCALE_MONEY);
+                $valorIpi = bcadd($valorIpi, $item['valor_ipi'], PadraoDecimal::SCALE_MONEY);
+                $valorIcms = bcadd($valorIcms, $item['valor_icms'], PadraoDecimal::SCALE_MONEY);
             }
             $valorTotal = PadraoDecimal::roundHalfUp($valorTotal, PadraoDecimal::SCALE_MONEY);
+            $valorIpi = PadraoDecimal::roundHalfUp($valorIpi, PadraoDecimal::SCALE_MONEY);
+            $valorIcms = PadraoDecimal::roundHalfUp($valorIcms, PadraoDecimal::SCALE_MONEY);
+            $valorFrete = $this->parseFrete($data['valor_frete'] ?? null);
 
             $oc = OrdemCompra::query()->create([
                 'empresa_id' => $empresa->id,
@@ -103,6 +111,9 @@ class OrdemCompraService
                 'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
                 'previsao_entrega' => $data['previsao_entrega'] ?? null,
                 'valor_total' => $valorTotal,
+                'valor_frete' => $valorFrete,
+                'valor_ipi' => $valorIpi,
+                'valor_icms' => $valorIcms,
                 'observacao' => $this->nullIfEmpty($data['observacao'] ?? null),
             ]);
 
@@ -132,20 +143,30 @@ class OrdemCompraService
     {
         $this->assertEditavel($oc);
         $fornecedor = $this->assertFornecedor($empresa, (int) $data['fornecedor_id']);
-        $itensPayload = $this->normalizeItens($empresa, $data['itens'] ?? []);
+        $itensPayload = $this->normalizeItens($empresa, $fornecedor, $data['itens'] ?? []);
 
         DB::transaction(function () use ($oc, $data, $fornecedor, $itensPayload) {
             $valorTotal = '0';
+            $valorIpi = '0';
+            $valorIcms = '0';
             foreach ($itensPayload as $item) {
                 $valorTotal = bcadd($valorTotal, $item['valor_total'], PadraoDecimal::SCALE_MONEY);
+                $valorIpi = bcadd($valorIpi, $item['valor_ipi'], PadraoDecimal::SCALE_MONEY);
+                $valorIcms = bcadd($valorIcms, $item['valor_icms'], PadraoDecimal::SCALE_MONEY);
             }
             $valorTotal = PadraoDecimal::roundHalfUp($valorTotal, PadraoDecimal::SCALE_MONEY);
+            $valorIpi = PadraoDecimal::roundHalfUp($valorIpi, PadraoDecimal::SCALE_MONEY);
+            $valorIcms = PadraoDecimal::roundHalfUp($valorIcms, PadraoDecimal::SCALE_MONEY);
+            $valorFrete = $this->parseFrete($data['valor_frete'] ?? null);
 
             $oc->fornecedor_id = $fornecedor->id;
             $oc->urgente = (bool) ($data['urgente'] ?? false);
             $oc->condicao_pagamento = $this->nullIfEmpty($data['condicao_pagamento'] ?? null);
             $oc->previsao_entrega = $data['previsao_entrega'] ?? null;
             $oc->valor_total = $valorTotal;
+            $oc->valor_frete = $valorFrete;
+            $oc->valor_ipi = $valorIpi;
+            $oc->valor_icms = $valorIcms;
             $oc->observacao = $this->nullIfEmpty($data['observacao'] ?? null);
             $oc->save();
 
@@ -209,15 +230,28 @@ class OrdemCompraService
     {
         $oc->load([
             'fornecedor',
-            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
+            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias,ncm,origem,cest',
             'necessidade:id,codigo,status',
             'cotacao:id,codigo,status',
             'movimentos.nfeEntrada.itens',
-            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
+            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep,ie,crt,regime',
             ...OrdemCompra::userStampWith(),
         ]);
 
         return $this->toOut($oc);
+    }
+
+    /**
+     * Sugestão automática de alíquotas (última NF + tabela UF×UF).
+     *
+     * @param  list<int>  $produtoIds
+     * @return array<string, mixed>
+     */
+    public function estimarImpostos(Empresa $empresa, int $fornecedorId, array $produtoIds): array
+    {
+        $fornecedor = $this->assertFornecedor($empresa, $fornecedorId);
+
+        return $this->impostoEstimativa->estimar($empresa, $fornecedor, $produtoIds);
     }
 
     /**
@@ -250,13 +284,16 @@ class OrdemCompraService
     {
         $oc->loadMissing([
             'fornecedor',
-            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias',
-            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
+            'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias,ncm,origem,cest',
+            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep,ie,crt,regime',
             ...OrdemCompra::userStampWith(),
         ]);
 
         $fornecedor = $oc->fornecedor;
         $empresa = $oc->relationLoaded('empresa') ? $oc->empresa : null;
+        $empUf = $empresa?->uf ? strtoupper(trim((string) $empresa->uf)) : null;
+        $fornUf = $fornecedor?->uf ? strtoupper(trim((string) $fornecedor->uf)) : null;
+        $idDest = $empUf && $fornUf ? ($empUf === $fornUf ? '1' : '2') : null;
 
         return [
             'id' => $oc->id,
@@ -278,6 +315,13 @@ class OrdemCompraService
                 'municipio' => $fornecedor->municipio,
                 'uf' => $fornecedor->uf,
                 'cep' => $fornecedor->cep,
+                'ie' => $fornecedor->ie,
+                'ind_ie_dest' => $fornecedor->ind_ie_dest,
+                'ie_status' => $fornecedor->ie_status,
+                'regime' => $fornecedor->regime,
+                'suframa' => $fornecedor->suframa,
+                'finalidade' => $fornecedor->finalidade ?? null,
+                'cfop_entrada_padrao' => $fornecedor->cfop_entrada_padrao ?? null,
             ] : null,
             'empresa' => $empresa ? [
                 'id' => $empresa->id,
@@ -294,7 +338,16 @@ class OrdemCompraService
                 'municipio' => $empresa->municipio,
                 'uf' => $empresa->uf,
                 'cep' => $empresa->cep,
+                'ie' => $empresa->ie ?? null,
+                'crt' => $empresa->crt ?? null,
+                'regime' => $empresa->regime ?? null,
             ] : null,
+            'operacao' => [
+                'id_dest' => $idDest,
+                'id_dest_label' => $idDest === '1' ? 'Interna' : ($idDest === '2' ? 'Interestadual' : null),
+                'empresa_uf' => $empUf,
+                'fornecedor_uf' => $fornUf,
+            ],
             'cotacao_id' => $oc->cotacao_id,
             'necessidade_id' => $oc->necessidade_id,
             'origem' => $oc->origem,
@@ -304,6 +357,17 @@ class OrdemCompraService
             'condicao_pagamento' => $oc->condicao_pagamento,
             'previsao_entrega' => optional($oc->previsao_entrega)?->format('Y-m-d'),
             'valor_total' => (string) $oc->valor_total,
+            'valor_frete' => PadraoDecimal::roundHalfUp((string) ($oc->valor_frete ?? '0'), PadraoDecimal::SCALE_MONEY),
+            'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
+            'valor_icms' => PadraoDecimal::roundHalfUp((string) ($oc->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
+            'valor_previsto' => PadraoDecimal::roundHalfUp(
+                bcadd(
+                    bcadd((string) $oc->valor_total, (string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY + 2),
+                    (string) ($oc->valor_frete ?? '0'),
+                    PadraoDecimal::SCALE_MONEY + 2
+                ),
+                PadraoDecimal::SCALE_MONEY
+            ),
             'observacao' => $oc->observacao,
             'enviado_em' => optional($oc->enviado_em)?->toIso8601String(),
             'itens' => $oc->itens->map(fn (OrdemCompraItem $item) => [
@@ -315,6 +379,9 @@ class OrdemCompraService
                     'descricao_fiscal' => $item->produto->descricao_fiscal,
                     'descricao_comercial' => $item->produto->descricao_comercial,
                     'familia' => $item->produto->familia,
+                    'ncm' => $item->produto->ncm,
+                    'cest' => $item->produto->cest ?? null,
+                    'origem' => $item->produto->origem,
                     'unidade_comercial' => $item->produto->unidade_comercial,
                     'unidade_interna' => $item->produto->unidade_interna,
                     'fator_conversao' => (string) ($item->produto->fator_conversao ?? '1'),
@@ -327,6 +394,14 @@ class OrdemCompraService
                 'unidade' => $item->unidade,
                 'valor_unitario' => (string) $item->valor_unitario,
                 'valor_total' => (string) $item->valor_total,
+                'aliq_ipi' => $item->aliq_ipi !== null
+                    ? PadraoDecimal::roundHalfUp((string) $item->aliq_ipi, PadraoDecimal::SCALE_PERCENT)
+                    : null,
+                'aliq_icms' => $item->aliq_icms !== null
+                    ? PadraoDecimal::roundHalfUp((string) $item->aliq_icms, PadraoDecimal::SCALE_PERCENT)
+                    : null,
+                'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($item->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
+                'valor_icms' => PadraoDecimal::roundHalfUp((string) ($item->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
                 'ordem' => (int) $item->ordem,
             ])->values()->all(),
             'created_at' => optional($oc->created_at)?->toIso8601String(),
@@ -359,12 +434,25 @@ class OrdemCompraService
      * @param  list<array<string, mixed>>  $itens
      * @return list<array<string, mixed>>
      */
-    private function normalizeItens(Empresa $empresa, array $itens): array
+    private function normalizeItens(Empresa $empresa, Parceiro $fornecedor, array $itens): array
     {
         if ($itens === []) {
             throw ValidationException::withMessages([
                 'itens' => ['Informe ao menos um item.'],
             ]);
+        }
+
+        $produtoIds = [];
+        foreach ($itens as $raw) {
+            $pid = (int) ($raw['produto_id'] ?? 0);
+            if ($pid > 0) {
+                $produtoIds[] = $pid;
+            }
+        }
+        $estimativa = $this->impostoEstimativa->estimar($empresa, $fornecedor, $produtoIds);
+        $sugestaoPorProduto = [];
+        foreach ($estimativa['itens'] as $sug) {
+            $sugestaoPorProduto[(int) $sug['produto_id']] = $sug;
         }
 
         $out = [];
@@ -391,6 +479,19 @@ class OrdemCompraService
                 PadraoDecimal::SCALE_MONEY
             );
 
+            $sug = $sugestaoPorProduto[$produto->id] ?? null;
+            $aliqIpi = $this->parseAliquota($raw['aliq_ipi'] ?? null, "itens.{$idx}.aliq_ipi");
+            $aliqIcms = $this->parseAliquota($raw['aliq_icms'] ?? null, "itens.{$idx}.aliq_icms");
+            // Sem alíquota informada → preenche automático (histórico NF / tabela UF).
+            if ($aliqIpi === null && is_array($sug)) {
+                $aliqIpi = $this->parseAliquota($sug['aliq_ipi'] ?? null, "itens.{$idx}.aliq_ipi");
+            }
+            if ($aliqIcms === null && is_array($sug)) {
+                $aliqIcms = $this->parseAliquota($sug['aliq_icms'] ?? null, "itens.{$idx}.aliq_icms");
+            }
+            $valorIpi = $this->impostoSobreBase($valorTotal, $aliqIpi);
+            $valorIcms = $this->impostoSobreBase($valorTotal, $aliqIcms);
+
             $out[] = [
                 'produto_id' => $produto->id,
                 'qtde_pedida' => $qtde,
@@ -398,12 +499,63 @@ class OrdemCompraService
                 'unidade' => $raw['unidade'] ?? $produto->unidade_comercial ?? 'UN',
                 'valor_unitario' => $valorUnit,
                 'valor_total' => $valorTotal,
+                'aliq_ipi' => $aliqIpi,
+                'aliq_icms' => $aliqIcms,
+                'valor_ipi' => $valorIpi,
+                'valor_icms' => $valorIcms,
                 'ordem' => (int) ($raw['ordem'] ?? $ordem),
             ];
             $ordem++;
         }
 
         return $out;
+    }
+
+    private function parseFrete(mixed $raw): string
+    {
+        if ($raw === null || $raw === '') {
+            return PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+        }
+        $v = PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_MONEY);
+        if ($v === null || bccomp($v, '0', PadraoDecimal::SCALE_MONEY) < 0) {
+            throw ValidationException::withMessages([
+                'valor_frete' => ['Frete inválido.'],
+            ]);
+        }
+
+        return PadraoDecimal::roundHalfUp($v, PadraoDecimal::SCALE_MONEY);
+    }
+
+    private function parseAliquota(mixed $raw, string $field): ?string
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $v = PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_PERCENT);
+        if ($v === null || bccomp($v, '0', PadraoDecimal::SCALE_PERCENT) < 0) {
+            throw ValidationException::withMessages([
+                $field => ['Alíquota inválida.'],
+            ]);
+        }
+        if (bccomp($v, '100', PadraoDecimal::SCALE_PERCENT) > 0) {
+            throw ValidationException::withMessages([
+                $field => ['Alíquota não pode ser maior que 100%.'],
+            ]);
+        }
+
+        return PadraoDecimal::roundHalfUp($v, PadraoDecimal::SCALE_PERCENT);
+    }
+
+    private function impostoSobreBase(string $base, ?string $aliq): string
+    {
+        if ($aliq === null || bccomp($aliq, '0', PadraoDecimal::SCALE_PERCENT) <= 0) {
+            return PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+        }
+
+        return PadraoDecimal::roundHalfUp(
+            bcmul($base, bcdiv($aliq, '100', PadraoDecimal::SCALE_PERCENT + 4), PadraoDecimal::SCALE_MONEY + 4),
+            PadraoDecimal::SCALE_MONEY
+        );
     }
 
     private function assertFornecedor(Empresa $empresa, int $fornecedorId): Parceiro

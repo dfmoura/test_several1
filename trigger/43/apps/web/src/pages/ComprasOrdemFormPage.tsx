@@ -1,16 +1,81 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
-import { ApiError, api, type OrdemCompra, type Parceiro, type Produto } from '../lib/api';
+import {
+  ApiError,
+  api,
+  type OcImpostoEstimativa,
+  type OrdemCompra,
+  type Parceiro,
+  type Produto,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { DECIMAL_SCALE, formatCurrency } from '../lib/format';
 
 type ItemRow = {
   produto_id: string;
   qtde_pedida: string;
   valor_unitario: string;
+  aliq_ipi: string;
+  aliq_icms: string;
 };
+
+function aliqFromSugestao(raw: string | null | undefined): string {
+  if (raw == null || raw === '') return '';
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return String(n);
+}
+
+async function aplicarEstimativaItens(
+  fornecedorId: number,
+  rows: ItemRow[],
+): Promise<ItemRow[]> {
+  const produtoIds = [
+    ...new Set(
+      rows
+        .map((r) => Number(r.produto_id))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (produtoIds.length === 0) return rows;
+
+  const res = await api.post<{ data: OcImpostoEstimativa }>(
+    '/ordens-compra/estimar-impostos',
+    { fornecedor_id: fornecedorId, produto_ids: produtoIds },
+  );
+  const byId = new Map(res.data.itens.map((i) => [i.produto_id, i]));
+  return rows.map((row) => {
+    const sug = byId.get(Number(row.produto_id));
+    if (!sug) return row;
+    return {
+      ...row,
+      aliq_ipi: aliqFromSugestao(sug.aliq_ipi),
+      aliq_icms: aliqFromSugestao(sug.aliq_icms),
+    };
+  });
+}
+
+function parseNum(raw: string): number {
+  const n = Number(String(raw).replace(',', '.').trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+function money2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+function lineMercadoria(row: ItemRow): number {
+  return money2(parseNum(row.qtde_pedida) * parseNum(row.valor_unitario));
+}
+
+function lineImposto(base: number, aliq: string): number {
+  const a = parseNum(aliq);
+  if (a <= 0) return 0;
+  return money2(base * (a / 100));
+}
 
 export function ComprasOrdemFormPage() {
   const { id } = useParams();
@@ -24,12 +89,34 @@ export function ComprasOrdemFormPage() {
   const [condicao, setCondicao] = useState('');
   const [previsao, setPrevisao] = useState('');
   const [observacao, setObservacao] = useState('');
+  const [valorFrete, setValorFrete] = useState('');
   const [itens, setItens] = useState<ItemRow[]>([
-    { produto_id: '', qtde_pedida: '', valor_unitario: '' },
+    { produto_id: '', qtde_pedida: '', valor_unitario: '', aliq_ipi: '', aliq_icms: '' },
   ]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
+
+  const totais = useMemo(() => {
+    let mercadoria = 0;
+    let ipi = 0;
+    let icms = 0;
+    for (const row of itens) {
+      if (!row.produto_id || !row.qtde_pedida || !row.valor_unitario) continue;
+      const base = lineMercadoria(row);
+      mercadoria = money2(mercadoria + base);
+      ipi = money2(ipi + lineImposto(base, row.aliq_ipi));
+      icms = money2(icms + lineImposto(base, row.aliq_icms));
+    }
+    const frete = money2(Math.max(0, parseNum(valorFrete)));
+    return {
+      mercadoria,
+      ipi,
+      icms,
+      frete,
+      previsto: money2(mercadoria + ipi + frete),
+    };
+  }, [itens, valorFrete]);
 
   useEffect(() => {
     void (async () => {
@@ -69,11 +156,16 @@ export function ComprasOrdemFormPage() {
         setCondicao(oc.condicao_pagamento ?? '');
         setPrevisao(oc.previsao_entrega ?? '');
         setObservacao(oc.observacao ?? '');
+        setValorFrete(
+          oc.valor_frete && Number(oc.valor_frete) > 0 ? String(oc.valor_frete) : '',
+        );
         setItens(
           (oc.itens ?? []).map((i) => ({
             produto_id: String(i.produto_id),
             qtde_pedida: i.qtde_pedida,
             valor_unitario: i.valor_unitario,
+            aliq_ipi: i.aliq_ipi != null && Number(i.aliq_ipi) > 0 ? String(i.aliq_ipi) : '',
+            aliq_icms: i.aliq_icms != null && Number(i.aliq_icms) > 0 ? String(i.aliq_icms) : '',
           })),
         );
       } catch (err) {
@@ -89,6 +181,30 @@ export function ComprasOrdemFormPage() {
     if (!isEdit || !condicao.trim()) {
       setCondicao(p?.condicao_pagamento?.trim() ?? '');
     }
+    if (!p) return;
+    void (async () => {
+      try {
+        const next = await aplicarEstimativaItens(p.id, itens);
+        setItens(next);
+      } catch {
+        /* estimativa é best-effort; servidor ainda preenche no save */
+      }
+    })();
+  };
+
+  const onProdutoChange = (idx: number, produtoId: string) => {
+    const next = [...itens];
+    next[idx] = { ...itens[idx], produto_id: produtoId, aliq_ipi: '', aliq_icms: '' };
+    setItens(next);
+    if (!fornecedor || !produtoId) return;
+    void (async () => {
+      try {
+        const filled = await aplicarEstimativaItens(fornecedor.id, next);
+        setItens(filled);
+      } catch {
+        /* best-effort */
+      }
+    })();
   };
 
   const submit = async (e: FormEvent) => {
@@ -108,12 +224,15 @@ export function ComprasOrdemFormPage() {
         condicao_pagamento: condicao || null,
         previsao_entrega: previsao || null,
         observacao: observacao || null,
+        valor_frete: valorFrete.trim() !== '' ? valorFrete : null,
         itens: itens
           .filter((i) => i.produto_id && i.qtde_pedida && i.valor_unitario)
           .map((i) => ({
             produto_id: Number(i.produto_id),
             qtde_pedida: i.qtde_pedida,
             valor_unitario: i.valor_unitario,
+            aliq_ipi: i.aliq_ipi.trim() !== '' ? i.aliq_ipi : null,
+            aliq_icms: i.aliq_icms.trim() !== '' ? i.aliq_icms : null,
           })),
       };
       const res = isEdit
@@ -133,8 +252,8 @@ export function ComprasOrdemFormPage() {
         title={isEdit ? 'Editar ordem de compra' : 'Nova ordem de compra'}
         description={
           isEdit
-            ? 'Ajuste fornecedor, itens e condições enquanto a OC estiver em rascunho.'
-            : 'Salve em rascunho. Depois confira a ficha e envie ao fornecedor.'
+            ? 'IPI/ICMS preenchem sozinhos (histórico NF ou UF×UF). Frete informado. Rascunho editável.'
+            : 'IPI/ICMS automáticos ao escolher fornecedor e produto. Frete informado. Salve em rascunho.'
         }
         actions={
           <Link
@@ -189,6 +308,16 @@ export function ComprasOrdemFormPage() {
                     />
                   </div>
                   <div className="form-group">
+                    <label>Frete (R$)</label>
+                    <input
+                      inputMode="decimal"
+                      value={valorFrete}
+                      onChange={(e) => setValorFrete(e.target.value)}
+                      placeholder="0,00"
+                    />
+                    <span className="form-hint">Informado na OC · não entra no custo médio do estoque.</span>
+                  </div>
+                  <div className="form-group">
                     <label>
                       <input
                         type="checkbox"
@@ -208,67 +337,104 @@ export function ComprasOrdemFormPage() {
             <div className="card-body">
               <div className="form-section">
                 <h3>Itens</h3>
-                {itens.map((row, idx) => (
-                  <div className="form-grid" key={idx} style={{ marginBottom: '0.75rem' }}>
-                    <div className="form-group span-2">
-                      <label>Produto</label>
-                      <select
-                        required
-                        value={row.produto_id}
-                        onChange={(e) => {
-                          const next = [...itens];
-                          next[idx] = { ...row, produto_id: e.target.value };
-                          setItens(next);
-                        }}
-                      >
-                        <option value="">Selecione…</option>
-                        {produtos.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.codigo} — {p.descricao_comercial || p.descricao_fiscal}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Qtde (un. comercial)</label>
-                      <input
-                        required
-                        inputMode="decimal"
-                        value={row.qtde_pedida}
-                        onChange={(e) => {
-                          const next = [...itens];
-                          next[idx] = { ...row, qtde_pedida: e.target.value };
-                          setItens(next);
-                        }}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Valor unitário</label>
-                      <input
-                        required
-                        inputMode="decimal"
-                        value={row.valor_unitario}
-                        onChange={(e) => {
-                          const next = [...itens];
-                          next[idx] = { ...row, valor_unitario: e.target.value };
-                          setItens(next);
-                        }}
-                      />
-                    </div>
-                    {itens.length > 1 && (
-                      <div className="form-group">
-                        <label>&nbsp;</label>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => setItens(itens.filter((_, i) => i !== idx))}
+                {itens.map((row, idx) => {
+                  const base = lineMercadoria(row);
+                  const ipi = lineImposto(base, row.aliq_ipi);
+                  const icms = lineImposto(base, row.aliq_icms);
+                  return (
+                    <div className="form-grid" key={idx} style={{ marginBottom: '0.75rem' }}>
+                      <div className="form-group span-2">
+                        <label>Produto</label>
+                        <select
+                          required
+                          value={row.produto_id}
+                          onChange={(e) => onProdutoChange(idx, e.target.value)}
                         >
-                          Remover
-                        </button>
+                          <option value="">Selecione…</option>
+                          {produtos.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.codigo} — {p.descricao_comercial || p.descricao_fiscal}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="form-group">
+                        <label>Qtde (un. comercial)</label>
+                        <input
+                          required
+                          inputMode="decimal"
+                          value={row.qtde_pedida}
+                          onChange={(e) => {
+                            const next = [...itens];
+                            next[idx] = { ...row, qtde_pedida: e.target.value };
+                            setItens(next);
+                          }}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Valor unitário</label>
+                        <input
+                          required
+                          inputMode="decimal"
+                          value={row.valor_unitario}
+                          onChange={(e) => {
+                            const next = [...itens];
+                            next[idx] = { ...row, valor_unitario: e.target.value };
+                            setItens(next);
+                          }}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Alíq. IPI % (auto)</label>
+                        <input
+                          inputMode="decimal"
+                          value={row.aliq_ipi}
+                          onChange={(e) => {
+                            const next = [...itens];
+                            next[idx] = { ...row, aliq_ipi: e.target.value };
+                            setItens(next);
+                          }}
+                          placeholder="auto"
+                        />
+                        <span className="form-hint">
+                          {ipi > 0
+                            ? `IPI ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
+                            : 'Histórico NF ou vazio'}
+                        </span>
+                      </div>
+                      <div className="form-group">
+                        <label>Alíq. ICMS % (auto)</label>
+                        <input
+                          inputMode="decimal"
+                          value={row.aliq_icms}
+                          onChange={(e) => {
+                            const next = [...itens];
+                            next[idx] = { ...row, aliq_icms: e.target.value };
+                            setItens(next);
+                          }}
+                          placeholder="auto"
+                        />
+                        <span className="form-hint">
+                          {icms > 0
+                            ? `ICMS ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))} (destaque)`
+                            : 'UF×UF / histórico · não soma no total'}
+                        </span>
+                      </div>
+                      {itens.length > 1 && (
+                        <div className="form-group">
+                          <label>&nbsp;</label>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setItens(itens.filter((_, i) => i !== idx))}
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div className="btn-row">
                   <button
                     type="button"
@@ -276,12 +442,54 @@ export function ComprasOrdemFormPage() {
                     onClick={() =>
                       setItens([
                         ...itens,
-                        { produto_id: '', qtde_pedida: '', valor_unitario: '' },
+                        {
+                          produto_id: '',
+                          qtde_pedida: '',
+                          valor_unitario: '',
+                          aliq_ipi: '',
+                          aliq_icms: '',
+                        },
                       ])
                     }
                   >
                     + Item
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div className="card-body">
+              <div className="form-section">
+                <h3>Totais previstos</h3>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Mercadoria alimenta o estoque. IPI e frete entram no total previsto. ICMS é
+                  destaque. Na entrada, a NF prevalece.
+                </p>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Mercadoria</label>
+                    <div>{formatCurrency(totais.mercadoria.toFixed(DECIMAL_SCALE.money))}</div>
+                  </div>
+                  <div className="form-group">
+                    <label>IPI</label>
+                    <div>{formatCurrency(totais.ipi.toFixed(DECIMAL_SCALE.money))}</div>
+                  </div>
+                  <div className="form-group">
+                    <label>ICMS (destaque)</label>
+                    <div>{formatCurrency(totais.icms.toFixed(DECIMAL_SCALE.money))}</div>
+                  </div>
+                  <div className="form-group">
+                    <label>Frete</label>
+                    <div>{formatCurrency(totais.frete.toFixed(DECIMAL_SCALE.money))}</div>
+                  </div>
+                  <div className="form-group">
+                    <label>Total previsto</label>
+                    <div>
+                      <strong>{formatCurrency(totais.previsto.toFixed(DECIMAL_SCALE.money))}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

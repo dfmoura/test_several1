@@ -441,6 +441,15 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertSame('3034.68', $preview->json('data.espelho.totais.v_bc_ibs_cbs'));
         $this->assertSame('3.03', $preview->json('data.espelho.totais.v_ibs'));
         $this->assertSame('27.31', $preview->json('data.espelho.totais.v_cbs'));
+        $this->assertSame('63027692000181', $preview->json('data.espelho.complementos.resp_tec.cnpj'));
+        $this->assertSame('Miriam Rocha Negreiro', $preview->json('data.espelho.complementos.resp_tec.x_contato'));
+        $this->assertStringContainsString('PEDIDO', (string) $preview->json('data.espelho.complementos.inf_adic.inf_cpl'));
+        $this->assertSame('0', $preview->json('data.espelho.complementos.transporte.mod_frete'));
+        $this->assertSame('1', $preview->json('data.espelho.complementos.transporte.vol.0.q_vol'));
+        $this->assertSame('PALLET', $preview->json('data.espelho.complementos.transporte.vol.0.esp'));
+        $this->assertSame('119.000', $preview->json('data.espelho.complementos.transporte.vol.0.peso_l'));
+        $this->assertSame('137.000', $preview->json('data.espelho.complementos.transporte.vol.0.peso_b'));
+        $this->assertSame('15', $preview->json('data.espelho.complementos.pag.det_pag.0.t_pag'));
     }
 
     public function test_preview_rejeita_oc_outra_empresa(): void
@@ -524,7 +533,9 @@ class EntradaXmlAssistTest extends TestCase
             ->assertJsonPath('data.nfe_entrada.xml_armazenado', true)
             ->assertJsonPath('data.nfe_entrada.serie', '4')
             ->assertJsonPath('data.nfe_entrada.espelho.itens.0.v_icms', '456.00')
-            ->assertJsonPath('data.nfe_entrada.espelho.totais.v_ipi', '370.50');
+            ->assertJsonPath('data.nfe_entrada.espelho.totais.v_ipi', '370.50')
+            ->assertJsonPath('data.nfe_entrada.espelho.complementos.resp_tec.cnpj', '63027692000181')
+            ->assertJsonPath('data.nfe_entrada.espelho.complementos.resp_tec.x_contato', 'Miriam Rocha Negreiro');
 
         $this->assertDatabaseHas('nfe_entradas', [
             'empresa_id' => $this->empresa->id,
@@ -534,6 +545,13 @@ class EntradaXmlAssistTest extends TestCase
             'emit_crt' => '3',
             'numero' => '577306',
         ]);
+        $entrada = NfeEntrada::query()->firstOrFail();
+        $complementos = is_array($entrada->complementos) ? $entrada->complementos : [];
+        $this->assertSame('63027692000181', $complementos['resp_tec']['cnpj'] ?? null);
+        $this->assertSame('Miriam Rocha Negreiro', $complementos['resp_tec']['x_contato'] ?? null);
+        $this->assertStringContainsString('PEDIDO', (string) ($complementos['inf_adic']['inf_cpl'] ?? ''));
+        $this->assertSame('16701779000102', $complementos['transporte']['transporta']['cnpj'] ?? null);
+
         $this->assertDatabaseHas('nfe_entrada_itens', [
             'c_prod' => '301A4G12N',
             'orig' => '5',
@@ -546,7 +564,6 @@ class EntradaXmlAssistTest extends TestCase
             'produto_id' => $this->produto->id,
         ]);
 
-        $entrada = NfeEntrada::query()->firstOrFail();
         $this->assertSame($receber->json('data.id'), $entrada->movimento_id);
         Storage::disk('local')->assertExists($entrada->xml_path);
         $this->assertSame(hash('sha256', $xml), $entrada->xml_sha256);
@@ -557,7 +574,8 @@ class EntradaXmlAssistTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.nfe_entradas.0.numero', '577306')
             ->assertJsonPath('data.nfe_entradas.0.espelho.itens.0.orig', '5')
-            ->assertJsonPath('data.nfe_entradas.0.espelho.itens.0.v_pis', '55.18');
+            ->assertJsonPath('data.nfe_entradas.0.espelho.itens.0.v_pis', '55.18')
+            ->assertJsonPath('data.nfe_entradas.0.espelho.complementos.resp_tec.email', 'miriam.negreiro@abc71.com.br');
     }
 
     public function test_receber_xml_chave_divergente_nao_lanca(): void

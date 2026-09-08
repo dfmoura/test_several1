@@ -33,6 +33,22 @@ criar (DIRETA | A repor | COT)
 | Fail-soft | Falha de SMTP **não** desfaz `ABERTA` / `enviado_em` — resposta expõe `email_enviado`. |
 | Soft-delete só em rascunho | Histórico: OC enviada cancela por status (não apaga). |
 | Ficha + e-mail detalhados | EMP + fornecedor (CNPJ, contato, endereço) + itens + condição + previsão + obs. |
+| IPI / ICMS / frete comerciais | Alíquotas por item → `valor_ipi`/`valor_icms` calculados (half-up); frete informado no cabeçalho. `valor_total` = **só mercadoria** (custo MOV). `valor_previsto` = mercadoria + IPI + frete. ICMS = **destaque** (não soma). NF na entrada prevalece no fiscal. |
+| Auto IPI/ICMS | Sem alíquota informada: última NF fornecedor+SKU → última NF SKU → tabela ICMS UF×UF. IPI sem histórico fica vazio. API `POST /ordens-compra/estimar-impostos`. Override manual permitido. |
+| Ficha detalhada OC | `/compras/ordens/:id/ficha` — EMP + fornecedor completos, operação interna/interestadual, NCM/origem, IPI/ICMS/frete/previsto. |
+
+## Emenda 2026-09-08 — IPI · ICMS · frete na OC
+
+Planejamento comercial no rascunho — **não** é escrituração nem espelho da NF.
+
+| Campo | Onde | Regra |
+|-------|------|--------|
+| `aliq_ipi` / `aliq_icms` | item | % opcional; se omitido, estimativa automática; servidor calcula `valor_* = mercadoria × aliq / 100` |
+| `valor_frete` | cabeçalho | Informado; não entra em `estoque_movimento_itens` |
+| `valor_total` | cabeçalho | Σ mercadoria (inalterado para MOV) |
+| `valor_previsto` | API/UI/e-mail | mercadoria + IPI + frete |
+
+Proibido misturar esses valores no custo médio ou recalcular imposto do XML. Sem motor TIPI/ST/Difal nesta fatia.
 
 ## Reposição
 

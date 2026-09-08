@@ -97,6 +97,7 @@ class NfeEntradaService
                 'dest_ie' => $nfe['dest_ie'] ?? null,
                 'dest_uf' => $nfe['dest_uf'] ?? null,
                 'totais' => $nfe['totais'] ?? null,
+                'complementos' => self::montarComplementos($nfe),
                 'xml_path' => $path,
                 'xml_sha256' => hash('sha256', $xmlContent),
                 'protocolo' => $nfe['protocolo']['n_prot'] ?? null,
@@ -158,8 +159,46 @@ class NfeEntradaService
     }
 
     /**
+     * Grupos auxiliares do XML (infRespTec, infAdic, transp, pag, fat, ide).
+     * Cópia fiel — não alimenta MOV/TIT nem escrituração.
+     *
+     * @param  array<string, mixed>  $nfe
      * @return array<string, mixed>|null
      */
+    public static function montarComplementos(array $nfe): ?array
+    {
+        $destNome = $nfe['dest_nome'] ?? null;
+        $destEmail = $nfe['dest_email'] ?? null;
+        $dest = null;
+        if ($destNome !== null || $destEmail !== null) {
+            $dest = [
+                'nome' => is_string($destNome) && $destNome !== '' ? $destNome : null,
+                'email' => is_string($destEmail) && $destEmail !== '' ? $destEmail : null,
+            ];
+            if ($dest['nome'] === null && $dest['email'] === null) {
+                $dest = null;
+            }
+        }
+
+        $out = [
+            'resp_tec' => is_array($nfe['resp_tec'] ?? null) ? $nfe['resp_tec'] : null,
+            'inf_adic' => is_array($nfe['inf_adic'] ?? null) ? $nfe['inf_adic'] : null,
+            'transporte' => is_array($nfe['transporte'] ?? null) ? $nfe['transporte'] : null,
+            'pag' => is_array($nfe['pag'] ?? null) ? $nfe['pag'] : null,
+            'fat' => is_array($nfe['fat'] ?? null) ? $nfe['fat'] : null,
+            'ide_extra' => is_array($nfe['ide_extra'] ?? null) ? $nfe['ide_extra'] : null,
+            'dest' => $dest,
+        ];
+
+        foreach ($out as $v) {
+            if ($v !== null) {
+                return $out;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -189,6 +228,7 @@ class NfeEntradaService
 
         $entrada->loadMissing('itens');
         $totais = is_array($entrada->totais) ? $entrada->totais : [];
+        $complementos = is_array($entrada->complementos) ? $entrada->complementos : null;
         $out['espelho'] = [
             'nat_op' => $entrada->nat_op,
             'id_dest' => $entrada->id_dest,
@@ -211,6 +251,7 @@ class NfeEntradaService
                 'v_ibs_uf' => $totais['v_ibs_uf'] ?? null,
                 'v_ibs_mun' => $totais['v_ibs_mun'] ?? null,
             ],
+            'complementos' => $complementos,
             'itens' => $entrada->itens->map(function (NfeEntradaItem $item) {
                 $ibs = is_array($item->impostos) ? ($item->impostos['ibscbs'] ?? null) : null;
                 $g = is_array($ibs) ? ($ibs['gIBSCBS'] ?? null) : null;

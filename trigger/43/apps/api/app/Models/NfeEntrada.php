@@ -35,6 +35,7 @@ class NfeEntrada extends Model
         'dest_ie',
         'dest_uf',
         'totais',
+        'complementos',
         'xml_path',
         'xml_sha256',
         'protocolo',
@@ -46,6 +47,7 @@ class NfeEntrada extends Model
         return [
             'data_emissao' => 'date',
             'totais' => 'array',
+            'complementos' => 'array',
         ];
     }
 

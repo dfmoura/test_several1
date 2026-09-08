@@ -13,6 +13,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ocStatusLabel } from '../lib/comprasUi';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 import {
   clampDecimalScale,
   comprimentoFromAreaLargura,
@@ -75,6 +76,34 @@ function dash(value: string | null | undefined): string {
   return value && value !== '' ? value : '—';
 }
 
+function modFreteLabel(mod: string | null | undefined): string {
+  if (mod === '0') return 'CIF (emitente)';
+  if (mod === '1') return 'FOB (destinatário)';
+  if (mod === '2') return 'Terceiros';
+  if (mod === '3') return 'Próprio remetente';
+  if (mod === '4') return 'Próprio destinatário';
+  if (mod === '9') return 'Sem frete';
+  return mod || '—';
+}
+
+function tPagLabel(t: string | null | undefined): string {
+  const map: Record<string, string> = {
+    '01': 'Dinheiro',
+    '02': 'Cheque',
+    '03': 'Cartão crédito',
+    '04': 'Cartão débito',
+    '05': 'Crédito loja',
+    '15': 'Boleto',
+    '16': 'Depósito',
+    '17': 'PIX',
+    '18': 'Transferência',
+    '90': 'Sem pagamento',
+    '99': 'Outros',
+  };
+  if (!t) return '—';
+  return map[t] ? `${map[t]} (${t})` : t;
+}
+
 function EspelhoFiscalPanel({
   espelho,
   titulo,
@@ -82,6 +111,17 @@ function EspelhoFiscalPanel({
   espelho: NfeEntradaEspelho;
   titulo: string;
 }) {
+  const c = espelho.complementos;
+  const resp = c?.resp_tec;
+  const infAdic = c?.inf_adic;
+  const transp = c?.transporte;
+  const fat = c?.fat;
+  const pag = c?.pag;
+  const destComp = c?.dest;
+  const ideExtra = c?.ide_extra;
+  const vols = transp?.vol ?? [];
+  const detPag = pag?.det_pag ?? [];
+
   return (
     <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
       <strong>{titulo}</strong>
@@ -99,6 +139,19 @@ function EspelhoFiscalPanel({
         {espelho.emit_uf ? ` · UF ${espelho.emit_uf}` : ''}
         {espelho.emit_crt ? ` · CRT ${espelho.emit_crt}` : ''}
       </p>
+      {destComp?.nome || destComp?.email ? (
+        <p style={{ marginBottom: '0.5rem' }}>
+          Destinatário {dash(destComp?.nome)}
+          {destComp?.email ? ` · ${destComp.email}` : ''}
+        </p>
+      ) : null}
+      {ideExtra?.d_prev_entrega || ideExtra?.dh_sai_ent ? (
+        <p style={{ marginBottom: '0.5rem' }}>
+          {ideExtra.d_prev_entrega ? `Prev. entrega ${ideExtra.d_prev_entrega}` : null}
+          {ideExtra.d_prev_entrega && ideExtra.dh_sai_ent ? ' · ' : null}
+          {ideExtra.dh_sai_ent ? `Saída/entrada ${ideExtra.dh_sai_ent}` : null}
+        </p>
+      ) : null}
       <p style={{ marginBottom: '0.75rem' }}>
         BC {dash(espelho.totais.v_bc)}
         {' · ICMS '}
@@ -124,6 +177,104 @@ function EspelhoFiscalPanel({
           {espelho.totais.v_ibs_mun ? ` · IBS Mun ${espelho.totais.v_ibs_mun}` : ''}
         </p>
       )}
+      {resp && (resp.x_contato || resp.cnpj || resp.email || resp.fone) ? (
+        <p style={{ marginBottom: '0.5rem' }}>
+          Resp. técnico {dash(resp.x_contato)}
+          {resp.cnpj ? ` · ${formatCnpjCpf(resp.cnpj)}` : ''}
+          {resp.fone ? ` · ${formatPhone(resp.fone) || resp.fone}` : ''}
+          {resp.email ? ` · ${resp.email}` : ''}
+        </p>
+      ) : null}
+      {transp && (transp.mod_frete || transp.transporta || vols.length > 0 || transp.veiculo) ? (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <p style={{ margin: '0 0 0.35rem' }}>
+            <strong>Transporte</strong>
+            {' · Frete '}
+            {modFreteLabel(transp.mod_frete)}
+          </p>
+          {transp.transporta ? (
+            <p style={{ margin: '0 0 0.35rem' }}>
+              Transportadora {dash(transp.transporta.nome)}
+              {transp.transporta.cnpj
+                ? ` · ${formatCnpjCpf(transp.transporta.cnpj)}`
+                : transp.transporta.cpf
+                  ? ` · ${formatCnpjCpf(transp.transporta.cpf)}`
+                  : ''}
+              {transp.transporta.ie ? ` · IE ${transp.transporta.ie}` : ''}
+              {transp.transporta.municipio || transp.transporta.uf
+                ? ` · ${[transp.transporta.municipio, transp.transporta.uf].filter(Boolean).join('/')}`
+                : ''}
+              {transp.transporta.endereco ? ` · ${transp.transporta.endereco}` : ''}
+            </p>
+          ) : null}
+          {transp.veiculo?.placa ? (
+            <p style={{ margin: '0 0 0.35rem' }}>
+              Veículo {transp.veiculo.placa}
+              {transp.veiculo.uf ? `/${transp.veiculo.uf}` : ''}
+              {transp.veiculo.rntc ? ` · RNTC ${transp.veiculo.rntc}` : ''}
+            </p>
+          ) : null}
+          {vols.length > 0 ? (
+            <div className="table-wrap" style={{ marginTop: '0.35rem' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Volumes (vol)</th>
+                    <th>Espécie</th>
+                    <th>Marca</th>
+                    <th>Nº vol.</th>
+                    <th className="num">Peso L</th>
+                    <th className="num">Peso B</th>
+                    <th>Lacres</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vols.map((v, idx) => (
+                    <tr key={`vol-${idx}-${v.n_vol ?? ''}-${v.esp ?? ''}`}>
+                      <td>{dash(v.q_vol)}</td>
+                      <td>{dash(v.esp)}</td>
+                      <td>{dash(v.marca)}</td>
+                      <td>{dash(v.n_vol)}</td>
+                      <td className="num">{dash(v.peso_l)}</td>
+                      <td className="num">{dash(v.peso_b)}</td>
+                      <td>
+                        {(v.lacres ?? []).map((l) => l.n_lacre).filter(Boolean).join(', ') || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {fat || detPag.length > 0 ? (
+        <p style={{ marginBottom: '0.5rem' }}>
+          {fat?.n_fat ? `Fatura ${fat.n_fat}` : null}
+          {fat?.v_liq ? `${fat?.n_fat ? ' · ' : ''}líq. ${fat.v_liq}` : null}
+          {detPag[0]
+            ? `${fat ? ' · ' : ''}Pag. ${tPagLabel(detPag[0].t_pag)}${
+                detPag[0].ind_pag === '0' ? ' à vista' : detPag[0].ind_pag === '1' ? ' a prazo' : ''
+              }${detPag[0].v_pag ? ` ${detPag[0].v_pag}` : ''}`
+            : null}
+        </p>
+      ) : null}
+      {infAdic?.inf_cpl || infAdic?.inf_ad_fisco ? (
+        <div style={{ marginBottom: '0.75rem' }}>
+          {infAdic.inf_cpl ? (
+            <p style={{ margin: '0 0 0.35rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              <span className="muted">Inf. complementares: </span>
+              {infAdic.inf_cpl}
+            </p>
+          ) : null}
+          {infAdic.inf_ad_fisco ? (
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              <span className="muted">Inf. fisco: </span>
+              {infAdic.inf_ad_fisco}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="table-wrap">
         <table className="data-table">
           <thead>
@@ -656,6 +807,15 @@ export function ComprasOrdemDetailPage() {
             <Link to="/compras/ordens" className="btn btn-secondary">
               Voltar
             </Link>
+            {oc ? (
+              <a
+                href={`/compras/ordens/${oc.id}/ficha`}
+                className="btn btn-secondary"
+                onClick={(e) => onAbrirFichaClick(e, `/compras/ordens/${oc.id}/ficha`)}
+              >
+                Imprimir ficha
+              </a>
+            ) : null}
             {canWrite && editavel && (
               <>
                 <Link to={`/compras/ordens/${oc!.id}/editar`} className="btn btn-secondary">
@@ -741,7 +901,22 @@ export function ComprasOrdemDetailPage() {
               <div className="btn-row" style={{ marginBottom: '0.75rem' }}>
                 <StatusPill status={ocStatusLabel(oc.status)} />
                 {oc.urgente && <span className="muted">· urgente</span>}
-                <span>Total {formatCurrency(oc.valor_total)}</span>
+                <span>Mercadoria {formatCurrency(oc.valor_total)}</span>
+                {Number(oc.valor_ipi ?? 0) > 0 && (
+                  <span className="muted">· IPI {formatCurrency(oc.valor_ipi)}</span>
+                )}
+                {Number(oc.valor_icms ?? 0) > 0 && (
+                  <span className="muted">· ICMS {formatCurrency(oc.valor_icms)}</span>
+                )}
+                {Number(oc.valor_frete ?? 0) > 0 && (
+                  <span className="muted">· Frete {formatCurrency(oc.valor_frete)}</span>
+                )}
+                {(Number(oc.valor_ipi ?? 0) > 0 || Number(oc.valor_frete ?? 0) > 0) && (
+                  <span>
+                    · Previsto{' '}
+                    {formatCurrency(oc.valor_previsto ?? oc.valor_total)}
+                  </span>
+                )}
                 {oc.previsao_entrega && (
                   <span className="muted">Previsão {formatDate(oc.previsao_entrega)}</span>
                 )}
@@ -842,7 +1017,9 @@ export function ComprasOrdemDetailPage() {
                       <th>Recebida</th>
                       <th>Un.</th>
                       <th>Unit.</th>
-                      <th>Total</th>
+                      <th>Mercadoria</th>
+                      <th>IPI</th>
+                      <th>ICMS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -861,21 +1038,59 @@ export function ComprasOrdemDetailPage() {
                         <td>{item.unidade}</td>
                         <td>{formatCurrency(item.valor_unitario)}</td>
                         <td>{formatCurrency(item.valor_total)}</td>
+                        <td>
+                          {formatCurrency(item.valor_ipi ?? '0')}
+                          {item.aliq_ipi != null && Number(item.aliq_ipi) > 0 ? (
+                            <div className="muted">{item.aliq_ipi}%</div>
+                          ) : null}
+                        </td>
+                        <td>
+                          {formatCurrency(item.valor_icms ?? '0')}
+                          {item.aliq_icms != null && Number(item.aliq_icms) > 0 ? (
+                            <div className="muted">{item.aliq_icms}%</div>
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'right' }}>
-                        <strong>Total</strong>
+                        <strong>Mercadoria</strong>
                       </td>
                       <td>
                         <strong>{formatCurrency(oc.valor_total)}</strong>
+                      </td>
+                      <td>
+                        <strong>{formatCurrency(oc.valor_ipi ?? '0')}</strong>
+                      </td>
+                      <td>
+                        <strong>{formatCurrency(oc.valor_icms ?? '0')}</strong>
+                      </td>
+                    </tr>
+                    {Number(oc.valor_frete ?? 0) > 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'right' }}>
+                          Frete
+                        </td>
+                        <td>{formatCurrency(oc.valor_frete)}</td>
+                      </tr>
+                    ) : null}
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'right' }}>
+                        <strong>Total previsto (mercadoria + IPI + frete)</strong>
+                      </td>
+                      <td>
+                        <strong>{formatCurrency(oc.valor_previsto ?? oc.valor_total)}</strong>
                       </td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
+              <p className="muted" style={{ marginTop: '0.5rem' }}>
+                ICMS é destaque estimado. Custo de estoque na entrada usa só a mercadoria; a NF
+                prevalece no fiscal.
+              </p>
             </div>
           </div>
 

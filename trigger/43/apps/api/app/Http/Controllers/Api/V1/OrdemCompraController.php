@@ -44,6 +44,21 @@ class OrdemCompraController extends Controller
         return response()->json(['data' => $this->service->create($this->empresa(), $data)], 201);
     }
 
+    public function estimarImpostos(Request $request): JsonResponse
+    {
+        $this->authorizeWrite($request);
+
+        $data = $request->validate(CompraValidationRules::estimarImpostos());
+
+        return response()->json([
+            'data' => $this->service->estimarImpostos(
+                $this->empresa(),
+                (int) $data['fornecedor_id'],
+                $data['produto_ids'],
+            ),
+        ]);
+    }
+
     public function show(Request $request, OrdemCompra $ordemCompra): JsonResponse
     {
         $this->authorizeRead($request);

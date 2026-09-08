@@ -88,12 +88,27 @@ final class CompraValidationRules
             'condicao_pagamento' => ['nullable', 'string', 'max:120'],
             'previsao_entrega' => ['nullable', 'date'],
             'observacao' => ['nullable', 'string', 'max:2000'],
+            'valor_frete' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY, true)),
             'itens' => ['required', 'array', 'min:1'],
             'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
             'itens.*.qtde_pedida' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
             'itens.*.valor_unitario' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE, false)),
+            'itens.*.aliq_ipi' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT, true)),
+            'itens.*.aliq_icms' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT, true)),
             'itens.*.unidade' => ['nullable', 'string', 'max:8'],
             'itens.*.ordem' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function estimarImpostos(): array
+    {
+        return [
+            'fornecedor_id' => ['required', 'integer', 'exists:parceiros,id'],
+            'produto_ids' => ['required', 'array', 'min:1'],
+            'produto_ids.*' => ['required', 'integer', 'exists:produtos,id'],
         ];
     }
 

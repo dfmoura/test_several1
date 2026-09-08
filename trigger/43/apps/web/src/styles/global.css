@@ -6845,6 +6845,10 @@ tr.row-inactive td {
   grid-template-columns: 1fr 1fr;
 }
 
+.ficha-kv-grid.cols-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .ficha-kv-grid.cols-4 {
   grid-template-columns: repeat(4, 1fr);
 }
@@ -6856,6 +6860,7 @@ tr.row-inactive td {
 }
 
 .ficha-kv-grid.cols-2 .ficha-kv:nth-child(2n),
+.ficha-kv-grid.cols-3 .ficha-kv:nth-child(3n),
 .ficha-kv-grid.cols-4 .ficha-kv:nth-child(4n) {
   border-right: 0;
 }
@@ -6868,11 +6873,14 @@ tr.row-inactive td {
 /* última linha sem borda inferior (fecha no contorno do grid) */
 .ficha-kv-grid.cols-2 .ficha-kv:nth-last-child(-n + 2):not(.ficha-kv-wide),
 .ficha-kv-grid.cols-2 .ficha-kv-wide:last-child,
+.ficha-kv-grid.cols-3 .ficha-kv:nth-last-child(-n + 3):not(.ficha-kv-wide),
+.ficha-kv-grid.cols-3 .ficha-kv-wide:last-child,
 .ficha-kv-grid.cols-4 .ficha-kv:nth-last-child(-n + 4) {
   border-bottom: 0;
 }
 
-.ficha-kv-grid.cols-2 .ficha-kv-wide:nth-last-child(2) {
+.ficha-kv-grid.cols-2 .ficha-kv-wide:nth-last-child(2),
+.ficha-kv-grid.cols-3 .ficha-kv-wide:nth-last-child(2) {
   border-bottom: 0.35pt solid var(--border);
 }
 
@@ -7001,6 +7009,181 @@ tr.row-inactive td {
 .ficha-table-num .ficha-td-num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* OC — ordem de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc. */
+.ficha-sheet-oc .ficha-oc-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 3mm;
+  margin-top: 2.2mm;
+  padding: 2.2mm 2.5mm;
+  border: 1.1pt solid var(--navy);
+  background: linear-gradient(180deg, #f3f6fb 0%, #e8eef8 100%);
+}
+
+.ficha-oc-banner-tipo {
+  min-width: 0;
+}
+
+.ficha-oc-banner-tipo strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 14pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy-dark);
+  line-height: 1.05;
+}
+
+.ficha-oc-banner-tipo span {
+  display: block;
+  margin-top: 0.6mm;
+  font-size: 7pt;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.ficha-oc-banner-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 1mm;
+  max-width: 52%;
+}
+
+.ficha-chip-urgente {
+  border-color: rgba(192, 57, 43, 0.45);
+  background: rgba(192, 57, 43, 0.1);
+  color: #a93226;
+}
+
+.ficha-oc-numero-label {
+  display: block;
+  font-size: 6pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.ficha-oc-numero {
+  display: block;
+  margin-top: 0.4mm;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--navy-dark);
+  letter-spacing: 0.02em;
+  text-align: right;
+  line-height: 1.1;
+}
+
+.ficha-sheet-oc .ficha-oc-totais {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.ficha-sheet-oc .ficha-oc-itens {
+  font-size: 6.6pt;
+}
+
+.ficha-sheet-oc .ficha-oc-itens th {
+  font-size: 5.6pt;
+  padding: 0.7mm 0.8mm;
+}
+
+.ficha-sheet-oc .ficha-oc-itens td {
+  padding: 0.7mm 0.8mm;
+}
+
+.ficha-oc-col-ord {
+  width: 5%;
+}
+
+.ficha-oc-col-prod {
+  width: 24%;
+}
+
+.ficha-oc-col-ncm {
+  width: 8%;
+}
+
+.ficha-oc-col-orig {
+  width: 5%;
+}
+
+.ficha-oc-col-qtd {
+  width: 7%;
+}
+
+.ficha-oc-col-un {
+  width: 5%;
+}
+
+.ficha-oc-col-val {
+  width: 9%;
+}
+
+.ficha-oc-col-aliq {
+  width: 6%;
+}
+
+.ficha-oc-item-desc {
+  margin-top: 0.3mm;
+  font-size: 6.1pt;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.ficha-oc-totais-label {
+  text-align: right;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 6pt;
+  color: var(--navy);
+}
+
+.ficha-sheet-oc .ficha-oc-resumo {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.ficha-oc-assinaturas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8mm;
+  margin-top: 4mm;
+  padding-top: 1mm;
+  break-inside: avoid;
+}
+
+.ficha-oc-assinatura {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+  min-height: 16mm;
+  justify-content: flex-end;
+}
+
+.ficha-oc-assinatura-linha {
+  display: block;
+  border-top: 0.6pt solid var(--border-strong);
+  margin-bottom: 1mm;
+}
+
+.ficha-oc-assinatura strong {
+  font-size: 7pt;
+  color: var(--navy-dark);
+  letter-spacing: 0.02em;
+}
+
+.ficha-oc-assinatura span {
+  font-size: 6.25pt;
+  color: var(--text-muted);
 }
 
 /* ORC operacional — A4 paisagem (aba ORÇAMENTO do Excel oficial; uso interno).
@@ -7204,18 +7387,38 @@ tr.row-inactive td {
   }
 
   .ficha-columns,
+  .ficha-kv-grid.cols-3,
   .ficha-kv-grid.cols-4,
-  .ficha-kv-strip {
+  .ficha-kv-strip,
+  .ficha-sheet-oc .ficha-oc-totais,
+  .ficha-oc-assinaturas {
     grid-template-columns: 1fr 1fr;
   }
 
+  .ficha-kv-grid.cols-3 .ficha-kv:nth-child(3n),
   .ficha-kv-grid.cols-4 .ficha-kv:nth-child(4n) {
     border-right: 0.35pt solid var(--border);
   }
 
+  .ficha-kv-grid.cols-3 .ficha-kv:nth-child(2n),
   .ficha-kv-grid.cols-4 .ficha-kv:nth-child(2n),
   .ficha-kv-strip .ficha-kv:nth-child(2n) {
     border-right: 0;
+  }
+
+  .ficha-oc-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ficha-oc-banner-meta {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .ficha-oc-numero-label,
+  .ficha-oc-numero {
+    text-align: left;
   }
 
   .ficha-title-block {
@@ -7294,6 +7497,20 @@ tr.row-inactive td {
   body.ficha-print-mode .ficha-nf-banner {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .ficha-sheet-oc .ficha-oc-banner,
+  body.ficha-print-mode .ficha-sheet-oc .ficha-chip-urgente {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .ficha-sheet-oc .ficha-oc-itens {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-oc .ficha-oc-assinaturas {
+    break-inside: avoid;
   }
 
   body.ficha-print-mode .danfe-watermark,

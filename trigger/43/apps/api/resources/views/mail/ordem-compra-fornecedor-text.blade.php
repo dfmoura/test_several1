@@ -29,10 +29,17 @@ Previsão de entrega: {{ $previsao_entrega }}
 
 Itens
 @foreach ($itens as $item)
-- {{ $item['codigo'] }} — {{ $item['descricao'] }} | {{ $item['qtde'] }} {{ $item['unidade'] }} × {{ $item['valor_unitario'] }} = {{ $item['valor_total'] }}
+- {{ $item['codigo'] }} — {{ $item['descricao'] }} | {{ $item['qtde'] }} {{ $item['unidade'] }} × {{ $item['valor_unitario'] }} = {{ $item['valor_total'] }}@if (!empty($item['valor_ipi']) && (float) $item['valor_ipi'] > 0) | IPI {{ $item['valor_ipi'] }}@if (!empty($item['aliq_ipi'])) ({{ $item['aliq_ipi'] }}%)@endif @endif@if (!empty($item['valor_icms']) && (float) $item['valor_icms'] > 0) | ICMS {{ $item['valor_icms'] }}@if (!empty($item['aliq_icms'])) ({{ $item['aliq_icms'] }}%)@endif @endif
+
 @endforeach
 
-Total: {{ $valor_total }}
+Mercadoria: {{ $valor_total }}
+IPI estimado: {{ $valor_ipi ?? '0.00' }}
+ICMS estimado (destaque): {{ $valor_icms ?? '0.00' }}
+@if (!empty($valor_frete) && (float) $valor_frete > 0)
+Frete: {{ $valor_frete }}
+@endif
+Total previsto (mercadoria + IPI + frete): {{ $valor_previsto ?? $valor_total }}
 
 @if (!empty($observacao))
 Observação:

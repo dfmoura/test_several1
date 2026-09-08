@@ -51,6 +51,7 @@ import { ComprasCotacoesPage } from './pages/ComprasCotacoesPage';
 import { ComprasNecessidadesPage } from './pages/ComprasNecessidadesPage';
 import { ComprasOrdemDetailPage } from './pages/ComprasOrdemDetailPage';
 import { ComprasOrdemFormPage } from './pages/ComprasOrdemFormPage';
+import { OrdemCompraFichaPage } from './pages/OrdemCompraFichaPage';
 import { ComprasOrdensPage } from './pages/ComprasOrdensPage';
 import { ComprasNfeDestinadasPage } from './pages/ComprasNfeDestinadasPage';
 import { ComprasReposicaoPage } from './pages/ComprasReposicaoPage';
@@ -751,6 +752,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
               <PedidoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/compras/ordens/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="compras.ler">
+              <OrdemCompraFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

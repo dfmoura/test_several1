@@ -19,6 +19,10 @@ class OrdemCompraItem extends Model
         'unidade',
         'valor_unitario',
         'valor_total',
+        'aliq_ipi',
+        'aliq_icms',
+        'valor_ipi',
+        'valor_icms',
         'ordem',
     ];
 
@@ -29,6 +33,10 @@ class OrdemCompraItem extends Model
             'qtde_recebida' => 'decimal:'.PadraoDecimal::SCALE_QTY,
             'valor_unitario' => 'decimal:'.PadraoDecimal::SCALE_UNIT_PRICE,
             'valor_total' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'aliq_ipi' => 'decimal:'.PadraoDecimal::SCALE_PERCENT,
+            'aliq_icms' => 'decimal:'.PadraoDecimal::SCALE_PERCENT,
+            'valor_ipi' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'valor_icms' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
             'ordem' => 'integer',
         ];
     }

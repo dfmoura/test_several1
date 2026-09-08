@@ -251,6 +251,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/ordens-compra', [OrdemCompraController::class, 'index']);
         Route::post('/ordens-compra', [OrdemCompraController::class, 'store']);
+        Route::post('/ordens-compra/estimar-impostos', [OrdemCompraController::class, 'estimarImpostos']);
         Route::get('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'show']);
         Route::put('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'update']);
         Route::delete('/ordens-compra/{ordemCompra}', [OrdemCompraController::class, 'destroy']);

@@ -273,6 +273,30 @@ class NfeEmitenteExtractor
         return null;
     }
 
+    /**
+     * @return list<SimpleXMLElement>
+     */
+    protected function namedChildren(?SimpleXMLElement $parent, string $localName): array
+    {
+        if ($parent === null) {
+            return [];
+        }
+
+        $out = [];
+        foreach ([$parent->children(), $parent->children('http://www.portalfiscal.inf.br/nfe')] as $children) {
+            foreach ($children as $child) {
+                if (strcasecmp($child->getName(), $localName) === 0) {
+                    $out[] = $child;
+                }
+            }
+            if ($out !== []) {
+                return $out;
+            }
+        }
+
+        return [];
+    }
+
     protected function text(?SimpleXMLElement $parent, string $localName): ?string
     {
         $node = $this->child($parent, $localName);

@@ -1298,6 +1298,9 @@ export type OrdemCompraItem = {
     descricao_fiscal: string;
     descricao_comercial?: string | null;
     familia?: string;
+    ncm?: string | null;
+    cest?: string | null;
+    origem?: string | number | null;
     unidade_comercial?: string | null;
     unidade_interna?: string | null;
     controla_lote?: boolean;
@@ -1309,6 +1312,10 @@ export type OrdemCompraItem = {
   unidade: string;
   valor_unitario: string;
   valor_total: string;
+  aliq_ipi?: string | null;
+  aliq_icms?: string | null;
+  valor_ipi?: string;
+  valor_icms?: string;
   ordem?: number;
 };
 
@@ -1327,6 +1334,13 @@ export type OrdemCompraParceiro = {
   municipio?: string | null;
   uf?: string | null;
   cep?: string | null;
+  ie?: string | null;
+  ind_ie_dest?: string | null;
+  ie_status?: string | null;
+  regime?: string | null;
+  suframa?: string | null;
+  finalidade?: string | null;
+  cfop_entrada_padrao?: string | null;
 };
 
 export type OrdemCompraEmpresa = {
@@ -1344,6 +1358,32 @@ export type OrdemCompraEmpresa = {
   municipio?: string | null;
   uf?: string | null;
   cep?: string | null;
+  ie?: string | null;
+  crt?: string | number | null;
+  regime?: string | null;
+};
+
+export type OrdemCompraOperacao = {
+  id_dest: string | null;
+  id_dest_label: string | null;
+  empresa_uf?: string | null;
+  fornecedor_uf?: string | null;
+};
+
+export type OcImpostoEstimativaItem = {
+  produto_id: number;
+  aliq_ipi: string | null;
+  aliq_icms: string | null;
+  fonte_ipi: string;
+  fonte_icms: string;
+};
+
+export type OcImpostoEstimativa = {
+  id_dest: string;
+  id_dest_label: string;
+  fornecedor_uf: string | null;
+  empresa_uf: string | null;
+  itens: OcImpostoEstimativaItem[];
 };
 
 export type OrdemCompra = {
@@ -1352,6 +1392,7 @@ export type OrdemCompra = {
   fornecedor_id: number;
   fornecedor?: OrdemCompraParceiro | null;
   empresa?: OrdemCompraEmpresa | null;
+  operacao?: OrdemCompraOperacao | null;
   cotacao_id: number | null;
   necessidade_id: number | null;
   origem: string;
@@ -1361,6 +1402,10 @@ export type OrdemCompra = {
   condicao_pagamento: string | null;
   previsao_entrega: string | null;
   valor_total: string;
+  valor_frete?: string;
+  valor_ipi?: string;
+  valor_icms?: string;
+  valor_previsto?: string;
   observacao: string | null;
   enviado_em?: string | null;
   email_enviado?: boolean;
@@ -1371,6 +1416,7 @@ export type OrdemCompra = {
   criado_por?: { id: number; name: string } | null;
   atualizado_por?: { id: number; name: string } | null;
   created_at?: string | null;
+  updated_at?: string | null;
 };
 
 /** Caixa DF-e — NF-e destinadas (BL-090, leitura local). */
@@ -1432,6 +1478,81 @@ export type DfeSyncEstado = {
   ja_em_andamento?: boolean;
 };
 
+export type NfeEntradaComplementos = {
+  resp_tec?: {
+    cnpj?: string | null;
+    x_contato?: string | null;
+    email?: string | null;
+    fone?: string | null;
+    id_csrt?: string | null;
+    hash_csrt?: string | null;
+  } | null;
+  inf_adic?: {
+    inf_cpl?: string | null;
+    inf_ad_fisco?: string | null;
+    obs_cont?: Array<{ x_campo?: string | null; x_texto?: string | null }>;
+    obs_fisco?: Array<{ x_campo?: string | null; x_texto?: string | null }>;
+  } | null;
+  transporte?: {
+    mod_frete?: string | null;
+    transporta?: {
+      cnpj?: string | null;
+      cpf?: string | null;
+      ie?: string | null;
+      nome?: string | null;
+      endereco?: string | null;
+      municipio?: string | null;
+      uf?: string | null;
+    } | null;
+    veiculo?: {
+      placa?: string | null;
+      uf?: string | null;
+      rntc?: string | null;
+    } | null;
+    reboque?: Array<{
+      placa?: string | null;
+      uf?: string | null;
+      rntc?: string | null;
+    }>;
+    vagao?: string | null;
+    balsa?: string | null;
+    vol?: Array<{
+      q_vol?: string | null;
+      esp?: string | null;
+      marca?: string | null;
+      n_vol?: string | null;
+      peso_l?: string | null;
+      peso_b?: string | null;
+      lacres?: Array<{ n_lacre?: string | null }>;
+    }>;
+  } | null;
+  pag?: {
+    det_pag?: Array<{
+      ind_pag?: string | null;
+      t_pag?: string | null;
+      v_pag?: string | null;
+      x_pag?: string | null;
+    }>;
+    v_troco?: string | null;
+  } | null;
+  fat?: {
+    n_fat?: string | null;
+    v_orig?: string | null;
+    v_desc?: string | null;
+    v_liq?: string | null;
+  } | null;
+  ide_extra?: {
+    dh_sai_ent?: string | null;
+    d_prev_entrega?: string | null;
+    tp_nf?: string | null;
+    tp_emis?: string | null;
+  } | null;
+  dest?: {
+    nome?: string | null;
+    email?: string | null;
+  } | null;
+};
+
 export type NfeEntradaEspelho = {
   nat_op: string | null;
   id_dest: string | null;
@@ -1454,6 +1575,7 @@ export type NfeEntradaEspelho = {
     v_ibs_uf?: string | null;
     v_ibs_mun?: string | null;
   };
+  complementos?: NfeEntradaComplementos | null;
   itens: Array<{
     n_item: number;
     c_prod?: string | null;

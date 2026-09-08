@@ -8,6 +8,7 @@ use App\Models\OrdemCompraItem;
 use App\Models\Parceiro;
 use App\Models\ProdutoFornecedorCodigo;
 use App\Services\Fiscal\NfeCompraExtractor;
+use App\Services\Fiscal\NfeEntradaService;
 use App\Support\PadraoDecimal;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -513,6 +514,7 @@ class EstoqueEntradaXmlService
                 'v_ibs_uf' => $totais['v_ibs_uf'] ?? null,
                 'v_ibs_mun' => $totais['v_ibs_mun'] ?? null,
             ],
+            'complementos' => NfeEntradaService::montarComplementos($nfe),
             'itens' => array_map(static function (array $linha): array {
                 return [
                     'n_item' => $linha['n_item'],

@@ -22,6 +22,8 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
      *   dest_cpf: ?string,
      *   dest_ie: ?string,
      *   dest_uf: ?string,
+     *   dest_nome: ?string,
+     *   dest_email: ?string,
      *   nat_op: ?string,
      *   id_dest: ?string,
      *   fin_nfe: ?string,
@@ -30,7 +32,13 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
      *   valor_nf: ?string,
      *   totais: array<string, ?string>,
      *   parcelas: list<array{n_dup: ?string, vencimento: string, valor: string}>,
-     *   itens: list<array<string, mixed>>
+     *   itens: list<array<string, mixed>>,
+     *   resp_tec: ?array<string, mixed>,
+     *   inf_adic: ?array<string, mixed>,
+     *   transporte: ?array<string, mixed>,
+     *   pag: ?array<string, mixed>,
+     *   fat: ?array<string, mixed>,
+     *   ide_extra: ?array<string, mixed>
      * }
      */
     public function extractCompra(string $xmlContent): array
@@ -70,13 +78,314 @@ class NfeCompraExtractor extends NfeEmitenteExtractor
             'dest_cpf' => $base['dest_cpf'],
             'dest_ie' => $this->nullable($this->text($dest, 'IE')),
             'dest_uf' => $this->upper($this->text($enderDest, 'UF')),
+            'dest_nome' => $this->nullable($this->text($dest, 'xNome')),
+            'dest_email' => $this->nullable($this->text($dest, 'email')),
             'protocolo' => $this->extractProtocolo($xml),
             'vencimento_sugerido' => $parcelas[0]['vencimento'] ?? null,
             'valor_nf' => $totais['v_nf'],
             'totais' => $totais,
             'parcelas' => $parcelas,
             'itens' => $this->extractItens($inf),
+            'resp_tec' => $this->extractRespTec($inf, $xml),
+            'inf_adic' => $this->extractInfAdic($inf),
+            'transporte' => $this->extractTransporte($inf),
+            'pag' => $this->extractPag($inf),
+            'fat' => $this->extractFat($inf),
+            'ide_extra' => $this->extractIdeExtra($ide),
         ];
+    }
+
+    /**
+     * infRespTec (NT 2018.005) — cópia fiel. Procura em infNFe e, por robustez,
+     * como irmão de infNFe (alguns ERPs emitem fora do schema).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractRespTec(SimpleXMLElement $inf, SimpleXMLElement $root): ?array
+    {
+        $node = $this->child($inf, 'infRespTec') ?? $this->findRespTecForaInfNFe($root);
+        if ($node === null) {
+            return null;
+        }
+
+        $out = [
+            'cnpj' => $this->digits($this->text($node, 'CNPJ')),
+            'x_contato' => $this->nullable($this->text($node, 'xContato')),
+            'email' => $this->nullable($this->text($node, 'email')),
+            'fone' => $this->digits($this->text($node, 'fone')),
+            'id_csrt' => $this->nullable($this->text($node, 'idCSRT')),
+            'hash_csrt' => $this->nullable($this->text($node, 'hashCSRT')),
+        ];
+
+        return $this->allNull($out) ? null : $out;
+    }
+
+    private function findRespTecForaInfNFe(SimpleXMLElement $root): ?SimpleXMLElement
+    {
+        $nfe = $this->child($root, 'NFe')
+            ?? $this->child($this->child($root, 'nfeProc'), 'NFe')
+            ?? $root;
+        $node = $this->child($nfe, 'infRespTec');
+        if ($node !== null) {
+            return $node;
+        }
+
+        try {
+            $root->registerXPathNamespace('n', 'http://www.portalfiscal.inf.br/nfe');
+            $found = $root->xpath('//n:infRespTec|//*[local-name()="infRespTec"]');
+            if (is_array($found) && isset($found[0]) && $found[0] instanceof SimpleXMLElement) {
+                return $found[0];
+            }
+        } catch (\Throwable) {
+            // fallthrough
+        }
+
+        return null;
+    }
+
+    /**
+     * infAdic — infCpl / infAdFisco / obsCont / obsFisco (cópia fiel, sem parse de texto livre).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractInfAdic(SimpleXMLElement $inf): ?array
+    {
+        $adic = $this->child($inf, 'infAdic');
+        if ($adic === null) {
+            return null;
+        }
+
+        $out = [
+            'inf_cpl' => $this->nullable($this->text($adic, 'infCpl')),
+            'inf_ad_fisco' => $this->nullable($this->text($adic, 'infAdFisco')),
+            'obs_cont' => $this->extractObsLista($adic, 'obsCont'),
+            'obs_fisco' => $this->extractObsLista($adic, 'obsFisco'),
+        ];
+
+        if ($out['inf_cpl'] === null && $out['inf_ad_fisco'] === null
+            && $out['obs_cont'] === [] && $out['obs_fisco'] === []) {
+            return null;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{x_campo: ?string, x_texto: ?string}>
+     */
+    private function extractObsLista(SimpleXMLElement $adic, string $tag): array
+    {
+        $out = [];
+        foreach ($this->namedChildren($adic, $tag) as $obs) {
+            $attrs = $obs->attributes();
+            $xCampo = isset($attrs['xCampo'])
+                ? $this->nullable((string) $attrs['xCampo'])
+                : $this->nullable($this->text($obs, 'xCampo'));
+            $xTexto = $this->nullable($this->text($obs, 'xTexto'));
+            if ($xCampo === null && $xTexto === null) {
+                continue;
+            }
+            $out[] = [
+                'x_campo' => $xCampo,
+                'x_texto' => $xTexto,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * transp — modal, transportadora, veículo e volumes (peso/espécie/lacres).
+     * Cópia fiel do XML; não lança estoque.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractTransporte(SimpleXMLElement $inf): ?array
+    {
+        $transp = $this->child($inf, 'transp');
+        if ($transp === null) {
+            return null;
+        }
+
+        $transportaNode = $this->child($transp, 'transporta');
+        $transporta = null;
+        if ($transportaNode !== null) {
+            $transporta = [
+                'cnpj' => $this->digits($this->text($transportaNode, 'CNPJ')),
+                'cpf' => $this->digits($this->text($transportaNode, 'CPF')),
+                'ie' => $this->nullable($this->text($transportaNode, 'IE')),
+                'nome' => $this->nullable($this->text($transportaNode, 'xNome')),
+                'endereco' => $this->nullable($this->text($transportaNode, 'xEnder')),
+                'municipio' => $this->nullable($this->text($transportaNode, 'xMun')),
+                'uf' => $this->upper($this->text($transportaNode, 'UF')),
+            ];
+            if ($this->allNull($transporta)) {
+                $transporta = null;
+            }
+        }
+
+        $veiculo = $this->extractVeiculo($this->child($transp, 'veicTransp'));
+        $reboques = [];
+        foreach ($this->namedChildren($transp, 'reboque') as $reb) {
+            $row = $this->extractVeiculo($reb);
+            if ($row !== null) {
+                $reboques[] = $row;
+            }
+        }
+
+        $vols = [];
+        foreach ($this->namedChildren($transp, 'vol') as $vol) {
+            $lacres = [];
+            foreach ($this->namedChildren($vol, 'lacres') as $lacre) {
+                $nLacre = $this->nullable($this->text($lacre, 'nLacre'));
+                if ($nLacre !== null) {
+                    $lacres[] = ['n_lacre' => $nLacre];
+                }
+            }
+            $row = [
+                'q_vol' => $this->nullable($this->text($vol, 'qVol')),
+                'esp' => $this->nullable($this->text($vol, 'esp')),
+                'marca' => $this->nullable($this->text($vol, 'marca')),
+                'n_vol' => $this->nullable($this->text($vol, 'nVol')),
+                'peso_l' => $this->nullable($this->text($vol, 'pesoL')),
+                'peso_b' => $this->nullable($this->text($vol, 'pesoB')),
+                'lacres' => $lacres,
+            ];
+            $semVol = $row['q_vol'] === null && $row['esp'] === null && $row['marca'] === null
+                && $row['n_vol'] === null && $row['peso_l'] === null && $row['peso_b'] === null
+                && $lacres === [];
+            if (! $semVol) {
+                $vols[] = $row;
+            }
+        }
+
+        $out = [
+            'mod_frete' => $this->nullable($this->text($transp, 'modFrete')),
+            'transporta' => $transporta,
+            'veiculo' => $veiculo,
+            'reboque' => $reboques,
+            'vagao' => $this->nullable($this->text($transp, 'vagao')),
+            'balsa' => $this->nullable($this->text($transp, 'balsa')),
+            'vol' => $vols,
+        ];
+
+        if ($out['mod_frete'] === null && $transporta === null && $veiculo === null
+            && $reboques === [] && $out['vagao'] === null && $out['balsa'] === null && $vols === []) {
+            return null;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array{placa: ?string, uf: ?string, rntc: ?string}|null
+     */
+    private function extractVeiculo(?SimpleXMLElement $node): ?array
+    {
+        if ($node === null) {
+            return null;
+        }
+
+        $out = [
+            'placa' => $this->upper($this->text($node, 'placa')),
+            'uf' => $this->upper($this->text($node, 'UF')),
+            'rntc' => $this->nullable($this->text($node, 'RNTC')),
+        ];
+
+        return $this->allNull($out) ? null : $out;
+    }
+
+    /**
+     * pag / detPag — forma e indicador (à vista / a prazo).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractPag(SimpleXMLElement $inf): ?array
+    {
+        $pag = $this->child($inf, 'pag');
+        if ($pag === null) {
+            return null;
+        }
+
+        $dets = [];
+        foreach ($this->namedChildren($pag, 'detPag') as $det) {
+            $row = [
+                'ind_pag' => $this->nullable($this->text($det, 'indPag')),
+                't_pag' => $this->nullable($this->text($det, 'tPag')),
+                'v_pag' => $this->nullable($this->text($det, 'vPag')),
+                'x_pag' => $this->nullable($this->text($det, 'xPag')),
+            ];
+            if (! $this->allNull($row)) {
+                $dets[] = $row;
+            }
+        }
+
+        $vTroco = $this->nullable($this->text($pag, 'vTroco'));
+        if ($dets === [] && $vTroco === null) {
+            return null;
+        }
+
+        return [
+            'det_pag' => $dets,
+            'v_troco' => $vTroco,
+        ];
+    }
+
+    /**
+     * cobr/fat — totais da fatura (nFat / vOrig / vDesc / vLiq). Parcelas já vão em dup.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractFat(SimpleXMLElement $inf): ?array
+    {
+        $fat = $this->child($this->child($inf, 'cobr'), 'fat');
+        if ($fat === null) {
+            return null;
+        }
+
+        $out = [
+            'n_fat' => $this->nullable($this->text($fat, 'nFat')),
+            'v_orig' => $this->nullable($this->text($fat, 'vOrig')),
+            'v_desc' => $this->nullable($this->text($fat, 'vDesc')),
+            'v_liq' => $this->nullable($this->text($fat, 'vLiq')),
+        ];
+
+        return $this->allNull($out) ? null : $out;
+    }
+
+    /**
+     * ide complementar útil na conferência (saída / previsão de entrega).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function extractIdeExtra(?SimpleXMLElement $ide): ?array
+    {
+        if ($ide === null) {
+            return null;
+        }
+
+        $out = [
+            'dh_sai_ent' => $this->nullable($this->text($ide, 'dhSaiEnt')),
+            'd_prev_entrega' => $this->toDate($this->nullable($this->text($ide, 'dPrevEntrega'))),
+            'tp_nf' => $this->nullable($this->text($ide, 'tpNF')),
+            'tp_emis' => $this->nullable($this->text($ide, 'tpEmis')),
+        ];
+
+        return $this->allNull($out) ? null : $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function allNull(array $row): bool
+    {
+        foreach ($row as $v) {
+            if ($v !== null && $v !== '' && $v !== []) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

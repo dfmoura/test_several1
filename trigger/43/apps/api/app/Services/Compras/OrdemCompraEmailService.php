@@ -83,8 +83,25 @@ class OrdemCompraEmailService
                 'unidade' => $item->unidade,
                 'valor_unitario' => PadraoDecimal::roundHalfUp((string) $item->valor_unitario, PadraoDecimal::SCALE_UNIT_PRICE),
                 'valor_total' => PadraoDecimal::roundHalfUp((string) $item->valor_total, PadraoDecimal::SCALE_MONEY),
+                'aliq_ipi' => $item->aliq_ipi !== null
+                    ? PadraoDecimal::roundHalfUp((string) $item->aliq_ipi, PadraoDecimal::SCALE_PERCENT)
+                    : null,
+                'aliq_icms' => $item->aliq_icms !== null
+                    ? PadraoDecimal::roundHalfUp((string) $item->aliq_icms, PadraoDecimal::SCALE_PERCENT)
+                    : null,
+                'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($item->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
+                'valor_icms' => PadraoDecimal::roundHalfUp((string) ($item->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
             ];
         })->values()->all();
+
+        $valorFrete = PadraoDecimal::roundHalfUp((string) ($oc->valor_frete ?? '0'), PadraoDecimal::SCALE_MONEY);
+        $valorIpi = PadraoDecimal::roundHalfUp((string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY);
+        $valorIcms = PadraoDecimal::roundHalfUp((string) ($oc->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY);
+        $valorTotal = PadraoDecimal::roundHalfUp((string) $oc->valor_total, PadraoDecimal::SCALE_MONEY);
+        $valorPrevisto = PadraoDecimal::roundHalfUp(
+            bcadd(bcadd($valorTotal, $valorIpi, PadraoDecimal::SCALE_MONEY + 2), $valorFrete, PadraoDecimal::SCALE_MONEY + 2),
+            PadraoDecimal::SCALE_MONEY
+        );
 
         return [
             'empresa' => [
@@ -121,7 +138,11 @@ class OrdemCompraEmailService
             'condicao_pagamento' => $oc->condicao_pagamento,
             'previsao_entrega' => optional($oc->previsao_entrega)?->format('d/m/Y'),
             'observacao' => $oc->observacao,
-            'valor_total' => PadraoDecimal::roundHalfUp((string) $oc->valor_total, PadraoDecimal::SCALE_MONEY),
+            'valor_total' => $valorTotal,
+            'valor_ipi' => $valorIpi,
+            'valor_icms' => $valorIcms,
+            'valor_frete' => $valorFrete,
+            'valor_previsto' => $valorPrevisto,
             'itens' => $itens,
         ];
     }

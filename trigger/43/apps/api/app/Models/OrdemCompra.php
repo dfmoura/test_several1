@@ -74,6 +74,9 @@ class OrdemCompra extends Model
         'condicao_pagamento',
         'previsao_entrega',
         'valor_total',
+        'valor_frete',
+        'valor_ipi',
+        'valor_icms',
         'observacao',
         'enviado_em',
     ];
@@ -84,6 +87,9 @@ class OrdemCompra extends Model
             'urgente' => 'boolean',
             'previsao_entrega' => 'date',
             'valor_total' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'valor_frete' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'valor_ipi' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
+            'valor_icms' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
             'enviado_em' => 'datetime',
         ];
     }

@@ -48,6 +48,11 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             'nome_fantasia' => 'Gráfica OC',
             'cnpj' => '11222333000181',
             'email' => 'compras@grafica.test',
+            'uf' => 'MG',
+            'municipio' => 'Uberlândia',
+            'ie' => '123456789',
+            'crt' => 3,
+            'regime' => 'NORMAL',
             'situacao' => 'ATIVA',
             'venda_ativa' => true,
             'estoque_ativo' => true,
@@ -61,6 +66,9 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             'nome_fantasia' => 'Papéis',
             'cnpj_cpf' => '12345678000199',
             'email' => 'vendas@papeis.test',
+            'uf' => 'SP',
+            'municipio' => 'São Paulo',
+            'ie' => '987654321',
             'papel_fornecedor' => true,
             'situacao' => 'ATIVO',
             'cadastro_fiscal_completo' => true,
@@ -77,6 +85,8 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             'unidade_interna' => 'KG',
             'fator_conversao' => '1',
             'custo_medio' => '0',
+            'ncm' => '48114110',
+            'origem' => 0,
             'situacao' => 'ATIVO',
             'estoque_minimo' => '10',
         ]);
@@ -221,5 +231,99 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             ->assertJsonPath('data.email_motivo', 'sem_email_cadastro');
 
         Mail::assertNothingSent();
+    }
+
+    public function test_calcula_ipi_icms_e_frete_sem_alterar_mercadoria(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'valor_frete' => '25.50',
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '100.0000',
+                        'valor_unitario' => '10.000000',
+                        'aliq_ipi' => '10',
+                        'aliq_icms' => '12',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.valor_total', '1000.00')
+            ->assertJsonPath('data.valor_ipi', '100.00')
+            ->assertJsonPath('data.valor_icms', '120.00')
+            ->assertJsonPath('data.valor_frete', '25.50')
+            ->assertJsonPath('data.valor_previsto', '1125.50')
+            ->assertJsonPath('data.itens.0.aliq_ipi', '10.0000')
+            ->assertJsonPath('data.itens.0.aliq_icms', '12.0000')
+            ->assertJsonPath('data.itens.0.valor_ipi', '100.00')
+            ->assertJsonPath('data.itens.0.valor_icms', '120.00');
+
+        $this->assertDatabaseHas('ordens_compra', [
+            'id' => $oc->json('data.id'),
+            'valor_total' => '1000.00',
+            'valor_ipi' => '100.00',
+            'valor_icms' => '120.00',
+            'valor_frete' => '25.50',
+        ]);
+    }
+
+    public function test_estima_e_aplica_icms_automatico_por_uf(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra/estimar-impostos', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'produto_ids' => [$this->produto->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.id_dest', '2')
+            ->assertJsonPath('data.id_dest_label', 'Interestadual')
+            ->assertJsonPath('data.itens.0.produto_id', $this->produto->id)
+            ->assertJsonPath('data.itens.0.aliq_icms', '12.0000')
+            ->assertJsonPath('data.itens.0.fonte_icms', 'tabela_uf');
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '10.0000',
+                        'valor_unitario' => '100.000000',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.valor_total', '1000.00')
+            ->assertJsonPath('data.itens.0.aliq_icms', '12.0000')
+            ->assertJsonPath('data.itens.0.valor_icms', '120.00')
+            ->assertJsonPath('data.valor_icms', '120.00')
+            ->assertJsonPath('data.operacao.id_dest_label', 'Interestadual')
+            ->assertJsonPath('data.fornecedor.ie', '987654321')
+            ->assertJsonPath('data.empresa.uf', 'MG');
+
+        // Override manual prevalece sobre a tabela.
+        $this->withHeaders($h)
+            ->putJson('/api/v1/ordens-compra/'.$oc->json('data.id'), [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '10.0000',
+                        'valor_unitario' => '100.000000',
+                        'aliq_icms' => '18',
+                    ],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.itens.0.aliq_icms', '18.0000')
+            ->assertJsonPath('data.itens.0.valor_icms', '180.00');
     }
 }

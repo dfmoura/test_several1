@@ -80,7 +80,9 @@
                     <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">Qtde</th>
                     <th align="left" style="padding:8px;border-bottom:1px solid #e7e5e4;">Un.</th>
                     <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">Unit.</th>
-                    <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">Total</th>
+                    <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">Mercadoria</th>
+                    <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">IPI</th>
+                    <th align="right" style="padding:8px;border-bottom:1px solid #e7e5e4;">ICMS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -94,16 +96,43 @@
                       <td style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">{{ $item['unidade'] }}</td>
                       <td align="right" style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">{{ $item['valor_unitario'] }}</td>
                       <td align="right" style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">{{ $item['valor_total'] }}</td>
+                      <td align="right" style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">
+                        {{ $item['valor_ipi'] ?? '0.00' }}
+                        @if (!empty($item['aliq_ipi']))
+                          <div style="font-size:11px;color:#78716c;">{{ $item['aliq_ipi'] }}%</div>
+                        @endif
+                      </td>
+                      <td align="right" style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">
+                        {{ $item['valor_icms'] ?? '0.00' }}
+                        @if (!empty($item['aliq_icms']))
+                          <div style="font-size:11px;color:#78716c;">{{ $item['aliq_icms'] }}%</div>
+                        @endif
+                      </td>
                     </tr>
                   @endforeach
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colspan="4" align="right" style="padding:10px 8px;font-weight:600;">Total</td>
-                    <td align="right" style="padding:10px 8px;font-weight:600;">{{ $valor_total }}</td>
+                    <td colspan="4" align="right" style="padding:10px 8px;">Mercadoria</td>
+                    <td align="right" style="padding:10px 8px;">{{ $valor_total }}</td>
+                    <td align="right" style="padding:10px 8px;">{{ $valor_ipi ?? '0.00' }}</td>
+                    <td align="right" style="padding:10px 8px;">{{ $valor_icms ?? '0.00' }}</td>
+                  </tr>
+                  @if (!empty($valor_frete) && (float) $valor_frete > 0)
+                    <tr>
+                      <td colspan="6" align="right" style="padding:4px 8px;color:#57534e;">Frete</td>
+                      <td align="right" style="padding:4px 8px;">{{ $valor_frete }}</td>
+                    </tr>
+                  @endif
+                  <tr>
+                    <td colspan="6" align="right" style="padding:10px 8px;font-weight:600;">Total previsto (mercadoria + IPI + frete)</td>
+                    <td align="right" style="padding:10px 8px;font-weight:600;">{{ $valor_previsto ?? $valor_total }}</td>
                   </tr>
                 </tfoot>
               </table>
+              <p style="margin:0 0 16px;font-size:12px;color:#78716c;">
+                ICMS é destaque estimado (não soma no total). Valores da NF na entrada prevalecem.
+              </p>
 
               @if (!empty($observacao))
                 <p style="margin:0 0 16px;font-size:13px;color:#44403c;">
