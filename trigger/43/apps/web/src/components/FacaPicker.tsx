@@ -281,8 +281,8 @@ export function FacaPicker({
                 </div>
                 {isNova ? (
                   <p className="faca-warn">
-                    Proposta legada com faca nova. Valor e prazo cotados permanecem em Produção /
-                    ferramental. Para novos orçamentos, cadastre a geometria em Mapa de facas e
+                    Proposta legada com faca nova. Valor e prazo cotados permanecem em Especificação
+                    técnica. Para novos orçamentos, cadastre a geometria em Mapa de facas e
                     selecione-a aqui.
                   </p>
                 ) : incompleta ? (

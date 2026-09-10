@@ -976,10 +976,26 @@ export function OrcamentoFormPage() {
             </div>
           </section>
 
-          {/* 3. Especificação técnica */}
+          {/* 3. Especificação técnica — máquina → material → setup → ferramental → pad interno */}
           <section className="orc-section">
             <h3 className="orc-section-title">3. Especificação técnica</h3>
             <div className="form-grid">
+              <div className="form-group">
+                <label>
+                  Máquina (hora) * <span className="field-note">define R$/h</span>
+                </label>
+                <select
+                  value={form.maquina}
+                  onChange={(e) => setField('maquina', e.target.value)}
+                  disabled={!canWrite}
+                >
+                  {(catalog?.maquinas ?? []).map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Papel *</label>
                 <select
@@ -1023,6 +1039,16 @@ export function OrcamentoFormPage() {
                 </select>
               </div>
               <div className="form-group">
+                <label>Colunas</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.colunas}
+                  onChange={(e) => setField('colunas', Number(e.target.value) || 1)}
+                  disabled={!canWrite}
+                />
+              </div>
+              <div className="form-group">
                 <label>Modelos</label>
                 <input
                   type="number"
@@ -1033,14 +1059,18 @@ export function OrcamentoFormPage() {
                 />
               </div>
               <div className="form-group">
-                <label>Colunas</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.colunas}
-                  onChange={(e) => setField('colunas', Number(e.target.value) || 1)}
+                <label>Tipo troca produto</label>
+                <select
+                  value={form.tipo_troca_produto}
+                  onChange={(e) => setField('tipo_troca_produto', e.target.value)}
                   disabled={!canWrite}
-                />
+                >
+                  {(catalog?.tipos_troca_produto ?? ['SEM PARADA']).map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Etiq. por rolo</label>
@@ -1076,28 +1106,15 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                 />
               </div>
-            </div>
-          </section>
-
-          {/* 4. Produção / ferramental */}
-          <section className="orc-section">
-            <h3 className="orc-section-title">4. Produção / ferramental</h3>
-            <div className="form-grid">
               <div className="form-group">
-                <label>
-                  Máquina (hora) * <span className="field-note">define R$/h</span>
-                </label>
-                <select
-                  value={form.maquina}
-                  onChange={(e) => setField('maquina', e.target.value)}
+                <label>RPM</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.rpm}
+                  onChange={(e) => setField('rpm', Number(e.target.value) || 1000)}
                   disabled={!canWrite}
-                >
-                  {(catalog?.maquinas ?? []).map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div className="form-group">
                 <label>Matriz</label>
@@ -1172,30 +1189,6 @@ export function OrcamentoFormPage() {
                   }
                   disabled={!canWrite}
                   placeholder="0,00"
-                />
-              </div>
-              <div className="form-group">
-                <label>Tipo troca produto</label>
-                <select
-                  value={form.tipo_troca_produto}
-                  onChange={(e) => setField('tipo_troca_produto', e.target.value)}
-                  disabled={!canWrite}
-                >
-                  {(catalog?.tipos_troca_produto ?? ['SEM PARADA']).map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>RPM</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.rpm}
-                  onChange={(e) => setField('rpm', Number(e.target.value) || 1000)}
-                  disabled={!canWrite}
                 />
               </div>
             </div>
@@ -1287,13 +1280,13 @@ export function OrcamentoFormPage() {
             </section>
           ) : null}
 
-          {/* 5. Quantidades — escada comercial + composição das artes (mesmo bloco UX; payloads distintos) */}
+          {/* 4. Quantidades — escada comercial + composição das artes (mesmo bloco UX; payloads distintos) */}
           <section className="orc-section">
             <div className="orc-section-head">
               <h3 className="orc-section-title">
                 {form.tipo_operacao === TIPO_SERVICO
                   ? '3. Quantidade e valor'
-                  : '5. Quantidades (escada e artes)'}
+                  : '4. Quantidades (escada e artes)'}
               </h3>
             </div>
             {form.tipo_operacao !== TIPO_SERVICO ? (
