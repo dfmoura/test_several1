@@ -380,11 +380,8 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     coluna_rebobinacao: 1,
     tipo_troca_produto: tipos[0] ?? 'SEM PARADA',
     rpm: 1000,
-    faixas: [
-      { quantidade: 5000, comissao_pct: 3 },
-      { quantidade: 10000, comissao_pct: 2.5 },
-      { quantidade: 20000, comissao_pct: 2 },
-    ],
+    // Escada comercial: uma linha em branco — comercial preenche; sem faixas de exemplo.
+    faixas: [{ quantidade: 0, comissao_pct: 0 }],
     prazo_entrega_dias: 12,
     validade_dias: 7,
     tolerancia_qtd_pct: 20,

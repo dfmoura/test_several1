@@ -432,7 +432,7 @@ export function OrcamentoFormPage() {
               comissao_pct: 0,
               valor_unitario: prev.faixas[0]?.valor_unitario || 50,
             }
-          : { quantidade: 1000, comissao_pct: 0 },
+          : { quantidade: 0, comissao_pct: 0 },
       ],
     }));
     setCalculo(null);
@@ -465,11 +465,7 @@ export function OrcamentoFormPage() {
         ];
       }
       if (tipo === TIPO_INDUSTRIALIZACAO && prev.tipo_operacao === TIPO_SERVICO) {
-        next.faixas = [
-          { quantidade: 5000, comissao_pct: 3 },
-          { quantidade: 10000, comissao_pct: 2.5 },
-          { quantidade: 20000, comissao_pct: 2 },
-        ];
+        next.faixas = [{ quantidade: 0, comissao_pct: 0 }];
       }
       return next;
     });
