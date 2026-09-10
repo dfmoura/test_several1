@@ -663,10 +663,10 @@ export function OrcamentoFormPage() {
 
           {form.tipo_operacao !== TIPO_CESSAO_BEM ? (
             <>
-          {/* 1. Parceiro — modos exclusivos (ORCAMENTO_PROSPECT) */}
+          {/* 1. Cadastro — modos exclusivos (ORCAMENTO_PROSPECT) */}
           <section className="orc-section">
             <div className="orc-section-head">
-              <label className="orc-section-label" style={{ margin: 0 }}>Parceiro</label>
+              <label className="orc-section-label" style={{ margin: 0 }}>Cadastro</label>
               <div className="orc-modo-tabs orc-modo-tabs-sub" style={{ margin: 0 }}>
                 <button
                   type="button"
@@ -839,6 +839,22 @@ export function OrcamentoFormPage() {
                     disabled={!canWrite}
                   />
                 </div>
+                {form.tipo_operacao === TIPO_INDUSTRIALIZACAO ? (
+                  <div className="form-group">
+                    <label>
+                      Imposto % <span className="field-note">estimativa — não é NF</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      max={100}
+                      value={form.imposto_pct}
+                      onChange={(e) => setField('imposto_pct', Number(e.target.value) || 0)}
+                      disabled={!canWrite}
+                    />
+                  </div>
+                ) : null}
                 <ParceiroCombobox
                   className="span-full"
                   label="Vendedor"
@@ -1142,20 +1158,6 @@ export function OrcamentoFormPage() {
                   </div>
                 </>
               ) : null}
-              <div className="form-group">
-                <label>
-                  Imposto % <span className="field-note">estimativa — não é NF</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  max={100}
-                  value={form.imposto_pct}
-                  onChange={(e) => setField('imposto_pct', Number(e.target.value) || 0)}
-                  disabled={!canWrite}
-                />
-              </div>
               <div className="form-group">
                 <label>
                   Gordura <span className="field-note">interno — cliente não vê</span>
