@@ -82,7 +82,7 @@ Health: `GET /api/health` — inclui `checks.database` (503 se o banco falhar). 
 |----------|--------|-----------|
 | `APP_PORT` | `8096` | Porta HTTP |
 | `AUTH_MAX_ADMIN` | `1` | Teto de contas `admin` |
-| `AUTH_MAX_CONSULTA` | `3` | Teto de contas `consulta` |
+| `AUTH_MAX_CONSULTA` | `5` | Teto de contas `consulta` |
 | `AUTH_BOOTSTRAP_USERNAME` / `AUTH_BOOTSTRAP_PASSWORD` | — | Seed do 1º admin (se a base estiver vazia) |
 | `AUTH_SESSION_DIAS` | `7` | Validade da sessão (cookie) |
 | `AUTH_COOKIE_SECURE` | `auto` | `auto` = Secure só em HTTPS; `1` / `0` força |

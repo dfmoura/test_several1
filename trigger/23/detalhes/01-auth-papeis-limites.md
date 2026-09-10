@@ -16,9 +16,9 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
    - `admin` (ou `operacao`) — acesso total, inclusive Setup, Coleta, disparo/cancelamento de CNPJs pendentes e gestão de usuários.
 3. **Limites rígidos:**
    - no máximo **1** usuário `admin`
-   - no máximo **3** usuários `consulta`
-   - total máximo **4** contas
-   - constantes fáceis de alterar depois (`MAX_ADMIN = 1`, `MAX_CONSULTA = 3`)
+   - no máximo **5** usuários `consulta`
+   - total máximo **6** contas
+   - constantes fáceis de alterar depois (`MAX_ADMIN = 1`, `MAX_CONSULTA = 5`)
    - **uma sessão ativa por conta:** segundo login na mesma conta é recusado (409) enquanto houver sessão válida; sair encerra a sessão atual; sessão órfã → no login, com senha válida, **Encerrar sessão anterior e entrar** (`encerrar_sessao_anterior=true`); admin também pode **Liberar sessão** em Usuários
 4. **Bootstrap:** se não existir nenhum usuário, permitir criar o primeiro admin (setup inicial) ou seed via env.
 5. **UI:**
@@ -47,5 +47,5 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
 
 - Visitante sem login não usa o sistema
 - Usuário `consulta` vê CNPJs vencedores (leitura), mas não dispara/cancela o lote; não vê nem chama Setup/Coleta
-- Tentativa de criar 2º admin ou 4º consulta falha com mensagem clara
+- Tentativa de criar 2º admin ou 6º consulta falha com mensagem clara
 - Reinício do container preserva usuários no SQLite

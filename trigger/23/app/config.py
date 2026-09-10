@@ -12,7 +12,7 @@ APP_PORT = int(os.environ.get("APP_PORT", "8096"))
 # --- Autenticação (sessão cookie + papéis) ---
 # Limites rígidos de contas — alterar aqui se a ONG precisar expandir.
 MAX_ADMIN = int(os.environ.get("AUTH_MAX_ADMIN", "1"))
-MAX_CONSULTA = int(os.environ.get("AUTH_MAX_CONSULTA", "3"))
+MAX_CONSULTA = int(os.environ.get("AUTH_MAX_CONSULTA", "5"))
 AUTH_SESSION_COOKIE = os.environ.get("AUTH_SESSION_COOKIE", "osb_session")
 AUTH_SESSION_DIAS = int(os.environ.get("AUTH_SESSION_DIAS", "7"))
 # Cookie Secure: auto (HTTPS detectado via proxy) | 1/true | 0/false

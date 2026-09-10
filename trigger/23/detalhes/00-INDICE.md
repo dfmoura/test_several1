@@ -5,7 +5,7 @@ Use cada arquivo como instrução completa para um agente/dev implementar a feat
 
 | Arquivo | Tema |
 |---------|------|
-| `01-auth-papeis-limites.md` | Login, papéis, teto 3 consulta + 1 admin |
+| `01-auth-papeis-limites.md` | Login, papéis, teto 5 consulta + 1 admin |
 | `02-agendamento-coleta-cnpjs.md` | Coleta de madrugada + cadeia CNPJs + Setup |
 | `03-propostas-analise-preco-ia.md` | Propostas abertas → análise de preço de mercado |
 | `04-setup-tokens-ia-rotacao.md` | Tokens de IA no Setup + rotação automática |
