@@ -2,6 +2,11 @@
 
 namespace Tests;
 
+use App\Models\Empresa;
+use App\Models\Orcamento;
+use App\Models\Parceiro;
+use App\Models\Pedido;
+use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Testing\TestResponse;
 use RuntimeException;
@@ -26,6 +31,42 @@ abstract class TestCase extends BaseTestCase
                 'Confira phpunit.xml (force="true") e Tests\\TestCase::forceTestingDatabaseEnv().'
             );
         }
+    }
+
+    /**
+     * Marca o PAR como recorrente limpo (já fez serviço) — aceite sem sinal.
+     * Política: ADR_ORC_ADIANTAMENTO_PIX.
+     */
+    protected function seedParceiroRecorrenteLimpo(Empresa $empresa, Parceiro $parceiro, int $numero = 99001): Pedido
+    {
+        $orc = Orcamento::query()->create([
+            'empresa_id' => $empresa->id,
+            'ano' => 2026,
+            'numero' => $numero,
+            'codigo' => 'ORC-2026-'.str_pad((string) $numero, 5, '0', STR_PAD_LEFT),
+            'versao' => 1,
+            'parceiro_id' => $parceiro->id,
+            'cliente_nome' => $parceiro->razao_social,
+            'status' => Orcamento::STATUS_APROVADO,
+            'financeiro_status' => AdiantamentoService::FIN_LIBERADO,
+            'input_snapshot' => [],
+            'result_snapshot' => ['faixas' => []],
+            'prazo_entrega_dias' => 10,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 20,
+        ]);
+
+        return Pedido::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => 'PED-HIST-'.str_pad((string) $numero, 5, '0', STR_PAD_LEFT),
+            'orcamento_id' => $orc->id,
+            'parceiro_id' => $parceiro->id,
+            'status' => Pedido::STATUS_ENCERRADO,
+            'faixa_index' => 0,
+            'tolerancia_qtd_pct' => '20',
+            'prazo_entrega_dias' => 10,
+            'snapshot' => ['input' => [], 'faixa' => []],
+        ]);
     }
 
     /**

@@ -20,7 +20,10 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import {
+  CONDICAO_SINAL_NOVO,
+  FORMA_SINAL_NOVO,
   FORMAS_PAGAMENTO,
+  hintPoliticaComercial,
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
 import { ModelosComposicaoEditor } from '../components/ModelosComposicaoEditor';
@@ -292,11 +295,19 @@ export function OrcamentoFormPage() {
   const aplicarParceiro = (p: Parceiro | null) => {
     setParceiroSel(p);
     const vendDefault = p?.vendedor ?? null;
+    const pol = p?.politica_comercial;
+    let condicao = p?.condicao_pagamento?.trim() ?? '';
+    let forma = p?.forma_pagamento?.trim() ?? '';
+    // Cliente novo sem defaults no PAR: sugere sinal 50% + PIX (editável; snapshot no ORC).
+    if (p && pol?.perfil === 'NOVO') {
+      if (!condicao) condicao = CONDICAO_SINAL_NOVO;
+      if (!forma) forma = FORMA_SINAL_NOVO;
+    }
     setForm((prev) => ({
       ...prev,
       parceiro_id: p ? p.id : '',
-      condicao_pagamento: p?.condicao_pagamento?.trim() ?? '',
-      forma_pagamento: p?.forma_pagamento?.trim() ?? '',
+      condicao_pagamento: condicao,
+      forma_pagamento: forma,
     }));
     setCalculo(null);
     setErro(null);
@@ -308,6 +319,20 @@ export function OrcamentoFormPage() {
           const vend = res.data.vendedor;
           if (vend && !vendedorSel) {
             aplicarVendedor(vend);
+          }
+          const polFull = res.data.politica_comercial;
+          if (polFull?.perfil === 'NOVO') {
+            setForm((prev) => ({
+              ...prev,
+              condicao_pagamento:
+                prev.condicao_pagamento.trim() ||
+                res.data.condicao_pagamento?.trim() ||
+                CONDICAO_SINAL_NOVO,
+              forma_pagamento:
+                prev.forma_pagamento.trim() ||
+                res.data.forma_pagamento?.trim() ||
+                FORMA_SINAL_NOVO,
+            }));
           }
         })
         .catch(() => undefined);
@@ -714,6 +739,13 @@ export function OrcamentoFormPage() {
                     ))}
                   </select>
                 </div>
+                {parceiroSel?.politica_comercial ? (
+                  <div className="form-group span-full">
+                    <p className="form-hint" style={{ margin: 0 }}>
+                      {hintPoliticaComercial(parceiroSel.politica_comercial)}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="form-group">
                   <label>Entrega</label>
                   <div

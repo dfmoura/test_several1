@@ -191,6 +191,7 @@ class ParceiroService
             $this->assertVendedorVinculo($empresa, $attributes['vendedor_parceiro_id'] ?? null);
             $attributes = array_merge($attributes, $this->denormalizeFromRelations($contatos, $contas, $attributes));
             $attributes = $this->applyFiscalRules($attributes, []);
+            $attributes = $this->applyDefaultsComerciaisCliente($attributes, $data);
 
             $parceiro = Parceiro::query()->create([
                 'empresa_id' => $empresa->id,
@@ -475,6 +476,35 @@ class ParceiroService
         }
 
         return PadraoDecimal::canonicalizeFields($mapped, PadraoDecimal::parceiroFieldScales());
+    }
+
+    /**
+     * Cliente/prospect novo: sinal 50% + PIX quando condição/forma não foram informadas.
+     * Recorrente limpo usa defaults do PAR (boleto/DDL) editados pelo comercial.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function applyDefaultsComerciaisCliente(array $attributes, array $data): array
+    {
+        $papelCliente = (bool) ($attributes['papel_cliente'] ?? $data['papel_cliente'] ?? false);
+        $isProspect = (bool) ($attributes['is_prospect'] ?? $data['is_prospect'] ?? false);
+        if (! $papelCliente && ! $isProspect) {
+            return $attributes;
+        }
+
+        $condicao = trim((string) ($attributes['condicao_pagamento'] ?? ''));
+        if ($condicao === '') {
+            $attributes['condicao_pagamento'] = '50% sinal + 50% 28 DDL';
+        }
+
+        $forma = trim((string) ($attributes['forma_pagamento'] ?? ''));
+        if ($forma === '') {
+            $attributes['forma_pagamento'] = 'PIX';
+        }
+
+        return $attributes;
     }
 
     /**

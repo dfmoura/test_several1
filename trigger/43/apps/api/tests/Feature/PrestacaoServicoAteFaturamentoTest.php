@@ -121,6 +121,8 @@ class PrestacaoServicoAteFaturamentoTest extends TestCase
             'contato_nome' => 'Ana Compras',
         ]);
 
+        $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
+
         ParceiroContato::query()->create([
             'parceiro_id' => $this->parceiro->id,
             'nome' => 'Ana Compras',

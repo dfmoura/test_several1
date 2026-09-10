@@ -333,7 +333,9 @@ class EmpresaOnboardingService
     private function seedParametrosSinal(Empresa $empresa): void
     {
         $params = [
-            [AdiantamentoService::PARAM_OBRIGATORIO, 'SIM'],
+            // NAO = política automática (novo/pendência → sinal; recorrente limpo → boleto).
+            // SIM = força sinal em todo aceite desta EMP.
+            [AdiantamentoService::PARAM_OBRIGATORIO, 'NAO'],
             [AdiantamentoService::PARAM_PERCENTUAL, '50'],
             ['lai_no_erp', 'NÃO'],
         ];

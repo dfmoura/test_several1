@@ -993,6 +993,13 @@ export type Parceiro = {
   credito_utilizado: string | null;
   condicao_pagamento: string | null;
   forma_pagamento: string | null;
+  /** Política automática sinal × boleto (ADR_ORC_ADIANTAMENTO_PIX). */
+  politica_comercial?: {
+    perfil: 'NOVO' | 'RECORRENTE_PENDENTE' | 'RECORRENTE_LIMPO';
+    exige_sinal: boolean;
+    motivo: string;
+    titulos_vencidos: number;
+  } | null;
   vendedor_parceiro_id?: number | null;
   comissao_percentual?: string | null;
   vendedor?: ParceiroVinculo | null;

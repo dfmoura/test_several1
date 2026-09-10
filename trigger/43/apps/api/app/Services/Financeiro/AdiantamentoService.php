@@ -9,11 +9,13 @@ use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
 use App\Models\ParametroEmpresa;
+use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Support\PadraoDecimal;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -21,6 +23,10 @@ use RuntimeException;
 /**
  * Adiantamento/sinal no aceite do ORC (estudo 32 §5.1 / UC-COM-009).
  * Aceite comercial ≠ liberação financeira.
+ *
+ * Política: cliente novo ou com TIT RECEBER vencido → sinal;
+ * recorrente limpo → boleto conforme condição (sem sinal no aceite).
+ * Override EMP: orc.adiantamento_obrigatorio.
  */
 class AdiantamentoService
 {
@@ -34,6 +40,22 @@ class AdiantamentoService
 
     public const PARAM_PERCENTUAL = 'orc.adiantamento_percentual';
 
+    public const PERFIL_NOVO = 'NOVO';
+
+    public const PERFIL_RECORRENTE_PENDENTE = 'RECORRENTE_PENDENTE';
+
+    public const PERFIL_RECORRENTE_LIMPO = 'RECORRENTE_LIMPO';
+
+    public const MOTIVO_EMP_OBRIGATORIO = 'EMP_OBRIGATORIO';
+
+    public const MOTIVO_SEM_PARCEIRO = 'SEM_PARCEIRO';
+
+    public const MOTIVO_CLIENTE_NOVO = 'CLIENTE_NOVO';
+
+    public const MOTIVO_PENDENCIA_RECEBER = 'PENDENCIA_RECEBER';
+
+    public const MOTIVO_RECORRENTE_LIMPO = 'RECORRENTE_LIMPO';
+
     public function __construct(
         private readonly CodigoGenerator $codigos,
         private readonly BankProviderResolver $banks,
@@ -43,17 +65,172 @@ class AdiantamentoService
 
     public function exigeAdiantamento(Empresa $empresa, ?Parceiro $parceiro): bool
     {
-        if ($this->paramBool($empresa, self::PARAM_OBRIGATORIO, false)) {
-            return true;
-        }
+        return (bool) $this->classificarParceiro($empresa, $parceiro)['exige_sinal'];
+    }
 
+    /**
+     * Perfil comercial do PAR para gate de sinal e UX.
+     *
+     * @return array{perfil: string, exige_sinal: bool, motivo: string, titulos_vencidos: int}
+     */
+    public function classificarParceiro(Empresa $empresa, ?Parceiro $parceiro): array
+    {
         if ($parceiro === null) {
-            return true;
+            return [
+                'perfil' => self::PERFIL_NOVO,
+                'exige_sinal' => true,
+                'motivo' => self::MOTIVO_SEM_PARCEIRO,
+                'titulos_vencidos' => 0,
+            ];
         }
 
-        $limite = PadraoDecimal::parseStrict((string) $parceiro->limite_credito, PadraoDecimal::SCALE_MONEY) ?? '0.00';
+        $titulosVencidos = $this->contarTitulosVencidos($empresa->id, $parceiro->id);
+        $temHistorico = $this->temHistoricoServico($empresa->id, $parceiro->id);
+        $perfil = $this->perfilDe($temHistorico, $titulosVencidos);
 
-        return bccomp($limite, '0', PadraoDecimal::SCALE_MONEY) <= 0;
+        if ($this->paramBool($empresa, self::PARAM_OBRIGATORIO, false)) {
+            return [
+                'perfil' => $perfil,
+                'exige_sinal' => true,
+                'motivo' => self::MOTIVO_EMP_OBRIGATORIO,
+                'titulos_vencidos' => $titulosVencidos,
+            ];
+        }
+
+        if (! $temHistorico) {
+            return [
+                'perfil' => self::PERFIL_NOVO,
+                'exige_sinal' => true,
+                'motivo' => self::MOTIVO_CLIENTE_NOVO,
+                'titulos_vencidos' => $titulosVencidos,
+            ];
+        }
+
+        if ($titulosVencidos > 0) {
+            return [
+                'perfil' => self::PERFIL_RECORRENTE_PENDENTE,
+                'exige_sinal' => true,
+                'motivo' => self::MOTIVO_PENDENCIA_RECEBER,
+                'titulos_vencidos' => $titulosVencidos,
+            ];
+        }
+
+        return [
+            'perfil' => self::PERFIL_RECORRENTE_LIMPO,
+            'exige_sinal' => false,
+            'motivo' => self::MOTIVO_RECORRENTE_LIMPO,
+            'titulos_vencidos' => 0,
+        ];
+    }
+
+    /**
+     * Anexa politica_comercial em modelos PAR (lista/show) sem N+1.
+     *
+     * @param  Collection<int, Parceiro>|iterable<Parceiro>  $parceiros
+     * @return Collection<int, Parceiro>
+     */
+    public function anexarPoliticaComercial(Empresa $empresa, iterable $parceiros): Collection
+    {
+        $colecao = $parceiros instanceof Collection ? $parceiros : collect($parceiros);
+        if ($colecao->isEmpty()) {
+            return $colecao;
+        }
+
+        $ids = $colecao->pluck('id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $comPedido = Pedido::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('parceiro_id', $ids)
+            ->where('status', '!=', Pedido::STATUS_CANCELADO)
+            ->distinct()
+            ->pluck('parceiro_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $comPedidoSet = array_fill_keys($comPedido, true);
+
+        $vencidosPorPar = Titulo::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('parceiro_id', $ids)
+            ->where('tipo', Titulo::TIPO_RECEBER)
+            ->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL])
+            ->whereDate('vencimento', '<', now()->toDateString())
+            ->where('saldo', '>', 0)
+            ->selectRaw('parceiro_id, COUNT(*) as c')
+            ->groupBy('parceiro_id')
+            ->pluck('c', 'parceiro_id');
+
+        $empObrigatorio = $this->paramBool($empresa, self::PARAM_OBRIGATORIO, false);
+
+        return $colecao->map(function (Parceiro $parceiro) use ($comPedidoSet, $vencidosPorPar, $empObrigatorio) {
+            $titulosVencidos = (int) ($vencidosPorPar[$parceiro->id] ?? 0);
+            $temHistorico = isset($comPedidoSet[(int) $parceiro->id]);
+            $perfil = $this->perfilDe($temHistorico, $titulosVencidos);
+
+            if ($empObrigatorio) {
+                $politica = [
+                    'perfil' => $perfil,
+                    'exige_sinal' => true,
+                    'motivo' => self::MOTIVO_EMP_OBRIGATORIO,
+                    'titulos_vencidos' => $titulosVencidos,
+                ];
+            } elseif (! $temHistorico) {
+                $politica = [
+                    'perfil' => self::PERFIL_NOVO,
+                    'exige_sinal' => true,
+                    'motivo' => self::MOTIVO_CLIENTE_NOVO,
+                    'titulos_vencidos' => $titulosVencidos,
+                ];
+            } elseif ($titulosVencidos > 0) {
+                $politica = [
+                    'perfil' => self::PERFIL_RECORRENTE_PENDENTE,
+                    'exige_sinal' => true,
+                    'motivo' => self::MOTIVO_PENDENCIA_RECEBER,
+                    'titulos_vencidos' => $titulosVencidos,
+                ];
+            } else {
+                $politica = [
+                    'perfil' => self::PERFIL_RECORRENTE_LIMPO,
+                    'exige_sinal' => false,
+                    'motivo' => self::MOTIVO_RECORRENTE_LIMPO,
+                    'titulos_vencidos' => 0,
+                ];
+            }
+
+            $parceiro->setAttribute('politica_comercial', $politica);
+
+            return $parceiro;
+        });
+    }
+
+    private function perfilDe(bool $temHistorico, int $titulosVencidos): string
+    {
+        if (! $temHistorico) {
+            return self::PERFIL_NOVO;
+        }
+
+        return $titulosVencidos > 0
+            ? self::PERFIL_RECORRENTE_PENDENTE
+            : self::PERFIL_RECORRENTE_LIMPO;
+    }
+
+    private function temHistoricoServico(int $empresaId, int $parceiroId): bool
+    {
+        return Pedido::query()
+            ->where('empresa_id', $empresaId)
+            ->where('parceiro_id', $parceiroId)
+            ->where('status', '!=', Pedido::STATUS_CANCELADO)
+            ->exists();
+    }
+
+    private function contarTitulosVencidos(int $empresaId, int $parceiroId): int
+    {
+        return (int) Titulo::query()
+            ->where('empresa_id', $empresaId)
+            ->where('parceiro_id', $parceiroId)
+            ->where('tipo', Titulo::TIPO_RECEBER)
+            ->whereIn('status', [Titulo::STATUS_ABERTO, Titulo::STATUS_PARCIAL])
+            ->whereDate('vencimento', '<', now()->toDateString())
+            ->where('saldo', '>', 0)
+            ->count();
     }
 
     public function percentual(Empresa $empresa): string

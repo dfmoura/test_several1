@@ -54,9 +54,11 @@ class OrcamentoAprovacaoTest extends TestCase
             'is_prospect' => false,
             'whatsapp' => '31999998888',
             'contato_nome' => 'Maria Compradora',
-            // Crédito liberado → sem adiantamento PIX (cenário B). PIX = AdiantamentoOrcamentoTest.
+            // Recorrente limpo → sem sinal no aceite (política histórico). PIX = AdiantamentoOrcamentoTest.
             'limite_credito' => '10000.00',
         ]);
+
+        $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
 
         ParceiroContato::query()->create([
             'parceiro_id' => $this->parceiro->id,

@@ -8,11 +8,13 @@ use App\Models\EmpresaContaFinanceira;
 use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
+use App\Models\ParametroEmpresa;
 use App\Models\Parceiro;
 use App\Models\ParceiroContato;
 use App\Models\Titulo;
 use App\Models\User;
 use App\Services\Cadastros\NaturezaGerencialService;
+use App\Services\Financeiro\AdiantamentoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
@@ -293,9 +295,25 @@ class AdiantamentoOrcamentoTest extends TestCase
         $this->assertSame(1, $tit->baixas()->count());
     }
 
-    public function test_cliente_com_credito_nao_exige_pix(): void
+    public function test_cliente_novo_com_limite_alto_ainda_exige_sinal(): void
     {
         $this->parceiro->update(['limite_credito' => '50000.00']);
+        $token = $this->criarEEnviar();
+
+        $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixa_index' => 0,
+            'nome_cliente' => 'Ana Nova',
+        ]);
+        $ok->assertOk();
+        $this->assertSame('AGUARDA_ADIANTAMENTO', $ok->json('data.financeiro_status'));
+        $this->assertNotNull($ok->json('data.adiantamento'));
+    }
+
+    public function test_recorrente_limpo_nao_exige_sinal_mesmo_com_limite_zero(): void
+    {
+        $this->seedHistoricoPedido();
+        $this->parceiro->update(['limite_credito' => '0.00']);
         $token = $this->criarEEnviar();
 
         $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
@@ -307,6 +325,89 @@ class AdiantamentoOrcamentoTest extends TestCase
         $this->assertSame('APROVADO', $ok->json('data.status'));
         $this->assertSame('LIBERADO', $ok->json('data.financeiro_status'));
         $this->assertNull($ok->json('data.adiantamento'));
-        $this->assertSame(0, Titulo::query()->where('tipo', Titulo::TIPO_RECEBER)->count());
+        $this->assertSame(0, Titulo::query()->where('origem', 'ADIANTAMENTO')->count());
+    }
+
+    public function test_recorrente_com_titulo_vencido_exige_sinal(): void
+    {
+        $this->seedHistoricoPedido();
+        $this->parceiro->update(['limite_credito' => '50000.00']);
+        $this->seedTituloReceberVencido();
+
+        $token = $this->criarEEnviar();
+        $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixa_index' => 0,
+            'nome_cliente' => 'Ana Nova',
+        ]);
+        $ok->assertOk();
+        $this->assertSame('AGUARDA_ADIANTAMENTO', $ok->json('data.financeiro_status'));
+        $this->assertNotNull($ok->json('data.adiantamento'));
+    }
+
+    public function test_emp_obrigatorio_forca_sinal_em_recorrente_limpo(): void
+    {
+        $this->seedHistoricoPedido();
+        $this->parceiro->update(['limite_credito' => '50000.00']);
+        ParametroEmpresa::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'chave' => AdiantamentoService::PARAM_OBRIGATORIO,
+            'valor' => 'SIM',
+            'status' => 'APROVADO',
+            'versao' => 1,
+        ]);
+
+        $token = $this->criarEEnviar();
+        $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixa_index' => 0,
+            'nome_cliente' => 'Ana Nova',
+        ]);
+        $ok->assertOk();
+        $this->assertSame('AGUARDA_ADIANTAMENTO', $ok->json('data.financeiro_status'));
+    }
+
+    public function test_parceiro_show_inclui_politica_comercial(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $show = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/parceiros/'.$this->parceiro->id);
+        $show->assertOk();
+        $this->assertSame('NOVO', $show->json('data.politica_comercial.perfil'));
+        $this->assertTrue($show->json('data.politica_comercial.exige_sinal'));
+        $this->assertSame('CLIENTE_NOVO', $show->json('data.politica_comercial.motivo'));
+
+        $this->seedHistoricoPedido();
+        $show2 = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/parceiros/'.$this->parceiro->id);
+        $show2->assertOk();
+        $this->assertSame('RECORRENTE_LIMPO', $show2->json('data.politica_comercial.perfil'));
+        $this->assertFalse($show2->json('data.politica_comercial.exige_sinal'));
+    }
+
+    private function seedHistoricoPedido(): void
+    {
+        $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro, 9001);
+    }
+
+    private function seedTituloReceberVencido(): void
+    {
+        $natureza = NaturezaGerencial::query()->where('codigo', '1.01.01')->firstOrFail();
+        Titulo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'TIT-VENC-00001',
+            'tipo' => Titulo::TIPO_RECEBER,
+            'parceiro_id' => $this->parceiro->id,
+            'natureza_id' => $natureza->id,
+            'origem' => Titulo::ORIGEM_AVULSO,
+            'documento' => 'PENDENCIA',
+            'parcela' => 1,
+            'n_dup' => 1,
+            'emissao' => now()->subDays(40)->toDateString(),
+            'vencimento' => now()->subDays(10)->toDateString(),
+            'valor' => '100.00',
+            'saldo' => '100.00',
+            'status' => Titulo::STATUS_ABERTO,
+        ]);
     }
 }

@@ -29,7 +29,9 @@ import { useAuth } from '../lib/auth';
 import { DECIMAL_SCALE, decimalStep, formatCep, formatCnpjCpf, formatKmCarro, formatKmCarroDaEmpresa, formatLatLng, formatPhone, kmCarroEhZero, onlyDigits } from '../lib/format';
 import {
   FORMAS_PAGAMENTO,
+  hintPoliticaComercial,
   isFormaPagamentoCanonica,
+  type PoliticaComercialParceiro,
 } from '../lib/condicoesComerciais';
 import {
   deriveIndIeDest,
@@ -824,6 +826,7 @@ export function ParceiroFormPage() {
   const [distanciaErro, setDistanciaErro] = useState<string | null>(null);
   const [distanciaAlvo, setDistanciaAlvo] = useState<'fiscal' | string | null>(null);
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
+  const [politicaComercial, setPoliticaComercial] = useState<PoliticaComercialParceiro | null>(null);
   const loadTokenRef = useRef(0);
 
   const visibleTabs = useMemo(() => tabsForTipoPessoa(form.tipo_pessoa), [form.tipo_pessoa]);
@@ -847,6 +850,7 @@ export function ParceiroFormPage() {
         const mapped = fromParceiro(res.data);
         setForm(mapped);
         setVendedorPadraoSel(res.data.vendedor ?? null);
+        setPoliticaComercial(res.data.politica_comercial ?? null);
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -1494,6 +1498,7 @@ export function ParceiroFormPage() {
         const res = await api.put<{ data: Parceiro }>(`/parceiros/${id}`, payload);
         setForm(fromParceiro(res.data));
         setVendedorPadraoSel(res.data.vendedor ?? null);
+        setPoliticaComercial(res.data.politica_comercial ?? null);
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -2632,8 +2637,14 @@ export function ParceiroFormPage() {
               </div>
               <p className="form-hint" style={{ marginBottom: '0.85rem' }}>
                 Defaults do parceiro — sugerem OC/ORC; a condição efetiva fica no documento
-                (snapshot). Não geram parcelas sozinhas.
+                (snapshot). Sinal no aceite segue histórico: cliente novo ou com título vencido
+                paga sinal; recorrente limpo cobra no boleto/DDL negociado.
               </p>
+              {politicaComercial ? (
+                <p className="form-hint" style={{ marginBottom: '0.85rem' }}>
+                  {hintPoliticaComercial(politicaComercial)}
+                </p>
+              ) : null}
               <div className="form-grid" style={{ marginBottom: '1.25rem' }}>
                 {form.papel_cliente && (
                   <div className="form-group">
@@ -2647,7 +2658,8 @@ export function ParceiroFormPage() {
                       onChange={(e) => update({ limite_credito: e.target.value })}
                     />
                     <span className="form-hint">
-                      Padrão 0 = à vista / sinal. Monetário {DECIMAL_SCALE.money} casas.
+                      Referência SoD (FINANCEIRO). O gatilho automático de sinal é histórico +
+                      pendência — não só o limite. Monetário {DECIMAL_SCALE.money} casas.
                       {!canCredito ? ' Somente FINANCEIRO edita (SoD).' : ''}
                     </span>
                   </div>

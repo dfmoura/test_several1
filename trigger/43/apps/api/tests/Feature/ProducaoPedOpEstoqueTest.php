@@ -75,6 +75,8 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'contato_nome' => 'Prod Cliente',
         ]);
 
+        $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
+
         ParceiroContato::query()->create([
             'parceiro_id' => $this->parceiro->id,
             'nome' => 'Prod Cliente',

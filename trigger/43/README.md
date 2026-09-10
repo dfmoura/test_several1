@@ -56,6 +56,6 @@ make up
 3. Informa o PIX da empresa para receber o sinal, confere o catálogo de preços e cadastra o primeiro cliente (ou prospect mínimo).
 4. Gera o orçamento (motor parametrizado do 39).
 5. Envia o link. Cliente vê só a proposta comercial.
-6. Se limite 0 / parâmetro de sinal: após o aceite o sistema emite cobrança PIX e fica **aguardando adiantamento**.
+6. Cliente novo (ou com título vencido): após o aceite emite PIX do sinal (50%) e fica **aguardando adiantamento**. Cliente recorrente sem pendência: libera o pedido e cobra no boleto/DDL negociado.
 
 Detalhe: `docs/ADR_FATIA_COMERCIAL_SAAS.md` · `docs/ADR_ATIVACAO_EMPRESA.md` · `docs/ADR_IMPLANTACAO_ACEITE.md`.

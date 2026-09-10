@@ -18,9 +18,9 @@ Parceiros → Financeiro → **Condições comerciais** guarda defaults. Documen
 | **ORC: só `input_snapshot`** | Sem coluna nova em `orcamentos`; mesmo padrão de faca/prazo no JSON. Motor R1–R20 intacto. |
 | **Forma canônica curta** | PIX · Boleto · Transferência · Cartão (UI); string no banco; legado preservado. |
 | **Condição = texto + sugestões** | Sem catálogo `COND-` até existir gerador de TIT. Sugestões **configuráveis por EMP** (`condicao_pagamento_sugestoes`) — autocomplete apenas; documento guarda texto livre. |
-| **Limite continua SoD** | Só `credito.escrever`; default 0 → sinal/à vista (adiantamento). |
+| **Limite SoD, não gate único de sinal** | Só `credito.escrever` edita; referência futura de CRT. Sinal no aceite = histórico (novo/pendência) — ver `ADR_ORC_ADIANTAMENTO_PIX.md`. |
 | **OC = prefill editável** | Ao escolher fornecedor, copia condição do PAR. |
-| **ORC = prefill + snapshot** | Ao escolher parceiro, preenche; salvar grava no `input_snapshot`; proposta pública e ficha exibem. |
+| **ORC = prefill + snapshot** | Ao escolher parceiro, preenche; cliente novo sem defaults → sugere `50% sinal + 50% 28 DDL` · PIX; salvar grava no `input_snapshot`; proposta pública e ficha exibem. |
 
 ```
 PAR (defaults)
@@ -43,4 +43,6 @@ PAR (defaults)
 - Validação API: `condicao_pagamento` / `forma_pagamento` opcionais no payload do ORC.  
 - Proposta pública: seção **Condições** inclui pagamento quando informado.  
 - Multi-EMP: PAR e ORC já escopados por `empresa_id`.  
+- Create de cliente/prospect sem condição/forma → default `50% sinal + 50% 28 DDL` · `PIX`.  
+- Payload PAR inclui `politica_comercial` (perfil sinal × boleto).  
 - Regressão: `OrcamentoTest` (snapshot comercial + preço BRAHVA).

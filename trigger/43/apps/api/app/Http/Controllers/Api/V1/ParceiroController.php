@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Parceiro;
 use App\Services\Cadastros\ParceiroPosicaoDistanciaService;
 use App\Services\Cadastros\ParceiroService;
+use App\Services\Financeiro\AdiantamentoService;
 use App\Support\OrigemLead;
 use App\Support\ParceiroValidationRules;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class ParceiroController extends Controller
     public function __construct(
         private readonly ParceiroService $parceiroService,
         private readonly ParceiroPosicaoDistanciaService $posicaoDistanciaService,
+        private readonly AdiantamentoService $adiantamentoService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -30,6 +32,7 @@ class ParceiroController extends Controller
 
         $empresa = app('empresa');
         $data = $this->parceiroService->list($empresa, $validated['q'] ?? null, $validated['papel'] ?? null);
+        $data = $this->adiantamentoService->anexarPoliticaComercial($empresa, $data);
 
         return response()->json(['data' => $data]);
     }
@@ -40,6 +43,7 @@ class ParceiroController extends Controller
 
         $data = $this->validateParceiro($request);
         $parceiro = $this->parceiroService->create(app('empresa'), $data);
+        $parceiro = $this->adiantamentoService->anexarPoliticaComercial(app('empresa'), collect([$parceiro]))->first();
 
         return response()->json(['data' => $parceiro], 201);
     }
@@ -107,6 +111,7 @@ class ParceiroController extends Controller
         }
 
         $parceiro = $this->parceiroService->createProspectRapido($empresa, $validated);
+        $parceiro = $this->adiantamentoService->anexarPoliticaComercial($empresa, collect([$parceiro]))->first();
 
         return response()->json(['data' => $parceiro], 201);
     }
@@ -117,6 +122,7 @@ class ParceiroController extends Controller
         $this->assertEmpresa($parceiro);
 
         $parceiro->load(['contatos', 'contasBancarias', 'enderecosEntrega', 'fiscaisHistorico', 'departamentoRef', 'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor', ...Parceiro::userStampWith()]);
+        $parceiro = $this->adiantamentoService->anexarPoliticaComercial(app('empresa'), collect([$parceiro]))->first();
 
         return response()->json(['data' => $parceiro]);
     }
@@ -140,6 +146,7 @@ class ParceiroController extends Controller
         }
 
         $parceiro = $this->parceiroService->update($parceiro, $data);
+        $parceiro = $this->adiantamentoService->anexarPoliticaComercial(app('empresa'), collect([$parceiro]))->first();
 
         return response()->json(['data' => $parceiro]);
     }
