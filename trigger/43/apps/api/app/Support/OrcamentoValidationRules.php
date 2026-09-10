@@ -56,6 +56,8 @@ final class OrcamentoValidationRules
             'maquina' => ['required', 'string', 'max:64'],
             'maquina_roda_servico' => ['nullable', 'string', 'max:64'],
             'imposto_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // Pad comercial R$ pós-motor — ADR_ORC_GORDURA_COMERCIAL (interno; fora do DTO público).
+            'valor_gordura' => ['nullable', 'numeric', 'min:0'],
             'matriz' => ['nullable', 'string', Rule::in(['SIM', 'NAO', 'S', 'N', 'YES', 'TRUE', '1', '0'])],
             'coluna_rebobinacao' => ['nullable', 'integer', 'min:1'],
             'tipo_troca_produto' => ['nullable', 'string', 'max:64'],
@@ -119,6 +121,7 @@ final class OrcamentoValidationRules
             'faixas.*.quantidade' => ['required', 'numeric', 'gt:0'],
             'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
             'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'valor_gordura' => ['nullable', 'numeric', 'min:0'],
             'necessidade' => ['nullable', 'string', Rule::in(['SERVICO'])],
         ]);
     }

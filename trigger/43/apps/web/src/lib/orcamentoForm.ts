@@ -118,6 +118,8 @@ export type OrcForm = {
   z: number | '';
   maquina: string;
   imposto_pct: number;
+  /** Pad comercial interno em R$ (ADR_ORC_GORDURA_COMERCIAL) — não vai à proposta do cliente. */
+  valor_gordura: number;
   matriz: 'SIM' | 'NAO';
   coluna_rebobinacao: number;
   tipo_troca_produto: string;
@@ -373,6 +375,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     z: '',
     maquina: maquinas[0] ?? 'BETA',
     imposto_pct: catalog?.imposto_pct_default ?? 16,
+    valor_gordura: 0,
     matriz: 'SIM',
     coluna_rebobinacao: 1,
     tipo_troca_produto: tipos[0] ?? 'SEM PARADA',
@@ -453,6 +456,7 @@ export function formFromSnapshot(
     z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
     maquina: String(snap.maquina ?? base.maquina),
     imposto_pct: Number(snap.imposto_pct) || base.imposto_pct,
+    valor_gordura: Math.max(0, Number(snap.valor_gordura) || 0),
     matriz: String(snap.matriz) === 'NAO' ? 'NAO' : 'SIM',
     coluna_rebobinacao: Number(snap.coluna_rebobinacao) || 1,
     tipo_troca_produto: String(snap.tipo_troca_produto ?? base.tipo_troca_produto),
@@ -527,6 +531,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       forma_pagamento: form.forma_pagamento.trim() || null,
       vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
       modo_entrega: form.modo_entrega,
+      valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
       valor_frete_manual:
         modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
@@ -557,6 +562,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     z: form.z === '' ? null : form.z,
     maquina: form.maquina,
     imposto_pct: form.imposto_pct,
+    valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
     matriz: form.matriz,
     coluna_rebobinacao: form.coluna_rebobinacao,
     tipo_troca_produto: form.tipo_troca_produto,

@@ -1,0 +1,32 @@
+---
+description: Gordura comercial ORC — pad R$ interno pós-motor, fora do DTO cliente
+globs: "**/OrcamentoService.php,**/OrcamentoValidationRules.php,**/OrcamentoAprovacaoService.php,**/OrcamentoFormPage.tsx,**/OrcamentoResultado.tsx,**/OrcamentoFichaSheet.tsx,**/OrcamentoPropostaView.tsx,**/orcamentoForm.ts,**/ADR_ORC_GORDURA*.md"
+alwaysApply: false
+---
+
+# Gordura comercial no ORC (pad interno)
+
+Norma: `docs/ADR_ORC_GORDURA_COMERCIAL.md`.
+
+## Donos
+
+- **Campo:** `valor_gordura` (R$ ≥ 0) no job — `input_snapshot` + `result_snapshot`.
+- **Aplicação:** `OrcamentoService::aplicarGordura` dentro de `enrichResult`, **depois** do motor e **antes** de faca/artes/frete.
+- **Efeito:** soma em `valor_etiqueta` (re-ceiling); grava `valor_etiqueta_base` quando pad > 0.
+- **Label UX:** “Gordura” (sem %).
+
+## Faça
+
+- Tratar gordura como pad comercial interno em R$ (proposta/ficha do cliente sem a linha).
+- Manter PED/FAT/comissão no `valor_etiqueta` já com pad.
+- Mostrar no formulário, resultado/composição e ficha operacional A4.
+
+## Não faça
+
+- Mexer em R1–R20 / diluir gordura em papel ou hora-máquina.
+- Usar percentual (`gordura_pct`) — o pad é valor.
+- Expor `valor_gordura` / `valor_etiqueta_base` no `dtoComercial` ou ficha do cliente.
+- Aplicar sobre matriz, faca, artes ou frete.
+- Mostrar na guia de produção / OP.
+
+Se a tarefa exigir violar isto → parar e citar a ADR.

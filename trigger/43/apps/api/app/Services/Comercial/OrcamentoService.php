@@ -325,6 +325,7 @@ class OrcamentoService
             'codigo_tributacao_nacional_iss' => $tipo['codigo_tributacao_nacional_iss'],
             'codigo_nbs' => $tipo['codigo_nbs'],
             'necessidade' => 'SERVICO',
+            'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
             'faixas' => array_map(static fn (array $f) => [
                 'quantidade' => (float) $f['quantidade'],
                 'valor_unitario' => (float) $f['valor_unitario'],
@@ -363,6 +364,7 @@ class OrcamentoService
             'maquina' => $data['maquina'],
             'maquina_roda_servico' => $data['maquina_roda_servico'] ?? $data['maquina'],
             'imposto_pct' => (float) ($data['imposto_pct'] ?? 16),
+            'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
             'matriz' => strtoupper((string) ($data['matriz'] ?? 'SIM')),
             'coluna_rebobinacao' => (int) ($data['coluna_rebobinacao'] ?? 1),
             'tipo_troca_produto' => $data['tipo_troca_produto'] ?? 'SEM PARADA',
@@ -437,6 +439,9 @@ class OrcamentoService
             'codigo_tributacao_nacional_iss' => $input['codigo_tributacao_nacional_iss'] ?? null,
             'codigo_nbs' => $input['codigo_nbs'] ?? null,
             'familia_fiscal' => $input['familia_fiscal'] ?? null,
+            'valor_gordura' => $this->normalizeValorGordura(
+                $data['valor_gordura'] ?? $input['valor_gordura'] ?? 0
+            ),
             'faca_nova' => (bool) ($data['faca_nova'] ?? $input['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? $input['formato_faca'] ?? null,
             'valor_faca_nova' => (float) ($data['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0),
@@ -510,9 +515,10 @@ class OrcamentoService
     }
 
     /**
-     * Anexa FACA NOVA, soma das artes cotadas e frete estimado ao result
-     * sem alterar fórmulas R1–R20. Add-ons comerciais entram em
-     * valor_total_com_faca → valor_total_proposta. Frete nunca soma.
+     * Anexa gordura comercial (pad interno), FACA NOVA, artes e frete
+     * sem alterar fórmulas R1–R20. Gordura infla valor_etiqueta antes dos
+     * add-ons; faca/artes entram em valor_total_com_faca → proposta.
+     * Frete nunca soma. Gordura nunca vai ao DTO público.
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
@@ -524,6 +530,9 @@ class OrcamentoService
             $data['faca_nova'] = false;
             $data['valor_faca_nova'] = 0;
         }
+
+        $result = $this->aplicarGordura($result, $data);
+
         $facaNova = (bool) ($data['faca_nova'] ?? false);
         $valorFaca = $facaNova ? max(0.0, (float) ($data['valor_faca_nova'] ?? 0)) : 0.0;
         $prazoFaca = $facaNova && isset($data['prazo_faca_dias']) && $data['prazo_faca_dias'] !== null
@@ -551,6 +560,57 @@ class OrcamentoService
             $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa),
             $this->diasUteis->previsaoPreview($empresa, $data, $result),
         );
+    }
+
+    /**
+     * Pad comercial sobre etiquetas (ADR_ORC_GORDURA_COMERCIAL).
+     * Com pct = 0 não altera faixas (compatível com ORCs legados / golden).
+     *
+     * @param  array<string, mixed>  $result
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function aplicarGordura(array $result, array $data): array
+    {
+        $pad = $this->normalizeValorGordura($data['valor_gordura'] ?? $result['valor_gordura'] ?? 0);
+        $result['valor_gordura'] = $pad;
+
+        if ($pad <= 0.0 || ! isset($result['faixas']) || ! is_array($result['faixas'])) {
+            return $result;
+        }
+
+        $ceiling = (float) ($result['catalog_snapshot']['ceiling_etiqueta'] ?? 10);
+        if ($ceiling <= 0) {
+            $ceiling = 10.0;
+        }
+
+        foreach ($result['faixas'] as $i => $fx) {
+            if (! is_array($fx)) {
+                continue;
+            }
+            $base = (float) ($fx['valor_etiqueta'] ?? 0);
+            $comGordura = $this->motor->excelCeiling($base + $pad, $ceiling);
+            $matriz = (float) ($fx['valor_matriz'] ?? 0);
+
+            $result['faixas'][$i]['valor_etiqueta_base'] = $base;
+            $result['faixas'][$i]['valor_gordura'] = $pad;
+            $result['faixas'][$i]['valor_etiqueta'] = $comGordura;
+            $result['faixas'][$i]['valor_total'] = $comGordura + $matriz;
+        }
+
+        return $result;
+    }
+
+    private function normalizeValorGordura(mixed $raw): float
+    {
+        if ($raw === null || $raw === '') {
+            return 0.0;
+        }
+        if (! is_numeric($raw)) {
+            return 0.0;
+        }
+
+        return max(0.0, round((float) $raw, 2));
     }
 
     /** @return array<string, mixed> */

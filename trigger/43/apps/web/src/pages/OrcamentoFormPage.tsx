@@ -1161,6 +1161,22 @@ export function OrcamentoFormPage() {
                 />
               </div>
               <div className="form-group">
+                <label>
+                  Gordura <span className="field-note">interno — cliente não vê</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={form.valor_gordura || ''}
+                  onChange={(e) =>
+                    setField('valor_gordura', Math.max(0, Number(e.target.value) || 0))
+                  }
+                  disabled={!canWrite}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="form-group">
                 <label>Tipo troca produto</label>
                 <select
                   value={form.tipo_troca_produto}
@@ -1251,6 +1267,22 @@ export function OrcamentoFormPage() {
                     value={form.descricao_servico}
                     disabled={!canWrite}
                     onChange={(e) => setField('descricao_servico', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Gordura <span className="field-note">interno — cliente não vê</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={form.valor_gordura || ''}
+                    onChange={(e) =>
+                      setField('valor_gordura', Math.max(0, Number(e.target.value) || 0))
+                    }
+                    disabled={!canWrite}
+                    placeholder="0,00"
                   />
                 </div>
               </div>

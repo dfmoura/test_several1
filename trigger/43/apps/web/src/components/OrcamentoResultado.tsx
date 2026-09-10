@@ -421,7 +421,25 @@ function ParametrosCalculoPanel({
 
           {(
             [
-              { label: 'Serviço arredondado', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_etiqueta) },
+              ...(Number(calculo.valor_gordura) > 0
+                ? [
+                    {
+                      label: 'Serviço (base)',
+                      valor: (fx: OrcamentoFaixaResult) =>
+                        formatCurrency(fx.valor_etiqueta_base ?? fx.valor_etiqueta),
+                    },
+                    {
+                      label: 'Gordura',
+                      valor: (fx: OrcamentoFaixaResult) =>
+                        formatCurrency(fx.valor_gordura ?? calculo.valor_gordura ?? 0),
+                    },
+                  ]
+                : [
+                    {
+                      label: 'Serviço arredondado',
+                      valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_etiqueta),
+                    },
+                  ]),
               { label: 'Matriz', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_matriz) },
               ...(facaNova
                 ? [

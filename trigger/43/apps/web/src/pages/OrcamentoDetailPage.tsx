@@ -19,7 +19,7 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
-import { formatDateTime, formatPhone } from '../lib/format';
+import { formatDateTime, formatPhone, formatCurrency } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
   displaySnap,
@@ -221,6 +221,9 @@ export function OrcamentoDetailPage() {
           ['Unidade', input.unidade],
           ['Material do cliente', input.material_cliente ? 'Sim' : 'Não'],
           ['NFS-e (ISS)', input.codigo_tributacao_nacional_iss],
+          ...(Number(input.valor_gordura) > 0
+            ? ([['Gordura', formatCurrency(Number(input.valor_gordura))]] as Array<[string, unknown]>)
+            : []),
         ] as Array<[string, unknown]>
       ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '')
     : (
@@ -235,6 +238,9 @@ export function OrcamentoDetailPage() {
       ['Col. rebob.', input.coluna_rebobinacao],
       ['Matriz', input.matriz],
       ['Imposto %', input.imposto_pct],
+      ...(Number(input.valor_gordura) > 0
+        ? ([['Gordura', formatCurrency(Number(input.valor_gordura))]] as Array<[string, unknown]>)
+        : []),
       ['Troca produto', input.tipo_troca_produto],
       ['RPM', input.rpm],
     ] as Array<[string, unknown]>

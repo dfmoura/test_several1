@@ -16,7 +16,7 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 | **Base URL configurável** `ORCAMENTO_PUBLIC_BASE_URL` | Local/ensaio: tunnel `flexorc`; **homolog/prod:** `https://flexoerp001.triggerti.com` (`ADR_HOST_INSTALACAO_FLEXOERP001`). |
 | **Tabela `orcamento_links_aprovacao`** (1:1) | Token longo, validade, visualizações, `ativo`/`usado_em` — sem expor `id` sequencial. |
 | **Destinatário = contato oficial autorizado** | Estudo §1.4 / §3.4: sem senha no link; identificação = canal + token. Proibido número/e-mail avulso no envio. Flag `parceiro_contatos.autorizado_aprovar`. |
-| **DTO só comercial no público** | Nunca custo, margem, comissão, imposto (estudo §3). Página declara **quem** deve decidir. |
+| **DTO só comercial no público** | Nunca custo, margem, comissão, imposto, gordura (estudo §3 · `ADR_ORC_GORDURA_COMERCIAL`). Página declara **quem** deve decidir. |
 | **Clipboard + texto padrão + deep link do canal** | “Olá, [contato]! …” + botão Abrir WhatsApp/e-mail. E-mail automático: `ADR_ORC_EMAIL_PROPOSTA.md`. WhatsApp ViaZap: `ADR_ORC_WHATSAPP_VIAZAP.md` (fail-soft; clipboard intacto). |
 | **Prévia interna ≠ link do cliente** | “Abrir proposta” no ERP abre `/orcamentos/{id}/proposta` (autenticado, `modo: preview`, sem decidir). Aprovar/recusar só em `/p/{token}`. |
 | **Sem senha no link** | Estudo §3.4: atrito mataria adesão mobile; segurança = token longo + destinatário oficial + uso único. |

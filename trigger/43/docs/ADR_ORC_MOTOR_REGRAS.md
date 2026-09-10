@@ -93,7 +93,9 @@ CRUD do usuário = CRUD de **parâmetros e bases** (papel, acabamento, …). Reg
 
 ## Fora desta entrega
 
-Matriz de compatibilidade · cenários/gordura · vigência temporal TAB · motor v2.
+Matriz de compatibilidade · vigência temporal TAB · motor v2.
+
+**Gordura comercial** (pad pós-motor, interno): `ADR_ORC_GORDURA_COMERCIAL.md` — não altera R1–R20.
 
 ---
 

@@ -141,6 +141,8 @@ export function OrcamentoFichaSheet({
   const facaNova = Boolean(input.faca_nova ?? result?.faca_nova);
   const valorFacaNova = Number(result?.valor_faca_nova ?? input.valor_faca_nova ?? 0);
   const valorArtes = Number(result?.valor_artes ?? 0);
+  const valorGordura = Number(result?.valor_gordura ?? input.valor_gordura ?? 0);
+  const temGordura = valorGordura > 0;
   const prazoFaca =
     input.prazo_faca_dias != null && input.prazo_faca_dias !== ''
       ? displaySnap(input.prazo_faca_dias)
@@ -281,6 +283,7 @@ export function OrcamentoFichaSheet({
               <th>Formato / faca</th>
               <th>Máquina</th>
               <th>Imposto %</th>
+              <th>Gordura</th>
               <th>Matriz</th>
               <th>Col. rebob.</th>
               <th>Troca produto</th>
@@ -297,6 +300,7 @@ export function OrcamentoFichaSheet({
               </td>
               <td>{snap(input, 'maquina')}</td>
               <td>{pctBr(input.imposto_pct as string | number)}</td>
+              <td>{temGordura ? money(valorGordura) : '—'}</td>
               <td>{snap(input, 'matriz')}</td>
               <td>{snap(input, 'coluna_rebobinacao')}</td>
               <td>{snap(input, 'tipo_troca_produto')}</td>
@@ -448,6 +452,12 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">% comissão</th>
                   <th className="ficha-th-num">Comissão</th>
                   <th className="ficha-th-num">Imposto</th>
+                  {temGordura ? (
+                    <>
+                      <th className="ficha-th-num">Base etiq.</th>
+                      <th className="ficha-th-num">Gordura</th>
+                    </>
+                  ) : null}
                   <th className="ficha-th-num">Etiquetas</th>
                   <th className="ficha-th-num">Unitário</th>
                   <th className="ficha-th-num">Valor rolo</th>
@@ -475,6 +485,14 @@ export function OrcamentoFichaSheet({
                       </td>
                       <td className="ficha-td-num">{money(fx.comissao)}</td>
                       <td className="ficha-td-num">{money(fx.imposto)}</td>
+                      {temGordura ? (
+                        <>
+                          <td className="ficha-td-num">
+                            {money(fx.valor_etiqueta_base ?? et)}
+                          </td>
+                          <td className="ficha-td-num">{money(fx.valor_gordura ?? 0)}</td>
+                        </>
+                      ) : null}
                       <td className="ficha-td-num">{money(et)}</td>
                       <td className="ficha-td-num">{money(unit)}</td>
                       <td className="ficha-td-num">{money(valorRolo)}</td>
@@ -510,6 +528,9 @@ export function OrcamentoFichaSheet({
                 ? ` · matriz ${formatCurrency(result.valor_matriz)}`
                 : ' · matriz isenta'}
               {facaNova && prazoFaca ? ` · faca nova +${prazoFaca} dias no prazo` : ''}.
+              {temGordura
+                ? ` Gordura ${money(valorGordura)} — uso interno; não aparece na proposta ao cliente.`
+                : ''}
               {result?.frete
                 ? ` Frete (${modoEntregaLabel(result.frete.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
                 : ''}
