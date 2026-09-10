@@ -22,7 +22,8 @@ function totalPrimeiraFaixa(o: Orcamento): number | null {
   const facaNova = Boolean(o.input_snapshot?.faca_nova ?? o.result_snapshot?.faca_nova);
   const raw = o.result_snapshot?.valor_faca_nova ?? o.input_snapshot?.valor_faca_nova;
   const valorFaca = typeof raw === 'number' || typeof raw === 'string' ? raw : null;
-  return totalPropostaFaixa(primeiro, facaNova, valorFaca);
+  const valorArtes = Number(o.result_snapshot?.valor_artes) || 0;
+  return totalPropostaFaixa(primeiro, facaNova, valorFaca, valorArtes);
 }
 
 const SORT = {

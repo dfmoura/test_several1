@@ -324,9 +324,12 @@ class AdiantamentoService
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
-        $valorFaca = (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0);
-        if ($facaNova && ($fx['valor_total_com_faca'] ?? null) === null) {
-            $fx['valor_total_com_faca'] = (float) ($fx['valor_total'] ?? 0) + $valorFaca;
+        $valorFaca = $facaNova ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0) : 0.0;
+        $valorArtes = (float) ($result['valor_artes']
+            ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
+        $extras = $valorFaca + $valorArtes;
+        if ($extras > 0 && ($fx['valor_total_com_faca'] ?? null) === null) {
+            $fx['valor_total_com_faca'] = (float) ($fx['valor_total'] ?? 0) + $extras;
         }
 
         return OrcamentoFreteEstimadoService::totalPropostaFaixa($fx);

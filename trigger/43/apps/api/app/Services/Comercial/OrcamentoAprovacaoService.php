@@ -859,7 +859,9 @@ class OrcamentoAprovacaoService
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
         $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
-        $valorFaca = (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0);
+        $valorFaca = $facaNova ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0) : 0.0;
+        $valorArtes = (float) ($result['valor_artes']
+            ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
         $somenteLeitura = $modo === 'preview' || $link === null;
 
         $faixas = [];
@@ -872,8 +874,9 @@ class OrcamentoAprovacaoService
             $valorEtiqueta = (float) ($fx['valor_etiqueta'] ?? 0);
             $rolos = (float) ($fx['rolos'] ?? 0);
             $fxNorm = $fx;
-            if ($facaNova && ($fxNorm['valor_total_com_faca'] ?? null) === null) {
-                $fxNorm['valor_total_com_faca'] = $valorTotal + $valorFaca;
+            $extras = $valorFaca + $valorArtes;
+            if ($extras > 0 && ($fxNorm['valor_total_com_faca'] ?? null) === null) {
+                $fxNorm['valor_total_com_faca'] = $valorTotal + $extras;
             }
             $totalProposta = (float) OrcamentoFreteEstimadoService::totalPropostaFaixa($fxNorm);
 
@@ -892,6 +895,7 @@ class OrcamentoAprovacaoService
                 'rolos' => $rolos > 0 ? (int) round($rolos) : null,
                 'valor_matriz' => round((float) ($fx['valor_matriz'] ?? 0), 2),
                 'valor_faca_nova' => $facaNova ? round((float) ($fx['valor_faca_nova'] ?? $valorFaca), 2) : 0,
+                'valor_artes' => round((float) ($fx['valor_artes'] ?? $valorArtes), 2),
                 'valor_frete' => $valorFrete,
                 'frete_somavel' => $freteSomavel,
             ];
@@ -1050,7 +1054,7 @@ class OrcamentoAprovacaoService
      * Composição de artes para a proposta ao cliente (só linhas com nome).
      *
      * @param  array<string, mixed>  $input
-     * @return list<array{ordem: int, nome: string, percentual: float}>|null
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>|null
      */
     private function modelosComposicaoPublica(array $input): ?array
     {
@@ -1072,6 +1076,7 @@ class OrcamentoAprovacaoService
                 'ordem' => (int) ($row['ordem'] ?? $i + 1),
                 'nome' => $nome,
                 'percentual' => round((float) ($row['percentual'] ?? 0), 4),
+                'valor_arte' => round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2),
             ];
         }
 

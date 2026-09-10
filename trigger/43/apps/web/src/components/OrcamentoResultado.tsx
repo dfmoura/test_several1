@@ -190,6 +190,7 @@ function ParametrosCalculoPanel({
   };
 
   const facaNova = Boolean(calculo.faca_nova);
+  const valorArtes = Number(calculo.valor_artes) || 0;
   const mostrarFrete = Boolean(calculo.frete);
 
   const faixasComLinhas = useMemo(
@@ -431,6 +432,15 @@ function ParametrosCalculoPanel({
                     },
                   ]
                 : []),
+              ...(valorArtes > 0
+                ? [
+                    {
+                      label: 'Vlr. Arte',
+                      valor: (fx: OrcamentoFaixaResult) =>
+                        formatCurrency(fx.valor_artes ?? calculo.valor_artes ?? 0),
+                    },
+                  ]
+                : []),
               ...(mostrarFrete
                 ? [
                     {
@@ -446,7 +456,9 @@ function ParametrosCalculoPanel({
                 label: 'Total da proposta',
                 destaque: true,
                 valor: (fx: OrcamentoFaixaResult) =>
-                  formatCurrency(totalPropostaFaixa(fx, facaNova, calculo.valor_faca_nova)),
+                  formatCurrency(
+                    totalPropostaFaixa(fx, facaNova, calculo.valor_faca_nova, valorArtes),
+                  ),
               },
             ] as const
           ).map((linha) => (
@@ -520,6 +532,7 @@ function ComercialFaixasTable({
   faixas,
   facaNova,
   valorFacaNova,
+  valorArtes,
   mostrarFrete,
   freteADefinir,
   modoServico,
@@ -528,6 +541,7 @@ function ComercialFaixasTable({
   faixas: OrcamentoFaixaResult[];
   facaNova: boolean;
   valorFacaNova?: number;
+  valorArtes?: number;
   mostrarFrete: boolean;
   freteADefinir?: boolean;
   modoServico?: boolean;
@@ -555,9 +569,10 @@ function ComercialFaixasTable({
         return rolos > 0 ? et / rolos : 0;
       },
       matriz: (fx: OrcamentoFaixaResult) => Number(fx.valor_matriz) || 0,
-      total: (fx: OrcamentoFaixaResult) => totalPropostaFaixa(fx, facaNova, valorFacaNova),
+      total: (fx: OrcamentoFaixaResult) =>
+        totalPropostaFaixa(fx, facaNova, valorFacaNova, valorArtes),
     }),
-    [facaNova, valorFacaNova, etiqRolo, etiqRoloOk],
+    [facaNova, valorFacaNova, valorArtes, etiqRolo, etiqRoloOk],
   );
 
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(faixas, sortGetters);
@@ -598,6 +613,7 @@ function ComercialFaixasTable({
               >
                 Unitário
               </SortableTh>
+              {(valorArtes ?? 0) > 0 ? <th className="num">Vlr. Arte</th> : null}
               {mostrarFrete ? <th className="num">Frete</th> : null}
               <SortableTh
                 column="total"
@@ -616,12 +632,17 @@ function ComercialFaixasTable({
             {sorted.map((fx, i) => {
               const q = Number(fx.quantidade) || 1;
               const et = Number(fx.valor_etiqueta) || 0;
-              const total = totalPropostaFaixa(fx, facaNova, valorFacaNova);
+              const total = totalPropostaFaixa(fx, facaNova, valorFacaNova, valorArtes);
               return (
                 <tr key={i}>
                   <td className="num">{q.toLocaleString('pt-BR')}</td>
                   <td className="num">{formatCurrency(et)}</td>
                   <td className="num">{formatCurrency(et / q)}</td>
+                  {(valorArtes ?? 0) > 0 ? (
+                    <td className="num">
+                      {formatCurrency(fx.valor_artes ?? valorArtes)}
+                    </td>
+                  ) : null}
                   {mostrarFrete ? (
                     <td className="num">
                       {formatValorFrete(fx.valor_frete, { aDefinir: freteADefinir })}
@@ -639,6 +660,7 @@ function ComercialFaixasTable({
     );
   }
 
+  const mostrarArtes = (valorArtes ?? 0) > 0;
   return (
     <div className="table-wrap">
       <table className="data-table">
@@ -716,6 +738,7 @@ function ComercialFaixasTable({
             >
               Matriz
             </SortableTh>
+            {mostrarArtes ? <th className="num">Vlr. Arte</th> : null}
             {mostrarFrete ? <th className="num">Frete</th> : null}
             <SortableTh
               column="total"
@@ -741,7 +764,7 @@ function ComercialFaixasTable({
               : rolos > 0 && q > 0
                 ? Math.round(q / rolos)
                 : null;
-            const total = totalPropostaFaixa(fx, facaNova, valorFacaNova);
+            const total = totalPropostaFaixa(fx, facaNova, valorFacaNova, valorArtes);
             return (
               <tr key={i}>
                 <td className="num">
@@ -757,6 +780,11 @@ function ComercialFaixasTable({
                   {valorRolo != null ? formatCurrency(valorRolo) : '—'}
                 </td>
                 <td className="num">{formatCurrency(fx.valor_matriz)}</td>
+                {mostrarArtes ? (
+                  <td className="num">
+                    {formatCurrency(fx.valor_artes ?? valorArtes)}
+                  </td>
+                ) : null}
                 {mostrarFrete ? (
                   <td className="num">
                     {formatValorFrete(fx.valor_frete, { aDefinir: freteADefinir })}
@@ -871,6 +899,7 @@ export function OrcamentoResultado({
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
   const faixas = calculo.faixas ?? [];
   const detalhe = faixas[faixaDetalhe];
+  const valorArtes = Number(calculo.valor_artes) || 0;
   const modelosVisiveis = (modelosComposicao ?? []).filter(
     (m) => String(m.nome ?? '').trim() !== '',
   );
@@ -954,6 +983,7 @@ export function OrcamentoResultado({
                   calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
                 }`
               : ''}
+            {valorArtes > 0 ? ` · Vlr. Arte ${formatCurrency(valorArtes)}` : ''}
             {echoEspecificacao && prazoEntregaDias != null
               ? ` · ${prazoUtilLabel(
                   calculo.prazo_efetivo_dias ?? prazoEntregaDias,
@@ -974,11 +1004,12 @@ export function OrcamentoResultado({
 
         {abaAtiva === 'comercial' ? (
           <>
-            {echoEspecificacao && modelosVisiveis.length > 0 ? (
+            {modelosVisiveis.length > 0 ? (
               <ModelosComposicaoTable
                 variant="data"
                 className="orc-modelos-resultado"
                 hint={null}
+                showValorArte
                 modelos={modelosVisiveis}
                 faixas={faixas.map((fx, i) => ({
                   key: i,
@@ -990,6 +1021,7 @@ export function OrcamentoResultado({
               faixas={faixas}
               facaNova={Boolean(calculo.faca_nova)}
               valorFacaNova={calculo.valor_faca_nova}
+              valorArtes={valorArtes}
               mostrarFrete={Boolean(calculo.frete)}
               freteADefinir={modoComFrete(calculo.frete?.modo)}
               modoServico={servico}

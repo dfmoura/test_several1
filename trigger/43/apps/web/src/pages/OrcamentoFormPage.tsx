@@ -372,6 +372,16 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
+  const setModeloValorArte = (index: number, valorArte: number) => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: prev.modelos_composicao.map((m, i) =>
+        i === index ? { ...m, valor_arte: Math.max(0, valorArte) } : m,
+      ),
+    }));
+    setCalculo(null);
+  };
+
   const setModeloQuantidadeFaixa = (faixaIdx: number, modeloIdx: number, qtd: number) => {
     setForm((prev) => ({
       ...prev,
@@ -1324,15 +1334,16 @@ export function OrcamentoFormPage() {
                   })()}
                 </div>
                 <p className="form-hint" style={{ marginTop: 0 }}>
-                  Distribua a quantidade de cada faixa entre as artes. A soma por coluna deve
-                  fechar o total da faixa. Aparece na proposta ao cliente. O preço usa só a
-                  quantidade de modelos (especificação acima).
+                  Distribua a quantidade de cada faixa entre as artes e informe o Vlr. Arte
+                  de cada modelo (opcional). A soma entra no total do orçamento. O preço de
+                  produção (setup/perda) continua usando só a quantidade de modelos.
                 </p>
                 <ModelosComposicaoEditor
                   modelos={form.modelos_composicao}
                   faixas={form.faixas}
                   canWrite={canWrite}
                   onNomeChange={setModeloComposicaoNome}
+                  onValorArteChange={setModeloValorArte}
                   onQuantidadeChange={setModeloQuantidadeFaixa}
                 />
               </div>

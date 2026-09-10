@@ -37,11 +37,17 @@ export function modelosDoSnap(input: Record<string, unknown>): ModeloComposicaoF
   if (!Array.isArray(raw)) return [];
   return raw
     .map((row, i) => {
-      const r = row as { ordem?: number; nome?: string; percentual?: number };
+      const r = row as {
+        ordem?: number;
+        nome?: string;
+        percentual?: number;
+        valor_arte?: number;
+      };
       return {
         ordem: Number(r.ordem) || i + 1,
         nome: String(r.nome ?? '').trim(),
         percentual: Number(r.percentual) || 0,
+        valor_arte: Math.max(0, Number(r.valor_arte) || 0),
       };
     })
     .filter((m) => m.nome !== '');

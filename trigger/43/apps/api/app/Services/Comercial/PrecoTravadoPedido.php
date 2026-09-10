@@ -10,7 +10,7 @@ use App\Support\PadraoDecimal;
  *
  * No motor, `valor_etiqueta` é o TOTAL das etiquetas da faixa — não o unitário.
  * A UI do ORC já mostra unitário = valor_etiqueta / quantidade.
- * Matriz/clichê e faca nova são fixos do job; não escalam com a qtde produzida.
+ * Matriz/clichê, faca nova e artes cotadas são fixos do job; não escalam com a qtde produzida.
  *
  * @phpstan-type Travado array{
  *   qtde_faixa: string,

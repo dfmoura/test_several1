@@ -117,8 +117,9 @@ function faixaTotal(
   fx: OrcamentoFaixaResult,
   facaNova: boolean,
   valorFacaNova: number,
+  valorArtes = 0,
 ): number {
-  return totalPropostaFaixa(fx, facaNova, valorFacaNova);
+  return totalPropostaFaixa(fx, facaNova, valorFacaNova, valorArtes);
 }
 
 export type OrcamentoFichaSheetProps = {
@@ -139,6 +140,7 @@ export function OrcamentoFichaSheet({
   const faixas = result?.faixas ?? [];
   const facaNova = Boolean(input.faca_nova ?? result?.faca_nova);
   const valorFacaNova = Number(result?.valor_faca_nova ?? input.valor_faca_nova ?? 0);
+  const valorArtes = Number(result?.valor_artes ?? 0);
   const prazoFaca =
     input.prazo_faca_dias != null && input.prazo_faca_dias !== ''
       ? displaySnap(input.prazo_faca_dias)
@@ -316,6 +318,7 @@ export function OrcamentoFichaSheet({
                 ordem?: number;
                 nome?: string;
                 percentual?: number;
+                valor_arte?: number;
               }>
             }
             faixas={faixas.map((fx, i) => ({
@@ -450,6 +453,7 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">Valor rolo</th>
                   <th className="ficha-th-num">Matriz</th>
                   {facaNova ? <th className="ficha-th-num">Faca nova</th> : null}
+                  {valorArtes > 0 ? <th className="ficha-th-num">Vlr. Arte</th> : null}
                   {result?.frete ? <th className="ficha-th-num">Frete</th> : null}
                   <th className="ficha-th-num">Total</th>
                 </tr>
@@ -462,7 +466,7 @@ export function OrcamentoFichaSheet({
                   const unit = et / q;
                   const valorRolo = rolos > 0 ? et / rolos : 0;
                   const comPct = comissaoPctByQtd.get(Number(fx.quantidade));
-                  const total = faixaTotal(fx, facaNova, valorFacaNova);
+                  const total = faixaTotal(fx, facaNova, valorFacaNova, valorArtes);
                   return (
                     <tr key={i}>
                       <td>{qtyBr(fx.quantidade)}</td>
@@ -478,6 +482,11 @@ export function OrcamentoFichaSheet({
                       {facaNova ? (
                         <td className="ficha-td-num">
                           {money(fx.valor_faca_nova ?? valorFacaNova)}
+                        </td>
+                      ) : null}
+                      {valorArtes > 0 ? (
+                        <td className="ficha-td-num">
+                          {money(fx.valor_artes ?? valorArtes)}
                         </td>
                       ) : null}
                       {result?.frete ? (

@@ -76,23 +76,26 @@ type FaixaTotalProposta = {
 };
 
 /**
- * Total comercial da faixa: motor (+ faca nova). Frete nunca soma.
+ * Total comercial da faixa: motor (+ faca nova + artes cotadas). Frete nunca soma.
  */
 export function totalPropostaFaixa(
   fx: FaixaTotalProposta,
   facaNova?: boolean,
   valorFacaNova?: string | number | null,
+  valorArtes?: string | number | null,
 ): number {
   if (fx.valor_total_proposta != null && fx.valor_total_proposta !== '') {
     const gravado = Number(fx.valor_total_proposta);
     if (Number.isFinite(gravado)) return gravado;
   }
   const motor = Number(fx.valor_total) || 0;
-  const comFaca =
-    fx.valor_total_com_faca != null && fx.valor_total_com_faca !== ''
-      ? Number(fx.valor_total_com_faca) || 0
-      : motor + (Number(valorFacaNova) || 0);
-  return facaNova ? comFaca : motor;
+  if (fx.valor_total_com_faca != null && fx.valor_total_com_faca !== '') {
+    const comExtras = Number(fx.valor_total_com_faca);
+    if (Number.isFinite(comExtras)) return comExtras;
+  }
+  const faca = facaNova ? Number(valorFacaNova) || 0 : 0;
+  const artes = Number(valorArtes) || 0;
+  return motor + faca + artes;
 }
 
 export function hintFreteModo(modo: ModoEntrega): string {

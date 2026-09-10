@@ -83,12 +83,16 @@ export type FaixaForm = {
 
 /**
  * Arte / modelo operacional.
- * UI edita quantidades por faixa; `percentual` persiste no snapshot (Σ = 100) para PED/OP.
+ * UI edita quantidades por faixa e valor cotado da arte;
+ * `percentual` persiste no snapshot (Σ = 100) para PED/OP.
+ * `valor_arte` soma no total comercial pós-motor (não em R1–R20).
  */
 export type ModeloComposicaoForm = {
   ordem: number;
   nome: string;
   percentual: number;
+  /** R$ cotado desta arte (opcional; default 0). */
+  valor_arte: number;
 };
 
 export type OrcForm = {
@@ -189,6 +193,7 @@ export function syncModelosComposicao(
       ordem: i + 1,
       nome: prev?.[i]?.nome ?? '',
       percentual: pct,
+      valor_arte: Math.max(0, Number(prev?.[i]?.valor_arte) || 0),
     });
   }
   return out;
@@ -196,6 +201,11 @@ export function syncModelosComposicao(
 
 export function somaPercentualModelos(rows: ModeloComposicaoForm[]): number {
   return Math.round(rows.reduce((s, r) => s + (Number(r.percentual) || 0), 0) * 10000) / 10000;
+}
+
+/** Soma comercial das artes cotadas (add-on do ORC). */
+export function somaValorArteModelos(rows: ModeloComposicaoForm[]): number {
+  return Math.round(rows.reduce((s, r) => s + Math.max(0, Number(r.valor_arte) || 0), 0) * 100) / 100;
 }
 
 /** Matriz [faixaIdx][modeloIdx] — quantidade inteira alocada por arte. */
@@ -282,6 +292,10 @@ export function validarModelosComposicao(
     const pct = Number(rows[i]?.percentual);
     if (!(pct > 0) || pct > 100) {
       return `Quantidade do modelo ${i + 1} deve ser > 0 em cada faixa.`;
+    }
+    const va = Number(rows[i]?.valor_arte);
+    if (va < 0 || !Number.isFinite(va)) {
+      return `Vlr. Arte do modelo ${i + 1} deve ser ≥ 0.`;
     }
   }
   const soma = somaPercentualModelos(rows);
@@ -408,6 +422,7 @@ export function formFromSnapshot(
           ordem: Number(r.ordem) || i + 1,
           nome: String(r.nome ?? ''),
           percentual: Number(r.percentual) || 0,
+          valor_arte: Math.max(0, Number(r.valor_arte) || 0),
         }))
       : syncModelosComposicao(compRaw, modelos);
 
@@ -534,6 +549,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       ordem: i + 1,
       nome: m.nome.trim(),
       percentual: Number(m.percentual) || 0,
+      valor_arte: Math.max(0, Number(m.valor_arte) || 0),
     })),
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,

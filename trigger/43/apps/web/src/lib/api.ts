@@ -2297,6 +2297,7 @@ export type OrcamentoFaixaResult = {
   valor_matriz: number;
   valor_total: number;
   valor_faca_nova?: number;
+  valor_artes?: number;
   valor_total_com_faca?: number;
   valor_total_proposta?: string | number | null;
   kg_est?: string | number | null;
@@ -2332,6 +2333,7 @@ export type OrcamentoResult = {
   catalog_snapshot?: Record<string, unknown>;
   faca_nova?: boolean;
   valor_faca_nova?: number;
+  valor_artes?: number;
   prazo_faca_dias?: number | null;
   formato_faca?: string | null;
   prazo_efetivo_dias?: number;
@@ -3059,6 +3061,7 @@ export type OrcamentoPropostaPublica = {
       ordem: number;
       nome: string;
       percentual: number;
+      valor_arte?: number;
     }> | null;
     tipo_servico?: string | null;
     descricao_servico?: string | null;
@@ -3092,6 +3095,7 @@ export type OrcamentoPropostaPublica = {
     rolos: number | null;
     valor_matriz: number;
     valor_faca_nova: number;
+    valor_artes?: number;
     valor_frete?: number | null;
     frete_somavel?: boolean;
   }>;

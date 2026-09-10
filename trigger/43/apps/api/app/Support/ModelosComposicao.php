@@ -8,8 +8,9 @@ use Illuminate\Validation\ValidationException;
  * Composição operacional dos modelos (artes) do ORC.
  *
  * O motor de preço usa apenas o escalar `modelos` (setup/perda).
- * Esta composição (nome + % da quantidade) viaja no input_snapshot
- * para PED/OP futuros: q_i = política(Q × pct_i/100), resto no último.
+ * Esta composição (nome + % da quantidade + valor_arte cotado) viaja no
+ * input_snapshot para PED/OP: q_i = política(Q × pct_i/100), resto no último.
+ * Σ valor_arte entra no total comercial pós-motor (como faca nova) — não em R1–R20.
  */
 final class ModelosComposicao
 {
@@ -41,7 +42,7 @@ final class ModelosComposicao
 
     /**
      * @param  array<int, mixed>  $raw
-     * @return list<array{ordem: int, nome: string, percentual: float}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>
      */
     public static function normalizeAndAssert(array $raw, int $modelos): array
     {
@@ -84,11 +85,14 @@ final class ModelosComposicao
                 ]);
             }
 
+            $valorArte = round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2);
+
             $soma += $pct;
             $out[] = [
                 'ordem' => $i + 1,
                 'nome' => $nome,
                 'percentual' => $pct,
+                'valor_arte' => $valorArte,
             ];
         }
 
@@ -115,7 +119,7 @@ final class ModelosComposicao
     /**
      * Equal-split sem nomes (legado / preview sem detalhe).
      *
-     * @return list<array{ordem: int, nome: string, percentual: float}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>
      */
     public static function equalSplit(int $modelos): array
     {
@@ -130,6 +134,7 @@ final class ModelosComposicao
                 'ordem' => $i + 1,
                 'nome' => '',
                 'percentual' => $pct,
+                'valor_arte' => 0.0,
             ];
         }
 
@@ -137,11 +142,33 @@ final class ModelosComposicao
     }
 
     /**
+     * Soma comercial das artes cotadas (add-on pós-motor; não entra em R1–R20).
+     *
+     * @param  list<array{valor_arte?: float|int|string|null}>|mixed  $composicao
+     */
+    public static function somaValorArte(mixed $composicao): float
+    {
+        if (! is_array($composicao) || $composicao === []) {
+            return 0.0;
+        }
+
+        $soma = 0.0;
+        foreach ($composicao as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $soma += max(0.0, (float) ($row['valor_arte'] ?? 0));
+        }
+
+        return round($soma, 2);
+    }
+
+    /**
      * Aloca quantidade total por percentual; resto no último (soma = Q).
      * Uso futuro: PED/OP a partir do snapshot do ORC.
      *
-     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string}>  $composicao
-     * @return list<array{ordem: int, nome: string, percentual: float, quantidade: int}>
+     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string}>  $composicao
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, quantidade: int}>
      */
     public static function alocarQuantidades(int $quantidadeTotal, array $composicao): array
     {
@@ -166,6 +193,7 @@ final class ModelosComposicao
                 'ordem' => (int) ($rows[$i]['ordem'] ?? $i + 1),
                 'nome' => trim((string) ($rows[$i]['nome'] ?? '')),
                 'percentual' => round($pct, 4),
+                'valor_arte' => round(max(0.0, (float) ($rows[$i]['valor_arte'] ?? 0)), 2),
                 'quantidade' => max(0, $qi),
             ];
         }

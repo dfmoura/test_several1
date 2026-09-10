@@ -310,6 +310,7 @@ class OrcamentoTest extends TestCase
         $this->assertEqualsWithDelta(30.0, (float) $comp[0]['percentual'], 0.01);
         $this->assertSame('abacate', $comp[1]['nome']);
         $this->assertEqualsWithDelta(70.0, (float) $comp[1]['percentual'], 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) ($comp[0]['valor_arte'] ?? 0), 0.01);
         // Preço com 2 modelos (não 7 do fixture) — só garante persistência + cálculo OK
         $this->assertIsNumeric($create->json('data.result_snapshot.faixas.0.valor_etiqueta'));
 
@@ -320,6 +321,51 @@ class OrcamentoTest extends TestCase
             ['nome' => 'b', 'percentual' => 40],
         ];
         $this->withHeaders($h)->postJson('/api/v1/orcamentos', $bad)->assertStatus(422);
+    }
+
+    public function test_valor_arte_por_modelo_soma_no_total_sem_alterar_motor(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $base = $this->payload();
+        $base['modelos'] = 2;
+        $base['modelos_composicao'] = [
+            ['nome' => 'maçã verde', 'percentual' => 30, 'valor_arte' => 0],
+            ['nome' => 'abacate', 'percentual' => 70, 'valor_arte' => 0],
+        ];
+        $semArte = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $base);
+        $semArte->assertOk();
+        $valorMotor = (float) $semArte->json('data.faixas.0.valor_total');
+        $etiqueta = (float) $semArte->json('data.faixas.0.valor_etiqueta');
+
+        $comArte = $base;
+        $comArte['modelos_composicao'] = [
+            ['nome' => 'maçã verde', 'percentual' => 30, 'valor_arte' => 150],
+            ['nome' => 'abacate', 'percentual' => 70, 'valor_arte' => 50],
+        ];
+        $res = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $comArte);
+        $res->assertOk();
+        $this->assertEqualsWithDelta(200.0, (float) $res->json('data.valor_artes'), 0.01);
+        $this->assertEqualsWithDelta($etiqueta, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta($valorMotor, (float) $res->json('data.faixas.0.valor_total'), 0.01);
+        $this->assertEqualsWithDelta(
+            $valorMotor + 200.0,
+            (float) $res->json('data.faixas.0.valor_total_com_faca'),
+            0.01
+        );
+        $this->assertEqualsWithDelta(
+            $valorMotor + 200.0,
+            (float) $res->json('data.faixas.0.valor_total_proposta'),
+            0.01
+        );
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $comArte);
+        $create->assertCreated();
+        $comp = $create->json('data.input_snapshot.modelos_composicao');
+        $this->assertEqualsWithDelta(150.0, (float) $comp[0]['valor_arte'], 0.01);
+        $this->assertEqualsWithDelta(50.0, (float) $comp[1]['valor_arte'], 0.01);
+        $this->assertEqualsWithDelta(200.0, (float) $create->json('data.result_snapshot.valor_artes'), 0.01);
     }
 
     public function test_faca_posicao_persiste_no_snapshot_sem_alterar_preco(): void

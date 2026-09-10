@@ -158,7 +158,7 @@ final class OrcamentoFreteEstimadoService
     }
 
     /**
-     * Total comercial da faixa: motor (+ faca nova). Frete nunca soma.
+     * Total comercial da faixa: motor (+ faca nova + artes cotadas). Frete nunca soma.
      * Prefere a fotografia `valor_total_proposta` (ORCs gravados); senão recompõe.
      *
      * @param  array<string, mixed>  $fx

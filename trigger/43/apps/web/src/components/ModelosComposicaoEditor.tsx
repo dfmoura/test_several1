@@ -1,5 +1,6 @@
 import {
   alocarQuantidadePorModelo,
+  somaValorArteModelos,
   type FaixaForm,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
@@ -9,6 +10,7 @@ type Props = {
   faixas: FaixaForm[];
   canWrite: boolean;
   onNomeChange: (index: number, nome: string) => void;
+  onValorArteChange: (index: number, valorArte: number) => void;
   onQuantidadeChange: (faixaIdx: number, modeloIdx: number, qtd: number) => void;
 };
 
@@ -16,14 +18,19 @@ function formatQtd(value: number): string {
   return Math.max(0, Math.floor(value) || 0).toLocaleString('pt-BR');
 }
 
+function formatMoney(value: number): string {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
 /**
- * Editor da composição operacional: nome + quantidade por faixa (soma = total da faixa).
+ * Editor da composição operacional: nome + valor da arte + quantidade por faixa.
  */
 export function ModelosComposicaoEditor({
   modelos,
   faixas,
   canWrite,
   onNomeChange,
+  onValorArteChange,
   onQuantidadeChange,
 }: Props) {
   const faixasOk = faixas
@@ -37,6 +44,7 @@ export function ModelosComposicaoEditor({
   }));
 
   const singleModel = modelos.length === 1;
+  const somaArtes = somaValorArteModelos(modelos);
 
   return (
     <div className="orc-modelos-composicao-editor">
@@ -46,6 +54,9 @@ export function ModelosComposicaoEditor({
             <tr>
               <th className="orc-modelo-ord-col">#</th>
               <th className="orc-modelo-nome-col">Modelo (arte)</th>
+              <th className="orc-modelo-arte-col" title="Valor cotado desta arte — entra no total do orçamento">
+                Vlr. Arte
+              </th>
               {alocPorFaixa.length === 0 ? (
                 <th className="orc-modelo-qtd-col">Quantidade</th>
               ) : (
@@ -73,6 +84,21 @@ export function ModelosComposicaoEditor({
                     onChange={(e) => onNomeChange(mi, e.target.value)}
                     disabled={!canWrite}
                     aria-label={`Nome do modelo ${mi + 1}`}
+                  />
+                </td>
+                <td className="orc-modelo-arte-col">
+                  <input
+                    type="number"
+                    className="orc-modelo-arte-input"
+                    min={0}
+                    step={0.01}
+                    placeholder="0,00"
+                    value={m.valor_arte > 0 ? m.valor_arte : ''}
+                    onChange={(e) =>
+                      onValorArteChange(mi, Math.max(0, Number(e.target.value) || 0))
+                    }
+                    disabled={!canWrite}
+                    aria-label={`Vlr. Arte do modelo ${mi + 1}`}
                   />
                 </td>
                 {alocPorFaixa.length === 0 ? (
@@ -104,11 +130,18 @@ export function ModelosComposicaoEditor({
               </tr>
             ))}
           </tbody>
-          {alocPorFaixa.length > 0 ? (
-            <tfoot>
-              <tr className="orc-modelos-editor-total">
-                <td colSpan={2}>Total por faixa</td>
-                {alocPorFaixa.map((fx) => {
+          <tfoot>
+            <tr className="orc-modelos-editor-total">
+              <td colSpan={2}>
+                {alocPorFaixa.length > 0 ? 'Totais' : 'Total artes'}
+              </td>
+              <td className="orc-modelo-arte-col orc-modelos-total-cell">
+                <span className="orc-modelos-total-val">{formatMoney(somaArtes)}</span>
+              </td>
+              {alocPorFaixa.length === 0 ? (
+                <td className="orc-modelo-qtd-col">—</td>
+              ) : (
+                alocPorFaixa.map((fx) => {
                   const soma = fx.alocados.reduce((s, r) => s + r.quantidade, 0);
                   const target = Math.floor(fx.quantidade) || 0;
                   const ok = soma === target && fx.alocados.every((r) => r.quantidade > 0);
@@ -123,10 +156,10 @@ export function ModelosComposicaoEditor({
                       ) : null}
                     </td>
                   );
-                })}
-              </tr>
-            </tfoot>
-          ) : null}
+                })
+              )}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

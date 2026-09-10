@@ -1,12 +1,15 @@
 import {
   alocarQuantidadePorModelo,
+  somaValorArteModelos,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
+import { formatCurrency } from '../lib/format';
 
 export type ModeloComposicaoRow = {
   ordem?: number;
   nome?: string;
   percentual?: number;
+  valor_arte?: number;
 };
 
 /** Faixa de quantidade do ORC — base do rateio inteiro por modelo. */
@@ -28,6 +31,8 @@ type Props = {
   /** Omitir título quando o pai já renderiza o heading. */
   title?: string | null;
   hint?: string | null;
+  /** Exibir coluna Vlr. Arte (default: só se algum valor > 0). */
+  showValorArte?: boolean;
 };
 
 function formatQtd(value: number): string {
@@ -39,11 +44,12 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
     ordem: Number(m.ordem) || i + 1,
     nome: String(m.nome ?? '').trim(),
     percentual: Number(m.percentual) || 0,
+    valor_arte: Math.max(0, Number(m.valor_arte) || 0),
   }));
 }
 
 /**
- * Tabela canônica: nome + quantidade(s) inteira(s) por faixa.
+ * Tabela canônica: nome + valor da arte + quantidade(s) inteira(s) por faixa.
  * Visual apenas — mesmo rateio de `alocarQuantidadePorModelo` / PED futuro.
  */
 export function ModelosComposicaoTable({
@@ -53,6 +59,7 @@ export function ModelosComposicaoTable({
   className,
   title = 'Composição dos modelos',
   hint,
+  showValorArte,
 }: Props) {
   const rows = toFormRows(modelos).filter((m) => m.nome !== '');
   if (rows.length === 0) return null;
@@ -62,6 +69,9 @@ export function ModelosComposicaoTable({
     ...fx,
     alocados: alocarQuantidadePorModelo(fx.quantidade, rows),
   }));
+
+  const somaArtes = somaValorArteModelos(rows);
+  const exibirArte = showValorArte ?? somaArtes > 0;
 
   const defaultHint =
     alocPorFaixa.length === 0
@@ -110,6 +120,9 @@ export function ModelosComposicaoTable({
             <tr>
               <th style={variant === 'ficha' ? { width: '3rem' } : undefined}>#</th>
               <th>{variant === 'pub' ? 'Modelo' : 'Modelo (arte)'}</th>
+              {exibirArte ? (
+                <th className="orc-modelo-arte-col">Vlr. Arte</th>
+              ) : null}
               {alocPorFaixa.length === 0 ? (
                 <th className="orc-modelo-qtd-col">Quantidade</th>
               ) : (
@@ -134,6 +147,11 @@ export function ModelosComposicaoTable({
               <tr key={`${m.ordem}-${m.nome}`}>
                 <td>{m.ordem || i + 1}</td>
                 <td>{m.nome}</td>
+                {exibirArte ? (
+                  <td className="orc-modelo-arte-col">
+                    {m.valor_arte > 0 ? formatCurrency(m.valor_arte) : '—'}
+                  </td>
+                ) : null}
                 {alocPorFaixa.length === 0 ? (
                   <td className="orc-modelo-qtd-col">—</td>
                 ) : (
@@ -149,18 +167,25 @@ export function ModelosComposicaoTable({
               </tr>
             ))}
           </tbody>
-          {alocPorFaixa.length > 1 ? (
+          {alocPorFaixa.length > 1 || exibirArte ? (
             <tfoot>
               <tr className="orc-modelos-table-total">
                 <td colSpan={2}>Total</td>
-                {alocPorFaixa.map((fx) => (
-                  <td
-                    key={fx.key}
-                    className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
-                  >
-                    {formatQtd(fx.quantidade)}
-                  </td>
-                ))}
+                {exibirArte ? (
+                  <td className="orc-modelo-arte-col">{formatCurrency(somaArtes)}</td>
+                ) : null}
+                {alocPorFaixa.length === 0 ? (
+                  <td className="orc-modelo-qtd-col">—</td>
+                ) : (
+                  alocPorFaixa.map((fx) => (
+                    <td
+                      key={fx.key}
+                      className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                    >
+                      {formatQtd(fx.quantidade)}
+                    </td>
+                  ))
+                )}
               </tr>
             </tfoot>
           ) : null}

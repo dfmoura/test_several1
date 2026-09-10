@@ -12,6 +12,8 @@ class FaturamentoItem extends Model
 
     public const DESC_FACA = 'Ferramental (faca nova)';
 
+    public const DESC_ARTE_PREFIX = 'Arte — ';
+
     protected $table = 'faturamento_itens';
 
     protected $fillable = [

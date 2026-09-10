@@ -42,12 +42,13 @@ final class OrcamentoValidationRules
             'papel' => ['required', 'string', 'max:120'],
             'acabamento' => ['required', 'string', 'max:120'],
             'modelos' => ['required', 'integer', 'min:1'],
-            // Composição operacional (nome + % qty). Motor usa só `modelos`.
+            // Composição operacional (nome + % qty + valor_arte). Motor usa só `modelos`.
             // Ausente → equal-split no service; presente → validado em ModelosComposicao.
             'modelos_composicao' => ['sometimes', 'nullable', 'array'],
             'modelos_composicao.*.ordem' => ['nullable', 'integer', 'min:1'],
             'modelos_composicao.*.nome' => ['nullable', 'string', 'max:120'],
             'modelos_composicao.*.percentual' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
+            'modelos_composicao.*.valor_arte' => ['nullable', 'numeric', 'min:0'],
             'colunas' => ['required', 'integer', 'min:1'],
             'etiq_por_rolo' => ['required', 'integer', 'min:1'],
             'tubete' => ['required', 'string', 'max:32'],

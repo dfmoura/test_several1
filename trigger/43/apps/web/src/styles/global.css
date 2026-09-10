@@ -3932,6 +3932,39 @@ table.data-table td.acoes {
   min-width: 10rem;
 }
 
+.orc-modelos-editor-table th.orc-modelo-arte-col,
+.orc-modelos-editor-table td.orc-modelo-arte-col,
+.orc-modelos-table th.orc-modelo-arte-col,
+.orc-modelos-table td.orc-modelo-arte-col,
+.orc-pub-modelos-table th.orc-modelo-arte-col,
+.orc-pub-modelos-table td.orc-modelo-arte-col,
+.ficha-table th.orc-modelo-arte-col,
+.ficha-table td.orc-modelo-arte-col {
+  width: 7.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.orc-modelo-arte-input {
+  width: 100%;
+  min-width: 5.5rem;
+  max-width: 7.5rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.88rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--surface, #fff);
+}
+
+.orc-modelo-arte-input:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: var(--bg-muted, #f4f6f8);
+}
+
 .orc-modelo-nome-input {
   width: 100%;
   min-width: 0;

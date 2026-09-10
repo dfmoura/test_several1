@@ -510,8 +510,9 @@ class OrcamentoService
     }
 
     /**
-     * Anexa FACA NOVA e frete estimado ao result sem alterar fórmulas R1–R20.
-     * Frete somável compõe valor_total_proposta (não o unitário / valor_total do motor).
+     * Anexa FACA NOVA, soma das artes cotadas e frete estimado ao result
+     * sem alterar fórmulas R1–R20. Add-ons comerciais entram em
+     * valor_total_com_faca → valor_total_proposta. Frete nunca soma.
      *
      * @param  array<string, mixed>  $result
      * @param  array<string, mixed>  $data
@@ -528,17 +529,21 @@ class OrcamentoService
         $prazoFaca = $facaNova && isset($data['prazo_faca_dias']) && $data['prazo_faca_dias'] !== null
             ? (int) $data['prazo_faca_dias']
             : null;
+        $valorArtes = ModelosComposicao::somaValorArte($data['modelos_composicao'] ?? []);
 
         $result['faca_nova'] = $facaNova;
         $result['valor_faca_nova'] = $valorFaca;
+        $result['valor_artes'] = $valorArtes;
         $result['prazo_faca_dias'] = $prazoFaca;
         $result['formato_faca'] = $data['formato_faca'] ?? null;
 
-        if ($facaNova && isset($result['faixas']) && is_array($result['faixas'])) {
+        $extras = $valorFaca + $valorArtes;
+        if ($extras > 0 && isset($result['faixas']) && is_array($result['faixas'])) {
             foreach ($result['faixas'] as $i => $fx) {
                 $result['faixas'][$i]['valor_faca_nova'] = $valorFaca;
+                $result['faixas'][$i]['valor_artes'] = $valorArtes;
                 $result['faixas'][$i]['valor_total_com_faca'] =
-                    (float) ($fx['valor_total'] ?? 0) + $valorFaca;
+                    (float) ($fx['valor_total'] ?? 0) + $extras;
             }
         }
 

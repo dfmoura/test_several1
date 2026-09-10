@@ -34,7 +34,7 @@ import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 import { pedStatusLabel } from '../lib/producaoUi';
 
-type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number };
+type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number; valor_arte?: number };
 
 export function OrcamentoDetailPage() {
   const { id } = useParams();
@@ -675,6 +675,7 @@ export function OrcamentoDetailPage() {
               variant="data"
               className="orc-modelos-detalhe-page"
               hint={null}
+              showValorArte
               modelos={modelosComp}
               faixas={(orc.result_snapshot?.faixas ?? []).map((fx, i) => ({
                 key: i,
@@ -706,6 +707,7 @@ export function OrcamentoDetailPage() {
                   ordem: Number(m.ordem) || i + 1,
                   nome: String(m.nome ?? ''),
                   percentual: Number(m.percentual) || 0,
+                  valor_arte: Math.max(0, Number(m.valor_arte) || 0),
                 }))
           }
           parametrosAjuste={

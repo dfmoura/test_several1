@@ -39,8 +39,21 @@ class ModelosComposicaoTest extends TestCase
         $this->assertSame('maçã verde', $rows[0]['nome']);
         $this->assertSame(1, $rows[0]['ordem']);
         $this->assertEqualsWithDelta(30.0, $rows[0]['percentual'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $rows[0]['valor_arte'], 0.001);
         $this->assertSame('abacate', $rows[1]['nome']);
         $this->assertEqualsWithDelta(70.0, $rows[1]['percentual'], 0.001);
+    }
+
+    public function test_normalize_preserva_valor_arte(): void
+    {
+        $rows = ModelosComposicao::normalizeAndAssert([
+            ['nome' => 'maçã verde', 'percentual' => 30, 'valor_arte' => 120.5],
+            ['nome' => 'abacate', 'percentual' => 70, 'valor_arte' => 80],
+        ], 2);
+
+        $this->assertEqualsWithDelta(120.5, $rows[0]['valor_arte'], 0.001);
+        $this->assertEqualsWithDelta(80.0, $rows[1]['valor_arte'], 0.001);
+        $this->assertEqualsWithDelta(200.5, ModelosComposicao::somaValorArte($rows), 0.001);
     }
 
     public function test_rejeita_soma_diferente_de_100(): void

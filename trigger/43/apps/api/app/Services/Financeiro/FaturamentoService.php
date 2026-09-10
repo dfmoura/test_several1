@@ -444,6 +444,11 @@ class FaturamentoService
 
         $valorMatriz = $travado['valor_matriz'];
         $valorFaca = $this->valorFaca($pedido);
+        $itensArte = $this->itensArte($pedido);
+        $valorArtes = '0.00';
+        foreach ($itensArte as $arte) {
+            $valorArtes = bcadd($valorArtes, $arte['valor'], PadraoDecimal::SCALE_MONEY);
+        }
         $pedidoItemId = $itens[0]['pedido_item_id'] ?? null;
         $ordem = count($itens);
         if ($pedidoItemId !== null && bccomp($valorMatriz, '0', PadraoDecimal::SCALE_MONEY) > 0) {
@@ -472,8 +477,27 @@ class FaturamentoService
                 'familia_fiscal' => $familia,
             ];
         }
+        if ($pedidoItemId !== null) {
+            foreach ($itensArte as $arte) {
+                $ordem++;
+                $itens[] = [
+                    'pedido_item_id' => $pedidoItemId,
+                    'ordem' => $ordem,
+                    'descricao' => $arte['descricao'],
+                    'unidade' => 'UN',
+                    'qtde' => '1.0000',
+                    'preco_unitario' => PadraoDecimal::roundHalfUp($arte['valor'], PadraoDecimal::SCALE_UNIT_PRICE),
+                    'valor' => $arte['valor'],
+                    'familia_fiscal' => $familia,
+                ];
+            }
+        }
 
-        $valorBruto = bcadd(bcadd($valorItens, $valorMatriz, PadraoDecimal::SCALE_MONEY), $valorFaca, PadraoDecimal::SCALE_MONEY);
+        $valorBruto = bcadd(
+            bcadd(bcadd($valorItens, $valorMatriz, PadraoDecimal::SCALE_MONEY), $valorFaca, PadraoDecimal::SCALE_MONEY),
+            $valorArtes,
+            PadraoDecimal::SCALE_MONEY
+        );
 
         $adi = $this->adiantamentoQuitado($pedido);
         $valorAdiantamento = '0.00';
@@ -522,6 +546,9 @@ class FaturamentoService
         if (bccomp($valorFaca, '0', PadraoDecimal::SCALE_MONEY) > 0) {
             $avisos[] = 'Ferramental (faca nova) incluído no valor da fatura.';
         }
+        if (bccomp($valorArtes, '0', PadraoDecimal::SCALE_MONEY) > 0) {
+            $avisos[] = 'Valor das artes (desenvolvimento) incluído no valor da fatura.';
+        }
         if ($valorACobrar === '0.00' && $adiTituloId !== null) {
             $avisos[] = 'Saldo a cobrar é zero: o sinal cobre a quantidade faturável.';
         }
@@ -539,6 +566,7 @@ class FaturamentoService
             'valor_itens' => $valorItens,
             'valor_matriz' => $valorMatriz,
             'valor_faca' => $valorFaca,
+            'valor_artes' => $valorArtes,
             'preco_unitario' => $travado['preco_unitario'],
             'qtde_faturavel' => $qtdeFaturavel,
             'qtde_pedida' => $travado['qtde_faixa'],
@@ -566,6 +594,7 @@ class FaturamentoService
                 'valor_itens' => $valorItens,
                 'valor_matriz' => $valorMatriz,
                 'valor_faca' => $valorFaca,
+                'valor_artes' => $valorArtes,
                 'preco_unitario' => $travado['preco_unitario'],
                 'qtde_pedida' => $pedido->itens->first()?->qtde_pedida,
                 'qtde_faturavel' => $pedido->itens->first()?->qtde_faturavel,
@@ -602,6 +631,46 @@ class FaturamentoService
         $v = PadraoDecimal::parseStrict((string) $raw, PadraoDecimal::SCALE_MONEY);
 
         return $v !== null && bccomp($v, '0', PadraoDecimal::SCALE_MONEY) > 0 ? $v : '0.00';
+    }
+
+    /**
+     * Artes cotadas no ORC (fixo por modelo; fora da base de comissão).
+     *
+     * @return list<array{descricao: string, valor: string}>
+     */
+    private function itensArte(Pedido $pedido): array
+    {
+        $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
+        $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];
+        $raw = $faixa['modelos_composicao'] ?? $input['modelos_composicao'] ?? null;
+        if (! is_array($raw) || $raw === []) {
+            return [];
+        }
+
+        $out = [];
+        foreach (array_values($raw) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $valor = PadraoDecimal::parseStrict(
+                (string) ($row['valor_arte'] ?? 0),
+                PadraoDecimal::SCALE_MONEY
+            );
+            if ($valor === null || bccomp($valor, '0', PadraoDecimal::SCALE_MONEY) <= 0) {
+                continue;
+            }
+            $nome = trim((string) ($row['nome'] ?? ''));
+            if ($nome === '') {
+                $nome = 'modelo '.((int) ($row['ordem'] ?? $i + 1));
+            }
+            $desc = FaturamentoItem::DESC_ARTE_PREFIX.mb_substr($nome, 0, 100);
+            $out[] = [
+                'descricao' => $desc,
+                'valor' => $valor,
+            ];
+        }
+
+        return $out;
     }
 
     private function adiantamentoQuitado(Pedido $pedido): ?Titulo

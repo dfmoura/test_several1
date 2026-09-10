@@ -161,6 +161,7 @@ export function OrcamentoPropostaView({
           {desc?.modelos_composicao && desc.modelos_composicao.length > 0 ? (
             <ModelosComposicaoTable
               variant="pub"
+              showValorArte
               modelos={desc.modelos_composicao}
               faixas={faixas.map((fx) => ({
                 key: fx.index,
@@ -210,6 +211,9 @@ export function OrcamentoPropostaView({
                         ? ` · unit. ${formatCurrency(fx.valor_unitario)}`
                         : ''}
                       {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
+                      {(fx.valor_artes ?? 0) > 0
+                        ? ` · Vlr. Arte ${formatCurrency(fx.valor_artes)}`
+                        : ''}
                       {proposta.frete && proposta.frete.modo !== 'RETIRAR'
                         ? fx.valor_frete != null
                           ? ` · frete ${formatCurrency(fx.valor_frete)} (informativo)`

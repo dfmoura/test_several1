@@ -305,8 +305,8 @@ class OrcamentoAprovacaoTest extends TestCase
         $payload = $this->payload();
         $payload['modelos'] = 2;
         $payload['modelos_composicao'] = [
-            ['nome' => 'maçã verde', 'percentual' => 30],
-            ['nome' => 'abacate', 'percentual' => 70],
+            ['nome' => 'maçã verde', 'percentual' => 30, 'valor_arte' => 90],
+            ['nome' => 'abacate', 'percentual' => 70, 'valor_arte' => 10],
         ];
 
         $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload)->json('data.id');
@@ -319,8 +319,11 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertSame(2, $pub->json('data.descricao.modelos'));
         $this->assertSame('maçã verde', $pub->json('data.descricao.modelos_composicao.0.nome'));
         $this->assertEqualsWithDelta(30.0, (float) $pub->json('data.descricao.modelos_composicao.0.percentual'), 0.01);
+        $this->assertEqualsWithDelta(90.0, (float) $pub->json('data.descricao.modelos_composicao.0.valor_arte'), 0.01);
         $this->assertSame('abacate', $pub->json('data.descricao.modelos_composicao.1.nome'));
         $this->assertEqualsWithDelta(70.0, (float) $pub->json('data.descricao.modelos_composicao.1.percentual'), 0.01);
+        $this->assertEqualsWithDelta(10.0, (float) $pub->json('data.descricao.modelos_composicao.1.valor_arte'), 0.01);
+        $this->assertEqualsWithDelta(100.0, (float) $pub->json('data.faixas.0.valor_artes'), 0.01);
         // Continua sem vazar breakdown de custo
         $this->assertArrayNotHasKey('valor_papel', $pub->json('data.faixas.0'));
     }

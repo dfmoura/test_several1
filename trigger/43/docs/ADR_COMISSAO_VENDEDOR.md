@@ -35,7 +35,7 @@ PAR vendedor (% cadastro) + PAR cliente (vendedor padrão)
 | **Prefill** | Cliente com vendedor padrão preenche o ORC. Escolher o vendedor aplica `comissao_percentual` em **todas** as faixas (operador pode diferenciar por volume). |
 | **Alíquota paga = % da faixa aceita** | É o % que entrou no preço da quantidade vendida. Cadastro só sugere. |
 | **Base RECEBIDO** | Estudo §3. Inadimplência não vira holerite. FATURADO fica fora desta fase. |
-| **Base em R$ = etiquetas faturadas** | Motor calcula comissão sobre `valor_servico` (etiqueta). Frete, matriz/clichê e faca nova **não** entram. Rateio proporcional ao `valor_bruto` da FAT em cada BX. |
+| **Base em R$ = etiquetas faturadas** | Motor calcula comissão sobre `valor_servico` (etiqueta). Frete, matriz/clichê, faca nova e **valor das artes** **não** entram. Rateio proporcional ao `valor_bruto` da FAT em cada BX. |
 | **Sinal** | BX de adiantamento **antes** do FAT não gera COM- (ainda não é venda). No faturar, a apropriação do sinal já quitado gera COM- (evento `APROPRIACAO_SINAL`). |
 | **1 vendedor : 1 ORC/PED** | Sem rateio multi-vendedor nesta fase (estudo §4 fica para depois). Venda direta = sem vendedor, sem COM-. |
 | **COM- gerencial até pagar** | PREVISTA → (fechamento) LIBERADA → TIT PAGAR → BX → PAGA. Zap/planilha não substituem COM-. |
@@ -62,7 +62,7 @@ PAR vendedor (% cadastro) + PAR cliente (vendedor padrão)
 ### O que não entra na base
 
 - Frete destacado (nem está no FAT nesta fase)  
-- Matriz/clichê e faca nova  
+- Matriz/clichê, faca nova e valor das artes (desenvolvimento)  
 - Juros/multa (BX desta fase é valor principal)  
 - Intercompany (fora de escopo)  
 - Venda sem vendedor no documento  
@@ -80,7 +80,7 @@ PAR vendedor (% cadastro) + PAR cliente (vendedor padrão)
 
 1. Pagar comissão no confirmar da ENT- ou no faturar (salvo apropriação do sinal já recebido).  
 2. Recalcular % relendo o PAR depois do ORC travado.  
-3. Incluir frete, ferramental ou juros na base.  
+3. Incluir frete, ferramental, valor das artes ou juros na base.  
 4. Gerar COM- sem vendedor no PED/ORC.  
 5. Apagar COM-/CFE-/TIT (só estorno).  
 6. FINANCEIRO confirmar entrega; EXPEDIÇÃO liberar comissão.  
