@@ -23,7 +23,7 @@ class ProdutoCadastroService
     ) {}
 
     /**
-     * @return array{familias: int, exact: int, nf_entrada: int, demos: int, sequences: int, depara: int}
+     * @return array{familias: int, exact: int, nf_entrada: int, tubetes: int, demos: int, sequences: int, depara: int}
      */
     public function seedForEmpresa(Empresa $empresa, bool $incluirDemosVenda = true): array
     {
@@ -50,6 +50,12 @@ class ProdutoCadastroService
                 $nfEntrada++;
             }
 
+            $tubetes = 0;
+            foreach (ProdutoCadastroTubeteData::insumos() as $row) {
+                $this->upsertEvidenciaNf($empresa, $row, $grupoIds, ProdutoCadastroTubeteData::FONTE);
+                $tubetes++;
+            }
+
             $demos = 0;
             if ($incluirDemosVenda) {
                 foreach (ProdutoCadastroCatalogData::demosVenda() as $row) {
@@ -65,6 +71,7 @@ class ProdutoCadastroService
                 'familias' => $familias,
                 'exact' => $exact,
                 'nf_entrada' => $nfEntrada,
+                'tubetes' => $tubetes,
                 'demos' => $demos,
                 'sequences' => $sequences,
                 'depara' => $depara,
@@ -167,6 +174,18 @@ class ProdutoCadastroService
         if (! empty($row['comprimento_m_nominal'])) {
             $atributos['comprimento_m'] = $row['comprimento_m_nominal'];
         }
+        if (! empty($row['diametro_pol'])) {
+            $atributos['diametro_pol'] = $row['diametro_pol'];
+        }
+        if (! empty($row['espessura_mm'])) {
+            $atributos['espessura_mm'] = $row['espessura_mm'];
+        }
+        if (array_key_exists('comprimento', $row) && $row['comprimento'] !== null && $row['comprimento'] !== '') {
+            $atributos['comprimento'] = $row['comprimento'];
+        }
+        if (array_key_exists('com_logo', $row)) {
+            $atributos['com_logo'] = (bool) $row['com_logo'];
+        }
 
         $this->upsertProduto($empresa, $row['codigo'], [
             'familia' => $familia,
@@ -236,12 +255,15 @@ class ProdutoCadastroService
      */
     private function upsertProduto(Empresa $empresa, string $codigo, array $payload): void
     {
-        $existing = Produto::query()
+        $existing = Produto::withTrashed()
             ->where('empresa_id', $empresa->id)
             ->where('codigo', $codigo)
             ->first();
 
         if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
             unset($payload['custo_medio']);
             $attrsNovos = is_array($payload['atributos'] ?? null) ? $payload['atributos'] : [];
             $attrsAtuais = is_array($existing->atributos) ? $existing->atributos : [];
@@ -250,12 +272,17 @@ class ProdutoCadastroService
             if ($origemResolvida) {
                 $payload['atributos']['origem_pendente_xml'] = false;
             }
+            $existing->fill($payload);
+            $existing->save();
+
+            return;
         }
 
-        Produto::query()->updateOrCreate(
-            ['empresa_id' => $empresa->id, 'codigo' => $codigo],
-            $payload
-        );
+        Produto::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => $codigo,
+            ...$payload,
+        ]);
     }
 
     /**
@@ -272,6 +299,9 @@ class ProdutoCadastroService
             $prefixos[$row['grupo']] = true;
         }
         foreach (ProdutoCadastroNfEntradaData::insumos() as $row) {
+            $prefixos[$row['grupo']] = true;
+        }
+        foreach (ProdutoCadastroTubeteData::insumos() as $row) {
             $prefixos[$row['grupo']] = true;
         }
         foreach (ProdutoCadastroCatalogData::demosVenda() as $row) {

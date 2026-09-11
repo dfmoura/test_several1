@@ -349,7 +349,7 @@ export function ComprasNfeDestinadasPage() {
     <>
       <PageHeader
         title="NF-e destinadas"
-        description="Caixa estacionária das notas emitidas contra o CNPJ desta empresa. Amarrar à OC alimenta o assist XML — o recebimento continua com conferência humana."
+        description="Notas emitidas contra o CNPJ desta empresa. Amarrar à OC alimenta o assist XML — recebimento com conferência humana."
         actions={
           <>
             {podeEscrever && (
@@ -370,35 +370,87 @@ export function ComprasNfeDestinadasPage() {
         }
       />
 
-      {sync && (
-        <div className="card" style={{ marginBottom: '1rem' }}>
-          <div className="card-body" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'baseline' }}>
-            <div>
-              <strong>Sincronização</strong>
-              <div className="muted" style={{ fontSize: '0.9rem' }}>
-                Status: {sync.sync_status}
-                {sync.sync_mensagem ? ` — ${sync.sync_mensagem}` : ''}
-                <br />
-                {sync.ultima_sync_em
-                  ? `Última atualização: ${formatDate(sync.ultima_sync_em)}`
-                  : 'Ainda sem sync com o fisco nesta instalação.'}{' '}
-                · {sync.total_documentos} documento(s) na caixa
-                {sync.ano_alvo_hidratacao ? ` · meta 1ª carga: ${sync.ano_alvo_hidratacao}` : ''}
-              </div>
+      <div className="nfe-destinadas-chrome">
+        {sync && (
+          <div className="nfe-destinadas-sync" aria-label="Sincronização DF-e">
+            <div className="nfe-destinadas-metric">
+              <span>Status</span>
+              <strong title={sync.sync_mensagem ?? undefined}>
+                {sync.sync_status}
+                {sync.sync_mensagem ? (
+                  <em className="nfe-destinadas-metric-msg"> — {sync.sync_mensagem}</em>
+                ) : null}
+              </strong>
             </div>
-            <div className="muted" style={{ fontSize: '0.9rem', flex: 1, minWidth: 220 }}>
+            <div className="nfe-destinadas-metric">
+              <span>Última sync</span>
+              <strong>
+                {sync.ultima_sync_em ? formatDate(sync.ultima_sync_em) : 'Ainda sem sync'}
+              </strong>
+            </div>
+            <div className="nfe-destinadas-metric">
+              <span>Na caixa</span>
+              <strong>
+                {sync.total_documentos}
+                {sync.ano_alvo_hidratacao ? ` · meta ${sync.ano_alvo_hidratacao}` : ''}
+              </strong>
+            </div>
+            <p
+              className="nfe-destinadas-sync-hint"
+              title={
+                sync.sync_bloqueio ||
+                'Consulta DF-e em segundo plano. Sync delta diário na nuvem (06:15). Upload manual na OC permanece disponível.'
+              }
+            >
               {sync.sync_bloqueio
                 ? sync.sync_bloqueio
-                : 'Consulta DF-e em segundo plano. Sync delta diário na nuvem (06:15). Upload manual na OC permanece disponível.'}
-            </div>
+                : 'DF-e em 2º plano · delta diário 06:15 · upload na OC disponível'}
+            </p>
           </div>
-          {(syncErro || acaoErro) && (
-            <div className="card-body" style={{ paddingTop: 0, color: 'var(--danger, #b42318)' }}>
-              {syncErro || acaoErro}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+
+        {(syncErro || acaoErro) && (
+          <div className="nfe-destinadas-erro" role="alert">
+            {syncErro || acaoErro}
+          </div>
+        )}
+
+        <form onSubmit={handleSearch} className="nfe-destinadas-filters">
+          <input
+            className="nfe-destinadas-search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Chave, número, emitente, CNPJ…"
+            aria-label="Buscar"
+          />
+          <select
+            className="nfe-destinadas-select"
+            value={ano}
+            onChange={(e) => setAno(e.target.value)}
+            aria-label="Ano"
+          >
+            <option value={String(anoAtual)}>{anoAtual}</option>
+            <option value={String(anoAtual - 1)}>{anoAtual - 1}</option>
+            <option value={String(anoAtual - 2)}>{anoAtual - 2}</option>
+          </select>
+          <select
+            className="nfe-destinadas-select nfe-destinadas-select--situacao"
+            value={situacao}
+            onChange={(e) => setSituacao(e.target.value)}
+            aria-label="Situação"
+          >
+            <option value="">Situação · todas</option>
+            <option value="NOVA">Nova</option>
+            <option value="DISPONIVEL">Disponível</option>
+            <option value="AMARRADA">Amarrada</option>
+            <option value="RECEBIDA">Recebida</option>
+            <option value="SEM_INTERESSE">Sem interesse</option>
+          </select>
+          <button type="submit" className="btn btn-secondary btn-sm">
+            Filtrar
+          </button>
+        </form>
+      </div>
 
       {amarrarDoc && (
         <div className="card" style={{ marginBottom: '1rem' }}>
@@ -531,45 +583,6 @@ export function ComprasNfeDestinadasPage() {
           </div>
         </div>
       )}
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Chave, número, emitente, CNPJ…"
-              />
-            </div>
-            <div className="form-group" style={{ minWidth: 140 }}>
-              <label>Ano</label>
-              <select value={ano} onChange={(e) => setAno(e.target.value)}>
-                <option value={String(anoAtual)}>{anoAtual}</option>
-                <option value={String(anoAtual - 1)}>{anoAtual - 1}</option>
-                <option value={String(anoAtual - 2)}>{anoAtual - 2}</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ minWidth: 160 }}>
-              <label>Situação</label>
-              <select value={situacao} onChange={(e) => setSituacao(e.target.value)}>
-                <option value="">Todas</option>
-                <option value="NOVA">Nova</option>
-                <option value="DISPONIVEL">Disponível</option>
-                <option value="AMARRADA">Amarrada</option>
-                <option value="RECEBIDA">Recebida</option>
-                <option value="SEM_INTERESSE">Sem interesse</option>
-              </select>
-            </div>
-            <div style={{ alignSelf: 'flex-end' }}>
-              <button type="submit" className="btn btn-secondary">
-                Filtrar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
 
       <div className="card">
         <div className="table-wrap table-wrap--freeze">

@@ -120,8 +120,9 @@ export function ProdutoFornecedorCodigosPanel({ produtoId, canWrite, initialRows
     <div className="produto-depara span-2">
       <div className="fiscal-section-title">Códigos do fornecedor (de-para)</div>
       <p className="form-hint produto-depara-lead">
-        Língua da NF-e do fornecedor ↔ este SKU. Um produto pode ter vários cProd (Avery, Colacril…).
-        Sem de-para a entrada assistida por XML não casa sozinha.
+        Ponte obrigatória para entrada assistida: <code>cProd</code> + descrição da NF do
+        fornecedor ↔ este SKU. Ex.: Avery <code>AAS029-EX4</code> → ECOPRINT Exact 1000. Várias
+        linhas na NF com o mesmo cProd e dezenas de bobinas = um SKU + N volumes.
       </p>
 
       {loading && <div className="form-hint">Carregando vínculos…</div>}

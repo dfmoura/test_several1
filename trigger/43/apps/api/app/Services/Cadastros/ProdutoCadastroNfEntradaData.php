@@ -15,7 +15,7 @@ final class ProdutoCadastroNfEntradaData
 {
     public const FONTE = 'notas_entrada XML · EMP RLP · amostragem 2026-09';
 
-    public const TOTAL = 33;
+    public const TOTAL = 26;
 
     /**
      * @return list<array{
@@ -73,14 +73,8 @@ final class ProdutoCadastroNfEntradaData
             self::rev('REV-RIB-009', 'RIBBON AXR1 GENIUS 110MM X 300M', 'AXR1 Genius 110×300', 'AXR1 GENIUS'),
             self::rev('REV-RIB-010', 'RIBBON APR1 ZEBRA 110MM X 450M', 'APR1 Zebra 110×450', 'APR1 ZEBRA 450'),
 
-            // ——— Tubetes (medida fixa de compra = SKU) ———
-            self::tub('EMB-TUB-004', 'TUBETE 63X25,7X2 MM', '63×25,7×2'),
-            self::tub('EMB-TUB-005', 'TUBETE 60X25,7X2 MM', '60×25,7×2'),
-            self::tub('EMB-TUB-006', 'TUBETE 55X25,7X2 MM', '55×25,7×2'),
-            self::tub('EMB-TUB-007', 'TUBETE 50X25,7X2 MM', '50×25,7×2'),
-            self::tub('EMB-TUB-008', 'TUBETE 41X25,7X2 MM', '41×25,7×2'),
-            self::tub('EMB-TUB-009', 'TUBETE 20X76,2X3 MM', '20×76,2×3'),
-            self::tub('EMB-TUB-010', 'TUBETE 25X76,2X3 MM', '25×76,2×3'),
+            // Tubetes físicos: ProdutoCadastroTubeteData (Ø × espessura × comprimento × logo).
+            // ORC usa só diâmetro — não recriar SKUs genéricos nem os da NF (004–010).
 
             // ——— Auxiliar de limpeza (Sunquimica) ———
             self::tin('MP-TIN-027', 'PERFECT CLEANER FLOTADOR', 'Perfect Cleaner flotador', '34024900', 'L'),
@@ -170,44 +164,6 @@ final class ProdutoCadastroNfEntradaData
             'ncm_situacao' => 'OK',
             'listagem_grupo' => 'RIBBON',
             'programa_compra' => $programa,
-            'comprimento_m_nominal' => null,
-        ];
-    }
-
-    /**
-     * @return array{
-     *   codigo: string,
-     *   familia: string,
-     *   grupo: string,
-     *   descricao_fiscal: string,
-     *   descricao_comercial: ?string,
-     *   ncm: string,
-     *   tipo_item_sped: string,
-     *   unidade_comercial: string,
-     *   unidade_interna: string,
-     *   grupo_estoque: string,
-     *   ncm_situacao: string,
-     *   listagem_grupo: string,
-     *   programa_compra: ?string,
-     *   comprimento_m_nominal: ?string
-     * }
-     */
-    private static function tub(string $codigo, string $fiscal, string $comercial): array
-    {
-        return [
-            'codigo' => $codigo,
-            'familia' => 'EMB',
-            'grupo' => 'EMB-TUB',
-            'descricao_fiscal' => $fiscal,
-            'descricao_comercial' => $comercial,
-            'ncm' => '48229000',
-            'tipo_item_sped' => '02',
-            'unidade_comercial' => 'UN',
-            'unidade_interna' => 'UN',
-            'grupo_estoque' => '70',
-            'ncm_situacao' => 'OK',
-            'listagem_grupo' => 'TUBETE',
-            'programa_compra' => null,
             'comprimento_m_nominal' => null,
         ];
     }

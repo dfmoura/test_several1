@@ -8,9 +8,22 @@ import { api, fiscalConsulta, type Produto, type ProdutoFornecedorCodigo, type P
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
+import {
+  buildCadastroChecklist,
+  decideCadastroOrientacao,
+} from '../lib/produtoCadastroOrientacaoUi';
 import { decideUnidadesConversaoUi, unidadesDiferem } from '../lib/produtoUnidadesConversaoUi';
 import { politicaLotePorGrupo } from '../lib/produtoLotePolitica';
 import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '../lib/format';
+
+/** Chaves do formulário em `atributos` — espelho de ProdutoAtributos::FORM_KEYS. */
+const ATRIBUTOS_FORM_KEYS = [
+  'largura_mm',
+  'comprimento_m',
+  'gramatura_g_m2',
+  'grupo_estoque',
+  'programa_compra',
+] as const;
 
 const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
 
@@ -97,6 +110,7 @@ type ProdutoFormData = {
   largura_mm: string;
   comprimento_m: string;
   gramatura_g_m2: string;
+  programa_compra: string;
   grupo_estoque: string;
   cfop_saida_padrao: string;
   cfop_entrada_padrao: string;
@@ -134,6 +148,7 @@ const emptyForm = (): ProdutoFormData => ({
   largura_mm: '',
   comprimento_m: '',
   gramatura_g_m2: '',
+  programa_compra: '',
   grupo_estoque: '',
   cfop_saida_padrao: '5101',
   cfop_entrada_padrao: '',
@@ -161,6 +176,19 @@ function attrStr(attrs: Record<string, unknown> | null | undefined, key: string)
   return String(v);
 }
 
+/** Metadados de seed/sistema que o form não edita — reenviados no save. */
+function atributosExtrasFromProduto(
+  attrs: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  if (!attrs) return {};
+  const extras: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(attrs)) {
+    if ((ATRIBUTOS_FORM_KEYS as readonly string[]).includes(k)) continue;
+    extras[k] = v;
+  }
+  return extras;
+}
+
 function fromProduto(p: Produto): ProdutoFormData {
   return {
     familia: p.familia,
@@ -179,6 +207,7 @@ function fromProduto(p: Produto): ProdutoFormData {
     largura_mm: attrStr(p.atributos, 'largura_mm'),
     comprimento_m: attrStr(p.atributos, 'comprimento_m'),
     gramatura_g_m2: attrStr(p.atributos, 'gramatura_g_m2'),
+    programa_compra: attrStr(p.atributos, 'programa_compra'),
     grupo_estoque: attrStr(p.atributos, 'grupo_estoque'),
     cfop_saida_padrao: p.cfop_saida_padrao ?? '',
     cfop_entrada_padrao: p.cfop_entrada_padrao ?? '',
@@ -230,12 +259,21 @@ function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: b
   };
 }
 
-function toPayload(form: ProdutoFormData): Record<string, unknown> {
-  const atributos: Record<string, string> = {};
+function toPayload(
+  form: ProdutoFormData,
+  atributosExtras: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const atributos: Record<string, unknown> = { ...atributosExtras };
   if (form.largura_mm) atributos.largura_mm = form.largura_mm;
+  else delete atributos.largura_mm;
   if (form.comprimento_m) atributos.comprimento_m = form.comprimento_m;
+  else delete atributos.comprimento_m;
   if (form.gramatura_g_m2) atributos.gramatura_g_m2 = form.gramatura_g_m2;
+  else delete atributos.gramatura_g_m2;
+  if (form.programa_compra.trim()) atributos.programa_compra = form.programa_compra.trim();
+  else delete atributos.programa_compra;
   if (form.grupo_estoque) atributos.grupo_estoque = form.grupo_estoque;
+  else delete atributos.grupo_estoque;
 
   const payload: Record<string, unknown> = {
     familia: form.familia,
@@ -267,7 +305,7 @@ function toPayload(form: ProdutoFormData): Record<string, unknown> {
     prazo_validade_dias: form.prazo_validade_dias ? parseInt(form.prazo_validade_dias, 10) : null,
     gtin: form.gtin || null,
     situacao: form.situacao,
-    atributos: Object.keys(atributos).length ? atributos : null,
+    atributos,
   };
   if (form.codigo) payload.codigo = form.codigo;
   return payload;
@@ -328,6 +366,7 @@ export function ProdutoFormPage() {
   const [message, setMessage] = useState('');
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const [fornecedorCodigos, setFornecedorCodigos] = useState<ProdutoFornecedorCodigo[]>([]);
+  const [atributosExtras, setAtributosExtras] = useState<Record<string, unknown>>({});
   const [avancadoOpen, setAvancadoOpen] = useState(false);
   useEffect(() => {
     void (async () => {
@@ -370,6 +409,7 @@ export function ProdutoFormPage() {
         const res = await api.get<{ data: Produto }>(`/produtos/${id}`);
         const loaded = fromProduto(res.data);
         setForm(loaded);
+        setAtributosExtras(atributosExtrasFromProduto(res.data.atributos));
         setFornecedorCodigos(res.data.fornecedor_codigos ?? []);
         setAvancadoOpen(
           Boolean(
@@ -517,6 +557,63 @@ export function ProdutoFormPage() {
     return `1 ${de} = ${fator} × ${para}`;
   }, [form.unidade_comercial, form.unidade_interna, form.fator_conversao]);
 
+  const orientacao = useMemo(
+    () =>
+      decideCadastroOrientacao({
+        familia: form.familia,
+        grupoCodigo: selectedGrupo?.codigo ?? form.grupo,
+        exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
+        unidadeComercial: form.unidade_comercial,
+        unidadeInterna: form.unidade_interna,
+        programaCompra: form.programa_compra,
+      }),
+    [
+      form.familia,
+      form.grupo,
+      form.unidade_comercial,
+      form.unidade_interna,
+      form.programa_compra,
+      selectedGrupo?.codigo,
+      selectedGrupo?.exige_dimensao_sku,
+    ],
+  );
+
+  const checklist = useMemo(
+    () =>
+      buildCadastroChecklist({
+        familia: form.familia,
+        descricaoComercial: form.descricao_comercial,
+        descricaoFiscal: form.descricao_fiscal,
+        ncm: form.ncm,
+        tipoItemSped: form.tipo_item_sped,
+        unidadeComercial: form.unidade_comercial,
+        unidadeInterna: form.unidade_interna,
+        fatorConversao: form.fator_conversao,
+        fatorStatus: fatorSugestao?.status,
+        gramaturaGm2: form.gramatura_g_m2,
+        programaCompra: form.programa_compra,
+        exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
+        deParaCount: fornecedorCodigos.length,
+        isNew,
+      }),
+    [
+      form.familia,
+      form.descricao_comercial,
+      form.descricao_fiscal,
+      form.ncm,
+      form.tipo_item_sped,
+      form.unidade_comercial,
+      form.unidade_interna,
+      form.fator_conversao,
+      form.gramatura_g_m2,
+      form.programa_compra,
+      fatorSugestao?.status,
+      selectedGrupo?.exige_dimensao_sku,
+      fornecedorCodigos.length,
+      isNew,
+    ],
+  );
+
   const sugestaoAplicavel =
     fatorSugestao != null &&
     (fatorSugestao.status === 'sugerido' || fatorSugestao.status === 'igual') &&
@@ -620,7 +717,13 @@ export function ProdutoFormPage() {
       };
       // Saiu de grupo de bobina → limpa dimensões (não carregar “Dados da bobina” por resíduo).
       if (!grupo.exige_dimensao_sku) {
-        return { ...alinhado, largura_mm: '', comprimento_m: '', gramatura_g_m2: '' };
+        return {
+          ...alinhado,
+          largura_mm: '',
+          comprimento_m: '',
+          gramatura_g_m2: '',
+          programa_compra: '',
+        };
       }
       return alinhado;
     });
@@ -652,12 +755,15 @@ export function ProdutoFormPage() {
     setError('');
     setMessage('');
     try {
-      const payload = toPayload(form);
+      const payload = toPayload(form, atributosExtras);
       if (isNew) {
         const res = await api.post<{ data: Produto }>('/produtos', payload);
         navigate(`/produtos/${res.data.id}`);
       } else {
         const res = await api.put<{ data: Produto }>(`/produtos/${id}`, payload);
+        setForm(fromProduto(res.data));
+        setAtributosExtras(atributosExtrasFromProduto(res.data.atributos));
+        setFornecedorCodigos(res.data.fornecedor_codigos ?? []);
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -735,6 +841,34 @@ export function ProdutoFormPage() {
 
           {tab === 'comercial' && (
             <div className="form-grid">
+              <div className="produto-orientacao span-2">
+                <p className="produto-orientacao-lead">{orientacao.lead}</p>
+                <ul className="produto-checklist" aria-label="Checklist do cadastro">
+                  {checklist.items.map((item) => (
+                    <li
+                      key={item.id}
+                      className={
+                        item.ok
+                          ? 'produto-checklist-ok'
+                          : item.required
+                            ? 'produto-checklist-pendente'
+                            : 'produto-checklist-opcional'
+                      }
+                    >
+                      <span className="produto-checklist-mark" aria-hidden>
+                        {item.ok ? '✓' : item.required ? '!' : '·'}
+                      </span>
+                      {item.label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="form-hint produto-checklist-resumo">
+                  {checklist.ready
+                    ? 'Cadastro pronto para uso operacional (entrada/estoque).'
+                    : `${checklist.pendingRequired} item(ns) obrigatório(s) pendente(s).`}
+                </p>
+              </div>
+
               <div className="form-group">
                 <label>Família</label>
                 <select
@@ -828,22 +962,31 @@ export function ProdutoFormPage() {
                 </div>
               )}
               <div className="form-group span-2">
+                <label>Nome no estoque</label>
+                <input
+                  value={form.descricao_comercial}
+                  disabled={readOnly}
+                  placeholder="Ex.: ECOPRINT / S2045N / SCK 60"
+                  onChange={(e) => update({ descricao_comercial: e.target.value })}
+                />
+                <span className="form-hint">
+                  Como a empresa chama o item no almoxarifado e nas listagens. Pode diferir do
+                  texto fiscal do fornecedor.
+                </span>
+              </div>
+              <div className="form-group span-2">
                 <label>Descrição fiscal</label>
                 <input
                   value={form.descricao_fiscal}
                   disabled={readOnly}
+                  placeholder="Ex.: FASSON ECOPRINT/S2045N/60G - EXACT 1000"
                   onChange={(e) => update({ descricao_fiscal: e.target.value })}
                   required
                 />
-                <span className="form-hint">Texto estável que vai para NF-e / SPED. Marca não substitui descrição.</span>
-              </div>
-              <div className="form-group span-2">
-                <label>Descrição comercial</label>
-                <input
-                  value={form.descricao_comercial}
-                  disabled={readOnly}
-                  onChange={(e) => update({ descricao_comercial: e.target.value })}
-                />
+                <span className="form-hint">
+                  Texto estável para NF-e / SPED (0200). O de-para guarda o xProd exato de cada
+                  fornecedor.
+                </span>
               </div>
 
               <div className="fiscal-section-title span-2">{unidadesUi.sectionTitle}</div>
@@ -853,6 +996,12 @@ export function ProdutoFormPage() {
                     Unidade do documento × unidade oficial de estoque. Largura, comprimento e
                     gramatura alimentam a fórmula — não são unidades. Convenção do fator:{' '}
                     <strong>{equacaoFator}</strong>
+                  </>
+                ) : orientacao.preferM2Igual ? (
+                  <>
+                    Exact / substrato faturado em M²: deixe comercial e estoque em{' '}
+                    <strong>M2</strong> (fator 1). Bobinas físicas entram como volumes na
+                    conferência da NF — o saldo oficial continua em M².
                   </>
                 ) : (
                   <>
@@ -911,6 +1060,22 @@ export function ProdutoFormPage() {
               {showDimensoes.showSection && (
                 <>
                   <div className="fiscal-section-title span-2">{showDimensoes.title}</div>
+                  {showDimensoes.mode === 'grupo' && (
+                    <div className="form-group span-2">
+                      <label>Programa de compra</label>
+                      <input
+                        value={form.programa_compra}
+                        disabled={readOnly}
+                        placeholder="Ex.: EXACT 1000 · EXACT 1500 · VERTEX 5030"
+                        maxLength={40}
+                        onChange={(e) => update({ programa_compra: e.target.value })}
+                      />
+                      <span className="form-hint">
+                        Identifica o programa comercial no SKU (não a bobina). Exact 1000 e Exact
+                        1500 são SKUs distintos — larguras variáveis ficam no volume.
+                      </span>
+                    </div>
+                  )}
                   {showDimensoes.showLargura && (
                     <div className={`form-group${faltandoAttrs.has('largura_mm') ? ' is-required-hint' : ''}`}>
                       <label>

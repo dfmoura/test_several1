@@ -123,3 +123,27 @@ export function coincideBusca(haystack: string, q: string): boolean {
   if (!needle) return true;
   return haystack.includes(needle);
 }
+
+/** Compara qtde de estoque (4 casas) — consolidado volumes por faixa. */
+export function mesmaQtdeEstoque(
+  a: string | number | null | undefined,
+  b: string | number | null | undefined,
+): boolean {
+  const na = Number(a);
+  const nb = Number(b);
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return false;
+  return Math.abs(na - nb) < 0.00005;
+}
+
+/** Quantas faixas de qtde cabem na grade de saldos sem amontoar. */
+export const ESTOQUE_VOL_FAIXAS_VISIVEIS = 3;
+
+export function faixasVolumesVisiveis<T>(faixas: T[]): { visiveis: T[]; ocultas: number } {
+  if (faixas.length <= ESTOQUE_VOL_FAIXAS_VISIVEIS) {
+    return { visiveis: faixas, ocultas: 0 };
+  }
+  return {
+    visiveis: faixas.slice(0, ESTOQUE_VOL_FAIXAS_VISIVEIS),
+    ocultas: faixas.length - ESTOQUE_VOL_FAIXAS_VISIVEIS,
+  };
+}

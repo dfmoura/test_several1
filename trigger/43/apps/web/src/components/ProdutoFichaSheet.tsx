@@ -141,6 +141,7 @@ export function ProdutoFichaSheet({
   const largura = attrStr(p.atributos, 'largura_mm');
   const comprimento = attrStr(p.atributos, 'comprimento_m');
   const gramatura = attrStr(p.atributos, 'gramatura_g_m2');
+  const programaCompra = attrStr(p.atributos, 'programa_compra');
   const grupoEstoque = attrStr(p.atributos, 'grupo_estoque');
   const grupoEstoqueNome = p.grupo_catalogo?.grupos_estoque?.find(
     (l) => l.codigo === grupoEstoque,
@@ -150,7 +151,7 @@ export function ProdutoFichaSheet({
       ? `${grupoEstoque} — ${grupoEstoqueNome}`
       : grupoEstoque
     : '';
-  const showDimensoes = Boolean(largura || comprimento || gramatura || grupoEstoque);
+  const showDimensoes = Boolean(largura || comprimento || gramatura || grupoEstoque || programaCompra);
 
   const unidadesUi = decideUnidadesConversaoUi({
     unidadeComercial: p.unidade_comercial,
@@ -182,9 +183,12 @@ export function ProdutoFichaSheet({
 
       <div className="ficha-title-block">
         <div className="ficha-title-main">
-          <h2 className="ficha-razao">{p.descricao_fiscal}</h2>
-          {p.descricao_comercial && p.descricao_comercial !== p.descricao_fiscal ? (
-            <p className="ficha-fantasia">{p.descricao_comercial}</p>
+          <h2 className="ficha-razao">
+            {p.descricao_comercial?.trim() || p.descricao_fiscal}
+          </h2>
+          {p.descricao_comercial?.trim() &&
+          p.descricao_comercial.trim() !== p.descricao_fiscal.trim() ? (
+            <p className="ficha-fantasia">Fiscal: {p.descricao_fiscal}</p>
           ) : null}
         </div>
         <div className="ficha-title-meta">
@@ -228,8 +232,8 @@ export function ProdutoFichaSheet({
               }
               wide
             />
+            <Kv label="Nome no estoque" value={dash(p.descricao_comercial)} wide />
             <Kv label="Descrição fiscal" value={dash(p.descricao_fiscal)} wide />
-            <Kv label="Descrição comercial" value={dash(p.descricao_comercial)} wide />
             <Kv label="Situação" value={situacaoLabel(p.situacao)} />
             <Kv
               label="Natureza"
@@ -309,8 +313,9 @@ export function ProdutoFichaSheet({
       </Section>
 
       {showDimensoes ? (
-        <Section title="Atributos / bobina (insumos da conversão)">
+        <Section title="Dimensões nominais / programa (não é a bobina física)">
           <div className="ficha-kv-grid cols-4">
+            <Kv label="Programa de compra" value={dash(programaCompra)} wide />
             <Kv
               label="Largura (mm)"
               value={

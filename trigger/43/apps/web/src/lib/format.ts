@@ -154,6 +154,11 @@ export function formatQty(value: string | number | null | undefined): string {
   return formatDecimalBr(value, DECIMAL_SCALE.qty);
 }
 
+/** Qtde em célula densa (ex. consolidado volumes) — sem zeros à direita. */
+export function formatQtyCompact(value: string | number | null | undefined): string {
+  return formatDecimalBr(value, DECIMAL_SCALE.qty, { stripTrailingZeros: true });
+}
+
 /** Fator de conversão (10 casas) — §9.3. */
 export function formatFactor(value: string | number | null | undefined): string {
   return formatDecimalBr(value, DECIMAL_SCALE.factor);

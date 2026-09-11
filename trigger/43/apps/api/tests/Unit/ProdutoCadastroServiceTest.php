@@ -8,6 +8,7 @@ use App\Models\Produto;
 use App\Services\Cadastros\ProdutoCadastroCatalogData;
 use App\Services\Cadastros\ProdutoCadastroNfEntradaData;
 use App\Services\Cadastros\ProdutoCadastroService;
+use App\Services\Cadastros\ProdutoCadastroTubeteData;
 use App\Services\Cadastros\ProdutoFornecedorDeParaCatalogData;
 use App\Services\Cadastros\ProdutoService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,7 +27,9 @@ class ProdutoCadastroServiceTest extends TestCase
         $this->assertCount(count($codigos), array_unique($codigos));
         $this->assertContains('MP-PAP-016', $codigos);
         $this->assertContains('MP-FLM-016', $codigos);
-        $this->assertContains('EMB-TUB-004', $codigos);
+        $this->assertNotContains('EMB-TUB-004', $codigos);
+        $tubetesNf = array_filter($codigos, fn ($c) => str_starts_with($c, 'EMB-TUB-'));
+        $this->assertSame([], array_values($tubetesNf), 'Tubetes de NF retirados do cadastro operacional');
 
         // Vertex: 1 SKU (larguras só no de-para)
         $this->assertSame(1, count(array_filter($codigos, fn ($c) => $c === 'MP-PAP-016')));
@@ -39,11 +42,31 @@ class ProdutoCadastroServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(9, count($fedrigoni));
     }
 
-    public function test_catalogo_tem_89_familias_sem_duplicar_cian(): void
+    public function test_catalogo_tubetes_fisicos_deduplicado(): void
+    {
+        $tubetes = ProdutoCadastroTubeteData::insumos();
+        $this->assertCount(ProdutoCadastroTubeteData::TOTAL, $tubetes);
+
+        $codigos = array_column($tubetes, 'codigo');
+        $this->assertCount(count($codigos), array_unique($codigos));
+
+        $comercial = array_column($tubetes, 'descricao_comercial');
+        $this->assertCount(count($comercial), array_unique($comercial));
+
+        $this->assertContains('1" × 2,0 × 80 c/logo', $comercial);
+        $this->assertContains('3" × 3,0 × 100 s/logo', $comercial);
+    }
+
+    public function test_catalogo_tem_86_familias_sem_duplicar_cian(): void
     {
         $familias = ProdutoCadastroCatalogData::familias();
 
         $this->assertCount(ProdutoCadastroCatalogData::TOTAL_FAMILIAS, $familias);
+        $this->assertSame(86, ProdutoCadastroCatalogData::TOTAL_FAMILIAS);
+        $this->assertEmpty(array_filter(
+            array_column($familias, 'codigo'),
+            fn (string $c) => str_starts_with($c, 'EMB-TUB-')
+        ));
 
         $codigos = array_column($familias, 'codigo');
         $this->assertCount(count($codigos), array_unique($codigos));
@@ -67,12 +90,13 @@ class ProdutoCadastroServiceTest extends TestCase
 
         $result = app(ProdutoCadastroService::class)->seedForEmpresa($empresa);
 
-        $this->assertSame(89, $result['familias']);
+        $this->assertSame(86, $result['familias']);
         $this->assertSame(4, $result['exact']);
-        $this->assertSame(33, $result['nf_entrada']);
+        $this->assertSame(26, $result['nf_entrada']);
+        $this->assertSame(52, $result['tubetes']);
         $this->assertSame(2, $result['demos']);
 
-        $this->assertSame(89 + 4 + 33, Produto::query()
+        $this->assertSame(86 + 4 + 26 + 52, Produto::query()
             ->where('empresa_id', $empresa->id)
             ->where('atributos->camada_cadastro', 'A')
             ->count());
@@ -149,9 +173,21 @@ class ProdutoCadastroServiceTest extends TestCase
 
         $tubete = Produto::query()
             ->where('empresa_id', $empresa->id)
-            ->where('codigo', 'EMB-TUB-001')
+            ->where('codigo', 'EMB-TUB-015')
             ->firstOrFail();
         $this->assertFalse((bool) $tubete->controla_lote);
+        $this->assertSame('1" × 2,0 × 80 c/logo', $tubete->descricao_comercial);
+        $this->assertSame('1"', $tubete->atributos['diametro_pol'] ?? null);
+        $this->assertSame('2,0', $tubete->atributos['espessura_mm'] ?? null);
+        $this->assertSame('80', $tubete->atributos['comprimento'] ?? null);
+        $this->assertTrue((bool) ($tubete->atributos['com_logo'] ?? false));
+
+        $tubete3 = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'EMB-TUB-046')
+            ->firstOrFail();
+        $this->assertSame('3" × 3,0 × 100 s/logo', $tubete3->descricao_comercial);
+        $this->assertFalse((bool) ($tubete3->atributos['com_logo'] ?? true));
 
         $seqPap = CodigoSequence::query()
             ->where('empresa_id', $empresa->id)
@@ -164,6 +200,12 @@ class ProdutoCadastroServiceTest extends TestCase
             ->where('prefixo', 'MP-TIN')
             ->firstOrFail();
         $this->assertSame(28, (int) $seqTin->proximo);
+
+        $seqTub = CodigoSequence::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('prefixo', 'EMB-TUB')
+            ->firstOrFail();
+        $this->assertSame(53, (int) $seqTub->proximo);
     }
 
     public function test_catalogo_tintas_26_familias_ncm_un_lote(): void
@@ -275,7 +317,7 @@ class ProdutoCadastroServiceTest extends TestCase
         $service->seedForEmpresa($empresa);
 
         $this->assertSame(
-            89 + 4 + 33 + 2,
+            86 + 4 + 26 + 52 + 2,
             Produto::query()->where('empresa_id', $empresa->id)->count()
         );
     }

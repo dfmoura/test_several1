@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-estoque-saldo-volumes pronto-guardar pronto-nfe-destinadas orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -7,6 +7,7 @@ COMPOSE_AWS   := docker compose -f docker-compose.yml -f docker-compose.aws.yml 
 
 up:
 	cp -n .env.example .env 2>/dev/null || true
+	$(MAKE) stage-web-context
 	$(COMPOSE_LOCAL) --env-file .env up -d --build
 	@echo ""
 	@echo "→ http://localhost:8043  (SPA + API)  [ERP_STAGE=local]"
@@ -217,7 +218,37 @@ cenario-mensalidade-pos-cortesia:
 
 web-build:
 	cd apps/web && npm ci && npm run build
-	$(COMPOSE_LOCAL) --env-file .env build web && $(COMPOSE_LOCAL) --env-file .env up -d web
+	$(MAKE) stage-web-context
+	# Prefer recreate com volume local (dist); senão build da imagem 43-web.
+	$(COMPOSE_LOCAL) --env-file .env up -d --force-recreate --no-build web || \
+	  ($(COMPOSE_LOCAL) --env-file .env build web && \
+	   $(COMPOSE_LOCAL) --env-file .env up -d --force-recreate --no-build web)
+
+# Contexto mínimo da imagem web (dist + branding + nginx) — evita scan de apps/api/storage.
+stage-web-context:
+	@test -f apps/web/dist/index.html || (cd apps/web && npm ci && npm run build)
+	rm -rf .web-docker-context
+	mkdir -p .web-docker-context
+	cp -a apps/web/dist .web-docker-context/dist
+	cp docker/nginx/default.conf .web-docker-context/default.conf
+	cp -a branding .web-docker-context/branding
+	cp docker/nginx/Dockerfile.dist .web-docker-context/Dockerfile
+
+# Host com Docker: sobe stack + SPA Guardar (volume ↔ vão)
+pronto-guardar:
+	bash scripts/pronto-guardar.sh
+
+# Host com Docker: sobe stack + SPA etiquetas Elgin 50×40 — pronto para testar
+pronto-etiquetas-volume:
+	bash scripts/pronto-etiquetas-volume.sh
+
+# Host com Docker: sobe stack + SPA com coluna Volumes no Saldo — pronto para testar
+pronto-estoque-saldo-volumes:
+	bash scripts/pronto-estoque-saldo-volumes.sh
+
+# Host com Docker: sobe stack + SPA NF-e destinadas (chrome denso) — pronto para testar
+pronto-nfe-destinadas:
+	bash scripts/pronto-nfe-destinadas.sh
 
 guia-pdf: guia-pdf-parceiros guia-pdf-produtos
 

@@ -63,6 +63,18 @@ Warnings (não bloqueiam): emitente ≠ fornecedor OC; dest ≠ CNPJ EMP.
 
 Norma: **`ADR_CADASTRO_INSUMO_VOLUME.md`** (fase F2).
 
-- Hoje o preview pode sugerir lote a partir do **primeiro** `rastro` da linha — suficiente para tinta/batch, insuficiente para Exact com N bobinas.  
-- Evolução aceita: conferência lista **todos** os `rastro` → N volumes em `receber()`, soma = qtde da linha.  
-- De-para `cProd` → SKU permanece a âncora; descrição/código do fornecedor não se reescrevem.
+- Conferência lista **todos** os `rastro` → N volumes em `receber()`, soma = qtde da linha OC.  
+- De-para `cProd` → SKU permanece a âncora; descrição/código do fornecedor não se reescrevem.  
+- **N dets → 1 linha OC:** com de-para **ou** OC com um único item pendente (reposição consolidada em m²), o assist agrega qCom e rastros na mesma linha — bobinas não viram linhas novas da OC.
+
+## Emenda 2026-09-11 — remap UI
+
+Ao alterar o de-para na conferência, a UI recompõe **qtde comercial e volumes** juntos (não só a qtde).
+
+## Emenda 2026-09-11 — F2.1 dimensão Exact
+
+Norma: **`ADR_CADASTRO_INSUMO_VOLUME.md`** (F2.1).
+
+- `infAdProd` com `NxLxC` (ex. `4x205x1000`, misturas com `|`) → slots; amarre a cada `rastro` por área (= `qLote`).  
+- Preview/assist sugere `largura_mm` + `comprimento_m` por volume; sem match → warning `DIMENSAO_VOLUME_INCOMPLETA`.  
+- Remap UI usa o mesmo parser (`nfeExactDimensoes.ts`).

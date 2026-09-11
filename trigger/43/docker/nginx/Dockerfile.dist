@@ -1,0 +1,7 @@
+# Imagem web a partir do dist já buildado no host (make web-build).
+# Contexto: .web-docker-context/ (sem scan de apps/api/storage).
+FROM nginx:1.27-alpine
+COPY default.conf /etc/nginx/conf.d/default.conf
+COPY dist /var/www/web
+COPY branding /var/www/branding
+EXPOSE 80

@@ -8,6 +8,7 @@ use App\Models\ProdutoGrupo;
 use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
+use App\Support\ProdutoAtributos;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -157,6 +158,19 @@ class ProdutoService
             $payload['fator_conversao'] = $mergedForUnits['fator_conversao'];
         }
         $this->assertUnidadesConversao($mergedForUnits);
+
+        if (array_key_exists('atributos', $payload)) {
+            if ($payload['atributos'] === null) {
+                // null = não tocar no JSON (evita apagar programa_compra / camada_cadastro).
+                unset($payload['atributos']);
+            } else {
+                $payload['atributos'] = ProdutoAtributos::mergeOnUpdate(
+                    is_array($produto->atributos) ? $produto->atributos : null,
+                    is_array($payload['atributos']) ? $payload['atributos'] : [],
+                );
+                $payload['atributos'] = PadraoDecimal::canonicalizeProdutoAtributos($payload['atributos']) ?? [];
+            }
+        }
 
         $produto->update($payload);
         $this->auditLogger->log('ATUALIZAR', 'produto', $produto->id, $before, $produto->fresh(Produto::userStampWith())->toArray());

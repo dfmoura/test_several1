@@ -67,7 +67,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 - Para substratos com `rastro` unitário: **lote = volume**.  
 - Mesmo código no mesmo SKU/EMP **acumula** (batch de tinta); em Avery cada código é único → 1 linha por bobina.  
 - Custeio permanece no SKU (custo médio).  
-- Multi-`rastro` na entrada: **N volumes** na conferência (fase F2) — hoje o assist só pré-preenche o 1º rastro; isso é lacuna conhecida, não modelo errado.
+- Multi-`rastro` na entrada: **N volumes** na conferência (F2) — assist pré-preenche **todos** os rastros em `lotes[]`; soma = qtde comercial da linha OC.
 
 ### Semântica de `exige_dimensao_sku`
 
@@ -126,7 +126,7 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 
 - [x] SKUs Exact (MP-PAP-013…015, MP-FLM-015) + seed  
 - [x] De-para Avery canônico (quando CNPJ + SKU existem)  
-- [x] Evidência `notas_entrada` (33 SKUs + 87 de-para) via `ProdutoCadastroNfEntradaData` — sem SKU por largura Exact/Fedrigoni/Vertex  
+- [x] Evidência `notas_entrada` (26 SKUs + 77 de-para) via `ProdutoCadastroNfEntradaData` — sem SKU por largura Exact/Fedrigoni/Vertex; tubetes de NF (004–010) retirados  
 - [ ] Contagem física / AJU na EMP (operação humana)
 
 ### F2 — Entrada multi-volume (rastro → N lotes)
@@ -143,17 +143,39 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 - [x] Dimensão real no lote (derivação comprimento)  
 - [x] PHPUnit `EstoqueVolumeMultiTest`
 
+### F2.1 — Dimensão Exact a partir de `infAdProd` (NxLxC)
+
+Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1x215x900 | 1x215x1050 | 4x215x1000`.  
+`qLote` (m²) = `(largura_mm/1000) × comprimento_m` — amarre **1:1** slot → rastro por área.
+
+- Parser `NfeExactDimensoes`: expandir slots; amarrar por área; sem match → null + warning (humano confere).  
+- Assist pré-preenche `largura_mm` **e** `comprimento_m` em `lotes[]`.  
+- Heurística legado (`NN MM` / sufixo cProd) permanece como fallback quando não há `NxLxC`.  
+- Estoque → aba Lotes: coluna Dimensão; “N volume(s)” no saldo filtra lotes do SKU.  
+- Extensão futura (altura/peso/…): JSON `atributos` whitelist no volume — **não** nesta fase (YAGNI).
+
+**Aceite F2.1**
+
+- [x] Parse + amarre por área (`NfeExactDimensoes`)  
+- [x] Preview/assist com L×C sugeridos  
+- [x] Visão consolidada L×C na aba Lotes  
+- [x] PHPUnit unit + feature Exact / mistura
+
 ### F3 — Etiqueta / QR do volume
 
-- Etiqueta interna: SKU, descrição, L×C real, `nLote`, NF, data, QR do volume.  
+- Etiqueta interna (face colável): SKU, descrição, L×C real, `nLote`, NF, data, QR do volume.  
+- **Sem vão na face impressa** — localização é volátil (etiqueta primeiro, Guardar depois; vão pode mudar). Endereço vive no sistema (`estoque_lotes` ↔ `estoque_enderecos`); amarre via tela unitária ou `/estoque/guardar`.  
 - Rota `/estoque/lotes/:id/etiqueta`.
-- **Ficha de entrada física (pós-receber):** `/estoque/movimentos/:id/ficha-entrada` — cabeçalho OC/NF + todos os volumes com QR + `xPed`/`nFCI` do espelho. Impressão browser (sem DomPDF no monólito).
+- **Impressora canônica (reimpressão + unitária):** Elgin L42 Pro Full · mídia **50 × 40 mm**. Layout HTML/`@page` 50×40 mm (uma página = uma etiqueta); impressão browser (sem DomPDF / ZPL no monólito). No driver: escala 100%, sem “ajustar à página”.
+- **Ficha de entrada física (pós-receber):** `/estoque/movimentos/:id/ficha-entrada` — cabeçalho OC/NF + todos os volumes com QR + `xPed`/`nFCI` do espelho. Impressão browser (sem DomPDF no monólito). A ficha permanece em folha A4 de conferência; a etiqueta colável na bobina é a face 50×40 mm (unitária ou reimpressão).
 
 **Aceite F3**
 
 - [x] API etiqueta + QR payload  
 - [x] Página de impressão + link na listagem de lotes
 - [x] Ficha de entrada (MOV) com QR por volume + link pós-receber / listagem MOV
+- [x] Unitária + reimpressão calibradas Elgin L42 Pro Full 50×40 mm
+- [x] Face colável sem vão (localização só no sistema / Guardar)
 
 ### F4 — Localização (WMS leve)
 
@@ -163,7 +185,10 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 - Comando `erp:seed-estoque-enderecos`.
 - **Etiquetas dos vãos:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
 - **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem vão”).  
-- **Guardar:** `/estoque/guardar` — ler `VOL:…` → ler `END:…` → `POST /estoque/guardar` (leitor USB / paste). Sem app dedicado (BL-097 fora).
+- **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API):  
+  - **Volume → vão** (padrão): `VOL:…` → `END:…` → `POST /estoque/guardar`.  
+  - **Vão → volume**: `END:…` → `VOL:…` → mesmo POST; o vão permanece para o próximo volume (putaway em lote no mesmo vão).  
+  Resolve via `GET …/volumes/por-qr` e `GET …/enderecos/por-qr`. Leitor USB / paste. Sem app dedicado (BL-097 fora).
 
 **Aceite F4**
 
@@ -171,7 +196,7 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 - [x] Vincular lote → vão na etiqueta  
 - [x] PHPUnit gabarito + vínculo  
 - [x] Impressão QR dos vãos + resolve `END:`  
-- [x] Tela Guardar (volume → vão) + reimpressão de volumes
+- [x] Tela Guardar (volume ↔ vão, duas ordens) + reimpressão de volumes
 
 ### F5 — Reposição → OC → ciclo fechado
 
@@ -213,11 +238,34 @@ Dimensão **real** do volume: campos no lote/payload (F2) — não misturar no S
 
 ---
 
+## Emenda 2026-09-10 — tubetes físicos (SKU dimensional fixo)
+
+Lista operacional RLP: **1 SKU** = Ø × espessura × comprimento × (c/logo|s/logo) — `ProdutoCadastroTubeteData` (52 itens).
+
+- Compra/estoque: `EMB-TUB-nnn` · UN=UN · sem lote.
+- **ORC** permanece só diâmetro do núcleo (`"1\""` / `"1 1/2\""` / `"3\""`) — não escolher comprimento/logo no orçamento.
+- Não recriar tubetes genéricos (`TUBETE 1"`) nem os da NF (63×25,7×2…).
+- Comprimento cadastrado **literal** (valores curtos tipo `1,8` inclusive); ajuste de unidade = só dados.
+
+## Emenda 2026-09-10 — cadastro autoexplicativo (sem mudar o modelo)
+
+Operação de configuração do cadastro (estudo 32 + vivência Exact):
+
+1. **Nome no estoque** (`descricao_comercial`) é o herói na UI/ficha; **descrição fiscal** permanece obrigatória p/ SPED/NF.
+2. **`programa_compra`** editável no form (atributo JSON) — Exact 1000 ≠ Exact 1500.
+3. Checklist + lead por família/grupo no formulário — orientação, não segundo saldo.
+4. Update de `atributos` **preserva** metadados de seed (`camada_cadastro`, flags) via `ProdutoAtributos::mergeOnUpdate`.
+5. Estoque: leitura amigável `N volume(s)` no saldo com lote.
+
+Não altera: dual de unidades, entrada OC→assist→receber, anti-explosão L×C, de-para obrigatório.
+
+---
+
 ## Rastreio no código / docs
 
 - Unidades: `ADR_UNIDADES_PRODUTO.md` · `ProdutoBobinaDimensoes` · `produtoBobinaDimensoesUi.ts`  
 - Lote: `ADR_ESTOQUE_LOTE_VALIDADE.md` · `ProdutoLotePolitica` · `estoque_lotes`  
-- Entrada: `ADR_ENTRADA_XML_ASSIST.md` · `EstoqueEntradaXmlService` (hoje: 1º rastro)  
+- Entrada: `ADR_ENTRADA_XML_ASSIST.md` · `EstoqueEntradaXmlService` · `NfeExactDimensoes` (F2.1)  
 - Regra Cursor: `.cursor/rules/produto-insumo-volume.mdc`  
 - Backlog: BL-094… (fases F1–F5)
 

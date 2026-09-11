@@ -65,6 +65,7 @@
             <dVal>2027-08-30</dVal>
           </rastro>
         </prod>
+        <infAdProd>COD SPEC: AAS029  |PV: 417698.7  | 4x205x1000 |PEDIDO CLIENTE: 2508261627</infAdProd>
       </det>
       <det nItem="2">
         <prod>
@@ -89,6 +90,7 @@
             <dVal>2027-08-30</dVal>
           </rastro>
         </prod>
+        <infAdProd>COD SPEC: AAS029  |PV: 417698.8  | 2x210x1000 |PEDIDO CLIENTE: 2508261627</infAdProd>
       </det>
       <total>
         <ICMSTot>

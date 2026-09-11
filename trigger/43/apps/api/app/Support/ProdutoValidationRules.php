@@ -73,10 +73,17 @@ class ProdutoValidationRules
             'atributos.largura_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.comprimento_m' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'atributos.gramatura_g_m2' => PadraoDecimal::rules(PadraoDecimal::SCALE_GRAMATURA),
+            'atributos.programa_compra' => ['nullable', 'string', 'max:40'],
+            'atributos.grupo_estoque' => ['nullable', 'string', 'max:16'],
+            'atributos.camada_cadastro' => ['nullable', 'string', 'max:16'],
+            'atributos.origem_pendente_xml' => ['nullable', 'boolean'],
+            'atributos.ncm_situacao' => ['nullable', 'string', 'max:8'],
             // Colunas flat de importação (mesmos atributos)
             'largura_mm' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'comprimento_m' => PadraoDecimal::rules(PadraoDecimal::SCALE_DIM),
             'gramatura_g_m2' => PadraoDecimal::rules(PadraoDecimal::SCALE_GRAMATURA),
+            'programa_compra' => ['nullable', 'string', 'max:40'],
+            'grupo_estoque' => ['nullable', 'string', 'max:16'],
         ];
     }
 }

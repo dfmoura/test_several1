@@ -24,6 +24,7 @@ import {
   formatDateTime,
   formatPhone,
 } from '../lib/format';
+import { amarrarDimensoesVolumes } from '../lib/nfeExactDimensoes';
 
 function formatEndereco(parts: {
   logradouro?: string | null;
@@ -42,6 +43,73 @@ function formatEndereco(parts: {
     .join(' · ');
   const full = [line1, line2].filter(Boolean).join(' · ');
   return full || null;
+}
+
+type VolumeFormRow = {
+  codigo: string;
+  qtde: string;
+  data_entrada: string;
+  data_validade: string;
+  data_fabricacao: string;
+  largura_mm: string;
+  comprimento_m: string;
+};
+
+function volumesFromLinhasMapped(
+  map: Record<number, string>,
+  preview: ReceberXmlPreview,
+  dataEntrada: string,
+): Record<number, VolumeFormRow[]> {
+  const next: Record<number, VolumeFormRow[]> = {};
+  for (const linha of preview.linhas) {
+    const ocItemId = Number(map[linha.n_item] || 0);
+    if (!ocItemId) continue;
+    const rastros = linha.rastros ?? [];
+    if (rastros.length === 0) continue;
+
+    const seenNoDet: Record<string, number> = {};
+    const volumesDet: VolumeFormRow[] = [];
+    for (const rastro of rastros) {
+      const codigo = (rastro.codigo || '').trim();
+      if (!codigo) continue;
+      let qtdeRastro = rastro.qtde || '0';
+      if (Number(qtdeRastro) <= 0) qtdeRastro = linha.q_com;
+      if (seenNoDet[codigo] !== undefined) {
+        const idx = seenNoDet[codigo];
+        const sum = (Number(volumesDet[idx].qtde) + Number(qtdeRastro)).toFixed(4);
+        volumesDet[idx] = {
+          ...volumesDet[idx],
+          qtde: clampDecimalScale(sum, DECIMAL_SCALE.qty),
+        };
+        continue;
+      }
+      seenNoDet[codigo] = volumesDet.length;
+      const qtde = clampDecimalScale(qtdeRastro, DECIMAL_SCALE.qty);
+      volumesDet.push({
+        codigo,
+        qtde,
+        data_entrada: dataEntrada,
+        data_validade: rastro.data_validade || '',
+        data_fabricacao: rastro.data_fabricacao || '',
+        largura_mm: '',
+        comprimento_m: '',
+      });
+    }
+    if (volumesDet.length === 0) continue;
+    const comDim = amarrarDimensoesVolumes(
+      volumesDet,
+      linha.inf_ad_prod,
+      linha.x_prod,
+      linha.c_prod,
+    );
+    next[ocItemId] = [...(next[ocItemId] ?? []), ...comDim];
+  }
+  return next;
+}
+
+function somaVolumes(vols: VolumeFormRow[] | undefined): number {
+  if (!vols?.length) return 0;
+  return vols.reduce((acc, v) => acc + Number(v.qtde || 0), 0);
 }
 
 function emailMotivoLabel(motivo: string | null | undefined): string {
@@ -362,20 +430,7 @@ export function ComprasOrdemDetailPage() {
   const [loteForms, setLoteForms] = useState<
     Record<number, { codigo: string; data_entrada: string; data_validade: string; data_fabricacao: string }>
   >({});
-  const [volumeForms, setVolumeForms] = useState<
-    Record<
-      number,
-      Array<{
-        codigo: string;
-        qtde: string;
-        data_entrada: string;
-        data_validade: string;
-        data_fabricacao: string;
-        largura_mm: string;
-        comprimento_m: string;
-      }>
-    >
-  >({});
+  const [volumeForms, setVolumeForms] = useState<Record<number, VolumeFormRow[]>>({});
   const [enderecos, setEnderecos] = useState<Array<{ id: number; codigo: string }>>([]);
 
   const load = async () => {
@@ -569,15 +624,22 @@ export function ComprasOrdemDetailPage() {
       for (const item of sug.itens) {
         const dataEntrada = item.lote_data_entrada || sug.nf_data || '';
         if (item.lotes && item.lotes.length > 0) {
-          next[item.ordem_compra_item_id] = item.lotes.map((l) => ({
-            codigo: l.codigo,
-            qtde: clampDecimalScale(l.qtde, DECIMAL_SCALE.qty),
-            data_entrada: l.data_entrada || dataEntrada,
-            data_validade: l.data_validade || '',
-            data_fabricacao: l.data_fabricacao || '',
-            largura_mm: clampDecimalScale(l.largura_mm || '', DECIMAL_SCALE.dim),
-            comprimento_m: clampDecimalScale(l.comprimento_m || '', DECIMAL_SCALE.dim),
-          }));
+          next[item.ordem_compra_item_id] = item.lotes.map((l) => {
+            const largura = clampDecimalScale(l.largura_mm || '', DECIMAL_SCALE.dim);
+            const comprimento =
+              clampDecimalScale(l.comprimento_m || '', DECIMAL_SCALE.dim) ||
+              comprimentoFromAreaLargura(l.qtde, largura) ||
+              '';
+            return {
+              codigo: l.codigo,
+              qtde: clampDecimalScale(l.qtde, DECIMAL_SCALE.qty),
+              data_entrada: l.data_entrada || dataEntrada,
+              data_validade: l.data_validade || '',
+              data_fabricacao: l.data_fabricacao || '',
+              largura_mm: largura,
+              comprimento_m: comprimento,
+            };
+          });
         } else if (item.lote_codigo) {
           next[item.ordem_compra_item_id] = [
             {
@@ -630,19 +692,30 @@ export function ComprasOrdemDetailPage() {
     }
   };
 
-  const rebuildQtdesFromMap = (map: Record<number, string>, preview: ReceberXmlPreview) => {
-    const next: Record<number, string> = {};
+  /** Remap de-para: recompõe qtde comercial (Σ qCom) e volumes (rastros) juntos. */
+  const rebuildReceberFromMap = (map: Record<number, string>, preview: ReceberXmlPreview) => {
+    const nextQtdes: Record<number, string> = {};
     for (const item of oc?.itens ?? []) {
-      next[item.id] = '0';
+      nextQtdes[item.id] = '0';
     }
     for (const linha of preview.linhas) {
       const ocItemId = Number(map[linha.n_item] || 0);
       if (!ocItemId) continue;
-      const prev = next[ocItemId] || '0';
-      const sum = (Number(prev) + Number(linha.q_com)).toFixed(4);
-      next[ocItemId] = sum;
+      const prev = nextQtdes[ocItemId] || '0';
+      nextQtdes[ocItemId] = (Number(prev) + Number(linha.q_com)).toFixed(4);
     }
-    setQtdes(next);
+    setQtdes(nextQtdes);
+
+    const dataEntrada = preview.sugerido_receber.nf_data || nfData || '';
+    const fromXml = volumesFromLinhasMapped(map, preview, dataEntrada);
+    setVolumeForms((prev) => {
+      const next: Record<number, VolumeFormRow[]> = { ...prev };
+      for (const item of oc?.itens ?? []) {
+        if (!item.produto?.controla_lote) continue;
+        next[item.id] = fromXml[item.id] ?? [];
+      }
+      return next;
+    });
   };
 
   const somaParcelas = parcelas.reduce((acc, p) => acc + Number(p.valor || 0), 0);
@@ -1115,6 +1188,8 @@ export function ComprasOrdemDetailPage() {
                       (NAT 5.06). XML preenche itens e parcelas — a confirmação é humana. Estoque
                       usa preços da OC; pagar segue as duplicatas da NF. Com XML, o sistema guarda
                       o espelho fiscal (impostos como na nota) para o livro de entrada futuro.
+                      Vários itens da NF do mesmo SKU somam na linha da OC (m²/un. comercial); cada
+                      bobina entra como volume abaixo — não como linha nova da OC.
                     </p>
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -1188,6 +1263,7 @@ export function ComprasOrdemDetailPage() {
                               <th>cProd / descrição</th>
                               <th>Pedido / FCI</th>
                               <th>Qtde</th>
+                              <th>Volumes</th>
                               <th>Sugestão</th>
                               <th>Item da OC</th>
                             </tr>
@@ -1222,6 +1298,11 @@ export function ComprasOrdemDetailPage() {
                                   {linha.q_com} {linha.u_com}
                                 </td>
                                 <td className="muted">
+                                  {(linha.rastros?.length ?? 0) > 0
+                                    ? `${linha.rastros!.length} rastro${linha.rastros!.length === 1 ? '' : 's'}`
+                                    : '—'}
+                                </td>
+                                <td className="muted">
                                   {linha.match.confianca}
                                   <div>{linha.match.motivo}</div>
                                 </td>
@@ -1234,7 +1315,7 @@ export function ComprasOrdemDetailPage() {
                                         [linha.n_item]: e.target.value,
                                       };
                                       setLineMap(next);
-                                      rebuildQtdesFromMap(next, xmlPreview);
+                                      rebuildReceberFromMap(next, xmlPreview);
                                     }}
                                   >
                                     <option value="">— não receber —</option>
@@ -1253,6 +1334,10 @@ export function ComprasOrdemDetailPage() {
                             ))}
                           </tbody>
                         </table>
+                        <p className="form-hint" style={{ marginTop: '0.5rem' }}>
+                          Vários itens da NF podem apontar para a mesma linha da OC: a qtde comercial
+                          e os volumes são recompostos automaticamente ao mudar o de-para.
+                        </p>
                       </div>
                     )}
 
@@ -1392,8 +1477,21 @@ export function ComprasOrdemDetailPage() {
 
                   <div className="form-section">
                     <h3>Qtde a receber (un. comercial)</h3>
+                    <p className="muted" style={{ marginBottom: '0.75rem' }}>
+                      Quantidade na língua da OC (ex. m²). Bobinas físicas = volumes abaixo — a soma
+                      dos volumes deve fechar com esta qtde.
+                    </p>
                     <div className="oc-receber-itens">
-                      {(oc.itens ?? []).map((item) => (
+                      {(oc.itens ?? []).map((item) => {
+                        const vols = volumeForms[item.id];
+                        const somaVol = somaVolumes(vols);
+                        const qtdeRec = Number(qtdes[item.id] || 0);
+                        const temVolumes = (vols?.length ?? 0) > 0;
+                        const somaOk =
+                          temVolumes && qtdeRec > 0
+                            ? Math.abs(somaVol - qtdeRec) < 0.00015
+                            : null;
+                        return (
                         <div className="oc-receber-item" key={item.id}>
                           <div className="oc-receber-item__head">
                             <div className="form-group oc-receber-item__qtde">
@@ -1633,9 +1731,21 @@ export function ComprasOrdemDetailPage() {
                                       </tbody>
                                     </table>
                                   </div>
-                                  <p className="form-hint oc-volumes-panel__hint">
-                                    Soma das qtdes dos volumes deve igualar a qtde recebida. Dimensão
-                                    real da bobina — não altera o SKU.
+                                  <p
+                                    className={
+                                      somaOk === false
+                                        ? 'form-hint oc-volumes-panel__hint oc-volumes-panel__hint--warn'
+                                        : 'form-hint oc-volumes-panel__hint'
+                                    }
+                                  >
+                                    Σ volumes {somaVol.toFixed(4)}
+                                    {qtdeRec > 0 ? ` · a receber ${qtdeRec.toFixed(4)}` : ''}
+                                    {somaOk === true
+                                      ? ' · ok'
+                                      : somaOk === false
+                                        ? ' · diverge — ajuste antes de confirmar'
+                                        : ''}
+                                    . Dimensão real da bobina — não altera o SKU.
                                     {enderecos.length > 0
                                       ? ' Endereço (vão) pode ser vinculado depois na ficha do lote.'
                                       : ''}
@@ -1645,7 +1755,8 @@ export function ComprasOrdemDetailPage() {
                             </div>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

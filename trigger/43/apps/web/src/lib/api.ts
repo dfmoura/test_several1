@@ -1676,11 +1676,15 @@ export type ReceberXmlPreview = {
     x_ped?: string | null;
     n_item_ped?: string | null;
     n_fci?: string | null;
+    inf_ad_prod?: string | null;
     rastros?: Array<{
       codigo: string;
       qtde: string;
       data_fabricacao?: string | null;
       data_validade?: string | null;
+      fonte?: string;
+      largura_mm?: string | null;
+      comprimento_m?: string | null;
     }>;
     match: {
       ordem_compra_item_id: number | null;
@@ -1751,6 +1755,14 @@ export type EstoqueLote = {
   etiqueta_url?: string | null;
 };
 
+export type EstoqueSaldoVolumePorQtde = {
+  qtde: string;
+  volumes: number;
+  unidade: string;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+};
+
 export type EstoqueSaldo = {
   id: number;
   produto_id: number;
@@ -1768,7 +1780,9 @@ export type EstoqueSaldo = {
   unidade: string;
   custo_medio: string;
   controla_lote?: boolean;
-  lotes_count?: number;
+  lotes_count?: number; // volumes (bobinas) com qtde > 0
+  /** Faixas de qtde (ex. M²/bobina) → N volumes — consolidado físico. */
+  volumes_por_qtde?: EstoqueSaldoVolumePorQtde[];
   validade_status?: string | null;
   proxima_validade?: string | null;
   lotes?: EstoqueLote[];

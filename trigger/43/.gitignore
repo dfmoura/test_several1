@@ -8,6 +8,8 @@ apps/api/.phpunit.result.cache
 apps/web/node_modules/
 apps/web/dist/
 apps/web/.npm-cache/
+.web-docker-context/
+.docker-config/
 .idea/
 .vscode/
 *.log

@@ -8,6 +8,7 @@ use App\Models\EstoqueMovimento;
 use App\Models\EstoqueMovimentoItem;
 use App\Models\EstoqueSaldo;
 use App\Models\Produto;
+use App\Support\PadraoDecimal;
 use App\Support\ProdutoLotePolitica;
 
 class EstoqueConsultaService
@@ -124,6 +125,8 @@ class EstoqueConsultaService
         return $saldos->map(function (EstoqueSaldo $s) use ($lotesPorProduto) {
             $lotes = $lotesPorProduto[(int) $s->produto_id] ?? [];
             $resumo = $this->resumoLotes($lotes);
+            $volumesPorQtde = $this->consolidadoVolumesPorQtde($lotes);
+            $volumesComSaldo = array_sum(array_column($volumesPorQtde, 'volumes'));
 
             return [
                 'id' => $s->id,
@@ -142,7 +145,8 @@ class EstoqueConsultaService
                 'unidade' => $s->unidade,
                 'custo_medio' => (string) $s->custo_medio,
                 'controla_lote' => (bool) ($s->produto?->controla_lote ?? false),
-                'lotes_count' => count($lotes),
+                'lotes_count' => $volumesComSaldo,
+                'volumes_por_qtde' => $volumesPorQtde,
                 'validade_status' => $resumo['status'],
                 'proxima_validade' => $resumo['proxima_validade'],
                 'lotes' => $lotes,
@@ -293,6 +297,64 @@ class EstoqueConsultaService
                 ? 'VOL:'.$lote->empresa_id.':'.$lote->id.':'.$lote->qr_token
                 : null,
         ];
+    }
+
+    /**
+     * Consolidado físico: faixa (qtde + L×C real) → N volumes com saldo.
+     * Exact: bobinas 210×1000 vs 210×1020 no mesmo SKU ficam em linhas distintas.
+     *
+     * @param  list<array<string, mixed>>  $lotes
+     * @return list<array{qtde: string, volumes: int, unidade: string, largura_mm: ?string, comprimento_m: ?string}>
+     */
+    private function consolidadoVolumesPorQtde(array $lotes): array
+    {
+        /** @var array<string, array{qtde: string, volumes: int, unidade: string, largura_mm: ?string, comprimento_m: ?string}> $map */
+        $map = [];
+
+        foreach ($lotes as $lote) {
+            $qtdeRaw = (string) ($lote['qtde'] ?? '0');
+            if (bccomp($qtdeRaw, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+
+            $qtde = PadraoDecimal::roundHalfUp($qtdeRaw, PadraoDecimal::SCALE_QTY);
+            $unidade = (string) ($lote['unidade'] ?? 'UN');
+            $largura = isset($lote['largura_mm']) && $lote['largura_mm'] !== null && $lote['largura_mm'] !== ''
+                ? (string) $lote['largura_mm']
+                : null;
+            $comprimento = isset($lote['comprimento_m']) && $lote['comprimento_m'] !== null && $lote['comprimento_m'] !== ''
+                ? (string) $lote['comprimento_m']
+                : null;
+            $key = $qtde.'|'.($largura ?? '').'|'.($comprimento ?? '');
+
+            if (! isset($map[$key])) {
+                $map[$key] = [
+                    'qtde' => $qtde,
+                    'volumes' => 0,
+                    'unidade' => $unidade,
+                    'largura_mm' => $largura,
+                    'comprimento_m' => $comprimento,
+                ];
+            }
+            $map[$key]['volumes']++;
+        }
+
+        $rows = array_values($map);
+        usort($rows, static function (array $a, array $b): int {
+            $byQtde = bccomp($b['qtde'], $a['qtde'], PadraoDecimal::SCALE_QTY);
+            if ($byQtde !== 0) {
+                return $byQtde;
+            }
+            $la = (string) ($a['largura_mm'] ?? '');
+            $lb = (string) ($b['largura_mm'] ?? '');
+            if ($la !== $lb) {
+                return $la <=> $lb;
+            }
+
+            return ((string) ($a['comprimento_m'] ?? '')) <=> ((string) ($b['comprimento_m'] ?? ''));
+        });
+
+        return $rows;
     }
 
     /**

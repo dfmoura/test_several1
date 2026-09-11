@@ -13,3 +13,6 @@ services:
   web:
     ports:
       - "${WEB_PORT:-8043}:80"
+    # SPA do host (npm run build) — evita rebuild de imagem só para testar UI local
+    volumes:
+      - ./apps/web/dist:/var/www/web:ro

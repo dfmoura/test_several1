@@ -114,7 +114,7 @@ export function ComprasReposicaoPage() {
     <>
       <PageHeader
         title="A repor"
-        description="Sugestão por estoque mínimo (MP/EMB/REV), descontando saldo e OC já enviada (em trânsito). Gera rascunho — confira e envie ao fornecedor na ficha da OC."
+        description="Sugestão por estoque mínimo (MP/EMB/REV), descontando saldo e OC já enviada (em trânsito). Qtde da OC é na un. comercial do SKU (ex. m²) — bobinas entram depois na conferência da NF. Gera rascunho — confira e envie ao fornecedor na ficha da OC."
         actions={
           <div className="btn-row">
             <Link to="/estoque" className="btn btn-secondary">
@@ -229,7 +229,7 @@ export function ComprasReposicaoPage() {
                       >
                         Faltante
                       </SortableTh>
-                      <th className="num">Qtde OC</th>
+                      <th className="num">Qtde OC (un. comercial)</th>
                       <th className="num">Preço unit.</th>
                     </tr>
                   </thead>

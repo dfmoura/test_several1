@@ -7,7 +7,7 @@ use App\Services\Cadastros\ProdutoCadastroService;
 use Illuminate\Console\Command;
 
 /**
- * Reaplica o catálogo Camada A (89 famílias) sem db:seed completo.
+ * Reaplica o catálogo Camada A + Exact/NF/tubetes sem db:seed completo.
  * Idempotente por (empresa_id, codigo). Não zera custo_medio já gravado.
  */
 class SeedProdutosCadastroCommand extends Command
@@ -16,7 +16,7 @@ class SeedProdutosCadastroCommand extends Command
                             {--empresa=EMP-00001 : Código da empresa (instalação)}
                             {--sem-demos : Não incluir PA-ETQ-001 / SVC-001}';
 
-    protected $description = 'Cadastra/atualiza Camada A + Exact Avery + evidência notas_entrada + demos; de-para se fornecedor existir';
+    protected $description = 'Cadastra/atualiza Camada A + Exact Avery + NF entrada + tubetes + demos; de-para se fornecedor existir';
 
     public function handle(ProdutoCadastroService $service): int
     {
@@ -35,11 +35,12 @@ class SeedProdutosCadastroCommand extends Command
         );
 
         $this->info(sprintf(
-            'OK · %s · famílias=%d · exact=%d · nf_entrada=%d · demos=%d · sequences=%d · depara=%d',
+            'OK · %s · famílias=%d · exact=%d · nf_entrada=%d · tubetes=%d · demos=%d · sequences=%d · depara=%d',
             $codigo,
             $result['familias'],
             $result['exact'] ?? 0,
             $result['nf_entrada'] ?? 0,
+            $result['tubetes'] ?? 0,
             $result['demos'],
             $result['sequences'],
             $result['depara'] ?? 0

@@ -21,8 +21,8 @@ Norma: `docs/ADR_CADASTRO_INSUMO_VOLUME.md` · unidades: `ADR_UNIDADES_PRODUTO.m
 - Camada A primeiro; Exact via `ProdutoCadastroExactData`; de-para por EMP + fornecedor + `cProd`.
 - Exact/variável: saldo tipicamente M2=M2; não criar SKU por 210×1000 vs 210×1020.
 - `exige_dimensao_sku` = oferece seção nominal; import sem L×C = warning, não erro.
-- Entrada: OC → assist (`lotes[]` de todos os rastros) → `receber()` / `EstoqueSaldoWriter`.
-- Volume: dimensão real + QR (`/estoque/lotes/:id/etiqueta`); vão via `estoque_enderecos` (6×4×4).
+- Entrada: OC → assist (`lotes[]` de todos os rastros; Exact `infAdProd` NxLxC → L×C via `NfeExactDimensoes`) → `receber()` / `EstoqueSaldoWriter`.
+- Volume: dimensão real + QR (`/estoque/lotes/:id/etiqueta`); vão via `estoque_enderecos` (6×4×4); estoque lista L×C por volume.
 
 ## Não faça
 

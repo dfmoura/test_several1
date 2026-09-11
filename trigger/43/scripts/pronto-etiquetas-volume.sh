@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Sobe stack local + SPA com etiquetas Elgin L42 Pro Full 50×40 mm.
+# Uso (no host, fora do sandbox): bash scripts/pronto-etiquetas-volume.sh
+#     ou: make pronto-etiquetas-volume
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+echo "== Docker =="
+docker info >/dev/null
+echo "ok"
+
+echo "== Stack up =="
+make up
+
+echo "== Rebuild SPA (etiquetas 50×40 / Elgin L42 Pro Full) =="
+make web-build
+
+echo "== Health =="
+curl -sfS -m 15 http://localhost:8043/api/v1/health
+echo
+curl -sfS -o /dev/null -w "SPA HTTP %{http_code}\n" -m 10 http://localhost:8043/
+
+cat <<'EOF'
+
+Pronto 100% para testar etiquetas de volume
+  App:  http://localhost:8043
+  Lote: http://localhost:8043/estoque/lotes/etiquetas
+  (unitária: Estoque → lote → Etiqueta)
+
+Impressora / driver
+  · Elgin L42 Pro Full
+  · Etiqueta 50 × 40 mm
+  · Escala 100% — sem “ajustar à página”
+
+Roteiro
+  1. Login → Estoque → Reimprimir volumes
+  2. Conferir preview 50×40 mm + hint Elgin
+  3. Imprimir (ou Ctrl+P) na L42 Pro Full
+  4. Repetir numa etiqueta unitária de um lote
+EOF

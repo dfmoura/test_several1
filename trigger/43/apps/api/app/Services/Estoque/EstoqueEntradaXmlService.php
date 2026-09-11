@@ -9,6 +9,7 @@ use App\Models\Parceiro;
 use App\Models\ProdutoFornecedorCodigo;
 use App\Services\Fiscal\NfeCompraExtractor;
 use App\Services\Fiscal\NfeEntradaService;
+use App\Support\NfeExactDimensoes;
 use App\Support\PadraoDecimal;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -131,12 +132,16 @@ class EstoqueEntradaXmlService
 
         $usedOcItemIds = [];
         $linhas = [];
+        // OC de reposição consolidada (1 SKU): N dets da NF → 1 linha OC, mesmo sem de-para.
+        $unicoPendente = $pendentes->count() === 1;
 
         foreach ($nfe['itens'] as $xmlItem) {
             $match = $this->sugerirMatch($xmlItem, $pendentes, $maps, $usedOcItemIds);
-            // De-para: vários det do mesmo cProd agregam no mesmo item OC (Exact Avery).
-            // Demais estratégias continuam 1:1 via usedOcItemIds.
-            if ($match['ordem_compra_item_id'] !== null && ($match['motivo'] ?? '') !== 'de-para cProd') {
+            // N→1: de-para cProd (Exact) OU OC com um único item pendente (a repor consolidado).
+            // Demais estratégias (qtde/NCM com vários pendentes) continuam 1:1 via usedOcItemIds.
+            $agregaNpara1 = ($match['motivo'] ?? '') === 'de-para cProd'
+                || ($unicoPendente && $match['ordem_compra_item_id'] !== null);
+            if ($match['ordem_compra_item_id'] !== null && ! $agregaNpara1) {
                 $usedOcItemIds[] = $match['ordem_compra_item_id'];
             }
 
@@ -194,6 +199,14 @@ class EstoqueEntradaXmlService
 
         $itensReceber = [];
         $valorItensSugerido = '0';
+        $detsPorOc = [];
+        foreach ($linhas as $linha) {
+            $ocItemId = $linha['match']['ordem_compra_item_id'] ?? null;
+            if ($ocItemId === null) {
+                continue;
+            }
+            $detsPorOc[(int) $ocItemId] = ($detsPorOc[(int) $ocItemId] ?? 0) + 1;
+        }
         foreach ($sugeridosReceber as $ocItemId => $qtde) {
             $ocItem = $pendentes->firstWhere('id', (int) $ocItemId);
             $rastros = $this->rastrosDaOc($linhas, (int) $ocItemId);
@@ -201,6 +214,15 @@ class EstoqueEntradaXmlService
                 'ordem_compra_item_id' => (int) $ocItemId,
                 'qtde_recebida' => $qtde,
             ];
+            $nDets = $detsPorOc[(int) $ocItemId] ?? 0;
+            if ($nDets > 1) {
+                $warnings[] = $this->warn(
+                    'INFO',
+                    'MULTI_DET_AGREGADO',
+                    'Item OC #'.$ocItemId.': '.$nDets.' itens da NF somam '.$qtde
+                    .' (un. comercial) nesta linha — bobinas/volumes ficam abaixo, não como linhas da OC.'
+                );
+            }
             if ($ocItem?->produto?->controla_lote && $rastros !== []) {
                 $dataEntrada = $nfe['data_emissao'] ?? now()->toDateString();
                 $lotes = [];
@@ -216,7 +238,7 @@ class EstoqueEntradaXmlService
                         'data_fabricacao' => $rastro['data_fabricacao'],
                         'data_validade' => $rastro['data_validade'],
                         'largura_mm' => $rastro['largura_mm'] ?? null,
-                        'comprimento_m' => null,
+                        'comprimento_m' => $rastro['comprimento_m'] ?? null,
                     ];
                 }
                 $itemSug['lotes'] = $lotes;
@@ -237,6 +259,13 @@ class EstoqueEntradaXmlService
                         'INFO',
                         'MULTI_VOLUME',
                         'Item OC #'.$ocItemId.': '.count($lotes).' volumes (rastros) sugeridos — confira dimensões e confirme.'
+                    );
+                }
+                if (NfeExactDimensoes::algumSemDimensao($lotes)) {
+                    $warnings[] = $this->warn(
+                        'ALERTA',
+                        'DIMENSAO_VOLUME_INCOMPLETA',
+                        'Item OC #'.$ocItemId.': um ou mais volumes sem largura×comprimento sugeridos — informe na conferência.'
                     );
                 }
             }
@@ -558,14 +587,15 @@ class EstoqueEntradaXmlService
     }
 
     /**
-     * Volumes sugeridos a partir das linhas XML amarradas ao item da OC (F2).
+     * Volumes sugeridos a partir das linhas XML amarradas ao item da OC (F2 / F2.1).
      *
      * Cada ocorrência de rastro (ou cada det com rastro) vira um volume — mesmo
      * nLote em bobinas distintas NÃO se funde (etiqueta/QR por volume físico).
      * Dentro do mesmo det, rastros idênticos ainda acumulam.
+     * Dimensão: slots Exact em infAdProd (NxLxC) amarrados por área (= qLote).
      *
      * @param  list<array<string, mixed>>  $linhas
-     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string, fonte?: string, largura_mm?: ?string}>
+     * @return list<array{codigo: string, qtde: string, data_fabricacao: ?string, data_validade: ?string, fonte?: string, largura_mm?: ?string, comprimento_m?: ?string}>
      */
     private function rastrosDaOc(array $linhas, int $ocItemId): array
     {
@@ -579,11 +609,6 @@ class EstoqueEntradaXmlService
             if (! is_array($rastros) || $rastros === []) {
                 continue;
             }
-
-            $larguraDet = $this->sugerirLarguraMm(
-                is_string($linha['x_prod'] ?? null) ? $linha['x_prod'] : null,
-                is_string($linha['c_prod'] ?? null) ? $linha['c_prod'] : null,
-            );
 
             // Dentro do mesmo det: acumula nLote repetido; entre dets: 1 volume cada.
             $seenNoDet = [];
@@ -616,9 +641,17 @@ class EstoqueEntradaXmlService
                     'data_fabricacao' => $rastro['data_fabricacao'] ?? null,
                     'data_validade' => $rastro['data_validade'] ?? null,
                     'fonte' => (string) ($rastro['fonte'] ?? 'rastro'),
-                    'largura_mm' => $larguraDet,
+                    'largura_mm' => null,
+                    'comprimento_m' => null,
                 ];
             }
+
+            $volumesDet = NfeExactDimensoes::amarrarVolumes(
+                $volumesDet,
+                is_string($linha['inf_ad_prod'] ?? null) ? $linha['inf_ad_prod'] : null,
+                is_string($linha['x_prod'] ?? null) ? $linha['x_prod'] : null,
+                is_string($linha['c_prod'] ?? null) ? $linha['c_prod'] : null,
+            );
 
             foreach ($volumesDet as $vol) {
                 $out[] = $vol;
@@ -626,24 +659,6 @@ class EstoqueEntradaXmlService
         }
 
         return $out;
-    }
-
-    /**
-     * Heurística leve: "60 MM" em xProd ou sufixo numérico do cProd Exact (…110060).
-     */
-    private function sugerirLarguraMm(?string $xProd, ?string $cProd): ?string
-    {
-        if (is_string($xProd) && preg_match('/\b(\d{2,4})\s*MM\b/i', $xProd, $m)) {
-            return PadraoDecimal::roundHalfUp($m[1], PadraoDecimal::SCALE_DIM);
-        }
-        if (is_string($cProd) && preg_match('/(\d{2,3})$/', $cProd, $m)) {
-            $n = (int) $m[1];
-            if ($n >= 10 && $n <= 500) {
-                return PadraoDecimal::roundHalfUp((string) $n, PadraoDecimal::SCALE_DIM);
-            }
-        }
-
-        return null;
     }
 
     /**

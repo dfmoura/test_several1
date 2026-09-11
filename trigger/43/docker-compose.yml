@@ -159,9 +159,10 @@ services:
     mem_limit: 384m
 
   web:
+    image: 43-web
     build:
-      context: .
-      dockerfile: docker/nginx/Dockerfile
+      context: .web-docker-context
+      dockerfile: Dockerfile
     container_name: erp43_web
     volumes:
       - ./branding:/var/www/branding:ro

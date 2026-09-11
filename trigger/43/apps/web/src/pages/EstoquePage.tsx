@@ -8,15 +8,17 @@ import { api, type EstoqueLote, type EstoqueMovimento, type EstoqueSaldo } from 
 import {
   coincideBusca,
   formatValorPosicao,
+  mesmaQtdeEstoque,
   movTipoLabel,
   qtdeKardex,
   somaValorPosicao,
   textoBusca,
 } from '../lib/estoqueUi';
-import { familiaLabel, formatCurrency, formatDate, formatQty } from '../lib/format';
+import { familiaLabel, formatCurrency, formatDate, formatQty, formatQtyCompact } from '../lib/format';
 import { useAuth } from '../lib/auth';
 import { validadeStatusLabel } from '../lib/produtoLotePolitica';
 import { useTableSort } from '../lib/useTableSort';
+import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
 type TabId = 'saldos' | 'lotes' | 'movimentos';
 
@@ -24,7 +26,7 @@ const SORT_SALDO = {
   produto: (s: EstoqueSaldo) => s.produto?.codigo,
   familia: (s: EstoqueSaldo) => s.produto?.familia,
   qtde: (s: EstoqueSaldo) => Number(s.qtde),
-  unidade: (s: EstoqueSaldo) => s.unidade,
+  volumes: (s: EstoqueSaldo) => (s.controla_lote ? (s.lotes_count ?? 0) : -1),
   custo: (s: EstoqueSaldo) => Number(s.custo_medio),
   valor: (s: EstoqueSaldo) => Number(s.qtde) * Number(s.custo_medio),
   validade: (s: EstoqueSaldo) => s.proxima_validade || s.validade_status,
@@ -41,6 +43,8 @@ const SORT_MOV = {
 const SORT_LOTE = {
   produto: (l: EstoqueLote) => l.produto?.codigo,
   codigo: (l: EstoqueLote) => l.codigo,
+  dimensao: (l: EstoqueLote) =>
+    formatVolumeDimensao(l.largura_mm ?? null, l.comprimento_m ?? null),
   entrada: (l: EstoqueLote) => l.data_entrada,
   validade: (l: EstoqueLote) => l.data_validade,
   qtde: (l: EstoqueLote) => Number(l.qtde),
@@ -48,10 +52,41 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  saldos: 'Saldo oficial em unidade interna. Custo médio móvel no SKU — lote só rastreia quantidade.',
-  lotes: 'Volume = bobina (nLote). Etiqueta/QR e vão na ficha do lote. Consumo FEFO se lote omitido na baixa.',
+  saldos:
+    'Posição oficial por SKU. Selecione a linha para ver o consolidado físico (qtde × volumes).',
+  lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e vão. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA e ajuste aprovado.',
 };
+
+/** Subtotal de apresentação: qtde da faixa × N volumes (não altera saldo oficial). */
+function subtotalFaixa(qtde: string, volumes: number): string {
+  const n = Number(qtde) * volumes;
+  if (!Number.isFinite(n)) return '—';
+  return formatQty(n);
+}
+
+/** Validade na grade: pill só quando crítico; OK/sem validade = texto leve. */
+function validadeResumo(
+  status: string | null | undefined,
+  proxima: string | null | undefined,
+) {
+  const critico = status === 'VENCIDO' || status === 'A_VENCER';
+  if (critico) {
+    return (
+      <>
+        <StatusPill status={validadeStatusLabel(status)} />
+        {proxima ? <div className="table-muted">{formatDate(proxima)}</div> : null}
+      </>
+    );
+  }
+  if (proxima) {
+    return <span className="table-muted">{formatDate(proxima)}</span>;
+  }
+  if (status) {
+    return <span className="table-muted">{validadeStatusLabel(status)}</span>;
+  }
+  return <span className="muted">—</span>;
+}
 
 function activateRow(e: KeyboardEvent, go: () => void) {
   if (e.key === 'Enter' || e.key === ' ') {
@@ -76,6 +111,13 @@ export function EstoquePage() {
   const [tab, setTab] = useState<TabId>('saldos');
   const [q, setQ] = useState('');
   const [validadeFiltro, setValidadeFiltro] = useState('');
+  const [produtoLoteFiltro, setProdutoLoteFiltro] = useState<number | null>(null);
+  const [qtdeVolumeFiltro, setQtdeVolumeFiltro] = useState<string | null>(null);
+  const [dimVolumeFiltro, setDimVolumeFiltro] = useState<{
+    largura_mm: string | null;
+    comprimento_m: string | null;
+  } | null>(null);
+  const [saldoSelecionadoId, setSaldoSelecionadoId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   const alertas = useMemo(() => {
@@ -101,12 +143,27 @@ export function EstoquePage() {
   const lotesFiltrados = useMemo(() => {
     return lotes.filter((l) => {
       if (validadeFiltro && l.status !== validadeFiltro) return false;
+      if (produtoLoteFiltro && l.produto_id !== produtoLoteFiltro) return false;
+      if (qtdeVolumeFiltro && !mesmaQtdeEstoque(l.qtde, qtdeVolumeFiltro)) return false;
+      if (qtdeVolumeFiltro && Number(l.qtde) <= 0) return false;
+      if (dimVolumeFiltro) {
+        const mesmaL = (l.largura_mm ?? null) === (dimVolumeFiltro.largura_mm ?? null);
+        const mesmaC =
+          (l.comprimento_m ?? null) === (dimVolumeFiltro.comprimento_m ?? null);
+        if (!mesmaL || !mesmaC) return false;
+      }
       return coincideBusca(
-        textoBusca(l.produto?.codigo, l.produto?.descricao_fiscal, l.codigo, l.status_label),
+        textoBusca(
+          l.produto?.codigo,
+          l.produto?.descricao_fiscal,
+          l.codigo,
+          l.status_label,
+          formatVolumeDimensao(l.largura_mm ?? null, l.comprimento_m ?? null),
+        ),
         q,
       );
     });
-  }, [lotes, q, validadeFiltro]);
+  }, [lotes, q, validadeFiltro, produtoLoteFiltro, qtdeVolumeFiltro, dimVolumeFiltro]);
 
   const movsFiltrados = useMemo(() => {
     return movs.filter((m) =>
@@ -131,6 +188,18 @@ export function EstoquePage() {
   const movsSort = useTableSort(movsFiltrados, SORT_MOV);
   const lotesSort = useTableSort(lotesFiltrados, SORT_LOTE);
 
+  const saldoSelecionado = useMemo(() => {
+    if (saldoSelecionadoId == null) return null;
+    return saldosFiltrados.find((s) => s.id === saldoSelecionadoId) ?? null;
+  }, [saldosFiltrados, saldoSelecionadoId]);
+
+  useEffect(() => {
+    if (saldoSelecionadoId == null) return;
+    if (!saldosFiltrados.some((s) => s.id === saldoSelecionadoId)) {
+      setSaldoSelecionadoId(null);
+    }
+  }, [saldosFiltrados, saldoSelecionadoId]);
+
   useEffect(() => {
     void (async () => {
       setLoading(true);
@@ -151,25 +220,65 @@ export function EstoquePage() {
 
   const abrirLotesCriticos = (status: 'VENCIDO' | 'A_VENCER') => {
     setTab('lotes');
+    setProdutoLoteFiltro(null);
+    setQtdeVolumeFiltro(null);
+    setDimVolumeFiltro(null);
     setValidadeFiltro(status);
   };
 
+  const abrirVolumesDoSku = (produtoId: number, produtoCodigo?: string | null) => {
+    setTab('lotes');
+    setValidadeFiltro('');
+    setProdutoLoteFiltro(produtoId);
+    setQtdeVolumeFiltro(null);
+    setDimVolumeFiltro(null);
+    setQ(produtoCodigo?.trim() || '');
+  };
+
+  const abrirVolumesPorQtde = (
+    produtoId: number,
+    qtde: string,
+    produtoCodigo?: string | null,
+    dim?: { largura_mm?: string | null; comprimento_m?: string | null } | null,
+  ) => {
+    setTab('lotes');
+    setValidadeFiltro('');
+    setProdutoLoteFiltro(produtoId);
+    setQtdeVolumeFiltro(qtde);
+    setDimVolumeFiltro(
+      dim
+        ? {
+            largura_mm: dim.largura_mm ?? null,
+            comprimento_m: dim.comprimento_m ?? null,
+          }
+        : null,
+    );
+    setQ(produtoCodigo?.trim() || '');
+  };
+
+  const limparFiltroVolumes = () => {
+    setProdutoLoteFiltro(null);
+    setQtdeVolumeFiltro(null);
+    setDimVolumeFiltro(null);
+    setQ('');
+  };
+
   return (
-    <>
+    <div className="estoque-posicao-page">
       <PageHeader
         title="Estoque"
         description="Saldo em unidade interna. Nada entra ou sai sem documento — compra (NF na OC), OP, sobra, PA ou ajuste aprovado."
         actions={
           <div className="btn-row">
             {hasPermission('produto.ler') ? (
-              <Link to="/produtos" className="btn btn-secondary">
+              <Link to="/produtos" className="btn btn-secondary btn-sm">
                 Produtos
               </Link>
             ) : null}
-            <Link to="/compras/reposicao" className="btn btn-secondary">
+            <Link to="/compras/reposicao" className="btn btn-secondary btn-sm">
               A repor
             </Link>
-            <Link to="/compras/ordens" className="btn btn-primary">
+            <Link to="/compras/ordens" className="btn btn-primary btn-sm">
               Receber por OC / NF-e
             </Link>
           </div>
@@ -178,69 +287,42 @@ export function EstoquePage() {
 
       <EstoqueModuleNav />
 
-      <div className="card estoque-continuidade-card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-            Entrada e localização física
-          </h3>
-          <p className="muted" style={{ marginTop: 0 }}>
-            A NF-e de entrada confere-se na <strong>ordem de compra</strong>. Depois: imprima QR dos
-            volumes e dos vãos; na tela <strong>Guardar</strong>, leia volume → leia vão.
-          </p>
-          <div className="btn-row">
-            <Link to="/compras/ordens" className="btn btn-primary">
-              Abrir ordens de compra
-            </Link>
-            <Link to="/estoque/guardar" className="btn btn-primary">
-              Guardar no vão
-            </Link>
-            <Link to="/estoque/lotes/etiquetas" className="btn btn-secondary">
-              Reimprimir volumes
-            </Link>
-            <Link to="/estoque/enderecos/etiquetas" className="btn btn-secondary">
-              Etiquetas dos vãos
-            </Link>
-            <Link to="/estoque/ajustes" className="btn btn-secondary">
-              Ajustes / virada
-            </Link>
-            {hasPermission('produto.ler') ? (
-              <Link to="/produtos" className="btn btn-secondary">
-                Cadastro de produtos
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <p className="estoque-ops-line muted">
+        Entrada na{' '}
+        <Link to="/compras/ordens">ordem de compra</Link>
+        {' · '}
+        <Link to="/estoque/guardar">Guardar</Link>
+        {' · '}
+        <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
+        {' · '}
+        <Link to="/estoque/enderecos/etiquetas">Etiquetas dos vãos</Link>
+      </p>
 
       {!loading && (
-        <div className="card" style={{ marginBottom: '1rem' }}>
-          <div className="card-body">
-            <div className="detail-meta">
-              <div>
-                <span>SKUs com saldo</span>
-                <strong>{saldos.length}</strong>
-              </div>
-              <div>
-                <span>Valor da posição</span>
-                <strong>{somaValorPosicao(saldos)}</strong>
-              </div>
-              <div>
-                <span>Lotes em aberto</span>
-                <strong>{lotes.filter((l) => Number(l.qtde) > 0).length}</strong>
-              </div>
-              <div>
-                <span>Movimentos</span>
-                <strong>{movs.length}</strong>
-              </div>
-            </div>
+        <div className="estoque-kpi detail-meta" aria-label="Resumo da posição">
+          <div>
+            <span>SKUs</span>
+            <strong>{saldos.length}</strong>
+          </div>
+          <div>
+            <span>Valor</span>
+            <strong>{somaValorPosicao(saldos)}</strong>
+          </div>
+          <div>
+            <span>Volumes</span>
+            <strong>{lotes.filter((l) => Number(l.qtde) > 0).length}</strong>
+          </div>
+          <div>
+            <span>MOV</span>
+            <strong>{movs.length}</strong>
           </div>
         </div>
       )}
 
       {(alertas.vencidos > 0 || alertas.aVencer > 0) && (
         <div
-          className={`alert ${alertas.vencidos > 0 ? 'alert-error' : 'alert-warning'}`}
-          style={{ marginBottom: '1rem' }}
+          className={`alert alert--compact ${alertas.vencidos > 0 ? 'alert-error' : 'alert-warning'}`}
+          style={{ marginBottom: '0.75rem' }}
         >
           {alertas.vencidos > 0 && (
             <button
@@ -248,7 +330,7 @@ export function EstoquePage() {
               className="linkish"
               onClick={() => abrirLotesCriticos('VENCIDO')}
             >
-              {alertas.vencidos} lote(s) vencido(s) com saldo
+              {alertas.vencidos} vencido(s)
             </button>
           )}
           {alertas.vencidos > 0 && alertas.aVencer > 0 ? <span> · </span> : null}
@@ -258,10 +340,10 @@ export function EstoquePage() {
               className="linkish"
               onClick={() => abrirLotesCriticos('A_VENCER')}
             >
-              {alertas.aVencer} lote(s) a vencer em até 60 dias
+              {alertas.aVencer} a vencer
             </button>
           )}
-          <span className="muted"> — abra a aba Lotes para conferir.</span>
+          <span className="muted"> — Volumes</span>
         </div>
       )}
 
@@ -269,7 +351,7 @@ export function EstoquePage() {
         {(
           [
             ['saldos', 'Por produto', saldosFiltrados.length],
-            ['lotes', 'Lotes', lotesFiltrados.length],
+            ['lotes', 'Volumes', lotesFiltrados.length],
             ['movimentos', 'Movimentos', movsFiltrados.length],
           ] as const
         ).map(([id, label, count]) => (
@@ -288,7 +370,7 @@ export function EstoquePage() {
       </div>
       <p className="catalogo-tab-hint">{TAB_HINT[tab]}</p>
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="card estoque-filtros-card">
         <div className="card-body">
           <div className="form-grid" style={{ alignItems: 'end' }}>
             <div className="form-group span-2">
@@ -317,6 +399,25 @@ export function EstoquePage() {
                 </select>
               </div>
             ) : null}
+            {tab === 'lotes' && (produtoLoteFiltro || qtdeVolumeFiltro) ? (
+              <div className="form-group">
+                <label>
+                  {qtdeVolumeFiltro
+                    ? `SKU · ${formatQtyCompact(qtdeVolumeFiltro)}${
+                        dimVolumeFiltro
+                          ? ` · ${formatVolumeDimensao(
+                              dimVolumeFiltro.largura_mm,
+                              dimVolumeFiltro.comprimento_m,
+                            )}`
+                          : ''
+                      }`
+                    : 'SKU'}
+                </label>
+                <button type="button" className="linkish" onClick={limparFiltroVolumes}>
+                  Limpar filtro
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -333,7 +434,7 @@ export function EstoquePage() {
                   : 'Sem saldo. Receba uma OC para gerar a primeira entrada.'}
               </div>
             ) : (
-              <table className="data-table">
+              <table className="data-table estoque-dense-table">
                 <thead>
                   <tr>
                     <SortableTh
@@ -362,12 +463,13 @@ export function EstoquePage() {
                       Saldo
                     </SortableTh>
                     <SortableTh
-                      column="unidade"
+                      column="volumes"
                       sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
                       sortDir={saldosSort.sortDir}
                       onSort={saldosSort.requestSort}
+                      className="num"
                     >
-                      Unidade
+                      Volumes
                     </SortableTh>
                     <SortableTh
                       column="custo"
@@ -399,47 +501,50 @@ export function EstoquePage() {
                 </thead>
                 <tbody>
                   {saldosSort.sorted.map((s) => {
-                    const go = () => navigate(`/estoque/extrato/${s.produto_id}`);
+                    const selecionar = () => setSaldoSelecionadoId(s.id);
+                    const desc =
+                      s.produto?.descricao_comercial || s.produto?.descricao_fiscal || '';
                     return (
                       <tr
                         key={s.id}
-                        className="clickable"
+                        className={`clickable${saldoSelecionadoId === s.id ? ' is-selected' : ''}`}
                         tabIndex={0}
-                        role="link"
-                        onClick={go}
-                        onKeyDown={(e) => activateRow(e, go)}
+                        onClick={selecionar}
+                        onKeyDown={(e) => activateRow(e, selecionar)}
                       >
-                        <td>
+                        <td className="produto">
                           <strong>{s.produto?.codigo}</strong>
-                          <div className="muted">
-                            {s.produto?.descricao_comercial || s.produto?.descricao_fiscal}
-                          </div>
+                          {desc ? (
+                            <div className="muted" title={desc}>
+                              {desc}
+                            </div>
+                          ) : null}
                         </td>
-                        <td>
+                        <td className="familia">
                           {s.produto?.familia ? (
-                            <>
+                            <span title={familiaLabel(s.produto.familia)}>
                               {s.produto.familia}
-                              <div className="muted">{familiaLabel(s.produto.familia)}</div>
-                            </>
+                            </span>
                           ) : (
                             '—'
                           )}
                         </td>
-                        <td className="num">{formatQty(s.qtde)}</td>
-                        <td>{s.unidade}</td>
+                        <td className="num saldo-cell">
+                          <strong>{formatQty(s.qtde)}</strong>{' '}
+                          <span className="table-muted">{s.unidade}</span>
+                        </td>
+                        <td className="num">
+                          {s.controla_lote ? (s.lotes_count ?? 0) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
                         <td className="num">{formatCurrency(s.custo_medio)}</td>
                         <td className="num">{formatValorPosicao(s.qtde, s.custo_medio)}</td>
                         <td>
                           {s.controla_lote ? (
-                            <>
-                              <StatusPill status={validadeStatusLabel(s.validade_status)} />
-                              <div className="muted">
-                                {s.lotes_count ?? 0} lote(s)
-                                {s.proxima_validade ? ` · ${formatDate(s.proxima_validade)}` : ''}
-                              </div>
-                            </>
+                            validadeResumo(s.validade_status, s.proxima_validade)
                           ) : (
-                            <span className="muted">Sem lote</span>
+                            <span className="muted">—</span>
                           )}
                         </td>
                       </tr>
@@ -456,7 +561,7 @@ export function EstoquePage() {
                   : 'Nenhum lote. Substratos e tintas passam a controlar lote na entrada e na virada.'}
               </div>
             ) : (
-              <table className="data-table">
+              <table className="data-table estoque-dense-table">
                 <thead>
                   <tr>
                     <SortableTh
@@ -474,6 +579,14 @@ export function EstoquePage() {
                       onSort={lotesSort.requestSort}
                     >
                       Lote
+                    </SortableTh>
+                    <SortableTh
+                      column="dimensao"
+                      sorts={lotesSort.sorts} sortKey={lotesSort.sortKey}
+                      sortDir={lotesSort.sortDir}
+                      onSort={lotesSort.requestSort}
+                    >
+                      Dimensão
                     </SortableTh>
                     <SortableTh
                       column="entrada"
@@ -526,44 +639,65 @@ export function EstoquePage() {
                       >
                         <td>
                           <strong>{l.produto?.codigo}</strong>
-                          <div className="muted">{l.produto?.descricao_fiscal}</div>
                         </td>
                         <td>{l.codigo}</td>
+                        <td>
+                          {formatVolumeDimensao(l.largura_mm ?? null, l.comprimento_m ?? null)}
+                        </td>
                         <td>{l.data_entrada ? formatDate(l.data_entrada) : '—'}</td>
                         <td>{l.data_validade ? formatDate(l.data_validade) : '—'}</td>
                         <td className="num">
-                          {formatQty(l.qtde)} {l.unidade}
+                          {formatQtyCompact(l.qtde)}{' '}
+                          <span className="table-muted">{l.unidade}</span>
                         </td>
                         <td>
-                          <StatusPill status={l.status_label || validadeStatusLabel(l.status)} />
+                          {l.status === 'VENCIDO' || l.status === 'A_VENCER' ? (
+                            <StatusPill status={l.status_label || validadeStatusLabel(l.status)} />
+                          ) : (
+                            <span className="table-muted">
+                              {l.status_label || validadeStatusLabel(l.status)}
+                            </span>
+                          )}
                         </td>
                         <td>{l.endereco?.codigo ?? <span className="muted">—</span>}</td>
                         <td className="acoes" onClick={(e) => e.stopPropagation()}>
-                          <Link
-                            to={`/estoque/lotes/${l.id}/etiqueta`}
-                            className="btn btn-secondary"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Etiqueta
-                          </Link>
-                          {!l.endereco_id ? (
+                          <div className="table-actions">
                             <Link
-                              to="/estoque/guardar"
-                              className="btn btn-secondary"
+                              to={`/estoque/lotes/${l.id}/etiqueta`}
+                              className="linkish linkish--meta"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Guardar
+                              Etiqueta
                             </Link>
-                          ) : null}
-                          {hasPermission('producao.ler') || hasPermission('estoque.ler') ? (
-                            <Link
-                              to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
-                              className="btn btn-secondary"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Rastreio
-                            </Link>
-                          ) : null}
+                            {!l.endereco_id ? (
+                              <>
+                                <span className="estoque-acao-sep" aria-hidden>
+                                  ·
+                                </span>
+                                <Link
+                                  to="/estoque/guardar"
+                                  className="linkish linkish--meta"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Guardar
+                                </Link>
+                              </>
+                            ) : null}
+                            {hasPermission('producao.ler') || hasPermission('estoque.ler') ? (
+                              <>
+                                <span className="estoque-acao-sep" aria-hidden>
+                                  ·
+                                </span>
+                                <Link
+                                  to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
+                                  className="linkish linkish--meta"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Rastreio
+                                </Link>
+                              </>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -576,7 +710,7 @@ export function EstoquePage() {
               {q ? 'Nenhum movimento com este filtro.' : 'Nenhum movimento de estoque.'}
             </div>
           ) : (
-            <table className="data-table">
+            <table className="data-table estoque-dense-table">
               <thead>
                 <tr>
                   <SortableTh
@@ -681,7 +815,12 @@ export function EstoquePage() {
                       <td>{formatDate(m.conferido_em)}</td>
                       <td onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         {m.tipo === 'ENTRADA_COMPRA' ? (
-                          <Link to={`/estoque/movimentos/${m.id}/ficha-entrada`}>Ficha QR</Link>
+                          <Link
+                            to={`/estoque/movimentos/${m.id}/ficha-entrada`}
+                            className="linkish linkish--meta"
+                          >
+                            Ficha QR
+                          </Link>
                         ) : null}
                       </td>
                     </tr>
@@ -692,6 +831,156 @@ export function EstoquePage() {
           )}
         </div>
       </div>
-    </>
+
+      {tab === 'saldos' && saldoSelecionado ? (
+        <div className="card estoque-saldo-ficha" style={{ marginTop: '1rem' }}>
+          <div className="card-body">
+            <div className="form-section" style={{ marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0 }}>
+                {saldoSelecionado.produto?.codigo}
+                <span className="muted" style={{ marginLeft: '0.5rem', fontWeight: 400 }}>
+                  posição física
+                </span>
+              </h3>
+              <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+                {(saldoSelecionado.produto?.descricao_comercial ||
+                  saldoSelecionado.produto?.descricao_fiscal ||
+                  '')}
+              </p>
+            </div>
+
+            <div className="detail-meta estoque-ficha-meta">
+              <div>
+                <span>Saldo oficial</span>
+                <strong>
+                  {formatQty(saldoSelecionado.qtde)} {saldoSelecionado.unidade}
+                </strong>
+              </div>
+              <div>
+                <span>Volumes</span>
+                <strong>
+                  {saldoSelecionado.controla_lote
+                    ? (saldoSelecionado.lotes_count ?? 0)
+                    : '—'}
+                </strong>
+              </div>
+              <div>
+                <span>Valor</span>
+                <strong>
+                  {formatValorPosicao(saldoSelecionado.qtde, saldoSelecionado.custo_medio)}
+                </strong>
+              </div>
+            </div>
+
+            {saldoSelecionado.controla_lote &&
+            (saldoSelecionado.volumes_por_qtde ?? []).length > 0 ? (
+              <div className="table-wrap">
+                <table className="data-table estoque-vol-consolidado-table">
+                  <thead>
+                    <tr>
+                      <th className="num">Qtde / volume</th>
+                      <th>Dimensão</th>
+                      <th className="num">Volumes</th>
+                      <th className="num">Subtotal</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(saldoSelecionado.volumes_por_qtde ?? []).map((faixa) => (
+                      <tr
+                        key={`${saldoSelecionado.id}-${faixa.qtde}-${faixa.largura_mm ?? ''}-${faixa.comprimento_m ?? ''}`}
+                      >
+                        <td className="num">
+                          {formatQtyCompact(faixa.qtde)}{' '}
+                          <span className="table-muted">{faixa.unidade}</span>
+                        </td>
+                        <td>
+                          {formatVolumeDimensao(
+                            faixa.largura_mm ?? null,
+                            faixa.comprimento_m ?? null,
+                          )}
+                        </td>
+                        <td className="num">{faixa.volumes}</td>
+                        <td className="num">
+                          {subtotalFaixa(faixa.qtde, faixa.volumes)}{' '}
+                          <span className="table-muted">{faixa.unidade}</span>
+                        </td>
+                        <td className="acoes">
+                          <button
+                            type="button"
+                            className="linkish linkish--meta"
+                            onClick={() =>
+                              abrirVolumesPorQtde(
+                                saldoSelecionado.produto_id,
+                                faixa.qtde,
+                                saldoSelecionado.produto?.codigo,
+                                {
+                                  largura_mm: faixa.largura_mm,
+                                  comprimento_m: faixa.comprimento_m,
+                                },
+                              )
+                            }
+                          >
+                            Ver
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : saldoSelecionado.controla_lote ? (
+              <p className="muted" style={{ margin: 0 }}>
+                Nenhum volume com saldo neste SKU.
+              </p>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>
+                Este SKU não controla volume/lote — só o saldo oficial.
+              </p>
+            )}
+
+            <div className="estoque-ficha-actions">
+              {saldoSelecionado.controla_lote ? (
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() =>
+                    abrirVolumesDoSku(
+                      saldoSelecionado.produto_id,
+                      saldoSelecionado.produto?.codigo,
+                    )
+                  }
+                >
+                  Lista de volumes
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="linkish"
+                onClick={() => navigate(`/estoque/extrato/${saldoSelecionado.produto_id}`)}
+              >
+                Extrato
+              </button>
+              {hasPermission('produto.ler') ? (
+                <Link to={`/produtos/${saldoSelecionado.produto_id}`} className="linkish">
+                  Cadastro
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                className="linkish linkish--meta"
+                onClick={() => setSaldoSelecionadoId(null)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : tab === 'saldos' && !loading && saldosSort.sorted.length > 0 ? (
+        <p className="muted estoque-hint-select">
+          Selecione um produto na grade para ver o consolidado de volumes.
+        </p>
+      ) : null}
+    </div>
   );
 }

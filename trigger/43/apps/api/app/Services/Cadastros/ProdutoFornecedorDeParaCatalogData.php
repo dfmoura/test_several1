@@ -11,7 +11,7 @@ final class ProdutoFornecedorDeParaCatalogData
 {
     public const AVERY_CNPJ = '43999630000124';
 
-    public const TOTAL = 87;
+    public const TOTAL = 77;
 
     /**
      * @return list<array{cnpj: string, c_prod: string, x_prod: string, produto_codigo: string}>
@@ -450,66 +450,6 @@ final class ProdutoFornecedorDeParaCatalogData
                 'c_prod' => 'UPF00081-02',
                 'x_prod' => 'VERNIZ UV PRIME COAT',
                 'produto_codigo' => 'MP-TIN-024',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25394',
-                'x_prod' => '63 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    1482 pc',
-                'produto_codigo' => 'EMB-TUB-004',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25395',
-                'x_prod' => '60 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    1560 pc',
-                'produto_codigo' => 'EMB-TUB-005',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25396',
-                'x_prod' => '55 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    1716 pc',
-                'produto_codigo' => 'EMB-TUB-006',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25397',
-                'x_prod' => '50 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    1872 pc',
-                'produto_codigo' => 'EMB-TUB-007',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25398',
-                'x_prod' => '41 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    2301 pc',
-                'produto_codigo' => 'EMB-TUB-008',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25399',
-                'x_prod' => '20 x 76,2 x 3 mm   Interno e ext semi-kraft personalizado    1185 pc',
-                'produto_codigo' => 'EMB-TUB-009',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25400',
-                'x_prod' => '25 x 76,2 x 3 mm   Interno e ext semi-kraft personalizado    945 pc',
-                'produto_codigo' => 'EMB-TUB-010',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25426',
-                'x_prod' => '60 x 25,7 x 2 mm   Interno e ext semi-kraft Neutro    1560 pc',
-                'produto_codigo' => 'EMB-TUB-005',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25434',
-                'x_prod' => '25 x 76,2 x 3 mm   Interno e ext semi-kraft personalizado    577 pc',
-                'produto_codigo' => 'EMB-TUB-010',
-            ],
-            [
-                'cnpj' => '12531813000197',
-                'c_prod' => '25435',
-                'x_prod' => '50 x 25,7 x 2 mm   Interno e ext semi-kraft personalizado    2112 pc',
-                'produto_codigo' => 'EMB-TUB-007',
             ],
             [
                 'cnpj' => '04207230000187',

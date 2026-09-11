@@ -93,6 +93,14 @@ export function EstoqueExtratoPage() {
                   </strong>
                 </div>
                 <div>
+                  <span>Volumes com saldo</span>
+                  <strong>
+                    {produto.controla_lote
+                      ? (data.lotes ?? []).filter((l) => Number(l.qtde) > 0).length
+                      : '—'}
+                  </strong>
+                </div>
+                <div>
                   <span>Custo médio</span>
                   <strong>{formatUnitPrice(saldo.custo_medio)}</strong>
                 </div>
@@ -126,9 +134,9 @@ export function EstoqueExtratoPage() {
             <div className="card" style={{ marginBottom: '1rem' }}>
               <div className="card-body" style={{ paddingBottom: 0 }}>
                 <div className="form-section">
-                  <h3>Lotes em aberto</h3>
+                  <h3>Volumes com saldo</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Ordem FEFO: vence primeiro, sai primeiro.
+                    Bobinas (nLote) deste SKU. Ordem FEFO: vence primeiro, sai primeiro.
                   </p>
                 </div>
               </div>
@@ -167,7 +175,7 @@ export function EstoqueExtratoPage() {
             </div>
           ) : produto.controla_lote ? (
             <div className="card" style={{ marginBottom: '1rem' }}>
-              <div className="empty-state">Nenhum lote com saldo neste SKU.</div>
+              <div className="empty-state">Nenhum volume com saldo neste SKU.</div>
             </div>
           ) : null}
 

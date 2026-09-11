@@ -7,7 +7,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        // Stack local (make up): nginx :8043 — Sanctum já libera :5173
+        target: 'http://127.0.0.1:8043',
         changeOrigin: true,
       },
     },

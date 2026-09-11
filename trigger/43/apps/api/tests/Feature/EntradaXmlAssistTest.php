@@ -274,10 +274,84 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertIsArray($lotes);
         $this->assertCount(6, $lotes);
 
+        $byCodigo = collect($lotes)->keyBy('codigo');
+        $this->assertSame('205.00', $byCodigo['00081116-01-0006']['largura_mm']);
+        $this->assertSame('1000.00', $byCodigo['00081116-01-0006']['comprimento_m']);
+        $this->assertSame('210.00', $byCodigo['00081116-01-0014']['largura_mm']);
+        $this->assertSame('1000.00', $byCodigo['00081116-01-0014']['comprimento_m']);
+
         $warnings = collect($preview->json('data.warnings') ?? []);
         $this->assertNotNull(
             $warnings->first(fn ($w) => ($w['codigo'] ?? null) === 'MULTI_VOLUME'),
             'Deve avisar multi-volume dos rastros agregados'
+        );
+        $this->assertNotNull(
+            $warnings->first(fn ($w) => ($w['codigo'] ?? null) === 'MULTI_DET_AGREGADO'),
+            'Deve avisar agregação de vários dets na mesma linha OC'
+        );
+        $this->assertNull(
+            $warnings->first(fn ($w) => ($w['codigo'] ?? null) === 'DIMENSAO_VOLUME_INCOMPLETA'),
+            'Com infAdProd Exact, dimensões devem vir preenchidas'
+        );
+    }
+
+    public function test_preview_oc_unico_item_agrega_multi_det_sem_depara(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->fornecedor->update([
+            'cnpj_cpf' => '43999630000124',
+            'razao_social' => 'AVERY DENNISON DO BRASIL LTDA',
+        ]);
+        $this->produto->update([
+            'codigo' => 'MP-PAP-013',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'FASSON ECOPRINT/S2045N/60G EXACT 1000',
+            'ncm' => '48114190',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'controla_lote' => true,
+        ]);
+
+        // Sem produto_fornecedor_codigos: OC de reposição com 1 linha deve agregar N dets.
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [[
+                    'produto_id' => $this->produto->id,
+                    'qtde_pedida' => '1240.0000',
+                    'unidade' => 'M2',
+                    'valor_unitario' => '2.580000',
+                ]],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
+        $ocItemId = $oc->json('data.itens.0.id');
+
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_exact_multidet.xml'));
+        $this->assertNotFalse($xml);
+
+        $preview = $this->withHeaders($h)
+            ->post("/api/v1/ordens-compra/{$ocId}/receber/xml/preview", [
+                'file' => UploadedFile::fake()->createWithContent('exact-sem-depara.xml', $xml),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.linhas.0.match.ordem_compra_item_id', $ocItemId)
+            ->assertJsonPath('data.linhas.1.match.ordem_compra_item_id', $ocItemId)
+            ->assertJsonPath('data.sugerido_receber.itens.0.qtde_recebida', '1240.0000');
+
+        $lotes = $preview->json('data.sugerido_receber.itens.0.lotes');
+        $this->assertIsArray($lotes);
+        $this->assertCount(6, $lotes);
+
+        $warnings = collect($preview->json('data.warnings') ?? []);
+        $this->assertNotNull(
+            $warnings->first(fn ($w) => ($w['codigo'] ?? null) === 'MULTI_DET_AGREGADO'),
+            'Reposição consolidada: N dets → 1 linha OC mesmo sem de-para'
         );
     }
 

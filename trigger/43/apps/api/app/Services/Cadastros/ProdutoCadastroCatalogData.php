@@ -9,8 +9,10 @@ namespace App\Services\Cadastros;
  * Padrão: CODIFICACAO_INFORMACOES_SISTEMA.txt + CADASTRO_PRODUTOS_COMPRA.txt
  * Grupos: ProdutoGrupoCatalogData (MP-PAP, MP-FLM, …)
  *
- * Camada A = família fiscal (89 SKUs). Dimensão física da bobina = **volume**
+ * Camada A = família fiscal (86 SKUs de compra genéricos + Exact/NF/tubetes
+ * em catálogos satélite). Dimensão física da bobina Exact = **volume**
  * (ADR_CADASTRO_INSUMO_VOLUME) — não Camada B por L×C no SKU Exact.
+ * Tubetes físicos: ProdutoCadastroTubeteData (Ø × espessura × comprimento × logo).
  *
  * Unidades (ADR-039-UNID-001): na Camada A comercial = interna = UN da listagem
  * e fator 1. Exact: ver ProdutoCadastroExactData (M2=M2).
@@ -19,7 +21,7 @@ final class ProdutoCadastroCatalogData
 {
     public const FONTE = 'trigger/32 LISTAGEM_PRODUTOS_CADASTRO.txt';
 
-    public const TOTAL_FAMILIAS = 89;
+    public const TOTAL_FAMILIAS = 86;
 
     /**
      * @return list<array{
@@ -127,9 +129,8 @@ final class ProdutoCadastroCatalogData
             self::row('MP-ADF-003', 'MP', 'MP-ADF', 'FITA DUPLA FACE REF 52017 460X25', '39199090', '01', 'RL', '72', 'VAL', 'DUPLA_FACE'),
 
             // ——— 9. Tubetes ———
-            self::row('EMB-TUB-001', 'EMB', 'EMB-TUB', 'TUBETE 1"', '48229000', '02', 'UN', '70', 'OK', 'TUBETE'),
-            self::row('EMB-TUB-002', 'EMB', 'EMB-TUB', 'TUBETE 1 1/2"', '48229000', '02', 'UN', '70', 'OK', 'TUBETE'),
-            self::row('EMB-TUB-003', 'EMB', 'EMB-TUB', 'TUBETE 3"', '48229000', '02', 'UN', '70', 'OK', 'TUBETE'),
+            // Físicos (Ø × espessura × comprimento × logo): ProdutoCadastroTubeteData.
+            // ORC usa só diâmetro ("1\"" / "1 1/2\"" / "3\"") no catálogo comercial.
 
             // ——— 10. Caixas ———
             self::row('EMB-CX-001', 'EMB', 'EMB-CX', 'CAIXA PAPELAO 200X150X120', '48191000', '02', 'UN', '71', 'OK', 'CAIXA'),
@@ -152,7 +153,7 @@ final class ProdutoCadastroCatalogData
     }
 
     /**
-     * Itens demo de venda/serviço (fora das 89 famílias de compra).
+     * Itens demo de venda/serviço (fora das 86 famílias de compra).
      * Mantêm fluxos ORC/PED/SVC no seed local sem poluir a listagem operacional.
      *
      * @return list<array{

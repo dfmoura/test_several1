@@ -959,6 +959,68 @@ button.par-geo--faltando:hover:not(:disabled) {
   margin-top: 0.35rem;
 }
 
+.produto-orientacao {
+  margin: 0 0 0.35rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2, var(--surface));
+}
+
+.produto-orientacao-lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.produto-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.produto-checklist li {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.produto-checklist-mark {
+  flex: 0 0 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.produto-checklist-ok {
+  color: var(--text);
+}
+
+.produto-checklist-ok .produto-checklist-mark {
+  color: var(--success, #1a7f4b);
+}
+
+.produto-checklist-pendente {
+  color: var(--text);
+}
+
+.produto-checklist-pendente .produto-checklist-mark {
+  color: var(--warning, #b45309);
+}
+
+.produto-checklist-opcional .produto-checklist-mark {
+  color: var(--text-muted);
+}
+
+.produto-checklist-resumo {
+  margin: 0.55rem 0 0;
+}
+
 .produto-depara-lead {
   margin: 0 0 0.65rem;
 }
@@ -1520,7 +1582,8 @@ button.par-geo--faltando:hover:not(:disabled) {
 .form-grid > .fiscal-section-title,
 .form-grid > .produto-unidades-lead,
 .form-grid > .produto-avancado,
-.form-grid > .produto-depara {
+.form-grid > .produto-depara,
+.form-grid > .produto-orientacao {
   grid-column: 1 / -1;
 }
 
@@ -1718,6 +1781,11 @@ button.par-geo--faltando:hover:not(:disabled) {
 .oc-volumes-panel__hint {
   margin: 0;
   padding: 0.45rem 0.75rem 0.65rem;
+}
+
+.oc-volumes-panel__hint--warn {
+  color: var(--danger, #b42318);
+  font-weight: 500;
 }
 
 .oc-volumes-scroll {
@@ -9035,13 +9103,325 @@ tr.row-inactive td {
 
 /* Estoque — leitura operacional (posição, kardex, INV, AJU) */
 .tabs.estoque-module-nav {
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
 }
 
 .tabs.estoque-module-nav .tab {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+}
+
+/* Página posição: densidade em todos os níveis. */
+.estoque-posicao-page {
+  --estoque-font: 0.8rem;
+  --estoque-pad-y: 0.32rem;
+  --estoque-pad-x: 0.5rem;
+}
+
+.estoque-ops-line {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.estoque-ops-line a {
+  font-weight: 600;
+  color: inherit;
+  text-underline-offset: 0.12em;
+}
+
+.estoque-kpi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.78rem;
+}
+
+.estoque-kpi > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 4.5rem;
+}
+
+.estoque-kpi span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.estoque-kpi strong {
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.estoque-posicao-page .alert--compact {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.estoque-posicao-page .catalogo-tab-hint {
+  font-size: 0.78rem;
+  margin: 0.25rem 0 0.65rem;
+}
+
+.estoque-filtros-card {
+  margin-bottom: 0.65rem;
+}
+
+.estoque-filtros-card .card-body {
+  padding: 0.65rem 0.85rem;
+}
+
+.estoque-filtros-card label {
+  font-size: 0.72rem;
+}
+
+/* —— NF-e destinadas (Compras) —— */
+/* Chrome único: sync + filtros densos — a tabela é o foco (mesmo princípio do mapa de facas). */
+.nfe-destinadas-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.nfe-destinadas-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.15rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.nfe-destinadas-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+}
+
+.nfe-destinadas-metric span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.nfe-destinadas-metric strong {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22rem;
+}
+
+.nfe-destinadas-metric-msg {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.nfe-destinadas-sync-hint {
+  margin: 0 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.3;
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nfe-destinadas-erro {
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.82rem;
+  color: var(--danger, #b42318);
+  background: color-mix(in srgb, var(--danger, #b42318) 6%, #fff);
+  border-radius: var(--radius-sm);
+}
+
+.nfe-destinadas-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.nfe-destinadas-search {
+  flex: 1 1 200px;
+  min-width: 160px;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+}
+
+.nfe-destinadas-select {
+  flex: 0 1 auto;
+  min-width: 5.5rem;
+  max-width: 9rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text);
+}
+
+.nfe-destinadas-select--situacao {
+  min-width: 9.5rem;
+  max-width: 12rem;
+}
+
+.nfe-destinadas-search:focus,
+.nfe-destinadas-select:focus {
+  outline: 2px solid rgba(124, 181, 24, 0.35);
+  outline-offset: 1px;
+  border-color: var(--green);
+}
+
+@media (max-width: 720px) {
+  .nfe-destinadas-sync-hint {
+    margin-left: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .nfe-destinadas-metric strong {
+    max-width: 100%;
+  }
+}
+
+.estoque-dense-table {
+  min-width: 680px;
+  font-size: var(--estoque-font);
+}
+
+.estoque-dense-table th,
+.estoque-dense-table td {
+  padding: var(--estoque-pad-y) var(--estoque-pad-x);
+  vertical-align: middle;
+}
+
+.estoque-dense-table .th-sort-btn {
+  padding: var(--estoque-pad-y) var(--estoque-pad-x);
+  font-size: 0.72rem;
+}
+
+.estoque-dense-table td.produto {
+  max-width: 14rem;
+}
+
+.estoque-dense-table td.produto .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 14rem;
+  font-size: 0.75rem;
+}
+
+.estoque-dense-table td.familia {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.estoque-dense-table td.saldo-cell {
+  white-space: nowrap;
+  width: 1%;
+  font-size: 0.76rem;
+}
+
+.estoque-dense-table td.saldo-cell strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.estoque-dense-table td.saldo-cell .table-muted {
+  font-size: inherit;
+}
+
+.estoque-dense-table .status-pill {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.66rem;
+}
+
+.estoque-acao-sep {
+  color: var(--border);
+  user-select: none;
+}
+
+.estoque-hint-select {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+}
+
+/* Ficha master–detail: consolidado físico do SKU selecionado. */
+.estoque-saldo-ficha {
+  margin-top: 0.65rem;
+}
+
+.estoque-saldo-ficha .card-body {
+  padding: 0.75rem 0.9rem;
+}
+
+.estoque-saldo-ficha .form-section h3 {
+  font-size: 0.98rem;
+}
+
+.estoque-ficha-meta {
+  margin-bottom: 0.75rem;
+  gap: 0.65rem 1.1rem;
+}
+
+.estoque-ficha-meta span {
+  font-size: 0.7rem;
+}
+
+.estoque-ficha-meta strong {
+  font-size: 0.9rem;
+}
+
+.estoque-vol-consolidado-table {
+  font-size: var(--estoque-font);
+}
+
+.estoque-vol-consolidado-table th,
+.estoque-vol-consolidado-table td {
+  padding: 0.28rem 0.5rem;
+}
+
+.estoque-ficha-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
 }
 
 .tab .tab-count {
@@ -9071,7 +9451,8 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
-button.linkish {
+button.linkish,
+a.linkish {
   appearance: none;
   border: none;
   background: none;
@@ -9084,8 +9465,25 @@ button.linkish {
   text-underline-offset: 0.12em;
 }
 
-button.linkish:hover {
+button.linkish:hover,
+a.linkish:hover {
   opacity: 0.85;
+}
+
+/** Meta secundária em grade — sem peso de botão; hover só sublinha. */
+button.linkish.linkish--meta,
+a.linkish.linkish--meta {
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: inherit;
+}
+
+button.linkish.linkish--meta:hover,
+a.linkish.linkish--meta:hover {
+  opacity: 1;
+  text-decoration: underline;
+  color: var(--text);
 }
 
 /* Console TRIGGER — operação da instalação (ADR_CONSOLE_PLATAFORMA) */
@@ -9762,5 +10160,195 @@ button.linkish:hover {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 0.25rem;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Etiqueta de volume — Elgin L42 Pro Full · 50 × 40 mm (ADR F3)              */
+/* Uma página = uma etiqueta. Driver: escala 100%, sem “ajustar à página”.    */
+/* -------------------------------------------------------------------------- */
+
+@page etiqueta-volume-elgin-50x40 {
+  size: 50mm 40mm;
+  margin: 0;
+}
+
+.vol-etiquetas-print-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.vol-etiqueta-sheet {
+  width: 50mm;
+  flex: 0 0 50mm;
+}
+
+.vol-etiqueta-face {
+  box-sizing: border-box;
+  width: 50mm;
+  height: 40mm;
+  padding: 1.4mm 1.6mm;
+  display: grid;
+  grid-template-columns: 22mm 1fr;
+  gap: 1.4mm;
+  align-items: stretch;
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border, #c8cdd5);
+  border-radius: 2px;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vol-etiqueta-qr {
+  width: 22mm;
+  height: 22mm;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vol-etiqueta-qr img {
+  width: 22mm;
+  height: 22mm;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.vol-etiqueta-qr-ph {
+  width: 22mm;
+  height: 22mm;
+  background: #eee;
+}
+
+.vol-etiqueta-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15mm;
+  line-height: 1.15;
+}
+
+.vol-etiqueta-sku {
+  font-size: 3.1mm;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vol-etiqueta-desc {
+  font-size: 2mm;
+  color: #222;
+  max-height: 4.2mm;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.vol-etiqueta-row {
+  font-size: 2.15mm;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vol-etiqueta-row--muted {
+  font-size: 1.9mm;
+  color: #333;
+}
+
+.vol-etiqueta-k {
+  font-weight: 700;
+}
+
+.vol-etiqueta-unitaria {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.vol-etiqueta-screen-meta {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  max-width: 50mm;
+  line-height: 1.35;
+}
+
+.vol-etiqueta-print-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted, #5c6570);
+}
+
+@media print {
+  body.etiqueta-volume-print-mode {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.etiqueta-volume-print-mode .no-print,
+  body.etiqueta-volume-print-mode .page-header,
+  body.etiqueta-volume-print-mode nav,
+  body.etiqueta-volume-print-mode .app-sidebar,
+  body.etiqueta-volume-print-mode .app-header,
+  body.etiqueta-volume-print-mode .brand-bar {
+    display: none !important;
+  }
+
+  body.etiqueta-volume-print-mode .app-layout,
+  body.etiqueta-volume-print-mode .app-main,
+  body.etiqueta-volume-print-mode .app-content,
+  body.etiqueta-volume-print-mode .page {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    display: block !important;
+    position: static !important;
+  }
+
+  body.etiqueta-volume-print-mode .vol-etiquetas-print-grid {
+    display: block;
+    gap: 0;
+  }
+
+  body.etiqueta-volume-print-mode .vol-etiqueta-sheet {
+    page: etiqueta-volume-elgin-50x40;
+    width: 50mm;
+    height: 40mm;
+    margin: 0;
+    padding: 0;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.etiqueta-volume-print-mode .vol-etiqueta-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.etiqueta-volume-print-mode .vol-etiqueta-face {
+    width: 50mm;
+    height: 40mm;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

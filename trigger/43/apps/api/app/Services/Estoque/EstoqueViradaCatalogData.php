@@ -88,9 +88,8 @@ final class EstoqueViradaCatalogData
             self::row('MP-ADF-003', '1', '1', 'consolidado'),
 
             // ——— Tubetes (UN) ———
-            self::row('EMB-TUB-001', '70396', '10000', 'unidades (consolidado)'),
-            self::row('EMB-TUB-002', '4890', '800', 'unidades (consolidado)'),
-            self::row('EMB-TUB-003', '27300.5000', '5000', 'unidades (consolidado)'),
+            // Genéricos 1"/1½"/3" removidos. Virada física por SKU dimensional
+            // (ProdutoCadastroTubeteData) — contagem A03 na EMP, sem inventar saldo.
 
             // ——— Caixas (UN) ———
             self::row('EMB-CX-001', '325', '80', 'unidades (consolidado)'),
