@@ -106,7 +106,7 @@ export function EstoqueLoteEtiquetaPage() {
               Estoque
             </Link>
             <Link className="btn btn-secondary no-print" to="/estoque/guardar">
-              Guardar no vão
+              Guardar no local
             </Link>
             <button type="button" className="btn btn-primary no-print" onClick={() => window.print()}>
               Imprimir
@@ -135,11 +135,11 @@ export function EstoqueLoteEtiquetaPage() {
       <div className="card no-print" style={{ marginTop: '1rem', maxWidth: '28rem' }}>
         <div className="card-body" style={{ display: 'grid', gap: '0.75rem' }}>
           <p className="form-hint" style={{ margin: 0 }}>
-            O vão <strong>não</strong> sai na etiqueta colável — localização muda e amarra-se depois
+            O local <strong>não</strong> sai na etiqueta colável — localização muda e amarra-se depois
             (aqui ou em Guardar com leitor).
           </p>
           <label>
-            Localização atual no sistema (vão)
+            Localização atual no sistema (local)
             <select value={enderecoId} onChange={(e) => setEnderecoId(e.target.value)}>
               <option value="">— selecione —</option>
               {enderecos.map((e) => (
@@ -151,8 +151,8 @@ export function EstoqueLoteEtiquetaPage() {
           </label>
           {enderecos.length === 0 && (
             <p className="form-hint" style={{ margin: 0 }}>
-              Nenhum vão cadastrado. Rode <code>php artisan erp:seed-estoque-enderecos</code> (gabarito
-              6×4×4).
+              Nenhum local cadastrado. Rode <code>php artisan erp:seed-estoque-enderecos</code> (gabarito
+              6×4×3).
             </p>
           )}
           <button
@@ -161,7 +161,7 @@ export function EstoqueLoteEtiquetaPage() {
             disabled={!enderecoId}
             onClick={() => void vincular()}
           >
-            Guardar no vão
+            Guardar no local
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
@@ -24,7 +24,8 @@ import {
   formatDateTime,
   formatPhone,
 } from '../lib/format';
-import { amarrarDimensoesVolumes } from '../lib/nfeExactDimensoes';
+import { amarrarDimensoesVolumes, expandirSlotsExact } from '../lib/nfeExactDimensoes';
+import { codigoLoteInternoOc, qtdeComercialFromAreaM2, somaAreaM2Volumes, volumesFromOcComposicao } from '../lib/ocComposicaoVolumes';
 
 function formatEndereco(parts: {
   logradouro?: string | null;
@@ -112,6 +113,62 @@ function somaVolumes(vols: VolumeFormRow[] | undefined): number {
   return vols.reduce((acc, v) => acc + Number(v.qtde || 0), 0);
 }
 
+function produtoUnidadesCtx(item: {
+  produto?: {
+    unidade_comercial?: string | null;
+    unidade_interna?: string | null;
+    fator_conversao?: string | null;
+  } | null;
+}) {
+  return {
+    unidade_comercial: item.produto?.unidade_comercial,
+    unidade_interna: item.produto?.unidade_interna,
+    fator_conversao: item.produto?.fator_conversao,
+  };
+}
+
+/** Volumes a partir do detalhe da NF (rastro ou infAd Exact/RLS) — alinhar conferência. */
+function volumesFromNfDetalhe(
+  preview: ReceberXmlPreview,
+  ocItemId: number,
+  dataEntrada: string,
+  ocCodigo?: string | null,
+  itemOrdem?: number | null,
+  unidades?: {
+    unidade_comercial?: string | null;
+    unidade_interna?: string | null;
+    fator_conversao?: string | null;
+  },
+): VolumeFormRow[] {
+  const map: Record<number, string> = {};
+  for (const linha of preview.linhas) {
+    const id = Number(linha.match.ordem_compra_item_id || 0);
+    if (id) map[linha.n_item] = String(id);
+  }
+  const fromRastro = volumesFromLinhasMapped(map, preview, dataEntrada)[ocItemId];
+  if (fromRastro?.length) return fromRastro;
+
+  const out: VolumeFormRow[] = [];
+  let seq = 1;
+  for (const linha of preview.linhas) {
+    if (Number(linha.match.ordem_compra_item_id || 0) !== ocItemId) continue;
+    const slots = expandirSlotsExact(linha.inf_ad_prod);
+    for (const s of slots) {
+      out.push({
+        codigo: codigoLoteInternoOc(ocCodigo, itemOrdem, s.largura_mm, s.comprimento_m, seq),
+        qtde: qtdeComercialFromAreaM2(s.area_m2, unidades),
+        data_entrada: dataEntrada,
+        data_validade: '',
+        data_fabricacao: '',
+        largura_mm: s.largura_mm,
+        comprimento_m: s.comprimento_m,
+      });
+      seq++;
+    }
+  }
+  return out;
+}
+
 function emailMotivoLabel(motivo: string | null | undefined): string {
   if (motivo === 'sem_email_cadastro') return 'fornecedor sem e-mail no cadastro';
   if (motivo === 'desligado') return 'envio de e-mail desligado na instalação';
@@ -172,6 +229,33 @@ function tPagLabel(t: string | null | undefined): string {
   return map[t] ? `${map[t]} (${t})` : t;
 }
 
+/** Tom e título dos avisos do preview — estoque ≠ pagar ≠ fiscal. */
+function receberWarningUi(w: { codigo: string; nivel: string; mensagem: string }): {
+  className: string;
+  titulo: string;
+} {
+  const esclarecimento =
+    w.codigo === 'PARCELAS_VS_OC' ||
+    w.codigo === 'PARCELAS_VS_OC_FISCAL_OK' ||
+    w.codigo === 'PARCELAS_VS_VNF';
+  if (esclarecimento) {
+    return {
+      className: 'alert alert-info',
+      titulo:
+        w.codigo === 'PARCELAS_VS_OC_FISCAL_OK'
+          ? 'Esclarecimento · pagar ≠ estoque (fiscal ok)'
+          : 'Esclarecimento · pagar ≠ quantidade',
+    };
+  }
+  if (w.nivel === 'CRITICO') {
+    return { className: 'alert alert-error', titulo: 'Bloqueio' };
+  }
+  if (w.nivel === 'INFO') {
+    return { className: 'alert alert-info', titulo: 'Informação' };
+  }
+  return { className: 'alert alert-warning', titulo: 'Atenção' };
+}
+
 function EspelhoFiscalPanel({
   espelho,
   titulo,
@@ -191,11 +275,14 @@ function EspelhoFiscalPanel({
   const detPag = pag?.det_pag ?? [];
 
   return (
-    <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
-      <strong>{titulo}</strong>
-      <div className="muted" style={{ margin: '0.35rem 0 0.75rem' }}>
-        Impostos como no XML, sem recálculo. Guardado para o livro de entrada — o ERP não
-        faz escrituração oficial.
+    <details className="oc-receber-details">
+      <summary>
+        <span className="oc-receber-details__title">{titulo}</span>
+        <span className="muted"> · impostos como no XML — abrir se precisar</span>
+      </summary>
+      <div className="oc-receber-details__body alert alert-info">
+      <div className="muted" style={{ margin: '0 0 0.75rem' }}>
+        Guardado para o livro de entrada — o ERP não faz escrituração oficial.
       </div>
       <p style={{ marginBottom: '0.5rem' }}>
         NF {dash(espelho.numero)}
@@ -392,7 +479,8 @@ function EspelhoFiscalPanel({
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -432,6 +520,8 @@ export function ComprasOrdemDetailPage() {
   >({});
   const [volumeForms, setVolumeForms] = useState<Record<number, VolumeFormRow[]>>({});
   const [enderecos, setEnderecos] = useState<Array<{ id: number; codigo: string }>>([]);
+  const [divergenciaDesfecho, setDivergenciaDesfecho] = useState('');
+  const [divergenciaObs, setDivergenciaObs] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -439,11 +529,34 @@ export function ComprasOrdemDetailPage() {
       const res = await api.get<{ data: OrdemCompra }>(`/ordens-compra/${id}`);
       setOc(res.data);
       const map: Record<number, string> = {};
+      const volsSeed: Record<number, VolumeFormRow[]> = {};
       for (const item of res.data.itens ?? []) {
         const restante = Number(item.qtde_pedida) - Number(item.qtde_recebida || 0);
         map[item.id] = restante > 0 ? String(restante) : '0';
+        if (
+          item.produto?.controla_lote &&
+          (item.composicao?.length ?? 0) > 0 &&
+          restante > 0
+        ) {
+          volsSeed[item.id] = volumesFromOcComposicao(item.composicao, '', {
+            ocCodigo: res.data.codigo,
+            itemOrdem: item.ordem ?? undefined,
+            ...produtoUnidadesCtx(item),
+          });
+        }
       }
       setQtdes(map);
+      setVolumeForms((prev) => {
+        // Só preenche se ainda não houver volumes (XML/DF-e não rodou).
+        const next = { ...prev };
+        for (const [id, vols] of Object.entries(volsSeed)) {
+          const key = Number(id);
+          if (!(next[key]?.length)) {
+            next[key] = vols;
+          }
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
     }
@@ -476,6 +589,84 @@ export function ComprasOrdemDetailPage() {
     (oc.status === 'RASCUNHO' || oc.status === 'ABERTA');
   const canReenviarEmail =
     !!oc && canWrite && (oc.status === 'ABERTA' || oc.status === 'PARCIAL');
+
+  const hasDivergenciaLive = useMemo(() => {
+    if (!oc) return false;
+    const cfs =
+      xmlPreview?.confronto_volumes?.length
+        ? xmlPreview.confronto_volumes
+        : (oc.itens ?? [])
+            .filter((i) => i.produto?.controla_lote && (i.composicao?.length ?? 0) > 0)
+            .map((i) => {
+              const exp = volumesFromOcComposicao(i.composicao, '', produtoUnidadesCtx(i));
+              const area = (i.composicao ?? []).reduce(
+                (a, f) => a + Number(f.area_m2 || 0),
+                0,
+              );
+              return {
+                ordem_compra_item_id: i.id,
+                pedido: { volumes: exp.length, area_m2: String(area) },
+                nf: { volumes: null as number | null, area_m2: null as string | null },
+                divergente: false,
+              };
+            });
+    for (const cf of cfs) {
+      if (cf.divergente) return true;
+      const vols = volumeForms[cf.ordem_compra_item_id] ?? [];
+      const confVols = vols.length;
+      const confArea = somaAreaM2Volumes(vols);
+      const pedVols = cf.pedido.volumes;
+      const pedArea = Number(cf.pedido.area_m2);
+      const nfVols = cf.nf.volumes;
+      const nfArea = cf.nf.area_m2 != null ? Number(cf.nf.area_m2) : null;
+      if (pedVols > 0 && confVols > 0 && pedVols !== confVols) return true;
+      if (pedVols > 0 && confArea > 0 && Math.abs(pedArea - confArea) > 0.00015) return true;
+      if (nfVols != null && confVols > 0 && nfVols !== confVols) return true;
+      if (nfArea != null && confArea > 0 && Math.abs(nfArea - confArea) > 0.00015) return true;
+    }
+    return false;
+  }, [oc, xmlPreview, volumeForms]);
+
+  const somaParcelas = parcelas.reduce((acc, p) => acc + Number(p.valor || 0), 0);
+
+  /** Prévia do ato: estoque × pagar × status OC — leitura antes de confirmar. */
+  const receberDecisao = useMemo(() => {
+    if (!oc) return null;
+    let qtdeAgora = 0;
+    let volumesAgora = 0;
+    let restanteApos = 0;
+    for (const item of oc.itens ?? []) {
+      const ped = Number(item.qtde_pedida);
+      const rec = Number(item.qtde_recebida || 0);
+      const agora = Number(qtdes[item.id] || 0);
+      qtdeAgora += agora;
+      volumesAgora += volumeForms[item.id]?.length ?? 0;
+      restanteApos += Math.max(0, ped - rec - agora);
+    }
+    const valorPagar = parcelas.length > 0 ? somaParcelas : nfValor != null ? Number(nfValor) : null;
+    const valorPedido = Number(oc.valor_previsto ?? oc.valor_total ?? 0);
+    const fisicoParcial = qtdeAgora > 0 && restanteApos > 0.00015;
+    const pagarProximoDoPedido =
+      valorPagar != null &&
+      valorPedido > 0 &&
+      Math.abs(valorPagar - valorPedido) <= Math.max(0.05, valorPedido * 0.02);
+    const temAvisoPagar =
+      (xmlPreview?.warnings ?? []).some(
+        (w) =>
+          w.codigo === 'PARCELAS_VS_OC' ||
+          w.codigo === 'PARCELAS_VS_OC_FISCAL_OK' ||
+          w.codigo === 'PARCELAS_VS_VNF',
+      );
+    return {
+      qtdeAgora,
+      volumesAgora,
+      restanteApos,
+      valorPagar,
+      statusPrevisto: restanteApos > 0.00015 ? 'PARCIAL' : 'RECEBIDA',
+      casoValorCheioFisicoFaltando:
+        fisicoParcial && (pagarProximoDoPedido || temAvisoPagar || (parcelas.length > 0 && valorPagar != null)),
+    };
+  }, [oc, qtdes, volumeForms, parcelas, somaParcelas, nfValor, xmlPreview]);
 
   const handleEnviar = async (reenviar = false) => {
     if (!oc) return;
@@ -654,6 +845,19 @@ export function ComprasOrdemDetailPage() {
           ];
         }
       }
+      // Fallback UI: item controla lote sem lotes no assist → detalhe do pedido.
+      for (const ocItem of oc?.itens ?? []) {
+        if (!ocItem.produto?.controla_lote) continue;
+        if (next[ocItem.id]?.length) continue;
+        const fromPedido = volumesFromOcComposicao(
+          ocItem.composicao,
+          sug.nf_data || '',
+          { ocCodigo: oc?.codigo, itemOrdem: ocItem.ordem },
+        );
+        if (fromPedido.length > 0) {
+          next[ocItem.id] = fromPedido;
+        }
+      }
       return next;
     });
 
@@ -712,13 +916,20 @@ export function ComprasOrdemDetailPage() {
       const next: Record<number, VolumeFormRow[]> = { ...prev };
       for (const item of oc?.itens ?? []) {
         if (!item.produto?.controla_lote) continue;
-        next[item.id] = fromXml[item.id] ?? [];
+        const xmlVols = fromXml[item.id] ?? [];
+        if (xmlVols.length > 0) {
+          next[item.id] = xmlVols;
+        } else {
+          const fromPedido = volumesFromOcComposicao(item.composicao, dataEntrada, {
+            ocCodigo: oc?.codigo,
+            itemOrdem: item.ordem,
+          });
+          next[item.id] = fromPedido.length > 0 ? fromPedido : [];
+        }
       }
       return next;
     });
   };
-
-  const somaParcelas = parcelas.reduce((acc, p) => acc + Number(p.valor || 0), 0);
 
   const updateParcela = (idx: number, patch: Partial<ReceberXmlParcela>) => {
     setParcelas((prev) =>
@@ -753,6 +964,29 @@ export function ComprasOrdemDetailPage() {
     if (!oc) return;
     setError(null);
     setMsg(null);
+
+    if (hasDivergenciaLive) {
+      if (divergenciaDesfecho === 'AGUARDAR_FORNECEDOR') {
+        setError(
+          'Desfecho "Aguardar fornecedor": não confirme o recebimento. Feche a conferência e trate com o fornecedor.',
+        );
+        return;
+      }
+      if (
+        divergenciaDesfecho !== 'RECEBER_CONFORME_NF' &&
+        divergenciaDesfecho !== 'RECEBER_PARCIAL_FISICO'
+      ) {
+        setError(
+          'Há divergência pedido × NF × conferido. Escolha o desfecho antes de confirmar.',
+        );
+        return;
+      }
+      if (!divergenciaObs.trim()) {
+        setError('Informe uma observação curta do desfecho (auditoria).');
+        return;
+      }
+    }
+
     setReceiving(true);
     try {
       const itens = (oc.itens ?? [])
@@ -812,6 +1046,9 @@ export function ComprasOrdemDetailPage() {
         natureza_id: naturezaId ? Number(naturezaId) : undefined,
         itens,
         cprod_maps: cprod_maps.length ? cprod_maps : undefined,
+        divergencia_ativa: hasDivergenciaLive,
+        divergencia_desfecho: hasDivergenciaLive ? divergenciaDesfecho || null : null,
+        divergencia_obs: hasDivergenciaLive ? divergenciaObs.trim() || null : null,
       };
       if (xmlContent) {
         payload.xml = xmlContent;
@@ -958,7 +1195,7 @@ export function ComprasOrdemDetailPage() {
                 Ficha de entrada física (QR)
               </Link>
               <Link className="btn btn-secondary" to="/estoque/guardar">
-                Guardar no vão
+                Guardar no local
               </Link>
             </div>
           )}
@@ -1105,6 +1342,16 @@ export function ComprasOrdemDetailPage() {
                           {item.produto?.familia && (
                             <div className="muted">{item.produto.familia}</div>
                           )}
+                          {(item.composicao ?? []).length > 0 ? (
+                            <ul className="muted" style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+                              {(item.composicao ?? []).map((f, fi) => (
+                                <li key={f.id ?? fi}>
+                                  {f.largura_mm} mm × {f.quantidade} bob. × {f.comprimento_m} m ={' '}
+                                  {f.area_m2} m²
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
                         </td>
                         <td>{item.qtde_pedida}</td>
                         <td>{item.qtde_recebida}</td>
@@ -1183,14 +1430,54 @@ export function ComprasOrdemDetailPage() {
                 <div className="card-body">
                   <div className="form-section">
                     <h3>Receber e conferir (NF × OC)</h3>
-                    <p className="muted" style={{ marginBottom: '1rem' }}>
-                      Um ato: confere a nota com a OC e lança MOV no estoque + título(s) a pagar
-                      (NAT 5.06). XML preenche itens e parcelas — a confirmação é humana. Estoque
-                      usa preços da OC; pagar segue as duplicatas da NF. Com XML, o sistema guarda
-                      o espelho fiscal (impostos como na nota) para o livro de entrada futuro.
-                      Vários itens da NF do mesmo SKU somam na linha da OC (m²/un. comercial); cada
-                      bobina entra como volume abaixo — não como linha nova da OC.
+                    <p className="muted" style={{ marginBottom: '0.75rem' }}>
+                      Confirme o que entrou no pátio. Estoque segue a quantidade conferida (preço
+                      OC); contas a pagar seguem as parcelas da NF; o espelho fiscal fica guardado
+                      à parte. XML assiste — a confirmação é humana.
                     </p>
+
+                    {receberDecisao ? (
+                      <div className="oc-receber-resumo" aria-label="Resumo da decisão">
+                        <div className="oc-receber-resumo__chips">
+                          <div className="oc-receber-resumo__chip">
+                            <span className="oc-receber-resumo__label">Entrada no estoque</span>
+                            <strong>
+                              {receberDecisao.qtdeAgora > 0
+                                ? `${clampDecimalScale(receberDecisao.qtdeAgora, DECIMAL_SCALE.qty)} un. comercial`
+                                : '—'}
+                              {receberDecisao.volumesAgora > 0
+                                ? ` · ${receberDecisao.volumesAgora} vol.`
+                                : ''}
+                            </strong>
+                          </div>
+                          <div className="oc-receber-resumo__chip">
+                            <span className="oc-receber-resumo__label">A pagar (NF)</span>
+                            <strong>
+                              {receberDecisao.valorPagar != null
+                                ? formatCurrency(receberDecisao.valorPagar)
+                                : '—'}
+                            </strong>
+                          </div>
+                          <div
+                            className={
+                              receberDecisao.statusPrevisto === 'PARCIAL'
+                                ? 'oc-receber-resumo__chip oc-receber-resumo__chip--warn'
+                                : 'oc-receber-resumo__chip'
+                            }
+                          >
+                            <span className="oc-receber-resumo__label">OC após confirmar</span>
+                            <strong>{receberDecisao.statusPrevisto}</strong>
+                          </div>
+                        </div>
+                        {receberDecisao.casoValorCheioFisicoFaltando ? (
+                          <p className="oc-receber-resumo__tip">
+                            Situação esperada: a NF pode cobrar o pedido inteiro enquanto o físico
+                            veio a menos. Pague as parcelas; estoque só do que chegou; a OC fica{' '}
+                            <strong>PARCIAL</strong> até completar.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
                       <label>XML da NF-e (opcional)</label>
@@ -1211,21 +1498,10 @@ export function ComprasOrdemDetailPage() {
                     {xmlPreview && xmlPreview.warnings.length > 0 && (
                       <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
                         {xmlPreview.warnings.map((w) => {
-                          const cls =
-                            w.nivel === 'INFO'
-                              ? 'alert alert-info'
-                              : w.nivel === 'CRITICO'
-                                ? 'alert alert-error'
-                                : 'alert alert-warning';
+                          const ui = receberWarningUi(w);
                           return (
-                            <div key={w.codigo + w.mensagem.slice(0, 24)} className={cls}>
-                              <strong>
-                                {w.nivel === 'INFO'
-                                  ? 'Informação fiscal'
-                                  : w.nivel === 'CRITICO'
-                                    ? 'Bloqueio'
-                                    : 'Atenção'}
-                              </strong>
+                            <div key={w.codigo + w.mensagem.slice(0, 24)} className={ui.className}>
+                              <strong>{ui.titulo}</strong>
                               <div>{w.mensagem}</div>
                             </div>
                           );
@@ -1255,90 +1531,110 @@ export function ComprasOrdemDetailPage() {
                     )}
 
                     {xmlPreview && (
-                      <div className="table-wrap" style={{ marginBottom: '1rem' }}>
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th>Item NF</th>
-                              <th>cProd / descrição</th>
-                              <th>Pedido / FCI</th>
-                              <th>Qtde</th>
-                              <th>Volumes</th>
-                              <th>Sugestão</th>
-                              <th>Item da OC</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {xmlPreview.linhas.map((linha) => (
-                              <tr key={linha.n_item}>
-                                <td>{linha.n_item}</td>
-                                <td>
-                                  <strong>{linha.c_prod}</strong>
-                                  <div className="muted">{linha.x_prod}</div>
-                                </td>
-                                <td>
-                                  {linha.x_ped ? (
-                                    <div>
-                                      <strong>xPed</strong> {linha.x_ped}
-                                      {linha.n_item_ped ? ` · #${linha.n_item_ped}` : ''}
-                                    </div>
-                                  ) : (
-                                    <span className="muted">—</span>
-                                  )}
-                                  {linha.n_fci ? (
-                                    <div
-                                      className="muted"
-                                      style={{ fontFamily: 'ui-monospace, monospace', fontSize: '0.75rem' }}
-                                    >
-                                      FCI {linha.n_fci}
-                                    </div>
-                                  ) : null}
-                                </td>
-                                <td>
-                                  {linha.q_com} {linha.u_com}
-                                </td>
-                                <td className="muted">
-                                  {(linha.rastros?.length ?? 0) > 0
-                                    ? `${linha.rastros!.length} rastro${linha.rastros!.length === 1 ? '' : 's'}`
-                                    : '—'}
-                                </td>
-                                <td className="muted">
-                                  {linha.match.confianca}
-                                  <div>{linha.match.motivo}</div>
-                                </td>
-                                <td>
-                                  <select
-                                    value={lineMap[linha.n_item] ?? ''}
-                                    onChange={(e) => {
-                                      const next = {
-                                        ...lineMap,
-                                        [linha.n_item]: e.target.value,
-                                      };
-                                      setLineMap(next);
-                                      rebuildReceberFromMap(next, xmlPreview);
-                                    }}
-                                  >
-                                    <option value="">— não receber —</option>
-                                    {(oc.itens ?? []).map((item) => (
-                                      <option key={item.id} value={item.id}>
-                                        {item.produto?.codigo} (pend.{' '}
-                                        {(
-                                          Number(item.qtde_pedida) - Number(item.qtde_recebida || 0)
-                                        ).toFixed(4)}
-                                        )
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <p className="form-hint" style={{ marginTop: '0.5rem' }}>
-                          Vários itens da NF podem apontar para a mesma linha da OC: a qtde comercial
-                          e os volumes são recompostos automaticamente ao mudar o de-para.
-                        </p>
-                      </div>
+                      <details className="oc-receber-details">
+                        <summary>
+                          <span className="oc-receber-details__title">
+                            De-para itens NF → OC
+                          </span>
+                          <span className="muted">
+                            {' '}
+                            · {xmlPreview.linhas.length} item
+                            {xmlPreview.linhas.length === 1 ? '' : 's'} — abrir para ajustar
+                            vínculo
+                          </span>
+                        </summary>
+                        <div className="oc-receber-details__body">
+                          <div className="table-wrap">
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th>Item NF</th>
+                                  <th>cProd / descrição</th>
+                                  <th>Pedido / FCI</th>
+                                  <th>Qtde</th>
+                                  <th>Volumes</th>
+                                  <th>Sugestão</th>
+                                  <th>Item da OC</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {xmlPreview.linhas.map((linha) => (
+                                  <tr key={linha.n_item}>
+                                    <td>{linha.n_item}</td>
+                                    <td>
+                                      <strong>{linha.c_prod}</strong>
+                                      <div className="muted">{linha.x_prod}</div>
+                                    </td>
+                                    <td>
+                                      {linha.x_ped ? (
+                                        <div>
+                                          <strong>xPed</strong> {linha.x_ped}
+                                          {linha.n_item_ped ? ` · #${linha.n_item_ped}` : ''}
+                                        </div>
+                                      ) : (
+                                        <span className="muted">—</span>
+                                      )}
+                                      {linha.n_fci ? (
+                                        <div
+                                          className="muted"
+                                          style={{
+                                            fontFamily: 'ui-monospace, monospace',
+                                            fontSize: '0.75rem',
+                                          }}
+                                        >
+                                          FCI {linha.n_fci}
+                                        </div>
+                                      ) : null}
+                                    </td>
+                                    <td>
+                                      {linha.q_com} {linha.u_com}
+                                    </td>
+                                    <td className="muted">
+                                      {(linha.rastros?.length ?? 0) > 0
+                                        ? `${linha.rastros!.length} rastro${linha.rastros!.length === 1 ? '' : 's'}`
+                                        : '—'}
+                                    </td>
+                                    <td className="muted">
+                                      {linha.match.confianca}
+                                      <div>{linha.match.motivo}</div>
+                                    </td>
+                                    <td>
+                                      <select
+                                        value={lineMap[linha.n_item] ?? ''}
+                                        onChange={(e) => {
+                                          const next = {
+                                            ...lineMap,
+                                            [linha.n_item]: e.target.value,
+                                          };
+                                          setLineMap(next);
+                                          rebuildReceberFromMap(next, xmlPreview);
+                                        }}
+                                      >
+                                        <option value="">— não receber —</option>
+                                        {(oc.itens ?? []).map((item) => (
+                                          <option key={item.id} value={item.id}>
+                                            {item.produto?.codigo} (pend.{' '}
+                                            {(
+                                              Number(item.qtde_pedida) -
+                                              Number(item.qtde_recebida || 0)
+                                            ).toFixed(4)}
+                                            )
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <p className="form-hint" style={{ marginTop: '0.5rem' }}>
+                            Vários itens da NF podem apontar para a mesma linha da OC: a qtde
+                            comercial e os volumes são recompostos automaticamente ao mudar o
+                            de-para.
+                          </p>
+                        </div>
+                      </details>
                     )}
 
                     <div className="form-grid">
@@ -1393,9 +1689,21 @@ export function ComprasOrdemDetailPage() {
                       </div>
                     </div>
 
-                    <div className="form-section" style={{ marginTop: '1rem' }}>
+                    <details
+                      className="oc-receber-details"
+                      open={parcelas.length > 0}
+                      style={{ marginTop: '1rem' }}
+                    >
+                      <summary>
+                        <span className="oc-receber-details__title">Parcelas a pagar</span>
+                        <span className="muted">
+                          {parcelas.length > 0
+                            ? ` · ${parcelas.length} parcela${parcelas.length === 1 ? '' : 's'} · ${formatCurrency(somaParcelas)}`
+                            : ' · sem XML: 1 título no vencimento acima'}
+                        </span>
+                      </summary>
+                      <div className="oc-receber-details__body">
                       <div className="btn-row" style={{ marginBottom: '0.5rem' }}>
-                        <h3 style={{ margin: 0 }}>Parcelas a pagar</h3>
                         <button type="button" className="btn btn-secondary" onClick={addParcela}>
                           Adicionar parcela
                         </button>
@@ -1403,11 +1711,12 @@ export function ComprasOrdemDetailPage() {
                       <p className="muted" style={{ marginBottom: '0.75rem' }}>
                         Vêm do XML (duplicatas) quando houver. Sem parcelas, gera 1 título com o
                         vencimento acima e o valor dos itens da OC.
-                        {parcelas.length > 0 && (
+                        {parcelas.length > 0 && nfValor != null && (
                           <>
                             {' '}
                             Soma: <strong>{formatCurrency(somaParcelas)}</strong>
-                            {nfValor != null && <> · vNF: {formatCurrency(Number(nfValor))}</>}
+                            {' · '}
+                            vNF: {formatCurrency(Number(nfValor))}
                           </>
                         )}
                       </p>
@@ -1472,14 +1781,168 @@ export function ComprasOrdemDetailPage() {
                           </table>
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </details>
                   </div>
+
+                  {((xmlPreview?.confronto_volumes?.length ?? 0) > 0 ||
+                    (oc.itens ?? []).some(
+                      (i) => i.produto?.controla_lote && (i.composicao?.length ?? 0) > 0,
+                    )) && (
+                  <div className="form-section">
+                    <h3>Confronto pedido × NF × conferido</h3>
+                    <p className="muted" style={{ marginBottom: '0.75rem' }}>
+                      Decinas e m²: o que foi pedido × o que a NF descreve × o que está na
+                      conferência. Divergência não bloqueia — exige leitura humana e desfecho.
+                    </p>
+                    {(xmlPreview?.confronto_volumes?.length
+                      ? xmlPreview.confronto_volumes
+                      : (oc.itens ?? [])
+                          .filter(
+                            (i) =>
+                              i.produto?.controla_lote && (i.composicao?.length ?? 0) > 0,
+                          )
+                          .map((i) => {
+                            const exp = volumesFromOcComposicao(
+                              i.composicao,
+                              '',
+                              produtoUnidadesCtx(i),
+                            );
+                            const area = (i.composicao ?? []).reduce(
+                              (a, f) => a + Number(f.area_m2 || 0),
+                              0,
+                            );
+                            return {
+                              ordem_compra_item_id: i.id,
+                              produto_codigo: i.produto?.codigo,
+                              pedido: {
+                                volumes: exp.length,
+                                area_m2: clampDecimalScale(area, DECIMAL_SCALE.qty) || '0',
+                                faixas: i.composicao ?? [],
+                              },
+                              nf: {
+                                q_com: '0',
+                                u_com: i.unidade,
+                                volumes: null as number | null,
+                                area_m2: null as string | null,
+                                fonte: null as string | null,
+                                inf_ad_prod: null as string | null,
+                              },
+                              divergente: false,
+                              mensagens: [] as string[],
+                            };
+                          })
+                    ).map((cf) => {
+                      const vols = volumeForms[cf.ordem_compra_item_id] ?? [];
+                      const confVols = vols.length;
+                      const confArea = somaAreaM2Volumes(vols);
+                      const confAreaStr = clampDecimalScale(confArea, DECIMAL_SCALE.qty);
+                      const pedVols = cf.pedido.volumes;
+                      const pedArea = cf.pedido.area_m2;
+                      const nfVols = cf.nf.volumes;
+                      const nfArea = cf.nf.area_m2;
+                      const liveDiv =
+                        (pedVols > 0 && confVols > 0 && pedVols !== confVols) ||
+                        (pedVols > 0 &&
+                          confArea > 0 &&
+                          Math.abs(Number(pedArea) - confArea) > 0.00015) ||
+                        (nfVols != null && confVols > 0 && nfVols !== confVols) ||
+                        (nfArea != null &&
+                          confArea > 0 &&
+                          Math.abs(Number(nfArea) - confArea) > 0.00015) ||
+                        cf.divergente;
+                      return (
+                        <div
+                          key={cf.ordem_compra_item_id}
+                          className={
+                            liveDiv
+                              ? 'alert alert-warning oc-confronto-card'
+                              : 'oc-confronto-card'
+                          }
+                          style={{ marginBottom: '0.75rem' }}
+                        >
+                          <strong>
+                            {cf.produto_codigo ?? `Item #${cf.ordem_compra_item_id}`}
+                            {liveDiv ? ' — divergência' : ''}
+                          </strong>
+                          <table className="oc-volumes-table" style={{ marginTop: '0.5rem' }}>
+                            <thead>
+                              <tr>
+                                <th>Origem</th>
+                                <th className="col-num">Bobinas</th>
+                                <th className="col-num">Σ m² / detalhe</th>
+                                <th>Obs.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>Pedido (faixas OC)</td>
+                                <td className="col-num">{pedVols || '—'}</td>
+                                <td className="col-num">{pedVols ? pedArea : '—'}</td>
+                                <td className="muted">Detalhe do pedido</td>
+                              </tr>
+                              <tr>
+                                <td>NF</td>
+                                <td className="col-num">
+                                  {nfVols != null ? nfVols : '—'}
+                                </td>
+                                <td className="col-num">
+                                  {nfArea ??
+                                    (Number(cf.nf.q_com) > 0
+                                      ? `${cf.nf.q_com} ${cf.nf.u_com ?? ''}`.trim()
+                                      : '—')}
+                                </td>
+                                <td className="muted">
+                                  {cf.nf.fonte === 'rastro'
+                                    ? 'rastros'
+                                    : cf.nf.fonte === 'inf_ad_rls'
+                                      ? 'infAd RLS×MM×M'
+                                      : cf.nf.fonte === 'inf_ad_exact'
+                                        ? 'infAd Exact'
+                                        : Number(cf.nf.q_com) > 0
+                                          ? `qCom ${cf.nf.q_com} ${cf.nf.u_com ?? ''}`.trim()
+                                          : 'sem XML / sem detalhe'}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Conferido (tela)</td>
+                                <td className="col-num">{confVols || '—'}</td>
+                                <td className="col-num">
+                                  {confVols ? confAreaStr : '—'}
+                                </td>
+                                <td className="muted">Volumes / lotes abaixo</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          {cf.nf.inf_ad_prod ? (
+                            <p className="form-hint" style={{ marginTop: '0.4rem' }}>
+                              infAd NF: {cf.nf.inf_ad_prod}
+                            </p>
+                          ) : null}
+                          {(cf.mensagens?.length ?? 0) > 0 ? (
+                            <ul style={{ margin: '0.4rem 0 0', paddingLeft: '1.1rem' }}>
+                              {cf.mensagens.map((m) => (
+                                <li key={m.slice(0, 48)}>{m}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                          {liveDiv && !(cf.mensagens?.length > 0) ? (
+                            <p className="form-hint oc-volumes-panel__hint--warn">
+                              Conferido não fecha com pedido e/ou NF — ajuste volumes antes de
+                              confirmar.
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  )}
 
                   <div className="form-section">
                     <h3>Qtde a receber (un. comercial)</h3>
                     <p className="muted" style={{ marginBottom: '0.75rem' }}>
-                      Quantidade na língua da OC (ex. m²). Bobinas físicas = volumes abaixo — a soma
-                      dos volumes deve fechar com esta qtde.
+                      Quantidade na língua da OC (ex. m²). Bobinas físicas = volumes abaixo — a
+                      soma dos volumes deve fechar com esta qtde.
                     </p>
                     <div className="oc-receber-itens">
                       {(oc.itens ?? []).map((item) => {
@@ -1519,29 +1982,95 @@ export function ComprasOrdemDetailPage() {
                                     ? ` (${volumeForms[item.id].length})`
                                     : ''}
                                 </strong>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() =>
-                                    setVolumeForms({
-                                      ...volumeForms,
-                                      [item.id]: [
-                                        ...(volumeForms[item.id] ?? []),
-                                        {
-                                          codigo: '',
-                                          qtde: '',
-                                          data_entrada: nfData,
-                                          data_validade: '',
-                                          data_fabricacao: '',
-                                          largura_mm: '',
-                                          comprimento_m: '',
-                                        },
-                                      ],
-                                    })
-                                  }
-                                >
-                                  + volume
-                                </button>
+                                <div className="btn-row" style={{ gap: '0.35rem', margin: 0 }}>
+                                  {(item.composicao?.length ?? 0) > 0 ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      title="Preenche L×C e qtde a partir do detalhe do pedido"
+                                      onClick={() => {
+                                        const fromPedido = volumesFromOcComposicao(
+                                          item.composicao,
+                                          nfData,
+                                          {
+                                            ocCodigo: oc.codigo,
+                                            itemOrdem: item.ordem,
+                                            ...produtoUnidadesCtx(item),
+                                          },
+                                        );
+                                        if (fromPedido.length === 0) return;
+                                        setVolumeForms({
+                                          ...volumeForms,
+                                          [item.id]: fromPedido,
+                                        });
+                                      }}
+                                    >
+                                      Do pedido
+                                    </button>
+                                  ) : null}
+                                  {xmlPreview ? (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      title="Alinha volumes e qtde a receber ao detalhe da NF (rastro ou Exact/RLS)"
+                                      onClick={() => {
+                                        const fromNf = volumesFromNfDetalhe(
+                                          xmlPreview,
+                                          item.id,
+                                          nfData,
+                                          oc.codigo,
+                                          item.ordem,
+                                          produtoUnidadesCtx(item),
+                                        );
+                                        if (fromNf.length === 0) {
+                                          setError(
+                                            'NF sem detalhe de volumes (rastro/Exact) para este item.',
+                                          );
+                                          return;
+                                        }
+                                        const soma = fromNf.reduce(
+                                          (a, v) => a + Number(v.qtde || 0),
+                                          0,
+                                        );
+                                        setVolumeForms({
+                                          ...volumeForms,
+                                          [item.id]: fromNf,
+                                        });
+                                        setQtdes({
+                                          ...qtdes,
+                                          [item.id]: String(soma),
+                                        });
+                                        setMsg(null);
+                                        setError(null);
+                                      }}
+                                    >
+                                      Alinhar à NF
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() =>
+                                      setVolumeForms({
+                                        ...volumeForms,
+                                        [item.id]: [
+                                          ...(volumeForms[item.id] ?? []),
+                                          {
+                                            codigo: '',
+                                            qtde: '',
+                                            data_entrada: nfData,
+                                            data_validade: '',
+                                            data_fabricacao: '',
+                                            largura_mm: '',
+                                            comprimento_m: '',
+                                          },
+                                        ],
+                                      })
+                                    }
+                                  >
+                                    + volume
+                                  </button>
+                                </div>
                               </div>
                               {(volumeForms[item.id]?.length ?? 0) === 0 ? (
                                 <div className="form-grid oc-volumes-panel__single">
@@ -1746,8 +2275,11 @@ export function ComprasOrdemDetailPage() {
                                         ? ' · diverge — ajuste antes de confirmar'
                                         : ''}
                                     . Dimensão real da bobina — não altera o SKU.
+                                    {(item.composicao?.length ?? 0) > 0
+                                      ? ' Sem rastro na NF: L×C/qtde e nLote INT-… (interno) vêm do detalhe do pedido — troque se tiver o lote real.'
+                                      : ''}
                                     {enderecos.length > 0
-                                      ? ' Endereço (vão) pode ser vinculado depois na ficha do lote.'
+                                      ? ' Endereço (local) pode ser vinculado depois na ficha do lote.'
                                       : ''}
                                   </p>
                                 </>
@@ -1762,8 +2294,85 @@ export function ComprasOrdemDetailPage() {
                 </div>
               </div>
 
+              {hasDivergenciaLive ? (
+                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
+                  <strong>Desfecho da divergência</strong>
+                  <p className="muted" style={{ margin: '0.35rem 0 0.75rem' }}>
+                    Pedido × NF × conferido não batem. Escolha o que fazer agora (fica na auditoria
+                    do movimento de estoque). Contas a pagar continuam pelas parcelas da NF.
+                  </p>
+                  <div
+                    className="form-group"
+                    style={{ marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}
+                  >
+                    <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="divergencia_desfecho"
+                        value="RECEBER_PARCIAL_FISICO"
+                        checked={divergenciaDesfecho === 'RECEBER_PARCIAL_FISICO'}
+                        onChange={() => setDivergenciaDesfecho('RECEBER_PARCIAL_FISICO')}
+                      />
+                      <span>
+                        <strong>Receber o que chegou</strong>
+                        <span className="muted">
+                          {' '}
+                          — estoque só do conferido; OC fica parcial se ainda faltar
+                        </span>
+                      </span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="divergencia_desfecho"
+                        value="RECEBER_CONFORME_NF"
+                        checked={divergenciaDesfecho === 'RECEBER_CONFORME_NF'}
+                        onChange={() => setDivergenciaDesfecho('RECEBER_CONFORME_NF')}
+                      />
+                      <span>
+                        <strong>Receber alinhado à NF</strong>
+                        <span className="muted">
+                          {' '}
+                          — aceitar divergência física/NF; saldo do pedido parcial se faltar
+                        </span>
+                      </span>
+                    </label>
+                    <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="divergencia_desfecho"
+                        value="AGUARDAR_FORNECEDOR"
+                        checked={divergenciaDesfecho === 'AGUARDAR_FORNECEDOR'}
+                        onChange={() => setDivergenciaDesfecho('AGUARDAR_FORNECEDOR')}
+                      />
+                      <span>
+                        <strong>Não receber — aguardar fornecedor</strong>
+                        <span className="muted"> — não confirma entrada</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="divergencia_obs">Observação do desfecho</label>
+                    <input
+                      id="divergencia_obs"
+                      value={divergenciaObs}
+                      onChange={(e) => setDivergenciaObs(e.target.value)}
+                      maxLength={500}
+                      placeholder="Ex.: falta 1 bobina 30×1000 — fornecedor envia depois"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
               <div className="form-actions">
-                <button type="submit" className="btn btn-primary" disabled={receiving}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    receiving ||
+                    (hasDivergenciaLive && divergenciaDesfecho === 'AGUARDAR_FORNECEDOR')
+                  }
+                >
                   {receiving ? 'Conferindo…' : 'Confirmar entrada no estoque'}
                 </button>
               </div>

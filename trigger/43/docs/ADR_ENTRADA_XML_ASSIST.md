@@ -78,3 +78,24 @@ Norma: **`ADR_CADASTRO_INSUMO_VOLUME.md`** (F2.1).
 - `infAdProd` com `NxLxC` (ex. `4x205x1000`, misturas com `|`) → slots; amarre a cada `rastro` por área (= `qLote`).  
 - Preview/assist sugere `largura_mm` + `comprimento_m` por volume; sem match → warning `DIMENSAO_VOLUME_INCOMPLETA`.  
 - Remap UI usa o mesmo parser (`nfeExactDimensoes.ts`).
+
+## Emenda 2026-09-12 — fallback composição OC
+
+Norma: **`ADR_OC_RASCUNHO_ENVIO.md`**.
+
+Sem `rastro` na NF e item com `controla_lote` + composição do pedido: preview sugere `lotes[]` via `OcComposicaoVolumes` (warning `VOLUME_OC_COMPOSICAO`), com nLote interno `INT-…` determinístico. XML/rastro continua prevalecendo.
+## Emenda 2026-09-12 — confronto pedido × NF
+
+- Parse `infAdProd` Thermotag: `12RLS X 110MM X 1000M` (`expandirSlotsRls`, fallback se Exact vazio).
+- Preview: `confronto_volumes` + warning `PEDIDO_VS_NF_VOLUMES` quando bobinas/m² divergem.
+- UI: bloco **Confronto pedido × NF × conferido**; com divergência → desfecho (`RECEBER_CONFORME_NF` / `RECEBER_PARCIAL_FISICO` / `AGUARDAR_FORNECEDOR`) + obs no MOV; botão **Alinhar à NF**.
+- Param EMP `compras.divergencia_volumes` (`EXIGIR_DESFECHO` default).
+
+## Emenda 2026-09-12 — hierarquia UX na conferência
+
+Sem mudar `receber()` nem o triplo ledger (estoque ≠ pagar ≠ fiscal):
+
+- Resumo fixo no topo: **entrada estoque** · **a pagar (NF)** · **OC após confirmar** (+ tip quando valor cheio / físico faltando).
+- Progressive disclosure: espelho fiscal, de-para NF→OC e (quando vazio) parcelas ficam em `<details>`; zona primária = confronto + qtde/volumes + desfecho.
+- Desfechos em linguagem operacional (`Receber o que chegou` / `Receber alinhado à NF` / `Não receber — aguardar fornecedor`); códigos API inalterados.
+- Avisos `PARCELAS_VS_*` apresentados como esclarecimento (não como erro de sistema).

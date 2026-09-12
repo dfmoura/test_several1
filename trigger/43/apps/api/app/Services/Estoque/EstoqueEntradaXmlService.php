@@ -9,7 +9,10 @@ use App\Models\Parceiro;
 use App\Models\ProdutoFornecedorCodigo;
 use App\Services\Fiscal\NfeCompraExtractor;
 use App\Services\Fiscal\NfeEntradaService;
+use App\Support\BobinaAreaComercial;
 use App\Support\NfeExactDimensoes;
+use App\Support\OcComposicaoVolumes;
+use App\Support\OcReceberConfronto;
 use App\Support\PadraoDecimal;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
@@ -69,7 +72,7 @@ class EstoqueEntradaXmlService
             ]);
         }
 
-        $oc->load(['itens.produto', 'fornecedor']);
+        $oc->load(['itens.produto', 'itens.composicoes', 'fornecedor']);
         /** @var list<array{nivel: string, codigo: string, mensagem: string}> $warnings */
         $warnings = [];
 
@@ -268,6 +271,41 @@ class EstoqueEntradaXmlService
                         'Item OC #'.$ocItemId.': um ou mais volumes sem largura×comprimento sugeridos — informe na conferência.'
                     );
                 }
+            } elseif ($ocItem?->produto?->controla_lote
+                && $ocItem->relationLoaded('composicoes')
+                && $ocItem->composicoes->isNotEmpty()) {
+                // Fallback: NF sem rastro → detalhe do pedido (composição OC).
+                $dataEntrada = $nfe['data_emissao'] ?? now()->toDateString();
+                $lotes = OcComposicaoVolumes::expandir(
+                    $ocItem->composicoes,
+                    $dataEntrada,
+                    $oc->codigo,
+                    (int) $ocItem->ordem,
+                    $ocItem->produto,
+                );
+                if ($lotes !== []) {
+                    $itemSug['lotes'] = $lotes;
+                    $itemSug['lote_codigo'] = $lotes[0]['codigo'] !== '' ? $lotes[0]['codigo'] : null;
+                    $itemSug['lote_data_entrada'] = $dataEntrada;
+                    $warnings[] = $this->warn(
+                        'INFO',
+                        'VOLUME_OC_COMPOSICAO',
+                        'Item OC #'.$ocItemId.': '.count($lotes)
+                        .' volume(s) do detalhe do pedido (sem rastro na NF). '
+                        .'nLote INT-… é interno provisório — troque se tiver o lote do fornecedor.'
+                    );
+                    $somaArea = OcComposicaoVolumes::somaAreaM2($ocItem->composicoes);
+                    $somaCom = BobinaAreaComercial::fromAreaM2($ocItem->produto, $somaArea);
+                    if (bccomp($somaCom, $qtde, PadraoDecimal::SCALE_QTY) !== 0) {
+                        $warnings[] = $this->warn(
+                            'ALERTA',
+                            'COMPOSICAO_VS_QCOM',
+                            'Item OC #'.$ocItemId.': detalhe do pedido ('.$somaCom
+                            .' un. comercial / '.$somaArea.' m²) difere da qtde da NF/linha ('.$qtde
+                            .') — ajuste volumes na conferência.'
+                        );
+                    }
+                }
             }
             $itensReceber[] = $itemSug;
             if ($ocItem) {
@@ -279,6 +317,23 @@ class EstoqueEntradaXmlService
             }
         }
         $valorItensSugerido = PadraoDecimal::roundHalfUp($valorItensSugerido, PadraoDecimal::SCALE_MONEY);
+
+        $confrontoVolumes = OcReceberConfronto::montar($pendentes, $linhas);
+        foreach ($confrontoVolumes as $cf) {
+            if (! ($cf['divergente'] ?? false)) {
+                continue;
+            }
+            $msg = implode(' ', $cf['mensagens'] ?? []);
+            if ($msg === '') {
+                continue;
+            }
+            $warnings[] = $this->warn(
+                'ALERTA',
+                'PEDIDO_VS_NF_VOLUMES',
+                'Item OC #'.$cf['ordem_compra_item_id'].' ('.($cf['produto_codigo'] ?? '?').'): '.$msg
+                .' Confira o bloco Confronto antes de receber.'
+            );
+        }
 
         $parcelas = $nfe['parcelas'] ?? [];
         $somaParcelas = '0';
@@ -315,8 +370,9 @@ class EstoqueEntradaXmlService
                 $warnings[] = $this->warn(
                     'ALERTA',
                     'PARCELAS_VS_OC',
-                    "Parcelas da NF (R$ {$somaParcelas}) ≠ valor dos itens da OC (R$ {$valorItensSugerido}). "
-                    .'Confira preço/qtde da OC ou se há custo não mapeado (frete FOB, ST, desconto).'
+                    "A pagar (parcelas da NF: R$ {$somaParcelas}) difere do valor mercadoria da OC (R$ {$valorItensSugerido}). "
+                    .'Esperado quando a NF cobra o pedido e o físico veio a menos: títulos seguem as parcelas; '
+                    .'estoque só a quantidade conferida. Confira só se houver preço/frete/ST não mapeado.'
                 );
             }
         }
@@ -351,6 +407,7 @@ class EstoqueEntradaXmlService
             'espelho' => $this->montarEspelho($nfe, $linhas),
             'warnings' => $warnings,
             'linhas' => $linhas,
+            'confronto_volumes' => $confrontoVolumes,
             'sugerido_receber' => [
                 'nf_chave' => $nfe['chave_nfe'],
                 'nf_numero' => $nfe['numero'],

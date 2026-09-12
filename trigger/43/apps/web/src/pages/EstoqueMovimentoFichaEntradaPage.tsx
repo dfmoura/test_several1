@@ -153,7 +153,7 @@ export function EstoqueMovimentoFichaEntradaPage() {
               {data.ordem_compra ? `OC ${data.ordem_compra.codigo}` : 'Voltar'}
             </Link>
             <Link className="btn btn-secondary" to="/estoque/guardar">
-              Guardar no vão
+              Guardar no local
             </Link>
             <Link className="btn btn-secondary" to="/estoque">
               Estoque
@@ -293,7 +293,7 @@ export function EstoqueMovimentoFichaEntradaPage() {
                     <div>
                       <strong>Dimensão</strong> {dim}
                       {' · '}
-                      <strong>Vão</strong> {v.endereco?.codigo ?? '— a vincular'}
+                      <strong>Local</strong> {v.endereco?.codigo ?? '— a vincular'}
                     </div>
                     {(v.data_fabricacao || v.data_validade) && (
                       <div>
@@ -380,7 +380,7 @@ export function EstoqueMovimentoFichaEntradaPage() {
       ) : null}
 
       <p className="muted ficha-entrada-rodape" style={{ marginTop: '1.25rem', fontSize: '0.8rem' }}>
-        QR = volume interno (VOL). Use para conferir e guardar no vão. Relatório operacional — não é
+        QR = volume interno (VOL). Use para conferir e guardar no local. Relatório operacional — não é
         DANFE. Imprima ou “Salvar como PDF” pelo navegador.
       </p>
 

@@ -371,6 +371,7 @@ class DatabaseSeeder extends Seeder
             ['chave' => 'lai_no_erp', 'valor' => 'NÃO', 'status' => 'APROVADO'],
             ['chave' => 'valor_minimo_capitalizar_bem', 'valor' => '1000', 'status' => 'APROVADO'],
             ['chave' => 'politica_nf_antes_expedir', 'valor' => 'SIM', 'status' => 'APROVADO'],
+            ['chave' => 'compras.divergencia_volumes', 'valor' => 'EXIGIR_DESFECHO', 'status' => 'APROVADO'],
         ];
 
         foreach ($parametrosEmp1 as $param) {

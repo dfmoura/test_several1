@@ -29,6 +29,7 @@ class OrdemCompraEmailService
         $oc->loadMissing([
             'fornecedor',
             'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,unidade_comercial',
+            'itens.composicoes',
         ]);
 
         $fornecedor = $oc->fornecedor;
@@ -76,6 +77,18 @@ class OrdemCompraEmailService
                 ?: $item->produto?->descricao_fiscal
                 ?: 'Item';
 
+            $composicao = [];
+            if ($item->relationLoaded('composicoes')) {
+                foreach ($item->composicoes as $c) {
+                    $composicao[] = [
+                        'largura_mm' => PadraoDecimal::roundHalfUp((string) $c->largura_mm, PadraoDecimal::SCALE_DIM),
+                        'quantidade' => PadraoDecimal::roundHalfUp((string) $c->quantidade, PadraoDecimal::SCALE_QTY),
+                        'comprimento_m' => PadraoDecimal::roundHalfUp((string) $c->comprimento_m, PadraoDecimal::SCALE_DIM),
+                        'area_m2' => PadraoDecimal::roundHalfUp((string) $c->area_m2, PadraoDecimal::SCALE_QTY),
+                    ];
+                }
+            }
+
             return [
                 'codigo' => $item->produto?->codigo ?? '—',
                 'descricao' => $desc,
@@ -91,6 +104,7 @@ class OrdemCompraEmailService
                     : null,
                 'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($item->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
                 'valor_icms' => PadraoDecimal::roundHalfUp((string) ($item->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
+                'composicao' => $composicao,
             ];
         })->values()->all();
 

@@ -96,7 +96,7 @@ export function EstoqueGuardarPage() {
     const p = payload.trim();
     if (!p) return;
     if (p.toUpperCase().startsWith('END:')) {
-      setError('Esse QR é de vão (END:…). Use o campo do vão ou mude a ordem de leitura.');
+      setError('Esse QR é de local (END:…). Use o campo do local ou mude a ordem de leitura.');
       volRef.current?.select();
       return;
     }
@@ -110,7 +110,7 @@ export function EstoqueGuardarPage() {
       );
       setVolume(res.data);
       setVolumeQr(p);
-      // Vão → volume: com vão já confirmado, Enter no volume amarra na hora.
+      // Local → volume: com vão já confirmado, Enter no volume amarra na hora.
       if (ordem === 'vao_primeiro' && (endereco || enderecoQr.trim())) {
         handedOff = true;
         await guardar(p, enderecoQr.trim() || endereco?.qr_payload);
@@ -144,7 +144,7 @@ export function EstoqueGuardarPage() {
       );
       setEndereco(res.data);
       setEnderecoQr(p);
-      // Volume → vão: se o volume já estava confirmado, Enter no vão amarra na hora.
+      // Volume → local: se o volume já estava confirmado, Enter no vão amarra na hora.
       if (ordem === 'volume_primeiro' && (volume || volumeQr.trim())) {
         handedOff = true;
         await guardar(volumeQr.trim() || volume?.qr_payload, p);
@@ -153,7 +153,7 @@ export function EstoqueGuardarPage() {
       focusSegundo();
     } catch (err) {
       setEndereco(null);
-      setError(err instanceof ApiError ? err.message : 'Vão não reconhecido.');
+      setError(err instanceof ApiError ? err.message : 'Local não reconhecido.');
       endRef.current?.select();
     } finally {
       if (!handedOff) setBusy(false);
@@ -170,8 +170,8 @@ export function EstoqueGuardarPage() {
     if (!v || !e) {
       setError(
         ordem === 'vao_primeiro'
-          ? 'Leia o QR do vão e depois o QR do volume.'
-          : 'Leia o QR do volume e depois o QR do vão.',
+          ? 'Leia o QR do local e depois o QR do volume.'
+          : 'Leia o QR do volume e depois o QR do local.',
       );
       return;
     }
@@ -183,10 +183,10 @@ export function EstoqueGuardarPage() {
         volume_qr: v,
         endereco_qr: e,
       });
-      const vaoCodigo = res.data.endereco?.codigo ?? endereco?.codigo ?? 'vão';
+      const vaoCodigo = res.data.endereco?.codigo ?? endereco?.codigo ?? 'local';
       if (ordem === 'vao_primeiro') {
         setMsg(
-          `Volume ${res.data.codigo} guardado em ${vaoCodigo}. Leia o próximo volume neste vão.`,
+          `Volume ${res.data.codigo} guardado em ${vaoCodigo}. Leia o próximo volume neste local.`,
         );
         limparLeitura({ manterVao: true });
         setTimeout(() => volRef.current?.focus(), 50);
@@ -254,23 +254,23 @@ export function EstoqueGuardarPage() {
 
   const descricao =
     ordem === 'vao_primeiro'
-      ? '1) Leia o QR do vão · 2) Coloque o volume · 3) Leia o QR do volume'
-      : '1) Leia o QR do volume · 2) Coloque na estante · 3) Leia o QR do vão';
+      ? '1) Leia o QR do local · 2) Coloque o volume · 3) Leia o QR do volume'
+      : '1) Leia o QR do volume · 2) Coloque na estante · 3) Leia o QR do local';
 
   const labelVol = ordem === 'vao_primeiro' ? '2. QR do volume (VOL:…)' : '1. QR do volume (VOL:…)';
-  const labelEnd = ordem === 'vao_primeiro' ? '1. QR do vão (END:…)' : '2. QR do vão (END:…)';
+  const labelEnd = ordem === 'vao_primeiro' ? '1. QR do local (END:…)' : '2. QR do local (END:…)';
 
   const placeholderVol =
     ordem === 'vao_primeiro'
       ? endereco
         ? 'Leia o QR do volume'
-        : 'Primeiro leia o vão'
+        : 'Primeiro leia o local'
       : 'Aponte o leitor ou cole o payload';
 
   const placeholderEnd =
     ordem === 'volume_primeiro'
       ? volume
-        ? 'Leia o QR colado no vão'
+        ? 'Leia o QR colado no local'
         : 'Primeiro leia o volume'
       : 'Aponte o leitor ou cole o payload';
 
@@ -286,7 +286,7 @@ export function EstoqueGuardarPage() {
       : ordem === 'vao_primeiro'
         ? endereco
           ? 'Confirmar volume'
-          : 'Confirmar vão'
+          : 'Confirmar local'
         : volume
           ? 'Guardar'
           : 'Confirmar volume';
@@ -312,7 +312,7 @@ export function EstoqueGuardarPage() {
       <strong>{volume.produto?.codigo}</strong> · {volume.produto?.descricao_fiscal}
       <div>
         Lote {volume.codigo} · {formatQty(volume.qtde)} {volume.unidade}
-        {volume.endereco ? ` · hoje em ${volume.endereco.codigo}` : ' · sem vão'}
+        {volume.endereco ? ` · hoje em ${volume.endereco.codigo}` : ' · sem local'}
       </div>
       {volume.nf_numero || volume.data_entrada ? (
         <div className="muted">
@@ -341,9 +341,9 @@ export function EstoqueGuardarPage() {
 
   const previewVao = endereco ? (
     <div className="alert alert-info" style={{ margin: 0 }} key="end-prev">
-      <strong>Vão {endereco.codigo}</strong>
+      <strong>Local {endereco.codigo}</strong>
       <div className="muted">
-        Prat. {endereco.prateleira} · Col. {endereco.coluna} · Vão {endereco.vao}
+        Prat. {endereco.prateleira} · Col. {endereco.coluna} · Local {endereco.vao}
         {ordem === 'vao_primeiro' ? ' · permanece para o próximo volume' : ''}
       </div>
     </div>
@@ -357,7 +357,7 @@ export function EstoqueGuardarPage() {
   return (
     <div className="page">
       <PageHeader
-        title="Guardar no vão"
+        title="Guardar no local"
         description={descricao}
         actions={
           <>
@@ -365,7 +365,7 @@ export function EstoqueGuardarPage() {
               Estoque
             </Link>
             <Link className="btn btn-secondary" to="/estoque/enderecos/etiquetas">
-              Etiquetas dos vãos
+              Etiquetas dos locais
             </Link>
             <Link className="btn btn-secondary" to="/estoque/lotes/etiquetas">
               Reimprimir volumes
@@ -384,7 +384,7 @@ export function EstoqueGuardarPage() {
           aria-selected={ordem === 'volume_primeiro'}
           onClick={() => trocarOrdem('volume_primeiro')}
         >
-          Volume → vão
+          Volume → local
         </button>
         <button
           type="button"
@@ -393,13 +393,13 @@ export function EstoqueGuardarPage() {
           aria-selected={ordem === 'vao_primeiro'}
           onClick={() => trocarOrdem('vao_primeiro')}
         >
-          Vão → volume
+          Local → volume
         </button>
       </div>
       <p className="catalogo-tab-hint" style={{ maxWidth: '36rem', marginTop: '-0.5rem' }}>
         {ordem === 'vao_primeiro'
-          ? 'Útil na estante: fixa o vão e lê vários volumes seguidos.'
-          : 'Útil com o volume na mão: lê o volume e depois o vão onde guardou.'}
+          ? 'Útil na estante: fixa o local e lê vários volumes seguidos.'
+          : 'Útil com o volume na mão: lê o volume e depois o local onde guardou.'}
       </p>
 
       {msg && (
@@ -444,7 +444,7 @@ export function EstoqueGuardarPage() {
       </form>
 
       <p className="muted" style={{ maxWidth: '36rem' }}>
-        Imprima as etiquetas dos volumes (entrada ou reimpressão) e as dos vãos. O leitor de código de
+        Imprima as etiquetas dos volumes (entrada ou reimpressão) e as dos locais. O leitor de código de
         barras USB funciona nestes campos (Enter ao final). A API recebe os dois QRs em qualquer ordem;
         a tela só organiza o fluxo no chão.
       </p>

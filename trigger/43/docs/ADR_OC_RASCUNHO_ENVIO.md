@@ -66,3 +66,65 @@ Sem permissão nova: `compras.escrever` para criar/editar/excluir/enviar/cancela
 4. SMTP self-service por EMP.  
 5. Auto-enviar e-mail sem ação humana de “Enviar”.  
 6. Reabrir NEC/COT no menu nesta fatia.
+
+## Emenda 2026-09-12 — composição do pedido (bobina)
+
+O pedido ao fornecedor de substrato/Exact **não nasce** só em m². A língua comercial é **faixa**: largura × qtd. de bobinas × comprimento; o m² é derivado.
+
+```
+1 linha OC = 1 SKU (material)
+  qtde_pedida (un. comercial) = BobinaAreaComercial(Σ area_m2 das faixas)
+       │
+       └── ordem_compra_item_composicoes (N faixas)
+             largura_mm × quantidade × comprimento_m → area_m2 (físico)
+```
+
+| Escolha | Motivo |
+|---------|--------|
+| Tabela filha (não JSON) | Mesmo padrão tipado de `estoque_lotes` L×C; ficha/e-mail/query estáveis. |
+| Composição **opcional** | Tubete/caixa/reposicao seguem `qtde_pedida` manual; bobina usa faixas. |
+| `qtde_pedida` = Σ | Preço, trânsito, receber e assist XML **inalterados** — Σ em **unidade comercial** (m² físicos ÷ fator quando com≠M2). |
+| Fórmula | `area = qtd × (largura_mm/1000) × comprimento_m` via `NfeExactDimensoes::areaM2`; conversão `BobinaAreaComercial`. |
+| Ficha + e-mail | Detalhe das faixas ao fornecedor; não só o total em m². |
+
+**Proibido nesta emenda:** explodir SKU por largura; várias linhas OC do mesmo material só por L×C; gravar composição no estoque no envio; segundo saldo.
+
+## Emenda 2026-09-12 — volumes na conferência a partir da composição
+
+Quando a NF **não** traz `rastro` / dimensão, a conferência **sugere** volumes a partir do detalhe do pedido.
+
+```
+XML / rastro / Exact  →  prevalece
+        │
+        ▼ se volumes vazios
+Composição OC (faixas)  →  N volumes (1 bobina inteira = 1 volume; L×C + qtde m²)
+        │
+        ▼
+Humano informa nLote / confere  →  receber()
+```
+
+| Escolha | Motivo |
+|---------|--------|
+| Fallback só | Não sobrescreve assist XML. |
+| Expandir bobinas | Alinha Avery/Exact (1 bobina ≈ 1 volume). |
+| nLote `INT-{OC}-I{nn}-{LxC}-{seq}` | Interno provisório **determinístico** (não aleatório); prefixo `INT` denuncia origem; editável. |
+| Botão **Do pedido** | Reaplica sugestão se o operador limpou os volumes. |
+| Warning `VOLUME_OC_COMPOSICAO` | Transparência no preview. |
+| Confronto pedido × NF × conferido | Contagem + Σ m²; parse `N RLS X L MM X C M`; alerta `PEDIDO_VS_NF_VOLUMES`. |
+
+**Proibido:** auto-receber; tratar composição como estoque sem conferência; segundo writer de saldo; nLote aleatório / imitar Avery.
+
+## Emenda 2026-09-12 — desfecho de divergência · un. comercial · alinhar NF
+
+Quando pedido × NF × conferido divergem, o receber **não inventa** volumes: registra desfecho humano e segue o físico/NF.
+
+| Escolha | Motivo |
+|---------|--------|
+| Desfechos `RECEBER_CONFORME_NF` / `RECEBER_PARCIAL_FISICO` / `AGUARDAR_FORNECEDOR` | Linguagem operacional; último **não** confirma entrada. |
+| Param EMP `compras.divergencia_volumes` = `EXIGIR_DESFECHO` (default) \| `ALERTA` | Gate auditável; onboarding/seed já cria. |
+| Obs + prefixo `[Divergência volumes]` no MOV | Rastreio sem segundo writer. |
+| Botão **Alinhar à NF** | Copia rastro/Exact para conferência + sync qtde a receber. |
+| `qtde_pedida` / qtde do volume = **un. comercial** | Faixas são m² físicos; SKU KG/M2 converte via `fator_conversao` (`BobinaAreaComercial`). Confronto Σ m² usa L×C, não a qtde comercial. |
+
+**Proibido:** bloquear NF por divergência sem desfecho quando política = ALERTA; auto-receber; explodir SKU por L×C; gravar m² como qtde comercial quando o SKU é KG.
+

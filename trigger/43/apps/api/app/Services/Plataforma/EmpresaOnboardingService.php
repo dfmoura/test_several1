@@ -338,6 +338,7 @@ class EmpresaOnboardingService
             [AdiantamentoService::PARAM_OBRIGATORIO, 'NAO'],
             [AdiantamentoService::PARAM_PERCENTUAL, '50'],
             ['lai_no_erp', 'NÃO'],
+            [\App\Support\OcReceberDivergencia::PARAM_POLITICA, \App\Support\OcReceberDivergencia::POLITICA_EXIGIR],
         ];
         foreach ($params as [$chave, $valor]) {
             ParametroEmpresa::query()->firstOrCreate(

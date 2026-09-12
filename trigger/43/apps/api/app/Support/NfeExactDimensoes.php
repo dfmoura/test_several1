@@ -6,16 +6,32 @@ namespace App\Support;
  * Dimensão real de bobina Exact a partir de infAdProd (ADR_CADASTRO_INSUMO_VOLUME F2.1).
  *
  * Padrão Avery: `4x205x1000`, `1x215x900 | 1x215x1050 | 4x215x1000`.
+ * Padrão Thermotag / RLS: `12RLS X 110MM X 1000M / 06RLS X 115MM X 1000M`.
  * Área m² = (largura_mm / 1000) × comprimento_m — casa com qLote do rastro.
  */
 final class NfeExactDimensoes
 {
     /**
-     * Expande slots N×L×C em lista de dimensões unitárias.
+     * Expande slots de infAdProd (Exact NxLxC; se vazio, RLS×MM×M).
      *
      * @return list<array{largura_mm: string, comprimento_m: string, area_m2: string}>
      */
     public static function expandirSlots(?string $infAdProd): array
+    {
+        $exact = self::expandirSlotsExact($infAdProd);
+        if ($exact !== []) {
+            return $exact;
+        }
+
+        return self::expandirSlotsRls($infAdProd);
+    }
+
+    /**
+     * Avery Exact: `4x205x1000`.
+     *
+     * @return list<array{largura_mm: string, comprimento_m: string, area_m2: string}>
+     */
+    public static function expandirSlotsExact(?string $infAdProd): array
     {
         if ($infAdProd === null || trim($infAdProd) === '') {
             return [];
@@ -55,6 +71,74 @@ final class NfeExactDimensoes
         }
 
         return $slots;
+    }
+
+    /**
+     * Thermotag / bobina em texto: `12RLS X 110MM X 1000M`.
+     *
+     * @return list<array{largura_mm: string, comprimento_m: string, area_m2: string}>
+     */
+    public static function expandirSlotsRls(?string $infAdProd): array
+    {
+        if ($infAdProd === null || trim($infAdProd) === '') {
+            return [];
+        }
+
+        if (! preg_match_all(
+            '/(\d+)\s*RLS?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*MM\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*M\b/iu',
+            $infAdProd,
+            $matches,
+            PREG_SET_ORDER
+        )) {
+            return [];
+        }
+
+        $slots = [];
+        foreach ($matches as $m) {
+            $n = (int) $m[1];
+            if ($n < 1 || $n > 500) {
+                continue;
+            }
+            $largura = PadraoDecimal::roundHalfUp(
+                str_replace(',', '.', $m[2]),
+                PadraoDecimal::SCALE_DIM
+            );
+            $comprimento = PadraoDecimal::roundHalfUp(
+                str_replace(',', '.', $m[3]),
+                PadraoDecimal::SCALE_DIM
+            );
+            if (bccomp($largura, '0', PadraoDecimal::SCALE_DIM) <= 0
+                || bccomp($comprimento, '0', PadraoDecimal::SCALE_DIM) <= 0) {
+                continue;
+            }
+            $area = self::areaM2($largura, $comprimento);
+            for ($i = 0; $i < $n; $i++) {
+                $slots[] = [
+                    'largura_mm' => $largura,
+                    'comprimento_m' => $comprimento,
+                    'area_m2' => $area,
+                ];
+            }
+        }
+
+        return $slots;
+    }
+
+    /**
+     * @param  list<array{largura_mm: string, comprimento_m: string, area_m2: string}>  $slots
+     * @return array{volumes: int, area_m2: string}
+     */
+    public static function resumirSlots(array $slots): array
+    {
+        $area = '0';
+        foreach ($slots as $slot) {
+            $area = bcadd($area, (string) ($slot['area_m2'] ?? '0'), PadraoDecimal::SCALE_QTY + 2);
+        }
+
+        return [
+            'volumes' => count($slots),
+            'area_m2' => PadraoDecimal::roundHalfUp($area, PadraoDecimal::SCALE_QTY),
+        ];
     }
 
     public static function areaM2(string $larguraMm, string $comprimentoM): string

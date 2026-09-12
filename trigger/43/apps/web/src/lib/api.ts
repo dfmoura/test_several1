@@ -1296,6 +1296,15 @@ export type Cotacao = {
   ordem_compra?: { id: number; codigo: string } | null;
 };
 
+export type OrdemCompraItemComposicao = {
+  id?: number;
+  ordem?: number;
+  largura_mm: string;
+  quantidade: string;
+  comprimento_m: string;
+  area_m2: string;
+};
+
 export type OrdemCompraItem = {
   id: number;
   produto_id: number;
@@ -1310,6 +1319,7 @@ export type OrdemCompraItem = {
     origem?: string | number | null;
     unidade_comercial?: string | null;
     unidade_interna?: string | null;
+    fator_conversao?: string | null;
     controla_lote?: boolean;
     controla_validade?: boolean;
     prazo_validade_dias?: number | null;
@@ -1324,6 +1334,7 @@ export type OrdemCompraItem = {
   valor_ipi?: string;
   valor_icms?: string;
   ordem?: number;
+  composicao?: OrdemCompraItemComposicao[];
 };
 
 export type OrdemCompraParceiro = {
@@ -1638,6 +1649,31 @@ export type ReceberXmlParcela = {
   valor: string;
 };
 
+export type ReceberXmlConfrontoVolumes = {
+  ordem_compra_item_id: number;
+  produto_codigo?: string | null;
+  pedido: {
+    volumes: number;
+    area_m2: string;
+    faixas: Array<{
+      largura_mm: string;
+      quantidade: string;
+      comprimento_m: string;
+      area_m2: string;
+    }>;
+  };
+  nf: {
+    q_com: string;
+    u_com?: string | null;
+    volumes: number | null;
+    area_m2: string | null;
+    fonte?: string | null;
+    inf_ad_prod?: string | null;
+  };
+  divergente: boolean;
+  mensagens: string[];
+};
+
 export type ReceberXmlPreview = {
   nf: {
     chave: string | null;
@@ -1663,6 +1699,7 @@ export type ReceberXmlPreview = {
   };
   espelho?: NfeEntradaEspelho;
   warnings: ReceberXmlWarning[];
+  confronto_volumes?: ReceberXmlConfrontoVolumes[];
   linhas: Array<{
     n_item: number;
     c_prod: string;

@@ -696,4 +696,156 @@ class EntradaXmlAssistTest extends TestCase
         $this->assertDatabaseCount('estoque_movimentos', 0);
         $this->assertDatabaseCount('nfe_entradas', 0);
     }
+
+    public function test_preview_sem_rastro_sugere_volumes_da_composicao_oc(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $produto = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-PAP-COMP',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'TAG COUCHE L2 170G',
+            'descricao_comercial' => 'TAG COUCHE L2 170G',
+            'ncm' => '48114110',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'custo_medio' => '0',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+            'controla_validade' => true,
+            'prazo_validade_dias' => 548,
+        ]);
+
+        ProdutoFornecedorCodigo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'fornecedor_id' => $this->fornecedor->id,
+            'produto_id' => $produto->id,
+            'c_prod' => 'FORN-PAP-EXACT',
+            'x_prod' => 'TAG COUCHE L2 170G',
+        ]);
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $produto->id,
+                        'valor_unitario' => '2.500000',
+                        'composicao' => [
+                            ['largura_mm' => '30', 'quantidade' => '1', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '110', 'quantidade' => '2', 'comprimento_m' => '1000'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.itens.0.qtde_pedida', '250.0000');
+
+        $ocId = (int) $oc->json('data.id');
+        $this->enviarOrdemCompra($h, $ocId);
+
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_bobina_sem_rastro.xml'));
+        $this->assertNotFalse($xml);
+
+        $preview = $this->withHeaders($h)
+            ->post("/api/v1/ordens-compra/{$ocId}/receber/xml/preview", [
+                'file' => UploadedFile::fake()->createWithContent('bobina.xml', $xml),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.sugerido_receber.itens.0.qtde_recebida', '250.0000');
+
+        $lotes = $preview->json('data.sugerido_receber.itens.0.lotes');
+        $this->assertIsArray($lotes);
+        $this->assertCount(3, $lotes);
+        $this->assertSame('30.0000', $lotes[0]['qtde']);
+        $this->assertSame('30.00', $lotes[0]['largura_mm']);
+        $this->assertSame('1000.00', $lotes[0]['comprimento_m']);
+        $this->assertStringStartsWith('INT-', $lotes[0]['codigo']);
+        $this->assertStringContainsString('30x1000', $lotes[0]['codigo']);
+        $this->assertSame('110.0000', $lotes[1]['qtde']);
+        $this->assertSame('110.0000', $lotes[2]['qtde']);
+        $this->assertNotSame($lotes[1]['codigo'], $lotes[2]['codigo']);
+
+        $codigos = collect($preview->json('data.warnings'))->pluck('codigo')->all();
+        $this->assertContains('VOLUME_OC_COMPOSICAO', $codigos);
+    }
+
+    public function test_preview_confronto_pedido_vs_nf_rls(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $produto = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MP-PAP-CONF',
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => 'PAPEL COUCHE L2 170G',
+            'descricao_comercial' => 'PAPEL COUCHE L2 170G',
+            'ncm' => '48114110',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'custo_medio' => '0',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+            'controla_validade' => true,
+            'prazo_validade_dias' => 548,
+        ]);
+
+        ProdutoFornecedorCodigo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'fornecedor_id' => $this->fornecedor->id,
+            'produto_id' => $produto->id,
+            'c_prod' => 'FORN-PAP-EXACT',
+            'x_prod' => 'PAPEL COUCHE L2 170G',
+        ]);
+
+        // Pedido: 19 bobinas / 2040 m² (inclui 30×1) — NF Thermotag: 18 bobinas / 2010 m²
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $produto->id,
+                        'valor_unitario' => '2.010000',
+                        'composicao' => [
+                            ['largura_mm' => '30', 'quantidade' => '1', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '110', 'quantidade' => '12', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '115', 'quantidade' => '6', 'comprimento_m' => '1000'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.itens.0.qtde_pedida', '2040.0000');
+
+        $ocId = (int) $oc->json('data.id');
+        $this->enviarOrdemCompra($h, $ocId);
+
+        $xml = file_get_contents(base_path('tests/fixtures/nfe_entrada_bobina_thermotag_rls.xml'));
+        $this->assertNotFalse($xml);
+
+        $preview = $this->withHeaders($h)
+            ->post("/api/v1/ordens-compra/{$ocId}/receber/xml/preview", [
+                'file' => UploadedFile::fake()->createWithContent('thermo.xml', $xml),
+            ])
+            ->assertOk();
+
+        $cf = $preview->json('data.confronto_volumes.0');
+        $this->assertNotNull($cf);
+        $this->assertTrue($cf['divergente']);
+        $this->assertSame(19, $cf['pedido']['volumes']);
+        $this->assertSame('2040.0000', $cf['pedido']['area_m2']);
+        $this->assertSame(18, $cf['nf']['volumes']);
+        $this->assertSame('2010.0000', $cf['nf']['area_m2']);
+        $this->assertSame('inf_ad_rls', $cf['nf']['fonte']);
+
+        $codigos = collect($preview->json('data.warnings'))->pluck('codigo')->all();
+        $this->assertContains('PEDIDO_VS_NF_VOLUMES', $codigos);
+    }
 }

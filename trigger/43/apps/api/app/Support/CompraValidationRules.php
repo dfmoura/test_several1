@@ -91,12 +91,30 @@ final class CompraValidationRules
             'valor_frete' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY, true)),
             'itens' => ['required', 'array', 'min:1'],
             'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
-            'itens.*.qtde_pedida' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            // Com composição: qtde_pedida é derivada (Σ m²). Sem composição: obrigatória.
+            'itens.*.qtde_pedida' => array_merge(
+                ['required_without:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
             'itens.*.valor_unitario' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE, false)),
             'itens.*.aliq_ipi' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT, true)),
             'itens.*.aliq_icms' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_PERCENT, true)),
             'itens.*.unidade' => ['nullable', 'string', 'max:8'],
             'itens.*.ordem' => ['nullable', 'integer', 'min:1'],
+            'itens.*.composicao' => ['sometimes', 'array', 'min:1'],
+            'itens.*.composicao.*.largura_mm' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'itens.*.composicao.*.quantidade' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)
+            ),
+            'itens.*.composicao.*.comprimento_m' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'itens.*.composicao.*.ordem' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
@@ -122,6 +140,9 @@ final class CompraValidationRules
             'nf_numero' => ['nullable', 'string', 'max:20'],
             'nf_data' => ['nullable', 'date'],
             'observacao' => ['nullable', 'string', 'max:2000'],
+            'divergencia_ativa' => ['sometimes', 'boolean'],
+            'divergencia_desfecho' => ['nullable', 'string', Rule::in(OcReceberDivergencia::DESFECHOS)],
+            'divergencia_obs' => ['nullable', 'string', 'max:500'],
             'natureza_id' => ['nullable', 'integer', 'exists:naturezas_gerenciais,id'],
             'vencimento' => ['required_without:parcelas', 'nullable', 'date'],
             'parcelas' => ['sometimes', 'array', 'min:1'],

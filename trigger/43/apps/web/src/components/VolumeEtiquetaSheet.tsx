@@ -58,8 +58,8 @@ export function VolumeEtiquetaSheet({ volume, qrDataUrl, unitariaTo }: Props) {
       <div className="no-print vol-etiqueta-screen-meta">
         <span className="muted">
           {vaoSistema
-            ? `No sistema: vão ${vaoSistema} (não imprime — pode mudar)`
-            : 'No sistema: sem vão (amarre depois em Guardar)'}
+            ? `No sistema: local ${vaoSistema} (não imprime — pode mudar)`
+            : 'No sistema: sem local (amarre depois em Guardar)'}
         </span>
         {unitariaTo ? (
           <>

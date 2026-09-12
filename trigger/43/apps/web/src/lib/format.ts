@@ -111,6 +111,22 @@ export function comprimentoFromAreaLargura(
 }
 
 /**
+ * Área parcial (m²) = quantidade × (largura_mm/1000) × comprimento_m.
+ * Espelha NfeExactDimensoes::areaM2 × quantidade (pedido OC).
+ */
+export function areaM2FromFaixaOc(
+  larguraMm: string | number,
+  quantidade: string | number,
+  comprimentoM: string | number,
+): string {
+  const l = Number(String(larguraMm).replace(',', '.'));
+  const q = Number(String(quantidade).replace(',', '.'));
+  const c = Number(String(comprimentoM).replace(',', '.'));
+  if (!(l > 0) || !(q > 0) || !(c > 0)) return '';
+  return clampDecimalScale(q * (l / 1000) * c, DECIMAL_SCALE.qty);
+}
+
+/**
  * Exibição BR a partir de string canônica (sem float).
  * Formatação é só apresentação (§9) — nunca regrava o valor exibido.
  */

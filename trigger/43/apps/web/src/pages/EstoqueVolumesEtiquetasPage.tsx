@@ -61,7 +61,7 @@ export function EstoqueVolumesEtiquetasPage() {
   }, [semEndereco]);
 
   const titulo = useMemo(
-    () => (semEndereco ? 'Volumes sem vão' : 'Reimprimir etiquetas de volume'),
+    () => (semEndereco ? 'Volumes sem local' : 'Reimprimir etiquetas de volume'),
     [semEndereco],
   );
 
@@ -76,7 +76,7 @@ export function EstoqueVolumesEtiquetasPage() {
               Estoque
             </Link>
             <Link className="btn btn-secondary" to="/estoque/guardar">
-              Guardar no vão
+              Guardar no local
             </Link>
             <button type="button" className="btn btn-primary no-print" onClick={() => window.print()}>
               Imprimir
@@ -109,12 +109,12 @@ export function EstoqueVolumesEtiquetasPage() {
                   setSearchParams(next);
                 }}
               />
-              Só volumes ainda sem vão
+              Só volumes ainda sem local
             </label>
             <span className="muted">Mesmo QR da etiqueta unitária e da ficha de entrada.</span>
           </div>
           <p className="vol-etiqueta-print-hint">
-            {VOLUME_ETIQUETA_PRINT_HINT}. Face = identidade do volume (sem vão — amarre depois em
+            {VOLUME_ETIQUETA_PRINT_HINT}. Face = identidade do volume (sem local — amarre depois em
             Guardar).
           </p>
         </div>
@@ -126,7 +126,7 @@ export function EstoqueVolumesEtiquetasPage() {
         <div className="card no-print">
           <div className="card-body">
             {semEndereco
-              ? 'Nenhum volume sem vão. Todos já estão localizados ou não há saldo.'
+              ? 'Nenhum volume sem local. Todos já estão localizados ou não há saldo.'
               : 'Nenhum volume com saldo para imprimir.'}
           </div>
         </div>

@@ -17,9 +17,15 @@ function areaM2(larguraMm: string, comprimentoM: string): string {
   return clampDecimalScale(String((l / 1000) * c), DECIMAL_SCALE.qty);
 }
 
-/** Expande slots N×L×C de infAdProd. */
+/** Expande slots de infAdProd (Exact NxLxC; se vazio, N RLS × L MM × C M). */
 export function expandirSlotsExact(infAdProd: string | null | undefined): ExactDimSlot[] {
   if (!infAdProd?.trim()) return [];
+  const exact = expandirSlotsNxLxC(infAdProd);
+  if (exact.length > 0) return exact;
+  return expandirSlotsRls(infAdProd);
+}
+
+function expandirSlotsNxLxC(infAdProd: string): ExactDimSlot[] {
   const re = /(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/giu;
   const slots: ExactDimSlot[] = [];
   let m: RegExpExecArray | null;
@@ -35,6 +41,36 @@ export function expandirSlotsExact(infAdProd: string | null | undefined): ExactD
     }
   }
   return slots;
+}
+
+/** Thermotag: `12RLS X 110MM X 1000M`. */
+export function expandirSlotsRls(infAdProd: string | null | undefined): ExactDimSlot[] {
+  if (!infAdProd?.trim()) return [];
+  const re =
+    /(\d+)\s*RLS?\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*MM\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*M\b/giu;
+  const slots: ExactDimSlot[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(infAdProd)) !== null) {
+    const n = Number(m[1]);
+    if (!(n >= 1 && n <= 500)) continue;
+    const largura = clampDecimalScale(m[2]!.replace(',', '.'), DECIMAL_SCALE.dim);
+    const comprimento = clampDecimalScale(m[3]!.replace(',', '.'), DECIMAL_SCALE.dim);
+    if (!(Number(largura) > 0) || !(Number(comprimento) > 0)) continue;
+    const area = areaM2(largura, comprimento);
+    for (let i = 0; i < n; i++) {
+      slots.push({ largura_mm: largura, comprimento_m: comprimento, area_m2: area });
+    }
+  }
+  return slots;
+}
+
+export function resumirSlotsExact(slots: ExactDimSlot[]): { volumes: number; area_m2: string } {
+  let area = 0;
+  for (const s of slots) area += Number(s.area_m2 || 0);
+  return {
+    volumes: slots.length,
+    area_m2: clampDecimalScale(area, DECIMAL_SCALE.qty) || '0.0000',
+  };
 }
 
 /** Heurística legado: "60 MM" em xProd ou sufixo numérico do cProd. */

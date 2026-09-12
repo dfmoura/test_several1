@@ -92,4 +92,18 @@ class NfeExactDimensoesTest extends TestCase
         $this->assertNull($out[0]['comprimento_m']);
         $this->assertTrue(NfeExactDimensoes::algumSemDimensao($out));
     }
+
+    public function test_expandir_slots_rls_thermotag(): void
+    {
+        $slots = NfeExactDimensoes::expandirSlots(
+            '(S) 12RLS X 110MM X 1000M / 06RLS X 115MM X 1000M'
+        );
+
+        $this->assertCount(18, $slots);
+        $resumo = NfeExactDimensoes::resumirSlots($slots);
+        $this->assertSame(18, $resumo['volumes']);
+        $this->assertSame('2010.0000', $resumo['area_m2']);
+        $this->assertSame('110.00', $slots[0]['largura_mm']);
+        $this->assertSame('115.00', $slots[17]['largura_mm']);
+    }
 }

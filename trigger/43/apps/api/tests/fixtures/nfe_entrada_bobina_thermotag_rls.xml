@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <protNFe>
+    <infProt>
+      <chNFe>35260800000000000000550010000000991000000100</chNFe>
+      <cStat>100</cStat>
+    </infProt>
+  </protNFe>
+  <NFe>
+    <infNFe Id="NFe35260800000000000000550010000000991000000100" versao="4.00">
+      <ide>
+        <mod>55</mod>
+        <nNF>5122</nNF>
+        <serie>1</serie>
+        <dhEmi>2026-08-20T10:00:00-03:00</dhEmi>
+      </ide>
+      <emit>
+        <CNPJ>11222333000181</CNPJ>
+        <xNome>FORNECEDOR BOBINAS LTDA</xNome>
+        <xFant>Bobinas</xFant>
+        <enderEmit>
+          <xLgr>Rua A</xLgr>
+          <nro>10</nro>
+          <xBairro>Centro</xBairro>
+          <xMun>Uberlandia</xMun>
+          <UF>MG</UF>
+          <CEP>38400000</CEP>
+        </enderEmit>
+      </emit>
+      <dest>
+        <CNPJ>01423183000110</CNPJ>
+        <xNome>EMPRESA TESTE</xNome>
+      </dest>
+      <det>
+        <nItem>1</nItem>
+        <prod>
+          <cProd>FORN-PAP-EXACT</cProd>
+          <xProd>PAPEL COUCHE L2 170G</xProd>
+          <NCM>48114110</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>M2</uCom>
+          <qCom>2040.0000</qCom>
+          <vUnCom>2.0100000000</vUnCom>
+          <vProd>4100.40</vProd>
+        </prod>
+        <infAdProd>(S) 12RLS X 110MM X 1000M / 06RLS X 115MM X 1000M</infAdProd>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>4100.40</vNF>
+          <vProd>4100.40</vProd>
+        </ICMSTot>
+      </total>
+      <cobr>
+        <dup>
+          <nDup>001</nDup>
+          <dVenc>2026-10-12</dVenc>
+          <vDup>4100.40</vDup>
+        </dup>
+      </cobr>
+    </infNFe>
+  </NFe>
+</nfeProc>

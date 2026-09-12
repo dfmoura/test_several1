@@ -1,12 +1,12 @@
 /**
- * Impressão canônica da etiqueta de volume (bobina) — ADR_CADASTRO_INSUMO_VOLUME F3.
+ * Impressão canônica térmica — ADR_CADASTRO_INSUMO_VOLUME F3 (volume) e F4 (vão).
  *
  * Hardware: Elgin L42 Pro Full · mídia 50 × 40 mm.
  * Canal: browser `window.print()` (sem DomPDF / ZPL no monólito).
  * No driver Windows: papel/etiqueta 50×40 mm, escala 100%, sem “ajustar à página”.
  *
- * Face = identidade do volume (QR, SKU, lote, dim, NF). Sem vão impresso —
- * localização é volátil e amarra-se depois (Guardar / vínculo na tela).
+ * Volume (F3): identidade da bobina (QR VOL, SKU, lote, dim, NF) — sem vão impresso.
+ * Local (F4): localização da estante (QR END + código Pxx-Cxx-Lxx) — mesma mídia/driver.
  */
 
 export const VOLUME_ETIQUETA_PRINTER = {
@@ -36,12 +36,20 @@ export type VolumeEtiquetaFace = {
   endereco: { id: number; codigo: string } | null;
 };
 
+/** Exibição: remove zeros à direita sem alterar a precisão persistida. */
+function trimDimNum(v: string): string {
+  if (!/^-?\d+(\.\d+)?$/.test(v)) return v;
+  return v.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+}
+
 export function formatVolumeDimensao(
   larguraMm: string | null,
   comprimentoM: string | null,
 ): string {
-  if (larguraMm && comprimentoM) return `${larguraMm} mm × ${comprimentoM} m`;
-  if (larguraMm) return `${larguraMm} mm`;
+  if (larguraMm && comprimentoM) {
+    return `${trimDimNum(larguraMm)} mm × ${trimDimNum(comprimentoM)} m`;
+  }
+  if (larguraMm) return `${trimDimNum(larguraMm)} mm`;
   return '—';
 }
 

@@ -326,4 +326,102 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             ->assertJsonPath('data.itens.0.aliq_icms', '18.0000')
             ->assertJsonPath('data.itens.0.valor_icms', '180.00');
     }
+
+    public function test_composicao_deriva_qtde_pedida_e_persiste_faixas(): void
+    {
+        Mail::fake();
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->produto->update([
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+        ]);
+
+        // Espelha modelo_oc_exemplo: 30×1×1000 + 110×9×1000 + 110×6×1000 + 115×6×1000 = 2370 m²
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'valor_unitario' => '2.500000',
+                        'composicao' => [
+                            ['largura_mm' => '30', 'quantidade' => '1', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '110', 'quantidade' => '9', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '110', 'quantidade' => '6', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '115', 'quantidade' => '6', 'comprimento_m' => '1000'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.status', OrdemCompra::STATUS_RASCUNHO)
+            ->assertJsonPath('data.itens.0.qtde_pedida', '2370.0000')
+            ->assertJsonPath('data.itens.0.unidade', 'M2')
+            ->assertJsonPath('data.valor_total', '5925.00')
+            ->assertJsonPath('data.itens.0.composicao.0.largura_mm', '30.00')
+            ->assertJsonPath('data.itens.0.composicao.0.area_m2', '30.0000')
+            ->assertJsonPath('data.itens.0.composicao.1.area_m2', '990.0000')
+            ->assertJsonPath('data.itens.0.composicao.2.area_m2', '660.0000')
+            ->assertJsonPath('data.itens.0.composicao.3.area_m2', '690.0000');
+
+        $ocId = (int) $oc->json('data.id');
+        $itemId = (int) $oc->json('data.itens.0.id');
+
+        $this->assertDatabaseCount('ordem_compra_item_composicoes', 4);
+        $this->assertDatabaseHas('ordem_compra_item_composicoes', [
+            'ordem_compra_item_id' => $itemId,
+            'largura_mm' => '30.00',
+            'quantidade' => '1.0000',
+            'comprimento_m' => '1000.00',
+            'area_m2' => '30.0000',
+        ]);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/enviar")
+            ->assertOk()
+            ->assertJsonPath('data.email_enviado', true);
+
+        Mail::assertSent(OrdemCompraFornecedorMail::class, function (OrdemCompraFornecedorMail $mail) {
+            $payload = $mail->payload;
+            $comp = $payload['itens'][0]['composicao'] ?? [];
+
+            return count($comp) === 4
+                && ($comp[0]['area_m2'] ?? null) === '30.0000'
+                && ($comp[1]['largura_mm'] ?? null) === '110.00';
+        });
+    }
+
+    public function test_composicao_converte_area_m2_para_unidade_comercial_kg(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->produto->update([
+            'unidade_comercial' => 'KG',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '5.8800000000',
+            'controla_lote' => true,
+        ]);
+
+        // 30×1×1000 = 30 m² → 30/5.88 ≈ 5.1020 KG
+        $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'valor_unitario' => '12.000000',
+                        'composicao' => [
+                            ['largura_mm' => '30', 'quantidade' => '1', 'comprimento_m' => '1000'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.itens.0.qtde_pedida', '5.1020')
+            ->assertJsonPath('data.itens.0.unidade', 'KG')
+            ->assertJsonPath('data.itens.0.composicao.0.area_m2', '30.0000');
+    }
 }

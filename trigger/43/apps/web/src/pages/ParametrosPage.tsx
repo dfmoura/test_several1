@@ -12,6 +12,8 @@ const PARAM_HINTS: Record<string, string> = {
   empresa_default: 'Empresa sugerida no login',
   emp_00002_venda_habilitada: 'Libera venda na segunda empresa (quando aplicável)',
   lai_no_erp: 'Bloqueia naturezas de livro auxiliar indevidas',
+  'compras.divergencia_volumes':
+    'Receber com divergência pedido×NF×conferido: EXIGIR_DESFECHO (padrão) ou ALERTA',
 };
 
 function paramHint(chave: string): string | null {

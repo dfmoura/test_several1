@@ -242,6 +242,28 @@ export function IconMapPin({ className }: IconProps) {
   );
 }
 
+/** Estoque — etiqueta / impressão de volume. */
+export function IconTag({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42Z" />
+      <circle cx="7" cy="7" r="1.25" />
+    </IconBase>
+  );
+}
+
+/** Estoque — rastreio do lote / volume. */
+export function IconRastreio({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <circle cx="6" cy="19" r="2.25" />
+      <path d="M6 17V9a4 4 0 0 1 4-4h4" />
+      <circle cx="18" cy="5" r="2.25" />
+      <path d="M18 7v8a4 4 0 0 1-4 4H10" />
+    </IconBase>
+  );
+}
+
 /** Ações de listagem — baixar arquivo (ex.: XML). */
 export function IconDownload({ className }: IconProps) {
   return (

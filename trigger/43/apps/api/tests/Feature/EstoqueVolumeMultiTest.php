@@ -264,8 +264,9 @@ class EstoqueVolumeMultiTest extends TestCase
     public function test_seed_enderecos_e_vinculo_etiqueta(): void
     {
         $out = app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
-        $this->assertSame(96, $out['total']);
-        $this->assertSame(96, EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->count());
+        $this->assertSame(72, $out['total']);
+        $this->assertSame(72, EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count());
+        $this->assertSame(0, $out['desativados']);
 
         $lote = EstoqueLote::query()->create([
             'empresa_id' => $this->empresa->id,
@@ -280,7 +281,7 @@ class EstoqueVolumeMultiTest extends TestCase
 
         $end = EstoqueEndereco::query()
             ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P01-C01-V01')
+            ->where('codigo', 'P01-C01-L01')
             ->firstOrFail();
 
         $this->withHeaders($this->h)
@@ -288,7 +289,7 @@ class EstoqueVolumeMultiTest extends TestCase
                 'endereco_id' => $end->id,
             ])
             ->assertOk()
-            ->assertJsonPath('data.endereco.codigo', 'P01-C01-V01');
+            ->assertJsonPath('data.endereco.codigo', 'P01-C01-L01');
 
         $this->withHeaders($this->h)
             ->getJson("/api/v1/estoque/lotes/{$lote->id}/etiqueta")
@@ -307,7 +308,14 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->withHeaders($this->h)
             ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($endPayload))
             ->assertOk()
-            ->assertJsonPath('data.codigo', 'P01-C01-V01');
+            ->assertJsonPath('data.codigo', 'P01-C01-L01');
+
+        // QR legado Vxx ainda resolve após migração Lxx (mesmo id/slot).
+        $legadoPayload = 'END:'.$this->empresa->id.':'.$end->id.':'.EstoqueEndereco::codigoLegadoDe(1, 1, 1);
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($legadoPayload))
+            ->assertOk()
+            ->assertJsonPath('data.codigo', 'P01-C01-L01');
 
         $lote2 = EstoqueLote::query()->create([
             'empresa_id' => $this->empresa->id,
@@ -322,7 +330,7 @@ class EstoqueVolumeMultiTest extends TestCase
 
         $end2 = EstoqueEndereco::query()
             ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P02-C03-V04')
+            ->where('codigo', 'P02-C03-L03')
             ->firstOrFail();
 
         $this->withHeaders($this->h)
@@ -331,12 +339,37 @@ class EstoqueVolumeMultiTest extends TestCase
                 'endereco_qr' => $end2->qrPayload(),
             ])
             ->assertOk()
-            ->assertJsonPath('data.endereco.codigo', 'P02-C03-V04');
+            ->assertJsonPath('data.endereco.codigo', 'P02-C03-L03');
 
         $this->withHeaders($this->h)
             ->getJson('/api/v1/estoque/lotes/etiquetas?sem_endereco=1')
             ->assertOk()
             ->assertJsonPath('data.volumes_count', 0);
+
+        // Realinhamento: V04 legado sai do gabarito ativo (sem apagar).
+        EstoqueEndereco::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'P01-C01-V04',
+            'prateleira' => 1,
+            'coluna' => 1,
+            'vao' => 4,
+            'largura_m' => EstoqueEndereco::LARGURA_M,
+            'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
+            'altura_m' => EstoqueEndereco::ALTURA_M,
+            'ativo' => true,
+        ]);
+        $realinhado = app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+        $this->assertSame(1, $realinhado['desativados']);
+        $this->assertFalse(
+            (bool) EstoqueEndereco::query()
+                ->where('empresa_id', $this->empresa->id)
+                ->where('codigo', 'P01-C01-V04')
+                ->value('ativo')
+        );
+        $this->assertSame(
+            72,
+            EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
+        );
     }
 
     public function test_catalogo_exact_tem_4_insumos(): void

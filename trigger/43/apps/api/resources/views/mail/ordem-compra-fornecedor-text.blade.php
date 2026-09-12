@@ -30,6 +30,11 @@ Previsão de entrega: {{ $previsao_entrega }}
 Itens
 @foreach ($itens as $item)
 - {{ $item['codigo'] }} — {{ $item['descricao'] }} | {{ $item['qtde'] }} {{ $item['unidade'] }} × {{ $item['valor_unitario'] }} = {{ $item['valor_total'] }}@if (!empty($item['valor_ipi']) && (float) $item['valor_ipi'] > 0) | IPI {{ $item['valor_ipi'] }}@if (!empty($item['aliq_ipi'])) ({{ $item['aliq_ipi'] }}%)@endif @endif@if (!empty($item['valor_icms']) && (float) $item['valor_icms'] > 0) | ICMS {{ $item['valor_icms'] }}@if (!empty($item['aliq_icms'])) ({{ $item['aliq_icms'] }}%)@endif @endif
+@if (!empty($item['composicao']))
+@foreach ($item['composicao'] as $faixa)
+  · {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} bob. × {{ $faixa['comprimento_m'] }} m = {{ $faixa['area_m2'] }} m²
+@endforeach
+@endif
 
 @endforeach
 

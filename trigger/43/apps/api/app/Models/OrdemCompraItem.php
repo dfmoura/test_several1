@@ -55,4 +55,11 @@ class OrdemCompraItem extends Model
     {
         return $this->hasMany(EstoqueMovimentoItem::class, 'ordem_compra_item_id');
     }
+
+    public function composicoes(): HasMany
+    {
+        return $this->hasMany(OrdemCompraItemComposicao::class, 'ordem_compra_item_id')
+            ->orderBy('ordem')
+            ->orderBy('id');
+    }
 }

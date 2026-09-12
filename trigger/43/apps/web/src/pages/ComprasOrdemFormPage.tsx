@@ -12,7 +12,19 @@ import {
   type Produto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { DECIMAL_SCALE, formatCurrency } from '../lib/format';
+import {
+  areaM2FromFaixaOc,
+  clampDecimalScale,
+  DECIMAL_SCALE,
+  formatCurrency,
+} from '../lib/format';
+import { qtdeComercialFromAreaM2 } from '../lib/ocComposicaoVolumes';
+
+type FaixaRow = {
+  largura_mm: string;
+  quantidade: string;
+  comprimento_m: string;
+};
 
 type ItemRow = {
   produto_id: string;
@@ -20,7 +32,23 @@ type ItemRow = {
   valor_unitario: string;
   aliq_ipi: string;
   aliq_icms: string;
+  composicao: FaixaRow[];
 };
+
+function emptyItem(): ItemRow {
+  return {
+    produto_id: '',
+    qtde_pedida: '',
+    valor_unitario: '',
+    aliq_ipi: '',
+    aliq_icms: '',
+    composicao: [],
+  };
+}
+
+function emptyFaixa(): FaixaRow {
+  return { largura_mm: '', quantidade: '', comprimento_m: '1000' };
+}
 
 function aliqFromSugestao(raw: string | null | undefined): string {
   if (raw == null || raw === '') return '';
@@ -67,14 +95,39 @@ function money2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
-function lineMercadoria(row: ItemRow): number {
-  return money2(parseNum(row.qtde_pedida) * parseNum(row.valor_unitario));
+function qtdeEfetiva(row: ItemRow, produto?: Produto | null): string {
+  if (row.composicao.length === 0) return row.qtde_pedida;
+  let sum = 0;
+  for (const f of row.composicao) {
+    const area = areaM2FromFaixaOc(f.largura_mm, f.quantidade, f.comprimento_m);
+    if (area) sum += Number(area);
+  }
+  if (!(sum > 0)) return '';
+  return (
+    qtdeComercialFromAreaM2(sum, {
+      unidade_comercial: produto?.unidade_comercial,
+      unidade_interna: produto?.unidade_interna,
+      fator_conversao: produto?.fator_conversao,
+    }) || ''
+  );
+}
+
+function lineMercadoria(row: ItemRow, produto?: Produto | null): number {
+  return money2(parseNum(qtdeEfetiva(row, produto)) * parseNum(row.valor_unitario));
 }
 
 function lineImposto(base: number, aliq: string): number {
   const a = parseNum(aliq);
   if (a <= 0) return 0;
   return money2(base * (a / 100));
+}
+
+function faixaCompleta(f: FaixaRow): boolean {
+  return (
+    parseNum(f.largura_mm) > 0 &&
+    parseNum(f.quantidade) > 0 &&
+    parseNum(f.comprimento_m) > 0
+  );
 }
 
 export function ComprasOrdemFormPage() {
@@ -90,9 +143,7 @@ export function ComprasOrdemFormPage() {
   const [previsao, setPrevisao] = useState('');
   const [observacao, setObservacao] = useState('');
   const [valorFrete, setValorFrete] = useState('');
-  const [itens, setItens] = useState<ItemRow[]>([
-    { produto_id: '', qtde_pedida: '', valor_unitario: '', aliq_ipi: '', aliq_icms: '' },
-  ]);
+  const [itens, setItens] = useState<ItemRow[]>([emptyItem()]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit);
@@ -102,8 +153,9 @@ export function ComprasOrdemFormPage() {
     let ipi = 0;
     let icms = 0;
     for (const row of itens) {
-      if (!row.produto_id || !row.qtde_pedida || !row.valor_unitario) continue;
-      const base = lineMercadoria(row);
+      const produto = produtos.find((p) => String(p.id) === row.produto_id) ?? null;
+      if (!row.produto_id || !qtdeEfetiva(row, produto) || !row.valor_unitario) continue;
+      const base = lineMercadoria(row, produto);
       mercadoria = money2(mercadoria + base);
       ipi = money2(ipi + lineImposto(base, row.aliq_ipi));
       icms = money2(icms + lineImposto(base, row.aliq_icms));
@@ -116,7 +168,10 @@ export function ComprasOrdemFormPage() {
       frete,
       previsto: money2(mercadoria + ipi + frete),
     };
-  }, [itens, valorFrete]);
+  }, [itens, valorFrete, produtos]);
+
+  const produtoOf = (row: ItemRow) =>
+    produtos.find((p) => String(p.id) === row.produto_id) ?? null;
 
   useEffect(() => {
     void (async () => {
@@ -166,6 +221,11 @@ export function ComprasOrdemFormPage() {
             valor_unitario: i.valor_unitario,
             aliq_ipi: i.aliq_ipi != null && Number(i.aliq_ipi) > 0 ? String(i.aliq_ipi) : '',
             aliq_icms: i.aliq_icms != null && Number(i.aliq_icms) > 0 ? String(i.aliq_icms) : '',
+            composicao: (i.composicao ?? []).map((c) => ({
+              largura_mm: clampDecimalScale(c.largura_mm, DECIMAL_SCALE.dim),
+              quantidade: clampDecimalScale(c.quantidade, DECIMAL_SCALE.qty),
+              comprimento_m: clampDecimalScale(c.comprimento_m, DECIMAL_SCALE.dim),
+            })),
           })),
         );
       } catch (err) {
@@ -194,7 +254,12 @@ export function ComprasOrdemFormPage() {
 
   const onProdutoChange = (idx: number, produtoId: string) => {
     const next = [...itens];
-    next[idx] = { ...itens[idx], produto_id: produtoId, aliq_ipi: '', aliq_icms: '' };
+    const row = { ...itens[idx], produto_id: produtoId, aliq_ipi: '', aliq_icms: '' };
+    const produto = produtos.find((p) => String(p.id) === produtoId) ?? null;
+    next[idx] =
+      row.composicao.length > 0
+        ? { ...row, qtde_pedida: qtdeEfetiva(row, produto) }
+        : row;
     setItens(next);
     if (!fornecedor || !produtoId) return;
     void (async () => {
@@ -205,6 +270,18 @@ export function ComprasOrdemFormPage() {
         /* best-effort */
       }
     })();
+  };
+
+  const patchFaixa = (itemIdx: number, faixaIdx: number, patch: Partial<FaixaRow>) => {
+    const next = [...itens];
+    const composicao = [...next[itemIdx].composicao];
+    composicao[faixaIdx] = { ...composicao[faixaIdx], ...patch };
+    const row = { ...next[itemIdx], composicao };
+    next[itemIdx] = {
+      ...row,
+      qtde_pedida: qtdeEfetiva(row, produtoOf(row)),
+    };
+    setItens(next);
   };
 
   const submit = async (e: FormEvent) => {
@@ -226,14 +303,33 @@ export function ComprasOrdemFormPage() {
         observacao: observacao || null,
         valor_frete: valorFrete.trim() !== '' ? valorFrete : null,
         itens: itens
-          .filter((i) => i.produto_id && i.qtde_pedida && i.valor_unitario)
-          .map((i) => ({
-            produto_id: Number(i.produto_id),
-            qtde_pedida: i.qtde_pedida,
-            valor_unitario: i.valor_unitario,
-            aliq_ipi: i.aliq_ipi.trim() !== '' ? i.aliq_ipi : null,
-            aliq_icms: i.aliq_icms.trim() !== '' ? i.aliq_icms : null,
-          })),
+          .filter((i) => {
+            if (!i.produto_id || !i.valor_unitario) return false;
+            if (i.composicao.length > 0) return i.composicao.every(faixaCompleta);
+            return Boolean(i.qtde_pedida);
+          })
+          .map((i) => {
+            const base = {
+              produto_id: Number(i.produto_id),
+              valor_unitario: i.valor_unitario,
+              aliq_ipi: i.aliq_ipi.trim() !== '' ? i.aliq_ipi : null,
+              aliq_icms: i.aliq_icms.trim() !== '' ? i.aliq_icms : null,
+            };
+            if (i.composicao.length > 0) {
+              return {
+                ...base,
+                composicao: i.composicao.map((f) => ({
+                  largura_mm: clampDecimalScale(f.largura_mm, DECIMAL_SCALE.dim),
+                  quantidade: clampDecimalScale(f.quantidade, DECIMAL_SCALE.qty),
+                  comprimento_m: clampDecimalScale(f.comprimento_m, DECIMAL_SCALE.dim),
+                })),
+              };
+            }
+            return {
+              ...base,
+              qtde_pedida: i.qtde_pedida,
+            };
+          }),
       };
       const res = isEdit
         ? await api.put<{ data: { id: number } }>(`/ordens-compra/${id}`, payload)
@@ -252,8 +348,8 @@ export function ComprasOrdemFormPage() {
         title={isEdit ? 'Editar ordem de compra' : 'Nova ordem de compra'}
         description={
           isEdit
-            ? 'IPI/ICMS preenchem sozinhos (histórico NF ou UF×UF). Frete informado. Rascunho editável.'
-            : 'IPI/ICMS automáticos ao escolher fornecedor e produto. Frete informado. Salve em rascunho.'
+            ? 'Bobina: detalhe L×qtd×metragem (m² derivado). IPI/ICMS auto. Rascunho editável.'
+            : 'Bobina: peça por largura × bobinas × comprimento. m² fecha sozinho. Salve em rascunho.'
         }
         actions={
           <Link
@@ -338,100 +434,248 @@ export function ComprasOrdemFormPage() {
               <div className="form-section">
                 <h3>Itens</h3>
                 {itens.map((row, idx) => {
-                  const base = lineMercadoria(row);
+                  const produto = produtoOf(row);
+                  const qtde = qtdeEfetiva(row, produto);
+                  const base = lineMercadoria(row, produto);
                   const ipi = lineImposto(base, row.aliq_ipi);
                   const icms = lineImposto(base, row.aliq_icms);
+                  const temComposicao = row.composicao.length > 0;
+                  const unCom = (produto?.unidade_comercial || 'un.').toUpperCase();
                   return (
-                    <div className="form-grid" key={idx} style={{ marginBottom: '0.75rem' }}>
-                      <div className="form-group span-2">
-                        <label>Produto</label>
-                        <select
-                          required
-                          value={row.produto_id}
-                          onChange={(e) => onProdutoChange(idx, e.target.value)}
-                        >
-                          <option value="">Selecione…</option>
-                          {produtos.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.codigo} — {p.descricao_comercial || p.descricao_fiscal}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Qtde (un. comercial)</label>
-                        <input
-                          required
-                          inputMode="decimal"
-                          value={row.qtde_pedida}
-                          onChange={(e) => {
-                            const next = [...itens];
-                            next[idx] = { ...row, qtde_pedida: e.target.value };
-                            setItens(next);
-                          }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Valor unitário</label>
-                        <input
-                          required
-                          inputMode="decimal"
-                          value={row.valor_unitario}
-                          onChange={(e) => {
-                            const next = [...itens];
-                            next[idx] = { ...row, valor_unitario: e.target.value };
-                            setItens(next);
-                          }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Alíq. IPI % (auto)</label>
-                        <input
-                          inputMode="decimal"
-                          value={row.aliq_ipi}
-                          onChange={(e) => {
-                            const next = [...itens];
-                            next[idx] = { ...row, aliq_ipi: e.target.value };
-                            setItens(next);
-                          }}
-                          placeholder="auto"
-                        />
-                        <span className="form-hint">
-                          {ipi > 0
-                            ? `IPI ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
-                            : 'Histórico NF ou vazio'}
-                        </span>
-                      </div>
-                      <div className="form-group">
-                        <label>Alíq. ICMS % (auto)</label>
-                        <input
-                          inputMode="decimal"
-                          value={row.aliq_icms}
-                          onChange={(e) => {
-                            const next = [...itens];
-                            next[idx] = { ...row, aliq_icms: e.target.value };
-                            setItens(next);
-                          }}
-                          placeholder="auto"
-                        />
-                        <span className="form-hint">
-                          {icms > 0
-                            ? `ICMS ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))} (destaque)`
-                            : 'UF×UF / histórico · não soma no total'}
-                        </span>
-                      </div>
-                      {itens.length > 1 && (
+                    <div key={idx} style={{ marginBottom: '1rem' }}>
+                      <div className="form-grid" style={{ marginBottom: '0.5rem' }}>
+                        <div className="form-group span-2">
+                          <label>Produto</label>
+                          <select
+                            required
+                            value={row.produto_id}
+                            onChange={(e) => onProdutoChange(idx, e.target.value)}
+                          >
+                            <option value="">Selecione…</option>
+                            {produtos.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.codigo} — {p.descricao_comercial || p.descricao_fiscal}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                         <div className="form-group">
-                          <label>&nbsp;</label>
+                          <label>
+                            Qtde ({unCom})
+                            {temComposicao ? ' · via faixas' : ''}
+                          </label>
+                          <input
+                            required={!temComposicao}
+                            inputMode="decimal"
+                            value={temComposicao ? qtde : row.qtde_pedida}
+                            readOnly={temComposicao}
+                            onChange={(e) => {
+                              if (temComposicao) return;
+                              const next = [...itens];
+                              next[idx] = { ...row, qtde_pedida: e.target.value };
+                              setItens(next);
+                            }}
+                          />
+                          {temComposicao ? (
+                            <span className="form-hint">Derivada das faixas abaixo · não editar.</span>
+                          ) : (
+                            <span className="form-hint">
+                              Ou use detalhe L×bobinas×metragem (bobina / Exact).
+                            </span>
+                          )}
+                        </div>
+                        <div className="form-group">
+                          <label>Valor unitário</label>
+                          <input
+                            required
+                            inputMode="decimal"
+                            value={row.valor_unitario}
+                            onChange={(e) => {
+                              const next = [...itens];
+                              next[idx] = { ...row, valor_unitario: e.target.value };
+                              setItens(next);
+                            }}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Alíq. IPI % (auto)</label>
+                          <input
+                            inputMode="decimal"
+                            value={row.aliq_ipi}
+                            onChange={(e) => {
+                              const next = [...itens];
+                              next[idx] = { ...row, aliq_ipi: e.target.value };
+                              setItens(next);
+                            }}
+                            placeholder="auto"
+                          />
+                          <span className="form-hint">
+                            {ipi > 0
+                              ? `IPI ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
+                              : 'Histórico NF ou vazio'}
+                          </span>
+                        </div>
+                        <div className="form-group">
+                          <label>Alíq. ICMS % (auto)</label>
+                          <input
+                            inputMode="decimal"
+                            value={row.aliq_icms}
+                            onChange={(e) => {
+                              const next = [...itens];
+                              next[idx] = { ...row, aliq_icms: e.target.value };
+                              setItens(next);
+                            }}
+                            placeholder="auto"
+                          />
+                          <span className="form-hint">
+                            {icms > 0
+                              ? `ICMS ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))} (destaque)`
+                              : 'UF×UF / histórico · não soma no total'}
+                          </span>
+                        </div>
+                        {itens.length > 1 && (
+                          <div className="form-group">
+                            <label>&nbsp;</label>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setItens(itens.filter((_, i) => i !== idx))}
+                            >
+                              Remover item
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="oc-volumes-panel">
+                        <div className="oc-volumes-panel__bar">
+                          <strong>
+                            Detalhe do pedido
+                            {temComposicao ? ` (${row.composicao.length})` : ''}
+                          </strong>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            onClick={() => setItens(itens.filter((_, i) => i !== idx))}
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              const next = [...itens];
+                              const composicao = [...next[idx].composicao, emptyFaixa()];
+                              const rowNext = { ...next[idx], composicao };
+                              next[idx] = {
+                                ...rowNext,
+                                qtde_pedida: qtdeEfetiva(rowNext, produtoOf(rowNext)),
+                              };
+                              setItens(next);
+                            }}
                           >
-                            Remover
+                            + faixa
                           </button>
                         </div>
-                      )}
+                        {!temComposicao ? (
+                          <p className="form-hint oc-volumes-panel__hint">
+                            Para bobina/Exact: informe largura × qtd. de bobinas × comprimento.
+                            A qtde comercial (M2 ou KG via fator) e o e-mail ao fornecedor usam este
+                            detalhe. Itens sem faixa (ex. tubete, caixa) seguem só a qtde acima.
+                          </p>
+                        ) : (
+                          <div className="oc-volumes-scroll">
+                            <table className="oc-volumes-table">
+                              <thead>
+                                <tr>
+                                  <th className="col-idx">#</th>
+                                  <th className="col-num">Largura mm</th>
+                                  <th className="col-num">Qtd bobinas</th>
+                                  <th className="col-num">Comp. m</th>
+                                  <th className="col-num">m²</th>
+                                  <th className="col-acoes" />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {row.composicao.map((faixa, fIdx) => {
+                                  const area = areaM2FromFaixaOc(
+                                    faixa.largura_mm,
+                                    faixa.quantidade,
+                                    faixa.comprimento_m,
+                                  );
+                                  return (
+                                    <tr key={`${idx}-fx-${fIdx}`}>
+                                      <td className="col-idx">{fIdx + 1}</td>
+                                      <td className="col-num">
+                                        <input
+                                          inputMode="decimal"
+                                          required
+                                          placeholder="110"
+                                          value={faixa.largura_mm}
+                                          onChange={(e) =>
+                                            patchFaixa(idx, fIdx, {
+                                              largura_mm: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </td>
+                                      <td className="col-num">
+                                        <input
+                                          inputMode="decimal"
+                                          required
+                                          placeholder="9"
+                                          value={faixa.quantidade}
+                                          onChange={(e) =>
+                                            patchFaixa(idx, fIdx, {
+                                              quantidade: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </td>
+                                      <td className="col-num">
+                                        <input
+                                          inputMode="decimal"
+                                          required
+                                          placeholder="1000"
+                                          value={faixa.comprimento_m}
+                                          onChange={(e) =>
+                                            patchFaixa(idx, fIdx, {
+                                              comprimento_m: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </td>
+                                      <td className="col-num">
+                                        <span className="muted">{area || '—'}</span>
+                                      </td>
+                                      <td className="col-acoes">
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          onClick={() => {
+                                            const next = [...itens];
+                                            const composicao = next[idx].composicao.filter(
+                                              (_, i) => i !== fIdx,
+                                            );
+                                            const rowNext = { ...next[idx], composicao };
+                                            next[idx] = {
+                                              ...rowNext,
+                                              qtde_pedida:
+                                                composicao.length > 0
+                                                  ? qtdeEfetiva(rowNext, produtoOf(rowNext))
+                                                  : next[idx].qtde_pedida,
+                                            };
+                                            setItens(next);
+                                          }}
+                                        >
+                                          Remover
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            <p className="form-hint oc-volumes-panel__hint">
+                              m² faixa = (largura÷1000) × comprimento × bobinas · soma = qtde da
+                              linha · vai na ficha e no e-mail ao fornecedor.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -439,18 +683,7 @@ export function ComprasOrdemFormPage() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() =>
-                      setItens([
-                        ...itens,
-                        {
-                          produto_id: '',
-                          qtde_pedida: '',
-                          valor_unitario: '',
-                          aliq_ipi: '',
-                          aliq_icms: '',
-                        },
-                      ])
-                    }
+                    onClick={() => setItens([...itens, emptyItem()])}
                   >
                     + Item
                   </button>

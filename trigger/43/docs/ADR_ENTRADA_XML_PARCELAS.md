@@ -61,4 +61,8 @@ XML preview
 2. Segundo writer de saldo paralelo a `receber()`.  
 3. Usar `2.01` no TIT de compra de estoque.  
 4. Apagar TIT ao estornar MOV sem fluxo auditável (futuro).  
-5. Tratar divergência estoque×pagar como bug quando IPI/frete explicam a diferença.
+5. Tratar divergência estoque×pagar como bug quando IPI/frete explicam a diferença — ou quando a NF cobra o pedido e o físico veio a menos (OC parcial; TIT = parcelas).
+
+## Emenda 2026-09-12 — UX conferência
+
+Copy de `PARCELAS_VS_OC` e a UI de receber deixam explícito: **pagar = NF; estoque = conferido**. Hierarquia visual: `ADR_ENTRADA_XML_ASSIST.md` (emenda hierarquia UX).

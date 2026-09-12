@@ -6,10 +6,13 @@ use App\Models\CompraNecessidade;
 use App\Models\Empresa;
 use App\Models\OrdemCompra;
 use App\Models\OrdemCompraItem;
+use App\Models\OrdemCompraItemComposicao;
 use App\Models\Parceiro;
 use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Fiscal\NfeEntradaService;
+use App\Support\BobinaAreaComercial;
+use App\Support\NfeExactDimensoes;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +34,7 @@ class OrdemCompraService
             ->with([
                 'fornecedor:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone',
                 'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia',
+                'itens.composicoes',
                 ...OrdemCompra::userStampWith(),
             ])
             ->where('empresa_id', $empresa->id)
@@ -118,10 +122,7 @@ class OrdemCompraService
             ]);
 
             foreach ($itensPayload as $item) {
-                OrdemCompraItem::query()->create([
-                    'ordem_compra_id' => $oc->id,
-                    ...$item,
-                ]);
+                $this->persistItem($oc->id, $item);
             }
 
             if ($necessidade && $necessidade->status === CompraNecessidade::STATUS_ABERTA) {
@@ -172,10 +173,7 @@ class OrdemCompraService
 
             $oc->itens()->delete();
             foreach ($itensPayload as $item) {
-                OrdemCompraItem::query()->create([
-                    'ordem_compra_id' => $oc->id,
-                    ...$item,
-                ]);
+                $this->persistItem($oc->id, $item);
             }
         });
 
@@ -231,6 +229,7 @@ class OrdemCompraService
         $oc->load([
             'fornecedor',
             'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias,ncm,origem,cest',
+            'itens.composicoes',
             'necessidade:id,codigo,status',
             'cotacao:id,codigo,status',
             'movimentos.nfeEntrada.itens',
@@ -285,6 +284,7 @@ class OrdemCompraService
         $oc->loadMissing([
             'fornecedor',
             'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias,ncm,origem,cest',
+            'itens.composicoes',
             'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep,ie,crt,regime',
             ...OrdemCompra::userStampWith(),
         ]);
@@ -403,6 +403,16 @@ class OrdemCompraService
                 'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($item->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
                 'valor_icms' => PadraoDecimal::roundHalfUp((string) ($item->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
                 'ordem' => (int) $item->ordem,
+                'composicao' => $item->relationLoaded('composicoes')
+                    ? $item->composicoes->map(fn (OrdemCompraItemComposicao $c) => [
+                        'id' => $c->id,
+                        'ordem' => (int) $c->ordem,
+                        'largura_mm' => PadraoDecimal::roundHalfUp((string) $c->largura_mm, PadraoDecimal::SCALE_DIM),
+                        'quantidade' => PadraoDecimal::roundHalfUp((string) $c->quantidade, PadraoDecimal::SCALE_QTY),
+                        'comprimento_m' => PadraoDecimal::roundHalfUp((string) $c->comprimento_m, PadraoDecimal::SCALE_DIM),
+                        'area_m2' => PadraoDecimal::roundHalfUp((string) $c->area_m2, PadraoDecimal::SCALE_QTY),
+                    ])->values()->all()
+                    : [],
             ])->values()->all(),
             'created_at' => optional($oc->created_at)?->toIso8601String(),
             'updated_at' => optional($oc->updated_at)?->toIso8601String(),
@@ -428,6 +438,42 @@ class OrdemCompraService
                 ],
             ]);
         }
+    }
+
+    /**
+     * @param  array{
+     *   produto_id: int,
+     *   qtde_pedida: string,
+     *   qtde_recebida: string,
+     *   unidade: string,
+     *   valor_unitario: string,
+     *   valor_total: string,
+     *   aliq_ipi: ?string,
+     *   aliq_icms: ?string,
+     *   valor_ipi: string,
+     *   valor_icms: string,
+     *   ordem: int,
+     *   _composicao: list<array{ordem: int, largura_mm: string, quantidade: string, comprimento_m: string, area_m2: string}>
+     * }  $item
+     */
+    private function persistItem(int $ordemCompraId, array $item): OrdemCompraItem
+    {
+        $composicao = $item['_composicao'] ?? [];
+        unset($item['_composicao']);
+
+        $created = OrdemCompraItem::query()->create([
+            'ordem_compra_id' => $ordemCompraId,
+            ...$item,
+        ]);
+
+        foreach ($composicao as $faixa) {
+            OrdemCompraItemComposicao::query()->create([
+                'ordem_compra_item_id' => $created->id,
+                ...$faixa,
+            ]);
+        }
+
+        return $created;
     }
 
     /**
@@ -459,12 +505,30 @@ class OrdemCompraService
         $ordem = 1;
         foreach ($itens as $idx => $raw) {
             $produto = $this->assertProdutoEstocavel($empresa, (int) $raw['produto_id'], "itens.{$idx}.produto_id");
-            $qtde = PadraoDecimal::parseStrict($raw['qtde_pedida'], PadraoDecimal::SCALE_QTY);
+            $composicao = $this->normalizeComposicao($raw['composicao'] ?? null, $idx);
+
+            if ($composicao !== []) {
+                $areaM2 = '0';
+                foreach ($composicao as $faixa) {
+                    $areaM2 = bcadd($areaM2, $faixa['area_m2'], PadraoDecimal::SCALE_QTY + 2);
+                }
+                $areaM2 = PadraoDecimal::roundHalfUp($areaM2, PadraoDecimal::SCALE_QTY);
+                $qtde = BobinaAreaComercial::fromAreaM2(
+                    $produto,
+                    $areaM2,
+                    "itens.{$idx}.composicao"
+                );
+            } else {
+                $qtde = PadraoDecimal::parseStrict($raw['qtde_pedida'] ?? null, PadraoDecimal::SCALE_QTY);
+            }
+
             $valorUnit = PadraoDecimal::parseStrict($raw['valor_unitario'], PadraoDecimal::SCALE_UNIT_PRICE);
 
             if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
-                    "itens.{$idx}.qtde_pedida" => ['Quantidade pedida deve ser maior que zero.'],
+                    "itens.{$idx}.qtde_pedida" => $composicao !== []
+                        ? ['Composição deve totalizar quantidade maior que zero.']
+                        : ['Quantidade pedida deve ser maior que zero.'],
                 ]);
             }
 
@@ -504,8 +568,75 @@ class OrdemCompraService
                 'valor_ipi' => $valorIpi,
                 'valor_icms' => $valorIcms,
                 'ordem' => (int) ($raw['ordem'] ?? $ordem),
+                '_composicao' => $composicao,
             ];
             $ordem++;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  mixed  $rawFaixas
+     * @return list<array{ordem: int, largura_mm: string, quantidade: string, comprimento_m: string, area_m2: string}>
+     */
+    private function normalizeComposicao(mixed $rawFaixas, int $itemIdx): array
+    {
+        if ($rawFaixas === null || $rawFaixas === []) {
+            return [];
+        }
+        if (! is_array($rawFaixas)) {
+            throw ValidationException::withMessages([
+                "itens.{$itemIdx}.composicao" => ['Composição inválida.'],
+            ]);
+        }
+
+        $out = [];
+        $ordemFaixa = 1;
+        foreach ($rawFaixas as $fIdx => $raw) {
+            if (! is_array($raw)) {
+                throw ValidationException::withMessages([
+                    "itens.{$itemIdx}.composicao.{$fIdx}" => ['Faixa inválida.'],
+                ]);
+            }
+
+            $largura = PadraoDecimal::parseStrict($raw['largura_mm'] ?? null, PadraoDecimal::SCALE_DIM);
+            $quantidade = PadraoDecimal::parseStrict($raw['quantidade'] ?? null, PadraoDecimal::SCALE_QTY);
+            $comprimento = PadraoDecimal::parseStrict($raw['comprimento_m'] ?? null, PadraoDecimal::SCALE_DIM);
+
+            if ($largura === null || bccomp($largura, '0', PadraoDecimal::SCALE_DIM) <= 0) {
+                throw ValidationException::withMessages([
+                    "itens.{$itemIdx}.composicao.{$fIdx}.largura_mm" => ['Largura deve ser maior que zero.'],
+                ]);
+            }
+            if ($quantidade === null || bccomp($quantidade, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    "itens.{$itemIdx}.composicao.{$fIdx}.quantidade" => ['Quantidade de bobinas deve ser maior que zero.'],
+                ]);
+            }
+            if ($comprimento === null || bccomp($comprimento, '0', PadraoDecimal::SCALE_DIM) <= 0) {
+                throw ValidationException::withMessages([
+                    "itens.{$itemIdx}.composicao.{$fIdx}.comprimento_m" => ['Comprimento deve ser maior que zero.'],
+                ]);
+            }
+
+            $largura = PadraoDecimal::roundHalfUp($largura, PadraoDecimal::SCALE_DIM);
+            $quantidade = PadraoDecimal::roundHalfUp($quantidade, PadraoDecimal::SCALE_QTY);
+            $comprimento = PadraoDecimal::roundHalfUp($comprimento, PadraoDecimal::SCALE_DIM);
+            $areaUnit = NfeExactDimensoes::areaM2($largura, $comprimento);
+            $area = PadraoDecimal::roundHalfUp(
+                bcmul($quantidade, $areaUnit, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+
+            $out[] = [
+                'ordem' => (int) ($raw['ordem'] ?? $ordemFaixa),
+                'largura_mm' => $largura,
+                'quantidade' => $quantidade,
+                'comprimento_m' => $comprimento,
+                'area_m2' => $area,
+            ];
+            $ordemFaixa++;
         }
 
         return $out;

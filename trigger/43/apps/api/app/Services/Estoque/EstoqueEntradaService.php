@@ -13,6 +13,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Compras\DfeAmarrarService;
 use App\Services\Financeiro\TituloService;
 use App\Services\Fiscal\NfeEntradaService;
+use App\Support\OcReceberDivergencia;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -81,6 +82,8 @@ class EstoqueEntradaService
             }
         }
 
+        OcReceberDivergencia::assertAntesDeReceber($empresa, $data);
+
         $itensRaw = $data['itens'] ?? [];
         if ($itensRaw === []) {
             throw ValidationException::withMessages([
@@ -117,7 +120,10 @@ class EstoqueEntradaService
                 'nf_totais' => $this->normalizeNfTotais($data['nf_totais'] ?? null),
                 'conferido_em' => now(),
                 'conferido_por' => Auth::id(),
-                'observacao' => $this->nullIfEmpty($data['observacao'] ?? null),
+                'observacao' => OcReceberDivergencia::textoObservacaoMov(
+                    $data,
+                    is_string($data['observacao'] ?? null) ? $data['observacao'] : null
+                ),
             ]);
 
             $valorTitulo = '0';

@@ -91,6 +91,19 @@
                       <td style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">
                         <strong>{{ $item['codigo'] }}</strong><br>
                         <span style="color:#57534e;">{{ $item['descricao'] }}</span>
+                        @if (!empty($item['composicao']))
+                          <div style="margin-top:6px;font-size:12px;color:#57534e;">
+                            <strong>Detalhe do pedido</strong>
+                            <ul style="margin:4px 0 0;padding-left:18px;">
+                              @foreach ($item['composicao'] as $faixa)
+                                <li>
+                                  {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} bob. × {{ $faixa['comprimento_m'] }} m
+                                  = {{ $faixa['area_m2'] }} m²
+                                </li>
+                              @endforeach
+                            </ul>
+                          </div>
+                        @endif
                       </td>
                       <td align="right" style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">{{ $item['qtde'] }}</td>
                       <td style="padding:8px;border-bottom:1px solid #f5f5f4;vertical-align:top;">{{ $item['unidade'] }}</td>

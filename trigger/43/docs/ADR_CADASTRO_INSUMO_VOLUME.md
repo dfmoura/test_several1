@@ -14,7 +14,7 @@ O cadastro de insumos de bobina (papel/filme Exact, Colacril, etc.) mistura trê
 
 1. **O que se compra** (código/descrição do fornecedor → SKU interno)  
 2. **O que se manuseia** (cada bobina / `nLote` / volume físico)  
-3. **Onde se guarda** (prateleira / coluna / vão)
+3. **Onde se guarda** (prateleira / coluna / local — domínio interno: `vao`)
 
 Evidência Avery NF 889523 (`AAS029-EX4` FASSON ECOPRINT/S2045N/60G – EXACT 1000):
 
@@ -52,7 +52,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 | **De-para** | `produto_fornecedor_codigos` | `cProd` + descrição do fornecedor **obrigatórios** — sem isso não há entrada assistida. |
 | **Dimensão nominal** | `produtos.atributos` | `largura_mm` / `comprimento_m` / `gramatura_g_m2` / `programa_compra` = **referência** de OC/conversão — **não** chave do SKU. |
 | **Volume / bobina** | `estoque_lotes` (+ payload futuro) | Unidade física manuseável; para Avery, 1 `nLote` = 1 volume. Dimensão **real** na entrada. |
-| **Localização** | futuro (`estoque_enderecos`) | 6 prateleiras × 4 colunas × 4 vãos (1,50 × 0,60 × 1,00 m). Fora do cadastro de produto. |
+| **Localização** | futuro (`estoque_enderecos`) | 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). UX: **Local/Locais**; domínio: campo `vao`, código `Pxx-Cxx-Lxx` (legado `Vxx` aceito no QR). Fora do cadastro de produto. |
 
 ### Unidades (inalteradas — ADR-039-UNID-001)
 
@@ -164,7 +164,7 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 ### F3 — Etiqueta / QR do volume
 
 - Etiqueta interna (face colável): SKU, descrição, L×C real, `nLote`, NF, data, QR do volume.  
-- **Sem vão na face impressa** — localização é volátil (etiqueta primeiro, Guardar depois; vão pode mudar). Endereço vive no sistema (`estoque_lotes` ↔ `estoque_enderecos`); amarre via tela unitária ou `/estoque/guardar`.  
+- **Sem local na face impressa do volume** — localização é volátil (etiqueta primeiro, Guardar depois; local pode mudar). Endereço vive no sistema (`estoque_lotes` ↔ `estoque_enderecos`); amarre via tela unitária ou `/estoque/guardar`.  
 - Rota `/estoque/lotes/:id/etiqueta`.
 - **Impressora canônica (reimpressão + unitária):** Elgin L42 Pro Full · mídia **50 × 40 mm**. Layout HTML/`@page` 50×40 mm (uma página = uma etiqueta); impressão browser (sem DomPDF / ZPL no monólito). No driver: escala 100%, sem “ajustar à página”.
 - **Ficha de entrada física (pós-receber):** `/estoque/movimentos/:id/ficha-entrada` — cabeçalho OC/NF + todos os volumes com QR + `xPed`/`nFCI` do espelho. Impressão browser (sem DomPDF no monólito). A ficha permanece em folha A4 de conferência; a etiqueta colável na bobina é a face 50×40 mm (unitária ou reimpressão).
@@ -175,28 +175,31 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 - [x] Página de impressão + link na listagem de lotes
 - [x] Ficha de entrada (MOV) com QR por volume + link pós-receber / listagem MOV
 - [x] Unitária + reimpressão calibradas Elgin L42 Pro Full 50×40 mm
-- [x] Face colável sem vão (localização só no sistema / Guardar)
+- [x] Face colável sem local (localização só no sistema / Guardar)
 
 ### F4 — Localização (WMS leve)
 
-- Modelo: 6 prateleiras × 4 colunas × 4 vãos (1,50 × 0,60 × 1,00 m).  
-- QR do vão: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`).  
+- **Vocabulário de produto (UX):** **Local / Locais**. Domínio: coluna `vao` / `VAOS`; código canônico **`Pxx-Cxx-Lxx`** (seed renomeia legado `Vxx`→`Lxx` no mesmo id; QR legado `Vxx` ainda resolve).  
+- Modelo: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — **sem Local 4** / `L04` (72 endereços ativos).  
+- QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`).  
 - Vínculo volume ↔ endereço.  
-- Comando `erp:seed-estoque-enderecos`.
-- **Etiquetas dos vãos:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
-- **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem vão”).  
+- Comando `erp:seed-estoque-enderecos` (cria faltantes; desativa `vao > 3` sem apagar histórico).
+- **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
+  Canônico: **Elgin L42 Pro Full · 50 × 40 mm** (mesmo canal/driver do volume F3; uma face = uma etiqueta).  
+- **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem local”).  
 - **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API):  
-  - **Volume → vão** (padrão): `VOL:…` → `END:…` → `POST /estoque/guardar`.  
-  - **Vão → volume**: `END:…` → `VOL:…` → mesmo POST; o vão permanece para o próximo volume (putaway em lote no mesmo vão).  
+  - **Volume → local** (padrão): `VOL:…` → `END:…` → `POST /estoque/guardar`.  
+  - **Local → volume**: `END:…` → `VOL:…` → mesmo POST; o local permanece para o próximo volume (putaway em lote no mesmo local).  
   Resolve via `GET …/volumes/por-qr` e `GET …/enderecos/por-qr`. Leitor USB / paste. Sem app dedicado (BL-097 fora).
 
 **Aceite F4**
 
-- [x] Tabela `estoque_enderecos` + seed 96 vãos  
-- [x] Vincular lote → vão na etiqueta  
+- [x] Tabela `estoque_enderecos` + seed 72 locais (6×4×3)  
+- [x] Vincular lote → local na etiqueta  
 - [x] PHPUnit gabarito + vínculo  
-- [x] Impressão QR dos vãos + resolve `END:`  
-- [x] Tela Guardar (volume ↔ vão, duas ordens) + reimpressão de volumes
+- [x] Impressão QR dos locais + resolve `END:`  
+- [x] Tela Guardar (volume ↔ local, duas ordens) + reimpressão de volumes
+- [x] UX Local/Locais (domínio `vao` intacto)
 
 ### F5 — Reposição → OC → ciclo fechado
 
@@ -206,7 +209,7 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 **Aceite F5**
 
 - [x] Reposição existente intacta (mínimo → OC)  
-- [x] Ciclo documentado nesta ADR (cadastro Exact + multi-volume + etiqueta + vão)  
+- [x] Ciclo documentado nesta ADR (cadastro Exact + multi-volume + etiqueta + local)  
 - [ ] Operação: ajustar mínimos + primeira virada na EMP
 
 ---

@@ -66,7 +66,7 @@ class LimparEstoqueTest extends TestCase
         if (DB::getSchemaBuilder()->hasTable('estoque_enderecos')) {
             $endId = DB::table('estoque_enderecos')->insertGetId([
                 'empresa_id' => $empresa->id,
-                'codigo' => 'P01-C01-V01',
+                'codigo' => 'P01-C01-L01',
                 'prateleira' => 1,
                 'coluna' => 1,
                 'vao' => 1,

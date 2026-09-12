@@ -15,6 +15,7 @@ import {
   textoBusca,
 } from '../lib/estoqueUi';
 import { familiaLabel, formatCurrency, formatDate, formatQty, formatQtyCompact } from '../lib/format';
+import { IconMapPin, IconRastreio, IconTag } from '../components/NavIcons';
 import { useAuth } from '../lib/auth';
 import { validadeStatusLabel } from '../lib/produtoLotePolitica';
 import { useTableSort } from '../lib/useTableSort';
@@ -54,7 +55,7 @@ const SORT_LOTE = {
 const TAB_HINT: Record<TabId, string> = {
   saldos:
     'Posição oficial por SKU. Selecione a linha para ver o consolidado físico (qtde × volumes).',
-  lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e vão. Consumo FEFO se lote omitido na baixa.',
+  lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA e ajuste aprovado.',
 };
 
@@ -295,7 +296,7 @@ export function EstoquePage() {
         {' · '}
         <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
         {' · '}
-        <Link to="/estoque/enderecos/etiquetas">Etiquetas dos vãos</Link>
+        <Link to="/estoque/enderecos/etiquetas">Etiquetas dos locais</Link>
       </p>
 
       {!loading && (
@@ -621,7 +622,7 @@ export function EstoquePage() {
                     >
                       Situação
                     </SortableTh>
-                    <th>Vão</th>
+                    <th>Local</th>
                     <th className="acoes" />
                   </tr>
                 </thead>
@@ -641,7 +642,7 @@ export function EstoquePage() {
                           <strong>{l.produto?.codigo}</strong>
                         </td>
                         <td>{l.codigo}</td>
-                        <td>
+                        <td className="dimensao">
                           {formatVolumeDimensao(l.largura_mm ?? null, l.comprimento_m ?? null)}
                         </td>
                         <td>{l.data_entrada ? formatDate(l.data_entrada) : '—'}</td>
@@ -664,38 +665,34 @@ export function EstoquePage() {
                           <div className="table-actions">
                             <Link
                               to={`/estoque/lotes/${l.id}/etiqueta`}
-                              className="linkish linkish--meta"
+                              className="btn-icon"
+                              title="Etiqueta do volume"
+                              aria-label={`Etiqueta do volume ${l.codigo}`}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Etiqueta
+                              <IconTag />
                             </Link>
                             {!l.endereco_id ? (
-                              <>
-                                <span className="estoque-acao-sep" aria-hidden>
-                                  ·
-                                </span>
-                                <Link
-                                  to="/estoque/guardar"
-                                  className="linkish linkish--meta"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Guardar
-                                </Link>
-                              </>
+                              <Link
+                                to="/estoque/guardar"
+                                className="btn-icon"
+                                title="Guardar no local"
+                                aria-label={`Guardar volume ${l.codigo} no local`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <IconMapPin />
+                              </Link>
                             ) : null}
                             {hasPermission('producao.ler') || hasPermission('estoque.ler') ? (
-                              <>
-                                <span className="estoque-acao-sep" aria-hidden>
-                                  ·
-                                </span>
-                                <Link
-                                  to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
-                                  className="linkish linkish--meta"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Rastreio
-                                </Link>
-                              </>
+                              <Link
+                                to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
+                                className="btn-icon"
+                                title="Rastreio do volume"
+                                aria-label={`Rastreio do volume ${l.codigo}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <IconRastreio />
+                              </Link>
                             ) : null}
                           </div>
                         </td>
@@ -894,7 +891,7 @@ export function EstoquePage() {
                           {formatQtyCompact(faixa.qtde)}{' '}
                           <span className="table-muted">{faixa.unidade}</span>
                         </td>
-                        <td>
+                        <td className="dimensao">
                           {formatVolumeDimensao(
                             faixa.largura_mm ?? null,
                             faixa.comprimento_m ?? null,

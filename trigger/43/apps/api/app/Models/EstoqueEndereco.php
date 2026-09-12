@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Endereço físico do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Gabarito canônico: 6 prateleiras × 4 colunas × 4 vãos.
+ * Gabarito canônico: 6 prateleiras × 4 colunas × 3 locais (sem Local 4 / L04).
+ * UX: Local/Locais · código: Pxx-Cxx-Lxx · coluna SQL: `vao` (eixo do slot).
  */
 class EstoqueEndereco extends Model
 {
@@ -17,7 +18,12 @@ class EstoqueEndereco extends Model
 
     public const COLUNAS = 4;
 
-    public const VAOS = 4;
+    public const VAOS = 3;
+
+    /** Prefixo do slot no código (Local). Legado impresso: V. */
+    public const PREFIXO_SLOT = 'L';
+
+    public const PREFIXO_SLOT_LEGADO = 'V';
 
     public const LARGURA_M = '1.500';
 
@@ -64,7 +70,25 @@ class EstoqueEndereco extends Model
 
     public static function codigoDe(int $prateleira, int $coluna, int $vao): string
     {
-        return sprintf('P%02d-C%02d-V%02d', $prateleira, $coluna, $vao);
+        return sprintf(
+            'P%02d-C%02d-%s%02d',
+            $prateleira,
+            $coluna,
+            self::PREFIXO_SLOT,
+            $vao
+        );
+    }
+
+    /** Código legado (pré-Local) — Pxx-Cxx-Vxx. */
+    public static function codigoLegadoDe(int $prateleira, int $coluna, int $vao): string
+    {
+        return sprintf(
+            'P%02d-C%02d-%s%02d',
+            $prateleira,
+            $coluna,
+            self::PREFIXO_SLOT_LEGADO,
+            $vao
+        );
     }
 
     public function qrPayload(): string

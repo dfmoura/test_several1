@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe/atualiza SPA Guardar (volume ↔ vão, duas ordens) e deixa pronto para testar.
+# Sobe/atualiza SPA Guardar (volume ↔ local, duas ordens) e deixa pronto para testar.
 # Uso (no host, com Docker): bash scripts/pronto-guardar.sh
 #     ou: make pronto-guardar
 set -euo pipefail
@@ -13,7 +13,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (Guardar no vão) =="
+echo "== Rebuild SPA (Guardar no local) =="
 make web-build
 
 echo "== Health =="
@@ -23,14 +23,14 @@ curl -sfS -o /dev/null -w "SPA HTTP %{http_code}\n" -m 10 http://localhost:8043/
 
 cat <<'EOF'
 
-Pronto para testar Guardar no vão
+Pronto para testar Guardar no local
   App:     http://localhost:8043/estoque/guardar
 
 Roteiro
   1. Login (estoque.escrever)
   2. Estoque → guia Guardar
-  3. Aba "Volume → vão" (padrão): lê VOL, depois END
-  4. Aba "Vão → volume": lê END (vão fica fixo), depois vários VOL
+  3. Aba "Volume → local" (padrão): lê VOL, depois END
+  4. Aba "Local → volume": lê END (local fica fixo), depois vários VOL
   5. Hard refresh (Ctrl+Shift+R) se não ver as abas
 
 EOF

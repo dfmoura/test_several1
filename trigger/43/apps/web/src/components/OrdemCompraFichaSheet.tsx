@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
@@ -252,29 +253,49 @@ export function OrdemCompraFichaSheet({
             </thead>
             <tbody>
               {(oc.itens ?? []).map((item, idx) => (
-                <tr key={item.id}>
-                  <td>{item.ordem ?? idx + 1}</td>
-                  <td>
-                    <strong>{item.produto?.codigo}</strong>
-                    <div className="ficha-oc-item-desc">
-                      {item.produto?.descricao_comercial || item.produto?.descricao_fiscal}
-                    </div>
-                  </td>
-                  <td>{dash(item.produto?.ncm)}</td>
-                  <td>{dash(item.produto?.origem)}</td>
-                  <td className="ficha-td-num">{item.qtde_pedida}</td>
-                  <td>{item.unidade}</td>
-                  <td className="ficha-td-num">{formatCurrency(item.valor_unitario)}</td>
-                  <td className="ficha-td-num">{formatCurrency(item.valor_total)}</td>
-                  <td className="ficha-td-num">
-                    {item.aliq_ipi != null ? `${item.aliq_ipi}%` : '—'}
-                  </td>
-                  <td className="ficha-td-num">{formatCurrency(item.valor_ipi ?? '0')}</td>
-                  <td className="ficha-td-num">
-                    {item.aliq_icms != null ? `${item.aliq_icms}%` : '—'}
-                  </td>
-                  <td className="ficha-td-num">{formatCurrency(item.valor_icms ?? '0')}</td>
-                </tr>
+                <Fragment key={item.id}>
+                  <tr>
+                    <td>{item.ordem ?? idx + 1}</td>
+                    <td>
+                      <strong>{item.produto?.codigo}</strong>
+                      <div className="ficha-oc-item-desc">
+                        {item.produto?.descricao_comercial || item.produto?.descricao_fiscal}
+                      </div>
+                    </td>
+                    <td>{dash(item.produto?.ncm)}</td>
+                    <td>{dash(item.produto?.origem)}</td>
+                    <td className="ficha-td-num">{item.qtde_pedida}</td>
+                    <td>{item.unidade}</td>
+                    <td className="ficha-td-num">{formatCurrency(item.valor_unitario)}</td>
+                    <td className="ficha-td-num">{formatCurrency(item.valor_total)}</td>
+                    <td className="ficha-td-num">
+                      {item.aliq_ipi != null ? `${item.aliq_ipi}%` : '—'}
+                    </td>
+                    <td className="ficha-td-num">{formatCurrency(item.valor_ipi ?? '0')}</td>
+                    <td className="ficha-td-num">
+                      {item.aliq_icms != null ? `${item.aliq_icms}%` : '—'}
+                    </td>
+                    <td className="ficha-td-num">{formatCurrency(item.valor_icms ?? '0')}</td>
+                  </tr>
+                  {(item.composicao ?? []).length > 0 ? (
+                    <tr className="ficha-oc-composicao-row">
+                      <td />
+                      <td colSpan={11}>
+                        <div className="ficha-oc-composicao">
+                          <strong>Detalhe do pedido</strong>
+                          <ul>
+                            {(item.composicao ?? []).map((f, fi) => (
+                              <li key={f.id ?? fi}>
+                                {f.largura_mm} mm × {f.quantidade} bob. × {f.comprimento_m} m ={' '}
+                                {f.area_m2} m²
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               ))}
             </tbody>
             <tfoot>

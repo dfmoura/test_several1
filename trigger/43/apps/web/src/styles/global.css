@@ -1748,6 +1748,102 @@ button.par-geo--faltando:hover:not(:disabled) {
   gap: 1.25rem;
 }
 
+.oc-receber-resumo {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 88%, var(--navy));
+}
+
+.oc-receber-resumo__chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.oc-receber-resumo__chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.oc-receber-resumo__chip--warn {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+  box-shadow: inset 3px 0 0 var(--warning);
+}
+
+.oc-receber-resumo__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.oc-receber-resumo__chip strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.25;
+}
+
+.oc-receber-resumo__tip {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--success, #1a7f4b) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--success, #1a7f4b) 22%, var(--border));
+}
+
+.oc-receber-details {
+  margin: 0 0 1rem;
+  padding: 0.35rem 0.75rem 0.55rem;
+  border: 1px dashed color-mix(in srgb, var(--navy) 22%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 96%, var(--navy));
+}
+
+.oc-receber-details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.35rem 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.oc-receber-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.oc-receber-details__title {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.oc-receber-details__body {
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.oc-receber-details__body.alert {
+  margin-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .oc-receber-resumo__chips {
+    grid-template-columns: 1fr;
+  }
+}
+
 .oc-receber-item__qtde {
   max-width: 22rem;
 }
@@ -1758,6 +1854,17 @@ button.par-geo--faltando:hover:not(:disabled) {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface) 92%, var(--border));
   overflow: hidden;
+}
+
+.oc-confronto-card {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.oc-confronto-card.alert {
+  margin-bottom: 0.75rem;
 }
 
 .oc-volumes-panel__bar {
@@ -7239,6 +7346,31 @@ tr.row-inactive td {
   line-height: 1.2;
 }
 
+.ficha-oc-composicao {
+  font-size: 6pt;
+  color: var(--text-muted);
+  padding: 0.4mm 0 1mm;
+}
+
+.ficha-oc-composicao strong {
+  display: block;
+  margin-bottom: 0.4mm;
+  font-size: 5.6pt;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--navy);
+}
+
+.ficha-oc-composicao ul {
+  margin: 0;
+  padding-left: 3.5mm;
+}
+
+.ficha-oc-composicao-row td {
+  border-top: none !important;
+  padding-top: 0 !important;
+}
+
 .ficha-oc-totais-label {
   text-align: right;
   font-weight: 700;
@@ -9114,9 +9246,9 @@ tr.row-inactive td {
 
 /* Página posição: densidade em todos os níveis. */
 .estoque-posicao-page {
-  --estoque-font: 0.8rem;
-  --estoque-pad-y: 0.32rem;
-  --estoque-pad-x: 0.5rem;
+  --estoque-font: 0.75rem;
+  --estoque-pad-y: 0.26rem;
+  --estoque-pad-x: 0.42rem;
 }
 
 .estoque-ops-line {
@@ -9330,7 +9462,7 @@ tr.row-inactive td {
 
 .estoque-dense-table .th-sort-btn {
   padding: var(--estoque-pad-y) var(--estoque-pad-x);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 .estoque-dense-table td.produto {
@@ -9370,9 +9502,22 @@ tr.row-inactive td {
   font-size: 0.66rem;
 }
 
-.estoque-acao-sep {
-  color: var(--border);
-  user-select: none;
+.estoque-dense-table td.dimensao,
+.estoque-vol-consolidado-table td.dimensao {
+  white-space: nowrap;
+  width: 1%;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+}
+
+.estoque-dense-table td.acoes .btn-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.estoque-dense-table td.acoes .btn-icon svg {
+  width: 0.92rem;
+  height: 0.92rem;
 }
 
 .estoque-hint-select {
@@ -10351,4 +10496,128 @@ a.linkish.linkish--meta:hover {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  body.etiqueta-volume-print-mode .vao-etiquetas-print-grid {
+    display: block;
+    gap: 0;
+  }
+
+  body.etiqueta-volume-print-mode .vao-etiqueta-sheet {
+    page: etiqueta-volume-elgin-50x40;
+    width: 50mm;
+    height: 40mm;
+    margin: 0;
+    padding: 0;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.etiqueta-volume-print-mode .vao-etiqueta-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  body.etiqueta-volume-print-mode .vao-etiqueta-face {
+    width: 50mm;
+    height: 40mm;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Etiqueta de vão — Elgin L42 Pro Full · 50 × 40 mm (ADR F4)                 */
+/* Mesmo @page / driver do volume. Uma página = uma etiqueta.                 */
+/* -------------------------------------------------------------------------- */
+
+.vao-etiquetas-print-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.vao-etiqueta-sheet {
+  width: 50mm;
+  flex: 0 0 50mm;
+}
+
+.vao-etiqueta-face {
+  box-sizing: border-box;
+  width: 50mm;
+  height: 40mm;
+  padding: 1.4mm 1.6mm;
+  display: grid;
+  grid-template-columns: 22mm 1fr;
+  gap: 1.4mm;
+  align-items: stretch;
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--border, #c8cdd5);
+  border-radius: 2px;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vao-etiqueta-qr {
+  width: 22mm;
+  height: 22mm;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vao-etiqueta-qr img {
+  width: 22mm;
+  height: 22mm;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.vao-etiqueta-qr-ph {
+  width: 22mm;
+  height: 22mm;
+  background: #eee;
+}
+
+.vao-etiqueta-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2mm;
+  line-height: 1.15;
+}
+
+.vao-etiqueta-codigo {
+  font-size: 3.4mm;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vao-etiqueta-row {
+  font-size: 2.2mm;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vao-etiqueta-row--muted {
+  font-size: 1.85mm;
+  color: #333;
+  margin-top: 0.3mm;
+}
+
+.vao-etiqueta-k {
+  font-weight: 700;
 }
