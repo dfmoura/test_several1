@@ -14,6 +14,7 @@ import { CadastroPagamentoPage } from './pages/CadastroPagamentoPage';
 import { MensalidadeContaPage } from './pages/MensalidadeContaPage';
 import { ImplantacaoPage } from './pages/ImplantacaoPage';
 import { LoginPage } from './pages/LoginPage';
+import { MapasFacasFichaPage } from './pages/MapasFacasFichaPage';
 import { MapasFacasPage } from './pages/MapasFacasPage';
 import { NaturezasGerenciaisPage } from './pages/NaturezasGerenciaisPage';
 import { BacklogPage } from './pages/BacklogPage';
@@ -716,6 +717,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="produto.ler">
               <ProdutoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/mapa-facas/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="orcamento.ler">
+              <MapasFacasFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

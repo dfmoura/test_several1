@@ -18,12 +18,17 @@ import { FacaSilhuetaPosicaoDock } from '../components/FacaSilhuetaPosicaoDock';
 import { ContornoSvgInput } from '../components/ContornoSvgInput';
 import { ApiError, api, type UsuarioRef } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
+import {
+  buildMapaFacasFichaPath,
+  FORMATOS_CANONICOS,
+  mergeVocabulario,
+} from '../lib/facasMapa';
 import {
   facaPosicaoLabel,
   isFacaPosicao,
   type FacaPosicaoCodigo,
 } from '../lib/facaPosicao';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 import { useTableSort } from '../lib/useTableSort';
 
 type FacaMapa = {
@@ -338,6 +343,18 @@ export function MapasFacasPage() {
     }
   };
 
+  const fichaPath = useMemo(
+    () =>
+      buildMapaFacasFichaPath({
+        q,
+        formato,
+        maquina,
+        soCompletas,
+        incluirInativas,
+      }),
+    [q, formato, maquina, soCompletas, incluirInativas],
+  );
+
   const handleAlinharFornecedores = async () => {
     if (!canWrite) return;
     setSaving(true);
@@ -566,6 +583,14 @@ export function MapasFacasPage() {
         description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
+            <a
+              className="btn btn-secondary"
+              href={fichaPath}
+              onClick={(e) => onAbrirFichaClick(e, fichaPath)}
+              title="Abre a ficha A4 agrupada por máquina e ordenada pelo N da faca, com o recorte atual dos filtros."
+            >
+              Imprimir ficha
+            </a>
             {canWrite ? (
               <>
                 <button

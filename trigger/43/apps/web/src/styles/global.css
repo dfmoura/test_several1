@@ -7630,6 +7630,178 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
+/* Mapa de facas — inventário denso; quebra por máquina bem marcada. */
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo {
+  margin-top: 4.5mm;
+  border: 0.7pt solid var(--navy);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo:first-of-type {
+  margin-top: 2.8mm;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 1.2mm 3mm;
+  margin: 0;
+  padding: 2mm 2.4mm 2.2mm;
+  background: linear-gradient(180deg, #1a2744 0%, var(--navy) 100%);
+  color: #fff;
+  border-bottom: 1.4pt solid #0d1528;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-eyebrow {
+  flex: 0 0 auto;
+  font-size: 6pt;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  line-height: 1;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-title {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 9.5pt;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.6mm 1.8mm;
+  border: 0.5pt solid rgba(255, 255, 255, 0.45);
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-grupo .ficha-table {
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-table {
+  font-size: 6pt;
+  line-height: 1.2;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-table th {
+  font-size: 5.5pt;
+  padding: 0.7mm 0.9mm;
+  letter-spacing: 0.02em;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-table td {
+  padding: 0.55mm 0.9mm;
+  vertical-align: middle;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-n {
+  width: 5%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-silhueta {
+  width: 9%;
+  text-align: center;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-medida {
+  width: 12.5%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {
+  width: 10.5%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-num {
+  width: 6%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-z {
+  width: 3.5%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-rep {
+  width: 8%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-cil {
+  width: 6%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-cliente {
+  width: 19%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-medida,
+.ficha-sheet-mapa-facas .ficha-mapa-facas-formato {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-cliente {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 5.75pt;
+  letter-spacing: -0.01em;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-cell {
+  text-align: center;
+  padding-top: 0.35mm !important;
+  padding-bottom: 0.35mm !important;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  line-height: 0;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-visual.faca-apresentacao--compact {
+  padding: 0.2mm;
+  min-width: 8.2mm;
+  min-height: 8.2mm;
+  box-sizing: border-box;
+  margin: 0 auto;
+  border-radius: 0.8mm;
+  border: 0.3pt solid color-mix(in srgb, var(--navy) 16%, transparent);
+  background: #fff;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-visual .faca-silhueta--compact {
+  color: var(--navy);
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-row-inativa td {
+  color: var(--muted, #5a6577);
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-row-inativa .ficha-mapa-facas-silhueta-visual {
+  opacity: 0.72;
+}
+
 /* OC — ordem de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc. */
 .ficha-sheet-oc .ficha-oc-banner {
   display: flex;
@@ -8178,6 +8350,35 @@ tr.row-inactive td {
   body.ficha-print-mode .ficha-sheet-orc .ficha-section,
   body.ficha-print-mode .ficha-sheet-orc .ficha-table {
     break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-section,
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-table {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-head {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-grupo {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-grupo-head {
+    break-after: avoid;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-visual,
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-visual .faca-silhueta,
+  body.ficha-print-mode .ficha-sheet-mapa-facas .faca-posicao-overlay {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-mapa-facas-silhueta-cell {
+    break-inside: avoid;
   }
 
   body.ficha-print-mode .ficha-orc-faca,
