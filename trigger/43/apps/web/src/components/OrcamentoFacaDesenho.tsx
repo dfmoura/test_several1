@@ -298,8 +298,12 @@ export function facaDesenhoFromSnapshot(
     return {
       formato: formato || null,
       medida: medida || null,
-      larguraCm: (principal.largura_cm as number | string | null | undefined) ?? input.largura_cm,
-      puxadaCm: (principal.puxada_cm as number | string | null | undefined) ?? input.puxada_cm,
+      larguraCm:
+        (principal.largura_cm as number | string | null | undefined) ??
+        (input.largura_cm as number | string | null | undefined),
+      puxadaCm:
+        (principal.puxada_cm as number | string | null | undefined) ??
+        (input.puxada_cm as number | string | null | undefined),
       diametroCm:
         (principal.diametro_cm as number | string | null | undefined) ??
         snapNum(input, 'faca_diametro_cm', 'diametro_cm'),
@@ -312,7 +316,9 @@ export function facaDesenhoFromSnapshot(
       posicao: snapStr(principal, 'posicao') || snapStr(input, 'faca_posicao') || null,
       contornoSvg:
         snapStr(principal, 'contorno_svg') || snapStr(input, 'faca_contorno_svg') || null,
-      z: (principal.z as number | string | null | undefined) ?? input.z,
+      z:
+        (principal.z as number | string | null | undefined) ??
+        (input.z as number | string | null | undefined),
       maquina:
         principal.maquina != null
           ? String(principal.maquina)
