@@ -996,6 +996,7 @@ def listar_vencedores_cnpj(
     orgao_id: int | None = Query(None),
     modalidade_id: list[int] = Query(default=[]),
     limit: int = Query(500, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
 ):
     """Fornecedores vencedores consolidados + status do cache CNPJ (filtros analíticos padrão)."""
     try:
@@ -1019,6 +1020,7 @@ def listar_vencedores_cnpj(
         orgao_id=orgao_id,
         modalidade_id=modalidade_id,
         limit=limit,
+        offset=offset,
     )
 
 

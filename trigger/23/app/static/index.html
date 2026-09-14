@@ -529,6 +529,9 @@
             <p class="muted">
               Fornecedores homologados a partir de <strong>compras_contratacao_resultados</strong>
               (módulo 07.3), com fallback seguro aos itens quando o resultado ainda não foi coletado.
+              A linha de contagem acima da tabela indica quantos estão <strong>na tela</strong> e o
+              <strong>total no filtro</strong>; se ainda houver restante, use
+              <strong>Carregar mais</strong> abaixo da lista.
               Clique no <strong>nome</strong> para o QSA; no número de <strong>Itens</strong> para
               detalhar as homologações. Atualize cada CNPJ individualmente via API pública
               (BrasilAPI → Minha Receita → CNPJá → Pública CNPJ.ws);
@@ -637,6 +640,10 @@
                 </thead>
                 <tbody id="vencedores-tabela"></tbody>
               </table>
+            </div>
+            <div id="vencedores-mais" class="vencedores-mais" hidden>
+              <button type="button" class="btn primary" id="btn-vencedores-mais">Carregar mais</button>
+              <p id="vencedores-mais-meta" class="meta-line"></p>
             </div>
           </div>
         </section>
@@ -1704,7 +1711,7 @@
   <script src="/static/localidade.js?v=osb9"></script>
   <script src="/static/propostas_abertas.js?v=osb14"></script>
   <script src="/static/compras.js?v=osb12"></script>
-  <script src="/static/vencedores_cnpj.js?v=osb13"></script>
+  <script src="/static/vencedores_cnpj.js?v=osb15"></script>
   <script src="/static/powerbi.js?v=osb9"></script>
   <script src="/static/orgaos.js?v=osb4"></script>
   <script src="/static/modalidades.js?v=osb4"></script>

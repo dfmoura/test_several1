@@ -275,6 +275,54 @@ export function facaDesenhoFromSnapshot(
   input: Record<string, unknown> | null | undefined,
 ): OrcamentoFacaDesenhoProps | null {
   if (!input) return null;
+
+  const facas = Array.isArray(input.facas) ? input.facas : null;
+  if (facas && facas.length > 0) {
+    const principal =
+      (facas.find((r) => r && typeof r === 'object' && (r as { principal?: boolean }).principal) as
+        | Record<string, unknown>
+        | undefined) ?? (facas[0] as Record<string, unknown>);
+    const formato =
+      principal.formato != null
+        ? String(principal.formato)
+        : input.formato_faca != null
+          ? String(input.formato_faca)
+          : '';
+    const medida =
+      principal.medida != null
+        ? String(principal.medida)
+        : input.medida != null
+          ? String(input.medida)
+          : '';
+    if (!formato && !medida) return null;
+    return {
+      formato: formato || null,
+      medida: medida || null,
+      larguraCm: (principal.largura_cm as number | string | null | undefined) ?? input.largura_cm,
+      puxadaCm: (principal.puxada_cm as number | string | null | undefined) ?? input.puxada_cm,
+      diametroCm:
+        (principal.diametro_cm as number | string | null | undefined) ??
+        snapNum(input, 'faca_diametro_cm', 'diametro_cm'),
+      tamanhoTipo:
+        snapStr(principal, 'tamanho_tipo') ||
+        snapStr(input, 'faca_tamanho_tipo', 'tamanho_tipo') ||
+        null,
+      colunasMapa:
+        snapStr(principal, 'colunas_mapa') || snapStr(input, 'faca_colunas_mapa') || null,
+      posicao: snapStr(principal, 'posicao') || snapStr(input, 'faca_posicao') || null,
+      contornoSvg:
+        snapStr(principal, 'contorno_svg') || snapStr(input, 'faca_contorno_svg') || null,
+      z: (principal.z as number | string | null | undefined) ?? input.z,
+      maquina:
+        principal.maquina != null
+          ? String(principal.maquina)
+          : input.maquina != null
+            ? String(input.maquina)
+            : null,
+      facaNova: Boolean(principal.faca_nova ?? input.faca_nova),
+    };
+  }
+
   const formato = input.formato_faca != null ? String(input.formato_faca) : '';
   const medida = input.medida != null ? String(input.medida) : '';
   if (!formato && !medida) return null;

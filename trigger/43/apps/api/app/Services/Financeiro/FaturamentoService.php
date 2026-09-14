@@ -16,6 +16,7 @@ use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\PrecoTravadoPedido;
 use App\Services\Fiscal\EmissaoFiscalService;
+use App\Support\FacasComposicao;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -443,7 +444,11 @@ class FaturamentoService
         }
 
         $valorMatriz = $travado['valor_matriz'];
-        $valorFaca = $this->valorFaca($pedido);
+        $itensFaca = $this->itensFaca($pedido);
+        $valorFaca = '0.00';
+        foreach ($itensFaca as $facaLinha) {
+            $valorFaca = bcadd($valorFaca, $facaLinha['valor'], PadraoDecimal::SCALE_MONEY);
+        }
         $itensArte = $this->itensArte($pedido);
         $valorArtes = '0.00';
         foreach ($itensArte as $arte) {
@@ -464,18 +469,20 @@ class FaturamentoService
                 'familia_fiscal' => $familia,
             ];
         }
-        if ($pedidoItemId !== null && bccomp($valorFaca, '0', PadraoDecimal::SCALE_MONEY) > 0) {
-            $ordem++;
-            $itens[] = [
-                'pedido_item_id' => $pedidoItemId,
-                'ordem' => $ordem,
-                'descricao' => FaturamentoItem::DESC_FACA,
-                'unidade' => 'UN',
-                'qtde' => '1.0000',
-                'preco_unitario' => PadraoDecimal::roundHalfUp($valorFaca, PadraoDecimal::SCALE_UNIT_PRICE),
-                'valor' => $valorFaca,
-                'familia_fiscal' => $familia,
-            ];
+        if ($pedidoItemId !== null) {
+            foreach ($itensFaca as $facaLinha) {
+                $ordem++;
+                $itens[] = [
+                    'pedido_item_id' => $pedidoItemId,
+                    'ordem' => $ordem,
+                    'descricao' => $facaLinha['descricao'],
+                    'unidade' => 'UN',
+                    'qtde' => '1.0000',
+                    'preco_unitario' => PadraoDecimal::roundHalfUp($facaLinha['valor'], PadraoDecimal::SCALE_UNIT_PRICE),
+                    'valor' => $facaLinha['valor'],
+                    'familia_fiscal' => $familia,
+                ];
+            }
         }
         if ($pedidoItemId !== null) {
             foreach ($itensArte as $arte) {
@@ -544,7 +551,9 @@ class FaturamentoService
             $avisos[] = 'Matriz/clichê é valor fixo do orçamento — não varia com a quantidade produzida.';
         }
         if (bccomp($valorFaca, '0', PadraoDecimal::SCALE_MONEY) > 0) {
-            $avisos[] = 'Ferramental (faca nova) incluído no valor da fatura.';
+            $avisos[] = count($itensFaca) > 1
+                ? 'Ferramental ('.count($itensFaca).' facas) incluído no valor da fatura.'
+                : 'Ferramental (faca nova) incluído no valor da fatura.';
         }
         if (bccomp($valorArtes, '0', PadraoDecimal::SCALE_MONEY) > 0) {
             $avisos[] = 'Valor das artes (desenvolvimento) incluído no valor da fatura.';
@@ -619,7 +628,74 @@ class FaturamentoService
         return PrecoTravadoPedido::daFaixa([]);
     }
 
-    private function valorFaca(Pedido $pedido): string
+    /**
+     * Ferramental cotado no ORC (0..N linhas; fora da base de comissão).
+     *
+     * @return list<array{descricao: string, valor: string}>
+     */
+    private function itensFaca(Pedido $pedido): array
+    {
+        $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
+        $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];
+        $raw = $faixa['facas'] ?? $input['facas'] ?? null;
+
+        if (is_array($raw) && $raw !== []) {
+            $cobradas = [];
+            foreach (array_values($raw) as $i => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $valor = PadraoDecimal::parseStrict(
+                    (string) ($row['valor_faca'] ?? $row['valor_faca_nova'] ?? 0),
+                    PadraoDecimal::SCALE_MONEY
+                );
+                if ($valor === null || bccomp($valor, '0', PadraoDecimal::SCALE_MONEY) <= 0) {
+                    continue;
+                }
+                $cobradas[] = ['row' => $row, 'valor' => $valor, 'i' => $i];
+            }
+
+            if ($cobradas === []) {
+                return [];
+            }
+
+            // Uma única faca nova legado → mantém descrição canônica DESC_FACA.
+            if (
+                count($cobradas) === 1
+                && ! empty($cobradas[0]['row']['faca_nova'])
+                && count($raw) === 1
+            ) {
+                return [[
+                    'descricao' => FaturamentoItem::DESC_FACA,
+                    'valor' => $cobradas[0]['valor'],
+                ]];
+            }
+
+            $out = [];
+            foreach ($cobradas as $item) {
+                $rotulo = FacasComposicao::rotuloLinha($item['row'], $item['i']);
+                $out[] = [
+                    'descricao' => FaturamentoItem::DESC_FACA_PREFIX.mb_substr($rotulo, 0, 100),
+                    'valor' => $item['valor'],
+                ];
+            }
+
+            return $out;
+        }
+
+        // Legado sem `facas[]`.
+        $valor = $this->valorFacaLegado($pedido);
+        if (bccomp($valor, '0', PadraoDecimal::SCALE_MONEY) <= 0) {
+            return [];
+        }
+
+        return [[
+            'descricao' => FaturamentoItem::DESC_FACA,
+            'valor' => $valor,
+        ]];
+    }
+
+    private function valorFacaLegado(Pedido $pedido): string
     {
         $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
         $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];

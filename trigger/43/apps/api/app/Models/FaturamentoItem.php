@@ -12,6 +12,8 @@ class FaturamentoItem extends Model
 
     public const DESC_FACA = 'Ferramental (faca nova)';
 
+    public const DESC_FACA_PREFIX = 'Ferramental — ';
+
     public const DESC_ARTE_PREFIX = 'Arte — ';
 
     protected $table = 'faturamento_itens';
@@ -56,7 +58,12 @@ class FaturamentoItem extends Model
 
     public static function eLinhaDeFerramental(string $descricao): bool
     {
-        return in_array(trim($descricao), [self::DESC_MATRIZ, self::DESC_FACA], true);
+        $d = trim($descricao);
+        if (in_array($d, [self::DESC_MATRIZ, self::DESC_FACA], true)) {
+            return true;
+        }
+
+        return str_starts_with($d, self::DESC_FACA_PREFIX);
     }
 
     public static function eLinhaDeEstoque(string $descricao, ?string $familiaFiscal): bool

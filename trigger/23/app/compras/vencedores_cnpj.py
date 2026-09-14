@@ -374,6 +374,7 @@ def listar_vencedores_consolidados(
     orgao_id: int | None = None,
     modalidade_id: list[int] | int | None = None,
     limit: int = 500,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """
     Consolida vencedores (07.3 + fallback itens) e cruza com ``compras_fornecedores``.
@@ -382,7 +383,14 @@ def listar_vencedores_consolidados(
     Filtros padrão (período/órgão/modalidade) recortam a agregação antes do cruzamento.
     ``q`` filtra por nome (substring) ou dígitos do NI (CNPJ/CPF, com ou sem máscara).
     UF e porte filtram pela sede do fornecedor enriquecido (mesma semântica da localidade).
+    Paginação: ``limit``/``offset`` recortam ``items``.
+    ``total`` = universo após todos os filtros.
+    ``resumo`` (chips de cache) = mesmo universo exceto o filtro de ``status``
+    (faceta navegável: busca/UF/porte/recorte analítico já aplicados).
     """
+    limit_safe = max(0, int(limit or 0))
+    offset_safe = max(0, int(offset or 0))
+
     ids_ok = _ids_compra_no_escopo(
         db,
         periodo_resolvido=periodo_resolvido,
@@ -396,6 +404,8 @@ def listar_vencedores_consolidados(
         return {
             "items": [],
             "total": 0,
+            "limit": limit_safe,
+            "offset": offset_safe,
             "resumo": {
                 "atualizado": 0,
                 "vencido": 0,
@@ -432,14 +442,11 @@ def listar_vencedores_consolidados(
     for ni, bucket in agg.items():
         forn = fornecedores.get(ni)
         st = _status_cache(forn, ni=ni)
-        resumo[st] = resumo.get(st, 0) + 1
 
         porte_chave, porte_rotulo = porte_de_fornecedor(forn)
         porte_bruto = (forn.porte_empresa_nome if forn else None) or None
         if porte_bruto:
             porte_bruto = str(porte_bruto).strip() or None
-        if porte_bruto:
-            portes_brutos.append(porte_bruto)
 
         nome = bucket["nome_fornecedor"] or (forn.nome_razao_social_fornecedor if forn else None)
         if q_norm:
@@ -450,17 +457,26 @@ def listar_vencedores_consolidados(
             bate_ni = bool(q_digits) and q_digits in ni
             if not bate_nome and not bate_ni:
                 continue
-        if status_filtro and st != status_filtro:
-            continue
         if uf_filtro:
             forn_uf = ((forn.uf_sigla if forn else None) or "").strip().upper()
             if forn_uf != uf_filtro:
                 continue
+
+        # Catálogo de portes: faceta no recorte busca/UF (ignora o próprio filtro de porte).
+        if porte_bruto:
+            portes_brutos.append(porte_bruto)
+
         if not porte_equivale(
             porte_bruto,
             porte_filtro,
             porte_id=forn.porte_empresa_id if forn else None,
         ):
+            continue
+
+        # Chips de cache: faceta após busca/UF/porte (ignora o próprio filtro de status).
+        resumo[st] = resumo.get(st, 0) + 1
+
+        if status_filtro and st != status_filtro:
             continue
 
         fontes = bucket["fontes"]
@@ -515,12 +531,16 @@ def listar_vencedores_consolidados(
         )
     )
     total = len(items)
-    if limit and len(items) > limit:
-        items = items[:limit]
+    if limit_safe:
+        items = items[offset_safe : offset_safe + limit_safe]
+    elif offset_safe:
+        items = items[offset_safe:]
 
     return {
         "items": items,
         "total": total,
+        "limit": limit_safe,
+        "offset": offset_safe,
         "resumo": resumo,
         "portes": catalogar_portes(portes_brutos),
         "cache_dias": CNPJ_PUBLICO_CACHE_DIAS,

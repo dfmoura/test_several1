@@ -18,6 +18,7 @@ use App\Support\CatalogoServicoSaida;
 use App\Support\ContornoSvgSanitizer;
 use App\Support\FacaPosicao;
 use App\Support\SaidaEtiqueta;
+use App\Support\FacasComposicao;
 use App\Support\ModelosComposicao;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
@@ -55,6 +56,7 @@ class OrcamentoService
      */
     public function calcularPreview(Empresa $empresa, array $data): array
     {
+        $data = FacasComposicao::ensureInPayload($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         [$input, $result] = $this->precificar($empresa, $parceiro, $data);
 
@@ -116,6 +118,7 @@ class OrcamentoService
      */
     public function create(Empresa $empresa, array $data): array
     {
+        $data = FacasComposicao::ensureInPayload($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
         [$input, $bruto] = $this->precificar($empresa, $parceiro, $data);
@@ -173,6 +176,7 @@ class OrcamentoService
     {
         $this->assertEditavel($orcamento);
 
+        $data = FacasComposicao::ensureInPayload($data);
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
@@ -342,6 +346,7 @@ class OrcamentoService
     private function buildMotorInput(array $data, Parceiro $parceiro, Empresa $empresa): array
     {
         $data = ModelosComposicao::ensureInPayload($data);
+        $data = FacasComposicao::ensureInPayload($data);
 
         $input = [
             'cliente' => $parceiro->razao_social,
@@ -370,6 +375,7 @@ class OrcamentoService
             'coluna_rebobinacao' => (int) ($data['coluna_rebobinacao'] ?? 1),
             'tipo_troca_produto' => $data['tipo_troca_produto'] ?? 'SEM PARADA',
             'rpm' => (float) ($data['rpm'] ?? 1000),
+            'facas' => $data['facas'] ?? [],
             'faca_nova' => (bool) ($data['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? null,
             'valor_faca_nova' => isset($data['valor_faca_nova']) ? (float) $data['valor_faca_nova'] : 0.0,
@@ -443,6 +449,11 @@ class OrcamentoService
             'valor_gordura' => $this->normalizeValorGordura(
                 $data['valor_gordura'] ?? $input['valor_gordura'] ?? 0
             ),
+            'facas' => $this->persistableFacas(
+                is_array($data['facas'] ?? null)
+                    ? $data['facas']
+                    : (is_array($input['facas'] ?? null) ? $input['facas'] : [])
+            ),
             'faca_nova' => (bool) ($data['faca_nova'] ?? $input['faca_nova'] ?? false),
             'formato_faca' => $data['formato_faca'] ?? $input['formato_faca'] ?? null,
             'valor_faca_nova' => (float) ($data['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0),
@@ -456,6 +467,27 @@ class OrcamentoService
             'faca_diametro_cm' => $this->nullablePositiveFloat($data['faca_diametro_cm'] ?? $input['faca_diametro_cm'] ?? null),
             'faca_tamanho_tipo' => $this->nullIfEmpty($data['faca_tamanho_tipo'] ?? $input['faca_tamanho_tipo'] ?? null),
         ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $facas
+     * @return list<array<string, mixed>>
+     */
+    private function persistableFacas(array $facas): array
+    {
+        $out = [];
+        foreach (array_values($facas) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (array_key_exists('contorno_svg', $row)) {
+                $row['contorno_svg'] = $this->sanitizeFacaContornoSvg($row['contorno_svg'] ?? null);
+            }
+            $row['ordem'] = $i + 1;
+            $out[] = $row;
+        }
+
+        return $out;
     }
 
     private function sanitizeFacaContornoSvg(mixed $raw): ?string
@@ -537,20 +569,31 @@ class OrcamentoService
      */
     private function enrichResult(array $result, array $data, Parceiro $parceiro, Empresa $empresa): array
     {
+        $data = FacasComposicao::ensureInPayload($data);
+
         if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $result['tipo_operacao'] ?? null)) {
+            $data['facas'] = [];
             $data['faca_nova'] = false;
             $data['valor_faca_nova'] = 0;
+            $data['prazo_faca_dias'] = null;
         }
 
         $result = $this->aplicarGordura($result, $data);
 
         $facaNova = (bool) ($data['faca_nova'] ?? false);
         $valorFaca = $facaNova ? max(0.0, (float) ($data['valor_faca_nova'] ?? 0)) : 0.0;
-        $prazoFaca = $facaNova && isset($data['prazo_faca_dias']) && $data['prazo_faca_dias'] !== null
-            ? (int) $data['prazo_faca_dias']
-            : null;
+        // Preferir Σ da composição quando presente (mesmo se flag legado viesse inconsistente).
+        if (is_array($data['facas'] ?? null) && ($data['facas'] ?? []) !== []) {
+            $valorFaca = FacasComposicao::somaValor($data['facas']);
+            $facaNova = $valorFaca > 0.0 || FacasComposicao::temFacaNova($data['facas']);
+        }
+        $prazoFaca = FacasComposicao::prazoMaximo($data['facas'] ?? [])
+            ?? ($facaNova && isset($data['prazo_faca_dias']) && $data['prazo_faca_dias'] !== null
+                ? (int) $data['prazo_faca_dias']
+                : null);
         $valorArtes = ModelosComposicao::somaValorArte($data['modelos_composicao'] ?? []);
 
+        $result['facas'] = is_array($data['facas'] ?? null) ? $data['facas'] : [];
         $result['faca_nova'] = $facaNova;
         $result['valor_faca_nova'] = $valorFaca;
         $result['valor_artes'] = $valorArtes;

@@ -654,3 +654,131 @@ def test_api_filtros_vencedores_cnpj():
     assert isinstance(data["orgaos"], list)
     assert isinstance(data["modalidades"], list)
     assert isinstance(data["ufs"], list)
+
+
+def test_paginacao_vencedores_consolidados():
+    """total/resumo no universo filtrado; items respeitam limit/offset."""
+    db = _db()
+    for i in range(7):
+        ni = f"{i:014d}"
+        db.add(
+            CompraContratacaoItem(
+                id_compra_item=f"i{i}",
+                id_compra=f"c{i}",
+                cod_fornecedor=ni,
+                nome_fornecedor=f"Fornecedor {i:02d}",
+            )
+        )
+    db.commit()
+
+    pagina1 = listar_vencedores_consolidados(db, limit=3, offset=0)
+    assert pagina1["total"] == 7
+    assert pagina1["limit"] == 3
+    assert pagina1["offset"] == 0
+    assert len(pagina1["items"]) == 3
+
+    pagina2 = listar_vencedores_consolidados(db, limit=3, offset=3)
+    assert pagina2["total"] == 7
+    assert pagina2["offset"] == 3
+    assert len(pagina2["items"]) == 3
+
+    pagina3 = listar_vencedores_consolidados(db, limit=3, offset=6)
+    assert pagina3["total"] == 7
+    assert len(pagina3["items"]) == 1
+
+    nis = (
+        [r["cod_fornecedor"] for r in pagina1["items"]]
+        + [r["cod_fornecedor"] for r in pagina2["items"]]
+        + [r["cod_fornecedor"] for r in pagina3["items"]]
+    )
+    assert len(nis) == 7
+    assert len(set(nis)) == 7
+
+    alem = listar_vencedores_consolidados(db, limit=3, offset=100)
+    assert alem["total"] == 7
+    assert alem["items"] == []
+    db.close()
+
+
+def test_api_vencedores_cnpj_paginacao():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    client = TestClient(app)
+    r = client.get("/api/compras/vencedores-cnpj", params={"limit": 2, "offset": 0})
+    assert r.status_code == 200
+    data = r.json()
+    assert "items" in data
+    assert "total" in data
+    assert data["limit"] == 2
+    assert data["offset"] == 0
+    assert len(data["items"]) <= 2
+
+
+def test_resumo_respeita_filtros_exceto_status():
+    """Chips de cache acompanham busca/UF/porte; status continua faceta navegável."""
+    db = _db()
+    db.add_all(
+        [
+            CompraContratacaoItem(
+                id_compra_item="i1",
+                id_compra="c1",
+                cod_fornecedor="11111111000191",
+                nome_fornecedor="Alpha MG",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i2",
+                id_compra="c2",
+                cod_fornecedor="22222222000191",
+                nome_fornecedor="Beta SP",
+            ),
+            CompraContratacaoItem(
+                id_compra_item="i3",
+                id_compra="c3",
+                cod_fornecedor="33333333000191",
+                nome_fornecedor="Gamma MG",
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="11111111000191",
+                cnpj="11111111000191",
+                nome_razao_social_fornecedor="Alpha MG",
+                uf_sigla="MG",
+                cnpj_dados_json="{}",
+                cnpj_enriquecido_em=datetime.utcnow(),
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="22222222000191",
+                cnpj="22222222000191",
+                nome_razao_social_fornecedor="Beta SP",
+                uf_sigla="SP",
+                cnpj_dados_json="{}",
+                cnpj_enriquecido_em=datetime.utcnow(),
+            ),
+            ComprasFornecedor(
+                ni_fornecedor="33333333000191",
+                cnpj="33333333000191",
+                nome_razao_social_fornecedor="Gamma MG",
+                uf_sigla="MG",
+            ),
+        ]
+    )
+    db.commit()
+
+    todos = listar_vencedores_consolidados(db)
+    assert todos["total"] == 3
+    assert todos["resumo"]["atualizado"] == 2
+    assert todos["resumo"]["pendente"] == 1
+
+    so_mg = listar_vencedores_consolidados(db, uf="MG")
+    assert so_mg["total"] == 2
+    assert so_mg["resumo"]["atualizado"] == 1
+    assert so_mg["resumo"]["pendente"] == 1
+    assert so_mg["resumo"]["atualizado"] + so_mg["resumo"]["pendente"] == so_mg["total"]
+
+    # Com status, a tabela restringe; os chips ainda mostram a faceta no recorte UF.
+    mg_pend = listar_vencedores_consolidados(db, uf="MG", status="pendente")
+    assert mg_pend["total"] == 1
+    assert mg_pend["resumo"]["pendente"] == 1
+    assert mg_pend["resumo"]["atualizado"] == 1
+    db.close()

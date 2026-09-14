@@ -2,7 +2,13 @@
    vencedores_cnpj.js — fornecedores homologados consolidados
    ============================================================ */
 
+const VENCEDORES_PAGE_SIZE = 500;
+/** Teto da API — 1ª carga pede o máximo para não truncar a lista analítica sem aviso. */
+const VENCEDORES_FIRST_PAGE = 2000;
+
 let vencedoresItems = [];
+let vencedoresTotal = 0;
+let vencedoresCarregandoMais = false;
 let vencedoresSortKey = "status_cache";
 let vencedoresSortDir = "asc";
 let vencedoresCacheDias = 30;
@@ -268,6 +274,47 @@ function renderLoteStatus(st) {
     <div class="vencedores-lote-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
     ${st.resultado?.mensagem ? `<p class="vencedores-lote-meta" style="margin-top:8px">${esc(st.resultado.mensagem)}</p>` : ""}
   `;
+}
+
+function atualizarMetaVencedores() {
+  const meta = $("#vencedores-meta");
+  if (!meta) return;
+  const exibidos = vencedoresItems.length;
+  const total = Number(vencedoresTotal || 0);
+  if (total <= 0) {
+    meta.textContent = "Nenhum fornecedor no filtro atual.";
+    return;
+  }
+  if (total > exibidos) {
+    meta.innerHTML =
+      `<strong>${fmtNum(exibidos)}</strong> na tabela de <strong>${fmtNum(total)}</strong> no filtro`
+      + ` · faltam <strong>${fmtNum(total - exibidos)}</strong> — use <strong>Carregar mais</strong> abaixo da lista`;
+    return;
+  }
+  meta.innerHTML = `<strong>${fmtNum(total)}</strong> fornecedor(es) no filtro · lista completa na tabela`;
+}
+
+function atualizarBotaoMaisVencedores({ carregando = false } = {}) {
+  const wrap = $("#vencedores-mais");
+  const btn = $("#btn-vencedores-mais");
+  const maisMeta = $("#vencedores-mais-meta");
+  const exibidos = vencedoresItems.length;
+  const total = Number(vencedoresTotal || 0);
+  const restam = Math.max(0, total - exibidos);
+  const temMais = restam > 0;
+  if (wrap) wrap.hidden = !temMais && !carregando;
+  if (btn) {
+    btn.disabled = !!carregando || !temMais;
+    const proximo = Math.min(VENCEDORES_PAGE_SIZE, restam);
+    btn.textContent = carregando
+      ? "Carregando…"
+      : `Carregar mais (${fmtNum(proximo)})`;
+  }
+  if (maisMeta) {
+    maisMeta.textContent = temMais
+      ? `${fmtNum(exibidos)} de ${fmtNum(total)} carregados · restam ${fmtNum(restam)}`
+      : "";
+  }
 }
 
 function renderVencedoresTabela() {
@@ -598,33 +645,77 @@ async function atualizarVencedorIndividual(ni, nome) {
     alert(err.message || "Falha ao atualizar CNPJ");
   } finally {
     vencedoresAtualizando.delete(digits);
-    await carregarVencedores({ silencioso: true });
+    await carregarVencedores({ silencioso: true, preservarJanela: true });
   }
 }
 
-async function carregarVencedores({ silencioso = false } = {}) {
+/**
+ * @param {{ silencioso?: boolean, append?: boolean, preservarJanela?: boolean }} [opts]
+ * - append: próxima página (Carregar mais)
+ * - preservarJanela: recarrega do início com limit = itens já carregados (após update/lote)
+ */
+async function carregarVencedores({ silencioso = false, append = false, preservarJanela = false } = {}) {
   const tb = $("#vencedores-tabela");
   const meta = $("#vencedores-meta");
-  if (!silencioso && tb) tb.innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
-  if (!silencioso && meta) meta.textContent = "Consultando fornecedores vencedores…";
+  if (vencedoresCarregandoMais && append) return;
+
+  const pageSize = VENCEDORES_PAGE_SIZE;
+  let offset = 0;
+  let limit = VENCEDORES_FIRST_PAGE;
+  if (append) {
+    offset = vencedoresItems.length;
+    limit = pageSize;
+  } else if (preservarJanela) {
+    offset = 0;
+    /* Recarrega até o teto da API (o que a 1ª carga já cobre). */
+    limit = VENCEDORES_FIRST_PAGE;
+  }
+
+  if (!silencioso && !append && tb) tb.innerHTML = '<tr><td colspan="9">Carregando…</td></tr>';
+  if (!silencioso && !append && meta) meta.textContent = "Consultando fornecedores vencedores…";
+  if (append) {
+    vencedoresCarregandoMais = true;
+    atualizarBotaoMaisVencedores({ carregando: true });
+  }
 
   try {
     const params = paramsFiltrosVencedores();
+    params.set("limit", String(limit));
+    params.set("offset", String(offset));
     const data = await api(`/api/compras/vencedores-cnpj?${params}`);
-    vencedoresItems = data.items || [];
+    const lote = data.items || [];
+    vencedoresTotal = Number(data.total || 0);
     vencedoresCacheDias = data.cache_dias ?? 30;
+    if (append) {
+      const seen = new Set(vencedoresItems.map((r) => r.cod_fornecedor));
+      for (const row of lote) {
+        if (!seen.has(row.cod_fornecedor)) {
+          vencedoresItems.push(row);
+          seen.add(row.cod_fornecedor);
+        }
+      }
+    } else {
+      vencedoresItems = lote;
+    }
     preencherPortesVencedores(data.portes);
     resumoFiltrosVencedores();
-    if (meta) {
-      meta.textContent = vencedoresEhAdmin()
-        ? `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · lotes de pendentes usam ${3}s entre requisições`
-        : `${fmtNum(data.total)} fornecedor(es) consolidado(s) · nome: QSA · nº em Itens: homologações · atualização de pendentes restrita ao administrador`;
-    }
+    atualizarMetaVencedores();
     renderVencedoresResumo(data.resumo, vencedoresCacheDias);
     renderVencedoresTabela();
+    atualizarBotaoMaisVencedores();
   } catch (err) {
-    if (meta) meta.textContent = "Erro ao carregar.";
-    if (tb) tb.innerHTML = `<tr><td colspan="9">${esc(err.message)}</td></tr>`;
+    if (!append) {
+      if (meta) meta.textContent = "Erro ao carregar.";
+      if (tb) tb.innerHTML = `<tr><td colspan="9">${esc(err.message)}</td></tr>`;
+      vencedoresItems = [];
+      vencedoresTotal = 0;
+      atualizarBotaoMaisVencedores();
+    } else {
+      atualizarBotaoMaisVencedores();
+      alert(err.message || "Falha ao carregar mais fornecedores");
+    }
+  } finally {
+    if (append) vencedoresCarregandoMais = false;
   }
 }
 
@@ -657,7 +748,7 @@ async function acompanharLotePendentes() {
   } finally {
     vencedoresLotePolling = false;
     atualizarBotoesLote(false);
-    await carregarVencedores({ silencioso: true });
+    await carregarVencedores({ silencioso: true, preservarJanela: true });
   }
 }
 
@@ -729,6 +820,9 @@ $("#btn-vencedores-limpar")?.addEventListener("click", async () => {
 });
 $("#btn-vencedores-pendentes")?.addEventListener("click", () => iniciarLotePendentes());
 $("#btn-vencedores-pendentes-cancelar")?.addEventListener("click", () => cancelarLotePendentes());
+$("#btn-vencedores-mais")?.addEventListener("click", () => {
+  carregarVencedores({ append: true, silencioso: true });
+});
 $("#modal-vencedor-homologacoes-fechar")?.addEventListener("click", () => {
   $("#modal-vencedor-homologacoes")?.close();
 });

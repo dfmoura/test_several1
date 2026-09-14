@@ -1375,6 +1375,18 @@ legend { font-size: 12px; font-weight: 600; color: var(--text-soft); padding: 0 
   transition: width 0.3s ease;
 }
 
+.vencedores-mais {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 12px;
+  padding-top: 4px;
+}
+.vencedores-mais .meta-line {
+  margin: 0;
+}
+
 /* Entrada de drill-down sem botão na coluna Ação (evita layout quebrado) */
 .link-vencedor-qtd {
   font-variant-numeric: tabular-nums;

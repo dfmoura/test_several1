@@ -266,6 +266,55 @@ class OrcamentoTest extends TestCase
         $this->assertTrue($create->json('data.parceiro.is_prospect'));
         $this->assertTrue($create->json('data.input_snapshot.faca_nova'));
         $this->assertEqualsWithDelta(800.0, (float) $create->json('data.input_snapshot.valor_faca_nova'), 0.01);
+        $this->assertIsArray($create->json('data.input_snapshot.facas'));
+        $this->assertCount(1, $create->json('data.input_snapshot.facas'));
+    }
+
+    public function test_orcamento_com_multiplas_facas(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['facas'] = [
+            [
+                'principal' => true,
+                'formato' => 'RETA',
+                'medida' => '100X50',
+                'n_facas' => 12,
+                'puxada_cm' => 5.0,
+                'largura_cm' => 10.0,
+                'faca_nova' => true,
+                'valor_faca' => 100,
+                'prazo_faca_dias' => 3,
+            ],
+            [
+                'principal' => false,
+                'formato' => 'OVAL',
+                'medida' => '40X40',
+                'n_facas' => 40,
+                'faca_nova' => false,
+                'valor_faca' => 50,
+                'prazo_faca_dias' => 7,
+            ],
+        ];
+
+        $res = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $payload);
+        $res->assertOk();
+        $this->assertTrue($res->json('data.faca_nova'));
+        $this->assertEqualsWithDelta(150.0, (float) $res->json('data.valor_faca_nova'), 0.01);
+        $this->assertSame(7, $res->json('data.prazo_faca_dias'));
+        $this->assertSame('RETA', $res->json('data.formato_faca'));
+        $this->assertCount(2, $res->json('data.facas'));
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $this->assertCount(2, $create->json('data.input_snapshot.facas'));
+        $this->assertTrue($create->json('data.input_snapshot.facas.0.principal'));
+        $this->assertFalse($create->json('data.input_snapshot.facas.1.principal'));
+        $this->assertEqualsWithDelta(150.0, (float) $create->json('data.input_snapshot.valor_faca_nova'), 0.01);
+        // Motor intacto (mesma geometria BRAHVA do payload base).
+        $this->assertEqualsWithDelta(1900.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
     }
 
     public function test_snapshot_condicoes_comerciais_no_input(): void

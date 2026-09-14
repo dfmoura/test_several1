@@ -96,6 +96,29 @@ export type ModeloComposicaoForm = {
   valor_arte: number;
 };
 
+/** Composição de facas no ORC — ADR_ORC_FACAS_COMPOSICAO. */
+export type FacaComposicaoForm = {
+  ordem: number;
+  principal: boolean;
+  mapa_faca_id: number | null;
+  n_facas: number | null;
+  label: string;
+  medida: string;
+  formato: string;
+  puxada_cm: number | '';
+  largura_cm: number | '';
+  z: number | '';
+  maquina: string;
+  colunas_mapa: string;
+  posicao: FacaPosicaoCodigo | '';
+  contorno_svg: string;
+  diametro_cm: number | '';
+  tamanho_tipo: string;
+  faca_nova: boolean;
+  valor_faca: number;
+  prazo_faca_dias: number | '';
+};
+
 export type OrcForm = {
   tipo_operacao: TipoOperacaoSaida;
   tipo_servico: TipoServicoSaida;
@@ -138,6 +161,8 @@ export type OrcForm = {
   formato_faca: string;
   valor_faca_nova: number;
   prazo_faca_dias: number | '';
+  /** 0..N facas — principal alimenta geometria; extras = referência/cobrança. */
+  facas: FacaComposicaoForm[];
   /** Visual da faca no mapa — snapshot; não entra no motor R1–R20 */
   faca_colunas_mapa: string;
   faca_posicao: FacaPosicaoCodigo | '';
@@ -181,6 +206,182 @@ export type OrcCatalogo = {
     descricao_padrao: string;
   }>;
 };
+
+/** Soma comercial das facas cotadas (add-on do ORC). */
+export function somaValorFacas(rows: FacaComposicaoForm[]): number {
+  return Math.round(rows.reduce((s, r) => s + Math.max(0, Number(r.valor_faca) || 0), 0) * 100) / 100;
+}
+
+export function facaPrincipal(rows: FacaComposicaoForm[]): FacaComposicaoForm | null {
+  if (!rows.length) return null;
+  return rows.find((r) => r.principal) ?? rows[0] ?? null;
+}
+
+export function prazoMaxFacas(rows: FacaComposicaoForm[]): number | '' {
+  let max: number | null = null;
+  for (const r of rows) {
+    const v = Math.max(0, Number(r.valor_faca) || 0);
+    if (v <= 0 && !r.faca_nova) continue;
+    if (r.prazo_faca_dias === '' || r.prazo_faca_dias == null) continue;
+    const p = Number(r.prazo_faca_dias);
+    if (!Number.isFinite(p)) continue;
+    max = max == null ? p : Math.max(max, p);
+  }
+  return max == null ? '' : max;
+}
+
+function emptyFacaComposicao(partial?: Partial<FacaComposicaoForm>): FacaComposicaoForm {
+  return {
+    ordem: 1,
+    principal: true,
+    mapa_faca_id: null,
+    n_facas: null,
+    label: '',
+    medida: '',
+    formato: '',
+    puxada_cm: '',
+    largura_cm: '',
+    z: '',
+    maquina: '',
+    colunas_mapa: '',
+    posicao: '',
+    contorno_svg: '',
+    diametro_cm: '',
+    tamanho_tipo: '',
+    faca_nova: false,
+    valor_faca: 0,
+    prazo_faca_dias: '',
+    ...partial,
+  };
+}
+
+/** Normaliza lista do snapshot / API; se ausente, sintetiza 0..1 do legado. */
+export function facasFromSnapshot(snap: Record<string, unknown> | null | undefined): FacaComposicaoForm[] {
+  if (!snap) return [];
+  const raw = snap.facas;
+  if (Array.isArray(raw)) {
+    if (raw.length === 0) return [];
+    const rows = raw.map((row, i) => {
+      const r = (row && typeof row === 'object' ? row : {}) as Record<string, unknown>;
+      const pos = String(r.posicao ?? '');
+      return emptyFacaComposicao({
+        ordem: Number(r.ordem) || i + 1,
+        principal: Boolean(r.principal),
+        mapa_faca_id:
+          r.mapa_faca_id == null || r.mapa_faca_id === '' ? null : Number(r.mapa_faca_id),
+        n_facas: r.n_facas == null || r.n_facas === '' ? null : Number(r.n_facas),
+        label: String(r.label ?? ''),
+        medida: String(r.medida ?? ''),
+        formato: String(r.formato ?? r.formato_faca ?? ''),
+        puxada_cm:
+          r.puxada_cm == null || r.puxada_cm === ''
+            ? r.puxada == null || r.puxada === ''
+              ? ''
+              : Number(r.puxada)
+            : Number(r.puxada_cm),
+        largura_cm:
+          r.largura_cm == null || r.largura_cm === ''
+            ? r.largura_faca == null || r.largura_faca === ''
+              ? ''
+              : Number(r.largura_faca)
+            : Number(r.largura_cm),
+        z: r.z == null || r.z === '' ? '' : Number(r.z),
+        maquina: String(r.maquina ?? r.maquina_catalogo ?? ''),
+        colunas_mapa: String(r.colunas_mapa ?? r.faca_colunas_mapa ?? ''),
+        posicao: isFacaPosicao(pos) ? (pos as FacaPosicaoCodigo) : '',
+        contorno_svg: String(r.contorno_svg ?? r.faca_contorno_svg ?? ''),
+        diametro_cm:
+          r.diametro_cm == null || r.diametro_cm === ''
+            ? r.faca_diametro_cm == null || r.faca_diametro_cm === ''
+              ? ''
+              : Number(r.faca_diametro_cm)
+            : Number(r.diametro_cm),
+        tamanho_tipo: String(r.tamanho_tipo ?? r.faca_tamanho_tipo ?? ''),
+        faca_nova: Boolean(r.faca_nova),
+        valor_faca: Math.max(0, Number(r.valor_faca ?? r.valor_faca_nova) || 0),
+        prazo_faca_dias:
+          r.prazo_faca_dias == null || r.prazo_faca_dias === ''
+            ? ''
+            : Number(r.prazo_faca_dias),
+      });
+    });
+    if (!rows.some((r) => r.principal) && rows[0]) {
+      rows[0] = { ...rows[0], principal: true };
+    }
+    return rows.map((r, i) => ({ ...r, ordem: i + 1 }));
+  }
+
+  const formato = String(snap.formato_faca ?? '');
+  const facaNova = Boolean(snap.faca_nova);
+  const hasVisual =
+    String(snap.faca_colunas_mapa ?? '').trim() !== '' ||
+    String(snap.faca_posicao ?? '').trim() !== '' ||
+    String(snap.faca_contorno_svg ?? '').trim() !== '' ||
+    (snap.faca_diametro_cm != null && snap.faca_diametro_cm !== '') ||
+    String(snap.faca_tamanho_tipo ?? '').trim() !== '';
+  if (!formato && !facaNova && !hasVisual) return [];
+
+  const pos = String(snap.faca_posicao ?? '');
+  return [
+    emptyFacaComposicao({
+      principal: true,
+      label: facaNova ? 'Faca nova' : '',
+      medida: String(snap.medida ?? ''),
+      formato: formato || (facaNova ? 'RETA' : ''),
+      puxada_cm: snap.puxada_cm == null || snap.puxada_cm === '' ? '' : Number(snap.puxada_cm),
+      largura_cm: snap.largura_cm == null || snap.largura_cm === '' ? '' : Number(snap.largura_cm),
+      z: snap.z == null || snap.z === '' ? '' : Number(snap.z),
+      maquina: String(snap.maquina ?? ''),
+      colunas_mapa: String(snap.faca_colunas_mapa ?? ''),
+      posicao: isFacaPosicao(pos) ? (pos as FacaPosicaoCodigo) : '',
+      contorno_svg: String(snap.faca_contorno_svg ?? ''),
+      diametro_cm:
+        snap.faca_diametro_cm == null || snap.faca_diametro_cm === ''
+          ? ''
+          : Number(snap.faca_diametro_cm),
+      tamanho_tipo: String(snap.faca_tamanho_tipo ?? ''),
+      faca_nova: facaNova,
+      valor_faca: facaNova ? Math.max(0, Number(snap.valor_faca_nova) || 0) : 0,
+      prazo_faca_dias:
+        !facaNova || snap.prazo_faca_dias == null || snap.prazo_faca_dias === ''
+          ? ''
+          : Number(snap.prazo_faca_dias),
+    }),
+  ];
+}
+
+/** Projeta principal + Σ nos escalares legado do form. */
+export function scalarsFromFacas(facas: FacaComposicaoForm[]): Pick<
+  OrcForm,
+  | 'faca_nova'
+  | 'formato_faca'
+  | 'valor_faca_nova'
+  | 'prazo_faca_dias'
+  | 'faca_colunas_mapa'
+  | 'faca_posicao'
+  | 'faca_contorno_svg'
+  | 'faca_diametro_cm'
+  | 'faca_tamanho_tipo'
+> {
+  const p = facaPrincipal(facas);
+  const soma = somaValorFacas(facas);
+  const temNova = facas.some((f) => f.faca_nova);
+  return {
+    faca_nova: temNova || soma > 0,
+    formato_faca: p?.formato ?? '',
+    valor_faca_nova: soma,
+    prazo_faca_dias: prazoMaxFacas(facas),
+    faca_colunas_mapa: p?.colunas_mapa ?? '',
+    faca_posicao: p?.posicao ?? '',
+    faca_contorno_svg: p?.contorno_svg ?? '',
+    faca_diametro_cm: p?.diametro_cm ?? '',
+    faca_tamanho_tipo: p?.tamanho_tipo ?? '',
+  };
+}
+
+export function renumerarFacas(rows: FacaComposicaoForm[]): FacaComposicaoForm[] {
+  return rows.map((r, i) => ({ ...r, ordem: i + 1 }));
+}
 
 /** Equal-split canônico (soma = 100); preserva nomes nas posições existentes. */
 export function syncModelosComposicao(
@@ -395,6 +596,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     formato_faca: '',
     valor_faca_nova: 0,
     prazo_faca_dias: '',
+    facas: [],
     faca_colunas_mapa: '',
     faca_posicao: '',
     faca_contorno_svg: '',
@@ -475,25 +677,35 @@ export function formFromSnapshot(
     tolerancia_qtd_pct: Number(snap.tolerancia_qtd_pct) || 20,
     observacao: String(snap.observacao ?? ''),
     url_arte: String(snap.url_arte ?? ''),
-    faca_nova: Boolean(snap.faca_nova),
-    formato_faca: String(snap.formato_faca ?? ''),
-    valor_faca_nova: Number(snap.valor_faca_nova) || 0,
-    prazo_faca_dias:
-      snap.prazo_faca_dias == null || snap.prazo_faca_dias === ''
-        ? ''
-        : Number(snap.prazo_faca_dias),
-    faca_colunas_mapa: String(snap.faca_colunas_mapa ?? ''),
-    faca_posicao: isFacaPosicao(String(snap.faca_posicao ?? ''))
-      ? (String(snap.faca_posicao) as FacaPosicaoCodigo)
-      : '',
-    faca_contorno_svg: String(snap.faca_contorno_svg ?? ''),
-    faca_diametro_cm:
-      snap.faca_diametro_cm == null || snap.faca_diametro_cm === ''
-        ? snap.diametro_cm == null || snap.diametro_cm === ''
-          ? ''
-          : Number(snap.diametro_cm)
-        : Number(snap.faca_diametro_cm),
-    faca_tamanho_tipo: String(snap.faca_tamanho_tipo ?? snap.tamanho_tipo ?? ''),
+    ...(() => {
+      const facas = facasFromSnapshot(snap);
+      const projected = scalarsFromFacas(facas);
+      if (facas.length > 0) {
+        return { facas, ...projected };
+      }
+      return {
+        facas,
+        faca_nova: Boolean(snap.faca_nova),
+        formato_faca: String(snap.formato_faca ?? ''),
+        valor_faca_nova: Number(snap.valor_faca_nova) || 0,
+        prazo_faca_dias:
+          snap.prazo_faca_dias == null || snap.prazo_faca_dias === ''
+            ? ''
+            : Number(snap.prazo_faca_dias),
+        faca_colunas_mapa: String(snap.faca_colunas_mapa ?? ''),
+        faca_posicao: isFacaPosicao(String(snap.faca_posicao ?? ''))
+          ? (String(snap.faca_posicao) as FacaPosicaoCodigo)
+          : '',
+        faca_contorno_svg: String(snap.faca_contorno_svg ?? ''),
+        faca_diametro_cm:
+          snap.faca_diametro_cm == null || snap.faca_diametro_cm === ''
+            ? snap.diametro_cm == null || snap.diametro_cm === ''
+              ? ''
+              : Number(snap.diametro_cm)
+            : Number(snap.faca_diametro_cm),
+        faca_tamanho_tipo: String(snap.faca_tamanho_tipo ?? snap.tamanho_tipo ?? ''),
+      };
+    })(),
     condicao_pagamento: String(snap.condicao_pagamento ?? ''),
     forma_pagamento: String(snap.forma_pagamento ?? ''),
     vendedor_parceiro_id:
@@ -578,20 +790,42 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     tolerancia_qtd_pct: form.tolerancia_qtd_pct,
     observacao: form.observacao || null,
     url_arte: form.url_arte.trim() || null,
-    faca_nova: form.faca_nova,
-    formato_faca: form.formato_faca || null,
-    valor_faca_nova: form.faca_nova ? form.valor_faca_nova : 0,
-    prazo_faca_dias: form.faca_nova
-      ? form.prazo_faca_dias === ''
-        ? null
-        : form.prazo_faca_dias
-      : null,
-    faca_colunas_mapa: form.faca_colunas_mapa.trim() || null,
-    faca_posicao: form.faca_posicao || null,
-    faca_contorno_svg: form.faca_contorno_svg.trim() || null,
-    faca_diametro_cm:
-      form.faca_diametro_cm === '' ? null : Number(form.faca_diametro_cm) || null,
-    faca_tamanho_tipo: form.faca_tamanho_tipo.trim() || null,
+    facas: form.facas.map((f, i) => ({
+      ordem: i + 1,
+      principal: Boolean(f.principal),
+      mapa_faca_id: f.mapa_faca_id,
+      n_facas: f.n_facas,
+      label: f.label.trim() || null,
+      medida: f.medida.trim() || null,
+      formato: f.formato.trim() || null,
+      puxada_cm: f.puxada_cm === '' ? null : Number(f.puxada_cm) || null,
+      largura_cm: f.largura_cm === '' ? null : Number(f.largura_cm) || null,
+      z: f.z === '' ? null : Number(f.z),
+      maquina: f.maquina.trim() || null,
+      colunas_mapa: f.colunas_mapa.trim() || null,
+      posicao: f.posicao || null,
+      contorno_svg: f.contorno_svg.trim() || null,
+      diametro_cm: f.diametro_cm === '' ? null : Number(f.diametro_cm) || null,
+      tamanho_tipo: f.tamanho_tipo.trim() || null,
+      faca_nova: Boolean(f.faca_nova),
+      valor_faca: Math.max(0, Number(f.valor_faca) || 0),
+      prazo_faca_dias: f.prazo_faca_dias === '' ? null : Number(f.prazo_faca_dias),
+    })),
+    ...(() => {
+      const s = scalarsFromFacas(form.facas);
+      return {
+        faca_nova: s.faca_nova,
+        formato_faca: s.formato_faca || null,
+        valor_faca_nova: s.valor_faca_nova,
+        prazo_faca_dias: s.prazo_faca_dias === '' ? null : s.prazo_faca_dias,
+        faca_colunas_mapa: s.faca_colunas_mapa.trim() || null,
+        faca_posicao: s.faca_posicao || null,
+        faca_contorno_svg: s.faca_contorno_svg.trim() || null,
+        faca_diametro_cm:
+          s.faca_diametro_cm === '' ? null : Number(s.faca_diametro_cm) || null,
+        faca_tamanho_tipo: s.faca_tamanho_tipo.trim() || null,
+      };
+    })(),
     condicao_pagamento: form.condicao_pagamento.trim() || null,
     forma_pagamento: form.forma_pagamento.trim() || null,
     vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,

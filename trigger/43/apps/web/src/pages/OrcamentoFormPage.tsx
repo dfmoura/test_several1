@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
-import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
-import { isFacaPosicao, type FacaPosicaoCodigo } from '../lib/facaPosicao';
+import { FacasComposicaoEditor } from '../components/FacasComposicaoEditor';
+import type { FacaRecord } from '../components/FacaPicker';
+import type { FacaPosicaoCodigo } from '../lib/facaPosicao';
 import { SaidaEtiquetaPicker } from '../components/SaidaEtiquetaPicker';
 import type { SaidaEtiquetaCodigo } from '../lib/saidaEtiqueta';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
@@ -33,11 +34,15 @@ import {
   CORES_OPCOES,
   aplicarQuantidadeModeloFaixa,
   defaultOrcForm,
+  facaPrincipal,
   formFromSnapshot,
   matrizQuantidadesModelos,
   payloadFromForm,
+  scalarsFromFacas,
+  somaValorFacas,
   syncModelosComposicao,
   validarModelosComposicao,
+  type FacaComposicaoForm,
   type OrcCatalogo,
   type OrcForm,
 } from '../lib/orcamentoForm';
@@ -59,6 +64,29 @@ import {
 
 /** Reconstrói a faca a partir do snapshot — desenho visível ao editar (sem faca_id no ORC). */
 function facaSelFromForm(form: OrcForm): FacaRecord | null {
+  const p = facaPrincipal(form.facas);
+  if (p) {
+    return {
+      id: p.mapa_faca_id ?? undefined,
+      faca_nova: p.faca_nova,
+      completa: !p.faca_nova,
+      medida: p.medida || form.medida,
+      formato: p.formato || form.formato_faca || 'RETA',
+      faca: p.formato || form.formato_faca || 'RETA',
+      maquina_catalogo: p.maquina || form.maquina,
+      puxada: p.puxada_cm === '' ? form.puxada_cm || null : p.puxada_cm,
+      z: p.z === '' ? (form.z === '' ? null : form.z) : p.z,
+      largura_faca: p.largura_cm === '' ? form.largura_cm || null : p.largura_cm,
+      n_facas: p.n_facas,
+      colunas_mapa: p.colunas_mapa || null,
+      posicao: p.posicao || null,
+      contorno_svg: p.contorno_svg || null,
+      diametro_cm: p.diametro_cm === '' ? null : p.diametro_cm,
+      tamanho_tipo: p.tamanho_tipo || null,
+      cliente_nota: p.faca_nova ? null : 'snapshot do ORC',
+      label: p.label || (p.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento'),
+    };
+  }
   if (!form.formato_faca && !form.medida) return null;
   return {
     faca_nova: form.faca_nova,
@@ -77,6 +105,40 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
     tamanho_tipo: form.faca_tamanho_tipo || null,
     cliente_nota: form.faca_nova ? null : 'snapshot do ORC',
     label: form.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento',
+  };
+}
+
+function aplicarGeometriaPrincipal(
+  prev: OrcForm,
+  facas: FacaComposicaoForm[],
+  catalog: OrcCatalogo | null,
+): OrcForm {
+  const scalars = scalarsFromFacas(facas);
+  const p = facaPrincipal(facas);
+  if (!p) {
+    return { ...prev, facas, ...scalars };
+  }
+  const maquinas = catalog?.maquinas ?? [];
+  const maq = p.maquina.trim();
+  const puxada = p.puxada_cm === '' ? null : Number(p.puxada_cm);
+  const z = p.z === '' ? null : Number(p.z);
+  const largura = p.largura_cm === '' ? null : Number(p.largura_cm);
+
+  return {
+    ...prev,
+    facas,
+    ...scalars,
+    medida: p.medida || prev.medida,
+    puxada_cm:
+      puxada != null && !Number.isNaN(puxada) && puxada > 0
+        ? puxada
+        : p.faca_nova
+          ? prev.puxada_cm
+          : prev.puxada_cm,
+    z: z != null && !Number.isNaN(z) ? z : p.faca_nova ? prev.z : prev.z,
+    largura_cm:
+      largura != null && !Number.isNaN(largura) && largura > 0 ? largura : prev.largura_cm,
+    maquina: maq && maquinas.includes(maq) ? maq : prev.maquina,
   };
 }
 
@@ -166,9 +228,46 @@ export function OrcamentoFormPage() {
   }, [id, isNew, navigate]);
 
   const setField = <K extends keyof OrcForm>(key: K, value: OrcForm[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // Mantém a faca principal alinhada aos campos editáveis da geometria.
+      const geoKeys = new Set([
+        'medida',
+        'puxada_cm',
+        'z',
+        'largura_cm',
+        'formato_faca',
+        'maquina',
+        'faca_nova',
+        'faca_colunas_mapa',
+        'faca_posicao',
+        'faca_contorno_svg',
+        'faca_diametro_cm',
+        'faca_tamanho_tipo',
+      ]);
+      if (geoKeys.has(key as string) && next.facas.length > 0) {
+        next.facas = next.facas.map((f) => {
+          if (!f.principal) return f;
+          const patched = { ...f };
+          if (key === 'medida') patched.medida = value as string;
+          if (key === 'puxada_cm') patched.puxada_cm = (value as number) || '';
+          if (key === 'z') patched.z = value as number | '';
+          if (key === 'largura_cm') patched.largura_cm = (value as number) || '';
+          if (key === 'formato_faca') patched.formato = value as string;
+          if (key === 'maquina') patched.maquina = value as string;
+          if (key === 'faca_nova') patched.faca_nova = value as boolean;
+          if (key === 'faca_colunas_mapa') patched.colunas_mapa = value as string;
+          if (key === 'faca_posicao') patched.posicao = value as FacaPosicaoCodigo | '';
+          if (key === 'faca_contorno_svg') patched.contorno_svg = value as string;
+          if (key === 'faca_diametro_cm') patched.diametro_cm = value as number | '';
+          if (key === 'faca_tamanho_tipo') patched.tamanho_tipo = value as string;
+          return patched;
+        });
+        Object.assign(next, scalarsFromFacas(next.facas));
+      }
+      return next;
+    });
     setCalculo(null);
-    // Mantém o desenho no picker alinhado aos campos editáveis.
     if (
       key === 'medida' ||
       key === 'puxada_cm' ||
@@ -199,54 +298,11 @@ export function OrcamentoFormPage() {
     }
   };
 
-  const aplicarFaca = (faca: FacaRecord | null) => {
-    setFacaSel(faca);
+  const aplicarFacas = (nextFacas: FacaComposicaoForm[]) => {
     setCalculo(null);
-    if (!faca) {
-      setForm((prev) => ({
-        ...prev,
-        faca_nova: false,
-        formato_faca: '',
-        valor_faca_nova: 0,
-        prazo_faca_dias: '',
-        faca_posicao: '',
-      }));
-      return;
-    }
-
-    const isNova = faca.faca_nova === true;
-    const puxada = faca.puxada != null ? Number(faca.puxada) : null;
-    const z = faca.z != null ? Number(faca.z) : null;
-    const largura = faca.largura_faca != null ? Number(faca.largura_faca) : null;
-    const maq = String(faca.maquina_catalogo || '').trim();
-    const maquinas = catalog?.maquinas ?? [];
-    const formato = String(faca.formato || faca.faca || '');
-
-    setForm((prev) => ({
-      ...prev,
-      medida: String(faca.medida || prev.medida),
-      puxada_cm: puxada != null && !Number.isNaN(puxada) ? puxada : isNova ? 0 : prev.puxada_cm,
-      z: z != null && !Number.isNaN(z) ? z : isNova ? '' : prev.z,
-      largura_cm:
-        largura != null && !Number.isNaN(largura) && largura > 0 ? largura : prev.largura_cm,
-      maquina: maq && maquinas.includes(maq) ? maq : prev.maquina,
-      faca_nova: isNova,
-      formato_faca: formato,
-      valor_faca_nova: isNova ? prev.valor_faca_nova : 0,
-      prazo_faca_dias: isNova ? prev.prazo_faca_dias : '',
-      faca_colunas_mapa: isNova ? '' : String(faca.colunas_mapa ?? ''),
-      faca_posicao: isNova
-        ? prev.faca_posicao
-        : isFacaPosicao(String(faca.posicao ?? ''))
-          ? (String(faca.posicao) as FacaPosicaoCodigo)
-          : '',
-      faca_contorno_svg: isNova ? '' : String(faca.contorno_svg ?? ''),
-      faca_diametro_cm:
-        faca.diametro_cm != null && !Number.isNaN(Number(faca.diametro_cm))
-          ? Number(faca.diametro_cm)
-          : '',
-      faca_tamanho_tipo: isNova ? '' : String(faca.tamanho_tipo ?? ''),
-    }));
+    setForm((prev) => aplicarGeometriaPrincipal(prev, nextFacas, catalog));
+    const merged = aplicarGeometriaPrincipal(form, nextFacas, catalog);
+    setFacaSel(facaSelFromForm(merged));
   };
 
   const facaIncompleta = facaSel != null && facaSel.completa === false;
@@ -494,7 +550,7 @@ export function OrcamentoFormPage() {
     }
     if (!form.medida.trim()) return 'Informe a medida.';
     if (form.largura_cm <= 0 || form.puxada_cm <= 0) return 'Largura e puxada devem ser > 0.';
-    if (form.faca_nova && form.valor_faca_nova < 0) return 'Valor da faca nova inválido.';
+    if (somaValorFacas(form.facas) < 0) return 'Valor de ferramental inválido.';
     if (
       modoComFrete(form.modo_entrega) &&
       form.valor_frete_manual !== '' &&
@@ -883,14 +939,14 @@ export function OrcamentoFormPage() {
 
           {form.tipo_operacao === TIPO_INDUSTRIALIZACAO ? (
             <>
-          {/* 2. Faca / dimensões — mapa oficial (padrão 36) */}
+          {/* 2. Faca / dimensões — mapa oficial (padrão 36 + ADR multi-faca) */}
           <section className="orc-section">
             <h3 className="orc-section-title">2. Faca (mapa oficial)</h3>
-            <FacaPicker
-              value={facaSel}
-              onChange={aplicarFaca}
+            <FacasComposicaoEditor
+              facas={form.facas}
+              onChange={aplicarFacas}
               maquinasCatalogo={catalog?.maquinas ?? []}
-              disabled={!canWrite}
+              canWrite={canWrite}
             />
             <div className="form-grid faca-auto-fields">
               {showMedidaField ? (
@@ -1157,42 +1213,6 @@ export function OrcamentoFormPage() {
                   </span>
                 ) : null}
               </div>
-              {form.faca_nova ? (
-                <>
-                  <div className="form-group manual-field">
-                    <label>
-                      Valor faca nova (R$) *{' '}
-                      <span className="field-note">custo cotado pelo fornecedor</span>
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.valor_faca_nova || ''}
-                      onChange={(e) => setField('valor_faca_nova', Number(e.target.value) || 0)}
-                      disabled={!canWrite}
-                    />
-                  </div>
-                  <div className="form-group manual-field">
-                    <label>
-                      Prazo extra faca (dias){' '}
-                      <span className="field-note">somar ao prazo de entrega</span>
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.prazo_faca_dias === '' ? '' : form.prazo_faca_dias}
-                      onChange={(e) =>
-                        setField(
-                          'prazo_faca_dias',
-                          e.target.value === '' ? '' : Number(e.target.value),
-                        )
-                      }
-                      disabled={!canWrite}
-                    />
-                  </div>
-                </>
-              ) : null}
               <div className="form-group">
                 <label>
                   Gordura <span className="field-note">interno — cliente não vê</span>

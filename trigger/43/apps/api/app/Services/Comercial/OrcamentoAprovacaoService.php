@@ -858,8 +858,19 @@ class OrcamentoAprovacaoService
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
-        $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
-        $valorFaca = $facaNova ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0) : 0.0;
+        $facas = is_array($input['facas'] ?? null) ? $input['facas'] : [];
+        if ($facas === [] && ! array_key_exists('facas', $input)) {
+            $facas = \App\Support\FacasComposicao::fromLegacyScalars($input);
+        }
+        $valorFaca = \App\Support\FacasComposicao::somaValor($facas);
+        if ($valorFaca <= 0.0) {
+            $facaNovaFlag = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
+            $valorFaca = $facaNovaFlag
+                ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0)
+                : 0.0;
+        }
+        $facaNova = $valorFaca > 0.0 || \App\Support\FacasComposicao::temFacaNova($facas)
+            || (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
         $valorArtes = (float) ($result['valor_artes']
             ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
         $somenteLeitura = $modo === 'preview' || $link === null;
@@ -946,6 +957,7 @@ class OrcamentoAprovacaoService
                 'puxada_cm' => $input['puxada_cm'] ?? null,
                 'formato_faca' => $input['formato_faca'] ?? null,
                 'faca_nova' => $facaNova,
+                'facas' => $facas,
                 'faca_colunas_mapa' => $input['faca_colunas_mapa'] ?? null,
                 'faca_posicao' => $input['faca_posicao'] ?? null,
                 'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
