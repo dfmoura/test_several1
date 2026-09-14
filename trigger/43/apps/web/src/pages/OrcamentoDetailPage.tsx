@@ -33,6 +33,8 @@ import { normalizeUrlArte } from '../lib/urlArte';
 import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 import { pedStatusLabel } from '../lib/producaoUi';
+import { SaidaEtiquetaBadge } from '../components/SaidaEtiquetaBadge';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number; valor_arte?: number };
 
@@ -236,6 +238,7 @@ export function OrcamentoDetailPage() {
       ['Etiq./rolo', input.etiq_por_rolo],
       ['Tubete', input.tubete],
       ['Col. rebob.', input.coluna_rebobinacao],
+      ['Saída etiqueta', saidaEtiquetaLabel(String(input.saida_etiqueta ?? ''))],
       ['Matriz', input.matriz],
       ['Imposto %', input.imposto_pct],
       ...(Number(input.valor_gordura) > 0
@@ -675,6 +678,16 @@ export function OrcamentoDetailPage() {
                 <strong>{displaySnap(value)}</strong>
               </div>
             ))}
+          </div>
+          <div className="orc-saida-etiqueta-detalhe">
+            <span className="orc-section-label" style={{ marginBottom: '0.35rem' }}>
+              Saída da etiqueta na bobina
+            </span>
+            {saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ? (
+              <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="thumb" />
+            ) : (
+              <strong>—</strong>
+            )}
           </div>
           {modelosComp.length > 0 ? (
             <ModelosComposicaoTable

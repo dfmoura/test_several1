@@ -17,6 +17,7 @@ use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
 use App\Support\ContornoSvgSanitizer;
 use App\Support\FacaPosicao;
+use App\Support\SaidaEtiqueta;
 use App\Support\ModelosComposicao;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
@@ -450,6 +451,7 @@ class OrcamentoService
                 : ($input['prazo_faca_dias'] ?? null),
             'faca_colunas_mapa' => $this->nullIfEmpty($data['faca_colunas_mapa'] ?? $input['faca_colunas_mapa'] ?? null),
             'faca_posicao' => $this->normalizeFacaPosicao($data['faca_posicao'] ?? $input['faca_posicao'] ?? null),
+            'saida_etiqueta' => $this->normalizeSaidaEtiqueta($data['saida_etiqueta'] ?? $input['saida_etiqueta'] ?? null),
             'faca_contorno_svg' => $this->sanitizeFacaContornoSvg($data['faca_contorno_svg'] ?? $input['faca_contorno_svg'] ?? null),
             'faca_diametro_cm' => $this->nullablePositiveFloat($data['faca_diametro_cm'] ?? $input['faca_diametro_cm'] ?? null),
             'faca_tamanho_tipo' => $this->nullIfEmpty($data['faca_tamanho_tipo'] ?? $input['faca_tamanho_tipo'] ?? null),
@@ -479,6 +481,15 @@ class OrcamentoService
         }
 
         return FacaPosicao::normalize($raw);
+    }
+
+    private function normalizeSaidaEtiqueta(mixed $raw): ?string
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return SaidaEtiqueta::normalize($raw);
     }
 
     private function nullablePositiveFloat(mixed $v): ?float

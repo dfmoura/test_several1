@@ -5,6 +5,7 @@ import {
   FichaFacaSection,
   FichaGuiaProducaoSection,
   FichaKv,
+  FichaSaidaEtiquetaSection,
   FichaSection,
 } from './ProducaoFichaBlocks';
 import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
@@ -146,6 +147,7 @@ export function OrdemProducaoFichaSheet({
 
       <FichaEspecificacaoSection spec={spec} />
       <FichaFacaSection spec={spec} />
+      <FichaSaidaEtiquetaSection spec={spec} />
       <FichaGuiaProducaoSection spec={spec} faixa={faixa} modelos={modelos} />
 
       <FichaSection title="Materiais">

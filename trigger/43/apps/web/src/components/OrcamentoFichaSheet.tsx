@@ -13,6 +13,8 @@ import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
 import { formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { normalizeUrlArte } from '../lib/urlArte';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 /**
  * Ficha operacional do ORC — uso interno (não é proposta ao cliente).
@@ -286,6 +288,7 @@ export function OrcamentoFichaSheet({
               <th>Gordura</th>
               <th>Matriz</th>
               <th>Col. rebob.</th>
+              <th>Saída etiqueta</th>
               <th>Troca produto</th>
               <th>RPM</th>
             </tr>
@@ -303,11 +306,27 @@ export function OrcamentoFichaSheet({
               <td>{temGordura ? money(valorGordura) : '—'}</td>
               <td>{snap(input, 'matriz')}</td>
               <td>{snap(input, 'coluna_rebobinacao')}</td>
+              <td>{saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ?? '—'}</td>
               <td>{snap(input, 'tipo_troca_produto')}</td>
               <td>{snap(input, 'rpm')}</td>
             </tr>
           </tbody>
         </table>
+        {saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ? (
+          <div className="ficha-saida-etiqueta-block">
+            <p className="ficha-saida-etiqueta-block__title">Saída da etiqueta na bobina</p>
+            <div className="ficha-saida-etiqueta">
+              <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="thumb" />
+            </div>
+          </div>
+        ) : (
+          <div className="ficha-saida-etiqueta-block">
+            <p className="ficha-saida-etiqueta-block__title">Saída da etiqueta na bobina</p>
+            <p className="ficha-empty" style={{ margin: 0 }}>
+              Não informada neste orçamento.
+            </p>
+          </div>
+        )}
         {Array.isArray(input.modelos_composicao) &&
         (input.modelos_composicao as Array<{ nome?: string; percentual?: number }>).some(
           (m) => String(m?.nome ?? '').trim() !== '',

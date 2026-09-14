@@ -112,7 +112,8 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 
 - Motor: [`ADR_PRODUCAO_PED_OP_ESTOQUE.md`](ADR_PRODUCAO_PED_OP_ESTOQUE.md)  
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  
-- Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)  
+- Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)
+- Saída da etiqueta (bobina): [`ADR_ORC_SAIDA_ETIQUETA.md`](ADR_ORC_SAIDA_ETIQUETA.md)  
 - Compras→estoque: [`ADR_COMPRAS_ATE_ESTOQUE.md`](ADR_COMPRAS_ATE_ESTOQUE.md)  
 - Caixa DF-e: [`ADR_CAIXA_DFE_NFE_DESTINADAS.md`](ADR_CAIXA_DFE_NFE_DESTINADAS.md)  
 - Inventário/legado: [`ADR_ESTOQUE_INVENTARIO_AJUSTE.md`](ADR_ESTOQUE_INVENTARIO_AJUSTE.md)  

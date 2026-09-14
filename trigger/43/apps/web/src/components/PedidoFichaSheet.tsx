@@ -5,6 +5,7 @@ import {
   FichaFacaSection,
   FichaGuiaProducaoSection,
   FichaKv,
+  FichaSaidaEtiquetaSection,
   FichaSection,
 } from './ProducaoFichaBlocks';
 import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
@@ -190,6 +191,7 @@ export function PedidoFichaSheet({
 
       <FichaEspecificacaoSection spec={spec} />
       <FichaFacaSection spec={spec} />
+      {item?.necessidade !== 'SERVICO' ? <FichaSaidaEtiquetaSection spec={spec} /> : null}
       <FichaGuiaProducaoSection spec={spec} faixa={faixa} modelos={modelos} />
 
       {ops.length > 0 || oss.length > 0 ? (

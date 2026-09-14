@@ -25,6 +25,8 @@ import {
 } from '../lib/orcamentoGuiaProducao';
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 import { SortableTh } from './SortableTh';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
@@ -866,6 +868,12 @@ function GuiaProducaoPanel({
           Calcule com a especificação completa para montar a guia desta faixa.
         </p>
       ) : (
+        <>
+          {saidaEtiquetaLabel(String(espec.saida_etiqueta ?? '')) ? (
+            <div className="orc-saida-etiqueta-detalhe">
+              <SaidaEtiquetaBadge code={String(espec.saida_etiqueta)} variant="thumb" />
+            </div>
+          ) : null}
         <div className="table-wrap">
           <table className="data-table orc-guia-producao-table">
             <thead>
@@ -894,6 +902,7 @@ function GuiaProducaoPanel({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

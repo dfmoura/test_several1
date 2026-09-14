@@ -385,4 +385,29 @@ class OrcamentoTest extends TestCase
             ->postJson('/api/v1/orcamentos', array_merge($payload, ['faca_posicao' => 'INVALIDO']))
             ->assertStatus(422);
     }
+
+    public function test_saida_etiqueta_persiste_no_snapshot_sem_alterar_preco(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['saida_etiqueta'] = 'DEITADA';
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $this->assertSame('DEITADA', $create->json('data.input_snapshot.saida_etiqueta'));
+        $this->assertEqualsWithDelta(1900.0, (float) $create->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/orcamentos', array_merge($payload, ['saida_etiqueta' => 'INVALIDO']))
+            ->assertStatus(422);
+
+        foreach (['ESQUERDA', 'DIREITA', 'PE'] as $codigo) {
+            $ok = $this->withHeaders($h)
+                ->postJson('/api/v1/orcamentos', array_merge($payload, ['saida_etiqueta' => $codigo]));
+            $ok->assertCreated();
+            $this->assertSame($codigo, $ok->json('data.input_snapshot.saida_etiqueta'));
+        }
+    }
 }

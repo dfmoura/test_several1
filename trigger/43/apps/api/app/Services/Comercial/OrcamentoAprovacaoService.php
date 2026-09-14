@@ -948,6 +948,7 @@ class OrcamentoAprovacaoService
                 'faca_nova' => $facaNova,
                 'faca_colunas_mapa' => $input['faca_colunas_mapa'] ?? null,
                 'faca_posicao' => $input['faca_posicao'] ?? null,
+                'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
                 'faca_contorno_svg' => $input['faca_contorno_svg'] ?? null,
                 'faca_diametro_cm' => $input['faca_diametro_cm'] ?? null,
                 'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,

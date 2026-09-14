@@ -14,6 +14,8 @@ import {
   GUIA_PRODUCAO_GRUPO_LABEL,
 } from '../lib/orcamentoGuiaProducao';
 import { dash } from '../lib/producaoFicha';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 type KvProps = { label: string; value: ReactNode; wide?: boolean };
 
@@ -96,10 +98,34 @@ export function FichaEspecificacaoSection({ spec }: { spec: Record<string, unkno
         />
         <FichaKv label="Colunas" value={snap(spec, 'colunas')} />
         <FichaKv label="Col. rebobinação" value={snap(spec, 'coluna_rebobinacao')} />
+        <FichaKv
+          label="Saída da etiqueta"
+          value={saidaEtiquetaLabel(String(spec.saida_etiqueta ?? '')) ?? '—'}
+        />
         <FichaKv label="Troca de produto" value={snap(spec, 'tipo_troca_produto')} />
         <FichaKv label="RPM" value={snap(spec, 'rpm')} />
         <FichaKv label="Modelos" value={snap(spec, 'modelos')} />
       </div>
+    </FichaSection>
+  );
+}
+
+/** Figura da saída na bobina — chão / ficha (ADR_ORC_SAIDA_ETIQUETA). */
+export function FichaSaidaEtiquetaSection({ spec }: { spec: Record<string, unknown> }) {
+  const code = String(spec.saida_etiqueta ?? '');
+  const rotulo = saidaEtiquetaLabel(code);
+
+  return (
+    <FichaSection title="Saída da etiqueta na bobina">
+      {rotulo ? (
+        <div className="ficha-saida-etiqueta">
+          <SaidaEtiquetaBadge code={code} variant="thumb" />
+        </div>
+      ) : (
+        <p className="ficha-empty" style={{ margin: 0 }}>
+          Não informada neste orçamento.
+        </p>
+      )}
     </FichaSection>
   );
 }

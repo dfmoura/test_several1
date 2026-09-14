@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Orcamento;
 use App\Support\FacaPosicao;
+use App\Support\SaidaEtiqueta;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -60,6 +61,8 @@ final class OrcamentoValidationRules
             'valor_gordura' => ['nullable', 'numeric', 'min:0'],
             'matriz' => ['nullable', 'string', Rule::in(['SIM', 'NAO', 'S', 'N', 'YES', 'TRUE', '1', '0'])],
             'coluna_rebobinacao' => ['nullable', 'integer', 'min:1'],
+            // Sentido de saída na bobina — ADR_ORC_SAIDA_ETIQUETA (fora do motor).
+            'saida_etiqueta' => SaidaEtiqueta::validationRule(),
             'tipo_troca_produto' => ['nullable', 'string', 'max:64'],
             'rpm' => ['nullable', 'numeric', 'gt:0'],
             'faixas' => ['required', 'array', 'min:1'],

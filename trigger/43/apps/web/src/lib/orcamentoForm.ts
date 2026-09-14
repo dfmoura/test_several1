@@ -11,6 +11,7 @@ import {
   type OrcOverrides,
 } from './orcamentoParametrosAjuste';
 import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
+import { type SaidaEtiquetaCodigo, isSaidaEtiqueta } from './saidaEtiqueta';
 import { modoComFrete, normalizarModoEntrega } from './orcamentoFrete';
 
 export type { OrcOverrides } from './orcamentoParametrosAjuste';
@@ -122,6 +123,8 @@ export type OrcForm = {
   valor_gordura: number;
   matriz: 'SIM' | 'NAO';
   coluna_rebobinacao: number;
+  /** Sentido de saída na bobina — ADR_ORC_SAIDA_ETIQUETA; fora do motor. */
+  saida_etiqueta: SaidaEtiquetaCodigo | '';
   tipo_troca_produto: string;
   rpm: number;
   faixas: FaixaForm[];
@@ -378,6 +381,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     valor_gordura: 0,
     matriz: 'SIM',
     coluna_rebobinacao: 1,
+    saida_etiqueta: '',
     tipo_troca_produto: tipos[0] ?? 'SEM PARADA',
     rpm: 1000,
     // Escada comercial: uma linha em branco — comercial preenche; sem faixas de exemplo.
@@ -456,6 +460,9 @@ export function formFromSnapshot(
     valor_gordura: Math.max(0, Number(snap.valor_gordura) || 0),
     matriz: String(snap.matriz) === 'NAO' ? 'NAO' : 'SIM',
     coluna_rebobinacao: Number(snap.coluna_rebobinacao) || 1,
+    saida_etiqueta: isSaidaEtiqueta(String(snap.saida_etiqueta ?? ''))
+      ? (String(snap.saida_etiqueta) as SaidaEtiquetaCodigo)
+      : '',
     tipo_troca_produto: String(snap.tipo_troca_produto ?? base.tipo_troca_produto),
     rpm: Number(snap.rpm) || 1000,
     faixas: faixasRaw.map((f) => ({
@@ -562,6 +569,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
     matriz: form.matriz,
     coluna_rebobinacao: form.coluna_rebobinacao,
+    saida_etiqueta: form.saida_etiqueta || null,
     tipo_troca_produto: form.tipo_troca_produto,
     rpm: form.rpm,
     faixas: form.faixas,

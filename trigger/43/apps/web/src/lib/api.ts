@@ -3198,6 +3198,7 @@ export type OrcamentoPropostaPublica = {
     faca_nova: boolean;
     faca_colunas_mapa?: string | null;
     faca_posicao?: string | null;
+    saida_etiqueta?: string | null;
     faca_contorno_svg?: string | null;
     faca_diametro_cm?: number | string | null;
     modelos?: number | null;

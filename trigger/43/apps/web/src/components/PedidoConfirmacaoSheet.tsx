@@ -20,6 +20,8 @@ import {
   formatUnitPrice,
 } from '../lib/format';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 import {
   condicaoPagamentoDoPedido,
   formaPagamentoDoPedido,
@@ -168,6 +170,17 @@ export function PedidoConfirmacaoSheet({
                       : '—'}
                   </dd>
                 </div>
+                {isSaidaEtiqueta(strSnap(spec, 'saida_etiqueta')) ? (
+                  <div className="orc-pub-saida-etiqueta">
+                    <dt>Saída da etiqueta</dt>
+                    <dd>
+                      <SaidaEtiquetaBadge
+                        code={strSnap(spec, 'saida_etiqueta')}
+                        variant="thumb"
+                      />
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
               {facaDesenho ? (
                 <div className="orc-spec-faca orc-pub-faca">

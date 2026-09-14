@@ -15,6 +15,8 @@ import {
 import { formatCnpj, formatCurrency, formatDateTime, formatPhone } from '../lib/format';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 
 type Props = {
   proposta: OrcamentoPropostaPublica;
@@ -152,6 +154,14 @@ export function OrcamentoPropostaView({
               <dt>Etiq./rolo</dt>
               <dd>{desc?.etiq_por_rolo?.toLocaleString('pt-BR') ?? '—'}</dd>
             </div>
+            {isSaidaEtiqueta(desc?.saida_etiqueta) ? (
+              <div className="orc-pub-saida-etiqueta">
+                <dt>Saída da etiqueta</dt>
+                <dd>
+                  <SaidaEtiquetaBadge code={desc.saida_etiqueta} variant="thumb" />
+                </dd>
+              </div>
+            ) : null}
           </dl>
           {facaDesenho ? (
             <div className="orc-spec-faca orc-pub-faca">

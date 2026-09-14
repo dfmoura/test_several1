@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { FacaPicker, type FacaRecord } from '../components/FacaPicker';
 import { isFacaPosicao, type FacaPosicaoCodigo } from '../lib/facaPosicao';
+import { SaidaEtiquetaPicker } from '../components/SaidaEtiquetaPicker';
+import type { SaidaEtiquetaCodigo } from '../lib/saidaEtiqueta';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
@@ -976,6 +978,22 @@ export function OrcamentoFormPage() {
             </div>
           </section>
 
+          <section className="orc-section" id="saida-etiqueta-bobina">
+            <h3 className="orc-section-title">Saída da etiqueta na bobina</h3>
+            <p className="form-hint" style={{ marginTop: 0 }}>
+              Como a etiqueta sai na bobina entregue — aparece na proposta, ficha e produção.
+              Opcional. Distinto da posição da faca no cilindro.
+            </p>
+            <div className="saida-etiqueta-orc-wrap">
+              <SaidaEtiquetaPicker
+                id="saida-etiqueta"
+                value={form.saida_etiqueta ?? ''}
+                onChange={(v) => setField('saida_etiqueta', v as SaidaEtiquetaCodigo | '')}
+                disabled={!canWrite}
+              />
+            </div>
+          </section>
+
           {/* 3. Especificação técnica — máquina → material → setup → ferramental → pad interno */}
           <section className="orc-section">
             <h3 className="orc-section-title">3. Especificação técnica</h3>
@@ -1510,10 +1528,12 @@ export function OrcamentoFormPage() {
               modelos: form.modelos,
               colunas: form.colunas,
               coluna_rebobinacao: form.coluna_rebobinacao,
+              saida_etiqueta: form.saida_etiqueta || null,
               tipo_troca_produto: form.tipo_troca_produto,
               rpm: form.rpm,
               z: form.z === '' ? null : form.z,
               faca_nova: form.faca_nova,
+              faca_posicao: form.faca_posicao || null,
               formato_faca: form.formato_faca,
               matriz: form.matriz,
               valor_faca_nova: form.valor_faca_nova,

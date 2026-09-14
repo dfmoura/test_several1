@@ -1,6 +1,7 @@
 import type { OrcamentoFaixaResult } from './api';
 import { formatDecimalBr } from './format';
 import { facaPosicaoLabel } from './facaPosicao';
+import { saidaEtiquetaLabel } from './saidaEtiqueta';
 import {
   alocarQuantidadePorModelo,
   type ModeloComposicaoForm,
@@ -28,6 +29,7 @@ export type OrcGuiaProducaoEspec = {
   z?: number | string | null;
   faca_nova?: boolean | null;
   faca_posicao?: string | null;
+  saida_etiqueta?: string | null;
   formato_faca?: string | null;
   matriz?: string | null;
   valor_faca_nova?: number | string | null;
@@ -225,11 +227,18 @@ export function buildGuiaProducaoLinhas(
   }
 
   // 7 — Rebobinação
+  const saidaRotulo = saidaEtiquetaLabel(txt(espec.saida_etiqueta, '') || null);
   linhas.push({
     grupo: 'processo',
     item: 'Rebobinação',
-    especificacao: `coluna reb. ${txt(espec.coluna_rebobinacao, '1')}`,
+    especificacao: [
+      `coluna reb. ${txt(espec.coluna_rebobinacao, '1')}`,
+      saidaRotulo,
+    ]
+      .filter(Boolean)
+      .join(' · '),
     quantidade: qty(metragem, 1, 'm lineares'),
+    nota: saidaRotulo ? `Saída da bobina: ${saidaRotulo}` : undefined,
   });
 
   // 8 — Tubete
@@ -318,6 +327,7 @@ export function especFromSnapshot(
     z: snap.z as number | string | null | undefined,
     faca_nova: Boolean(snap.faca_nova),
     faca_posicao: (snap.faca_posicao as string | null | undefined) ?? null,
+    saida_etiqueta: (snap.saida_etiqueta as string | null | undefined) ?? null,
     formato_faca: (snap.formato_faca as string | null | undefined) ?? null,
     matriz: snap.matriz as string | undefined,
     valor_faca_nova: snap.valor_faca_nova as number | string | undefined,
