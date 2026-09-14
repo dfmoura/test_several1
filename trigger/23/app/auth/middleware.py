@@ -14,6 +14,7 @@ from app.database import SessionLocal
 _PUBLIC_EXACT = frozenset(
     {
         "/api/health",
+        "/api/mapa/basemap",
         "/api/auth/login",
         "/api/auth/logout",
         "/api/auth/bootstrap",

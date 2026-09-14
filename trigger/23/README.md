@@ -102,6 +102,7 @@ Health: `GET /api/health` — inclui `checks.database` (503 se o banco falhar). 
 | `IA_TOKEN_SECRET` | (auto) | Segredo Fernet para criptografar API keys no Setup; se vazio, gera `data/.ia_fernet_key` |
 | `IA_HTTP_TIMEOUT_SEC` | `45` | Timeout das chamadas aos provedores de IA |
 | `IA_FALLBACK_API_KEY` | — | Fallback opcional se nenhum provedor estiver cadastrado |
+| `CARTO_BASEMAP_API_KEY` | — | Key gratuita dos basemaps CARTO (mapa Localidade); sem ela os tiles mostram “API key required” |
 
 ## Coleta
 

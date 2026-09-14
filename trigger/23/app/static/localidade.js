@@ -126,7 +126,7 @@ async function locEnsureAssets() {
   LOC.ufCentroids = ufCents;
 }
 
-function locInitMap() {
+async function locInitMap() {
   const el = $("#loc-map");
   if (!el || LOC.map) return;
   LOC.map = L.map(el, {
@@ -137,16 +137,36 @@ function locInitMap() {
     worldCopyJump: false,
   }).setView([-14.2, -52.5], 4);
 
-  // Fundo discreto — sem tiles satélite; o coroplético é o protagonista
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+  // Fundo discreto — sem tiles satélite; o coroplético é o protagonista.
+  // CARTO exige API key nos basemaps raster (fair use gratuito).
+  let cartoKey = (window.OSB?.mapa?.cartoApiKey || "").trim();
+  if (!cartoKey) {
+    try {
+      const cfg = await api("/api/mapa/basemap");
+      cartoKey = (cfg.carto_api_key || "").trim();
+      window.OSB = window.OSB || {};
+      window.OSB.mapa = { ...(window.OSB.mapa || {}), cartoApiKey: cartoKey };
+    } catch (err) {
+      console.warn("Basemap CARTO: não foi possível carregar a API key.", err);
+    }
+  }
+  const tileUrl = cartoKey
+    ? `https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoKey)}`
+    : "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
+
+  L.tileLayer(tileUrl, {
     subdomains: "abcd",
     maxZoom: 18,
     opacity: 0.55,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
   }).addTo(LOC.map);
 
   L.control
     .attribution({ position: "bottomright", prefix: false })
-    .addAttribution("Malha UF · Observatório · Carto")
+    .addAttribution(
+      'Malha UF · Observatório · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+    )
     .addTo(LOC.map);
 
   setTimeout(() => LOC.map.invalidateSize(), 80);
@@ -808,7 +828,7 @@ async function carregarLocStats() {
 async function carregarLocalidade() {
   iniciarFiltroPeriodo("loc");
   await locEnsureAssets();
-  locInitMap();
+  await locInitMap();
   if (!LOC.ready) {
     LOC.ready = true;
     setTimeout(() => LOC.map?.invalidateSize(), 120);

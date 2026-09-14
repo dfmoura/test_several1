@@ -3,6 +3,33 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
+
+
+def _carregar_dotenv() -> None:
+    """Carrega .env local sem sobrescrever variáveis já exportadas (dev / Compose)."""
+    path = BASE_DIR / ".env"
+    if not path.is_file():
+        return
+    try:
+        texto = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for linha in texto.splitlines():
+        s = linha.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        chave, _, valor = s.partition("=")
+        chave = chave.strip()
+        if not chave or chave in os.environ:
+            continue
+        valor = valor.strip()
+        if len(valor) >= 2 and valor[0] == valor[-1] and valor[0] in "\"'":
+            valor = valor[1:-1]
+        os.environ[chave] = valor
+
+
+_carregar_dotenv()
+
 # LICITACOES_DB_PATH: permite testes/CI usarem SQLite isolado (nunca o data/ de produção).
 _DB_OVERRIDE = (os.environ.get("LICITACOES_DB_PATH") or "").strip()
 DB_PATH = Path(_DB_OVERRIDE) if _DB_OVERRIDE else (DATA_DIR / "licitacoes.db")
@@ -235,6 +262,10 @@ IA_FALLBACK_MODEL = (os.environ.get("IA_FALLBACK_MODEL") or "").strip()
 IA_FALLBACK_BASE_URL = (os.environ.get("IA_FALLBACK_BASE_URL") or "").strip()
 # Cadência do lote agendado de preços de mercado (segundos entre itens Material).
 MERCADO_IA_LOTE_INTERVALO_SEC = float(os.environ.get("MERCADO_IA_LOTE_INTERVALO_SEC", "2"))
+
+# Basemap CARTO (Leaflet) — key gratuita; obrigatória nos tiles raster.
+# Vai ao browser (query da URL do tile); restringir por domínio no painel CARTO.
+CARTO_BASEMAP_API_KEY = (os.environ.get("CARTO_BASEMAP_API_KEY") or "").strip()
 
 # modalidadeIdPncp (1–14) — domínio oficial PNCP (campo modalidadeIdPncp / codigo_pncp).
 # NÃO usar como valor de filtro/coleta da API Dados Abertos (ver MODALIDADES_COMPRAS).

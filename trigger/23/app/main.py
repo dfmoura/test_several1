@@ -21,6 +21,7 @@ from app.database import init_db
 from app.distribuicao_localidade import router as distribuicao_localidade_router
 from app.health import router as health_router
 from app.ia_provedores import router as ia_provedores_router
+from app.mapa import router as mapa_router
 from app.modalidades_vinculo import router as modalidades_router
 from app.observadores import router as observadores_router
 from app.orgaos_vinculo import router as orgaos_router
@@ -47,6 +48,7 @@ app = FastAPI(
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 app.add_middleware(AuthMiddleware)
 app.include_router(health_router)
+app.include_router(mapa_router)
 app.include_router(auth_router)
 app.include_router(sistema_router)
 app.include_router(agendamento.router)
