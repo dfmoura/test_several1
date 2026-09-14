@@ -152,14 +152,20 @@ export function EstoqueMovimentoFichaEntradaPage() {
             <Link className="btn btn-secondary" to={ocLink}>
               {data.ordem_compra ? `OC ${data.ordem_compra.codigo}` : 'Voltar'}
             </Link>
+            <Link
+              className="btn btn-primary"
+              to={`/estoque/lotes/etiquetas?movimento_id=${data.movimento.id}`}
+            >
+              Etiquetas 50×40
+            </Link>
             <Link className="btn btn-secondary" to="/estoque/guardar">
               Guardar no local
             </Link>
             <Link className="btn btn-secondary" to="/estoque">
               Estoque
             </Link>
-            <button type="button" className="btn btn-primary" onClick={() => window.print()}>
-              Imprimir / PDF
+            <button type="button" className="btn btn-secondary" onClick={() => window.print()}>
+              Imprimir ficha A4
             </button>
           </>
         }

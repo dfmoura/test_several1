@@ -1,27 +1,40 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment, useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { EstoqueConsolidadoPanel } from '../components/EstoqueConsolidadoPanel';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type EstoqueLote, type EstoqueMovimento, type EstoqueSaldo } from '../lib/api';
 import {
+  chaveFaixaVolume,
   coincideBusca,
+  ESTOQUE_FICHA_AUTO_EXPAND_MAX_VOLUMES,
+  estoqueGrupoCodigo,
   formatValorPosicao,
+  mesmaDimensaoVolume,
   mesmaQtdeEstoque,
   movTipoLabel,
   qtdeKardex,
   somaValorPosicao,
   textoBusca,
+  volumesDaFaixa,
 } from '../lib/estoqueUi';
 import { familiaLabel, formatCurrency, formatDate, formatQty, formatQtyCompact } from '../lib/format';
-import { IconMapPin, IconRastreio, IconTag } from '../components/NavIcons';
+import { IconChevronDown, IconEye, IconMapPin, IconRastreio, IconTag } from '../components/NavIcons';
 import { useAuth } from '../lib/auth';
 import { validadeStatusLabel } from '../lib/produtoLotePolitica';
 import { useTableSort } from '../lib/useTableSort';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
-type TabId = 'saldos' | 'lotes' | 'movimentos';
+type TabId = 'saldos' | 'consolidado' | 'lotes' | 'movimentos';
+
+const TAB_IDS: TabId[] = ['saldos', 'consolidado', 'lotes', 'movimentos'];
+
+function parseTab(raw: string | null): TabId {
+  if (raw && (TAB_IDS as string[]).includes(raw)) return raw as TabId;
+  return 'saldos';
+}
 
 const SORT_SALDO = {
   produto: (s: EstoqueSaldo) => s.produto?.codigo,
@@ -54,7 +67,9 @@ const SORT_LOTE = {
 
 const TAB_HINT: Record<TabId, string> = {
   saldos:
-    'Posição oficial por SKU. Selecione a linha para ver o consolidado físico (qtde × volumes).',
+    'Posição oficial por SKU. Selecione a linha para ver o consolidado e os volumes de cada faixa.',
+  consolidado:
+    'Uma linha por faixa consolidada (qtde × L×C), com código e nome do produto no início. Família e grupo filtram como no Excel do chão — não altera o saldo oficial.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA e ajuste aprovado.',
 };
@@ -105,11 +120,12 @@ function movimentoDocumento(m: EstoqueMovimento): string {
 
 export function EstoquePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasPermission } = useAuth();
   const [saldos, setSaldos] = useState<EstoqueSaldo[]>([]);
   const [movs, setMovs] = useState<EstoqueMovimento[]>([]);
   const [lotes, setLotes] = useState<EstoqueLote[]>([]);
-  const [tab, setTab] = useState<TabId>('saldos');
+  const [tab, setTabState] = useState<TabId>(() => parseTab(searchParams.get('tab')));
   const [q, setQ] = useState('');
   const [validadeFiltro, setValidadeFiltro] = useState('');
   const [produtoLoteFiltro, setProdutoLoteFiltro] = useState<number | null>(null);
@@ -119,7 +135,78 @@ export function EstoquePage() {
     comprimento_m: string | null;
   } | null>(null);
   const [saldoSelecionadoId, setSaldoSelecionadoId] = useState<number | null>(null);
+  /** Faixas com detalhe de volumes aberto na ficha (chave produto|qtde|L|C). */
+  const [faixasExpandidas, setFaixasExpandidas] = useState<Set<string>>(() => new Set());
+  const [consolidadoFamilia, setConsolidadoFamilia] = useState(
+    () => searchParams.get('familia') ?? '',
+  );
+  const [consolidadoGrupo, setConsolidadoGrupo] = useState(
+    () => searchParams.get('grupo') ?? 'todos',
+  );
+  const [consolidadoSoVolumes, setConsolidadoSoVolumes] = useState(true);
   const [loading, setLoading] = useState(true);
+
+  const setTab = useCallback(
+    (next: TabId) => {
+      setTabState(next);
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          if (next === 'saldos') p.delete('tab');
+          else p.set('tab', next);
+          if (next !== 'consolidado') {
+            p.delete('familia');
+            p.delete('grupo');
+          } else {
+            if (consolidadoFamilia) p.set('familia', consolidadoFamilia);
+            else p.delete('familia');
+            if (consolidadoGrupo && consolidadoGrupo !== 'todos') p.set('grupo', consolidadoGrupo);
+            else p.delete('grupo');
+          }
+          return p;
+        },
+        { replace: true },
+      );
+    },
+    [consolidadoFamilia, consolidadoGrupo, setSearchParams],
+  );
+
+  const setConsolidadoFamiliaUrl = useCallback(
+    (fam: string) => {
+      setConsolidadoFamilia(fam);
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('tab', 'consolidado');
+          if (fam) p.set('familia', fam);
+          else p.delete('familia');
+          p.delete('grupo');
+          return p;
+        },
+        { replace: true },
+      );
+      setConsolidadoGrupo('todos');
+    },
+    [setSearchParams],
+  );
+
+  const setConsolidadoGrupoUrl = useCallback(
+    (grp: string) => {
+      setConsolidadoGrupo(grp);
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.set('tab', 'consolidado');
+          if (consolidadoFamilia) p.set('familia', consolidadoFamilia);
+          if (grp && grp !== 'todos') p.set('grupo', grp);
+          else p.delete('grupo');
+          return p;
+        },
+        { replace: true },
+      );
+    },
+    [consolidadoFamilia, setSearchParams],
+  );
 
   const alertas = useMemo(() => {
     const vencidos = lotes.filter((l) => l.status === 'VENCIDO' && Number(l.qtde) > 0).length;
@@ -141,6 +228,26 @@ export function EstoquePage() {
     );
   }, [saldos, q]);
 
+  /** Contagem da guia Consolidado (mesma regra base do painel: busca + só volumes). */
+  const consolidadoCount = useMemo(() => {
+    return saldos.filter((s) => {
+      if (consolidadoSoVolumes && !(s.controla_lote && (s.lotes_count ?? 0) > 0)) {
+        return false;
+      }
+      return coincideBusca(
+        textoBusca(
+          s.produto?.codigo,
+          s.produto?.descricao_comercial,
+          s.produto?.descricao_fiscal,
+          s.produto?.familia,
+          estoqueGrupoCodigo(s.produto),
+          s.produto?.grupo_catalogo?.nome,
+        ),
+        q,
+      );
+    }).length;
+  }, [saldos, q, consolidadoSoVolumes]);
+
   const lotesFiltrados = useMemo(() => {
     return lotes.filter((l) => {
       if (validadeFiltro && l.status !== validadeFiltro) return false;
@@ -148,10 +255,7 @@ export function EstoquePage() {
       if (qtdeVolumeFiltro && !mesmaQtdeEstoque(l.qtde, qtdeVolumeFiltro)) return false;
       if (qtdeVolumeFiltro && Number(l.qtde) <= 0) return false;
       if (dimVolumeFiltro) {
-        const mesmaL = (l.largura_mm ?? null) === (dimVolumeFiltro.largura_mm ?? null);
-        const mesmaC =
-          (l.comprimento_m ?? null) === (dimVolumeFiltro.comprimento_m ?? null);
-        if (!mesmaL || !mesmaC) return false;
+        if (!mesmaDimensaoVolume(l, dimVolumeFiltro)) return false;
       }
       return coincideBusca(
         textoBusca(
@@ -194,12 +298,40 @@ export function EstoquePage() {
     return saldosFiltrados.find((s) => s.id === saldoSelecionadoId) ?? null;
   }, [saldosFiltrados, saldoSelecionadoId]);
 
+  /** Volumes do SKU da ficha — mesma fonte da guia Volumes (com local). */
+  const lotesDoSaldoSelecionado = useMemo(() => {
+    if (!saldoSelecionado) return [];
+    return lotes.filter((l) => l.produto_id === saldoSelecionado.produto_id);
+  }, [lotes, saldoSelecionado]);
+
   useEffect(() => {
     if (saldoSelecionadoId == null) return;
     if (!saldosFiltrados.some((s) => s.id === saldoSelecionadoId)) {
       setSaldoSelecionadoId(null);
     }
   }, [saldosFiltrados, saldoSelecionadoId]);
+
+  /** Ao selecionar outro SKU: abre o detalhe se a posição ainda é legível; senão, fechado. */
+  useEffect(() => {
+    if (saldoSelecionadoId == null) {
+      setFaixasExpandidas(new Set());
+      return;
+    }
+    const s = saldos.find((row) => row.id === saldoSelecionadoId);
+    if (!s?.controla_lote) {
+      setFaixasExpandidas(new Set());
+      return;
+    }
+    const faixas = s.volumes_por_qtde ?? [];
+    const total = s.lotes_count ?? 0;
+    if (faixas.length === 0 || total > ESTOQUE_FICHA_AUTO_EXPAND_MAX_VOLUMES) {
+      setFaixasExpandidas(new Set());
+      return;
+    }
+    setFaixasExpandidas(new Set(faixas.map((f) => chaveFaixaVolume(s.produto_id, f))));
+    // Só ao mudar a seleção — não resetar em refresh/filtro da grade.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intencional
+  }, [saldoSelecionadoId]);
 
   useEffect(() => {
     void (async () => {
@@ -264,6 +396,15 @@ export function EstoquePage() {
     setQ('');
   };
 
+  const toggleFaixaVolumes = (chave: string) => {
+    setFaixasExpandidas((prev) => {
+      const next = new Set(prev);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
+      return next;
+    });
+  };
+
   return (
     <div className="estoque-posicao-page">
       <PageHeader
@@ -293,6 +434,8 @@ export function EstoquePage() {
         <Link to="/compras/ordens">ordem de compra</Link>
         {' · '}
         <Link to="/estoque/guardar">Guardar</Link>
+        {' · '}
+        <Link to="/estoque/mapa">Mapa dos locais</Link>
         {' · '}
         <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
         {' · '}
@@ -352,6 +495,7 @@ export function EstoquePage() {
         {(
           [
             ['saldos', 'Por produto', saldosFiltrados.length],
+            ['consolidado', 'Consolidado', consolidadoCount],
             ['lotes', 'Volumes', lotesFiltrados.length],
             ['movimentos', 'Movimentos', movsFiltrados.length],
           ] as const
@@ -382,9 +526,11 @@ export function EstoquePage() {
                 placeholder={
                   tab === 'saldos'
                     ? 'SKU, descrição, família…'
-                    : tab === 'lotes'
-                      ? 'SKU, lote…'
-                      : 'MOV, NF, OC, fornecedor…'
+                    : tab === 'consolidado'
+                      ? 'SKU, nome, família, grupo…'
+                      : tab === 'lotes'
+                        ? 'SKU, lote…'
+                        : 'MOV, NF, OC, fornecedor…'
                 }
               />
             </div>
@@ -424,7 +570,7 @@ export function EstoquePage() {
       </div>
 
       <div className="card">
-        <div className="table-wrap table-wrap--freeze">
+        <div className={tab === 'consolidado' ? undefined : 'table-wrap table-wrap--freeze'}>
           {loading ? (
             <div className="loading">Carregando…</div>
           ) : tab === 'saldos' ? (
@@ -554,6 +700,17 @@ export function EstoquePage() {
                 </tbody>
               </table>
             )
+          ) : tab === 'consolidado' ? (
+            <EstoqueConsolidadoPanel
+              saldos={saldos}
+              q={q}
+              familia={consolidadoFamilia}
+              grupo={consolidadoGrupo}
+              soComVolumes={consolidadoSoVolumes}
+              onFamiliaChange={setConsolidadoFamiliaUrl}
+              onGrupoChange={setConsolidadoGrupoUrl}
+              onSoComVolumesChange={setConsolidadoSoVolumes}
+            />
           ) : tab === 'lotes' ? (
             lotesSort.sorted.length === 0 ? (
               <div className="empty-state">
@@ -883,46 +1040,167 @@ export function EstoquePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(saldoSelecionado.volumes_por_qtde ?? []).map((faixa) => (
-                      <tr
-                        key={`${saldoSelecionado.id}-${faixa.qtde}-${faixa.largura_mm ?? ''}-${faixa.comprimento_m ?? ''}`}
-                      >
-                        <td className="num">
-                          {formatQtyCompact(faixa.qtde)}{' '}
-                          <span className="table-muted">{faixa.unidade}</span>
-                        </td>
-                        <td className="dimensao">
-                          {formatVolumeDimensao(
-                            faixa.largura_mm ?? null,
-                            faixa.comprimento_m ?? null,
-                          )}
-                        </td>
-                        <td className="num">{faixa.volumes}</td>
-                        <td className="num">
-                          {subtotalFaixa(faixa.qtde, faixa.volumes)}{' '}
-                          <span className="table-muted">{faixa.unidade}</span>
-                        </td>
-                        <td className="acoes">
-                          <button
-                            type="button"
-                            className="linkish linkish--meta"
-                            onClick={() =>
-                              abrirVolumesPorQtde(
-                                saldoSelecionado.produto_id,
-                                faixa.qtde,
-                                saldoSelecionado.produto?.codigo,
-                                {
-                                  largura_mm: faixa.largura_mm,
-                                  comprimento_m: faixa.comprimento_m,
-                                },
-                              )
-                            }
-                          >
-                            Ver
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {(saldoSelecionado.volumes_por_qtde ?? []).map((faixa) => {
+                      const chave = chaveFaixaVolume(saldoSelecionado.produto_id, faixa);
+                      const aberta = faixasExpandidas.has(chave);
+                      const volsFaixa = volumesDaFaixa(lotesDoSaldoSelecionado, faixa);
+                      return (
+                        <Fragment key={chave}>
+                          <tr>
+                            <td className="num">
+                              {formatQtyCompact(faixa.qtde)}{' '}
+                              <span className="table-muted">{faixa.unidade}</span>
+                            </td>
+                            <td className="dimensao">
+                              {formatVolumeDimensao(
+                                faixa.largura_mm ?? null,
+                                faixa.comprimento_m ?? null,
+                              )}
+                            </td>
+                            <td className="num">{faixa.volumes}</td>
+                            <td className="num">
+                              {subtotalFaixa(faixa.qtde, faixa.volumes)}{' '}
+                              <span className="table-muted">{faixa.unidade}</span>
+                            </td>
+                            <td className="acoes">
+                              <div className="estoque-faixa-acoes table-actions">
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  aria-expanded={aberta}
+                                  title={aberta ? 'Ocultar volumes' : 'Volumes desta faixa'}
+                                  aria-label={
+                                    aberta
+                                      ? `Ocultar volumes da faixa ${formatQtyCompact(faixa.qtde)} ${faixa.unidade}`
+                                      : `Expandir volumes da faixa ${formatQtyCompact(faixa.qtde)} ${faixa.unidade}`
+                                  }
+                                  onClick={() => toggleFaixaVolumes(chave)}
+                                >
+                                  <IconChevronDown />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  title="Ver na guia Volumes"
+                                  aria-label={`Ver volumes da faixa ${formatQtyCompact(faixa.qtde)} ${faixa.unidade} na guia Volumes`}
+                                  onClick={() =>
+                                    abrirVolumesPorQtde(
+                                      saldoSelecionado.produto_id,
+                                      faixa.qtde,
+                                      saldoSelecionado.produto?.codigo,
+                                      {
+                                        largura_mm: faixa.largura_mm,
+                                        comprimento_m: faixa.comprimento_m,
+                                      },
+                                    )
+                                  }
+                                >
+                                  <IconEye />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {aberta ? (
+                            <tr className="estoque-faixa-volumes-row">
+                              <td colSpan={5}>
+                                {volsFaixa.length === 0 ? (
+                                  <p className="muted estoque-faixa-volumes-empty">
+                                    Nenhum volume com saldo nesta faixa.
+                                  </p>
+                                ) : (
+                                  <table className="data-table estoque-faixa-volumes-table">
+                                    <thead>
+                                      <tr>
+                                        <th>Lote</th>
+                                        <th>Dimensão</th>
+                                        <th>Entrada</th>
+                                        <th>Vencimento</th>
+                                        <th className="num">Qtde</th>
+                                        <th>Situação</th>
+                                        <th>Local</th>
+                                        <th className="acoes" />
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {volsFaixa.map((l) => (
+                                        <tr key={l.id}>
+                                          <td>{l.codigo}</td>
+                                          <td className="dimensao">
+                                            {formatVolumeDimensao(
+                                              l.largura_mm ?? null,
+                                              l.comprimento_m ?? null,
+                                            )}
+                                          </td>
+                                          <td>
+                                            {l.data_entrada ? formatDate(l.data_entrada) : '—'}
+                                          </td>
+                                          <td>
+                                            {l.data_validade ? formatDate(l.data_validade) : '—'}
+                                          </td>
+                                          <td className="num">
+                                            {formatQtyCompact(l.qtde)}{' '}
+                                            <span className="table-muted">{l.unidade}</span>
+                                          </td>
+                                          <td>
+                                            {l.status === 'VENCIDO' || l.status === 'A_VENCER' ? (
+                                              <StatusPill
+                                                status={
+                                                  l.status_label || validadeStatusLabel(l.status)
+                                                }
+                                              />
+                                            ) : (
+                                              <span className="table-muted">
+                                                {l.status_label || validadeStatusLabel(l.status)}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            {l.endereco?.codigo ?? <span className="muted">—</span>}
+                                          </td>
+                                          <td className="acoes">
+                                            <div className="table-actions">
+                                              <Link
+                                                to={`/estoque/lotes/${l.id}/etiqueta`}
+                                                className="btn-icon"
+                                                title="Etiqueta do volume"
+                                                aria-label={`Etiqueta do volume ${l.codigo}`}
+                                              >
+                                                <IconTag />
+                                              </Link>
+                                              {!l.endereco_id ? (
+                                                <Link
+                                                  to="/estoque/guardar"
+                                                  className="btn-icon"
+                                                  title="Guardar no local"
+                                                  aria-label={`Guardar volume ${l.codigo} no local`}
+                                                >
+                                                  <IconMapPin />
+                                                </Link>
+                                              ) : null}
+                                              {hasPermission('producao.ler') ||
+                                              hasPermission('estoque.ler') ? (
+                                                <Link
+                                                  to={`/rastreio?q=${encodeURIComponent(l.codigo)}`}
+                                                  className="btn-icon"
+                                                  title="Rastreio do volume"
+                                                  aria-label={`Rastreio do volume ${l.codigo}`}
+                                                >
+                                                  <IconRastreio />
+                                                </Link>
+                                              ) : null}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -975,7 +1253,7 @@ export function EstoquePage() {
         </div>
       ) : tab === 'saldos' && !loading && saldosSort.sorted.length > 0 ? (
         <p className="muted estoque-hint-select">
-          Selecione um produto na grade para ver o consolidado de volumes.
+          Selecione um produto na grade para ver o consolidado e os volumes de cada faixa.
         </p>
       ) : null}
     </div>

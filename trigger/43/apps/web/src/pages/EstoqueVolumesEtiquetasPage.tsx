@@ -15,12 +15,13 @@ import {
 type VolumeEtiqueta = VolumeEtiquetaFace & { qr_payload: string };
 
 /**
- * Reimpressão de QR dos volumes (bobinas) — fora do MOV de entrada.
- * Canônico: Elgin L42 Pro Full · 50 × 40 mm (ADR F3).
+ * Reimpressão de QR dos volumes (bobinas) — F3 · Elgin 50×40.
+ * Com ?movimento_id= → só volumes daquela entrada (NF / ficha).
  */
 export function EstoqueVolumesEtiquetasPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const semEndereco = searchParams.get('sem_endereco') === '1';
+  const movimentoId = searchParams.get('movimento_id');
   const [volumes, setVolumes] = useState<VolumeEtiqueta[]>([]);
   const [qrMap, setQrMap] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +29,21 @@ export function EstoqueVolumesEtiquetasPage() {
 
   useEffect(() => enableVolumeEtiquetaPrintMode(), []);
 
-  const load = async (onlySemVao: boolean) => {
+  const load = async (onlySemVao: boolean, movId: string | null) => {
     setLoading(true);
     setError(null);
     try {
-      const qs = onlySemVao ? '?sem_endereco=1' : '';
-      const res = await api.get<{ data: { volumes: VolumeEtiqueta[]; volumes_count: number } }>(
-        `/estoque/lotes/etiquetas${qs}`,
-      );
+      const params = new URLSearchParams();
+      if (onlySemVao) params.set('sem_endereco', '1');
+      if (movId) params.set('movimento_id', movId);
+      const qs = params.toString();
+      const res = await api.get<{
+        data: {
+          volumes: VolumeEtiqueta[];
+          volumes_count: number;
+          filtro?: { movimento_id?: number | null };
+        };
+      }>(`/estoque/lotes/etiquetas${qs ? `?${qs}` : ''}`);
       setVolumes(res.data.volumes);
       const next: Record<number, string> = {};
       await Promise.all(
@@ -57,21 +65,37 @@ export function EstoqueVolumesEtiquetasPage() {
   };
 
   useEffect(() => {
-    void load(semEndereco);
-  }, [semEndereco]);
+    void load(semEndereco, movimentoId);
+  }, [semEndereco, movimentoId]);
 
-  const titulo = useMemo(
-    () => (semEndereco ? 'Volumes sem local' : 'Reimprimir etiquetas de volume'),
-    [semEndereco],
-  );
+  const titulo = useMemo(() => {
+    if (movimentoId) return 'Etiquetas dos volumes da entrada';
+    if (semEndereco) return 'Volumes sem local';
+    return 'Reimprimir etiquetas de volume';
+  }, [movimentoId, semEndereco]);
+
+  const descricao = useMemo(() => {
+    if (movimentoId) {
+      return `${volumes.length} volume(s) desta entrada — cole o QR na bobina (50×40 mm)`;
+    }
+    return `${volumes.length} volume(s) com saldo — cole o QR na bobina`;
+  }, [movimentoId, volumes.length]);
 
   return (
     <div className="page">
       <PageHeader
         title={titulo}
-        description={`${volumes.length} volume(s) com saldo — cole o QR na bobina`}
+        description={descricao}
         actions={
           <>
+            {movimentoId ? (
+              <Link
+                className="btn btn-secondary"
+                to={`/estoque/movimentos/${movimentoId}/ficha-entrada`}
+              >
+                Ficha de entrada
+              </Link>
+            ) : null}
             <Link className="btn btn-secondary" to="/estoque">
               Estoque
             </Link>
@@ -97,22 +121,28 @@ export function EstoqueVolumesEtiquetasPage() {
 
       <div className="card no-print" style={{ marginBottom: '1rem' }}>
         <div className="card-body" style={{ display: 'grid', gap: '0.65rem' }}>
-          <div className="btn-row" style={{ alignItems: 'center' }}>
-            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={semEndereco}
-                onChange={(e) => {
-                  const next = new URLSearchParams(searchParams);
-                  if (e.target.checked) next.set('sem_endereco', '1');
-                  else next.delete('sem_endereco');
-                  setSearchParams(next);
-                }}
-              />
-              Só volumes ainda sem local
-            </label>
-            <span className="muted">Mesmo QR da etiqueta unitária e da ficha de entrada.</span>
-          </div>
+          {!movimentoId ? (
+            <div className="btn-row" style={{ alignItems: 'center' }}>
+              <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={semEndereco}
+                  onChange={(e) => {
+                    const next = new URLSearchParams(searchParams);
+                    if (e.target.checked) next.set('sem_endereco', '1');
+                    else next.delete('sem_endereco');
+                    setSearchParams(next);
+                  }}
+                />
+                Só volumes ainda sem local
+              </label>
+              <span className="muted">Mesmo QR da etiqueta unitária e da ficha de entrada.</span>
+            </div>
+          ) : (
+            <p className="muted" style={{ margin: 0 }}>
+              Volumes do movimento de entrada · mesmo QR da ficha e da etiqueta unitária.
+            </p>
+          )}
           <p className="vol-etiqueta-print-hint">
             {VOLUME_ETIQUETA_PRINT_HINT}. Face = identidade do volume (sem local — amarre depois em
             Guardar).
@@ -125,9 +155,11 @@ export function EstoqueVolumesEtiquetasPage() {
       ) : volumes.length === 0 ? (
         <div className="card no-print">
           <div className="card-body">
-            {semEndereco
-              ? 'Nenhum volume sem local. Todos já estão localizados ou não há saldo.'
-              : 'Nenhum volume com saldo para imprimir.'}
+            {movimentoId
+              ? 'Esta entrada não gerou volume físico (SKU sem controle de lote) ou o movimento não tem lotes.'
+              : semEndereco
+                ? 'Nenhum volume sem local. Todos já estão localizados ou não há saldo.'
+                : 'Nenhum volume com saldo para imprimir.'}
           </div>
         </div>
       ) : (

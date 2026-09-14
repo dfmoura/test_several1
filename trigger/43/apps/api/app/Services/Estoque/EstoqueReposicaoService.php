@@ -114,6 +114,8 @@ class EstoqueReposicaoService
 
     /**
      * Gera OC DIRETA a partir da seleção (humano confirma fornecedor/preço/qtde).
+     * Itens podem trazer `composicao` (faixas L×bobinas×C) — mesmo contrato da OC direta;
+     * neste caso OrdemCompraService deriva qtde_pedida.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -132,6 +134,28 @@ class EstoqueReposicaoService
                 ]);
             }
 
+            $valor = PadraoDecimal::parseStrict($raw['valor_unitario'] ?? null, PadraoDecimal::SCALE_UNIT_PRICE);
+            if ($valor === null || bccomp($valor, '0', PadraoDecimal::SCALE_UNIT_PRICE) < 0) {
+                throw ValidationException::withMessages([
+                    "itens.{$idx}.valor_unitario" => ['Informe o valor unitário (unidade comercial).'],
+                ]);
+            }
+
+            $composicao = $raw['composicao'] ?? null;
+            $temComposicao = is_array($composicao) && $composicao !== [];
+
+            // Faixas L×bobinas×C: OrdemCompraService deriva qtde_pedida (mesmo contrato da OC direta).
+            if ($temComposicao) {
+                $itens[] = [
+                    'produto_id' => $produtoId,
+                    'valor_unitario' => $valor,
+                    'unidade' => $sug['unidade_comercial'],
+                    'composicao' => $composicao,
+                ];
+
+                continue;
+            }
+
             $qtde = isset($raw['qtde_pedida']) && $raw['qtde_pedida'] !== '' && $raw['qtde_pedida'] !== null
                 ? PadraoDecimal::parseStrict($raw['qtde_pedida'], PadraoDecimal::SCALE_QTY)
                 : $sug['faltante_comercial'];
@@ -139,13 +163,6 @@ class EstoqueReposicaoService
             if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
                     "itens.{$idx}.qtde_pedida" => ['Quantidade pedida deve ser maior que zero.'],
-                ]);
-            }
-
-            $valor = PadraoDecimal::parseStrict($raw['valor_unitario'] ?? null, PadraoDecimal::SCALE_UNIT_PRICE);
-            if ($valor === null || bccomp($valor, '0', PadraoDecimal::SCALE_UNIT_PRICE) < 0) {
-                throw ValidationException::withMessages([
-                    "itens.{$idx}.valor_unitario" => ['Informe o valor unitário (unidade comercial).'],
                 ]);
             }
 

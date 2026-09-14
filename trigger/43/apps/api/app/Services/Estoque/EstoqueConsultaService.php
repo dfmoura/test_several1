@@ -102,7 +102,10 @@ class EstoqueConsultaService
     public function listSaldos(Empresa $empresa, ?string $q = null, ?int $produtoId = null): array
     {
         $query = EstoqueSaldo::query()
-            ->with(['produto:id,codigo,descricao_fiscal,familia,unidade_interna,custo_medio,controla_lote,controla_validade,prazo_validade_dias'])
+            ->with([
+                'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,grupo,grupo_id,unidade_interna,custo_medio,controla_lote,controla_validade,prazo_validade_dias',
+                'produto.grupoCatalogo:id,codigo,nome,familia',
+            ])
             ->where('empresa_id', $empresa->id)
             ->orderBy('produto_id');
 
@@ -114,7 +117,9 @@ class EstoqueConsultaService
             $like = '%'.$q.'%';
             $query->whereHas('produto', function ($pq) use ($like) {
                 $pq->where('codigo', 'like', $like)
-                    ->orWhere('descricao_fiscal', 'like', $like);
+                    ->orWhere('descricao_fiscal', 'like', $like)
+                    ->orWhere('descricao_comercial', 'like', $like)
+                    ->orWhere('grupo', 'like', $like);
             });
         }
 
@@ -132,15 +137,7 @@ class EstoqueConsultaService
                 'id' => $s->id,
                 'empresa_id' => $s->empresa_id,
                 'produto_id' => $s->produto_id,
-                'produto' => $s->produto ? [
-                    'id' => $s->produto->id,
-                    'codigo' => $s->produto->codigo,
-                    'descricao_fiscal' => $s->produto->descricao_fiscal,
-                    'familia' => $s->produto->familia,
-                    'unidade_interna' => $s->produto->unidade_interna,
-                    'controla_lote' => (bool) $s->produto->controla_lote,
-                    'controla_validade' => (bool) $s->produto->controla_validade,
-                ] : null,
+                'produto' => $this->produtoSaldoOut($s->produto),
                 'qtde' => (string) $s->qtde,
                 'unidade' => $s->unidade,
                 'custo_medio' => (string) $s->custo_medio,
@@ -156,10 +153,49 @@ class EstoqueConsultaService
     }
 
     /**
+     * Payload de produto na posição (SKU + taxonomia para consolidado família/grupo).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function produtoSaldoOut(?Produto $produto): ?array
+    {
+        if (! $produto) {
+            return null;
+        }
+
+        $grupoCodigo = $produto->grupo
+            ?: ($produto->relationLoaded('grupoCatalogo') ? $produto->grupoCatalogo?->codigo : null);
+
+        return [
+            'id' => $produto->id,
+            'codigo' => $produto->codigo,
+            'descricao_fiscal' => $produto->descricao_fiscal,
+            'descricao_comercial' => $produto->descricao_comercial,
+            'familia' => $produto->familia,
+            'grupo' => $grupoCodigo,
+            'grupo_id' => $produto->grupo_id,
+            'grupo_catalogo' => $produto->relationLoaded('grupoCatalogo') && $produto->grupoCatalogo ? [
+                'id' => $produto->grupoCatalogo->id,
+                'codigo' => $produto->grupoCatalogo->codigo,
+                'nome' => $produto->grupoCatalogo->nome,
+                'familia' => $produto->grupoCatalogo->familia,
+            ] : null,
+            'unidade_interna' => $produto->unidade_interna,
+            'controla_lote' => (bool) $produto->controla_lote,
+            'controla_validade' => (bool) $produto->controla_validade,
+        ];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
-    public function listLotes(Empresa $empresa, ?int $produtoId = null, ?string $status = null): array
-    {
+    public function listLotes(
+        Empresa $empresa,
+        ?int $produtoId = null,
+        ?string $status = null,
+        ?int $enderecoId = null,
+        bool $somenteComQtde = false,
+    ): array {
         $query = EstoqueLote::query()
             ->with([
                 'produto:id,codigo,descricao_fiscal,familia,unidade_interna,controla_lote,controla_validade',
@@ -172,6 +208,14 @@ class EstoqueConsultaService
 
         if ($produtoId) {
             $query->where('produto_id', $produtoId);
+        }
+
+        if ($enderecoId !== null && $enderecoId > 0) {
+            $query->where('endereco_id', $enderecoId);
+        }
+
+        if ($somenteComQtde) {
+            $query->where('qtde', '>', 0);
         }
 
         return $query->get()
@@ -248,6 +292,7 @@ class EstoqueConsultaService
 
         $grouped = [];
         $lotes = EstoqueLote::query()
+            ->with(['endereco:id,codigo'])
             ->where('empresa_id', $empresa->id)
             ->whereIn('produto_id', $produtoIds)
             ->orderByRaw('data_validade IS NULL')

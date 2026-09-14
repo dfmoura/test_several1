@@ -196,6 +196,58 @@ class EstoqueReposicaoAjusteTest extends TestCase
         $this->assertSame("OC-{$ano}-00001", $oc->json('data.codigo'));
     }
 
+    public function test_reposicao_gerar_oc_aceita_composicao_bobina(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->produto->update([
+            'familia' => 'MP',
+            'grupo' => 'MP-EXACT',
+            'codigo' => 'MP-EXACT-001',
+            'descricao_fiscal' => 'Filme Exact',
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'estoque_minimo' => '2000.0000',
+            'controla_lote' => true,
+        ]);
+
+        // 30×1×1000 + 110×9×1000 = 1020 m² (> faltante se saldo 0 e mínimo 2000? faltante=2000)
+        // Use faixas totaling 1020 — below mínimo is fine (lote comercial).
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/reposicao/gerar-oc', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'valor_unitario' => '2.500000',
+                        'composicao' => [
+                            ['largura_mm' => '30', 'quantidade' => '1', 'comprimento_m' => '1000'],
+                            ['largura_mm' => '110', 'quantidade' => '9', 'comprimento_m' => '1000'],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.origem', OrdemCompra::ORIGEM_DIRETA)
+            ->assertJsonPath('data.status', OrdemCompra::STATUS_RASCUNHO)
+            ->assertJsonPath('data.itens.0.qtde_pedida', '1020.0000')
+            ->assertJsonPath('data.itens.0.unidade', 'M2')
+            ->assertJsonPath('data.itens.0.composicao.0.area_m2', '30.0000')
+            ->assertJsonPath('data.itens.0.composicao.1.area_m2', '990.0000')
+            ->assertJsonPath('data.valor_total', '2550.00');
+
+        $itemId = (int) $oc->json('data.itens.0.id');
+        $this->assertDatabaseCount('ordem_compra_item_composicoes', 2);
+        $this->assertDatabaseHas('ordem_compra_item_composicoes', [
+            'ordem_compra_item_id' => $itemId,
+            'largura_mm' => '110.00',
+            'quantidade' => '9.0000',
+            'comprimento_m' => '1000.00',
+            'area_m2' => '990.0000',
+        ]);
+    }
+
     public function test_ajuste_exige_sod_e_gera_mov(): void
     {
         EstoqueSaldo::query()->create([

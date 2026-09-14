@@ -26,6 +26,25 @@ class EstoqueVolumeController extends Controller
         ]);
     }
 
+    /**
+     * Mapa de ocupação 6×4×3 — leitura agregada (ADR F4 / WMS leve).
+     */
+    public function mapa(Request $request): JsonResponse
+    {
+        $this->authorizeEstoqueRead($request);
+
+        $validated = $request->validate([
+            'produto_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json([
+            'data' => $this->enderecos->mapaOcupacao(
+                $this->empresa(),
+                isset($validated['produto_id']) ? (int) $validated['produto_id'] : null,
+            ),
+        ]);
+    }
+
     public function seedEnderecos(Request $request): JsonResponse
     {
         if (! $request->user()->can('estoque.escrever')) {
@@ -63,15 +82,18 @@ class EstoqueVolumeController extends Controller
             'sem_endereco' => ['nullable', 'boolean'],
             'ids' => ['nullable', 'array'],
             'ids.*' => ['integer'],
+            'movimento_id' => ['nullable', 'integer'],
         ]);
 
         $ids = isset($data['ids']) ? array_map('intval', $data['ids']) : null;
+        $movimentoId = isset($data['movimento_id']) ? (int) $data['movimento_id'] : null;
 
         return response()->json([
             'data' => $this->volumes->etiquetasVolumes(
                 $this->empresa(),
                 $ids,
                 (bool) ($data['sem_endereco'] ?? false),
+                $movimentoId,
             ),
         ]);
     }

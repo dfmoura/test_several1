@@ -200,6 +200,7 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 - [x] Impressão QR dos locais + resolve `END:`  
 - [x] Tela Guardar (volume ↔ local, duas ordens) + reimpressão de volumes
 - [x] UX Local/Locais (domínio `vao` intacto)
+- [x] Mapa de ocupação (`GET /estoque/mapa` + `/estoque/mapa`) — célula = endereço; drill-down volumes; só leitura
 
 ### F5 — Reposição → OC → ciclo fechado
 

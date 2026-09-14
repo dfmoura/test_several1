@@ -134,6 +134,95 @@ class EstoqueEnderecoService
     }
 
     /**
+     * Mapa de ocupação dos locais (WMS leve) — só leitura agregada.
+     * Célula = endereço; volumes com qtde > 0. Não altera saldo/MOV.
+     *
+     * @return array{
+     *   locais: list<array<string, mixed>>,
+     *   resumo: array{total_locais: int, ocupados: int, vazios: int, volumes_guardados: int, volumes_sem_local: int, skus_distintos: int}
+     * }
+     */
+    public function mapaOcupacao(Empresa $empresa, ?int $produtoId = null): array
+    {
+        $locais = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->orderBy('prateleira')
+            ->orderBy('coluna')
+            ->orderBy('vao')
+            ->get();
+
+        $aggQuery = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereNotNull('endereco_id')
+            ->where('qtde', '>', 0);
+
+        if ($produtoId !== null && $produtoId > 0) {
+            $aggQuery->where('produto_id', $produtoId);
+        }
+
+        /** @var array<int, object{endereco_id: int, volumes_count: int|string, skus_count: int|string}> $porEndereco */
+        $porEndereco = $aggQuery
+            ->selectRaw('endereco_id, COUNT(*) as volumes_count, COUNT(DISTINCT produto_id) as skus_count')
+            ->groupBy('endereco_id')
+            ->get()
+            ->keyBy(fn ($row) => (int) $row->endereco_id)
+            ->all();
+
+        $semLocalQuery = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereNull('endereco_id')
+            ->where('qtde', '>', 0);
+
+        if ($produtoId !== null && $produtoId > 0) {
+            $semLocalQuery->where('produto_id', $produtoId);
+        }
+
+        $volumesSemLocal = (int) $semLocalQuery->count();
+
+        $out = [];
+        $ocupados = 0;
+        $volumesGuardados = 0;
+
+        foreach ($locais as $end) {
+            $row = $porEndereco[(int) $end->id] ?? null;
+            $volumes = $row !== null ? (int) $row->volumes_count : 0;
+            $skus = $row !== null ? (int) $row->skus_count : 0;
+            if ($volumes > 0) {
+                $ocupados++;
+                $volumesGuardados += $volumes;
+            }
+            $cell = $this->toOut($end);
+            $cell['volumes_count'] = $volumes;
+            $cell['skus_count'] = $skus;
+            $out[] = $cell;
+        }
+
+        if ($produtoId !== null && $produtoId > 0) {
+            $skusDistintos = $volumesGuardados > 0 || $volumesSemLocal > 0 ? 1 : 0;
+        } else {
+            $skusDistintos = (int) EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereNotNull('endereco_id')
+                ->where('qtde', '>', 0)
+                ->distinct()
+                ->count('produto_id');
+        }
+
+        return [
+            'locais' => $out,
+            'resumo' => [
+                'total_locais' => count($out),
+                'ocupados' => $ocupados,
+                'vazios' => count($out) - $ocupados,
+                'volumes_guardados' => $volumesGuardados,
+                'volumes_sem_local' => $volumesSemLocal,
+                'skus_distintos' => $skusDistintos,
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toOut(EstoqueEndereco $e): array

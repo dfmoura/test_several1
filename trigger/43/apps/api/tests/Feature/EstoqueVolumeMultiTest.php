@@ -259,6 +259,29 @@ class EstoqueVolumeMultiTest extends TestCase
         foreach ($ficha['volumes'] as $vol) {
             $this->assertStringStartsWith('VOL:'.$this->empresa->id.':', $vol['qr_payload']);
         }
+
+        $etq = $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?movimento_id='.$movId)
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(3, $etq['volumes_count']);
+        $this->assertSame($movId, $etq['filtro']['movimento_id']);
+        $this->assertCount(3, $etq['volumes']);
+        foreach ($etq['volumes'] as $vol) {
+            $this->assertStringStartsWith('VOL:'.$this->empresa->id.':', $vol['qr_payload']);
+        }
+
+        $outroMov = EstoqueMovimento::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MOV-ETQ-VAZIO',
+            'tipo' => EstoqueMovimento::TIPO_ENTRADA_COMPRA,
+            'conferido_em' => now(),
+        ]);
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes/etiquetas?movimento_id='.$outroMov->id)
+            ->assertOk()
+            ->assertJsonPath('data.volumes_count', 0);
     }
 
     public function test_seed_enderecos_e_vinculo_etiqueta(): void
@@ -370,6 +393,82 @@ class EstoqueVolumeMultiTest extends TestCase
             72,
             EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
         );
+    }
+
+    public function test_mapa_ocupacao_agrega_volumes_por_local(): void
+    {
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+
+        $end = EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('codigo', 'P01-C01-L01')
+            ->firstOrFail();
+
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-MAPA-1',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '12.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'endereco_id' => $end->id,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-MAPA-2',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '5.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'endereco_id' => $end->id,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-MAPA-SEM',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '3.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->produto->id,
+            'codigo' => 'LOT-MAPA-ZERO',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '0.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+            'endereco_id' => $end->id,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
+
+        $mapa = $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/mapa')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame(72, $mapa['resumo']['total_locais']);
+        $this->assertSame(1, $mapa['resumo']['ocupados']);
+        $this->assertSame(71, $mapa['resumo']['vazios']);
+        $this->assertSame(2, $mapa['resumo']['volumes_guardados']);
+        $this->assertSame(1, $mapa['resumo']['volumes_sem_local']);
+        $this->assertSame(1, $mapa['resumo']['skus_distintos']);
+
+        $cell = collect($mapa['locais'])->firstWhere('codigo', 'P01-C01-L01');
+        $this->assertNotNull($cell);
+        $this->assertSame(2, $cell['volumes_count']);
+        $this->assertSame(1, $cell['skus_count']);
+
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/lotes?endereco_id='.$end->id.'&com_qtde=1')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 
     public function test_catalogo_exact_tem_4_insumos(): void

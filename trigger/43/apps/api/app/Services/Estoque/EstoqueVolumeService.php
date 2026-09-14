@@ -265,22 +265,51 @@ class EstoqueVolumeService
     }
 
     /**
-     * Folha de reimpressão de etiquetas de volume (fora do MOV).
+     * Folha de reimpressão de etiquetas de volume (F3 · 50×40).
+     * Com movimento_id: volumes físicos daquela entrada (mesmo elo da ficha).
      *
      * @param  list<int>|null  $loteIds
      * @return array{volumes: list<array<string, mixed>>, volumes_count: int, filtro: array<string, mixed>}
      */
-    public function etiquetasVolumes(Empresa $empresa, ?array $loteIds = null, bool $semEndereco = false): array
-    {
+    public function etiquetasVolumes(
+        Empresa $empresa,
+        ?array $loteIds = null,
+        bool $semEndereco = false,
+        ?int $movimentoId = null,
+    ): array {
+        $escopoMovimento = false;
+        if ($movimentoId !== null) {
+            $loteIds = $this->loteIdsDoMovimentoEntrada($empresa, $movimentoId);
+            $escopoMovimento = true;
+            if ($loteIds === []) {
+                return [
+                    'volumes' => [],
+                    'volumes_count' => 0,
+                    'filtro' => [
+                        'sem_endereco' => $semEndereco,
+                        'ids' => [],
+                        'movimento_id' => $movimentoId,
+                    ],
+                ];
+            }
+        }
+
         $q = EstoqueLote::query()
             ->with(['produto:id,codigo,descricao_fiscal', 'endereco:id,codigo'])
             ->where('empresa_id', $empresa->id)
-            ->where('qtde', '>', 0)
             ->orderBy('produto_id')
             ->orderBy('codigo');
 
+        // Lista geral: só saldo. Escopo MOV/ids: identidade do volume da entrada (reimpressão).
+        if (! $escopoMovimento && ($loteIds === null || $loteIds === [])) {
+            $q->where('qtde', '>', 0);
+        }
+
         if ($loteIds !== null && $loteIds !== []) {
             $q->whereIn('id', $loteIds);
+            if (! $escopoMovimento) {
+                $q->where('qtde', '>', 0);
+            }
         }
         if ($semEndereco) {
             $q->whereNull('endereco_id');
@@ -297,8 +326,43 @@ class EstoqueVolumeService
             'filtro' => [
                 'sem_endereco' => $semEndereco,
                 'ids' => $loteIds,
+                'movimento_id' => $movimentoId,
             ],
         ];
+    }
+
+    /**
+     * Lotes físicos nascidos no MOV de entrada de compra (ficha / etiquetas da NF).
+     *
+     * @return list<int>
+     */
+    private function loteIdsDoMovimentoEntrada(Empresa $empresa, int $movimentoId): array
+    {
+        $movimento = EstoqueMovimento::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $movimentoId)
+            ->first();
+
+        if ($movimento === null) {
+            abort(404);
+        }
+
+        if ($movimento->tipo !== EstoqueMovimento::TIPO_ENTRADA_COMPRA) {
+            throw ValidationException::withMessages([
+                'movimento_id' => ['Etiquetas por movimento só se aplicam a entrada de compra.'],
+            ]);
+        }
+
+        $movimento->loadMissing('itens:id,movimento_id,lote_id');
+
+        $ids = [];
+        foreach ($movimento->itens as $item) {
+            if ($item->lote_id) {
+                $ids[(int) $item->lote_id] = (int) $item->lote_id;
+            }
+        }
+
+        return array_values($ids);
     }
 
     private function loteFromVolPayload(Empresa $empresa, string $payload): EstoqueLote

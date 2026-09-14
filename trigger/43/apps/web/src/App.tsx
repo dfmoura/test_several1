@@ -54,6 +54,8 @@ import { ComprasOrdemFormPage } from './pages/ComprasOrdemFormPage';
 import { OrdemCompraFichaPage } from './pages/OrdemCompraFichaPage';
 import { ComprasOrdensPage } from './pages/ComprasOrdensPage';
 import { ComprasNfeDestinadasPage } from './pages/ComprasNfeDestinadasPage';
+import { ComprasNfeRecebidaDetailPage } from './pages/ComprasNfeRecebidaDetailPage';
+import { ComprasNfeRecebidasPage } from './pages/ComprasNfeRecebidasPage';
 import { ComprasReposicaoPage } from './pages/ComprasReposicaoPage';
 import { EstoqueAjustesPage } from './pages/EstoqueAjustesPage';
 import { EstoqueExtratoPage } from './pages/EstoqueExtratoPage';
@@ -62,6 +64,7 @@ import { EstoquePage } from './pages/EstoquePage';
 import { EstoqueLoteEtiquetaPage } from './pages/EstoqueLoteEtiquetaPage';
 import { EstoqueMovimentoFichaEntradaPage } from './pages/EstoqueMovimentoFichaEntradaPage';
 import { EstoqueEnderecosEtiquetasPage } from './pages/EstoqueEnderecosEtiquetasPage';
+import { EstoqueMapaPage } from './pages/EstoqueMapaPage';
 import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage';
 import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
 import { PedidosPage } from './pages/PedidosPage';
@@ -346,6 +349,22 @@ export default function App() {
           }
         />
         <Route
+          path="compras/nfe-recebidas"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfeRecebidasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="compras/nfe-recebidas/:id"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfeRecebidaDetailPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="compras/ordens/nova"
           element={
             <PermissionRoute permission="compras.escrever">
@@ -414,6 +433,14 @@ export default function App() {
           element={
             <PermissionRoute permission="estoque.ler">
               <EstoqueVolumesEtiquetasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/mapa"
+          element={
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueMapaPage />
             </PermissionRoute>
           }
         />

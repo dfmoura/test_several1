@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
+import { OcPedidoComposicaoPanel } from '../components/OcPedidoComposicaoPanel';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import {
@@ -12,19 +13,12 @@ import {
   type Produto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { clampDecimalScale, DECIMAL_SCALE, formatCurrency } from '../lib/format';
 import {
-  areaM2FromFaixaOc,
-  clampDecimalScale,
-  DECIMAL_SCALE,
-  formatCurrency,
-} from '../lib/format';
-import { qtdeComercialFromAreaM2 } from '../lib/ocComposicaoVolumes';
-
-type FaixaRow = {
-  largura_mm: string;
-  quantidade: string;
-  comprimento_m: string;
-};
+  ocFaixaCompleta,
+  qtdeComercialFromFaixas,
+  type OcFaixaForm,
+} from '../lib/ocComposicaoVolumes';
 
 type ItemRow = {
   produto_id: string;
@@ -32,7 +26,7 @@ type ItemRow = {
   valor_unitario: string;
   aliq_ipi: string;
   aliq_icms: string;
-  composicao: FaixaRow[];
+  composicao: OcFaixaForm[];
 };
 
 function emptyItem(): ItemRow {
@@ -44,10 +38,6 @@ function emptyItem(): ItemRow {
     aliq_icms: '',
     composicao: [],
   };
-}
-
-function emptyFaixa(): FaixaRow {
-  return { largura_mm: '', quantidade: '', comprimento_m: '1000' };
 }
 
 function aliqFromSugestao(raw: string | null | undefined): string {
@@ -97,14 +87,8 @@ function money2(n: number): number {
 
 function qtdeEfetiva(row: ItemRow, produto?: Produto | null): string {
   if (row.composicao.length === 0) return row.qtde_pedida;
-  let sum = 0;
-  for (const f of row.composicao) {
-    const area = areaM2FromFaixaOc(f.largura_mm, f.quantidade, f.comprimento_m);
-    if (area) sum += Number(area);
-  }
-  if (!(sum > 0)) return '';
   return (
-    qtdeComercialFromAreaM2(sum, {
+    qtdeComercialFromFaixas(row.composicao, {
       unidade_comercial: produto?.unidade_comercial,
       unidade_interna: produto?.unidade_interna,
       fator_conversao: produto?.fator_conversao,
@@ -120,14 +104,6 @@ function lineImposto(base: number, aliq: string): number {
   const a = parseNum(aliq);
   if (a <= 0) return 0;
   return money2(base * (a / 100));
-}
-
-function faixaCompleta(f: FaixaRow): boolean {
-  return (
-    parseNum(f.largura_mm) > 0 &&
-    parseNum(f.quantidade) > 0 &&
-    parseNum(f.comprimento_m) > 0
-  );
 }
 
 export function ComprasOrdemFormPage() {
@@ -272,10 +248,8 @@ export function ComprasOrdemFormPage() {
     })();
   };
 
-  const patchFaixa = (itemIdx: number, faixaIdx: number, patch: Partial<FaixaRow>) => {
+  const patchFaixa = (itemIdx: number, composicao: OcFaixaForm[]) => {
     const next = [...itens];
-    const composicao = [...next[itemIdx].composicao];
-    composicao[faixaIdx] = { ...composicao[faixaIdx], ...patch };
     const row = { ...next[itemIdx], composicao };
     next[itemIdx] = {
       ...row,
@@ -305,7 +279,7 @@ export function ComprasOrdemFormPage() {
         itens: itens
           .filter((i) => {
             if (!i.produto_id || !i.valor_unitario) return false;
-            if (i.composicao.length > 0) return i.composicao.every(faixaCompleta);
+            if (i.composicao.length > 0) return i.composicao.every(ocFaixaCompleta);
             return Boolean(i.qtde_pedida);
           })
           .map((i) => {
@@ -346,11 +320,7 @@ export function ComprasOrdemFormPage() {
     <>
       <PageHeader
         title={isEdit ? 'Editar ordem de compra' : 'Nova ordem de compra'}
-        description={
-          isEdit
-            ? 'Bobina: detalhe L×qtd×metragem (m² derivado). IPI/ICMS auto. Rascunho editável.'
-            : 'Bobina: peça por largura × bobinas × comprimento. m² fecha sozinho. Salve em rascunho.'
-        }
+        description={isEdit ? 'Rascunho editável.' : 'Salve em rascunho e envie na ficha.'}
         actions={
           <Link
             to={isEdit ? `/compras/ordens/${id}` : '/compras/ordens'}
@@ -368,8 +338,8 @@ export function ComprasOrdemFormPage() {
       ) : loading ? (
         <div className="loading">Carregando…</div>
       ) : (
-        <form onSubmit={(e) => void submit(e)}>
-          <div className="card" style={{ marginBottom: '1rem' }}>
+        <form onSubmit={(e) => void submit(e)} className="oc-form-page">
+          <div className="card oc-form-page__card">
             <div className="card-body">
               <div className="form-section">
                 <h3>Fornecedor e condições</h3>
@@ -382,7 +352,6 @@ export function ComprasOrdemFormPage() {
                     onChange={aplicarDefaultsFornecedor}
                     required
                     placeholder="Buscar fornecedor por nome, código ou CNPJ…"
-                    hint="PAR classificado como fornecedor · busca no cadastro (não lista tudo de uma vez)."
                   />
                   <div className="form-group">
                     <label>Condição de pagamento</label>
@@ -391,9 +360,6 @@ export function ComprasOrdemFormPage() {
                       placeholder="Sugerida pelo fornecedor"
                       onChange={setCondicao}
                     />
-                    <span className="form-hint">
-                      Prefill do PAR ao escolher o fornecedor · editável nesta OC (snapshot).
-                    </span>
                   </div>
                   <div className="form-group">
                     <label>Previsão de entrega</label>
@@ -411,7 +377,6 @@ export function ComprasOrdemFormPage() {
                       onChange={(e) => setValorFrete(e.target.value)}
                       placeholder="0,00"
                     />
-                    <span className="form-hint">Informado na OC · não entra no custo médio do estoque.</span>
                   </div>
                   <div className="form-group">
                     <label>
@@ -429,7 +394,7 @@ export function ComprasOrdemFormPage() {
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card oc-form-page__card">
             <div className="card-body">
               <div className="form-section">
                 <h3>Itens</h3>
@@ -442,8 +407,8 @@ export function ComprasOrdemFormPage() {
                   const temComposicao = row.composicao.length > 0;
                   const unCom = (produto?.unidade_comercial || 'un.').toUpperCase();
                   return (
-                    <div key={idx} style={{ marginBottom: '1rem' }}>
-                      <div className="form-grid" style={{ marginBottom: '0.5rem' }}>
+                    <div key={idx} className="oc-form-page__item">
+                      <div className="form-grid">
                         <div className="form-group span-2">
                           <label>Produto</label>
                           <select
@@ -462,13 +427,14 @@ export function ComprasOrdemFormPage() {
                         <div className="form-group">
                           <label>
                             Qtde ({unCom})
-                            {temComposicao ? ' · via faixas' : ''}
+                            {temComposicao ? ' · faixas' : ''}
                           </label>
                           <input
                             required={!temComposicao}
                             inputMode="decimal"
                             value={temComposicao ? qtde : row.qtde_pedida}
                             readOnly={temComposicao}
+                            title={temComposicao ? 'Derivada das faixas' : undefined}
                             onChange={(e) => {
                               if (temComposicao) return;
                               const next = [...itens];
@@ -476,13 +442,6 @@ export function ComprasOrdemFormPage() {
                               setItens(next);
                             }}
                           />
-                          {temComposicao ? (
-                            <span className="form-hint">Derivada das faixas abaixo · não editar.</span>
-                          ) : (
-                            <span className="form-hint">
-                              Ou use detalhe L×bobinas×metragem (bobina / Exact).
-                            </span>
-                          )}
                         </div>
                         <div className="form-group">
                           <label>Valor unitário</label>
@@ -498,7 +457,12 @@ export function ComprasOrdemFormPage() {
                           />
                         </div>
                         <div className="form-group">
-                          <label>Alíq. IPI % (auto)</label>
+                          <label>
+                            Alíq. IPI %
+                            {ipi > 0
+                              ? ` · ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
+                              : ''}
+                          </label>
                           <input
                             inputMode="decimal"
                             value={row.aliq_ipi}
@@ -508,15 +472,16 @@ export function ComprasOrdemFormPage() {
                               setItens(next);
                             }}
                             placeholder="auto"
+                            title="Histórico NF ou vazio"
                           />
-                          <span className="form-hint">
-                            {ipi > 0
-                              ? `IPI ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
-                              : 'Histórico NF ou vazio'}
-                          </span>
                         </div>
                         <div className="form-group">
-                          <label>Alíq. ICMS % (auto)</label>
+                          <label>
+                            Alíq. ICMS %
+                            {icms > 0
+                              ? ` · ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))}`
+                              : ''}
+                          </label>
                           <input
                             inputMode="decimal"
                             value={row.aliq_icms}
@@ -526,19 +491,15 @@ export function ComprasOrdemFormPage() {
                               setItens(next);
                             }}
                             placeholder="auto"
+                            title="Destaque · não soma no total"
                           />
-                          <span className="form-hint">
-                            {icms > 0
-                              ? `ICMS ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))} (destaque)`
-                              : 'UF×UF / histórico · não soma no total'}
-                          </span>
                         </div>
                         {itens.length > 1 && (
                           <div className="form-group">
                             <label>&nbsp;</label>
                             <button
                               type="button"
-                              className="btn btn-secondary"
+                              className="btn btn-secondary btn-sm"
                               onClick={() => setItens(itens.filter((_, i) => i !== idx))}
                             >
                               Remover item
@@ -547,142 +508,18 @@ export function ComprasOrdemFormPage() {
                         )}
                       </div>
 
-                      <div className="oc-volumes-panel">
-                        <div className="oc-volumes-panel__bar">
-                          <strong>
-                            Detalhe do pedido
-                            {temComposicao ? ` (${row.composicao.length})` : ''}
-                          </strong>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              const next = [...itens];
-                              const composicao = [...next[idx].composicao, emptyFaixa()];
-                              const rowNext = { ...next[idx], composicao };
-                              next[idx] = {
-                                ...rowNext,
-                                qtde_pedida: qtdeEfetiva(rowNext, produtoOf(rowNext)),
-                              };
-                              setItens(next);
-                            }}
-                          >
-                            + faixa
-                          </button>
-                        </div>
-                        {!temComposicao ? (
-                          <p className="form-hint oc-volumes-panel__hint">
-                            Para bobina/Exact: informe largura × qtd. de bobinas × comprimento.
-                            A qtde comercial (M2 ou KG via fator) e o e-mail ao fornecedor usam este
-                            detalhe. Itens sem faixa (ex. tubete, caixa) seguem só a qtde acima.
-                          </p>
-                        ) : (
-                          <div className="oc-volumes-scroll">
-                            <table className="oc-volumes-table">
-                              <thead>
-                                <tr>
-                                  <th className="col-idx">#</th>
-                                  <th className="col-num">Largura mm</th>
-                                  <th className="col-num">Qtd bobinas</th>
-                                  <th className="col-num">Comp. m</th>
-                                  <th className="col-num">m²</th>
-                                  <th className="col-acoes" />
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {row.composicao.map((faixa, fIdx) => {
-                                  const area = areaM2FromFaixaOc(
-                                    faixa.largura_mm,
-                                    faixa.quantidade,
-                                    faixa.comprimento_m,
-                                  );
-                                  return (
-                                    <tr key={`${idx}-fx-${fIdx}`}>
-                                      <td className="col-idx">{fIdx + 1}</td>
-                                      <td className="col-num">
-                                        <input
-                                          inputMode="decimal"
-                                          required
-                                          placeholder="110"
-                                          value={faixa.largura_mm}
-                                          onChange={(e) =>
-                                            patchFaixa(idx, fIdx, {
-                                              largura_mm: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </td>
-                                      <td className="col-num">
-                                        <input
-                                          inputMode="decimal"
-                                          required
-                                          placeholder="9"
-                                          value={faixa.quantidade}
-                                          onChange={(e) =>
-                                            patchFaixa(idx, fIdx, {
-                                              quantidade: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </td>
-                                      <td className="col-num">
-                                        <input
-                                          inputMode="decimal"
-                                          required
-                                          placeholder="1000"
-                                          value={faixa.comprimento_m}
-                                          onChange={(e) =>
-                                            patchFaixa(idx, fIdx, {
-                                              comprimento_m: e.target.value,
-                                            })
-                                          }
-                                        />
-                                      </td>
-                                      <td className="col-num">
-                                        <span className="muted">{area || '—'}</span>
-                                      </td>
-                                      <td className="col-acoes">
-                                        <button
-                                          type="button"
-                                          className="btn btn-secondary btn-sm"
-                                          onClick={() => {
-                                            const next = [...itens];
-                                            const composicao = next[idx].composicao.filter(
-                                              (_, i) => i !== fIdx,
-                                            );
-                                            const rowNext = { ...next[idx], composicao };
-                                            next[idx] = {
-                                              ...rowNext,
-                                              qtde_pedida:
-                                                composicao.length > 0
-                                                  ? qtdeEfetiva(rowNext, produtoOf(rowNext))
-                                                  : next[idx].qtde_pedida,
-                                            };
-                                            setItens(next);
-                                          }}
-                                        >
-                                          Remover
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                            <p className="form-hint oc-volumes-panel__hint">
-                              m² faixa = (largura÷1000) × comprimento × bobinas · soma = qtde da
-                              linha · vai na ficha e no e-mail ao fornecedor.
-                            </p>
-                          </div>
-                        )}
-                      </div>
+                      <OcPedidoComposicaoPanel
+                        composicao={row.composicao}
+                        compact
+                        onChange={(composicao) => patchFaixa(idx, composicao)}
+                      />
                     </div>
                   );
                 })}
                 <div className="btn-row">
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-sm"
                     onClick={() => setItens([...itens, emptyItem()])}
                   >
                     + Item
@@ -692,15 +529,11 @@ export function ComprasOrdemFormPage() {
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card oc-form-page__card">
             <div className="card-body">
               <div className="form-section">
                 <h3>Totais previstos</h3>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  Mercadoria alimenta o estoque. IPI e frete entram no total previsto. ICMS é
-                  destaque. Na entrada, a NF prevalece.
-                </p>
-                <div className="form-grid">
+                <div className="form-grid oc-form-page__totais">
                   <div className="form-group">
                     <label>Mercadoria</label>
                     <div>{formatCurrency(totais.mercadoria.toFixed(DECIMAL_SCALE.money))}</div>
@@ -728,7 +561,7 @@ export function ComprasOrdemFormPage() {
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card oc-form-page__card">
             <div className="card-body">
               <div className="form-section">
                 <h3>Observação</h3>
@@ -736,8 +569,8 @@ export function ComprasOrdemFormPage() {
                   <textarea
                     value={observacao}
                     onChange={(e) => setObservacao(e.target.value)}
-                    rows={3}
-                    placeholder="Instruções ao fornecedor, referência interna…"
+                    rows={2}
+                    placeholder="Instruções ao fornecedor…"
                   />
                 </div>
               </div>

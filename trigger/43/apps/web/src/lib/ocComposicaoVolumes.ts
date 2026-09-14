@@ -1,5 +1,47 @@
-import { clampDecimalScale, DECIMAL_SCALE } from './format';
+import { areaM2FromFaixaOc, clampDecimalScale, DECIMAL_SCALE } from './format';
 import type { OrdemCompraItemComposicao } from './api';
+
+/** Faixa editável do pedido (OC / A repor) — espelha `ordem_compra_item_composicoes`. */
+export type OcFaixaForm = {
+  largura_mm: string;
+  quantidade: string;
+  comprimento_m: string;
+};
+
+export function emptyOcFaixa(): OcFaixaForm {
+  return { largura_mm: '', quantidade: '', comprimento_m: '1000' };
+}
+
+function parseFaixaNum(raw: string): number {
+  const n = Number(String(raw).replace(',', '.').trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function ocFaixaCompleta(f: OcFaixaForm): boolean {
+  return (
+    parseFaixaNum(f.largura_mm) > 0 &&
+    parseFaixaNum(f.quantidade) > 0 &&
+    parseFaixaNum(f.comprimento_m) > 0
+  );
+}
+
+/** Σ área → qtde comercial (M2 ou KG via fator). Vazio se não houver faixas válidas. */
+export function qtdeComercialFromFaixas(
+  faixas: OcFaixaForm[],
+  ctx: Pick<
+    OcComposicaoVolumesCtx,
+    'unidade_comercial' | 'unidade_interna' | 'fator_conversao'
+  > = {},
+): string {
+  if (faixas.length === 0) return '';
+  let sum = 0;
+  for (const f of faixas) {
+    const area = areaM2FromFaixaOc(f.largura_mm, f.quantidade, f.comprimento_m);
+    if (area) sum += Number(area);
+  }
+  if (!(sum > 0)) return '';
+  return qtdeComercialFromAreaM2(sum, ctx);
+}
 
 export type VolumeSugestaoOc = {
   codigo: string;

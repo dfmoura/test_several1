@@ -368,11 +368,11 @@ final class ImplantacaoCatalogo
             [
                 'codigo' => 'F5_NFE_ENT',
                 'nome' => 'NF-e de entrada no estoque',
-                'porque' => 'XML na OC (assist + conferência humana) grava entrada; espelho fiscal acompanha o MOV.',
+                'porque' => 'XML na OC (assist + conferência) grava entrada; espelho consultável em Compras → NF-e recebidas.',
                 'onda' => 5,
                 'superficie' => self::SUPERFICIE_ERP,
                 'elo' => false,
-                'rota' => '/estoque',
+                'rota' => '/compras/nfe-recebidas',
                 'evidencia' => null,
                 'paralelo' => true,
             ],

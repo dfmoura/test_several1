@@ -1895,6 +1895,165 @@ button.par-geo--faltando:hover:not(:disabled) {
   font-weight: 500;
 }
 
+.reposicao-detalhe-row > td {
+  background: var(--surface-2, #f4f6f8);
+  padding: 0.35rem 0.5rem 0.4rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border, #e2e5ea);
+}
+
+.reposicao-detalhe-row .oc-volumes-panel {
+  margin: 0;
+}
+
+/* Densidade operacional — A repor / formulário OC (não altera receber/conferência). */
+.reposicao-page table.data-table {
+  font-size: 0.8rem;
+}
+
+.reposicao-page table.data-table th,
+.reposicao-page table.data-table td {
+  padding: 0.28rem 0.45rem;
+  vertical-align: middle;
+}
+
+.reposicao-page table.data-table th {
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+}
+
+.reposicao-page__desc {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  max-width: 18rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reposicao-page table.data-table input[type='text'] {
+  padding: 0.18rem 0.35rem;
+  font-size: 0.8rem;
+  max-width: 7.25rem;
+  line-height: 1.2;
+}
+
+.reposicao-page table.data-table .btn-sm {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.oc-volumes-panel--compact {
+  margin-top: 0;
+}
+
+.oc-volumes-panel--compact .oc-volumes-panel__bar {
+  padding: 0.28rem 0.5rem;
+}
+
+.oc-volumes-panel--compact .oc-volumes-panel__bar strong {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.oc-volumes-panel--compact .oc-volumes-scroll {
+  max-height: min(36vh, 260px);
+}
+
+.oc-volumes-panel--compact .oc-volumes-table {
+  font-size: 0.78rem;
+}
+
+.oc-volumes-panel--compact .oc-volumes-table thead th {
+  padding: 0.22rem 0.35rem;
+  font-size: 0.66rem;
+}
+
+.oc-volumes-panel--compact .oc-volumes-table td {
+  padding: 0.12rem 0.28rem;
+}
+
+.oc-volumes-panel--compact .oc-volumes-table input {
+  padding: 0.16rem 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.oc-volumes-panel--compact .oc-volumes-table .col-num input {
+  width: 5.25rem;
+}
+
+.oc-volumes-panel--compact .btn-sm {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.7rem;
+}
+
+/* Nova / Editar OC — mesma densidade de A repor. */
+.oc-form-page__card {
+  margin-bottom: 0.55rem;
+}
+
+.oc-form-page__card > .card-body {
+  padding: 0.7rem 0.85rem;
+}
+
+.oc-form-page .form-section h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+}
+
+.oc-form-page .form-grid {
+  gap: 0.45rem 0.75rem;
+}
+
+.oc-form-page .form-group {
+  margin-bottom: 0;
+}
+
+.oc-form-page .form-group label {
+  font-size: 0.72rem;
+  margin-bottom: 0.15rem;
+}
+
+.oc-form-page .form-group input,
+.oc-form-page .form-group select,
+.oc-form-page .form-group textarea {
+  padding: 0.28rem 0.45rem;
+  font-size: 0.84rem;
+  line-height: 1.25;
+}
+
+.oc-form-page__item {
+  margin-bottom: 0.55rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.oc-form-page__item:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0;
+}
+
+.oc-form-page__item .oc-volumes-panel {
+  margin-top: 0.35rem;
+}
+
+.oc-form-page__totais .form-group > div {
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.oc-form-page .form-actions {
+  margin-top: 0.35rem;
+}
+
+.oc-form-page .btn-sm {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.74rem;
+}
+
 .oc-volumes-scroll {
   width: 100%;
   max-height: min(52vh, 420px);
@@ -9247,8 +9406,8 @@ tr.row-inactive td {
 /* Página posição: densidade em todos os níveis. */
 .estoque-posicao-page {
   --estoque-font: 0.75rem;
-  --estoque-pad-y: 0.26rem;
-  --estoque-pad-x: 0.42rem;
+  --estoque-pad-y: 0.16rem;
+  --estoque-pad-x: 0.4rem;
 }
 
 .estoque-ops-line {
@@ -9261,6 +9420,186 @@ tr.row-inactive td {
   font-weight: 600;
   color: inherit;
   text-underline-offset: 0.12em;
+}
+
+/* Mapa de ocupação 6×4×3 — WMS leve (F4). */
+.estoque-mapa-page .estoque-mapa-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.estoque-mapa-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .estoque-mapa-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.estoque-mapa-grades {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.estoque-mapa-prateleira {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.estoque-mapa-prateleira-head {
+  padding: 0.35rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
+}
+
+.estoque-mapa-prateleira-head h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.estoque-mapa-colunas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.45rem;
+}
+
+@media (max-width: 720px) {
+  .estoque-mapa-colunas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.estoque-mapa-coluna-head {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.estoque-mapa-locais {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.estoque-mapa-celula {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.1rem;
+  padding: 0.28rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg, var(--surface));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.estoque-mapa-celula:hover {
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, var(--border));
+}
+
+.estoque-mapa-celula--ativa {
+  outline: 2px solid color-mix(in srgb, var(--accent, #2563eb) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.estoque-mapa-celula--vazia {
+  opacity: 0.72;
+}
+
+.estoque-mapa-celula--baixa {
+  background: color-mix(in srgb, #0d9488 10%, var(--surface));
+}
+
+.estoque-mapa-celula--media {
+  background: color-mix(in srgb, #ca8a04 14%, var(--surface));
+}
+
+.estoque-mapa-celula--alta {
+  background: color-mix(in srgb, #c2410c 16%, var(--surface));
+}
+
+.estoque-mapa-celula--ausente,
+.estoque-mapa-celula--oculta {
+  min-height: 2.1rem;
+  border: 1px dashed transparent;
+  background: transparent;
+  pointer-events: none;
+}
+
+.estoque-mapa-celula-cod {
+  font-size: 0.68rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.estoque-mapa-celula-n {
+  font-size: 0.78rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.estoque-mapa-dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.18rem;
+  min-height: 0.55rem;
+}
+
+.estoque-mapa-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 78%, transparent);
+}
+
+.estoque-mapa-dot--vazio {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+.estoque-mapa-mais {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.estoque-mapa-detalhe {
+  position: sticky;
+  top: 0.75rem;
+  margin: 0;
+}
+
+.estoque-mapa-detalhe-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .estoque-kpi {
@@ -9557,7 +9896,219 @@ tr.row-inactive td {
 
 .estoque-vol-consolidado-table th,
 .estoque-vol-consolidado-table td {
-  padding: 0.28rem 0.5rem;
+  padding: 0.14rem 0.4rem;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+.estoque-vol-consolidado-table thead th {
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estoque-faixa-acoes {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.05rem;
+  justify-content: flex-end;
+}
+
+/* Ícones de faixa: leves, sem peso de botão — padrão listagem. */
+.estoque-vol-consolidado-table td.acoes .btn-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+}
+
+.estoque-vol-consolidado-table td.acoes .btn-icon svg {
+  width: 0.82rem;
+  height: 0.82rem;
+  transition: transform 0.14s ease;
+}
+
+.estoque-vol-consolidado-table td.acoes .btn-icon[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.estoque-vol-consolidado-table td.acoes .btn-icon:hover {
+  color: var(--navy);
+}
+
+.estoque-faixa-volumes-row > td {
+  padding: 0 0 0.3rem !important;
+  background: color-mix(in srgb, var(--surface) 92%, var(--navy));
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  vertical-align: top;
+}
+
+.estoque-faixa-volumes-empty {
+  margin: 0.25rem 0.4rem 0.1rem;
+  font-size: 0.74rem;
+}
+
+.estoque-faixa-volumes-table {
+  margin: 0;
+  font-size: 0.74rem;
+  background: transparent;
+}
+
+.estoque-faixa-volumes-table thead th {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.estoque-faixa-volumes-table th,
+.estoque-faixa-volumes-table td {
+  padding: 0.1rem 0.38rem;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+.estoque-faixa-volumes-table td.acoes .btn-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.estoque-faixa-volumes-table td.acoes .btn-icon svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* Guia Consolidado: família → grupo → linha plana por faixa (Excel denso). */
+.estoque-consolidado {
+  --estoque-consol-pad-y: 0.12rem;
+  --estoque-consol-pad-x: 0.35rem;
+  --estoque-consol-font: 0.7rem;
+  padding: 0.45rem 0.65rem 0.7rem;
+}
+
+.estoque-consolidado-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.estoque-consolidado-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+}
+
+.estoque-consolidado-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.estoque-consolidado-check input {
+  margin: 0;
+}
+
+.estoque-consolidado-resumo {
+  font-size: 0.7rem;
+}
+
+.estoque-consolidado-fam-hint {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.estoque-posicao-page .tabs--nested {
+  gap: 0.12rem;
+  flex-wrap: wrap;
+}
+
+.estoque-posicao-page .tabs--nested .tab {
+  font-size: 0.7rem;
+  padding: 0.22rem 0.48rem;
+}
+
+.estoque-posicao-page .tabs--grupo {
+  margin-top: 0.1rem;
+}
+
+.estoque-consolidado-table--flat {
+  min-width: 640px;
+  font-size: var(--estoque-consol-font);
+}
+
+.estoque-consolidado-table--flat th,
+.estoque-consolidado-table--flat td {
+  padding: var(--estoque-consol-pad-y) var(--estoque-consol-pad-x);
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+.estoque-consolidado-table--flat thead th {
+  font-size: 0.64rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.estoque-consolidado-table--flat .estoque-consolidado-col-produto {
+  min-width: 12rem;
+  max-width: 22rem;
+}
+
+.estoque-consolidado-produto-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  max-width: 22rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.estoque-consolidado-produto-inline strong {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.7rem;
+}
+
+.estoque-consolidado-produto-inline .muted {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.68rem;
+}
+
+.estoque-consolidado-table--flat td.saldo-cell {
+  font-size: 0.7rem;
+}
+
+.estoque-consolidado-table--flat td.dimensao {
+  font-size: 0.68rem;
+}
+
+.estoque-consolidado-row:nth-child(even) > td {
+  background: color-mix(in srgb, var(--surface) 97%, var(--navy));
+}
+
+@media (max-width: 720px) {
+  .estoque-consolidado-produto-inline {
+    max-width: 11rem;
+  }
+}
+
+
+.estoque-faixa-volumes-table td.dimensao {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .estoque-ficha-actions {

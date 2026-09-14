@@ -323,6 +323,44 @@ class EstoqueLoteTest extends TestCase
             ->assertJsonPath('data.0.codigo', 'EMP1-L1');
     }
 
+    public function test_consulta_saldos_traz_grupo_e_consolidado_por_faixa(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $produto = $this->criarProduto('MP-PAP-091', 'MP', 'MP-PAP', true, true, 548);
+        $produto->update(['descricao_comercial' => 'Couché 90 g — consolidado']);
+
+        $writer = app(EstoqueSaldoWriter::class);
+        $writer->aplicarEntrada($this->empresa, $produto, '10.0000', '50.00', [
+            'codigo' => 'VOL-A',
+            'data_entrada' => '2026-08-01',
+            'data_validade' => '2027-08-01',
+            'largura_mm' => '210.000',
+            'comprimento_m' => '1000.000',
+        ]);
+        $writer->aplicarEntrada($this->empresa, $produto, '10.0000', '50.00', [
+            'codigo' => 'VOL-B',
+            'data_entrada' => '2026-08-02',
+            'data_validade' => '2027-08-02',
+            'largura_mm' => '210.000',
+            'comprimento_m' => '1020.000',
+        ]);
+
+        $res = $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/saldos')
+            ->assertOk()
+            ->assertJsonPath('data.0.produto.codigo', 'MP-PAP-091')
+            ->assertJsonPath('data.0.produto.familia', 'MP')
+            ->assertJsonPath('data.0.produto.grupo', 'MP-PAP')
+            ->assertJsonPath('data.0.produto.descricao_comercial', 'Couché 90 g — consolidado')
+            ->assertJsonPath('data.0.lotes_count', 2);
+
+        $faixas = $res->json('data.0.volumes_por_qtde');
+        $this->assertIsArray($faixas);
+        $this->assertCount(2, $faixas);
+        $dims = collect($faixas)->pluck('comprimento_m')->sort()->values()->all();
+        $this->assertSame(['1000.00', '1020.00'], $dims);
+    }
+
     public function test_movimento_item_carrega_lote_id(): void
     {
         $produto = $this->criarProduto('MP-FLM-001', 'MP', 'MP-FLM', true, true, 548);

@@ -45,6 +45,8 @@ class EstoqueController extends Controller
         $validated = $request->validate([
             'produto_id' => ['nullable', 'integer'],
             'status' => ['nullable', 'string', 'max:24'],
+            'endereco_id' => ['nullable', 'integer'],
+            'com_qtde' => ['nullable', 'boolean'],
         ]);
 
         return response()->json([
@@ -52,6 +54,8 @@ class EstoqueController extends Controller
                 $this->empresa(),
                 isset($validated['produto_id']) ? (int) $validated['produto_id'] : null,
                 $validated['status'] ?? null,
+                isset($validated['endereco_id']) ? (int) $validated['endereco_id'] : null,
+                (bool) ($validated['com_qtde'] ?? false),
             ),
         ]);
     }

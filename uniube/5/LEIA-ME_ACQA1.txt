@@ -1,0 +1,34 @@
+ACQA Semana 1: Windows x Linux (gerenciamento, seguranca e migracao)
+949018 - Administracao de Sistemas Operacionais de Redes II
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVO PRINCIPAL PARA POSTAR NA PLATAFORMA (ACQA):
+  ACQA_Semana1_Windows_Linux_Diogo_Ferreira_Moura.pdf
+
+ANTES DE ENVIAR:
+  [ ] Confirme se o Polo esta correto (Uberlandia)
+  [ ] Confirme se o nome esta como voce usa na plataforma (Diogo / Diogo)
+  [ ] Confirme o RA 1030125-2
+  [ ] Releia a secao 3.5 (caso da pequena empresa) e, se quiser, acrescente
+      um detalhe da sua realidade profissional
+
+O PDF SEGUE O PADRAO ACQA / UNIUBE:
+  1) Capa (UNIUBE, Sistemas de Informacao, disciplina, autoria, RA, data)
+  2) Identificacao da atividade
+  3) Enunciado da questao aberta
+  4) Desenvolvimento
+     3.1 Introducao
+     3.2 Diferencas de gerenciamento (Windows x Linux)
+     3.3 Diferencas de seguranca
+     3.4 Impacto na manutencao e operacao de redes corporativas
+     3.5 Caso pratico: migracao do servidor de arquivos
+         3.5.1 Permissoes (NTFS/share -> chmod/chown/Samba)
+         3.5.2 Instalacao de aplicativos (msi/Server Manager -> apt/dnf)
+  5) Conclusao
+  6) Referencias (Ledur, Silberschatz, Microsoft, Samba)
+
+PARA REGERAR:
+  python3 gerar_acqa_semana1.py
+
+PRAZO DA ACQA: 08/08/2026 a 19/09/2026. Valor: 20 pontos

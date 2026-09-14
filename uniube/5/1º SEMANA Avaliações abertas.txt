@@ -1,0 +1,749 @@
+
+1º SEMANA - Avaliações abertas
+Voltar
+
+Questões Abertas:
+
+Você deve resolver a questão aberta.
+
+Depois de assistir a videoaula e fazer as leituras, faça as atividades propostas:
+
+ACQA  – Avaliação Continuada Questão Aberta: para esta questão, você deverá ficar atento sobre o que está sendo proposto na mesma e se o conteúdo cobrado já foi abordando antes de respondê-la pois, pois os assuntos propostos na mesma, podem abordar o conteúdo da 1ª até a 6ª semana. Este alerta é pelo fato de que a questão que foi proposta para você pode ou não, ser da semana que estará em curso. Se tiver dúvida, entre em contato com o professor tutor pelo tira dúvidas. 
+
+Você tem até o final da 6ª semana para responder estas atividades e postá-las.
+
+Lembre-se,
+
+Caso surjam dúvidas, anote-as e entre em contato com o seu professor tutor pela ferramenta tira dúvidas.
+
+Bons estudos
+Avaliação (08/08/26 a 19/09/26)
+Valor: 20 pontos
+Questão 1
+
+Contexto:
+A escolha entre Windows e Linux em servidores e ambientes corporativos depende de fatores como custo, segurança, gerenciamento e facilidade de uso. Ambas as plataformas apresentam vantagens e limitações.
+
+Pergunta:
+Com base no estudo comparativo apresentado por Cleverson Lopes Ledur (Semana 03), discorra sobre as diferenças de gerenciamento e segurança entre os sistemas operacionais Windows e Linux. Analise o impacto dessas diferenças na manutenção e operação de redes corporativas. Depois disso, reponda como uma pequena empresa optou por migrar seu servidor de arquivos de Windows para Linux. Quais mudanças práticas no gerenciamento de permissões e na instalação de aplicativos o administrador encontrará?
+
+Referência:
+LEDUR, Cleverson Lopes. Sistemas Operacionais – Funcionamento e Aplicações.
+
+ 
+
+
+
+================================================================
+
+contexto:
+
+
+================================================================
+
+
+
+
+2º SEMANA - Orientações da Semana 2
+Voltar
+Arquitetura de Sistemas Operacionais de Redes e Virtualização
+
+Olá,
+
+Bem-vindo(a) à SEMANA 2 da disciplina Administração de Sistemas Operacionais de Redes II.
+Introdução
+
+Nesta semana, exploraremos a arquitetura dos sistemas operacionais de redes e o conceito de virtualização, ferramentas essenciais para o gerenciamento eficiente de ambientes corporativos.
+Você entenderá como funcionam os sistemas operacionais em rede, sua estrutura interna, e como a virtualização otimiza recursos e garante escalabilidade e segurança em infraestruturas modernas.
+Objetivos
+
+    Compreender os elementos que compõem a arquitetura dos sistemas operacionais de redes.
+
+    Identificar os tipos de virtualização e suas aplicações.
+
+    Reconhecer os benefícios da virtualização na administração de redes corporativas.
+
+Esquema
+
+    Arquitetura de sistemas operacionais de redes
+
+    Núcleo (kernel), drivers e serviços de rede
+
+    Virtualização: conceito, tipos e aplicações
+
+    Hypervisores tipo 1 e tipo 2
+
+    Vantagens da virtualização para ambientes corporativos
+
+VÍDEOAULAS
+
+    Vídeo 1: Arquitetura dos Sistemas Operacionais de Redes
+
+    Vídeo 2: Fundamentos da Virtualização e Aplicações Práticas
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    SILBERSCHATZ, A.; GALVIN, P. B.; GAGNE, G.
+    Sistemas Operacionais – 9ª ed. Pearson.
+    📖 Capítulo 2 – Estrutura dos Sistemas Operacionais
+
+    BASTOS, R.
+    Virtualização: conceitos e práticas – 1ª ed. Brasport.
+    📖 Capítulo 3 – Virtualização de Servidores
+
+Leitura Complementar
+
+    Artigo: “A importância da virtualização na administração moderna de redes” – disponível no AVA
+
+    Tutorial: “Comparando Hypervisores: VMware x Hyper-V” – Canal TechNet Brasil
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 2 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+
+    ACQA 2 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+Ao final dessa semana, você será capaz de:
+
+    Entender a estrutura interna dos sistemas operacionais voltados para redes
+
+    Explicar os tipos de virtualização e seus benefícios
+
+    Relacionar o uso de hypervisores à gestão eficiente de recursos computacionais
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+
+Bons estudos!
+Equipe Pedagógica
+
+
+
+
+---
+
+
+
+2º SEMANA - Orientações da Semana 2
+Voltar
+Arquitetura de Sistemas Operacionais de Redes e Virtualização
+
+Olá,
+
+Bem-vindo(a) à SEMANA 2 da disciplina Administração de Sistemas Operacionais de Redes II.
+Introdução
+
+Nesta semana, exploraremos a arquitetura dos sistemas operacionais de redes e o conceito de virtualização, ferramentas essenciais para o gerenciamento eficiente de ambientes corporativos.
+Você entenderá como funcionam os sistemas operacionais em rede, sua estrutura interna, e como a virtualização otimiza recursos e garante escalabilidade e segurança em infraestruturas modernas.
+Objetivos
+
+    Compreender os elementos que compõem a arquitetura dos sistemas operacionais de redes.
+
+    Identificar os tipos de virtualização e suas aplicações.
+
+    Reconhecer os benefícios da virtualização na administração de redes corporativas.
+
+Esquema
+
+    Arquitetura de sistemas operacionais de redes
+
+    Núcleo (kernel), drivers e serviços de rede
+
+    Virtualização: conceito, tipos e aplicações
+
+    Hypervisores tipo 1 e tipo 2
+
+    Vantagens da virtualização para ambientes corporativos
+
+VÍDEOAULAS
+
+    Vídeo 1: Arquitetura dos Sistemas Operacionais de Redes
+
+    Vídeo 2: Fundamentos da Virtualização e Aplicações Práticas
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    SILBERSCHATZ, A.; GALVIN, P. B.; GAGNE, G.
+    Sistemas Operacionais – 9ª ed. Pearson.
+    📖 Capítulo 2 – Estrutura dos Sistemas Operacionais
+
+    BASTOS, R.
+    Virtualização: conceitos e práticas – 1ª ed. Brasport.
+    📖 Capítulo 3 – Virtualização de Servidores
+
+Leitura Complementar
+
+    Artigo: “A importância da virtualização na administração moderna de redes” – disponível no AVA
+
+    Tutorial: “Comparando Hypervisores: VMware x Hyper-V” – Canal TechNet Brasil
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 2 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+
+    ACQA 2 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+Ao final dessa semana, você será capaz de:
+
+    Entender a estrutura interna dos sistemas operacionais voltados para redes
+
+    Explicar os tipos de virtualização e seus benefícios
+
+    Relacionar o uso de hypervisores à gestão eficiente de recursos computacionais
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+
+Bons estudos!
+Equipe Pedagógica
+
+
+-----
+
+
+3º SEMANA - Orientações da Semana 3
+Voltar
+Introdução ao Windows Server 2022 e Estrutura de Diretórios
+
+Olá,
+
+Bem-vindo(a) à SEMANA 3 da disciplina Administração de Sistemas Operacionais de Redes II.
+Introdução
+
+Nesta semana, iremos mergulhar na utilização do sistema operacional Windows Server 2022, focando nos aspectos iniciais de sua instalação, estrutura de diretórios e ambiente de gerenciamento.
+Você conhecerá os principais recursos oferecidos pelo sistema, assim como a lógica de organização e localização de arquivos e serviços dentro da plataforma.
+Objetivos
+
+    Entender os fundamentos do Windows Server 2022.
+
+    Reconhecer a estrutura de diretórios e seu papel na administração do sistema.
+
+    Identificar as principais ferramentas nativas para configuração e gerenciamento.
+
+Esquema
+
+    Visão geral do Windows Server 2022
+
+    Requisitos de instalação e licenciamento
+
+    Interface gráfica e ambiente PowerShell
+
+    Estrutura de diretórios e sistema de arquivos NTFS
+
+    Acesso e permissões básicas
+
+VÍDEOAULAS
+
+    Vídeo 1: Instalação e configuração inicial do Windows Server 2022
+
+    Vídeo 2: Estrutura de Diretórios e permissões no Windows Server
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    MINASI, M.
+    Mastering Windows Server 2022 – Sybex.
+    📖 Capítulo 1 – Introdução ao Windows Server
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 4 – Sistema de arquivos e diretórios
+
+Leitura Complementar
+
+    Artigo: “Por dentro da estrutura de arquivos do Windows Server” – disponível no AVA
+
+    Documentação oficial Microsoft:
+    📎 https://learn.microsoft.com/pt-br/windows-server/
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 3 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+
+    ACQA 3 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+Ao final dessa semana, você será capaz de:
+
+    Compreender a lógica de funcionamento do Windows Server 2022
+
+    Navegar pela estrutura de diretórios e identificar seus principais elementos
+
+    Utilizar ferramentas básicas de configuração e gerenciamento de arquivos
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+
+Bons estudos!
+Equipe Pedagógica
+
+
+
+
+
+-----------------
+
+4º SEMANA - Orientações da Semana 4
+Voltar
+Criação e Gerenciamento de Usuários e Permissões
+
+Olá,
+
+Bem-vindo(a) à SEMANA 4 da disciplina Administração de Sistemas Operacionais de Redes II.
+Introdução
+
+Nesta etapa do curso, você aprenderá a realizar a criação e o gerenciamento de usuários, bem como a definição de permissões de acesso dentro do ambiente Windows Server 2022.
+Essas habilidades são fundamentais para manter a segurança, organização e controle de uma rede corporativa, garantindo que cada usuário tenha acesso apenas aos recursos necessários para seu trabalho.
+Objetivos
+
+    Criar e gerenciar contas de usuários e grupos no Windows Server.
+
+    Configurar permissões e políticas de acesso a arquivos e pastas.
+
+    Compreender a importância do controle de acesso baseado em funções (RBAC).
+
+Esquema
+
+    Conceito de contas de usuários locais e de domínio
+
+    Ferramenta Active Directory Users and Computers (ADUC)
+
+    Grupos de segurança e grupos de distribuição
+
+    Permissões NTFS e compartilhamento de pastas
+
+    Princípios do controle de acesso (ACLs, RBAC)
+
+VÍDEOAULAS
+
+    Vídeo 1: Criando usuários e grupos no Windows Server
+
+    Vídeo 2: Configuração de permissões e políticas de acesso
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 5 – Gerenciamento de usuários e permissões
+
+    CRUZ, F.
+    PMO Ágil – Brasport.
+    📖 Trechos aplicáveis sobre segurança e organização de usuários em ambientes de rede
+
+Leitura Complementar
+
+    Artigo: “Active Directory: melhores práticas de gestão de usuários” – disponível no AVA
+
+    Guia Microsoft: https://learn.microsoft.com/pt-br/windows-server/identity/ad-ds/
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 4 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+
+    ACQA 4 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+Ao final dessa semana, você será capaz de:
+
+    Criar e organizar usuários e grupos no ambiente Windows Server
+
+    Aplicar permissões específicas a arquivos, pastas e recursos da rede
+
+    Compreender os fundamentos de controle de acesso e segurança organizacional
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+
+Bons estudos!
+Equipe Pedagógica
+
+
+
+-----------------
+
+
+5º SEMANA - Orientações da Semana 5
+Voltar
+Serviços e Recursos de Rede: Impressão, Internet e Terminal
+
+Olá,
+
+Bem-vindo(a) à SEMANA 5 da disciplina Administração de Sistemas Operacionais de Redes II.
+Introdução
+
+Nesta semana, você irá estudar a administração de serviços essenciais de rede, como compartilhamento de impressoras, acesso à internet e serviços de terminal (Remote Desktop Services).
+Esses recursos são amplamente utilizados em ambientes corporativos e exigem configuração e manutenção adequadas para garantir eficiência, segurança e disponibilidade.
+Objetivos
+
+    Configurar e gerenciar serviços de impressão em rede.
+
+    Controlar o acesso à internet com regras e políticas.
+
+    Entender e configurar o serviço de terminal remoto (RDS).
+
+    Reconhecer a importância do gerenciamento centralizado de recursos.
+
+Esquema
+
+    Compartilhamento de impressoras em rede
+
+    Instalação de drivers de impressão em servidores
+
+    Políticas de acesso à internet
+
+    Terminal Services: instalação, licenciamento e configuração
+
+    Segurança e boas práticas no uso de serviços compartilhados
+
+VÍDEOAULAS
+
+    Vídeo 1: Compartilhamento e gerenciamento de impressoras no Windows Server
+
+    Vídeo 2: Acesso remoto via Terminal Services (RDS)
+
+    Vídeo 3: Configurando regras de internet com políticas de grupo (GPO)
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 6 – Serviços de rede: impressoras, terminal e acesso remoto
+
+    ALMEIDA, N.
+    Metodologia de Gerenciamento e Portfólio – Brasport.
+    📖 Tópicos sobre infraestrutura e serviços em redes
+
+Leitura Complementar
+
+    Artigo: “Boas práticas no uso de impressão em rede” – disponível no AVA
+
+    Documentação oficial Microsoft:
+    📎 https://learn.microsoft.com/pt-br/windows-server/remote/remote-desktop-services/
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 5 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+
+    ACQA 5 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+Ao final dessa semana, você será capaz de:
+
+    Compartilhar e gerenciar impressoras em ambientes de rede
+
+    Aplicar regras de acesso à internet com base em políticas corporativas
+
+    Configurar e administrar sessões remotas via Terminal Services
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+
+Bons estudos!
+Equipe Pedagógica
+
+
+-----------------
+
+
+6º SEMANA - Orientações da Semana 6
+Voltar
+
+Backup, Restauração e Gerenciamento de Atualizações
+
+Olá,
+
+Bem-vindo(a) à SEMANA 6 da disciplina Administração de Sistemas Operacionais de Redes II.
+ 
+
+Introdução
+
+O backup nada mais é do que a cópia de segurança das informações armazenadas. É um item fundamental na tecnologia da informação, independentemente do nicho. Deve ser aplicado tanto para um usuário comum quanto para uma corporação, seja qual for seu porte. A fundamentação do backup, basicamente, é a restauração dos dados em casos de problemas, bugs ou danificação da informação original. Nesta Unidade de Aprendizagem você vai conhecer os processos de backup e recuperação.
+
+Bons estudos
+ 
+
+Objetivos
+
+    Selecionar a melhor alternativa para backups em organizações.
+    Identificar as topologias de backup.
+    Reconhecer a importância do backup e restore de informações.
+
+ 
+
+ 
+
+VÍDEOAULAS
+
+Vídeo Backup, Restauração e Gerenciamento de Atualizações
+
+     
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 6 – Serviços de rede: impressoras, terminal e acesso remoto
+    ALMEIDA, N.
+    Metodologia de Gerenciamento e Portfólio – Brasport.
+    📖 Tópicos sobre infraestrutura e serviços em redes
+
+ 
+
+Leitura Complementar
+
+    Artigo: “Boas práticas no uso de impressão em rede” – disponível no AVA
+    Documentação oficial Microsoft:
+    📎 https://learn.microsoft.com/pt-br/windows-server/remote/remote-desktop-services/
+
+ 
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 5 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+    ACQA 5 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+ 
+
+Ao final dessa semana, você será capaz de:
+
+    Selecionar a melhor alternativa para backups em organizações.
+    Identificar as topologias de backup.
+    Reconhecer a importância do backup e restore de informações.
+
+ 
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+ 
+
+Bons estudos!
+Equipe Pedagógica
+
+-----------------
+
+
+7º SEMANA - Orientações da Semana 7
+Voltar
+
+ 
+
+Ferramentas de monitoramento de redes
+
+Olá,
+
+Bem-vindo(a) à SEMANA 7 da disciplina Administração de Sistemas Operacionais de Redes II.
+ 
+
+Introdução
+
+Ao implementar uma melhoria em uma rede computacional no sentido de obter melhor qualidade de serviço, se faz necessário aferir se tal melhoria verdadeiramente surtiu o resultado almejado de maneira a justificar a implementação em questão.
+
+ 
+
+Neste sentido, as ferramentas de monitoramento de redes surgem como uma solução para aferir o comportamento da troca de dados em uma infraestrutura de rede. Isso possibilita verificar se um conjunto de implementações inseridas em tal infraestrutura estão funcionando da maneira prevista.
+
+ 
+
+Nesta Unidade de Aprendizagem, você conhecerá o uso de ferramentas de monitoramento de redes com implementações de QoS, conhecendo as principais ferramentas de monitoramento de redes. Além disso, verificará possíveis melhorias que podem ser implementadas por meio das análises de tais ferramentas.
+
+ 
+
+Bons estudos. Bons estudos
+ 
+
+Objetivos
+
+    Relacionar os conceitos de QoS e desempenho de redes com o uso de ferramentas de monitoramento.
+    Descrever as principais ferramentas de análise e monitoramento de redes.
+    Exemplificar melhorias decorrentes do uso das ferramentas de análise e monitoramento de redes.
+
+ 
+
+ 
+
+VÍDEOAULAS
+
+Vídeo Monitorando a rede
+
+     
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 6 – Serviços de rede: impressoras, terminal e acesso remoto
+    ALMEIDA, N.
+    Metodologia de Gerenciamento e Portfólio – Brasport.
+    📖 Tópicos sobre infraestrutura e serviços em redes
+
+ 
+
+Leitura Complementar
+
+    Artigo: “Boas práticas no uso de impressão em rede” – disponível no AVA
+    Documentação oficial Microsoft:
+    📎 https://learn.microsoft.com/pt-br/windows-server/remote/remote-desktop-services/
+
+ 
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 5 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+    ACQA 5 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+ 
+
+Ao final dessa semana, você será capaz de:
+
+    Relacionar os conceitos de QoS e desempenho de redes com o uso de ferramentas de monitoramento.
+    Descrever as principais ferramentas de análise e monitoramento de redes.
+    Exemplificar melhorias decorrentes do uso das ferramentas de análise e monitoramento de redes.
+
+ 
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+ 
+
+Bons estudos!
+Equipe Pedagógica
+
+
+-----------------
+
+
+
+8º SEMANA - Orientações da Semana 8
+Voltar
+
+Vantagens de cloud computing
+
+ 
+
+Olá,
+
+Bem-vindo(a) à SEMANA 8 da disciplina Administração de Sistemas Operacionais de Redes II.
+ 
+
+Introdução
+
+A computação em nuvem, ou cloud computing, tem diversas vantagens, que vão desde a redução de custos até a disponibilidade em momentos críticos. Esse modelo permite uma flexibilidade maior e mais economia para negócios que pagarão apenas pelo tempo utilizado da infraestrutura. Além disso, esse paradigma auxiliou no surgimento de outros paradigmas, como a computação em névoa e a Internet das Coisas.
+
+ 
+
+Nesta Unidade de Aprendizagem, você vai conhecer algumas facilidades oferecidas pela computação em nuvem e entender como funcionam a economia e a cobrança na nuvem. Por fim, você será apresentado aos novos paradigmas que surgiram a partir dela.
+
+ 
+
+Bons estudos
+ 
+
+Objetivos
+
+    Reconhecer as facilidades oferecidas pela computação em nuvem.
+    Descrever a economia oferecida pela cloud computing.
+    Analisar o papel de cloud computing em novos paradigmas computacionais.
+
+ 
+
+ 
+
+VÍDEOAULAS
+
+    Vantagens de cloud computing
+     
+
+Leitura Obrigatória
+
+Disponíveis na Biblioteca Virtual Pearson:
+
+    FERREIRA, L.
+    Administração de Servidores Microsoft – Brasport.
+    📖 Capítulo 6 – Serviços de rede: impressoras, terminal e acesso remoto
+    ALMEIDA, N.
+    Metodologia de Gerenciamento e Portfólio – Brasport.
+    📖 Tópicos sobre infraestrutura e serviços em redes
+
+ 
+
+Leitura Complementar
+
+    Artigo: “Boas práticas no uso de impressão em rede” – disponível no AVA
+    Documentação oficial Microsoft:
+    📎 https://learn.microsoft.com/pt-br/windows-server/remote/remote-desktop-services/
+
+ 
+
+ATIVIDADES
+
+Após assistir às videoaulas e realizar as leituras propostas, realize as atividades da semana:
+
+    ACQF 5 – Avaliação Continuada – Questão Fechada
+    ⏳ Prazo: até o final da semana
+    ACQA 5 – Avaliação Continuada – Questão Aberta
+    📌 Atenção: a questão pode abordar conteúdos das semanas 1 a 6.
+    Em caso de dúvidas, entre em contato com seu professor tutor.
+    ⏳ Prazo: até o final da 6ª semana
+
+ 
+ 
+
+Lembre-se:
+Caso surjam dúvidas, registre suas perguntas e entre em contato com seu professor tutor através da ferramenta tira-dúvidas.
+ 
+
+Bons estudos!
+Equipe Pedagógica
+

@@ -363,6 +363,9 @@ export function ComprasNfeDestinadasPage() {
                 {sync?.sync_status === 'RUNNING' || syncing ? 'Sincronizando…' : 'Atualizar do fisco'}
               </button>
             )}
+            <Link to="/compras/nfe-recebidas" className="btn btn-secondary">
+              NF-e recebidas
+            </Link>
             <Link to="/compras/ordens" className="btn btn-secondary">
               Ordens de compra
             </Link>

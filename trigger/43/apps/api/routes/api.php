@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\CondicaoPagamentoSugestaoController;
 use App\Http\Controllers\Api\V1\CalendarioController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\DfeCaixaController;
+use App\Http\Controllers\Api\V1\NfeEntradaController;
 use App\Http\Controllers\Api\V1\FeriadoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
 use App\Http\Controllers\Api\V1\EmpresaCertificadoA1Controller;
@@ -273,12 +274,18 @@ Route::prefix('v1')->group(function () {
         Route::post('/dfe-sync', [DfeCaixaController::class, 'enfileirarSync']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview-dfe', [DfeCaixaController::class, 'previewNaOc']);
 
+        // NF-e recebidas — espelho pós-receber (somente leitura; F5_NFE_ENT)
+        Route::get('/nfe-entradas', [NfeEntradaController::class, 'index']);
+        Route::get('/nfe-entradas/{nfeEntrada}', [NfeEntradaController::class, 'show']);
+        Route::get('/nfe-entradas/{nfeEntrada}/xml', [NfeEntradaController::class, 'downloadXml']);
+
         Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
         Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);
         Route::get('/estoque/lotes/etiquetas', [EstoqueVolumeController::class, 'etiquetasVolumes']);
         Route::get('/estoque/lotes/{estoqueLote}/etiqueta', [EstoqueVolumeController::class, 'etiqueta']);
         Route::post('/estoque/lotes/{estoqueLote}/endereco', [EstoqueVolumeController::class, 'vincularEndereco']);
         Route::get('/estoque/enderecos', [EstoqueVolumeController::class, 'enderecos']);
+        Route::get('/estoque/mapa', [EstoqueVolumeController::class, 'mapa']);
         Route::get('/estoque/enderecos/por-qr', [EstoqueVolumeController::class, 'resolverEndereco']);
         Route::post('/estoque/enderecos/seed', [EstoqueVolumeController::class, 'seedEnderecos']);
         Route::get('/estoque/volumes/por-qr', [EstoqueVolumeController::class, 'resolverVolume']);

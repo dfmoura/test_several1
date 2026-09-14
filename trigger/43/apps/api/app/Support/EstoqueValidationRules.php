@@ -24,8 +24,23 @@ final class EstoqueValidationRules
             'observacao' => ['nullable', 'string', 'max:2000'],
             'itens' => ['required', 'array', 'min:1'],
             'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
+            // Sem composição: qtde opcional (serviço usa faltante). Com composição: Σ faixas deriva qtde (mesmo contrato da OC).
             'itens.*.qtde_pedida' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY)),
             'itens.*.valor_unitario' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_UNIT_PRICE, false)),
+            'itens.*.composicao' => ['sometimes', 'array', 'min:1'],
+            'itens.*.composicao.*.largura_mm' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'itens.*.composicao.*.quantidade' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)
+            ),
+            'itens.*.composicao.*.comprimento_m' => array_merge(
+                ['required_with:itens.*.composicao'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'itens.*.composicao.*.ordem' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

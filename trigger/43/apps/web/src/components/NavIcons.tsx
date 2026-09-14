@@ -222,6 +222,15 @@ export function IconEye({ className }: IconProps) {
   );
 }
 
+/** Expandir / recolher (lista densa). */
+export function IconChevronDown({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </IconBase>
+  );
+}
+
 /** Ações de listagem — editar. */
 export function IconPencil({ className }: IconProps) {
   return (

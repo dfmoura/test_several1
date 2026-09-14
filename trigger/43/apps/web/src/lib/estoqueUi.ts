@@ -135,8 +135,69 @@ export function mesmaQtdeEstoque(
   return Math.abs(na - nb) < 0.00005;
 }
 
+/** L×C real do volume — chave da faixa consolidada (Exact). */
+export function mesmaDimensaoVolume(
+  a: { largura_mm?: string | null; comprimento_m?: string | null },
+  b: { largura_mm?: string | null; comprimento_m?: string | null },
+): boolean {
+  return (a.largura_mm ?? null) === (b.largura_mm ?? null)
+    && (a.comprimento_m ?? null) === (b.comprimento_m ?? null);
+}
+
+export type FaixaVolumeRef = {
+  qtde: string;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+};
+
+/** Chave estável produto × faixa (qtde + L×C) para expandir na ficha. */
+export function chaveFaixaVolume(produtoId: number, faixa: FaixaVolumeRef): string {
+  return `${produtoId}|${faixa.qtde}|${faixa.largura_mm ?? ''}|${faixa.comprimento_m ?? ''}`;
+}
+
+/**
+ * Volumes físicos de uma faixa consolidada (qtde > 0).
+ * Mesmo critério do filtro Saldos → Volumes.
+ */
+export function volumesDaFaixa<
+  T extends { qtde: string; largura_mm?: string | null; comprimento_m?: string | null },
+>(volumes: T[], faixa: FaixaVolumeRef): T[] {
+  return volumes.filter(
+    (v) =>
+      Number(v.qtde) > 0 &&
+      mesmaQtdeEstoque(v.qtde, faixa.qtde) &&
+      mesmaDimensaoVolume(v, faixa),
+  );
+}
+
+/** Auto-abre detalhe na ficha quando o SKU ainda cabe na leitura. */
+export const ESTOQUE_FICHA_AUTO_EXPAND_MAX_VOLUMES = 12;
+
+/** Ordem canônica das famílias na guia Consolidado (igual cadastro de produtos). */
+export const ESTOQUE_FAMILIAS_ORDEM = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
+
 /** Quantas faixas de qtde cabem na grade de saldos sem amontoar. */
 export const ESTOQUE_VOL_FAIXAS_VISIVEIS = 3;
+
+/** Grupo do SKU para abas do consolidado (código estável). */
+export function estoqueGrupoCodigo(produto: {
+  grupo?: string | null;
+  grupo_catalogo?: { codigo?: string | null } | null;
+} | null | undefined): string {
+  const g = produto?.grupo?.trim() || produto?.grupo_catalogo?.codigo?.trim();
+  return g || '—';
+}
+
+/** Nome amigável do grupo (catálogo) ou o próprio código. */
+export function estoqueGrupoLabel(produto: {
+  grupo?: string | null;
+  grupo_catalogo?: { codigo?: string | null; nome?: string | null } | null;
+} | null | undefined): string {
+  const codigo = estoqueGrupoCodigo(produto);
+  const nome = produto?.grupo_catalogo?.nome?.trim();
+  if (nome && codigo !== '—') return `${codigo} — ${nome}`;
+  return codigo;
+}
 
 export function faixasVolumesVisiveis<T>(faixas: T[]): { visiveis: T[]; ocultas: number } {
   if (faixas.length <= ESTOQUE_VOL_FAIXAS_VISIVEIS) {

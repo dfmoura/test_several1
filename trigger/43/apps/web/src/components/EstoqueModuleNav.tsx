@@ -7,6 +7,11 @@ const ITEMS = [
     match: (pathname: string) => pathname === '/estoque' || pathname.startsWith('/estoque/extrato'),
   },
   {
+    to: '/estoque/mapa',
+    label: 'Mapa',
+    match: (pathname: string) => pathname.startsWith('/estoque/mapa'),
+  },
+  {
     to: '/estoque/guardar',
     label: 'Guardar',
     match: (pathname: string) => pathname.startsWith('/estoque/guardar'),
@@ -23,7 +28,7 @@ const ITEMS = [
   },
 ] as const;
 
-/** Navegação do módulo — Saldos · Guardar · Inventários · Ajustes. */
+/** Navegação do módulo — Saldos · Mapa · Guardar · Inventários · Ajustes. */
 export function EstoqueModuleNav() {
   const { pathname } = useLocation();
 

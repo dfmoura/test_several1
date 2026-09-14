@@ -15,11 +15,27 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-099`
+`BL-100`
 
 ---
 
 ## Itens
+
+### BL-099 · [estoque/ux] Mapa de ocupação dos locais (6×4×3)
+- **Status:** Feito
+- **Prioridade:** P2
+- **Origem:** Chat 2026-09-12 — visão espacial leve do almoxarifado
+- **Depende de:** BL-098 · `ADR_CADASTRO_INSUMO_VOLUME.md` F4
+- **Decisão (fechada):**
+  1. Mapa = ocupação por **endereço** (não geometria de produto). Célula = `Pxx-Cxx-Lxx`.
+  2. `GET /estoque/mapa` agrega volumes com `qtde > 0`; drill-down `GET /estoque/lotes?endereco_id=&com_qtde=1`.
+  3. Só leitura — sem tocar `EstoqueSaldoWriter` / MOV / receber.
+- **Aceite:**
+  - [x] Rota `/estoque/mapa` + tab Mapa no módulo
+  - [x] KPI ocupados/vazios/sem local + pontinhos por densidade
+  - [x] PHPUnit mapa após vínculo
+- **Fora de escopo:** Slotting · multi-depósito · plotagem geométrica · Painel
+- **Entregue em:** 2026-09-12
 
 ### BL-098 · [estoque/wms] Localização — vãos + QR endereço (F4)
 - **Status:** Feito

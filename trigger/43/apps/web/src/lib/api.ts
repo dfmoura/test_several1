@@ -1637,6 +1637,24 @@ export type NfeEntradaResumo = {
   espelho?: NfeEntradaEspelho;
 };
 
+/** Lista / detalhe da consulta Compras → NF-e recebidas. */
+export type NfeEntradaLista = NfeEntradaResumo & {
+  data_emissao: string | null;
+  emit_cnpj?: string | null;
+  valor_nf?: string | null;
+  ordem_compra?: { id: number; codigo: string; status?: string } | null;
+  movimento?: { id: number; codigo: string | null } | null;
+  fornecedor?: { id: number; codigo: string; razao_social?: string | null } | null;
+};
+
+export type NfeEntradaDetalhe = NfeEntradaLista & {
+  dest_cnpj?: string | null;
+  dest_ie?: string | null;
+  dest_uf?: string | null;
+  protocolo?: string | null;
+  c_stat?: string | null;
+};
+
 export type ReceberXmlWarning = {
   nivel: 'INFO' | 'ALERTA' | 'CRITICO' | string;
   codigo: string;
@@ -1771,6 +1789,21 @@ export type EstoqueEndereco = {
   qr_payload: string;
 };
 
+/** Célula do mapa de ocupação (`GET /estoque/mapa`). */
+export type EstoqueMapaLocal = EstoqueEndereco & {
+  volumes_count: number;
+  skus_count: number;
+};
+
+export type EstoqueMapaResumo = {
+  total_locais: number;
+  ocupados: number;
+  vazios: number;
+  volumes_guardados: number;
+  volumes_sem_local: number;
+  skus_distintos: number;
+};
+
 export type EstoqueLote = {
   id: number;
   produto_id: number;
@@ -1809,6 +1842,15 @@ export type EstoqueSaldo = {
     descricao_fiscal: string;
     descricao_comercial?: string | null;
     familia?: string;
+    /** Código do grupo (MP-PAP…) — taxonomia do consolidado. */
+    grupo?: string | null;
+    grupo_id?: number | null;
+    grupo_catalogo?: {
+      id: number;
+      codigo: string;
+      nome: string;
+      familia?: string | null;
+    } | null;
     unidade_interna?: string | null;
     controla_lote?: boolean;
     controla_validade?: boolean;

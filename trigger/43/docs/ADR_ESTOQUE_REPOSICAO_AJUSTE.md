@@ -26,6 +26,7 @@ estoque_mínimo (unidade_interna) × saldo × OC em trânsito
 - Faltante comercial = faltante interna ÷ `fator_conversao` (para a OC).
 - NEC/COT continuam API-only (ADR-039-CPR-001).
 - Gerar OC pela reposição cria **rascunho**; humano envia ao fornecedor na ficha da OC.
+- **Detalhe do pedido (opcional) em A repor:** faixas `largura_mm × qtd bobinas × comprimento_m` no mesmo contrato da OC (`ordem_compra_item_composicoes`); Σ área deriva `qtde_pedida` (M2 ou KG via fator). Sem faixas = qtde comercial flat (tubete/caixa). Fonte da verdade permanece a OC rascunho (editável até enviar).
 
 ### B) Ajuste (contagem avulsa)
 
