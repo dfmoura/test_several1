@@ -5896,6 +5896,60 @@ table.data-table td.acoes {
   display: none;
 }
 
+/* Confirmação PED ao cliente — mesma casca proposta; tabela de itens travados. */
+.ped-conf-itens {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 0.5rem;
+}
+
+.ped-conf-itens th,
+.ped-conf-itens td {
+  padding: 0.4rem 0.45rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ped-conf-itens th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ped-conf-itens .ped-conf-num,
+.ped-conf-itens th.ped-conf-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ped-conf-itens tfoot td {
+  border-bottom: none;
+  padding-top: 0.65rem;
+  font-weight: 600;
+}
+
+.ped-conf-assinaturas {
+  margin: 1.25rem 0 0.75rem;
+}
+
+.ped-conf-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.ped-conf-emitido {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .orc-spec-faca {
   padding-bottom: 0.95rem;
   margin-bottom: 0.15rem;
@@ -7982,6 +8036,14 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-page-proposta .orc-url-arte .print-only {
     display: block;
+  }
+
+  body.ficha-print-mode .ped-conf-assinaturas {
+    break-inside: avoid;
+  }
+
+  body.ficha-print-mode .ped-conf-itens {
+    break-inside: avoid;
   }
 
   body.ficha-print-mode .ficha-page-proposta .orc-url-arte-cta {

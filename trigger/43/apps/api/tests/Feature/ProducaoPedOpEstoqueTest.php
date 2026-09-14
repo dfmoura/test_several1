@@ -392,6 +392,13 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertGreaterThan(0, (int) $showPed->json('data.ordens_producao.0.materiais_resumo.total'));
         $this->assertArrayHasKey('entrega', $showPed->json('data'));
         $this->assertNull($showPed->json('data.entrega'));
+        // Confirmação ao cliente — identidade comercial no detalhe (ADR_PED_CONFIRMACAO_CLIENTE).
+        $this->assertSame($this->empresa->id, (int) $showPed->json('data.empresa.id'));
+        $this->assertSame($this->empresa->cnpj, $showPed->json('data.empresa.cnpj'));
+        $this->assertSame($this->parceiro->codigo, $showPed->json('data.parceiro.codigo'));
+        $this->assertArrayHasKey('cnpj_cpf', $showPed->json('data.parceiro'));
+        $this->assertArrayHasKey('preco_unitario', $showPed->json('data.itens.0'));
+        $this->assertArrayHasKey('valor_total', $showPed->json('data.itens.0'));
     }
 
     public function test_conclusao_fora_tolerancia_exige_override(): void

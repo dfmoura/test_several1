@@ -61,6 +61,7 @@ Fora da faixa → bloqueio, salvo override com motivo (`producao.escrever` + fla
 3. PA sob encomenda → SKU família `PA-ETQ-*` + especificação no item do PED (não explode cadastro).  
 4. Painel Produção no mesmo ERP (lista PED/OP/OS) — sem app paralelo.  
 5. Perfil PRODUCAO sem preço/margem do ORC nas telas de chão.
+6. **Confirmação ao cliente** = superfície satélite `/pedidos/:id/ficha-cliente` — não misturar com a ficha operacional. Norma: [`ADR_PED_CONFIRMACAO_CLIENTE.md`](ADR_PED_CONFIRMACAO_CLIENTE.md).
 
 ### Devolver OP ao PED (sem saída)
 

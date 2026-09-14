@@ -2528,6 +2528,42 @@ export type PedidoItem = {
   produto_pa?: { id: number; codigo: string; descricao_fiscal: string } | null;
 };
 
+/** Identidade comercial da EMP no detalhe do PED (confirmação ao cliente). */
+export type PedidoEmpresaComercial = {
+  id: number;
+  codigo: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  email: string | null;
+  telefone: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio: string | null;
+  uf: string | null;
+  cep?: string | null;
+};
+
+export type PedidoParceiroComercial = {
+  id: number;
+  codigo: string;
+  razao_social: string;
+  nome_fantasia?: string | null;
+  cnpj_cpf?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  whatsapp?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  municipio?: string | null;
+  uf?: string | null;
+  cep?: string | null;
+};
+
 export type Pedido = {
   id: number;
   codigo: string;
@@ -2539,7 +2575,9 @@ export type Pedido = {
   prazo_referencia_em?: string | null;
   data_entrega_prevista?: string | null;
   observacao: string | null;
-  parceiro?: { id: number; codigo: string; razao_social: string } | null;
+  /** Presente no GET detalhe — ADR_PED_CONFIRMACAO_CLIENTE. */
+  empresa?: PedidoEmpresaComercial | null;
+  parceiro?: PedidoParceiroComercial | null;
   vendedor?: { id: number; codigo: string; razao_social: string } | null;
   orcamento?: {
     id: number;

@@ -191,7 +191,8 @@ class PedidoService
     public function show(Pedido $pedido): array
     {
         $pedido->load([
-            'parceiro:id,codigo,razao_social',
+            'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
+            'parceiro:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone,whatsapp,logradouro,numero,complemento,bairro,municipio,uf,cep',
             'vendedor:id,codigo,razao_social,nome_fantasia',
             'orcamento:id,codigo,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
             'itens.produtoPa:id,codigo,descricao_fiscal',
@@ -280,6 +281,23 @@ class PedidoService
 
         if ($detalhe) {
             $out['snapshot'] = $p->snapshot;
+            $out['empresa'] = $this->empresaComercialOut($p);
+            if ($p->parceiro) {
+                $out['parceiro'] = array_merge($out['parceiro'] ?? [], [
+                    'nome_fantasia' => $p->parceiro->nome_fantasia,
+                    'cnpj_cpf' => $p->parceiro->cnpj_cpf,
+                    'email' => $p->parceiro->email,
+                    'telefone' => $p->parceiro->telefone,
+                    'whatsapp' => $p->parceiro->whatsapp ?? null,
+                    'logradouro' => $p->parceiro->logradouro,
+                    'numero' => $p->parceiro->numero,
+                    'complemento' => $p->parceiro->complemento,
+                    'bairro' => $p->parceiro->bairro,
+                    'municipio' => $p->parceiro->municipio,
+                    'uf' => $p->parceiro->uf,
+                    'cep' => $p->parceiro->cep,
+                ]);
+            }
             $out['ordens_producao'] = $p->ordensProducao->map(function ($o) {
                 $mats = $o->relationLoaded('materiais') ? $o->materiais : collect();
                 $pendentes = $mats->filter(fn ($m) => $m->saida_movimento_id === null)->count();
@@ -310,6 +328,36 @@ class PedidoService
         }
 
         return $out;
+    }
+
+    /**
+     * Identidade comercial da EMP para confirmação de pedido ao cliente.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function empresaComercialOut(Pedido $p): ?array
+    {
+        $emp = $p->relationLoaded('empresa') ? $p->empresa : null;
+        if ($emp === null) {
+            return null;
+        }
+
+        return [
+            'id' => $emp->id,
+            'codigo' => $emp->codigo,
+            'razao_social' => $emp->razao_social,
+            'nome_fantasia' => $emp->nome_fantasia,
+            'cnpj' => $emp->cnpj,
+            'email' => $emp->email,
+            'telefone' => $emp->telefone,
+            'logradouro' => $emp->logradouro,
+            'numero' => $emp->numero,
+            'complemento' => $emp->complemento,
+            'bairro' => $emp->bairro,
+            'municipio' => $emp->municipio,
+            'uf' => $emp->uf,
+            'cep' => $emp->cep,
+        ];
     }
 
     /**

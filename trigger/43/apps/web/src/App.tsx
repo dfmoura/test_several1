@@ -69,6 +69,7 @@ import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage
 import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
+import { PedidoConfirmacaoPage } from './pages/PedidoConfirmacaoPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
@@ -779,6 +780,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
               <PedidoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pedidos/:id/ficha-cliente"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <PedidoConfirmacaoPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

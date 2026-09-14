@@ -150,13 +150,24 @@ export function PedidoDetailPage() {
               Voltar
             </Link>
             {pedido ? (
-              <a
-                href={`/pedidos/${pedido.id}/ficha`}
-                className="btn btn-secondary"
-                onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
-              >
-                Imprimir ficha
-              </a>
+              <>
+                <a
+                  href={`/pedidos/${pedido.id}/ficha`}
+                  className="btn btn-secondary"
+                  onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
+                >
+                  Imprimir ficha
+                </a>
+                <a
+                  href={`/pedidos/${pedido.id}/ficha-cliente`}
+                  className="btn btn-secondary"
+                  onClick={(e) =>
+                    onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha-cliente`)
+                  }
+                >
+                  Confirmação ao cliente
+                </a>
+              </>
             ) : null}
             {pedido?.rastreio && (pedido.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (
               <a
