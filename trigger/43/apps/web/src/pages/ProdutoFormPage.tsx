@@ -27,7 +27,7 @@ const ATRIBUTOS_FORM_KEYS = [
   'programa_compra',
 ] as const;
 
-const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
+const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'] as const;
 
 /** Grupo canônico padrão por família (estudo RLP / catálogo fixo). */
 const DEFAULT_GRUPO_BY_FAMILIA: Record<string, string> = {
@@ -37,6 +37,7 @@ const DEFAULT_GRUPO_BY_FAMILIA: Record<string, string> = {
   PA: 'PA-ETQ',
   SVC: 'SVC',
   FAC: 'FAC',
+  MUC: 'MUC-GER',
 };
 
 const FAMILIA_SPED_DEFAULT: Record<string, string> = {
@@ -46,6 +47,7 @@ const FAMILIA_SPED_DEFAULT: Record<string, string> = {
   PA: '04',
   SVC: '09',
   FAC: '04',
+  MUC: '07',
 };
 
 /** Rótulo operacional da linha de estoque (atributo grupo_estoque / GG da máscara). */
@@ -1696,7 +1698,7 @@ export function ProdutoFormPage() {
                   </select>
                   <span className="form-hint">
                     Herdado do grupo ({selectedGrupo?.tipo_item_sped ?? '—'}). PA=04, MP=01, EMB=02,
-                    REV=00, SVC=09.
+                    REV=00, MUC=07, SVC=09.
                   </span>
                 </div>
               </div>

@@ -52,7 +52,7 @@ class ProdutoFromNfeXmlController extends Controller
             'items.*.origem' => ['nullable', 'integer', 'min:0', 'max:8'],
             'items.*.fornecedor_id' => ['nullable', 'integer'],
             'items.*.fornecedor_cnpj' => ['nullable', 'string', 'max:18'],
-            'items.*.familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC'],
+            'items.*.familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC,MUC'],
             'items.*.grupo' => ['nullable', 'string', 'max:16'],
             'items.*.descricao_fiscal' => ['nullable', 'string', 'max:255'],
             'items.*.descricao_comercial' => ['nullable', 'string', 'max:255'],

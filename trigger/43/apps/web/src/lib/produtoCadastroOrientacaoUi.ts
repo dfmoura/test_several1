@@ -103,6 +103,13 @@ export function decideCadastroOrientacao(input: {
     };
   }
 
+  if (familia === 'MUC') {
+    return {
+      lead: 'Uso e consumo: limpeza, escritório, EPI e afins. Compra vira despesa (não matéria-prima). Vincule o cProd do fornecedor no de-para. Sem bobina nem OP.',
+      preferM2Igual: false,
+    };
+  }
+
   if (familia === 'MP' || familia === 'EMB' || familia === 'REV') {
     return {
       lead: 'SKU operacional (compra/estoque/OP). Vincule o cProd do fornecedor no de-para para a entrada por XML. Unidades: comercial (NF) ↔ estoque (saldo único).',
@@ -138,7 +145,7 @@ export function buildCadastroChecklist(input: {
   nomesIguaisAoModelo?: boolean;
 }): { items: CadastroCheckItem[]; ready: boolean; pendingRequired: number } {
   const familia = (input.familia || '').toUpperCase();
-  const compra = familia === 'MP' || familia === 'EMB' || familia === 'REV';
+  const compra = familia === 'MP' || familia === 'EMB' || familia === 'REV' || familia === 'MUC';
   const nomeEstoque = (input.descricaoComercial || '').trim();
   const fiscal = (input.descricaoFiscal || '').trim();
   const ncm = (input.ncm || '').replace(/\D/g, '');

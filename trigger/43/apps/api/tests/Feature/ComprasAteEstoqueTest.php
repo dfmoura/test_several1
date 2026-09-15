@@ -32,6 +32,8 @@ class ComprasAteEstoqueTest extends TestCase
 
     private NaturezaGerencial $nat506;
 
+    private NaturezaGerencial $nat30506;
+
     private NaturezaGerencial $nat201;
 
     private EmpresaContaFinanceira $cfin;
@@ -75,6 +77,19 @@ class ComprasAteEstoqueTest extends TestCase
             'aceita_lancamento' => true,
             'ativo' => true,
             'ordenacao' => 506,
+        ]);
+
+        $this->nat30506 = NaturezaGerencial::query()->create([
+            'codigo' => '3.05.06',
+            'codigo_exibicao' => 'NAT-3.05.06',
+            'grupo' => 3,
+            'nivel' => 3,
+            'parent_id' => null,
+            'nome' => 'Material de uso e consumo',
+            'descricao' => 'TIT default compra MUC',
+            'aceita_lancamento' => true,
+            'ativo' => true,
+            'ordenacao' => 30506,
         ]);
 
         $this->nat201 = NaturezaGerencial::query()->create([
@@ -337,6 +352,174 @@ class ComprasAteEstoqueTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.nf_chave', null)
             ->assertJsonPath('data.titulo.natureza.codigo', '5.06');
+    }
+
+    public function test_receber_muc_usa_natureza_3_05_06_e_entra_saldo(): void
+    {
+        Sanctum::actingAs($this->user);
+        $ano = (int) now()->year;
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $muc = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MUC-GER-001',
+            'familia' => 'MUC',
+            'grupo' => 'MUC-GER',
+            'descricao_fiscal' => 'Papel toalha industrial',
+            'tipo_item_sped' => '07',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'custo_medio' => '0',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $muc->id,
+                        'qtde_pedida' => '10.0000',
+                        'valor_unitario' => '5.000000',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $ocItemId = $oc->json('data.itens.0.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
+
+        $receber = $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
+                'vencimento' => '2026-09-01',
+                'itens' => [
+                    [
+                        'ordem_compra_item_id' => $ocItemId,
+                        'qtde_recebida' => '10.0000',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.titulo.natureza.codigo', '3.05.06');
+
+        $this->assertSame($this->nat30506->id, $receber->json('data.titulo.natureza_id'));
+        $this->assertSame("TIT-{$ano}-00001", $receber->json('data.titulo.codigo'));
+
+        $saldo = EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $muc->id)
+            ->firstOrFail();
+        $this->assertSame('10.0000', (string) $saldo->qtde);
+    }
+
+    public function test_receber_rejeita_mistura_muc_com_mp(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $muc = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MUC-ESC-001',
+            'familia' => 'MUC',
+            'grupo' => 'MUC-ESC',
+            'descricao_fiscal' => 'Caneta esferografica',
+            'tipo_item_sped' => '07',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '1.0000',
+                        'valor_unitario' => '10.000000',
+                    ],
+                    [
+                        'produto_id' => $muc->id,
+                        'qtde_pedida' => '2.0000',
+                        'valor_unitario' => '1.000000',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $itens = $oc->json('data.itens');
+        $this->enviarOrdemCompra($h, (int) $ocId);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
+                'vencimento' => '2026-09-01',
+                'itens' => [
+                    [
+                        'ordem_compra_item_id' => $itens[0]['id'],
+                        'qtde_recebida' => '1.0000',
+                    ],
+                    [
+                        'ordem_compra_item_id' => $itens[1]['id'],
+                        'qtde_recebida' => '2.0000',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['itens']);
+    }
+
+    public function test_receber_muc_rejeita_natureza_5_06(): void
+    {
+        Sanctum::actingAs($this->user);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $muc = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'MUC-EPI-001',
+            'familia' => 'MUC',
+            'grupo' => 'MUC-EPI',
+            'descricao_fiscal' => 'Luva nitrilica',
+            'tipo_item_sped' => '07',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+        ]);
+
+        $oc = $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'itens' => [
+                    [
+                        'produto_id' => $muc->id,
+                        'qtde_pedida' => '5.0000',
+                        'valor_unitario' => '2.000000',
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $ocId = $oc->json('data.id');
+        $ocItemId = $oc->json('data.itens.0.id');
+        $this->enviarOrdemCompra($h, (int) $ocId);
+
+        $this->withHeaders($h)
+            ->postJson("/api/v1/ordens-compra/{$ocId}/receber", [
+                'natureza_id' => $this->nat506->id,
+                'vencimento' => '2026-09-01',
+                'itens' => [
+                    [
+                        'ordem_compra_item_id' => $ocItemId,
+                        'qtde_recebida' => '5.0000',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['natureza_id']);
     }
 
     public function test_sem_permissao_retorna_403(): void

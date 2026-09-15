@@ -50,7 +50,7 @@ class ProdutoFromNfeItemController extends Controller
             'origem' => ['nullable', 'integer', 'min:0', 'max:8'],
             'fornecedor_id' => ['nullable', 'integer'],
             'fornecedor_cnpj' => ['nullable', 'string', 'max:18'],
-            'familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC'],
+            'familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC,MUC'],
             'grupo' => ['nullable', 'string', 'max:16'],
             'descricao_fiscal' => ['nullable', 'string', 'max:255'],
             'descricao_comercial' => ['nullable', 'string', 'max:255'],

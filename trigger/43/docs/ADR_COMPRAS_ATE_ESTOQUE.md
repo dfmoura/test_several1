@@ -53,6 +53,15 @@ Ciclo comercial da OC (`RASCUNHO` editável até enviar; e-mail fail-soft): `ADR
 - Frete apropriado ao custo → `2.03` (quando item/frete separado).  
 - Máquina/patrimônio → `4.xx` (fora deste fluxo de insumos).
 
+### Emenda 2026-09-15 — família MUC (uso e consumo)
+
+Norma: **`ADR_FAMILIA_MUC_USO_CONSUMO.md`**.
+
+- OC só-**MUC**: TIT default **`3.05.06`** (despesa); **proibido** `5.06` / `2.01`.  
+- `receber()` **homogêneo**: não misturar MUC com MP/EMB/REV na mesma conferência.  
+- Saldo físico MUC entra via MOV; despesa já no TIT — sem segundo custo na baixa de quantidade.  
+- “A repor” permanece só MP|EMB|REV.
+
 ---
 
 ## Unidades e custo

@@ -71,6 +71,12 @@ Alterar esta ADR exige decisão explícita alinhada ao estudo 32 (Direção + en
 
 ---
 
+## Emenda 2026-09-15 — folha `3.05.06`
+
+- Código: **`3.05.06`** · nome: **Material de uso e consumo**.  
+- Uso: TIT default de compra família **MUC** (`ADR_FAMILIA_MUC_USO_CONSUMO.md`).  
+- Não substitui `3.05.02` (escritório) nem `3.04.02` (consumíveis de fábrica) — override humano na conferência.
+
 ## Rastreio no código
 
 - Model / seed: `NaturezaGerencial`, `NaturezaGerencialCatalogData`, `NaturezaGerencialSeeder`

@@ -115,6 +115,7 @@ final class NaturezaGerencialCatalogData
         $add('3.05.03', '3.05', 3, 'Sistemas / software (Focus, ERP…)', true);
         $add('3.05.04', '3.05', 3, 'Contador / honorários', true);
         $add('3.05.05', '3.05', 3, 'Despesas de viagem', true);
+        $add('3.05.06', '3.05', 3, 'Material de uso e consumo', true, 'TIT default de compra família MUC (ADR_FAMILIA_MUC_USO_CONSUMO).');
 
         $add('3.06', '3', 3, 'Logística de saída', false);
         $add('3.06.01', '3.06', 3, 'Frete de entrega (despesa)', true);

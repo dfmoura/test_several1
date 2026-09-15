@@ -1,6 +1,6 @@
 # Fronteira Compras → Estoque → Contas a pagar
 
-Norma: `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · `docs/ADR_OC_RASCUNHO_ENVIO.md` · `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `docs/ADR_ENTRADA_XML_ASSIST.md` · `docs/ADR_ENTRADA_XML_PARCELAS.md` · `docs/ADR_ENTRADA_XML_ESPELHO.md` · `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · `docs/ADR_RASTREIO_INSUMOS_PRODUCAO.md` · estudo `../32` M07/M04/M06 · BL-033/036/037/038/042/045/048/054.
+Norma: `docs/ADR_COMPRAS_ATE_ESTOQUE.md` · `docs/ADR_FAMILIA_MUC_USO_CONSUMO.md` · `docs/ADR_OC_RASCUNHO_ENVIO.md` · `docs/ADR_ESTOQUE_REPOSICAO_AJUSTE.md` · `docs/ADR_ESTOQUE_INVENTARIO_AJUSTE.md` · `docs/ADR_ENTRADA_XML_ASSIST.md` · `docs/ADR_ENTRADA_XML_PARCELAS.md` · `docs/ADR_ENTRADA_XML_ESPELHO.md` · `docs/ADR_ESTOQUE_LOTE_VALIDADE.md` · `docs/ADR_RASTREIO_INSUMOS_PRODUCAO.md` · estudo `../32` M07/M04/M06 · BL-033/036/037/038/042/045/048/054.
 
 ## Espinha (dia a dia)
 
@@ -20,7 +20,8 @@ Extensões:
 
 - OC formal antes de entrada; MOV único caminho para saldo (`EstoqueSaldoWriter`).
 - Saldo e `custo_medio` só em `unidade_interna`.
-- TIT compra de estoque → NAT folha **`5.06`** (não `2.01`).
+- TIT compra de estoque produtivo (MP/EMB/REV) → NAT folha **`5.06`** (não `2.01`).
+- TIT compra **MUC** → NAT **`3.05.06`** (não `5.06` / `2.01`); receber homogêneo (sem misturar com MP/EMB/REV).
 - Permissões: `compras.*`, `estoque.*` (+ `estoque.aprovar`, `estoque.aprovar_gestor`), `financeiro.*`; SoD COMPRAS≠FINANCEIRO; quem conta ≠ quem aprova AJU.
 - UX menu Compras = **Ordens** · **A repor** · **Estoque** (Saldos/Movimentos · Inventários · Ajustes).
 - Contagem de inventário **cega** (API/UI sem saldo sistema para o contador).

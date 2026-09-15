@@ -38,7 +38,7 @@ class LimparEstoqueCommand extends Command
     /** Prefixos extras ao apagar OC / produtos. */
     private const OC_DOC_PREFIX_ROOTS = ['OC', 'NEC', 'COT'];
 
-    private const PRODUTO_DOC_PREFIX_ROOTS = ['PRD', 'MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'];
+    private const PRODUTO_DOC_PREFIX_ROOTS = ['PRD', 'MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'];
 
     public function handle(): int
     {

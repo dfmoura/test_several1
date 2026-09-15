@@ -10,7 +10,7 @@ import { onAbrirFichaClick } from '../lib/fichaNav';
 import { familiaLabel, formatUnitPrice } from '../lib/format';
 import { useTableSort } from '../lib/useTableSort';
 
-const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
+const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'] as const;
 
 const SORT = {
   codigo: (p: Produto) => p.codigo,

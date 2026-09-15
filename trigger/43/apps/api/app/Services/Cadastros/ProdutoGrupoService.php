@@ -145,6 +145,7 @@ class ProdutoGrupoService
             'PA' => 'PA-ETQ',
             'SVC' => 'SVC',
             'FAC' => 'FAC',
+            'MUC' => 'MUC-GER',
         ];
 
         $codigo = $defaults[strtoupper($familia)] ?? null;

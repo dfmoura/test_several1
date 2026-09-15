@@ -174,7 +174,7 @@ export function volumesDaFaixa<
 export const ESTOQUE_FICHA_AUTO_EXPAND_MAX_VOLUMES = 12;
 
 /** Ordem canônica das famílias na guia Consolidado (igual cadastro de produtos). */
-export const ESTOQUE_FAMILIAS_ORDEM = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'] as const;
+export const ESTOQUE_FAMILIAS_ORDEM = ['MP', 'EMB', 'REV', 'MUC', 'PA', 'SVC', 'FAC'] as const;
 
 /** Quantas faixas de qtde cabem na grade de saldos sem amontoar. */
 export const ESTOQUE_VOL_FAIXAS_VISIVEIS = 3;

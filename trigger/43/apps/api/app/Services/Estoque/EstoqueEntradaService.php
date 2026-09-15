@@ -21,10 +21,23 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Entrada por OC — saldo via EstoqueSaldoWriter (ADR-039-CPR-001 / BL-036).
+ * Modo MUC: ADR_FAMILIA_MUC_USO_CONSUMO (TIT 3.05.06, homogêneo).
  */
 class EstoqueEntradaService
 {
     public const NATUREZA_COMPRA_ESTOQUE = '5.06';
+
+    public const NATUREZA_COMPRA_MUC = '3.05.06';
+
+    /** @var list<string> */
+    public const FAMILIAS_ESTOQUE_PRODUTIVO = ['MP', 'EMB', 'REV'];
+
+    /** @var list<string> */
+    public const FAMILIAS_MUC = ['MUC'];
+
+    public const MODO_ESTOQUE = 'ESTOQUE';
+
+    public const MODO_MUC = 'MUC';
 
     public function __construct(
         private readonly CodigoGenerator $codigos,
@@ -53,7 +66,6 @@ class EstoqueEntradaService
             ]);
         }
 
-        $natureza = $this->resolveNatureza($data['natureza_id'] ?? null);
         $nfChave = $this->normalizeNfChave($data['nf_chave'] ?? null);
         $xmlContent = $this->normalizeXml($data['xml'] ?? null);
         $nfeSnapshot = null;
@@ -90,6 +102,10 @@ class EstoqueEntradaService
                 'itens' => ['Informe ao menos um item recebido.'],
             ]);
         }
+
+        $oc->loadMissing('itens.produto');
+        $modo = $this->classificarModoCompra($oc, $itensRaw);
+        $natureza = $this->resolveNatureza($data['natureza_id'] ?? null, $modo);
 
         $movimento = DB::transaction(function () use ($empresa, $oc, $data, $natureza, $nfChave, $itensRaw, $xmlContent, $nfeSnapshot) {
             $oc = OrdemCompra::query()->lockForUpdate()->findOrFail($oc->id);
@@ -590,8 +606,46 @@ class EstoqueEntradaService
         return $out === [] ? null : $out;
     }
 
-    private function resolveNatureza(mixed $naturezaId): NaturezaGerencial
+    /**
+     * Classifica a conferência: estoque produtivo (MP/EMB/REV) vs uso/consumo (MUC).
+     * Mistura na mesma entrada é proibida (ADR_FAMILIA_MUC_USO_CONSUMO).
+     *
+     * @param  list<array<string, mixed>>  $itensRaw
+     */
+    private function classificarModoCompra(OrdemCompra $oc, array $itensRaw): string
     {
+        $temProdutivo = false;
+        $temMuc = false;
+
+        foreach ($itensRaw as $raw) {
+            $ocItem = $oc->itens->firstWhere('id', (int) ($raw['ordem_compra_item_id'] ?? 0));
+            if (! $ocItem) {
+                continue;
+            }
+            $familia = strtoupper((string) ($ocItem->produto?->familia ?? ''));
+            if (in_array($familia, self::FAMILIAS_MUC, true)) {
+                $temMuc = true;
+            }
+            if (in_array($familia, self::FAMILIAS_ESTOQUE_PRODUTIVO, true)) {
+                $temProdutivo = true;
+            }
+        }
+
+        if ($temMuc && $temProdutivo) {
+            throw ValidationException::withMessages([
+                'itens' => ['Não misture uso e consumo (MUC) com matéria-prima/embalagem/revenda na mesma entrada. Separe em ordens ou conferências distintas.'],
+            ]);
+        }
+
+        return $temMuc ? self::MODO_MUC : self::MODO_ESTOQUE;
+    }
+
+    private function resolveNatureza(mixed $naturezaId, string $modo = self::MODO_ESTOQUE): NaturezaGerencial
+    {
+        $codigoPadrao = $modo === self::MODO_MUC
+            ? self::NATUREZA_COMPRA_MUC
+            : self::NATUREZA_COMPRA_ESTOQUE;
+
         if ($naturezaId !== null && $naturezaId !== '') {
             $natureza = NaturezaGerencial::query()->find((int) $naturezaId);
             if (! $natureza) {
@@ -601,14 +655,14 @@ class EstoqueEntradaService
             }
         } else {
             $natureza = NaturezaGerencial::query()
-                ->where('codigo', self::NATUREZA_COMPRA_ESTOQUE)
+                ->where('codigo', $codigoPadrao)
                 ->where('aceita_lancamento', true)
                 ->where('ativo', true)
                 ->first();
 
             if (! $natureza) {
                 throw ValidationException::withMessages([
-                    'natureza_id' => ['Natureza padrão 5.06 não encontrada ou inativa.'],
+                    'natureza_id' => ["Natureza padrão {$codigoPadrao} não encontrada ou inativa."],
                 ]);
             }
         }
@@ -628,7 +682,27 @@ class EstoqueEntradaService
         // Compra que entra estoque não usa 2.01 (custo de material consumido).
         if ($natureza->codigo === '2.01') {
             throw ValidationException::withMessages([
-                'natureza_id' => ['Use 5.06 para compra de estoque; 2.01 é custo de consumo (OP).'],
+                'natureza_id' => [$modo === self::MODO_MUC
+                    ? 'Use 3.05.06 (ou outra despesa do grupo 3) para uso e consumo; 2.01 é custo de consumo (OP).'
+                    : 'Use 5.06 para compra de estoque; 2.01 é custo de consumo (OP).'],
+            ]);
+        }
+
+        if ($modo === self::MODO_MUC && $natureza->codigo === self::NATUREZA_COMPRA_ESTOQUE) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Compra de uso e consumo (MUC) não usa 5.06. Use 3.05.06 (ou 3.05.02 / 3.04.02).'],
+            ]);
+        }
+
+        if ($modo === self::MODO_ESTOQUE && $natureza->codigo === self::NATUREZA_COMPRA_MUC) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Compra de estoque produtivo (MP/EMB/REV) usa 5.06; 3.05.06 é só para uso e consumo (MUC).'],
+            ]);
+        }
+
+        if ($modo === self::MODO_MUC && (int) $natureza->grupo !== 3) {
+            throw ValidationException::withMessages([
+                'natureza_id' => ['Uso e consumo exige natureza de despesa (grupo 3).'],
             ]);
         }
 

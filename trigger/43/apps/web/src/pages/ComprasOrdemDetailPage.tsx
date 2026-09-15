@@ -301,14 +301,30 @@ export function ComprasOrdemDetailPage() {
       .get<{ data: NaturezaGerencial[] }>('/consulta/naturezas-gerenciais')
       .then((res) => {
         setNaturezas(res.data);
-        const def = res.data.find((n) => n.codigo === '5.06');
-        if (def) setNaturezaId(String(def.id));
       });
     void api
       .get<{ data: Array<{ id: number; codigo: string }> }>('/estoque/enderecos')
       .then((res) => setEnderecos(res.data.map((e) => ({ id: e.id, codigo: e.codigo }))))
       .catch(() => setEnderecos([]));
   }, [id]);
+
+  const ocCompraModo = useMemo(() => {
+    const familias = (oc?.itens ?? [])
+      .map((i) => (i.produto?.familia || '').toUpperCase())
+      .filter(Boolean);
+    const temMuc = familias.some((f) => f === 'MUC');
+    const temProdutivo = familias.some((f) => f === 'MP' || f === 'EMB' || f === 'REV');
+    if (temMuc && temProdutivo) return 'MISTO' as const;
+    if (temMuc) return 'MUC' as const;
+    return 'ESTOQUE' as const;
+  }, [oc]);
+
+  useEffect(() => {
+    if (naturezas.length === 0) return;
+    const codigo = ocCompraModo === 'MUC' ? '3.05.06' : '5.06';
+    const def = naturezas.find((n) => n.codigo === codigo);
+    if (def) setNaturezaId(String(def.id));
+  }, [naturezas, ocCompraModo]);
 
   const canWrite = hasPermission('compras.escrever');
   const editavel = !!oc?.editavel || oc?.status === 'RASCUNHO';
@@ -1460,6 +1476,16 @@ export function ComprasOrdemDetailPage() {
                             </option>
                           ))}
                         </select>
+                        {ocCompraModo === 'MUC' && (
+                          <p className="muted" style={{ marginTop: '0.35rem' }}>
+                            Uso e consumo: padrão 3.05.06 (despesa). Pode trocar para escritório (3.05.02) ou consumíveis de fábrica (3.04.02).
+                          </p>
+                        )}
+                        {ocCompraModo === 'MISTO' && (
+                          <p className="muted" style={{ marginTop: '0.35rem', color: 'var(--danger, #b42318)' }}>
+                            Esta OC mistura uso e consumo (MUC) com estoque produtivo. Separe as entradas — o sistema bloqueia a conferência mista.
+                          </p>
+                        )}
                       </div>
                     </div>
 

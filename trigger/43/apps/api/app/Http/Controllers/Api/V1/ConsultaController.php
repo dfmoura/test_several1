@@ -391,7 +391,7 @@ class ConsultaController extends Controller
     public function produtoGrupos(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC'],
+            'familia' => ['nullable', 'string', 'in:MP,EMB,REV,PA,SVC,FAC,MUC'],
             'natureza' => ['nullable', 'string', 'in:COMPRA,VENDA,AMBOS'],
             'todos' => ['nullable', 'boolean'],
         ]);

@@ -13,7 +13,7 @@ class Produto extends Model
     use HasUserStamps;
     use SoftDeletes;
 
-    public const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'];
+    public const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'];
 
     protected $fillable = [
         'empresa_id',

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProdutoGrupo extends Model
 {
-    public const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'];
+    public const FAMILIAS = ['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'];
 
     public const NATUREZAS = ['COMPRA', 'VENDA', 'AMBOS'];
 

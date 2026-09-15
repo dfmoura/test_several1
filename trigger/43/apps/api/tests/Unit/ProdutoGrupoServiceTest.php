@@ -26,6 +26,11 @@ class ProdutoGrupoServiceTest extends TestCase
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'REV-RIB')->exists());
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'EMB-TUB')->exists());
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'FAC')->exists());
+        $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'MUC-GER')->exists());
+        $muc = ProdutoGrupo::query()->where('codigo', 'MUC-GER')->first();
+        $this->assertSame('MUC', $muc?->familia);
+        $this->assertSame('07', $muc?->tipo_item_sped);
+        $this->assertSame('2556', $muc?->cfop_entrada_padrao);
     }
 
     public function test_resolve_rejeita_grupo_de_outra_familia(): void
@@ -60,5 +65,6 @@ class ProdutoGrupoServiceTest extends TestCase
         $this->assertSame('MP-PAP', $service->defaultGrupoForFamilia('MP')?->codigo);
         $this->assertSame('PA-ETQ', $service->defaultGrupoForFamilia('PA')?->codigo);
         $this->assertSame('REV-RIB', $service->defaultGrupoForFamilia('REV')?->codigo);
+        $this->assertSame('MUC-GER', $service->defaultGrupoForFamilia('MUC')?->codigo);
     }
 }

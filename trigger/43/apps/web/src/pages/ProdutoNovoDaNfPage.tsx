@@ -396,7 +396,7 @@ export function ProdutoNovoDaNfPage() {
                                 });
                               }}
                             >
-                              {['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC'].map((f) => (
+                              {['MP', 'EMB', 'REV', 'PA', 'SVC', 'FAC', 'MUC'].map((f) => (
                                 <option key={f} value={f}>
                                   {f} — {familiaLabel(f)}
                                 </option>

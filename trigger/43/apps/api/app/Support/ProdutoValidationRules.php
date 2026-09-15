@@ -36,7 +36,7 @@ class ProdutoValidationRules
     public static function rules(bool $partial = false): array
     {
         return [
-            'familia' => [$partial ? 'sometimes' : 'required', 'string', 'in:MP,EMB,REV,PA,SVC,FAC'],
+            'familia' => [$partial ? 'sometimes' : 'required', 'string', 'in:MP,EMB,REV,PA,SVC,FAC,MUC'],
             'codigo' => ['nullable', 'string', 'max:32'],
             'grupo_id' => [$partial ? 'sometimes' : 'required_without:grupo', 'nullable', 'integer', 'exists:produto_grupos,id'],
             'grupo' => [$partial ? 'sometimes' : 'required_without:grupo_id', 'nullable', 'string', 'max:16'],

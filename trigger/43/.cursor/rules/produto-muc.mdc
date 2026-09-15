@@ -1,0 +1,27 @@
+# Família MUC (uso e consumo)
+
+Norma: `docs/ADR_FAMILIA_MUC_USO_CONSUMO.md` · compras: `ADR_COMPRAS_ATE_ESTOQUE.md` · NAT: `ADR_NATUREZAS_GERENCIAIS.md`.
+
+## Modelo
+
+- **Família `MUC`** · SPED `07` · grupos `MUC-ESC` / `MUC-FAB` / `MUC-EPI` / `MUC-GER`.
+- Compra: OC → `receber()` → MOV (controle físico) + TIT despesa **`3.05.06`** (default).
+- **Não** é MP/EMB/REV: fora de “A repor” e fora de BOM/OP.
+- OC/`receber` **homogêneo**: não misturar MUC com estoque produtivo.
+
+## Faça
+
+- Cadastrar limpeza/escritório/EPI/consumível adm. como MUC.
+- Default NAT MUC = `3.05.06`; permitir override humano para `3.05.02` / `3.04.02`.
+- Manter MP/EMB/REV em TIT `5.06`.
+- Isolar `empresa_id`; saldo só via `EstoqueSaldoWriter`.
+
+## Não faça
+
+- Forçar uso/consumo como MP/EMB.
+- TIT `5.06` ou `2.01` em OC só-MUC.
+- Misturar MUC + MP/EMB/REV no mesmo receber.
+- Incluir MUC em reposição produtiva ou OP sem ADR.
+- Família “OUTROS” genérica.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_FAMILIA_MUC_USO_CONSUMO.md`.
