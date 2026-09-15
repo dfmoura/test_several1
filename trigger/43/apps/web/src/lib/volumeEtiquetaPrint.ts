@@ -5,7 +5,7 @@
  * Canal: browser `window.print()` (sem DomPDF / ZPL no monólito).
  * No driver Windows: papel/etiqueta 50×40 mm, escala 100%, sem “ajustar à página”.
  *
- * Volume (F3): identidade da bobina (QR VOL, SKU, lote, dim, NF) — sem vão impresso.
+ * Volume (F3): identidade da bobina (QR VOL + HRI legível, SKU, lote, dim, NF) — sem vão impresso.
  * Local (F4): localização da estante (QR END + código Pxx-Cxx-Lxx) — mesma mídia/driver.
  */
 

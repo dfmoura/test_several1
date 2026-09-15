@@ -11732,10 +11732,12 @@ a.linkish.linkish--meta:hover {
   box-sizing: border-box;
   width: 50mm;
   height: 40mm;
-  padding: 1.4mm 1.6mm;
+  padding: 1.2mm 1.5mm 1mm;
   display: grid;
-  grid-template-columns: 22mm 1fr;
-  gap: 1.4mm;
+  grid-template-columns: 21mm 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
+  column-gap: 1.3mm;
+  row-gap: 0.7mm;
   align-items: stretch;
   background: #fff;
   color: #000;
@@ -11747,8 +11749,8 @@ a.linkish.linkish--meta:hover {
 }
 
 .vol-etiqueta-qr {
-  width: 22mm;
-  height: 22mm;
+  width: 21mm;
+  height: 21mm;
   align-self: center;
   display: flex;
   align-items: center;
@@ -11756,15 +11758,15 @@ a.linkish.linkish--meta:hover {
 }
 
 .vol-etiqueta-qr img {
-  width: 22mm;
-  height: 22mm;
+  width: 21mm;
+  height: 21mm;
   display: block;
   image-rendering: pixelated;
 }
 
 .vol-etiqueta-qr-ph {
-  width: 22mm;
-  height: 22mm;
+  width: 21mm;
+  height: 21mm;
   background: #eee;
 }
 
@@ -11773,8 +11775,30 @@ a.linkish.linkish--meta:hover {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.15mm;
-  line-height: 1.15;
+  gap: 0.1mm;
+  line-height: 1.12;
+}
+
+/* HRI = mesma string do QR (VOL:…) — fallback legível / cola no Guardar. */
+.vol-etiqueta-hri {
+  grid-column: 1 / -1;
+  min-width: 0;
+  max-height: 5.2mm;
+  overflow: hidden;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  font-size: 1.55mm;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #111;
+  word-break: break-all;
+  border-top: 0.2mm solid #bbb;
+  padding-top: 0.45mm;
+}
+
+.vol-etiqueta-hri-k {
+  font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .vol-etiqueta-sku {

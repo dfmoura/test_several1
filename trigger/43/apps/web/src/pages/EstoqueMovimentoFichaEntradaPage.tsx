@@ -322,6 +322,18 @@ export function EstoqueMovimentoFichaEntradaPage() {
                       <strong>Entrada</strong>{' '}
                       {v.data_entrada ? formatDate(v.data_entrada) : '—'}
                     </div>
+                    <div
+                      title={v.qr_payload}
+                      style={{
+                        fontFamily: 'ui-monospace, Consolas, monospace',
+                        fontSize: '0.78rem',
+                        wordBreak: 'break-all',
+                        color: '#222',
+                      }}
+                    >
+                      <strong style={{ fontFamily: 'inherit', fontWeight: 700 }}>Código</strong>{' '}
+                      {v.qr_payload}
+                    </div>
                     {(v.x_ped || v.n_fci) && (
                       <div>
                         {v.x_ped ? (
@@ -386,8 +398,8 @@ export function EstoqueMovimentoFichaEntradaPage() {
       ) : null}
 
       <p className="muted ficha-entrada-rodape" style={{ marginTop: '1.25rem', fontSize: '0.8rem' }}>
-        QR = volume interno (VOL). Use para conferir e guardar no local. Relatório operacional — não é
-        DANFE. Imprima ou “Salvar como PDF” pelo navegador.
+        QR + Código = volume interno (VOL:…). Use para conferir e guardar no local (colar o Código se o
+        leitor falhar). Relatório operacional — não é DANFE. Imprima ou “Salvar como PDF” pelo navegador.
       </p>
 
       <style>{`

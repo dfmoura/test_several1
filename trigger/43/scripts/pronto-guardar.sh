@@ -26,11 +26,12 @@ cat <<'EOF'
 Pronto para testar Guardar no local
   App:     http://localhost:8043/estoque/guardar
 
-Roteiro
+Roteiro (fila → vincular; nas 2 abas)
   1. Login (estoque.escrever)
   2. Estoque → guia Guardar
-  3. Aba "Volume → local" (padrão): lê VOL, depois END
-  4. Aba "Local → volume": lê END (local fica fixo), depois vários VOL
-  5. Hard refresh (Ctrl+Shift+R) se não ver as abas
+  3. Volume → local: leia vários VOL (entram na fila) → leia END → Guardar / Vincular fila
+  4. Local → volume: leia END → leia vários VOL (fila) → Guardar / Vincular fila
+  5. Remover item da fila se precisar; Limpar zera tudo
+  6. Hard refresh (Ctrl+Shift+R)
 
 EOF

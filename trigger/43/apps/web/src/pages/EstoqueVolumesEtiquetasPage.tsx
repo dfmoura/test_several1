@@ -144,8 +144,8 @@ export function EstoqueVolumesEtiquetasPage() {
             </p>
           )}
           <p className="vol-etiqueta-print-hint">
-            {VOLUME_ETIQUETA_PRINT_HINT}. Face = identidade do volume (sem local — amarre depois em
-            Guardar).
+            {VOLUME_ETIQUETA_PRINT_HINT}. Face = QR + Código (VOL:…) + SKU/lote/dim/NF — sem local
+            (amarre depois em Guardar).
           </p>
         </div>
       </div>
@@ -169,6 +169,7 @@ export function EstoqueVolumesEtiquetasPage() {
               key={v.lote_id}
               volume={v}
               qrDataUrl={qrMap[v.lote_id] ?? null}
+              qrPayload={v.qr_payload}
               unitariaTo={`/estoque/lotes/${v.lote_id}/etiqueta`}
             />
           ))}

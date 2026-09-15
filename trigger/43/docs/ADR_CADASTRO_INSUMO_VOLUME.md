@@ -163,7 +163,7 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 
 ### F3 — Etiqueta / QR do volume
 
-- Etiqueta interna (face colável): SKU, descrição, L×C real, `nLote`, NF, data, QR do volume.  
+- Etiqueta interna (face colável): SKU, descrição, L×C real, `nLote`, NF, data, QR do volume + HRI do mesmo payload (`VOL:…`, rótulo “Código”).  
 - **Sem local na face impressa do volume** — localização é volátil (etiqueta primeiro, Guardar depois; local pode mudar). Endereço vive no sistema (`estoque_lotes` ↔ `estoque_enderecos`); amarre via tela unitária ou `/estoque/guardar`.  
 - Rota `/estoque/lotes/:id/etiqueta`.
 - **Impressora canônica (reimpressão + unitária):** Elgin L42 Pro Full · mídia **50 × 40 mm**. Layout HTML/`@page` 50×40 mm (uma página = uma etiqueta); impressão browser (sem DomPDF / ZPL no monólito). No driver: escala 100%, sem “ajustar à página”.
@@ -187,10 +187,10 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 - **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
   Canônico: **Elgin L42 Pro Full · 50 × 40 mm** (mesmo canal/driver do volume F3; uma face = uma etiqueta).  
 - **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem local”).  
-- **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API):  
-  - **Volume → local** (padrão): `VOL:…` → `END:…` → `POST /estoque/guardar`.  
-  - **Local → volume**: `END:…` → `VOL:…` → mesmo POST; o local permanece para o próximo volume (putaway em lote no mesmo local).  
-  Resolve via `GET …/volumes/por-qr` e `GET …/enderecos/por-qr`. Leitor USB / paste. Sem app dedicado (BL-097 fora).
+- **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API 1:1):  
+  - **Volume → local** (padrão): monta **fila** de 1+ `VOL:…` → confirma `END:…` → **Guardar** (vínculo só no confirmar).  
+  - **Local → volume**: confirma `END:…` → monta fila de 1+ `VOL:…` → **Guardar**.  
+  Em ambas: leitura **não** amarra; N volumes = N `POST /estoque/guardar` sequenciais; falha parcial mantém pendentes na fila. Resolve via `GET …/volumes/por-qr` e `GET …/enderecos/por-qr`. Leitor USB / paste. Sem app dedicado (BL-097 fora).
 
 **Aceite F4**
 

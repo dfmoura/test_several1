@@ -129,14 +129,19 @@ export function EstoqueLoteEtiquetaPage() {
       )}
 
       <div className="vol-etiquetas-print-grid">
-        <VolumeEtiquetaSheet volume={data} qrDataUrl={qrDataUrl} />
+        <VolumeEtiquetaSheet
+          volume={data}
+          qrDataUrl={qrDataUrl}
+          qrPayload={data.qr_payload}
+        />
       </div>
 
       <div className="card no-print" style={{ marginTop: '1rem', maxWidth: '28rem' }}>
         <div className="card-body" style={{ display: 'grid', gap: '0.75rem' }}>
           <p className="form-hint" style={{ margin: 0 }}>
-            O local <strong>não</strong> sai na etiqueta colável — localização muda e amarra-se depois
-            (aqui ou em Guardar com leitor).
+            Face colável: QR + <strong>Código</strong> (VOL:…) + SKU/lote/dim/NF. O local{' '}
+            <strong>não</strong> sai na etiqueta — amarra-se depois (aqui ou em Guardar com leitor /
+            colar o Código).
           </p>
           <label>
             Localização atual no sistema (local)
