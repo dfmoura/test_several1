@@ -16,7 +16,6 @@ import {
   IconEstoque,
   IconFaca,
   IconFinanceiro,
-  IconImplantacao,
   IconMensalidade,
   IconNatureza,
   IconOrcamento,
@@ -235,12 +234,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Administração',
     items: [
       { to: '/conta/mensalidade', label: 'Mensalidade', icon: IconMensalidade, permission: null },
-      {
-        to: '/implantacao',
-        label: 'Implantação',
-        icon: IconImplantacao,
-        permission: 'implantacao.ler',
-      },
       { to: '/usuarios', label: 'Usuários', icon: IconUsers, permission: 'usuarios.gerir' },
       { to: '/parametros', label: 'Parâmetros', icon: IconSettings, permission: 'parametros.gerir' },
       {

@@ -35,7 +35,7 @@ Situação derivada: `ABERTO` (`concluido_em` null) · `CONCLUIDO` (preenchido).
 
 ## Proibido
 
-1. Confundir com `docs/BACKLOG.md` (produto TRIGGER) ou `/implantacao`.
+1. Confundir com `docs/BACKLOG.md` (produto TRIGGER) ou a matriz de Implantação (API/catálogo).
 2. Empilhar no Painel.
 3. Catálogo global sem EMP.
 4. Inventar workflow de projeto sem ADR nova.

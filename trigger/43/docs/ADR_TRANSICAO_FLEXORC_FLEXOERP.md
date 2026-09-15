@@ -92,7 +92,7 @@ Não confundir **licenciado** (contrato white-label no 39) com **conta SaaS** (p
 - **Fase 0 (agora):** ADR + backlog; identidade e runtime **inalterados**
 - **Comercial:** falar “FLEXOERP em implantação” ou “começa pelo comercial, evolui para ERP completo” — não vender dois produtos
 - **Docs:** ADRs que citam FLEXORC como produto atual permanecem válidos até fase 1; este ADR prevalece sobre conflitos de naming
-- **Implantação:** `/implantacao` continua honesta; itens `erp` deixam de ser “futuro distante” quando a onda correspondente entra no menu
+- **Implantação:** catálogo + API de aceite (`ADR_IMPLANTACAO_ACEITE`) permanecem honestos; sem tela/menu; itens `erp` deixam de ser “futuro distante” quando a onda correspondente entra no menu
 - **Regressão pós-fase 1:** checklist identidade FLEXOERP + `MultiEmpresaAceiteTest` + testes de billing com IDs legado
 
 ## Checklist por fase

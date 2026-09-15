@@ -355,7 +355,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Referência:** `docs/ADR_IMPLANTACAO_ACEITE.md`
 - **Decisão (fechada):**
   1. Catálogo versionado (`ImplantacaoCatalogo`) + aceite dual por EMP.
-  2. UI `/implantacao` (Administração); não funde com `/ativacao`.
+  2. Motor API + catálogo; UI `/implantacao` retirada do menu (2026-09-15); não funde com `/ativacao`.
   3. Superfície `flexorc` vs `erp` honesta; evidência automática opcional.
   4. Permissões `implantacao.ler|validar_dev|validar_cliente`.
 - **Aceite:**

@@ -78,7 +78,7 @@ Persistência por `empresa_id`: NSU/cursor, chave, resumo (emitente, valores, da
 | D — Amarrar OC | “Usar nesta OC” → assist existente | BL-092 **Feito** |
 | E — Manifestação + delta | Ciência/busca XML + sync periódico | BL-093 **Feito** |
 
-Aceite dual em `/implantacao` (`F5_DFE_CX`) **somente** após a fatia D estável no piloto nuvem.
+Aceite dual via API de implantação (`F5_DFE_CX`) **somente** após a fatia D estável no piloto nuvem.
 
 Piloto: **uma EMP**, homolog primeiro; validar amarrar + `receber()` + espelho iguais ao fluxo manual; só então job periódico e produção.
 

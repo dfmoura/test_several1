@@ -21,7 +21,7 @@ A superfície FLEXORC nesta pasta é orçamento → envio → sinal/PIX + cadast
 | Teto de densidade: ~**6 KPIs** visíveis | Prioridade FLEXORC (ORC, sinal, a receber, patrimônio se alerta). Excesso → lista do módulo, não seção nova. |
 | Filas só com `count ≥ 1` | Já é o contrato. Zero fila + operação ok → empty state com 1–2 CTAs (novo cliente / novo ORC). |
 | Sem duplicar EMP / marca no corpo | Shell mostra EMP ativa e seletor. Painel não repete banner de contexto. |
-| Fora do Painel por norma | Aging completo, DRE, histórico, “últimos N”, implantação (`/implantacao`), módulos esqueleto (PED/OP/estoque/NF) |
+| Fora do Painel por norma | Aging completo, DRE, histórico, “últimos N”, matriz de implantação (API; sem UI), módulos esqueleto (PED/OP/estoque/NF) |
 
 ```
 Shell (EMP + marca)
@@ -55,6 +55,6 @@ O sistema escala nas **listas e nos módulos**. O Painel escala em **precisão d
 - UI: `DashboardPage` prioriza filas; KPIs compactos (hint no `title`, não em parágrafo).
 - API: contrato `cadeia` + `filas` + `ativacao` permanece; sem breaking change.
 - Carteira: aging continua em Contas a receber/pagar (`ADR_CARTEIRA_FINANCEIRA`); Painel só saldo/alerta + fila vencido.
-- Implantação: matriz de go-live em `/implantacao` (`ADR_IMPLANTACAO_ACEITE`), não no Painel.
+- Implantação: matriz de go-live via API/catálogo (`ADR_IMPLANTACAO_ACEITE`), sem tela/menu; não no Painel.
 - Aceite multi-empresa: Painel continua escopo da EMP do header (`X-Empresa-Id` + vínculo).
 - Regressão: `php vendor/bin/phpunit --filter PainelTest`.

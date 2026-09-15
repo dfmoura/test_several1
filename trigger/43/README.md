@@ -14,7 +14,7 @@ Identidade: logo **FLEXOERP** · tagline *ERP para gráficas* — `docs/IDENTIDA
 | Catálogo ORC e mapa de facas **por empresa** | Cadastro de SKU (Produtos), produção, expedição, comissão |
 | Calcular, gravar, enviar proposta, **pedidos** | Conversão completa OP/NF/expedição (ondas 3+) |
 | Link público, aceite, **sinal 50% / PIX** | |
-| Matriz de **Implantação** (aceite dev × cliente) | |
+| Motor de aceite de implantação (API/catálogo; sem tela/menu) | |
 
 ## Arquitetura (decisão)
 

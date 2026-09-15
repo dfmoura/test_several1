@@ -12,7 +12,6 @@ import { IaProvedoresPage } from './pages/IaProvedoresPage';
 import { CadastroEmpresaPage } from './pages/CadastroEmpresaPage';
 import { CadastroPagamentoPage } from './pages/CadastroPagamentoPage';
 import { MensalidadeContaPage } from './pages/MensalidadeContaPage';
-import { ImplantacaoPage } from './pages/ImplantacaoPage';
 import { LoginPage } from './pages/LoginPage';
 import { MapasFacasFichaPage } from './pages/MapasFacasFichaPage';
 import { MapasFacasPage } from './pages/MapasFacasPage';
@@ -183,14 +182,6 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="empresas" element={<EmpresasPage />} />
         <Route path="conta/mensalidade" element={<MensalidadeContaPage />} />
-        <Route
-          path="implantacao"
-          element={
-            <PermissionRoute permission="implantacao.ler">
-              <ImplantacaoPage />
-            </PermissionRoute>
-          }
-        />
         <Route
           path="empresas/nova"
           element={

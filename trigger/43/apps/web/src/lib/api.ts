@@ -677,58 +677,6 @@ export type AtivacaoData = {
   conta?: ContaFlexorcFatura | null;
 };
 
-export type ImplantacaoStatus = 'PENDENTE' | 'OK' | 'RECUSADO' | 'NA';
-
-export type ImplantacaoEvidencia = {
-  ok: boolean;
-  label: string;
-};
-
-export type ImplantacaoItem = {
-  codigo: string;
-  nome: string;
-  porque: string;
-  onda: number;
-  onda_nome: string;
-  superficie: 'flexorc' | 'erp';
-  elo: boolean;
-  paralelo: boolean;
-  rota: string | null;
-  linha: string;
-  status_dev: ImplantacaoStatus;
-  status_cliente: ImplantacaoStatus;
-  obs_dev: string | null;
-  obs_cliente: string | null;
-  validado_dev_em: string | null;
-  validado_cliente_em: string | null;
-  validado_dev_por_nome: string | null;
-  validado_cliente_por_nome: string | null;
-  evidencia: ImplantacaoEvidencia | null;
-};
-
-export type ImplantacaoResumoBloco = {
-  total: number;
-  aceitos: number;
-  prontos_para_cliente: number;
-  pendentes_dev: number;
-  bloqueados: number;
-  na: number;
-  pct_aceitos: number;
-};
-
-export type ImplantacaoMatriz = {
-  empresa: { id: number; codigo: string; nome: string };
-  resumo: {
-    geral: ImplantacaoResumoBloco;
-    flexorc: ImplantacaoResumoBloco;
-    erp: ImplantacaoResumoBloco;
-    ja_operamos_ate: { codigo: string; nome: string } | null;
-    proximo_elo: { codigo: string; nome: string; linha?: string } | null;
-  };
-  ondas: { onda: number; nome: string }[];
-  itens: ImplantacaoItem[];
-};
-
 export type EmpresaFiscalHistorico = {
   id: number;
   vigencia_inicio: string;
