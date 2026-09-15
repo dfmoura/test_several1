@@ -70,12 +70,6 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'condicao_pagamento.ler',
         permissionsAny: ['parceiro.ler', 'compras.ler', 'orcamento.ler'],
       },
-        {
-        to: '/backlog',
-        label: 'Backlog',
-        icon: IconBacklog,
-        permission: 'backlog.ler',
-      },
       { to: '/parceiros', label: 'Parceiros', icon: IconPartners, permission: 'parceiro.ler' },
       {
         to: '/produtos',
@@ -235,6 +229,13 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/conta/mensalidade', label: 'Mensalidade', icon: IconMensalidade, permission: null },
       { to: '/usuarios', label: 'Usuários', icon: IconUsers, permission: 'usuarios.gerir' },
+      {
+        to: '/backlog',
+        label: 'Backlog',
+        icon: IconBacklog,
+        permission: 'backlog.ler',
+        title: 'Tarefas operacionais da empresa ativa',
+      },
       { to: '/parametros', label: 'Parâmetros', icon: IconSettings, permission: 'parametros.gerir' },
       {
         to: '/orcamento-catalogo',

@@ -167,7 +167,7 @@ backlog-pronto:
 	$(MAKE) web-build
 	@echo ""
 	@echo "→ http://localhost:8043/backlog"
-	@echo "→ Cadastros → Backlog  ·  hard refresh Ctrl+Shift+R  ·  logout/login se a sessão for antiga"
+	@echo "→ Administração → Backlog  ·  hard refresh Ctrl+Shift+R  ·  logout/login se a sessão for antiga"
 
 # Console TRIGGER (lab): RBAC + operador + phpunit ConsolePlataformaTest.
 # Override: PLATAFORMA_OPS_EMAIL=… PLATAFORMA_OPS_PASSWORD=… make plataforma-pronto

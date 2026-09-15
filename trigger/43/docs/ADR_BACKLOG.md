@@ -31,7 +31,7 @@ Situação derivada: `ABERTO` (`concluido_em` null) · `CONCLUIDO` (preenchido).
 - API: leitura/`escrita` via `BacklogAuthorization` (= `getAllPermissions`, mesmo critério do `/me`).
 - UI: menu/rota usam `backlog.ler` (padrão dos demais módulos); formulário e ações só com `backlog.escrever` explícito.
 - `User::$guard_name = web` — Spatie + Sanctum.
-- UI: Cadastros → **Backlog** (consulta para todos com ler; lançar/concluir só quem escreve).
+- UI: Administração → **Backlog** (consulta para todos com ler; lançar/concluir só quem escreve).
 
 ## Proibido
 
