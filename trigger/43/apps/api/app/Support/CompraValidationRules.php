@@ -83,12 +83,18 @@ final class CompraValidationRules
     {
         return [
             'fornecedor_id' => ['required', 'integer', 'exists:parceiros,id'],
+            'transportador_id' => [
+                'nullable',
+                'integer',
+                'exists:parceiros,id',
+                'required_if:mod_frete,'.OrdemCompra::MOD_FRETE_FOB,
+            ],
             'necessidade_id' => ['nullable', 'integer', 'exists:compra_necessidades,id'],
             'urgente' => ['sometimes', 'boolean'],
             'condicao_pagamento' => ['nullable', 'string', 'max:120'],
             'previsao_entrega' => ['nullable', 'date'],
             'observacao' => ['nullable', 'string', 'max:2000'],
-            'valor_frete' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_MONEY, true)),
+            'mod_frete' => ['nullable', 'string', Rule::in(OrdemCompra::MOD_FRETES)],
             'itens' => ['required', 'array', 'min:1'],
             'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
             // Com composição: qtde_pedida é derivada (Σ m²). Sem composição: obrigatória.

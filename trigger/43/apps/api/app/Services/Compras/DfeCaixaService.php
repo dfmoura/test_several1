@@ -16,6 +16,8 @@ class DfeCaixaService
 {
     public function __construct(
         private readonly DfeFornecedorCadastroService $fornecedorCadastro,
+        private readonly DfeTransportadorCadastroService $transportadorCadastro,
+        private readonly DfeTransporteMetaService $transporteMeta,
     ) {}
 
     /**
@@ -48,19 +50,28 @@ class DfeCaixaService
                 $inner->where('chave', 'like', $like)
                     ->orWhere('numero', 'like', $like)
                     ->orWhere('emit_nome', 'like', $like)
+                    ->orWhere('transp_nome', 'like', $like)
                     ->orWhere('nsu', 'like', $like);
                 if ($digits !== null && $digits !== '') {
                     $inner->orWhere('emit_cnpj', 'like', '%'.$digits.'%')
+                        ->orWhere('transp_cnpj', 'like', '%'.$digits.'%')
                         ->orWhere('chave', 'like', '%'.$digits.'%');
                 }
             });
         }
 
         $docs = $query->get()->all();
-        $mapa = $this->fornecedorCadastro->mapaPorCnpj($empresa, $docs);
+        $this->transporteMeta->hidratarEmLote($docs);
+        $mapaFornecedor = $this->fornecedorCadastro->mapaPorCnpj($empresa, $docs);
+        $mapaTransportador = $this->transportadorCadastro->mapaPorCnpj($empresa, $docs);
 
         return array_map(
-            fn (DfeDocumento $doc) => $this->toOut($doc, detalhe: false, mapaFornecedor: $mapa),
+            fn (DfeDocumento $doc) => $this->toOut(
+                $doc,
+                detalhe: false,
+                mapaFornecedor: $mapaFornecedor,
+                mapaTransportador: $mapaTransportador,
+            ),
             $docs,
         );
     }
@@ -72,9 +83,16 @@ class DfeCaixaService
     {
         $doc->loadMissing(['ordemCompra:id,codigo,status']);
         $empresa = Empresa::query()->findOrFail($doc->empresa_id);
-        $mapa = $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc]);
+        $this->transporteMeta->hidratarEmLote([$doc]);
+        $mapaFornecedor = $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc]);
+        $mapaTransportador = $this->transportadorCadastro->mapaPorCnpj($empresa, [$doc]);
 
-        return $this->toOut($doc, detalhe: true, mapaFornecedor: $mapa);
+        return $this->toOut(
+            $doc,
+            detalhe: true,
+            mapaFornecedor: $mapaFornecedor,
+            mapaTransportador: $mapaTransportador,
+        );
     }
 
     /**
@@ -144,16 +162,26 @@ class DfeCaixaService
 
     /**
      * @param  array<string, array{status: string, parceiro_id: ?int, codigo: ?string, razao_social: ?string}>|null  $mapaFornecedor
+     * @param  array<string, array{status: string, parceiro_id: ?int, codigo: ?string, razao_social: ?string}>|null  $mapaTransportador
      * @return array<string, mixed>
      */
-    public function toOut(DfeDocumento $doc, bool $detalhe = false, ?array $mapaFornecedor = null): array
-    {
-        $mapa = $mapaFornecedor;
-        if ($mapa === null) {
+    public function toOut(
+        DfeDocumento $doc,
+        bool $detalhe = false,
+        ?array $mapaFornecedor = null,
+        ?array $mapaTransportador = null,
+    ): array {
+        $mapaF = $mapaFornecedor;
+        $mapaT = $mapaTransportador;
+        if ($mapaF === null || $mapaT === null) {
             $empresa = Empresa::query()->find($doc->empresa_id);
-            $mapa = $empresa instanceof Empresa
-                ? $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc])
-                : [];
+            if ($empresa instanceof Empresa) {
+                $mapaF ??= $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc]);
+                $mapaT ??= $this->transportadorCadastro->mapaPorCnpj($empresa, [$doc]);
+            } else {
+                $mapaF ??= [];
+                $mapaT ??= [];
+            }
         }
 
         $out = [
@@ -168,6 +196,8 @@ class DfeCaixaService
             'data_emissao' => optional($doc->data_emissao)?->format('Y-m-d'),
             'emit_cnpj' => $doc->emit_cnpj,
             'emit_nome' => $doc->emit_nome,
+            'transp_cnpj' => $doc->transp_cnpj,
+            'transp_nome' => $doc->transp_nome,
             'valor_total' => $doc->valor_total !== null ? (string) $doc->valor_total : null,
             'situacao' => $doc->situacao,
             'ordem_compra_id' => $doc->ordem_compra_id,
@@ -177,7 +207,8 @@ class DfeCaixaService
                 'status' => $doc->ordemCompra->status,
             ] : null,
             'tem_xml' => $doc->temXml(),
-            'fornecedor' => $this->fornecedorCadastro->resolverFornecedor($doc, $mapa),
+            'fornecedor' => $this->fornecedorCadastro->resolverFornecedor($doc, $mapaF),
+            'transportador' => $this->transportadorCadastro->resolver($doc, $mapaT),
             'created_at' => optional($doc->created_at)?->toIso8601String(),
             'updated_at' => optional($doc->updated_at)?->toIso8601String(),
         ];

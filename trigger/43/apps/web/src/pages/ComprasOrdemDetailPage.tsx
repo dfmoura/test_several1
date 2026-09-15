@@ -951,10 +951,10 @@ export function ComprasOrdemDetailPage() {
                 {Number(oc.valor_icms ?? 0) > 0 && (
                   <span className="muted">· ICMS {formatCurrency(oc.valor_icms)}</span>
                 )}
-                {Number(oc.valor_frete ?? 0) > 0 && (
-                  <span className="muted">· Frete {formatCurrency(oc.valor_frete)}</span>
+                {oc.mod_frete_label && (
+                  <span className="muted">· Frete {oc.mod_frete_label}</span>
                 )}
-                {(Number(oc.valor_ipi ?? 0) > 0 || Number(oc.valor_frete ?? 0) > 0) && (
+                {Number(oc.valor_ipi ?? 0) > 0 && (
                   <span>
                     · Previsto{' '}
                     {formatCurrency(oc.valor_previsto ?? oc.valor_total)}
@@ -1031,6 +1031,39 @@ export function ComprasOrdemDetailPage() {
                   <div>{formatDate(oc.previsao_entrega)}</div>
                 </div>
                 <div className="form-group">
+                  <label>Frete</label>
+                  <div>{oc.mod_frete_label || '—'}</div>
+                </div>
+                <div className="form-group span-2">
+                  <label>Transportador</label>
+                  {oc.transportador ? (
+                    <>
+                      <div>
+                        <strong>
+                          {oc.transportador.codigo} —{' '}
+                          {oc.transportador.nome_fantasia ||
+                            oc.transportador.razao_social ||
+                            '—'}
+                        </strong>
+                      </div>
+                      {oc.transportador.razao_social && oc.transportador.nome_fantasia ? (
+                        <div className="muted">{oc.transportador.razao_social}</div>
+                      ) : null}
+                      {oc.transportador.cnpj_cpf ? (
+                        <div className="muted">
+                          CNPJ/CPF {formatCnpjCpf(oc.transportador.cnpj_cpf)}
+                          {oc.transportador.ie ? ` · IE ${oc.transportador.ie}` : ''}
+                        </div>
+                      ) : null}
+                      {formatEndereco(oc.transportador) ? (
+                        <div className="muted">{formatEndereco(oc.transportador)}</div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div>—</div>
+                  )}
+                </div>
+                <div className="form-group">
                   <label>Enviada em</label>
                   <div>{oc.enviado_em ? formatDateTime(oc.enviado_em) : '—'}</div>
                 </div>
@@ -1079,10 +1112,13 @@ export function ComprasOrdemDetailPage() {
                             <ul className="muted" style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
                               {(item.composicao ?? []).map((f, fi) => (
                                 <li key={f.id ?? fi}>
-                                  {f.largura_mm} mm × {f.quantidade} bob. × {f.comprimento_m} m ={' '}
+                                  {f.largura_mm} mm × {f.quantidade} vol. × {f.comprimento_m} m ={' '}
                                   {f.area_m2} m²
                                 </li>
                               ))}
+                              <li>
+                                → pedido {item.qtde_pedida} {item.unidade}
+                              </li>
                             </ul>
                           ) : null}
                         </td>
@@ -1131,7 +1167,7 @@ export function ComprasOrdemDetailPage() {
                     ) : null}
                     <tr>
                       <td colSpan={8} style={{ textAlign: 'right' }}>
-                        <strong>Total previsto (mercadoria + IPI + frete)</strong>
+                        <strong>Total previsto (mercadoria + IPI)</strong>
                       </td>
                       <td>
                         <strong>{formatCurrency(oc.valor_previsto ?? oc.valor_total)}</strong>
@@ -1152,7 +1188,7 @@ export function ComprasOrdemDetailPage() {
             .map((n) => (
               <div key={n.id} style={{ marginBottom: '0.75rem' }}>
                 <p className="muted" style={{ marginBottom: '0.35rem' }}>
-                  <Link to={`/compras/nfe-recebidas/${n.id}`}>Abrir NF-e recebida</Link>
+                  <Link to={`/compras/nfe-recebidas/${n.id}`}>Abrir NF-e vinculada</Link>
                   {' · consulta do espelho fora da OC'}
                 </p>
                 <EspelhoFiscalPanel
@@ -1607,8 +1643,8 @@ export function ComprasOrdemDetailPage() {
                             <thead>
                               <tr>
                                 <th>Origem</th>
-                                <th className="col-num">Bobinas</th>
-                                <th className="col-num">Σ m² / detalhe</th>
+                                <th className="col-num">Volumes</th>
+                                <th className="col-num">Σ m² físico</th>
                                 <th>Obs.</th>
                               </tr>
                             </thead>
@@ -1617,7 +1653,7 @@ export function ComprasOrdemDetailPage() {
                                 <td>Pedido (faixas OC)</td>
                                 <td className="col-num">{pedVols || '—'}</td>
                                 <td className="col-num">{pedVols ? pedArea : '—'}</td>
-                                <td className="muted">Detalhe do pedido</td>
+                                <td className="muted">Faixas físicas</td>
                               </tr>
                               <tr>
                                 <td>NF</td>
@@ -1679,8 +1715,13 @@ export function ComprasOrdemDetailPage() {
                   <div className="form-section">
                     <h3>Qtde a receber (un. comercial)</h3>
                     <p className="muted" style={{ marginBottom: '0.75rem' }}>
-                      Quantidade na língua da OC (ex. m²). Bobinas físicas = volumes abaixo — a
-                      soma dos volumes deve fechar com esta qtde.
+                      {(oc.itens ?? []).some(
+                        (i) =>
+                          (i.composicao?.length ?? 0) > 0 ||
+                          (volumeForms[i.id]?.length ?? 0) > 0,
+                      )
+                        ? 'Quantidade na língua da OC. Bobinas físicas = volumes abaixo — a soma dos volumes deve fechar com esta qtde.'
+                        : 'Quantidade na língua da OC (ex. UN, KG, M2). Confira e confirme.'}
                     </p>
                     <div className="oc-receber-itens">
                       {(oc.itens ?? []).map((item) => {

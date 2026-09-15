@@ -40,6 +40,8 @@ type NavItem = {
   permissionsAny?: string[];
   /** Exige permissão no `/me` (sem bypass ADMIN) — reservado a gates especiais. */
   exactPermission?: boolean;
+  /** Tooltip nativo — reforça o papel do item sem alongar o rótulo. */
+  title?: string;
   /** Custom active match (overrides default NavLink matching). */
   isActivePath?: (pathname: string) => boolean;
 };
@@ -171,17 +173,19 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/compras/nfe-destinadas',
-        label: 'NF-e destinadas',
+        label: 'Caixa de NF-e',
         icon: IconCompras,
         permission: 'compras.ler',
+        title: 'Notas contra o CNPJ da empresa, carregadas do fisco — aguardam vínculo à OC',
         isActivePath: (pathname) =>
           pathname === '/compras/nfe-destinadas' || pathname.startsWith('/compras/nfe-destinadas/'),
       },
       {
         to: '/compras/nfe-recebidas',
-        label: 'NF-e recebidas',
+        label: 'NF-e vinculadas',
         icon: IconCompras,
         permission: 'compras.ler',
+        title: 'Espelho das notas já vinculadas na entrada (após conferência na OC)',
         isActivePath: (pathname) =>
           pathname === '/compras/nfe-recebidas' || pathname.startsWith('/compras/nfe-recebidas/'),
       },
@@ -333,6 +337,7 @@ export function AppShell() {
                     key={item.to}
                     to={item.to}
                     end={item.end ?? false}
+                    title={item.title}
                     className={({ isActive }) => {
                       const active = item.isActivePath
                         ? item.isActivePath(location.pathname)

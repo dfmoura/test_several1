@@ -46,6 +46,12 @@ final class ProdutoLotePolitica
                 'controla_validade' => false,
                 'prazo_validade_dias' => null,
             ],
+            // Ribbon / embalagem: qtde comercial; lote só se o humano ligar de propósito.
+            'REV-RIB', 'EMB-TUB', 'EMB-CX' => [
+                'controla_lote' => false,
+                'controla_validade' => false,
+                'prazo_validade_dias' => null,
+            ],
             default => [
                 'controla_lote' => false,
                 'controla_validade' => false,

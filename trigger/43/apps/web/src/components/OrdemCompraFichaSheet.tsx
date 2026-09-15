@@ -121,7 +121,7 @@ export function OrdemCompraFichaSheet({
         <FichaKv label="Mercadoria" value={formatCurrency(oc.valor_total)} />
         <FichaKv label="IPI" value={formatCurrency(oc.valor_ipi ?? '0')} />
         <FichaKv label="ICMS (destaque)" value={formatCurrency(oc.valor_icms ?? '0')} />
-        <FichaKv label="Frete" value={formatCurrency(oc.valor_frete ?? '0')} />
+        <FichaKv label="Frete" value={oc.mod_frete_label ?? '—'} />
         <FichaKv
           label="Total previsto"
           value={formatCurrency(oc.valor_previsto ?? oc.valor_total)}
@@ -200,6 +200,7 @@ export function OrdemCompraFichaSheet({
             label="Previsão de entrega"
             value={oc.previsao_entrega ? formatDate(oc.previsao_entrega) : '—'}
           />
+          <FichaKv label="Frete" value={oc.mod_frete_label ?? '—'} />
           <FichaKv label="Operação" value={op?.id_dest_label ?? '—'} />
           <FichaKv
             label="Enviada em"
@@ -209,6 +210,31 @@ export function OrdemCompraFichaSheet({
           <FichaKv label="Origem" value={dash(oc.origem)} />
         </div>
       </FichaSection>
+
+      {oc.transportador ? (
+        <FichaSection title="Transportador">
+          <div className="ficha-kv-grid cols-2">
+            <FichaKv
+              label="Razão social"
+              value={oc.transportador.razao_social ?? '—'}
+              wide
+            />
+            <FichaKv label="Código" value={dash(oc.transportador.codigo)} />
+            <FichaKv
+              label="CNPJ/CPF"
+              value={formatCnpjCpf(oc.transportador.cnpj_cpf) || '—'}
+            />
+            <FichaKv label="IE" value={dash(oc.transportador.ie)} />
+            <FichaKv label="UF" value={dash(oc.transportador.uf)} />
+            <FichaKv label="Município" value={dash(oc.transportador.municipio)} />
+            <FichaKv
+              label="Endereço"
+              value={formatEndereco(oc.transportador)}
+              wide
+            />
+          </div>
+        </FichaSection>
+      ) : null}
 
       {oc.observacao ? (
         <FichaSection title="Observações">
@@ -282,15 +308,18 @@ export function OrdemCompraFichaSheet({
                       <td />
                       <td colSpan={11}>
                         <div className="ficha-oc-composicao">
-                          <strong>Detalhe do pedido</strong>
+                          <strong>Detalhe físico (faixas)</strong>
                           <ul>
                             {(item.composicao ?? []).map((f, fi) => (
                               <li key={f.id ?? fi}>
-                                {f.largura_mm} mm × {f.quantidade} bob. × {f.comprimento_m} m ={' '}
+                                {f.largura_mm} mm × {f.quantidade} vol. × {f.comprimento_m} m ={' '}
                                 {f.area_m2} m²
                               </li>
                             ))}
                           </ul>
+                          <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+                            Pedido comercial: {item.qtde_pedida} {item.unidade}
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -319,9 +348,9 @@ export function OrdemCompraFichaSheet({
           </table>
         )}
         <div className="ficha-kv-grid cols-3 ficha-oc-resumo">
-          <FichaKv label="Frete informado" value={formatCurrency(oc.valor_frete ?? '0')} />
+          <FichaKv label="Modalidade frete" value={oc.mod_frete_label ?? '—'} />
           <FichaKv
-            label="Total previsto (merc. + IPI + frete)"
+            label="Total previsto (merc. + IPI)"
             value={formatCurrency(oc.valor_previsto ?? oc.valor_total)}
           />
           <FichaKv

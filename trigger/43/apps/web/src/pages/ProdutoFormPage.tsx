@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FiscalCombobox, formatCest, formatNcm, type FiscalOption } from '../components/FiscalCombobox';
 import { PageHeader } from '../components/PageHeader';
 import { ProdutoFornecedorCodigosPanel } from '../components/ProdutoFornecedorCodigosPanel';
@@ -11,6 +11,8 @@ import { decideBobinaDimensoesUi } from '../lib/produtoBobinaDimensoesUi';
 import {
   buildCadastroChecklist,
   decideCadastroOrientacao,
+  decideModeloOrigemBanner,
+  nomesAindaIguaisAoModelo,
 } from '../lib/produtoCadastroOrientacaoUi';
 import { decideUnidadesConversaoUi, unidadesDiferem } from '../lib/produtoUnidadesConversaoUi';
 import { politicaLotePorGrupo } from '../lib/produtoLotePolitica';
@@ -132,7 +134,7 @@ type ProdutoFormData = {
 };
 
 const emptyForm = (): ProdutoFormData => ({
-  familia: 'PA',
+  familia: 'MP',
   codigo: '',
   grupo_id: '',
   grupo: '',
@@ -141,8 +143,8 @@ const emptyForm = (): ProdutoFormData => ({
   ncm: '',
   cest: '',
   origem: '0',
-  tipo_item_sped: '04',
-  unidade_comercial: 'UN',
+  tipo_item_sped: '01',
+  unidade_comercial: 'M2',
   unidade_interna: '',
   fator_conversao: '',
   largura_mm: '',
@@ -150,7 +152,7 @@ const emptyForm = (): ProdutoFormData => ({
   gramatura_g_m2: '',
   programa_compra: '',
   grupo_estoque: '',
-  cfop_saida_padrao: '5101',
+  cfop_saida_padrao: '',
   cfop_entrada_padrao: '',
   csosn: '102',
   cst_icms: '',
@@ -195,8 +197,8 @@ function fromProduto(p: Produto): ProdutoFormData {
     codigo: p.codigo,
     grupo_id: p.grupo_id != null ? String(p.grupo_id) : '',
     grupo: p.grupo ?? p.grupo_catalogo?.codigo ?? '',
-    descricao_fiscal: p.descricao_fiscal,
-    descricao_comercial: p.descricao_comercial ?? '',
+    descricao_fiscal: (p.descricao_fiscal ?? '').toUpperCase(),
+    descricao_comercial: (p.descricao_comercial ?? '').toUpperCase(),
     ncm: p.ncm ?? '',
     cest: p.cest ?? '',
     origem: p.origem != null ? String(p.origem) : '0',
@@ -227,6 +229,36 @@ function fromProduto(p: Produto): ProdutoFormData {
     gtin: p.gtin ?? '',
     situacao: p.situacao,
   };
+}
+
+/**
+ * Template para “Novo a partir deste”: copia cadastro útil, sem identidade operacional.
+ * Não leva código, estoque, de-para, meta de seed/XML nem GTIN real.
+ */
+function fromProdutoTemplate(p: Produto): ProdutoFormData {
+  const base = fromProduto(p);
+  const gtinRaw = base.gtin.trim();
+  const gtinKeep =
+    !gtinRaw || gtinRaw.toUpperCase() === 'SEM GTIN' ? gtinRaw : '';
+  return {
+    ...base,
+    codigo: '',
+    situacao: 'ATIVO',
+    gtin: gtinKeep,
+  };
+}
+
+function templateAvancadoOpen(form: ProdutoFormData): boolean {
+  return Boolean(
+    form.preco_tabela.trim() ||
+      form.estoque_minimo.trim() ||
+      form.lead_time_dias.trim() ||
+      form.controla_lote ||
+      form.controla_validade ||
+      form.prazo_validade_dias.trim() ||
+      (form.gtin.trim() && form.gtin.trim().toUpperCase() !== 'SEM GTIN') ||
+      form.situacao === 'INATIVO',
+  );
 }
 
 function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: boolean): ProdutoFormData {
@@ -279,8 +311,10 @@ function toPayload(
     familia: form.familia,
     grupo_id: form.grupo_id ? parseInt(form.grupo_id, 10) : null,
     grupo: form.grupo || null,
-    descricao_fiscal: form.descricao_fiscal,
-    descricao_comercial: form.descricao_comercial || null,
+    descricao_fiscal: form.descricao_fiscal.trim().toUpperCase(),
+    descricao_comercial: form.descricao_comercial.trim()
+      ? form.descricao_comercial.trim().toUpperCase()
+      : null,
     ncm: form.ncm || null,
     cest: form.cest || null,
     origem: form.origem !== '' ? parseInt(form.origem, 10) : null,
@@ -345,7 +379,9 @@ function formatNcmHint(ncm: string | null | undefined): string {
 
 export function ProdutoFormPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const isNew = id === 'novo';
+  const fromId = isNew ? searchParams.get('from')?.trim() || null : null;
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('produto.escrever');
@@ -360,14 +396,27 @@ export function ProdutoFormPage() {
   const [fatorSugestao, setFatorSugestao] = useState<FatorSugestao | null>(null);
   /** true = operador editou o fator; não sobrescrever com auto. */
   const [fatorManual, setFatorManual] = useState(!isNew);
-  const [loading, setLoading] = useState(!isNew);
+  const [loading, setLoading] = useState(!isNew || Boolean(fromId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [modeloOrigemCodigo, setModeloOrigemCodigo] = useState<string | null>(null);
+  const [modeloOrigemNomes, setModeloOrigemNomes] = useState<{
+    comercial: string;
+    fiscal: string;
+  } | null>(null);
   const [autoria, setAutoria] = useState<RegistroAutoria | null>(null);
   const [fornecedorCodigos, setFornecedorCodigos] = useState<ProdutoFornecedorCodigo[]>([]);
   const [atributosExtras, setAtributosExtras] = useState<Record<string, unknown>>({});
   const [avancadoOpen, setAvancadoOpen] = useState(false);
+  const [deParaDraft, setDeParaDraft] = useState({
+    fornecedor_id: '',
+    c_prod: '',
+    x_prod: '',
+  });
+  const [fornecedoresDraft, setFornecedoresDraft] = useState<
+    Array<{ id: number; codigo: string; razao_social: string; nome_fantasia: string | null }>
+  >([]);
   useEffect(() => {
     void (async () => {
       try {
@@ -384,6 +433,41 @@ export function ProdutoFormPage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!isNew) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await api.get<{
+          data: Array<{
+            id: number;
+            codigo: string;
+            razao_social: string;
+            nome_fantasia: string | null;
+            papel_fornecedor?: boolean;
+          }>;
+        }>('/parceiros?papel=fornecedor');
+        if (!cancelled) {
+          setFornecedoresDraft(
+            res.data
+              .filter((p) => p.papel_fornecedor !== false)
+              .map((p) => ({
+                id: p.id,
+                codigo: p.codigo,
+                razao_social: p.razao_social,
+                nome_fantasia: p.nome_fantasia,
+              })),
+          );
+        }
+      } catch {
+        if (!cancelled) setFornecedoresDraft([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isNew]);
 
 
   useEffect(() => {
@@ -411,18 +495,7 @@ export function ProdutoFormPage() {
         setForm(loaded);
         setAtributosExtras(atributosExtrasFromProduto(res.data.atributos));
         setFornecedorCodigos(res.data.fornecedor_codigos ?? []);
-        setAvancadoOpen(
-          Boolean(
-            loaded.preco_tabela.trim() ||
-              loaded.estoque_minimo.trim() ||
-              loaded.lead_time_dias.trim() ||
-              loaded.controla_lote ||
-              loaded.controla_validade ||
-              loaded.prazo_validade_dias.trim() ||
-              (loaded.gtin.trim() && loaded.gtin.trim().toUpperCase() !== 'SEM GTIN') ||
-              loaded.situacao === 'INATIVO',
-          ),
-        );
+        setAvancadoOpen(templateAvancadoOpen(loaded));
         setAutoria({
           criado_por: res.data.criado_por,
           atualizado_por: res.data.atualizado_por,
@@ -438,9 +511,46 @@ export function ProdutoFormPage() {
     })();
   }, [id, isNew]);
 
+  // Novo a partir de modelo (?from=id): preenche formulário sem gravar.
+  useEffect(() => {
+    if (!isNew || !fromId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await api.get<{ data: Produto }>(`/produtos/${fromId}`);
+        if (cancelled) return;
+        const loaded = fromProdutoTemplate(res.data);
+        setForm(loaded);
+        setAtributosExtras({});
+        setFornecedorCodigos([]);
+        setDeParaDraft({ fornecedor_id: '', c_prod: '', x_prod: '' });
+        setAvancadoOpen(templateAvancadoOpen(loaded));
+        setFatorManual(true);
+        setModeloOrigemCodigo(res.data.codigo);
+        setModeloOrigemNomes({
+          comercial: (res.data.descricao_comercial ?? '').trim(),
+          fiscal: (res.data.descricao_fiscal ?? '').trim(),
+        });
+        setMessage('');
+      } catch {
+        if (!cancelled) {
+          setModeloOrigemCodigo(null);
+          setModeloOrigemNomes(null);
+          setError('Produto de origem não encontrado. Continuando com formulário em branco.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isNew, fromId]);
+
   // Novo produto: escolhe automaticamente o grupo canônico padrão da família.
   // Só considera grupos da família atual — evita race com lista stale (ex.: PA
   // ainda carregada ao trocar para MP), que puxava familia de volta via applyGrupoDefaults.
+  // Com ?from=, o template já traz grupo_id — este efeito não sobrescreve.
   useEffect(() => {
     if (!isNew || form.grupo_id) return;
     const daFamilia = grupos.filter((g) => g.familia === form.familia);
@@ -557,26 +667,55 @@ export function ProdutoFormPage() {
     return `1 ${de} = ${fator} × ${para}`;
   }, [form.unidade_comercial, form.unidade_interna, form.fator_conversao]);
 
-  const orientacao = useMemo(
+  const fromModelo = Boolean(isNew && fromId && modeloOrigemCodigo);
+  const modeloBanner = useMemo(
+    () => (modeloOrigemCodigo ? decideModeloOrigemBanner(modeloOrigemCodigo) : null),
+    [modeloOrigemCodigo],
+  );
+  const nomesIguaisAoModelo = useMemo(
     () =>
-      decideCadastroOrientacao({
-        familia: form.familia,
-        grupoCodigo: selectedGrupo?.codigo ?? form.grupo,
-        exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
-        unidadeComercial: form.unidade_comercial,
-        unidadeInterna: form.unidade_interna,
-        programaCompra: form.programa_compra,
-      }),
+      fromModelo
+        ? nomesAindaIguaisAoModelo({
+            descricaoComercial: form.descricao_comercial,
+            descricaoFiscal: form.descricao_fiscal,
+            origemComercial: modeloOrigemNomes?.comercial,
+            origemFiscal: modeloOrigemNomes?.fiscal,
+          })
+        : false,
     [
-      form.familia,
-      form.grupo,
-      form.unidade_comercial,
-      form.unidade_interna,
-      form.programa_compra,
-      selectedGrupo?.codigo,
-      selectedGrupo?.exige_dimensao_sku,
+      fromModelo,
+      form.descricao_comercial,
+      form.descricao_fiscal,
+      modeloOrigemNomes?.comercial,
+      modeloOrigemNomes?.fiscal,
     ],
   );
+
+  const orientacao = useMemo(() => {
+    const base = decideCadastroOrientacao({
+      familia: form.familia,
+      grupoCodigo: selectedGrupo?.codigo ?? form.grupo,
+      exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
+      unidadeComercial: form.unidade_comercial,
+      unidadeInterna: form.unidade_interna,
+      programaCompra: form.programa_compra,
+    });
+    if (!fromModelo) return base;
+    return {
+      ...base,
+      lead: `A partir do modelo ${modeloOrigemCodigo}: ajuste nome no estoque e descrição fiscal. O restante do perfil técnico já veio preenchido — só altere se a identidade for distinta.`,
+    };
+  }, [
+    form.familia,
+    form.grupo,
+    form.unidade_comercial,
+    form.unidade_interna,
+    form.programa_compra,
+    selectedGrupo?.codigo,
+    selectedGrupo?.exige_dimensao_sku,
+    fromModelo,
+    modeloOrigemCodigo,
+  ]);
 
   const checklist = useMemo(
     () =>
@@ -595,6 +734,9 @@ export function ProdutoFormPage() {
         exigeDimensaoSku: Boolean(selectedGrupo?.exige_dimensao_sku),
         deParaCount: fornecedorCodigos.length,
         isNew,
+        deParaDraftOk: Boolean(deParaDraft.fornecedor_id && deParaDraft.c_prod.trim()),
+        fromModelo,
+        nomesIguaisAoModelo,
       }),
     [
       form.familia,
@@ -611,6 +753,10 @@ export function ProdutoFormPage() {
       selectedGrupo?.exige_dimensao_sku,
       fornecedorCodigos.length,
       isNew,
+      deParaDraft.fornecedor_id,
+      deParaDraft.c_prod,
+      fromModelo,
+      nomesIguaisAoModelo,
     ],
   );
 
@@ -758,7 +904,25 @@ export function ProdutoFormPage() {
       const payload = toPayload(form, atributosExtras);
       if (isNew) {
         const res = await api.post<{ data: Produto }>('/produtos', payload);
-        navigate(`/produtos/${res.data.id}`);
+        const createdId = res.data.id;
+        if (deParaDraft.fornecedor_id && deParaDraft.c_prod.trim()) {
+          try {
+            await api.post(`/produtos/${createdId}/fornecedor-codigos`, {
+              fornecedor_id: Number(deParaDraft.fornecedor_id),
+              c_prod: deParaDraft.c_prod.trim(),
+              x_prod: deParaDraft.x_prod.trim() || null,
+            });
+          } catch (deParaErr) {
+            navigate(`/produtos/${createdId}`);
+            setError(
+              deParaErr instanceof Error
+                ? `SKU criado, mas o de-para falhou: ${deParaErr.message}`
+                : 'SKU criado, mas o de-para falhou — vincule na ficha.',
+            );
+            return;
+          }
+        }
+        navigate(`/produtos/${createdId}`);
       } else {
         const res = await api.put<{ data: Produto }>(`/produtos/${id}`, payload);
         setForm(fromProduto(res.data));
@@ -787,17 +951,39 @@ export function ProdutoFormPage() {
   return (
     <>
       <PageHeader
-        title={isNew ? 'Novo produto' : form.codigo}
+        title={
+          isNew
+            ? fromModelo
+              ? 'Novo produto a partir do modelo'
+              : 'Novo produto'
+            : form.codigo
+        }
         description={
           isNew
-            ? 'Ordem: família → grupo → descrição → unidade. Código gerado sozinho. De-para do fornecedor depois de salvar — veja Como cadastra se for a primeira vez.'
-            : form.descricao_fiscal
+            ? fromModelo && modeloOrigemCodigo
+              ? `Modelo ${modeloOrigemCodigo}. Foque em nome no estoque e descrição fiscal; o restante já veio do perfil técnico.`
+              : 'Padrão compra (MP). Família → grupo → descrição → unidade. De-para pode ir junto. Atalho: Do XML.'
+            : form.descricao_comercial?.trim() || form.descricao_fiscal
         }
         actions={
           <>
             {isNew ? (
-              <Link to="/como-cadastra#produto-passos" className="btn btn-secondary">
-                Como cadastra
+              <>
+                <Link to="/produtos/do-xml" className="btn btn-primary">
+                  Do XML
+                </Link>
+                <Link to="/como-cadastra#produto-passos" className="btn btn-secondary">
+                  Como cadastra
+                </Link>
+              </>
+            ) : null}
+            {!isNew && id && canWrite ? (
+              <Link
+                to={`/produtos/novo?from=${id}`}
+                className="btn btn-secondary"
+                title="Novo SKU com o mesmo perfil técnico"
+              >
+                Novo a partir deste
               </Link>
             ) : null}
             {!isNew && id && (
@@ -816,6 +1002,17 @@ export function ProdutoFormPage() {
         }
       />
 
+      {fromModelo && modeloBanner ? (
+        <div className="alert alert-info produto-modelo-banner" role="status">
+          <strong>{modeloBanner.title}</strong>
+          <p>{modeloBanner.lead}</p>
+          <ul>
+            {modeloBanner.bullets.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {message && <div className="alert alert-success">{message}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -883,7 +1080,7 @@ export function ProdutoFormPage() {
                   ))}
                 </select>
               </div>
-              <div className="form-group">
+              <div className={`form-group${fromModelo ? ' produto-campo-foco' : ''}`}>
                 <label>Código</label>
                 <input
                   value={form.codigo}
@@ -895,6 +1092,12 @@ export function ProdutoFormPage() {
                   }
                   onChange={(e) => update({ codigo: e.target.value })}
                 />
+                {fromModelo ? (
+                  <span className="form-hint">
+                    Deixe vazio para o próximo código do grupo, ou informe um código novo único nesta
+                    EMP.
+                  </span>
+                ) : null}
               </div>
               <div className="form-group span-2">
                 <label>Grupo</label>
@@ -961,31 +1164,41 @@ export function ProdutoFormPage() {
                   </span>
                 </div>
               )}
-              <div className="form-group span-2">
+              <div className={`form-group span-2${fromModelo ? ' produto-campo-foco' : ''}`}>
                 <label>Nome no estoque</label>
                 <input
                   value={form.descricao_comercial}
                   disabled={readOnly}
                   placeholder="Ex.: ECOPRINT / S2045N / SCK 60"
-                  onChange={(e) => update({ descricao_comercial: e.target.value })}
+                  style={{ textTransform: 'uppercase' }}
+                  autoCapitalize="characters"
+                  onChange={(e) => update({ descricao_comercial: e.target.value.toUpperCase() })}
                 />
                 <span className="form-hint">
-                  Como a empresa chama o item no almoxarifado e nas listagens. Pode diferir do
-                  texto fiscal do fornecedor.
+                  {fromModelo
+                    ? nomesIguaisAoModelo
+                      ? 'Copiado do modelo — altere se este for um SKU com identidade distinta no almoxarifado.'
+                      : 'Como a empresa chama o item no almoxarifado e nas listagens. Sempre em maiúsculas.'
+                    : 'Como a empresa chama o item no almoxarifado e nas listagens. Pode diferir do texto fiscal do fornecedor. Sempre em maiúsculas.'}
                 </span>
               </div>
-              <div className="form-group span-2">
+              <div className={`form-group span-2${fromModelo ? ' produto-campo-foco' : ''}`}>
                 <label>Descrição fiscal</label>
                 <input
                   value={form.descricao_fiscal}
                   disabled={readOnly}
                   placeholder="Ex.: FASSON ECOPRINT/S2045N/60G - EXACT 1000"
-                  onChange={(e) => update({ descricao_fiscal: e.target.value })}
+                  style={{ textTransform: 'uppercase' }}
+                  autoCapitalize="characters"
+                  onChange={(e) => update({ descricao_fiscal: e.target.value.toUpperCase() })}
                   required
                 />
                 <span className="form-hint">
-                  Texto estável para NF-e / SPED (0200). O de-para guarda o xProd exato de cada
-                  fornecedor.
+                  {fromModelo
+                    ? nomesIguaisAoModelo
+                      ? 'Copiada do modelo — revise o texto estável para NF-e / SPED se a identidade fiscal for outra.'
+                      : 'Texto estável para NF-e / SPED (0200), em maiúsculas. O de-para guarda o xProd exato de cada fornecedor.'
+                    : 'Texto estável para NF-e / SPED (0200), em maiúsculas. O de-para guarda o xProd exato de cada fornecedor.'}
                 </span>
               </div>
 
@@ -1215,11 +1428,57 @@ export function ProdutoFormPage() {
                   initialRows={fornecedorCodigos}
                 />
               )}
-              {isNew && (
-                <p className="form-hint span-2">
-                  Após criar o SKU, vincule aqui o cProd de cada fornecedor (de-para da NF-e).
-                </p>
-              )}
+              {isNew &&
+                (form.familia === 'MP' || form.familia === 'EMB' || form.familia === 'REV') && (
+                  <div className="produto-depara span-2">
+                    <div className="fiscal-section-title">De-para da NF (opcional agora)</div>
+                    <p className="form-hint" style={{ marginTop: 0 }}>
+                      Se já tiver o cProd do fornecedor, grave junto com o SKU. Atalho ainda mais
+                      rápido: <Link to="/produtos/do-xml">Do XML</Link>.
+                    </p>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label>Fornecedor</label>
+                        <select
+                          value={deParaDraft.fornecedor_id}
+                          disabled={readOnly}
+                          onChange={(e) =>
+                            setDeParaDraft((d) => ({ ...d, fornecedor_id: e.target.value }))
+                          }
+                        >
+                          <option value="">— depois —</option>
+                          {fornecedoresDraft.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.codigo} — {f.nome_fantasia || f.razao_social}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>cProd</label>
+                        <input
+                          value={deParaDraft.c_prod}
+                          disabled={readOnly}
+                          placeholder="Código na NF do fornecedor"
+                          onChange={(e) =>
+                            setDeParaDraft((d) => ({ ...d, c_prod: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="form-group span-2">
+                        <label>xProd (amostra)</label>
+                        <input
+                          value={deParaDraft.x_prod}
+                          disabled={readOnly}
+                          placeholder="Descrição como veio na nota"
+                          onChange={(e) =>
+                            setDeParaDraft((d) => ({ ...d, x_prod: e.target.value }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               <details
                 className="produto-avancado span-2"
@@ -1589,7 +1848,13 @@ export function ProdutoFormPage() {
               disabled={saving}
               onClick={handleSave}
             >
-              {saving ? 'Salvando…' : isNew ? 'Criar produto' : 'Salvar alterações'}
+              {saving
+                ? 'Salvando…'
+                : isNew
+                  ? fromModelo
+                    ? 'Criar novo SKU'
+                    : 'Criar produto'
+                  : 'Salvar alterações'}
             </button>
           )}
         </div>

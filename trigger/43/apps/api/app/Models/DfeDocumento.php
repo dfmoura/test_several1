@@ -47,6 +47,9 @@ class DfeDocumento extends Model
         'data_emissao',
         'emit_cnpj',
         'emit_nome',
+        'transp_cnpj',
+        'transp_nome',
+        'transp_extraido',
         'valor_total',
         'situacao',
         'ordem_compra_id',
@@ -61,6 +64,7 @@ class DfeDocumento extends Model
             'data_emissao' => 'date',
             'valor_total' => 'decimal:2',
             'resumo' => 'array',
+            'transp_extraido' => 'boolean',
         ];
     }
 

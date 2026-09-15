@@ -20,6 +20,7 @@ import {
   qtdeComercialFromFaixas,
   type OcFaixaForm,
 } from '../lib/ocComposicaoVolumes';
+import { produtoPermiteDetalheBobinaOc } from '../lib/ocPedidoDetalheUi';
 import { useTableSort } from '../lib/useTableSort';
 
 type RowState = {
@@ -314,11 +315,20 @@ export function ComprasReposicaoPage() {
                       const row = rows[item.produto_id];
                       if (!row) return null;
                       const temComposicao = row.composicao.length > 0;
+                      const permiteDetalhe =
+                        item.permite_detalhe_bobina === true ||
+                        produtoPermiteDetalheBobinaOc(
+                          {
+                            grupo: item.produto.grupo,
+                            exige_dimensao_sku: item.produto.exige_dimensao_sku,
+                          },
+                          temComposicao,
+                        );
                       const qtde = qtdeEfetiva(row, item);
                       const unCom = (item.unidade_comercial || 'un.').toUpperCase();
                       const diverge =
                         temComposicao && faltanteDiverge(qtde, item.faltante_comercial);
-                      const detalheVisivel = row.detalheAberto;
+                      const detalheVisivel = permiteDetalhe && row.detalheAberto;
 
                       return (
                         <Fragment key={item.produto_id}>
@@ -390,44 +400,50 @@ export function ComprasReposicaoPage() {
                               />
                             </td>
                             <td>
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                disabled={!canWrite || !row.selected}
-                                onClick={() => {
-                                  if (detalheVisivel) {
-                                    const completas = row.composicao.filter(ocFaixaCompleta);
-                                    const qtdeKeep =
-                                      completas.length > 0
-                                        ? qtdeComercialFromFaixas(completas, {
-                                            unidade_comercial: item.unidade_comercial,
-                                            unidade_interna: item.unidade_interna,
-                                            fator_conversao: item.produto.fator_conversao,
-                                          }) || item.faltante_comercial
-                                        : row.qtde_pedida || item.faltante_comercial;
+                              {permiteDetalhe ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  disabled={!canWrite || !row.selected}
+                                  onClick={() => {
+                                    if (detalheVisivel) {
+                                      const completas = row.composicao.filter(ocFaixaCompleta);
+                                      const qtdeKeep =
+                                        completas.length > 0
+                                          ? qtdeComercialFromFaixas(completas, {
+                                              unidade_comercial: item.unidade_comercial,
+                                              unidade_interna: item.unidade_interna,
+                                              fator_conversao: item.produto.fator_conversao,
+                                            }) || item.faltante_comercial
+                                          : row.qtde_pedida || item.faltante_comercial;
+                                      patchRow(item.produto_id, {
+                                        detalheAberto: false,
+                                        composicao: completas,
+                                        qtde_pedida: qtdeKeep,
+                                      });
+                                      return;
+                                    }
                                     patchRow(item.produto_id, {
-                                      detalheAberto: false,
-                                      composicao: completas,
-                                      qtde_pedida: qtdeKeep,
+                                      detalheAberto: true,
+                                      composicao:
+                                        row.composicao.length > 0
+                                          ? row.composicao
+                                          : [emptyOcFaixa()],
                                     });
-                                    return;
-                                  }
-                                  patchRow(item.produto_id, {
-                                    detalheAberto: true,
-                                    composicao:
-                                      row.composicao.length > 0
-                                        ? row.composicao
-                                        : [emptyOcFaixa()],
-                                  });
-                                }}
-                                aria-expanded={detalheVisivel}
-                              >
-                                {detalheVisivel
-                                  ? 'Ocultar'
-                                  : temComposicao
-                                    ? `Faixas (${row.composicao.length})`
-                                    : 'Detalhar'}
-                              </button>
+                                  }}
+                                  aria-expanded={detalheVisivel}
+                                >
+                                  {detalheVisivel
+                                    ? 'Ocultar'
+                                    : temComposicao
+                                      ? `Faixas (${row.composicao.length})`
+                                      : 'Detalhar'}
+                                </button>
+                              ) : (
+                                <span className="muted" title="Qtde comercial na linha">
+                                  —
+                                </span>
+                              )}
                             </td>
                           </tr>
                           {detalheVisivel && row.selected ? (
@@ -437,6 +453,11 @@ export function ComprasReposicaoPage() {
                                   composicao={row.composicao}
                                   disabled={!canWrite}
                                   compact
+                                  comercial={{
+                                    unidade_comercial: item.unidade_comercial,
+                                    unidade_interna: item.unidade_interna,
+                                    fator_conversao: item.produto.fator_conversao,
+                                  }}
                                   onChange={(composicao) => {
                                     const next: RowState = {
                                       ...row,

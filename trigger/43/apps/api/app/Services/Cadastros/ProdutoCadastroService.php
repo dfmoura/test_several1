@@ -6,6 +6,7 @@ use App\Models\CodigoSequence;
 use App\Models\Empresa;
 use App\Models\Produto;
 use App\Models\ProdutoGrupo;
+use App\Support\ProdutoDescricoes;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Seed idempotente das famílias fiscais (Camada A) do estudo 32.
  *
  * Não passa por ProdutoService::create (evita gerar código automático e
- * defaults de dual KG→M2 sem atributos). Grava direto com updateOrCreate
+ * defaults de conversão do formulário). Grava direto com updateOrCreate
  * por (empresa_id, codigo) — reexecutável sem duplicar.
  */
 class ProdutoCadastroService
@@ -255,6 +256,15 @@ class ProdutoCadastroService
      */
     private function upsertProduto(Empresa $empresa, string $codigo, array $payload): void
     {
+        if (array_key_exists('descricao_fiscal', $payload) && is_string($payload['descricao_fiscal'])) {
+            $payload['descricao_fiscal'] = ProdutoDescricoes::fiscal($payload['descricao_fiscal']) ?? '';
+        }
+        if (array_key_exists('descricao_comercial', $payload)) {
+            $payload['descricao_comercial'] = is_string($payload['descricao_comercial'] ?? null)
+                ? ProdutoDescricoes::maiusculas($payload['descricao_comercial'])
+                : null;
+        }
+
         $existing = Produto::withTrashed()
             ->where('empresa_id', $empresa->id)
             ->where('codigo', $codigo)

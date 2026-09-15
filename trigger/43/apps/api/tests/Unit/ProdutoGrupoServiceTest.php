@@ -19,6 +19,9 @@ class ProdutoGrupoServiceTest extends TestCase
 
         $this->assertSame(count(ProdutoGrupoCatalogData::grupos()), $count);
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'MP-PAP')->exists());
+        $pap = ProdutoGrupo::query()->where('codigo', 'MP-PAP')->first();
+        $this->assertSame('M2', $pap?->unidade_comercial_padrao);
+        $this->assertSame('M2', $pap?->unidade_interna_padrao);
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'PA-ETQ')->exists());
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'REV-RIB')->exists());
         $this->assertTrue(ProdutoGrupo::query()->where('codigo', 'EMB-TUB')->exists());

@@ -73,30 +73,6 @@ export function ComoCadastraPage() {
       <PageHeader
         title="Como cadastra"
         description="Guia interno — produto (SKU) e parceiro (PAR). Qual grupo usar, passo a passo na tela e o que não fazer."
-        actions={
-          <div className="btn-row">
-            {canParceiro ? (
-              <Link to="/parceiros" className="btn btn-secondary">
-                Parceiros
-              </Link>
-            ) : null}
-            {canProduto ? (
-              <Link to="/produtos" className="btn btn-secondary">
-                Produtos
-              </Link>
-            ) : null}
-            {canWriteParceiro ? (
-              <Link to="/parceiros/novo" className="btn btn-secondary">
-                Novo parceiro
-              </Link>
-            ) : null}
-            {canWriteProduto ? (
-              <Link to="/produtos/novo" className="btn btn-primary">
-                Novo produto
-              </Link>
-            ) : null}
-          </div>
-        }
       />
 
       <aside className="calc-guide-banner" role="note">
@@ -472,8 +448,9 @@ export function ComoCadastraPage() {
             <div className="card-body">
               <h2 className="calc-section-title">Produto — passo a passo na tela</h2>
               <p className="calc-lead">
-                Abra <strong>Produtos → Novo produto</strong>. Preencha a aba{' '}
-                <strong>Comercial</strong> nesta ordem. Em dúvida de grupo, use a{' '}
+                Preferência: <Link to="/produtos/do-xml">Produtos → Do XML</Link> (NF-e de
+                compra). Alternativa: <strong>Novo produto</strong> na aba{' '}
+                <strong>Comercial</strong>, nesta ordem. Em dúvida de grupo, use a{' '}
                 <a href="#produto-grupos">tabela acima</a>. Campos que o grupo já preenche podem
                 ficar como estão — só mude se a nota do fornecedor disser o contrário.
               </p>
@@ -495,7 +472,12 @@ export function ComoCadastraPage() {
                     </li>
                     <li>
                       Já existe o mesmo material? Busque em Produtos pelo código Exact / marca /
-                      descrição — evite duplicar SKU.
+                      descrição — evite inventar segundo SKU para o mesmo item.
+                    </li>
+                    <li>
+                      Precisa de cadastro parecido com nomes distintos? Na lista ou na ficha use{' '}
+                      <strong>Novo a partir deste</strong> — copia o perfil técnico; foque em nome
+                      no estoque e descrição fiscal. Saldo e de-para ficam separados.
                     </li>
                   </ul>
                 </article>
@@ -918,9 +900,9 @@ export function ComoCadastraPage() {
 
               {canWriteProduto ? (
                 <p className="calc-formula-note">
-                  <Link to="/produtos/novo">Cadastrar agora →</Link>
+                  <Link to="/produtos/do-xml">Cadastrar a partir do XML →</Link>
                   {' · '}
-                  <Link to="/produtos/importar">Importar vários via CSV →</Link>
+                  <Link to="/produtos/novo">Formulário completo →</Link>
                 </p>
               ) : null}
             </div>
@@ -1035,22 +1017,21 @@ export function ComoCadastraPage() {
 
           <section id="importacao" className="card calc-section">
             <div className="card-body">
-              <h2 className="calc-section-title">Importação em massa</h2>
+              <h2 className="calc-section-title">Importação</h2>
               <p className="calc-lead">
-                CSV (e XML de NF-e no parceiro) seguem o mesmo modelo do formulário — preview
-                antes de gravar, sem atalho que ignore grupo ou de-para.
+                Produtos: XML da NF-e de compra (confirmação por cProd). Parceiros: CSV em
+                massa ou XML para enriquecer CNPJ/IE/papéis.
               </p>
               <div className="calc-input-grid">
                 {canWriteProduto ? (
                   <div>
                     <h3>Produtos</h3>
                     <p>
-                      Baixe o modelo, revise o preview (grupo, NCM, unidades) e confirme.
-                      Dimensão ausente em bobina gera aviso, não bloqueio. Depois da importação,
-                      complete os de-para por fornecedor.
+                      Envie o XML, confira família/grupo por cProd único e grave SKU + de-para.
+                      Não lança estoque — entrada continua na OC.
                     </p>
                     <p className="calc-formula-note">
-                      <Link to="/produtos/importar">Importar produtos →</Link>
+                      <Link to="/produtos/do-xml">Produtos a partir do XML →</Link>
                     </p>
                   </div>
                 ) : null}

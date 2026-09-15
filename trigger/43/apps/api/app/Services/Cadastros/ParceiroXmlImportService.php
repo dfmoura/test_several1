@@ -172,11 +172,47 @@ class ParceiroXmlImportService
                     continue;
                 }
 
+                if ($acao === 'adicionar_papel_transportadora') {
+                    $parceiroId = (int) ($item['parceiro_id'] ?? $data['parceiro_id'] ?? 0);
+                    $parceiro = Parceiro::query()
+                        ->where('empresa_id', $empresa->id)
+                        ->where('id', $parceiroId)
+                        ->first();
+
+                    if ($parceiro === null) {
+                        throw ValidationException::withMessages([
+                            'parceiro_id' => ['Parceiro não encontrado nesta empresa.'],
+                        ]);
+                    }
+
+                    if ($parceiro->papel_transportadora) {
+                        $ignorados++;
+                        $results[] = [
+                            'line' => $line,
+                            'status' => 'ignorado',
+                            'errors' => ['Parceiro já possui classificação transportadora.'],
+                            'id' => $parceiro->id,
+                            'codigo' => $parceiro->codigo,
+                            'razao_social' => $parceiro->razao_social,
+                            'cnpj_cpf' => $parceiro->cnpj_cpf,
+                        ];
+                        continue;
+                    }
+
+                    $parceiro = $this->parceiroService->update($parceiro, [
+                        'papel_transportadora' => true,
+                    ]);
+                    $atualizados++;
+                    $updatedIds[] = $parceiro->id;
+                    $results[] = $this->commitRow($line, 'atualizado', [], $parceiro);
+                    continue;
+                }
+
                 $falhas++;
                 $results[] = [
                     'line' => $line,
                     'status' => 'erro',
-                    'errors' => ['Ação inválida. Use criar ou adicionar_papel.'],
+                    'errors' => ['Ação inválida. Use criar, adicionar_papel ou adicionar_papel_transportadora.'],
                     'razao_social' => $data['razao_social'] ?? null,
                     'cnpj_cpf' => $data['cnpj_cpf'] ?? null,
                 ];
@@ -268,7 +304,8 @@ class ParceiroXmlImportService
             $tDoc = $extracted['transportadora']['cnpj']
                 ?? $extracted['transportadora']['cpf']
                 ?? '';
-            $warnings[] = 'Transportadora detectada no XML: '.$tNome.($tDoc !== '' ? ' ('.$tDoc.')' : '').'. Cadastro separado não é feito neste fluxo.';
+            $warnings[] = 'Transportadora detectada no XML: '.$tNome.($tDoc !== '' ? ' ('.$tDoc.')' : '')
+                .'. Cadastro do transportador é feito na coluna Transportador da Caixa de NF-e.';
         }
 
         $xmlAddress = $this->pickAddress($emit);
@@ -376,7 +413,7 @@ class ParceiroXmlImportService
 
         $validated = $validator->passes() ? $validator->validated() : $payload;
         unset($validated['cadastro_fiscal_completo']);
-        foreach (['papel_fornecedor', 'emite_documento_fiscal', 'tipo_pessoa', 'tipo_fornecimento', 'cfop_entrada_padrao', 'cnaes_secundarios', 'regime_desde'] as $keep) {
+        foreach (['papel_fornecedor', 'papel_transportadora', 'emite_documento_fiscal', 'tipo_pessoa', 'tipo_fornecimento', 'cfop_entrada_padrao', 'cnaes_secundarios', 'regime_desde'] as $keep) {
             if (array_key_exists($keep, $payload) && ! array_key_exists($keep, $validated)) {
                 $validated[$keep] = $payload[$keep];
             }
@@ -402,6 +439,197 @@ class ParceiroXmlImportService
                 $enrichment,
                 $destAviso,
                 null,
+            ),
+        ];
+    }
+
+    /**
+     * Simula cadastro da transportadora (grupo transp/transporta) a partir de um XML NF-e.
+     *
+     * @return array<string, mixed>
+     */
+    public function previewTransportadoraOne(
+        Empresa $empresa,
+        string $xmlContent,
+        string $fileName,
+        int $line = 1,
+    ): array {
+        $errors = [];
+        $warnings = [];
+        $fieldSources = [];
+
+        try {
+            $extracted = $this->extractor->extract($xmlContent);
+        } catch (Throwable $e) {
+            return $this->errorRow($line, $fileName, [$e->getMessage()]);
+        }
+
+        $t = $extracted['transportadora'] ?? null;
+        if (! is_array($t) || (
+            empty($t['cnpj']) && empty($t['cpf']) && empty($t['nome'])
+        )) {
+            return $this->errorRow($line, $fileName, [
+                'XML sem grupo transporta (transportador ausente nesta NF-e).',
+            ]);
+        }
+
+        $cnpj = $this->digitsOrNull($t['cnpj'] ?? null);
+        if ($cnpj === null || strlen($cnpj) !== 14) {
+            return $this->errorRow($line, $fileName, [
+                'Transportador precisa ser PJ com CNPJ de 14 dígitos para cadastro via XML.',
+            ], $t['nome'] ?? null, $cnpj ?? $this->digitsOrNull($t['cpf'] ?? null));
+        }
+
+        if (! \App\Services\Cadastros\EmpresaFiscalRules::isValidCnpj($cnpj)) {
+            return $this->errorRow($line, $fileName, [
+                'CNPJ do transportador inválido (dígitos verificadores).',
+            ], $t['nome'] ?? null, $cnpj);
+        }
+
+        $xmlPayload = array_filter([
+            'cnpj_cpf' => $cnpj,
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => $this->nullableString($t['nome'] ?? null),
+            'ie' => $this->nullableString($t['ie'] ?? null),
+            'logradouro' => $this->nullableString($t['logradouro'] ?? null),
+            'municipio' => $this->nullableString($t['municipio'] ?? null),
+            'uf' => $this->upper($t['uf'] ?? null),
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+        ], static fn ($v) => $v !== null && $v !== '');
+
+        foreach ($xmlPayload as $field => $_) {
+            $fieldSources[$field] = 'xml';
+        }
+
+        $enrichment = $this->enrichPreferBrasilApi($xmlPayload, $cnpj);
+        $payload = $enrichment['payload'];
+        $fieldSources = array_merge($fieldSources, $enrichment['sources']);
+        if (($enrichment['status'] ?? '') === 'erro' || ($enrichment['status'] ?? '') === 'parcial') {
+            if (! empty($enrichment['message'])) {
+                $warnings[] = $enrichment['message'];
+            }
+        }
+
+        $payload = $this->fillIbgeFromCep($payload, $fieldSources);
+
+        $xmlAddress = $this->pickAddress(array_merge($xmlPayload, [
+            'municipio' => $t['municipio'] ?? null,
+            'uf' => $t['uf'] ?? null,
+            'logradouro' => $t['logradouro'] ?? null,
+        ]));
+        $addrWarnings = $this->confrontAddresses($xmlAddress, $this->pickAddress($payload));
+        $warnings = array_merge($warnings, $addrWarnings);
+
+        $existing = Parceiro::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('cnpj_cpf', $cnpj)
+            ->first();
+
+        if ($existing !== null) {
+            if ($existing->papel_transportadora) {
+                return [
+                    'line' => $line,
+                    'file_name' => $fileName,
+                    'status' => 'info',
+                    'acao' => 'nenhuma',
+                    'errors' => [],
+                    'warnings' => $warnings,
+                    'data' => [],
+                    'preview' => $this->buildPreview(
+                        $payload,
+                        $extracted,
+                        $fileName,
+                        'ja_transportadora',
+                        $fieldSources,
+                        $enrichment,
+                        null,
+                        $existing,
+                        ['transportadora'],
+                    ),
+                ];
+            }
+
+            return [
+                'line' => $line,
+                'file_name' => $fileName,
+                'status' => $errors === [] ? 'ok' : 'erro',
+                'acao' => $errors === [] ? 'adicionar_papel_transportadora' : null,
+                'errors' => $errors,
+                'warnings' => $warnings,
+                'data' => [
+                    'parceiro_id' => $existing->id,
+                    'cnpj_cpf' => $cnpj,
+                    'razao_social' => $existing->razao_social,
+                ],
+                'parceiro_id' => $existing->id,
+                'preview' => $this->buildPreview(
+                    array_merge($payload, ['razao_social' => $existing->razao_social]),
+                    $extracted,
+                    $fileName,
+                    'existe_sem_transportadora',
+                    $fieldSources,
+                    $enrichment,
+                    null,
+                    $existing,
+                    ['transportadora'],
+                ),
+            ];
+        }
+
+        $payload['papel_transportadora'] = true;
+        $payload['tipo_pessoa'] = 'PJ';
+        $payload['situacao'] = $payload['situacao'] ?? 'ATIVO';
+        unset($payload['papel_fornecedor'], $payload['tipo_fornecimento'], $payload['cfop_entrada_padrao']);
+
+        if (isset($payload['ie'])) {
+            $payload['ind_ie_dest'] = ParceiroFiscalRules::deriveIndIeDest(
+                is_string($payload['ie']) ? $payload['ie'] : null
+            );
+        }
+
+        if (empty($payload['razao_social'])) {
+            $errors[] = 'Razão social do transportador ausente no XML e na consulta CNPJ.';
+        }
+
+        $rules = ParceiroValidationRules::rules(partial: false);
+        $validator = Validator::make($payload, $rules);
+        if ($validator->fails()) {
+            foreach ($validator->errors()->all() as $message) {
+                $errors[] = $message;
+            }
+        }
+
+        $validated = $validator->passes() ? $validator->validated() : $payload;
+        unset($validated['cadastro_fiscal_completo']);
+        foreach (['papel_transportadora', 'emite_documento_fiscal', 'tipo_pessoa', 'cnaes_secundarios', 'regime_desde'] as $keep) {
+            if (array_key_exists($keep, $payload) && ! array_key_exists($keep, $validated)) {
+                $validated[$keep] = $payload[$keep];
+            }
+        }
+        $validated['papel_transportadora'] = true;
+
+        $errors = array_values(array_unique($errors));
+        $status = $errors === [] ? 'ok' : 'erro';
+
+        return [
+            'line' => $line,
+            'file_name' => $fileName,
+            'status' => $status,
+            'acao' => $status === 'ok' ? 'criar' : null,
+            'errors' => $errors,
+            'warnings' => $warnings,
+            'data' => $validated,
+            'preview' => $this->buildPreview(
+                $validated,
+                $extracted,
+                $fileName,
+                'novo',
+                $fieldSources,
+                $enrichment,
+                null,
+                null,
+                ['transportadora'],
             ),
         ];
     }
@@ -834,10 +1062,21 @@ class ParceiroXmlImportService
     {
         unset($data['line'], $data['status'], $data['errors'], $data['preview'], $data['parceiro_id'], $data['acao']);
 
-        $data['papel_fornecedor'] = true;
-        $data['emite_documento_fiscal'] = $data['emite_documento_fiscal'] ?? true;
+        $somenteTransportadora = ! empty($data['papel_transportadora'])
+            && empty($data['papel_fornecedor']);
+
+        if ($somenteTransportadora) {
+            $data['papel_transportadora'] = true;
+            $data['papel_fornecedor'] = false;
+            $data['emite_documento_fiscal'] = $data['emite_documento_fiscal'] ?? false;
+            unset($data['tipo_fornecimento'], $data['cfop_entrada_padrao']);
+        } else {
+            $data['papel_fornecedor'] = true;
+            $data['emite_documento_fiscal'] = $data['emite_documento_fiscal'] ?? true;
+            $data['tipo_fornecimento'] = $data['tipo_fornecimento'] ?? 'MERCADORIA';
+        }
+
         $data['tipo_pessoa'] = 'PJ';
-        $data['tipo_fornecimento'] = $data['tipo_fornecimento'] ?? 'MERCADORIA';
         $data['situacao'] = $data['situacao'] ?? 'ATIVO';
 
         if (isset($data['cnpj_cpf'])) {
@@ -861,10 +1100,15 @@ class ParceiroXmlImportService
 
         $validated = $validator->validated();
         unset($validated['cadastro_fiscal_completo']);
-        foreach (['papel_fornecedor', 'emite_documento_fiscal', 'tipo_fornecimento', 'cfop_entrada_padrao', 'cnaes_secundarios', 'regime_desde', 'area_incentivada'] as $keep) {
+        foreach (['papel_fornecedor', 'papel_transportadora', 'emite_documento_fiscal', 'tipo_fornecimento', 'cfop_entrada_padrao', 'cnaes_secundarios', 'regime_desde', 'area_incentivada'] as $keep) {
             if (array_key_exists($keep, $data) && ! array_key_exists($keep, $validated)) {
                 $validated[$keep] = $data[$keep];
             }
+        }
+
+        if ($somenteTransportadora) {
+            $validated['papel_transportadora'] = true;
+            $validated['papel_fornecedor'] = false;
         }
 
         return $validated;
@@ -877,6 +1121,9 @@ class ParceiroXmlImportService
      * @param  array<string, mixed>  $enrichment
      * @return array<string, mixed>
      */
+    /**
+     * @param  list<string>  $papeis
+     */
     private function buildPreview(
         array $payload,
         array $extracted,
@@ -886,6 +1133,7 @@ class ParceiroXmlImportService
         array $enrichment,
         ?string $destAviso,
         ?Parceiro $existing,
+        array $papeis = ['fornecedor'],
     ): array {
         $transportadora = null;
         if (! empty($extracted['transportadora'])) {
@@ -896,17 +1144,21 @@ class ParceiroXmlImportService
             ];
         }
 
+        $cnpjFallback = in_array('transportadora', $papeis, true)
+            ? ($extracted['transportadora']['cnpj'] ?? null)
+            : ($extracted['emit']['cnpj_cpf'] ?? null);
+
         return [
             'file_name' => $fileName,
             'chave_nfe' => $extracted['chave_nfe'] ?? null,
             'razao_social' => $payload['razao_social'] ?? null,
             'nome_fantasia' => $payload['nome_fantasia'] ?? null,
-            'cnpj_cpf' => $this->digitsOrNull($payload['cnpj_cpf'] ?? $extracted['emit']['cnpj_cpf'] ?? null),
+            'cnpj_cpf' => $this->digitsOrNull($payload['cnpj_cpf'] ?? $cnpjFallback),
             'municipio' => $payload['municipio'] ?? null,
             'uf' => $payload['uf'] ?? null,
             'ie' => $payload['ie'] ?? null,
             'regime' => $payload['regime'] ?? null,
-            'tipo_fornecimento' => $payload['tipo_fornecimento'] ?? 'MERCADORIA',
+            'tipo_fornecimento' => $payload['tipo_fornecimento'] ?? (in_array('fornecedor', $papeis, true) ? 'MERCADORIA' : null),
             'cfop_entrada_padrao' => $payload['cfop_entrada_padrao'] ?? null,
             'cnpj_status' => $cnpjStatus,
             'parceiro_id' => $existing?->id,
@@ -919,7 +1171,7 @@ class ParceiroXmlImportService
             ],
             'dest_aviso' => $destAviso,
             'transportadora' => $transportadora,
-            'papeis' => ['fornecedor'],
+            'papeis' => $papeis,
         ];
     }
 

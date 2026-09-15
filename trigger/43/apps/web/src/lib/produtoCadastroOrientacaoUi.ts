@@ -3,6 +3,9 @@
  *
  * Não muda o modelo: só deixa o formulário autoexplicativo —
  * SKU = material/programa · de-para = NF · volume = bobina na entrada.
+ *
+ * “Novo a partir deste” = mesmo perfil técnico, novo SKU (saldo e de-para próprios).
+ * Foco operacional: Nome no estoque + Descrição fiscal (+ código). Sem variante/alias.
  */
 
 import { unidadesDiferem } from './produtoUnidadesConversaoUi';
@@ -21,6 +24,45 @@ export type CadastroOrientacao = {
   /** Sugestão de unidade quando o grupo é substrato Exact típico. */
   preferM2Igual: boolean;
 };
+
+/** Banner do fluxo “Novo a partir deste” (?from=) — UX, sem segundo modelo de produto. */
+export type ModeloOrigemBanner = {
+  title: string;
+  lead: string;
+  bullets: string[];
+};
+
+export function decideModeloOrigemBanner(codigoOrigem: string): ModeloOrigemBanner {
+  const codigo = codigoOrigem.trim() || 'modelo';
+  return {
+    title: `Novo SKU a partir de ${codigo}`,
+    lead: 'Perfil técnico copiado. Concentre-se no que distingue a identidade: nome no estoque e descrição fiscal. Código vazio gera o próximo da sequência do grupo.',
+    bullets: [
+      'Novo cadastro = novo SKU e saldo separados do modelo.',
+      'De-para cProd não é copiado — vincule depois ou use Do XML.',
+      'Família, grupo, NCM, unidades e lote vieram do modelo; revise só se forem distintos.',
+      'Mesmo material Exact / mesmo cProd? Não duplique — use o SKU existente (ou volume na entrada).',
+    ],
+  };
+}
+
+/** Nomes ainda idênticos ao modelo: aviso suave (não bloqueia). */
+export function nomesAindaIguaisAoModelo(input: {
+  descricaoComercial: string;
+  descricaoFiscal: string;
+  origemComercial: string | null | undefined;
+  origemFiscal: string | null | undefined;
+}): boolean {
+  const norm = (s: string | null | undefined) => (s ?? '').trim().toUpperCase();
+  const com = norm(input.descricaoComercial);
+  const fis = norm(input.descricaoFiscal);
+  const oCom = norm(input.origemComercial);
+  const oFis = norm(input.origemFiscal);
+  if (!com && !fis) return false;
+  const comercialIgual = oCom !== '' && com === oCom;
+  const fiscalIgual = oFis !== '' && fis === oFis;
+  return comercialIgual || fiscalIgual;
+}
 
 export function decideCadastroOrientacao(input: {
   familia: string;
@@ -89,6 +131,11 @@ export function buildCadastroChecklist(input: {
   exigeDimensaoSku?: boolean;
   deParaCount: number;
   isNew: boolean;
+  /** Rascunho de de-para no formulário de criação (fornecedor + cProd). */
+  deParaDraftOk?: boolean;
+  /** Fluxo ?from= — recomenda revisar nomes se ainda iguais ao modelo. */
+  fromModelo?: boolean;
+  nomesIguaisAoModelo?: boolean;
 }): { items: CadastroCheckItem[]; ready: boolean; pendingRequired: number } {
   const familia = (input.familia || '').toUpperCase();
   const compra = familia === 'MP' || familia === 'EMB' || familia === 'REV';
@@ -123,6 +170,20 @@ export function buildCadastroChecklist(input: {
       ok: fiscal.length > 0,
       required: true,
     },
+  ];
+
+  if (input.fromModelo) {
+    items.push({
+      id: 'nomes_modelo',
+      label: input.nomesIguaisAoModelo
+        ? 'Nomes ainda iguais ao modelo — confirme se a identidade é distinta'
+        : 'Nomes revisados em relação ao modelo',
+      ok: !input.nomesIguaisAoModelo,
+      required: false,
+    });
+  }
+
+  items.push(
     {
       id: 'ncm',
       label: 'NCM (8 dígitos)',
@@ -143,7 +204,7 @@ export function buildCadastroChecklist(input: {
       ok: (input.unidadeComercial || '').trim().length > 0 && fatorOk,
       required: true,
     },
-  ];
+  );
 
   if (gramaturaNeeded) {
     items.push({
@@ -164,12 +225,15 @@ export function buildCadastroChecklist(input: {
   }
 
   if (compra) {
+    const draftOk = Boolean(input.deParaDraftOk);
     items.push({
       id: 'depara',
       label: input.isNew
-        ? 'De-para cProd (após salvar o SKU)'
+        ? draftOk
+          ? 'De-para cProd preenchido (grava junto)'
+          : 'De-para cProd (recomendado — ou use Do XML)'
         : 'De-para cProd do fornecedor',
-      ok: input.isNew ? true : input.deParaCount > 0,
+      ok: input.isNew ? draftOk : input.deParaCount > 0,
       required: !input.isNew,
     });
   }

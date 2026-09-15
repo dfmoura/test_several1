@@ -26,14 +26,24 @@ Condição de pagamento: {{ $condicao_pagamento }}
 @if (!empty($previsao_entrega))
 Previsão de entrega: {{ $previsao_entrega }}
 @endif
+@if (!empty($mod_frete_label))
+Frete: {{ $mod_frete_label }}
+@endif
+@if (!empty($transportador))
+Transportador: {{ $transportador['razao_social'] ?? '' }}@if (!empty($transportador['cnpj_cpf'])) · {{ $transportador['cnpj_cpf'] }}@endif@if (!empty($transportador['ie'])) · IE {{ $transportador['ie'] }}@endif
+@if (!empty($transportador['endereco']))
+{{ $transportador['endereco'] }}
+@endif
+@endif
 
 Itens
 @foreach ($itens as $item)
 - {{ $item['codigo'] }} — {{ $item['descricao'] }} | {{ $item['qtde'] }} {{ $item['unidade'] }} × {{ $item['valor_unitario'] }} = {{ $item['valor_total'] }}@if (!empty($item['valor_ipi']) && (float) $item['valor_ipi'] > 0) | IPI {{ $item['valor_ipi'] }}@if (!empty($item['aliq_ipi'])) ({{ $item['aliq_ipi'] }}%)@endif @endif@if (!empty($item['valor_icms']) && (float) $item['valor_icms'] > 0) | ICMS {{ $item['valor_icms'] }}@if (!empty($item['aliq_icms'])) ({{ $item['aliq_icms'] }}%)@endif @endif
 @if (!empty($item['composicao']))
 @foreach ($item['composicao'] as $faixa)
-  · {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} bob. × {{ $faixa['comprimento_m'] }} m = {{ $faixa['area_m2'] }} m²
+  · {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} vol. × {{ $faixa['comprimento_m'] }} m = {{ $faixa['area_m2'] }} m²
 @endforeach
+  · Pedido comercial: {{ $item['qtde'] }} {{ $item['unidade'] }}
 @endif
 
 @endforeach
@@ -41,10 +51,7 @@ Itens
 Mercadoria: {{ $valor_total }}
 IPI estimado: {{ $valor_ipi ?? '0.00' }}
 ICMS estimado (destaque): {{ $valor_icms ?? '0.00' }}
-@if (!empty($valor_frete) && (float) $valor_frete > 0)
-Frete: {{ $valor_frete }}
-@endif
-Total previsto (mercadoria + IPI + frete): {{ $valor_previsto ?? $valor_total }}
+Total previsto (mercadoria + IPI): {{ $valor_previsto ?? $valor_total }}
 
 @if (!empty($observacao))
 Observação:

@@ -10,6 +10,7 @@ use App\Services\Compras\DfeAmarrarService;
 use App\Services\Compras\DfeCaixaService;
 use App\Services\Compras\DfeFornecedorCadastroService;
 use App\Services\Compras\DfeSyncService;
+use App\Services\Compras\DfeTransportadorCadastroService;
 use App\Services\Compras\DfeXmlCompletoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class DfeCaixaController extends Controller
         private readonly DfeAmarrarService $amarrar,
         private readonly DfeXmlCompletoService $xmlCompleto,
         private readonly DfeFornecedorCadastroService $fornecedorCadastro,
+        private readonly DfeTransportadorCadastroService $transportadorCadastro,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -179,24 +181,60 @@ class DfeCaixaController extends Controller
         ]);
     }
 
+    /**
+     * Simula cadastro do transportador a partir do XML do cofre.
+     */
+    public function transportadorPreview(Request $request, DfeDocumento $dfeDocumento): JsonResponse
+    {
+        $this->authorizeParceiroWrite($request);
+        $this->assertEmpresaDoc($dfeDocumento);
+
+        $row = $this->transportadorCadastro->preview($this->empresa(), $dfeDocumento);
+
+        return response()->json([
+            'data' => [
+                'row' => $row,
+                'documento' => $this->service->show($dfeDocumento),
+            ],
+        ]);
+    }
+
+    /**
+     * Confirma criação / adição de papel transportadora a partir do XML do cofre.
+     */
+    public function transportadorCommit(Request $request, DfeDocumento $dfeDocumento): JsonResponse
+    {
+        $this->authorizeParceiroWrite($request);
+        $this->assertEmpresaDoc($dfeDocumento);
+
+        $commit = $this->transportadorCadastro->commit($this->empresa(), $dfeDocumento);
+
+        return response()->json([
+            'data' => [
+                'commit' => $commit,
+                'documento' => $this->service->show($dfeDocumento->fresh()),
+            ],
+        ]);
+    }
+
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('compras.ler')) {
-            abort(403, 'Sem permissão para consultar a caixa de NF-e destinadas.');
+            abort(403, 'Sem permissão para consultar a caixa de NF-e.');
         }
     }
 
     private function authorizeWrite(Request $request): void
     {
         if (! $request->user()->can('compras.escrever')) {
-            abort(403, 'Sem permissão para alterar a caixa de NF-e destinadas.');
+            abort(403, 'Sem permissão para alterar a caixa de NF-e.');
         }
     }
 
     private function authorizeParceiroWrite(Request $request): void
     {
         if (! $request->user()->can('parceiro.escrever')) {
-            abort(403, 'Sem permissão para cadastrar fornecedor a partir da NF-e.');
+            abort(403, 'Sem permissão para cadastrar parceiro a partir da NF-e.');
         }
     }
 

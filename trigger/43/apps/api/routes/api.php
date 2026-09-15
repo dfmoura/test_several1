@@ -45,6 +45,8 @@ use App\Http\Controllers\Api\V1\ParceiroController;
 use App\Http\Controllers\Api\V1\ParceiroImportController;
 use App\Http\Controllers\Api\V1\ProdutoController;
 use App\Http\Controllers\Api\V1\ProdutoFornecedorCodigoController;
+use App\Http\Controllers\Api\V1\ProdutoFromNfeItemController;
+use App\Http\Controllers\Api\V1\ProdutoFromNfeXmlController;
 use App\Http\Controllers\Api\V1\ProdutoImportController;
 use App\Http\Controllers\Api\V1\TituloController;
 use App\Http\Controllers\Api\V1\WebhookAsaasAutorizacaoSaqueController;
@@ -185,6 +187,10 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/produtos', [ProdutoController::class, 'index']);
         Route::post('/produtos', [ProdutoController::class, 'store']);
+        Route::post('/produtos/from-nfe-item/preview', [ProdutoFromNfeItemController::class, 'preview']);
+        Route::post('/produtos/from-nfe-item', [ProdutoFromNfeItemController::class, 'store']);
+        Route::post('/produtos/from-nfe-xml/preview', [ProdutoFromNfeXmlController::class, 'preview']);
+        Route::post('/produtos/from-nfe-xml/commit', [ProdutoFromNfeXmlController::class, 'commit']);
         Route::get('/produtos/import/template', [ProdutoImportController::class, 'template']);
         Route::post('/produtos/import/preview', [ProdutoImportController::class, 'preview']);
         Route::post('/produtos/import/commit', [ProdutoImportController::class, 'commit']);
@@ -270,6 +276,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/dfe-documentos/{dfeDocumento}/sem-interesse', [DfeCaixaController::class, 'semInteresse']);
         Route::post('/dfe-documentos/{dfeDocumento}/fornecedor/preview', [DfeCaixaController::class, 'fornecedorPreview']);
         Route::post('/dfe-documentos/{dfeDocumento}/fornecedor/commit', [DfeCaixaController::class, 'fornecedorCommit']);
+        Route::post('/dfe-documentos/{dfeDocumento}/transportador/preview', [DfeCaixaController::class, 'transportadorPreview']);
+        Route::post('/dfe-documentos/{dfeDocumento}/transportador/commit', [DfeCaixaController::class, 'transportadorCommit']);
         Route::get('/dfe-sync', [DfeCaixaController::class, 'syncEstado']);
         Route::post('/dfe-sync', [DfeCaixaController::class, 'enfileirarSync']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview-dfe', [DfeCaixaController::class, 'previewNaOc']);

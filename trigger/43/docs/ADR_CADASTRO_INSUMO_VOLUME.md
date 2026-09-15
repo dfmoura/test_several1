@@ -57,8 +57,8 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 ### Unidades (inalteradas — ADR-039-UNID-001)
 
 - Dual: `unidade_comercial` (NF) ↔ `unidade_interna` (saldo único).  
-- Substrato Exact típico: **M2 = M2** (fator 1) — saldo bate com NF/`qLote`.  
-- Papel faturado em KG: comercial KG → interna M2 **só** com gramatura (e fator derivado).  
+- Substrato Exact típico: **M2 = M2** (fator 1) — saldo bate com NF/`qLote`. Padrão do grupo `MP-PAP` / `MP-FLM`.  
+- Papel faturado em KG (exceção): comercial KG → interna M2 **só** com gramatura (e fator derivado) — humano sobrescreve o padrão do grupo.  
 - Proibido segundo saldo e “unidades alternativas” Sankhya.
 
 ### Lote (emenda à ADR-039-EST-003)

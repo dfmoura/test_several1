@@ -44,7 +44,7 @@ export function ComprasNfeRecebidasPage() {
       );
       setRows(res.data);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Falha ao carregar NF-e recebidas.');
+      setErro(e instanceof Error ? e.message : 'Falha ao carregar NF-e vinculadas.');
     } finally {
       setLoading(false);
     }
@@ -62,12 +62,16 @@ export function ComprasNfeRecebidasPage() {
   return (
     <>
       <PageHeader
-        title="NF-e recebidas"
-        description="Espelho fiscal guardado na entrada (após conferência na OC). Não é a caixa do fisco nem escrituração oficial."
+        title="NF-e vinculadas"
+        description="Notas contra o CNPJ desta empresa já vinculadas à entrada (após conferência na OC). Espelho fiscal para consulta — não é a caixa do fisco nem escrituração oficial."
         actions={
           <>
-            <Link to="/compras/nfe-destinadas" className="btn btn-secondary">
-              NF-e destinadas
+            <Link
+              to="/compras/nfe-destinadas"
+              className="btn btn-secondary"
+              title="Caixa — notas carregadas do fisco, ainda sem vínculo ou em andamento"
+            >
+              Caixa de NF-e
             </Link>
             <Link to="/compras/ordens" className="btn btn-secondary">
               Ordens de compra
@@ -114,10 +118,10 @@ export function ComprasNfeRecebidasPage() {
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
             <div className="empty-state">
-              Nenhuma NF-e recebida neste ano. O espelho nasce quando a{' '}
-              <Link to="/compras/ordens">ordem de compra</Link> é recebida com XML. Notas do fisco
-              ainda não conferidas ficam em{' '}
-              <Link to="/compras/nfe-destinadas">NF-e destinadas</Link>.
+              Nenhuma NF-e vinculada neste ano. O espelho nasce quando a{' '}
+              <Link to="/compras/ordens">ordem de compra</Link> é recebida com XML. Notas carregadas
+              do fisco ainda sem vínculo ficam na{' '}
+              <Link to="/compras/nfe-destinadas">Caixa de NF-e</Link>.
             </div>
           ) : (
             <table className="data-table">

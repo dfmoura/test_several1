@@ -124,8 +124,8 @@ class ProdutoCadastroServiceTest extends TestCase
 
         $this->assertSame('PAPEL FOSCO AUTOADESIVO COLACRIL ADC 1000', $fosco->descricao_fiscal);
         $this->assertSame('48114190', $fosco->ncm);
-        $this->assertSame('KG', $fosco->unidade_comercial);
-        $this->assertSame('KG', $fosco->unidade_interna);
+        $this->assertSame('M2', $fosco->unidade_comercial);
+        $this->assertSame('M2', $fosco->unidade_interna);
         $this->assertSame('1.0000000000', (string) $fosco->fator_conversao);
         $this->assertSame('SEM GTIN', $fosco->gtin);
         $this->assertSame(0, (int) $fosco->origem); // default schema; XML confirma na 1ª NF
@@ -176,7 +176,7 @@ class ProdutoCadastroServiceTest extends TestCase
             ->where('codigo', 'EMB-TUB-015')
             ->firstOrFail();
         $this->assertFalse((bool) $tubete->controla_lote);
-        $this->assertSame('1" × 2,0 × 80 c/logo', $tubete->descricao_comercial);
+        $this->assertSame('1" × 2,0 × 80 C/LOGO', $tubete->descricao_comercial);
         $this->assertSame('1"', $tubete->atributos['diametro_pol'] ?? null);
         $this->assertSame('2,0', $tubete->atributos['espessura_mm'] ?? null);
         $this->assertSame('80', $tubete->atributos['comprimento'] ?? null);
@@ -186,7 +186,7 @@ class ProdutoCadastroServiceTest extends TestCase
             ->where('empresa_id', $empresa->id)
             ->where('codigo', 'EMB-TUB-046')
             ->firstOrFail();
-        $this->assertSame('3" × 3,0 × 100 s/logo', $tubete3->descricao_comercial);
+        $this->assertSame('3" × 3,0 × 100 S/LOGO', $tubete3->descricao_comercial);
         $this->assertFalse((bool) ($tubete3->atributos['com_logo'] ?? true));
 
         $seqPap = CodigoSequence::query()

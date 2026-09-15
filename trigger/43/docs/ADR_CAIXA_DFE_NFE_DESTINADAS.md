@@ -55,7 +55,8 @@ Compras → Caixa DF-e (estacionária, gate F5_DFE_CX)
 
 ### Superfície
 
-- Menu: **Compras** → caixa (nome estável na UI; rota sob `/compras/…`).  
+- Menu: **Compras** → **Caixa de NF-e** (notas carregadas do fisco) e **NF-e vinculadas** (espelho já amarrado à OC); rotas estáveis `/compras/nfe-destinadas` e `/compras/nfe-recebidas` (IDs técnicos; rótulo UX ≠ path).  
+- Par mental: ambas tratam NF emitidas **contra** o CNPJ da EMP — caixa = carregadas (aguardam ou em vínculo); vinculadas = pós-conferência na OC. Evitar “destinadas/recebidas” na UI (jargão SEFAZ / colide com receber mercadoria).  
 - Não painel/cockpit; não hub fiscal genérico de administração.  
 - Pré-requisitos de implantação aceitos na EMP: `F0_A1` · `F5_COMPRAS` · `F5_NFE_ENT`.  
 - Upload manual na OC permanece plano B eterno.
@@ -155,5 +156,19 @@ Emissão oficial de NF-e/NFS-e de **saída** permanece no hub Focus (`ADR_EMISSA
 8. Misturar EMP (`empresa_id` do contexto) ou confiar só no header.  
 9. Misturar stage do app com URL/`tpAmb` DF-e de outro ambiente.  
 10. Ignorar cooldown pós-656 (martelar sync no AN).
+
+---
+
+## Emenda — Forn./Transp. na lista (cadastro via XML)
+
+**Data:** 2026-09-15
+
+| Escolha | Motivo |
+|---------|--------|
+| Colunas **Forn.** e **Transp.** com ícone (ok / pendente / N/A) | Densidade da tabela; tooltip leva o detalhe |
+| Metadados `transp_cnpj` / `transp_nome` / `transp_extraido` no `dfe_documentos` | Lista local sem reler XML a cada GET; alinhado a `emit_*` |
+| Hidratação lazy no GET se XML já no cofre e `transp_extraido=false` | Retrocompatível com documentos já baixados |
+| Cadastro do transportador = mesmo padrão do fornecedor (preview/commit no XML do cofre → `ParceiroXmlImportService`) | Sem segundo escritor de PAR; papel `papel_transportadora` |
+| Transportador ausente / sem XML / PF → ícone neutro, sem ação | Evita falso positivo e cadastro inválido |
 
 Alterar este ADR exige alinhamento explícito às ADRs de compras/estoque/A1 e ao estudo 32.

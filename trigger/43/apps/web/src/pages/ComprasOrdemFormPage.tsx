@@ -4,6 +4,7 @@ import { CondicaoPagamentoInput } from '../components/CondicaoPagamentoInput';
 import { OcPedidoComposicaoPanel } from '../components/OcPedidoComposicaoPanel';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import {
   ApiError,
   api,
@@ -13,12 +14,30 @@ import {
   type Produto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { clampDecimalScale, DECIMAL_SCALE, formatCurrency } from '../lib/format';
+import { clampDecimalScale, DECIMAL_SCALE, formatCnpjCpf, formatCurrency } from '../lib/format';
+
+const MOD_FRETE_CIF = '0';
+const MOD_FRETE_FOB = '1';
+
+function transportadorResumoLinha(p: Parceiro): string {
+  const parts: string[] = [];
+  if (p.razao_social) parts.push(p.razao_social);
+  if (p.cnpj_cpf) parts.push(`CNPJ ${formatCnpjCpf(p.cnpj_cpf)}`);
+  if (p.ie) parts.push(`IE ${p.ie}`);
+  const end = [p.logradouro, p.numero ? `nº ${p.numero}` : null, p.bairro]
+    .filter(Boolean)
+    .join(', ');
+  if (end) parts.push(end);
+  const mun = [p.municipio, p.uf].filter(Boolean).join('/');
+  if (mun) parts.push(mun);
+  return parts.join(' · ');
+}
 import {
   ocFaixaCompleta,
   qtdeComercialFromFaixas,
   type OcFaixaForm,
 } from '../lib/ocComposicaoVolumes';
+import { produtoPermiteDetalheBobinaOc } from '../lib/ocPedidoDetalheUi';
 
 type ItemRow = {
   produto_id: string;
@@ -28,6 +47,13 @@ type ItemRow = {
   aliq_icms: string;
   composicao: OcFaixaForm[];
 };
+
+type ProdutoById = Record<string, Produto>;
+
+function rememberProduto(map: ProdutoById, produto: Produto | null): ProdutoById {
+  if (!produto) return map;
+  return { ...map, [String(produto.id)]: produto };
+}
 
 function emptyItem(): ItemRow {
   return {
@@ -112,13 +138,14 @@ export function ComprasOrdemFormPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('compras.escrever');
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtosById, setProdutosById] = useState<ProdutoById>({});
   const [fornecedor, setFornecedor] = useState<Parceiro | null>(null);
+  const [transportador, setTransportador] = useState<Parceiro | null>(null);
+  const [modFrete, setModFrete] = useState<string>(MOD_FRETE_FOB);
   const [urgente, setUrgente] = useState(false);
   const [condicao, setCondicao] = useState('');
   const [previsao, setPrevisao] = useState('');
   const [observacao, setObservacao] = useState('');
-  const [valorFrete, setValorFrete] = useState('');
   const [itens, setItens] = useState<ItemRow[]>([emptyItem()]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -129,32 +156,22 @@ export function ComprasOrdemFormPage() {
     let ipi = 0;
     let icms = 0;
     for (const row of itens) {
-      const produto = produtos.find((p) => String(p.id) === row.produto_id) ?? null;
+      const produto = produtosById[row.produto_id] ?? null;
       if (!row.produto_id || !qtdeEfetiva(row, produto) || !row.valor_unitario) continue;
       const base = lineMercadoria(row, produto);
       mercadoria = money2(mercadoria + base);
       ipi = money2(ipi + lineImposto(base, row.aliq_ipi));
       icms = money2(icms + lineImposto(base, row.aliq_icms));
     }
-    const frete = money2(Math.max(0, parseNum(valorFrete)));
     return {
       mercadoria,
       ipi,
       icms,
-      frete,
-      previsto: money2(mercadoria + ipi + frete),
+      previsto: money2(mercadoria + ipi),
     };
-  }, [itens, valorFrete, produtos]);
+  }, [itens, produtosById]);
 
-  const produtoOf = (row: ItemRow) =>
-    produtos.find((p) => String(p.id) === row.produto_id) ?? null;
-
-  useEffect(() => {
-    void (async () => {
-      const prd = await api.get<{ data: Produto[] }>('/produtos');
-      setProdutos(prd.data);
-    })();
-  }, []);
+  const produtoOf = (row: ItemRow) => produtosById[row.produto_id] ?? null;
 
   useEffect(() => {
     if (!id) return;
@@ -183,13 +200,37 @@ export function ComprasOrdemFormPage() {
               } as Parceiro)
             : null,
         );
+        setTransportador(
+          oc.transportador
+            ? ({
+                id: oc.transportador.id,
+                codigo: oc.transportador.codigo,
+                razao_social: oc.transportador.razao_social,
+                nome_fantasia: oc.transportador.nome_fantasia,
+                email: oc.transportador.email ?? null,
+                telefone: oc.transportador.telefone ?? null,
+                cnpj_cpf: oc.transportador.cnpj_cpf ?? null,
+                ie: oc.transportador.ie ?? null,
+                logradouro: oc.transportador.logradouro ?? null,
+                numero: oc.transportador.numero ?? null,
+                complemento: oc.transportador.complemento ?? null,
+                bairro: oc.transportador.bairro ?? null,
+                municipio: oc.transportador.municipio ?? null,
+                uf: oc.transportador.uf ?? null,
+                cep: oc.transportador.cep ?? null,
+                papel_transportadora: true,
+              } as Parceiro)
+            : null,
+        );
+        setModFrete(
+          oc.mod_frete === MOD_FRETE_CIF || oc.mod_frete === MOD_FRETE_FOB
+            ? oc.mod_frete
+            : MOD_FRETE_FOB,
+        );
         setUrgente(oc.urgente);
         setCondicao(oc.condicao_pagamento ?? '');
         setPrevisao(oc.previsao_entrega ?? '');
         setObservacao(oc.observacao ?? '');
-        setValorFrete(
-          oc.valor_frete && Number(oc.valor_frete) > 0 ? String(oc.valor_frete) : '',
-        );
         setItens(
           (oc.itens ?? []).map((i) => ({
             produto_id: String(i.produto_id),
@@ -204,6 +245,32 @@ export function ComprasOrdemFormPage() {
             })),
           })),
         );
+
+        // Hidrata SKUs completos (grupo / unidades) — payload da OC traz só resumo.
+        const ids = [
+          ...new Set(
+            (oc.itens ?? [])
+              .map((i) => i.produto_id)
+              .filter((pid) => Number.isFinite(pid) && pid > 0),
+          ),
+        ];
+        if (ids.length > 0) {
+          const loaded = await Promise.all(
+            ids.map(async (pid) => {
+              try {
+                const pr = await api.get<{ data: Produto }>(`/produtos/${pid}`);
+                return pr.data;
+              } catch {
+                return null;
+              }
+            }),
+          );
+          const next: ProdutoById = {};
+          for (const p of loaded) {
+            if (p) next[String(p.id)] = p;
+          }
+          setProdutosById(next);
+        }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Falha ao carregar OC.');
       } finally {
@@ -228,10 +295,20 @@ export function ComprasOrdemFormPage() {
     })();
   };
 
-  const onProdutoChange = (idx: number, produtoId: string) => {
+  const onProdutoChange = (idx: number, produto: Produto | null) => {
+    const produtoId = produto ? String(produto.id) : '';
+    setProdutosById((prev) => rememberProduto(prev, produto));
     const next = [...itens];
-    const row = { ...itens[idx], produto_id: produtoId, aliq_ipi: '', aliq_icms: '' };
-    const produto = produtos.find((p) => String(p.id) === produtoId) ?? null;
+    const permiteBobina = produtoPermiteDetalheBobinaOc(produto);
+    let row: ItemRow = {
+      ...itens[idx],
+      produto_id: produtoId,
+      aliq_ipi: '',
+      aliq_icms: '',
+    };
+    if (!permiteBobina && row.composicao.length > 0) {
+      row = { ...row, composicao: [] };
+    }
     next[idx] =
       row.composicao.length > 0
         ? { ...row, qtde_pedida: qtdeEfetiva(row, produto) }
@@ -265,17 +342,26 @@ export function ComprasOrdemFormPage() {
       setError('Selecione o fornecedor.');
       return;
     }
+    if (modFrete !== MOD_FRETE_CIF && modFrete !== MOD_FRETE_FOB) {
+      setError('Selecione a modalidade de frete (CIF ou FOB).');
+      return;
+    }
+    if (modFrete === MOD_FRETE_FOB && !transportador) {
+      setError('FOB exige transportador cadastrado.');
+      return;
+    }
     setError(null);
     setSaving(true);
     try {
       const payload = {
         fornecedor_id: fornecedor.id,
+        transportador_id: transportador?.id ?? null,
+        mod_frete: modFrete,
         origem: 'DIRETA',
         urgente,
         condicao_pagamento: condicao || null,
         previsao_entrega: previsao || null,
         observacao: observacao || null,
-        valor_frete: valorFrete.trim() !== '' ? valorFrete : null,
         itens: itens
           .filter((i) => {
             if (!i.produto_id || !i.valor_unitario) return false;
@@ -343,25 +429,27 @@ export function ComprasOrdemFormPage() {
             <div className="card-body">
               <div className="form-section">
                 <h3>Fornecedor e condições</h3>
-                <div className="form-grid">
+                <div className="oc-form-page__cabecalho-row">
                   <ParceiroCombobox
-                    className="span-2"
+                    className="oc-form-page__cabecalho-fornecedor"
                     label="Fornecedor"
                     papel="fornecedor"
                     value={fornecedor}
                     onChange={aplicarDefaultsFornecedor}
                     required
-                    placeholder="Buscar fornecedor por nome, código ou CNPJ…"
+                    showSummary={false}
+                    placeholder="Buscar fornecedor…"
                   />
-                  <div className="form-group">
+                  <div className="form-group oc-form-page__cabecalho-condicao">
                     <label>Condição de pagamento</label>
                     <CondicaoPagamentoInput
                       value={condicao}
                       placeholder="Sugerida pelo fornecedor"
                       onChange={setCondicao}
+                      showHint={false}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group oc-form-page__cabecalho-previsao">
                     <label>Previsão de entrega</label>
                     <input
                       type="date"
@@ -369,26 +457,49 @@ export function ComprasOrdemFormPage() {
                       onChange={(e) => setPrevisao(e.target.value)}
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Frete (R$)</label>
-                    <input
-                      inputMode="decimal"
-                      value={valorFrete}
-                      onChange={(e) => setValorFrete(e.target.value)}
-                      placeholder="0,00"
-                    />
+                  <div className="form-group oc-form-page__cabecalho-frete">
+                    <label>Frete</label>
+                    <select
+                      value={modFrete}
+                      onChange={(e) => setModFrete(e.target.value)}
+                      required
+                    >
+                      <option value={MOD_FRETE_CIF}>CIF</option>
+                      <option value={MOD_FRETE_FOB}>FOB</option>
+                    </select>
                   </div>
-                  <div className="form-group">
-                    <label>
+                  <div className="form-group oc-form-page__cabecalho-urgente">
+                    <label>&nbsp;</label>
+                    <label className="oc-form-page__urgente-check">
                       <input
                         type="checkbox"
                         checked={urgente}
                         onChange={(e) => setUrgente(e.target.checked)}
-                        style={{ marginRight: '0.4rem' }}
                       />
                       Urgente
                     </label>
                   </div>
+                </div>
+                <div className="oc-form-page__cabecalho-transportador">
+                  <ParceiroCombobox
+                    label={
+                      modFrete === MOD_FRETE_FOB
+                        ? 'Transportador'
+                        : 'Transportador (opcional)'
+                    }
+                    papel="transportadora"
+                    value={transportador}
+                    onChange={setTransportador}
+                    required={modFrete === MOD_FRETE_FOB}
+                    showSummary={false}
+                    placeholder="Buscar transportadora…"
+                    emptyMessage="Nenhuma transportadora encontrada. Cadastre o parceiro com papel transportadora."
+                  />
+                  {transportador ? (
+                    <p className="oc-form-page__transportador-resumo">
+                      {transportadorResumoLinha(transportador)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -405,27 +516,29 @@ export function ComprasOrdemFormPage() {
                   const ipi = lineImposto(base, row.aliq_ipi);
                   const icms = lineImposto(base, row.aliq_icms);
                   const temComposicao = row.composicao.length > 0;
+                  const permiteDetalhe = produtoPermiteDetalheBobinaOc(
+                    produto,
+                    temComposicao,
+                  );
                   const unCom = (produto?.unidade_comercial || 'un.').toUpperCase();
                   return (
                     <div key={idx} className="oc-form-page__item">
-                      <div className="form-grid">
-                        <div className="form-group span-2">
-                          <label>Produto</label>
-                          <select
-                            required
-                            value={row.produto_id}
-                            onChange={(e) => onProdutoChange(idx, e.target.value)}
-                          >
-                            <option value="">Selecione…</option>
-                            {produtos.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.codigo} — {p.descricao_comercial || p.descricao_fiscal}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label>
+                      <div
+                        className={`oc-form-page__item-row${
+                          itens.length > 1 ? ' has-remove' : ''
+                        }`}
+                      >
+                        <ProdutoCombobox
+                          className="oc-form-page__item-produto"
+                          label="Produto"
+                          value={produto}
+                          onChange={(p) => onProdutoChange(idx, p)}
+                          required
+                          showSummary={false}
+                          placeholder="Buscar produto…"
+                        />
+                        <div className="form-group oc-form-page__item-qtde">
+                          <label title={temComposicao ? 'Derivada das faixas' : undefined}>
                             Qtde ({unCom})
                             {temComposicao ? ' · faixas' : ''}
                           </label>
@@ -443,7 +556,7 @@ export function ComprasOrdemFormPage() {
                             }}
                           />
                         </div>
-                        <div className="form-group">
+                        <div className="form-group oc-form-page__item-valor">
                           <label>Valor unitário</label>
                           <input
                             required
@@ -456,13 +569,8 @@ export function ComprasOrdemFormPage() {
                             }}
                           />
                         </div>
-                        <div className="form-group">
-                          <label>
-                            Alíq. IPI %
-                            {ipi > 0
-                              ? ` · ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
-                              : ''}
-                          </label>
+                        <div className="form-group oc-form-page__item-aliq">
+                          <label>Alíq. IPI %</label>
                           <input
                             inputMode="decimal"
                             value={row.aliq_ipi}
@@ -472,16 +580,15 @@ export function ComprasOrdemFormPage() {
                               setItens(next);
                             }}
                             placeholder="auto"
-                            title="Histórico NF ou vazio"
+                            title={
+                              ipi > 0
+                                ? `IPI ${formatCurrency(ipi.toFixed(DECIMAL_SCALE.money))}`
+                                : 'Histórico NF ou vazio'
+                            }
                           />
                         </div>
-                        <div className="form-group">
-                          <label>
-                            Alíq. ICMS %
-                            {icms > 0
-                              ? ` · ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))}`
-                              : ''}
-                          </label>
+                        <div className="form-group oc-form-page__item-aliq">
+                          <label>Alíq. ICMS %</label>
                           <input
                             inputMode="decimal"
                             value={row.aliq_icms}
@@ -491,28 +598,39 @@ export function ComprasOrdemFormPage() {
                               setItens(next);
                             }}
                             placeholder="auto"
-                            title="Destaque · não soma no total"
+                            title={
+                              icms > 0
+                                ? `ICMS ${formatCurrency(icms.toFixed(DECIMAL_SCALE.money))} · destaque`
+                                : 'Destaque · não soma no total'
+                            }
                           />
                         </div>
                         {itens.length > 1 && (
-                          <div className="form-group">
+                          <div className="form-group oc-form-page__item-remove">
                             <label>&nbsp;</label>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               onClick={() => setItens(itens.filter((_, i) => i !== idx))}
                             >
-                              Remover item
+                              Remover
                             </button>
                           </div>
                         )}
                       </div>
 
-                      <OcPedidoComposicaoPanel
-                        composicao={row.composicao}
-                        compact
-                        onChange={(composicao) => patchFaixa(idx, composicao)}
-                      />
+                      {permiteDetalhe ? (
+                        <OcPedidoComposicaoPanel
+                          composicao={row.composicao}
+                          compact
+                          comercial={{
+                            unidade_comercial: produto?.unidade_comercial,
+                            unidade_interna: produto?.unidade_interna,
+                            fator_conversao: produto?.fator_conversao,
+                          }}
+                          onChange={(composicao) => patchFaixa(idx, composicao)}
+                        />
+                      ) : null}
                     </div>
                   );
                 })}
@@ -545,10 +663,6 @@ export function ComprasOrdemFormPage() {
                   <div className="form-group">
                     <label>ICMS (destaque)</label>
                     <div>{formatCurrency(totais.icms.toFixed(DECIMAL_SCALE.money))}</div>
-                  </div>
-                  <div className="form-group">
-                    <label>Frete</label>
-                    <div>{formatCurrency(totais.frete.toFixed(DECIMAL_SCALE.money))}</div>
                   </div>
                   <div className="form-group">
                     <label>Total previsto</label>

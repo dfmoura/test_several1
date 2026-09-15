@@ -99,3 +99,13 @@ Sem mudar `receber()` nem o triplo ledger (estoque ≠ pagar ≠ fiscal):
 - Progressive disclosure: espelho fiscal, de-para NF→OC e (quando vazio) parcelas ficam em `<details>`; zona primária = confronto + qtde/volumes + desfecho.
 - Desfechos em linguagem operacional (`Receber o que chegou` / `Receber alinhado à NF` / `Não receber — aguardar fornecedor`); códigos API inalterados.
 - Avisos `PARCELAS_VS_*` apresentados como esclarecimento (não como erro de sistema).
+
+## Emenda 2026-09-14 — confronto só com detalhe de volumes
+
+`OcReceberConfronto` monta linha **somente** quando há faixas no pedido **ou** detalhe físico na NF (`rastro` / Exact / RLS×MM×M).
+
+- Só `qCom` (ex. ribbon UN, tubete, lote único sem rastro) → **sem** bloco Confronto — evita “—” enganoso.
+- `controla_lote` sozinho não abre confronto de bobinas; continua exigindo lote na conferência se o SKU controla lote.
+- `receber()` e o triplo ledger inalterados.
+
+**Proibido:** inventar bobinas a partir de `infAdProd` fiscal (ex. DCR/SUFRAMA); exigir desfecho de volumes quando não há volumes para confrontar.

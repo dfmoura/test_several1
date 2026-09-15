@@ -1076,6 +1076,8 @@ export type Produto = {
   atributos: Record<string, unknown> | null;
   grupo_catalogo?: ProdutoGrupo | null;
   fornecedor_codigos?: ProdutoFornecedorCodigo[];
+  /** Contagem de de-para (listagem) — `withCount('fornecedorCodigos')`. */
+  fornecedor_codigos_count?: number;
   criado_por?: UsuarioRef | null;
   atualizado_por?: UsuarioRef | null;
   created_at?: string | null;
@@ -1409,6 +1411,8 @@ export type OrdemCompra = {
   codigo: string;
   fornecedor_id: number;
   fornecedor?: OrdemCompraParceiro | null;
+  transportador_id?: number | null;
+  transportador?: OrdemCompraParceiro | null;
   empresa?: OrdemCompraEmpresa | null;
   operacao?: OrdemCompraOperacao | null;
   cotacao_id: number | null;
@@ -1421,6 +1425,8 @@ export type OrdemCompra = {
   previsao_entrega: string | null;
   valor_total: string;
   valor_frete?: string;
+  mod_frete?: string | null;
+  mod_frete_label?: string | null;
   valor_ipi?: string;
   valor_icms?: string;
   valor_previsto?: string;
@@ -1437,7 +1443,7 @@ export type OrdemCompra = {
   updated_at?: string | null;
 };
 
-/** Caixa DF-e — NF-e destinadas (BL-090, leitura local). */
+/** Caixa DF-e — Caixa de NF-e (carregadas contra o CNPJ; BL-090, leitura local). */
 export type DfeFornecedorStatus =
   | 'cadastrado'
   | 'sem_papel'
@@ -1454,6 +1460,26 @@ export type DfeFornecedorInfo = {
   pode_cadastrar: boolean;
 };
 
+export type DfeTransportadorStatus =
+  | 'cadastrado'
+  | 'sem_papel'
+  | 'nao_cadastrado'
+  | 'pf'
+  | 'sem_cnpj'
+  | 'ausente'
+  | 'sem_xml'
+  | string;
+
+export type DfeTransportadorInfo = {
+  status: DfeTransportadorStatus;
+  parceiro_id: number | null;
+  codigo: string | null;
+  razao_social: string | null;
+  nome_xml: string | null;
+  cnpj: string | null;
+  pode_cadastrar: boolean;
+};
+
 export type DfeDocumento = {
   id: number;
   empresa_id: number;
@@ -1466,6 +1492,8 @@ export type DfeDocumento = {
   data_emissao: string | null;
   emit_cnpj: string | null;
   emit_nome: string | null;
+  transp_cnpj?: string | null;
+  transp_nome?: string | null;
   valor_total: string | null;
   situacao: 'NOVA' | 'DISPONIVEL' | 'AMARRADA' | 'RECEBIDA' | 'SEM_INTERESSE' | string;
   ordem_compra_id: number | null;
@@ -1475,6 +1503,7 @@ export type DfeDocumento = {
   xml_busca?: string | null;
   xml_busca_msg?: string | null;
   fornecedor?: DfeFornecedorInfo | null;
+  transportador?: DfeTransportadorInfo | null;
   resumo?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -1637,7 +1666,7 @@ export type NfeEntradaResumo = {
   espelho?: NfeEntradaEspelho;
 };
 
-/** Lista / detalhe da consulta Compras → NF-e recebidas. */
+/** Lista / detalhe da consulta Compras → NF-e vinculadas (espelho já vinculado). */
 export type NfeEntradaLista = NfeEntradaResumo & {
   data_emissao: string | null;
   emit_cnpj?: string | null;
@@ -1907,6 +1936,8 @@ export type ReposicaoItem = {
     descricao_fiscal: string;
     familia: string;
     grupo: string | null;
+    /** Grupo abre faixas L×bobinas×m (ADR_OC · exige_dimensao_sku). */
+    exige_dimensao_sku?: boolean;
     unidade_comercial: string | null;
     unidade_interna: string | null;
     fator_conversao: string;
@@ -1921,6 +1952,8 @@ export type ReposicaoItem = {
   faltante_comercial: string;
   unidade_interna: string;
   unidade_comercial: string;
+  /** UI: mostrar “Detalhar” faixas bobina nesta linha. */
+  permite_detalhe_bobina?: boolean;
 };
 
 export type EstoqueAjuste = {

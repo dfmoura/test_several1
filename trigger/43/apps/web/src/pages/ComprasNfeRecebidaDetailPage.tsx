@@ -26,7 +26,7 @@ export function ComprasNfeRecebidaDetailPage() {
         if (!cancelled) setNfe(res.data);
       } catch (e) {
         if (!cancelled) {
-          setErro(e instanceof Error ? e.message : 'Falha ao carregar a NF-e recebida.');
+          setErro(e instanceof Error ? e.message : 'Falha ao carregar a NF-e vinculada.');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -61,7 +61,7 @@ export function ComprasNfeRecebidaDetailPage() {
   if (!nfe) {
     return (
       <>
-        <PageHeader title="NF-e recebida" />
+        <PageHeader title="NF-e vinculada" />
         <p className="form-error">{erro ?? 'Nota não encontrada.'}</p>
         <Link to="/compras/nfe-recebidas" className="btn btn-secondary">
           Voltar
@@ -74,7 +74,7 @@ export function ComprasNfeRecebidaDetailPage() {
     <>
       <PageHeader
         title={`NF ${nfe.numero ?? nfe.chave}${nfe.serie ? ` · série ${nfe.serie}` : ''}`}
-        description="Espelho fiscal da entrada — matéria-prima do livro, sem escrituração no ERP."
+        description="Espelho fiscal da nota vinculada na entrada — matéria-prima do livro, sem escrituração no ERP."
         actions={
           <div className="btn-row">
             <Link to="/compras/nfe-recebidas" className="btn btn-secondary">

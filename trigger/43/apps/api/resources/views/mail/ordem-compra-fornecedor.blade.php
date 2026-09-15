@@ -71,6 +71,26 @@
                 @if (!empty($previsao_entrega))
                   <tr><td style="padding:0 0 4px;">Previsão de entrega: <strong>{{ $previsao_entrega }}</strong></td></tr>
                 @endif
+                @if (!empty($mod_frete_label))
+                  <tr><td style="padding:0 0 4px;">Frete: <strong>{{ $mod_frete_label }}</strong></td></tr>
+                @endif
+                @if (!empty($transportador))
+                  <tr>
+                    <td style="padding:0 0 4px;">
+                      Transportador:
+                      <strong>{{ $transportador['razao_social'] ?? '' }}</strong>
+                      @if (!empty($transportador['cnpj_cpf']))
+                        · {{ $transportador['cnpj_cpf'] }}
+                      @endif
+                      @if (!empty($transportador['ie']))
+                        · IE {{ $transportador['ie'] }}
+                      @endif
+                      @if (!empty($transportador['endereco']))
+                        <br><span style="color:#57534e;">{{ $transportador['endereco'] }}</span>
+                      @endif
+                    </td>
+                  </tr>
+                @endif
               </table>
 
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:0 0 16px;font-size:13px;">
@@ -93,15 +113,16 @@
                         <span style="color:#57534e;">{{ $item['descricao'] }}</span>
                         @if (!empty($item['composicao']))
                           <div style="margin-top:6px;font-size:12px;color:#57534e;">
-                            <strong>Detalhe do pedido</strong>
+                            <strong>Detalhe físico (faixas)</strong>
                             <ul style="margin:4px 0 0;padding-left:18px;">
                               @foreach ($item['composicao'] as $faixa)
                                 <li>
-                                  {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} bob. × {{ $faixa['comprimento_m'] }} m
+                                  {{ $faixa['largura_mm'] }} mm × {{ $faixa['quantidade'] }} vol. × {{ $faixa['comprimento_m'] }} m
                                   = {{ $faixa['area_m2'] }} m²
                                 </li>
                               @endforeach
                             </ul>
+                            <div style="margin-top:4px;">Pedido: {{ $item['qtde'] }} {{ $item['unidade'] }}</div>
                           </div>
                         @endif
                       </td>
@@ -138,7 +159,7 @@
                     </tr>
                   @endif
                   <tr>
-                    <td colspan="6" align="right" style="padding:10px 8px;font-weight:600;">Total previsto (mercadoria + IPI + frete)</td>
+                    <td colspan="6" align="right" style="padding:10px 8px;font-weight:600;">Total previsto (mercadoria + IPI)</td>
                     <td align="right" style="padding:10px 8px;font-weight:600;">{{ $valor_previsto ?? $valor_total }}</td>
                   </tr>
                 </tfoot>

@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { IconBan, IconCloudDownload, IconDownload, IconLink } from '../components/NavIcons';
+import {
+  IconAlertCircle,
+  IconBan,
+  IconCheck,
+  IconCloudDownload,
+  IconDownload,
+  IconLink,
+  IconMinus,
+} from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
@@ -10,6 +18,7 @@ import {
   type DfeDocumento,
   type DfeFornecedorStatus,
   type DfeSyncEstado,
+  type DfeTransportadorStatus,
   type OrdemCompra,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -23,12 +32,13 @@ const SORT = {
   valor: (d: DfeDocumento) => Number(d.valor_total ?? 0),
   situacao: (d: DfeDocumento) => d.situacao,
   fornecedor: (d: DfeDocumento) => d.fornecedor?.status ?? '',
+  transportador: (d: DfeDocumento) => d.transportador?.status ?? '',
 };
 
-type FornecedorPreviewRow = {
+type ParceiroPreviewRow = {
   line: number;
   status: 'ok' | 'info' | 'erro' | string;
-  acao?: 'criar' | 'adicionar_papel' | 'nenhuma' | null;
+  acao?: 'criar' | 'adicionar_papel' | 'adicionar_papel_transportadora' | 'nenhuma' | null;
   errors: string[];
   warnings?: string[];
   data: Record<string, unknown>;
@@ -51,23 +61,42 @@ type FornecedorPreviewRow = {
   };
 };
 
-function formatCnpj(cnpj: string | null): string {
+type CadastroPapel = 'fornecedor' | 'transportador';
+
+function formatCnpj(cnpj: string | null | undefined): string {
   if (!cnpj || cnpj.length !== 14) return cnpj ?? '—';
   return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
 }
 
-function fornecedorPillLabel(status: DfeFornecedorStatus | undefined): string {
+function cadastroVariant(status: string | undefined): 'ok' | 'warn' | 'na' {
   switch (status) {
     case 'cadastrado':
-      return 'Cadastrado';
-    case 'sem_papel':
-      return 'Sem papel';
+      return 'ok';
     case 'nao_cadastrado':
-      return 'Não cadastrado';
+    case 'sem_papel':
+      return 'warn';
+    default:
+      return 'na';
+  }
+}
+
+function cadastroLabel(papel: CadastroPapel, status: string | undefined): string {
+  const entidade = papel === 'fornecedor' ? 'Fornecedor' : 'Transportador';
+  switch (status) {
+    case 'cadastrado':
+      return `${entidade} cadastrado`;
+    case 'sem_papel':
+      return `Parceiro sem papel ${papel === 'fornecedor' ? 'fornecedor' : 'transportadora'}`;
+    case 'nao_cadastrado':
+      return `${entidade} não cadastrado`;
     case 'pf':
-      return 'PF';
+      return 'Documento PF — cadastro via XML aplica-se a PJ';
     case 'sem_cnpj':
-      return 'Sem CNPJ';
+      return 'Sem CNPJ no XML';
+    case 'ausente':
+      return 'Transportador ausente no XML';
+    case 'sem_xml':
+      return 'Busque o XML para ver o transportador';
     default:
       return status ?? '—';
   }
@@ -94,6 +123,64 @@ function fornecedorTitle(doc: DfeDocumento, podeParceiro: boolean): string {
   return 'Clique para simular o cadastro do fornecedor a partir do XML da nota.';
 }
 
+function transportadorTitle(doc: DfeDocumento, podeParceiro: boolean): string {
+  const t = doc.transportador;
+  if (!t) return '';
+  const nome = t.razao_social ?? t.nome_xml;
+  if (t.status === 'cadastrado') {
+    const base = t.codigo ? `Transportador ${t.codigo}` : 'Transportador cadastrado';
+    return nome ? `${base} — ${nome}` : base;
+  }
+  if (t.status === 'ausente') {
+    return 'Esta NF-e não informa transportador (grupo transporta).';
+  }
+  if (t.status === 'sem_xml') {
+    return 'Busque o XML no fisco antes de ver ou cadastrar o transportador.';
+  }
+  if (t.status === 'pf' || t.status === 'sem_cnpj') {
+    return nome
+      ? `${nome} — cadastro via XML aplica-se a transportador PJ com CNPJ.`
+      : 'Cadastro via XML aplica-se a transportador PJ com CNPJ.';
+  }
+  if (!podeParceiro) {
+    return 'Sem permissão para cadastrar parceiro.';
+  }
+  if (t.status === 'sem_papel') {
+    return nome
+      ? `${nome} — parceiro sem papel transportadora; clique para adicionar via XML.`
+      : 'Parceiro existe sem classificação transportadora — clique para adicionar o papel via XML.';
+  }
+  return nome
+    ? `${nome} — clique para cadastrar como transportadora a partir do XML.`
+    : 'Clique para simular o cadastro do transportador a partir do XML da nota.';
+}
+
+function CadastroStatusIcon({
+  status,
+  title,
+  ariaLabel,
+}: {
+  status: DfeFornecedorStatus | DfeTransportadorStatus | undefined;
+  title: string;
+  ariaLabel: string;
+}) {
+  const variant = cadastroVariant(status);
+  let icon: ReactNode;
+  if (variant === 'ok') icon = <IconCheck />;
+  else if (variant === 'warn') icon = <IconAlertCircle />;
+  else icon = <IconMinus />;
+
+  return (
+    <span
+      className={`dfe-cadastro-icon dfe-cadastro-icon--${variant}`}
+      title={title}
+      aria-label={ariaLabel}
+    >
+      {icon}
+    </span>
+  );
+}
+
 export function ComprasNfeDestinadasPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
@@ -111,9 +198,10 @@ export function ComprasNfeDestinadasPage() {
   const [ocs, setOcs] = useState<OrdemCompra[]>([]);
   const [ocId, setOcId] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [fornecedorDoc, setFornecedorDoc] = useState<DfeDocumento | null>(null);
-  const [fornecedorPreview, setFornecedorPreview] = useState<FornecedorPreviewRow | null>(null);
-  const [fornecedorBusy, setFornecedorBusy] = useState(false);
+  const [cadastroPapel, setCadastroPapel] = useState<CadastroPapel | null>(null);
+  const [cadastroDoc, setCadastroDoc] = useState<DfeDocumento | null>(null);
+  const [cadastroPreview, setCadastroPreview] = useState<ParceiroPreviewRow | null>(null);
+  const [cadastroBusy, setCadastroBusy] = useState(false);
   const pollRef = useRef<number | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(docs, SORT);
   const podeEscrever = hasPermission('compras.escrever');
@@ -185,10 +273,16 @@ export function ComprasNfeDestinadasPage() {
     }
   };
 
+  const fecharCadastro = () => {
+    setCadastroPapel(null);
+    setCadastroDoc(null);
+    setCadastroPreview(null);
+    setCadastroBusy(false);
+  };
+
   const abrirAmarrar = async (doc: DfeDocumento) => {
     setAcaoErro(null);
-    setFornecedorDoc(null);
-    setFornecedorPreview(null);
+    fecharCadastro();
     setAmarrarDoc(doc);
     setOcId('');
     const [abertas, parciais] = await Promise.all([
@@ -264,112 +358,154 @@ export function ComprasNfeDestinadasPage() {
     }
   };
 
-  const fecharFornecedor = () => {
-    setFornecedorDoc(null);
-    setFornecedorPreview(null);
-    setFornecedorBusy(false);
-  };
+  const abrirCadastro = async (papel: CadastroPapel, doc: DfeDocumento) => {
+    const info = papel === 'fornecedor' ? doc.fornecedor : doc.transportador;
+    if (!info) return;
 
-  const abrirFornecedor = async (doc: DfeDocumento) => {
-    const f = doc.fornecedor;
-    if (!f) return;
-
-    if (f.status === 'cadastrado' && f.parceiro_id) {
-      navigate(`/parceiros/${f.parceiro_id}`);
+    if (info.status === 'cadastrado' && info.parceiro_id) {
+      navigate(`/parceiros/${info.parceiro_id}`);
       return;
     }
 
-    if (!podeParceiro) return;
-    if (f.status === 'pf' || f.status === 'sem_cnpj') return;
-
+    if (!podeParceiro || !info.pode_cadastrar) return;
     if (!doc.tem_xml) {
-      setAcaoErro('Busque o XML no fisco antes de cadastrar o fornecedor.');
+      setAcaoErro('Busque o XML no fisco antes de cadastrar o parceiro.');
       return;
     }
-
-    if (f.status !== 'nao_cadastrado' && f.status !== 'sem_papel') return;
 
     setAmarrarDoc(null);
     setAcaoErro(null);
-    setFornecedorDoc(doc);
-    setFornecedorPreview(null);
-    setFornecedorBusy(true);
+    setCadastroPapel(papel);
+    setCadastroDoc(doc);
+    setCadastroPreview(null);
+    setCadastroBusy(true);
+
+    const path =
+      papel === 'fornecedor'
+        ? `/dfe-documentos/${doc.id}/fornecedor/preview`
+        : `/dfe-documentos/${doc.id}/transportador/preview`;
+
     try {
-      const res = await api.post<{
-        data: { row: FornecedorPreviewRow; documento: DfeDocumento };
-      }>(`/dfe-documentos/${doc.id}/fornecedor/preview`, {});
-      setFornecedorPreview(res.data.row);
-      if (res.data.documento) {
-        setFornecedorDoc(res.data.documento);
-      }
+      const res = await api.post<{ data: { row: ParceiroPreviewRow } }>(path, {});
+      setCadastroPreview(res.data.row);
     } catch (err) {
-      setFornecedorDoc(null);
+      const key = papel === 'fornecedor' ? 'fornecedor' : 'transportador';
       setAcaoErro(
         err instanceof ApiError
-          ? err.details?.fornecedor?.[0] ?? err.message
-          : 'Falha ao simular o cadastro do fornecedor.',
+          ? err.details?.[key]?.[0] ?? err.message
+          : `Falha ao simular cadastro do ${papel}.`,
       );
+      fecharCadastro();
     } finally {
-      setFornecedorBusy(false);
+      setCadastroBusy(false);
     }
   };
 
-  const confirmarFornecedor = async () => {
-    if (!fornecedorDoc || !fornecedorPreview) return;
-    const acao = fornecedorPreview.acao;
-    if (acao !== 'criar' && acao !== 'adicionar_papel') return;
+  const confirmarCadastro = async () => {
+    if (!cadastroDoc || !cadastroPapel || !cadastroPreview) return;
+    if (
+      cadastroPreview.acao !== 'criar' &&
+      cadastroPreview.acao !== 'adicionar_papel' &&
+      cadastroPreview.acao !== 'adicionar_papel_transportadora'
+    ) {
+      return;
+    }
 
-    setFornecedorBusy(true);
+    setCadastroBusy(true);
     setAcaoErro(null);
+    const path =
+      cadastroPapel === 'fornecedor'
+        ? `/dfe-documentos/${cadastroDoc.id}/fornecedor/commit`
+        : `/dfe-documentos/${cadastroDoc.id}/transportador/commit`;
+
     try {
-      await api.post(`/dfe-documentos/${fornecedorDoc.id}/fornecedor/commit`, {});
-      fecharFornecedor();
+      await api.post(path, {});
+      fecharCadastro();
       void load(q, situacao, ano);
     } catch (err) {
+      const key = cadastroPapel === 'fornecedor' ? 'fornecedor' : 'transportador';
       setAcaoErro(
         err instanceof ApiError
-          ? err.details?.fornecedor?.[0] ?? err.message
-          : 'Falha ao gravar o fornecedor.',
+          ? err.details?.[key]?.[0] ?? err.message
+          : `Falha ao gravar o ${cadastroPapel}.`,
       );
     } finally {
-      setFornecedorBusy(false);
+      setCadastroBusy(false);
     }
   };
 
-  const syncMsgLower = (sync?.sync_mensagem ?? '').toLowerCase();
-  const nenhumDocumentoFisco =
-    syncMsgLower.includes('nenhum documento') ||
-    (Boolean(sync?.primeira_hidratacao_completa) && (sync?.total_documentos ?? 0) === 0);
-
   const previewPodeConfirmar =
-    fornecedorPreview?.status === 'ok' &&
-    (fornecedorPreview.acao === 'criar' || fornecedorPreview.acao === 'adicionar_papel');
+    cadastroPreview?.status === 'ok' &&
+    (cadastroPreview.acao === 'criar' ||
+      cadastroPreview.acao === 'adicionar_papel' ||
+      cadastroPreview.acao === 'adicionar_papel_transportadora');
+
+  const nenhumDocumentoFisco = docs.length === 0 && !q && !situacao;
+  const syncRodando = syncing || sync?.sync_status === 'RUNNING';
+
+  const renderCadastroCell = (
+    papel: CadastroPapel,
+    doc: DfeDocumento,
+    ocupado: boolean,
+    labelDoc: string,
+  ) => {
+    const info = papel === 'fornecedor' ? doc.fornecedor : doc.transportador;
+    const status = info?.status;
+    const title =
+      papel === 'fornecedor'
+        ? fornecedorTitle(doc, podeParceiro)
+        : transportadorTitle(doc, podeParceiro);
+    const label = cadastroLabel(papel, status);
+    const clicavel =
+      status === 'cadastrado' ||
+      (podeParceiro && (status === 'nao_cadastrado' || status === 'sem_papel') && info?.pode_cadastrar);
+    const icon = (
+      <CadastroStatusIcon status={status} title={title} ariaLabel={`${label} — ${labelDoc}`} />
+    );
+
+    if (status === 'cadastrado' && info?.parceiro_id) {
+      return (
+        <Link to={`/parceiros/${info.parceiro_id}`} title={title} className="dfe-cadastro-link">
+          {icon}
+        </Link>
+      );
+    }
+
+    if (clicavel && podeParceiro && info?.pode_cadastrar) {
+      return (
+        <button
+          type="button"
+          className="dfe-cadastro-btn"
+          disabled={ocupado || cadastroBusy}
+          title={title}
+          aria-label={`${label} — ${labelDoc}`}
+          onClick={() => void abrirCadastro(papel, doc)}
+        >
+          {icon}
+        </button>
+      );
+    }
+
+    return icon;
+  };
 
   return (
     <>
       <PageHeader
-        title="NF-e destinadas"
-        description="Notas emitidas contra o CNPJ desta empresa. Amarrar à OC alimenta o assist XML — recebimento com conferência humana."
+        title="Caixa de NF-e"
+        description="Notas emitidas contra o CNPJ da empresa, carregadas do fisco. Amarrar à OC e receber na ordem."
         actions={
-          <>
-            {podeEscrever && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={syncing || sync?.sync_status === 'RUNNING' || sync?.pode_sincronizar === false}
-                onClick={() => void handleAtualizar()}
-                title={sync?.sync_bloqueio ?? undefined}
-              >
-                {sync?.sync_status === 'RUNNING' || syncing ? 'Sincronizando…' : 'Atualizar do fisco'}
-              </button>
-            )}
-            <Link to="/compras/nfe-recebidas" className="btn btn-secondary">
-              NF-e recebidas
-            </Link>
-            <Link to="/compras/ordens" className="btn btn-secondary">
-              Ordens de compra
-            </Link>
-          </>
+          podeEscrever ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={syncRodando || sync?.pode_sincronizar === false}
+              title={sync?.sync_bloqueio ?? undefined}
+              onClick={() => void handleAtualizar()}
+            >
+              {syncRodando ? 'Atualizando…' : 'Atualizar do fisco'}
+            </button>
+          ) : undefined
         }
       />
 
@@ -378,7 +514,7 @@ export function ComprasNfeDestinadasPage() {
           <div className="nfe-destinadas-sync" aria-label="Sincronização DF-e">
             <div className="nfe-destinadas-metric">
               <span>Status</span>
-              <strong title={sync.sync_mensagem ?? undefined}>
+              <strong>
                 {sync.sync_status}
                 {sync.sync_mensagem ? (
                   <em className="nfe-destinadas-metric-msg"> — {sync.sync_mensagem}</em>
@@ -386,45 +522,36 @@ export function ComprasNfeDestinadasPage() {
               </strong>
             </div>
             <div className="nfe-destinadas-metric">
-              <span>Última sync</span>
-              <strong>
-                {sync.ultima_sync_em ? formatDate(sync.ultima_sync_em) : 'Ainda sem sync'}
-              </strong>
+              <span>NSU</span>
+              <strong>{sync.ultimo_nsu}</strong>
             </div>
             <div className="nfe-destinadas-metric">
-              <span>Na caixa</span>
-              <strong>
-                {sync.total_documentos}
-                {sync.ano_alvo_hidratacao ? ` · meta ${sync.ano_alvo_hidratacao}` : ''}
-              </strong>
+              <span>Documentos</span>
+              <strong>{sync.total_documentos}</strong>
             </div>
-            <p
-              className="nfe-destinadas-sync-hint"
-              title={
-                sync.sync_bloqueio ||
-                'Consulta DF-e em segundo plano. Sync delta diário na nuvem (06:15). Upload manual na OC permanece disponível.'
-              }
-            >
-              {sync.sync_bloqueio
-                ? sync.sync_bloqueio
-                : 'DF-e em 2º plano · delta diário 06:15 · upload na OC disponível'}
-            </p>
+            {sync.sync_bloqueio && (
+              <p
+                className="nfe-destinadas-sync-hint"
+                role="status"
+              >
+                {sync.sync_bloqueio}
+              </p>
+            )}
           </div>
         )}
 
         {(syncErro || acaoErro) && (
           <div className="nfe-destinadas-erro" role="alert">
-            {syncErro || acaoErro}
+            {syncErro ?? acaoErro}
           </div>
         )}
 
         <form onSubmit={handleSearch} className="nfe-destinadas-filters">
           <input
             className="nfe-destinadas-search"
+            placeholder="Buscar chave, número, emitente, transportador…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Chave, número, emitente, CNPJ…"
-            aria-label="Buscar"
           />
           <select
             className="nfe-destinadas-select"
@@ -432,9 +559,11 @@ export function ComprasNfeDestinadasPage() {
             onChange={(e) => setAno(e.target.value)}
             aria-label="Ano"
           >
-            <option value={String(anoAtual)}>{anoAtual}</option>
-            <option value={String(anoAtual - 1)}>{anoAtual - 1}</option>
-            <option value={String(anoAtual - 2)}>{anoAtual - 2}</option>
+            {[anoAtual, anoAtual - 1, anoAtual - 2].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
           <select
             className="nfe-destinadas-select nfe-destinadas-select--situacao"
@@ -442,14 +571,14 @@ export function ComprasNfeDestinadasPage() {
             onChange={(e) => setSituacao(e.target.value)}
             aria-label="Situação"
           >
-            <option value="">Situação · todas</option>
+            <option value="">Todas as situações</option>
             <option value="NOVA">Nova</option>
             <option value="DISPONIVEL">Disponível</option>
             <option value="AMARRADA">Amarrada</option>
             <option value="RECEBIDA">Recebida</option>
             <option value="SEM_INTERESSE">Sem interesse</option>
           </select>
-          <button type="submit" className="btn btn-secondary btn-sm">
+          <button type="submit" className="btn btn-secondary">
             Filtrar
           </button>
         </form>
@@ -458,21 +587,21 @@ export function ComprasNfeDestinadasPage() {
       {amarrarDoc && (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
-            <strong>Amarrar à OC</strong>
+            <strong>Amarrar à ordem de compra</strong>
             <div className="muted" style={{ marginBottom: '0.75rem' }}>
-              {amarrarDoc.emit_nome ?? 'Documento'} · NF {amarrarDoc.numero ?? '—'}
+              {amarrarDoc.emit_nome ?? 'Emitente'} · NF {amarrarDoc.numero ?? '—'}
             </div>
-            <div className="form-group" style={{ maxWidth: 420 }}>
-              <label>Ordem de compra (ABERTA/PARCIAL)</label>
+            <label className="field">
+              <span>OC aberta ou parcial</span>
               <select value={ocId} onChange={(e) => setOcId(e.target.value)}>
                 <option value="">Selecione…</option>
                 {ocs.map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.codigo} — {o.fornecedor?.razao_social ?? 'fornecedor'} ({o.status})
+                    {o.codigo} — {o.status}
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
               <button
                 type="button"
@@ -490,68 +619,80 @@ export function ComprasNfeDestinadasPage() {
         </div>
       )}
 
-      {(fornecedorDoc || fornecedorBusy) && (
+      {(cadastroDoc || cadastroBusy) && cadastroPapel && (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <strong>
-              {fornecedorPreview?.acao === 'adicionar_papel'
-                ? 'Adicionar papel fornecedor'
-                : 'Cadastrar fornecedor a partir do XML'}
+              {cadastroPreview?.acao === 'adicionar_papel' ||
+              cadastroPreview?.acao === 'adicionar_papel_transportadora'
+                ? `Adicionar papel ${cadastroPapel === 'fornecedor' ? 'fornecedor' : 'transportadora'}`
+                : `Cadastrar ${cadastroPapel} a partir do XML`}
             </strong>
             <div className="muted" style={{ marginBottom: '0.75rem' }}>
-              {fornecedorPreview?.preview.razao_social ??
-                fornecedorDoc?.emit_nome ??
-                'Emitente'}{' '}
-              · NF {fornecedorDoc?.numero ?? '—'}
+              {cadastroPreview?.preview.razao_social ??
+                (cadastroPapel === 'fornecedor'
+                  ? cadastroDoc?.emit_nome
+                  : cadastroDoc?.transportador?.nome_xml ?? cadastroDoc?.transp_nome) ??
+                'Parceiro'}{' '}
+              · NF {cadastroDoc?.numero ?? '—'}
             </div>
 
-            {fornecedorBusy && !fornecedorPreview ? (
+            {cadastroBusy && !cadastroPreview ? (
               <div className="muted">Simulando cadastro a partir do XML do cofre…</div>
-            ) : fornecedorPreview ? (
+            ) : cadastroPreview ? (
               <>
                 <div style={{ display: 'grid', gap: '0.35rem', marginBottom: '0.75rem' }}>
                   <div>
-                    <strong>{fornecedorPreview.preview.razao_social ?? '—'}</strong>
-                    {fornecedorPreview.preview.nome_fantasia ? (
-                      <span className="muted"> · {fornecedorPreview.preview.nome_fantasia}</span>
+                    <strong>{cadastroPreview.preview.razao_social ?? '—'}</strong>
+                    {cadastroPreview.preview.nome_fantasia ? (
+                      <span className="muted"> · {cadastroPreview.preview.nome_fantasia}</span>
                     ) : null}
                   </div>
                   <div className="muted" style={{ fontSize: '0.9rem' }}>
-                    {formatCnpj(fornecedorPreview.preview.cnpj_cpf ?? null)}
-                    {fornecedorPreview.preview.municipio
-                      ? ` · ${fornecedorPreview.preview.municipio}`
+                    {formatCnpj(cadastroPreview.preview.cnpj_cpf ?? null)}
+                    {cadastroPreview.preview.municipio
+                      ? ` · ${cadastroPreview.preview.municipio}`
                       : ''}
-                    {fornecedorPreview.preview.uf ? `/${fornecedorPreview.preview.uf}` : ''}
-                    {fornecedorPreview.preview.ie ? ` · IE ${fornecedorPreview.preview.ie}` : ''}
+                    {cadastroPreview.preview.uf ? `/${cadastroPreview.preview.uf}` : ''}
+                    {cadastroPreview.preview.ie ? ` · IE ${cadastroPreview.preview.ie}` : ''}
                   </div>
-                  {fornecedorPreview.preview.parceiro_codigo && (
+                  {cadastroPreview.preview.parceiro_codigo && (
                     <div className="muted" style={{ fontSize: '0.9rem' }}>
-                      Parceiro existente: {fornecedorPreview.preview.parceiro_codigo}
+                      Parceiro existente: {cadastroPreview.preview.parceiro_codigo}
                     </div>
                   )}
                 </div>
 
-                {(fornecedorPreview.warnings?.length ?? 0) > 0 && (
-                  <ul className="muted" style={{ margin: '0 0 0.75rem', paddingLeft: '1.1rem', fontSize: '0.9rem' }}>
-                    {fornecedorPreview.warnings!.map((w) => (
+                {(cadastroPreview.warnings?.length ?? 0) > 0 && (
+                  <ul
+                    className="muted"
+                    style={{ margin: '0 0 0.75rem', paddingLeft: '1.1rem', fontSize: '0.9rem' }}
+                  >
+                    {cadastroPreview.warnings!.map((w) => (
                       <li key={w}>{w}</li>
                     ))}
                   </ul>
                 )}
 
-                {fornecedorPreview.errors.length > 0 && (
-                  <ul style={{ margin: '0 0 0.75rem', paddingLeft: '1.1rem', color: 'var(--danger, #b42318)' }}>
-                    {fornecedorPreview.errors.map((err) => (
+                {cadastroPreview.errors.length > 0 && (
+                  <ul
+                    style={{
+                      margin: '0 0 0.75rem',
+                      paddingLeft: '1.1rem',
+                      color: 'var(--danger, #b42318)',
+                    }}
+                  >
+                    {cadastroPreview.errors.map((err) => (
                       <li key={err}>{err}</li>
                     ))}
                   </ul>
                 )}
 
-                {fornecedorPreview.status === 'info' && fornecedorPreview.acao === 'nenhuma' && (
+                {cadastroPreview.status === 'info' && cadastroPreview.acao === 'nenhuma' && (
                   <div className="muted" style={{ marginBottom: '0.75rem' }}>
-                    Emitente já cadastrado como fornecedor
-                    {fornecedorPreview.preview.parceiro_codigo
-                      ? ` (${fornecedorPreview.preview.parceiro_codigo})`
+                    Já cadastrado
+                    {cadastroPreview.preview.parceiro_codigo
+                      ? ` (${cadastroPreview.preview.parceiro_codigo})`
                       : ''}
                     .
                   </div>
@@ -564,21 +705,22 @@ export function ComprasNfeDestinadasPage() {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  disabled={fornecedorBusy}
-                  onClick={() => void confirmarFornecedor()}
+                  disabled={cadastroBusy}
+                  onClick={() => void confirmarCadastro()}
                 >
-                  {fornecedorBusy
+                  {cadastroBusy
                     ? 'Gravando…'
-                    : fornecedorPreview?.acao === 'adicionar_papel'
-                      ? 'Confirmar papel fornecedor'
+                    : cadastroPreview?.acao === 'adicionar_papel' ||
+                        cadastroPreview?.acao === 'adicionar_papel_transportadora'
+                      ? `Confirmar papel ${cadastroPapel === 'fornecedor' ? 'fornecedor' : 'transportadora'}`
                       : 'Confirmar cadastro'}
                 </button>
               )}
               <button
                 type="button"
                 className="btn btn-secondary"
-                disabled={fornecedorBusy}
-                onClick={fecharFornecedor}
+                disabled={cadastroBusy}
+                onClick={fecharCadastro}
               >
                 Cancelar
               </button>
@@ -600,19 +742,18 @@ export function ComprasNfeDestinadasPage() {
                 </>
               ) : nenhumDocumentoFisco ? (
                 <>
-                  O fisco não liberou documentos destinados a esta empresa neste ambiente. Em
-                  homologação a caixa costuma ficar vazia; em produção aparecem as NF-e emitidas
-                  contra o CNPJ. Plano B:{' '}
+                  Nenhuma nota carregada nesta caixa. Em homologação o fisco costuma não liberar
+                  documentos; em produção aparecem as NF-e emitidas contra o CNPJ. Plano B:{' '}
                   <Link to="/compras/ordens">upload do XML na ordem de compra</Link>.
                 </>
               ) : sync?.pode_sincronizar ? (
                 <>
-                  Nenhuma NF-e destinada neste filtro. Clique em Atualizar do fisco para buscar
-                  documentos (em segundo plano).
+                  Nenhuma NF-e carregada neste filtro. Clique em Atualizar do fisco para trazer
+                  documentos à caixa (em segundo plano).
                 </>
               ) : (
                 <>
-                  Nenhuma NF-e destinada neste filtro. Em ambientes locais o sync com o fisco fica
+                  Nenhuma NF-e carregada neste filtro. Em ambientes locais o sync com o fisco fica
                   desligado — use o upload de XML na <Link to="/compras/ordens">ordem de compra</Link>
                   .
                 </>
@@ -635,7 +776,16 @@ export function ComprasNfeDestinadasPage() {
                     sortDir={sortDir}
                     onSort={requestSort}
                   >
-                    Fornecedor
+                    <span title="Fornecedor cadastrado?">Forn.</span>
+                  </SortableTh>
+                  <SortableTh
+                    column="transportador"
+                    sorts={sorts}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={requestSort}
+                  >
+                    <span title="Transportador cadastrado?">Transp.</span>
                   </SortableTh>
                   <SortableTh column="numero" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Número
@@ -658,13 +808,6 @@ export function ComprasNfeDestinadasPage() {
                       ? `NF ${d.serie ? `${d.serie}/` : ''}${d.numero}`
                       : `documento ${d.id}`;
                   const ocupado = busyId === d.id;
-                  const f = d.fornecedor;
-                  const pillLabel = fornecedorPillLabel(f?.status);
-                  const clicavel =
-                    f?.status === 'cadastrado' ||
-                    (podeParceiro &&
-                      (f?.status === 'nao_cadastrado' || f?.status === 'sem_papel'));
-                  const title = fornecedorTitle(d, podeParceiro);
 
                   return (
                     <tr key={d.id}>
@@ -675,38 +818,11 @@ export function ComprasNfeDestinadasPage() {
                           {formatCnpj(d.emit_cnpj)}
                         </div>
                       </td>
-                      <td>
-                        {!f || f.status === 'pf' || f.status === 'sem_cnpj' ? (
-                          <span className="muted" title={title}>
-                            {pillLabel}
-                          </span>
-                        ) : f.status === 'cadastrado' && f.parceiro_id ? (
-                          <Link to={`/parceiros/${f.parceiro_id}`} title={title}>
-                            <StatusPill status={pillLabel} />
-                          </Link>
-                        ) : clicavel && podeParceiro ? (
-                          <button
-                            type="button"
-                            className="btn-link"
-                            style={{
-                              background: 'none',
-                              border: 0,
-                              padding: 0,
-                              cursor: 'pointer',
-                              font: 'inherit',
-                            }}
-                            disabled={ocupado || fornecedorBusy}
-                            title={title}
-                            aria-label={`${pillLabel} — ${labelDoc}`}
-                            onClick={() => void abrirFornecedor(d)}
-                          >
-                            <StatusPill status={pillLabel} />
-                          </button>
-                        ) : (
-                          <span title={title}>
-                            <StatusPill status={pillLabel} />
-                          </span>
-                        )}
+                      <td className="dfe-cadastro-cell">
+                        {renderCadastroCell('fornecedor', d, ocupado, labelDoc)}
+                      </td>
+                      <td className="dfe-cadastro-cell">
+                        {renderCadastroCell('transportador', d, ocupado, labelDoc)}
                       </td>
                       <td>
                         {d.serie ? `${d.serie}/` : ''}

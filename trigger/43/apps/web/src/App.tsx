@@ -39,8 +39,9 @@ import { ParceiroFormPage } from './pages/ParceiroFormPage';
 import { ParceiroImportPage } from './pages/ParceiroImportPage';
 import { ParceirosPage } from './pages/ParceirosPage';
 import { ProdutoFichaPage } from './pages/ProdutoFichaPage';
+import { ProdutoFichaGerencialPage } from './pages/ProdutoFichaGerencialPage';
 import { ProdutoFormPage } from './pages/ProdutoFormPage';
-import { ProdutoImportPage } from './pages/ProdutoImportPage';
+import { ProdutoNovoDaNfPage } from './pages/ProdutoNovoDaNfPage';
 import { ProdutosPage } from './pages/ProdutosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { ContasPagarPage } from './pages/ContasPagarPage';
@@ -250,11 +251,19 @@ export default function App() {
         />
         <Route
           path="produtos/importar"
+          element={<Navigate to="/produtos" replace />}
+        />
+        <Route
+          path="produtos/do-xml"
           element={
             <PermissionRoute permission="produto.escrever">
-              <ProdutoImportPage />
+              <ProdutoNovoDaNfPage />
             </PermissionRoute>
           }
+        />
+        <Route
+          path="produtos/novo-da-nf"
+          element={<Navigate to="/produtos/do-xml" replace />}
         />
         <Route
           path="produtos/:id"
@@ -706,6 +715,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="parceiro.ler">
               <ParceiroFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/produtos/ficha-gerencial"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="produto.ler">
+              <ProdutoFichaGerencialPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

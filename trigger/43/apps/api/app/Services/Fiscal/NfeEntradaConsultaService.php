@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Consulta de NF-e recebidas (espelho pós-receber). Somente leitura.
+ * Consulta de NF-e vinculadas (espelho pós-receber / já vinculadas). Somente leitura.
  * Norma: ADR_ENTRADA_XML_ESPELHO · não é escrituração · não é caixa DF-e.
  */
 class NfeEntradaConsultaService

@@ -241,6 +241,16 @@ export function IconPencil({ className }: IconProps) {
   );
 }
 
+/** Ações de listagem — novo a partir deste (mesmo perfil técnico). */
+export function IconDuplicate({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <rect x="8" y="8" width="12" height="12" rx="1.5" />
+      <path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" />
+    </IconBase>
+  );
+}
+
 /** Lista PAR — posição / distância de carro. */
 export function IconMapPin({ className }: IconProps) {
   return (
@@ -385,6 +395,35 @@ export function IconImplantacao({ className }: IconProps) {
     <IconBase className={className}>
       <path d="M9 11l3 3L22 4" />
       <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </IconBase>
+  );
+}
+
+/** Check compacto — cadastro OK. */
+export function IconCheck({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M20 6L9 17l-5-5" />
+    </IconBase>
+  );
+}
+
+/** Alerta / pendência de cadastro. */
+export function IconAlertCircle({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </IconBase>
+  );
+}
+
+/** Traço — ausente / N/A. */
+export function IconMinus({ className }: IconProps) {
+  return (
+    <IconBase className={className}>
+      <path d="M5 12h14" />
     </IconBase>
   );
 }

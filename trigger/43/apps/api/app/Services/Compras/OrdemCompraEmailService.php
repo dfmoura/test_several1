@@ -28,6 +28,7 @@ class OrdemCompraEmailService
 
         $oc->loadMissing([
             'fornecedor',
+            'transportador',
             'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,unidade_comercial',
             'itens.composicoes',
         ]);
@@ -108,14 +109,15 @@ class OrdemCompraEmailService
             ];
         })->values()->all();
 
-        $valorFrete = PadraoDecimal::roundHalfUp((string) ($oc->valor_frete ?? '0'), PadraoDecimal::SCALE_MONEY);
         $valorIpi = PadraoDecimal::roundHalfUp((string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY);
         $valorIcms = PadraoDecimal::roundHalfUp((string) ($oc->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY);
         $valorTotal = PadraoDecimal::roundHalfUp((string) $oc->valor_total, PadraoDecimal::SCALE_MONEY);
         $valorPrevisto = PadraoDecimal::roundHalfUp(
-            bcadd(bcadd($valorTotal, $valorIpi, PadraoDecimal::SCALE_MONEY + 2), $valorFrete, PadraoDecimal::SCALE_MONEY + 2),
+            bcadd($valorTotal, $valorIpi, PadraoDecimal::SCALE_MONEY + 2),
             PadraoDecimal::SCALE_MONEY
         );
+
+        $transportador = $oc->transportador;
 
         return [
             'empresa' => [
@@ -148,14 +150,29 @@ class OrdemCompraEmailService
                     $fornecedor->cep,
                 ),
             ],
+            'transportador' => $transportador ? [
+                'razao_social' => $transportador->razao_social,
+                'nome_fantasia' => $transportador->nome_fantasia,
+                'cnpj_cpf' => $transportador->cnpj_cpf,
+                'ie' => $transportador->ie,
+                'endereco' => $this->formatEndereco(
+                    $transportador->logradouro,
+                    $transportador->numero,
+                    $transportador->bairro,
+                    $transportador->municipio,
+                    $transportador->uf,
+                    $transportador->cep,
+                ),
+            ] : null,
             'urgente' => (bool) $oc->urgente,
             'condicao_pagamento' => $oc->condicao_pagamento,
             'previsao_entrega' => optional($oc->previsao_entrega)?->format('d/m/Y'),
+            'mod_frete' => $oc->mod_frete,
+            'mod_frete_label' => OrdemCompra::modFreteLabel($oc->mod_frete),
             'observacao' => $oc->observacao,
             'valor_total' => $valorTotal,
             'valor_ipi' => $valorIpi,
             'valor_icms' => $valorIcms,
-            'valor_frete' => $valorFrete,
             'valor_previsto' => $valorPrevisto,
             'itens' => $itens,
         ];

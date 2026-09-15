@@ -32,6 +32,8 @@ type Props = {
   hint?: string;
   className?: string;
   emptyMessage?: string;
+  /** Resumo abaixo do campo (padrão). Desligar em linhas densas. */
+  showSummary?: boolean;
 };
 
 function displayName(p: ParceiroVinculo): string {
@@ -92,6 +94,7 @@ export function ParceiroCombobox({
   hint,
   className,
   emptyMessage = 'Nenhum cadastro encontrado. Ajuste o termo ou cadastre o parceiro.',
+  showSummary = true,
 }: Props) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -288,7 +291,7 @@ export function ParceiroCombobox({
         </ul>
       )}
 
-      {value && !open ? (
+      {showSummary && value && !open ? (
         <SelectedSummary parceiro={value} />
       ) : null}
 

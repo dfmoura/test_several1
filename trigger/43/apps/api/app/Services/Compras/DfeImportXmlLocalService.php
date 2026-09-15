@@ -18,6 +18,7 @@ class DfeImportXmlLocalService
 {
     public function __construct(
         private readonly NfeCompraExtractor $extractor,
+        private readonly DfeTransporteMetaService $transporteMeta,
     ) {}
 
     /**
@@ -121,6 +122,8 @@ class DfeImportXmlLocalService
         Storage::disk((string) config('erp.dfe.xml_disk', 'local'))->put($diskPath, $xml);
         $sha = hash('sha256', $xml);
 
+        $transp = $this->transporteMeta->extrairDeXml($xml);
+
         $row = DfeDocumento::query()
             ->where('empresa_id', $empresa->id)
             ->where('chave', $chave)
@@ -135,6 +138,9 @@ class DfeImportXmlLocalService
             'data_emissao' => $compra['data_emissao'] ?? null,
             'emit_cnpj' => $emitCnpj,
             'emit_nome' => $emitNome,
+            'transp_cnpj' => $transp['cnpj'],
+            'transp_nome' => $transp['nome'],
+            'transp_extraido' => true,
             'valor_total' => $compra['valor_nf'] ?? null,
             'xml_path' => $diskPath,
             'xml_sha256' => $sha,

@@ -9,6 +9,7 @@ use App\Services\Audit\AuditLogger;
 use App\Services\Codigo\CodigoGenerator;
 use App\Support\PadraoDecimal;
 use App\Support\ProdutoAtributos;
+use App\Support\ProdutoDescricoes;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +38,7 @@ class ProdutoService
         $query = Produto::query()
             ->where('empresa_id', $empresa->id)
             ->with(Produto::userStampWith())
+            ->withCount('fornecedorCodigos')
             ->orderBy('codigo');
 
         if ($familia) {
@@ -238,6 +240,15 @@ class ProdutoService
                     'grupo_estoque' => $grupo->grupo_estoque_padrao,
                 ], $mapped['atributos']);
             }
+        }
+
+        if (array_key_exists('descricao_fiscal', $mapped) && is_string($mapped['descricao_fiscal'])) {
+            $mapped['descricao_fiscal'] = ProdutoDescricoes::fiscal($mapped['descricao_fiscal']);
+        }
+        if (array_key_exists('descricao_comercial', $mapped)) {
+            $mapped['descricao_comercial'] = is_string($mapped['descricao_comercial'])
+                ? ProdutoDescricoes::maiusculas($mapped['descricao_comercial'])
+                : null;
         }
 
         $mapped = PadraoDecimal::canonicalizeFields($mapped, PadraoDecimal::produtoFieldScales());

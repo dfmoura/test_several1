@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * NF-e recebidas — consulta do espelho pós-receber (somente leitura).
+ * NF-e vinculadas — consulta do espelho pós-receber / já vinculadas (somente leitura).
  */
 class NfeEntradaController extends Controller
 {
@@ -60,7 +60,7 @@ class NfeEntradaController extends Controller
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('compras.ler')) {
-            abort(403, 'Sem permissão para consultar NF-e recebidas.');
+            abort(403, 'Sem permissão para consultar NF-e vinculadas.');
         }
     }
 

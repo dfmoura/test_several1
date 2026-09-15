@@ -14,8 +14,8 @@ namespace App\Services\Cadastros;
  * (ADR_CADASTRO_INSUMO_VOLUME) — não Camada B por L×C no SKU Exact.
  * Tubetes físicos: ProdutoCadastroTubeteData (Ø × espessura × comprimento × logo).
  *
- * Unidades (ADR-039-UNID-001): na Camada A comercial = interna = UN da listagem
- * e fator 1. Exact: ver ProdutoCadastroExactData (M2=M2).
+ * Unidades (ADR-039-UNID-001 / ADR_CADASTRO_INSUMO_VOLUME): comercial = interna
+ * e fator 1. MP-PAP/MP-FLM = M2=M2 (mesmo padrão do grupo). Exact: ProdutoCadastroExactData.
  */
 final class ProdutoCadastroCatalogData
 {
@@ -41,20 +41,21 @@ final class ProdutoCadastroCatalogData
     {
         return [
             // ——— 1. Papéis autoadesivos — NCM 4811.41.90 ———
-            self::row('MP-PAP-001', 'MP', 'MP-PAP', 'PAPEL FOSCO AUTOADESIVO COLACRIL ADC 1000', '48114190', '01', 'KG', '11', 'VAL', 'PAPEL_AUTO'),
-            self::row('MP-PAP-002', 'MP', 'MP-PAP', 'PAPEL FOSCO AUTOADESIVO COLACRIL ADC 5240', '48114190', '01', 'KG', '11', 'VAL', 'PAPEL_AUTO'),
-            self::row('MP-PAP-003', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO COLACRIL', '48114190', '01', 'KG', '10', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-004', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO FASSON', '48114190', '01', 'KG', '10', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-005', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO VERTEX', '48114190', '01', 'KG', '10', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-006', 'MP', 'MP-PAP', 'PAPEL COUCHE 30G AUTOADESIVO VERTEX', '48114190', '01', 'KG', '10', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-007', 'MP', 'MP-PAP', 'PAPEL COUCHE AUTOADESIVO RITRAMA', '48114190', '01', 'KG', '10', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-008', 'MP', 'MP-PAP', 'PAPEL TERMICO AUTOADESIVO COLACRIL', '48114190', '01', 'KG', '12', 'OK', 'PAPEL_AUTO'),
-            self::row('MP-PAP-009', 'MP', 'MP-PAP', 'PAPEL TERMICO AUTOADESIVO FASSON', '48114190', '01', 'KG', '12', 'OK', 'PAPEL_AUTO'),
+            // Unidade = grupo MP-PAP (M2=M2). KG só se NF do fornecedor cobrar em peso (humano).
+            self::row('MP-PAP-001', 'MP', 'MP-PAP', 'PAPEL FOSCO AUTOADESIVO COLACRIL ADC 1000', '48114190', '01', 'M2', '11', 'VAL', 'PAPEL_AUTO'),
+            self::row('MP-PAP-002', 'MP', 'MP-PAP', 'PAPEL FOSCO AUTOADESIVO COLACRIL ADC 5240', '48114190', '01', 'M2', '11', 'VAL', 'PAPEL_AUTO'),
+            self::row('MP-PAP-003', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO COLACRIL', '48114190', '01', 'M2', '10', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-004', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO FASSON', '48114190', '01', 'M2', '10', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-005', 'MP', 'MP-PAP', 'PAPEL COUCHE 20G AUTOADESIVO VERTEX', '48114190', '01', 'M2', '10', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-006', 'MP', 'MP-PAP', 'PAPEL COUCHE 30G AUTOADESIVO VERTEX', '48114190', '01', 'M2', '10', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-007', 'MP', 'MP-PAP', 'PAPEL COUCHE AUTOADESIVO RITRAMA', '48114190', '01', 'M2', '10', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-008', 'MP', 'MP-PAP', 'PAPEL TERMICO AUTOADESIVO COLACRIL', '48114190', '01', 'M2', '12', 'OK', 'PAPEL_AUTO'),
+            self::row('MP-PAP-009', 'MP', 'MP-PAP', 'PAPEL TERMICO AUTOADESIVO FASSON', '48114190', '01', 'M2', '12', 'OK', 'PAPEL_AUTO'),
 
             // ——— 2. Tag / cartão sem adesivo — NCM 4810.13.89 ———
-            self::row('MP-PAP-010', 'MP', 'MP-PAP', 'TAG COUCHE 80G', '48101389', '01', 'KG', '13', 'OK', 'TAG'),
-            self::row('MP-PAP-011', 'MP', 'MP-PAP', 'TAG COUCHE 90G', '48101389', '01', 'KG', '13', 'OK', 'TAG'),
-            self::row('MP-PAP-012', 'MP', 'MP-PAP', 'TAG COUCHE 170G', '48101389', '01', 'KG', '13', 'VAL', 'TAG'),
+            self::row('MP-PAP-010', 'MP', 'MP-PAP', 'TAG COUCHE 80G', '48101389', '01', 'M2', '13', 'OK', 'TAG'),
+            self::row('MP-PAP-011', 'MP', 'MP-PAP', 'TAG COUCHE 90G', '48101389', '01', 'M2', '13', 'OK', 'TAG'),
+            self::row('MP-PAP-012', 'MP', 'MP-PAP', 'TAG COUCHE 170G', '48101389', '01', 'M2', '13', 'VAL', 'TAG'),
 
             // ——— 3. Filmes BOPP — NCM 3919.90.10 ———
             self::row('MP-FLM-001', 'MP', 'MP-FLM', 'BOPP BRILHO AUTOADESIVO COLACRIL BXT', '39199010', '01', 'M2', '20', 'OK', 'BOPP'),

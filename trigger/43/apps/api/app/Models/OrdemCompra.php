@@ -60,12 +60,23 @@ class OrdemCompra extends Model
         self::STATUS_PARCIAL,
     ];
 
+    /** Modalidade frete NF-e (transp/modFrete) — CIF emitente / FOB destinatário. */
+    public const MOD_FRETE_CIF = '0';
+
+    public const MOD_FRETE_FOB = '1';
+
+    public const MOD_FRETES = [
+        self::MOD_FRETE_CIF,
+        self::MOD_FRETE_FOB,
+    ];
+
     protected $table = 'ordens_compra';
 
     protected $fillable = [
         'empresa_id',
         'codigo',
         'fornecedor_id',
+        'transportador_id',
         'cotacao_id',
         'necessidade_id',
         'origem',
@@ -75,6 +86,7 @@ class OrdemCompra extends Model
         'previsao_entrega',
         'valor_total',
         'valor_frete',
+        'mod_frete',
         'valor_ipi',
         'valor_icms',
         'observacao',
@@ -107,6 +119,20 @@ class OrdemCompra extends Model
     public function fornecedor(): BelongsTo
     {
         return $this->belongsTo(Parceiro::class, 'fornecedor_id');
+    }
+
+    public function transportador(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'transportador_id');
+    }
+
+    public static function modFreteLabel(?string $mod): ?string
+    {
+        return match ($mod) {
+            self::MOD_FRETE_CIF => 'CIF (emitente)',
+            self::MOD_FRETE_FOB => 'FOB (destinatário)',
+            default => null,
+        };
     }
 
     public function cotacao(): BelongsTo

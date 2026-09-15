@@ -233,15 +233,33 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_calcula_ipi_icms_e_frete_sem_alterar_mercadoria(): void
+    public function test_calcula_ipi_icms_e_modalidade_frete_sem_alterar_mercadoria(): void
     {
         Sanctum::actingAs($this->user);
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
 
+        $transportador = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-TR-OC',
+            'tipo_pessoa' => 'PJ',
+            'razao_social' => 'Transportes Rápidos LTDA',
+            'nome_fantasia' => 'Rápidos',
+            'cnpj_cpf' => '60872504000123',
+            'uf' => 'MG',
+            'municipio' => 'Uberlândia',
+            'ie' => '111222333',
+            'logradouro' => 'Rua do Frete',
+            'numero' => '100',
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+            'cadastro_fiscal_completo' => true,
+        ]);
+
         $oc = $this->withHeaders($h)
             ->postJson('/api/v1/ordens-compra', [
                 'fornecedor_id' => $this->fornecedor->id,
-                'valor_frete' => '25.50',
+                'mod_frete' => OrdemCompra::MOD_FRETE_FOB,
+                'transportador_id' => $transportador->id,
                 'itens' => [
                     [
                         'produto_id' => $this->produto->id,
@@ -256,8 +274,12 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             ->assertJsonPath('data.valor_total', '1000.00')
             ->assertJsonPath('data.valor_ipi', '100.00')
             ->assertJsonPath('data.valor_icms', '120.00')
-            ->assertJsonPath('data.valor_frete', '25.50')
-            ->assertJsonPath('data.valor_previsto', '1125.50')
+            ->assertJsonPath('data.valor_frete', '0.00')
+            ->assertJsonPath('data.valor_previsto', '1100.00')
+            ->assertJsonPath('data.mod_frete', '1')
+            ->assertJsonPath('data.mod_frete_label', 'FOB (destinatário)')
+            ->assertJsonPath('data.transportador_id', $transportador->id)
+            ->assertJsonPath('data.transportador.codigo', 'PAR-TR-OC')
             ->assertJsonPath('data.itens.0.aliq_ipi', '10.0000')
             ->assertJsonPath('data.itens.0.aliq_icms', '12.0000')
             ->assertJsonPath('data.itens.0.valor_ipi', '100.00')
@@ -268,8 +290,25 @@ class OrdemCompraRascunhoEnvioTest extends TestCase
             'valor_total' => '1000.00',
             'valor_ipi' => '100.00',
             'valor_icms' => '120.00',
-            'valor_frete' => '25.50',
+            'valor_frete' => '0.00',
+            'mod_frete' => '1',
+            'transportador_id' => $transportador->id,
         ]);
+
+        $this->withHeaders($h)
+            ->postJson('/api/v1/ordens-compra', [
+                'fornecedor_id' => $this->fornecedor->id,
+                'mod_frete' => OrdemCompra::MOD_FRETE_FOB,
+                'itens' => [
+                    [
+                        'produto_id' => $this->produto->id,
+                        'qtde_pedida' => '1.0000',
+                        'valor_unitario' => '10.000000',
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['transportador_id']);
     }
 
     public function test_estima_e_aplica_icms_automatico_por_uf(): void

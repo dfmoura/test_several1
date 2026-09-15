@@ -19,7 +19,7 @@ class NfeEmitenteExtractor
      *   dest_cnpj: ?string,
      *   dest_cpf: ?string,
      *   cfop_entrada_sugerido: ?string,
-     *   transportadora: ?array{cnpj: ?string, cpf: ?string, nome: ?string, ie: ?string},
+     *   transportadora: ?array{cnpj: ?string, cpf: ?string, nome: ?string, ie: ?string, logradouro: ?string, municipio: ?string, uf: ?string},
      * }
      */
     public function extract(string $xmlContent): array
@@ -214,7 +214,7 @@ class NfeEmitenteExtractor
     }
 
     /**
-     * @return array{cnpj: ?string, cpf: ?string, nome: ?string, ie: ?string}|null
+     * @return array{cnpj: ?string, cpf: ?string, nome: ?string, ie: ?string, logradouro: ?string, municipio: ?string, uf: ?string}|null
      */
     private function extractTransportadora(SimpleXMLElement $inf): ?array
     {
@@ -228,6 +228,9 @@ class NfeEmitenteExtractor
         $cpf = $this->digits($this->text($transporta, 'CPF'));
         $nome = $this->nullable($this->text($transporta, 'xNome'));
         $ie = $this->nullable($this->text($transporta, 'IE'));
+        $logradouro = $this->nullable($this->text($transporta, 'xEnder'));
+        $municipio = $this->nullable($this->text($transporta, 'xMun'));
+        $uf = $this->upper($this->text($transporta, 'UF'));
 
         if ($cnpj === null && $cpf === null && $nome === null) {
             return null;
@@ -238,6 +241,9 @@ class NfeEmitenteExtractor
             'cpf' => $cpf,
             'nome' => $nome,
             'ie' => $ie,
+            'logradouro' => $logradouro,
+            'municipio' => $municipio,
+            'uf' => $uf,
         ];
     }
 

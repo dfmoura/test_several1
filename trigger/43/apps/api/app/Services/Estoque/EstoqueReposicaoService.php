@@ -8,6 +8,7 @@ use App\Models\OrdemCompra;
 use App\Models\OrdemCompraItem;
 use App\Models\Produto;
 use App\Services\Compras\OrdemCompraService;
+use App\Support\OcPedidoDetalhe;
 use App\Support\PadraoDecimal;
 use Illuminate\Validation\ValidationException;
 
@@ -84,6 +85,16 @@ class EstoqueReposicaoService
             $fator = $this->fator($produto);
             $faltanteCom = $this->paraComercial($faltanteInt, $fator);
 
+            $grupoCat = $produto->grupoCatalogo;
+            $exigeDimensao = $grupoCat !== null
+                ? (bool) $grupoCat->exige_dimensao_sku
+                : null;
+            $grupoCodigo = $grupoCat?->codigo ?? $produto->grupo;
+            $permiteDetalheBobina = OcPedidoDetalhe::decide(
+                $exigeDimensao,
+                $grupoCodigo,
+            )['show_detalhe_bobina'];
+
             $out[] = [
                 'produto_id' => $produto->id,
                 'produto' => [
@@ -91,7 +102,8 @@ class EstoqueReposicaoService
                     'codigo' => $produto->codigo,
                     'descricao_fiscal' => $produto->descricao_fiscal,
                     'familia' => $produto->familia,
-                    'grupo' => $produto->grupo,
+                    'grupo' => $grupoCodigo,
+                    'exige_dimensao_sku' => (bool) ($exigeDimensao ?? $permiteDetalheBobina),
                     'unidade_comercial' => $produto->unidade_comercial,
                     'unidade_interna' => $produto->unidade_interna,
                     'fator_conversao' => (string) ($produto->fator_conversao ?? '1'),
@@ -106,6 +118,7 @@ class EstoqueReposicaoService
                 'faltante_comercial' => $faltanteCom,
                 'unidade_interna' => $produto->unidade_interna ?? 'UN',
                 'unidade_comercial' => $produto->unidade_comercial ?? 'UN',
+                'permite_detalhe_bobina' => $permiteDetalheBobina,
             ];
         }
 

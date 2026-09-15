@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { IconMapPin } from '../components/NavIcons';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
@@ -25,6 +25,18 @@ const PAPEIS = [
   'vendedor',
   'contador',
 ] as const;
+
+type PapelTab = '' | (typeof PAPEIS)[number];
+
+const PAPEL_TABS: { id: PapelTab; label: string }[] = [
+  { id: '', label: 'Todos' },
+  ...PAPEIS.map((id) => ({ id, label: papelLabel(id) })),
+];
+
+function parsePapelTab(raw: string | null): PapelTab {
+  if (!raw) return '';
+  return (PAPEIS as readonly string[]).includes(raw) ? (raw as PapelTab) : '';
+}
 
 const DISTANCIA_ERRO_HINT: Record<string, string> = {
   sem_origem: 'Cadastre a origem operacional da empresa (aba Operação).',
@@ -86,23 +98,25 @@ function tooltipPosicao(
 export function ParceirosPage() {
   const { hasPermission, empresaId, empresas } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canWrite = hasPermission('parceiro.escrever');
   const origemEmp = empresas.find((e) => e.id === empresaId);
   const empresaTemOrigem = Boolean(origemEmp?.origem_latitude && origemEmp?.origem_longitude);
 
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
   const [q, setQ] = useState('');
-  const [papel, setPapel] = useState('');
+  const [papel, setPapelState] = useState<PapelTab>(() => parsePapelTab(searchParams.get('papel')));
   const [loading, setLoading] = useState(true);
   const [geoBusyId, setGeoBusyId] = useState<number | null>(null);
   const [geoFlash, setGeoFlash] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null);
   const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(parceiros, SORT);
 
-  const load = async (search?: string, papelFilter?: string) => {
+  const load = useCallback(async (search?: string, papelFilter?: string) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
+      const qTrim = search?.trim();
+      if (qTrim) params.set('q', qTrim);
       if (papelFilter) params.set('papel', papelFilter);
       const qs = params.toString();
       const res = await api.get<{ data: Parceiro[] }>(`/parceiros${qs ? `?${qs}` : ''}`);
@@ -110,15 +124,32 @@ export function ParceirosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void load();
+    void load(undefined, papel || undefined);
+    // Carga inicial (aba vinda da URL). Trocas de aba/busca disparam load à parte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setPapel = (next: PapelTab) => {
+    if (next === papel) return;
+    setPapelState(next);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (next) p.set('papel', next);
+        else p.delete('papel');
+        return p;
+      },
+      { replace: true },
+    );
+    void load(q, next || undefined);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    void load(q, papel);
+    void load(q, papel || undefined);
   };
 
   const atualizarPosicao = async (p: Parceiro) => {
@@ -185,31 +216,36 @@ export function ParceirosPage() {
         }
       />
 
+      <div className="tabs tabs-parceiro" role="tablist" aria-label="Classificação do parceiro">
+        {PAPEL_TABS.map((t) => (
+          <button
+            key={t.id || 'todos'}
+            type="button"
+            role="tab"
+            className={`tab${papel === t.id ? ' active' : ''}`}
+            aria-selected={papel === t.id}
+            onClick={() => setPapel(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>
-              <label>Buscar</label>
+              <label htmlFor="parceiros-busca">Buscar</label>
               <input
+                id="parceiros-busca"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Nome, código ou CNPJ/CPF"
               />
             </div>
-            <div className="form-group" style={{ minWidth: 160 }}>
-              <label>Classificação</label>
-              <select value={papel} onChange={(e) => setPapel(e.target.value)}>
-                <option value="">Todas</option>
-                {PAPEIS.map((p) => (
-                  <option key={p} value={p}>
-                    {papelLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div style={{ alignSelf: 'flex-end' }}>
               <button type="submit" className="btn btn-secondary">
-                Filtrar
+                Buscar
               </button>
             </div>
           </form>
@@ -232,8 +268,14 @@ export function ParceirosPage() {
             <div className="loading">Carregando…</div>
           ) : parceiros.length === 0 ? (
             <div className="empty-state empty-state--cta">
-              <p>Nenhum parceiro ainda. Um prospect (nome, contato, cidade) já permite orçar.</p>
-              {canWrite ? (
+              <p>
+                {papel || q.trim()
+                  ? papel && !q.trim()
+                    ? `Nenhum parceiro com classificação ${papelLabel(papel)}.`
+                    : 'Nenhum resultado para a busca nesta classificação.'
+                  : 'Nenhum parceiro ainda. Um prospect (nome, contato, cidade) já permite orçar.'}
+              </p>
+              {canWrite && !papel && !q.trim() ? (
                 <Link to="/parceiros/novo" className="btn btn-primary">
                   Novo parceiro
                 </Link>

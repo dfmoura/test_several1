@@ -28,6 +28,15 @@ class ProdutoLotePoliticaTest extends TestCase
         $this->assertTrue($n['controla_validade']);
     }
 
+    public function test_ribbon_e_embalagem_default_sem_lote(): void
+    {
+        foreach (['REV-RIB', 'EMB-TUB', 'EMB-CX'] as $grupo) {
+            $p = ProdutoLotePolitica::paraGrupo($grupo);
+            $this->assertFalse($p['controla_lote'], $grupo);
+            $this->assertFalse($p['controla_validade'], $grupo);
+        }
+    }
+
     public function test_abertura_soma_igual_ao_total(): void
     {
         $produto = new \App\Models\Produto([

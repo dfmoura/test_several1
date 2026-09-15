@@ -368,7 +368,7 @@ final class ImplantacaoCatalogo
             [
                 'codigo' => 'F5_NFE_ENT',
                 'nome' => 'NF-e de entrada no estoque',
-                'porque' => 'XML na OC (assist + conferência) grava entrada; espelho consultável em Compras → NF-e recebidas.',
+                'porque' => 'XML na OC (assist + conferência) grava entrada; espelho das notas vinculadas em Compras → NF-e vinculadas.',
                 'onda' => 5,
                 'superficie' => self::SUPERFICIE_ERP,
                 'elo' => false,
@@ -378,8 +378,8 @@ final class ImplantacaoCatalogo
             ],
             [
                 'codigo' => 'F5_DFE_CX',
-                'nome' => 'Caixa de NF-e destinadas (DF-e)',
-                'porque' => 'XML do fisco contra o CNPJ da EMP; amarrar à OC só o que quiser — sem Focus, sem auto-receber.',
+                'nome' => 'Caixa de NF-e (DF-e)',
+                'porque' => 'Caixa das NF-e emitidas contra o CNPJ da EMP e carregadas do fisco; amarrar à OC só o que quiser — sem Focus, sem auto-receber.',
                 'onda' => 5,
                 'superficie' => self::SUPERFICIE_ERP,
                 'elo' => false,

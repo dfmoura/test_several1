@@ -54,14 +54,15 @@ final class ProdutoGrupoCatalogData
                     ['codigo' => '13', 'nome' => 'Tag / cartão sem adesivo'],
                 ],
                 'ncm_padrao' => '48114190',
-                'unidade_comercial_padrao' => 'KG',
+                // Exact/NF tipicamente em m² — comercial = estoque (M2/M2). KG só se a NF do fornecedor cobrar em peso (humano sobrescreve + fator).
+                'unidade_comercial_padrao' => 'M2',
                 'unidade_interna_padrao' => 'M2',
                 'cfop_entrada_padrao' => '2101',
                 'cfop_saida_padrao' => null,
                 'exige_dimensao_sku' => true,
                 'ncm_confirmado' => true,
                 'ordenacao' => 10,
-                'observacao' => 'Couché/fosco/térmico → NCM 4811.41.90. Tag sem adesivo → candidato 4810.13.89 (linha estoque 13). Origem conforme XML. Exact/variável: 1 SKU por material+programa; L×C real = volume (ADR_CADASTRO_INSUMO_VOLUME).',
+                'observacao' => 'Couché/fosco/térmico → NCM 4811.41.90. Tag sem adesivo → candidato 4810.13.89 (linha estoque 13). Origem conforme XML. Exact/variável: 1 SKU por material+programa; L×C real = volume (ADR_CADASTRO_INSUMO_VOLUME). Unidade padrão M2=M2; KG só quando a NF cobrança for em peso.',
             ],
             [
                 'codigo' => 'MP-FLM',

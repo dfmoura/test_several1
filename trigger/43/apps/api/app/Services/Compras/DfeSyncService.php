@@ -33,6 +33,7 @@ class DfeSyncService
         private readonly EmpresaCertificadoA1Materializer $materializer,
         private readonly DfeDistribuicaoClient $client,
         private readonly NfeCompraExtractor $extractor,
+        private readonly DfeTransporteMetaService $transporteMeta,
     ) {}
 
     public function stagePermiteSync(?string $stage = null): bool
@@ -296,6 +297,13 @@ class DfeSyncService
                 'origem' => 'dfe',
             ],
         ];
+
+        if ($isProc && $xmlPath) {
+            $transp = $this->transporteMeta->extrairDeXml($doc->xml);
+            $payload['transp_cnpj'] = $transp['cnpj'];
+            $payload['transp_nome'] = $transp['nome'];
+            $payload['transp_extraido'] = true;
+        }
 
         if ($row) {
             if ($row->situacao === DfeDocumento::SITUACAO_RECEBIDA

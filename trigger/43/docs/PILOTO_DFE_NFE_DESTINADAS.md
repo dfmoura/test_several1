@@ -24,7 +24,7 @@ Se a instalação ainda está em homolog e o piloto precisa de NF reais: virar s
 
 ## Um clique (não martelar)
 
-1. Hard refresh em **Compras → NF-e destinadas**
+1. Hard refresh em **Compras → Caixa de NF-e**
 2. **Um** clique em **Atualizar do fisco**
 3. Esperar IDLE (poll da própria tela)
 4. Anotar: `sync_mensagem`, NSU, contagem de docs

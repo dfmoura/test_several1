@@ -28,6 +28,7 @@ class DfeXmlCompletoService
         private readonly EmpresaCertificadoA1Service $a1,
         private readonly EmpresaCertificadoA1Materializer $materializer,
         private readonly DfeDistribuicaoClient $client,
+        private readonly DfeTransporteMetaService $transporteMeta,
     ) {}
 
     /**
@@ -186,6 +187,7 @@ class DfeXmlCompletoService
             $doc->situacao = DfeDocumento::SITUACAO_DISPONIVEL;
         }
         $doc->schema_dfe = mb_substr($zip->schema, 0, 40) ?: $doc->schema_dfe;
+        $this->transporteMeta->aplicarDeXml($doc, $zip->xml);
         $doc->save();
 
         return true;

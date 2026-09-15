@@ -33,9 +33,9 @@ criar (DIRETA | A repor | COT)
 | Fail-soft | Falha de SMTP **não** desfaz `ABERTA` / `enviado_em` — resposta expõe `email_enviado`. |
 | Soft-delete só em rascunho | Histórico: OC enviada cancela por status (não apaga). |
 | Ficha + e-mail detalhados | EMP + fornecedor (CNPJ, contato, endereço) + itens + condição + previsão + obs. |
-| IPI / ICMS / frete comerciais | Alíquotas por item → `valor_ipi`/`valor_icms` calculados (half-up); frete informado no cabeçalho. `valor_total` = **só mercadoria** (custo MOV). `valor_previsto` = mercadoria + IPI + frete. ICMS = **destaque** (não soma). NF na entrada prevalece no fiscal. |
+| IPI / ICMS / frete comerciais | Alíquotas por item → `valor_ipi`/`valor_icms` calculados (half-up); modalidade `mod_frete` CIF/FOB + `transportador_id` (PAR). `valor_total` = **só mercadoria** (custo MOV). `valor_previsto` = mercadoria + IPI. ICMS = **destaque** (não soma). NF na entrada prevalece no fiscal. |
 | Auto IPI/ICMS | Sem alíquota informada: última NF fornecedor+SKU → última NF SKU → tabela ICMS UF×UF. IPI sem histórico fica vazio. API `POST /ordens-compra/estimar-impostos`. Override manual permitido. |
-| Ficha detalhada OC | `/compras/ordens/:id/ficha` — EMP + fornecedor completos, operação interna/interestadual, NCM/origem, IPI/ICMS/frete/previsto. |
+| Ficha detalhada OC | `/compras/ordens/:id/ficha` — EMP + fornecedor + transportador, operação interna/interestadual, NCM/origem, IPI/ICMS/modalidade/previsto. |
 
 ## Emenda 2026-09-08 — IPI · ICMS · frete na OC
 
@@ -44,11 +44,24 @@ Planejamento comercial no rascunho — **não** é escrituração nem espelho da
 | Campo | Onde | Regra |
 |-------|------|--------|
 | `aliq_ipi` / `aliq_icms` | item | % opcional; se omitido, estimativa automática; servidor calcula `valor_* = mercadoria × aliq / 100` |
-| `valor_frete` | cabeçalho | Informado; não entra em `estoque_movimento_itens` |
+| `valor_frete` | cabeçalho | Legado (sempre 0); não entra em `estoque_movimento_itens` |
 | `valor_total` | cabeçalho | Σ mercadoria (inalterado para MOV) |
-| `valor_previsto` | API/UI/e-mail | mercadoria + IPI + frete |
+| `valor_previsto` | API/UI/e-mail | mercadoria + IPI |
 
 Proibido misturar esses valores no custo médio ou recalcular imposto do XML. Sem motor TIPI/ST/Difal nesta fatia.
+
+## Emenda 2026-09-15 — modalidade CIF/FOB + transportador
+
+Substitui o campo comercial **Frete (R$)** no cabeçalho da OC.
+
+| Campo | Onde | Regra |
+|-------|------|--------|
+| `mod_frete` | cabeçalho | `0` CIF (emitente) · `1` FOB (destinatário) — mesmo vocabulário NF-e `transp/modFrete` |
+| `transportador_id` | cabeçalho | FK → `parceiros` com `papel_transportadora`; **obrigatório se FOB**; opcional se CIF |
+| `valor_previsto` | API/UI/e-mail | mercadoria + IPI (sem R$ frete) |
+| UI | formulário | Slot estreito = select CIF/FOB; 2ª linha = `ParceiroCombobox` transportadora + resumo read-only (razão, CNPJ, IE, endereço, município/UF) |
+
+Omitir `mod_frete` na API (scripts/legado) → CIF. UI nova envia FOB por padrão e exige transportador. Cadastro do transportador = mesmo PAR (Caixa DF-e / parceiros). Sem segundo escritor de saldo; MOV inalterado.
 
 ## Reposição
 
@@ -111,8 +124,9 @@ Humano informa nLote / confere  →  receber()
 | Botão **Do pedido** | Reaplica sugestão se o operador limpou os volumes. |
 | Warning `VOLUME_OC_COMPOSICAO` | Transparência no preview. |
 | Confronto pedido × NF × conferido | Contagem + Σ m²; parse `N RLS X L MM X C M`; alerta `PEDIDO_VS_NF_VOLUMES`. |
+| Confronto só com detalhe físico | Sem faixas e sem rastro/Exact/RLS → não monta bloco (ribbon/tubete com ou sem lote). |
 
-**Proibido:** auto-receber; tratar composição como estoque sem conferência; segundo writer de saldo; nLote aleatório / imitar Avery.
+**Proibido:** auto-receber; tratar composição como estoque sem conferência; segundo writer de saldo; nLote aleatório / imitar Avery; abrir confronto de bobinas só porque existe `qCom`.
 
 ## Emenda 2026-09-12 — desfecho de divergência · un. comercial · alinhar NF
 
@@ -127,4 +141,28 @@ Quando pedido × NF × conferido divergem, o receber **não inventa** volumes: r
 | `qtde_pedida` / qtde do volume = **un. comercial** | Faixas são m² físicos; SKU KG/M2 converte via `fator_conversao` (`BobinaAreaComercial`). Confronto Σ m² usa L×C, não a qtde comercial. |
 
 **Proibido:** bloquear NF por divergência sem desfecho quando política = ALERTA; auto-receber; explodir SKU por L×C; gravar m² como qtde comercial quando o SKU é KG.
+
+## Emenda 2026-09-14 — detalhe do pedido por família (não só bobina)
+
+A composição L × bobinas × m é a língua comercial do **substrato/Exact**, não de todo SKU comprável.
+
+```
+1 linha OC = 1 SKU + qtde_pedida (un. comercial) + preço
+                 │
+                 ├── grupo com exige_dimensao_sku (MP-PAP/FLM/…)
+                 │     → UX: “Detalhe do pedido” (faixas) opcional → Σ m² → qtde
+                 │
+                 └── demais (MP-TIN, EMB-TUB/CX, REV-RIB, …)
+                       → só qtde comercial na linha; sem painel de faixas
+```
+
+| Escolha | Motivo |
+|---------|--------|
+| Gate = `exige_dimensao_sku` (+ lista canônica de grupos) | Mesma fonte do cadastro (`ProdutoBobinaDimensoes` / `ocPedidoDetalheUi`). |
+| Uma OC, detalhe polimórfico | Não criar “OC de bobina” vs “OC genérica”. |
+| A repor / Nova OC | Mesma regra; botão Detalhar só quando o SKU permite. Painel = faixas físicas; rodapé Σ m² → qtde comercial (KG/M2). |
+| Ficha / e-mail | Já condicionais a `composicao[]` — inalterados. |
+| API aceita composição | Contrato existente; UI não oferece faixas onde não cabem. Legado com faixas continua editável. |
+
+**Proibido nesta emenda:** abrir faixas por heurística de unidade (KG/M2/UN); explodir SKU por L×C; segundo modelo de item OC; auto-receber.
 

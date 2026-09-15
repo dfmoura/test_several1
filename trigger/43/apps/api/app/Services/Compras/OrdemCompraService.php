@@ -33,6 +33,7 @@ class OrdemCompraService
         $query = OrdemCompra::query()
             ->with([
                 'fornecedor:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone',
+                'transportador:id,codigo,razao_social,nome_fantasia,cnpj_cpf,ie,logradouro,numero,complemento,bairro,municipio,uf,cep,telefone,email',
                 'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia',
                 'itens.composicoes',
                 ...OrdemCompra::userStampWith(),
@@ -71,6 +72,12 @@ class OrdemCompraService
     public function create(Empresa $empresa, array $data): array
     {
         $fornecedor = $this->assertFornecedor($empresa, (int) $data['fornecedor_id']);
+        $modFrete = $this->resolveModFrete($data['mod_frete'] ?? null);
+        $transportador = $this->resolveTransportador(
+            $empresa,
+            isset($data['transportador_id']) ? (int) $data['transportador_id'] : null,
+            $modFrete,
+        );
         $necessidade = null;
         if (! empty($data['necessidade_id'])) {
             $necessidade = CompraNecessidade::query()
@@ -86,7 +93,7 @@ class OrdemCompraService
 
         $itensPayload = $this->normalizeItens($empresa, $fornecedor, $data['itens'] ?? []);
 
-        $oc = DB::transaction(function () use ($empresa, $data, $fornecedor, $necessidade, $itensPayload) {
+        $oc = DB::transaction(function () use ($empresa, $data, $fornecedor, $transportador, $modFrete, $necessidade, $itensPayload) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'OC-'.$ano, 5);
 
@@ -101,12 +108,12 @@ class OrdemCompraService
             $valorTotal = PadraoDecimal::roundHalfUp($valorTotal, PadraoDecimal::SCALE_MONEY);
             $valorIpi = PadraoDecimal::roundHalfUp($valorIpi, PadraoDecimal::SCALE_MONEY);
             $valorIcms = PadraoDecimal::roundHalfUp($valorIcms, PadraoDecimal::SCALE_MONEY);
-            $valorFrete = $this->parseFrete($data['valor_frete'] ?? null);
 
             $oc = OrdemCompra::query()->create([
                 'empresa_id' => $empresa->id,
                 'codigo' => $codigo,
                 'fornecedor_id' => $fornecedor->id,
+                'transportador_id' => $transportador?->id,
                 'cotacao_id' => $data['cotacao_id'] ?? null,
                 'necessidade_id' => $necessidade?->id,
                 'origem' => $data['origem'] ?? OrdemCompra::ORIGEM_DIRETA,
@@ -115,7 +122,8 @@ class OrdemCompraService
                 'condicao_pagamento' => $this->nullIfEmpty($data['condicao_pagamento'] ?? null),
                 'previsao_entrega' => $data['previsao_entrega'] ?? null,
                 'valor_total' => $valorTotal,
-                'valor_frete' => $valorFrete,
+                'valor_frete' => PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY),
+                'mod_frete' => $modFrete,
                 'valor_ipi' => $valorIpi,
                 'valor_icms' => $valorIcms,
                 'observacao' => $this->nullIfEmpty($data['observacao'] ?? null),
@@ -144,9 +152,15 @@ class OrdemCompraService
     {
         $this->assertEditavel($oc);
         $fornecedor = $this->assertFornecedor($empresa, (int) $data['fornecedor_id']);
+        $modFrete = $this->resolveModFrete($data['mod_frete'] ?? null);
+        $transportador = $this->resolveTransportador(
+            $empresa,
+            isset($data['transportador_id']) ? (int) $data['transportador_id'] : null,
+            $modFrete,
+        );
         $itensPayload = $this->normalizeItens($empresa, $fornecedor, $data['itens'] ?? []);
 
-        DB::transaction(function () use ($oc, $data, $fornecedor, $itensPayload) {
+        DB::transaction(function () use ($oc, $data, $fornecedor, $transportador, $modFrete, $itensPayload) {
             $valorTotal = '0';
             $valorIpi = '0';
             $valorIcms = '0';
@@ -158,14 +172,15 @@ class OrdemCompraService
             $valorTotal = PadraoDecimal::roundHalfUp($valorTotal, PadraoDecimal::SCALE_MONEY);
             $valorIpi = PadraoDecimal::roundHalfUp($valorIpi, PadraoDecimal::SCALE_MONEY);
             $valorIcms = PadraoDecimal::roundHalfUp($valorIcms, PadraoDecimal::SCALE_MONEY);
-            $valorFrete = $this->parseFrete($data['valor_frete'] ?? null);
 
             $oc->fornecedor_id = $fornecedor->id;
+            $oc->transportador_id = $transportador?->id;
             $oc->urgente = (bool) ($data['urgente'] ?? false);
             $oc->condicao_pagamento = $this->nullIfEmpty($data['condicao_pagamento'] ?? null);
             $oc->previsao_entrega = $data['previsao_entrega'] ?? null;
             $oc->valor_total = $valorTotal;
-            $oc->valor_frete = $valorFrete;
+            $oc->valor_frete = PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+            $oc->mod_frete = $modFrete;
             $oc->valor_ipi = $valorIpi;
             $oc->valor_icms = $valorIcms;
             $oc->observacao = $this->nullIfEmpty($data['observacao'] ?? null);
@@ -283,6 +298,7 @@ class OrdemCompraService
     {
         $oc->loadMissing([
             'fornecedor',
+            'transportador',
             'itens.produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_comercial,unidade_interna,fator_conversao,controla_lote,controla_validade,prazo_validade_dias,ncm,origem,cest',
             'itens.composicoes',
             'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep,ie,crt,regime',
@@ -290,6 +306,7 @@ class OrdemCompraService
         ]);
 
         $fornecedor = $oc->fornecedor;
+        $transportador = $oc->transportador;
         $empresa = $oc->relationLoaded('empresa') ? $oc->empresa : null;
         $empUf = $empresa?->uf ? strtoupper(trim((string) $empresa->uf)) : null;
         $fornUf = $fornecedor?->uf ? strtoupper(trim((string) $fornecedor->uf)) : null;
@@ -323,6 +340,8 @@ class OrdemCompraService
                 'finalidade' => $fornecedor->finalidade ?? null,
                 'cfop_entrada_padrao' => $fornecedor->cfop_entrada_padrao ?? null,
             ] : null,
+            'transportador_id' => $oc->transportador_id,
+            'transportador' => $transportador ? $this->parceiroResumo($transportador) : null,
             'empresa' => $empresa ? [
                 'id' => $empresa->id,
                 'codigo' => $empresa->codigo,
@@ -358,14 +377,12 @@ class OrdemCompraService
             'previsao_entrega' => optional($oc->previsao_entrega)?->format('Y-m-d'),
             'valor_total' => (string) $oc->valor_total,
             'valor_frete' => PadraoDecimal::roundHalfUp((string) ($oc->valor_frete ?? '0'), PadraoDecimal::SCALE_MONEY),
+            'mod_frete' => $oc->mod_frete,
+            'mod_frete_label' => OrdemCompra::modFreteLabel($oc->mod_frete),
             'valor_ipi' => PadraoDecimal::roundHalfUp((string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY),
             'valor_icms' => PadraoDecimal::roundHalfUp((string) ($oc->valor_icms ?? '0'), PadraoDecimal::SCALE_MONEY),
             'valor_previsto' => PadraoDecimal::roundHalfUp(
-                bcadd(
-                    bcadd((string) $oc->valor_total, (string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY + 2),
-                    (string) ($oc->valor_frete ?? '0'),
-                    PadraoDecimal::SCALE_MONEY + 2
-                ),
+                bcadd((string) $oc->valor_total, (string) ($oc->valor_ipi ?? '0'), PadraoDecimal::SCALE_MONEY + 2),
                 PadraoDecimal::SCALE_MONEY
             ),
             'observacao' => $oc->observacao,
@@ -611,7 +628,7 @@ class OrdemCompraService
             }
             if ($quantidade === null || bccomp($quantidade, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
-                    "itens.{$itemIdx}.composicao.{$fIdx}.quantidade" => ['Quantidade de bobinas deve ser maior que zero.'],
+                    "itens.{$itemIdx}.composicao.{$fIdx}.quantidade" => ['Quantidade de volumes deve ser maior que zero.'],
                 ]);
             }
             if ($comprimento === null || bccomp($comprimento, '0', PadraoDecimal::SCALE_DIM) <= 0) {
@@ -642,19 +659,76 @@ class OrdemCompraService
         return $out;
     }
 
-    private function parseFrete(mixed $raw): string
+    private function resolveModFrete(mixed $raw): string
     {
         if ($raw === null || $raw === '') {
-            return PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+            // Omitido (API legado / scripts): CIF — sem exigir transportador.
+            return OrdemCompra::MOD_FRETE_CIF;
         }
-        $v = PadraoDecimal::parseStrict($raw, PadraoDecimal::SCALE_MONEY);
-        if ($v === null || bccomp($v, '0', PadraoDecimal::SCALE_MONEY) < 0) {
+        $mod = (string) $raw;
+        if (! in_array($mod, OrdemCompra::MOD_FRETES, true)) {
             throw ValidationException::withMessages([
-                'valor_frete' => ['Frete inválido.'],
+                'mod_frete' => ['Modalidade de frete inválida. Use CIF (0) ou FOB (1).'],
             ]);
         }
 
-        return PadraoDecimal::roundHalfUp($v, PadraoDecimal::SCALE_MONEY);
+        return $mod;
+    }
+
+    private function resolveTransportador(Empresa $empresa, ?int $transportadorId, string $modFrete): ?Parceiro
+    {
+        if ($modFrete === OrdemCompra::MOD_FRETE_FOB && ($transportadorId === null || $transportadorId < 1)) {
+            throw ValidationException::withMessages([
+                'transportador_id' => ['Selecione o transportador cadastrado (FOB).'],
+            ]);
+        }
+
+        if ($transportadorId === null || $transportadorId < 1) {
+            return null;
+        }
+
+        $parceiro = Parceiro::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $transportadorId)
+            ->first();
+
+        if (! $parceiro) {
+            throw ValidationException::withMessages([
+                'transportador_id' => ['Transportador inválido para a empresa.'],
+            ]);
+        }
+
+        if (! $parceiro->papel_transportadora) {
+            throw ValidationException::withMessages([
+                'transportador_id' => ['Parceiro deve ter classificação de transportadora.'],
+            ]);
+        }
+
+        return $parceiro;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parceiroResumo(Parceiro $parceiro): array
+    {
+        return [
+            'id' => $parceiro->id,
+            'codigo' => $parceiro->codigo,
+            'razao_social' => $parceiro->razao_social,
+            'nome_fantasia' => $parceiro->nome_fantasia,
+            'cnpj_cpf' => $parceiro->cnpj_cpf,
+            'email' => $parceiro->email,
+            'telefone' => $parceiro->telefone,
+            'logradouro' => $parceiro->logradouro,
+            'numero' => $parceiro->numero,
+            'complemento' => $parceiro->complemento,
+            'bairro' => $parceiro->bairro,
+            'municipio' => $parceiro->municipio,
+            'uf' => $parceiro->uf,
+            'cep' => $parceiro->cep,
+            'ie' => $parceiro->ie,
+        ];
     }
 
     private function parseAliquota(mixed $raw, string $field): ?string

@@ -92,7 +92,9 @@ final class OcReceberConfronto
                     : 'inf_ad_rls';
             }
 
-            if ($pedidoVolumes === 0 && $nfVolumes === null && bccomp($nfQCom, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            // Confronto = bobinas / detalhe físico. Só qCom (ribbon, tubete, lote único
+            // sem rastro/Exact/faixas) não abre o bloco — evita “—” enganoso na UX.
+            if ($pedidoVolumes === 0 && $nfVolumes === null) {
                 continue;
             }
 
