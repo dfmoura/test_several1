@@ -266,7 +266,7 @@ class EstoqueVolumeService
 
     /**
      * Folha de reimpressão de etiquetas de volume (F3 · 50×40).
-     * Com movimento_id: volumes físicos daquela entrada (mesmo elo da ficha).
+     * Com movimento_id: volumes do MOV de entrada de compra **ou** AJUSTE (A03/VIRADA).
      *
      * @param  list<int>|null  $loteIds
      * @return array{volumes: list<array<string, mixed>>, volumes_count: int, filtro: array<string, mixed>}
@@ -278,8 +278,9 @@ class EstoqueVolumeService
         ?int $movimentoId = null,
     ): array {
         $escopoMovimento = false;
+        $movimentoTipo = null;
         if ($movimentoId !== null) {
-            $loteIds = $this->loteIdsDoMovimentoEntrada($empresa, $movimentoId);
+            [$loteIds, $movimentoTipo] = $this->loteIdsDoMovimentoParaEtiquetas($empresa, $movimentoId);
             $escopoMovimento = true;
             if ($loteIds === []) {
                 return [
@@ -289,6 +290,7 @@ class EstoqueVolumeService
                         'sem_endereco' => $semEndereco,
                         'ids' => [],
                         'movimento_id' => $movimentoId,
+                        'movimento_tipo' => $movimentoTipo,
                     ],
                 ];
             }
@@ -300,7 +302,7 @@ class EstoqueVolumeService
             ->orderBy('produto_id')
             ->orderBy('codigo');
 
-        // Lista geral: só saldo. Escopo MOV/ids: identidade do volume da entrada (reimpressão).
+        // Lista geral: só saldo. Escopo MOV/ids: identidade do volume (reimpressão).
         if (! $escopoMovimento && ($loteIds === null || $loteIds === [])) {
             $q->where('qtde', '>', 0);
         }
@@ -327,16 +329,17 @@ class EstoqueVolumeService
                 'sem_endereco' => $semEndereco,
                 'ids' => $loteIds,
                 'movimento_id' => $movimentoId,
+                'movimento_tipo' => $movimentoTipo,
             ],
         ];
     }
 
     /**
-     * Lotes físicos nascidos no MOV de entrada de compra (ficha / etiquetas da NF).
+     * Lotes físicos do MOV — entrada de compra (NF) ou ajuste (A03/VIRADA).
      *
-     * @return list<int>
+     * @return array{0: list<int>, 1: string}
      */
-    private function loteIdsDoMovimentoEntrada(Empresa $empresa, int $movimentoId): array
+    private function loteIdsDoMovimentoParaEtiquetas(Empresa $empresa, int $movimentoId): array
     {
         $movimento = EstoqueMovimento::query()
             ->where('empresa_id', $empresa->id)
@@ -347,9 +350,15 @@ class EstoqueVolumeService
             abort(404);
         }
 
-        if ($movimento->tipo !== EstoqueMovimento::TIPO_ENTRADA_COMPRA) {
+        $tiposOk = [
+            EstoqueMovimento::TIPO_ENTRADA_COMPRA,
+            EstoqueMovimento::TIPO_AJUSTE,
+        ];
+        if (! in_array($movimento->tipo, $tiposOk, true)) {
             throw ValidationException::withMessages([
-                'movimento_id' => ['Etiquetas por movimento só se aplicam a entrada de compra.'],
+                'movimento_id' => [
+                    'Etiquetas por movimento só se aplicam a entrada de compra ou ajuste de estoque.',
+                ],
             ]);
         }
 
@@ -362,7 +371,7 @@ class EstoqueVolumeService
             }
         }
 
-        return array_values($ids);
+        return [array_values($ids), (string) $movimento->tipo];
     }
 
     private function loteFromVolPayload(Empresa $empresa, string $payload): EstoqueLote

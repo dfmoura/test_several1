@@ -12,6 +12,8 @@ use App\Models\EstoqueSaldo;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Codigo\CodigoGenerator;
+use App\Support\NfeExactDimensoes;
+use App\Support\OcPedidoDetalhe;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +141,16 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
+        $lotePayload = $this->normalizarLotePayloadVirada(
+            $produto,
+            isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
+            $motivo['codigo'],
+            $origem,
+            $diferenca
+        );
+
+        $usaPayload = $lotePayload !== null && $lotePayload !== [];
+
         $ajuste = DB::transaction(function () use (
             $empresa,
             $produto,
@@ -148,7 +160,9 @@ class EstoqueAjusteService
             $qtdeSistema,
             $qtdeContada,
             $diferenca,
-            $meta
+            $meta,
+            $lotePayload,
+            $usaPayload
         ) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'AJU-'.$ano, 5);
@@ -157,12 +171,12 @@ class EstoqueAjusteService
                 'empresa_id' => $empresa->id,
                 'codigo' => $codigo,
                 'produto_id' => $produto->id,
-                'lote_id' => isset($data['lote_id']) ? (int) $data['lote_id'] : null,
-                'lote_codigo' => $this->nullIfEmpty($data['lote_codigo'] ?? null),
-                'lote_data_entrada' => $data['lote_data_entrada'] ?? null,
-                'lote_data_fabricacao' => $data['lote_data_fabricacao'] ?? null,
-                'lote_data_validade' => $data['lote_data_validade'] ?? null,
-                'lote_payload' => $data['lote_payload'] ?? null,
+                'lote_id' => $usaPayload ? null : (isset($data['lote_id']) ? (int) $data['lote_id'] : null),
+                'lote_codigo' => $usaPayload ? null : $this->nullIfEmpty($data['lote_codigo'] ?? null),
+                'lote_data_entrada' => $usaPayload ? null : ($data['lote_data_entrada'] ?? null),
+                'lote_data_fabricacao' => $usaPayload ? null : ($data['lote_data_fabricacao'] ?? null),
+                'lote_data_validade' => $usaPayload ? null : ($data['lote_data_validade'] ?? null),
+                'lote_payload' => $lotePayload,
                 'inventario_item_id' => null,
                 'origem' => $origem,
                 'motivo_codigo' => $motivo['codigo'],
@@ -217,6 +231,14 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
+        $lotePayload = $this->normalizarLotePayloadVirada(
+            $produto,
+            isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
+            $motivo['codigo'],
+            $origem,
+            $diferenca
+        );
+
         $ajuste = DB::transaction(function () use (
             $empresa,
             $produto,
@@ -227,7 +249,8 @@ class EstoqueAjusteService
             $qtdeSistema,
             $qtdeContada,
             $diferenca,
-            $meta
+            $meta,
+            $lotePayload
         ) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'AJU-'.$ano, 5);
@@ -254,6 +277,7 @@ class EstoqueAjusteService
                 'divergencia_relevante' => $meta['divergencia_relevante'],
                 'ciencia_diretoria' => false,
                 'ciencia_contabilidade' => false,
+                'lote_payload' => $lotePayload,
             ]);
         });
 
@@ -570,6 +594,7 @@ class EstoqueAjusteService
             'lote_codigo' => $ajuste->lote_codigo,
             'lote_data_entrada' => optional($ajuste->lote_data_entrada)?->format('Y-m-d'),
             'lote_data_validade' => optional($ajuste->lote_data_validade)?->format('Y-m-d'),
+            'lote_payload' => is_array($ajuste->lote_payload) ? $ajuste->lote_payload : null,
             'created_at' => optional($ajuste->created_at)?->toIso8601String(),
             'criado_por' => EstoqueAjuste::userStampFrom($ajuste->criador),
             'atualizado_por' => EstoqueAjuste::userStampFrom($ajuste->atualizador),
@@ -684,6 +709,130 @@ class EstoqueAjusteService
                 'aprovador' => ['Quem contou o item no inventário não pode aprovar o ajuste (SoD).'],
             ]);
         }
+    }
+
+    /**
+     * Volumes de abertura (A03 / origem VIRADA): soma das qtdes = |Δ| positiva.
+     * L×C opcional; em M2/bobina, se ambos informados, deriva/valida área.
+     *
+     * @param  list<array<string, mixed>>|null  $raw
+     * @return list<array<string, mixed>>|null
+     */
+    private function normalizarLotePayloadVirada(
+        Produto $produto,
+        ?array $raw,
+        string $motivo,
+        string $origem,
+        string $diferenca
+    ): ?array {
+        if ($raw === null || $raw === []) {
+            return null;
+        }
+
+        $permite = $motivo === 'A03' || $origem === EstoqueAjuste::ORIGEM_VIRADA;
+        if (! $permite) {
+            throw ValidationException::withMessages([
+                'lote_payload' => [
+                    'Volumes (lote_payload) só são permitidos no saldo inicial (A03) ou inventário VIRADA.',
+                ],
+            ]);
+        }
+
+        if (! $produto->controla_lote) {
+            throw ValidationException::withMessages([
+                'lote_payload' => ['Produto não controla lote/volume — remova os volumes.'],
+            ]);
+        }
+
+        if (bccomp($diferenca, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'lote_payload' => ['Volumes de abertura só se aplicam a diferença positiva (entrada de saldo).'],
+            ]);
+        }
+
+        $qtdeAbs = $diferenca;
+        $usaArea = strtoupper((string) ($produto->unidade_interna ?? 'UN')) === 'M2'
+            || OcPedidoDetalhe::permiteParaProduto($produto);
+
+        $linhas = [];
+        $soma = '0';
+
+        foreach (array_values($raw) as $idx => $linha) {
+            if (! is_array($linha)) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}" => ['Volume inválido.'],
+                ]);
+            }
+
+            $codigo = trim((string) ($linha['codigo'] ?? $linha['lote_codigo'] ?? ''));
+            $largura = $this->nullIfEmpty($linha['largura_mm'] ?? null);
+            $comprimento = $this->nullIfEmpty($linha['comprimento_m'] ?? null);
+            $largura = $largura !== null
+                ? PadraoDecimal::roundHalfUp((string) $largura, PadraoDecimal::SCALE_DIM)
+                : null;
+            $comprimento = $comprimento !== null
+                ? PadraoDecimal::roundHalfUp((string) $comprimento, PadraoDecimal::SCALE_DIM)
+                : null;
+
+            $qtdeRaw = $this->nullIfEmpty($linha['qtde'] ?? null);
+            $qtde = $qtdeRaw !== null
+                ? PadraoDecimal::roundHalfUp((string) $qtdeRaw, PadraoDecimal::SCALE_QTY)
+                : null;
+
+            if ($usaArea && $largura !== null && $comprimento !== null
+                && bccomp($largura, '0', PadraoDecimal::SCALE_DIM) > 0
+                && bccomp($comprimento, '0', PadraoDecimal::SCALE_DIM) > 0) {
+                $area = NfeExactDimensoes::areaM2($largura, $comprimento);
+                if ($qtde === null) {
+                    $qtde = $area;
+                } elseif (bccomp($qtde, $area, PadraoDecimal::SCALE_QTY) !== 0) {
+                    throw ValidationException::withMessages([
+                        "lote_payload.{$idx}.qtde" => [
+                            "Quantidade ({$qtde}) deve igualar a área L×C ({$area} M2).",
+                        ],
+                    ]);
+                }
+            }
+
+            if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.qtde" => ['Informe a quantidade do volume (maior que zero).'],
+                ]);
+            }
+
+            if ($codigo === '') {
+                $codigo = 'VIR-'.$produto->codigo.'-'.($idx + 1);
+            }
+
+            $entrada = $this->nullIfEmpty($linha['data_entrada'] ?? $linha['lote_data_entrada'] ?? null)
+                ?? now()->toDateString();
+            $fab = $this->nullIfEmpty($linha['data_fabricacao'] ?? $linha['lote_data_fabricacao'] ?? null);
+            $val = $this->nullIfEmpty($linha['data_validade'] ?? $linha['lote_data_validade'] ?? null);
+
+            $linhas[] = [
+                'codigo' => mb_substr($codigo, 0, 60),
+                'qtde' => $qtde,
+                'data_entrada' => (string) $entrada,
+                'data_fabricacao' => $fab !== null ? (string) $fab : null,
+                'data_validade' => $val !== null ? (string) $val : null,
+                'largura_mm' => $largura,
+                'comprimento_m' => $comprimento,
+                'origem_tipo' => EstoqueLote::ORIGEM_VIRADA,
+                'volume_novo' => true,
+            ];
+            $soma = bcadd($soma, $qtde, PadraoDecimal::SCALE_QTY);
+        }
+
+        $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+        if (bccomp($soma, $qtdeAbs, PadraoDecimal::SCALE_QTY) !== 0) {
+            throw ValidationException::withMessages([
+                'lote_payload' => [
+                    "Soma dos volumes ({$soma}) deve igualar a diferença do ajuste ({$qtdeAbs}).",
+                ],
+            ]);
+        }
+
+        return $linhas;
     }
 
     private function assertEmpresa(Empresa $empresa, EstoqueAjuste $ajuste): void

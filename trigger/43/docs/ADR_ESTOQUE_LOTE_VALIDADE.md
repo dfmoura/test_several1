@@ -53,7 +53,7 @@ Operador pode desligar/ligar no cadastro. Validade sem lote é inválida (o sist
 
 **Entrada OC:** SKU com lote exige código + data de entrada (default: data da NF ou hoje). Validade: informada, ou derivada de `prazo_validade_dias`. XML `rastro` (nLote/dFab/dVal) só **preenche** — humano confirma.
 
-**AJU / INV:** contagem por lote fica fora desta entrega. Ajuste positivo em SKU com lote cria/usa o lote informado (ou sintético `AJU-…` / `INV-…`); negativo consome FEFO. Virada A03 grava `lote_payload` (1–2 lotes de abertura) no mesmo AJU.
+**AJU / INV:** contagem por lote no inventário cíclico permanece fora. Ajuste positivo em SKU com lote cria/usa o lote informado (ou sintético `AJU-…` / `INV-…`); negativo consome FEFO. **Saldo inicial (A03) / origem VIRADA:** UI e API aceitam `lote_payload` com N volumes (código + qtde + L×C opcional); soma = Δ; cada volume nasce com origem `VIRADA` e identidade própria (`volume_novo`). Após aprovar, etiquetas Elgin 50×40 na rota canônica `/estoque/lotes/etiquetas?movimento_id=` (mesmo batch da NF). Seed de lab ainda pode abrir 1–2 lotes sintéticos sem L×C.
 
 **Backfill (teste/implantação):** SKU que já tem saldo e passou a controlar lote, sem linhas em `estoque_lotes`, recebe lotes de abertura **sem** alterar `estoque_saldos` e **sem** MOV novo — só amarra identidade à qtde já documentada. Origem `BACKFILL`. Não é caminho operacional do dia a dia.
 

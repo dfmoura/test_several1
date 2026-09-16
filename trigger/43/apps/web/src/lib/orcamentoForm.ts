@@ -383,6 +383,39 @@ export function renumerarFacas(rows: FacaComposicaoForm[]): FacaComposicaoForm[]
   return rows.map((r, i) => ({ ...r, ordem: i + 1 }));
 }
 
+/** Rótulo comercial de uma linha (FAT / tabela / proposta). */
+export function rotuloFacaLinha(f: {
+  ordem?: number;
+  n_facas?: number | null;
+  label?: string | null;
+  formato?: string | null;
+  medida?: string | null;
+  faca_nova?: boolean;
+}): string {
+  const label = String(f.label ?? '').trim();
+  if (label) return label.slice(0, 100);
+  const parts: string[] = [];
+  if (f.n_facas != null && Number.isFinite(Number(f.n_facas))) parts.push(`N ${f.n_facas}`);
+  if (f.formato) parts.push(String(f.formato));
+  if (f.medida) parts.push(String(f.medida));
+  if (parts.length) return parts.join(' · ').slice(0, 100);
+  if (f.faca_nova) return 'Faca nova';
+  return `Faca ${f.ordem ?? 1}`;
+}
+
+/** Label de add-on comercial (Σ) — evita “Faca nova” quando a cobrança é mapa. */
+export function labelFerramentalAddOn(opts: {
+  facaNova?: boolean;
+  valor?: number;
+  count?: number;
+}): string {
+  const count = opts.count ?? 0;
+  if (count > 1) return 'Ferramental';
+  if (opts.facaNova && (opts.valor ?? 0) > 0) return 'Faca nova';
+  if ((opts.valor ?? 0) > 0) return 'Ferramental';
+  return 'Ferramental';
+}
+
 /** Equal-split canônico (soma = 100); preserva nomes nas posições existentes. */
 export function syncModelosComposicao(
   prev: ModeloComposicaoForm[] | undefined,

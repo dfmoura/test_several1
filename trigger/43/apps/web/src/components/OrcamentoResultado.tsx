@@ -25,6 +25,8 @@ import {
 } from '../lib/orcamentoGuiaProducao';
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { FacasComposicaoTable } from './FacasComposicaoTable';
+import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 import { SortableTh } from './SortableTh';
@@ -193,6 +195,20 @@ function ParametrosCalculoPanel({
 
   const facaNova = Boolean(calculo.faca_nova);
   const valorArtes = Number(calculo.valor_artes) || 0;
+  const facasRows = facasFromSnapshot({
+    facas: calculo.facas,
+    faca_nova: calculo.faca_nova,
+    formato_faca: calculo.formato_faca,
+    valor_faca_nova: calculo.valor_faca_nova,
+  });
+  const valorFerramental =
+    somaValorFacas(facasRows) || Number(calculo.valor_faca_nova) || 0;
+  const labelFerramental = labelFerramentalAddOn({
+    facaNova,
+    valor: valorFerramental,
+    count: facasRows.length,
+  });
+  const mostrarFerramental = facaNova || valorFerramental > 0;
   const mostrarFrete = Boolean(calculo.frete);
 
   const faixasComLinhas = useMemo(
@@ -443,10 +459,10 @@ function ParametrosCalculoPanel({
                     },
                   ]),
               { label: 'Matriz', valor: (fx: OrcamentoFaixaResult) => formatCurrency(fx.valor_matriz) },
-              ...(facaNova
+              ...(mostrarFerramental
                 ? [
                     {
-                      label: 'Faca nova',
+                      label: labelFerramental,
                       valor: (fx: OrcamentoFaixaResult) =>
                         formatCurrency(fx.valor_faca_nova ?? calculo.valor_faca_nova ?? 0),
                     },
@@ -553,6 +569,7 @@ function ComercialFaixasTable({
   facaNova,
   valorFacaNova,
   valorArtes,
+  labelFaca = 'Ferramental',
   mostrarFrete,
   freteADefinir,
   modoServico,
@@ -562,6 +579,7 @@ function ComercialFaixasTable({
   facaNova: boolean;
   valorFacaNova?: number;
   valorArtes?: number;
+  labelFaca?: string;
   mostrarFrete: boolean;
   freteADefinir?: boolean;
   modoServico?: boolean;
@@ -634,6 +652,7 @@ function ComercialFaixasTable({
                 Unitário
               </SortableTh>
               {(valorArtes ?? 0) > 0 ? <th className="num">Vlr. Arte</th> : null}
+              {facaNova ? <th className="num">{labelFaca}</th> : null}
               {mostrarFrete ? <th className="num">Frete</th> : null}
               <SortableTh
                 column="total"
@@ -661,6 +680,11 @@ function ComercialFaixasTable({
                   {(valorArtes ?? 0) > 0 ? (
                     <td className="num">
                       {formatCurrency(fx.valor_artes ?? valorArtes)}
+                    </td>
+                  ) : null}
+                  {facaNova ? (
+                    <td className="num">
+                      {formatCurrency(fx.valor_faca_nova ?? valorFacaNova ?? 0)}
                     </td>
                   ) : null}
                   {mostrarFrete ? (
@@ -759,6 +783,7 @@ function ComercialFaixasTable({
               Matriz
             </SortableTh>
             {mostrarArtes ? <th className="num">Vlr. Arte</th> : null}
+            {facaNova ? <th className="num">{labelFaca}</th> : null}
             {mostrarFrete ? <th className="num">Frete</th> : null}
             <SortableTh
               column="total"
@@ -803,6 +828,11 @@ function ComercialFaixasTable({
                 {mostrarArtes ? (
                   <td className="num">
                     {formatCurrency(fx.valor_artes ?? valorArtes)}
+                  </td>
+                ) : null}
+                {facaNova ? (
+                  <td className="num">
+                    {formatCurrency(fx.valor_faca_nova ?? valorFacaNova ?? 0)}
                   </td>
                 ) : null}
                 {mostrarFrete ? (
@@ -927,6 +957,20 @@ export function OrcamentoResultado({
   const faixas = calculo.faixas ?? [];
   const detalhe = faixas[faixaDetalhe];
   const valorArtes = Number(calculo.valor_artes) || 0;
+  const facasRows = facasFromSnapshot({
+    facas: calculo.facas,
+    faca_nova: calculo.faca_nova,
+    formato_faca: calculo.formato_faca,
+    valor_faca_nova: calculo.valor_faca_nova,
+  });
+  const valorFerramental =
+    somaValorFacas(facasRows) || Number(calculo.valor_faca_nova) || 0;
+  const labelFerramental = labelFerramentalAddOn({
+    facaNova: Boolean(calculo.faca_nova),
+    valor: valorFerramental,
+    count: facasRows.length,
+  });
+  const mostrarFerramental = Boolean(calculo.faca_nova) || valorFerramental > 0;
   const modelosVisiveis = (modelosComposicao ?? []).filter(
     (m) => String(m.nome ?? '').trim() !== '',
   );
@@ -1005,8 +1049,8 @@ export function OrcamentoResultado({
                   })}/cm²`
                 : '';
             })()}
-            {calculo.faca_nova
-              ? ` · Faca nova ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
+            {mostrarFerramental
+              ? ` · ${labelFerramental} ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
                   calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
                 }`
               : ''}
@@ -1044,11 +1088,21 @@ export function OrcamentoResultado({
                 }))}
               />
             ) : null}
+            {facasRows.length > 0 ? (
+              <FacasComposicaoTable
+                variant="data"
+                className="orc-facas-resultado"
+                hint={null}
+                showValor
+                facas={facasRows}
+              />
+            ) : null}
             <ComercialFaixasTable
               faixas={faixas}
-              facaNova={Boolean(calculo.faca_nova)}
+              facaNova={mostrarFerramental}
               valorFacaNova={calculo.valor_faca_nova}
               valorArtes={valorArtes}
+              labelFaca={labelFerramental}
               mostrarFrete={Boolean(calculo.frete)}
               freteADefinir={modoComFrete(calculo.frete?.modo)}
               modoServico={servico}

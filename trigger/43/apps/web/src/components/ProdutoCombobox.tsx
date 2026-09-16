@@ -14,6 +14,8 @@ type Props = {
   onChange: (produto: Produto | null) => void;
   /** Filtra família na busca (ex.: MP). */
   familia?: string;
+  /** Restringe a estas famílias após a busca (ex.: MP/EMB/REV no estoque). */
+  familias?: string[];
   /** Filtra grupo na busca (ex.: MP-PAP). */
   grupo?: string;
   disabled?: boolean;
@@ -81,6 +83,7 @@ export function ProdutoCombobox({
   value,
   onChange,
   familia,
+  familias,
   grupo,
   disabled = false,
   required = false,
@@ -106,7 +109,11 @@ export function ProdutoCombobox({
     async (q: string) => {
       setLoading(true);
       try {
-        const rows = await searchProdutos(q, familia, grupo);
+        let rows = await searchProdutos(q, familia, grupo);
+        if (familias && familias.length > 0) {
+          const allow = new Set(familias.map((f) => f.toUpperCase()));
+          rows = rows.filter((p) => allow.has((p.familia || '').toUpperCase()));
+        }
         setOptions(rows);
         setHighlight(0);
       } catch {
@@ -115,7 +122,7 @@ export function ProdutoCombobox({
         setLoading(false);
       }
     },
-    [familia, grupo],
+    [familia, familias, grupo],
   );
 
   useEffect(() => {

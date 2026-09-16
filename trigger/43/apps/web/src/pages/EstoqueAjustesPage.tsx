@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
+import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import { StatusPill } from '../components/StatusPill';
 import {
   ApiError,
@@ -12,11 +14,49 @@ import {
 import { useAuth } from '../lib/auth';
 import { ajStatusLabel } from '../lib/comprasUi';
 import { ajuAlcadaLabel, ajuOrigemLabel } from '../lib/estoqueUi';
-import { formatCurrency, formatDateTime, formatQty } from '../lib/format';
+import { clampDecimalScale, DECIMAL_SCALE, formatCurrency, formatDateTime, formatQty } from '../lib/format';
+import { areaM2Volume } from '../lib/nfeExactDimensoes';
 import { formatApiFieldErrors } from '../lib/usuarios';
+
+type VolumeLinha = {
+  codigo: string;
+  qtde: string;
+  largura_mm: string;
+  comprimento_m: string;
+  data_entrada: string;
+  data_validade: string;
+};
+
+function emptyVolume(): VolumeLinha {
+  return {
+    codigo: '',
+    qtde: '',
+    largura_mm: '',
+    comprimento_m: '',
+    data_entrada: '',
+    data_validade: '',
+  };
+}
+
+function somaVolumes(vols: VolumeLinha[]): string {
+  let s = 0;
+  for (const v of vols) {
+    const n = Number(String(v.qtde).replace(',', '.'));
+    if (n > 0) s += n;
+  }
+  return clampDecimalScale(String(s), DECIMAL_SCALE.qty) || '0.0000';
+}
 
 function sameUser(a?: number | null, b?: number | null): boolean {
   return a != null && b != null && Number(a) === Number(b);
+}
+
+/** A03/VIRADA / lote_payload → volumes físicos → etiquetas Elgin. */
+function ajuPedeEtiquetasVolume(a: EstoqueAjuste): boolean {
+  if (a.lote_payload && a.lote_payload.length > 0) return true;
+  if (a.motivo_codigo === 'A03') return true;
+  if (a.origem === 'VIRADA') return true;
+  return false;
 }
 
 export function EstoqueAjustesPage() {
@@ -26,7 +66,6 @@ export function EstoqueAjustesPage() {
   const canGestor = hasPermission('estoque.aprovar_gestor');
   const [ajustes, setAjustes] = useState<EstoqueAjuste[]>([]);
   const [meta, setMeta] = useState<EstoqueAjusteMeta | null>(null);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -35,7 +74,7 @@ export function EstoqueAjustesPage() {
   const [ate, setAte] = useState('');
   const [statusFiltro, setStatusFiltro] = useState('PENDENTE');
 
-  const [produtoId, setProdutoId] = useState('');
+  const [produto, setProduto] = useState<Produto | null>(null);
   const [motivo, setMotivo] = useState('A01');
   const [complemento, setComplemento] = useState('');
   const [qtdeContada, setQtdeContada] = useState('');
@@ -44,11 +83,14 @@ export function EstoqueAjustesPage() {
   const [loteCodigo, setLoteCodigo] = useState('');
   const [loteEntrada, setLoteEntrada] = useState('');
   const [loteValidade, setLoteValidade] = useState('');
+  const [volumes, setVolumes] = useState<VolumeLinha[]>([emptyVolume()]);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
   const [cienciaDir, setCienciaDir] = useState(false);
   const [cienciaCont, setCienciaCont] = useState(false);
+  /** Após aprovar A03/VIRADA com volumes — CTA para Elgin 50×40. */
+  const [etiquetasMovimentoId, setEtiquetasMovimentoId] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -58,15 +100,11 @@ export function EstoqueAjustesPage() {
       if (de) qs.set('de', de);
       if (ate) qs.set('ate', ate);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      const [aj, prd] = await Promise.all([
-        api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(`/estoque/ajustes${suffix}`),
-        api.get<{ data: Produto[] }>('/produtos'),
-      ]);
+      const aj = await api.get<{ data: EstoqueAjuste[]; meta: EstoqueAjusteMeta }>(
+        `/estoque/ajustes${suffix}`,
+      );
       setAjustes(aj.data);
       setMeta(aj.meta);
-      setProdutos(
-        prd.data.filter((p) => p.familia === 'MP' || p.familia === 'EMB' || p.familia === 'REV'),
-      );
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -87,9 +125,36 @@ export function EstoqueAjustesPage() {
     document.getElementById('aju-conferir')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selectedId]);
 
-  const selectedProduto = produtos.find((p) => String(p.id) === produtoId);
+  const selectedProduto = produto;
   const produtoControlaLote = !!selectedProduto?.controla_lote;
+  const isSaldoInicial = motivo === 'A03';
+  const usaVolumesVirada = isSaldoInicial && produtoControlaLote;
+  const mostraLxC = usaVolumesVirada;
   const selected = ajustes.find((a) => a.id === selectedId) ?? null;
+
+  const patchVolume = (idx: number, patch: Partial<VolumeLinha>) => {
+    setVolumes((prev) => {
+      const next = prev.map((v, i) => {
+        if (i !== idx) return v;
+        const row = { ...v, ...patch };
+        const unidM2 = selectedProduto?.unidade_interna?.toUpperCase() === 'M2';
+        if (
+          unidM2 &&
+          (patch.largura_mm !== undefined || patch.comprimento_m !== undefined) &&
+          row.largura_mm &&
+          row.comprimento_m
+        ) {
+          const area = areaM2Volume(row.largura_mm, row.comprimento_m);
+          if (Number(area) > 0) row.qtde = area;
+        }
+        return row;
+      });
+      if (usaVolumesVirada) {
+        setQtdeContada(somaVolumes(next));
+      }
+      return next;
+    });
+  };
 
   const openAprovar = (a: EstoqueAjuste) => {
     setError(null);
@@ -109,29 +174,50 @@ export function EstoqueAjustesPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canWrite) return;
+    if (!canWrite || !produto) return;
     setError(null);
     setMsg(null);
     setSaving(true);
     try {
-      await api.post('/estoque/ajustes', {
-        produto_id: Number(produtoId),
+      const payload: Record<string, unknown> = {
+        produto_id: Number(produto!.id),
         motivo_codigo: motivo,
         motivo_complemento: complemento || null,
-        qtde_contada: qtdeContada,
+        qtde_contada: usaVolumesVirada ? somaVolumes(volumes) : qtdeContada,
         checklist_confirmado: checklist,
         observacao: observacao || null,
         origem: 'CONTAGEM_AVULSA',
-        lote_codigo: loteCodigo || null,
-        lote_data_entrada: loteEntrada || null,
-        lote_data_validade: loteValidade || null,
-      });
+      };
+
+      if (usaVolumesVirada) {
+        const linhas = volumes
+          .filter((v) => Number(String(v.qtde).replace(',', '.')) > 0)
+          .map((v) => ({
+            codigo: v.codigo.trim() || undefined,
+            qtde: clampDecimalScale(v.qtde.replace(',', '.'), DECIMAL_SCALE.qty),
+            largura_mm: v.largura_mm.trim() || undefined,
+            comprimento_m: v.comprimento_m.trim() || undefined,
+            data_entrada: v.data_entrada || undefined,
+            data_validade: v.data_validade || undefined,
+          }));
+        if (linhas.length > 0) {
+          payload.lote_payload = linhas;
+        }
+      } else if (produtoControlaLote) {
+        payload.lote_codigo = loteCodigo || null;
+        payload.lote_data_entrada = loteEntrada || null;
+        payload.lote_data_validade = loteValidade || null;
+      }
+
+      await api.post('/estoque/ajustes', payload);
+      setProduto(null);
       setQtdeContada('');
       setComplemento('');
       setObservacao('');
       setLoteCodigo('');
       setLoteEntrada('');
       setLoteValidade('');
+      setVolumes([emptyVolume()]);
       setChecklist(false);
       setMsg('Solicitação de ajuste registrada.');
       await load();
@@ -151,14 +237,25 @@ export function EstoqueAjustesPage() {
     if (!selected) return;
     setError(null);
     setMsg(null);
+    setEtiquetasMovimentoId(null);
     setSaving(true);
+    const pedirEtiquetas = ajuPedeEtiquetasVolume(selected);
     try {
-      await api.post(`/estoque/ajustes/${selected.id}/aprovar`, {
+      const res = await api.post<{
+        data: {
+          ajuste: EstoqueAjuste;
+          movimento?: { id: number; codigo: string; tipo: string } | null;
+        };
+      }>(`/estoque/ajustes/${selected.id}/aprovar`, {
         causa_raiz: causaAprovar || selected.causa_raiz || null,
         ciencia_diretoria: cienciaDir,
         ciencia_contabilidade: cienciaCont,
       });
+      const movId = res.data.movimento?.id ?? res.data.ajuste?.movimento_id ?? null;
       setMsg(`${selected.codigo} aprovado.`);
+      if (pedirEtiquetas && movId) {
+        setEtiquetasMovimentoId(movId);
+      }
       closeAprovar();
       await load();
     } catch (err) {
@@ -234,7 +331,24 @@ export function EstoqueAjustesPage() {
 
       <EstoqueModuleNav />
 
-      {msg && <div className="alert alert-success">{msg}</div>}
+      {msg && (
+        <div className="alert alert-success" style={{ display: 'grid', gap: '0.65rem' }}>
+          <div>{msg}</div>
+          {etiquetasMovimentoId != null && (
+            <div className="btn-row" style={{ margin: 0 }}>
+              <Link
+                className="btn btn-primary btn-sm"
+                to={`/estoque/lotes/etiquetas?movimento_id=${etiquetasMovimentoId}`}
+              >
+                Imprimir etiquetas dos volumes
+              </Link>
+              <Link className="btn btn-secondary btn-sm" to="/estoque/guardar">
+                Guardar no local
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {error && <div className="alert alert-error">{error}</div>}
 
       {canWrite && !selected && (
@@ -242,29 +356,36 @@ export function EstoqueAjustesPage() {
           <div className="card-body">
             <div className="form-section">
               <h3>Nova contagem avulsa</h3>
-              <p className="muted" style={{ marginBottom: '1rem' }}>
-                Use para divergência pontual autorizada. Inventário cíclico/geral deve nascer em
-                Inventários.
+              <p className="muted" style={{ marginBottom: '0.85rem' }}>
+                Divergência pontual autorizada. Inventário cíclico/geral nasce em Inventários.
+                Motivo <strong>A03</strong> = saldo inicial — volumes físicos quando o SKU controla
+                lote.
               </p>
               <div className="form-grid">
-                <div className="form-group span-2">
-                  <label>Produto</label>
-                  <select
-                    required
-                    value={produtoId}
-                    onChange={(e) => setProdutoId(e.target.value)}
-                  >
-                    <option value="">Selecione…</option>
-                    {produtos.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo} — {p.descricao_fiscal}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <ProdutoCombobox
+                  className="span-full"
+                  label="Produto"
+                  value={produto}
+                  onChange={(p) => {
+                    setProduto(p);
+                    setVolumes([emptyVolume()]);
+                    if (!p) setQtdeContada('');
+                  }}
+                  familias={['MP', 'EMB', 'REV']}
+                  required
+                  showSummary
+                  placeholder="Buscar por código, descrição, NCM ou grupo…"
+                  emptyMessage="Nenhum MP/EMB/REV encontrado. Ajuste o termo ou cadastre o SKU."
+                />
                 <div className="form-group">
                   <label>Motivo</label>
-                  <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+                  <select
+                    value={motivo}
+                    onChange={(e) => {
+                      setMotivo(e.target.value);
+                      if (e.target.value === 'A03') setVolumes([emptyVolume()]);
+                    }}
+                  >
                     {(meta?.motivos ?? []).map((m) => (
                       <option key={m.codigo} value={m.codigo}>
                         {m.codigo} — {m.nome}
@@ -273,16 +394,161 @@ export function EstoqueAjustesPage() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Qtde contada (unidade interna)</label>
+                  <label>
+                    Qtde contada
+                    {selectedProduto?.unidade_interna
+                      ? ` (${selectedProduto.unidade_interna})`
+                      : ''}
+                  </label>
                   <input
                     required
                     inputMode="decimal"
                     value={qtdeContada}
                     onChange={(e) => setQtdeContada(e.target.value)}
                     placeholder="0.0000"
+                    readOnly={usaVolumesVirada}
+                    title={
+                      usaVolumesVirada
+                        ? 'Preenchida pela soma dos volumes abaixo'
+                        : undefined
+                    }
                   />
                 </div>
-                {produtoControlaLote && (
+
+                {usaVolumesVirada && (
+                  <div className="form-group span-full">
+                    <div className="oc-volumes-panel oc-volumes-panel--compact">
+                      <div className="oc-volumes-panel__bar">
+                        <strong>Volumes de abertura</strong>
+                        <span className="muted">
+                          Um por bobina · soma = qtde contada
+                          {selectedProduto?.unidade_interna?.toUpperCase() === 'M2'
+                            ? ' · L×C preenche M²'
+                            : ''}
+                        </span>
+                      </div>
+                      <div className="oc-volumes-scroll">
+                        <table className="oc-volumes-table">
+                          <thead>
+                            <tr>
+                              <th className="col-idx">#</th>
+                              <th className="col-lote">Código / nLote</th>
+                              {mostraLxC && <th className="col-dim">Largura mm</th>}
+                              {mostraLxC && <th className="col-dim">Comp. m</th>}
+                              <th className="col-num">Qtde</th>
+                              <th className="col-date">Entrada</th>
+                              {selectedProduto?.controla_validade && (
+                                <th className="col-date">Validade</th>
+                              )}
+                              <th className="col-acoes" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {volumes.map((v, idx) => (
+                              <tr key={idx}>
+                                <td className="col-idx">{idx + 1}</td>
+                                <td className="col-lote">
+                                  <input
+                                    value={v.codigo}
+                                    onChange={(e) =>
+                                      patchVolume(idx, { codigo: e.target.value })
+                                    }
+                                    placeholder={`VIR-${selectedProduto?.codigo ?? 'SKU'}-${idx + 1}`}
+                                  />
+                                </td>
+                                {mostraLxC && (
+                                  <td className="col-dim">
+                                    <input
+                                      inputMode="decimal"
+                                      value={v.largura_mm}
+                                      onChange={(e) =>
+                                        patchVolume(idx, { largura_mm: e.target.value })
+                                      }
+                                      placeholder="210"
+                                    />
+                                  </td>
+                                )}
+                                {mostraLxC && (
+                                  <td className="col-dim">
+                                    <input
+                                      inputMode="decimal"
+                                      value={v.comprimento_m}
+                                      onChange={(e) =>
+                                        patchVolume(idx, { comprimento_m: e.target.value })
+                                      }
+                                      placeholder="1000"
+                                    />
+                                  </td>
+                                )}
+                                <td className="col-num">
+                                  <input
+                                    required
+                                    inputMode="decimal"
+                                    value={v.qtde}
+                                    onChange={(e) =>
+                                      patchVolume(idx, { qtde: e.target.value })
+                                    }
+                                    placeholder="0.0000"
+                                  />
+                                </td>
+                                <td className="col-date">
+                                  <input
+                                    type="date"
+                                    value={v.data_entrada}
+                                    onChange={(e) =>
+                                      patchVolume(idx, { data_entrada: e.target.value })
+                                    }
+                                  />
+                                </td>
+                                {selectedProduto?.controla_validade && (
+                                  <td className="col-date">
+                                    <input
+                                      type="date"
+                                      value={v.data_validade}
+                                      onChange={(e) =>
+                                        patchVolume(idx, { data_validade: e.target.value })
+                                      }
+                                    />
+                                  </td>
+                                )}
+                                <td className="col-acoes">
+                                  {volumes.length > 1 && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={() => {
+                                        const next = volumes.filter((_, i) => i !== idx);
+                                        setVolumes(next);
+                                        setQtdeContada(somaVolumes(next));
+                                      }}
+                                    >
+                                      Remover
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="form-actions" style={{ marginTop: '0.45rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setVolumes((prev) => [...prev, emptyVolume()])}
+                        >
+                          + Volume
+                        </button>
+                        <span className="muted">
+                          Soma: {formatQty(somaVolumes(volumes))}{' '}
+                          {selectedProduto?.unidade_interna ?? ''}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {produtoControlaLote && !usaVolumesVirada && (
                   <>
                     <div className="form-group">
                       <label>Lote (opcional na baixa / informado na entrada)</label>
@@ -312,13 +578,20 @@ export function EstoqueAjustesPage() {
                     )}
                   </>
                 )}
+
                 <div className="form-group">
                   <label>Complemento / evidência</label>
-                  <input value={complemento} onChange={(e) => setComplemento(e.target.value)} />
+                  <input
+                    value={complemento}
+                    onChange={(e) => setComplemento(e.target.value)}
+                  />
                 </div>
                 <div className="form-group span-2">
                   <label>Observação</label>
-                  <input value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+                  <input
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                  />
                 </div>
                 <div className="form-group span-full">
                   <label className="checkbox-item" style={{ maxWidth: '40rem' }}>
@@ -446,6 +719,40 @@ export function EstoqueAjustesPage() {
                     ? ` · ${selected.motivo_codigo} ${selected.motivo_nome ?? ''}`
                     : ''}
                 </p>
+
+                {selected.lote_payload && selected.lote_payload.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+                      Volumes de abertura ({selected.lote_payload.length})
+                    </p>
+                    <div className="table-wrap">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Código</th>
+                            <th>L × C</th>
+                            <th>Qtde</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selected.lote_payload.map((v, i) => (
+                            <tr key={i}>
+                              <td>{v.codigo ?? '—'}</td>
+                              <td className="muted">
+                                {v.largura_mm || v.comprimento_m
+                                  ? `${v.largura_mm ?? '—'} mm × ${v.comprimento_m ?? '—'} m`
+                                  : '—'}
+                              </td>
+                              <td className="num">
+                                {formatQty(v.qtde)} {selected.unidade}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
                 {solicitanteSouEu && (
                   <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
@@ -603,6 +910,16 @@ export function EstoqueAjustesPage() {
                     </td>
                     <td>
                       <div className="table-actions">
+                        {a.status === 'APROVADO' &&
+                          a.movimento_id != null &&
+                          ajuPedeEtiquetasVolume(a) && (
+                            <Link
+                              className="btn btn-secondary btn-sm"
+                              to={`/estoque/lotes/etiquetas?movimento_id=${a.movimento_id}`}
+                            >
+                              Etiquetas
+                            </Link>
+                          )}
                         {a.status === 'PENDENTE' &&
                           canWrite &&
                           (sameUser(user?.id, a.solicitado_por?.id) || canAprovar) && (

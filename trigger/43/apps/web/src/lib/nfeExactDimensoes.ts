@@ -17,6 +17,11 @@ function areaM2(larguraMm: string, comprimentoM: string): string {
   return clampDecimalScale(String((l / 1000) * c), DECIMAL_SCALE.qty);
 }
 
+/** Área de um volume (1 bobina): (L mm / 1000) × C m. */
+export function areaM2Volume(larguraMm: string, comprimentoM: string): string {
+  return areaM2(larguraMm, comprimentoM);
+}
+
 /** Expande slots de infAdProd (Exact NxLxC; se vazio, N RLS × L MM × C M). */
 export function expandirSlotsExact(infAdProd: string | null | undefined): ExactDimSlot[] {
   if (!infAdProd?.trim()) return [];

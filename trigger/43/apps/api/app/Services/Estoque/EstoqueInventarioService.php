@@ -295,6 +295,7 @@ class EstoqueInventarioService
             'checklist_confirmado' => true,
             'observacao' => $data['observacao'] ?? null,
             'causa_raiz' => $data['causa_raiz'] ?? null,
+            'lote_payload' => $data['lote_payload'] ?? null,
             'contado_por_ids' => array_values(array_filter([
                 $item->contado_por_1,
                 $item->contado_por_2,

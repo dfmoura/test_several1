@@ -2032,6 +2032,14 @@ button.par-geo--faltando:hover:not(:disabled) {
   width: 5.25rem;
 }
 
+.oc-volumes-panel--compact .oc-volumes-table .col-dim input {
+  width: 4.25rem;
+}
+
+.oc-volumes-panel--compact .oc-volumes-table .col-date input {
+  width: 9.25rem;
+}
+
 .oc-volumes-panel--compact .btn-sm {
   padding: 0.1rem 0.35rem;
   font-size: 0.7rem;
@@ -2334,6 +2342,16 @@ button.par-geo--faltando:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+.oc-volumes-table .col-dim {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.oc-volumes-table .col-date {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .oc-volumes-table .col-acoes {
   width: 1%;
   white-space: nowrap;
@@ -2350,6 +2368,17 @@ button.par-geo--faltando:hover:not(:disabled) {
   width: 6.75rem;
   box-sizing: border-box;
   font-variant-numeric: tabular-nums;
+}
+
+.oc-volumes-table .col-dim input {
+  width: 4.75rem;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+
+.oc-volumes-table .col-date input {
+  width: 9.5rem;
+  box-sizing: border-box;
 }
 
 .oc-volumes-table input {

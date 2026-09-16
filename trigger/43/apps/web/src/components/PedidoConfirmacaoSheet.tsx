@@ -3,6 +3,7 @@ import {
   OrcamentoFacaDesenho,
 } from './OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { FacasComposicaoTable } from './FacasComposicaoTable';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { Pedido } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -22,6 +23,7 @@ import {
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { facasFromSnapshot } from '../lib/orcamentoForm';
 import {
   condicaoPagamentoDoPedido,
   formaPagamentoDoPedido,
@@ -62,6 +64,7 @@ export function PedidoConfirmacaoSheet({
   const emp = p.empresa;
   const cli = p.parceiro;
   const facaDesenho = !isServico ? facaDesenhoFromSnapshot(spec) : null;
+  const facasComp = !isServico ? facasFromSnapshot(spec) : [];
   const freteTexto = freteTextoDoPedido(p);
   const condicao = condicaoPagamentoDoPedido(p);
   const forma = formaPagamentoDoPedido(p);
@@ -186,6 +189,9 @@ export function PedidoConfirmacaoSheet({
                 <div className="orc-spec-faca orc-pub-faca">
                   <OrcamentoFacaDesenho {...facaDesenho} variant="documento" audience="cliente" />
                 </div>
+              ) : null}
+              {facasComp.length > 0 ? (
+                <FacasComposicaoTable variant="pub" showValor facas={facasComp} />
               ) : null}
               {modelos.length > 0 ? (
                 <ModelosComposicaoTable

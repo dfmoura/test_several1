@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { FacasComposicaoTable } from './FacasComposicaoTable';
 import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
@@ -17,6 +18,7 @@ import { prazoUtilLabel } from '../lib/prazoEntrega';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { labelFerramentalAddOn } from '../lib/orcamentoForm';
 
 type Props = {
   proposta: OrcamentoPropostaPublica;
@@ -51,6 +53,14 @@ export function OrcamentoPropostaView({
   const faixas = proposta.faixas ?? [];
   const facaDesenho =
     proposta.tipo_operacao !== 'SERVICO' ? facaDesenhoFromPropostaDescricao(desc) : null;
+  const facasComp = Array.isArray(desc?.facas) ? desc.facas : [];
+  const valorFerramentalFaixa = (fx: (typeof faixas)[number]) =>
+    Number(fx.valor_faca_nova) || 0;
+  const labelFerramental = labelFerramentalAddOn({
+    facaNova: Boolean(desc?.faca_nova),
+    valor: Math.max(...faixas.map(valorFerramentalFaixa), 0),
+    count: facasComp.length,
+  });
 
   return (
     <div className="orc-pub">
@@ -168,6 +178,13 @@ export function OrcamentoPropostaView({
               <OrcamentoFacaDesenho {...facaDesenho} variant="documento" audience="cliente" />
             </div>
           ) : null}
+          {facasComp.length > 0 ? (
+            <FacasComposicaoTable
+              variant="pub"
+              showValor
+              facas={facasComp}
+            />
+          ) : null}
           {desc?.modelos_composicao && desc.modelos_composicao.length > 0 ? (
             <ModelosComposicaoTable
               variant="pub"
@@ -223,6 +240,9 @@ export function OrcamentoPropostaView({
                       {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
                       {(fx.valor_artes ?? 0) > 0
                         ? ` · Vlr. Arte ${formatCurrency(fx.valor_artes)}`
+                        : ''}
+                      {valorFerramentalFaixa(fx) > 0
+                        ? ` · ${labelFerramental} ${formatCurrency(valorFerramentalFaixa(fx))}`
                         : ''}
                       {proposta.frete && proposta.frete.modo !== 'RETIRAR'
                         ? fx.valor_frete != null

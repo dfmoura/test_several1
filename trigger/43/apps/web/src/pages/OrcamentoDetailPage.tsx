@@ -5,6 +5,8 @@ import {
   OrcamentoFacaDesenho,
 } from '../components/OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from '../components/ModelosComposicaoTable';
+import { FacasComposicaoTable } from '../components/FacasComposicaoTable';
+import { facasFromSnapshot } from '../lib/orcamentoForm';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
 import { OrcamentoUrlArteBlock } from '../components/OrcamentoUrlArteBlock';
 import { PageHeader } from '../components/PageHeader';
@@ -213,6 +215,7 @@ export function OrcamentoDetailPage() {
   const modelosComp = modelosCompRaw.some((m) => String(m?.nome ?? '').trim() !== '')
     ? modelosCompRaw
     : [];
+  const facasComp = facasFromSnapshot(input);
 
   const isServico = tipoOperacaoFromSnap(input) === 'SERVICO';
   const specTiles: Array<[string, unknown]> = isServico
@@ -700,6 +703,15 @@ export function OrcamentoDetailPage() {
                 key: i,
                 quantidade: Number(fx.quantidade) || 0,
               }))}
+            />
+          ) : null}
+          {!isServico && facasComp.length > 0 ? (
+            <FacasComposicaoTable
+              variant="data"
+              className="orc-facas-detalhe-page"
+              hint={null}
+              showValor
+              facas={facasComp}
             />
           ) : null}
           {normalizeUrlArte(input.url_arte) ? (

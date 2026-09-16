@@ -63,6 +63,21 @@ final class EstoqueValidationRules
             'lote_data_entrada' => ['nullable', 'date'],
             'lote_data_fabricacao' => ['nullable', 'date'],
             'lote_data_validade' => ['nullable', 'date'],
+            // A03/VIRADA: N volumes (bobinas) — soma = Δ; motor já aplica via lote_payload.
+            'lote_payload' => ['nullable', 'array', 'min:1'],
+            'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
+            'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            'lote_payload.*.largura_mm' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'lote_payload.*.comprimento_m' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'lote_payload.*.data_entrada' => ['nullable', 'date'],
+            'lote_payload.*.data_fabricacao' => ['nullable', 'date'],
+            'lote_payload.*.data_validade' => ['nullable', 'date'],
         ];
     }
 
@@ -156,6 +171,21 @@ final class EstoqueValidationRules
             'checklist_confirmado' => ['required', 'accepted'],
             'observacao' => ['nullable', 'string', 'max:2000'],
             'causa_raiz' => ['nullable', 'string', 'max:2000'],
+            // VIRADA/A03: mesmos volumes da contagem avulsa (opcional).
+            'lote_payload' => ['nullable', 'array', 'min:1'],
+            'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
+            'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+            'lote_payload.*.largura_mm' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'lote_payload.*.comprimento_m' => array_merge(
+                ['nullable'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_DIM, false)
+            ),
+            'lote_payload.*.data_entrada' => ['nullable', 'date'],
+            'lote_payload.*.data_fabricacao' => ['nullable', 'date'],
+            'lote_payload.*.data_validade' => ['nullable', 'date'],
         ];
     }
 }

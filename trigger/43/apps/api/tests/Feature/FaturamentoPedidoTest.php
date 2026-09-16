@@ -175,12 +175,13 @@ class FaturamentoPedidoTest extends TestCase
             'tolerancia_qtd_pct' => '20',
             'prazo_entrega_dias' => 10,
             'snapshot' => [
-                'input' => [
+                'input' => array_filter([
                     'condicao_pagamento' => $overrides['condicao'] ?? '28 DDL',
                     'forma_pagamento' => $overrides['forma'] ?? 'PIX',
                     'faca_nova' => $overrides['faca_nova'] ?? false,
                     'valor_faca_nova' => $overrides['valor_faca'] ?? '0',
-                ],
+                    'facas' => $overrides['facas'] ?? null,
+                ], static fn ($v) => $v !== null),
                 'faixa' => [
                     'quantidade' => 10000,
                     'valor_etiqueta' => '3500.00',
@@ -261,6 +262,51 @@ class FaturamentoPedidoTest extends TestCase
         $this->assertSame(1, Faturamento::query()->where('pedido_id', $ped->id)->count());
         $this->assertSame(1, Titulo::query()->where('origem', FaturamentoService::ORIGEM_FATURA)->count());
         $this->assertSame(1, Cobranca::query()->count());
+    }
+
+    public function test_faturamento_com_multiplas_facas_gera_n_linhas_ferramental(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $ped = $this->criarPedidoProduzido([
+            'facas' => [
+                [
+                    'ordem' => 1,
+                    'principal' => true,
+                    'formato' => 'RETA',
+                    'medida' => '10X10',
+                    'n_facas' => 12,
+                    'faca_nova' => true,
+                    'valor_faca' => 100,
+                ],
+                [
+                    'ordem' => 2,
+                    'principal' => false,
+                    'formato' => 'OVAL',
+                    'medida' => '5X5',
+                    'n_facas' => 40,
+                    'faca_nova' => false,
+                    'valor_faca' => 50,
+                ],
+            ],
+            'valor_faca' => '150.00',
+            'faca_nova' => true,
+        ]);
+
+        $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/faturamento-preview");
+        $prev->assertOk();
+        $this->assertSame('3650.00', $prev->json('data.valor_bruto'));
+        $this->assertSame('150.00', $prev->json('data.valor_faca'));
+
+        $itens = $prev->json('data.itens');
+        $ferramenais = array_values(array_filter(
+            $itens,
+            static fn (array $i) => str_starts_with((string) ($i['descricao'] ?? ''), 'Ferramental')
+        ));
+        $this->assertCount(2, $ferramenais);
+        $this->assertEqualsWithDelta(100.0, (float) $ferramenais[0]['valor'], 0.01);
+        $this->assertEqualsWithDelta(50.0, (float) $ferramenais[1]['valor'], 0.01);
+        $this->assertStringStartsWith('Ferramental — ', $ferramenais[0]['descricao']);
+        $this->assertStringStartsWith('Ferramental — ', $ferramenais[1]['descricao']);
     }
 
     public function test_sinal_quitado_e_apropriado_e_nao_gera_segunda_cobranca_do_sinal(): void

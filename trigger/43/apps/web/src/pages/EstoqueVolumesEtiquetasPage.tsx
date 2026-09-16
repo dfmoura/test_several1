@@ -14,37 +14,48 @@ import {
 
 type VolumeEtiqueta = VolumeEtiquetaFace & { qr_payload: string };
 
+type EtiquetasFiltro = {
+  movimento_id?: number | null;
+  movimento_tipo?: string | null;
+  ids?: number[] | null;
+};
+
 /**
  * Reimpressão de QR dos volumes (bobinas) — F3 · Elgin 50×40.
- * Com ?movimento_id= → só volumes daquela entrada (NF / ficha).
+ * ?movimento_id= → entrada NF ou AJUSTE (A03/VIRADA).
+ * ?ids=1&ids=2 → seleção explícita (API).
  */
 export function EstoqueVolumesEtiquetasPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const semEndereco = searchParams.get('sem_endereco') === '1';
   const movimentoId = searchParams.get('movimento_id');
+  const idsParam = searchParams.getAll('ids').filter((x) => /^\d+$/.test(x));
   const [volumes, setVolumes] = useState<VolumeEtiqueta[]>([]);
+  const [filtro, setFiltro] = useState<EtiquetasFiltro>({});
   const [qrMap, setQrMap] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => enableVolumeEtiquetaPrintMode(), []);
 
-  const load = async (onlySemVao: boolean, movId: string | null) => {
+  const load = async (onlySemVao: boolean, movId: string | null, ids: string[]) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (onlySemVao) params.set('sem_endereco', '1');
       if (movId) params.set('movimento_id', movId);
+      for (const id of ids) params.append('ids', id);
       const qs = params.toString();
       const res = await api.get<{
         data: {
           volumes: VolumeEtiqueta[];
           volumes_count: number;
-          filtro?: { movimento_id?: number | null };
+          filtro?: EtiquetasFiltro;
         };
       }>(`/estoque/lotes/etiquetas${qs ? `?${qs}` : ''}`);
       setVolumes(res.data.volumes);
+      setFiltro(res.data.filtro ?? {});
       const next: Record<number, string> = {};
       await Promise.all(
         res.data.volumes.map(async (v) => {
@@ -64,22 +75,33 @@ export function EstoqueVolumesEtiquetasPage() {
     }
   };
 
+  const idsKey = idsParam.join(',');
   useEffect(() => {
-    void load(semEndereco, movimentoId);
-  }, [semEndereco, movimentoId]);
+    void load(semEndereco, movimentoId, idsParam);
+    // idsParam via idsKey — evita re-fetch por nova referência de array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semEndereco, movimentoId, idsKey]);
+
+  const isAjuste = filtro.movimento_tipo === 'AJUSTE';
+  const isEntradaCompra = filtro.movimento_tipo === 'ENTRADA_COMPRA';
 
   const titulo = useMemo(() => {
+    if (movimentoId && isAjuste) return 'Etiquetas dos volumes do ajuste';
     if (movimentoId) return 'Etiquetas dos volumes da entrada';
+    if (idsParam.length > 0) return 'Etiquetas dos volumes selecionados';
     if (semEndereco) return 'Volumes sem local';
     return 'Reimprimir etiquetas de volume';
-  }, [movimentoId, semEndereco]);
+  }, [movimentoId, isAjuste, idsParam.length, semEndereco]);
 
   const descricao = useMemo(() => {
+    if (movimentoId && isAjuste) {
+      return `${volumes.length} volume(s) deste ajuste (A03/VIRADA) — cole o QR na bobina (50×40 mm)`;
+    }
     if (movimentoId) {
       return `${volumes.length} volume(s) desta entrada — cole o QR na bobina (50×40 mm)`;
     }
     return `${volumes.length} volume(s) com saldo — cole o QR na bobina`;
-  }, [movimentoId, volumes.length]);
+  }, [movimentoId, isAjuste, volumes.length]);
 
   return (
     <div className="page">
@@ -88,12 +110,17 @@ export function EstoqueVolumesEtiquetasPage() {
         description={descricao}
         actions={
           <>
-            {movimentoId ? (
+            {movimentoId && isEntradaCompra ? (
               <Link
                 className="btn btn-secondary"
                 to={`/estoque/movimentos/${movimentoId}/ficha-entrada`}
               >
                 Ficha de entrada
+              </Link>
+            ) : null}
+            {movimentoId && isAjuste ? (
+              <Link className="btn btn-secondary" to="/estoque/ajustes">
+                Ajustes
               </Link>
             ) : null}
             <Link className="btn btn-secondary" to="/estoque">
@@ -121,7 +148,7 @@ export function EstoqueVolumesEtiquetasPage() {
 
       <div className="card no-print" style={{ marginBottom: '1rem' }}>
         <div className="card-body" style={{ display: 'grid', gap: '0.65rem' }}>
-          {!movimentoId ? (
+          {!movimentoId && idsParam.length === 0 ? (
             <div className="btn-row" style={{ alignItems: 'center' }}>
               <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', margin: 0 }}>
                 <input
@@ -140,7 +167,11 @@ export function EstoqueVolumesEtiquetasPage() {
             </div>
           ) : (
             <p className="muted" style={{ margin: 0 }}>
-              Volumes do movimento de entrada · mesmo QR da ficha e da etiqueta unitária.
+              {isAjuste
+                ? 'Volumes do ajuste de implantação · mesmo QR da etiqueta unitária.'
+                : idsParam.length > 0
+                  ? 'Volumes selecionados · mesmo QR da etiqueta unitária.'
+                  : 'Volumes do movimento de entrada · mesmo QR da ficha e da etiqueta unitária.'}
             </p>
           )}
           <p className="vol-etiqueta-print-hint">
@@ -156,7 +187,9 @@ export function EstoqueVolumesEtiquetasPage() {
         <div className="card no-print">
           <div className="card-body">
             {movimentoId
-              ? 'Esta entrada não gerou volume físico (SKU sem controle de lote) ou o movimento não tem lotes.'
+              ? isAjuste
+                ? 'Este ajuste não gerou volume físico (SKU sem controle de lote) ou o movimento não tem lotes.'
+                : 'Esta entrada não gerou volume físico (SKU sem controle de lote) ou o movimento não tem lotes.'
               : semEndereco
                 ? 'Nenhum volume sem local. Todos já estão localizados ou não há saldo.'
                 : 'Nenhum volume com saldo para imprimir.'}

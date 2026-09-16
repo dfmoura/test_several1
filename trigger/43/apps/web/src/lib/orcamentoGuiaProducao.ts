@@ -265,7 +265,7 @@ export function buildGuiaProducaoLinhas(
   // Extras operacionais (Totais da composição: Matriz / Faca — sem R$)
   linhas.push({
     grupo: 'ferramental',
-    item: facaNova ? 'Faca nova' : 'Faca',
+    item: facaNova ? 'Ferramental' : 'Faca',
     especificacao: [medida, formato || null, posFaca, z != null ? `Z ${formatDecimalBr(z, 0)}` : null]
       .filter(Boolean)
       .join(' · '),

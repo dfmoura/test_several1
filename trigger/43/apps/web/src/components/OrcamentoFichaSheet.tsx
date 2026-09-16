@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { facaDesenhoFromSnapshot, OrcamentoFacaDesenho } from './OrcamentoFacaDesenho';
 import { formatoLabel } from './FacaShapeIcon';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { FacasComposicaoTable } from './FacasComposicaoTable';
 import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
@@ -10,7 +11,13 @@ import { BRAND } from '../lib/brand';
 import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { displaySnap, statusOrcLabel } from '../lib/orcamentoForm';
+import {
+  displaySnap,
+  facasFromSnapshot,
+  labelFerramentalAddOn,
+  somaValorFacas,
+  statusOrcLabel,
+} from '../lib/orcamentoForm';
 import { formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { normalizeUrlArte } from '../lib/urlArte';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
@@ -142,6 +149,14 @@ export function OrcamentoFichaSheet({
   const faixas = result?.faixas ?? [];
   const facaNova = Boolean(input.faca_nova ?? result?.faca_nova);
   const valorFacaNova = Number(result?.valor_faca_nova ?? input.valor_faca_nova ?? 0);
+  const facasComp = facasFromSnapshot(input);
+  const valorFerramental = somaValorFacas(facasComp) || valorFacaNova;
+  const labelFerramental = labelFerramentalAddOn({
+    facaNova,
+    valor: valorFerramental,
+    count: facasComp.length,
+  });
+  const mostrarFerramental = facaNova || valorFerramental > 0;
   const valorArtes = Number(result?.valor_artes ?? 0);
   const valorGordura = Number(result?.valor_gordura ?? input.valor_gordura ?? 0);
   const temGordura = valorGordura > 0;
@@ -211,7 +226,11 @@ export function OrcamentoFichaSheet({
           {orc.parceiro?.is_prospect ? (
             <span className="ficha-chip ficha-chip-muted">Prospect</span>
           ) : null}
-          {facaNova ? <span className="ficha-chip ficha-chip-muted">Faca nova</span> : null}
+          {facaNova || facasComp.length > 1 ? (
+            <span className="ficha-chip ficha-chip-muted">
+              {facasComp.length > 1 ? `${facasComp.length} facas` : labelFerramental}
+            </span>
+          ) : null}
           {result?.frete ? (
             <span className="ficha-chip ficha-chip-muted">
               {modoEntregaLabel(result.frete.modo)}
@@ -299,7 +318,11 @@ export function OrcamentoFichaSheet({
               <td>{snap(input, 'z')}</td>
               <td>
                 {formatoLabel(formato)}
-                {facaNova ? ' · FACA NOVA' : ''}
+                {facasComp.length > 1
+                  ? ` · ${facasComp.length} FACAS`
+                  : facaNova
+                    ? ' · FACA NOVA'
+                    : ''}
               </td>
               <td>{snap(input, 'maquina')}</td>
               <td>{pctBr(input.imposto_pct as string | number)}</td>
@@ -353,7 +376,7 @@ export function OrcamentoFichaSheet({
       </Section>
 
       <Section title="Faca — tipo e desenho">
-        {faca || formato ? (
+        {faca || formato || facasComp.length > 0 ? (
           <div className="ficha-orc-faca ficha-orc-faca-documento">
             <OrcamentoFacaDesenho
               {...(faca ?? { formato, facaNova })}
@@ -362,13 +385,22 @@ export function OrcamentoFichaSheet({
               variant="documento"
               audience="interno"
             />
-            {facaNova ? (
+            {mostrarFerramental ? (
               <div className="ficha-orc-faca-meta">
                 <Kv
-                  label="Valor / prazo"
-                  value={`${money(valorFacaNova)}${prazoFaca ? ` · +${prazoFaca}d` : ''}`}
+                  label={`${labelFerramental} / prazo`}
+                  value={`${money(valorFerramental)}${prazoFaca ? ` · +${prazoFaca}d` : ''}`}
                 />
               </div>
+            ) : null}
+            {facasComp.length > 0 ? (
+              <FacasComposicaoTable
+                variant="ficha"
+                title={null}
+                hint={null}
+                showValor
+                facas={facasComp}
+              />
             ) : null}
           </div>
         ) : (
@@ -481,7 +513,7 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">Unitário</th>
                   <th className="ficha-th-num">Valor rolo</th>
                   <th className="ficha-th-num">Matriz</th>
-                  {facaNova ? <th className="ficha-th-num">Faca nova</th> : null}
+                  {mostrarFerramental ? <th className="ficha-th-num">{labelFerramental}</th> : null}
                   {valorArtes > 0 ? <th className="ficha-th-num">Vlr. Arte</th> : null}
                   {result?.frete ? <th className="ficha-th-num">Frete</th> : null}
                   <th className="ficha-th-num">Total</th>
@@ -516,9 +548,9 @@ export function OrcamentoFichaSheet({
                       <td className="ficha-td-num">{money(unit)}</td>
                       <td className="ficha-td-num">{money(valorRolo)}</td>
                       <td className="ficha-td-num">{money(fx.valor_matriz)}</td>
-                      {facaNova ? (
+                      {mostrarFerramental ? (
                         <td className="ficha-td-num">
-                          {money(fx.valor_faca_nova ?? valorFacaNova)}
+                          {money(fx.valor_faca_nova ?? valorFerramental)}
                         </td>
                       ) : null}
                       {valorArtes > 0 ? (

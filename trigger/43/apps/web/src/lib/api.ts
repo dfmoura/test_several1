@@ -1940,6 +1940,19 @@ export type EstoqueAjuste = {
   aviso_fiscal?: string | null;
   inventario_item_id?: number | null;
   inventario_id?: number | null;
+  lote_id?: number | null;
+  lote_codigo?: string | null;
+  lote_data_entrada?: string | null;
+  lote_data_validade?: string | null;
+  /** A03/VIRADA: volumes de abertura (bobinas). */
+  lote_payload?: Array<{
+    codigo?: string;
+    qtde: string;
+    largura_mm?: string | null;
+    comprimento_m?: string | null;
+    data_entrada?: string | null;
+    data_validade?: string | null;
+  }> | null;
   created_at: string | null;
 };
 
@@ -2418,6 +2431,18 @@ export type OrcamentoResult = {
   catalog_snapshot?: Record<string, unknown>;
   faca_nova?: boolean;
   valor_faca_nova?: number;
+  /** Composição 0..N — ADR_ORC_FACAS_COMPOSICAO. */
+  facas?: Array<{
+    ordem?: number;
+    principal?: boolean;
+    n_facas?: number | null;
+    label?: string | null;
+    medida?: string | null;
+    formato?: string | null;
+    faca_nova?: boolean;
+    valor_faca?: number | null;
+    prazo_faca_dias?: number | null;
+  }>;
   valor_artes?: number;
   prazo_faca_dias?: number | null;
   formato_faca?: string | null;
@@ -3177,6 +3202,17 @@ export type OrcamentoPropostaPublica = {
     puxada_cm: number | null;
     formato_faca: string | null;
     faca_nova: boolean;
+    facas?: Array<{
+      ordem?: number;
+      principal?: boolean;
+      n_facas?: number | null;
+      label?: string | null;
+      medida?: string | null;
+      formato?: string | null;
+      faca_nova?: boolean;
+      valor_faca?: number | null;
+      prazo_faca_dias?: number | null;
+    }> | null;
     faca_colunas_mapa?: string | null;
     faca_posicao?: string | null;
     saida_etiqueta?: string | null;

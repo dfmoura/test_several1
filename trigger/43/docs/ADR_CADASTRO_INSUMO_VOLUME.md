@@ -119,7 +119,7 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 ### F1 — Cadastro operacional + virada de saldo
 
 - Completar SKUs Camada A (lista 32 + Exact Avery) + de-para `cProd`.  
-- Inventário/ajuste (AJU) alinhado à ADR de inventário — saldo por SKU; lotes de abertura se `controla_lote`.  
+- Inventário/ajuste (AJU) alinhado à ADR de inventário — saldo por SKU; **A03/VIRADA** pode abrir N volumes com L×C via `lote_payload` (mesma semântica do receber).  
 - Pontos de pedido dos itens A.
 
 **Aceite F1**
