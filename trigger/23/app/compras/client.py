@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import re
 import time
 from datetime import date, timedelta
@@ -13,6 +14,8 @@ from app.config import (
     COMPRAS_PNCP_HTTP_TIMEOUT_SEC,
     COMPRAS_PNCP_MAX_RETRIES,
     COMPRAS_PNCP_REQUEST_DELAY_SEC,
+    COMPRAS_PNCP_TIMEOUT_BACKOFF_BASE_SEC,
+    COMPRAS_PNCP_TIMEOUT_BACKOFF_CAP_SEC,
     USER_AGENT,
 )
 
@@ -57,6 +60,14 @@ def espera_retry_http(resp: httpx.Response, *, tentativa: int) -> float:
     return max(2.0, COMPRAS_PNCP_REQUEST_DELAY_SEC * 6 * tentativa)
 
 
+def espera_retry_timeout(*, tentativa: int) -> float:
+    """Backoff exponencial + jitter para ReadTimeout / ConnectTimeout da API federal."""
+    base = max(1.0, COMPRAS_PNCP_TIMEOUT_BACKOFF_BASE_SEC)
+    cap = max(base, COMPRAS_PNCP_TIMEOUT_BACKOFF_CAP_SEC)
+    espera = min(cap, base * (2 ** max(0, tentativa - 1)))
+    return espera + random.uniform(0.0, min(3.0, espera * 0.15))
+
+
 class ComprasGovClient:
     def __init__(self, *, on_log: Callable[[str], None] | None = None) -> None:
         self._on_log = on_log
@@ -97,7 +108,7 @@ class ComprasGovClient:
                     raise RuntimeError(
                         f"{contexto}: timeout após {COMPRAS_PNCP_MAX_RETRIES} tentativa(s)"
                     ) from exc
-                espera = COMPRAS_PNCP_REQUEST_DELAY_SEC * 4 * tentativa
+                espera = espera_retry_timeout(tentativa=tentativa)
                 if self._on_log:
                     self._on_log(
                         f"    ⚠ Timeout ({exc.__class__.__name__}); "

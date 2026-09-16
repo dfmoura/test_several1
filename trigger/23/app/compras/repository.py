@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -37,6 +37,62 @@ def registrar_sync_meta(db: Session, modulo: str, contadores: dict[str, Any]) ->
                 contadores_json=payload,
             )
         )
+
+
+# Checkpoint de paginação de itens (módulo 07.2) — retomada após timeout da API.
+MODULO_ITENS_CURSOR = "07-itens-cursor"
+
+
+def escopo_itens(
+    *,
+    data_inicial: date,
+    data_final: date,
+    unidades: list[str],
+) -> dict[str, Any]:
+    return {
+        "data_inicial": data_inicial.isoformat(),
+        "data_final": data_final.isoformat(),
+        "unidades": sorted(unidades),
+    }
+
+
+def carregar_checkpoint_itens(db: Session) -> dict[str, Any] | None:
+    row = db.scalar(
+        select(ComprasSyncMeta).where(ComprasSyncMeta.modulo == MODULO_ITENS_CURSOR)
+    )
+    if not row or not row.contadores_json:
+        return None
+    try:
+        data = json.loads(row.contadores_json)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def salvar_checkpoint_itens(
+    db: Session,
+    *,
+    escopo: dict[str, Any],
+    cursor: dict[str, Any],
+    status: str = "parcial",
+    erro: str | None = None,
+) -> None:
+    payload = {
+        "escopo": escopo,
+        "cursor": cursor,
+        "status": status,
+        "erro": erro,
+        "atualizado_em": datetime.utcnow().isoformat() + "Z",
+    }
+    registrar_sync_meta(db, MODULO_ITENS_CURSOR, payload)
+
+
+def limpar_checkpoint_itens(db: Session) -> None:
+    row = db.scalar(
+        select(ComprasSyncMeta).where(ComprasSyncMeta.modulo == MODULO_ITENS_CURSOR)
+    )
+    if row:
+        db.delete(row)
 
 
 def upsert_contratacao(db: Session, data: dict[str, Any]) -> tuple[CompraContratacao, bool]:

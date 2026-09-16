@@ -220,7 +220,9 @@ def executar_coleta_unificada(
     resultado_fontes: dict[str, Any] = {}
 
     def on_log(msg: str) -> None:
-        logs.append(msg)
+        agora = datetime.now().strftime("%H:%M:%S")
+        linha = f"[{agora}] {msg}"
+        logs.append(linha)
         if len(logs) > MAX_COLETA_LOG_LINHAS:
             omitidas = len(logs) - MAX_COLETA_LOG_LINHAS + 1
             # Mantém cabeçalho + cauda recente (útil p/ diagnóstico sem estourar a API).

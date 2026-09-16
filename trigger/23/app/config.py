@@ -182,6 +182,13 @@ COMPRAS_PNCP_HTTP_TIMEOUT_SEC = float(os.environ.get("COMPRAS_PNCP_HTTP_TIMEOUT_
 # Retries amplos: catálogo CATMAT/CATSER na APIM federal costuma responder 429.
 COMPRAS_PNCP_MAX_RETRIES = int(os.environ.get("COMPRAS_PNCP_MAX_RETRIES", "5"))
 COMPRAS_PNCP_REQUEST_DELAY_SEC = float(os.environ.get("COMPRAS_PNCP_DELAY_SEC", "0.35"))
+# Backoff de ReadTimeout: base × 2^(n-1), com teto e jitter (API federal sob stress).
+COMPRAS_PNCP_TIMEOUT_BACKOFF_BASE_SEC = float(
+    os.environ.get("COMPRAS_PNCP_TIMEOUT_BACKOFF_BASE_SEC", "8")
+)
+COMPRAS_PNCP_TIMEOUT_BACKOFF_CAP_SEC = float(
+    os.environ.get("COMPRAS_PNCP_TIMEOUT_BACKOFF_CAP_SEC", "90")
+)
 
 # CNPJ público (QSA sob demanda) — cadeia de fallbacks gratuitos.
 # Ordem: BrasilAPI → Minha Receita → CNPJá Open → Pública CNPJ.ws

@@ -17,10 +17,15 @@ from app.compras.coletor_resultados import coletar_resultados, resultado_para_db
 from app.compras.coletor_uasg import coletar_orgaos, coletar_uasgs
 from app.compras.normalizers import tipo_item_catalogo
 from app.compras.repository import (
+    carregar_checkpoint_itens,
     ensure_fornecedor_stub,
+    escopo_itens,
+    limpar_checkpoint_itens,
     registrar_sync_meta,
+    salvar_checkpoint_itens,
     upsert_catalogo,
     upsert_fornecedor,
+    upsert_item,
     upsert_orgao,
     upsert_pgc,
     upsert_preco,
@@ -29,7 +34,15 @@ from app.compras.repository import (
     vincular_fornecedores_resultados,
     vincular_uasg_contratacoes,
 )
-from app.compras_pncp import coletar, coletar_itens, item_itens_para_db, item_para_db
+from app.compras_pncp import (
+    ColetaItensInterrompida,
+    CursorItens,
+    PaginaItensInfo,
+    coletar,
+    coletar_itens,
+    item_itens_para_db,
+    item_para_db,
+)
 from app.config import (
     COMPRAS_COLETAR_PGC,
     COMPRAS_COLETAR_PRECO,
@@ -112,14 +125,6 @@ def _persistir_contratacoes_e_itens(
             novos += 1
     db.commit()
 
-    itens = coletar_itens(
-        data_inicial=data_inicial,
-        data_final=data_final,
-        unidades=unidades,
-        on_log=on_log,
-        on_fase=on_fase,
-    )
-    itens_novos = itens_atualizados = 0
     for chave, cid in db.execute(
         select(CompraContratacao.id_compra, CompraContratacao.id).where(
             CompraContratacao.id_compra.isnot(None)
@@ -127,23 +132,88 @@ def _persistir_contratacoes_e_itens(
     ):
         if chave:
             mapa_contratacoes[chave] = cid
-    for item in itens:
-        existing = db.scalar(
-            select(CompraContratacaoItem).where(
-                CompraContratacaoItem.id_compra_item == item.id_compra_item
+
+    unidades_alvo = unidades or list(obter_unidades_compradoras().keys())
+    escopo = escopo_itens(
+        data_inicial=data_inicial,
+        data_final=data_final,
+        unidades=list(unidades_alvo),
+    )
+    cursor_inicial: CursorItens | None = None
+    ck = carregar_checkpoint_itens(db)
+    if (
+        ck
+        and ck.get("status") == "parcial"
+        and ck.get("escopo") == escopo
+        and isinstance(ck.get("cursor"), dict)
+    ):
+        cursor_inicial = CursorItens.from_dict(ck["cursor"])
+        if cursor_inicial:
+            on_log(
+                "  Checkpoint de itens encontrado — retomando paginação "
+                "(progresso já persistido permanece)."
             )
+
+    itens_novos = itens_atualizados = 0
+    itens_paginas = 0
+
+    def _on_pagina(info: PaginaItensInfo) -> None:
+        nonlocal itens_novos, itens_atualizados, itens_paginas
+        for item in info.itens:
+            data = item_itens_para_db(
+                item, contratacao_id=mapa_contratacoes.get(item.id_compra)
+            )
+            _, criado = upsert_item(db, data)
+            if criado:
+                itens_novos += 1
+            else:
+                itens_atualizados += 1
+        itens_paginas += 1
+        db.commit()
+
+    def _on_checkpoint(cursor: CursorItens) -> None:
+        salvar_checkpoint_itens(
+            db,
+            escopo=escopo,
+            cursor=cursor.as_dict(),
+            status="parcial",
+            erro=None,
         )
-        data = item_itens_para_db(
-            item, contratacao_id=mapa_contratacoes.get(item.id_compra)
+        db.commit()
+
+    try:
+        itens = coletar_itens(
+            data_inicial=data_inicial,
+            data_final=data_final,
+            unidades=unidades,
+            on_log=on_log,
+            on_fase=on_fase,
+            on_pagina=_on_pagina,
+            cursor_inicial=cursor_inicial,
+            on_checkpoint=_on_checkpoint,
         )
-        data["coletado_em"] = __import__("datetime").datetime.utcnow()
-        if existing:
-            for k, v in data.items():
-                setattr(existing, k, v)
-            itens_atualizados += 1
-        else:
-            db.add(CompraContratacaoItem(**data))
-            itens_novos += 1
+    except ColetaItensInterrompida as exc:
+        salvar_checkpoint_itens(
+            db,
+            escopo=escopo,
+            cursor=exc.cursor.as_dict(),
+            status="parcial",
+            erro=str(exc),
+        )
+        db.commit()
+        on_log(
+            f"  ⚠ Itens parciais preservados (páginas OK: {itens_paginas}, "
+            f"novos: {itens_novos}, atualizados: {itens_atualizados}). "
+            f"Próxima execução retoma em página {exc.cursor.pagina}."
+        )
+        raise ColetaItensInterrompida(
+            f"Coleta de itens incompleta (checkpoint salvo · "
+            f"{exc.cursor.unidade} {exc.cursor.periodo_ini}–{exc.cursor.periodo_fim} "
+            f"pág. {exc.cursor.pagina}): {exc}",
+            cursor=exc.cursor,
+        ) from exc
+
+    limpar_checkpoint_itens(db)
     db.commit()
     return {
         "contratacoes_total": len(items),
@@ -152,6 +222,7 @@ def _persistir_contratacoes_e_itens(
         "itens_total": len(itens),
         "itens_novos": itens_novos,
         "itens_atualizados": itens_atualizados,
+        "itens_paginas": itens_paginas,
     }
 
 

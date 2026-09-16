@@ -28,7 +28,10 @@ from app.config import (
     UNIDADES_COMPRADORAS,
     USER_AGENT,
 )
+from app.compras.client import espera_retry_http, espera_retry_timeout
 from app.unidades_compradoras import obter_unidades_compradoras
+
+_RETRYABLE_STATUS = frozenset({429, 502, 503, 504})
 
 PNCP_CAMPOS = (
     "idCompra",
@@ -362,12 +365,27 @@ def _get_json(
                 raise RuntimeError(
                     f"{contexto}: timeout após {COMPRAS_PNCP_MAX_RETRIES} tentativa(s)"
                 ) from exc
-            espera = COMPRAS_PNCP_REQUEST_DELAY_SEC * 4 * tentativa
+            espera = espera_retry_timeout(tentativa=tentativa)
             if on_log:
                 on_log(
                     f"    ⚠ Timeout na API ({exc.__class__.__name__}); "
                     f"tentativa {tentativa}/{COMPRAS_PNCP_MAX_RETRIES} — "
                     f"nova tentativa em {espera:.1f}s…"
+                )
+            time.sleep(espera)
+            continue
+
+        if resp.status_code in _RETRYABLE_STATUS:
+            if tentativa >= COMPRAS_PNCP_MAX_RETRIES:
+                raise RuntimeError(
+                    f"{contexto} HTTP {resp.status_code}: {resp.text[:300]}"
+                )
+            espera = espera_retry_http(resp, tentativa=tentativa)
+            if on_log:
+                on_log(
+                    f"    ⚠ HTTP {resp.status_code} ({contexto}); "
+                    f"tentativa {tentativa}/{COMPRAS_PNCP_MAX_RETRIES} — "
+                    f"aguardando {espera:.1f}s…"
                 )
             time.sleep(espera)
             continue
@@ -801,6 +819,59 @@ class PncpItensClient:
         return registros if isinstance(registros, list) else []
 
 
+@dataclass(frozen=True)
+class CursorItens:
+    """Posição recuperável na paginação de itens (unidade × janela × página)."""
+
+    unidade: str
+    periodo_ini: str
+    periodo_fim: str
+    pagina: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "unidade": self.unidade,
+            "periodo_ini": self.periodo_ini,
+            "periodo_fim": self.periodo_fim,
+            "pagina": self.pagina,
+        }
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any] | None) -> CursorItens | None:
+        if not raw:
+            return None
+        try:
+            return cls(
+                unidade=str(raw["unidade"]),
+                periodo_ini=str(raw["periodo_ini"]),
+                periodo_fim=str(raw["periodo_fim"]),
+                pagina=max(1, int(raw["pagina"])),
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
+
+
+@dataclass
+class PaginaItensInfo:
+    unidade: str
+    nome_unidade: str
+    periodo_ini: date
+    periodo_fim: date
+    pagina: int
+    total_paginas: int
+    total_api: int | None
+    itens: list[CompraItemContratacao]
+
+
+class ColetaItensInterrompida(RuntimeError):
+    """Falha transitória da API após progresso parcial — retomar do ``cursor``."""
+
+    def __init__(self, message: str, *, cursor: CursorItens) -> None:
+        super().__init__(message)
+        self.cursor = cursor
+        self.transiente = True
+
+
 def coletar_itens(
     *,
     data_inicial: date,
@@ -808,13 +879,56 @@ def coletar_itens(
     unidades: list[str] | None = None,
     on_log: Callable[[str], None] | None = None,
     on_fase: Callable[[str], None] | None = None,
+    on_pagina: Callable[[PaginaItensInfo], None] | None = None,
+    cursor_inicial: CursorItens | None = None,
+    on_checkpoint: Callable[[CursorItens], None] | None = None,
 ) -> list[CompraItemContratacao]:
+    """Coleta itens PNCP com paginação.
+
+    ``on_pagina`` — callback após cada página OK (persistência incremental).
+    ``cursor_inicial`` — retoma em unidade/janela/página (idempotente via upsert).
+    ``on_checkpoint`` — grava cursor da página atual *antes* da request (crash-safe).
+    Em timeout/429/5xx esgotado, levanta ``ColetaItensInterrompida`` com o cursor.
+    """
     log = on_log or (lambda _: None)
     fase = on_fase or (lambda _: None)
 
     mapa_unidades = obter_unidades_compradoras()
     unidades_alvo = unidades or list(mapa_unidades.keys())
     periodos = _periodos(data_inicial, data_final, COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS)
+
+    janelas: list[tuple[str, date, date]] = [
+        (unidade, per_ini, per_fim)
+        for unidade in unidades_alvo
+        for per_ini, per_fim in periodos
+    ]
+
+    start_idx = 0
+    start_pagina = 1
+    if cursor_inicial is not None:
+        encontrado = False
+        for i, (unidade, per_ini, per_fim) in enumerate(janelas):
+            if (
+                unidade == cursor_inicial.unidade
+                and per_ini.isoformat() == cursor_inicial.periodo_ini
+                and per_fim.isoformat() == cursor_inicial.periodo_fim
+            ):
+                start_idx = i
+                start_pagina = cursor_inicial.pagina
+                encontrado = True
+                break
+        if encontrado:
+            log(
+                f"  Retomando itens do checkpoint: "
+                f"{mapa_unidades.get(cursor_inicial.unidade, cursor_inicial.unidade)} | "
+                f"{cursor_inicial.periodo_ini}–{cursor_inicial.periodo_fim} | "
+                f"página {cursor_inicial.pagina}"
+            )
+        else:
+            log(
+                "  Checkpoint de itens ignorado (escopo/janela não encontrada) — "
+                "reiniciando paginação."
+            )
 
     vistos: set[str] = set()
     resultado: list[CompraItemContratacao] = []
@@ -832,16 +946,28 @@ def coletar_itens(
                 f"(máx. {COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS} dias por consulta de itens)."
             )
 
-        for unidade in unidades_alvo:
+        for j_idx, (unidade, per_ini, per_fim) in enumerate(janelas):
+            if j_idx < start_idx:
+                continue
             nome_u = mapa_unidades.get(unidade, unidade)
-            for per_ini, per_fim in periodos:
-                pagina = 1
-                total_paginas = 1
-                while pagina <= total_paginas:
-                    log(
-                        f"  Itens | {nome_u} | {per_ini}–{per_fim} | "
-                        f"página {pagina}/{total_paginas}"
-                    )
+            pagina = start_pagina if j_idx == start_idx else 1
+            # Garante entrada no loop ao retomar página > 1; a API atualiza total_paginas.
+            total_paginas = max(pagina, 1)
+            while pagina <= total_paginas:
+                cursor_atual = CursorItens(
+                    unidade=unidade,
+                    periodo_ini=per_ini.isoformat(),
+                    periodo_fim=per_fim.isoformat(),
+                    pagina=pagina,
+                )
+                if on_checkpoint:
+                    on_checkpoint(cursor_atual)
+
+                log(
+                    f"  Itens | {nome_u} | {per_ini}–{per_fim} | "
+                    f"página {pagina}/{total_paginas}"
+                )
+                try:
                     payload = client.consultar_pagina(
                         pagina=pagina,
                         tamanho_pagina=COMPRAS_PNCP_ITENS_PAGE_SIZE,
@@ -849,34 +975,64 @@ def coletar_itens(
                         data_inicial=per_ini,
                         data_final=per_fim,
                     )
-                    total_paginas = int(payload.get("totalPaginas") or 1)
-                    registros = payload.get("resultado") or []
-                    if not isinstance(registros, list):
-                        registros = []
+                except RuntimeError as exc:
+                    msg = str(exc)
+                    transitório = (
+                        "timeout" in msg.lower()
+                        or "HTTP 429" in msg
+                        or "HTTP 502" in msg
+                        or "HTTP 503" in msg
+                        or "HTTP 504" in msg
+                    )
+                    if transitório:
+                        raise ColetaItensInterrompida(msg, cursor=cursor_atual) from exc
+                    raise
 
-                    novos = 0
-                    for raw in registros:
-                        if not isinstance(raw, dict):
-                            continue
-                        item = item_da_api_itens(raw)
-                        if not item or item.id_compra_item in vistos:
-                            continue
-                        vistos.add(item.id_compra_item)
-                        resultado.append(item)
-                        novos += 1
+                total_paginas = int(payload.get("totalPaginas") or 1)
+                registros = payload.get("resultado") or []
+                if not isinstance(registros, list):
+                    registros = []
 
-                    total_api = payload.get("totalRegistros")
-                    log(
-                        f"    → {len(registros)} na página "
-                        f"({novos} novos, {len(vistos)} acumulados"
-                        f"{f', total API: {total_api}' if total_api is not None else ''})"
+                itens_pagina: list[CompraItemContratacao] = []
+                novos = 0
+                for raw in registros:
+                    if not isinstance(raw, dict):
+                        continue
+                    item = item_da_api_itens(raw)
+                    if not item or item.id_compra_item in vistos:
+                        continue
+                    vistos.add(item.id_compra_item)
+                    resultado.append(item)
+                    itens_pagina.append(item)
+                    novos += 1
+
+                total_api = payload.get("totalRegistros")
+                total_api_int = int(total_api) if total_api is not None else None
+                log(
+                    f"    → {len(registros)} na página "
+                    f"({novos} novos, {len(vistos)} acumulados"
+                    f"{f', total API: {total_api}' if total_api is not None else ''})"
+                )
+
+                if on_pagina:
+                    on_pagina(
+                        PaginaItensInfo(
+                            unidade=unidade,
+                            nome_unidade=nome_u,
+                            periodo_ini=per_ini,
+                            periodo_fim=per_fim,
+                            pagina=pagina,
+                            total_paginas=total_paginas,
+                            total_api=total_api_int,
+                            itens=itens_pagina,
+                        )
                     )
 
-                    if pagina >= total_paginas or not registros:
-                        break
-                    pagina += 1
-                    time.sleep(COMPRAS_PNCP_REQUEST_DELAY_SEC)
-                time.sleep(DELAY_SEC / 2)
+                if pagina >= total_paginas or not registros:
+                    break
+                pagina += 1
+                time.sleep(COMPRAS_PNCP_REQUEST_DELAY_SEC)
+            time.sleep(DELAY_SEC / 2)
     finally:
         client.close()
         fase("idle")
