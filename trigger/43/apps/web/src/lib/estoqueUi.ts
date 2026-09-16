@@ -1,4 +1,5 @@
-import { formatCurrency, formatQty } from './format';
+import { formatCurrency, formatQty, formatQtyCompact } from './format';
+import { formatVolumeDimensao } from './volumeEtiquetaPrint';
 
 /** Sentido do MOV para leitura do kardex — estudo 32: nada some sem documento. */
 export type MovSentido = 'entrada' | 'saida' | 'ajuste';
@@ -124,6 +125,83 @@ export function coincideBusca(haystack: string, q: string): boolean {
   return haystack.includes(needle);
 }
 
+/** Identidade do SKU no Buscar do Consolidado (código · nome · família · grupo). */
+export type ProdutoBuscaConsolidado = {
+  codigo?: string | null;
+  descricao_comercial?: string | null;
+  descricao_fiscal?: string | null;
+  familia?: string | null;
+  grupo?: string | null;
+  grupo_catalogo?: { codigo?: string | null; nome?: string | null } | null;
+} | null | undefined;
+
+/** Faixa de volume (qtde/vol · L×C) — mesma chave de `volumes_por_qtde`. */
+export type FaixaBuscaVolume = {
+  qtde?: string | null;
+  unidade?: string | null;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+} | null | undefined;
+
+export function textoBuscaProdutoEstoque(produto: ProdutoBuscaConsolidado): string {
+  return textoBusca(
+    produto?.codigo,
+    produto?.descricao_comercial,
+    produto?.descricao_fiscal,
+    produto?.familia,
+    estoqueGrupoCodigo(produto),
+    produto?.grupo_catalogo?.nome,
+  );
+}
+
+/**
+ * Texto de busca da faixa: qtde formatada + bruta, unidade, L×C formatada e compacta.
+ * Permite digitar "210", "1000", "210x1000" ou o trecho exibido na coluna Dimensão.
+ */
+export function textoBuscaFaixaVolume(faixa: FaixaBuscaVolume): string {
+  if (!faixa) return '';
+  const L = faixa.largura_mm ?? null;
+  const C = faixa.comprimento_m ?? null;
+  const dimCompact = L && C ? `${L}x${C} ${L}×${C}` : L ? String(L) : '';
+  return textoBusca(
+    formatQtyCompact(faixa.qtde),
+    faixa.qtde,
+    faixa.unidade,
+    formatVolumeDimensao(L, C),
+    dimCompact,
+    L,
+    C,
+  );
+}
+
+/** Uma linha do Consolidado (SKU + faixa opcional) bate no Buscar. */
+export function coincideLinhaConsolidado(
+  produto: ProdutoBuscaConsolidado,
+  faixa: FaixaBuscaVolume,
+  q: string,
+): boolean {
+  return coincideBusca(
+    textoBusca(textoBuscaProdutoEstoque(produto), textoBuscaFaixaVolume(faixa)),
+    q,
+  );
+}
+
+/** SKU entra no Consolidado se o produto ou qualquer faixa bater no Buscar. */
+export function coincideSaldoConsolidado(
+  s: {
+    produto?: ProdutoBuscaConsolidado;
+    volumes_por_qtde?: FaixaBuscaVolume[] | null;
+  },
+  q: string,
+): boolean {
+  if (!q.trim()) return true;
+  if (coincideLinhaConsolidado(s.produto, null, q)) return true;
+  for (const faixa of s.volumes_por_qtde ?? []) {
+    if (coincideLinhaConsolidado(s.produto, faixa, q)) return true;
+  }
+  return false;
+}
+
 /** Compara qtde de estoque (4 casas) — consolidado volumes por faixa. */
 export function mesmaQtdeEstoque(
   a: string | number | null | undefined,
@@ -144,40 +222,8 @@ export function mesmaDimensaoVolume(
     && (a.comprimento_m ?? null) === (b.comprimento_m ?? null);
 }
 
-export type FaixaVolumeRef = {
-  qtde: string;
-  largura_mm?: string | null;
-  comprimento_m?: string | null;
-};
-
-/** Chave estável produto × faixa (qtde + L×C) para expandir na ficha. */
-export function chaveFaixaVolume(produtoId: number, faixa: FaixaVolumeRef): string {
-  return `${produtoId}|${faixa.qtde}|${faixa.largura_mm ?? ''}|${faixa.comprimento_m ?? ''}`;
-}
-
-/**
- * Volumes físicos de uma faixa consolidada (qtde > 0).
- * Mesmo critério do filtro Saldos → Volumes.
- */
-export function volumesDaFaixa<
-  T extends { qtde: string; largura_mm?: string | null; comprimento_m?: string | null },
->(volumes: T[], faixa: FaixaVolumeRef): T[] {
-  return volumes.filter(
-    (v) =>
-      Number(v.qtde) > 0 &&
-      mesmaQtdeEstoque(v.qtde, faixa.qtde) &&
-      mesmaDimensaoVolume(v, faixa),
-  );
-}
-
-/** Auto-abre detalhe na ficha quando o SKU ainda cabe na leitura. */
-export const ESTOQUE_FICHA_AUTO_EXPAND_MAX_VOLUMES = 12;
-
 /** Ordem canônica das famílias na guia Consolidado (igual cadastro de produtos). */
 export const ESTOQUE_FAMILIAS_ORDEM = ['MP', 'EMB', 'REV', 'MUC', 'PA', 'SVC', 'FAC'] as const;
-
-/** Quantas faixas de qtde cabem na grade de saldos sem amontoar. */
-export const ESTOQUE_VOL_FAIXAS_VISIVEIS = 3;
 
 /** Grupo do SKU para abas do consolidado (código estável). */
 export function estoqueGrupoCodigo(produto: {
@@ -197,14 +243,4 @@ export function estoqueGrupoLabel(produto: {
   const nome = produto?.grupo_catalogo?.nome?.trim();
   if (nome && codigo !== '—') return `${codigo} — ${nome}`;
   return codigo;
-}
-
-export function faixasVolumesVisiveis<T>(faixas: T[]): { visiveis: T[]; ocultas: number } {
-  if (faixas.length <= ESTOQUE_VOL_FAIXAS_VISIVEIS) {
-    return { visiveis: faixas, ocultas: 0 };
-  }
-  return {
-    visiveis: faixas.slice(0, ESTOQUE_VOL_FAIXAS_VISIVEIS),
-    ocultas: faixas.length - ESTOQUE_VOL_FAIXAS_VISIVEIS,
-  };
 }

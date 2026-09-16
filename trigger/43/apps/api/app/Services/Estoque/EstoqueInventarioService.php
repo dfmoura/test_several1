@@ -6,6 +6,8 @@ use App\Models\Empresa;
 use App\Models\EstoqueAjuste;
 use App\Models\EstoqueInventario;
 use App\Models\EstoqueInventarioItem;
+use App\Models\EstoqueInventarioLeitura;
+use App\Models\EstoqueLote;
 use App\Models\EstoqueSaldo;
 use App\Models\Produto;
 use App\Models\User;
@@ -23,6 +25,8 @@ class EstoqueInventarioService
         private readonly CodigoGenerator $codigos,
         private readonly EstoqueAjusteService $ajustes,
         private readonly EstoqueAjusteAlcada $alcada,
+        private readonly EstoqueVolumeService $volumes,
+        private readonly EstoqueEnderecoService $enderecos,
     ) {}
 
     /**
@@ -60,6 +64,15 @@ class EstoqueInventarioService
             'itens.contadoPor1User:id,name',
             'itens.contadoPor2User:id,name',
             'itens.ajuste:id,codigo,status',
+            'leituras' => function ($q) {
+                $q->where('resultado', '!=', EstoqueInventarioLeitura::RESULTADO_ANULADA)
+                    ->orderByDesc('id');
+            },
+            'leituras.lote:id,codigo,qtde,unidade',
+            'leituras.produto:id,codigo,descricao_fiscal',
+            'leituras.enderecoLido:id,codigo',
+            'leituras.enderecoEsperado:id,codigo',
+            'leituras.lidoPorUser:id,name',
             ...EstoqueInventario::userStampWith(),
         ]);
 
@@ -137,6 +150,332 @@ class EstoqueInventarioService
         });
 
         return $this->show($empresa, $inv->fresh(), false);
+    }
+
+    /**
+     * Registra leitura física VOL + END na rodada (1ª ou 2ª). Não escreve saldo.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function lerVolume(Empresa $empresa, EstoqueInventario $inv, array $data, User $user): array
+    {
+        $this->assertEmpresa($empresa, $inv);
+        $this->assertInvAberto($inv);
+
+        $rodada = (int) ($data['rodada'] ?? 1);
+        if (! in_array($rodada, [1, 2], true)) {
+            throw ValidationException::withMessages([
+                'rodada' => ['Rodada deve ser 1 ou 2.'],
+            ]);
+        }
+
+        $volumeQr = trim((string) ($data['volume_qr'] ?? ''));
+        $enderecoQr = trim((string) ($data['endereco_qr'] ?? ''));
+        if ($volumeQr === '' || $enderecoQr === '') {
+            throw ValidationException::withMessages([
+                'volume_qr' => ['Informe o QR do volume (VOL:…) e do local (END:…).'],
+            ]);
+        }
+
+        $lote = $this->volumes->resolverVolumePorQr($empresa, $volumeQr);
+        $loteModel = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', (int) $lote['lote_id'])
+            ->firstOrFail();
+
+        if (bccomp((string) $loteModel->qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'volume_qr' => ['Volume sem saldo — não entra na contagem física.'],
+            ]);
+        }
+
+        $endereco = $this->enderecos->resolverPorQr($empresa, $enderecoQr);
+
+        $produtoIds = $inv->itens()->pluck('produto_id')->map(fn ($id) => (int) $id)->all();
+        $produtoId = (int) $loteModel->produto_id;
+        $noEscopo = in_array($produtoId, $produtoIds, true);
+
+        $jaLido = EstoqueInventarioLeitura::query()
+            ->where('inventario_id', $inv->id)
+            ->where('rodada', $rodada)
+            ->where('lote_id', $loteModel->id)
+            ->where('resultado', '!=', EstoqueInventarioLeitura::RESULTADO_ANULADA)
+            ->exists();
+
+        if ($jaLido) {
+            throw ValidationException::withMessages([
+                'volume_qr' => ['Este volume já foi lido nesta rodada.'],
+            ]);
+        }
+
+        if (! $noEscopo) {
+            $leitura = EstoqueInventarioLeitura::query()->create([
+                'inventario_id' => $inv->id,
+                'empresa_id' => $empresa->id,
+                'rodada' => $rodada,
+                'lote_id' => $loteModel->id,
+                'produto_id' => $produtoId,
+                'endereco_id_lido' => $endereco->id,
+                'endereco_id_esperado' => $loteModel->endereco_id,
+                'qtde_volume' => PadraoDecimal::roundHalfUp((string) $loteModel->qtde, PadraoDecimal::SCALE_QTY),
+                'unidade' => $loteModel->unidade ?? 'UN',
+                'resultado' => EstoqueInventarioLeitura::RESULTADO_FORA_ESCOPO,
+                'lido_por' => $user->id,
+                'lido_em' => now(),
+            ]);
+
+            if ($inv->status === EstoqueInventario::STATUS_ABERTO) {
+                $inv->status = EstoqueInventario::STATUS_EM_CONTAGEM;
+                $inv->save();
+            }
+
+            return $this->leituraOut($leitura->fresh([
+                'lote:id,codigo',
+                'produto:id,codigo,descricao_fiscal',
+                'enderecoLido:id,codigo',
+                'enderecoEsperado:id,codigo',
+                'lidoPorUser:id,name',
+            ]));
+        }
+
+        $item = $inv->itens()->where('produto_id', $produtoId)->firstOrFail();
+        $this->assertItemAceitaRodada($item, $rodada);
+
+        $esperadoId = $loteModel->endereco_id ? (int) $loteModel->endereco_id : null;
+        $lidoId = (int) $endereco->id;
+        $resultado = ($esperadoId === null || $esperadoId === $lidoId)
+            ? EstoqueInventarioLeitura::RESULTADO_ENCONTRADO
+            : EstoqueInventarioLeitura::RESULTADO_LOCAL_ERRADO;
+
+        $leitura = DB::transaction(function () use (
+            $empresa, $inv, $rodada, $loteModel, $produtoId, $lidoId, $esperadoId, $resultado, $user, $item
+        ) {
+            if ($item->status === EstoqueInventarioItem::STATUS_PENDENTE) {
+                $item->status = EstoqueInventarioItem::STATUS_EM_CONTAGEM;
+                $item->save();
+            }
+
+            if ($inv->status === EstoqueInventario::STATUS_ABERTO) {
+                $inv->status = EstoqueInventario::STATUS_EM_CONTAGEM;
+                $inv->save();
+            }
+
+            return EstoqueInventarioLeitura::query()->create([
+                'inventario_id' => $inv->id,
+                'empresa_id' => $empresa->id,
+                'rodada' => $rodada,
+                'lote_id' => $loteModel->id,
+                'produto_id' => $produtoId,
+                'endereco_id_lido' => $lidoId,
+                'endereco_id_esperado' => $esperadoId,
+                'qtde_volume' => PadraoDecimal::roundHalfUp((string) $loteModel->qtde, PadraoDecimal::SCALE_QTY),
+                'unidade' => $loteModel->unidade ?? 'UN',
+                'resultado' => $resultado,
+                'lido_por' => $user->id,
+                'lido_em' => now(),
+            ]);
+        });
+
+        return $this->leituraOut($leitura->fresh([
+            'lote:id,codigo',
+            'produto:id,codigo,descricao_fiscal',
+            'enderecoLido:id,codigo',
+            'enderecoEsperado:id,codigo',
+            'lidoPorUser:id,name',
+        ]));
+    }
+
+    /**
+     * Anula leitura ativa (permite reler o mesmo volume).
+     *
+     * @return array<string, mixed>
+     */
+    public function anularLeitura(
+        Empresa $empresa,
+        EstoqueInventario $inv,
+        EstoqueInventarioLeitura $leitura,
+    ): array {
+        $this->assertEmpresa($empresa, $inv);
+        $this->assertInvAberto($inv);
+
+        if ($leitura->inventario_id !== $inv->id || $leitura->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        if ($leitura->resultado === EstoqueInventarioLeitura::RESULTADO_ANULADA) {
+            throw ValidationException::withMessages([
+                'leitura' => ['Leitura já anulada.'],
+            ]);
+        }
+
+        if ($leitura->resultado === EstoqueInventarioLeitura::RESULTADO_FALTANTE) {
+            throw ValidationException::withMessages([
+                'leitura' => ['Faltante gerado no fechamento não se anula avulso — reabra a rodada física com novas leituras.'],
+            ]);
+        }
+
+        $leitura->resultado = EstoqueInventarioLeitura::RESULTADO_ANULADA;
+        $leitura->save();
+
+        return $this->leituraOut($leitura->fresh([
+            'lote:id,codigo',
+            'produto:id,codigo,descricao_fiscal',
+            'enderecoLido:id,codigo',
+            'enderecoEsperado:id,codigo',
+            'lidoPorUser:id,name',
+        ]));
+    }
+
+    /**
+     * Fecha a rodada física: marca FALTANTE, rollup por SKU e chama contar1/contar2.
+     * SKUs sem volume ativo continuam no fluxo decimal manual.
+     *
+     * @return array<string, mixed>
+     */
+    public function fecharRodadaFisica(
+        Empresa $empresa,
+        EstoqueInventario $inv,
+        int $rodada,
+        User $user,
+    ): array {
+        $this->assertEmpresa($empresa, $inv);
+        $this->assertInvAberto($inv);
+
+        if (! in_array($rodada, [1, 2], true)) {
+            throw ValidationException::withMessages([
+                'rodada' => ['Rodada deve ser 1 ou 2.'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($empresa, $inv, $rodada, $user) {
+            $inv = EstoqueInventario::query()->lockForUpdate()->findOrFail($inv->id);
+            $this->assertEmpresa($empresa, $inv);
+            $this->assertInvAberto($inv);
+
+            $itens = $inv->itens()->lockForUpdate()->get()->keyBy('produto_id');
+            $produtoIds = $itens->keys()->map(fn ($id) => (int) $id)->all();
+
+            $volumesAtivos = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereIn('produto_id', $produtoIds)
+                ->where('qtde', '>', 0)
+                ->get();
+
+            $lidos = EstoqueInventarioLeitura::query()
+                ->where('inventario_id', $inv->id)
+                ->where('rodada', $rodada)
+                ->whereIn('resultado', [
+                    ...EstoqueInventarioLeitura::RESULTADOS_ENCONTRADOS,
+                    EstoqueInventarioLeitura::RESULTADO_FORA_ESCOPO,
+                ])
+                ->get()
+                ->keyBy('lote_id');
+
+            foreach ($volumesAtivos as $lote) {
+                if ($lidos->has($lote->id)) {
+                    continue;
+                }
+                // Já marcado faltante nesta rodada?
+                $jaFalta = EstoqueInventarioLeitura::query()
+                    ->where('inventario_id', $inv->id)
+                    ->where('rodada', $rodada)
+                    ->where('lote_id', $lote->id)
+                    ->where('resultado', EstoqueInventarioLeitura::RESULTADO_FALTANTE)
+                    ->exists();
+                if ($jaFalta) {
+                    continue;
+                }
+
+                EstoqueInventarioLeitura::query()->create([
+                    'inventario_id' => $inv->id,
+                    'empresa_id' => $empresa->id,
+                    'rodada' => $rodada,
+                    'lote_id' => $lote->id,
+                    'produto_id' => $lote->produto_id,
+                    'endereco_id_lido' => null,
+                    'endereco_id_esperado' => $lote->endereco_id,
+                    'qtde_volume' => PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY),
+                    'unidade' => $lote->unidade ?? 'UN',
+                    'resultado' => EstoqueInventarioLeitura::RESULTADO_FALTANTE,
+                    'lido_por' => $user->id,
+                    'lido_em' => now(),
+                ]);
+            }
+
+            $somas = [];
+            $leiturasRollup = EstoqueInventarioLeitura::query()
+                ->where('inventario_id', $inv->id)
+                ->where('rodada', $rodada)
+                ->whereIn('resultado', EstoqueInventarioLeitura::RESULTADOS_ENCONTRADOS)
+                ->get();
+
+            foreach ($leiturasRollup as $leit) {
+                $pid = (int) $leit->produto_id;
+                if (! isset($somas[$pid])) {
+                    $somas[$pid] = '0';
+                }
+                $somas[$pid] = PadraoDecimal::roundHalfUp(
+                    bcadd($somas[$pid], (string) $leit->qtde_volume, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+            }
+
+            $produtoIdsComVolume = $volumesAtivos->pluck('produto_id')->map(fn ($id) => (int) $id)->unique()->all();
+            $itensFechados = [];
+
+            foreach ($itens as $produtoId => $item) {
+                $produtoId = (int) $produtoId;
+                if (! in_array($produtoId, $produtoIdsComVolume, true)) {
+                    continue;
+                }
+
+                try {
+                    $this->assertItemAceitaRodada($item, $rodada);
+                } catch (ValidationException) {
+                    continue;
+                }
+
+                $qtde = $somas[$produtoId] ?? PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+
+                if ($rodada === 1) {
+                    $itensFechados[] = $this->contar1($empresa, $inv, $item->fresh(), ['qtde' => $qtde], $user);
+                } else {
+                    $itensFechados[] = $this->contar2($empresa, $inv, $item->fresh(), ['qtde' => $qtde], $user);
+                }
+            }
+
+            if ($itensFechados === [] && $volumesAtivos->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'rodada' => [
+                        'Nenhum SKU deste inventário tem volume etiquetado. Use a contagem decimal por SKU.',
+                    ],
+                ]);
+            }
+
+            if ($itensFechados === [] && $volumesAtivos->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'rodada' => [
+                        'Nenhum item elegível para fechar nesta rodada (já contados ou status incompatível).',
+                    ],
+                ]);
+            }
+
+            return [
+                'inventario' => $this->show($empresa, $inv->fresh(), false),
+                'itens_fechados' => $itensFechados,
+                'locais_errados' => EstoqueInventarioLeitura::query()
+                    ->where('inventario_id', $inv->id)
+                    ->where('rodada', $rodada)
+                    ->where('resultado', EstoqueInventarioLeitura::RESULTADO_LOCAL_ERRADO)
+                    ->count(),
+                'faltantes' => EstoqueInventarioLeitura::query()
+                    ->where('inventario_id', $inv->id)
+                    ->where('rodada', $rodada)
+                    ->where('resultado', EstoqueInventarioLeitura::RESULTADO_FALTANTE)
+                    ->count(),
+            ];
+        });
     }
 
     /**
@@ -418,6 +757,7 @@ class EstoqueInventarioService
             'tipos' => EstoqueInventario::TIPOS,
             'statuses' => EstoqueInventario::STATUSES,
             'item_statuses' => EstoqueInventarioItem::STATUSES,
+            'leitura_resultados' => EstoqueInventarioLeitura::RESULTADOS,
             'motivos' => collect(EstoqueAjuste::MOTIVOS)
                 ->map(fn (string $nome, string $codigo) => ['codigo' => $codigo, 'nome' => $nome])
                 ->values()
@@ -458,7 +798,37 @@ class EstoqueInventarioService
                 'itens.contadoPor2User:id,name',
                 'itens.ajuste:id,codigo,status',
             ]);
-            $out['itens'] = $inv->itens->map(fn (EstoqueInventarioItem $i) => $this->itemOut($i, $cego))->all();
+
+            $volumesPorProduto = $this->volumesAtivosPorProduto(
+                (int) $inv->empresa_id,
+                $inv->itens->pluck('produto_id')->map(fn ($id) => (int) $id)->all()
+            );
+
+            $out['itens'] = $inv->itens->map(
+                fn (EstoqueInventarioItem $i) => $this->itemOut($i, $cego, $volumesPorProduto[(int) $i->produto_id] ?? 0)
+            )->all();
+
+            $inv->loadMissing([
+                'leituras' => function ($q) {
+                    $q->where('resultado', '!=', EstoqueInventarioLeitura::RESULTADO_ANULADA)
+                        ->orderByDesc('id');
+                },
+                'leituras.lote:id,codigo',
+                'leituras.produto:id,codigo,descricao_fiscal',
+                'leituras.enderecoLido:id,codigo',
+                'leituras.enderecoEsperado:id,codigo',
+                'leituras.lidoPorUser:id,name',
+            ]);
+            $out['leituras'] = $inv->leituras
+                ->map(fn (EstoqueInventarioLeitura $l) => $this->leituraOut($l))
+                ->all();
+            $out['contagem_fisica'] = [
+                'skus_com_volume' => count(array_filter($volumesPorProduto, fn ($n) => $n > 0)),
+                'leituras_ativas' => count($out['leituras']),
+                'locais_errados' => $inv->leituras
+                    ->where('resultado', EstoqueInventarioLeitura::RESULTADO_LOCAL_ERRADO)
+                    ->count(),
+            ];
         }
 
         return $out;
@@ -467,7 +837,7 @@ class EstoqueInventarioService
     /**
      * @return array<string, mixed>
      */
-    private function itemOut(EstoqueInventarioItem $item, bool $cego): array
+    private function itemOut(EstoqueInventarioItem $item, bool $cego, ?int $volumesAtivos = null): array
     {
         $item->loadMissing([
             'produto:id,codigo,descricao_fiscal,familia,unidade_interna',
@@ -475,6 +845,13 @@ class EstoqueInventarioService
             'contadoPor2User:id,name',
             'ajuste:id,codigo,status',
         ]);
+
+        if ($volumesAtivos === null) {
+            $volumesAtivos = $this->volumesAtivosPorProduto(
+                (int) $item->empresa_id,
+                [(int) $item->produto_id]
+            )[(int) $item->produto_id] ?? 0;
+        }
 
         $out = [
             'id' => $item->id,
@@ -488,6 +865,8 @@ class EstoqueInventarioService
                 'unidade_interna' => $item->produto->unidade_interna,
             ] : null,
             'unidade' => $item->unidade,
+            'modo_contagem' => $volumesAtivos > 0 ? 'VOLUME' : 'SKU',
+            'volumes_ativos' => $volumesAtivos,
             'qtde_1' => $item->qtde_1 !== null ? (string) $item->qtde_1 : null,
             'contado_por_1' => $item->contadoPor1User
                 ? ['id' => $item->contadoPor1User->id, 'name' => $item->contadoPor1User->name]
@@ -539,6 +918,100 @@ class EstoqueInventarioService
         }
 
         return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function leituraOut(EstoqueInventarioLeitura $leitura): array
+    {
+        $leitura->loadMissing([
+            'lote:id,codigo',
+            'produto:id,codigo,descricao_fiscal',
+            'enderecoLido:id,codigo',
+            'enderecoEsperado:id,codigo',
+            'lidoPorUser:id,name',
+        ]);
+
+        return [
+            'id' => $leitura->id,
+            'inventario_id' => $leitura->inventario_id,
+            'rodada' => (int) $leitura->rodada,
+            'lote_id' => $leitura->lote_id,
+            'lote' => $leitura->lote ? [
+                'id' => $leitura->lote->id,
+                'codigo' => $leitura->lote->codigo,
+            ] : null,
+            'produto_id' => $leitura->produto_id,
+            'produto' => $leitura->produto ? [
+                'id' => $leitura->produto->id,
+                'codigo' => $leitura->produto->codigo,
+                'descricao_fiscal' => $leitura->produto->descricao_fiscal,
+            ] : null,
+            'endereco_lido' => $leitura->enderecoLido ? [
+                'id' => $leitura->enderecoLido->id,
+                'codigo' => $leitura->enderecoLido->codigo,
+            ] : null,
+            'endereco_esperado' => $leitura->enderecoEsperado ? [
+                'id' => $leitura->enderecoEsperado->id,
+                'codigo' => $leitura->enderecoEsperado->codigo,
+            ] : null,
+            'qtde_volume' => (string) $leitura->qtde_volume,
+            'unidade' => $leitura->unidade,
+            'resultado' => $leitura->resultado,
+            'lido_por' => $leitura->lidoPorUser
+                ? ['id' => $leitura->lidoPorUser->id, 'name' => $leitura->lidoPorUser->name]
+                : null,
+            'lido_em' => optional($leitura->lido_em)?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * @param  list<int>  $produtoIds
+     * @return array<int, int> produto_id => count volumes qtde>0
+     */
+    private function volumesAtivosPorProduto(int $empresaId, array $produtoIds): array
+    {
+        if ($produtoIds === []) {
+            return [];
+        }
+
+        $rows = EstoqueLote::query()
+            ->selectRaw('produto_id, COUNT(*) as total')
+            ->where('empresa_id', $empresaId)
+            ->whereIn('produto_id', $produtoIds)
+            ->where('qtde', '>', 0)
+            ->groupBy('produto_id')
+            ->pluck('total', 'produto_id');
+
+        $out = [];
+        foreach ($produtoIds as $pid) {
+            $out[$pid] = (int) ($rows[$pid] ?? 0);
+        }
+
+        return $out;
+    }
+
+    private function assertItemAceitaRodada(EstoqueInventarioItem $item, int $rodada): void
+    {
+        if ($rodada === 1) {
+            if (! in_array($item->status, [
+                EstoqueInventarioItem::STATUS_PENDENTE,
+                EstoqueInventarioItem::STATUS_EM_CONTAGEM,
+            ], true)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Item não está disponível para a 1ª contagem física.'],
+                ]);
+            }
+
+            return;
+        }
+
+        if ($item->status !== EstoqueInventarioItem::STATUS_DIVERGENTE) {
+            throw ValidationException::withMessages([
+                'status' => ['2ª contagem física só após divergência na 1ª.'],
+            ]);
+        }
     }
 
     private function parseQtde(mixed $raw): string

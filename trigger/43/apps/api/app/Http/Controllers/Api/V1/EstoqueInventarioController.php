@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\EstoqueInventario;
 use App\Models\EstoqueInventarioItem;
+use App\Models\EstoqueInventarioLeitura;
 use App\Services\Estoque\EstoqueInventarioService;
 use App\Support\EstoqueValidationRules;
 use Illuminate\Http\JsonResponse;
@@ -139,6 +140,63 @@ class EstoqueInventarioController extends Controller
 
         return response()->json([
             'data' => $this->inventarios->cancelar($this->empresa(), $estoqueInventario),
+        ]);
+    }
+
+    public function lerVolume(Request $request, EstoqueInventario $estoqueInventario): JsonResponse
+    {
+        $this->authorizeEstoqueWrite($request);
+        $this->assertEmpresa($estoqueInventario);
+
+        $data = $request->validate(EstoqueValidationRules::inventarioLeitura());
+
+        return response()->json([
+            'data' => $this->inventarios->lerVolume(
+                $this->empresa(),
+                $estoqueInventario,
+                $data,
+                $request->user(),
+            ),
+        ], 201);
+    }
+
+    public function anularLeitura(
+        Request $request,
+        EstoqueInventario $estoqueInventario,
+        int $leitura,
+    ): JsonResponse {
+        $this->authorizeEstoqueWrite($request);
+        $this->assertEmpresa($estoqueInventario);
+
+        $model = EstoqueInventarioLeitura::query()
+            ->where('inventario_id', $estoqueInventario->id)
+            ->where('empresa_id', $this->empresa()->id)
+            ->where('id', $leitura)
+            ->firstOrFail();
+
+        return response()->json([
+            'data' => $this->inventarios->anularLeitura(
+                $this->empresa(),
+                $estoqueInventario,
+                $model,
+            ),
+        ]);
+    }
+
+    public function fecharRodadaFisica(Request $request, EstoqueInventario $estoqueInventario): JsonResponse
+    {
+        $this->authorizeEstoqueWrite($request);
+        $this->assertEmpresa($estoqueInventario);
+
+        $data = $request->validate(EstoqueValidationRules::inventarioFecharRodadaFisica());
+
+        return response()->json([
+            'data' => $this->inventarios->fecharRodadaFisica(
+                $this->empresa(),
+                $estoqueInventario,
+                (int) $data['rodada'],
+                $request->user(),
+            ),
         ]);
     }
 

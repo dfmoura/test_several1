@@ -315,6 +315,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/inventarios', [EstoqueInventarioController::class, 'index']);
         Route::post('/estoque/inventarios', [EstoqueInventarioController::class, 'store']);
         Route::get('/estoque/inventarios/{estoqueInventario}', [EstoqueInventarioController::class, 'show']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/leituras', [EstoqueInventarioController::class, 'lerVolume']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/leituras/{leitura}/anular', [EstoqueInventarioController::class, 'anularLeitura']);
+        Route::post('/estoque/inventarios/{estoqueInventario}/fechar-rodada-fisica', [EstoqueInventarioController::class, 'fecharRodadaFisica']);
         Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/contar-1', [EstoqueInventarioController::class, 'contar1']);
         Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/contar-2', [EstoqueInventarioController::class, 'contar2']);
         Route::post('/estoque/inventarios/{estoqueInventario}/itens/{item}/gerar-ajuste', [EstoqueInventarioController::class, 'gerarAjuste']);

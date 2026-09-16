@@ -120,6 +120,7 @@ Ordem travada. Cada fase fecha aceite antes da próxima. **Não pular.**
 
 - Completar SKUs Camada A (lista 32 + Exact Avery) + de-para `cProd`.  
 - Inventário/ajuste (AJU) alinhado à ADR de inventário — saldo por SKU; **A03/VIRADA** pode abrir N volumes com L×C via `lote_payload` (mesma semântica do receber).  
+- Contagem física do INV (emenda 2026-09-16): sessão QR `END:` + `VOL:` → leituras → rollup Σ volumes → contar1/contar2; local errado → Guardar (sem AJU). Ver `ADR_ESTOQUE_INVENTARIO_AJUSTE.md`.  
 - Pontos de pedido dos itens A.
 
 **Aceite F1**

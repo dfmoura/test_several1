@@ -77,6 +77,11 @@ class EstoqueInventario extends Model
         return $this->hasMany(EstoqueInventarioItem::class, 'inventario_id');
     }
 
+    public function leituras(): HasMany
+    {
+        return $this->hasMany(EstoqueInventarioLeitura::class, 'inventario_id');
+    }
+
     /** Origem de AJU correspondente ao tipo do INV. */
     public function origemAjuste(): string
     {

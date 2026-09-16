@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack local + SPA Estoque: ficha Por produto com volumes por faixa.
+# Sobe stack local + SPA Estoque: Por produto = saldo oficial (sem ficha ao clicar).
 # Uso (no host, com Docker): bash scripts/pronto-estoque-saldo-volumes.sh
 #     ou: make pronto-estoque-saldo-volumes
 set -euo pipefail
@@ -13,7 +13,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (Saldos → ficha → volumes por faixa) =="
+echo "== Rebuild SPA (Saldos → Por produto limpo) =="
 make web-build
 
 echo "== Health =="
@@ -30,11 +30,10 @@ Pronto para testar — Estoque / Por produto
 
 Roteiro
   1. Login → Estoque → aba Por produto
-  2. Selecionar um SKU com volumes (coluna Volumes > 0)
-  3. Na ficha abaixo: consolidado por faixa (qtde × L×C)
-  4. Em cada faixa: ícone ▾ (expande volumes) · olho (guia Volumes filtrada)
-  5. Conferir lote, dimensão, entrada, vencimento, qtde, situação, local
-  6. Atalhos etiqueta / Guardar / rastreio nos volumes abertos
+  2. Grade = só posição oficial (sem detalhe ao clicar na linha)
+  3. Na linha: olho → Volumes filtrado · documento → Extrato · caixa → Cadastro
+  4. Faixas físicas: aba Consolidado
+  5. Bobinas / etiqueta / local: aba Volumes
 
-Hard refresh no browser (Ctrl+Shift+R) se a ficha antiga aparecer.
+Hard refresh no browser (Ctrl+Shift+R) se a SPA antiga aparecer.
 EOF

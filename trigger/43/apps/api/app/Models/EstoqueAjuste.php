@@ -76,6 +76,7 @@ class EstoqueAjuste extends Model
         'lote_data_fabricacao',
         'lote_data_validade',
         'lote_payload',
+        'contagem_evidencia',
         'inventario_item_id',
         'origem',
         'motivo_codigo',
@@ -114,6 +115,7 @@ class EstoqueAjuste extends Model
             'lote_data_fabricacao' => 'date',
             'lote_data_validade' => 'date',
             'lote_payload' => 'array',
+            'contagem_evidencia' => 'array',
             'aprovado_em' => 'datetime',
         ];
     }

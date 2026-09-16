@@ -4,6 +4,7 @@ namespace App\Services\Estoque;
 
 use App\Models\Empresa;
 use App\Models\EstoqueAjuste;
+use App\Models\EstoqueEndereco;
 use App\Models\EstoqueInventarioItem;
 use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
@@ -151,6 +152,17 @@ class EstoqueAjusteService
 
         $usaPayload = $lotePayload !== null && $lotePayload !== [];
 
+        $contagemEvidencia = $this->normalizarContagemEvidencia(
+            $empresa,
+            $produto,
+            isset($data['contagem_evidencia']) && is_array($data['contagem_evidencia'])
+                ? $data['contagem_evidencia']
+                : null,
+            $motivo['codigo'],
+            $qtdeContada,
+            $usaPayload
+        );
+
         $ajuste = DB::transaction(function () use (
             $empresa,
             $produto,
@@ -162,7 +174,8 @@ class EstoqueAjusteService
             $diferenca,
             $meta,
             $lotePayload,
-            $usaPayload
+            $usaPayload,
+            $contagemEvidencia
         ) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode($empresa->id, 'AJU-'.$ano, 5);
@@ -177,6 +190,7 @@ class EstoqueAjusteService
                 'lote_data_fabricacao' => $usaPayload ? null : ($data['lote_data_fabricacao'] ?? null),
                 'lote_data_validade' => $usaPayload ? null : ($data['lote_data_validade'] ?? null),
                 'lote_payload' => $lotePayload,
+                'contagem_evidencia' => $contagemEvidencia,
                 'inventario_item_id' => null,
                 'origem' => $origem,
                 'motivo_codigo' => $motivo['codigo'],
@@ -595,6 +609,7 @@ class EstoqueAjusteService
             'lote_data_entrada' => optional($ajuste->lote_data_entrada)?->format('Y-m-d'),
             'lote_data_validade' => optional($ajuste->lote_data_validade)?->format('Y-m-d'),
             'lote_payload' => is_array($ajuste->lote_payload) ? $ajuste->lote_payload : null,
+            'contagem_evidencia' => is_array($ajuste->contagem_evidencia) ? $ajuste->contagem_evidencia : null,
             'created_at' => optional($ajuste->created_at)?->toIso8601String(),
             'criado_por' => EstoqueAjuste::userStampFrom($ajuste->criador),
             'atualizado_por' => EstoqueAjuste::userStampFrom($ajuste->atualizador),
@@ -709,6 +724,162 @@ class EstoqueAjusteService
                 'aprovador' => ['Quem contou o item no inventário não pode aprovar o ajuste (SoD).'],
             ]);
         }
+    }
+
+    /**
+     * Evidência de contagem por QR (volume + local) na avulsa.
+     * Auditoria / conferência — não altera Writer nem cria volumes.
+     *
+     * @param  array<string, mixed>|null  $raw
+     * @return array<string, mixed>|null
+     */
+    private function normalizarContagemEvidencia(
+        Empresa $empresa,
+        Produto $produto,
+        ?array $raw,
+        string $motivo,
+        string $qtdeContada,
+        bool $usaLotePayloadVirada
+    ): ?array {
+        if ($raw === null || $raw === []) {
+            return null;
+        }
+
+        if ($usaLotePayloadVirada || $motivo === 'A03') {
+            throw ValidationException::withMessages([
+                'contagem_evidencia' => [
+                    'Contagem por QR de volumes existentes não se aplica ao saldo inicial (A03). Use volumes de abertura.',
+                ],
+            ]);
+        }
+
+        if (! $produto->controla_lote) {
+            throw ValidationException::withMessages([
+                'contagem_evidencia' => ['Produto não controla lote/volume — remova a evidência QR.'],
+            ]);
+        }
+
+        $modo = (string) ($raw['modo'] ?? '');
+        if ($modo !== 'QR_VOLUME_LOCAL') {
+            throw ValidationException::withMessages([
+                'contagem_evidencia.modo' => ['Modo de contagem QR inválido.'],
+            ]);
+        }
+
+        $endRaw = is_array($raw['endereco'] ?? null) ? $raw['endereco'] : null;
+        $endId = $endRaw !== null ? (int) ($endRaw['id'] ?? 0) : 0;
+        $endCodigo = $endRaw !== null ? trim((string) ($endRaw['codigo'] ?? '')) : '';
+        if ($endId <= 0 || $endCodigo === '') {
+            throw ValidationException::withMessages([
+                'contagem_evidencia.endereco' => ['Informe o local (END) da contagem.'],
+            ]);
+        }
+
+        $endereco = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $endId)
+            ->first();
+        if (! $endereco) {
+            throw ValidationException::withMessages([
+                'contagem_evidencia.endereco' => ['Local inválido para a empresa.'],
+            ]);
+        }
+
+        $volumesRaw = is_array($raw['volumes'] ?? null) ? $raw['volumes'] : [];
+        if ($volumesRaw === []) {
+            throw ValidationException::withMessages([
+                'contagem_evidencia.volumes' => ['Inclua ao menos 1 volume na evidência QR.'],
+            ]);
+        }
+
+        $statusOk = ['ENCONTRADO', 'LOCAL_ERRADO', 'SEM_LOCAL'];
+        $volumes = [];
+        $soma = '0';
+        $vistos = [];
+
+        foreach (array_values($volumesRaw) as $idx => $linha) {
+            if (! is_array($linha)) {
+                throw ValidationException::withMessages([
+                    "contagem_evidencia.volumes.{$idx}" => ['Volume inválido.'],
+                ]);
+            }
+
+            $loteId = (int) ($linha['lote_id'] ?? 0);
+            if ($loteId <= 0 || isset($vistos[$loteId])) {
+                throw ValidationException::withMessages([
+                    "contagem_evidencia.volumes.{$idx}.lote_id" => ['Volume duplicado ou inválido.'],
+                ]);
+            }
+            $vistos[$loteId] = true;
+
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('id', $loteId)
+                ->first();
+            if (! $lote) {
+                throw ValidationException::withMessages([
+                    "contagem_evidencia.volumes.{$idx}.lote_id" => [
+                        'Volume não pertence a este produto/empresa.',
+                    ],
+                ]);
+            }
+
+            $qtde = PadraoDecimal::roundHalfUp((string) ($linha['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    "contagem_evidencia.volumes.{$idx}.qtde" => ['Quantidade do volume deve ser maior que zero.'],
+                ]);
+            }
+
+            $status = (string) ($linha['status'] ?? 'SEM_LOCAL');
+            if (! in_array($status, $statusOk, true)) {
+                throw ValidationException::withMessages([
+                    "contagem_evidencia.volumes.{$idx}.status" => ['Status de leitura inválido.'],
+                ]);
+            }
+
+            $volumes[] = [
+                'lote_id' => (int) $lote->id,
+                'codigo' => mb_substr((string) ($linha['codigo'] ?? $lote->codigo), 0, 60),
+                'qtde' => $qtde,
+                'unidade' => mb_substr((string) ($linha['unidade'] ?? $produto->unidade_interna ?? 'UN'), 0, 10),
+                'status' => $status,
+                'endereco_atual' => $this->nullIfEmpty($linha['endereco_atual'] ?? null),
+            ];
+            $soma = bcadd($soma, $qtde, PadraoDecimal::SCALE_QTY);
+        }
+
+        $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+        $somaInformada = isset($raw['qtde_soma'])
+            ? PadraoDecimal::roundHalfUp((string) $raw['qtde_soma'], PadraoDecimal::SCALE_QTY)
+            : $soma;
+
+        if (bccomp($somaInformada, $soma, PadraoDecimal::SCALE_QTY) !== 0) {
+            throw ValidationException::withMessages([
+                'contagem_evidencia.qtde_soma' => [
+                    "Soma informada ({$somaInformada}) diverge da soma dos volumes ({$soma}).",
+                ],
+            ]);
+        }
+
+        if (bccomp($soma, $qtdeContada, PadraoDecimal::SCALE_QTY) !== 0) {
+            throw ValidationException::withMessages([
+                'qtde_contada' => [
+                    "Com contagem por QR, a qtde contada ({$qtdeContada}) deve igualar a soma dos volumes ({$soma}).",
+                ],
+            ]);
+        }
+
+        return [
+            'modo' => 'QR_VOLUME_LOCAL',
+            'endereco' => [
+                'id' => (int) $endereco->id,
+                'codigo' => (string) $endereco->codigo,
+            ],
+            'volumes' => $volumes,
+            'qtde_soma' => $soma,
+        ];
     }
 
     /**

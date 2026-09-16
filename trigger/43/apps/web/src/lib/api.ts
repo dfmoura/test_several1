@@ -1953,6 +1953,20 @@ export type EstoqueAjuste = {
     data_entrada?: string | null;
     data_validade?: string | null;
   }> | null;
+  /** Contagem avulsa por QR (volume + local) — auditoria; não alimenta Writer. */
+  contagem_evidencia?: {
+    modo: string;
+    endereco: { id: number; codigo: string };
+    qtde_soma: string;
+    volumes: Array<{
+      lote_id: number;
+      codigo: string;
+      qtde: string;
+      unidade?: string;
+      status: string;
+      endereco_atual?: string | null;
+    }>;
+  } | null;
   created_at: string | null;
 };
 
@@ -1962,6 +1976,23 @@ export type EstoqueAjusteMeta = {
   alcadas?: string[];
   faixas?: { lider_ate: string; gestor_ate: string };
   motivos: Array<{ codigo: string; nome: string }>;
+};
+
+export type EstoqueInventarioLeitura = {
+  id: number;
+  inventario_id: number;
+  rodada: number;
+  lote_id: number | null;
+  lote?: { id: number; codigo: string } | null;
+  produto_id: number;
+  produto?: { id: number; codigo: string; descricao_fiscal: string } | null;
+  endereco_lido?: { id: number; codigo: string } | null;
+  endereco_esperado?: { id: number; codigo: string } | null;
+  qtde_volume: string;
+  unidade: string;
+  resultado: string;
+  lido_por?: { id: number; name: string } | null;
+  lido_em: string | null;
 };
 
 export type EstoqueInventarioItem = {
@@ -1976,6 +2007,8 @@ export type EstoqueInventarioItem = {
     unidade_interna: string | null;
   } | null;
   unidade: string;
+  modo_contagem?: 'VOLUME' | 'SKU';
+  volumes_ativos?: number;
   qtde_sistema_corte?: string;
   qtde_1: string | null;
   contado_por_1?: { id: number; name: string } | null;
@@ -2003,6 +2036,12 @@ export type EstoqueInventario = {
   pode_cancelar?: boolean;
   observacao: string | null;
   itens?: EstoqueInventarioItem[];
+  leituras?: EstoqueInventarioLeitura[];
+  contagem_fisica?: {
+    skus_com_volume: number;
+    leituras_ativas: number;
+    locais_errados: number;
+  };
   created_at: string | null;
 };
 
@@ -2010,6 +2049,7 @@ export type EstoqueInventarioMeta = {
   tipos: string[];
   statuses: string[];
   item_statuses: string[];
+  leitura_resultados?: string[];
   motivos?: Array<{ codigo: string; nome: string }>;
 };
 

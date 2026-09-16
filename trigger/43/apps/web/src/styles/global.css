@@ -10734,8 +10734,7 @@ tr.row-inactive td {
   font-size: 0.66rem;
 }
 
-.estoque-dense-table td.dimensao,
-.estoque-vol-consolidado-table td.dimensao {
+.estoque-dense-table td.dimensao {
   white-space: nowrap;
   width: 1%;
   font-variant-numeric: tabular-nums;
@@ -10879,126 +10878,6 @@ tr.row-inactive td {
   background: #fafbfd;
 }
 
-.estoque-hint-select {
-  margin: 0.55rem 0 0;
-  font-size: 0.78rem;
-}
-
-/* Ficha master–detail: consolidado físico do SKU selecionado. */
-.estoque-saldo-ficha {
-  margin-top: 0.65rem;
-}
-
-.estoque-saldo-ficha .card-body {
-  padding: 0.75rem 0.9rem;
-}
-
-.estoque-saldo-ficha .form-section h3 {
-  font-size: 0.98rem;
-}
-
-.estoque-ficha-meta {
-  margin-bottom: 0.75rem;
-  gap: 0.65rem 1.1rem;
-}
-
-.estoque-ficha-meta span {
-  font-size: 0.7rem;
-}
-
-.estoque-ficha-meta strong {
-  font-size: 0.9rem;
-}
-
-.estoque-vol-consolidado-table {
-  font-size: var(--estoque-font);
-}
-
-.estoque-vol-consolidado-table th,
-.estoque-vol-consolidado-table td {
-  padding: 0.14rem 0.4rem;
-  line-height: 1.25;
-  vertical-align: middle;
-}
-
-.estoque-vol-consolidado-table thead th {
-  font-size: 0.68rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.estoque-faixa-acoes {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0.05rem;
-  justify-content: flex-end;
-}
-
-/* Ícones de faixa: leves, sem peso de botão — padrão listagem. */
-.estoque-vol-consolidado-table td.acoes .btn-icon {
-  width: 1.45rem;
-  height: 1.45rem;
-  color: color-mix(in srgb, var(--text-muted) 88%, transparent);
-}
-
-.estoque-vol-consolidado-table td.acoes .btn-icon svg {
-  width: 0.82rem;
-  height: 0.82rem;
-  transition: transform 0.14s ease;
-}
-
-.estoque-vol-consolidado-table td.acoes .btn-icon[aria-expanded='true'] svg {
-  transform: rotate(180deg);
-}
-
-.estoque-vol-consolidado-table td.acoes .btn-icon:hover {
-  color: var(--navy);
-}
-
-.estoque-faixa-volumes-row > td {
-  padding: 0 0 0.3rem !important;
-  background: color-mix(in srgb, var(--surface) 92%, var(--navy));
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-  vertical-align: top;
-}
-
-.estoque-faixa-volumes-empty {
-  margin: 0.25rem 0.4rem 0.1rem;
-  font-size: 0.74rem;
-}
-
-.estoque-faixa-volumes-table {
-  margin: 0;
-  font-size: 0.74rem;
-  background: transparent;
-}
-
-.estoque-faixa-volumes-table thead th {
-  font-size: 0.64rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: transparent;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-}
-
-.estoque-faixa-volumes-table th,
-.estoque-faixa-volumes-table td {
-  padding: 0.1rem 0.38rem;
-  line-height: 1.25;
-  vertical-align: middle;
-}
-
-.estoque-faixa-volumes-table td.acoes .btn-icon {
-  width: 1.4rem;
-  height: 1.4rem;
-}
-
-.estoque-faixa-volumes-table td.acoes .btn-icon svg {
-  width: 0.8rem;
-  height: 0.8rem;
-}
-
 /* Guia Consolidado: família → grupo → linha plana por faixa (Excel denso). */
 .estoque-consolidado {
   --estoque-consol-pad-y: 0.12rem;
@@ -11107,10 +10986,6 @@ tr.row-inactive td {
   font-size: 0.68rem;
 }
 
-.estoque-consolidado-table--flat td.saldo-cell {
-  font-size: 0.7rem;
-}
-
 .estoque-consolidado-table--flat td.dimensao {
   font-size: 0.68rem;
 }
@@ -11123,21 +10998,6 @@ tr.row-inactive td {
   .estoque-consolidado-produto-inline {
     max-width: 11rem;
   }
-}
-
-
-.estoque-faixa-volumes-table td.dimensao {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.estoque-ficha-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.85rem;
-  margin-top: 0.75rem;
-  font-size: 0.82rem;
 }
 
 .tab .tab-count {

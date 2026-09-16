@@ -1,10 +1,10 @@
 # ADR-039-EST-003 — Inventário profissional + ajuste (INV → AJU)
 
-**Status:** Aceito  
+**Status:** Aceito (emenda 2026-09-16 — contagem física volume+local)  
 **Data:** 2026-08-12  
 **Contexto 39:** BL-042  
 **Norma:** `../32` — `AJUSTE_ESTOQUE_INVENTARIO.txt` · `CONTROLE_ESTOQUE_PROFISSIONAL.txt` · `CASOS_USO_M04_ESTOQUE.txt`  
-**Estende:** `ADR_ESTOQUE_REPOSICAO_AJUSTE.md` (BL-036) · preserva `ADR_COMPRAS_ATE_ESTOQUE.md`
+**Estende:** `ADR_ESTOQUE_REPOSICAO_AJUSTE.md` (BL-036) · preserva `ADR_COMPRAS_ATE_ESTOQUE.md` · `ADR_CADASTRO_INSUMO_VOLUME.md` (F3/F4)  
 
 ---
 
@@ -19,6 +19,33 @@ INV- (cego 1ª → confrontação → 2ª por outra pessoa)
 ```
 
 Contagem avulsa (`CONTAGEM_AVULSA`) permanece para divergência pontual autorizada, com as mesmas regras de SoD, checklist, alçada e congelamento.
+
+### Camada física (volume + local referido) — emenda 2026-09-16
+
+Duas camadas no **mesmo** INV (não dois inventários):
+
+| Camada | Unidade | Função |
+|--------|---------|--------|
+| Física | volume (`estoque_lotes`) + local (`estoque_enderecos`) | Sessão de leitura QR no chão |
+| Contábil | SKU (`estoque_inventario_itens`) | Confrontação, AJU, Writer |
+
+Fluxo físico canônico (reusa resolve `VOL:` / `END:` do Guardar):
+
+```
+Abrir INV (produto_ids)
+  → sessão: ler END → ler VOL(s) → registrar leituras
+  → fechar rodada física → rollup Σ qtde dos volumes encontrados → contar1/contar2
+  → se Δ quantidade no SKU → AJU (inalterado)
+  → se só local errado → corrigir via Guardar (sem mexer saldo)
+```
+
+Regras:
+
+1. SKU com volume ativo (`estoque_lotes.qtde > 0`): contagem preferencial por QR; qtde da rodada = soma das qtdes dos volumes **encontrados** (ENCONTRADO ou LOCAL_ERRADO). Volume não lido = FALTANTE (não entra na soma).
+2. SKU sem volume: permanece input decimal (fallback EMB/REV / legado).
+3. `LOCAL_ERRADO` não gera AJU por si — saldo do volume está no sistema; endereço se corrige no Guardar.
+4. Cegueira contábil preservada: saldo SKU oculto até confrontação. Leituras físicas não escrevem `estoque_saldos`.
+5. SoD / alçada / congelamento / Writer: inalterados.
 
 ### Extrato (kardex leve)
 
@@ -85,8 +112,9 @@ SoD: quem solicitou ≠ quem aprova; quem contou o item do INV ≠ quem aprova o
 ## Fora de escopo
 
 - Saídas OP / sobra / PA / REM  
-- Endereço / lote na contagem  
 - ABC automático / agenda cíclica  
 - Focus / NF-e 5.927  
 - Bloco H / SPED  
-- Anexos binários (foto/BO)
+- Anexos binários (foto/BO)  
+- App mobile dedicado / BLE (BL-097)  
+- Relocalização automática no fechar da rodada (operador usa Guardar)

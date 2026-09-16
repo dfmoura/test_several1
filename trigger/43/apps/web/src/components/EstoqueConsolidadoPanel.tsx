@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import type { EstoqueSaldo, EstoqueSaldoVolumePorQtde } from '../lib/api';
 import {
-  coincideBusca,
+  coincideLinhaConsolidado,
+  coincideSaldoConsolidado,
   ESTOQUE_FAMILIAS_ORDEM,
   estoqueGrupoCodigo,
   formatValorPosicao,
-  textoBusca,
 } from '../lib/estoqueUi';
 import { familiaLabel, formatQty, formatQtyCompact } from '../lib/format';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
@@ -34,6 +34,17 @@ function subtotalFaixa(qtde: string, volumes: number): string {
   return formatQty(n);
 }
 
+/** Valor de apresentação da faixa: subtotal × CM do SKU (não é o valor total do SKU). */
+function valorFaixa(
+  qtde: string,
+  volumes: number,
+  custoMedio: string | number | null | undefined,
+): string {
+  const n = Number(qtde) * volumes;
+  if (!Number.isFinite(n)) return '—';
+  return formatValorPosicao(n, custoMedio);
+}
+
 function produtoNome(s: EstoqueSaldo): string {
   return (
     s.produto?.descricao_comercial?.trim() ||
@@ -49,8 +60,8 @@ function ordenaSaldos(a: EstoqueSaldo, b: EstoqueSaldo): number {
 }
 
 /**
- * Visão Excel do chão: família → grupo → uma linha por faixa consolidada,
- * com código + nome do produto no início. Densidade máxima, só leitura.
+ * Visão Excel do chão: família → grupo → uma linha por faixa de volume
+ * (qtde/vol · L×C · N · subtotal · valor da faixa). Saldo SKU fica em Por produto.
  */
 export function EstoqueConsolidadoPanel({
   saldos,
@@ -68,17 +79,7 @@ export function EstoqueConsolidadoPanel({
         if (soComVolumes && !(s.controla_lote && (s.lotes_count ?? 0) > 0)) {
           return false;
         }
-        return coincideBusca(
-          textoBusca(
-            s.produto?.codigo,
-            s.produto?.descricao_comercial,
-            s.produto?.descricao_fiscal,
-            s.produto?.familia,
-            estoqueGrupoCodigo(s.produto),
-            s.produto?.grupo_catalogo?.nome,
-          ),
-          q,
-        );
+        return coincideSaldoConsolidado(s, q);
       })
       .slice()
       .sort(ordenaSaldos);
@@ -131,16 +132,22 @@ export function EstoqueConsolidadoPanel({
     return naFamilia.filter((s) => estoqueGrupoCodigo(s.produto) === grupoAtivo);
   }, [naFamilia, grupoAtivo]);
 
-  /** Uma linha por faixa; SKU sem faixa vira uma linha só (saldo). */
+  /**
+   * Uma linha por faixa; Buscar aplica na linha (produto + qtde/vol + L×C).
+   * SKU sem faixa vira placeholder (sem inventar qtde de volume).
+   */
   const linhas = useMemo((): LinhaConsolidado[] => {
     const out: LinhaConsolidado[] = [];
     for (const s of skus) {
       const faixas = s.volumes_por_qtde ?? [];
       if (faixas.length === 0) {
-        out.push({ key: `sku-${s.id}`, saldo: s, faixa: null });
+        if (coincideLinhaConsolidado(s.produto, null, q)) {
+          out.push({ key: `sku-${s.id}`, saldo: s, faixa: null });
+        }
         continue;
       }
       for (const faixa of faixas) {
+        if (!coincideLinhaConsolidado(s.produto, faixa, q)) continue;
         out.push({
           key: `sku-${s.id}-f-${faixa.qtde}|${faixa.largura_mm ?? ''}|${faixa.comprimento_m ?? ''}`,
           saldo: s,
@@ -149,7 +156,7 @@ export function EstoqueConsolidadoPanel({
       }
     }
     return out;
-  }, [skus]);
+  }, [skus, q]);
 
   const resumo = useMemo(() => {
     let volumes = 0;
@@ -250,7 +257,6 @@ export function EstoqueConsolidadoPanel({
                 <th>Dimensão</th>
                 <th className="num">Vols</th>
                 <th className="num">Subtotal</th>
-                <th className="num">Saldo SKU</th>
                 <th className="num">Valor</th>
               </tr>
             </thead>
@@ -283,6 +289,9 @@ export function EstoqueConsolidadoPanel({
                           {subtotalFaixa(faixa.qtde, faixa.volumes)}{' '}
                           <span className="table-muted">{faixa.unidade}</span>
                         </td>
+                        <td className="num">
+                          {valorFaixa(faixa.qtde, faixa.volumes, s.custo_medio)}
+                        </td>
                       </>
                     ) : (
                       <>
@@ -292,13 +301,9 @@ export function EstoqueConsolidadoPanel({
                         </td>
                         <td className="num muted">—</td>
                         <td className="num muted">—</td>
+                        <td className="num muted">—</td>
                       </>
                     )}
-                    <td className="num saldo-cell">
-                      <strong>{formatQty(s.qtde)}</strong>{' '}
-                      <span className="table-muted">{s.unidade}</span>
-                    </td>
-                    <td className="num">{formatValorPosicao(s.qtde, s.custo_medio)}</td>
                   </tr>
                 );
               })}

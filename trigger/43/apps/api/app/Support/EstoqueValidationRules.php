@@ -78,6 +78,30 @@ final class EstoqueValidationRules
             'lote_payload.*.data_entrada' => ['nullable', 'date'],
             'lote_payload.*.data_fabricacao' => ['nullable', 'date'],
             'lote_payload.*.data_validade' => ['nullable', 'date'],
+            // Contagem avulsa por QR (volume + local) — auditoria; não alimenta Writer.
+            'contagem_evidencia' => ['nullable', 'array'],
+            'contagem_evidencia.modo' => ['required_with:contagem_evidencia', 'string', 'in:QR_VOLUME_LOCAL'],
+            'contagem_evidencia.endereco' => ['required_with:contagem_evidencia', 'array'],
+            'contagem_evidencia.endereco.id' => ['required_with:contagem_evidencia', 'integer'],
+            'contagem_evidencia.endereco.codigo' => ['required_with:contagem_evidencia', 'string', 'max:40'],
+            'contagem_evidencia.qtde_soma' => array_merge(
+                ['required_with:contagem_evidencia'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)
+            ),
+            'contagem_evidencia.volumes' => ['required_with:contagem_evidencia', 'array', 'min:1'],
+            'contagem_evidencia.volumes.*.lote_id' => ['required', 'integer'],
+            'contagem_evidencia.volumes.*.codigo' => ['required', 'string', 'max:60'],
+            'contagem_evidencia.volumes.*.qtde' => array_merge(
+                ['required'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)
+            ),
+            'contagem_evidencia.volumes.*.unidade' => ['nullable', 'string', 'max:10'],
+            'contagem_evidencia.volumes.*.status' => [
+                'required',
+                'string',
+                Rule::in(['ENCONTRADO', 'LOCAL_ERRADO', 'SEM_LOCAL']),
+            ],
+            'contagem_evidencia.volumes.*.endereco_atual' => ['nullable', 'string', 'max:40'],
         ];
     }
 
@@ -157,6 +181,28 @@ final class EstoqueValidationRules
     {
         return [
             'qtde' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function inventarioLeitura(): array
+    {
+        return [
+            'volume_qr' => ['required', 'string', 'max:120'],
+            'endereco_qr' => ['required', 'string', 'max:120'],
+            'rodada' => ['nullable', 'integer', 'in:1,2'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function inventarioFecharRodadaFisica(): array
+    {
+        return [
+            'rodada' => ['required', 'integer', 'in:1,2'],
         ];
     }
 

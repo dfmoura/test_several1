@@ -1,9 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
+import { EstoqueQrFilaPanel } from '../components/EstoqueQrFilaPanel';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import { StatusPill } from '../components/StatusPill';
+import { useEstoqueQrFila } from '../hooks/useEstoqueQrFila';
 import {
   ApiError,
   api,
@@ -13,6 +15,11 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { ajStatusLabel } from '../lib/comprasUi';
+import {
+  estoqueQrSomaQtde,
+  estoqueQrStatusVolume,
+  type EstoqueAjusteContagemEvidencia,
+} from '../lib/estoqueQrFila';
 import { ajuAlcadaLabel, ajuOrigemLabel } from '../lib/estoqueUi';
 import { clampDecimalScale, DECIMAL_SCALE, formatCurrency, formatDateTime, formatQty } from '../lib/format';
 import { areaM2Volume } from '../lib/nfeExactDimensoes';
@@ -26,6 +33,8 @@ type VolumeLinha = {
   data_entrada: string;
   data_validade: string;
 };
+
+type ModoContagem = 'manual' | 'qr';
 
 function emptyVolume(): VolumeLinha {
   return {
@@ -84,6 +93,7 @@ export function EstoqueAjustesPage() {
   const [loteEntrada, setLoteEntrada] = useState('');
   const [loteValidade, setLoteValidade] = useState('');
   const [volumes, setVolumes] = useState<VolumeLinha[]>([emptyVolume()]);
+  const [modoContagem, setModoContagem] = useState<ModoContagem>('qr');
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
@@ -91,6 +101,52 @@ export function EstoqueAjustesPage() {
   const [cienciaCont, setCienciaCont] = useState(false);
   /** Após aprovar A03/VIRADA com volumes — CTA para Elgin 50×40. */
   const [etiquetasMovimentoId, setEtiquetasMovimentoId] = useState<number | null>(null);
+
+  const selectedProduto = produto;
+  const produtoControlaLote = !!selectedProduto?.controla_lote;
+  const isSaldoInicial = motivo === 'A03';
+  const usaVolumesVirada = isSaldoInicial && produtoControlaLote;
+  const mostraLxC = usaVolumesVirada;
+  const podeQr = !usaVolumesVirada && (!produto || produtoControlaLote);
+  const usaQr = podeQr && modoContagem === 'qr';
+
+  const inferirProdutoDoVolume = useCallback(async (vol: { produto: { id: number } | null }) => {
+    if (!vol.produto?.id) return;
+    try {
+      const res = await api.get<{ data: Produto }>(`/produtos/${vol.produto.id}`);
+      setProduto(res.data);
+      if (!res.data.controla_lote) {
+        setModoContagem('manual');
+        setError('Este SKU não controla volume — use contagem manual.');
+      }
+    } catch {
+      /* produto já pode estar selecionado; falha silenciosa na inferência */
+    }
+  }, []);
+
+  const qr = useEstoqueQrFila({
+    canWrite,
+    produtoIdEsperado: usaQr ? produto?.id ?? null : null,
+    onPrimeiroVolume: usaQr && !produto ? inferirProdutoDoVolume : undefined,
+    focoInicial: false,
+  });
+
+  useEffect(() => {
+    if (!usaQr) return;
+    if (qr.fila.length === 0) {
+      setQtdeContada('');
+      return;
+    }
+    setQtdeContada(
+      clampDecimalScale(estoqueQrSomaQtde(qr.fila), DECIMAL_SCALE.qty) || '0.0000',
+    );
+  }, [usaQr, qr.fila]);
+
+  useEffect(() => {
+    if (usaVolumesVirada || (produto && !produto.controla_lote)) {
+      if (modoContagem !== 'manual') setModoContagem('manual');
+    }
+  }, [usaVolumesVirada, produto, modoContagem]);
 
   const load = async () => {
     setLoading(true);
@@ -125,11 +181,6 @@ export function EstoqueAjustesPage() {
     document.getElementById('aju-conferir')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [selectedId]);
 
-  const selectedProduto = produto;
-  const produtoControlaLote = !!selectedProduto?.controla_lote;
-  const isSaldoInicial = motivo === 'A03';
-  const usaVolumesVirada = isSaldoInicial && produtoControlaLote;
-  const mostraLxC = usaVolumesVirada;
   const selected = ajustes.find((a) => a.id === selectedId) ?? null;
 
   const patchVolume = (idx: number, patch: Partial<VolumeLinha>) => {
@@ -172,18 +223,55 @@ export function EstoqueAjustesPage() {
     setCienciaCont(false);
   };
 
+  const buildContagemEvidencia = (): EstoqueAjusteContagemEvidencia | null => {
+    if (!usaQr || !qr.endereco || qr.fila.length === 0) return null;
+    const soma = clampDecimalScale(estoqueQrSomaQtde(qr.fila), DECIMAL_SCALE.qty) || '0.0000';
+    return {
+      modo: 'QR_VOLUME_LOCAL',
+      endereco: { id: qr.endereco.id, codigo: qr.endereco.codigo },
+      qtde_soma: soma,
+      volumes: qr.fila.map((v) => ({
+        lote_id: v.lote_id,
+        codigo: v.codigo,
+        qtde: clampDecimalScale(String(v.qtde).replace(',', '.'), DECIMAL_SCALE.qty) || '0.0000',
+        unidade: v.unidade,
+        status: estoqueQrStatusVolume(v, qr.endereco),
+        endereco_atual: v.endereco?.codigo ?? null,
+      })),
+    };
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canWrite || !produto) return;
     setError(null);
     setMsg(null);
+
+    if (usaQr) {
+      if (qr.fila.length === 0) {
+        setError('Inclua ao menos 1 volume na fila QR.');
+        return;
+      }
+      if (!qr.endereco) {
+        setError('Confirme o local (QR END:…) antes de solicitar o ajuste.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
+      const qtde =
+        usaVolumesVirada
+          ? somaVolumes(volumes)
+          : usaQr
+            ? clampDecimalScale(estoqueQrSomaQtde(qr.fila), DECIMAL_SCALE.qty) || '0.0000'
+            : qtdeContada;
+
       const payload: Record<string, unknown> = {
         produto_id: Number(produto!.id),
         motivo_codigo: motivo,
         motivo_complemento: complemento || null,
-        qtde_contada: usaVolumesVirada ? somaVolumes(volumes) : qtdeContada,
+        qtde_contada: qtde,
         checklist_confirmado: checklist,
         observacao: observacao || null,
         origem: 'CONTAGEM_AVULSA',
@@ -203,6 +291,11 @@ export function EstoqueAjustesPage() {
         if (linhas.length > 0) {
           payload.lote_payload = linhas;
         }
+      } else if (usaQr) {
+        const evidencia = buildContagemEvidencia();
+        if (evidencia) {
+          payload.contagem_evidencia = evidencia;
+        }
       } else if (produtoControlaLote) {
         payload.lote_codigo = loteCodigo || null;
         payload.lote_data_entrada = loteEntrada || null;
@@ -219,6 +312,7 @@ export function EstoqueAjustesPage() {
       setLoteValidade('');
       setVolumes([emptyVolume()]);
       setChecklist(false);
+      qr.limparTudo();
       setMsg('Solicitação de ajuste registrada.');
       await load();
     } catch (err) {
@@ -326,7 +420,7 @@ export function EstoqueAjustesPage() {
     <>
       <PageHeader
         title="Ajustes de estoque"
-        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento. Motivo A03 = virada/saldo inicial (legado); inventário cíclico nasce em Inventários."
+        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento. Contagem avulsa com volume etiquetado: QR (volume + local), mesma dinâmica do Guardar. Motivo A03 = virada/saldo inicial; inventário cíclico nasce em Inventários."
       />
 
       <EstoqueModuleNav />
@@ -359,8 +453,51 @@ export function EstoqueAjustesPage() {
               <p className="muted" style={{ marginBottom: '0.85rem' }}>
                 Divergência pontual autorizada. Inventário cíclico/geral nasce em Inventários.
                 Motivo <strong>A03</strong> = saldo inicial — volumes físicos quando o SKU controla
-                lote.
+                lote. Demais motivos com bobina etiquetada: preferir contagem por QR (local →
+                volumes).
               </p>
+
+              {podeQr && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <div
+                    className="tabs"
+                    role="tablist"
+                    aria-label="Modo de contagem"
+                    style={{ maxWidth: '28rem' }}
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      className={`tab${modoContagem === 'qr' ? ' active' : ''}`}
+                      aria-selected={modoContagem === 'qr'}
+                      onClick={() => {
+                        setModoContagem('qr');
+                        setError(null);
+                      }}
+                    >
+                      Por QR (volume + local)
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      className={`tab${modoContagem === 'manual' ? ' active' : ''}`}
+                      aria-selected={modoContagem === 'manual'}
+                      onClick={() => {
+                        setModoContagem('manual');
+                        qr.limparTudo();
+                        setError(null);
+                      }}
+                    >
+                      Manual
+                    </button>
+                  </div>
+                  <p className="catalogo-tab-hint" style={{ maxWidth: '42rem', marginTop: '-0.35rem' }}>
+                    A qtde contada é a soma dos volumes lidos no local. Local errado corrige-se no
+                    Guardar — o AJU só altera saldo na aprovação.
+                  </p>
+                </div>
+              )}
+
               <div className="form-grid">
                 <ProdutoCombobox
                   className="span-full"
@@ -370,6 +507,10 @@ export function EstoqueAjustesPage() {
                     setProduto(p);
                     setVolumes([emptyVolume()]);
                     if (!p) setQtdeContada('');
+                    if (p && !p.controla_lote) {
+                      setModoContagem('manual');
+                      qr.limparTudo();
+                    }
                   }}
                   familias={['MP', 'EMB', 'REV']}
                   required
@@ -383,7 +524,10 @@ export function EstoqueAjustesPage() {
                     value={motivo}
                     onChange={(e) => {
                       setMotivo(e.target.value);
-                      if (e.target.value === 'A03') setVolumes([emptyVolume()]);
+                      if (e.target.value === 'A03') {
+                        setVolumes([emptyVolume()]);
+                        qr.limparTudo();
+                      }
                     }}
                   >
                     {(meta?.motivos ?? []).map((m) => (
@@ -406,14 +550,35 @@ export function EstoqueAjustesPage() {
                     value={qtdeContada}
                     onChange={(e) => setQtdeContada(e.target.value)}
                     placeholder="0.0000"
-                    readOnly={usaVolumesVirada}
+                    readOnly={usaVolumesVirada || usaQr}
                     title={
                       usaVolumesVirada
                         ? 'Preenchida pela soma dos volumes abaixo'
-                        : undefined
+                        : usaQr
+                          ? 'Preenchida pela soma dos volumes da fila QR'
+                          : undefined
                     }
                   />
                 </div>
+
+                {usaQr && (
+                  <div className="form-group span-full">
+                    <EstoqueQrFilaPanel
+                      qr={qr}
+                      idPrefix="aju_qr"
+                      embedded
+                      avisarLocalErrado
+                      hint="Leitor USB / paste + Enter. Monte a fila no local e solicite o AJU abaixo — a leitura não grava saldo."
+                    />
+                    {qr.fila.length > 0 && (
+                      <p className="muted" style={{ margin: '0.5rem 0 0' }}>
+                        Soma da fila: {formatQty(estoqueQrSomaQtde(qr.fila))}{' '}
+                        {selectedProduto?.unidade_interna ?? qr.fila[0]?.unidade ?? ''}
+                        {qr.endereco ? ` · local ${qr.endereco.codigo}` : ' · confirme o local'}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {usaVolumesVirada && (
                   <div className="form-group span-full">
@@ -548,7 +713,7 @@ export function EstoqueAjustesPage() {
                   </div>
                 )}
 
-                {produtoControlaLote && !usaVolumesVirada && (
+                {produtoControlaLote && !usaVolumesVirada && !usaQr && (
                   <>
                     <div className="form-group">
                       <label>Lote (opcional na baixa / informado na entrada)</label>
@@ -753,6 +918,58 @@ export function EstoqueAjustesPage() {
                     </div>
                   </div>
                 )}
+
+                {selected.contagem_evidencia?.volumes &&
+                  selected.contagem_evidencia.volumes.length > 0 && (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+                        Contagem por QR — local{' '}
+                        <strong>{selected.contagem_evidencia.endereco.codigo}</strong> ·{' '}
+                        {selected.contagem_evidencia.volumes.length} volume(s) · soma{' '}
+                        {formatQty(selected.contagem_evidencia.qtde_soma)} {selected.unidade}
+                      </p>
+                      <div className="table-wrap">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Volume</th>
+                              <th>Qtde</th>
+                              <th>Status</th>
+                              <th>Local no sistema</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selected.contagem_evidencia.volumes.map((v) => (
+                              <tr key={v.lote_id}>
+                                <td>
+                                  <strong>{v.codigo}</strong>
+                                </td>
+                                <td className="num">
+                                  {formatQty(v.qtde)} {v.unidade ?? selected.unidade}
+                                </td>
+                                <td>
+                                  {v.status === 'LOCAL_ERRADO'
+                                    ? 'Local errado'
+                                    : v.status === 'ENCONTRADO'
+                                      ? 'No local'
+                                      : 'Sem local'}
+                                </td>
+                                <td className="muted">{v.endereco_atual ?? '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {selected.contagem_evidencia.volumes.some(
+                        (v) => v.status === 'LOCAL_ERRADO',
+                      ) && (
+                        <p className="muted" style={{ margin: '0.5rem 0 0' }}>
+                          Local errado não se corrige aqui — use{' '}
+                          <Link to="/estoque/guardar">Guardar no local</Link>.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                 {solicitanteSouEu && (
                   <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
