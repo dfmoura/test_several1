@@ -91,10 +91,6 @@ const FACA_SORT = {
   rep: (f: FacaMapa) => (f.repeticao != null ? Number(f.repeticao) : null),
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
   fornecedor: (f: FacaMapa) => f.fornecedor,
-  valor_pago: (f: FacaMapa) => (f.valor_pago != null ? Number(f.valor_pago) : null),
-  nf_numero: (f: FacaMapa) => f.nf_numero,
-  cliente: (f: FacaMapa) => f.cliente_nota,
-  obs: (f: FacaMapa) => f.obs,
 };
 
 function fmtNum(v: unknown, d = 2): string {
@@ -783,32 +779,12 @@ export function MapasFacasPage() {
                       <SortableTh column="fornecedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Fornecedor
                       </SortableTh>
-                      <SortableTh
-                        column="valor_pago"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="Valor pago"
-                      >
-                        Valor pago
-                      </SortableTh>
-                      <SortableTh column="nf_numero" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort} label="Nº NF">
-                        Nº NF
-                      </SortableTh>
-                      <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Cliente
-                      </SortableTh>
-                      <SortableTh column="obs" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Obs.
-                      </SortableTh>
                     </tr>
                   </thead>
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={13} className="mapa-facas-empty-cell">
+                        <td colSpan={9} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -886,16 +862,6 @@ export function MapasFacasPage() {
                             <td className="fornecedor" title={f.fornecedor || undefined}>
                               {f.fornecedor || '—'}
                             </td>
-                            <td className="num">{fmtMoney(f.valor_pago)}</td>
-                            <td className="nf" title={f.nf_numero || undefined}>
-                              {f.nf_numero || '—'}
-                            </td>
-                            <td className="cliente" title={f.cliente_nota || undefined}>
-                              {f.cliente_nota || '—'}
-                            </td>
-                            <td className="obs" title={f.obs || undefined}>
-                              {f.obs || '—'}
-                            </td>
                           </tr>
                         );
                       })
@@ -941,7 +907,7 @@ export function MapasFacasPage() {
                             contorno_svg: editMeta.contorno_svg,
                             colunas_mapa: editMeta.colunas_mapa,
                           })}
-                          size={80}
+                          size={72}
                           variant="featured"
                         />
                       </FacaApresentacao>
@@ -956,7 +922,7 @@ export function MapasFacasPage() {
                   >
                     <FacaSilhuetaReal
                       {...facaSilhuetaFromRecord(selected)}
-                      size={80}
+                      size={72}
                       variant="featured"
                     />
                   </FacaApresentacao>
