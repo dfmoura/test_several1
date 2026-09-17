@@ -1,8 +1,8 @@
-Ordem de compra {{ $codigo }}{{ !empty($urgente) ? ' (urgente)' : '' }}
+Pedido de compra {{ $codigo }}{{ !empty($urgente) ? ' (urgente)' : '' }}
 
 Olá, {{ $primeiroNome }},
 
-Segue a ordem de compra {{ $codigo }} da {{ $nomeEmpresa }}.
+Segue o pedido de compra {{ $codigo }} da {{ $nomeEmpresa }}.
 
 Comprador
 {{ $empresa['razao_social'] ?? $nomeEmpresa }}@if (!empty($empresa['cnpj'])) · CNPJ {{ $empresa['cnpj'] }}@endif

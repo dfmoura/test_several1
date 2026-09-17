@@ -37,6 +37,16 @@ criar (DIRETA | A repor | COT)
 | Auto IPI/ICMS | Sem alíquota informada: última NF fornecedor+SKU → última NF SKU → tabela ICMS UF×UF. IPI sem histórico fica vazio. API `POST /ordens-compra/estimar-impostos`. Override manual permitido. |
 | Ficha detalhada OC | `/compras/ordens/:id/ficha` — EMP + fornecedor + transportador, operação interna/interestadual, NCM/origem, IPI/ICMS/modalidade/previsto. |
 
+## Emenda 2026-09-17 — Ficha e e-mail = pedido de compra
+
+Vocabulário **ao fornecedor** (ficha imprimível + e-mail): **Pedido de compra** (código OC). Entidade, API, menu e mensagens internas permanecem **Ordem de compra (OC)**.
+
+| Escolha | Motivo |
+|---------|--------|
+| Documento enxuto | Partes compactas (razão, CNPJ/IE, endereço, contato); condições uma vez; itens + totais sem faixa/resumo repetidos. |
+| Sem campos internos na ficha | CRT, regime, CFOP, ind. IE, finalidade e autoria ficam na tela operacional — não no PDF ao fornecedor. |
+| E-mail alinhado à ficha | Assunto e corpo usam “pedido de compra”; payload/itens inalterados. |
+
 ## Emenda 2026-09-08 — IPI · ICMS · frete na OC
 
 Planejamento comercial no rascunho — **não** é escrituração nem espelho da NF.

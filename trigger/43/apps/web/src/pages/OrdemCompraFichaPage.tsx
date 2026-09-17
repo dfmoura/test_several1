@@ -53,7 +53,7 @@ export function OrdemCompraFichaPage() {
 
   useEffect(() => {
     if (!oc) return;
-    document.title = `Ordem de compra ${oc.codigo} · ${oc.fornecedor?.razao_social ?? 'OC'}`;
+    document.title = `Pedido de compra ${oc.codigo} · ${oc.fornecedor?.razao_social ?? 'OC'}`;
     return () => {
       document.title = brandDocumentTitle();
     };
@@ -73,7 +73,7 @@ export function OrdemCompraFichaPage() {
             Voltar à OC
           </button>
           <span className="ficha-toolbar-hint">
-            Retrato A4 · ordem de compra · Imprimir ou Salvar como PDF
+            Retrato A4 · pedido de compra ao fornecedor · Imprimir ou Salvar como PDF
           </span>
         </div>
         <button

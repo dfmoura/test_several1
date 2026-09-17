@@ -1,8 +1,7 @@
 import { Fragment } from 'react';
-import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
-import type { OrdemCompra } from '../lib/api';
+import type { OrdemCompra, OrdemCompraParceiro } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { ocStatusLabel } from '../lib/comprasUi';
 import {
@@ -33,16 +32,45 @@ function formatEndereco(p: {
   const line2 = [p.bairro, [p.municipio, p.uf].filter(Boolean).join('/'), p.cep]
     .filter(Boolean)
     .join(' · ');
-  return [line1, line2].filter(Boolean).join(' · ') || '—';
+  return [line1, line2].filter(Boolean).join(' · ') || '';
 }
 
-function crtLabel(crt: string | number | null | undefined): string {
-  const c = String(crt ?? '');
-  if (c === '1') return '1 — Simples Nacional';
-  if (c === '2') return '2 — Simples (excesso sublimite)';
-  if (c === '3') return '3 — Regime Normal';
-  if (c === '4') return '4 — MEI';
-  return dash(crt);
+function partyMeta(parts: Array<string | null | undefined>): string {
+  return parts.map((p) => (p ?? '').trim()).filter(Boolean).join(' · ') || '—';
+}
+
+function contatoLinha(
+  telefone?: string | null,
+  email?: string | null,
+): string | null {
+  const tel = formatPhone(telefone) || telefone || null;
+  return [tel, email].filter(Boolean).join(' · ') || null;
+}
+
+function PartyBlock({
+  title,
+  lead,
+  meta,
+}: {
+  title: string;
+  lead: string;
+  meta: string;
+}) {
+  return (
+    <section className="ficha-party">
+      <h3>{title}</h3>
+      <p className="ficha-party-lead">{lead}</p>
+      <p className="ficha-party-meta">{meta}</p>
+    </section>
+  );
+}
+
+function transportadorMeta(t: OrdemCompraParceiro): string {
+  return partyMeta([
+    t.cnpj_cpf ? `CNPJ/CPF ${formatCnpjCpf(t.cnpj_cpf)}` : null,
+    t.ie ? `IE ${t.ie}` : null,
+    formatEndereco(t) || null,
+  ]);
 }
 
 export type OrdemCompraFichaSheetProps = {
@@ -53,7 +81,7 @@ export type OrdemCompraFichaSheetProps = {
 };
 
 /**
- * Ficha imprimível da OC — documento comercial ao fornecedor.
+ * Pedido de compra imprimível — documento comercial ao fornecedor.
  * Estimativa comercial; NF na entrada prevalece.
  */
 export function OrdemCompraFichaSheet({
@@ -65,14 +93,29 @@ export function OrdemCompraFichaSheet({
   const emp = oc.empresa;
   const forn = oc.fornecedor;
   const op = oc.operacao;
-  const fornecedorLinha =
-    [forn?.codigo, forn?.nome_fantasia || forn?.razao_social].filter(Boolean).join(' — ') ||
-    'Fornecedor';
+  const transp = oc.transportador;
+  const dataDoc = oc.enviado_em ?? oc.created_at ?? emitidoEm.toISOString();
+
+  const compradorLead = emp?.razao_social ?? empresaNome;
+  const compradorMeta = partyMeta([
+    emp?.cnpj ? `CNPJ ${formatCnpjCpf(emp.cnpj)}` : null,
+    emp?.ie ? `IE ${emp.ie}` : null,
+    emp ? formatEndereco(emp) || null : null,
+    contatoLinha(emp?.telefone, emp?.email),
+  ]);
+
+  const fornecedorLead = forn?.razao_social ?? '—';
+  const fornecedorMeta = partyMeta([
+    forn?.cnpj_cpf ? `CNPJ/CPF ${formatCnpjCpf(forn.cnpj_cpf)}` : null,
+    forn?.ie ? `IE ${forn.ie}` : null,
+    forn ? formatEndereco(forn) || null : null,
+    contatoLinha(forn?.telefone, forn?.email),
+  ]);
 
   return (
     <article
       className="ficha-sheet ficha-sheet-oc"
-      aria-label={`Ordem de compra ${oc.codigo}`}
+      aria-label={`Pedido de compra ${oc.codigo}`}
     >
       <header className="ficha-masthead">
         <div className="ficha-masthead-brand">
@@ -84,17 +127,16 @@ export function OrdemCompraFichaSheet({
         </div>
         <div className="ficha-masthead-id">
           <span className="ficha-doc-code">{oc.codigo}</span>
-          <span className="ficha-doc-when">{formatDateTime(emitidoEm.toISOString())}</span>
+          <span className="ficha-doc-when">{formatDateTime(dataDoc)}</span>
         </div>
       </header>
 
       <div className="ficha-oc-banner">
         <div className="ficha-oc-banner-tipo">
-          <strong>Ordem de compra</strong>
-          <span>OC · pedido formal de compra</span>
+          <strong>Pedido de compra</strong>
+          <span>Documento formal de aquisição · OC {oc.codigo}</span>
         </div>
         <div className="ficha-oc-banner-meta">
-          <span className="ficha-chip ficha-chip-papel">OC</span>
           <span className="ficha-chip">{ocStatusLabel(oc.status)}</span>
           {oc.urgente ? <span className="ficha-chip ficha-chip-urgente">Urgente</span> : null}
           {op?.id_dest_label ? (
@@ -103,97 +145,12 @@ export function OrdemCompraFichaSheet({
         </div>
       </div>
 
-      <div className="ficha-title-block">
-        <div className="ficha-title-main">
-          <h2 className="ficha-razao">{forn?.razao_social ?? '—'}</h2>
-          <p className="ficha-fantasia">
-            Fornecedor · {fornecedorLinha}
-            {oc.origem ? ` · origem ${oc.origem}` : ''}
-          </p>
-        </div>
-        <div className="ficha-title-meta">
-          <span className="ficha-oc-numero-label">Nº da OC</span>
-          <span className="ficha-oc-numero">{oc.codigo}</span>
-        </div>
+      <div className="ficha-parties">
+        <PartyBlock title="Comprador" lead={compradorLead} meta={compradorMeta} />
+        <PartyBlock title="Fornecedor" lead={fornecedorLead} meta={fornecedorMeta} />
       </div>
 
-      <div className="ficha-kv-strip ficha-oc-totais">
-        <FichaKv label="Mercadoria" value={formatCurrency(oc.valor_total)} />
-        <FichaKv label="IPI" value={formatCurrency(oc.valor_ipi ?? '0')} />
-        <FichaKv label="ICMS (destaque)" value={formatCurrency(oc.valor_icms ?? '0')} />
-        <FichaKv label="Frete" value={oc.mod_frete_label ?? '—'} />
-        <FichaKv
-          label="Total previsto"
-          value={formatCurrency(oc.valor_previsto ?? oc.valor_total)}
-        />
-      </div>
-
-      <div className="ficha-columns">
-        <FichaSection title="Comprador">
-          <div className="ficha-kv-grid cols-2">
-            <FichaKv
-              label="Razão social"
-              value={emp?.razao_social ?? empresaNome}
-              wide
-            />
-            <FichaKv label="CNPJ" value={formatCnpjCpf(emp?.cnpj) || '—'} />
-            <FichaKv label="IE" value={dash(emp?.ie)} />
-            <FichaKv label="CRT" value={crtLabel(emp?.crt)} />
-            <FichaKv label="Regime" value={dash(emp?.regime)} />
-            <FichaKv label="UF" value={dash(emp?.uf ?? op?.empresa_uf)} />
-            <FichaKv label="Município" value={dash(emp?.municipio)} />
-            <FichaKv
-              label="Endereço"
-              value={emp ? formatEndereco(emp) : '—'}
-              wide
-            />
-            <FichaKv
-              label="Contato"
-              value={
-                [formatPhone(emp?.telefone) || emp?.telefone, emp?.email]
-                  .filter(Boolean)
-                  .join(' · ') || '—'
-              }
-              wide
-            />
-          </div>
-        </FichaSection>
-
-        <FichaSection title="Fornecedor">
-          <div className="ficha-kv-grid cols-2">
-            <FichaKv
-              label="Razão social"
-              value={forn?.razao_social ?? '—'}
-              wide
-            />
-            <FichaKv label="Código" value={dash(forn?.codigo)} />
-            <FichaKv label="CNPJ/CPF" value={formatCnpjCpf(forn?.cnpj_cpf) || '—'} />
-            <FichaKv label="IE" value={dash(forn?.ie)} />
-            <FichaKv label="Ind. IE dest." value={dash(forn?.ind_ie_dest)} />
-            <FichaKv label="Regime" value={dash(forn?.regime)} />
-            <FichaKv label="UF" value={dash(forn?.uf ?? op?.fornecedor_uf)} />
-            <FichaKv label="Município" value={dash(forn?.municipio)} />
-            <FichaKv label="Finalidade" value={dash(forn?.finalidade)} />
-            <FichaKv label="CFOP entrada pad." value={dash(forn?.cfop_entrada_padrao)} />
-            <FichaKv
-              label="Endereço"
-              value={forn ? formatEndereco(forn) : '—'}
-              wide
-            />
-            <FichaKv
-              label="Contato"
-              value={
-                [formatPhone(forn?.telefone) || forn?.telefone, forn?.email]
-                  .filter(Boolean)
-                  .join(' · ') || '—'
-              }
-              wide
-            />
-          </div>
-        </FichaSection>
-      </div>
-
-      <FichaSection title="Condições da ordem">
+      <FichaSection title="Condições">
         <div className="ficha-kv-grid cols-3">
           <FichaKv label="Condição de pagamento" value={dash(oc.condicao_pagamento)} />
           <FichaKv
@@ -201,38 +158,15 @@ export function OrdemCompraFichaSheet({
             value={oc.previsao_entrega ? formatDate(oc.previsao_entrega) : '—'}
           />
           <FichaKv label="Frete" value={oc.mod_frete_label ?? '—'} />
-          <FichaKv label="Operação" value={op?.id_dest_label ?? '—'} />
-          <FichaKv
-            label="Enviada em"
-            value={oc.enviado_em ? formatDateTime(oc.enviado_em) : '—'}
-          />
-          <FichaKv label="Urgente" value={oc.urgente ? 'Sim' : 'Não'} />
-          <FichaKv label="Origem" value={dash(oc.origem)} />
         </div>
       </FichaSection>
 
-      {oc.transportador ? (
+      {transp ? (
         <FichaSection title="Transportador">
-          <div className="ficha-kv-grid cols-2">
-            <FichaKv
-              label="Razão social"
-              value={oc.transportador.razao_social ?? '—'}
-              wide
-            />
-            <FichaKv label="Código" value={dash(oc.transportador.codigo)} />
-            <FichaKv
-              label="CNPJ/CPF"
-              value={formatCnpjCpf(oc.transportador.cnpj_cpf) || '—'}
-            />
-            <FichaKv label="IE" value={dash(oc.transportador.ie)} />
-            <FichaKv label="UF" value={dash(oc.transportador.uf)} />
-            <FichaKv label="Município" value={dash(oc.transportador.municipio)} />
-            <FichaKv
-              label="Endereço"
-              value={formatEndereco(oc.transportador)}
-              wide
-            />
-          </div>
+          <p className="ficha-party-lead ficha-party-lead--inline">
+            {transp.razao_social ?? '—'}
+          </p>
+          <p className="ficha-party-meta">{transportadorMeta(transp)}</p>
         </FichaSection>
       ) : null}
 
@@ -242,9 +176,9 @@ export function OrdemCompraFichaSheet({
         </FichaSection>
       ) : null}
 
-      <FichaSection title="Itens da ordem de compra">
+      <FichaSection title="Itens">
         {(oc.itens ?? []).length === 0 ? (
-          <p className="ficha-empty">Nenhum item nesta ordem de compra.</p>
+          <p className="ficha-empty">Nenhum item neste pedido de compra.</p>
         ) : (
           <table className="ficha-table ficha-table-num ficha-oc-itens">
             <colgroup>
@@ -317,9 +251,6 @@ export function OrdemCompraFichaSheet({
                               </li>
                             ))}
                           </ul>
-                          <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-                            Pedido comercial: {item.qtde_pedida} {item.unidade}
-                          </p>
                         </div>
                       </td>
                     </tr>
@@ -330,7 +261,7 @@ export function OrdemCompraFichaSheet({
             <tfoot>
               <tr>
                 <td colSpan={7} className="ficha-oc-totais-label">
-                  Totais da ordem
+                  Totais
                 </td>
                 <td className="ficha-td-num">
                   <strong>{formatCurrency(oc.valor_total)}</strong>
@@ -347,23 +278,30 @@ export function OrdemCompraFichaSheet({
             </tfoot>
           </table>
         )}
-        <div className="ficha-kv-grid cols-3 ficha-oc-resumo">
-          <FichaKv label="Modalidade frete" value={oc.mod_frete_label ?? '—'} />
-          <FichaKv
-            label="Total previsto (merc. + IPI)"
-            value={formatCurrency(oc.valor_previsto ?? oc.valor_total)}
-          />
-          <FichaKv
-            label="ICMS"
-            value={`${formatCurrency(oc.valor_icms ?? '0')} (destaque · não soma)`}
-          />
+
+        <div className="ficha-oc-totais-doc">
+          <div className="ficha-oc-totais-doc-row">
+            <span>Mercadoria</span>
+            <strong>{formatCurrency(oc.valor_total)}</strong>
+          </div>
+          <div className="ficha-oc-totais-doc-row">
+            <span>IPI</span>
+            <strong>{formatCurrency(oc.valor_ipi ?? '0')}</strong>
+          </div>
+          <div className="ficha-oc-totais-doc-row">
+            <span>ICMS (destaque · não soma)</span>
+            <strong>{formatCurrency(oc.valor_icms ?? '0')}</strong>
+          </div>
+          <div className="ficha-oc-totais-doc-row ficha-oc-totais-doc-row--destaque">
+            <span>Total previsto (mercadoria + IPI)</span>
+            <strong>{formatCurrency(oc.valor_previsto ?? oc.valor_total)}</strong>
+          </div>
         </div>
       </FichaSection>
 
       <p className="ficha-note">
-        IPI/ICMS calculados automaticamente (histórico de NF do fornecedor/SKU ou tabela UF×UF).
-        Estimativa comercial — a NF na entrada prevalece no fiscal e no financeiro. Custo de
-        estoque usa apenas a mercadoria.
+        IPI e ICMS são estimativa comercial. A NF-e na entrada prevalece no fiscal e no
+        financeiro. Custo de estoque considera apenas a mercadoria.
       </p>
 
       <div className="ficha-oc-assinaturas">
@@ -379,18 +317,9 @@ export function OrdemCompraFichaSheet({
         </div>
       </div>
 
-      <RegistroMetaStrip
-        registro={{
-          criado_por: oc.criado_por,
-          atualizado_por: oc.atualizado_por,
-          created_at: oc.created_at,
-          updated_at: oc.updated_at,
-        }}
-        className="ficha-autoria"
-      />
       <footer className="ficha-footer">
         <span>
-          Ordem de compra {oc.codigo} · emitida por {emitidoPor} ·{' '}
+          Pedido de compra {oc.codigo} · emitido por {emitidoPor} ·{' '}
           {formatDateTime(emitidoEm.toISOString())}
         </span>
         <TriggerAttribution

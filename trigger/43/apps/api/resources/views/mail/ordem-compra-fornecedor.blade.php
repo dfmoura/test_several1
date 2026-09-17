@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ordem de compra {{ $codigo }}</title>
+  <title>Pedido de compra {{ $codigo }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f5;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;padding:28px 12px;">
@@ -14,7 +14,7 @@
             <td style="padding:28px 28px 8px;font-size:15px;line-height:1.55;">
               <p style="margin:0 0 16px;">Olá, {{ $primeiroNome }},</p>
               <p style="margin:0 0 16px;">
-                Segue a ordem de compra <strong>{{ $codigo }}</strong>
+                Segue o pedido de compra <strong>{{ $codigo }}</strong>
                 @if (!empty($urgente))
                   <span style="color:#b45309;">(urgente)</span>
                 @endif

@@ -872,7 +872,7 @@ export function ComprasOrdemDetailPage() {
                 className="btn btn-secondary"
                 onClick={(e) => onAbrirFichaClick(e, `/compras/ordens/${oc.id}/ficha`)}
               >
-                Imprimir ficha
+                Imprimir pedido
               </a>
             ) : null}
             {canWrite && editavel && (

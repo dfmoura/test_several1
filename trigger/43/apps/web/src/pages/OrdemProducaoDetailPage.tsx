@@ -223,7 +223,7 @@ export function OrdemProducaoDetailPage() {
                 className="btn btn-secondary"
                 onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
               >
-                Imprimir ficha
+                Imprimir ordem
               </a>
             ) : null}
             {op?.rastreio && (op.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (

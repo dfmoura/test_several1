@@ -12,7 +12,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Ordem de compra ao fornecedor (ADR_OC_RASCUNHO_ENVIO).
+ * Pedido de compra ao fornecedor (ADR_OC_RASCUNHO_ENVIO).
  * From = instalação; Reply-To = e-mail comercial da EMP quando válido.
  */
 class OrdemCompraFornecedorMail extends Mailable
@@ -32,8 +32,8 @@ class OrdemCompraFornecedorMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $nomeEmpresa = $this->empresa->nome_fantasia ?: $this->empresa->razao_social ?: 'Ordem de compra';
-        $assunto = 'Ordem de compra '.$this->ordemCompra->codigo.' — '.$nomeEmpresa;
+        $nomeEmpresa = $this->empresa->nome_fantasia ?: $this->empresa->razao_social ?: 'Pedido de compra';
+        $assunto = 'Pedido de compra '.$this->ordemCompra->codigo.' — '.$nomeEmpresa;
 
         $replyTo = [];
         if ($this->replyToAddress !== null && $this->replyToAddress !== '') {

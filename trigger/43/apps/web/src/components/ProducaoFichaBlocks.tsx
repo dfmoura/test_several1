@@ -80,7 +80,7 @@ export function FichaEspecificacaoSection({ spec }: { spec: Record<string, unkno
   const facaNova = Boolean(spec.faca_nova);
 
   return (
-    <FichaSection title="Especificação (snapshot travado)">
+    <FichaSection title="Especificação">
       <div className="ficha-kv-grid cols-4">
         <FichaKv label="Medida" value={snap(spec, 'medida')} />
         <FichaKv label="Largura papel" value={cmBr(spec.largura_cm)} />
@@ -98,10 +98,6 @@ export function FichaEspecificacaoSection({ spec }: { spec: Record<string, unkno
         />
         <FichaKv label="Colunas" value={snap(spec, 'colunas')} />
         <FichaKv label="Col. rebobinação" value={snap(spec, 'coluna_rebobinacao')} />
-        <FichaKv
-          label="Saída da etiqueta"
-          value={saidaEtiquetaLabel(String(spec.saida_etiqueta ?? '')) ?? '—'}
-        />
         <FichaKv label="Troca de produto" value={snap(spec, 'tipo_troca_produto')} />
         <FichaKv label="RPM" value={snap(spec, 'rpm')} />
         <FichaKv label="Modelos" value={snap(spec, 'modelos')} />

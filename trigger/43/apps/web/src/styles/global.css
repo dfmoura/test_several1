@@ -8362,8 +8362,10 @@ tr.row-inactive td {
   opacity: 0.72;
 }
 
-/* OC — ordem de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc. */
-.ficha-sheet-oc .ficha-oc-banner {
+/* OC — pedido de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc.
+   OP — ordem de produção oficial (A4 retrato). Escopo em .ficha-sheet-op (reusa banner). */
+.ficha-sheet-oc .ficha-oc-banner,
+.ficha-sheet-op .ficha-op-banner {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -8372,6 +8374,87 @@ tr.row-inactive td {
   padding: 2.2mm 2.5mm;
   border: 1.1pt solid var(--navy);
   background: linear-gradient(180deg, #f3f6fb 0%, #e8eef8 100%);
+}
+
+.ficha-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-top: 2.5mm;
+  border: 0.6pt solid var(--border-strong);
+}
+
+.ficha-party {
+  padding: 2.2mm 2.5mm;
+  min-width: 0;
+}
+
+.ficha-party + .ficha-party {
+  border-left: 0.6pt solid var(--border);
+}
+
+.ficha-party h3 {
+  margin: 0 0 1mm;
+  font-size: 6.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--navy);
+}
+
+.ficha-party-lead {
+  margin: 0;
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--navy-dark);
+  line-height: 1.25;
+}
+
+.ficha-party-lead--inline {
+  margin-bottom: 0.6mm;
+}
+
+.ficha-party-meta {
+  margin: 0.8mm 0 0;
+  font-size: 6.75pt;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.ficha-oc-totais-doc {
+  margin-top: 2mm;
+  margin-left: auto;
+  width: min(72mm, 100%);
+  border-top: 0.7pt solid var(--border-strong);
+  padding-top: 1.2mm;
+}
+
+.ficha-oc-totais-doc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3mm;
+  font-size: 7pt;
+  padding: 0.45mm 0;
+  color: var(--text-muted);
+}
+
+.ficha-oc-totais-doc-row strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--navy-dark);
+  font-weight: 700;
+}
+
+.ficha-oc-totais-doc-row--destaque {
+  margin-top: 0.6mm;
+  padding-top: 1mm;
+  border-top: 0.5pt solid var(--border);
+  font-size: 8pt;
+  color: var(--navy-dark);
+}
+
+.ficha-oc-totais-doc-row--destaque strong {
+  font-size: 9pt;
 }
 
 .ficha-oc-banner-tipo {
@@ -8431,10 +8514,6 @@ tr.row-inactive td {
   letter-spacing: 0.02em;
   text-align: right;
   line-height: 1.1;
-}
-
-.ficha-sheet-oc .ficha-oc-totais {
-  grid-template-columns: repeat(5, 1fr);
 }
 
 .ficha-sheet-oc .ficha-oc-itens {
@@ -8521,11 +8600,6 @@ tr.row-inactive td {
   letter-spacing: 0.03em;
   font-size: 6pt;
   color: var(--navy);
-}
-
-.ficha-sheet-oc .ficha-oc-resumo {
-  margin-top: 0;
-  border-top: 0;
 }
 
 .ficha-oc-assinaturas {
@@ -8766,7 +8840,7 @@ tr.row-inactive td {
   .ficha-kv-grid.cols-3,
   .ficha-kv-grid.cols-4,
   .ficha-kv-strip,
-  .ficha-sheet-oc .ficha-oc-totais,
+  .ficha-parties,
   .ficha-oc-assinaturas {
     grid-template-columns: 1fr 1fr;
   }
@@ -8782,7 +8856,8 @@ tr.row-inactive td {
     border-right: 0;
   }
 
-  .ficha-oc-banner {
+  .ficha-oc-banner,
+  .ficha-op-banner {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -8790,6 +8865,11 @@ tr.row-inactive td {
   .ficha-oc-banner-meta {
     max-width: 100%;
     justify-content: flex-start;
+  }
+
+  .ficha-party + .ficha-party {
+    border-left: 0;
+    border-top: 0.6pt solid var(--border);
   }
 
   .ficha-oc-numero-label,
@@ -8898,7 +8978,8 @@ tr.row-inactive td {
   }
 
   body.ficha-print-mode .ficha-sheet-oc .ficha-oc-banner,
-  body.ficha-print-mode .ficha-sheet-oc .ficha-chip-urgente {
+  body.ficha-print-mode .ficha-sheet-oc .ficha-chip-urgente,
+  body.ficha-print-mode .ficha-sheet-op .ficha-op-banner {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -8907,7 +8988,8 @@ tr.row-inactive td {
     break-inside: auto;
   }
 
-  body.ficha-print-mode .ficha-sheet-oc .ficha-oc-assinaturas {
+  body.ficha-print-mode .ficha-sheet-oc .ficha-oc-assinaturas,
+  body.ficha-print-mode .ficha-sheet-op .ficha-oc-assinaturas {
     break-inside: avoid;
   }
 
