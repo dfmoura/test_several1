@@ -11,6 +11,7 @@ import { FacaApresentacao } from './FacaApresentacao';
 import { FacaSilhuetaReal } from './FacaSilhuetaReal';
 import { formatColunasMapaLabel } from '../lib/facaSilhueta';
 import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
+import { facaDimensoesExibicao } from '../lib/facasMapa';
 
 export type OrcamentoFacaDesenhoAudience = 'interno' | 'cliente';
 
@@ -20,6 +21,8 @@ export type OrcamentoFacaDesenhoProps = {
   larguraCm?: number | string | null;
   puxadaCm?: number | string | null;
   diametroCm?: number | string | null;
+  /** Átomo do mapa (altura); diâmetro em diametroCm. */
+  tamanhoRaw?: string | null;
   tamanhoTipo?: string | null;
   /** Colunas no mapa (1×, 2×, 3×…) — distinto de colunas de rebobinação do ORC */
   colunasMapa?: string | null;
@@ -125,6 +128,7 @@ export function OrcamentoFacaDesenho({
   larguraCm,
   puxadaCm,
   diametroCm,
+  tamanhoRaw,
   tamanhoTipo,
   colunasMapa,
   posicao,
@@ -142,6 +146,7 @@ export function OrcamentoFacaDesenho({
     larguraCm,
     puxadaCm,
     diametroCm,
+    tamanhoRaw,
     tamanhoTipo,
     colunasMapa,
     posicao,
@@ -159,9 +164,19 @@ export function OrcamentoFacaDesenho({
 
   const tipo = facaNova ? 'FACA NOVA' : formatoKind(fmt);
   const label = formatoLabel(fmt);
-  const title = medida?.trim() || label || tipo;
   const cliente = audience === 'cliente';
   const colsFaca = !facaNova ? formatColunasMapaLabel(colunasMapa) ?? '1×' : null;
+  const dim = facaDimensoesExibicao({
+    medida,
+    formato: fmt || null,
+    largura_faca: larguraCm == null || larguraCm === '' ? null : larguraCm,
+    diametro_cm: diametroCm == null || diametroCm === '' ? null : diametroCm,
+    tamanho_raw: tamanhoRaw ?? null,
+    tamanho_tipo: tamanhoTipo ?? null,
+  });
+  /** Título visual = Largura × Tamanho (átomos). Sem expor a identidade `medida`. */
+  const title =
+    dim.titulo && dim.titulo !== '—' ? dim.titulo : label || tipo;
   const rootClass = [
     'orc-faca-desenho',
     `orc-faca-desenho--${variant}`,
@@ -174,12 +189,12 @@ export function OrcamentoFacaDesenho({
 
   if (variant === 'compact') {
     return (
-      <div className={rootClass} title={`${label}${medida ? ` · ${medida}` : ''}`}>
+      <div className={rootClass} title={`${label}${title !== label ? ` · ${title}` : ''}`}>
         <div className="orc-faca-desenho-leading">
           <FacaDesenhoVisual props={props} variant="compact" label={label} />
         </div>
         <div className="orc-faca-desenho-compact-text">
-          <strong>{medida?.trim() || label}</strong>
+          <strong>{title}</strong>
           <span>
             {tipo}
             {colsFaca ? ` · ${colsFaca}` : ''}
@@ -189,20 +204,25 @@ export function OrcamentoFacaDesenho({
     );
   }
 
-  const largura = chipVal(larguraCm, 'cm');
   const puxada = chipVal(puxadaCm, 'cm');
   const zVal = chipVal(z);
+  const tamanhoChip =
+    dim.tamanho === '—'
+      ? '—'
+      : dim.isDiametro
+        ? `Ø ${dim.tamanho} cm`
+        : `${dim.tamanho} cm`;
 
   const chips = (
     <div className="orc-faca-desenho-chips" aria-label="Tipo e parâmetros da faca">
       <Chip label="Tipo" value={tipo} warn={facaNova} />
-      {medida?.trim() ? <Chip label="Medida" value={medida.trim()} /> : null}
       {label && label !== '—' && label !== title ? <Chip label="Formato" value={label} /> : null}
       {colsFaca ? <Chip label="Cols. faca" value={colsFaca} /> : null}
       {isFacaPosicao(posicao) ? (
         <Chip label="Posição" value={facaPosicaoLabel(posicao) ?? String(posicao)} />
       ) : null}
-      {largura !== '—' ? <Chip label="Largura" value={largura} /> : null}
+      <Chip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
+      <Chip label={dim.isDiametro ? 'Diâmetro' : 'Tamanho'} value={tamanhoChip} />
       {puxada !== '—' ? <Chip label="Puxada" value={puxada} /> : null}
       {!cliente && zVal !== '—' ? <Chip label="Z" value={zVal} /> : null}
       {!cliente && maquina ? <Chip label="Máq." value={String(maquina)} /> : null}
@@ -307,6 +327,10 @@ export function facaDesenhoFromSnapshot(
       diametroCm:
         (principal.diametro_cm as number | string | null | undefined) ??
         snapNum(input, 'faca_diametro_cm', 'diametro_cm'),
+      tamanhoRaw:
+        snapStr(principal, 'tamanho_raw') ||
+        snapStr(input, 'faca_tamanho_raw', 'tamanho_raw') ||
+        null,
       tamanhoTipo:
         snapStr(principal, 'tamanho_tipo') ||
         snapStr(input, 'faca_tamanho_tipo', 'tamanho_tipo') ||
@@ -338,6 +362,7 @@ export function facaDesenhoFromSnapshot(
     larguraCm: input.largura_cm as number | string | null | undefined,
     puxadaCm: input.puxada_cm as number | string | null | undefined,
     diametroCm: snapNum(input, 'faca_diametro_cm', 'diametro_cm'),
+    tamanhoRaw: snapStr(input, 'faca_tamanho_raw', 'tamanho_raw') || null,
     tamanhoTipo: snapStr(input, 'faca_tamanho_tipo', 'tamanho_tipo') || null,
     colunasMapa: snapStr(input, 'faca_colunas_mapa') || null,
     posicao: snapStr(input, 'faca_posicao') || null,
@@ -361,6 +386,7 @@ export function facaDesenhoFromForm(input: {
   faca_posicao?: string;
   faca_contorno_svg?: string;
   faca_diametro_cm?: number | '';
+  faca_tamanho_raw?: string;
   faca_tamanho_tipo?: string;
 }): OrcamentoFacaDesenhoProps | null {
   const formato = input.formato_faca?.trim() ?? '';
@@ -372,6 +398,7 @@ export function facaDesenhoFromForm(input: {
     larguraCm: input.largura_cm,
     puxadaCm: input.puxada_cm,
     diametroCm: input.faca_diametro_cm === '' ? null : input.faca_diametro_cm,
+    tamanhoRaw: input.faca_tamanho_raw || null,
     tamanhoTipo: input.faca_tamanho_tipo || null,
     colunasMapa: input.faca_colunas_mapa?.trim() || null,
     posicao: input.faca_posicao?.trim() || null,
@@ -394,6 +421,7 @@ export function facaDesenhoFromPropostaDescricao(
         faca_colunas_mapa?: string | null;
         faca_contorno_svg?: string | null;
         faca_diametro_cm?: number | string | null;
+        faca_tamanho_raw?: string | null;
         faca_posicao?: string | null;
       }
     | null
@@ -409,6 +437,7 @@ export function facaDesenhoFromPropostaDescricao(
     larguraCm: desc.largura_cm,
     puxadaCm: desc.puxada_cm,
     diametroCm: desc.faca_diametro_cm,
+    tamanhoRaw: desc.faca_tamanho_raw,
     colunasMapa: desc.faca_colunas_mapa,
     contornoSvg: desc.faca_contorno_svg,
     posicao: desc.faca_posicao,

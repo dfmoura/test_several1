@@ -418,7 +418,7 @@ export function FacaPicker({
                   type="search"
                   value={q}
                   autoFocus
-                  placeholder="Medida, Ø, cliente, fornecedor…"
+                  placeholder="Largura, tamanho, Ø, cliente, fornecedor…"
                   onChange={(e) => setQ(e.target.value)}
                 />
               </label>
@@ -736,17 +736,29 @@ export function FacaPicker({
                   />
                   <div>
                     <strong>
-                      {composeMedidaIdentidade({
-                        larguraCm: (() => {
-                          const n = Number(String(novaLargura).replace(',', '.'));
-                          return Number.isFinite(n) && n > 0 ? n : null;
-                        })(),
-                        tamanhoCm: (() => {
-                          const n = Number(String(novaTamanho).replace(',', '.'));
-                          return Number.isFinite(n) && n > 0 ? n : null;
-                        })(),
-                        isDiametro: formatoUsaDiametro(novaFormato),
-                      }) || '—'}
+                      {(() => {
+                        const dim = facaDimensoesExibicao({
+                          formato: novaFormato,
+                          largura_faca: (() => {
+                            const n = Number(String(novaLargura).replace(',', '.'));
+                            return Number.isFinite(n) && n > 0 ? n : null;
+                          })(),
+                          diametro_cm: formatoUsaDiametro(novaFormato)
+                            ? (() => {
+                                const n = Number(String(novaTamanho).replace(',', '.'));
+                                return Number.isFinite(n) && n > 0 ? n : null;
+                              })()
+                            : null,
+                          tamanho_raw: formatoUsaDiametro(novaFormato)
+                            ? null
+                            : (() => {
+                                const n = Number(String(novaTamanho).replace(',', '.'));
+                                return Number.isFinite(n) && n > 0 ? String(n) : null;
+                              })(),
+                          tamanho_tipo: formatoUsaDiametro(novaFormato) ? 'diametro' : 'altura',
+                        });
+                        return dim.titulo !== '—' ? dim.titulo : '—';
+                      })()}
                     </strong>
                     <span className="muted">
                       {' '}
@@ -878,10 +890,20 @@ export function FacaPicker({
                   ) : null}
                   {value.largura_faca != null ? (
                     <div className="faca-chip">
-                      <span>Larg. faca</span>
+                      <span>Largura</span>
                       {fmtNum(value.largura_faca)} cm
                     </div>
                   ) : null}
+                  {(() => {
+                    const dim = facaDimensoesExibicao(value);
+                    if (dim.tamanho === '—') return null;
+                    return (
+                      <div className="faca-chip">
+                        <span>{dim.isDiametro ? 'Diâmetro' : 'Tamanho'}</span>
+                        {dim.isDiametro ? `Ø ${dim.tamanho} cm` : `${dim.tamanho} cm`}
+                      </div>
+                    );
+                  })()}
                 </div>
                 {isNova ? (
                   <p className="faca-warn">

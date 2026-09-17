@@ -82,6 +82,7 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
       posicao: p.posicao || null,
       contorno_svg: p.contorno_svg || null,
       diametro_cm: p.diametro_cm === '' ? null : p.diametro_cm,
+      tamanho_raw: p.tamanho_raw || null,
       tamanho_tipo: p.tamanho_tipo || null,
       cliente_nota: p.faca_nova ? null : 'snapshot do ORC',
       label: p.label || (p.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento'),
@@ -102,6 +103,7 @@ function facaSelFromForm(form: OrcForm): FacaRecord | null {
     posicao: form.faca_posicao || null,
     contorno_svg: form.faca_contorno_svg || null,
     diametro_cm: form.faca_diametro_cm === '' ? null : form.faca_diametro_cm,
+    tamanho_raw: form.faca_tamanho_raw || null,
     tamanho_tipo: form.faca_tamanho_tipo || null,
     cliente_nota: form.faca_nova ? null : 'snapshot do ORC',
     label: form.faca_nova ? 'FACA NOVA (simulada)' : 'Faca do orçamento',
@@ -243,6 +245,7 @@ export function OrcamentoFormPage() {
         'faca_posicao',
         'faca_contorno_svg',
         'faca_diametro_cm',
+        'faca_tamanho_raw',
         'faca_tamanho_tipo',
       ]);
       if (geoKeys.has(key as string) && next.facas.length > 0) {
@@ -260,6 +263,7 @@ export function OrcamentoFormPage() {
           if (key === 'faca_posicao') patched.posicao = value as FacaPosicaoCodigo | '';
           if (key === 'faca_contorno_svg') patched.contorno_svg = value as string;
           if (key === 'faca_diametro_cm') patched.diametro_cm = value as number | '';
+          if (key === 'faca_tamanho_raw') patched.tamanho_raw = value as string;
           if (key === 'faca_tamanho_tipo') patched.tamanho_tipo = value as string;
           return patched;
         });

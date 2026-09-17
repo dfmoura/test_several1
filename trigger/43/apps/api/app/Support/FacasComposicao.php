@@ -150,6 +150,7 @@ final class FacasComposicao
                 'posicao' => $posicao,
                 'contorno_svg' => self::nullIfEmpty($row['contorno_svg'] ?? $row['faca_contorno_svg'] ?? null),
                 'diametro_cm' => self::nullableFloat($row['diametro_cm'] ?? $row['faca_diametro_cm'] ?? null),
+                'tamanho_raw' => self::nullIfEmpty($row['tamanho_raw'] ?? $row['faca_tamanho_raw'] ?? null),
                 'tamanho_tipo' => self::nullIfEmpty($row['tamanho_tipo'] ?? $row['faca_tamanho_tipo'] ?? null),
                 'faca_nova' => $facaNova,
                 'valor_faca' => $valor,
@@ -182,6 +183,7 @@ final class FacasComposicao
             || self::nullIfEmpty($data['faca_posicao'] ?? null) !== null
             || self::nullIfEmpty($data['faca_contorno_svg'] ?? null) !== null
             || self::nullableFloat($data['faca_diametro_cm'] ?? null) !== null
+            || self::nullIfEmpty($data['faca_tamanho_raw'] ?? null) !== null
             || self::nullIfEmpty($data['faca_tamanho_tipo'] ?? null) !== null;
 
         if ($formato === '' && ! $facaNova && ! $hasVisual) {
@@ -215,6 +217,7 @@ final class FacasComposicao
             'posicao' => $posicao,
             'contorno_svg' => self::nullIfEmpty($data['faca_contorno_svg'] ?? null),
             'diametro_cm' => self::nullableFloat($data['faca_diametro_cm'] ?? null),
+            'tamanho_raw' => self::nullIfEmpty($data['faca_tamanho_raw'] ?? null),
             'tamanho_tipo' => self::nullIfEmpty($data['faca_tamanho_tipo'] ?? null),
             'faca_nova' => $facaNova,
             'valor_faca' => $valor,
@@ -255,6 +258,7 @@ final class FacasComposicao
         $data['faca_posicao'] = $principal['posicao'] ?? null;
         $data['faca_contorno_svg'] = $principal['contorno_svg'] ?? null;
         $data['faca_diametro_cm'] = $principal['diametro_cm'] ?? null;
+        $data['faca_tamanho_raw'] = $principal['tamanho_raw'] ?? null;
         $data['faca_tamanho_tipo'] = $principal['tamanho_tipo'] ?? null;
 
         // Geometria: principal preenche vazios; não apaga overrides já enviados no topo.

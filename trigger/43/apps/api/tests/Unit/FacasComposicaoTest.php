@@ -114,4 +114,27 @@ class FacasComposicaoTest extends TestCase
         $this->assertFalse($data['faca_nova']);
         $this->assertEqualsWithDelta(0.0, $data['valor_faca_nova'], 0.01);
     }
+
+    public function test_projeta_tamanho_raw_da_principal(): void
+    {
+        $data = FacasComposicao::ensureInPayload([
+            'medida' => '3,3X0,9',
+            'puxada_cm' => 10,
+            'facas' => [
+                [
+                    'principal' => true,
+                    'formato' => 'RETA',
+                    'medida' => '3,3X0,9',
+                    'largura_cm' => 3.3,
+                    'tamanho_raw' => '0.9',
+                    'tamanho_tipo' => 'altura',
+                ],
+            ],
+        ]);
+
+        $this->assertSame('0.9', $data['facas'][0]['tamanho_raw']);
+        $this->assertSame('altura', $data['facas'][0]['tamanho_tipo']);
+        $this->assertSame('0.9', $data['faca_tamanho_raw']);
+        $this->assertSame('altura', $data['faca_tamanho_tipo']);
+    }
 }

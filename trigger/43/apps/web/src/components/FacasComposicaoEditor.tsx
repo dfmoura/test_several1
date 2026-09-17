@@ -48,6 +48,7 @@ function facaRecordToItem(faca: FacaRecord, principal: boolean): FacaComposicaoF
     posicao: !isNova && isFacaPosicao(pos) ? (pos as FacaPosicaoCodigo) : '',
     contorno_svg: isNova ? '' : String(faca.contorno_svg ?? ''),
     diametro_cm: !Number.isNaN(diametro) && diametro > 0 ? diametro : '',
+    tamanho_raw: faca.tamanho_raw != null ? String(faca.tamanho_raw) : '',
     tamanho_tipo: isNova ? (faca.tamanho_tipo ? String(faca.tamanho_tipo) : '') : String(faca.tamanho_tipo ?? ''),
     faca_nova: isNova,
     valor_faca: 0,
@@ -55,11 +56,11 @@ function facaRecordToItem(faca: FacaRecord, principal: boolean): FacaComposicaoF
   };
 }
 
-/** Título curto da linha (só dimensões). */
+/** Título curto da linha (só Largura × Tamanho). Sem identidade `medida`. */
 function tituloCurto(f: FacaComposicaoForm): string {
   const dim = dimensoesDaFaca(f);
   if (dim.titulo && dim.titulo !== '—') return dim.titulo;
-  if (f.medida.trim()) return f.medida.trim();
+  if (f.formato.trim()) return formatoLabel(f.formato);
   return f.faca_nova ? 'Faca nova' : `Faca ${f.ordem}`;
 }
 
@@ -69,6 +70,7 @@ function dimensoesDaFaca(f: FacaComposicaoForm) {
     formato: f.formato,
     largura_faca: f.largura_cm === '' ? null : f.largura_cm,
     diametro_cm: f.diametro_cm === '' ? null : f.diametro_cm,
+    tamanho_raw: f.tamanho_raw || null,
     tamanho_tipo: f.tamanho_tipo || null,
   });
 }

@@ -106,6 +106,7 @@ final class OrcamentoValidationRules
             'facas.*.posicao' => FacaPosicao::validationRule(),
             'facas.*.contorno_svg' => ['nullable', 'string', 'max:32768'],
             'facas.*.diametro_cm' => ['nullable', 'numeric', 'gt:0'],
+            'facas.*.tamanho_raw' => ['nullable', 'string', 'max:64'],
             'facas.*.tamanho_tipo' => ['nullable', 'string', 'max:32'],
             'facas.*.faca_nova' => ['nullable', 'boolean'],
             'facas.*.valor_faca' => ['nullable', 'numeric', 'min:0'],
@@ -118,6 +119,7 @@ final class OrcamentoValidationRules
             'faca_posicao' => FacaPosicao::validationRule(),
             'faca_contorno_svg' => ['nullable', 'string', 'max:32768'],
             'faca_diametro_cm' => ['nullable', 'numeric', 'gt:0'],
+            'faca_tamanho_raw' => ['nullable', 'string', 'max:64'],
             'faca_tamanho_tipo' => ['nullable', 'string', 'max:32'],
             // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
             'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],

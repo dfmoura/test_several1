@@ -52,8 +52,8 @@ export type FacaMapaItem = {
 export type FacaDimensoesFonte = {
   medida?: string | null;
   formato?: string | null;
-  largura_faca?: number | null;
-  diametro_cm?: number | null;
+  largura_faca?: number | string | null;
+  diametro_cm?: number | string | null;
   tamanho_raw?: string | null;
   tamanho_tipo?: string | null;
 };
@@ -132,7 +132,17 @@ export function facaDimensoesExibicao(f: FacaDimensoesFonte): FacaDimensoesExibi
   } else {
     tamanhoSort = parseDimensaoLoose(f.tamanho_raw);
     if (tamanhoSort == null && f.tamanho_raw != null && String(f.tamanho_raw).trim() !== '') {
-      tamanho = String(f.tamanho_raw).trim();
+      const raw = String(f.tamanho_raw).trim();
+      // Legado sujo no mapa: tamanho_raw às vezes veio como identidade "L×T".
+      if (/[xX×]/.test(raw)) {
+        const parts = raw.split(/[xX×]/).map((p) => p.trim()).filter(Boolean);
+        if (parts[1]) {
+          tamanhoSort = parseDimensaoLoose(parts[1]);
+          if (tamanhoSort == null) tamanho = parts[1];
+        }
+      } else {
+        tamanho = raw;
+      }
     }
   }
 

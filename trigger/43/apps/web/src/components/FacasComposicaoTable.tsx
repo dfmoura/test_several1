@@ -5,6 +5,8 @@ import {
   somaValorFacas,
   type FacaComposicaoForm,
 } from '../lib/orcamentoForm';
+import { facaDimensoesExibicao } from '../lib/facasMapa';
+import { formatoLabel } from './FacaShapeIcon';
 
 export type FacaComposicaoRow = {
   ordem?: number;
@@ -13,6 +15,10 @@ export type FacaComposicaoRow = {
   label?: string | null;
   medida?: string | null;
   formato?: string | null;
+  largura_cm?: number | string | null;
+  diametro_cm?: number | string | null;
+  tamanho_raw?: string | null;
+  tamanho_tipo?: string | null;
   faca_nova?: boolean;
   valor_faca?: number | null;
   prazo_faca_dias?: number | null | '';
@@ -97,12 +103,25 @@ export function FacasComposicaoTable({
             <tr>
               <th className="orc-modelo-ord-col">#</th>
               <th>Faca</th>
-              <th>Formato / medida</th>
+              <th>Formato · L × T</th>
               {exibirValor ? <th className="orc-modelo-arte-col num">Ferramental</th> : null}
             </tr>
           </thead>
           <tbody>
-            {rows.map((f, i) => (
+            {rows.map((f, i) => {
+              const dim = facaDimensoesExibicao({
+                medida: f.medida,
+                formato: f.formato,
+                largura_faca: f.largura_cm ?? null,
+                diametro_cm: f.diametro_cm ?? null,
+                tamanho_raw: f.tamanho_raw ?? null,
+                tamanho_tipo: f.tamanho_tipo ?? null,
+              });
+              const dims =
+                dim.titulo && dim.titulo !== '—'
+                  ? dim.titulo
+                  : null;
+              return (
               <tr key={`${f.ordem}-${i}`}>
                 <td className="orc-modelo-ord-col">{f.ordem || i + 1}</td>
                 <td>
@@ -119,7 +138,8 @@ export function FacasComposicaoTable({
                   ) : null}
                 </td>
                 <td>
-                  {[f.formato, f.medida].filter(Boolean).join(' · ') || '—'}
+                  {[f.formato ? formatoLabel(f.formato) : null, dims].filter(Boolean).join(' · ') ||
+                    '—'}
                 </td>
                 {exibirValor ? (
                   <td className="orc-modelo-arte-col num">
@@ -127,7 +147,8 @@ export function FacasComposicaoTable({
                   </td>
                 ) : null}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           {exibirValor && rows.length > 1 ? (
             <tfoot>

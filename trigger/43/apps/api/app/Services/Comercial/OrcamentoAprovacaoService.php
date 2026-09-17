@@ -963,6 +963,7 @@ class OrcamentoAprovacaoService
                 'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
                 'faca_contorno_svg' => $input['faca_contorno_svg'] ?? null,
                 'faca_diametro_cm' => $input['faca_diametro_cm'] ?? null,
+                'faca_tamanho_raw' => $input['faca_tamanho_raw'] ?? null,
                 'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
                 'modelos_composicao' => $this->modelosComposicaoPublica($input),
                 'tipo_servico' => $input['tipo_servico'] ?? null,

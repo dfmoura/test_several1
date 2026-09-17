@@ -610,7 +610,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Silhueta real por largura, tamanho e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir dimensões, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             <a
@@ -684,7 +684,7 @@ export function MapasFacasPage() {
             className="mapa-facas-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar medida, cliente, obs., fornecedor, NF…"
+            placeholder="Buscar largura, tamanho, cliente, obs., fornecedor, NF…"
             aria-label="Buscar facas"
           />
           <select
@@ -936,7 +936,7 @@ export function MapasFacasPage() {
           {!selected ? (
             <div className="card-body mapa-facas-detail-empty">
               <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (medida, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
+              <p className="hint">Geometria (largura, tamanho, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
             </div>
           ) : (
             <div className="card-body mapa-facas-detail-body">
@@ -988,8 +988,15 @@ export function MapasFacasPage() {
                 )}
                 <div>
                   <div className="mapa-facas-detail-kicker">#{selected.id}</div>
-                  <h2>{selectedDim?.titulo ?? selected.medida}</h2>
-                  <p>{selected.label || formatoLabel(selected.formato)}</p>
+                  <h2>{formatoLabel(selected.formato)}</h2>
+                  <p>
+                    {[
+                      selected.n_facas != null ? `N ${selected.n_facas}` : null,
+                      selected.maquina_catalogo || null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || '—'}
+                  </p>
                   <div className="mapa-facas-detail-pills">
                     <StatusPill status={selected.ativo ? 'ATIVA' : 'INATIVA'} />
                     <StatusPill status={selected.completa ? 'COMPLETA' : 'INCOMPLETA'} />
@@ -1289,10 +1296,9 @@ export function MapasFacasPage() {
                     {formatoKind(previewNova.formato)} · {previewNova.maquina_catalogo}
                   </span>
                   <span className="hint">
-                    Identidade: {previewNova.medida}
                     {previewNova.completa
-                      ? ' · completa (puxada + Z)'
-                      : ' · incompleta — ORC pedirá puxada/Z manuais'}
+                      ? 'Completa (puxada + Z)'
+                      : 'Incompleta — ORC pedirá puxada/Z manuais'}
                   </span>
                 </div>
               </div>

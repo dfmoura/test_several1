@@ -465,6 +465,7 @@ class OrcamentoService
             'saida_etiqueta' => $this->normalizeSaidaEtiqueta($data['saida_etiqueta'] ?? $input['saida_etiqueta'] ?? null),
             'faca_contorno_svg' => $this->sanitizeFacaContornoSvg($data['faca_contorno_svg'] ?? $input['faca_contorno_svg'] ?? null),
             'faca_diametro_cm' => $this->nullablePositiveFloat($data['faca_diametro_cm'] ?? $input['faca_diametro_cm'] ?? null),
+            'faca_tamanho_raw' => $this->nullIfEmpty($data['faca_tamanho_raw'] ?? $input['faca_tamanho_raw'] ?? null),
             'faca_tamanho_tipo' => $this->nullIfEmpty($data['faca_tamanho_tipo'] ?? $input['faca_tamanho_tipo'] ?? null),
         ]);
     }

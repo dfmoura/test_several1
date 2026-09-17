@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-nfe-destinadas pronto-produto-modelo orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-nfe-destinadas pronto-produto-modelo pronto-orc-faca-tamanho orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -234,9 +234,13 @@ stage-web-context:
 	cp -a branding .web-docker-context/branding
 	cp docker/nginx/Dockerfile.dist .web-docker-context/Dockerfile
 
-# Host com Docker: sobe stack + SPA Guardar (volume ↔ vão)
+# Host com Docker: sobe stack + SPA Guardar (volume ↔ local)
 pronto-guardar:
 	bash scripts/pronto-guardar.sh
+
+# Host com Docker: SPA ORC com chip Tamanho/Diâmetro na faca
+pronto-orc-faca-tamanho:
+	bash scripts/pronto-orc-faca-tamanho.sh
 
 # Host com Docker: inventário físico QR (volume+local) — migrate + SPA
 pronto-estoque-inventario-qr:
