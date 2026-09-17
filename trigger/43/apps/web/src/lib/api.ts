@@ -1944,16 +1944,18 @@ export type EstoqueAjuste = {
   lote_codigo?: string | null;
   lote_data_entrada?: string | null;
   lote_data_validade?: string | null;
-  /** A03/VIRADA: volumes de abertura (bobinas). */
+  /** Volumes no AJU: +Δ novos (volume_novo) ou −Δ com lote_id — soma = |Δ|. */
   lote_payload?: Array<{
+    lote_id?: number | null;
     codigo?: string;
     qtde: string;
     largura_mm?: string | null;
     comprimento_m?: string | null;
     data_entrada?: string | null;
     data_validade?: string | null;
+    volume_novo?: boolean;
   }> | null;
-  /** Contagem avulsa por QR (volume + local) — auditoria; não alimenta Writer. */
+  /** Contagem avulsa por QR (volume + local) — auditoria; alocação no Writer via lote_payload. */
   contagem_evidencia?: {
     modo: string;
     endereco: { id: number; codigo: string };

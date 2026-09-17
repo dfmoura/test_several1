@@ -15,7 +15,7 @@ use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 /**
- * A03 / VIRADA — multi-volume via lote_payload (posição real na implantação).
+ * AJU multi-volume via lote_payload (entrada A03/demais + baixa explícita).
  */
 class EstoqueAjusteViradaVolumesTest extends TestCase
 {
@@ -165,23 +165,146 @@ class EstoqueAjusteViradaVolumesTest extends TestCase
         }
     }
 
-    public function test_lote_payload_recusado_fora_de_a03(): void
+    public function test_a08_abre_volumes_com_lx_c_alem_de_a03(): void
     {
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $aju = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A08',
+                'qtde_contada' => '210.0000',
+                'checklist_confirmado' => true,
+                'origem' => EstoqueAjuste::ORIGEM_CONTAGEM_AVULSA,
+                'lote_payload' => [
+                    [
+                        'codigo' => 'SOBRA-1',
+                        'largura_mm' => '210',
+                        'comprimento_m' => '1000',
+                    ],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.motivo_codigo', 'A08')
+            ->assertJsonPath('data.qtde_diferenca', '210.0000')
+            ->assertJsonCount(1, 'data.lote_payload');
+
+        $ajuId = (int) $aju->json('data.id');
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/ajustes/{$ajuId}/aprovar", [
+                'causa_raiz' => 'Sobra de produção não apontada — bobina física.',
+            ])
+            ->assertOk();
+
+        $lote = EstoqueLote::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->exact->id)
+            ->where('codigo', 'SOBRA-1')
+            ->firstOrFail();
+        $this->assertSame('210.0000', (string) $lote->qtde);
+        $this->assertSame(EstoqueLote::ORIGEM_AJUSTE, $lote->origem_tipo);
+    }
+
+    public function test_baixa_exige_lote_id_e_debita_volume_explicito(): void
+    {
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->exact->id,
+            'qtde' => '400.0000',
+            'unidade' => 'M2',
+            'custo_medio' => '1.0000',
+        ]);
+
+        $loteA = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->exact->id,
+            'codigo' => 'BOB-BAIXA-A',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '250.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+            'qr_token' => bin2hex(random_bytes(16)),
+        ]);
+        $loteB = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->exact->id,
+            'codigo' => 'BOB-BAIXA-B',
+            'data_entrada' => now()->toDateString(),
+            'qtde' => '150.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+            'qr_token' => bin2hex(random_bytes(16)),
+        ]);
+
+        Sanctum::actingAs($this->operador);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        // Contada 300 → Δ −100; baixa só no volume B
+        $aju = $this->withHeaders($h)
+            ->postJson('/api/v1/estoque/ajustes', [
+                'produto_id' => $this->exact->id,
+                'motivo_codigo' => 'A04',
+                'motivo_complemento' => 'Bobina B danificada na prateleira',
+                'qtde_contada' => '300.0000',
+                'checklist_confirmado' => true,
+                'lote_payload' => [
+                    ['lote_id' => $loteB->id, 'qtde' => '100.0000'],
+                ],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.qtde_diferenca', '-100.0000')
+            ->assertJsonPath('data.lote_payload.0.lote_id', $loteB->id);
+
+        $ajuId = (int) $aju->json('data.id');
+
+        Sanctum::actingAs($this->aprovador);
+        $this->withHeaders($h)
+            ->postJson("/api/v1/estoque/ajustes/{$ajuId}/aprovar", [
+                'causa_raiz' => 'Avaria física na bobina B — baixa alocada no volume.',
+            ])
+            ->assertOk();
+
+        $loteA->refresh();
+        $loteB->refresh();
+        $this->assertSame('250.0000', (string) $loteA->qtde);
+        $this->assertSame('50.0000', (string) $loteB->qtde);
+
+        $saldo = EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->exact->id)
+            ->firstOrFail();
+        $this->assertSame('300.0000', (string) $saldo->qtde);
+    }
+
+    public function test_baixa_sem_lote_id_recusada(): void
+    {
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $this->exact->id,
+            'qtde' => '210.0000',
+            'unidade' => 'M2',
+            'custo_medio' => '1.0000',
+        ]);
+
         Sanctum::actingAs($this->operador);
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
 
         $this->withHeaders($h)
             ->postJson('/api/v1/estoque/ajustes', [
                 'produto_id' => $this->exact->id,
-                'motivo_codigo' => 'A01',
-                'qtde_contada' => '210.0000',
+                'motivo_codigo' => 'A04',
+                'motivo_complemento' => 'Avaria sem volume',
+                'qtde_contada' => '100.0000',
                 'checklist_confirmado' => true,
                 'lote_payload' => [
-                    ['codigo' => 'X', 'qtde' => '210.0000'],
+                    ['codigo' => 'X', 'qtde' => '110.0000'],
                 ],
             ])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['lote_payload']);
+            ->assertJsonValidationErrors(['lote_payload.0.lote_id']);
     }
 
     public function test_soma_volumes_deve_igualar_diferenca(): void

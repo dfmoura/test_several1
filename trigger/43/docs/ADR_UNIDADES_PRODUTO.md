@@ -102,6 +102,22 @@ Norma complementar: **`ADR_CADASTRO_INSUMO_VOLUME.md`**.
 
 ---
 
+## Emenda 2026-09-17 — PCT (Pacote) no catálogo oficial
+
+Extensão mínima do catálogo `UnidadesMedida` (estudo 32 §1 + operação NF):
+
+| Código | Papel |
+|--------|--------|
+| **PCT** | Pacote — embalagem intermediária / `uCom` de fornecedor (insumo, EMB, REV). |
+
+- Disponível em **unidade comercial** e **unidade de estoque** (mesmo dual canônico).
+- **Não** confundir com **CX** (caixa de PA) nem com **PC/PÇ** (alias → UN na NF).
+- Aliases NF: `PACOTE` / `PCTE` → PCT.
+- Ponte tipada PCT↔conteúdo (`qtd_por_pacote`) **somente** se a operação exigir — até lá, par distinto = fator informado pelo humano (motor `sem_formula`, sem inventar).
+- Sem migration; sem segundo saldo; sem unidades alternativas.
+
+---
+
 ## Rastreio no código
 
 - `UnidadesMedida` · `FatorConversaoSugeridor` · `PadraoDecimal` · `ProdutoBobinaDimensoes` · `ProdutoUnidadesConversao`

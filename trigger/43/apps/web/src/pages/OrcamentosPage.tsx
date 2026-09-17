@@ -75,11 +75,16 @@ export function OrcamentosPage() {
         title="Orçamentos"
         description="Propostas comerciais — preparar, enviar link de aprovação e acompanhar o cliente."
         actions={
-          canWrite ? (
-            <Link to="/orcamentos/novo" className="btn btn-primary">
-              Novo orçamento
+          <div className="btn-row">
+            {canWrite ? (
+              <Link to="/orcamentos/novo" className="btn btn-primary">
+                Novo orçamento
+              </Link>
+            ) : null}
+            <Link to="/orcamentos/como-calcula" className="btn btn-secondary">
+              Como calcula
             </Link>
-          ) : undefined
+          </div>
         }
       />
 

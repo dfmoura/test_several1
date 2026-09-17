@@ -93,7 +93,7 @@ export function MapasFacasFichaPage() {
             Voltar ao mapa
           </button>
           <span className="ficha-toolbar-hint">
-            Retrato A4 · agrupado por máquina · N da faca · use Imprimir ou Salvar como PDF
+            Retrato A4 · agrupado por máquina · N FACA · use Imprimir ou Salvar como PDF
           </span>
         </div>
         <button

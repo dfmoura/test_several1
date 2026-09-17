@@ -77,15 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconProduct,
         permission: 'produto.ler',
         isActivePath: (pathname) =>
-          pathname === '/produtos' ||
-          (pathname.startsWith('/produtos/') && !pathname.startsWith('/produtos/como-cadastra')),
-      },
-      {
-        to: '/como-cadastra',
-        label: 'Como cadastra',
-        icon: IconCatalog,
-        permission: 'produto.ler',
-        permissionsAny: ['produto.ler', 'parceiro.ler'],
+          pathname === '/produtos' || pathname.startsWith('/produtos/'),
       },
       { to: '/patrimonio', label: 'Patrimônio', icon: IconPatrimonio, permission: 'patrimonio.ler' },
       {
@@ -104,12 +96,8 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Orçamentos',
         icon: IconOrcamento,
         permission: 'orcamento.ler',
-      },
-      {
-        to: '/orcamentos/como-calcula',
-        label: 'Como calcula',
-        icon: IconCatalog,
-        permission: 'orcamento.ler',
+        isActivePath: (pathname) =>
+          pathname === '/orcamentos' || pathname.startsWith('/orcamentos/'),
       },
       {
         to: '/mapa-facas',

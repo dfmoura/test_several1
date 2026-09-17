@@ -20,7 +20,10 @@ import { ApiError, api, type UsuarioRef } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import {
   buildMapaFacasFichaPath,
+  composeMedidaIdentidade,
+  facaDimensoesExibicao,
   FORMATOS_CANONICOS,
+  formatoUsaDiametro,
   mergeVocabulario,
 } from '../lib/facasMapa';
 import {
@@ -84,7 +87,8 @@ type Resumo = {
 
 const FACA_SORT = {
   formato: (f: FacaMapa) => formatoLabel(f.formato),
-  medida: (f: FacaMapa) => f.medida,
+  largura: (f: FacaMapa) => facaDimensoesExibicao(f).larguraSort,
+  tamanho: (f: FacaMapa) => facaDimensoesExibicao(f).tamanhoSort,
   n_facas: (f: FacaMapa) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaMapa) => f.maquina_catalogo,
   z: (f: FacaMapa) => (f.z != null ? Number(f.z) : null),
@@ -124,14 +128,14 @@ function numOrNull(v: string): number | null {
 }
 
 type NovaForm = {
-  medida: string;
   formato: string;
   maquina_catalogo: string;
   puxada: string;
   z: string;
   repeticao: string;
   largura_faca: string;
-  diametro_cm: string;
+  /** Tamanho linear (cm) ou diâmetro quando formato REDONDA. */
+  tamanho: string;
   n_facas: string;
   cilindro: string;
   colunas_mapa: string;
@@ -146,14 +150,13 @@ type NovaForm = {
 };
 
 const EMPTY_NOVA: NovaForm = {
-  medida: '',
   formato: 'RETA',
   maquina_catalogo: '',
   puxada: '',
   z: '',
   repeticao: '',
   largura_faca: '',
-  diametro_cm: '',
+  tamanho: '',
   n_facas: '',
   cilindro: '',
   colunas_mapa: '',
@@ -456,18 +459,31 @@ export function MapasFacasPage() {
   };
 
   const previewNova = useMemo(() => {
+    const isDiam = formatoUsaDiametro(nova.formato);
     const puxada = numOrNull(nova.puxada);
     const z = numOrNull(nova.z);
-    const largura = numOrNull(nova.largura_faca);
-    const diametro = numOrNull(nova.diametro_cm);
+    const tamanho = numOrNull(nova.tamanho);
+    const larguraInformada = numOrNull(nova.largura_faca);
+    const largura = isDiam
+      ? (Number.isNaN(larguraInformada as number) ? tamanho : larguraInformada)
+      : larguraInformada;
+    const diametro = isDiam ? tamanho : null;
+    const medida = composeMedidaIdentidade({
+      larguraCm: Number.isNaN(largura as number) ? null : largura,
+      tamanhoCm: Number.isNaN(tamanho as number) ? null : tamanho,
+      isDiametro: isDiam,
+    });
     return {
-      medida: nova.medida || '—',
+      medida: medida || '—',
       formato: nova.formato,
       faca: nova.formato,
       puxada: Number.isNaN(puxada as number) ? null : puxada,
       z: Number.isNaN(z as number) ? null : z,
       largura_faca: Number.isNaN(largura as number) ? null : largura,
       diametro_cm: Number.isNaN(diametro as number) ? null : diametro,
+      tamanho_raw:
+        Number.isNaN(tamanho as number) || tamanho == null ? null : String(tamanho),
+      tamanho_tipo: isDiam ? 'diametro' : 'altura',
       colunas_mapa: nova.colunas_mapa.trim() || null,
       posicao: nova.posicao || null,
       contorno_svg: nova.contorno_svg.trim() || null,
@@ -484,11 +500,6 @@ export function MapasFacasPage() {
     }
     setNovaErro('');
 
-    const medida = nova.medida.trim();
-    if (!medida) {
-      setNovaErro('Informe a medida.');
-      return;
-    }
     const maquinaCatalogo = nova.maquina_catalogo.trim();
     if (!maquinaCatalogo) {
       setNovaErro('Selecione a máquina (grupo ORC).');
@@ -499,20 +510,44 @@ export function MapasFacasPage() {
       setNovaErro('Informe o formato.');
       return;
     }
+    const isDiam = formatoUsaDiametro(formato);
     const puxada = numOrNull(nova.puxada);
     const z = numOrNull(nova.z);
     const repeticao = numOrNull(nova.repeticao);
-    const largura = numOrNull(nova.largura_faca);
-    const diametro = numOrNull(nova.diametro_cm);
+    const tamanho = numOrNull(nova.tamanho);
+    const larguraInformada = numOrNull(nova.largura_faca);
+    const largura = isDiam
+      ? (Number.isNaN(larguraInformada as number) ? tamanho : larguraInformada)
+      : larguraInformada;
+    const diametro = isDiam ? tamanho : null;
     const nFacas = nova.n_facas.trim() === '' ? null : Number(nova.n_facas);
     const valorPago = nova.valor_pago.trim() === '' ? null : numOrNull(nova.valor_pago);
+
+    if (tamanho == null || Number.isNaN(tamanho) || !(tamanho > 0)) {
+      setNovaErro(isDiam ? 'Informe o diâmetro (cm).' : 'Informe o tamanho (cm).');
+      return;
+    }
+    if (!isDiam && (largura == null || Number.isNaN(largura) || !(largura > 0))) {
+      setNovaErro('Informe a largura (cm).');
+      return;
+    }
+
+    const medida = composeMedidaIdentidade({
+      larguraCm: Number.isNaN(largura as number) ? null : largura,
+      tamanhoCm: tamanho,
+      isDiametro: isDiam,
+    });
+    if (!medida) {
+      setNovaErro('Não foi possível montar a identidade da faca. Revise largura e tamanho.');
+      return;
+    }
 
     for (const [label, val] of [
       ['Puxada', puxada],
       ['Z', z],
       ['Repetição', repeticao],
       ['Largura', largura],
-      ['Diâmetro', diametro],
+      [isDiam ? 'Diâmetro' : 'Tamanho', tamanho],
       ['Valor pago', valorPago],
     ] as const) {
       if (val != null && Number.isNaN(val)) {
@@ -540,12 +575,14 @@ export function MapasFacasPage() {
         puxada,
         z,
         repeticao,
-        largura_faca: largura,
-        diametro_cm: diametro,
+        largura_faca: Number.isNaN(largura as number) ? null : largura,
+        diametro_cm: Number.isNaN(diametro as number) ? null : diametro,
+        tamanho_raw: String(tamanho),
+        tamanho_tipo: isDiam ? 'diametro' : 'altura',
         n_facas: nFacas,
         cilindro: nova.cilindro.trim() || null,
         colunas_mapa: nova.colunas_mapa.trim() || null,
-        posicao: nova.posicao || null,
+        posicao: isFacaPosicao(nova.posicao) ? nova.posicao : null,
         contorno_svg: nova.contorno_svg.trim() || null,
         conjugada: nova.conjugada.trim() || null,
         fornecedor: nova.fornecedor.trim() || null,
@@ -554,23 +591,20 @@ export function MapasFacasPage() {
         cliente_nota: nova.cliente_nota.trim() || null,
         obs: nova.obs.trim() || null,
       });
-      setShowNova(false);
-      novaNFacasManual.current = false;
-      setNova(EMPTY_NOVA);
-      setSelected(res.data);
-      setQ('');
-      setFormato('');
-      setMaquina('');
-      setSoCompletas(false);
-      setIncluirInativas(false);
       setMessage(`Faca #${res.data.id} (${res.data.medida}) cadastrada no mapa.`);
+      setShowNova(false);
+      setNova(EMPTY_NOVA);
+      novaNFacasManual.current = false;
+      setSelected(res.data);
       await load();
-    } catch (err) {
-      setNovaErro(fieldErrors(err));
+    } catch (e) {
+      setNovaErro(fieldErrors(e));
     } finally {
       setSaving(false);
     }
   };
+
+  const selectedDim = selected ? facaDimensoesExibicao(selected) : null;
 
   return (
     <>
@@ -583,7 +617,7 @@ export function MapasFacasPage() {
               className="btn btn-secondary"
               href={fichaPath}
               onClick={(e) => onAbrirFichaClick(e, fichaPath)}
-              title="Abre a ficha A4 agrupada por máquina e ordenada pelo N da faca, com o recorte atual dos filtros."
+              title="Abre a ficha A4 agrupada por máquina e ordenada pelo N FACA, com o recorte atual dos filtros."
             >
               Imprimir ficha
             </a>
@@ -731,8 +765,27 @@ export function MapasFacasPage() {
                       <th className="mapa-facas-th-silhueta" scope="col">
                         Silhueta
                       </th>
-                      <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Medida
+                      <SortableTh
+                        column="largura"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="Largura"
+                      >
+                        Largura
+                      </SortableTh>
+                      <SortableTh
+                        column="tamanho"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="Tamanho"
+                      >
+                        Tamanho
                       </SortableTh>
                       <SortableTh
                         column="n_facas"
@@ -740,9 +793,9 @@ export function MapasFacasPage() {
                         sorts={sorts} sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
-                        label="N facas"
+                        label="N FACA"
                       >
-                        N facas
+                        N FACA
                       </SortableTh>
                       <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Máquina
@@ -784,13 +837,14 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="mapa-facas-empty-cell">
+                        <td colSpan={10} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
                     ) : (
                       sorted.map((f) => {
                         const active = selected?.id === f.id;
+                        const dim = facaDimensoesExibicao(f);
                         const statusHint = [
                           f.ativo ? null : 'inativa',
                           f.completa ? null : 'incompleta',
@@ -836,17 +890,22 @@ export function MapasFacasPage() {
                                 />
                               </FacaApresentacao>
                             </td>
-                            <td className="medida">
-                              <div className="mapa-facas-medida-cell">
-                                {f.tamanho_tipo === 'diametro' ? (
-                                  <span className="badge-diam">{f.medida}</span>
-                                ) : (
-                                  <strong>{f.medida}</strong>
-                                )}
+                            <td className="num mapa-facas-dim-cell">
+                              <div className="mapa-facas-dim-stack">
+                                <strong>{dim.largura}</strong>
                                 {!f.completa ? (
                                   <span className="mapa-facas-incomplete-tag">incompleta</span>
                                 ) : null}
                               </div>
+                            </td>
+                            <td className="num mapa-facas-dim-cell">
+                              {dim.isDiametro ? (
+                                <span className="badge-diam" title="Diâmetro (Ø)">
+                                  Ø {dim.tamanho}
+                                </span>
+                              ) : (
+                                <strong>{dim.tamanho}</strong>
+                              )}
                             </td>
                             <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
                             <td className="maquina">{f.maquina_catalogo || '—'}</td>
@@ -929,7 +988,7 @@ export function MapasFacasPage() {
                 )}
                 <div>
                   <div className="mapa-facas-detail-kicker">#{selected.id}</div>
-                  <h2>{selected.medida}</h2>
+                  <h2>{selectedDim?.titulo ?? selected.medida}</h2>
                   <p>{selected.label || formatoLabel(selected.formato)}</p>
                   <div className="mapa-facas-detail-pills">
                     <StatusPill status={selected.ativo ? 'ATIVA' : 'INATIVA'} />
@@ -976,16 +1035,26 @@ export function MapasFacasPage() {
                   <dd>{fmtNum(selected.repeticao, 4)}</dd>
                 </div>
                 <div>
-                  <dt>N facas</dt>
+                  <dt>N FACA</dt>
                   <dd>{selected.n_facas ?? '—'}</dd>
                 </div>
                 <div>
                   <dt>Largura</dt>
-                  <dd>{fmtNum(selected.largura_faca, 2)} cm</dd>
+                  <dd>
+                    {!selectedDim || selectedDim.largura === '—'
+                      ? '—'
+                      : `${selectedDim.largura} cm`}
+                  </dd>
                 </div>
                 <div>
-                  <dt>Diâmetro</dt>
-                  <dd>{fmtNum(selected.diametro_cm, 2)} cm</dd>
+                  <dt>{selectedDim?.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}</dt>
+                  <dd>
+                    {!selectedDim || selectedDim.tamanho === '—'
+                      ? '—'
+                      : selectedDim.isDiametro
+                        ? `Ø ${selectedDim.tamanho} cm`
+                        : `${selectedDim.tamanho} cm`}
+                  </dd>
                 </div>
                 <div>
                   <dt>Cilindro</dt>
@@ -1058,7 +1127,7 @@ export function MapasFacasPage() {
                       )}
                     </label>
                     <label className="form-group">
-                      <span>N facas</span>
+                      <span>N FACA</span>
                       <input
                         value={editMeta.n_facas}
                         onChange={(e) => setEditMeta((p) => ({ ...p, n_facas: e.target.value }))}
@@ -1215,28 +1284,20 @@ export function MapasFacasPage() {
                   }
                 />
                 <div className="mapa-facas-nova-copy" aria-hidden>
-                  <strong>{previewNova.medida}</strong>
+                  <strong>{facaDimensoesExibicao(previewNova).titulo}</strong>
                   <span>
                     {formatoKind(previewNova.formato)} · {previewNova.maquina_catalogo}
                   </span>
                   <span className="hint">
+                    Identidade: {previewNova.medida}
                     {previewNova.completa
-                      ? 'Completa (puxada + Z)'
-                      : 'Incompleta — ORC pedirá puxada/Z manuais'}
+                      ? ' · completa (puxada + Z)'
+                      : ' · incompleta — ORC pedirá puxada/Z manuais'}
                   </span>
                 </div>
               </div>
 
               <div className="form-grid">
-                <label className="form-group">
-                  <span>Medida *</span>
-                  <input
-                    value={nova.medida}
-                    onChange={(e) => setNova((p) => ({ ...p, medida: e.target.value }))}
-                    placeholder="ex.: 8,0X12 ou Ø5"
-                    required
-                  />
-                </label>
                 <label className="form-group">
                   <span>Formato *</span>
                   <select
@@ -1253,6 +1314,30 @@ export function MapasFacasPage() {
                       </option>
                     ))}
                   </select>
+                </label>
+                {!formatoUsaDiametro(nova.formato) ? (
+                  <label className="form-group">
+                    <span>Largura (cm) *</span>
+                    <input
+                      value={nova.largura_faca}
+                      onChange={(e) => setNova((p) => ({ ...p, largura_faca: e.target.value }))}
+                      inputMode="decimal"
+                      placeholder="ex.: 8,0"
+                      required
+                    />
+                  </label>
+                ) : null}
+                <label className="form-group">
+                  <span>
+                    {formatoUsaDiametro(nova.formato) ? 'Diâmetro (cm) *' : 'Tamanho (cm) *'}
+                  </span>
+                  <input
+                    value={nova.tamanho}
+                    onChange={(e) => setNova((p) => ({ ...p, tamanho: e.target.value }))}
+                    inputMode="decimal"
+                    placeholder={formatoUsaDiametro(nova.formato) ? 'ex.: 5' : 'ex.: 12,4'}
+                    required
+                  />
                 </label>
                 <label className="form-group">
                   <span>Máquina *</span>
@@ -1305,23 +1390,7 @@ export function MapasFacasPage() {
                   />
                 </label>
                 <label className="form-group">
-                  <span>Largura faca (cm)</span>
-                  <input
-                    value={nova.largura_faca}
-                    onChange={(e) => setNova((p) => ({ ...p, largura_faca: e.target.value }))}
-                    inputMode="decimal"
-                  />
-                </label>
-                <label className="form-group">
-                  <span>Diâmetro (cm)</span>
-                  <input
-                    value={nova.diametro_cm}
-                    onChange={(e) => setNova((p) => ({ ...p, diametro_cm: e.target.value }))}
-                    inputMode="decimal"
-                  />
-                </label>
-                <label className="form-group">
-                  <span>N facas</span>
+                  <span>N FACA</span>
                   <input
                     value={nova.n_facas}
                     onChange={(e) => {
@@ -1356,11 +1425,11 @@ export function MapasFacasPage() {
                     previewSize={64}
                     preview={{
                       formato: nova.formato,
-                      medida: nova.medida,
+                      medida: previewNova.medida,
                       colunasMapa: nova.colunas_mapa,
-                      larguraCm: nova.largura_faca || null,
+                      larguraCm: previewNova.largura_faca,
                       puxadaCm: nova.puxada || null,
-                      diametroCm: nova.diametro_cm || null,
+                      diametroCm: previewNova.diametro_cm,
                     }}
                   />
                 </label>

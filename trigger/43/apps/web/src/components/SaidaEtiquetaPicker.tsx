@@ -8,19 +8,28 @@ type Props = {
   onChange: (value: SaidaEtiquetaCodigo | '') => void;
   disabled?: boolean;
   id?: string;
+  /** compacta — cabe na grade da especificação técnica (após Gordura). */
+  variante?: 'padrao' | 'compacta';
 };
 
 /**
- * Faixa compacta das 4 saídas de bobina (ADR_ORC_SAIDA_ETIQUETA).
+ * Faixa das 4 saídas de bobina (ADR_ORC_SAIDA_ETIQUETA).
  * Uma opção exclusiva — não altera preço.
  */
-export function SaidaEtiquetaPicker({ value, onChange, disabled, id }: Props) {
+export function SaidaEtiquetaPicker({
+  value,
+  onChange,
+  disabled,
+  id,
+  variante = 'padrao',
+}: Props) {
   const current = value || '';
+  const compacta = variante === 'compacta';
   return (
     <div
-      className="saida-etiqueta-picker"
+      className={`saida-etiqueta-picker${compacta ? ' saida-etiqueta-picker--compacta' : ''}`}
       role="radiogroup"
-      aria-labelledby={id ? `${id}-label` : undefined}
+      aria-labelledby={id ? `${id}-label` : 'saida-etiqueta-label'}
       data-testid="saida-etiqueta-picker"
     >
       <div className="saida-etiqueta-picker__grid">

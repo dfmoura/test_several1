@@ -39,6 +39,7 @@ export type FacaMapaItem = {
   posicao?: string | null;
   colunas_mapa?: string | null;
   contorno_svg?: string | null;
+  tamanho_raw?: string | null;
   tamanho_tipo?: string | null;
   cliente_nota?: string | null;
   obs?: string | null;
@@ -46,6 +47,123 @@ export type FacaMapaItem = {
   ativo: boolean;
   label?: string | null;
 };
+
+/** Fonte mínima para exibir Largura / Tamanho (átomos; `medida` só como fallback). */
+export type FacaDimensoesFonte = {
+  medida?: string | null;
+  formato?: string | null;
+  largura_faca?: number | null;
+  diametro_cm?: number | null;
+  tamanho_raw?: string | null;
+  tamanho_tipo?: string | null;
+};
+
+export type FacaDimensoesExibicao = {
+  largura: string;
+  tamanho: string;
+  isDiametro: boolean;
+  /** Título composto (ex. `3,3 × 0,9` ou `11 × Ø 5`). */
+  titulo: string;
+  larguraSort: number | null;
+  tamanhoSort: number | null;
+};
+
+function fmtDimensaoNum(n: number, maxFrac = 4): string {
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: maxFrac });
+}
+
+function parseDimensaoLoose(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  const t = String(v).trim().replace(/\s/g, '').replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** REDONDA (e variantes) usam diâmetro no lugar de “tamanho” linear. */
+export function formatoUsaDiametro(formato?: string | null): boolean {
+  return String(formato ?? '')
+    .trim()
+    .toUpperCase()
+    .startsWith('REDOND');
+}
+
+/**
+ * Identidade persistida `medida` a partir dos átomos (cadastro Largura + Tamanho).
+ * Mantém o padrão legado `8,0X12,4` / `Ø5` — motor, unicidade e ORC continuam no campo `medida`.
+ */
+export function composeMedidaIdentidade(opts: {
+  larguraCm: number | null;
+  tamanhoCm: number | null;
+  isDiametro: boolean;
+}): string {
+  const fmt = (n: number) =>
+    n.toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false });
+  if (opts.isDiametro) {
+    const d = opts.tamanhoCm ?? opts.larguraCm;
+    if (d == null || !(d > 0)) return '';
+    return `Ø${fmt(d)}`;
+  }
+  if (opts.larguraCm == null || !(opts.larguraCm > 0)) return '';
+  if (opts.tamanhoCm == null || !(opts.tamanhoCm > 0)) return '';
+  return `${fmt(opts.larguraCm)}X${fmt(opts.tamanhoCm)}`;
+}
+
+/**
+ * Apresentação canônica Largura × Tamanho a partir dos átomos do mapa.
+ * `medida` permanece identidade persistida (ORC/unicidade) — aqui só fallback visual.
+ */
+export function facaDimensoesExibicao(f: FacaDimensoesFonte): FacaDimensoesExibicao {
+  const isDiametro =
+    formatoUsaDiametro(f.formato) ||
+    String(f.tamanho_tipo ?? '')
+      .trim()
+      .toLowerCase()
+      .startsWith('diam');
+
+  let larguraSort = parseDimensaoLoose(f.largura_faca);
+  let tamanhoSort: number | null = null;
+  let tamanho = '—';
+
+  if (isDiametro) {
+    tamanhoSort = parseDimensaoLoose(f.diametro_cm);
+    if (tamanhoSort == null) tamanhoSort = parseDimensaoLoose(f.tamanho_raw);
+  } else {
+    tamanhoSort = parseDimensaoLoose(f.tamanho_raw);
+    if (tamanhoSort == null && f.tamanho_raw != null && String(f.tamanho_raw).trim() !== '') {
+      tamanho = String(f.tamanho_raw).trim();
+    }
+  }
+
+  if (larguraSort == null || (tamanhoSort == null && tamanho === '—')) {
+    const medida = String(f.medida ?? '').trim();
+    if (medida && /[xX×]/.test(medida)) {
+      const parts = medida.split(/[xX×]/).map((p) => p.trim()).filter(Boolean);
+      if (larguraSort == null && parts[0]) larguraSort = parseDimensaoLoose(parts[0]);
+      if (tamanhoSort == null && parts[1]) {
+        tamanhoSort = parseDimensaoLoose(parts[1]);
+        if (tamanhoSort == null) tamanho = parts[1];
+      }
+    } else if (medida && isDiametro && tamanhoSort == null) {
+      const limpa = medida.replace(/^[Øø]/, '').trim();
+      tamanhoSort = parseDimensaoLoose(limpa);
+      if (tamanhoSort == null) tamanho = limpa || medida;
+    }
+  }
+
+  const largura = larguraSort != null ? fmtDimensaoNum(larguraSort, 2) : '—';
+  if (tamanhoSort != null) tamanho = fmtDimensaoNum(tamanhoSort, 4);
+
+  const titulo =
+    largura === '—' && tamanho === '—'
+      ? String(f.medida ?? '').trim() || '—'
+      : isDiametro
+        ? `${largura} × Ø ${tamanho}`
+        : `${largura} × ${tamanho}`;
+
+  return { largura, tamanho, isDiametro, titulo, larguraSort, tamanhoSort };
+}
 
 export type FacaMapaGrupoMaquina = {
   /** Chave canônica (UPPER); vazio = sem máquina. */
@@ -68,24 +186,28 @@ function nFacasSortKey(v: number | null | undefined): number {
   return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
 }
 
-/** Ordenação canônica da ficha: N da faca → medida → id. Sem N vai ao fim do grupo. */
+/** Ordenação canônica da ficha: N FACA → largura → tamanho → id. Sem N vai ao fim do grupo. */
 export function compareFacaMapaParaFicha(a: FacaMapaItem, b: FacaMapaItem): number {
   const naOk = nFacasSortKey(a.n_facas);
   const nbOk = nFacasSortKey(b.n_facas);
   if (naOk !== nbOk) return naOk - nbOk;
 
-  const medida = String(a.medida ?? '').localeCompare(String(b.medida ?? ''), 'pt-BR', {
-    sensitivity: 'base',
-    numeric: true,
-  });
-  if (medida !== 0) return medida;
+  const da = facaDimensoesExibicao(a);
+  const db = facaDimensoesExibicao(b);
+  const la = da.larguraSort ?? Number.POSITIVE_INFINITY;
+  const lb = db.larguraSort ?? Number.POSITIVE_INFINITY;
+  if (la !== lb) return la - lb;
+
+  const ta = da.tamanhoSort ?? Number.POSITIVE_INFINITY;
+  const tb = db.tamanhoSort ?? Number.POSITIVE_INFINITY;
+  if (ta !== tb) return ta - tb;
 
   return (a.id ?? 0) - (b.id ?? 0);
 }
 
 /**
  * Agrupa por `maquina_catalogo` (UPPER), ordena máquinas A→Z,
- * bloco "Sem máquina" por último; dentro de cada grupo ordena por N da faca.
+ * bloco "Sem máquina" por último; dentro de cada grupo ordena por N FACA.
  */
 export function agruparFacasPorMaquina(items: readonly FacaMapaItem[]): FacaMapaGrupoMaquina[] {
   const map = new Map<string, FacaMapaItem[]>();

@@ -300,9 +300,11 @@ export function OrcamentoFormPage() {
 
   const aplicarFacas = (nextFacas: FacaComposicaoForm[]) => {
     setCalculo(null);
-    setForm((prev) => aplicarGeometriaPrincipal(prev, nextFacas, catalog));
-    const merged = aplicarGeometriaPrincipal(form, nextFacas, catalog);
-    setFacaSel(facaSelFromForm(merged));
+    setForm((prev) => {
+      const merged = aplicarGeometriaPrincipal(prev, nextFacas, catalog);
+      setFacaSel(facaSelFromForm(merged));
+      return merged;
+    });
   };
 
   const facaIncompleta = facaSel != null && facaSel.completa === false;
@@ -939,9 +941,9 @@ export function OrcamentoFormPage() {
 
           {form.tipo_operacao === TIPO_INDUSTRIALIZACAO ? (
             <>
-          {/* 2. Faca / dimensões — mapa oficial (padrão 36 + ADR multi-faca) */}
+          {/* 2. Faca — existente (mapa) ou nova (modal com abas) */}
           <section className="orc-section">
-            <h3 className="orc-section-title">2. Faca (mapa oficial)</h3>
+            <h3 className="orc-section-title">2. Faca</h3>
             <FacasComposicaoEditor
               facas={form.facas}
               onChange={aplicarFacas}
@@ -1031,22 +1033,6 @@ export function OrcamentoFormPage() {
                   disabled={!canWrite}
                 />
               </div>
-            </div>
-          </section>
-
-          <section className="orc-section" id="saida-etiqueta-bobina">
-            <h3 className="orc-section-title">Saída da etiqueta na bobina</h3>
-            <p className="form-hint" style={{ marginTop: 0 }}>
-              Como a etiqueta sai na bobina entregue — aparece na proposta, ficha e produção.
-              Opcional. Distinto da posição da faca no cilindro.
-            </p>
-            <div className="saida-etiqueta-orc-wrap">
-              <SaidaEtiquetaPicker
-                id="saida-etiqueta"
-                value={form.saida_etiqueta ?? ''}
-                onChange={(v) => setField('saida_etiqueta', v as SaidaEtiquetaCodigo | '')}
-                disabled={!canWrite}
-              />
             </div>
           </section>
 
@@ -1227,6 +1213,19 @@ export function OrcamentoFormPage() {
                   }
                   disabled={!canWrite}
                   placeholder="0,00"
+                />
+              </div>
+              <div className="form-group span-full orc-saida-etiqueta-campo" id="saida-etiqueta-bobina">
+                <label id="saida-etiqueta-label">
+                  Saída na bobina{' '}
+                  <span className="field-note">opcional · proposta / ficha / produção</span>
+                </label>
+                <SaidaEtiquetaPicker
+                  id="saida-etiqueta"
+                  variante="compacta"
+                  value={form.saida_etiqueta ?? ''}
+                  onChange={(v) => setField('saida_etiqueta', v as SaidaEtiquetaCodigo | '')}
+                  disabled={!canWrite}
                 />
               </div>
             </div>

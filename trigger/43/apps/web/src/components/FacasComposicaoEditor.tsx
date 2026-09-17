@@ -1,5 +1,7 @@
 import { FacaPicker, type FacaRecord } from './FacaPicker';
-import { OrcamentoFacaDesenho } from './OrcamentoFacaDesenho';
+import { FacaApresentacao } from './FacaApresentacao';
+import { FacaSilhuetaReal } from './FacaSilhuetaReal';
+import { formatoLabel } from './FacaShapeIcon';
 import {
   facaPrincipal,
   renumerarFacas,
@@ -7,6 +9,8 @@ import {
   type FacaComposicaoForm,
 } from '../lib/orcamentoForm';
 import { isFacaPosicao, type FacaPosicaoCodigo } from '../lib/facaPosicao';
+import { formatColunasMapaLabel } from '../lib/facaSilhueta';
+import { facaDimensoesExibicao } from '../lib/facasMapa';
 
 type Props = {
   facas: FacaComposicaoForm[];
@@ -21,7 +25,7 @@ function formatMoney(value: number): string {
 
 function facaRecordToItem(faca: FacaRecord, principal: boolean): FacaComposicaoForm {
   const isNova = faca.faca_nova === true;
-  const formato = String(faca.formato || faca.faca || '');
+  const formato = String(faca.formato || faca.faca || (isNova ? 'RETA' : ''));
   const puxada = faca.puxada != null ? Number(faca.puxada) : NaN;
   const z = faca.z != null ? Number(faca.z) : NaN;
   const largura = faca.largura_faca != null ? Number(faca.largura_faca) : NaN;
@@ -44,25 +48,58 @@ function facaRecordToItem(faca: FacaRecord, principal: boolean): FacaComposicaoF
     posicao: !isNova && isFacaPosicao(pos) ? (pos as FacaPosicaoCodigo) : '',
     contorno_svg: isNova ? '' : String(faca.contorno_svg ?? ''),
     diametro_cm: !Number.isNaN(diametro) && diametro > 0 ? diametro : '',
-    tamanho_tipo: isNova ? '' : String(faca.tamanho_tipo ?? ''),
+    tamanho_tipo: isNova ? (faca.tamanho_tipo ? String(faca.tamanho_tipo) : '') : String(faca.tamanho_tipo ?? ''),
     faca_nova: isNova,
     valor_faca: 0,
     prazo_faca_dias: '',
   };
 }
 
-function tituloLinha(f: FacaComposicaoForm): string {
-  const parts: string[] = [];
-  if (f.n_facas != null) parts.push(`N ${f.n_facas}`);
-  if (f.formato) parts.push(f.formato);
-  if (f.medida) parts.push(f.medida);
-  if (f.label && !parts.includes(f.label)) parts.push(f.label);
-  if (parts.length) return parts.join(' · ');
+/** Título curto da linha (só dimensões). */
+function tituloCurto(f: FacaComposicaoForm): string {
+  const dim = dimensoesDaFaca(f);
+  if (dim.titulo && dim.titulo !== '—') return dim.titulo;
+  if (f.medida.trim()) return f.medida.trim();
   return f.faca_nova ? 'Faca nova' : `Faca ${f.ordem}`;
+}
+
+function dimensoesDaFaca(f: FacaComposicaoForm) {
+  return facaDimensoesExibicao({
+    medida: f.medida,
+    formato: f.formato,
+    largura_faca: f.largura_cm === '' ? null : f.largura_cm,
+    diametro_cm: f.diametro_cm === '' ? null : f.diametro_cm,
+    tamanho_tipo: f.tamanho_tipo || null,
+  });
+}
+
+function fmtChipNum(v: number | '', decimals = 2): string {
+  if (v === '' || v == null) return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: decimals });
+}
+
+function MetaChip({
+  label,
+  value,
+  warn,
+}: {
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
+  return (
+    <div className={`orc-facas-meta-chip${warn ? ' warn' : ''}`}>
+      <span>{label}</span>
+      {value}
+    </div>
+  );
 }
 
 /**
  * Lista 0..N facas no ORC — uma principal (geometria) + extras (referência/cobrança).
+ * Layout denso: silhueta + título + meta com labels; picker só em toolbar.
  */
 export function FacasComposicaoEditor({
   facas,
@@ -81,7 +118,6 @@ export function FacasComposicaoEditor({
       onChange([item]);
       return;
     }
-    // Evita duplicar o mesmo mapa_faca_id.
     if (
       item.mapa_faca_id != null &&
       facas.some((f) => f.mapa_faca_id === item.mapa_faca_id)
@@ -110,132 +146,119 @@ export function FacasComposicaoEditor({
     );
   };
 
-  const patch = (index: number, patchRow: Partial<FacaComposicaoForm>) => {
-    onChange(
-      renumerarFacas(
-        facas.map((f, i) => (i === index ? { ...f, ...patchRow } : f)),
-      ),
-    );
-  };
-
   return (
     <div className="orc-facas-composicao">
-      {facas.length === 0 ? (
-        <p className="form-hint" style={{ marginBottom: '0.75rem' }}>
-          Selecione uma ou mais facas do mapa. A principal define a geometria do cálculo
-          (puxada, Z, largura); as demais entram como ferramental do mesmo job.
-        </p>
-      ) : null}
-
       {facas.length > 0 ? (
         <ul className="orc-facas-lista" aria-label="Facas do orçamento">
-          {facas.map((f, i) => (
-            <li
-              key={`${f.mapa_faca_id ?? 'x'}-${f.ordem}-${i}`}
-              className={`orc-facas-item${f.principal ? ' is-principal' : ''}`}
-            >
-              <div className="orc-facas-item-visual">
-                <OrcamentoFacaDesenho
-                  formato={f.formato}
-                  medida={f.medida}
-                  larguraCm={f.largura_cm === '' ? null : f.largura_cm}
-                  puxadaCm={f.puxada_cm === '' ? null : f.puxada_cm}
-                  diametroCm={f.diametro_cm === '' ? null : f.diametro_cm}
-                  tamanhoTipo={f.tamanho_tipo || null}
-                  colunasMapa={f.colunas_mapa || null}
-                  posicao={f.posicao || null}
-                  contornoSvg={f.contorno_svg || null}
-                  z={f.z === '' ? null : f.z}
-                  maquina={f.maquina || null}
-                  facaNova={f.faca_nova}
-                  variant="compact"
-                  audience="interno"
-                />
-              </div>
-              <div className="orc-facas-item-body">
-                <div className="orc-facas-item-head">
-                  <strong>{tituloLinha(f)}</strong>
-                  {f.principal ? (
-                    <span className="orc-facas-badge">Principal · geometria</span>
-                  ) : (
-                    <span className="orc-facas-badge muted">Extra</span>
-                  )}
-                  {f.faca_nova ? <span className="orc-facas-badge warn">Nova</span> : null}
-                </div>
-                <div className="orc-facas-item-fields form-grid">
-                  <div className="form-group">
-                    <label>Valor ferramental (R$)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={f.valor_faca || ''}
-                      onChange={(e) =>
-                        patch(i, { valor_faca: Math.max(0, Number(e.target.value) || 0) })
-                      }
-                      disabled={!canWrite}
+          {facas.map((f, i) => {
+            const dim = dimensoesDaFaca(f);
+            const cols = !f.faca_nova ? formatColunasMapaLabel(f.colunas_mapa) : null;
+            const puxadaVazia = f.puxada_cm === '' || f.puxada_cm == null;
+            return (
+              <li
+                key={`${f.mapa_faca_id ?? 'x'}-${f.ordem}-${i}`}
+                className={`orc-facas-item${f.principal ? ' is-principal' : ''}`}
+              >
+                <div className="orc-facas-item-visual" title={formatoLabel(f.formato)}>
+                  <FacaApresentacao posicao={f.posicao || ''} size="compact">
+                    <FacaSilhuetaReal
+                      formato={f.formato}
+                      medida={f.medida}
+                      larguraCm={f.largura_cm === '' ? null : f.largura_cm}
+                      puxadaCm={f.puxada_cm === '' ? null : f.puxada_cm}
+                      diametroCm={f.diametro_cm === '' ? null : f.diametro_cm}
+                      tamanhoTipo={f.tamanho_tipo || null}
+                      colunasMapa={f.colunas_mapa || null}
+                      contornoSvg={f.contorno_svg || null}
+                      size={28}
+                      variant="compact"
                     />
-                  </div>
-                  <div className="form-group">
-                    <label>Prazo faca (dias)</label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={365}
-                      value={f.prazo_faca_dias === '' ? '' : f.prazo_faca_dias}
-                      onChange={(e) =>
-                        patch(i, {
-                          prazo_faca_dias:
-                            e.target.value === '' ? '' : Number(e.target.value) || 0,
-                        })
-                      }
-                      disabled={!canWrite}
-                    />
-                  </div>
+                  </FacaApresentacao>
                 </div>
-                {canWrite ? (
-                  <div className="orc-facas-item-actions">
-                    {!f.principal ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => marcarPrincipal(i)}
-                      >
-                        Usar no cálculo
-                      </button>
+                <div className="orc-facas-item-body">
+                  <div className="orc-facas-item-head">
+                    <strong>{tituloCurto(f)}</strong>
+                    {f.principal ? (
+                      <span className="orc-facas-badge">Principal</span>
+                    ) : (
+                      <span className="orc-facas-badge muted">Extra</span>
+                    )}
+                    {f.faca_nova ? <span className="orc-facas-badge warn">Nova</span> : null}
+                    {canWrite ? (
+                      <span className="orc-facas-item-actions">
+                        {!f.principal ? (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => marcarPrincipal(i)}
+                          >
+                            Usar no cálculo
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => remover(i)}
+                        >
+                          Remover
+                        </button>
+                      </span>
                     ) : null}
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => remover(i)}
-                    >
-                      Remover
-                    </button>
                   </div>
-                ) : null}
-              </div>
-            </li>
-          ))}
+                  <div className="orc-facas-meta" aria-label="Dados da faca">
+                    <MetaChip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
+                    <MetaChip
+                      label={dim.isDiametro ? 'Diâmetro' : 'Tamanho'}
+                      value={
+                        dim.tamanho === '—'
+                          ? '—'
+                          : dim.isDiametro
+                            ? `Ø ${dim.tamanho} cm`
+                            : `${dim.tamanho} cm`
+                      }
+                    />
+                    <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
+                    <MetaChip
+                      label="N FACA"
+                      value={f.n_facas != null ? String(f.n_facas) : '—'}
+                    />
+                    {cols ? <MetaChip label="Cols. faca" value={cols} /> : null}
+                    <MetaChip label="Máquina" value={f.maquina || '—'} />
+                    <MetaChip label="Z" value={fmtChipNum(f.z, 0)} />
+                    <MetaChip
+                      label="Puxada"
+                      value={puxadaVazia ? 'manual' : `${fmtChipNum(f.puxada_cm)} cm`}
+                      warn={puxadaVazia}
+                    />
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 
       {soma > 0 ? (
-        <p className="form-hint" style={{ marginTop: '0.5rem' }}>
-          Ferramental cotado: <strong>{formatMoney(soma)}</strong>
-          {principal ? ` · geometria: ${tituloLinha(principal)}` : null}
+        <p className="orc-facas-soma">
+          Ferramental: <strong>{formatMoney(soma)}</strong>
+          {principal ? ` · ${tituloCurto(principal)}` : null}
         </p>
       ) : null}
 
       {canWrite ? (
-        <div className="orc-facas-add">
-          <p className="orc-section-label" style={{ marginBottom: '0.35rem' }}>
-            {facas.length === 0 ? 'Escolher no mapa' : 'Adicionar outra faca'}
-          </p>
+        <div className={`orc-facas-add${facas.length === 0 ? ' is-empty' : ''}`}>
+          {facas.length === 0 ? (
+            <p className="orc-facas-add-hint">Faca existente no mapa ou orçar faca nova</p>
+          ) : (
+            <p className="orc-facas-add-hint muted">Adicionar outra</p>
+          )}
           <FacaPicker
             value={null}
             onChange={adicionar}
             maquinasCatalogo={maquinasCatalogo}
             disabled={!canWrite}
+            permitirFacaNova
+            variante="compacta"
           />
         </div>
       ) : null}

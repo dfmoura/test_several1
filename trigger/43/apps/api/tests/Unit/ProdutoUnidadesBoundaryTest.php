@@ -43,7 +43,7 @@ class ProdutoUnidadesBoundaryTest extends TestCase
     public function test_catalogo_oficial_e_motor_de_sugestao_existem(): void
     {
         $codes = UnidadesMedida::codes();
-        foreach (['RL', 'M', 'M2', 'KG', 'G', 'UN', 'MIL', 'L', 'CX'] as $code) {
+        foreach (['RL', 'M', 'M2', 'KG', 'G', 'UN', 'MIL', 'L', 'CX', 'PCT'] as $code) {
             $this->assertContains($code, $codes);
         }
 

@@ -80,4 +80,25 @@ class ProdutoNfeItemSugestorTest extends TestCase
         $this->assertSame('UN', $s['unidade_comercial']); // PC → UN
         $this->assertNotEmpty($s['warnings']);
     }
+
+    public function test_ucom_pct_e_alias_pacote_permanecem_pct(): void
+    {
+        $direto = $this->sugestor->sugerir([
+            'c_prod' => 'PCT-001',
+            'x_prod' => 'TUBETE 76MM PACOTE',
+            'ncm' => '48239099',
+            'u_com' => 'PCT',
+        ]);
+        $this->assertSame('PCT', $direto['unidade_comercial']);
+        $this->assertSame('PCT', $direto['unidade_interna']);
+
+        $alias = $this->sugestor->sugerir([
+            'c_prod' => 'PCT-002',
+            'x_prod' => 'RIBBON WAX PACOTE C/10',
+            'ncm' => '96121000',
+            'u_com' => 'PACOTE',
+        ]);
+        $this->assertSame('PCT', $alias['unidade_comercial']);
+        $this->assertSame('PCT', $alias['unidade_interna']);
+    }
 }

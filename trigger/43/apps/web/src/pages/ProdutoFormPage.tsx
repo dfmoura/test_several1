@@ -84,6 +84,7 @@ const UNIDADES_FALLBACK: Array<{ codigo: string; descricao: string; uso?: string
   { codigo: 'MIL', descricao: 'Milheiro' },
   { codigo: 'L', descricao: 'Litro' },
   { codigo: 'CX', descricao: 'Caixa' },
+  { codigo: 'PCT', descricao: 'Pacote' },
 ];
 
 type TabId = 'comercial' | 'fiscal';

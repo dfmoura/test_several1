@@ -142,7 +142,8 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
-        $lotePayload = $this->normalizarLotePayloadVirada(
+        $lotePayload = $this->normalizarLotePayload(
+            $empresa,
             $produto,
             isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
             $motivo['codigo'],
@@ -245,7 +246,8 @@ class EstoqueAjusteService
 
         $meta = $this->alcadaCalc->calcular($empresa, $produto, $qtdeSistema, $diferenca, $origem);
 
-        $lotePayload = $this->normalizarLotePayloadVirada(
+        $lotePayload = $this->normalizarLotePayload(
+            $empresa,
             $produto,
             isset($data['lote_payload']) && is_array($data['lote_payload']) ? $data['lote_payload'] : null,
             $motivo['codigo'],
@@ -729,6 +731,7 @@ class EstoqueAjusteService
     /**
      * Evidência de contagem por QR (volume + local) na avulsa.
      * Auditoria / conferência — não altera Writer nem cria volumes.
+     * Alocação física no Writer exige lote_payload (entrada ou baixa explícita).
      *
      * @param  array<string, mixed>|null  $raw
      * @return array<string, mixed>|null
@@ -739,16 +742,16 @@ class EstoqueAjusteService
         ?array $raw,
         string $motivo,
         string $qtdeContada,
-        bool $usaLotePayloadVirada
+        bool $usaLotePayload
     ): ?array {
         if ($raw === null || $raw === []) {
             return null;
         }
 
-        if ($usaLotePayloadVirada || $motivo === 'A03') {
+        if ($usaLotePayload || $motivo === 'A03') {
             throw ValidationException::withMessages([
                 'contagem_evidencia' => [
-                    'Contagem por QR de volumes existentes não se aplica ao saldo inicial (A03). Use volumes de abertura.',
+                    'Contagem por QR de volumes existentes não se aplica ao saldo inicial (A03) nem junto com volumes de lote_payload. Use o painel de volumes.',
                 ],
             ]);
         }
@@ -883,13 +886,15 @@ class EstoqueAjusteService
     }
 
     /**
-     * Volumes de abertura (A03 / origem VIRADA): soma das qtdes = |Δ| positiva.
-     * L×C opcional; em M2/bobina, se ambos informados, deriva/valida área.
+     * Volumes no AJU — mesma semântica do receber / EstoqueSaldoWriter:
+     * - +Δ: N volumes novos (volume_novo, L×C opcional); soma = |Δ|
+     * - −Δ: N linhas com lote_id + qtde a baixar; soma = |Δ| (sem FEFO quando informado)
      *
      * @param  list<array<string, mixed>>|null  $raw
      * @return list<array<string, mixed>>|null
      */
-    private function normalizarLotePayloadVirada(
+    private function normalizarLotePayload(
+        Empresa $empresa,
         Produto $produto,
         ?array $raw,
         string $motivo,
@@ -900,30 +905,47 @@ class EstoqueAjusteService
             return null;
         }
 
-        $permite = $motivo === 'A03' || $origem === EstoqueAjuste::ORIGEM_VIRADA;
-        if (! $permite) {
-            throw ValidationException::withMessages([
-                'lote_payload' => [
-                    'Volumes (lote_payload) só são permitidos no saldo inicial (A03) ou inventário VIRADA.',
-                ],
-            ]);
-        }
-
         if (! $produto->controla_lote) {
             throw ValidationException::withMessages([
                 'lote_payload' => ['Produto não controla lote/volume — remova os volumes.'],
             ]);
         }
 
-        if (bccomp($diferenca, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+        $positivo = bccomp($diferenca, '0', PadraoDecimal::SCALE_QTY) > 0;
+        $qtdeAbs = $positivo
+            ? $diferenca
+            : bcmul($diferenca, '-1', PadraoDecimal::SCALE_QTY);
+
+        if (bccomp($qtdeAbs, '0', PadraoDecimal::SCALE_QTY) <= 0) {
             throw ValidationException::withMessages([
-                'lote_payload' => ['Volumes de abertura só se aplicam a diferença positiva (entrada de saldo).'],
+                'lote_payload' => ['Volumes só se aplicam quando há diferença de quantidade.'],
             ]);
         }
 
-        $qtdeAbs = $diferenca;
+        return $positivo
+            ? $this->normalizarLotePayloadEntrada($produto, $raw, $motivo, $origem, $qtdeAbs)
+            : $this->normalizarLotePayloadBaixa($empresa, $produto, $raw, $qtdeAbs);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $raw
+     * @return list<array<string, mixed>>
+     */
+    private function normalizarLotePayloadEntrada(
+        Produto $produto,
+        array $raw,
+        string $motivo,
+        string $origem,
+        string $qtdeAbs
+    ): array {
         $usaArea = strtoupper((string) ($produto->unidade_interna ?? 'UN')) === 'M2'
             || OcPedidoDetalhe::permiteParaProduto($produto);
+
+        $origemTipo = ($motivo === 'A03' || $origem === EstoqueAjuste::ORIGEM_VIRADA)
+            ? EstoqueLote::ORIGEM_VIRADA
+            : EstoqueLote::ORIGEM_AJUSTE;
+
+        $prefixoCodigo = $origemTipo === EstoqueLote::ORIGEM_VIRADA ? 'VIR' : 'AJU';
 
         $linhas = [];
         $soma = '0';
@@ -972,7 +994,7 @@ class EstoqueAjusteService
             }
 
             if ($codigo === '') {
-                $codigo = 'VIR-'.$produto->codigo.'-'.($idx + 1);
+                $codigo = $prefixoCodigo.'-'.$produto->codigo.'-'.($idx + 1);
             }
 
             $entrada = $this->nullIfEmpty($linha['data_entrada'] ?? $linha['lote_data_entrada'] ?? null)
@@ -988,7 +1010,7 @@ class EstoqueAjusteService
                 'data_validade' => $val !== null ? (string) $val : null,
                 'largura_mm' => $largura,
                 'comprimento_m' => $comprimento,
-                'origem_tipo' => EstoqueLote::ORIGEM_VIRADA,
+                'origem_tipo' => $origemTipo,
                 'volume_novo' => true,
             ];
             $soma = bcadd($soma, $qtde, PadraoDecimal::SCALE_QTY);
@@ -999,6 +1021,100 @@ class EstoqueAjusteService
             throw ValidationException::withMessages([
                 'lote_payload' => [
                     "Soma dos volumes ({$soma}) deve igualar a diferença do ajuste ({$qtdeAbs}).",
+                ],
+            ]);
+        }
+
+        return $linhas;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $raw
+     * @return list<array<string, mixed>>
+     */
+    private function normalizarLotePayloadBaixa(
+        Empresa $empresa,
+        Produto $produto,
+        array $raw,
+        string $qtdeAbs
+    ): array {
+        $linhas = [];
+        $soma = '0';
+        $vistos = [];
+
+        foreach (array_values($raw) as $idx => $linha) {
+            if (! is_array($linha)) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}" => ['Volume inválido.'],
+                ]);
+            }
+
+            $loteId = (int) ($linha['lote_id'] ?? 0);
+            if ($loteId <= 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.lote_id" => [
+                        'Na baixa, informe o volume (lote_id) a debitar — sem FEFO silencioso.',
+                    ],
+                ]);
+            }
+            if (isset($vistos[$loteId])) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.lote_id" => ['Volume duplicado na alocação de baixa.'],
+                ]);
+            }
+            $vistos[$loteId] = true;
+
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('id', $loteId)
+                ->first();
+            if (! $lote) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.lote_id" => ['Volume não pertence a este produto/empresa.'],
+                ]);
+            }
+
+            $qtde = PadraoDecimal::roundHalfUp((string) ($linha['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.qtde" => ['Informe a quantidade a baixar (maior que zero).'],
+                ]);
+            }
+
+            $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, $disp, PadraoDecimal::SCALE_QTY) > 0) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.qtde" => [
+                        "Volume {$lote->codigo} insuficiente (disponível {$disp}).",
+                    ],
+                ]);
+            }
+
+            $linhas[] = [
+                'lote_id' => (int) $lote->id,
+                'codigo' => (string) $lote->codigo,
+                'qtde' => $qtde,
+                'data_entrada' => optional($lote->data_entrada)?->format('Y-m-d') ?? now()->toDateString(),
+                'data_fabricacao' => optional($lote->data_fabricacao)?->format('Y-m-d'),
+                'data_validade' => optional($lote->data_validade)?->format('Y-m-d'),
+                'largura_mm' => $lote->largura_mm !== null && $lote->largura_mm !== ''
+                    ? PadraoDecimal::roundHalfUp((string) $lote->largura_mm, PadraoDecimal::SCALE_DIM)
+                    : null,
+                'comprimento_m' => $lote->comprimento_m !== null && $lote->comprimento_m !== ''
+                    ? PadraoDecimal::roundHalfUp((string) $lote->comprimento_m, PadraoDecimal::SCALE_DIM)
+                    : null,
+                'origem_tipo' => EstoqueLote::ORIGEM_AJUSTE,
+                'volume_novo' => false,
+            ];
+            $soma = bcadd($soma, $qtde, PadraoDecimal::SCALE_QTY);
+        }
+
+        $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+        if (bccomp($soma, $qtdeAbs, PadraoDecimal::SCALE_QTY) !== 0) {
+            throw ValidationException::withMessages([
+                'lote_payload' => [
+                    "Soma das baixas ({$soma}) deve igualar a diferença do ajuste ({$qtdeAbs}).",
                 ],
             ]);
         }

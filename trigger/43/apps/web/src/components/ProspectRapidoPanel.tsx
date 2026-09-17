@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
-import { ApiError, api, patchEnderecoFromCep, type CepConsulta, type Parceiro } from '../lib/api';
-import { formatCepInput, formatWhatsAppInput, onlyDigits } from '../lib/format';
+import {
+  ApiError,
+  api,
+  patchEnderecoFromCep,
+  type CepConsulta,
+  type CnpjConsulta,
+  type Parceiro,
+} from '../lib/api';
+import { formatCepInput, formatCnpjCpf, formatWhatsAppInput, onlyDigits } from '../lib/format';
 import { ORIGENS_LEAD } from '../lib/origemLead';
 
 const UFS = [
@@ -79,11 +86,14 @@ export function ProspectRapidoPanel({
   const [form, setForm] = useState<FormState>(empty);
   const [pending, setPending] = useState(false);
   const [consultingCep, setConsultingCep] = useState(false);
+  const [consultingCnpj, setConsultingCnpj] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [cepOk, setCepOk] = useState<string | null>(null);
+  const [cnpjOk, setCnpjOk] = useState<string | null>(null);
   const [candidatos, setCandidatos] = useState<ProspectCandidato[]>([]);
   const lastCepConsultado = useRef('');
   const cepSeq = useRef(0);
+  const cnpjSeq = useRef(0);
 
   if (!open) return null;
 
@@ -92,6 +102,7 @@ export function ProspectRapidoPanel({
     setCandidatos([]);
     setErro(null);
     if (key === 'cep') setCepOk(null);
+    if (key === 'cnpj_cpf') setCnpjOk(null);
   };
 
   const aplicarCep = (d: CepConsulta) => {
@@ -149,6 +160,67 @@ export function ProspectRapidoPanel({
     }
   };
 
+  /** Preenche só o mínimo do prospect (nome + endereço + e-mail se vazio) — sem fiscal/CNAE. */
+  const aplicarCnpj = (d: CnpjConsulta, digits: string) => {
+    setForm((prev) => {
+      const cep = d.cep ? onlyDigits(d.cep).slice(0, 8) : prev.cep;
+      if (cep.length === 8) {
+        lastCepConsultado.current = cep;
+      }
+      const uf = (d.uf ?? prev.uf).toUpperCase().slice(0, 2);
+      return {
+        ...prev,
+        cnpj_cpf: digits,
+        nome: (d.razao_social?.trim() || prev.nome),
+        logradouro: d.logradouro ?? prev.logradouro,
+        numero: d.numero ?? prev.numero,
+        complemento: d.complemento ?? prev.complemento,
+        bairro: d.bairro ?? prev.bairro,
+        municipio: d.municipio ?? prev.municipio,
+        uf: uf.length === 2 ? uf : prev.uf,
+        cep,
+        ibge:
+          d.ibge ??
+          (d.codigo_municipio_ibge != null ? String(d.codigo_municipio_ibge) : prev.ibge),
+        email: prev.email.trim() ? prev.email : (d.email ?? prev.email),
+      };
+    });
+    setCandidatos([]);
+    setCepOk(null);
+    setCnpjOk('Dados da Receita aplicados — confira nome e endereço.');
+  };
+
+  const consultarCnpj = async () => {
+    if (disabled || pending || consultingCnpj) return;
+    const digits = onlyDigits(form.cnpj_cpf).slice(0, 14);
+    if (digits.length === 11) {
+      setErro('CPF registrado no cadastro; consulta automática vale só para CNPJ (14 dígitos).');
+      setCnpjOk(null);
+      return;
+    }
+    if (digits.length !== 14) {
+      setErro('Informe um CNPJ com 14 dígitos para consultar.');
+      setCnpjOk(null);
+      return;
+    }
+
+    const seq = ++cnpjSeq.current;
+    setConsultingCnpj(true);
+    setErro(null);
+    setCnpjOk(null);
+    try {
+      const res = await api.get<{ data: CnpjConsulta }>(`/consulta/cnpj/${digits}`);
+      if (seq !== cnpjSeq.current) return;
+      aplicarCnpj(res.data, digits);
+    } catch (e) {
+      if (seq !== cnpjSeq.current) return;
+      setCnpjOk(null);
+      setErro(e instanceof ApiError ? e.message : 'Consulta CNPJ indisponível.');
+    } finally {
+      if (seq === cnpjSeq.current) setConsultingCnpj(false);
+    }
+  };
+
   const criar = async (forcar: boolean) => {
     if (disabled) return;
     const nome = form.nome.trim();
@@ -180,13 +252,14 @@ export function ProspectRapidoPanel({
         municipio: form.municipio.trim(),
         uf: form.uf.toUpperCase(),
         ibge: form.ibge.trim() || null,
-        cnpj_cpf: form.cnpj_cpf.trim() || null,
+        cnpj_cpf: onlyDigits(form.cnpj_cpf) || null,
         origem_lead: form.origem_lead.trim() || null,
         forcar,
       });
       setForm(empty);
       setCandidatos([]);
       setCepOk(null);
+      setCnpjOk(null);
       lastCepConsultado.current = '';
       onCreated(res.data);
       onClose();
@@ -211,8 +284,8 @@ export function ProspectRapidoPanel({
         <div>
           <strong>{embedded ? 'Cadastro mínimo do prospect' : 'Novo prospect (cadastro mínimo)'}</strong>
           <p className="form-hint" style={{ margin: '0.25rem 0 0' }}>
-            Nome + (WhatsApp ou e-mail) + cidade/UF (~30s). CEP busca o endereço; o restante
-            você completa se souber. Cadastro fiscal completo só na conversão em pedido.
+            Nome + (WhatsApp ou e-mail) + cidade/UF (~30s). CNPJ consulta razão e endereço; CEP
+            também busca o endereço. Cadastro fiscal completo só na conversão em pedido.
           </p>
         </div>
         {!embedded ? (
@@ -225,6 +298,46 @@ export function ProspectRapidoPanel({
       {erro ? <p className="form-error">{erro}</p> : null}
 
       <div className="form-grid">
+        <div className="form-group">
+          <label>
+            CNPJ/CPF <span className="field-note">opc. · CNPJ consulta</span>
+          </label>
+          <div className="input-action">
+            <input
+              inputMode="numeric"
+              autoComplete="off"
+              value={formatCnpjCpf(form.cnpj_cpf)}
+              onChange={(e) => set('cnpj_cpf', onlyDigits(e.target.value).slice(0, 14))}
+              placeholder="CPF ou CNPJ"
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={busy || consultingCnpj}
+              onClick={() => void consultarCnpj()}
+              title="Consulta razão social e endereço (somente CNPJ)"
+            >
+              {consultingCnpj ? '…' : 'Consultar'}
+            </button>
+          </div>
+          {cnpjOk ? <p className="form-hint" style={{ margin: 0 }}>{cnpjOk}</p> : null}
+        </div>
+        <div className="form-group">
+          <label>Origem do lead (opc.)</label>
+          <select
+            value={form.origem_lead}
+            onChange={(e) => set('origem_lead', e.target.value)}
+            disabled={busy}
+          >
+            <option value="">Não informado</option>
+            {ORIGENS_LEAD.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="form-group span-full">
           <label>Nome *</label>
           <input
@@ -345,30 +458,6 @@ export function ProspectRapidoPanel({
             ))}
           </select>
         </div>
-        <div className="form-group">
-          <label>CNPJ/CPF (opc.)</label>
-          <input
-            value={form.cnpj_cpf}
-            onChange={(e) => set('cnpj_cpf', e.target.value)}
-            placeholder="se informado espontaneamente"
-            disabled={busy}
-          />
-        </div>
-        <div className="form-group">
-          <label>Origem do lead (opc.)</label>
-          <select
-            value={form.origem_lead}
-            onChange={(e) => set('origem_lead', e.target.value)}
-            disabled={busy}
-          >
-            <option value="">Não informado</option>
-            {ORIGENS_LEAD.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {candidatos.length > 0 ? (
@@ -402,6 +491,7 @@ export function ProspectRapidoPanel({
                     setForm(empty);
                     setCandidatos([]);
                     setCepOk(null);
+                    setCnpjOk(null);
                     lastCepConsultado.current = '';
                     onClose();
                   }}

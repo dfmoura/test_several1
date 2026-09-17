@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, api } from '../lib/api';
-import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
+import { FORMATOS_CANONICOS, composeMedidaIdentidade, facaDimensoesExibicao, formatoUsaDiametro, mergeVocabulario } from '../lib/facasMapa';
 import { useTableSort } from '../lib/useTableSort';
 import { formatoKind, formatoLabel } from './FacaShapeIcon';
 import { FacaApresentacao } from './FacaApresentacao';
@@ -26,13 +26,14 @@ export type FacaRecord = Record<string, unknown> & {
   contorno_svg?: string | null;
   diametro_cm?: number | null;
   tamanho_tipo?: string | null;
+  tamanho_raw?: string | null;
   completa?: boolean;
   cliente_nota?: string | null;
   fornecedor?: string | null;
   label?: string;
   /**
-   * GERACAO 7.3 — legado em ORCs já gravados.
-   * Novos ORCs só selecionam faca do mapa oficial (cadastro em Mapa de facas).
+   * Cotação comercial sem registro no mapa (`mapa_faca_id` nulo).
+   * Inventário oficial continua em Mapa de facas; aqui só se cota ferramental/geometria.
    */
   faca_nova?: boolean;
 };
@@ -42,7 +43,63 @@ type Props = {
   onChange: (faca: FacaRecord | null) => void;
   maquinasCatalogo?: string[];
   disabled?: boolean;
+  /** Abas Buscar no mapa | Faca nova. Default: true. */
+  permitirFacaNova?: boolean;
+  /**
+   * completa — card com resumo (legado / standalone).
+   * compacta — só botões + modal (composição ORC; sem chrome vazio).
+   */
+  variante?: 'completa' | 'compacta';
 };
+
+/** Monta faca nova pronta para o ORC — sem id de mapa. */
+export function buildFacaNova(partial?: Partial<FacaRecord>): FacaRecord {
+  const formato = String(partial?.formato || partial?.faca || 'RETA');
+  const isDiam = formatoUsaDiametro(formato);
+  const largura =
+    partial?.largura_faca != null && Number(partial.largura_faca) > 0
+      ? Number(partial.largura_faca)
+      : null;
+  const diametro =
+    partial?.diametro_cm != null && Number(partial.diametro_cm) > 0
+      ? Number(partial.diametro_cm)
+      : null;
+  const tamanho =
+    diametro ??
+    (partial?.tamanho_raw != null && String(partial.tamanho_raw).trim() !== ''
+      ? Number(String(partial.tamanho_raw).replace(',', '.'))
+      : null);
+  const tamanhoOk = tamanho != null && Number.isFinite(tamanho) && tamanho > 0 ? tamanho : null;
+  const medida =
+    String(partial?.medida || '').trim() ||
+    composeMedidaIdentidade({
+      larguraCm: isDiam ? largura ?? tamanhoOk : largura,
+      tamanhoCm: tamanhoOk,
+      isDiametro: isDiam,
+    });
+  return {
+    faca_nova: true,
+    completa: false,
+    medida,
+    formato,
+    faca: formato,
+    maquina_catalogo: partial?.maquina_catalogo ?? 'BETA',
+    puxada: partial?.puxada ?? null,
+    z: partial?.z ?? null,
+    repeticao: null,
+    largura_faca: isDiam ? largura ?? tamanhoOk : largura,
+    diametro_cm: isDiam ? tamanhoOk : null,
+    tamanho_raw: tamanhoOk != null ? String(tamanhoOk) : null,
+    tamanho_tipo: isDiam ? 'diametro' : 'altura',
+    label: 'Faca nova',
+    cliente_nota: 'Faca nova — cadastrar no mapa após aprovação',
+  };
+}
+
+/** @deprecated use buildFacaNova — mantido para imports residuais */
+export function stubFacaNova(): FacaRecord {
+  return buildFacaNova();
+}
 
 type FacasResponse = {
   total: number;
@@ -80,7 +137,8 @@ async function listFacas(params: {
 
 const FACA_SORT = {
   formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
-  medida: (f: FacaRecord) => String(f.medida || ''),
+  largura: (f: FacaRecord) => facaDimensoesExibicao(f).larguraSort,
+  tamanho: (f: FacaRecord) => facaDimensoesExibicao(f).tamanhoSort,
   n_facas: (f: FacaRecord) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaRecord) => String(f.maquina_catalogo || ''),
   z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
@@ -94,8 +152,11 @@ export function FacaPicker({
   onChange,
   maquinasCatalogo = [],
   disabled = false,
+  permitirFacaNova = true,
+  variante = 'completa',
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<'busca' | 'nova'>('busca');
   const [q, setQ] = useState('');
   const [maquina, setMaquina] = useState('');
   const [formato, setFormato] = useState('');
@@ -107,6 +168,14 @@ export function FacaPicker({
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const { sorted: sortedItems, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
+
+  const [novaLargura, setNovaLargura] = useState('');
+  const [novaTamanho, setNovaTamanho] = useState('');
+  const [novaFormato, setNovaFormato] = useState('RETA');
+  const [novaMaquina, setNovaMaquina] = useState('');
+  const [novaPuxada, setNovaPuxada] = useState('');
+  const [novaZ, setNovaZ] = useState('');
+  const [novaErro, setNovaErro] = useState<string | null>(null);
 
   const maquinas = useMemo(
     () => mergeVocabulario(maquinasCatalogo, maquinasApi),
@@ -146,12 +215,12 @@ export function FacaPicker({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || mode !== 'busca') return;
     const t = window.setTimeout(() => {
       void load();
     }, q ? 220 : 0);
     return () => window.clearTimeout(t);
-  }, [open, load, q]);
+  }, [open, load, q, mode]);
 
   useEffect(() => {
     listFacas({ so_completas: true })
@@ -162,7 +231,38 @@ export function FacaPicker({
       .catch(() => undefined);
   }, []);
 
-  function abrir() {
+  function abrir(tab: 'busca' | 'nova' = 'busca') {
+    if (tab === 'nova' && !permitirFacaNova) {
+      tab = 'busca';
+    }
+    setMode(tab);
+    setNovaErro(null);
+    if (tab === 'nova') {
+      setNovaMaquina((prev) => prev || maquinas[0] || 'BETA');
+      if (value?.faca_nova) {
+        const dim = facaDimensoesExibicao(value);
+        setNovaLargura(
+          value.largura_faca != null
+            ? String(value.largura_faca)
+            : dim.larguraSort != null
+              ? String(dim.larguraSort)
+              : '',
+        );
+        setNovaTamanho(
+          value.diametro_cm != null
+            ? String(value.diametro_cm)
+            : value.tamanho_raw != null
+              ? String(value.tamanho_raw)
+              : dim.tamanhoSort != null
+                ? String(dim.tamanhoSort)
+                : '',
+        );
+        setNovaFormato(String(value.formato || value.faca || 'RETA'));
+        setNovaMaquina(String(value.maquina_catalogo || maquinas[0] || 'BETA'));
+        setNovaPuxada(value.puxada != null ? String(value.puxada) : '');
+        setNovaZ(value.z != null ? String(value.z) : '');
+      }
+    }
     setOpen(true);
   }
 
@@ -171,155 +271,146 @@ export function FacaPicker({
     setOpen(false);
   }
 
+  function confirmarNova() {
+    const isDiam = formatoUsaDiametro(novaFormato);
+    const parseNum = (raw: string): number | null => {
+      const t = raw.trim().replace(',', '.');
+      if (!t) return null;
+      const n = Number(t);
+      if (!Number.isFinite(n)) return Number.NaN;
+      return n;
+    };
+    const tamanho = parseNum(novaTamanho);
+    const larguraInformada = parseNum(novaLargura);
+    const largura = isDiam
+      ? larguraInformada == null || Number.isNaN(larguraInformada)
+        ? tamanho
+        : larguraInformada
+      : larguraInformada;
+
+    if (tamanho == null || Number.isNaN(tamanho) || !(tamanho > 0)) {
+      setNovaErro(isDiam ? 'Informe o diâmetro (cm).' : 'Informe o tamanho (cm).');
+      return;
+    }
+    if (!isDiam && (largura == null || Number.isNaN(largura) || !(largura > 0))) {
+      setNovaErro('Informe a largura (cm).');
+      return;
+    }
+    const maq = novaMaquina || maquinas[0] || 'BETA';
+    const puxada = novaPuxada === '' ? null : Number(novaPuxada.replace(',', '.'));
+    const z = novaZ === '' ? null : Number(novaZ.replace(',', '.'));
+    if (puxada != null && (Number.isNaN(puxada) || puxada <= 0)) {
+      setNovaErro('Puxada inválida.');
+      return;
+    }
+    if (z != null && (Number.isNaN(z) || z < 0)) {
+      setNovaErro('Z inválido.');
+      return;
+    }
+    const medida = composeMedidaIdentidade({
+      larguraCm: Number.isNaN(largura as number) ? null : largura,
+      tamanhoCm: tamanho,
+      isDiametro: isDiam,
+    });
+    if (!medida) {
+      setNovaErro('Revise largura e tamanho.');
+      return;
+    }
+    onChange(
+      buildFacaNova({
+        medida,
+        formato: novaFormato,
+        maquina_catalogo: maq,
+        puxada,
+        z,
+        largura_faca: Number.isNaN(largura as number) ? null : largura,
+        diametro_cm: isDiam ? tamanho : null,
+        tamanho_raw: String(tamanho),
+        tamanho_tipo: isDiam ? 'diametro' : 'altura',
+      }),
+    );
+    setOpen(false);
+  }
+
   const incompleta = value != null && value.completa === false;
   const isNova = value?.faca_nova === true;
   const colsFaca =
     value && !isNova ? formatColunasMapaLabel(String(value.colunas_mapa ?? '')) ?? '1×' : null;
   const posicaoMapa = String(value?.posicao ?? '');
+  const compacta = variante === 'compacta';
 
-  return (
-    <div className={`faca-picker${isNova ? ' is-nova' : ''}`}>
-      <div className="faca-summary">
-        <div className="faca-summary-main">
-          <div className="faca-summary-top">
-            <span className="faca-kicker">
-              {isNova ? 'Faca nova (legado nesta proposta)' : 'Faca do mapa oficial'}
-            </span>
-            <div className="faca-summary-actions">
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm faca-btn"
-                disabled={disabled}
-                onClick={() => abrir()}
-              >
-                {value && !isNova ? 'Trocar faca' : 'Buscar no mapa'}
-              </button>
-            </div>
+  const acoes = (
+    <div className="faca-summary-actions">
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm faca-btn"
+        disabled={disabled}
+        onClick={() => abrir('busca')}
+      >
+        {value && !isNova ? 'Trocar faca' : 'Buscar no mapa'}
+      </button>
+      {permitirFacaNova ? (
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          disabled={disabled}
+          onClick={() => abrir('nova')}
+        >
+          {isNova ? 'Editar faca nova' : 'Orçar faca nova'}
+        </button>
+      ) : null}
+    </div>
+  );
+
+  const modal = open ? (
+    <div className="faca-modal" role="dialog" aria-modal="true" aria-labelledby="faca-modal-title">
+      <div className="faca-modal-backdrop" onClick={() => setOpen(false)} />
+      <div className="faca-modal-panel">
+        <header className="faca-modal-head">
+          <div>
+            <h2 id="faca-modal-title">
+              {mode === 'nova' ? 'Orçar faca nova' : 'Mapa de facas'}
+            </h2>
+            <p className="faca-modal-sub">
+              {mode === 'nova'
+                ? 'Medida ainda não está no mapa. Simule no ORC com custo/prazo cotados — cadastro oficial só após aprovação.'
+                : 'Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na linha para selecionar.'}
+            </p>
           </div>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
+            Fechar
+          </button>
+        </header>
 
-          {value ? (
-            <div className="faca-summary-body">
-              <div className="faca-summary-visual" title={formatoLabel(value.formato || value.faca)}>
-                <FacaApresentacao
-                  className="faca-summary-apresentacao"
-                  title={formatoLabel(value.formato || value.faca)}
-                  posicao={posicaoMapa}
-                  size="featured"
-                >
-                  <FacaSilhuetaReal
-                    {...facaSilhuetaFromRecord(value)}
-                    size={56}
-                    variant="featured"
-                  />
-                </FacaApresentacao>
-                <span className="faca-shape-caption">
-                  {isNova ? 'NOVA' : formatoKind(String(value.formato || value.faca || ''))}
-                  {isFacaPosicao(posicaoMapa) ? ` · ${facaPosicaoLabel(posicaoMapa)}` : ''}
-                </span>
-              </div>
-              <div className="faca-summary-text">
-                <div className="faca-summary-title">
-                  {isNova && !value.medida ? (
-                    <span className="muted">Informe a medida abaixo</span>
-                  ) : String(value.tamanho_tipo) === 'diametro' ? (
-                    <span className="badge-diam">{String(value.medida)}</span>
-                  ) : (
-                    String(value.medida || '—')
-                  )}
-                </div>
-                <div className="faca-summary-meta">
-                  {[
-                    formatoLabel(value.formato || value.faca),
-                    value.maquina_catalogo ? maquinaLabel(String(value.maquina_catalogo)) : null,
-                    isNova ? 'não cadastrada no mapa' : value.cliente_nota,
-                    String(value.tamanho_tipo) === 'diametro' ? 'diâmetro (Ø)' : null,
-                    !isNova && value.completa === false ? 'puxada/Z manuais' : null,
-                    !isNova && value.completa !== false ? 'dados completos' : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </div>
-                <div className="faca-chips">
-                  <div className="faca-chip">
-                    <span>N facas</span>
-                    {isNova || value.n_facas == null ? '—' : fmtNum(value.n_facas, 0)}
-                  </div>
-                  {colsFaca ? (
-                    <div className="faca-chip" title="Colunas da faca no mapa (não é coluna de rebobinação)">
-                      <span>Cols. faca</span>
-                      {colsFaca}
-                    </div>
-                  ) : null}
-                  <div className="faca-chip">
-                    <span>Z</span>
-                    {fmtNum(value.z, 0)}
-                  </div>
-                  <div className="faca-chip">
-                    <span>REP</span>
-                    {isNova ? '—' : fmtNum(value.repeticao, 4)}
-                  </div>
-                  <div className={`faca-chip${value.puxada == null ? ' warn' : ''}`}>
-                    <span>Puxada</span>
-                    {value.puxada != null ? `${fmtNum(value.puxada)} cm` : 'manual'}
-                  </div>
-                  <div className="faca-chip">
-                    <span>Máq.</span>
-                    {String(value.maquina_catalogo || '—')}
-                  </div>
-                  {isNova ? (
-                    <div className="faca-chip warn">
-                      <span>Tipo</span>
-                      FACA NOVA
-                    </div>
-                  ) : null}
-                  {value.largura_faca != null ? (
-                    <div className="faca-chip">
-                      <span>Larg. faca</span>
-                      {fmtNum(value.largura_faca)} cm
-                    </div>
-                  ) : null}
-                </div>
-                {isNova ? (
-                  <p className="faca-warn">
-                    Proposta legada com faca nova. Valor e prazo cotados permanecem em Especificação
-                    técnica. Para novos orçamentos, cadastre a geometria em Mapa de facas e
-                    selecione-a aqui.
-                  </p>
-                ) : incompleta ? (
-                  <p className="faca-warn">
-                    Registro incompleto no mapa — preencha puxada (e Z se preciso) manualmente.
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            <div className="faca-summary-empty">
-              <p className="muted" style={{ margin: 0 }}>
-                Busque e selecione uma faca do mapa oficial. Medidas novas devem ser cadastradas em
-                Mapa de facas.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+        {permitirFacaNova ? (
+          <div className="faca-modal-tabs" role="tablist" aria-label="Origem da faca">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'busca'}
+              className={mode === 'busca' ? 'active' : ''}
+              onClick={() => setMode('busca')}
+            >
+              Faca existente
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'nova'}
+              className={mode === 'nova' ? 'active' : ''}
+              onClick={() => {
+                setNovaErro(null);
+                setNovaMaquina((prev) => prev || maquinas[0] || 'BETA');
+                setMode('nova');
+              }}
+            >
+              Faca nova
+            </button>
+          </div>
+        ) : null}
 
-      {open ? (
-        <div className="faca-modal" role="dialog" aria-modal="true" aria-labelledby="faca-modal-title">
-          <div className="faca-modal-backdrop" onClick={() => setOpen(false)} />
-          <div className="faca-modal-panel">
-            <header className="faca-modal-head">
-              <div>
-                <h2 id="faca-modal-title">Mapa de facas</h2>
-                <p className="faca-modal-sub">
-                  Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na
-                  linha para selecionar · Shift+clique no cabeçalho soma ordenação.
-                </p>
-              </div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
-                Fechar
-              </button>
-            </header>
-
+        {mode === 'busca' || !permitirFacaNova ? (
+          <>
             <div className="faca-filters">
               <label className="faca-filter-field faca-busca-wrap">
                 <span>Buscar</span>
@@ -383,41 +474,109 @@ export function FacaPicker({
                     : ' · Shift+clique soma ordenação'
                   : ''}
               </p>
+              {!loading && total === 0 && permitirFacaNova ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setMode('nova')}
+                >
+                  Orçar como faca nova
+                </button>
+              ) : null}
             </div>
 
             <div className="faca-table-wrap">
-              <table className="faca-table">
+              <table className="faca-table faca-table--mapa">
                 <thead>
                   <tr>
-                    <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="formato"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       Formato
                     </SortableTh>
-                    <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                      Medida
+                    <th className="faca-th-silhueta" scope="col">
+                      Silhueta
+                    </th>
+                    <SortableTh
+                      column="largura"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Largura"
+                    >
+                      Largura
+                    </SortableTh>
+                    <SortableTh
+                      column="tamanho"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Tamanho"
+                    >
+                      Tamanho
                     </SortableTh>
                     <SortableTh
                       column="n_facas"
                       className="num"
-                      sorts={sorts} sortKey={sortKey}
+                      sorts={sorts}
+                      sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
-                      label="N facas"
+                      label="N FACA"
                     >
-                      N facas
+                      N FACA
                     </SortableTh>
-                    <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="maquina"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       Máquina
                     </SortableTh>
-                    <SortableTh column="z" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="z"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       Z
                     </SortableTh>
-                    <SortableTh column="rep" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="rep"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       REP
                     </SortableTh>
-                    <SortableTh column="puxada" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="puxada"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       Puxada
                     </SortableTh>
-                    <SortableTh column="nota" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    <SortableTh
+                      column="nota"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                    >
                       Nota
                     </SortableTh>
                   </tr>
@@ -425,15 +584,23 @@ export function FacaPicker({
                 <tbody>
                   {!items.length && !loading ? (
                     <tr>
-                      <td colSpan={8} className="faca-empty">
-                        Nenhuma faca neste filtro. Ajuste a busca ou cadastre a medida em{' '}
-                        <strong>Mapa de facas</strong>.
+                      <td colSpan={10} className="faca-empty">
+                        Nenhuma faca neste filtro.
+                        {permitirFacaNova ? (
+                          <>
+                            {' '}
+                            Use a aba <strong>Faca nova</strong> para orçar medida inexistente.
+                          </>
+                        ) : (
+                          <> Cadastre em Mapa de facas.</>
+                        )}
                       </td>
                     </tr>
                   ) : (
                     sortedItems.map((f) => {
                       const selected = value?.id != null && value.id === f.id && !isNova;
                       const fmt = String(f.formato || f.faca || '');
+                      const dim = facaDimensoesExibicao(f);
                       return (
                         <tr
                           key={String(f.id ?? f.label)}
@@ -441,44 +608,40 @@ export function FacaPicker({
                             f.completa === false ? ' incompleta' : ''
                           }`}
                           onClick={() => escolher(f)}
-                          title={String(f.label || '')}
+                          title={dim.titulo}
                         >
                           <td>
-                            <div className="faca-row-formato">
-                              <FacaApresentacao
-                                posicao={String(f.posicao ?? '')}
-                                size="compact"
-                              >
-                                <FacaSilhuetaReal
-                                  {...facaSilhuetaFromRecord(f)}
-                                  size={28}
-                                  variant="compact"
-                                />
-                              </FacaApresentacao>
-                              <span>{formatoLabel(fmt)}</span>
-                            </div>
+                            <span>{formatoLabel(fmt)}</span>
                           </td>
-                          <td className="medida">
-                            {String(f.tamanho_tipo) === 'diametro' ? (
-                              <span className="badge-diam">{String(f.medida)}</span>
-                            ) : (
-                              String(f.medida || '—')
-                            )}
+                          <td className="faca-silhueta-cell">
+                            <FacaApresentacao posicao={String(f.posicao ?? '')} size="compact">
+                              <FacaSilhuetaReal
+                                {...facaSilhuetaFromRecord(f)}
+                                size={36}
+                                variant="compact"
+                              />
+                            </FacaApresentacao>
                           </td>
                           <td className="num">
-                            {f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}
+                            <strong>{dim.largura}</strong>
                           </td>
+                          <td className="num">
+                            {dim.isDiametro ? (
+                              <span className="badge-diam" title="Diâmetro (Ø)">
+                                Ø {dim.tamanho}
+                              </span>
+                            ) : (
+                              <strong>{dim.tamanho}</strong>
+                            )}
+                          </td>
+                          <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
                           <td>{String(f.maquina_catalogo || '')}</td>
                           <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>
                           <td className="num">
                             {f.repeticao != null ? fmtNum(f.repeticao, 4) : '—'}
                           </td>
                           <td className="num">
-                            {f.puxada != null ? (
-                              fmtNum(f.puxada)
-                            ) : (
-                              <em className="warn-txt">manual</em>
-                            )}
+                            {f.puxada != null ? fmtNum(f.puxada) : <em className="warn-txt">manual</em>}
                           </td>
                           <td className="nota">{String(f.cliente_nota || f.fornecedor || '')}</td>
                         </tr>
@@ -488,9 +651,262 @@ export function FacaPicker({
                 </tbody>
               </table>
             </div>
+          </>
+        ) : (
+          <div className="faca-nova-form">
+            {novaErro ? <p className="form-error">{novaErro}</p> : null}
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Formato *</label>
+                <select value={novaFormato} onChange={(e) => setNovaFormato(e.target.value)}>
+                  {formatosLista.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {!formatoUsaDiametro(novaFormato) ? (
+                <div className="form-group">
+                  <label>Largura (cm) *</label>
+                  <input
+                    value={novaLargura}
+                    onChange={(e) => setNovaLargura(e.target.value)}
+                    placeholder="ex.: 8,0"
+                    inputMode="decimal"
+                    autoFocus
+                  />
+                </div>
+              ) : null}
+              <div className="form-group">
+                <label>
+                  {formatoUsaDiametro(novaFormato) ? 'Diâmetro (cm) *' : 'Tamanho (cm) *'}
+                </label>
+                <input
+                  value={novaTamanho}
+                  onChange={(e) => setNovaTamanho(e.target.value)}
+                  placeholder={formatoUsaDiametro(novaFormato) ? 'ex.: 5' : 'ex.: 12,4'}
+                  inputMode="decimal"
+                  autoFocus={formatoUsaDiametro(novaFormato)}
+                />
+              </div>
+              <div className="form-group">
+                <label>Máquina *</label>
+                <select
+                  value={novaMaquina || maquinas[0] || ''}
+                  onChange={(e) => setNovaMaquina(e.target.value)}
+                >
+                  {maquinas.map((m) => (
+                    <option key={m} value={m}>
+                      {maquinaLabel(m)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Puxada estimada (cm)</label>
+                <input
+                  type="number"
+                  step="0.00001"
+                  value={novaPuxada}
+                  onChange={(e) => setNovaPuxada(e.target.value)}
+                  placeholder="pode completar no formulário"
+                />
+              </div>
+              <div className="form-group">
+                <label>Z estimado</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={novaZ}
+                  onChange={(e) => setNovaZ(e.target.value)}
+                  placeholder="opcional agora"
+                />
+              </div>
+              <div className="form-group faca-nova-preview-field">
+                <label>Prévia</label>
+                <div className="faca-formato-preview" style={{ margin: 0 }}>
+                  <FacaSilhuetaReal
+                    formato={novaFormato}
+                    larguraCm={novaLargura || null}
+                    diametroCm={formatoUsaDiametro(novaFormato) ? novaTamanho || null : null}
+                    tamanhoTipo={formatoUsaDiametro(novaFormato) ? 'diametro' : 'altura'}
+                    size={40}
+                    variant="compact"
+                  />
+                  <div>
+                    <strong>
+                      {composeMedidaIdentidade({
+                        larguraCm: (() => {
+                          const n = Number(String(novaLargura).replace(',', '.'));
+                          return Number.isFinite(n) && n > 0 ? n : null;
+                        })(),
+                        tamanhoCm: (() => {
+                          const n = Number(String(novaTamanho).replace(',', '.'));
+                          return Number.isFinite(n) && n > 0 ? n : null;
+                        })(),
+                        isDiametro: formatoUsaDiametro(novaFormato),
+                      }) || '—'}
+                    </strong>
+                    <span className="muted">
+                      {' '}
+                      · {novaFormato} · {novaMaquina || maquinas[0]}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="form-hint">
+              Cadastro por Largura e Tamanho (como no Mapa de facas). A identidade composta fica só
+              para o cálculo. Valor/prazo do ferramental na linha do orçamento — o mapa oficial não
+              muda aqui.
+            </p>
+            <div className="btn-row">
+              <button type="button" className="btn btn-primary" onClick={confirmarNova}>
+                Usar faca nova no ORC
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setMode('busca')}>
+                Voltar ao mapa
+              </button>
+            </div>
           </div>
+        )}
+      </div>
+    </div>
+  ) : null;
+
+  if (compacta) {
+    return (
+      <div className={`faca-picker faca-picker--compacta${isNova ? ' is-nova' : ''}`}>
+        {acoes}
+        {modal}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`faca-picker${isNova ? ' is-nova' : ''}`}>
+      <div className="faca-summary">
+        <div className="faca-summary-main">
+          <div className="faca-summary-top">
+            <span className="faca-kicker">
+              {isNova ? 'Faca nova (simulada)' : 'Faca do mapa oficial'}
+            </span>
+            {acoes}
+          </div>
+
+          {value ? (
+            <div className="faca-summary-body">
+              <div className="faca-summary-visual" title={formatoLabel(value.formato || value.faca)}>
+                <FacaApresentacao
+                  className="faca-summary-apresentacao"
+                  title={formatoLabel(value.formato || value.faca)}
+                  posicao={posicaoMapa}
+                  size="featured"
+                >
+                  <FacaSilhuetaReal
+                    {...facaSilhuetaFromRecord(value)}
+                    size={56}
+                    variant="featured"
+                  />
+                </FacaApresentacao>
+                <span className="faca-shape-caption">
+                  {isNova ? 'NOVA' : formatoKind(String(value.formato || value.faca || ''))}
+                  {isFacaPosicao(posicaoMapa) ? ` · ${facaPosicaoLabel(posicaoMapa)}` : ''}
+                </span>
+              </div>
+              <div className="faca-summary-text">
+                <div className="faca-summary-title">
+                  {(() => {
+                    const dim = facaDimensoesExibicao(value);
+                    if (isNova && !value.medida && dim.largura === '—' && dim.tamanho === '—') {
+                      return <span className="muted">Informe largura e tamanho na aba Faca nova</span>;
+                    }
+                    if (dim.isDiametro) {
+                      return <span className="badge-diam">{dim.titulo}</span>;
+                    }
+                    return dim.titulo;
+                  })()}
+                </div>
+                <div className="faca-summary-meta">
+                  {[
+                    formatoLabel(value.formato || value.faca),
+                    value.maquina_catalogo ? maquinaLabel(String(value.maquina_catalogo)) : null,
+                    isNova ? 'não cadastrada no mapa' : value.cliente_nota,
+                    String(value.tamanho_tipo) === 'diametro' ? 'diâmetro (Ø)' : null,
+                    !isNova && value.completa === false ? 'puxada/Z manuais' : null,
+                    !isNova && value.completa !== false ? 'dados completos' : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+                <div className="faca-chips">
+                  <div className="faca-chip">
+                    <span>N facas</span>
+                    {isNova || value.n_facas == null ? '—' : fmtNum(value.n_facas, 0)}
+                  </div>
+                  {colsFaca ? (
+                    <div
+                      className="faca-chip"
+                      title="Colunas da faca no mapa (não é coluna de rebobinação)"
+                    >
+                      <span>Cols. faca</span>
+                      {colsFaca}
+                    </div>
+                  ) : null}
+                  <div className="faca-chip">
+                    <span>Z</span>
+                    {fmtNum(value.z, 0)}
+                  </div>
+                  <div className="faca-chip">
+                    <span>REP</span>
+                    {isNova ? '—' : fmtNum(value.repeticao, 4)}
+                  </div>
+                  <div className={`faca-chip${value.puxada == null ? ' warn' : ''}`}>
+                    <span>Puxada</span>
+                    {value.puxada != null ? `${fmtNum(value.puxada)} cm` : 'manual'}
+                  </div>
+                  <div className="faca-chip">
+                    <span>Máq.</span>
+                    {String(value.maquina_catalogo || '—')}
+                  </div>
+                  {isNova ? (
+                    <div className="faca-chip warn">
+                      <span>Tipo</span>
+                      FACA NOVA
+                    </div>
+                  ) : null}
+                  {value.largura_faca != null ? (
+                    <div className="faca-chip">
+                      <span>Larg. faca</span>
+                      {fmtNum(value.largura_faca)} cm
+                    </div>
+                  ) : null}
+                </div>
+                {isNova ? (
+                  <p className="faca-warn">
+                    Faca nova: geometria e valor/prazo nesta proposta. O mapa oficial não muda —
+                    cadastre após aprovação do ORC.
+                  </p>
+                ) : incompleta ? (
+                  <p className="faca-warn">
+                    Registro incompleto no mapa — preencha puxada (e Z se preciso) manualmente.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="faca-summary-empty">
+              <p className="muted" style={{ margin: 0 }}>
+                {permitirFacaNova
+                  ? 'Escolha: faca existente no mapa, ou orçar faca nova se a medida ainda não existe.'
+                  : 'Busque e selecione uma faca do mapa oficial.'}
+              </p>
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
+      {modal}
     </div>
   );
 }

@@ -59,12 +59,12 @@ Pré-requisitos no chão
 
 Roteiro
   1. Login com estoque.escrever
-  2. Estoque → Ajustes → aba «Por QR (volume + local)»
+  2. Estoque → Ajustes → aba «Por QR (evidência)»
   3. (Opcional) escolha o produto — ou deixe o 1º VOL inferir o SKU
   4. Motivo A01 (ou outro ≠ A03) · confirme END · leia 1+ VOL na fila
   5. Qtde contada = soma da fila · checklist → Solicitar AJU
   6. Logout → login com aprovador → Conferir (vê volumes/local) → Aprovar
   7. Local errado na fila: quantidade entra; endereço corrige em Guardar
-  8. A03 continua manual (volumes de abertura) — sem QR de volumes existentes
+  8. Volumes físicos (entrada/baixa): aba «Por volumes» — make pronto-estoque-ajuste-volumes
 
 EOF

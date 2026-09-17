@@ -63,8 +63,9 @@ final class EstoqueValidationRules
             'lote_data_entrada' => ['nullable', 'date'],
             'lote_data_fabricacao' => ['nullable', 'date'],
             'lote_data_validade' => ['nullable', 'date'],
-            // A03/VIRADA: N volumes (bobinas) — soma = Δ; motor já aplica via lote_payload.
+            // Volumes (bobinas): +Δ = N volumes novos; −Δ = N linhas com lote_id — soma = |Δ|.
             'lote_payload' => ['nullable', 'array', 'min:1'],
+            'lote_payload.*.lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
             'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
             'lote_payload.*.largura_mm' => array_merge(
@@ -217,8 +218,9 @@ final class EstoqueValidationRules
             'checklist_confirmado' => ['required', 'accepted'],
             'observacao' => ['nullable', 'string', 'max:2000'],
             'causa_raiz' => ['nullable', 'string', 'max:2000'],
-            // VIRADA/A03: mesmos volumes da contagem avulsa (opcional).
+            // Volumes no AJU gerado: +Δ novos / −Δ com lote_id (opcional; Writer na aprovação).
             'lote_payload' => ['nullable', 'array', 'min:1'],
+            'lote_payload.*.lote_id' => ['nullable', 'integer', 'exists:estoque_lotes,id'],
             'lote_payload.*.codigo' => ['nullable', 'string', 'max:60'],
             'lote_payload.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, false)),
             'lote_payload.*.largura_mm' => array_merge(

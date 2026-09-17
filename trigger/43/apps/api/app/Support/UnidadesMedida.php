@@ -64,6 +64,11 @@ final class UnidadesMedida
                 'descricao' => 'Caixa',
                 'uso' => 'Embalagem de PA (milheiros ou rolos por caixa).',
             ],
+            [
+                'codigo' => 'PCT',
+                'descricao' => 'Pacote',
+                'uso' => 'Embalagem intermediária / NF em pacote (insumo, EMB, REV). Distinto de CX.',
+            ],
         ];
     }
 

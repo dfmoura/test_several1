@@ -221,6 +221,8 @@ final class ProdutoNfeItemSugestor
             'BT' => 'UN',
             'RLS' => 'RL',
             'ROLO' => 'RL',
+            'PACOTE' => 'PCT',
+            'PCTE' => 'PCT',
         ];
 
         if (isset($aliases[$u])) {

@@ -12,17 +12,18 @@ class UnidadesMedidaTest extends TestCase
         $codes = UnidadesMedida::codes();
 
         $this->assertSame(
-            ['RL', 'M', 'M2', 'KG', 'G', 'UN', 'MIL', 'L', 'CX'],
+            ['RL', 'M', 'M2', 'KG', 'G', 'UN', 'MIL', 'L', 'CX', 'PCT'],
             $codes
         );
         $this->assertCount(count($codes), UnidadesMedida::catalog());
-        $this->assertSame('in:RL,M,M2,KG,G,UN,MIL,L,CX', UnidadesMedida::validationRule());
+        $this->assertSame('in:RL,M,M2,KG,G,UN,MIL,L,CX,PCT', UnidadesMedida::validationRule());
     }
 
     public function test_is_official_is_case_insensitive(): void
     {
         $this->assertTrue(UnidadesMedida::isOfficial('mil'));
         $this->assertTrue(UnidadesMedida::isOfficial('KG'));
+        $this->assertTrue(UnidadesMedida::isOfficial('pct'));
         $this->assertFalse(UnidadesMedida::isOfficial('PC'));
         $this->assertFalse(UnidadesMedida::isOfficial(null));
         $this->assertFalse(UnidadesMedida::isOfficial(''));

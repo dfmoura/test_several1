@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { EstoqueQrFilaPanel } from '../components/EstoqueQrFilaPanel';
+import { IconAlertCircle, IconBan, IconCheck, IconEye, IconTag } from '../components/NavIcons';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import { StatusPill } from '../components/StatusPill';
 import { useEstoqueQrFila } from '../hooks/useEstoqueQrFila';
@@ -11,6 +12,8 @@ import {
   api,
   type EstoqueAjuste,
   type EstoqueAjusteMeta,
+  type EstoqueLote,
+  type EstoqueSaldo,
   type Produto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -21,9 +24,25 @@ import {
   type EstoqueAjusteContagemEvidencia,
 } from '../lib/estoqueQrFila';
 import { ajuAlcadaLabel, ajuOrigemLabel } from '../lib/estoqueUi';
-import { clampDecimalScale, DECIMAL_SCALE, formatCurrency, formatDateTime, formatQty } from '../lib/format';
+import {
+  clampDecimalScale,
+  DECIMAL_SCALE,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatQty,
+} from '../lib/format';
 import { areaM2Volume } from '../lib/nfeExactDimensoes';
+import { qtdeComercialFromAreaM2 } from '../lib/ocComposicaoVolumes';
 import { formatApiFieldErrors } from '../lib/usuarios';
+
+/** Normaliza un. para comparar M2 (aceita M² / m²). */
+function normUnidadeAjuste(u: string | null | undefined): string {
+  return String(u ?? '')
+    .trim()
+    .toUpperCase()
+    .replace('M²', 'M2');
+}
 
 type VolumeLinha = {
   codigo: string;
@@ -34,7 +53,17 @@ type VolumeLinha = {
   data_validade: string;
 };
 
+type VolumeBaixaLinha = {
+  lote_id: number;
+  codigo: string;
+  qtde_disponivel: string;
+  qtde: string;
+  largura_mm: string | null;
+  comprimento_m: string | null;
+};
+
 type ModoContagem = 'manual' | 'qr';
+type ModoVolume = 'entrada' | 'baixa';
 
 function emptyVolume(): VolumeLinha {
   return {
@@ -47,25 +76,163 @@ function emptyVolume(): VolumeLinha {
   };
 }
 
+function parseQty(v: string): number {
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
+
 function somaVolumes(vols: VolumeLinha[]): string {
   let s = 0;
   for (const v of vols) {
-    const n = Number(String(v.qtde).replace(',', '.'));
+    const n = parseQty(v.qtde);
     if (n > 0) s += n;
   }
   return clampDecimalScale(String(s), DECIMAL_SCALE.qty) || '0.0000';
+}
+
+function somaBaixas(vols: VolumeBaixaLinha[]): string {
+  let s = 0;
+  for (const v of vols) {
+    const n = parseQty(v.qtde);
+    if (n > 0) s += n;
+  }
+  return clampDecimalScale(String(s), DECIMAL_SCALE.qty) || '0.0000';
+}
+
+function qtyAdd(a: string, b: string): string {
+  return clampDecimalScale(String(parseQty(a) + parseQty(b)), DECIMAL_SCALE.qty) || '0.0000';
+}
+
+function qtySub(a: string, b: string): string {
+  return clampDecimalScale(String(parseQty(a) - parseQty(b)), DECIMAL_SCALE.qty) || '0.0000';
 }
 
 function sameUser(a?: number | null, b?: number | null): boolean {
   return a != null && b != null && Number(a) === Number(b);
 }
 
-/** A03/VIRADA / lote_payload → volumes físicos → etiquetas Elgin. */
+/** lote_payload com volumes novos → etiquetas Elgin após aprovar. */
 function ajuPedeEtiquetasVolume(a: EstoqueAjuste): boolean {
-  if (a.lote_payload && a.lote_payload.length > 0) return true;
-  if (a.motivo_codigo === 'A03') return true;
-  if (a.origem === 'VIRADA') return true;
-  return false;
+  const payload = a.lote_payload;
+  if (!payload || payload.length === 0) return false;
+  return payload.some((v) => v.volume_novo !== false && !v.lote_id);
+}
+
+/** Contagem de bobinas alocadas (Writer) — não confundir com valor_ajuste (R$). */
+function ajuVolumesAlocados(a: EstoqueAjuste): number {
+  return a.lote_payload?.length ?? 0;
+}
+
+function ajuVolumesEvidencia(a: EstoqueAjuste): number {
+  return a.contagem_evidencia?.volumes?.length ?? 0;
+}
+
+/** Linha secundária da lista: N volume(s) com sentido ou evidência QR. */
+function ajuResumoVolumesLinha(a: EstoqueAjuste): string | null {
+  const n = ajuVolumesAlocados(a);
+  if (n > 0) {
+    const sentido = Number(a.qtde_diferenca) < 0 ? 'baixa' : 'entrada';
+    return `${n} volume(s) · ${sentido}`;
+  }
+  const e = ajuVolumesEvidencia(a);
+  if (e > 0) return `${e} volume(s) · QR evidência`;
+  return null;
+}
+
+/** Qtde física + L×C dos volumes — leitura/conferência; sem alterar saldo. */
+function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
+  const payload = a.lote_payload;
+  const evidencia = a.contagem_evidencia;
+  const temPayload = !!payload && payload.length > 0;
+  const temEvidencia = !!evidencia?.volumes && evidencia.volumes.length > 0;
+  if (!temPayload && !temEvidencia) return null;
+
+  return (
+    <>
+      {temPayload && (
+        <div style={{ marginBottom: '1rem' }}>
+          <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+            Volumes ({payload!.length})
+            {Number(a.qtde_diferenca) < 0 ? ' · baixa' : ' · entrada'}
+          </p>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>L × C</th>
+                  <th>Qtde do volume</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payload!.map((v, i) => (
+                  <tr key={i}>
+                    <td>{v.codigo ?? (v.lote_id ? `#${v.lote_id}` : '—')}</td>
+                    <td className="muted">
+                      {v.largura_mm || v.comprimento_m
+                        ? `${v.largura_mm ?? '—'} mm × ${v.comprimento_m ?? '—'} m`
+                        : '—'}
+                    </td>
+                    <td className="num">
+                      {formatQty(v.qtde)} {a.unidade}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {temEvidencia && (
+        <div style={{ marginBottom: '1rem' }}>
+          <p className="muted" style={{ margin: '0 0 0.5rem' }}>
+            Contagem por QR — local <strong>{evidencia!.endereco.codigo}</strong> ·{' '}
+            {evidencia!.volumes.length} volume(s) · soma{' '}
+            {formatQty(evidencia!.qtde_soma)} {a.unidade}
+          </p>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Volume</th>
+                  <th>Qtde do volume</th>
+                  <th>Status</th>
+                  <th>Local no sistema</th>
+                </tr>
+              </thead>
+              <tbody>
+                {evidencia!.volumes.map((v) => (
+                  <tr key={v.lote_id}>
+                    <td>
+                      <strong>{v.codigo}</strong>
+                    </td>
+                    <td className="num">
+                      {formatQty(v.qtde)} {v.unidade ?? a.unidade}
+                    </td>
+                    <td>
+                      {v.status === 'LOCAL_ERRADO'
+                        ? 'Local errado'
+                        : v.status === 'ENCONTRADO'
+                          ? 'No local'
+                          : 'Sem local'}
+                    </td>
+                    <td className="muted">{v.endereco_atual ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {evidencia!.volumes.some((v) => v.status === 'LOCAL_ERRADO') && (
+            <p className="muted" style={{ margin: '0.5rem 0 0' }}>
+              Local errado não se corrige aqui — use{' '}
+              <Link to="/estoque/guardar">Guardar no local</Link>.
+            </p>
+          )}
+        </div>
+      )}
+    </>
+  );
 }
 
 export function EstoqueAjustesPage() {
@@ -87,42 +254,88 @@ export function EstoqueAjustesPage() {
   const [motivo, setMotivo] = useState('A01');
   const [complemento, setComplemento] = useState('');
   const [qtdeContada, setQtdeContada] = useState('');
+  const [qtdeSistema, setQtdeSistema] = useState('0.0000');
   const [checklist, setChecklist] = useState(false);
   const [observacao, setObservacao] = useState('');
-  const [loteCodigo, setLoteCodigo] = useState('');
-  const [loteEntrada, setLoteEntrada] = useState('');
-  const [loteValidade, setLoteValidade] = useState('');
   const [volumes, setVolumes] = useState<VolumeLinha[]>([emptyVolume()]);
-  const [modoContagem, setModoContagem] = useState<ModoContagem>('qr');
+  const [baixas, setBaixas] = useState<VolumeBaixaLinha[]>([]);
+  const [modoContagem, setModoContagem] = useState<ModoContagem>('manual');
+  const [modoVolume, setModoVolume] = useState<ModoVolume>('entrada');
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [causaAprovar, setCausaAprovar] = useState('');
   const [cienciaDir, setCienciaDir] = useState(false);
   const [cienciaCont, setCienciaCont] = useState(false);
-  /** Após aprovar A03/VIRADA com volumes — CTA para Elgin 50×40. */
+  /** Após aprovar AJU com volumes novos — CTA para Elgin 50×40. */
   const [etiquetasMovimentoId, setEtiquetasMovimentoId] = useState<number | null>(null);
 
   const selectedProduto = produto;
   const produtoControlaLote = !!selectedProduto?.controla_lote;
   const isSaldoInicial = motivo === 'A03';
-  const usaVolumesVirada = isSaldoInicial && produtoControlaLote;
-  const mostraLxC = usaVolumesVirada;
-  const podeQr = !usaVolumesVirada && (!produto || produtoControlaLote);
+  const unidadeInternaNorm = normUnidadeAjuste(selectedProduto?.unidade_interna);
+  const unidadeComercialNorm = normUnidadeAjuste(selectedProduto?.unidade_comercial);
+  const mostraLxC =
+    unidadeInternaNorm === 'M2' ||
+    unidadeComercialNorm === 'M2' ||
+    selectedProduto?.familia === 'MP';
+  /** L×C deriva a qtde a registrar quando o SKU opera em M2 (norma BobinaAreaComercial). */
+  const lxCPreencheQtde =
+    unidadeInternaNorm === 'M2' || unidadeComercialNorm === 'M2';
+  const usaVolumesManual = produtoControlaLote && modoContagem === 'manual';
+  const usaVolumesEntrada = usaVolumesManual && (isSaldoInicial || modoVolume === 'entrada');
+  const usaVolumesBaixa = usaVolumesManual && !isSaldoInicial && modoVolume === 'baixa';
+  const podeQr = !isSaldoInicial && (!produto || produtoControlaLote);
   const usaQr = podeQr && modoContagem === 'qr';
 
-  const inferirProdutoDoVolume = useCallback(async (vol: { produto: { id: number } | null }) => {
-    if (!vol.produto?.id) return;
+  const carregarContextoProduto = useCallback(async (p: Produto | null) => {
+    if (!p) {
+      setQtdeSistema('0.0000');
+      setBaixas([]);
+      return;
+    }
     try {
-      const res = await api.get<{ data: Produto }>(`/produtos/${vol.produto.id}`);
-      setProduto(res.data);
-      if (!res.data.controla_lote) {
-        setModoContagem('manual');
-        setError('Este SKU não controla volume — use contagem manual.');
-      }
+      const [saldosRes, lotesRes] = await Promise.all([
+        api.get<{ data: EstoqueSaldo[] }>(`/estoque/saldos?produto_id=${p.id}`),
+        p.controla_lote
+          ? api.get<{ data: EstoqueLote[] }>(`/estoque/lotes?produto_id=${p.id}&com_qtde=1`)
+          : Promise.resolve({ data: [] as EstoqueLote[] }),
+      ]);
+      const saldo = saldosRes.data.find((s) => s.produto_id === p.id);
+      const sistema = clampDecimalScale(String(saldo?.qtde ?? '0'), DECIMAL_SCALE.qty) || '0.0000';
+      setQtdeSistema(sistema);
+      setBaixas(
+        (lotesRes.data ?? []).map((l) => ({
+          lote_id: l.id,
+          codigo: l.codigo,
+          qtde_disponivel: clampDecimalScale(String(l.qtde), DECIMAL_SCALE.qty) || '0.0000',
+          qtde: '',
+          largura_mm: l.largura_mm ?? null,
+          comprimento_m: l.comprimento_m ?? null,
+        })),
+      );
     } catch {
-      /* produto já pode estar selecionado; falha silenciosa na inferência */
+      setQtdeSistema('0.0000');
+      setBaixas([]);
     }
   }, []);
+
+  const inferirProdutoDoVolume = useCallback(
+    async (vol: { produto: { id: number } | null }) => {
+      if (!vol.produto?.id) return;
+      try {
+        const res = await api.get<{ data: Produto }>(`/produtos/${vol.produto.id}`);
+        setProduto(res.data);
+        void carregarContextoProduto(res.data);
+        if (!res.data.controla_lote) {
+          setModoContagem('manual');
+          setError('Este SKU não controla volume — use contagem manual.');
+        }
+      } catch {
+        /* produto já pode estar selecionado; falha silenciosa na inferência */
+      }
+    },
+    [carregarContextoProduto],
+  );
 
   const qr = useEstoqueQrFila({
     canWrite,
@@ -143,10 +356,23 @@ export function EstoqueAjustesPage() {
   }, [usaQr, qr.fila]);
 
   useEffect(() => {
-    if (usaVolumesVirada || (produto && !produto.controla_lote)) {
+    if (isSaldoInicial || (produto && !produto.controla_lote)) {
       if (modoContagem !== 'manual') setModoContagem('manual');
     }
-  }, [usaVolumesVirada, produto, modoContagem]);
+    if (isSaldoInicial && modoVolume !== 'entrada') {
+      setModoVolume('entrada');
+    }
+  }, [isSaldoInicial, produto, modoContagem, modoVolume]);
+
+  useEffect(() => {
+    if (!usaVolumesEntrada) return;
+    setQtdeContada(qtyAdd(qtdeSistema, somaVolumes(volumes)));
+  }, [usaVolumesEntrada, volumes, qtdeSistema]);
+
+  useEffect(() => {
+    if (!usaVolumesBaixa) return;
+    setQtdeContada(qtySub(qtdeSistema, somaBaixas(baixas)));
+  }, [usaVolumesBaixa, baixas, qtdeSistema]);
 
   const load = async () => {
     setLoading(true);
@@ -184,30 +410,38 @@ export function EstoqueAjustesPage() {
   const selected = ajustes.find((a) => a.id === selectedId) ?? null;
 
   const patchVolume = (idx: number, patch: Partial<VolumeLinha>) => {
-    setVolumes((prev) => {
-      const next = prev.map((v, i) => {
+    setVolumes((prev) =>
+      prev.map((v, i) => {
         if (i !== idx) return v;
         const row = { ...v, ...patch };
-        const unidM2 = selectedProduto?.unidade_interna?.toUpperCase() === 'M2';
+        const mudouDim =
+          patch.largura_mm !== undefined || patch.comprimento_m !== undefined;
         if (
-          unidM2 &&
-          (patch.largura_mm !== undefined || patch.comprimento_m !== undefined) &&
-          row.largura_mm &&
-          row.comprimento_m
+          lxCPreencheQtde &&
+          mudouDim &&
+          row.largura_mm?.trim() &&
+          row.comprimento_m?.trim()
         ) {
           const area = areaM2Volume(row.largura_mm, row.comprimento_m);
-          if (Number(area) > 0) row.qtde = area;
+          const qtde = qtdeComercialFromAreaM2(area, {
+            unidade_comercial: selectedProduto?.unidade_comercial,
+            unidade_interna: selectedProduto?.unidade_interna,
+            fator_conversao: selectedProduto?.fator_conversao,
+          });
+          if (Number(qtde) > 0) row.qtde = qtde;
         }
         return row;
-      });
-      if (usaVolumesVirada) {
-        setQtdeContada(somaVolumes(next));
-      }
-      return next;
-    });
+      }),
+    );
   };
 
-  const openAprovar = (a: EstoqueAjuste) => {
+  const patchBaixa = (loteId: number, qtde: string) => {
+    setBaixas((prev) =>
+      prev.map((b) => (b.lote_id === loteId ? { ...b, qtde } : b)),
+    );
+  };
+
+  const openDetalhe = (a: EstoqueAjuste) => {
     setError(null);
     setMsg(null);
     setSelectedId(a.id);
@@ -216,7 +450,7 @@ export function EstoqueAjustesPage() {
     setCienciaCont(!!a.ciencia_contabilidade);
   };
 
-  const closeAprovar = () => {
+  const closeDetalhe = () => {
     setSelectedId(null);
     setCausaAprovar('');
     setCienciaDir(false);
@@ -258,11 +492,34 @@ export function EstoqueAjustesPage() {
       }
     }
 
+    if (usaVolumesEntrada) {
+      const linhas = volumes.filter((v) => parseQty(v.qtde) > 0);
+      if (linhas.length === 0) {
+        setError('Inclua ao menos 1 volume com quantidade (padrão do recebimento).');
+        return;
+      }
+    }
+
+    if (usaVolumesBaixa) {
+      const linhas = baixas.filter((v) => parseQty(v.qtde) > 0);
+      if (linhas.length === 0) {
+        setError('Informe a quantidade a baixar em ao menos 1 volume.');
+        return;
+      }
+      for (const v of linhas) {
+        if (parseQty(v.qtde) > parseQty(v.qtde_disponivel)) {
+          setError(`Volume ${v.codigo}: baixa maior que o disponível.`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
-      const qtde =
-        usaVolumesVirada
-          ? somaVolumes(volumes)
+      const qtde = usaVolumesEntrada
+        ? qtyAdd(qtdeSistema, somaVolumes(volumes))
+        : usaVolumesBaixa
+          ? qtySub(qtdeSistema, somaBaixas(baixas))
           : usaQr
             ? clampDecimalScale(estoqueQrSomaQtde(qr.fila), DECIMAL_SCALE.qty) || '0.0000'
             : qtdeContada;
@@ -277,9 +534,9 @@ export function EstoqueAjustesPage() {
         origem: 'CONTAGEM_AVULSA',
       };
 
-      if (usaVolumesVirada) {
-        const linhas = volumes
-          .filter((v) => Number(String(v.qtde).replace(',', '.')) > 0)
+      if (usaVolumesEntrada) {
+        payload.lote_payload = volumes
+          .filter((v) => parseQty(v.qtde) > 0)
           .map((v) => ({
             codigo: v.codigo.trim() || undefined,
             qtde: clampDecimalScale(v.qtde.replace(',', '.'), DECIMAL_SCALE.qty),
@@ -288,29 +545,29 @@ export function EstoqueAjustesPage() {
             data_entrada: v.data_entrada || undefined,
             data_validade: v.data_validade || undefined,
           }));
-        if (linhas.length > 0) {
-          payload.lote_payload = linhas;
-        }
+      } else if (usaVolumesBaixa) {
+        payload.lote_payload = baixas
+          .filter((v) => parseQty(v.qtde) > 0)
+          .map((v) => ({
+            lote_id: v.lote_id,
+            qtde: clampDecimalScale(v.qtde.replace(',', '.'), DECIMAL_SCALE.qty),
+          }));
       } else if (usaQr) {
         const evidencia = buildContagemEvidencia();
         if (evidencia) {
           payload.contagem_evidencia = evidencia;
         }
-      } else if (produtoControlaLote) {
-        payload.lote_codigo = loteCodigo || null;
-        payload.lote_data_entrada = loteEntrada || null;
-        payload.lote_data_validade = loteValidade || null;
       }
 
       await api.post('/estoque/ajustes', payload);
       setProduto(null);
       setQtdeContada('');
+      setQtdeSistema('0.0000');
       setComplemento('');
       setObservacao('');
-      setLoteCodigo('');
-      setLoteEntrada('');
-      setLoteValidade('');
       setVolumes([emptyVolume()]);
+      setBaixas([]);
+      setModoVolume('entrada');
       setChecklist(false);
       qr.limparTudo();
       setMsg('Solicitação de ajuste registrada.');
@@ -350,7 +607,7 @@ export function EstoqueAjustesPage() {
       if (pedirEtiquetas && movId) {
         setEtiquetasMovimentoId(movId);
       }
-      closeAprovar();
+      closeDetalhe();
       await load();
     } catch (err) {
       setError(
@@ -371,7 +628,7 @@ export function EstoqueAjustesPage() {
         observacao: 'Rejeitado na conferência',
       });
       setMsg(`${selected.codigo} rejeitado.`);
-      closeAprovar();
+      closeDetalhe();
       await load();
     } catch (err) {
       setError(
@@ -396,7 +653,7 @@ export function EstoqueAjustesPage() {
     setMsg(null);
     try {
       await api.post(`/estoque/ajustes/${id}/cancelar`);
-      if (selectedId === id) closeAprovar();
+      if (selectedId === id) closeDetalhe();
       await load();
     } catch (err) {
       setError(
@@ -417,10 +674,10 @@ export function EstoqueAjustesPage() {
     ((selected.alcada ?? 'LIDER') === 'LIDER' || canGestor);
 
   return (
-    <>
+    <div className="estoque-ajustes-page">
       <PageHeader
         title="Ajustes de estoque"
-        description="AJU nasce pendente. Outro usuário com alçada confere e aprova — o saldo só muda no movimento. Contagem avulsa com volume etiquetado: QR (volume + local), mesma dinâmica do Guardar. Motivo A03 = virada/saldo inicial; inventário cíclico nasce em Inventários."
+        description="AJU pendente → outro usuário com alçada aprova → saldo só no MOV. Inventário cíclico em Inventários."
       />
 
       <EstoqueModuleNav />
@@ -446,37 +703,22 @@ export function EstoqueAjustesPage() {
       {error && <div className="alert alert-error">{error}</div>}
 
       {canWrite && !selected && (
-        <form onSubmit={submit} className="card" style={{ marginBottom: '1rem' }}>
+        <form
+          onSubmit={submit}
+          className="card estoque-ajustes-form"
+          style={{ marginBottom: '0.75rem' }}
+        >
           <div className="card-body">
             <div className="form-section">
               <h3>Nova contagem avulsa</h3>
-              <p className="muted" style={{ marginBottom: '0.85rem' }}>
-                Divergência pontual autorizada. Inventário cíclico/geral nasce em Inventários.
-                Motivo <strong>A03</strong> = saldo inicial — volumes físicos quando o SKU controla
-                lote. Demais motivos com bobina etiquetada: preferir contagem por QR (local →
-                volumes).
+              <p className="muted">
+                Divergência pontual. SKU com volume: bobinas como no receber (entrada) ou baixa por
+                volume; QR só como evidência.
               </p>
 
               {podeQr && (
-                <div style={{ marginBottom: '1rem' }}>
-                  <div
-                    className="tabs"
-                    role="tablist"
-                    aria-label="Modo de contagem"
-                    style={{ maxWidth: '28rem' }}
-                  >
-                    <button
-                      type="button"
-                      role="tab"
-                      className={`tab${modoContagem === 'qr' ? ' active' : ''}`}
-                      aria-selected={modoContagem === 'qr'}
-                      onClick={() => {
-                        setModoContagem('qr');
-                        setError(null);
-                      }}
-                    >
-                      Por QR (volume + local)
-                    </button>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div className="tabs" role="tablist" aria-label="Modo de contagem">
                     <button
                       type="button"
                       role="tab"
@@ -488,12 +730,23 @@ export function EstoqueAjustesPage() {
                         setError(null);
                       }}
                     >
-                      Manual
+                      Por volumes
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      className={`tab${modoContagem === 'qr' ? ' active' : ''}`}
+                      aria-selected={modoContagem === 'qr'}
+                      onClick={() => {
+                        setModoContagem('qr');
+                        setError(null);
+                      }}
+                    >
+                      Por QR (evidência)
                     </button>
                   </div>
-                  <p className="catalogo-tab-hint" style={{ maxWidth: '42rem', marginTop: '-0.35rem' }}>
-                    A qtde contada é a soma dos volumes lidos no local. Local errado corrige-se no
-                    Guardar — o AJU só altera saldo na aprovação.
+                  <p className="catalogo-tab-hint">
+                    Local errado → Guardar. AJU só altera saldo na aprovação.
                   </p>
                 </div>
               )}
@@ -506,10 +759,18 @@ export function EstoqueAjustesPage() {
                   onChange={(p) => {
                     setProduto(p);
                     setVolumes([emptyVolume()]);
-                    if (!p) setQtdeContada('');
-                    if (p && !p.controla_lote) {
-                      setModoContagem('manual');
-                      qr.limparTudo();
+                    if (!p) {
+                      setQtdeContada('');
+                      setQtdeSistema('0.0000');
+                      setBaixas([]);
+                    } else {
+                      void carregarContextoProduto(p);
+                      if (!p.controla_lote) {
+                        setModoContagem('manual');
+                        qr.limparTudo();
+                      } else if (!isSaldoInicial) {
+                        setModoContagem('manual');
+                      }
                     }
                   }}
                   familias={['MP', 'EMB', 'REV']}
@@ -524,8 +785,9 @@ export function EstoqueAjustesPage() {
                     value={motivo}
                     onChange={(e) => {
                       setMotivo(e.target.value);
+                      setVolumes([emptyVolume()]);
                       if (e.target.value === 'A03') {
-                        setVolumes([emptyVolume()]);
+                        setModoVolume('entrada');
                         qr.limparTudo();
                       }
                     }}
@@ -537,6 +799,18 @@ export function EstoqueAjustesPage() {
                     ))}
                   </select>
                 </div>
+                {produtoControlaLote && !usaQr && !isSaldoInicial && (
+                  <div className="form-group">
+                    <label>Movimento dos volumes</label>
+                    <select
+                      value={modoVolume}
+                      onChange={(e) => setModoVolume(e.target.value as ModoVolume)}
+                    >
+                      <option value="entrada">Entrada (registrar bobinas)</option>
+                      <option value="baixa">Baixa (debitar volumes existentes)</option>
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>
                     Qtde contada
@@ -550,15 +824,26 @@ export function EstoqueAjustesPage() {
                     value={qtdeContada}
                     onChange={(e) => setQtdeContada(e.target.value)}
                     placeholder="0.0000"
-                    readOnly={usaVolumesVirada || usaQr}
+                    readOnly={usaVolumesEntrada || usaVolumesBaixa || usaQr}
                     title={
-                      usaVolumesVirada
-                        ? 'Preenchida pela soma dos volumes abaixo'
-                        : usaQr
-                          ? 'Preenchida pela soma dos volumes da fila QR'
-                          : undefined
+                      usaVolumesEntrada
+                        ? 'sistema + soma dos volumes de entrada'
+                        : usaVolumesBaixa
+                          ? 'sistema − soma das baixas'
+                          : usaQr
+                            ? 'Preenchida pela soma dos volumes da fila QR'
+                            : undefined
                     }
                   />
+                  {produto && (usaVolumesEntrada || usaVolumesBaixa) && (
+                    <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
+                      Saldo sistema: {formatQty(qtdeSistema)}{' '}
+                      {selectedProduto?.unidade_interna ?? ''}
+                      {usaVolumesEntrada
+                        ? ` · Δ +${formatQty(somaVolumes(volumes))}`
+                        : ` · Δ −${formatQty(somaBaixas(baixas))}`}
+                    </p>
+                  )}
                 </div>
 
                 {usaQr && (
@@ -580,16 +865,20 @@ export function EstoqueAjustesPage() {
                   </div>
                 )}
 
-                {usaVolumesVirada && (
+                {usaVolumesEntrada && (
                   <div className="form-group span-full">
                     <div className="oc-volumes-panel oc-volumes-panel--compact">
                       <div className="oc-volumes-panel__bar">
-                        <strong>Volumes de abertura</strong>
+                        <strong>
+                          {isSaldoInicial ? 'Volumes de abertura' : 'Volumes a registrar'}
+                        </strong>
                         <span className="muted">
-                          Um por bobina · soma = qtde contada
-                          {selectedProduto?.unidade_interna?.toUpperCase() === 'M2'
-                            ? ' · L×C preenche M²'
-                            : ''}
+                          Um por bobina · soma = diferença positiva
+                          {mostraLxC && lxCPreencheQtde
+                            ? ' · L×C preenche a qtde do volume'
+                            : mostraLxC
+                              ? ' · informe a qtde do volume (L×C é dimensão)'
+                              : ''}
                         </span>
                       </div>
                       <div className="oc-volumes-scroll">
@@ -600,7 +889,12 @@ export function EstoqueAjustesPage() {
                               <th className="col-lote">Código / nLote</th>
                               {mostraLxC && <th className="col-dim">Largura mm</th>}
                               {mostraLxC && <th className="col-dim">Comp. m</th>}
-                              <th className="col-num">Qtde</th>
+                              <th className="col-num">
+                                Qtde do volume
+                                {selectedProduto?.unidade_interna
+                                  ? ` (${selectedProduto.unidade_interna})`
+                                  : ''}
+                              </th>
                               <th className="col-date">Entrada</th>
                               {selectedProduto?.controla_validade && (
                                 <th className="col-date">Validade</th>
@@ -618,7 +912,7 @@ export function EstoqueAjustesPage() {
                                     onChange={(e) =>
                                       patchVolume(idx, { codigo: e.target.value })
                                     }
-                                    placeholder={`VIR-${selectedProduto?.codigo ?? 'SKU'}-${idx + 1}`}
+                                    placeholder={`${isSaldoInicial ? 'VIR' : 'AJU'}-${selectedProduto?.codigo ?? 'SKU'}-${idx + 1}`}
                                   />
                                 </td>
                                 {mostraLxC && (
@@ -653,7 +947,14 @@ export function EstoqueAjustesPage() {
                                     onChange={(e) =>
                                       patchVolume(idx, { qtde: e.target.value })
                                     }
-                                    placeholder="0.0000"
+                                    placeholder={
+                                      lxCPreencheQtde ? 'preenche com L×C' : '0.0000'
+                                    }
+                                    title={
+                                      lxCPreencheQtde
+                                        ? 'Qtde do volume a registrar — calculada ao informar L×C (editável)'
+                                        : 'Qtde do volume a registrar na unidade do SKU'
+                                    }
                                   />
                                 </td>
                                 <td className="col-date">
@@ -681,11 +982,9 @@ export function EstoqueAjustesPage() {
                                     <button
                                       type="button"
                                       className="btn btn-secondary btn-sm"
-                                      onClick={() => {
-                                        const next = volumes.filter((_, i) => i !== idx);
-                                        setVolumes(next);
-                                        setQtdeContada(somaVolumes(next));
-                                      }}
+                                      onClick={() =>
+                                        setVolumes((prev) => prev.filter((_, i) => i !== idx))
+                                      }
                                     >
                                       Remover
                                     </button>
@@ -704,7 +1003,7 @@ export function EstoqueAjustesPage() {
                         >
                           + Volume
                         </button>
-                        <span className="muted">
+                        <span className="muted" style={{ marginLeft: '0.75rem' }}>
                           Soma: {formatQty(somaVolumes(volumes))}{' '}
                           {selectedProduto?.unidade_interna ?? ''}
                         </span>
@@ -713,35 +1012,62 @@ export function EstoqueAjustesPage() {
                   </div>
                 )}
 
-                {produtoControlaLote && !usaVolumesVirada && !usaQr && (
-                  <>
-                    <div className="form-group">
-                      <label>Lote (opcional na baixa / informado na entrada)</label>
-                      <input
-                        value={loteCodigo}
-                        onChange={(e) => setLoteCodigo(e.target.value)}
-                        placeholder="Lote do fornecedor"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Entrada do lote</label>
-                      <input
-                        type="date"
-                        value={loteEntrada}
-                        onChange={(e) => setLoteEntrada(e.target.value)}
-                      />
-                    </div>
-                    {selectedProduto?.controla_validade && (
-                      <div className="form-group">
-                        <label>Vencimento</label>
-                        <input
-                          type="date"
-                          value={loteValidade}
-                          onChange={(e) => setLoteValidade(e.target.value)}
-                        />
+                {usaVolumesBaixa && (
+                  <div className="form-group span-full">
+                    <div className="oc-volumes-panel oc-volumes-panel--compact">
+                      <div className="oc-volumes-panel__bar">
+                        <strong>Volumes a baixar</strong>
+                        <span className="muted">
+                          Informe quanto debitar em cada bobina · soma = diferença negativa
+                        </span>
                       </div>
-                    )}
-                  </>
+                      {baixas.length === 0 ? (
+                        <p className="muted" style={{ margin: '0.75rem 0 0' }}>
+                          Nenhum volume com saldo neste SKU. Use entrada de volumes ou receba a NF.
+                        </p>
+                      ) : (
+                        <div className="oc-volumes-scroll">
+                          <table className="oc-volumes-table">
+                            <thead>
+                              <tr>
+                                <th className="col-lote">Volume</th>
+                                {mostraLxC && <th className="col-dim">Dimensão</th>}
+                                <th className="col-num">Disponível</th>
+                                <th className="col-num">Baixar</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {baixas.map((b) => (
+                                <tr key={b.lote_id}>
+                                  <td className="col-lote">{b.codigo}</td>
+                                  {mostraLxC && (
+                                    <td className="col-dim">
+                                      {b.largura_mm || b.comprimento_m
+                                        ? `${b.largura_mm ?? '—'} × ${b.comprimento_m ?? '—'}`
+                                        : '—'}
+                                    </td>
+                                  )}
+                                  <td className="col-num">{formatQty(b.qtde_disponivel)}</td>
+                                  <td className="col-num">
+                                    <input
+                                      inputMode="decimal"
+                                      value={b.qtde}
+                                      onChange={(e) => patchBaixa(b.lote_id, e.target.value)}
+                                      placeholder="0.0000"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      <p className="muted" style={{ margin: '0.45rem 0 0' }}>
+                        Soma baixas: {formatQty(somaBaixas(baixas))}{' '}
+                        {selectedProduto?.unidade_interna ?? ''}
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 <div className="form-group">
@@ -789,52 +1115,17 @@ export function EstoqueAjustesPage() {
         </form>
       )}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          <p className="muted" style={{ margin: '0 0 0.85rem' }}>
-            Fila da alçada. Quem solicitou não aprova. Pendente pode ser cancelado — o registro
-            permanece no histórico.
-          </p>
-          <div className="form-grid" style={{ alignItems: 'end' }}>
-            <div className="form-group">
-              <label>Situação</label>
-              <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
-                <option value="PENDENTE">Pendentes (fila)</option>
-                <option value="">Todas</option>
-                <option value="APROVADO">Aprovados</option>
-                <option value="REJEITADO">Rejeitados</option>
-                <option value="CANCELADO">Cancelados</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>De</label>
-              <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Até</label>
-              <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>&nbsp;</label>
-              <button type="button" className="btn btn-secondary" onClick={() => void load()}>
-                Filtrar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {selected && selected.status === 'PENDENTE' && (
+      {selected && selected.status === 'PENDENTE' && canAprovar && (
         <form
           id="aju-conferir"
           onSubmit={(e) => void aprovar(e)}
-          style={{ marginBottom: '1rem' }}
+          style={{ marginBottom: '0.75rem' }}
         >
           <div className="card">
             <div className="card-body">
               <div className="form-section">
                 <h3>Conferir {selected.codigo}</h3>
-                <div className="detail-meta" style={{ marginBottom: '1rem' }}>
+                <div className="detail-meta" style={{ marginBottom: '0.75rem' }}>
                   <div>
                     <span>Produto</span>
                     <strong>{selected.produto?.codigo}</strong>
@@ -858,7 +1149,7 @@ export function EstoqueAjustesPage() {
                     </strong>
                   </div>
                   <div>
-                    <span>Valor</span>
+                    <span>Valor (R$)</span>
                     <strong>
                       {selected.valor_ajuste != null
                         ? formatCurrency(selected.valor_ajuste)
@@ -878,108 +1169,24 @@ export function EstoqueAjustesPage() {
                     <strong>{selected.solicitado_por?.name ?? '—'}</strong>
                   </div>
                 </div>
-                <p className="muted" style={{ marginTop: 0, marginBottom: '1rem' }}>
+                <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
                   {selected.produto?.descricao_fiscal}
                   {selected.motivo_codigo
                     ? ` · ${selected.motivo_codigo} ${selected.motivo_nome ?? ''}`
                     : ''}
                 </p>
 
-                {selected.lote_payload && selected.lote_payload.length > 0 && (
-                  <div style={{ marginBottom: '1rem' }}>
-                    <p className="muted" style={{ margin: '0 0 0.5rem' }}>
-                      Volumes de abertura ({selected.lote_payload.length})
-                    </p>
-                    <div className="table-wrap">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Código</th>
-                            <th>L × C</th>
-                            <th>Qtde</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selected.lote_payload.map((v, i) => (
-                            <tr key={i}>
-                              <td>{v.codigo ?? '—'}</td>
-                              <td className="muted">
-                                {v.largura_mm || v.comprimento_m
-                                  ? `${v.largura_mm ?? '—'} mm × ${v.comprimento_m ?? '—'} m`
-                                  : '—'}
-                              </td>
-                              <td className="num">
-                                {formatQty(v.qtde)} {selected.unidade}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {selected.contagem_evidencia?.volumes &&
-                  selected.contagem_evidencia.volumes.length > 0 && (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <p className="muted" style={{ margin: '0 0 0.5rem' }}>
-                        Contagem por QR — local{' '}
-                        <strong>{selected.contagem_evidencia.endereco.codigo}</strong> ·{' '}
-                        {selected.contagem_evidencia.volumes.length} volume(s) · soma{' '}
-                        {formatQty(selected.contagem_evidencia.qtde_soma)} {selected.unidade}
-                      </p>
-                      <div className="table-wrap">
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th>Volume</th>
-                              <th>Qtde</th>
-                              <th>Status</th>
-                              <th>Local no sistema</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selected.contagem_evidencia.volumes.map((v) => (
-                              <tr key={v.lote_id}>
-                                <td>
-                                  <strong>{v.codigo}</strong>
-                                </td>
-                                <td className="num">
-                                  {formatQty(v.qtde)} {v.unidade ?? selected.unidade}
-                                </td>
-                                <td>
-                                  {v.status === 'LOCAL_ERRADO'
-                                    ? 'Local errado'
-                                    : v.status === 'ENCONTRADO'
-                                      ? 'No local'
-                                      : 'Sem local'}
-                                </td>
-                                <td className="muted">{v.endereco_atual ?? '—'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {selected.contagem_evidencia.volumes.some(
-                        (v) => v.status === 'LOCAL_ERRADO',
-                      ) && (
-                        <p className="muted" style={{ margin: '0.5rem 0 0' }}>
-                          Local errado não se corrige aqui — use{' '}
-                          <Link to="/estoque/guardar">Guardar no local</Link>.
-                        </p>
-                      )}
-                    </div>
-                  )}
+                <AjusteVolumesPainel a={selected} />
 
                 {solicitanteSouEu && (
-                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+                  <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
                     Quem solicitou o ajuste não pode aprová-lo (segregação de funções). Entre com
                     outro usuário que tenha alçada de estoque.
                   </div>
                 )}
 
                 {(selected.divergencia_relevante || selected.alcada === 'DIRECAO') && (
-                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                  <div className="form-grid" style={{ marginBottom: '0.75rem' }}>
                     <div className="form-group span-2">
                       <label>Causa raiz</label>
                       <input
@@ -995,7 +1202,7 @@ export function EstoqueAjustesPage() {
                 )}
 
                 {selected.alcada === 'DIRECAO' && canGestor && (
-                  <div className="form-grid" style={{ marginBottom: '1rem' }}>
+                  <div className="form-grid" style={{ marginBottom: '0.75rem' }}>
                     <div className="form-group">
                       <label className="checkbox-item">
                         <input
@@ -1022,7 +1229,7 @@ export function EstoqueAjustesPage() {
                 )}
 
                 {(selected.alcada ?? 'LIDER') !== 'LIDER' && !canGestor && (
-                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+                  <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
                     Esta solicitação exige alçada de gestor.
                   </div>
                 )}
@@ -1043,7 +1250,7 @@ export function EstoqueAjustesPage() {
                       Rejeitar
                     </button>
                   )}
-                  <button type="button" className="btn btn-secondary" onClick={closeAprovar}>
+                  <button type="button" className="btn btn-secondary" onClick={closeDetalhe}>
                     Fechar
                   </button>
                 </div>
@@ -1053,126 +1260,281 @@ export function EstoqueAjustesPage() {
         </form>
       )}
 
-      <div className="card">
-        <div className="table-wrap table-wrap--freeze">
-          {loading ? (
-            <div className="loading">Carregando…</div>
-          ) : ajustes.length === 0 ? (
-            <div className="empty-state">
-              {statusFiltro === 'PENDENTE'
-                ? 'Nenhum ajuste pendente de aprovação.'
-                : 'Nenhum ajuste neste filtro.'}
+      {selected && (selected.status !== 'PENDENTE' || !canAprovar) && (
+        <div className="card" style={{ marginBottom: '0.75rem' }}>
+          <div className="card-body">
+            <div className="form-section">
+              <h3>
+                {selected.codigo}
+                {selected.status === 'PENDENTE'
+                  ? ' · pendente'
+                  : ` · ${ajStatusLabel(selected.status)}`}
+              </h3>
+              <div className="detail-meta" style={{ marginBottom: '0.75rem' }}>
+                <div>
+                  <span>Produto</span>
+                  <strong>{selected.produto?.codigo}</strong>
+                </div>
+                <div>
+                  <span>Sistema</span>
+                  <strong>
+                    {formatQty(selected.qtde_sistema)} {selected.unidade}
+                  </strong>
+                </div>
+                <div>
+                  <span>Contado</span>
+                  <strong>
+                    {formatQty(selected.qtde_contada)} {selected.unidade}
+                  </strong>
+                </div>
+                <div>
+                  <span>Diferença</span>
+                  <strong>
+                    {formatQty(selected.qtde_diferenca)} {selected.unidade}
+                  </strong>
+                </div>
+                <div>
+                  <span>Valor (R$)</span>
+                  <strong>
+                    {selected.valor_ajuste != null
+                      ? formatCurrency(selected.valor_ajuste)
+                      : '—'}
+                  </strong>
+                </div>
+                <div>
+                  <span>Alçada</span>
+                  <strong>{ajuAlcadaLabel(selected.alcada)}</strong>
+                </div>
+                <div>
+                  <span>Origem</span>
+                  <strong>{ajuOrigemLabel(selected.origem)}</strong>
+                </div>
+                <div>
+                  <span>Solicitado por</span>
+                  <strong>{selected.solicitado_por?.name ?? '—'}</strong>
+                </div>
+                {selected.aprovado_por && (
+                  <div>
+                    <span>Conferido por</span>
+                    <strong>{selected.aprovado_por.name}</strong>
+                  </div>
+                )}
+                {selected.movimento && (
+                  <div>
+                    <span>Movimento</span>
+                    <strong>{selected.movimento.codigo}</strong>
+                  </div>
+                )}
+              </div>
+              <p className="muted" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+                {selected.produto?.descricao_fiscal}
+                {selected.motivo_codigo
+                  ? ` · ${selected.motivo_codigo} ${selected.motivo_nome ?? ''}`
+                  : ''}
+              </p>
+
+              <AjusteVolumesPainel a={selected} />
+
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={closeDetalhe}>
+                  Fechar
+                </button>
+              </div>
             </div>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Produto</th>
-                  <th>Sistema</th>
-                  <th>Contado</th>
-                  <th>Δ / Valor</th>
-                  <th>Motivo</th>
-                  <th>Alçada</th>
-                  <th>Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {ajustes.map((a) => (
-                  <tr
-                    key={a.id}
-                    style={
-                      selectedId === a.id
-                        ? { background: 'rgba(26, 53, 104, 0.06)' }
-                        : undefined
-                    }
-                  >
-                    <td>
-                      {a.codigo}
-                      <div className="muted">{ajuOrigemLabel(a.origem)}</div>
-                    </td>
-                    <td>
-                      <strong>{a.produto?.codigo}</strong>
-                      <div className="muted">{a.produto?.descricao_fiscal}</div>
-                    </td>
-                    <td className="num">
-                      {formatQty(a.qtde_sistema)} {a.unidade}
-                    </td>
-                    <td className="num">
-                      {formatQty(a.qtde_contada)} {a.unidade}
-                    </td>
-                    <td className="num">
-                      {formatQty(a.qtde_diferenca)}
-                      <div className="muted">
-                        {a.valor_ajuste != null ? formatCurrency(a.valor_ajuste) : '—'}
-                      </div>
-                    </td>
-                    <td>
-                      {a.motivo_codigo}
-                      <div className="muted">{a.motivo_nome}</div>
-                      {a.aviso_fiscal && <div className="muted">{a.aviso_fiscal}</div>}
-                    </td>
-                    <td>
-                      {ajuAlcadaLabel(a.alcada)}
-                      {a.divergencia_relevante && <div className="muted">Relevante</div>}
-                    </td>
-                    <td>
-                      <StatusPill status={ajStatusLabel(a.status)} />
-                      <div className="muted" style={{ marginTop: '0.25rem' }}>
-                        {a.solicitado_por?.name}
-                      </div>
-                      <div className="muted">{formatDateTime(a.created_at)}</div>
-                      {a.movimento && <div className="muted">{a.movimento.codigo}</div>}
-                    </td>
-                    <td>
-                      <div className="table-actions">
-                        {a.status === 'APROVADO' &&
-                          a.movimento_id != null &&
-                          ajuPedeEtiquetasVolume(a) && (
-                            <Link
-                              className="btn btn-secondary btn-sm"
-                              to={`/estoque/lotes/etiquetas?movimento_id=${a.movimento_id}`}
-                            >
-                              Etiquetas
-                            </Link>
-                          )}
-                        {a.status === 'PENDENTE' &&
-                          canWrite &&
-                          (sameUser(user?.id, a.solicitado_por?.id) || canAprovar) && (
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => void cancelar(a.id)}
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                        {a.status === 'PENDENTE' && canAprovar && (
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() => openAprovar(a)}
-                          >
-                            Conferir
-                          </button>
-                        )}
-                        {a.status === 'PENDENTE' && !canAprovar && (
-                          <span className="muted">
-                            {sameUser(user?.id, a.solicitado_por?.id)
-                              ? 'Você solicitou — outro usuário com alçada aprova'
-                              : 'Aguardando quem tem alçada de estoque'}
-                          </span>
-                        )}
-                      </div>
-                    </td>
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{ marginBottom: '0.75rem' }}>
+        <div className="card-body">
+          <div className="estoque-ajustes-toolbar">
+            <div className="form-group">
+              <label>Situação</label>
+              <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
+                <option value="PENDENTE">Pendentes (fila)</option>
+                <option value="">Todas</option>
+                <option value="APROVADO">Aprovados</option>
+                <option value="REJEITADO">Rejeitados</option>
+                <option value="CANCELADO">Cancelados</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>De</label>
+              <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Até</label>
+              <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <button type="button" className="btn btn-secondary" onClick={() => void load()}>
+                Filtrar
+              </button>
+            </div>
+          </div>
+
+          <div className="table-wrap table-wrap--freeze" style={{ margin: 0 }}>
+            {loading ? (
+              <div className="loading">Carregando…</div>
+            ) : ajustes.length === 0 ? (
+              <div className="empty-state">
+                {statusFiltro === 'PENDENTE'
+                  ? 'Nenhum ajuste pendente de aprovação.'
+                  : 'Nenhum ajuste neste filtro.'}
+              </div>
+            ) : (
+              <table className="data-table estoque-ajustes-table">
+                <thead>
+                  <tr>
+                    <th>AJU</th>
+                    <th>SKU</th>
+                    <th className="num">Sist.</th>
+                    <th className="num">Cont.</th>
+                    <th className="num">Δ</th>
+                    <th className="num">R$</th>
+                    <th>Motivo</th>
+                    <th>Alçada</th>
+                    <th>Status</th>
+                    <th className="acoes" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {ajustes.map((a) => {
+                    const resumoVolumes = ajuResumoVolumesLinha(a);
+                    const aguardandoAlcada =
+                      a.status === 'PENDENTE' &&
+                      !canAprovar &&
+                      (sameUser(user?.id, a.solicitado_por?.id)
+                        ? 'Você solicitou — outro usuário com alçada aprova'
+                        : 'Aguardando quem tem alçada de estoque');
+                    const statusTitle = [
+                      a.solicitado_por?.name,
+                      formatDateTime(a.created_at),
+                      a.movimento?.codigo,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ');
+
+                    return (
+                      <tr
+                        key={a.id}
+                        className={selectedId === a.id ? 'is-selected' : undefined}
+                      >
+                        <td>
+                          {a.codigo}
+                          <div className="muted">{ajuOrigemLabel(a.origem)}</div>
+                        </td>
+                        <td className="estoque-ajustes-sku">
+                          <strong>{a.produto?.codigo}</strong>
+                          {a.produto?.descricao_fiscal ? (
+                            <div
+                              className="muted estoque-ajustes-sku-desc"
+                              title={a.produto.descricao_fiscal}
+                            >
+                              {a.produto.descricao_fiscal}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="num">
+                          {formatQty(a.qtde_sistema)}
+                          <span className="muted"> {a.unidade}</span>
+                        </td>
+                        <td className="num">{formatQty(a.qtde_contada)}</td>
+                        <td className="num">
+                          {formatQty(a.qtde_diferenca)}
+                          {resumoVolumes && <div className="muted">{resumoVolumes}</div>}
+                        </td>
+                        <td className="num">
+                          {a.valor_ajuste != null ? formatCurrency(a.valor_ajuste) : '—'}
+                        </td>
+                        <td title={a.motivo_nome ?? undefined}>
+                          {a.motivo_codigo ?? '—'}
+                          {a.aviso_fiscal ? (
+                            <div className="muted" title={a.aviso_fiscal}>
+                              Fiscal
+                            </div>
+                          ) : null}
+                        </td>
+                        <td>
+                          {ajuAlcadaLabel(a.alcada)}
+                          {a.divergencia_relevante ? (
+                            <div className="muted">Relevante</div>
+                          ) : null}
+                        </td>
+                        <td title={statusTitle || undefined}>
+                          <StatusPill status={ajStatusLabel(a.status)} />
+                          <div className="muted">{formatDate(a.created_at)}</div>
+                        </td>
+                        <td className="acoes">
+                          <div className="table-actions">
+                            {a.status === 'APROVADO' &&
+                              a.movimento_id != null &&
+                              ajuPedeEtiquetasVolume(a) && (
+                                <Link
+                                  className="btn-icon"
+                                  to={`/estoque/lotes/etiquetas?movimento_id=${a.movimento_id}`}
+                                  title="Etiquetas dos volumes"
+                                  aria-label={`Etiquetas de ${a.codigo}`}
+                                >
+                                  <IconTag />
+                                </Link>
+                              )}
+                            {a.status === 'PENDENTE' &&
+                              canWrite &&
+                              (sameUser(user?.id, a.solicitado_por?.id) || canAprovar) && (
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  title="Cancelar solicitação"
+                                  aria-label={`Cancelar ${a.codigo}`}
+                                  onClick={() => void cancelar(a.id)}
+                                >
+                                  <IconBan />
+                                </button>
+                              )}
+                            {a.status === 'PENDENTE' && canAprovar && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                title="Conferir e aprovar"
+                                aria-label={`Conferir ${a.codigo}`}
+                                onClick={() => openDetalhe(a)}
+                              >
+                                <IconCheck />
+                              </button>
+                            )}
+                            {(a.status !== 'PENDENTE' || !canAprovar) && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                title="Ver detalhe"
+                                aria-label={`Ver ${a.codigo}`}
+                                onClick={() => openDetalhe(a)}
+                              >
+                                <IconEye />
+                              </button>
+                            )}
+                            {aguardandoAlcada ? (
+                              <span
+                                className="btn-icon"
+                                title={aguardandoAlcada}
+                                aria-label={aguardandoAlcada}
+                                style={{ cursor: 'default', pointerEvents: 'auto' }}
+                              >
+                                <IconAlertCircle />
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

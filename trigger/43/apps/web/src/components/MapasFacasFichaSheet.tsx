@@ -9,6 +9,7 @@ import { BRAND } from '../lib/brand';
 import {
   agruparFacasPorMaquina,
   descricaoRecorteMapaFacas,
+  facaDimensoesExibicao,
   type FacaMapaItem,
   type MapaFacasFichaFiltros,
 } from '../lib/facasMapa';
@@ -88,7 +89,7 @@ export type MapasFacasFichaSheetProps = {
 };
 
 /**
- * Ficha operacional do mapa de facas — inventário por máquina, ordenado por N.
+ * Ficha operacional do mapa de facas — inventário por máquina, ordenado por N FACA.
  * Padrão visual das demais fichas (masthead · seções · tabela · atribuição).
  */
 export function MapasFacasFichaSheet({
@@ -123,7 +124,7 @@ export function MapasFacasFichaSheet({
         <div className="ficha-title-main">
           <h2 className="ficha-razao">Mapa de facas</h2>
           <p className="ficha-fantasia">
-            Agrupado por máquina · ordenado pelo N da faca
+            Agrupado por máquina · ordenado por N FACA
           </p>
         </div>
         <div className="ficha-title-meta">
@@ -178,15 +179,14 @@ export function MapasFacasFichaSheet({
               <table className="ficha-table ficha-table-num ficha-mapa-facas-table">
                 <thead>
                   <tr>
-                    <th className="ficha-th-num ficha-mapa-facas-col-n">N</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-n">N FACA</th>
                     <th className="ficha-mapa-facas-col-silhueta">Silhueta</th>
-                    <th className="ficha-mapa-facas-col-medida">Medida</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-largura">Largura</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-tamanho">Tamanho</th>
                     <th className="ficha-mapa-facas-col-formato">Formato</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-z">Z</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-rep">Rep</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-num">Puxada</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-num">Larg.</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-num">Ø</th>
                     <th className="ficha-mapa-facas-col-cil">Cil.</th>
                     <th className="ficha-mapa-facas-col-cliente">Cliente</th>
                   </tr>
@@ -194,6 +194,7 @@ export function MapasFacasFichaSheet({
                 <tbody>
                   {g.items.map((f) => {
                     const cliente = dash(f.cliente_nota);
+                    const dim = facaDimensoesExibicao(f);
                     return (
                       <tr
                         key={f.id}
@@ -203,13 +204,16 @@ export function MapasFacasFichaSheet({
                         <td className="ficha-mapa-facas-silhueta-cell">
                           <FichaFacaSilhuetaCell faca={f} />
                         </td>
-                        <td className="ficha-mapa-facas-medida">{dash(f.medida)}</td>
+                        <td className="ficha-td-num ficha-mapa-facas-dim">{dim.largura}</td>
+                        <td className="ficha-td-num ficha-mapa-facas-dim">
+                          {dim.isDiametro && dim.tamanho !== '—'
+                            ? `Ø ${dim.tamanho}`
+                            : dim.tamanho}
+                        </td>
                         <td className="ficha-mapa-facas-formato">{formatoLabel(f.formato)}</td>
                         <td className="ficha-td-num">{dash(f.z)}</td>
                         <td className="ficha-td-num">{fmtNum(f.repeticao, 8)}</td>
                         <td className="ficha-td-num">{fmtNum(f.puxada, 4)}</td>
-                        <td className="ficha-td-num">{fmtNum(f.largura_faca)}</td>
-                        <td className="ficha-td-num">{fmtNum(f.diametro_cm)}</td>
                         <td>{dash(f.cilindro)}</td>
                         <td className="ficha-mapa-facas-cliente" title={cliente === '—' ? undefined : cliente}>
                           {cliente}
@@ -225,8 +229,8 @@ export function MapasFacasFichaSheet({
       )}
 
       <p className="ficha-note">
-        Documento de consulta do ferramental · não altera o cadastro · N = número da faca na
-        máquina · silhueta com seta de posição no cilindro.
+        Documento de consulta do ferramental · não altera o cadastro · N FACA = número da
+        faca na máquina · silhueta com seta de posição no cilindro.
       </p>
 
       <footer className="ficha-footer">

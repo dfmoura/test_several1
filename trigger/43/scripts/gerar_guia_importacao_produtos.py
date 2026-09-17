@@ -675,7 +675,7 @@ def build_story(styles):
         "Código duplicado no arquivo ou já cadastrado (insert-only).",
         "Grupo dimensional sem largura_mm / comprimento_m.",
         "unidade_comercial ≠ unidade_interna sem fator_conversao &gt; 0.",
-        "Unidade fora do catálogo oficial (RL, M, M2, KG, G, UN, MIL, L, CX).",
+        "Unidade fora do catálogo oficial (RL, M, M2, KG, G, UN, MIL, L, CX, PCT).",
         "NCM com pontuação ou diferente de 8 dígitos.",
         "Override fiscal no CSV sem permissão produto.fiscal.",
         "Tentar importar custo_medio ou saldo — não fazem parte do modelo.",

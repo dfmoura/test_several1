@@ -49,9 +49,10 @@ FAT                  →  N linhas de ferramental (espelho artes); legado 1 linh
 
 ### UX
 
-- Seção **“2. Faca (mapa oficial)”**: lista · adicionar do mapa · marcar principal · valor/prazo por linha.
+- Seção **“2. Faca (mapa ou nova)”**: lista · adicionar do mapa · **cotar faca nova** (sem gravar no inventário) · marcar principal · valor/prazo por linha.
 - Principal = “define o cálculo”.
 - Extras = ferramental do mesmo job sem reescrever R1–R20.
+- Faca nova no ORC = cotação comercial; cadastro definitivo permanece em **Mapa de facas** após aprovação.
 
 ---
 
