@@ -20,6 +20,7 @@ Implementar login simples com sessão, papéis e teto de contas, de forma extens
    - total máximo **6** contas
    - constantes fáceis de alterar depois (`MAX_ADMIN = 1`, `MAX_CONSULTA = 5`)
    - **uma sessão ativa por conta:** segundo login na mesma conta é recusado (409) enquanto houver sessão válida; sair encerra a sessão atual; sessão órfã → no login, com senha válida, **Encerrar sessão anterior e entrar** (`encerrar_sessao_anterior=true`); admin também pode **Liberar sessão** em Usuários
+   - **idle timeout:** sessão sem request autenticado por mais de `AUTH_SESSION_IDLE_MINUTOS` (padrão 30) é invalidada no servidor; validade absoluta `AUTH_SESSION_DIAS` permanece como teto
 4. **Bootstrap:** se não existir nenhum usuário, permitir criar o primeiro admin (setup inicial) ou seed via env.
 5. **UI:**
    - tela de login (inclui ação self-service de encerrar sessão anterior quando 409)

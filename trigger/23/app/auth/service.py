@@ -13,6 +13,7 @@ from app.config import (
     AUTH_BOOTSTRAP_PASSWORD,
     AUTH_BOOTSTRAP_USERNAME,
     AUTH_SESSION_DIAS,
+    AUTH_SESSION_IDLE_MINUTOS,
     MAX_ADMIN,
     MAX_CONSULTA,
 )
@@ -155,13 +156,31 @@ MSG_SESSAO_OCUPADA = (
 )
 
 
+def _atividade_em(sessao: Sessao) -> datetime:
+    """Marca de última atividade (fallback: criação da sessão)."""
+    return sessao.ultimo_acesso or sessao.criado_em
+
+
+def _idle_esgotado(sessao: Sessao, agora: datetime) -> bool:
+    """True se a sessão ultrapassou AUTH_SESSION_IDLE_MINUTOS sem atividade."""
+    if AUTH_SESSION_IDLE_MINUTOS <= 0:
+        return False
+    limite = timedelta(minutes=AUTH_SESSION_IDLE_MINUTOS)
+    return _atividade_em(sessao) + limite < agora
+
+
+def _sessao_invalida(sessao: Sessao, agora: datetime) -> bool:
+    """Validade absoluta esgotada ou idle por inatividade."""
+    return sessao.expira_em < agora or _idle_esgotado(sessao, agora)
+
+
 def purgar_sessoes_expiradas(db: Session, usuario_id: int | None = None) -> int:
-    """Remove sessões vencidas (opcionalmente de um usuário). Retorna quantas apagou."""
+    """Remove sessões vencidas (absoluto ou idle). Retorna quantas apagou."""
     agora = _utcnow()
-    stmt = select(Sessao).where(Sessao.expira_em < agora)
+    stmt = select(Sessao)
     if usuario_id is not None:
         stmt = stmt.where(Sessao.usuario_id == usuario_id)
-    rows = list(db.scalars(stmt).all())
+    rows = [s for s in db.scalars(stmt).all() if _sessao_invalida(s, agora)]
     for s in rows:
         db.delete(s)
     if rows:
@@ -170,7 +189,7 @@ def purgar_sessoes_expiradas(db: Session, usuario_id: int | None = None) -> int:
 
 
 def listar_sessoes_ativas(db: Session, usuario_id: int) -> list[Sessao]:
-    """Sessões não expiradas do usuário (após limpeza de vencidas)."""
+    """Sessões válidas do usuário (após limpeza de vencidas / idle)."""
     purgar_sessoes_expiradas(db, usuario_id)
     agora = _utcnow()
     return list(
@@ -237,7 +256,7 @@ def obter_usuario_por_token(db: Session, token: str | None) -> Usuario | None:
     if sessao is None:
         return None
     agora = _utcnow()
-    if sessao.expira_em < agora:
+    if _sessao_invalida(sessao, agora):
         db.delete(sessao)
         db.commit()
         return None

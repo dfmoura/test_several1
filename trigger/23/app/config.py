@@ -42,6 +42,9 @@ MAX_ADMIN = int(os.environ.get("AUTH_MAX_ADMIN", "1"))
 MAX_CONSULTA = int(os.environ.get("AUTH_MAX_CONSULTA", "5"))
 AUTH_SESSION_COOKIE = os.environ.get("AUTH_SESSION_COOKIE", "osb_session")
 AUTH_SESSION_DIAS = int(os.environ.get("AUTH_SESSION_DIAS", "7"))
+# Inatividade: encerra sessão se não houver request autenticado neste intervalo.
+# 0 ou negativo desliga o idle (mantém só a validade absoluta AUTH_SESSION_DIAS).
+AUTH_SESSION_IDLE_MINUTOS = int(os.environ.get("AUTH_SESSION_IDLE_MINUTOS", "30"))
 # Cookie Secure: auto (HTTPS detectado via proxy) | 1/true | 0/false
 AUTH_COOKIE_SECURE = (os.environ.get("AUTH_COOKIE_SECURE") or "auto").strip().lower()
 # Seed opcional do 1º admin (só se a tabela usuários estiver vazia).

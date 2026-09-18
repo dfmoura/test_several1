@@ -370,3 +370,81 @@ def test_admin_libera_sessao_orfao(client, db):
         if admin:
             _limpar_usuario(db, admin)
 
+
+def test_sessao_expira_por_inatividade(client, db, monkeypatch):
+    """Idle server-side: sem request autenticado além do limite → 401 e sessão removida."""
+    from datetime import timedelta
+
+    import app.auth.service as auth_svc
+    from app.config import AUTH_SESSION_COOKIE
+    from app.database import Sessao
+
+    monkeypatch.setattr(auth_svc, "AUTH_SESSION_IDLE_MINUTOS", 30)
+
+    user = _uid("idle")
+    try:
+        criar_usuario(db, username=user, senha="senha123", papel="consulta")
+    except AuthError as exc:
+        pytest.skip(exc.message)
+
+    try:
+        r = client.post("/api/auth/login", json={"username": user, "password": "senha123"})
+        assert r.status_code == 200, r.text
+        token = r.cookies.get(AUTH_SESSION_COOKIE)
+        assert token
+        assert client.get("/api/auth/me").status_code == 200
+
+        sessao = db.scalar(select(Sessao).where(Sessao.token == token))
+        assert sessao is not None
+        # Simula inatividade além do idle (sem alterar expira_em absoluto).
+        sessao.ultimo_acesso = auth_svc._utcnow() - timedelta(minutes=31)
+        db.commit()
+
+        assert client.get("/api/auth/me").status_code == 401
+        db.expire_all()
+        assert db.scalar(select(Sessao).where(Sessao.token == token)) is None
+
+        # Sessão idle não bloqueia novo login (política 1 ativa por conta).
+        with TestClient(app) as c_new:
+            r2 = c_new.post("/api/auth/login", json={"username": user, "password": "senha123"})
+            assert r2.status_code == 200, r2.text
+            assert c_new.get("/api/auth/me").status_code == 200
+    finally:
+        _limpar_usuario(db, user)
+
+
+def test_atividade_renova_idle_sem_encerrar(client, db, monkeypatch):
+    """Request autenticado dentro da janela de idle mantém a sessão."""
+    from datetime import timedelta
+
+    import app.auth.service as auth_svc
+    from app.config import AUTH_SESSION_COOKIE
+    from app.database import Sessao
+
+    monkeypatch.setattr(auth_svc, "AUTH_SESSION_IDLE_MINUTOS", 30)
+
+    user = _uid("act")
+    try:
+        criar_usuario(db, username=user, senha="senha123", papel="consulta")
+    except AuthError as exc:
+        pytest.skip(exc.message)
+
+    try:
+        r = client.post("/api/auth/login", json={"username": user, "password": "senha123"})
+        assert r.status_code == 200, r.text
+        token = r.cookies.get(AUTH_SESSION_COOKIE)
+
+        sessao = db.scalar(select(Sessao).where(Sessao.token == token))
+        assert sessao is not None
+        sessao.ultimo_acesso = auth_svc._utcnow() - timedelta(minutes=10)
+        db.commit()
+
+        assert client.get("/api/auth/me").status_code == 200
+        db.expire_all()
+        renovada = db.scalar(select(Sessao).where(Sessao.token == token))
+        assert renovada is not None
+        assert renovada.ultimo_acesso is not None
+        assert renovada.ultimo_acesso > auth_svc._utcnow() - timedelta(minutes=1)
+    finally:
+        _limpar_usuario(db, user)
+
