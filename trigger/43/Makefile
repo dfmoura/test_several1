@@ -1,4 +1,4 @@
-.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-nfe-destinadas pronto-produto-modelo pronto-orc-faca-tamanho orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
+.PHONY: up down up-aws down-aws aws-check promote-prod build logs migrate seed seed-produtos-cadastro seed-estoque-virada seed-estoque-enderecos limpar-estoque limpar-cadeia-pos-orc preparar-ensaio-estoque limpar-operacional limpar-sistema promover-conta limpar-livro-conta alinhar-primeiro-cadastro shell health doctor web-build stage-web-context pronto-etiquetas-volume pronto-estoque-saldo-volumes pronto-estoque-ajuste-virada-volumes pronto-estoque-ajuste-volumes pronto-estoque-ajuste-qr pronto-guardar pronto-nfe-destinadas pronto-produto-modelo pronto-orc-faca-tamanho orc-rbac condicao-pagamento-pronto backlog-pronto formulas-orc-pronto plataforma-pronto queue-logs guia-pdf guia-pdf-parceiros guia-pdf-produtos ensaio-asaas ensaio-asaas-ativar ensaio-asaas-desativar ensaio-asaas-tunnel cenario-mensalidade-pos-cortesia ci-flexorc export-envio-proposta
 
 # Caminho canônico: docs/DEPLOY_LOCAL_AWS.md
 # Local SEM docker-compose.local.yml = containers up sem :8043 → ERR_CONNECTION_REFUSED
@@ -95,6 +95,14 @@ seed-estoque-enderecos:
 #      make limpar-estoque ARGS='--com-oc'
 limpar-estoque:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-estoque --force $(ARGS)
+
+# Lab/homolog: zera PED/OP/FAT/ENT/TIT RECEBER e deixa ORCs em preparação (por EMP).
+# Não apaga PAR/produtos/OC; não roda em production. Ledger: make limpar-estoque depois se preciso.
+# Uso: make limpar-cadeia-pos-orc
+#      make limpar-cadeia-pos-orc ARGS='--dry-run'
+#      make limpar-cadeia-pos-orc ARGS='--empresa=EMP-00001'
+limpar-cadeia-pos-orc:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan erp:limpar-cadeia-pos-orc --force $(ARGS)
 
 # Monta cenário local: estoque_ativo + OC + DF-e amostra amarrada (saldo continua 0 até você receber).
 # Uso: make preparar-ensaio-estoque

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * Não toca ORC/PED/FAT/parceiros/usuários/plataforma/audit_log.
  * Proibido em production. Wipe total: erp:limpar-operacional.
+ * Cadeia comercial (PED→TIT) sem apagar ORC: erp:limpar-cadeia-pos-orc.
  */
 class LimparEstoqueCommand extends Command
 {
