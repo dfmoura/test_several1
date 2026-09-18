@@ -5,7 +5,7 @@
 **Contexto 39:** BL-051  
 **Norma:** `../32` — `FATURAMENTO_GERACAO_COBRANCA.txt` · `CASOS_USO_M05_FISCAL.txt` (UC-FIS-001/002/005) · `ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt`  
 **Layout / contrato Focus:** `../28` — `docs/FOCUS_NFE_MAPEAMENTO.md` · `packages/focus-nfe` · `modelos/nfe` · `modelos/nfse`  
-**Relacionada:** `ADR_FATURAMENTO_COBRANCA.md` (emenda)
+**Relacionada:** `ADR_FATURAMENTO_COBRANCA.md` (emenda) · `ADR_NFE_TRANSPORTE_SAIDA.md` (mod_frete + transportador + volumes PA)
 
 ---
 

@@ -1,0 +1,36 @@
+---
+description: Transporte e volumes na NF-e de saída (FAT → Focus)
+globs:
+  - apps/api/app/Services/Fiscal/**
+  - apps/api/app/Services/Financeiro/FaturamentoService.php
+  - apps/api/app/Models/Faturamento.php
+  - apps/web/src/pages/FaturamentoDetailPage.tsx
+  - apps/web/src/pages/PedidoDetailPage.tsx
+alwaysApply: false
+---
+
+# Transporte fiscal de saída (NF-e)
+
+Norma: `docs/ADR_NFE_TRANSPORTE_SAIDA.md`.
+
+## Espinha
+
+```
+ORC modo_entrega → FAT (mod_frete + transportador_id) → FocusPayloadBuilder
+volumes = PaEmbalagem.caixas · ENT só ecoa
+```
+
+## Faça
+
+- Defaults: `RETIRAR`→9 · `ENTREGA_PROPRIA`→0 sem PAR · `ENTREGA_TERCEIROS`→0/1 + PAR obrigatório.
+- Transportador = PAR `papel_transportadora` (mesmo da OC/Caixa DF-e).
+- Volumes só de embalagem PA (`quantidade` + `CAIXA`). Sem inventar peso/marca.
+
+## Não faça
+
+- Preencher NF a partir do ENT.
+- Hardcodar `modalidade_frete = 9` com modo própria/terceiros.
+- Inventar peso/CUB/CT-e nesta fatia.
+- Misturar `VOL:` de MP com volumes de PA.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_NFE_TRANSPORTE_SAIDA.md`.

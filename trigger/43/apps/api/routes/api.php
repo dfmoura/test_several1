@@ -380,6 +380,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/faturamentos', [FaturamentoController::class, 'index']);
         Route::get('/faturamentos/{faturamento}', [FaturamentoController::class, 'show']);
         Route::post('/faturamentos/{faturamento}/estornar', [FaturamentoController::class, 'estornar']);
+        Route::put('/faturamentos/{faturamento}/transporte', [FaturamentoController::class, 'atualizarTransporte']);
         Route::post('/faturamentos/{faturamento}/emitir-nf', [FaturamentoController::class, 'emitirNf']);
         Route::post('/faturamentos/{faturamento}/consultar-nf', [FaturamentoController::class, 'consultarNf']);
         Route::get('/pedidos/{pedido}/faturamento-preview', [FaturamentoController::class, 'preview']);

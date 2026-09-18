@@ -185,6 +185,7 @@ class EmissaoFiscalSaidaTest extends TestCase
                 'input' => [
                     'condicao_pagamento' => '28 DDL',
                     'forma_pagamento' => 'PIX',
+                    'modo_entrega' => $overrides['modo_entrega'] ?? 'RETIRAR',
                 ],
                 'faixa' => [
                     'quantidade' => 10000,
@@ -534,5 +535,120 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertTrue($prev->json('data.fiscal.emissor_teste.ativo'));
         $this->assertTrue($prev->json('data.fiscal.emissao_automatica'));
         $this->assertTrue($prev->json('data.fiscal.apto_cadastro'));
+    }
+
+    public function test_retirar_grava_mod_frete_9_sem_transportador(): void
+    {
+        $ped = $this->criarPedidoProduzido([
+            'modo_entrega' => 'RETIRAR',
+        ]);
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated()
+            ->assertJsonPath('data.mod_frete', '9')
+            ->assertJsonPath('data.transportador_id', null);
+
+        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
+        $this->assertSame(9, $payload['modalidade_frete'] ?? null);
+        $this->assertArrayNotHasKey('nome_transportador', $payload);
+    }
+
+    public function test_entrega_propria_mod_frete_0_sem_transportador(): void
+    {
+        $ped = $this->criarPedidoProduzido([
+            'modo_entrega' => 'ENTREGA_PROPRIA',
+        ]);
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated()
+            ->assertJsonPath('data.mod_frete', '0')
+            ->assertJsonPath('data.transportador_id', null);
+
+        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
+        $this->assertSame(0, $payload['modalidade_frete'] ?? null);
+        $this->assertArrayNotHasKey('cnpj_transportador', $payload);
+    }
+
+    public function test_terceiros_exige_transportador_e_preenche_focus(): void
+    {
+        $transp = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-TRN01',
+            'tipo_pessoa' => 'PJ',
+            'cnpj_cpf' => '11222333000181',
+            'razao_social' => 'TRANSPORTADORA SUL LTDA',
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+            'is_prospect' => false,
+            'logradouro' => 'Rua Frete',
+            'numero' => '100',
+            'bairro' => 'Centro',
+            'municipio' => 'Uberlandia',
+            'uf' => 'MG',
+            'cep' => '38400000',
+            'ie' => '123456789',
+        ]);
+
+        $ped = $this->criarPedidoProduzido([
+            'modo_entrega' => 'ENTREGA_TERCEIROS',
+        ]);
+
+        $sem = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar", [
+            'mod_frete' => '0',
+        ]);
+        $sem->assertStatus(422)->assertJsonValidationErrors(['transportador_id']);
+
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar", [
+            'mod_frete' => '0',
+            'transportador_id' => $transp->id,
+        ]);
+        $ok->assertCreated()
+            ->assertJsonPath('data.mod_frete', '0')
+            ->assertJsonPath('data.transportador_id', $transp->id)
+            ->assertJsonPath('data.transportador.razao_social', 'TRANSPORTADORA SUL LTDA');
+
+        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
+        $this->assertSame(0, $payload['modalidade_frete'] ?? null);
+        $this->assertSame('TRANSPORTADORA SUL LTDA', $payload['nome_transportador'] ?? null);
+        $this->assertSame('11222333000181', $payload['cnpj_transportador'] ?? null);
+        $this->assertSame('MG', $payload['uf_transportador'] ?? null);
+    }
+
+    public function test_volumes_caixas_na_nfe_quando_embalagem_confirmada(): void
+    {
+        $ped = $this->criarPedidoProduzido();
+        $item = $ped->itens->first();
+        $op = \App\Models\OrdemProducao::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'OP-2026-NFE-VOL',
+            'pedido_id' => $ped->id,
+            'pedido_item_id' => $item->id,
+            'status' => \App\Models\OrdemProducao::STATUS_CONCLUIDA,
+            'qtde_planejada' => '10000.0000',
+            'qtde_boa' => '10000.0000',
+            'qtde_refugo' => '0.0000',
+            'concluida_em' => now(),
+        ]);
+        \App\Models\PaEmbalagem::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-NFE-1',
+            'pedido_id' => $ped->id,
+            'pedido_item_id' => $item->id,
+            'ordem_producao_id' => $op->id,
+            'status' => \App\Models\PaEmbalagem::STATUS_CONFIRMADA,
+            'qtde_etiquetas' => '10000.0000',
+            'qtde_bobinas' => 10,
+            'qtde_caixas' => 3,
+            'etiq_por_rolo' => 1000,
+            'rolos_por_caixa' => 4,
+            'origem' => \App\Models\PaEmbalagem::ORIGEM_MANUAL,
+            'confirmada_em' => now(),
+        ]);
+
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+
+        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
+        $this->assertSame([
+            ['quantidade' => '3', 'especie' => 'CAIXA'],
+        ], $payload['volumes'] ?? null);
     }
 }

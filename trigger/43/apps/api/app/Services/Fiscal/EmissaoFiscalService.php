@@ -444,6 +444,27 @@ class EmissaoFiscalService
     }
 
     /**
+     * Regenera a prévia Focus dos documentos ainda editáveis (após ajuste de transporte).
+     */
+    public function rebuildPrevistas(Empresa $empresa, Faturamento $fat): void
+    {
+        $this->assertEmpresa($empresa, $fat);
+        $fat->loadMissing(['documentosFiscais', 'parceiro', 'pedido.parceiro', 'itens.pedidoItem.produtoPa', 'titulos', 'transportador']);
+        foreach ($fat->documentosFiscais as $doc) {
+            if ($doc->status === DocumentoFiscalSaida::STATUS_CANCELADO) {
+                continue;
+            }
+            if ($doc->eOficial() || $doc->status === DocumentoFiscalSaida::STATUS_PROCESSANDO) {
+                continue;
+            }
+            if ($doc->tipo !== DocumentoFiscalSaida::TIPO_NFE) {
+                continue;
+            }
+            $this->persistirPrevista($empresa, $fat, $doc);
+        }
+    }
+
+    /**
      * @return array{payload: array<string, mixed>, http: array<string, mixed>}|null
      */
     private function montarPayload(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc, Parceiro $parceiro): ?array

@@ -19,7 +19,10 @@ use App\Support\PadraoDecimal;
  */
 class FocusPayloadBuilder
 {
-    public function __construct(private readonly PaEmbalagemService $embalagem) {}
+    public function __construct(
+        private readonly PaEmbalagemService $embalagem,
+        private readonly FiscalSaidaTransporte $transporte,
+    ) {}
 
     /**
      * @param  list<array<string, mixed>>  $itens
@@ -42,6 +45,10 @@ class FocusPayloadBuilder
             : null;
         $embTexto = $this->embalagem->textoFiscal($emb);
         $volTransp = $this->embalagem->volumesTransporte($emb);
+
+        $fat->loadMissing('transportador');
+        $modFrete = $this->modalidadeFreteDoFat($fat);
+        $transpFocus = $this->transporte->focusTransportador($fat->transportador);
 
         $mapped = [];
         $n = 0;
@@ -90,7 +97,7 @@ class FocusPayloadBuilder
             $mapped[] = $item;
         }
 
-        $payload = $this->compact([
+        $payload = $this->compact(array_merge([
             'natureza_operacao' => FiscalSaidaDefaults::natureza($familia),
             'data_emissao' => $emissao,
             'tipo_documento' => 1,
@@ -120,7 +127,7 @@ class FocusPayloadBuilder
             'items' => $mapped,
             'valor_produtos' => $valor,
             'valor_total' => $valor,
-            'modalidade_frete' => FiscalSaidaDefaults::MODALIDADE_FRETE_SEM,
+            'modalidade_frete' => $modFrete,
             'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat, $embTexto),
             'formas_pagamento' => [[
                 'indicador_pagamento' => count($fat->titulos ?? []) > 1 ? 1 : 0,
@@ -133,7 +140,7 @@ class FocusPayloadBuilder
                 'doc' => 'nfe',
                 'faturamento' => $fat->codigo,
             ],
-        ]);
+        ], $transpFocus));
 
         if ($volTransp) {
             $payload['volumes'] = [[
@@ -148,6 +155,16 @@ class FocusPayloadBuilder
         }
 
         return ['payload' => $payload, 'http' => $this->paraEnvio($payload)];
+    }
+
+    private function modalidadeFreteDoFat(Faturamento $fat): int
+    {
+        $raw = $fat->mod_frete;
+        if ($raw !== null && $raw !== '' && in_array((string) $raw, Faturamento::MOD_FRETES, true)) {
+            return (int) $raw;
+        }
+
+        return FiscalSaidaDefaults::MODALIDADE_FRETE_SEM;
     }
 
     /**

@@ -3,11 +3,16 @@ import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { DocumentoFiscalPreviaCard } from '../components/DocumentoFiscalPrevia';
-import { api, type Faturamento } from '../lib/api';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import { api, type Faturamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
 import { nfStatusLabel } from '../lib/fiscalUi';
+
+const MOD_FRETE_CIF = '0';
+const MOD_FRETE_FOB = '1';
+const MOD_FRETE_SEM = '9';
 
 function fatStatusLabel(status: string): string {
   if (status === 'CONFIRMADO') return 'Confirmado';
@@ -29,6 +34,8 @@ export function FaturamentoDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [estornarAberto, setEstornarAberto] = useState(false);
   const [motivoEstorno, setMotivoEstorno] = useState('');
+  const [modFreteEdit, setModFreteEdit] = useState(MOD_FRETE_SEM);
+  const [transportadorEdit, setTransportadorEdit] = useState<Parceiro | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -36,6 +43,27 @@ export function FaturamentoDetailPage() {
     try {
       const res = await api.get<{ data: Faturamento }>(`/faturamentos/${id}`);
       setFat(res.data);
+      setModFreteEdit(res.data.mod_frete ?? MOD_FRETE_SEM);
+      setTransportadorEdit(
+        res.data.transportador
+          ? ({
+              id: res.data.transportador.id,
+              codigo: res.data.transportador.codigo,
+              razao_social: res.data.transportador.razao_social,
+              nome_fantasia: res.data.transportador.nome_fantasia ?? null,
+              cnpj_cpf: res.data.transportador.cnpj_cpf ?? null,
+              ie: res.data.transportador.ie ?? null,
+              logradouro: res.data.transportador.logradouro ?? null,
+              numero: res.data.transportador.numero ?? null,
+              complemento: res.data.transportador.complemento ?? null,
+              bairro: res.data.transportador.bairro ?? null,
+              municipio: res.data.transportador.municipio ?? null,
+              uf: res.data.transportador.uf ?? null,
+              cep: res.data.transportador.cep ?? null,
+              papel_transportadora: true,
+            } as Parceiro)
+          : null,
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao carregar.');
     } finally {
@@ -101,6 +129,25 @@ export function FaturamentoDetailPage() {
       setFat(res.data);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível consultar o hub.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const salvarTransporte = async () => {
+    if (!fat) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.put<{ data: Faturamento }>(`/faturamentos/${fat.id}/transporte`, {
+        mod_frete: modFreteEdit,
+        transportador_id: transportadorEdit?.id ?? null,
+      });
+      setFat(res.data);
+      setMsg('Transporte da NF-e atualizado. A prévia foi regenerada.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível atualizar o transporte.');
     } finally {
       setBusy(false);
     }
@@ -206,6 +253,71 @@ export function FaturamentoDetailPage() {
                       : 'Nota autorizada no hub Focus. O estoque de produto acabado só baixa neste momento.'
                     : 'A cobrança do saldo já foi gerada. A nota abaixo é prévia do que irá ao hub Focus — pendências de cadastro não desfazem o faturamento. Sem chave, número ou XML autorizado até o hub responder.'}
                 </p>
+              )}
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div className="card-body">
+              <div className="form-section">
+                <h3>Transporte na NF-e</h3>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Modalidade e transportador gravados no faturamento — alimentam a emissão Focus.
+                  Volumes vêm das caixas da embalagem PA.
+                </p>
+              </div>
+              {fat.pode_editar_transporte && hasPermission('faturamento.escrever') ? (
+                <div className="form-grid" style={{ gap: '0.75rem' }}>
+                  <div>
+                    <label className="form-label" htmlFor="fat-det-mod-frete">
+                      Modalidade
+                    </label>
+                    <select
+                      id="fat-det-mod-frete"
+                      className="input"
+                      value={modFreteEdit}
+                      onChange={(e) => setModFreteEdit(e.target.value)}
+                      disabled={busy}
+                    >
+                      <option value={MOD_FRETE_CIF}>CIF (emitente)</option>
+                      <option value={MOD_FRETE_FOB}>FOB (destinatário)</option>
+                      <option value={MOD_FRETE_SEM}>Sem frete</option>
+                    </select>
+                  </div>
+                  <ParceiroCombobox
+                    label="Transportadora"
+                    papel="transportadora"
+                    value={transportadorEdit}
+                    onChange={setTransportadorEdit}
+                    disabled={busy}
+                    placeholder="Buscar transportadora…"
+                  />
+                  <div className="btn-row">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={busy}
+                      onClick={() => void salvarTransporte()}
+                    >
+                      Salvar transporte
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="detail-meta">
+                  <div>
+                    <span>Modalidade</span>
+                    <strong>{fat.mod_frete_label ?? '—'}</strong>
+                  </div>
+                  <div>
+                    <span>Transportador</span>
+                    <strong>
+                      {fat.transportador
+                        ? `${fat.transportador.codigo} — ${fat.transportador.razao_social}`
+                        : '—'}
+                    </strong>
+                  </div>
+                </div>
               )}
             </div>
           </div>

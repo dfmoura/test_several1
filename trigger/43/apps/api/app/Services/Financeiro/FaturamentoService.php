@@ -9,6 +9,7 @@ use App\Models\EmpresaContaFinanceira;
 use App\Models\Faturamento;
 use App\Models\FaturamentoItem;
 use App\Models\NaturezaGerencial;
+use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\Titulo;
@@ -16,6 +17,7 @@ use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\PrecoTravadoPedido;
 use App\Services\Fiscal\EmissaoFiscalService;
+use App\Services\Fiscal\FiscalSaidaTransporte;
 use App\Services\Producao\PaEmbalagemService;
 use App\Support\FacasComposicao;
 use App\Support\PadraoDecimal;
@@ -42,6 +44,7 @@ class FaturamentoService
         private readonly BankProviderResolver $banks,
         private readonly EmissaoFiscalService $emissao,
         private readonly PaEmbalagemService $embalagem,
+        private readonly FiscalSaidaTransporte $transporte,
     ) {}
 
     /**
@@ -75,6 +78,7 @@ class FaturamentoService
             'parceiro:id,codigo,razao_social',
             'pedido:id,codigo,status',
             'orcamento:id,codigo',
+            'transportador',
             'itens',
             'titulos.cobrancas',
             'adiantamentoTitulo:id,codigo,valor,status,saldo',
@@ -115,9 +119,10 @@ class FaturamentoService
     }
 
     /**
+     * @param  array<string, mixed>  $data  mod_frete / transportador_id (ADR_NFE_TRANSPORTE_SAIDA)
      * @return array<string, mixed>
      */
-    public function faturar(Empresa $empresa, Pedido $pedido): array
+    public function faturar(Empresa $empresa, Pedido $pedido, array $data = []): array
     {
         $this->assertEmpresa($empresa, $pedido);
 
@@ -133,6 +138,8 @@ class FaturamentoService
             ]);
         }
 
+        $transporte = $this->transporte->resolver($empresa, $pedido, $data);
+
         $precisaCob = $this->formaEmiteCobranca($calc['forma_pagamento'])
             && bccomp($calc['valor_a_cobrar'], '0', PadraoDecimal::SCALE_MONEY) > 0;
         $conta = null;
@@ -142,7 +149,7 @@ class FaturamentoService
 
         $natureza = $this->naturezaReceita($calc['familia_fiscal']);
 
-        $fat = DB::transaction(function () use ($empresa, $pedido, $calc, $conta, $natureza) {
+        $fat = DB::transaction(function () use ($empresa, $pedido, $calc, $conta, $natureza, $transporte) {
             $locked = Pedido::query()->lockForUpdate()->with(['parceiro', 'itens'])->findOrFail($pedido->id);
             $dup = $this->existenteDoPedido($empresa, $locked);
             if ($dup) {
@@ -171,6 +178,8 @@ class FaturamentoService
                 'valor_a_cobrar' => $calc['valor_a_cobrar'],
                 'condicao_pagamento' => $calc['condicao_pagamento'],
                 'forma_pagamento' => $calc['forma_pagamento'],
+                'mod_frete' => $transporte['mod_frete'],
+                'transportador_id' => $transporte['transportador']?->id,
                 'adiantamento_titulo_id' => $calc['adiantamento_titulo_id'],
                 'snapshot' => $calc['snapshot'],
                 'faturado_em' => now(),
@@ -342,6 +351,12 @@ class FaturamentoService
             'valor_a_cobrar' => (string) $f->valor_a_cobrar,
             'condicao_pagamento' => $f->condicao_pagamento,
             'forma_pagamento' => $f->forma_pagamento,
+            'mod_frete' => $f->mod_frete,
+            'mod_frete_label' => Faturamento::modFreteLabel($f->mod_frete),
+            'transportador_id' => $f->transportador_id,
+            'transportador' => $f->relationLoaded('transportador') && $f->transportador
+                ? $this->parceiroTransporteOut($f->transportador)
+                : null,
             'faturado_em' => optional($f->faturado_em)?->toIso8601String(),
             'estornado_em' => optional($f->estornado_em)?->toIso8601String(),
             'motivo_estorno' => $f->motivo_estorno,
@@ -393,10 +408,82 @@ class FaturamentoService
                 $out['embalagem'] = ($emp && $ped)
                     ? $this->embalagem->resumoPedido($emp, $ped)
                     : null;
+                $out['pode_editar_transporte'] = $this->podeEditarTransporte($f);
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Ajusta transporte fiscal enquanto a NF ainda não foi autorizada.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function atualizarTransporte(Empresa $empresa, Faturamento $faturamento, array $data): array
+    {
+        $this->assertEmpresaFat($empresa, $faturamento);
+        $faturamento->loadMissing(['pedido', 'documentosFiscais']);
+
+        if (! $this->podeEditarTransporte($faturamento)) {
+            throw ValidationException::withMessages([
+                'transporte' => ['Transporte só pode ser alterado enquanto a NF-e não estiver autorizada.'],
+            ]);
+        }
+
+        $pedido = $faturamento->pedido ?? Pedido::query()->findOrFail((int) $faturamento->pedido_id);
+        $resolved = $this->transporte->resolver($empresa, $pedido, $data);
+
+        $faturamento->mod_frete = $resolved['mod_frete'];
+        $faturamento->transportador_id = $resolved['transportador']?->id;
+        $faturamento->save();
+
+        $this->emissao->rebuildPrevistas($empresa, $faturamento->fresh(['transportador', 'pedido', 'parceiro', 'itens.pedidoItem.produtoPa', 'titulos']));
+
+        return $this->show($faturamento->fresh());
+    }
+
+    private function podeEditarTransporte(Faturamento $f): bool
+    {
+        if ($f->status !== Faturamento::STATUS_CONFIRMADO) {
+            return false;
+        }
+        if (in_array($f->nf_status, [Faturamento::NF_AUTORIZADA, Faturamento::NF_CANCELADA], true)) {
+            return false;
+        }
+        $f->loadMissing('documentosFiscais');
+        foreach ($f->documentosFiscais as $doc) {
+            if ($doc->status === DocumentoFiscalSaida::STATUS_AUTORIZADO
+                || $doc->status === DocumentoFiscalSaida::STATUS_PROCESSANDO) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parceiroTransporteOut(Parceiro $p): array
+    {
+        return [
+            'id' => $p->id,
+            'codigo' => $p->codigo,
+            'razao_social' => $p->razao_social,
+            'nome_fantasia' => $p->nome_fantasia,
+            'cnpj_cpf' => $p->cnpj_cpf,
+            'ie' => $p->ie,
+            'logradouro' => $p->logradouro,
+            'numero' => $p->numero,
+            'complemento' => $p->complemento,
+            'bairro' => $p->bairro,
+            'municipio' => $p->municipio,
+            'uf' => $p->uf,
+            'cep' => $p->cep,
+            'papel_transportadora' => (bool) $p->papel_transportadora,
+        ];
     }
 
     /**
@@ -579,6 +666,13 @@ class FaturamentoService
         } elseif ($embResumo) {
             $avisos[] = 'Embalagem: '.$embResumo['resumo'].' (item NF em etiquetas; volumes = caixas).';
         }
+        $emp = $pedido->empresa ?? Empresa::query()->find($pedido->empresa_id);
+        if ($emp) {
+            $transpPreview = $this->transporte->previewOut($emp, $pedido);
+            if ($transpPreview['aviso'] ?? null) {
+                $avisos[] = $transpPreview['aviso'];
+            }
+        }
         if ($this->formaEmiteCobranca($forma) && bccomp($valorACobrar, '0', PadraoDecimal::SCALE_MONEY) > 0) {
             try {
                 $this->contaFinanceira($pedido->empresa ?? Empresa::query()->findOrFail($pedido->empresa_id));
@@ -616,6 +710,9 @@ class FaturamentoService
             'avisos' => $avisos,
             'bloqueios' => array_values(array_unique($bloqueios)),
             'embalagem' => $embResumo,
+            'transporte' => $emp
+                ? $this->transporte->previewOut($emp, $pedido)
+                : null,
             'snapshot' => [
                 'condicao_pagamento' => $condicao,
                 'forma_pagamento' => $forma,

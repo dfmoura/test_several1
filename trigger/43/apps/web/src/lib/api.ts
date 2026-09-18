@@ -2824,6 +2824,15 @@ export type FaturamentoPreview = {
   parcelas?: FaturamentoParcela[];
   avisos?: string[];
   bloqueios?: string[];
+  embalagem?: PaEmbalagemResumo | null;
+  transporte?: {
+    modo_entrega: string;
+    mod_frete: string;
+    mod_frete_label?: string | null;
+    exige_transportador: boolean;
+    mods_permitidos: string[];
+    aviso?: string | null;
+  } | null;
 };
 
 export type Faturamento = {
@@ -2837,6 +2846,26 @@ export type Faturamento = {
   valor_a_cobrar: string;
   condicao_pagamento?: string | null;
   forma_pagamento?: string | null;
+  mod_frete?: string | null;
+  mod_frete_label?: string | null;
+  transportador_id?: number | null;
+  transportador?: {
+    id: number;
+    codigo: string;
+    razao_social: string;
+    nome_fantasia?: string | null;
+    cnpj_cpf?: string | null;
+    ie?: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    cep?: string | null;
+    papel_transportadora?: boolean;
+  } | null;
+  pode_editar_transporte?: boolean;
   faturado_em?: string | null;
   estornado_em?: string | null;
   motivo_estorno?: string | null;
@@ -2958,6 +2987,7 @@ export type EntregaPreview = {
   descricao?: string | null;
   volumes_sugeridos?: number;
   embalagem?: PaEmbalagemResumo | null;
+  transportadora_sugerida_id?: number | null;
   faturamento?: {
     id: number;
     codigo: string;
@@ -2965,6 +2995,8 @@ export type EntregaPreview = {
     valor_a_cobrar?: string;
     condicao_pagamento?: string | null;
     forma_pagamento?: string | null;
+    mod_frete?: string | null;
+    transportador_id?: number | null;
   } | null;
   titulos_abertos?: Entrega['titulos_abertos'];
   avisos?: string[];

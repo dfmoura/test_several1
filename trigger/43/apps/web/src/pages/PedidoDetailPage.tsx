@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { DocumentoFiscalPreviaCard } from '../components/DocumentoFiscalPrevia';
-import { api, type FaturamentoPreview, type Pedido } from '../lib/api';
+import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import { api, type FaturamentoPreview, type Parceiro, type Pedido } from '../lib/api';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { ExpedicaoPedidoPanel } from '../components/ExpedicaoPedidoPanel';
 import { ComissaoPedidoPanel } from '../components/ComissaoPedidoPanel';
@@ -14,6 +15,9 @@ import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { necessidadeLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
 import { PedidoAndamentoOperacional } from '../components/PedidoAndamentoOperacional';
+
+const MOD_FRETE_CIF = '0';
+const MOD_FRETE_FOB = '1';
 
 export function PedidoDetailPage() {
   const { id } = useParams();
@@ -27,6 +31,8 @@ export function PedidoDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [estornarAberto, setEstornarAberto] = useState(false);
   const [motivoEstorno, setMotivoEstorno] = useState('');
+  const [modFrete, setModFrete] = useState(MOD_FRETE_CIF);
+  const [transportador, setTransportador] = useState<Parceiro | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -46,6 +52,9 @@ export function PedidoDetailPage() {
             `/pedidos/${res.data.id}/faturamento-preview`,
           );
           setPreview(prev.data);
+          if (prev.data.transporte?.mod_frete) {
+            setModFrete(prev.data.transporte.mod_frete);
+          }
         } catch {
           setPreview(null);
         }
@@ -91,13 +100,24 @@ export function PedidoDetailPage() {
 
   const faturar = async () => {
     if (!pedido) return;
+    if (preview?.transporte?.exige_transportador && !transportador) {
+      setErr('Entrega por terceiros exige transportador cadastrado na NF-e.');
+      return;
+    }
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
+      const payload: { mod_frete?: string; transportador_id?: number | null } = {};
+      if (preview?.transporte) {
+        payload.mod_frete = modFrete;
+        payload.transportador_id = preview.transporte.exige_transportador
+          ? (transportador?.id ?? null)
+          : null;
+      }
       const res = await api.post<{ data: { codigo: string; valor_a_cobrar: string } }>(
         `/pedidos/${pedido.id}/faturar`,
-        {},
+        payload,
       );
       setMsg(
         `Faturamento ${res.data.codigo} confirmado. Saldo a cobrar: ${formatCurrency(res.data.valor_a_cobrar)}.`,
@@ -429,6 +449,46 @@ export function PedidoDetailPage() {
                         {a}
                       </p>
                     ))}
+                    {preview.transporte && !preview.ja_faturado ? (
+                      <div className="form-section" style={{ marginTop: '1rem' }}>
+                        <h4 style={{ marginBottom: '0.5rem' }}>Transporte na NF-e</h4>
+                        <p className="muted" style={{ marginTop: 0 }}>
+                          {preview.transporte.aviso}
+                        </p>
+                        {preview.transporte.exige_transportador ? (
+                          <>
+                            <div className="form-row" style={{ marginBottom: '0.75rem' }}>
+                              <label className="form-label" htmlFor="fat-mod-frete">
+                                Modalidade
+                              </label>
+                              <select
+                                id="fat-mod-frete"
+                                className="input"
+                                value={modFrete}
+                                onChange={(e) => setModFrete(e.target.value)}
+                                disabled={busy}
+                              >
+                                <option value={MOD_FRETE_CIF}>CIF (emitente)</option>
+                                <option value={MOD_FRETE_FOB}>FOB (destinatário)</option>
+                              </select>
+                            </div>
+                            <ParceiroCombobox
+                              label="Transportadora"
+                              papel="transportadora"
+                              value={transportador}
+                              onChange={setTransportador}
+                              disabled={busy}
+                              placeholder="Buscar transportadora…"
+                              emptyMessage="Nenhuma transportadora. Cadastre o parceiro com papel transportadora."
+                            />
+                          </>
+                        ) : (
+                          <p className="form-hint" style={{ marginBottom: 0 }}>
+                            Frete na nota: {preview.transporte.mod_frete_label ?? '—'}
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
                     {preview.fiscal ? (
                       <div style={{ marginTop: '1rem' }}>
                         <p className="form-hint" style={{ marginTop: 0 }}>

@@ -52,6 +52,10 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
       if (res.data.volumes_sugeridos != null && res.data.volumes_sugeridos >= 1) {
         setVolumes(String(res.data.volumes_sugeridos));
       }
+      if (res.data.transportadora_sugerida_id) {
+        setTransportadoraId(String(res.data.transportadora_sugerida_id));
+        setTipoSaida('TRANSPORTADORA');
+      }
       if (res.data.entrega?.rastreio) {
         setRastreio(res.data.entrega.rastreio);
       }

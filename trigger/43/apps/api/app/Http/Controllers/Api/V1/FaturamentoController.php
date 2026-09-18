@@ -51,9 +51,29 @@ class FaturamentoController extends Controller
 
         $pedido->loadMissing(['itens', 'orcamento.adiantamentoTitulo', 'parceiro']);
 
+        $data = $request->validate([
+            'mod_frete' => ['nullable', 'string', 'size:1'],
+            'transportador_id' => ['nullable', 'integer'],
+        ]);
+
         return response()->json([
-            'data' => $this->faturamentos->faturar($this->empresa(), $pedido),
+            'data' => $this->faturamentos->faturar($this->empresa(), $pedido, $data),
         ], 201);
+    }
+
+    public function atualizarTransporte(Request $request, Faturamento $faturamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresaFat($faturamento);
+
+        $data = $request->validate([
+            'mod_frete' => ['nullable', 'string', 'size:1'],
+            'transportador_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json([
+            'data' => $this->faturamentos->atualizarTransporte($this->empresa(), $faturamento, $data),
+        ]);
     }
 
     public function estornar(Request $request, Faturamento $faturamento): JsonResponse

@@ -28,6 +28,20 @@ class Faturamento extends Model
 
     public const NF_CANCELADA = 'CANCELADA';
 
+    /** Focus / SEFAZ modFrete — ADR_NFE_TRANSPORTE_SAIDA. */
+    public const MOD_FRETE_CIF = '0';
+
+    public const MOD_FRETE_FOB = '1';
+
+    public const MOD_FRETE_SEM = '9';
+
+    /** @var list<string> */
+    public const MOD_FRETES = [
+        self::MOD_FRETE_CIF,
+        self::MOD_FRETE_FOB,
+        self::MOD_FRETE_SEM,
+    ];
+
     protected $table = 'faturamentos';
 
     protected $fillable = [
@@ -43,6 +57,8 @@ class Faturamento extends Model
         'valor_a_cobrar',
         'condicao_pagamento',
         'forma_pagamento',
+        'mod_frete',
+        'transportador_id',
         'adiantamento_titulo_id',
         'snapshot',
         'observacao',
@@ -83,6 +99,21 @@ class Faturamento extends Model
     public function parceiro(): BelongsTo
     {
         return $this->belongsTo(Parceiro::class);
+    }
+
+    public function transportador(): BelongsTo
+    {
+        return $this->belongsTo(Parceiro::class, 'transportador_id');
+    }
+
+    public static function modFreteLabel(?string $mod): ?string
+    {
+        return match ($mod) {
+            self::MOD_FRETE_CIF => 'CIF (emitente)',
+            self::MOD_FRETE_FOB => 'FOB (destinatário)',
+            self::MOD_FRETE_SEM => 'Sem frete',
+            default => null,
+        };
     }
 
     public function adiantamentoTitulo(): BelongsTo
