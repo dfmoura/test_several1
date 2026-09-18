@@ -16,6 +16,7 @@ use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\PrecoTravadoPedido;
 use App\Services\Fiscal\EmissaoFiscalService;
+use App\Services\Producao\PaEmbalagemService;
 use App\Support\FacasComposicao;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
@@ -40,6 +41,7 @@ class FaturamentoService
         private readonly CondicaoPagamentoParser $condicoes,
         private readonly BankProviderResolver $banks,
         private readonly EmissaoFiscalService $emissao,
+        private readonly PaEmbalagemService $embalagem,
     ) {}
 
     /**
@@ -385,6 +387,13 @@ class FaturamentoService
             $out['documentos_fiscais'] = $this->emissao->documentosOut($f);
             $out['criado_por'] = Faturamento::userStampFrom($f->criador);
             $out['estornado_por'] = Faturamento::userStampFrom($f->estornadoPor);
+            if ($f->pedido_id) {
+                $emp = Empresa::query()->find($f->empresa_id);
+                $ped = $f->pedido ?? Pedido::query()->find($f->pedido_id);
+                $out['embalagem'] = ($emp && $ped)
+                    ? $this->embalagem->resumoPedido($emp, $ped)
+                    : null;
+            }
         }
 
         return $out;
@@ -561,6 +570,15 @@ class FaturamentoService
         if ($valorACobrar === '0.00' && $adiTituloId !== null) {
             $avisos[] = 'Saldo a cobrar é zero: o sinal cobre a quantidade faturável.';
         }
+        $embResumo = $this->embalagem->resumoPedido(
+            $pedido->empresa ?? Empresa::query()->findOrFail($pedido->empresa_id),
+            $pedido
+        );
+        if ($familia === 'PA-ETQ' && ! $embResumo) {
+            $avisos[] = 'Embalagem PA ainda não confirmada na OP — NF usará só a quantidade de etiquetas; recomenda-se embalar antes (bobinas/caixas).';
+        } elseif ($embResumo) {
+            $avisos[] = 'Embalagem: '.$embResumo['resumo'].' (item NF em etiquetas; volumes = caixas).';
+        }
         if ($this->formaEmiteCobranca($forma) && bccomp($valorACobrar, '0', PadraoDecimal::SCALE_MONEY) > 0) {
             try {
                 $this->contaFinanceira($pedido->empresa ?? Empresa::query()->findOrFail($pedido->empresa_id));
@@ -597,6 +615,7 @@ class FaturamentoService
             'parcelas' => $parcelas,
             'avisos' => $avisos,
             'bloqueios' => array_values(array_unique($bloqueios)),
+            'embalagem' => $embResumo,
             'snapshot' => [
                 'condicao_pagamento' => $condicao,
                 'forma_pagamento' => $forma,

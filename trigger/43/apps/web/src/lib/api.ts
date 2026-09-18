@@ -2907,6 +2907,42 @@ export type Entrega = {
   created_at: string | null;
 };
 
+export type PaEmbalagemResumo = {
+  id: number;
+  codigo: string;
+  status: string;
+  qtde_etiquetas: string;
+  qtde_bobinas: number;
+  qtde_caixas: number;
+  etiq_por_rolo?: number | null;
+  rolos_por_caixa?: number | null;
+  tubete?: string | null;
+  caixa_medida?: string | null;
+  saida_etiqueta?: string | null;
+  origem?: string;
+  resumo: string;
+  confirmada_em?: string | null;
+  ordem_producao_id?: number;
+  pedido_id?: number;
+  bobinas?: Array<{
+    id: number;
+    codigo: string;
+    sequencia: number;
+    qtde_etiquetas: string;
+    tubete?: string | null;
+    caixa_id?: number | null;
+    qr_payload: string;
+  }>;
+  caixas?: Array<{
+    id: number;
+    codigo: string;
+    sequencia: number;
+    qtde_bobinas: number;
+    qtde_etiquetas: string;
+    qr_payload: string;
+  }>;
+};
+
 export type EntregaPreview = {
   ja_expedido: boolean;
   apto: boolean;
@@ -2920,6 +2956,8 @@ export type EntregaPreview = {
   qtde?: string;
   unidade?: string | null;
   descricao?: string | null;
+  volumes_sugeridos?: number;
+  embalagem?: PaEmbalagemResumo | null;
   faturamento?: {
     id: number;
     codigo: string;
@@ -3004,6 +3042,8 @@ export type OrdemProducao = {
   cancelada_em?: string | null;
   created_at: string | null;
   rastreio?: RastreioDocumento;
+  embalagem?: PaEmbalagemResumo | null;
+  pode_embalar?: boolean;
 };
 
 export type RastreioParceiro = {

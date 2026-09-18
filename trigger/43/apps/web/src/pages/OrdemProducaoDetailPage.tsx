@@ -9,6 +9,7 @@ import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
 import { opMaterialStatusLabel, opStatusLabel, qtdeConsumidaApontada } from '../lib/producaoUi';
 import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
+import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 
 type MatForm = { material_id: number; qtde_retorno: string; qtde_perda: string };
 
@@ -664,8 +665,8 @@ export function OrdemProducaoDetailPage() {
                 <div className="form-section">
                   <h3>Resultado da produção</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Estoque ajustado (retorno/perda) e pedido readequado. Segue o faturamento pelo
-                    pedido.
+                    Estoque ajustado (retorno/perda) e pedido readequado. Embalagem PA (bobinas e
+                    caixas) é o passo seguinte — depois segue o faturamento pelo pedido.
                   </p>
                 </div>
                 <div className="detail-meta" style={{ marginBottom: '1rem' }}>
@@ -744,6 +745,14 @@ export function OrdemProducaoDetailPage() {
                 </div>
               </div>
             </div>
+          ) : null}
+
+          {op.status === 'CONCLUIDA' ? (
+            <PaEmbalagemPanel
+              op={op}
+              canWrite={hasPermission('producao.escrever')}
+              onChanged={() => void load()}
+            />
           ) : null}
         </>
       )}

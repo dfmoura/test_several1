@@ -31,6 +31,7 @@ class OrdemProducaoService
         private readonly EstoqueCongelamento $congelamento,
         private readonly OpBomDeriver $bom,
         private readonly RastreioInsumosService $rastreio,
+        private readonly PaEmbalagemService $embalagem,
     ) {}
 
     /**
@@ -862,6 +863,12 @@ class OrdemProducaoService
                 Empresa::query()->findOrFail($o->empresa_id),
                 $o
             );
+            $emp = Empresa::query()->findOrFail($o->empresa_id);
+            $emb = $this->embalagem->vigenteDaOp($emp, $o);
+            $out['embalagem'] = $emb
+                ? $this->embalagem->toOut($emb->load(['bobinas', 'caixas']))
+                : null;
+            $out['pode_embalar'] = $o->status === OrdemProducao::STATUS_CONCLUIDA;
         }
 
         return $out;

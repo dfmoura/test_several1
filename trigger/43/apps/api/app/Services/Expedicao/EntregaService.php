@@ -14,6 +14,7 @@ use App\Models\Titulo;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Fiscal\FiscalHubResolver;
+use App\Services\Producao\PaEmbalagemService;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ class EntregaService
     public function __construct(
         private readonly CodigoGenerator $codigos,
         private readonly FiscalHubResolver $hubs,
+        private readonly PaEmbalagemService $embalagem,
     ) {}
 
     /**
@@ -206,7 +208,9 @@ class EntregaService
             ]);
         }
 
-        $volumes = (int) ($data['volumes'] ?? 1);
+        $volumes = array_key_exists('volumes', $data)
+            ? (int) $data['volumes']
+            : $this->volumesSugeridos($empresa, $pedido);
         if ($volumes < 1 || $volumes > 999) {
             throw ValidationException::withMessages([
                 'volumes' => ['Volumes deve ser entre 1 e 999.'],
@@ -533,6 +537,8 @@ class EntregaService
         $fat = $pedido->faturamento;
         $destino = $this->destinoDoPedido($empresa, $pedido, $modo);
         $titulos = $this->titulosAbertosPedido($pedido);
+        $emb = $this->embalagem->resumoPedido($empresa, $pedido);
+        $volumesSugeridos = $this->volumesSugeridos($empresa, $pedido);
 
         return [
             'modo' => $modo,
@@ -541,6 +547,8 @@ class EntregaService
             'qtde' => $item ? (string) $item->qtde_faturavel : '0',
             'unidade' => $item?->unidade,
             'descricao' => $item?->descricao,
+            'volumes_sugeridos' => $volumesSugeridos,
+            'embalagem' => $emb,
             'faturamento' => $fat ? [
                 'id' => $fat->id,
                 'codigo' => $fat->codigo,
@@ -552,21 +560,39 @@ class EntregaService
             'faturamento_model' => $fat,
             'titulos_abertos' => $titulos,
             'politica_nf_antes_expedir' => $this->politicaNfAntes($empresa),
-            'avisos' => $this->avisosPreview($modo, $titulos, $fat),
+            'avisos' => $this->avisosPreview($modo, $titulos, $fat, $emb),
         ];
+    }
+
+    private function volumesSugeridos(Empresa $empresa, Pedido $pedido): int
+    {
+        $emb = $this->embalagem->vigenteDoPedido($empresa, $pedido);
+        if ($emb && $emb->qtde_caixas >= 1) {
+            return (int) $emb->qtde_caixas;
+        }
+
+        $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
+        $faixa = is_array($snap['faixa'] ?? null) ? $snap['faixa'] : [];
+        $caixas = (int) ($faixa['qtde_caixas'] ?? 0);
+
+        return $caixas >= 1 ? $caixas : 1;
     }
 
     /**
      * @param  list<array<string, mixed>>  $titulos
+     * @param  array<string, mixed>|null  $emb
      * @return list<string>
      */
-    private function avisosPreview(string $modo, array $titulos, ?Faturamento $fat): array
+    private function avisosPreview(string $modo, array $titulos, ?Faturamento $fat, ?array $emb = null): array
     {
         $avisos = [];
         if ($modo === Entrega::MODO_RETIRAR) {
             $avisos[] = 'Retirada no balcão: conferir volumes e registrar quem retirou. A cobrança segue a condição já faturada.';
         } else {
             $avisos[] = 'Entrega por transporte: registrar a saída e confirmar quando o cliente receber. Não é TMS.';
+        }
+        if ($emb) {
+            $avisos[] = 'Embalagem PA: '.$emb['resumo'].' — volumes sugeridos = caixas.';
         }
         if ($titulos !== []) {
             $cond = $fat?->condicao_pagamento ? ' ('.$fat->condicao_pagamento.')' : '';

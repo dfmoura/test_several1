@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\V1\PainelController;
 use App\Http\Controllers\Api\V1\OrdemCompraController;
 use App\Http\Controllers\Api\V1\OrdemProducaoController;
 use App\Http\Controllers\Api\V1\OrdemServicoController;
+use App\Http\Controllers\Api\V1\PaEmbalagemController;
 use App\Http\Controllers\Api\V1\PedidoController;
 use App\Http\Controllers\Api\V1\RastreioInsumosController;
 use App\Http\Controllers\Api\V1\ParametroController;
@@ -364,6 +365,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/ordens-producao/{ordemProducao}/requisitar-pendentes', [OrdemProducaoController::class, 'requisitarPendentes']);
         Route::post('/ordens-producao/{ordemProducao}/concluir', [OrdemProducaoController::class, 'concluir']);
         Route::post('/ordens-producao/{ordemProducao}/devolver-ao-pedido', [OrdemProducaoController::class, 'devolverAoPedido']);
+        Route::get('/ordens-producao/{ordemProducao}/embalagem-sugerir', [PaEmbalagemController::class, 'sugerir']);
+        Route::post('/ordens-producao/{ordemProducao}/embalar', [PaEmbalagemController::class, 'confirmar']);
+        Route::get('/pa-embalagens/{paEmbalagem}', [PaEmbalagemController::class, 'show']);
+        Route::get('/pa-embalagens/{paEmbalagem}/etiquetas', [PaEmbalagemController::class, 'etiquetas']);
         Route::get('/rastreio', [RastreioInsumosController::class, 'buscar']);
         Route::get('/rastreio/ordens-producao/{ordemProducao}', [RastreioInsumosController::class, 'ordemProducao']);
         Route::get('/rastreio/pedidos/{pedido}', [RastreioInsumosController::class, 'pedido']);

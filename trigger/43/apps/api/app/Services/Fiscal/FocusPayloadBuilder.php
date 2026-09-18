@@ -5,8 +5,10 @@ namespace App\Services\Fiscal;
 use App\Models\Empresa;
 use App\Models\Faturamento;
 use App\Models\Parceiro;
+use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Cadastros\ParceiroFiscalRules;
+use App\Services\Producao\PaEmbalagemService;
 use App\Support\PadraoDecimal;
 
 /**
@@ -17,6 +19,8 @@ use App\Support\PadraoDecimal;
  */
 class FocusPayloadBuilder
 {
+    public function __construct(private readonly PaEmbalagemService $embalagem) {}
+
     /**
      * @param  list<array<string, mixed>>  $itens
      * @return array{payload: array<string, mixed>, http: array<string, mixed>}
@@ -32,6 +36,12 @@ class FocusPayloadBuilder
         $saldoZero = bccomp((string) $fat->valor_a_cobrar, '0', PadraoDecimal::SCALE_MONEY) <= 0;
         $valor = $this->soma($itens);
         $emissao = now()->timezone('America/Sao_Paulo')->format('Y-m-d\TH:i:sP');
+
+        $emb = $fat->pedido_id
+            ? $this->embalagem->vigenteDoPedido($empresa, $fat->pedido ?? Pedido::query()->findOrFail((int) $fat->pedido_id))
+            : null;
+        $embTexto = $this->embalagem->textoFiscal($emb);
+        $volTransp = $this->embalagem->volumesTransporte($emb);
 
         $mapped = [];
         $n = 0;
@@ -66,6 +76,9 @@ class FocusPayloadBuilder
                 'pis_situacao_tributaria' => $produto?->cst_pis ?: FiscalSaidaDefaults::CST_PIS,
                 'cofins_situacao_tributaria' => $produto?->cst_cofins ?: FiscalSaidaDefaults::CST_COFINS,
             ];
+            if ($embTexto) {
+                $item['informacoes_adicionais_produto'] = mb_substr($embTexto, 0, 500);
+            }
             $cest = preg_replace('/\D/', '', (string) ($produto?->cest ?? '')) ?: '';
             if ($cest !== '') {
                 $item['codigo_cest'] = $cest;
@@ -108,7 +121,7 @@ class FocusPayloadBuilder
             'valor_produtos' => $valor,
             'valor_total' => $valor,
             'modalidade_frete' => FiscalSaidaDefaults::MODALIDADE_FRETE_SEM,
-            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat),
+            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat, $embTexto),
             'formas_pagamento' => [[
                 'indicador_pagamento' => count($fat->titulos ?? []) > 1 ? 1 : 0,
                 'forma_pagamento' => FiscalSaidaDefaults::formaPagamentoFocus($fat->forma_pagamento, $saldoZero),
@@ -121,6 +134,13 @@ class FocusPayloadBuilder
                 'faturamento' => $fat->codigo,
             ],
         ]);
+
+        if ($volTransp) {
+            $payload['volumes'] = [[
+                'quantidade' => (string) $volTransp['quantidade'],
+                'especie' => $volTransp['especie'],
+            ]];
+        }
 
         $duplicatas = $this->duplicatas($fat);
         if ($duplicatas !== []) {
@@ -262,12 +282,13 @@ class FocusPayloadBuilder
         return (float) $acc;
     }
 
-    private function infAdicionais(Faturamento $fat): string
+    private function infAdicionais(Faturamento $fat, ?string $embTexto = null): string
     {
         $ped = $fat->pedido?->codigo ?? '';
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             'Fatura '.$fat->codigo,
+            $embTexto ?: null,
         ]);
 
         return implode(' · ', $parts);

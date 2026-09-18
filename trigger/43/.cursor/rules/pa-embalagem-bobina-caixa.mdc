@@ -1,0 +1,42 @@
+---
+description: Embalagem PA bobina→caixa (pós-OP) sem misturar com volume MP
+globs:
+  - apps/api/app/Services/Producao/PaEmbalagem*
+  - apps/api/app/Models/PaEmbalagem*
+  - apps/api/app/Http/Controllers/Api/V1/PaEmbalagemController.php
+  - apps/web/src/components/PaEmbalagemPanel.tsx
+  - apps/web/src/pages/PaEmbalagemEtiquetasPage.tsx
+  - docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md
+alwaysApply: false
+---
+
+# Embalagem PA (bobina → caixa)
+
+Norma: `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
+
+## Espinha
+
+```
+OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
+  → embalar (sugerir do ORC → humano confirma)
+  → bobinas (BOB:) + caixas (CX:)
+  → FAT/NF: qCom = etiquetas; volumes = caixas; infAd = resumo
+  → ENT: volumes default = qtde_caixas
+```
+
+## Faça
+
+- Embalagem **paralela** ao saldo (`pa_embalagens`) — não `estoque_lotes` / `VOL:`.
+- Σ bobinas = `qtde_boa`. Saldo PA intacto no Writer.
+- QR `BOB:` e `CX:` (Elgin 50×40). Distintos de `VOL:` / `END:`.
+- Soft-aviso no FAT se PA sem embalagem; sem hard-block.
+
+## Não faça
+
+- `controla_lote` em PA-ETQ por causa da embalagem.
+- Faturar item em CX/BOB no lugar de etiquetas.
+- MOV na embalagem ou no ENT.
+- Misturar bobina de PA com bobina de insumo Exact.
+- Explodir SKU por bobina/caixa.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.

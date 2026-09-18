@@ -75,6 +75,7 @@ import { PedidoFichaPage } from './pages/PedidoFichaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
+import { PaEmbalagemEtiquetasPage } from './pages/PaEmbalagemEtiquetasPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
 import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
 import { RastreioInsumosPage } from './pages/RastreioInsumosPage';
@@ -847,6 +848,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission={['producao.ler', 'estoque.ler']}>
               <RastreioInsumosFichaPage kind="op" />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/ordens-producao/:id/embalagem/etiquetas"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="producao.ler">
+              <PaEmbalagemEtiquetasPage />
             </PermissionRoute>
           </ProtectedRoute>
         }
