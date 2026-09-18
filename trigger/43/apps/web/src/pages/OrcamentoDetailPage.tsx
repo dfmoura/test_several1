@@ -18,6 +18,7 @@ import {
   type Orcamento,
   type OrcamentoDestinatarioAprovacao,
   type OrcamentoEnvioAprovacao,
+  type OrcamentoParceiroPronto,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -55,6 +56,7 @@ export function OrcamentoDetailPage() {
   const [painelEnvio, setPainelEnvio] = useState(false);
   const [destinatarios, setDestinatarios] = useState<OrcamentoDestinatarioAprovacao[]>([]);
   const [avisoDest, setAvisoDest] = useState<string | null>(null);
+  const [parceiroPronto, setParceiroPronto] = useState<OrcamentoParceiroPronto | null>(null);
   const [destSelecionado, setDestSelecionado] = useState<string>('');
 
   useEffect(() => {
@@ -92,10 +94,22 @@ export function OrcamentoDetailPage() {
         return;
       }
       const res = await api.get<{
-        data: { destinatarios: OrcamentoDestinatarioAprovacao[]; aviso: string | null };
+        data: {
+          destinatarios: OrcamentoDestinatarioAprovacao[];
+          aviso: string | null;
+          parceiro_pronto: OrcamentoParceiroPronto;
+        };
       }>(`/orcamentos/${orc.id}/destinatarios-aprovacao`);
       setDestinatarios(res.data.destinatarios);
       setAvisoDest(res.data.aviso);
+      setParceiroPronto(res.data.parceiro_pronto);
+      if (!res.data.parceiro_pronto.apto) {
+        setPainelEnvio(true);
+        setErro(
+          'Complete o cadastro do cliente antes de enviar a proposta. Veja a checklist abaixo.',
+        );
+        return;
+      }
       if (res.data.destinatarios.length === 0) {
         setErro(
           res.data.aviso ||
@@ -132,13 +146,22 @@ export function OrcamentoDetailPage() {
         // painel com texto
       }
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Falha ao gerar link de aprovação');
+      if (e instanceof ApiError) {
+        const first = Object.values(e.details ?? {})[0]?.[0];
+        setErro(first || e.message || 'Falha ao gerar link de aprovação');
+      } else {
+        setErro('Falha ao gerar link de aprovação');
+      }
     } finally {
       setPending(false);
     }
   };
 
   const handleConfirmarEnvio = async () => {
+    if (parceiroPronto && !parceiroPronto.apto) {
+      setErro('Complete o cadastro do cliente antes de enviar a proposta.');
+      return;
+    }
     const d = destinatarios.find((x) => destKey(x) === destSelecionado);
     if (!d) {
       setErro('Selecione o contato que receberá o link.');
@@ -369,70 +392,98 @@ export function OrcamentoDetailPage() {
         <div className="card orc-share-card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-              Quem recebe o link e pode decidir?
+              Cadastro do cliente
             </h3>
-            <p className="orc-share-hint">
-              O estudo exige contato oficial do cadastro (autorizado a aprovar). Não digite
-              telefone/e-mail avulso — se mudou, atualize o parceiro antes.
-            </p>
-            {avisoDest ? <p className="orc-share-hint">{avisoDest}</p> : null}
-            <div className="orc-pub-faixas" role="radiogroup" aria-label="Destinatários">
-              {destinatarios.map((d) => {
-                const key = destKey(d);
-                const selected = destSelecionado === key;
-                return (
-                  <label
-                    key={key}
-                    className={`orc-pub-faixa${selected ? ' is-selected' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="destinatario"
-                      checked={selected}
-                      onChange={() => setDestSelecionado(key)}
-                    />
-                    <div>
-                      <strong>
-                        {d.nome}
-                        {d.funcao ? ` · ${d.funcao}` : ''}
-                        {d.autorizado_aprovar ? '' : ' (principal)'}
-                      </strong>
-                      <span>
-                        {d.canal}
-                        {d.whatsapp
-                          ? ` · WhatsApp ${formatPhone(d.whatsapp) || d.whatsapp}`
-                          : ''}
-                        {d.email ? ` · ${d.email}` : ''}
-                        {d.legado ? ' · dados do cadastro' : ''}
-                      </span>
-                    </div>
-                  </label>
-                );
-              })}
+            {parceiroPronto?.apto ? (
+              <p className="orc-share-hint">Dados principais prontos para a proposta.</p>
+            ) : (
+              <>
+                <p className="orc-share-hint">
+                  Antes de enviar, complete as informações principais do cliente no cadastro.
+                </p>
+                {parceiroPronto && parceiroPronto.pendencias.length > 0 ? (
+                  <ul className="orc-share-hint" style={{ margin: '0.5rem 0 0.75rem', paddingLeft: '1.25rem' }}>
+                    {parceiroPronto.pendencias.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            )}
+            <div className="btn-row" style={{ marginBottom: '1rem' }}>
+              <Link to={`/parceiros/${orc.parceiro_id}`} className="btn btn-secondary">
+                Abrir cadastro do cliente
+              </Link>
             </div>
+
+            {parceiroPronto?.apto ? (
+              <>
+                <h3 className="orc-section-title">Quem recebe o link e pode decidir?</h3>
+                <p className="orc-share-hint">
+                  O estudo exige contato oficial do cadastro (autorizado a aprovar). Não digite
+                  telefone/e-mail avulso — se mudou, atualize o parceiro antes.
+                </p>
+                {avisoDest ? <p className="orc-share-hint">{avisoDest}</p> : null}
+                <div className="orc-pub-faixas" role="radiogroup" aria-label="Destinatários">
+                  {destinatarios.map((d) => {
+                    const key = destKey(d);
+                    const selected = destSelecionado === key;
+                    return (
+                      <label
+                        key={key}
+                        className={`orc-pub-faixa${selected ? ' is-selected' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="destinatario"
+                          checked={selected}
+                          onChange={() => setDestSelecionado(key)}
+                        />
+                        <div>
+                          <strong>
+                            {d.nome}
+                            {d.funcao ? ` · ${d.funcao}` : ''}
+                            {d.autorizado_aprovar ? '' : ' (principal)'}
+                          </strong>
+                          <span>
+                            {d.canal}
+                            {d.whatsapp
+                              ? ` · WhatsApp ${formatPhone(d.whatsapp) || d.whatsapp}`
+                              : ''}
+                            {d.email ? ` · ${d.email}` : ''}
+                            {d.legado ? ' · dados do cadastro' : ''}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            ) : null}
+
             <div className="btn-row" style={{ marginTop: '0.85rem' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={pending}
-                onClick={() => void handleConfirmarEnvio()}
-              >
-                Gerar link e copiar mensagem
-              </button>
+              {parceiroPronto?.apto ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={pending}
+                  onClick={() => void handleConfirmarEnvio()}
+                >
+                  Gerar link e copiar mensagem
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={pending}
-                onClick={() => setPainelEnvio(false)}
+                onClick={() => {
+                  setPainelEnvio(false);
+                  setParceiroPronto(null);
+                  setErro(null);
+                }}
               >
                 Cancelar
               </button>
-              <Link
-                to={`/parceiros/${orc.parceiro_id}`}
-                className="btn btn-secondary"
-              >
-                Abrir cadastro do parceiro
-              </Link>
             </div>
           </div>
         </div>

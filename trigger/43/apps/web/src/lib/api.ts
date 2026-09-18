@@ -3213,6 +3213,13 @@ export type OrcamentoEnvioAprovacao = {
   orcamento: Orcamento;
 };
 
+export type OrcamentoParceiroPronto = {
+  apto: boolean;
+  parceiro_id: number | null;
+  pendencias: string[];
+  bloqueios: Record<string, string[]>;
+};
+
 export type OrcamentoDestinatarioAprovacao = {
   parceiro_contato_id: number | null;
   nome: string;

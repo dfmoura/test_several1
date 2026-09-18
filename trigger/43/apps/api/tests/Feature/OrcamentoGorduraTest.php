@@ -54,6 +54,7 @@ class OrcamentoGorduraTest extends TestCase
             'contato_nome' => 'Maria Compradora',
             'limite_credito' => '10000.00',
         ]);
+        $this->completarParceiroParaProposta($this->parceiro);
 
         $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
 

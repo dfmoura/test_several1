@@ -219,6 +219,7 @@ class EmpresaAtivacaoTest extends TestCase
             'situacao' => 'ATIVO',
             'is_prospect' => true,
         ]);
+        $this->completarParceiroParaProposta($par);
         ParceiroContato::query()->create([
             'parceiro_id' => $par->id,
             'nome' => 'Compras',

@@ -6,6 +6,7 @@ use App\Models\Orcamento;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
+use App\Services\Cadastros\ParceiroProntidaoProposta;
 use App\Services\Calendario\DiasUteisService;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
@@ -38,7 +39,16 @@ class OrcamentoAprovacaoService
     /**
      * Contatos do parceiro elegíveis para receber o link.
      *
-     * @return array{destinatarios: list<array<string, mixed>>, aviso: string|null}
+     * @return array{
+     *   destinatarios: list<array<string, mixed>>,
+     *   aviso: string|null,
+     *   parceiro_pronto: array{
+     *     apto: bool,
+     *     parceiro_id: int|null,
+     *     pendencias: list<string>,
+     *     bloqueios: array<string, list<string>>
+     *   }
+     * }
      */
     public function listarDestinatarios(Orcamento $orcamento): array
     {
@@ -46,8 +56,14 @@ class OrcamentoAprovacaoService
             ->with(['contatos' => fn ($q) => $q->orderByDesc('autorizado_aprovar')->orderByDesc('principal')->orderBy('ordem')->orderBy('id')])
             ->find($orcamento->parceiro_id);
 
+        $parceiroPronto = ParceiroProntidaoProposta::dto($parceiro);
+
         if ($parceiro === null) {
-            return ['destinatarios' => [], 'aviso' => 'Parceiro do orçamento não encontrado.'];
+            return [
+                'destinatarios' => [],
+                'aviso' => 'Parceiro do orçamento não encontrado.',
+                'parceiro_pronto' => $parceiroPronto,
+            ];
         }
 
         $destinatarios = [];
@@ -93,7 +109,11 @@ class OrcamentoAprovacaoService
             $aviso = 'Nenhum contato marcado como autorizado a aprovar — exibindo o principal. Marque o aprovador no cadastro do parceiro.';
         }
 
-        return ['destinatarios' => $destinatarios, 'aviso' => $aviso];
+        return [
+            'destinatarios' => $destinatarios,
+            'aviso' => $aviso,
+            'parceiro_pronto' => $parceiroPronto,
+        ];
     }
 
     /**
@@ -134,6 +154,10 @@ class OrcamentoAprovacaoService
                 );
             }
         }
+
+        // Cadastro comercial mínimo do cliente (ADR_ORC_LINK_APROVACAO) — antes do link.
+        $parceiro = Parceiro::query()->find($orcamento->parceiro_id);
+        ParceiroProntidaoProposta::assertPronto($parceiro);
 
         $destinatario = $this->resolverDestinatario($orcamento, $opts);
 

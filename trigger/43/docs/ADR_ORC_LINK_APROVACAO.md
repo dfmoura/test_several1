@@ -16,6 +16,7 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 | **Base URL configurável** `ORCAMENTO_PUBLIC_BASE_URL` | Local/ensaio: tunnel `flexorc`; **homolog/prod:** `https://flexoerp001.triggerti.com` (`ADR_HOST_INSTALACAO_FLEXOERP001`). |
 | **Tabela `orcamento_links_aprovacao`** (1:1) | Token longo, validade, visualizações, `ativo`/`usado_em` — sem expor `id` sequencial. |
 | **Destinatário = contato oficial autorizado** | Estudo §1.4 / §3.4: sem senha no link; identificação = canal + token. Proibido número/e-mail avulso no envio. Flag `parceiro_contatos.autorizado_aprovar`. |
+| **Pré-condição: cadastro comercial do cliente** | Antes de gerar o link: identidade (tipo + CNPJ/CPF), endereço base, não-prospect, situação ativa. Motor: `ParceiroProntidaoProposta`. **Não** exige completude fiscal (IE/IBGE/finalidade) — isso fica no gate de NF. Rascunho/cálculo continua livre. |
 | **DTO só comercial no público** | Nunca custo, margem, comissão, imposto, gordura (estudo §3 · `ADR_ORC_GORDURA_COMERCIAL`). Página declara **quem** deve decidir. |
 | **Clipboard + texto padrão + deep link do canal** | “Olá, [contato]! …” + botão Abrir WhatsApp/e-mail. E-mail automático: `ADR_ORC_EMAIL_PROPOSTA.md`. WhatsApp ViaZap: `ADR_ORC_WHATSAPP_VIAZAP.md` (fail-soft; clipboard intacto). |
 | **Prévia interna ≠ link do cliente** | “Abrir proposta” no ERP abre `/orcamentos/{id}/proposta` (autenticado, `modo: preview`, sem decidir). Aprovar/recusar só em `/p/{token}`. |
@@ -32,11 +33,25 @@ O 39 já persiste ORC em `RASCUNHO`/`CALCULADO` (editáveis). Falta o gatilho fo
 4. Aceite exige confirmação em 2 passos (nome + resumo da faixa).
 5. Sem senha (adesão mobile); segurança = token + destinatário do cadastro + link único que some após decidir.
 
+## Pré-condição de envio (cadastro do cliente)
+
+Gate **duro** em `POST …/enviar-aprovacao` (depois do gate da EMP, antes do link), dono: `ParceiroProntidaoProposta`.
+
+| Obrigatório | Fora deste gate |
+|-------------|-----------------|
+| Razão social / nome | IE, indIEDest, finalidade, regime |
+| Tipo pessoa + CNPJ/CPF (ou ID estrangeiro) | Código IBGE, e-mail XML |
+| Endereço base (logradouro, número, bairro, município, UF, CEP) | Limite de crédito, contas bancárias |
+| Não prospect · situação ≠ INATIVO/BLOQUEADO | Completude fiscal para NF-e |
+
+`GET …/destinatarios-aprovacao` devolve `parceiro_pronto: { apto, pendencias, bloqueios }` para checklist no painel. UX: sem gerar link enquanto `apto = false`; link “Abrir cadastro do cliente”.
+
 ## Máquina de estados (operacional)
 
 ```
-RASCUNHO / CALCULADO  →  "Em preparação"     editável · excluível
+RASCUNHO / CALCULADO  →  "Em preparação"     editável · excluível · cadastro pode estar incompleto
         │
+        ▼  gate EMP + gate cadastro comercial + destinatário
         ▼  enviar para aprovação (gera/reusa link)
 ENVIADO / VISUALIZADO →  "Enviado p/ aprovação"  imutável
         │
@@ -58,8 +73,8 @@ Após aprovar **ou** rejeitar, GET do token responde **indisponível** (não mos
 
 **Autenticada** (`orcamento.escrever` / `orcamento.ler`):
 
-- `GET  /api/v1/orcamentos/{id}/destinatarios-aprovacao` → contatos elegíveis
-- `POST /api/v1/orcamentos/{id}/enviar-aprovacao` → `{ parceiro_contato_id }` → `{ url, token, mensagem, canal_url, destinatario, … }`
+- `GET  /api/v1/orcamentos/{id}/destinatarios-aprovacao` → contatos elegíveis + `parceiro_pronto`
+- `POST /api/v1/orcamentos/{id}/enviar-aprovacao` → `{ parceiro_contato_id }` → `{ url, token, mensagem, canal_url, destinatario, … }` (422 se cadastro comercial incompleto)
 - `GET  /api/v1/orcamentos/{id}/proposta-comercial` → mesma visão comercial, `modo: preview` / `somente_leitura` (não consome token, sem decidir)
 
 **Pública** (throttle; sem Sanctum):

@@ -74,6 +74,7 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'whatsapp' => '31977776666',
             'contato_nome' => 'Prod Cliente',
         ]);
+        $this->completarParceiroParaProposta($this->parceiro);
 
         $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
 

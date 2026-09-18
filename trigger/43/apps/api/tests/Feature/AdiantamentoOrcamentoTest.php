@@ -84,6 +84,7 @@ class AdiantamentoOrcamentoTest extends TestCase
             'whatsapp' => '31988887777',
             'contato_nome' => 'Ana Nova',
         ]);
+        $this->completarParceiroParaProposta($this->parceiro);
 
         ParceiroContato::query()->create([
             'parceiro_id' => $this->parceiro->id,

@@ -70,6 +70,31 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Completa identidade + endereço base do PAR para o gate de envio da proposta.
+     * Norma: ParceiroProntidaoProposta / ADR_ORC_LINK_APROVACAO.
+     *
+     * @param  array<string, mixed>  $overrides
+     */
+    protected function completarParceiroParaProposta(Parceiro $parceiro, array $overrides = []): Parceiro
+    {
+        $parceiro->fill(array_merge([
+            'tipo_pessoa' => 'PJ',
+            'cnpj_cpf' => '60746948000112',
+            'is_prospect' => false,
+            'situacao' => 'ATIVO',
+            'logradouro' => 'Rua Teste Comercial',
+            'numero' => '100',
+            'bairro' => 'Centro',
+            'municipio' => 'Betim',
+            'uf' => 'MG',
+            'cep' => '32600000',
+        ], $overrides));
+        $parceiro->save();
+
+        return $parceiro->fresh();
+    }
+
+    /**
      * Formaliza OC rascunho → ABERTA (ADR_OC_RASCUNHO_ENVIO) antes de receber/XML.
      *
      * @param  array<string, string>  $headers

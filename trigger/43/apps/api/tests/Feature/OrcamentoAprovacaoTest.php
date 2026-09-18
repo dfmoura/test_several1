@@ -57,6 +57,7 @@ class OrcamentoAprovacaoTest extends TestCase
             // Recorrente limpo → sem sinal no aceite (política histórico). PIX = AdiantamentoOrcamentoTest.
             'limite_credito' => '10000.00',
         ]);
+        $this->completarParceiroParaProposta($this->parceiro);
 
         $this->seedParceiroRecorrenteLimpo($this->empresa, $this->parceiro);
 
@@ -151,6 +152,8 @@ class OrcamentoAprovacaoTest extends TestCase
 
         $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
         $dest->assertOk();
+        $this->assertTrue($dest->json('data.parceiro_pronto.apto'));
+        $this->assertSame([], $dest->json('data.parceiro_pronto.pendencias'));
         $this->assertCount(1, $dest->json('data.destinatarios'));
         $this->assertSame('Maria Compradora', $dest->json('data.destinatarios.0.nome'));
         $contatoId = $dest->json('data.destinatarios.0.parceiro_contato_id');
@@ -632,5 +635,44 @@ class OrcamentoAprovacaoTest extends TestCase
         $codigo = (string) Orcamento::query()->findOrFail($id)->codigo;
         $this->assertTrue(str_starts_with($ids[0], $codigo.':'));
         $this->assertTrue(str_starts_with($ids[1], $codigo.':'));
+    }
+
+    public function test_enviar_bloqueia_se_cadastro_do_cliente_incompleto(): void
+    {
+        $this->parceiro->update([
+            'cnpj_cpf' => null,
+            'tipo_pessoa' => 'PJ',
+            'logradouro' => null,
+            'numero' => null,
+            'bairro' => null,
+            'municipio' => null,
+            'uf' => null,
+            'cep' => null,
+        ]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
+        $dest->assertOk();
+        $this->assertFalse($dest->json('data.parceiro_pronto.apto'));
+        $this->assertNotEmpty($dest->json('data.parceiro_pronto.pendencias'));
+        $this->assertContains('CNPJ (14 dígitos)', $dest->json('data.parceiro_pronto.pendencias'));
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['cnpj_cpf', 'logradouro', 'cep']);
+    }
+
+    public function test_enviar_bloqueia_prospect(): void
+    {
+        $this->parceiro->update(['is_prospect' => true]);
+
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['is_prospect']);
     }
 }
