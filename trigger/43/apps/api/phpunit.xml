@@ -33,7 +33,8 @@
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
         <env name="ORS_API_KEY" value="test-ors-key" force="true"/>
         <env name="ORS_BASE" value="https://api.openrouteservice.org" force="true"/>
-        <env name="FISCAL_EMISSOR" value="focus" force="true"/>
+        <env name="FISCAL_EMISSOR" value="sefaz" force="true"/>
+        <env name="NFE_DRIVER" value="sefaz" force="true"/>
         <env name="ERP_STAGE" value="testing" force="true"/>
         <env name="ASAAS_API_KEY" value="" force="true"/>
         <env name="ASAAS_WEBHOOK_TOKEN" value="" force="true"/>

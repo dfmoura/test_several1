@@ -308,7 +308,7 @@ class FaturamentoService
     }
 
     /**
-     * Reenvia NF-e/NFS-e planejadas ou rejeitadas (mesma ref Focus).
+     * Reenvia NF-e planejadas ou rejeitadas (mesma ref / numeração ERP).
      *
      * @return array<string, mixed>
      */
@@ -321,7 +321,7 @@ class FaturamentoService
     }
 
     /**
-     * Consulta status no hub (documentos em processamento).
+     * Consulta status SEFAZ (documentos em processamento).
      *
      * @return array<string, mixed>
      */
@@ -331,6 +331,38 @@ class FaturamentoService
         $this->emissao->consultar($empresa, $faturamento);
 
         return $this->show($faturamento->fresh());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function cancelarNfe(Empresa $empresa, Faturamento $faturamento, string $justificativa): array
+    {
+        $this->assertEmpresaFat($empresa, $faturamento);
+        $result = $this->emissao->cancelarNfe($empresa, $faturamento, $justificativa);
+        $out = $this->show($faturamento->fresh());
+        $evento = $result['evento'] ?? null;
+        $out['evento'] = $evento instanceof \Illuminate\Database\Eloquent\Model
+            ? $evento->toArray()
+            : $evento;
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function cartaCorrecaoNfe(Empresa $empresa, Faturamento $faturamento, string $texto, ?int $nSeq = null): array
+    {
+        $this->assertEmpresaFat($empresa, $faturamento);
+        $result = $this->emissao->cartaCorrecao($empresa, $faturamento, $texto, $nSeq);
+        $out = $this->show($faturamento->fresh());
+        $evento = $result['evento'] ?? null;
+        $out['evento'] = $evento instanceof \Illuminate\Database\Eloquent\Model
+            ? $evento->toArray()
+            : $evento;
+
+        return $out;
     }
 
     /**
@@ -908,17 +940,17 @@ class FaturamentoService
             $bloqueios[] = 'Só o faturamento vigente pode ser estornado.';
         }
         $fat->loadMissing('documentosFiscais');
-        if (! in_array($fat->nf_status, [self::NF_PENDENTE, Faturamento::NF_REJEITADA], true)) {
+        if (! in_array($fat->nf_status, [self::NF_PENDENTE, Faturamento::NF_REJEITADA, Faturamento::NF_CANCELADA], true)) {
             $soStub = $fat->documentosFiscais->isNotEmpty()
                 && $fat->documentosFiscais->contains(fn ($d) => $d->eSimulado())
                 && ! $fat->documentosFiscais->contains(fn ($d) => $d->bloqueiaEstornoFat());
             if (! $soStub) {
-                $bloqueios[] = 'Estorno só é permitido enquanto a nota estiver pendente ou rejeitada. Nota autorizada ou em processamento segue cancelamento fiscal.';
+                $bloqueios[] = 'Estorno só é permitido enquanto a nota estiver pendente, rejeitada ou cancelada no fisco. Nota autorizada ou em processamento exige cancelamento fiscal antes.';
             }
         }
         foreach ($fat->documentosFiscais as $doc) {
             if ($doc->bloqueiaEstornoFat()) {
-                $bloqueios[] = 'Documento fiscal '.$doc->codigo.' está '.$doc->status.' — cancele a nota no hub antes de estornar o faturamento.';
+                $bloqueios[] = 'Documento fiscal '.$doc->codigo.' está '.$doc->status.' — cancele a NF-e na SEFAZ antes de estornar o faturamento.';
             }
         }
 

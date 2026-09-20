@@ -99,6 +99,9 @@ services:
       SEED_ON_BOOT: ${SEED_ON_BOOT:-true}
       IA_HTTP_TIMEOUT_SEC: ${IA_HTTP_TIMEOUT_SEC:-45}
       FISCAL_EMISSOR: ${FISCAL_EMISSOR:-focus}
+      # NF-e saída SEFAZ+A1 (ADR_EMISSAO_NFE_SEFAZ_DIRETO). Homolog/prod: sefaz.
+      NFE_DRIVER: ${NFE_DRIVER:-sefaz}
+      NFE_HTTP_TIMEOUT_SEC: ${NFE_HTTP_TIMEOUT_SEC:-60}
       # Proposta ORC — e-mail + WhatsApp (ADR_ORC_EMAIL_PROPOSTA · ADR_ORC_WHATSAPP_VIAZAP).
       # Fonte canônica na AWS: .env.aws (git NÃO leva segredo). Vazio no Compose
       # é removido no entrypoint para não apagar apps/api/.env (mesmo padrão APP_KEY).

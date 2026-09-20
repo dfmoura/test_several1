@@ -3,17 +3,19 @@
 namespace App\Services\Fiscal;
 
 /**
- * Emissor de teste (stub) — só local/testing, e só na ausência de hub Focus apto.
+ * Emissor de teste (stub) — só local/testing, na ausência do canal SEFAZ.
  *
- * Homologação e produção nunca autorizam por este caminho, mesmo com
- * FISCAL_EMISSOR=stub no .env. Estudo 32: HML usa Focus homolog + A1 de homolog;
- * DEV usa mock. Numeração SEFAZ de verdade continua só na resposta do hub.
+ * Homologação e produção nunca autorizam por este caminho.
+ * NF-e oficial = SEFAZ + A1 (`ADR_EMISSAO_NFE_SEFAZ_DIRETO`).
  */
 final class FiscalEmissorPolicy
 {
-    public const EMISSOR_FOCUS = 'focus';
-
     public const EMISSOR_STUB = 'stub';
+
+    public const EMISSOR_SEFAZ = 'sefaz';
+
+    /** Legado — tratado como sefaz no caminho NF-e. */
+    public const EMISSOR_FOCUS = 'focus';
 
     /** @var list<string> */
     private const STAGES_LIBERADOS = ['local', 'testing', 'dev', 'development'];
@@ -29,13 +31,11 @@ final class FiscalEmissorPolicy
 
     public function configuradoComoStub(): bool
     {
-        return strtolower(trim((string) config('erp.fiscal_emissor', self::EMISSOR_FOCUS))) === self::EMISSOR_STUB;
+        $v = strtolower(trim((string) config('erp.fiscal_emissor', self::EMISSOR_STUB)));
+
+        return $v === self::EMISSOR_STUB;
     }
 
-    /**
-     * Stub pode existir neste processo (stage local/testing). Ainda assim o hub
-     * Focus apto ganha — ver {@see ativoNaAusenciaDoHub()}.
-     */
     public function permitido(): bool
     {
         if (! $this->configuradoComoStub()) {
@@ -54,17 +54,26 @@ final class FiscalEmissorPolicy
             || app()->environment(['local', 'testing', 'development']);
     }
 
+    /**
+     * Stub ativo quando permitido e o canal SEFAZ (A1/nuvem/fake) não está apto.
+     */
+    public function ativoNaAusenciaDoSefaz(bool $sefazApto): bool
+    {
+        return $this->permitido() && ! $sefazApto;
+    }
+
+    /** @deprecated use ativoNaAusenciaDoSefaz */
     public function ativoNaAusenciaDoHub(bool $hubApto): bool
     {
-        return $this->permitido() && ! $hubApto;
+        return $this->ativoNaAusenciaDoSefaz($hubApto);
     }
 
     /**
      * @return array{ativo: bool, mensagem: string}
      */
-    public function diagnostico(bool $hubApto): array
+    public function diagnostico(bool $sefazApto): array
     {
-        $ativo = $this->ativoNaAusenciaDoHub($hubApto);
+        $ativo = $this->ativoNaAusenciaDoSefaz($sefazApto);
         if (! $ativo) {
             return [
                 'ativo' => false,
@@ -74,7 +83,7 @@ final class FiscalEmissorPolicy
 
         return [
             'ativo' => true,
-            'mensagem' => 'Autorização de teste (sem certificado A1). Sem valor fiscal. Quando o hub Focus estiver apto, o mesmo documento é enviado de verdade e esta numeração é substituída.',
+            'mensagem' => 'Autorização de teste (sem SEFAZ). Sem valor fiscal. Em homolog/produção a emissão usa o certificado A1 da empresa.',
         ];
     }
 }

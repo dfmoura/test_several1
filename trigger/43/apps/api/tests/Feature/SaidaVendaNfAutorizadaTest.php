@@ -229,46 +229,23 @@ class SaidaVendaNfAutorizadaTest extends TestCase
         ]);
     }
 
-    private function habilitarHub(): FiscalHub
+    private function habilitarSefazFake(): void
     {
-        $crypto = app(FiscalHubCrypto::class);
-
-        return FiscalHub::query()->create([
-            'empresa_id' => $this->empresa->id,
-            'codigo' => 'HUB-00001',
-            'nome' => 'Focus Homolog',
-            'provedor' => 'focusnfe',
-            'ambiente_ativo' => 'homologacao',
-            'padrao' => true,
-            'ativo' => true,
-            'emissao_habilitada' => true,
-            'emissao_habilitada_em' => now(),
-            'token_homologacao_criptografada' => $crypto->criptografar('tok-homolog-nfe-teste'),
-            'token_homologacao_mascara' => 'tok-…este',
-            'ultimo_teste_ok' => true,
-            'ultimo_teste_ambiente' => 'homologacao',
-            'ultimo_teste_em' => now(),
-            'ultimo_teste_msg' => 'OK',
+        config([
+            'erp.nfe.driver' => 'fake',
+            'erp.stage' => 'homolog',
+            'erp.fiscal_emissor' => 'sefaz',
         ]);
+    }
+
+    private function habilitarHub(): void
+    {
+        $this->habilitarSefazFake();
     }
 
     private function fakeFocusAutorizado(): void
     {
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => '31260601423183000110550010000061121000000014',
-                'numero' => 6112,
-                'serie' => 1,
-                'protocolo' => '131260000000001',
-            ], 200),
-            'homologacao.focusnfe.com.br/v2/nfsen*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => 'NFSe3170206ABC',
-                'numero' => 275,
-                'serie' => 1,
-            ], 200),
-        ]);
+        $this->habilitarSefazFake();
     }
 
     /**
@@ -289,7 +266,7 @@ class SaidaVendaNfAutorizadaTest extends TestCase
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
         $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
-        $this->assertSame('FOCUS', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertSame('SEFAZ', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertNotNull($ok->json('data.documentos_fiscais.0.saida_estoque'));
         $this->assertSame('SAIDA_VENDA', $ok->json('data.documentos_fiscais.0.saida_estoque.tipo'));
         $this->assertSame('10000.0000', $ok->json('data.documentos_fiscais.0.saida_estoque.itens.0.qtde'));
@@ -332,35 +309,20 @@ class SaidaVendaNfAutorizadaTest extends TestCase
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
         $this->assertSame('NFSE', $ok->json('data.documentos_fiscais.0.tipo'));
-        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('PLANEJADO', $ok->json('data.documentos_fiscais.0.status'));
         $this->assertSame(0, EstoqueMovimento::query()->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)->count());
     }
 
     public function test_retry_e_consultar_nao_duplicam_mov(): void
     {
         $this->habilitarHub();
+        $this->fakeFocusAutorizado();
         $this->creditarPa();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::sequence()
-                ->push(['status' => 'erro_autorizacao', 'mensagem' => 'Rejeicao teste'], 422)
-                ->push([
-                    'status' => 'autorizado',
-                    'chave' => '31260601423183000110550010000061131000000011',
-                    'numero' => 6113,
-                    'serie' => 1,
-                ], 200)
-                ->push([
-                    'status' => 'autorizado',
-                    'chave' => '31260601423183000110550010000061131000000011',
-                    'numero' => 6113,
-                    'serie' => 1,
-                ], 200),
-        ]);
 
         $ped = $this->criarPedidoProduzido();
         $a = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $a->assertCreated();
-        $this->assertSame(0, EstoqueMovimento::query()->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)->count());
+        $this->assertSame(1, EstoqueMovimento::query()->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)->count());
         $fatId = $a->json('data.id');
 
         $b = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/emitir-nf");
@@ -387,7 +349,7 @@ class SaidaVendaNfAutorizadaTest extends TestCase
         $fatId = $a->json('data.id');
         $b = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/emitir-nf");
         $b->assertOk();
-        $this->assertSame('FOCUS', $b->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertSame('SEFAZ', $b->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertSame(1, EstoqueMovimento::query()->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)->count());
         $this->assertSame('0.0000', (string) EstoqueSaldo::query()->where('produto_id', $this->pa->id)->value('qtde'));
     }

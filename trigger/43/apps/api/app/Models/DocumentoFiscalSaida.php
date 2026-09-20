@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\PadraoDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class DocumentoFiscalSaida extends Model
@@ -31,7 +32,9 @@ class DocumentoFiscalSaida extends Model
 
     public const STATUS_CANCELADO = 'CANCELADO';
 
-    public const ORIGEM_FOCUS = 'FOCUS';
+    public const ORIGEM_FOCUS = 'FOCUS'; // legado
+
+    public const ORIGEM_SEFAZ = 'SEFAZ';
 
     public const ORIGEM_STUB = 'STUB';
 
@@ -117,8 +120,13 @@ class DocumentoFiscalSaida extends Model
             return true;
         }
 
-        // Stub local pode ser promovido à autorização Focus (mesma ref) quando o hub ficar apto.
+        // Stub local pode ser promovido à autorização SEFAZ (mesma ref) quando A1/nuvem ficar apto.
         return $this->status === self::STATUS_AUTORIZADO && $this->eSimulado();
+    }
+
+    public function eventos(): HasMany
+    {
+        return $this->hasMany(DocumentoFiscalSaidaEvento::class, 'documento_fiscal_saida_id');
     }
 
     public function eOficial(): bool
@@ -130,6 +138,29 @@ class DocumentoFiscalSaida extends Model
     {
         return $this->status === self::STATUS_AUTORIZADO
             && $this->autorizacao_origem === self::ORIGEM_STUB;
+    }
+
+    /**
+     * NF-e cancelada na SEFAZ com chave — ainda imprime DANFE completo (barras/chave/portal).
+     * Não reabre estorno de FAT nem eventos; só identidade fiscal para exibição.
+     */
+    public function eCanceladaOficial(): bool
+    {
+        if ($this->tipo !== self::TIPO_NFE || $this->status !== self::STATUS_CANCELADO) {
+            return false;
+        }
+        if ($this->autorizacao_origem === self::ORIGEM_STUB) {
+            return false;
+        }
+        $chave = preg_replace('/\D+/', '', (string) $this->chave);
+
+        return is_string($chave) && strlen($chave) === 44;
+    }
+
+    /** Autorizada ou cancelada oficial — numeração/chave/protocolo no DANFE. */
+    public function temNumeracaoFiscal(): bool
+    {
+        return $this->eOficial() || $this->eSimulado() || $this->eCanceladaOficial();
     }
 
     public function bloqueiaEstornoFat(): bool

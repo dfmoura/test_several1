@@ -291,6 +291,22 @@ export function formatDate(value: string | null | undefined): string {
   return date.toLocaleDateString('pt-BR');
 }
 
+/** Hora DANFE (H:i:s) a partir de string pura ou ISO datetime. */
+export function formatTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  const v = value.trim();
+  if (/^\d{2}:\d{2}:\d{2}$/.test(v)) return v;
+  if (/^\d{2}:\d{2}$/.test(v)) return `${v}:00`;
+  const date = new Date(v);
+  if (Number.isNaN(date.getTime())) return v;
+  return date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—';
   const date = new Date(value);

@@ -11,7 +11,6 @@ import { FacaApresentacao } from './FacaApresentacao';
 import { FacaSilhuetaReal } from './FacaSilhuetaReal';
 import { formatColunasMapaLabel } from '../lib/facaSilhueta';
 import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
-import { facaDimensoesExibicao } from '../lib/facasMapa';
 
 export type OrcamentoFacaDesenhoAudience = 'interno' | 'cliente';
 
@@ -166,17 +165,8 @@ export function OrcamentoFacaDesenho({
   const label = formatoLabel(fmt);
   const cliente = audience === 'cliente';
   const colsFaca = !facaNova ? formatColunasMapaLabel(colunasMapa) ?? '1×' : null;
-  const dim = facaDimensoesExibicao({
-    medida,
-    formato: fmt || null,
-    largura_faca: larguraCm == null || larguraCm === '' ? null : larguraCm,
-    diametro_cm: diametroCm == null || diametroCm === '' ? null : diametroCm,
-    tamanho_raw: tamanhoRaw ?? null,
-    tamanho_tipo: tamanhoTipo ?? null,
-  });
-  /** Título visual = Largura × Tamanho (átomos). Sem expor a identidade `medida`. */
-  const title =
-    dim.titulo && dim.titulo !== '—' ? dim.titulo : label || tipo;
+  /** Título visual = identidade `medida` (mapa/ORC). */
+  const title = medida?.trim() || label || tipo;
   const rootClass = [
     'orc-faca-desenho',
     `orc-faca-desenho--${variant}`,
@@ -189,12 +179,12 @@ export function OrcamentoFacaDesenho({
 
   if (variant === 'compact') {
     return (
-      <div className={rootClass} title={`${label}${title !== label ? ` · ${title}` : ''}`}>
+      <div className={rootClass} title={`${label}${medida ? ` · ${medida}` : ''}`}>
         <div className="orc-faca-desenho-leading">
           <FacaDesenhoVisual props={props} variant="compact" label={label} />
         </div>
         <div className="orc-faca-desenho-compact-text">
-          <strong>{title}</strong>
+          <strong>{medida?.trim() || label}</strong>
           <span>
             {tipo}
             {colsFaca ? ` · ${colsFaca}` : ''}
@@ -204,25 +194,22 @@ export function OrcamentoFacaDesenho({
     );
   }
 
+  const largura = chipVal(larguraCm, 'cm');
   const puxada = chipVal(puxadaCm, 'cm');
   const zVal = chipVal(z);
-  const tamanhoChip =
-    dim.tamanho === '—'
-      ? '—'
-      : dim.isDiametro
-        ? `Ø ${dim.tamanho} cm`
-        : `${dim.tamanho} cm`;
+  const diametro = chipVal(diametroCm, 'cm');
 
   const chips = (
     <div className="orc-faca-desenho-chips" aria-label="Tipo e parâmetros da faca">
       <Chip label="Tipo" value={tipo} warn={facaNova} />
+      {medida?.trim() ? <Chip label="Medida" value={medida.trim()} /> : null}
       {label && label !== '—' && label !== title ? <Chip label="Formato" value={label} /> : null}
       {colsFaca ? <Chip label="Cols. faca" value={colsFaca} /> : null}
       {isFacaPosicao(posicao) ? (
         <Chip label="Posição" value={facaPosicaoLabel(posicao) ?? String(posicao)} />
       ) : null}
-      <Chip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
-      <Chip label={dim.isDiametro ? 'Diâmetro' : 'Tamanho'} value={tamanhoChip} />
+      {largura !== '—' ? <Chip label="Largura" value={largura} /> : null}
+      {diametro !== '—' ? <Chip label="Ø" value={diametro} /> : null}
       {puxada !== '—' ? <Chip label="Puxada" value={puxada} /> : null}
       {!cliente && zVal !== '—' ? <Chip label="Z" value={zVal} /> : null}
       {!cliente && maquina ? <Chip label="Máq." value={String(maquina)} /> : null}

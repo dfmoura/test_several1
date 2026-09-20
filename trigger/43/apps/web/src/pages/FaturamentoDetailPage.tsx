@@ -8,7 +8,7 @@ import { api, type Faturamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
-import { nfStatusLabel } from '../lib/fiscalUi';
+import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz } from '../lib/fiscalUi';
 
 const MOD_FRETE_CIF = '0';
 const MOD_FRETE_FOB = '1';
@@ -34,6 +34,10 @@ export function FaturamentoDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [estornarAberto, setEstornarAberto] = useState(false);
   const [motivoEstorno, setMotivoEstorno] = useState('');
+  const [cancelAberto, setCancelAberto] = useState(false);
+  const [justCancel, setJustCancel] = useState('');
+  const [cceAberto, setCceAberto] = useState(false);
+  const [textoCce, setTextoCce] = useState('');
   const [modFreteEdit, setModFreteEdit] = useState(MOD_FRETE_SEM);
   const [transportadorEdit, setTransportadorEdit] = useState<Parceiro | null>(null);
 
@@ -110,8 +114,8 @@ export function FaturamentoDetailPage() {
       setFat(res.data);
       setMsg(
         res.data.nf_simulada
-          ? 'Autorização de teste concluída. Sem valor fiscal — o hub Focus substitui esta numeração quando estiver apto.'
-          : 'Envio ao hub Focus concluído. Confira o status das notas abaixo.',
+          ? 'Autorização de teste concluída. Sem valor fiscal — em homolog/produção usa o certificado A1 da empresa.'
+          : 'Emissão via certificado A1 concluída. Confira o status das notas abaixo.',
       );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível emitir as notas.');
@@ -128,7 +132,61 @@ export function FaturamentoDetailPage() {
       const res = await api.post<{ data: Faturamento }>(`/faturamentos/${fat.id}/consultar-nf`);
       setFat(res.data);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Não foi possível consultar o hub.');
+      setErr(e instanceof Error ? e.message : 'Não foi possível consultar a SEFAZ.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelarNf = async () => {
+    if (!fat) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: Faturamento & { evento?: { status?: string; protocolo?: string | null; mensagem?: string | null } } }>(
+        `/faturamentos/${fat.id}/cancelar-nf`,
+        { justificativa: justCancel.trim() },
+      );
+      setFat(res.data);
+      const ev = res.data.evento;
+      if (res.data.nf_status === 'CANCELADA') {
+        setMsg(
+          ev?.protocolo
+            ? `NF-e cancelada na SEFAZ · protocolo ${ev.protocolo}.`
+            : 'NF-e cancelada na SEFAZ.',
+        );
+      } else {
+        setMsg(
+          ev?.mensagem
+            ? `SEFAZ: ${ev.mensagem}`
+            : 'Resposta da SEFAZ recebida. Confira o status da NF-e.',
+        );
+      }
+      setCancelAberto(false);
+      setJustCancel('');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível cancelar a NF-e.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cartaCorrecao = async () => {
+    if (!fat) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: Faturamento }>(`/faturamentos/${fat.id}/carta-correcao`, {
+        texto: textoCce.trim(),
+      });
+      setFat(res.data);
+      setMsg('Carta de correção registrada na SEFAZ.');
+      setCceAberto(false);
+      setTextoCce('');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível enviar a carta de correção.');
     } finally {
       setBusy(false);
     }
@@ -182,12 +240,39 @@ export function FaturamentoDetailPage() {
                 Expedição
               </Link>
             ) : null}
+            {fat &&
+            fatTemNfeParaEventoSefaz(fat) &&
+            hasPermission('faturamento.escrever') ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => {
+                  setCancelAberto(true);
+                  setCceAberto(false);
+                  window.requestAnimationFrame(() => {
+                    document.getElementById('nfe-eventos-sefaz')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    });
+                  });
+                }}
+              >
+                Cancelar NF-e
+              </button>
+            ) : null}
           </div>
         }
       />
 
       {msg && <div className="alert alert-success">{msg}</div>}
       {err && <div className="alert alert-error">{err}</div>}
+      {fat && fatTemNfeParaEventoSefaz(fat) && hasPermission('faturamento.escrever') ? (
+        <div className="alert alert-info">
+          NF-e autorizada na SEFAZ — cancelamento (prazo 24h) e carta de correção estão no card{' '}
+          <strong>Notas fiscais</strong> abaixo.
+        </div>
+      ) : null}
 
       {loading || !fat ? (
         loading ? (
@@ -249,9 +334,9 @@ export function FaturamentoDetailPage() {
                 <p className="form-hint" style={{ marginBottom: 0 }}>
                   {fat.nf_status === 'AUTORIZADA'
                     ? fat.nf_simulada
-                      ? 'Autorização de teste (sem certificado A1). Sem valor fiscal. Quando o hub Focus estiver apto, envie este mesmo documento — a numeração sintética é substituída.'
-                      : 'Nota autorizada no hub Focus. O estoque de produto acabado só baixa neste momento.'
-                    : 'A cobrança do saldo já foi gerada. A nota abaixo é prévia do que irá ao hub Focus — pendências de cadastro não desfazem o faturamento. Sem chave, número ou XML autorizado até o hub responder.'}
+                      ? 'Autorização de teste (sem certificado A1). Sem valor fiscal. Em homolog/produção com A1 apto, emita novamente para a SEFAZ — a numeração sintética é substituída.'
+                      : 'Nota autorizada na SEFAZ. O estoque de produto acabado só baixa neste momento.'
+                    : 'A cobrança do saldo já foi gerada. A nota abaixo é prévia do que irá à SEFAZ com o A1 da empresa — pendências de cadastro não desfazem o faturamento. Sem chave, número ou XML autorizado até a SEFAZ responder.'}
                 </p>
               )}
             </div>
@@ -262,7 +347,7 @@ export function FaturamentoDetailPage() {
               <div className="form-section">
                 <h3>Transporte na NF-e</h3>
                 <p className="muted" style={{ marginTop: 0 }}>
-                  Modalidade e transportador gravados no faturamento — alimentam a emissão Focus.
+                  Modalidade e transportador gravados no faturamento — alimentam a emissão SEFAZ.
                   Volumes vêm das caixas da embalagem PA.
                 </p>
               </div>
@@ -328,26 +413,46 @@ export function FaturamentoDetailPage() {
                 <div className="form-section">
                   <h3>Notas fiscais</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    NF-e para produto e NFS-e para serviço. Numeração fiscal vem do fisco — o sistema não
-                    inventa série nem chave. Sem o certificado A1 no hub Focus, o ambiente local pode
-                    autorizar só para teste (marca visível, sem valor fiscal). Quando o hub estiver apto,
-                    o mesmo documento é enviado de verdade.
+                    NF-e (produto) via certificado A1 da empresa na SEFAZ. Numeração no ERP; chave e
+                    protocolo vêm do fisco. Em ambiente local pode autorizar só para teste (sem valor
+                    fiscal). NFS-e de serviço permanece planejada nesta fatia.
+                    {fatTemNfeParaEventoSefaz(fat)
+                      ? ' Com NF autorizada: use Cancelar NF-e ou Carta de correção nesta seção.'
+                      : ''}
                   </p>
                 </div>
                 <div className="nf-previa-list">
                   {fat.documentos_fiscais?.map((d) => (
-                    <DocumentoFiscalPreviaCard key={d.id} doc={d} faturamentoId={fat.id} />
+                    <DocumentoFiscalPreviaCard
+                      key={d.id}
+                      doc={d}
+                      faturamentoId={fat.id}
+                      onAbrirCancelamentoSefaz={
+                        nfePodeEventoSefaz(d) && hasPermission('faturamento.escrever')
+                          ? () => {
+                              setCancelAberto(true);
+                              setCceAberto(false);
+                              window.requestAnimationFrame(() => {
+                                document.getElementById('nfe-eventos-sefaz')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                });
+                              });
+                            }
+                          : undefined
+                      }
+                    />
                   ))}
                 </div>
                 {fat.status === 'CONFIRMADO' && hasPermission('faturamento.escrever') ? (
-                  <div className="btn-row" style={{ marginTop: '1rem' }}>
+                  <div className="btn-row" style={{ marginTop: '1rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       className="btn btn-primary"
                       disabled={busy}
                       onClick={() => void emitirNf()}
                     >
-                      {fat.nf_simulada ? 'Enviar ao hub Focus (substituir teste)' : 'Enviar / reenviar ao hub'}
+                      {fat.nf_simulada ? 'Emitir com A1 (substituir teste)' : 'Emitir / reenviar NF-e'}
                     </button>
                     <button
                       type="button"
@@ -357,7 +462,119 @@ export function FaturamentoDetailPage() {
                     >
                       Atualizar status
                     </button>
+                    {fatTemNfeParaEventoSefaz(fat) ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          disabled={busy}
+                          onClick={() => {
+                            setCceAberto((v) => !v);
+                            setCancelAberto(false);
+                          }}
+                        >
+                          Carta de correção
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={busy}
+                          onClick={() => {
+                            setCancelAberto((v) => !v);
+                            setCceAberto(false);
+                          }}
+                        >
+                          Cancelar NF-e
+                        </button>
+                      </>
+                    ) : null}
                   </div>
+                ) : null}
+
+                {fatTemNfeParaEventoSefaz(fat) && hasPermission('faturamento.escrever') ? (
+                  <div id="nfe-eventos-sefaz" style={{ marginTop: '1rem' }}>
+                    <p className="form-hint" style={{ marginTop: 0 }}>
+                      Eventos SEFAZ · cancelamento (110111, prazo 24h) e carta de correção (110110)
+                      usam o certificado A1 da empresa. A CC-e não altera valores nem destinatário.
+                    </p>
+
+                    {cceAberto ? (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <label className="field">
+                          <span>Texto da carta de correção (mín. 15 caracteres)</span>
+                          <textarea
+                            rows={3}
+                            value={textoCce}
+                            onChange={(e) => setTextoCce(e.target.value)}
+                            disabled={busy}
+                            placeholder="Descreva a correção a registrar na SEFAZ…"
+                          />
+                        </label>
+                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={busy || textoCce.trim().length < 15}
+                            onClick={() => void cartaCorrecao()}
+                          >
+                            Enviar CC-e à SEFAZ
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => setCceAberto(false)}
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {cancelAberto ? (
+                      <div style={{ marginTop: '0.75rem' }}>
+                        <label className="field">
+                          <span>Justificativa do cancelamento (mín. 15 caracteres)</span>
+                          <textarea
+                            rows={3}
+                            value={justCancel}
+                            onChange={(e) => setJustCancel(e.target.value)}
+                            disabled={busy}
+                            placeholder="Motivo do cancelamento perante a SEFAZ…"
+                          />
+                        </label>
+                        <p className="form-hint">
+                          Após autorização do cancelamento, a NF-e fica cancelada e a saída de estoque
+                          de venda é estornada (se houver). O faturamento permanece no histórico.
+                        </p>
+                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={busy || justCancel.trim().length < 15}
+                            onClick={() => void cancelarNf()}
+                          >
+                            Confirmar cancelamento na SEFAZ
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => setCancelAberto(false)}
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {(fat.documentos_fiscais ?? []).some(nfeCanceladaSefaz) ||
+                fat.nf_status === 'CANCELADA' ? (
+                  <p className="form-hint" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                    NF-e cancelada na SEFAZ. Não há novo cancelamento para este documento.
+                  </p>
                 ) : null}
               </div>
             </div>

@@ -26,6 +26,8 @@ class EstoqueMovimento extends Model
 
     public const TIPO_SAIDA_VENDA = 'SAIDA_VENDA';
 
+    public const TIPO_ESTORNO_SAIDA_VENDA = 'ESTORNO_SAIDA_VENDA';
+
     public const TIPOS = [
         self::TIPO_ENTRADA_COMPRA,
         self::TIPO_AJUSTE,
@@ -33,6 +35,7 @@ class EstoqueMovimento extends Model
         self::TIPO_ENTRADA_SOBRA,
         self::TIPO_ENTRADA_PA,
         self::TIPO_SAIDA_VENDA,
+        self::TIPO_ESTORNO_SAIDA_VENDA,
     ];
 
     protected $table = 'estoque_movimentos';

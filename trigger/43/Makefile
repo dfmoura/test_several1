@@ -62,6 +62,12 @@ queue-logs:
 migrate:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan migrate --force
 
+# Piloto NF-e SEFAZ: status/seed numeração + A1. Uso:
+#   make nfe-serie
+#   make nfe-serie ARGS='seed EMP-00001 --ultimo=1234'
+nfe-serie:
+	$(COMPOSE_LOCAL) --env-file .env exec app php artisan nfe:serie $(or $(ARGS),status)
+
 seed:
 	$(COMPOSE_LOCAL) --env-file .env exec app php artisan db:seed --force
 

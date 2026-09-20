@@ -8,11 +8,12 @@ use App\Models\Pedido;
 use App\Services\Cadastros\EmpresaFiscalRules;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Estoque\EstoqueSaidaVendaService;
+use App\Services\Fiscal\Sefaz\NfeAutorizacaoService;
 use App\Support\PadraoDecimal;
 
 /**
  * Plano dual NF-e / NFS-e e checklist pré-emissão.
- * Não bloqueia o FAT — só decide se o POST Focus pode sair.
+ * Não bloqueia o FAT — só decide se a emissão SEFAZ (NF-e) pode sair.
  */
 class EmissaoFiscalChecklist
 {
@@ -20,6 +21,7 @@ class EmissaoFiscalChecklist
         private readonly FiscalHubResolver $hubs,
         private readonly FiscalEmissorPolicy $emissorPolicy,
         private readonly EstoqueSaidaVendaService $saidaVenda,
+        private readonly NfeAutorizacaoService $nfeSefaz,
     ) {}
 
     /**
@@ -29,7 +31,7 @@ class EmissaoFiscalChecklist
     public function paraPedido(Empresa $empresa, Pedido $pedido, array $itensFat): array
     {
         $planos = $this->planar($itensFat);
-        $hub = $this->hubs->diagnostico($empresa);
+        $hub = $this->hubs->diagnostico($empresa); // legado UI
         $parceiro = $pedido->parceiro;
         $pendencias = [];
         $avisos = [];
@@ -76,39 +78,60 @@ class EmissaoFiscalChecklist
         }
 
         $pendenciasCadastro = array_values(array_unique(array_filter($pendencias)));
-        $stub = $this->emissorPolicy->diagnostico((bool) ($hub['apto'] ?? false));
 
-        if (! ($hub['apto'] ?? false) && ! $stub['ativo']) {
-            $pendencias[] = $hub['mensagem'] ?? 'Hub fiscal ainda não está apto a emitir.';
+        $sefazApto = $precisaNfe
+            && $this->nfeSefaz->sefazDisponivel()
+            && (strtolower((string) config('erp.nfe.driver', 'sefaz')) === 'fake'
+                || $this->nfeSefaz->a1Apto($empresa));
+
+        $stub = $this->emissorPolicy->diagnostico($sefazApto);
+
+        if ($precisaNfe && ! $sefazApto && ! $stub['ativo']) {
+            if (! $this->nfeSefaz->sefazDisponivel()) {
+                $pendencias[] = 'Emissão SEFAZ disponível só em homolog/produção (ou NFE_DRIVER=fake).';
+            } elseif (! $this->nfeSefaz->a1Apto($empresa)) {
+                $pendencias[] = 'Certificado A1 da empresa não está apto para emitir NF-e.';
+            }
+        }
+
+        if ($precisaNfse) {
+            $avisos[] = 'NFS-e Nacional ainda não emite nesta fatia — documento permanece planejado.';
+            $pendencias[] = 'Emissão de NFS-e ainda não disponível (ADR futura).';
         }
 
         $pendencias = array_merge($pendencias, $this->saidaVenda->pendenciasEmissao($empresa, $pedido, $itensFat));
         $avisos = array_merge($avisos, $this->saidaVenda->avisosEmissao($empresa, $pedido, $itensFat));
 
         if ($precisaNfe) {
-            $avisos[] = 'NF-e de produto (mercadoria) via Focus, modelo 55.';
-        }
-        if ($precisaNfse) {
-            $avisos[] = 'NFS-e de serviço via Focus (Nacional).';
-            if (! $empresa->im_obrigatoria_nfse && trim((string) $empresa->im) === '') {
-                $avisos[] = 'Inscrição municipal omitida — este município não exige IM para NFS-e.';
-            }
+            $avisos[] = 'NF-e de produto (modelo 55) via certificado A1 da empresa na SEFAZ.';
         }
         if ($stub['ativo'] && $stub['mensagem'] !== '') {
             $avisos[] = $stub['mensagem'];
         }
 
         $pendencias = array_values(array_unique(array_filter($pendencias)));
+        // apto_emissao para NF-e: cadastro OK + (SEFAZ ou stub); NFS-e sozinha não habilita
         $aptoCadastro = $pendenciasCadastro === [] && $planos !== [];
-        $apto = $pendencias === [] && $planos !== [];
+        $aptoNfe = $precisaNfe && $pendenciasCadastro === [] && ($sefazApto || $stub['ativo'])
+            && $this->saidaVenda->pendenciasEmissao($empresa, $pedido, $itensFat) === [];
+        $apto = $aptoNfe && ! $precisaNfse; // misto com NFSE bloqueia emissão automática completa
+        if ($precisaNfe && ! $precisaNfse) {
+            $apto = $aptoNfe;
+        }
 
         return [
             'documentos' => $planos,
             'hub' => $hub,
+            'sefaz' => [
+                'apto' => $sefazApto,
+                'driver' => config('erp.nfe.driver'),
+                'disponivel' => $this->nfeSefaz->sefazDisponivel(),
+                'a1_apto' => $this->nfeSefaz->a1Apto($empresa),
+            ],
             'emissor_teste' => $stub,
             'apto_cadastro' => $aptoCadastro,
             'apto_emissao' => $apto,
-            'emissao_automatica' => $aptoCadastro && ((bool) ($hub['apto'] ?? false) || $stub['ativo']),
+            'emissao_automatica' => $aptoCadastro && ($sefazApto || $stub['ativo']) && $precisaNfe && ! $precisaNfse,
             'pendencias' => $pendencias,
             'pendencias_cadastro' => $pendenciasCadastro,
             'avisos' => $avisos,

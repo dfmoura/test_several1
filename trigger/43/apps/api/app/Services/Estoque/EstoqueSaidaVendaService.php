@@ -109,11 +109,89 @@ class EstoqueSaidaVendaService
     }
 
     /**
+     * Estorna SAIDA_VENDA após cancelamento SEFAZ da NF-e (idempotente).
+     */
+    public function estornaSeHouver(Empresa $empresa, DocumentoFiscalSaida $doc): void
+    {
+        try {
+            DB::transaction(function () use ($empresa, $doc) {
+                $origem = EstoqueMovimento::query()
+                    ->where('empresa_id', $empresa->id)
+                    ->where('documento_fiscal_saida_id', $doc->id)
+                    ->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)
+                    ->lockForUpdate()
+                    ->first();
+                if ($origem === null) {
+                    return;
+                }
+                $ja = EstoqueMovimento::query()
+                    ->where('empresa_id', $empresa->id)
+                    ->where('documento_fiscal_saida_id', $doc->id)
+                    ->where('tipo', EstoqueMovimento::TIPO_ESTORNO_SAIDA_VENDA)
+                    ->exists();
+                if ($ja) {
+                    return;
+                }
+
+                $origem->loadMissing('itens.produto');
+                $ano = (int) now()->year;
+                $mov = EstoqueMovimento::query()->create([
+                    'empresa_id' => $empresa->id,
+                    'codigo' => $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5),
+                    'tipo' => EstoqueMovimento::TIPO_ESTORNO_SAIDA_VENDA,
+                    'pedido_id' => $origem->pedido_id,
+                    'faturamento_id' => $origem->faturamento_id,
+                    'documento_fiscal_saida_id' => $doc->id,
+                    'nf_chave' => $origem->nf_chave,
+                    'nf_numero' => $origem->nf_numero,
+                    'nf_data' => now()->toDateString(),
+                    'nf_valor' => $origem->nf_valor,
+                    'conferido_em' => now(),
+                    'conferido_por' => Auth::id(),
+                    'observacao' => 'Estorno SAIDA_VENDA — NF-e cancelada '.$doc->codigo,
+                ]);
+
+                $ordem = 1;
+                foreach ($origem->itens as $item) {
+                    $produto = $item->produto;
+                    if (! $produto instanceof Produto) {
+                        continue;
+                    }
+                    $qtde = (string) $item->qtde;
+                    $valor = (string) $item->valor_total;
+                    $loteRef = $item->lote_id ? ['lote_id' => (int) $item->lote_id] : null;
+                    $aplicado = $this->saldos->aplicarEntrada($empresa, $produto, $qtde, $valor, $loteRef);
+                    EstoqueMovimentoItem::query()->create([
+                        'movimento_id' => $mov->id,
+                        'produto_id' => $produto->id,
+                        'lote_id' => $aplicado['lote_id'] ?? $item->lote_id,
+                        'qtde' => $qtde,
+                        'unidade' => $item->unidade,
+                        'valor_unitario' => $item->valor_unitario,
+                        'valor_total' => $valor,
+                        'custo_medio_apos' => $aplicado['custo_medio_apos'],
+                        'ordem' => $ordem++,
+                    ]);
+                }
+            });
+        } catch (Throwable $e) {
+            Log::warning('Estorno SAIDA_VENDA falhou após cancel NF', [
+                'empresa_id' => $empresa->id,
+                'documento_fiscal_saida_id' => $doc->id,
+                'erro' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function movimentoOut(DocumentoFiscalSaida $doc): ?array
     {
-        $mov = $doc->saidaEstoque;
+        $mov = $doc->saidaEstoque()
+            ->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)
+            ->first()
+            ?? $doc->saidaEstoque;
         if ($mov === null) {
             return null;
         }
@@ -162,6 +240,7 @@ class EstoqueSaidaVendaService
         DB::transaction(function () use ($empresa, $fat, $doc, $linhas) {
             $existe = EstoqueMovimento::query()
                 ->where('documento_fiscal_saida_id', $doc->id)
+                ->where('tipo', EstoqueMovimento::TIPO_SAIDA_VENDA)
                 ->lockForUpdate()
                 ->first();
             if ($existe) {

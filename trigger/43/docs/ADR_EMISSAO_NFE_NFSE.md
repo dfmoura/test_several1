@@ -1,11 +1,11 @@
-# ADR-039-FIS-001 — Emissão NF-e / NFS-e no faturamento (hub Focus)
+# ADR-039-FIS-001 — Emissão NF-e / NFS-e no faturamento (legado Focus)
 
-**Status:** Aceito  
+**Status:** Aceito (legado para NF-e — ver emenda SEFAZ)  
 **Data:** 2026-08-13  
 **Contexto 39:** BL-051  
 **Norma:** `../32` — `FATURAMENTO_GERACAO_COBRANCA.txt` · `CASOS_USO_M05_FISCAL.txt` (UC-FIS-001/002/005) · `ARQUITETURA_ENGENHARIA_MELHORES_PRATICAS.txt`  
-**Layout / contrato Focus:** `../28` — `docs/FOCUS_NFE_MAPEAMENTO.md` · `packages/focus-nfe` · `modelos/nfe` · `modelos/nfse`  
-**Relacionada:** `ADR_FATURAMENTO_COBRANCA.md` (emenda) · `ADR_NFE_TRANSPORTE_SAIDA.md` (mod_frete + transportador + volumes PA)
+**Layout / contrato Focus (legado):** `../28` — `docs/FOCUS_NFE_MAPEAMENTO.md` · `packages/focus-nfe` · `modelos/nfe` · `modelos/nfse`  
+**Relacionada:** `ADR_FATURAMENTO_COBRANCA.md` (emenda) · `ADR_NFE_TRANSPORTE_SAIDA.md` · **`ADR_EMISSAO_NFE_SEFAZ_DIRETO.md` (canônico NF-e desde BL-100)**
 
 ---
 
@@ -111,3 +111,17 @@ FISCAL_EMISSOR=stub   só local/testing
 | Estoque PA | Continua só na autorização **Focus**. Stub não baixa PA. |
 
 Homologação formal da NF (HT-FAT-02) continua exigindo A1 de homologação no hub Focus. O stub não substitui isso — só destrava o fluxo ERP no notebook, no mesmo espírito do `BANK_PROVIDER=mock`.
+
+## Emenda — NF-e direta SEFAZ + A1 (BL-100…105)
+
+**Canônico para NF-e (mod. 55):** `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`.
+
+| Antes (este ADR) | Depois |
+|------------------|--------|
+| Hub Focus apto + token | A1 do cofre apto + SOAP SEFAZ |
+| Numeração só do Focus | Contador `nfe_series_controle` no ERP |
+| `oficial` = origem `FOCUS` | `oficial` = origem `SEFAZ` |
+| Cancel / CC-e fora de escopo | Eventos 110111 / 110110 |
+| NFS-e via Focus | NFS-e permanece `PLANEJADO` sem POST até ADR própria |
+
+O motor Focus/hub **não é apagado** (esqueleto). Novas emissões NF-e **não** chamam Focus. Stub local inalterado (`FISCAL_EMISSOR=stub` só local/testing).

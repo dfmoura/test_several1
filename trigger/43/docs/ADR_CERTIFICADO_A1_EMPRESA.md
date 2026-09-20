@@ -6,7 +6,7 @@
 
 ## Contexto
 
-O emitente precisa cadastrar o **A1 (PKCS#12)** da EMP de forma segura na ficha de Empresas. A emissão oficial de NF-e/NFS-e permanece no **hub Focus** (A1 também pode viver lá). O ERP não inventa numeração SEFAZ.
+O emitente precisa cadastrar o **A1 (PKCS#12)** da EMP de forma segura na ficha de Empresas. Desde BL-100, o mesmo cofre autentica **emissão / cancelamento / CC-e de NF-e** na SEFAZ (`ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`), além de identidade e DF-e. Numeração de saída NF-e passa a ser do ERP (contador por série).
 
 ## Decisão
 
@@ -27,7 +27,7 @@ Empresas → guia Certificado A1
 | Permissão `empresas.gerir` + `hasEmpresaAccess` | Mesmo rigor do restante do cadastro EMP |
 | Aviso se CNPJ do cert ≠ CNPJ da EMP | Local/homolog/teste: não bloqueia o **upload** (alerta). Produção (`A1_EXIGE_CNPJ_IDENTICO` / stage production): recusa o arquivo |
 | Apto operacional = vigente + CNPJ idêntico | Checado **na hora do envio**, não só no upload. Sem CNPJ extraído = não apto |
-| Emissão NF continua Focus | Não altera BL-006/BL-065; cofre ≠ emissor de saída |
+| Emissão NF-e usa o cofre (BL-100+) | Cofre = identidade + DF-e + assinatura/mTLS de saída NF-e |
 
 ## Emenda — identidade da EMP no self-service (BL-072)
 
@@ -62,15 +62,20 @@ A1 reais (3DES/RC2) exigem o **provider legacy** do OpenSSL 3. Sem ele, `openssl
 
 ## Emenda — assinatura DF-e de entrada (caixa destinadas)
 
-Além da identidade, o mesmo cofre autentica o **NFeDistribuicaoDFe** (Ambiente Nacional) na caixa de NF-e destinadas — **sem Focus**, **sem** emissão de saída. Norma: `ADR_CAIXA_DFE_NFE_DESTINADAS.md`. PFX continua só em memória no job; sem GET do binário; só homolog/prod + A1 apto.
+Além da identidade, o mesmo cofre autentica:
+
+1. **NFeDistribuicaoDFe** (Ambiente Nacional) — caixa de NF-e destinadas (`ADR_CAIXA_DFE_NFE_DESTINADAS.md`).  
+2. **Emissão / cancelamento / CC-e NF-e** — autorizador estadual (`ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`).
+
+PFX continua só em memória/temp 0600; sem GET do binário; emissão oficial só homolog/prod + A1 apto.
 
 ## Proibido
 
 1. Devolver PFX, senha ou cipher na API/UI/logs.  
 2. Gravar A1 em plaintext ou em volume compartilhado legível.  
 3. Confiar só em `X-Empresa-Id` sem vínculo `empresa_user`.  
-4. Tratar o cofre como autorização de **emissão** SEFAZ de saída — emissão oficial só com hub Focus apto.  
-5. Usar o A1 do cofre para inventar numeração / XML de venda fora do Focus.
+4. Devolver PFX em log ou materializar sem `liberar()` no finally.  
+5. Inventar numeração / `nfeProc` no stub como se fossem do fisco (origem deve ser `STUB`).
 
 ## API
 

@@ -2696,6 +2696,8 @@ export type DocumentoFiscalPreviaItem = {
 export type DocumentoFiscalPrevia = {
   oficial: boolean;
   simulada?: boolean;
+  /** NF-e cancelada na SEFAZ — DANFE completo com barras/chave/portal. */
+  cancelada?: boolean;
   formato_envio: string;
   rotulo: string;
   modelo?: string;
@@ -2703,6 +2705,10 @@ export type DocumentoFiscalPrevia = {
   natureza?: string;
   informacoes_adicionais?: string;
   data_emissao?: string;
+  /** Data da saída/entrada (DANFE) — Y-m-d. */
+  data_saida?: string;
+  /** Hora da saída/entrada (DANFE) — H:i:s. */
+  hora_saida?: string;
   competencia?: string;
   serie_envio?: number | null;
   numero?: number | null;
@@ -2783,6 +2789,12 @@ export type FiscalPreview = {
     codigo: string | null;
     ambiente: string | null;
     emissao_habilitada: boolean;
+  };
+  sefaz?: {
+    apto: boolean;
+    driver?: string | null;
+    disponivel?: boolean;
+    a1_apto?: boolean;
   };
   apto_emissao: boolean;
   apto_cadastro?: boolean;

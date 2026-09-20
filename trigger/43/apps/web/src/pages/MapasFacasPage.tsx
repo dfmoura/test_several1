@@ -21,7 +21,6 @@ import { useAuth } from '../lib/auth';
 import {
   buildMapaFacasFichaPath,
   composeMedidaIdentidade,
-  facaDimensoesExibicao,
   FORMATOS_CANONICOS,
   formatoUsaDiametro,
   mergeVocabulario,
@@ -87,8 +86,7 @@ type Resumo = {
 
 const FACA_SORT = {
   formato: (f: FacaMapa) => formatoLabel(f.formato),
-  largura: (f: FacaMapa) => facaDimensoesExibicao(f).larguraSort,
-  tamanho: (f: FacaMapa) => facaDimensoesExibicao(f).tamanhoSort,
+  medida: (f: FacaMapa) => f.medida,
   n_facas: (f: FacaMapa) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaMapa) => f.maquina_catalogo,
   z: (f: FacaMapa) => (f.z != null ? Number(f.z) : null),
@@ -604,13 +602,11 @@ export function MapasFacasPage() {
     }
   };
 
-  const selectedDim = selected ? facaDimensoesExibicao(selected) : null;
-
   return (
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Silhueta real por largura, tamanho e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir dimensões, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Silhueta real por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             <a
@@ -684,7 +680,7 @@ export function MapasFacasPage() {
             className="mapa-facas-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar largura, tamanho, cliente, obs., fornecedor, NF…"
+            placeholder="Buscar medida, cliente, obs., fornecedor, NF…"
             aria-label="Buscar facas"
           />
           <select
@@ -765,27 +761,8 @@ export function MapasFacasPage() {
                       <th className="mapa-facas-th-silhueta" scope="col">
                         Silhueta
                       </th>
-                      <SortableTh
-                        column="largura"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="Largura"
-                      >
-                        Largura
-                      </SortableTh>
-                      <SortableTh
-                        column="tamanho"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="Tamanho"
-                      >
-                        Tamanho
+                      <SortableTh column="medida" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Medida
                       </SortableTh>
                       <SortableTh
                         column="n_facas"
@@ -837,14 +814,20 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="mapa-facas-empty-cell">
+                        <td colSpan={9} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
                     ) : (
                       sorted.map((f) => {
                         const active = selected?.id === f.id;
-                        const dim = facaDimensoesExibicao(f);
+                        const isDiam =
+                          formatoUsaDiametro(f.formato) ||
+                          String(f.tamanho_tipo ?? '')
+                            .trim()
+                            .toLowerCase()
+                            .startsWith('diam') ||
+                          /^[Øø]/.test(String(f.medida || '').trim());
                         const statusHint = [
                           f.ativo ? null : 'inativa',
                           f.completa ? null : 'incompleta',
@@ -890,22 +873,17 @@ export function MapasFacasPage() {
                                 />
                               </FacaApresentacao>
                             </td>
-                            <td className="num mapa-facas-dim-cell">
-                              <div className="mapa-facas-dim-stack">
-                                <strong>{dim.largura}</strong>
+                            <td className="medida">
+                              <div className="mapa-facas-medida-cell">
+                                {isDiam ? (
+                                  <span className="badge-diam">{f.medida}</span>
+                                ) : (
+                                  <strong>{f.medida}</strong>
+                                )}
                                 {!f.completa ? (
                                   <span className="mapa-facas-incomplete-tag">incompleta</span>
                                 ) : null}
                               </div>
-                            </td>
-                            <td className="num mapa-facas-dim-cell">
-                              {dim.isDiametro ? (
-                                <span className="badge-diam" title="Diâmetro (Ø)">
-                                  Ø {dim.tamanho}
-                                </span>
-                              ) : (
-                                <strong>{dim.tamanho}</strong>
-                              )}
                             </td>
                             <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
                             <td className="maquina">{f.maquina_catalogo || '—'}</td>
@@ -936,7 +914,7 @@ export function MapasFacasPage() {
           {!selected ? (
             <div className="card-body mapa-facas-detail-empty">
               <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (largura, tamanho, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
+              <p className="hint">Geometria (medida, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
             </div>
           ) : (
             <div className="card-body mapa-facas-detail-body">
@@ -988,15 +966,8 @@ export function MapasFacasPage() {
                 )}
                 <div>
                   <div className="mapa-facas-detail-kicker">#{selected.id}</div>
-                  <h2>{formatoLabel(selected.formato)}</h2>
-                  <p>
-                    {[
-                      selected.n_facas != null ? `N ${selected.n_facas}` : null,
-                      selected.maquina_catalogo || null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ') || '—'}
-                  </p>
+                  <h2>{selected.medida}</h2>
+                  <p>{selected.label || formatoLabel(selected.formato)}</p>
                   <div className="mapa-facas-detail-pills">
                     <StatusPill status={selected.ativo ? 'ATIVA' : 'INATIVA'} />
                     <StatusPill status={selected.completa ? 'COMPLETA' : 'INCOMPLETA'} />
@@ -1046,22 +1017,16 @@ export function MapasFacasPage() {
                   <dd>{selected.n_facas ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt>Largura</dt>
-                  <dd>
-                    {!selectedDim || selectedDim.largura === '—'
-                      ? '—'
-                      : `${selectedDim.largura} cm`}
-                  </dd>
+                  <dt>Medida</dt>
+                  <dd>{selected.medida || '—'}</dd>
                 </div>
                 <div>
-                  <dt>{selectedDim?.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}</dt>
-                  <dd>
-                    {!selectedDim || selectedDim.tamanho === '—'
-                      ? '—'
-                      : selectedDim.isDiametro
-                        ? `Ø ${selectedDim.tamanho} cm`
-                        : `${selectedDim.tamanho} cm`}
-                  </dd>
+                  <dt>Largura</dt>
+                  <dd>{fmtNum(selected.largura_faca, 2)} cm</dd>
+                </div>
+                <div>
+                  <dt>Diâmetro</dt>
+                  <dd>{fmtNum(selected.diametro_cm, 2)} cm</dd>
                 </div>
                 <div>
                   <dt>Cilindro</dt>
@@ -1291,14 +1256,15 @@ export function MapasFacasPage() {
                   }
                 />
                 <div className="mapa-facas-nova-copy" aria-hidden>
-                  <strong>{facaDimensoesExibicao(previewNova).titulo}</strong>
+                  <strong>{previewNova.medida}</strong>
                   <span>
                     {formatoKind(previewNova.formato)} · {previewNova.maquina_catalogo}
                   </span>
                   <span className="hint">
+                    Identidade: {previewNova.medida}
                     {previewNova.completa
-                      ? 'Completa (puxada + Z)'
-                      : 'Incompleta — ORC pedirá puxada/Z manuais'}
+                      ? ' · completa (puxada + Z)'
+                      : ' · incompleta — ORC pedirá puxada/Z manuais'}
                   </span>
                 </div>
               </div>

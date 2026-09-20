@@ -1,12 +1,14 @@
 /** Rótulos fiscais de saída (NF-e / NFS-e) — espelham o servidor. */
 
+import type { DocumentoFiscalSaida, Faturamento } from './api';
+
 export function nfStatusLabel(status: string | null | undefined, simulada?: boolean): string {
   if (simulada && status === 'AUTORIZADA') return 'Autorizada (teste)';
   switch (status) {
     case 'PENDENTE':
       return 'NF pendente';
     case 'PROCESSANDO':
-      return 'Processando no hub';
+      return 'Processando na SEFAZ';
     case 'AUTORIZADA':
       return 'Autorizada';
     case 'REJEITADA':
@@ -42,4 +44,24 @@ export function docFiscalStatusLabel(status: string, simulada?: boolean): string
     default:
       return status.replace(/_/g, ' ');
   }
+}
+
+/**
+ * NF-e oficial apta a eventos SEFAZ (cancelamento 110111 / CC-e 110110).
+ * Stub local não entra — só nota com chave autorizada (SEFAZ ou legado Focus).
+ */
+export function nfePodeEventoSefaz(doc: DocumentoFiscalSaida | null | undefined): boolean {
+  if (!doc || doc.tipo !== 'NFE') return false;
+  if (doc.status !== 'AUTORIZADO') return false;
+  if (!doc.chave || doc.chave.replace(/\D/g, '').length !== 44) return false;
+  if (doc.autorizacao_origem === 'STUB') return false;
+  return true;
+}
+
+export function fatTemNfeParaEventoSefaz(fat: Faturamento | null | undefined): boolean {
+  return (fat?.documentos_fiscais ?? []).some(nfePodeEventoSefaz);
+}
+
+export function nfeCanceladaSefaz(doc: DocumentoFiscalSaida | null | undefined): boolean {
+  return Boolean(doc && doc.tipo === 'NFE' && doc.status === 'CANCELADO' && doc.chave);
 }

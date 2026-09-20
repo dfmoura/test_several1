@@ -56,8 +56,9 @@ function facaRecordToItem(faca: FacaRecord, principal: boolean): FacaComposicaoF
   };
 }
 
-/** Título curto da linha (só Largura × Tamanho). Sem identidade `medida`. */
+/** Título curto da linha: identidade `medida`, com fallback visual. */
 function tituloCurto(f: FacaComposicaoForm): string {
+  if (f.medida.trim()) return f.medida.trim();
   const dim = dimensoesDaFaca(f);
   if (dim.titulo && dim.titulo !== '—') return dim.titulo;
   if (f.formato.trim()) return formatoLabel(f.formato);
@@ -153,7 +154,6 @@ export function FacasComposicaoEditor({
       {facas.length > 0 ? (
         <ul className="orc-facas-lista" aria-label="Facas do orçamento">
           {facas.map((f, i) => {
-            const dim = dimensoesDaFaca(f);
             const cols = !f.faca_nova ? formatColunasMapaLabel(f.colunas_mapa) : null;
             const puxadaVazia = f.puxada_cm === '' || f.puxada_cm == null;
             return (
@@ -208,17 +208,7 @@ export function FacasComposicaoEditor({
                     ) : null}
                   </div>
                   <div className="orc-facas-meta" aria-label="Dados da faca">
-                    <MetaChip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
-                    <MetaChip
-                      label={dim.isDiametro ? 'Diâmetro' : 'Tamanho'}
-                      value={
-                        dim.tamanho === '—'
-                          ? '—'
-                          : dim.isDiametro
-                            ? `Ø ${dim.tamanho} cm`
-                            : `${dim.tamanho} cm`
-                      }
-                    />
+                    <MetaChip label="Medida" value={f.medida.trim() || '—'} />
                     <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
                     <MetaChip
                       label="N FACA"

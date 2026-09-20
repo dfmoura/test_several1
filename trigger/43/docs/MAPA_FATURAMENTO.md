@@ -22,7 +22,7 @@ Quatro eixos andam juntos e **não são a mesma coisa**:
 | Eixo | Objeto | Fecha quando | Não fecha |
 |------|--------|--------------|-----------|
 | **Comercial / financeiro** | `FAT-` → `TIT-` → `COB-` → `BX-` | saldo recebido | entrega |
-| **Fiscal** | `DFS-` (NF-e e/ou NFS-e) via Focus | autorização **oficial** | caixa |
+| **Fiscal** | `DFS-` (NF-e) via SEFAZ+A1 | autorização **oficial** | caixa |
 | **Logístico** | `ENT-` | confirmação de entrega/retirada | título |
 | **Gerencial (vendedor)** | `COM-` → `CFE-` | BX do recebido (base RECEBIDO) | faturar ou expedir |
 
@@ -380,29 +380,35 @@ Escopo: EMP do contexto + `hasEmpresaAccess`. Escrita: `faturamento.escrever`.
 
 ## 15. As-built versus estudo — e o próximo caminho
 
-Caminho escolhido: **fechar o efeito de estoque da NF oficial (BL-066)** e parar. Cancelamento Focus, DEV- e parcial continuam ADR + BL — não reescrevem o FAT.
+Caminho escolhido (BL-100+): **NF-e direta SEFAZ + A1** (`ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`). Focus desligado no caminho de saída NF-e (esqueleto permanece). Cancelamento + CC-e + estorno `SAIDA_VENDA` entram nesta fatia.
 
-### Entregue (não mexer)
+### Entregue (não mexer a espinha comercial)
 
 - Preview + FAT + apropriação de sinal + TIT/COB do saldo  
 - Estorno comercial com NF não oficial  
-- Plano DFS + emissão Focus + prévia + stub local (`FISCAL_EMISSOR=stub` só local/testing; hub sempre ganha)  
-- `SAIDA_VENDA` na NF-e Focus autorizada (não no FAT, não no stub, não na NFS-e)  
+- Plano DFS + prévia + stub local (`FISCAL_EMISSOR=stub` só local/testing)  
+- `SAIDA_VENDA` na NF-e oficial autorizada (origem `SEFAZ`)  
 - ENT- após FAT (política NF)  
 - COM- base RECEBIDO + CFE  
-- Carteira (aging, ficha, BX, avulso sem NAT da espinha)
+- Carteira (aging, ficha, BX, avulso sem NAT da espinha)  
+- Caixa DF-e destinadas (entrada) sem Focus  
+
+### Nesta fatia (BL-100…105)
+
+1. **Emissão SEFAZ + A1** — numeração ERP, XML assinado, Autorizacao/Ret.  
+2. **Cancelamento SEFAZ + CCe (UC-FIS-003)** — estorna `SAIDA_VENDA` e destrava desfazer FAT com NF oficial cancelada.  
 
 ### Fora de escopo até ADR (ordem recomendada)
 
-1. **Cancelamento Focus + CCe (UC-FIS-003)** — estorna `SAIDA_VENDA` e destrava desfazer FAT com NF oficial.  
-2. **`DEV-` ponta a ponta** — fiscal + estoque + financeiro + COM; pode vir de RMA.  
-3. **Faturamento parcial (UC-FIS-004)** — N FAT/NF no mesmo `pedido_id` quando 1 PED : N itens ou entrega fracionada for política real.  
-4. **Frete receita no FAT (`1.01.05`)** e NAT própria do ferramental (`1.01.04`) — hoje a faca viaja no bruto com a família do item; COM já exclui matriz/faca corretamente.  
-5. **MSG- (WhatsApp oficial)** da NF/boleto — canal, não documento.  
-6. **Juros / desconto / perda com alçada** e estorno de BX com efeito em COM-/PED encerrado.  
-7. **DRE M10** e export contador — NAT já existe; não misturar com a carteira.
+1. **`DEV-` ponta a ponta** — fiscal + estoque + financeiro + COM; pode vir de RMA.  
+2. **Faturamento parcial (UC-FIS-004)** — N FAT/NF no mesmo `pedido_id`.  
+3. **NFS-e Nacional** — ADR própria (sem Focus “de passagem”).  
+4. **Frete receita no FAT (`1.01.05`)** e NAT própria do ferramental (`1.01.04`).  
+5. **MSG- (WhatsApp oficial)** da NF/boleto.  
+6. **Juros / desconto / perda com alçada** e estorno de BX com efeito em COM-/PED.  
+7. **DRE M10** e export contador.
 
-**Não fazer agora:** faturamento antecipado integral (NF antes de produzir) — alçada excepcional do estudo, não padrão. Catálogo `COND-` / motor CRT. Split dual mercadoria×serviço de um item PA. TMS/CT-e. LAI. Auto-faturar na OP.
+**Não fazer agora:** faturamento antecipado integral (NF antes de produzir). Catálogo `COND-` / motor CRT. Split dual mercadoria×serviço de um item PA. TMS/CT-e. LAI. Auto-faturar na OP. Apagar Focus sem ADR.
 
 ---
 
@@ -412,14 +418,14 @@ Caminho escolhido: **fechar o efeito de estoque da NF oficial (BL-066)** e parar
 - [x] Padrão: fatura após conclusão; sinal é exceção controlada  
 - [x] Preço só do PED; unitário ≠ `valor_etiqueta`  
 - [x] 1 FAT → 0..N TIT conforme condição; sinal não é cobrado de novo  
-- [x] Numeração fiscal só do Focus (ou stub explícito, nunca “como se fosse o fisco”)  
-- [x] Baixa de estoque PA **não** no FAT — `SAIDA_VENDA` só na NF-e Focus autorizada (BL-066)  
+- [x] Numeração fiscal NF-e no ERP (ou stub explícito, nunca “como se fosse o fisco”)  
+- [x] Baixa de estoque PA **não** no FAT — `SAIDA_VENDA` só na NF-e oficial (SEFAZ)  
 - [x] Frete receita ≠ frete despesa; frete fora do FAT nesta fase  
-- [x] Estorno comercial ≠ cancelamento Focus ≠ DEV-  
+- [x] Estorno comercial ≠ cancelamento SEFAZ ≠ DEV-  
 - [x] Multi-empresa: `empresa_id` do contexto  
 - [x] Contador fecha fiscal; ERP alimenta com disciplina  
 - [ ] Parcial amarrado ao mesmo `ped_id` (fase seguinte)  
-- [ ] Cancelamento/DEV com estorno completo  
+- [ ] Cancelamento/DEV com estorno completo (DEV- ainda ADR)  
 
 Regressão de isolamento: `php vendor/bin/phpunit --filter MultiEmpresaAceiteTest`.  
 Cadeia feliz: `OrcamentoAteComissaoE2ETest` · `FaturamentoPedidoTest` · `EmissaoFiscalSaidaTest` · `SaidaVendaNfAutorizadaTest` · `EntregaPedidoTest`.

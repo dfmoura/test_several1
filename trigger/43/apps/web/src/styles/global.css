@@ -2947,6 +2947,13 @@ table.data-table td.acoes {
   color: var(--success);
 }
 
+.nf-previa-banner.is-cancelada,
+.nf-previa--cancelada .nf-previa-banner {
+  background: rgba(155, 28, 28, 0.08);
+  border-color: rgba(155, 28, 28, 0.28);
+  color: #9b1c1c;
+}
+
 .nf-previa-meta {
   margin-bottom: 0.5rem;
 }
@@ -7514,6 +7521,15 @@ tr.row-inactive td {
   z-index: 0;
 }
 
+.danfe-watermark-cancelada {
+  color: #9b1c1c;
+  opacity: 0.12;
+}
+
+.danfe-sheet-cancelada {
+  border-color: #9b1c1c;
+}
+
 .danfe-sheet > * {
   position: relative;
   z-index: 1;
@@ -7571,7 +7587,15 @@ tr.row-inactive td {
 .danfe-row .w-40 { flex: 0 0 40%; }
 .danfe-row .w-48 { flex: 0 0 48%; }
 .danfe-row .w-38 { flex: 0 0 38%; }
+.danfe-row .w-60 { flex: 0 0 60%; }
 .danfe-row .w-66 { flex: 0 0 66%; }
+
+/* Coluna direita alinhada: emissão / saída / hora (mesmo rumo no DANFE) */
+.danfe-row .danfe-dest-data {
+  flex: 0 0 16%;
+  max-width: 16%;
+  box-sizing: border-box;
+}
 
 .danfe-canhoto {
   display: flex;
@@ -7624,6 +7648,8 @@ tr.row-inactive td {
 
 .danfe-head {
   display: flex;
+  align-items: stretch;
+  width: 100%;
 }
 
 .danfe-emit,
@@ -7631,20 +7657,31 @@ tr.row-inactive td {
 .danfe-chave {
   border: 0.7pt solid #000;
   padding: 2pt 3pt;
-  min-height: 28mm;
+  box-sizing: border-box;
+  min-height: 0;
 }
 
 .danfe-emit {
-  flex: 0 0 42%;
+  flex: 42 1 0%;
+  min-width: 0;
 }
 
 .danfe-title {
-  flex: 0 0 18%;
+  flex: 18 1 0%;
+  min-width: 0;
   text-align: center;
+  margin-left: -0.7pt;
 }
 
 .danfe-chave {
-  flex: 0 0 40%;
+  flex: 40 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 1pt;
+  margin-left: -0.7pt;
 }
 
 .danfe-logo {
@@ -7683,25 +7720,57 @@ tr.row-inactive td {
   white-space: pre-wrap;
 }
 
+/* Barras em cima · rótulo · chave · portal (MOC) */
+.danfe-barcode {
+  display: block;
+  width: 100%;
+  height: 9mm;
+  margin: 0;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.danfe-barcode svg {
+  display: block;
+  width: 100%;
+  height: 9mm;
+  max-height: none;
+}
+
+.danfe-chave-lbl {
+  text-align: center;
+  margin-top: 1pt;
+}
+
 .danfe-chave-num {
   display: block;
-  font-size: 7pt;
-  letter-spacing: 0.02em;
+  font-size: 6.2pt;
+  letter-spacing: 0.01em;
   text-align: center;
-  margin: 4pt 0;
+  margin: 0;
+  line-height: 1.2;
+  word-break: break-all;
 }
 
 .danfe-chave-empty,
 .danfe-consulta,
 .danfe-homolog {
-  margin: 2pt 0 0;
-  font-size: 6pt;
+  margin: 0;
+  font-size: 5.2pt;
   text-align: center;
+  line-height: 1.2;
+}
+
+.danfe-consulta-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 1pt;
 }
 
 .danfe-homolog {
   font-weight: 700;
   color: #8a5a00;
+  margin-top: 1pt;
 }
 
 .danfe-sec {
@@ -8282,9 +8351,8 @@ tr.row-inactive td {
   text-align: center;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-largura,
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-tamanho {
-  width: 8%;
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-medida {
+  width: 12.5%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {
@@ -8311,7 +8379,7 @@ tr.row-inactive td {
   width: 19%;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-dim,
+.ficha-sheet-mapa-facas .ficha-mapa-facas-medida,
 .ficha-sheet-mapa-facas .ficha-mapa-facas-formato {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -8995,7 +9063,8 @@ tr.row-inactive td {
 
   body.ficha-print-mode .danfe-watermark,
   body.ficha-print-mode .danfe-items th,
-  body.ficha-print-mode .danfe-homolog {
+  body.ficha-print-mode .danfe-homolog,
+  body.ficha-print-mode .danfe-barcode svg rect {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

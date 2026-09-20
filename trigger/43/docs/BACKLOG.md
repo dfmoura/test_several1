@@ -15,11 +15,71 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-100`
+`BL-106`
 
 ---
 
 ## Itens
+
+### BL-105 · [fiscal/ux] UI cancel/CC-e + piloto homolog nuvem
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-18 — NF-e SEFAZ direto
+- **Depende de:** BL-104 · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Decisão (fechada):**
+  1. FAT: Emitir / Consultar / Cancelar / Carta de correção; texto “via A1”; sem hub Focus.
+  2. Doc piloto homolog: A1 + IE + seed numeração + UF mapeada.
+- **Aceite:**
+  - [x] Modais cancel/CC-e no detalhe do FAT
+  - [x] `docs/PILOTO_NFE_SEFAZ_DIRETO.md`
+- **Fora de escopo:** Menu hubs · NFS-e
+- **Entregue em:** 2026-09-18
+
+### BL-104 · [fiscal] Carta de correção (110110)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Depende de:** BL-103 · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Aceite:**
+  - [x] `POST …/carta-correcao` · protocolo no DFS · sem mexer estoque/FAT
+- **Entregue em:** 2026-09-18
+
+### BL-103 · [fiscal/estoque] Cancelamento NF-e (110111) + estorno SAIDA_VENDA
+- **Status:** Feito
+- **Prioridade:** P0
+- **Depende de:** BL-102 · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Aceite:**
+  - [x] Evento cancel · DFS CANCELADO · estorna MOV · libera estorno comercial FAT
+- **Entregue em:** 2026-09-18
+
+### BL-102 · [fiscal] Ligar emissão SEFAZ no FAT (sem Focus)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Depende de:** BL-101 · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Aceite:**
+  - [x] Checklist A1 · origem SEFAZ · SAIDA_VENDA · Focus fora do caminho NFe · testes feature
+- **Entregue em:** 2026-09-18
+
+### BL-101 · [fiscal] Núcleo SEFAZ NF-e (numeração + XML + SOAP + fake)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Depende de:** BL-100 · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Aceite:**
+  - [x] `nfe_series_controle` · builder/signer · Autorizacao/Ret · `NFE_DRIVER=fake`
+- **Entregue em:** 2026-09-18
+
+### BL-100 · [norma] NF-e saída direta SEFAZ + A1 (sem Focus)
+- **Status:** Feito
+- **Prioridade:** P0
+- **Origem:** Chat 2026-09-18 — extinguir Focus em emissão/cancel/CC-e; A1 nuvem pronto
+- **Depende de:** BL-093 (DF-e) · `ADR_CERTIFICADO_A1_EMPRESA.md`
+- **Decisão (fechada):**
+  1. NF-e direto SEFAZ + A1 cofre; SOAP próprio; Focus desligado não apagado.
+  2. Numeração no ERP; oficial = origem SEFAZ; stub local intacto.
+  3. NFS-e fora desta fatia.
+- **Aceite:**
+  - [x] `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md` + emendas ADRs/mapa/rules
+- **Fora de escopo:** Código runtime (BL-101+)
+- **Entregue em:** 2026-09-18
 
 ### BL-099 · [estoque/ux] Mapa de ocupação dos locais (6×4×3)
 - **Status:** Feito

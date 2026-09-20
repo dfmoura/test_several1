@@ -6,6 +6,9 @@ use App\Services\Auth\SessaoAcessoService;
 use App\Services\Fiscal\Dfe\DfeDistribuicaoClient;
 use App\Services\Fiscal\Dfe\FakeDfeDistribuicaoClient;
 use App\Services\Fiscal\Dfe\SefazNfeDistribuicaoClient;
+use App\Services\Fiscal\Sefaz\FakeNfeSefazClient;
+use App\Services\Fiscal\Sefaz\NfeSefazClient;
+use App\Services\Fiscal\Sefaz\SefazNfeClient;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
@@ -27,6 +30,14 @@ class AppServiceProvider extends ServiceProvider
             return $driver === 'fake'
                 ? $app->make(FakeDfeDistribuicaoClient::class)
                 : $app->make(SefazNfeDistribuicaoClient::class);
+        });
+
+        $this->app->bind(NfeSefazClient::class, function ($app) {
+            $driver = strtolower((string) config('erp.nfe.driver', 'sefaz'));
+
+            return $driver === 'fake'
+                ? $app->make(FakeNfeSefazClient::class)
+                : $app->make(SefazNfeClient::class);
         });
     }
 

@@ -495,9 +495,17 @@ export function PedidoDetailPage() {
                           {preview.fiscal.documentos.map((d) => d.rotulo).join(' e ') || 'Documento fiscal'}
                           {preview.fiscal.emissao_automatica
                             ? preview.fiscal.emissor_teste?.ativo
-                              ? ' — autorização de teste (sem certificado A1, sem valor fiscal). Quando o hub Focus estiver apto, o mesmo documento é enviado de verdade.'
-                              : ' — o hub Focus está apto; a nota será enviada ao confirmar.'
-                            : ` — ${preview.fiscal.hub.mensagem}`}
+                              ? ' — autorização de teste (sem SEFAZ, sem valor fiscal). Em homolog/produção usa o certificado A1.'
+                              : preview.fiscal.sefaz?.apto
+                                ? ' — certificado A1 apto; a NF-e será enviada à SEFAZ ao confirmar.'
+                                : ' — emissão automática quando o A1 estiver apto na nuvem.'
+                            : preview.fiscal.sefaz
+                              ? ` — ${
+                                  preview.fiscal.sefaz.a1_apto
+                                    ? 'aguardando ambiente SEFAZ'
+                                    : 'cadastre o certificado A1 da empresa (Empresas → A1)'
+                                }`
+                              : ` — ${preview.fiscal.hub?.mensagem ?? 'aguardando prontidão fiscal'}`}
                         </p>
                         {preview.fiscal.avisos.map((a) => (
                           <p key={a} className="form-hint">

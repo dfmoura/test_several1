@@ -9,14 +9,15 @@ use App\Models\Parceiro;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Estoque\EstoqueSaidaVendaService;
 use App\Support\PadraoDecimal;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Planeja e emite NF-e / NFS-e do FAT via hub Focus (estudo 32 / ADR_EMISSAO_NFE_NFSE).
- * HTTP só depois do FAT commit. Numeração vem da resposta Focus.
- * Sem hub: emissor stub local (se permitido) completa o fluxo com origem STUB — nunca em homolog/prod.
+ * Planeja e emite NF-e do FAT via SEFAZ + A1 (ADR_EMISSAO_NFE_SEFAZ_DIRETO).
+ * HTTP só depois do FAT commit. Numeração no ERP. Focus legado não é chamado.
+ * Local: stub se permitido. NFS-e permanece planejada nesta fatia.
  */
 class EmissaoFiscalService
 {
@@ -29,6 +30,8 @@ class EmissaoFiscalService
         private readonly EmissaoFiscalChecklist $checklist,
         private readonly CodigoGenerator $codigos,
         private readonly EstoqueSaidaVendaService $saidaVenda,
+        private readonly \App\Services\Fiscal\Sefaz\NfeAutorizacaoService $nfeSefaz,
+        private readonly \App\Services\Fiscal\Sefaz\NfeEventoService $nfeEventos,
     ) {}
 
     public function checklist(): EmissaoFiscalChecklist
@@ -115,8 +118,8 @@ class EmissaoFiscalService
         }
 
         $check = $this->checklist->paraFaturamento($empresa, $fat);
-        $runtime = $this->hubs->runtimeSeApto($empresa);
-        $stubAtivo = $this->emissorPolicy->ativoNaAusenciaDoHub($runtime !== null);
+        $sefazApto = (bool) ($check['sefaz']['apto'] ?? false);
+        $stubAtivo = $this->emissorPolicy->ativoNaAusenciaDoSefaz($sefazApto);
 
         foreach ($fat->documentosFiscais as $doc) {
             if ($doc->status === DocumentoFiscalSaida::STATUS_CANCELADO) {
@@ -125,7 +128,13 @@ class EmissaoFiscalService
             if ($doc->eOficial()) {
                 continue;
             }
-            if ($doc->eSimulado() && $runtime === null) {
+            if ($doc->tipo === DocumentoFiscalSaida::TIPO_NFSE) {
+                $doc->mensagem = 'Emissão de NFS-e ainda não disponível nesta fatia.';
+                $doc->save();
+
+                continue;
+            }
+            if ($doc->eSimulado() && ! $sefazApto) {
                 continue;
             }
             if ($doc->status === DocumentoFiscalSaida::STATUS_PROCESSANDO && ! $forcar) {
@@ -135,28 +144,39 @@ class EmissaoFiscalService
                 continue;
             }
 
-            if ($runtime === null && ! $stubAtivo) {
-                $doc->mensagem = $check['hub']['mensagem'] ?? 'Hub fiscal não habilitado.';
-                $doc->save();
+            if ($sefazApto) {
+                $cadastro = $check['pendencias_cadastro'] ?? [];
+                $estoque = array_values(array_filter(
+                    $check['pendencias'] ?? [],
+                    fn ($p) => str_contains((string) $p, 'Estoque') || str_contains((string) $p, 'inventário') || str_contains((string) $p, 'Inventário')
+                ));
+                // Bloqueia POST se cadastro ou estoque; outras pendências de NFS-e não afetam NFE
+                if ($cadastro !== [] || $estoque !== []) {
+                    $doc->mensagem = implode(' ', array_merge($cadastro, $estoque));
+                    $doc->save();
+
+                    continue;
+                }
+                $this->enviarDocumentoSefaz($empresa, $fat, $doc);
+
                 continue;
             }
-            if ($runtime === null && $stubAtivo) {
+
+            if ($stubAtivo) {
                 $cadastro = $check['pendencias_cadastro'] ?? [];
                 if ($cadastro !== []) {
                     $doc->mensagem = implode(' ', $cadastro);
                     $doc->save();
+
                     continue;
                 }
                 $this->autorizarStub($empresa, $fat, $doc);
-                continue;
-            }
-            if (! $check['apto_emissao'] && $doc->podeEnviar()) {
-                $doc->mensagem = implode(' ', $check['pendencias']);
-                $doc->save();
+
                 continue;
             }
 
-            $this->enviarDocumento($empresa, $fat, $doc, $runtime);
+            $doc->mensagem = implode(' ', $check['pendencias'] ?: ['Canal SEFAZ/A1 não apto e stub indisponível.']);
+            $doc->save();
         }
 
         $this->sincronizarNfStatus($fat);
@@ -171,12 +191,11 @@ class EmissaoFiscalService
     {
         $this->assertEmpresa($empresa, $fat);
         $fat->loadMissing(['documentosFiscais']);
-        $runtime = $this->hubs->runtimeSeApto($empresa);
-        if ($runtime === null) {
-            return $this->documentosOut($fat);
-        }
 
         foreach ($fat->documentosFiscais as $doc) {
+            if ($doc->tipo !== DocumentoFiscalSaida::TIPO_NFE) {
+                continue;
+            }
             if (! in_array($doc->status, [
                 DocumentoFiscalSaida::STATUS_PROCESSANDO,
                 DocumentoFiscalSaida::STATUS_ERRO,
@@ -186,15 +205,81 @@ class EmissaoFiscalService
             if ($doc->eSimulado()) {
                 continue;
             }
-            $resultado = $doc->tipo === DocumentoFiscalSaida::TIPO_NFSE
-                ? $this->client->consultarNfse($runtime['hub'], $runtime['ambiente'], $doc->ref)
-                : $this->client->consultarNfe($runtime['hub'], $runtime['ambiente'], $doc->ref);
-            $this->aplicarResultado($doc, $resultado, $runtime, $empresa, $fat);
+            if (! $this->nfeSefaz->sefazDisponivel()) {
+                continue;
+            }
+            $resultado = $this->nfeSefaz->consultarProcessando($empresa, $doc);
+            $this->aplicarResultado($doc, $resultado, null, $empresa, $fat);
         }
 
         $this->sincronizarNfStatus($fat);
 
         return $this->documentosOut($fat->fresh(['documentosFiscais']));
+    }
+
+    /**
+     * Cancelamento SEFAZ (110111) + estorno SAIDA_VENDA.
+     *
+     * @return array<string, mixed>
+     */
+    public function cancelarNfe(Empresa $empresa, Faturamento $fat, string $justificativa): array
+    {
+        $this->assertEmpresa($empresa, $fat);
+        $fat->loadMissing(['documentosFiscais']);
+        $doc = $fat->documentosFiscais->first(
+            fn (DocumentoFiscalSaida $d) => $d->tipo === DocumentoFiscalSaida::TIPO_NFE && $d->eOficial()
+        );
+        if ($doc === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'documento' => ['Não há NF-e oficial autorizada para cancelar.'],
+            ]);
+        }
+
+        $out = $this->nfeEventos->cancelar($empresa, $doc, $justificativa);
+        $resultado = $out['resultado'];
+        if (($resultado['status'] ?? '') === 'cancelado' || ($resultado['status_focus'] ?? '') === 'cancelado') {
+            $doc->status = DocumentoFiscalSaida::STATUS_CANCELADO;
+            $doc->mensagem = mb_substr((string) ($resultado['mensagem'] ?? 'Cancelada na SEFAZ'), 0, 500);
+            $doc->response_json = array_merge(
+                is_array($doc->response_json) ? $doc->response_json : [],
+                ['cancelamento' => $resultado]
+            );
+            $doc->save();
+            $this->saidaVenda->estornaSeHouver($empresa, $doc);
+            $fat->nf_status = Faturamento::NF_CANCELADA;
+            $fat->save();
+        }
+
+        return [
+            'documentos' => $this->documentosOut($fat->fresh(['documentosFiscais'])),
+            'evento' => $out['evento'],
+        ];
+    }
+
+    /**
+     * Carta de correção (110110).
+     *
+     * @return array<string, mixed>
+     */
+    public function cartaCorrecao(Empresa $empresa, Faturamento $fat, string $texto, ?int $nSeq = null): array
+    {
+        $this->assertEmpresa($empresa, $fat);
+        $fat->loadMissing(['documentosFiscais']);
+        $doc = $fat->documentosFiscais->first(
+            fn (DocumentoFiscalSaida $d) => $d->tipo === DocumentoFiscalSaida::TIPO_NFE && $d->eOficial()
+        );
+        if ($doc === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'documento' => ['Não há NF-e oficial autorizada para carta de correção.'],
+            ]);
+        }
+
+        $out = $this->nfeEventos->cartaCorrecao($empresa, $doc, $texto, $nSeq);
+
+        return [
+            'documentos' => $this->documentosOut($fat->fresh(['documentosFiscais'])),
+            'evento' => $out['evento'],
+        ];
     }
 
     public function cancelarPlanejados(Faturamento $fat): void
@@ -268,8 +353,14 @@ class EmissaoFiscalService
 
     /**
      * @param  array{hub: \App\Models\FiscalHub, ambiente: string, base_url: string, token: string, provedor: string}  $runtime
+     * @deprecated Focus — mantido só para compat; não chamado no caminho NF-e.
      */
     private function enviarDocumento(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc, array $runtime): void
+    {
+        $this->enviarDocumentoSefaz($empresa, $fat, $doc);
+    }
+
+    private function enviarDocumentoSefaz(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc): void
     {
         $parceiro = $fat->parceiro ?? $fat->pedido?->parceiro;
         if ($parceiro === null) {
@@ -280,27 +371,20 @@ class EmissaoFiscalService
             return;
         }
 
-        $built = $this->montarPayload($empresa, $fat, $doc, $parceiro);
-        if ($built === null) {
+        try {
+            $resultado = $this->nfeSefaz->emitir($empresa, $fat, $doc, $parceiro);
+            $this->aplicarResultado($doc->fresh(), $resultado, null, $empresa, $fat);
+        } catch (Throwable $e) {
             $doc->status = DocumentoFiscalSaida::STATUS_ERRO;
-            $doc->mensagem = 'Não foi possível montar o payload fiscal.';
+            $doc->mensagem = mb_substr($e->getMessage(), 0, 500);
+            $doc->fiscal_hub_id = null;
             $doc->save();
-
-            return;
+            Log::warning('Emissão SEFAZ NF-e falhou', [
+                'faturamento_id' => $fat->id,
+                'documento_id' => $doc->id,
+                'erro' => $e->getMessage(),
+            ]);
         }
-
-        $doc->payload_json = $built['payload'];
-        $doc->fiscal_hub_id = $runtime['hub']->id;
-        $doc->ambiente = $runtime['ambiente'];
-        $doc->enviado_em = now();
-        $doc->status = DocumentoFiscalSaida::STATUS_PROCESSANDO;
-        $doc->save();
-
-        $resultado = $doc->tipo === DocumentoFiscalSaida::TIPO_NFSE
-            ? $this->client->emitirNfse($runtime['hub'], $runtime['ambiente'], $doc->ref, $built['http'])
-            : $this->client->emitirNfe($runtime['hub'], $runtime['ambiente'], $doc->ref, $built['http']);
-
-            $this->aplicarResultado($doc, $resultado, $runtime, $empresa, $fat);
     }
 
     private function autorizarStub(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc): void
@@ -368,8 +452,28 @@ class EmissaoFiscalService
             $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_STUB;
             $doc->ambiente = 'local';
             $doc->fiscal_hub_id = null;
-        } elseif ($focus === 'autorizado' || $origem === DocumentoFiscalSaida::ORIGEM_FOCUS) {
+        } elseif ($focus === 'autorizado' || $origem === DocumentoFiscalSaida::ORIGEM_SEFAZ || $origem === 'SEFAZ') {
+            $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_SEFAZ;
+            $doc->fiscal_hub_id = null;
+        } elseif ($origem === DocumentoFiscalSaida::ORIGEM_FOCUS) {
             $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_FOCUS;
+        }
+
+        if (! empty($resultado['xml_nfe']) && is_array($doc->response_json)) {
+            $doc->response_json = array_merge($doc->response_json, ['xml_nfe' => $resultado['xml_nfe']]);
+        } elseif (! empty($resultado['xml_nfe'])) {
+            $doc->response_json = array_merge(
+                is_array($doc->response_json) ? $doc->response_json : [],
+                ['xml_nfe' => $resultado['xml_nfe']]
+            );
+        }
+
+        // Não guardar XML assinado gigante no payload após decisão final
+        if (is_array($doc->payload_json) && isset($doc->payload_json['_xml_assinado'])
+            && in_array($focus, ['autorizado', 'cancelado', 'rejeitado'], true)) {
+            $pj = $doc->payload_json;
+            unset($pj['_xml_assinado']);
+            $doc->payload_json = $pj;
         }
 
         if ($focus === 'autorizado') {
@@ -487,17 +591,22 @@ class EmissaoFiscalService
     {
         $oficial = $d->eOficial();
         $simulada = $d->eSimulado();
-        $comNumeracao = $oficial || $simulada;
+        $cancelada = $d->eCanceladaOficial();
+        // DANFE completo (sem rascunho) para autorizada ou cancelada com chave SEFAZ.
+        $layoutOficial = $oficial || $cancelada;
+        $comNumeracao = $d->temNumeracaoFiscal();
         $nfse = $d->tipo === DocumentoFiscalSaida::TIPO_NFSE;
         $empresa = $fat->empresa;
         $parceiro = $fat->parceiro ?? $fat->pedido?->parceiro;
 
-        if ($oficial) {
-            $aviso = 'Nota autorizada no hub Focus. Numeração e chave vieram do fisco — o XML oficial só existe após essa autorização.';
+        if ($cancelada) {
+            $aviso = 'NF-e cancelada na SEFAZ. DANFE auxiliar com a mesma chave — consulte autenticidade no portal nacional.';
+        } elseif ($oficial) {
+            $aviso = 'Nota autorizada na SEFAZ via certificado A1 da empresa. Numeração e chave oficiais.';
         } elseif ($simulada) {
-            $aviso = 'Autorização de teste — sem certificado A1 e sem valor fiscal. Chave e número são sintéticos para completar o fluxo. Quando o hub Focus estiver apto, o mesmo documento é enviado de verdade e esta numeração é substituída.';
+            $aviso = 'Autorização de teste — sem SEFAZ e sem valor fiscal. Em homolog/produção a emissão usa o A1 da empresa.';
         } else {
-            $aviso = 'Prévia — aguardando hub Focus. Não é documento fiscal autorizado. O sistema não inventa série, número nem chave. O XML da SEFAZ só existe depois da autorização.';
+            $aviso = 'Prévia — aguardando emissão com certificado A1. Não é documento fiscal autorizado.';
         }
 
         $destNome = (string) ($payload['nome_destinatario'] ?? $payload['nome_tomador'] ?? $parceiro?->razao_social ?? '');
@@ -566,8 +675,9 @@ class EmissaoFiscalService
         ])));
 
         return [
-            'oficial' => $oficial,
+            'oficial' => $layoutOficial,
             'simulada' => $simulada,
+            'cancelada' => $cancelada,
             'formato_envio' => 'json_focus',
             'rotulo' => $nfse ? 'NFS-e (serviço)' : 'NF-e (produto)',
             'modelo' => $nfse ? 'NFS-e Nacional' : '55',
@@ -575,6 +685,8 @@ class EmissaoFiscalService
             'natureza' => (string) ($payload['natureza_operacao'] ?? ($nfse ? 'Prestação de serviço' : '')),
             'informacoes_adicionais' => (string) ($payload['informacoes_adicionais_contribuinte'] ?? $payload['informacoes_complementares'] ?? ''),
             'data_emissao' => (string) ($payload['data_emissao'] ?? $payload['data_competencia'] ?? ''),
+            'data_saida' => $this->previaDataSaida($d, $payload),
+            'hora_saida' => $this->previaHoraSaida($d, $payload),
             'competencia' => (string) ($payload['data_competencia'] ?? ''),
             'serie_envio' => $comNumeracao ? $d->serie : $seriePrevista,
             'numero' => $comNumeracao ? $d->numero : null,
@@ -613,6 +725,62 @@ class EmissaoFiscalService
             'pedido' => $fat->pedido?->codigo,
             'faturamento' => $fat->codigo,
         ];
+    }
+
+    /**
+     * Instantâneo de saída/entrada para DANFE (dhSaiEnt).
+     * Sem campo próprio: usa autorização / envio / emissão (padrão operacional).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function momentoSaidaDanfe(DocumentoFiscalSaida $d, array $payload): ?Carbon
+    {
+        $raw = $payload['data_saida'] ?? $payload['data_saida_entrada'] ?? $payload['dh_sai_ent'] ?? null;
+        if (is_string($raw) && trim($raw) !== '') {
+            try {
+                return Carbon::parse($raw)->timezone('America/Sao_Paulo');
+            } catch (Throwable) {
+                // segue fallback
+            }
+        }
+        foreach ([$d->autorizado_em, $d->enviado_em] as $ts) {
+            if ($ts !== null) {
+                return Carbon::parse($ts)->timezone('America/Sao_Paulo');
+            }
+        }
+        $emi = $payload['data_emissao'] ?? $payload['data_competencia'] ?? null;
+        if (is_string($emi) && trim($emi) !== '') {
+            try {
+                return Carbon::parse($emi)->timezone('America/Sao_Paulo');
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function previaDataSaida(DocumentoFiscalSaida $d, array $payload): string
+    {
+        $m = $this->momentoSaidaDanfe($d, $payload);
+
+        return $m ? $m->format('Y-m-d') : '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function previaHoraSaida(DocumentoFiscalSaida $d, array $payload): string
+    {
+        if (isset($payload['hora_saida']) && is_string($payload['hora_saida']) && trim($payload['hora_saida']) !== '') {
+            return trim($payload['hora_saida']);
+        }
+        $m = $this->momentoSaidaDanfe($d, $payload);
+
+        return $m ? $m->format('H:i:s') : '';
     }
 
     /**

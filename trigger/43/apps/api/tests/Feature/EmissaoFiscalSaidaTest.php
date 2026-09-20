@@ -215,26 +215,12 @@ class EmissaoFiscalSaidaTest extends TestCase
         return $pedido->fresh(['itens', 'parceiro', 'orcamento']) ?? $pedido;
     }
 
-    private function habilitarHub(): FiscalHub
+    private function habilitarSefazFake(): void
     {
-        $crypto = app(FiscalHubCrypto::class);
-
-        return FiscalHub::query()->create([
-            'empresa_id' => $this->empresa->id,
-            'codigo' => 'HUB-00001',
-            'nome' => 'Focus Homolog',
-            'provedor' => 'focusnfe',
-            'ambiente_ativo' => 'homologacao',
-            'padrao' => true,
-            'ativo' => true,
-            'emissao_habilitada' => true,
-            'emissao_habilitada_em' => now(),
-            'token_homologacao_criptografada' => $crypto->criptografar('tok-homolog-nfe-teste'),
-            'token_homologacao_mascara' => 'tok-…este',
-            'ultimo_teste_ok' => true,
-            'ultimo_teste_ambiente' => 'homologacao',
-            'ultimo_teste_em' => now(),
-            'ultimo_teste_msg' => 'OK',
+        config([
+            'erp.nfe.driver' => 'fake',
+            'erp.stage' => 'homolog',
+            'erp.fiscal_emissor' => 'sefaz',
         ]);
     }
 
@@ -275,52 +261,25 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertNull($get->json('data.documentos_fiscais.0.previa.numero'));
     }
 
-    public function test_hub_ok_emite_nfe_produto_sem_inventar_numero(): void
+    public function test_sefaz_fake_emite_nfe_produto(): void
     {
-        $this->habilitarHub();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => '31260601423183000110550010000061121000000014',
-                'numero' => 6112,
-                'serie' => 1,
-                'protocolo' => '131260000000001',
-            ], 200),
-        ]);
+        $this->habilitarSefazFake();
 
         $ped = $this->criarPedidoProduzido();
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
         $this->assertSame('AUTORIZADA', $ok->json('data.nf_status'));
         $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('SEFAZ', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertTrue($ok->json('data.documentos_fiscais.0.previa.oficial'));
-        $this->assertSame('31260601423183000110550010000061121000000014', $ok->json('data.documentos_fiscais.0.previa.chave'));
-        $this->assertSame('31260601423183000110550010000061121000000014', $ok->json('data.documentos_fiscais.0.chave'));
-        $this->assertSame(6112, $ok->json('data.documentos_fiscais.0.numero'));
+        $this->assertNotNull($ok->json('data.documentos_fiscais.0.chave'));
+        $this->assertNotNull($ok->json('data.documentos_fiscais.0.numero'));
         $this->assertSame(1, DocumentoFiscalSaida::query()->count());
-
-        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
-        $this->assertArrayNotHasKey('numero', $payload);
-        $this->assertSame('01423183000110', $payload['cnpj_emitente'] ?? null);
-        $this->assertArrayNotHasKey('inscricao_municipal_prestador', $payload);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), '/v2/nfe?ref=')
-                && ! array_key_exists('numero', $request->data());
-        });
     }
 
-    public function test_servico_emite_nfse_sem_exigir_im(): void
+    public function test_servico_fica_planejado_sem_emissao_nfse(): void
     {
-        $this->habilitarHub();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfsen*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => 'NFSe3170206ABC',
-                'numero' => 275,
-                'serie' => 1,
-            ], 200),
-        ]);
+        $this->habilitarSefazFake();
 
         $ped = $this->criarPedidoProduzido([
             'necessidade' => PedidoItem::NEC_SERVICO,
@@ -330,42 +289,50 @@ class EmissaoFiscalSaidaTest extends TestCase
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
         $this->assertSame('NFSE', $ok->json('data.documentos_fiscais.0.tipo'));
-        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
-
-        $payload = DocumentoFiscalSaida::query()->first()?->payload_json ?? [];
-        $this->assertArrayNotHasKey('inscricao_municipal_prestador', $payload);
-        $this->assertArrayNotHasKey('numero_dps', $payload);
-        $this->assertSame('01423183000110', $payload['cnpj_prestador'] ?? null);
-
-        Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/nfsen?ref='));
+        $this->assertSame('PLANEJADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertStringContainsString('NFS-e', (string) $ok->json('data.documentos_fiscais.0.mensagem'));
     }
 
-    public function test_retry_usa_mesma_ref(): void
+    public function test_retry_sefaz_fake_mantem_mesmo_documento(): void
     {
-        $this->habilitarHub();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::sequence()
-                ->push(['status' => 'erro_autorizacao', 'mensagem' => 'Rejeicao teste'], 422)
-                ->push([
-                    'status' => 'autorizado',
-                    'chave' => '31260601423183000110550010000061131000000011',
-                    'numero' => 6113,
-                    'serie' => 1,
-                ], 200),
-        ]);
+        $this->habilitarSefazFake();
 
         $ped = $this->criarPedidoProduzido();
         $a = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $a->assertCreated();
-        $this->assertSame('REJEITADA', $a->json('data.nf_status'));
+        $this->assertSame('AUTORIZADA', $a->json('data.nf_status'));
         $ref = $a->json('data.documentos_fiscais.0.ref');
         $fatId = $a->json('data.id');
+        $chave = $a->json('data.documentos_fiscais.0.chave');
 
         $b = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/emitir-nf");
         $b->assertOk();
         $this->assertSame($ref, $b->json('data.documentos_fiscais.0.ref'));
+        $this->assertSame($chave, $b->json('data.documentos_fiscais.0.chave'));
         $this->assertSame('AUTORIZADA', $b->json('data.nf_status'));
         $this->assertSame(1, DocumentoFiscalSaida::query()->count());
+    }
+
+    public function test_cancelar_e_carta_correcao_sefaz_fake(): void
+    {
+        $this->habilitarSefazFake();
+        $ped = $this->criarPedidoProduzido();
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $fatId = $ok->json('data.id');
+
+        $cce = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/carta-correcao", [
+            'texto' => 'Correcao de endereco do destinatario na nota fiscal.',
+        ]);
+        $cce->assertOk();
+        $this->assertSame('AUTORIZADO', $cce->json('data.evento.status'));
+
+        $canc = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/cancelar-nf", [
+            'justificativa' => 'Cancelamento de teste homologacao SEFAZ fake.',
+        ]);
+        $canc->assertOk();
+        $this->assertSame('CANCELADO', $canc->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('CANCELADA', $canc->json('data.nf_status'));
     }
 
     public function test_outra_emp_nao_ve_documento(): void
@@ -453,34 +420,24 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame('CANCELADO', DocumentoFiscalSaida::query()->value('status'));
     }
 
-    public function test_stub_ignorado_quando_hub_apto(): void
+    public function test_stub_ignorado_quando_sefaz_apto(): void
     {
         config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
-        $this->habilitarHub();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => '31260601423183000110550010000061121000000014',
-                'numero' => 6112,
-                'serie' => 1,
-                'protocolo' => '131260000000001',
-            ], 200),
-        ]);
+        $this->habilitarSefazFake();
 
         $ped = $this->criarPedidoProduzido();
         $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $ok->assertCreated();
-        $this->assertSame('FOCUS', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertSame('SEFAZ', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertTrue($ok->json('data.documentos_fiscais.0.previa.oficial'));
         $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.simulada'));
-        $this->assertSame('31260601423183000110550010000061121000000014', $ok->json('data.documentos_fiscais.0.chave'));
+        $this->assertNotNull($ok->json('data.documentos_fiscais.0.chave'));
         $this->assertFalse($ok->json('data.nf_simulada'));
-        Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/nfe?ref='));
     }
 
-    public function test_stub_promove_para_focus_com_a_mesma_ref(): void
+    public function test_stub_promove_para_sefaz_com_a_mesma_ref(): void
     {
-        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local']);
+        config(['erp.fiscal_emissor' => 'stub', 'erp.stage' => 'local', 'erp.nfe.driver' => 'sefaz']);
         $ped = $this->criarPedidoProduzido();
         $a = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
         $a->assertCreated();
@@ -488,23 +445,14 @@ class EmissaoFiscalSaidaTest extends TestCase
         $fatId = $a->json('data.id');
         $this->assertSame('STUB', $a->json('data.documentos_fiscais.0.autorizacao_origem'));
 
-        $this->habilitarHub();
-        Http::fake([
-            'homologacao.focusnfe.com.br/v2/nfe*' => Http::response([
-                'status' => 'autorizado',
-                'chave' => '31260601423183000110550010000061131000000011',
-                'numero' => 6113,
-                'serie' => 1,
-                'protocolo' => '131260000000002',
-            ], 200),
-        ]);
+        $this->habilitarSefazFake();
 
         $b = $this->withHeaders($this->h())->postJson("/api/v1/faturamentos/{$fatId}/emitir-nf");
         $b->assertOk();
         $this->assertSame($ref, $b->json('data.documentos_fiscais.0.ref'));
-        $this->assertSame('FOCUS', $b->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertSame('SEFAZ', $b->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertTrue($b->json('data.documentos_fiscais.0.previa.oficial'));
-        $this->assertSame('31260601423183000110550010000061131000000011', $b->json('data.documentos_fiscais.0.chave'));
+        $this->assertNotNull($b->json('data.documentos_fiscais.0.chave'));
         $this->assertSame(1, DocumentoFiscalSaida::query()->count());
         $this->assertFalse($b->json('data.pode_estornar'));
     }

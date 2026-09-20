@@ -1,17 +1,18 @@
 # Fronteira Faturamento → TIT/COB (adiantamento a apropriar)
 
-Norma: `docs/MAPA_FATURAMENTO.md` (visão única as-built) · `docs/ADR_FATURAMENTO_COBRANCA.md` · `docs/ADR_EMISSAO_NFE_NFSE.md` · estudo `../32` FATURAMENTO / MAPA_FATURAMENTO / CONCLUSAO_PRODUCAO / RECEBIMENTO_BAIXA / CASOS_USO_M05 · UC-PLT-007 · BL-049/050/051/066.
+Norma: `docs/MAPA_FATURAMENTO.md` (visão única as-built) · `docs/ADR_FATURAMENTO_COBRANCA.md` · `docs/ADR_EMISSAO_NFE_SEFAZ_DIRETO.md` (NF-e canônico) · `docs/ADR_EMISSAO_NFE_NFSE.md` (legado Focus) · estudo `../32` FATURAMENTO / MAPA_FATURAMENTO / CONCLUSAO_PRODUCAO / RECEBIMENTO_BAIXA / CASOS_USO_M05 · UC-PLT-007 · BL-049/050/051/066/100+.
 
 ## Espinha
 
 ```
 PED PRODUZIDO → preview → FAT- → apropria sinal → TIT saldo → COB (PIX/Boleto)
-                         └→ DocumentoFiscalSaida (NFE e/ou NFSE) → Focus se hub apto
+                         └→ DocumentoFiscalSaida (NFE) → SEFAZ+A1 se apto · stub local
+                            (NFSE = PLANEJADO até ADR própria)
 ```
 
 TIT/COB nascem no FAT mesmo se a NF ainda não autorizou. Sinal (TIT `ADIANTAMENTO`) já existia no aceite. Romaneio ENT- é outro eixo (`docs/ADR_ENTREGA_EXPEDICAO.md`) — não mora neste agregado.
 
-Estorno (NF pendente ou rejeitada, nada processando/autorizado): FAT `ESTORNADO` + TIT/COB do saldo cancelados + PED `PRODUZIDO` → pode faturar de novo. Não apagar. Não mexer no sinal. Não tocar estoque.
+Estorno (NF pendente ou rejeitada, nada processando/autorizado oficial): FAT `ESTORNADO` + TIT/COB do saldo cancelados + PED `PRODUZIDO` → pode faturar de novo. Não apagar. Não mexer no sinal. Não tocar estoque. Após **cancelamento SEFAZ** da NF oficial, o estorno comercial volta a ser permitido.
 
 ## Faça
 
@@ -22,28 +23,31 @@ Estorno (NF pendente ou rejeitada, nada processando/autorizado): FAT `ESTORNADO`
 - Permissão `faturamento.escrever` (COMERCIAL/FINANCEIRO/FISCAL/ADMIN). PRODUÇÃO não fatura nem estorna.
 - Natureza folha `1.01.01` (PA) / `1.01.03` (SVC) / `1.01.02` (REV).
 - Isolar por `empresa_id` do contexto.
-- Estornar só FAT vigente com NF pendente/rejeitada, TIT do saldo abertos (ou nenhum) e COB não paga; motivo obrigatório; cancelar COB no provider.
-- PA/REV → NF-e; SVC → NFS-e Nacional (catálogo de serviço). Numeração só do Focus. Hub: teste OK do ambiente ativo liga emissão automática.
+- Estornar só FAT vigente com NF pendente/rejeitada (ou cancelada no fisco), TIT do saldo abertos (ou nenhum) e COB não paga; motivo obrigatório; cancelar COB no provider.
+- PA/REV → NF-e via SEFAZ + A1; numeração no ERP (`nfe_series_controle`). SVC → NFS-e planejada (sem POST nesta fatia).
 - Comodato de BEM não passa por FAT/NF (`docs/ADR_OPERACOES_SAIDA.md`).
 - IM opcional; NFS-e só exige se `im_obrigatoria_nfse`.
-- Sem hub: prévia da nota (`PLANEJADO` + JSON Focus) e DANFE/DANFSe HTML A4 imprimível (homolog e produção). Não inventar chave/XML/`nfeProc` **como se fossem do fisco**.
-- Local sem A1: `FISCAL_EMISSOR=stub` autoriza origem `STUB` (selo de teste). Homolog/prod ignoram. Hub apto sempre ganha.
-- Baixa PA/REV (`SAIDA_VENDA`) **só** na NF-e Focus autorizada. Stub/prévia/NFS-e não baixam. Sem SKU no item: aviso, não inventa produto.
+- Sem A1 em homolog/prod: `PLANEJADO` + prévia. Não inventar chave/XML/`nfeProc` **como se fossem do fisco**.
+- Local sem SEFAZ: `FISCAL_EMISSOR=stub` autoriza origem `STUB` (selo de teste). Homolog/prod ignoram stub.
+- Baixa PA/REV (`SAIDA_VENDA`) **só** na NF-e origem `SEFAZ` autorizada. Stub/prévia/NFS-e não baixam. Sem SKU no item: aviso, não inventa produto.
+- Cancelamento SEFAZ (110111) estorna `SAIDA_VENDA`. CC-e (110110) não mexe estoque/FAT.
 
 ## Não faça
 
-- Inventar série/número/chave de NF (nem XML `nfeProc` falso “para ver a nota”) **como se fossem do fisco**. Stub local (`origem=STUB`) não é Focus e some quando o hub estiver apto.
-- Baixar estoque PA/REV no FAT (nem no estorno comercial — PA nunca saiu neste ramo; na NF oficial a baixa é `SAIDA_VENDA` e o estorno comercial já está bloqueado).
+- Inventar série/número/chave de NF (nem XML `nfeProc` falso “para ver a nota”) **como se fossem do fisco**. Stub local (`origem=STUB`) não é SEFAZ.
+- Consumir numeração oficial no stub.
+- Baixar estoque PA/REV no FAT (nem no estorno comercial — PA nunca saiu neste ramo; na NF oficial a baixa é `SAIDA_VENDA`).
 - Recobrar o adiantamento já baixado; cancelar TIT `ADIANTAMENTO` no estorno.
 - Multiplicar quantidade pelo `valor_etiqueta` do motor (é o total da faixa).
 - Faturar PED `LIBERADO` / `EM_PRODUCAO` / `CANCELADO`.
 - Segundo FAT **vigente** no mesmo PED (estornados ficam no histórico).
-- Estornar com NF autorizada/processando, TIT pago/parcial, COB paga ou BX.
+- Estornar com NF autorizada/processando (oficial SEFAZ), TIT pago/parcial, COB paga ou BX — exceto após cancel SEFAZ.
 - Apagar FAT/TIT/COB.
-- Desfazer FAT porque o Focus rejeitou a nota.
+- Desfazer FAT porque a SEFAZ rejeitou a nota.
 - Exigir IM para NF-e ou para NFS-e sem a flag municipal.
 - Catálogo `COND-` ou motor CRT sem ADR.
 - Auto-faturar na conclusão da OP/OS.
-- Tratar este estorno como cancelamento Focus ou DEV-.
+- Tratar estorno comercial como cancelamento SEFAZ ou DEV-; ou exigir hub Focus para emitir NF-e.
+- Apagar motor Focus/hubs sem ADR de limpeza.
 
-Se a tarefa exigir violar isto → parar e citar `docs/ADR_FATURAMENTO_COBRANCA.md` / `docs/ADR_EMISSAO_NFE_NFSE.md`.
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_FATURAMENTO_COBRANCA.md` / `docs/ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`.

@@ -5,7 +5,7 @@ import {
   formatDecimalBr,
   formatUnitPrice,
 } from '../lib/format';
-import { docFiscalStatusLabel, docFiscalTipoLabel } from '../lib/fiscalUi';
+import { docFiscalStatusLabel, docFiscalTipoLabel, nfePodeEventoSefaz } from '../lib/fiscalUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { StatusPill } from './StatusPill';
 
@@ -13,6 +13,8 @@ type Props = {
   doc: DocumentoFiscalSaida;
   faturamentoId: number;
   compact?: boolean;
+  /** Abre o card de cancelamento SEFAZ no faturamento (só NF-e autorizada oficial). */
+  onAbrirCancelamentoSefaz?: () => void;
 };
 
 function linhaEndereco(doc: DocumentoFiscalSaida): string {
@@ -23,24 +25,37 @@ function linhaEndereco(doc: DocumentoFiscalSaida): string {
 }
 
 /**
- * Prévia humana da NF-e/NFS-e planejada.
- * Não é DANFE nem XML autorizado — estudo 32: numeração só da SEFAZ via Focus.
+ * Prévia / espelho humano da NF-e/NFS-e (planejada ou autorizada).
+ * DANFE oficial: ficha em rota dedicada após autorização SEFAZ+A1.
  */
-export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false }: Props) {
+export function DocumentoFiscalPreviaCard({
+  doc,
+  faturamentoId,
+  compact = false,
+  onAbrirCancelamentoSefaz,
+}: Props) {
   const previa = doc.previa;
   const oficial = previa?.oficial === true;
   const simulada = previa?.simulada === true;
-  const comNumeracao = oficial || simulada;
+  const cancelada = previa?.cancelada === true || doc.status === 'CANCELADO';
+  const comNumeracao = oficial || simulada || cancelada;
   const itens = previa?.itens ?? [];
   const envio = doc.envio_hub ?? null;
   const nfse = doc.tipo === 'NFSE';
+  const podeCancelar = Boolean(onAbrirCancelamentoSefaz) && nfePodeEventoSefaz(doc);
 
   return (
-    <article className={`nf-previa${oficial ? '' : ' nf-previa--rascunho'}`}>
+    <article className={`nf-previa${oficial || cancelada ? '' : ' nf-previa--rascunho'}${cancelada ? ' nf-previa--cancelada' : ''}`}>
       <header className="nf-previa-head">
         <div>
           <p className="nf-previa-kicker">
-            {oficial ? 'Documento fiscal' : simulada ? 'Autorização de teste' : 'Prévia da nota'}
+            {cancelada
+              ? 'NF-e cancelada'
+              : oficial
+                ? 'Documento fiscal'
+                : simulada
+                  ? 'Autorização de teste'
+                  : 'Prévia da nota'}
           </p>
           <h4>
             {previa?.rotulo ?? docFiscalTipoLabel(doc.tipo)} · <code>{doc.codigo}</code>
@@ -59,13 +74,20 @@ export function DocumentoFiscalPreviaCard({ doc, faturamentoId, compact = false 
           >
             Imprimir nota
           </a>
+          {podeCancelar ? (
+            <button type="button" className="btn btn-secondary" onClick={onAbrirCancelamentoSefaz}>
+              Cancelar NF-e
+            </button>
+          ) : null}
           <StatusPill status={docFiscalStatusLabel(doc.status, simulada)} />
         </div>
       </header>
 
-      <p className={`nf-previa-banner${oficial ? ' is-ok' : ''}`}>
+      <p className={`nf-previa-banner${oficial && !cancelada ? ' is-ok' : ''}${cancelada ? ' is-cancelada' : ''}`}>
         {previa?.aviso ??
-          'Prévia — aguardando hub Focus. Não é documento fiscal autorizado.'}
+          (cancelada
+            ? 'NF-e cancelada na SEFAZ. Chave e protocolo permanecem para consulta.'
+            : 'Prévia — aguardando SEFAZ. Não é documento fiscal autorizado.')}
       </p>
 
       {doc.saida_estoque ? (

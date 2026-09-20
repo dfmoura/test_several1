@@ -137,8 +137,7 @@ async function listFacas(params: {
 
 const FACA_SORT = {
   formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
-  largura: (f: FacaRecord) => facaDimensoesExibicao(f).larguraSort,
-  tamanho: (f: FacaRecord) => facaDimensoesExibicao(f).tamanhoSort,
+  medida: (f: FacaRecord) => String(f.medida || ''),
   n_facas: (f: FacaRecord) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaRecord) => String(f.maquina_catalogo || ''),
   z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
@@ -418,7 +417,7 @@ export function FacaPicker({
                   type="search"
                   value={q}
                   autoFocus
-                  placeholder="Largura, tamanho, Ø, cliente, fornecedor…"
+                  placeholder="Medida, Ø, cliente, fornecedor…"
                   onChange={(e) => setQ(e.target.value)}
                 />
               </label>
@@ -502,26 +501,13 @@ export function FacaPicker({
                       Silhueta
                     </th>
                     <SortableTh
-                      column="largura"
-                      className="num"
+                      column="medida"
                       sorts={sorts}
                       sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
-                      label="Largura"
                     >
-                      Largura
-                    </SortableTh>
-                    <SortableTh
-                      column="tamanho"
-                      className="num"
-                      sorts={sorts}
-                      sortKey={sortKey}
-                      sortDir={sortDir}
-                      onSort={requestSort}
-                      label="Tamanho"
-                    >
-                      Tamanho
+                      Medida
                     </SortableTh>
                     <SortableTh
                       column="n_facas"
@@ -584,7 +570,7 @@ export function FacaPicker({
                 <tbody>
                   {!items.length && !loading ? (
                     <tr>
-                      <td colSpan={10} className="faca-empty">
+                      <td colSpan={9} className="faca-empty">
                         Nenhuma faca neste filtro.
                         {permitirFacaNova ? (
                           <>
@@ -600,7 +586,13 @@ export function FacaPicker({
                     sortedItems.map((f) => {
                       const selected = value?.id != null && value.id === f.id && !isNova;
                       const fmt = String(f.formato || f.faca || '');
-                      const dim = facaDimensoesExibicao(f);
+                      const isDiam =
+                        formatoUsaDiametro(fmt) ||
+                        String(f.tamanho_tipo ?? '')
+                          .trim()
+                          .toLowerCase()
+                          .startsWith('diam') ||
+                        /^[Øø]/.test(String(f.medida || '').trim());
                       return (
                         <tr
                           key={String(f.id ?? f.label)}
@@ -608,7 +600,7 @@ export function FacaPicker({
                             f.completa === false ? ' incompleta' : ''
                           }`}
                           onClick={() => escolher(f)}
-                          title={dim.titulo}
+                          title={String(f.label || f.medida || '')}
                         >
                           <td>
                             <span>{formatoLabel(fmt)}</span>
@@ -622,16 +614,11 @@ export function FacaPicker({
                               />
                             </FacaApresentacao>
                           </td>
-                          <td className="num">
-                            <strong>{dim.largura}</strong>
-                          </td>
-                          <td className="num">
-                            {dim.isDiametro ? (
-                              <span className="badge-diam" title="Diâmetro (Ø)">
-                                Ø {dim.tamanho}
-                              </span>
+                          <td className="medida">
+                            {isDiam ? (
+                              <span className="badge-diam">{String(f.medida)}</span>
                             ) : (
-                              <strong>{dim.tamanho}</strong>
+                              String(f.medida || '—')
                             )}
                           </td>
                           <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
@@ -737,27 +724,24 @@ export function FacaPicker({
                   <div>
                     <strong>
                       {(() => {
-                        const dim = facaDimensoesExibicao({
-                          formato: novaFormato,
-                          largura_faca: (() => {
-                            const n = Number(String(novaLargura).replace(',', '.'));
-                            return Number.isFinite(n) && n > 0 ? n : null;
-                          })(),
-                          diametro_cm: formatoUsaDiametro(novaFormato)
-                            ? (() => {
-                                const n = Number(String(novaTamanho).replace(',', '.'));
-                                return Number.isFinite(n) && n > 0 ? n : null;
-                              })()
-                            : null,
-                          tamanho_raw: formatoUsaDiametro(novaFormato)
-                            ? null
-                            : (() => {
-                                const n = Number(String(novaTamanho).replace(',', '.'));
-                                return Number.isFinite(n) && n > 0 ? String(n) : null;
-                              })(),
-                          tamanho_tipo: formatoUsaDiametro(novaFormato) ? 'diametro' : 'altura',
+                        const isDiam = formatoUsaDiametro(novaFormato);
+                        const tamanho = Number(String(novaTamanho).replace(',', '.'));
+                        const largura = Number(String(novaLargura).replace(',', '.'));
+                        const medida = composeMedidaIdentidade({
+                          larguraCm: isDiam
+                            ? Number.isFinite(tamanho) && tamanho > 0
+                              ? tamanho
+                              : Number.isFinite(largura) && largura > 0
+                                ? largura
+                                : null
+                            : Number.isFinite(largura) && largura > 0
+                              ? largura
+                              : null,
+                          tamanhoCm:
+                            Number.isFinite(tamanho) && tamanho > 0 ? tamanho : null,
+                          isDiametro: isDiam,
                         });
-                        return dim.titulo !== '—' ? dim.titulo : '—';
+                        return medida || '—';
                       })()}
                     </strong>
                     <span className="muted">
@@ -769,9 +753,9 @@ export function FacaPicker({
               </div>
             </div>
             <p className="form-hint">
-              Cadastro por Largura e Tamanho (como no Mapa de facas). A identidade composta fica só
-              para o cálculo. Valor/prazo do ferramental na linha do orçamento — o mapa oficial não
-              muda aqui.
+              Cadastro por Largura e Tamanho (como no Mapa de facas). A identidade <strong>medida</strong>{' '}
+              é composta automaticamente para o mapa e o cálculo. Valor/prazo do ferramental na linha do
+              orçamento — o mapa oficial não muda aqui.
             </p>
             <div className="btn-row">
               <button type="button" className="btn btn-primary" onClick={confirmarNova}>
@@ -830,14 +814,22 @@ export function FacaPicker({
               <div className="faca-summary-text">
                 <div className="faca-summary-title">
                   {(() => {
-                    const dim = facaDimensoesExibicao(value);
-                    if (isNova && !value.medida && dim.largura === '—' && dim.tamanho === '—') {
+                    if (isNova && !value.medida) {
                       return <span className="muted">Informe largura e tamanho na aba Faca nova</span>;
                     }
-                    if (dim.isDiametro) {
-                      return <span className="badge-diam">{dim.titulo}</span>;
+                    const medida = String(value.medida || '').trim();
+                    if (!medida) return '—';
+                    const isDiam =
+                      formatoUsaDiametro(value.formato || value.faca) ||
+                      String(value.tamanho_tipo ?? '')
+                        .trim()
+                        .toLowerCase()
+                        .startsWith('diam') ||
+                      /^[Øø]/.test(medida);
+                    if (isDiam) {
+                      return <span className="badge-diam">{medida}</span>;
                     }
-                    return dim.titulo;
+                    return medida;
                   })()}
                 </div>
                 <div className="faca-summary-meta">
@@ -894,16 +886,12 @@ export function FacaPicker({
                       {fmtNum(value.largura_faca)} cm
                     </div>
                   ) : null}
-                  {(() => {
-                    const dim = facaDimensoesExibicao(value);
-                    if (dim.tamanho === '—') return null;
-                    return (
-                      <div className="faca-chip">
-                        <span>{dim.isDiametro ? 'Diâmetro' : 'Tamanho'}</span>
-                        {dim.isDiametro ? `Ø ${dim.tamanho} cm` : `${dim.tamanho} cm`}
-                      </div>
-                    );
-                  })()}
+                  {value.diametro_cm != null ? (
+                    <div className="faca-chip">
+                      <span>Ø</span>
+                      {fmtNum(value.diametro_cm)} cm
+                    </div>
+                  ) : null}
                 </div>
                 {isNova ? (
                   <p className="faca-warn">

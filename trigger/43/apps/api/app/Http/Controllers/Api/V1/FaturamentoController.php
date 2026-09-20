@@ -110,6 +110,42 @@ class FaturamentoController extends Controller
         ]);
     }
 
+    public function cancelarNf(Request $request, Faturamento $faturamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresaFat($faturamento);
+        $data = $request->validate([
+            'justificativa' => ['required', 'string', 'min:15', 'max:255'],
+        ]);
+
+        return response()->json([
+            'data' => $this->faturamentos->cancelarNfe(
+                $this->empresa(),
+                $faturamento,
+                (string) $data['justificativa']
+            ),
+        ]);
+    }
+
+    public function cartaCorrecao(Request $request, Faturamento $faturamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresaFat($faturamento);
+        $data = $request->validate([
+            'texto' => ['required', 'string', 'min:15', 'max:1000'],
+            'n_seq_evento' => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        return response()->json([
+            'data' => $this->faturamentos->cartaCorrecaoNfe(
+                $this->empresa(),
+                $faturamento,
+                (string) $data['texto'],
+                isset($data['n_seq_evento']) ? (int) $data['n_seq_evento'] : null
+            ),
+        ]);
+    }
+
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('faturamento.ler') && ! $request->user()->can('financeiro.ler')) {

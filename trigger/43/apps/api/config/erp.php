@@ -64,15 +64,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Hubs fiscais (Focus NFe etc.)
+    | Hubs fiscais (Focus NFe — legado / esqueleto)
     |--------------------------------------------------------------------------
     |
-    | Tokens cifados com Laravel Crypt. Homolog ≠ produção (UC-INT-001).
-    | Teste OK do ambiente ativo habilita emissão automática de NF-e/NFS-e.
+    | Tokens cifados com Laravel Crypt. NF-e de saída NÃO usa mais Focus
+    | (ADR_EMISSAO_NFE_SEFAZ_DIRETO). Motor permanece no código.
     |
-    | fiscal_emissor: focus (padrão) | stub
-    | stub = autorização sintética só em local/testing, e só se o hub NÃO estiver apto.
-    | Homologação e produção ignoram stub (estudo 32: HML usa Focus homolog + A1).
+    | fiscal_emissor: stub | sefaz (legado: focus ignorado no caminho NFe)
+    | stub = autorização sintética só em local/testing.
+    | Homologação e produção: SEFAZ + A1 (ver erp.nfe).
     |
     */
 
@@ -80,7 +80,79 @@ return [
 
     'fiscal_hub_emit_timeout_sec' => (float) env('FISCAL_HUB_EMIT_TIMEOUT_SEC', 40),
 
-    'fiscal_emissor' => env('FISCAL_EMISSOR', 'focus'),
+    'fiscal_emissor' => env('FISCAL_EMISSOR', 'stub'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | NF-e saída direta (SEFAZ + A1) — sem Focus
+    |--------------------------------------------------------------------------
+    |
+    | Norma: docs/ADR_EMISSAO_NFE_SEFAZ_DIRETO.md
+    | driver=fake: testes sem SEFAZ. Não misturar com URLs do DF-e (AN).
+    |
+    */
+
+    'nfe' => [
+        'driver' => env('NFE_DRIVER', 'sefaz'), // sefaz | fake
+        'stages_permitidos' => ['homolog', 'production'],
+        'timeout_sec' => (float) env('NFE_HTTP_TIMEOUT_SEC', 60),
+        'urls' => [
+            'homolog' => [
+                'SVRS' => [
+                    'autorizacao' => env('NFE_SVRS_AUT_HOMOLOG', 'https://nfe-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_SVRS_RET_HOMOLOG', 'https://nfe-homologacao.svrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx'),
+                    'evento' => env('NFE_SVRS_EVT_HOMOLOG', 'https://nfe-homologacao.svrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx'),
+                ],
+                'MG' => [
+                    'autorizacao' => env('NFE_MG_AUT_HOMOLOG', 'https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4'),
+                    'ret_autorizacao' => env('NFE_MG_RET_HOMOLOG', 'https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRetAutorizacao4'),
+                    'evento' => env('NFE_MG_EVT_HOMOLOG', 'https://hnfe.fazenda.mg.gov.br/nfe2/services/NFeRecepcaoEvento4'),
+                ],
+                'SP' => [
+                    'autorizacao' => env('NFE_SP_AUT_HOMOLOG', 'https://homologacao.nfe.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_SP_RET_HOMOLOG', 'https://homologacao.nfe.fazenda.sp.gov.br/ws/nferetautorizacao4.asmx'),
+                    'evento' => env('NFE_SP_EVT_HOMOLOG', 'https://homologacao.nfe.fazenda.sp.gov.br/ws/nferecepcaoevento4.asmx'),
+                ],
+                'PR' => [
+                    'autorizacao' => env('NFE_PR_AUT_HOMOLOG', 'https://homologacao.nfe.sefa.pr.gov.br/nfe/NFeAutorizacao4'),
+                    'ret_autorizacao' => env('NFE_PR_RET_HOMOLOG', 'https://homologacao.nfe.sefa.pr.gov.br/nfe/NFeRetAutorizacao4'),
+                    'evento' => env('NFE_PR_EVT_HOMOLOG', 'https://homologacao.nfe.sefa.pr.gov.br/nfe/NFeRecepcaoEvento4'),
+                ],
+                'RS' => [
+                    'autorizacao' => env('NFE_RS_AUT_HOMOLOG', 'https://nfe-homologacao.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_RS_RET_HOMOLOG', 'https://nfe-homologacao.sefazrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx'),
+                    'evento' => env('NFE_RS_EVT_HOMOLOG', 'https://nfe-homologacao.sefazrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx'),
+                ],
+            ],
+            'production' => [
+                'SVRS' => [
+                    'autorizacao' => env('NFE_SVRS_AUT_PROD', 'https://nfe.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_SVRS_RET_PROD', 'https://nfe.svrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx'),
+                    'evento' => env('NFE_SVRS_EVT_PROD', 'https://nfe.svrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx'),
+                ],
+                'MG' => [
+                    'autorizacao' => env('NFE_MG_AUT_PROD', 'https://nfe.fazenda.mg.gov.br/nfe2/services/NFeAutorizacao4'),
+                    'ret_autorizacao' => env('NFE_MG_RET_PROD', 'https://nfe.fazenda.mg.gov.br/nfe2/services/NFeRetAutorizacao4'),
+                    'evento' => env('NFE_MG_EVT_PROD', 'https://nfe.fazenda.mg.gov.br/nfe2/services/NFeRecepcaoEvento4'),
+                ],
+                'SP' => [
+                    'autorizacao' => env('NFE_SP_AUT_PROD', 'https://nfe.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_SP_RET_PROD', 'https://nfe.fazenda.sp.gov.br/ws/nferetautorizacao4.asmx'),
+                    'evento' => env('NFE_SP_EVT_PROD', 'https://nfe.fazenda.sp.gov.br/ws/nferecepcaoevento4.asmx'),
+                ],
+                'PR' => [
+                    'autorizacao' => env('NFE_PR_AUT_PROD', 'https://nfe.sefa.pr.gov.br/nfe/NFeAutorizacao4'),
+                    'ret_autorizacao' => env('NFE_PR_RET_PROD', 'https://nfe.sefa.pr.gov.br/nfe/NFeRetAutorizacao4'),
+                    'evento' => env('NFE_PR_EVT_PROD', 'https://nfe.sefa.pr.gov.br/nfe/NFeRecepcaoEvento4'),
+                ],
+                'RS' => [
+                    'autorizacao' => env('NFE_RS_AUT_PROD', 'https://nfe.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx'),
+                    'ret_autorizacao' => env('NFE_RS_RET_PROD', 'https://nfe.sefazrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx'),
+                    'evento' => env('NFE_RS_EVT_PROD', 'https://nfe.sefazrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx'),
+                ],
+            ],
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

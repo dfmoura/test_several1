@@ -2,11 +2,19 @@ import { TriggerAttribution } from './TriggerAttribution';
 import type { DocumentoFiscalSaida, Faturamento } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
+  code128CSvg,
+  formatarChaveAcessoNfe,
+  NFE_PORTAL_CONSULTA_HOST,
+  NFE_PORTAL_CONSULTA_URL,
+} from '../lib/code128';
+import {
   formatCep,
   formatCnpjCpf,
   formatDate,
   formatDecimalBr,
+  formatTime,
 } from '../lib/format';
+import { useMemo } from 'react';
 
 type Props = {
   fat: Faturamento;
@@ -40,12 +48,6 @@ function money(v: string | number | null | undefined): string {
   return n === '—' ? '0,00' : n;
 }
 
-function chaveGrupos(chave: string | null | undefined): string {
-  const d = (chave ?? '').replace(/\D/g, '');
-  if (d.length !== 44) return '';
-  return d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-}
-
 function nfeNumero(n: number | null | undefined): string {
   if (n == null) return '—';
   const digits = String(n).replace(/\D/g, '').padStart(9, '0').slice(-9);
@@ -55,6 +57,53 @@ function nfeNumero(n: number | null | undefined): string {
 function serieFmt(s: number | null | undefined): string {
   if (s == null) return '—';
   return String(s).replace(/\D/g, '').padStart(3, '0') || '—';
+}
+
+/** Bloco direito do cabeçalho DANFE (MOC): barras → rótulo/chave → portal. */
+function DanfeChaveAcessoBlock({
+  chave,
+  selo,
+}: {
+  chave: string | null | undefined;
+  selo: string | null;
+}) {
+  const digits = (chave ?? '').replace(/\D/g, '');
+  const ok = digits.length === 44;
+  const svg = useMemo(
+    () => (ok ? code128CSvg(digits, { height: 34, module: 1.05, className: 'danfe-barcode-svg' }) : null),
+    [digits, ok],
+  );
+  const chaveFmt = ok ? formatarChaveAcessoNfe(digits) : '';
+
+  return (
+    <div className="danfe-chave">
+      {ok && svg ? (
+        <>
+          <div className="danfe-barcode" aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
+          <span className="danfe-lbl danfe-chave-lbl">Chave de acesso</span>
+          <code className="danfe-chave-num">{chaveFmt}</code>
+          <p className="danfe-consulta">
+            Consulta de autenticidade no portal nacional da NF-e{' '}
+            <a
+              className="danfe-consulta-link"
+              href={NFE_PORTAL_CONSULTA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {NFE_PORTAL_CONSULTA_HOST}
+            </a>{' '}
+            ou no site da SEFAZ Autorizadora.
+          </p>
+        </>
+      ) : (
+        <>
+          <span className="danfe-lbl">Chave de acesso</span>
+          <p className="danfe-chave-empty">Chave indisponível — aguardando autorização na SEFAZ</p>
+        </>
+      )}
+      {selo ? <p className="danfe-homolog">{selo}</p> : null}
+    </div>
+  );
 }
 
 /**
@@ -97,12 +146,15 @@ function homologacao(doc: DocumentoFiscalSaida): boolean {
 function seloFiscal({
   oficial,
   simulada,
+  cancelada,
   homolog,
 }: {
   oficial: boolean;
   simulada: boolean;
+  cancelada: boolean;
   homolog: boolean;
 }): string | null {
+  if (cancelada) return 'NF-E CANCELADA NA SEFAZ';
   if (simulada) return 'SIMULADA — SEM VALOR FISCAL (SEM CERTIFICADO A1)';
   if (!oficial) return 'PRÉVIA — SEM VALOR FISCAL';
   if (homolog) return 'AMBIENTE DE HOMOLOGAÇÃO — SEM VALOR FISCAL';
@@ -123,11 +175,24 @@ function DanfeLayout({
   const itens = p?.itens ?? [];
   const dups = p?.duplicatas ?? [];
   const total = p?.valor_total ?? doc.valor;
-  const comNumeracao = oficial || simulada;
+  const cancelada =
+    p?.cancelada === true ||
+    (doc.status === 'CANCELADO' && (doc.chave ?? '').replace(/\D/g, '').length === 44);
+  const layoutCheio = oficial || cancelada;
+  const comNumeracao =
+    oficial ||
+    simulada ||
+    cancelada ||
+    (doc.chave ?? '').replace(/\D/g, '').length === 44;
   const chave = comNumeracao ? doc.chave ?? p?.chave : null;
   const numero = comNumeracao ? nfeNumero(doc.numero) : '—';
   const serie = comNumeracao ? serieFmt(doc.serie) : '—';
-  const selo = seloFiscal({ oficial, simulada, homolog: homologacao(doc) });
+  const selo = seloFiscal({
+    oficial: layoutCheio,
+    simulada,
+    cancelada,
+    homolog: homologacao(doc),
+  });
   const emitLinha = [
     [emit?.logradouro, emit?.numero].filter(Boolean).join(', '),
     [emit?.bairro, emit?.cep ? formatCep(emit.cep) : ''].filter(Boolean).join(' — '),
@@ -140,10 +205,14 @@ function DanfeLayout({
 
   return (
     <article
-      className={`ficha-sheet danfe-sheet${oficial ? '' : ' danfe-sheet-rascunho'}`}
+      className={`ficha-sheet danfe-sheet${layoutCheio ? '' : ' danfe-sheet-rascunho'}${cancelada ? ' danfe-sheet-cancelada' : ''}`}
       aria-label="DANFE — Documento Auxiliar da NF-e"
     >
-      {!oficial ? (
+      {cancelada ? (
+        <div className="danfe-watermark danfe-watermark-cancelada" aria-hidden>
+          CANCELADA
+        </div>
+      ) : !layoutCheio ? (
         <div className="danfe-watermark" aria-hidden>
           {simulada ? 'SIMULADA SEM VALOR FISCAL' : 'PRÉVIA SEM VALOR FISCAL'}
         </div>
@@ -187,18 +256,7 @@ function DanfeLayout({
           <span>Nº {numero}</span>
           <span>Série {serie}</span>
         </div>
-        <div className="danfe-chave">
-          <span className="danfe-lbl">Chave de acesso</span>
-          {chave && chave.replace(/\D/g, '').length === 44 ? (
-            <code className="danfe-chave-num">{chaveGrupos(chave)}</code>
-          ) : (
-            <p className="danfe-chave-empty">Chave indisponível — aguardando autorização no hub Focus</p>
-          )}
-          <p className="danfe-consulta">
-            Consulta de autenticidade no portal nacional da NF-e. Sem chave não há consulta.
-          </p>
-          {selo ? <p className="danfe-homolog">{selo}</p> : null}
-        </div>
+        <DanfeChaveAcessoBlock chave={chave} selo={selo} />
       </div>
 
       <div className="danfe-row">
@@ -216,23 +274,35 @@ function DanfeLayout({
       </div>
 
       <h3 className="danfe-sec">Destinatário / remetente</h3>
-      <div className="danfe-row">
-        <Cell label="Nome / razão social" value={dest?.nome} className="w-58" />
+      <div className="danfe-row danfe-dest">
+        <Cell label="Nome / razão social" value={dest?.nome} className="w-60" />
         <Cell label="CNPJ / CPF" value={dest?.documento ? formatCnpjCpf(dest.documento) : ' '} className="w-24" />
-        <Cell label="Data da emissão" value={comNumeracao ? formatDate(p?.data_emissao) : '—'} className="w-18" />
+        <Cell
+          label="Data da emissão"
+          value={comNumeracao ? formatDate(p?.data_emissao) : '—'}
+          className="danfe-dest-data"
+        />
       </div>
-      <div className="danfe-row">
+      <div className="danfe-row danfe-dest">
         <Cell label="Endereço" value={dest?.endereco} className="w-48" />
         <Cell label="Bairro / distrito" value={dest?.bairro} className="w-22" />
         <Cell label="CEP" value={dest?.cep ? formatCep(dest.cep) : ' '} className="w-14" />
-        <Cell label="Data da saída" value=" " className="w-16" />
+        <Cell
+          label="Data da saída"
+          value={comNumeracao ? formatDate(p?.data_saida || p?.data_emissao) : '—'}
+          className="danfe-dest-data"
+        />
       </div>
-      <div className="danfe-row">
+      <div className="danfe-row danfe-dest">
         <Cell label="Município" value={dest?.municipio} className="w-38" />
         <Cell label="UF" value={dest?.uf} className="w-08" />
         <Cell label="Fone / fax" value=" " className="w-18" />
         <Cell label="Inscrição estadual" value={dest?.ie} className="w-20" />
-        <Cell label="Hora da saída" value=" " className="w-16" />
+        <Cell
+          label="Hora da saída"
+          value={comNumeracao ? formatTime(p?.hora_saida) : '—'}
+          className="danfe-dest-data"
+        />
       </div>
 
       <h3 className="danfe-sec">Fatura / duplicata</h3>
@@ -319,19 +389,27 @@ function DanfeLayout({
         <div>
           <span className="danfe-lbl">Reservado ao fisco</span>
           <p>
-            {oficial
-              ? ' '
-              : simulada
-                ? 'Autorização de teste — sem certificado A1. Sem valor fiscal. Não consultar no portal da NF-e.'
-                : 'Prévia operacional — hub Focus ainda não autorizou. Sem valor fiscal. Numeração só da SEFAZ.'}
+            {cancelada
+              ? 'Evento de cancelamento autorizado na SEFAZ. Consulte a autenticidade no portal nacional da NF-e.'
+              : oficial
+                ? ' '
+                : simulada
+                  ? 'Autorização de teste — sem certificado A1. Sem valor fiscal. Não consultar no portal da NF-e.'
+                  : 'Prévia operacional — ainda sem autorização SEFAZ. Sem valor fiscal. Numeração só da SEFAZ.'}
           </p>
         </div>
       </div>
 
       <footer className="danfe-foot">
         <span>
-          {oficial ? 'DANFE' : simulada ? 'DANFE de teste' : 'Prévia DANFE'} · {fat.codigo} · {emitidoPor} ·{' '}
-          {emitidoEm.toLocaleString('pt-BR')}
+          {cancelada
+            ? 'DANFE · NF-e CANCELADA'
+            : oficial
+              ? 'DANFE'
+              : simulada
+                ? 'DANFE de teste'
+                : 'Prévia DANFE'}{' '}
+          · {fat.codigo} · {emitidoPor} · {emitidoEm.toLocaleString('pt-BR')}
         </span>
         <TriggerAttribution variant="print" className="ficha-powered" logoClassName="ficha-trigger" />
       </footer>
@@ -355,7 +433,7 @@ function DanfseLayout({
   const comNumeracao = oficial || simulada;
   const numero = comNumeracao && doc.numero != null ? String(doc.numero) : '—';
   const serie = comNumeracao && doc.serie != null ? String(doc.serie) : '—';
-  const selo = seloFiscal({ oficial, simulada, homolog: homologacao(doc) });
+  const selo = seloFiscal({ oficial, simulada, cancelada: false, homolog: homologacao(doc) });
 
   return (
     <article
