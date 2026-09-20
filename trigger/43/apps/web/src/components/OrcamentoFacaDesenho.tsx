@@ -11,6 +11,7 @@ import { FacaApresentacao } from './FacaApresentacao';
 import { FacaSilhuetaReal } from './FacaSilhuetaReal';
 import { formatColunasMapaLabel } from '../lib/facaSilhueta';
 import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
+import { facaDimensoesExibicao } from '../lib/facasMapa';
 
 export type OrcamentoFacaDesenhoAudience = 'interno' | 'cliente';
 
@@ -167,6 +168,14 @@ export function OrcamentoFacaDesenho({
   const colsFaca = !facaNova ? formatColunasMapaLabel(colunasMapa) ?? '1×' : null;
   /** Título visual = identidade `medida` (mapa/ORC). */
   const title = medida?.trim() || label || tipo;
+  const dim = facaDimensoesExibicao({
+    medida,
+    formato: fmt || null,
+    largura_faca: larguraCm == null || larguraCm === '' ? null : larguraCm,
+    diametro_cm: diametroCm == null || diametroCm === '' ? null : diametroCm,
+    tamanho_raw: tamanhoRaw ?? null,
+    tamanho_tipo: tamanhoTipo ?? null,
+  });
   const rootClass = [
     'orc-faca-desenho',
     `orc-faca-desenho--${variant}`,
@@ -194,10 +203,14 @@ export function OrcamentoFacaDesenho({
     );
   }
 
-  const largura = chipVal(larguraCm, 'cm');
   const puxada = chipVal(puxadaCm, 'cm');
   const zVal = chipVal(z);
-  const diametro = chipVal(diametroCm, 'cm');
+  const tamanhoChip =
+    dim.tamanho === '—'
+      ? '—'
+      : dim.isDiametro
+        ? `Ø ${dim.tamanho} cm`
+        : `${dim.tamanho} cm`;
 
   const chips = (
     <div className="orc-faca-desenho-chips" aria-label="Tipo e parâmetros da faca">
@@ -208,8 +221,8 @@ export function OrcamentoFacaDesenho({
       {isFacaPosicao(posicao) ? (
         <Chip label="Posição" value={facaPosicaoLabel(posicao) ?? String(posicao)} />
       ) : null}
-      {largura !== '—' ? <Chip label="Largura" value={largura} /> : null}
-      {diametro !== '—' ? <Chip label="Ø" value={diametro} /> : null}
+      <Chip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
+      <Chip label={dim.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'} value={tamanhoChip} />
       {puxada !== '—' ? <Chip label="Puxada" value={puxada} /> : null}
       {!cliente && zVal !== '—' ? <Chip label="Z" value={zVal} /> : null}
       {!cliente && maquina ? <Chip label="Máq." value={String(maquina)} /> : null}

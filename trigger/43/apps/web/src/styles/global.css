@@ -8352,11 +8352,16 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-medida {
-  width: 12.5%;
+  width: 11%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-largura,
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-tamanho {
+  width: 7.5%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {
-  width: 10.5%;
+  width: 10%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-num {
@@ -8380,6 +8385,7 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-medida,
+.ficha-sheet-mapa-facas .ficha-mapa-facas-dim,
 .ficha-sheet-mapa-facas .ficha-mapa-facas-formato {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -9344,29 +9350,30 @@ tr.row-inactive td {
 
 /* Scroll + sticky: .table-wrap--freeze (compartilhado com cadastros).
    Lista = inventário geométrico; cliente/NF/valor/obs ficam no painel.
-   Densidade tipográfica; silhueta (largura + desenho) permanece o sujeito da linha. */
-.mapa-facas-table {
+   Densidade tipográfica; silhueta (largura + desenho) permanece o sujeito da linha.
+   Seletor table.data-table.mapa-facas-table vence o font/padding base de .data-table. */
+table.data-table.mapa-facas-table {
   min-width: 640px;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   line-height: 1.2;
 }
 
-.mapa-facas-table th,
-.mapa-facas-table td {
+table.data-table.mapa-facas-table th,
+table.data-table.mapa-facas-table td {
   padding: 0.12rem 0.38rem;
 }
 
-.mapa-facas-table thead th {
-  font-size: 0.64rem;
+table.data-table.mapa-facas-table thead th {
+  font-size: 0.59rem;
   letter-spacing: 0.03em;
 }
 
-.mapa-facas-table .th-sort-btn {
+table.data-table.mapa-facas-table .th-sort-btn {
   padding: 0.12rem 0.38rem;
 }
 
-.mapa-facas-table th.num,
-.mapa-facas-table td.num {
+table.data-table.mapa-facas-table th.num,
+table.data-table.mapa-facas-table td.num {
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -9375,25 +9382,25 @@ tr.row-inactive td {
   padding-right: 0.32rem;
 }
 
-.mapa-facas-table td.medida {
+table.data-table.mapa-facas-table td.medida {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.mapa-facas-table td.maquina {
+table.data-table.mapa-facas-table td.maquina {
   white-space: nowrap;
   font-weight: 600;
   color: var(--navy);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
 }
 
-.mapa-facas-table td.fornecedor {
+table.data-table.mapa-facas-table td.fornecedor {
   max-width: 110px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   letter-spacing: 0.01em;
   color: var(--navy);
 }
@@ -9411,19 +9418,19 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
-.mapa-facas-table tbody tr.is-selected td {
+table.data-table.mapa-facas-table tbody tr.is-selected td {
   background: color-mix(in srgb, var(--navy) 8%, #fff);
 }
 
-.mapa-facas-table tbody tr.is-inactive td {
+table.data-table.mapa-facas-table tbody tr.is-inactive td {
   opacity: 0.62;
 }
 
-.mapa-facas-table tbody tr.is-incomplete td {
+table.data-table.mapa-facas-table tbody tr.is-incomplete td {
   box-shadow: inset 3px 0 0 color-mix(in srgb, #c9a227 70%, transparent);
 }
 
-.mapa-facas-table tbody tr.is-incomplete.is-selected td {
+table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   background: color-mix(in srgb, #c9a227 10%, color-mix(in srgb, var(--navy) 6%, #fff));
 }
 
@@ -9432,7 +9439,7 @@ tr.row-inactive td {
   align-items: center;
   gap: 0.28rem;
   color: var(--navy);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
   white-space: nowrap;
 }

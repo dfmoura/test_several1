@@ -154,6 +154,7 @@ export function FacasComposicaoEditor({
       {facas.length > 0 ? (
         <ul className="orc-facas-lista" aria-label="Facas do orçamento">
           {facas.map((f, i) => {
+            const dim = dimensoesDaFaca(f);
             const cols = !f.faca_nova ? formatColunasMapaLabel(f.colunas_mapa) : null;
             const puxadaVazia = f.puxada_cm === '' || f.puxada_cm == null;
             return (
@@ -209,6 +210,20 @@ export function FacasComposicaoEditor({
                   </div>
                   <div className="orc-facas-meta" aria-label="Dados da faca">
                     <MetaChip label="Medida" value={f.medida.trim() || '—'} />
+                    <MetaChip
+                      label="Largura"
+                      value={dim.largura === '—' ? '—' : `${dim.largura} cm`}
+                    />
+                    <MetaChip
+                      label={dim.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}
+                      value={
+                        dim.tamanho === '—'
+                          ? '—'
+                          : dim.isDiametro
+                            ? `Ø ${dim.tamanho} cm`
+                            : `${dim.tamanho} cm`
+                      }
+                    />
                     <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
                     <MetaChip
                       label="N FACA"

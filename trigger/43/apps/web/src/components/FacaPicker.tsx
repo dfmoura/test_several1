@@ -138,6 +138,8 @@ async function listFacas(params: {
 const FACA_SORT = {
   formato: (f: FacaRecord) => String(f.formato || f.faca || ''),
   medida: (f: FacaRecord) => String(f.medida || ''),
+  largura: (f: FacaRecord) => facaDimensoesExibicao(f).larguraSort,
+  tamanho: (f: FacaRecord) => facaDimensoesExibicao(f).tamanhoSort,
   n_facas: (f: FacaRecord) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaRecord) => String(f.maquina_catalogo || ''),
   z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
@@ -417,7 +419,7 @@ export function FacaPicker({
                   type="search"
                   value={q}
                   autoFocus
-                  placeholder="Medida, Ø, cliente, fornecedor…"
+                  placeholder="Medida, largura, tamanho, Ø, cliente, fornecedor…"
                   onChange={(e) => setQ(e.target.value)}
                 />
               </label>
@@ -510,6 +512,28 @@ export function FacaPicker({
                       Medida
                     </SortableTh>
                     <SortableTh
+                      column="largura"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Largura"
+                    >
+                      Largura
+                    </SortableTh>
+                    <SortableTh
+                      column="tamanho"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Tamanho"
+                    >
+                      Tamanho
+                    </SortableTh>
+                    <SortableTh
                       column="n_facas"
                       className="num"
                       sorts={sorts}
@@ -570,7 +594,7 @@ export function FacaPicker({
                 <tbody>
                   {!items.length && !loading ? (
                     <tr>
-                      <td colSpan={9} className="faca-empty">
+                      <td colSpan={11} className="faca-empty">
                         Nenhuma faca neste filtro.
                         {permitirFacaNova ? (
                           <>
@@ -586,13 +610,8 @@ export function FacaPicker({
                     sortedItems.map((f) => {
                       const selected = value?.id != null && value.id === f.id && !isNova;
                       const fmt = String(f.formato || f.faca || '');
-                      const isDiam =
-                        formatoUsaDiametro(fmt) ||
-                        String(f.tamanho_tipo ?? '')
-                          .trim()
-                          .toLowerCase()
-                          .startsWith('diam') ||
-                        /^[Øø]/.test(String(f.medida || '').trim());
+                      const dim = facaDimensoesExibicao(f);
+                      const isDiam = dim.isDiametro;
                       return (
                         <tr
                           key={String(f.id ?? f.label)}
@@ -619,6 +638,18 @@ export function FacaPicker({
                               <span className="badge-diam">{String(f.medida)}</span>
                             ) : (
                               String(f.medida || '—')
+                            )}
+                          </td>
+                          <td className="num">
+                            <strong>{dim.largura}</strong>
+                          </td>
+                          <td className="num">
+                            {dim.isDiametro ? (
+                              <span className="badge-diam" title="Diâmetro (Ø)">
+                                Ø {dim.tamanho}
+                              </span>
+                            ) : (
+                              <strong>{dim.tamanho}</strong>
                             )}
                           </td>
                           <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
@@ -886,12 +917,16 @@ export function FacaPicker({
                       {fmtNum(value.largura_faca)} cm
                     </div>
                   ) : null}
-                  {value.diametro_cm != null ? (
-                    <div className="faca-chip">
-                      <span>Ø</span>
-                      {fmtNum(value.diametro_cm)} cm
-                    </div>
-                  ) : null}
+                  {(() => {
+                    const dim = facaDimensoesExibicao(value);
+                    if (dim.tamanho === '—') return null;
+                    return (
+                      <div className="faca-chip">
+                        <span>{dim.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}</span>
+                        {dim.isDiametro ? `Ø ${dim.tamanho} cm` : `${dim.tamanho} cm`}
+                      </div>
+                    );
+                  })()}
                 </div>
                 {isNova ? (
                   <p className="faca-warn">

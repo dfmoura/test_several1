@@ -9,6 +9,7 @@ import { BRAND } from '../lib/brand';
 import {
   agruparFacasPorMaquina,
   descricaoRecorteMapaFacas,
+  facaDimensoesExibicao,
   type FacaMapaItem,
   type MapaFacasFichaFiltros,
 } from '../lib/facasMapa';
@@ -181,12 +182,12 @@ export function MapasFacasFichaSheet({
                     <th className="ficha-th-num ficha-mapa-facas-col-n">N FACA</th>
                     <th className="ficha-mapa-facas-col-silhueta">Silhueta</th>
                     <th className="ficha-mapa-facas-col-medida">Medida</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-largura">Largura</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-tamanho">Tamanho</th>
                     <th className="ficha-mapa-facas-col-formato">Formato</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-z">Z</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-rep">Rep</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-num">Puxada</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-num">Larg.</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-num">Ø</th>
                     <th className="ficha-mapa-facas-col-cil">Cil.</th>
                     <th className="ficha-mapa-facas-col-cliente">Cliente</th>
                   </tr>
@@ -194,6 +195,7 @@ export function MapasFacasFichaSheet({
                 <tbody>
                   {g.items.map((f) => {
                     const cliente = dash(f.cliente_nota);
+                    const dim = facaDimensoesExibicao(f);
                     return (
                       <tr
                         key={f.id}
@@ -204,12 +206,16 @@ export function MapasFacasFichaSheet({
                           <FichaFacaSilhuetaCell faca={f} />
                         </td>
                         <td className="ficha-mapa-facas-medida">{dash(f.medida)}</td>
+                        <td className="ficha-td-num ficha-mapa-facas-dim">{dim.largura}</td>
+                        <td className="ficha-td-num ficha-mapa-facas-dim">
+                          {dim.isDiametro && dim.tamanho !== '—'
+                            ? `Ø ${dim.tamanho}`
+                            : dim.tamanho}
+                        </td>
                         <td className="ficha-mapa-facas-formato">{formatoLabel(f.formato)}</td>
                         <td className="ficha-td-num">{dash(f.z)}</td>
                         <td className="ficha-td-num">{fmtNum(f.repeticao, 8)}</td>
                         <td className="ficha-td-num">{fmtNum(f.puxada, 4)}</td>
-                        <td className="ficha-td-num">{fmtNum(f.largura_faca)}</td>
-                        <td className="ficha-td-num">{fmtNum(f.diametro_cm)}</td>
                         <td>{dash(f.cilindro)}</td>
                         <td className="ficha-mapa-facas-cliente" title={cliente === '—' ? undefined : cliente}>
                           {cliente}
