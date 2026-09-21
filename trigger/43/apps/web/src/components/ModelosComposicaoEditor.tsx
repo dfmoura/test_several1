@@ -4,6 +4,7 @@ import {
   type FaixaForm,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
+import { NumericInput } from './NumericInput';
 
 type Props = {
   modelos: ModeloComposicaoForm[];
@@ -87,16 +88,15 @@ export function ModelosComposicaoEditor({
                   />
                 </td>
                 <td className="orc-modelo-arte-col">
-                  <input
-                    type="number"
+                  <NumericInput
                     className="orc-modelo-arte-input"
                     min={0}
                     step={0.01}
                     placeholder="0,00"
-                    value={m.valor_arte > 0 ? m.valor_arte : ''}
-                    onChange={(e) =>
-                      onValorArteChange(mi, Math.max(0, Number(e.target.value) || 0))
-                    }
+                    value={m.valor_arte}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => onValorArteChange(mi, v === '' ? 0 : Math.max(0, v))}
                     disabled={!canWrite}
                     aria-label={`Vlr. Arte do modelo ${mi + 1}`}
                   />
@@ -111,14 +111,15 @@ export function ModelosComposicaoEditor({
                     const invalid = qtd <= 0;
                     return (
                       <td key={fx.idx} className="orc-modelo-qtd-col">
-                        <input
-                          type="number"
+                        <NumericInput
                           className={`orc-modelo-qtd-input${invalid ? ' is-invalid' : ''}`}
+                          integer
                           min={0}
-                          step={1}
                           value={qtd}
-                          onChange={(e) =>
-                            onQuantidadeChange(fx.idx, mi, Number(e.target.value) || 0)
+                          emptyCommit={0}
+                          blankZero
+                          onCommit={(v) =>
+                            onQuantidadeChange(fx.idx, mi, v === '' ? 0 : v)
                           }
                           disabled={!canWrite || singleModel}
                           aria-label={`Quantidade do modelo ${mi + 1} na faixa ${formatQtd(fx.quantidade)}`}

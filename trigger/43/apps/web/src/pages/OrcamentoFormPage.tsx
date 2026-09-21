@@ -30,6 +30,7 @@ import {
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
 import { ModelosComposicaoEditor } from '../components/ModelosComposicaoEditor';
+import { NumericInput } from '../components/NumericInput';
 import {
   CORES_OPCOES,
   aplicarQuantidadeModeloFaixa,
@@ -848,16 +849,13 @@ export function OrcamentoFormPage() {
                     <label>
                       Frete (R$) <span className="field-note">opc.</span>
                     </label>
-                    <input
-                      type="number"
+                    <NumericInput
                       min={0}
                       step="0.01"
-                      inputMode="decimal"
-                      value={form.valor_frete_manual === '' ? '' : form.valor_frete_manual}
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        setField('valor_frete_manual', raw === '' ? '' : Number(raw));
-                      }}
+                      value={form.valor_frete_manual}
+                      emptyCommit=""
+                      blankZero
+                      onCommit={(v) => setField('valor_frete_manual', v === '' ? '' : Math.max(0, v))}
                       disabled={!canWrite}
                       placeholder="A definir"
                     />
@@ -865,11 +863,12 @@ export function OrcamentoFormPage() {
                 ) : null}
                 <div className="form-group">
                   <label>Prazo (d.úteis)</label>
-                  <input
-                    type="number"
+                  <NumericInput
+                    integer
                     min={1}
                     value={form.prazo_entrega_dias}
-                    onChange={(e) => setField('prazo_entrega_dias', Number(e.target.value) || 1)}
+                    emptyCommit={1}
+                    onCommit={(v) => setField('prazo_entrega_dias', v === '' ? 1 : v)}
                     disabled={!canWrite}
                   />
                   {previsaoEntrega?.data_entrega_prevista ? (
@@ -884,22 +883,24 @@ export function OrcamentoFormPage() {
                 </div>
                 <div className="form-group">
                   <label>Validade (dias)</label>
-                  <input
-                    type="number"
+                  <NumericInput
+                    integer
                     min={1}
                     value={form.validade_dias}
-                    onChange={(e) => setField('validade_dias', Number(e.target.value) || 1)}
+                    emptyCommit={1}
+                    onCommit={(v) => setField('validade_dias', v === '' ? 1 : v)}
                     disabled={!canWrite}
                   />
                 </div>
                 <div className="form-group">
                   <label>Tolerância qtd %</label>
-                  <input
-                    type="number"
+                  <NumericInput
                     step="0.1"
                     min={0}
                     value={form.tolerancia_qtd_pct}
-                    onChange={(e) => setField('tolerancia_qtd_pct', Number(e.target.value) || 0)}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => setField('tolerancia_qtd_pct', v === '' ? 0 : v)}
                     disabled={!canWrite}
                   />
                 </div>
@@ -908,13 +909,14 @@ export function OrcamentoFormPage() {
                     <label>
                       Imposto % <span className="field-note">estimativa — não é NF</span>
                     </label>
-                    <input
-                      type="number"
+                    <NumericInput
                       step="0.1"
                       min={0}
                       max={100}
                       value={form.imposto_pct}
-                      onChange={(e) => setField('imposto_pct', Number(e.target.value) || 0)}
+                      emptyCommit={0}
+                      blankZero
+                      onCommit={(v) => setField('imposto_pct', v === '' ? 0 : v)}
                       disabled={!canWrite}
                     />
                   </div>
@@ -999,11 +1001,12 @@ export function OrcamentoFormPage() {
               {showPuxadaField ? (
                 <div className="form-group manual-field">
                   <label>Puxada (cm) *</label>
-                  <input
-                    type="number"
+                  <NumericInput
                     step="0.00001"
-                    value={form.puxada_cm || ''}
-                    onChange={(e) => setField('puxada_cm', Number(e.target.value) || 0)}
+                    value={form.puxada_cm}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => setField('puxada_cm', v === '' ? 0 : v)}
                     disabled={!canWrite}
                   />
                 </div>
@@ -1013,13 +1016,11 @@ export function OrcamentoFormPage() {
                   <label>
                     Z (dentes) <span className="field-note">matriz / cilindro</span>
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
                     step="0.1"
-                    value={form.z === '' ? '' : form.z}
-                    onChange={(e) =>
-                      setField('z', e.target.value === '' ? '' : Number(e.target.value))
-                    }
+                    value={form.z}
+                    emptyCommit=""
+                    onCommit={(v) => setField('z', v)}
                     disabled={!canWrite}
                   />
                 </div>
@@ -1029,11 +1030,12 @@ export function OrcamentoFormPage() {
                   Largura papel (cm) *{' '}
                   <span className="field-note">sugestão da faca — ajuste se preciso</span>
                 </label>
-                <input
-                  type="number"
+                <NumericInput
                   step="0.01"
-                  value={form.largura_cm || ''}
-                  onChange={(e) => setField('largura_cm', Number(e.target.value) || 0)}
+                  value={form.largura_cm}
+                  emptyCommit={0}
+                  blankZero
+                  onCommit={(v) => setField('largura_cm', v === '' ? 0 : v)}
                   disabled={!canWrite}
                 />
               </div>
@@ -1104,21 +1106,23 @@ export function OrcamentoFormPage() {
               </div>
               <div className="form-group">
                 <label>Colunas</label>
-                <input
-                  type="number"
+                <NumericInput
+                  integer
                   min={1}
                   value={form.colunas}
-                  onChange={(e) => setField('colunas', Number(e.target.value) || 1)}
+                  emptyCommit={1}
+                  onCommit={(v) => setField('colunas', v === '' ? 1 : v)}
                   disabled={!canWrite}
                 />
               </div>
               <div className="form-group">
                 <label>Modelos</label>
-                <input
-                  type="number"
+                <NumericInput
+                  integer
                   min={1}
                   value={form.modelos}
-                  onChange={(e) => setModelosCount(Number(e.target.value) || 1)}
+                  emptyCommit={1}
+                  onCommit={(v) => setModelosCount(v === '' ? 1 : v)}
                   disabled={!canWrite}
                 />
               </div>
@@ -1138,11 +1142,12 @@ export function OrcamentoFormPage() {
               </div>
               <div className="form-group">
                 <label>Etiq. por rolo</label>
-                <input
-                  type="number"
+                <NumericInput
+                  integer
                   min={1}
                   value={form.etiq_por_rolo}
-                  onChange={(e) => setField('etiq_por_rolo', Number(e.target.value) || 1)}
+                  emptyCommit={1}
+                  onCommit={(v) => setField('etiq_por_rolo', v === '' ? 1 : v)}
                   disabled={!canWrite}
                 />
               </div>
@@ -1162,21 +1167,23 @@ export function OrcamentoFormPage() {
               </div>
               <div className="form-group">
                 <label>Col. rebobinação</label>
-                <input
-                  type="number"
+                <NumericInput
+                  integer
                   min={1}
                   value={form.coluna_rebobinacao}
-                  onChange={(e) => setField('coluna_rebobinacao', Number(e.target.value) || 1)}
+                  emptyCommit={1}
+                  onCommit={(v) => setField('coluna_rebobinacao', v === '' ? 1 : v)}
                   disabled={!canWrite}
                 />
               </div>
               <div className="form-group">
                 <label>RPM</label>
-                <input
-                  type="number"
+                <NumericInput
+                  integer
                   min={1}
                   value={form.rpm}
-                  onChange={(e) => setField('rpm', Number(e.target.value) || 1000)}
+                  emptyCommit={1000}
+                  onCommit={(v) => setField('rpm', v === '' ? 1000 : v)}
                   disabled={!canWrite}
                 />
               </div>
@@ -1207,14 +1214,13 @@ export function OrcamentoFormPage() {
                 <label>
                   Gordura <span className="field-note">interno — cliente não vê</span>
                 </label>
-                <input
-                  type="number"
+                <NumericInput
                   step="0.01"
                   min={0}
-                  value={form.valor_gordura || ''}
-                  onChange={(e) =>
-                    setField('valor_gordura', Math.max(0, Number(e.target.value) || 0))
-                  }
+                  value={form.valor_gordura}
+                  emptyCommit={0}
+                  blankZero
+                  onCommit={(v) => setField('valor_gordura', v === '' ? 0 : Math.max(0, v))}
                   disabled={!canWrite}
                   placeholder="0,00"
                 />
@@ -1305,14 +1311,13 @@ export function OrcamentoFormPage() {
                   <label>
                     Gordura <span className="field-note">interno — cliente não vê</span>
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
                     step="0.01"
                     min={0}
-                    value={form.valor_gordura || ''}
-                    onChange={(e) =>
-                      setField('valor_gordura', Math.max(0, Number(e.target.value) || 0))
-                    }
+                    value={form.valor_gordura}
+                    emptyCommit={0}
+                    blankZero
+                    onCommit={(v) => setField('valor_gordura', v === '' ? 0 : Math.max(0, v))}
                     disabled={!canWrite}
                     placeholder="0,00"
                   />
@@ -1357,37 +1362,39 @@ export function OrcamentoFormPage() {
                 <div key={i} className="form-grid faixa-row">
                   <div className="form-group">
                     <label>Quantidade</label>
-                    <input
-                      type="number"
-                      min={1}
+                    <NumericInput
+                      integer
+                      min={0}
                       value={f.quantidade}
-                      onChange={(e) => setFaixa(i, 'quantidade', Number(e.target.value) || 0)}
+                      emptyCommit={0}
+                      blankZero
+                      onCommit={(v) => setFaixa(i, 'quantidade', v === '' ? 0 : v)}
                       disabled={!canWrite}
                     />
                   </div>
                   {form.tipo_operacao === TIPO_SERVICO ? (
                     <div className="form-group">
                       <label>Valor unitário (R$)</label>
-                      <input
-                        type="number"
+                      <NumericInput
                         min={0}
                         step="0.01"
                         value={f.valor_unitario ?? ''}
-                        onChange={(e) =>
-                          setFaixa(i, 'valor_unitario', Number(e.target.value) || 0)
-                        }
+                        emptyCommit={0}
+                        blankZero
+                        onCommit={(v) => setFaixa(i, 'valor_unitario', v === '' ? 0 : v)}
                         disabled={!canWrite}
                       />
                     </div>
                   ) : null}
                   <div className="form-group">
                     <label>Comissão %</label>
-                    <input
-                      type="number"
+                    <NumericInput
                       step="0.1"
                       min={0}
                       value={f.comissao_pct}
-                      onChange={(e) => setFaixa(i, 'comissao_pct', Number(e.target.value) || 0)}
+                      emptyCommit={0}
+                      blankZero
+                      onCommit={(v) => setFaixa(i, 'comissao_pct', v === '' ? 0 : v)}
                       disabled={!canWrite}
                     />
                   </div>

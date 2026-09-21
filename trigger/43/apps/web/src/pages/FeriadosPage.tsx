@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { NumericInput } from '../components/NumericInput';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Feriado } from '../lib/api';
@@ -166,12 +167,13 @@ export function FeriadosPage() {
           >
             <div className="form-group" style={{ minWidth: 100 }}>
               <label>Ano</label>
-              <input
-                type="number"
+              <NumericInput
+                integer
                 min={2000}
                 max={2100}
                 value={ano}
-                onChange={(e) => setAno(Number(e.target.value) || anoAtual)}
+                emptyCommit={anoAtual}
+                onCommit={(v) => setAno(v === '' ? anoAtual : v)}
               />
             </div>
             <div className="form-group" style={{ flex: 1, minWidth: 200 }}>

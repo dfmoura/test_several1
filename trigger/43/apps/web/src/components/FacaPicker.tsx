@@ -8,6 +8,7 @@ import { FacaSilhuetaReal, facaSilhuetaFromRecord } from './FacaSilhuetaReal';
 import { SortableTh } from './SortableTh';
 import { formatColunasMapaLabel } from '../lib/facaSilhueta';
 import { facaPosicaoLabel, isFacaPosicao } from '../lib/facaPosicao';
+import { sanitizeNumericDraft } from '../lib/numericDraft';
 
 export type FacaRecord = Record<string, unknown> & {
   id?: number;
@@ -724,20 +725,22 @@ export function FacaPicker({
               <div className="form-group">
                 <label>Puxada estimada (cm)</label>
                 <input
-                  type="number"
-                  step="0.00001"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
                   value={novaPuxada}
-                  onChange={(e) => setNovaPuxada(e.target.value)}
+                  onChange={(e) => setNovaPuxada(sanitizeNumericDraft(e.target.value))}
                   placeholder="pode completar no formulário"
                 />
               </div>
               <div className="form-group">
                 <label>Z estimado</label>
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
                   value={novaZ}
-                  onChange={(e) => setNovaZ(e.target.value)}
+                  onChange={(e) => setNovaZ(sanitizeNumericDraft(e.target.value))}
                   placeholder="opcional agora"
                 />
               </div>
