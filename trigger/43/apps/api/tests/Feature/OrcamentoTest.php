@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Empresa;
 use App\Models\Orcamento;
+use App\Models\OrcamentoItem;
 use App\Models\Parceiro;
+use App\Support\OrcamentoItens;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -154,14 +156,24 @@ class OrcamentoTest extends TestCase
         $this->assertTrue($create->json('data.editavel'));
         $this->assertMatchesRegularExpression('/^ORC-\d{4}-\d{5}$/', $create->json('data.codigo'));
         $id = $create->json('data.id');
+        // ADR_ORC_ITENS fase 1: dual-write N=1 no detalhe; UI flat intacta.
+        $this->assertCount(1, $create->json('data.itens'));
+        $this->assertFalse($create->json('data.itens.0.legado'));
+        $this->assertSame(1, OrcamentoItem::query()->where('orcamento_id', $id)->count());
+        $this->assertSame(
+            $create->json('data.input_snapshot.medida'),
+            $create->json('data.itens.0.input_snapshot.medida'),
+        );
 
         $list = $this->withHeaders($h)->getJson('/api/v1/orcamentos');
         $list->assertOk();
         $this->assertCount(1, $list->json('data'));
+        $this->assertArrayNotHasKey('itens', $list->json('data.0'));
 
         $show = $this->withHeaders($h)->getJson('/api/v1/orcamentos/'.$id);
         $show->assertOk();
         $this->assertEqualsWithDelta(1900.0, (float) $show->json('data.result_snapshot.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertCount(1, $show->json('data.itens'));
 
         $updPayload = $this->payload();
         $updPayload['modelos'] = 8;
@@ -181,6 +193,8 @@ class OrcamentoTest extends TestCase
         $this->assertSame(8, $update->json('data.input_snapshot.modelos'));
         $this->assertCount(8, $update->json('data.input_snapshot.modelos_composicao'));
         $this->assertSame('Arte 1', $update->json('data.input_snapshot.modelos_composicao.0.nome'));
+        $this->assertSame(8, $update->json('data.itens.0.input_snapshot.modelos'));
+        $this->assertSame(1, OrcamentoItem::query()->where('orcamento_id', $id)->count());
 
         $del = $this->withHeaders($h)->deleteJson('/api/v1/orcamentos/'.$id);
         $del->assertOk();
@@ -458,5 +472,71 @@ class OrcamentoTest extends TestCase
             $ok->assertCreated();
             $this->assertSame($codigo, $ok->json('data.input_snapshot.saida_etiqueta'));
         }
+    }
+
+    public function test_multi_item_create_dois_jobs_flat_espelha_item1(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = array_merge($this->headerPayload(), [
+            'itens' => [
+                array_merge($this->jobPayload(), ['rotulo' => 'Posição A']),
+                array_merge($this->jobPayload(), [
+                    'rotulo' => 'Posição B',
+                    'medida' => '60X40',
+                    'largura_cm' => 62,
+                ]),
+            ],
+        ]);
+
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload);
+        $create->assertCreated();
+        $id = $create->json('data.id');
+
+        $this->assertSame($create->json('data.input_snapshot.medida'), $create->json('data.itens.0.input_snapshot.medida'));
+        $this->assertSame('Posição A', $create->json('data.itens.0.rotulo'));
+        $this->assertSame('60X40', $create->json('data.itens.1.input_snapshot.medida'));
+        $this->assertSame(2, OrcamentoItem::query()->where('orcamento_id', $id)->count());
+        $this->assertSame(2, $create->json('data.result_snapshot.totais.n_itens'));
+        $this->assertGreaterThan(
+            (float) $create->json('data.result_snapshot.faixas.0.valor_total_proposta'),
+            (float) $create->json('data.result_snapshot.totais.soma_primeira_faixa_proposta'),
+        );
+
+        $calc = $this->withHeaders($h)->postJson('/api/v1/orcamentos/calcular', $payload);
+        $calc->assertOk();
+        $this->assertCount(2, $calc->json('data.itens'));
+        $this->assertSame(2, $calc->json('data.totais.n_itens'));
+        $this->assertGreaterThan(0, (float) $calc->json('data.totais.soma_primeira_faixa_proposta'));
+        $this->assertEqualsWithDelta(
+            (float) $calc->json('data.itens.0.result.faixas.0.valor_total_proposta')
+                + (float) $calc->json('data.itens.1.result.faixas.0.valor_total_proposta'),
+            (float) $calc->json('data.totais.soma_primeira_faixa_proposta'),
+            0.02,
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function headerPayload(): array
+    {
+        return [
+            'parceiro_id' => $this->parceiro->id,
+            'prazo_entrega_dias' => 12,
+            'validade_dias' => 7,
+            'tolerancia_qtd_pct' => 20,
+            'tipo_operacao' => 'INDUSTRIALIZACAO',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function jobPayload(array $overrides = []): array
+    {
+        $p = $this->payload();
+        foreach (OrcamentoItens::HEADER_KEYS as $key) {
+            unset($p[$key]);
+        }
+
+        return array_merge($p, $overrides);
     }
 }

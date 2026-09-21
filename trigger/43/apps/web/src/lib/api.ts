@@ -2462,6 +2462,13 @@ export type OrcamentoFreteSnap = {
   peso_caixa_kg?: string | number | null;
 };
 
+export type OrcamentoItemPreview = {
+  ordem: number;
+  rotulo?: string | null;
+  input_snapshot?: Record<string, unknown> | null;
+  result: OrcamentoResult;
+};
+
 export type OrcamentoResult = {
   tipo_operacao?: string;
   tipo_servico?: string;
@@ -2470,6 +2477,12 @@ export type OrcamentoResult = {
   valor_matriz: number;
   motor_version?: number;
   faixas: OrcamentoFaixaResult[];
+  /** Multi-item (fase 2): posições 2..N além do flat (= item 1). */
+  itens?: OrcamentoItemPreview[];
+  totais?: {
+    soma_primeira_faixa_proposta: number;
+    n_itens: number;
+  };
   catalog_snapshot?: Record<string, unknown>;
   faca_nova?: boolean;
   valor_faca_nova?: number;
@@ -2494,6 +2507,15 @@ export type OrcamentoResult = {
   prazo_referencia_em?: string | null;
   data_entrega_prevista?: string | null;
   frete?: OrcamentoFreteSnap | null;
+};
+
+export type OrcamentoItem = {
+  id: number | null;
+  ordem: number;
+  rotulo?: string | null;
+  input_snapshot: Record<string, unknown> | null;
+  result_snapshot: OrcamentoResult | null;
+  legado?: boolean;
 };
 
 export type Orcamento = {
@@ -2557,6 +2579,8 @@ export type Orcamento = {
   atualizado_por?: UsuarioRef | null;
   created_at: string | null;
   updated_at: string | null;
+  /** Posições persistidas — detalhe (show) only. */
+  itens?: OrcamentoItem[];
 };
 
 export type PedidoItem = {

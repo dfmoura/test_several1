@@ -6,6 +6,7 @@ use App\Models\Concerns\HasUserStamps;
 use App\Models\Concerns\BelongsToEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -159,6 +160,12 @@ class Orcamento extends Model
     public function pedido(): HasOne
     {
         return $this->hasOne(Pedido::class);
+    }
+
+    /** Jobs / posições (ADR_ORC_ITENS). Fase 1: tipicamente 1. */
+    public function itens(): HasMany
+    {
+        return $this->hasMany(OrcamentoItem::class)->orderBy('ordem');
     }
 
     public function isEditavel(): bool

@@ -4746,6 +4746,60 @@ table.data-table td.acoes {
   color: var(--text-muted);
 }
 
+/* Multi-item (ADR_ORC_ITENS): resumo do documento + detalhe por item */
+.orc-multi-resumo {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface, #fff) 92%, var(--navy) 8%);
+}
+
+.orc-itens-acordeao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.orc-item-detalhe {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+  overflow: hidden;
+}
+
+.orc-item-detalhe-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.92rem;
+}
+
+.orc-item-detalhe-summary::-webkit-details-marker {
+  display: none;
+}
+
+.orc-item-detalhe-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.4rem;
+  color: var(--text-muted);
+  transition: transform 0.12s ease;
+}
+
+.orc-item-detalhe[open] > .orc-item-detalhe-summary::before {
+  transform: rotate(90deg);
+}
+
+.orc-item-detalhe-body {
+  padding: 0 0.85rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
 .orc-guia-producao-table th,
 .orc-guia-producao-table td {
   vertical-align: top;
@@ -6079,6 +6133,27 @@ table.data-table td.acoes {
   background: #f7f9fc;
 }
 
+.saida-etiqueta-badge--thumb.saida-etiqueta-badge--dense {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.08rem 0.28rem 0.08rem 0.08rem;
+  max-width: 100%;
+  border-radius: 5px;
+}
+
+.saida-etiqueta-badge--thumb.saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 1.15rem;
+  height: 1.25rem;
+  border-radius: 2px;
+}
+
+.saida-etiqueta-badge--thumb.saida-etiqueta-badge--dense .saida-etiqueta-badge__text {
+  font-size: 0.7rem;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
 .saida-etiqueta-badge__img {
   width: 4.25rem;
   height: 4.65rem;
@@ -6093,6 +6168,14 @@ table.data-table td.acoes {
   font-weight: 600;
 }
 
+.orc-spec-grid .saida-etiqueta-badge--dense {
+  margin-top: 0.1rem;
+}
+
+.ficha-table .saida-etiqueta-badge--dense {
+  vertical-align: middle;
+}
+
 .orc-saida-etiqueta-detalhe,
 .ficha-saida-etiqueta {
   margin-top: 0.75rem;
@@ -6100,19 +6183,6 @@ table.data-table td.acoes {
 
 .orc-saida-etiqueta-detalhe {
   margin-bottom: 0.65rem;
-}
-
-.ficha-saida-etiqueta-block {
-  margin-top: 0.85rem;
-}
-
-.ficha-saida-etiqueta-block__title {
-  margin: 0 0 0.4rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted, #5a6577);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .ficha-saida-etiqueta--guia {
@@ -6502,6 +6572,23 @@ table.data-table td.acoes {
   padding-bottom: 0.95rem;
   margin-bottom: 0.15rem;
   border-bottom: 1px solid var(--border);
+}
+
+.orc-spec-faca--compact {
+  padding-bottom: 0.55rem;
+  margin-bottom: 0;
+}
+
+.orc-spec-faca--compact .orc-faca-desenho--inline {
+  gap: 0.55rem;
+}
+
+.orc-spec-faca--compact .orc-faca-desenho-title {
+  font-size: 0.92rem;
+}
+
+.orc-spec-faca--compact .orc-faca-desenho-meta {
+  font-size: 0.75rem;
 }
 
 .orc-pub-card .orc-pub-faca {
@@ -7960,6 +8047,135 @@ tr.row-inactive td {
   border-bottom: 2.5pt solid var(--green);
 }
 
+.ficha-item-heading {
+  margin: 3.5mm 0 1.5mm;
+  padding: 1.2mm 0;
+  border-bottom: 1pt solid var(--border, #c5ced9);
+  font-family: var(--font-display);
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--navy-dark);
+  line-height: 1.2;
+}
+
+/* Descrição + faca (ficha ORC) — grade densa, sem colunas ociosas */
+.ficha-desc-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5mm;
+  align-items: start;
+  margin-top: 1.6mm;
+}
+
+.ficha-desc-layout--com-faca {
+  grid-template-columns: minmax(22mm, 30mm) minmax(0, 1fr);
+  gap: 1.5mm 2.5mm;
+}
+
+.ficha-desc-faca {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6mm;
+  padding: 0.9mm 1.2mm;
+  border: 0.35pt solid var(--border);
+  background: #fafbfd;
+  min-width: 0;
+}
+
+.ficha-desc-faca .orc-faca-desenho--compact {
+  min-width: 0;
+  width: 100%;
+  gap: 1.2mm;
+}
+
+.ficha-desc-faca .orc-faca-desenho-compact-text {
+  gap: 0;
+}
+
+.ficha-desc-faca .orc-faca-desenho-compact-text strong {
+  font-size: 7pt;
+  max-width: none;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.ficha-desc-faca .orc-faca-desenho-compact-text span {
+  font-size: 5.75pt;
+  line-height: 1.15;
+}
+
+.ficha-desc-faca .orc-faca-desenho-visual {
+  transform: scale(0.88);
+  transform-origin: left center;
+}
+
+.ficha-desc-faca .ficha-orc-faca-valor {
+  font-size: 5.75pt;
+  white-space: normal;
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.ficha-desc-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 3.2mm;
+  row-gap: 0.7mm;
+  min-width: 0;
+}
+
+.ficha-desc-cell {
+  display: inline-flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 1mm;
+  max-width: none;
+  min-width: 0;
+}
+
+.ficha-desc-cell span {
+  display: inline;
+  font-size: 5pt;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text-muted, #5a6577);
+  line-height: 1.15;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ficha-desc-cell strong {
+  display: inline;
+  font-size: 6.5pt;
+  font-weight: 650;
+  color: var(--navy-dark, #1a3568);
+  line-height: 1.15;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.ficha-desc-cell .saida-etiqueta-badge--dense {
+  margin-top: 0;
+  gap: 0.12rem;
+  padding: 0.04rem 0.18rem 0.04rem 0.04rem;
+  flex-shrink: 0;
+}
+
+.ficha-desc-cell .saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 0.85rem;
+  height: 0.95rem;
+}
+
+.ficha-desc-cell .saida-etiqueta-badge--dense .saida-etiqueta-badge__text {
+  font-size: 5.75pt;
+  white-space: nowrap;
+}
+
 .ficha-title-main {
   min-width: 0;
   flex: 1;
@@ -8732,6 +8948,26 @@ tr.row-inactive td {
   padding: 0.65mm 1mm;
 }
 
+/* Métricas: auto-layout — colunas estreitas pelo conteúdo, sem sobrepor texto */
+.ficha-sheet-orc .ficha-table-metricas {
+  table-layout: auto;
+}
+
+.ficha-sheet-orc .ficha-table-metricas th,
+.ficha-sheet-orc .ficha-table-metricas td {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.ficha-sheet-orc .ficha-table-metricas .ficha-col-qtd,
+.ficha-sheet-orc .ficha-table-metricas .ficha-col-hora,
+.ficha-sheet-orc .ficha-table-metricas .ficha-col-rolos {
+  width: 1%;
+  padding-left: 0.7mm;
+  padding-right: 0.7mm;
+}
+
 .ficha-orc-faca {
   display: flex;
   align-items: center;
@@ -8740,6 +8976,30 @@ tr.row-inactive td {
   border: 0.35pt solid var(--border);
   border-top: 0;
   background: #fafbfd;
+}
+
+.ficha-orc-faca.ficha-orc-faca-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5mm 4mm;
+  margin-top: 1.5mm;
+  padding: 1.2mm 2mm;
+  border-top: 0.35pt solid var(--border);
+}
+
+.ficha-orc-faca-compact .orc-faca-desenho--inline {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2mm;
+}
+
+.ficha-orc-faca-valor {
+  font-size: 7.5pt;
+  font-weight: 650;
+  color: var(--navy-dark, #1a3568);
+  white-space: nowrap;
 }
 
 .ficha-orc-faca.ficha-orc-faca-documento {

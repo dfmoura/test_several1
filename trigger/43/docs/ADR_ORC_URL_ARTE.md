@@ -1,30 +1,31 @@
 # ADR — URL pública da arte no orçamento (prova para aprovação)
 
-**Status:** Aceito · **Data:** 2026-09-02  
+**Status:** Retirado da superfície operacional · **Data:** 2026-09-02 · **Emenda:** 2026-09-21  
 **Norma relacionada:** `ADR_ORC_LINK_APROVACAO.md` · `ADR_ORC_MODELOS_COMPOSICAO.md`
 
 ## Contexto
 
-O cliente precisa conferir o **formato final da arte** antes de aprovar a proposta. A arte costuma viver fora do ERP (Drive, Dropbox, Figma, PDF hospedado, imagem etc.). Upload/R2 privado permanece BL futuro (`ADR_ORC_LINK_APROVACAO`).
+O cliente precisava conferir o **formato final da arte** antes de aprovar a proposta. A arte costuma viver fora do ERP. Em 2026-09-21 a operação retirou o campo da estrutura do ORC (formulário, detalhe, ficha e proposta) — a prova de arte deixa de ser etapa do fluxo comercial no sistema.
 
-## Decisão
+## Decisão (atual)
 
 | Escolha | Motivo |
 |---------|--------|
-| **Campo único `url_arte` no `input_snapshot`** | Um link da prova final por ORC — não por item de `modelos_composicao` (composição = nome/%; prova = arte fechada). Sem coluna SQL. |
-| **Opcional** | ORC sem arte cadastrada continua válido. |
-| **Só `http://` / `https://`** | Bloqueia `javascript:`, `data:`, etc. Validação Laravel + normalização em persistência e DTO público. |
-| **Apresentar como link externo** | PDF, PNG, JPG, Drive, Figma — formatos diferentes. Embutir (iframe/img) quebraria layout, CSP e segurança. Abre em nova aba (`noopener noreferrer`). |
-| **Mesma casca comercial** | `OrcamentoPropostaView` (link `/p/{token}` + ficha-cliente/prévia) e ficha interna / detalhe. Posição: **após Condições**, antes de “Sua decisão”. |
+| **Sem campo na UX operacional** | Formulário ORC, detalhe, ficha interna, proposta pública e confirmação PED **não** exibem nem pedem `url_arte`. |
+| **Snapshot / API opcional (legado)** | `input_snapshot.url_arte` e validação `http(s)` permanecem no motor/API para não quebrar ORCs antigos nem testes de contrato. Sem UI para gravar novos. |
+| **Sem upload/R2 neste ADR** | Continua fora de escopo. |
+
+## Decisão histórica (congelada)
+
+Campo único opcional no snapshot, só `http`/`https`, link externo na proposta — ver histórico git desta ADR antes da emenda 2026-09-21.
 
 ## Fora de escopo
 
 - Upload de arquivo / R2
-- Proxy ou thumbnail no ERP
-- URL por arte em `modelos_composicao[]` (evolução possível se a operação exigir N provas)
+- Reintroduzir o campo sem nova ADR de produto
 
 ## Consequências
 
-- Comercial cola a URL pública no formulário do ORC.
-- Cliente e staff veem o mesmo bloco “Arte para aprovação”.
-- Impressão da ficha-cliente inclui a URL em texto (além do CTA).
+- Comercial não cola URL de arte no ORC.
+- Proposta e fichas ficam sem bloco “Arte para aprovação”.
+- Valores legados no snapshot ficam inertes (não apagados automaticamente).

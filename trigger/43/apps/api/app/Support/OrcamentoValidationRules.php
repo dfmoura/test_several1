@@ -15,6 +15,11 @@ final class OrcamentoValidationRules
      */
     public static function calcularRules(): array
     {
+        $raw = request()->all();
+        if (isset($raw['itens']) && is_array($raw['itens'])) {
+            return self::multiItemRules($raw);
+        }
+
         $tipo = TipoOperacaoSaida::fromInput(request('tipo_operacao') ?? request('necessidade'));
         if ($tipo === TipoOperacaoSaida::CESSAO_BEM) {
             return [
@@ -30,12 +35,69 @@ final class OrcamentoValidationRules
     }
 
     /**
+     * Payload multi-item: cabeçalho na raiz + jobs em itens[].
+     *
+     * @param  array<string, mixed>  $raw
+     * @return array<string, mixed>
+     */
+    private static function multiItemRules(array $raw): array
+    {
+        $tipo = TipoOperacaoSaida::fromInput($raw['tipo_operacao'] ?? $raw['necessidade']);
+        if ($tipo === TipoOperacaoSaida::CESSAO_BEM) {
+            return [
+                'tipo_operacao' => ['required', 'string'],
+                'parceiro_id' => ['nullable', 'integer'],
+                'itens' => ['prohibited'],
+            ];
+        }
+
+        $jobRules = $tipo === TipoOperacaoSaida::SERVICO
+            ? self::servicoJobRules()
+            : self::industrializacaoJobRules();
+
+        return array_merge(self::comuns(), [
+            'tipo_operacao' => $tipo === TipoOperacaoSaida::SERVICO
+                ? ['required', 'string', Rule::in([TipoOperacaoSaida::SERVICO])]
+                : ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
+            'itens' => ['required', 'array', 'min:1', 'max:20'],
+            'itens.*.rotulo' => ['nullable', 'string', 'max:120'],
+        ], self::prefixRules('itens.*.', $jobRules));
+    }
+
+    /**
+     * @param  array<string, mixed>  $rules
+     * @return array<string, mixed>
+     */
+    private static function prefixRules(string $prefix, array $rules): array
+    {
+        $out = [];
+        foreach ($rules as $key => $rule) {
+            $out[$prefix.$key] = $rule;
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function industrializacaoRules(): array
     {
-        return array_merge(self::comuns(), [
+        return array_merge(self::comuns(), self::industrializacaoJobRules(), [
             'tipo_operacao' => ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
+            // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
+            'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],
+        ]);
+    }
+
+    /**
+     * Campos de job (posição) — industrialização.
+     *
+     * @return array<string, mixed>
+     */
+    public static function industrializacaoJobRules(): array
+    {
+        return [
             'medida' => ['required', 'string', 'max:64'],
             'largura_cm' => ['required', 'numeric', 'gt:0'],
             'puxada_cm' => ['required', 'numeric', 'gt:0'],
@@ -121,9 +183,7 @@ final class OrcamentoValidationRules
             'faca_diametro_cm' => ['nullable', 'numeric', 'gt:0'],
             'faca_tamanho_raw' => ['nullable', 'string', 'max:64'],
             'faca_tamanho_tipo' => ['nullable', 'string', 'max:32'],
-            // Snapshot comercial → PED (PedidoService::resolverNecessidade). Default PRODUCAO.
-            'necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'SERVICO', 'REVENDA'])],
-        ]);
+        ];
     }
 
     /**
@@ -133,8 +193,19 @@ final class OrcamentoValidationRules
      */
     public static function servicoRules(): array
     {
-        return array_merge(self::comuns(), [
+        return array_merge(self::comuns(), self::servicoJobRules(), [
             'tipo_operacao' => ['required', 'string', Rule::in([TipoOperacaoSaida::SERVICO])],
+        ]);
+    }
+
+    /**
+     * Campos de job (posição) — prestação de serviço.
+     *
+     * @return array<string, mixed>
+     */
+    public static function servicoJobRules(): array
+    {
+        return [
             'tipo_servico' => ['required', 'string', Rule::in(CatalogoServicoSaida::TIPOS)],
             'descricao_servico' => ['required', 'string', 'min:3', 'max:2000'],
             'material_cliente' => ['sometimes', 'boolean'],
@@ -147,8 +218,7 @@ final class OrcamentoValidationRules
             'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
             'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'valor_gordura' => ['nullable', 'numeric', 'min:0'],
-            'necessidade' => ['nullable', 'string', Rule::in(['SERVICO'])],
-        ]);
+        ];
     }
 
     /**

@@ -74,13 +74,13 @@ function chipVal(v: number | string | null | undefined, suffix = ''): string {
 function silhuetaSize(variant: OrcamentoFacaDesenhoProps['variant']): number {
   switch (variant) {
     case 'compact':
-      return 28;
+      return 24;
     case 'inline':
-      return 44;
+      return 36;
     case 'documento':
-      return 88;
+      return 56;
     default:
-      return 64;
+      return 48;
   }
 }
 

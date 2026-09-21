@@ -1,0 +1,121 @@
+Olá, bem-vindo a todos e a todas à Universidade de Beraba. Eu sou o professor Leonardo Assis
+e vamos apresentar agora sobre o componente que nós estamos iniciando chamado Projeto
+Integrado Relato de Experiências de um Projeto de Extensão. Vejam, esse componente que
+eu iniciei agora e tem o objetivo de consolidar, documentar e relatar aquela atividade que
+foi desenvolvida no âmbito da outra disciplina projeto integrado extensão. Lá a gente
+descrevia como fazer um projeto, um planejamento da ação que seria executada. Aqui a gente
+já está focado mais em relatar aquela experiência que foi feita. Então, vamos ver que
+há particularidades entre esses dois componentes e os dois se complementam no desenho curricular
+do curso, como seria o trabalho de conclusão do curso, o TCC, de vocês. Então, vamos usar.
+Primeiro, o que é o relato de um projeto de extensão? Por definição, vai ser um documento
+acadêmico no qual a gente formaliza e descreve todas as etapas de um projeto de extensão
+universitário que vocês fizeram na disciplina, no âmbito da disciplina projeto integrado de
+extensão. Eu queria que vocês pensassem nisso como não apenas um requisito para a conclusão do
+curso, uma atividade a mais, mas também oferecesse uma oportunidade para reflexão. Reflexão
+sobre a experiência que vocês viveram, atuando de forma a ajudar a sociedade naquele ponto,
+qualquer atividade. Esse componente também permite a gente conectar em teoria e prática,
+demonstrar o impacto social dessa atividade que foi desenvolvida. Você procurando aplicar os
+conhecimentos adquiridos durante o curso, ao mesmo tempo fazendo um bem para a sociedade na
+polsso sincérie, naquela comunidade na qual se ensere. Vamos lá. Exemplos de projetos de extensão
+e a gente discutiu isso muito mais aprofundadamente na apresentação da disciplina projeto
+integrado de extensão, mas só para retomar que algumas das atividades que foram frequentes,
+desenvolvimento de site para uma organização, uma instituição, isso vai buscar os seus
+conhecimentos, desenvolvimento de aplicativos, um estudo de linguagens de programação para
+criar uma presença digital para essas organizações sem fins lucrativos, incluindo
+funcionalidades como doações, online, sistema de divulgação de projetos, calendário de ações,
+como outro. Houve também e há também um grande número de propostas para criar sistemas
+para uma organização revigiosa qualquer. Então, desenvolvimento de sistemas de gestão para
+estudos de membros, eventos, atividades de instituições religiosas, de calidade. Cursos também
+de informática básica foram também projetos que a gente recebeu e são muito úteis para
+geralmente beneficiar algum público que é mais alvo de falta de domínio, como idosos,
+falta de domínio das tecnologias, das tecnologias atuais. Então, um exemplo de projeto seria
+uma oferta de cursos e oficinas de inclusão para comunidades carentes, abordando o uso básico
+dos computadores e da internet. Temos como segurança digital, capacitação no uso do
+software, entre outros, foram desenvolvidos. Vários outros exemplos foram desenvolvidos
+do componente e projeto integrado e extensão. Agora, vamos ver como que a gente precisa fazer
+em termos práticos, fazer esse relato de experiência que é o foco nosso aqui, dessas orientações e vai
+ser ao longo do desenvolvimento dessa disciplina. A primeira coisa é a sistematização de evidências,
+que seja, levantar evidências que a atividade extensão foi realizada para documentá-la. Aí vocês
+podem me perguntar, mas que tipo de evidência, professor? Eu vou falar para vocês que o tipo de
+evidência varia de acordo com a atividade que foi desenvolvida. Tem tipos de evidências mais ou
+menos pertinentes conforme à atividade que vocês desenvolveram. Exemplo, oficinas e cursos. Bom,
+se você fez um oficino, um curso, um workshop, seria interessante tirar fotos da realização dos
+alunos em treinamento das pessoas sendo treinadas, daquela condição, em uma sala de aula, por exemplo,
+aonde isso aconteceu. A coleta de depoimentos também dessas pessoas, em relação àquela
+impressão delas, pode ser um documento interessante, uma evidência interessante, na verdade,
+para compor o documento. Se foi um aplicativo ou software, olha, esse é um, uma evidência muito
+fácil, né? Basta um print de algumas telas ou do trecho do código. Ou seja, consegue caracterizar ali
+que desenvolveu aquele aplicativo, aquele software. A digitalização de acervo. Por exemplo,
+eu vou digitalizar o acervo de um determinado museu, de uma determinada entidade na minha localidade.
+Então, o exemplo de imagens do conteúdo que foi digitalizado, né? Às vezes um jornal antigo que
+tem relevância histórica, pode compor aqui e configurar como uma evidência, né? A criação e
+gestão de mídias sociais seria um outro exemplo, né? O registro da ação e seu resultado. Como
+a criação do site com determinada organização, o gestão das mídias sociais para aquela
+organização, como é que você planejou isso, né? Isso é interessante. O suporte, a manutenção de
+uma infraestrutura digital, ou seja, você foi lá, por exemplo, havia uma escola com uma
+laboratória informática que não estava em minha operação, você foi lá e ofereceu uma manutenção
+dos micros, colocou coisas em rede, colocou coisas operacionais novamente, fez um diagnóstico
+da situação onde arrumou, né? Onde foi possível, onde não foi possível, descreveu o que que
+aconteceu, o que foi impeditivo, né? Então, a descrição desse suporte técnico que foi
+realizado, uma foto de antes, uma foto de depois, se a condição assim permitiu, você achar que
+a condição caracteriza melhor também, pode ser uma evidência dessa, dessa atividade. Então,
+a sistematização de evidências aí passa ou perpassa, né? Por diferentes modos de registro
+a depender da natureza dessa atividade que, extensioneza, que foi efetivamente executada
+para você. Bom, além disso, além de documentar e sistematizar essas evidências, né? Seria
+interessante uma descrição do contexto histórico e da interação que você teve com aquela
+organização, com aquela entidade para a qual você se propôs a desenvolver atividades
+testionistas, né? Seria interessante preparar um registro textual, escrever, redigir com as
+informações ali. Qual que era o problema que você estava enfrentando, né? Que a sua atividade
+extensão atacou diretamente os benefícios diretos, indiretos, né? Enfim, caracterizar o problema.
+Depois, qual foi a organização parceira, né? Então, aquele problema em tal organização,
+identificou a organização, é uma entidade religiosa, é uma ONG, uma organização não
+mental, né? Que tipo de organização quer? Depois, a interação com essa organização, né? O
+cenário encontrado naquele ambiente de acordo com aquele projeto e qual foi o contexto que você
+encontrou, aquele cenário, né? Qual foi a proposta de solução que você apresentou para a entidade,
+a organização e que foi aceita, né? Qual a metodologia que você usou para poder fazer essa
+implementar essa ação de extensão, né? Foi uma oficina quantas pessoas, quantas horas do curso você
+fez alguma postila ou algum outro recurso audiovisual como Power Point que a gente está usando agora,
+por exemplo, como foi isso, né? Então, qual a metodologia que você usou? Se foi para você, né?
+É uma coisa, né? Como a gente falou, a sistematização das evidências varia. Se for um software,
+também qual foi a metodologia de desenvolvimento desse software, né? Quais aplicações você usou,
+uma linguagem de programação. Enfim, ferramentas que foram úteis, né? Para você fazer o seu
+projeto de extensão e sintetizando aqui qual foi o principal resultado obtido, né? Com essa ação,
+com essa atividade, na formação você percebeu uma melhora nos cuidados, da população, se a questão
+de segurança, você percebeu que uma maior desenvoltura, esse foi o treinamento de uso de um software,
+no caso de uma oficina, né? E assim, os exemplos, né, variam de acordo com os resultados, variam
+de acordo com a assistência prestada, né? Com o tipo de atividade extensionista que foi
+totalmente executado. É, por fim, o relatório em si, né? Que a gente está falando de um relato
+de experiências, nada melhor do que um instrumento usar como instrumento relatório. O relatório de
+um de um projeto de extensão, ele deve seguir aqui as normas e a estrutura, né? De trabalhos
+acadêmicos definidos pela Associação Brasileira de Normas Técnicas, né? Todos os trabalhos
+acadêmicos seguem, geralmente, né? Na maioria, a desmagadora aí das instituições, seguem
+os critérios e normas estabelecidos pela Associação Brasileira de Normas Técnicas, a BNT.
+Estamos aqui, nós vamos fazer diferente também, né? E, além disso, vocês já estão acostumados no
+projeto Integrar Extensão, vocês usaram referências conforme a BNT, vários elementos conforme a
+BNT, então, já fica mais fácil, né? Estacando que a gente tem como, é, basicamente, três tipos
+de elementos. Os pré-textuais, os textuais e os pró-textuais. Elementos pré-textuais. Ei,
+capa, resumo, sumário, né? Outros elementos que acham importante, mas que antecedem o
+documento principal. Os elementos textuais seriam a introdução, né? Que caracteriza o problema,
+os objetivos. Depois, o desenvolvimento, que é como você fez aqui a atividade, né? Nem
+que você caracteriza a metodologia usada ou materiais e métodos que foram usados, documentos
+resultados, né? Que foram obtidos e apesenta aí as suas considerações finais sobre a
+atividade que foi desenvolvida. Há também elementos post-textuais que, em alguns casos,
+são interessantes. Primeiro, as referências, né? Que, em todos os casos, elas vão ter que
+existir, vão ter que acompanhar o documento de vocês, porque é onde a gente busca outros
+trabalhos para subsidiar e fundamental o nosso, né? Bom, aí a gente tem anexos e apêndices.
+Anexos é se você usou algum material, já pronto, né? Algum referência pronta de terceiros que
+desenvolveu o seu trabalho. Apêndice é alguma coisa que você produziu. Então, aqui é muito
+interessante colocar, por exemplo, um banco de fotos, no caso de evidências de oficinas, né? Um
+trefo de código, uma estrutura de dados que foi utilizada no caso da programação, desenvolvimento
+de algum software ou aplicativo, tá? Em apêndices, porque apêndices é como se fosse um anexo,
+só que ele é um material que foi produzido por você, pelo autor ou autora daquele documento,
+né? Então, o anexo é um material que é importante para eu entender o que foi feito,
+mas, em vez de terceiros, o apêndice, esse material também é importante para entender o que foi
+feito, mas é produzido pelo próprio autor do documento, ok? E, enfim, também outros
+que acham pertinentes, né? Complementares. Então, o relatório vai se formalizar em
+cima desses três tipos de elementos, né? Pretositoais, textuais, post-textuais. E aqui,
+então, a gente encerra, né? Essa fala, fazendo um resumo do que foi visto,
+né? Primeiro, o que é um relato de experiência num projeto estacionista. Depois, vimos exemplos de
+extensão no TI, normalmente apresentados no TI. E depois, sobre a sistematização de evidências
+e, por fim, do relatório, né? Então, sigam as atividades no ambiente virtual de apêndices
+e, de verdade, a gente segue também a disposição de vocês, tá bom? Aqui são as referências. Muito obrigado.

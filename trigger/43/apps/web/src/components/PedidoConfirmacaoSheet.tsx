@@ -30,11 +30,9 @@ import {
   formatEnderecoParceiro,
   freteTextoDoPedido,
   strSnap,
-  urlArteDoPedido,
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { modelosDoSnap, snapInput, specOperacional } from '../lib/producaoFicha';
-import { isSafeExternalUrl, urlArteHostLabel } from '../lib/urlArte';
 import { pedStatusLabel } from '../lib/producaoUi';
 
 /**
@@ -68,8 +66,6 @@ export function PedidoConfirmacaoSheet({
   const freteTexto = freteTextoDoPedido(p);
   const condicao = condicaoPagamentoDoPedido(p);
   const forma = formaPagamentoDoPedido(p);
-  const urlArte = urlArteDoPedido(p);
-  const arteHref = urlArte && isSafeExternalUrl(urlArte) ? urlArte : null;
   const enderecoCli = formatEnderecoParceiro(cli);
   const totalItens = p.itens.reduce((acc, it) => acc + (Number(it.valor_total) || 0), 0);
 
@@ -301,20 +297,6 @@ export function PedidoConfirmacaoSheet({
             </ul>
           </div>
         </section>
-
-        {arteHref ? (
-          <section className="orc-pub-card orc-url-arte">
-            <h2>Arte de referência</h2>
-            <p className="orc-pub-hint">
-              Prova de arte vinculada a este pedido (PDF, imagem ou arquivo compartilhado).
-            </p>
-            <a className="orc-url-arte-cta" href={arteHref} target="_blank" rel="noopener noreferrer">
-              Abrir arte
-            </a>
-            <p className="orc-url-arte-meta">{urlArteHostLabel(arteHref)}</p>
-            <p className="orc-url-arte-url print-only">{arteHref}</p>
-          </section>
-        ) : null}
 
         {p.observacao ? (
           <section className="orc-pub-card">

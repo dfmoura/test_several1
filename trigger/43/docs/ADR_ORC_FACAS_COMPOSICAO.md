@@ -1,23 +1,26 @@
-# ADR-ORC-FACAS-COMPOSICAO — Uma ou mais facas no orçamento
+# ADR-ORC-FACAS-COMPOSICAO — Facas dentro do job (ferramental)
 
-**Status:** Aceito  
+**Status:** Aceito · **emenda 2026-09-21** (escopo reduzido)  
 **Data:** 2026-09-14  
 **Contexto:** comercial · ORC → PED → FAT  
-**Espelho:** `ADR_ORC_MODELOS_COMPOSICAO.md` (artes)
+**Espelho:** `ADR_ORC_MODELOS_COMPOSICAO.md` (artes)  
+**Norma superior (N geometrias / N specs):** [`ADR_ORC_ITENS.md`](ADR_ORC_ITENS.md) — cabeçalho × itens
 
 ---
 
 ## Contexto
 
-O mapa `orc_mapa_facas` é N por EMP. O ORC guardava **0..1** faca desnormalizada no `input_snapshot` (sem `faca_id`), com um único `valor_faca_nova`. Jobs reais pedem **uma ou mais** facas no mesmo orçamento (conjugada / ferramental conjunto), sem virar N geometrias de motor nem N ORCs.
+O mapa `orc_mapa_facas` é N por EMP. O ORC guardava **0..1** faca desnormalizada no `input_snapshot` (sem `faca_id`), com um único `valor_faca_nova`.
 
 O motor R1–R20 assume **uma** geometria (`medida` / `puxada` / `colunas` / `z`).
+
+**Emenda 2026-09-21:** pedidos com **várias geometrias / produtos** na mesma proposta **não** se modelam como N facas no documento. Isso é **N itens** no ORC (`ADR_ORC_ITENS`). Esta ADR cobre só **ferramental do mesmo job** (0..1 geometria + extras opcionais de cobrança/referência).
 
 ---
 
 ## Decisão
 
-Separar **geometria do cálculo**, **composição operacional de facas** e **add-on comercial** no mesmo ORC:
+Separar **geometria do cálculo**, **composição operacional de facas** e **add-on comercial** no **mesmo item/job** (hoje = ORC flat; com `ADR_ORC_ITENS` = cada posição):
 
 | Campo | Onde | Papel |
 |-------|------|--------|
@@ -45,7 +48,7 @@ FAT                  →  N linhas de ferramental (espelho artes); legado 1 linh
 3. Cada item: `formato` ou `medida` ou `faca_nova`; `valor_faca` ≥ 0; `prazo_faca_dias` opcional.
 4. Principal projeta escalares legado + campos visuais `faca_*`.
 5. Geometria do motor: se a principal trouxer puxada/largura/z/medida/máquina, prevalece na projeção quando o payload veio só pela lista (UI já mantém sync ao marcar principal).
-6. Várias geometrias de produção = **vários ORCs** — não N motores no mesmo job.
+6. Várias geometrias de produção = **vários itens no mesmo ORC** (`ADR_ORC_ITENS`) — não N motores no mesmo job nem N facas “como se fossem produtos”.
 
 ### UX
 
@@ -58,9 +61,11 @@ FAT                  →  N linhas de ferramental (espelho artes); legado 1 linh
 
 ## Consequências
 
-**Agora:** multi-faca no snapshot; motor intacto; FAT N linhas; regressão 0/1 faca legado.
+**Agora:** composição de facas no snapshot do job; motor intacto; FAT N linhas de ferramental; regressão 0/1 faca legado.
 
-**Proibido:** alterar R1–R20 por faca; SKU por faca; só texto em observação; segundo escritor de geometria no motor; auto-receber estoque de faca.
+**Com ADR_ORC_ITENS:** multi-produto / multi-geometria = N posições; esta ADR não é o agregador da proposta.
+
+**Proibido:** alterar R1–R20 por faca; SKU por faca; só texto em observação; segundo escritor de geometria no motor; auto-receber estoque de faca; usar `facas[]` para simular N jobs.
 
 ## Rastreio
 

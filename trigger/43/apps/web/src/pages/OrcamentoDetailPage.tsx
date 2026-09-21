@@ -6,9 +6,12 @@ import {
 } from '../components/OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from '../components/ModelosComposicaoTable';
 import { FacasComposicaoTable } from '../components/FacasComposicaoTable';
-import { facasFromSnapshot } from '../lib/orcamentoForm';
+import {
+  calculoComItensDoOrcamento,
+  facasFromSnapshot,
+} from '../lib/orcamentoForm';
+import { buildItensResultadoUi, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
-import { OrcamentoUrlArteBlock } from '../components/OrcamentoUrlArteBlock';
 import { PageHeader } from '../components/PageHeader';
 import { RegistroMetaStrip } from '../components/RegistroMetaStrip';
 import { StatusPill } from '../components/StatusPill';
@@ -19,6 +22,7 @@ import {
   type OrcamentoDestinatarioAprovacao,
   type OrcamentoEnvioAprovacao,
   type OrcamentoParceiroPronto,
+  type OrcamentoResult,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -32,7 +36,6 @@ import {
   type OrcOverrides,
 } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
-import { normalizeUrlArte } from '../lib/urlArte';
 import { modoEntregaLabel } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 import { pedStatusLabel } from '../lib/producaoUi';
@@ -40,6 +43,59 @@ import { SaidaEtiquetaBadge } from '../components/SaidaEtiquetaBadge';
 import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number; valor_arte?: number };
+
+type ItemFichaSnap = {
+  ordem: number;
+  rotulo: string | null;
+  input: Record<string, unknown>;
+  result: OrcamentoResult | null;
+};
+
+function buildOrcSpecTiles(
+  snap: Record<string, unknown>,
+  isServico: boolean,
+): Array<[string, unknown]> {
+  if (isServico) {
+    return (
+      [
+        ['Tipo', tipoServicoLabel(String(snap.tipo_servico ?? ''))],
+        ['Descrição', snap.descricao_servico],
+        ['Unidade', snap.unidade],
+        ['Material do cliente', snap.material_cliente ? 'Sim' : 'Não'],
+        ['NFS-e (ISS)', snap.codigo_tributacao_nacional_iss],
+        ...(Number(snap.valor_gordura) > 0
+          ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
+          : []),
+      ] as Array<[string, unknown]>
+    ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
+  }
+  return (
+    [
+      ['Cores', snap.cores],
+      ['Papel', snap.papel],
+      ['Acabamento', snap.acabamento],
+      ['Modelos', snap.modelos],
+      ['Colunas', snap.colunas],
+      ['Etiq./rolo', snap.etiq_por_rolo],
+      ['Tubete', snap.tubete],
+      ['Col. rebob.', snap.coluna_rebobinacao],
+      ['Matriz', snap.matriz],
+      ['Imposto %', snap.imposto_pct],
+      ...(Number(snap.valor_gordura) > 0
+        ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
+        : []),
+      ['Troca produto', snap.tipo_troca_produto],
+      ['RPM', snap.rpm],
+    ] as Array<[string, unknown]>
+  ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
+}
+
+function modelosFromSnap(snap: Record<string, unknown>): ModeloCompSnap[] {
+  const raw = Array.isArray(snap.modelos_composicao)
+    ? (snap.modelos_composicao as ModeloCompSnap[])
+    : [];
+  return raw.some((m) => String(m?.nome ?? '').trim() !== '') ? raw : [];
+}
 
 export function OrcamentoDetailPage() {
   const { id } = useParams();
@@ -58,6 +114,7 @@ export function OrcamentoDetailPage() {
   const [avisoDest, setAvisoDest] = useState<string | null>(null);
   const [parceiroPronto, setParceiroPronto] = useState<OrcamentoParceiroPronto | null>(null);
   const [destSelecionado, setDestSelecionado] = useState<string>('');
+  const [itemFichaAba, setItemFichaAba] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -80,6 +137,10 @@ export function OrcamentoDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    setItemFichaAba(0);
+  }, [orc?.id, orc?.itens?.length]);
 
   const destKey = (d: OrcamentoDestinatarioAprovacao) =>
     d.legado ? 'legado' : String(d.parceiro_contato_id);
@@ -227,53 +288,53 @@ export function OrcamentoDetailPage() {
 
   const editavel = isOrcEditavel(orc.status) && orc.editavel;
   const enviavel = (orc.enviavel ?? isOrcEnviavel(orc.status)) && canWrite;
+  /** Cabeçalho do documento (frete, condições, tipo) — dual-write item 1. */
   const input = orc.input_snapshot ?? {};
-  const facaDesenho = facaDesenhoFromSnapshot(input);
   const condicaoSnap = String(input.condicao_pagamento ?? '').trim();
   const formaSnap = String(input.forma_pagamento ?? '').trim();
   const condicoesComerciaisSnap = [condicaoSnap, formaSnap].filter(Boolean).join(' · ');
-  const modelosCompRaw = Array.isArray(input.modelos_composicao)
-    ? (input.modelos_composicao as ModeloCompSnap[])
-    : [];
-  const modelosComp = modelosCompRaw.some((m) => String(m?.nome ?? '').trim() !== '')
-    ? modelosCompRaw
-    : [];
-  const facasComp = facasFromSnapshot(input);
 
   const isServico = tipoOperacaoFromSnap(input) === 'SERVICO';
-  const specTiles: Array<[string, unknown]> = isServico
-    ? (
-        [
-          ['Tipo', tipoServicoLabel(String(input.tipo_servico ?? ''))],
-          ['Descrição', input.descricao_servico],
-          ['Unidade', input.unidade],
-          ['Material do cliente', input.material_cliente ? 'Sim' : 'Não'],
-          ['NFS-e (ISS)', input.codigo_tributacao_nacional_iss],
-          ...(Number(input.valor_gordura) > 0
-            ? ([['Gordura', formatCurrency(Number(input.valor_gordura))]] as Array<[string, unknown]>)
-            : []),
-        ] as Array<[string, unknown]>
-      ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '')
-    : (
-    [
-      ['Cores', input.cores],
-      ['Papel', input.papel],
-      ['Acabamento', input.acabamento],
-      ['Modelos', input.modelos],
-      ['Colunas', input.colunas],
-      ['Etiq./rolo', input.etiq_por_rolo],
-      ['Tubete', input.tubete],
-      ['Col. rebob.', input.coluna_rebobinacao],
-      ['Saída etiqueta', saidaEtiquetaLabel(String(input.saida_etiqueta ?? ''))],
-      ['Matriz', input.matriz],
-      ['Imposto %', input.imposto_pct],
-      ...(Number(input.valor_gordura) > 0
-        ? ([['Gordura', formatCurrency(Number(input.valor_gordura))]] as Array<[string, unknown]>)
-        : []),
-      ['Troca produto', input.tipo_troca_produto],
-      ['RPM', input.rpm],
-    ] as Array<[string, unknown]>
-  ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
+  const itensFicha: ItemFichaSnap[] =
+    !isServico && orc.itens && orc.itens.length > 0
+      ? orc.itens.map((it) => ({
+          ordem: it.ordem,
+          rotulo: it.rotulo ?? null,
+          input: it.input_snapshot ?? {},
+          result: it.result_snapshot,
+        }))
+      : [
+          {
+            ordem: 1,
+            rotulo: null,
+            input,
+            result: orc.result_snapshot,
+          },
+        ];
+  const multiFicha = !isServico && itensFicha.length > 1;
+  const itemFicha =
+    itensFicha[Math.min(itemFichaAba, Math.max(0, itensFicha.length - 1))] ?? itensFicha[0];
+  const inputItem = itemFicha.input;
+  const facaDesenho = facaDesenhoFromSnapshot(inputItem);
+  const modelosComp = modelosFromSnap(inputItem);
+  const facasComp = facasFromSnapshot(inputItem);
+  const faixasItem = itemFicha.result?.faixas ?? orc.result_snapshot?.faixas ?? [];
+  const specTiles = buildOrcSpecTiles(inputItem, isServico);
+
+  const calculoDetalhe = orc.result_snapshot
+    ? calculoComItensDoOrcamento(orc.result_snapshot, orc.itens) ?? orc.result_snapshot
+    : null;
+  const itensUiDetalhe =
+    !isServico && calculoDetalhe
+      ? buildItensResultadoUi(
+          calculoDetalhe,
+          (orc.itens ?? []).map((it) => ({
+            ordem: it.ordem,
+            rotulo: it.rotulo,
+            input_snapshot: it.input_snapshot,
+          })),
+        )
+      : null;
 
   const lockNote = (() => {
     if (orc.status === 'APROVADO') {
@@ -717,13 +778,47 @@ export function OrcamentoDetailPage() {
 
       <div className={`card${facaDesenho ? ' orc-faca-card' : ''}`} style={{ marginBottom: '1rem' }}>
         <div className="card-body">
+          {multiFicha ? (
+            <>
+              <h3 className="orc-section-title" style={{ marginTop: 0 }}>
+                Itens deste orçamento
+              </h3>
+              <p className="field-note" style={{ margin: '0.25rem 0 0.75rem' }}>
+                Cada guia mostra faca, especificação e composição daquele item.
+              </p>
+              <div
+                className="orc-modo-tabs orc-modo-tabs-sub"
+                role="tablist"
+                aria-label="Itens deste orçamento"
+                style={{ marginBottom: '0.85rem' }}
+              >
+                {itensFicha.map((it, i) => (
+                  <button
+                    key={it.ordem}
+                    type="button"
+                    role="tab"
+                    aria-selected={itemFichaAba === i}
+                    className={itemFichaAba === i ? 'active' : ''}
+                    onClick={() => setItemFichaAba(i)}
+                  >
+                    {rotuloItemOrc(it.ordem, it.rotulo)}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
           {facaDesenho ? (
-            <div className="orc-spec-faca">
-              <OrcamentoFacaDesenho {...facaDesenho} variant="featured" />
+            <div className="orc-spec-faca orc-spec-faca--compact">
+              <OrcamentoFacaDesenho {...facaDesenho} variant="inline" />
             </div>
           ) : null}
-          <h3 className="orc-section-title" style={{ marginTop: facaDesenho ? '1rem' : 0 }}>
-            Especificação
+          <h3
+            className="orc-section-title"
+            style={{ marginTop: facaDesenho || multiFicha ? '0.75rem' : 0 }}
+          >
+            {multiFicha
+              ? `Especificação · ${rotuloItemOrc(itemFicha.ordem, itemFicha.rotulo)}`
+              : 'Especificação'}
           </h3>
           <div className="orc-spec-grid">
             {specTiles.map(([label, value]) => (
@@ -732,16 +827,21 @@ export function OrcamentoDetailPage() {
                 <strong>{displaySnap(value)}</strong>
               </div>
             ))}
-          </div>
-          <div className="orc-saida-etiqueta-detalhe">
-            <span className="orc-section-label" style={{ marginBottom: '0.35rem' }}>
-              Saída da etiqueta na bobina
-            </span>
-            {saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ? (
-              <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="thumb" />
-            ) : (
-              <strong>—</strong>
-            )}
+            {!isServico ? (
+              <div>
+                <span>Saída</span>
+                <strong>
+                  {saidaEtiquetaLabel(String(inputItem.saida_etiqueta ?? '')) ? (
+                    <SaidaEtiquetaBadge
+                      code={String(inputItem.saida_etiqueta)}
+                      variant="dense"
+                    />
+                  ) : (
+                    '—'
+                  )}
+                </strong>
+              </div>
+            ) : null}
           </div>
           {modelosComp.length > 0 ? (
             <ModelosComposicaoTable
@@ -749,14 +849,19 @@ export function OrcamentoDetailPage() {
               className="orc-modelos-detalhe-page"
               hint={null}
               showValorArte
-              modelos={modelosComp}
-              faixas={(orc.result_snapshot?.faixas ?? []).map((fx, i) => ({
+              modelos={modelosComp.map((m, i) => ({
+                ordem: Number(m.ordem) || i + 1,
+                nome: String(m.nome ?? ''),
+                percentual: Number(m.percentual) || 0,
+                valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+              }))}
+              faixas={faixasItem.map((fx, i) => ({
                 key: i,
                 quantidade: Number(fx.quantidade) || 0,
               }))}
             />
           ) : null}
-          {!isServico && facasComp.length > 0 ? (
+          {!isServico && facasComp.length > 1 ? (
             <FacasComposicaoTable
               variant="data"
               className="orc-facas-detalhe-page"
@@ -764,9 +869,6 @@ export function OrcamentoDetailPage() {
               showValor
               facas={facasComp}
             />
-          ) : null}
-          {normalizeUrlArte(input.url_arte) ? (
-            <OrcamentoUrlArteBlock url={normalizeUrlArte(input.url_arte)} variant="inline" />
           ) : null}
           {orc.observacao ? (
             <p style={{ marginBottom: 0, marginTop: '0.85rem' }}>
@@ -776,11 +878,12 @@ export function OrcamentoDetailPage() {
         </div>
       </div>
 
-      {orc.result_snapshot ? (
+      {calculoDetalhe ? (
         <OrcamentoResultado
-          calculo={orc.result_snapshot}
+          calculo={calculoDetalhe}
           modoServico={isServico}
           echoEspecificacao={false}
+          itensUi={itensUiDetalhe}
           guiaEspec={isServico ? null : especFromSnapshot(orc.input_snapshot)}
           modelosComposicao={
             isServico

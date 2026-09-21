@@ -3,7 +3,8 @@
 **Status:** Aceito  
 **Data:** 2026-08-12 · emenda 2026-09-10 (valor_arte)  
 **Contexto 39:** comercial · ORC → PED/OP  
-**Norma:** `../32` — `GERACAO_ORCAMENTO.txt` §3.2 / §7.4 · `GERACAO_PEDIDO.txt` · `PRODUCAO_OPERACIONAL_GERENCIAL.txt`
+**Norma:** `../32` — `GERACAO_ORCAMENTO.txt` §3.2 / §7.4 · `GERACAO_PEDIDO.txt` · `PRODUCAO_OPERACIONAL_GERENCIAL.txt`  
+**Agregação da proposta (N jobs):** [`ADR_ORC_ITENS.md`](ADR_ORC_ITENS.md) — esta composição permanece **dentro de cada item/job**
 
 ---
 

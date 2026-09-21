@@ -17,7 +17,7 @@ O comercial precisa **readequar** o preço ao cliente sem alterar tarifas do cat
 
 | Escolha | Motivo |
 |---------|--------|
-| **`valor_gordura` no job** (R$ ≥ 0, default 0) | Um campo por ORC; mesma pad em todas as faixas da escada |
+| **`valor_gordura` no job** (R$ ≥ 0, default 0) | Um campo **por job** (hoje = ORC flat; com `ADR_ORC_ITENS` = por **item/posição**); mesma pad em todas as faixas da escada daquele job |
 | **Pós-motor em `enrichResult`** | Não toca R1–R20 / `motor_version`; BRAHVA intacto |
 | **Soma em `valor_etiqueta` + re-ceiling** | Matriz, faca e artes continuam cotados à parte; frete continua fora do total |
 | **Snapshot:** `valor_etiqueta_base` + `valor_gordura` + `valor_etiqueta` | Auditoria interna; PED/FAT/comissão usam o `valor_etiqueta` final |

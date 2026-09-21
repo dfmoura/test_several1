@@ -12,8 +12,9 @@ import {
 } from './orcamentoParametrosAjuste';
 import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
 import { type SaidaEtiquetaCodigo, isSaidaEtiqueta } from './saidaEtiqueta';
-import { modoComFrete, normalizarModoEntrega } from './orcamentoFrete';
+import { modoComFrete, normalizarModoEntrega, totalPropostaFaixa } from './orcamentoFrete';
 import { facaDimensoesExibicao } from './facasMapa';
+import type { OrcamentoResult } from './api';
 
 export type { OrcOverrides } from './orcamentoParametrosAjuste';
 
@@ -793,6 +794,153 @@ export function formFromSnapshot(
         ? ''
         : Number(snap.valor_frete_manual),
     overrides: parseOverridesFromSnap(snap.overrides),
+  };
+}
+
+/** Campos de cabeçalho do documento ORC (ADR_ORC_ITENS). */
+export const ORC_HEADER_KEYS = [
+  'tipo_operacao',
+  'parceiro_id',
+  'prazo_entrega_dias',
+  'validade_dias',
+  'tolerancia_qtd_pct',
+  'observacao',
+  'url_arte',
+  'condicao_pagamento',
+  'forma_pagamento',
+  'vendedor_parceiro_id',
+  'modo_entrega',
+  'valor_frete_manual',
+] as const;
+
+export type OrcHeaderKey = (typeof ORC_HEADER_KEYS)[number];
+
+const ORC_PAYLOAD_HEADER_KEYS = new Set<string>([
+  ...ORC_HEADER_KEYS,
+  'necessidade',
+]);
+
+export function syncHeaderAcrossItens(itens: OrcForm[], headerSource: OrcForm): OrcForm[] {
+  const header: Pick<OrcForm, OrcHeaderKey> = {
+    tipo_operacao: headerSource.tipo_operacao,
+    parceiro_id: headerSource.parceiro_id,
+    prazo_entrega_dias: headerSource.prazo_entrega_dias,
+    validade_dias: headerSource.validade_dias,
+    tolerancia_qtd_pct: headerSource.tolerancia_qtd_pct,
+    observacao: headerSource.observacao,
+    url_arte: headerSource.url_arte,
+    condicao_pagamento: headerSource.condicao_pagamento,
+    forma_pagamento: headerSource.forma_pagamento,
+    vendedor_parceiro_id: headerSource.vendedor_parceiro_id,
+    modo_entrega: headerSource.modo_entrega,
+    valor_frete_manual: headerSource.valor_frete_manual,
+  };
+  return itens.map((item) => ({ ...item, ...header }));
+}
+
+export function headerFrom(form: OrcForm): Record<string, unknown> {
+  const full = payloadFromForm(form);
+  const out: Record<string, unknown> = {};
+  for (const key of ORC_HEADER_KEYS) {
+    if (key === 'parceiro_id') {
+      out.parceiro_id = full.parceiro_id;
+    } else if (key in full) {
+      out[key] = full[key];
+    }
+  }
+  if (full.tipo_operacao) out.tipo_operacao = full.tipo_operacao;
+  if (full.necessidade) out.necessidade = full.necessidade;
+
+  return out;
+}
+
+export function jobOnlyPayload(form: OrcForm, rotulo?: string | null): Record<string, unknown> {
+  const full = payloadFromForm(form);
+  const job: Record<string, unknown> = {};
+  if (rotulo) job.rotulo = rotulo;
+  for (const [k, v] of Object.entries(full)) {
+    if (!ORC_PAYLOAD_HEADER_KEYS.has(k)) {
+      job[k] = v;
+    }
+  }
+
+  return job;
+}
+
+export function payloadFromFormDocumento(
+  itens: OrcForm[],
+  rotulos?: (string | null)[],
+): Record<string, unknown> {
+  if (itens.length === 0) {
+    return payloadFromForm(defaultOrcForm(null));
+  }
+  if (itens.length === 1) {
+    return payloadFromForm(itens[0]);
+  }
+
+  return {
+    ...headerFrom(itens[0]),
+    itens: itens.map((item, i) => jobOnlyPayload(item, rotulos?.[i] ?? null)),
+  };
+}
+
+export function cloneOrcFormItem(source: OrcForm, catalog: OrcCatalogo | null): OrcForm {
+  const base = defaultOrcForm(catalog);
+  return {
+    ...base,
+    ...source,
+    faixas: source.faixas.map((f) => ({ ...f })),
+    modelos_composicao: source.modelos_composicao.map((m) => ({ ...m })),
+    facas: source.facas.map((f) => ({ ...f })),
+    overrides: { ...source.overrides },
+  };
+}
+
+/** Reconstrói o result de UI com itens+totais a partir do show (ADR_ORC_ITENS). */
+export function calculoComItensDoOrcamento(
+  result: OrcamentoResult | null | undefined,
+  itens: Array<{
+    ordem: number;
+    rotulo?: string | null;
+    result_snapshot?: OrcamentoResult | null;
+  }> | null | undefined,
+): OrcamentoResult | null {
+  if (!result) return null;
+  if (!itens || itens.length <= 1) {
+    const { itens: _i, totais: _t, ...rest } = result;
+    return rest as OrcamentoResult;
+  }
+  if (result.itens && result.itens.length > 1 && result.totais) {
+    return result;
+  }
+  const preview = itens.map((item) => ({
+    ordem: item.ordem,
+    rotulo: item.rotulo ?? null,
+    result: (item.result_snapshot ?? { faixas: [] }) as OrcamentoResult,
+  }));
+  let soma = 0;
+  for (const p of preview) {
+    const fx0 = p.result.faixas?.[0];
+    if (!fx0) continue;
+    const facas = facasFromSnapshot({
+      facas: p.result.facas,
+      faca_nova: p.result.faca_nova,
+      formato_faca: p.result.formato_faca,
+      valor_faca_nova: p.result.valor_faca_nova,
+    });
+    const vFaca = somaValorFacas(facas) || Number(p.result.valor_faca_nova) || 0;
+    const vArtes = Number(p.result.valor_artes) || 0;
+    soma += Number(
+      totalPropostaFaixa(fx0, Boolean(p.result.faca_nova), vFaca, vArtes),
+    );
+  }
+  return {
+    ...result,
+    itens: preview,
+    totais: {
+      soma_primeira_faixa_proposta: Math.round(soma * 100) / 100,
+      n_itens: preview.length,
+    },
   };
 }
 

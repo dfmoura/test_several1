@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { FacasComposicaoTable } from './FacasComposicaoTable';
-import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
   facaDesenhoFromPropostaDescricao,
@@ -310,8 +309,6 @@ export function OrcamentoPropostaView({
             </ul>
           </div>
         </section>
-
-        <OrcamentoUrlArteBlock url={proposta.url_arte} variant="pub" />
 
         {acoes}
 

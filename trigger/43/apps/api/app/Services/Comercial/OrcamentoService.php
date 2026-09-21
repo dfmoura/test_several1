@@ -20,6 +20,7 @@ use App\Support\FacaPosicao;
 use App\Support\SaidaEtiqueta;
 use App\Support\FacasComposicao;
 use App\Support\ModelosComposicao;
+use App\Support\OrcamentoItens;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
@@ -56,11 +57,13 @@ class OrcamentoService
      */
     public function calcularPreview(Empresa $empresa, array $data): array
     {
-        $data = FacasComposicao::ensureInPayload($data);
+        $data = $this->ensurePayloadFacas($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
-        [$input, $result] = $this->precificar($empresa, $parceiro, $data);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data);
 
-        return $this->enrichResult($result, $data, $parceiro, $empresa);
+        $out = $doc['flat_result'];
+
+        return OrcamentoItens::anexarTotaisDocumento($out, $doc['jobs']);
     }
 
     /**
@@ -106,10 +109,11 @@ class OrcamentoService
             'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
             'linkAprovacao',
             'pedido:id,codigo,status,orcamento_id',
+            'itens',
             ...Orcamento::userStampWith(),
         ]);
 
-        return $this->toOut($orcamento);
+        return $this->toOut($orcamento, comItens: true);
     }
 
     /**
@@ -118,13 +122,14 @@ class OrcamentoService
      */
     public function create(Empresa $empresa, array $data): array
     {
-        $data = FacasComposicao::ensureInPayload($data);
+        $data = $this->ensurePayloadFacas($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
-        [$input, $bruto] = $this->precificar($empresa, $parceiro, $data);
-        $result = $this->enrichResult($bruto, $data, $parceiro, $empresa);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor);
+        $input = $doc['flat_input'];
+        $result = $doc['flat_result'];
 
-        $orcamento = DB::transaction(function () use ($empresa, $parceiro, $vendedor, $data, $input, $result) {
+        $orcamento = DB::transaction(function () use ($empresa, $parceiro, $vendedor, $data, $input, $result, $doc) {
             $ano = (int) now()->year;
             $prefix = 'ORC-'.$ano;
             $codigo = $this->codigoGenerator->nextCode($empresa->id, $prefix, 5);
@@ -132,7 +137,7 @@ class OrcamentoService
             $parts = explode('-', $codigo);
             $numero = (int) end($parts);
 
-            $snapshotInput = $this->persistableInput($input, $data, $vendedor);
+            $snapshotInput = $input;
 
             $orc = Orcamento::query()->create([
                 'empresa_id' => $empresa->id,
@@ -156,6 +161,8 @@ class OrcamentoService
                 'observacao' => $data['observacao'] ?? null,
             ]);
 
+            OrcamentoItens::syncJobs($orc, $doc['jobs']);
+
             $this->audit->log('CRIAR', 'Orcamento', $orc->id, null, [
                 'codigo' => $orc->codigo,
                 'status' => $orc->status,
@@ -176,12 +183,13 @@ class OrcamentoService
     {
         $this->assertEditavel($orcamento);
 
-        $data = FacasComposicao::ensureInPayload($data);
+        $data = $this->ensurePayloadFacas($data);
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
-        [$input, $bruto] = $this->precificar($empresa, $parceiro, $data);
-        $result = $this->enrichResult($bruto, $data, $parceiro, $empresa);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor);
+        $input = $doc['flat_input'];
+        $result = $doc['flat_result'];
 
         $before = [
             'versao' => $orcamento->versao,
@@ -189,7 +197,7 @@ class OrcamentoService
             'parceiro_id' => $orcamento->parceiro_id,
         ];
 
-        DB::transaction(function () use ($orcamento, $parceiro, $vendedor, $data, $input, $result, $before) {
+        DB::transaction(function () use ($orcamento, $parceiro, $vendedor, $data, $input, $result, $before, $doc) {
             // Recálculo após recusa: volta a preparação e invalida link antigo.
             if ($orcamento->status === Orcamento::STATUS_REPROVADO) {
                 $link = $orcamento->linkAprovacao()->lockForUpdate()->first();
@@ -199,13 +207,15 @@ class OrcamentoService
                 }
             }
 
+            $snapshotInput = $input;
+
             $orcamento->fill([
                 'versao' => $orcamento->versao + 1,
                 'parceiro_id' => $parceiro->id,
                 'vendedor_parceiro_id' => $vendedor?->id,
                 'cliente_nome' => $parceiro->razao_social,
                 'status' => Orcamento::STATUS_CALCULADO,
-                'input_snapshot' => $this->persistableInput($input, $data, $vendedor),
+                'input_snapshot' => $snapshotInput,
                 'result_snapshot' => $result,
                 'chave_matriz' => $result['chave_matriz'],
                 'cobra_matriz' => $result['cobra_matriz'],
@@ -227,6 +237,8 @@ class OrcamentoService
                 'visualizado_em' => null,
             ]);
             $orcamento->save();
+
+            OrcamentoItens::syncJobs($orcamento, $doc['jobs']);
 
             $this->audit->log('ATUALIZAR', 'Orcamento', $orcamento->id, $before, [
                 'versao' => $orcamento->versao,
@@ -265,6 +277,71 @@ class OrcamentoService
                 ],
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function ensurePayloadFacas(array $data): array
+    {
+        if (isset($data['itens']) && is_array($data['itens'])) {
+            $data['itens'] = array_map(static function ($row) {
+                if (! is_array($row)) {
+                    return $row;
+                }
+
+                return FacasComposicao::ensureInPayload($row);
+            }, $data['itens']);
+
+            return $data;
+        }
+
+        return FacasComposicao::ensureInPayload($data);
+    }
+
+    /**
+     * Precifica 1..N jobs; flat snapshots = posição 1 (PED compat fase 2).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{
+     *   header: array<string, mixed>,
+     *   jobs: list<array{rotulo: string|null, input: array<string, mixed>, result: array<string, mixed>}>,
+     *   flat_input: array<string, mixed>,
+     *   flat_result: array<string, mixed>,
+     *   n_itens: int
+     * }
+     */
+    private function precificarDocumento(
+        Empresa $empresa,
+        Parceiro $parceiro,
+        array $data,
+        ?Parceiro $vendedor = null,
+    ): array {
+        $expanded = OrcamentoItens::expandPayload($data);
+        $header = $expanded['header'];
+        $jobs = [];
+
+        foreach ($expanded['jobs'] as $jobSpec) {
+            $jobData = $jobSpec['data'];
+            // Modelos/facas: ensure fica em buildMotorInput / ensurePayloadFacas (evita
+            // equal-split com nome "" ser revalidado e 422 em ORCs/testes legados).
+            [$input, $bruto] = $this->precificar($empresa, $parceiro, $jobData);
+            $result = $this->enrichResult($bruto, $jobData, $parceiro, $empresa);
+            $jobs[] = [
+                'rotulo' => $jobSpec['rotulo'],
+                'input' => $this->persistableInput($input, $jobData, $vendedor),
+                'result' => $result,
+            ];
+        }
+
+        return [
+            'header' => $header,
+            'jobs' => $jobs,
+            'flat_input' => $jobs[0]['input'],
+            'flat_result' => $jobs[0]['result'],
+            'n_itens' => count($jobs),
+        ];
     }
 
     private function resolveParceiro(Empresa $empresa, int $parceiroId): Parceiro
@@ -669,11 +746,11 @@ class OrcamentoService
     }
 
     /** @return array<string, mixed> */
-    private function toOut(Orcamento $o): array
+    private function toOut(Orcamento $o, bool $comItens = false): array
     {
         $o->loadMissing(Orcamento::userStampWith());
 
-        return [
+        $out = [
             'id' => $o->id,
             'empresa_id' => $o->empresa_id,
             'ano' => $o->ano,
@@ -757,6 +834,22 @@ class OrcamentoService
             'created_at' => $o->created_at?->toIso8601String(),
             'updated_at' => $o->updated_at?->toIso8601String(),
         ];
+
+        if ($comItens) {
+            $out['itens'] = OrcamentoItens::toOut($o);
+            if (
+                is_array($out['result_snapshot'])
+                && $o->relationLoaded('itens')
+                && $o->itens->count() > 1
+            ) {
+                $out['result_snapshot'] = OrcamentoItens::anexarTotaisDocumento(
+                    $out['result_snapshot'],
+                    OrcamentoItens::jobsFromModels($o->itens->sortBy('ordem')->values()),
+                );
+            }
+        }
+
+        return $out;
     }
 
     /** @param  array<string, mixed>  $result */

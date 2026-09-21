@@ -7,6 +7,7 @@ import type { FacaPosicaoCodigo } from '../lib/facaPosicao';
 import { SaidaEtiquetaPicker } from '../components/SaidaEtiquetaPicker';
 import type { SaidaEtiquetaCodigo } from '../lib/saidaEtiqueta';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
+import { buildItensResultadoUi } from '../lib/orcamentoResultadoItens';
 import { PageHeader } from '../components/PageHeader';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
 import { FORMATOS_CANONICOS, mergeVocabulario } from '../lib/facasMapa';
@@ -34,12 +35,16 @@ import { NumericInput } from '../components/NumericInput';
 import {
   CORES_OPCOES,
   aplicarQuantidadeModeloFaixa,
+  cloneOrcFormItem,
   defaultOrcForm,
   facaPrincipal,
   formFromSnapshot,
+  calculoComItensDoOrcamento,
   matrizQuantidadesModelos,
-  payloadFromForm,
+  ORC_HEADER_KEYS,
+  payloadFromFormDocumento,
   scalarsFromFacas,
+  syncHeaderAcrossItens,
   somaValorFacas,
   syncModelosComposicao,
   validarModelosComposicao,
@@ -157,7 +162,29 @@ export function OrcamentoFormPage() {
   const [parceiroSel, setParceiroSel] = useState<Parceiro | null>(null);
   const [vendedorSel, setVendedorSel] = useState<ParceiroVinculo | null>(null);
   const [parceiroModo, setParceiroModo] = useState<'cadastrado' | 'prospect'>('cadastrado');
-  const [form, setForm] = useState<OrcForm>(() => defaultOrcForm(null));
+  const [itens, setItens] = useState<OrcForm[]>(() => [defaultOrcForm(null)]);
+  const [rotulos, setRotulos] = useState<(string | null)[]>([null]);
+  const [ativo, setAtivo] = useState(0);
+  const form = itens[Math.min(ativo, Math.max(0, itens.length - 1))] ?? itens[0];
+
+  const setForm = (updater: OrcForm | ((prev: OrcForm) => OrcForm)) => {
+    setItens((prevItens) => {
+      const next = [...prevItens];
+      const idx = Math.min(ativo, next.length - 1);
+      next[idx] =
+        typeof updater === 'function'
+          ? (updater as (prev: OrcForm) => OrcForm)(next[idx])
+          : updater;
+      return next;
+    });
+    setCalculo(null);
+  };
+
+  const setFormAll = (updater: (prev: OrcForm) => OrcForm) => {
+    setItens((prevItens) => prevItens.map(updater));
+    setCalculo(null);
+  };
+
   const [facaSel, setFacaSel] = useState<FacaRecord | null>(null);
   const [calculo, setCalculo] = useState<OrcamentoResult | null>(null);
   const [previsaoEntrega, setPrevisaoEntrega] = useState<PrazoEntregaPrevisao | null>(null);
@@ -182,11 +209,27 @@ export function OrcamentoFormPage() {
             navigate(`/orcamentos/${id}`, { replace: true });
             return;
           }
-          const nextForm = formFromSnapshot(orc.data.input_snapshot, catRes.data);
-          setForm(nextForm);
-          setCalculo(orc.data.result_snapshot);
-          // Sempre restaura o desenho (mapa ou faca nova) — antes só faca_nova tinha summary.
-          setFacaSel(facaSelFromForm(nextForm));
+          const apiItens = orc.data.itens;
+          let nextForm: OrcForm;
+          if (apiItens && apiItens.length >= 1) {
+            const loaded = apiItens.map((item) =>
+              formFromSnapshot(item.input_snapshot, catRes.data),
+            );
+            nextForm = loaded[0];
+            setItens(syncHeaderAcrossItens(loaded, nextForm));
+            setRotulos(apiItens.map((item) => item.rotulo ?? null));
+            setAtivo(0);
+            setFacaSel(facaSelFromForm(nextForm));
+          } else {
+            nextForm = formFromSnapshot(orc.data.input_snapshot, catRes.data);
+            setItens([nextForm]);
+            setRotulos([null]);
+            setAtivo(0);
+            setFacaSel(facaSelFromForm(nextForm));
+          }
+          setCalculo(
+            calculoComItensDoOrcamento(orc.data.result_snapshot, orc.data.itens),
+          );
 
           if (nextForm.parceiro_id !== '') {
             try {
@@ -211,7 +254,9 @@ export function OrcamentoFormPage() {
             setVendedorSel(orc.data.vendedor ?? null);
           }
         } else {
-          setForm(defaultOrcForm(catRes.data));
+          setItens([defaultOrcForm(catRes.data)]);
+          setRotulos([null]);
+          setAtivo(0);
           setCalculo(null);
           setFacaSel(null);
           setParceiroSel(null);
@@ -230,8 +275,53 @@ export function OrcamentoFormPage() {
     };
   }, [id, isNew, navigate]);
 
+  const selecionarPosicao = (index: number) => {
+    setAtivo(index);
+    const item = itens[index];
+    if (item) setFacaSel(facaSelFromForm(item));
+  };
+
+  const adicionarPosicao = () => {
+    if (itens.length >= 20) return;
+    const novo = cloneOrcFormItem(form, catalog);
+    setItens((prev) => [...prev, novo]);
+    setRotulos((prev) => [...prev, null]);
+    setAtivo(itens.length);
+    setFacaSel(facaSelFromForm(novo));
+    setCalculo(null);
+  };
+
+  const duplicarPosicao = () => {
+    if (itens.length >= 20) return;
+    const novo = cloneOrcFormItem(form, catalog);
+    setItens((prev) => [...prev, novo]);
+    setRotulos((prev) => [...prev, rotulos[ativo] ? `${rotulos[ativo]} (cópia)` : null]);
+    setAtivo(itens.length);
+    setFacaSel(facaSelFromForm(novo));
+    setCalculo(null);
+  };
+
+  const removerPosicao = () => {
+    if (itens.length <= 1) return;
+    const remaining = itens.filter((_, i) => i !== ativo);
+    const nextIdx = Math.min(ativo, remaining.length - 1);
+    setItens(remaining);
+    setRotulos((prev) => prev.filter((_, i) => i !== ativo));
+    setAtivo(nextIdx);
+    setFacaSel(facaSelFromForm(remaining[nextIdx]));
+    setCalculo(null);
+  };
+
+  const setRotuloAtivo = (rotulo: string) => {
+    setRotulos((prev) => {
+      const next = [...prev];
+      next[ativo] = rotulo.trim() || null;
+      return next;
+    });
+  };
+
   const setField = <K extends keyof OrcForm>(key: K, value: OrcForm[K]) => {
-    setForm((prev) => {
+    const patchItem = (prev: OrcForm) => {
       const next = { ...prev, [key]: value };
       // Mantém a faca principal alinhada aos campos editáveis da geometria.
       const geoKeys = new Set([
@@ -271,8 +361,13 @@ export function OrcamentoFormPage() {
         Object.assign(next, scalarsFromFacas(next.facas));
       }
       return next;
-    });
-    setCalculo(null);
+    };
+
+    if ((ORC_HEADER_KEYS as readonly string[]).includes(key as string)) {
+      setFormAll((prev) => patchItem(prev));
+    } else {
+      setForm((prev) => patchItem(prev));
+    }
     if (
       key === 'medida' ||
       key === 'puxada_cm' ||
@@ -345,7 +440,7 @@ export function OrcamentoFormPage() {
   const aplicarVendedor = (v: ParceiroVinculo | null, aplicarPct = true) => {
     setVendedorSel(v);
     const pct = v?.comissao_percentual != null ? Number(v.comissao_percentual) : null;
-    setForm((prev) => ({
+    setFormAll((prev) => ({
       ...prev,
       vendedor_parceiro_id: v ? v.id : '',
       faixas:
@@ -353,7 +448,6 @@ export function OrcamentoFormPage() {
           ? prev.faixas.map((f) => ({ ...f, comissao_pct: pct }))
           : prev.faixas,
     }));
-    setCalculo(null);
     setErro(null);
   };
 
@@ -368,13 +462,12 @@ export function OrcamentoFormPage() {
       if (!condicao) condicao = CONDICAO_SINAL_NOVO;
       if (!forma) forma = FORMA_SINAL_NOVO;
     }
-    setForm((prev) => ({
+    setFormAll((prev) => ({
       ...prev,
       parceiro_id: p ? p.id : '',
       condicao_pagamento: condicao,
       forma_pagamento: forma,
     }));
-    setCalculo(null);
     setErro(null);
     if (p?.id && !p.enderecos_entrega) {
       void api
@@ -387,7 +480,7 @@ export function OrcamentoFormPage() {
           }
           const polFull = res.data.politica_comercial;
           if (polFull?.perfil === 'NOVO') {
-            setForm((prev) => ({
+            setFormAll((prev) => ({
               ...prev,
               condicao_pagamento:
                 prev.condicao_pagamento.trim() ||
@@ -512,7 +605,7 @@ export function OrcamentoFormPage() {
   };
 
   const setTipoOperacao = (tipo: TipoOperacaoSaida) => {
-    setForm((prev) => {
+    setFormAll((prev) => {
       const next = { ...prev, tipo_operacao: tipo };
       if (tipo === TIPO_SERVICO) {
         const cat = catalog?.tipos_servico?.find((t) => t.codigo === prev.tipo_servico);
@@ -534,7 +627,33 @@ export function OrcamentoFormPage() {
       }
       return next;
     });
-    setCalculo(null);
+  };
+
+  const validateItem = (item: OrcForm, index: number): string | null => {
+    const prefix = itens.length > 1 ? `Item ${index + 1}: ` : '';
+    if (item.tipo_operacao === TIPO_SERVICO) {
+      if (item.descricao_servico.trim().length < 3) {
+        return `${prefix}Descreva o serviço (mín. 3 caracteres).`;
+      }
+      if (item.faixas.length === 0) return `${prefix}Inclua ao menos uma quantidade.`;
+      if (item.faixas.some((f) => f.quantidade <= 0)) return `${prefix}Quantidades devem ser > 0.`;
+      if (item.faixas.some((f) => !f.valor_unitario || f.valor_unitario <= 0)) {
+        return `${prefix}Informe o valor unitário do serviço em cada faixa.`;
+      }
+      return null;
+    }
+    if (!item.medida.trim()) return `${prefix}Informe a medida.`;
+    if (item.largura_cm <= 0 || item.puxada_cm <= 0) {
+      return `${prefix}Largura e puxada devem ser > 0.`;
+    }
+    if (somaValorFacas(item.facas) < 0) return `${prefix}Valor de ferramental inválido.`;
+    if (item.faixas.length === 0) return `${prefix}Inclua ao menos uma faixa de quantidade.`;
+    if (item.faixas.some((f) => f.quantidade <= 0)) {
+      return `${prefix}Quantidades das faixas devem ser > 0.`;
+    }
+    const compErr = validarModelosComposicao(item.modelos, item.modelos_composicao, item.faixas);
+    if (compErr) return `${prefix}${compErr}`;
+    return null;
   };
 
   const validateClient = (): string | null => {
@@ -546,18 +665,6 @@ export function OrcamentoFormPage() {
         ? 'Crie o prospect (ou reutilize um cadastro parecido) antes de calcular.'
         : 'Selecione o parceiro cadastrado (texto livre de cliente é proibido).';
     }
-    if (form.tipo_operacao === TIPO_SERVICO) {
-      if (form.descricao_servico.trim().length < 3) return 'Descreva o serviço (mín. 3 caracteres).';
-      if (form.faixas.length === 0) return 'Inclua ao menos uma quantidade.';
-      if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades devem ser > 0.';
-      if (form.faixas.some((f) => !f.valor_unitario || f.valor_unitario <= 0)) {
-        return 'Informe o valor unitário do serviço em cada faixa.';
-      }
-      return null;
-    }
-    if (!form.medida.trim()) return 'Informe a medida.';
-    if (form.largura_cm <= 0 || form.puxada_cm <= 0) return 'Largura e puxada devem ser > 0.';
-    if (somaValorFacas(form.facas) < 0) return 'Valor de ferramental inválido.';
     if (
       modoComFrete(form.modo_entrega) &&
       form.valor_frete_manual !== '' &&
@@ -565,10 +672,10 @@ export function OrcamentoFormPage() {
     ) {
       return 'Valor do frete inválido.';
     }
-    if (form.faixas.length === 0) return 'Inclua ao menos uma faixa de quantidade.';
-    if (form.faixas.some((f) => f.quantidade <= 0)) return 'Quantidades das faixas devem ser > 0.';
-    const compErr = validarModelosComposicao(form.modelos, form.modelos_composicao, form.faixas);
-    if (compErr) return compErr;
+    for (let i = 0; i < itens.length; i++) {
+      const err = validateItem(itens[i], i);
+      if (err) return err;
+    }
     return null;
   };
 
@@ -583,7 +690,7 @@ export function OrcamentoFormPage() {
     try {
       const res = await api.post<{ data: OrcamentoResult }>(
         '/orcamentos/calcular',
-        payloadFromForm(form),
+        payloadFromFormDocumento(itens, rotulos),
       );
       setCalculo(res.data);
     } catch (e) {
@@ -611,13 +718,14 @@ export function OrcamentoFormPage() {
           (i === a.faixaIndex ? a.comissao_pct : f.comissao_pct),
       })),
     };
-    setForm(nextForm);
+    const nextItens = itens.map((item, i) => (i === ativo ? nextForm : item));
+    setItens(nextItens);
     setPending(true);
     setErro(null);
     try {
       const res = await api.post<{ data: OrcamentoResult }>(
         '/orcamentos/calcular',
-        payloadFromForm(nextForm),
+        payloadFromFormDocumento(nextItens, rotulos),
       );
       setCalculo(res.data);
     } catch (e) {
@@ -641,7 +749,7 @@ export function OrcamentoFormPage() {
     setPending(true);
     setErro(null);
     try {
-      const body = payloadFromForm(form);
+      const body = payloadFromFormDocumento(itens, rotulos);
       const res = isNew
         ? await api.post<{ data: Orcamento }>('/orcamentos', body)
         : await api.put<{ data: Orcamento }>(`/orcamentos/${id}`, body);
@@ -947,9 +1055,91 @@ export function OrcamentoFormPage() {
 
           {form.tipo_operacao === TIPO_INDUSTRIALIZACAO ? (
             <>
-          {/* 2. Faca — existente (mapa) ou nova (modal com abas) */}
+          <section className="orc-section orc-itens-bar">
+            <div className="orc-section-head">
+              <div>
+                <h3 className="orc-section-title" style={{ margin: 0 }}>
+                  Itens deste orçamento
+                </h3>
+                <p className="field-note" style={{ margin: '0.35rem 0 0', maxWidth: '42rem' }}>
+                  Depois do cadastro: um ou mais itens. Em cada item preencha faca (com valor),
+                  especificação, quantidades e composição dos modelos. O cadastro acima vale para
+                  o orçamento inteiro.
+                </p>
+              </div>
+              <div className="btn-row">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={!canWrite || itens.length >= 20}
+                  onClick={adicionarPosicao}
+                >
+                  Adicionar item
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={!canWrite || itens.length >= 20}
+                  onClick={duplicarPosicao}
+                >
+                  Duplicar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={!canWrite || itens.length <= 1}
+                  onClick={removerPosicao}
+                  title={itens.length <= 1 ? 'O orçamento precisa de ao menos 1 item' : undefined}
+                >
+                  Remover
+                </button>
+              </div>
+            </div>
+            <div
+              className="orc-modo-tabs orc-modo-tabs-sub"
+              role="tablist"
+              aria-label="Itens do orçamento"
+              style={{ marginTop: '0.75rem' }}
+            >
+              {itens.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  role="tab"
+                  aria-selected={ativo === i}
+                  className={ativo === i ? 'active' : ''}
+                  disabled={!canWrite && ativo !== i}
+                  onClick={() => selecionarPosicao(i)}
+                >
+                  Item {i + 1}
+                  {rotulos[i] ? ` · ${rotulos[i]}` : ''}
+                </button>
+              ))}
+            </div>
+            <div className="form-group" style={{ marginTop: '0.75rem' }}>
+              <label>Nome deste item (opcional)</label>
+              <input
+                value={rotulos[ativo] ?? ''}
+                onChange={(e) => setRotuloAtivo(e.target.value)}
+                placeholder="ex.: Etiqueta frente · 50×30"
+                disabled={!canWrite}
+                maxLength={120}
+              />
+            </div>
+          </section>
+
+          {/* Detalhe do item ativo: faca → spec → quantidades/artes */}
           <section className="orc-section">
-            <h3 className="orc-section-title">2. Faca</h3>
+            <h3 className="orc-section-title">
+              2. Faca
+              <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                · item {ativo + 1}
+                {rotulos[ativo] ? ` (${rotulos[ativo]})` : ''}
+              </span>
+            </h3>
+            <p className="form-hint" style={{ marginTop: 0 }}>
+              Cada faca deste item entra com o seu valor; a soma entra no total do item.
+            </p>
             <FacasComposicaoEditor
               facas={form.facas}
               onChange={aplicarFacas}
@@ -1044,7 +1234,12 @@ export function OrcamentoFormPage() {
 
           {/* 3. Especificação técnica — máquina → material → setup → ferramental → pad interno */}
           <section className="orc-section">
-            <h3 className="orc-section-title">3. Especificação técnica</h3>
+            <h3 className="orc-section-title">
+              3. Especificação técnica
+              <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                · item {ativo + 1}
+              </span>
+            </h3>
             <div className="form-grid">
               <div className="form-group">
                 <label>
@@ -1333,12 +1528,17 @@ export function OrcamentoFormPage() {
                 {form.tipo_operacao === TIPO_SERVICO
                   ? '3. Quantidade e valor'
                   : '4. Quantidades (escada e artes)'}
+                {form.tipo_operacao !== TIPO_SERVICO ? (
+                  <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                    · item {ativo + 1}
+                  </span>
+                ) : null}
               </h3>
             </div>
             {form.tipo_operacao !== TIPO_SERVICO ? (
               <p className="form-hint" style={{ marginTop: 0 }}>
-                Uma escada de quantidades no ORC; cada total se distribui entre as artes. O cliente
-                escolhe uma faixa na aprovação — proposta, pedido e produção seguem o mesmo rateio.
+                Escada comercial e composição dos modelos deste item — quantidade por modelo
+                (arte).
               </p>
             ) : null}
 
@@ -1453,26 +1653,6 @@ export function OrcamentoFormPage() {
             ) : null}
 
             <div className="form-group" style={{ marginTop: '0.75rem' }}>
-              <label htmlFor="orc-url-arte">URL da arte (aprovação)</label>
-              <input
-                id="orc-url-arte"
-                type="url"
-                inputMode="url"
-                autoComplete="off"
-                placeholder="https://… (PDF, imagem, Drive, Figma…)"
-                value={form.url_arte}
-                onChange={(e) => setField('url_arte', e.target.value)}
-                disabled={!canWrite}
-                maxLength={2048}
-              />
-              <p className="form-hint">
-                Link público do formato final da arte para o cliente conferir na proposta. Aceita
-                qualquer formato hospedado (PDF, PNG, JPG, Drive etc.). Opcional — aparece no final
-                da ficha de aprovação, sem embutir o arquivo no sistema.
-              </p>
-            </div>
-
-            <div className="form-group" style={{ marginTop: '0.75rem' }}>
               <label>Observação interna</label>
               <textarea
                 rows={2}
@@ -1516,6 +1696,42 @@ export function OrcamentoFormPage() {
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}
             toleranciaQtdPct={form.tolerancia_qtd_pct}
+            itemEdicaoOrdem={ativo + 1}
+            itensUi={
+              form.tipo_operacao === TIPO_SERVICO
+                ? null
+                : buildItensResultadoUi(
+                    calculo,
+                    itens.map((itemForm, i) => ({
+                      ordem: i + 1,
+                      rotulo: rotulos[i] ?? null,
+                      modelosComposicao: itemForm.modelos_composicao,
+                      guiaEspec: {
+                        medida: itemForm.medida,
+                        largura_cm: itemForm.largura_cm,
+                        puxada_cm: itemForm.puxada_cm,
+                        cores: itemForm.cores,
+                        papel: itemForm.papel,
+                        acabamento: itemForm.acabamento,
+                        maquina: itemForm.maquina,
+                        tubete: itemForm.tubete,
+                        etiq_por_rolo: itemForm.etiq_por_rolo,
+                        modelos: itemForm.modelos,
+                        colunas: itemForm.colunas,
+                        coluna_rebobinacao: itemForm.coluna_rebobinacao,
+                        saida_etiqueta: itemForm.saida_etiqueta || null,
+                        tipo_troca_produto: itemForm.tipo_troca_produto,
+                        rpm: itemForm.rpm,
+                        z: itemForm.z === '' ? null : itemForm.z,
+                        faca_nova: itemForm.faca_nova,
+                        faca_posicao: itemForm.faca_posicao || null,
+                        formato_faca: itemForm.formato_faca,
+                        matriz: itemForm.matriz,
+                        valor_faca_nova: itemForm.valor_faca_nova,
+                      },
+                    })),
+                  )
+            }
             modelosComposicao={
               form.tipo_operacao === TIPO_SERVICO ? null : form.modelos_composicao
             }
@@ -1546,28 +1762,28 @@ export function OrcamentoFormPage() {
               form.tipo_operacao === TIPO_SERVICO
                 ? null
                 : {
-              medida: form.medida,
-              largura_cm: form.largura_cm,
-              puxada_cm: form.puxada_cm,
-              cores: form.cores,
-              papel: form.papel,
-              acabamento: form.acabamento,
-              maquina: form.maquina,
-              tubete: form.tubete,
-              etiq_por_rolo: form.etiq_por_rolo,
-              modelos: form.modelos,
-              colunas: form.colunas,
-              coluna_rebobinacao: form.coluna_rebobinacao,
-              saida_etiqueta: form.saida_etiqueta || null,
-              tipo_troca_produto: form.tipo_troca_produto,
-              rpm: form.rpm,
-              z: form.z === '' ? null : form.z,
-              faca_nova: form.faca_nova,
-              faca_posicao: form.faca_posicao || null,
-              formato_faca: form.formato_faca,
-              matriz: form.matriz,
-              valor_faca_nova: form.valor_faca_nova,
-            }
+                    medida: form.medida,
+                    largura_cm: form.largura_cm,
+                    puxada_cm: form.puxada_cm,
+                    cores: form.cores,
+                    papel: form.papel,
+                    acabamento: form.acabamento,
+                    maquina: form.maquina,
+                    tubete: form.tubete,
+                    etiq_por_rolo: form.etiq_por_rolo,
+                    modelos: form.modelos,
+                    colunas: form.colunas,
+                    coluna_rebobinacao: form.coluna_rebobinacao,
+                    saida_etiqueta: form.saida_etiqueta || null,
+                    tipo_troca_produto: form.tipo_troca_produto,
+                    rpm: form.rpm,
+                    z: form.z === '' ? null : form.z,
+                    faca_nova: form.faca_nova,
+                    faca_posicao: form.faca_posicao || null,
+                    formato_faca: form.formato_faca,
+                    matriz: form.matriz,
+                    valor_faca_nova: form.valor_faca_nova,
+                  }
             }
           />
         </div>

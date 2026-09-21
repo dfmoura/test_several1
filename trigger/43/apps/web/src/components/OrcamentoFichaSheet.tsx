@@ -1,17 +1,16 @@
 import type { ReactNode } from 'react';
 import { facaDesenhoFromSnapshot, OrcamentoFacaDesenho } from './OrcamentoFacaDesenho';
-import { formatoLabel } from './FacaShapeIcon';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { FacasComposicaoTable } from './FacasComposicaoTable';
-import { OrcamentoUrlArteBlock } from './OrcamentoUrlArteBlock';
 import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
-import type { Orcamento, OrcamentoFaixaResult } from '../lib/api';
+import type { Orcamento, OrcamentoFaixaResult, OrcamentoResult } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formaPagamentoLabel } from '../lib/condicoesComerciais';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
+  calculoComItensDoOrcamento,
   displaySnap,
   facasFromSnapshot,
   labelFerramentalAddOn,
@@ -19,9 +18,11 @@ import {
   statusOrcLabel,
 } from '../lib/orcamentoForm';
 import { formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
-import { normalizeUrlArte } from '../lib/urlArte';
+import { facaDimensoesExibicao } from '../lib/facasMapa';
+import { resumoTotaisItem, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
-import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
+import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { Fragment } from 'react';
 
 /**
  * Ficha operacional do ORC — uso interno (não é proposta ao cliente).
@@ -131,21 +132,43 @@ function faixaTotal(
   return totalPropostaFaixa(fx, facaNova, valorFacaNova, valorArtes);
 }
 
-export type OrcamentoFichaSheetProps = {
-  orcamento: Orcamento;
-  empresaNome: string;
-  emitidoPor: string;
-  emitidoEm: Date;
+type FichaItemJob = {
+  ordem: number;
+  rotulo: string | null;
+  input: Record<string, unknown>;
+  result: OrcamentoResult | null;
 };
 
-export function OrcamentoFichaSheet({
-  orcamento: orc,
-  empresaNome,
-  emitidoPor,
-  emitidoEm,
-}: OrcamentoFichaSheetProps) {
-  const input = orc.input_snapshot ?? {};
-  const result = orc.result_snapshot;
+function itensFichaOrc(orc: Orcamento): FichaItemJob[] {
+  if (orc.itens && orc.itens.length > 0) {
+    return orc.itens.map((it) => ({
+      ordem: it.ordem,
+      rotulo: it.rotulo ?? null,
+      input: it.input_snapshot ?? {},
+      result: it.result_snapshot,
+    }));
+  }
+  return [
+    {
+      ordem: 1,
+      rotulo: null,
+      input: orc.input_snapshot ?? {},
+      result: orc.result_snapshot,
+    },
+  ];
+}
+
+function FichaItemBody({
+  item,
+  multi,
+  freteDoc,
+}: {
+  item: FichaItemJob;
+  multi: boolean;
+  freteDoc: OrcamentoResult['frete'] | null | undefined;
+}) {
+  const input = item.input;
+  const result = item.result;
   const faixas = result?.faixas ?? [];
   const facaNova = Boolean(input.faca_nova ?? result?.faca_nova);
   const valorFacaNova = Number(result?.valor_faca_nova ?? input.valor_faca_nova ?? 0);
@@ -166,192 +189,124 @@ export function OrcamentoFichaSheet({
       : result?.prazo_faca_dias != null
         ? String(result.prazo_faca_dias)
         : null;
-
   const faca = facaDesenhoFromSnapshot(input);
   const formato =
     faca?.formato || (result?.formato_faca != null ? String(result.formato_faca) : '');
-  const catalogSnap = result?.catalog_snapshot as Record<string, unknown> | undefined;
-
-  const matrizLabel = result
-    ? result.cobra_matriz
-      ? money(result.valor_matriz)
-      : 'Isenta'
-    : orc.cobra_matriz
-      ? money(orc.valor_matriz)
-      : 'Isenta';
-
-  const parceiroLabel = orc.parceiro
-    ? `${orc.parceiro.codigo} — ${orc.parceiro.nome_fantasia || orc.parceiro.razao_social}`
-    : orc.cliente_nome;
+  const mostrarFrete = !multi && Boolean(freteDoc);
 
   const inputFaixas = Array.isArray(input.faixas)
     ? (input.faixas as Array<{ quantidade?: number; comissao_pct?: number }>)
     : [];
-
   const comissaoPctByQtd = new Map<number, number>();
   for (const fx of inputFaixas) {
     const q = Number(fx.quantidade);
     if (Number.isFinite(q)) comissaoPctByQtd.set(q, Number(fx.comissao_pct) || 0);
   }
 
+  const descTitle = multi ? 'Descrição (snapshot)' : 'Descrição do serviço (snapshot)';
+  const temFacaVisual = Boolean(faca || formato || facasComp.length > 0);
+  const dimFaca = facaDimensoesExibicao({
+    medida: (faca?.medida ?? input.medida) as string | null | undefined,
+    formato: (faca?.formato || formato) as string | null | undefined,
+    largura_faca: faca?.larguraCm ?? (input.largura_cm as string | number | null | undefined),
+    diametro_cm: faca?.diametroCm ?? null,
+    tamanho_raw: faca?.tamanhoRaw ?? null,
+    tamanho_tipo: faca?.tamanhoTipo ?? null,
+  });
+  const tamanhoValor =
+    dimFaca.tamanho === '—'
+      ? '—'
+      : dimFaca.isDiametro
+        ? `Ø ${dimFaca.tamanho} cm`
+        : `${dimFaca.tamanho} cm`;
+
+  type DescCell = { label: string; value: ReactNode };
+  const descCells: DescCell[] = [];
+  const pushDesc = (label: string, value: ReactNode, empty = false) => {
+    if (empty) return;
+    descCells.push({ label, value });
+  };
+
+  pushDesc('Medida', snap(input, 'medida'), snap(input, 'medida') === '—');
+  pushDesc('Tamanho', tamanhoValor, tamanhoValor === '—');
+  pushDesc(
+    'Larg. papel',
+    cmBr(input.largura_cm as string | number),
+    cmBr(input.largura_cm as string | number) === '—',
+  );
+  pushDesc(
+    'Puxada',
+    cmBr(input.puxada_cm as string | number, 4),
+    cmBr(input.puxada_cm as string | number, 4) === '—',
+  );
+  pushDesc('Cores', snap(input, 'cores'), snap(input, 'cores') === '—');
+  pushDesc('Papel', snap(input, 'papel'), snap(input, 'papel') === '—');
+  pushDesc('Acab.', snap(input, 'acabamento'), snap(input, 'acabamento') === '—');
+  pushDesc('Modelos', snap(input, 'modelos'), snap(input, 'modelos') === '—');
+  pushDesc('Colunas', snap(input, 'colunas'), snap(input, 'colunas') === '—');
+  pushDesc('Etiq/rolo', snap(input, 'etiq_por_rolo'), snap(input, 'etiq_por_rolo') === '—');
+  pushDesc('Tubete', snap(input, 'tubete'), snap(input, 'tubete') === '—');
+  pushDesc('Z', snap(input, 'z'), snap(input, 'z') === '—');
+  pushDesc('Máq.', snap(input, 'maquina'), snap(input, 'maquina') === '—');
+  pushDesc(
+    'Imposto',
+    pctBr(input.imposto_pct as string | number),
+    pctBr(input.imposto_pct as string | number) === '—',
+  );
+  if (temGordura) pushDesc('Gordura', money(valorGordura));
+  pushDesc('Matriz', snap(input, 'matriz'), snap(input, 'matriz') === '—');
+  pushDesc(
+    'Col.reb',
+    snap(input, 'coluna_rebobinacao'),
+    snap(input, 'coluna_rebobinacao') === '—',
+  );
+  if (isSaidaEtiqueta(String(input.saida_etiqueta ?? ''))) {
+    pushDesc(
+      'Saída',
+      <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="dense" />,
+    );
+  }
+  pushDesc(
+    'Troca',
+    snap(input, 'tipo_troca_produto'),
+    snap(input, 'tipo_troca_produto') === '—',
+  );
+  pushDesc('RPM', snap(input, 'rpm'), snap(input, 'rpm') === '—');
+
   return (
-    <article
-      className="ficha-sheet ficha-sheet-orc"
-      aria-label={`Ficha operacional do orçamento ${orc.codigo}`}
-    >
-      <header className="ficha-masthead">
-        <div className="ficha-masthead-brand">
-          <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
-          <div>
-            <strong className="ficha-org">{empresaNome}</strong>
-            <span className="ficha-doc-label">Cálculo orçamento · Uso interno (ORC)</span>
+    <>
+      <Section title={descTitle}>
+        <div
+          className={`ficha-desc-layout${temFacaVisual ? ' ficha-desc-layout--com-faca' : ''}`}
+        >
+          {temFacaVisual ? (
+            <aside className="ficha-desc-faca">
+              <OrcamentoFacaDesenho
+                {...(faca ?? { formato, facaNova })}
+                formato={faca?.formato || formato}
+                facaNova={facaNova || Boolean(faca?.facaNova)}
+                variant="compact"
+                audience="interno"
+              />
+              {mostrarFerramental ? (
+                <span className="ficha-orc-faca-valor">
+                  {labelFerramental} {money(valorFerramental)}
+                  {prazoFaca ? ` · +${prazoFaca}d` : ''}
+                </span>
+              ) : null}
+            </aside>
+          ) : null}
+          <div className="ficha-desc-grid">
+            {descCells.map((c) => (
+              <div key={c.label} className="ficha-desc-cell">
+                <span>{c.label}</span>
+                <strong>{c.value}</strong>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="ficha-masthead-id">
-          <span className="ficha-doc-code">{orc.codigo}</span>
-          <span className="ficha-doc-when">{formatDateTimeBr(emitidoEm)}</span>
-        </div>
-      </header>
-
-      <div className="ficha-title-block">
-        <div className="ficha-title-main">
-          <h2 className="ficha-razao">{orc.cliente_nome}</h2>
-          <p className="ficha-fantasia">{parceiroLabel}</p>
-        </div>
-        <div className="ficha-title-meta">
-          <span className={`ficha-chip ${statusChipClass(orc.status)}`.trim()}>
-            {statusOrcLabel(orc.status, orc.financeiro_status)}
-          </span>
-          <span className="ficha-chip ficha-chip-papel">v{orc.versao}</span>
-          {orc.parceiro?.is_prospect ? (
-            <span className="ficha-chip ficha-chip-muted">Prospect</span>
-          ) : null}
-          {facaNova || facasComp.length > 1 ? (
-            <span className="ficha-chip ficha-chip-muted">
-              {facasComp.length > 1 ? `${facasComp.length} facas` : labelFerramental}
-            </span>
-          ) : null}
-          {result?.frete ? (
-            <span className="ficha-chip ficha-chip-muted">
-              {modoEntregaLabel(result.frete.modo)}
-            </span>
-          ) : null}
-          <span className="ficha-chip ficha-chip-muted">Uso interno</span>
-        </div>
-      </div>
-
-      <div className="ficha-kv-strip">
-        <Kv label="Código" value={orc.codigo} />
-        <Kv label="Matriz" value={`${matrizLabel}${matrizTarifa(catalogSnap)}`} />
-        <Kv
-          label="Prazo / validade"
-          value={`${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
-        />
-        <Kv
-          label="Condição / forma"
-          value={
-            [dash(input.condicao_pagamento as string), formaPagamentoLabel(input.forma_pagamento as string)]
-              .filter((v) => v && v !== '—')
-              .join(' · ') || '—'
-          }
-        />
-        <Kv
-          label="Vendedor"
-          value={
-            orc.vendedor
-              ? `${orc.vendedor.codigo} — ${orc.vendedor.razao_social}`
-              : 'Venda direta'
-          }
-        />
-        <Kv label="Cadastrado por" value={orc.criado_por?.name ?? '—'} />
-        <Kv label="Última edição" value={orc.atualizado_por?.name ?? '—'} />
-      </div>
-
-      <Section title="Descrição do serviço (snapshot)">
-        <table className="ficha-table">
-          <thead>
-            <tr>
-              <th>Medida</th>
-              <th>Largura papel</th>
-              <th>Puxada máquina</th>
-              <th>Cores</th>
-              <th>Papel</th>
-              <th>Acabamento</th>
-              <th>Modelos</th>
-              <th>Colunas</th>
-              <th>Etiq./rolo</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{snap(input, 'medida')}</td>
-              <td>{cmBr(input.largura_cm as string | number)}</td>
-              <td>{cmBr(input.puxada_cm as string | number, 4)}</td>
-              <td>{snap(input, 'cores')}</td>
-              <td>{snap(input, 'papel')}</td>
-              <td>{snap(input, 'acabamento')}</td>
-              <td>{snap(input, 'modelos')}</td>
-              <td>{snap(input, 'colunas')}</td>
-              <td>{snap(input, 'etiq_por_rolo')}</td>
-            </tr>
-          </tbody>
-        </table>
-        <table className="ficha-table" style={{ borderTop: 0 }}>
-          <thead>
-            <tr>
-              <th>Tubete</th>
-              <th>Z</th>
-              <th>Formato / faca</th>
-              <th>Máquina</th>
-              <th>Imposto %</th>
-              <th>Gordura</th>
-              <th>Matriz</th>
-              <th>Col. rebob.</th>
-              <th>Saída etiqueta</th>
-              <th>Troca produto</th>
-              <th>RPM</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>{snap(input, 'tubete')}</td>
-              <td>{snap(input, 'z')}</td>
-              <td>
-                {formatoLabel(formato)}
-                {facasComp.length > 1
-                  ? ` · ${facasComp.length} FACAS`
-                  : facaNova
-                    ? ' · FACA NOVA'
-                    : ''}
-              </td>
-              <td>{snap(input, 'maquina')}</td>
-              <td>{pctBr(input.imposto_pct as string | number)}</td>
-              <td>{temGordura ? money(valorGordura) : '—'}</td>
-              <td>{snap(input, 'matriz')}</td>
-              <td>{snap(input, 'coluna_rebobinacao')}</td>
-              <td>{saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ?? '—'}</td>
-              <td>{snap(input, 'tipo_troca_produto')}</td>
-              <td>{snap(input, 'rpm')}</td>
-            </tr>
-          </tbody>
-        </table>
-        {saidaEtiquetaLabel(String(input.saida_etiqueta ?? '')) ? (
-          <div className="ficha-saida-etiqueta-block">
-            <p className="ficha-saida-etiqueta-block__title">Saída da etiqueta na bobina</p>
-            <div className="ficha-saida-etiqueta">
-              <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="thumb" />
-            </div>
-          </div>
-        ) : (
-          <div className="ficha-saida-etiqueta-block">
-            <p className="ficha-saida-etiqueta-block__title">Saída da etiqueta na bobina</p>
-            <p className="ficha-empty" style={{ margin: 0 }}>
-              Não informada neste orçamento.
-            </p>
-          </div>
-        )}
         {Array.isArray(input.modelos_composicao) &&
-        (input.modelos_composicao as Array<{ nome?: string; percentual?: number }>).some(
+        (input.modelos_composicao as Array<{ nome?: string }>).some(
           (m) => String(m?.nome ?? '').trim() !== '',
         ) ? (
           <ModelosComposicaoTable
@@ -373,70 +328,52 @@ export function OrcamentoFichaSheet({
             }))}
           />
         ) : null}
-      </Section>
-
-      <Section title="Faca — tipo e desenho">
-        {faca || formato || facasComp.length > 0 ? (
-          <div className="ficha-orc-faca ficha-orc-faca-documento">
-            <OrcamentoFacaDesenho
-              {...(faca ?? { formato, facaNova })}
-              formato={faca?.formato || formato}
-              facaNova={facaNova || Boolean(faca?.facaNova)}
-              variant="documento"
-              audience="interno"
-            />
-            {mostrarFerramental ? (
-              <div className="ficha-orc-faca-meta">
-                <Kv
-                  label={`${labelFerramental} / prazo`}
-                  value={`${money(valorFerramental)}${prazoFaca ? ` · +${prazoFaca}d` : ''}`}
-                />
-              </div>
-            ) : null}
-            {facasComp.length > 0 ? (
-              <FacasComposicaoTable
-                variant="ficha"
-                title={null}
-                hint={null}
-                showValor
-                facas={facasComp}
-              />
-            ) : null}
-          </div>
-        ) : (
-          <p className="ficha-empty">Sem faca no snapshot deste ORC.</p>
-        )}
+        {facasComp.length > 1 ? (
+          <FacasComposicaoTable
+            variant="ficha"
+            title={null}
+            hint={null}
+            showValor
+            facas={facasComp}
+          />
+        ) : null}
       </Section>
 
       {faixas.length > 0 ? (
         <>
-          <Section title="Cálculo dos valores — métricas">
-            <table className="ficha-table ficha-table-num">
+          <Section title={multi ? 'Cálculo — métricas' : 'Cálculo dos valores — métricas'}>
+            <table className="ficha-table ficha-table-num ficha-table-metricas">
               <thead>
                 <tr>
-                  <th>Qtdade</th>
+                  <th className="ficha-col-qtd">Qtd</th>
                   <th>Troca produto</th>
-                  <th className="ficha-th-num">Hora máq.</th>
-                  <th className="ficha-th-num">Hora troca prod.</th>
-                  <th className="ficha-th-num">Hora troca bobina</th>
+                  <th className="ficha-th-num ficha-col-hora">H. máq.</th>
+                  <th className="ficha-th-num ficha-col-hora">H. troca prod.</th>
+                  <th className="ficha-th-num ficha-col-hora">H. troca bob.</th>
                   <th className="ficha-th-num">Metragem (m)</th>
                   <th className="ficha-th-num">m²</th>
                   <th className="ficha-th-num">Perda acerto</th>
                   <th className="ficha-th-num">Perda acab.</th>
                   <th className="ficha-th-num">Perda troca pap.</th>
                   <th className="ficha-th-num">Perda bob. m²</th>
-                  <th className="ficha-th-num">Rolos</th>
+                  <th className="ficha-th-num ficha-col-rolos">Rolos</th>
                   <th className="ficha-th-num">Caixas</th>
                 </tr>
               </thead>
               <tbody>
                 {faixas.map((fx, i) => (
                   <tr key={i}>
-                    <td>{qtyBr(fx.quantidade)}</td>
+                    <td className="ficha-col-qtd">{qtyBr(fx.quantidade)}</td>
                     <td>{snap(input, 'tipo_troca_produto')}</td>
-                    <td className="ficha-td-num">{formatDecimalBr(fx.hora_maq, 3)}</td>
-                    <td className="ficha-td-num">{formatDecimalBr(fx.hora_troca_prod, 3)}</td>
-                    <td className="ficha-td-num">{formatDecimalBr(fx.hora_troca_bobina, 3)}</td>
+                    <td className="ficha-td-num ficha-col-hora">
+                      {formatDecimalBr(fx.hora_maq, 3)}
+                    </td>
+                    <td className="ficha-td-num ficha-col-hora">
+                      {formatDecimalBr(fx.hora_troca_prod, 3)}
+                    </td>
+                    <td className="ficha-td-num ficha-col-hora">
+                      {formatDecimalBr(fx.hora_troca_bobina, 3)}
+                    </td>
                     <td className="ficha-td-num">{formatDecimalBr(fx.metragem, 1)}</td>
                     <td className="ficha-td-num">{formatDecimalBr(fx.m2, 2)}</td>
                     <td className="ficha-td-num">{formatDecimalBr(fx.perda_acerto, 2)}</td>
@@ -445,7 +382,7 @@ export function OrcamentoFichaSheet({
                       {formatDecimalBr(fx.perda_papel_troca_produto, 2)}
                     </td>
                     <td className="ficha-td-num">{formatDecimalBr(fx.perda_bobina_m2, 2)}</td>
-                    <td className="ficha-td-num">{qtyBr(fx.rolos)}</td>
+                    <td className="ficha-td-num ficha-col-rolos">{qtyBr(fx.rolos)}</td>
                     <td className="ficha-td-num">
                       {qtyBr(fx.qtde_caixas)}
                       {fx.caixa_medida ? ` (${fx.caixa_medida})` : ''}
@@ -456,7 +393,7 @@ export function OrcamentoFichaSheet({
             </table>
           </Section>
 
-          <Section title="Cálculo dos valores — custos">
+          <Section title={multi ? 'Cálculo — custos' : 'Cálculo dos valores — custos'}>
             <table className="ficha-table ficha-table-num">
               <thead>
                 <tr>
@@ -495,7 +432,7 @@ export function OrcamentoFichaSheet({
             </table>
           </Section>
 
-          <Section title="Fechamento comercial por faixa">
+          <Section title={multi ? 'Fechamento comercial' : 'Fechamento comercial por faixa'}>
             <table className="ficha-table ficha-table-num">
               <thead>
                 <tr>
@@ -515,7 +452,7 @@ export function OrcamentoFichaSheet({
                   <th className="ficha-th-num">Matriz</th>
                   {mostrarFerramental ? <th className="ficha-th-num">{labelFerramental}</th> : null}
                   {valorArtes > 0 ? <th className="ficha-th-num">Vlr. Arte</th> : null}
-                  {result?.frete ? <th className="ficha-th-num">Frete</th> : null}
+                  {mostrarFrete ? <th className="ficha-th-num">Frete</th> : null}
                   <th className="ficha-th-num">Total</th>
                 </tr>
               </thead>
@@ -558,10 +495,10 @@ export function OrcamentoFichaSheet({
                           {money(fx.valor_artes ?? valorArtes)}
                         </td>
                       ) : null}
-                      {result?.frete ? (
+                      {mostrarFrete ? (
                         <td className="ficha-td-num">
                           {formatValorFrete(fx.valor_frete, {
-                            aDefinir: modoComFrete(result?.frete?.modo),
+                            aDefinir: modoComFrete(freteDoc?.modo),
                           })}
                         </td>
                       ) : null}
@@ -582,23 +519,206 @@ export function OrcamentoFichaSheet({
               {temGordura
                 ? ` Gordura ${money(valorGordura)} — uso interno; não aparece na proposta ao cliente.`
                 : ''}
-              {result?.frete
-                ? ` Frete (${modoEntregaLabel(result.frete.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
+              {!multi && freteDoc
+                ? ` Frete (${modoEntregaLabel(freteDoc.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
                 : ''}
             </p>
           </Section>
         </>
       ) : (
         <Section title="Resultado">
-          <p className="ficha-empty">Sem resultado calculado neste orçamento.</p>
+          <p className="ficha-empty">Sem resultado calculado neste item.</p>
         </Section>
       )}
+    </>
+  );
+}
 
-      {normalizeUrlArte(input.url_arte) ? (
-        <Section title="Arte para aprovação">
-          <OrcamentoUrlArteBlock url={normalizeUrlArte(input.url_arte)} variant="ficha" />
+export type OrcamentoFichaSheetProps = {
+  orcamento: Orcamento;
+  empresaNome: string;
+  emitidoPor: string;
+  emitidoEm: Date;
+};
+
+export function OrcamentoFichaSheet({
+  orcamento: orc,
+  empresaNome,
+  emitidoPor,
+  emitidoEm,
+}: OrcamentoFichaSheetProps) {
+  const inputDoc = orc.input_snapshot ?? {};
+  const resultDoc =
+    calculoComItensDoOrcamento(orc.result_snapshot, orc.itens) ?? orc.result_snapshot;
+  const itens = itensFichaOrc(orc);
+  const multi = itens.length > 1;
+  const item0 = itens[0];
+  const facasChip = facasFromSnapshot(item0?.input ?? inputDoc);
+  const facaNovaChip = Boolean(
+    (item0?.input.faca_nova ?? item0?.result?.faca_nova) ||
+      (multi && itens.some((it) => it.input.faca_nova || it.result?.faca_nova)),
+  );
+  const catalogSnap = resultDoc?.catalog_snapshot as Record<string, unknown> | undefined;
+
+  const matrizLabel = resultDoc
+    ? resultDoc.cobra_matriz
+      ? money(resultDoc.valor_matriz)
+      : multi
+        ? 'Ver itens'
+        : 'Isenta'
+    : orc.cobra_matriz
+      ? money(orc.valor_matriz)
+      : 'Isenta';
+
+  const tituloParceiro = orc.parceiro?.codigo
+    ? `${orc.parceiro.codigo} — ${orc.cliente_nome}`
+    : orc.cliente_nome;
+
+  return (
+    <article
+      className="ficha-sheet ficha-sheet-orc"
+      aria-label={`Ficha operacional do orçamento ${orc.codigo}`}
+    >
+      <header className="ficha-masthead">
+        <div className="ficha-masthead-brand">
+          <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
+          <div>
+            <strong className="ficha-org">{empresaNome}</strong>
+            <span className="ficha-doc-label">Cálculo orçamento · Uso interno (ORC)</span>
+          </div>
+        </div>
+        <div className="ficha-masthead-id">
+          <span className="ficha-doc-code">{orc.codigo}</span>
+          <span className="ficha-doc-when">{formatDateTimeBr(emitidoEm)}</span>
+        </div>
+      </header>
+
+      <div className="ficha-title-block">
+        <div className="ficha-title-main">
+          <h2 className="ficha-razao">{tituloParceiro}</h2>
+        </div>
+        <div className="ficha-title-meta">
+          <span className={`ficha-chip ${statusChipClass(orc.status)}`.trim()}>
+            {statusOrcLabel(orc.status, orc.financeiro_status)}
+          </span>
+          <span className="ficha-chip ficha-chip-papel">v{orc.versao}</span>
+          {multi ? (
+            <span className="ficha-chip ficha-chip-muted">{itens.length} itens</span>
+          ) : null}
+          {orc.parceiro?.is_prospect ? (
+            <span className="ficha-chip ficha-chip-muted">Prospect</span>
+          ) : null}
+          {!multi && (facaNovaChip || facasChip.length > 1) ? (
+            <span className="ficha-chip ficha-chip-muted">
+              {facasChip.length > 1
+                ? `${facasChip.length} facas`
+                : labelFerramentalAddOn({
+                    facaNova: facaNovaChip,
+                    valor: somaValorFacas(facasChip),
+                    count: facasChip.length,
+                  })}
+            </span>
+          ) : null}
+          {resultDoc?.frete ? (
+            <span className="ficha-chip ficha-chip-muted">
+              {modoEntregaLabel(resultDoc.frete.modo)}
+            </span>
+          ) : null}
+          <span className="ficha-chip ficha-chip-muted">Uso interno</span>
+        </div>
+      </div>
+
+      <div className="ficha-kv-strip">
+        <Kv
+          label="Matriz"
+          value={
+            multi
+              ? `${itens.length} itens · ver fechamento de cada item`
+              : `${matrizLabel}${matrizTarifa(catalogSnap)}`
+          }
+        />
+        <Kv
+          label="Prazo / validade"
+          value={`${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
+        />
+        <Kv
+          label="Condição / forma"
+          value={
+            [
+              dash(inputDoc.condicao_pagamento as string),
+              formaPagamentoLabel(inputDoc.forma_pagamento as string),
+            ]
+              .filter((v) => v && v !== '—')
+              .join(' · ') || '—'
+          }
+        />
+        <Kv
+          label="Vendedor"
+          value={
+            orc.vendedor
+              ? `${orc.vendedor.codigo} — ${orc.vendedor.razao_social}`
+              : 'Venda direta'
+          }
+        />
+      </div>
+
+      {multi && resultDoc?.totais ? (
+        <Section title="Totais do orçamento">
+          <table className="ficha-table ficha-table-num">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th className="ficha-th-num">Facas</th>
+                <th className="ficha-th-num">Artes</th>
+                <th className="ficha-th-num">Total (1ª qtd.)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {itens.map((it) => {
+                const r = it.result
+                  ? resumoTotaisItem(it.result)
+                  : { valorFacas: 0, valorArtes: 0, total: 0 };
+                return (
+                  <tr key={it.ordem}>
+                    <td>{rotuloItemOrc(it.ordem, it.rotulo)}</td>
+                    <td className="ficha-td-num">{money(r.valorFacas)}</td>
+                    <td className="ficha-td-num">{money(r.valorArtes)}</td>
+                    <td className="ficha-td-num">
+                      <strong>{money(r.total)}</strong>
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr>
+                <td>
+                  <strong>Documento</strong>
+                </td>
+                <td className="ficha-td-num" colSpan={2}>
+                  {itens.length} itens · 1ª quantidade de cada
+                </td>
+                <td className="ficha-td-num">
+                  <strong>{money(resultDoc.totais.soma_primeira_faixa_proposta)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          {resultDoc.frete ? (
+            <p className="ficha-empty" style={{ borderTop: 0 }}>
+              Frete ({modoEntregaLabel(resultDoc.frete.modo).toLowerCase()}) — do orçamento
+              (não se repete por item); informativo, fora do total.
+            </p>
+          ) : null}
         </Section>
       ) : null}
+
+      {itens.map((it) => (
+        <Fragment key={it.ordem}>
+          {multi ? (
+            <h3 className="ficha-item-heading">{rotuloItemOrc(it.ordem, it.rotulo)}</h3>
+          ) : null}
+          <FichaItemBody item={it} multi={multi} freteDoc={resultDoc?.frete} />
+        </Fragment>
+      ))}
 
       {orc.observacao ? (
         <Section title="Observação interna">
@@ -624,3 +744,4 @@ export function OrcamentoFichaSheet({
     </article>
   );
 }
+

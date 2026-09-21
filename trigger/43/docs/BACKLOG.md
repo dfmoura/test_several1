@@ -15,11 +15,32 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-106`
+`BL-107`
 
 ---
 
 ## Itens
+
+### BL-106 · [orc/norma+ux] ORC cabeçalho × itens (1..N jobs na proposta)
+- **Status:** Em andamento (fases 0–2 prontas p/ teste; fase 3 PED pendente)
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-20/21 — multi-faca era o nível errado; multi-item é o correto
+- **Depende de:** `ADR_ORC_ITENS.md` · emenda `ADR_ORC_FACAS_COMPOSICAO` · motor R1–R20 intacto
+- **Decisão (fechada):**
+  1. ORC = documento (cabeçalho); item/posição/job = detalhe 1..N; nunca chamar item de “orçamento”.
+  2. Cabeçalho: tipo (fase 1) + cadastro + frete + aprovação + totais Σ.
+  3. Item: faca + spec + escada + composição de artes (+ gordura/matriz).
+  4. N geometrias = N itens — não N facas no documento.
+  5. PED continua 1:1 ORC; N `pedido_itens` na fase 3 — nunca N PEDs.
+  6. Implementar em fases 1→2→3 sem quebrar N=1.
+- **Aceite (por fase):**
+  - [x] Fase 0: ADR + emendas + este BL
+  - [x] Fase 1: paridade N=1 — `orcamento_itens` · dual-write create/update · `itens` no show · legado materializado na leitura · UI flat intacta · testes `OrcamentoItensTest` + asserts em `OrcamentoTest`
+  - [x] Fase 2: UI N>1 + proposta/totais Σ + link único + hierarquia resultado (N=1 limpo · N>1 hero+acordeão/seletor nas 3 abas)
+  - [ ] Fase 3: espelho PED N linhas + OP por linha (sem N PEDs)
+- **Fora de escopo nesta BL:** proposta mista PA+SVC (fase 2 de tipo no item) · alterar R1–R20 · SKU por arte/faca
+- **Norma:** `docs/ADR_ORC_ITENS.md`
+- **Teste local:** http://localhost:8043 → Orçamentos → Novo → **Itens deste orçamento** (Adicionar/Duplicar) → Calcular/Salvar → no **detalhe**, guias por item na ficha + total/acordeão no resultado. PED ainda só espelha o item 1. Ctrl+Shift+R se SPA antiga.
 
 ### BL-105 · [fiscal/ux] UI cancel/CC-e + piloto homolog nuvem
 - **Status:** Feito

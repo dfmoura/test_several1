@@ -27,8 +27,13 @@ import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { FacasComposicaoTable } from './FacasComposicaoTable';
 import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
-import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
-import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
+import {
+  buildItensResultadoUi,
+  isOrcMultiItem,
+  resumoTotaisItem,
+  rotuloItemOrc,
+  type OrcResultadoItemUi,
+} from '../lib/orcamentoResultadoItens';
 import { SortableTh } from './SortableTh';
 
 type AbaResultado = 'comercial' | 'interno' | 'producao';
@@ -86,6 +91,13 @@ type Props = {
   parametrosAjuste?: ParametrosAjusteCtx | null;
   onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
   aplicandoParametros?: boolean;
+  /**
+   * Contextos por item (form/show). Quando omitido e calculo.itens existe, monta só com result.
+   * N=1: ignorado (fluxo clássico).
+   */
+  itensUi?: OrcResultadoItemUi[] | null;
+  /** Ordem 1-based do item editável no formulário — composição só ajusta este. */
+  itemEdicaoOrdem?: number;
 };
 
 function formatParamValue(v: number | null, unidade: string): string {
@@ -899,11 +911,6 @@ function GuiaProducaoPanel({
         </p>
       ) : (
         <>
-          {saidaEtiquetaLabel(String(espec.saida_etiqueta ?? '')) ? (
-            <div className="orc-saida-etiqueta-detalhe">
-              <SaidaEtiquetaBadge code={String(espec.saida_etiqueta)} variant="thumb" />
-            </div>
-          ) : null}
         <div className="table-wrap">
           <table className="data-table orc-guia-producao-table">
             <thead>
@@ -938,6 +945,89 @@ function GuiaProducaoPanel({
   );
 }
 
+function PropostaItemBloco({
+  item,
+  modoServico,
+  defaultOpen,
+}: {
+  item: OrcResultadoItemUi;
+  modoServico: boolean;
+  defaultOpen: boolean;
+}) {
+  const result = item.result;
+  const faixas = result.faixas ?? [];
+  const facasRows = facasFromSnapshot({
+    facas: result.facas,
+    faca_nova: result.faca_nova,
+    formato_faca: result.formato_faca,
+    valor_faca_nova: result.valor_faca_nova,
+  });
+  const valorFerramental =
+    somaValorFacas(facasRows) || Number(result.valor_faca_nova) || 0;
+  const facaNova = Boolean(result.faca_nova);
+  const mostrarFerramental = facaNova || valorFerramental > 0;
+  const labelFerramental = labelFerramentalAddOn({
+    facaNova,
+    valor: valorFerramental,
+    count: facasRows.length,
+  });
+  const valorArtes = Number(result.valor_artes) || 0;
+  const modelos = item.modelosComposicao;
+  const { total } = resumoTotaisItem(result);
+
+  return (
+    <details className="orc-item-detalhe" open={defaultOpen}>
+      <summary className="orc-item-detalhe-summary">
+        <strong>{rotuloItemOrc(item.ordem, item.rotulo)}</strong>
+        <span className="orc-result-meta" style={{ margin: 0 }}>
+          {formatCurrency(total)}
+          {valorFerramental > 0 ? ` · facas ${formatCurrency(valorFerramental)}` : ''}
+          {valorArtes > 0 ? ` · artes ${formatCurrency(valorArtes)}` : ''}
+        </span>
+      </summary>
+      <div className="orc-item-detalhe-body">
+        {modelos.length > 0 ? (
+          <ModelosComposicaoTable
+            variant="data"
+            className="orc-modelos-resultado"
+            hint={null}
+            showValorArte
+            modelos={modelos}
+            faixas={faixas.map((fx, i) => ({
+              key: i,
+              quantidade: Number(fx.quantidade) || 0,
+            }))}
+          />
+        ) : null}
+        {facasRows.length > 1 ? (
+          <FacasComposicaoTable
+            variant="data"
+            className="orc-facas-resultado"
+            hint={null}
+            showValor
+            facas={facasRows}
+          />
+        ) : null}
+        <ComercialFaixasTable
+          faixas={faixas}
+          facaNova={mostrarFerramental}
+          valorFacaNova={result.valor_faca_nova}
+          valorArtes={valorArtes}
+          labelFaca={labelFerramental}
+          mostrarFrete={false}
+          freteADefinir={false}
+          modoServico={modoServico}
+          etiqPorRolo={
+            item.guiaEspec?.etiq_por_rolo != null && item.guiaEspec.etiq_por_rolo !== ''
+              ? Number(item.guiaEspec.etiq_por_rolo)
+              : null
+          }
+        />
+      </div>
+    </details>
+  );
+}
+
 export function OrcamentoResultado({
   calculo,
   prazoEntregaDias,
@@ -950,32 +1040,96 @@ export function OrcamentoResultado({
   parametrosAjuste = null,
   onAplicarParametros,
   aplicandoParametros = false,
+  itensUi: itensUiProp = null,
+  itemEdicaoOrdem,
 }: Props) {
   const servico = modoServico || calculo.tipo_operacao === 'SERVICO';
   const [aba, setAba] = useState<AbaResultado>('comercial');
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
-  const faixas = calculo.faixas ?? [];
-  const detalhe = faixas[faixaDetalhe];
-  const valorArtes = Number(calculo.valor_artes) || 0;
+  const multi = !servico && isOrcMultiItem(calculo);
+
+  const itensUi = useMemo(() => {
+    if (!multi) {
+      return buildItensResultadoUi(calculo, [
+        {
+          ordem: 1,
+          modelosComposicao: modelosComposicao ?? [],
+          guiaEspec: guiaEspec ?? null,
+        },
+      ]);
+    }
+    return itensUiProp && itensUiProp.length > 0
+      ? itensUiProp
+      : buildItensResultadoUi(calculo);
+  }, [multi, calculo, itensUiProp, modelosComposicao, guiaEspec]);
+
+  const [itemAba, setItemAba] = useState(0);
+  useEffect(() => {
+    setItemAba(0);
+    setFaixaDetalhe(0);
+  }, [calculo.itens?.length, calculo.totais?.soma_primeira_faixa_proposta]);
+
+  useEffect(() => {
+    if (itemEdicaoOrdem == null || !multi) return;
+    setItemAba(Math.max(0, itemEdicaoOrdem - 1));
+    setFaixaDetalhe(0);
+  }, [itemEdicaoOrdem, multi]);
+
+  const itemAtivo = itensUi[Math.min(itemAba, Math.max(0, itensUi.length - 1))] ?? itensUi[0];
+  const resultAtivo = itemAtivo?.result ?? calculo;
+  const faixas = resultAtivo.faixas ?? [];
+  const detalhe = faixas[faixaDetalhe] ?? faixas[0];
+
+  const valorArtes = Number(resultAtivo.valor_artes) || 0;
   const facasRows = facasFromSnapshot({
-    facas: calculo.facas,
-    faca_nova: calculo.faca_nova,
-    formato_faca: calculo.formato_faca,
-    valor_faca_nova: calculo.valor_faca_nova,
+    facas: resultAtivo.facas,
+    faca_nova: resultAtivo.faca_nova,
+    formato_faca: resultAtivo.formato_faca,
+    valor_faca_nova: resultAtivo.valor_faca_nova,
   });
   const valorFerramental =
-    somaValorFacas(facasRows) || Number(calculo.valor_faca_nova) || 0;
+    somaValorFacas(facasRows) || Number(resultAtivo.valor_faca_nova) || 0;
   const labelFerramental = labelFerramentalAddOn({
-    facaNova: Boolean(calculo.faca_nova),
+    facaNova: Boolean(resultAtivo.faca_nova),
     valor: valorFerramental,
     count: facasRows.length,
   });
-  const mostrarFerramental = Boolean(calculo.faca_nova) || valorFerramental > 0;
-  const modelosVisiveis = (modelosComposicao ?? []).filter(
-    (m) => String(m.nome ?? '').trim() !== '',
-  );
+  const mostrarFerramental = Boolean(resultAtivo.faca_nova) || valorFerramental > 0;
+  const modelosVisiveis = multi
+    ? itemAtivo?.modelosComposicao ?? []
+    : (modelosComposicao ?? []).filter((m) => String(m.nome ?? '').trim() !== '');
 
   const abaAtiva: AbaResultado = servico ? 'comercial' : aba;
+  const podeAjustarItem =
+    !multi ||
+    itemEdicaoOrdem == null ||
+    itemAtivo?.ordem === itemEdicaoOrdem;
+
+  const seletorItens =
+    multi && itensUi.length > 1 ? (
+      <div
+        className="orc-modo-tabs orc-modo-tabs-sub"
+        role="tablist"
+        aria-label="Itens do resultado"
+        style={{ marginBottom: '0.85rem' }}
+      >
+        {itensUi.map((it, i) => (
+          <button
+            key={it.ordem}
+            type="button"
+            role="tab"
+            aria-selected={itemAba === i}
+            className={itemAba === i ? 'active' : ''}
+            onClick={() => {
+              setItemAba(i);
+              setFaixaDetalhe(0);
+            }}
+          >
+            {rotuloItemOrc(it.ordem, it.rotulo)}
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   return (
     <section className="card orc-resultado">
@@ -1028,46 +1182,65 @@ export function OrcamentoResultado({
                 {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
                 {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
               </>
+            ) : multi ? (
+              <>
+                {calculo.totais?.n_itens ?? itensUi.length} itens neste orçamento
+                {prazoEntregaDias != null
+                  ? ` · ${prazoUtilLabel(
+                      calculo.prazo_efetivo_dias ?? prazoEntregaDias,
+                      calculo.data_entrega_prevista,
+                    )}`
+                  : ''}
+                {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
+                {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
+                {calculo.frete
+                  ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                      calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
+                    }`
+                  : ''}
+              </>
             ) : (
               <>
-            Matriz:{' '}
-            {calculo.cobra_matriz ? formatCurrency(calculo.valor_matriz) : 'Isenta'}
-            {(() => {
-              const snap = calculo.catalog_snapshot?.matriz_cm2;
-              const tarifa =
-                typeof snap === 'number'
-                  ? snap
-                  : typeof snap === 'string' && snap !== ''
-                    ? Number(snap)
-                    : null;
-              return tarifa != null && Number.isFinite(tarifa)
-                ? ` · tarifa ${Number(tarifa).toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 6,
-                  })}/cm²`
-                : '';
-            })()}
-            {mostrarFerramental
-              ? ` · ${labelFerramental} ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
-                  calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
-                }`
-              : ''}
-            {valorArtes > 0 ? ` · Vlr. Arte ${formatCurrency(valorArtes)}` : ''}
-            {echoEspecificacao && prazoEntregaDias != null
-              ? ` · ${prazoUtilLabel(
-                  calculo.prazo_efetivo_dias ?? prazoEntregaDias,
-                  calculo.data_entrega_prevista,
-                )}`
-              : ''}
-            {echoEspecificacao && validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
-            {echoEspecificacao && toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
-            {calculo.frete
-              ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
-                  calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
-                }`
-              : ''}
+                Matriz:{' '}
+                {calculo.cobra_matriz ? formatCurrency(calculo.valor_matriz) : 'Isenta'}
+                {(() => {
+                  const snap = calculo.catalog_snapshot?.matriz_cm2;
+                  const tarifa =
+                    typeof snap === 'number'
+                      ? snap
+                      : typeof snap === 'string' && snap !== ''
+                        ? Number(snap)
+                        : null;
+                  return tarifa != null && Number.isFinite(tarifa)
+                    ? ` · tarifa ${Number(tarifa).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6,
+                      })}/cm²`
+                    : '';
+                })()}
+                {mostrarFerramental
+                  ? ` · ${labelFerramental} ${formatCurrency(calculo.valor_faca_nova ?? 0)}${
+                      calculo.prazo_faca_dias != null ? ` (+${calculo.prazo_faca_dias}d)` : ''
+                    }`
+                  : ''}
+                {valorArtes > 0 ? ` · Vlr. Arte ${formatCurrency(valorArtes)}` : ''}
+                {echoEspecificacao && prazoEntregaDias != null
+                  ? ` · ${prazoUtilLabel(
+                      calculo.prazo_efetivo_dias ?? prazoEntregaDias,
+                      calculo.data_entrega_prevista,
+                    )}`
+                  : ''}
+                {echoEspecificacao && validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
+                {echoEspecificacao && toleranciaQtdPct != null
+                  ? ` · ±${toleranciaQtdPct}%`
+                  : ''}
+                {calculo.frete
+                  ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                      calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
+                    }`
+                  : ''}
               </>
             )}
           </p>
@@ -1075,43 +1248,105 @@ export function OrcamentoResultado({
 
         {abaAtiva === 'comercial' ? (
           <>
-            {modelosVisiveis.length > 0 ? (
-              <ModelosComposicaoTable
-                variant="data"
-                className="orc-modelos-resultado"
-                hint={null}
-                showValorArte
-                modelos={modelosVisiveis}
-                faixas={faixas.map((fx, i) => ({
-                  key: i,
-                  quantidade: Number(fx.quantidade) || 0,
-                }))}
-              />
+            {multi && calculo.totais ? (
+              <div className="orc-multi-resumo" style={{ marginBottom: '1rem' }}>
+                <h4 className="orc-fluxo-subtitulo" style={{ marginTop: 0 }}>
+                  Total do orçamento
+                </h4>
+                <p className="orc-result-meta" style={{ margin: '0.25rem 0 0.75rem' }}>
+                  <strong style={{ fontSize: '1.2rem' }}>
+                    {formatCurrency(calculo.totais.soma_primeira_faixa_proposta)}
+                  </strong>
+                  <span className="field-note">
+                    {' '}
+                    · {calculo.totais.n_itens} itens · 1ª quantidade de cada item
+                  </span>
+                </p>
+                <div className="table-wrap">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th className="num">Facas</th>
+                        <th className="num">Artes</th>
+                        <th className="num">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itensUi.map((it) => {
+                        const r = resumoTotaisItem(it.result);
+                        return (
+                          <tr key={it.ordem}>
+                            <td>{rotuloItemOrc(it.ordem, it.rotulo)}</td>
+                            <td className="num">{formatCurrency(r.valorFacas)}</td>
+                            <td className="num">{formatCurrency(r.valorArtes)}</td>
+                            <td className="num">{formatCurrency(r.total)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="field-note" style={{ marginTop: '0.65rem' }}>
+                  Frete, validade e condições são do orçamento (não se repetem por item). Abra cada
+                  item para ver faixas e composição.
+                </p>
+              </div>
             ) : null}
-            {facasRows.length > 0 ? (
-              <FacasComposicaoTable
-                variant="data"
-                className="orc-facas-resultado"
-                hint={null}
-                showValor
-                facas={facasRows}
-              />
-            ) : null}
-            <ComercialFaixasTable
-              faixas={faixas}
-              facaNova={mostrarFerramental}
-              valorFacaNova={calculo.valor_faca_nova}
-              valorArtes={valorArtes}
-              labelFaca={labelFerramental}
-              mostrarFrete={Boolean(calculo.frete)}
-              freteADefinir={modoComFrete(calculo.frete?.modo)}
-              modoServico={servico}
-              etiqPorRolo={
-                guiaEspec?.etiq_por_rolo != null && guiaEspec.etiq_por_rolo !== ''
-                  ? Number(guiaEspec.etiq_por_rolo)
-                  : null
-              }
-            />
+
+            {multi ? (
+              <div className="orc-itens-acordeao">
+                {itensUi.map((it, i) => (
+                  <PropostaItemBloco
+                    key={it.ordem}
+                    item={it}
+                    modoServico={servico}
+                    defaultOpen={i === 0}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                {modelosVisiveis.length > 0 ? (
+                  <ModelosComposicaoTable
+                    variant="data"
+                    className="orc-modelos-resultado"
+                    hint={null}
+                    showValorArte
+                    modelos={modelosVisiveis}
+                    faixas={faixas.map((fx, i) => ({
+                      key: i,
+                      quantidade: Number(fx.quantidade) || 0,
+                    }))}
+                  />
+                ) : null}
+                {facasRows.length > 1 ? (
+                  <FacasComposicaoTable
+                    variant="data"
+                    className="orc-facas-resultado"
+                    hint={null}
+                    showValor
+                    facas={facasRows}
+                  />
+                ) : null}
+                <ComercialFaixasTable
+                  faixas={faixas}
+                  facaNova={mostrarFerramental}
+                  valorFacaNova={resultAtivo.valor_faca_nova}
+                  valorArtes={valorArtes}
+                  labelFaca={labelFerramental}
+                  mostrarFrete={Boolean(calculo.frete)}
+                  freteADefinir={modoComFrete(calculo.frete?.modo)}
+                  modoServico={servico}
+                  etiqPorRolo={
+                    guiaEspec?.etiq_por_rolo != null && guiaEspec.etiq_por_rolo !== ''
+                      ? Number(guiaEspec.etiq_por_rolo)
+                      : null
+                  }
+                />
+              </>
+            )}
+
             {calculo.frete ? (
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
                 {[
@@ -1120,8 +1355,7 @@ export function OrcamentoResultado({
                   freteMotivoLabel(calculo.frete.motivo),
                 ]
                   .filter(Boolean)
-                  .join(' · ')}
-                {' '}
+                  .join(' · ')}{' '}
                 · informativo, fora do total e do unitário
               </p>
             ) : null}
@@ -1129,32 +1363,57 @@ export function OrcamentoResultado({
         ) : null}
 
         {abaAtiva === 'interno' ? (
-          <ParametrosCalculoPanel
-            faixas={faixas}
-            calculo={calculo}
-            snapshot={calculo.catalog_snapshot}
-            parametrosAjuste={parametrosAjuste}
-            onAplicarParametros={onAplicarParametros}
-            aplicandoParametros={aplicandoParametros}
-            motorVersion={
-              typeof calculo.motor_version === 'number'
-                ? calculo.motor_version
-                : typeof calculo.catalog_snapshot?.motor_version === 'number'
-                  ? (calculo.catalog_snapshot.motor_version as number)
-                  : 1
-            }
-          />
+          <>
+            {seletorItens}
+            {multi && !podeAjustarItem ? (
+              <p className="field-note" style={{ marginTop: 0 }}>
+                Ajuste de parâmetros só no item em edição no formulário (
+                {rotuloItemOrc(itemEdicaoOrdem ?? 1)}). Aqui a visão é somente leitura.
+              </p>
+            ) : null}
+            {multi ? (
+              <p className="orc-result-meta" style={{ marginTop: 0 }}>
+                Composição de custo — {rotuloItemOrc(itemAtivo.ordem, itemAtivo.rotulo)}
+                {resultAtivo.cobra_matriz
+                  ? ` · matriz ${formatCurrency(resultAtivo.valor_matriz)}`
+                  : ' · matriz isenta'}
+              </p>
+            ) : null}
+            <ParametrosCalculoPanel
+              faixas={faixas}
+              calculo={resultAtivo}
+              snapshot={resultAtivo.catalog_snapshot}
+              parametrosAjuste={podeAjustarItem ? parametrosAjuste : null}
+              onAplicarParametros={podeAjustarItem ? onAplicarParametros : undefined}
+              aplicandoParametros={aplicandoParametros}
+              motorVersion={
+                typeof resultAtivo.motor_version === 'number'
+                  ? resultAtivo.motor_version
+                  : typeof resultAtivo.catalog_snapshot?.motor_version === 'number'
+                    ? (resultAtivo.catalog_snapshot.motor_version as number)
+                    : 1
+              }
+            />
+          </>
         ) : null}
 
         {abaAtiva === 'producao' ? (
-          <GuiaProducaoPanel
-            espec={guiaEspec}
-            faixa={detalhe}
-            faixas={faixas}
-            faixaIndex={faixaDetalhe}
-            onFaixa={setFaixaDetalhe}
-            modelosComposicao={modelosVisiveis}
-          />
+          <>
+            {seletorItens}
+            {multi ? (
+              <p className="orc-result-meta" style={{ marginTop: 0 }}>
+                Guia operacional — {rotuloItemOrc(itemAtivo.ordem, itemAtivo.rotulo)}
+              </p>
+            ) : null}
+            <GuiaProducaoPanel
+              espec={multi ? itemAtivo.guiaEspec : guiaEspec}
+              faixa={detalhe}
+              faixas={faixas}
+              faixaIndex={Math.min(faixaDetalhe, Math.max(0, faixas.length - 1))}
+              onFaixa={setFaixaDetalhe}
+              modelosComposicao={modelosVisiveis}
+            />
+          </>
         ) : null}
       </div>
     </section>

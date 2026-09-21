@@ -882,6 +882,9 @@ class OrcamentoAprovacaoService
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
+        $orcamento->loadMissing('itens');
+        $itensPersistidos = $orcamento->itens->sortBy('ordem')->values();
+        $multiItem = $itensPersistidos->count() > 1;
         $facas = is_array($input['facas'] ?? null) ? $input['facas'] : [];
         if ($facas === [] && ! array_key_exists('facas', $input)) {
             $facas = \App\Support\FacasComposicao::fromLegacyScalars($input);
@@ -898,6 +901,115 @@ class OrcamentoAprovacaoService
         $valorArtes = (float) ($result['valor_artes']
             ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
         $somenteLeitura = $modo === 'preview' || $link === null;
+
+        $faixas = $this->faixasComerciaisProposta($input, $result);
+
+        $destinoNome = $link?->destino_nome;
+        $destinoFuncao = $link?->destino_funcao;
+
+        $dto = [
+            'codigo' => $orcamento->codigo,
+            'versao' => $orcamento->versao,
+            'status' => $orcamento->status,
+            'vencido' => $somenteLeitura ? false : $vencido,
+            'disponivel' => $somenteLeitura
+                ? false
+                : (! $vencido && $link !== null && $link->ativo && $link->usado_em === null),
+            'somente_leitura' => $somenteLeitura,
+            'expira_em' => $somenteLeitura ? null : $link?->expira_em?->toIso8601String(),
+            'cliente_nome' => $orcamento->cliente_nome,
+            'destinatario' => [
+                'nome' => $destinoNome,
+                'funcao' => $destinoFuncao,
+                'instrucao' => $somenteLeitura
+                    ? 'Prévia interna da proposta. Aprovar ou recusar só pelo link pessoal enviado ao destinatário.'
+                    : ($destinoNome
+                        ? 'Esta proposta foi enviada para aprovação de '.$destinoNome.'. Somente esta pessoa deve aprovar ou recusar.'
+                        : 'Somente o destinatário deste link deve aprovar ou recusar a proposta.'),
+            ],
+            'empresa' => [
+                'nome_fantasia' => $empresa?->nome_fantasia,
+                'razao_social' => $empresa?->razao_social,
+                'cnpj' => $empresa?->cnpj,
+                'telefone' => $empresa?->telefone,
+                'email' => $empresa?->email,
+                'municipio' => $empresa?->municipio,
+                'uf' => $empresa?->uf,
+            ],
+            'tipo_operacao' => TipoOperacaoSaida::fromInput(
+                $input['tipo_operacao'] ?? $input['necessidade'] ?? null
+            ),
+            'descricao' => $this->descricaoComercialProposta($input, $facaNova, $facas),
+            'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
+            'validade_dias' => $orcamento->validade_dias,
+            ...$this->diasUteis->previsaoParaOrcamento($orcamento),
+            'tolerancia_qtd_pct' => (float) $orcamento->tolerancia_qtd_pct,
+            'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
+            'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
+            'frete' => $this->fretePublico($input, $result, $faixas),
+            'cobra_matriz' => (bool) $orcamento->cobra_matriz,
+            'valor_matriz' => (float) $orcamento->valor_matriz,
+            'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,
+            'faixas' => $faixas,
+            'url_arte' => $this->urlArtePublica($input),
+            'observacao_comercial' => null,
+            'modo' => $modo,
+            'financeiro_status' => $orcamento->financeiro_status,
+            'adiantamento' => null,
+        ];
+
+        if ($multiItem) {
+            $itensDto = [];
+            $valorTotalDoc = 0.0;
+            foreach ($itensPersistidos as $item) {
+                $itemInput = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+                $itemResult = is_array($item->result_snapshot) ? $item->result_snapshot : [];
+                $itemFacasSnap = is_array($itemInput['facas'] ?? null) ? $itemInput['facas'] : [];
+                if ($itemFacasSnap === [] && ! array_key_exists('facas', $itemInput)) {
+                    $itemFacasSnap = \App\Support\FacasComposicao::fromLegacyScalars($itemInput);
+                }
+                $itemFacaNova = \App\Support\FacasComposicao::temFacaNova($itemFacasSnap)
+                    || (bool) ($itemResult['faca_nova'] ?? $itemInput['faca_nova'] ?? false);
+                $itemFaixas = $this->faixasComerciaisProposta($itemInput, $itemResult);
+                $itensDto[] = [
+                    'ordem' => $item->ordem,
+                    'rotulo' => $item->rotulo,
+                    'descricao' => $this->descricaoComercialProposta($itemInput, $itemFacaNova, $itemFacasSnap),
+                    'faixas' => $itemFaixas,
+                ];
+                if ($itemFaixas !== []) {
+                    $valorTotalDoc += (float) ($itemFaixas[0]['valor_total'] ?? 0);
+                }
+            }
+            $dto['itens'] = $itensDto;
+            $dto['valor_total_documento_primeira_faixa'] = round($valorTotalDoc, 2);
+        }
+
+        return $dto;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $result
+     * @return list<array<string, mixed>>
+     */
+    private function faixasComerciaisProposta(array $input, array $result): array
+    {
+        $facas = is_array($input['facas'] ?? null) ? $input['facas'] : [];
+        if ($facas === [] && ! array_key_exists('facas', $input)) {
+            $facas = \App\Support\FacasComposicao::fromLegacyScalars($input);
+        }
+        $valorFaca = \App\Support\FacasComposicao::somaValor($facas);
+        if ($valorFaca <= 0.0) {
+            $facaNovaFlag = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
+            $valorFaca = $facaNovaFlag
+                ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0)
+                : 0.0;
+        }
+        $facaNova = $valorFaca > 0.0 || \App\Support\FacasComposicao::temFacaNova($facas)
+            || (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
+        $valorArtes = (float) ($result['valor_artes']
+            ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
 
         $faixas = [];
         foreach (($result['faixas'] ?? []) as $idx => $fx) {
@@ -936,81 +1048,39 @@ class OrcamentoAprovacaoService
             ];
         }
 
-        $destinoNome = $link?->destino_nome;
-        $destinoFuncao = $link?->destino_funcao;
+        return $faixas;
+    }
 
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  list<array<string, mixed>>  $facas
+     * @return array<string, mixed>
+     */
+    private function descricaoComercialProposta(array $input, bool $facaNova, array $facas): array
+    {
         return [
-            'codigo' => $orcamento->codigo,
-            'versao' => $orcamento->versao,
-            'status' => $orcamento->status,
-            'vencido' => $somenteLeitura ? false : $vencido,
-            'disponivel' => $somenteLeitura
-                ? false
-                : (! $vencido && $link !== null && $link->ativo && $link->usado_em === null),
-            'somente_leitura' => $somenteLeitura,
-            'expira_em' => $somenteLeitura ? null : $link?->expira_em?->toIso8601String(),
-            'cliente_nome' => $orcamento->cliente_nome,
-            'destinatario' => [
-                'nome' => $destinoNome,
-                'funcao' => $destinoFuncao,
-                'instrucao' => $somenteLeitura
-                    ? 'Prévia interna da proposta. Aprovar ou recusar só pelo link pessoal enviado ao destinatário.'
-                    : ($destinoNome
-                        ? 'Esta proposta foi enviada para aprovação de '.$destinoNome.'. Somente esta pessoa deve aprovar ou recusar.'
-                        : 'Somente o destinatário deste link deve aprovar ou recusar a proposta.'),
-            ],
-            'empresa' => [
-                'nome_fantasia' => $empresa?->nome_fantasia,
-                'razao_social' => $empresa?->razao_social,
-                'cnpj' => $empresa?->cnpj,
-                'telefone' => $empresa?->telefone,
-                'email' => $empresa?->email,
-                'municipio' => $empresa?->municipio,
-                'uf' => $empresa?->uf,
-            ],
-            'tipo_operacao' => TipoOperacaoSaida::fromInput(
-                $input['tipo_operacao'] ?? $input['necessidade'] ?? null
-            ),
-            'descricao' => [
-                'medida' => $input['medida'] ?? null,
-                'papel' => $input['papel'] ?? null,
-                'acabamento' => $input['acabamento'] ?? null,
-                'cores' => $input['cores'] ?? null,
-                'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
-                'largura_cm' => $input['largura_cm'] ?? null,
-                'puxada_cm' => $input['puxada_cm'] ?? null,
-                'formato_faca' => $input['formato_faca'] ?? null,
-                'faca_nova' => $facaNova,
-                'facas' => $facas,
-                'faca_colunas_mapa' => $input['faca_colunas_mapa'] ?? null,
-                'faca_posicao' => $input['faca_posicao'] ?? null,
-                'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
-                'faca_contorno_svg' => $input['faca_contorno_svg'] ?? null,
-                'faca_diametro_cm' => $input['faca_diametro_cm'] ?? null,
-                'faca_tamanho_raw' => $input['faca_tamanho_raw'] ?? null,
-                'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
-                'modelos_composicao' => $this->modelosComposicaoPublica($input),
-                'tipo_servico' => $input['tipo_servico'] ?? null,
-                'descricao_servico' => $input['descricao_servico'] ?? null,
-                'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
-                'unidade' => $input['unidade'] ?? null,
-            ],
-            'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
-            'validade_dias' => $orcamento->validade_dias,
-            ...$this->diasUteis->previsaoParaOrcamento($orcamento),
-            'tolerancia_qtd_pct' => (float) $orcamento->tolerancia_qtd_pct,
-            'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
-            'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
-            'frete' => $this->fretePublico($input, $result, $faixas),
-            'cobra_matriz' => (bool) $orcamento->cobra_matriz,
-            'valor_matriz' => (float) $orcamento->valor_matriz,
-            'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,
-            'faixas' => $faixas,
-            'url_arte' => $this->urlArtePublica($input),
-            'observacao_comercial' => null,
-            'modo' => $modo,
-            'financeiro_status' => $orcamento->financeiro_status,
-            'adiantamento' => null,
+            'medida' => $input['medida'] ?? null,
+            'papel' => $input['papel'] ?? null,
+            'acabamento' => $input['acabamento'] ?? null,
+            'cores' => $input['cores'] ?? null,
+            'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
+            'largura_cm' => $input['largura_cm'] ?? null,
+            'puxada_cm' => $input['puxada_cm'] ?? null,
+            'formato_faca' => $input['formato_faca'] ?? null,
+            'faca_nova' => $facaNova,
+            'facas' => $facas,
+            'faca_colunas_mapa' => $input['faca_colunas_mapa'] ?? null,
+            'faca_posicao' => $input['faca_posicao'] ?? null,
+            'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
+            'faca_contorno_svg' => $input['faca_contorno_svg'] ?? null,
+            'faca_diametro_cm' => $input['faca_diametro_cm'] ?? null,
+            'faca_tamanho_raw' => $input['faca_tamanho_raw'] ?? null,
+            'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
+            'modelos_composicao' => $this->modelosComposicaoPublica($input),
+            'tipo_servico' => $input['tipo_servico'] ?? null,
+            'descricao_servico' => $input['descricao_servico'] ?? null,
+            'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
+            'unidade' => $input['unidade'] ?? null,
         ];
     }
 

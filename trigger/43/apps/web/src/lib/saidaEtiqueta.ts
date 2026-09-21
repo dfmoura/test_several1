@@ -44,6 +44,12 @@ export function saidaEtiquetaLabel(code: string | null | undefined): string | nu
   return opt ? opt.rotulo : null;
 }
 
+/** Rótulo curto (Esquerda / Direita / …) — tiles densos e células de ficha. */
+export function saidaEtiquetaLabelCurto(code: string | null | undefined): string | null {
+  const opt = SAIDA_ETIQUETA_OPCOES.find((o) => o.codigo === code);
+  return opt ? opt.rotuloCurto : null;
+}
+
 export function saidaEtiquetaAsset(code: string | null | undefined): string | null {
   return SAIDA_ETIQUETA_OPCOES.find((o) => o.codigo === code)?.asset ?? null;
 }

@@ -56,10 +56,10 @@ ORC (picker visual) → input_snapshot.saida_etiqueta
 | Superfície | Forma |
 |------------|--------|
 | Form ORC | `SaidaEtiquetaPicker` |
-| Detalhe / proposta / confirmação PED | `SaidaEtiquetaBadge` thumb |
-| Ficha ORC | célula + bloco titulado |
+| Detalhe / proposta / confirmação PED | `SaidaEtiquetaBadge` dense/thumb no tile ou dl |
+| Ficha ORC | célula da tabela com badge dense (sem bloco titulado) |
 | Fichas PED/OP | KV na espec. + `FichaSaidaEtiquetaSection` |
-| Guia (resultado ORC) | badge acima da tabela + texto na linha Rebobinação |
+| Guia (resultado ORC) | texto na linha Rebobinação (sem bloco dedicado) |
 
 ---
 
