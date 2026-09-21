@@ -52,6 +52,7 @@ function modelosFromSnap(snap: Record<string, unknown> | null | undefined): Mode
     nome: String(m.nome ?? ''),
     percentual: Number(m.percentual) || 0,
     valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+    arte_url: String(m.arte_url ?? '').trim() || null,
   }));
 }
 

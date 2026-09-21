@@ -945,7 +945,7 @@ class OrcamentoAprovacaoService
             'tipo_operacao' => TipoOperacaoSaida::fromInput(
                 $input['tipo_operacao'] ?? $input['necessidade'] ?? null
             ),
-            'descricao' => $this->descricaoComercialProposta($input, $facaNova, $facas),
+            'descricao' => $this->descricaoComercialProposta($input, $facaNova, $facas, $link?->token),
             'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
             'validade_dias' => $orcamento->validade_dias,
             ...$this->diasUteis->previsaoParaOrcamento($orcamento),
@@ -980,7 +980,7 @@ class OrcamentoAprovacaoService
                 $itensDto[] = [
                     'ordem' => $item->ordem,
                     'rotulo' => $item->rotulo,
-                    'descricao' => $this->descricaoComercialProposta($itemInput, $itemFacaNova, $itemFacasSnap),
+                    'descricao' => $this->descricaoComercialProposta($itemInput, $itemFacaNova, $itemFacasSnap, $link?->token),
                     'faixas' => $itemFaixas,
                 ];
                 if ($itemFaixas !== []) {
@@ -1062,7 +1062,7 @@ class OrcamentoAprovacaoService
      * @param  list<array<string, mixed>>  $facas
      * @return array<string, mixed>
      */
-    private function descricaoComercialProposta(array $input, bool $facaNova, array $facas): array
+    private function descricaoComercialProposta(array $input, bool $facaNova, array $facas, ?string $token = null): array
     {
         return [
             'medida' => $input['medida'] ?? null,
@@ -1083,7 +1083,7 @@ class OrcamentoAprovacaoService
             'faca_diametro_cm' => $input['faca_diametro_cm'] ?? null,
             'faca_tamanho_raw' => $input['faca_tamanho_raw'] ?? null,
             'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
-            'modelos_composicao' => $this->modelosComposicaoPublica($input),
+            'modelos_composicao' => $this->modelosComposicaoPublica($input, $token),
             'tipo_servico' => $input['tipo_servico'] ?? null,
             'descricao_servico' => $input['descricao_servico'] ?? null,
             'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
@@ -1169,15 +1169,16 @@ class OrcamentoAprovacaoService
      * Composição de artes para a proposta ao cliente (só linhas com nome).
      *
      * @param  array<string, mixed>  $input
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>|null
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>|null
      */
-    private function modelosComposicaoPublica(array $input): ?array
+    private function modelosComposicaoPublica(array $input, ?string $token = null): ?array
     {
         $raw = $input['modelos_composicao'] ?? null;
         if (! is_array($raw) || $raw === []) {
             return null;
         }
 
+        $artes = app(\App\Services\Comercial\OrcArteModeloService::class);
         $out = [];
         foreach (array_values($raw) as $i => $row) {
             if (! is_array($row)) {
@@ -1187,11 +1188,13 @@ class OrcamentoAprovacaoService
             if ($nome === '') {
                 continue;
             }
+            $arteRef = \App\Support\ArteModeloUrl::normalize($row['arte_url'] ?? null);
             $out[] = [
                 'ordem' => (int) ($row['ordem'] ?? $i + 1),
                 'nome' => $nome,
                 'percentual' => round((float) ($row['percentual'] ?? 0), 4),
                 'valor_arte' => round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2),
+                'arte_url' => $artes->dtoArteUrl($arteRef, $token),
             ];
         }
 

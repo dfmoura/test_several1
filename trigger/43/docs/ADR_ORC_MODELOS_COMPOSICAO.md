@@ -23,8 +23,9 @@ Separar **custo de produção**, **composição operacional** e **add-on comerci
 | Campo | Onde | Papel |
 |-------|------|--------|
 | `modelos` (int ≥ 1) | input do motor | Setup `(N−1)×troca` e perda × N — **inalterado** |
-| `modelos_composicao[]` | `input_snapshot` | `{ ordem, nome, percentual, valor_arte }` · Σ% = 100 · **% não** entra nas fórmulas R1–R20 |
+| `modelos_composicao[]` | `input_snapshot` | `{ ordem, nome, percentual, valor_arte, arte_url? }` · Σ% = 100 · **% não** entra nas fórmulas R1–R20 |
 | `valor_arte` (R$ ≥ 0 por linha) | em cada item da composição | Cotação comercial da arte; opcional (default 0) |
+| `arte_url` (opcional) | em cada item da composição | Visual da arte: `http(s)` externo **ou** ref interna `orc-arte:{empresaId}/{uuid}.{ext}` (upload EMP). **Fora** do motor / preço |
 | `valor_artes` (= Σ `valor_arte`) | `result_snapshot` (enrich) | Add-on pós-motor — mesmo padrão de faca nova |
 
 ```
@@ -46,16 +47,20 @@ modelos (preço produção)  ←→  len(modelos_composicao)  (validado)
 2. Cada `nome` obrigatório quando a composição é enviada explicitamente (máx. 120).
 3. Cada `percentual` ∈ (0, 100]; soma = 100 (±0,01).
 4. Cada `valor_arte` ≥ 0 (nullable → 0). Ausência em ORCs legados = 0.
-5. Ausência de `modelos_composicao` na API → equal-split legado (compatibilidade / testes); UI comercial sempre envia e exige nomes.
-6. Helper `ModelosComposicao::alocarQuantidades` / `somaValorArte` prontos para PED/OP/FAT.
+5. Cada `arte_url` opcional — http(s) ou `orc-arte:…` (upload). Ausência = sem figura. Não altera preço. Proposta/ficha resolvem ref interna para URL assinada (img sem Bearer).
+6. Ausência de `modelos_composicao` na API → equal-split legado (compatibilidade / testes); UI comercial sempre envia e exige nomes.
+7. Helper `ModelosComposicao::alocarQuantidades` / `somaValorArte` prontos para PED/OP/FAT.
 
 ### UX
 
 - Campo **Modelos** continua na especificação técnica (custo / setup).
-- No formulário comercial, **faixas (escada)** e **composição dos modelos** formam **uma seção** (“Quantidades — escada e artes”), com colunas: # · Modelo (arte) · **Valor da arte** · Qtd por faixa.
+- No formulário comercial, **faixas (escada)** e **composição dos modelos** formam **uma seção** (“Quantidades — escada e artes”), com colunas: # · **Fig.** · Modelo (arte) · **Valor da arte** · Qtd por faixa.
+- **Fig.:** overlay (arrastar/buscar SVG/PNG) por linha — opcional; proposta/ficha do cliente: miniatura clicável → overlay de leitura.
 - Soma ao vivo das artes no rodapé; % travado em 100% se N=1.
-- Detalhe, ficha interna, aba **Proposta comercial** e **link público** mostram a tabela (valor da arte só se algum > 0).
+- Detalhe, ficha interna, aba **Proposta comercial** e **link público** mostram a tabela (valor da arte só se algum > 0; figura só se `arte_url`).
 - Resultado do cálculo: linha **Artes** nos totais quando `valor_artes > 0`.
+
+**Não** reativar `url_arte` no cabeçalho do ORC (`ADR_ORC_URL_ARTE` permanece retirado da UX).
 
 ---
 
@@ -72,11 +77,18 @@ modelos (preço produção)  ←→  len(modelos_composicao)  (validado)
 3. SKU-por-arte no dia 1 sem ADR.
 4. Incluir artes na base de comissão do vendedor.
 5. Confundir EMP / stage com “modelo”.
+6. Embutir SVG/data-URL no snapshot público (XSS / tamanho).
+7. Exigir arte visual para salvar, enviar ou aprovar.
 
 ---
 
+## Emenda 2026-09-21 — arte visual por modelo
+
+- `ArteModeloUrl` · `OrcArteModeloService` · upload `POST /orc-arte-modelos` · serve assinado `GET /orc-arte-modelos/{empresa}/{arquivo}`
+- UI: `ModeloArteOverlay` / `ModeloArteTrigger` · `ModelosComposicaoEditor` · `ModelosComposicaoTable`
+
 ## Rastreio
 
-- `App\Support\ModelosComposicao` · `OrcamentoService::enrichResult` · `OrcamentoValidationRules` · `OrcamentoAprovacaoService::dtoComercial` · `FaturamentoService::itensArte`
-- UI: `orcamentoForm.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `OrcamentoFormPage` · `OrcamentoResultado` · `OrcamentoFichaSheet` · `OrcamentoPropostaView`
-- Testes: `ModelosComposicaoTest` · `OrcamentoTest` · `OrcamentoAprovacaoTest`
+- `App\Support\ModelosComposicao` · `ArteModeloUrl` · `OrcArteModeloService` · `OrcamentoValidationRules` · `OrcamentoAprovacaoService::dtoComercial` · `FaturamentoService::itensArte`
+- UI: `orcamentoForm.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `ModeloArteOverlay` · `OrcamentoFormPage` · `OrcamentoPropostaView`
+- Testes: `ModelosComposicaoTest` · `ArteModeloUrlTest` · `OrcamentoTest` · `OrcamentoAprovacaoTest`

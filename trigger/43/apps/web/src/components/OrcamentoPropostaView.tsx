@@ -49,8 +49,7 @@ export function OrcamentoPropostaView({
   const desc = proposta.descricao;
   const faixas = proposta.faixas ?? [];
   const multi = isPropostaMultiItem(proposta);
-  const documentoSub = [
-    proposta.codigo,
+  const documentoMeta = [
     `v${proposta.versao}`,
     proposta.expira_em ? `válida até ${formatDateTime(proposta.expira_em)}` : null,
   ]
@@ -64,7 +63,8 @@ export function OrcamentoPropostaView({
           kicker={kicker}
           titulo={empresaNome}
           empresa={proposta.empresa}
-          documentoSub={documentoSub}
+          documentoId={proposta.codigo}
+          documentoMeta={documentoMeta}
           logoSrc={BRAND.licensee.logo}
           logoAlt={BRAND.licensee.logoAlt}
         />

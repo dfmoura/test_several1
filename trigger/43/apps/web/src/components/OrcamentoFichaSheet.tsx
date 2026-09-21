@@ -320,6 +320,7 @@ function FichaItemBody({
                 nome?: string;
                 percentual?: number;
                 valor_arte?: number;
+                arte_url?: string | null;
               }>
             }
             faixas={faixas.map((fx, i) => ({

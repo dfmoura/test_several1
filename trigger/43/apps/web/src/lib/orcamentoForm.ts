@@ -96,6 +96,8 @@ export type ModeloComposicaoForm = {
   percentual: number;
   /** R$ cotado desta arte (opcional; default 0). */
   valor_arte: number;
+  /** Visual opcional — http(s) ou ref `orc-arte:…` (upload). */
+  arte_url?: string | null;
 };
 
 /** Composição de facas no ORC — ADR_ORC_FACAS_COMPOSICAO. */
@@ -474,6 +476,7 @@ export function syncModelosComposicao(
       nome: prev?.[i]?.nome ?? '',
       percentual: pct,
       valor_arte: Math.max(0, Number(prev?.[i]?.valor_arte) || 0),
+      arte_url: prev?.[i]?.arte_url?.trim() || null,
     });
   }
   return out;
@@ -704,6 +707,7 @@ export function formFromSnapshot(
           nome: String(r.nome ?? ''),
           percentual: Number(r.percentual) || 0,
           valor_arte: Math.max(0, Number(r.valor_arte) || 0),
+          arte_url: String(r.arte_url ?? '').trim() || null,
         }))
       : syncModelosComposicao(compRaw, modelos);
 
@@ -994,6 +998,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       nome: m.nome.trim(),
       percentual: Number(m.percentual) || 0,
       valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+      arte_url: m.arte_url?.trim() || null,
     })),
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,

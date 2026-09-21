@@ -42,7 +42,13 @@ import { pedStatusLabel } from '../lib/producaoUi';
 import { SaidaEtiquetaBadge } from '../components/SaidaEtiquetaBadge';
 import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
-type ModeloCompSnap = { ordem?: number; nome?: string; percentual?: number; valor_arte?: number };
+type ModeloCompSnap = {
+  ordem?: number;
+  nome?: string;
+  percentual?: number;
+  valor_arte?: number;
+  arte_url?: string | null;
+};
 
 type ItemFichaSnap = {
   ordem: number;
@@ -854,6 +860,7 @@ export function OrcamentoDetailPage() {
                 nome: String(m.nome ?? ''),
                 percentual: Number(m.percentual) || 0,
                 valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+                arte_url: String(m.arte_url ?? '').trim() || null,
               }))}
               faixas={faixasItem.map((fx, i) => ({
                 key: i,
@@ -893,6 +900,7 @@ export function OrcamentoDetailPage() {
                   nome: String(m.nome ?? ''),
                   percentual: Number(m.percentual) || 0,
                   valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+                  arte_url: String(m.arte_url ?? '').trim() || null,
                 }))
           }
           parametrosAjuste={

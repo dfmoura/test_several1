@@ -214,6 +214,45 @@ export const api = {
   download: (path: string, filename: string, empresaId?: number | null) =>
     downloadFile(path, filename, empresaId),
 
+  /**
+   * GET binário autenticado (arte SVG/PNG…). Retorna object URL — caller deve revoke.
+   * path: `/orc-arte-modelos/…` (sem prefixo /api/v1) ou URL absoluta/http.
+   */
+  fetchBlobUrl: async (pathOrUrl: string, empresaId?: number | null): Promise<string> => {
+    if (/^https?:\/\//i.test(pathOrUrl)) {
+      return pathOrUrl;
+    }
+    const path = pathOrUrl.startsWith('/api/v1')
+      ? pathOrUrl.slice('/api/v1'.length)
+      : pathOrUrl.startsWith('/')
+        ? pathOrUrl
+        : `/${pathOrUrl}`;
+
+    const headers: Record<string, string> = {
+      Accept: 'image/*,application/octet-stream,*/*',
+    };
+    const token = getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    const empId = empresaId ?? getEmpresaId();
+    if (empId) {
+      headers['X-Empresa-Id'] = String(empId);
+    }
+
+    const response = await fetch(path.startsWith('/api/') ? path : `/api/v1${path}`, {
+      headers,
+    });
+    if (!response.ok) {
+      throw new ApiError(`Erro ${response.status}`, response.status);
+    }
+    if (getToken()) {
+      markSessaoServerTouch();
+    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
   login: (
     email: string,
     password: string,
@@ -3405,6 +3444,8 @@ export type OrcamentoPropostaPublica = {
       nome: string;
       percentual: number;
       valor_arte?: number;
+      /** URL resolvida para exibição (assinada ou http). */
+      arte_url?: string | null;
     }> | null;
     tipo_servico?: string | null;
     descricao_servico?: string | null;

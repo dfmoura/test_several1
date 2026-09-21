@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Services\Comercial\OrcamentoAprovacaoService;
+use App\Services\Comercial\OrcArteModeloService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Endpoints públicos do link de aprovação (sem Sanctum). */
 class OrcamentoPublicoController extends Controller
@@ -17,6 +19,11 @@ class OrcamentoPublicoController extends Controller
         $data = $this->aprovacao->propostaPublica($token);
 
         return response()->json(['data' => $data]);
+    }
+
+    public function arte(string $token, int $empresa, string $arquivo): StreamedResponse
+    {
+        return app(OrcArteModeloService::class)->streamForPropostaToken($token, $empresa, $arquivo);
     }
 
     public function adiantamento(string $token): JsonResponse

@@ -87,8 +87,10 @@ type HeroEmitenteProps = {
   /** Fallback se a EMP não trouxer fantasia/razão. */
   titulo: string;
   empresa: OrcPubParteComercialData | null | undefined;
-  /** Linha do documento (código · versão · validade). */
-  documentoSub: string;
+  /** Âncora do documento (ex.: ORC-2026-00001) — destaque tipográfico calmo. */
+  documentoId: string;
+  /** Eco quieto (versão · validade · origem). */
+  documentoMeta?: string | null;
   logoSrc: string;
   logoAlt: string;
 };
@@ -96,12 +98,14 @@ type HeroEmitenteProps = {
 /**
  * Cabeçalho da proposta: marca + emitente compacto (sem card).
  * Um nome no H1; razão legal só no meta se for distinta.
+ * Código do documento em linha própria — citável sem competir com a EMP.
  */
 export function OrcPubHeroEmitente({
   kicker,
   titulo,
   empresa,
-  documentoSub,
+  documentoId,
+  documentoMeta,
   logoSrc,
   logoAlt,
 }: HeroEmitenteProps) {
@@ -109,6 +113,8 @@ export function OrcPubHeroEmitente({
   const meta = metaLinhasParteComercial(empresa);
   const endereco = formatEnderecoParceiro(empresa);
   const metaComLegal = legal ? [legal, ...meta] : meta;
+  const id = documentoId.trim();
+  const metaDoc = (documentoMeta ?? '').trim();
 
   return (
     <header className="orc-pub-hero">
@@ -120,7 +126,12 @@ export function OrcPubHeroEmitente({
           <p className="orc-pub-hero-meta">{metaComLegal.join(' · ')}</p>
         ) : null}
         {endereco ? <p className="orc-pub-hero-endereco">{endereco}</p> : null}
-        <p className="orc-pub-sub">{documentoSub}</p>
+        {id ? (
+          <div className="orc-pub-doc">
+            <p className="orc-pub-doc-id">{id}</p>
+            {metaDoc ? <p className="orc-pub-doc-meta">{metaDoc}</p> : null}
+          </div>
+        ) : null}
       </div>
     </header>
   );

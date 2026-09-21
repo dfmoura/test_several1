@@ -4,6 +4,7 @@ import {
   type FaixaForm,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
+import { ModeloArteTrigger } from './ModeloArteOverlay';
 import { NumericInput } from './NumericInput';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   canWrite: boolean;
   onNomeChange: (index: number, nome: string) => void;
   onValorArteChange: (index: number, valorArte: number) => void;
+  onArteUrlChange: (index: number, arteUrl: string | null) => void;
   onQuantidadeChange: (faixaIdx: number, modeloIdx: number, qtd: number) => void;
 };
 
@@ -24,7 +26,7 @@ function formatMoney(value: number): string {
 }
 
 /**
- * Editor da composição operacional: nome + valor da arte + quantidade por faixa.
+ * Editor da composição operacional: nome + arte visual + valor + quantidade por faixa.
  */
 export function ModelosComposicaoEditor({
   modelos,
@@ -32,6 +34,7 @@ export function ModelosComposicaoEditor({
   canWrite,
   onNomeChange,
   onValorArteChange,
+  onArteUrlChange,
   onQuantidadeChange,
 }: Props) {
   const faixasOk = faixas
@@ -54,6 +57,9 @@ export function ModelosComposicaoEditor({
           <thead>
             <tr>
               <th className="orc-modelo-ord-col">#</th>
+              <th className="orc-modelo-fig-col" title="Arte visual do modelo (opcional)">
+                Fig.
+              </th>
               <th className="orc-modelo-nome-col">Modelo (arte)</th>
               <th className="orc-modelo-arte-col" title="Valor cotado desta arte — entra no total do orçamento">
                 Vlr. Arte
@@ -75,6 +81,15 @@ export function ModelosComposicaoEditor({
             {modelos.map((m, mi) => (
               <tr key={m.ordem}>
                 <td className="orc-modelo-ord-col">{m.ordem || mi + 1}</td>
+                <td className="orc-modelo-fig-col">
+                  <ModeloArteTrigger
+                    nome={m.nome || `Modelo ${mi + 1}`}
+                    arteUrl={m.arte_url}
+                    editable={canWrite}
+                    onChange={(next) => onArteUrlChange(mi, next.arte_url)}
+                    dense
+                  />
+                </td>
                 <td className="orc-modelo-nome-col">
                   <input
                     type="text"
@@ -133,7 +148,7 @@ export function ModelosComposicaoEditor({
           </tbody>
           <tfoot>
             <tr className="orc-modelos-editor-total">
-              <td colSpan={2}>
+              <td colSpan={3}>
                 {alocPorFaixa.length > 0 ? 'Totais' : 'Total artes'}
               </td>
               <td className="orc-modelo-arte-col orc-modelos-total-cell">

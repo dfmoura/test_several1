@@ -2,15 +2,17 @@
 
 namespace App\Support;
 
+use App\Support\ArteModeloUrl;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Composição operacional dos modelos (artes) do ORC.
  *
  * O motor de preço usa apenas o escalar `modelos` (setup/perda).
- * Esta composição (nome + % da quantidade + valor_arte cotado) viaja no
- * input_snapshot para PED/OP: q_i = política(Q × pct_i/100), resto no último.
+ * Esta composição (nome + % da quantidade + valor_arte cotado + arte_url opcional)
+ * viaja no input_snapshot para PED/OP: q_i = política(Q × pct_i/100), resto no último.
  * Σ valor_arte entra no total comercial pós-motor (como faca nova) — não em R1–R20.
+ * arte_url é só visualização (http(s) ou orc-arte:…) — fora do motor.
  */
 final class ModelosComposicao
 {
@@ -42,7 +44,7 @@ final class ModelosComposicao
 
     /**
      * @param  array<int, mixed>  $raw
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
      */
     public static function normalizeAndAssert(array $raw, int $modelos): array
     {
@@ -86,6 +88,14 @@ final class ModelosComposicao
             }
 
             $valorArte = round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2);
+            $arteUrl = ArteModeloUrl::normalize($row['arte_url'] ?? null);
+            if (($row['arte_url'] ?? null) !== null && trim((string) $row['arte_url']) !== '' && $arteUrl === null) {
+                throw ValidationException::withMessages([
+                    "modelos_composicao.{$i}.arte_url" => [
+                        'Arte do modelo: use http(s) ou arquivo enviado pelo sistema.',
+                    ],
+                ]);
+            }
 
             $soma += $pct;
             $out[] = [
@@ -93,6 +103,7 @@ final class ModelosComposicao
                 'nome' => $nome,
                 'percentual' => $pct,
                 'valor_arte' => $valorArte,
+                'arte_url' => $arteUrl,
             ];
         }
 
@@ -119,7 +130,7 @@ final class ModelosComposicao
     /**
      * Equal-split sem nomes (legado / preview sem detalhe).
      *
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
      */
     public static function equalSplit(int $modelos): array
     {
@@ -135,6 +146,7 @@ final class ModelosComposicao
                 'nome' => '',
                 'percentual' => $pct,
                 'valor_arte' => 0.0,
+                'arte_url' => null,
             ];
         }
 
@@ -167,8 +179,8 @@ final class ModelosComposicao
      * Aloca quantidade total por percentual; resto no último (soma = Q).
      * Uso futuro: PED/OP a partir do snapshot do ORC.
      *
-     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string}>  $composicao
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, quantidade: int}>
+     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null}>  $composicao
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, quantidade: int}>
      */
     public static function alocarQuantidades(int $quantidadeTotal, array $composicao): array
     {
@@ -194,6 +206,7 @@ final class ModelosComposicao
                 'nome' => trim((string) ($rows[$i]['nome'] ?? '')),
                 'percentual' => round($pct, 4),
                 'valor_arte' => round(max(0.0, (float) ($rows[$i]['valor_arte'] ?? 0)), 2),
+                'arte_url' => ArteModeloUrl::normalize($rows[$i]['arte_url'] ?? null),
                 'quantidade' => max(0, $qi),
             ];
         }

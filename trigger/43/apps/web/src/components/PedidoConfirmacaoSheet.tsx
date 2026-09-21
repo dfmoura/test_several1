@@ -101,8 +101,7 @@ export function PedidoConfirmacaoSheet({
   const condicao = condicaoPagamentoDoPedido(p);
   const forma = formaPagamentoDoPedido(p);
   const totalItens = p.itens.reduce((acc, it) => acc + (Number(it.valor_total) || 0), 0);
-  const documentoSub = [
-    p.codigo,
+  const documentoMeta = [
     p.orcamento?.codigo ? `origem ${p.orcamento.codigo}` : null,
     formatDateTime(emitidoEm.toISOString()),
   ]
@@ -119,7 +118,8 @@ export function PedidoConfirmacaoSheet({
           kicker="Confirmação de pedido"
           titulo={empresaNome}
           empresa={emp}
-          documentoSub={documentoSub}
+          documentoId={p.codigo}
+          documentoMeta={documentoMeta}
           logoSrc={BRAND.licensee.logo}
           logoAlt={BRAND.licensee.logoAlt}
         />

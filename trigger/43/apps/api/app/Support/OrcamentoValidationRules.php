@@ -112,6 +112,7 @@ final class OrcamentoValidationRules
             'modelos_composicao.*.nome' => ['nullable', 'string', 'max:120'],
             'modelos_composicao.*.percentual' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'modelos_composicao.*.valor_arte' => ['nullable', 'numeric', 'min:0'],
+            'modelos_composicao.*.arte_url' => ArteModeloUrl::validationRule(),
             'colunas' => ['required', 'integer', 'min:1'],
             'etiq_por_rolo' => ['required', 'integer', 'min:1'],
             'tubete' => ['required', 'string', 'max:32'],

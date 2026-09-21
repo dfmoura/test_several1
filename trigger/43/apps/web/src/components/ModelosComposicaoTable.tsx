@@ -4,12 +4,14 @@ import {
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
 import { formatCurrency } from '../lib/format';
+import { ModeloArteTrigger } from './ModeloArteOverlay';
 
 export type ModeloComposicaoRow = {
   ordem?: number;
   nome?: string;
   percentual?: number;
   valor_arte?: number;
+  arte_url?: string | null;
 };
 
 /** Faixa de quantidade do ORC — base do rateio inteiro por modelo. */
@@ -45,6 +47,7 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
     nome: String(m.nome ?? '').trim(),
     percentual: Number(m.percentual) || 0,
     valor_arte: Math.max(0, Number(m.valor_arte) || 0),
+    arte_url: String(m.arte_url ?? '').trim() || null,
   }));
 }
 
@@ -161,7 +164,14 @@ export function ModelosComposicaoTable({
                 <td className={isPub ? 'orc-pub-modelos-ord' : undefined}>
                   {m.ordem || i + 1}
                 </td>
-                <td>{m.nome}</td>
+                <td>
+                  <span className="orc-modelo-nome-com-arte">
+                    {(m.arte_url || '').trim() ? (
+                      <ModeloArteTrigger nome={m.nome} arteUrl={m.arte_url} dense />
+                    ) : null}
+                    <span>{m.nome}</span>
+                  </span>
+                </td>
                 {exibirArte ? (
                   <td className={arteClass}>
                     {m.valor_arte > 0 ? formatCurrency(m.valor_arte) : '—'}

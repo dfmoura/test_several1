@@ -89,7 +89,9 @@ function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
     cells.push({
       key: 'saida',
       label: 'Saída',
-      value: <SaidaEtiquetaBadge code={desc!.saida_etiqueta!} variant="dense" />,
+      value: (
+        <SaidaEtiquetaBadge code={desc!.saida_etiqueta!} variant="dense" previewable />
+      ),
     });
   }
   return <SpecDense cells={cells} />;

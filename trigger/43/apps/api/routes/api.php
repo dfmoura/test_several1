@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\NaturezaGerencialController;
 use App\Http\Controllers\Api\V1\OrcamentoAprovacaoController;
 use App\Http\Controllers\Api\V1\OrcamentoCatalogoController;
 use App\Http\Controllers\Api\V1\OrcamentoController;
+use App\Http\Controllers\Api\V1\OrcArteModeloController;
 use App\Http\Controllers\Api\V1\OrcamentoPublicoController;
 use App\Http\Controllers\Api\V1\PainelController;
 use App\Http\Controllers\Api\V1\OrdemCompraController;
@@ -87,6 +88,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/publico/orcamentos/{token}/decidir', [OrcamentoPublicoController::class, 'decidir'])
             ->where('token', '[A-Za-z0-9_-]{20,128}')
             ->middleware('throttle:20,1');
+        Route::get('/publico/orcamentos/{token}/arte/{empresa}/{arquivo}', [OrcamentoPublicoController::class, 'arte'])
+            ->where([
+                'token' => '[A-Za-z0-9_-]{20,128}',
+                'empresa' => '[0-9]+',
+                'arquivo' => '[0-9a-fA-F\\-]+\\.(svg|png|jpe?g|webp)',
+            ])
+            ->middleware('throttle:120,1');
     });
 
     // Validação de saque ASAAS — URL distinta (registrar antes do {provider}).
@@ -345,6 +353,11 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/orcamentos/catalogo', [OrcamentoController::class, 'catalog']);
         Route::post('/orcamentos/calcular', [OrcamentoController::class, 'calcular']);
+        Route::post('/orc-arte-modelos', [OrcArteModeloController::class, 'store'])
+            ->middleware('throttle:40,1');
+        Route::get('/orc-arte-modelos/{empresa}/{arquivo}', [OrcArteModeloController::class, 'show'])
+            ->where(['empresa' => '[0-9]+', 'arquivo' => '[0-9a-fA-F\\-]+\\.(svg|png|jpe?g|webp)'])
+            ->middleware('throttle:120,1');
         Route::get('/orcamentos', [OrcamentoController::class, 'index']);
         Route::post('/orcamentos', [OrcamentoController::class, 'store']);
         Route::get('/orcamentos/{orcamento}', [OrcamentoController::class, 'show']);

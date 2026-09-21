@@ -565,6 +565,15 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
+  const setModeloArteUrl = (index: number, arteUrl: string | null) => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: prev.modelos_composicao.map((m, i) =>
+        i === index ? { ...m, arte_url: arteUrl } : m,
+      ),
+    }));
+  };
+
   const setModeloQuantidadeFaixa = (faixaIdx: number, modeloIdx: number, qtd: number) => {
     setForm((prev) => ({
       ...prev,
@@ -1638,8 +1647,9 @@ export function OrcamentoFormPage() {
                 </div>
                 <p className="form-hint" style={{ marginTop: 0 }}>
                   Distribua a quantidade de cada faixa entre as artes e informe o Vlr. Arte
-                  de cada modelo (opcional). A soma entra no total do orçamento. O preço de
-                  produção (setup/perda) continua usando só a quantidade de modelos.
+                  de cada modelo (opcional). Em Fig. anexe a arte visual (SVG/PNG) para
+                  conferência na proposta. A soma do Vlr. Arte entra no total do orçamento. O
+                  preço de produção (setup/perda) continua usando só a quantidade de modelos.
                 </p>
                 <ModelosComposicaoEditor
                   modelos={form.modelos_composicao}
@@ -1647,6 +1657,7 @@ export function OrcamentoFormPage() {
                   canWrite={canWrite}
                   onNomeChange={setModeloComposicaoNome}
                   onValorArteChange={setModeloValorArte}
+                  onArteUrlChange={setModeloArteUrl}
                   onQuantidadeChange={setModeloQuantidadeFaixa}
                 />
               </div>
