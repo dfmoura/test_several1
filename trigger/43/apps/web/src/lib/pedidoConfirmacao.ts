@@ -3,6 +3,7 @@
  * Fonte: snapshot.input + item travado — sem guia de chão nem gordura.
  */
 import type { Pedido } from './api';
+import { formatCep, formatCurrency } from './format';
 import {
   MODO_ENTREGA_TERCEIROS,
   MODO_RETIRAR,
@@ -10,7 +11,6 @@ import {
   normalizarModoEntrega,
 } from './orcamentoFrete';
 import { asPedidoSnap, snapInput } from './producaoFicha';
-import { formatCurrency } from './format';
 
 export function strSnap(input: Record<string, unknown>, key: string): string | null {
   const v = input[key];
@@ -68,6 +68,7 @@ export function urlArteDoPedido(pedido: Pedido): string | null {
   return strSnap(snapInput(pedido), 'url_arte');
 }
 
+/** Endereço comercial completo (logradouro → CEP) para ficha-cliente / proposta. */
 export function formatEnderecoParceiro(p: {
   logradouro?: string | null;
   numero?: string | null;
@@ -81,7 +82,8 @@ export function formatEnderecoParceiro(p: {
   const line1 = [p.logradouro, p.numero ? `nº ${p.numero}` : null, p.complemento]
     .filter(Boolean)
     .join(', ');
-  const line2 = [p.bairro, [p.municipio, p.uf].filter(Boolean).join('/'), p.cep]
+  const cepFmt = p.cep ? formatCep(p.cep) : null;
+  const line2 = [p.bairro, [p.municipio, p.uf].filter(Boolean).join('/'), cepFmt]
     .filter(Boolean)
     .join(' · ');
   const full = [line1, line2].filter(Boolean).join(' · ');

@@ -368,7 +368,7 @@ class OrcamentoAprovacaoService
             $orcamento->refresh();
         }
 
-        return $this->dtoComercial($orcamento->fresh(['empresa']), $link->fresh(), $vencido);
+        return $this->dtoComercial($orcamento->fresh(['empresa', 'parceiro']), $link->fresh(), $vencido);
     }
 
     /**
@@ -378,7 +378,7 @@ class OrcamentoAprovacaoService
      */
     public function propostaComercialInterna(Orcamento $orcamento): array
     {
-        $orcamento->loadMissing('empresa');
+        $orcamento->loadMissing(['empresa', 'parceiro']);
 
         return $this->dtoComercial($orcamento, null, false, 'preview');
     }
@@ -882,7 +882,7 @@ class OrcamentoAprovacaoService
         $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
         $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
         $empresa = $orcamento->empresa;
-        $orcamento->loadMissing('itens');
+        $orcamento->loadMissing(['itens', 'parceiro']);
         $itensPersistidos = $orcamento->itens->sortBy('ordem')->values();
         $multiItem = $itensPersistidos->count() > 1;
         $facas = is_array($input['facas'] ?? null) ? $input['facas'] : [];
@@ -918,6 +918,7 @@ class OrcamentoAprovacaoService
             'somente_leitura' => $somenteLeitura,
             'expira_em' => $somenteLeitura ? null : $link?->expira_em?->toIso8601String(),
             'cliente_nome' => $orcamento->cliente_nome,
+            'cliente' => $this->clienteComercialOut($orcamento),
             'destinatario' => [
                 'nome' => $destinoNome,
                 'funcao' => $destinoFuncao,
@@ -933,8 +934,13 @@ class OrcamentoAprovacaoService
                 'cnpj' => $empresa?->cnpj,
                 'telefone' => $empresa?->telefone,
                 'email' => $empresa?->email,
+                'logradouro' => $empresa?->logradouro,
+                'numero' => $empresa?->numero,
+                'complemento' => $empresa?->complemento,
+                'bairro' => $empresa?->bairro,
                 'municipio' => $empresa?->municipio,
                 'uf' => $empresa?->uf,
+                'cep' => $empresa?->cep,
             ],
             'tipo_operacao' => TipoOperacaoSaida::fromInput(
                 $input['tipo_operacao'] ?? $input['necessidade'] ?? null
@@ -1062,6 +1068,7 @@ class OrcamentoAprovacaoService
             'medida' => $input['medida'] ?? null,
             'papel' => $input['papel'] ?? null,
             'acabamento' => $input['acabamento'] ?? null,
+            'tubete' => $input['tubete'] ?? null,
             'cores' => $input['cores'] ?? null,
             'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
             'largura_cm' => $input['largura_cm'] ?? null,
@@ -1189,6 +1196,61 @@ class OrcamentoAprovacaoService
         }
 
         return $out === [] ? null : $out;
+    }
+
+    /**
+     * Identidade comercial do cliente (PAR) na proposta / ficha-cliente.
+     * Espelho do detalhe PED — sem IE/IBGE/crédito (só o que o documento comercial precisa).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function clienteComercialOut(Orcamento $orcamento): ?array
+    {
+        $par = $orcamento->relationLoaded('parceiro') ? $orcamento->parceiro : null;
+        if ($par === null && $orcamento->parceiro_id) {
+            $orcamento->loadMissing('parceiro');
+            $par = $orcamento->parceiro;
+        }
+        if ($par === null) {
+            $nome = trim((string) ($orcamento->cliente_nome ?? ''));
+
+            return $nome !== ''
+                ? [
+                    'razao_social' => $nome,
+                    'nome_fantasia' => null,
+                    'codigo' => null,
+                    'cnpj_cpf' => null,
+                    'email' => null,
+                    'telefone' => null,
+                    'whatsapp' => null,
+                    'logradouro' => null,
+                    'numero' => null,
+                    'complemento' => null,
+                    'bairro' => null,
+                    'municipio' => null,
+                    'uf' => null,
+                    'cep' => null,
+                ]
+                : null;
+        }
+
+        return [
+            'id' => (int) $par->id,
+            'codigo' => $par->codigo,
+            'razao_social' => $par->razao_social ?: $orcamento->cliente_nome,
+            'nome_fantasia' => $par->nome_fantasia,
+            'cnpj_cpf' => $par->cnpj_cpf,
+            'email' => $par->email,
+            'telefone' => $par->telefone,
+            'whatsapp' => $par->whatsapp,
+            'logradouro' => $par->logradouro,
+            'numero' => $par->numero,
+            'complemento' => $par->complemento,
+            'bairro' => $par->bairro,
+            'municipio' => $par->municipio,
+            'uf' => $par->uf,
+            'cep' => $par->cep,
+        ];
     }
 
     /**

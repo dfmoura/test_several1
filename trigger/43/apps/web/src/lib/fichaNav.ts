@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react';
+import { useEffect } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 
 /**
@@ -40,4 +41,23 @@ export function voltarDaFicha(navigate: NavigateFunction, cadastroPath: string):
       navigate(cadastroPath);
     }
   }, 100);
+}
+
+/**
+ * Abre acordeões N>1 antes do PDF — alguns browsers ignoram só CSS em `<details>` fechado.
+ */
+export function prepFichaPrint(): void {
+  document
+    .querySelectorAll<HTMLDetailsElement>('.ficha-page-proposta details.orc-pub-item-detalhe')
+    .forEach((el) => {
+      el.open = true;
+    });
+}
+
+/** Registra `beforeprint` para o mesmo prep (Ctrl+P / menu do browser). */
+export function useFichaPrintPrep(): void {
+  useEffect(() => {
+    window.addEventListener('beforeprint', prepFichaPrint);
+    return () => window.removeEventListener('beforeprint', prepFichaPrint);
+  }, []);
 }

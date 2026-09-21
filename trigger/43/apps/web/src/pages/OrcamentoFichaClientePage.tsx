@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { OrcamentoPropostaView } from '../components/OrcamentoPropostaView';
 import { api, type OrcamentoPropostaPublica } from '../lib/api';
 import { BRAND, brandDocumentTitle } from '../lib/brand';
-import { voltarDaFicha } from '../lib/fichaNav';
+import { prepFichaPrint, useFichaPrintPrep, voltarDaFicha } from '../lib/fichaNav';
 
 /**
  * Ficha comercial do ORC — documento que o destinatário recebe.
@@ -16,6 +16,8 @@ export function OrcamentoFichaClientePage() {
   const [proposta, setProposta] = useState<OrcamentoPropostaPublica | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+
+  useFichaPrintPrep();
 
   const empresaNome = useMemo(() => {
     if (!proposta) return BRAND.licensee.logoAlt;
@@ -81,15 +83,17 @@ export function OrcamentoFichaClientePage() {
             Voltar ao orçamento
           </button>
           <span className="ficha-toolbar-hint">
-            A4 retrato · documento comercial (mesmo do destinatário) · Imprimir ou Salvar como
-            PDF
+            A4 · mesma visão do destinatário
           </span>
         </div>
         <button
           type="button"
           className="btn btn-primary"
           disabled={!proposta}
-          onClick={() => window.print()}
+          onClick={() => {
+            prepFichaPrint();
+            window.print();
+          }}
         >
           Imprimir ficha
         </button>

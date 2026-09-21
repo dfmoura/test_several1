@@ -4,7 +4,7 @@ import { PedidoConfirmacaoSheet } from '../components/PedidoConfirmacaoSheet';
 import { api, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { brandDocumentTitle } from '../lib/brand';
-import { voltarDaFicha } from '../lib/fichaNav';
+import { prepFichaPrint, useFichaPrintPrep, voltarDaFicha } from '../lib/fichaNav';
 
 /**
  * Confirmação comercial do PED — aba satélite A4 retrato (documento ao cliente).
@@ -18,6 +18,8 @@ export function PedidoConfirmacaoPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const emitidoEm = useMemo(() => new Date(), []);
+
+  useFichaPrintPrep();
 
   const empresaNome = useMemo(() => {
     if (pedido?.empresa) {
@@ -88,7 +90,10 @@ export function PedidoConfirmacaoPage() {
           type="button"
           className="btn btn-primary"
           disabled={!pedido}
-          onClick={() => window.print()}
+          onClick={() => {
+            prepFichaPrint();
+            window.print();
+          }}
         >
           Imprimir confirmação
         </button>

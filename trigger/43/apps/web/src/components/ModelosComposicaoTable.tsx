@@ -74,27 +74,31 @@ export function ModelosComposicaoTable({
   const exibirArte = showValorArte ?? somaArtes > 0;
 
   const defaultHint =
-    alocPorFaixa.length === 0
-      ? 'Distribuição da quantidade por arte neste serviço.'
-      : alocPorFaixa.length === 1
-        ? 'Quantidade de cada arte neste serviço.'
-        : 'Quantidade de cada arte em cada faixa de quantidade.';
-
-  const tableClass =
     variant === 'pub'
-      ? 'orc-pub-modelos-table'
-      : variant === 'ficha'
-        ? 'ficha-table'
-        : 'data-table orc-modelos-table';
+      ? null
+      : alocPorFaixa.length === 0
+        ? 'Distribuição da quantidade por arte neste serviço.'
+        : alocPorFaixa.length === 1
+          ? 'Quantidade de cada arte neste serviço.'
+          : 'Quantidade de cada arte em cada faixa de quantidade.';
 
-  const wrapClass =
-    variant === 'pub'
-      ? `orc-pub-modelos${className ? ` ${className}` : ''}`
-      : `orc-modelos-detalhe${className ? ` ${className}` : ''}`;
+  const isPub = variant === 'pub';
+  const tableClass = isPub
+    ? 'orc-pub-modelos-table'
+    : variant === 'ficha'
+      ? 'ficha-table'
+      : 'data-table orc-modelos-table';
 
-  const TitleTag = variant === 'pub' ? 'h3' : 'h4';
-  const titleClass =
-    variant === 'pub' ? 'orc-pub-modelos-title' : 'orc-subsection-title';
+  const wrapClass = isPub
+    ? `orc-pub-modelos${className ? ` ${className}` : ''}`
+    : `orc-modelos-detalhe${className ? ` ${className}` : ''}`;
+
+  const TitleTag = isPub ? 'h3' : 'h4';
+  /** Pub: mesmo subtítulo denso de Faixas (`orc-pub-item-sub`). */
+  const titleClass = isPub ? 'orc-pub-item-sub' : 'orc-subsection-title';
+  const numClass = isPub ? 'orc-pub-num orc-modelo-qtd-col' : 'orc-modelo-qtd-col';
+  const arteClass = isPub ? 'orc-pub-num orc-modelo-arte-col' : 'orc-modelo-arte-col';
+  const resolvedHint = hint !== undefined ? hint : defaultHint;
 
   return (
     <div className={wrapClass}>
@@ -106,37 +110,46 @@ export function ModelosComposicaoTable({
           {title}
         </TitleTag>
       ) : null}
-      {hint !== null ? (
+      {resolvedHint ? (
         <p
-          className={variant === 'pub' ? 'orc-pub-hint' : 'form-hint'}
+          className={isPub ? 'orc-pub-hint orc-pub-hint--tight' : 'form-hint'}
           style={{ marginTop: title ? 0 : undefined, marginBottom: '0.45rem' }}
         >
-          {hint ?? defaultHint}
+          {resolvedHint}
         </p>
       ) : null}
-      <div className={variant === 'data' ? 'table-wrap' : undefined}>
+      <div className={isPub || variant === 'data' ? 'table-wrap' : undefined}>
         <table className={tableClass}>
           <thead>
             <tr>
-              <th style={variant === 'ficha' ? { width: '3rem' } : undefined}>#</th>
-              <th>{variant === 'pub' ? 'Modelo' : 'Modelo (arte)'}</th>
+              <th
+                className={isPub ? 'orc-pub-modelos-ord' : undefined}
+                style={variant === 'ficha' ? { width: '3rem' } : undefined}
+              >
+                #
+              </th>
+              <th>{isPub ? 'Modelo' : 'Modelo (arte)'}</th>
               {exibirArte ? (
-                <th className="orc-modelo-arte-col">Vlr. Arte</th>
+                <th className={arteClass}>{isPub ? 'Arte' : 'Vlr. Arte'}</th>
               ) : null}
               {alocPorFaixa.length === 0 ? (
-                <th className="orc-modelo-qtd-col">Quantidade</th>
+                <th className={numClass}>{isPub ? 'Qtd' : 'Quantidade'}</th>
               ) : (
                 alocPorFaixa.map((fx) => (
                   <th
                     key={fx.key}
-                    className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                    className={`${numClass}${fx.highlighted ? ' is-active' : ''}`}
                     title={
                       alocPorFaixa.length > 1
                         ? `Quantidade inteira na faixa de ${formatQtd(fx.quantidade)}`
                         : 'Quantidade inteira por arte'
                     }
                   >
-                    {alocPorFaixa.length === 1 ? 'Quantidade' : formatQtd(fx.quantidade)}
+                    {alocPorFaixa.length === 1
+                      ? isPub
+                        ? 'Qtd'
+                        : 'Quantidade'
+                      : formatQtd(fx.quantidade)}
                   </th>
                 ))
               )}
@@ -145,20 +158,22 @@ export function ModelosComposicaoTable({
           <tbody>
             {rows.map((m, i) => (
               <tr key={`${m.ordem}-${m.nome}`}>
-                <td>{m.ordem || i + 1}</td>
+                <td className={isPub ? 'orc-pub-modelos-ord' : undefined}>
+                  {m.ordem || i + 1}
+                </td>
                 <td>{m.nome}</td>
                 {exibirArte ? (
-                  <td className="orc-modelo-arte-col">
+                  <td className={arteClass}>
                     {m.valor_arte > 0 ? formatCurrency(m.valor_arte) : '—'}
                   </td>
                 ) : null}
                 {alocPorFaixa.length === 0 ? (
-                  <td className="orc-modelo-qtd-col">—</td>
+                  <td className={numClass}>—</td>
                 ) : (
                   alocPorFaixa.map((fx) => (
                     <td
                       key={fx.key}
-                      className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                      className={`${numClass}${fx.highlighted ? ' is-active' : ''}`}
                     >
                       {formatQtd(fx.alocados[i]?.quantidade ?? 0)}
                     </td>
@@ -172,15 +187,15 @@ export function ModelosComposicaoTable({
               <tr className="orc-modelos-table-total">
                 <td colSpan={2}>Total</td>
                 {exibirArte ? (
-                  <td className="orc-modelo-arte-col">{formatCurrency(somaArtes)}</td>
+                  <td className={arteClass}>{formatCurrency(somaArtes)}</td>
                 ) : null}
                 {alocPorFaixa.length === 0 ? (
-                  <td className="orc-modelo-qtd-col">—</td>
+                  <td className={numClass}>—</td>
                 ) : (
                   alocPorFaixa.map((fx) => (
                     <td
                       key={fx.key}
-                      className={`orc-modelo-qtd-col${fx.highlighted ? ' is-active' : ''}`}
+                      className={`${numClass}${fx.highlighted ? ' is-active' : ''}`}
                     >
                       {formatQtd(fx.quantidade)}
                     </td>

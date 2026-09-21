@@ -392,6 +392,15 @@ class OrcamentoAprovacaoTest extends TestCase
         $this->assertArrayNotHasKey('maquina', $prev->json('data.descricao'));
         $this->assertArrayNotHasKey('valor_papel', $prev->json('data.faixas.0'));
 
+        $this->assertSame('CLIENTE APV', $prev->json('data.cliente.razao_social'));
+        $this->assertSame('60746948000112', $prev->json('data.cliente.cnpj_cpf'));
+        $this->assertSame('Rua Teste Comercial', $prev->json('data.cliente.logradouro'));
+        $this->assertSame('100', $prev->json('data.cliente.numero'));
+        $this->assertSame('Betim', $prev->json('data.cliente.municipio'));
+        $this->assertSame('MG', $prev->json('data.cliente.uf'));
+        $this->assertSame('32600000', $prev->json('data.cliente.cep'));
+        $this->assertSame('31999998888', $prev->json('data.cliente.whatsapp'));
+
         $token = $this->withHeaders($h)
             ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
             ->json('data.token');

@@ -3335,6 +3335,24 @@ export type OrcamentoPropostaPublica = {
   financeiro_status?: string | null;
   expira_em: string | null;
   cliente_nome: string;
+  /** Identidade comercial do PAR (ficha-cliente / link / prévia). */
+  cliente?: {
+    id?: number;
+    codigo?: string | null;
+    razao_social?: string | null;
+    nome_fantasia?: string | null;
+    cnpj_cpf?: string | null;
+    email?: string | null;
+    telefone?: string | null;
+    whatsapp?: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    municipio?: string | null;
+    uf?: string | null;
+    cep?: string | null;
+  } | null;
   destinatario?: {
     nome: string | null;
     funcao: string | null;
@@ -3346,13 +3364,19 @@ export type OrcamentoPropostaPublica = {
     cnpj: string | null;
     telefone: string | null;
     email: string | null;
+    logradouro?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
     municipio: string | null;
     uf: string | null;
+    cep?: string | null;
   };
   descricao?: {
     medida: string | null;
     papel: string | null;
     acabamento: string | null;
+    tubete?: string | null;
     cores: string | null;
     etiq_por_rolo: number | null;
     largura_cm: number | null;
@@ -3418,6 +3442,18 @@ export type OrcamentoPropostaPublica = {
     valor_frete?: number | null;
     frete_somavel?: boolean;
   }>;
+  /**
+   * N>1 posições (ADR_ORC_ITENS) — só na proposta comercial.
+   * N=1 / legado: ausente; usar `descricao` + `faixas` do documento.
+   */
+  itens?: Array<{
+    ordem: number;
+    rotulo?: string | null;
+    descricao?: OrcamentoPropostaPublica['descricao'];
+    faixas?: OrcamentoPropostaPublica['faixas'];
+  }> | null;
+  /** Σ 1ª faixa de cada item — hero do documento quando N>1. */
+  valor_total_documento_primeira_faixa?: number | null;
   observacao_comercial?: string | null;
   /** URL pública da prova de arte (PDF/imagem/Drive…). Só http(s). */
   url_arte?: string | null;

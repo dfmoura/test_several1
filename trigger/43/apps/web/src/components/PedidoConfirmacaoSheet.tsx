@@ -1,44 +1,36 @@
-import {
-  facaDesenhoFromSnapshot,
-  OrcamentoFacaDesenho,
-} from './OrcamentoFacaDesenho';
-import { ModelosComposicaoTable } from './ModelosComposicaoTable';
-import { FacasComposicaoTable } from './FacasComposicaoTable';
+import { OrcPubEspecificacaoBloco } from './OrcPubEspecificacao';
+import { OrcPubHeroEmitente, OrcPubParteComercial } from './OrcPubParteComercial';
 import { TriggerAttribution } from './TriggerAttribution';
-import type { Pedido } from '../lib/api';
+import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
   disposicoesGeraisProposta,
   textoToleranciaQuantidade,
 } from '../lib/orcamentoDisposicoesComerciais';
 import {
-  formatCnpj,
-  formatCnpjCpf,
   formatCurrency,
   formatDateTime,
   formatDecimalBr,
-  formatPhone,
   formatUnitPrice,
 } from '../lib/format';
-import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
-import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
-import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
-import { facasFromSnapshot } from '../lib/orcamentoForm';
+import {
+  descricaoFromPedidoSpec,
+  rotuloPropostaItem,
+} from '../lib/orcamentoPropostaItens';
+import { tipoOperacaoFromSnap } from '../lib/operacoesSaida';
 import {
   condicaoPagamentoDoPedido,
   formaPagamentoDoPedido,
-  formatEnderecoParceiro,
   freteTextoDoPedido,
-  strSnap,
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { modelosDoSnap, snapInput, specOperacional } from '../lib/producaoFicha';
+import { snapInput, specOperacional } from '../lib/producaoFicha';
 import { pedStatusLabel } from '../lib/producaoUi';
 
 /**
  * Confirmação comercial do PED — documento oficial ao cliente.
  * Gêmeo da ficha-cliente do ORC. Sem guia de chão, OP/OS, rastreio ou gordura.
- * Norma: docs/ADR_PED_CONFIRMACAO_CLIENTE.md
+ * Norma: docs/ADR_PED_CONFIRMACAO_CLIENTE.md · ADR_ORC_ITENS (N itens).
  */
 export type PedidoConfirmacaoSheetProps = {
   pedido: Pedido;
@@ -47,165 +39,134 @@ export type PedidoConfirmacaoSheetProps = {
   emitidoEm: Date;
 };
 
+function PedItemSpecDetalhe({
+  item,
+  tipoOp,
+}: {
+  item: PedidoItem;
+  tipoOp: string | null;
+}) {
+  const isServico = tipoOp === 'SERVICO' || item.necessidade === 'SERVICO';
+  const spec = (item.especificacao ?? {}) as Record<string, unknown>;
+  const desc = descricaoFromPedidoSpec(spec);
+  const total = item.valor_total != null ? Number(item.valor_total) : 0;
+  const resumo = [desc.medida, desc.papel].filter(Boolean).join(' · ');
+
+  return (
+    <article className="orc-pub-item-detalhe">
+      <header className="orc-pub-item-detalhe-summary">
+        <span className="orc-pub-item-detalhe-lead">
+          <strong>{rotuloPropostaItem(item.ordem, item.descricao)}</strong>
+          {resumo ? <span className="orc-pub-item-detalhe-resumo">{resumo}</span> : null}
+        </span>
+        <span className="orc-pub-item-detalhe-total">
+          {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
+          {total > 0 ? ` · ${formatCurrency(total)}` : ''}
+        </span>
+      </header>
+      <div className="orc-pub-item-detalhe-body">
+        <OrcPubEspecificacaoBloco
+          tipoOperacao={isServico ? 'SERVICO' : tipoOp}
+          desc={
+            isServico
+              ? {
+                  ...desc,
+                  descricao_servico: item.descricao || desc.descricao_servico,
+                  unidade: item.unidade || desc.unidade,
+                }
+              : desc
+          }
+          faixas={[]}
+          title={null}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function PedidoConfirmacaoSheet({
   pedido: p,
   empresaNome,
   emitidoPor,
   emitidoEm,
 }: PedidoConfirmacaoSheetProps) {
-  const item = p.itens[0];
+  const item0 = p.itens[0];
   const input = snapInput(p);
-  const spec = specOperacional(p, item);
-  const modelos = modelosDoSnap(spec);
   const tipoOp = tipoOperacaoFromSnap(input);
-  const isServico = tipoOp === 'SERVICO' || item?.necessidade === 'SERVICO';
+  const isServico = tipoOp === 'SERVICO' || item0?.necessidade === 'SERVICO';
+  const multi = !isServico && p.itens.length > 1;
   const emp = p.empresa;
   const cli = p.parceiro;
-  const facaDesenho = !isServico ? facaDesenhoFromSnapshot(spec) : null;
-  const facasComp = !isServico ? facasFromSnapshot(spec) : [];
   const freteTexto = freteTextoDoPedido(p);
   const condicao = condicaoPagamentoDoPedido(p);
   const forma = formaPagamentoDoPedido(p);
-  const enderecoCli = formatEnderecoParceiro(cli);
   const totalItens = p.itens.reduce((acc, it) => acc + (Number(it.valor_total) || 0), 0);
+  const documentoSub = [
+    p.codigo,
+    p.orcamento?.codigo ? `origem ${p.orcamento.codigo}` : null,
+    formatDateTime(emitidoEm.toISOString()),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const spec0 = specOperacional(p, item0);
+  const desc0 = descricaoFromPedidoSpec(spec0);
 
   return (
     <div className="orc-pub ped-conf">
       <div className="orc-pub-shell">
-        <header className="orc-pub-hero">
-          <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
-          <div>
-            <p className="orc-pub-kicker">Confirmação de pedido</p>
-            <h1>{empresaNome}</h1>
-            <p className="orc-pub-sub">
-              {p.codigo}
-              {p.orcamento?.codigo ? ` · origem ${p.orcamento.codigo}` : ''}
-              {` · ${formatDateTime(emitidoEm.toISOString())}`}
-            </p>
-          </div>
-        </header>
+        <OrcPubHeroEmitente
+          kicker="Confirmação de pedido"
+          titulo={empresaNome}
+          empresa={emp}
+          documentoSub={documentoSub}
+          logoSrc={BRAND.licensee.logo}
+          logoAlt={BRAND.licensee.logoAlt}
+        />
 
-        <section className="orc-pub-card">
-          <h2>Emitente</h2>
-          <p className="orc-pub-lead">{emp?.razao_social ?? empresaNome}</p>
-          <div className="orc-pub-meta">
-            {emp?.cnpj ? <span>CNPJ {formatCnpj(emp.cnpj)}</span> : null}
-            {emp?.telefone ? <span>{formatPhone(emp.telefone)}</span> : null}
-            {emp?.email ? <span>{emp.email}</span> : null}
-            {emp?.municipio ? (
-              <span>
-                {emp.municipio}
-                {emp.uf ? `/${emp.uf}` : ''}
-              </span>
-            ) : null}
-          </div>
-        </section>
+        <OrcPubParteComercial
+          title="Cliente"
+          parte={cli}
+          leadFallback="—"
+          showCodigo
+        />
 
-        <section className="orc-pub-card">
-          <h2>Cliente</h2>
-          <p className="orc-pub-lead">{cli?.razao_social ?? '—'}</p>
-          <div className="orc-pub-meta">
-            {cli?.codigo ? <span>{cli.codigo}</span> : null}
-            {cli?.cnpj_cpf ? <span>CNPJ/CPF {formatCnpjCpf(cli.cnpj_cpf)}</span> : null}
-            {cli?.telefone || cli?.whatsapp ? (
-              <span>{formatPhone(cli.telefone || cli.whatsapp)}</span>
-            ) : null}
-            {cli?.email ? <span>{cli.email}</span> : null}
-            {enderecoCli ? <span>{enderecoCli}</span> : null}
-          </div>
-        </section>
-
-        <section className="orc-pub-card">
-          <h2>{isServico ? 'Serviço' : 'Especificação'}</h2>
-          {isServico ? (
-            <dl className="orc-pub-spec">
+        {multi ? (
+          <section className="orc-pub-card orc-pub-itens-doc">
+            <header className="orc-pub-itens-doc-head">
               <div>
-                <dt>Descrição</dt>
-                <dd>{item?.descricao || strSnap(spec, 'descricao_servico') || 'Prestação de serviço'}</dd>
+                <h2>Itens · {p.itens.length}</h2>
+                <p className="orc-pub-hint orc-pub-hint--tight">Especificação por posição</p>
               </div>
-              <div>
-                <dt>Tipo</dt>
-                <dd>{tipoServicoLabel(strSnap(spec, 'tipo_servico')) || 'Serviço'}</dd>
-              </div>
-              {item?.unidade ? (
-                <div>
-                  <dt>Unidade</dt>
-                  <dd>{item.unidade}</dd>
-                </div>
-              ) : null}
-            </dl>
-          ) : (
-            <>
-              <dl className="orc-pub-spec">
-                <div>
-                  <dt>Material</dt>
-                  <dd>{strSnap(spec, 'papel') || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Medida</dt>
-                  <dd>{strSnap(spec, 'medida') || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Acabamento</dt>
-                  <dd>{strSnap(spec, 'acabamento') || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Cores</dt>
-                  <dd>{strSnap(spec, 'cores') || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Modelos</dt>
-                  <dd>
-                    {modelos.length > 0
-                      ? String(modelos.length)
-                      : strSnap(spec, 'modelos') || '—'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Etiq./rolo</dt>
-                  <dd>
-                    {spec.etiq_por_rolo != null
-                      ? Number(spec.etiq_por_rolo).toLocaleString('pt-BR')
-                      : '—'}
-                  </dd>
-                </div>
-                {isSaidaEtiqueta(strSnap(spec, 'saida_etiqueta')) ? (
-                  <div className="orc-pub-saida-etiqueta">
-                    <dt>Saída da etiqueta</dt>
-                    <dd>
-                      <SaidaEtiquetaBadge
-                        code={strSnap(spec, 'saida_etiqueta')}
-                        variant="thumb"
-                      />
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-              {facaDesenho ? (
-                <div className="orc-spec-faca orc-pub-faca">
-                  <OrcamentoFacaDesenho {...facaDesenho} variant="documento" audience="cliente" />
-                </div>
-              ) : null}
-              {facasComp.length > 0 ? (
-                <FacasComposicaoTable variant="pub" showValor facas={facasComp} />
-              ) : null}
-              {modelos.length > 0 ? (
-                <ModelosComposicaoTable
-                  variant="pub"
-                  showValorArte
-                  modelos={modelos}
-                  faixas={[
-                    {
-                      key: p.faixa_index,
-                      quantidade: Number(item?.qtde_pedida) || 0,
-                      highlighted: true,
-                    },
-                  ]}
+              <p className="orc-pub-itens-doc-total">{formatCurrency(totalItens)}</p>
+            </header>
+            <div className="orc-pub-itens-acordeao">
+              {p.itens.map((it) => (
+                <PedItemSpecDetalhe
+                  key={it.id}
+                  item={it}
+                  tipoOp={tipoOp}
                 />
-              ) : null}
-            </>
-          )}
-        </section>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <OrcPubEspecificacaoBloco
+            tipoOperacao={isServico ? 'SERVICO' : tipoOp}
+            desc={
+              isServico
+                ? {
+                    ...desc0,
+                    descricao_servico:
+                      item0?.descricao || desc0.descricao_servico || 'Prestação de serviço',
+                    unidade: item0?.unidade || desc0.unidade,
+                  }
+                : desc0
+            }
+            faixas={[]}
+            title={isServico ? 'Serviço' : 'Especificação'}
+          />
+        )}
 
         <section className="orc-pub-card">
           <h2>Pedido confirmado</h2>

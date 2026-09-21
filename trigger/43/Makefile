@@ -238,6 +238,10 @@ web-build:
 	  ($(COMPOSE_LOCAL) --env-file .env build web && \
 	   $(COMPOSE_LOCAL) --env-file .env up -d --force-recreate --no-build web)
 
+# Host com Docker: ficha-cliente ORC/PED com Emitente + Cliente completo
+pronto-ficha-cliente-identidade:
+	bash scripts/pronto-ficha-cliente-identidade.sh
+
 # Contexto mínimo da imagem web (dist + branding + nginx) — evita scan de apps/api/storage.
 stage-web-context:
 	@test -f apps/web/dist/index.html || (cd apps/web && npm ci && npm run build)

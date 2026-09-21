@@ -1,23 +1,20 @@
 import type { ReactNode } from 'react';
-import { ModelosComposicaoTable } from './ModelosComposicaoTable';
-import { FacasComposicaoTable } from './FacasComposicaoTable';
-import { TriggerAttribution } from './TriggerAttribution';
 import {
-  facaDesenhoFromPropostaDescricao,
-  OrcamentoFacaDesenho,
-} from './OrcamentoFacaDesenho';
+  OrcPubEspecificacaoBloco,
+  OrcPubFaixasBloco,
+  OrcPubItensAcordeao,
+} from './OrcPubEspecificacao';
+import { OrcPubHeroEmitente, OrcPubParteComercial } from './OrcPubParteComercial';
+import { TriggerAttribution } from './TriggerAttribution';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
   disposicoesGeraisProposta,
   textoToleranciaQuantidade,
 } from '../lib/orcamentoDisposicoesComerciais';
-import { formatCnpj, formatCurrency, formatDateTime, formatPhone } from '../lib/format';
+import { formatDateTime } from '../lib/format';
+import { isPropostaMultiItem } from '../lib/orcamentoPropostaItens';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
-import { tipoServicoLabel } from '../lib/operacoesSaida';
-import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
-import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
-import { labelFerramentalAddOn } from '../lib/orcamentoForm';
 
 type Props = {
   proposta: OrcamentoPropostaPublica;
@@ -34,8 +31,9 @@ type Props = {
 };
 
 /**
- * Casca comercial da proposta (estudo 32 · CONSOLIDADO).
- * Mesma visão no link do cliente e na prévia interna do staff.
+ * Casca comercial da proposta (estudo 32 · CONSOLIDADO · ADR_ORC_ITENS).
+ * N=1 / SERVICO: layout clássico. N>1: total do documento + acordeão por item.
+ * Mesma visão no link do cliente e na prévia / ficha-cliente.
  */
 export function OrcamentoPropostaView({
   proposta,
@@ -50,31 +48,26 @@ export function OrcamentoPropostaView({
 }: Props) {
   const desc = proposta.descricao;
   const faixas = proposta.faixas ?? [];
-  const facaDesenho =
-    proposta.tipo_operacao !== 'SERVICO' ? facaDesenhoFromPropostaDescricao(desc) : null;
-  const facasComp = Array.isArray(desc?.facas) ? desc.facas : [];
-  const valorFerramentalFaixa = (fx: (typeof faixas)[number]) =>
-    Number(fx.valor_faca_nova) || 0;
-  const labelFerramental = labelFerramentalAddOn({
-    facaNova: Boolean(desc?.faca_nova),
-    valor: Math.max(...faixas.map(valorFerramentalFaixa), 0),
-    count: facasComp.length,
-  });
+  const multi = isPropostaMultiItem(proposta);
+  const documentoSub = [
+    proposta.codigo,
+    `v${proposta.versao}`,
+    proposta.expira_em ? `válida até ${formatDateTime(proposta.expira_em)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <div className="orc-pub">
       <div className="orc-pub-shell">
-        <header className="orc-pub-hero">
-          <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
-          <div>
-            <p className="orc-pub-kicker">{kicker}</p>
-            <h1>{empresaNome}</h1>
-            <p className="orc-pub-sub">
-              {proposta.codigo} · v{proposta.versao}
-              {proposta.expira_em ? ` · válida até ${formatDateTime(proposta.expira_em)}` : ''}
-            </p>
-          </div>
-        </header>
+        <OrcPubHeroEmitente
+          kicker={kicker}
+          titulo={empresaNome}
+          empresa={proposta.empresa}
+          documentoSub={documentoSub}
+          logoSrc={BRAND.licensee.logo}
+          logoAlt={BRAND.licensee.logoAlt}
+        />
 
         {banner}
 
@@ -87,180 +80,48 @@ export function OrcamentoPropostaView({
 
         {erro ? <p className="form-error">{erro}</p> : null}
 
-        <section className="orc-pub-card">
-          <h2>Cliente</h2>
-          <p className="orc-pub-lead">{proposta.cliente_nome}</p>
-          <div className="orc-pub-meta">
-            {proposta.empresa.cnpj ? <span>CNPJ {formatCnpj(proposta.empresa.cnpj)}</span> : null}
-            {proposta.empresa.telefone ? (
-              <span>{formatPhone(proposta.empresa.telefone)}</span>
-            ) : null}
-            {proposta.empresa.email ? <span>{proposta.empresa.email}</span> : null}
-            {proposta.empresa.municipio ? (
-              <span>
-                {proposta.empresa.municipio}
-                {proposta.empresa.uf ? `/${proposta.empresa.uf}` : ''}
-              </span>
-            ) : null}
-          </div>
-        </section>
+        <OrcPubParteComercial
+          title="Cliente"
+          parte={
+            proposta.cliente ?? {
+              razao_social: proposta.cliente_nome,
+            }
+          }
+          leadFallback={proposta.cliente_nome}
+        />
 
-        <section className="orc-pub-card">
-          <h2>{proposta.tipo_operacao === 'SERVICO' ? 'Serviço' : 'Especificação'}</h2>
-          {proposta.tipo_operacao === 'SERVICO' ? (
-            <dl className="orc-pub-spec">
-              <div>
-                <dt>Descrição</dt>
-                <dd>{desc?.descricao_servico || 'Prestação de serviço'}</dd>
-              </div>
-              <div>
-                <dt>Tipo</dt>
-                <dd>{tipoServicoLabel(desc?.tipo_servico) || 'Serviço'}</dd>
-              </div>
-              {desc?.unidade ? (
-                <div>
-                  <dt>Unidade</dt>
-                  <dd>{desc.unidade}</dd>
-                </div>
-              ) : null}
-              {desc?.material_cliente ? (
-                <div>
-                  <dt>Material</dt>
-                  <dd>Do cliente</dd>
-                </div>
-              ) : null}
-            </dl>
-          ) : (
-            <>
-          <dl className="orc-pub-spec">
-            <div>
-              <dt>Material</dt>
-              <dd>{desc?.papel || '—'}</dd>
-            </div>
-            <div>
-              <dt>Medida</dt>
-              <dd>{desc?.medida || '—'}</dd>
-            </div>
-            <div>
-              <dt>Acabamento</dt>
-              <dd>{desc?.acabamento || '—'}</dd>
-            </div>
-            <div>
-              <dt>Cores</dt>
-              <dd>{desc?.cores || '—'}</dd>
-            </div>
-            <div>
-              <dt>Modelos</dt>
-              <dd>
-                {desc?.modelos != null
-                  ? Number(desc.modelos).toLocaleString('pt-BR')
-                  : desc?.modelos_composicao?.length
-                    ? String(desc.modelos_composicao.length)
-                    : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Etiq./rolo</dt>
-              <dd>{desc?.etiq_por_rolo?.toLocaleString('pt-BR') ?? '—'}</dd>
-            </div>
-            {isSaidaEtiqueta(desc?.saida_etiqueta) ? (
-              <div className="orc-pub-saida-etiqueta">
-                <dt>Saída da etiqueta</dt>
-                <dd>
-                  <SaidaEtiquetaBadge code={desc.saida_etiqueta} variant="thumb" />
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          {facaDesenho ? (
-            <div className="orc-spec-faca orc-pub-faca">
-              <OrcamentoFacaDesenho {...facaDesenho} variant="documento" audience="cliente" />
-            </div>
-          ) : null}
-          {facasComp.length > 0 ? (
-            <FacasComposicaoTable
-              variant="pub"
-              showValor
-              facas={facasComp}
+        {multi ? (
+          <OrcPubItensAcordeao proposta={proposta} />
+        ) : (
+          <>
+            <OrcPubEspecificacaoBloco
+              tipoOperacao={proposta.tipo_operacao}
+              desc={desc}
+              faixas={faixas}
+              faixaHighlight={faixaIndex}
+              title={proposta.tipo_operacao === 'SERVICO' ? 'Serviço' : 'Especificação'}
             />
-          ) : null}
-          {desc?.modelos_composicao && desc.modelos_composicao.length > 0 ? (
-            <ModelosComposicaoTable
-              variant="pub"
-              showValorArte
-              modelos={desc.modelos_composicao}
-              faixas={faixas.map((fx) => ({
-                key: fx.index,
-                quantidade: fx.quantidade,
-                highlighted: faixaIndex === fx.index,
-              }))}
+            <OrcPubFaixasBloco
+              faixas={faixas}
+              tipoOperacao={proposta.tipo_operacao}
+              unidadeServico={desc?.unidade}
+              descricao={desc}
+              frete={proposta.frete}
+              somenteLeitura={somenteLeitura}
+              faixaIndex={faixaIndex}
+              onFaixaChange={onFaixaChange}
+              cobraMatriz={Boolean(proposta.cobra_matriz)}
+              valorMatriz={proposta.valor_matriz ?? 0}
+              matrizNota={proposta.matriz_nota}
             />
-          ) : null}
-            </>
-          )}
-        </section>
+          </>
+        )}
 
-        <section className="orc-pub-card">
-          <h2>Faixas de quantidade</h2>
-          <p className="orc-pub-hint">
-            {somenteLeitura
-              ? 'Opções de quantidade desta proposta.'
-              : 'Selecione a quantidade que deseja aprovar.'}
+        {!somenteLeitura && multi ? (
+          <p className="orc-pub-hint orc-pub-hint--approve">
+            A aprovação confirma o orçamento completo ({proposta.itens!.length} posições).
           </p>
-          <div className="orc-pub-faixas" role="radiogroup" aria-label="Faixas">
-            {faixas.map((fx) => {
-              const selected = faixaIndex === fx.index;
-              return (
-                <label
-                  key={fx.index}
-                  className={`orc-pub-faixa${selected ? ' is-selected' : ''}${
-                    somenteLeitura ? ' is-disabled' : ''
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="faixa"
-                    checked={selected}
-                    disabled={somenteLeitura || !onFaixaChange}
-                    onChange={() => onFaixaChange?.(fx.index)}
-                  />
-                  <div>
-                    <strong>
-                      {fx.quantidade.toLocaleString('pt-BR')}{' '}
-                      {proposta.tipo_operacao === 'SERVICO'
-                        ? desc?.unidade || 'un.'
-                        : 'etiquetas'}
-                    </strong>
-                    <span>
-                      Total {formatCurrency(fx.valor_total)}
-                      {fx.valor_unitario != null
-                        ? ` · unit. ${formatCurrency(fx.valor_unitario)}`
-                        : ''}
-                      {fx.valor_rolo != null ? ` · rolo ${formatCurrency(fx.valor_rolo)}` : ''}
-                      {(fx.valor_artes ?? 0) > 0
-                        ? ` · Vlr. Arte ${formatCurrency(fx.valor_artes)}`
-                        : ''}
-                      {valorFerramentalFaixa(fx) > 0
-                        ? ` · ${labelFerramental} ${formatCurrency(valorFerramentalFaixa(fx))}`
-                        : ''}
-                      {proposta.frete && proposta.frete.modo !== 'RETIRAR'
-                        ? fx.valor_frete != null
-                          ? ` · frete ${formatCurrency(fx.valor_frete)} (informativo)`
-                          : ' · frete a definir'
-                        : ''}
-                    </span>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-          {proposta.cobra_matriz ? (
-            <p className="orc-pub-note">
-              Matriz {formatCurrency(proposta.valor_matriz)}
-              {proposta.matriz_nota ? ` — ${proposta.matriz_nota}` : ''}
-            </p>
-          ) : null}
-        </section>
+        ) : null}
 
         <section className="orc-pub-card">
           <h2>Condições</h2>
