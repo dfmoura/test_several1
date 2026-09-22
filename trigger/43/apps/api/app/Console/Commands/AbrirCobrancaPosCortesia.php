@@ -40,7 +40,7 @@ class AbrirCobrancaPosCortesia extends Command
 
         $conta = ContaAtivacao::query()->where('user_id', $user->id)->first();
         if ($conta === null) {
-            $this->error('Esta conta não tem mensalidade FLEXORC (conta_ativacoes).');
+            $this->error('Esta conta não tem mensalidade FLEXOERP (conta_ativacoes).');
 
             return self::FAILURE;
         }

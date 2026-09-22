@@ -215,9 +215,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | FLEXORC — fatia comercial desta instalação
+    | FLEXORC (chave config) — fatia comercial desta instalação
     |--------------------------------------------------------------------------
     |
+    | Nome de produto na UI = FLEXOERP. A chave `flexorc` e env FLEXORC_*
+    | permanecem estáveis (compat). ADR_TRANSICAO_FLEXORC_FLEXOERP.
     | ate_envio_link=false (padrão 43): fatia completa — link + aceite + sinal PIX.
     | true = recorte “até envio do link” (sem sinal/menu financeiro); motor intacto.
     | ADR: docs/ADR_FATIA_COMERCIAL_SAAS.md · docs/ADR_ORC_ADIANTAMENTO_PIX.md
@@ -270,11 +272,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Conta FLEXORC (ASAAS) — forma de pagamento da EMP, não o sinal do ORC
+    | Conta FLEXOERP (ASAAS) — forma de pagamento da conta, não o sinal do ORC
     |--------------------------------------------------------------------------
     |
     | PCI fica no ASAAS. Sem chave = mock (local/CI). Webhook e Checkout
     | autenticam o meio; o ERP só guarda referências. ADR_ATIVACAO_EMPRESA.
+    | Env legado FLEXORC_* permanece lido via alias (ADR_TRANSICAO_FLEXORC_FLEXOERP).
     |
     */
 

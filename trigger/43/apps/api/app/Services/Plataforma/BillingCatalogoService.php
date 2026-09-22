@@ -83,7 +83,7 @@ final class BillingCatalogoService
 
         $descricao = trim((string) ($data['descricao'] ?? $this->catalog->descricao()));
         if ($descricao === '') {
-            $descricao = 'Mensalidade da conta FLEXORC';
+            $descricao = 'Mensalidade da conta FLEXOERP';
         }
         if (mb_strlen($descricao) > 255) {
             throw ValidationException::withMessages([

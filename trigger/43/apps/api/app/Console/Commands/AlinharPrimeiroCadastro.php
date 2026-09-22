@@ -18,11 +18,11 @@ use Spatie\Permission\PermissionRegistrar;
 class AlinharPrimeiroCadastro extends Command
 {
     protected $signature = 'plataforma:alinhar-primeiro-cadastro
-                            {email : E-mail da conta FLEXORC canônica}
+                            {email : E-mail da conta FLEXOERP canônica}
                             {--dry-run : Inventaria; não altera nada}
                             {--force : Executa sem confirmação}';
 
-    protected $description = 'Faz a conta FLEXORC ser USR-00001 e remove o demo RLP';
+    protected $description = 'Faz a conta FLEXOERP ser USR-00001 e remove o demo RLP';
 
     /** @var list<string> */
     private const LEGACY_RLP_EMPRESAS = ['EMP-00001', 'EMP-00002'];
@@ -120,7 +120,7 @@ class AlinharPrimeiroCadastro extends Command
             return self::FAILURE;
         }
         if ($canonical->hasRole(PlatformRbac::ROLE)) {
-            $this->error('Operador TRIGGER não é conta FLEXORC. Abortado.');
+            $this->error('Operador TRIGGER não é conta FLEXOERP. Abortado.');
 
             return self::FAILURE;
         }

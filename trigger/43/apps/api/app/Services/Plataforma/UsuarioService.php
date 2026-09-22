@@ -365,7 +365,7 @@ class UsuarioService
         ));
         if ($proibidos !== []) {
             throw ValidationException::withMessages([
-                'roles' => ['O perfil PLATAFORMA não pode ser atribuído pela conta FLEXORC.'],
+                'roles' => ['O perfil PLATAFORMA não pode ser atribuído pela conta FLEXOERP.'],
             ]);
         }
 

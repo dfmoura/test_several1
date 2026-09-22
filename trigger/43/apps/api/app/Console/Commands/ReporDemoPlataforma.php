@@ -20,7 +20,7 @@ class ReporDemoPlataforma extends Command
                             {--dry-run : Inventaria; não apaga}
                             {--force : Executa sem confirmação}';
 
-    protected $description = 'Remove empresas e contas FLEXORC; deixa instalação pronta para plataforma:criar-conta';
+    protected $description = 'Remove empresas e contas FLEXOERP; deixa instalação pronta para plataforma:criar-conta';
 
     /** @var list<string> */
     private const PURGE_TABLES = [
@@ -117,7 +117,7 @@ class ReporDemoPlataforma extends Command
             return self::SUCCESS;
         }
 
-        if (! $force && ! $this->confirm('Apagar todas as EMPs e contas FLEXORC?', false)) {
+        if (! $force && ! $this->confirm('Apagar todas as EMPs e contas FLEXOERP?', false)) {
             $this->warn('Cancelado.');
 
             return self::SUCCESS;

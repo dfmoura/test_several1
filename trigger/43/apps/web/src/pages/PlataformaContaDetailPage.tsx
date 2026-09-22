@@ -115,7 +115,7 @@ export function PlataformaContaDetailPage() {
     <>
       <PageHeader
         title={data?.master ? `${data.master.codigo} · ${data.master.name}` : 'Conta'}
-        description="Operação TRIGGER: mensalidade da conta e bonificação (período cortesia). Usuários da conta continuam no FLEXORC do master."
+        description="Operação TRIGGER: mensalidade da conta e bonificação (período cortesia). Usuários da conta continuam no FLEXOERP do master."
         actions={
           <Link to="/plataforma/contas" className="btn btn-secondary">
             Voltar

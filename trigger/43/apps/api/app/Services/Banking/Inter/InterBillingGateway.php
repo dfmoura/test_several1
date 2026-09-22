@@ -56,7 +56,7 @@ final class InterBillingGateway implements BillingGateway
         $userIds = $empresa->users()->pluck('users.id');
         $user = User::query()->whereIn('id', $userIds)->orderBy('id')->first();
         if ($user === null) {
-            throw new RuntimeException('Conta FLEXORC não encontrada para emitir PIX.');
+            throw new RuntimeException('Conta FLEXOERP não encontrada para emitir PIX.');
         }
 
         $conta = ContaAtivacao::query()->where('user_id', $user->id)->first();
@@ -611,7 +611,7 @@ final class InterBillingGateway implements BillingGateway
         $uf = strtoupper(substr((string) ($emp->uf ?? 'MG'), 0, 2));
 
         return [
-            'nome' => mb_substr((string) ($emp->razao_social ?: $user->name), 0, 100) ?: 'Conta FLEXORC',
+            'nome' => mb_substr((string) ($emp->razao_social ?: $user->name), 0, 100) ?: 'Conta FLEXOERP',
             'cpfCnpj' => $doc,
             'tipoPessoa' => $tipo,
             'email' => (string) ($emp->email ?: $user->email),

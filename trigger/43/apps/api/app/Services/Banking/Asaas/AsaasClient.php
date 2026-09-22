@@ -84,7 +84,7 @@ final class AsaasClient
             'access_token' => $key,
             'accept' => 'application/json',
             'content-type' => 'application/json',
-            'User-Agent' => 'FLEXORC/43',
+            'User-Agent' => 'FLEXOERP/43',
         ])->timeout((float) config('erp.asaas.http_timeout_sec', 20));
     }
 

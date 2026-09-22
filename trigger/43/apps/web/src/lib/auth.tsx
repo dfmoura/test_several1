@@ -263,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (permission.startsWith('plataforma.')) {
         return state.roles.includes('PLATAFORMA') || state.consolePlataforma;
       }
-      // Superusuário da conta FLEXORC: enxerga módulos do produto, não o console TRIGGER.
+      // Superusuário da conta FLEXOERP: enxerga módulos do produto, não o console TRIGGER.
       if (state.roles.includes('ADMIN')) return true;
       return false;
     },

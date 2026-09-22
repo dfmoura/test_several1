@@ -24,7 +24,7 @@ export function PlataformaPainelPage() {
     <>
       <PageHeader
         title="Painel da instalação"
-        description="Contas FLEXORC nesta nuvem — mensalidade paga à TRIGGER. Não mistura com o sinal PIX da gráfica."
+        description="Contas FLEXOERP nesta nuvem — mensalidade paga à TRIGGER. Não mistura com o sinal PIX da gráfica."
       />
 
       {erro ? (

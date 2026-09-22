@@ -47,7 +47,7 @@ class CriarOperadorPlataforma extends Command
                 return self::FAILURE;
             }
             if ($user->empresas()->exists() || $user->contaAtivacao()->exists()) {
-                $this->error('Este e-mail já é uma conta FLEXORC. Não converta pagador em operador.');
+                $this->error('Este e-mail já é uma conta FLEXOERP. Não converta pagador em operador.');
 
                 return self::FAILURE;
             }

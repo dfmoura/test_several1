@@ -20,7 +20,7 @@ class CriarContaFlexorc extends Command
                             {--cortesia-dias=0 : Dias de período cortesia (bonificação TRIGGER)}
                             {--cortesia-motivo= : Motivo interno da cortesia}';
 
-    protected $description = 'Cria conta FLEXORC master (ADMIN) sem cadastro público no login';
+    protected $description = 'Cria conta FLEXOERP master (ADMIN) sem cadastro público no login';
 
     public function handle(ConsolePlataformaService $console): int
     {

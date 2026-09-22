@@ -21,7 +21,7 @@ class BonificarContaFlexorc extends Command
                             {--encerrar : Encerra a cortesia hoje (histórico permanece)}
                             {--revogar : Remove a cortesia vigente}';
 
-    protected $description = 'Concede, estende ou revoga período cortesia (bonificação) de uma conta FLEXORC';
+    protected $description = 'Concede, estende ou revoga período cortesia (bonificação) de uma conta FLEXOERP';
 
     public function handle(ConsolePlataformaService $console): int
     {
@@ -35,7 +35,7 @@ class BonificarContaFlexorc extends Command
 
         $conta = ContaAtivacao::query()->where('user_id', $user->id)->first();
         if ($conta === null) {
-            $this->error('Esta conta não tem mensalidade FLEXORC (conta_ativacoes).');
+            $this->error('Esta conta não tem mensalidade FLEXOERP (conta_ativacoes).');
 
             return self::FAILURE;
         }

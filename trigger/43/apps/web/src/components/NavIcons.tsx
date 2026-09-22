@@ -377,7 +377,7 @@ export function IconEstoque({ className }: IconProps) {
   );
 }
 
-/** Mensalidade da conta FLEXORC (você → TRIGGER). */
+/** Mensalidade da conta FLEXOERP (você → TRIGGER). */
 export function IconMensalidade({ className }: IconProps) {
   return (
     <IconBase className={className}>

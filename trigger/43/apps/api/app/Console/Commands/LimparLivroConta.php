@@ -20,11 +20,11 @@ use Spatie\Permission\PermissionRegistrar;
 class LimparLivroConta extends Command
 {
     protected $signature = 'plataforma:limpar-livro-conta
-                            {email : E-mail da conta FLEXORC}
+                            {email : E-mail da conta FLEXOERP}
                             {--dry-run : Inventaria; não altera nada}
                             {--force : Executa sem confirmação}';
 
-    protected $description = 'Remove EMPs e orçamentos (livro) de uma conta FLEXORC; preserva login e mensalidade';
+    protected $description = 'Remove EMPs e orçamentos (livro) de uma conta FLEXOERP; preserva login e mensalidade';
 
     /**
      * Ordem: documentos → estoque/compras → satélites PAR → cadastro EMP → PAR.
@@ -113,7 +113,7 @@ class LimparLivroConta extends Command
             return self::FAILURE;
         }
         if ($user->hasRole(PlatformRbac::ROLE)) {
-            $this->error('Operador TRIGGER não tem livro FLEXORC. Abortado.');
+            $this->error('Operador TRIGGER não tem livro FLEXOERP. Abortado.');
 
             return self::FAILURE;
         }

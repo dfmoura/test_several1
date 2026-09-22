@@ -21,11 +21,11 @@ use Spatie\Permission\PermissionRegistrar;
 class PromoverContaCanonica extends Command
 {
     protected $signature = 'plataforma:promover-conta
-                            {email : E-mail da conta FLEXORC a preservar}
+                            {email : E-mail da conta FLEXOERP a preservar}
                             {--dry-run : Inventaria; não altera nada}
                             {--force : Executa sem confirmação}';
 
-    protected $description = 'Preserva uma conta FLEXORC + operador TRIGGER e remove as demais contas/EMPs';
+    protected $description = 'Preserva uma conta FLEXOERP + operador TRIGGER e remove as demais contas/EMPs';
 
     /** @var list<string> */
     private const PURGE_TABLES = [
@@ -110,7 +110,7 @@ class PromoverContaCanonica extends Command
             return self::FAILURE;
         }
         if ($canonical->hasRole(PlatformRbac::ROLE)) {
-            $this->error('Este e-mail é operador TRIGGER. Não use o console como conta FLEXORC.');
+            $this->error('Este e-mail é operador TRIGGER. Não use o console como conta FLEXOERP.');
 
             return self::FAILURE;
         }

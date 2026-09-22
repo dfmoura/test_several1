@@ -120,7 +120,7 @@ export function PlataformaInterIntegracaoPage() {
     <>
       <PageHeader
         title="Integração Banco Inter"
-        description="Mensalidade FLEXORC via PIX (BolePix). Credenciais da conta TRIGGER — não mistura com o sinal do ORC."
+        description="Mensalidade FLEXOERP via PIX (BolePix). Credenciais da conta TRIGGER — não mistura com o sinal do ORC."
         actions={
           <Link to="/plataforma" className="btn btn-secondary">
             Voltar

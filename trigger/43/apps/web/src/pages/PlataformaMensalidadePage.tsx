@@ -72,7 +72,7 @@ export function PlataformaMensalidadePage() {
       const res = await api.plataformaSalvarBillingCatalogo({
         valor: valorNum,
         ciclo,
-        descricao: descricao.trim() || 'Mensalidade da conta FLEXORC',
+        descricao: descricao.trim() || 'Mensalidade da conta FLEXOERP',
       });
       setData(res.data);
       setValor(String(res.data.valor));
@@ -115,7 +115,7 @@ export function PlataformaMensalidadePage() {
     <>
       <PageHeader
         title="Plano comercial"
-        description="Valor da mensalidade FLEXORC (conta → TRIGGER). Reflete na hora para clientes e no MRR do painel."
+        description="Valor da mensalidade FLEXOERP (conta → TRIGGER). Reflete na hora para clientes e no MRR do painel."
         actions={
           <Link to="/plataforma" className="btn btn-secondary">
             Voltar

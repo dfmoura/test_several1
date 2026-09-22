@@ -83,7 +83,7 @@ final class AsaasBillingGateway implements BillingGateway
                 'autoRedirect' => true,
             ],
             'items' => [[
-                'name' => 'FLEXORC — mensalidade',
+                'name' => 'FLEXOERP — mensalidade',
                 'description' => $this->descricao(),
                 'quantity' => 1,
                 'value' => $valor,
@@ -147,7 +147,7 @@ final class AsaasBillingGateway implements BillingGateway
                 'autoRedirect' => true,
             ],
             'items' => [[
-                'name' => 'FLEXORC — mensalidade',
+                'name' => 'FLEXOERP — mensalidade',
                 'description' => $this->descricao(),
                 'quantity' => 1,
                 'value' => $valor,
@@ -378,7 +378,7 @@ final class AsaasBillingGateway implements BillingGateway
         $external = $user !== null ? BillingReference::contaRef($user->id) : $this->externalReference($empresa);
 
         return array_filter([
-            'name' => $empresa->razao_social ?: ($user?->name ?? 'Conta FLEXORC'),
+            'name' => $empresa->razao_social ?: ($user?->name ?? 'Conta FLEXOERP'),
             'email' => $empresa->email ?: ($user?->email ?? null),
             'cpfCnpj' => $cnpj !== '' ? $cnpj : null,
             'phone' => $phone,
