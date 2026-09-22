@@ -34,9 +34,11 @@ import { ModelosComposicaoEditor } from '../components/ModelosComposicaoEditor';
 import { NumericInput } from '../components/NumericInput';
 import {
   CORES_OPCOES,
-  aplicarQuantidadeModeloFaixa,
+  ajustarMatrizFaixaTotal,
+  aplicarQuantidadeModeloMatriz,
   cloneOrcFormItem,
   defaultOrcForm,
+  equalizarMatrizTodasFaixas,
   facaPrincipal,
   formFromSnapshot,
   calculoComItensDoOrcamento,
@@ -47,6 +49,8 @@ import {
   syncHeaderAcrossItens,
   somaValorFacas,
   syncModelosComposicao,
+  syncModelosComposicaoQuantidades,
+  syncPercentualReferencia,
   validarModelosComposicao,
   type FacaComposicaoForm,
   type OrcCatalogo,
@@ -530,18 +534,36 @@ export function OrcamentoFormPage() {
   const setFaixa = (index: number, key: keyof OrcForm['faixas'][number], value: number) => {
     setForm((prev) => {
       const faixas = prev.faixas.map((f, i) => (i === index ? { ...f, [key]: value } : f));
-      return { ...prev, faixas };
+      const modelos_composicao_quantidades =
+        key === 'quantidade'
+          ? ajustarMatrizFaixaTotal(
+              prev.modelos_composicao_quantidades,
+              faixas,
+              index,
+              prev.modelos,
+            )
+          : prev.modelos_composicao_quantidades;
+      return { ...prev, faixas, modelos_composicao_quantidades };
     });
     setCalculo(null);
   };
 
   const setModelosCount = (n: number) => {
     const modelos = Math.max(1, Math.floor(n) || 1);
-    setForm((prev) => ({
-      ...prev,
-      modelos,
-      modelos_composicao: syncModelosComposicao(prev.modelos_composicao, modelos),
-    }));
+    setForm((prev) => {
+      const modelos_composicao = syncModelosComposicao(prev.modelos_composicao, modelos);
+      return {
+        ...prev,
+        modelos,
+        modelos_composicao,
+        modelos_composicao_quantidades: syncModelosComposicaoQuantidades(
+          prev.modelos_composicao_quantidades,
+          prev.faixas,
+          modelos,
+          modelos_composicao,
+        ),
+      };
+    });
     setCalculo(null);
   };
 
@@ -575,31 +597,50 @@ export function OrcamentoFormPage() {
   };
 
   const setModeloQuantidadeFaixa = (faixaIdx: number, modeloIdx: number, qtd: number) => {
-    setForm((prev) => ({
-      ...prev,
-      modelos_composicao: aplicarQuantidadeModeloFaixa(
-        prev.modelos_composicao,
+    setForm((prev) => {
+      const modelos_composicao_quantidades = aplicarQuantidadeModeloMatriz(
+        prev.modelos_composicao_quantidades,
         prev.faixas,
         faixaIdx,
         modeloIdx,
         qtd,
-      ),
-    }));
+        prev.modelos,
+      );
+      return {
+        ...prev,
+        modelos_composicao_quantidades,
+        modelos_composicao: syncPercentualReferencia(
+          prev.modelos_composicao,
+          prev.faixas,
+          modelos_composicao_quantidades,
+        ),
+      };
+    });
     setCalculo(null);
   };
 
   const equalizarModelosComposicao = () => {
-    setForm((prev) => ({
-      ...prev,
-      modelos_composicao: syncModelosComposicao(prev.modelos_composicao, prev.modelos),
-    }));
+    setForm((prev) => {
+      const modelos_composicao_quantidades = equalizarMatrizTodasFaixas(
+        prev.faixas,
+        prev.modelos,
+      );
+      return {
+        ...prev,
+        modelos_composicao_quantidades,
+        modelos_composicao: syncPercentualReferencia(
+          prev.modelos_composicao,
+          prev.faixas,
+          modelos_composicao_quantidades,
+        ),
+      };
+    });
     setCalculo(null);
   };
 
   const addFaixa = () => {
-    setForm((prev) => ({
-      ...prev,
-      faixas: [
+    setForm((prev) => {
+      const faixas = [
         ...prev.faixas,
         prev.tipo_operacao === TIPO_SERVICO
           ? {
@@ -608,16 +649,36 @@ export function OrcamentoFormPage() {
               valor_unitario: prev.faixas[0]?.valor_unitario || 50,
             }
           : { quantidade: 0, comissao_pct: 0 },
-      ],
-    }));
+      ];
+      return {
+        ...prev,
+        faixas,
+        modelos_composicao_quantidades: syncModelosComposicaoQuantidades(
+          prev.modelos_composicao_quantidades,
+          faixas,
+          prev.modelos,
+          prev.modelos_composicao,
+        ),
+      };
+    });
     setCalculo(null);
   };
 
   const removeFaixa = (index: number) => {
-    setForm((prev) => ({
-      ...prev,
-      faixas: prev.faixas.filter((_, i) => i !== index),
-    }));
+    setForm((prev) => {
+      const faixas = prev.faixas.filter((_, i) => i !== index);
+      const matriz = prev.modelos_composicao_quantidades.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        faixas,
+        modelos_composicao_quantidades: syncModelosComposicaoQuantidades(
+          matriz,
+          faixas,
+          prev.modelos,
+          prev.modelos_composicao,
+        ),
+      };
+    });
     setCalculo(null);
   };
 
@@ -668,7 +729,12 @@ export function OrcamentoFormPage() {
     if (item.faixas.some((f) => f.quantidade <= 0)) {
       return `${prefix}Quantidades das faixas devem ser > 0.`;
     }
-    const compErr = validarModelosComposicao(item.modelos, item.modelos_composicao, item.faixas);
+    const compErr = validarModelosComposicao(
+      item.modelos,
+      item.modelos_composicao,
+      item.faixas,
+      item.modelos_composicao_quantidades,
+    );
     if (compErr) return `${prefix}${compErr}`;
     return null;
   };
@@ -1637,7 +1703,11 @@ export function OrcamentoFormPage() {
                   <h4 className="orc-subsection-title">Composição dos modelos</h4>
                   {(() => {
                     const faixasOk = form.faixas.filter((f) => f.quantidade > 0);
-                    const matriz = matrizQuantidadesModelos(faixasOk, form.modelos_composicao);
+                    const matriz = matrizQuantidadesModelos(
+                      faixasOk,
+                      form.modelos_composicao,
+                      form.modelos_composicao_quantidades,
+                    );
                     const allOk =
                       faixasOk.length === 0 ||
                       matriz.every(
@@ -1654,15 +1724,16 @@ export function OrcamentoFormPage() {
                   })()}
                 </div>
                 <p className="form-hint" style={{ marginTop: 0 }}>
-                  Informe as quantidades pela faixa âncora: digite nas artes editáveis; o
-                  último modelo recebe o restante automaticamente. Com várias faixas, o
-                  mesmo rateio se aplica a todas (prévia nas demais colunas). Vlr. Arte e
-                  Fig. são opcionais; a soma do Vlr. Arte entra no total. O preço de
-                  produção (setup/perda) continua usando só a quantidade de modelos.
+                  Distribua a quantidade de cada faixa entre as artes — cada coluna é
+                  independente. Digite nas artes editáveis; o último modelo recebe o
+                  restante da própria faixa. Vlr. Arte e Fig. são opcionais; a soma do
+                  Vlr. Arte entra no total. O preço de produção (setup/perda) continua
+                  usando só a quantidade de modelos.
                 </p>
                 <ModelosComposicaoEditor
                   modelos={form.modelos_composicao}
                   faixas={form.faixas}
+                  quantidades={form.modelos_composicao_quantidades}
                   canWrite={canWrite}
                   onNomeChange={setModeloComposicaoNome}
                   onValorArteChange={setModeloValorArte}
@@ -1727,6 +1798,9 @@ export function OrcamentoFormPage() {
                       ordem: i + 1,
                       rotulo: rotulos[i] ?? null,
                       modelosComposicao: itemForm.modelos_composicao,
+                      input_snapshot: {
+                        modelos_composicao_quantidades: itemForm.modelos_composicao_quantidades,
+                      },
                       guiaEspec: {
                         medida: itemForm.medida,
                         largura_cm: itemForm.largura_cm,
@@ -1755,6 +1829,11 @@ export function OrcamentoFormPage() {
             }
             modelosComposicao={
               form.tipo_operacao === TIPO_SERVICO ? null : form.modelos_composicao
+            }
+            modelosComposicaoQuantidades={
+              form.tipo_operacao === TIPO_SERVICO
+                ? null
+                : form.modelos_composicao_quantidades
             }
             echoEspecificacao={form.tipo_operacao !== TIPO_SERVICO}
             parametrosAjuste={

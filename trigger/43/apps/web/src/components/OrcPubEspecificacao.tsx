@@ -145,6 +145,14 @@ export function OrcPubEspecificacaoBloco({
             quantidade: fx.quantidade,
             highlighted: faixaHighlight === fx.index,
           }))}
+          quantidadesPorFaixa={
+            Array.isArray(
+              (desc as Record<string, unknown>).modelos_composicao_quantidades,
+            )
+              ? ((desc as Record<string, unknown>)
+                  .modelos_composicao_quantidades as number[][])
+              : undefined
+          }
         />
       ) : null}
     </>

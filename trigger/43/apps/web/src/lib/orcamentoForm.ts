@@ -142,6 +142,8 @@ export type OrcForm = {
   modelos: number;
   /** Detalhe operacional; motor usa só `modelos`. */
   modelos_composicao: ModeloComposicaoForm[];
+  /** Quantidades inteiras por faixa × modelo — [faixaIdx][modeloIdx]; colunas independentes. */
+  modelos_composicao_quantidades: number[][];
   colunas: number;
   etiq_por_rolo: number;
   tubete: string;
@@ -491,29 +493,85 @@ export function somaValorArteModelos(rows: ModeloComposicaoForm[]): number {
   return Math.round(rows.reduce((s, r) => s + Math.max(0, Number(r.valor_arte) || 0), 0) * 100) / 100;
 }
 
-/** Matriz [faixaIdx][modeloIdx] — quantidade inteira alocada por arte. */
+/** Equal-split inteiro numa faixa; resto no último modelo. */
+export function alocarEqualSplitQuantidades(faixaTotal: number, nModelos: number): number[] {
+  const total = Math.max(0, Math.floor(faixaTotal) || 0);
+  const n = Math.max(1, Math.floor(nModelos) || 1);
+  if (n === 1) return [total];
+  const base = Math.floor(total / n);
+  const qs = Array.from({ length: n }, () => base);
+  qs[n - 1] = total - base * (n - 1);
+  return qs;
+}
+
+/** Fecha a linha da matriz: último modelo = restante da faixa. */
+export function reconciliarMatrizFaixaRow(quantidades: number[], faixaTotal: number): number[] {
+  const total = Math.max(0, Math.floor(faixaTotal) || 0);
+  const n = quantidades.length;
+  if (n === 0) return [];
+  if (n === 1) return [total];
+  const qs = quantidades.map((q) => Math.max(0, Math.floor(q) || 0));
+  const sumEditaveis = qs.slice(0, n - 1).reduce((s, q) => s + q, 0);
+  qs[n - 1] = Math.max(0, total - sumEditaveis);
+  return qs;
+}
+
+/**
+ * Sincroniza a matriz de quantidades com faixas × modelos.
+ * Preserva valores existentes; preenche novas linhas/colunas com equal-split.
+ */
+export function syncModelosComposicaoQuantidades(
+  prev: number[][] | undefined,
+  faixas: FaixaForm[],
+  modelos: number,
+  composicao: ModeloComposicaoForm[],
+): number[][] {
+  const n = Math.max(1, Math.floor(modelos) || 1);
+  return faixas.map((f, fi) => {
+    const total = Math.max(0, Math.floor(f.quantidade) || 0);
+    const prevRow = prev?.[fi];
+    if (Array.isArray(prevRow) && prevRow.length === n) {
+      return reconciliarMatrizFaixaRow(prevRow, total);
+    }
+    if (Array.isArray(prevRow) && prevRow.length > 0) {
+      const resized = prevRow.slice(0, n);
+      while (resized.length < n) {
+        resized.push(0);
+      }
+      return reconciliarMatrizFaixaRow(resized, total);
+    }
+    if (total > 0 && composicao.length === n) {
+      return alocarQuantidadePorModelo(total, composicao).map((r) => r.quantidade);
+    }
+    return alocarEqualSplitQuantidades(total, n);
+  });
+}
+
+/** Matriz [faixaIdx][modeloIdx] — usa snapshot quando presente; senão deriva de %. */
 export function matrizQuantidadesModelos(
   faixas: FaixaForm[],
   rows: ModeloComposicaoForm[],
+  matriz?: number[][],
 ): number[][] {
-  return faixas.map((f) =>
-    alocarQuantidadePorModelo(f.quantidade, rows).map((r) => r.quantidade),
-  );
+  return faixas.map((f, fi) => {
+    const total = Math.max(0, Math.floor(f.quantidade) || 0);
+    const row = matriz?.[fi];
+    if (Array.isArray(row) && row.length === rows.length) {
+      return reconciliarMatrizFaixaRow(row, total);
+    }
+    return alocarQuantidadePorModelo(total, rows).map((r) => r.quantidade);
+  });
 }
 
-/** Atualiza percentuais a partir das quantidades informadas numa faixa (soma = total da faixa). */
-export function composicaoFromQuantidadesFaixa(
-  prev: ModeloComposicaoForm[],
+/** Percentuais a partir das quantidades de uma faixa (Σ = 100). */
+export function percentuaisFromQuantidadesFaixa(
   quantidades: number[],
   faixaTotal: number,
-): ModeloComposicaoForm[] {
+): number[] {
   const total = Math.max(0, Math.floor(faixaTotal) || 0);
   const n = quantidades.length;
-  if (n === 0) return prev;
-  if (n === 1) {
-    return prev.map((m, i) => (i === 0 ? { ...m, percentual: 100 } : m));
-  }
-
+  if (n === 0) return [];
+  if (n === 1) return [100];
   const pcts: number[] = [];
   let acc = 0;
   for (let i = 0; i < n; i++) {
@@ -526,64 +584,107 @@ export function composicaoFromQuantidadesFaixa(
       acc += pct;
     }
   }
-
-  return prev.map((m, i) => ({ ...m, percentual: pcts[i] ?? m.percentual }));
+  return pcts;
 }
 
-/**
- * Índice da faixa âncora para editar a composição em unidades.
- * Preferência: maior Q > 0; empate → primeira. -1 se nenhuma faixa válida.
- */
-export function escolherFaixaAncoraIdx(faixas: FaixaForm[]): number {
-  let best = -1;
-  let bestQ = -1;
-  for (let i = 0; i < faixas.length; i++) {
-    const q = Math.max(0, Math.floor(faixas[i]?.quantidade) || 0);
-    if (q <= 0) continue;
-    if (q > bestQ) {
-      bestQ = q;
-      best = i;
-    }
-  }
-  return best;
-}
-
-/**
- * Aplica edição de quantidade numa célula (faixa × modelo).
- * Modelos 0…N−2 são livres (com teto para não estourar Q); o último absorve o resto.
- */
-export function aplicarQuantidadeModeloFaixa(
+/** % de referência (1ª faixa Q>0) para compatibilidade legada / PED. */
+export function syncPercentualReferencia(
   composicao: ModeloComposicaoForm[],
+  faixas: FaixaForm[],
+  matriz: number[][],
+): ModeloComposicaoForm[] {
+  for (let fi = 0; fi < faixas.length; fi++) {
+    const total = Math.max(0, Math.floor(faixas[fi]?.quantidade) || 0);
+    if (total <= 0) continue;
+    const row = matriz[fi];
+    if (!Array.isArray(row) || row.length !== composicao.length) continue;
+    const pcts = percentuaisFromQuantidadesFaixa(row, total);
+    return composicao.map((m, i) => ({ ...m, percentual: pcts[i] ?? m.percentual }));
+  }
+  return composicao;
+}
+
+/** Equal-split em todas as faixas com Q > 0. */
+export function equalizarMatrizTodasFaixas(faixas: FaixaForm[], nModelos: number): number[][] {
+  const n = Math.max(1, Math.floor(nModelos) || 1);
+  return faixas.map((f) =>
+    alocarEqualSplitQuantidades(Math.max(0, Math.floor(f.quantidade) || 0), n),
+  );
+}
+
+/**
+ * Edita uma célula da matriz — só a faixa informada muda; demais colunas intactas.
+ */
+export function aplicarQuantidadeModeloMatriz(
+  matriz: number[][],
   faixas: FaixaForm[],
   faixaIdx: number,
   modeloIdx: number,
   newQtd: number,
-): ModeloComposicaoForm[] {
+  nModelos: number,
+): number[][] {
+  const n = Math.max(1, Math.floor(nModelos) || 1);
   const faixaTotal = Math.max(0, Math.floor(faixas[faixaIdx]?.quantidade) || 0);
-  const n = composicao.length;
-  const current = alocarQuantidadePorModelo(faixaTotal, composicao);
-  const qs = current.map((r) => r.quantidade);
+  const out = matriz.map((row) => [...row]);
+  while (out.length < faixas.length) {
+    out.push(alocarEqualSplitQuantidades(0, n));
+  }
+  const current = reconciliarMatrizFaixaRow(
+    out[faixaIdx]?.length === n ? [...out[faixaIdx]] : alocarEqualSplitQuantidades(faixaTotal, n),
+    faixaTotal,
+  );
 
   if (n === 1) {
-    qs[0] = faixaTotal;
-    return composicaoFromQuantidadesFaixa(composicao, qs, faixaTotal);
+    out[faixaIdx] = [faixaTotal];
+    return out;
   }
-
-  // Último modelo é sempre resto — edição nele é ignorada (UI não expõe).
   if (modeloIdx >= n - 1) {
-    return composicao;
+    out[faixaIdx] = current;
+    return out;
   }
 
+  const qs = [...current];
   const desired = Math.max(0, Math.floor(newQtd) || 0);
-  const sumExceptEdited = qs
-    .slice(0, n - 1)
-    .reduce((s, q, i) => (i === modeloIdx ? s : s + q), 0);
+  const sumExceptEdited = qs.slice(0, n - 1).reduce((s, q, i) => (i === modeloIdx ? s : s + q), 0);
   const maxAllowed = Math.max(0, faixaTotal - sumExceptEdited);
   qs[modeloIdx] = Math.min(desired, maxAllowed);
-  const sumEditaveis = qs.slice(0, n - 1).reduce((s, q) => s + q, 0);
-  qs[n - 1] = Math.max(0, faixaTotal - sumEditaveis);
+  out[faixaIdx] = reconciliarMatrizFaixaRow(qs, faixaTotal);
+  return out;
+}
 
-  return composicaoFromQuantidadesFaixa(composicao, qs, faixaTotal);
+/** Reconcilia resto quando o total da faixa muda (escada comercial). */
+export function ajustarMatrizFaixaTotal(
+  matriz: number[][],
+  faixas: FaixaForm[],
+  faixaIdx: number,
+  nModelos: number,
+): number[][] {
+  const n = Math.max(1, Math.floor(nModelos) || 1);
+  const total = Math.max(0, Math.floor(faixas[faixaIdx]?.quantidade) || 0);
+  const out = matriz.map((row) => [...row]);
+  while (out.length < faixas.length) {
+    out.push(alocarEqualSplitQuantidades(0, n));
+  }
+  const prev = out[faixaIdx];
+  const base =
+    Array.isArray(prev) && prev.length === n
+      ? prev
+      : alocarEqualSplitQuantidades(total, n);
+  out[faixaIdx] = reconciliarMatrizFaixaRow(base, total);
+  return out;
+}
+
+/** Atualiza percentuais a partir das quantidades informadas numa faixa (soma = total da faixa). */
+export function composicaoFromQuantidadesFaixa(
+  prev: ModeloComposicaoForm[],
+  quantidades: number[],
+  faixaTotal: number,
+): ModeloComposicaoForm[] {
+  const total = Math.max(0, Math.floor(faixaTotal) || 0);
+  const n = quantidades.length;
+  if (n === 0) return prev;
+  const pcts = percentuaisFromQuantidadesFaixa(quantidades, total);
+  return prev.map((m, i) => ({ ...m, percentual: pcts[i] ?? m.percentual }));
 }
 
 /** Mensagem de validação da composição; null se OK. */
@@ -591,6 +692,7 @@ export function validarModelosComposicao(
   modelos: number,
   rows: ModeloComposicaoForm[],
   faixas?: FaixaForm[],
+  matriz?: number[][],
 ): string | null {
   const n = Math.max(1, Math.floor(modelos) || 1);
   if (rows.length !== n) {
@@ -616,16 +718,17 @@ export function validarModelosComposicao(
   }
 
   if (faixas && faixas.length > 0) {
+    const qtdMatriz = matrizQuantidadesModelos(faixas, rows, matriz);
     for (let fi = 0; fi < faixas.length; fi++) {
       const fq = Math.floor(faixas[fi]?.quantidade) || 0;
       if (fq <= 0) continue;
-      const aloc = alocarQuantidadePorModelo(fq, rows);
-      const somaQtd = aloc.reduce((s, r) => s + r.quantidade, 0);
+      const aloc = qtdMatriz[fi] ?? [];
+      const somaQtd = aloc.reduce((s, q) => s + q, 0);
       if (somaQtd !== fq) {
         return `Faixa ${fi + 1}: soma dos modelos (${somaQtd.toLocaleString('pt-BR')}) difere do total (${fq.toLocaleString('pt-BR')}).`;
       }
       for (let mi = 0; mi < aloc.length; mi++) {
-        if (aloc[mi].quantidade <= 0) {
+        if (aloc[mi] <= 0) {
           return `Modelo ${mi + 1}: quantidade deve ser > 0 na faixa ${fi + 1}.`;
         }
       }
@@ -679,6 +782,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     acabamento: acabamentos[0] ?? 'SEM ACABAMENTO',
     modelos: 1,
     modelos_composicao: syncModelosComposicao([], 1),
+    modelos_composicao_quantidades: [alocarEqualSplitQuantidades(0, 1)],
     colunas: 1,
     etiq_por_rolo: 1000,
     tubete: '1"',
@@ -740,6 +844,16 @@ export function formFromSnapshot(
         }))
       : syncModelosComposicao(compRaw, modelos);
 
+  const matrizRaw = Array.isArray(snap.modelos_composicao_quantidades)
+    ? (snap.modelos_composicao_quantidades as number[][])
+    : undefined;
+  const modelos_composicao_quantidades = syncModelosComposicaoQuantidades(
+    matrizRaw,
+    faixasRaw,
+    modelos,
+    modelos_composicao,
+  );
+
   return {
     ...base,
     tipo_operacao: tipoOperacaoFromSnap(snap),
@@ -761,6 +875,7 @@ export function formFromSnapshot(
     acabamento: String(snap.acabamento ?? base.acabamento),
     modelos,
     modelos_composicao,
+    modelos_composicao_quantidades,
     colunas: Number(snap.colunas) || 1,
     etiq_por_rolo: Number(snap.etiq_por_rolo) || 1000,
     tubete: String(snap.tubete ?? base.tubete),
@@ -924,6 +1039,14 @@ export function cloneOrcFormItem(source: OrcForm, catalog: OrcCatalogo | null): 
     ...source,
     faixas: source.faixas.map((f) => ({ ...f })),
     modelos_composicao: source.modelos_composicao.map((m) => ({ ...m })),
+    modelos_composicao_quantidades:
+      source.modelos_composicao_quantidades?.map((row) => [...row]) ??
+      syncModelosComposicaoQuantidades(
+        undefined,
+        source.faixas,
+        source.modelos,
+        source.modelos_composicao,
+      ),
     facas: source.facas.map((f) => ({ ...f })),
     overrides: { ...source.overrides },
   };
@@ -1022,13 +1145,22 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
     papel: form.papel,
     acabamento: form.acabamento,
     modelos: form.modelos,
-    modelos_composicao: form.modelos_composicao.map((m, i) => ({
+    modelos_composicao: syncPercentualReferencia(
+      form.modelos_composicao,
+      form.faixas,
+      form.modelos_composicao_quantidades,
+    ).map((m, i) => ({
       ordem: i + 1,
       nome: m.nome.trim(),
       percentual: Number(m.percentual) || 0,
       valor_arte: Math.max(0, Number(m.valor_arte) || 0),
       arte_url: m.arte_url?.trim() || null,
     })),
+    modelos_composicao_quantidades: matrizQuantidadesModelos(
+      form.faixas,
+      form.modelos_composicao,
+      form.modelos_composicao_quantidades,
+    ),
     colunas: form.colunas,
     etiq_por_rolo: form.etiq_por_rolo,
     tubete: form.tubete,

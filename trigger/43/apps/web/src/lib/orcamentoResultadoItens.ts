@@ -13,6 +13,7 @@ export type OrcResultadoItemUi = {
   rotulo: string | null;
   result: OrcamentoResult;
   modelosComposicao: ModeloComposicaoForm[];
+  quantidadesPorFaixa?: number[][];
   guiaEspec: OrcGuiaProducaoEspec | null;
 };
 
@@ -89,11 +90,15 @@ export function buildItensResultadoUi(
     const guia =
       extra?.guiaEspec ??
       (input ? especFromSnapshot(input) : null);
+    const quantidadesPorFaixa = Array.isArray(input?.modelos_composicao_quantidades)
+      ? (input!.modelos_composicao_quantidades as number[][])
+      : undefined;
     return {
       ordem: p.ordem,
       rotulo: p.rotulo ?? extra?.rotulo ?? null,
       result: p.result ?? calculo,
       modelosComposicao: (modelos ?? []).filter((m) => String(m.nome ?? '').trim() !== ''),
+      quantidadesPorFaixa,
       guiaEspec: guia,
     };
   });

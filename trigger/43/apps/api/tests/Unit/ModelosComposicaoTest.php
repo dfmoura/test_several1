@@ -106,4 +106,48 @@ class ModelosComposicaoTest extends TestCase
         $this->assertSame(33, $out[1]['quantidade']);
         $this->assertSame(34, $out[2]['quantidade']);
     }
+
+    public function test_matriz_por_faixa_independente(): void
+    {
+        $faixas = [
+            ['quantidade' => 1000, 'comissao_pct' => 0],
+            ['quantidade' => 5000, 'comissao_pct' => 0],
+        ];
+        $matriz = [
+            [300, 700],
+            [2000, 3000],
+        ];
+
+        $data = ModelosComposicao::ensureInPayload([
+            'modelos' => 2,
+            'faixas' => $faixas,
+            'modelos_composicao' => [
+                ['nome' => 'maçã verde', 'percentual' => 30],
+                ['nome' => 'abacate', 'percentual' => 70],
+            ],
+            'modelos_composicao_quantidades' => $matriz,
+        ]);
+
+        $this->assertSame($matriz, $data['modelos_composicao_quantidades']);
+        $this->assertEqualsWithDelta(30.0, $data['modelos_composicao'][0]['percentual'], 0.001);
+
+        $outFaixa2 = ModelosComposicao::alocarQuantidadesFaixa(
+            5000,
+            $data['modelos_composicao'],
+            $data['modelos_composicao_quantidades'],
+            1,
+        );
+        $this->assertSame(2000, $outFaixa2[0]['quantidade']);
+        $this->assertSame(3000, $outFaixa2[1]['quantidade']);
+    }
+
+    public function test_rejeita_matriz_com_soma_errada(): void
+    {
+        $this->expectException(ValidationException::class);
+        ModelosComposicao::normalizeQuantidadesMatriz(
+            [[400, 700]],
+            [['quantidade' => 1000]],
+            2,
+        );
+    }
 }

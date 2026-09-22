@@ -866,6 +866,11 @@ export function OrcamentoDetailPage() {
                 key: i,
                 quantidade: Number(fx.quantidade) || 0,
               }))}
+              quantidadesPorFaixa={
+                Array.isArray(inputItem.modelos_composicao_quantidades)
+                  ? (inputItem.modelos_composicao_quantidades as number[][])
+                  : undefined
+              }
             />
           ) : null}
           {!isServico && facasComp.length > 1 ? (

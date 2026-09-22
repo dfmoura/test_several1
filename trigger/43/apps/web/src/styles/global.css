@@ -4931,9 +4931,9 @@ table.data-table td.acoes {
   background: color-mix(in srgb, var(--navy, #0f2744) 6%, transparent);
 }
 
-.orc-modelos-editor-table th.orc-modelo-qtd-col.is-preview,
-.orc-modelos-editor-table td.orc-modelo-qtd-col.is-preview {
-  color: var(--text-muted);
+.orc-modelos-editor-table th.orc-modelo-qtd-col.is-open,
+.orc-modelos-editor-table td.orc-modelo-qtd-col.is-open {
+  color: var(--danger, #b42318);
 }
 
 .orc-modelo-qtd-col-tag {

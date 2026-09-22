@@ -1,5 +1,6 @@
 import {
   alocarQuantidadePorModelo,
+  reconciliarMatrizFaixaRow,
   somaValorArteModelos,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
@@ -28,6 +29,8 @@ type Props = {
   modelos: ModeloComposicaoRow[];
   /** 1+ faixas do ORC; quantidade inteira por arte (rateio canônico). */
   faixas?: FaixaQuantidadeRef[];
+  /** Matriz [faixaIdx][modeloIdx] do snapshot — colunas independentes por faixa. */
+  quantidadesPorFaixa?: number[][];
   variant?: Variant;
   className?: string;
   /** Omitir título quando o pai já renderiza o heading. */
@@ -58,6 +61,7 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
 export function ModelosComposicaoTable({
   modelos,
   faixas = [],
+  quantidadesPorFaixa,
   variant = 'data',
   className,
   title = 'Composição dos modelos',
@@ -68,10 +72,15 @@ export function ModelosComposicaoTable({
   if (rows.length === 0) return null;
 
   const faixasOk = faixas.filter((f) => Number.isFinite(f.quantidade) && f.quantidade > 0);
-  const alocPorFaixa = faixasOk.map((fx) => ({
-    ...fx,
-    alocados: alocarQuantidadePorModelo(fx.quantidade, rows),
-  }));
+  const alocPorFaixa = faixasOk.map((fx) => {
+    const faixaIdx = typeof fx.key === 'number' ? fx.key : Number(fx.key) || 0;
+    const stored = quantidadesPorFaixa?.[faixaIdx];
+    const qs =
+      Array.isArray(stored) && stored.length === rows.length
+        ? reconciliarMatrizFaixaRow(stored, fx.quantidade)
+        : alocarQuantidadePorModelo(fx.quantidade, rows).map((r) => r.quantidade);
+    return { ...fx, qs };
+  });
 
   const somaArtes = somaValorArteModelos(rows);
   const exibirArte = showValorArte ?? somaArtes > 0;
@@ -185,7 +194,7 @@ export function ModelosComposicaoTable({
                       key={fx.key}
                       className={`${numClass}${fx.highlighted ? ' is-active' : ''}`}
                     >
-                      {formatQtd(fx.alocados[i]?.quantidade ?? 0)}
+                      {formatQtd(fx.qs[i] ?? 0)}
                     </td>
                   ))
                 )}

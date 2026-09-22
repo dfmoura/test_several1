@@ -70,6 +70,8 @@ type Props = {
   toleranciaQtdPct?: number | string;
   /** Composição nome+% — mesma visão da proposta ao cliente */
   modelosComposicao?: ModeloComposicaoForm[] | null;
+  /** Matriz [faixaIdx][modeloIdx] — colunas independentes por escada. */
+  modelosComposicaoQuantidades?: number[][] | null;
   /**
    * Especificação do ORC (form ou input_snapshot) — alimenta a Guia de produção.
    * Sem isto a aba mostra aviso; não atrapalha as outras abas.
@@ -997,6 +999,7 @@ function PropostaItemBloco({
               key: i,
               quantidade: Number(fx.quantidade) || 0,
             }))}
+            quantidadesPorFaixa={item.quantidadesPorFaixa}
           />
         ) : null}
         {facasRows.length > 1 ? (
@@ -1034,6 +1037,7 @@ export function OrcamentoResultado({
   validadeDias,
   toleranciaQtdPct,
   modelosComposicao,
+  modelosComposicaoQuantidades,
   guiaEspec,
   echoEspecificacao = true,
   modoServico = false,
@@ -1318,6 +1322,7 @@ export function OrcamentoResultado({
                       key: i,
                       quantidade: Number(fx.quantidade) || 0,
                     }))}
+                    quantidadesPorFaixa={modelosComposicaoQuantidades ?? undefined}
                   />
                 ) : null}
                 {facasRows.length > 1 ? (

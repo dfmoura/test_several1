@@ -39,6 +39,19 @@ final class ModelosComposicao
 
         $data['modelos_composicao'] = self::normalizeAndAssert($raw, $n);
 
+        if (array_key_exists('modelos_composicao_quantidades', $data)) {
+            $data['modelos_composicao_quantidades'] = self::normalizeQuantidadesMatriz(
+                $data['modelos_composicao_quantidades'] ?? null,
+                is_array($data['faixas'] ?? null) ? $data['faixas'] : [],
+                $n,
+            );
+            $data['modelos_composicao'] = self::syncPercentualReferencia(
+                $data['modelos_composicao'],
+                is_array($data['faixas'] ?? null) ? $data['faixas'] : [],
+                $data['modelos_composicao_quantidades'],
+            );
+        }
+
         return $data;
     }
 
@@ -212,5 +225,204 @@ final class ModelosComposicao
         }
 
         return $out;
+    }
+
+    /**
+     * Matriz [faixaIdx][modeloIdx] — quantidades inteiras independentes por escada.
+     *
+     * @param  list<array{quantidade?: int|float|string|null}>|mixed  $faixas
+     * @return list<list<int>>
+     */
+    public static function normalizeQuantidadesMatriz(mixed $raw, array $faixas, int $modelos): array
+    {
+        $n = max(1, $modelos);
+        $nFaixas = count($faixas);
+        if ($nFaixas === 0) {
+            return [];
+        }
+
+        if (! is_array($raw)) {
+            throw ValidationException::withMessages([
+                'modelos_composicao_quantidades' => ['Informe a matriz de quantidades por faixa.'],
+            ]);
+        }
+
+        $out = [];
+        for ($fi = 0; $fi < $nFaixas; $fi++) {
+            $total = max(0, (int) floor((float) ($faixas[$fi]['quantidade'] ?? 0)));
+            $row = $raw[$fi] ?? null;
+            if (! is_array($row)) {
+                throw ValidationException::withMessages([
+                    "modelos_composicao_quantidades.{$fi}" => ['Informe as quantidades dos modelos nesta faixa.'],
+                ]);
+            }
+            if (count($row) !== $n) {
+                throw ValidationException::withMessages([
+                    "modelos_composicao_quantidades.{$fi}" => ["Informe exatamente {$n} quantidade(s) nesta faixa."],
+                ]);
+            }
+
+            $qs = [];
+            for ($mi = 0; $mi < $n; $mi++) {
+                $qs[] = max(0, (int) floor((float) ($row[$mi] ?? 0)));
+            }
+            $qs = self::reconciliarLinhaQuantidades($qs, $total);
+
+            if ($total > 0) {
+                $soma = array_sum($qs);
+                if ($soma !== $total) {
+                    throw ValidationException::withMessages([
+                        "modelos_composicao_quantidades.{$fi}" => [
+                            sprintf(
+                                'Faixa %d: soma dos modelos (%d) difere do total (%d).',
+                                $fi + 1,
+                                $soma,
+                                $total,
+                            ),
+                        ],
+                    ]);
+                }
+                foreach ($qs as $mi => $q) {
+                    if ($q <= 0) {
+                        throw ValidationException::withMessages([
+                            "modelos_composicao_quantidades.{$fi}.{$mi}" => [
+                                sprintf('Modelo %d: quantidade deve ser > 0 na faixa %d.', $mi + 1, $fi + 1),
+                            ],
+                        ]);
+                    }
+                }
+            }
+
+            $out[] = $qs;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<int>  $quantidades
+     * @return list<int>
+     */
+    public static function reconciliarLinhaQuantidades(array $quantidades, int $faixaTotal): array
+    {
+        $total = max(0, $faixaTotal);
+        $n = count($quantidades);
+        if ($n === 0) {
+            return [];
+        }
+        if ($n === 1) {
+            return [$total];
+        }
+
+        $qs = array_map(static fn ($q) => max(0, (int) $q), $quantidades);
+        $sumEditaveis = array_sum(array_slice($qs, 0, $n - 1));
+        $qs[$n - 1] = max(0, $total - $sumEditaveis);
+
+        return $qs;
+    }
+
+    /**
+     * % de referência (1ª faixa Q>0) — compatibilidade legada / PED.
+     *
+     * @param  list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>  $composicao
+     * @param  list<array{quantidade?: int|float|string|null}>  $faixas
+     * @param  list<list<int>>  $matriz
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
+     */
+    public static function syncPercentualReferencia(array $composicao, array $faixas, array $matriz): array
+    {
+        $n = count($composicao);
+        if ($n === 0) {
+            return $composicao;
+        }
+
+        foreach ($faixas as $fi => $faixa) {
+            $total = max(0, (int) floor((float) ($faixa['quantidade'] ?? 0)));
+            if ($total <= 0) {
+                continue;
+            }
+            $row = $matriz[$fi] ?? null;
+            if (! is_array($row) || count($row) !== $n) {
+                continue;
+            }
+
+            $pcts = self::percentuaisFromQuantidades($row, $total);
+            $out = [];
+            foreach ($composicao as $i => $m) {
+                $out[] = array_merge($m, ['percentual' => $pcts[$i] ?? $m['percentual']]);
+            }
+
+            return $out;
+        }
+
+        return $composicao;
+    }
+
+    /**
+     * @param  list<int>  $quantidades
+     * @return list<float>
+     */
+    public static function percentuaisFromQuantidades(array $quantidades, int $faixaTotal): array
+    {
+        $total = max(0, $faixaTotal);
+        $n = count($quantidades);
+        if ($n === 0) {
+            return [];
+        }
+        if ($n === 1) {
+            return [100.0];
+        }
+
+        $pcts = [];
+        $acc = 0.0;
+        for ($i = 0; $i < $n; $i++) {
+            if ($i === $n - 1) {
+                $pcts[] = round(100.0 - $acc, 4);
+            } else {
+                $q = max(0, (int) $quantidades[$i]);
+                $pct = $total > 0 ? round($q / $total * 100, 4) : 0.0;
+                $pcts[] = $pct;
+                $acc += $pct;
+            }
+        }
+
+        return $pcts;
+    }
+
+    /**
+     * Quantidades alocadas para uma faixa — usa matriz quando presente.
+     *
+     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null}>  $composicao
+     * @param  list<list<int>>|null  $matriz
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, quantidade: int}>
+     */
+    public static function alocarQuantidadesFaixa(
+        int $quantidadeTotal,
+        array $composicao,
+        ?array $matriz = null,
+        ?int $faixaIdx = null,
+    ): array {
+        if ($matriz !== null && $faixaIdx !== null && isset($matriz[$faixaIdx])) {
+            $row = $matriz[$faixaIdx];
+            $n = count($composicao);
+            if (is_array($row) && count($row) === $n) {
+                $qs = self::reconciliarLinhaQuantidades($row, $quantidadeTotal);
+                $out = [];
+                foreach (array_values($composicao) as $i => $r) {
+                    $out[] = [
+                        'ordem' => (int) ($r['ordem'] ?? $i + 1),
+                        'nome' => trim((string) ($r['nome'] ?? '')),
+                        'percentual' => round((float) ($r['percentual'] ?? 0), 4),
+                        'valor_arte' => round(max(0.0, (float) ($r['valor_arte'] ?? 0)), 2),
+                        'arte_url' => ArteModeloUrl::normalize($r['arte_url'] ?? null),
+                        'quantidade' => max(0, (int) ($qs[$i] ?? 0)),
+                    ];
+                }
+
+                return $out;
+            }
+        }
+
+        return self::alocarQuantidades($quantidadeTotal, $composicao);
     }
 }

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
-  alocarQuantidadePorModelo,
-  escolherFaixaAncoraIdx,
+  matrizQuantidadesModelos,
   somaValorArteModelos,
   type FaixaForm,
   type ModeloComposicaoForm,
@@ -12,12 +11,13 @@ import { NumericInput } from './NumericInput';
 type Props = {
   modelos: ModeloComposicaoForm[];
   faixas: FaixaForm[];
+  quantidades: number[][];
   canWrite: boolean;
   onNomeChange: (index: number, nome: string) => void;
   onValorArteChange: (index: number, valorArte: number) => void;
   onArteUrlChange: (index: number, arteUrl: string | null) => void;
   onQuantidadeChange: (faixaIdx: number, modeloIdx: number, qtd: number) => void;
-  /** Equal-split canônico (preserva nomes / valor_arte / arte_url). */
+  /** Equal-split em cada faixa (colunas independentes). */
   onEqualizar?: () => void;
 };
 
@@ -29,20 +29,21 @@ function formatMoney(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-type FaixaAloc = {
+type FaixaCol = {
   idx: number;
   quantidade: number;
-  alocados: Array<ModeloComposicaoForm & { quantidade: number }>;
+  qs: number[];
+  ok: boolean;
 };
 
 /**
- * Editor da composição operacional: nome + arte visual + valor + quantidade.
- * Rateio único (%) — edição em unidades na faixa âncora; demais faixas são prévia.
- * Último modelo recebe o restante automaticamente.
+ * Editor da composição operacional: nome + arte visual + valor + quantidade por faixa.
+ * Cada coluna (faixa) é independente; o último modelo recebe o restante da própria faixa.
  */
 export function ModelosComposicaoEditor({
   modelos,
   faixas,
+  quantidades,
   canWrite,
   onNomeChange,
   onValorArteChange,
@@ -50,128 +51,55 @@ export function ModelosComposicaoEditor({
   onQuantidadeChange,
   onEqualizar,
 }: Props) {
-  const faixasOk = useMemo(
+  const matriz = useMemo(
+    () => matrizQuantidadesModelos(faixas, modelos, quantidades),
+    [faixas, modelos, quantidades],
+  );
+
+  const faixasOk: FaixaCol[] = useMemo(
     () =>
       faixas
-        .map((f, i) => ({ ...f, idx: i }))
-        .filter((f) => f.quantidade > 0),
-    [faixas],
+        .map((f, idx) => ({ ...f, idx }))
+        .filter((f) => f.quantidade > 0)
+        .map((fx) => {
+          const target = Math.floor(fx.quantidade) || 0;
+          const qs = matriz[fx.idx] ?? [];
+          const soma = qs.reduce((s, q) => s + q, 0);
+          const ok = soma === target && qs.every((q) => q > 0);
+          return { idx: fx.idx, quantidade: fx.quantidade, qs, ok };
+        }),
+    [faixas, matriz],
   );
-
-  const alocPorFaixa: FaixaAloc[] = useMemo(
-    () =>
-      faixasOk.map((fx) => ({
-        idx: fx.idx,
-        quantidade: fx.quantidade,
-        alocados: alocarQuantidadePorModelo(fx.quantidade, modelos),
-      })),
-    [faixasOk, modelos],
-  );
-
-  const defaultAncora = useMemo(() => escolherFaixaAncoraIdx(faixas), [faixas]);
-  const [ancoraIdx, setAncoraIdx] = useState(defaultAncora);
-
-  useEffect(() => {
-    if (alocPorFaixa.length === 0) {
-      setAncoraIdx(-1);
-      return;
-    }
-    const aindaValida = alocPorFaixa.some((fx) => fx.idx === ancoraIdx);
-    if (!aindaValida) {
-      setAncoraIdx(defaultAncora);
-    }
-  }, [alocPorFaixa, ancoraIdx, defaultAncora]);
 
   const singleModel = modelos.length === 1;
   const somaArtes = somaValorArteModelos(modelos);
-  const multiFaixa = alocPorFaixa.length > 1;
-  const ancora =
-    alocPorFaixa.find((fx) => fx.idx === ancoraIdx) ?? alocPorFaixa[0] ?? null;
-
-  const ancoraStatus = useMemo(() => {
-    if (!ancora) return null;
-    const target = Math.floor(ancora.quantidade) || 0;
-    const soma = ancora.alocados.reduce((s, r) => s + r.quantidade, 0);
-    const lastQtd =
-      ancora.alocados.length > 0
-        ? ancora.alocados[ancora.alocados.length - 1].quantidade
-        : 0;
-    const allPositive = ancora.alocados.every((r) => r.quantidade > 0);
-    const ok = soma === target && allPositive;
-    return { target, soma, lastQtd, allPositive, ok };
-  }, [ancora]);
+  const allOk = faixasOk.length === 0 || faixasOk.every((fx) => fx.ok);
 
   return (
     <div className="orc-modelos-composicao-editor">
-      {canWrite && alocPorFaixa.length > 0 && !singleModel ? (
+      {canWrite && faixasOk.length > 0 && !singleModel && onEqualizar ? (
         <div className="orc-modelos-editor-toolbar" role="toolbar" aria-label="Composição dos modelos">
-          {multiFaixa ? (
-            <div className="orc-modelos-ancora-group">
-              <span className="orc-modelos-ancora-label">Editar pela faixa</span>
-              <div className="orc-modelos-ancora-btns">
-                {alocPorFaixa.map((fx) => {
-                  const active = fx.idx === (ancora?.idx ?? -1);
-                  return (
-                    <button
-                      key={fx.idx}
-                      type="button"
-                      className={`btn btn-sm${active ? ' btn-primary' : ' btn-secondary'}`}
-                      aria-pressed={active}
-                      onClick={() => setAncoraIdx(fx.idx)}
-                    >
-                      {formatQtd(fx.quantidade)} un.
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-          {onEqualizar ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={onEqualizar}
-              title="Divide o total em partes iguais entre as artes"
-            >
-              Igualar artes
-            </button>
-          ) : null}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onEqualizar}
+            title="Divide cada faixa em partes iguais entre as artes"
+          >
+            Igualar artes
+          </button>
         </div>
       ) : null}
 
-      {ancoraStatus && !singleModel && alocPorFaixa.length > 0 ? (
+      {faixasOk.length > 0 && !singleModel ? (
         <p
-          className={`orc-modelos-fechamento${ancoraStatus.ok ? ' is-ok' : ' is-invalid'}`}
+          className={`orc-modelos-fechamento${allOk ? ' is-ok' : ' is-invalid'}`}
           role="status"
         >
-          {ancoraStatus.ok ? (
-            <>
-              Fechado · {formatQtd(ancoraStatus.soma)} / {formatQtd(ancoraStatus.target)}
-              {modelos.length > 1 ? (
-                <>
-                  {' '}
-                  · último modelo com resto ({formatQtd(ancoraStatus.lastQtd)})
-                </>
-              ) : null}
-            </>
-          ) : !ancoraStatus.allPositive ? (
-            <>
-              Ajuste as quantidades · cada arte precisa de quantidade &gt; 0
-              {ancoraStatus.lastQtd <= 0
-                ? ' (o último modelo ficou sem resto — reduza as demais)'
-                : ''}
-            </>
-          ) : (
-            <>
-              Soma {formatQtd(ancoraStatus.soma)} / {formatQtd(ancoraStatus.target)}
-            </>
-          )}
-          {multiFaixa ? (
-            <span className="orc-modelos-fechamento-note">
-              {' '}
-              · demais faixas espelham o mesmo rateio
-            </span>
-          ) : null}
+          {allOk
+            ? faixasOk.length === 1
+              ? `Fechado · ${formatQtd(faixasOk[0].qs.reduce((s, q) => s + q, 0))} / ${formatQtd(faixasOk[0].quantidade)} · último modelo com resto`
+              : 'Todas as faixas fechadas · cada coluna é independente'
+            : 'Ajuste as quantidades nas faixas em aberto (cada coluna fecha sozinha)'}
         </p>
       ) : null}
 
@@ -190,34 +118,20 @@ export function ModelosComposicaoEditor({
               >
                 Vlr. Arte
               </th>
-              {alocPorFaixa.length === 0 ? (
+              {faixasOk.length === 0 ? (
                 <th className="orc-modelo-qtd-col">Quantidade</th>
               ) : (
-                alocPorFaixa.map((fx) => {
-                  const isAncora = fx.idx === (ancora?.idx ?? -1);
-                  const title = multiFaixa
-                    ? isAncora
-                      ? 'Faixa âncora — edite as quantidades nesta coluna'
-                      : 'Prévia do mesmo rateio (somente leitura)'
-                    : 'Total desta faixa';
-                  return (
-                    <th
-                      key={fx.idx}
-                      className={`orc-modelo-qtd-col${isAncora ? ' is-active' : ' is-preview'}`}
-                      title={title}
-                    >
-                      {alocPorFaixa.length === 1
-                        ? 'Quantidade'
-                        : `${formatQtd(fx.quantidade)} un.`}
-                      {multiFaixa && isAncora ? (
-                        <span className="orc-modelo-qtd-col-tag"> editar</span>
-                      ) : null}
-                      {multiFaixa && !isAncora ? (
-                        <span className="orc-modelo-qtd-col-tag"> prévia</span>
-                      ) : null}
-                    </th>
-                  );
-                })
+                faixasOk.map((fx) => (
+                  <th
+                    key={fx.idx}
+                    className={`orc-modelo-qtd-col${fx.ok ? '' : ' is-open'}`}
+                    title="Quantidade desta faixa — independente das demais colunas"
+                  >
+                    {faixasOk.length === 1
+                      ? 'Quantidade'
+                      : `${formatQtd(fx.quantidade)} un.`}
+                  </th>
+                ))
               )}
             </tr>
           </thead>
@@ -249,7 +163,7 @@ export function ModelosComposicaoEditor({
                       aria-label={`Nome do modelo ${mi + 1}`}
                     />
                     {isRestoRow ? (
-                      <span className="orc-modelo-resto-hint">Recebe o restante</span>
+                      <span className="orc-modelo-resto-hint">Recebe o restante desta faixa</span>
                     ) : null}
                   </td>
                   <td className="orc-modelo-arte-col">
@@ -266,33 +180,25 @@ export function ModelosComposicaoEditor({
                       aria-label={`Vlr. Arte do modelo ${mi + 1}`}
                     />
                   </td>
-                  {alocPorFaixa.length === 0 ? (
+                  {faixasOk.length === 0 ? (
                     <td className="orc-modelo-qtd-col">
                       <span className="orc-modelo-qtd-placeholder">—</span>
                     </td>
                   ) : (
-                    alocPorFaixa.map((fx) => {
-                      const qtd = fx.alocados[mi]?.quantidade ?? 0;
+                    faixasOk.map((fx) => {
+                      const qtd = fx.qs[mi] ?? 0;
                       const invalid = qtd <= 0;
-                      const isAncora = fx.idx === (ancora?.idx ?? -1);
-                      const editable =
-                        canWrite && !singleModel && isAncora && !isRestoRow;
+                      const editable = canWrite && !singleModel && !isRestoRow;
 
-                      if (!isAncora || singleModel || isRestoRow) {
+                      if (singleModel || isRestoRow) {
                         return (
                           <td
                             key={fx.idx}
-                            className={`orc-modelo-qtd-col${isAncora ? ' is-active' : ' is-preview'}${invalid ? ' is-invalid' : ''}`}
+                            className={`orc-modelo-qtd-col${invalid ? ' is-invalid' : ''}`}
                           >
                             <span
-                              className={`orc-modelo-qtd-readonly${invalid ? ' is-invalid' : ''}${isRestoRow && isAncora ? ' is-resto' : ''}`}
-                              title={
-                                isRestoRow
-                                  ? 'Calculado automaticamente para fechar o total da faixa'
-                                  : multiFaixa && !isAncora
-                                    ? 'Prévia do rateio definido na faixa âncora'
-                                    : undefined
-                              }
+                              className={`orc-modelo-qtd-readonly${invalid ? ' is-invalid' : ''}${isRestoRow ? ' is-resto' : ''}`}
+                              title="Calculado automaticamente para fechar o total desta faixa"
                             >
                               {formatQtd(qtd)}
                             </span>
@@ -301,7 +207,7 @@ export function ModelosComposicaoEditor({
                       }
 
                       return (
-                        <td key={fx.idx} className="orc-modelo-qtd-col is-active">
+                        <td key={fx.idx} className="orc-modelo-qtd-col">
                           <NumericInput
                             className={`orc-modelo-qtd-input${invalid ? ' is-invalid' : ''}`}
                             integer
@@ -326,31 +232,26 @@ export function ModelosComposicaoEditor({
           <tfoot>
             <tr className="orc-modelos-editor-total">
               <td colSpan={3}>
-                {alocPorFaixa.length > 0 ? 'Totais' : 'Total artes'}
+                {faixasOk.length > 0 ? 'Totais' : 'Total artes'}
               </td>
               <td className="orc-modelo-arte-col orc-modelos-total-cell">
                 <span className="orc-modelos-total-val">{formatMoney(somaArtes)}</span>
               </td>
-              {alocPorFaixa.length === 0 ? (
+              {faixasOk.length === 0 ? (
                 <td className="orc-modelo-qtd-col">—</td>
               ) : (
-                alocPorFaixa.map((fx) => {
-                  const soma = fx.alocados.reduce((s, r) => s + r.quantidade, 0);
+                faixasOk.map((fx) => {
+                  const soma = fx.qs.reduce((s, q) => s + q, 0);
                   const target = Math.floor(fx.quantidade) || 0;
-                  const ok = soma === target && fx.alocados.every((r) => r.quantidade > 0);
-                  const isAncora = fx.idx === (ancora?.idx ?? -1);
-                  const resto =
-                    fx.alocados.length > 1
-                      ? fx.alocados[fx.alocados.length - 1].quantidade
-                      : 0;
+                  const resto = fx.qs.length > 1 ? fx.qs[fx.qs.length - 1] : 0;
                   return (
                     <td
                       key={fx.idx}
-                      className={`orc-modelo-qtd-col orc-modelos-total-cell${isAncora ? ' is-active' : ' is-preview'}${ok ? ' is-ok' : ' is-invalid'}`}
+                      className={`orc-modelo-qtd-col orc-modelos-total-cell${fx.ok ? ' is-ok' : ' is-invalid'}`}
                     >
                       <span className="orc-modelos-total-val">{formatQtd(soma)}</span>
                       <span className="orc-modelos-total-ref"> / {formatQtd(target)}</span>
-                      {isAncora && !singleModel ? (
+                      {!singleModel ? (
                         <span className="orc-modelos-total-resto">
                           resto {formatQtd(resto)}
                         </span>

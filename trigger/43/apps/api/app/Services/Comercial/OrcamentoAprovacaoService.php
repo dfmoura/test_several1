@@ -1084,6 +1084,7 @@ class OrcamentoAprovacaoService
             'faca_tamanho_raw' => $input['faca_tamanho_raw'] ?? null,
             'modelos' => isset($input['modelos']) ? (int) $input['modelos'] : null,
             'modelos_composicao' => $this->modelosComposicaoPublica($input, $token),
+            'modelos_composicao_quantidades' => $this->modelosComposicaoQuantidadesPublica($input),
             'tipo_servico' => $input['tipo_servico'] ?? null,
             'descricao_servico' => $input['descricao_servico'] ?? null,
             'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
@@ -1196,6 +1197,30 @@ class OrcamentoAprovacaoService
                 'valor_arte' => round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2),
                 'arte_url' => $artes->dtoArteUrl($arteRef, $token),
             ];
+        }
+
+        return $out === [] ? null : $out;
+    }
+
+    /**
+     * Matriz de quantidades por faixa (proposta / espelho comercial).
+     *
+     * @param  array<string, mixed>  $input
+     * @return list<list<int>>|null
+     */
+    private function modelosComposicaoQuantidadesPublica(array $input): ?array
+    {
+        $raw = $input['modelos_composicao_quantidades'] ?? null;
+        if (! is_array($raw) || $raw === []) {
+            return null;
+        }
+
+        $out = [];
+        foreach (array_values($raw) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $out[] = array_map(static fn ($q) => max(0, (int) floor((float) $q)), array_values($row));
         }
 
         return $out === [] ? null : $out;
