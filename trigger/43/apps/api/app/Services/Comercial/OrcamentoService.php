@@ -59,7 +59,8 @@ class OrcamentoService
     {
         $data = $this->ensurePayloadFacas($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
-        $doc = $this->precificarDocumento($empresa, $parceiro, $data);
+        $transportador = $this->resolveTransportadorOpcional($empresa, $data);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data, null, $transportador);
 
         $out = $doc['flat_result'];
 
@@ -125,7 +126,8 @@ class OrcamentoService
         $data = $this->ensurePayloadFacas($data);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
-        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor);
+        $transportador = $this->resolveTransportadorOpcional($empresa, $data);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor, $transportador);
         $input = $doc['flat_input'];
         $result = $doc['flat_result'];
 
@@ -187,7 +189,8 @@ class OrcamentoService
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
-        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor);
+        $transportador = $this->resolveTransportadorOpcional($empresa, $data);
+        $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor, $transportador);
         $input = $doc['flat_input'];
         $result = $doc['flat_result'];
 
@@ -317,6 +320,7 @@ class OrcamentoService
         Parceiro $parceiro,
         array $data,
         ?Parceiro $vendedor = null,
+        ?Parceiro $transportador = null,
     ): array {
         $expanded = OrcamentoItens::expandPayload($data);
         $header = $expanded['header'];
@@ -327,10 +331,10 @@ class OrcamentoService
             // Modelos/facas: ensure fica em buildMotorInput / ensurePayloadFacas (evita
             // equal-split com nome "" ser revalidado e 422 em ORCs/testes legados).
             [$input, $bruto] = $this->precificar($empresa, $parceiro, $jobData);
-            $result = $this->enrichResult($bruto, $jobData, $parceiro, $empresa);
+            $result = $this->enrichResult($bruto, $jobData, $parceiro, $empresa, $transportador);
             $jobs[] = [
                 'rotulo' => $jobSpec['rotulo'],
-                'input' => $this->persistableInput($input, $jobData, $vendedor),
+                'input' => $this->persistableInput($input, $jobData, $vendedor, $transportador),
                 'result' => $result,
             ];
         }
@@ -342,6 +346,46 @@ class OrcamentoService
             'flat_result' => $jobs[0]['result'],
             'n_itens' => count($jobs),
         ];
+    }
+
+    /**
+     * Transportadora opcional no ORC (só ENTREGA_TERCEIROS). NF exige na emissão.
+     */
+    private function resolveTransportadorOpcional(Empresa $empresa, array $data): ?Parceiro
+    {
+        $modo = $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null);
+        if ($modo !== OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS) {
+            return null;
+        }
+
+        $raw = $data['transportador_id'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        $id = (int) $raw;
+        if ($id < 1) {
+            return null;
+        }
+
+        $parceiro = Parceiro::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($id)
+            ->first();
+
+        if ($parceiro === null) {
+            throw ValidationException::withMessages([
+                'transportador_id' => ['Transportador inválido para a empresa.'],
+            ]);
+        }
+
+        if (! $parceiro->papel_transportadora) {
+            throw ValidationException::withMessages([
+                'transportador_id' => ['Parceiro deve ter classificação de transportadora.'],
+            ]);
+        }
+
+        return $parceiro;
     }
 
     private function resolveParceiro(Empresa $empresa, int $parceiroId): Parceiro
@@ -485,11 +529,16 @@ class OrcamentoService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function persistableInput(array $input, array $data, ?Parceiro $vendedor = null): array
+    private function persistableInput(array $input, array $data, ?Parceiro $vendedor = null, ?Parceiro $transportador = null): array
     {
         unset($input['matriz_ja_cobrada']);
 
         $modo = $this->freteEstimado->normalizarModo($data['modo_entrega'] ?? null);
+        $transporte = $this->freteEstimado->snapshotTransporteTerceiros(
+            $modo,
+            $data['mod_frete'] ?? null,
+            $transportador,
+        );
 
         return array_merge($input, [
             'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? 12),
@@ -510,6 +559,9 @@ class OrcamentoService
                 $modo,
                 $data['valor_frete_manual'] ?? null,
             ),
+            'mod_frete' => $transporte['mod_frete'],
+            'transportador_id' => $transporte['transportador_id'],
+            'transportador_nome' => $transporte['transportador_nome'],
             'necessidade' => $this->necessidadeSnapshot($data['necessidade'] ?? $input['necessidade'] ?? null),
             'tipo_operacao' => TipoOperacaoSaida::fromInput(
                 $data['tipo_operacao'] ?? $input['tipo_operacao'] ?? $data['necessidade'] ?? $input['necessidade'] ?? null
@@ -645,8 +697,13 @@ class OrcamentoService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function enrichResult(array $result, array $data, Parceiro $parceiro, Empresa $empresa): array
-    {
+    private function enrichResult(
+        array $result,
+        array $data,
+        Parceiro $parceiro,
+        Empresa $empresa,
+        ?Parceiro $transportador = null,
+    ): array {
         $data = FacasComposicao::ensureInPayload($data);
 
         if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $result['tipo_operacao'] ?? null)) {
@@ -689,7 +746,7 @@ class OrcamentoService
         }
 
         return array_merge(
-            $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa),
+            $this->freteEstimado->aplicar($result, $data, $parceiro, $empresa, $transportador),
             $this->diasUteis->previsaoPreview($empresa, $data, $result),
         );
     }

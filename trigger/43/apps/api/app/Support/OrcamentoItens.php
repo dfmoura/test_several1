@@ -28,6 +28,8 @@ final class OrcamentoItens
         'vendedor_parceiro_id',
         'modo_entrega',
         'valor_frete_manual',
+        'mod_frete',
+        'transportador_id',
         'necessidade',
     ];
 

@@ -66,6 +66,8 @@ import {
   type TipoServicoSaida,
 } from '../lib/operacoesSaida';
 import {
+  MOD_FRETE_CIF,
+  MOD_FRETE_FOB,
   MODO_ENTREGA_PROPRIA,
   MODO_ENTREGA_TERCEIROS,
   MODO_RETIRAR,
@@ -165,6 +167,7 @@ export function OrcamentoFormPage() {
   const [catalog, setCatalog] = useState<OrcCatalogo | null>(null);
   const [parceiroSel, setParceiroSel] = useState<Parceiro | null>(null);
   const [vendedorSel, setVendedorSel] = useState<ParceiroVinculo | null>(null);
+  const [transportadorSel, setTransportadorSel] = useState<Parceiro | null>(null);
   const [parceiroModo, setParceiroModo] = useState<'cadastrado' | 'prospect'>('cadastrado');
   const [itens, setItens] = useState<OrcForm[]>(() => [defaultOrcForm(null)]);
   const [rotulos, setRotulos] = useState<(string | null)[]>([null]);
@@ -257,6 +260,21 @@ export function OrcamentoFormPage() {
           } else if (!cancelled) {
             setVendedorSel(orc.data.vendedor ?? null);
           }
+          if (
+            nextForm.modo_entrega === MODO_ENTREGA_TERCEIROS &&
+            nextForm.transportador_id !== ''
+          ) {
+            try {
+              const transp = await api.get<{ data: Parceiro }>(
+                `/parceiros/${nextForm.transportador_id}`,
+              );
+              if (!cancelled) setTransportadorSel(transp.data);
+            } catch {
+              if (!cancelled) setTransportadorSel(null);
+            }
+          } else if (!cancelled) {
+            setTransportadorSel(null);
+          }
         } else {
           setItens([defaultOrcForm(catRes.data)]);
           setRotulos([null]);
@@ -265,6 +283,7 @@ export function OrcamentoFormPage() {
           setFacaSel(null);
           setParceiroSel(null);
           setVendedorSel(null);
+          setTransportadorSel(null);
         }
       } catch (e) {
         if (!cancelled) {
@@ -1011,8 +1030,14 @@ export function OrcamentoFormPage() {
                       className={form.modo_entrega === MODO_RETIRAR ? 'active' : ''}
                       disabled={!canWrite}
                       onClick={() => {
-                        setField('modo_entrega', MODO_RETIRAR);
-                        setField('valor_frete_manual', '');
+                        setFormAll((prev) => ({
+                          ...prev,
+                          modo_entrega: MODO_RETIRAR,
+                          valor_frete_manual: '',
+                          mod_frete: '',
+                          transportador_id: '',
+                        }));
+                        setTransportadorSel(null);
                       }}
                     >
                       Retirar
@@ -1021,7 +1046,15 @@ export function OrcamentoFormPage() {
                       type="button"
                       className={form.modo_entrega === MODO_ENTREGA_PROPRIA ? 'active' : ''}
                       disabled={!canWrite}
-                      onClick={() => setField('modo_entrega', MODO_ENTREGA_PROPRIA)}
+                      onClick={() => {
+                        setFormAll((prev) => ({
+                          ...prev,
+                          modo_entrega: MODO_ENTREGA_PROPRIA,
+                          mod_frete: '',
+                          transportador_id: '',
+                        }));
+                        setTransportadorSel(null);
+                      }}
                     >
                       Própria
                     </button>
@@ -1029,7 +1062,13 @@ export function OrcamentoFormPage() {
                       type="button"
                       className={form.modo_entrega === MODO_ENTREGA_TERCEIROS ? 'active' : ''}
                       disabled={!canWrite}
-                      onClick={() => setField('modo_entrega', MODO_ENTREGA_TERCEIROS)}
+                      onClick={() => {
+                        setFormAll((prev) => ({
+                          ...prev,
+                          modo_entrega: MODO_ENTREGA_TERCEIROS,
+                          mod_frete: prev.mod_frete || MOD_FRETE_CIF,
+                        }));
+                      }}
                     >
                       Terceiros
                     </button>
@@ -1051,6 +1090,54 @@ export function OrcamentoFormPage() {
                       placeholder="A definir"
                     />
                   </div>
+                ) : null}
+                {form.modo_entrega === MODO_ENTREGA_TERCEIROS ? (
+                  <div className="form-group">
+                    <label>Modalidade</label>
+                    <div
+                      className="orc-modo-tabs orc-modo-tabs-entrega"
+                      role="radiogroup"
+                      aria-label="Modalidade de frete"
+                      style={{ margin: 0 }}
+                    >
+                      <button
+                        type="button"
+                        className={
+                          (form.mod_frete || MOD_FRETE_CIF) === MOD_FRETE_CIF ? 'active' : ''
+                        }
+                        disabled={!canWrite}
+                        onClick={() => setField('mod_frete', MOD_FRETE_CIF)}
+                      >
+                        CIF
+                      </button>
+                      <button
+                        type="button"
+                        className={form.mod_frete === MOD_FRETE_FOB ? 'active' : ''}
+                        disabled={!canWrite}
+                        onClick={() => setField('mod_frete', MOD_FRETE_FOB)}
+                      >
+                        FOB
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {form.modo_entrega === MODO_ENTREGA_TERCEIROS ? (
+                  <ParceiroCombobox
+                    className="span-full"
+                    label="Transportadora (opc.)"
+                    papel="transportadora"
+                    value={transportadorSel}
+                    onChange={(p) => {
+                      setTransportadorSel(p);
+                      setFormAll((prev) => ({
+                        ...prev,
+                        transportador_id: p ? p.id : '',
+                      }));
+                    }}
+                    disabled={!canWrite}
+                    placeholder="Buscar transportadora…"
+                    emptyMessage="Nenhuma transportadora. Cadastre o parceiro com papel transportadora."
+                  />
                 ) : null}
                 <div className="form-group">
                   <label>Prazo (d.úteis)</label>

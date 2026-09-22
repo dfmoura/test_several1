@@ -65,6 +65,11 @@ export function PedidoDetailPage() {
           if (prev.data.transporte?.mod_frete) {
             setModFrete(prev.data.transporte.mod_frete);
           }
+          if (prev.data.transporte?.transportador) {
+            setTransportador(prev.data.transporte.transportador as Parceiro);
+          } else {
+            setTransportador(null);
+          }
         } catch {
           setPreview(null);
         }

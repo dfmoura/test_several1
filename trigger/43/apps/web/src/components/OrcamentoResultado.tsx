@@ -12,10 +12,10 @@ import {
   type ParametroAjusteId,
 } from '../lib/orcamentoParametrosAjuste';
 import {
+  entregaComercialTexto,
   formatValorFrete,
   freteMotivoLabel,
   modoComFrete,
-  modoEntregaLabel,
   totalPropostaFaixa,
 } from '../lib/orcamentoFrete';
 import {
@@ -1198,7 +1198,12 @@ export function OrcamentoResultado({
                 {validadeDias != null ? ` · validade ${validadeDias} dias` : ''}
                 {toleranciaQtdPct != null ? ` · ±${toleranciaQtdPct}%` : ''}
                 {calculo.frete
-                  ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                  ? ` · ${entregaComercialTexto({
+                      modo: calculo.frete.modo,
+                      valorFrete: calculo.frete.valor_informado,
+                      modFrete: calculo.frete.mod_frete,
+                      transportadorNome: calculo.frete.transportador_nome,
+                    })}${
                       calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
                     }`
                   : ''}
@@ -1241,7 +1246,12 @@ export function OrcamentoResultado({
                   ? ` · ±${toleranciaQtdPct}%`
                   : ''}
                 {calculo.frete
-                  ? ` · ${modoEntregaLabel(calculo.frete.modo)}${
+                  ? ` · ${entregaComercialTexto({
+                      modo: calculo.frete.modo,
+                      valorFrete: calculo.frete.valor_informado,
+                      modFrete: calculo.frete.mod_frete,
+                      transportadorNome: calculo.frete.transportador_nome,
+                    })}${
                       calculo.frete.destino_label ? ` (${calculo.frete.destino_label})` : ''
                     }`
                   : ''}
@@ -1355,7 +1365,12 @@ export function OrcamentoResultado({
             {calculo.frete ? (
               <p className="orc-result-meta" style={{ marginTop: '0.65rem' }}>
                 {[
-                  modoEntregaLabel(calculo.frete.modo),
+                  entregaComercialTexto({
+                    modo: calculo.frete.modo,
+                    valorFrete: calculo.frete.valor_informado,
+                    modFrete: calculo.frete.mod_frete,
+                    transportadorNome: calculo.frete.transportador_nome,
+                  }),
                   calculo.frete.destino_label || null,
                   freteMotivoLabel(calculo.frete.motivo),
                 ]

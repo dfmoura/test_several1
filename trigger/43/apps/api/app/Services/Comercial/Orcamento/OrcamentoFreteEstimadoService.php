@@ -42,12 +42,24 @@ final class OrcamentoFreteEstimadoService
         self::MODO_ENTREGAR,
     ];
 
+    /** Focus: CIF (emitente) — default em ENTREGA_TERCEIROS. */
+    public const MOD_FRETE_CIF = '0';
+
+    /** Focus: FOB (destinatário). */
+    public const MOD_FRETE_FOB = '1';
+
+    /** @var list<string> */
+    public const MODS_FRETE_TERCEIROS = [
+        self::MOD_FRETE_CIF,
+        self::MOD_FRETE_FOB,
+    ];
+
     /**
      * @param  array<string, mixed>  $result  saída do motor (+ faca nova)
      * @param  array<string, mixed>  $data    payload do wizard
      * @return array<string, mixed>
      */
-    public function aplicar(array $result, array $data, Parceiro $parceiro, Empresa $empresa): array
+    public function aplicar(array $result, array $data, Parceiro $parceiro, Empresa $empresa, ?Parceiro $transportador = null): array
     {
         $modo = $this->normalizarModo($data['modo_entrega'] ?? null);
         $destino = $this->resolverDestino($parceiro, $empresa);
@@ -55,6 +67,11 @@ final class OrcamentoFreteEstimadoService
         $valor = $comFrete
             ? $this->moneyCeilOrNull($data['valor_frete_manual'] ?? null)
             : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_MONEY);
+        $transporte = $this->snapshotTransporteTerceiros(
+            $modo,
+            $data['mod_frete'] ?? null,
+            $transportador,
+        );
 
         $frete = [
             'modo' => $modo,
@@ -66,6 +83,9 @@ final class OrcamentoFreteEstimadoService
             'motivo' => $modo === self::MODO_RETIRAR
                 ? 'retirar'
                 : ($valor === null ? 'a_definir' : 'manual'),
+            'mod_frete' => $transporte['mod_frete'],
+            'transportador_id' => $transporte['transportador_id'],
+            'transportador_nome' => $transporte['transportador_nome'],
         ];
 
         $faixas = is_array($result['faixas'] ?? null) ? $result['faixas'] : [];
@@ -80,6 +100,49 @@ final class OrcamentoFreteEstimadoService
         $result['frete'] = $frete;
 
         return $result;
+    }
+
+    /**
+     * CIF/FOB + PAR transportadora só em ENTREGA_TERCEIROS (opcional no ORC; NF exige depois).
+     *
+     * @return array{mod_frete: ?string, transportador_id: ?int, transportador_nome: ?string}
+     */
+    public function snapshotTransporteTerceiros(string $modo, mixed $modFrete, ?Parceiro $transportador): array
+    {
+        if ($modo !== self::MODO_ENTREGA_TERCEIROS) {
+            return [
+                'mod_frete' => null,
+                'transportador_id' => null,
+                'transportador_nome' => null,
+            ];
+        }
+
+        $mod = $this->normalizarModFreteTerceiros($modFrete);
+
+        return [
+            'mod_frete' => $mod,
+            'transportador_id' => $transportador?->id,
+            'transportador_nome' => $transportador !== null
+                ? (trim((string) $transportador->razao_social) ?: null)
+                : null,
+        ];
+    }
+
+    /** Default CIF quando terceiros; inválido → CIF. */
+    public function normalizarModFreteTerceiros(mixed $value): string
+    {
+        $s = trim((string) ($value ?? ''));
+
+        return in_array($s, self::MODS_FRETE_TERCEIROS, true) ? $s : self::MOD_FRETE_CIF;
+    }
+
+    public function modFreteLabel(?string $mod): ?string
+    {
+        return match ($mod) {
+            self::MOD_FRETE_CIF => 'CIF',
+            self::MOD_FRETE_FOB => 'FOB',
+            default => null,
+        };
     }
 
     public function normalizarModo(mixed $value): string

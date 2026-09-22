@@ -16,13 +16,14 @@ Norma: `docs/ADR_NFE_TRANSPORTE_SAIDA.md`.
 ## Espinha
 
 ```
-ORC modo_entrega → FAT (mod_frete + transportador_id) → FocusPayloadBuilder
+ORC modo_entrega (+ CIF/FOB + PAR em Terceiros) → FAT (mod_frete + transportador_id) → FocusPayloadBuilder
 volumes = PaEmbalagem.caixas · ENT só ecoa
 ```
 
 ## Faça
 
-- Defaults: `RETIRAR`→9 · `ENTREGA_PROPRIA`→0 sem PAR · `ENTREGA_TERCEIROS`→0/1 + PAR obrigatório.
+- Defaults: `RETIRAR`→9 · `ENTREGA_PROPRIA`→0 sem PAR · `ENTREGA_TERCEIROS`→ snapshot ORC ou 0/1 + PAR obrigatório na emissão.
+- Pré-preencher FAT com `mod_frete` / `transportador_id` do snapshot quando presentes.
 - Transportador = PAR `papel_transportadora` (mesmo da OC/Caixa DF-e).
 - Volumes só de embalagem PA (`quantidade` + `CAIXA`). Sem inventar peso/marca.
 
@@ -32,5 +33,6 @@ volumes = PaEmbalagem.caixas · ENT só ecoa
 - Hardcodar `modalidade_frete = 9` com modo própria/terceiros.
 - Inventar peso/CUB/CT-e nesta fatia.
 - Misturar `VOL:` de MP com volumes de PA.
+- Ignorar a escolha comercial do ORC sem override explícito no faturar.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_NFE_TRANSPORTE_SAIDA.md`.

@@ -196,4 +196,66 @@ class OrcamentoFreteEstimadoTest extends TestCase
         $res->assertOk();
         $this->assertArrayNotHasKey('frete', $res->json('data') ?? []);
     }
+
+    public function test_terceiros_persiste_cif_e_transportadora(): void
+    {
+        $transp = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-TRP01',
+            'razao_social' => 'TRANSPORTADORA SUL LTDA',
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+            'is_prospect' => false,
+        ]);
+
+        $create = $this->asComercial()->postJson('/api/v1/orcamentos', $this->payload([
+            'modo_entrega' => 'ENTREGA_TERCEIROS',
+            'valor_frete_manual' => 120,
+            'mod_frete' => '1',
+            'transportador_id' => $transp->id,
+        ]));
+        $create->assertCreated();
+        $this->assertSame('ENTREGA_TERCEIROS', $create->json('data.input_snapshot.modo_entrega'));
+        $this->assertSame('1', $create->json('data.input_snapshot.mod_frete'));
+        $this->assertSame($transp->id, $create->json('data.input_snapshot.transportador_id'));
+        $this->assertSame('TRANSPORTADORA SUL LTDA', $create->json('data.input_snapshot.transportador_nome'));
+        $this->assertSame('1', $create->json('data.result_snapshot.frete.mod_frete'));
+        $this->assertSame($transp->id, $create->json('data.result_snapshot.frete.transportador_id'));
+        $this->assertSame('120.00', $create->json('data.result_snapshot.frete.valor_informado'));
+    }
+
+    public function test_terceiros_sem_transportadora_fica_a_definir_e_default_cif(): void
+    {
+        $res = $this->asComercial()->postJson('/api/v1/orcamentos/calcular', $this->payload([
+            'modo_entrega' => 'ENTREGA_TERCEIROS',
+        ]));
+        $res->assertOk();
+        $this->assertSame('0', $res->json('data.frete.mod_frete'));
+        $this->assertNull($res->json('data.frete.transportador_id'));
+        $this->assertTrue($res->json('data.frete.a_definir'));
+    }
+
+    public function test_propria_limpa_mod_frete_e_transportadora(): void
+    {
+        $transp = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-TRP02',
+            'razao_social' => 'TRANS LIMPA LTDA',
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+            'is_prospect' => false,
+        ]);
+
+        $create = $this->asComercial()->postJson('/api/v1/orcamentos', $this->payload([
+            'modo_entrega' => 'ENTREGA_PROPRIA',
+            'mod_frete' => '1',
+            'transportador_id' => $transp->id,
+            'valor_frete_manual' => 50,
+        ]));
+        $create->assertCreated();
+        $this->assertNull($create->json('data.input_snapshot.mod_frete'));
+        $this->assertNull($create->json('data.input_snapshot.transportador_id'));
+        $this->assertNull($create->json('data.result_snapshot.frete.mod_frete'));
+        $this->assertSame('50.00', $create->json('data.input_snapshot.valor_frete_manual'));
+    }
 }

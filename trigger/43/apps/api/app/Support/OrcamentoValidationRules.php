@@ -271,6 +271,9 @@ final class OrcamentoValidationRules
                 Rule::in(['RETIRAR', 'ENTREGA_PROPRIA', 'ENTREGA_TERCEIROS', 'ENTREGAR']),
             ],
             'valor_frete_manual' => ['nullable', 'numeric', 'min:0'],
+            // CIF/FOB + PAR — só fazem sentido em ENTREGA_TERCEIROS (limpo no serviço).
+            'mod_frete' => ['nullable', 'string', Rule::in(['0', '1'])],
+            'transportador_id' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

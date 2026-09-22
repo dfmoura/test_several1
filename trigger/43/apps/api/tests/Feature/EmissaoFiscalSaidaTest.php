@@ -186,6 +186,9 @@ class EmissaoFiscalSaidaTest extends TestCase
                     'condicao_pagamento' => '28 DDL',
                     'forma_pagamento' => 'PIX',
                     'modo_entrega' => $overrides['modo_entrega'] ?? 'RETIRAR',
+                    'mod_frete' => $overrides['mod_frete'] ?? null,
+                    'transportador_id' => $overrides['transportador_id'] ?? null,
+                    'transportador_nome' => $overrides['transportador_nome'] ?? null,
                 ],
                 'faixa' => [
                     'quantidade' => 10000,
@@ -558,6 +561,40 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame('TRANSPORTADORA SUL LTDA', $payload['nome_transportador'] ?? null);
         $this->assertSame('11222333000181', $payload['cnpj_transportador'] ?? null);
         $this->assertSame('MG', $payload['uf_transportador'] ?? null);
+    }
+
+    public function test_terceiros_herda_transportador_e_fob_do_snapshot_orc(): void
+    {
+        $transp = Parceiro::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'PAR-TRN02',
+            'tipo_pessoa' => 'PJ',
+            'cnpj_cpf' => '22333444000192',
+            'razao_social' => 'TRANSPORTADORA NORTE LTDA',
+            'papel_transportadora' => true,
+            'situacao' => 'ATIVO',
+            'is_prospect' => false,
+            'municipio' => 'Uberlandia',
+            'uf' => 'MG',
+        ]);
+
+        $ped = $this->criarPedidoProduzido([
+            'modo_entrega' => 'ENTREGA_TERCEIROS',
+            'mod_frete' => '1',
+            'transportador_id' => $transp->id,
+            'transportador_nome' => 'TRANSPORTADORA NORTE LTDA',
+        ]);
+
+        $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/faturamento-preview");
+        $prev->assertOk()
+            ->assertJsonPath('data.transporte.mod_frete', '1')
+            ->assertJsonPath('data.transporte.transportador_id', $transp->id)
+            ->assertJsonPath('data.transporte.do_orcamento', true);
+
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar", []);
+        $ok->assertCreated()
+            ->assertJsonPath('data.mod_frete', '1')
+            ->assertJsonPath('data.transportador_id', $transp->id);
     }
 
     public function test_volumes_caixas_na_nfe_quando_embalagem_confirmada(): void

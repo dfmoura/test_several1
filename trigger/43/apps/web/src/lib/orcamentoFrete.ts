@@ -6,10 +6,16 @@ export const MODO_ENTREGA_TERCEIROS = 'ENTREGA_TERCEIROS';
 /** @deprecated Legado em snapshots — normalizado para ENTREGA_PROPRIA. */
 export const MODO_ENTREGAR = 'ENTREGAR';
 
+/** Modalidade Focus — só em ENTREGA_TERCEIROS (ADR_ORC_FRETE_ESTIMADO / ADR_NFE_TRANSPORTE_SAIDA). */
+export const MOD_FRETE_CIF = '0';
+export const MOD_FRETE_FOB = '1';
+
 export type ModoEntrega =
   | typeof MODO_RETIRAR
   | typeof MODO_ENTREGA_PROPRIA
   | typeof MODO_ENTREGA_TERCEIROS;
+
+export type ModFreteTerceiros = typeof MOD_FRETE_CIF | typeof MOD_FRETE_FOB;
 
 export const MODOS_COM_FRETE: readonly string[] = [
   MODO_ENTREGA_PROPRIA,
@@ -36,6 +42,22 @@ export function normalizarModoEntrega(modo: string | null | undefined): ModoEntr
   return MODO_RETIRAR;
 }
 
+/** CIF/FOB só em terceiros; fora disso limpa. Default CIF. */
+export function normalizarModFreteTerceiros(
+  modo: string | null | undefined,
+  modFrete: string | null | undefined,
+): ModFreteTerceiros | null {
+  if (normalizarModoEntrega(modo) !== MODO_ENTREGA_TERCEIROS) return null;
+  return String(modFrete ?? '') === MOD_FRETE_FOB ? MOD_FRETE_FOB : MOD_FRETE_CIF;
+}
+
+export function modFreteLabel(mod: string | null | undefined): string | null {
+  const m = String(mod ?? '');
+  if (m === MOD_FRETE_CIF) return 'CIF';
+  if (m === MOD_FRETE_FOB) return 'FOB';
+  return null;
+}
+
 export function modoComFrete(modo: string | null | undefined): boolean {
   return MODOS_COM_FRETE.includes(String(modo ?? '').toUpperCase());
 }
@@ -46,6 +68,46 @@ export function modoEntregaLabel(modo: string | null | undefined): string {
   if (m === MODO_ENTREGA_PROPRIA) return 'Entrega própria';
   if (m === MODO_ENTREGAR) return 'Entrega própria';
   return 'Retirar no local';
+}
+
+/**
+ * Frase única comercial (ORC / PED / fichas): modo · CIF/FOB · transportadora · frete R$.
+ * Frete nunca soma no total — só informação.
+ */
+export function entregaComercialTexto(opts: {
+  modo: string | null | undefined;
+  valorFrete?: string | number | null;
+  modFrete?: string | null;
+  transportadorNome?: string | null;
+}): string {
+  const modo = normalizarModoEntrega(opts.modo);
+  if (modo === MODO_RETIRAR) return 'Retirada no local';
+
+  const partes: string[] = [
+    modo === MODO_ENTREGA_TERCEIROS ? 'Entrega por terceiros' : 'Entrega própria',
+  ];
+
+  if (modo === MODO_ENTREGA_TERCEIROS) {
+    const modLabel = modFreteLabel(normalizarModFreteTerceiros(modo, opts.modFrete));
+    if (modLabel) partes.push(modLabel);
+    const transp = String(opts.transportadorNome ?? '').trim();
+    partes.push(transp !== '' ? transp : 'transportadora a definir');
+  }
+
+  if (!modoComFrete(modo)) {
+    return partes.join(' · ');
+  }
+
+  const raw = opts.valorFrete;
+  if (raw == null || raw === '' || !Number.isFinite(Number(raw))) {
+    partes.push('frete a definir');
+  } else if (Number(raw) <= 0) {
+    partes.push('sem cobrança de frete');
+  } else {
+    partes.push(`frete ${formatCurrency(raw)}`);
+  }
+
+  return partes.join(' · ');
 }
 
 export function freteMotivoLabel(motivo: string | null | undefined): string | null {

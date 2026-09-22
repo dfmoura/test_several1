@@ -36,7 +36,7 @@ import {
   type OrcOverrides,
 } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoServicoLabel } from '../lib/operacoesSaida';
-import { modoEntregaLabel } from '../lib/orcamentoFrete';
+import { entregaComercialTexto } from '../lib/orcamentoFrete';
 import { especFromSnapshot } from '../lib/orcamentoGuiaProducao';
 import { pedStatusLabel } from '../lib/producaoUi';
 import { SaidaEtiquetaBadge } from '../components/SaidaEtiquetaBadge';
@@ -647,9 +647,20 @@ export function OrcamentoDetailPage() {
                 ) : null}
               </strong>
               <span className="orc-detail-parceiro-entrega">
-                {orc.result_snapshot?.frete
-                  ? modoEntregaLabel(orc.result_snapshot.frete.modo)
-                  : modoEntregaLabel(String(input.modo_entrega ?? ''))}
+                {entregaComercialTexto({
+                  modo:
+                    orc.result_snapshot?.frete?.modo ??
+                    String(input.modo_entrega ?? ''),
+                  valorFrete:
+                    orc.result_snapshot?.frete?.valor_informado ??
+                    (input.valor_frete_manual as string | number | null | undefined),
+                  modFrete:
+                    orc.result_snapshot?.frete?.mod_frete ??
+                    (input.mod_frete as string | null | undefined),
+                  transportadorNome:
+                    orc.result_snapshot?.frete?.transportador_nome ??
+                    (input.transportador_nome as string | null | undefined),
+                })}
               </span>
             </div>
             <div className="orc-detail-status">

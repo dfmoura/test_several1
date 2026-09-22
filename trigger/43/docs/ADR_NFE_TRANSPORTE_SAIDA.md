@@ -1,7 +1,7 @@
 # ADR — Transporte e volumes na NF-e de saída (FAT → Focus)
 
 **Status:** Aceito  
-**Data:** 2026-09-18  
+**Data:** 2026-09-18 · emenda 2026-09-22 (herança CIF/FOB + transportadora do ORC)  
 **Contexto 43:** emissão Focus  
 **Relacionada:** `ADR_EMISSAO_NFE_NFSE.md` · `ADR_ORC_FRETE_ESTIMADO.md` · `ADR_ENTREGA_EXPEDICAO.md` · `ADR_PA_EMBALAGEM_BOBINA_CAIXA.md` · `ADR_OC_RASCUNHO_ENVIO.md` (espelho CIF/FOB + PAR)
 
@@ -14,8 +14,9 @@ A NF-e de saída já envia `volumes` parciais (caixas PA) e fixava `modalidade_f
 ## Decisão
 
 ```
-ORC modo_entrega (snapshot PED)
-  → FAT: mod_frete + transportador_id (PAR papel_transportadora)
+ORC modo_entrega (+ mod_frete / transportador_id em Terceiros)
+  → PED snapshot
+  → FAT: mod_frete + transportador_id (confirma / edita; default = snapshot ORC)
   → FocusPayloadBuilder (NFE)
        ├─ modalidade_frete (Focus 0|1|9)
        ├─ transporta* quando terceiros
@@ -34,7 +35,9 @@ ORC modo_entrega (snapshot PED)
 |----------------|---------------------|---------------|
 | `RETIRAR` | `9` | omitir |
 | `ENTREGA_PROPRIA` / legado `ENTREGAR` | `0` | omitir (frota) |
-| `ENTREGA_TERCEIROS` | `0` (CIF); UI pode marcar `1` FOB | obrigatório |
+| `ENTREGA_TERCEIROS` | snapshot `mod_frete` se presente; senão `0` (CIF); UI pode marcar `1` FOB | snapshot `transportador_id` se presente; senão obrigatório na UI do faturar |
+
+A condição comercial (CIF/FOB + transportadora) **nasce no ORC** quando o modo é Terceiros (`ADR_ORC_FRETE_ESTIMADO`). O FAT confirma ou ajusta — não inventa outro vocabulário.
 
 ### Volumes
 

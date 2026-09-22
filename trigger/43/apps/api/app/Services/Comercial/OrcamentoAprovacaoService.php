@@ -1103,8 +1103,8 @@ class OrcamentoAprovacaoService
     private function fretePublico(array $input, array $result, array $faixas): array
     {
         $snap = is_array($result['frete'] ?? null) ? $result['frete'] : [];
-        $modo = app(OrcamentoFreteEstimadoService::class)
-            ->normalizarModo($snap['modo'] ?? $input['modo_entrega'] ?? null);
+        $freteSvc = app(OrcamentoFreteEstimadoService::class);
+        $modo = $freteSvc->normalizarModo($snap['modo'] ?? $input['modo_entrega'] ?? null);
 
         if ($modo === OrcamentoFreteEstimadoService::MODO_RETIRAR) {
             return [
@@ -1114,13 +1114,26 @@ class OrcamentoAprovacaoService
             ];
         }
 
-        $rotulo = $modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS
-            ? 'Entrega por terceiros'
-            : 'Entrega própria';
+        $partes = [
+            $modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS
+                ? 'Entrega por terceiros'
+                : 'Entrega própria',
+        ];
+
+        if ($modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS) {
+            $modFrete = $snap['mod_frete'] ?? $input['mod_frete'] ?? null;
+            $modNorm = $freteSvc->normalizarModFreteTerceiros($modFrete);
+            $modLabel = $freteSvc->modFreteLabel($modNorm);
+            if ($modLabel !== null) {
+                $partes[] = $modLabel;
+            }
+            $nome = trim((string) ($snap['transportador_nome'] ?? $input['transportador_nome'] ?? ''));
+            $partes[] = $nome !== '' ? $nome : 'transportadora a definir';
+        }
 
         $valor = null;
         foreach ($faixas as $fx) {
-            if ($fx['valor_frete'] !== null && $fx['valor_frete'] !== '') {
+            if (($fx['valor_frete'] ?? null) !== null && $fx['valor_frete'] !== '') {
                 $valor = $fx['valor_frete'];
                 break;
             }
@@ -1129,20 +1142,27 @@ class OrcamentoAprovacaoService
             $valor = $snap['valor_informado'];
         }
 
-        $texto = $rotulo.' — frete a definir';
         if ($valor !== null && is_numeric($valor)) {
             $n = (float) $valor;
             if ($n <= 0) {
-                $texto = $rotulo.' — sem cobrança de frete';
+                $partes[] = 'sem cobrança de frete';
             } else {
-                $texto = $rotulo.' — frete R$ '.number_format($n, 2, ',', '.');
+                $partes[] = 'frete R$ '.number_format($n, 2, ',', '.');
             }
+        } else {
+            $partes[] = 'frete a definir';
         }
 
         return [
             'modo' => $modo,
-            'texto' => $texto,
+            'texto' => implode(' · ', $partes),
             'somavel' => false,
+            'mod_frete' => $modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS
+                ? $freteSvc->normalizarModFreteTerceiros($snap['mod_frete'] ?? $input['mod_frete'] ?? null)
+                : null,
+            'transportador_nome' => $modo === OrcamentoFreteEstimadoService::MODO_ENTREGA_TERCEIROS
+                ? (trim((string) ($snap['transportador_nome'] ?? $input['transportador_nome'] ?? '')) ?: null)
+                : null,
         ];
     }
 

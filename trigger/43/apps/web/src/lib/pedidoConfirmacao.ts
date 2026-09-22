@@ -3,11 +3,9 @@
  * Usados no detalhe e na ficha operacional — sem guia de chão nem gordura.
  */
 import type { Pedido } from './api';
-import { formatCep, formatCurrency } from './format';
+import { formatCep } from './format';
 import {
-  MODO_ENTREGA_TERCEIROS,
-  MODO_RETIRAR,
-  modoComFrete,
+  entregaComercialTexto,
   normalizarModoEntrega,
 } from './orcamentoFrete';
 import { asPedidoSnap, snapInput } from './producaoFicha';
@@ -28,12 +26,6 @@ export function freteTextoDoPedido(pedido: Pedido): string | null {
       (typeof faixa.modo_entrega === 'string' ? faixa.modo_entrega : null),
   );
 
-  if (modo === MODO_RETIRAR) {
-    return 'Retirada no local';
-  }
-
-  const rotulo = modo === MODO_ENTREGA_TERCEIROS ? 'Entrega por terceiros' : 'Entrega própria';
-
   let valor: number | null = null;
   const fromFaixa = faixa.valor_frete;
   const fromInput = input.valor_frete_manual;
@@ -44,16 +36,12 @@ export function freteTextoDoPedido(pedido: Pedido): string | null {
     }
   }
 
-  if (!modoComFrete(modo)) {
-    return rotulo;
-  }
-  if (valor == null) {
-    return `${rotulo} — frete a definir`;
-  }
-  if (valor <= 0) {
-    return `${rotulo} — sem cobrança de frete`;
-  }
-  return `${rotulo} — frete ${formatCurrency(valor)}`;
+  return entregaComercialTexto({
+    modo,
+    valorFrete: valor,
+    modFrete: strSnap(input, 'mod_frete'),
+    transportadorNome: strSnap(input, 'transportador_nome'),
+  });
 }
 
 export function condicaoPagamentoDoPedido(pedido: Pedido): string | null {

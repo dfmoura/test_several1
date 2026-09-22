@@ -10,15 +10,10 @@ import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { formatoLabel } from './FacaShapeIcon';
-import {
-  MODO_ENTREGA_TERCEIROS,
-  MODO_RETIRAR,
-  normalizarModoEntrega,
-} from '../lib/orcamentoFrete';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
   formatEnderecoParceiro,
-  strSnap,
+  freteTextoDoPedido,
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { necessidadeLabel, opStatusLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
@@ -44,19 +39,6 @@ export type PedidoFichaSheetProps = {
   emitidoPor: string;
   emitidoEm: Date;
 };
-
-function modoEntregaOps(pedido: Pedido): string | null {
-  const input = snapInput(pedido);
-  const faixa = asPedidoSnap(pedido.snapshot).faixa ?? {};
-  const modo = normalizarModoEntrega(
-    strSnap(input, 'modo_entrega') ??
-      (typeof faixa.modo_entrega === 'string' ? faixa.modo_entrega : null),
-  );
-  if (!modo) return null;
-  if (modo === MODO_RETIRAR) return 'Retirada no local';
-  if (modo === MODO_ENTREGA_TERCEIROS) return 'Entrega por terceiros';
-  return 'Entrega própria';
-}
 
 function ordemDoItem(
   it: PedidoItem,
@@ -352,7 +334,7 @@ export function PedidoFichaSheet({
     .map((s) => s.trim())
     .filter(Boolean)
     .join(' · ');
-  const entregaOps = modoEntregaOps(p);
+  const entregaOps = freteTextoDoPedido(p);
   const orcCodigo = p.orcamento?.codigo ?? dash(snap.orcamento_codigo);
   const nItens = p.itens.length;
 

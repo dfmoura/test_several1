@@ -2495,6 +2495,10 @@ export type OrcamentoFreteSnap = {
   valor_informado?: string | number | null;
   a_definir?: boolean;
   motivo?: string | null;
+  /** CIF/FOB — só ENTREGA_TERCEIROS. */
+  mod_frete?: string | null;
+  transportador_id?: number | null;
+  transportador_nome?: string | null;
   /** @deprecated Legado em snapshots anteriores. */
   origem?: string | null;
   /** @deprecated Legado em snapshots anteriores. */
@@ -2910,6 +2914,16 @@ export type FaturamentoPreview = {
     exige_transportador: boolean;
     mods_permitidos: string[];
     aviso?: string | null;
+    transportador_id?: number | null;
+    transportador?: {
+      id: number;
+      codigo: string;
+      razao_social: string;
+      nome_fantasia?: string | null;
+      cnpj_cpf?: string | null;
+    } | null;
+    transportador_nome_snapshot?: string | null;
+    do_orcamento?: boolean;
   } | null;
 };
 

@@ -17,7 +17,7 @@ import {
   somaValorFacas,
   statusOrcLabel,
 } from '../lib/orcamentoForm';
-import { formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
+import { entregaComercialTexto, formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { facaDimensoesExibicao } from '../lib/facasMapa';
 import { resumoTotaisItem, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
@@ -622,7 +622,12 @@ export function OrcamentoFichaSheet({
           ) : null}
           {resultDoc?.frete ? (
             <span className="ficha-chip ficha-chip-muted">
-              {modoEntregaLabel(resultDoc.frete.modo)}
+              {entregaComercialTexto({
+                modo: resultDoc.frete.modo,
+                valorFrete: resultDoc.frete.valor_informado,
+                modFrete: resultDoc.frete.mod_frete,
+                transportadorNome: resultDoc.frete.transportador_nome,
+              })}
             </span>
           ) : null}
           <span className="ficha-chip ficha-chip-muted">Uso interno</span>
@@ -705,8 +710,13 @@ export function OrcamentoFichaSheet({
           </table>
           {resultDoc.frete ? (
             <p className="ficha-empty" style={{ borderTop: 0 }}>
-              Frete ({modoEntregaLabel(resultDoc.frete.modo).toLowerCase()}) — do orçamento
-              (não se repete por item); informativo, fora do total.
+              {entregaComercialTexto({
+                modo: resultDoc.frete.modo,
+                valorFrete: resultDoc.frete.valor_informado,
+                modFrete: resultDoc.frete.mod_frete,
+                transportadorNome: resultDoc.frete.transportador_nome,
+              })}{' '}
+              — do orçamento (não se repete por item); informativo, fora do total.
             </p>
           ) : null}
         </Section>
