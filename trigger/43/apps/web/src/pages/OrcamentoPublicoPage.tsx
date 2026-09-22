@@ -340,9 +340,18 @@ export function OrcamentoPublicoPage() {
     return (
       <div className="orc-pub">
         <div className="orc-pub-shell">
-          <header className="orc-pub-hero">
-            <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
-            <p className="orc-pub-kicker">Proposta comercial</p>
+          <header className="orc-pub-hero orc-pub-hero--status">
+            <div className="orc-pub-letterhead">
+              <div className="orc-pub-letterhead-brand">
+                <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
+                <div className="orc-pub-hero-body">
+                  <p className="orc-pub-hero-product">{BRAND.licensee.shortName}</p>
+                </div>
+              </div>
+            </div>
+            <div className="orc-pub-title-block">
+              <p className="orc-pub-kicker">Proposta comercial</p>
+            </div>
           </header>
           <div
             className={`orc-pub-result orc-pub-result--${
@@ -406,8 +415,15 @@ export function OrcamentoPublicoPage() {
     return (
       <div className="orc-pub">
         <div className="orc-pub-shell">
-          <header className="orc-pub-hero">
-            <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
+          <header className="orc-pub-hero orc-pub-hero--status">
+            <div className="orc-pub-letterhead">
+              <div className="orc-pub-letterhead-brand">
+                <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="orc-pub-logo" />
+                <div className="orc-pub-hero-body">
+                  <p className="orc-pub-hero-product">{BRAND.licensee.shortName}</p>
+                </div>
+              </div>
+            </div>
           </header>
           <div className="orc-pub-result orc-pub-result--gone">
             <h1>Proposta indisponível</h1>

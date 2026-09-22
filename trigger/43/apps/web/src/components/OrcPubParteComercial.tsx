@@ -34,13 +34,10 @@ function normNome(value: string | null | undefined): string {
   return (value ?? '').trim().replace(/\s+/g, ' ');
 }
 
-function nomesIguais(a: string, b: string): boolean {
-  return a.toLocaleLowerCase('pt-BR') === b.toLocaleLowerCase('pt-BR');
-}
-
 /**
- * Uma face comercial + razão legal só quando agrega (não duplica o lead).
- * Preferência: fantasia → razão → fallback.
+ * Uma face comercial só (fantasia → razão → fallback).
+ * Não devolve razão em paralelo: CNPJ já identifica o jurídico no meta —
+ * evitar nome duas vezes na proposta / ficha-cliente.
  */
 export function identidadeParteComercial(
   parte: OrcPubParteComercialData | null | undefined,
@@ -49,8 +46,7 @@ export function identidadeParteComercial(
   const fantasia = normNome(parte?.nome_fantasia);
   const razao = normNome(parte?.razao_social) || normNome(leadFallback);
   const display = fantasia || razao || '—';
-  const legal = razao && !nomesIguais(razao, display) ? razao : null;
-  return { display, legal };
+  return { display, legal: null };
 }
 
 /** @deprecated Preferir `identidadeParteComercial(...).display`. */
@@ -96,9 +92,9 @@ type HeroEmitenteProps = {
 };
 
 /**
- * Cabeçalho da proposta: marca + emitente compacto (sem card).
- * Um nome no H1; razão legal só no meta se for distinta.
- * Código do documento em linha própria — citável sem competir com a EMP.
+ * Letterhead comercial (EMP herói · selo FLEXOERP · ORC/PED à direita).
+ * Mesma linguagem tipográfica das fichas operacionais (`ficha-masthead`),
+ * sem barra chapada — norma: docs/IDENTIDADE_TRIGGER.md.
  */
 export function OrcPubHeroEmitente({
   kicker,
@@ -109,36 +105,41 @@ export function OrcPubHeroEmitente({
   logoSrc,
   logoAlt,
 }: HeroEmitenteProps) {
-  const { display, legal } = identidadeParteComercial(empresa, titulo);
+  const { display } = identidadeParteComercial(empresa, titulo);
   const meta = metaLinhasParteComercial(empresa);
   const endereco = formatEnderecoParceiro(empresa);
-  const metaComLegal = legal ? [legal, ...meta] : meta;
   const id = documentoId.trim();
   const metaDoc = (documentoMeta ?? '').trim();
 
   return (
     <header className="orc-pub-hero">
-      <img src={logoSrc} alt={logoAlt} className="orc-pub-logo" />
-      <div className="orc-pub-hero-body">
-        <p className="orc-pub-kicker">{kicker}</p>
-        <h1>{display}</h1>
-        {metaComLegal.length > 0 ? (
-          <p className="orc-pub-hero-meta">{metaComLegal.join(' · ')}</p>
-        ) : null}
-        {endereco ? <p className="orc-pub-hero-endereco">{endereco}</p> : null}
+      <div className="orc-pub-letterhead">
+        <div className="orc-pub-letterhead-brand">
+          <img src={logoSrc} alt={logoAlt} className="orc-pub-logo" />
+          <div className="orc-pub-hero-body">
+            <h1>{display}</h1>
+            {meta.length > 0 ? (
+              <p className="orc-pub-hero-meta">{meta.join(' · ')}</p>
+            ) : null}
+            {endereco ? <p className="orc-pub-hero-endereco">{endereco}</p> : null}
+          </div>
+        </div>
         {id ? (
-          <div className="orc-pub-doc">
+          <div className="orc-pub-letterhead-id">
             <p className="orc-pub-doc-id">{id}</p>
             {metaDoc ? <p className="orc-pub-doc-meta">{metaDoc}</p> : null}
           </div>
         ) : null}
+      </div>
+      <div className="orc-pub-title-block">
+        <p className="orc-pub-kicker">{kicker}</p>
       </div>
     </header>
   );
 }
 
 /**
- * Card de parte comercial (Cliente). Mesma regra de nome do hero.
+ * Bloco tipográfico de parte comercial (Cliente). Mesma regra de nome do letterhead.
  */
 export function OrcPubParteComercial({
   title,
@@ -146,7 +147,7 @@ export function OrcPubParteComercial({
   parte,
   showCodigo = false,
 }: Props) {
-  const { display, legal } = identidadeParteComercial(parte, leadFallback);
+  const { display } = identidadeParteComercial(parte, leadFallback);
   const meta = metaLinhasParteComercial(parte, { showCodigo });
   const endereco = formatEnderecoParceiro(parte);
 
@@ -154,7 +155,6 @@ export function OrcPubParteComercial({
     <section className="orc-pub-card">
       <h2>{title}</h2>
       <p className="orc-pub-lead">{display}</p>
-      {legal ? <p className="orc-pub-legal">{legal}</p> : null}
       <div className="orc-pub-meta">
         {meta.map((line) => (
           <span key={line}>{line}</span>
