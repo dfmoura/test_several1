@@ -326,8 +326,7 @@ export function OrdemProducaoDetailPage() {
                   <h3>1 · Separação de insumos</h3>
                   <p className="muted" style={{ margin: 0 }}>
                     Linhas do orçamento (papel, tubete, caixa). Requisitar baixa o saldo no estoque.
-                    O empenho leve só pré-preenche — não movimenta. Saldo insuficiente aparece antes
-                    da baixa; a compra continua em Compras (sem reserva automática).
+                    O empenho leve só pré-preenche — não movimenta.
                     {hasPermission('estoque.ler') ? (
                       <>
                         {' '}
@@ -356,16 +355,30 @@ export function OrdemProducaoDetailPage() {
                 ) : null}
               </div>
 
-              {temFaltante ? (
-                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
-                  Material insuficiente para a quantidade planejada (
-                  {disp?.linhas_com_faltante ?? 0} linha
-                  {(disp?.linhas_com_faltante ?? 0) === 1 ? '' : 's'}). Abasteça o estoque via{' '}
-                  <Link to="/compras/ordens/nova">ordem de compra</Link> ou{' '}
-                  <Link to="/compras/reposicao">a repor</Link> antes de requisitar todas as saídas.
-                  Linhas individuais com saldo completo ainda podem ser baixadas.
-                </div>
-              ) : null}
+              <div
+                className={temFaltante ? 'alert alert-warning' : 'alert alert-info'}
+                style={{ marginTop: '1rem' }}
+                role="status"
+              >
+                {temFaltante ? (
+                  <>
+                    <strong>Aguardando material</strong> —{' '}
+                    {disp?.linhas_com_faltante ?? 0} linha
+                    {(disp?.linhas_com_faltante ?? 0) === 1 ? '' : 's'} com saldo abaixo do
+                    planejado. Veja as colunas <strong>Disponível</strong> e{' '}
+                    <strong>Faltante</strong>. Abasteça via{' '}
+                    <Link to="/compras/ordens/nova">ordem de compra</Link> ou{' '}
+                    <Link to="/compras/reposicao">a repor</Link>. Linhas com saldo completo ainda
+                    podem ser baixadas uma a uma.
+                  </>
+                ) : (
+                  <>
+                    <strong>Saldo do estoque (leitura)</strong> — cada linha mostra{' '}
+                    <strong>Planejado · Disponível · Faltante</strong>. Sem reserva automática: a
+                    baixa só ocorre ao requisitar; se faltar, o sistema bloqueia antes de movimentar.
+                  </>
+                )}
+              </div>
 
               {naoCasados.length > 0 ? (
                 <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
