@@ -531,8 +531,26 @@ export function composicaoFromQuantidadesFaixa(
 }
 
 /**
+ * Índice da faixa âncora para editar a composição em unidades.
+ * Preferência: maior Q > 0; empate → primeira. -1 se nenhuma faixa válida.
+ */
+export function escolherFaixaAncoraIdx(faixas: FaixaForm[]): number {
+  let best = -1;
+  let bestQ = -1;
+  for (let i = 0; i < faixas.length; i++) {
+    const q = Math.max(0, Math.floor(faixas[i]?.quantidade) || 0);
+    if (q <= 0) continue;
+    if (q > bestQ) {
+      bestQ = q;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
  * Aplica edição de quantidade numa célula (faixa × modelo).
- * O último modelo absorve o resto para fechar o total da faixa.
+ * Modelos 0…N−2 são livres (com teto para não estourar Q); o último absorve o resto.
  */
 export function aplicarQuantidadeModeloFaixa(
   composicao: ModeloComposicaoForm[],
@@ -545,14 +563,25 @@ export function aplicarQuantidadeModeloFaixa(
   const n = composicao.length;
   const current = alocarQuantidadePorModelo(faixaTotal, composicao);
   const qs = current.map((r) => r.quantidade);
-  qs[modeloIdx] = Math.max(0, Math.floor(newQtd) || 0);
 
   if (n === 1) {
     qs[0] = faixaTotal;
-  } else if (modeloIdx !== n - 1) {
-    const sumOthers = qs.slice(0, n - 1).reduce((s, q) => s + q, 0);
-    qs[n - 1] = Math.max(0, faixaTotal - sumOthers);
+    return composicaoFromQuantidadesFaixa(composicao, qs, faixaTotal);
   }
+
+  // Último modelo é sempre resto — edição nele é ignorada (UI não expõe).
+  if (modeloIdx >= n - 1) {
+    return composicao;
+  }
+
+  const desired = Math.max(0, Math.floor(newQtd) || 0);
+  const sumExceptEdited = qs
+    .slice(0, n - 1)
+    .reduce((s, q, i) => (i === modeloIdx ? s : s + q), 0);
+  const maxAllowed = Math.max(0, faixaTotal - sumExceptEdited);
+  qs[modeloIdx] = Math.min(desired, maxAllowed);
+  const sumEditaveis = qs.slice(0, n - 1).reduce((s, q) => s + q, 0);
+  qs[n - 1] = Math.max(0, faixaTotal - sumEditaveis);
 
   return composicaoFromQuantidadesFaixa(composicao, qs, faixaTotal);
 }

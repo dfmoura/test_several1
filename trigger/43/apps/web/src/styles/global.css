@@ -4504,6 +4504,54 @@ table.data-table td.acoes {
   margin-top: 0.35rem;
 }
 
+.orc-modelos-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+  margin-bottom: 0.45rem;
+}
+
+.orc-modelos-ancora-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+}
+
+.orc-modelos-ancora-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+.orc-modelos-ancora-btns {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.orc-modelos-fechamento {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.orc-modelos-fechamento.is-ok {
+  color: var(--success, #1b7a3d);
+}
+
+.orc-modelos-fechamento.is-invalid {
+  color: var(--danger, #b42318);
+}
+
+.orc-modelos-fechamento-note {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .orc-modelos-editor-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -4848,6 +4896,64 @@ table.data-table td.acoes {
 }
 
 .orc-modelo-qtd-placeholder {
+  color: var(--text-muted);
+}
+
+.orc-modelo-qtd-readonly {
+  display: inline-block;
+  min-width: 4.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.orc-modelo-qtd-readonly.is-resto {
+  font-weight: 650;
+  color: var(--navy, #0f2744);
+}
+
+.orc-modelo-qtd-readonly.is-invalid {
+  color: var(--danger, #b42318);
+  font-weight: 650;
+}
+
+.orc-modelo-resto-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.orc-modelos-editor-table th.orc-modelo-qtd-col.is-active,
+.orc-modelos-editor-table td.orc-modelo-qtd-col.is-active {
+  background: color-mix(in srgb, var(--navy, #0f2744) 6%, transparent);
+}
+
+.orc-modelos-editor-table th.orc-modelo-qtd-col.is-preview,
+.orc-modelos-editor-table td.orc-modelo-qtd-col.is-preview {
+  color: var(--text-muted);
+}
+
+.orc-modelo-qtd-col-tag {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  text-transform: lowercase;
+}
+
+.orc-modelos-editor-table th.orc-modelo-qtd-col.is-active .orc-modelo-qtd-col-tag {
+  color: var(--navy, #0f2744);
+}
+
+.orc-modelos-total-resto {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--text-muted);
 }
 

@@ -588,6 +588,14 @@ export function OrcamentoFormPage() {
     setCalculo(null);
   };
 
+  const equalizarModelosComposicao = () => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: syncModelosComposicao(prev.modelos_composicao, prev.modelos),
+    }));
+    setCalculo(null);
+  };
+
   const addFaixa = () => {
     setForm((prev) => ({
       ...prev,
@@ -1640,16 +1648,17 @@ export function OrcamentoFormPage() {
                       );
                     return faixasOk.length > 0 ? (
                       <span className={`orc-modelos-soma${allOk ? ' is-ok' : ' is-invalid'}`}>
-                        {allOk ? 'Totais conferem' : 'Ajuste as quantidades'}
+                        {allOk ? 'Rateio fechado' : 'Ajuste o rateio'}
                       </span>
                     ) : null;
                   })()}
                 </div>
                 <p className="form-hint" style={{ marginTop: 0 }}>
-                  Distribua a quantidade de cada faixa entre as artes e informe o Vlr. Arte
-                  de cada modelo (opcional). Em Fig. anexe a arte visual (SVG/PNG) para
-                  conferência na proposta. A soma do Vlr. Arte entra no total do orçamento. O
-                  preço de produção (setup/perda) continua usando só a quantidade de modelos.
+                  Informe as quantidades pela faixa âncora: digite nas artes editáveis; o
+                  último modelo recebe o restante automaticamente. Com várias faixas, o
+                  mesmo rateio se aplica a todas (prévia nas demais colunas). Vlr. Arte e
+                  Fig. são opcionais; a soma do Vlr. Arte entra no total. O preço de
+                  produção (setup/perda) continua usando só a quantidade de modelos.
                 </p>
                 <ModelosComposicaoEditor
                   modelos={form.modelos_composicao}
@@ -1659,6 +1668,7 @@ export function OrcamentoFormPage() {
                   onValorArteChange={setModeloValorArte}
                   onArteUrlChange={setModeloArteUrl}
                   onQuantidadeChange={setModeloQuantidadeFaixa}
+                  onEqualizar={equalizarModelosComposicao}
                 />
               </div>
             ) : null}
