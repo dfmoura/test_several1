@@ -1,5 +1,19 @@
 /** Labels de status — Pedidos · OP (estudo trigger/32 GERACAO_PEDIDO + PRODUCAO_OPERACIONAL). */
 
+/** Cadeia PED (Pedido::STATUSES) — ordem do pipeline operacional. */
+export const PED_STATUSES = [
+  'LIBERADO',
+  'EM_PRODUCAO',
+  'PRODUZIDO',
+  'FATURADO',
+  'EM_ENTREGA',
+  'ENTREGUE',
+  'ENCERRADO',
+  'CANCELADO',
+] as const;
+
+export type PedStatus = (typeof PED_STATUSES)[number];
+
 const PED_LABELS: Record<string, string> = {
   LIBERADO: 'Liberado',
   EM_PRODUCAO: 'Em produção',

@@ -1115,14 +1115,16 @@ button.par-geo--faltando:hover:not(:disabled) {
   font-size: 0.84rem;
 }
 
-.tabs.tabs-parceiro {
+.tabs.tabs-parceiro,
+.tabs.tabs-pedidos {
   flex-wrap: wrap;
   overflow: visible;
   row-gap: 0;
   column-gap: 0.15rem;
 }
 
-.tabs.tabs-parceiro .tab {
+.tabs.tabs-parceiro .tab,
+.tabs.tabs-pedidos .tab {
   padding: 0.55rem 0.85rem;
   font-size: 0.86rem;
 }
