@@ -7,7 +7,7 @@ import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { opMaterialStatusLabel, opStatusLabel, qtdeConsumidaApontada } from '../lib/producaoUi';
+import { opMaterialLinhaStatus, opMaterialStatusLabel, opStatusLabel, qtdeConsumidaApontada } from '../lib/producaoUi';
 import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 
@@ -201,6 +201,14 @@ export function OrdemProducaoDetailPage() {
   const materiaisRequisitados = (op?.materiais ?? []).filter((m) => !m.pendente);
   const materiaisPendentes = (op?.materiais ?? []).filter((m) => m.pendente);
   const podeConcluirComSaida = materiaisRequisitados.length > 0;
+  const disp = op?.disponibilidade;
+  const temFaltante = Boolean(disp?.aguardando_material);
+  const naoCasados = disp?.componentes_nao_casados ?? [];
+  const podeRequisitarTodas =
+    aberta &&
+    hasPermission('producao.escrever') &&
+    materiaisPendentes.length > 0 &&
+    !temFaltante;
 
   return (
     <>
@@ -318,18 +326,25 @@ export function OrdemProducaoDetailPage() {
                   <h3>1 · Separação de insumos</h3>
                   <p className="muted" style={{ margin: 0 }}>
                     Linhas do orçamento (papel, tubete, caixa). Requisitar baixa o saldo no estoque.
-                    O empenho leve só pré-preenche — não movimenta.
+                    O empenho leve só pré-preenche — não movimenta. Saldo insuficiente aparece antes
+                    da baixa; a compra continua em Compras (sem reserva automática).
                     {hasPermission('estoque.ler') ? (
                       <>
                         {' '}
                         <Link to="/estoque">Abrir estoque</Link>
                       </>
                     ) : null}
+                    {hasPermission('compras.ler') ? (
+                      <>
+                        {' · '}
+                        <Link to="/compras/ordens/nova">Nova OC</Link>
+                        {' · '}
+                        <Link to="/compras/reposicao">A repor</Link>
+                      </>
+                    ) : null}
                   </p>
                 </div>
-                {aberta &&
-                hasPermission('producao.escrever') &&
-                (op.materiais ?? []).some((m) => m.pendente) ? (
+                {podeRequisitarTodas ? (
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -341,6 +356,34 @@ export function OrdemProducaoDetailPage() {
                 ) : null}
               </div>
 
+              {temFaltante ? (
+                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
+                  Material insuficiente para a quantidade planejada (
+                  {disp?.linhas_com_faltante ?? 0} linha
+                  {(disp?.linhas_com_faltante ?? 0) === 1 ? '' : 's'}). Abasteça o estoque via{' '}
+                  <Link to="/compras/ordens/nova">ordem de compra</Link> ou{' '}
+                  <Link to="/compras/reposicao">a repor</Link> antes de requisitar todas as saídas.
+                  Linhas individuais com saldo completo ainda podem ser baixadas.
+                </div>
+              ) : null}
+
+              {naoCasados.length > 0 ? (
+                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
+                  <strong>Componente sem SKU casado</strong>
+                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
+                    {naoCasados.map((c) => (
+                      <li key={`${c.componente}-${c.origem_texto}`}>
+                        {c.componente}
+                        {c.origem_texto ? ` · ${c.origem_texto}` : ''} — {c.motivo}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="muted" style={{ margin: '0.5rem 0 0' }}>
+                    Cadastre o produto ou inclua o material manualmente abaixo.
+                  </p>
+                </div>
+              ) : null}
+
               <div className="table-wrap" style={{ marginTop: '1rem' }}>
                 <table className="data-table">
                   <thead>
@@ -348,6 +391,8 @@ export function OrdemProducaoDetailPage() {
                       <th>Componente</th>
                       <th>SKU</th>
                       <th>Planejado</th>
+                      <th>Disponível</th>
+                      <th>Faltante</th>
                       <th>Requisitado</th>
                       <th>Status</th>
                       <th className="acoes" />
@@ -356,58 +401,106 @@ export function OrdemProducaoDetailPage() {
                   <tbody>
                     {(op.materiais ?? []).length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ color: 'var(--text-muted)' }}>
-                          Nenhum material casado ao snapshot. Inclua manualmente abaixo.
+                        <td colSpan={8} style={{ color: 'var(--text-muted)' }}>
+                          {naoCasados.length > 0
+                            ? 'Nenhum material casado ao snapshot. Inclua manualmente abaixo ou cadastre o SKU.'
+                            : 'Nenhum material casado ao snapshot. Inclua manualmente abaixo.'}
                         </td>
                       </tr>
                     ) : (
-                      (op.materiais ?? []).map((m) => (
-                        <tr key={m.id}>
-                          <td>
-                            {m.componente ?? '—'}
-                            {m.origem_texto ? (
-                              <div className="muted" style={{ fontSize: '0.85em' }}>
-                                {m.origem_texto}
-                              </div>
-                            ) : null}
-                          </td>
-                          <td>
-                            {m.produto?.codigo} — {m.produto?.descricao_fiscal}
-                          </td>
-                          <td>
-                            {formatDecimalBr(Number(m.qtde_planejada ?? 0), 4)} {m.unidade}
-                          </td>
-                          <td>
-                            {m.pendente
-                              ? '—'
-                              : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
-                          </td>
-                          <td>
-                            <StatusPill
-                              status={opMaterialStatusLabel(m.pendente ? 'PENDENTE' : 'REQUISITADO')}
-                            />
-                          </td>
-                          <td>
-                            {aberta && hasPermission('producao.escrever') && m.pendente ? (
-                              <div className="table-actions">
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  disabled={busy}
-                                  onClick={() =>
-                                    void requisitar({
-                                      materialId: m.id,
-                                      qtde: m.qtde_planejada ?? m.qtde_requisitada,
-                                    })
-                                  }
-                                >
-                                  Requisitar saída
-                                </button>
-                              </div>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))
+                      (op.materiais ?? []).map((m) => {
+                        const statusKey = opMaterialLinhaStatus(m);
+                        const podeBaixarLinha =
+                          aberta &&
+                          hasPermission('producao.escrever') &&
+                          m.pendente &&
+                          !m.aguardando_material;
+                        return (
+                          <tr key={m.id}>
+                            <td>
+                              {m.componente ?? '—'}
+                              {m.origem_texto ? (
+                                <div className="muted" style={{ fontSize: '0.85em' }}>
+                                  {m.origem_texto}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td>
+                              {m.produto ? (
+                                <>
+                                  <strong>{m.produto.codigo}</strong>
+                                  <div className="muted" style={{ fontSize: '0.85em' }}>
+                                    {m.produto.descricao_fiscal}
+                                  </div>
+                                  <div
+                                    className="table-actions"
+                                    style={{ marginTop: '0.25rem', gap: '0.5rem' }}
+                                  >
+                                    {hasPermission('estoque.ler') ? (
+                                      <Link to={`/estoque/extrato/${m.produto.id}`}>Extrato</Link>
+                                    ) : null}
+                                    {hasPermission('produto.ler') ? (
+                                      <Link to={`/produtos/${m.produto.id}`}>Produto</Link>
+                                    ) : null}
+                                  </div>
+                                </>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td>
+                              {formatDecimalBr(Number(m.qtde_planejada ?? 0), 4)} {m.unidade}
+                            </td>
+                            <td>
+                              {m.qtde_disponivel != null
+                                ? `${formatDecimalBr(Number(m.qtde_disponivel), 4)} ${m.unidade}`
+                                : '—'}
+                            </td>
+                            <td>
+                              {m.aguardando_material ? (
+                                <strong style={{ color: 'var(--danger, #b42318)' }}>
+                                  {formatDecimalBr(Number(m.qtde_faltante ?? 0), 4)} {m.unidade}
+                                </strong>
+                              ) : m.pendente ? (
+                                '0'
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                            <td>
+                              {m.pendente
+                                ? '—'
+                                : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
+                            </td>
+                            <td>
+                              <StatusPill status={opMaterialStatusLabel(statusKey)} />
+                            </td>
+                            <td>
+                              {podeBaixarLinha ? (
+                                <div className="table-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      void requisitar({
+                                        materialId: m.id,
+                                        qtde: m.qtde_planejada ?? m.qtde_requisitada,
+                                      })
+                                    }
+                                  >
+                                    Requisitar saída
+                                  </button>
+                                </div>
+                              ) : m.pendente && m.aguardando_material ? (
+                                <span className="muted" style={{ fontSize: '0.85em' }}>
+                                  Sem saldo
+                                </span>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

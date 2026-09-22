@@ -48,6 +48,7 @@ const OP_LABELS: Record<string, string> = {
 const MAT_LABELS: Record<string, string> = {
   PENDENTE: 'Pendente',
   REQUISITADO: 'Requisitado',
+  AGUARDANDO_MATERIAL: 'Aguardando material',
 };
 
 export function pedStatusLabel(status: string): string {
@@ -68,6 +69,15 @@ export function opStatusLabel(status: string): string {
 
 export function opMaterialStatusLabel(status: string): string {
   return MAT_LABELS[status] ?? status.replace(/_/g, ' ');
+}
+
+/** Status operacional da linha de material (empenho leve × saldo). */
+export function opMaterialLinhaStatus(m: {
+  pendente?: boolean;
+  aguardando_material?: boolean;
+}): string {
+  if (m.aguardando_material) return 'AGUARDANDO_MATERIAL';
+  return m.pendente ? 'PENDENTE' : 'REQUISITADO';
 }
 
 /** Resumo leve de linhas de material na OP (empenho leve → requisição). */

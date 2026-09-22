@@ -528,6 +528,101 @@ class ProducaoPedOpEstoqueTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_op_expoe_disponibilidade_de_saldo_nas_linhas(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        Sanctum::actingAs($this->producao);
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $show->assertOk();
+
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $this->assertArrayHasKey('qtde_disponivel', $papel);
+        $this->assertArrayHasKey('qtde_faltante', $papel);
+        $this->assertArrayHasKey('aguardando_material', $papel);
+        $this->assertSame('500.0000', $papel['qtde_disponivel']);
+        $this->assertIsArray($show->json('data.disponibilidade.componentes_nao_casados'));
+
+        // Abastece todos os SKUs da OP com folga sobre o planejado.
+        foreach ($show->json('data.materiais') as $linha) {
+            $pid = (int) ($linha['produto']['id'] ?? 0);
+            if ($pid <= 0) {
+                continue;
+            }
+            $need = bcadd((string) $linha['qtde_planejada'], '10.0000', 4);
+            EstoqueSaldo::query()->updateOrCreate(
+                ['empresa_id' => $this->empresa->id, 'produto_id' => $pid],
+                ['qtde' => $need, 'unidade' => $linha['unidade'] ?? 'UN', 'custo_medio' => '1.000000'],
+            );
+        }
+
+        $ok = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papelOk = collect($ok->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertFalse($papelOk['aguardando_material']);
+        $this->assertSame('0.0000', $papelOk['qtde_faltante']);
+        $this->assertFalse($ok->json('data.disponibilidade.aguardando_material'));
+        $this->assertSame(0, (int) $ok->json('data.disponibilidade.linhas_com_faltante'));
+    }
+
+    public function test_op_marca_aguardando_material_quando_saldo_insuficiente(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->update(['qtde' => '0.0000']);
+
+        Sanctum::actingAs($this->producao);
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $show->assertOk();
+
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $this->assertTrue($papel['aguardando_material']);
+        $this->assertTrue(bccomp((string) $papel['qtde_faltante'], '0', 4) > 0);
+        $this->assertTrue($show->json('data.disponibilidade.aguardando_material'));
+        $this->assertGreaterThan(0, (int) $show->json('data.disponibilidade.linhas_com_faltante'));
+    }
+
+    public function test_requisitar_pendentes_nao_baixa_parcial_se_faltar_saldo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->update(['qtde' => '0.0000']);
+
+        Sanctum::actingAs($this->producao);
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar-pendentes");
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'Saldo insuficiente',
+            (string) $fail->json('message').json_encode($fail->json('errors'))
+        );
+
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO)
+                ->exists()
+        );
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $this->assertSame('ABERTA', $show->json('data.status'));
+        $this->assertTrue(
+            collect($show->json('data.materiais'))->every(fn ($m) => $m['pendente'] === true)
+        );
+    }
+
     /**
      * @param  array<string, string>  $h
      * @return array{0: Pedido, 1: int, 2: int}

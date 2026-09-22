@@ -73,7 +73,8 @@ function pillVariant(status: string): string {
     key === 'suspensa' ||
     key === 'nova' ||
     key === 'sem_papel' ||
-    key === 'nao_cadastrado'
+    key === 'nao_cadastrado' ||
+    key === 'aguardando_material'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';

@@ -3129,8 +3129,21 @@ export type OrdemProducaoMaterial = {
   qtde_perda: string;
   unidade: string;
   pendente?: boolean;
+  qtde_disponivel?: string;
+  qtde_faltante?: string;
+  aguardando_material?: boolean;
   saida_movimento_id: number | null;
   retorno_movimento_id: number | null;
+};
+
+export type OrdemProducaoDisponibilidade = {
+  aguardando_material: boolean;
+  linhas_com_faltante: number;
+  componentes_nao_casados: Array<{
+    componente: string;
+    origem_texto: string;
+    motivo: string;
+  }>;
 };
 
 export type OrdemProducao = {
@@ -3157,6 +3170,7 @@ export type OrdemProducao = {
   } | null;
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
   materiais?: OrdemProducaoMaterial[];
+  disponibilidade?: OrdemProducaoDisponibilidade;
   pa_movimento?: { id: number; codigo: string; tipo: string } | null;
   observacao?: string | null;
   pode_devolver_ao_pedido?: boolean;

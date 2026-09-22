@@ -43,8 +43,16 @@ export function OpAndamentoPassos({ op }: Props) {
         <div className="form-section" style={{ marginBottom: '0.75rem' }}>
           <h3 style={{ marginBottom: '0.25rem' }}>Passos da ordem</h3>
           <p className="muted" style={{ margin: 0 }}>
-            Empenho leve não baixa saldo — só a requisição. Na conclusão, sobra volta e perda fica
-            apontada; o pedido recebe a quantidade boa (±tolerância).
+            Empenho leve não baixa saldo — só a requisição. Saldo insuficiente aparece na separação
+            (sem travar a OP). Na conclusão, sobra volta e perda fica apontada; o pedido recebe a
+            quantidade boa (±tolerância).
+            {op.disponibilidade?.aguardando_material ? (
+              <>
+                {' '}
+                <strong>Há material faltando no estoque</strong> — abasteça via Compras antes de
+                requisitar.
+              </>
+            ) : null}
           </p>
         </div>
         <ol className="op-passos">

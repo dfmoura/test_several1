@@ -5,6 +5,7 @@ namespace App\Services\Producao;
 use App\Models\Empresa;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueMovimentoItem;
+use App\Models\EstoqueSaldo;
 use App\Models\OrdemProducao;
 use App\Models\OrdemProducaoMaterial;
 use App\Models\OrdemServico;
@@ -351,6 +352,7 @@ class OrdemProducaoService
 
     /**
      * Requisita todas as linhas pendentes (qtde_planejada).
+     * Pré-checa saldo de todas as linhas — não baixa parcialmente se alguma faltar.
      *
      * @return array<string, mixed>
      */
@@ -366,6 +368,7 @@ class OrdemProducaoService
         }
 
         $pendentes = OrdemProducaoMaterial::query()
+            ->with('produto:id,codigo')
             ->where('ordem_producao_id', $op->id)
             ->whereNull('saida_movimento_id')
             ->where('qtde_planejada', '>', 0)
@@ -378,6 +381,8 @@ class OrdemProducaoService
             ]);
         }
 
+        $this->assertSaldoSuficienteParaPendentes($empresa, $pendentes);
+
         foreach ($pendentes as $mat) {
             $this->requisitarMaterial($empresa, $op->fresh(), [
                 'material_id' => $mat->id,
@@ -386,6 +391,55 @@ class OrdemProducaoService
         }
 
         return $this->show($op->fresh());
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, OrdemProducaoMaterial>  $pendentes
+     */
+    private function assertSaldoSuficienteParaPendentes(Empresa $empresa, $pendentes): void
+    {
+        $produtoIds = $pendentes->pluck('produto_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $saldos = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', $produtoIds)
+            ->get(['produto_id', 'qtde'])
+            ->keyBy('produto_id');
+
+        // Soma necessidade por SKU (várias linhas do mesmo produto).
+        $necessidadePorSku = [];
+        foreach ($pendentes as $mat) {
+            $pid = (int) $mat->produto_id;
+            $necessidadePorSku[$pid] = isset($necessidadePorSku[$pid])
+                ? bcadd($necessidadePorSku[$pid], (string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY)
+                : PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+        }
+
+        $faltas = [];
+        foreach ($pendentes as $mat) {
+            $pid = (int) $mat->produto_id;
+            $disponivel = $saldos->get($pid)
+                ? PadraoDecimal::roundHalfUp((string) $saldos->get($pid)->qtde, PadraoDecimal::SCALE_QTY)
+                : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+            $necessidade = $necessidadePorSku[$pid];
+            if (bccomp($disponivel, $necessidade, PadraoDecimal::SCALE_QTY) < 0) {
+                $codigo = $mat->produto?->codigo ?? (string) $pid;
+                $faltante = PadraoDecimal::roundHalfUp(
+                    bcsub($necessidade, $disponivel, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+                $faltas[$pid] = "{$codigo}: precisa {$necessidade}, disponível {$disponivel} (falta {$faltante})";
+            }
+        }
+
+        if ($faltas !== []) {
+            throw ValidationException::withMessages([
+                'materiais' => [
+                    'Saldo insuficiente para requisitar todas as saídas — nenhuma baixa foi feita. '
+                    .implode('; ', array_values($faltas))
+                    .'. Abasteça o estoque (Compras) e tente de novo.',
+                ],
+            ]);
+        }
     }
 
     /**
@@ -838,7 +892,72 @@ class OrdemProducaoService
                 'codigo' => $o->pedido->parceiro->codigo,
                 'razao_social' => $o->pedido->parceiro->razao_social,
             ] : null;
-            $out['materiais'] = $o->materiais->map(fn (OrdemProducaoMaterial $m) => [
+            $emp = Empresa::query()->findOrFail($o->empresa_id);
+            $dispon = $this->disponibilidadeMateriais($emp, $o);
+            $out['materiais'] = $dispon['materiais'];
+            $out['disponibilidade'] = $dispon['resumo'];
+            $out['rastreio'] = $this->rastreio->paraOp($emp, $o);
+            $emb = $this->embalagem->vigenteDaOp($emp, $o);
+            $out['embalagem'] = $emb
+                ? $this->embalagem->toOut($emb->load(['bobinas', 'caixas']))
+                : null;
+            $out['pode_embalar'] = $o->status === OrdemProducao::STATUS_CONCLUIDA;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Transparência de saldo na OP (leitura) — não reserva nem cria NEC.
+     *
+     * @return array{
+     *   materiais: list<array<string, mixed>>,
+     *   resumo: array{
+     *     aguardando_material: bool,
+     *     linhas_com_faltante: int,
+     *     componentes_nao_casados: list<array{componente: string, origem_texto: string, motivo: string}>
+     *   }
+     * }
+     */
+    private function disponibilidadeMateriais(Empresa $empresa, OrdemProducao $o): array
+    {
+        $produtoIds = $o->materiais
+            ->pluck('produto_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $saldos = $produtoIds === []
+            ? collect()
+            : EstoqueSaldo::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereIn('produto_id', $produtoIds)
+                ->get(['produto_id', 'qtde'])
+                ->keyBy('produto_id');
+
+        $linhasComFaltante = 0;
+        $materiais = $o->materiais->map(function (OrdemProducaoMaterial $m) use ($saldos, &$linhasComFaltante) {
+            $pendente = $m->saida_movimento_id === null;
+            $disponivel = $saldos->get((int) $m->produto_id)
+                ? PadraoDecimal::roundHalfUp((string) $saldos->get((int) $m->produto_id)->qtde, PadraoDecimal::SCALE_QTY)
+                : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+            $planejada = PadraoDecimal::roundHalfUp((string) $m->qtde_planejada, PadraoDecimal::SCALE_QTY);
+            $faltante = '0.0000';
+            if ($pendente && bccomp($planejada, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                $faltante = bccomp($disponivel, $planejada, PadraoDecimal::SCALE_QTY) < 0
+                    ? PadraoDecimal::roundHalfUp(
+                        bcsub($planejada, $disponivel, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    )
+                    : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+            }
+            $aguardando = $pendente && bccomp($faltante, '0', PadraoDecimal::SCALE_QTY) > 0;
+            if ($aguardando) {
+                $linhasComFaltante++;
+            }
+
+            return [
                 'id' => $m->id,
                 'produto' => $m->produto ? [
                     'id' => $m->produto->id,
@@ -855,23 +974,30 @@ class OrdemProducaoService
                 'qtde_retorno' => (string) $m->qtde_retorno,
                 'qtde_perda' => (string) $m->qtde_perda,
                 'unidade' => $m->unidade,
-                'pendente' => $m->saida_movimento_id === null,
+                'pendente' => $pendente,
+                'qtde_disponivel' => $disponivel,
+                'qtde_faltante' => $faltante,
+                'aguardando_material' => $aguardando,
                 'saida_movimento_id' => $m->saida_movimento_id,
                 'retorno_movimento_id' => $m->retorno_movimento_id,
-            ])->all();
-            $out['rastreio'] = $this->rastreio->paraOp(
-                Empresa::query()->findOrFail($o->empresa_id),
-                $o
-            );
-            $emp = Empresa::query()->findOrFail($o->empresa_id);
-            $emb = $this->embalagem->vigenteDaOp($emp, $o);
-            $out['embalagem'] = $emb
-                ? $this->embalagem->toOut($emb->load(['bobinas', 'caixas']))
-                : null;
-            $out['pode_embalar'] = $o->status === OrdemProducao::STATUS_CONCLUIDA;
+            ];
+        })->all();
+
+        $naoCasados = [];
+        if ($o->pedido && $o->pedidoItem
+            && in_array($o->status, OrdemProducao::STATUSES_ABERTOS, true)
+        ) {
+            $naoCasados = $this->bom->naoCasados($empresa, $o->pedido, $o->pedidoItem);
         }
 
-        return $out;
+        return [
+            'materiais' => $materiais,
+            'resumo' => [
+                'aguardando_material' => $linhasComFaltante > 0,
+                'linhas_com_faltante' => $linhasComFaltante,
+                'componentes_nao_casados' => $naoCasados,
+            ],
+        ];
     }
 
     /**
