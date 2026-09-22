@@ -60,13 +60,16 @@ export function razaoParteComercial(
 /** Linhas compactas de identidade (CNPJ · tel · e-mail · WhatsApp · código). */
 export function metaLinhasParteComercial(
   parte: OrcPubParteComercialData | null | undefined,
-  opts?: { showCodigo?: boolean },
+  opts?: { showCodigo?: boolean; showDocumento?: boolean },
 ): string[] {
   if (!parte) return [];
   const lines: string[] = [];
   if (opts?.showCodigo && parte.codigo) lines.push(parte.codigo);
-  if (parte.cnpj) lines.push(`CNPJ ${formatCnpj(parte.cnpj)}`);
-  else if (parte.cnpj_cpf) lines.push(`CNPJ/CPF ${formatCnpjCpf(parte.cnpj_cpf)}`);
+  const showDocumento = opts?.showDocumento !== false;
+  if (showDocumento) {
+    if (parte.cnpj) lines.push(`CNPJ ${formatCnpj(parte.cnpj)}`);
+    else if (parte.cnpj_cpf) lines.push(`CNPJ/CPF ${formatCnpjCpf(parte.cnpj_cpf)}`);
+  }
   if (parte.telefone) lines.push(formatPhone(parte.telefone));
   const waRaw = (parte.whatsapp || '').trim();
   const telDigits = (parte.telefone || '').replace(/\D/g, '');

@@ -2731,7 +2731,10 @@ export type Pedido = {
   } | null;
   entrega?: { id: number; codigo: string; status: string } | null;
   rastreio?: RastreioDocumento;
+  criado_por?: { id: number; name: string } | null;
+  atualizado_por?: { id: number; name: string } | null;
   created_at: string | null;
+  updated_at?: string | null;
 };
 
 export type FaturamentoParcela = {

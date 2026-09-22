@@ -1,0 +1,79 @@
+ACQA Semana 7: apresentacao + relatorio final ABNT
+Trabalho de Conclusao de Curso: Relato de Experiencia do Projeto Integrado
+Diogo Ferreira Moura (RA 1030125-2)
+==================================================
+
+ARQUIVOS PARA A ENTREGA / BANCA:
+
+  1) RELATORIO FINAL (ABNT) - documento escrito completo
+       Relatorio_Final_TCC_Relato_Experiencia_ABNT.pdf
+       Relatorio_Final_TCC_Relato_Experiencia_ABNT.docx  (editavel)
+
+  2) APRESENTACAO (PowerPoint) - o que a ACQA da Semana 7 pede anexar
+       apresentacao/Apresentacao_Semana7_TCC_Relato_OSB.pptx
+       apresentacao/Apresentacao_TCC_Relato_OSB_Uberlandia.pptx  (alias)
+
+ANTES DE ENVIAR:
+  [ ] Confirme Polo Uberlandia, nome e RA 1030125-2
+  [ ] Releia o RESUMO do PDF final (~230 palavras) e as palavras-chave
+  [ ] Abra o PPTX e confira as fotos da ACIUB (slide 5) e os prints
+  [ ] Na plataforma da Semana 7: anexe o .pptx (45 pontos)
+  [ ] Guarde o PDF/DOCX final como o relato ABNT consolidado do TCC
+  [ ] Ensaie o roteiro em 7 a 10 minutos
+
+RELATORIO FINAL (estrutura ABNT / NBR 14724):
+  PRE-TEXTUAIS
+    1) Capa (UNIUBE, Sistemas de Informacao, autoria, titulo, data)
+    2) Sumario
+    3) Resumo + palavras-chave
+  TEXTUAIS
+    1) Introducao (tema, problema, justificativa, objetivos)
+    2) Fundamentacao teorica
+    3) Material e metodos (natureza, material, metodos)
+    4) Resultados (interacao, evidencias, exemplo de risco da API)
+    5) Conclusao
+  POS-TEXTUAIS
+    Referencias (NBR 6023); citacoes autor-data (NBR 10520)
+
+FOTOS DA APRESENTACAO NA ACIUB (23/07/2026):
+  evidencias/08_apresentacao_aciub_1.jpeg  (demonstracao do sistema no projetor)
+  evidencias/09_apresentacao_aciub_2.jpeg  (foto do grupo)
+  Publico: dirigentes da ACIUB, dirigentes do OSB e membros da
+  Procuradoria Geral do Municipio de Uberlandia.
+  No PDF: Figuras 1 e 2 (secao 4.1). Telas do sistema passam a Figuras 3 a 8.
+  No PPT: slide 05 "Apresentacao presencial na ACIUB".
+
+APRESENTACAO (Aula-04 + ACQA Semana 7):
+  - 10 slides (faixa 8 a 10), roteiro 7 a 10 min
+  - Destilacao visual do impacto (nao leitura do relatorio)
+  01 Capa / identificacao
+  02 Introducao: organizacao e problema
+  03 Proposta de intervencao
+  04 Metodologia
+  05 Apresentacao presencial na ACIUB (fotos)
+  06 Arquitetura e fluxo
+  07 Evidencias (prints)
+  08 Resultados e retorno
+  09 Conclusao
+  10 Referencias e encerramento
+
+ROTEIRO SUGERIDO (~10 min):
+  0:00-2:00  Capa + Introducao (slides 1-3)
+  2:00-4:00  Metodologia + fotos ACIUB (slides 4-5)
+  4:00-7:30  Arquitetura, prints e resultados (slides 6-8)
+  7:30-10:00 Conclusao + refs (slides 9-10)
+
+O QUE NAO MUDA:
+  - Acao = SISTEMA DE INFORMACAO DE APOIO em producao (nao oficina)
+  - Problema da entidade = coleta manual na planilha Cronograma
+  - API Compras.gov entrou DEPOIS; chamado 56398424 so como risco da arquitetura
+  - Ganho indireto: a equipe passou a saber o que e API
+
+SISTEMA:
+  https://licitacoes.osbrasiluberlandia.org/
+
+PARA REGERAR:
+  python3 gerar_relatorio_final.py
+  python3 gerar_apresentacao_tcc.py
+
+PRAZO DA ACQA SEMANA 7: 12/09/2026 a 27/09/2026. Valor: 45 pontos (PPT)

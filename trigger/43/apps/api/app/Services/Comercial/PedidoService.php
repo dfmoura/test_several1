@@ -200,6 +200,7 @@ class PedidoService
             'ordensServico',
             'faturamento',
             'entrega:id,pedido_id,codigo,status',
+            ...Pedido::userStampWith(),
         ]);
 
         return $this->toOut($pedido, true);
@@ -256,6 +257,7 @@ class PedidoService
                 ] : null,
             ])->all(),
             'created_at' => optional($p->created_at)?->toIso8601String(),
+            'updated_at' => optional($p->updated_at)?->toIso8601String(),
             'apto_faturar' => $p->status === Pedido::STATUS_FATURADO
                 ? false
                 : ($p->status === Pedido::STATUS_PRODUZIDO),
@@ -281,6 +283,8 @@ class PedidoService
 
         if ($detalhe) {
             $out['snapshot'] = $p->snapshot;
+            $out['criado_por'] = Pedido::userStampFrom($p->criador);
+            $out['atualizado_por'] = Pedido::userStampFrom($p->atualizador);
             $out['empresa'] = $this->empresaComercialOut($p);
             if ($p->parceiro) {
                 $out['parceiro'] = array_merge($out['parceiro'] ?? [], [

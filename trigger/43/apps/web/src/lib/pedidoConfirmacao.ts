@@ -1,6 +1,6 @@
 /**
- * Helpers da confirmação comercial do PED (documento ao cliente).
- * Fonte: snapshot.input + item travado — sem guia de chão nem gordura.
+ * Helpers comerciais do PED (snapshot.input + itens travados).
+ * Usados no detalhe e na ficha operacional — sem guia de chão nem gordura.
  */
 import type { Pedido } from './api';
 import { formatCep, formatCurrency } from './format';
@@ -68,7 +68,7 @@ export function urlArteDoPedido(pedido: Pedido): string | null {
   return strSnap(snapInput(pedido), 'url_arte');
 }
 
-/** Endereço comercial completo (logradouro → CEP) para ficha-cliente / proposta. */
+/** Endereço comercial completo (logradouro → CEP) para detalhe / ficha / proposta. */
 export function formatEnderecoParceiro(p: {
   logradouro?: string | null;
   numero?: string | null;

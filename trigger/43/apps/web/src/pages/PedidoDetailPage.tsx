@@ -4,6 +4,10 @@ import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { DocumentoFiscalPreviaCard } from '../components/DocumentoFiscalPrevia';
 import { ParceiroCombobox } from '../components/ParceiroCombobox';
+import {
+  identidadeParteComercial,
+  metaLinhasParteComercial,
+} from '../components/OrcPubParteComercial';
 import { api, type FaturamentoPreview, type Parceiro, type Pedido } from '../lib/api';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { ExpedicaoPedidoPanel } from '../components/ExpedicaoPedidoPanel';
@@ -11,6 +15,12 @@ import { ComissaoPedidoPanel } from '../components/ComissaoPedidoPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
+import {
+  condicaoPagamentoDoPedido,
+  formaPagamentoDoPedido,
+  formatEnderecoParceiro,
+  freteTextoDoPedido,
+} from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { necessidadeLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
@@ -152,6 +162,22 @@ export function PedidoDetailPage() {
   };
 
   const readeq = (pedido?.snapshot as { readequacao?: Record<string, unknown> } | null)?.readequacao;
+  const clienteId = pedido?.parceiro
+    ? identidadeParteComercial(pedido.parceiro, pedido.parceiro.razao_social ?? '—')
+    : null;
+  const clienteMeta = pedido?.parceiro
+    ? metaLinhasParteComercial(pedido.parceiro, { showCodigo: true })
+    : [];
+  const clienteEndereco = formatEnderecoParceiro(pedido?.parceiro ?? null);
+  const freteTexto = pedido ? freteTextoDoPedido(pedido) : null;
+  const condicao = pedido ? condicaoPagamentoDoPedido(pedido) : null;
+  const forma = pedido ? formaPagamentoDoPedido(pedido) : null;
+  const condicaoTexto =
+    condicao || forma ? [condicao, forma].filter(Boolean).join(' · ') : null;
+  const totalPedido = (pedido?.itens ?? []).reduce(
+    (acc, it) => acc + (Number(it.valor_total) || 0),
+    0,
+  );
 
   return (
     <>
@@ -159,7 +185,12 @@ export function PedidoDetailPage() {
         title={pedido?.codigo ?? 'Pedido'}
         description={
           pedido
-            ? `${pedido.parceiro?.razao_social ?? '—'} · ${pedido.orcamento?.codigo ?? 'ORC —'}`
+            ? [
+                clienteId?.display ?? pedido.parceiro?.razao_social ?? '—',
+                pedido.orcamento?.codigo ?? null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
             : loading
               ? 'Carregando…'
               : 'Pedido não encontrado.'
@@ -170,24 +201,13 @@ export function PedidoDetailPage() {
               Voltar
             </Link>
             {pedido ? (
-              <>
-                <a
-                  href={`/pedidos/${pedido.id}/ficha`}
-                  className="btn btn-secondary"
-                  onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
-                >
-                  Imprimir ficha
-                </a>
-                <a
-                  href={`/pedidos/${pedido.id}/ficha-cliente`}
-                  className="btn btn-secondary"
-                  onClick={(e) =>
-                    onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha-cliente`)
-                  }
-                >
-                  Confirmação ao cliente
-                </a>
-              </>
+              <a
+                href={`/pedidos/${pedido.id}/ficha`}
+                className="btn btn-secondary"
+                onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/ficha`)}
+              >
+                Ficha do pedido
+              </a>
             ) : null}
             {pedido?.rastreio && (pedido.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (
               <a
@@ -218,15 +238,51 @@ export function PedidoDetailPage() {
         )
       ) : (
         <>
-          <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card orc-detail-resumo ped-detail-resumo" style={{ marginBottom: '1rem' }}>
             <div className="card-body">
-              <div className="detail-meta">
-                <div>
-                  <span>Status</span>
-                  <strong>
-                    <StatusPill status={pedStatusLabel(pedido.status)} />
+              <div className="orc-detail-resumo-head">
+                <div className="orc-detail-parceiro">
+                  <span>Cliente</span>
+                  <strong className="orc-detail-parceiro-nome">
+                    {pedido.parceiro?.id ? (
+                      <Link to={`/parceiros/${pedido.parceiro.id}`} className="ped-detail-parceiro-link">
+                        {clienteId?.display ?? '—'}
+                      </Link>
+                    ) : (
+                      (clienteId?.display ?? '—')
+                    )}
                   </strong>
+                  {clienteMeta.length > 0 ? (
+                    <span className="orc-detail-parceiro-entrega ped-detail-parceiro-meta">
+                      {clienteMeta.join(' · ')}
+                    </span>
+                  ) : null}
+                  {clienteEndereco ? (
+                    <span className="orc-detail-parceiro-entrega ped-detail-parceiro-meta">
+                      {clienteEndereco}
+                    </span>
+                  ) : null}
+                  {freteTexto ? (
+                    <span className="orc-detail-parceiro-entrega">{freteTexto}</span>
+                  ) : null}
                 </div>
+                <div className="orc-detail-status">
+                  <span className="orc-detail-status-label">Status</span>
+                  <div className="orc-detail-status-pills">
+                    <StatusPill status={pedStatusLabel(pedido.status)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="orc-detail-meta">
+                {pedido.vendedor ? (
+                  <div>
+                    <span>Vendedor</span>
+                    <strong>
+                      {pedido.vendedor.codigo} — {pedido.vendedor.razao_social}
+                    </strong>
+                  </div>
+                ) : null}
                 <div>
                   <span>Prazo</span>
                   <strong>
@@ -237,14 +293,28 @@ export function PedidoDetailPage() {
                   <span>Tolerância</span>
                   <strong>±{pedido.tolerancia_qtd_pct}%</strong>
                 </div>
-                {pedido.vendedor ? (
+                {condicaoTexto ? (
                   <div>
-                    <span>Vendedor</span>
+                    <span>Condição / forma</span>
+                    <strong>{condicaoTexto}</strong>
+                  </div>
+                ) : null}
+                {pedido.orcamento?.codigo ? (
+                  <div>
+                    <span>Origem</span>
                     <strong>
-                      {pedido.vendedor.codigo} — {pedido.vendedor.razao_social}
+                      {pedido.orcamento.id ? (
+                        <Link to={`/orcamentos/${pedido.orcamento.id}`}>{pedido.orcamento.codigo}</Link>
+                      ) : (
+                        pedido.orcamento.codigo
+                      )}
                     </strong>
                   </div>
                 ) : null}
+                <div className="ped-detail-total">
+                  <span>Total do pedido</span>
+                  <strong>{formatCurrency(totalPedido)}</strong>
+                </div>
                 {readeq ? (
                   <div>
                     <span>Readequação</span>
@@ -255,6 +325,16 @@ export function PedidoDetailPage() {
                   </div>
                 ) : null}
               </div>
+
+              {pedido.observacao ? (
+                <p className="orc-lock-note">
+                  <strong>Observação:</strong> {pedido.observacao}
+                </p>
+              ) : (
+                <p className="orc-lock-note">
+                  Pedido travado na liberação — quantidade, preços e condições comerciais abaixo.
+                </p>
+              )}
             </div>
           </div>
 
@@ -558,22 +638,26 @@ export function PedidoDetailPage() {
 
           <ComissaoPedidoPanel pedidoId={pedido.id} pedidoStatus={pedido.status} />
 
-          <div className="card">
+          <div className="card ped-detail-itens">
             <div className="card-body">
               <div className="form-section">
-                <h3>Itens</h3>
+                <h3>Itens do pedido</h3>
                 <p className="muted" style={{ marginTop: 0 }}>
-                  Produção abre OP (item de produção) ou OS (serviço) a partir do pedido liberado.
+                  O que foi contratado na liberação — quantidade, unitário e total por posição.
+                  Produção abre OP (produção) ou OS (serviço) a partir do item pendente.
                 </p>
               </div>
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
                     <tr>
+                      <th className="num">#</th>
                       <th>Descrição</th>
                       <th>Necessidade</th>
-                      <th>Pedida</th>
-                      <th>Produzida</th>
+                      <th className="num">Pedida</th>
+                      <th className="num">Produzida</th>
+                      <th className="num">Unitário</th>
+                      <th className="num">Total</th>
                       <th>Status</th>
                       <th className="acoes">Ordem</th>
                     </tr>
@@ -592,12 +676,23 @@ export function PedidoDetailPage() {
                       );
                       return (
                         <tr key={item.id}>
+                          <td className="num">{item.ordem}</td>
                           <td>{item.descricao}</td>
                           <td>{necessidadeLabel(item.necessidade)}</td>
-                          <td>
+                          <td className="num">
                             {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
                           </td>
-                          <td>{formatDecimalBr(Number(item.qtde_produzida), 0)}</td>
+                          <td className="num">{formatDecimalBr(Number(item.qtde_produzida), 0)}</td>
+                          <td className="num">
+                            {item.preco_unitario != null
+                              ? formatUnitPrice(item.preco_unitario)
+                              : '—'}
+                          </td>
+                          <td className="num">
+                            {item.valor_total != null
+                              ? formatCurrency(item.valor_total)
+                              : '—'}
+                          </td>
                           <td>
                             <StatusPill status={pedItemStatusLabel(item.status)} />
                           </td>
@@ -638,6 +733,19 @@ export function PedidoDetailPage() {
                       );
                     })}
                   </tbody>
+                  {pedido.itens.length > 0 ? (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={6} className="num">
+                          Total do pedido
+                        </td>
+                        <td className="num">
+                          <strong>{formatCurrency(totalPedido)}</strong>
+                        </td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
+                  ) : null}
                 </table>
               </div>
             </div>

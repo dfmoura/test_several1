@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Apresentacao TCC: Relato de Experiência do Projeto Integrado
+Apresentacao TCC / Semana 7 (ACQA): Relato de Experiencia do Projeto Integrado
 Aula-04: 8 a 10 slides, 7 a 10 min, apoio visual.
+Estrutura ACQA: identificacao, introducao, metodologia, resultados, conclusao, referencias.
 Sem traco tipografico (em dash) e sem ponto mediano.
-Base: Semanas 1, 3 e 5 + evidencias.
+Base: Semanas 1, 3 e 5 + Apresentaodocomponente.txt + evidencias.
 """
 
 from pathlib import Path
@@ -16,7 +17,8 @@ from pptx.util import Inches, Pt
 
 ROOT = Path(__file__).resolve().parent
 EVID = ROOT / "evidencias"
-OUT = ROOT / "apresentacao" / "Apresentacao_TCC_Relato_OSB_Uberlandia.pptx"
+OUT = ROOT / "apresentacao" / "Apresentacao_Semana7_TCC_Relato_OSB.pptx"
+OUT_ALIAS = ROOT / "apresentacao" / "Apresentacao_TCC_Relato_OSB_Uberlandia.pptx"
 
 NAVY = RGBColor(0x1A, 0x2B, 0x4C)
 BLUE = RGBColor(0x3F, 0x5D, 0x91)
@@ -172,7 +174,11 @@ def slide_capa(prs):
 def slide_cenario(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     rect(s, 0, 0, SLIDE_W, SLIDE_H, fill=WHITE)
-    title_block(s, "Organização parceira e o problema", "Onde a ação extensionista aconteceu")
+    title_block(
+        s,
+        "Introdução: organização parceira e o problema",
+        "Contexto da ação extensionista (roteiro ACQA Semana 7)",
+    )
 
     box(s, Inches(0.55), Inches(1.45), Inches(5.9), Inches(5.3), fill=WHITE, line=SOFT)
     rect(s, Inches(0.55), Inches(1.45), Inches(0.1), Inches(5.3), fill=NAVY)
@@ -268,7 +274,7 @@ def slide_proposta(prs):
         foot,
         [
             "Sistema em produção: https://licitacoes.osbrasiluberlandia.org/",
-            "Ate quatro contas (1 admin e 3 de consulta).",
+            "Até quatro contas (1 admin e 3 de consulta).",
         ],
         size=14,
         bold=True,
@@ -280,7 +286,7 @@ def slide_proposta(prs):
 def slide_metodologia(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
     rect(s, 0, 0, SLIDE_W, SLIDE_H, fill=WHITE)
-    title_block(s, "Material e métodos", "Como a ação foi conduzida (maio a agosto de 2026)")
+    title_block(s, "Metodologia: material e métodos", "Como a ação foi conduzida (maio a agosto de 2026)")
 
     steps = [
         ("Convívio", "Reuniões quase\ntoda semana\nna ACIUB"),
@@ -318,6 +324,42 @@ def slide_metodologia(prs):
         bd = s.shapes.add_textbox(Inches(x + 0.1), Inches(5.3), Inches(2.15), Inches(1.2))
         fill_lines(bd, [body], size=13, color=DARK, align=PP_ALIGN.CENTER, space=1)
         x += 2.5
+
+
+def slide_apresentacao_aciub(prs):
+    """Evidencia fotografica da apresentacao presencial na ACIUB (23/07/2026)."""
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    rect(s, 0, 0, SLIDE_W, SLIDE_H, fill=WHITE)
+    title_block(
+        s,
+        "Apresentação presencial na ACIUB",
+        "23/07/2026 - dirigentes da ACIUB, do OSB e Procuradoria Geral do Município",
+    )
+
+    img1 = EVID / "08_apresentacao_aciub_1.jpeg"
+    img2 = EVID / "09_apresentacao_aciub_2.jpeg"
+
+    box(s, Inches(0.35), Inches(1.25), Inches(6.25), Inches(5.5), fill=SOFT)
+    if img1.exists():
+        fit_picture(s, img1, Inches(0.5), Inches(1.4), Inches(5.95), Inches(4.85))
+    caption(
+        s,
+        "Demonstracao do sistema (tela Setup) na sala da ACIUB",
+        Inches(0.35),
+        Inches(6.85),
+        Inches(6.25),
+    )
+
+    box(s, Inches(6.75), Inches(1.25), Inches(6.25), Inches(5.5), fill=SOFT)
+    if img2.exists():
+        fit_picture(s, img2, Inches(6.9), Inches(1.4), Inches(5.95), Inches(4.85))
+    caption(
+        s,
+        "Registro do grupo apos a apresentacao",
+        Inches(6.75),
+        Inches(6.85),
+        Inches(6.25),
+    )
 
 
 def slide_arquitetura(prs):
@@ -368,7 +410,7 @@ def slide_impacto(prs):
     metrics = [
         ("1.215", "processos municipais\nno recorte de 2025"),
         ("+36 mil", "linhas de gestores\ne fiscais"),
-        ("4", "contas ativas\n(1 admin + 3)"),
+        ("ACIUB", "dirigentes ACIUB/OSB\ne Procuradoria"),
         ("2", "apresentações\nformais"),
     ]
     x = 0.55
@@ -437,7 +479,7 @@ def slide_conclusao(prs):
         (
             "Limites",
             [
-                "Free tier da AWS ate jan/2027",
+                "Free tier da AWS até jan/2027",
                 "Se a API Compras.gov para,",
                 "só esse módulo deixa de atualizar",
                 "Estudo de rodízio ainda parcial",
@@ -545,6 +587,7 @@ def main():
     slide_cenario(prs)
     slide_proposta(prs)
     slide_metodologia(prs)
+    slide_apresentacao_aciub(prs)
     slide_arquitetura(prs)
     slide_evidencias(prs)
     slide_impacto(prs)
@@ -555,7 +598,10 @@ def main():
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     prs.save(OUT)
+    # Alias com o nome anterior (caso a plataforma ou um bookmark antigo use esse arquivo).
+    prs.save(OUT_ALIAS)
     print(f"Gerado: {OUT}")
+    print(f"Alias:  {OUT_ALIAS}")
     print(f"Slides: {len(prs.slides)}")
 
 

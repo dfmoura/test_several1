@@ -71,7 +71,7 @@ export function PedidoFichaPage() {
             Voltar ao pedido
           </button>
           <span className="ficha-toolbar-hint">
-            Retrato A4 · uso interno (sem preço) · Imprimir ou Salvar como PDF
+            Ficha do pedido · retrato A4 · uso interno (sem preço) · Imprimir ou Salvar como PDF
           </span>
         </div>
         <button

@@ -5681,6 +5681,44 @@ table.data-table td.acoes {
   }
 }
 
+/* Ficha do pedido (detalhe) — herda orc-detail-resumo; âncoras comerciais calmas */
+.ped-detail-parceiro-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ped-detail-parceiro-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.ped-detail-parceiro-meta {
+  font-size: 0.82rem;
+}
+
+.ped-detail-resumo .ped-detail-total strong {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  letter-spacing: -0.01em;
+}
+
+.ped-detail-itens .data-table tfoot td {
+  border-bottom: none;
+  padding-top: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.ped-detail-itens .data-table tfoot strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+}
+
 .orc-spec-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
@@ -7011,60 +7049,6 @@ button.saida-etiqueta-badge--previewable:focus-visible {
 
 .ficha-page-proposta .orc-pub-faixa input {
   display: none;
-}
-
-/* Confirmação PED ao cliente — mesma casca proposta; tabela de itens travados. */
-.ped-conf-itens {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-  margin-top: 0.5rem;
-}
-
-.ped-conf-itens th,
-.ped-conf-itens td {
-  padding: 0.4rem 0.45rem;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-.ped-conf-itens th {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.ped-conf-itens .ped-conf-num,
-.ped-conf-itens th.ped-conf-num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ped-conf-itens tfoot td {
-  border-bottom: none;
-  padding-top: 0.65rem;
-  font-weight: 600;
-}
-
-.ped-conf-assinaturas {
-  margin: 1.25rem 0 0.75rem;
-}
-
-.ped-conf-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-}
-
-.ped-conf-emitido {
-  font-size: 0.75rem;
-  color: var(--text-muted);
 }
 
 .orc-spec-faca {
@@ -8992,6 +8976,349 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
+/* Ficha do pedido — tipografia mais densa e calma (A4) */
+.ped-ficha {
+  font-size: 8.5pt;
+  line-height: 1.3;
+}
+
+.ped-ficha .ficha-org {
+  font-size: 8.5pt;
+}
+
+.ped-ficha .ficha-doc-label,
+.ped-ficha .ficha-doc-when {
+  font-size: 6.5pt;
+}
+
+.ped-ficha .ficha-doc-code {
+  font-size: 10.5pt;
+}
+
+.ped-ficha .ficha-title-block {
+  margin-top: 2mm;
+  padding-bottom: 1.6mm;
+  border-bottom-width: 1.75pt;
+}
+
+.ped-ficha .ficha-razao {
+  font-size: 11pt;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.ped-ficha .ficha-chip {
+  font-size: 6.5pt;
+  padding: 0.35mm 1.4mm;
+  letter-spacing: 0.03em;
+}
+
+.ped-ficha .ficha-party {
+  margin-top: 2mm;
+  margin-bottom: 1.5mm;
+}
+
+.ped-ficha .ficha-party h3 {
+  font-size: 6.5pt;
+  margin-bottom: 0.6mm;
+}
+
+.ped-ficha .ficha-party-lead {
+  font-size: 9.5pt;
+  line-height: 1.2;
+}
+
+.ped-ficha .ficha-party-meta {
+  font-size: 7pt;
+  line-height: 1.35;
+}
+
+.ped-ficha .ficha-kv-strip {
+  margin: 1.5mm 0 2mm;
+  gap: 1.5mm 0;
+}
+
+.ped-ficha .ficha-kv-strip .ficha-kv-label {
+  font-size: 6pt;
+}
+
+.ped-ficha .ficha-kv-strip .ficha-kv-value {
+  font-size: 7.5pt;
+}
+
+.ped-ficha .ficha-section {
+  margin-top: 2.2mm;
+}
+
+.ped-ficha .ficha-section h3 {
+  font-size: 7.5pt;
+  margin-bottom: 1.2mm;
+  letter-spacing: 0.04em;
+}
+
+.ped-ficha .ficha-note {
+  font-size: 6.5pt;
+  margin-top: 2.5mm;
+}
+
+.ped-ficha .ficha-footer {
+  font-size: 6.5pt;
+}
+
+.ped-ficha .ficha-td-num,
+.ped-ficha th.ficha-td-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Item + especificação — bloco compacto */
+.ped-ficha-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ped-ficha-item {
+  padding: 1.6mm 0 1.8mm;
+  border-bottom: 0.6pt solid color-mix(in srgb, var(--border, #c5ced9) 88%, transparent);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ped-ficha-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ped-ficha-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1mm 3mm;
+  margin-bottom: 1.2mm;
+}
+
+.ped-ficha-item-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25mm;
+  min-width: 0;
+  flex: 1 1 11rem;
+}
+
+.ped-ficha-item-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1.6mm;
+  min-width: 0;
+}
+
+.ped-ficha-item-pos {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #5a6570);
+  line-height: 1.2;
+}
+
+.ped-ficha-item-lead strong {
+  font-family: var(--font-display);
+  font-size: 8.75pt;
+  font-weight: 700;
+  color: var(--navy-dark);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  min-width: 0;
+}
+
+.ped-ficha-item-tags,
+.ped-ficha-item-pa {
+  font-size: 6.75pt;
+  color: var(--text-muted, #5a6570);
+  line-height: 1.25;
+}
+
+.ped-ficha-item-qtdes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.8mm 2.6mm;
+  flex: 0 1 auto;
+  font-size: 7.5pt;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.ped-ficha-item-qtdes em {
+  display: block;
+  font-style: normal;
+  font-size: 5.5pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #5a6570);
+  line-height: 1.05;
+  margin-bottom: 0.15mm;
+}
+
+.ped-ficha-item-spec {
+  min-width: 0;
+  padding: 0.9mm 1.2mm 1mm;
+  border-radius: 1.5px;
+  background: color-mix(in srgb, var(--navy, #1a3568) 3.5%, transparent);
+  border: 0.5pt solid color-mix(in srgb, var(--border, #c5ced9) 75%, transparent);
+}
+
+.ped-ficha-spec-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.ped-ficha-spec-cell {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2mm;
+  min-width: 0;
+  padding: 0 1.4mm 0 0;
+  border-right: 0.45pt solid color-mix(in srgb, var(--border, #c5ced9) 85%, transparent);
+}
+
+.ped-ficha-spec-cell--wide {
+  flex: 2.2 1 0;
+  min-width: 14mm;
+}
+
+.ped-ficha-spec-cell--narrow {
+  flex: 0.45 0.55 0;
+  max-width: 9mm;
+  padding-right: 0.9mm;
+}
+
+.ped-ficha-spec-cell:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.ped-ficha-spec-k {
+  font-size: 5.25pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #5a6570);
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ped-ficha-spec-cell--wide .ped-ficha-spec-v {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  word-break: break-word;
+  line-height: 1.15;
+}
+
+.ped-ficha-spec-v {
+  font-size: 6.75pt;
+  font-weight: 650;
+  line-height: 1.15;
+  color: var(--navy-dark, #1a3568);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ped-ficha-spec-empty {
+  margin: 0;
+  font-size: 6.5pt;
+  color: var(--text-muted, #5a6570);
+}
+
+.ped-ficha-item-comercial {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6mm;
+  margin-top: 1.4mm;
+}
+
+.ped-ficha-faixa-aprovada {
+  padding: 1mm 1.4mm 1.2mm;
+  border-radius: 1.5px;
+  border: 0.5pt solid color-mix(in srgb, var(--border, #c5ced9) 75%, transparent);
+  background: color-mix(in srgb, var(--navy, #1a3568) 2.5%, transparent);
+}
+
+.ped-ficha-faixa-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2mm;
+  margin-bottom: 1mm;
+}
+
+.ped-ficha-faixa-title {
+  font-size: 6.5pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted, #5a6570);
+}
+
+.ped-ficha-faixa-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: var(--navy-dark, #1a3568);
+}
+
+.ped-ficha-faixa-kv {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ped-ficha-faixa-kv > li {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.2mm;
+  min-width: 0;
+  padding-right: 2.5mm;
+  border-right: 0.45pt solid color-mix(in srgb, var(--border, #c5ced9) 85%, transparent);
+}
+
+.ped-ficha-faixa-kv > li:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.ped-ficha-modelos {
+  margin-top: 0;
+}
+
+.ped-ficha-modelos .orc-modelos-ficha,
+.ped-ficha .ped-ficha-modelos {
+  font-size: 7pt;
+}
+
 /* Mapa de facas — inventário denso; quebra por máquina bem marcada. */
 .ficha-sheet-mapa-facas .ficha-mapa-facas-grupo {
   margin-top: 4.5mm;
@@ -9985,21 +10312,18 @@ tr.row-inactive td {
   }
 
   body.ficha-print-mode .ficha-page-proposta .orc-pub-faixas-table,
-  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table,
-  body.ficha-print-mode .ficha-page-proposta .ped-conf-itens {
+  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table {
     width: 100%;
     font-size: 8pt;
   }
 
   body.ficha-print-mode .ficha-page-proposta .orc-pub-faixas-table thead,
-  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table thead,
-  body.ficha-print-mode .ficha-page-proposta .ped-conf-itens thead {
+  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table thead {
     display: table-header-group;
   }
 
   body.ficha-print-mode .ficha-page-proposta .orc-pub-faixas-table tr,
-  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table tr,
-  body.ficha-print-mode .ficha-page-proposta .ped-conf-itens tr {
+  body.ficha-print-mode .ficha-page-proposta .orc-pub-modelos-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -10044,14 +10368,6 @@ tr.row-inactive td {
 
   body.ficha-print-mode .ficha-page-proposta .orc-url-arte .print-only {
     display: block;
-  }
-
-  body.ficha-print-mode .ped-conf-assinaturas {
-    break-inside: avoid;
-  }
-
-  body.ficha-print-mode .ped-conf-itens {
-    break-inside: auto;
   }
 
   body.ficha-print-mode .ficha-page-proposta .orc-url-arte-cta {
