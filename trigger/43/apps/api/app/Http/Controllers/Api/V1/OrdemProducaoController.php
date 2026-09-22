@@ -82,6 +82,8 @@ class OrdemProducaoController extends Controller
             'qtde_refugo' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'aceitar_fora_tolerancia' => ['sometimes', 'boolean'],
             'motivo_fora_tolerancia' => ['nullable', 'string', 'max:255'],
+            'aceitar_consumo_zero' => ['sometimes', 'boolean'],
+            'motivo_consumo_zero' => ['nullable', 'string', 'max:255'],
             'observacao' => ['nullable', 'string', 'max:2000'],
             'materiais' => ['nullable', 'array'],
             'materiais.*.material_id' => ['nullable', 'integer'],

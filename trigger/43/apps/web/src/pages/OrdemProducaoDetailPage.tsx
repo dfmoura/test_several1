@@ -34,6 +34,8 @@ export function OrdemProducaoDetailPage() {
   const [mats, setMats] = useState<MatForm[]>([]);
   const [aceitarFora, setAceitarFora] = useState(false);
   const [motivoFora, setMotivoFora] = useState('');
+  const [aceitarConsumoZero, setAceitarConsumoZero] = useState(false);
+  const [motivoConsumoZero, setMotivoConsumoZero] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -146,6 +148,8 @@ export function OrdemProducaoDetailPage() {
           qtde_refugo: qtdeRefugo || '0',
           aceitar_fora_tolerancia: aceitarFora,
           motivo_fora_tolerancia: motivoFora || null,
+          aceitar_consumo_zero: aceitarConsumoZero,
+          motivo_consumo_zero: motivoConsumoZero || null,
           materiais: mats,
         },
       );
@@ -209,6 +213,25 @@ export function OrdemProducaoDetailPage() {
     hasPermission('producao.escrever') &&
     materiaisPendentes.length > 0 &&
     !temFaltante;
+
+  const consumoZeroTotal =
+    materiaisRequisitados.length > 0 &&
+    materiaisRequisitados.every((m) => {
+      const form = mats.find((x) => x.material_id === m.id) ?? {
+        qtde_retorno: '0',
+        qtde_perda: '0',
+      };
+      return (
+        qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda) <= 0
+      );
+    });
+
+  const qtdeBoaNum = Number(String(qtdeBoa).replace(',', '.'));
+  const qtdeBoaValida = Number.isFinite(qtdeBoaNum) && qtdeBoaNum > 0;
+  const podeConcluirAgora =
+    podeConcluirComSaida &&
+    qtdeBoaValida &&
+    (!consumoZeroTotal || (aceitarConsumoZero && motivoConsumoZero.trim().length >= 3));
 
   return (
     <>
@@ -642,7 +665,8 @@ export function OrdemProducaoDetailPage() {
                   <p className="muted" style={{ marginTop: 0 }}>
                     <strong>Retorno</strong> volta ao estoque (sobra). <strong>Perda</strong> não
                     retorna. Consumo = requisitado − retorno − perda. Quantidade boa (PA) dentro de ±
-                    {tol}% readequa o pedido; fora da faixa exige motivo.
+                    {tol}% readequa o pedido; fora da faixa exige motivo. Consumo zero em todas as
+                    linhas com PA positivo também exige override com motivo.
                   </p>
                 </div>
 
@@ -718,6 +742,14 @@ export function OrdemProducaoDetailPage() {
                   </div>
                 ) : null}
 
+                {consumoZeroTotal ? (
+                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }} role="status">
+                    <strong>Consumo zero</strong> — retorno/perda cobrem 100% do requisitado. Sem
+                    material consumido não há quantidade boa coerente. Ajuste os apontamentos ou
+                    confirme o override abaixo com motivo.
+                  </div>
+                ) : null}
+
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <div className="form-group">
                     <label>Qtde boa (PA)</label>
@@ -741,16 +773,46 @@ export function OrdemProducaoDetailPage() {
                 </label>
                 {aceitarFora ? (
                   <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                    <label>Motivo</label>
+                    <label>Motivo (tolerância)</label>
                     <input value={motivoFora} onChange={(e) => setMotivoFora(e.target.value)} />
                   </div>
+                ) : null}
+
+                {consumoZeroTotal ? (
+                  <>
+                    <label
+                      style={{
+                        display: 'flex',
+                        gap: '0.5rem',
+                        alignItems: 'center',
+                        marginTop: '0.75rem',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={aceitarConsumoZero}
+                        onChange={(e) => setAceitarConsumoZero(e.target.checked)}
+                      />
+                      Aceitar concluir sem consumo de material
+                    </label>
+                    {aceitarConsumoZero ? (
+                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                        <label>Motivo (consumo zero)</label>
+                        <input
+                          value={motivoConsumoZero}
+                          onChange={(e) => setMotivoConsumoZero(e.target.value)}
+                          placeholder="Ex.: perda total apontada; PA de ensaio autorizado"
+                        />
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
 
                 <div className="btn-row" style={{ marginTop: '1rem' }}>
                   <button
                     type="button"
                     className="btn btn-primary"
-                    disabled={busy || !qtdeBoa || !podeConcluirComSaida}
+                    disabled={busy || !podeConcluirAgora}
                     onClick={() => void concluir()}
                   >
                     Concluir OP

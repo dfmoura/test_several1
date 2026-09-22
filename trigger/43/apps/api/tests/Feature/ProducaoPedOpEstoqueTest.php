@@ -318,6 +318,111 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertArrayHasKey('readequacao', $pedido->snapshot ?? []);
     }
 
+    public function test_conclusao_bloqueia_consumo_zero_sem_override(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        // Garante saldo folgado no papel (única linha baixada neste teste).
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => $req,
+                ],
+            ],
+        ]);
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'Consumo zero',
+            (string) $fail->json('message').json_encode($fail->json('errors'))
+        );
+        $this->assertSame('EM_ANDAMENTO', $pedido->ordensProducao()->find($opId)?->status);
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->exists()
+        );
+    }
+
+    public function test_conclusao_consumo_zero_com_override_e_motivo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+        $ok = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'aceitar_consumo_zero' => true,
+            'motivo_consumo_zero' => 'Perda total autorizada na máquina',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => $req,
+                ],
+            ],
+        ]);
+        $ok->assertOk();
+        $this->assertSame('CONCLUIDA', $ok->json('data.status'));
+        $this->assertStringContainsString('Consumo zero', (string) $ok->json('data.observacao'));
+
+        $pedido->refresh();
+        $this->assertTrue((bool) ($pedido->snapshot['readequacao']['consumo_zero'] ?? false));
+        $this->assertSame(
+            'Perda total autorizada na máquina',
+            $pedido->snapshot['readequacao']['motivo_consumo_zero'] ?? null
+        );
+    }
+
     public function test_nao_abre_op_sem_pedido_liberado_e_idempotente_ped(): void
     {
         $orc = Orcamento::query()->create([
