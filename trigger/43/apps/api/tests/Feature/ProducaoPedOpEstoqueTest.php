@@ -555,6 +555,50 @@ class ProducaoPedOpEstoqueTest extends TestCase
         );
     }
 
+    public function test_requisicao_complementar_do_mesmo_papel_aumenta_requisitada(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '200.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req1 = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        $extra = '70.1400';
+        $ok = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+            'qtde' => $extra,
+            'complementar' => true,
+        ]);
+        $ok->assertOk();
+        $req2 = (string) collect($ok->json('data.materiais'))->firstWhere('id', $papel['id'])['qtde_requisitada'];
+        $this->assertSame(bcadd($req1, $extra, 4), $req2);
+        $this->assertSame(
+            2,
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO)
+                ->count()
+        );
+    }
+
     public function test_nao_abre_op_sem_pedido_liberado_e_idempotente_ped(): void
     {
         $orc = Orcamento::query()->create([

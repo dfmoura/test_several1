@@ -49,6 +49,7 @@ class OrdemProducaoController extends Controller
             'produto_id' => ['nullable', 'integer'],
             'material_id' => ['nullable', 'integer'],
             'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'complementar' => ['sometimes', 'boolean'],
         ]);
 
         if (empty($data['material_id']) && empty($data['produto_id'])) {

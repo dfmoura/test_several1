@@ -211,6 +211,7 @@ class OrdemProducaoService
 
         $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
         $produtoId = isset($data['produto_id']) ? (int) $data['produto_id'] : 0;
+        $complementar = (bool) ($data['complementar'] ?? false);
 
         /** @var OrdemProducaoMaterial|null $matPendente */
         $matPendente = null;
@@ -224,9 +225,14 @@ class OrdemProducaoService
                     'material_id' => ['Material não pertence a esta OP.'],
                 ]);
             }
-            if ($matPendente->saida_movimento_id) {
+            if ($matPendente->saida_movimento_id && ! $complementar) {
                 throw ValidationException::withMessages([
-                    'material_id' => ['Material já requisitado.'],
+                    'material_id' => ['Material já requisitado. Use requisição complementar para o mesmo SKU.'],
+                ]);
+            }
+            if ($complementar && ! $matPendente->saida_movimento_id) {
+                throw ValidationException::withMessages([
+                    'complementar' => ['Requisite a saída planejada antes de complementar.'],
                 ]);
             }
             $produtoId = (int) $matPendente->produto_id;
@@ -257,7 +263,7 @@ class OrdemProducaoService
 
         $this->congelamento->assertProdutoLivre($empresa, $produto->id, 'saída para produção');
 
-        $op = DB::transaction(function () use ($empresa, $op, $produto, $qtde, $matPendente) {
+        $op = DB::transaction(function () use ($empresa, $op, $produto, $qtde, $matPendente, $complementar) {
             $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
 
             $mat = $matPendente
@@ -268,11 +274,13 @@ class OrdemProducaoService
                     ->lockForUpdate()
                     ->first();
 
-            if ($mat && $mat->saida_movimento_id) {
+            $mesmoSkuJaBaixado = $mat && $mat->saida_movimento_id;
+            if ($mesmoSkuJaBaixado && ! $complementar && $matPendente) {
                 throw ValidationException::withMessages([
-                    'produto_id' => ['Material já requisitado nesta OP. Conclua ou use outro SKU.'],
+                    'produto_id' => ['Material já requisitado nesta OP. Use requisição complementar para o mesmo SKU.'],
                 ]);
             }
+            $fazerComplementar = $mesmoSkuJaBaixado && ($complementar || ! $matPendente);
 
             $ano = (int) now()->year;
             $codigoMov = $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5);
@@ -286,7 +294,7 @@ class OrdemProducaoService
                 'ordem_producao_id' => $op->id,
                 'conferido_em' => now(),
                 'conferido_por' => Auth::id(),
-                'observacao' => 'Saída para '.$op->codigo,
+                'observacao' => ($fazerComplementar ? 'Complemento para ' : 'Saída para ').$op->codigo,
             ]);
 
             $ordemItem = 1;
@@ -328,6 +336,13 @@ class OrdemProducaoService
                     'saida_movimento_id' => $mov->id,
                     'ordem' => max(1, $ordem),
                 ]);
+            } elseif ($fazerComplementar) {
+                $mat->qtde_requisitada = PadraoDecimal::roundHalfUp(
+                    bcadd((string) $mat->qtde_requisitada, $qtde, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+                $mat->unidade = $produto->unidade_interna ?? 'UN';
+                $mat->save();
             } else {
                 if (bccomp((string) $mat->qtde_planejada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                     $mat->qtde_planejada = $qtde;
@@ -949,7 +964,7 @@ class OrdemProducaoService
         if (bccomp($consSoma, $minimo, PadraoDecimal::SCALE_QTY) < 0) {
             throw ValidationException::withMessages([
                 'materiais' => [
-                    "Papel insuficiente para a quantidade boa: consumido {$consSoma}, necessário pelo menos {$minimo} (rendimento da OP ±{$tolPct}%). Sem substrato correspondente não há etiqueta a concluir. Reduza a quantidade boa ou ajuste retorno/perda.",
+                    "Papel insuficiente para a quantidade boa: consumido {$consSoma}, necessário pelo menos {$minimo} (rendimento da OP ±{$tolPct}%). Sem substrato correspondente não há etiqueta a concluir. Requisite papel complementar, reduza a quantidade boa ou ajuste retorno/perda.",
                 ],
             ]);
         }

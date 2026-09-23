@@ -35,6 +35,7 @@ export function OrdemProducaoDetailPage() {
 
   const [produtoId, setProdutoId] = useState('');
   const [qtdeSaida, setQtdeSaida] = useState('');
+  const [qtdeComplementar, setQtdeComplementar] = useState('');
   const [produtos, setProdutos] = useState<Produto[]>([]);
 
   const [qtdeBoa, setQtdeBoa] = useState('');
@@ -80,7 +81,12 @@ export function OrdemProducaoDetailPage() {
     [op],
   );
 
-  const requisitar = async (opts?: { materialId?: number; qtde?: string; produtoId?: number }) => {
+  const requisitar = async (opts?: {
+    materialId?: number;
+    qtde?: string;
+    produtoId?: number;
+    complementar?: boolean;
+  }) => {
     if (!op) return;
     setBusy(true);
     setErr(null);
@@ -89,26 +95,31 @@ export function OrdemProducaoDetailPage() {
       const body: Record<string, unknown> = {};
       if (opts?.materialId) {
         body.material_id = opts.materialId;
-        if (opts.qtde) body.qtde = opts.qtde;
+        if (opts.qtde) body.qtde = String(parseQtdeDigitada(opts.qtde));
       } else {
         body.produto_id = opts?.produtoId ?? Number(produtoId);
-        body.qtde = opts?.qtde ?? qtdeSaida;
+        body.qtde = String(parseQtdeDigitada(opts?.qtde ?? qtdeSaida));
       }
+      if (opts?.complementar) body.complementar = true;
       const res = await api.post<{ data: OrdemProducao }>(
         `/ordens-producao/${op.id}/requisitar`,
         body,
       );
       setOp(res.data);
-      setMats(
-        (res.data.materiais ?? []).map((m) => ({
-          material_id: m.id,
-          qtde_retorno: m.qtde_retorno || '0',
-          qtde_perda: m.qtde_perda || '0',
-        })),
+      setMats((prev) =>
+        (res.data.materiais ?? []).map((m) => {
+          const keep = prev.find((x) => Number(x.material_id) === Number(m.id));
+          return {
+            material_id: m.id,
+            qtde_retorno: keep?.qtde_retorno ?? (m.qtde_retorno || '0'),
+            qtde_perda: keep?.qtde_perda ?? (m.qtde_perda || '0'),
+          };
+        }),
       );
       setProdutoId('');
       setQtdeSaida('');
-      setMsg('Saída de material registrada.');
+      setQtdeComplementar('');
+      setMsg(opts?.complementar ? 'Papel complementar requisitado.' : 'Saída de material registrada.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha na requisição.');
     } finally {
@@ -292,6 +303,8 @@ export function OrdemProducaoDetailPage() {
   );
   const papelInsuficiente =
     papeisRequisitados.length > 0 && qtdeBoaValida && consumoPapel + 1e-9 < papelMinimo;
+  const papelFaltanteParaBoa = Math.max(0, papelMinimo - consumoPapel);
+  const papelComplementarAlvo = papeisRequisitados[0] ?? null;
 
   const semMaterialParaProduzir = consumoZeroTotal || consumoMpZero || papelInsuficiente;
   const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !semMaterialParaProduzir;
@@ -828,8 +841,8 @@ export function OrdemProducaoDetailPage() {
                         <strong>Papel insuficiente para a quantidade boa</strong> — consumido{' '}
                         {formatDecimalBr(consumoPapel, 4)} {unidadePapel}; mínimo{' '}
                         {formatDecimalBr(papelMinimo, 4)} {unidadePapel} (±{tol}% do rendimento).
-                        Sem substrato correspondente não há etiqueta. Reduza a quantidade boa ou
-                        ajuste retorno/perda.
+                        Sem substrato correspondente não há etiqueta. Requisite o papel que falta
+                        (baixa no estoque), reduza a quantidade boa ou ajuste retorno/perda.
                       </>
                     ) : (
                       <>
@@ -840,6 +853,63 @@ export function OrdemProducaoDetailPage() {
                         A conclusão permanece bloqueada.
                       </>
                     )}
+                  </div>
+                ) : null}
+
+                {aberta &&
+                hasPermission('producao.escrever') &&
+                papelInsuficiente &&
+                papelComplementarAlvo ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-end',
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    <div className="form-group" style={{ minWidth: 160, margin: 0 }}>
+                      <label>Papel complementar ({unidadePapel})</label>
+                      <input
+                        value={qtdeComplementar}
+                        onChange={(e) => setQtdeComplementar(e.target.value)}
+                        placeholder={formatDecimalBr(papelFaltanteParaBoa, 4)}
+                        aria-label="Quantidade de papel complementar"
+                      />
+                      <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85em' }}>
+                        Sugestão: {formatDecimalBr(papelFaltanteParaBoa, 4)} {unidadePapel} (diferença
+                        até o mínimo). Exige saldo no estoque.
+                        {hasPermission('estoque.ler') && papelComplementarAlvo.produto ? (
+                          <>
+                            {' '}
+                            <Link to={`/estoque/extrato/${papelComplementarAlvo.produto.id}`}>
+                              Ver extrato
+                            </Link>
+                          </>
+                        ) : null}
+                        {hasPermission('compras.ler') ? (
+                          <>
+                            {' · '}
+                            <Link to="/compras/ordens/nova">Nova OC</Link>
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={busy}
+                      onClick={() =>
+                        void requisitar({
+                          materialId: papelComplementarAlvo.id,
+                          qtde: qtdeComplementar || String(papelFaltanteParaBoa),
+                          complementar: true,
+                        })
+                      }
+                    >
+                      Requisitar papel complementar
+                    </button>
                   </div>
                 ) : null}
 
