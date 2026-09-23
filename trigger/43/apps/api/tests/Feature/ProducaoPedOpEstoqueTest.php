@@ -501,6 +501,60 @@ class ProducaoPedOpEstoqueTest extends TestCase
         );
     }
 
+    public function test_conclusao_bloqueia_perda_alta_de_papel_insuficiente_para_qtde_boa(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        // Perda alta (≈ 90% do requisitado) ainda deixa consumo > 0 — não cobre a qtde boa.
+        $perda = bcmul($req, '0.90', 4);
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => $perda,
+                ],
+            ],
+        ]);
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'Papel insuficiente',
+            (string) $fail->json('message').json_encode($fail->json('errors'))
+        );
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->exists()
+        );
+    }
+
     public function test_nao_abre_op_sem_pedido_liberado_e_idempotente_ped(): void
     {
         $orc = Orcamento::query()->create([

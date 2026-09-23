@@ -723,6 +723,13 @@ class OrdemProducaoService
                 ]);
             }
 
+            $this->assertPapelSuficienteParaQtdeBoa(
+                $destinos,
+                (string) $op->qtde_planejada,
+                $qtdeBoa,
+                $tolPct,
+            );
+
             foreach ($destinos as $dest) {
                 /** @var OrdemProducaoMaterial $mat */
                 $mat = $dest['mat'];
@@ -874,6 +881,78 @@ class OrdemProducaoService
         });
 
         return $this->show($op->fresh());
+    }
+
+    /**
+     * Papel/MP consumido tem de cobrir a quantidade boa (rendimento do empenho).
+     * Sem isso dá para apontar perda alta e ainda registrar PA — etiqueta sem substrato.
+     * Faixa mínima = necessário × (1 − tol%), a mesma tolerância do PED.
+     *
+     * @param  list<array{mat: OrdemProducaoMaterial, consumida: string}>  $destinos
+     */
+    private function assertPapelSuficienteParaQtdeBoa(
+        array $destinos,
+        string $qtdePlanejadaOp,
+        string $qtdeBoa,
+        string $tolPct,
+    ): void {
+        if (bccomp($qtdePlanejadaOp, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return;
+        }
+
+        $papeis = [];
+        foreach ($destinos as $dest) {
+            $mat = $dest['mat'];
+            $componente = strtoupper((string) ($mat->componente ?? ''));
+            if ($componente === 'PAPEL') {
+                $papeis[] = $dest;
+            }
+        }
+        if ($papeis === []) {
+            foreach ($destinos as $dest) {
+                $familia = strtoupper((string) ($dest['mat']->produto?->familia ?? ''));
+                if ($familia === 'MP') {
+                    $papeis[] = $dest;
+                }
+            }
+        }
+        if ($papeis === []) {
+            return;
+        }
+
+        $reqSoma = '0';
+        $consSoma = '0';
+        foreach ($papeis as $dest) {
+            $reqSoma = bcadd($reqSoma, (string) $dest['mat']->qtde_requisitada, PadraoDecimal::SCALE_QTY + 4);
+            $consSoma = bcadd($consSoma, (string) $dest['consumida'], PadraoDecimal::SCALE_QTY + 4);
+        }
+        $reqSoma = PadraoDecimal::roundHalfUp($reqSoma, PadraoDecimal::SCALE_QTY);
+        $consSoma = PadraoDecimal::roundHalfUp($consSoma, PadraoDecimal::SCALE_QTY);
+        if (bccomp($reqSoma, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return;
+        }
+
+        $fracaoBoa = bcdiv($qtdeBoa, $qtdePlanejadaOp, 8);
+        $necessario = PadraoDecimal::roundHalfUp(
+            bcmul($reqSoma, $fracaoBoa, PadraoDecimal::SCALE_QTY + 4),
+            PadraoDecimal::SCALE_QTY
+        );
+        $tolFrac = bcdiv($tolPct, '100', 8);
+        $minimo = PadraoDecimal::roundHalfUp(
+            bcmul($necessario, bcsub('1', $tolFrac, 8), PadraoDecimal::SCALE_QTY + 4),
+            PadraoDecimal::SCALE_QTY
+        );
+        if (bccomp($minimo, '0', PadraoDecimal::SCALE_QTY) < 0) {
+            $minimo = '0';
+        }
+
+        if (bccomp($consSoma, $minimo, PadraoDecimal::SCALE_QTY) < 0) {
+            throw ValidationException::withMessages([
+                'materiais' => [
+                    "Papel insuficiente para a quantidade boa: consumido {$consSoma}, necessário pelo menos {$minimo} (rendimento da OP ±{$tolPct}%). Sem substrato correspondente não há etiqueta a concluir. Reduza a quantidade boa ou ajuste retorno/perda.",
+                ],
+            ]);
+        }
     }
 
     /**

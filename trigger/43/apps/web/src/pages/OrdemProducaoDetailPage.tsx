@@ -7,7 +7,15 @@ import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { opMaterialLinhaStatus, opMaterialStatusLabel, opStatusLabel, parseQtdeDigitada, qtdeConsumidaApontada } from '../lib/producaoUi';
+import {
+  ehMaterialProducao,
+  opMaterialLinhaStatus,
+  opMaterialStatusLabel,
+  opStatusLabel,
+  papelMinimoParaQtdeBoa,
+  parseQtdeDigitada,
+  qtdeConsumidaApontada,
+} from '../lib/producaoUi';
 import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 
@@ -137,9 +145,11 @@ export function OrdemProducaoDetailPage() {
     if (!op) return;
     if (semMaterialParaProduzir) {
       setErr(
-        consumoMpZero && !consumoZeroTotal
-          ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste retorno/perda do substrato.'
-          : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
+        papelInsuficiente && !consumoMpZero
+          ? `Papel insuficiente para a quantidade boa — consumido ${formatDecimalBr(consumoPapel, 4)} ${unidadePapel}, mínimo ${formatDecimalBr(papelMinimo, 4)} ${unidadePapel}. Sem substrato correspondente não há etiqueta.`
+          : consumoMpZero && !consumoZeroTotal
+            ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste retorno/perda do substrato.'
+            : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
       );
       return;
     }
@@ -243,11 +253,7 @@ export function OrdemProducaoDetailPage() {
       );
     });
 
-  const mpsRequisitados = materiaisRequisitados.filter(
-    (m) =>
-      (m.produto?.familia ?? '').toUpperCase() === 'MP' ||
-      (m.componente ?? '').toUpperCase() === 'PAPEL',
-  );
+  const mpsRequisitados = materiaisRequisitados.filter((m) => ehMaterialProducao(m));
   const consumoMpZero =
     mpsRequisitados.length > 0 &&
     mpsRequisitados.every((m) => {
@@ -260,10 +266,34 @@ export function OrdemProducaoDetailPage() {
       );
     });
 
-  const semMaterialParaProduzir = consumoZeroTotal || consumoMpZero;
-
+  const papeisRequisitados = (() => {
+    const soPapel = mpsRequisitados.filter((m) => (m.componente ?? '').toUpperCase() === 'PAPEL');
+    return soPapel.length > 0 ? soPapel : mpsRequisitados;
+  })();
+  const consumoPapel = papeisRequisitados.reduce((acc, m) => {
+    const form = mats.find((x) => Number(x.material_id) === Number(m.id)) ?? {
+      qtde_retorno: '0',
+      qtde_perda: '0',
+    };
+    return acc + qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda);
+  }, 0);
+  const reqPapel = papeisRequisitados.reduce(
+    (acc, m) => acc + parseQtdeDigitada(m.qtde_requisitada),
+    0,
+  );
+  const unidadePapel = papeisRequisitados[0]?.unidade ?? 'M2';
   const qtdeBoaNum = parseQtdeDigitada(qtdeBoa);
   const qtdeBoaValida = qtdeBoaNum > 0;
+  const papelMinimo = papelMinimoParaQtdeBoa(
+    reqPapel,
+    op?.qtde_planejada ?? '0',
+    qtdeBoa,
+    tol,
+  );
+  const papelInsuficiente =
+    papeisRequisitados.length > 0 && qtdeBoaValida && consumoPapel + 1e-9 < papelMinimo;
+
+  const semMaterialParaProduzir = consumoZeroTotal || consumoMpZero || papelInsuficiente;
   const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !semMaterialParaProduzir;
 
   return (
@@ -698,9 +728,9 @@ export function OrdemProducaoDetailPage() {
                   <p className="muted" style={{ marginTop: 0 }}>
                     <strong>Retorno</strong> volta ao estoque (sobra). <strong>Perda</strong> não
                     retorna. Consumo = requisitado − retorno − perda. Quantidade boa (PA) dentro de ±
-                    {tol}% readequa o pedido; fora da faixa exige motivo. Se o consumo zerar em{' '}
-                    <strong>todas</strong> as linhas baixadas, a conclusão é bloqueada — sem material
-                    consumido não há produção.
+                    {tol}% readequa o pedido; fora da faixa exige motivo. O consumo de papel tem de
+                    cobrir a quantidade boa (rendimento da OP ±{tol}%) — sem substrato não há
+                    etiqueta.
                   </p>
                 </div>
 
@@ -736,14 +766,16 @@ export function OrdemProducaoDetailPage() {
                             form.qtde_retorno,
                             form.qtde_perda,
                           );
-                          const ehMp =
-                            (m.produto?.familia ?? '').toUpperCase() === 'MP' ||
-                            (m.componente ?? '').toUpperCase() === 'PAPEL';
+                          const ehMp = ehMaterialProducao(m);
+                          const linhaPapelCritica =
+                            ehMp &&
+                            (consumo <= 0 ||
+                              (papelInsuficiente && papeisRequisitados.some((p) => p.id === m.id)));
                           return (
                             <tr
                               key={m.id}
                               style={
-                                consumo <= 0 && ehMp
+                                linhaPapelCritica
                                   ? {
                                       background:
                                         'color-mix(in srgb, var(--danger, #c0392b) 6%, transparent)',
@@ -791,11 +823,23 @@ export function OrdemProducaoDetailPage() {
 
                 {semMaterialParaProduzir ? (
                   <div className="alert alert-warning" style={{ marginBottom: '1rem' }} role="status">
-                    <strong>Sem material para produzir</strong>
-                    {consumoMpZero && !consumoZeroTotal
-                      ? ' — o papel/MP está com consumo zero (perda/retorno = 100%). Sem substrato não há produção.'
-                      : ' — retorno/perda cobrem 100% do requisitado. Ajuste os apontamentos para deixar consumo > 0 no material de produção.'}{' '}
-                    A conclusão permanece bloqueada.
+                    {papelInsuficiente && !consumoMpZero ? (
+                      <>
+                        <strong>Papel insuficiente para a quantidade boa</strong> — consumido{' '}
+                        {formatDecimalBr(consumoPapel, 4)} {unidadePapel}; mínimo{' '}
+                        {formatDecimalBr(papelMinimo, 4)} {unidadePapel} (±{tol}% do rendimento).
+                        Sem substrato correspondente não há etiqueta. Reduza a quantidade boa ou
+                        ajuste retorno/perda.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Sem material para produzir</strong>
+                        {consumoMpZero && !consumoZeroTotal
+                          ? ' — o papel/MP está com consumo zero (perda/retorno = 100%). Sem substrato não há produção.'
+                          : ' — retorno/perda cobrem 100% do requisitado. Ajuste os apontamentos para deixar consumo > 0 no material de produção.'}{' '}
+                        A conclusão permanece bloqueada.
+                      </>
+                    )}
                   </div>
                 ) : null}
 

@@ -148,3 +148,29 @@ export function qtdeConsumidaApontada(
   const p = parseQtdeDigitada(perda);
   return Math.max(0, r - ret - p);
 }
+
+export function ehMaterialProducao(m: {
+  componente?: string | null;
+  produto?: { familia?: string | null } | null;
+}): boolean {
+  return (
+    (m.componente ?? '').toUpperCase() === 'PAPEL' ||
+    (m.produto?.familia ?? '').toUpperCase() === 'MP'
+  );
+}
+
+/** Papel mínimo para a qtde boa (rendimento da OP × (1 − tol%)). */
+export function papelMinimoParaQtdeBoa(
+  requisitada: string | number,
+  qtdePlanejadaOp: string | number,
+  qtdeBoa: string | number,
+  tolPct: string | number,
+): number {
+  const req = parseQtdeDigitada(requisitada);
+  const planejada = parseQtdeDigitada(qtdePlanejadaOp);
+  const boa = parseQtdeDigitada(qtdeBoa);
+  const tol = parseQtdeDigitada(tolPct);
+  if (req <= 0 || planejada <= 0 || boa <= 0) return 0;
+  const necessario = req * (boa / planejada);
+  return Math.max(0, necessario * (1 - tol / 100));
+}
