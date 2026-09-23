@@ -38,25 +38,27 @@ cat <<'EOF'
 
 Pronto para testar — coleta dirigida (OP → estoque → produção)
   App:        http://localhost:8043
+  Menu:       Produção → Retiradas  (também aba no Estoque)
   Retiradas:  http://localhost:8043/estoque/retiradas
   Painel:     http://localhost:8043/
   Login:      http://localhost:8043/login
 
 Pré-requisitos
-  • Usuário com producao.ler + estoque.ler (confirmar: producao.escrever ou estoque.escrever)
+  • Usuário com producao.ler ou estoque.ler (confirmar: producao.escrever ou estoque.escrever)
   • Handoff na máquina: producao.escrever
   • OP ABERTA/EM_ANDAMENTO com material pendente
   • SKU com lote: volume (qtde > 0) e QR VOL: — senão a fila aparece e a baixa espera estoque
 
 Roteiro
   1. Hard refresh (Ctrl+Shift+R)
-  2. Painel: fila «Retiradas em aberto» → Estoque → Retiradas → Abrir ficha
-  3. Confrontação: Sistema (pedido) × Físico baixado × A retirar
-  4. QR VOL: ou quantidade manual → Confirmar e anexar à OP
-  5. Avaria na mesa → Registrar → Requisitar de novo (novo ciclo na ficha)
-  6. Entregar na produção (quem recebeu na máquina)
-  7. Na OP: a mesma ficha fica anexo à ordem
-  8. SKU sem lote: um clique, sem QR
+  2. Sidebar: Produção → Retiradas  (ou Painel → fila «Retiradas em aberto»)
+  3. Abrir ficha da OP
+  4. Confrontação: Sistema (pedido) × Físico baixado × A retirar
+  5. QR VOL: ou quantidade manual → Confirmar e anexar à OP
+  6. Avaria na mesa → Registrar → Requisitar de novo (novo ciclo na ficha)
+  7. Entregar na produção (quem recebeu na máquina)
+  8. Na OP: a mesma ficha fica anexo à ordem — sem confirmar baixa
+  9. SKU sem lote: um clique, sem QR
 
 Não inventar saldo. Entrada só via OC/receber ou AJU/INV aprovado.
 

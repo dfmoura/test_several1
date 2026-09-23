@@ -126,6 +126,15 @@ const NAV_GROUPS: NavGroup[] = [
         isActivePath: (pathname) =>
           pathname === '/ordens-producao' || pathname.startsWith('/ordens-producao/'),
       },
+      {
+        to: '/estoque/retiradas',
+        label: 'Retiradas',
+        icon: IconEstoque,
+        permission: 'estoque.ler',
+        permissionsAny: ['producao.ler', 'estoque.ler'],
+        title: 'Fila do estoque: confrontar e baixar a requisição da OP',
+        isActivePath: (pathname) => pathname.startsWith('/estoque/retiradas'),
+      },
     ],
   },
   {
@@ -182,7 +191,8 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconEstoque,
         permission: 'estoque.ler',
         isActivePath: (pathname) =>
-          pathname === '/estoque' || pathname.startsWith('/estoque/'),
+          pathname === '/estoque' ||
+          (pathname.startsWith('/estoque/') && !pathname.startsWith('/estoque/retiradas')),
       },
     ],
   },

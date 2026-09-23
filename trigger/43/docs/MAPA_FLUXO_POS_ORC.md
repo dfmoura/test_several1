@@ -68,7 +68,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 
 | Visível no menu | Esqueleto (código mantido, menu gated) |
 |-----------------|----------------------------------------|
-| Pedidos, OP, Estoque, Compras, **Produtos (SKU)**, FAT, ENT, carteira | Hub Rastreio, comissões, NEC/COT, fluxo de caixa pleno |
+| Pedidos, OP, Estoque, **Retiradas**, Compras, **Produtos (SKU)**, FAT, ENT, carteira | Hub Rastreio, comissões, NEC/COT, fluxo de caixa pleno |
 
 **Produtos/SKU (F5_PRODUTOS):** MP/EMB/REV operacionais no menu Cadastros; **MUC** = uso e consumo (`ADR_FAMILIA_MUC_USO_CONSUMO.md`). Preço comercial da etiqueta sob medida = **catálogo ORC**. PA sob encomenda = família `PA-ETQ-*` + spec no PED (anti-explosão do estudo 32). Insumo bobina Exact: SKU = material+programa; bobina física = volume (`ADR_CADASTRO_INSUMO_VOLUME.md`) — não explodir SKU por L×C.
 

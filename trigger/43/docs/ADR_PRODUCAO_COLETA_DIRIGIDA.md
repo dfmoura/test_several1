@@ -29,7 +29,7 @@ A OP já baixa MP/EMB com `SAIDA_PRODUCAO` via `EstoqueSaldoWriter` (empenho lev
 | **QR = leitura** | Como Guardar: scan não grava; humano confirma. |
 | **Handoff na OP** | `insumos_entregues_*` — quem/quando. Não é ledger. Complemento zera o handoff. |
 | **Uma fila no Painel** | `op_separacao` só se `count > 0` → `/estoque/retiradas`. |
-| **Sem menu de módulo** | Item no nav do Estoque (como Guardar). Sem hub de rastreio. |
+| **Menu + aba** | Item **Retiradas** em Produção (após a OP) e aba no Estoque. Sem hub de rastreio. |
 | **Ficha = confrontação** | Sistema (pedido) × físico baixado. QR ou manual. Ciclos = MOV. Sem `REQ-`. |
 
 ### Superfícies
