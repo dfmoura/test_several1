@@ -63,7 +63,7 @@ export function OrdemProducaoFichaPage() {
 
   useEffect(() => {
     if (!ordem) return;
-    document.title = `Ordem de produção ${ordem.codigo} · ${ordem.pedido_item?.descricao ?? 'OP'}`;
+    document.title = `Ficha ${ordem.codigo} · ${ordem.parceiro?.razao_social ?? 'Ordem'}`;
     return () => {
       document.title = brandDocumentTitle();
     };
@@ -83,7 +83,7 @@ export function OrdemProducaoFichaPage() {
             Voltar à ordem
           </button>
           <span className="ficha-toolbar-hint">
-            Retrato A4 · ordem de produção · Imprimir ou Salvar como PDF
+            Ficha da ordem · retrato A4 · uso interno (sem preço) · Imprimir ou Salvar como PDF
           </span>
         </div>
         <button

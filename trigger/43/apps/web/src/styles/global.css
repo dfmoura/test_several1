@@ -9611,7 +9611,7 @@ tr.row-inactive td {
 }
 
 /* OC — pedido de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc.
-   OP — ordem de produção oficial (A4 retrato). Escopo em .ficha-sheet-op (reusa banner). */
+   OP imprimível usa a família .ped-ficha (mesmo envelope do PED). */
 .ficha-sheet-oc .ficha-oc-banner,
 .ficha-sheet-op .ficha-op-banner {
   display: flex;

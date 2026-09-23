@@ -15,11 +15,26 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-116`
+`BL-117`
 
 ---
 
 ## Itens
+
+### BL-116 · [producao/ux] Ficha da OP na família do PED
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — ficha da ordem igual à do pedido
+- **Depende de:** ficha PED (`PedidoFichaSheet`)
+- **Decisão (fechada):**
+  1. Mesmo envelope visual do PED (masthead, título, cliente, item).
+  2. Spec do item via `PedidoItemFichaBloco` eixo `producao` — sem preço.
+  3. Sem banner/assinatura estilo OC. Materiais e conclusão ficam.
+- **Aceite:**
+  - [x] `/ordens-producao/:id/ficha` usa `ped-ficha`
+  - [x] Sem unitário/total na OP
+- **Fora de escopo:** motor · rota nova · preço no chão
+- **Teste local:** OP → Imprimir ficha. Ctrl+Shift+R.
 
 ### BL-115 · [expedicao/ux] Ficha de preparação (só o que falta)
 - **Status:** Feito

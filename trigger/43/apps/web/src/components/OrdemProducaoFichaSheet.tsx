@@ -1,29 +1,23 @@
+import { RegistroMetaStrip } from './RegistroMetaStrip';
 import { TriggerAttribution } from './TriggerAttribution';
 import {
-  FichaEspecificacaoSection,
-  FichaFacaSection,
-  FichaGuiaProducaoSection,
-  FichaKv,
-  FichaSaidaEtiquetaSection,
-  FichaSection,
-} from './ProducaoFichaBlocks';
+  identidadeParteComercial,
+  metaLinhasParteComercial,
+} from './OrcPubParteComercial';
+import { PedidoItemFichaBloco } from './PedidoFichaSheet';
+import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
 import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
+import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
+import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { opMaterialStatusLabel, opStatusLabel } from '../lib/producaoUi';
-import {
-  dash,
-  faixaFisica,
-  formatDateTimeBr,
-  modelosDoSnap,
-  opChipClass,
-  specOperacional,
-} from '../lib/producaoFicha';
+import { dash, formatDateTimeBr, opChipClass } from '../lib/producaoFicha';
 
 /**
- * Ordem de produção imprimível — documento oficial de chão de fábrica.
- * Uso interno. Sem preço/margem. Spec herdada do PED.
+ * Ficha da OP — mesma família visual do PED.
+ * Sem preço. Spec do item do pedido. Materiais e conclusão só da OP.
  */
 export type OrdemProducaoFichaSheetProps = {
   ordem: OrdemProducao;
@@ -46,34 +40,36 @@ export function OrdemProducaoFichaSheet({
   emitidoPor,
   emitidoEm,
 }: OrdemProducaoFichaSheetProps) {
-  const item = pedido?.itens.find((i) => i.id === o.pedido_item?.id) ?? pedido?.itens[0];
-  const spec = specOperacional(pedido, item);
-  const faixa = faixaFisica(pedido);
-  const modelos = modelosDoSnap(spec);
+  const item =
+    pedido?.itens.find((i) => i.id === o.pedido_item?.id) ?? pedido?.itens[0] ?? null;
   const materiais = o.materiais ?? [];
   const tol = o.pedido?.tolerancia_qtd_pct ?? pedido?.tolerancia_qtd_pct ?? '20';
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
-  const cliente = o.parceiro
-    ? `${o.parceiro.codigo} — ${o.parceiro.razao_social}`
-    : '—';
-  const descricao = o.pedido_item?.descricao ?? item?.descricao ?? 'Ordem de produção';
+  const parceiro = pedido?.parceiro ?? o.parceiro ?? null;
+  const cliente = identidadeParteComercial(parceiro, parceiro?.razao_social ?? '—');
+  const clienteCodigo = (parceiro?.codigo ?? '').trim();
+  const clienteLead = clienteCodigo
+    ? `${clienteCodigo} — ${cliente.display}`
+    : cliente.display;
+  const clienteMeta = [
+    ...metaLinhasParteComercial(parceiro, { showCodigo: false, showDocumento: false }),
+    formatEnderecoParceiro(pedido?.parceiro) ?? '',
+  ]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(' · ');
   const qtdePlanejada = formatDecimalBr(Number(o.qtde_planejada), 0);
-  const qtdePedida =
-    o.pedido_item?.qtde_pedida != null
-      ? formatDecimalBr(Number(o.pedido_item.qtde_pedida), 0)
-      : null;
+  const ops = pedido?.ordens_producao ?? [];
+  const oss = pedido?.ordens_servico ?? [];
 
   return (
-    <article
-      className="ficha-sheet ficha-sheet-op"
-      aria-label={`Ordem de produção ${o.codigo}`}
-    >
+    <article className="ficha-sheet ped-ficha" aria-label={`Ficha da ordem ${o.codigo}`}>
       <header className="ficha-masthead">
         <div className="ficha-masthead-brand">
           <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
           <div>
             <strong className="ficha-org">{empresaNome}</strong>
-            <span className="ficha-doc-label">Produção · documento oficial de chão</span>
+            <span className="ficha-doc-label">Ficha da ordem · operacional</span>
           </div>
         </div>
         <div className="ficha-masthead-id">
@@ -82,51 +78,56 @@ export function OrdemProducaoFichaSheet({
         </div>
       </header>
 
-      <div className="ficha-oc-banner ficha-op-banner">
-        <div className="ficha-oc-banner-tipo">
-          <strong>Ordem de produção</strong>
-          <span>Documento oficial de chão de fábrica</span>
+      <div className="ficha-title-block">
+        <div className="ficha-title-main">
+          <h2 className="ficha-razao">Ordem de produção</h2>
         </div>
-        <div className="ficha-oc-banner-meta">
+        <div className="ficha-title-meta">
           <span className={`ficha-chip ${opChipClass(o.status)}`.trim()}>
             {opStatusLabel(o.status)}
           </span>
-          <span className="ficha-chip ficha-chip-papel">{qtdePlanejada} un.</span>
+          <span className="ficha-chip ficha-chip-muted">{qtdePlanejada} un.</span>
+          {pedido?.prazo_entrega_dias != null ? (
+            <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(pedido)}</span>
+          ) : null}
           <span className="ficha-chip ficha-chip-muted">±{tol}%</span>
         </div>
       </div>
 
-      <div className="ficha-title-block">
-        <div className="ficha-title-main">
-          <h2 className="ficha-razao">{descricao}</h2>
-          <p className="ficha-fantasia">
-            {qtdePedida && qtdePedida !== qtdePlanejada
-              ? `Produção sob encomenda · pedida ${qtdePedida} un.`
-              : 'Produção sob encomenda'}
-          </p>
-        </div>
-        <div className="ficha-title-meta">
-          <span className="ficha-oc-numero-label">Nº da OP</span>
-          <span className="ficha-oc-numero">{o.codigo}</span>
-        </div>
-      </div>
+      <section className="ficha-party">
+        <h3>Cliente</h3>
+        <p className="ficha-party-lead">{clienteLead}</p>
+        <p className="ficha-party-meta">{clienteMeta || '—'}</p>
+      </section>
 
       <div className="ficha-kv-strip">
         <FichaKv label="Pedido" value={pedCodigo} />
-        <FichaKv label="Cliente" value={cliente} />
         <FichaKv label="Aberta" value={formatDateTime(o.created_at)} />
-        {o.iniciada_em ? (
-          <FichaKv label="Iniciada" value={formatDateTime(o.iniciada_em)} />
-        ) : null}
+        {o.iniciada_em ? <FichaKv label="Iniciada" value={formatDateTime(o.iniciada_em)} /> : null}
         {o.concluida_em ? (
           <FichaKv label="Concluída" value={formatDateTime(o.concluida_em)} />
         ) : null}
       </div>
 
-      <FichaEspecificacaoSection spec={spec} />
-      <FichaFacaSection spec={spec} />
-      <FichaSaidaEtiquetaSection spec={spec} />
-      <FichaGuiaProducaoSection spec={spec} faixa={faixa} modelos={modelos} />
+      <FichaSection title="Item">
+        {pedido && item ? (
+          <div className="ped-ficha-itens">
+            <PedidoItemFichaBloco
+              pedido={pedido}
+              item={item}
+              ops={ops}
+              oss={oss}
+              multi={false}
+              eixo="producao"
+              qtdePlanejada={o.qtde_planejada}
+            />
+          </div>
+        ) : (
+          <p className="ficha-empty">
+            {o.pedido_item?.descricao ?? 'Item do pedido indisponível nesta ficha.'}
+          </p>
+        )}
+      </FichaSection>
 
       <FichaSection title="Materiais">
         {materiais.length === 0 ? (
@@ -155,9 +156,7 @@ export function OrdemProducaoFichaSheet({
                     {m.origem_texto ? ` · ${m.origem_texto}` : ''}
                   </td>
                   <td>
-                    {m.produto
-                      ? `${m.produto.codigo} — ${m.produto.descricao_fiscal}`
-                      : '—'}
+                    {m.produto ? `${m.produto.codigo} — ${m.produto.descricao_fiscal}` : '—'}
                   </td>
                   <td>{qty(m.qtde_planejada, m.unidade)}</td>
                   <td>{m.pendente ? '—' : qty(m.qtde_requisitada, m.unidade)}</td>
@@ -209,28 +208,11 @@ export function OrdemProducaoFichaSheet({
         </FichaSection>
       ) : null}
 
-      <div className="ficha-oc-assinaturas">
-        <div className="ficha-oc-assinatura">
-          <span className="ficha-oc-assinatura-linha" aria-hidden />
-          <strong>Operador / máquina</strong>
-          <span>Nome / data</span>
-        </div>
-        <div className="ficha-oc-assinatura">
-          <span className="ficha-oc-assinatura-linha" aria-hidden />
-          <strong>Supervisor / CQ</strong>
-          <span>Nome / data</span>
-        </div>
-      </div>
-
-      <p className="ficha-note">
-        Uso interno — chão de fábrica. Especificação herdada do pedido. Sem preço de venda nem
-        margem.
-      </p>
+      <RegistroMetaStrip registro={{ created_at: o.created_at }} className="ficha-autoria" />
 
       <footer className="ficha-footer">
         <span>
-          Ordem de produção {o.codigo} · emitida por {emitidoPor} ·{' '}
-          {formatDateTimeBr(emitidoEm)}
+          Uso interno · {o.codigo} · emitido por {emitidoPor}
         </span>
         <TriggerAttribution
           variant="print"

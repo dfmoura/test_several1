@@ -60,7 +60,7 @@ Fora da faixa → bloqueio, salvo override com motivo (`producao.escrever` + fla
 2. Empenho “leve” = linhas de material na OP **pré-preenchidas do snapshot** (papel/tubete/caixa → SKU) sem baixar saldo; saída sob confirmação.  
 3. PA sob encomenda → SKU família `PA-ETQ-*` + especificação no item do PED (não explode cadastro).  
 4. Painel Produção no mesmo ERP (lista PED/OP/OS) — sem app paralelo.  
-5. Perfil PRODUCAO sem preço/margem do ORC nas telas de chão.
+5. Perfil PRODUCAO sem preço/margem do ORC nas telas de chão. Ficha da OP (`/ordens-producao/:id/ficha`) = mesma família visual da ficha do PED; sem banner de OC.
 6. **Confirmação ao cliente** = superfície satélite `/pedidos/:id/ficha-cliente` — não misturar com a ficha operacional. Norma: [`ADR_PED_CONFIRMACAO_CLIENTE.md`](ADR_PED_CONFIRMACAO_CLIENTE.md).
 
 ### Devolver OP ao PED (sem saída)

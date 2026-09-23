@@ -177,18 +177,23 @@ function PedidoSpecLinha({
   );
 }
 
-function PedidoItemBloco({
+export function PedidoItemFichaBloco({
   pedido,
   item,
   ops,
   oss,
   multi,
+  eixo = 'pedido',
+  qtdePlanejada,
 }: {
   pedido: Pedido;
   item: PedidoItem;
   ops: NonNullable<Pedido['ordens_producao']>;
   oss: NonNullable<Pedido['ordens_servico']>;
   multi: boolean;
+  /** `producao` = chão (sem preço; mostra planejada da OP). */
+  eixo?: 'pedido' | 'producao';
+  qtdePlanejada?: string | null;
 }) {
   const spec = specOperacional(pedido, item);
   const isServico = item.necessidade === 'SERVICO';
@@ -235,10 +240,17 @@ function PedidoItemBloco({
             <em>Produzida</em>
             {formatDecimalBr(Number(item.qtde_produzida), 0)}
           </span>
-          <span>
-            <em>Faturável</em>
-            {formatDecimalBr(Number(item.qtde_faturavel), 0)}
-          </span>
+          {eixo === 'producao' ? (
+            <span>
+              <em>Planejada</em>
+              {qtdePlanejada != null ? formatDecimalBr(Number(qtdePlanejada), 0) : '—'}
+            </span>
+          ) : (
+            <span>
+              <em>Faturável</em>
+              {formatDecimalBr(Number(item.qtde_faturavel), 0)}
+            </span>
+          )}
           {ordemTxt !== '—' ? (
             <span>
               <em>Ordem</em>
@@ -270,18 +282,22 @@ function PedidoItemBloco({
                 {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
               </span>
             </li>
-            <li>
-              <span className="ped-ficha-spec-k">Unitário</span>
-              <span className="ped-ficha-spec-v">
-                {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}
-              </span>
-            </li>
-            <li>
-              <span className="ped-ficha-spec-k">Total</span>
-              <span className="ped-ficha-spec-v">
-                {item.valor_total != null ? formatCurrency(item.valor_total) : '—'}
-              </span>
-            </li>
+            {eixo === 'pedido' ? (
+              <>
+                <li>
+                  <span className="ped-ficha-spec-k">Unitário</span>
+                  <span className="ped-ficha-spec-v">
+                    {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}
+                  </span>
+                </li>
+                <li>
+                  <span className="ped-ficha-spec-k">Total</span>
+                  <span className="ped-ficha-spec-v">
+                    {item.valor_total != null ? formatCurrency(item.valor_total) : '—'}
+                  </span>
+                </li>
+              </>
+            ) : null}
           </ul>
         </div>
 
@@ -399,7 +415,7 @@ export function PedidoFichaSheet({
         ) : (
           <div className="ped-ficha-itens">
             {p.itens.map((it) => (
-              <PedidoItemBloco
+              <PedidoItemFichaBloco
                 key={it.id}
                 pedido={p}
                 item={it}
