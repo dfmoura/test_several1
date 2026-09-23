@@ -5,6 +5,7 @@ import { PlatformShell } from './components/PlatformShell';
 import { useAuth } from './lib/auth';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentoFiscalFichaPage } from './pages/DocumentoFiscalFichaPage';
+import { DocumentoCobrancaFichaPage } from './pages/DocumentoCobrancaFichaPage';
 import { EmpresaFichaPage } from './pages/EmpresaFichaPage';
 import { EmpresasPage } from './pages/EmpresasPage';
 import { FiscalHubsPage } from './pages/FiscalHubsPage';
@@ -916,6 +917,17 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="faturamento.ler">
               <DocumentoFiscalFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/financeiro/faturamentos/:id/cobranca/:tituloId/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="faturamento.ler">
+              <DocumentoCobrancaFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

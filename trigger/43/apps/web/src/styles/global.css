@@ -8846,6 +8846,108 @@ tr.row-inactive td {
   border-right: 0;
 }
 
+.ficha-sheet-cobranca .cobranca-head {
+  display: flex;
+  gap: 5mm;
+  align-items: center;
+  margin-bottom: 3mm;
+}
+
+.ficha-sheet-cobranca .cobranca-logo {
+  width: 18mm;
+  height: auto;
+}
+
+.ficha-sheet-cobranca .cobranca-kicker {
+  margin: 0;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ficha-sheet-cobranca h1 {
+  margin: 0.4mm 0;
+  font-size: 13pt;
+}
+
+.ficha-sheet-cobranca .cobranca-banner {
+  margin: 0 0 3mm;
+  padding: 1.6mm 2.4mm;
+  border: 0.35pt solid var(--border);
+  background: #f4f7fb;
+  font-size: 8pt;
+}
+
+.ficha-sheet-cobranca .cobranca-banner.is-quitado {
+  background: #f3f6f3;
+}
+
+.ficha-sheet-cobranca .ficha-kv-grid {
+  border-top: 0.35pt solid var(--border);
+  margin-bottom: 3mm;
+}
+
+.ficha-sheet-cobranca .cobranca-desc h2 {
+  margin: 0 0 1mm;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ficha-sheet-cobranca .cobranca-desc p {
+  margin: 0 0 3mm;
+  font-size: 9pt;
+}
+
+.ficha-sheet-cobranca .cobranca-saldo {
+  font-size: 12pt;
+  font-weight: 800;
+}
+
+.ficha-sheet-cobranca .cobranca-status {
+  margin: 0 0 3mm;
+  font-size: 8.5pt;
+}
+
+.ficha-sheet-cobranca .cobranca-pay {
+  display: flex;
+  gap: 6mm;
+  align-items: flex-start;
+  margin: 0 0 3mm;
+  padding: 3mm;
+  border: 0.35pt solid var(--border);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ficha-sheet-cobranca .cobranca-qr img {
+  width: 38mm;
+  height: 38mm;
+}
+
+.ficha-sheet-cobranca .cobranca-pay-label {
+  margin: 0 0 1mm;
+  font-size: 6.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ficha-sheet-cobranca .cobranca-copia {
+  margin: 0 0 2mm;
+  font-family: ui-monospace, monospace;
+  font-size: 6.8pt;
+  word-break: break-all;
+}
+
+.ficha-sheet-cobranca .cobranca-nfe-ref {
+  margin: 0 0 3mm;
+  font-size: 7.5pt;
+  color: var(--text-muted);
+}
+
 /* última linha sem borda inferior (fecha no contorno do grid) */
 .ficha-kv-grid.cols-2 .ficha-kv:nth-last-child(-n + 2):not(.ficha-kv-wide),
 .ficha-kv-grid.cols-2 .ficha-kv-wide:last-child,
@@ -10133,6 +10235,12 @@ tr.row-inactive td {
     padding: 0;
     font-size: 7pt;
     overflow: visible;
+  }
+
+  body.ficha-print-mode .ficha-sheet-cobranca .cobranca-pay,
+  body.ficha-print-mode .ficha-sheet-cobranca .cobranca-valores {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   body.ficha-print-mode .danfe-canhoto,

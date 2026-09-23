@@ -13,6 +13,7 @@ use App\Models\Orcamento;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
+use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Financeiro\AdiantamentoService;
 
 $emp = Empresa::query()->where('codigo', 'EMP-00001')->first();
@@ -28,14 +29,49 @@ if (! $cfin || ! $nat) {
     exit(1);
 }
 
-$par = Parceiro::query()
-    ->where('empresa_id', $emp->id)
-    ->where('papel_cliente', true)
-    ->where('situacao', 'ATIVO')
-    ->orderBy('id')
-    ->first();
+$par = null;
+foreach (Parceiro::query()->where('empresa_id', $emp->id)->where('papel_cliente', true)->where('situacao', 'ATIVO')->orderBy('id')->get() as $cand) {
+    $eval = ParceiroFiscalRules::evaluate($cand->attributesToFiscalArray());
+    if (! empty($eval['apto_emissao_nfe'])) {
+        $par = $cand;
+        break;
+    }
+}
 if ($par === null) {
-    fwrite(STDERR, "Sem parceiro cliente ativo\n");
+    $par = Parceiro::query()->where('empresa_id', $emp->id)->where('codigo', 'PAR-NFHML01')->first();
+}
+if ($par === null) {
+    $par = Parceiro::query()->create([
+        'empresa_id' => $emp->id,
+        'codigo' => 'PAR-NFHML01',
+        'tipo_pessoa' => 'PF',
+        'cnpj_cpf' => '39053344705',
+        'razao_social' => 'Destinatario homologacao NF-e',
+        'papel_cliente' => true,
+        'situacao' => 'ATIVO',
+        'is_prospect' => false,
+        'emite_documento_fiscal' => true,
+        'finalidade' => 'USO_CONSUMO',
+        'consumidor_final' => true,
+        'ind_ie_dest' => ParceiroFiscalRules::IND_NAO_CONTRIBUINTE,
+        'ie_status' => ParceiroFiscalRules::IE_STATUS_ISENTA,
+        'email_xml' => 'nfe.homolog@destinatario.test',
+        'email' => 'nfe.homolog@destinatario.test',
+        'logradouro' => 'Rua Cliente Homolog',
+        'numero' => '10',
+        'bairro' => 'Centro',
+        'municipio' => 'Uberlandia',
+        'uf' => 'MG',
+        'cep' => '38400000',
+        'ibge' => '3170206',
+        'limite_credito' => '10000.00',
+        'condicao_pagamento' => '28 DDL',
+        'forma_pagamento' => 'PIX',
+    ]);
+}
+$eval = ParceiroFiscalRules::evaluate($par->attributesToFiscalArray());
+if (empty($eval['apto_emissao_nfe'])) {
+    fwrite(STDERR, 'Destinatário ensaio não apto NF-e: '.implode(' | ', array_merge($eval['pendencias'] ?? [], $eval['pendencias_emissao'] ?? []))."\n");
     exit(1);
 }
 
@@ -115,6 +151,17 @@ if ($ped === null) {
         'valor_total' => '3500.00',
         'status' => PedidoItem::STATUS_PRODUZIDO,
     ]);
+}
+
+if ((int) $ped->parceiro_id !== (int) $par->id) {
+    $ped->parceiro_id = $par->id;
+    $ped->save();
+    if ($ped->orcamento_id) {
+        Orcamento::query()->where('id', $ped->orcamento_id)->where('empresa_id', $emp->id)->update([
+            'parceiro_id' => $par->id,
+            'cliente_nome' => $par->razao_social,
+        ]);
+    }
 }
 
 $fat = Faturamento::query()->where('empresa_id', $emp->id)->where('pedido_id', $ped->id)->first();

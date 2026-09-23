@@ -228,6 +228,8 @@ parcelas          = parser da condição (à vista, N DDL, 14/28/42, % sinal)
 
 **NF-e / DANFE:** só PA/REV. Matriz, faca e arte somam no unitário do acabado (`ItensFiscaisNfe`). FAT e TIT continuam com as linhas comerciais.
 
+**Cobrança (ficha):** irmã da DANFE no FAT. Título + saldo ao vivo + QR do PIX/boleto real. A nota não carrega cobrança.
+
 **Proibido:** multiplicar `qtde_faturavel` por `valor_etiqueta` como se fosse preço unitário.
 
 Frete **não** entra no FAT nesta fase (estimado no ORC; receita 1.01.05 e despesa de transportadora são eixos distintos — ver `ADR_ORC_FRETE_ESTIMADO.md` / `ADR_ENTREGA_EXPEDICAO.md`).

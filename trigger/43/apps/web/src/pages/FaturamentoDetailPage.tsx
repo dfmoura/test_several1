@@ -9,6 +9,8 @@ import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
 import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz } from '../lib/fiscalUi';
+import { hrefFichaCobranca, tituloPreferidoFicha } from '../lib/cobrancaUi';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 
 const MOD_FRETE_CIF = '0';
 const MOD_FRETE_FOB = '1';
@@ -210,6 +212,13 @@ export function FaturamentoDetailPage() {
       setBusy(false);
     }
   };
+
+  const cobrancaHref = fat
+    ? (() => {
+        const tit = tituloPreferidoFicha(fat.titulos);
+        return tit ? hrefFichaCobranca(fat.id, tit.id) : null;
+      })()
+    : null;
 
   return (
     <>
@@ -427,6 +436,7 @@ export function FaturamentoDetailPage() {
                       key={d.id}
                       doc={d}
                       faturamentoId={fat.id}
+                      cobrancaHref={cobrancaHref}
                       onAbrirCancelamentoSefaz={
                         nfePodeEventoSefaz(d) && hasPermission('faturamento.escrever')
                           ? () => {
@@ -690,6 +700,7 @@ export function FaturamentoDetailPage() {
                         <th>Valor</th>
                         <th>Status</th>
                         <th>Cobrança</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -715,6 +726,15 @@ export function FaturamentoDetailPage() {
                               ) : (
                                 '—'
                               )}
+                            </td>
+                            <td>
+                              <a
+                                href={hrefFichaCobranca(fat.id, t.id)}
+                                className="btn btn-secondary"
+                                onClick={(e) => onAbrirFichaClick(e, hrefFichaCobranca(fat.id, t.id))}
+                              >
+                                Ficha
+                              </a>
                             </td>
                           </tr>
                         );

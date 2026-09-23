@@ -255,6 +255,8 @@ class FaturamentoPedidoTest extends TestCase
         $this->assertSame('3500.00', $ok->json('data.valor_a_cobrar'));
         $this->assertSame('PENDENTE', $ok->json('data.nf_status'));
         $this->assertCount(1, $ok->json('data.titulos'));
+        $this->assertSame('3500.00', $ok->json('data.titulos.0.saldo'));
+        $this->assertNotEmpty($ok->json('data.titulos.0.observacao'));
         $this->assertNotEmpty($ok->json('data.titulos.0.cobrancas.0.pix_copia_cola'));
 
         $ped->refresh();

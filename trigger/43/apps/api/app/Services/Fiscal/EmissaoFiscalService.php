@@ -606,7 +606,10 @@ class EmissaoFiscalService
         } elseif ($simulada) {
             $aviso = 'Autorização de teste — sem SEFAZ e sem valor fiscal. Em homolog/produção a emissão usa o A1 da empresa.';
         } else {
-            $aviso = 'Prévia — aguardando emissão com certificado A1. Não é documento fiscal autorizado.';
+            $motivo = trim((string) $d->mensagem);
+            $aviso = $motivo !== ''
+                ? 'Prévia — '.$motivo
+                : 'Prévia — cadastro do destinatário ou emitente incompleto. A1 da empresa já está no cofre; a SEFAZ só recebe depois do checklist.';
         }
 
         $destNome = (string) ($payload['nome_destinatario'] ?? $payload['nome_tomador'] ?? $parceiro?->razao_social ?? '');

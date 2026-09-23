@@ -13,6 +13,8 @@ type Props = {
   doc: DocumentoFiscalSaida;
   faturamentoId: number;
   compact?: boolean;
+  /** Ficha de cobrança do TIT em aberto (irmã da DANFE). */
+  cobrancaHref?: string | null;
   /** Abre o card de cancelamento SEFAZ no faturamento (só NF-e autorizada oficial). */
   onAbrirCancelamentoSefaz?: () => void;
 };
@@ -32,6 +34,7 @@ export function DocumentoFiscalPreviaCard({
   doc,
   faturamentoId,
   compact = false,
+  cobrancaHref,
   onAbrirCancelamentoSefaz,
 }: Props) {
   const previa = doc.previa;
@@ -74,6 +77,15 @@ export function DocumentoFiscalPreviaCard({
           >
             Imprimir nota
           </a>
+          {cobrancaHref ? (
+            <a
+              href={cobrancaHref}
+              className="btn btn-secondary"
+              onClick={(e) => onAbrirFichaClick(e, cobrancaHref)}
+            >
+              Imprimir cobrança
+            </a>
+          ) : null}
           {podeCancelar ? (
             <button type="button" className="btn btn-secondary" onClick={onAbrirCancelamentoSefaz}>
               Cancelar NF-e

@@ -15,11 +15,27 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-113`
+`BL-114`
 
 ---
 
 ## Itens
+
+### BL-113 · [financeiro/ux] Ficha de cobrança ao lado da NF-e
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — ver documento de cobrança com QR e saldo
+- **Depende de:** `ADR_FATURAMENTO_COBRANCA.md`
+- **Decisão (fechada):**
+  1. Ficha A4 irmã da DANFE — não misturar PIX na nota.
+  2. Um documento por TIT; saldo ao vivo.
+  3. QR só de `pix_copia_cola` / linha digitável da COB vigente.
+  4. CTA ao lado de “Imprimir nota” e na grade de títulos.
+- **Aceite:**
+  - [x] Rota `/financeiro/faturamentos/:id/cobranca/:tituloId/ficha`
+  - [x] FAT detalhe expõe `titulos[].saldo` + `observacao` + PIX
+- **Fora de escopo:** WhatsApp/e-mail oficial · QR inventado · menu novo
+- **Teste local:** Faturar PED → Imprimir cobrança. Ctrl+Shift+R.
 
 ### BL-112 · [fiscal/ux] NF-e só com PA; DANFE A4 com quebra
 - **Status:** Feito
