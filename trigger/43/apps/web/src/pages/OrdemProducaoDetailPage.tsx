@@ -36,6 +36,9 @@ export function OrdemProducaoDetailPage() {
   const [produtoId, setProdutoId] = useState('');
   const [qtdeSaida, setQtdeSaida] = useState('');
   const [qtdeComplementar, setQtdeComplementar] = useState('');
+  const [avariaMaterialId, setAvariaMaterialId] = useState('');
+  const [qtdeAvaria, setQtdeAvaria] = useState('');
+  const [motivoAvaria, setMotivoAvaria] = useState('');
   const [produtos, setProdutos] = useState<Produto[]>([]);
 
   const [qtdeBoa, setQtdeBoa] = useState('');
@@ -58,6 +61,16 @@ export function OrdemProducaoDetailPage() {
           qtde_perda: m.qtde_perda || '0',
         })),
       );
+      const primeiroRequisitado = (res.data.materiais ?? []).find((m) => !m.pendente);
+      if (primeiroRequisitado) {
+        setAvariaMaterialId(String(primeiroRequisitado.id));
+        setQtdeAvaria(
+          parseQtdeDigitada(primeiroRequisitado.qtde_avaria) > 0
+            ? String(primeiroRequisitado.qtde_avaria)
+            : '',
+        );
+        setMotivoAvaria(primeiroRequisitado.motivo_avaria ?? '');
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao carregar OP.');
     } finally {
@@ -145,8 +158,42 @@ export function OrdemProducaoDetailPage() {
         })),
       );
       setMsg('Todas as saídas pendentes foram requisitadas.');
+      const primeiroRequisitado = (res.data.materiais ?? []).find((m) => !m.pendente);
+      if (primeiroRequisitado) setAvariaMaterialId(String(primeiroRequisitado.id));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao requisitar pendentes.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const registrarAvaria = async () => {
+    if (!op) return;
+    const materialId = Number(avariaMaterialId);
+    if (!materialId) {
+      setErr('Selecione o material avariado na separação.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/avaria`, {
+        material_id: materialId,
+        qtde: String(parseQtdeDigitada(qtdeAvaria)),
+        motivo: motivoAvaria.trim() || undefined,
+      });
+      setOp(res.data);
+      const linha = (res.data.materiais ?? []).find((m) => Number(m.id) === materialId);
+      setQtdeAvaria(linha && parseQtdeDigitada(linha.qtde_avaria) > 0 ? String(linha.qtde_avaria) : '');
+      setMotivoAvaria(linha?.motivo_avaria ?? '');
+      setMsg(
+        parseQtdeDigitada(linha?.qtde_avaria) > 0
+          ? 'Avaria da separação registrada. O estoque não muda — o material já tinha saído. Reponha com complementar se faltar papel na máquina.'
+          : 'Avaria da separação zerada.',
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao registrar avaria.');
     } finally {
       setBusy(false);
     }
@@ -157,10 +204,10 @@ export function OrdemProducaoDetailPage() {
     if (semMaterialParaProduzir) {
       setErr(
         papelInsuficiente && !consumoMpZero
-          ? `Papel insuficiente para a quantidade boa — consumido ${formatDecimalBr(consumoPapel, 4)} ${unidadePapel}, mínimo ${formatDecimalBr(papelMinimo, 4)} ${unidadePapel}. Sem substrato correspondente não há etiqueta.`
+          ? `Papel insuficiente para a quantidade boa — consumido ${formatDecimalBr(consumoPapel, 4)} ${unidadePapel}, mínimo ${formatDecimalBr(papelMinimo, 4)} ${unidadePapel}. Avaria da separação não conta como processo. Sem substrato correspondente não há etiqueta.`
           : consumoMpZero && !consumoZeroTotal
-            ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste retorno/perda do substrato.'
-            : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
+            ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste avaria da separação ou retorno/perda de processo do substrato.'
+            : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste avaria, retorno ou perda.',
       );
       return;
     }
@@ -260,7 +307,12 @@ export function OrdemProducaoDetailPage() {
         qtde_perda: '0',
       };
       return (
-        qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda) <= 0
+        qtdeConsumidaApontada(
+          m.qtde_requisitada,
+          form.qtde_retorno,
+          form.qtde_perda,
+          m.qtde_avaria,
+        ) <= 0
       );
     });
 
@@ -273,7 +325,12 @@ export function OrdemProducaoDetailPage() {
         qtde_perda: '0',
       };
       return (
-        qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda) <= 0
+        qtdeConsumidaApontada(
+          m.qtde_requisitada,
+          form.qtde_retorno,
+          form.qtde_perda,
+          m.qtde_avaria,
+        ) <= 0
       );
     });
 
@@ -286,17 +343,32 @@ export function OrdemProducaoDetailPage() {
       qtde_retorno: '0',
       qtde_perda: '0',
     };
-    return acc + qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda);
+    return acc + qtdeConsumidaApontada(
+      m.qtde_requisitada,
+      form.qtde_retorno,
+      form.qtde_perda,
+      m.qtde_avaria,
+    );
   }, 0);
-  const reqPapel = papeisRequisitados.reduce(
-    (acc, m) => acc + parseQtdeDigitada(m.qtde_requisitada),
+  const avariaPapel = papeisRequisitados.reduce(
+    (acc, m) => acc + parseQtdeDigitada(m.qtde_avaria),
     0,
   );
+  const processoPapel = papeisRequisitados.reduce(
+    (acc, m) =>
+      acc +
+      Math.max(0, parseQtdeDigitada(m.qtde_requisitada) - parseQtdeDigitada(m.qtde_avaria)),
+    0,
+  );
+  const empenhoPapel = papeisRequisitados.reduce((acc, m) => {
+    const planejada = parseQtdeDigitada(m.qtde_planejada);
+    return acc + (planejada > 0 ? planejada : parseQtdeDigitada(m.qtde_requisitada));
+  }, 0);
   const unidadePapel = papeisRequisitados[0]?.unidade ?? 'M2';
   const qtdeBoaNum = parseQtdeDigitada(qtdeBoa);
   const qtdeBoaValida = qtdeBoaNum > 0;
   const papelMinimo = papelMinimoParaQtdeBoa(
-    reqPapel,
+    empenhoPapel,
     op?.qtde_planejada ?? '0',
     qtdeBoa,
     tol,
@@ -305,6 +377,12 @@ export function OrdemProducaoDetailPage() {
     papeisRequisitados.length > 0 && qtdeBoaValida && consumoPapel + 1e-9 < papelMinimo;
   const papelFaltanteParaBoa = Math.max(0, papelMinimo - consumoPapel);
   const papelComplementarAlvo = papeisRequisitados[0] ?? null;
+  const faltaReposicaoAvaria = Math.max(0, empenhoPapel - processoPapel);
+  const precisaReposicaoAvaria = avariaPapel > 0 && faltaReposicaoAvaria > 1e-9;
+  const papelComplementarSugerido = Math.max(
+    papelFaltanteParaBoa,
+    precisaReposicaoAvaria ? faltaReposicaoAvaria : 0,
+  );
 
   const semMaterialParaProduzir = consumoZeroTotal || consumoMpZero || papelInsuficiente;
   const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !semMaterialParaProduzir;
@@ -425,7 +503,8 @@ export function OrdemProducaoDetailPage() {
                   <h3>1 · Separação de insumos</h3>
                   <p className="muted" style={{ margin: 0 }}>
                     Linhas do orçamento (papel, tubete, caixa). Requisitar baixa o saldo no estoque.
-                    O empenho leve só pré-preenche — não movimenta.
+                    O empenho leve só pré-preenche — não movimenta. Rasgo ou umidade na mesa é{' '}
+                    <strong>avaria da separação</strong> (abaixo) — não é perda de processo.
                     {hasPermission('estoque.ler') ? (
                       <>
                         {' '}
@@ -506,6 +585,7 @@ export function OrdemProducaoDetailPage() {
                       <th>Disponível</th>
                       <th>Faltante</th>
                       <th>Requisitado</th>
+                      <th>Avaria</th>
                       <th>Status</th>
                       <th className="acoes" />
                     </tr>
@@ -513,7 +593,7 @@ export function OrdemProducaoDetailPage() {
                   <tbody>
                     {(op.materiais ?? []).length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ color: 'var(--text-muted)' }}>
+                        <td colSpan={9} style={{ color: 'var(--text-muted)' }}>
                           {naoCasados.length > 0
                             ? 'Nenhum material casado ao snapshot. Inclua manualmente abaixo ou cadastre o SKU.'
                             : 'Nenhum material casado ao snapshot. Inclua manualmente abaixo.'}
@@ -585,6 +665,13 @@ export function OrdemProducaoDetailPage() {
                                 : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
                             </td>
                             <td>
+                              {m.pendente
+                                ? '—'
+                                : parseQtdeDigitada(m.qtde_avaria) > 0
+                                  ? `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
+                                  : '—'}
+                            </td>
+                            <td>
                               <StatusPill status={opMaterialStatusLabel(statusKey)} />
                             </td>
                             <td>
@@ -617,6 +704,123 @@ export function OrdemProducaoDetailPage() {
                   </tbody>
                 </table>
               </div>
+
+              {aberta &&
+              hasPermission('producao.escrever') &&
+              materiaisRequisitados.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.85rem 1rem',
+                    border: '1px solid var(--border, #d0d5dd)',
+                    borderRadius: 8,
+                  }}
+                >
+                  <h4 style={{ margin: '0 0 0.35rem' }}>Avaria na separação</h4>
+                  <p className="muted" style={{ margin: '0 0 0.75rem', fontSize: '0.9em' }}>
+                    Papel rasgado, molhado ou recusado <strong>antes da máquina</strong>. Não
+                    escreve estoque (já saiu). Não use perda de processo no passo 3 para isto.
+                    Zero limpa o apontamento.
+                  </p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    <div className="form-group" style={{ minWidth: 220, margin: 0 }}>
+                      <label>Material</label>
+                      <select
+                        value={avariaMaterialId}
+                        onChange={(e) => {
+                          setAvariaMaterialId(e.target.value);
+                          const linha = materiaisRequisitados.find(
+                            (m) => String(m.id) === e.target.value,
+                          );
+                          setQtdeAvaria(
+                            linha && parseQtdeDigitada(linha.qtde_avaria) > 0
+                              ? String(linha.qtde_avaria)
+                              : '',
+                          );
+                          setMotivoAvaria(linha?.motivo_avaria ?? '');
+                        }}
+                      >
+                        {materiaisRequisitados.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.produto?.codigo ?? m.componente} · requisitado{' '}
+                            {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ minWidth: 140, margin: 0 }}>
+                      <label>Qtde avariada</label>
+                      <input
+                        value={qtdeAvaria}
+                        onChange={(e) => setQtdeAvaria(e.target.value)}
+                        aria-label="Quantidade de avaria na separação"
+                      />
+                    </div>
+                    <div className="form-group" style={{ minWidth: 240, flex: 1, margin: 0 }}>
+                      <label>Motivo</label>
+                      <input
+                        value={motivoAvaria}
+                        onChange={(e) => setMotivoAvaria(e.target.value)}
+                        placeholder="Ex.: bobina rasgada na mesa"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={busy}
+                      onClick={() => void registrarAvaria()}
+                    >
+                      Registrar avaria
+                    </button>
+                  </div>
+                  {precisaReposicaoAvaria && papelComplementarAlvo ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-end',
+                        marginTop: '0.85rem',
+                      }}
+                    >
+                      <div className="form-group" style={{ minWidth: 180, margin: 0 }}>
+                        <label>Reposição da avaria ({unidadePapel})</label>
+                        <input
+                          value={qtdeComplementar}
+                          onChange={(e) => setQtdeComplementar(e.target.value)}
+                          placeholder={formatDecimalBr(faltaReposicaoAvaria, 4)}
+                          aria-label="Quantidade para repor avaria"
+                        />
+                        <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85em' }}>
+                          Sugestão: {formatDecimalBr(faltaReposicaoAvaria, 4)} {unidadePapel} para
+                          devolver o papel da máquina ao empenho. Exige saldo.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy}
+                        onClick={() =>
+                          void requisitar({
+                            materialId: papelComplementarAlvo.id,
+                            qtde: qtdeComplementar || String(faltaReposicaoAvaria),
+                            complementar: true,
+                          })
+                        }
+                      >
+                        Requisitar reposição
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {aberta && hasPermission('producao.escrever') ? (
                 <details style={{ marginTop: '1rem' }}>
@@ -739,11 +943,12 @@ export function OrdemProducaoDetailPage() {
                 <div className="form-section">
                   <h3>3 · Concluir produção</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    <strong>Retorno</strong> volta ao estoque (sobra). <strong>Perda</strong> não
-                    retorna. Consumo = requisitado − retorno − perda. Quantidade boa (PA) dentro de ±
-                    {tol}% readequa o pedido; fora da faixa exige motivo. O consumo de papel tem de
-                    cobrir a quantidade boa (rendimento da OP ±{tol}%) — sem substrato não há
-                    etiqueta.
+                    <strong>Retorno</strong> volta ao estoque (sobra de processo).{' '}
+                    <strong>Perda de processo</strong> não retorna. Avaria da mesa já foi apontada
+                    no passo 1 e não entra aqui. Consumo = requisitado − avaria − retorno − perda.
+                    Quantidade boa (PA) dentro de ±{tol}% readequa o pedido; fora da faixa exige
+                    motivo. O consumo de papel tem de cobrir a quantidade boa (rendimento da OP ±
+                    {tol}%) — sem substrato não há etiqueta.
                   </p>
                 </div>
 
@@ -762,8 +967,9 @@ export function OrdemProducaoDetailPage() {
                         <tr>
                           <th>SKU</th>
                           <th>Requisitado</th>
+                          <th>Avaria</th>
                           <th>Retorno (estoque)</th>
-                          <th>Perda</th>
+                          <th>Perda de processo</th>
                           <th>Consumo</th>
                         </tr>
                       </thead>
@@ -778,6 +984,7 @@ export function OrdemProducaoDetailPage() {
                             m.qtde_requisitada,
                             form.qtde_retorno,
                             form.qtde_perda,
+                            m.qtde_avaria,
                           );
                           const ehMp = ehMaterialProducao(m);
                           const linhaPapelCritica =
@@ -802,6 +1009,11 @@ export function OrdemProducaoDetailPage() {
                               </td>
                               <td>
                                 {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {parseQtdeDigitada(m.qtde_avaria) > 0
+                                  ? `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
+                                  : '—'}
                               </td>
                               <td>
                                 <div className="form-group" style={{ margin: 0, minWidth: 96 }}>
@@ -841,15 +1053,17 @@ export function OrdemProducaoDetailPage() {
                         <strong>Papel insuficiente para a quantidade boa</strong> — consumido{' '}
                         {formatDecimalBr(consumoPapel, 4)} {unidadePapel}; mínimo{' '}
                         {formatDecimalBr(papelMinimo, 4)} {unidadePapel} (±{tol}% do rendimento).
-                        Sem substrato correspondente não há etiqueta. Requisite o papel que falta
-                        (baixa no estoque), reduza a quantidade boa ou ajuste retorno/perda.
+                        Sem substrato correspondente não há etiqueta. O rendimento usa o empenho
+                        (planejado), não o complementar. Avaria da separação não conta como
+                        processo. Requisite o papel que falta, reduza a quantidade boa ou ajuste
+                        retorno/perda de processo.
                       </>
                     ) : (
                       <>
                         <strong>Sem material para produzir</strong>
                         {consumoMpZero && !consumoZeroTotal
-                          ? ' — o papel/MP está com consumo zero (perda/retorno = 100%). Sem substrato não há produção.'
-                          : ' — retorno/perda cobrem 100% do requisitado. Ajuste os apontamentos para deixar consumo > 0 no material de produção.'}{' '}
+                          ? ' — o papel/MP está com consumo zero (avaria + perda/retorno cobriram o requisitado). Sem substrato não há produção.'
+                          : ' — avaria + retorno/perda cobrem 100% do requisitado. Ajuste os apontamentos para deixar consumo > 0 no material de produção.'}{' '}
                         A conclusão permanece bloqueada.
                       </>
                     )}
@@ -874,12 +1088,15 @@ export function OrdemProducaoDetailPage() {
                       <input
                         value={qtdeComplementar}
                         onChange={(e) => setQtdeComplementar(e.target.value)}
-                        placeholder={formatDecimalBr(papelFaltanteParaBoa, 4)}
+                        placeholder={formatDecimalBr(papelComplementarSugerido, 4)}
                         aria-label="Quantidade de papel complementar"
                       />
                       <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85em' }}>
-                        Sugestão: {formatDecimalBr(papelFaltanteParaBoa, 4)} {unidadePapel} (diferença
-                        até o mínimo). Exige saldo no estoque.
+                        Sugestão: {formatDecimalBr(papelComplementarSugerido, 4)} {unidadePapel}
+                        {avariaPapel > 0
+                          ? ' (reposição da avaria e/ou rendimento).'
+                          : ' para cobrir a perda de processo (empenho fixo).'}{' '}
+                        Exige saldo no estoque.
                         {hasPermission('estoque.ler') && papelComplementarAlvo.produto ? (
                           <>
                             {' '}
@@ -903,7 +1120,7 @@ export function OrdemProducaoDetailPage() {
                       onClick={() =>
                         void requisitar({
                           materialId: papelComplementarAlvo.id,
-                          qtde: qtdeComplementar || String(papelFaltanteParaBoa),
+                          qtde: qtdeComplementar || String(papelComplementarSugerido),
                           complementar: true,
                         })
                       }
@@ -1001,8 +1218,9 @@ export function OrdemProducaoDetailPage() {
                         <tr>
                           <th>SKU</th>
                           <th>Requisitado</th>
+                          <th>Avaria</th>
                           <th>Retorno</th>
-                          <th>Perda</th>
+                          <th>Perda processo</th>
                           <th>Consumo</th>
                         </tr>
                       </thead>
@@ -1016,6 +1234,9 @@ export function OrdemProducaoDetailPage() {
                               </td>
                               <td>
                                 {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_avaria ?? 0), 4)} {m.unidade}
                               </td>
                               <td>
                                 {formatDecimalBr(Number(m.qtde_retorno), 4)} {m.unidade}

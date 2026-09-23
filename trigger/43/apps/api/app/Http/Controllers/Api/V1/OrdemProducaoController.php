@@ -63,6 +63,22 @@ class OrdemProducaoController extends Controller
         ]);
     }
 
+    public function avaria(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['required', 'integer'],
+            'qtde' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'motivo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->registrarAvaria($this->empresa(), $ordemProducao, $data),
+        ]);
+    }
+
     public function requisitarPendentes(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeWrite($request);

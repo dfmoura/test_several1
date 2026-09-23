@@ -137,16 +137,18 @@ export function parseQtdeDigitada(value: string | number | null | undefined): nu
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Consumo apontado na conclusão: requisitado − retorno − perda. */
+/** Consumo de processo: requisitado − avaria (separação) − retorno − perda de processo. */
 export function qtdeConsumidaApontada(
   requisitada: string | number,
   retorno: string | number,
   perda: string | number,
+  avaria: string | number = 0,
 ): number {
   const r = parseQtdeDigitada(requisitada);
+  const av = parseQtdeDigitada(avaria);
   const ret = parseQtdeDigitada(retorno);
   const p = parseQtdeDigitada(perda);
-  return Math.max(0, r - ret - p);
+  return Math.max(0, r - av - ret - p);
 }
 
 export function ehMaterialProducao(m: {
@@ -159,18 +161,22 @@ export function ehMaterialProducao(m: {
   );
 }
 
-/** Papel mínimo para a qtde boa (rendimento da OP × (1 − tol%)). */
+/**
+ * Papel mínimo para a qtde boa.
+ * Base = empenho (qtde planejada do papel), não a soma das baixas —
+ * complementar cobre perda e não sobe a meta.
+ */
 export function papelMinimoParaQtdeBoa(
-  requisitada: string | number,
+  empenhoPapel: string | number,
   qtdePlanejadaOp: string | number,
   qtdeBoa: string | number,
   tolPct: string | number,
 ): number {
-  const req = parseQtdeDigitada(requisitada);
+  const empenho = parseQtdeDigitada(empenhoPapel);
   const planejada = parseQtdeDigitada(qtdePlanejadaOp);
   const boa = parseQtdeDigitada(qtdeBoa);
   const tol = parseQtdeDigitada(tolPct);
-  if (req <= 0 || planejada <= 0 || boa <= 0) return 0;
-  const necessario = req * (boa / planejada);
+  if (empenho <= 0 || planejada <= 0 || boa <= 0) return 0;
+  const necessario = empenho * (boa / planejada);
   return Math.max(0, necessario * (1 - tol / 100));
 }

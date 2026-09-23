@@ -375,6 +375,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/ordens-producao', [OrdemProducaoController::class, 'index']);
         Route::get('/ordens-producao/{ordemProducao}', [OrdemProducaoController::class, 'show']);
         Route::post('/ordens-producao/{ordemProducao}/requisitar', [OrdemProducaoController::class, 'requisitar']);
+        Route::post('/ordens-producao/{ordemProducao}/avaria', [OrdemProducaoController::class, 'avaria']);
         Route::post('/ordens-producao/{ordemProducao}/requisitar-pendentes', [OrdemProducaoController::class, 'requisitarPendentes']);
         Route::post('/ordens-producao/{ordemProducao}/concluir', [OrdemProducaoController::class, 'concluir']);
         Route::post('/ordens-producao/{ordemProducao}/devolver-ao-pedido', [OrdemProducaoController::class, 'devolverAoPedido']);

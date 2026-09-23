@@ -141,8 +141,9 @@ export function OrdemProducaoFichaSheet({
                 <th>SKU</th>
                 <th>Planejado</th>
                 <th>Requisitado</th>
+                <th>Avaria</th>
                 <th>Retorno</th>
-                <th>Perda</th>
+                <th>Perda processo</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -160,6 +161,7 @@ export function OrdemProducaoFichaSheet({
                   </td>
                   <td>{qty(m.qtde_planejada, m.unidade)}</td>
                   <td>{m.pendente ? '—' : qty(m.qtde_requisitada, m.unidade)}</td>
+                  <td>{m.pendente ? '—' : qty(m.qtde_avaria, m.unidade)}</td>
                   <td>{qty(m.qtde_retorno, m.unidade)}</td>
                   <td>{qty(m.qtde_perda, m.unidade)}</td>
                   <td>{opMaterialStatusLabel(m.pendente ? 'PENDENTE' : 'REQUISITADO')}</td>

@@ -599,6 +599,305 @@ class ProducaoPedOpEstoqueTest extends TestCase
         );
     }
 
+    public function test_complementar_cobre_perda_e_libera_conclusao_pelo_empenho(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '400.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req1 = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+        $perda = bcmul($req1, '0.90', 4);
+        $extra = bcmul($req1, '0.70', 4);
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+            'qtde' => $extra,
+            'complementar' => true,
+        ])->assertOk();
+
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+        $ok = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => $perda,
+                ],
+            ],
+        ]);
+        $ok->assertOk();
+        $this->assertSame('CONCLUIDA', $ok->json('data.status'));
+    }
+
+    public function test_avaria_na_separacao_nao_escreve_saldo_e_bloqueia_conclusao_sem_reposicao(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '400.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+        $saldoAposSaida = (string) EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde');
+        $movsAntes = EstoqueMovimento::query()->where('ordem_producao_id', $opId)->count();
+
+        $avaria = bcmul($req, '0.90', 4);
+        $okAvaria = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => $avaria,
+            'motivo' => 'Bobina rasgada na mesa',
+        ]);
+        $okAvaria->assertOk();
+        $linha = collect($okAvaria->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $this->assertSame($avaria, (string) $linha['qtde_avaria']);
+        $this->assertSame('Bobina rasgada na mesa', $linha['motivo_avaria']);
+        $this->assertSame($saldoAposSaida, (string) EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde'));
+        $this->assertSame(
+            $movsAntes,
+            EstoqueMovimento::query()->where('ordem_producao_id', $opId)->count()
+        );
+
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => '0',
+                ],
+            ],
+        ]);
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'Papel insuficiente',
+            (string) $fail->json('message').json_encode($fail->json('errors'))
+        );
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->exists()
+        );
+    }
+
+    public function test_avaria_mais_complementar_libera_conclusao_sem_virar_perda_de_processo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [$pedido, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '400.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req1 = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+        $avaria = bcmul($req1, '0.90', 4);
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => $avaria,
+            'motivo' => 'Umidade na mesa',
+        ])->assertOk();
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+            'qtde' => $avaria,
+            'complementar' => true,
+        ])->assertOk();
+
+        $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
+        $ok = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => $qtdeBoa,
+            'qtde_refugo' => '0',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => '0',
+                ],
+            ],
+        ]);
+        $ok->assertOk();
+        $this->assertSame('CONCLUIDA', $ok->json('data.status'));
+        $linha = collect($ok->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $this->assertSame($avaria, (string) $linha['qtde_avaria']);
+        $this->assertSame('0.0000', (string) $linha['qtde_perda']);
+        $this->assertTrue(bccomp((string) $linha['qtde_consumida'], '0', 4) > 0);
+    }
+
+    public function test_avaria_exige_saida_motivo_e_nao_excede_requisitado(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+
+        $semSaida = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => '1.0000',
+            'motivo' => 'Rasgo na mesa',
+        ]);
+        $semSaida->assertStatus(422);
+
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        $semMotivo = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => '1.0000',
+        ]);
+        $semMotivo->assertStatus(422);
+
+        $acima = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => bcadd($req, '1.0000', 4),
+            'motivo' => 'Acima do requisitado',
+        ]);
+        $acima->assertStatus(422);
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => '1.0000',
+            'motivo' => 'Rasgo na mesa',
+        ])->assertOk();
+
+        $limpa = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => '0',
+        ]);
+        $limpa->assertOk();
+        $this->assertSame(
+            '0.0000',
+            (string) collect($limpa->json('data.materiais'))->firstWhere('id', $papel['id'])['qtde_avaria']
+        );
+        $this->assertNull(collect($limpa->json('data.materiais'))->firstWhere('id', $papel['id'])['motivo_avaria']);
+    }
+
+    public function test_perda_de_processo_nao_pode_usar_quantidade_ja_apontada_como_avaria(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '50.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+        $avaria = bcmul($req, '0.40', 4);
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => $avaria,
+            'motivo' => 'Cantos amassados',
+        ])->assertOk();
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+            'qtde_boa' => '1',
+            'aceitar_fora_tolerancia' => true,
+            'motivo_fora_tolerancia' => 'Só valida o teto avaria+processo',
+            'materiais' => [
+                [
+                    'material_id' => $papel['id'],
+                    'qtde_retorno' => '0',
+                    'qtde_perda' => $req,
+                ],
+            ],
+        ]);
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'avaria',
+            mb_strtolower((string) $fail->json('message').json_encode($fail->json('errors')))
+        );
+    }
+
     public function test_nao_abre_op_sem_pedido_liberado_e_idempotente_ped(): void
     {
         $orc = Orcamento::query()->create([

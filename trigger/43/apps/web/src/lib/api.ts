@@ -3124,6 +3124,9 @@ export type OrdemProducaoMaterial = {
   origem_texto?: string | null;
   qtde_planejada?: string;
   qtde_requisitada: string;
+  qtde_avaria?: string;
+  motivo_avaria?: string | null;
+  avaria_em?: string | null;
   qtde_consumida: string;
   qtde_retorno: string;
   qtde_perda: string;

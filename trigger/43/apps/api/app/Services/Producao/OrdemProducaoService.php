@@ -458,6 +458,87 @@ class OrdemProducaoService
     }
 
     /**
+     * Avaria na separação: material já baixado, danificado antes da máquina.
+     * Não escreve saldo (já saiu em SAIDA_PRODUCAO). Não é perda de processo.
+     *
+     * @param  array{material_id?: int, qtde?: mixed, motivo?: string}  $data
+     * @return array<string, mixed>
+     */
+    public function registrarAvaria(Empresa $empresa, OrdemProducao $op, array $data): array
+    {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+        if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['OP deve estar ABERTA ou EM_ANDAMENTO.'],
+            ]);
+        }
+
+        $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
+        $qtde = PadraoDecimal::parseStrict((string) ($data['qtde'] ?? ''), PadraoDecimal::SCALE_QTY);
+        $motivo = trim((string) ($data['motivo'] ?? ''));
+
+        if ($materialId <= 0 || $qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) < 0) {
+            throw ValidationException::withMessages([
+                'qtde' => ['Informe a linha e a quantidade de avaria (zero limpa o apontamento).'],
+            ]);
+        }
+
+        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) > 0 && mb_strlen($motivo) < 3) {
+            throw ValidationException::withMessages([
+                'motivo' => ['Informe o motivo da avaria (mínimo 3 caracteres).'],
+            ]);
+        }
+
+        $op = DB::transaction(function () use ($empresa, $op, $materialId, $qtde, $motivo) {
+            $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
+            if ($op->empresa_id !== $empresa->id) {
+                abort(404);
+            }
+
+            $mat = OrdemProducaoMaterial::query()
+                ->where('ordem_producao_id', $op->id)
+                ->where('id', $materialId)
+                ->lockForUpdate()
+                ->first();
+            if (! $mat) {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Material não pertence a esta OP.'],
+                ]);
+            }
+            if (! $mat->saida_movimento_id) {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Requisite a saída antes de apontar avaria — o material precisa ter saído do estoque.'],
+                ]);
+            }
+
+            $req = (string) $mat->qtde_requisitada;
+            if (bccomp($qtde, $req, PadraoDecimal::SCALE_QTY) > 0) {
+                throw ValidationException::withMessages([
+                    'qtde' => ["Avaria ({$qtde}) não pode exceder o requisitado ({$req})."],
+                ]);
+            }
+
+            $mat->qtde_avaria = $qtde;
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                $mat->motivo_avaria = null;
+                $mat->avaria_em = null;
+                $mat->avaria_por = null;
+            } else {
+                $mat->motivo_avaria = $motivo;
+                $mat->avaria_em = now();
+                $mat->avaria_por = Auth::id();
+            }
+            $mat->save();
+
+            return $op;
+        });
+
+        return $this->show($op->fresh());
+    }
+
+    /**
      * OP sem saída de estoque volta ao PED (estudo 32 UC-PRD-004 EX2 / GERACAO_PEDIDO §7).
      * Não apaga a OP. Não estorna saldo. Com MOV → bloqueio.
      *
@@ -662,17 +743,26 @@ class OrdemProducaoService
                 }
 
                 $req = (string) $mat->qtde_requisitada;
+                $avaria = PadraoDecimal::roundHalfUp((string) ($mat->qtde_avaria ?? '0'), PadraoDecimal::SCALE_QTY);
+                $paraProcesso = PadraoDecimal::roundHalfUp(
+                    bcsub($req, $avaria, PadraoDecimal::SCALE_QTY + 4),
+                    PadraoDecimal::SCALE_QTY
+                );
+                if (bccomp($paraProcesso, '0', PadraoDecimal::SCALE_QTY) < 0) {
+                    $paraProcesso = '0.0000';
+                }
+
                 $soma = bcadd($retorno, $perda, PadraoDecimal::SCALE_QTY + 4);
-                if (bccomp($soma, $req, PadraoDecimal::SCALE_QTY) > 0) {
+                if (bccomp($soma, $paraProcesso, PadraoDecimal::SCALE_QTY) > 0) {
                     throw ValidationException::withMessages([
                         'materiais' => [
-                            "Retorno+perda ({$soma}) excedem requisitado ({$req}) no SKU {$mat->produto?->codigo}.",
+                            "Retorno+perda de processo ({$soma}) excedem o papel da máquina ({$paraProcesso}) no SKU {$mat->produto?->codigo} (requisitado {$req} − avaria {$avaria}).",
                         ],
                     ]);
                 }
 
                 $consumida = PadraoDecimal::roundHalfUp(
-                    bcsub($req, $soma, PadraoDecimal::SCALE_QTY + 4),
+                    bcsub($paraProcesso, $soma, PadraoDecimal::SCALE_QTY + 4),
                     PadraoDecimal::SCALE_QTY
                 );
                 if (bccomp($consumida, '0', PadraoDecimal::SCALE_QTY) > 0) {
@@ -935,21 +1025,25 @@ class OrdemProducaoService
             return;
         }
 
-        $reqSoma = '0';
+        $empenhoSoma = '0';
         $consSoma = '0';
         foreach ($papeis as $dest) {
-            $reqSoma = bcadd($reqSoma, (string) $dest['mat']->qtde_requisitada, PadraoDecimal::SCALE_QTY + 4);
+            $planejadaLinha = (string) $dest['mat']->qtde_planejada;
+            $baseLinha = bccomp($planejadaLinha, '0', PadraoDecimal::SCALE_QTY) > 0
+                ? $planejadaLinha
+                : (string) $dest['mat']->qtde_requisitada;
+            $empenhoSoma = bcadd($empenhoSoma, $baseLinha, PadraoDecimal::SCALE_QTY + 4);
             $consSoma = bcadd($consSoma, (string) $dest['consumida'], PadraoDecimal::SCALE_QTY + 4);
         }
-        $reqSoma = PadraoDecimal::roundHalfUp($reqSoma, PadraoDecimal::SCALE_QTY);
+        $empenhoSoma = PadraoDecimal::roundHalfUp($empenhoSoma, PadraoDecimal::SCALE_QTY);
         $consSoma = PadraoDecimal::roundHalfUp($consSoma, PadraoDecimal::SCALE_QTY);
-        if (bccomp($reqSoma, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+        if (bccomp($empenhoSoma, '0', PadraoDecimal::SCALE_QTY) <= 0) {
             return;
         }
 
         $fracaoBoa = bcdiv($qtdeBoa, $qtdePlanejadaOp, 8);
         $necessario = PadraoDecimal::roundHalfUp(
-            bcmul($reqSoma, $fracaoBoa, PadraoDecimal::SCALE_QTY + 4),
+            bcmul($empenhoSoma, $fracaoBoa, PadraoDecimal::SCALE_QTY + 4),
             PadraoDecimal::SCALE_QTY
         );
         $tolFrac = bcdiv($tolPct, '100', 8);
@@ -964,7 +1058,7 @@ class OrdemProducaoService
         if (bccomp($consSoma, $minimo, PadraoDecimal::SCALE_QTY) < 0) {
             throw ValidationException::withMessages([
                 'materiais' => [
-                    "Papel insuficiente para a quantidade boa: consumido {$consSoma}, necessário pelo menos {$minimo} (rendimento da OP ±{$tolPct}%). Sem substrato correspondente não há etiqueta a concluir. Requisite papel complementar, reduza a quantidade boa ou ajuste retorno/perda.",
+                    "Papel insuficiente para a quantidade boa: consumido {$consSoma}, necessário pelo menos {$minimo} (rendimento da OP ±{$tolPct}%). Avaria da separação não entra no consumo de processo. Sem substrato correspondente não há etiqueta a concluir. Requisite papel complementar, reduza a quantidade boa ou ajuste retorno/perda de processo.",
                 ],
             ]);
         }
@@ -1118,6 +1212,9 @@ class OrdemProducaoService
                 'origem_texto' => $m->origem_texto,
                 'qtde_planejada' => (string) $m->qtde_planejada,
                 'qtde_requisitada' => (string) $m->qtde_requisitada,
+                'qtde_avaria' => (string) ($m->qtde_avaria ?? '0'),
+                'motivo_avaria' => $m->motivo_avaria,
+                'avaria_em' => optional($m->avaria_em)?->toIso8601String(),
                 'qtde_consumida' => (string) $m->qtde_consumida,
                 'qtde_retorno' => (string) $m->qtde_retorno,
                 'qtde_perda' => (string) $m->qtde_perda,
