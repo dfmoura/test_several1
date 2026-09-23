@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
-import { api, type OrdemProducao, type Produto } from '../lib/api';
+import { ProdutoCombobox } from '../components/ProdutoCombobox';
+import { api, type OrdemProducao, type OrdemProducaoMaterial, type Produto } from '../lib/api';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
 import {
+  capQtdeAte,
   ehMaterialProducao,
   opMaterialLinhaStatus,
   opMaterialStatusLabel,
@@ -20,6 +22,25 @@ import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 
 type MatForm = { material_id: number; qtde_retorno: string; qtde_perda: string };
+type AvariaLinhaForm = { material_id: number; qtde: string; motivo: string };
+type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
+
+function avariaLinhasDe(
+  materiais: OrdemProducaoMaterial[] | null | undefined,
+  prev: AvariaLinhaForm[] = [],
+): AvariaLinhaForm[] {
+  return (materiais ?? [])
+    .filter((m) => !m.pendente)
+    .map((m) => {
+      const keep = prev.find((x) => Number(x.material_id) === Number(m.id));
+      if (keep) return keep;
+      return {
+        material_id: m.id,
+        qtde: parseQtdeDigitada(m.qtde_avaria) > 0 ? String(m.qtde_avaria) : '',
+        motivo: m.motivo_avaria ?? '',
+      };
+    });
+}
 
 export function OrdemProducaoDetailPage() {
   const { id } = useParams();
@@ -33,13 +54,13 @@ export function OrdemProducaoDetailPage() {
   const [devolverAberto, setDevolverAberto] = useState(false);
   const [motivoDevolver, setMotivoDevolver] = useState('');
 
-  const [produtoId, setProdutoId] = useState('');
-  const [qtdeSaida, setQtdeSaida] = useState('');
+  const extraKeyRef = useRef(1);
+  const emptyExtra = (): ExtraLinha => ({ key: extraKeyRef.current++, produto: null, qtde: '' });
+  const [extras, setExtras] = useState<ExtraLinha[]>(() => [
+    { key: extraKeyRef.current++, produto: null, qtde: '' },
+  ]);
   const [qtdeComplementar, setQtdeComplementar] = useState('');
-  const [avariaMaterialId, setAvariaMaterialId] = useState('');
-  const [qtdeAvaria, setQtdeAvaria] = useState('');
-  const [motivoAvaria, setMotivoAvaria] = useState('');
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [avariaForms, setAvariaForms] = useState<AvariaLinhaForm[]>([]);
 
   const [qtdeBoa, setQtdeBoa] = useState('');
   const [qtdeRefugo, setQtdeRefugo] = useState('0');
@@ -61,16 +82,7 @@ export function OrdemProducaoDetailPage() {
           qtde_perda: m.qtde_perda || '0',
         })),
       );
-      const primeiroRequisitado = (res.data.materiais ?? []).find((m) => !m.pendente);
-      if (primeiroRequisitado) {
-        setAvariaMaterialId(String(primeiroRequisitado.id));
-        setQtdeAvaria(
-          parseQtdeDigitada(primeiroRequisitado.qtde_avaria) > 0
-            ? String(primeiroRequisitado.qtde_avaria)
-            : '',
-        );
-        setMotivoAvaria(primeiroRequisitado.motivo_avaria ?? '');
-      }
+      setAvariaForms(avariaLinhasDe(res.data.materiais, []));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao carregar OP.');
     } finally {
@@ -82,17 +94,25 @@ export function OrdemProducaoDetailPage() {
     void load();
   }, [id]);
 
-  useEffect(() => {
-    void api
-      .get<{ data: Produto[] }>('/produtos?familia=MP')
-      .then((r) => setProdutos(r.data))
-      .catch(() => setProdutos([]));
-  }, []);
-
   const aberta = useMemo(
     () => op && ['ABERTA', 'EM_ANDAMENTO'].includes(op.status),
     [op],
   );
+
+  const aplicarOp = (data: OrdemProducao, resetAvaria = false) => {
+    setOp(data);
+    setMats((prev) =>
+      (data.materiais ?? []).map((m) => {
+        const keep = prev.find((x) => Number(x.material_id) === Number(m.id));
+        return {
+          material_id: m.id,
+          qtde_retorno: keep?.qtde_retorno ?? (m.qtde_retorno || '0'),
+          qtde_perda: keep?.qtde_perda ?? (m.qtde_perda || '0'),
+        };
+      }),
+    );
+    setAvariaForms((prev) => avariaLinhasDe(data.materiais, resetAvaria ? [] : prev));
+  };
 
   const requisitar = async (opts?: {
     materialId?: number;
@@ -110,27 +130,15 @@ export function OrdemProducaoDetailPage() {
         body.material_id = opts.materialId;
         if (opts.qtde) body.qtde = String(parseQtdeDigitada(opts.qtde));
       } else {
-        body.produto_id = opts?.produtoId ?? Number(produtoId);
-        body.qtde = String(parseQtdeDigitada(opts?.qtde ?? qtdeSaida));
+        body.produto_id = opts?.produtoId;
+        body.qtde = String(parseQtdeDigitada(opts?.qtde ?? ''));
       }
       if (opts?.complementar) body.complementar = true;
       const res = await api.post<{ data: OrdemProducao }>(
         `/ordens-producao/${op.id}/requisitar`,
         body,
       );
-      setOp(res.data);
-      setMats((prev) =>
-        (res.data.materiais ?? []).map((m) => {
-          const keep = prev.find((x) => Number(x.material_id) === Number(m.id));
-          return {
-            material_id: m.id,
-            qtde_retorno: keep?.qtde_retorno ?? (m.qtde_retorno || '0'),
-            qtde_perda: keep?.qtde_perda ?? (m.qtde_perda || '0'),
-          };
-        }),
-      );
-      setProdutoId('');
-      setQtdeSaida('');
+      aplicarOp(res.data);
       setQtdeComplementar('');
       setMsg(opts?.complementar ? 'Papel complementar requisitado.' : 'Saída de material registrada.');
     } catch (e) {
@@ -149,17 +157,8 @@ export function OrdemProducaoDetailPage() {
       const res = await api.post<{ data: OrdemProducao }>(
         `/ordens-producao/${op.id}/requisitar-pendentes`,
       );
-      setOp(res.data);
-      setMats(
-        (res.data.materiais ?? []).map((m) => ({
-          material_id: m.id,
-          qtde_retorno: m.qtde_retorno || '0',
-          qtde_perda: m.qtde_perda || '0',
-        })),
-      );
+      aplicarOp(res.data);
       setMsg('Todas as saídas pendentes foram requisitadas.');
-      const primeiroRequisitado = (res.data.materiais ?? []).find((m) => !m.pendente);
-      if (primeiroRequisitado) setAvariaMaterialId(String(primeiroRequisitado.id));
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao requisitar pendentes.');
     } finally {
@@ -167,33 +166,95 @@ export function OrdemProducaoDetailPage() {
     }
   };
 
-  const registrarAvaria = async () => {
+  const registrarAvarias = async () => {
     if (!op) return;
-    const materialId = Number(avariaMaterialId);
-    if (!materialId) {
-      setErr('Selecione o material avariado na separação.');
+    const requisitados = (op.materiais ?? []).filter((m) => !m.pendente);
+    const dirty = avariaForms.filter((form) => {
+      const m = requisitados.find((x) => Number(x.id) === Number(form.material_id));
+      if (!m) return false;
+      const teto = parseQtdeDigitada(m.qtde_requisitada);
+      const qtde = Math.min(Math.max(0, parseQtdeDigitada(form.qtde)), teto);
+      const qtdeSrv = parseQtdeDigitada(m.qtde_avaria);
+      const motivoSrv = (m.motivo_avaria ?? '').trim();
+      return Math.abs(qtde - qtdeSrv) > 1e-9 || form.motivo.trim() !== motivoSrv;
+    });
+    if (dirty.length === 0) {
+      setErr('Nada para gravar — informe a quantidade avariada (até o requisitado) em ao menos uma linha.');
       return;
+    }
+    for (const form of dirty) {
+      if (parseQtdeDigitada(form.qtde) > 0 && form.motivo.trim().length < 3) {
+        setErr('Informe o motivo da avaria (mínimo 3 caracteres) nas linhas com quantidade.');
+        return;
+      }
     }
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
-      const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/avaria`, {
-        material_id: materialId,
-        qtde: String(parseQtdeDigitada(qtdeAvaria)),
-        motivo: motivoAvaria.trim() || undefined,
-      });
-      setOp(res.data);
-      const linha = (res.data.materiais ?? []).find((m) => Number(m.id) === materialId);
-      setQtdeAvaria(linha && parseQtdeDigitada(linha.qtde_avaria) > 0 ? String(linha.qtde_avaria) : '');
-      setMotivoAvaria(linha?.motivo_avaria ?? '');
+      let last = op;
+      for (const form of dirty) {
+        const m = requisitados.find((x) => Number(x.id) === Number(form.material_id));
+        const teto = parseQtdeDigitada(m?.qtde_requisitada);
+        const qtde = Math.min(Math.max(0, parseQtdeDigitada(form.qtde)), teto);
+        const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/avaria`, {
+          material_id: form.material_id,
+          qtde: String(qtde),
+          motivo: form.motivo.trim() || undefined,
+        });
+        last = res.data;
+      }
+      aplicarOp(last, true);
+      const gravadas = (last.materiais ?? []).filter((m) => parseQtdeDigitada(m.qtde_avaria) > 0).length;
       setMsg(
-        parseQtdeDigitada(linha?.qtde_avaria) > 0
-          ? 'Avaria da separação registrada. O estoque não muda — o material já tinha saído. Reponha com complementar se faltar papel na máquina.'
+        gravadas > 0
+          ? 'Avaria da separação registrada. O estoque não muda — o material já tinha saído. Reponha se faltar papel na máquina.'
           : 'Avaria da separação zerada.',
       );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao registrar avaria.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requisitarExtras = async () => {
+    if (!op) return;
+    const linhas = extras.filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0);
+    if (linhas.length === 0) {
+      setErr('Informe ao menos um SKU e a quantidade para a saída extra.');
+      return;
+    }
+    const vistos = new Set<number>();
+    for (const linha of linhas) {
+      const pid = linha.produto!.id;
+      if (vistos.has(pid)) {
+        setErr('Há SKU repetido nas linhas extras. Junte a quantidade ou remova a duplicata.');
+        return;
+      }
+      vistos.add(pid);
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      let last = op;
+      for (const linha of linhas) {
+        const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/requisitar`, {
+          produto_id: linha.produto!.id,
+          qtde: String(parseQtdeDigitada(linha.qtde)),
+        });
+        last = res.data;
+      }
+      aplicarOp(last);
+      setExtras([emptyExtra()]);
+      setMsg(
+        linhas.length === 1
+          ? 'Saída extra registrada.'
+          : `${linhas.length} saídas extras registradas.`,
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha na requisição extra.');
     } finally {
       setBusy(false);
     }
@@ -718,68 +779,92 @@ export function OrdemProducaoDetailPage() {
                 >
                   <h4 style={{ margin: '0 0 0.35rem' }}>Avaria na separação</h4>
                   <p className="muted" style={{ margin: '0 0 0.75rem', fontSize: '0.9em' }}>
-                    Papel rasgado, molhado ou recusado <strong>antes da máquina</strong>. Não
-                    escreve estoque (já saiu). Não use perda de processo no passo 3 para isto.
-                    Zero limpa o apontamento.
+                    Só nas linhas já requisitadas — a quantidade não passa do que saiu. Rasgo,
+                    umidade ou recusa <strong>antes da máquina</strong>. Não escreve estoque. Zero
+                    limpa o apontamento.
                   </p>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.75rem',
-                      flexWrap: 'wrap',
-                      alignItems: 'flex-end',
-                    }}
-                  >
-                    <div className="form-group" style={{ minWidth: 220, margin: 0 }}>
-                      <label>Material</label>
-                      <select
-                        value={avariaMaterialId}
-                        onChange={(e) => {
-                          setAvariaMaterialId(e.target.value);
-                          const linha = materiaisRequisitados.find(
-                            (m) => String(m.id) === e.target.value,
+                  <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>SKU requisitado</th>
+                          <th>Requisitado</th>
+                          <th>Qtde avariada</th>
+                          <th>Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {materiaisRequisitados.map((m) => {
+                          const form = avariaForms.find(
+                            (x) => Number(x.material_id) === Number(m.id),
+                          ) ?? {
+                            material_id: m.id,
+                            qtde: '',
+                            motivo: '',
+                          };
+                          const teto = parseQtdeDigitada(m.qtde_requisitada);
+                          return (
+                            <tr key={m.id}>
+                              <td>
+                                <strong>{m.produto?.codigo ?? m.componente}</strong>
+                                <div className="muted" style={{ fontSize: '0.85em' }}>
+                                  {m.produto?.descricao_fiscal ?? m.origem_texto ?? '—'}
+                                </div>
+                              </td>
+                              <td>
+                                {formatDecimalBr(teto, 4)} {m.unidade}
+                              </td>
+                              <td>
+                                <div className="form-group" style={{ margin: 0, minWidth: 120 }}>
+                                  <input
+                                    inputMode="decimal"
+                                    value={form.qtde}
+                                    max={teto}
+                                    onChange={(e) => {
+                                      const qtde = capQtdeAte(e.target.value, teto);
+                                      setAvariaForms((prev) => {
+                                        const others = prev.filter(
+                                          (x) => Number(x.material_id) !== Number(m.id),
+                                        );
+                                        return [...others, { ...form, qtde }];
+                                      });
+                                    }}
+                                    aria-label={`Avaria ${m.produto?.codigo ?? m.id} até ${formatDecimalBr(teto, 4)} ${m.unidade}`}
+                                    placeholder={`máx. ${formatDecimalBr(teto, 4)}`}
+                                  />
+                                </div>
+                              </td>
+                              <td>
+                                <div className="form-group" style={{ margin: 0, minWidth: 220 }}>
+                                  <input
+                                    value={form.motivo}
+                                    onChange={(e) =>
+                                      setAvariaForms((prev) => {
+                                        const others = prev.filter(
+                                          (x) => Number(x.material_id) !== Number(m.id),
+                                        );
+                                        return [...others, { ...form, motivo: e.target.value }];
+                                      })
+                                    }
+                                    placeholder="Ex.: bobina rasgada na mesa"
+                                    aria-label={`Motivo da avaria ${m.produto?.codigo ?? m.id}`}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
                           );
-                          setQtdeAvaria(
-                            linha && parseQtdeDigitada(linha.qtde_avaria) > 0
-                              ? String(linha.qtde_avaria)
-                              : '',
-                          );
-                          setMotivoAvaria(linha?.motivo_avaria ?? '');
-                        }}
-                      >
-                        {materiaisRequisitados.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.produto?.codigo ?? m.componente} · requisitado{' '}
-                            {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group" style={{ minWidth: 140, margin: 0 }}>
-                      <label>Qtde avariada</label>
-                      <input
-                        value={qtdeAvaria}
-                        onChange={(e) => setQtdeAvaria(e.target.value)}
-                        aria-label="Quantidade de avaria na separação"
-                      />
-                    </div>
-                    <div className="form-group" style={{ minWidth: 240, flex: 1, margin: 0 }}>
-                      <label>Motivo</label>
-                      <input
-                        value={motivoAvaria}
-                        onChange={(e) => setMotivoAvaria(e.target.value)}
-                        placeholder="Ex.: bobina rasgada na mesa"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={busy}
-                      onClick={() => void registrarAvaria()}
-                    >
-                      Registrar avaria
-                    </button>
+                        })}
+                      </tbody>
+                    </table>
                   </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy}
+                    onClick={() => void registrarAvarias()}
+                  >
+                    Registrar avarias
+                  </button>
                   {precisaReposicaoAvaria && papelComplementarAlvo ? (
                     <div
                       style={{
@@ -825,37 +910,107 @@ export function OrdemProducaoDetailPage() {
               {aberta && hasPermission('producao.escrever') ? (
                 <details style={{ marginTop: '1rem' }}>
                   <summary style={{ cursor: 'pointer' }}>Incluir material extra</summary>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.75rem',
-                      flexWrap: 'wrap',
-                      marginTop: '0.75rem',
-                      alignItems: 'flex-end',
-                    }}
-                  >
-                    <div className="form-group" style={{ minWidth: 280, flex: 1 }}>
-                      <label>SKU (MP/EMB)</label>
-                      <select value={produtoId} onChange={(e) => setProdutoId(e.target.value)}>
-                        <option value="">Selecione…</option>
-                        {produtos.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.codigo} — {p.descricao_fiscal}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group" style={{ minWidth: 120 }}>
-                      <label>Qtde (interna)</label>
-                      <input value={qtdeSaida} onChange={(e) => setQtdeSaida(e.target.value)} />
-                    </div>
+                  <p className="muted" style={{ margin: '0.75rem 0 0.5rem', fontSize: '0.9em' }}>
+                    SKU que não veio do empenho. Um ou mais — busca no padrão do cadastro (MP/EMB).
+                    SKU já requisitado nesta OP não entra aqui; use a reposição complementar.
+                  </p>
+                  {extras.map((linha, idx) => {
+                    const idsNaOp = new Set(
+                      (op.materiais ?? [])
+                        .map((m) => m.produto?.id)
+                        .filter((id): id is number => Number(id) > 0),
+                    );
+                    const idsNesteForm = new Set(
+                      extras
+                        .filter((e) => e.key !== linha.key && e.produto)
+                        .map((e) => e.produto!.id),
+                    );
+                    const un = (
+                      linha.produto?.unidade_interna ||
+                      linha.produto?.unidade_comercial ||
+                      'un.'
+                    ).toUpperCase();
+                    return (
+                      <div key={linha.key} className="oc-form-page__item">
+                        <div
+                          className={`oc-form-page__item-row${extras.length > 1 ? ' has-remove' : ''}`}
+                        >
+                          <ProdutoCombobox
+                            className="oc-form-page__item-produto"
+                            label={idx === 0 ? 'SKU (MP/EMB)' : 'SKU'}
+                            value={linha.produto}
+                            onChange={(p) => {
+                              if (p && (idsNaOp.has(p.id) || idsNesteForm.has(p.id))) {
+                                setErr(
+                                  idsNaOp.has(p.id)
+                                    ? 'Este SKU já está na OP. Use a reposição complementar na linha requisitada.'
+                                    : 'Este SKU já está em outra linha extra.',
+                                );
+                                return;
+                              }
+                              setErr(null);
+                              setExtras((prev) =>
+                                prev.map((e) => (e.key === linha.key ? { ...e, produto: p } : e)),
+                              );
+                            }}
+                            familias={['MP', 'EMB']}
+                            showSummary={false}
+                            placeholder="Buscar por código, descrição, NCM ou grupo…"
+                            emptyMessage="Nenhum MP/EMB encontrado. Ajuste o termo ou cadastre o SKU."
+                          />
+                          <div className="form-group oc-form-page__item-qtde">
+                            <label>Qtde ({un})</label>
+                            <input
+                              inputMode="decimal"
+                              value={linha.qtde}
+                              onChange={(e) =>
+                                setExtras((prev) =>
+                                  prev.map((x) =>
+                                    x.key === linha.key ? { ...x, qtde: e.target.value } : x,
+                                  ),
+                                )
+                              }
+                              aria-label={`Quantidade extra ${linha.produto?.codigo ?? idx + 1}`}
+                            />
+                          </div>
+                          {extras.length > 1 ? (
+                            <div className="form-group oc-form-page__item-remove">
+                              <label>&nbsp;</label>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                disabled={busy}
+                                onClick={() =>
+                                  setExtras((prev) => prev.filter((e) => e.key !== linha.key))
+                                }
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={busy}
+                      onClick={() => setExtras((prev) => [...prev, emptyExtra()])}
+                    >
+                      + Item
+                    </button>
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      disabled={busy || !produtoId || !qtdeSaida}
-                      onClick={() => void requisitar()}
+                      disabled={
+                        busy ||
+                        !extras.some((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
+                      }
+                      onClick={() => void requisitarExtras()}
                     >
-                      Requisitar saída
+                      Requisitar saídas
                     </button>
                   </div>
                 </details>

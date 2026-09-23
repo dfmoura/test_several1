@@ -121,6 +121,15 @@ export function opPassoAtual(op: {
   return 'separar';
 }
 
+/** Impõe teto na quantidade digitada (avaria ≤ requisitado). */
+export function capQtdeAte(value: string, teto: number): string {
+  if (value.trim() === '') return '';
+  const n = parseQtdeDigitada(value);
+  if (n <= 0) return value;
+  if (teto >= 0 && n > teto) return String(teto);
+  return value;
+}
+
 /** Quantidade digitada (aceita vírgula BR ou ponto). */
 export function parseQtdeDigitada(value: string | number | null | undefined): number {
   if (value === null || value === undefined || value === '') return 0;
