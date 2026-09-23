@@ -1089,6 +1089,9 @@ class OrcamentoAprovacaoService
             'descricao_servico' => $input['descricao_servico'] ?? null,
             'material_cliente' => isset($input['material_cliente']) ? (bool) $input['material_cliente'] : null,
             'unidade' => $input['unidade'] ?? null,
+            'necessidade' => $input['necessidade'] ?? null,
+            'produto_codigo' => $input['produto_codigo'] ?? null,
+            'produto_descricao' => $input['produto_descricao'] ?? null,
         ];
     }
 

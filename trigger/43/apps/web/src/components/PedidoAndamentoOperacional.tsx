@@ -138,7 +138,11 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
                 </>
               ) : (
                 <span className="muted">
-                  {pedido.status === 'PRODUZIDO' ? 'Pronto para faturar' : 'Aguardando produção'}
+                  {pedido.status === 'PRODUZIDO'
+                    ? 'Pronto para faturar'
+                    : item?.necessidade === 'REVENDA'
+                      ? 'Após a separação'
+                      : 'Aguardando produção'}
                 </span>
               )}
             </div>

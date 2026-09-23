@@ -62,5 +62,8 @@ export function descricaoFromPedidoSpec(
     descricao_servico: s.descricao_servico != null ? String(s.descricao_servico) : null,
     material_cliente: s.material_cliente != null ? Boolean(s.material_cliente) : null,
     unidade: s.unidade != null ? String(s.unidade) : null,
+    necessidade: s.necessidade != null ? String(s.necessidade) : null,
+    produto_codigo: s.produto_codigo != null ? String(s.produto_codigo) : null,
+    produto_descricao: s.produto_descricao != null ? String(s.produto_descricao) : null,
   };
 }

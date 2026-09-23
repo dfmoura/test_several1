@@ -89,6 +89,24 @@ export function PedidoDetailPage() {
     void load();
   }, [id]);
 
+  const separarRevenda = async (itemId: number) => {
+    if (!pedido) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await api.post<{ data: Pedido }>(`/pedidos/${pedido.id}/separar-revenda`, {
+        pedido_item_id: itemId,
+      });
+      setMsg('Separação de revenda confirmada.');
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível confirmar a separação.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const abrirOrdem = async (itemId: number, necessidade: string) => {
     if (!pedido) return;
     setBusy(true);
@@ -649,7 +667,8 @@ export function PedidoDetailPage() {
                 <h3>Itens do pedido</h3>
                 <p className="muted" style={{ marginTop: 0 }}>
                   O que foi contratado na liberação — quantidade, unitário e total por posição.
-                  Produção abre OP (produção) ou OS (serviço) a partir do item pendente.
+                  Produção abre OP (etiqueta) ou OS (serviço). Revenda confirma a separação
+                  no próprio pedido — sem ordem.
                 </p>
               </div>
               <div className="table-wrap">
@@ -718,6 +737,19 @@ export function PedidoDetailPage() {
                                 >
                                   {osAtiva.codigo}
                                 </Link>
+                              ) : null}
+                              {hasPermission('producao.escrever') &&
+                              ['LIBERADO', 'EM_PRODUCAO'].includes(pedido.status) &&
+                              item.status === 'PENDENTE' &&
+                              item.necessidade === 'REVENDA' ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-primary"
+                                  disabled={busy}
+                                  onClick={() => void separarRevenda(item.id)}
+                                >
+                                  Confirmar separação
+                                </button>
                               ) : null}
                               {hasPermission('producao.escrever') &&
                               ['LIBERADO', 'EM_PRODUCAO'].includes(pedido.status) &&

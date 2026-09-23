@@ -380,6 +380,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/pedidos/{pedido}', [PedidoController::class, 'show']);
         Route::post('/pedidos/{pedido}/abrir-op', [PedidoController::class, 'abrirOp']);
         Route::post('/pedidos/{pedido}/abrir-os', [PedidoController::class, 'abrirOs']);
+        Route::post('/pedidos/{pedido}/separar-revenda', [PedidoController::class, 'separarRevenda']);
         Route::get('/ordens-producao', [OrdemProducaoController::class, 'index']);
         Route::get('/ordens-producao/apontamentos', [ProducaoApontamentoController::class, 'index']);
         Route::get('/ordens-producao/apontamentos/{ordemProducao}', [ProducaoApontamentoController::class, 'show']);

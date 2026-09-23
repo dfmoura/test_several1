@@ -41,6 +41,7 @@ import {
   equalizarMatrizTodasFaixas,
   facaPrincipal,
   formFromSnapshot,
+  isRevendaItem,
   calculoComItensDoOrcamento,
   matrizQuantidadesModelos,
   ORC_HEADER_KEYS,
@@ -173,6 +174,7 @@ export function OrcamentoFormPage() {
   const [rotulos, setRotulos] = useState<(string | null)[]>([null]);
   const [ativo, setAtivo] = useState(0);
   const form = itens[Math.min(ativo, Math.max(0, itens.length - 1))] ?? itens[0];
+  const modoPrecoComercial = form.tipo_operacao === TIPO_SERVICO || isRevendaItem(form);
 
   const setForm = (updater: OrcForm | ((prev: OrcForm) => OrcForm)) => {
     setItens((prevItens) => {
@@ -704,7 +706,11 @@ export function OrcamentoFormPage() {
   const setTipoOperacao = (tipo: TipoOperacaoSaida) => {
     setFormAll((prev) => {
       const next = { ...prev, tipo_operacao: tipo };
+      if (tipo === TIPO_INDUSTRIALIZACAO) {
+        next.necessidade = prev.necessidade === 'REVENDA' ? 'REVENDA' : 'PRODUCAO';
+      }
       if (tipo === TIPO_SERVICO) {
+        next.necessidade = 'SERVICO';
         const cat = catalog?.tipos_servico?.find((t) => t.codigo === prev.tipo_servico);
         next.material_cliente = cat?.material_cliente_padrao ?? true;
         next.unidade_servico = cat?.unidade_padrao ?? 'RL';
@@ -736,6 +742,17 @@ export function OrcamentoFormPage() {
       if (item.faixas.some((f) => f.quantidade <= 0)) return `${prefix}Quantidades devem ser > 0.`;
       if (item.faixas.some((f) => !f.valor_unitario || f.valor_unitario <= 0)) {
         return `${prefix}Informe o valor unitário do serviço em cada faixa.`;
+      }
+      return null;
+    }
+    if (isRevendaItem(item)) {
+      if (item.produto_revenda_id === '') {
+        return `${prefix}Selecione o produto de revenda.`;
+      }
+      if (item.faixas.length === 0) return `${prefix}Inclua ao menos uma quantidade.`;
+      if (item.faixas.some((f) => f.quantidade <= 0)) return `${prefix}Quantidades devem ser > 0.`;
+      if (item.faixas.some((f) => !f.valor_unitario || f.valor_unitario <= 0)) {
+        return `${prefix}Informe o valor unitário da revenda.`;
       }
       return null;
     }
@@ -1232,9 +1249,8 @@ export function OrcamentoFormPage() {
                   Itens deste orçamento
                 </h3>
                 <p className="field-note" style={{ margin: '0.35rem 0 0', maxWidth: '42rem' }}>
-                  Depois do cadastro: um ou mais itens. Em cada item preencha faca (com valor),
-                  especificação, quantidades e composição dos modelos. O cadastro acima vale para
-                  o orçamento inteiro.
+                  Depois do cadastro: um ou mais itens. Cada item é etiqueta sob medida ou produto
+                  de revenda do cadastro. O cadastro acima vale para o orçamento inteiro.
                 </p>
               </div>
               <div className="btn-row">
@@ -1291,14 +1307,147 @@ export function OrcamentoFormPage() {
               <input
                 value={rotulos[ativo] ?? ''}
                 onChange={(e) => setRotuloAtivo(e.target.value)}
-                placeholder="ex.: Etiqueta frente · 50×30"
+                placeholder={
+                  isRevendaItem(form) ? 'ex.: Ribbon cera 110×300' : 'ex.: Etiqueta frente · 50×30'
+                }
                 disabled={!canWrite}
                 maxLength={120}
               />
             </div>
+            <div className="orc-modo-tabs orc-modo-tabs-sub" role="tablist" aria-label="Tipo do item" style={{ marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isRevendaItem(form)}
+                className={!isRevendaItem(form) ? 'active' : ''}
+                disabled={!canWrite}
+                onClick={() => {
+                  if (!isRevendaItem(form)) return;
+                  setForm((prev) => ({
+                    ...prev,
+                    necessidade: 'PRODUCAO',
+                    faixas: [{ quantidade: 0, comissao_pct: prev.faixas[0]?.comissao_pct ?? 0 }],
+                  }));
+                }}
+              >
+                Etiqueta sob medida
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isRevendaItem(form)}
+                className={isRevendaItem(form) ? 'active' : ''}
+                disabled={!canWrite}
+                onClick={() => {
+                  if (isRevendaItem(form)) return;
+                  setForm((prev) => ({
+                    ...prev,
+                    necessidade: 'REVENDA',
+                    faixas: [
+                      {
+                        quantidade: 1,
+                        comissao_pct: prev.faixas[0]?.comissao_pct ?? 0,
+                        valor_unitario: prev.faixas[0]?.valor_unitario ?? 0,
+                      },
+                    ],
+                  }));
+                }}
+              >
+                Produto de revenda
+              </button>
+            </div>
           </section>
 
-          {/* Detalhe do item ativo: faca → spec → quantidades/artes */}
+          {isRevendaItem(form) ? (
+            <section className="orc-section">
+              <h3 className="orc-section-title">
+                2. Produto de revenda
+                <span className="field-note" style={{ fontWeight: 400, marginLeft: '0.5rem' }}>
+                  · item {ativo + 1}
+                  {rotulos[ativo] ? ` (${rotulos[ativo]})` : ''}
+                </span>
+              </h3>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                SKU já cadastrado (família REV). Preço comercial — sem motor de etiqueta, sem
+                ordem de produção.
+              </p>
+              {(catalog?.produtos_revenda ?? []).length === 0 ? (
+                <p className="form-hint">
+                  Nenhum SKU de revenda ativo.{' '}
+                  <Link to="/produtos/novo">Cadastre um produto família REV</Link> e recarregue
+                  o formulário.
+                </p>
+              ) : (
+                <div className="form-grid">
+                  <div className="form-group span-full">
+                    <label>Produto *</label>
+                    <select
+                      value={form.produto_revenda_id === '' ? '' : String(form.produto_revenda_id)}
+                      disabled={!canWrite}
+                      onChange={(e) => {
+                        const id = e.target.value === '' ? '' : Number(e.target.value);
+                        const sku = (catalog?.produtos_revenda ?? []).find((p) => p.id === id);
+                        setForm((prev) => ({
+                          ...prev,
+                          produto_revenda_id: id,
+                          produto_revenda_codigo: sku?.codigo ?? '',
+                          produto_revenda_descricao: sku?.descricao ?? '',
+                          unidade_revenda: sku?.unidade ?? 'UN',
+                          faixas: prev.faixas.map((f, i) =>
+                            i === 0 && sku?.preco_tabela
+                              ? { ...f, valor_unitario: Number(sku.preco_tabela) || f.valor_unitario }
+                              : f,
+                          ),
+                        }));
+                      }}
+                    >
+                      <option value="">Selecione o SKU</option>
+                      {(catalog?.produtos_revenda ?? []).map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.codigo} — {p.descricao}
+                          {p.unidade ? ` · ${p.unidade}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Unidade</label>
+                    <input
+                      value={form.unidade_revenda}
+                      maxLength={8}
+                      disabled={!canWrite}
+                      onChange={(e) => setField('unidade_revenda', e.target.value.toUpperCase())}
+                    />
+                  </div>
+                  <div className="form-group span-full">
+                    <label>Descrição comercial</label>
+                    <input
+                      value={form.produto_revenda_descricao}
+                      maxLength={255}
+                      disabled={!canWrite}
+                      onChange={(e) => setField('produto_revenda_descricao', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>
+                      Gordura <span className="field-note">interno — cliente não vê</span>
+                    </label>
+                    <NumericInput
+                      step="0.01"
+                      min={0}
+                      value={form.valor_gordura}
+                      emptyCommit={0}
+                      blankZero
+                      onCommit={(v) => setField('valor_gordura', v === '' ? 0 : Math.max(0, v))}
+                      disabled={!canWrite}
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <>
           <section className="orc-section">
             <h3 className="orc-section-title">
               2. Faca
@@ -1606,6 +1755,8 @@ export function OrcamentoFormPage() {
             </div>
           </section>
             </>
+          )}
+            </>
           ) : null}
 
           {form.tipo_operacao === TIPO_SERVICO ? (
@@ -1695,7 +1846,7 @@ export function OrcamentoFormPage() {
           <section className="orc-section">
             <div className="orc-section-head">
               <h3 className="orc-section-title">
-                {form.tipo_operacao === TIPO_SERVICO
+                {modoPrecoComercial
                   ? '3. Quantidade e valor'
                   : '4. Quantidades (escada e artes)'}
                 {form.tipo_operacao !== TIPO_SERVICO ? (
@@ -1705,7 +1856,7 @@ export function OrcamentoFormPage() {
                 ) : null}
               </h3>
             </div>
-            {form.tipo_operacao !== TIPO_SERVICO ? (
+            {!modoPrecoComercial ? (
               <p className="form-hint" style={{ marginTop: 0 }}>
                 Escada comercial e composição dos modelos deste item — quantidade por modelo
                 (arte).
@@ -1715,7 +1866,7 @@ export function OrcamentoFormPage() {
             <div className="orc-faixas-bloco">
               <div className="orc-section-head">
                 <h4 className="orc-subsection-title">
-                  {form.tipo_operacao === TIPO_SERVICO ? 'Quantidade' : 'Escada comercial'}
+                  {modoPrecoComercial ? 'Quantidade' : 'Escada comercial'}
                 </h4>
                 {canWrite ? (
                   <button type="button" className="btn btn-secondary btn-sm" onClick={addFaixa}>
@@ -1726,7 +1877,9 @@ export function OrcamentoFormPage() {
               <p className="form-hint" style={{ marginTop: 0 }}>
                 {form.tipo_operacao === TIPO_SERVICO
                   ? 'Preço comercial informado (sem explosão de papel/faca). Teto para cima em múltiplo de R$ 10. NFS-e sai com o total da faixa escolhida.'
-                  : 'N faixas no mesmo ORC. Comissão % entra no preço e, com vendedor, é a alíquota paga após a baixa do cliente (não no faturar nem na entrega).'}
+                  : isRevendaItem(form)
+                    ? 'Preço comercial do SKU (tabela sugere; o comercial confirma). Sem ordem de produção. NF-e de mercadoria.'
+                    : 'N faixas no mesmo ORC. Comissão % entra no preço e, com vendedor, é a alíquota paga após a baixa do cliente (não no faturar nem na entrega).'}
               </p>
               {form.faixas.map((f, i) => (
                 <div key={i} className="form-grid faixa-row">
@@ -1742,7 +1895,7 @@ export function OrcamentoFormPage() {
                       disabled={!canWrite}
                     />
                   </div>
-                  {form.tipo_operacao === TIPO_SERVICO ? (
+                  {modoPrecoComercial ? (
                     <div className="form-group">
                       <label>Valor unitário (R$)</label>
                       <NumericInput
@@ -1784,7 +1937,7 @@ export function OrcamentoFormPage() {
               ))}
             </div>
 
-            {form.tipo_operacao !== TIPO_SERVICO ? (
+            {!modoPrecoComercial ? (
               <div className="orc-modelos-composicao">
                 <div className="orc-section-head">
                   <h4 className="orc-subsection-title">Composição dos modelos</h4>
@@ -1871,13 +2024,13 @@ export function OrcamentoFormPage() {
         <div style={{ marginTop: '1rem' }}>
           <OrcamentoResultado
             calculo={calculo}
-            modoServico={form.tipo_operacao === TIPO_SERVICO}
+            modoServico={modoPrecoComercial}
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}
-            toleranciaQtdPct={form.tolerancia_qtd_pct}
+            toleranciaQtdPct={isRevendaItem(form) ? 0 : form.tolerancia_qtd_pct}
             itemEdicaoOrdem={ativo + 1}
             itensUi={
-              form.tipo_operacao === TIPO_SERVICO
+              modoPrecoComercial
                 ? null
                 : buildItensResultadoUi(
                     calculo,
@@ -1915,16 +2068,16 @@ export function OrcamentoFormPage() {
                   )
             }
             modelosComposicao={
-              form.tipo_operacao === TIPO_SERVICO ? null : form.modelos_composicao
+              modoPrecoComercial ? null : form.modelos_composicao
             }
             modelosComposicaoQuantidades={
-              form.tipo_operacao === TIPO_SERVICO
+              modoPrecoComercial
                 ? null
                 : form.modelos_composicao_quantidades
             }
-            echoEspecificacao={form.tipo_operacao !== TIPO_SERVICO}
+            echoEspecificacao={!modoPrecoComercial}
             parametrosAjuste={
-              form.tipo_operacao === TIPO_SERVICO || !canWrite
+              modoPrecoComercial || !canWrite
                 ? null
                 : {
                     papel: form.papel,
@@ -1940,13 +2093,13 @@ export function OrcamentoFormPage() {
                   }
             }
             onAplicarParametros={
-              form.tipo_operacao === TIPO_SERVICO || !canWrite
+              modoPrecoComercial || !canWrite
                 ? undefined
                 : handleAplicarParametros
             }
             aplicandoParametros={pending}
             guiaEspec={
-              form.tipo_operacao === TIPO_SERVICO
+              modoPrecoComercial
                 ? null
                 : {
                     medida: form.medida,
@@ -1978,6 +2131,8 @@ export function OrcamentoFormPage() {
         <p className="form-hint" style={{ marginTop: '1rem' }}>
           {form.tipo_operacao === TIPO_SERVICO
             ? 'Calcule para visualizar o total comercial do serviço (NFS-e Nacional).'
+            : isRevendaItem(form)
+              ? 'Calcule para visualizar o total comercial da revenda (NF-e, sem produção).'
             : form.tipo_operacao === TIPO_CESSAO_BEM
               ? 'Cessão de equipamento não passa por este cálculo — use o patrimônio.'
               : 'Calcule para visualizar a proposta comercial, a composição do custo e a guia de produção.'}

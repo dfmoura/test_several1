@@ -27,7 +27,8 @@ final class FacasComposicao
      */
     public static function ensureInPayload(array $data): array
     {
-        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)) {
+        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)
+            || \App\Models\PedidoItem::isRevenda($data['necessidade'] ?? null)) {
             $data['facas'] = [];
             $data['faca_nova'] = false;
             $data['valor_faca_nova'] = 0.0;

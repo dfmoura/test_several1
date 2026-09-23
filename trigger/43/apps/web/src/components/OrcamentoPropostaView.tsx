@@ -99,7 +99,13 @@ export function OrcamentoPropostaView({
               desc={desc}
               faixas={faixas}
               faixaHighlight={faixaIndex}
-              title={proposta.tipo_operacao === 'SERVICO' ? 'Serviço' : 'Especificação'}
+              title={
+                proposta.tipo_operacao === 'SERVICO'
+                  ? 'Serviço'
+                  : desc?.necessidade === 'REVENDA' || desc?.produto_codigo
+                    ? 'Revenda'
+                    : 'Especificação'
+              }
             />
             <OrcPubFaixasBloco
               faixas={faixas}

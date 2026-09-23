@@ -3623,6 +3623,9 @@ export type OrcamentoPropostaPublica = {
     descricao_servico?: string | null;
     material_cliente?: boolean | null;
     unidade?: string | null;
+    necessidade?: string | null;
+    produto_codigo?: string | null;
+    produto_descricao?: string | null;
   };
   tipo_operacao?: string;
   prazo_entrega_dias?: number;

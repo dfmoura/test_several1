@@ -30,6 +30,7 @@ import { formatDateTime, formatPhone, formatCurrency } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
   displaySnap,
+  isRevendaSnap,
   isOrcEditavel,
   isOrcEnviavel,
   statusOrcPill,
@@ -60,7 +61,20 @@ type ItemFichaSnap = {
 function buildOrcSpecTiles(
   snap: Record<string, unknown>,
   isServico: boolean,
+  isRevenda = false,
 ): Array<[string, unknown]> {
+  if (isRevenda) {
+    return (
+      [
+        ['SKU', snap.produto_codigo],
+        ['Produto', snap.produto_descricao],
+        ['Unidade', snap.unidade],
+        ...(Number(snap.valor_gordura) > 0
+          ? ([['Gordura', formatCurrency(Number(snap.valor_gordura))]] as Array<[string, unknown]>)
+          : []),
+      ] as Array<[string, unknown]>
+    ).filter((row): row is [string, unknown] => row[1] != null && row[1] !== '');
+  }
   if (isServico) {
     return (
       [
@@ -301,6 +315,7 @@ export function OrcamentoDetailPage() {
   const condicoesComerciaisSnap = [condicaoSnap, formaSnap].filter(Boolean).join(' · ');
 
   const isServico = tipoOperacaoFromSnap(input) === 'SERVICO';
+  const isRevendaDoc = isRevendaSnap(input);
   const itensFicha: ItemFichaSnap[] =
     !isServico && orc.itens && orc.itens.length > 0
       ? orc.itens.map((it) => ({
@@ -325,7 +340,8 @@ export function OrcamentoDetailPage() {
   const modelosComp = modelosFromSnap(inputItem);
   const facasComp = facasFromSnapshot(inputItem);
   const faixasItem = itemFicha.result?.faixas ?? orc.result_snapshot?.faixas ?? [];
-  const specTiles = buildOrcSpecTiles(inputItem, isServico);
+  const isRevendaItem = isRevendaSnap(inputItem);
+  const specTiles = buildOrcSpecTiles(inputItem, isServico, isRevendaItem);
 
   const calculoDetalhe = orc.result_snapshot
     ? calculoComItensDoOrcamento(orc.result_snapshot, orc.itens) ?? orc.result_snapshot
@@ -844,7 +860,7 @@ export function OrcamentoDetailPage() {
                 <strong>{displaySnap(value)}</strong>
               </div>
             ))}
-            {!isServico ? (
+            {!isServico && !isRevendaItem ? (
               <div>
                 <span>Saída</span>
                 <strong>
@@ -884,7 +900,7 @@ export function OrcamentoDetailPage() {
               }
             />
           ) : null}
-          {!isServico && facasComp.length > 1 ? (
+          {!isServico && !isRevendaDoc && facasComp.length > 1 ? (
             <FacasComposicaoTable
               variant="data"
               className="orc-facas-detalhe-page"
@@ -904,12 +920,12 @@ export function OrcamentoDetailPage() {
       {calculoDetalhe ? (
         <OrcamentoResultado
           calculo={calculoDetalhe}
-          modoServico={isServico}
+          modoServico={isServico || isRevendaDoc}
           echoEspecificacao={false}
           itensUi={itensUiDetalhe}
-          guiaEspec={isServico ? null : especFromSnapshot(orc.input_snapshot)}
+          guiaEspec={isServico || isRevendaDoc ? null : especFromSnapshot(orc.input_snapshot)}
           modelosComposicao={
-            isServico
+            isServico || isRevendaDoc
               ? null
               : modelosComp.map((m, i) => ({
                   ordem: Number(m.ordem) || i + 1,
@@ -920,7 +936,7 @@ export function OrcamentoDetailPage() {
                 }))
           }
           parametrosAjuste={
-            isServico
+            isServico || isRevendaDoc
               ? null
               : (() => {
                   const faixasIn = Array.isArray(input.faixas)

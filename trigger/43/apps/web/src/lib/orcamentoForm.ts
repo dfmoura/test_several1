@@ -80,9 +80,11 @@ export function statusOrcPill(status: string, financeiroStatus?: string | null):
 export type FaixaForm = {
   quantidade: number;
   comissao_pct: number;
-  /** Só prestação de serviço — preço comercial informado. */
+  /** Serviço ou revenda — preço comercial informado. */
   valor_unitario?: number;
 };
+
+export type NecessidadeOrcItem = 'PRODUCAO' | 'SERVICO' | 'REVENDA';
 
 /**
  * Arte / modelo operacional.
@@ -127,6 +129,12 @@ export type FacaComposicaoForm = {
 
 export type OrcForm = {
   tipo_operacao: TipoOperacaoSaida;
+  /** Item: etiqueta (PRODUCAO) ou SKU REV (REVENDA). Serviço usa SERVICO. */
+  necessidade: NecessidadeOrcItem;
+  produto_revenda_id: number | '';
+  produto_revenda_codigo: string;
+  produto_revenda_descricao: string;
+  unidade_revenda: string;
   tipo_servico: TipoServicoSaida;
   descricao_servico: string;
   material_cliente: boolean;
@@ -198,6 +206,14 @@ export type OrcForm = {
   overrides: OrcOverrides;
 };
 
+export function isRevendaItem(form: Pick<OrcForm, 'necessidade' | 'tipo_operacao'>): boolean {
+  return form.tipo_operacao !== TIPO_SERVICO && form.necessidade === 'REVENDA';
+}
+
+export function isRevendaSnap(snap: Record<string, unknown> | null | undefined): boolean {
+  return String(snap?.necessidade ?? '').toUpperCase() === 'REVENDA';
+}
+
 export type OrcCatalogo = {
   papeis: string[];
   acabamentos: string[];
@@ -217,6 +233,14 @@ export type OrcCatalogo = {
     unidade_padrao: string;
     material_cliente_padrao: boolean;
     descricao_padrao: string;
+  }>;
+  produtos_revenda?: Array<{
+    id: number;
+    codigo: string;
+    descricao: string;
+    unidade: string;
+    preco_tabela: string | null;
+    grupo?: string | null;
   }>;
 };
 
@@ -772,6 +796,11 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
   const tipos = catalog?.tipos_troca_produto ?? [];
   return {
     tipo_operacao: TIPO_INDUSTRIALIZACAO,
+    necessidade: 'PRODUCAO',
+    produto_revenda_id: '',
+    produto_revenda_codigo: '',
+    produto_revenda_descricao: '',
+    unidade_revenda: 'UN',
     tipo_servico: 'REBOBINACAO',
     descricao_servico: '',
     material_cliente: true,
@@ -863,6 +892,17 @@ export function formFromSnapshot(
   return {
     ...base,
     tipo_operacao: tipoOperacaoFromSnap(snap),
+    necessidade: (() => {
+      const nec = String(snap.necessidade ?? '').toUpperCase();
+      if (nec === 'REVENDA') return 'REVENDA';
+      if (nec === 'SERVICO') return 'SERVICO';
+      return 'PRODUCAO';
+    })(),
+    produto_revenda_id:
+      snap.produto_id == null || snap.produto_id === '' ? '' : Number(snap.produto_id),
+    produto_revenda_codigo: String(snap.produto_codigo ?? ''),
+    produto_revenda_descricao: String(snap.produto_descricao ?? ''),
+    unidade_revenda: String(snap.unidade ?? 'UN'),
     tipo_servico: (String(snap.tipo_servico || 'REBOBINACAO').toUpperCase() as TipoServicoSaida) || 'REBOBINACAO',
     descricao_servico: String(snap.descricao_servico ?? ''),
     material_cliente: snap.material_cliente !== false,
@@ -980,10 +1020,7 @@ export const ORC_HEADER_KEYS = [
 
 export type OrcHeaderKey = (typeof ORC_HEADER_KEYS)[number];
 
-const ORC_PAYLOAD_HEADER_KEYS = new Set<string>([
-  ...ORC_HEADER_KEYS,
-  'necessidade',
-]);
+const ORC_PAYLOAD_HEADER_KEYS = new Set<string>([...ORC_HEADER_KEYS]);
 
 export function syncHeaderAcrossItens(itens: OrcForm[], headerSource: OrcForm): OrcForm[] {
   const header: Pick<OrcForm, OrcHeaderKey> = {
@@ -1016,7 +1053,6 @@ export function headerFrom(form: OrcForm): Record<string, unknown> {
     }
   }
   if (full.tipo_operacao) out.tipo_operacao = full.tipo_operacao;
-  if (full.necessidade) out.necessidade = full.necessidade;
 
   return out;
 }
@@ -1120,6 +1156,41 @@ export function calculoComItensDoOrcamento(
 }
 
 export function payloadFromForm(form: OrcForm): Record<string, unknown> {
+  if (isRevendaItem(form)) {
+    return {
+      tipo_operacao: TIPO_INDUSTRIALIZACAO,
+      necessidade: 'REVENDA',
+      produto_id: form.produto_revenda_id === '' ? null : form.produto_revenda_id,
+      descricao_comercial: form.produto_revenda_descricao.trim() || null,
+      unidade: form.unidade_revenda || 'UN',
+      parceiro_id: form.parceiro_id === '' ? null : form.parceiro_id,
+      faixas: form.faixas.map((f) => ({
+        quantidade: f.quantidade,
+        valor_unitario: Number(f.valor_unitario) || 0,
+        comissao_pct: f.comissao_pct,
+      })),
+      prazo_entrega_dias: form.prazo_entrega_dias,
+      validade_dias: form.validade_dias,
+      tolerancia_qtd_pct: 0,
+      observacao: form.observacao || null,
+      url_arte: form.url_arte.trim() || null,
+      condicao_pagamento: form.condicao_pagamento.trim() || null,
+      forma_pagamento: form.forma_pagamento.trim() || null,
+      vendedor_parceiro_id: form.vendedor_parceiro_id === '' ? null : form.vendedor_parceiro_id,
+      modo_entrega: form.modo_entrega,
+      valor_gordura: Math.max(0, Number(form.valor_gordura) || 0),
+      valor_frete_manual:
+        modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
+          ? form.valor_frete_manual
+          : null,
+      mod_frete: normalizarModFreteTerceiros(form.modo_entrega, form.mod_frete || MOD_FRETE_CIF),
+      transportador_id:
+        form.modo_entrega === 'ENTREGA_TERCEIROS' && form.transportador_id !== ''
+          ? form.transportador_id
+          : null,
+    };
+  }
+
   if (form.tipo_operacao === TIPO_SERVICO) {
     return {
       tipo_operacao: TIPO_SERVICO,

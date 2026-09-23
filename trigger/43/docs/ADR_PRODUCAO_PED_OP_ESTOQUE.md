@@ -18,7 +18,8 @@ ORC aprovado (direto ou após BX do adiantamento) deixa `financeiro_status=LIBER
 ORC APROVADO + LIBERADO
   → PED- (snapshot travado; 1 item na fase 1)
        ├─ necessidade PRODUCAO → OP-
-       └─ necessidade SERVICO  → OS-
+       ├─ necessidade SERVICO  → OS-
+       └─ necessidade REVENDA  → separar no PED (sem OP/OS) · `ADR_ORC_ITEM_REVENDA.md`
   → MOV SAIDA_PRODUCAO (MP/EMB → OP)
   → conclusão OP:
        MOV ENTRADA_SOBRA (retorno)

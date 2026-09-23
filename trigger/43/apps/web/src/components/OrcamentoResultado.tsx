@@ -653,7 +653,7 @@ function ComercialFaixasTable({
                 onSort={requestSort}
                 className="num"
               >
-                Serviço
+                Total
               </SortableTh>
               <SortableTh
                 column="unitario"

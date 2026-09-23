@@ -24,6 +24,11 @@ class PedidoItem extends Model
         self::NEC_REVENDA,
     ];
 
+    public static function isRevenda(mixed $value): bool
+    {
+        return strtoupper(trim((string) $value)) === self::NEC_REVENDA;
+    }
+
     public const STATUS_PENDENTE = 'PENDENTE';
 
     public const STATUS_EM_PRODUCAO = 'EM_PRODUCAO';

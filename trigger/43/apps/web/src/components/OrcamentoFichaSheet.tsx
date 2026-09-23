@@ -13,6 +13,7 @@ import {
   calculoComItensDoOrcamento,
   displaySnap,
   facasFromSnapshot,
+  isRevendaSnap,
   labelFerramentalAddOn,
   somaValorFacas,
   statusOrcLabel,
@@ -203,8 +204,13 @@ function FichaItemBody({
     if (Number.isFinite(q)) comissaoPctByQtd.set(q, Number(fx.comissao_pct) || 0);
   }
 
-  const descTitle = multi ? 'Descrição (snapshot)' : 'Descrição do serviço (snapshot)';
-  const temFacaVisual = Boolean(faca || formato || facasComp.length > 0);
+  const isRevenda = isRevendaSnap(input);
+  const descTitle = isRevenda
+    ? 'Produto de revenda (snapshot)'
+    : multi
+      ? 'Descrição (snapshot)'
+      : 'Descrição do serviço (snapshot)';
+  const temFacaVisual = !isRevenda && Boolean(faca || formato || facasComp.length > 0);
   const dimFaca = facaDimensoesExibicao({
     medida: (faca?.medida ?? input.medida) as string | null | undefined,
     formato: (faca?.formato || formato) as string | null | undefined,
@@ -227,51 +233,62 @@ function FichaItemBody({
     descCells.push({ label, value });
   };
 
-  pushDesc('Medida', snap(input, 'medida'), snap(input, 'medida') === '—');
-  pushDesc('Tamanho', tamanhoValor, tamanhoValor === '—');
-  pushDesc(
-    'Larg. papel',
-    cmBr(input.largura_cm as string | number),
-    cmBr(input.largura_cm as string | number) === '—',
-  );
-  pushDesc(
-    'Puxada',
-    cmBr(input.puxada_cm as string | number, 4),
-    cmBr(input.puxada_cm as string | number, 4) === '—',
-  );
-  pushDesc('Cores', snap(input, 'cores'), snap(input, 'cores') === '—');
-  pushDesc('Papel', snap(input, 'papel'), snap(input, 'papel') === '—');
-  pushDesc('Acab.', snap(input, 'acabamento'), snap(input, 'acabamento') === '—');
-  pushDesc('Modelos', snap(input, 'modelos'), snap(input, 'modelos') === '—');
-  pushDesc('Colunas', snap(input, 'colunas'), snap(input, 'colunas') === '—');
-  pushDesc('Etiq/rolo', snap(input, 'etiq_por_rolo'), snap(input, 'etiq_por_rolo') === '—');
-  pushDesc('Tubete', snap(input, 'tubete'), snap(input, 'tubete') === '—');
-  pushDesc('Z', snap(input, 'z'), snap(input, 'z') === '—');
-  pushDesc('Máq.', snap(input, 'maquina'), snap(input, 'maquina') === '—');
-  pushDesc(
-    'Imposto',
-    pctBr(input.imposto_pct as string | number),
-    pctBr(input.imposto_pct as string | number) === '—',
-  );
-  if (temGordura) pushDesc('Gordura', money(valorGordura));
-  pushDesc('Matriz', snap(input, 'matriz'), snap(input, 'matriz') === '—');
-  pushDesc(
-    'Col.reb',
-    snap(input, 'coluna_rebobinacao'),
-    snap(input, 'coluna_rebobinacao') === '—',
-  );
-  if (isSaidaEtiqueta(String(input.saida_etiqueta ?? ''))) {
+  if (isRevenda) {
+    pushDesc('SKU', snap(input, 'produto_codigo'), snap(input, 'produto_codigo') === '—');
     pushDesc(
-      'Saída',
-      <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="dense" />,
+      'Produto',
+      snap(input, 'produto_descricao'),
+      snap(input, 'produto_descricao') === '—',
     );
+    pushDesc('Unidade', snap(input, 'unidade'), snap(input, 'unidade') === '—');
+    if (temGordura) pushDesc('Gordura', money(valorGordura));
+  } else {
+    pushDesc('Medida', snap(input, 'medida'), snap(input, 'medida') === '—');
+    pushDesc('Tamanho', tamanhoValor, tamanhoValor === '—');
+    pushDesc(
+      'Larg. papel',
+      cmBr(input.largura_cm as string | number),
+      cmBr(input.largura_cm as string | number) === '—',
+    );
+    pushDesc(
+      'Puxada',
+      cmBr(input.puxada_cm as string | number, 4),
+      cmBr(input.puxada_cm as string | number, 4) === '—',
+    );
+    pushDesc('Cores', snap(input, 'cores'), snap(input, 'cores') === '—');
+    pushDesc('Papel', snap(input, 'papel'), snap(input, 'papel') === '—');
+    pushDesc('Acab.', snap(input, 'acabamento'), snap(input, 'acabamento') === '—');
+    pushDesc('Modelos', snap(input, 'modelos'), snap(input, 'modelos') === '—');
+    pushDesc('Colunas', snap(input, 'colunas'), snap(input, 'colunas') === '—');
+    pushDesc('Etiq/rolo', snap(input, 'etiq_por_rolo'), snap(input, 'etiq_por_rolo') === '—');
+    pushDesc('Tubete', snap(input, 'tubete'), snap(input, 'tubete') === '—');
+    pushDesc('Z', snap(input, 'z'), snap(input, 'z') === '—');
+    pushDesc('Máq.', snap(input, 'maquina'), snap(input, 'maquina') === '—');
+    pushDesc(
+      'Imposto',
+      pctBr(input.imposto_pct as string | number),
+      pctBr(input.imposto_pct as string | number) === '—',
+    );
+    if (temGordura) pushDesc('Gordura', money(valorGordura));
+    pushDesc('Matriz', snap(input, 'matriz'), snap(input, 'matriz') === '—');
+    pushDesc(
+      'Col.reb',
+      snap(input, 'coluna_rebobinacao'),
+      snap(input, 'coluna_rebobinacao') === '—',
+    );
+    if (isSaidaEtiqueta(String(input.saida_etiqueta ?? ''))) {
+      pushDesc(
+        'Saída',
+        <SaidaEtiquetaBadge code={String(input.saida_etiqueta)} variant="dense" />,
+      );
+    }
+    pushDesc(
+      'Troca',
+      snap(input, 'tipo_troca_produto'),
+      snap(input, 'tipo_troca_produto') === '—',
+    );
+    pushDesc('RPM', snap(input, 'rpm'), snap(input, 'rpm') === '—');
   }
-  pushDesc(
-    'Troca',
-    snap(input, 'tipo_troca_produto'),
-    snap(input, 'tipo_troca_produto') === '—',
-  );
-  pushDesc('RPM', snap(input, 'rpm'), snap(input, 'rpm') === '—');
 
   return (
     <>
@@ -305,7 +322,8 @@ function FichaItemBody({
             ))}
           </div>
         </div>
-        {Array.isArray(input.modelos_composicao) &&
+        {!isRevenda &&
+        Array.isArray(input.modelos_composicao) &&
         (input.modelos_composicao as Array<{ nome?: string }>).some(
           (m) => String(m?.nome ?? '').trim() !== '',
         ) ? (

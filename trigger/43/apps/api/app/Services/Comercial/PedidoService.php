@@ -79,34 +79,25 @@ class PedidoService
         }
 
         $faixaIndex = (int) ($orcamento->aceite_faixa_index ?? 0);
-        $faixa = $this->faixaAprovada($orcamento, $faixaIndex);
-        $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
-        $necessidade = $this->resolverNecessidade($input);
-        $tipoOp = TipoOperacaoSaida::fromInput($input['tipo_operacao'] ?? $necessidade);
-        if ($tipoOp === TipoOperacaoSaida::SERVICO) {
-            $necessidade = PedidoItem::NEC_SERVICO;
+        $jobs = $this->jobsDoOrcamento($orcamento);
+        $temRevenda = false;
+        foreach ($jobs as $job) {
+            if (PedidoItem::isRevenda($this->resolverNecessidade($job['input']))) {
+                $temRevenda = true;
+                break;
+            }
         }
-        $paProduto = $this->resolverProdutoPa($orcamento->empresa, $necessidade);
-        $servico = $necessidade === PedidoItem::NEC_SERVICO
-            ? CatalogoServicoSaida::get((string) ($input['tipo_servico'] ?? CatalogoServicoSaida::AVULSO))
-            : null;
+        if (! $temRevenda) {
+            $jobs = [$jobs[0]];
+        }
 
-        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixa, $input, $necessidade, $paProduto, $servico) {
+        $primeiro = $jobs[0];
+        $faixa = $this->faixaDoJob($primeiro['result'], $faixaIndex);
+        $input = $primeiro['input'];
+
+        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixa, $input, $jobs) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode((int) $orcamento->empresa_id, 'PED-'.$ano, 5);
-
-            $travado = PrecoTravadoPedido::daFaixa($faixa);
-            $qtde = $travado['qtde_faixa'];
-            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
-                throw ValidationException::withMessages([
-                    'quantidade' => ['Faixa aprovada sem quantidade válida.'],
-                ]);
-            }
-
-            $preco = $travado['preco_unitario'];
-            $total = $travado['valor_comercial'];
-
-            $descricao = $this->montarDescricao($input, $faixa);
 
             $pedido = Pedido::query()->create([
                 'empresa_id' => $orcamento->empresa_id,
@@ -116,7 +107,7 @@ class PedidoService
                 'vendedor_parceiro_id' => $orcamento->vendedor_parceiro_id,
                 'status' => Pedido::STATUS_LIBERADO,
                 'faixa_index' => $faixaIndex,
-                'tolerancia_qtd_pct' => $orcamento->tolerancia_qtd_pct ?? '20',
+                'tolerancia_qtd_pct' => $this->toleranciaDoPedido($orcamento, $jobs),
                 'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
                 'snapshot' => [
                     'orcamento_codigo' => $orcamento->codigo,
@@ -127,35 +118,82 @@ class PedidoService
                 'observacao' => $orcamento->observacao,
             ]);
 
-            $unidade = 'MIL';
-            $familia = 'PA-ETQ';
-            if ($servico !== null) {
-                $familia = $servico['familia_fiscal'];
-                $unidade = strtoupper(trim((string) ($input['unidade'] ?? $servico['unidade_padrao']))) ?: $servico['unidade_padrao'];
-            } elseif ($necessidade === PedidoItem::NEC_SERVICO) {
-                $familia = 'SVC';
-                $unidade = 'UN';
+            foreach (array_values($jobs) as $i => $job) {
+                $this->criarItemDeJob($orcamento, $pedido, $job, $faixaIndex, $i + 1);
             }
 
-            PedidoItem::query()->create([
-                'empresa_id' => $orcamento->empresa_id,
-                'pedido_id' => $pedido->id,
-                'ordem' => 1,
-                'necessidade' => $necessidade,
-                'familia_fiscal' => $familia,
-                'descricao' => $descricao,
-                'especificacao' => $this->montarEspecificacao($input, $servico),
-                'qtde_pedida' => $qtde,
-                'qtde_produzida' => '0',
-                'qtde_faturavel' => '0',
-                'unidade' => $unidade,
-                'preco_unitario' => $preco,
-                'valor_total' => $total,
-                'status' => PedidoItem::STATUS_PENDENTE,
-                'produto_pa_id' => $paProduto?->id,
-            ]);
-
             return $pedido->fresh(['itens.produtoPa', 'parceiro', 'orcamento']);
+        });
+    }
+
+    /**
+     * Confirma separação de item REV — sem OP. qtde faturável = pedida.
+     *
+     * @return array<string, mixed>
+     */
+    public function separarRevenda(Empresa $empresa, Pedido $pedido, PedidoItem $item): array
+    {
+        if ($pedido->empresa_id !== $empresa->id || $item->pedido_id !== $pedido->id) {
+            abort(404);
+        }
+
+        if (! in_array($pedido->status, Pedido::STATUSES_ABRE_ORDEM, true)) {
+            throw ValidationException::withMessages([
+                'pedido' => ['Separação só com pedido LIBERADO ou EM_PRODUCAO.'],
+            ]);
+        }
+
+        if ($item->necessidade !== PedidoItem::NEC_REVENDA) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Só item de revenda se confirma por separação (sem OP).'],
+            ]);
+        }
+
+        if ($item->status !== PedidoItem::STATUS_PENDENTE) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Item de revenda já separado ou cancelado.'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($pedido, $item) {
+            $qtde = PadraoDecimal::roundHalfUp((string) $item->qtde_pedida, PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    'quantidade' => ['Item de revenda sem quantidade válida.'],
+                ]);
+            }
+
+            $item->qtde_produzida = $qtde;
+            $item->qtde_faturavel = $qtde;
+            $item->status = PedidoItem::STATUS_PRODUZIDO;
+            $item->save();
+
+            $pendentes = $pedido->itens()
+                ->whereNotIn('status', [PedidoItem::STATUS_PRODUZIDO, PedidoItem::STATUS_CANCELADO])
+                ->exists();
+            if (! $pendentes) {
+                $pedido->status = Pedido::STATUS_PRODUZIDO;
+                $pedido->save();
+            }
+
+            $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
+            $snap['separacao_revenda'] = [
+                'pedido_item_id' => $item->id,
+                'qtde' => $qtde,
+                'em' => now()->toIso8601String(),
+            ];
+            $pedido->snapshot = $snap;
+            $pedido->save();
+
+            return $this->show($pedido->fresh([
+                'itens.produtoPa',
+                'parceiro',
+                'orcamento',
+                'ordensProducao',
+                'ordensServico',
+                'faturamento',
+                'entrega',
+            ]));
         });
     }
 
@@ -380,6 +418,123 @@ class PedidoService
     }
 
     /**
+     * @return list<array{input: array<string, mixed>, result: array<string, mixed>}>
+     */
+    private function jobsDoOrcamento(Orcamento $orcamento): array
+    {
+        $orcamento->loadMissing('itens');
+        if ($orcamento->itens->isNotEmpty()) {
+            return $orcamento->itens
+                ->sortBy('ordem')
+                ->values()
+                ->map(static fn ($item) => [
+                    'input' => is_array($item->input_snapshot) ? $item->input_snapshot : [],
+                    'result' => is_array($item->result_snapshot) ? $item->result_snapshot : [],
+                ])
+                ->all();
+        }
+
+        return [[
+            'input' => is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [],
+            'result' => is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [],
+        ]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function faixaDoJob(array $result, int $faixaIndex): array
+    {
+        $faixas = $result['faixas'] ?? [];
+        if (is_array($faixas) && isset($faixas[$faixaIndex]) && is_array($faixas[$faixaIndex])) {
+            return $faixas[$faixaIndex];
+        }
+        if (is_array($faixas) && isset($faixas[0]) && is_array($faixas[0])) {
+            return $faixas[0];
+        }
+
+        throw ValidationException::withMessages([
+            'faixa_index' => ['Faixa aprovada inválida.'],
+        ]);
+    }
+
+    /**
+     * @param  array{input: array<string, mixed>, result: array<string, mixed>}  $job
+     */
+    private function criarItemDeJob(
+        Orcamento $orcamento,
+        Pedido $pedido,
+        array $job,
+        int $faixaIndex,
+        int $ordem,
+    ): PedidoItem {
+        $input = $job['input'];
+        $faixa = $this->faixaDoJob($job['result'], $faixaIndex);
+        $necessidade = $this->resolverNecessidade($input);
+        $tipoOp = TipoOperacaoSaida::fromInput($input['tipo_operacao'] ?? $necessidade);
+        if ($tipoOp === TipoOperacaoSaida::SERVICO) {
+            $necessidade = PedidoItem::NEC_SERVICO;
+        }
+
+        $travado = PrecoTravadoPedido::daFaixa($faixa);
+        $qtde = $travado['qtde_faixa'];
+        if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'quantidade' => ['Faixa aprovada sem quantidade válida.'],
+            ]);
+        }
+
+        $servico = $necessidade === PedidoItem::NEC_SERVICO
+            ? CatalogoServicoSaida::get((string) ($input['tipo_servico'] ?? CatalogoServicoSaida::AVULSO))
+            : null;
+        $produto = $this->resolverProdutoDoItem($orcamento->empresa, $necessidade, $input);
+
+        $unidade = 'MIL';
+        $familia = 'PA-ETQ';
+        if ($servico !== null) {
+            $familia = $servico['familia_fiscal'];
+            $unidade = strtoupper(trim((string) ($input['unidade'] ?? $servico['unidade_padrao']))) ?: $servico['unidade_padrao'];
+        } elseif ($necessidade === PedidoItem::NEC_SERVICO) {
+            $familia = 'SVC';
+            $unidade = 'UN';
+        } elseif ($necessidade === PedidoItem::NEC_REVENDA) {
+            $familia = strtoupper(trim((string) ($input['familia_fiscal'] ?? $produto?->grupo ?? 'REV'))) ?: 'REV';
+            $unidade = strtoupper(trim((string) ($input['unidade'] ?? $produto?->unidade_comercial ?? 'UN'))) ?: 'UN';
+        }
+
+        return PedidoItem::query()->create([
+            'empresa_id' => $orcamento->empresa_id,
+            'pedido_id' => $pedido->id,
+            'ordem' => $ordem,
+            'necessidade' => $necessidade,
+            'familia_fiscal' => $familia,
+            'descricao' => $this->montarDescricao($input, $faixa),
+            'especificacao' => $this->montarEspecificacao($input, $servico),
+            'qtde_pedida' => $qtde,
+            'qtde_produzida' => '0',
+            'qtde_faturavel' => '0',
+            'unidade' => $unidade,
+            'preco_unitario' => $travado['preco_unitario'],
+            'valor_total' => $travado['valor_comercial'],
+            'status' => PedidoItem::STATUS_PENDENTE,
+            'produto_pa_id' => $produto?->id,
+        ]);
+    }
+
+    /**
+     * @param  list<array{input: array<string, mixed>, result: array<string, mixed>}>  $jobs
+     */
+    private function toleranciaDoPedido(Orcamento $orcamento, array $jobs): string
+    {
+        $soRevenda = $jobs !== [] && collect($jobs)->every(
+            fn (array $job) => PedidoItem::isRevenda($this->resolverNecessidade($job['input']))
+        );
+
+        return $soRevenda ? '0' : (string) ($orcamento->tolerancia_qtd_pct ?? '20');
+    }
+
+    /**
      * @param  array<string, mixed>  $input
      */
     private function resolverNecessidade(array $input): string
@@ -398,9 +553,30 @@ class PedidoService
         return PedidoItem::NEC_PRODUCAO;
     }
 
-    private function resolverProdutoPa(?Empresa $empresa, string $necessidade): ?Produto
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function resolverProdutoDoItem(?Empresa $empresa, string $necessidade, array $input): ?Produto
     {
-        if ($empresa === null || $necessidade !== PedidoItem::NEC_PRODUCAO) {
+        if ($empresa === null) {
+            return null;
+        }
+
+        if ($necessidade === PedidoItem::NEC_REVENDA) {
+            $id = (int) ($input['produto_id'] ?? 0);
+            if ($id < 1) {
+                return null;
+            }
+
+            return Produto::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereKey($id)
+                ->where('familia', 'REV')
+                ->where('situacao', 'ATIVO')
+                ->first();
+        }
+
+        if ($necessidade !== PedidoItem::NEC_PRODUCAO) {
             return null;
         }
 
@@ -418,6 +594,19 @@ class PedidoService
      */
     private function montarDescricao(array $input, array $faixa): string
     {
+        $revendaDesc = trim((string) ($input['produto_descricao'] ?? $input['produto_codigo'] ?? ''));
+        if (PedidoItem::isRevenda($input['necessidade'] ?? null) && $revendaDesc !== '') {
+            $codigo = trim((string) ($input['produto_codigo'] ?? ''));
+            $label = $codigo !== '' && ! str_contains($revendaDesc, $codigo)
+                ? $codigo.' · '.$revendaDesc
+                : $revendaDesc;
+            $q = isset($faixa['quantidade'])
+                ? PadraoDecimal::roundHalfUp((string) $faixa['quantidade'], 0)
+                : null;
+
+            return mb_substr($q ? $label.' · Q '.$q : $label, 0, 255);
+        }
+
         $servicoDesc = trim((string) ($input['descricao_servico'] ?? ''));
         if ($servicoDesc !== '') {
             $q = isset($faixa['quantidade'])
@@ -447,6 +636,18 @@ class PedidoService
      */
     private function montarEspecificacao(array $input, ?array $servico): array
     {
+        if (PedidoItem::isRevenda($input['necessidade'] ?? null)) {
+            return [
+                'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
+                'necessidade' => PedidoItem::NEC_REVENDA,
+                'produto_id' => $input['produto_id'] ?? null,
+                'produto_codigo' => $input['produto_codigo'] ?? null,
+                'produto_descricao' => $input['produto_descricao'] ?? null,
+                'familia_fiscal' => $input['familia_fiscal'] ?? null,
+                'unidade' => $input['unidade'] ?? null,
+            ];
+        }
+
         if ($servico !== null || TipoOperacaoSaida::isServico($input['tipo_operacao'] ?? $input['necessidade'] ?? null)) {
             $cat = $servico ?? CatalogoServicoSaida::get((string) ($input['tipo_servico'] ?? CatalogoServicoSaida::AVULSO));
 

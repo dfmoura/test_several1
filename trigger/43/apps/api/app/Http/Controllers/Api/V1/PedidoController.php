@@ -89,6 +89,25 @@ class PedidoController extends Controller
         ], 201);
     }
 
+    public function separarRevenda(Request $request, Pedido $pedido): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($pedido);
+
+        $data = $request->validate([
+            'pedido_item_id' => ['required', 'integer'],
+        ]);
+
+        $item = PedidoItem::query()
+            ->where('pedido_id', $pedido->id)
+            ->where('id', (int) $data['pedido_item_id'])
+            ->firstOrFail();
+
+        return response()->json([
+            'data' => $this->pedidos->separarRevenda($this->empresa(), $pedido, $item),
+        ]);
+    }
+
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('producao.ler') && ! $request->user()->can('orcamento.ler')) {

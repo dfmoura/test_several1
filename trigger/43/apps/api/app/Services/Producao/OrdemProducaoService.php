@@ -106,6 +106,11 @@ class OrdemProducaoService
             ]);
         }
 
+        if ($item->necessidade === PedidoItem::NEC_REVENDA) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Item de revenda não gera OP — confirme a separação no pedido.'],
+            ]);
+        }
         if ($item->necessidade !== PedidoItem::NEC_PRODUCAO) {
             throw ValidationException::withMessages([
                 'pedido_item_id' => ['Item não é de PRODUCAO — use OS.'],

@@ -212,13 +212,16 @@ final class OrcamentoItens
      */
     private static function mergeHeaderIntoJob(array $header, array $job, string $tipo): array
     {
+        $jobNecessidade = isset($job['necessidade']) ? trim((string) $job['necessidade']) : '';
         $merged = array_merge($job, $header);
         if ($tipo === TipoOperacaoSaida::SERVICO) {
             $merged['tipo_operacao'] = TipoOperacaoSaida::SERVICO;
             $merged['necessidade'] = 'SERVICO';
         } elseif ($tipo === TipoOperacaoSaida::INDUSTRIALIZACAO) {
             $merged['tipo_operacao'] = TipoOperacaoSaida::INDUSTRIALIZACAO;
-            if (! isset($merged['necessidade']) || $merged['necessidade'] === '') {
+            if ($jobNecessidade !== '') {
+                $merged['necessidade'] = $jobNecessidade;
+            } elseif (! isset($merged['necessidade']) || $merged['necessidade'] === '') {
                 $merged['necessidade'] = 'PRODUCAO';
             }
         }

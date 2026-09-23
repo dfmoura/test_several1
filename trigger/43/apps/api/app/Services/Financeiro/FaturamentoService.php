@@ -529,7 +529,7 @@ class FaturamentoService
         if ($pedido->status === Pedido::STATUS_CANCELADO) {
             $bloqueios[] = 'Pedido cancelado não pode ser faturado.';
         } elseif ($pedido->status !== Pedido::STATUS_PRODUZIDO) {
-            $bloqueios[] = 'Faturamento exige pedido produzido (OP/OS concluída).';
+            $bloqueios[] = 'Faturamento exige pedido pronto (produção, serviço ou separação de revenda).';
         }
 
         $travado = $this->precoTravado($pedido);
@@ -550,8 +550,13 @@ class FaturamentoService
             if ($item->status !== PedidoItem::STATUS_PRODUZIDO) {
                 $bloqueios[] = 'Item ainda não produzido: '.$item->descricao.'.';
             }
-            $preco = $travado['preco_unitario'];
-            $valor = PrecoTravadoPedido::valorEtiquetas($qtde, $travado);
+            $linhaTravado = $item->necessidade === PedidoItem::NEC_REVENDA
+                ? PrecoTravadoPedido::doItem($item)
+                : $travado;
+            $preco = $linhaTravado['preco_unitario'];
+            $valor = $item->necessidade === PedidoItem::NEC_REVENDA
+                ? $linhaTravado['valor_comercial']
+                : PrecoTravadoPedido::valorEtiquetas($qtde, $linhaTravado);
             $valorItens = bcadd($valorItens, $valor, PadraoDecimal::SCALE_MONEY);
             $familia = (string) ($item->familia_fiscal ?: $familia);
             $qtdeFaturavel = $qtde;

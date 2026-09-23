@@ -109,6 +109,7 @@ export function OrcPubEspecificacaoBloco({
   className,
 }: SpecProps) {
   const isServico = tipoOperacao === 'SERVICO';
+  const isRevenda = desc?.necessidade === 'REVENDA' || Boolean(desc?.produto_codigo);
   const body = isServico ? (
     <SpecDense
       cells={[
@@ -127,6 +128,24 @@ export function OrcPubEspecificacaoBloco({
           : []),
         ...(desc?.material_cliente
           ? [{ key: 'mat', label: 'Material', value: 'Do cliente' } satisfies SpecCell]
+          : []),
+      ]}
+    />
+  ) : isRevenda ? (
+    <SpecDense
+      cells={[
+        {
+          key: 'sku',
+          label: 'SKU',
+          value: desc?.produto_codigo || '—',
+        },
+        {
+          key: 'desc',
+          label: 'Produto',
+          value: desc?.produto_descricao || 'Revenda',
+        },
+        ...(desc?.unidade
+          ? [{ key: 'un', label: 'Unidade', value: desc.unidade } satisfies SpecCell]
           : []),
       ]}
     />

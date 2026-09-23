@@ -6,12 +6,15 @@ use App\Models\Empresa;
 use App\Models\MatrizCobrada;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
+use App\Models\PedidoItem;
+use App\Models\Produto;
 use App\Services\Audit\AuditLogger;
 use App\Services\Calendario\DiasUteisService;
 use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\Orcamento\OrcamentoCatalogo;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Comercial\Orcamento\OrcamentoMotor;
+use App\Services\Comercial\Orcamento\OrcamentoRevendaPrecificador;
 use App\Services\Comercial\Orcamento\OrcamentoServicoPrecificador;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
@@ -31,6 +34,7 @@ class OrcamentoService
     public function __construct(
         private readonly OrcamentoMotor $motor,
         private readonly OrcamentoServicoPrecificador $servicoPrecificador,
+        private readonly OrcamentoRevendaPrecificador $revendaPrecificador,
         private readonly CodigoGenerator $codigoGenerator,
         private readonly AuditLogger $audit,
         private readonly OrcamentoFreteEstimadoService $freteEstimado,
@@ -45,6 +49,7 @@ class OrcamentoService
         $meta = OrcamentoCatalogo::load()->metaForUi();
         $meta['tipos_operacao'] = TipoOperacaoSaida::metaForUi();
         $meta['tipos_servico'] = CatalogoServicoSaida::metaForUi();
+        $meta['produtos_revenda'] = $this->produtosRevendaMeta();
 
         return $meta;
     }
@@ -416,6 +421,12 @@ class OrcamentoService
             return [$input, $this->servicoPrecificador->calcular($input)];
         }
 
+        if (PedidoItem::isRevenda($data['necessidade'] ?? null)) {
+            $input = $this->buildRevendaInput($empresa, $data, $parceiro);
+
+            return [$input, $this->revendaPrecificador->calcular($input)];
+        }
+
         $input = $this->buildMotorInput($data, $parceiro, $empresa);
 
         return [$input, $this->motor->calcular($input)];
@@ -458,6 +469,101 @@ class OrcamentoService
                 'comissao_pct' => (float) ($f['comissao_pct'] ?? 0),
             ], $data['faixas']),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function buildRevendaInput(Empresa $empresa, array $data, Parceiro $parceiro): array
+    {
+        $produto = $this->resolverProdutoRevenda($empresa, (int) ($data['produto_id'] ?? 0));
+        $desc = trim((string) ($data['descricao_comercial'] ?? ''));
+        if ($desc === '') {
+            $desc = trim((string) ($produto->descricao_comercial ?: $produto->descricao_fiscal));
+        }
+        $unidade = strtoupper(trim((string) ($data['unidade'] ?? $produto->unidade_comercial ?: 'UN'))) ?: 'UN';
+        $familia = strtoupper(trim((string) ($produto->grupoCatalogo?->codigo ?: $produto->grupo ?: 'REV')));
+
+        return [
+            'cliente' => $parceiro->razao_social,
+            'parceiro_id' => $parceiro->id,
+            'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
+            'necessidade' => PedidoItem::NEC_REVENDA,
+            'produto_id' => $produto->id,
+            'produto_codigo' => $produto->codigo,
+            'produto_descricao' => $desc,
+            'familia_fiscal' => $familia !== '' ? $familia : 'REV',
+            'unidade' => $unidade,
+            'valor_gordura' => $this->normalizeValorGordura($data['valor_gordura'] ?? 0),
+            'faixas' => array_map(static fn (array $f) => [
+                'quantidade' => (float) $f['quantidade'],
+                'valor_unitario' => (float) $f['valor_unitario'],
+                'comissao_pct' => (float) ($f['comissao_pct'] ?? 0),
+            ], $data['faixas']),
+        ];
+    }
+
+    private function resolverProdutoRevenda(Empresa $empresa, int $produtoId): Produto
+    {
+        if ($produtoId < 1) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Selecione o produto de revenda.'],
+            ]);
+        }
+
+        $produto = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($produtoId)
+            ->first();
+
+        if ($produto === null) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Produto não encontrado na empresa do contexto.'],
+            ]);
+        }
+
+        if (strtoupper((string) $produto->familia) !== 'REV') {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Só SKU de família REV entra como item de revenda.'],
+            ]);
+        }
+
+        if (strtoupper((string) $produto->situacao) !== 'ATIVO') {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Produto de revenda inativo.'],
+            ]);
+        }
+
+        return $produto;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function produtosRevendaMeta(): array
+    {
+        $empresa = app('empresa');
+        if (! $empresa instanceof Empresa) {
+            return [];
+        }
+
+        return Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('familia', 'REV')
+            ->where('situacao', 'ATIVO')
+            ->orderBy('codigo')
+            ->limit(200)
+            ->get(['id', 'codigo', 'descricao_fiscal', 'descricao_comercial', 'unidade_comercial', 'preco_tabela', 'grupo'])
+            ->map(static fn (Produto $p) => [
+                'id' => $p->id,
+                'codigo' => $p->codigo,
+                'descricao' => trim((string) ($p->descricao_comercial ?: $p->descricao_fiscal)),
+                'unidade' => strtoupper((string) ($p->unidade_comercial ?: 'UN')) ?: 'UN',
+                'preco_tabela' => $p->preco_tabela !== null ? (string) $p->preco_tabela : null,
+                'grupo' => $p->grupo,
+            ])
+            ->all();
     }
 
     /**
@@ -575,6 +681,9 @@ class OrcamentoService
             'codigo_tributacao_nacional_iss' => $input['codigo_tributacao_nacional_iss'] ?? null,
             'codigo_nbs' => $input['codigo_nbs'] ?? null,
             'familia_fiscal' => $input['familia_fiscal'] ?? null,
+            'produto_id' => $input['produto_id'] ?? $data['produto_id'] ?? null,
+            'produto_codigo' => $input['produto_codigo'] ?? $data['produto_codigo'] ?? null,
+            'produto_descricao' => $input['produto_descricao'] ?? $data['descricao_comercial'] ?? $data['produto_descricao'] ?? null,
             'valor_gordura' => $this->normalizeValorGordura(
                 $data['valor_gordura'] ?? $input['valor_gordura'] ?? 0
             ),
@@ -706,7 +815,8 @@ class OrcamentoService
     ): array {
         $data = FacasComposicao::ensureInPayload($data);
 
-        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $result['tipo_operacao'] ?? null)) {
+        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $result['tipo_operacao'] ?? null)
+            || PedidoItem::isRevenda($data['necessidade'] ?? $result['necessidade'] ?? null)) {
             $data['facas'] = [];
             $data['faca_nova'] = false;
             $data['valor_faca_nova'] = 0;

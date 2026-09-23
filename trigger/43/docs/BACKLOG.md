@@ -15,11 +15,31 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-117`
+`BL-118`
 
 ---
 
 ## Itens
+
+### BL-117 · [orc/ped] Item de revenda (SKU REV, sem OP)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — etiqueta + revenda no mesmo trilho; só-REV sem OP
+- **Depende de:** `ADR_ORC_ITEM_REVENDA.md` · `ADR_ORC_ITENS` · `ADR_OPERACOES_SAIDA` · `MAPA_FLUXO_POS_ORC`
+- **Decisão (fechada):**
+  1. Revenda = **item** (`necessidade=REVENDA`), não quarto tipo de ORC.
+  2. SKU família `REV` da EMP; preço comercial; fora de R1–R20.
+  3. PED sem OP/OS; CTA **Confirmar separação** → `PRODUZIDO`.
+  4. Só-REV N=1 ponta a ponta; misto cria N linhas se houver algum REV. Etiqueta-only N>1 intacta.
+  5. `SAIDA_VENDA` continua só na NF. COM- não inclui REV.
+- **Aceite:**
+  - [x] ORC só-REV calcula/salva sem motor/faca
+  - [x] PED `NEC_REVENDA` + separar → FAT apto
+  - [x] Abrir OP/OS em REV = 422
+  - [x] Etiqueta clássica N=1 intacta
+- **Fora de escopo:** PA+SVC misto · COM- sobre REV · empenho de saldo no separar · PED N linhas de etiqueta-only
+- **Norma:** `docs/ADR_ORC_ITEM_REVENDA.md`
+- **Teste:** `php vendor/bin/phpunit --filter 'RevendaOrcAteFaturamentoTest|OrcamentoRevendaPrecificadorTest'`
 
 ### BL-116 · [producao/ux] Ficha da OP na família do PED
 - **Status:** Feito

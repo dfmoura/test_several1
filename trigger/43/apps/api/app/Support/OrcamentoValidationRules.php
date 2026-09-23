@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Orcamento;
+use App\Models\PedidoItem;
 use App\Support\FacaPosicao;
 use App\Support\SaidaEtiqueta;
 use Illuminate\Validation\Rule;
@@ -30,6 +31,9 @@ final class OrcamentoValidationRules
         if ($tipo === TipoOperacaoSaida::SERVICO) {
             return self::servicoRules();
         }
+        if (PedidoItem::isRevenda($raw['necessidade'] ?? null)) {
+            return self::revendaRules();
+        }
 
         return self::industrializacaoRules();
     }
@@ -51,17 +55,32 @@ final class OrcamentoValidationRules
             ];
         }
 
-        $jobRules = $tipo === TipoOperacaoSaida::SERVICO
-            ? self::servicoJobRules()
-            : self::industrializacaoJobRules();
+        if ($tipo === TipoOperacaoSaida::SERVICO) {
+            return array_merge(self::comuns(), [
+                'tipo_operacao' => ['required', 'string', Rule::in([TipoOperacaoSaida::SERVICO])],
+                'itens' => ['required', 'array', 'min:1', 'max:20'],
+                'itens.*.rotulo' => ['nullable', 'string', 'max:120'],
+            ], self::prefixRules('itens.*.', self::servicoJobRules()));
+        }
 
-        return array_merge(self::comuns(), [
-            'tipo_operacao' => $tipo === TipoOperacaoSaida::SERVICO
-                ? ['required', 'string', Rule::in([TipoOperacaoSaida::SERVICO])]
-                : ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
+        $base = array_merge(self::comuns(), [
+            'tipo_operacao' => ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
             'itens' => ['required', 'array', 'min:1', 'max:20'],
             'itens.*.rotulo' => ['nullable', 'string', 'max:120'],
-        ], self::prefixRules('itens.*.', $jobRules));
+            'itens.*.necessidade' => ['nullable', 'string', Rule::in(['PRODUCAO', 'REVENDA'])],
+        ]);
+
+        foreach (array_values($raw['itens']) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $jobRules = PedidoItem::isRevenda($row['necessidade'] ?? null)
+                ? self::revendaJobRules()
+                : self::industrializacaoJobRules();
+            $base = array_merge($base, self::prefixRules('itens.'.$i.'.', $jobRules));
+        }
+
+        return $base;
     }
 
     /**
@@ -217,6 +236,36 @@ final class OrcamentoValidationRules
             'horas_maquina' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'maquina' => ['nullable', 'string', 'max:64'],
             'cessao_bem_id' => ['nullable', 'integer'],
+            'faixas' => ['required', 'array', 'min:1'],
+            'faixas.*.quantidade' => ['required', 'numeric', 'gt:0'],
+            'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],
+            'faixas.*.comissao_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'valor_gordura' => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
+
+    /**
+     * Revenda — SKU REV, preço comercial, fora do motor (ADR_ORC_ITEM_REVENDA).
+     *
+     * @return array<string, mixed>
+     */
+    public static function revendaRules(): array
+    {
+        return array_merge(self::comuns(), self::revendaJobRules(), [
+            'tipo_operacao' => ['nullable', 'string', Rule::in([TipoOperacaoSaida::INDUSTRIALIZACAO])],
+            'necessidade' => ['required', 'string', Rule::in([PedidoItem::NEC_REVENDA])],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function revendaJobRules(): array
+    {
+        return [
+            'produto_id' => ['required', 'integer', 'min:1'],
+            'descricao_comercial' => ['nullable', 'string', 'max:255'],
+            'unidade' => ['nullable', 'string', 'max:8'],
             'faixas' => ['required', 'array', 'min:1'],
             'faixas.*.quantidade' => ['required', 'numeric', 'gt:0'],
             'faixas.*.valor_unitario' => ['required', 'numeric', 'gt:0'],

@@ -30,7 +30,7 @@ ORC (enviado → APROVADO)
             ├─ PRODUCAO → OP- (empenho leve → requisitar SAIDA_PRODUCAO
             │                 → concluir: ENTRADA_SOBRA / perda / ENTRADA_PA ±tol)
             ├─ SERVICO  → OS- (concluir sem ENTRADA_PA)
-            └─ REVENDA  → separação (sem OP)
+            └─ REVENDA  → Confirmar separação no PED (sem OP) · `ADR_ORC_ITEM_REVENDA.md`
        → item/PED PRODUZIDO → FAT → ENT → BX → ENCERRADO
 ```
 

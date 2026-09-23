@@ -71,6 +71,11 @@ class OrdemServicoService
             ]);
         }
 
+        if ($item->necessidade === PedidoItem::NEC_REVENDA) {
+            throw ValidationException::withMessages([
+                'pedido_item_id' => ['Item de revenda não gera OS — confirme a separação no pedido.'],
+            ]);
+        }
         if ($item->necessidade !== PedidoItem::NEC_SERVICO) {
             throw ValidationException::withMessages([
                 'pedido_item_id' => ['Item não é de SERVICO — use OP.'],

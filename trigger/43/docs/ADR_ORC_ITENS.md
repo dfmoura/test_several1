@@ -39,12 +39,13 @@ Item = job / posição (detalhe 1..N)       → 1 passagem no motor · 1 geometr
 | Camada | Pertence a | Exemplos |
 |--------|------------|----------|
 | **Cabeçalho** | Documento | `tipo_operacao` (fase 1) · parceiro/prospect · vendedor · validade · observação da proposta · entrega/frete · adiantamento/política · status · link de aprovação · totais consolidados |
-| **Item** | Job | faca (geometria) · especificação técnica · escada · `modelos` + `modelos_composicao` · gordura · matriz · saída da etiqueta · result do motor da posição |
+| **Item** | Job | **Etiqueta:** faca · spec · escada · artes · gordura · matriz · saída da bobina · motor. **Revenda:** SKU `REV` · qtde · preço comercial — `ADR_ORC_ITEM_REVENDA.md`. |
 
 ### Tipo de operação
 
 - **Fase 1 (travada):** `tipo_operacao` no **cabeçalho** — proposta homogênea (PA **ou** SVC). Cessão de bem permanece fora do multi-item (fluxo patrimônio).
 - **Fase 2 (só com ADR/FAT):** tipo no item para proposta mista PA+SVC — alinhado a `ADR_OPERACOES_SAIDA` (um FAT, dois DFS). **Fora** da primeira entrega de código.
+- **Revenda (mesmo trilho Venda de Produto):** `necessidade` no **item** (`PRODUCAO` \| `REVENDA`). Não é quarto tipo de cabeçalho. Norma: `ADR_ORC_ITEM_REVENDA.md`.
 
 ### Persistência
 
