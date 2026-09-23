@@ -311,6 +311,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/retiradas', [EstoqueRetiradaController::class, 'index']);
         Route::get('/estoque/retiradas/{ordemProducao}', [EstoqueRetiradaController::class, 'show']);
         Route::get('/estoque/retiradas/{ordemProducao}/volume', [EstoqueRetiradaController::class, 'resolverVolume']);
+        Route::get('/estoque/retiradas/{ordemProducao}/preview', [EstoqueRetiradaController::class, 'preview']);
+        Route::post('/estoque/retiradas/{ordemProducao}/avaria', [EstoqueRetiradaController::class, 'avaria']);
         Route::post('/estoque/retiradas/{ordemProducao}/confirmar', [EstoqueRetiradaController::class, 'confirmar']);
         Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
         Route::get('/estoque/movimentos/{estoqueMovimento}/ficha-entrada', [EstoqueVolumeController::class, 'fichaEntrada']);

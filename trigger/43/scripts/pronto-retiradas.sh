@@ -50,12 +50,13 @@ Pré-requisitos
 
 Roteiro
   1. Hard refresh (Ctrl+Shift+R)
-  2. Painel: fila «Retiradas em aberto» se houver pendência → Estoque → Retiradas
-  3. Abrir caminhada da OP · preview FEFO (volume, local, validade)
-  4. Ler VOL: (ou colar o Código da etiqueta) → Confirmar — mesmo MOV da OP
-  5. Entregar na produção (quem recebeu na máquina)
-  6. Na OP: guia Separação + «Caminhada no estoque» + Entregar na produção
-  7. SKU sem lote: um clique, sem QR
+  2. Painel: fila «Retiradas em aberto» → Estoque → Retiradas → Abrir ficha
+  3. Confrontação: Sistema (pedido) × Físico baixado × A retirar
+  4. QR VOL: ou quantidade manual → Confirmar e anexar à OP
+  5. Avaria na mesa → Registrar → Requisitar de novo (novo ciclo na ficha)
+  6. Entregar na produção (quem recebeu na máquina)
+  7. Na OP: a mesma ficha fica anexo à ordem
+  8. SKU sem lote: um clique, sem QR
 
 Não inventar saldo. Entrada só via OC/receber ou AJU/INV aprovado.
 

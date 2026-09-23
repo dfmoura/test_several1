@@ -189,3 +189,19 @@ export function papelMinimoParaQtdeBoa(
   const necessario = empenho * (boa / planejada);
   return Math.max(0, necessario * (1 - tol / 100));
 }
+
+/** Porta do almoxarifado — confirmação física só na ficha (ADR coleta dirigida). */
+export function hrefFichaEstoque(
+  opId: number,
+  q?: { materialId?: number; produtoId?: number; qtde?: string | number },
+): string {
+  const p = new URLSearchParams();
+  if (q?.materialId) p.set('material_id', String(q.materialId));
+  if (q?.produtoId) p.set('produto_id', String(q.produtoId));
+  if (q?.qtde != null && String(q.qtde).trim() !== '') {
+    const n = parseQtdeDigitada(q.qtde);
+    if (n > 0) p.set('qtde', String(n));
+  }
+  const qs = p.toString();
+  return `/estoque/retiradas/${opId}${qs ? `?${qs}` : ''}`;
+}

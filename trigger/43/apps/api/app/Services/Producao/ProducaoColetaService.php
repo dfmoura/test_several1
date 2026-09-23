@@ -118,7 +118,11 @@ class ProducaoColetaService
     public function volumesBaixados(Empresa $empresa, OrdemProducao $op, int $produtoId): array
     {
         $itens = EstoqueMovimentoItem::query()
-            ->with(['lote.endereco:id,codigo', 'movimento:id,codigo,tipo,ordem_producao_id,empresa_id'])
+            ->with([
+                'produto:id,codigo',
+                'lote.endereco:id,codigo',
+                'movimento:id,codigo,tipo,ordem_producao_id,empresa_id,created_at,observacao',
+            ])
             ->where('produto_id', $produtoId)
             ->whereHas('movimento', function ($q) use ($empresa, $op) {
                 $q->where('empresa_id', $empresa->id)
@@ -156,6 +160,8 @@ class ProducaoColetaService
             }
             $linha['movimento_id'] = $item->movimento_id;
             $linha['movimento_codigo'] = $item->movimento?->codigo;
+            $linha['movimento_em'] = optional($item->movimento?->created_at)?->toIso8601String();
+            $linha['sku'] = $item->produto?->codigo;
             $out[] = $linha;
             $ordem++;
         }
@@ -376,6 +382,99 @@ class ProducaoColetaService
                 'codigo' => $op->insumosEntreguesPorUser->codigo,
             ] : null,
             'recebidos_nome' => $op->insumos_recebidos_nome,
+        ];
+    }
+
+    /**
+     * Ficha de confrontação (sistema × físico) anexada à OP — leitura dos MOV.
+     *
+     * @param  list<array<string, mixed>>  $materiais
+     * @return array{linhas: list<array<string, mixed>>, ciclos: list<array<string, mixed>>}
+     */
+    public function fichaDe(Empresa $empresa, OrdemProducao $op, array $materiais): array
+    {
+        $linhas = [];
+        foreach ($materiais as $m) {
+            if (! is_array($m)) {
+                continue;
+            }
+            $planejado = PadraoDecimal::roundHalfUp((string) ($m['qtde_planejada'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            $requisitado = PadraoDecimal::roundHalfUp((string) ($m['qtde_requisitada'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            $avaria = PadraoDecimal::roundHalfUp((string) ($m['qtde_avaria'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            $pendente = (bool) ($m['pendente'] ?? false);
+            $delta = PadraoDecimal::roundHalfUp(
+                bcsub($requisitado, $planejado, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+            $aRetirar = $pendente
+                ? $planejado
+                : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);
+
+            $produto = is_array($m['produto'] ?? null) ? $m['produto'] : [];
+            $retirada = is_array($m['retirada'] ?? null) ? $m['retirada'] : [];
+
+            $linhas[] = [
+                'material_id' => (int) ($m['id'] ?? 0),
+                'sku' => $produto['codigo'] ?? null,
+                'descricao' => $produto['descricao_fiscal'] ?? ($m['componente'] ?? null),
+                'unidade' => $m['unidade'] ?? ($produto['unidade_interna'] ?? 'UN'),
+                'controla_lote' => (bool) ($produto['controla_lote'] ?? $retirada['controla_lote'] ?? false),
+                'planejado' => $planejado,
+                'requisitado' => $requisitado,
+                'avaria' => $avaria,
+                'motivo_avaria' => $m['motivo_avaria'] ?? null,
+                'a_retirar' => $aRetirar,
+                'delta' => $delta,
+                'pendente' => $pendente,
+                'aguardando_material' => (bool) ($m['aguardando_material'] ?? false),
+                'suficiente' => (bool) ($retirada['suficiente'] ?? true),
+                'qtde_faltante' => $retirada['qtde_faltante'] ?? PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY),
+            ];
+        }
+
+        $movs = EstoqueMovimento::query()
+            ->with(['itens.produto:id,codigo', 'itens.lote.endereco:id,codigo'])
+            ->where('empresa_id', $empresa->id)
+            ->where('ordem_producao_id', $op->id)
+            ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO)
+            ->orderBy('id')
+            ->get();
+
+        $ciclos = [];
+        $n = 1;
+        foreach ($movs as $mov) {
+            $obs = (string) ($mov->observacao ?? '');
+            $itens = [];
+            foreach ($mov->itens as $item) {
+                $lote = $item->lote;
+                $itens[] = [
+                    'produto_id' => (int) $item->produto_id,
+                    'sku' => $item->produto?->codigo,
+                    'lote_id' => $item->lote_id ? (int) $item->lote_id : null,
+                    'codigo' => $lote?->codigo,
+                    'qtde' => PadraoDecimal::roundHalfUp((string) $item->qtde, PadraoDecimal::SCALE_QTY),
+                    'unidade' => $item->unidade,
+                    'endereco' => $lote?->endereco ? [
+                        'id' => $lote->endereco->id,
+                        'codigo' => $lote->endereco->codigo,
+                    ] : null,
+                ];
+            }
+            $ciclos[] = [
+                'n' => $n,
+                'movimento_id' => (int) $mov->id,
+                'movimento_codigo' => $mov->codigo,
+                'em' => optional($mov->created_at)?->toIso8601String(),
+                'complementar' => str_contains(mb_strtolower($obs), 'complemento'),
+                'observacao' => $obs !== '' ? $obs : null,
+                'itens' => $itens,
+            ];
+            $n++;
+        }
+
+        return [
+            'linhas' => $linhas,
+            'ciclos' => $ciclos,
         ];
     }
 

@@ -38,7 +38,7 @@ export function EstoqueRetiradasPage() {
     <div className="page">
       <PageHeader
         title="Retiradas para produção"
-        description="Caminhe pelos locais, confirme os volumes (QR VOL:) e entregue na máquina. A baixa é o mesmo MOV da OP."
+        description="Cada requisição é uma ficha: o estoque confronta o sistema com o físico (QR ou manual). O que sai fica anexo à OP. Avaria? Requisita de novo."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -70,7 +70,7 @@ export function EstoqueRetiradasPage() {
             titulo="A retirar no estoque"
             vazio="Nada pendente de baixa."
             cards={fila.a_retirar}
-            acao="Abrir caminhada"
+            acao="Abrir ficha"
           />
           <Secao
             titulo="A entregar na produção"

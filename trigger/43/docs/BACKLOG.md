@@ -15,11 +15,45 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-109`
+`BL-111`
 
 ---
 
 ## Itens
+
+### BL-110 · [producao/estoque/ux] Confirmação física só no Estoque
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — «Retirada de todas as saídas» só para o estoque
+- **Depende de:** BL-109 · `ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Decisão (fechada):**
+  1. OP não confirma baixa (some *Preparar todas as retiradas* / painel / linha).
+  2. CTA *Abrir ficha no estoque*; complemento e extra pedem quantidade e abrem a ficha.
+  3. API `requisitar` permanece (compat). Writer único.
+- **Aceite:**
+  - [x] OP sem painel de confirmação
+  - [x] Ficha do estoque recebe `material_id`/`produto_id`+`qtde`
+- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Teste local:** OP → Abrir ficha no estoque → confirmar. Ctrl+Shift+R.
+
+### BL-109 · [producao/estoque/ux] Ficha de confrontação da requisição (Fase D)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — confrontar sistema × físico; ficha anexa à OP; avaria → de novo
+- **Depende de:** BL-108 · `ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Decisão (fechada):**
+  1. Uma ficha (chão + OP): pedido × baixado × avaria × a retirar.
+  2. Baixa por QR **ou** quantidade manual — mesmo `requisitar` / writer.
+  3. Cada confirmação vira ciclo MOV anexado à OP. Sem documento `REQ-`.
+  4. Avaria na ficha → requisitar de novo (complemento, novo ciclo).
+- **Aceite:**
+  - [x] `ficha_retirada` no show da OP
+  - [x] Chão: QR + manual + avaria + reposição
+  - [x] Anexo visível na OP
+  - [x] PHPUnit `test_ficha_confronta_ciclo_avaria_e_reposicao_no_chao`
+- **Fora de escopo:** empenho reservado · WMS · segundo writer
+- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Teste local:** Estoque → Retiradas → ficha da OP → baixar (QR ou manual) → avaria → requisitar de novo. Ctrl+Shift+R.
 
 ### BL-108 · [producao/estoque/ux] Coleta dirigida — chão QR + handoff + Painel (Fases B–C)
 - **Status:** Feito

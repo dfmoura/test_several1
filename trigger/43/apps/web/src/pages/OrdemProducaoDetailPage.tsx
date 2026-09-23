@@ -5,24 +5,20 @@ import { StatusPill } from '../components/StatusPill';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
 import {
   api,
-  type OpRetiradaPreview,
   type OrdemProducao,
   type OrdemProducaoMaterial,
   type Produto,
 } from '../lib/api';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
-import {
-  OpRetiradaPanel,
-  OpVolumesBaixados,
-  type OpRetiradaConfirmacao,
-  type OpRetiradaLinhaDraft,
-} from '../components/OpRetiradaPanel';
+import { OpVolumesBaixados } from '../components/OpRetiradaPanel';
+import { OpFichaRetirada } from '../components/OpFichaRetirada';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
 import {
   capQtdeAte,
   ehMaterialProducao,
+  hrefFichaEstoque,
   opMaterialLinhaStatus,
   opMaterialStatusLabel,
   opStatusLabel,
@@ -73,9 +69,6 @@ export function OrdemProducaoDetailPage() {
   ]);
   const [qtdeComplementar, setQtdeComplementar] = useState('');
   const [avariaForms, setAvariaForms] = useState<AvariaLinhaForm[]>([]);
-  const [retirada, setRetirada] = useState<{ titulo: string; linhas: OpRetiradaLinhaDraft[] } | null>(
-    null,
-  );
   const [recebidoPor, setRecebidoPor] = useState('');
 
   const [qtdeBoa, setQtdeBoa] = useState('');
@@ -132,262 +125,6 @@ export function OrdemProducaoDetailPage() {
     setRecebidoPor(data.handoff?.recebidos_nome ?? '');
   };
 
-  const requisitar = async (opts?: {
-    materialId?: number;
-    qtde?: string;
-    produtoId?: number;
-    complementar?: boolean;
-    volumes?: Array<{ lote_id: number; qtde: string }>;
-    volumes_motivo?: string;
-    silenciarMsg?: boolean;
-  }) => {
-    if (!op) return;
-    setBusy(true);
-    setErr(null);
-    if (!opts?.silenciarMsg) setMsg(null);
-    try {
-      const body: Record<string, unknown> = {};
-      if (opts?.materialId) {
-        body.material_id = opts.materialId;
-        if (opts.qtde) body.qtde = String(parseQtdeDigitada(opts.qtde));
-      } else {
-        body.produto_id = opts?.produtoId;
-        body.qtde = String(parseQtdeDigitada(opts?.qtde ?? ''));
-      }
-      if (opts?.complementar) body.complementar = true;
-      if (opts?.volumes && opts.volumes.length > 0) body.volumes = opts.volumes;
-      if (opts?.volumes_motivo) body.volumes_motivo = opts.volumes_motivo;
-      const res = await api.post<{ data: OrdemProducao }>(
-        `/ordens-producao/${op.id}/requisitar`,
-        body,
-      );
-      aplicarOp(res.data);
-      setQtdeComplementar('');
-      setRetirada(null);
-      if (!opts?.silenciarMsg) {
-        setMsg(opts?.complementar ? 'Papel complementar requisitado.' : 'Saída de material registrada.');
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha na requisição.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const draftDaLinha = (
-    m: OrdemProducaoMaterial,
-    opts?: { qtde?: string; complementar?: boolean; preview?: OpRetiradaPreview },
-  ): OpRetiradaLinhaDraft => {
-    const preview = opts?.preview ?? m.retirada ?? {
-      controla_lote: Boolean(m.produto?.controla_lote),
-      politica: m.produto?.controla_lote ? 'FEFO_FIFO' : 'QTD',
-      qtde: opts?.qtde ?? m.qtde_planejada ?? '0',
-      unidade: m.unidade,
-      suficiente: true,
-      qtde_faltante: '0',
-      volumes: [],
-      candidatos: [],
-    };
-    return {
-      key: `mat-${m.id}`,
-      label: `${m.produto?.codigo ?? 'SKU'} · ${m.componente ?? 'material'}`,
-      unidade: m.unidade,
-      qtde: opts?.qtde ?? m.qtde_planejada ?? preview.qtde,
-      preview,
-      materialId: m.id,
-      complementar: opts?.complementar,
-    };
-  };
-
-  const linhaControlaLote = (m: OrdemProducaoMaterial) =>
-    Boolean(m.produto?.controla_lote || m.retirada?.controla_lote);
-
-  const abrirRetiradaLinha = (m: OrdemProducaoMaterial) => {
-    setErr(null);
-    setMsg(null);
-    if (!linhaControlaLote(m)) {
-      void requisitar({ materialId: m.id, qtde: m.qtde_planejada ?? m.qtde_requisitada });
-      return;
-    }
-    setRetirada({
-      titulo: `Retirada · ${m.produto?.codigo ?? 'material'}`,
-      linhas: [draftDaLinha(m)],
-    });
-  };
-
-  const abrirRetiradaTodas = () => {
-    if (!op) return;
-    const pendentes = (op.materiais ?? []).filter((m) => m.pendente && !m.aguardando_material);
-    if (pendentes.length === 0) return;
-    setErr(null);
-    setMsg(null);
-    if (!pendentes.some(linhaControlaLote)) {
-      void requisitarTodos();
-      return;
-    }
-    setRetirada({
-      titulo: 'Retirada de todas as saídas',
-      linhas: pendentes.map((m) => draftDaLinha(m)),
-    });
-  };
-
-  const abrirRetiradaQtde = async (opts: {
-    material: OrdemProducaoMaterial;
-    qtde: string;
-    complementar?: boolean;
-    titulo: string;
-  }) => {
-    if (!op) return;
-    if (!linhaControlaLote(opts.material)) {
-      void requisitar({
-        materialId: opts.material.id,
-        qtde: opts.qtde,
-        complementar: opts.complementar,
-      });
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const q = new URLSearchParams({
-        material_id: String(opts.material.id),
-        qtde: String(parseQtdeDigitada(opts.qtde)),
-      });
-      const res = await api.get<{ data: OpRetiradaPreview }>(
-        `/ordens-producao/${op.id}/retirada?${q.toString()}`,
-      );
-      setRetirada({
-        titulo: opts.titulo,
-        linhas: [
-          draftDaLinha(opts.material, {
-            qtde: opts.qtde,
-            complementar: opts.complementar,
-            preview: res.data,
-          }),
-        ],
-      });
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao preparar a retirada.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const abrirRetiradaExtras = async () => {
-    if (!op) return;
-    const linhas = extras.filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0);
-    if (linhas.length === 0) {
-      setErr('Informe ao menos um SKU e a quantidade para a saída extra.');
-      return;
-    }
-    const vistos = new Set<number>();
-    for (const linha of linhas) {
-      const pid = linha.produto!.id;
-      if (vistos.has(pid)) {
-        setErr('Há SKU repetido nas linhas extras. Junte a quantidade ou remova a duplicata.');
-        return;
-      }
-      vistos.add(pid);
-    }
-    if (!linhas.some((e) => e.produto?.controla_lote)) {
-      void requisitarExtras();
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const drafts: OpRetiradaLinhaDraft[] = [];
-      for (const linha of linhas) {
-        const q = String(parseQtdeDigitada(linha.qtde));
-        const query = new URLSearchParams({
-          produto_id: String(linha.produto!.id),
-          qtde: q,
-        });
-        const res = await api.get<{ data: OpRetiradaPreview }>(
-          `/ordens-producao/${op.id}/retirada?${query.toString()}`,
-        );
-        drafts.push({
-          key: `extra-${linha.key}`,
-          label: linha.produto!.codigo,
-          unidade: linha.produto!.unidade_interna || linha.produto!.unidade_comercial || 'UN',
-          qtde: q,
-          preview: res.data,
-          produtoId: linha.produto!.id,
-        });
-      }
-      setRetirada({ titulo: 'Retirada de saídas extras', linhas: drafts });
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao preparar a retirada extra.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const confirmarRetirada = async (linhas: OpRetiradaConfirmacao[]) => {
-    if (!op) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      let last = op;
-      for (const linha of linhas) {
-        const body: Record<string, unknown> = {};
-        if (linha.materialId) {
-          body.material_id = linha.materialId;
-          body.qtde = String(parseQtdeDigitada(linha.qtde));
-        } else {
-          body.produto_id = linha.produtoId;
-          body.qtde = String(parseQtdeDigitada(linha.qtde));
-        }
-        if (linha.complementar) body.complementar = true;
-        if (linha.volumes && linha.volumes.length > 0) body.volumes = linha.volumes;
-        if (linha.volumes_motivo) body.volumes_motivo = linha.volumes_motivo;
-        const res = await api.post<{ data: OrdemProducao }>(
-          `/ordens-producao/${op.id}/requisitar`,
-          body,
-        );
-        last = res.data;
-      }
-      aplicarOp(last);
-      setQtdeComplementar('');
-      setRetirada(null);
-      if (linhas.some((l) => l.produtoId && !l.materialId)) {
-        setExtras([emptyExtra()]);
-      }
-      setMsg(
-        linhas.length === 1
-          ? linhas[0].complementar
-            ? 'Papel complementar requisitado.'
-            : 'Saída de material registrada.'
-          : `${linhas.length} saídas registradas.`,
-      );
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha na requisição.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const requisitarTodos = async () => {
-    if (!op) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const res = await api.post<{ data: OrdemProducao }>(
-        `/ordens-producao/${op.id}/requisitar-pendentes`,
-      );
-      aplicarOp(res.data);
-      setMsg('Todas as saídas pendentes foram requisitadas.');
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao requisitar pendentes.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const registrarAvarias = async () => {
     if (!op) return;
     const requisitados = (op.materiais ?? []).filter((m) => !m.pendente);
@@ -435,48 +172,6 @@ export function OrdemProducaoDetailPage() {
       );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao registrar avaria.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const requisitarExtras = async () => {
-    if (!op) return;
-    const linhas = extras.filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0);
-    if (linhas.length === 0) {
-      setErr('Informe ao menos um SKU e a quantidade para a saída extra.');
-      return;
-    }
-    const vistos = new Set<number>();
-    for (const linha of linhas) {
-      const pid = linha.produto!.id;
-      if (vistos.has(pid)) {
-        setErr('Há SKU repetido nas linhas extras. Junte a quantidade ou remova a duplicata.');
-        return;
-      }
-      vistos.add(pid);
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      let last = op;
-      for (const linha of linhas) {
-        const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/requisitar`, {
-          produto_id: linha.produto!.id,
-          qtde: String(parseQtdeDigitada(linha.qtde)),
-        });
-        last = res.data;
-      }
-      aplicarOp(last);
-      setExtras([emptyExtra()]);
-      setMsg(
-        linhas.length === 1
-          ? 'Saída extra registrada.'
-          : `${linhas.length} saídas extras registradas.`,
-      );
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha na requisição extra.');
     } finally {
       setBusy(false);
     }
@@ -599,11 +294,8 @@ export function OrdemProducaoDetailPage() {
   const disp = op?.disponibilidade;
   const temFaltante = Boolean(disp?.aguardando_material);
   const naoCasados = disp?.componentes_nao_casados ?? [];
-  const podeRequisitarTodas =
-    aberta &&
-    hasPermission('producao.escrever') &&
-    materiaisPendentes.length > 0 &&
-    !temFaltante;
+  const podeAbrirFichaEstoque =
+    Boolean(aberta) && (hasPermission('estoque.ler') || hasPermission('producao.ler'));
 
   const consumoZeroTotal =
     materiaisRequisitados.length > 0 &&
@@ -808,14 +500,14 @@ export function OrdemProducaoDetailPage() {
                 <div className="form-section" style={{ marginBottom: 0 }}>
                   <h3>1 · Separação de insumos</h3>
                   <p className="muted" style={{ margin: 0 }}>
-                    Linhas do orçamento (papel, tubete, caixa). SKU com lote abre a{' '}
-                    <strong>retirada</strong> (volume, local, validade) antes de baixar. Empenho leve
-                    só pré-preenche — não movimenta. Rasgo ou umidade na mesa é{' '}
-                    <strong>avaria da separação</strong> (abaixo) — não é perda de processo.
+                    Pedido da OP (papel, tubete, caixa). A confirmação física — QR ou manual — é
+                    só do <strong>estoque</strong>, na ficha da requisição. Empenho leve não
+                    movimenta. Rasgo na mesa é <strong>avaria da separação</strong> (abaixo); a
+                    reposição também confirma no estoque.
                     {hasPermission('estoque.ler') || hasPermission('producao.ler') ? (
                       <>
                         {' '}
-                        <Link to={`/estoque/retiradas/${op.id}`}>Caminhada no estoque</Link>
+                        <Link to={hrefFichaEstoque(op.id)}>Ficha no estoque</Link>
                       </>
                     ) : null}
                     {hasPermission('estoque.ler') ? (
@@ -834,15 +526,10 @@ export function OrdemProducaoDetailPage() {
                     ) : null}
                   </p>
                 </div>
-                {podeRequisitarTodas ? (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={busy}
-                    onClick={() => abrirRetiradaTodas()}
-                  >
-                    Preparar todas as retiradas
-                  </button>
+                {podeAbrirFichaEstoque ? (
+                  <Link className="btn btn-primary" to={hrefFichaEstoque(op.id)}>
+                    Abrir ficha no estoque
+                  </Link>
                 ) : null}
               </div>
 
@@ -866,7 +553,7 @@ export function OrdemProducaoDetailPage() {
                   <>
                     <strong>Saldo do estoque (leitura)</strong> — cada linha mostra{' '}
                     <strong>Planejado · Disponível · Faltante</strong>. Sem reserva automática: a
-                    baixa só ocorre ao confirmar a retirada; se faltar, o sistema bloqueia antes de
+                    baixa só ocorre na ficha do estoque; se faltar, o sistema bloqueia antes de
                     movimentar. SKU com lote sugere FEFO (validade) e FIFO (entrada).
                   </>
                 )}
@@ -916,11 +603,6 @@ export function OrdemProducaoDetailPage() {
                     ) : (
                       (op.materiais ?? []).map((m) => {
                         const statusKey = opMaterialLinhaStatus(m);
-                        const podeBaixarLinha =
-                          aberta &&
-                          hasPermission('producao.escrever') &&
-                          m.pendente &&
-                          !m.aguardando_material;
                         return (
                           <tr key={m.id}>
                             <td>
@@ -995,21 +677,14 @@ export function OrdemProducaoDetailPage() {
                               <StatusPill status={opMaterialStatusLabel(statusKey)} />
                             </td>
                             <td>
-                              {podeBaixarLinha ? (
-                                <div className="table-actions">
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    disabled={busy}
-                                    onClick={() => abrirRetiradaLinha(m)}
-                                  >
-                                    {linhaControlaLote(m) ? 'Preparar retirada' : 'Requisitar saída'}
-                                  </button>
-                                </div>
-                              ) : m.pendente && m.aguardando_material ? (
+                              {m.pendente && m.aguardando_material ? (
                                 <span className="muted" style={{ fontSize: '0.85em' }}>
                                   Sem saldo
                                 </span>
+                              ) : m.pendente && podeAbrirFichaEstoque ? (
+                                <Link className="btn btn-secondary btn-sm" to={hrefFichaEstoque(op.id)}>
+                                  Ficha no estoque
+                                </Link>
                               ) : null}
                             </td>
                           </tr>
@@ -1020,15 +695,7 @@ export function OrdemProducaoDetailPage() {
                 </table>
               </div>
 
-              {retirada ? (
-                <OpRetiradaPanel
-                  titulo={retirada.titulo}
-                  linhas={retirada.linhas}
-                  busy={busy}
-                  onCancel={() => setRetirada(null)}
-                  onConfirm={(linhas) => void confirmarRetirada(linhas)}
-                />
-              ) : null}
+              <OpFichaRetirada op={op} mode="anexo" onOp={(data) => aplicarOp(data)} />
 
               {op.pode_entregar_insumos && hasPermission('producao.escrever') ? (
                 <div
@@ -1203,21 +870,15 @@ export function OrdemProducaoDetailPage() {
                           devolver o papel da máquina ao empenho. Exige saldo.
                         </p>
                       </div>
-                      <button
-                        type="button"
+                      <Link
                         className="btn btn-primary"
-                        disabled={busy}
-                        onClick={() =>
-                          void abrirRetiradaQtde({
-                            material: papelComplementarAlvo,
-                            qtde: qtdeComplementar || String(faltaReposicaoAvaria),
-                            complementar: true,
-                            titulo: `Reposição da avaria · ${papelComplementarAlvo.produto?.codigo ?? 'papel'}`,
-                          })
-                        }
+                        to={hrefFichaEstoque(op.id, {
+                          materialId: papelComplementarAlvo.id,
+                          qtde: qtdeComplementar || String(faltaReposicaoAvaria),
+                        })}
                       >
-                        Preparar reposição
-                      </button>
+                        Pedir reposição no estoque
+                      </Link>
                     </div>
                   ) : null}
                 </div>
@@ -1227,8 +888,8 @@ export function OrdemProducaoDetailPage() {
                 <details style={{ marginTop: '1rem' }}>
                   <summary style={{ cursor: 'pointer' }}>Incluir material extra</summary>
                   <p className="muted" style={{ margin: '0.75rem 0 0.5rem', fontSize: '0.9em' }}>
-                    SKU que não veio do empenho. Um ou mais — busca no padrão do cadastro (MP/EMB).
-                    SKU já requisitado nesta OP não entra aqui; use a reposição complementar.
+                    SKU que não veio do empenho. Informe o item e peça ao estoque — a baixa
+                    confirma só na ficha. SKU já na OP: use a reposição complementar.
                   </p>
                   {extras.map((linha, idx) => {
                     const idsNaOp = new Set(
@@ -1317,17 +978,20 @@ export function OrdemProducaoDetailPage() {
                     >
                       + Item
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled={
-                        busy ||
-                        !extras.some((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
-                      }
-                      onClick={() => void abrirRetiradaExtras()}
-                    >
-                      Preparar saídas extras
-                    </button>
+                    {extras
+                      .filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
+                      .map((e) => (
+                        <Link
+                          key={e.key}
+                          className="btn btn-primary btn-sm"
+                          to={hrefFichaEstoque(op.id, {
+                            produtoId: e.produto!.id,
+                            qtde: e.qtde,
+                          })}
+                        >
+                          Pedir {e.produto!.codigo} no estoque
+                        </Link>
+                      ))}
                   </div>
                 </details>
               ) : null}
@@ -1584,21 +1248,15 @@ export function OrdemProducaoDetailPage() {
                         ) : null}
                       </p>
                     </div>
-                    <button
-                      type="button"
+                    <Link
                       className="btn btn-primary"
-                      disabled={busy}
-                      onClick={() =>
-                        void abrirRetiradaQtde({
-                          material: papelComplementarAlvo,
-                          qtde: qtdeComplementar || String(papelComplementarSugerido),
-                          complementar: true,
-                          titulo: `Papel complementar · ${papelComplementarAlvo.produto?.codigo ?? 'papel'}`,
-                        })
-                      }
+                      to={hrefFichaEstoque(op.id, {
+                        materialId: papelComplementarAlvo.id,
+                        qtde: qtdeComplementar || String(papelComplementarSugerido),
+                      })}
                     >
-                      Preparar papel complementar
-                    </button>
+                      Pedir complementar no estoque
+                    </Link>
                   </div>
                 ) : null}
 

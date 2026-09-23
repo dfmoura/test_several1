@@ -11431,6 +11431,97 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   line-height: 1.4;
 }
 
+.op-ficha {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem 1.1rem;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.03);
+}
+
+.op-ficha__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.op-ficha__head h3 {
+  margin: 0 0 0.3rem;
+}
+
+.op-ficha__head p {
+  margin: 0;
+  max-width: 52rem;
+}
+
+.op-ficha__bloco {
+  margin-top: 1.1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border, #d0d5dd);
+}
+
+.op-ficha__bloco h4 {
+  margin: 0 0 0.35rem;
+}
+
+.op-ficha__sku {
+  margin-top: 0.85rem;
+}
+
+.op-ficha__sku header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.op-ficha__ciclo {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.op-ficha__ciclo header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.35rem;
+}
+
+.op-ficha__ciclo ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.op-ficha__ciclo li {
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.op-ficha__avaria {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.op-ficha__avaria-row {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.op-ficha .alert {
+  margin: 0.5rem 0 0.75rem;
+}
+
 .orc-pub {
   min-height: 100vh;
   padding: 1.25rem 0.85rem 2rem;

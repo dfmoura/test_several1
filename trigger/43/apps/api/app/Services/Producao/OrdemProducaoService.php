@@ -1181,6 +1181,7 @@ class OrdemProducaoService
             $out['pode_entregar_insumos'] = in_array($o->status, OrdemProducao::STATUSES_ABERTOS, true)
                 && $o->insumos_entregues_em === null
                 && $o->materiais->contains(fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null);
+            $out['ficha_retirada'] = $this->coleta->fichaDe($emp, $o, $dispon['materiais']);
         }
 
         return $out;

@@ -3129,6 +3129,8 @@ export type OpRetiradaVolume = {
   ordem_politica: number | null;
   movimento_id?: number;
   movimento_codigo?: string | null;
+  movimento_em?: string | null;
+  sku?: string | null;
 };
 
 export type OpRetiradaPreview = {
@@ -3221,6 +3223,50 @@ export type OrdemProducao = {
   pode_embalar?: boolean;
   handoff?: OpInsumosHandoff;
   pode_entregar_insumos?: boolean;
+  ficha_retirada?: OpFichaRetiradaDto;
+};
+
+export type OpFichaRetiradaLinha = {
+  material_id: number;
+  sku: string | null;
+  descricao: string | null;
+  unidade: string;
+  controla_lote: boolean;
+  planejado: string;
+  requisitado: string;
+  avaria: string;
+  motivo_avaria: string | null;
+  a_retirar: string;
+  delta: string;
+  pendente: boolean;
+  aguardando_material: boolean;
+  suficiente: boolean;
+  qtde_faltante: string;
+};
+
+export type OpFichaRetiradaCicloItem = {
+  produto_id: number;
+  sku: string | null;
+  lote_id: number | null;
+  codigo: string | null;
+  qtde: string;
+  unidade: string;
+  endereco: { id: number; codigo: string } | null;
+};
+
+export type OpFichaRetiradaCiclo = {
+  n: number;
+  movimento_id: number;
+  movimento_codigo: string;
+  em: string | null;
+  complementar: boolean;
+  observacao: string | null;
+  itens: OpFichaRetiradaCicloItem[];
+};
+
+export type OpFichaRetiradaDto = {
+  linhas: OpFichaRetiradaLinha[];
+  ciclos: OpFichaRetiradaCiclo[];
 };
 
 export type OpInsumosHandoff = {

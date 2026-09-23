@@ -484,6 +484,116 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertTrue($comp->json('data.pode_entregar_insumos'));
     }
 
+    public function test_ficha_confronta_ciclo_avaria_e_reposicao_no_chao(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '150.0000',
+                        'volumes' => [
+                            ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                        ],
+                    ],
+                    ['material_id' => $this->matTubete->id],
+                ],
+            ]
+        )->assertOk();
+
+        $ficha = $this->withHeaders($this->h())->getJson('/api/v1/estoque/retiradas/'.$this->op->id);
+        $ficha->assertOk();
+        $this->assertCount(2, $ficha->json('data.ficha_retirada.linhas'));
+        $this->assertCount(2, $ficha->json('data.ficha_retirada.ciclos'));
+        $papel = collect($ficha->json('data.ficha_retirada.linhas'))->firstWhere('material_id', $this->matPapel->id);
+        $this->assertSame('150.0000', $papel['requisitado']);
+        $this->assertFalse($papel['pendente']);
+        $this->assertSame('MOV-', substr((string) $ficha->json('data.ficha_retirada.ciclos.0.movimento_codigo'), 0, 4));
+
+        $av = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/avaria",
+            [
+                'material_id' => $this->matPapel->id,
+                'qtde' => '20.0000',
+                'motivo' => 'Rolo rasgado na mesa',
+            ]
+        );
+        $av->assertOk();
+        $this->assertSame('20.0000', collect($av->json('data.materiais'))->firstWhere('id', $this->matPapel->id)['qtde_avaria']);
+
+        $prev = $this->withHeaders($this->h())->getJson(
+            '/api/v1/estoque/retiradas/'.$this->op->id.'/preview?material_id='.$this->matPapel->id.'&qtde=20'
+        );
+        $prev->assertOk();
+        $this->assertTrue($prev->json('data.controla_lote'));
+
+        $repo = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    [
+                        'material_id' => $this->matPapel->id,
+                        'qtde' => '20.0000',
+                        'complementar' => true,
+                        'volumes' => [
+                            ['lote_id' => $this->loteVigente->id, 'qtde' => '20.0000'],
+                        ],
+                    ],
+                ],
+            ]
+        );
+        $repo->assertOk();
+        $this->assertCount(3, $repo->json('data.ficha_retirada.ciclos'));
+        $this->assertTrue($repo->json('data.ficha_retirada.ciclos.2.complementar'));
+        $this->assertSame(
+            '170.0000',
+            collect($repo->json('data.ficha_retirada.linhas'))->firstWhere('material_id', $this->matPapel->id)['requisitado']
+        );
+    }
+
+    public function test_chao_confirma_extra_por_produto_id(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $extra = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-COL',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'Caixa extra',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'custo_medio' => '2.000000',
+            'controla_lote' => false,
+        ]);
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $extra->id,
+            'qtde' => '12.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '2.000000',
+        ]);
+
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar",
+            [
+                'linhas' => [
+                    ['produto_id' => $extra->id, 'qtde' => '2.0000'],
+                ],
+            ]
+        );
+        $ok->assertOk();
+        $linha = collect($ok->json('data.materiais'))->firstWhere('produto.codigo', 'EMB-CX-COL');
+        $this->assertNotNull($linha);
+        $this->assertFalse($linha['pendente']);
+        $this->assertSame('2.0000', $linha['qtde_requisitada']);
+    }
+
     public function test_entregar_sem_saida_recusado(): void
     {
         Sanctum::actingAs($this->user);

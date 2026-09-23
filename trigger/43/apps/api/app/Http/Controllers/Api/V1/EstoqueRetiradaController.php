@@ -39,6 +39,38 @@ class EstoqueRetiradaController extends Controller
         return response()->json(['data' => $this->service->show($ordemProducao)]);
     }
 
+    public function preview(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeFila($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['nullable', 'integer'],
+            'produto_id' => ['nullable', 'integer'],
+            'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+        ]);
+
+        return response()->json([
+            'data' => $this->service->previewRetirada($this->empresa(), $ordemProducao, $data),
+        ]);
+    }
+
+    public function avaria(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeChaoWrite($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['required', 'integer'],
+            'qtde' => array_merge(['required'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'motivo' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->registrarAvaria($this->empresa(), $ordemProducao, $data),
+        ]);
+    }
+
     public function resolverVolume(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeFila($request);
@@ -60,8 +92,10 @@ class EstoqueRetiradaController extends Controller
 
         $data = $request->validate([
             'linhas' => ['required', 'array', 'min:1'],
-            'linhas.*.material_id' => ['required', 'integer'],
+            'linhas.*.material_id' => ['nullable', 'integer'],
+            'linhas.*.produto_id' => ['nullable', 'integer'],
             'linhas.*.qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'linhas.*.complementar' => ['sometimes', 'boolean'],
             'linhas.*.volumes' => ['nullable', 'array'],
             'linhas.*.volumes.*.lote_id' => ['required_with:linhas.*.volumes', 'integer'],
             'linhas.*.volumes.*.qtde' => array_merge(
@@ -78,11 +112,24 @@ class EstoqueRetiradaController extends Controller
                     "linhas.{$idx}" => ['Linha inválida.'],
                 ]);
             }
-            $payload = [
-                'material_id' => (int) $linha['material_id'],
-            ];
+            $materialId = (int) ($linha['material_id'] ?? 0);
+            $produtoId = (int) ($linha['produto_id'] ?? 0);
+            if ($materialId <= 0 && $produtoId <= 0) {
+                throw ValidationException::withMessages([
+                    "linhas.{$idx}" => ['Informe material_id ou produto_id.'],
+                ]);
+            }
+            $payload = [];
+            if ($materialId > 0) {
+                $payload['material_id'] = $materialId;
+            } else {
+                $payload['produto_id'] = $produtoId;
+            }
             if (isset($linha['qtde']) && $linha['qtde'] !== '' && $linha['qtde'] !== null) {
                 $payload['qtde'] = $linha['qtde'];
+            }
+            if (! empty($linha['complementar'])) {
+                $payload['complementar'] = true;
             }
             if (! empty($linha['volumes']) && is_array($linha['volumes'])) {
                 $payload['volumes'] = $linha['volumes'];
