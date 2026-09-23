@@ -633,6 +633,8 @@ class OrdemProducaoService
             /** @var list<array{mat: OrdemProducaoMaterial, retorno: string, perda: string, consumida: string, custo_unit: string, qtde_custo: string, custo_linha: string}> $destinos */
             $destinos = [];
             $temConsumo = false;
+            $temMpBaixado = false;
+            $temConsumoMp = false;
 
             foreach ($materiaisBaixados as $mat) {
                 $in = $this->findMaterialInput($materiaisIn, (int) $mat->id, (int) $mat->produto_id);
@@ -660,6 +662,16 @@ class OrdemProducaoService
                 );
                 if (bccomp($consumida, '0', PadraoDecimal::SCALE_QTY) > 0) {
                     $temConsumo = true;
+                }
+
+                $familia = strtoupper((string) ($mat->produto?->familia ?? ''));
+                $componente = strtoupper((string) ($mat->componente ?? ''));
+                $ehMp = $familia === 'MP' || $componente === 'PAPEL';
+                if ($ehMp) {
+                    $temMpBaixado = true;
+                    if (bccomp($consumida, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                        $temConsumoMp = true;
+                    }
                 }
 
                 // Custo do consumo = (requisitado − retorno) × CM da saída (aprox. CM atual)
@@ -695,14 +707,18 @@ class OrdemProducaoService
                 ];
             }
 
-            // Baixou material e apontou consumo zero (perda/retorno = 100%) → sem material para produzir.
-            // Bloqueio duro (sem override): PA positivo sem consumo é incoerente no chão.
-            // Sem nenhuma saída: serviço leve / só PA continua permitido.
-            $consumoZero = $materiaisBaixados->isNotEmpty() && ! $temConsumo;
-            if ($consumoZero) {
+            // Sem material para produzir: consumo zero total OU substrato (MP/PAPEL) zerado.
+            if ($materiaisBaixados->isNotEmpty() && ! $temConsumo) {
                 throw ValidationException::withMessages([
                     'materiais' => [
                         'Consumo zero em todos os materiais baixados — sem material consumido não há produção a concluir. Ajuste retorno/perda para deixar consumo > 0 em ao menos um SKU, ou devolva a OP ao pedido se a ordem não segue.',
+                    ],
+                ]);
+            }
+            if ($temMpBaixado && ! $temConsumoMp) {
+                throw ValidationException::withMessages([
+                    'materiais' => [
+                        'Sem consumo de material de produção (MP/papel) — perda/retorno cobriram 100% do substrato. Sem material para produzir não é possível concluir a OP. Ajuste o apontamento do papel ou devolva a OP ao pedido.',
                     ],
                 ]);
             }

@@ -135,9 +135,11 @@ export function OrdemProducaoDetailPage() {
 
   const concluir = async () => {
     if (!op) return;
-    if (consumoZeroTotal) {
+    if (semMaterialParaProduzir) {
       setErr(
-        'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
+        consumoMpZero && !consumoZeroTotal
+          ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste retorno/perda do substrato.'
+          : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
       );
       return;
     }
@@ -145,11 +147,19 @@ export function OrdemProducaoDetailPage() {
     setErr(null);
     setMsg(null);
     try {
-      const materiaisPayload = mats.map((m) => ({
-        material_id: m.material_id,
-        qtde_retorno: String(parseQtdeDigitada(m.qtde_retorno)),
-        qtde_perda: String(parseQtdeDigitada(m.qtde_perda)),
-      }));
+      // Só envia linhas baixadas, com IDs numéricos e qtdes normalizadas.
+      const materiaisPayload = materiaisRequisitados.map((m) => {
+        const form = mats.find((x) => Number(x.material_id) === Number(m.id)) ?? {
+          qtde_retorno: '0',
+          qtde_perda: '0',
+        };
+        return {
+          material_id: Number(m.id),
+          produto_id: m.produto?.id ? Number(m.produto.id) : undefined,
+          qtde_retorno: String(parseQtdeDigitada(form.qtde_retorno)),
+          qtde_perda: String(parseQtdeDigitada(form.qtde_perda)),
+        };
+      });
       const res = await api.post<{ data: OrdemProducao }>(
         `/ordens-producao/${op.id}/concluir`,
         {
@@ -224,7 +234,7 @@ export function OrdemProducaoDetailPage() {
   const consumoZeroTotal =
     materiaisRequisitados.length > 0 &&
     materiaisRequisitados.every((m) => {
-      const form = mats.find((x) => x.material_id === m.id) ?? {
+      const form = mats.find((x) => Number(x.material_id) === Number(m.id)) ?? {
         qtde_retorno: '0',
         qtde_perda: '0',
       };
@@ -233,9 +243,28 @@ export function OrdemProducaoDetailPage() {
       );
     });
 
+  const mpsRequisitados = materiaisRequisitados.filter(
+    (m) =>
+      (m.produto?.familia ?? '').toUpperCase() === 'MP' ||
+      (m.componente ?? '').toUpperCase() === 'PAPEL',
+  );
+  const consumoMpZero =
+    mpsRequisitados.length > 0 &&
+    mpsRequisitados.every((m) => {
+      const form = mats.find((x) => Number(x.material_id) === Number(m.id)) ?? {
+        qtde_retorno: '0',
+        qtde_perda: '0',
+      };
+      return (
+        qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda) <= 0
+      );
+    });
+
+  const semMaterialParaProduzir = consumoZeroTotal || consumoMpZero;
+
   const qtdeBoaNum = parseQtdeDigitada(qtdeBoa);
   const qtdeBoaValida = qtdeBoaNum > 0;
-  const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !consumoZeroTotal;
+  const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !semMaterialParaProduzir;
 
   return (
     <>
@@ -697,7 +726,7 @@ export function OrdemProducaoDetailPage() {
                       </thead>
                       <tbody>
                         {materiaisRequisitados.map((m) => {
-                          const form = mats.find((x) => x.material_id === m.id) ?? {
+                          const form = mats.find((x) => Number(x.material_id) === Number(m.id)) ?? {
                             material_id: m.id,
                             qtde_retorno: '0',
                             qtde_perda: '0',
@@ -707,8 +736,21 @@ export function OrdemProducaoDetailPage() {
                             form.qtde_retorno,
                             form.qtde_perda,
                           );
+                          const ehMp =
+                            (m.produto?.familia ?? '').toUpperCase() === 'MP' ||
+                            (m.componente ?? '').toUpperCase() === 'PAPEL';
                           return (
-                            <tr key={m.id}>
+                            <tr
+                              key={m.id}
+                              style={
+                                consumo <= 0 && ehMp
+                                  ? {
+                                      background:
+                                        'color-mix(in srgb, var(--danger, #c0392b) 6%, transparent)',
+                                    }
+                                  : undefined
+                              }
+                            >
                               <td>
                                 <strong>{m.produto?.codigo}</strong>
                                 <div className="muted">{m.produto?.descricao_fiscal}</div>
@@ -747,11 +789,13 @@ export function OrdemProducaoDetailPage() {
                   </div>
                 ) : null}
 
-                {consumoZeroTotal ? (
+                {semMaterialParaProduzir ? (
                   <div className="alert alert-warning" style={{ marginBottom: '1rem' }} role="status">
-                    <strong>Sem material para produzir</strong> — retorno/perda cobrem 100% do
-                    requisitado em todas as linhas. Ajuste os apontamentos para deixar consumo &gt; 0
-                    em ao menos um SKU, ou devolva a OP ao pedido. A conclusão permanece bloqueada.
+                    <strong>Sem material para produzir</strong>
+                    {consumoMpZero && !consumoZeroTotal
+                      ? ' — o papel/MP está com consumo zero (perda/retorno = 100%). Sem substrato não há produção.'
+                      : ' — retorno/perda cobrem 100% do requisitado. Ajuste os apontamentos para deixar consumo > 0 no material de produção.'}{' '}
+                    A conclusão permanece bloqueada.
                   </div>
                 ) : null}
 
