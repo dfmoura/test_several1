@@ -66,9 +66,18 @@ class FaturamentoItem extends Model
         return str_starts_with($d, self::DESC_FACA_PREFIX);
     }
 
-    public static function eLinhaDeEstoque(string $descricao, ?string $familiaFiscal): bool
+    public static function eLinhaDeSetup(string $descricao): bool
     {
         if (self::eLinhaDeFerramental($descricao)) {
+            return true;
+        }
+
+        return str_starts_with(trim($descricao), self::DESC_ARTE_PREFIX);
+    }
+
+    public static function eLinhaDeEstoque(string $descricao, ?string $familiaFiscal): bool
+    {
+        if (self::eLinhaDeSetup($descricao)) {
             return false;
         }
         $fam = strtoupper(trim((string) $familiaFiscal));

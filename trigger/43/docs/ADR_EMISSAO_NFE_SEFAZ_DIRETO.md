@@ -33,6 +33,7 @@ PED PRODUZIDO → FAT + TIT/COB + DFS PLANEJADO   (inalterado)
 | **Focus desligado, não apagado** | Superfície: hubs fiscais continuam no código/menu gated; não entram no caminho NF-e. |
 | **FAT não espera SEFAZ** | Invariante do mapa: cobrança do saldo não trava em instabilidade fiscal. |
 | **oficial = origem SEFAZ** | Stub nunca é oficial; Focus legado deixa de gravar `oficial` em novas emissões. |
+| **NF-e = PA/REV** | Matriz/clichê, faca e arte ficam no FAT. `ItensFiscaisNfe` incorpora o setup no unitário do acabado (`ADR_FATURAMENTO_COBRANCA.md`). |
 
 ### Ambientes
 

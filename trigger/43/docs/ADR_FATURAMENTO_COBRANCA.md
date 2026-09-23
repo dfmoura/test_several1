@@ -42,6 +42,7 @@ PED PRODUZIDO (qtde_faturavel > 0)
 | **Baixa PA/REV só na NF oficial** | Estudo: estoque na autorização Focus. `ENTRADA_PA` da OP permanece até lá. Stub/prévia não baixam. |
 | **1 FAT vigente : 1 PED** | Fase 1 alinhada a 1 PED : 1 item. Parcial (UC-FIS-004) fica para quando houver NF. Estorno (emenda) libera novo FAT no mesmo PED. |
 | **SoD** | `faturamento.escrever` ≠ `producao.escrever`. PRODUÇÃO não fatura. |
+| **NF-e = PA** | FAT continua com matriz/faca/arte (TIT/comissão). A NF-e/DANFE lista só PA/REV; o setup entra no unitário do acabado (`ItensFiscaisNfe`). Sem linha “Matriz / clichê” no XML. |
 
 ### Natureza gerencial
 

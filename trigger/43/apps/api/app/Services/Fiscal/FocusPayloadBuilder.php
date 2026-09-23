@@ -4,6 +4,7 @@ namespace App\Services\Fiscal;
 
 use App\Models\Empresa;
 use App\Models\Faturamento;
+use App\Models\FaturamentoItem;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\Produto;
@@ -68,7 +69,11 @@ class FocusPayloadBuilder
             $item = [
                 'numero_item' => $n,
                 'codigo_produto' => $produto?->codigo ?: 'FAT'.$n,
-                'descricao' => mb_substr((string) $linha['descricao'], 0, 120),
+                'descricao' => mb_substr(
+                    trim((string) ($produto?->descricao_fiscal ?: $linha['descricao'])),
+                    0,
+                    120
+                ),
                 'codigo_ncm' => $this->ncm($produto),
                 'cfop' => $cfop,
                 'unidade_comercial' => $un,
@@ -270,6 +275,17 @@ class FocusPayloadBuilder
     }
 
     /**
+     * Itens da NF-e: só PA/REV. Setup (matriz/faca/arte) some da grade e entra no unitário.
+     *
+     * @param  list<FaturamentoItem>|iterable<int, FaturamentoItem>  $rows
+     * @return list<array<string, mixed>>
+     */
+    public function itensFiscaisParaPayload(iterable $rows): array
+    {
+        return ItensFiscaisNfe::consolidar($this->itensParaPayload($rows));
+    }
+
+    /**
      * @param  array<string, mixed>  $linha
      */
     private function produtoDaLinha(array $linha): ?Produto
@@ -301,14 +317,27 @@ class FocusPayloadBuilder
 
     private function infAdicionais(Faturamento $fat, ?string $embTexto = null): string
     {
+        $fat->loadMissing('itens');
         $ped = $fat->pedido?->codigo ?? '';
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             'Fatura '.$fat->codigo,
             $embTexto ?: null,
+            $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
         ]);
 
         return implode(' · ', $parts);
+    }
+
+    private function temSetup(Faturamento $fat): bool
+    {
+        foreach ($fat->itens ?? [] as $i) {
+            if ($i instanceof FaturamentoItem && FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

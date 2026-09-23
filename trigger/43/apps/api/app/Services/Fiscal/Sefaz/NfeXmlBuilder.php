@@ -4,6 +4,7 @@ namespace App\Services\Fiscal\Sefaz;
 
 use App\Models\Empresa;
 use App\Models\Faturamento;
+use App\Models\FaturamentoItem;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\Produto;
@@ -95,7 +96,11 @@ final class NfeXmlBuilder
             $cstCofins = $produto?->cst_cofins ?: FiscalSaidaDefaults::CST_COFINS;
             $origem = (int) ($produto?->origem ?? 0);
             $cProd = $this->esc($produto?->codigo ?: 'FAT'.$n);
-            $xProd = $this->esc(mb_substr((string) $linha['descricao'], 0, 120));
+            $xProd = $this->esc(mb_substr(
+                trim((string) ($produto?->descricao_fiscal ?: $linha['descricao'])),
+                0,
+                120
+            ));
             $infAd = $embTexto ? '<infAdProd>'.$this->esc(mb_substr($embTexto, 0, 500)).'</infAdProd>' : '';
             $cest = preg_replace('/\D/', '', (string) ($produto?->cest ?? '')) ?: '';
             $cestXml = $cest !== '' ? '<CEST>'.$cest.'</CEST>' : '';
@@ -302,9 +307,18 @@ final class NfeXmlBuilder
 
     private function infAdicionais(Faturamento $fat, ?string $embTexto): string
     {
+        $fat->loadMissing('itens');
+        $temSetup = false;
+        foreach ($fat->itens ?? [] as $i) {
+            if (FaturamentoItem::eLinhaDeSetup((string) $i->descricao)) {
+                $temSetup = true;
+                break;
+            }
+        }
         $parts = array_filter([
             'FAT '.$fat->codigo,
             $embTexto,
+            $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
         ]);
 
         return mb_substr(implode(' | ', $parts), 0, 2000);

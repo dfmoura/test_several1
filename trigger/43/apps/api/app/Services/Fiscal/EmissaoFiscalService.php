@@ -789,7 +789,7 @@ class EmissaoFiscalService
     private function agruparItens(Faturamento $fat): array
     {
         $grupos = ['NFE' => [], 'NFSE' => []];
-        foreach ($this->payloads->itensParaPayload($fat->itens) as $linha) {
+        foreach ($this->payloads->itensFiscaisParaPayload($fat->itens) as $linha) {
             $tipo = FiscalSaidaDefaults::tipoDeFamilia($linha['familia_fiscal'] ?? null);
             $grupos[$tipo][] = $linha;
         }
@@ -803,7 +803,7 @@ class EmissaoFiscalService
     private function itensDoTipo(Faturamento $fat, string $tipo): array
     {
         $out = [];
-        foreach ($this->payloads->itensParaPayload($fat->itens) as $linha) {
+        foreach ($this->payloads->itensFiscaisParaPayload($fat->itens) as $linha) {
             if (FiscalSaidaDefaults::tipoDeFamilia($linha['familia_fiscal'] ?? null) === $tipo) {
                 $out[] = $linha;
             }

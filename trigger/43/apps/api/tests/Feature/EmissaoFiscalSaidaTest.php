@@ -164,8 +164,8 @@ class EmissaoFiscalSaidaTest extends TestCase
             'result_snapshot' => ['faixas' => [[
                 'quantidade' => 10000,
                 'valor_etiqueta' => '3500.00',
-                'valor_matriz' => '0',
-                'valor_total' => '3500.00',
+                'valor_matriz' => (string) ($overrides['valor_matriz'] ?? '0'),
+                'valor_total' => (string) ($overrides['valor_total'] ?? '3500.00'),
             ]]],
             'prazo_entrega_dias' => 10,
             'validade_dias' => 7,
@@ -193,8 +193,8 @@ class EmissaoFiscalSaidaTest extends TestCase
                 'faixa' => [
                     'quantidade' => 10000,
                     'valor_etiqueta' => '3500.00',
-                    'valor_matriz' => '0',
-                    'valor_total' => '3500.00',
+                    'valor_matriz' => (string) ($overrides['valor_matriz'] ?? '0'),
+                    'valor_total' => (string) ($overrides['valor_total'] ?? '3500.00'),
                 ],
             ],
         ]);
@@ -262,6 +262,38 @@ class EmissaoFiscalSaidaTest extends TestCase
         );
         $this->assertSame('55', $get->json('data.documentos_fiscais.0.previa.modelo'));
         $this->assertNull($get->json('data.documentos_fiscais.0.previa.numero'));
+    }
+
+    public function test_nfe_incorpora_matriz_no_pa_e_nao_lista_cliche(): void
+    {
+        $ped = $this->criarPedidoProduzido([
+            'valor_matriz' => '340.00',
+            'valor_total' => '3840.00',
+        ]);
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('3840.00', $ok->json('data.valor_bruto'));
+        $this->assertSame('340.00', $ok->json('data.snapshot.valor_matriz'));
+        $descricoesFat = collect($ok->json('data.itens'))->pluck('descricao')->all();
+        $this->assertContains('Matriz / clichê', $descricoesFat);
+
+        $items = $ok->json('data.documentos_fiscais.0.envio_hub.items');
+        $this->assertCount(1, $items);
+        $this->assertSame('Etiqueta teste', $items[0]['descricao']);
+        $this->assertSame(3840.0, (float) $items[0]['valor_bruto']);
+        $this->assertSame(3840.0, (float) $ok->json('data.documentos_fiscais.0.envio_hub.valor_total'));
+        $previa = $ok->json('data.documentos_fiscais.0.previa.itens');
+        $this->assertCount(1, $previa);
+        $this->assertSame('Etiqueta teste', $previa[0]['descricao']);
+        $this->assertSame(3840.0, (float) $previa[0]['valor']);
+        $this->assertStringContainsString(
+            'matriz/clichê',
+            (string) $ok->json('data.documentos_fiscais.0.envio_hub.informacoes_adicionais_contribuinte')
+        );
+        foreach ($items as $it) {
+            $this->assertStringNotContainsString('clichê', mb_strtolower((string) ($it['descricao'] ?? '')));
+            $this->assertStringNotContainsString('matriz', mb_strtolower((string) ($it['descricao'] ?? '')));
+        }
     }
 
     public function test_sefaz_fake_emite_nfe_produto(): void

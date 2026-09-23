@@ -15,11 +15,28 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-112`
+`BL-113`
 
 ---
 
 ## Itens
+
+### BL-112 · [fiscal/ux] NF-e só com PA; DANFE A4 com quebra
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — NF-e do acabado, sem clichê; DANFE A4
+- **Depende de:** `ADR_FATURAMENTO_COBRANCA.md` · `ADR_EMISSAO_NFE_SEFAZ_DIRETO.md`
+- **Decisão (fechada):**
+  1. FAT comercial intacto (matriz/faca/arte nas linhas).
+  2. `ItensFiscaisNfe` filtra setup e incorpora no unitário do PA.
+  3. infAdic: “Valor inclui matriz/clichê e ferramental do job”.
+  4. DANFE: A4 sem clip, thead que repete, linha não parte, dados adicionais inteiros.
+- **Aceite:**
+  - [x] XML/prévia sem “Matriz / clichê”
+  - [x] vNF = bruto do FAT
+  - [x] PHPUnit `ItensFiscaisNfeTest` + `test_nfe_incorpora_matriz_no_pa_e_nao_lista_cliche`
+- **Fora de escopo:** Dompdf · paginador JS · NFS-e
+- **Teste local:** Faturar PED com matriz → prévia DANFE: 1 item PA. Ctrl+Shift+R.
 
 ### BL-111 · [producao/ux] Apontamento e conclusão só no chão
 - **Status:** Feito

@@ -65,7 +65,7 @@ final class NfeAutorizacaoService
 
         $fat->loadMissing(['itens.pedidoItem.produtoPa', 'titulos', 'pedido', 'transportador']);
         $itens = array_values(array_filter(
-            $this->payloads->itensParaPayload($fat->itens),
+            $this->payloads->itensFiscaisParaPayload($fat->itens),
             fn (array $i) => FiscalSaidaDefaults::tipoDeFamilia($i['familia_fiscal'] ?? null) === 'NFE'
         ));
         if ($itens === []) {
