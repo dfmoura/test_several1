@@ -95,7 +95,7 @@ const FACA_SORT = {
   z: (f: FacaMapa) => (f.z != null ? Number(f.z) : null),
   rep: (f: FacaMapa) => (f.repeticao != null ? Number(f.repeticao) : null),
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
-  fornecedor: (f: FacaMapa) => f.fornecedor,
+  cliente: (f: FacaMapa) => f.cliente_nota,
 };
 
 function fmtNum(v: unknown, d = 2): string {
@@ -212,7 +212,12 @@ export function MapasFacasPage() {
     obs: '',
   });
 
-  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT);
+  const { sorted, sorts, sortKey, sortDir, requestSort } = useTableSort(items, FACA_SORT, {
+    initialSorts: [
+      { key: 'maquina', dir: 'asc' },
+      { key: 'n_facas', dir: 'asc' },
+    ],
+  });
 
   const formatosLista = mergeVocabulario(FORMATOS_CANONICOS, formatos);
   const maquinasLista = maquinas;
@@ -266,10 +271,17 @@ export function MapasFacasPage() {
     setNova((p) => ({ ...p, maquina_catalogo: maquina }));
   };
 
+  const fecharDetalhe = useCallback(() => {
+    if (saving) return;
+    setSelected(null);
+  }, [saving]);
+
   const abrirNovaFaca = () => {
+    if (saving) return;
     const maquinaInicial = maquina || maquinasLista[0] || '';
     novaNFacasManual.current = false;
     sugestaoNFacasReq.current += 1;
+    setSelected(null);
     setNova({
       ...EMPTY_NOVA,
       maquina_catalogo: maquinaInicial,
@@ -286,6 +298,17 @@ export function MapasFacasPage() {
     setNovaErro('');
     setShowNova(false);
   };
+
+  useEffect(() => {
+    if (!selected || showNova) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      fecharDetalhe();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected, showNova, fecharDetalhe]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -760,8 +783,16 @@ export function MapasFacasPage() {
                 <table className="data-table mapa-facas-table">
                   <thead>
                     <tr>
-                      <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Formato
+                      <SortableTh
+                        column="n_facas"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="N FACA"
+                      >
+                        N FACA
                       </SortableTh>
                       <th className="mapa-facas-th-silhueta" scope="col">
                         Silhueta
@@ -791,15 +822,8 @@ export function MapasFacasPage() {
                       >
                         TAM
                       </SortableTh>
-                      <SortableTh
-                        column="n_facas"
-                        className="num"
-                        sorts={sorts} sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="N FACA"
-                      >
-                        N FACA
+                      <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Formato
                       </SortableTh>
                       <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Máquina
@@ -807,7 +831,8 @@ export function MapasFacasPage() {
                       <SortableTh
                         column="z"
                         className="num"
-                        sorts={sorts} sortKey={sortKey}
+                        sorts={sorts}
+                        sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                         label="Z"
@@ -817,7 +842,8 @@ export function MapasFacasPage() {
                       <SortableTh
                         column="rep"
                         className="num"
-                        sorts={sorts} sortKey={sortKey}
+                        sorts={sorts}
+                        sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                         label="REP"
@@ -827,14 +853,15 @@ export function MapasFacasPage() {
                       <SortableTh
                         column="puxada"
                         className="num"
-                        sorts={sorts} sortKey={sortKey}
+                        sorts={sorts}
+                        sortKey={sortKey}
                         sortDir={sortDir}
                         onSort={requestSort}
                       >
                         Puxada
                       </SortableTh>
-                      <SortableTh column="fornecedor" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Fornecedor
+                      <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Cliente
                       </SortableTh>
                     </tr>
                   </thead>
@@ -871,11 +898,7 @@ export function MapasFacasPage() {
                               }
                             }}
                           >
-                            <td>
-                              <div className="mapa-facas-row-formato">
-                                <span>{formatoLabel(f.formato)}</span>
-                              </div>
-                            </td>
+                            <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
                             <td className="mapa-facas-silhueta-cell">
                               <FacaApresentacao
                                 className="mapa-facas-list-visual"
@@ -919,7 +942,11 @@ export function MapasFacasPage() {
                                 <strong>{dim.tamanho}</strong>
                               )}
                             </td>
-                            <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
+                            <td>
+                              <div className="mapa-facas-row-formato">
+                                <span>{formatoLabel(f.formato)}</span>
+                              </div>
+                            </td>
                             <td className="maquina">{f.maquina_catalogo || '—'}</td>
                             <td className="num">{fmtNum(f.z, 1)}</td>
                             <td className="num">{fmtNum(f.repeticao, 2)}</td>
@@ -930,8 +957,8 @@ export function MapasFacasPage() {
                                 <em className="warn-txt">manual</em>
                               )}
                             </td>
-                            <td className="fornecedor" title={f.fornecedor || undefined}>
-                              {f.fornecedor || '—'}
+                            <td className="cliente" title={f.cliente_nota || undefined}>
+                              {f.cliente_nota || '—'}
                             </td>
                           </tr>
                         );
@@ -944,14 +971,46 @@ export function MapasFacasPage() {
           </div>
         </div>
 
-        <aside className="mapa-facas-detail card" aria-live="polite">
-          {!selected ? (
-            <div className="card-body mapa-facas-detail-empty">
-              <p>Selecione uma faca para ver o desenho e os parâmetros.</p>
-              <p className="hint">Geometria (medida, largura, tamanho, puxada, Z) não é editável. Cliente, obs., fornecedor, valor pago, nº NF e grupo ORC podem acompanhar a operação desta empresa.</p>
+      </div>
+
+      {selected && !showNova ? (
+        <div
+          className="faca-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mapa-detalhe-title"
+        >
+          <button
+            type="button"
+            className="faca-modal-backdrop"
+            aria-label="Fechar"
+            onClick={fecharDetalhe}
+          />
+          <div className="faca-modal-panel mapa-facas-detail-panel">
+            <div className="faca-modal-head">
+              <div>
+                <div className="mapa-facas-detail-kicker">#{selected.id}</div>
+                <h2 id="mapa-detalhe-title">{selected.medida}</h2>
+                <p className="faca-modal-sub">{selected.label || formatoLabel(selected.formato)}</p>
+                <div className="mapa-facas-detail-pills">
+                  <StatusPill status={selected.ativo ? 'ATIVA' : 'INATIVA'} />
+                  <StatusPill status={selected.completa ? 'COMPLETA' : 'INCOMPLETA'} />
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={saving}
+                onClick={fecharDetalhe}
+              >
+                Fechar
+              </button>
             </div>
-          ) : (
-            <div className="card-body mapa-facas-detail-body">
+
+            <div className="mapa-facas-detail-body">
+              {error ? <div className="alert alert-error">{error}</div> : null}
+              {message ? <div className="alert alert-success">{message}</div> : null}
+
               <div className="mapa-facas-detail-head">
                 {canWrite ? (
                   <FacaSilhuetaPosicaoDock
@@ -998,61 +1057,12 @@ export function MapasFacasPage() {
                     />
                   </FacaApresentacao>
                 )}
-                <div>
-                  <div className="mapa-facas-detail-kicker">#{selected.id}</div>
-                  <h2>{selected.medida}</h2>
-                  <p>{selected.label || formatoLabel(selected.formato)}</p>
-                  <div className="mapa-facas-detail-pills">
-                    <StatusPill status={selected.ativo ? 'ATIVA' : 'INATIVA'} />
-                    <StatusPill status={selected.completa ? 'COMPLETA' : 'INCOMPLETA'} />
-                  </div>
-                </div>
               </div>
 
-              <dl className="mapa-facas-dl">
+              <dl className="mapa-facas-dl" aria-label="Geometria">
                 <div>
                   <dt>Formato</dt>
                   <dd>{formatoLabel(selected.formato)}</dd>
-                </div>
-                <div>
-                  <dt>Máquina</dt>
-                  <dd>{selected.maquina_catalogo || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Fornecedor</dt>
-                  <dd title={selected.fornecedor || undefined}>{selected.fornecedor || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Valor pago</dt>
-                  <dd>{fmtMoney(selected.valor_pago)}</dd>
-                </div>
-                <div>
-                  <dt>Nº NF</dt>
-                  <dd title={selected.nf_numero || undefined}>{selected.nf_numero || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Conjugada</dt>
-                  <dd title={selected.conjugada || undefined}>{selected.conjugada || '—'}</dd>
-                </div>
-                <div>
-                  <dt>Puxada</dt>
-                  <dd>{fmtNum(selected.puxada, 4)}</dd>
-                </div>
-                <div>
-                  <dt>Z</dt>
-                  <dd>{fmtNum(selected.z, 2)}</dd>
-                </div>
-                <div>
-                  <dt>Repetição</dt>
-                  <dd>{fmtNum(selected.repeticao, 4)}</dd>
-                </div>
-                <div>
-                  <dt>N FACA</dt>
-                  <dd>{selected.n_facas ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>Medida</dt>
-                  <dd>{selected.medida || '—'}</dd>
                 </div>
                 <div>
                   <dt>Largura</dt>
@@ -1073,28 +1083,16 @@ export function MapasFacasPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt>Cilindro</dt>
-                  <dd>{selected.cilindro || '—'}</dd>
+                  <dt>Puxada</dt>
+                  <dd>{fmtNum(selected.puxada, 4)}</dd>
                 </div>
                 <div>
-                  <dt>Colunas</dt>
-                  <dd>{selected.colunas_mapa || '—'}</dd>
+                  <dt>Z</dt>
+                  <dd>{fmtNum(selected.z, 2)}</dd>
                 </div>
                 <div>
-                  <dt>Posição</dt>
-                  <dd>
-                    {isFacaPosicao(selected.posicao)
-                      ? facaPosicaoLabel(selected.posicao)
-                      : '—'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Cliente</dt>
-                  <dd title={selected.cliente_nota || undefined}>{selected.cliente_nota || '—'}</dd>
-                </div>
-                <div className="full">
-                  <dt>Obs.</dt>
-                  <dd title={selected.obs || undefined}>{selected.obs || '—'}</dd>
+                  <dt>Repetição</dt>
+                  <dd>{fmtNum(selected.repeticao, 4)}</dd>
                 </div>
               </dl>
 
@@ -1241,12 +1239,61 @@ export function MapasFacasPage() {
                   </div>
                 </form>
               ) : (
-                <div className="btn-row mapa-facas-detail-actions" />
+                <dl className="mapa-facas-dl" aria-label="Dados operacionais">
+                  <div>
+                    <dt>Máquina</dt>
+                    <dd>{selected.maquina_catalogo || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>N FACA</dt>
+                    <dd>{selected.n_facas ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Cilindro</dt>
+                    <dd>{selected.cilindro || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Colunas</dt>
+                    <dd>{selected.colunas_mapa || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Posição</dt>
+                    <dd>
+                      {isFacaPosicao(selected.posicao)
+                        ? facaPosicaoLabel(selected.posicao)
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Fornecedor</dt>
+                    <dd title={selected.fornecedor || undefined}>{selected.fornecedor || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Valor pago</dt>
+                    <dd>{fmtMoney(selected.valor_pago)}</dd>
+                  </div>
+                  <div>
+                    <dt>Nº NF</dt>
+                    <dd title={selected.nf_numero || undefined}>{selected.nf_numero || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Conjugada</dt>
+                    <dd title={selected.conjugada || undefined}>{selected.conjugada || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>Cliente</dt>
+                    <dd title={selected.cliente_nota || undefined}>{selected.cliente_nota || '—'}</dd>
+                  </div>
+                  <div className="full">
+                    <dt>Obs.</dt>
+                    <dd title={selected.obs || undefined}>{selected.obs || '—'}</dd>
+                  </div>
+                </dl>
               )}
             </div>
-          )}
-        </aside>
-      </div>
+          </div>
+        </div>
+      ) : null}
 
       {showNova ? (
         <div className="faca-modal" role="dialog" aria-modal="true" aria-labelledby="mapa-nova-title">
