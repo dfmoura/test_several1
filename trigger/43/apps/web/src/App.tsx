@@ -84,6 +84,7 @@ import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
 import { RastreioInsumosFichaPage } from './pages/RastreioInsumosFichaPage';
 import { RastreioInsumosPage } from './pages/RastreioInsumosPage';
 import { ExpedicaoPage } from './pages/ExpedicaoPage';
+import { ExpedicaoPrepararPage } from './pages/ExpedicaoPrepararPage';
 import { EntregaDetailPage } from './pages/EntregaDetailPage';
 import { EntregaFichaPage } from './pages/EntregaFichaPage';
 import { PlataformaPainelPage } from './pages/PlataformaPainelPage';
@@ -682,6 +683,14 @@ export default function App() {
           element={
             <PermissionRoute permission="expedicao.ler">
               <ExpedicaoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="expedicao/pedido/:pedidoId"
+          element={
+            <PermissionRoute permission="expedicao.ler">
+              <ExpedicaoPrepararPage />
             </PermissionRoute>
           }
         />

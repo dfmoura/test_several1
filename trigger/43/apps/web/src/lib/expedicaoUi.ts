@@ -47,6 +47,14 @@ export function hrefRomaneio(entregaId: number): string {
   return `/expedicao/${entregaId}/ficha`;
 }
 
+export function hrefPrepararExpedicao(pedidoId: number): string {
+  return `/expedicao/pedido/${pedidoId}`;
+}
+
+export function entregaVigente(status?: string | null): boolean {
+  return status === 'AGUARDA_RETIRADA' || status === 'EM_TRANSITO';
+}
+
 export function formatDestinoLinha(d?: {
   logradouro?: string | null;
   numero?: string | null;

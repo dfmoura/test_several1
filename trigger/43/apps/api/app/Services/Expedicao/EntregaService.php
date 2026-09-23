@@ -543,6 +543,16 @@ class EntregaService
         $volumesSugeridos = $this->volumesSugeridos($empresa, $pedido);
 
         return [
+            'pedido' => [
+                'id' => $pedido->id,
+                'codigo' => $pedido->codigo,
+                'status' => $pedido->status,
+            ],
+            'parceiro' => $pedido->parceiro ? [
+                'id' => $pedido->parceiro->id,
+                'codigo' => $pedido->parceiro->codigo,
+                'razao_social' => $pedido->parceiro->razao_social,
+            ] : null,
             'modo' => $modo,
             'tipo_saida_sugerido' => $this->tipoSaidaSugeridoDoPedido($pedido, $modo),
             'destino' => $destino,

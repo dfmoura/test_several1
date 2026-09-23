@@ -84,6 +84,18 @@ Na expedição o operador imprime **os papéis que já existem**, no mesmo envel
 
 Não é documento novo. Não baixa TIT. QR de PIX só na ficha de cobrança — nunca na DANFE nem em BOB:/CX:. `expedicao.ler` lê **um** FAT (show) e as etiquetas para imprimir; não lista faturamentos nem confirma embalagem.
 
+## Emenda — ficha de preparação (BL-115)
+
+A fila não abre o PED completo. Porta do chão:
+
+```
+/expedicao                    fila
+/expedicao/pedido/:id         só “o que falta” + Expedição e entrega
+/expedicao/:id                romaneio ENT vigente
+```
+
+Mesmo `entrega-preview`. Sem segunda regra de pronto. Embalagem e cobrança não travam. No PED: atalho *Abrir na expedição*.
+
 ## Fora de escopo
 
 - TMS, CT-e, API de transportadora, WhatsApp de status  

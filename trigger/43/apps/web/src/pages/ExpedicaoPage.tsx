@@ -81,7 +81,7 @@ export function ExpedicaoPage() {
                 {rows.map((row) => {
                   const dest = row.entrega?.id
                     ? `/expedicao/${row.entrega.id}`
-                    : `/pedidos/${row.pedido_id}`;
+                    : `/expedicao/pedido/${row.pedido_id}`;
                   const go = () => navigate(dest);
                   return (
                     <tr

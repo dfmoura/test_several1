@@ -15,11 +15,28 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-115`
+`BL-116`
 
 ---
 
 ## Itens
+
+### BL-115 · [expedicao/ux] Ficha de preparação (só o que falta)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — tela na Expedição só com o que falta + Expedição e entrega
+- **Depende de:** BL-114 · `ADR_ENTREGA_EXPEDICAO.md`
+- **Decisão (fechada):**
+  1. Fila sem ENT → `/expedicao/pedido/:id` (não abre o PED).
+  2. ENT vigente → `/expedicao/:id`.
+  3. Mesmo preview; sem segunda regra; embalagem/cobrança não travam.
+  4. PED só atalho *Abrir na expedição*.
+- **Aceite:**
+  - [x] Rota `/expedicao/pedido/:pedidoId`
+  - [x] Preview expõe `pedido` + `parceiro`
+- **Fora de escopo:** WMS · menu novo · checklist inventado
+- **Norma:** `docs/ADR_ENTREGA_EXPEDICAO.md`
+- **Teste local:** Expedição → PED-2026-NFPA01 → o que falta + Preparar retirada. Ctrl+Shift+R.
 
 ### BL-114 · [expedicao/ux] Kit de saída (embalagem + NF + cobrança)
 - **Status:** Feito

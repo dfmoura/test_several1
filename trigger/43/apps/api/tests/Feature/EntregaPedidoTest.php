@@ -279,6 +279,8 @@ class EntregaPedidoTest extends TestCase
         $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/entrega-preview");
         $prev->assertOk();
         $this->assertTrue($prev->json('data.apto'));
+        $this->assertSame($ped->codigo, $prev->json('data.pedido.codigo'));
+        $this->assertNotEmpty($prev->json('data.parceiro.razao_social'));
         $this->assertSame('RETIRAR', $prev->json('data.modo'));
         $this->assertSame('BALCAO', $prev->json('data.tipo_saida_sugerido'));
         $this->assertSame('expedir', $prev->json('data.acao'));

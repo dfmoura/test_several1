@@ -3081,6 +3081,8 @@ export type EntregaPreview = {
   pode_cancelar?: boolean;
   pode_recusar?: boolean;
   acao: string;
+  pedido?: { id: number; codigo: string; status: string } | null;
+  parceiro?: { id: number; codigo: string; razao_social: string } | null;
   modo: string;
   tipo_saida_sugerido: string;
   destino?: EntregaDestino | null;

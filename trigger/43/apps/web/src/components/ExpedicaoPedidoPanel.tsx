@@ -6,8 +6,10 @@ import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency } from '../lib/format';
 import {
+  entregaVigente,
   entStatusLabel,
   formatDestinoLinha,
+  hrefPrepararExpedicao,
   modoEntregaLabel,
   tipoSaidaLabel,
 } from '../lib/expedicaoUi';
@@ -17,10 +19,20 @@ type Props = {
   pedidoId: number;
   pedidoCodigo: string;
   pedidoStatus: string;
+  /** `ficha` = tela da Expedição; `embutido` = recorte no PED. */
+  variant?: 'embutido' | 'ficha';
   onChanged?: () => void;
+  onExpedido?: (entrega: { id: number; codigo: string }) => void;
 };
 
-export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onChanged }: Props) {
+export function ExpedicaoPedidoPanel({
+  pedidoId,
+  pedidoCodigo,
+  pedidoStatus,
+  variant = 'embutido',
+  onChanged,
+  onExpedido,
+}: Props) {
   const { hasPermission } = useAuth();
   const [preview, setPreview] = useState<EntregaPreview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -97,12 +109,16 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
           payload.rastreio = rastreio.trim();
         }
       }
-      const res = await api.post<{ data: { codigo: string } }>(`/pedidos/${pedidoId}/expedir`, payload);
+      const res = await api.post<{ data: { id: number; codigo: string } }>(
+        `/pedidos/${pedidoId}/expedir`,
+        payload,
+      );
       setMsg(
         preview.modo === 'RETIRAR'
           ? `${res.data.codigo} pronto para retirada no balcão.`
           : `${res.data.codigo} despachado.`,
       );
+      onExpedido?.(res.data);
       onChanged?.();
       await load();
     } catch (e) {
@@ -149,6 +165,15 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
       <div className="card-body">
         <div className="form-section">
           <h3>Expedição e entrega</h3>
+          {variant === 'embutido' ? (
+            <p className="form-hint" style={{ marginTop: 0 }}>
+              {ent?.id && entregaVigente(ent.status) ? (
+                <Link to={`/expedicao/${ent.id}`}>Abrir romaneio na expedição</Link>
+              ) : (
+                <Link to={hrefPrepararExpedicao(pedidoId)}>Abrir na expedição</Link>
+              )}
+            </p>
+          ) : null}
           <p className="muted" style={{ marginTop: 0 }}>
             {preview.modo === 'RETIRAR'
               ? 'O cliente retira no balcão. Conferir volumes, registrar quem levou, depois seguir o recebimento se ainda houver saldo.'
@@ -205,11 +230,13 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
             {a}
           </p>
         ))}
-        {preview.bloqueios?.map((b) => (
-          <p key={b} className="form-error">
-            {b}
-          </p>
-        ))}
+        {variant !== 'ficha'
+          ? preview.bloqueios?.map((b) => (
+              <p key={b} className="form-error">
+                {b}
+              </p>
+            ))
+          : null}
 
         <DocumentosSaidaKit
           entregaId={ent?.id}
