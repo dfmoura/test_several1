@@ -43,6 +43,10 @@ export function provaTipoLabel(tipo: string): string {
   return PROVA[tipo] ?? tipo.replace(/_/g, ' ');
 }
 
+export function hrefRomaneio(entregaId: number): string {
+  return `/expedicao/${entregaId}/ficha`;
+}
+
 export function formatDestinoLinha(d?: {
   logradouro?: string | null;
   numero?: string | null;

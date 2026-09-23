@@ -87,6 +87,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 | ORC `AGUARDA_ADIANTAMENTO` | Copy: pedido operacional após confirmação do sinal (sem CTA PED) |
 | ORC `LIBERADO` + PED | CTA **Ver pedido `PED-…`** + status do PED |
 | PED detalhe | **Andamento operacional** com códigos ORC → PED → OP/OS → materiais/produção → FAT/ENT |
+| Expedição / ENT | **Documentos da saída**: romaneio + DANFE/prévia + cobrança + etiquetas BOB/CX |
 | OP detalhe | **Passos da ordem**: separar (preview FEFO + volumes) → produzir → concluir (retorno/perda/PA) → pedido; resultado após `CONCLUIDA` |
 | Estoque | Card **Entrada e documentos** → OC (NF-e) · ajustes/virada · produtos |
 | Produtos | Papel no fluxo (compra/estoque/OP) + links Estoque/OC |

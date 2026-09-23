@@ -43,7 +43,7 @@ PED PRODUZIDO (qtde_faturavel > 0)
 | **1 FAT vigente : 1 PED** | Fase 1 alinhada a 1 PED : 1 item. Parcial (UC-FIS-004) fica para quando houver NF. Estorno (emenda) libera novo FAT no mesmo PED. |
 | **SoD** | `faturamento.escrever` ≠ `producao.escrever`. PRODUÇÃO não fatura. |
 | **NF-e = PA** | FAT continua com matriz/faca/arte (TIT/comissão). A NF-e/DANFE lista só PA/REV; o setup entra no unitário do acabado (`ItensFiscaisNfe`). Sem linha “Matriz / clichê” no XML. |
-| **Ficha de cobrança** | Irmã da DANFE no mesmo FAT (`/cobranca/{titulo}/ficha`). Uma ficha por TIT: descrição, saldo ao vivo, QR só do PIX/boleto real da COB. Sem QR na DANFE. |
+| **Ficha de cobrança** | Irmã da DANFE no mesmo FAT (`/cobranca/{titulo}/ficha`). Uma ficha por TIT: descrição, saldo ao vivo, QR só do PIX/boleto real da COB. Sem QR na DANFE. Na expedição as duas fichas saem no kit com o romaneio e as etiquetas PA (`ADR_ENTREGA_EXPEDICAO` BL-114). |
 
 ### Natureza gerencial
 

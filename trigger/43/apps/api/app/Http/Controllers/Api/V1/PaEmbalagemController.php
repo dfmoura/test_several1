@@ -54,7 +54,7 @@ class PaEmbalagemController extends Controller
 
     public function etiquetas(Request $request, PaEmbalagem $paEmbalagem): JsonResponse
     {
-        $this->authorizeRead($request);
+        $this->authorizeEtiquetas($request);
 
         return response()->json([
             'data' => $this->service->etiquetas($this->empresa(), $paEmbalagem),
@@ -83,6 +83,16 @@ class PaEmbalagemController extends Controller
         if (! $request->user()->can('producao.ler')) {
             abort(403);
         }
+    }
+
+    /** Impressão BOB/CX no chão ou no kit de saída. */
+    private function authorizeEtiquetas(Request $request): void
+    {
+        if ($request->user()->can('producao.ler') || $request->user()->can('expedicao.ler')) {
+            return;
+        }
+
+        abort(403);
     }
 
     private function authorizeWrite(Request $request): void

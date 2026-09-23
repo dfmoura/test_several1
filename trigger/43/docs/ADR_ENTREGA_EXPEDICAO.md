@@ -71,6 +71,19 @@ expedir exige FAT CONFIRMADO
 
 Chamado na confirmação da ENT **e** na BX do TIT RECEBER. Não reabre. Não exige que a baixa espere a entrega (PIX à vista pode entrar antes da retirada).
 
+## Emenda — kit de saída (BL-114)
+
+Na expedição o operador imprime **os papéis que já existem**, no mesmo envelope:
+
+| Papel | Fonte | Rota |
+|-------|--------|------|
+| Romaneio ENT | ENT vigente | `/expedicao/:id/ficha` |
+| DANFE / prévia | primeiro DFS NFE do FAT | `/financeiro/faturamentos/:id/nf/:docId/ficha` |
+| Cobrança | cada TIT aberto/parcial | `/financeiro/faturamentos/:id/cobranca/:tituloId/ficha` |
+| Etiquetas BOB/CX | embalagem PA confirmada | `/pa-embalagens/:embId/etiquetas` |
+
+Não é documento novo. Não baixa TIT. QR de PIX só na ficha de cobrança — nunca na DANFE nem em BOB:/CX:. `expedicao.ler` lê **um** FAT (show) e as etiquetas para imprimir; não lista faturamentos nem confirma embalagem.
+
 ## Fora de escopo
 
 - TMS, CT-e, API de transportadora, WhatsApp de status  

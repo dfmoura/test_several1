@@ -3025,7 +3025,17 @@ export type Entrega = {
     vencimento: string | null;
     status: string;
   }>;
+  nfe?: EntregaNfeKit | null;
+  embalagem?: PaEmbalagemResumo | null;
   created_at: string | null;
+};
+
+export type EntregaNfeKit = {
+  faturamento_id: number;
+  documento_id: number;
+  codigo: string;
+  status: string;
+  numero?: string | null;
 };
 
 export type PaEmbalagemResumo = {
@@ -3091,6 +3101,7 @@ export type EntregaPreview = {
     transportador_id?: number | null;
   } | null;
   titulos_abertos?: Entrega['titulos_abertos'];
+  nfe?: EntregaNfeKit | null;
   avisos?: string[];
   bloqueios?: string[];
   entrega?: Entrega | null;

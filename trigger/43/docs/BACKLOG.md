@@ -15,11 +15,29 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-114`
+`BL-115`
 
 ---
 
 ## Itens
+
+### BL-114 · [expedicao/ux] Kit de saída (embalagem + NF + cobrança)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — cobrança e embalagem PA entregues juntos na expedição
+- **Depende de:** BL-113 · `ADR_ENTREGA_EXPEDICAO.md` · `ADR_FATURAMENTO_COBRANCA.md`
+- **Decisão (fechada):**
+  1. Superfície no ENT/preview — sem documento novo, sem menu novo.
+  2. CTAs: romaneio, DANFE/prévia, ficha de cobrança por TIT, etiquetas BOB/CX.
+  3. `expedicao.ler` lê um FAT e as etiquetas para imprimir; não lista FAT nem baixa TIT.
+  4. QR de PIX só na cobrança.
+- **Aceite:**
+  - [x] Bloco **Documentos da saída** no romaneio e no painel do PED
+  - [x] Preview/detalhe ENT expõem `nfe` + `titulos_abertos` + `embalagem`
+  - [x] PHPUnit `test_kit_saida_expoe_nfe_e_titulos_sem_baixar`
+- **Fora de escopo:** auto-baixa · WhatsApp · QR na DANFE/BOB · TMS
+- **Norma:** `docs/ADR_ENTREGA_EXPEDICAO.md`
+- **Teste local:** Expedição → PED/ENT → Imprimir nota / cobrança / etiquetas. Ctrl+Shift+R.
 
 ### BL-113 · [financeiro/ux] Ficha de cobrança ao lado da NF-e
 - **Status:** Feito

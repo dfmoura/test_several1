@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { DocumentosSaidaKit } from '../components/DocumentosSaidaKit';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { api, type Entrega } from '../lib/api';
@@ -204,13 +205,24 @@ export function EntregaDetailPage() {
                   <div>
                     <span>Faturamento</span>
                     <strong>
-                      <Link to={`/financeiro/faturamentos/${ent.faturamento.id}`}>
-                        {ent.faturamento.codigo}
-                      </Link>
+                      {hasPermission('faturamento.ler') ? (
+                        <Link to={`/financeiro/faturamentos/${ent.faturamento.id}`}>
+                          {ent.faturamento.codigo}
+                        </Link>
+                      ) : (
+                        ent.faturamento.codigo
+                      )}
                     </strong>
                   </div>
                 ) : null}
               </div>
+              <DocumentosSaidaKit
+                entregaId={ent.id}
+                faturamentoId={ent.faturamento?.id}
+                nfe={ent.nfe}
+                titulos={ent.titulos_abertos}
+                embalagem={ent.embalagem}
+              />
             </div>
           </div>
 

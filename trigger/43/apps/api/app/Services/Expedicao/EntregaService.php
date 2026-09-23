@@ -521,6 +521,8 @@ class EntregaService
             $out['expedido_por'] = Entrega::userStampFrom($e->expedidoPor ?? $e->criador);
             $out['confirmado_por'] = Entrega::userStampFrom($e->confirmadoPor);
             $out['titulos_abertos'] = $this->titulosAbertosOut($e);
+            $out['nfe'] = $this->nfeSaidaOut($e->faturamento);
+            $out['embalagem'] = $this->embalagemSaidaOut($e);
             $out['criado_por'] = Entrega::userStampFrom($e->criador);
         }
 
@@ -562,6 +564,7 @@ class EntregaService
             'transportadora_sugerida_id' => $fat?->transportador_id,
             'faturamento_model' => $fat,
             'titulos_abertos' => $titulos,
+            'nfe' => $this->nfeSaidaOut($fat),
             'politica_nf_antes_expedir' => $this->politicaNfAntes($empresa),
             'avisos' => $this->avisosPreview($modo, $titulos, $fat, $emb),
         ];
@@ -833,6 +836,57 @@ class EntregaService
             ->where('pedido_id', $pedido->id)
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * NF-e (ou prévia) do FAT vigente — só o id para o kit de saída.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function nfeSaidaOut(?Faturamento $fat): ?array
+    {
+        if (! $fat) {
+            return null;
+        }
+
+        $fat->loadMissing('documentosFiscais');
+        $docs = $fat->documentosFiscais
+            ->where('tipo', DocumentoFiscalSaida::TIPO_NFE)
+            ->values();
+        $oficial = $docs->first(function (DocumentoFiscalSaida $d) {
+            $previa = is_array($d->previa) ? $d->previa : [];
+
+            return ($previa['oficial'] ?? false) === true;
+        });
+        $doc = $oficial ?? $docs->first();
+        if (! $doc) {
+            return null;
+        }
+
+        return [
+            'faturamento_id' => $fat->id,
+            'documento_id' => $doc->id,
+            'codigo' => $doc->codigo,
+            'status' => $doc->status,
+            'numero' => $doc->numero !== null ? (string) $doc->numero : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function embalagemSaidaOut(Entrega $e): ?array
+    {
+        if (! $e->pedido) {
+            return null;
+        }
+
+        $empresa = Empresa::query()->find($e->empresa_id);
+        if (! $empresa instanceof Empresa) {
+            return null;
+        }
+
+        return $this->embalagem->resumoPedido($empresa, $e->pedido);
     }
 
     /**

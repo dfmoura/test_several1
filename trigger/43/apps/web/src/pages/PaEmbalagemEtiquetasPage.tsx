@@ -30,7 +30,7 @@ type Face = {
  * Etiquetas de identificação BOB/CX — mesma mídia Elgin 50×40 do volume MP.
  */
 export function PaEmbalagemEtiquetasPage() {
-  const { id } = useParams();
+  const { id, embId } = useParams();
   const [faces, setFaces] = useState<Face[]>([]);
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [embCodigo, setEmbCodigo] = useState('');
@@ -44,19 +44,31 @@ export function PaEmbalagemEtiquetasPage() {
       setLoading(true);
       setErr(null);
       try {
-        const op = await api.get<{ data: { embalagem?: { id: number; codigo: string } | null } }>(
-          `/ordens-producao/${id}`,
-        );
-        const emb = op.data.embalagem;
-        if (!emb) {
-          setErr('Confirme a embalagem na OP antes de imprimir.');
+        let targetId = embId;
+        if (!targetId && id) {
+          const op = await api.get<{ data: { embalagem?: { id: number; codigo: string } | null } }>(
+            `/ordens-producao/${id}`,
+          );
+          const emb = op.data.embalagem;
+          if (!emb) {
+            setErr('Confirme a embalagem na OP antes de imprimir.');
+            setFaces([]);
+            return;
+          }
+          setEmbCodigo(emb.codigo);
+          targetId = String(emb.id);
+        }
+        if (!targetId) {
+          setErr('Embalagem inválida.');
           setFaces([]);
           return;
         }
-        setEmbCodigo(emb.codigo);
         const res = await api.get<{
-          data: { bobinas: Face[]; caixas: Face[] };
-        }>(`/pa-embalagens/${emb.id}/etiquetas`);
+          data: { embalagem?: { codigo?: string }; bobinas: Face[]; caixas: Face[] };
+        }>(`/pa-embalagens/${targetId}/etiquetas`);
+        if (res.data.embalagem?.codigo) {
+          setEmbCodigo(res.data.embalagem.codigo);
+        }
         const all = [
           ...res.data.caixas.map((c) => ({ ...c, tipo: 'CAIXA' as const })),
           ...res.data.bobinas.map((b) => ({ ...b, tipo: 'BOBINA' as const })),
@@ -80,7 +92,7 @@ export function PaEmbalagemEtiquetasPage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, embId]);
 
   return (
     <div className="page">
@@ -89,8 +101,11 @@ export function PaEmbalagemEtiquetasPage() {
         description={embCodigo ? `${embCodigo} · ${VOLUME_ETIQUETA_PRINT_HINT}` : VOLUME_ETIQUETA_PRINT_HINT}
         actions={
           <div className="btn-row no-print">
-            <Link to={`/ordens-producao/${id}`} className="btn btn-secondary">
-              Voltar à OP
+            <Link
+              to={id ? `/ordens-producao/${id}` : '/expedicao'}
+              className="btn btn-secondary"
+            >
+              {id ? 'Voltar à OP' : 'Voltar à expedição'}
             </Link>
             <button
               type="button"

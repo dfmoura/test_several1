@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { DocumentosSaidaKit } from './DocumentosSaidaKit';
 import { api, type EntregaPreview, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -177,9 +178,13 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
             <div>
               <span>Faturamento</span>
               <strong>
-                <Link to={`/financeiro/faturamentos/${preview.faturamento.id}`}>
-                  {preview.faturamento.codigo}
-                </Link>
+                {hasPermission('faturamento.ler') ? (
+                  <Link to={`/financeiro/faturamentos/${preview.faturamento.id}`}>
+                    {preview.faturamento.codigo}
+                  </Link>
+                ) : (
+                  preview.faturamento.codigo
+                )}
               </strong>
             </div>
           ) : null}
@@ -205,6 +210,14 @@ export function ExpedicaoPedidoPanel({ pedidoId, pedidoCodigo, pedidoStatus, onC
             {b}
           </p>
         ))}
+
+        <DocumentosSaidaKit
+          entregaId={ent?.id}
+          faturamentoId={preview.faturamento?.id}
+          nfe={preview.nfe ?? ent?.nfe}
+          titulos={preview.titulos_abertos ?? ent?.titulos_abertos}
+          embalagem={preview.embalagem ?? ent?.embalagem}
+        />
 
         {canWrite && preview.apto ? (
           <form onSubmit={(e) => void expedir(e)} style={{ marginTop: '1rem' }}>

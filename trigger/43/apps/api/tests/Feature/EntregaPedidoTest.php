@@ -462,4 +462,49 @@ class EntregaPedidoTest extends TestCase
         $this->assertSame($a->json('data.id'), $b->json('data.id'));
         $this->assertSame(1, Entrega::query()->where('pedido_id', $ped->id)->count());
     }
+
+    public function test_kit_saida_expoe_nfe_e_titulos_sem_baixar(): void
+    {
+        $ped = $this->faturar($this->criarPedidoProduzido(['modo' => 'RETIRAR']));
+
+        Sanctum::actingAs($this->expedicao);
+        $prev = $this->withHeaders($this->h())->getJson("/api/v1/pedidos/{$ped->id}/entrega-preview");
+        $prev->assertOk();
+        $this->assertNotNull($prev->json('data.nfe.documento_id'));
+        $this->assertSame($ped->faturamento?->id, $prev->json('data.nfe.faturamento_id'));
+        $this->assertNotEmpty($prev->json('data.titulos_abertos'));
+
+        $exp = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/expedir", [
+            'volumes' => 1,
+        ]);
+        $exp->assertCreated();
+
+        $det = $this->withHeaders($this->h())->getJson('/api/v1/entregas/'.$exp->json('data.id'));
+        $det->assertOk();
+        $this->assertNotNull($det->json('data.nfe.documento_id'));
+        $this->assertNotEmpty($det->json('data.titulos_abertos'));
+        $this->assertSame(Titulo::STATUS_ABERTO, $det->json('data.titulos_abertos.0.status'));
+    }
+
+    public function test_expedicao_le_um_faturamento_para_imprimir_kit(): void
+    {
+        $ped = $this->faturar($this->criarPedidoProduzido());
+        $fatId = $ped->faturamento?->id;
+        $this->assertNotNull($fatId);
+
+        $soExp = User::query()->create([
+            'codigo' => 'USR-ENT-KIT',
+            'name' => 'So Expedicao',
+            'email' => 'so.expedicao.kit@test.local',
+            'password' => bcrypt('secret'),
+            'ativo' => true,
+            'empresa_default_id' => $this->empresa->id,
+        ]);
+        $soExp->givePermissionTo(['expedicao.ler', 'expedicao.escrever']);
+        $soExp->empresas()->attach($this->empresa->id, ['padrao' => true]);
+
+        Sanctum::actingAs($soExp);
+        $this->withHeaders($this->h())->getJson("/api/v1/faturamentos/{$fatId}")->assertOk();
+        $this->withHeaders($this->h())->getJson('/api/v1/faturamentos')->assertForbidden();
+    }
 }

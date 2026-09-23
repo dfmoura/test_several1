@@ -28,7 +28,7 @@ class FaturamentoController extends Controller
 
     public function show(Request $request, Faturamento $faturamento): JsonResponse
     {
-        $this->authorizeRead($request);
+        $this->authorizeShow($request);
         $this->assertEmpresaFat($faturamento);
 
         return response()->json(['data' => $this->faturamentos->show($faturamento)]);
@@ -151,6 +151,20 @@ class FaturamentoController extends Controller
         if (! $request->user()->can('faturamento.ler') && ! $request->user()->can('financeiro.ler')) {
             abort(403);
         }
+    }
+
+    /** Leitura de um FAT para imprimir DANFE/cobrança no kit de saída. */
+    private function authorizeShow(Request $request): void
+    {
+        if (
+            $request->user()->can('faturamento.ler')
+            || $request->user()->can('financeiro.ler')
+            || $request->user()->can('expedicao.ler')
+        ) {
+            return;
+        }
+
+        abort(403);
     }
 
     private function authorizeWrite(Request $request): void

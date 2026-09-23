@@ -882,7 +882,18 @@ export default function App() {
         path="/ordens-producao/:id/embalagem/etiquetas"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="producao.ler">
+            <PermissionRoute permission={['producao.ler', 'expedicao.ler']}>
+              <PaEmbalagemEtiquetasPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/pa-embalagens/:embId/etiquetas"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['producao.ler', 'expedicao.ler']}>
               <PaEmbalagemEtiquetasPage />
             </PermissionRoute>
           </ProtectedRoute>
@@ -915,7 +926,7 @@ export default function App() {
         path="/financeiro/faturamentos/:id/nf/:docId/ficha"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="faturamento.ler">
+            <PermissionRoute permission={['faturamento.ler', 'expedicao.ler']}>
               <DocumentoFiscalFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
@@ -926,7 +937,7 @@ export default function App() {
         path="/financeiro/faturamentos/:id/cobranca/:tituloId/ficha"
         element={
           <ProtectedRoute>
-            <PermissionRoute permission="faturamento.ler">
+            <PermissionRoute permission={['faturamento.ler', 'expedicao.ler']}>
               <DocumentoCobrancaFichaPage />
             </PermissionRoute>
           </ProtectedRoute>

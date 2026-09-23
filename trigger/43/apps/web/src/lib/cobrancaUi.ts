@@ -6,6 +6,14 @@ export function hrefFichaCobranca(faturamentoId: number, tituloId: number): stri
   return `/financeiro/faturamentos/${faturamentoId}/cobranca/${tituloId}/ficha`;
 }
 
+export function hrefFichaNfe(faturamentoId: number, documentoId: number): string {
+  return `/financeiro/faturamentos/${faturamentoId}/nf/${documentoId}/ficha`;
+}
+
+export function hrefEtiquetasEmbalagem(embalagemId: number): string {
+  return `/pa-embalagens/${embalagemId}/etiquetas`;
+}
+
 export function cobrancaVigente(titulo: Titulo): NonNullable<Titulo['cobrancas']>[number] | null {
   const rows = (titulo.cobrancas ?? []).filter((c) => !COB_MORTA.has(c.status));
   const comInstrumento = rows.find((c) => Boolean(c.pix_copia_cola || c.linha_digitavel));
