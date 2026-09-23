@@ -3295,6 +3295,23 @@ export type EstoqueRetiradasFila = {
   resumo: { a_retirar: number; a_entregar: number; total: number };
 };
 
+export type ProducaoApontamentoCard = {
+  id: number;
+  codigo: string;
+  status: string;
+  qtde_planejada: string;
+  pedido: { id: number; codigo: string } | null;
+  parceiro: { id: number; codigo: string; razao_social: string } | null;
+  linhas_baixadas: number;
+  handoff: OpInsumosHandoff;
+};
+
+export type ProducaoApontamentosFila = {
+  a_receber: ProducaoApontamentoCard[];
+  a_apontar: ProducaoApontamentoCard[];
+  resumo: { a_receber: number; a_apontar: number; total: number };
+};
+
 export type RastreioParceiro = {
   id: number;
   codigo?: string | null;

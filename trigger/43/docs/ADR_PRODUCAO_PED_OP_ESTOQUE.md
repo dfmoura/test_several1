@@ -85,6 +85,8 @@ Após qualquer `SAIDA_PRODUCAO`, a OP (e o PED) expõem a genealogia dos insumos
 
 **Coleta dirigida (Fase A):** a separação da OP mostra os volumes FEFO/FIFO *antes* de baixar; o confirmar pode enviar `volumes[]` explícitos. Empenho permanece leve. Norma: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md).
 
+**Apontamento no chão:** concluir (retorno/perda/PA) é na tela Produção → Apontamentos. A OP só lê o resultado. Norma: [`ADR_PRODUCAO_APONTAMENTO.md`](ADR_PRODUCAO_APONTAMENTO.md).
+
 ## Fora de escopo (esta entrega)
 
 - Empenho com saldo `empenhado` separado / FIFO de lote  

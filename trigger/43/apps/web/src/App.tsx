@@ -75,6 +75,8 @@ import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
 import { OrdensProducaoPage } from './pages/OrdensProducaoPage';
 import { OrdemProducaoDetailPage } from './pages/OrdemProducaoDetailPage';
+import { ProducaoApontamentosPage } from './pages/ProducaoApontamentosPage';
+import { ProducaoApontamentoChaoPage } from './pages/ProducaoApontamentoChaoPage';
 import { OrdemProducaoFichaPage } from './pages/OrdemProducaoFichaPage';
 import { PaEmbalagemEtiquetasPage } from './pages/PaEmbalagemEtiquetasPage';
 import { OrdemServicoDetailPage } from './pages/OrdemServicoDetailPage';
@@ -631,6 +633,22 @@ export default function App() {
           element={
             <PermissionRoute permission="producao.ler">
               <OrdensProducaoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="ordens-producao/apontamentos"
+          element={
+            <PermissionRoute permission="producao.ler">
+              <ProducaoApontamentosPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="ordens-producao/apontamentos/:id"
+          element={
+            <PermissionRoute permission="producao.ler">
+              <ProducaoApontamentoChaoPage />
             </PermissionRoute>
           }
         />

@@ -36,29 +36,28 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.local.yml
 
 cat <<'EOF'
 
-Pronto para testar — coleta dirigida (OP → estoque → produção)
-  App:        http://localhost:8043
-  Menu:       Produção → Retiradas  (também aba no Estoque)
-  Retiradas:  http://localhost:8043/estoque/retiradas
-  Painel:     http://localhost:8043/
-  Login:      http://localhost:8043/login
+Pronto para testar — coleta + apontamento (OP → estoque → chão)
+  App:           http://localhost:8043
+  Menu:          Produção → Retiradas · Apontamentos
+  Retiradas:     http://localhost:8043/estoque/retiradas
+  Apontamentos:  http://localhost:8043/ordens-producao/apontamentos
+  Painel:        http://localhost:8043/
+  Login:         http://localhost:8043/login
 
 Pré-requisitos
-  • Usuário com producao.ler ou estoque.ler (confirmar: producao.escrever ou estoque.escrever)
-  • Handoff na máquina: producao.escrever
+  • Usuário com producao.ler (Retiradas também aceita estoque.ler)
+  • Confirmar baixa: producao.escrever ou estoque.escrever
+  • Receber / apontar / concluir: producao.escrever
   • OP ABERTA/EM_ANDAMENTO com material pendente
-  • SKU com lote: volume (qtde > 0) e QR VOL: — senão a fila aparece e a baixa espera estoque
+  • SKU com lote: volume (qtde > 0) e QR VOL:
 
 Roteiro
   1. Hard refresh (Ctrl+Shift+R)
-  2. Sidebar: Produção → Retiradas  (ou Painel → fila «Retiradas em aberto»)
-  3. Abrir ficha da OP
-  4. Confrontação: Sistema (pedido) × Físico baixado × A retirar
-  5. QR VOL: ou quantidade manual → Confirmar e anexar à OP
-  6. Avaria na mesa → Registrar → Requisitar de novo (novo ciclo na ficha)
-  7. Entregar na produção (quem recebeu na máquina)
-  8. Na OP: a mesma ficha fica anexo à ordem — sem confirmar baixa
-  9. SKU sem lote: um clique, sem QR
+  2. Produção → Retiradas → ficha da OP → QR VOL: ou quantidade → Confirmar
+  3. Avaria na mesa (opcional) → Registrar → Requisitar de novo
+  4. Produção → Apontamentos → receber na máquina → retorno/perda → qtde boa → Concluir OP
+  5. Na OP: resultado + embalagem (sem formulário de conclusão)
+  6. Tubete: um clique, sem QR
 
 Não inventar saldo. Entrada só via OC/receber ou AJU/INV aprovado.
 

@@ -15,6 +15,7 @@ use App\Models\Titulo;
 use App\Models\User;
 use App\Services\Estoque\EstoqueReposicaoService;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Services\Producao\ProducaoApontamentoService;
 use App\Services\Producao\ProducaoColetaService;
 use App\Support\FlexorcSuperficie;
 use App\Support\PadraoDecimal;
@@ -52,6 +53,7 @@ class PainelService
         private readonly EmpresaAtivacaoService $ativacao,
         private readonly EstoqueReposicaoService $reposicao,
         private readonly ProducaoColetaService $coleta,
+        private readonly ProducaoApontamentoService $apontamento,
     ) {}
 
     /**
@@ -128,7 +130,8 @@ class PainelService
                 '/ordens-producao',
                 $opCurso > 0,
             );
-            $this->fila($filas, 'op_curso', 'OP em andamento', 'Chão de fábrica aguardando conclusão', $opCurso, '/ordens-producao');
+            $apontar = $this->apontamento->contarFila($empresa);
+            $this->fila($filas, 'op_curso', 'Apontamentos em aberto', 'Receber na máquina ou concluir a OP', $apontar, '/ordens-producao/apontamentos');
         }
 
         if ($faturamento) {

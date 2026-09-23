@@ -27,7 +27,7 @@ A OP já baixa MP/EMB com `SAIDA_PRODUCAO` via `EstoqueSaldoWriter` (empenho lev
 | **Mesmo motor, duas portas** | OP (PCP) e Estoque → Retiradas (chão). Sem segundo cérebro. |
 | **Baixa no confirmar** | Empenho continua leve. Sem saldo `empenhado`. |
 | **QR = leitura** | Como Guardar: scan não grava; humano confirma. |
-| **Handoff na OP** | `insumos_entregues_*` — quem/quando. Não é ledger. Complemento zera o handoff. |
+| **Handoff** | `insumos_entregues_*` — quem/quando. Porta principal: Apontamentos. Estoque ainda pode registrar. Complemento zera. |
 | **Uma fila no Painel** | `op_separacao` só se `count > 0` → `/estoque/retiradas`. |
 | **Menu + aba** | Item **Retiradas** em Produção (após a OP) e aba no Estoque. Sem hub de rastreio. |
 | **Ficha = confrontação** | Sistema (pedido) × físico baixado. QR ou manual. Ciclos = MOV. Sem `REQ-`. |
@@ -36,8 +36,9 @@ A OP já baixa MP/EMB com `SAIDA_PRODUCAO` via `EstoqueSaldoWriter` (empenho lev
 
 | Porta | Quem | Ação |
 |-------|------|------|
-| OP · Separação | PCP / produção | Pedido, ficha anexo (leitura), avaria, handoff. Sem confirmar baixa. |
+| OP · Separação | PCP | Pedido, ficha anexo (leitura), avaria. Sem confirmar baixa nem concluir. |
 | Estoque · Retiradas | Almoxarifado | Única confirmação física (todas as saídas, QR ou manual, extra, reposição) |
+| Produção · Apontamentos | Chão | Receber na máquina, apontar e concluir — `ADR_PRODUCAO_APONTAMENTO.md` |
 | Painel | Ação de hoje | Fila se houver pendência |
 
 ### Fora de escopo

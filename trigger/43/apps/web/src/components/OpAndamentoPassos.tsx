@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { OrdemProducao } from '../lib/api';
-import { opPassoAtual } from '../lib/producaoUi';
+import { hrefApontamentoProducao, hrefFichaEstoque, opPassoAtual } from '../lib/producaoUi';
 
 type Props = {
   op: OrdemProducao;
@@ -16,17 +16,17 @@ export function OpAndamentoPassos({ op }: Props) {
     {
       id: 'separar',
       label: '1 · Separar',
-      hint: 'Retirar volumes no estoque (QR) e entregar na produção',
+      hint: 'Retirar volumes no estoque (QR) — ficha de Retiradas',
     },
     {
       id: 'produzir',
       label: '2 · Produzir',
-      hint: 'Ordem em andamento na máquina',
+      hint: 'Receber na máquina e produzir',
     },
     {
       id: 'concluir',
       label: '3 · Concluir',
-      hint: 'Retorno ao estoque, perda e quantidade boa (PA)',
+      hint: 'Apontar retorno/perda e quantidade boa na tela de Apontamentos',
     },
     {
       id: 'pedido',
@@ -43,9 +43,8 @@ export function OpAndamentoPassos({ op }: Props) {
         <div className="form-section" style={{ marginBottom: '0.75rem' }}>
           <h3 style={{ marginBottom: '0.25rem' }}>Passos da ordem</h3>
           <p className="muted" style={{ margin: 0 }}>
-            Empenho leve não baixa saldo — só a requisição. Saldo insuficiente aparece na separação
-            (sem travar a OP). Na conclusão, sobra volta e perda fica apontada; o pedido recebe a
-            quantidade boa (±tolerância).
+            Empenho leve não baixa saldo — só a requisição. A baixa é no estoque; o apontamento e
+            a conclusão são no chão. O pedido recebe a quantidade boa (±tolerância).
             {op.disponibilidade?.aguardando_material ? (
               <>
                 {' '}
@@ -74,6 +73,19 @@ export function OpAndamentoPassos({ op }: Props) {
             );
           })}
         </ol>
+        {op.status !== 'CONCLUIDA' && op.status !== 'CANCELADA' ? (
+          <div className="op-passos-cta">
+            {atual === 'separar' ? (
+              <Link to={hrefFichaEstoque(op.id)} className="btn btn-secondary">
+                Abrir ficha no estoque
+              </Link>
+            ) : (
+              <Link to={hrefApontamentoProducao(op.id)} className="btn btn-primary">
+                Abrir apontamento na produção
+              </Link>
+            )}
+          </div>
+        ) : null}
         {op.status === 'CONCLUIDA' && op.pedido ? (
           <div className="op-passos-cta">
             <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-primary">

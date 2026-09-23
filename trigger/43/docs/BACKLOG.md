@@ -15,11 +15,30 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-111`
+`BL-112`
 
 ---
 
 ## Itens
+
+### BL-111 · [producao/ux] Apontamento e conclusão só no chão
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — tela para a produção apontar e concluir a OP
+- **Depende de:** BL-110 · `ADR_PRODUCAO_APONTAMENTO.md`
+- **Decisão (fechada):**
+  1. OP sem formulário de conclusão; CTA *Abrir apontamento na produção*.
+  2. Produção → **Apontamentos**: fila (a receber / a concluir) + ficha.
+  3. Mesmo `POST …/concluir`. Sem `APONT-`. Handoff na ficha do chão.
+  4. Painel `op_curso` → essa tela (só OP com saída).
+- **Aceite:**
+  - [x] `/ordens-producao/apontamentos` + `/:id`
+  - [x] OP sem *Concluir OP*
+  - [x] Menu Produção → Apontamentos (Retiradas restaurado)
+  - [x] PHPUnit `ProducaoApontamentoChaoTest`
+- **Fora de escopo:** MES · rascunho · segundo writer
+- **Norma:** `docs/ADR_PRODUCAO_APONTAMENTO.md`
+- **Teste local:** Produção → Apontamentos → receber → apontar → Concluir OP. Ctrl+Shift+R.
 
 ### BL-110 · [producao/estoque/ux] Confirmação física só no Estoque
 - **Status:** Feito
@@ -61,7 +80,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Origem:** Chat 2026-09-23 — concluir o fluxo requisição → estoque → produção
 - **Depende de:** BL-107 · `ADR_PRODUCAO_COLETA_DIRIGIDA.md`
 - **Decisão (fechada):**
-  1. Menu **Retiradas** (ao lado de Estoque) + aba do módulo: a retirar / a entregar.
+  1. Estoque → **Retiradas** (nav do módulo, sem menu novo): a retirar / a entregar.
   2. Caminhada + QR `VOL:` · confirmar chama o mesmo `requisitar` (writer único).
   3. Handoff na OP (`insumos_entregues_*`); complemento zera e pede nova entrega.
   4. Painel: uma fila `op_separacao` se `count > 0`.
@@ -82,7 +101,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Decisão (fechada):**
   1. Preview FEFO/FIFO na OP (volume, local, L×C, validade) — mesmo algoritmo do writer.
   2. Confirmar envia `volumes[]`; API sem volumes permanece FEFO (compat).
-  3. Override exige motivo. Empenho continua leve. Sem segundo saldo.
+  3. Override exige motivo. Empenho continua leve. Sem menu novo / sem segundo saldo.
   4. Fases B/C = BL-108.
 - **Aceite:**
   - [x] ADR `ADR_PRODUCAO_COLETA_DIRIGIDA.md`

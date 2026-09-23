@@ -65,7 +65,7 @@ export function OrdensProducaoPage() {
     <>
       <PageHeader
         title="Ordens de produção"
-        description="Saída de MP, apontamento de sobra/perda e entrada de produto acabado — tudo no mesmo estoque."
+        description="Pedido da OP. A baixa é em Retiradas; o apontamento e a conclusão, em Apontamentos."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}

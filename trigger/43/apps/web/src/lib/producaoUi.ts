@@ -205,3 +205,8 @@ export function hrefFichaEstoque(
   const qs = p.toString();
   return `/estoque/retiradas/${opId}${qs ? `?${qs}` : ''}`;
 }
+
+/** Porta do chão — apontar retorno/perda e concluir (ADR apontamento). */
+export function hrefApontamentoProducao(opId: number): string {
+  return `/ordens-producao/apontamentos/${opId}`;
+}

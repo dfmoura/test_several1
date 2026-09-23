@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\V1\OrcamentoPublicoController;
 use App\Http\Controllers\Api\V1\PainelController;
 use App\Http\Controllers\Api\V1\OrdemCompraController;
 use App\Http\Controllers\Api\V1\OrdemProducaoController;
+use App\Http\Controllers\Api\V1\ProducaoApontamentoController;
 use App\Http\Controllers\Api\V1\OrdemServicoController;
 use App\Http\Controllers\Api\V1\PaEmbalagemController;
 use App\Http\Controllers\Api\V1\PedidoController;
@@ -380,6 +381,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/pedidos/{pedido}/abrir-op', [PedidoController::class, 'abrirOp']);
         Route::post('/pedidos/{pedido}/abrir-os', [PedidoController::class, 'abrirOs']);
         Route::get('/ordens-producao', [OrdemProducaoController::class, 'index']);
+        Route::get('/ordens-producao/apontamentos', [ProducaoApontamentoController::class, 'index']);
+        Route::get('/ordens-producao/apontamentos/{ordemProducao}', [ProducaoApontamentoController::class, 'show']);
         Route::get('/ordens-producao/{ordemProducao}', [OrdemProducaoController::class, 'show']);
         Route::get('/ordens-producao/{ordemProducao}/retirada', [OrdemProducaoController::class, 'previewRetirada']);
         Route::post('/ordens-producao/{ordemProducao}/requisitar', [OrdemProducaoController::class, 'requisitar']);
