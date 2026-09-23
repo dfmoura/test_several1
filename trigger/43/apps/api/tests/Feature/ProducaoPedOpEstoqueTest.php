@@ -371,7 +371,7 @@ class ProducaoPedOpEstoqueTest extends TestCase
         );
     }
 
-    public function test_conclusao_consumo_zero_com_override_e_motivo(): void
+    public function test_conclusao_bloqueia_consumo_zero_mesmo_com_flags_antigas(): void
     {
         Sanctum::actingAs($this->comercial);
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
@@ -398,11 +398,12 @@ class ProducaoPedOpEstoqueTest extends TestCase
         )->firstWhere('id', $papel['id'])['qtde_requisitada'];
 
         $qtdeBoa = bcmul((string) $pedido->itens()->first()->qtde_pedida, '0.90', 4);
-        $ok = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
+        // Flags antigas de override devem ser ignoradas — bloqueio duro.
+        $fail = $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/concluir", [
             'qtde_boa' => $qtdeBoa,
             'qtde_refugo' => '0',
             'aceitar_consumo_zero' => true,
-            'motivo_consumo_zero' => 'Perda total autorizada na máquina',
+            'motivo_consumo_zero' => 'Tentativa de bypass',
             'materiais' => [
                 [
                     'material_id' => $papel['id'],
@@ -411,15 +412,17 @@ class ProducaoPedOpEstoqueTest extends TestCase
                 ],
             ],
         ]);
-        $ok->assertOk();
-        $this->assertSame('CONCLUIDA', $ok->json('data.status'));
-        $this->assertStringContainsString('Consumo zero', (string) $ok->json('data.observacao'));
-
-        $pedido->refresh();
-        $this->assertTrue((bool) ($pedido->snapshot['readequacao']['consumo_zero'] ?? false));
-        $this->assertSame(
-            'Perda total autorizada na máquina',
-            $pedido->snapshot['readequacao']['motivo_consumo_zero'] ?? null
+        $fail->assertStatus(422);
+        $this->assertStringContainsString(
+            'Consumo zero',
+            (string) $fail->json('message').json_encode($fail->json('errors'))
+        );
+        $this->assertSame('EM_ANDAMENTO', $pedido->ordensProducao()->find($opId)?->status);
+        $this->assertFalse(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_PA)
+                ->exists()
         );
     }
 

@@ -7,7 +7,7 @@ import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { opMaterialLinhaStatus, opMaterialStatusLabel, opStatusLabel, qtdeConsumidaApontada } from '../lib/producaoUi';
+import { opMaterialLinhaStatus, opMaterialStatusLabel, opStatusLabel, parseQtdeDigitada, qtdeConsumidaApontada } from '../lib/producaoUi';
 import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 
@@ -34,8 +34,6 @@ export function OrdemProducaoDetailPage() {
   const [mats, setMats] = useState<MatForm[]>([]);
   const [aceitarFora, setAceitarFora] = useState(false);
   const [motivoFora, setMotivoFora] = useState('');
-  const [aceitarConsumoZero, setAceitarConsumoZero] = useState(false);
-  const [motivoConsumoZero, setMotivoConsumoZero] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -137,20 +135,29 @@ export function OrdemProducaoDetailPage() {
 
   const concluir = async () => {
     if (!op) return;
+    if (consumoZeroTotal) {
+      setErr(
+        'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste retorno/perda.',
+      );
+      return;
+    }
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
+      const materiaisPayload = mats.map((m) => ({
+        material_id: m.material_id,
+        qtde_retorno: String(parseQtdeDigitada(m.qtde_retorno)),
+        qtde_perda: String(parseQtdeDigitada(m.qtde_perda)),
+      }));
       const res = await api.post<{ data: OrdemProducao }>(
         `/ordens-producao/${op.id}/concluir`,
         {
-          qtde_boa: qtdeBoa,
-          qtde_refugo: qtdeRefugo || '0',
+          qtde_boa: String(parseQtdeDigitada(qtdeBoa)),
+          qtde_refugo: String(parseQtdeDigitada(qtdeRefugo || '0')),
           aceitar_fora_tolerancia: aceitarFora,
           motivo_fora_tolerancia: motivoFora || null,
-          aceitar_consumo_zero: aceitarConsumoZero,
-          motivo_consumo_zero: motivoConsumoZero || null,
-          materiais: mats,
+          materiais: materiaisPayload,
         },
       );
       setOp(res.data);
@@ -226,12 +233,9 @@ export function OrdemProducaoDetailPage() {
       );
     });
 
-  const qtdeBoaNum = Number(String(qtdeBoa).replace(',', '.'));
-  const qtdeBoaValida = Number.isFinite(qtdeBoaNum) && qtdeBoaNum > 0;
-  const podeConcluirAgora =
-    podeConcluirComSaida &&
-    qtdeBoaValida &&
-    (!consumoZeroTotal || (aceitarConsumoZero && motivoConsumoZero.trim().length >= 3));
+  const qtdeBoaNum = parseQtdeDigitada(qtdeBoa);
+  const qtdeBoaValida = qtdeBoaNum > 0;
+  const podeConcluirAgora = podeConcluirComSaida && qtdeBoaValida && !consumoZeroTotal;
 
   return (
     <>
@@ -665,8 +669,9 @@ export function OrdemProducaoDetailPage() {
                   <p className="muted" style={{ marginTop: 0 }}>
                     <strong>Retorno</strong> volta ao estoque (sobra). <strong>Perda</strong> não
                     retorna. Consumo = requisitado − retorno − perda. Quantidade boa (PA) dentro de ±
-                    {tol}% readequa o pedido; fora da faixa exige motivo. Consumo zero em todas as
-                    linhas com PA positivo também exige override com motivo.
+                    {tol}% readequa o pedido; fora da faixa exige motivo. Se o consumo zerar em{' '}
+                    <strong>todas</strong> as linhas baixadas, a conclusão é bloqueada — sem material
+                    consumido não há produção.
                   </p>
                 </div>
 
@@ -744,9 +749,9 @@ export function OrdemProducaoDetailPage() {
 
                 {consumoZeroTotal ? (
                   <div className="alert alert-warning" style={{ marginBottom: '1rem' }} role="status">
-                    <strong>Consumo zero</strong> — retorno/perda cobrem 100% do requisitado. Sem
-                    material consumido não há quantidade boa coerente. Ajuste os apontamentos ou
-                    confirme o override abaixo com motivo.
+                    <strong>Sem material para produzir</strong> — retorno/perda cobrem 100% do
+                    requisitado em todas as linhas. Ajuste os apontamentos para deixar consumo &gt; 0
+                    em ao menos um SKU, ou devolva a OP ao pedido. A conclusão permanece bloqueada.
                   </div>
                 ) : null}
 
@@ -776,36 +781,6 @@ export function OrdemProducaoDetailPage() {
                     <label>Motivo (tolerância)</label>
                     <input value={motivoFora} onChange={(e) => setMotivoFora(e.target.value)} />
                   </div>
-                ) : null}
-
-                {consumoZeroTotal ? (
-                  <>
-                    <label
-                      style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                        alignItems: 'center',
-                        marginTop: '0.75rem',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={aceitarConsumoZero}
-                        onChange={(e) => setAceitarConsumoZero(e.target.checked)}
-                      />
-                      Aceitar concluir sem consumo de material
-                    </label>
-                    {aceitarConsumoZero ? (
-                      <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                        <label>Motivo (consumo zero)</label>
-                        <input
-                          value={motivoConsumoZero}
-                          onChange={(e) => setMotivoConsumoZero(e.target.value)}
-                          placeholder="Ex.: perda total apontada; PA de ensaio autorizado"
-                        />
-                      </div>
-                    ) : null}
-                  </>
                 ) : null}
 
                 <div className="btn-row" style={{ marginTop: '1rem' }}>

@@ -577,10 +577,6 @@ class OrdemProducaoService
         $motivoFora = isset($data['motivo_fora_tolerancia'])
             ? trim((string) $data['motivo_fora_tolerancia'])
             : '';
-        $aceitarConsumoZero = (bool) ($data['aceitar_consumo_zero'] ?? false);
-        $motivoConsumoZero = isset($data['motivo_consumo_zero'])
-            ? trim((string) $data['motivo_consumo_zero'])
-            : '';
 
         /** @var list<array{material_id?: int, produto_id?: int, qtde_retorno?: mixed, qtde_perda?: mixed}> $materiaisIn */
         $materiaisIn = is_array($data['materiais'] ?? null) ? $data['materiais'] : [];
@@ -592,8 +588,6 @@ class OrdemProducaoService
             $qtdeRefugo,
             $aceitarFora,
             $motivoFora,
-            $aceitarConsumoZero,
-            $motivoConsumoZero,
             $materiaisIn,
             $data,
         ) {
@@ -701,19 +695,15 @@ class OrdemProducaoService
                 ];
             }
 
-            // Baixou material e apontou consumo zero (perda/retorno = 100%) + PA > 0 → incoerente.
-            // Sem saída: serviço leve / só PA continua permitido (já era o desenho).
+            // Baixou material e apontou consumo zero (perda/retorno = 100%) → sem material para produzir.
+            // Bloqueio duro (sem override): PA positivo sem consumo é incoerente no chão.
+            // Sem nenhuma saída: serviço leve / só PA continua permitido.
             $consumoZero = $materiaisBaixados->isNotEmpty() && ! $temConsumo;
-            if ($consumoZero && ! $aceitarConsumoZero) {
+            if ($consumoZero) {
                 throw ValidationException::withMessages([
                     'materiais' => [
-                        'Consumo zero em todos os materiais baixados — sem material consumido não há quantidade boa a registrar. Ajuste retorno/perda ou confirme o override com motivo.',
+                        'Consumo zero em todos os materiais baixados — sem material consumido não há produção a concluir. Ajuste retorno/perda para deixar consumo > 0 em ao menos um SKU, ou devolva a OP ao pedido se a ordem não segue.',
                     ],
-                ]);
-            }
-            if ($consumoZero && mb_strlen($motivoConsumoZero) < 3) {
-                throw ValidationException::withMessages([
-                    'motivo_consumo_zero' => ['Informe o motivo para concluir sem consumo de material (mínimo 3 caracteres).'],
                 ]);
             }
 
@@ -828,13 +818,8 @@ class OrdemProducaoService
             $op->status = OrdemProducao::STATUS_CONCLUIDA;
             $op->concluida_em = now();
             $op->concluida_por = Auth::id();
-            $obs = ! empty($data['observacao']) ? trim((string) $data['observacao']) : (string) ($op->observacao ?? '');
-            if ($consumoZero) {
-                $nota = 'Consumo zero (override): '.$motivoConsumoZero;
-                $obs = $obs !== '' ? $obs."\n".$nota : $nota;
-            }
-            if ($obs !== '') {
-                $op->observacao = $obs;
+            if (! empty($data['observacao'])) {
+                $op->observacao = trim((string) $data['observacao']);
             }
             $op->save();
 
@@ -864,8 +849,6 @@ class OrdemProducaoService
                 'tolerancia_qtd_pct' => $tolPct,
                 'fora_tolerancia' => $fora,
                 'motivo' => $fora ? $motivoFora : null,
-                'consumo_zero' => $consumoZero,
-                'motivo_consumo_zero' => $consumoZero ? $motivoConsumoZero : null,
                 'em' => now()->toIso8601String(),
             ];
             $pedido->snapshot = $snap;

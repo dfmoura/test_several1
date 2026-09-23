@@ -121,14 +121,30 @@ export function opPassoAtual(op: {
   return 'separar';
 }
 
+/** Quantidade digitada (aceita vírgula BR ou ponto). */
+export function parseQtdeDigitada(value: string | number | null | undefined): number {
+  if (value === null || value === undefined || value === '') return 0;
+  const raw = String(value).trim().replace(/\s/g, '');
+  if (raw === '') return 0;
+  // 1.234,56 → 1234.56 | 1234,56 → 1234.56 | 1234.56 → 1234.56
+  let normalized = raw;
+  if (raw.includes(',') && raw.includes('.')) {
+    normalized = raw.replace(/\./g, '').replace(',', '.');
+  } else if (raw.includes(',')) {
+    normalized = raw.replace(',', '.');
+  }
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Consumo apontado na conclusão: requisitado − retorno − perda. */
 export function qtdeConsumidaApontada(
   requisitada: string | number,
   retorno: string | number,
   perda: string | number,
 ): number {
-  const r = Number(requisitada) || 0;
-  const ret = Number(retorno) || 0;
-  const p = Number(perda) || 0;
+  const r = parseQtdeDigitada(requisitada);
+  const ret = parseQtdeDigitada(retorno);
+  const p = parseQtdeDigitada(perda);
   return Math.max(0, r - ret - p);
 }
