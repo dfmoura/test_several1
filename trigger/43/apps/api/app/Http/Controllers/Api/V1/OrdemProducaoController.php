@@ -50,6 +50,10 @@ class OrdemProducaoController extends Controller
             'material_id' => ['nullable', 'integer'],
             'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
             'complementar' => ['sometimes', 'boolean'],
+            'volumes' => ['nullable', 'array'],
+            'volumes.*.lote_id' => ['required_with:volumes', 'integer'],
+            'volumes.*.qtde' => array_merge(['required_with:volumes'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'volumes_motivo' => ['nullable', 'string', 'max:255'],
         ]);
 
         if (empty($data['material_id']) && empty($data['produto_id'])) {
@@ -86,6 +90,36 @@ class OrdemProducaoController extends Controller
 
         return response()->json([
             'data' => $this->service->requisitarPendentes($this->empresa(), $ordemProducao),
+        ]);
+    }
+
+    public function entregarInsumos(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'recebido_por' => ['required', 'string', 'min:2', 'max:120'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->entregarInsumos($this->empresa(), $ordemProducao, $data),
+        ]);
+    }
+
+    public function previewRetirada(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeRead($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['nullable', 'integer'],
+            'produto_id' => ['nullable', 'integer'],
+            'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+        ]);
+
+        return response()->json([
+            'data' => $this->service->previewRetirada($this->empresa(), $ordemProducao, $data),
         ]);
     }
 

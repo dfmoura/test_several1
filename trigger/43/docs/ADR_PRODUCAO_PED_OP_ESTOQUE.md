@@ -83,6 +83,8 @@ Com qualquer saída já requisitada → bloqueio. Estorno de estoque / retrabalh
 
 Após qualquer `SAIDA_PRODUCAO`, a OP (e o PED) expõem a genealogia dos insumos: lote + NF + fornecedor + OC, composta dos MOV já gravados. Ver `ADR_RASTREIO_INSUMOS_PRODUCAO.md`. Não cria saldo, lote de PA nem RMA.
 
+**Coleta dirigida (Fase A):** a separação da OP mostra os volumes FEFO/FIFO *antes* de baixar; o confirmar pode enviar `volumes[]` explícitos. Empenho permanece leve. Norma: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md).
+
 ## Fora de escopo (esta entrega)
 
 - Empenho com saldo `empenhado` separado / FIFO de lote  

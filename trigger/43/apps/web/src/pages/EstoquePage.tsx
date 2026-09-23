@@ -334,6 +334,8 @@ export function EstoquePage() {
         {' · '}
         <Link to="/estoque/guardar">Guardar</Link>
         {' · '}
+        <Link to="/estoque/retiradas">Retiradas</Link>
+        {' · '}
         <Link to="/estoque/mapa">Mapa dos locais</Link>
         {' · '}
         <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>

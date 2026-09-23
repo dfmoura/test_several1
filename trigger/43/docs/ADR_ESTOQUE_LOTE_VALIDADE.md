@@ -47,7 +47,7 @@ consumo: FEFO (validade ASC, nulos por último) → FIFO (data_entrada)
 
 Operador pode desligar/ligar no cadastro. Validade sem lote é inválida (o sistema força lote).
 
-**Consumo:** FEFO automático na saída (OP) se o lote não for informado. Vencido **não bloqueia** a fábrica (CQ/quarentena fora de escopo); a UI marca `VENCIDO` / `A VENCER` (60 dias).
+**Consumo:** FEFO automático na saída (OP) se o lote não for informado. A UI da OP **mostra** a sugestão (volume, local, validade) e pode enviar `volumes[]` explícitos — `ADR_PRODUCAO_COLETA_DIRIGIDA.md`. Vencido **não bloqueia** a fábrica (CQ/quarentena fora de escopo); a UI marca `VENCIDO` / `A VENCER` (60 dias).
 
 **Genealogia (BL-054):** a OP/PED leem `SAIDA_PRODUCAO.item.lote_id` e resolvem origens (`ENTRADA_COMPRA` / NF / fornecedor) **até o instante da saída**. Ver `ADR_RASTREIO_INSUMOS_PRODUCAO.md`. Lote de PA continua fora.
 

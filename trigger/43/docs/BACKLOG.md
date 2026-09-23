@@ -15,11 +15,49 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-107`
+`BL-109`
 
 ---
 
 ## Itens
+
+### BL-108 · [producao/estoque/ux] Coleta dirigida — chão QR + handoff + Painel (Fases B–C)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — concluir o fluxo requisição → estoque → produção
+- **Depende de:** BL-107 · `ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Decisão (fechada):**
+  1. Estoque → **Retiradas** (nav do módulo, sem menu novo): a retirar / a entregar.
+  2. Caminhada + QR `VOL:` · confirmar chama o mesmo `requisitar` (writer único).
+  3. Handoff na OP (`insumos_entregues_*`); complemento zera e pede nova entrega.
+  4. Painel: uma fila `op_separacao` se `count > 0`.
+- **Aceite:**
+  - [x] `/estoque/retiradas` + chão + QR
+  - [x] Entregar na produção (OP e Estoque)
+  - [x] Fila no Painel
+  - [x] PHPUnit no `ProducaoColetaDirigidaTest`
+- **Fora de escopo:** empenho reservado · app mobile · lote de PA
+- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Teste local:** Estoque → Retiradas → OP com pendência → ler VOL: → confirmar → informar quem recebeu. Painel mostra a fila enquanto houver pendência. Ctrl+Shift+R.
+
+### BL-107 · [producao/estoque/ux] Coleta dirigida — ver volumes antes de baixar (Fase A)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-09-23 — visibilidade da requisição OP → estoque → produção
+- **Depende de:** `ADR_PRODUCAO_PED_OP_ESTOQUE` · `ADR_ESTOQUE_LOTE_VALIDADE` · `ADR_CADASTRO_INSUMO_VOLUME` F3/F4
+- **Decisão (fechada):**
+  1. Preview FEFO/FIFO na OP (volume, local, L×C, validade) — mesmo algoritmo do writer.
+  2. Confirmar envia `volumes[]`; API sem volumes permanece FEFO (compat).
+  3. Override exige motivo. Empenho continua leve. Sem menu novo / sem segundo saldo.
+  4. Fases B/C = BL-108.
+- **Aceite:**
+  - [x] ADR `ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+  - [x] Preview na ficha + painel de confirmação
+  - [x] Writer aceita alocação explícita
+  - [x] PHPUnit `ProducaoColetaDirigidaTest`
+- **Fora de escopo nesta BL:** empenho reservado · WMS · lote de PA · sessão QR (Fase B)
+- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md`
+- **Teste local:** OP aberta com SKU `controla_lote` e volumes no local → Separação → **Preparar retirada** → conferir FEFO/local → confirmar. Ctrl+Shift+R se SPA antiga.
 
 ### BL-106 · [orc/norma+ux] ORC cabeçalho × itens (1..N jobs na proposta)
 - **Status:** Em andamento (fases 0–2 prontas p/ teste; fase 3 PED pendente)

@@ -15,6 +15,7 @@ use App\Models\Titulo;
 use App\Models\User;
 use App\Services\Estoque\EstoqueReposicaoService;
 use App\Services\Financeiro\AdiantamentoService;
+use App\Services\Producao\ProducaoColetaService;
 use App\Support\FlexorcSuperficie;
 use App\Support\PadraoDecimal;
 
@@ -50,6 +51,7 @@ class PainelService
     public function __construct(
         private readonly EmpresaAtivacaoService $ativacao,
         private readonly EstoqueReposicaoService $reposicao,
+        private readonly ProducaoColetaService $coleta,
     ) {}
 
     /**
@@ -228,6 +230,18 @@ class PainelService
         if ($estoque) {
             $ajustes = $this->contar(EstoqueAjuste::class, $empresa, [EstoqueAjuste::STATUS_PENDENTE]);
             $this->fila($filas, 'ajustes', 'Ajustes de estoque pendentes', 'Aguardando alçada', $ajustes, '/estoque/ajustes');
+        }
+
+        if ($producao || $estoque) {
+            $separacao = $this->coleta->contarFila($empresa);
+            $this->fila(
+                $filas,
+                'op_separacao',
+                'Retiradas em aberto',
+                'Ir ao estoque ou entregar o material na produção',
+                $separacao,
+                '/estoque/retiradas',
+            );
         }
 
         return [

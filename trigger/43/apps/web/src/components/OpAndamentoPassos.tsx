@@ -16,7 +16,7 @@ export function OpAndamentoPassos({ op }: Props) {
     {
       id: 'separar',
       label: '1 · Separar',
-      hint: 'Requisitar saída dos insumos (baixa no estoque)',
+      hint: 'Retirar volumes no estoque (QR) e entregar na produção',
     },
     {
       id: 'produzir',

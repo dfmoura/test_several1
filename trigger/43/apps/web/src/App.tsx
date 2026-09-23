@@ -68,6 +68,8 @@ import { EstoqueEnderecosEtiquetasPage } from './pages/EstoqueEnderecosEtiquetas
 import { EstoqueMapaPage } from './pages/EstoqueMapaPage';
 import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage';
 import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
+import { EstoqueRetiradasPage } from './pages/EstoqueRetiradasPage';
+import { EstoqueRetiradaChaoPage } from './pages/EstoqueRetiradaChaoPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
@@ -459,6 +461,22 @@ export default function App() {
           element={
             <PermissionRoute permission="estoque.ler">
               <EstoqueGuardarPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/retiradas"
+          element={
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <EstoqueRetiradasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/retiradas/:id"
+          element={
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <EstoqueRetiradaChaoPage />
             </PermissionRoute>
           }
         />

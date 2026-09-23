@@ -11355,6 +11355,82 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   }
 }
 
+.op-retirada {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.op-retirada__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.op-retirada__head h4 {
+  margin: 0 0 0.25rem;
+}
+
+.op-retirada__head p {
+  margin: 0;
+  max-width: 52rem;
+}
+
+.op-retirada__sku {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border, #d0d5dd);
+}
+
+.op-retirada__sku header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.55rem;
+}
+
+.op-retirada__qtde {
+  width: 7.5rem;
+}
+
+.op-retirada__outros {
+  margin-top: 0.65rem;
+}
+
+.op-retirada__outros ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.op-retirada__outros li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.op-retirada__acoes {
+  margin-top: 0.9rem;
+}
+
+.op-retirada__baixados {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, #667085);
+  line-height: 1.4;
+}
+
 .orc-pub {
   min-height: 100vh;
   padding: 1.25rem 0.85rem 2rem;

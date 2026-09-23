@@ -3111,6 +3111,38 @@ export type EntregaFilaItem = {
   bloqueios?: string[];
 };
 
+export type OpRetiradaVolume = {
+  lote_id: number | null;
+  codigo: string | null;
+  qtde_volume: string | null;
+  qtde_retirar: string;
+  unidade: string | null;
+  data_entrada: string | null;
+  data_validade: string | null;
+  status: string | null;
+  status_label: string | null;
+  largura_mm: string | null;
+  comprimento_m: string | null;
+  endereco: { id: number; codigo: string } | null;
+  sugerido: boolean;
+  motivo: string;
+  ordem_politica: number | null;
+  movimento_id?: number;
+  movimento_codigo?: string | null;
+};
+
+export type OpRetiradaPreview = {
+  controla_lote: boolean;
+  politica: string;
+  qtde: string;
+  unidade: string;
+  suficiente: boolean;
+  qtde_faltante: string;
+  volumes: OpRetiradaVolume[];
+  candidatos: OpRetiradaVolume[];
+  volumes_baixados?: OpRetiradaVolume[];
+};
+
 export type OrdemProducaoMaterial = {
   id: number;
   produto: {
@@ -3119,7 +3151,9 @@ export type OrdemProducaoMaterial = {
     descricao_fiscal: string;
     unidade_interna: string | null;
     familia: string;
+    controla_lote?: boolean;
   } | null;
+  retirada?: OpRetiradaPreview;
   componente?: string | null;
   origem_texto?: string | null;
   qtde_planejada?: string;
@@ -3185,6 +3219,34 @@ export type OrdemProducao = {
   rastreio?: RastreioDocumento;
   embalagem?: PaEmbalagemResumo | null;
   pode_embalar?: boolean;
+  handoff?: OpInsumosHandoff;
+  pode_entregar_insumos?: boolean;
+};
+
+export type OpInsumosHandoff = {
+  entregue: boolean;
+  entregues_em: string | null;
+  entregues_por: { id: number; nome: string; codigo: string } | null;
+  recebidos_nome: string | null;
+};
+
+export type EstoqueRetiradaCard = {
+  id: number;
+  codigo: string;
+  status: string;
+  pedido: { id: number; codigo: string } | null;
+  parceiro: { id: number; codigo: string; razao_social: string } | null;
+  linhas_pendentes: number;
+  linhas_baixadas: number;
+  primeiro_local?: string | null;
+  locais?: string[];
+  handoff: OpInsumosHandoff;
+};
+
+export type EstoqueRetiradasFila = {
+  a_retirar: EstoqueRetiradaCard[];
+  a_entregar: EstoqueRetiradaCard[];
+  resumo: { a_retirar: number; a_entregar: number; total: number };
 };
 
 export type RastreioParceiro = {

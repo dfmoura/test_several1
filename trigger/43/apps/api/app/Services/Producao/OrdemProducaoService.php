@@ -33,6 +33,7 @@ class OrdemProducaoService
         private readonly OpBomDeriver $bom,
         private readonly RastreioInsumosService $rastreio,
         private readonly PaEmbalagemService $embalagem,
+        private readonly ProducaoColetaService $coleta,
     ) {}
 
     /**
@@ -83,7 +84,7 @@ class OrdemProducaoService
             'pedido.parceiro:id,codigo,razao_social',
             'pedido.orcamento:id,codigo,tolerancia_qtd_pct',
             'pedidoItem.produtoPa:id,codigo,descricao_fiscal',
-            'materiais.produto:id,codigo,descricao_fiscal,unidade_interna,familia',
+            'materiais.produto:id,codigo,descricao_fiscal,unidade_interna,familia,controla_lote',
             'paMovimento:id,codigo,tipo',
         ]);
 
@@ -195,7 +196,7 @@ class OrdemProducaoService
     /**
      * Requisição de MP/EMB → SAIDA_PRODUCAO.
      *
-     * @param  array{produto_id?: int, material_id?: int, qtde?: string|number}  $data
+     * @param  array{produto_id?: int, material_id?: int, qtde?: string|number, complementar?: bool, volumes?: list<array{lote_id?: int, qtde?: string}>, volumes_motivo?: string}  $data
      * @return array<string, mixed>
      */
     public function requisitarMaterial(Empresa $empresa, OrdemProducao $op, array $data): array
@@ -263,7 +264,21 @@ class OrdemProducaoService
 
         $this->congelamento->assertProdutoLivre($empresa, $produto->id, 'saída para produção');
 
-        $op = DB::transaction(function () use ($empresa, $op, $produto, $qtde, $matPendente, $complementar) {
+        $volumes = is_array($data['volumes'] ?? null) ? array_values($data['volumes']) : [];
+        $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
+        if ($volumes !== []) {
+            $this->coleta->validarOverride($empresa, $produto, $qtde, $volumes, $volumesMotivo);
+        }
+        $override = $volumes !== []
+            && $produto->controla_lote
+            && ! $this->saldos->alocacoesIguais(
+                $this->saldos->sugerirAlocacaoSaida($empresa, $produto, $qtde),
+                $volumes
+            );
+
+        $op = DB::transaction(function () use (
+            $empresa, $op, $produto, $qtde, $matPendente, $complementar, $volumes, $volumesMotivo, $override
+        ) {
             $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
 
             $mat = $matPendente
@@ -284,7 +299,18 @@ class OrdemProducaoService
 
             $ano = (int) now()->year;
             $codigoMov = $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5);
-            $aplicado = $this->saldos->aplicarSaida($empresa, $produto, $qtde);
+            $aplicado = $this->saldos->aplicarSaida(
+                $empresa,
+                $produto,
+                $qtde,
+                null,
+                $volumes !== [] ? $volumes : null
+            );
+
+            $obs = ($fazerComplementar ? 'Complemento para ' : 'Saída para ').$op->codigo;
+            if ($override && $volumesMotivo !== '') {
+                $obs .= ' · Volume fora da sugestão FEFO: '.$volumesMotivo;
+            }
 
             $mov = EstoqueMovimento::query()->create([
                 'empresa_id' => $empresa->id,
@@ -294,7 +320,7 @@ class OrdemProducaoService
                 'ordem_producao_id' => $op->id,
                 'conferido_em' => now(),
                 'conferido_por' => Auth::id(),
-                'observacao' => ($fazerComplementar ? 'Complemento para ' : 'Saída para ').$op->codigo,
+                'observacao' => $obs,
             ]);
 
             $ordemItem = 1;
@@ -356,6 +382,13 @@ class OrdemProducaoService
             if ($op->status === OrdemProducao::STATUS_ABERTA) {
                 $op->status = OrdemProducao::STATUS_EM_ANDAMENTO;
                 $op->iniciada_em = $op->iniciada_em ?? now();
+            }
+            if ($op->insumos_entregues_em !== null) {
+                $op->insumos_entregues_em = null;
+                $op->insumos_entregues_por = null;
+                $op->insumos_recebidos_nome = null;
+            }
+            if ($op->isDirty()) {
                 $op->save();
             }
 
@@ -1144,6 +1177,10 @@ class OrdemProducaoService
                 ? $this->embalagem->toOut($emb->load(['bobinas', 'caixas']))
                 : null;
             $out['pode_embalar'] = $o->status === OrdemProducao::STATUS_CONCLUIDA;
+            $out['handoff'] = $this->coleta->handoffToOut($o);
+            $out['pode_entregar_insumos'] = in_array($o->status, OrdemProducao::STATUSES_ABERTOS, true)
+                && $o->insumos_entregues_em === null
+                && $o->materiais->contains(fn (OrdemProducaoMaterial $m) => $m->saida_movimento_id !== null);
         }
 
         return $out;
@@ -1179,7 +1216,7 @@ class OrdemProducaoService
                 ->keyBy('produto_id');
 
         $linhasComFaltante = 0;
-        $materiais = $o->materiais->map(function (OrdemProducaoMaterial $m) use ($saldos, &$linhasComFaltante) {
+        $materiais = $o->materiais->map(function (OrdemProducaoMaterial $m) use ($empresa, $o, $saldos, &$linhasComFaltante) {
             $pendente = $m->saida_movimento_id === null;
             $disponivel = $saldos->get((int) $m->produto_id)
                 ? PadraoDecimal::roundHalfUp((string) $saldos->get((int) $m->produto_id)->qtde, PadraoDecimal::SCALE_QTY)
@@ -1207,6 +1244,7 @@ class OrdemProducaoService
                     'descricao_fiscal' => $m->produto->descricao_fiscal,
                     'unidade_interna' => $m->produto->unidade_interna,
                     'familia' => $m->produto->familia,
+                    'controla_lote' => (bool) $m->produto->controla_lote,
                 ] : null,
                 'componente' => $m->componente,
                 'origem_texto' => $m->origem_texto,
@@ -1225,6 +1263,7 @@ class OrdemProducaoService
                 'aguardando_material' => $aguardando,
                 'saida_movimento_id' => $m->saida_movimento_id,
                 'retorno_movimento_id' => $m->retorno_movimento_id,
+                'retirada' => $m->produto ? $this->coleta->daLinha($empresa, $o, $m) : null,
             ];
         })->all();
 
@@ -1243,6 +1282,134 @@ class OrdemProducaoService
                 'componentes_nao_casados' => $naoCasados,
             ],
         ];
+    }
+
+    /**
+     * Fila do almoxarifado (leitura) — ADR coleta dirigida Fase B.
+     *
+     * @return array<string, mixed>
+     */
+    public function filaRetiradas(Empresa $empresa): array
+    {
+        return $this->coleta->fila($empresa);
+    }
+
+    /**
+     * Material já baixado chega na máquina (Fase C). Sem segundo MOV.
+     *
+     * @param  array{recebido_por: string}  $data
+     * @return array<string, mixed>
+     */
+    public function entregarInsumos(Empresa $empresa, OrdemProducao $op, array $data): array
+    {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+        if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['OP deve estar ABERTA ou EM_ANDAMENTO.'],
+            ]);
+        }
+
+        $nome = trim((string) ($data['recebido_por'] ?? ''));
+        if (mb_strlen($nome) < 2) {
+            throw ValidationException::withMessages([
+                'recebido_por' => ['Informe quem recebeu na produção (mínimo 2 caracteres).'],
+            ]);
+        }
+
+        $op = DB::transaction(function () use ($op, $nome) {
+            $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
+            $temSaida = OrdemProducaoMaterial::query()
+                ->where('ordem_producao_id', $op->id)
+                ->whereNotNull('saida_movimento_id')
+                ->exists();
+            if (! $temSaida) {
+                throw ValidationException::withMessages([
+                    'materiais' => ['Não há saída requisitada para entregar na produção.'],
+                ]);
+            }
+            if ($op->insumos_entregues_em !== null) {
+                throw ValidationException::withMessages([
+                    'handoff' => ['Esta retirada já foi entregue na produção.'],
+                ]);
+            }
+            $op->insumos_entregues_em = now();
+            $op->insumos_entregues_por = Auth::id();
+            $op->insumos_recebidos_nome = $nome;
+            $op->save();
+
+            return $op;
+        });
+
+        return $this->show($op->fresh());
+    }
+
+    /**
+     * Preview da retirada (qtde custom — complementar / extra).
+     *
+     * @return array<string, mixed>
+     */
+    public function previewRetirada(
+        Empresa $empresa,
+        OrdemProducao $op,
+        array $data,
+    ): array {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
+        $produtoId = isset($data['produto_id']) ? (int) $data['produto_id'] : 0;
+        $qtdeRaw = $data['qtde'] ?? null;
+
+        if ($materialId > 0) {
+            $mat = OrdemProducaoMaterial::query()
+                ->with('produto')
+                ->where('ordem_producao_id', $op->id)
+                ->where('id', $materialId)
+                ->first();
+            if (! $mat) {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Material não pertence a esta OP.'],
+                ]);
+            }
+
+            return $this->coleta->daLinha(
+                $empresa,
+                $op,
+                $mat,
+                $qtdeRaw !== null && $qtdeRaw !== '' ? (string) $qtdeRaw : null,
+            );
+        }
+
+        if ($produtoId <= 0) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Informe material_id ou produto_id.'],
+            ]);
+        }
+
+        $produto = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $produtoId)
+            ->first();
+        if (! $produto) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Produto não encontrado nesta empresa.'],
+            ]);
+        }
+
+        $qtde = PadraoDecimal::parseStrict((string) ($qtdeRaw ?? ''), PadraoDecimal::SCALE_QTY);
+        if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            throw ValidationException::withMessages([
+                'qtde' => ['Informe a quantidade da retirada.'],
+            ]);
+        }
+
+        $out = $this->coleta->preview($empresa, $produto, $qtde);
+        $out['volumes_baixados'] = $this->coleta->volumesBaixados($empresa, $op, $produto->id);
+
+        return $out;
     }
 
     /**

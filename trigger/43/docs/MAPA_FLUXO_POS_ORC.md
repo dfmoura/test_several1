@@ -87,7 +87,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 | ORC `AGUARDA_ADIANTAMENTO` | Copy: pedido operacional após confirmação do sinal (sem CTA PED) |
 | ORC `LIBERADO` + PED | CTA **Ver pedido `PED-…`** + status do PED |
 | PED detalhe | **Andamento operacional** com códigos ORC → PED → OP/OS → materiais/produção → FAT/ENT |
-| OP detalhe | **Passos da ordem**: separar → produzir → concluir (retorno/perda/PA) → pedido; resultado após `CONCLUIDA` |
+| OP detalhe | **Passos da ordem**: separar (preview FEFO + volumes) → produzir → concluir (retorno/perda/PA) → pedido; resultado após `CONCLUIDA` |
 | Estoque | Card **Entrada e documentos** → OC (NF-e) · ajustes/virada · produtos |
 | Produtos | Papel no fluxo (compra/estoque/OP) + links Estoque/OC |
 | Compras (quando `F5_DFE_CX`) | **Caixa DF-e** → amarrar opcional à OC → assist/`receber()` |
@@ -111,6 +111,7 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 ## Referências
 
 - Motor: [`ADR_PRODUCAO_PED_OP_ESTOQUE.md`](ADR_PRODUCAO_PED_OP_ESTOQUE.md)  
+- Coleta dirigida: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md)  
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  
 - Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)
 - Saída da etiqueta (bobina): [`ADR_ORC_SAIDA_ETIQUETA.md`](ADR_ORC_SAIDA_ETIQUETA.md)  

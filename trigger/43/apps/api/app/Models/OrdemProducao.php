@@ -52,6 +52,9 @@ class OrdemProducao extends Model
         'custo_materiais',
         'pa_movimento_id',
         'iniciada_em',
+        'insumos_entregues_em',
+        'insumos_entregues_por',
+        'insumos_recebidos_nome',
         'concluida_em',
         'concluida_por',
         'observacao',
@@ -69,6 +72,7 @@ class OrdemProducao extends Model
             'fora_tolerancia' => 'boolean',
             'custo_materiais' => 'decimal:'.PadraoDecimal::SCALE_MONEY,
             'iniciada_em' => 'datetime',
+            'insumos_entregues_em' => 'datetime',
             'concluida_em' => 'datetime',
             'cancelada_em' => 'datetime',
         ];
@@ -97,6 +101,11 @@ class OrdemProducao extends Model
     public function paMovimento(): BelongsTo
     {
         return $this->belongsTo(EstoqueMovimento::class, 'pa_movimento_id');
+    }
+
+    public function insumosEntreguesPorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'insumos_entregues_por');
     }
 
     public function concluidaPorUser(): BelongsTo

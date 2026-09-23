@@ -137,10 +137,18 @@ class EstoqueSaldoWriter
     /**
      * Saída para produção (MP/EMB): reduz saldo valorizando pelo custo médio vigente.
      *
+     * $alocacoes (lote_id + qtde) = baixa explícita (coleta dirigida). Sem isso, FEFO/FIFO.
+     *
+     * @param  list<array{lote_id?: int|null, qtde?: string}>|null  $alocacoes
      * @return array{custo_medio_apos: string, valor_total: string, valor_unitario: string, alocacoes: list<array{lote_id: ?int, qtde: string}>}
      */
-    public function aplicarSaida(Empresa $empresa, Produto $produto, string $qtdeSaida, ?int $loteId = null): array
-    {
+    public function aplicarSaida(
+        Empresa $empresa,
+        Produto $produto,
+        string $qtdeSaida,
+        ?int $loteId = null,
+        ?array $alocacoes = null
+    ): array {
         if (bccomp($qtdeSaida, '0', PadraoDecimal::SCALE_QTY) <= 0) {
             throw ValidationException::withMessages([
                 'qtde' => ['Quantidade de saída deve ser maior que zero.'],
@@ -173,15 +181,49 @@ class EstoqueSaldoWriter
             : $valorUnitario;
 
         $this->persist($empresa, $produto, $saldo, $qtdeNova, $custoMedio);
-        $alocacoes = $this->baixarLotes($empresa, $produto, $qtdeSaida, $loteId);
+        $baixadas = $alocacoes !== null && $alocacoes !== []
+            ? $this->baixarLotesInformados($empresa, $produto, $qtdeSaida, $alocacoes)
+            : $this->baixarLotes($empresa, $produto, $qtdeSaida, $loteId);
         $this->assertConsistenciaLotes($empresa, $produto);
 
         return [
             'custo_medio_apos' => $custoMedio,
             'valor_total' => $valorTotal,
             'valor_unitario' => $valorUnitario,
-            'alocacoes' => $alocacoes,
+            'alocacoes' => $baixadas,
         ];
+    }
+
+    /**
+     * Preview da política de consumo — mesma ordem de baixarLotes, sem escrever.
+     *
+     * @return list<array{lote_id: ?int, qtde: string}>
+     */
+    public function sugerirAlocacaoSaida(Empresa $empresa, Produto $produto, string $qtdeSaida): array
+    {
+        if (bccomp($qtdeSaida, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+            return [];
+        }
+        if (! $produto->controla_lote) {
+            return [['lote_id' => null, 'qtde' => $qtdeSaida]];
+        }
+
+        $restante = $qtdeSaida;
+        $alocacoes = [];
+        foreach ($this->candidatosFefo($empresa, $produto, false) as $lote) {
+            if (bccomp($restante, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                break;
+            }
+            $disp = PadraoDecimal::roundHalfUp((string) $lote->qtde, PadraoDecimal::SCALE_QTY);
+            $usar = bccomp($disp, $restante, PadraoDecimal::SCALE_QTY) <= 0 ? $disp : $restante;
+            $alocacoes[] = ['lote_id' => (int) $lote->id, 'qtde' => $usar];
+            $restante = PadraoDecimal::roundHalfUp(
+                bcsub($restante, $usar, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+        }
+
+        return $alocacoes;
     }
 
     /**
@@ -420,16 +462,7 @@ class EstoqueSaldoWriter
             return [['lote_id' => (int) $lote->id, 'qtde' => $qtde]];
         }
 
-        $lotes = EstoqueLote::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('produto_id', $produto->id)
-            ->where('qtde', '>', 0)
-            ->orderByRaw('data_validade IS NULL')
-            ->orderBy('data_validade')
-            ->orderBy('data_entrada')
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get();
+        $lotes = $this->candidatosFefo($empresa, $produto, true);
 
         $restante = $qtde;
         $alocacoes = [];
@@ -469,6 +502,123 @@ class EstoqueSaldoWriter
             PadraoDecimal::SCALE_QTY
         );
         $lote->save();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, EstoqueLote>
+     */
+    private function candidatosFefo(Empresa $empresa, Produto $produto, bool $lock)
+    {
+        $q = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->where('qtde', '>', 0)
+            ->orderByRaw('data_validade IS NULL')
+            ->orderBy('data_validade')
+            ->orderBy('data_entrada')
+            ->orderBy('id');
+        if ($lock) {
+            $q->lockForUpdate();
+        }
+
+        return $q->get();
+    }
+
+    /**
+     * Baixa volumes informados (coleta dirigida) — sem FEFO silencioso.
+     *
+     * @param  list<array{lote_id?: int|null, qtde?: string}>  $alocacoes
+     * @return list<array{lote_id: ?int, qtde: string}>
+     */
+    private function baixarLotesInformados(
+        Empresa $empresa,
+        Produto $produto,
+        string $qtde,
+        array $alocacoes
+    ): array {
+        if (! $produto->controla_lote) {
+            throw ValidationException::withMessages([
+                'volumes' => ['Este SKU não controla lote — não informe volumes.'],
+            ]);
+        }
+
+        $vistos = [];
+        $soma = '0';
+        $saida = [];
+        foreach (array_values($alocacoes) as $idx => $linha) {
+            if (! is_array($linha)) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}" => ['Volume inválido.'],
+                ]);
+            }
+            $loteId = (int) ($linha['lote_id'] ?? 0);
+            if ($loteId <= 0) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => ['Informe o volume a retirar.'],
+                ]);
+            }
+            if (isset($vistos[$loteId])) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => ['Volume duplicado na retirada.'],
+                ]);
+            }
+            $vistos[$loteId] = true;
+
+            $q = PadraoDecimal::roundHalfUp((string) ($linha['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.qtde" => ['Quantidade do volume deve ser maior que zero.'],
+                ]);
+            }
+
+            $lote = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('produto_id', $produto->id)
+                ->where('id', $loteId)
+                ->lockForUpdate()
+                ->first();
+            if (! $lote) {
+                throw ValidationException::withMessages([
+                    "volumes.{$idx}.lote_id" => ['Volume não pertence a este produto/empresa.'],
+                ]);
+            }
+            $this->debitarLote($lote, $q);
+            $saida[] = ['lote_id' => (int) $lote->id, 'qtde' => $q];
+            $soma = bcadd($soma, $q, PadraoDecimal::SCALE_QTY);
+        }
+
+        $soma = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+        if (bccomp($soma, $qtde, PadraoDecimal::SCALE_QTY) !== 0) {
+            throw ValidationException::withMessages([
+                'volumes' => ["Soma dos volumes ({$soma}) deve igualar a quantidade da saída ({$qtde})."],
+            ]);
+        }
+
+        return $saida;
+    }
+
+    /**
+     * @param  list<array{lote_id?: int|null, qtde?: string}>  $a
+     * @param  list<array{lote_id?: int|null, qtde?: string}>  $b
+     */
+    public function alocacoesIguais(array $a, array $b): bool
+    {
+        $norm = static function (array $linhas): array {
+            $out = [];
+            foreach ($linhas as $linha) {
+                $id = (int) ($linha['lote_id'] ?? 0);
+                $q = PadraoDecimal::roundHalfUp((string) ($linha['qtde'] ?? '0'), PadraoDecimal::SCALE_QTY);
+                if ($id <= 0 || bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    continue;
+                }
+                $out[] = $id.':'.$q;
+            }
+            sort($out);
+
+            return $out;
+        };
+
+        return $norm($a) === $norm($b);
     }
 
     /**
