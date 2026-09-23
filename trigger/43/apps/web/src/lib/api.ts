@@ -3499,6 +3499,13 @@ export type OrcamentoParceiroPronto = {
   bloqueios: Record<string, string[]>;
 };
 
+export type OrcamentoDocumentoPronto = {
+  apto: boolean;
+  orcamento_id: number | null;
+  pendencias: string[];
+  bloqueios: Record<string, string[]>;
+};
+
 export type OrcamentoDestinatarioAprovacao = {
   parceiro_contato_id: number | null;
   nome: string;

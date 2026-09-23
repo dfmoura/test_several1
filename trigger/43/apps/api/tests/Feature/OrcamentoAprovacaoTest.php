@@ -132,6 +132,8 @@ class OrcamentoAprovacaoTest extends TestCase
             'prazo_entrega_dias' => 12,
             'validade_dias' => 7,
             'tolerancia_qtd_pct' => 20,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
         ];
     }
 
@@ -154,6 +156,8 @@ class OrcamentoAprovacaoTest extends TestCase
         $dest->assertOk();
         $this->assertTrue($dest->json('data.parceiro_pronto.apto'));
         $this->assertSame([], $dest->json('data.parceiro_pronto.pendencias'));
+        $this->assertTrue($dest->json('data.orcamento_pronto.apto'));
+        $this->assertSame([], $dest->json('data.orcamento_pronto.pendencias'));
         $this->assertCount(1, $dest->json('data.destinatarios'));
         $this->assertSame('Maria Compradora', $dest->json('data.destinatarios.0.nome'));
         $contatoId = $dest->json('data.destinatarios.0.parceiro_contato_id');
@@ -403,9 +407,13 @@ class OrcamentoAprovacaoTest extends TestCase
         $h = ['X-Empresa-Id' => (string) $this->empresa->id];
         $job = $this->payload();
         unset($job['parceiro_id']);
-        $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', [
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', [
             'parceiro_id' => $this->parceiro->id,
             'tipo_operacao' => 'INDUSTRIALIZACAO',
+            'prazo_entrega_dias' => 12,
+            'validade_dias' => 7,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
             'itens' => [
                 array_merge($job, ['rotulo' => 'Frente', 'necessidade' => 'PRODUCAO']),
                 array_merge($job, [
@@ -415,11 +423,14 @@ class OrcamentoAprovacaoTest extends TestCase
                     'largura_cm' => 62,
                 ]),
             ],
-        ])->json('data.id');
+        ]);
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
 
-        $token = $this->withHeaders($h)
-            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
-            ->json('data.token');
+        $env = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $token = $env->json('data.token');
 
         $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
         $pub->assertOk();
@@ -746,5 +757,124 @@ class OrcamentoAprovacaoTest extends TestCase
         $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
         $fail->assertStatus(422);
         $fail->assertJsonValidationErrors(['is_prospect']);
+    }
+
+    public function test_enviar_bloqueia_se_proposta_sem_condicao_pagamento(): void
+    {
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $this->apagarCondicoesComerciais($id);
+
+        $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
+        $dest->assertOk();
+        $this->assertFalse($dest->json('data.orcamento_pronto.apto'));
+        $this->assertContains('Condição de pagamento', $dest->json('data.orcamento_pronto.pendencias'));
+        $this->assertContains('Forma de pagamento', $dest->json('data.orcamento_pronto.pendencias'));
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['condicao_pagamento', 'forma_pagamento']);
+    }
+
+    public function test_enviar_bloqueia_se_faixa_zerada(): void
+    {
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $this->zerarFaixasComerciais($id);
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['faixas']);
+    }
+
+    public function test_enviar_bloqueia_revenda_sem_sku(): void
+    {
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $orc = Orcamento::query()->with('itens')->findOrFail($id);
+        $input = is_array($orc->input_snapshot) ? $orc->input_snapshot : [];
+        $input['necessidade'] = 'REVENDA';
+        $input['produto_id'] = 99999;
+        $orc->input_snapshot = $input;
+        $orc->save();
+        foreach ($orc->itens as $item) {
+            $job = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+            $job['necessidade'] = 'REVENDA';
+            $job['produto_id'] = 99999;
+            $item->input_snapshot = $job;
+            $item->save();
+        }
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['produto_id']);
+    }
+
+    public function test_lembrete_nao_reaplica_prontidao_do_documento(): void
+    {
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $env->assertOk();
+        $token = $env->json('data.token');
+
+        $this->apagarCondicoesComerciais($id);
+
+        $lembrete = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $lembrete->assertOk();
+        $this->assertTrue($lembrete->json('data.reutilizado'));
+        $this->assertSame($token, $lembrete->json('data.token'));
+    }
+
+    private function apagarCondicoesComerciais(int $id): void
+    {
+        $orc = Orcamento::query()->with('itens')->findOrFail($id);
+        $input = is_array($orc->input_snapshot) ? $orc->input_snapshot : [];
+        unset($input['condicao_pagamento'], $input['forma_pagamento']);
+        $orc->input_snapshot = $input;
+        $orc->save();
+        foreach ($orc->itens as $item) {
+            $job = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+            unset($job['condicao_pagamento'], $job['forma_pagamento']);
+            $item->input_snapshot = $job;
+            $item->save();
+        }
+    }
+
+    private function zerarFaixasComerciais(int $id): void
+    {
+        $orc = Orcamento::query()->with('itens')->findOrFail($id);
+        $result = is_array($orc->result_snapshot) ? $orc->result_snapshot : [];
+        $orc->result_snapshot = $this->faixasZeradas($result);
+        $orc->save();
+        foreach ($orc->itens as $item) {
+            $job = is_array($item->result_snapshot) ? $item->result_snapshot : [];
+            $item->result_snapshot = $this->faixasZeradas($job);
+            $item->save();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function faixasZeradas(array $result): array
+    {
+        $faixas = [];
+        foreach ($result['faixas'] ?? [] as $fx) {
+            if (! is_array($fx)) {
+                continue;
+            }
+            $fx['valor_total'] = 0;
+            $fx['valor_etiqueta'] = 0;
+            $fx['valor_total_proposta'] = 0;
+            $fx['valor_total_com_faca'] = 0;
+            $fx['total'] = 0;
+            $faixas[] = $fx;
+        }
+        $result['faixas'] = $faixas;
+
+        return $result;
     }
 }

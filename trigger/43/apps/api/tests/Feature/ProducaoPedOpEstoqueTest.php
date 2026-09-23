@@ -192,6 +192,8 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'prazo_entrega_dias' => 10,
             'validade_dias' => 7,
             'tolerancia_qtd_pct' => 20,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
         ];
     }
 

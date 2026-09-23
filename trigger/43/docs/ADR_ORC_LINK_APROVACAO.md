@@ -44,14 +44,29 @@ Gate **duro** em `POST …/enviar-aprovacao` (depois do gate da EMP, antes do li
 | Endereço base (logradouro, número, bairro, município, UF, CEP) | Limite de crédito, contas bancárias |
 | Não prospect · situação ≠ INATIVO/BLOQUEADO | Completude fiscal para NF-e |
 
-`GET …/destinatarios-aprovacao` devolve `parceiro_pronto: { apto, pendencias, bloqueios }` para checklist no painel. UX: sem gerar link enquanto `apto = false`; link “Abrir cadastro do cliente”.
+`GET …/destinatarios-aprovacao` devolve `parceiro_pronto` e `orcamento_pronto` (`{ apto, pendencias, bloqueios }`) para checklist no painel. UX: sem gerar link enquanto qualquer um estiver `apto = false`; links “Editar orçamento” e “Abrir cadastro do cliente”.
+
+## Pré-condição de envio (documento)
+
+Gate **duro** em `POST …/enviar-aprovacao` (depois do cadastro do cliente, antes do link), dono: `OrcamentoProntidaoProposta`. Só no **1º envio** e no **reenvio após recusa**. Lembrete (`ENVIADO`/`VISUALIZADO`) **não** reaplica — o documento já foi à rua.
+
+| Obrigatório | Fora deste gate |
+|-------------|-----------------|
+| Condição + forma de pagamento | Frete / transportadora (“a definir” segue ADR) |
+| Validade e prazo de entrega (> 0) | Vendedor (comissão é depois) |
+| Snapshot com faixa qtde > 0 e valor > 0 | Observação, URL de arte |
+| Toda posição persistida com cálculo | Completude fiscal / NF-e |
+| Tipo homogêneo (não cessão; sem PA+SVC mistos) | Recalcular no envio (proibido) |
+| Revenda: SKU `REV` ativo na mesma EMP | “Preço caro” — motor R1–R20 intacto |
+
+Rascunho e cálculo continuam livres. Correção = editar + recalcular + salvar. Sem auto-preencher no clique.
 
 ## Máquina de estados (operacional)
 
 ```
 RASCUNHO / CALCULADO  →  "Em preparação"     editável · excluível · cadastro pode estar incompleto
         │
-        ▼  gate EMP + gate cadastro comercial + destinatário
+        ▼  gate EMP + gate cadastro comercial + gate documento + destinatário
         ▼  enviar para aprovação (gera/reusa link)
 ENVIADO / VISUALIZADO →  "Enviado p/ aprovação"  imutável
         │
@@ -73,8 +88,8 @@ Após aprovar **ou** rejeitar, GET do token responde **indisponível** (não mos
 
 **Autenticada** (`orcamento.escrever` / `orcamento.ler`):
 
-- `GET  /api/v1/orcamentos/{id}/destinatarios-aprovacao` → contatos elegíveis + `parceiro_pronto`
-- `POST /api/v1/orcamentos/{id}/enviar-aprovacao` → `{ parceiro_contato_id }` → `{ url, token, mensagem, canal_url, destinatario, … }` (422 se cadastro comercial incompleto)
+- `GET  /api/v1/orcamentos/{id}/destinatarios-aprovacao` → contatos elegíveis + `parceiro_pronto` + `orcamento_pronto`
+- `POST /api/v1/orcamentos/{id}/enviar-aprovacao` → `{ parceiro_contato_id }` → `{ url, token, mensagem, canal_url, destinatario, … }` (422 se cadastro comercial **ou** documento incompleto; lembrete não reaplica o gate do documento)
 - `GET  /api/v1/orcamentos/{id}/proposta-comercial` → mesma visão comercial, `modo: preview` / `somente_leitura` (não consome token, sem decidir)
 
 **Pública** (throttle; sem Sanctum):

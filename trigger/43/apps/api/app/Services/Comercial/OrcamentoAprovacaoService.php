@@ -47,6 +47,12 @@ class OrcamentoAprovacaoService
      *     parceiro_id: int|null,
      *     pendencias: list<string>,
      *     bloqueios: array<string, list<string>>
+     *   },
+     *   orcamento_pronto: array{
+     *     apto: bool,
+     *     orcamento_id: int|null,
+     *     pendencias: list<string>,
+     *     bloqueios: array<string, list<string>>
      *   }
      * }
      */
@@ -57,12 +63,14 @@ class OrcamentoAprovacaoService
             ->find($orcamento->parceiro_id);
 
         $parceiroPronto = ParceiroProntidaoProposta::dto($parceiro);
+        $orcamentoPronto = OrcamentoProntidaoProposta::dto($orcamento);
 
         if ($parceiro === null) {
             return [
                 'destinatarios' => [],
                 'aviso' => 'Parceiro do orçamento não encontrado.',
                 'parceiro_pronto' => $parceiroPronto,
+                'orcamento_pronto' => $orcamentoPronto,
             ];
         }
 
@@ -113,6 +121,7 @@ class OrcamentoAprovacaoService
             'destinatarios' => $destinatarios,
             'aviso' => $aviso,
             'parceiro_pronto' => $parceiroPronto,
+            'orcamento_pronto' => $orcamentoPronto,
         ];
     }
 
@@ -158,6 +167,9 @@ class OrcamentoAprovacaoService
         // Cadastro comercial mínimo do cliente (ADR_ORC_LINK_APROVACAO) — antes do link.
         $parceiro = Parceiro::query()->find($orcamento->parceiro_id);
         ParceiroProntidaoProposta::assertPronto($parceiro);
+
+        // Documento comercial mínimo — 1º envio / reenvio após recusa. Lembrete não reaplica.
+        OrcamentoProntidaoProposta::assertPronto($orcamento);
 
         $destinatario = $this->resolverDestinatario($orcamento, $opts);
 

@@ -21,6 +21,7 @@ import {
   type Orcamento,
   type OrcamentoDestinatarioAprovacao,
   type OrcamentoEnvioAprovacao,
+  type OrcamentoDocumentoPronto,
   type OrcamentoParceiroPronto,
   type OrcamentoResult,
 } from '../lib/api';
@@ -133,6 +134,7 @@ export function OrcamentoDetailPage() {
   const [destinatarios, setDestinatarios] = useState<OrcamentoDestinatarioAprovacao[]>([]);
   const [avisoDest, setAvisoDest] = useState<string | null>(null);
   const [parceiroPronto, setParceiroPronto] = useState<OrcamentoParceiroPronto | null>(null);
+  const [orcamentoPronto, setOrcamentoPronto] = useState<OrcamentoDocumentoPronto | null>(null);
   const [destSelecionado, setDestSelecionado] = useState<string>('');
   const [itemFichaAba, setItemFichaAba] = useState(0);
 
@@ -179,13 +181,27 @@ export function OrcamentoDetailPage() {
           destinatarios: OrcamentoDestinatarioAprovacao[];
           aviso: string | null;
           parceiro_pronto: OrcamentoParceiroPronto;
+          orcamento_pronto: OrcamentoDocumentoPronto;
         };
       }>(`/orcamentos/${orc.id}/destinatarios-aprovacao`);
       setDestinatarios(res.data.destinatarios);
       setAvisoDest(res.data.aviso);
       setParceiroPronto(res.data.parceiro_pronto);
-      if (!res.data.parceiro_pronto.apto) {
-        setPainelEnvio(true);
+      setOrcamentoPronto(res.data.orcamento_pronto);
+      setPainelEnvio(true);
+      const orcOk = res.data.orcamento_pronto.apto;
+      const parOk = res.data.parceiro_pronto.apto;
+      if (!orcOk && !parOk) {
+        setErro(
+          'Complete o orçamento e o cadastro do cliente antes de enviar. Veja a checklist abaixo.',
+        );
+        return;
+      }
+      if (!orcOk) {
+        setErro('Esta proposta ainda não pode ir ao cliente. Veja a checklist abaixo.');
+        return;
+      }
+      if (!parOk) {
         setErro(
           'Complete o cadastro do cliente antes de enviar a proposta. Veja a checklist abaixo.',
         );
@@ -199,7 +215,6 @@ export function OrcamentoDetailPage() {
         return;
       }
       setDestSelecionado(destKey(res.data.destinatarios[0]));
-      setPainelEnvio(true);
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : 'Falha ao carregar destinatários');
     } finally {
@@ -239,6 +254,10 @@ export function OrcamentoDetailPage() {
   };
 
   const handleConfirmarEnvio = async () => {
+    if (orcamentoPronto && !orcamentoPronto.apto) {
+      setErro('Esta proposta ainda não pode ir ao cliente. Complete o orçamento antes de enviar.');
+      return;
+    }
     if (parceiroPronto && !parceiroPronto.apto) {
       setErro('Complete o cadastro do cliente antes de enviar a proposta.');
       return;
@@ -475,8 +494,33 @@ export function OrcamentoDetailPage() {
         <div className="card orc-share-card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
             <h3 className="orc-section-title" style={{ marginTop: 0 }}>
-              Cadastro do cliente
+              Esta proposta
             </h3>
+            {orcamentoPronto?.apto ? (
+              <p className="orc-share-hint">Documento pronto para ir ao cliente.</p>
+            ) : (
+              <>
+                <p className="orc-share-hint">
+                  Antes de enviar, complete o orçamento (edite, calcule e salve).
+                </p>
+                {orcamentoPronto && orcamentoPronto.pendencias.length > 0 ? (
+                  <ul className="orc-share-hint" style={{ margin: '0.5rem 0 0.75rem', paddingLeft: '1.25rem' }}>
+                    {orcamentoPronto.pendencias.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            )}
+            <div className="btn-row" style={{ marginBottom: '1rem' }}>
+              {editavel ? (
+                <Link to={`/orcamentos/${orc.id}/editar`} className="btn btn-secondary">
+                  Editar orçamento
+                </Link>
+              ) : null}
+            </div>
+
+            <h3 className="orc-section-title">Cadastro do cliente</h3>
             {parceiroPronto?.apto ? (
               <p className="orc-share-hint">Dados principais prontos para a proposta.</p>
             ) : (
@@ -499,7 +543,7 @@ export function OrcamentoDetailPage() {
               </Link>
             </div>
 
-            {parceiroPronto?.apto ? (
+            {orcamentoPronto?.apto && parceiroPronto?.apto ? (
               <>
                 <h3 className="orc-section-title">Quem recebe o link e pode decidir?</h3>
                 <p className="orc-share-hint">
@@ -545,7 +589,7 @@ export function OrcamentoDetailPage() {
             ) : null}
 
             <div className="btn-row" style={{ marginTop: '0.85rem' }}>
-              {parceiroPronto?.apto ? (
+              {orcamentoPronto?.apto && parceiroPronto?.apto ? (
                 <button
                   type="button"
                   className="btn btn-primary"
@@ -562,6 +606,7 @@ export function OrcamentoDetailPage() {
                 onClick={() => {
                   setPainelEnvio(false);
                   setParceiroPronto(null);
+                  setOrcamentoPronto(null);
                   setErro(null);
                 }}
               >

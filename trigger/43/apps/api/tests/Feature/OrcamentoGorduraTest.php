@@ -120,6 +120,8 @@ class OrcamentoGorduraTest extends TestCase
             'prazo_entrega_dias' => 12,
             'validade_dias' => 7,
             'tolerancia_qtd_pct' => 20,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
         ];
     }
 
