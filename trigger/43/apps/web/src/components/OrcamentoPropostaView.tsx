@@ -91,42 +91,42 @@ export function OrcamentoPropostaView({
         />
 
         {multi ? (
-          <OrcPubItensAcordeao proposta={proposta} />
+          <OrcPubItensAcordeao proposta={proposta} faixaHighlight={faixaIndex} />
         ) : (
-          <>
-            <OrcPubEspecificacaoBloco
-              tipoOperacao={proposta.tipo_operacao}
-              desc={desc}
-              faixas={faixas}
-              faixaHighlight={faixaIndex}
-              title={
-                proposta.tipo_operacao === 'SERVICO'
-                  ? 'Serviço'
-                  : desc?.necessidade === 'REVENDA' || desc?.produto_codigo
-                    ? 'Revenda'
-                    : 'Especificação'
-              }
-            />
-            <OrcPubFaixasBloco
-              faixas={faixas}
-              tipoOperacao={proposta.tipo_operacao}
-              unidadeServico={desc?.unidade}
-              descricao={desc}
-              frete={proposta.frete}
-              somenteLeitura={somenteLeitura}
-              faixaIndex={faixaIndex}
-              onFaixaChange={onFaixaChange}
-              cobraMatriz={Boolean(proposta.cobra_matriz)}
-              valorMatriz={proposta.valor_matriz ?? 0}
-              matrizNota={proposta.matriz_nota}
-            />
-          </>
+          <OrcPubEspecificacaoBloco
+            tipoOperacao={proposta.tipo_operacao}
+            desc={desc}
+            faixas={faixas}
+            faixaHighlight={faixaIndex}
+            title={
+              proposta.tipo_operacao === 'SERVICO'
+                ? 'Serviço'
+                : desc?.necessidade === 'REVENDA'
+                  ? 'Revenda'
+                  : 'Especificação'
+            }
+          />
         )}
 
-        {!somenteLeitura && multi ? (
-          <p className="orc-pub-hint orc-pub-hint--approve">
-            A aprovação confirma o orçamento completo ({proposta.itens!.length} posições).
-          </p>
+        {!multi || !somenteLeitura ? (
+          <OrcPubFaixasBloco
+            faixas={faixas}
+            tipoOperacao={proposta.tipo_operacao}
+            unidadeServico={desc?.unidade}
+            descricao={desc}
+            frete={proposta.frete}
+            somenteLeitura={somenteLeitura}
+            faixaIndex={faixaIndex}
+            onFaixaChange={onFaixaChange}
+            cobraMatriz={Boolean(proposta.cobra_matriz)}
+            valorMatriz={proposta.valor_matriz ?? 0}
+            matrizNota={proposta.matriz_nota}
+            hint={
+              !somenteLeitura && multi
+                ? `Selecione a quantidade. A aprovação confirma as ${proposta.itens!.length} posições nesta faixa.`
+                : undefined
+            }
+          />
         ) : null}
 
         <section className="orc-pub-card">

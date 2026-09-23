@@ -109,7 +109,7 @@ export function OrcPubEspecificacaoBloco({
   className,
 }: SpecProps) {
   const isServico = tipoOperacao === 'SERVICO';
-  const isRevenda = desc?.necessidade === 'REVENDA' || Boolean(desc?.produto_codigo);
+  const isRevenda = desc?.necessidade === 'REVENDA';
   const body = isServico ? (
     <SpecDense
       cells={[
@@ -266,7 +266,7 @@ function OrcPubFaixasTabela({
                   : q > 0
                     ? total / q
                     : null;
-              const selected = !somenteExibicao && faixaIndex === fx.index;
+              const selected = faixaIndex === fx.index;
               return (
                 <tr
                   key={fx.index}
@@ -346,7 +346,7 @@ function OrcPubFaixasTabela({
                 : q > 0
                   ? et / q
                   : null;
-            const selected = !somenteExibicao && faixaIndex === fx.index;
+            const selected = faixaIndex === fx.index;
             return (
               <tr
                 key={fx.index}
@@ -478,9 +478,11 @@ function resumoLinhaItem(item: OrcPropostaItem): string {
 function OrcPubItemDetalhe({
   item,
   tipoOperacao,
+  faixaHighlight = -1,
 }: {
   item: OrcPropostaItem;
   tipoOperacao?: string | null;
+  faixaHighlight?: number;
 }) {
   const faixas = item.faixas ?? [];
   const total = totalPrimeiraFaixaItem(item);
@@ -500,7 +502,7 @@ function OrcPubItemDetalhe({
           tipoOperacao={tipoOperacao}
           desc={item.descricao}
           faixas={faixas}
-          faixaHighlight={faixas[0]?.index ?? -1}
+          faixaHighlight={faixaHighlight}
           title={null}
         />
         {faixas.length > 0 ? (
@@ -511,7 +513,7 @@ function OrcPubItemDetalhe({
             descricao={item.descricao}
             somenteLeitura
             somenteExibicao
-            faixaIndex={faixas[0]?.index ?? 0}
+            faixaIndex={faixaHighlight}
             title="Faixas"
             asCard={false}
           />
@@ -523,13 +525,14 @@ function OrcPubItemDetalhe({
 
 type MultiProps = {
   proposta: OrcamentoPropostaPublica;
+  faixaHighlight?: number;
 };
 
 /**
  * N>1: um card só — total + itens sempre expandidos.
  * Frete/condições ficam no documento (não se repetem).
  */
-export function OrcPubItensAcordeao({ proposta }: MultiProps) {
+export function OrcPubItensAcordeao({ proposta, faixaHighlight = -1 }: MultiProps) {
   if (!isPropostaMultiItem(proposta)) return null;
   const itens = proposta.itens ?? [];
   const totalDoc =
@@ -560,6 +563,7 @@ export function OrcPubItensAcordeao({ proposta }: MultiProps) {
             key={it.ordem}
             item={it}
             tipoOperacao={proposta.tipo_operacao}
+            faixaHighlight={faixaHighlight}
           />
         ))}
       </div>

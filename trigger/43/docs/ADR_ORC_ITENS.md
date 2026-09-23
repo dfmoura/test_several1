@@ -68,7 +68,7 @@ ORC:
   adiantamento / %     = sobre o total do documento (política vigente)
 ```
 
-Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inteiro. Exibe posições 1..N + total geral.
+Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inteiro. Exibe posições 1..N + total geral. O cliente **escolhe a faixa** da escada (N=1 e N>1). N>1: o índice vale no documento; item sem aquela faixa cai na 1ª (`PedidoService::faixaDoJob`).
 
 ### Downstream
 

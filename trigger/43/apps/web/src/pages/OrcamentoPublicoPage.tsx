@@ -11,7 +11,6 @@ import {
 } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCurrency } from '../lib/format';
-import { isPropostaMultiItem } from '../lib/orcamentoPropostaItens';
 
 type Decidido = {
   status: 'APROVADO' | 'REPROVADO';
@@ -272,8 +271,7 @@ export function OrcamentoPublicoPage() {
         };
       }>(`/publico/orcamentos/${token}/decidir`, {
         acao: 'APROVAR',
-        // N>1: aceite do documento completo; faixa_index 0 = 1ª qtd. de cada posição (ADR_ORC_ITENS).
-        faixa_index: proposta && isPropostaMultiItem(proposta) ? 0 : faixaIndex,
+        faixa_index: faixaIndex,
         nome_cliente: nome.trim(),
         motivo: motivo.trim() || null,
       });
