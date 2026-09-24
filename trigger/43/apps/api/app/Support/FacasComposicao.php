@@ -323,6 +323,61 @@ final class FacasComposicao
     }
 
     /**
+     * Faca escolhida de verdade (mapa ou nova) — não geometria do motor.
+     * `facas: []` explícito = sem faca, salvo escalares legado (formato / nova).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public static function temFacaDeclarada(array $input): bool
+    {
+        $raw = $input['facas'] ?? null;
+        if (is_array($raw)) {
+            foreach ($raw as $row) {
+                if (self::linhaDeclarada($row)) {
+                    return true;
+                }
+            }
+
+            return self::legadoDeclarado($input);
+        }
+
+        return self::fromLegacyScalars($input) !== [] || self::legadoDeclarado($input);
+    }
+
+    /**
+     * @param  mixed  $row
+     */
+    private static function linhaDeclarada(mixed $row): bool
+    {
+        if (! is_array($row)) {
+            return false;
+        }
+        if (! empty($row['faca_nova'])) {
+            return true;
+        }
+        if ((int) ($row['mapa_faca_id'] ?? 0) > 0) {
+            return true;
+        }
+        if (self::nullIfEmpty($row['formato'] ?? null) !== null) {
+            return true;
+        }
+        if (self::nullIfEmpty($row['medida'] ?? null) !== null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function legadoDeclarado(array $input): bool
+    {
+        return ! empty($input['faca_nova'])
+            || self::nullIfEmpty($input['formato_faca'] ?? null) !== null;
+    }
+
+    /**
      * @param  list<array<string, mixed>>|mixed  $composicao
      */
     public static function prazoMaximo(mixed $composicao): ?int

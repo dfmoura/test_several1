@@ -127,6 +127,83 @@ class OrcamentoProntidaoPropostaTest extends TestCase
         $this->assertFalse(OrcamentoProntidaoProposta::evaluate($orc)['apto']);
     }
 
+    public function test_etiqueta_sem_faca_declarada_nao_e_apto(): void
+    {
+        $input = $this->specEtiqueta();
+        $input['facas'] = [];
+        unset($input['formato_faca'], $input['faca_nova']);
+        $orc = $this->orcamento(['input_snapshot' => $input]);
+
+        $eval = OrcamentoProntidaoProposta::evaluate($orc);
+
+        $this->assertFalse($eval['apto']);
+        $this->assertArrayHasKey('facas', $eval['bloqueios']);
+        $this->assertContains('Faca', $eval['pendencias']);
+    }
+
+    public function test_etiqueta_sem_saida_nao_e_apto(): void
+    {
+        $input = $this->specEtiqueta();
+        unset($input['saida_etiqueta']);
+        $orc = $this->orcamento(['input_snapshot' => $input]);
+
+        $eval = OrcamentoProntidaoProposta::evaluate($orc);
+
+        $this->assertFalse($eval['apto']);
+        $this->assertArrayHasKey('saida_etiqueta', $eval['bloqueios']);
+        $this->assertContains('Saída da etiqueta', $eval['pendencias']);
+    }
+
+    public function test_servico_nao_exige_faca_nem_saida(): void
+    {
+        $orc = $this->orcamento([
+            'input_snapshot' => [
+                'tipo_operacao' => TipoOperacaoSaida::SERVICO,
+                'condicao_pagamento' => '28 DDL',
+                'forma_pagamento' => 'PIX',
+                'tipo_servico' => 'REBOBINACAO',
+                'descricao_servico' => 'Rebobinação de bobina do cliente.',
+            ],
+        ]);
+
+        $eval = OrcamentoProntidaoProposta::evaluate($orc);
+
+        $this->assertTrue($eval['apto']);
+        $this->assertArrayNotHasKey('facas', $eval['bloqueios']);
+        $this->assertArrayNotHasKey('saida_etiqueta', $eval['bloqueios']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function specEtiqueta(): array
+    {
+        return [
+            'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
+            'medida' => '8,0X12,4',
+            'largura_cm' => 9,
+            'puxada_cm' => 12.36,
+            'cores' => 5,
+            'papel' => 'BOPP PRATA BXT',
+            'acabamento' => 'VERNIZ',
+            'modelos' => 7,
+            'colunas' => 1,
+            'etiq_por_rolo' => 1000,
+            'tubete' => '3"',
+            'maquina' => 'MODULAR',
+            'saida_etiqueta' => 'PE',
+            'formato_faca' => 'DESENHADA',
+            'facas' => [[
+                'principal' => true,
+                'formato' => 'DESENHADA',
+                'medida' => '8,0X12,4',
+                'faca_nova' => false,
+            ]],
+        ];
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -137,11 +214,7 @@ class OrcamentoProntidaoPropostaTest extends TestCase
             'status' => Orcamento::STATUS_CALCULADO,
             'prazo_entrega_dias' => 12,
             'validade_dias' => 7,
-            'input_snapshot' => [
-                'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
-                'condicao_pagamento' => '28 DDL',
-                'forma_pagamento' => 'PIX',
-            ],
+            'input_snapshot' => $this->specEtiqueta(),
             'result_snapshot' => [
                 'faixas' => [
                     ['quantidade' => 1000, 'valor_total' => 1900.0, 'valor_etiqueta' => 1900.0],

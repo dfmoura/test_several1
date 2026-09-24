@@ -302,6 +302,14 @@ class OrcamentoAteComissaoE2ETest extends TestCase
             'condicao_pagamento' => '28 DDL',
             'forma_pagamento' => 'PIX',
             'modo_entrega' => 'RETIRAR',
+            'saida_etiqueta' => 'PE',
+            'formato_faca' => 'DESENHADA',
+            'facas' => [[
+                'principal' => true,
+                'formato' => 'DESENHADA',
+                'medida' => $fx['medida'],
+                'faca_nova' => false,
+            ]],
         ];
     }
 

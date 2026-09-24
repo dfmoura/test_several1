@@ -7,6 +7,8 @@ use App\Models\OrcamentoItem;
 use App\Models\PedidoItem;
 use App\Models\Produto;
 use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
+use App\Support\FacasComposicao;
+use App\Support\SaidaEtiqueta;
 use App\Support\TipoOperacaoSaida;
 use Illuminate\Validation\ValidationException;
 
@@ -75,6 +77,7 @@ class OrcamentoProntidaoProposta
         }
 
         $jobs = self::jobs($orcamento);
+        $multi = count($jobs) > 1;
         $tipos = [];
 
         foreach ($jobs as $job) {
@@ -103,6 +106,8 @@ class OrcamentoProntidaoProposta
                         : 'Calcule o orçamento com ao menos uma quantidade e um valor maiores que zero.',
                 ];
             }
+
+            self::aplicarEtiqueta($jobInput, $ordem, $multi, $pendencias, $bloqueios);
         }
 
         $tiposUnicos = array_values(array_unique(array_filter(
@@ -245,6 +250,115 @@ class OrcamentoProntidaoProposta
         }
 
         return 0.0;
+    }
+
+    /**
+     * Perfil industrialização (etiqueta): faca declarada + spec + saída da bobina.
+     * Serviço e revenda não entram. Cálculo continua livre — só o envio trava.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  list<string>  $pendencias
+     * @param  array<string, list<string>>  $bloqueios
+     */
+    private static function aplicarEtiqueta(
+        array $input,
+        int $ordem,
+        bool $multi,
+        array &$pendencias,
+        array &$bloqueios,
+    ): void {
+        $tipo = TipoOperacaoSaida::fromInput($input['tipo_operacao'] ?? $input['necessidade'] ?? null);
+        if ($tipo !== TipoOperacaoSaida::INDUSTRIALIZACAO) {
+            return;
+        }
+        if (PedidoItem::isRevenda($input['necessidade'] ?? null)) {
+            return;
+        }
+
+        $faltando = [];
+        if (self::vazio($input['medida'] ?? null)) {
+            $faltando[] = 'medida';
+        }
+        if (! self::numeroPositivo($input['largura_cm'] ?? null)) {
+            $faltando[] = 'largura';
+        }
+        if (! self::numeroPositivo($input['puxada_cm'] ?? null)) {
+            $faltando[] = 'puxada';
+        }
+        if (! self::coresInformadas($input['cores'] ?? null)) {
+            $faltando[] = 'cores';
+        }
+        if (self::vazio($input['papel'] ?? null)) {
+            $faltando[] = 'papel';
+        }
+        if (self::vazio($input['acabamento'] ?? null)) {
+            $faltando[] = 'acabamento';
+        }
+        if ((int) ($input['modelos'] ?? 0) < 1) {
+            $faltando[] = 'modelos';
+        }
+        if ((int) ($input['colunas'] ?? 0) < 1) {
+            $faltando[] = 'colunas';
+        }
+        if ((int) ($input['etiq_por_rolo'] ?? 0) < 1) {
+            $faltando[] = 'etiquetas por rolo';
+        }
+        if (self::vazio($input['tubete'] ?? null)) {
+            $faltando[] = 'tubete';
+        }
+        if (self::vazio($input['maquina'] ?? null)) {
+            $faltando[] = 'máquina';
+        }
+        if ($faltando !== []) {
+            $rotulo = $multi ? 'Especificação posição '.$ordem : 'Especificação da etiqueta';
+            $pendencias[] = $rotulo;
+            $bloqueios[self::chaveJob($ordem, 'especificacao', $multi)] = [
+                'Falta na etiqueta: '.implode(', ', $faltando).'. Edite e calcule de novo.',
+            ];
+        }
+
+        if (! FacasComposicao::temFacaDeclarada($input)) {
+            $rotulo = $multi ? 'Faca posição '.$ordem : 'Faca';
+            $pendencias[] = $rotulo;
+            $bloqueios[self::chaveJob($ordem, 'facas', $multi)] = [
+                'Informe a faca desta posição (mapa ou faca nova) antes de enviar a proposta.',
+            ];
+        }
+
+        $saida = strtoupper(trim((string) ($input['saida_etiqueta'] ?? '')));
+        if (! in_array($saida, SaidaEtiqueta::CODIGOS, true)) {
+            $rotulo = $multi ? 'Saída posição '.$ordem : 'Saída da etiqueta';
+            $pendencias[] = $rotulo;
+            $bloqueios[self::chaveJob($ordem, 'saida_etiqueta', $multi)] = [
+                'Informe o sentido de saída da etiqueta na bobina (esquerda, direita, deitada ou de pé).',
+            ];
+        }
+    }
+
+    private static function chaveJob(int $ordem, string $campo, bool $multi): string
+    {
+        return $multi ? 'itens.'.$ordem.'.'.$campo : $campo;
+    }
+
+    private static function numeroPositivo(mixed $value): bool
+    {
+        if ($value === null || $value === '') {
+            return false;
+        }
+
+        return is_numeric($value) && (float) $value > 0;
+    }
+
+    private static function coresInformadas(mixed $cores): bool
+    {
+        if ($cores === null || $cores === '') {
+            return false;
+        }
+        if (is_numeric($cores)) {
+            return (float) $cores >= 1;
+        }
+
+        return trim((string) $cores) !== '';
     }
 
     /**

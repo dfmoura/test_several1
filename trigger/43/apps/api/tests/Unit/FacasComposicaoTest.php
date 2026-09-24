@@ -137,4 +137,25 @@ class FacasComposicaoTest extends TestCase
         $this->assertSame('0.9', $data['faca_tamanho_raw']);
         $this->assertSame('altura', $data['faca_tamanho_tipo']);
     }
+
+    public function test_tem_faca_declarada_mapa_ou_nova_nao_geometria(): void
+    {
+        $this->assertFalse(FacasComposicao::temFacaDeclarada([
+            'medida' => '8X12',
+            'puxada_cm' => 12,
+            'facas' => [],
+        ]));
+        $this->assertTrue(FacasComposicao::temFacaDeclarada([
+            'facas' => [['principal' => true, 'formato' => 'RETA', 'medida' => '8X12']],
+        ]));
+        $this->assertTrue(FacasComposicao::temFacaDeclarada([
+            'facas' => [['principal' => true, 'faca_nova' => true, 'formato' => 'OVAL']],
+        ]));
+        $this->assertTrue(FacasComposicao::temFacaDeclarada([
+            'facas' => [['principal' => true, 'mapa_faca_id' => 12]],
+        ]));
+        $this->assertTrue(FacasComposicao::temFacaDeclarada([
+            'formato_faca' => 'DESENHADA',
+        ]));
+    }
 }

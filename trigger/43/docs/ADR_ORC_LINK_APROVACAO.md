@@ -58,6 +58,9 @@ Gate **duro** em `POST …/enviar-aprovacao` (depois do cadastro do cliente, ant
 | Toda posição persistida com cálculo | Completude fiscal / NF-e |
 | Tipo homogêneo (não cessão; sem PA+SVC mistos) | Recalcular no envio (proibido) |
 | Revenda: SKU `REV` ativo na mesma EMP | “Preço caro” — motor R1–R20 intacto |
+| **Etiqueta:** faca declarada (mapa ou nova) | Geometria sozinha (medida/largura/puxada) |
+| **Etiqueta:** spec mínima (papel, cores, tubete…) | Valor/prazo da faca nova; nomes das artes |
+| **Etiqueta:** saída da bobina (`ESQUERDA`/`DIREITA`/`DEITADA`/`PE`) | Faca em serviço ou revenda |
 
 Rascunho e cálculo continuam livres. Correção = editar + recalcular + salvar. Sem auto-preencher no clique.
 

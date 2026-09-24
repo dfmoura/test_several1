@@ -194,6 +194,14 @@ class ProducaoPedOpEstoqueTest extends TestCase
             'tolerancia_qtd_pct' => 20,
             'condicao_pagamento' => '28 DDL',
             'forma_pagamento' => 'PIX',
+            'saida_etiqueta' => 'PE',
+            'formato_faca' => 'DESENHADA',
+            'facas' => [[
+                'principal' => true,
+                'formato' => 'DESENHADA',
+                'medida' => $fx['medida'],
+                'faca_nova' => false,
+            ]],
         ];
     }
 

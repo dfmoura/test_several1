@@ -134,6 +134,14 @@ class OrcamentoAprovacaoTest extends TestCase
             'tolerancia_qtd_pct' => 20,
             'condicao_pagamento' => '28 DDL',
             'forma_pagamento' => 'PIX',
+            'saida_etiqueta' => 'PE',
+            'formato_faca' => 'DESENHADA',
+            'facas' => [[
+                'principal' => true,
+                'formato' => 'DESENHADA',
+                'medida' => $fx['medida'],
+                'faca_nova' => false,
+            ]],
         ];
     }
 
@@ -810,6 +818,23 @@ class OrcamentoAprovacaoTest extends TestCase
         $fail->assertJsonValidationErrors(['produto_id']);
     }
 
+    public function test_enviar_bloqueia_etiqueta_sem_faca_nem_saida(): void
+    {
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $this->apagarFacaESaida($id);
+
+        $dest = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/destinatarios-aprovacao");
+        $dest->assertOk();
+        $this->assertFalse($dest->json('data.orcamento_pronto.apto'));
+        $this->assertContains('Faca', $dest->json('data.orcamento_pronto.pendencias'));
+        $this->assertContains('Saída da etiqueta', $dest->json('data.orcamento_pronto.pendencias'));
+
+        $fail = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao");
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['facas', 'saida_etiqueta']);
+    }
+
     public function test_lembrete_nao_reaplica_prontidao_do_documento(): void
     {
         $id = $this->criarOrcamento();
@@ -825,6 +850,32 @@ class OrcamentoAprovacaoTest extends TestCase
         $lembrete->assertOk();
         $this->assertTrue($lembrete->json('data.reutilizado'));
         $this->assertSame($token, $lembrete->json('data.token'));
+    }
+
+    private function apagarFacaESaida(int $id): void
+    {
+        $orc = Orcamento::query()->with('itens')->findOrFail($id);
+        $input = is_array($orc->input_snapshot) ? $orc->input_snapshot : [];
+        $orc->input_snapshot = $this->semFacaNemSaida($input);
+        $orc->save();
+        foreach ($orc->itens as $item) {
+            $job = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+            $item->input_snapshot = $this->semFacaNemSaida($job);
+            $item->save();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function semFacaNemSaida(array $input): array
+    {
+        $input['facas'] = [];
+        $input['faca_nova'] = false;
+        unset($input['formato_faca'], $input['saida_etiqueta']);
+
+        return $input;
     }
 
     private function apagarCondicoesComerciais(int $id): void
