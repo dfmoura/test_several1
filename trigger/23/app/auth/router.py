@@ -21,6 +21,7 @@ from app.auth.service import (
     limites_atual,
     listar_sessoes_ativas,
     listar_usuarios,
+    mapa_presenca_sessoes,
     obter_usuario,
     precisa_bootstrap,
 )
@@ -64,6 +65,13 @@ class UsuarioOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UsuarioListaOut(UsuarioOut):
+    """Usuário na listagem do Setup, com presença de sessão (sem o token)."""
+
+    sessao_ativa: bool
+    ultimo_acesso: datetime | None = None
+
+
 class MeOut(UsuarioOut):
     permissoes: dict
 
@@ -99,6 +107,14 @@ def _permissoes(user: Usuario) -> dict:
 
 def _usuario_out(user: Usuario) -> UsuarioOut:
     return UsuarioOut.model_validate(user)
+
+
+def _usuario_lista_out(user: Usuario, ultimo_acesso: datetime | None) -> UsuarioListaOut:
+    return UsuarioListaOut(
+        **_usuario_out(user).model_dump(),
+        sessao_ativa=ultimo_acesso is not None,
+        ultimo_acesso=ultimo_acesso,
+    )
 
 
 def _me_out(user: Usuario) -> MeOut:
@@ -221,12 +237,13 @@ def limites(
     return LimitesOut(limites=limites_atual(db))
 
 
-@router.get("/usuarios", response_model=list[UsuarioOut])
+@router.get("/usuarios", response_model=list[UsuarioListaOut])
 def get_usuarios(
     db: Session = Depends(get_db),
     _: Usuario = Depends(require_admin),
-) -> list[UsuarioOut]:
-    return [_usuario_out(u) for u in listar_usuarios(db)]
+) -> list[UsuarioListaOut]:
+    presenca = mapa_presenca_sessoes(db)
+    return [_usuario_lista_out(u, presenca.get(u.id)) for u in listar_usuarios(db)]
 
 
 @router.post("/usuarios", response_model=UsuarioOut, status_code=201)

@@ -188,6 +188,25 @@ def purgar_sessoes_expiradas(db: Session, usuario_id: int | None = None) -> int:
     return len(rows)
 
 
+def mapa_presenca_sessoes(db: Session) -> dict[int, datetime]:
+    """``usuario_id`` → última atividade de uma sessão ainda válida.
+
+    Leitura pura: não remove sessões vencidas. A limpeza continua no login,
+    no uso do cookie e em liberar sessão. Válida = mesma regra de
+    ``_sessao_invalida`` (prazo absoluto e idle).
+    """
+    agora = _utcnow()
+    presenca: dict[int, datetime] = {}
+    for sessao in db.scalars(select(Sessao)).all():
+        if _sessao_invalida(sessao, agora):
+            continue
+        marca = _atividade_em(sessao)
+        anterior = presenca.get(sessao.usuario_id)
+        if anterior is None or marca > anterior:
+            presenca[sessao.usuario_id] = marca
+    return presenca
+
+
 def listar_sessoes_ativas(db: Session, usuario_id: int) -> list[Sessao]:
     """Sessões válidas do usuário (após limpeza de vencidas / idle)."""
     purgar_sessoes_expiradas(db, usuario_id)

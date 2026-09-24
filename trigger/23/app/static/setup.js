@@ -769,10 +769,22 @@ function renderLimitesUsuarios(limites) {
       : " · sem vagas");
 }
 
+function badgeSessaoUsuario(u) {
+  const eu = Number(window.OSB?.usuario?.id) === Number(u.id);
+  if (u.sessao_ativa) {
+    const quando = u.ultimo_acesso
+      ? `Última atividade: ${fmtAgData(u.ultimo_acesso)}`
+      : "Sessão ativa";
+    const voce = eu ? " · você" : "";
+    return `<span class="badge ok" title="${esc(quando)}">Em sessão${voce}</span>`;
+  }
+  return '<span class="badge">Sem sessão</span>';
+}
+
 async function carregarSetupUsuarios() {
   const tb = $("#tabela-setup-usuarios");
   if (!tb) return;
-  tb.innerHTML = '<tr><td colspan="4">Carregando…</td></tr>';
+  tb.innerHTML = '<tr><td colspan="5">Carregando…</td></tr>';
   try {
     const [rows, lim] = await Promise.all([
       api("/api/auth/usuarios"),
@@ -780,23 +792,29 @@ async function carregarSetupUsuarios() {
     ]);
     renderLimitesUsuarios(lim.limites);
     if (!rows.length) {
-      tb.innerHTML = '<tr><td colspan="4">Nenhum usuário cadastrado.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="5">Nenhum usuário cadastrado.</td></tr>';
       return;
     }
     const papelLabel = { admin: "Administrador", consulta: "Consulta" };
-    tb.innerHTML = rows.map((u) => `
+    tb.innerHTML = rows.map((u) => {
+      const liberar = u.sessao_ativa
+        ? { disabled: "", title: "Encerra sessão ativa para permitir novo login" }
+        : { disabled: "disabled", title: "Nenhuma sessão ativa" };
+      return `
       <tr data-uid="${u.id}">
         <td><code>${esc(u.username)}</code></td>
         <td>${esc(papelLabel[u.papel] || u.papel)}</td>
         <td>${u.ativo ? '<span class="badge ok">Ativo</span>' : '<span class="badge">Inativo</span>'}</td>
+        <td>${badgeSessaoUsuario(u)}</td>
         <td class="setup-uasg-acoes">
           <button type="button" class="btn btn-sm" data-acao="toggle" data-uid="${u.id}" data-ativo="${u.ativo ? "1" : "0"}">${u.ativo ? "Desativar" : "Ativar"}</button>
-          <button type="button" class="btn btn-sm" data-acao="liberar" data-uid="${u.id}" data-user="${esc(u.username)}" title="Encerra sessão ativa para permitir novo login">Liberar sessão</button>
+          <button type="button" class="btn btn-sm" data-acao="liberar" data-uid="${u.id}" data-user="${esc(u.username)}" title="${esc(liberar.title)}" ${liberar.disabled}>Liberar sessão</button>
           <button type="button" class="btn btn-sm" data-acao="senha" data-uid="${u.id}" data-user="${esc(u.username)}">Resetar senha</button>
         </td>
-      </tr>`).join("");
+      </tr>`;
+    }).join("");
   } catch (err) {
-    tb.innerHTML = `<tr><td colspan="4" class="err">${esc(err.message)}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5" class="err">${esc(err.message)}</td></tr>`;
   }
 }
 

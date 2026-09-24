@@ -332,6 +332,79 @@ def test_login_substitui_sessao_anterior_com_senha(client, db):
         _limpar_usuario(db, user)
 
 
+def test_lista_usuarios_indica_sessao_sem_apagar_idle(client, db, monkeypatch):
+    """Presença na listagem: válida = em sessão; idle = fora, sem apagar a linha."""
+    from datetime import timedelta
+
+    import app.auth.service as auth_svc
+    from app.config import AUTH_SESSION_COOKIE
+    from app.database import Sessao
+
+    monkeypatch.setattr(auth_svc, "AUTH_SESSION_IDLE_MINUTOS", 30)
+
+    admin = None
+    ativo = _uid("on")
+    parado = _uid("off")
+    try:
+        criar_usuario(db, username=ativo, senha="senha123", papel="consulta")
+        criar_usuario(db, username=parado, senha="senha123", papel="consulta")
+    except AuthError as exc:
+        pytest.skip(exc.message)
+
+    try:
+        admin = _login_como_novo_admin(client, db)
+
+        with TestClient(app) as c_on:
+            assert (
+                c_on.post(
+                    "/api/auth/login",
+                    json={"username": ativo, "password": "senha123"},
+                ).status_code
+                == 200
+            )
+
+        with TestClient(app) as c_off:
+            r_off = c_off.post(
+                "/api/auth/login",
+                json={"username": parado, "password": "senha123"},
+            )
+            assert r_off.status_code == 200, r_off.text
+            token_off = r_off.cookies.get(AUTH_SESSION_COOKIE)
+        assert token_off
+
+        sessao = db.scalar(select(Sessao).where(Sessao.token == token_off))
+        assert sessao is not None
+        sessao.ultimo_acesso = auth_svc._utcnow() - timedelta(minutes=31)
+        db.commit()
+
+        lista = client.get("/api/auth/usuarios")
+        assert lista.status_code == 200, lista.text
+        por_nome = {u["username"]: u for u in lista.json()}
+        assert por_nome[admin]["sessao_ativa"] is True
+        assert por_nome[admin]["ultimo_acesso"]
+        assert por_nome[ativo]["sessao_ativa"] is True
+        assert por_nome[ativo]["ultimo_acesso"]
+        assert por_nome[parado]["sessao_ativa"] is False
+        assert por_nome[parado]["ultimo_acesso"] is None
+
+        db.expire_all()
+        assert db.scalar(select(Sessao).where(Sessao.token == token_off)) is not None
+
+        lib = client.post(f"/api/auth/usuarios/{por_nome[ativo]['id']}/liberar-sessao")
+        assert lib.status_code == 200, lib.text
+        lista2 = client.get("/api/auth/usuarios")
+        assert lista2.status_code == 200, lista2.text
+        por_nome2 = {u["username"]: u for u in lista2.json()}
+        assert por_nome2[ativo]["sessao_ativa"] is False
+        assert por_nome2[ativo]["ultimo_acesso"] is None
+        assert por_nome2[admin]["sessao_ativa"] is True
+    finally:
+        _limpar_usuario(db, ativo)
+        _limpar_usuario(db, parado)
+        if admin:
+            _limpar_usuario(db, admin)
+
+
 def test_admin_libera_sessao_orfao(client, db):
     user = _uid("orf")
     admin = None
