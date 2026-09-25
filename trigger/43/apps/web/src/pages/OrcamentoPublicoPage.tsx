@@ -11,6 +11,13 @@ import {
 } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCurrency } from '../lib/format';
+import {
+  defaultFaixasItens,
+  faixaDoItem,
+  isPropostaMultiItem,
+  rotuloPropostaItem,
+  totalDocumentoSelecionado,
+} from '../lib/orcamentoPropostaItens';
 
 type Decidido = {
   status: 'APROVADO' | 'REPROVADO';
@@ -160,6 +167,7 @@ export function OrcamentoPublicoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [indisponivel, setIndisponivel] = useState(false);
   const [faixaIndex, setFaixaIndex] = useState(0);
+  const [faixasItens, setFaixasItens] = useState<Record<number, number>>({});
   const [nome, setNome] = useState('');
   const [motivo, setMotivo] = useState('');
   const [pending, setPending] = useState(false);
@@ -191,6 +199,11 @@ export function OrcamentoPublicoPage() {
               adiantamento: data.adiantamento,
             });
             setAdiantamentoLive(data.adiantamento);
+          } else if (isPropostaMultiItem(data)) {
+            const mapa = defaultFaixasItens(data);
+            setFaixasItens(mapa);
+            const primeiro = data.itens?.[0];
+            setFaixaIndex(primeiro ? (mapa[primeiro.ordem] ?? 0) : 0);
           } else if (data.faixas?.length) {
             setFaixaIndex(data.faixas[0]?.index ?? 0);
           }
@@ -254,7 +267,7 @@ export function OrcamentoPublicoPage() {
   }, []);
 
   const handleAprovar = async () => {
-    if (!token || bloquearAcoes) return;
+    if (!token || !proposta || bloquearAcoes) return;
     if (nome.trim().length < 2) {
       setErro('Informe seu nome para confirmar o aceite.');
       return;
@@ -271,7 +284,17 @@ export function OrcamentoPublicoPage() {
         };
       }>(`/publico/orcamentos/${token}/decidir`, {
         acao: 'APROVAR',
-        faixa_index: faixaIndex,
+        faixa_index: isPropostaMultiItem(proposta)
+          ? (faixasItens[proposta.itens?.[0]?.ordem ?? 1] ?? faixaIndex)
+          : faixaIndex,
+        ...(isPropostaMultiItem(proposta)
+          ? {
+              faixas_itens: Object.entries(faixasItens).map(([ordem, idx]) => ({
+                ordem: Number(ordem),
+                faixa_index: idx,
+              })),
+            }
+          : {}),
         nome_cliente: nome.trim(),
         motivo: motivo.trim() || null,
       });
@@ -443,11 +466,40 @@ export function OrcamentoPublicoPage() {
       somenteLeitura={bloquearAcoes}
       faixaIndex={faixaIndex}
       onFaixaChange={setFaixaIndex}
+      faixasItens={faixasItens}
+      onFaixaItemChange={(ordem, index) =>
+        setFaixasItens((prev) => ({ ...prev, [ordem]: index }))
+      }
       erro={erro}
       acoes={
         !bloquearAcoes ? (
           <section className="orc-pub-card orc-pub-actions">
             <h2>Sua decisão</h2>
+            {isPropostaMultiItem(proposta) ? (
+              <div className="orc-pub-aceite-resumo">
+                <h3>Resumo desta aprovação</h3>
+                <ul>
+                  {(proposta.itens ?? []).map((it) => {
+                    const idx = faixasItens[it.ordem] ?? it.faixas?.[0]?.index ?? 0;
+                    const fx = faixaDoItem(it, idx);
+                    return (
+                      <li key={it.ordem}>
+                        <span>{rotuloPropostaItem(it.ordem, it.rotulo)}</span>
+                        <span>
+                          {fx
+                            ? `${fx.quantidade.toLocaleString('pt-BR')} un. · ${formatCurrency(fx.valor_total)}`
+                            : '—'}
+                        </span>
+                      </li>
+                    );
+                  })}
+                  <li className="orc-pub-aceite-resumo-total">
+                    <span>Total do orçamento</span>
+                    <span>{formatCurrency(totalDocumentoSelecionado(proposta, faixasItens))}</span>
+                  </li>
+                </ul>
+              </div>
+            ) : null}
             <div className="form-group">
               <label htmlFor="orc-pub-nome">Seu nome (obrigatório para aprovar)</label>
               <input

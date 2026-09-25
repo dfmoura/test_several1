@@ -798,7 +798,18 @@ export function OrcamentoDetailPage() {
                 <strong>
                   {formatDateTime(orc.decidido_em)}
                   {orc.aceite_nome_cliente ? ` · ${orc.aceite_nome_cliente}` : ''}
-                  {orc.aceite_faixa_index != null ? ` · faixa #${orc.aceite_faixa_index + 1}` : ''}
+                  {orc.itens &&
+                  orc.itens.length > 1 &&
+                  orc.itens.some((it) => it.aceite_faixa_index != null)
+                    ? ` · ${orc.itens
+                        .map(
+                          (it) =>
+                            `item ${it.ordem} faixa #${(it.aceite_faixa_index ?? 0) + 1}`,
+                        )
+                        .join(' · ')}`
+                    : orc.aceite_faixa_index != null
+                      ? ` · faixa #${orc.aceite_faixa_index + 1}`
+                      : ''}
                 </strong>
               </div>
             ) : null}

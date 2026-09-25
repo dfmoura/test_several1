@@ -68,7 +68,18 @@ ORC:
   adiantamento / %     = sobre o total do documento (política vigente)
 ```
 
-Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inteiro. Exibe posições 1..N + total geral. O cliente **escolhe a faixa** da escada (N=1 e N>1). N>1: o índice vale no documento; item sem aquela faixa cai na 1ª (`PedidoService::faixaDoJob`).
+Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inteiro. Exibe posições 1..N + total geral.
+
+**Faixa da escada (canônico):**
+
+| Caso | Escolha | Persistência |
+|------|---------|--------------|
+| **N=1** / legado | Um `faixa_index` no documento — contrato histórico | `orcamentos.aceite_faixa_index` + o item único espelha |
+| **N>1** | **Uma faixa por item** (escadas independentes) | `orcamento_itens.aceite_faixa_index`; cabeçalho = 1º item (compat) |
+
+Total do documento no aceite = **Σ faixas escolhidas** (hero ao vivo no link; adiantamento/PIX na mesma base). Link antigo que manda só `faixa_index` em N>1: fallback — aplica o índice em quem tiver aquela faixa; senão a 1ª (`OrcamentoAceiteFaixas`). Sem recalcular o motor. Sem N links.
+
+Ficha-cliente A4: opções por posição, **sem** rádio — a escolha é no `/p/:token`.
 
 ### Downstream
 
@@ -88,7 +99,7 @@ Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inte
 4. Ações: adicionar · duplicar · remover (mín. 1) · reordenar.
 5. Resultado (3 abas) — hierarquia documento × item:
    - **N=1:** zero chrome multi — Proposta / Composição / Guia iguais ao fluxo clássico.
-   - **N>1:** hero do **total do orçamento** (Σ 1ª faixa) + resumo por item; na Proposta, acordeão por item (faixas/artes/facas); em Composição e Guia, seletor de item (sem repetir frete/validade/condições).
+   - **N>1:** hero do **total do orçamento** (Σ faixas **selecionadas** no link; Σ 1ª faixa na ficha/prévia) + resumo por item; na Proposta, acordeão por item com **seletor de faixa em cada posição**; em Composição e Guia, seletor de item (sem repetir frete/validade/condições).
 6. Lista de ORCs / códigos: **sem** explosão visual — um `ORC-`; detalhe pós-salvamento e **ficha operacional** (`/orcamentos/:id/ficha`) mostram N itens (guias / seções por item). N=1: layout clássico sem chrome multi.
 
 ### Relação com multi-faca
@@ -137,6 +148,13 @@ Proposta pública / link: **uma** decisão APROVAR|RECUSAR para o documento inte
 - Dual-write em `OrcamentoService::create` / `update` · `itens` no `show` (não na listagem)
 - Testes: `OrcamentoItensTest` · asserts em `OrcamentoTest`
 
-**Futuro (fases 2–3 — não criar além do necessário):**
-- UI multi-posição · proposta Σ · `PedidoService` · `pedido_itens` · FAT por item
+**Aceite por item (emenda 2026-09-25):**
+- `orcamento_itens.aceite_faixa_index` · `App\Support\OrcamentoAceiteFaixas`
+- API: `faixas_itens[]` no decidir; N=1 continua `faixa_index`
+- UI: seletor por posição no `/p/:token` · total ao vivo · resumo no aceite
+- Adiantamento: Σ escolhas quando N>1
+- Testes: `OrcamentoAceiteFaixasTest` · asserts em `OrcamentoAprovacaoTest`
+
+**Futuro (fase 3 — não criar além do necessário):**
+- `PedidoService` · `pedido_itens` · FAT por item
 - BL: `BL-106` em `docs/BACKLOG.md`

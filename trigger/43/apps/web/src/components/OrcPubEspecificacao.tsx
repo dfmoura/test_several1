@@ -6,8 +6,11 @@ import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import {
+  faixaDoItem,
   isPropostaMultiItem,
   rotuloPropostaItem,
+  totalDocumentoSelecionado,
+  totalFaixaItem,
   totalPrimeiraFaixaItem,
   type OrcPropostaDescricao,
   type OrcPropostaFaixa,
@@ -222,6 +225,8 @@ type FaixasProps = {
   title?: string | null;
   hint?: string | null;
   asCard?: boolean;
+  /** Isola o rádio quando há N tabelas na mesma página. */
+  radioName?: string;
 };
 
 function etiqPorRoloDaFaixa(
@@ -245,6 +250,7 @@ function OrcPubFaixasTabela({
   somenteExibicao,
   faixaIndex,
   onFaixaChange,
+  radioName = 'faixa',
 }: {
   faixas: OrcPropostaFaixa[];
   tipoOperacao?: string | null;
@@ -254,6 +260,7 @@ function OrcPubFaixasTabela({
   somenteExibicao: boolean;
   faixaIndex: number;
   onFaixaChange?: (index: number) => void;
+  radioName?: string;
 }) {
   const isServico = tipoOperacao === 'SERVICO';
   const mostrarFrete = Boolean(frete && modoComFrete(frete.modo));
@@ -294,7 +301,7 @@ function OrcPubFaixasTabela({
                     <td className="orc-pub-faixas-sel">
                       <input
                         type="radio"
-                        name="faixa"
+                        name={radioName}
                         checked={selected}
                         onChange={() => onFaixaChange?.(fx.index)}
                         onClick={(e) => e.stopPropagation()}
@@ -371,18 +378,18 @@ function OrcPubFaixasTabela({
                 onClick={selecionavel ? () => onFaixaChange?.(fx.index) : undefined}
               >
                 {selecionavel ? (
-                  <td className="orc-pub-faixas-sel">
-                    <input
-                      type="radio"
-                      name="faixa"
-                      checked={selected}
-                      onChange={() => onFaixaChange?.(fx.index)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </td>
-                ) : null}
-                <td className="orc-pub-num">
-                  {etiqRolo != null ? etiqRolo.toLocaleString('pt-BR') : '—'}
+                    <td className="orc-pub-faixas-sel">
+                      <input
+                        type="radio"
+                        name={radioName}
+                        checked={selected}
+                        onChange={() => onFaixaChange?.(fx.index)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                  ) : null}
+                  <td className="orc-pub-num">
+                    {etiqRolo != null ? etiqRolo.toLocaleString('pt-BR') : '—'}
                 </td>
                 <td className="orc-pub-num">
                   {rolos > 0 ? Math.round(rolos).toLocaleString('pt-BR') : '—'}
@@ -432,6 +439,7 @@ export function OrcPubFaixasBloco({
   title = 'Faixas de quantidade',
   hint = null,
   asCard = true,
+  radioName = 'faixa',
 }: FaixasProps) {
   const defaultHint = somenteExibicao
     ? null
@@ -449,6 +457,7 @@ export function OrcPubFaixasBloco({
       somenteExibicao={somenteExibicao}
       faixaIndex={faixaIndex}
       onFaixaChange={onFaixaChange}
+      radioName={radioName}
     />
   );
 
@@ -481,13 +490,16 @@ export function OrcPubFaixasBloco({
   );
 }
 
-function resumoLinhaItem(item: OrcPropostaItem): string {
+function resumoLinhaItem(item: OrcPropostaItem, faixaIndex?: number): string {
   const d = item.descricao;
-  const fx0 = item.faixas?.[0];
+  const fx =
+    faixaIndex != null && faixaIndex >= 0
+      ? faixaDoItem(item, faixaIndex)
+      : item.faixas?.[0];
   const bits = [
     d?.medida || null,
     d?.papel || null,
-    fx0 ? `${fx0.quantidade.toLocaleString('pt-BR')} un.` : null,
+    fx ? `${fx.quantidade.toLocaleString('pt-BR')} un.` : null,
   ].filter(Boolean);
   return bits.join(' · ');
 }
@@ -496,14 +508,20 @@ function OrcPubItemDetalhe({
   item,
   tipoOperacao,
   faixaHighlight = -1,
+  selecionavel = false,
+  onFaixaChange,
 }: {
   item: OrcPropostaItem;
   tipoOperacao?: string | null;
   faixaHighlight?: number;
+  selecionavel?: boolean;
+  onFaixaChange?: (index: number) => void;
 }) {
   const faixas = item.faixas ?? [];
-  const total = totalPrimeiraFaixaItem(item);
-  const resumo = resumoLinhaItem(item);
+  const idx =
+    faixaHighlight >= 0 ? faixaHighlight : (item.faixas?.[0]?.index ?? 0);
+  const total = selecionavel ? totalFaixaItem(item, idx) : totalPrimeiraFaixaItem(item);
+  const resumo = resumoLinhaItem(item, selecionavel || faixaHighlight >= 0 ? idx : undefined);
 
   return (
     <article className="orc-pub-item-detalhe">
@@ -519,7 +537,7 @@ function OrcPubItemDetalhe({
           tipoOperacao={tipoOperacao}
           desc={item.descricao}
           faixas={faixas}
-          faixaHighlight={faixaHighlight}
+          faixaHighlight={idx}
           title={null}
         />
         {faixas.length > 0 ? (
@@ -528,11 +546,13 @@ function OrcPubItemDetalhe({
             tipoOperacao={tipoOperacao}
             unidadeServico={item.descricao?.unidade}
             descricao={item.descricao}
-            somenteLeitura
-            somenteExibicao
-            faixaIndex={faixaHighlight}
-            title="Faixas"
+            somenteLeitura={!selecionavel}
+            somenteExibicao={!selecionavel}
+            faixaIndex={idx}
+            onFaixaChange={selecionavel ? onFaixaChange : undefined}
+            title="Quantidade"
             asCard={false}
+            radioName={`faixa-item-${item.ordem}`}
           />
         ) : null}
       </div>
@@ -543,17 +563,28 @@ function OrcPubItemDetalhe({
 type MultiProps = {
   proposta: OrcamentoPropostaPublica;
   faixaHighlight?: number;
+  faixasItens?: Record<number, number>;
+  onFaixaItemChange?: (ordem: number, index: number) => void;
+  somenteLeitura?: boolean;
 };
 
 /**
  * N>1: um card só — total + itens sempre expandidos.
  * Frete/condições ficam no documento (não se repetem).
  */
-export function OrcPubItensAcordeao({ proposta, faixaHighlight = -1 }: MultiProps) {
+export function OrcPubItensAcordeao({
+  proposta,
+  faixaHighlight = -1,
+  faixasItens,
+  onFaixaItemChange,
+  somenteLeitura = true,
+}: MultiProps) {
   if (!isPropostaMultiItem(proposta)) return null;
   const itens = proposta.itens ?? [];
-  const totalDoc =
-    proposta.valor_total_documento_primeira_faixa != null
+  const selecionavel = !somenteLeitura && Boolean(onFaixaItemChange);
+  const totalDoc = selecionavel && faixasItens
+    ? totalDocumentoSelecionado(proposta, faixasItens)
+    : proposta.valor_total_documento_primeira_faixa != null
       ? Number(proposta.valor_total_documento_primeira_faixa)
       : itens.reduce((acc, it) => acc + totalPrimeiraFaixaItem(it), 0);
 
@@ -563,7 +594,9 @@ export function OrcPubItensAcordeao({ proposta, faixaHighlight = -1 }: MultiProp
         <div>
           <h2>Itens · {itens.length}</h2>
           <p className="orc-pub-hint orc-pub-hint--tight">
-            Totais na 1ª quantidade de cada posição
+            {selecionavel
+              ? 'Selecione a quantidade de cada posição. A aprovação confirma todas.'
+              : 'Opções de quantidade por posição. A escolha é no link de aprovação.'}
           </p>
         </div>
         <p className="orc-pub-itens-doc-total">{formatCurrency(totalDoc)}</p>
@@ -575,14 +608,24 @@ export function OrcPubItensAcordeao({ proposta, faixaHighlight = -1 }: MultiProp
         </p>
       ) : null}
       <div className="orc-pub-itens-acordeao">
-        {itens.map((it) => (
-          <OrcPubItemDetalhe
-            key={it.ordem}
-            item={it}
-            tipoOperacao={proposta.tipo_operacao}
-            faixaHighlight={faixaHighlight}
-          />
-        ))}
+        {itens.map((it) => {
+          const idx =
+            faixasItens && it.ordem in faixasItens
+              ? faixasItens[it.ordem]
+              : faixaHighlight;
+          return (
+            <OrcPubItemDetalhe
+              key={it.ordem}
+              item={it}
+              tipoOperacao={proposta.tipo_operacao}
+              faixaHighlight={idx}
+              selecionavel={selecionavel}
+              onFaixaChange={
+                selecionavel ? (index) => onFaixaItemChange?.(it.ordem, index) : undefined
+              }
+            />
+          );
+        })}
       </div>
     </section>
   );

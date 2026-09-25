@@ -13,7 +13,7 @@ use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Services\Banking\BankProviderResolver;
 use App\Services\Codigo\CodigoGenerator;
-use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
+use App\Support\OrcamentoAceiteFaixas;
 use App\Support\PadraoDecimal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -281,7 +281,7 @@ class AdiantamentoService
             ];
         }
 
-        $base = $this->valorBaseFaixa($orcamento, $faixaIndex);
+        $base = OrcamentoAceiteFaixas::valorBaseAdiantamento($orcamento, $faixaIndex);
         $pct = $this->percentual($empresa);
         $valor = PadraoDecimal::roundHalfUp(
             bcmul($base, bcdiv($pct, '100', 8), 8),
@@ -322,7 +322,8 @@ class AdiantamentoService
 
         $vencimento = now()->addDays(3)->toDateString();
         $emissao = now()->toDateString();
-        $idempotency = 'ORC-ADI-'.$orcamento->id.'-v'.$orcamento->versao.'-f'.$faixaIndex;
+        $idempotency = 'ORC-ADI-'.$orcamento->id.'-v'.$orcamento->versao.'-f'
+            .OrcamentoAceiteFaixas::fingerprint($orcamento, $faixaIndex);
 
         $resultado = DB::transaction(function () use (
             $empresa,
@@ -486,30 +487,6 @@ class AdiantamentoService
             'pago' => $titulo->status === Titulo::STATUS_QUITADO
                 || $orcamento->financeiro_status === self::FIN_LIBERADO,
         ];
-    }
-
-    private function valorBaseFaixa(Orcamento $orcamento, int $faixaIndex): string
-    {
-        $faixas = $orcamento->result_snapshot['faixas'] ?? [];
-        if (! is_array($faixas) || ! array_key_exists($faixaIndex, $faixas) || ! is_array($faixas[$faixaIndex])) {
-            throw ValidationException::withMessages([
-                'faixa_index' => ['Faixa aprovada inválida para adiantamento.'],
-            ]);
-        }
-
-        $fx = $faixas[$faixaIndex];
-        $input = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
-        $result = is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [];
-        $facaNova = (bool) ($result['faca_nova'] ?? $input['faca_nova'] ?? false);
-        $valorFaca = $facaNova ? (float) ($result['valor_faca_nova'] ?? $input['valor_faca_nova'] ?? 0) : 0.0;
-        $valorArtes = (float) ($result['valor_artes']
-            ?? \App\Support\ModelosComposicao::somaValorArte($input['modelos_composicao'] ?? []));
-        $extras = $valorFaca + $valorArtes;
-        if ($extras > 0 && ($fx['valor_total_com_faca'] ?? null) === null) {
-            $fx['valor_total_com_faca'] = (float) ($fx['valor_total'] ?? 0) + $extras;
-        }
-
-        return OrcamentoFreteEstimadoService::totalPropostaFaixa($fx);
     }
 
     /**

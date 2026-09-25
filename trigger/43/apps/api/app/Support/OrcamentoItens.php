@@ -84,6 +84,7 @@ final class OrcamentoItens
                     'rotulo' => $job['rotulo'] ?? null,
                     'input_snapshot' => $job['input'],
                     'result_snapshot' => $job['result'],
+                    'aceite_faixa_index' => null,
                 ],
             );
         }
@@ -170,6 +171,7 @@ final class OrcamentoItens
             'rotulo' => null,
             'input_snapshot' => $orcamento->input_snapshot,
             'result_snapshot' => $orcamento->result_snapshot,
+            'aceite_faixa_index' => $orcamento->aceite_faixa_index,
             'legado' => true,
         ]];
     }
@@ -296,6 +298,7 @@ final class OrcamentoItens
             'rotulo' => $item->rotulo,
             'input_snapshot' => $item->input_snapshot,
             'result_snapshot' => $item->result_snapshot,
+            'aceite_faixa_index' => $item->aceite_faixa_index,
             'legado' => $legado,
         ];
     }

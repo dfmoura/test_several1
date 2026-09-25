@@ -11,6 +11,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Calendario\DiasUteisService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
+use App\Support\OrcamentoAceiteFaixas;
 use App\Support\PadraoDecimal;
 use App\Support\TipoOperacaoSaida;
 use Illuminate\Support\Facades\DB;
@@ -92,10 +93,11 @@ class PedidoService
         }
 
         $primeiro = $jobs[0];
-        $faixa = $this->faixaDoJob($primeiro['result'], $faixaIndex);
+        $faixaIndexPrimeiro = OrcamentoAceiteFaixas::indiceDoItem($orcamento, 1, $faixaIndex);
+        $faixa = $this->faixaDoJob($primeiro['result'], $faixaIndexPrimeiro);
         $input = $primeiro['input'];
 
-        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixa, $input, $jobs) {
+        return DB::transaction(function () use ($orcamento, $faixaIndex, $faixaIndexPrimeiro, $faixa, $input, $jobs) {
             $ano = (int) now()->year;
             $codigo = $this->codigos->nextCode((int) $orcamento->empresa_id, 'PED-'.$ano, 5);
 
@@ -106,7 +108,7 @@ class PedidoService
                 'parceiro_id' => $orcamento->parceiro_id,
                 'vendedor_parceiro_id' => $orcamento->vendedor_parceiro_id,
                 'status' => Pedido::STATUS_LIBERADO,
-                'faixa_index' => $faixaIndex,
+                'faixa_index' => $faixaIndexPrimeiro,
                 'tolerancia_qtd_pct' => $this->toleranciaDoPedido($orcamento, $jobs),
                 'prazo_entrega_dias' => $orcamento->prazo_entrega_dias,
                 'snapshot' => [
@@ -119,7 +121,9 @@ class PedidoService
             ]);
 
             foreach (array_values($jobs) as $i => $job) {
-                $this->criarItemDeJob($orcamento, $pedido, $job, $faixaIndex, $i + 1);
+                $ordem = $i + 1;
+                $idx = OrcamentoAceiteFaixas::indiceDoItem($orcamento, $ordem, $faixaIndex);
+                $this->criarItemDeJob($orcamento, $pedido, $job, $idx, $ordem);
             }
 
             return $pedido->fresh(['itens.produtoPa', 'parceiro', 'orcamento']);

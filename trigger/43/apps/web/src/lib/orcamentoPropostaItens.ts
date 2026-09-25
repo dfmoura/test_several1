@@ -20,8 +20,45 @@ export function rotuloPropostaItem(ordem: number, rotulo?: string | null): strin
 }
 
 export function totalPrimeiraFaixaItem(item: OrcPropostaItem): number {
-  const fx0 = item.faixas?.[0];
-  return fx0 ? Number(fx0.valor_total) || 0 : 0;
+  return totalFaixaItem(item, item.faixas?.[0]?.index ?? 0);
+}
+
+export function faixaDoItem(
+  item: OrcPropostaItem,
+  faixaIndex: number,
+): OrcPropostaFaixa | undefined {
+  const faixas = item.faixas ?? [];
+  return faixas.find((fx) => fx.index === faixaIndex) ?? faixas[0];
+}
+
+export function totalFaixaItem(item: OrcPropostaItem, faixaIndex: number): number {
+  const fx = faixaDoItem(item, faixaIndex);
+  return fx ? Number(fx.valor_total) || 0 : 0;
+}
+
+/** Default: 1ª faixa de cada posição (N=1 não usa este mapa). */
+export function defaultFaixasItens(proposta: OrcamentoPropostaPublica): Record<number, number> {
+  const out: Record<number, number> = {};
+  for (const it of proposta.itens ?? []) {
+    out[it.ordem] = it.faixas?.[0]?.index ?? 0;
+  }
+  return out;
+}
+
+export function totalDocumentoSelecionado(
+  proposta: OrcamentoPropostaPublica,
+  faixasItens: Record<number, number>,
+): number {
+  if (!isPropostaMultiItem(proposta)) {
+    const idx = faixasItens[1];
+    const fx =
+      (proposta.faixas ?? []).find((f) => f.index === idx) ?? proposta.faixas?.[0];
+    return fx ? Number(fx.valor_total) || 0 : 0;
+  }
+  return (proposta.itens ?? []).reduce(
+    (acc, it) => acc + totalFaixaItem(it, faixasItens[it.ordem] ?? it.faixas?.[0]?.index ?? 0),
+    0,
+  );
 }
 
 /** Monta descrição comercial a partir do snapshot do PED item. */

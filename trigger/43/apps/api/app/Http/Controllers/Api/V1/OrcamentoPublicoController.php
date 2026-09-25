@@ -46,6 +46,9 @@ class OrcamentoPublicoController extends Controller
         $data = $request->validate([
             'acao' => ['required', 'string', 'in:APROVAR,RECUSAR'],
             'faixa_index' => ['nullable', 'integer', 'min:0'],
+            'faixas_itens' => ['nullable', 'array'],
+            'faixas_itens.*.ordem' => ['required_with:faixas_itens', 'integer', 'min:1'],
+            'faixas_itens.*.faixa_index' => ['required_with:faixas_itens', 'integer', 'min:0'],
             'nome_cliente' => ['nullable', 'string', 'max:160'],
             'motivo' => ['nullable', 'string', 'max:2000'],
         ]);

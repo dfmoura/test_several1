@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Mail\OrcamentoPropostaMail;
 use App\Models\Empresa;
 use App\Models\Orcamento;
+use App\Models\OrcamentoItem;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Models\ParceiroContato;
@@ -409,6 +410,10 @@ class OrcamentoAprovacaoTest extends TestCase
         ]);
         $ok->assertOk();
         $this->assertSame(1, Orcamento::query()->findOrFail($id)->aceite_faixa_index);
+        $this->assertSame(
+            1,
+            OrcamentoItem::query()->where('orcamento_id', $id)->value('aceite_faixa_index')
+        );
     }
 
     public function test_proposta_multi_item_etiqueta_expoe_faixas_e_aceita_indice(): void
@@ -456,6 +461,97 @@ class OrcamentoAprovacaoTest extends TestCase
         ]);
         $ok->assertOk();
         $this->assertSame(1, Orcamento::query()->findOrFail($id)->aceite_faixa_index);
+        $idxs = OrcamentoItem::query()
+            ->where('orcamento_id', $id)
+            ->orderBy('ordem')
+            ->pluck('aceite_faixa_index')
+            ->all();
+        $this->assertSame([1, 1], $idxs);
+    }
+
+    public function test_proposta_multi_item_aceita_faixa_por_posicao(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $job = $this->payload();
+        unset($job['parceiro_id']);
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', [
+            'parceiro_id' => $this->parceiro->id,
+            'tipo_operacao' => 'INDUSTRIALIZACAO',
+            'prazo_entrega_dias' => 12,
+            'validade_dias' => 7,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
+            'itens' => [
+                array_merge($job, ['rotulo' => 'Frente', 'necessidade' => 'PRODUCAO']),
+                array_merge($job, [
+                    'rotulo' => 'Verso',
+                    'necessidade' => 'PRODUCAO',
+                    'medida' => '60X40',
+                    'largura_cm' => 62,
+                ]),
+            ],
+        ]);
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
+
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        $ok = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixas_itens' => [
+                ['ordem' => 1, 'faixa_index' => 1],
+                ['ordem' => 2, 'faixa_index' => 0],
+            ],
+            'nome_cliente' => 'Maria Compradora',
+        ]);
+        $ok->assertOk();
+
+        $orc = Orcamento::query()->findOrFail($id);
+        $this->assertSame(1, $orc->aceite_faixa_index);
+        $idxs = OrcamentoItem::query()
+            ->where('orcamento_id', $id)
+            ->orderBy('ordem')
+            ->pluck('aceite_faixa_index')
+            ->all();
+        $this->assertSame([1, 0], $idxs);
+    }
+
+    public function test_proposta_multi_item_rejeita_mapa_incompleto(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        $job = $this->payload();
+        unset($job['parceiro_id']);
+        $create = $this->withHeaders($h)->postJson('/api/v1/orcamentos', [
+            'parceiro_id' => $this->parceiro->id,
+            'tipo_operacao' => 'INDUSTRIALIZACAO',
+            'prazo_entrega_dias' => 12,
+            'validade_dias' => 7,
+            'condicao_pagamento' => '28 DDL',
+            'forma_pagamento' => 'PIX',
+            'itens' => [
+                array_merge($job, ['rotulo' => 'Frente', 'necessidade' => 'PRODUCAO']),
+                array_merge($job, ['rotulo' => 'Verso', 'necessidade' => 'PRODUCAO']),
+            ],
+        ]);
+        $create->assertCreated();
+        $id = (int) $create->json('data.id');
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        $fail = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'faixas_itens' => [
+                ['ordem' => 1, 'faixa_index' => 0],
+            ],
+            'nome_cliente' => 'Maria Compradora',
+        ]);
+        $fail->assertStatus(422);
+        $fail->assertJsonValidationErrors(['faixas_itens']);
     }
 
     public function test_previa_interna_sem_decidir_e_sem_consumir_link(): void

@@ -2558,6 +2558,7 @@ export type OrcamentoItem = {
   rotulo?: string | null;
   input_snapshot: Record<string, unknown> | null;
   result_snapshot: OrcamentoResult | null;
+  aceite_faixa_index?: number | null;
   legado?: boolean;
 };
 
@@ -3677,7 +3678,7 @@ export type OrcamentoPropostaPublica = {
     descricao?: OrcamentoPropostaPublica['descricao'];
     faixas?: OrcamentoPropostaPublica['faixas'];
   }> | null;
-  /** Σ 1ª faixa de cada item — hero do documento quando N>1. */
+  /** Σ 1ª faixa de cada item — hero da ficha/prévia quando N>1. No link, o total é a soma ao vivo. */
   valor_total_documento_primeira_faixa?: number | null;
   observacao_comercial?: string | null;
   /** URL pública da prova de arte (PDF/imagem/Drive…). Só http(s). */

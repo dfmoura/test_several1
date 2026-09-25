@@ -12,6 +12,7 @@ use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Plataforma\EmpresaAtivacaoService;
 use App\Support\FlexorcSuperficie;
+use App\Support\OrcamentoAceiteFaixas;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
 use Illuminate\Support\Facades\DB;
@@ -259,6 +260,9 @@ class OrcamentoAprovacaoService
             }
 
             $orcamento->save();
+            if (! $lembrete) {
+                OrcamentoAceiteFaixas::limpar($orcamento);
+            }
 
             $this->audit->log('ENVIAR_APROVACAO', 'Orcamento', $orcamento->id, $before, [
                 'status' => $orcamento->status,
@@ -427,7 +431,7 @@ class OrcamentoAprovacaoService
     }
 
     /**
-     * @param  array{acao: string, faixa_index?: int, nome_cliente?: string, motivo?: string|null}  $data
+     * @param  array{acao: string, faixa_index?: int, faixas_itens?: list<array{ordem: int, faixa_index: int}>, nome_cliente?: string, motivo?: string|null}  $data
      * @return array<string, mixed>
      */
     public function decidirPeloLink(string $token, array $data, ?string $ip, ?string $userAgent): array
@@ -655,13 +659,9 @@ class OrcamentoAprovacaoService
             ]);
         }
 
-        $faixaIndex = (int) ($data['faixa_index'] ?? -1);
-        $faixas = $orcamento->result_snapshot['faixas'] ?? [];
-        if (! is_array($faixas) || ! array_key_exists($faixaIndex, $faixas)) {
-            throw ValidationException::withMessages([
-                'faixa_index' => ['Selecione a quantidade que deseja aprovar.'],
-            ]);
-        }
+        $resolvido = OrcamentoAceiteFaixas::resolver($orcamento, $data);
+        $faixaIndex = $resolvido['header'];
+        $porOrdem = $resolvido['por_ordem'];
 
         $agora = now();
         $adiantamentoOut = null;
@@ -671,6 +671,7 @@ class OrcamentoAprovacaoService
             $link,
             $nome,
             $faixaIndex,
+            $porOrdem,
             $data,
             $ip,
             $userAgent,
@@ -689,6 +690,7 @@ class OrcamentoAprovacaoService
                 'motivo_decisao' => isset($data['motivo']) ? (trim((string) $data['motivo']) ?: null) : null,
             ]);
             $orcamento->save();
+            OrcamentoAceiteFaixas::persistir($orcamento, $porOrdem);
 
             $link->fill([
                 'ativo' => false,
@@ -700,7 +702,7 @@ class OrcamentoAprovacaoService
             $adiantamentoOut = null;
             $finStatus = AdiantamentoService::FIN_LIBERADO;
             if (FlexorcSuperficie::emiteSinalNoAceite()) {
-                $emit = $this->adiantamento->emitirDoOrcamento($orcamento->fresh(['empresa', 'parceiro']), $faixaIndex);
+                $emit = $this->adiantamento->emitirDoOrcamento($orcamento->fresh(['empresa', 'parceiro', 'itens']), $faixaIndex);
                 $adiantamentoOut = $emit['adiantamento'] ?? null;
                 $finStatus = $emit['financeiro_status'] ?? AdiantamentoService::FIN_LIBERADO;
             } else {
@@ -763,6 +765,7 @@ class OrcamentoAprovacaoService
                 'aceite_faixa_index' => null,
             ]);
             $orcamento->save();
+            OrcamentoAceiteFaixas::limpar($orcamento);
 
             $link->fill([
                 'ativo' => false,

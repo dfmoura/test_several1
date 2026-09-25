@@ -216,7 +216,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Teste local:** OP aberta com SKU `controla_lote` e volumes no local → Separação → **Preparar retirada** → conferir FEFO/local → confirmar. Ctrl+Shift+R se SPA antiga.
 
 ### BL-106 · [orc/norma+ux] ORC cabeçalho × itens (1..N jobs na proposta)
-- **Status:** Em andamento (fases 0–2 prontas p/ teste; fase 3 PED pendente)
+- **Status:** Em andamento (fases 0–2 prontas; aceite por item na proposta; fase 3 PED pendente)
 - **Prioridade:** P1
 - **Origem:** Chat 2026-09-20/21 — multi-faca era o nível errado; multi-item é o correto
 - **Depende de:** `ADR_ORC_ITENS.md` · emenda `ADR_ORC_FACAS_COMPOSICAO` · motor R1–R20 intacto
@@ -227,6 +227,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   4. N geometrias = N itens — não N facas no documento.
   5. PED continua 1:1 ORC; N `pedido_itens` na fase 3 — nunca N PEDs.
   6. Implementar em fases 1→2→3 sem quebrar N=1.
+  7. Aceite N>1: **uma faixa por item** (não um índice no documento). N=1 intacto. PED N linhas continua fase 3.
 - **Aceite (por fase):**
   - [x] Fase 0: ADR + emendas + este BL
   - [x] Fase 1: paridade N=1 — `orcamento_itens` · dual-write create/update · `itens` no show · legado materializado na leitura · UI flat intacta · testes `OrcamentoItensTest` + asserts em `OrcamentoTest`

@@ -23,6 +23,7 @@ class OrcamentoItem extends Model
         'rotulo',
         'input_snapshot',
         'result_snapshot',
+        'aceite_faixa_index',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class OrcamentoItem extends Model
             'ordem' => 'integer',
             'input_snapshot' => 'array',
             'result_snapshot' => 'array',
+            'aceite_faixa_index' => 'integer',
         ];
     }
 

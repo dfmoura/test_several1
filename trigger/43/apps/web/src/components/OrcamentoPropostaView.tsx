@@ -23,6 +23,9 @@ type Props = {
   somenteLeitura: boolean;
   faixaIndex: number;
   onFaixaChange?: (index: number) => void;
+  /** N>1 no link: índice escolhido por `ordem` do item. */
+  faixasItens?: Record<number, number>;
+  onFaixaItemChange?: (ordem: number, index: number) => void;
   banner?: ReactNode;
   erro?: string | null;
   /** Slot da decisão do cliente (só no link público). */
@@ -41,6 +44,8 @@ export function OrcamentoPropostaView({
   somenteLeitura,
   faixaIndex,
   onFaixaChange,
+  faixasItens,
+  onFaixaItemChange,
   banner,
   erro,
   acoes,
@@ -91,7 +96,13 @@ export function OrcamentoPropostaView({
         />
 
         {multi ? (
-          <OrcPubItensAcordeao proposta={proposta} faixaHighlight={faixaIndex} />
+          <OrcPubItensAcordeao
+            proposta={proposta}
+            faixaHighlight={faixaIndex}
+            faixasItens={faixasItens}
+            onFaixaItemChange={onFaixaItemChange}
+            somenteLeitura={somenteLeitura}
+          />
         ) : (
           <OrcPubEspecificacaoBloco
             tipoOperacao={proposta.tipo_operacao}
@@ -108,7 +119,7 @@ export function OrcamentoPropostaView({
           />
         )}
 
-        {!multi || !somenteLeitura ? (
+        {!multi ? (
           <OrcPubFaixasBloco
             faixas={faixas}
             tipoOperacao={proposta.tipo_operacao}
@@ -121,11 +132,6 @@ export function OrcamentoPropostaView({
             cobraMatriz={Boolean(proposta.cobra_matriz)}
             valorMatriz={proposta.valor_matriz ?? 0}
             matrizNota={proposta.matriz_nota}
-            hint={
-              !somenteLeitura && multi
-                ? `Selecione a quantidade. A aprovação confirma as ${proposta.itens!.length} posições nesta faixa.`
-                : undefined
-            }
           />
         ) : null}
 

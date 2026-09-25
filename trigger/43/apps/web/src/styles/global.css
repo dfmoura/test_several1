@@ -12606,6 +12606,48 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   margin-bottom: 0.85rem;
 }
 
+.orc-pub-aceite-resumo {
+  margin: 0 0 0.95rem;
+  padding: 0.65rem 0.8rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--navy) 14%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--navy) 3%, #fff);
+}
+
+.orc-pub-aceite-resumo h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.orc-pub-aceite-resumo ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.orc-pub-aceite-resumo li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.orc-pub-aceite-resumo-total {
+  margin-top: 0.2rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid color-mix(in srgb, var(--navy) 16%, var(--border));
+  font-weight: 700;
+  color: var(--navy-dark);
+}
+
 .orc-pub-btns {
   margin-top: 0.5rem;
 }
