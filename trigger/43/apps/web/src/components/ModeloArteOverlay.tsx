@@ -17,6 +17,8 @@ type Props = {
   onClose: () => void;
   titulo: string;
   arteUrl: string | null | undefined;
+  /** Eco discreto do item (Material · Saída). Ausente = overlay inalterado. */
+  caption?: string | null;
   editable?: boolean;
   onChange?: (next: { arte_url: string | null; preview_url?: string | null }) => void;
 };
@@ -194,6 +196,7 @@ export function ModeloArteOverlay({
   onClose,
   titulo,
   arteUrl,
+  caption,
   editable = false,
   onChange,
 }: Props) {
@@ -206,6 +209,8 @@ export function ModeloArteOverlay({
   const fileRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
+  const captionId = useId();
+  const captionText = (caption ?? '').trim();
   const blobRef = useRef<string | null>(null);
   const svgHostRef = useRef<HTMLDivElement>(null);
 
@@ -337,6 +342,7 @@ export function ModeloArteOverlay({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      aria-describedby={captionText ? captionId : undefined}
     >
       <button
         type="button"
@@ -346,7 +352,14 @@ export function ModeloArteOverlay({
       />
       <div className="modelo-arte-preview__panel">
         <div className="modelo-arte-preview__head">
-          <h2 id={titleId}>{titulo.trim() || 'Arte do modelo'}</h2>
+          <div className="modelo-arte-preview__title">
+            <h2 id={titleId}>{titulo.trim() || 'Arte do modelo'}</h2>
+            {captionText ? (
+              <p id={captionId} className="form-hint modelo-arte-preview__caption">
+                {captionText}
+              </p>
+            ) : null}
+          </div>
           <div className="modelo-arte-preview__zoom">
             <button type="button" className="btn btn-ghost" onClick={zoomOut} title="Diminuir">
               −
@@ -461,6 +474,7 @@ type TriggerProps = {
   nome: string;
   arteUrl: string | null | undefined;
   previewSrc?: string | null;
+  caption?: string | null;
   editable?: boolean;
   onChange?: (next: { arte_url: string | null }) => void;
   dense?: boolean;
@@ -490,6 +504,7 @@ export function ModeloArteTrigger({
   nome,
   arteUrl,
   previewSrc: previewSrcProp,
+  caption,
   editable = false,
   onChange,
   dense = false,
@@ -565,6 +580,7 @@ export function ModeloArteTrigger({
         onClose={() => setOpen(false)}
         titulo={nome}
         arteUrl={arteUrl || previewSrcProp}
+        caption={caption}
         editable={editable}
         onChange={
           onChange

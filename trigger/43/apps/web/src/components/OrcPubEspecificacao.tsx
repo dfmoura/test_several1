@@ -12,7 +12,7 @@ import {
 } from '../lib/orcamentoPropostaItens';
 import { formatValorFrete, modoComFrete } from '../lib/orcamentoFrete';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
-import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { isSaidaEtiqueta, saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 
 type SpecProps = {
@@ -54,6 +54,16 @@ function SpecDense({ cells }: { cells: SpecCell[] }) {
       ))}
     </ul>
   );
+}
+
+/** Eco do item no overlay da arte — vocabulário comercial (Material / Saída). */
+function arteOverlayCaption(desc?: OrcPropostaDescricao | null): string | undefined {
+  const material = (desc?.papel ?? '').trim();
+  const saida = saidaEtiquetaLabel(desc?.saida_etiqueta);
+  const parts: string[] = [];
+  if (material) parts.push(`Material · ${material}`);
+  if (saida) parts.push(saida);
+  return parts.length > 0 ? parts.join('  ·  ') : undefined;
 }
 
 function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
@@ -158,6 +168,7 @@ export function OrcPubEspecificacaoBloco({
           title="Modelos"
           hint={null}
           showValorArte
+          arteCaption={arteOverlayCaption(desc)}
           modelos={desc.modelos_composicao}
           faixas={(faixas ?? []).map((fx) => ({
             key: fx.index,

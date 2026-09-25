@@ -38,6 +38,8 @@ type Props = {
   hint?: string | null;
   /** Exibir coluna Vlr. Arte (default: só se algum valor > 0). */
   showValorArte?: boolean;
+  /** Eco discreto no overlay da arte (proposta / ficha-cliente). */
+  arteCaption?: string | null;
 };
 
 function formatQtd(value: number): string {
@@ -67,6 +69,7 @@ export function ModelosComposicaoTable({
   title = 'Composição dos modelos',
   hint,
   showValorArte,
+  arteCaption,
 }: Props) {
   const rows = toFormRows(modelos).filter((m) => m.nome !== '');
   if (rows.length === 0) return null;
@@ -176,7 +179,12 @@ export function ModelosComposicaoTable({
                 <td>
                   <span className="orc-modelo-nome-com-arte">
                     {(m.arte_url || '').trim() ? (
-                      <ModeloArteTrigger nome={m.nome} arteUrl={m.arte_url} dense />
+                      <ModeloArteTrigger
+                        nome={m.nome}
+                        arteUrl={m.arte_url}
+                        dense
+                        caption={arteCaption}
+                      />
                     ) : null}
                     <span>{m.nome}</span>
                   </span>

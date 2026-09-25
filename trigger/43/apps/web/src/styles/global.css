@@ -4698,12 +4698,20 @@ table.data-table td.acoes {
   flex-wrap: wrap;
 }
 
+.modelo-arte-preview__title {
+  flex: 1 1 auto;
+  min-width: 8rem;
+}
+
 .modelo-arte-preview__head h2 {
   margin: 0;
   font-size: 1.05rem;
   color: var(--navy);
-  flex: 1 1 auto;
-  min-width: 8rem;
+}
+
+.modelo-arte-preview__caption {
+  margin: 0.14rem 0 0;
+  line-height: 1.35;
 }
 
 .modelo-arte-preview__zoom {
