@@ -12,7 +12,7 @@ import {
 } from '../lib/orcamentoPropostaItens';
 import { formatValorFrete, modoComFrete } from '../lib/orcamentoFrete';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
-import { isSaidaEtiqueta, saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
+import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 import type { OrcamentoPropostaPublica } from '../lib/api';
 
 type SpecProps = {
@@ -56,14 +56,10 @@ function SpecDense({ cells }: { cells: SpecCell[] }) {
   );
 }
 
-/** Eco do item no overlay da arte — vocabulário comercial (Material / Saída). */
+/** Eco do item no overlay da arte — vocabulário comercial (Medida). */
 function arteOverlayCaption(desc?: OrcPropostaDescricao | null): string | undefined {
-  const material = (desc?.papel ?? '').trim();
-  const saida = saidaEtiquetaLabel(desc?.saida_etiqueta);
-  const parts: string[] = [];
-  if (material) parts.push(`Material · ${material}`);
-  if (saida) parts.push(saida);
-  return parts.length > 0 ? parts.join('  ·  ') : undefined;
+  const medida = (desc?.medida ?? '').trim();
+  return medida ? `Medida · ${medida}` : undefined;
 }
 
 function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
@@ -169,6 +165,9 @@ export function OrcPubEspecificacaoBloco({
           hint={null}
           showValorArte
           arteCaption={arteOverlayCaption(desc)}
+          arteSaida={
+            isSaidaEtiqueta(desc?.saida_etiqueta) ? desc.saida_etiqueta : undefined
+          }
           modelos={desc.modelos_composicao}
           faixas={(faixas ?? []).map((fx) => ({
             key: fx.index,

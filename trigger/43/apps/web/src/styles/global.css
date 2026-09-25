@@ -4710,8 +4710,21 @@ table.data-table td.acoes {
 }
 
 .modelo-arte-preview__caption {
-  margin: 0.14rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  margin: 0.18rem 0 0;
   line-height: 1.35;
+}
+
+.modelo-arte-preview__saida.saida-etiqueta-badge--dense {
+  color: var(--text);
+}
+
+.modelo-arte-preview__saida.saida-etiqueta-badge--dense .saida-etiqueta-badge__img {
+  width: 1.85rem;
+  height: 2rem;
 }
 
 .modelo-arte-preview__zoom {

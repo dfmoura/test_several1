@@ -40,6 +40,8 @@ type Props = {
   showValorArte?: boolean;
   /** Eco discreto no overlay da arte (proposta / ficha-cliente). */
   arteCaption?: string | null;
+  /** Código de saída do item — desenho + rótulo no overlay. */
+  arteSaida?: string | null;
 };
 
 function formatQtd(value: number): string {
@@ -70,6 +72,7 @@ export function ModelosComposicaoTable({
   hint,
   showValorArte,
   arteCaption,
+  arteSaida,
 }: Props) {
   const rows = toFormRows(modelos).filter((m) => m.nome !== '');
   if (rows.length === 0) return null;
@@ -184,6 +187,7 @@ export function ModelosComposicaoTable({
                         arteUrl={m.arte_url}
                         dense
                         caption={arteCaption}
+                        saidaEtiqueta={arteSaida}
                       />
                     ) : null}
                     <span>{m.nome}</span>

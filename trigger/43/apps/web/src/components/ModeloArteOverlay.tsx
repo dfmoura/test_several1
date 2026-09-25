@@ -11,14 +11,18 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { api, getToken, getEmpresaId } from '../lib/api';
+import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   titulo: string;
   arteUrl: string | null | undefined;
-  /** Eco discreto do item (Material · Saída). Ausente = overlay inalterado. */
+  /** Eco discreto do item (Medida). Ausente = overlay inalterado. */
   caption?: string | null;
+  /** Código da saída na bobina — desenho canônico + rótulo. */
+  saidaEtiqueta?: string | null;
   editable?: boolean;
   onChange?: (next: { arte_url: string | null; preview_url?: string | null }) => void;
 };
@@ -197,6 +201,7 @@ export function ModeloArteOverlay({
   titulo,
   arteUrl,
   caption,
+  saidaEtiqueta,
   editable = false,
   onChange,
 }: Props) {
@@ -211,6 +216,8 @@ export function ModeloArteOverlay({
   const titleId = useId();
   const captionId = useId();
   const captionText = (caption ?? '').trim();
+  const saidaOk = isSaidaEtiqueta(saidaEtiqueta);
+  const hasCaption = Boolean(captionText || saidaOk);
   const blobRef = useRef<string | null>(null);
   const svgHostRef = useRef<HTMLDivElement>(null);
 
@@ -342,7 +349,7 @@ export function ModeloArteOverlay({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      aria-describedby={captionText ? captionId : undefined}
+      aria-describedby={hasCaption ? captionId : undefined}
     >
       <button
         type="button"
@@ -354,10 +361,17 @@ export function ModeloArteOverlay({
         <div className="modelo-arte-preview__head">
           <div className="modelo-arte-preview__title">
             <h2 id={titleId}>{titulo.trim() || 'Arte do modelo'}</h2>
-            {captionText ? (
-              <p id={captionId} className="form-hint modelo-arte-preview__caption">
-                {captionText}
-              </p>
+            {hasCaption ? (
+              <div id={captionId} className="form-hint modelo-arte-preview__caption">
+                {captionText ? <span>{captionText}</span> : null}
+                {saidaOk ? (
+                  <SaidaEtiquetaBadge
+                    code={saidaEtiqueta}
+                    variant="dense"
+                    className="modelo-arte-preview__saida"
+                  />
+                ) : null}
+              </div>
             ) : null}
           </div>
           <div className="modelo-arte-preview__zoom">
@@ -475,6 +489,7 @@ type TriggerProps = {
   arteUrl: string | null | undefined;
   previewSrc?: string | null;
   caption?: string | null;
+  saidaEtiqueta?: string | null;
   editable?: boolean;
   onChange?: (next: { arte_url: string | null }) => void;
   dense?: boolean;
@@ -505,6 +520,7 @@ export function ModeloArteTrigger({
   arteUrl,
   previewSrc: previewSrcProp,
   caption,
+  saidaEtiqueta,
   editable = false,
   onChange,
   dense = false,
@@ -581,6 +597,7 @@ export function ModeloArteTrigger({
         titulo={nome}
         arteUrl={arteUrl || previewSrcProp}
         caption={caption}
+        saidaEtiqueta={saidaEtiqueta}
         editable={editable}
         onChange={
           onChange
