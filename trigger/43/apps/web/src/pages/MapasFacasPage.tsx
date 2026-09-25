@@ -89,7 +89,6 @@ const FACA_SORT = {
   formato: (f: FacaMapa) => formatoLabel(f.formato),
   medida: (f: FacaMapa) => f.medida,
   largura: (f: FacaMapa) => facaDimensoesExibicao(f).larguraSort,
-  tamanho: (f: FacaMapa) => facaDimensoesExibicao(f).tamanhoSort,
   n_facas: (f: FacaMapa) => (f.n_facas != null ? Number(f.n_facas) : null),
   maquina: (f: FacaMapa) => f.maquina_catalogo,
   z: (f: FacaMapa) => (f.z != null ? Number(f.z) : null),
@@ -634,7 +633,7 @@ export function MapasFacasPage() {
     <>
       <PageHeader
         title="Mapa de facas"
-        description="Catálogo da empresa usado no orçamento. Identidade (medida) e átomos (largura, tamanho) na lista; silhueta por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
+        description="Catálogo da empresa usado no orçamento. Identidade (medida) e largura na lista; silhueta por medidas e colunas; desenhadas podem receber SVG do contorno. Geometria existente não se edita — ajuste cliente, obs., fornecedor, valor pago, nº NF e grupo hora-máquina; para corrigir medida, cadastre nova e inative a antiga."
         actions={
           <div className="btn-row">
             <a
@@ -708,7 +707,7 @@ export function MapasFacasPage() {
             className="mapa-facas-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar medida, largura, tamanho, cliente, obs., fornecedor, NF…"
+            placeholder="Buscar medida, largura, cliente, obs., fornecedor, NF…"
             aria-label="Buscar facas"
           />
           <select
@@ -811,17 +810,6 @@ export function MapasFacasPage() {
                       >
                         LAR
                       </SortableTh>
-                      <SortableTh
-                        column="tamanho"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="Tamanho"
-                      >
-                        TAM
-                      </SortableTh>
                       <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Formato
                       </SortableTh>
@@ -868,7 +856,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="mapa-facas-empty-cell">
+                        <td colSpan={10} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -932,15 +920,6 @@ export function MapasFacasPage() {
                             </td>
                             <td className="num mapa-facas-dim-cell">
                               <strong>{dim.largura}</strong>
-                            </td>
-                            <td className="num mapa-facas-dim-cell">
-                              {dim.isDiametro ? (
-                                <span className="badge-diam" title="Diâmetro (Ø)">
-                                  Ø {dim.tamanho}
-                                </span>
-                              ) : (
-                                <strong>{dim.tamanho}</strong>
-                              )}
                             </td>
                             <td>
                               <div className="mapa-facas-row-formato">
@@ -1070,16 +1049,6 @@ export function MapasFacasPage() {
                     {!selectedDim || selectedDim.largura === '—'
                       ? '—'
                       : `${selectedDim.largura} cm`}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{selectedDim?.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}</dt>
-                  <dd>
-                    {!selectedDim || selectedDim.tamanho === '—'
-                      ? '—'
-                      : selectedDim.isDiametro
-                        ? `Ø ${selectedDim.tamanho} cm`
-                        : `${selectedDim.tamanho} cm`}
                   </dd>
                 </div>
                 <div>

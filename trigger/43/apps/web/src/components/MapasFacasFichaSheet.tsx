@@ -183,7 +183,6 @@ export function MapasFacasFichaSheet({
                     <th className="ficha-mapa-facas-col-silhueta">Silhueta</th>
                     <th className="ficha-mapa-facas-col-medida">Medida</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-largura">Largura</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-tamanho">Tamanho</th>
                     <th className="ficha-mapa-facas-col-formato">Formato</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-z">Z</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-rep">Rep</th>
@@ -207,11 +206,6 @@ export function MapasFacasFichaSheet({
                         </td>
                         <td className="ficha-mapa-facas-medida">{dash(f.medida)}</td>
                         <td className="ficha-td-num ficha-mapa-facas-dim">{dim.largura}</td>
-                        <td className="ficha-td-num ficha-mapa-facas-dim">
-                          {dim.isDiametro && dim.tamanho !== '—'
-                            ? `Ø ${dim.tamanho}`
-                            : dim.tamanho}
-                        </td>
                         <td className="ficha-mapa-facas-formato">{formatoLabel(f.formato)}</td>
                         <td className="ficha-td-num">{dash(f.z)}</td>
                         <td className="ficha-td-num">{fmtNum(f.repeticao, 8)}</td>

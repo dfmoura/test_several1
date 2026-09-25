@@ -205,12 +205,6 @@ export function OrcamentoFacaDesenho({
 
   const puxada = chipVal(puxadaCm, 'cm');
   const zVal = chipVal(z);
-  const tamanhoChip =
-    dim.tamanho === '—'
-      ? '—'
-      : dim.isDiametro
-        ? `Ø ${dim.tamanho} cm`
-        : `${dim.tamanho} cm`;
 
   const chips = (
     <div className="orc-faca-desenho-chips" aria-label="Tipo e parâmetros da faca">
@@ -222,7 +216,6 @@ export function OrcamentoFacaDesenho({
         <Chip label="Posição" value={facaPosicaoLabel(posicao) ?? String(posicao)} />
       ) : null}
       <Chip label="Largura" value={dim.largura === '—' ? '—' : `${dim.largura} cm`} />
-      <Chip label={dim.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'} value={tamanhoChip} />
       {puxada !== '—' ? <Chip label="Puxada" value={puxada} /> : null}
       {!cliente && zVal !== '—' ? <Chip label="Z" value={zVal} /> : null}
       {!cliente && maquina ? <Chip label="Máq." value={String(maquina)} /> : null}

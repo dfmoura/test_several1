@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack + SPA: Tamanho na faca do ORC · sem campo Medida no mapa (ORC/Mapa).
+# Sobe stack + SPA: Medida na leitura; Tamanho só no cadastro da faca nova.
 # Uso (no host, com Docker): make pronto-orc-faca-tamanho
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -30,9 +30,9 @@ Pronto para testar
   App:  http://localhost:8043
 
 Roteiro
-  1. Mapa de facas → lista/detalhe/prévia: Largura + Tamanho; sem "Medida" / "Identidade".
-  2. Orçamentos → ORC salvo: desenho com Largura + Tamanho (ou Diâmetro); sem chip Medida.
-  3. Editar ORC → lista da faca com Tamanho; sem string crua de medida.
-  4. Novo ORC → escolher faca no mapa → Tamanho aparece; salvar e reabrir.
+  1. Mapa de facas → lista/detalhe/ficha: Medida + Largura; sem coluna/campo Tamanho.
+  2. Orçamentos → ficha operacional, ficha do cliente e proposta: Medida; sem Tamanho.
+  3. Detalhe/lista do ORC → desenho com Medida + Largura; sem chip Tamanho.
+  4. Cadastro de faca nova (mapa e picker) → Tamanho (cm) / Diâmetro (cm) continua.
 
 TXT

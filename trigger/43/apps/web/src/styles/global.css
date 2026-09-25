@@ -9526,12 +9526,11 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-medida {
-  width: 11%;
+  width: 14%;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-largura,
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-tamanho {
-  width: 7.5%;
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-largura {
+  width: 8%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {

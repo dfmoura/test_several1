@@ -214,16 +214,6 @@ export function FacasComposicaoEditor({
                       label="Largura"
                       value={dim.largura === '—' ? '—' : `${dim.largura} cm`}
                     />
-                    <MetaChip
-                      label={dim.isDiametro ? 'Tamanho (Ø)' : 'Tamanho'}
-                      value={
-                        dim.tamanho === '—'
-                          ? '—'
-                          : dim.isDiametro
-                            ? `Ø ${dim.tamanho} cm`
-                            : `${dim.tamanho} cm`
-                      }
-                    />
                     <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
                     <MetaChip
                       label="N FACA"

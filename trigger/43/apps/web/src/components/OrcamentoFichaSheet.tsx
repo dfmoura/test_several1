@@ -19,7 +19,6 @@ import {
   statusOrcLabel,
 } from '../lib/orcamentoForm';
 import { entregaComercialTexto, formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
-import { facaDimensoesExibicao } from '../lib/facasMapa';
 import { resumoTotaisItem, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
@@ -211,20 +210,6 @@ function FichaItemBody({
       ? 'Descrição (snapshot)'
       : 'Descrição do serviço (snapshot)';
   const temFacaVisual = !isRevenda && Boolean(faca || formato || facasComp.length > 0);
-  const dimFaca = facaDimensoesExibicao({
-    medida: (faca?.medida ?? input.medida) as string | null | undefined,
-    formato: (faca?.formato || formato) as string | null | undefined,
-    largura_faca: faca?.larguraCm ?? (input.largura_cm as string | number | null | undefined),
-    diametro_cm: faca?.diametroCm ?? null,
-    tamanho_raw: faca?.tamanhoRaw ?? null,
-    tamanho_tipo: faca?.tamanhoTipo ?? null,
-  });
-  const tamanhoValor =
-    dimFaca.tamanho === '—'
-      ? '—'
-      : dimFaca.isDiametro
-        ? `Ø ${dimFaca.tamanho} cm`
-        : `${dimFaca.tamanho} cm`;
 
   type DescCell = { label: string; value: ReactNode };
   const descCells: DescCell[] = [];
@@ -244,7 +229,6 @@ function FichaItemBody({
     if (temGordura) pushDesc('Gordura', money(valorGordura));
   } else {
     pushDesc('Medida', snap(input, 'medida'), snap(input, 'medida') === '—');
-    pushDesc('Tamanho', tamanhoValor, tamanhoValor === '—');
     pushDesc(
       'Larg. papel',
       cmBr(input.largura_cm as string | number),
