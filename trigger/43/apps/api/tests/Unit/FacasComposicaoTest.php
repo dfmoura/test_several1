@@ -138,6 +138,30 @@ class FacasComposicaoTest extends TestCase
         $this->assertSame('altura', $data['faca_tamanho_tipo']);
     }
 
+    public function test_teto_escrita_rejeita_duas_em_item_novo(): void
+    {
+        $this->expectException(ValidationException::class);
+        FacasComposicao::assertTetoEscrita([
+            'facas' => [
+                ['principal' => true, 'formato' => 'RETA'],
+                ['principal' => false, 'formato' => 'OVAL'],
+            ],
+        ], FacasComposicao::MAX_FACAS_ETIQUETA);
+    }
+
+    public function test_teto_escrita_permite_legado_sem_crescer(): void
+    {
+        FacasComposicao::assertTetoEscrita([
+            'facas' => [
+                ['principal' => true, 'formato' => 'RETA'],
+                ['principal' => false, 'formato' => 'OVAL'],
+            ],
+        ], FacasComposicao::tetoEscrita(2));
+
+        $this->assertSame(1, FacasComposicao::tetoEscrita(0));
+        $this->assertSame(2, FacasComposicao::tetoEscrita(2));
+    }
+
     public function test_tem_faca_declarada_mapa_ou_nova_nao_geometria(): void
     {
         $this->assertFalse(FacasComposicao::temFacaDeclarada([

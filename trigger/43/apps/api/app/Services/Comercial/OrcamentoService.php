@@ -190,7 +190,7 @@ class OrcamentoService
     {
         $this->assertEditavel($orcamento);
 
-        $data = $this->ensurePayloadFacas($data);
+        $data = $this->ensurePayloadFacas($data, $orcamento);
         $empresa = Empresa::query()->findOrFail($orcamento->empresa_id);
         $parceiro = $this->resolveParceiro($empresa, (int) $data['parceiro_id']);
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
@@ -291,21 +291,46 @@ class OrcamentoService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function ensurePayloadFacas(array $data): array
+    private function ensurePayloadFacas(array $data, ?Orcamento $existente = null): array
     {
-        if (isset($data['itens']) && is_array($data['itens'])) {
-            $data['itens'] = array_map(static function ($row) {
-                if (! is_array($row)) {
-                    return $row;
-                }
+        $existente?->loadMissing('itens');
 
-                return FacasComposicao::ensureInPayload($row);
-            }, $data['itens']);
+        if (isset($data['itens']) && is_array($data['itens'])) {
+            $out = [];
+            foreach (array_values($data['itens']) as $i => $row) {
+                if (! is_array($row)) {
+                    $out[] = $row;
+                    continue;
+                }
+                $row = FacasComposicao::ensureInPayload($row);
+                FacasComposicao::assertTetoEscrita($row, $this->tetoFacasJob($existente, $i));
+                $out[] = $row;
+            }
+            $data['itens'] = $out;
 
             return $data;
         }
 
-        return FacasComposicao::ensureInPayload($data);
+        $data = FacasComposicao::ensureInPayload($data);
+        FacasComposicao::assertTetoEscrita($data, $this->tetoFacasJob($existente, 0));
+
+        return $data;
+    }
+
+    private function tetoFacasJob(?Orcamento $existente, int $index): int
+    {
+        if ($existente === null) {
+            return FacasComposicao::MAX_FACAS_ETIQUETA;
+        }
+
+        $itens = $existente->itens->sortBy('ordem')->values();
+        $item = $itens->get($index);
+        $snap = is_array($item?->input_snapshot)
+            ? $item->input_snapshot
+            : (is_array($existente->input_snapshot) ? $existente->input_snapshot : []);
+        $facas = is_array($snap['facas'] ?? null) ? $snap['facas'] : [];
+
+        return FacasComposicao::tetoEscrita(count($facas));
     }
 
     /**

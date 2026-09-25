@@ -18,6 +18,8 @@ type Props = {
   canWrite: boolean;
   /** Obrigatório só com `canWrite`. */
   onChange?: (next: FacaComposicaoForm[]) => void;
+  /** Etiqueta sob medida: uma faca; escolher outra substitui. */
+  umaPorItem?: boolean;
 };
 
 function formatMoney(value: number): string {
@@ -102,23 +104,25 @@ function MetaChip({
 }
 
 /**
- * Lista 0..N facas no ORC — uma principal (geometria) + extras (referência/cobrança).
- * Layout denso: silhueta + título + meta com labels; picker só em toolbar.
+ * Etiqueta sob medida: 0..1 faca (troca substitui).
+ * Legado com extras: exibe, não empilha.
  */
 export function FacasComposicaoEditor({
   facas,
   maquinasCatalogo = [],
   canWrite,
   onChange,
+  umaPorItem = false,
 }: Props) {
   const soma = somaValorFacas(facas);
   const principal = facaPrincipal(facas);
+  const legadoExtras = umaPorItem && facas.length > 1;
+  const podeEscolher = canWrite && (!umaPorItem || facas.length <= 1);
 
   const adicionar = (faca: FacaRecord | null) => {
     if (!canWrite || !onChange || !faca) return;
-    const asPrincipal = facas.length === 0;
-    const item = facaRecordToItem(faca, asPrincipal);
-    if (asPrincipal) {
+    const item = facaRecordToItem(faca, true);
+    if (umaPorItem || facas.length === 0) {
       onChange([item]);
       return;
     }
@@ -184,15 +188,17 @@ export function FacasComposicaoEditor({
                 <div className="orc-facas-item-body">
                   <div className="orc-facas-item-head">
                     <strong>{tituloCurto(f)}</strong>
-                    {f.principal ? (
-                      <span className="orc-facas-badge">Principal</span>
-                    ) : (
-                      <span className="orc-facas-badge muted">Extra</span>
-                    )}
+                    {facas.length > 1 ? (
+                      f.principal ? (
+                        <span className="orc-facas-badge">Principal</span>
+                      ) : (
+                        <span className="orc-facas-badge muted">Extra</span>
+                      )
+                    ) : null}
                     {f.faca_nova ? <span className="orc-facas-badge warn">Nova</span> : null}
                     {canWrite ? (
                       <span className="orc-facas-item-actions">
-                        {!f.principal ? (
+                        {!umaPorItem && !f.principal ? (
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -245,12 +251,19 @@ export function FacasComposicaoEditor({
         </p>
       ) : null}
 
-      {canWrite ? (
+      {legadoExtras && canWrite ? (
+        <p className="orc-facas-add-hint muted">
+          Este item tem facas extras (legado). A geometria é a principal. Outra medida = outro
+          item.
+        </p>
+      ) : null}
+
+      {podeEscolher ? (
         <div className={`orc-facas-add${facas.length === 0 ? ' is-empty' : ''}`}>
           {facas.length === 0 ? (
             <p className="orc-facas-add-hint">Faca existente no mapa ou orçar faca nova</p>
           ) : (
-            <p className="orc-facas-add-hint muted">Adicionar outra</p>
+            <p className="orc-facas-add-hint muted">Trocar faca deste item</p>
           )}
           <FacaPicker
             value={null}

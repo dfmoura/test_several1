@@ -25,15 +25,15 @@ Separar **geometria do cálculo**, **composição operacional de facas** e **add
 | Campo | Onde | Papel |
 |-------|------|--------|
 | Escalares do motor | `medida`, `puxada_cm`, `largura_cm`, `z`, `colunas`, `maquina` | Geometria única — **inalterada** |
-| `facas[]` | `input_snapshot` | Lista 0..N · uma `principal` · snapshot do mapa + cobrança |
+| `facas[]` | `input_snapshot` | **Escrita nova:** 0..1. **Legado:** 0..N · uma `principal` |
 | Escalares legado | `formato_faca`, `faca_nova`, `valor_faca_nova`, `prazo_faca_dias`, `faca_*` | Projeção da principal + Σ valores (compat) |
 | `valor_faca_nova` / `valor_facas` | `result_snapshot` (enrich) | Σ `valor_faca` — add-on pós-motor (fora de R1–R20) |
 
 ```
-1 faca principal     →  geometria / silhueta / formato (como aplicarFaca hoje)
-0..N facas extras    →  referência operacional + valor/prazo opcional
+Etiqueta sob medida  →  uma faca por item (mapa ou nova). Troca substitui.
+2 geometrias         →  2 itens (ADR_ORC_ITENS) — não extras no mesmo job
+Legado com extras    →  leitura/FAT intactos; reedição não cresce
 Σ valor_faca         →  valor_total_com_faca (com artes/frete nas regras já vigentes)
-FAT                  →  N linhas de ferramental (espelho artes); legado 1 linha = DESC_FACA
 ```
 
 - Sem tabela SQL `orcamento_facas` no dia 1 (JSON no snapshot).
@@ -52,9 +52,9 @@ FAT                  →  N linhas de ferramental (espelho artes); legado 1 linh
 
 ### UX
 
-- Seção **“2. Faca (mapa ou nova)”**: lista · adicionar do mapa · **cotar faca nova** (sem gravar no inventário) · marcar principal · valor/prazo por linha.
-- Principal = “define o cálculo”.
-- Extras = ferramental do mesmo job sem reescrever R1–R20.
+- Seção **“2. Faca”** no item Etiqueta sob medida: **uma** faca (mapa ou nova). Escolher outra **substitui**.
+- Hint: *Uma faca neste item. Outra medida = outro item.*
+- Legado com extras: exibe; sem “adicionar outra”.
 - Faca nova no ORC = cotação comercial; cadastro definitivo permanece em **Mapa de facas** após aprovação.
 
 ---

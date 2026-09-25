@@ -5,18 +5,46 @@ namespace App\Support;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Composição operacional das facas do ORC (0..N).
+ * Composição operacional das facas do item (etiqueta sob medida).
  *
- * O motor de preço usa uma única geometria (medida/puxada/colunas/z).
- * Esta lista viaja no input_snapshot: 1 principal alimenta escalares legado +
- * visual; extras são referência/cobrança. Σ valor_faca = add-on pós-motor
- * (como artes / faca nova) — não entra em R1–R20.
+ * Escrita nova: 0..1 faca por item. Motor = uma geometria.
+ * Leitura / FAT / ORC legado: 1 principal + extras opcionais (não cresce).
  *
- * @see docs/ADR_ORC_FACAS_COMPOSICAO.md
+ * @see docs/ADR_ORC_FACAS_COMPOSICAO.md · docs/ADR_ORC_ITENS.md
  */
 final class FacasComposicao
 {
     public const MAX_FACAS = 20;
+
+    /** Teto de escrita para Etiqueta sob medida. */
+    public const MAX_FACAS_ETIQUETA = 1;
+
+    public static function tetoEscrita(int $existentes = 0): int
+    {
+        return max(self::MAX_FACAS_ETIQUETA, min(self::MAX_FACAS, $existentes));
+    }
+
+    /**
+     * Recusa empilhar facas em item novo. Legado com extras: não cresce.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function assertTetoEscrita(array $data, int $max): void
+    {
+        if (TipoOperacaoSaida::isServico($data['tipo_operacao'] ?? $data['necessidade'] ?? null)
+            || \App\Models\PedidoItem::isRevenda($data['necessidade'] ?? null)) {
+            return;
+        }
+
+        $facas = $data['facas'] ?? [];
+        if (! is_array($facas) || count($facas) <= $max) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'facas' => ['Etiqueta sob medida admite uma faca por item. Outra geometria = outro item.'],
+        ]);
+    }
 
     /**
      * Garante `facas` coerente e projeta escalares legado.

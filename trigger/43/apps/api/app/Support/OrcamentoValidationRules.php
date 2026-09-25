@@ -176,7 +176,7 @@ final class OrcamentoValidationRules
             'overrides.hora_maquina' => ['nullable', 'array'],
             'overrides.hora_maquina.*' => ['nullable', 'array'],
             'overrides.hora_maquina.*.*' => ['nullable', 'numeric', 'min:0'],
-            // GERACAO 7.3 + ADR_ORC_FACAS_COMPOSICAO — 0..N facas; escalares = projeção da principal.
+            // Etiqueta: 0..1 na escrita nova (teto no service). max:20 = teto duro de legado.
             'facas' => ['sometimes', 'nullable', 'array', 'max:20'],
             'facas.*.ordem' => ['nullable', 'integer', 'min:1'],
             'facas.*.principal' => ['nullable', 'boolean'],

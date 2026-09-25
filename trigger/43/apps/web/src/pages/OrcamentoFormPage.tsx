@@ -1466,13 +1466,14 @@ export function OrcamentoFormPage() {
               </span>
             </h3>
             <p className="form-hint" style={{ marginTop: 0 }}>
-              Cada faca deste item entra com o seu valor; a soma entra no total do item.
+              Uma faca neste item. Outra medida = outro item.
             </p>
             <FacasComposicaoEditor
               facas={form.facas}
               onChange={aplicarFacas}
               maquinasCatalogo={catalog?.maquinas ?? []}
               canWrite={canWrite}
+              umaPorItem
             />
             <div className="form-grid faca-auto-fields">
               {showMedidaField ? (

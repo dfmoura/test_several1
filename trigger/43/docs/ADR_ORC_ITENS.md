@@ -107,7 +107,7 @@ Ficha-cliente A4: opções por posição, **sem** rádio — a escolha é no `/p
 `ADR_ORC_FACAS_COMPOSICAO` deixa de ser o caminho para **N geometrias**. Emenda:
 
 - **N geometrias** → N **itens** neste ADR.
-- **Dentro de um item:** 0..1 faca que define geometria; extras opcionais só como ferramental/add-on do **mesmo** job (não segundo motor).
+- **Dentro de um item (etiqueta):** **uma** faca (mapa ou nova). Extras só em ORC legado (leitura; não cresce). Outra geometria = outro item.
 
 ### Compatibilidade e fases de implementação
 
