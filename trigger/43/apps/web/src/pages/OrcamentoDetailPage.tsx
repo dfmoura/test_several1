@@ -945,6 +945,7 @@ export function OrcamentoDetailPage() {
                 percentual: Number(m.percentual) || 0,
                 valor_arte: Math.max(0, Number(m.valor_arte) || 0),
                 arte_url: String(m.arte_url ?? '').trim() || null,
+                tintas: m.tintas,
               }))}
               faixas={faixasItem.map((fx, i) => ({
                 key: i,
@@ -981,6 +982,7 @@ export function OrcamentoDetailPage() {
                   percentual: Number(m.percentual) || 0,
                   valor_arte: Math.max(0, Number(m.valor_arte) || 0),
                   arte_url: String(m.arte_url ?? '').trim() || null,
+                  tintas: m.tintas,
                 }))
           }
           parametrosAjuste={

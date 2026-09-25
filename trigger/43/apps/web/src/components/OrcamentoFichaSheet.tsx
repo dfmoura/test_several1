@@ -20,6 +20,8 @@ import {
 } from '../lib/orcamentoForm';
 import { entregaComercialTexto, formatValorFrete, modoComFrete, modoEntregaLabel, totalPropostaFaixa } from '../lib/orcamentoFrete';
 import { resumoTotaisItem, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
+import { ModeloTintasPorModelo } from './ModeloTintasTags';
+import { tintasDeComposicao } from '../lib/modeloTintas';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
 import { Fragment } from 'react';
@@ -240,6 +242,12 @@ function FichaItemBody({
       cmBr(input.puxada_cm as string | number, 4) === '—',
     );
     pushDesc('Cores', snap(input, 'cores'), snap(input, 'cores') === '—');
+    if (tintasDeComposicao(input.modelos_composicao).length > 0) {
+      pushDesc(
+        'Cores da arte',
+        <ModeloTintasPorModelo modelos={input.modelos_composicao} />,
+      );
+    }
     pushDesc('Papel', snap(input, 'papel'), snap(input, 'papel') === '—');
     pushDesc('Acab.', snap(input, 'acabamento'), snap(input, 'acabamento') === '—');
     pushDesc('Modelos', snap(input, 'modelos'), snap(input, 'modelos') === '—');

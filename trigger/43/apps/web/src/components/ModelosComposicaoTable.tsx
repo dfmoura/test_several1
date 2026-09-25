@@ -94,6 +94,7 @@ export function ModelosComposicaoTable({
 
   const somaArtes = somaValorArteModelos(rows);
   const exibirArte = showValorArte ?? somaArtes > 0;
+  const exibirTintas = rows.some((m) => (m.tintas?.length ?? 0) > 0) || variant !== 'data';
 
   const defaultHint =
     variant === 'pub'
@@ -151,6 +152,14 @@ export function ModelosComposicaoTable({
                 #
               </th>
               <th>{isPub ? 'Modelo' : 'Modelo (arte)'}</th>
+              {exibirTintas ? (
+                <th
+                  className="orc-modelo-tintas-col"
+                  title="Cores nomeadas desta arte — distintas das estações de impressão"
+                >
+                  Cores da arte
+                </th>
+              ) : null}
               {exibirArte ? (
                 <th className={arteClass}>{isPub ? 'Arte' : 'Vlr. Arte'}</th>
               ) : null}
@@ -196,8 +205,12 @@ export function ModelosComposicaoTable({
                     ) : null}
                     <span>{m.nome}</span>
                   </span>
-                  <ModeloTintasTags tintas={m.tintas} />
                 </td>
+                {exibirTintas ? (
+                  <td className="orc-modelo-tintas-col">
+                    <ModeloTintasTags tintas={m.tintas} empty="—" />
+                  </td>
+                ) : null}
                 {exibirArte ? (
                   <td className={arteClass}>
                     {m.valor_arte > 0 ? formatCurrency(m.valor_arte) : '—'}
@@ -222,6 +235,7 @@ export function ModelosComposicaoTable({
             <tfoot>
               <tr className="orc-modelos-table-total">
                 <td colSpan={2}>Total</td>
+                {exibirTintas ? <td className="orc-modelo-tintas-col" /> : null}
                 {exibirArte ? (
                   <td className={arteClass}>{formatCurrency(somaArtes)}</td>
                 ) : null}

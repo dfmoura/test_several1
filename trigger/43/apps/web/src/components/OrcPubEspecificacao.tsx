@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
+import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { tintasDeComposicao } from '../lib/modeloTintas';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import {
   isPropostaMultiItem,
@@ -71,6 +73,16 @@ function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
     { key: 'acab', label: 'Acab.', value: desc?.acabamento || '—', size: 'wide' },
     { key: 'tubete', label: 'Tubete', value: desc?.tubete || '—', size: 'narrow' },
     { key: 'cores', label: 'Cores', value: desc?.cores || '—', size: 'narrow' },
+    ...(tintasDeComposicao(desc?.modelos_composicao).length > 0
+      ? [
+          {
+            key: 'tintas',
+            label: 'Cores da arte',
+            value: <ModeloTintasPorModelo modelos={desc?.modelos_composicao} />,
+            size: 'wide' as const,
+          } satisfies SpecCell,
+        ]
+      : []),
     { key: 'modelos', label: 'Modelos', value: modelos || '—', size: 'narrow' },
     {
       key: 'etiq',

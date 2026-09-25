@@ -18,6 +18,21 @@ export function splitTintasDraft(raw: string): string[] {
     .filter((s) => s.length > 0);
 }
 
+export function tintasDeComposicao(
+  raw: unknown,
+): Array<{ nome: string; tintas: string[] }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((row) => {
+      const r = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+      return {
+        nome: String(r.nome ?? '').trim(),
+        tintas: normalizeTintas(r.tintas),
+      };
+    })
+    .filter((m) => m.nome !== '' && m.tintas.length > 0);
+}
+
 /** Lista canônica: trim, sem vazio, sem duplicata no modelo (sem maiúscula), teto 12. */
 export function normalizeTintas(raw: unknown): string[] {
   const items = Array.isArray(raw)

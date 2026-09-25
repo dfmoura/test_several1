@@ -6,6 +6,7 @@ import {
 } from './OrcPubParteComercial';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
+import type { ReactNode } from 'react';
 import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
@@ -27,6 +28,8 @@ import {
   specOperacional,
 } from '../lib/producaoFicha';
 import { displaySnap } from '../lib/orcamentoForm';
+import { tintasDeComposicao } from '../lib/modeloTintas';
+import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
@@ -67,17 +70,22 @@ function snapVal(spec: Record<string, unknown>, key: string): string | null {
   return raw;
 }
 
-type SpecPar = { label: string; value: string; size?: 'wide' | 'narrow' };
+type SpecPar = { label: string; value: ReactNode; size?: 'wide' | 'narrow' };
 
 function pushPar(
   pairs: SpecPar[],
   label: string,
-  value: string | null | undefined,
+  value: ReactNode | null | undefined,
   size?: 'wide' | 'narrow',
 ) {
-  const v = (value ?? '').trim();
-  if (!v || v === '—') return;
-  pairs.push({ label, value: v, size });
+  if (value == null || value === false) return;
+  if (typeof value === 'string') {
+    const v = value.trim();
+    if (!v || v === '—') return;
+    pairs.push({ label, value: v, size });
+    return;
+  }
+  pairs.push({ label, value, size });
 }
 
 /** Especificação do item — label em cima, valor embaixo; larguras por necessidade. */
@@ -114,6 +122,14 @@ function PedidoSpecLinha({
     pushPar(pairs, 'Acab.', desc.acabamento, 'wide');
     pushPar(pairs, 'Tubete', desc.tubete, 'narrow');
     pushPar(pairs, 'Cores', desc.cores, 'narrow');
+    if (tintasDeComposicao(desc.modelos_composicao).length > 0) {
+      pushPar(
+        pairs,
+        'Cores da arte',
+        <ModeloTintasPorModelo modelos={desc.modelos_composicao} />,
+        'wide',
+      );
+    }
     if (!omitModelosCount) {
       const modelos =
         desc.modelos != null

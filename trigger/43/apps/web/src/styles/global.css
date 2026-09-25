@@ -4964,13 +4964,57 @@ table.data-table td.acoes {
 .orc-pub-modelos-table .modelo-tintas-tags,
 .ficha-table .modelo-tintas-tags,
 .orc-modelos-table .modelo-tintas-tags {
-  margin-top: 0.18rem;
+  margin: 0;
+}
+
+.orc-pub-modelos-table th.orc-modelo-tintas-col,
+.ficha-table th.orc-modelo-tintas-col,
+.orc-modelos-table th.orc-modelo-tintas-col,
+.orc-pub-modelos-table td.orc-modelo-tintas-col,
+.ficha-table td.orc-modelo-tintas-col,
+.orc-modelos-table td.orc-modelo-tintas-col {
+  min-width: 7.5rem;
+  vertical-align: top;
 }
 
 .orc-pub-modelos-table .modelo-tinta-tag,
 .ficha-table .modelo-tinta-tag {
   font-size: 0.68rem;
   padding: 0.04rem 0.38rem;
+  white-space: normal;
+}
+
+.modelo-tintas-empty {
+  color: var(--text-muted);
+}
+
+.modelo-tintas-por-modelo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modelo-tintas-por-modelo__nome {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--text-muted);
+  margin-bottom: 0.08rem;
+}
+
+.ficha-desc-cell .modelo-tintas-tags,
+.orc-pub-spec-dense-v .modelo-tintas-tags,
+.ped-ficha-spec-v .modelo-tintas-tags {
+  margin-top: 0.12rem;
+}
+
+.ficha-desc-cell .modelo-tinta-tag,
+.orc-pub-spec-dense-v .modelo-tinta-tag,
+.ped-ficha-spec-v .modelo-tinta-tag {
+  white-space: normal;
 }
 
 .orc-modelos-editor-table th.orc-modelo-arte-col,
