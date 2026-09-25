@@ -5,11 +5,13 @@ import {
   metaLinhasParteComercial,
 } from './OrcPubParteComercial';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import type { ReactNode } from 'react';
 import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
-import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
+import { formatDecimalBr } from '../lib/format';
 import { formatoLabel } from './FacaShapeIcon';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
@@ -17,16 +19,19 @@ import {
   freteTextoDoPedido,
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { necessidadeLabel, opStatusLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
+import { necessidadeContratoLabel, opStatusLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
 import {
   asPedidoSnap,
   dash,
+  faixaIndexDoItem,
   formatDateTimeBr,
+  matrizQuantidadesDoItem,
   modelosDoSnap,
   pedChipClass,
-  snapInput,
+  qtdeFaixaDoItem,
   specOperacional,
 } from '../lib/producaoFicha';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 import { displaySnap } from '../lib/orcamentoForm';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { ModeloTintasPorModelo } from './ModeloTintasTags';
@@ -92,21 +97,35 @@ function pushPar(
 function PedidoSpecLinha({
   spec,
   isServico,
+  isRevenda = false,
   descricaoItem,
   unidade,
   omitModelosCount = false,
+  comercial = false,
 }: {
   spec: Record<string, unknown>;
   isServico: boolean;
+  isRevenda?: boolean;
   descricaoItem: string;
   unidade: string;
   /** Quando a tabela de modelos vem logo abaixo. */
   omitModelosCount?: boolean;
+  /** Contrato comercial: sem chão de fábrica. */
+  comercial?: boolean;
 }) {
   const desc = descricaoFromPedidoSpec(spec);
   const pairs: SpecPar[] = [];
 
-  if (isServico) {
+  if (isRevenda) {
+    pushPar(
+      pairs,
+      'Produto',
+      desc.produto_descricao || descricaoItem || 'Revenda',
+      'wide',
+    );
+    pushPar(pairs, 'SKU', desc.produto_codigo || null);
+    pushPar(pairs, 'Unidade', unidade || desc.unidade || null, 'narrow');
+  } else if (isServico) {
     pushPar(
       pairs,
       'Descrição',
@@ -144,23 +163,29 @@ function PedidoSpecLinha({
       'Etiq/rolo',
       desc.etiq_por_rolo != null ? Number(desc.etiq_por_rolo).toLocaleString('pt-BR') : null,
     );
-    pushPar(
-      pairs,
-      'Puxada',
-      desc.puxada_cm != null && Number.isFinite(Number(desc.puxada_cm))
-        ? `${formatDecimalBr(Number(desc.puxada_cm), 2)} cm`
-        : null,
-    );
-    pushPar(pairs, 'Máquina', snapVal(spec, 'maquina'));
-    pushPar(pairs, 'Z', snapVal(spec, 'z'), 'narrow');
-    pushPar(pairs, 'Colunas', snapVal(spec, 'colunas'), 'narrow');
-    pushPar(
-      pairs,
-      'Larg. papel',
-      spec.largura_cm != null && Number.isFinite(Number(spec.largura_cm))
-        ? `${formatDecimalBr(Number(spec.largura_cm), 2)} cm`
-        : null,
-    );
+    const saida = String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? '');
+    if (saida && saidaEtiquetaLabel(saida)) {
+      pushPar(pairs, 'Saída', <SaidaEtiquetaBadge code={saida} variant="dense" />);
+    }
+    if (!comercial) {
+      pushPar(
+        pairs,
+        'Puxada',
+        desc.puxada_cm != null && Number.isFinite(Number(desc.puxada_cm))
+          ? `${formatDecimalBr(Number(desc.puxada_cm), 2)} cm`
+          : null,
+      );
+      pushPar(pairs, 'Máquina', snapVal(spec, 'maquina'));
+      pushPar(pairs, 'Z', snapVal(spec, 'z'), 'narrow');
+      pushPar(pairs, 'Colunas', snapVal(spec, 'colunas'), 'narrow');
+      pushPar(
+        pairs,
+        'Larg. papel',
+        spec.largura_cm != null && Number.isFinite(Number(spec.largura_cm))
+          ? `${formatDecimalBr(Number(spec.largura_cm), 2)} cm`
+          : null,
+      );
+    }
     const formato = spec.formato_faca != null ? String(spec.formato_faca) : '';
     const facaTxt = formato
       ? `${formatoLabel(formato)}${Boolean(spec.faca_nova) ? ' · nova' : ''}`
@@ -213,19 +238,19 @@ export function PedidoItemFichaBloco({
 }) {
   const spec = specOperacional(pedido, item);
   const isServico = item.necessidade === 'SERVICO';
+  const isRevenda = item.necessidade === 'REVENDA';
+  const isEtiqueta = item.necessidade === 'PRODUCAO';
   const pa = item.produto_pa
     ? `${item.produto_pa.codigo} — ${item.produto_pa.descricao_fiscal}`
     : null;
   const ordemTxt = ordemDoItem(item, ops, oss);
   const descricao = (item.descricao || '').trim() || '—';
-  const modelos = !isServico ? modelosDoSnap(spec) : [];
-  const snap = asPedidoSnap(pedido.snapshot);
-  const input = snapInput(pedido);
-  const matrizQtdes = Array.isArray(input.modelos_composicao_quantidades)
-    ? (input.modelos_composicao_quantidades as number[][])
-    : undefined;
-  const qtdeFaixa =
-    Number(snap.faixa?.quantidade ?? item.qtde_pedida) || Number(item.qtde_pedida) || 0;
+  const modelos = isEtiqueta ? modelosDoSnap(spec) : [];
+  const faixaIdx = faixaIndexDoItem(pedido, item);
+  const matrizQtdes = matrizQuantidadesDoItem(item);
+  const qtdeFaixa = qtdeFaixaDoItem(pedido, item);
+  const desc = descricaoFromPedidoSpec(spec);
+  const comercial = eixo === 'pedido';
 
   return (
     <article className="ped-ficha-item">
@@ -240,38 +265,35 @@ export function PedidoItemFichaBloco({
             <strong>{descricao}</strong>
           </div>
           <span className="ped-ficha-item-tags">
-            {necessidadeLabel(item.necessidade)}
-            {' · '}
-            {pedItemStatusLabel(item.status)}
+            {necessidadeContratoLabel(item.necessidade)}
+            {comercial ? null : ` · ${pedItemStatusLabel(item.status)}`}
             {item.familia_fiscal ? ` · ${item.familia_fiscal}` : ''}
           </span>
           {pa ? <span className="ped-ficha-item-pa">{pa}</span> : null}
         </div>
         <div className="ped-ficha-item-qtdes">
           <span>
-            <em>Pedida</em>
+            <em>{isEtiqueta ? 'Faixa' : 'Quantidade'}</em>
+            {isEtiqueta ? `#${faixaIdx + 1} · ` : null}
             {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
           </span>
-          <span>
-            <em>Produzida</em>
-            {formatDecimalBr(Number(item.qtde_produzida), 0)}
-          </span>
           {eixo === 'producao' ? (
-            <span>
-              <em>Planejada</em>
-              {qtdePlanejada != null ? formatDecimalBr(Number(qtdePlanejada), 0) : '—'}
-            </span>
-          ) : (
-            <span>
-              <em>Faturável</em>
-              {formatDecimalBr(Number(item.qtde_faturavel), 0)}
-            </span>
-          )}
-          {ordemTxt !== '—' ? (
-            <span>
-              <em>Ordem</em>
-              {ordemTxt}
-            </span>
+            <>
+              <span>
+                <em>Produzida</em>
+                {formatDecimalBr(Number(item.qtde_produzida), 0)}
+              </span>
+              <span>
+                <em>Planejada</em>
+                {qtdePlanejada != null ? formatDecimalBr(Number(qtdePlanejada), 0) : '—'}
+              </span>
+              {ordemTxt !== '—' ? (
+                <span>
+                  <em>Ordem</em>
+                  {ordemTxt}
+                </span>
+              ) : null}
+            </>
           ) : null}
         </div>
       </header>
@@ -279,63 +301,36 @@ export function PedidoItemFichaBloco({
         <PedidoSpecLinha
           spec={spec}
           isServico={isServico}
+          isRevenda={isRevenda}
           descricaoItem={descricao}
           unidade={item.unidade}
           omitModelosCount={modelos.length > 0}
+          comercial={comercial}
         />
       </div>
 
-      <div className="ped-ficha-item-comercial">
-        <div className="ped-ficha-faixa-aprovada">
-          <div className="ped-ficha-faixa-head">
-            <span className="ped-ficha-faixa-title">Faixa aprovada</span>
-            <span className="ped-ficha-faixa-num">#{pedido.faixa_index + 1}</span>
-          </div>
-          <ul className="ped-ficha-faixa-kv" role="list">
-            <li>
-              <span className="ped-ficha-spec-k">Quantidade</span>
-              <span className="ped-ficha-spec-v">
-                {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
-              </span>
-            </li>
-            {eixo === 'pedido' ? (
-              <>
-                <li>
-                  <span className="ped-ficha-spec-k">Unitário</span>
-                  <span className="ped-ficha-spec-v">
-                    {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}
-                  </span>
-                </li>
-                <li>
-                  <span className="ped-ficha-spec-k">Total</span>
-                  <span className="ped-ficha-spec-v">
-                    {item.valor_total != null ? formatCurrency(item.valor_total) : '—'}
-                  </span>
-                </li>
-              </>
-            ) : null}
-          </ul>
-        </div>
-
-        {modelos.length > 0 ? (
+      {modelos.length > 0 ? (
+        <div className="ped-ficha-item-comercial">
           <ModelosComposicaoTable
             variant="ficha"
             className="ped-ficha-modelos"
-            title="Modelos"
-            hint="Distribuição da quantidade aprovada por arte."
+            title="Modelos desta posição"
+            hint="Quantidade da faixa aprovada em cada arte."
             showValorArte={false}
+            arteCaption={modeloArteCaptionFromMedida(desc.medida)}
+            arteSaida={String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? '') || null}
             modelos={modelos}
             faixas={[
               {
-                key: pedido.faixa_index,
+                key: faixaIdx,
                 quantidade: qtdeFaixa,
                 highlighted: true,
               },
             ]}
             quantidadesPorFaixa={matrizQtdes}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </article>
   );
 }

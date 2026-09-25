@@ -9,9 +9,9 @@ import {
   metaLinhasParteComercial,
 } from '../components/OrcPubParteComercial';
 import { api, type FaturamentoPreview, type Parceiro, type Pedido } from '../lib/api';
-import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { ExpedicaoPedidoPanel } from '../components/ExpedicaoPedidoPanel';
 import { ComissaoPedidoPanel } from '../components/ComissaoPedidoPanel';
+import { PedidoItensContrato } from '../components/PedidoItensContrato';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
@@ -23,8 +23,7 @@ import {
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
-import { necessidadeLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
-import { PedidoAndamentoOperacional } from '../components/PedidoAndamentoOperacional';
+import { pedStatusLabel } from '../lib/producaoUi';
 
 const MOD_FRETE_CIF = '0';
 const MOD_FRETE_FOB = '1';
@@ -232,15 +231,6 @@ export function PedidoDetailPage() {
                 Ficha do pedido
               </a>
             ) : null}
-            {pedido?.rastreio && (pedido.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (
-              <a
-                href={`/pedidos/${pedido.id}/rastreio`}
-                className="btn btn-secondary"
-                onClick={(e) => onAbrirFichaClick(e, `/pedidos/${pedido.id}/rastreio`)}
-              >
-                Imprimir rastreio
-              </a>
-            ) : null}
             {pedido?.orcamento?.id ? (
               <Link to={`/orcamentos/${pedido.orcamento.id}`} className="btn btn-secondary">
                 {pedido.orcamento.codigo}
@@ -361,7 +351,13 @@ export function PedidoDetailPage() {
             </div>
           </div>
 
-          <PedidoAndamentoOperacional pedido={pedido} />
+          <PedidoItensContrato
+            pedido={pedido}
+            busy={busy}
+            canWriteProducao={hasPermission('producao.escrever')}
+            onSepararRevenda={(itemId) => void separarRevenda(itemId)}
+            onAbrirOrdem={(itemId, necessidade) => void abrirOrdem(itemId, necessidade)}
+          />
 
           {preview ? (
             <div className="card" style={{ marginBottom: '1rem' }}>
@@ -660,140 +656,6 @@ export function PedidoDetailPage() {
           ) : null}
 
           <ComissaoPedidoPanel pedidoId={pedido.id} pedidoStatus={pedido.status} />
-
-          <div className="card ped-detail-itens">
-            <div className="card-body">
-              <div className="form-section">
-                <h3>Itens do pedido</h3>
-                <p className="muted" style={{ marginTop: 0 }}>
-                  O que foi contratado na liberação — quantidade, unitário e total por posição.
-                  Produção abre OP (etiqueta) ou OS (serviço). Revenda confirma a separação
-                  no próprio pedido — sem ordem.
-                </p>
-              </div>
-              <div className="table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th className="num">#</th>
-                      <th>Descrição</th>
-                      <th>Necessidade</th>
-                      <th className="num">Pedida</th>
-                      <th className="num">Produzida</th>
-                      <th className="num">Unitário</th>
-                      <th className="num">Total</th>
-                      <th>Status</th>
-                      <th className="acoes">Ordem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pedido.itens.map((item) => {
-                      const opAtiva = pedido.ordens_producao?.find(
-                        (o) =>
-                          o.status !== 'CANCELADA' &&
-                          (o.pedido_item_id == null || o.pedido_item_id === item.id),
-                      );
-                      const osAtiva = pedido.ordens_servico?.find(
-                        (o) =>
-                          o.status !== 'CANCELADA' &&
-                          (o.pedido_item_id == null || o.pedido_item_id === item.id),
-                      );
-                      return (
-                        <tr key={item.id}>
-                          <td className="num">{item.ordem}</td>
-                          <td>{item.descricao}</td>
-                          <td>{necessidadeLabel(item.necessidade)}</td>
-                          <td className="num">
-                            {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
-                          </td>
-                          <td className="num">{formatDecimalBr(Number(item.qtde_produzida), 0)}</td>
-                          <td className="num">
-                            {item.preco_unitario != null
-                              ? formatUnitPrice(item.preco_unitario)
-                              : '—'}
-                          </td>
-                          <td className="num">
-                            {item.valor_total != null
-                              ? formatCurrency(item.valor_total)
-                              : '—'}
-                          </td>
-                          <td>
-                            <StatusPill status={pedItemStatusLabel(item.status)} />
-                          </td>
-                          <td>
-                            <div className="table-actions table-actions--wrap">
-                              {item.necessidade === 'PRODUCAO' && opAtiva ? (
-                                <Link
-                                  to={`/ordens-producao/${opAtiva.id}`}
-                                  className="btn btn-secondary"
-                                >
-                                  {opAtiva.codigo}
-                                </Link>
-                              ) : null}
-                              {item.necessidade === 'SERVICO' && osAtiva ? (
-                                <Link
-                                  to={`/ordens-servico/${osAtiva.id}`}
-                                  className="btn btn-secondary"
-                                >
-                                  {osAtiva.codigo}
-                                </Link>
-                              ) : null}
-                              {hasPermission('producao.escrever') &&
-                              ['LIBERADO', 'EM_PRODUCAO'].includes(pedido.status) &&
-                              item.status === 'PENDENTE' &&
-                              item.necessidade === 'REVENDA' ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-primary"
-                                  disabled={busy}
-                                  onClick={() => void separarRevenda(item.id)}
-                                >
-                                  Confirmar separação
-                                </button>
-                              ) : null}
-                              {hasPermission('producao.escrever') &&
-                              ['LIBERADO', 'EM_PRODUCAO'].includes(pedido.status) &&
-                              item.status === 'PENDENTE' &&
-                              item.necessidade !== 'REVENDA' ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-primary"
-                                  disabled={busy}
-                                  onClick={() => void abrirOrdem(item.id, item.necessidade)}
-                                >
-                                  {item.necessidade === 'SERVICO' ? 'Abrir OS' : 'Abrir OP'}
-                                </button>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  {pedido.itens.length > 0 ? (
-                    <tfoot>
-                      <tr>
-                        <td colSpan={6} className="num">
-                          Total do pedido
-                        </td>
-                        <td className="num">
-                          <strong>{formatCurrency(totalPedido)}</strong>
-                        </td>
-                        <td colSpan={2} />
-                      </tr>
-                    </tfoot>
-                  ) : null}
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {pedido.rastreio ? (
-            <RastreioInsumosPanel
-              rastreio={pedido.rastreio}
-              printHref={`/pedidos/${pedido.id}/rastreio`}
-            />
-          ) : null}
         </>
       )}
     </>

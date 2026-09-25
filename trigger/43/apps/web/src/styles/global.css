@@ -5911,6 +5911,58 @@ table.data-table td.acoes {
   color: var(--navy-dark);
 }
 
+.ped-itens-tabela tbody.ped-itens-grupo + tbody.ped-itens-grupo {
+  border-top: 2px solid color-mix(in srgb, var(--navy, #1a3568) 14%, var(--border));
+}
+
+.ped-itens-tabela .ped-itens-mae td {
+  vertical-align: top;
+  background: color-mix(in srgb, var(--navy, #1a3568) 2.5%, #fff);
+}
+
+.ped-itens-tabela .ped-itens-pos {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.ped-itens-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ped-itens-lead strong {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--navy-dark);
+  letter-spacing: -0.01em;
+}
+
+.ped-itens-resumo,
+.ped-itens-saida {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ped-itens-tabela .ped-itens-modelos td {
+  padding: 0.35rem 0.75rem 0.85rem;
+  background: #fff;
+  border-bottom: none;
+}
+
+.ped-itens-tabela .ped-itens-modelos-table {
+  margin: 0;
+}
+
+.ped-itens-tabela .ped-itens-modelos-table .orc-subsection-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+}
+
 .orc-spec-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));

@@ -116,7 +116,8 @@ Ficha-cliente A4: opções por posição, **sem** rádio — a escolha é no `/p
 | **0 — Norma** | Esta ADR + BL + emendas | Zero código |
 | **1 — Paridade** | Modelo/API/UI com N=1 idêntico ao flat atual | Golden BRAHVA · testes ORC/aprovação/PED 1 linha |
 | **2 — Multi-item ORC** | UI N>1 · proposta · totais Σ | Link/aprovação/frete intactos no cabeçalho |
-| **3 — PED N linhas** | Espelho item→`pedido_itens` · OP por linha | Sem N PEDs por ORC |
+| **3a — PED N linhas (comercial)** | Espelho item→`pedido_itens` com faixa e modelos da posição | Sem N PEDs · OP por linha fica 3b |
+| **3b — OP por linha** | Abrir OP/OS a partir da linha | Sem N PEDs por ORC |
 
 ---
 
@@ -155,6 +156,13 @@ Ficha-cliente A4: opções por posição, **sem** rádio — a escolha é no `/p
 - Adiantamento: Σ escolhas quando N>1
 - Testes: `OrcamentoAceiteFaixasTest` · asserts em `OrcamentoAprovacaoTest`
 
-**Futuro (fase 3 — não criar além do necessário):**
-- `PedidoService` · `pedido_itens` · FAT por item
+**Fase 3a (espelho comercial):**
+- `PedidoService` cria N `pedido_itens` (etiqueta, revenda ou misto)
+- Spec do item: faixa aprovada, modelos e matriz da posição
+- Snapshot do cabeçalho permanece o 1º item (compat)
+- Tela/ficha do PED: tabela hierárquica item → modelos da faixa contratada
+- FAT lê preço/ferramental/artes por item quando a spec tem faixa; legado N=1 intacto
+
+**Futuro (fase 3b — OP por linha):**
+- OP/OS a partir da linha · sem N PEDs
 - BL: `BL-106` em `docs/BACKLOG.md`

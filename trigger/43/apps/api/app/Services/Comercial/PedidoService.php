@@ -81,19 +81,9 @@ class PedidoService
 
         $faixaIndex = (int) ($orcamento->aceite_faixa_index ?? 0);
         $jobs = $this->jobsDoOrcamento($orcamento);
-        $temRevenda = false;
-        foreach ($jobs as $job) {
-            if (PedidoItem::isRevenda($this->resolverNecessidade($job['input']))) {
-                $temRevenda = true;
-                break;
-            }
-        }
-        if (! $temRevenda) {
-            $jobs = [$jobs[0]];
-        }
-
         $primeiro = $jobs[0];
-        $faixaIndexPrimeiro = OrcamentoAceiteFaixas::indiceDoItem($orcamento, 1, $faixaIndex);
+        $ordemPrimeiro = (int) ($primeiro['ordem'] ?? 1);
+        $faixaIndexPrimeiro = OrcamentoAceiteFaixas::indiceDoItem($orcamento, $ordemPrimeiro, $faixaIndex);
         $faixa = $this->faixaDoJob($primeiro['result'], $faixaIndexPrimeiro);
         $input = $primeiro['input'];
 
@@ -120,8 +110,11 @@ class PedidoService
                 'observacao' => $orcamento->observacao,
             ]);
 
-            foreach (array_values($jobs) as $i => $job) {
-                $ordem = $i + 1;
+            foreach ($jobs as $i => $job) {
+                $ordem = (int) ($job['ordem'] ?? ($i + 1));
+                if ($ordem < 1) {
+                    $ordem = $i + 1;
+                }
                 $idx = OrcamentoAceiteFaixas::indiceDoItem($orcamento, $ordem, $faixaIndex);
                 $this->criarItemDeJob($orcamento, $pedido, $job, $idx, $ordem);
             }
@@ -285,6 +278,7 @@ class PedidoService
                 'familia_fiscal' => $i->familia_fiscal,
                 'descricao' => $i->descricao,
                 'especificacao' => $i->especificacao,
+                'faixa_index' => self::faixaIndexDoItem($i),
                 'qtde_pedida' => (string) $i->qtde_pedida,
                 'qtde_produzida' => (string) $i->qtde_produzida,
                 'qtde_faturavel' => (string) $i->qtde_faturavel,
@@ -422,7 +416,7 @@ class PedidoService
     }
 
     /**
-     * @return list<array{input: array<string, mixed>, result: array<string, mixed>}>
+     * @return list<array{ordem: int, input: array<string, mixed>, result: array<string, mixed>}>
      */
     private function jobsDoOrcamento(Orcamento $orcamento): array
     {
@@ -432,6 +426,7 @@ class PedidoService
                 ->sortBy('ordem')
                 ->values()
                 ->map(static fn ($item) => [
+                    'ordem' => (int) $item->ordem,
                     'input' => is_array($item->input_snapshot) ? $item->input_snapshot : [],
                     'result' => is_array($item->result_snapshot) ? $item->result_snapshot : [],
                 ])
@@ -439,6 +434,7 @@ class PedidoService
         }
 
         return [[
+            'ordem' => 1,
             'input' => is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [],
             'result' => is_array($orcamento->result_snapshot) ? $orcamento->result_snapshot : [],
         ]];
@@ -514,7 +510,7 @@ class PedidoService
             'necessidade' => $necessidade,
             'familia_fiscal' => $familia,
             'descricao' => $this->montarDescricao($input, $faixa),
-            'especificacao' => $this->montarEspecificacao($input, $servico),
+            'especificacao' => $this->montarEspecificacao($input, $servico, $faixa, $faixaIndex),
             'qtde_pedida' => $qtde,
             'qtde_produzida' => '0',
             'qtde_faturavel' => '0',
@@ -636,10 +632,16 @@ class PedidoService
     /**
      * @param  array<string, mixed>  $input
      * @param  array<string, mixed>|null  $servico
+     * @param  array<string, mixed>  $faixa
      * @return array<string, mixed>
      */
-    private function montarEspecificacao(array $input, ?array $servico): array
+    private function montarEspecificacao(array $input, ?array $servico, array $faixa, int $faixaIndex): array
     {
+        $contrato = [
+            'faixa_index' => $faixaIndex,
+            'faixa' => $faixa,
+        ];
+
         if (PedidoItem::isRevenda($input['necessidade'] ?? null)) {
             return [
                 'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
@@ -649,6 +651,7 @@ class PedidoService
                 'produto_descricao' => $input['produto_descricao'] ?? null,
                 'familia_fiscal' => $input['familia_fiscal'] ?? null,
                 'unidade' => $input['unidade'] ?? null,
+                ...$contrato,
             ];
         }
 
@@ -666,11 +669,13 @@ class PedidoService
                 'cessao_bem_id' => $input['cessao_bem_id'] ?? null,
                 'codigo_tributacao_nacional_iss' => $input['codigo_tributacao_nacional_iss'] ?? $cat['codigo_tributacao_nacional_iss'],
                 'codigo_nbs' => $input['codigo_nbs'] ?? $cat['codigo_nbs'],
+                ...$contrato,
             ];
         }
 
         return [
             'tipo_operacao' => TipoOperacaoSaida::INDUSTRIALIZACAO,
+            'necessidade' => PedidoItem::NEC_PRODUCAO,
             'medida' => $input['medida'] ?? null,
             'papel' => $input['papel'] ?? null,
             'cores' => $input['cores'] ?? null,
@@ -680,7 +685,25 @@ class PedidoService
             'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
             'largura_cm' => $input['largura_cm'] ?? null,
             'puxada_cm' => $input['puxada_cm'] ?? null,
+            'z' => $input['z'] ?? null,
+            'colunas' => $input['colunas'] ?? null,
+            'formato_faca' => $input['formato_faca'] ?? null,
+            'faca_nova' => $input['faca_nova'] ?? $faixa['faca_nova'] ?? null,
+            'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
+            'facas' => $input['facas'] ?? $faixa['facas'] ?? null,
             'modelos_composicao' => $input['modelos_composicao'] ?? null,
+            'modelos_composicao_quantidades' => $input['modelos_composicao_quantidades'] ?? null,
+            ...$contrato,
         ];
+    }
+
+    public static function faixaIndexDoItem(PedidoItem $item): ?int
+    {
+        $spec = is_array($item->especificacao) ? $item->especificacao : [];
+        if (! array_key_exists('faixa_index', $spec) || $spec['faixa_index'] === null) {
+            return null;
+        }
+
+        return (int) $spec['faixa_index'];
     }
 }

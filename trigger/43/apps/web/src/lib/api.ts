@@ -2634,6 +2634,8 @@ export type PedidoItem = {
   familia_fiscal: string | null;
   descricao: string;
   especificacao?: Record<string, unknown> | null;
+  /** Índice da faixa aprovada nesta posição (spec do item). */
+  faixa_index?: number | null;
   qtde_pedida: string;
   qtde_produzida: string;
   qtde_faturavel: string;

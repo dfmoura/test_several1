@@ -533,6 +533,7 @@ class FaturamentoService
         }
 
         $travado = $this->precoTravado($pedido);
+        $jobsComerciais = $this->jobsComerciais($pedido);
 
         $itens = [];
         $valorItens = '0.00';
@@ -550,9 +551,7 @@ class FaturamentoService
             if ($item->status !== PedidoItem::STATUS_PRODUZIDO) {
                 $bloqueios[] = 'Item ainda não produzido: '.$item->descricao.'.';
             }
-            $linhaTravado = $item->necessidade === PedidoItem::NEC_REVENDA
-                ? PrecoTravadoPedido::doItem($item)
-                : $travado;
+            $linhaTravado = $this->travadoDoItem($item, $travado);
             $preco = $linhaTravado['preco_unitario'];
             $valor = $item->necessidade === PedidoItem::NEC_REVENDA
                 ? $linhaTravado['valor_comercial']
@@ -576,13 +575,13 @@ class FaturamentoService
             $bloqueios[] = 'Nenhum item faturável no pedido.';
         }
 
-        $valorMatriz = $travado['valor_matriz'];
-        $itensFaca = $this->itensFaca($pedido);
+        $valorMatriz = $this->valorMatrizDosJobs($jobsComerciais, $travado);
+        $itensFaca = $this->itensFaca($pedido, $jobsComerciais);
         $valorFaca = '0.00';
         foreach ($itensFaca as $facaLinha) {
             $valorFaca = bcadd($valorFaca, $facaLinha['valor'], PadraoDecimal::SCALE_MONEY);
         }
-        $itensArte = $this->itensArte($pedido);
+        $itensArte = $this->itensArte($pedido, $jobsComerciais);
         $valorArtes = '0.00';
         foreach ($itensArte as $arte) {
             $valorArtes = bcadd($valorArtes, $arte['valor'], PadraoDecimal::SCALE_MONEY);
@@ -782,14 +781,109 @@ class FaturamentoService
     }
 
     /**
+     * @param  array{qtde_faixa: string, valor_etiqueta: string, preco_unitario: string, valor_matriz: string, valor_comercial: string, origem: string}  $fallback
+     * @return array{qtde_faixa: string, valor_etiqueta: string, preco_unitario: string, valor_matriz: string, valor_comercial: string, origem: string}
+     */
+    private function travadoDoItem(PedidoItem $item, array $fallback): array
+    {
+        $spec = is_array($item->especificacao) ? $item->especificacao : [];
+        $faixa = is_array($spec['faixa'] ?? null) ? $spec['faixa'] : [];
+        if (PrecoTravadoPedido::faixaUtil($faixa)) {
+            return PrecoTravadoPedido::daFaixa($faixa);
+        }
+        if ($item->necessidade === PedidoItem::NEC_REVENDA) {
+            return PrecoTravadoPedido::doItem($item);
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Jobs comerciais do PED: spec+faixa por item quando todos têm faixa gravada.
+     * Pedidos legados (sem faixa no item) caem no snapshot do cabeçalho — N=1 intacto.
+     *
+     * @return list<array{input: array<string, mixed>, faixa: array<string, mixed>}>
+     */
+    private function jobsComerciais(Pedido $pedido): array
+    {
+        $pedido->loadMissing('itens');
+        $ativos = $pedido->itens->filter(
+            static fn (PedidoItem $i) => $i->status !== PedidoItem::STATUS_CANCELADO
+        );
+        $jobs = [];
+        foreach ($ativos as $item) {
+            $spec = is_array($item->especificacao) ? $item->especificacao : [];
+            $faixa = is_array($spec['faixa'] ?? null) ? $spec['faixa'] : null;
+            if ($faixa === null) {
+                return $this->jobCabecalho($pedido);
+            }
+            $jobs[] = ['input' => $spec, 'faixa' => $faixa];
+        }
+
+        return $jobs !== [] ? $jobs : $this->jobCabecalho($pedido);
+    }
+
+    /**
+     * @return list<array{input: array<string, mixed>, faixa: array<string, mixed>}>
+     */
+    private function jobCabecalho(Pedido $pedido): array
+    {
+        return [[
+            'input' => is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [],
+            'faixa' => is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [],
+        ]];
+    }
+
+    /**
+     * @param  list<array{input: array<string, mixed>, faixa: array<string, mixed>}>  $jobs
+     * @param  array{qtde_faixa: string, valor_etiqueta: string, preco_unitario: string, valor_matriz: string, valor_comercial: string, origem: string}  $fallback
+     */
+    private function valorMatrizDosJobs(array $jobs, array $fallback): string
+    {
+        $soma = '0.00';
+        $usouFaixa = false;
+        foreach ($jobs as $job) {
+            if (! PrecoTravadoPedido::faixaUtil($job['faixa'])) {
+                continue;
+            }
+            $usouFaixa = true;
+            $soma = bcadd($soma, PrecoTravadoPedido::daFaixa($job['faixa'])['valor_matriz'], PadraoDecimal::SCALE_MONEY);
+        }
+
+        return $usouFaixa ? $soma : $fallback['valor_matriz'];
+    }
+
+    /**
      * Ferramental cotado no ORC (0..N linhas; fora da base de comissão).
      *
+     * @param  list<array{input: array<string, mixed>, faixa: array<string, mixed>}>  $jobs
      * @return list<array{descricao: string, valor: string}>
      */
-    private function itensFaca(Pedido $pedido): array
+    private function itensFaca(Pedido $pedido, array $jobs = []): array
     {
+        if ($jobs !== []) {
+            $out = [];
+            foreach ($jobs as $job) {
+                $out = array_merge($out, $this->itensFacaDeJob($job['input'], $job['faixa']));
+            }
+            if ($out !== []) {
+                return $out;
+            }
+        }
+
         $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
         $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];
+
+        return $this->itensFacaDeJob($input, $faixa);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $faixa
+     * @return list<array{descricao: string, valor: string}>
+     */
+    private function itensFacaDeJob(array $input, array $faixa): array
+    {
         $raw = $faixa['facas'] ?? $input['facas'] ?? null;
 
         if (is_array($raw) && $raw !== []) {
@@ -837,7 +931,7 @@ class FaturamentoService
         }
 
         // Legado sem `facas[]`.
-        $valor = $this->valorFacaLegado($pedido);
+        $valor = $this->valorFacaLegadoDeJob($input, $faixa);
         if (bccomp($valor, '0', PadraoDecimal::SCALE_MONEY) <= 0) {
             return [];
         }
@@ -848,10 +942,12 @@ class FaturamentoService
         ]];
     }
 
-    private function valorFacaLegado(Pedido $pedido): string
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $faixa
+     */
+    private function valorFacaLegadoDeJob(array $input, array $faixa): string
     {
-        $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
-        $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];
         $facaNova = (bool) ($faixa['faca_nova'] ?? $input['faca_nova'] ?? false);
         if (! $facaNova) {
             return '0.00';
@@ -865,12 +961,34 @@ class FaturamentoService
     /**
      * Artes cotadas no ORC (fixo por modelo; fora da base de comissão).
      *
+     * @param  list<array{input: array<string, mixed>, faixa: array<string, mixed>}>  $jobs
      * @return list<array{descricao: string, valor: string}>
      */
-    private function itensArte(Pedido $pedido): array
+    private function itensArte(Pedido $pedido, array $jobs = []): array
     {
+        if ($jobs !== []) {
+            $out = [];
+            foreach ($jobs as $job) {
+                $out = array_merge($out, $this->itensArteDeJob($job['input'], $job['faixa']));
+            }
+            if ($out !== []) {
+                return $out;
+            }
+        }
+
         $input = is_array($pedido->snapshot['input'] ?? null) ? $pedido->snapshot['input'] : [];
         $faixa = is_array($pedido->snapshot['faixa'] ?? null) ? $pedido->snapshot['faixa'] : [];
+
+        return $this->itensArteDeJob($input, $faixa);
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $faixa
+     * @return list<array{descricao: string, valor: string}>
+     */
+    private function itensArteDeJob(array $input, array $faixa): array
+    {
         $raw = $faixa['modelos_composicao'] ?? $input['modelos_composicao'] ?? null;
         if (! is_array($raw) || $raw === []) {
             return [];

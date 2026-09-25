@@ -40,13 +40,13 @@ misto:    linhas PRODUCAO → OP; linhas REVENDA → separar
 5. Baixa de estoque **só** na NF-e autorizada (`SAIDA_VENDA`) — já era.  
 6. Comissão: base continua **etiqueta**. REV fora do COM- nesta fatia.  
 7. Sem status novo de PED. Sem `OP-REV`. Sem segundo PED.  
-8. Etiqueta-only N>1 **não muda** (PED ainda espelha o item 1 — BL-106 fase 3). Se houver **qualquer** item REV, o PED nasce com **N linhas** (uma por posição).
+8. PED nasce com **N linhas** (uma por posição) — etiqueta, revenda ou misto. OP por linha permanece fatia seguinte.
 
 ### UX
 
 - No item: **Etiqueta sob medida** | **Produto de revenda**.  
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
-- PED: CTA **Confirmar separação**; andamento já diz “Revenda — sem OP”.
+- PED: CTA **Confirmar separação** na linha do item; sem OP/OS.
 
 ## Proibido
 

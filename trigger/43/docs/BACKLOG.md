@@ -30,14 +30,14 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   1. Revenda = **item** (`necessidade=REVENDA`), não quarto tipo de ORC.
   2. SKU família `REV` da EMP; preço comercial; fora de R1–R20.
   3. PED sem OP/OS; CTA **Confirmar separação** → `PRODUZIDO`.
-  4. Só-REV N=1 ponta a ponta; misto cria N linhas se houver algum REV. Etiqueta-only N>1 intacta.
+  4. Só-REV N=1 ponta a ponta; misto e etiqueta-only N>1 nascem com N linhas (BL-106 fase 3a).
   5. `SAIDA_VENDA` continua só na NF. COM- não inclui REV.
 - **Aceite:**
   - [x] ORC só-REV calcula/salva sem motor/faca
   - [x] PED `NEC_REVENDA` + separar → FAT apto
   - [x] Abrir OP/OS em REV = 422
   - [x] Etiqueta clássica N=1 intacta
-- **Fora de escopo:** PA+SVC misto · COM- sobre REV · empenho de saldo no separar · PED N linhas de etiqueta-only
+- **Fora de escopo:** PA+SVC misto · COM- sobre REV · empenho de saldo no separar
 - **Norma:** `docs/ADR_ORC_ITEM_REVENDA.md`
 - **Teste:** `php vendor/bin/phpunit --filter 'RevendaOrcAteFaturamentoTest|OrcamentoRevendaPrecificadorTest'`
 
@@ -216,7 +216,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Teste local:** OP aberta com SKU `controla_lote` e volumes no local → Separação → **Preparar retirada** → conferir FEFO/local → confirmar. Ctrl+Shift+R se SPA antiga.
 
 ### BL-106 · [orc/norma+ux] ORC cabeçalho × itens (1..N jobs na proposta)
-- **Status:** Em andamento (fases 0–2 prontas; aceite por item na proposta; fase 3 PED pendente)
+- **Status:** Em andamento (fases 0–3a prontas; fase 3b OP por linha pendente)
 - **Prioridade:** P1
 - **Origem:** Chat 2026-09-20/21 — multi-faca era o nível errado; multi-item é o correto
 - **Depende de:** `ADR_ORC_ITENS.md` · emenda `ADR_ORC_FACAS_COMPOSICAO` · motor R1–R20 intacto
@@ -227,15 +227,16 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   4. N geometrias = N itens — não N facas no documento.
   5. PED continua 1:1 ORC; N `pedido_itens` na fase 3 — nunca N PEDs.
   6. Implementar em fases 1→2→3 sem quebrar N=1.
-  7. Aceite N>1: **uma faixa por item** (não um índice no documento). N=1 intacto. PED N linhas continua fase 3.
+  7. Aceite N>1: **uma faixa por item** (não um índice no documento). N=1 intacto. PED N linhas = fase 3a.
 - **Aceite (por fase):**
   - [x] Fase 0: ADR + emendas + este BL
   - [x] Fase 1: paridade N=1 — `orcamento_itens` · dual-write create/update · `itens` no show · legado materializado na leitura · UI flat intacta · testes `OrcamentoItensTest` + asserts em `OrcamentoTest`
   - [x] Fase 2: UI N>1 + proposta/totais Σ + link único + hierarquia resultado (N=1 limpo · N>1 hero+acordeão/seletor nas 3 abas)
-  - [ ] Fase 3: espelho PED N linhas + OP por linha (sem N PEDs)
+  - [x] Fase 3a: espelho PED N linhas (faixa + modelos por posição; sem N PEDs)
+  - [ ] Fase 3b: OP por linha
 - **Fora de escopo nesta BL:** proposta mista PA+SVC (fase 2 de tipo no item) · alterar R1–R20 · SKU por arte/faca
 - **Norma:** `docs/ADR_ORC_ITENS.md`
-- **Teste local:** http://localhost:8043 → Orçamentos → Novo → **Itens deste orçamento** (Adicionar/Duplicar) → Calcular/Salvar → no **detalhe**, guias por item na ficha + total/acordeão no resultado. PED ainda só espelha o item 1. Ctrl+Shift+R se SPA antiga.
+- **Teste local:** http://localhost:8043 → Orçamentos → Novo → **Itens deste orçamento** (Adicionar/Duplicar) → Calcular/Salvar → no **detalhe**, guias por item na ficha + total/acordeão no resultado. Pedido aprovado lista N posições com faixa e modelos. Ctrl+Shift+R se SPA antiga.
 
 ### BL-105 · [fiscal/ux] UI cancel/CC-e + piloto homolog nuvem
 - **Status:** Feito

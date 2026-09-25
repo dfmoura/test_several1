@@ -30,7 +30,72 @@ export function specOperacional(
   pedido: Pedido | null | undefined,
   item?: PedidoItem | null,
 ): Record<string, unknown> {
-  return { ...snapInput(pedido), ...(item?.especificacao ?? {}) };
+  const spec = item?.especificacao && typeof item.especificacao === 'object'
+    ? item.especificacao
+    : {};
+  const header = snapInput(pedido);
+  if (Object.keys(spec).length === 0) {
+    return header;
+  }
+  const {
+    modelos_composicao: _mc,
+    modelos_composicao_quantidades: _mq,
+    faixa: _fx,
+    faixa_index: _fi,
+    necessidade: _nec,
+    produto_id: _pid,
+    produto_codigo: _pc,
+    produto_descricao: _pd,
+    ...headerRest
+  } = header;
+  return { ...headerRest, ...spec };
+}
+
+export function faixaIndexDoItem(
+  pedido: Pedido | null | undefined,
+  item: PedidoItem | null | undefined,
+): number {
+  const spec = item?.especificacao;
+  if (spec && spec.faixa_index != null && Number.isFinite(Number(spec.faixa_index))) {
+    return Number(spec.faixa_index);
+  }
+  if (item?.faixa_index != null && Number.isFinite(Number(item.faixa_index))) {
+    return Number(item.faixa_index);
+  }
+  return Number(pedido?.faixa_index ?? 0) || 0;
+}
+
+export function faixaDoItem(
+  pedido: Pedido | null | undefined,
+  item: PedidoItem | null | undefined,
+): Record<string, unknown> | null {
+  const spec = item?.especificacao;
+  const raw = spec?.faixa;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  const header = asPedidoSnap(pedido?.snapshot).faixa;
+  if (header && typeof header === 'object') {
+    return header;
+  }
+  return null;
+}
+
+export function qtdeFaixaDoItem(
+  pedido: Pedido | null | undefined,
+  item: PedidoItem | null | undefined,
+): number {
+  const faixa = faixaDoItem(pedido, item);
+  const q = Number(faixa?.quantidade ?? item?.qtde_pedida ?? 0);
+  return Number.isFinite(q) ? q : 0;
+}
+
+export function matrizQuantidadesDoItem(
+  item: PedidoItem | null | undefined,
+): number[][] | undefined {
+  const raw = item?.especificacao?.modelos_composicao_quantidades;
+  if (!Array.isArray(raw)) return undefined;
+  return raw as number[][];
 }
 
 export function modelosDoSnap(input: Record<string, unknown>): ModeloComposicaoForm[] {

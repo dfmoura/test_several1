@@ -63,6 +63,12 @@ export function necessidadeLabel(necessidade: string): string {
   return NEC_LABELS[necessidade] ?? necessidade.replace(/_/g, ' ');
 }
 
+/** Rótulo comercial da posição no PED (contrato, não chão). */
+export function necessidadeContratoLabel(necessidade: string): string {
+  if (necessidade === 'PRODUCAO') return 'Etiqueta';
+  return necessidadeLabel(necessidade);
+}
+
 export function opStatusLabel(status: string): string {
   return OP_LABELS[status] ?? status.replace(/_/g, ' ');
 }
