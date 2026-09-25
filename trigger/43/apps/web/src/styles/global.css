@@ -9448,6 +9448,47 @@ tr.row-inactive td {
   padding-bottom: 0;
 }
 
+/* Contrato: uma linha de item + modelos da posição */
+.ped-ficha-item--contrato {
+  padding: 1.4mm 0 1.6mm;
+}
+
+.ped-ficha-item--contrato .ped-ficha-item-spec--linha {
+  padding: 0.7mm 1.1mm 0.75mm;
+}
+
+.ped-ficha-item--contrato .ped-ficha-spec-grid {
+  align-items: flex-end;
+}
+
+.ped-ficha-item--contrato .ped-ficha-spec-cell--narrow {
+  flex: 0 0 auto;
+  max-width: none;
+  min-width: 7mm;
+}
+
+.ped-ficha-item--contrato .ped-ficha-spec-cell:first-child {
+  flex: 0 0 6.5mm;
+  padding-right: 1mm;
+}
+
+.ped-ficha-item--contrato .ped-ficha-spec-cell:first-child .ped-ficha-spec-v {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ped-ficha-item--contrato .ped-ficha-item-comercial {
+  margin-top: 1mm;
+  gap: 0;
+}
+
+.ped-ficha-item--contrato .ped-ficha-modelos .orc-subsection-title,
+.ped-ficha-item--contrato .ped-ficha-modelos h4 {
+  margin: 0 0 0.4mm;
+  font-size: 6pt;
+}
+
 .ped-ficha-item-head {
   display: flex;
   flex-wrap: wrap;
