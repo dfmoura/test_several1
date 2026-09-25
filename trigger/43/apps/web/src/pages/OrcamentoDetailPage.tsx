@@ -6,7 +6,7 @@ import {
 } from '../components/OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from '../components/ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from '../components/ModeloArteOverlay';
-import { FacasComposicaoTable } from '../components/FacasComposicaoTable';
+import { FacasComposicaoEditor } from '../components/FacasComposicaoEditor';
 import {
   calculoComItensDoOrcamento,
   facasFromSnapshot,
@@ -362,6 +362,7 @@ export function OrcamentoDetailPage() {
   const faixasItem = itemFicha.result?.faixas ?? orc.result_snapshot?.faixas ?? [];
   const isRevendaItem = isRevendaSnap(inputItem);
   const specTiles = buildOrcSpecTiles(inputItem, isServico, isRevendaItem);
+  const facaEscolhida = !isServico && !isRevendaItem && facasComp.length > 0;
 
   const calculoDetalhe = orc.result_snapshot
     ? calculoComItensDoOrcamento(orc.result_snapshot, orc.itens) ?? orc.result_snapshot
@@ -855,7 +856,7 @@ export function OrcamentoDetailPage() {
         </div>
       ) : null}
 
-      <div className={`card${facaDesenho ? ' orc-faca-card' : ''}`} style={{ marginBottom: '1rem' }}>
+      <div className={`card${facaEscolhida || facaDesenho ? ' orc-faca-card' : ''}`} style={{ marginBottom: '1rem' }}>
         <div className="card-body">
           {multiFicha ? (
             <>
@@ -886,14 +887,21 @@ export function OrcamentoDetailPage() {
               </div>
             </>
           ) : null}
-          {facaDesenho ? (
+          {facaEscolhida ? (
+            <div className="orc-spec-faca">
+              <h3 className="orc-section-title" style={{ marginTop: 0 }}>
+                Faca
+              </h3>
+              <FacasComposicaoEditor facas={facasComp} canWrite={false} />
+            </div>
+          ) : facaDesenho ? (
             <div className="orc-spec-faca orc-spec-faca--compact">
               <OrcamentoFacaDesenho {...facaDesenho} variant="inline" />
             </div>
           ) : null}
           <h3
             className="orc-section-title"
-            style={{ marginTop: facaDesenho || multiFicha ? '0.75rem' : 0 }}
+            style={{ marginTop: facaEscolhida || facaDesenho || multiFicha ? '0.75rem' : 0 }}
           >
             {multiFicha
               ? `Especificação · ${rotuloItemOrc(itemFicha.ordem, itemFicha.rotulo)}`
@@ -946,15 +954,6 @@ export function OrcamentoDetailPage() {
                   ? (inputItem.modelos_composicao_quantidades as number[][])
                   : undefined
               }
-            />
-          ) : null}
-          {!isServico && !isRevendaDoc && facasComp.length > 1 ? (
-            <FacasComposicaoTable
-              variant="data"
-              className="orc-facas-detalhe-page"
-              hint={null}
-              showValor
-              facas={facasComp}
             />
           ) : null}
           {orc.observacao ? (

@@ -26,7 +26,7 @@ import {
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
-import { FacasComposicaoTable } from './FacasComposicaoTable';
+import { FacasComposicaoEditor } from './FacasComposicaoEditor';
 import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
 import {
   buildItensResultadoUi,
@@ -1005,14 +1005,8 @@ function PropostaItemBloco({
             quantidadesPorFaixa={item.quantidadesPorFaixa}
           />
         ) : null}
-        {facasRows.length > 1 ? (
-          <FacasComposicaoTable
-            variant="data"
-            className="orc-facas-resultado"
-            hint={null}
-            showValor
-            facas={facasRows}
-          />
+        {facasRows.length > 0 ? (
+          <FacasComposicaoEditor facas={facasRows} canWrite={false} />
         ) : null}
         <ComercialFaixasTable
           faixas={faixas}
@@ -1340,14 +1334,8 @@ export function OrcamentoResultado({
                     quantidadesPorFaixa={modelosComposicaoQuantidades ?? undefined}
                   />
                 ) : null}
-                {facasRows.length > 1 ? (
-                  <FacasComposicaoTable
-                    variant="data"
-                    className="orc-facas-resultado"
-                    hint={null}
-                    showValor
-                    facas={facasRows}
-                  />
+                {facasRows.length > 0 ? (
+                  <FacasComposicaoEditor facas={facasRows} canWrite={false} />
                 ) : null}
                 <ComercialFaixasTable
                   faixas={faixas}

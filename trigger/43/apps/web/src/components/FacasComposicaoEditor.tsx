@@ -16,7 +16,8 @@ type Props = {
   facas: FacaComposicaoForm[];
   maquinasCatalogo?: string[];
   canWrite: boolean;
-  onChange: (next: FacaComposicaoForm[]) => void;
+  /** Obrigatório só com `canWrite`. */
+  onChange?: (next: FacaComposicaoForm[]) => void;
 };
 
 function formatMoney(value: number): string {
@@ -114,7 +115,7 @@ export function FacasComposicaoEditor({
   const principal = facaPrincipal(facas);
 
   const adicionar = (faca: FacaRecord | null) => {
-    if (!faca) return;
+    if (!canWrite || !onChange || !faca) return;
     const asPrincipal = facas.length === 0;
     const item = facaRecordToItem(faca, asPrincipal);
     if (asPrincipal) {
@@ -131,6 +132,7 @@ export function FacasComposicaoEditor({
   };
 
   const remover = (index: number) => {
+    if (!canWrite || !onChange) return;
     const next = facas.filter((_, i) => i !== index);
     if (next.length > 0 && !next.some((f) => f.principal)) {
       next[0] = { ...next[0], principal: true };
@@ -139,6 +141,7 @@ export function FacasComposicaoEditor({
   };
 
   const marcarPrincipal = (index: number) => {
+    if (!canWrite || !onChange) return;
     onChange(
       renumerarFacas(
         facas.map((f, i) => ({
