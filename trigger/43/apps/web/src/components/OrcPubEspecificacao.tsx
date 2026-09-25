@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
 import {
@@ -54,12 +55,6 @@ function SpecDense({ cells }: { cells: SpecCell[] }) {
       ))}
     </ul>
   );
-}
-
-/** Eco do item no overlay da arte — vocabulário comercial (Medida). */
-function arteOverlayCaption(desc?: OrcPropostaDescricao | null): string | undefined {
-  const medida = (desc?.medida ?? '').trim();
-  return medida ? `Medida · ${medida}` : undefined;
 }
 
 function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
@@ -164,7 +159,7 @@ export function OrcPubEspecificacaoBloco({
           title="Modelos"
           hint={null}
           showValorArte
-          arteCaption={arteOverlayCaption(desc)}
+          arteCaption={modeloArteCaptionFromMedida(desc?.medida)}
           arteSaida={
             isSaidaEtiqueta(desc?.saida_etiqueta) ? desc.saida_etiqueta : undefined
           }

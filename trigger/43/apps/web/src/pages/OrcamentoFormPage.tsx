@@ -1980,6 +1980,8 @@ export function OrcamentoFormPage() {
                   onArteUrlChange={setModeloArteUrl}
                   onQuantidadeChange={setModeloQuantidadeFaixa}
                   onEqualizar={equalizarModelosComposicao}
+                  medida={form.medida}
+                  saidaEtiqueta={form.saida_etiqueta || null}
                 />
               </div>
             ) : null}

@@ -25,6 +25,7 @@ import {
 } from '../lib/orcamentoGuiaProducao';
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
+import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
 import { FacasComposicaoTable } from './FacasComposicaoTable';
 import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
 import {
@@ -994,6 +995,8 @@ function PropostaItemBloco({
             className="orc-modelos-resultado"
             hint={null}
             showValorArte
+            arteCaption={modeloArteCaptionFromMedida(item.guiaEspec?.medida)}
+            arteSaida={item.guiaEspec?.saida_etiqueta}
             modelos={modelos}
             faixas={faixas.map((fx, i) => ({
               key: i,
@@ -1327,6 +1330,8 @@ export function OrcamentoResultado({
                     className="orc-modelos-resultado"
                     hint={null}
                     showValorArte
+                    arteCaption={modeloArteCaptionFromMedida(guiaEspec?.medida)}
+                    arteSaida={guiaEspec?.saida_etiqueta}
                     modelos={modelosVisiveis}
                     faixas={faixas.map((fx, i) => ({
                       key: i,

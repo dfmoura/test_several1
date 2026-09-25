@@ -5,6 +5,7 @@ import {
   OrcamentoFacaDesenho,
 } from '../components/OrcamentoFacaDesenho';
 import { ModelosComposicaoTable } from '../components/ModelosComposicaoTable';
+import { modeloArteCaptionFromMedida } from '../components/ModeloArteOverlay';
 import { FacasComposicaoTable } from '../components/FacasComposicaoTable';
 import {
   calculoComItensDoOrcamento,
@@ -927,6 +928,8 @@ export function OrcamentoDetailPage() {
               className="orc-modelos-detalhe-page"
               hint={null}
               showValorArte
+              arteCaption={modeloArteCaptionFromMedida(String(inputItem.medida ?? ''))}
+              arteSaida={String(inputItem.saida_etiqueta ?? '')}
               modelos={modelosComp.map((m, i) => ({
                 ordem: Number(m.ordem) || i + 1,
                 nome: String(m.nome ?? ''),

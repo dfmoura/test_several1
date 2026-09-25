@@ -5,7 +5,7 @@ import {
   type FaixaForm,
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
-import { ModeloArteTrigger } from './ModeloArteOverlay';
+import { modeloArteCaptionFromMedida, ModeloArteTrigger } from './ModeloArteOverlay';
 import { NumericInput } from './NumericInput';
 
 type Props = {
@@ -19,6 +19,9 @@ type Props = {
   onQuantidadeChange: (faixaIdx: number, modeloIdx: number, qtd: number) => void;
   /** Equal-split em cada faixa (colunas independentes). */
   onEqualizar?: () => void;
+  /** Eco no overlay da arte (item atual). */
+  medida?: string | null;
+  saidaEtiqueta?: string | null;
 };
 
 function formatQtd(value: number): string {
@@ -50,6 +53,8 @@ export function ModelosComposicaoEditor({
   onArteUrlChange,
   onQuantidadeChange,
   onEqualizar,
+  medida,
+  saidaEtiqueta,
 }: Props) {
   const matriz = useMemo(
     () => matrizQuantidadesModelos(faixas, modelos, quantidades),
@@ -149,6 +154,8 @@ export function ModelosComposicaoEditor({
                       editable={canWrite}
                       onChange={(next) => onArteUrlChange(mi, next.arte_url)}
                       dense
+                      caption={modeloArteCaptionFromMedida(medida)}
+                      saidaEtiqueta={saidaEtiqueta}
                     />
                   </td>
                   <td className="orc-modelo-nome-col">

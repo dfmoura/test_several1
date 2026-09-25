@@ -27,6 +27,12 @@ type Props = {
   onChange?: (next: { arte_url: string | null; preview_url?: string | null }) => void;
 };
 
+/** Eco comercial da medida no overlay da arte. */
+export function modeloArteCaptionFromMedida(medida?: string | null): string | undefined {
+  const m = (medida ?? '').trim();
+  return m ? `Medida · ${m}` : undefined;
+}
+
 function isHttpUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
 }
