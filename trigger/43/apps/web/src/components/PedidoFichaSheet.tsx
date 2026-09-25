@@ -21,6 +21,12 @@ import {
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { necessidadeContratoLabel, opStatusLabel, pedItemStatusLabel, pedStatusLabel } from '../lib/producaoUi';
 import {
+  linhaSimplesDoItem,
+  linhasEtiquetaDoItem,
+  particionarItensPedido,
+  somaValores,
+} from '../lib/pedidoFichaContrato';
+import {
   asPedidoSnap,
   dash,
   faixaIndexDoItem,
@@ -39,7 +45,8 @@ import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
  * Ficha do pedido — contrato interno A4 paisagem.
- * Tabela de itens + modelos. Valores travados. Sem custo/gordura.
+ * Etiquetas (uma linha por modelo) e revenda em blocos separados.
+ * Valores travados. Sem custo/gordura. Sem readequação.
  * Ficha da OP e ficha-cliente não usam este recorte.
  */
 export type PedidoFichaSheetProps = {
@@ -375,18 +382,54 @@ function dashCell(value: string | null | undefined): string {
   return s && s !== '—' ? s : '—';
 }
 
-function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
-  const totalPedido = (pedido.itens ?? []).reduce(
-    (acc, it) => acc + (Number(it.valor_total) || 0),
-    0,
+function visualEtiqueta(pedido: Pedido, item: PedidoItem): { saida: string | null; faca: string | null } {
+  const spec = specOperacional(pedido, item);
+  const desc = descricaoFromPedidoSpec(spec);
+  const saida = saidaEtiquetaLabelCurto(
+    String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? ''),
   );
+  const formato = spec.formato_faca != null ? String(spec.formato_faca) : '';
+  const faca = formato
+    ? `${formatoLabel(formato)}${spec.faca_nova ? ' · nova' : ''}`
+    : null;
+  return { saida: saida || null, faca };
+}
+
+function fmtQtdInt(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  return formatDecimalBr(value, 0);
+}
+
+function fmtRolos(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const scale = Math.abs(value - Math.round(value)) < 1e-6 ? 0 : 2;
+  return formatDecimalBr(value, scale, { stripTrailingZeros: true });
+}
+
+function PedidoTabelaEtiquetas({
+  pedido,
+  itens,
+  rodape,
+}: {
+  pedido: Pedido;
+  itens: PedidoItem[];
+  rodape: string;
+}) {
+  const grupos = itens.map((item) => ({
+    item,
+    linhas: linhasEtiquetaDoItem(pedido, item, visualEtiqueta(pedido, item)),
+  }));
+  const modelos = grupos.flatMap((g) => g.linhas.filter((ln) => ln.kind === 'modelo'));
+  const somaRolos = modelos.reduce((acc, ln) => acc + (ln.rolos ?? 0), 0);
+  const temRolos = modelos.some((ln) => ln.rolos != null);
+  const somaEtiquetas = modelos.reduce((acc, ln) => acc + (ln.etiquetas ?? 0), 0);
+  const total = somaValores(itens);
 
   return (
-    <table className="ficha-table ped-ficha-contrato-table">
+    <table className="ficha-table ped-ficha-contrato-table ped-ficha-contrato-table--etq">
       <thead>
         <tr>
           <th className="ped-ficha-col-n">#</th>
-          <th>Tipo</th>
           <th>Material</th>
           <th>Medida</th>
           <th>Acab.</th>
@@ -394,102 +437,177 @@ function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
           <th>Cores</th>
           <th>Saída</th>
           <th>Faca</th>
-          <th className="ficha-td-num">Faixa</th>
+          <th>Faixa</th>
+          <th>Modelo</th>
+          <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
+          <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
+          <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
+          <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
+          <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
+          <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
+        </tr>
+      </thead>
+      {grupos.map(({ item, linhas }) => (
+        <tbody key={item.id} className="ped-ficha-contrato-grupo">
+          {linhas.map((ln) => {
+            const matriz = ln.kind === 'matriz';
+            return (
+              <tr
+                key={ln.key}
+                className={matriz ? 'ped-ficha-contrato-matriz' : undefined}
+              >
+                <td className="ped-ficha-col-n">{String(ln.ordem).padStart(2, '0')}</td>
+                <td>{matriz ? 'Matriz' : dashCell(ln.material)}</td>
+                <td>{matriz ? '—' : dashCell(ln.medida)}</td>
+                <td>{matriz ? '—' : dashCell(ln.acabamento)}</td>
+                <td>{matriz ? '—' : dashCell(ln.tubete)}</td>
+                <td>{matriz ? '—' : dashCell(ln.cores)}</td>
+                <td>{matriz ? '—' : dashCell(ln.saida)}</td>
+                <td>{matriz ? '—' : dashCell(ln.faca)}</td>
+                <td>{matriz ? '—' : dashCell(ln.faixa)}</td>
+                <td className="ped-ficha-col-modelo">{ln.modelo}</td>
+                <td className="ficha-td-num">{matriz ? '—' : fmtQtdInt(ln.etiqPorRolo)}</td>
+                <td className="ficha-td-num">{matriz ? '—' : fmtRolos(ln.rolos)}</td>
+                <td className="ficha-td-num">{matriz ? '—' : fmtQtdInt(ln.etiquetas)}</td>
+                <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
+                <td className="ficha-td-num">
+                  {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
+                </td>
+                <td className="ficha-td-num">
+                  {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      ))}
+      <tfoot>
+        <tr>
+          <td colSpan={11} className="ficha-td-num">
+            {rodape}
+          </td>
+          <td className="ficha-td-num">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
+          <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
+          <td className="ficha-td-num">
+            <strong>{formatCurrency(total)}</strong>
+          </td>
+          <td colSpan={2} />
+        </tr>
+      </tfoot>
+    </table>
+  );
+}
+
+function PedidoTabelaSimples({
+  itens,
+  pedido,
+  sku,
+  descricaoLabel,
+  rodape,
+}: {
+  itens: PedidoItem[];
+  pedido: Pedido;
+  sku: boolean;
+  descricaoLabel: string;
+  rodape: string;
+}) {
+  const total = somaValores(itens);
+  return (
+    <table className="ficha-table ped-ficha-contrato-table ped-ficha-contrato-table--simples">
+      <thead>
+        <tr>
+          <th className="ped-ficha-col-n">#</th>
+          {sku ? <th>SKU</th> : <th>Serviço</th>}
+          <th>{descricaoLabel}</th>
           <th className="ficha-td-num">Qtd</th>
-          <th className="ficha-td-num">Unit.</th>
+          <th className="ficha-td-num">Unitário</th>
           <th className="ficha-td-num">Total</th>
         </tr>
       </thead>
-      {pedido.itens.map((item) => {
-        const spec = specOperacional(pedido, item);
-        const desc = descricaoFromPedidoSpec(spec);
-        const isEtiqueta = item.necessidade === 'PRODUCAO';
-        const isRevenda = item.necessidade === 'REVENDA';
-        const isServico = item.necessidade === 'SERVICO';
-        const modelos = isEtiqueta ? modelosDoSnap(spec) : [];
-        const faixaIdx = faixaIndexDoItem(pedido, item);
-        const qtdeFaixa = qtdeFaixaDoItem(pedido, item);
-        const matriz = matrizQuantidadesDoItem(item);
-        const saida = saidaEtiquetaLabelCurto(
-          String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? ''),
-        );
-        const formato = spec.formato_faca != null ? String(spec.formato_faca) : '';
-        const faca = formato
-          ? `${formatoLabel(formato)}${Boolean(spec.faca_nova) ? ' · nova' : ''}`
-          : null;
-
-        let material = desc.papel;
-        let medida = desc.medida;
-        if (isRevenda) {
-          material = desc.produto_descricao || item.descricao;
-          medida = desc.produto_codigo || null;
-        } else if (isServico) {
-          material = desc.descricao_servico || item.descricao;
-          medida = tipoServicoLabel(desc.tipo_servico) || 'Serviço';
-        }
-
-        return (
-          <tbody key={item.id} className="ped-ficha-contrato-grupo">
-            <tr>
-              <td className="ped-ficha-col-n">{String(item.ordem).padStart(2, '0')}</td>
-              <td>{necessidadeContratoLabel(item.necessidade)}</td>
-              <td>{dashCell(material)}</td>
-              <td>{dashCell(medida)}</td>
-              <td>{dashCell(isEtiqueta ? desc.acabamento : null)}</td>
-              <td>{dashCell(isEtiqueta ? desc.tubete : null)}</td>
-              <td>{dashCell(isEtiqueta ? desc.cores : null)}</td>
-              <td>{dashCell(isEtiqueta ? saida : null)}</td>
-              <td>{dashCell(isEtiqueta ? faca : null)}</td>
-              <td className="ficha-td-num">{isEtiqueta ? `#${faixaIdx + 1}` : '—'}</td>
+      <tbody>
+        {itens.map((item) => {
+          const ln = linhaSimplesDoItem(pedido, item);
+          const spec = specOperacional(pedido, item);
+          const desc = descricaoFromPedidoSpec(spec);
+          const servico = !sku ? tipoServicoLabel(desc.tipo_servico) || 'Serviço' : null;
+          return (
+            <tr key={item.id} className="ped-ficha-contrato-grupo">
+              <td className="ped-ficha-col-n">{String(ln.ordem).padStart(2, '0')}</td>
+              {sku ? <td>{dashCell(ln.sku)}</td> : <td>{dashCell(servico)}</td>}
+              <td>{dashCell(ln.descricao)}</td>
               <td className="ficha-td-num">
-                {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
+                {formatDecimalBr(ln.qtde, 0)} {ln.unidade}
               </td>
               <td className="ficha-td-num">
-                {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}
+                {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
               </td>
-              <td className="ficha-td-num">
-                {item.valor_total != null ? formatCurrency(item.valor_total) : '—'}
-              </td>
+              <td className="ficha-td-num">{formatCurrency(ln.total)}</td>
             </tr>
-            {modelos.length > 0 ? (
-              <tr className="ped-ficha-contrato-modelos">
-                <td colSpan={13}>
-                  <ModelosComposicaoTable
-                    variant="ficha"
-                    className="ped-ficha-modelos"
-                    title="Modelos"
-                    hint={null}
-                    showValorArte={false}
-                    showArtePreview={false}
-                    modelos={modelos}
-                    faixas={[
-                      {
-                        key: faixaIdx,
-                        quantidade: qtdeFaixa,
-                        highlighted: true,
-                      },
-                    ]}
-                    quantidadesPorFaixa={matriz}
-                  />
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        );
-      })}
-      {pedido.itens.length > 0 ? (
-        <tfoot>
-          <tr>
-            <td colSpan={12} className="ficha-td-num">
-              Total do pedido
-            </td>
-            <td className="ficha-td-num">
-              <strong>{formatCurrency(totalPedido)}</strong>
-            </td>
-          </tr>
-        </tfoot>
-      ) : null}
+          );
+        })}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colSpan={5} className="ficha-td-num">
+            {rodape}
+          </td>
+          <td className="ficha-td-num">
+            <strong>{formatCurrency(total)}</strong>
+          </td>
+        </tr>
+      </tfoot>
     </table>
+  );
+}
+
+function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
+  const grupos = particionarItensPedido(pedido.itens ?? []);
+  const nGrupos =
+    (grupos.etiquetas.length > 0 ? 1 : 0) +
+    (grupos.revendas.length > 0 ? 1 : 0) +
+    (grupos.servicos.length > 0 ? 1 : 0);
+  const misto = nGrupos > 1;
+  const totalPedido = somaValores(pedido.itens ?? []);
+
+  return (
+    <div className="ped-ficha-contrato-blocos">
+      {grupos.etiquetas.length > 0 ? (
+        <FichaSection title="Etiquetas">
+          <PedidoTabelaEtiquetas
+            pedido={pedido}
+            itens={grupos.etiquetas}
+            rodape={misto ? 'Total etiquetas' : 'Total do pedido'}
+          />
+        </FichaSection>
+      ) : null}
+      {grupos.revendas.length > 0 ? (
+        <FichaSection title="Revenda">
+          <PedidoTabelaSimples
+            pedido={pedido}
+            itens={grupos.revendas}
+            sku
+            descricaoLabel="Descrição"
+            rodape={misto ? 'Total revenda' : 'Total do pedido'}
+          />
+        </FichaSection>
+      ) : null}
+      {grupos.servicos.length > 0 ? (
+        <FichaSection title="Serviços">
+          <PedidoTabelaSimples
+            pedido={pedido}
+            itens={grupos.servicos}
+            sku={false}
+            descricaoLabel="Descrição"
+            rodape={misto ? 'Total serviços' : 'Total do pedido'}
+          />
+        </FichaSection>
+      ) : null}
+      {misto ? (
+        <p className="ped-ficha-total-pedido">
+          Total do pedido <strong>{formatCurrency(totalPedido)}</strong>
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -500,7 +618,6 @@ export function PedidoFichaSheet({
   emitidoEm,
 }: PedidoFichaSheetProps) {
   const snap = asPedidoSnap(p.snapshot);
-  const readeq = snap.readequacao;
   const cliente = identidadeParteComercial(
     p.parceiro,
     p.parceiro?.razao_social ?? '—',
@@ -518,7 +635,6 @@ export function PedidoFichaSheet({
     .join(' · ');
   const entregaOps = freteTextoDoPedido(p);
   const orcCodigo = p.orcamento?.codigo ?? dash(snap.orcamento_codigo);
-  const nItens = p.itens.length;
 
   return (
     <article
@@ -578,32 +694,13 @@ export function PedidoFichaSheet({
         {entregaOps ? <FichaKv label="Entrega" value={entregaOps} /> : null}
       </div>
 
-      <FichaSection title={nItens > 1 ? `Itens · ${nItens}` : 'Itens'}>
-        {p.itens.length === 0 ? (
+      {p.itens.length === 0 ? (
+        <FichaSection title="Itens">
           <p className="ficha-empty">Nenhum item neste pedido.</p>
-        ) : (
-          <PedidoItensTabelaContrato pedido={p} />
-        )}
-      </FichaSection>
-
-      {readeq ? (
-        <FichaSection title="Readequação">
-          <div className="ficha-kv-grid cols-4">
-            <FichaKv label="OP" value={dash(readeq.op_codigo as string)} />
-            <FichaKv
-              label="Pedida → boa"
-              value={`${dash(readeq.qtde_pedida as string)} → ${dash(readeq.qtde_boa as string)}`}
-            />
-            <FichaKv
-              label="Fora da faixa"
-              value={readeq.fora_tolerancia ? 'Sim' : 'Não'}
-            />
-            {readeq.motivo ? (
-              <FichaKv label="Motivo" value={dash(readeq.motivo as string)} wide />
-            ) : null}
-          </div>
         </FichaSection>
-      ) : null}
+      ) : (
+        <PedidoItensTabelaContrato pedido={p} />
+      )}
 
       <RegistroMetaStrip registro={p} className="ficha-autoria" />
 

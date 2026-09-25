@@ -9497,19 +9497,32 @@ tr.row-inactive td {
   font-size: 7.5pt;
 }
 
+.ficha-sheet-ped .ped-ficha-contrato-blocos {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .ficha-sheet-ped .ped-ficha-contrato-table {
   width: 100%;
-  font-size: 6.75pt;
+  font-size: 6.5pt;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table th {
-  font-size: 5.75pt;
-  padding: 0.65mm 1mm;
+  font-size: 5.5pt;
+  padding: 0.55mm 0.8mm;
   white-space: nowrap;
 }
 
+.ficha-sheet-ped .ped-ficha-contrato-table th.ped-ficha-th-val {
+  white-space: normal;
+  max-width: 16mm;
+  line-height: 1.1;
+  text-align: right;
+}
+
 .ficha-sheet-ped .ped-ficha-contrato-table td {
-  padding: 0.55mm 1mm;
+  padding: 0.5mm 0.8mm;
   vertical-align: middle;
   line-height: 1.15;
 }
@@ -9520,38 +9533,33 @@ tr.row-inactive td {
   font-weight: 700;
 }
 
+.ficha-sheet-ped .ped-ficha-col-modelo {
+  font-weight: 600;
+}
+
 .ficha-sheet-ped .ped-ficha-contrato-grupo + .ped-ficha-contrato-grupo {
   border-top: 0.6pt solid color-mix(in srgb, var(--border, #c5ced9) 88%, transparent);
 }
 
-.ficha-sheet-ped .ped-ficha-contrato-modelos td {
-  padding: 0.4mm 1mm 0.8mm 7mm;
+.ficha-sheet-ped .ped-ficha-contrato-grupo:nth-child(even) {
   background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
 }
 
-.ficha-sheet-ped .ped-ficha-contrato-modelos .ped-ficha-modelos {
-  margin: 0;
-}
-
-.ficha-sheet-ped .ped-ficha-contrato-modelos .orc-subsection-title,
-.ficha-sheet-ped .ped-ficha-contrato-modelos h4 {
-  margin: 0 0 0.35mm;
-  font-size: 5.75pt;
-}
-
-.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table {
-  font-size: 6.25pt;
-}
-
-.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table th,
-.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table td {
-  padding: 0.4mm 0.9mm;
+.ficha-sheet-ped .ped-ficha-contrato-matriz td {
+  font-style: italic;
+  color: color-mix(in srgb, var(--text, #1a2332) 78%, transparent);
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table tfoot td {
   padding-top: 1mm;
   border-bottom: none;
   font-size: 7pt;
+}
+
+.ficha-sheet-ped .ped-ficha-total-pedido {
+  margin: 2mm 0 0;
+  text-align: right;
+  font-size: 8pt;
 }
 
 .ped-ficha-item-head {
