@@ -11,7 +11,7 @@ import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import type { ReactNode } from 'react';
 import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
-import { formatDecimalBr } from '../lib/format';
+import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { formatoLabel } from './FacaShapeIcon';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
@@ -31,15 +31,16 @@ import {
   qtdeFaixaDoItem,
   specOperacional,
 } from '../lib/producaoFicha';
-import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
+import { saidaEtiquetaLabel, saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
 import { displaySnap } from '../lib/orcamentoForm';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
- * Ficha do pedido — documento enxuto.
- * Cliente · meta · itens com especificação aninhada. Sem preço (PRODUCAO §2.6).
+ * Ficha do pedido — contrato interno A4 paisagem.
+ * Tabela de itens + modelos. Valores travados. Sem custo/gordura.
+ * Ficha da OP e ficha-cliente não usam este recorte.
  */
 export type PedidoFichaSheetProps = {
   pedido: Pedido;
@@ -369,6 +370,129 @@ export function PedidoItemFichaBloco({
   );
 }
 
+function dashCell(value: string | null | undefined): string {
+  const s = (value ?? '').trim();
+  return s && s !== '—' ? s : '—';
+}
+
+function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
+  const totalPedido = (pedido.itens ?? []).reduce(
+    (acc, it) => acc + (Number(it.valor_total) || 0),
+    0,
+  );
+
+  return (
+    <table className="ficha-table ped-ficha-contrato-table">
+      <thead>
+        <tr>
+          <th className="ped-ficha-col-n">#</th>
+          <th>Tipo</th>
+          <th>Material</th>
+          <th>Medida</th>
+          <th>Acab.</th>
+          <th>Tubete</th>
+          <th>Cores</th>
+          <th>Saída</th>
+          <th>Faca</th>
+          <th className="ficha-td-num">Faixa</th>
+          <th className="ficha-td-num">Qtd</th>
+          <th className="ficha-td-num">Unit.</th>
+          <th className="ficha-td-num">Total</th>
+        </tr>
+      </thead>
+      {pedido.itens.map((item) => {
+        const spec = specOperacional(pedido, item);
+        const desc = descricaoFromPedidoSpec(spec);
+        const isEtiqueta = item.necessidade === 'PRODUCAO';
+        const isRevenda = item.necessidade === 'REVENDA';
+        const isServico = item.necessidade === 'SERVICO';
+        const modelos = isEtiqueta ? modelosDoSnap(spec) : [];
+        const faixaIdx = faixaIndexDoItem(pedido, item);
+        const qtdeFaixa = qtdeFaixaDoItem(pedido, item);
+        const matriz = matrizQuantidadesDoItem(item);
+        const saida = saidaEtiquetaLabelCurto(
+          String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? ''),
+        );
+        const formato = spec.formato_faca != null ? String(spec.formato_faca) : '';
+        const faca = formato
+          ? `${formatoLabel(formato)}${Boolean(spec.faca_nova) ? ' · nova' : ''}`
+          : null;
+
+        let material = desc.papel;
+        let medida = desc.medida;
+        if (isRevenda) {
+          material = desc.produto_descricao || item.descricao;
+          medida = desc.produto_codigo || null;
+        } else if (isServico) {
+          material = desc.descricao_servico || item.descricao;
+          medida = tipoServicoLabel(desc.tipo_servico) || 'Serviço';
+        }
+
+        return (
+          <tbody key={item.id} className="ped-ficha-contrato-grupo">
+            <tr>
+              <td className="ped-ficha-col-n">{String(item.ordem).padStart(2, '0')}</td>
+              <td>{necessidadeContratoLabel(item.necessidade)}</td>
+              <td>{dashCell(material)}</td>
+              <td>{dashCell(medida)}</td>
+              <td>{dashCell(isEtiqueta ? desc.acabamento : null)}</td>
+              <td>{dashCell(isEtiqueta ? desc.tubete : null)}</td>
+              <td>{dashCell(isEtiqueta ? desc.cores : null)}</td>
+              <td>{dashCell(isEtiqueta ? saida : null)}</td>
+              <td>{dashCell(isEtiqueta ? faca : null)}</td>
+              <td className="ficha-td-num">{isEtiqueta ? `#${faixaIdx + 1}` : '—'}</td>
+              <td className="ficha-td-num">
+                {formatDecimalBr(Number(item.qtde_pedida), 0)} {item.unidade}
+              </td>
+              <td className="ficha-td-num">
+                {item.preco_unitario != null ? formatUnitPrice(item.preco_unitario) : '—'}
+              </td>
+              <td className="ficha-td-num">
+                {item.valor_total != null ? formatCurrency(item.valor_total) : '—'}
+              </td>
+            </tr>
+            {modelos.length > 0 ? (
+              <tr className="ped-ficha-contrato-modelos">
+                <td colSpan={13}>
+                  <ModelosComposicaoTable
+                    variant="ficha"
+                    className="ped-ficha-modelos"
+                    title="Modelos"
+                    hint={null}
+                    showValorArte={false}
+                    showArtePreview={false}
+                    modelos={modelos}
+                    faixas={[
+                      {
+                        key: faixaIdx,
+                        quantidade: qtdeFaixa,
+                        highlighted: true,
+                      },
+                    ]}
+                    quantidadesPorFaixa={matriz}
+                  />
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        );
+      })}
+      {pedido.itens.length > 0 ? (
+        <tfoot>
+          <tr>
+            <td colSpan={12} className="ficha-td-num">
+              Total do pedido
+            </td>
+            <td className="ficha-td-num">
+              <strong>{formatCurrency(totalPedido)}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      ) : null}
+    </table>
+  );
+}
+
 export function PedidoFichaSheet({
   pedido: p,
   empresaNome,
@@ -377,9 +501,6 @@ export function PedidoFichaSheet({
 }: PedidoFichaSheetProps) {
   const snap = asPedidoSnap(p.snapshot);
   const readeq = snap.readequacao;
-  const ops = p.ordens_producao ?? [];
-  const oss = p.ordens_servico ?? [];
-  const multi = p.itens.length > 1;
   const cliente = identidadeParteComercial(
     p.parceiro,
     p.parceiro?.razao_social ?? '—',
@@ -400,13 +521,16 @@ export function PedidoFichaSheet({
   const nItens = p.itens.length;
 
   return (
-    <article className="ficha-sheet ped-ficha" aria-label={`Ficha do pedido ${p.codigo}`}>
+    <article
+      className="ficha-sheet ped-ficha ficha-sheet-ped"
+      aria-label={`Ficha do pedido ${p.codigo}`}
+    >
       <header className="ficha-masthead">
         <div className="ficha-masthead-brand">
           <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
           <div>
             <strong className="ficha-org">{empresaNome}</strong>
-            <span className="ficha-doc-label">Ficha do pedido · operacional</span>
+            <span className="ficha-doc-label">Ficha do pedido · contrato interno</span>
           </div>
         </div>
         <div className="ficha-masthead-id">
@@ -458,18 +582,7 @@ export function PedidoFichaSheet({
         {p.itens.length === 0 ? (
           <p className="ficha-empty">Nenhum item neste pedido.</p>
         ) : (
-          <div className="ped-ficha-itens">
-            {p.itens.map((it) => (
-              <PedidoItemFichaBloco
-                key={it.id}
-                pedido={p}
-                item={it}
-                ops={ops}
-                oss={oss}
-                multi={multi}
-              />
-            ))}
-          </div>
+          <PedidoItensTabelaContrato pedido={p} />
         )}
       </FichaSection>
 

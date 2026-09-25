@@ -9489,6 +9489,71 @@ tr.row-inactive td {
   font-size: 6pt;
 }
 
+/* PED contrato — A4 paisagem. Escopo só em .ficha-sheet-ped (OP fica retrato). */
+.ficha-sheet.ficha-sheet-ped {
+  width: 297mm;
+  max-width: 297mm;
+  padding: 6mm 7mm 5mm;
+  font-size: 7.5pt;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-table {
+  width: 100%;
+  font-size: 6.75pt;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-table th {
+  font-size: 5.75pt;
+  padding: 0.65mm 1mm;
+  white-space: nowrap;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-table td {
+  padding: 0.55mm 1mm;
+  vertical-align: middle;
+  line-height: 1.15;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-table .ped-ficha-col-n {
+  width: 6mm;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-grupo + .ped-ficha-contrato-grupo {
+  border-top: 0.6pt solid color-mix(in srgb, var(--border, #c5ced9) 88%, transparent);
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-modelos td {
+  padding: 0.4mm 1mm 0.8mm 7mm;
+  background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-modelos .ped-ficha-modelos {
+  margin: 0;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-modelos .orc-subsection-title,
+.ficha-sheet-ped .ped-ficha-contrato-modelos h4 {
+  margin: 0 0 0.35mm;
+  font-size: 5.75pt;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table {
+  font-size: 6.25pt;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table th,
+.ficha-sheet-ped .ped-ficha-contrato-modelos .ficha-table td {
+  padding: 0.4mm 0.9mm;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-table tfoot td {
+  padding-top: 1mm;
+  border-bottom: none;
+  font-size: 7pt;
+}
+
 .ped-ficha-item-head {
   display: flex;
   flex-wrap: wrap;
@@ -10553,7 +10618,8 @@ tr.row-inactive td {
     page-break-inside: avoid;
   }
 
-  body.ficha-print-mode .ficha-sheet.ficha-sheet-orc {
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-orc,
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-ped {
     page: ficha-orc-a4;
     width: auto;
     max-width: none;
@@ -10630,6 +10696,16 @@ tr.row-inactive td {
   body.ficha-print-mode .ficha-sheet-orc .ficha-section,
   body.ficha-print-mode .ficha-sheet-orc .ficha-table {
     break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-ped .ficha-section,
+  body.ficha-print-mode .ficha-sheet-ped .ficha-table {
+    break-inside: auto;
+  }
+
+  body.ficha-print-mode .ficha-sheet-ped .ped-ficha-contrato-grupo {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   body.ficha-print-mode .ficha-sheet-mapa-facas .ficha-section,

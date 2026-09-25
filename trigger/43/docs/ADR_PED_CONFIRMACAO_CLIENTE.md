@@ -20,12 +20,12 @@ PED  →  ficha operacional  |  ficha-cliente (confirmação)   ← esta ADR
 
 | Superfície | Rota | Público | Preço |
 |------------|------|---------|-------|
-| Ficha operacional | `/pedidos/:id/ficha` | Interno / chão | Não |
+| Ficha operacional | `/pedidos/:id/ficha` | Interno (contrato) | Sim (unitário/total travados; sem custo/gordura) |
 | Confirmação ao cliente | `/pedidos/:id/ficha-cliente` | Cliente B2B | Sim (travado no PED) |
 
 ### Princípios
 
-1. **Não misturar públicos** — a ficha operacional permanece intacta; confirmação é segunda superfície.
+1. **Não misturar públicos** — a ficha do PED é contrato interno (paisagem, valores travados); a da OP permanece sem preço; confirmação ao cliente é segunda superfície.
 2. **Casca comercial** — mesma linguagem visual da proposta ORC (`orc-pub` + A4 retrato + print browser). Sem DomPDF no monólito.
 3. **Fonte de verdade** — snapshot do PED + `preco_unitario` / `valor_total` dos itens; condições/frete/arte do `snapshot.input`.
 4. **Identidade** — EMP herói comercial; FLEXOERP selo; TRIGGER no rodapé (`IDENTIDADE_TRIGGER`).
@@ -42,7 +42,7 @@ Emitente (EMP) · Cliente · Spec comercial (ou serviço) · Itens com qtde/unit
 
 ## Não fazer
 
-1. Enriquecer a ficha operacional com preço “para o cliente”.  
+1. Colocar preço na ficha da OP ou expor gordura/custo na ficha do PED.  
 2. Reintroduzir DomPDF no monólito.  
 3. Expor gordura ou custos na confirmação.  
 4. Substituir a proposta ORC pela confirmação PED (momentos diferentes: pré-aceite × pós-contrato operacional).

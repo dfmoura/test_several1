@@ -60,8 +60,8 @@ export function PedidoFichaPage() {
   }, [pedido]);
 
   return (
-    <div className="ficha-page">
-      <div className="ficha-toolbar no-print">
+    <div className="ficha-page ficha-page--landscape">
+      <div className="ficha-toolbar ficha-toolbar--landscape no-print">
         <div className="ficha-toolbar-left">
           <button
             type="button"
@@ -71,7 +71,7 @@ export function PedidoFichaPage() {
             Voltar ao pedido
           </button>
           <span className="ficha-toolbar-hint">
-            Ficha do pedido · retrato A4 · uso interno (sem preço) · Imprimir ou Salvar como PDF
+            Ficha do pedido · paisagem A4 · contrato interno · Imprimir ou Salvar como PDF
           </span>
         </div>
         <button

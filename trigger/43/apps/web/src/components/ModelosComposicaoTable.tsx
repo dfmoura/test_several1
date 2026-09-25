@@ -45,6 +45,8 @@ type Props = {
   arteCaption?: string | null;
   /** Código de saída do item — desenho + rótulo no overlay. */
   arteSaida?: string | null;
+  /** Miniatura/overlay da arte. Ficha PED contratual: off. */
+  showArtePreview?: boolean;
 };
 
 function formatQtd(value: number): string {
@@ -77,6 +79,7 @@ export function ModelosComposicaoTable({
   showValorArte,
   arteCaption,
   arteSaida,
+  showArtePreview = true,
 }: Props) {
   const rows = toFormRows(modelos).filter((m) => m.nome !== '');
   if (rows.length === 0) return null;
@@ -194,7 +197,7 @@ export function ModelosComposicaoTable({
                 </td>
                 <td>
                   <span className="orc-modelo-nome-com-arte">
-                    {(m.arte_url || '').trim() ? (
+                    {showArtePreview && (m.arte_url || '').trim() ? (
                       <ModeloArteTrigger
                         nome={m.nome}
                         arteUrl={m.arte_url}
