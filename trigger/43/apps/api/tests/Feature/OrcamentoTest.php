@@ -361,7 +361,7 @@ class OrcamentoTest extends TestCase
         $payload = $this->payload();
         $payload['modelos'] = 2;
         $payload['modelos_composicao'] = [
-            ['nome' => 'maçã verde', 'percentual' => 30],
+            ['nome' => 'maçã verde', 'percentual' => 30, 'tintas' => ['Pantone 354', 'Preto']],
             ['nome' => 'abacate', 'percentual' => 70],
         ];
 
@@ -374,6 +374,8 @@ class OrcamentoTest extends TestCase
         $this->assertSame('abacate', $comp[1]['nome']);
         $this->assertEqualsWithDelta(70.0, (float) $comp[1]['percentual'], 0.01);
         $this->assertEqualsWithDelta(0.0, (float) ($comp[0]['valor_arte'] ?? 0), 0.01);
+        $this->assertSame(['Pantone 354', 'Preto'], $comp[0]['tintas']);
+        $this->assertSame([], $comp[1]['tintas']);
         // Preço com 2 modelos (não 7 do fixture) — só garante persistência + cálculo OK
         $this->assertIsNumeric($create->json('data.result_snapshot.faixas.0.valor_etiqueta'));
 

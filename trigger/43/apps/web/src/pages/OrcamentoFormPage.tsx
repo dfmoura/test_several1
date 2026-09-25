@@ -617,6 +617,15 @@ export function OrcamentoFormPage() {
     }));
   };
 
+  const setModeloTintas = (index: number, tintas: string[]) => {
+    setForm((prev) => ({
+      ...prev,
+      modelos_composicao: prev.modelos_composicao.map((m, i) =>
+        i === index ? { ...m, tintas } : m,
+      ),
+    }));
+  };
+
   const setModeloQuantidadeFaixa = (faixaIdx: number, modeloIdx: number, qtd: number) => {
     setForm((prev) => {
       const modelos_composicao_quantidades = aplicarQuantidadeModeloMatriz(
@@ -1966,9 +1975,9 @@ export function OrcamentoFormPage() {
                 <p className="form-hint" style={{ marginTop: 0 }}>
                   Distribua a quantidade de cada faixa entre as artes — cada coluna é
                   independente. Digite nas artes editáveis; o último modelo recebe o
-                  restante da própria faixa. Vlr. Arte e Fig. são opcionais; a soma do
-                  Vlr. Arte entra no total. O preço de produção (setup/perda) continua
-                  usando só a quantidade de modelos.
+                  restante da própria faixa. Cores da arte, Vlr. Arte e Fig. são
+                  opcionais; a soma do Vlr. Arte entra no total. O preço de produção
+                  (setup/perda) continua usando só a quantidade de modelos.
                 </p>
                 <ModelosComposicaoEditor
                   modelos={form.modelos_composicao}
@@ -1978,6 +1987,7 @@ export function OrcamentoFormPage() {
                   onNomeChange={setModeloComposicaoNome}
                   onValorArteChange={setModeloValorArte}
                   onArteUrlChange={setModeloArteUrl}
+                  onTintasChange={setModeloTintas}
                   onQuantidadeChange={setModeloQuantidadeFaixa}
                   onEqualizar={equalizarModelosComposicao}
                   medida={form.medida}

@@ -42,6 +42,41 @@ class ModelosComposicaoTest extends TestCase
         $this->assertEqualsWithDelta(0.0, $rows[0]['valor_arte'], 0.001);
         $this->assertSame('abacate', $rows[1]['nome']);
         $this->assertEqualsWithDelta(70.0, $rows[1]['percentual'], 0.001);
+        $this->assertSame([], $rows[0]['tintas']);
+        $this->assertSame([], $rows[1]['tintas']);
+    }
+
+    public function test_normalize_tintas_por_modelo(): void
+    {
+        $rows = ModelosComposicao::normalizeAndAssert([
+            ['nome' => 'maçã verde', 'percentual' => 30, 'tintas' => ['Pantone 354', 'preto', 'Preto', '  ']],
+            ['nome' => 'abacate', 'percentual' => 70, 'tintas' => 'Pantone 378, Branco cobrante'],
+        ], 2);
+
+        $this->assertSame(['Pantone 354', 'preto'], $rows[0]['tintas']);
+        $this->assertSame(['Pantone 378', 'Branco cobrante'], $rows[1]['tintas']);
+
+        $aloc = ModelosComposicao::alocarQuantidades(1000, $rows);
+        $this->assertSame(['Pantone 354', 'preto'], $aloc[0]['tintas']);
+    }
+
+    public function test_normalize_tintas_ausente_fica_vazio(): void
+    {
+        $this->assertSame([], ModelosComposicao::normalizeTintas(null));
+        $this->assertSame([], ModelosComposicao::normalizeTintas([]));
+        $this->assertSame([], ModelosComposicao::equalSplit(1)[0]['tintas']);
+    }
+
+    public function test_rejeita_tinta_longa_demais(): void
+    {
+        $this->expectException(ValidationException::class);
+        ModelosComposicao::normalizeTintas([str_repeat('a', 41)]);
+    }
+
+    public function test_rejeita_mais_de_doze_tintas(): void
+    {
+        $this->expectException(ValidationException::class);
+        ModelosComposicao::normalizeTintas(range(1, 13));
     }
 
     public function test_normalize_preserva_valor_arte(): void

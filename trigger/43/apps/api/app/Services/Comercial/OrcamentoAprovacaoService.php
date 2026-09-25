@@ -1205,7 +1205,7 @@ class OrcamentoAprovacaoService
      * Composição de artes para a proposta ao cliente (só linhas com nome).
      *
      * @param  array<string, mixed>  $input
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>|null
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas: list<string>}>|null
      */
     private function modelosComposicaoPublica(array $input, ?string $token = null): ?array
     {
@@ -1231,6 +1231,7 @@ class OrcamentoAprovacaoService
                 'percentual' => round((float) ($row['percentual'] ?? 0), 4),
                 'valor_arte' => round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2),
                 'arte_url' => $artes->dtoArteUrl($arteRef, $token),
+                'tintas' => \App\Support\ModelosComposicao::normalizeTintas($row['tintas'] ?? []),
             ];
         }
 

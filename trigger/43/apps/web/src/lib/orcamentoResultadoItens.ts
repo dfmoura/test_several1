@@ -3,6 +3,7 @@
  * N=1: sem chrome multi. N>1: total do documento + detalhe por item.
  */
 import type { OrcamentoItemPreview, OrcamentoResult } from './api';
+import { normalizeTintas } from './modeloTintas';
 import { facasFromSnapshot, somaValorFacas, type ModeloComposicaoForm } from './orcamentoForm';
 import { totalPropostaFaixa } from './orcamentoFrete';
 import type { OrcGuiaProducaoEspec } from './orcamentoGuiaProducao';
@@ -54,6 +55,7 @@ function modelosFromSnap(snap: Record<string, unknown> | null | undefined): Mode
     percentual: Number(m.percentual) || 0,
     valor_arte: Math.max(0, Number(m.valor_arte) || 0),
     arte_url: String(m.arte_url ?? '').trim() || null,
+    tintas: normalizeTintas(m.tintas),
   }));
 }
 

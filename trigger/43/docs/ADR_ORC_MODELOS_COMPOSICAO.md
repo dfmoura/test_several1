@@ -23,7 +23,7 @@ Separar **custo de produção**, **composição operacional** e **add-on comerci
 | Campo | Onde | Papel |
 |-------|------|--------|
 | `modelos` (int ≥ 1) | input do motor | Setup `(N−1)×troca` e perda × N — **inalterado** |
-| `modelos_composicao[]` | `input_snapshot` | `{ ordem, nome, percentual, valor_arte, arte_url? }` · Σ% = 100 · **% não** entra nas fórmulas R1–R20 |
+| `modelos_composicao[]` | `input_snapshot` | `{ ordem, nome, percentual, valor_arte, arte_url?, tintas[] }` · Σ% = 100 · **% não** entra nas fórmulas R1–R20 |
 | `valor_arte` (R$ ≥ 0 por linha) | em cada item da composição | Cotação comercial da arte; opcional (default 0) |
 | `arte_url` (opcional) | em cada item da composição | Visual da arte: `http(s)` externo **ou** ref interna `orc-arte:{empresaId}/{uuid}.{ext}` (upload EMP). **Fora** do motor / preço |
 | `valor_artes` (= Σ `valor_arte`) | `result_snapshot` (enrich) | Add-on pós-motor — mesmo padrão de faca nova |
@@ -50,11 +50,12 @@ modelos (preço produção)  ←→  len(modelos_composicao)  (validado)
 5. Cada `arte_url` opcional — http(s) ou `orc-arte:…` (upload). Ausência = sem figura. Não altera preço. Proposta/ficha resolvem ref interna para URL assinada (img sem Bearer).
 6. Ausência de `modelos_composicao` na API → equal-split legado (compatibilidade / testes); UI comercial sempre envia e exige nomes.
 7. Helper `ModelosComposicao::alocarQuantidades` / `somaValorArte` prontos para PED/OP/FAT.
+8. Cada `tintas` opcional — nomes curtos da arte (máx. 12 × 40). Ausência = []. Não altera preço nem o escalar `cores`.
 
 ### UX
 
 - Campo **Modelos** continua na especificação técnica (custo / setup).
-- No formulário comercial, **faixas (escada)** e **composição dos modelos** formam **uma seção** (“Quantidades — escada e artes”), com colunas: # · **Fig.** · Modelo (arte) · **Valor da arte** · Qtd por faixa.
+- No formulário comercial, **faixas (escada)** e **composição dos modelos** formam **uma seção** (“Quantidades — escada e artes”), com colunas: # · **Fig.** · Modelo (arte) · **Cores da arte** · **Valor da arte** · Qtd por faixa.
 - **Fig.:** overlay (arrastar/buscar SVG/PNG) por linha — opcional; proposta/ficha do cliente: miniatura clicável → overlay de leitura.
 - Soma ao vivo das artes no rodapé; % travado em 100% se N=1.
 - Detalhe, ficha interna, aba **Proposta comercial** e **link público** mostram a tabela (valor da arte só se algum > 0; figura só se `arte_url`).
@@ -87,8 +88,29 @@ modelos (preço produção)  ←→  len(modelos_composicao)  (validado)
 - `ArteModeloUrl` · `OrcArteModeloService` · upload `POST /orc-arte-modelos` · serve assinado `GET /orc-arte-modelos/{empresa}/{arquivo}`
 - UI: `ModeloArteOverlay` / `ModeloArteTrigger` · `ModelosComposicaoEditor` · `ModelosComposicaoTable`
 
+## Emenda 2026-09-25 — cores nomeadas por modelo (`tintas[]`)
+
+Campo **novo** em cada linha de `modelos_composicao`. **Não** é o escalar `cores` (estações R1–R20).
+
+| Campo | Papel |
+|-------|--------|
+| `tintas[]` | Lista de nomes curtos da arte (Pantone, “Preto”…) · opcional · máx. 12 × 40 caracteres · dedup no modelo |
+| — | Fora do motor / preço / SKU / prontidão de envio |
+
+```
+ORC (tags na composição) → input_snapshot.modelos_composicao[].tintas
+  → ficha interna · ficha-cliente · proposta · link /p/:token
+  → PED.especificacao.modelos_composicao
+  → OP / ficha de produção
+```
+
+- Sem tabela SQL. Legado sem chave = `[]`.
+- UX: coluna **Cores da arte** no editor (Enter / vírgula → tag). Eco em chips sob o nome nas fichas.
+- Não sincronizar `count(tintas)` com o select de estações (4V, verniz, branco).
+- Proibido: sobrecarregar `cores`; guardar só em `observacao`; explodir `PA-ETQ` por tinta.
+
 ## Rastreio
 
 - `App\Support\ModelosComposicao` · `ArteModeloUrl` · `OrcArteModeloService` · `OrcamentoValidationRules` · `OrcamentoAprovacaoService::dtoComercial` · `FaturamentoService::itensArte`
-- UI: `orcamentoForm.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `ModeloArteOverlay` · `OrcamentoFormPage` · `OrcamentoPropostaView`
+- UI: `orcamentoForm.ts` · `modeloTintas.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `ModeloTintasInput` · `ModeloTintasTags` · `ModeloArteOverlay` · `OrcamentoFormPage` · `OrcamentoPropostaView`
 - Testes: `ModelosComposicaoTest` · `ArteModeloUrlTest` · `OrcamentoTest` · `OrcamentoAprovacaoTest`

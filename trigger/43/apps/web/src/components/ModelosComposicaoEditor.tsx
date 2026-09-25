@@ -6,6 +6,7 @@ import {
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
 import { modeloArteCaptionFromMedida, ModeloArteTrigger } from './ModeloArteOverlay';
+import { ModeloTintasInput } from './ModeloTintasInput';
 import { NumericInput } from './NumericInput';
 
 type Props = {
@@ -16,6 +17,7 @@ type Props = {
   onNomeChange: (index: number, nome: string) => void;
   onValorArteChange: (index: number, valorArte: number) => void;
   onArteUrlChange: (index: number, arteUrl: string | null) => void;
+  onTintasChange: (index: number, tintas: string[]) => void;
   onQuantidadeChange: (faixaIdx: number, modeloIdx: number, qtd: number) => void;
   /** Equal-split em cada faixa (colunas independentes). */
   onEqualizar?: () => void;
@@ -51,6 +53,7 @@ export function ModelosComposicaoEditor({
   onNomeChange,
   onValorArteChange,
   onArteUrlChange,
+  onTintasChange,
   onQuantidadeChange,
   onEqualizar,
   medida,
@@ -118,6 +121,12 @@ export function ModelosComposicaoEditor({
               </th>
               <th className="orc-modelo-nome-col">Modelo (arte)</th>
               <th
+                className="orc-modelo-tintas-col"
+                title="Cores nomeadas desta arte — não altera o preço nem as estações"
+              >
+                Cores da arte
+              </th>
+              <th
                 className="orc-modelo-arte-col"
                 title="Valor cotado desta arte — entra no total do orçamento"
               >
@@ -172,6 +181,14 @@ export function ModelosComposicaoEditor({
                     {isRestoRow ? (
                       <span className="orc-modelo-resto-hint">Recebe o restante desta faixa</span>
                     ) : null}
+                  </td>
+                  <td className="orc-modelo-tintas-col">
+                    <ModeloTintasInput
+                      value={m.tintas}
+                      onChange={(next) => onTintasChange(mi, next)}
+                      disabled={!canWrite}
+                      aria-label={`Cores da arte do modelo ${mi + 1}`}
+                    />
                   </td>
                   <td className="orc-modelo-arte-col">
                     <NumericInput
@@ -238,7 +255,7 @@ export function ModelosComposicaoEditor({
           </tbody>
           <tfoot>
             <tr className="orc-modelos-editor-total">
-              <td colSpan={3}>
+              <td colSpan={4}>
                 {faixasOk.length > 0 ? 'Totais' : 'Total artes'}
               </td>
               <td className="orc-modelo-arte-col orc-modelos-total-cell">

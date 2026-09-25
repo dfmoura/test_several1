@@ -9,14 +9,19 @@ use Illuminate\Validation\ValidationException;
  * Composição operacional dos modelos (artes) do ORC.
  *
  * O motor de preço usa apenas o escalar `modelos` (setup/perda).
- * Esta composição (nome + % da quantidade + valor_arte cotado + arte_url opcional)
+ * Esta composição (nome + % da quantidade + valor_arte cotado + arte_url opcional + tintas)
  * viaja no input_snapshot para PED/OP: q_i = política(Q × pct_i/100), resto no último.
  * Σ valor_arte entra no total comercial pós-motor (como faca nova) — não em R1–R20.
  * arte_url é só visualização (http(s) ou orc-arte:…) — fora do motor.
+ * tintas[] = nomes das cores da arte (spec comercial/operacional) — fora de R1–R20.
  */
 final class ModelosComposicao
 {
     public const TOLERANCIA_SOMA = 0.01;
+
+    public const TINTAS_MAX = 12;
+
+    public const TINTA_MAX_CHARS = 40;
 
     /**
      * Garante `modelos_composicao` coerente com `modelos`.
@@ -57,7 +62,7 @@ final class ModelosComposicao
 
     /**
      * @param  array<int, mixed>  $raw
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas: list<string>}>
      */
     public static function normalizeAndAssert(array $raw, int $modelos): array
     {
@@ -110,6 +115,8 @@ final class ModelosComposicao
                 ]);
             }
 
+            $tintas = self::normalizeTintas($row['tintas'] ?? [], $i);
+
             $soma += $pct;
             $out[] = [
                 'ordem' => $i + 1,
@@ -117,6 +124,7 @@ final class ModelosComposicao
                 'percentual' => $pct,
                 'valor_arte' => $valorArte,
                 'arte_url' => $arteUrl,
+                'tintas' => $tintas,
             ];
         }
 
@@ -143,7 +151,7 @@ final class ModelosComposicao
     /**
      * Equal-split sem nomes (legado / preview sem detalhe).
      *
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas: list<string>}>
      */
     public static function equalSplit(int $modelos): array
     {
@@ -160,7 +168,77 @@ final class ModelosComposicao
                 'percentual' => $pct,
                 'valor_arte' => 0.0,
                 'arte_url' => null,
+                'tintas' => [],
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Cores nomeadas da arte (tags). Fora do motor / preço.
+     * Ausente ou vazio = []. Duplicata no mesmo modelo (sem maiúscula) some.
+     *
+     * @return list<string>
+     */
+    public static function normalizeTintas(mixed $raw, ?int $modeloIdx = null): array
+    {
+        $prefix = $modeloIdx === null
+            ? 'modelos_composicao.tintas'
+            : "modelos_composicao.{$modeloIdx}.tintas";
+
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        if (is_string($raw)) {
+            $raw = preg_split('/[,;\n]+/u', $raw) ?: [];
+        }
+
+        if (! is_array($raw)) {
+            throw ValidationException::withMessages([
+                $prefix => ['Informe as cores da arte como lista de nomes.'],
+            ]);
+        }
+
+        $seen = [];
+        $out = [];
+        foreach (array_values($raw) as $item) {
+            if ($item === null || $item === '') {
+                continue;
+            }
+            if (! is_scalar($item)) {
+                throw ValidationException::withMessages([
+                    $prefix => ['Cada cor da arte deve ser um nome curto.'],
+                ]);
+            }
+
+            $nome = trim((string) preg_replace('/\s+/u', ' ', (string) $item));
+            if ($nome === '') {
+                continue;
+            }
+            if (mb_strlen($nome) > self::TINTA_MAX_CHARS) {
+                throw ValidationException::withMessages([
+                    $prefix => [
+                        sprintf('Cada cor da arte: máximo %d caracteres.', self::TINTA_MAX_CHARS),
+                    ],
+                ]);
+            }
+
+            $key = mb_strtolower($nome);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $nome;
+
+            if (count($out) > self::TINTAS_MAX) {
+                throw ValidationException::withMessages([
+                    $prefix => [
+                        sprintf('No máximo %d cores por modelo.', self::TINTAS_MAX),
+                    ],
+                ]);
+            }
         }
 
         return $out;
@@ -192,8 +270,8 @@ final class ModelosComposicao
      * Aloca quantidade total por percentual; resto no último (soma = Q).
      * Uso futuro: PED/OP a partir do snapshot do ORC.
      *
-     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null}>  $composicao
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, quantidade: int}>
+     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null, tintas?: list<string>|mixed}>  $composicao
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas: list<string>, quantidade: int}>
      */
     public static function alocarQuantidades(int $quantidadeTotal, array $composicao): array
     {
@@ -220,6 +298,7 @@ final class ModelosComposicao
                 'percentual' => round($pct, 4),
                 'valor_arte' => round(max(0.0, (float) ($rows[$i]['valor_arte'] ?? 0)), 2),
                 'arte_url' => ArteModeloUrl::normalize($rows[$i]['arte_url'] ?? null),
+                'tintas' => self::normalizeTintas($rows[$i]['tintas'] ?? []),
                 'quantidade' => max(0, $qi),
             ];
         }
@@ -324,10 +403,10 @@ final class ModelosComposicao
     /**
      * % de referência (1ª faixa Q>0) — compatibilidade legada / PED.
      *
-     * @param  list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>  $composicao
+     * @param  list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas?: list<string>}>  $composicao
      * @param  list<array{quantidade?: int|float|string|null}>  $faixas
      * @param  list<list<int>>  $matriz
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas?: list<string>}>
      */
     public static function syncPercentualReferencia(array $composicao, array $faixas, array $matriz): array
     {
@@ -392,9 +471,9 @@ final class ModelosComposicao
     /**
      * Quantidades alocadas para uma faixa — usa matriz quando presente.
      *
-     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null}>  $composicao
+     * @param  list<array{ordem?: int, nome?: string, percentual: float|int|string, valor_arte?: float|int|string, arte_url?: string|null, tintas?: list<string>|mixed}>  $composicao
      * @param  list<list<int>>|null  $matriz
-     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, quantidade: int}>
+     * @return list<array{ordem: int, nome: string, percentual: float, valor_arte: float, arte_url: ?string, tintas: list<string>, quantidade: int}>
      */
     public static function alocarQuantidadesFaixa(
         int $quantidadeTotal,
@@ -415,6 +494,7 @@ final class ModelosComposicao
                         'percentual' => round((float) ($r['percentual'] ?? 0), 4),
                         'valor_arte' => round(max(0.0, (float) ($r['valor_arte'] ?? 0)), 2),
                         'arte_url' => ArteModeloUrl::normalize($r['arte_url'] ?? null),
+                        'tintas' => self::normalizeTintas($r['tintas'] ?? []),
                         'quantidade' => max(0, (int) ($qs[$i] ?? 0)),
                     ];
                 }

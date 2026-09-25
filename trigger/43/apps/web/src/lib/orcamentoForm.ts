@@ -12,6 +12,7 @@ import {
 } from './orcamentoParametrosAjuste';
 import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
 import { type SaidaEtiquetaCodigo, isSaidaEtiqueta } from './saidaEtiqueta';
+import { normalizeTintas } from './modeloTintas';
 import { modoComFrete, MOD_FRETE_CIF, normalizarModFreteTerceiros, normalizarModoEntrega, totalPropostaFaixa } from './orcamentoFrete';
 import { facaDimensoesExibicao } from './facasMapa';
 import type { OrcamentoResult } from './api';
@@ -91,6 +92,7 @@ export type NecessidadeOrcItem = 'PRODUCAO' | 'SERVICO' | 'REVENDA';
  * UI edita quantidades por faixa e valor cotado da arte;
  * `percentual` persiste no snapshot (Σ = 100) para PED/OP.
  * `valor_arte` soma no total comercial pós-motor (não em R1–R20).
+ * `tintas` = cores nomeadas da arte (fora do motor; `cores` continua estações).
  */
 export type ModeloComposicaoForm = {
   ordem: number;
@@ -100,6 +102,8 @@ export type ModeloComposicaoForm = {
   valor_arte: number;
   /** Visual opcional — http(s) ou ref `orc-arte:…` (upload). */
   arte_url?: string | null;
+  /** Cores da arte (tags). Opcional; não altera preço. */
+  tintas?: string[];
 };
 
 /** Composição de facas no ORC — ADR_ORC_FACAS_COMPOSICAO. */
@@ -507,6 +511,7 @@ export function syncModelosComposicao(
       percentual: pct,
       valor_arte: Math.max(0, Number(prev?.[i]?.valor_arte) || 0),
       arte_url: prev?.[i]?.arte_url?.trim() || null,
+      tintas: normalizeTintas(prev?.[i]?.tintas),
     });
   }
   return out;
@@ -876,6 +881,7 @@ export function formFromSnapshot(
           percentual: Number(r.percentual) || 0,
           valor_arte: Math.max(0, Number(r.valor_arte) || 0),
           arte_url: String(r.arte_url ?? '').trim() || null,
+          tintas: normalizeTintas(r.tintas),
         }))
       : syncModelosComposicao(compRaw, modelos);
 
@@ -1093,7 +1099,10 @@ export function cloneOrcFormItem(source: OrcForm, catalog: OrcCatalogo | null): 
     ...base,
     ...source,
     faixas: source.faixas.map((f) => ({ ...f })),
-    modelos_composicao: source.modelos_composicao.map((m) => ({ ...m })),
+    modelos_composicao: source.modelos_composicao.map((m) => ({
+      ...m,
+      tintas: [...normalizeTintas(m.tintas)],
+    })),
     modelos_composicao_quantidades:
       source.modelos_composicao_quantidades?.map((row) => [...row]) ??
       syncModelosComposicaoQuantidades(
@@ -1250,6 +1259,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       percentual: Number(m.percentual) || 0,
       valor_arte: Math.max(0, Number(m.valor_arte) || 0),
       arte_url: m.arte_url?.trim() || null,
+      tintas: normalizeTintas(m.tintas),
     })),
     modelos_composicao_quantidades: matrizQuantidadesModelos(
       form.faixas,

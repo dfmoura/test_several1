@@ -1,4 +1,5 @@
 import type { OrcamentoFaixaResult, Pedido, PedidoItem } from './api';
+import { normalizeTintas } from './modeloTintas';
 import type { ModeloComposicaoForm } from './orcamentoForm';
 
 /**
@@ -42,12 +43,16 @@ export function modelosDoSnap(input: Record<string, unknown>): ModeloComposicaoF
         nome?: string;
         percentual?: number;
         valor_arte?: number;
+        arte_url?: string | null;
+        tintas?: string[];
       };
       return {
         ordem: Number(r.ordem) || i + 1,
         nome: String(r.nome ?? '').trim(),
         percentual: Number(r.percentual) || 0,
         valor_arte: Math.max(0, Number(r.valor_arte) || 0),
+        arte_url: String(r.arte_url ?? '').trim() || null,
+        tintas: normalizeTintas(r.tintas),
       };
     })
     .filter((m) => m.nome !== '');

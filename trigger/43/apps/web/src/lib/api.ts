@@ -3625,6 +3625,8 @@ export type OrcamentoPropostaPublica = {
       valor_arte?: number;
       /** URL resolvida para exibição (assinada ou http). */
       arte_url?: string | null;
+      /** Cores nomeadas da arte (fora do motor). */
+      tintas?: string[];
     }> | null;
     tipo_servico?: string | null;
     descricao_servico?: string | null;

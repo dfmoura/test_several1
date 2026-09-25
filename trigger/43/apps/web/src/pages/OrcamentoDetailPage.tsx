@@ -51,6 +51,7 @@ type ModeloCompSnap = {
   percentual?: number;
   valor_arte?: number;
   arte_url?: string | null;
+  tintas?: string[];
 };
 
 type ItemFichaSnap = {

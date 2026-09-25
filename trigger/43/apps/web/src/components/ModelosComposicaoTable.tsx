@@ -5,7 +5,9 @@ import {
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
 import { formatCurrency } from '../lib/format';
+import { normalizeTintas } from '../lib/modeloTintas';
 import { ModeloArteTrigger } from './ModeloArteOverlay';
+import { ModeloTintasTags } from './ModeloTintasTags';
 
 export type ModeloComposicaoRow = {
   ordem?: number;
@@ -13,6 +15,7 @@ export type ModeloComposicaoRow = {
   percentual?: number;
   valor_arte?: number;
   arte_url?: string | null;
+  tintas?: string[] | null;
 };
 
 /** Faixa de quantidade do ORC — base do rateio inteiro por modelo. */
@@ -55,6 +58,7 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
     percentual: Number(m.percentual) || 0,
     valor_arte: Math.max(0, Number(m.valor_arte) || 0),
     arte_url: String(m.arte_url ?? '').trim() || null,
+    tintas: normalizeTintas(m.tintas),
   }));
 }
 
@@ -192,6 +196,7 @@ export function ModelosComposicaoTable({
                     ) : null}
                     <span>{m.nome}</span>
                   </span>
+                  <ModeloTintasTags tintas={m.tintas} />
                 </td>
                 {exibirArte ? (
                   <td className={arteClass}>

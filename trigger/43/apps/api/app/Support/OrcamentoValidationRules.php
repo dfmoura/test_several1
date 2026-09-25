@@ -132,6 +132,8 @@ final class OrcamentoValidationRules
             'modelos_composicao.*.percentual' => ['nullable', 'numeric', 'gt:0', 'lte:100'],
             'modelos_composicao.*.valor_arte' => ['nullable', 'numeric', 'min:0'],
             'modelos_composicao.*.arte_url' => ArteModeloUrl::validationRule(),
+            'modelos_composicao.*.tintas' => ['sometimes', 'nullable'],
+            'modelos_composicao.*.tintas.*' => ['nullable', 'string', 'max:40'],
             'modelos_composicao_quantidades' => ['sometimes', 'nullable', 'array'],
             'modelos_composicao_quantidades.*' => ['nullable', 'array'],
             'modelos_composicao_quantidades.*.*' => ['nullable', 'integer', 'min:0'],

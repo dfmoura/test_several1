@@ -3,6 +3,7 @@
  * N=1: zero chrome multi. N>1: total do documento + acordeão por posição.
  */
 import type { OrcamentoPropostaPublica } from './api';
+import { normalizeTintas } from './modeloTintas';
 
 export type OrcPropostaDescricao = NonNullable<OrcamentoPropostaPublica['descricao']>;
 export type OrcPropostaFaixa = NonNullable<OrcamentoPropostaPublica['faixas']>[number];
@@ -40,6 +41,7 @@ export function descricaoFromPedidoSpec(
         percentual: Number(m.percentual) || 0,
         valor_arte: Math.max(0, Number(m.valor_arte) || 0),
         arte_url: String(m.arte_url ?? '').trim() || null,
+        tintas: normalizeTintas(m.tintas),
       };
     })
     .filter((m): m is NonNullable<typeof m> => m != null);
