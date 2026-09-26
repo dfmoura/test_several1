@@ -20,7 +20,6 @@ import {
 
 export type PedidoFichaEtiquetaLinha = {
   key: string;
-  kind: 'modelo' | 'matriz';
   itemId: number;
   ordem: number;
   material: string | null;
@@ -143,7 +142,10 @@ function valorEtiquetaDoItem(pedido: Pedido, item: PedidoItem, unitario: number 
   return Number.isFinite(total) && total > 0 ? money2(total) : 0;
 }
 
-function valorMatrizResidual(pedido: Pedido, item: PedidoItem, valorEtiqueta: number): number {
+/** Residual do item (contrato − etiquetas). Não rateia por arte. */
+export function matrizResidualDoItem(pedido: Pedido, item: PedidoItem): number {
+  const unitario = numPositivo(item.preco_unitario);
+  const valorEtiqueta = valorEtiquetaDoItem(pedido, item, unitario);
   const total = Number(item.valor_total);
   if (Number.isFinite(total) && total > 0) {
     const residual = money2(total - valorEtiqueta);
@@ -205,33 +207,14 @@ export function linhasEtiquetaDoItem(
     valorRolo,
   };
 
-  const linhas: PedidoFichaEtiquetaLinha[] = aloc.map((a, i) => ({
+  return aloc.map((a, i) => ({
     ...base,
     key: `${item.id}-m-${i}`,
-    kind: 'modelo',
     modelo: a.nome,
     rolos: rolos[i] ?? null,
     etiquetas: a.etiquetas,
     subtotal: subtotais[i] ?? 0,
   }));
-
-  const matriz = valorMatrizResidual(pedido, item, valorEtiqueta);
-  if (matriz > 0) {
-    linhas.push({
-      ...base,
-      key: `${item.id}-matriz`,
-      kind: 'matriz',
-      modelo: 'Matriz',
-      etiqPorRolo: null,
-      rolos: null,
-      etiquetas: null,
-      subtotal: matriz,
-      unitario: null,
-      valorRolo: null,
-    });
-  }
-
-  return linhas;
 }
 
 export function linhaSimplesDoItem(pedido: Pedido, item: PedidoItem): PedidoFichaSimplesLinha {

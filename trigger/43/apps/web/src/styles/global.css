@@ -9545,15 +9545,20 @@ tr.row-inactive td {
   background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
 }
 
-.ficha-sheet-ped .ped-ficha-contrato-matriz td {
-  font-style: italic;
-  color: color-mix(in srgb, var(--text, #1a2332) 78%, transparent);
+.ficha-sheet-ped .ped-ficha-contrato-item-matriz td {
+  border-top: 0.35pt solid color-mix(in srgb, var(--border, #c5ced9) 80%, transparent);
+  font-weight: 600;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table tfoot td {
   padding-top: 1mm;
   border-bottom: none;
   font-size: 7pt;
+}
+
+.ficha-sheet-ped .ped-ficha-contrato-foot-matriz td {
+  padding-top: 1.1mm;
+  padding-bottom: 0.2mm;
 }
 
 .ficha-sheet-ped .ped-ficha-total-pedido {
