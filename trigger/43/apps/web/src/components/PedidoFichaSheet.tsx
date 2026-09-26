@@ -427,6 +427,7 @@ function PedidoTabelaEtiquetas({
   const somaEtiquetas = modelos.reduce((acc, ln) => acc + (ln.etiquetas ?? 0), 0);
   const somaEtiqPorRolo = grupos.reduce((acc, g) => acc + (g.linhas[0]?.etiqPorRolo ?? 0), 0);
   const temEtiqPorRolo = grupos.some((g) => g.linhas[0]?.etiqPorRolo != null);
+  const somaArte = modelos.reduce((acc, ln) => acc + (ln.valorArte > 0 ? ln.valorArte : 0), 0);
   const somaMatriz = grupos.reduce((acc, g) => acc + g.matriz, 0);
   const total = somaValores(itens);
 
@@ -447,6 +448,7 @@ function PedidoTabelaEtiquetas({
           <th className="ped-ficha-col-xs">Fx</th>
           <th>Modelo</th>
           <th>Cores arte</th>
+          <th className="ficha-td-num ped-ficha-th-val">Vlr. arte</th>
           <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
           <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
           <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
@@ -475,6 +477,9 @@ function PedidoTabelaEtiquetas({
                 <ModeloTintasTags tintas={ln.tintas} empty="—" />
               </td>
               <td className="ficha-td-num">
+                {ln.valorArte > 0 ? formatCurrency(ln.valorArte) : '—'}
+              </td>
+              <td className="ficha-td-num">
                 {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
               </td>
               <td className="ficha-td-num">
@@ -499,6 +504,7 @@ function PedidoTabelaEtiquetas({
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
+            <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">
               <strong>{formatCurrency(somaMatriz)}</strong>
             </td>
@@ -507,6 +513,9 @@ function PedidoTabelaEtiquetas({
         <tr>
           <td colSpan={13} className="ficha-td-num">
             {rodape}
+          </td>
+          <td className="ficha-td-num">
+            {somaArte > 0 ? formatCurrency(somaArte) : '—'}
           </td>
           <td className="ficha-td-num">—</td>
           <td className="ficha-td-num">—</td>
