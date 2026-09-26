@@ -6,6 +6,8 @@
 import type { Pedido, PedidoItem } from './api';
 import {
   alocarQuantidadePorModelo,
+  facaPrincipal,
+  facasFromSnapshot,
   reconciliarMatrizFaixaRow,
 } from './orcamentoForm';
 import { descricaoFromPedidoSpec } from './orcamentoPropostaItens';
@@ -28,9 +30,12 @@ export type PedidoFichaEtiquetaLinha = {
   tubete: string | null;
   cores: string | null;
   saida: string | null;
+  maquina: string | null;
+  nFaca: string | null;
   faca: string | null;
   faixa: string | null;
   modelo: string;
+  tintas: string[];
   etiqPorRolo: number | null;
   rolos: number | null;
   etiquetas: number | null;
@@ -93,12 +98,12 @@ export function particionarItensPedido(itens: PedidoItem[]): {
 export function etiquetasPorModeloDoItem(
   pedido: Pedido,
   item: PedidoItem,
-): Array<{ nome: string; etiquetas: number }> {
+): Array<{ nome: string; etiquetas: number; tintas: string[] }> {
   const spec = specOperacional(pedido, item);
   const modelos = modelosDoSnap(spec);
   const qtde = Math.max(0, Math.floor(qtdeFaixaDoItem(pedido, item)) || 0);
   if (modelos.length === 0) {
-    return [{ nome: '—', etiquetas: qtde }];
+    return [{ nome: '—', etiquetas: qtde, tintas: [] }];
   }
   const faixaIdx = faixaIndexDoItem(pedido, item);
   const stored = matrizQuantidadesDoItem(item)?.[faixaIdx];
@@ -109,6 +114,7 @@ export function etiquetasPorModeloDoItem(
   return modelos.map((m, i) => ({
     nome: m.nome || `Modelo ${i + 1}`,
     etiquetas: qs[i] ?? 0,
+    tintas: m.tintas ?? [],
   }));
 }
 
@@ -190,6 +196,11 @@ export function linhasEtiquetaDoItem(
   const valorRolo =
     unitario != null && etiqPorRolo != null ? money2(unitario * etiqPorRolo) : null;
   const faixaIdx = faixaIndexDoItem(pedido, item);
+  const principal = facaPrincipal(facasFromSnapshot(spec));
+  const maquinaRaw = String(principal?.maquina || spec.maquina || '').trim();
+  const nFacaRaw = principal?.n_facas ?? spec.n_facas;
+  const nFaca =
+    nFacaRaw != null && Number.isFinite(Number(nFacaRaw)) ? String(Number(nFacaRaw)) : null;
 
   const base = {
     itemId: item.id,
@@ -200,6 +211,8 @@ export function linhasEtiquetaDoItem(
     tubete: desc.tubete ?? null,
     cores: desc.cores ?? null,
     saida: visual.saida,
+    maquina: maquinaRaw || null,
+    nFaca,
     faca: visual.faca,
     faixa: `#${faixaIdx + 1}`,
     etiqPorRolo,
@@ -211,6 +224,7 @@ export function linhasEtiquetaDoItem(
     ...base,
     key: `${item.id}-m-${i}`,
     modelo: a.nome,
+    tintas: a.tintas,
     rolos: rolos[i] ?? null,
     etiquetas: a.etiquetas,
     subtotal: subtotais[i] ?? 0,

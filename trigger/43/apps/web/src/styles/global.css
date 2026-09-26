@@ -9537,6 +9537,32 @@ tr.row-inactive td {
   font-weight: 600;
 }
 
+.ficha-sheet-ped .ped-ficha-col-xs,
+.ficha-sheet-ped .ped-ficha-contrato-table th.ped-ficha-col-xs {
+  width: 8mm;
+  max-width: 11mm;
+  padding-left: 0.4mm;
+  padding-right: 0.4mm;
+  white-space: nowrap;
+}
+
+.ficha-sheet-ped .ped-ficha-col-tintas {
+  max-width: 28mm;
+  padding-left: 0.45mm;
+  padding-right: 0.45mm;
+}
+
+.ficha-sheet-ped .ped-ficha-col-tintas .modelo-tintas-tags {
+  margin: 0;
+  gap: 0.25mm;
+}
+
+.ficha-sheet-ped .ped-ficha-col-tintas .modelo-tinta-tag {
+  font-size: 5.5pt;
+  padding: 0 0.6mm;
+  line-height: 1.2;
+}
+
 .ficha-sheet-ped .ped-ficha-contrato-grupo + .ped-ficha-contrato-grupo {
   border-top: 0.6pt solid color-mix(in srgb, var(--border, #c5ced9) 88%, transparent);
 }

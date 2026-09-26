@@ -41,7 +41,7 @@ import {
 import { saidaEtiquetaLabel, saidaEtiquetaLabelCurto } from '../lib/saidaEtiqueta';
 import { displaySnap } from '../lib/orcamentoForm';
 import { tintasDeComposicao } from '../lib/modeloTintas';
-import { ModeloTintasPorModelo } from './ModeloTintasTags';
+import { ModeloTintasPorModelo, ModeloTintasTags } from './ModeloTintasTags';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
@@ -438,16 +438,19 @@ function PedidoTabelaEtiquetas({
           <th>Material</th>
           <th>Medida</th>
           <th>Acab.</th>
-          <th>Tubete</th>
-          <th>Cores</th>
+          <th className="ped-ficha-col-xs">Tub.</th>
+          <th className="ped-ficha-col-xs">Cores</th>
           <th>Saída</th>
+          <th className="ped-ficha-col-xs">Máq.</th>
+          <th className="ped-ficha-col-xs">Nº faca</th>
           <th>Faca</th>
-          <th>Faixa</th>
+          <th className="ped-ficha-col-xs">Fx</th>
           <th>Modelo</th>
+          <th>Cores arte</th>
           <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
           <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
           <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
-          <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
+          <th className="ficha-td-num ped-ficha-th-val ped-ficha-col-xs">Rolos</th>
           <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
           <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
         </tr>
@@ -460,12 +463,17 @@ function PedidoTabelaEtiquetas({
               <td>{dashCell(ln.material)}</td>
               <td>{dashCell(ln.medida)}</td>
               <td>{dashCell(ln.acabamento)}</td>
-              <td>{dashCell(ln.tubete)}</td>
-              <td>{dashCell(ln.cores)}</td>
+              <td className="ped-ficha-col-xs">{dashCell(ln.tubete)}</td>
+              <td className="ped-ficha-col-xs">{dashCell(ln.cores)}</td>
               <td>{dashCell(ln.saida)}</td>
+              <td className="ped-ficha-col-xs">{dashCell(ln.maquina)}</td>
+              <td className="ped-ficha-col-xs ficha-td-num">{dashCell(ln.nFaca)}</td>
               <td>{dashCell(ln.faca)}</td>
-              <td>{dashCell(ln.faixa)}</td>
+              <td className="ped-ficha-col-xs">{dashCell(ln.faixa)}</td>
               <td className="ped-ficha-col-modelo">{ln.modelo}</td>
+              <td className="ped-ficha-col-tintas">
+                <ModeloTintasTags tintas={ln.tintas} empty="—" />
+              </td>
               <td className="ficha-td-num">
                 {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
               </td>
@@ -473,7 +481,7 @@ function PedidoTabelaEtiquetas({
                 {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
               </td>
               <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
-              <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
+              <td className="ficha-td-num ped-ficha-col-xs">{fmtRolos(ln.rolos)}</td>
               <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
               <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
             </tr>
@@ -483,7 +491,7 @@ function PedidoTabelaEtiquetas({
       <tfoot>
         {somaMatriz > 0 ? (
           <tr className="ped-ficha-contrato-foot-matriz">
-            <td colSpan={10} className="ficha-td-num">
+            <td colSpan={13} className="ficha-td-num">
               Total matriz
             </td>
             <td className="ficha-td-num">—</td>
@@ -497,13 +505,13 @@ function PedidoTabelaEtiquetas({
           </tr>
         ) : null}
         <tr>
-          <td colSpan={10} className="ficha-td-num">
+          <td colSpan={13} className="ficha-td-num">
             {rodape}
           </td>
           <td className="ficha-td-num">—</td>
           <td className="ficha-td-num">—</td>
           <td className="ficha-td-num">{temEtiqPorRolo ? fmtQtdInt(somaEtiqPorRolo) : '—'}</td>
-          <td className="ficha-td-num">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
+          <td className="ficha-td-num ped-ficha-col-xs">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
           <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
           <td className="ficha-td-num">
             <strong>{formatCurrency(total)}</strong>
