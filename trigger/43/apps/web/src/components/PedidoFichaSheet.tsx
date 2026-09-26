@@ -519,12 +519,14 @@ function PedidoTabelaSimples({
   pedido,
   sku,
   descricaoLabel,
+  valorLabel,
   rodape,
 }: {
   itens: PedidoItem[];
   pedido: Pedido;
   sku: boolean;
   descricaoLabel: string;
+  valorLabel: string;
   rodape: string;
 }) {
   const total = somaValores(itens);
@@ -537,7 +539,7 @@ function PedidoTabelaSimples({
           <th>{descricaoLabel}</th>
           <th className="ficha-td-num">Qtd</th>
           <th className="ficha-td-num">Unitário</th>
-          <th className="ficha-td-num">Total</th>
+          <th className="ficha-td-num">{valorLabel}</th>
         </tr>
       </thead>
       <tbody>
@@ -603,6 +605,7 @@ function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
             itens={grupos.revendas}
             sku
             descricaoLabel="Descrição"
+            valorLabel="Subtotal"
             rodape={misto ? 'Total revenda' : 'Total do pedido'}
           />
         </FichaSection>
@@ -614,6 +617,7 @@ function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
             itens={grupos.servicos}
             sku={false}
             descricaoLabel="Descrição"
+            valorLabel="Total"
             rodape={misto ? 'Total serviços' : 'Total do pedido'}
           />
         </FichaSection>
