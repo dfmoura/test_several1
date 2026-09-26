@@ -425,6 +425,8 @@ function PedidoTabelaEtiquetas({
   const somaRolos = modelos.reduce((acc, ln) => acc + (ln.rolos ?? 0), 0);
   const temRolos = modelos.some((ln) => ln.rolos != null);
   const somaEtiquetas = modelos.reduce((acc, ln) => acc + (ln.etiquetas ?? 0), 0);
+  const somaEtiqPorRolo = grupos.reduce((acc, g) => acc + (g.linhas[0]?.etiqPorRolo ?? 0), 0);
+  const temEtiqPorRolo = grupos.some((g) => g.linhas[0]?.etiqPorRolo != null);
   const somaMatriz = grupos.reduce((acc, g) => acc + g.matriz, 0);
   const total = somaValores(itens);
 
@@ -442,12 +444,12 @@ function PedidoTabelaEtiquetas({
           <th>Faca</th>
           <th>Faixa</th>
           <th>Modelo</th>
+          <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
+          <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
           <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
           <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
           <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
           <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
-          <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
-          <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
         </tr>
       </thead>
       {grupos.map(({ item, linhas }) => (
@@ -464,16 +466,16 @@ function PedidoTabelaEtiquetas({
               <td>{dashCell(ln.faca)}</td>
               <td>{dashCell(ln.faixa)}</td>
               <td className="ped-ficha-col-modelo">{ln.modelo}</td>
-              <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
-              <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
-              <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
-              <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
               <td className="ficha-td-num">
                 {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
               </td>
               <td className="ficha-td-num">
                 {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
               </td>
+              <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
+              <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
+              <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
+              <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
             </tr>
           ))}
         </tbody>
@@ -481,27 +483,31 @@ function PedidoTabelaEtiquetas({
       <tfoot>
         {somaMatriz > 0 ? (
           <tr className="ped-ficha-contrato-foot-matriz">
-            <td colSpan={11} className="ficha-td-num">
+            <td colSpan={10} className="ficha-td-num">
               Total matriz
             </td>
+            <td className="ficha-td-num">—</td>
+            <td className="ficha-td-num">—</td>
+            <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">
               <strong>{formatCurrency(somaMatriz)}</strong>
             </td>
-            <td colSpan={2} />
           </tr>
         ) : null}
         <tr>
-          <td colSpan={11} className="ficha-td-num">
+          <td colSpan={10} className="ficha-td-num">
             {rodape}
           </td>
+          <td className="ficha-td-num">—</td>
+          <td className="ficha-td-num">—</td>
+          <td className="ficha-td-num">{temEtiqPorRolo ? fmtQtdInt(somaEtiqPorRolo) : '—'}</td>
           <td className="ficha-td-num">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
           <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
           <td className="ficha-td-num">
             <strong>{formatCurrency(total)}</strong>
           </td>
-          <td colSpan={2} />
         </tr>
       </tfoot>
     </table>
