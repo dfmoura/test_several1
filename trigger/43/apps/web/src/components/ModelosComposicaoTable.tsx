@@ -41,6 +41,8 @@ type Props = {
   hint?: string | null;
   /** Exibir coluna Vlr. Arte (default: só se algum valor > 0). */
   showValorArte?: boolean;
+  /** Exibir coluna Cores da arte (default: se houver tinta, ou fora do variant data). */
+  showTintas?: boolean;
   /** Eco discreto no overlay da arte (proposta / ficha-cliente). */
   arteCaption?: string | null;
   /** Código de saída do item — desenho + rótulo no overlay. */
@@ -77,6 +79,7 @@ export function ModelosComposicaoTable({
   title = 'Composição dos modelos',
   hint,
   showValorArte,
+  showTintas,
   arteCaption,
   arteSaida,
   showArtePreview = true,
@@ -97,7 +100,8 @@ export function ModelosComposicaoTable({
 
   const somaArtes = somaValorArteModelos(rows);
   const exibirArte = showValorArte ?? somaArtes > 0;
-  const exibirTintas = rows.some((m) => (m.tintas?.length ?? 0) > 0) || variant !== 'data';
+  const exibirTintas =
+    showTintas ?? (rows.some((m) => (m.tintas?.length ?? 0) > 0) || variant !== 'data');
 
   const defaultHint =
     variant === 'pub'
