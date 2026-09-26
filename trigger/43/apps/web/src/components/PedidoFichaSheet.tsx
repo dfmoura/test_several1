@@ -450,7 +450,7 @@ function PedidoTabelaEtiquetas({
           <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
         </tr>
       </thead>
-      {grupos.map(({ item, linhas, matriz }) => (
+      {grupos.map(({ item, linhas }) => (
         <tbody key={item.id} className="ped-ficha-contrato-grupo">
           {linhas.map((ln) => (
             <tr key={ln.key}>
@@ -476,18 +476,6 @@ function PedidoTabelaEtiquetas({
               </td>
             </tr>
           ))}
-          {matriz > 0 ? (
-            <tr className="ped-ficha-contrato-item-matriz">
-              <td className="ped-ficha-col-n">{String(item.ordem).padStart(2, '0')}</td>
-              <td colSpan={9}>Matriz</td>
-              <td className="ficha-td-num">—</td>
-              <td className="ficha-td-num">—</td>
-              <td className="ficha-td-num">—</td>
-              <td className="ficha-td-num">{formatCurrency(matriz)}</td>
-              <td className="ficha-td-num">—</td>
-              <td className="ficha-td-num">—</td>
-            </tr>
-          ) : null}
         </tbody>
       ))}
       <tfoot>

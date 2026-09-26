@@ -9545,11 +9545,6 @@ tr.row-inactive td {
   background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
 }
 
-.ficha-sheet-ped .ped-ficha-contrato-item-matriz td {
-  border-top: 0.35pt solid color-mix(in srgb, var(--border, #c5ced9) 80%, transparent);
-  font-weight: 600;
-}
-
 .ficha-sheet-ped .ped-ficha-contrato-table tfoot td {
   padding-top: 1mm;
   border-bottom: none;
