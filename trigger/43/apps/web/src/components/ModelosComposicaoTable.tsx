@@ -102,6 +102,9 @@ export function ModelosComposicaoTable({
   const exibirArte = showValorArte ?? somaArtes > 0;
   const exibirTintas =
     showTintas ?? (rows.some((m) => (m.tintas?.length ?? 0) > 0) || variant !== 'data');
+  /** Tela (data): coluna própria. Pub/ficha: miniatura no nome, só se houver arquivo. */
+  const colunaPreview = showArtePreview && variant === 'data';
+  const previewNoNome = showArtePreview && variant !== 'data';
 
   const defaultHint =
     variant === 'pub'
@@ -158,6 +161,7 @@ export function ModelosComposicaoTable({
               >
                 #
               </th>
+              {colunaPreview ? <th className="orc-modelo-arte-preview-col">Arte</th> : null}
               <th>{isPub ? 'Modelo' : 'Modelo (arte)'}</th>
               {exibirTintas ? (
                 <th
@@ -199,9 +203,19 @@ export function ModelosComposicaoTable({
                 <td className={isPub ? 'orc-pub-modelos-ord' : undefined}>
                   {m.ordem || i + 1}
                 </td>
+                {colunaPreview ? (
+                  <td className="orc-modelo-arte-preview-col">
+                    <ModeloArteTrigger
+                      nome={m.nome}
+                      arteUrl={m.arte_url}
+                      caption={arteCaption}
+                      saidaEtiqueta={arteSaida}
+                    />
+                  </td>
+                ) : null}
                 <td>
                   <span className="orc-modelo-nome-com-arte">
-                    {showArtePreview && (m.arte_url || '').trim() ? (
+                    {previewNoNome && (m.arte_url || '').trim() ? (
                       <ModeloArteTrigger
                         nome={m.nome}
                         arteUrl={m.arte_url}
@@ -241,7 +255,7 @@ export function ModelosComposicaoTable({
           {alocPorFaixa.length > 1 || exibirArte ? (
             <tfoot>
               <tr className="orc-modelos-table-total">
-                <td colSpan={2}>Total</td>
+                <td colSpan={colunaPreview ? 3 : 2}>Total</td>
                 {exibirTintas ? <td className="orc-modelo-tintas-col" /> : null}
                 {exibirArte ? (
                   <td className={arteClass}>{formatCurrency(somaArtes)}</td>

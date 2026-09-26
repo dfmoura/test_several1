@@ -241,9 +241,10 @@ function PedidoItemGrupo({
               variant="data"
               className="ped-itens-modelos-table"
               title="Modelos desta posição"
-              hint="Quantidade da faixa aprovada em cada arte, com cores e valor cotado."
+              hint="Quantidade da faixa aprovada em cada arte, com preview, cores e valor cotado."
               showTintas
               showValorArte
+              showArtePreview
               arteCaption={modeloArteCaptionFromMedida(desc.medida)}
               arteSaida={saida || null}
               modelos={modelos}
