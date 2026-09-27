@@ -41,7 +41,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | Estoque · Retiradas | Os mesmos azulejos + overlay. Perda / pegar de novo / entregar depois da baixa. | Mega-lista, abas de módulo na ficha |
 | Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 
-**Overlay:** um material por vez. Bobina = **metro linear** (comprimento do volume; senão m² ÷ largura). Filtro: lote, metro, local, mm, m². Unidade = quantidade. Confirmar envia a qtde oficial do SKU (m²) no mesmo writer. Sem segundo saldo.
+**Overlay:** um material por vez. Bobina = **metro linear** (comprimento do volume; senão m² ÷ largura). Filtro casa o **lote da bobina** (código / NF), não o SKU. Unidade = quantidade. Confirmar envia a qtde oficial do SKU (m²) no mesmo writer. Sem segundo saldo.
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
 

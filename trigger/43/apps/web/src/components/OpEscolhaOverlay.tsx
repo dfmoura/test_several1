@@ -72,19 +72,9 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const onde = opKitOnde(material);
-  const extraBusca = [
-    material.produto?.codigo,
-    material.produto?.descricao_fiscal,
-    material.componente,
-    material.unidade,
-    onde,
-  ]
-    .filter(Boolean)
-    .join(' ');
-
   const volsVisiveis = useMemo(
-    () => vols.filter((v) => volumePassaFiltro(v, filtro, extraBusca)),
-    [vols, filtro, extraBusca],
+    () => vols.filter((v) => volumePassaFiltro(v, filtro)),
+    [vols, filtro],
   );
 
   useEffect(() => {

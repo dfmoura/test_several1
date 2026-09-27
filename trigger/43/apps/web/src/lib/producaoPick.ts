@@ -165,6 +165,10 @@ function foldBusca(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
 
+function compactoBusca(s: string): string {
+  return foldBusca(s).replace(/[^a-z0-9]+/g, '');
+}
+
 function variantesNumero(raw: string | number | null | undefined): string[] {
   if (raw == null || String(raw).trim() === '') return [];
   const s = String(raw).trim();
@@ -176,36 +180,31 @@ function variantesLote(codigo: string | null | undefined, loteId: number | null 
   const raw = (codigo ?? '').trim();
   const semPref = raw.replace(/^(vol|lote|lot)[:\s-]*/i, '');
   return [
-    'lote',
-    'lot',
-    'volume',
-    'vol',
     loteId != null ? String(loteId) : '',
     raw,
     semPref,
+    compactoBusca(raw),
+    compactoBusca(semPref),
     ...raw.split(/[-_/.\s:]+/),
     ...semPref.split(/[-_/.\s:]+/),
   ].filter((s) => s !== '');
 }
 
-/** Texto único do volume — um campo casa em tudo que o chão lê. */
-export function volumeTextoBusca(v: OpRetiradaVolume, extra = ''): string {
-  const end = v.endereco?.codigo ?? '';
+/** Só identidade do lote — o filtro do overlay não mistura SKU. */
+export function volumeTextoLote(v: OpRetiradaVolume): string {
   return [
-    extra,
     ...variantesLote(v.codigo, v.lote_id),
     ...variantesLote(v.nf_numero, null),
     v.nf_numero,
-    v.sku,
-    v.unidade,
-    v.data_entrada,
-    v.data_validade,
-    v.status,
-    v.status_label,
-    v.motivo,
-    v.movimento_codigo,
-    v.movimento_em,
-    v.endereco?.id,
+  ]
+    .filter((x) => x != null && String(x).trim() !== '')
+    .join(' ');
+}
+
+export function volumeTextoBusca(v: OpRetiradaVolume): string {
+  const end = v.endereco?.codigo ?? '';
+  return [
+    volumeTextoLote(v),
     end,
     ...end.split(/[-_/.\s]+/),
     ...variantesNumero(v.qtde_volume),
@@ -215,18 +214,22 @@ export function volumeTextoBusca(v: OpRetiradaVolume, extra = ''): string {
     formatVolumeTotal(v),
     formatMetrosLineares(v),
     formatVolumeDimensao(v),
-    'metro',
-    'metros',
-    'linear',
-    v.sugerido ? 'sugerido fefo' : '',
   ]
     .filter((x) => x != null && String(x).trim() !== '')
     .join(' ');
 }
 
-export function volumePassaFiltro(v: OpRetiradaVolume, consulta: string, extra = ''): boolean {
-  const tokens = foldBusca(consulta).split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return true;
-  const hay = foldBusca(volumeTextoBusca(v, extra));
-  return tokens.every((t) => hay.includes(t));
+export function volumePassaFiltro(v: OpRetiradaVolume, consulta: string): boolean {
+  let q = foldBusca(consulta).trim();
+  if (!q) return true;
+  q = q.replace(/^(lote|lot|vol|volume)\b[:\s-]*/g, '').trim() || q;
+  const tokens = q.split(/\s+/).filter((t) => t.length > 0);
+  const hayLote = `${foldBusca(volumeTextoLote(v))} ${compactoBusca(volumeTextoLote(v))}`;
+  const hayResto = foldBusca(volumeTextoBusca(v));
+  return tokens.every((t) => {
+    const c = compactoBusca(t);
+    if (c.length >= 2 && hayLote.includes(c)) return true;
+    if (hayLote.includes(t) || hayResto.includes(t)) return true;
+    return false;
+  });
 }
