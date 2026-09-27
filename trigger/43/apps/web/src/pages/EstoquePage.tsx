@@ -10,6 +10,7 @@ import {
   coincideBusca,
   familiasNaPosicao,
   itensPosicao,
+  linhasPosicao,
   mesmaDimensaoVolume,
   mesmaQtdeEstoque,
   movTipoLabel,
@@ -56,7 +57,7 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  posicao: 'Saldo por produto e dimensão (soma da quantidade) e onde está. Bobina em Volumes; documento em Movimentos.',
+  posicao: 'Uma linha: produto, dimensão e quantidade somada. Bobina em Volumes; documento em Movimentos.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA ou ajuste aprovado.',
 };
@@ -148,6 +149,7 @@ export function EstoquePage() {
     () => itensPosicao(saldos, tab === 'posicao' ? q : '', familia),
     [saldos, q, familia, tab],
   );
+  const posicaoLinhas = useMemo(() => linhasPosicao(posicaoItens), [posicaoItens]);
 
   const familiasFiltro = useMemo(() => familiasNaPosicao(saldos), [saldos]);
 
@@ -257,7 +259,7 @@ export function EstoquePage() {
     <div className="estoque-posicao-page">
       <PageHeader
         title="Estoque"
-        description="Saldo por produto e dimensão (soma da quantidade) e local. Nada entra ou sai sem documento."
+        description="Saldo por produto e dimensão (soma da quantidade). Nada entra ou sai sem documento."
       />
 
       <EstoqueModuleNav />
@@ -329,7 +331,7 @@ export function EstoquePage() {
       <div className="tabs" role="tablist" aria-label="Visões da posição">
         {(
           [
-            ['posicao', 'Posição', posicaoItens.length],
+            ['posicao', 'Posição', posicaoLinhas.length],
             ['lotes', 'Volumes', lotesFiltrados.length],
             ['movimentos', 'Movimentos', movsFiltrados.length],
           ] as const
@@ -359,7 +361,7 @@ export function EstoquePage() {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={
                   tab === 'posicao'
-                    ? 'Item, dimensão, local…'
+                    ? 'Produto, dimensão…'
                     : tab === 'lotes'
                       ? 'SKU, lote…'
                       : 'MOV, NF, OC, fornecedor…'
@@ -428,7 +430,6 @@ export function EstoquePage() {
                 itens={posicaoItens}
                 onAbrirFormato={abrirFormato}
                 onAbrirVolumes={abrirVolumesDoSku}
-                onExtrato={(produtoId) => navigate(`/estoque/extrato/${produtoId}`)}
               />
             )
           ) : tab === 'lotes' ? (

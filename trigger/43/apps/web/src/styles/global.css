@@ -13751,112 +13751,15 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   background: #fafbfd;
 }
 
-/* Posição: item → formato → local (sem segundo saldo). */
-.estoque-posicao-resumo {
-  margin: 0;
-  padding: 0.4rem 0.65rem;
-  font-size: 0.7rem;
-  border-bottom: 1px solid var(--border);
-}
-
+/* Posição: uma linha = produto + dimensão + soma (sem segundo saldo). */
 .estoque-posicao-table {
-  min-width: 640px;
+  min-width: 520px;
 }
 
 .estoque-posicao-table thead th {
   font-size: 0.64rem;
   font-weight: 600;
   white-space: nowrap;
-}
-
-.estoque-posicao-bloco + .estoque-posicao-bloco .estoque-posicao-item-head > td {
-  border-top: 1px solid var(--border);
-}
-
-.estoque-posicao-item-head > td {
-  background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
-  padding: 0.42rem 0.55rem;
-}
-
-.estoque-posicao-item {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem 1.1rem;
-  min-width: 0;
-}
-
-.estoque-posicao-item-id {
-  display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  min-width: 0;
-  flex: 1 1 16rem;
-}
-
-.estoque-posicao-item-id strong {
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.78rem;
-}
-
-.estoque-posicao-item-id .muted {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.72rem;
-}
-
-.estoque-posicao-item-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 0.65rem;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.74rem;
-}
-
-.estoque-posicao-item-acoes {
-  flex-shrink: 0;
-}
-
-.estoque-posicao-formato td {
-  vertical-align: top;
-}
-
-.estoque-posicao-formato td:first-child {
-  padding-left: 1.15rem;
-}
-
-.estoque-posicao-locais {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.08rem;
-}
-
-.estoque-posicao-local {
-  display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.estoque-posicao-sem-local {
-  font-weight: 600;
-}
-
-@media (max-width: 720px) {
-  .estoque-posicao-item {
-    flex-wrap: wrap;
-  }
-
-  .estoque-posicao-item-id {
-    flex-basis: 100%;
-  }
 }
 
 .tab .tab-count {

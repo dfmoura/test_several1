@@ -458,6 +458,23 @@ export function itensPosicao<T extends ItemPosicao['saldo']>(
   return out;
 }
 
+/** Uma linha = produto + dimensão + soma. Sem dimensão (tubete etc.) = uma linha com a qtde do SKU. */
+export function linhasPosicao<T extends ItemPosicao['saldo']>(
+  itens: Array<{ saldo: T; formatos: FormatoPosicao[] }>,
+): Array<{ saldo: T; formato: FormatoPosicao | null }> {
+  const out: Array<{ saldo: T; formato: FormatoPosicao | null }> = [];
+  for (const item of itens) {
+    if (item.formatos.length === 0) {
+      out.push({ saldo: item.saldo, formato: null });
+      continue;
+    }
+    for (const formato of item.formatos) {
+      out.push({ saldo: item.saldo, formato });
+    }
+  }
+  return out;
+}
+
 export function familiasNaPosicao(
   saldos: Array<{ produto?: { familia?: string | null } | null }>,
 ): string[] {

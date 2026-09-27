@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sobe stack local + SPA Estoque: Posição = item → formato → local.
+# Sobe stack local + SPA Estoque: Posição = produto · dimensão · quantidade (soma).
 # Uso (no host, com Docker): bash scripts/pronto-estoque-saldo-volumes.sh
 #     ou: make pronto-estoque-saldo-volumes
 set -euo pipefail
@@ -13,7 +13,7 @@ echo "ok"
 echo "== Stack up =="
 make up
 
-echo "== Rebuild SPA (Saldos → Posição item/formato/local) =="
+echo "== Rebuild SPA (Saldos → Posição plana) =="
 make web-build
 
 echo "== Health =="
@@ -29,11 +29,10 @@ Pronto para testar — Estoque / Posição
   Login:   http://localhost:8043/login
 
 Roteiro
-  1. Login → Estoque → aba Posição (padrão)
-  2. Cada item = cabeçalho (código, nome, saldo oficial) + formatos (L×C, qtde/vol, N) + locais
-  3. Clique no formato → Volumes filtrado naquele item + faixa
-  4. Sem local → Guardar
-  5. Bobina / etiqueta / nLote: aba Volumes · documento: aba Movimentos
+  1. Login → Estoque → aba Posição
+  2. Uma linha = produto + dimensão + quantidade somada
+  3. Clique na linha → Volumes daquele produto + L×C
+  4. Bobina / etiqueta / local: aba Volumes · documento: aba Movimentos
 
 Hard refresh no browser (Ctrl+Shift+R) se a SPA antiga aparecer.
 EOF
