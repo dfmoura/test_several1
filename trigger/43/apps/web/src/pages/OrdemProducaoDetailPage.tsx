@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { PageHeader } from '../components/PageHeader';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
-import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
-import { OpHeroEtiqueta } from '../components/OpHeroEtiqueta';
-import { OpKitLista } from '../components/OpKitLista';
+import { OpPickTicket } from '../components/OpPickTicket';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import {
@@ -100,37 +97,26 @@ export function OrdemProducaoDetailPage() {
 
   return (
     <>
-      <PageHeader
-        title={op?.codigo ?? 'Ordem de produção'}
-        description={
-          op
-            ? 'Ficha da etiqueta — o que produzir e o kit para buscar.'
-            : loading
-              ? 'Carregando…'
-              : 'Ordem não encontrada.'
-        }
-        actions={
-          <div className="btn-row">
-            <Link to="/ordens-producao" className="btn btn-secondary">
-              Voltar
-            </Link>
-            {op ? (
-              <a
-                href={`/ordens-producao/${op.id}/ficha`}
-                className="btn btn-secondary"
-                onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
-              >
-                Imprimir ficha
-              </a>
-            ) : null}
-            {op?.pedido ? (
-              <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-secondary">
-                {op.pedido.codigo}
-              </Link>
-            ) : null}
-          </div>
-        }
-      />
+      <div className="pick-toolbar">
+        <Link to="/ordens-producao" className="btn btn-secondary btn-sm">
+          Voltar
+        </Link>
+        {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
+        {op?.pedido ? (
+          <Link to={`/pedidos/${op.pedido.id}`} className="pick-toolbar__ref">
+            {op.pedido.codigo}
+          </Link>
+        ) : null}
+        {op ? (
+          <a
+            href={`/ordens-producao/${op.id}/ficha`}
+            className="btn btn-secondary btn-sm"
+            onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
+          >
+            Imprimir lista
+          </a>
+        ) : null}
+      </div>
 
       {err && <div className="alert alert-error">{err}</div>}
       {msg && <div className="alert alert-success">{msg}</div>}
@@ -143,9 +129,12 @@ export function OrdemProducaoDetailPage() {
         )
       ) : (
         <>
-          <OpHeroEtiqueta op={op} pedido={pedido} />
-          <OpAndamentoPassos op={op} podeEstoque={podeEstoque} podeProducao={podeProducao} />
-          <OpKitLista op={op} podeAbrirEstoque={podeEstoque || hasPermission('estoque.ler')} />
+          <OpPickTicket
+            op={op}
+            pedido={pedido}
+            podeEstoque={podeEstoque}
+            podeProducao={podeProducao}
+          />
 
           {op.status === 'CONCLUIDA' ? (
             <div className="card" style={{ marginBottom: '1rem' }}>

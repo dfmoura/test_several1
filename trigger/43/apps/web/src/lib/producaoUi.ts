@@ -97,6 +97,19 @@ export function opComponenteLabel(componente: string | null | undefined): string
   return COMPONENTE_LABELS[key] ?? key.charAt(0) + key.slice(1).toLowerCase();
 }
 
+/** Nome humano da linha do kit — o que a pessoa vai buscar. */
+export function opKitNome(m: {
+  componente?: string | null;
+  origem_texto?: string | null;
+  produto?: { descricao_fiscal?: string | null; codigo?: string | null } | null;
+}): string {
+  const papel = (m.origem_texto ?? '').trim();
+  const humano = opComponenteLabel(m.componente);
+  if (papel && humano === 'Papel') return papel;
+  if (papel && humano !== 'Material') return `${humano} · ${papel}`;
+  return (m.produto?.descricao_fiscal ?? '').trim() || humano;
+}
+
 /** Status operacional da linha de material (empenho leve × saldo). */
 export function opMaterialLinhaStatus(m: {
   pendente?: boolean;

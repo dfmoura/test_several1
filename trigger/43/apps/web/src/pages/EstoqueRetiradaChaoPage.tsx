@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
-import { StatusPill } from '../components/StatusPill';
 import { OpFichaRetirada } from '../components/OpFichaRetirada';
+import { OpPickTicket } from '../components/OpPickTicket';
 import { api, type OrdemProducao } from '../lib/api';
-import { formatDecimalBr } from '../lib/format';
-import { opStatusLabel } from '../lib/producaoUi';
+import { useAuth } from '../lib/auth';
 
 /**
  * Porta do almoxarifado: confronta a requisição com o físico (QR ou manual).
@@ -14,6 +12,7 @@ import { opStatusLabel } from '../lib/producaoUi';
  */
 export function EstoqueRetiradaChaoPage() {
   const { id } = useParams();
+  const { hasPermission } = useAuth();
   const [params] = useSearchParams();
   const pedido = {
     materialId: Number(params.get('material_id') || 0) || undefined,
@@ -45,22 +44,17 @@ export function EstoqueRetiradaChaoPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title={op ? `Lista de retirada · ${op.codigo}` : 'Lista de retirada'}
-        description="O kit desta ordem. Leia o volume ou marque na mão, confirme a saída e entregue na produção."
-        actions={
-          <>
-            <Link className="btn btn-secondary" to="/estoque/retiradas">
-              Fila
-            </Link>
-            {op ? (
-              <Link className="btn btn-secondary" to={`/ordens-producao/${op.id}`}>
-                Ficha da ordem
-              </Link>
-            ) : null}
-          </>
-        }
-      />
+      <div className="pick-toolbar">
+        <Link className="btn btn-secondary btn-sm" to="/estoque/retiradas">
+          Fila
+        </Link>
+        {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
+        {op ? (
+          <Link className="btn btn-secondary btn-sm" to={`/ordens-producao/${op.id}`}>
+            Voltar à lista
+          </Link>
+        ) : null}
+      </div>
       <EstoqueModuleNav />
 
       {err ? <div className="alert alert-danger">{err}</div> : null}
@@ -68,38 +62,14 @@ export function EstoqueRetiradaChaoPage() {
 
       {op ? (
         <>
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div className="card-body detail-meta">
-              <div>
-                <span>Pedido</span>
-                <strong>{op.pedido?.codigo ?? '—'}</strong>
-              </div>
-              <div>
-                <span>Cliente</span>
-                <strong>{op.parceiro?.razao_social ?? '—'}</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <strong>
-                  <StatusPill status={opStatusLabel(op.status)} />
-                </strong>
-              </div>
-              <div>
-                <span>Já saiu</span>
-                <strong>{op.ficha_retirada?.ciclos.length ?? 0}</strong>
-              </div>
-              <div>
-                <span>Falta pegar</span>
-                <strong>
-                  {formatDecimalBr(
-                    (op.ficha_retirada?.linhas ?? []).filter((l) => l.pendente).length,
-                    0,
-                  )}
-                </strong>
-              </div>
-            </div>
-          </div>
-          <OpFichaRetirada op={op} mode="chao" onOp={setOp} pedido={pedido} />
+          <OpPickTicket
+            op={op}
+            pedido={null}
+            podeEstoque={hasPermission('estoque.ler') || hasPermission('producao.ler')}
+            podeProducao={hasPermission('producao.ler')}
+            porta="chao"
+          />
+          <OpFichaRetirada op={op} mode="chao" onOp={setOp} pedido={pedido} hideResumo />
         </>
       ) : null}
     </div>

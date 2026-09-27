@@ -89,13 +89,15 @@ type Props = {
   onOp: (data: OrdemProducao) => void;
   /** Pedido vindo da OP (complemento / extra) — estoque confirma aqui. */
   pedido?: PedidoFichaEstoque;
+  /** Pick ticket já mostra o que pegar — some a tabela de 6 colunas. */
+  hideResumo?: boolean;
 };
 
 /**
  * Confrontação sistema × físico da requisição — mesma ficha no chão e na OP.
  * Fato oficial = MOV SAIDA_PRODUCAO. Sem documento REQ-.
  */
-export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
+export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: Props) {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('producao.escrever') || hasPermission('estoque.escrever');
   const canHandoff = hasPermission('producao.escrever');
@@ -499,10 +501,11 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
     <section className="op-ficha" aria-labelledby="op-ficha-title">
       <header className="op-ficha__head">
         <div>
-          <h3 id="op-ficha-title">{chao ? 'Lista de retirada' : 'O que saiu do estoque'}</h3>
+          <h3 id="op-ficha-title">{chao ? 'Marcar o que pegou' : 'O que saiu do estoque'}</h3>
           <p className="muted">
-            O que o sistema pediu e o que você pegou. Leia o volume ou marque na mão. Confirmar
-            registra a saída. Rasgou ou faltou? Pegue de novo — a mesma lista.
+            {chao
+              ? 'Leia o volume ou marque a quantidade. Confirmar tira do estoque.'
+              : 'O que já saiu. Rasgou? Pegue de novo.'}
           </p>
         </div>
         {mode === 'anexo' ? (
@@ -519,6 +522,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       {err ? <div className="alert alert-danger">{err}</div> : null}
       {msg ? <div className="alert alert-info">{msg}</div> : null}
 
+      {hideResumo ? null : (
       <div className="table-wrap">
         <table className="data-table">
           <thead>
@@ -598,6 +602,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
           </tbody>
         </table>
       </div>
+      )}
 
       {chao && pendentes.length > 0 ? (
         <div className="op-ficha__bloco">

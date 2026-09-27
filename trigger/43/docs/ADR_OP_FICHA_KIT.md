@@ -37,7 +37,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 
 | Porta | Mostra | Não mostra |
 |-------|--------|------------|
-| OP | Etiqueta, kit em 3 estados, jornada, um CTA | QR, baixa, avaria, tabela de 9 colunas |
+| OP e Retiradas | **Pick ticket** (WMS): local enorme → quantidade → material. Um “próximo”. Caminhada ordenada por local. | Tabela ERP, 5 passos, card de dossiê |
 | Estoque · Retiradas | Lista do kit, QR/manual, perda, pegar de novo, entregar | Jargão de empenho/MOV no caminho feliz |
 | Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 

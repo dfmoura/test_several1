@@ -65,7 +65,7 @@ export function OrdensProducaoPage() {
     <>
       <PageHeader
         title="Ordens de produção"
-        description="Cada ordem é a ficha de uma etiqueta. Busque o kit no estoque; produza e feche na produção."
+        description="Abra a ordem: a lista do que pegar já vem pronta. Local, quantidade, material."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}
@@ -122,10 +122,10 @@ export function OrdensProducaoPage() {
                     Pedido
                   </SortableTh>
                   <SortableTh column="item" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                    Item
+                    Etiqueta
                   </SortableTh>
                   <SortableTh column="qtde" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                    Planejada
+                    Quantidade
                   </SortableTh>
                   <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                     Status

@@ -13,9 +13,9 @@ import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
-  opComponenteLabel,
   opKitEstado,
   opKitEstadoLabel,
+  opKitNome,
   opKitOnde,
   opStatusLabel,
   parseQtdeDigitada,
@@ -136,30 +136,29 @@ export function OrdemProducaoFichaSheet({
         )}
       </FichaSection>
 
-      <FichaSection title="Kit — o que pegar">
+      <FichaSection title="O que pegar (já calculado)">
         {materiais.length === 0 ? (
           <p className="ficha-empty">Ainda não há lista de material nesta ordem.</p>
         ) : (
           <table className="ficha-table">
             <thead>
               <tr>
-                <th>Precisa</th>
+                <th>#</th>
+                <th>Pegar</th>
                 <th>Quanto</th>
                 <th>Onde</th>
                 <th>Situação</th>
               </tr>
             </thead>
             <tbody>
-              {materiais.map((m) => {
+              {materiais.map((m, i) => {
                 const estado = opKitEstado(m);
-                const nome =
-                  (m.origem_texto ?? '').trim() ||
-                  m.produto?.descricao_fiscal ||
-                  opComponenteLabel(m.componente);
+                const nome = opKitNome(m);
                 const qtde =
                   parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
                 return (
                   <tr key={m.id}>
+                    <td>{i + 1}</td>
                     <td>
                       {nome}
                       {m.produto?.codigo ? (
