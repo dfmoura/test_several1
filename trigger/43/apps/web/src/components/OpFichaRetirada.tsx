@@ -208,7 +208,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       );
       if (pendente) {
         incluirVolume(pendente, vol, true);
-        setMsg(`Volume ${vol.codigo} confrontado com a requisição.`);
+        setMsg(`Volume ${vol.codigo} marcado no kit.`);
         setQr('');
         setTimeout(() => volRef.current?.focus(), 50);
         return;
@@ -235,8 +235,8 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       const ja = (op.materiais ?? []).find((m) => m.produto?.id === vol.produto?.id);
       setErr(
         ja && !ja.pendente
-          ? `Volume ${vol.codigo} é de SKU já baixado. Use «Requisitar de novo» se houve avaria.`
-          : `Volume ${vol.codigo} não pertence a esta requisição.`,
+          ? `Volume ${vol.codigo} já saiu. Use «Pegar de novo» se rasgou ou faltou.`
+          : `Volume ${vol.codigo} não é deste kit.`,
       );
       volRef.current?.select();
     } catch (e) {
@@ -274,7 +274,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       }
     }
     if (linhas.length === 0) {
-      setErr('Marque a quantidade física (QR ou manual) para ao menos um item da requisição.');
+      setErr('Marque a quantidade física (QR ou manual) para ao menos um item do kit.');
       return;
     }
     setBusy(true);
@@ -286,7 +286,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       });
       aplicar(res.data);
       setMotivos({});
-      setMsg('Baixa na ficha. O que saiu fica anexo à OP. Entregue na produção ou registre avaria.');
+      setMsg('Saiu do estoque. Entregue na produção ou, se rasgou, pegue de novo.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao confirmar a retirada.');
     } finally {
@@ -499,20 +499,19 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
     <section className="op-ficha" aria-labelledby="op-ficha-title">
       <header className="op-ficha__head">
         <div>
-          <h3 id="op-ficha-title">{chao ? 'Ficha da requisição' : 'Ficha de retirada (anexo da OP)'}</h3>
+          <h3 id="op-ficha-title">{chao ? 'Lista de retirada' : 'O que saiu do estoque'}</h3>
           <p className="muted">
-            Confronta o que o sistema pediu com o que saiu do estoque. QR ou quantidade manual —
-            confirmar grava o MOV e anexa o ciclo à ordem. Avaria? Requisite de novo, o processo se
-            repete. Sem segundo estoque.
+            O que o sistema pediu e o que você pegou. Leia o volume ou marque na mão. Confirmar
+            registra a saída. Rasgou ou faltou? Pegue de novo — a mesma lista.
           </p>
         </div>
         {mode === 'anexo' ? (
           <Link className="btn btn-secondary btn-sm" to={`/estoque/retiradas/${op.id}`}>
-            Abrir no estoque
+            Ir buscar
           </Link>
         ) : (
           <Link className="btn btn-secondary btn-sm" to={`/ordens-producao/${op.id}`}>
-            Ficha da OP
+            Ficha da ordem
           </Link>
         )}
       </header>
@@ -524,19 +523,19 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
         <table className="data-table">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>Sistema (pedido)</th>
-              <th>Físico baixado</th>
-              <th>Avaria</th>
-              <th>A retirar</th>
-              <th>Δ</th>
+              <th>Material</th>
+              <th>Precisa</th>
+              <th>Já saiu</th>
+              <th>Rasgou</th>
+              <th>A pegar</th>
+              <th>Diferença</th>
             </tr>
           </thead>
           <tbody>
             {(ficha?.linhas ?? []).length === 0 ? (
               <tr>
                 <td colSpan={6} className="muted">
-                  Sem linhas nesta requisição.
+                  Sem itens neste kit.
                 </td>
               </tr>
             ) : (
@@ -602,10 +601,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
 
       {chao && pendentes.length > 0 ? (
         <div className="op-ficha__bloco">
-          <h4>Baixar agora — QR ou manual</h4>
+          <h4>Marcar o que pegou</h4>
           <p className="muted">
-            Leia o VOL: no corredor ou ajuste a quantidade na linha. O sistema sugere FEFO; o físico
-            manda se você trocar o volume (informe o motivo).
+            Leia o volume no corredor ou ajuste a quantidade. Se pegar outro volume, diga o motivo.
           </p>
           <div className="form-group" style={{ maxWidth: 420 }}>
             <label htmlFor="ficha-vol-qr">Ler volume (VOL:…)</label>
@@ -773,7 +771,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
               disabled={busy || !canWrite}
               onClick={() => void confirmarBaixa()}
             >
-              Confirmar e anexar à OP
+              Confirmar: saiu do estoque
             </button>
           </div>
         </div>
@@ -781,14 +779,14 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
 
       {(ficha?.ciclos ?? []).length > 0 ? (
         <div className="op-ficha__bloco">
-          <h4>O que saiu do estoque</h4>
-          <p className="muted">Ciclos anexados a {op.codigo}. Cada confirmação vira um MOV.</p>
+          <h4>O que já saiu</h4>
+          <p className="muted">Retiradas de {op.codigo}. Cada confirmação é uma saída.</p>
           {ficha!.ciclos.map((c) => (
             <article key={c.movimento_id} className="op-ficha__ciclo">
               <header>
                 <strong>
-                  Ciclo {c.n}
-                  {c.complementar ? ' · reposição' : ''}
+                  {c.n}ª retirada
+                  {c.complementar ? ' · pegou de novo' : ''}
                 </strong>
                 <span className="muted">
                   {c.movimento_codigo}
@@ -816,10 +814,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
 
       {chao && requisitados.length > 0 ? (
         <div className="op-ficha__bloco">
-          <h4>Avaria e requisitar de novo</h4>
+          <h4>Rasgou ou faltou — pegar de novo</h4>
           <p className="muted">
-            Rasgo ou recusa na mesa. Não escreve saldo sozinho — a reposição é uma nova baixa (mesmo
-            writer).
+            Informe o que perdeu. Depois busque de novo a mesma quantidade — a lista se repete.
           </p>
           {requisitados.map((m) => {
             const form = avaria[m.id] ?? {
@@ -867,7 +864,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
                     disabled={busy || !canWrite}
                     onClick={() => void registrarAvaria(m)}
                   >
-                    Registrar avaria
+                    Registrar perda
                   </button>
                   <button
                     type="button"
@@ -875,7 +872,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
                     disabled={busy || !canWrite}
                     onClick={() => void prepararRepo(m)}
                   >
-                    Requisitar de novo
+                    Pegar de novo
                   </button>
                 </div>
               </div>
@@ -950,9 +947,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
 
       {chao && extra ? (
         <div className="op-ficha__bloco">
-          <h4>Extra pedido pela OP</h4>
+          <h4>Acrescentado no kit</h4>
           <p className="muted">
-            {extra.sku} · {formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)} — confirme o físico.
+            {extra.sku} · {formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)} — confirme o que pegou.
           </p>
           {extra.preview.controla_lote ? (
             <div className="table-wrap">
@@ -1003,7 +1000,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
               disabled={busy || !canWrite}
               onClick={() => void confirmarExtra()}
             >
-              Confirmar extra
+              Confirmar: saiu do estoque
             </button>
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setExtra(null)}>
               Cancelar
@@ -1015,7 +1012,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
       {chao && op.pode_entregar_insumos ? (
         <div className="op-ficha__bloco">
           <h4>Entregar na produção</h4>
-          <p className="muted">O estoque já baixou. Quem recebeu na máquina? Sem segundo movimento.</p>
+          <p className="muted">O material já saiu. Quem recebeu na máquina?</p>
           <div className="form-group" style={{ maxWidth: 320 }}>
             <label>Quem recebeu</label>
             <input
@@ -1054,8 +1051,8 @@ export function OpFichaRetirada({ op, mode, onOp, pedido }: Props) {
 
       {mode === 'anexo' && ficha?.linhas.some((l) => l.pendente) ? (
         <p className="muted">
-          Ainda há quantidade a retirar.{' '}
-          <Link to={`/estoque/retiradas/${op.id}`}>Confrontar no estoque</Link>.
+          Ainda falta pegar.{' '}
+          <Link to={`/estoque/retiradas/${op.id}`}>Abrir lista de retirada</Link>.
         </p>
       ) : null}
     </section>

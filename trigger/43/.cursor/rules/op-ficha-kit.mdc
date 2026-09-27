@@ -1,0 +1,28 @@
+# Ficha da OP = etiqueta + kit
+
+Norma: `docs/ADR_OP_FICHA_KIT.md`. Motor intacto: `ADR_PRODUCAO_PED_OP_ESTOQUE.md` · coleta · apontamento.
+
+## Espinha
+
+```
+OP = o que produzir + kit + um CTA
+  kit = materiais[] (sem CART- / REQ-)
+  Estoque · Retiradas = buscar / confirmar saída / pegar de novo
+  Produção = receber / devolver sobra / fechar
+```
+
+## Faça
+
+- Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas.
+- Avaria só na lista de retirada.
+- Extra = acrescentar no kit (mesma confirmação no estoque).
+- 1 kit por OP.
+
+## Não faça
+
+- Recolocar tabela de 9 colunas, QR ou avaria na ficha da OP.
+- Criar documento carrinho / requisição ou segundo writer.
+- Reservar saldo sem ADR.
+- Juntar as três portas numa mega-tela.
+
+Se a tarefa exigir violar isto → parar e citar `docs/ADR_OP_FICHA_KIT.md`.

@@ -65,7 +65,7 @@ export function OrdensProducaoPage() {
     <>
       <PageHeader
         title="Ordens de produção"
-        description="Pedido da OP. A baixa é em Retiradas; o apontamento e a conclusão, em Apontamentos."
+        description="Cada ordem é a ficha de uma etiqueta. Busque o kit no estoque; produza e feche na produção."
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}

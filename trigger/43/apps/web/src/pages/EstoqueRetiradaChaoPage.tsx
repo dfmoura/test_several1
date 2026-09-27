@@ -32,7 +32,7 @@ export function EstoqueRetiradaChaoPage() {
       const res = await api.get<{ data: OrdemProducao }>(`/estoque/retiradas/${id}`);
       setOp(res.data);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao abrir a requisição.');
+      setErr(e instanceof Error ? e.message : 'Falha ao abrir a lista de retirada.');
     } finally {
       setLoading(false);
     }
@@ -46,8 +46,8 @@ export function EstoqueRetiradaChaoPage() {
   return (
     <div className="page">
       <PageHeader
-        title={op ? `Requisição · ${op.codigo}` : 'Requisição'}
-        description="O estoque vê o pedido, baixa pelo QR ou na mão, e a ficha do que saiu fica na OP."
+        title={op ? `Lista de retirada · ${op.codigo}` : 'Lista de retirada'}
+        description="O kit desta ordem. Leia o volume ou marque na mão, confirme a saída e entregue na produção."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque/retiradas">
@@ -55,7 +55,7 @@ export function EstoqueRetiradaChaoPage() {
             </Link>
             {op ? (
               <Link className="btn btn-secondary" to={`/ordens-producao/${op.id}`}>
-                Ordem de produção
+                Ficha da ordem
               </Link>
             ) : null}
           </>
@@ -85,17 +85,16 @@ export function EstoqueRetiradaChaoPage() {
                 </strong>
               </div>
               <div>
-                <span>Ciclos na ficha</span>
+                <span>Já saiu</span>
                 <strong>{op.ficha_retirada?.ciclos.length ?? 0}</strong>
               </div>
               <div>
-                <span>A retirar</span>
+                <span>Falta pegar</span>
                 <strong>
                   {formatDecimalBr(
                     (op.ficha_retirada?.linhas ?? []).filter((l) => l.pendente).length,
                     0,
-                  )}{' '}
-                  SKU
+                  )}
                 </strong>
               </div>
             </div>

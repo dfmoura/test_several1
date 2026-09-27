@@ -12,7 +12,14 @@ import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { opMaterialStatusLabel, opStatusLabel } from '../lib/producaoUi';
+import {
+  opComponenteLabel,
+  opKitEstado,
+  opKitEstadoLabel,
+  opKitOnde,
+  opStatusLabel,
+  parseQtdeDigitada,
+} from '../lib/producaoUi';
 import { dash, formatDateTimeBr, opChipClass } from '../lib/producaoFicha';
 
 /**
@@ -86,7 +93,7 @@ export function OrdemProducaoFichaSheet({
           <span className={`ficha-chip ${opChipClass(o.status)}`.trim()}>
             {opStatusLabel(o.status)}
           </span>
-          <span className="ficha-chip ficha-chip-muted">{qtdePlanejada} un.</span>
+          <span className="ficha-chip ficha-chip-muted">{qtdePlanejada} etiquetas</span>
           {pedido?.prazo_entrega_dias != null ? (
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(pedido)}</span>
           ) : null}
@@ -129,59 +136,65 @@ export function OrdemProducaoFichaSheet({
         )}
       </FichaSection>
 
-      <FichaSection title="Materiais">
+      <FichaSection title="Kit — o que pegar">
         {materiais.length === 0 ? (
-          <p className="ficha-empty">
-            Nenhum material casado ao snapshot. A requisição pode ter sido incluída na tela da OP.
-          </p>
+          <p className="ficha-empty">Ainda não há lista de material nesta ordem.</p>
         ) : (
           <table className="ficha-table">
             <thead>
               <tr>
-                <th>Componente</th>
-                <th>SKU</th>
-                <th>Planejado</th>
-                <th>Requisitado</th>
-                <th>Avaria</th>
-                <th>Retorno</th>
-                <th>Perda processo</th>
-                <th>Status</th>
+                <th>Precisa</th>
+                <th>Quanto</th>
+                <th>Onde</th>
+                <th>Situação</th>
               </tr>
             </thead>
             <tbody>
-              {materiais.map((m) => (
-                <tr key={m.id}>
-                  <td>
-                    {m.componente ?? '—'}
-                    {m.origem_texto ? ` · ${m.origem_texto}` : ''}
-                  </td>
-                  <td>
-                    {m.produto ? `${m.produto.codigo} — ${m.produto.descricao_fiscal}` : '—'}
-                  </td>
-                  <td>{qty(m.qtde_planejada, m.unidade)}</td>
-                  <td>{m.pendente ? '—' : qty(m.qtde_requisitada, m.unidade)}</td>
-                  <td>{m.pendente ? '—' : qty(m.qtde_avaria, m.unidade)}</td>
-                  <td>{qty(m.qtde_retorno, m.unidade)}</td>
-                  <td>{qty(m.qtde_perda, m.unidade)}</td>
-                  <td>{opMaterialStatusLabel(m.pendente ? 'PENDENTE' : 'REQUISITADO')}</td>
-                </tr>
-              ))}
+              {materiais.map((m) => {
+                const estado = opKitEstado(m);
+                const nome =
+                  (m.origem_texto ?? '').trim() ||
+                  m.produto?.descricao_fiscal ||
+                  opComponenteLabel(m.componente);
+                const qtde =
+                  parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
+                return (
+                  <tr key={m.id}>
+                    <td>
+                      {nome}
+                      {m.produto?.codigo ? (
+                        <div className="ficha-muted">{m.produto.codigo}</div>
+                      ) : null}
+                    </td>
+                    <td>{qty(qtde, m.unidade)}</td>
+                    <td>{opKitOnde(m) === '—' ? 'Sem local' : opKitOnde(m)}</td>
+                    <td>{opKitEstadoLabel(estado)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
+        <div className="ficha-kv-grid cols-3" style={{ marginTop: '0.85rem' }}>
+          <FichaKv
+            label="Entregue para"
+            value={o.handoff?.recebidos_nome?.trim() || '________________'}
+          />
+          <FichaKv label="Sobra devolvida" value="________________" />
+          <FichaKv label="Rasgou / faltou" value="________________" />
+        </div>
       </FichaSection>
 
       {o.rastreio ? <RastreioFichaSection rastreio={o.rastreio} /> : null}
 
       {o.status === 'CONCLUIDA' ? (
-        <FichaSection title="Conclusão">
+        <FichaSection title="Resultado">
           <div className="ficha-kv-grid cols-3">
             <FichaKv
-              label="Qtde boa (PA)"
+              label="Etiquetas boas"
               value={o.qtde_boa != null ? formatDecimalBr(Number(o.qtde_boa), 0) : '—'}
             />
             <FichaKv label="Refugo" value={formatDecimalBr(Number(o.qtde_refugo), 0)} />
-            <FichaKv label="MOV PA" value={o.pa_movimento?.codigo ?? '—'} />
             <FichaKv label="Fora da tolerância" value={o.fora_tolerancia ? 'Sim' : 'Não'} />
             {o.motivo_fora_tolerancia ? (
               <FichaKv label="Motivo" value={o.motivo_fora_tolerancia} wide />

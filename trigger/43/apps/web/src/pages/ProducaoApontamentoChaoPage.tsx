@@ -39,8 +39,8 @@ export function ProducaoApontamentoChaoPage() {
   return (
     <div className="page">
       <PageHeader
-        title={op ? `Apontamento · ${op.codigo}` : 'Apontamento'}
-        description="A produção recebe o material, aponta o processo e conclui a OP. PCP lê o resultado na ordem."
+        title={op ? `Produção · ${op.codigo}` : 'Produção'}
+        description="Receba o kit, produza, devolva a sobra e informe as etiquetas boas."
         actions={
           <>
             <Link className="btn btn-secondary" to="/ordens-producao/apontamentos">
@@ -77,7 +77,7 @@ export function ProducaoApontamentoChaoPage() {
                 </strong>
               </div>
               <div>
-                <span>Planejada</span>
+                <span>Etiquetas</span>
                 <strong>{formatDecimalBr(Number(op.qtde_planejada), 0)}</strong>
               </div>
               <div>

@@ -46,10 +46,24 @@ const OP_LABELS: Record<string, string> = {
 };
 
 const MAT_LABELS: Record<string, string> = {
-  PENDENTE: 'Pendente',
-  REQUISITADO: 'Requisitado',
-  AGUARDANDO_MATERIAL: 'Aguardando material',
+  PENDENTE: 'Falta pegar',
+  REQUISITADO: 'Já saiu',
+  AGUARDANDO_MATERIAL: 'Sem estoque',
 };
+
+const COMPONENTE_LABELS: Record<string, string> = {
+  PAPEL: 'Papel',
+  TUBETE: 'Tubete',
+  CAIXA: 'Caixa',
+  TINTA: 'Tinta',
+  MANUAL: 'Extra',
+};
+
+/** Jornada humana da OP (kit → máquina → sobra → fechar). */
+export type OpJornadaPasso = 'pegar' | 'entregar' | 'produzir' | 'devolver' | 'fechar';
+
+/** Estado do item no kit — o que o chão precisa ver. */
+export type OpKitEstado = 'falta_pegar' | 'ja_saiu' | 'sem_estoque';
 
 export function pedStatusLabel(status: string): string {
   return PED_LABELS[status] ?? status.replace(/_/g, ' ');
@@ -77,6 +91,12 @@ export function opMaterialStatusLabel(status: string): string {
   return MAT_LABELS[status] ?? status.replace(/_/g, ' ');
 }
 
+export function opComponenteLabel(componente: string | null | undefined): string {
+  const key = (componente ?? '').trim().toUpperCase();
+  if (!key) return 'Material';
+  return COMPONENTE_LABELS[key] ?? key.charAt(0) + key.slice(1).toLowerCase();
+}
+
 /** Status operacional da linha de material (empenho leve × saldo). */
 export function opMaterialLinhaStatus(m: {
   pendente?: boolean;
@@ -86,45 +106,81 @@ export function opMaterialLinhaStatus(m: {
   return m.pendente ? 'PENDENTE' : 'REQUISITADO';
 }
 
-/** Resumo leve de linhas de material na OP (empenho leve → requisição). */
+export function opKitEstado(m: {
+  pendente?: boolean;
+  aguardando_material?: boolean;
+}): OpKitEstado {
+  if (m.aguardando_material && m.pendente !== false) return 'sem_estoque';
+  return m.pendente ? 'falta_pegar' : 'ja_saiu';
+}
+
+export function opKitEstadoLabel(estado: OpKitEstado): string {
+  if (estado === 'ja_saiu') return 'Já saiu';
+  if (estado === 'sem_estoque') return 'Sem estoque';
+  return 'Falta pegar';
+}
+
+/** Local sugerido ou já baixado — o “onde” do kit. */
+export function opKitOnde(m: {
+  retirada?: {
+    volumes?: Array<{ endereco?: { codigo: string } | null; codigo?: string | null }>;
+    volumes_baixados?: Array<{ endereco?: { codigo: string } | null; codigo?: string | null }>;
+  } | null;
+}): string {
+  const vols = [
+    ...(m.retirada?.volumes ?? []),
+    ...(m.retirada?.volumes_baixados ?? []),
+  ];
+  for (const v of vols) {
+    const end = v.endereco?.codigo?.trim();
+    if (end) return end;
+  }
+  for (const v of vols) {
+    const cod = v.codigo?.trim();
+    if (cod) return cod;
+  }
+  return '—';
+}
+
+/** Resumo do kit na timeline do pedido. */
 export function opMaterialResumoLabel(resumo: {
   total: number;
   pendentes: number;
   requisitados: number;
 }): string {
   if (resumo.total <= 0) {
-    return 'Sem linhas de material';
+    return 'Sem kit';
   }
   if (resumo.pendentes === 0) {
-    return `Requisitado (${resumo.requisitados}/${resumo.total})`;
+    return `Já saiu (${resumo.requisitados}/${resumo.total})`;
   }
   if (resumo.requisitados === 0) {
-    return `Pendente (${resumo.pendentes}/${resumo.total})`;
+    return `Falta pegar (${resumo.pendentes}/${resumo.total})`;
   }
-  return `Parcial · ${resumo.requisitados} requisitado(s), ${resumo.pendentes} pendente(s)`;
+  return `Parcial · ${resumo.requisitados} já saiu, ${resumo.pendentes} falta pegar`;
 }
 
-/** Passo corrente da OP para a faixa de andamento no chão. */
+/**
+ * Passo corrente da jornada humana.
+ * Pegar → entregar → produzir. Devolver e fechar são a mesma porta (produção).
+ */
 export function opPassoAtual(op: {
   status: string;
   materiais?: Array<{ pendente?: boolean }> | null;
-}): 'separar' | 'produzir' | 'concluir' | 'pedido' {
+  handoff?: { entregue?: boolean } | null;
+}): OpJornadaPasso {
   if (op.status === 'CONCLUIDA' || op.status === 'CANCELADA') {
-    return 'pedido';
+    return 'fechar';
   }
   const mats = op.materiais ?? [];
-  const temPendencia = mats.some((m) => m.pendente);
   const temSaida = mats.some((m) => !m.pendente);
-  if (mats.length > 0 && temPendencia && !temSaida) {
-    return 'separar';
+  if (!temSaida) {
+    return 'pegar';
   }
-  if (op.status === 'ABERTA' && (!temSaida || mats.length === 0)) {
-    return 'separar';
+  if (!op.handoff?.entregue) {
+    return 'entregar';
   }
-  if (op.status === 'EM_ANDAMENTO' || temSaida) {
-    return temPendencia ? 'produzir' : 'concluir';
-  }
-  return 'separar';
+  return 'produzir';
 }
 
 /** Impõe teto na quantidade digitada (avaria ≤ requisitado). */

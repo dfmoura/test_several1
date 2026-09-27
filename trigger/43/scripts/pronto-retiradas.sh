@@ -36,28 +36,30 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.local.yml
 
 cat <<'EOF'
 
-Pronto para testar — coleta + apontamento (OP → estoque → chão)
+Pronto para testar — ficha da etiqueta + kit (OP → estoque → produção)
   App:           http://localhost:8043
-  Menu:          Produção → Retiradas · Apontamentos
+  Menu:          Produção → Ordens · Retiradas · Apontamentos
+  OP aberta:     http://localhost:8043/ordens-producao
   Retiradas:     http://localhost:8043/estoque/retiradas
-  Apontamentos:  http://localhost:8043/ordens-producao/apontamentos
+  Produção:      http://localhost:8043/ordens-producao/apontamentos
   Painel:        http://localhost:8043/
   Login:         http://localhost:8043/login
 
 Pré-requisitos
   • Usuário com producao.ler (Retiradas também aceita estoque.ler)
-  • Confirmar baixa: producao.escrever ou estoque.escrever
-  • Receber / apontar / concluir: producao.escrever
-  • OP ABERTA/EM_ANDAMENTO com material pendente
+  • Confirmar saída: producao.escrever ou estoque.escrever
+  • Receber / devolver sobra / fechar: producao.escrever
+  • OP ABERTA/EM_ANDAMENTO com kit
   • SKU com lote: volume (qtde > 0) e QR VOL:
 
 Roteiro
-  1. Hard refresh (Ctrl+Shift+R)
-  2. Produção → Retiradas → ficha da OP → QR VOL: ou quantidade → Confirmar
-  3. Avaria na mesa (opcional) → Registrar → Requisitar de novo
-  4. Produção → Apontamentos → receber na máquina → retorno/perda → qtde boa → Concluir OP
-  5. Na OP: resultado + embalagem (sem formulário de conclusão)
-  6. Tubete: um clique, sem QR
+  1. Hard refresh (Ctrl+Shift+R) — a SPA nova tem de mostrar «O que produzir» e «Kit desta ordem»
+  2. Abrir a OP: herói da etiqueta + 5 passos + kit (falta pegar / já saiu / sem estoque) + um CTA
+  3. Ir buscar no estoque → lista de retirada → QR VOL: ou quantidade → Confirmar: saiu do estoque
+  4. Se rasgou: Registrar perda → Pegar de novo
+  5. Produção → receber o kit → devolver sobra → etiquetas boas → Fechar a ordem
+  6. Imprimir ficha: ordem + kit (não tabela de 9 colunas)
+  7. Na OP concluída: resultado + embalagem
 
 Não inventar saldo. Entrada só via OC/receber ou AJU/INV aprovado.
 

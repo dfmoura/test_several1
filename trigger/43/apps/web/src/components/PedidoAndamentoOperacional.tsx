@@ -46,15 +46,15 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
   const mat = opAtiva?.materiais_resumo;
   let matLabel = '—';
   if (isOs) {
-    matLabel = 'OS — sem separação de insumos';
+    matLabel = 'OS — sem kit de material';
   } else if (item?.necessidade === 'REVENDA') {
     matLabel = 'Revenda — separação sem OP';
   } else if (!opAtiva) {
-    matLabel = 'Aguardando OP';
+    matLabel = 'Aguardando ordem';
   } else if (mat && mat.total > 0) {
     matLabel = opMaterialResumoLabel(mat);
   } else if (opAtiva) {
-    matLabel = 'Sem linhas de material';
+    matLabel = 'Sem kit';
   }
 
   let producaoLabel = '—';
@@ -117,7 +117,7 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
             </div>
           </li>
           <li className="ped-andamento-step">
-            <span className="ped-andamento-label">Materiais</span>
+            <span className="ped-andamento-label">Kit</span>
             <div className="ped-andamento-body">
               <span>{matLabel}</span>
             </div>

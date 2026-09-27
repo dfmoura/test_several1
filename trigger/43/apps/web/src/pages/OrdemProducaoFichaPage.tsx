@@ -83,7 +83,7 @@ export function OrdemProducaoFichaPage() {
             Voltar à ordem
           </button>
           <span className="ficha-toolbar-hint">
-            Ficha da ordem · retrato A4 · uso interno (sem preço) · Imprimir ou Salvar como PDF
+            Ficha da etiqueta · kit para buscar · retrato A4 · uso interno (sem preço)
           </span>
         </div>
         <button

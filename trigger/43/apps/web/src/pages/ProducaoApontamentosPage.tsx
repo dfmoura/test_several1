@@ -37,8 +37,8 @@ export function ProducaoApontamentosPage() {
   return (
     <div className="page">
       <PageHeader
-        title="Apontamentos de produção"
-        description="Quem está na máquina recebe o material, aponta retorno e perda de processo e conclui a OP. O PCP só lê o resultado na ordem."
+        title="Produção"
+        description="Receba o kit, produza, devolva a sobra e feche a ordem. A ficha da ordem só lê o resultado."
         actions={
           <>
             <Link className="btn btn-secondary" to="/ordens-producao">
@@ -68,10 +68,10 @@ export function ProducaoApontamentosPage() {
             acao="Registrar recebimento"
           />
           <Secao
-            titulo="A apontar e concluir"
-            vazio="Nenhuma OP pronta para concluir."
+            titulo="A produzir e fechar"
+            vazio="Nenhuma ordem pronta para fechar."
             cards={fila.a_apontar}
-            acao="Abrir apontamento"
+            acao="Abrir produção"
           />
         </>
       ) : null}

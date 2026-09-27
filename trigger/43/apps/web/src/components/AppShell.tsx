@@ -134,7 +134,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconEstoque,
         permission: 'estoque.ler',
         permissionsAny: ['producao.ler', 'estoque.ler'],
-        title: 'Fila do estoque: confrontar e baixar a requisição da OP',
+        title: 'Fila do estoque: buscar o kit da ordem',
         isActivePath: (pathname) => pathname.startsWith('/estoque/retiradas'),
       },
       {
@@ -142,7 +142,7 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Apontamentos',
         icon: IconAsset,
         permission: 'producao.ler',
-        title: 'Fila da produção: receber na máquina, apontar e concluir a OP',
+        title: 'Fila da produção: receber, produzir, devolver sobra e fechar',
         isActivePath: (pathname) => pathname.startsWith('/ordens-producao/apontamentos'),
       },
     ],

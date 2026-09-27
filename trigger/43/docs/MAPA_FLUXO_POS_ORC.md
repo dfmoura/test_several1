@@ -88,7 +88,7 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 | ORC `LIBERADO` + PED | CTA **Ver pedido `PED-…`** + status do PED |
 | PED detalhe | **Andamento operacional** com códigos ORC → PED → OP/OS → materiais/produção → FAT/ENT |
 | Expedição / ENT | Fila → **preparar** (`/expedicao/pedido/:id`: o que falta + Expedição e entrega) → romaneio + kit (nota / cobrança / BOB-CX) |
-| OP detalhe | **Passos da ordem**: separar (preview FEFO + volumes) → produzir → concluir (retorno/perda/PA) → pedido; resultado após `CONCLUIDA` |
+| OP detalhe | **Ficha da etiqueta**: o que produzir + kit (falta pegar / já saiu / sem estoque) + jornada Pegar → Entregar → Produzir → Devolver sobra → Fechar; um CTA. Baixa só em Retiradas; fechar só em Produção. |
 | Estoque | Card **Entrada e documentos** → OC (NF-e) · ajustes/virada · produtos |
 | Produtos | Papel no fluxo (compra/estoque/OP) + links Estoque/OC |
 | Compras (quando `F5_DFE_CX`) | **Caixa DF-e** → amarrar opcional à OC → assist/`receber()` |
@@ -113,6 +113,7 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 
 - Motor: [`ADR_PRODUCAO_PED_OP_ESTOQUE.md`](ADR_PRODUCAO_PED_OP_ESTOQUE.md)  
 - Coleta dirigida: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md)  
+- Ficha da OP + kit: [`ADR_OP_FICHA_KIT.md`](ADR_OP_FICHA_KIT.md)  
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  
 - Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)
 - Saída da etiqueta (bobina): [`ADR_ORC_SAIDA_ETIQUETA.md`](ADR_ORC_SAIDA_ETIQUETA.md)  

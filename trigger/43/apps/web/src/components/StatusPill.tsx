@@ -34,6 +34,8 @@ function pillVariant(status: string): string {
     key === 'concluida' ||
     key === 'concluido' ||
     key === 'requisitado' ||
+    key === 'ja_saiu' ||
+    key === 'ja saiu' ||
     key === 'em_dia' ||
     key === 'paga' ||
     key === 'vigente' ||
@@ -74,7 +76,11 @@ function pillVariant(status: string): string {
     key === 'nova' ||
     key === 'sem_papel' ||
     key === 'nao_cadastrado' ||
-    key === 'aguardando_material'
+    key === 'aguardando_material' ||
+    key === 'falta_pegar' ||
+    key === 'falta pegar' ||
+    key === 'sem_estoque' ||
+    key === 'sem estoque'
   ) {
     if (key === 'pendente_ratificacao') return '--pendente_ratificacao';
     if (key === 'inativa' || key === 'incompleta') return '--inativo';

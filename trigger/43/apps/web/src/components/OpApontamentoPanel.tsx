@@ -236,9 +236,9 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
       {op.pode_entregar_insumos && canWrite ? (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
-            <h3 style={{ margin: '0 0 0.35rem' }}>Receber na máquina</h3>
+            <h3 style={{ margin: '0 0 0.35rem' }}>Receber o kit</h3>
             <p className="muted" style={{ margin: '0 0 0.75rem' }}>
-              O material já saiu do estoque. Quem recebeu? Sem segundo movimento.
+              O material já saiu do estoque. Quem recebeu na máquina?
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div className="form-group" style={{ minWidth: 220, margin: 0 }}>
@@ -274,13 +274,11 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
       <div className="card">
         <div className="card-body">
           <div className="form-section">
-            <h3>Apontar e concluir</h3>
+            <h3>Produzir, devolver e fechar</h3>
             <p className="muted" style={{ marginTop: 0 }}>
-              <strong>Retorno</strong> volta ao estoque (sobra de processo).{' '}
-              <strong>Perda de processo</strong> não retorna. Avaria da mesa já foi apontada na
-              ficha do estoque e não entra aqui. Consumo = requisitado − avaria − retorno − perda.
-              Quantidade boa (PA) dentro de ±{tol}% readequa o pedido; fora da faixa exige motivo.
-              O consumo de papel tem de cobrir a quantidade boa (rendimento da OP ±{tol}%).
+              <strong>Sobra</strong> volta ao estoque. <strong>Perda</strong> não volta. Rasgo na
+              mesa já foi registrado na lista de retirada. Etiquetas boas dentro de ±{tol}%
+              atualizam o pedido; fora da faixa pede motivo.
             </p>
           </div>
 
@@ -295,12 +293,12 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>SKU</th>
-                    <th>Requisitado</th>
-                    <th>Avaria</th>
-                    <th>Retorno (estoque)</th>
-                    <th>Perda de processo</th>
-                    <th>Consumo</th>
+                    <th>Material</th>
+                    <th>Saiu</th>
+                    <th>Rasgou</th>
+                    <th>Devolver sobra</th>
+                    <th>Perdeu no processo</th>
+                    <th>Usou</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -431,14 +429,14 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                   qtde: qtdeComplementar || String(papelComplementarSugerido),
                 })}
               >
-                Pedir complementar no estoque
+                Pegar de novo no estoque
               </Link>
             </div>
           ) : null}
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div className="form-group">
-              <label>Qtde boa (PA)</label>
+              <label>Etiquetas boas</label>
               <input
                 value={qtdeBoa}
                 onChange={(e) => setQtdeBoa(e.target.value)}
@@ -485,7 +483,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 disabled={busy || !podeConcluirAgora}
                 onClick={() => void concluir()}
               >
-                Concluir OP
+                Fechar a ordem
               </button>
               {op.pedido ? (
                 <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-secondary">

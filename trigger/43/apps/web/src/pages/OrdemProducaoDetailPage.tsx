@@ -1,58 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
-import { StatusPill } from '../components/StatusPill';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
+import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
+import { OpHeroEtiqueta } from '../components/OpHeroEtiqueta';
+import { OpKitLista } from '../components/OpKitLista';
+import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
+import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import {
   api,
   type OrdemProducao,
-  type OrdemProducaoMaterial,
+  type Pedido,
   type Produto,
 } from '../lib/api';
-import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
-import { OpVolumesBaixados } from '../components/OpRetiradaPanel';
-import { OpFichaRetirada } from '../components/OpFichaRetirada';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import {
-  capQtdeAte,
-  ehMaterialProducao,
-  hrefApontamentoProducao,
-  hrefFichaEstoque,
-  opMaterialLinhaStatus,
-  opMaterialStatusLabel,
-  opStatusLabel,
-  parseQtdeDigitada,
-} from '../lib/producaoUi';
-import { OpAndamentoPassos } from '../components/OpAndamentoPassos';
-import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
+import { hrefFichaEstoque, parseQtdeDigitada } from '../lib/producaoUi';
 
-type AvariaLinhaForm = { material_id: number; qtde: string; motivo: string };
 type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
-
-function avariaLinhasDe(
-  materiais: OrdemProducaoMaterial[] | null | undefined,
-  prev: AvariaLinhaForm[] = [],
-): AvariaLinhaForm[] {
-  return (materiais ?? [])
-    .filter((m) => !m.pendente)
-    .map((m) => {
-      const keep = prev.find((x) => Number(x.material_id) === Number(m.id));
-      if (keep) return keep;
-      return {
-        material_id: m.id,
-        qtde: parseQtdeDigitada(m.qtde_avaria) > 0 ? String(m.qtde_avaria) : '',
-        motivo: m.motivo_avaria ?? '',
-      };
-    });
-}
 
 export function OrdemProducaoDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const [op, setOp] = useState<OrdemProducao | null>(null);
+  const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -62,11 +35,7 @@ export function OrdemProducaoDetailPage() {
 
   const extraKeyRef = useRef(1);
   const emptyExtra = (): ExtraLinha => ({ key: extraKeyRef.current++, produto: null, qtde: '' });
-  const [extras, setExtras] = useState<ExtraLinha[]>(() => [
-    { key: extraKeyRef.current++, produto: null, qtde: '' },
-  ]);
-  const [qtdeComplementar, setQtdeComplementar] = useState('');
-  const [avariaForms, setAvariaForms] = useState<AvariaLinhaForm[]>([]);
+  const [extras, setExtras] = useState<ExtraLinha[]>(() => [emptyExtra()]);
 
   const load = async () => {
     setLoading(true);
@@ -74,9 +43,18 @@ export function OrdemProducaoDetailPage() {
     try {
       const res = await api.get<{ data: OrdemProducao }>(`/ordens-producao/${id}`);
       setOp(res.data);
-      setAvariaForms(avariaLinhasDe(res.data.materiais, []));
+      if (res.data.pedido?.id) {
+        try {
+          const ped = await api.get<{ data: Pedido }>(`/pedidos/${res.data.pedido.id}`);
+          setPedido(ped.data);
+        } catch {
+          setPedido(null);
+        }
+      } else {
+        setPedido(null);
+      }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao carregar OP.');
+      setErr(e instanceof Error ? e.message : 'Falha ao carregar a ordem.');
     } finally {
       setLoading(false);
     }
@@ -90,63 +68,6 @@ export function OrdemProducaoDetailPage() {
     () => op && ['ABERTA', 'EM_ANDAMENTO'].includes(op.status),
     [op],
   );
-
-  const aplicarOp = (data: OrdemProducao, resetAvaria = false) => {
-    setOp(data);
-    setAvariaForms((prev) => avariaLinhasDe(data.materiais, resetAvaria ? [] : prev));
-  };
-
-  const registrarAvarias = async () => {
-    if (!op) return;
-    const requisitados = (op.materiais ?? []).filter((m) => !m.pendente);
-    const dirty = avariaForms.filter((form) => {
-      const m = requisitados.find((x) => Number(x.id) === Number(form.material_id));
-      if (!m) return false;
-      const teto = parseQtdeDigitada(m.qtde_requisitada);
-      const qtde = Math.min(Math.max(0, parseQtdeDigitada(form.qtde)), teto);
-      const qtdeSrv = parseQtdeDigitada(m.qtde_avaria);
-      const motivoSrv = (m.motivo_avaria ?? '').trim();
-      return Math.abs(qtde - qtdeSrv) > 1e-9 || form.motivo.trim() !== motivoSrv;
-    });
-    if (dirty.length === 0) {
-      setErr('Nada para gravar — informe a quantidade avariada (até o requisitado) em ao menos uma linha.');
-      return;
-    }
-    for (const form of dirty) {
-      if (parseQtdeDigitada(form.qtde) > 0 && form.motivo.trim().length < 3) {
-        setErr('Informe o motivo da avaria (mínimo 3 caracteres) nas linhas com quantidade.');
-        return;
-      }
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      let last = op;
-      for (const form of dirty) {
-        const m = requisitados.find((x) => Number(x.id) === Number(form.material_id));
-        const teto = parseQtdeDigitada(m?.qtde_requisitada);
-        const qtde = Math.min(Math.max(0, parseQtdeDigitada(form.qtde)), teto);
-        const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/avaria`, {
-          material_id: form.material_id,
-          qtde: String(qtde),
-          motivo: form.motivo.trim() || undefined,
-        });
-        last = res.data;
-      }
-      aplicarOp(last, true);
-      const gravadas = (last.materiais ?? []).filter((m) => parseQtdeDigitada(m.qtde_avaria) > 0).length;
-      setMsg(
-        gravadas > 0
-          ? 'Avaria da separação registrada. O estoque não muda — o material já tinha saído. Reponha se faltar papel na máquina.'
-          : 'Avaria da separação zerada.',
-      );
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao registrar avaria.');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const devolverAoPedido = async () => {
     if (!op) return;
@@ -172,38 +93,10 @@ export function OrdemProducaoDetailPage() {
     }
   };
 
-  const tol = op?.pedido?.tolerancia_qtd_pct ?? '20';
-  const materiaisRequisitados = (op?.materiais ?? []).filter((m) => !m.pendente);
-  const disp = op?.disponibilidade;
-  const temFaltante = Boolean(disp?.aguardando_material);
-  const naoCasados = disp?.componentes_nao_casados ?? [];
-  const podeAbrirFichaEstoque =
-    Boolean(aberta) && (hasPermission('estoque.ler') || hasPermission('producao.ler'));
-  const podeAbrirApontamento = Boolean(aberta) && materiaisRequisitados.length > 0;
-
-  const mpsRequisitados = materiaisRequisitados.filter((m) => ehMaterialProducao(m));
-  const papeisRequisitados = (() => {
-    const soPapel = mpsRequisitados.filter((m) => (m.componente ?? '').toUpperCase() === 'PAPEL');
-    return soPapel.length > 0 ? soPapel : mpsRequisitados;
-  })();
-  const avariaPapel = papeisRequisitados.reduce(
-    (acc, m) => acc + parseQtdeDigitada(m.qtde_avaria),
-    0,
+  const podeEstoque = Boolean(
+    aberta && (hasPermission('estoque.ler') || hasPermission('producao.ler')),
   );
-  const processoPapel = papeisRequisitados.reduce(
-    (acc, m) =>
-      acc +
-      Math.max(0, parseQtdeDigitada(m.qtde_requisitada) - parseQtdeDigitada(m.qtde_avaria)),
-    0,
-  );
-  const empenhoPapel = papeisRequisitados.reduce((acc, m) => {
-    const planejada = parseQtdeDigitada(m.qtde_planejada);
-    return acc + (planejada > 0 ? planejada : parseQtdeDigitada(m.qtde_requisitada));
-  }, 0);
-  const unidadePapel = papeisRequisitados[0]?.unidade ?? 'M2';
-  const papelComplementarAlvo = papeisRequisitados[0] ?? null;
-  const faltaReposicaoAvaria = Math.max(0, empenhoPapel - processoPapel);
-  const precisaReposicaoAvaria = avariaPapel > 0 && faltaReposicaoAvaria > 1e-9;
+  const podeProducao = Boolean(aberta && hasPermission('producao.ler'));
 
   return (
     <>
@@ -211,10 +104,10 @@ export function OrdemProducaoDetailPage() {
         title={op?.codigo ?? 'Ordem de produção'}
         description={
           op
-            ? (op.pedido_item?.descricao ?? 'Ordem de produção')
+            ? 'Ficha da etiqueta — o que produzir e o kit para buscar.'
             : loading
               ? 'Carregando…'
-              : 'OP não encontrada.'
+              : 'Ordem não encontrada.'
         }
         actions={
           <div className="btn-row">
@@ -227,16 +120,7 @@ export function OrdemProducaoDetailPage() {
                 className="btn btn-secondary"
                 onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/ficha`)}
               >
-                Imprimir ordem
-              </a>
-            ) : null}
-            {op?.rastreio && (op.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (
-              <a
-                href={`/ordens-producao/${op.id}/rastreio`}
-                className="btn btn-secondary"
-                onClick={(e) => onAbrirFichaClick(e, `/ordens-producao/${op.id}/rastreio`)}
-              >
-                Imprimir rastreio
+                Imprimir ficha
               </a>
             ) : null}
             {op?.pedido ? (
@@ -255,549 +139,207 @@ export function OrdemProducaoDetailPage() {
         loading ? (
           <div className="loading">Carregando…</div>
         ) : (
-          <div className="empty-state">OP não encontrada.</div>
+          <div className="empty-state">Ordem não encontrada.</div>
         )
       ) : (
         <>
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div className="card-body">
-              <div className="detail-meta">
-                <div>
-                  <span>Status</span>
-                  <strong>
-                    <StatusPill status={opStatusLabel(op.status)} />
-                  </strong>
-                </div>
-                <div>
-                  <span>Planejada</span>
-                  <strong>{formatDecimalBr(Number(op.qtde_planejada), 0)}</strong>
-                </div>
-                {op.qtde_boa != null ? (
-                  <div>
-                    <span>Boa</span>
-                    <strong>{formatDecimalBr(Number(op.qtde_boa), 0)}</strong>
-                  </div>
-                ) : null}
-                <div>
-                  <span>Tolerância</span>
-                  <strong>±{tol}%</strong>
-                </div>
-                {op.parceiro ? (
-                  <div>
-                    <span>Cliente</span>
-                    <strong>{op.parceiro.razao_social}</strong>
-                  </div>
-                ) : null}
-                {op.pa_movimento ? (
-                  <div>
-                    <span>MOV PA</span>
-                    <strong>{op.pa_movimento.codigo}</strong>
-                  </div>
-                ) : null}
-                {op.status === 'CANCELADA' && op.motivo_cancelamento ? (
-                  <div>
-                    <span>Devolvida ao pedido</span>
-                    <strong>{op.motivo_cancelamento}</strong>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
+          <OpHeroEtiqueta op={op} pedido={pedido} />
+          <OpAndamentoPassos op={op} podeEstoque={podeEstoque} podeProducao={podeProducao} />
+          <OpKitLista op={op} podeAbrirEstoque={podeEstoque || hasPermission('estoque.ler')} />
 
-          <OpAndamentoPassos op={op} />
-
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div className="card-body">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
-                  flexWrap: 'wrap',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <div className="form-section" style={{ marginBottom: 0 }}>
-                  <h3>1 · Separação de insumos</h3>
-                  <p className="muted" style={{ margin: 0 }}>
-                    Pedido da OP (papel, tubete, caixa). A confirmação física — QR ou manual — é
-                    só do <strong>estoque</strong>, na ficha da requisição. Empenho leve não
-                    movimenta. Rasgo na mesa é <strong>avaria da separação</strong> (abaixo); a
-                    reposição também confirma no estoque.
-                    {hasPermission('estoque.ler') || hasPermission('producao.ler') ? (
-                      <>
-                        {' '}
-                        <Link to={hrefFichaEstoque(op.id)}>Ficha no estoque</Link>
-                      </>
-                    ) : null}
-                    {hasPermission('estoque.ler') ? (
-                      <>
-                        {' · '}
-                        <Link to="/estoque">Abrir estoque</Link>
-                      </>
-                    ) : null}
-                    {hasPermission('compras.ler') ? (
-                      <>
-                        {' · '}
-                        <Link to="/compras/ordens/nova">Nova OC</Link>
-                        {' · '}
-                        <Link to="/compras/reposicao">A repor</Link>
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-                {podeAbrirFichaEstoque ? (
-                  <Link className="btn btn-primary" to={hrefFichaEstoque(op.id)}>
-                    Abrir ficha no estoque
-                  </Link>
-                ) : null}
-              </div>
-
-              <div
-                className={temFaltante ? 'alert alert-warning' : 'alert alert-info'}
-                style={{ marginTop: '1rem' }}
-                role="status"
-              >
-                {temFaltante ? (
-                  <>
-                    <strong>Aguardando material</strong> —{' '}
-                    {disp?.linhas_com_faltante ?? 0} linha
-                    {(disp?.linhas_com_faltante ?? 0) === 1 ? '' : 's'} com saldo abaixo do
-                    planejado. Veja as colunas <strong>Disponível</strong> e{' '}
-                    <strong>Faltante</strong>. Abasteça via{' '}
-                    <Link to="/compras/ordens/nova">ordem de compra</Link> ou{' '}
-                    <Link to="/compras/reposicao">a repor</Link>. Linhas com saldo completo ainda
-                    podem ser baixadas uma a uma.
-                  </>
-                ) : (
-                  <>
-                    <strong>Saldo do estoque (leitura)</strong> — cada linha mostra{' '}
-                    <strong>Planejado · Disponível · Faltante</strong>. Sem reserva automática: a
-                    baixa só ocorre na ficha do estoque; se faltar, o sistema bloqueia antes de
-                    movimentar. SKU com lote sugere FEFO (validade) e FIFO (entrada).
-                  </>
-                )}
-              </div>
-
-              {naoCasados.length > 0 ? (
-                <div className="alert alert-warning" style={{ marginTop: '1rem' }}>
-                  <strong>Componente sem SKU casado</strong>
-                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
-                    {naoCasados.map((c) => (
-                      <li key={`${c.componente}-${c.origem_texto}`}>
-                        {c.componente}
-                        {c.origem_texto ? ` · ${c.origem_texto}` : ''} — {c.motivo}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="muted" style={{ margin: '0.5rem 0 0' }}>
-                    Cadastre o produto ou inclua o material manualmente abaixo.
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="table-wrap" style={{ marginTop: '1rem' }}>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Componente</th>
-                      <th>SKU</th>
-                      <th>Planejado</th>
-                      <th>Disponível</th>
-                      <th>Faltante</th>
-                      <th>Requisitado</th>
-                      <th>Avaria</th>
-                      <th>Status</th>
-                      <th className="acoes" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(op.materiais ?? []).length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ color: 'var(--text-muted)' }}>
-                          {naoCasados.length > 0
-                            ? 'Nenhum material casado ao snapshot. Inclua manualmente abaixo ou cadastre o SKU.'
-                            : 'Nenhum material casado ao snapshot. Inclua manualmente abaixo.'}
-                        </td>
-                      </tr>
-                    ) : (
-                      (op.materiais ?? []).map((m) => {
-                        const statusKey = opMaterialLinhaStatus(m);
-                        return (
-                          <tr key={m.id}>
-                            <td>
-                              {m.componente ?? '—'}
-                              {m.origem_texto ? (
-                                <div className="muted" style={{ fontSize: '0.85em' }}>
-                                  {m.origem_texto}
-                                </div>
-                              ) : null}
-                            </td>
-                            <td>
-                              {m.produto ? (
-                                <>
-                                  <strong>{m.produto.codigo}</strong>
-                                  <div className="muted" style={{ fontSize: '0.85em' }}>
-                                    {m.produto.descricao_fiscal}
-                                  </div>
-                                  <div
-                                    className="table-actions"
-                                    style={{ marginTop: '0.25rem', gap: '0.5rem' }}
-                                  >
-                                    {hasPermission('estoque.ler') ? (
-                                      <Link to={`/estoque/extrato/${m.produto.id}`}>Extrato</Link>
-                                    ) : null}
-                                    {hasPermission('produto.ler') ? (
-                                      <Link to={`/produtos/${m.produto.id}`}>Produto</Link>
-                                    ) : null}
-                                  </div>
-                                </>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                            <td>
-                              {formatDecimalBr(Number(m.qtde_planejada ?? 0), 4)} {m.unidade}
-                            </td>
-                            <td>
-                              {m.qtde_disponivel != null
-                                ? `${formatDecimalBr(Number(m.qtde_disponivel), 4)} ${m.unidade}`
-                                : '—'}
-                            </td>
-                            <td>
-                              {m.aguardando_material ? (
-                                <strong style={{ color: 'var(--danger, #b42318)' }}>
-                                  {formatDecimalBr(Number(m.qtde_faltante ?? 0), 4)} {m.unidade}
-                                </strong>
-                              ) : m.pendente ? (
-                                '0'
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                            <td>
-                              {m.pendente
-                                ? '—'
-                                : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
-                              {!m.pendente && (m.retirada?.volumes_baixados ?? []).length > 0 ? (
-                                <OpVolumesBaixados
-                                  volumes={m.retirada!.volumes_baixados!}
-                                  unidade={m.unidade}
-                                />
-                              ) : null}
-                            </td>
-                            <td>
-                              {m.pendente
-                                ? '—'
-                                : parseQtdeDigitada(m.qtde_avaria) > 0
-                                  ? `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
-                                  : '—'}
-                            </td>
-                            <td>
-                              <StatusPill status={opMaterialStatusLabel(statusKey)} />
-                            </td>
-                            <td>
-                              {m.pendente && m.aguardando_material ? (
-                                <span className="muted" style={{ fontSize: '0.85em' }}>
-                                  Sem saldo
-                                </span>
-                              ) : m.pendente && podeAbrirFichaEstoque ? (
-                                <Link className="btn btn-secondary btn-sm" to={hrefFichaEstoque(op.id)}>
-                                  Ficha no estoque
-                                </Link>
-                              ) : null}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <OpFichaRetirada op={op} mode="anexo" onOp={(data) => aplicarOp(data)} />
-
-              {op.handoff?.entregue ? (
-                <p className="muted" style={{ margin: '0.75rem 0 0' }}>
-                  Recebido na máquina
-                  {op.handoff.recebidos_nome ? ` · ${op.handoff.recebidos_nome}` : ''}
-                  {op.handoff.entregues_por ? ` · registrado por ${op.handoff.entregues_por.nome}` : ''}
-                  .
-                </p>
-              ) : op.pode_entregar_insumos ? (
-                <p className="muted" style={{ margin: '0.75rem 0 0' }}>
-                  Material baixado — quem recebeu registra no{' '}
-                  <Link to={hrefApontamentoProducao(op.id)}>apontamento da produção</Link>.
-                </p>
-              ) : null}
-
-              {aberta &&
-              hasPermission('producao.escrever') &&
-              materiaisRequisitados.length > 0 ? (
-                <div
-                  style={{
-                    marginTop: '1rem',
-                    padding: '0.85rem 1rem',
-                    border: '1px solid var(--border, #d0d5dd)',
-                    borderRadius: 8,
-                  }}
-                >
-                  <h4 style={{ margin: '0 0 0.35rem' }}>Avaria na separação</h4>
-                  <p className="muted" style={{ margin: '0 0 0.75rem', fontSize: '0.9em' }}>
-                    Só nas linhas já requisitadas — a quantidade não passa do que saiu. Rasgo,
-                    umidade ou recusa <strong>antes da máquina</strong>. Não escreve estoque. Zero
-                    limpa o apontamento.
-                  </p>
-                  <div className="table-wrap" style={{ marginBottom: '0.75rem' }}>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>SKU requisitado</th>
-                          <th>Requisitado</th>
-                          <th>Qtde avariada</th>
-                          <th>Motivo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {materiaisRequisitados.map((m) => {
-                          const form = avariaForms.find(
-                            (x) => Number(x.material_id) === Number(m.id),
-                          ) ?? {
-                            material_id: m.id,
-                            qtde: '',
-                            motivo: '',
-                          };
-                          const teto = parseQtdeDigitada(m.qtde_requisitada);
-                          return (
-                            <tr key={m.id}>
-                              <td>
-                                <strong>{m.produto?.codigo ?? m.componente}</strong>
-                                <div className="muted" style={{ fontSize: '0.85em' }}>
-                                  {m.produto?.descricao_fiscal ?? m.origem_texto ?? '—'}
-                                </div>
-                              </td>
-                              <td>
-                                {formatDecimalBr(teto, 4)} {m.unidade}
-                              </td>
-                              <td>
-                                <div className="form-group" style={{ margin: 0, minWidth: 120 }}>
-                                  <input
-                                    inputMode="decimal"
-                                    value={form.qtde}
-                                    max={teto}
-                                    onChange={(e) => {
-                                      const qtde = capQtdeAte(e.target.value, teto);
-                                      setAvariaForms((prev) => {
-                                        const others = prev.filter(
-                                          (x) => Number(x.material_id) !== Number(m.id),
-                                        );
-                                        return [...others, { ...form, qtde }];
-                                      });
-                                    }}
-                                    aria-label={`Avaria ${m.produto?.codigo ?? m.id} até ${formatDecimalBr(teto, 4)} ${m.unidade}`}
-                                    placeholder={`máx. ${formatDecimalBr(teto, 4)}`}
-                                  />
-                                </div>
-                              </td>
-                              <td>
-                                <div className="form-group" style={{ margin: 0, minWidth: 220 }}>
-                                  <input
-                                    value={form.motivo}
-                                    onChange={(e) =>
-                                      setAvariaForms((prev) => {
-                                        const others = prev.filter(
-                                          (x) => Number(x.material_id) !== Number(m.id),
-                                        );
-                                        return [...others, { ...form, motivo: e.target.value }];
-                                      })
-                                    }
-                                    placeholder="Ex.: bobina rasgada na mesa"
-                                    aria-label={`Motivo da avaria ${m.produto?.codigo ?? m.id}`}
-                                  />
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={busy}
-                    onClick={() => void registrarAvarias()}
-                  >
-                    Registrar avarias
-                  </button>
-                  {precisaReposicaoAvaria && papelComplementarAlvo ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '0.75rem',
-                        flexWrap: 'wrap',
-                        alignItems: 'flex-end',
-                        marginTop: '0.85rem',
-                      }}
-                    >
-                      <div className="form-group" style={{ minWidth: 180, margin: 0 }}>
-                        <label>Reposição da avaria ({unidadePapel})</label>
-                        <input
-                          value={qtdeComplementar}
-                          onChange={(e) => setQtdeComplementar(e.target.value)}
-                          placeholder={formatDecimalBr(faltaReposicaoAvaria, 4)}
-                          aria-label="Quantidade para repor avaria"
-                        />
-                        <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85em' }}>
-                          Sugestão: {formatDecimalBr(faltaReposicaoAvaria, 4)} {unidadePapel} para
-                          devolver o papel da máquina ao empenho. Exige saldo.
-                        </p>
-                      </div>
-                      <Link
-                        className="btn btn-primary"
-                        to={hrefFichaEstoque(op.id, {
-                          materialId: papelComplementarAlvo.id,
-                          qtde: qtdeComplementar || String(faltaReposicaoAvaria),
-                        })}
-                      >
-                        Pedir reposição no estoque
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {aberta && hasPermission('producao.escrever') ? (
-                <details style={{ marginTop: '1rem' }}>
-                  <summary style={{ cursor: 'pointer' }}>Incluir material extra</summary>
-                  <p className="muted" style={{ margin: '0.75rem 0 0.5rem', fontSize: '0.9em' }}>
-                    SKU que não veio do empenho. Informe o item e peça ao estoque — a baixa
-                    confirma só na ficha. SKU já na OP: use a reposição complementar.
-                  </p>
-                  {extras.map((linha, idx) => {
-                    const idsNaOp = new Set(
-                      (op.materiais ?? [])
-                        .map((m) => m.produto?.id)
-                        .filter((id): id is number => Number(id) > 0),
-                    );
-                    const idsNesteForm = new Set(
-                      extras
-                        .filter((e) => e.key !== linha.key && e.produto)
-                        .map((e) => e.produto!.id),
-                    );
-                    const un = (
-                      linha.produto?.unidade_interna ||
-                      linha.produto?.unidade_comercial ||
-                      'un.'
-                    ).toUpperCase();
-                    return (
-                      <div key={linha.key} className="oc-form-page__item">
-                        <div
-                          className={`oc-form-page__item-row${extras.length > 1 ? ' has-remove' : ''}`}
-                        >
-                          <ProdutoCombobox
-                            className="oc-form-page__item-produto"
-                            label={idx === 0 ? 'SKU (MP/EMB)' : 'SKU'}
-                            value={linha.produto}
-                            onChange={(p) => {
-                              if (p && (idsNaOp.has(p.id) || idsNesteForm.has(p.id))) {
-                                setErr(
-                                  idsNaOp.has(p.id)
-                                    ? 'Este SKU já está na OP. Use a reposição complementar na linha requisitada.'
-                                    : 'Este SKU já está em outra linha extra.',
-                                );
-                                return;
-                              }
-                              setErr(null);
-                              setExtras((prev) =>
-                                prev.map((e) => (e.key === linha.key ? { ...e, produto: p } : e)),
-                              );
-                            }}
-                            familias={['MP', 'EMB']}
-                            showSummary={false}
-                            placeholder="Buscar por código, descrição, NCM ou grupo…"
-                            emptyMessage="Nenhum MP/EMB encontrado. Ajuste o termo ou cadastre o SKU."
-                          />
-                          <div className="form-group oc-form-page__item-qtde">
-                            <label>Qtde ({un})</label>
-                            <input
-                              inputMode="decimal"
-                              value={linha.qtde}
-                              onChange={(e) =>
-                                setExtras((prev) =>
-                                  prev.map((x) =>
-                                    x.key === linha.key ? { ...x, qtde: e.target.value } : x,
-                                  ),
-                                )
-                              }
-                              aria-label={`Quantidade extra ${linha.produto?.codigo ?? idx + 1}`}
-                            />
-                          </div>
-                          {extras.length > 1 ? (
-                            <div className="form-group oc-form-page__item-remove">
-                              <label>&nbsp;</label>
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                disabled={busy}
-                                onClick={() =>
-                                  setExtras((prev) => prev.filter((e) => e.key !== linha.key))
-                                }
-                              >
-                                Remover
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="btn-row" style={{ marginTop: '0.5rem' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      disabled={busy}
-                      onClick={() => setExtras((prev) => [...prev, emptyExtra()])}
-                    >
-                      + Item
-                    </button>
-                    {extras
-                      .filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
-                      .map((e) => (
-                        <Link
-                          key={e.key}
-                          className="btn btn-primary btn-sm"
-                          to={hrefFichaEstoque(op.id, {
-                            produtoId: e.produto!.id,
-                            qtde: e.qtde,
-                          })}
-                        >
-                          Pedir {e.produto!.codigo} no estoque
-                        </Link>
-                      ))}
-                  </div>
-                </details>
-              ) : null}
-            </div>
-          </div>
-
-          {op.rastreio ? (
-            <RastreioInsumosPanel
-              rastreio={op.rastreio}
-              printHref={`/ordens-producao/${op.id}/rastreio`}
-            />
-          ) : null}
-
-          {aberta && hasPermission('producao.escrever') && op.pode_devolver_ao_pedido ? (
+          {op.status === 'CONCLUIDA' ? (
             <div className="card" style={{ marginBottom: '1rem' }}>
               <div className="card-body">
                 <div className="form-section">
-                  <h3>Devolver ao pedido</h3>
+                  <h3>Resultado</h3>
                   <p className="muted" style={{ marginTop: 0 }}>
-                    Esta ordem ainda não baixou estoque. Encerrar devolve o item ao pedido — o código
-                    da OP permanece no histórico e uma nova ordem pode ser aberta.
+                    Etiquetas boas no pedido. Embalagem é o passo seguinte.
                   </p>
                 </div>
+                <div className="detail-meta" style={{ marginBottom: '1rem' }}>
+                  <div>
+                    <span>Etiquetas boas</span>
+                    <strong>
+                      {op.qtde_boa != null ? formatDecimalBr(Number(op.qtde_boa), 0) : '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Refugo</span>
+                    <strong>{formatDecimalBr(Number(op.qtde_refugo || 0), 0)}</strong>
+                  </div>
+                </div>
+                {(op.materiais ?? []).filter((m) => !m.pendente).length > 0 ? (
+                  <div className="table-wrap" style={{ marginBottom: '1rem' }}>
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Material</th>
+                          <th>Saiu</th>
+                          <th>Sobra</th>
+                          <th>Perda</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(op.materiais ?? [])
+                          .filter((m) => !m.pendente)
+                          .map((m) => (
+                            <tr key={m.id}>
+                              <td>
+                                {m.produto?.descricao_fiscal ?? m.componente}
+                                {m.produto?.codigo ? (
+                                  <div className="muted" style={{ fontSize: '0.85em' }}>
+                                    {m.produto.codigo}
+                                  </div>
+                                ) : null}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_retorno), 4)} {m.unidade}
+                              </td>
+                              <td>
+                                {formatDecimalBr(Number(m.qtde_perda), 4)} {m.unidade}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {op.status === 'CONCLUIDA' ? (
+            <PaEmbalagemPanel
+              op={op}
+              canWrite={hasPermission('producao.escrever')}
+              onChanged={() => void load()}
+            />
+          ) : null}
+
+          {aberta && hasPermission('producao.escrever') ? (
+            <details className="card" style={{ marginBottom: '1rem' }}>
+              <summary className="op-mais-summary">Acrescentar no kit</summary>
+              <div className="card-body" style={{ paddingTop: 0 }}>
+                <p className="muted" style={{ margin: '0 0 0.75rem', fontSize: '0.9em' }}>
+                  Algo que não veio na lista. Informe e peça no estoque — a saída confirma lá.
+                </p>
+                {extras.map((linha, idx) => {
+                  const idsNaOp = new Set(
+                    (op.materiais ?? [])
+                      .map((m) => m.produto?.id)
+                      .filter((pid): pid is number => Number(pid) > 0),
+                  );
+                  const idsNesteForm = new Set(
+                    extras
+                      .filter((e) => e.key !== linha.key && e.produto)
+                      .map((e) => e.produto!.id),
+                  );
+                  const un = (
+                    linha.produto?.unidade_interna ||
+                    linha.produto?.unidade_comercial ||
+                    'un.'
+                  ).toUpperCase();
+                  return (
+                    <div key={linha.key} className="oc-form-page__item">
+                      <div
+                        className={`oc-form-page__item-row${extras.length > 1 ? ' has-remove' : ''}`}
+                      >
+                        <ProdutoCombobox
+                          className="oc-form-page__item-produto"
+                          label={idx === 0 ? 'Material' : 'Material'}
+                          value={linha.produto}
+                          onChange={(p) => {
+                            if (p && (idsNaOp.has(p.id) || idsNesteForm.has(p.id))) {
+                              setErr(
+                                idsNaOp.has(p.id)
+                                  ? 'Este item já está no kit. Peça de novo pela lista de retirada.'
+                                  : 'Este item já está em outra linha.',
+                              );
+                              return;
+                            }
+                            setErr(null);
+                            setExtras((prev) =>
+                              prev.map((e) => (e.key === linha.key ? { ...e, produto: p } : e)),
+                            );
+                          }}
+                          familias={['MP', 'EMB']}
+                          showSummary={false}
+                          placeholder="Buscar por código ou descrição…"
+                          emptyMessage="Nenhum material encontrado."
+                        />
+                        <div className="form-group oc-form-page__item-qtde">
+                          <label>Quanto ({un})</label>
+                          <input
+                            inputMode="decimal"
+                            value={linha.qtde}
+                            onChange={(e) =>
+                              setExtras((prev) =>
+                                prev.map((x) =>
+                                  x.key === linha.key ? { ...x, qtde: e.target.value } : x,
+                                ),
+                              )
+                            }
+                            aria-label={`Quantidade extra ${linha.produto?.codigo ?? idx + 1}`}
+                          />
+                        </div>
+                        {extras.length > 1 ? (
+                          <div className="form-group oc-form-page__item-remove">
+                            <label>&nbsp;</label>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              disabled={busy}
+                              onClick={() =>
+                                setExtras((prev) => prev.filter((e) => e.key !== linha.key))
+                              }
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    onClick={() => setExtras((prev) => [...prev, emptyExtra()])}
+                  >
+                    + Item
+                  </button>
+                  {extras
+                    .filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
+                    .map((e) => (
+                      <Link
+                        key={e.key}
+                        className="btn btn-primary btn-sm"
+                        to={hrefFichaEstoque(op.id, {
+                          produtoId: e.produto!.id,
+                          qtde: e.qtde,
+                        })}
+                      >
+                        Pedir {e.produto!.codigo} no estoque
+                      </Link>
+                    ))}
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {aberta && hasPermission('producao.escrever') && op.pode_devolver_ao_pedido ? (
+            <details className="card" style={{ marginBottom: '1rem' }}>
+              <summary className="op-mais-summary">Devolver ao pedido</summary>
+              <div className="card-body" style={{ paddingTop: 0 }}>
+                <p className="muted" style={{ margin: '0 0 0.75rem' }}>
+                  Ainda não saiu material. Encerrar devolve o item ao pedido — o código desta
+                  ordem permanece e outra pode ser aberta.
+                </p>
                 {!devolverAberto ? (
                   <button
                     type="button"
@@ -814,7 +356,7 @@ export function OrdemProducaoDetailPage() {
                       <input
                         value={motivoDevolver}
                         onChange={(e) => setMotivoDevolver(e.target.value)}
-                        placeholder="Ex.: aberta por engano; item ainda não vai para a máquina"
+                        placeholder="Ex.: aberta por engano"
                         autoFocus
                       />
                     </div>
@@ -825,7 +367,7 @@ export function OrdemProducaoDetailPage() {
                         disabled={busy || motivoDevolver.trim().length < 3}
                         onClick={() => void devolverAoPedido()}
                       >
-                        Confirmar devolução
+                        Confirmar
                       </button>
                       <button
                         type="button"
@@ -842,154 +384,19 @@ export function OrdemProducaoDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </details>
           ) : null}
 
-          {aberta &&
-          hasPermission('producao.escrever') &&
-          !op.pode_devolver_ao_pedido &&
-          (op.materiais ?? []).some((m) => !m.pendente) ? (
-            <p className="muted" style={{ marginBottom: '1rem' }}>
-              Com saída de material já requisitada, a ordem segue até a conclusão. Não é possível
-              devolver ao pedido.
-            </p>
-          ) : null}
-
-          {aberta ? (
-            <div className="card">
-              <div className="card-body">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '1rem',
-                    flexWrap: 'wrap',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <div className="form-section" style={{ marginBottom: 0 }}>
-                    <h3>3 · Apontamento na produção</h3>
-                    <p className="muted" style={{ margin: 0 }}>
-                      Retorno, perda de processo, quantidade boa e conclusão são do{' '}
-                      <strong>chão</strong>. A OP só lê o resultado. Avaria da mesa continua no
-                      passo 1 (ficha do estoque).
-                    </p>
-                  </div>
-                  {podeAbrirApontamento ? (
-                    <Link className="btn btn-primary" to={hrefApontamentoProducao(op.id)}>
-                      Abrir apontamento na produção
-                    </Link>
-                  ) : null}
-                </div>
-                {!podeAbrirApontamento ? (
-                  <p className="muted" style={{ margin: '1rem 0 0' }}>
-                    Requisite ao menos uma saída no estoque antes de apontar — senão não há
-                    retorno/perda nem entrada de PA.
-                  </p>
-                ) : null}
+          {op.rastreio && (op.rastreio.resumo?.insumos_com_saida ?? 0) > 0 ? (
+            <details className="card" style={{ marginBottom: '1rem' }}>
+              <summary className="op-mais-summary">Origem do material</summary>
+              <div className="card-body" style={{ paddingTop: 0 }}>
+                <RastreioInsumosPanel
+                  rastreio={op.rastreio}
+                  printHref={`/ordens-producao/${op.id}/rastreio`}
+                />
               </div>
-            </div>
-          ) : null}
-
-
-          {op.status === 'CONCLUIDA' ? (
-            <div className="card" style={{ marginTop: '1rem' }}>
-              <div className="card-body">
-                <div className="form-section">
-                  <h3>Resultado da produção</h3>
-                  <p className="muted" style={{ marginTop: 0 }}>
-                    Estoque ajustado (retorno/perda) e pedido readequado. Embalagem PA (bobinas e
-                    caixas) é o passo seguinte — depois segue o faturamento pelo pedido.
-                  </p>
-                </div>
-                <div className="detail-meta" style={{ marginBottom: '1rem' }}>
-                  <div>
-                    <span>Qtde boa (PA)</span>
-                    <strong>
-                      {op.qtde_boa != null ? formatDecimalBr(Number(op.qtde_boa), 0) : '—'}
-                    </strong>
-                  </div>
-                  <div>
-                    <span>Refugo</span>
-                    <strong>{formatDecimalBr(Number(op.qtde_refugo || 0), 0)}</strong>
-                  </div>
-                  {op.pa_movimento ? (
-                    <div>
-                      <span>MOV PA</span>
-                      <strong>{op.pa_movimento.codigo}</strong>
-                    </div>
-                  ) : null}
-                  {op.fora_tolerancia ? (
-                    <div>
-                      <span>Fora da tolerância</span>
-                      <strong>{op.motivo_fora_tolerancia ?? 'Sim'}</strong>
-                    </div>
-                  ) : null}
-                </div>
-                {(op.materiais ?? []).filter((m) => !m.pendente).length > 0 ? (
-                  <div className="table-wrap" style={{ marginBottom: '1rem' }}>
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>SKU</th>
-                          <th>Requisitado</th>
-                          <th>Avaria</th>
-                          <th>Retorno</th>
-                          <th>Perda processo</th>
-                          <th>Consumo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(op.materiais ?? [])
-                          .filter((m) => !m.pendente)
-                          .map((m) => (
-                            <tr key={m.id}>
-                              <td>
-                                {m.produto?.codigo} — {m.produto?.descricao_fiscal}
-                              </td>
-                              <td>
-                                {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
-                              </td>
-                              <td>
-                                {formatDecimalBr(Number(m.qtde_avaria ?? 0), 4)} {m.unidade}
-                              </td>
-                              <td>
-                                {formatDecimalBr(Number(m.qtde_retorno), 4)} {m.unidade}
-                              </td>
-                              <td>
-                                {formatDecimalBr(Number(m.qtde_perda), 4)} {m.unidade}
-                              </td>
-                              <td>
-                                {formatDecimalBr(Number(m.qtde_consumida), 4)} {m.unidade}
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : null}
-                <div className="btn-row">
-                  {op.pedido ? (
-                    <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-primary">
-                      Continuar no pedido {op.pedido.codigo}
-                    </Link>
-                  ) : null}
-                  {hasPermission('estoque.ler') ? (
-                    <Link to="/estoque" className="btn btn-secondary">
-                      Ver estoque
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {op.status === 'CONCLUIDA' ? (
-            <PaEmbalagemPanel
-              op={op}
-              canWrite={hasPermission('producao.escrever')}
-              onChanged={() => void load()}
-            />
+            </details>
           ) : null}
         </>
       )}

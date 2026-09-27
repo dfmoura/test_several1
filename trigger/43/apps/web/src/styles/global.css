@@ -11856,6 +11856,138 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   gap: 0.65rem;
 }
 
+.op-passos--5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.op-hero__topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.op-hero__kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted, #667085);
+}
+
+.op-hero__titulo {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.op-hero__cliente {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.op-hero__qtde {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  min-width: 7rem;
+}
+
+.op-hero__qtde strong {
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+.op-hero__qtde span {
+  font-size: 0.85rem;
+  color: var(--text-muted, #667085);
+}
+
+.op-hero__spec {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 1rem 0 0;
+}
+
+.op-hero__spec dt {
+  font-size: 0.75rem;
+  color: var(--text-muted, #667085);
+  margin: 0 0 0.1rem;
+}
+
+.op-hero__spec dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.op-hero__refs {
+  margin: 0.85rem 0 0;
+}
+
+.op-kit__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.op-kit__item {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1.4fr) auto minmax(6rem, 0.8fr) auto;
+  gap: 0.65rem 1rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.op-kit__item--falta_pegar {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.op-kit__item--sem_estoque {
+  border-color: rgba(180, 35, 24, 0.35);
+  background: rgba(180, 35, 24, 0.04);
+}
+
+.op-kit__item--ja_saiu {
+  border-color: rgba(124, 181, 24, 0.4);
+  background: rgba(124, 181, 24, 0.06);
+}
+
+.op-kit__nome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.op-kit__qtde {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.op-kit__onde {
+  font-size: 0.9rem;
+}
+
+.op-mais-summary {
+  cursor: pointer;
+  padding: 0.85rem 1rem;
+  font-weight: 600;
+}
+
+.ficha-muted {
+  font-size: 0.85em;
+  color: var(--text-muted, #667085);
+}
+
 .op-passo {
   display: flex;
   flex-direction: column;
@@ -11894,15 +12026,35 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   margin-top: 0.9rem;
 }
 
+@media (max-width: 1100px) {
+  .op-passos--5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
-  .op-passos {
+  .op-passos,
+  .op-passos--5 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .op-kit__item {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 520px) {
-  .op-passos {
+  .op-passos,
+  .op-passos--5 {
     grid-template-columns: 1fr;
+  }
+
+  .op-kit__item {
+    grid-template-columns: 1fr;
+  }
+
+  .op-hero__qtde {
+    align-items: flex-start;
   }
 }
 

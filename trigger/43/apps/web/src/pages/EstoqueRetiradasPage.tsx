@@ -38,7 +38,7 @@ export function EstoqueRetiradasPage() {
     <div className="page">
       <PageHeader
         title="Retiradas para produção"
-        description="Cada requisição é uma ficha: o estoque confronta o sistema com o físico (QR ou manual). O que sai fica anexo à OP. Avaria? Requisita de novo."
+        description="O kit da ordem: o que buscar, onde está, o que já saiu. Marque no sistema e no corredor. Se rasgou, pegue de novo."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -67,14 +67,14 @@ export function EstoqueRetiradasPage() {
               : `${fila.resumo.a_retirar} a retirar · ${fila.resumo.a_entregar} a entregar na produção.`}
           </p>
           <Secao
-            titulo="A retirar no estoque"
-            vazio="Nada pendente de baixa."
+            titulo="A buscar no estoque"
+            vazio="Nenhum kit aguardando retirada."
             cards={fila.a_retirar}
-            acao="Abrir ficha"
+            acao="Abrir lista"
           />
           <Secao
             titulo="A entregar na produção"
-            vazio="Nenhuma baixa aguardando handoff."
+            vazio="Nada aguardando entrega na máquina."
             cards={fila.a_entregar}
             acao="Registrar entrega"
           />
@@ -111,8 +111,8 @@ function Secao({
                   <th>OP</th>
                   <th>Pedido</th>
                   <th>Cliente</th>
-                  <th>Pendentes</th>
-                  <th>Já baixadas</th>
+                  <th>Falta pegar</th>
+                  <th>Já saiu</th>
                   <th>Primeiro local</th>
                   <th>Status</th>
                   <th className="acoes" />

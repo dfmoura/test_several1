@@ -131,7 +131,7 @@ class PainelService
                 $opCurso > 0,
             );
             $apontar = $this->apontamento->contarFila($empresa);
-            $this->fila($filas, 'op_curso', 'Apontamentos em aberto', 'Receber na máquina ou concluir a OP', $apontar, '/ordens-producao/apontamentos');
+            $this->fila($filas, 'op_curso', 'Produção em aberto', 'Receber o kit, devolver a sobra ou fechar a ordem', $apontar, '/ordens-producao/apontamentos');
         }
 
         if ($faturamento) {
@@ -240,8 +240,8 @@ class PainelService
             $this->fila(
                 $filas,
                 'op_separacao',
-                'Retiradas em aberto',
-                'Ir ao estoque ou entregar o material na produção',
+                'Kit a buscar',
+                'Pegar o material no estoque ou entregar na produção',
                 $separacao,
                 '/estoque/retiradas',
             );
