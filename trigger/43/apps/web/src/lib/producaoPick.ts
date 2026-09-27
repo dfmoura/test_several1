@@ -1,4 +1,4 @@
-import type { OpRetiradaPreview, OrdemProducao, OrdemProducaoMaterial } from './api';
+import type { OpRetiradaPreview, OpRetiradaVolume, OrdemProducao, OrdemProducaoMaterial } from './api';
 import { formatDecimalBr } from './format';
 import { opKitEstado, opKitNome, opKitOnde, parseQtdeDigitada } from './producaoUi';
 
@@ -87,4 +87,35 @@ export function opKitLinhasOrdenadas(linhas: OrdemProducaoMaterial[]): OrdemProd
 
 export function proximaLinhaPick(op: OrdemProducao): OrdemProducaoMaterial | null {
   return opKitLinhasOrdenadas(op.materiais ?? []).find((m) => opKitEstado(m) === 'falta_pegar') ?? null;
+}
+
+/** Bobinas manuseáveis: sugeridas + outras, sem duplicar. */
+export function volumesParaEscolha(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
+  const seen = new Set<number>();
+  const out: OpRetiradaVolume[] = [];
+  for (const v of [...(m.retirada?.volumes ?? []), ...(m.retirada?.candidatos ?? [])]) {
+    if (!v.lote_id || seen.has(v.lote_id)) continue;
+    seen.add(v.lote_id);
+    out.push(v);
+  }
+  return out;
+}
+
+export function qtdeVolumeTotal(v: OpRetiradaVolume): number {
+  return parseQtdeDigitada(v.qtde_volume) || parseQtdeDigitada(v.qtde_retirar);
+}
+
+export function formatVolumeTotal(v: OpRetiradaVolume): string {
+  return formatQtdePick(qtdeVolumeTotal(v), v.unidade || 'M2');
+}
+
+export function formatVolumeDimensao(v: OpRetiradaVolume): string | null {
+  const largura = v.largura_mm ? `${formatDecimalBr(Number(v.largura_mm), 0)} mm` : null;
+  const comp = v.comprimento_m ? `${formatDecimalBr(Number(v.comprimento_m), 0)} m` : null;
+  if (largura && comp) return `${largura} × ${comp}`;
+  return largura || comp;
+}
+
+export function volumeSugerido(v: OpRetiradaVolume): boolean {
+  return Boolean(v.sugerido) || parseQtdeDigitada(v.qtde_retirar) > 0;
 }

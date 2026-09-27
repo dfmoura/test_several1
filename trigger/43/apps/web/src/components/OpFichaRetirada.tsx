@@ -228,13 +228,15 @@ type Props = {
   pedido?: PedidoFichaEstoque;
   /** Pick ticket já mostra o que pegar — some a tabela de 6 colunas. */
   hideResumo?: boolean;
+  /** Azulejo + overlay marcam a baixa — some a lista de trabalho. */
+  hideMarcar?: boolean;
 };
 
 /**
  * Confrontação sistema × físico da requisição — mesma ficha no chão e na OP.
  * Fato oficial = MOV SAIDA_PRODUCAO. Sem documento REQ-.
  */
-export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: Props) {
+export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hideMarcar = false }: Props) {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('producao.escrever') || hasPermission('estoque.escrever');
   const canHandoff = hasPermission('producao.escrever');
@@ -790,7 +792,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
       </div>
       )}
 
-      {chao && pendentes.length > 0 ? (
+      {chao && !hideMarcar && pendentes.length > 0 ? (
         <div className="op-ficha__bloco">
           {pendentes.some((m) => modoRetirada(m) === 'volume') ? (
             <div className="form-group" style={{ maxWidth: 420 }}>
@@ -1028,7 +1030,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
             </article>
           ))}
         </div>
-      ) : (
+      ) : hideMarcar ? null : (
         <p className="muted">Nada baixado ainda — a ficha fica vazia até a primeira confirmação.</p>
       )}
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { OpFichaRetirada } from '../components/OpFichaRetirada';
-import { OpPickTicket } from '../components/OpPickTicket';
+import { OpKitPainel } from '../components/OpKitPainel';
 import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
@@ -60,14 +60,16 @@ export function EstoqueRetiradaChaoPage() {
 
       {op ? (
         <>
-          <OpPickTicket
+          <OpKitPainel
             op={op}
             pedido={null}
-            podeEstoque={hasPermission('estoque.ler') || hasPermission('producao.ler')}
-            podeProducao={hasPermission('producao.ler')}
             porta="chao"
+            podeProducao={hasPermission('producao.ler')}
+            canWrite={hasPermission('producao.escrever') || hasPermission('estoque.escrever')}
+            materialInicialId={pedido.materialId && !pedido.qtde ? pedido.materialId : undefined}
+            onOp={setOp}
           />
-          <OpFichaRetirada op={op} mode="chao" onOp={setOp} pedido={pedido} hideResumo />
+          <OpFichaRetirada op={op} mode="chao" onOp={setOp} pedido={pedido} hideResumo hideMarcar />
         </>
       ) : null}
     </div>

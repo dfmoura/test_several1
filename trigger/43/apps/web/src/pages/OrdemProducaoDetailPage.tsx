@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ProdutoCombobox } from '../components/ProdutoCombobox';
-import { OpPickTicket } from '../components/OpPickTicket';
+import { OpKitPainel } from '../components/OpKitPainel';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import {
@@ -90,9 +90,6 @@ export function OrdemProducaoDetailPage() {
     }
   };
 
-  const podeEstoque = Boolean(
-    aberta && (hasPermission('estoque.ler') || hasPermission('producao.ler')),
-  );
   const podeProducao = Boolean(aberta && hasPermission('producao.ler'));
 
   return (
@@ -129,11 +126,15 @@ export function OrdemProducaoDetailPage() {
         )
       ) : (
         <>
-          <OpPickTicket
+          <OpKitPainel
             op={op}
             pedido={pedido}
-            podeEstoque={podeEstoque}
+            porta="op"
             podeProducao={podeProducao}
+            canWrite={
+              hasPermission('producao.escrever') || hasPermission('estoque.escrever')
+            }
+            onOp={setOp}
           />
 
           {op.status === 'CONCLUIDA' ? (
