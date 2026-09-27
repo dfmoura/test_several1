@@ -55,15 +55,51 @@ export function formatVolumesPick(n: number): string {
 }
 
 export function modoRetiradaLabel(modo: ModoRetirada): string {
-  return modo === 'volume' ? 'Por volumes' : 'Por unidades';
+  return modo === 'volume' ? 'Metro linear' : 'Por unidades';
 }
 
-/** O que o operador lê primeiro: volumes (bobina) ou unidades (tubete, tinta, caixa). */
+export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
+  for (const v of volumesParaEscolha(m)) {
+    const n = parseQtdeDigitada(v.largura_mm);
+    if (n > 0) return n;
+  }
+  return parseQtdeDigitada(m.produto?.largura_mm);
+}
+
+/** Comprimento da bobina (m). L×C do volume; senão m² ÷ largura (volume ou SKU). */
+export function metrosLinearesVolume(v: OpRetiradaVolume, larguraMmFallback = 0): number | null {
+  const direto = parseQtdeDigitada(v.comprimento_m);
+  if (direto > 0) return direto;
+  const larguraMm = parseQtdeDigitada(v.largura_mm) || larguraMmFallback;
+  const m2 = qtdeVolumeTotal(v);
+  const un = (v.unidade ?? '').toUpperCase().replace('²', '2');
+  if (larguraMm > 0 && m2 > 0 && (un === 'M2' || un === 'M²')) {
+    return m2 / (larguraMm / 1000);
+  }
+  return null;
+}
+
+export function formatMetrosLineares(v: OpRetiradaVolume, larguraMmFallback = 0): string | null {
+  const m = metrosLinearesVolume(v, larguraMmFallback);
+  if (m == null) return null;
+  return formatQtdePick(m, 'm');
+}
+
+/** O que o operador lê primeiro: metro linear (bobina) ou unidades. */
 export function formatPickPrincipal(m: OrdemProducaoMaterial): string {
   if (modoRetirada(m) === 'volume') {
+    const vols = volumesParaEscolha(m).filter(volumeSugerido);
+    const fallback = larguraMmDoMaterial(m);
+    const metros = vols.map((v) => metrosLinearesVolume(v, fallback));
+    if (vols.length > 0 && metros.every((x): x is number => x != null && x > 0)) {
+      return formatQtdePick(
+        metros.reduce((acc, n) => acc + n, 0),
+        'm',
+      );
+    }
     const n = nVolumesSugeridos(m);
     if (n > 0) return formatVolumesPick(n);
-    return 'Escolha volumes';
+    return 'Escolha bobinas';
   }
   return formatQtdePick(qtdeLinhaPick(m), m.unidade);
 }
@@ -177,7 +213,11 @@ export function volumeTextoBusca(v: OpRetiradaVolume, extra = ''): string {
     ...variantesNumero(v.largura_mm),
     ...variantesNumero(v.comprimento_m),
     formatVolumeTotal(v),
+    formatMetrosLineares(v),
     formatVolumeDimensao(v),
+    'metro',
+    'metros',
+    'linear',
     v.sugerido ? 'sugerido fefo' : '',
   ]
     .filter((x) => x != null && String(x).trim() !== '')

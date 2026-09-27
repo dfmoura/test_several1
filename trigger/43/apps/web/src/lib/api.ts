@@ -3190,6 +3190,7 @@ export type OrdemProducaoMaterial = {
     unidade_interna: string | null;
     familia: string;
     controla_lote?: boolean;
+    largura_mm?: string | null;
   } | null;
   retirada?: OpRetiradaPreview;
   componente?: string | null;

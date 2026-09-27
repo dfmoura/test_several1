@@ -20,7 +20,7 @@ export function OpFiltroVolumes({ value, onChange, total, visiveis, id = 'op-fil
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Lote, código, local, mm, m, m², validade…"
+          placeholder="Lote, metro linear, local, mm, m², validade…"
           autoComplete="off"
           autoFocus
         />

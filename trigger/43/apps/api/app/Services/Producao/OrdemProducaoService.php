@@ -84,7 +84,7 @@ class OrdemProducaoService
             'pedido.parceiro:id,codigo,razao_social',
             'pedido.orcamento:id,codigo,tolerancia_qtd_pct',
             'pedidoItem.produtoPa:id,codigo,descricao_fiscal',
-            'materiais.produto:id,codigo,descricao_fiscal,unidade_interna,familia,controla_lote',
+            'materiais.produto:id,codigo,descricao_fiscal,unidade_interna,familia,controla_lote,atributos',
             'paMovimento:id,codigo,tipo',
         ]);
 
@@ -1251,6 +1251,7 @@ class OrdemProducaoService
                     'unidade_interna' => $m->produto->unidade_interna,
                     'familia' => $m->produto->familia,
                     'controla_lote' => (bool) $m->produto->controla_lote,
+                    'largura_mm' => self::larguraMmAtributo($m->produto->atributos ?? null),
                 ] : null,
                 'componente' => $m->componente,
                 'origem_texto' => $m->origem_texto,
@@ -1478,5 +1479,19 @@ class OrdemProducaoService
         return EstoqueMovimento::query()
             ->where('ordem_producao_id', $op->id)
             ->exists();
+    }
+
+    /** Largura nominal do SKU — só para metro linear na tela. */
+    public static function larguraMmAtributo(mixed $atributos): ?string
+    {
+        if (! is_array($atributos)) {
+            return null;
+        }
+        $raw = $atributos['largura_mm'] ?? $atributos['larguraMm'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return (string) $raw;
     }
 }

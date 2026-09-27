@@ -5,8 +5,11 @@ import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api'
 import { formatDecimalBr } from '../lib/format';
 import {
   formatLotePick,
+  formatMetrosLineares,
   formatVolumeDimensao,
   formatVolumeTotal,
+  larguraMmDoMaterial,
+  metrosLinearesVolume,
   modoRetirada,
   modoRetiradaLabel,
   qtdeVolumeTotal,
@@ -45,6 +48,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const estado = opKitEstado(material);
   const podeBaixar = canWrite && estado === 'falta_pegar';
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
+  const larguraFallback = larguraMmDoMaterial(material);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
   const fefoIds = useMemo(
     () =>
@@ -103,6 +107,10 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
   const somaVol = escolhidos.reduce((acc, v) => acc + qtdeVolumeTotal(v), 0);
+  const metrosEscolhidos = escolhidos.map((v) => metrosLinearesVolume(v, larguraFallback));
+  const somaMetros = metrosEscolhidos.every((x): x is number => x != null)
+    ? metrosEscolhidos.reduce((acc, n) => acc + n, 0)
+    : null;
   const override =
     modo === 'volume' &&
     (() => {
@@ -211,10 +219,23 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                           onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
                         />
                         <span>
-                          <strong className="op-escolha__vol-qtde">{formatVolumeTotal(v)}</strong>
+                          <strong className="op-escolha__vol-qtde">
+                            {formatMetrosLineares(v, larguraFallback) ?? '— m'}
+                          </strong>
                           <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
+                          <span className="muted">
+                            Estoque {formatVolumeTotal(v)}
+                            {parseQtdeDigitada(v.largura_mm) > 0
+                              ? ` · ${formatDecimalBr(Number(v.largura_mm), 0)} mm`
+                              : larguraFallback > 0
+                                ? ` · ${formatDecimalBr(larguraFallback, 0)} mm`
+                                : ''}
+                          </span>
+                          {formatMetrosLineares(v, larguraFallback) ? null : (
+                            <span className="muted">Falta L×C neste volume para o metro linear</span>
+                          )}
                           {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
-                          {dim ? <span className="muted">{dim}</span> : null}
+                          {dim && !v.largura_mm ? <span className="muted">{dim}</span> : null}
                           {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
                           {v.status_label ? <span className="muted">{v.status_label}</span> : null}
                           {v.data_validade ? <span className="muted">Val. {v.data_validade}</span> : null}
@@ -257,8 +278,10 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
 
         {modo === 'volume' && escolhidos.length > 0 ? (
           <p className="op-escolha__soma">
-            Levar {escolhidos.length === 1 ? '1 bobina' : `${escolhidos.length} bobinas`} ·{' '}
-            {formatDecimalBr(somaVol, somaVol % 1 === 0 ? 0 : 2)} {material.unidade}
+            Levar {escolhidos.length === 1 ? '1 bobina' : `${escolhidos.length} bobinas`}
+            {somaMetros != null
+              ? ` · ${formatDecimalBr(somaMetros, somaMetros % 1 === 0 ? 0 : 2)} m`
+              : ` · ${formatDecimalBr(somaVol, somaVol % 1 === 0 ? 0 : 2)} ${material.unidade}`}
           </p>
         ) : null}
 
