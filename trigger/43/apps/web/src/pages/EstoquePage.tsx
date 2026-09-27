@@ -57,7 +57,7 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  posicao: 'Uma linha: produto, dimensão e quantidade somada. Bobina em Volumes; documento em Movimentos.',
+  posicao: 'Uma linha: produto, dimensão, quantidade e volumes. Bobina em Volumes; documento em Movimentos.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA ou ajuste aprovado.',
 };

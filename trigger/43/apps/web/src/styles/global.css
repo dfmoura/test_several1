@@ -13751,15 +13751,27 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   background: #fafbfd;
 }
 
-/* Posição: uma linha = produto + dimensão + soma (sem segundo saldo). */
-.estoque-posicao-table {
-  min-width: 520px;
+/* Posição: uma linha, mesma fonte em todas as células (vence .estoque-dense-table td.dimensao). */
+table.data-table.estoque-dense-table.estoque-posicao-table {
+  min-width: 640px;
 }
 
-.estoque-posicao-table thead th {
-  font-size: 0.64rem;
-  font-weight: 600;
+table.data-table.estoque-dense-table.estoque-posicao-table td,
+table.data-table.estoque-dense-table.estoque-posicao-table td.produto,
+table.data-table.estoque-dense-table.estoque-posicao-table td.dimensao,
+table.data-table.estoque-dense-table.estoque-posicao-table td.num {
+  font-size: var(--estoque-font);
+  font-weight: 400;
+  line-height: 1.35;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+table.data-table.estoque-dense-table.estoque-posicao-table td.produto {
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tab .tab-count {

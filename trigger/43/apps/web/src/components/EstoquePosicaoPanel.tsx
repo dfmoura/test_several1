@@ -56,6 +56,7 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
               <th>Produto</th>
               <th>Dimensão</th>
               <th className="num">Quantidade</th>
+              <th className="num">Volumes</th>
             </tr>
           </thead>
           <tbody>
@@ -63,8 +64,12 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
               const s = linha.saldo;
               const codigo = s.produto?.codigo ?? '—';
               const nome = produtoNome(s);
+              const produto = nome ? `${codigo}  ${nome}` : codigo;
               const qtde = linha.formato?.qtde ?? s.qtde;
               const unidade = linha.formato?.unidade ?? s.unidade;
+              const volumes = linha.formato
+                ? linha.formato.volumes
+                : (s.controla_lote ? (s.lotes_count ?? 0) : null);
               return (
                 <tr
                   key={linha.formato?.key ?? `sku-${s.id}`}
@@ -74,23 +79,18 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
                   onClick={() => abrir(linha)}
                   onKeyDown={(e) => activateRow(e, () => abrir(linha))}
                 >
-                  <td className="produto">
-                    <strong>{codigo}</strong>
-                    {nome ? (
-                      <div className="muted" title={nome}>
-                        {nome}
-                      </div>
-                    ) : null}
+                  <td className="produto" title={produto}>
+                    {produto}
                   </td>
                   <td className="dimensao">
                     {linha.formato
                       ? formatVolumeDimensao(linha.formato.largura_mm, linha.formato.comprimento_m)
-                      : <span className="muted">—</span>}
+                      : '—'}
                   </td>
                   <td className="num">
-                    <strong>{formatQty(qtde)}</strong>{' '}
-                    <span className="table-muted">{unidade}</span>
+                    {formatQty(qtde)} {unidade}
                   </td>
+                  <td className="num">{volumes == null ? '—' : volumes}</td>
                 </tr>
               );
             })}
