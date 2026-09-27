@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { OpFichaRetirada } from '../components/OpFichaRetirada';
 import { OpPickTicket } from '../components/OpPickTicket';
 import { api, type OrdemProducao } from '../lib/api';
@@ -55,7 +54,6 @@ export function EstoqueRetiradaChaoPage() {
           </Link>
         ) : null}
       </div>
-      <EstoqueModuleNav />
 
       {err ? <div className="alert alert-danger">{err}</div> : null}
       {loading ? <p className="muted">Carregando…</p> : null}

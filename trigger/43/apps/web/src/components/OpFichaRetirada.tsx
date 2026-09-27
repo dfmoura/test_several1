@@ -10,8 +10,14 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDate, formatDecimalBr } from '../lib/format';
-import { parseQtdeDigitada } from '../lib/producaoUi';
-import { validadeStatusLabel } from '../lib/produtoLotePolitica';
+import {
+  formatPickPrincipal,
+  modoRetirada,
+  modoRetiradaLabel,
+  modoRetiradaPreview,
+  opKitLinhasOrdenadas,
+} from '../lib/producaoPick';
+import { opKitNome, opKitOnde, parseQtdeDigitada } from '../lib/producaoUi';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 
 type PickRow = {
@@ -45,9 +51,27 @@ function volumeToPick(v: OpRetiradaVolume, qtde: string, lido: boolean): PickRow
   };
 }
 
-function picksDaPreview(preview: OpRetiradaPreview): PickRow[] {
+function qtdeVolumeInteiro(v: {
+  qtde_volume?: string | null;
+  qtde_retirar?: string | null;
+  qtde?: string | number;
+}): string {
+  if (v.qtde_volume && parseQtdeDigitada(v.qtde_volume) > 0) return v.qtde_volume;
+  if (v.qtde_retirar && parseQtdeDigitada(v.qtde_retirar) > 0) return v.qtde_retirar;
+  if ('qtde' in v && v.qtde != null && parseQtdeDigitada(String(v.qtde)) > 0) return String(v.qtde);
+  return '0';
+}
+
+function previewComVolumesInteiros(preview: OpRetiradaPreview): OpRetiradaPreview {
+  return {
+    ...preview,
+    volumes: preview.volumes.map((v) => ({ ...v, qtde_retirar: qtdeVolumeInteiro(v) })),
+  };
+}
+
+function picksDaPreview(preview: OpRetiradaPreview, porVolume = false): PickRow[] {
   return preview.volumes
-    .map((v) => volumeToPick(v, v.qtde_retirar, false))
+    .map((v) => volumeToPick(v, porVolume ? qtdeVolumeInteiro(v) : v.qtde_retirar, false))
     .filter((v): v is PickRow => v !== null);
 }
 
@@ -55,23 +79,136 @@ function somaPicks(picks: PickRow[]): number {
   return picks.reduce((acc, p) => acc + parseQtdeDigitada(p.qtde), 0);
 }
 
-function mesmaAlocacao(preview: OpRetiradaPreview, picks: PickRow[]): boolean {
-  const a = preview.volumes
-    .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
-    .map((v) => `${v.lote_id}:${Number(v.qtde_retirar).toFixed(4)}`)
-    .sort();
-  const b = picks
-    .filter((p) => parseQtdeDigitada(p.qtde) > 0)
-    .map((p) => `${p.lote_id}:${parseQtdeDigitada(p.qtde).toFixed(4)}`)
-    .sort();
+function somaPreviewMarcados(preview: OpRetiradaPreview): number {
+  return preview.volumes.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde_retirar), 0);
+}
+
+function qtdeCanon(n: number): string {
+  return n.toFixed(4);
+}
+
+function lotesIds(ids: Array<number | null | undefined>): number[] {
+  return ids.filter((id): id is number => typeof id === 'number' && id > 0).sort((a, b) => a - b);
+}
+
+function mesmosLotes(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+function volumeInteiro(p: PickRow): boolean {
+  const vol = parseQtdeDigitada(p.qtde_volume);
+  const q = parseQtdeDigitada(p.qtde);
+  return vol > 0 && Math.abs(q - vol) < 1e-4;
+}
+
+function volumePreviewInteiro(v: OpRetiradaVolume): boolean {
+  const vol = parseQtdeDigitada(v.qtde_volume);
+  const q = parseQtdeDigitada(v.qtde_retirar);
+  return vol > 0 && Math.abs(q - vol) < 1e-4;
+}
+
+function PreviewVolumesEscolha({
+  preview,
+  disabled,
+  onChange,
+}: {
+  preview: OpRetiradaPreview;
+  disabled: boolean;
+  onChange: (next: OpRetiradaPreview) => void;
+}) {
+  if (preview.volumes.length === 0) {
+    return <p className="muted">Nenhum volume sugerido. Leia o QR ou inclua outro.</p>;
+  }
+  return (
+    <ul className="op-pick-vols">
+      {preview.volumes.map((v) => {
+        const marcado = parseQtdeDigitada(v.qtde_retirar) > 0;
+        return (
+          <li
+            key={v.lote_id ?? v.codigo}
+            className={`op-pick-vols__item${marcado ? ' is-on' : ''}`}
+          >
+            <label className="op-pick-vols__check">
+              <input
+                type="checkbox"
+                checked={marcado}
+                disabled={disabled}
+                onChange={() =>
+                  onChange({
+                    ...preview,
+                    volumes: preview.volumes.map((x) =>
+                      x.lote_id === v.lote_id
+                        ? {
+                            ...x,
+                            qtde_retirar: marcado ? '0' : x.qtde_volume || x.qtde_retirar || '0',
+                          }
+                        : x,
+                    ),
+                  })
+                }
+              />
+              <span>
+                <strong>{v.codigo}</strong>
+                {v.endereco ? ` · ${v.endereco.codigo}` : ' · sem local'}
+                {marcado ? (volumePreviewInteiro(v) ? ' · volume inteiro' : ' · só parte') : ' · não levar'}
+              </span>
+            </label>
+            {marcado && !volumePreviewInteiro(v) ? (
+              <div className="form-group op-pick-vols__parte">
+                <label>Só esta parte ({v.unidade})</label>
+                <input
+                  className="op-retirada__qtde"
+                  inputMode="decimal"
+                  value={v.qtde_retirar}
+                  disabled={disabled}
+                  onChange={(e) =>
+                    onChange({
+                      ...preview,
+                      volumes: preview.volumes.map((x) =>
+                        x.lote_id === v.lote_id ? { ...x, qtde_retirar: e.target.value } : x,
+                      ),
+                    })
+                  }
+                />
+              </div>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function lotesFefo(preview?: OpRetiradaPreview | null): number[] {
+  if (!preview) return [];
+  return lotesIds(preview.volumes.map((v) => v.lote_id));
+}
+
+function lotesMarcadosPicks(picks: PickRow[]): number[] {
+  return lotesIds(picks.filter((p) => parseQtdeDigitada(p.qtde) > 0).map((p) => p.lote_id));
+}
+
+function lotesMarcadosPreview(preview: OpRetiradaPreview): number[] {
+  return lotesIds(
+    preview.volumes.filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0).map((v) => v.lote_id),
+  );
 }
 
 function picksIniciais(op: OrdemProducao): Record<number, PickRow[]> {
   const init: Record<number, PickRow[]> = {};
   for (const m of op.materiais ?? []) {
     if (m.pendente && m.retirada) {
-      init[m.id] = picksDaPreview(m.retirada);
+      init[m.id] = picksDaPreview(m.retirada, modoRetirada(m) === 'volume');
+    }
+  }
+  return init;
+}
+
+function qtdesUnidadeIniciais(op: OrdemProducao): Record<number, string> {
+  const init: Record<number, string> = {};
+  for (const m of op.materiais ?? []) {
+    if (m.pendente && modoRetirada(m) === 'unidade') {
+      init[m.id] = m.qtde_planejada ?? m.retirada?.qtde ?? '0';
     }
   }
   return init;
@@ -104,6 +241,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
   const volRef = useRef<HTMLInputElement>(null);
 
   const [picks, setPicks] = useState<Record<number, PickRow[]>>(() => picksIniciais(op));
+  const [qtdesUnidade, setQtdesUnidade] = useState<Record<number, string>>(() => qtdesUnidadeIniciais(op));
   const [motivos, setMotivos] = useState<Record<number, string>>({});
   const [qr, setQr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -114,17 +252,20 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
     materialId: number;
     qtde: string;
     preview: OpRetiradaPreview;
+    fefoLotes: number[];
   } | null>(null);
   const [extra, setExtra] = useState<{
     produtoId: number;
     sku: string;
     qtde: string;
     preview: OpRetiradaPreview;
+    fefoLotes: number[];
   } | null>(null);
   const [recebidoPor, setRecebidoPor] = useState(op.handoff?.recebidos_nome ?? '');
 
   useEffect(() => {
     setPicks(picksIniciais(op));
+    setQtdesUnidade(qtdesUnidadeIniciais(op));
     setRecebidoPor(op.handoff?.recebidos_nome ?? '');
     setRepo(null);
   }, [op.id, op.handoff?.entregues_em, (op.materiais ?? []).map((m) => `${m.id}:${m.saida_movimento_id}:${m.qtde_requisitada}`).join('|')]);
@@ -135,12 +276,14 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
   const chao = mode === 'chao';
 
   const resumoPicks = useMemo(() => {
-    return pendentes.map((m) => {
+    return opKitLinhasOrdenadas(pendentes).map((m) => {
       const lista = picks[m.id] ?? [];
       const alvo = parseQtdeDigitada(m.qtde_planejada ?? m.retirada?.qtde ?? '0');
       const soma = somaPicks(lista);
-      const override = Boolean(m.retirada?.controla_lote && m.retirada && !mesmaAlocacao(m.retirada, lista));
-      return { m, lista, alvo, soma, override, ok: Math.abs(soma - alvo) < 1e-6 };
+      const override = Boolean(
+        modoRetirada(m) === 'volume' && m.retirada && !mesmosLotes(lotesFefo(m.retirada), lotesMarcadosPicks(lista)),
+      );
+      return { m, lista, alvo, soma, override };
     });
   }, [pendentes, picks]);
 
@@ -154,10 +297,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
     const previewVol =
       material.retirada?.volumes.find((v) => v.lote_id === loteId) ??
       material.retirada?.candidatos.find((v) => v.lote_id === loteId);
-    const qtde =
-      previewVol?.qtde_retirar && parseQtdeDigitada(previewVol.qtde_retirar) > 0
-        ? previewVol.qtde_retirar
-        : previewVol?.qtde_volume ?? ('qtde' in vol ? String(vol.qtde) : '');
+    const qtde = qtdeVolumeInteiro(
+      previewVol ?? { qtde_volume: 'qtde' in vol ? String(vol.qtde) : undefined, qtde: 'qtde' in vol ? vol.qtde : undefined },
+    );
     const row = previewVol
       ? volumeToPick(previewVol, qtde, lido)
       : {
@@ -179,7 +321,15 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
       if (atual.some((p) => p.lote_id === loteId)) {
         return {
           ...prev,
-          [material.id]: atual.map((p) => (p.lote_id === loteId ? { ...p, lido: p.lido || lido } : p)),
+          [material.id]: atual.map((p) =>
+            p.lote_id === loteId
+              ? {
+                  ...p,
+                  lido: p.lido || lido,
+                  qtde: parseQtdeDigitada(p.qtde) > 0 ? p.qtde : qtde,
+                }
+              : p,
+          ),
         };
       }
       return { ...prev, [material.id]: [...atual, row] };
@@ -202,11 +352,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
       );
       const vol = res.data;
       const pendente = pendentes.find(
-        (m) =>
-          m.produto?.id === vol.produto?.id &&
-          (m.retirada?.volumes.some((v) => v.lote_id === vol.lote_id) ||
-            m.retirada?.candidatos.some((c) => c.lote_id === vol.lote_id) ||
-            !m.retirada?.controla_lote),
+        (m) => m.produto?.id === vol.produto?.id && modoRetirada(m) === 'volume',
       );
       if (pendente) {
         incluirVolume(pendente, vol, true);
@@ -225,8 +371,12 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
             preview: {
               ...repo.preview,
               volumes: repo.preview.volumes.some((v) => v.lote_id === vol.lote_id)
-                ? repo.preview.volumes
-                : [...repo.preview.volumes, { ...cand, qtde_retirar: cand.qtde_retirar || cand.qtde_volume || '0' }],
+                ? repo.preview.volumes.map((v) =>
+                    v.lote_id === vol.lote_id
+                      ? { ...v, qtde_retirar: qtdeVolumeInteiro(v) }
+                      : v,
+                  )
+                : [...repo.preview.volumes, { ...cand, qtde_retirar: qtdeVolumeInteiro(cand) }],
             },
           });
           setMsg(`Volume ${vol.codigo} incluído na reposição.`);
@@ -252,31 +402,30 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
   const confirmarBaixa = async () => {
     const linhas: Record<string, unknown>[] = [];
     for (const r of resumoPicks) {
-      if (r.m.retirada?.controla_lote) {
+      if (modoRetirada(r.m) === 'volume') {
         const usar = r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0);
         if (usar.length === 0) continue;
-        if (!r.ok) {
-          setErr(
-            `A soma dos volumes de ${r.m.produto?.codigo ?? 'SKU'} deve ser ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade}.`,
-          );
-          return;
-        }
         if (r.override && (motivos[r.m.id] ?? '').trim().length < 3) {
           setErr(`Informe o motivo (mínimo 3 caracteres) para o volume fora da sugestão em ${r.m.produto?.codigo}.`);
           return;
         }
         linhas.push({
           material_id: r.m.id,
-          qtde: r.m.qtde_planejada ?? r.m.retirada.qtde,
-          volumes: usar.map((p) => ({ lote_id: p.lote_id, qtde: String(parseQtdeDigitada(p.qtde)) })),
+          qtde: qtdeCanon(r.soma),
+          volumes: usar.map((p) => ({ lote_id: p.lote_id, qtde: qtdeCanon(parseQtdeDigitada(p.qtde)) })),
           volumes_motivo: r.override ? motivos[r.m.id]?.trim() : undefined,
         });
       } else {
-        linhas.push({ material_id: r.m.id, qtde: r.m.qtde_planejada ?? r.m.retirada?.qtde });
+        const qtdeU = parseQtdeDigitada(qtdesUnidade[r.m.id] ?? String(r.alvo));
+        if (qtdeU <= 0) continue;
+        linhas.push({
+          material_id: r.m.id,
+          qtde: qtdeCanon(qtdeU),
+        });
       }
     }
     if (linhas.length === 0) {
-      setErr('Marque a quantidade física (QR ou manual) para ao menos um item do kit.');
+      setErr('Marque os volumes ou as unidades que vai levar.');
       return;
     }
     setBusy(true);
@@ -347,7 +496,13 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
       const res = await api.get<{ data: OpRetiradaPreview }>(
         `/estoque/retiradas/${op.id}/preview?${q.toString()}`,
       );
-      setRepo({ materialId: material.id, qtde, preview: res.data });
+      const porVolume = modoRetirada(material) === 'volume';
+      setRepo({
+        materialId: material.id,
+        qtde,
+        preview: porVolume ? previewComVolumesInteiros(res.data) : res.data,
+        fefoLotes: lotesFefo(res.data),
+      });
       setMsg(`Reposição ${material.produto?.codigo ?? 'SKU'} · ${formatDecimalBr(parseQtdeDigitada(qtde), 4)} ${material.unidade}.`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao preparar a reposição.');
@@ -360,16 +515,19 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
     if (!repo) return;
     const material = (op.materiais ?? []).find((m) => m.id === repo.materialId);
     if (!material) return;
-    const vols = repo.preview.controla_lote
+    const porVolume = modoRetiradaPreview(repo.preview, material) === 'volume';
+    const vols = porVolume
       ? repo.preview.volumes
           .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
-          .map((v) => ({ lote_id: v.lote_id as number, qtde: String(parseQtdeDigitada(v.qtde_retirar)) }))
+          .map((v) => ({ lote_id: v.lote_id as number, qtde: qtdeCanon(parseQtdeDigitada(v.qtde_retirar)) }))
       : [];
-    if (repo.preview.controla_lote && vols.length === 0) {
-      setErr('Marque os volumes da reposição (QR ou incluir manual).');
+    if (porVolume && vols.length === 0) {
+      setErr('Escolha os volumes da reposição (QR ou incluir).');
       return;
     }
-    const override = repo.preview.controla_lote && !mesmaAlocacao(repo.preview, picksDaPreview(repo.preview));
+    const somaVol = somaPreviewMarcados(repo.preview);
+    const qtde = porVolume ? qtdeCanon(somaVol) : repo.qtde;
+    const override = porVolume && !mesmosLotes(repo.fefoLotes, lotesMarcadosPreview(repo.preview));
     const motivo = motivos[-repo.materialId] ?? '';
     if (override && motivo.trim().length < 3) {
       setErr('Informe o motivo da troca de volume na reposição.');
@@ -383,7 +541,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
         linhas: [
           {
             material_id: repo.materialId,
-            qtde: repo.qtde,
+            qtde,
             complementar: true,
             volumes: vols.length > 0 ? vols : undefined,
             volumes_motivo: override ? motivo.trim() : undefined,
@@ -414,11 +572,13 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
       const res = await api.get<{ data: OpRetiradaPreview }>(
         `/estoque/retiradas/${op.id}/preview?${q.toString()}`,
       );
+      const porVolume = modoRetiradaPreview(res.data) === 'volume';
       setExtra({
         produtoId,
         sku: `SKU #${produtoId}`,
         qtde,
-        preview: res.data,
+        preview: porVolume ? previewComVolumesInteiros(res.data) : res.data,
+        fefoLotes: lotesFefo(res.data),
       });
       setMsg(`Extra pedido pela OP · ${formatDecimalBr(parseQtdeDigitada(qtde), 4)}. Confirme o físico.`);
     } catch (e) {
@@ -430,13 +590,21 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
 
   const confirmarExtra = async () => {
     if (!extra) return;
-    const vols = extra.preview.controla_lote
+    const porVolume = modoRetiradaPreview(extra.preview) === 'volume';
+    const vols = porVolume
       ? extra.preview.volumes
           .filter((v) => v.lote_id && parseQtdeDigitada(v.qtde_retirar) > 0)
-          .map((v) => ({ lote_id: v.lote_id as number, qtde: String(parseQtdeDigitada(v.qtde_retirar)) }))
+          .map((v) => ({ lote_id: v.lote_id as number, qtde: qtdeCanon(parseQtdeDigitada(v.qtde_retirar)) }))
       : [];
-    if (extra.preview.controla_lote && vols.length === 0) {
-      setErr('Marque os volumes do extra (QR ou quantidade).');
+    if (porVolume && vols.length === 0) {
+      setErr('Escolha os volumes do extra (QR ou incluir).');
+      return;
+    }
+    const somaVol = somaPreviewMarcados(extra.preview);
+    const qtde = porVolume ? qtdeCanon(somaVol) : extra.qtde;
+    const override = porVolume && !mesmosLotes(extra.fefoLotes, lotesMarcadosPreview(extra.preview));
+    if (override && (motivos[-extra.produtoId] ?? '').trim().length < 3) {
+      setErr('Informe o motivo da troca de volume no extra.');
       return;
     }
     setBusy(true);
@@ -447,8 +615,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
         linhas: [
           {
             produto_id: extra.produtoId,
-            qtde: extra.qtde,
+            qtde,
             volumes: vols.length > 0 ? vols : undefined,
+            volumes_motivo: override ? (motivos[-extra.produtoId] ?? '').trim() : undefined,
           },
         ],
       });
@@ -499,12 +668,17 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
 
   return (
     <section className="op-ficha" aria-labelledby="op-ficha-title">
+      {hideResumo && chao ? (
+        <h3 id="op-ficha-title" className="sr-only">
+          Marcar o que pegou
+        </h3>
+      ) : (
       <header className="op-ficha__head">
         <div>
           <h3 id="op-ficha-title">{chao ? 'Marcar o que pegou' : 'O que saiu do estoque'}</h3>
           <p className="muted">
             {chao
-              ? 'Leia o volume ou marque a quantidade. Confirmar tira do estoque.'
+              ? 'Bobina: escolha os volumes. Tubete, tinta e caixa: marque as unidades. Confirmar tira do estoque.'
               : 'O que já saiu. Rasgou? Pegue de novo.'}
           </p>
         </div>
@@ -518,6 +692,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
           </Link>
         )}
       </header>
+      )}
 
       {err ? <div className="alert alert-danger">{err}</div> : null}
       {msg ? <div className="alert alert-info">{msg}</div> : null}
@@ -543,7 +718,10 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                 </td>
               </tr>
             ) : (
-              (ficha?.linhas ?? []).map((l) => (
+              (ficha?.linhas ?? []).map((l) => {
+                const mat = (op.materiais ?? []).find((m) => m.id === l.material_id);
+                const porVolume = mat ? modoRetirada(mat) === 'volume' : false;
+                return (
                 <tr key={l.material_id}>
                   <td>
                     <strong>{l.sku ?? '—'}</strong>
@@ -552,9 +730,14 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                         {l.descricao}
                       </div>
                     ) : null}
+                    <div className="muted" style={{ fontSize: '0.85em' }}>
+                      {porVolume ? 'Por volumes' : 'Por unidades'}
+                    </div>
                   </td>
                   <td>
-                    {formatDecimalBr(Number(l.planejado), 4)} {l.unidade}
+                    {mat && porVolume
+                      ? formatPickPrincipal(mat)
+                      : `${formatDecimalBr(Number(l.planejado), 4)} ${l.unidade}`}
                   </td>
                   <td>
                     {parseQtdeDigitada(l.requisitado) > 0
@@ -578,7 +761,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                   <td>
                     {l.pendente ? (
                       <strong>
-                        {formatDecimalBr(Number(l.a_retirar), 4)} {l.unidade}
+                        {mat && porVolume
+                          ? formatPickPrincipal(mat)
+                          : `${formatDecimalBr(Number(l.a_retirar), 4)} ${l.unidade}`}
                       </strong>
                     ) : (
                       '—'
@@ -597,7 +782,8 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                         : '0'}
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -606,78 +792,97 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
 
       {chao && pendentes.length > 0 ? (
         <div className="op-ficha__bloco">
-          <h4>Marcar o que pegou</h4>
-          <p className="muted">
-            Leia o volume no corredor ou ajuste a quantidade. Se pegar outro volume, diga o motivo.
-          </p>
-          <div className="form-group" style={{ maxWidth: 420 }}>
-            <label htmlFor="ficha-vol-qr">Ler volume (VOL:…)</label>
-            <input
-              id="ficha-vol-qr"
-              ref={volRef}
-              value={qr}
-              disabled={busy || !canWrite}
-              onChange={(e) => setQr(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void lerVolume(qr);
-                }
-              }}
-              placeholder="Cole ou leia o QR do volume"
-              autoComplete="off"
-            />
-          </div>
+          {pendentes.some((m) => modoRetirada(m) === 'volume') ? (
+            <div className="form-group" style={{ maxWidth: 420 }}>
+              <label htmlFor="ficha-vol-qr">Ler volume (VOL:…)</label>
+              <input
+                id="ficha-vol-qr"
+                ref={volRef}
+                value={qr}
+                disabled={busy || !canWrite}
+                onChange={(e) => setQr(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void lerVolume(qr);
+                  }
+                }}
+                placeholder="Cole ou leia o QR do volume"
+                autoComplete="off"
+              />
+            </div>
+          ) : null}
 
-          {resumoPicks.map((r) => (
-            <div key={r.m.id} className="op-ficha__sku">
-              <header>
-                <strong>{r.m.produto?.codigo ?? 'SKU'}</strong>
-                <span className="muted">
-                  Pedido {formatDecimalBr(r.alvo, 4)} {r.m.unidade}
-                  {r.m.retirada?.controla_lote
-                    ? ` · marcado ${formatDecimalBr(r.soma, 4)} ${r.m.unidade}`
-                    : ' · sem lote (baixa a quantidade)'}
-                </span>
+          {resumoPicks.map((r, i) => {
+            const porVolume = modoRetirada(r.m) === 'volume';
+            const onde = opKitOnde(r.m);
+            return (
+            <article
+              key={r.m.id}
+              className={`op-pick-line op-pick-line--${porVolume ? 'volume' : 'unidade'}`}
+            >
+              <header className="op-pick-line__head">
+                <span className="op-pick-line__n">{i + 1}</span>
+                <div>
+                  <p className="op-pick-line__bin">{onde === '—' ? 'Sem local' : onde}</p>
+                  <p className="op-pick-line__modo">{modoRetiradaLabel(porVolume ? 'volume' : 'unidade')}</p>
+                  <h4 className="op-pick-line__nome">{opKitNome(r.m)}</h4>
+                  <p className="muted op-pick-line__meta">
+                    {porVolume
+                      ? `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade} · marcado ${formatDecimalBr(r.soma, 4)} ${r.m.unidade}`
+                      : `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade}`}
+                  </p>
+                </div>
               </header>
-              {r.m.retirada?.controla_lote ? (
+              {porVolume ? (
                 <>
-                  <div className="table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Local</th>
-                          <th>Volume</th>
-                          <th>No volume</th>
-                          <th>Retirar (físico)</th>
-                          <th>Validade</th>
-                          <th>Leitura</th>
-                          <th className="acoes" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {r.lista.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="muted">
-                              Nenhum volume. Inclua abaixo ou leia o QR.
-                            </td>
-                          </tr>
-                        ) : (
-                          r.lista.map((p) => (
-                            <tr key={p.lote_id} className={p.status === 'VENCIDO' ? 'is-vencido' : undefined}>
-                              <td>{p.endereco ?? 'Sem local'}</td>
-                              <td>
+                  {r.lista.length === 0 ? (
+                    <p className="muted">Nenhum volume. Inclua abaixo ou leia o QR.</p>
+                  ) : (
+                    <ul className="op-pick-vols">
+                      {r.lista.map((p) => {
+                        const marcado = parseQtdeDigitada(p.qtde) > 0;
+                        return (
+                          <li
+                            key={p.lote_id}
+                            className={`op-pick-vols__item${p.status === 'VENCIDO' ? ' is-vencido' : ''}${marcado ? ' is-on' : ''}`}
+                          >
+                            <label className="op-pick-vols__check">
+                              <input
+                                type="checkbox"
+                                checked={marcado}
+                                disabled={busy || !canWrite}
+                                onChange={() => {
+                                  setPicks((prev) => ({
+                                    ...prev,
+                                    [r.m.id]: (prev[r.m.id] ?? []).map((x) =>
+                                      x.lote_id === p.lote_id
+                                        ? {
+                                            ...x,
+                                            qtde: marcado ? '0' : x.qtde_volume || '0',
+                                            lido: !marcado,
+                                          }
+                                        : x,
+                                    ),
+                                  }));
+                                }}
+                              />
+                              <span>
                                 <strong>{p.codigo}</strong>
-                                {!p.sugerido ? (
-                                  <div className="muted" style={{ fontSize: '0.85em' }}>
-                                    Fora da sugestão FEFO
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>
+                                {p.endereco ? ` · ${p.endereco}` : ' · sem local'}
+                                {marcado
+                                  ? volumeInteiro(p)
+                                    ? ' · volume inteiro'
+                                    : ' · só parte'
+                                  : ' · não levar'}
+                                {' · '}
                                 {formatDecimalBr(Number(p.qtde_volume), 4)} {p.unidade}
-                              </td>
-                              <td>
+                                {!p.sugerido ? ' · fora da sugestão' : ''}
+                              </span>
+                            </label>
+                            {marcado && !volumeInteiro(p) ? (
+                              <div className="form-group op-pick-vols__parte">
+                                <label>Só esta parte ({p.unidade})</label>
                                 <input
                                   className="op-retirada__qtde"
                                   inputMode="decimal"
@@ -691,42 +896,38 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                                       ),
                                     }))
                                   }
-                                  aria-label={`Quantidade física ${p.codigo}`}
+                                  aria-label={`Parte do volume ${p.codigo}`}
                                 />
-                              </td>
-                              <td>
-                                {p.status_label || (p.status ? validadeStatusLabel(p.status) : '—')}
-                                {p.data_validade ? (
-                                  <div className="muted" style={{ fontSize: '0.85em' }}>
-                                    {formatDate(p.data_validade)}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>{p.lido || parseQtdeDigitada(p.qtde) > 0 ? 'Marcado' : 'Pendente'}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  disabled={busy}
-                                  onClick={() =>
+                              </div>
+                            ) : null}
+                            {marcado && volumeInteiro(p) ? (
+                              <details className="op-pick-vols__parte">
+                                <summary>Só parte deste volume</summary>
+                                <input
+                                  className="op-retirada__qtde"
+                                  inputMode="decimal"
+                                  value={p.qtde}
+                                  disabled={busy || !canWrite}
+                                  onChange={(e) =>
                                     setPicks((prev) => ({
                                       ...prev,
-                                      [r.m.id]: (prev[r.m.id] ?? []).filter((x) => x.lote_id !== p.lote_id),
+                                      [r.m.id]: (prev[r.m.id] ?? []).map((x) =>
+                                        x.lote_id === p.lote_id ? { ...x, qtde: e.target.value, lido: true } : x,
+                                      ),
                                     }))
                                   }
-                                >
-                                  Tirar
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                  aria-label={`Parte do volume ${p.codigo}`}
+                                />
+                              </details>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                   {(r.m.retirada?.candidatos ?? []).length > 0 ? (
                     <details className="op-retirada__outros">
-                      <summary>Outros volumes deste SKU (manual)</summary>
+                      <summary>Outros volumes deste produto</summary>
                       <ul>
                         {r.m.retirada!.candidatos.map((c) => (
                           <li key={c.lote_id ?? c.codigo}>
@@ -742,7 +943,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                               disabled={busy || !canWrite || !c.lote_id}
                               onClick={() => incluirVolume(r.m, c, true)}
                             >
-                              Incluir
+                              Pegar este volume
                             </button>
                           </li>
                         ))}
@@ -762,12 +963,26 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                   ) : null}
                 </>
               ) : (
-                <p className="muted" style={{ margin: 0 }}>
-                  Confirmar baixa {formatDecimalBr(r.alvo, 4)} {r.m.unidade} (sem volume).
-                </p>
+                <div className="form-group op-pick-un">
+                  <label htmlFor={`ficha-un-${r.m.id}`}>Quantas unidades vai levar ({r.m.unidade})</label>
+                  <input
+                    id={`ficha-un-${r.m.id}`}
+                    className="op-retirada__qtde"
+                    inputMode="decimal"
+                    value={qtdesUnidade[r.m.id] ?? String(r.alvo || '')}
+                    disabled={busy || !canWrite}
+                    onChange={(e) =>
+                      setQtdesUnidade((prev) => ({ ...prev, [r.m.id]: e.target.value }))
+                    }
+                  />
+                  <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+                    Pedido da ordem: {formatDecimalBr(r.alvo, 4)} {r.m.unidade}. Sem volume — só a quantidade.
+                  </p>
+                </div>
               )}
-            </div>
-          ))}
+            </article>
+            );
+          })}
 
           <div style={{ marginTop: '0.9rem' }}>
             <button
@@ -890,47 +1105,37 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
                 Reposição · {(op.materiais ?? []).find((x) => x.id === repo.materialId)?.produto?.codigo}{' '}
                 · {formatDecimalBr(parseQtdeDigitada(repo.qtde), 4)}
               </h4>
-              {repo.preview.controla_lote ? (
-                <div className="table-wrap">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Volume</th>
-                        <th>Local</th>
-                        <th>Retirar</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {repo.preview.volumes.map((v) => (
-                        <tr key={v.lote_id ?? v.codigo}>
-                          <td>{v.codigo}</td>
-                          <td>{v.endereco?.codigo ?? 'Sem local'}</td>
-                          <td>
-                            <input
-                              className="op-retirada__qtde"
-                              inputMode="decimal"
-                              value={v.qtde_retirar}
-                              disabled={busy}
-                              onChange={(e) =>
-                                setRepo({
-                                  ...repo,
-                                  preview: {
-                                    ...repo.preview,
-                                    volumes: repo.preview.volumes.map((x) =>
-                                      x.lote_id === v.lote_id ? { ...x, qtde_retirar: e.target.value } : x,
-                                    ),
-                                  },
-                                })
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {modoRetiradaPreview(
+                repo.preview,
+                (op.materiais ?? []).find((x) => x.id === repo.materialId),
+              ) === 'volume' ? (
+                <>
+                  <p className="muted">
+                    Escolha os volumes. Marcado {formatDecimalBr(somaPreviewMarcados(repo.preview), 4)}{' '}
+                    {repo.preview.unidade}.
+                  </p>
+                  <PreviewVolumesEscolha
+                    preview={repo.preview}
+                    disabled={busy}
+                    onChange={(preview) => setRepo({ ...repo, preview })}
+                  />
+                  {!mesmosLotes(repo.fefoLotes, lotesMarcadosPreview(repo.preview)) ? (
+                    <div className="form-group" style={{ marginTop: '0.65rem', maxWidth: 420 }}>
+                      <label>Motivo da troca de volume</label>
+                      <input
+                        value={motivos[-repo.materialId] ?? ''}
+                        onChange={(e) => setMotivos((prev) => ({ ...prev, [-repo.materialId]: e.target.value }))}
+                        disabled={busy}
+                        placeholder="Ex.: rasgo no rolo sugerido"
+                      />
+                    </div>
+                  ) : null}
+                </>
               ) : (
-                <p className="muted">SKU sem lote — a reposição baixa a quantidade.</p>
+                <p className="muted">
+                  Este produto sai por unidade — a reposição baixa{' '}
+                  {formatDecimalBr(parseQtdeDigitada(repo.qtde), 4)} {repo.preview.unidade}.
+                </p>
               )}
               <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
@@ -956,47 +1161,34 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false }: 
           <p className="muted">
             {extra.sku} · {formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)} — confirme o que pegou.
           </p>
-          {extra.preview.controla_lote ? (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Volume</th>
-                    <th>Local</th>
-                    <th>Retirar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {extra.preview.volumes.map((v) => (
-                    <tr key={v.lote_id ?? v.codigo}>
-                      <td>{v.codigo}</td>
-                      <td>{v.endereco?.codigo ?? 'Sem local'}</td>
-                      <td>
-                        <input
-                          className="op-retirada__qtde"
-                          inputMode="decimal"
-                          value={v.qtde_retirar}
-                          disabled={busy}
-                          onChange={(e) =>
-                            setExtra({
-                              ...extra,
-                              preview: {
-                                ...extra.preview,
-                                volumes: extra.preview.volumes.map((x) =>
-                                  x.lote_id === v.lote_id ? { ...x, qtde_retirar: e.target.value } : x,
-                                ),
-                              },
-                            })
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {modoRetiradaPreview(extra.preview) === 'volume' ? (
+            <>
+              <p className="muted">
+                Escolha os volumes. Marcado {formatDecimalBr(somaPreviewMarcados(extra.preview), 4)}{' '}
+                {extra.preview.unidade}.
+              </p>
+              <PreviewVolumesEscolha
+                preview={extra.preview}
+                disabled={busy}
+                onChange={(preview) => setExtra({ ...extra, preview })}
+              />
+              {!mesmosLotes(extra.fefoLotes, lotesMarcadosPreview(extra.preview)) ? (
+                <div className="form-group" style={{ marginTop: '0.65rem', maxWidth: 420 }}>
+                  <label>Motivo da troca de volume</label>
+                  <input
+                    value={motivos[-extra.produtoId] ?? ''}
+                    onChange={(e) => setMotivos((prev) => ({ ...prev, [-extra.produtoId]: e.target.value }))}
+                    disabled={busy}
+                    placeholder="Ex.: rasgo no rolo sugerido"
+                  />
+                </div>
+              ) : null}
+            </>
           ) : (
-            <p className="muted">SKU sem lote — a confirmação baixa a quantidade.</p>
+            <p className="muted">
+              Este produto sai por unidade — confirmar {formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)}{' '}
+              {extra.preview.unidade}.
+            </p>
           )}
           <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button

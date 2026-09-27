@@ -4,10 +4,11 @@ import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
-  formatQtdePick,
+  formatPickPrincipal,
+  modoRetirada,
+  modoRetiradaLabel,
   opKitLinhasOrdenadas,
   proximaLinhaPick,
-  qtdeLinhaPick,
 } from '../lib/producaoPick';
 import { specOperacional } from '../lib/producaoFicha';
 import {
@@ -98,14 +99,19 @@ export function OpPickTicket({
         <div className="pick__next">
           <p className="pick__next-kicker">1º — vá neste local</p>
           <p className="pick__bin">{opKitOnde(proxima) === '—' ? 'Sem local' : opKitOnde(proxima)}</p>
-          <p className="pick__qty">{formatQtdePick(qtdeLinhaPick(proxima), proxima.unidade)}</p>
+          <p className="pick__qty">{formatPickPrincipal(proxima)}</p>
+          <p className="pick__modo">{modoRetiradaLabel(modoRetirada(proxima))}</p>
           <p className="pick__item">{opKitNome(proxima)}</p>
           {cta ? (
             <Link to={cta.to} className="btn btn-primary pick__cta">
               {cta.label}
             </Link>
           ) : porta === 'chao' ? (
-            <p className="pick__hint">Embaixo: leia o volume ou marque a quantidade.</p>
+            <p className="pick__hint">
+              {modoRetirada(proxima) === 'volume'
+                ? 'Embaixo: marque os volumes que vai levar.'
+                : 'Embaixo: informe as unidades que vai levar.'}
+            </p>
           ) : null}
         </div>
       ) : linhas.length === 0 ? (
@@ -134,7 +140,7 @@ export function OpPickTicket({
         </div>
       )}
 
-      {resto.length > 0 ? (
+      {porta !== 'chao' && resto.length > 0 ? (
         <ol className="pick__walk">
           {resto.map((m, i) => {
             const estado = opKitEstado(m);
@@ -143,7 +149,7 @@ export function OpPickTicket({
               <li key={m.id} className={`pick__walk-item pick__walk-item--${estado}`}>
                 <span className="pick__walk-n">{proxima ? i + 2 : i + 1}</span>
                 <span className="pick__walk-bin">{onde === '—' ? 'Sem local' : onde}</span>
-                <span className="pick__walk-qty">{formatQtdePick(qtdeLinhaPick(m), m.unidade)}</span>
+                <span className="pick__walk-qty">{formatPickPrincipal(m)}</span>
                 <span className="pick__walk-nome">{opKitNome(m)}</span>
                 <span className="pick__walk-st">{opKitEstadoLabel(estado)}</span>
               </li>

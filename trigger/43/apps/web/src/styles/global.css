@@ -12009,10 +12009,19 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 }
 
 .pick__qty {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.15rem;
   font-size: 1.65rem;
   font-weight: 700;
   color: #1a3568;
+}
+
+.pick__modo {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b82;
 }
 
 .pick__item {
@@ -12508,6 +12517,118 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   flex-direction: column;
   gap: 0.1rem;
   margin-bottom: 0.45rem;
+}
+
+.op-pick-vols {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.op-pick-vols__item {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.op-pick-vols__item.is-on {
+  border-color: color-mix(in srgb, var(--navy, #0f2347) 35%, var(--border, #d0d5dd));
+  background: color-mix(in srgb, var(--navy, #0f2347) 4%, #fff);
+}
+
+.op-pick-vols__item.is-vencido {
+  border-color: color-mix(in srgb, #b42318 40%, var(--border, #d0d5dd));
+}
+
+.op-pick-vols__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.op-pick-vols__check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.op-pick-vols__parte {
+  margin: 0.5rem 0 0 1.9rem;
+  max-width: 16rem;
+}
+
+.op-pick-un {
+  max-width: 16rem;
+  margin-top: 0.25rem;
+}
+
+.op-pick-line {
+  margin-top: 0.85rem;
+  padding: 0.85rem 0.9rem 1rem;
+  border: 1px solid var(--border, #d0d5dd);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.op-pick-line--volume {
+  border-color: color-mix(in srgb, var(--navy, #0f2347) 22%, var(--border, #d0d5dd));
+}
+
+.op-pick-line__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 0.55rem;
+}
+
+.op-pick-line__n {
+  flex-shrink: 0;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  background: #1a3568;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.op-pick-line__bin {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1a3568;
+}
+
+.op-pick-line__modo {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b82;
+}
+
+.op-pick-line__nome {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.op-pick-line__meta {
+  margin: 0.2rem 0 0;
 }
 
 .op-ficha__ciclo {

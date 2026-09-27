@@ -37,11 +37,22 @@ OP = ficha da etiqueta (herói + jornada + kit)
 
 | Porta | Mostra | Não mostra |
 |-------|--------|------------|
-| OP e Retiradas | **Pick ticket** (WMS): local enorme → quantidade → material. Um “próximo”. Caminhada ordenada por local. | Tabela ERP, 5 passos, card de dossiê |
-| Estoque · Retiradas | Lista do kit, QR/manual, perda, pegar de novo, entregar | Jargão de empenho/MOV no caminho feliz |
+| OP e Retiradas | **Pick ticket** (WMS): local enorme → **volumes ou unidades conforme o produto** → material. Um “próximo”. Caminhada ordenada por local. | Tabela ERP, 5 passos, card de dossiê |
+| Estoque · Retiradas | Lista do kit, escolha por volume (bobina) ou por unidade (tubete, tinta, caixa), QR só em volume, perda, pegar de novo, entregar | Jargão de empenho/MOV no caminho feliz |
 | Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
+
+### Como escolher (produto manda)
+
+| Produto | Chão marca | Confirmar envia |
+|---------|------------|-----------------|
+| Bobina / papel / filme (`PAPEL`, `MP-PAP`/`MP-FLM`/`MP-LAM`, L×C) | Volumes (inteiro por padrão) | `qtde` = soma dos volumes · `volumes[]` |
+| Tubete, tinta, caixa, MUC | Unidades | `qtde` informada · FEFO no writer |
+
+Não exigir que a soma case o m²/UN planejado. O pedido da ordem continua visível; o fato oficial é o físico. Motivo só se o volume for outro que o FEFO. Invariante da coleta permanece: soma de `volumes[]` = `qtde` da saída.
+
+Porta do estoque: **próximo local** (ticket) + **lista de trabalho** (mesmo kit, ordem de caminhada). Sem segunda caminhada e sem abas de módulo na ficha.
 
 ## Proibido
 

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { formatoLabel } from './FacaShapeIcon';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
+import { formatPickPrincipal } from '../lib/producaoPick';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import { specOperacional } from '../lib/producaoFicha';
 import {
@@ -12,7 +13,6 @@ import {
   opKitNome,
   opKitOnde,
   opPassoAtual,
-  parseQtdeDigitada,
 } from '../lib/producaoUi';
 
 type Props = {
@@ -121,7 +121,6 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
           <ol className="op-carrinho__lista">
             {linhas.map((m, i) => {
               const estado = opKitEstado(m);
-              const q = parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
               const onde = opKitOnde(m);
               return (
                 <li key={m.id} className={`op-carrinho__item op-carrinho__item--${estado}`}>
@@ -132,9 +131,7 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
                     <strong>{opKitNome(m)}</strong>
                     {onde !== '—' ? <span className="op-carrinho__onde">{onde}</span> : null}
                   </div>
-                  <div className="op-carrinho__qtde">
-                    {formatDecimalBr(q, 4)} <span>{m.unidade}</span>
-                  </div>
+                  <div className="op-carrinho__qtde">{formatPickPrincipal(m)}</div>
                   <span className={`op-carrinho__st op-carrinho__st--${estado}`}>
                     {opKitEstadoLabel(estado)}
                   </span>
