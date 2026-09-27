@@ -1849,6 +1849,23 @@ export type EstoqueSaldoVolumePorQtde = {
   comprimento_m?: string | null;
 };
 
+/** Posição de leitura: produto + L×C → soma da qtde (não é o saldo oficial). */
+export type EstoqueSaldoPorDimensaoLocal = {
+  endereco_id: number | null;
+  codigo: string | null;
+  qtde: string;
+  volumes: number;
+};
+
+export type EstoqueSaldoPorDimensao = {
+  qtde: string;
+  volumes: number;
+  unidade: string;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+  locais?: EstoqueSaldoPorDimensaoLocal[];
+};
+
 export type EstoqueSaldo = {
   id: number;
   produto_id: number;
@@ -1878,6 +1895,8 @@ export type EstoqueSaldo = {
   lotes_count?: number; // volumes (bobinas) com qtde > 0
   /** Faixas de qtde (ex. M²/bobina) → N volumes — consolidado físico. */
   volumes_por_qtde?: EstoqueSaldoVolumePorQtde[];
+  /** Produto + dimensão → soma das qtdes dos volumes. */
+  saldos_por_dimensao?: EstoqueSaldoPorDimensao[];
   validade_status?: string | null;
   proxima_validade?: string | null;
   lotes?: EstoqueLote[];

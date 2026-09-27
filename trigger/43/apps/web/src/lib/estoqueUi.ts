@@ -1,4 +1,4 @@
-import { formatCurrency, formatQty, formatQtyCompact } from './format';
+import { clampDecimalScale, DECIMAL_SCALE, formatCurrency, formatQty, formatQtyCompact } from './format';
 import { formatVolumeDimensao } from './volumeEtiquetaPrint';
 
 /** Sentido do MOV para leitura do kardex — estudo 32: nada some sem documento. */
@@ -230,6 +230,7 @@ export type LocalPosicao = {
   enderecoId: number | null;
   codigo: string | null;
   volumes: number;
+  qtde: string;
 };
 
 export type FormatoPosicao = {
@@ -240,6 +241,14 @@ export type FormatoPosicao = {
   comprimento_m: string | null;
   volumes: number;
   locais: LocalPosicao[];
+};
+
+type LotePosicao = {
+  qtde?: string | number | null;
+  largura_mm?: string | null;
+  comprimento_m?: string | null;
+  endereco_id?: number | null;
+  endereco?: { id: number; codigo: string } | null;
 };
 
 export type ItemPosicao = {
@@ -254,13 +263,20 @@ export type ItemPosicao = {
     volumes_por_qtde?: Array<
       FaixaBuscaVolume & { volumes?: number; unidade?: string | null }
     > | null;
-    lotes?: Array<{
-      qtde?: string | number | null;
+    saldos_por_dimensao?: Array<{
+      qtde: string;
+      volumes: number;
+      unidade?: string | null;
       largura_mm?: string | null;
       comprimento_m?: string | null;
-      endereco_id?: number | null;
-      endereco?: { id: number; codigo: string } | null;
+      locais?: Array<{
+        endereco_id?: number | null;
+        codigo?: string | null;
+        qtde: string;
+        volumes: number;
+      }>;
     }> | null;
+    lotes?: LotePosicao[] | null;
   };
   formatos: FormatoPosicao[];
 };
@@ -270,96 +286,150 @@ function loteComSaldo(qtde: string | number | null | undefined): boolean {
   return Number.isFinite(n) && n > 0;
 }
 
-function chaveFaixa(faixa: FaixaBuscaVolume): string {
-  return `${faixa?.qtde ?? ''}|${faixa?.largura_mm ?? ''}|${faixa?.comprimento_m ?? ''}`;
+function somaQtdeEstoque(
+  a: string | number | null | undefined,
+  b: string | number | null | undefined,
+): string {
+  const na = Number(a);
+  const nb = Number(b);
+  const n = (Number.isFinite(na) ? na : 0) + (Number.isFinite(nb) ? nb : 0);
+  return clampDecimalScale(n.toFixed(DECIMAL_SCALE.qty), DECIMAL_SCALE.qty) || '0.0000';
 }
 
-function loteNaFaixa(
-  lote: {
-    qtde?: string | number | null;
-    largura_mm?: string | null;
-    comprimento_m?: string | null;
-  },
-  faixa: FaixaBuscaVolume,
-): boolean {
-  if (!faixa || !loteComSaldo(lote.qtde)) return false;
-  if (!mesmaQtdeEstoque(lote.qtde, faixa.qtde)) return false;
-  return mesmaDimensaoVolume(lote, {
-    largura_mm: faixa.largura_mm ?? null,
-    comprimento_m: faixa.comprimento_m ?? null,
-  });
+function chaveDimensao(l: { largura_mm?: string | null; comprimento_m?: string | null }): string {
+  return `${l.largura_mm ?? ''}|${l.comprimento_m ?? ''}`;
 }
 
-/** Locais de um formato: endereço · N (sem local por último). Só leitura — não altera saldo. */
-export function locaisDoFormato(
-  lotes:
-    | Array<{
-        qtde?: string | number | null;
-        largura_mm?: string | null;
-        comprimento_m?: string | null;
-        endereco_id?: number | null;
-        endereco?: { id: number; codigo: string } | null;
-      }>
-    | null
-    | undefined,
-  faixa: FaixaBuscaVolume,
-): LocalPosicao[] {
-  const map = new Map<string, LocalPosicao>();
-  for (const lote of lotes ?? []) {
-    if (!loteNaFaixa(lote, faixa)) continue;
-    const id = lote.endereco_id ?? lote.endereco?.id ?? null;
-    const codigo = lote.endereco?.codigo?.trim() || null;
-    const key = id != null ? `e-${id}` : 'sem-local';
-    const cur = map.get(key);
-    if (cur) cur.volumes += 1;
-    else map.set(key, { key, enderecoId: id, codigo, volumes: 1 });
-  }
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.codigo == null && b.codigo != null) return 1;
-    if (a.codigo != null && b.codigo == null) return -1;
-    return (a.codigo ?? '').localeCompare(b.codigo ?? '', 'pt-BR', {
-      numeric: true,
-      sensitivity: 'base',
-    });
+function chaveLocal(lote: LotePosicao): { key: string; enderecoId: number | null; codigo: string | null } {
+  const id = lote.endereco_id ?? lote.endereco?.id ?? null;
+  const codigo = lote.endereco?.codigo?.trim() || null;
+  return { key: id != null ? `e-${id}` : 'sem-local', enderecoId: id, codigo };
+}
+
+function ordenaLocais(a: LocalPosicao, b: LocalPosicao): number {
+  if (a.codigo == null && b.codigo != null) return 1;
+  if (a.codigo != null && b.codigo == null) return -1;
+  return (a.codigo ?? '').localeCompare(b.codigo ?? '', 'pt-BR', {
+    numeric: true,
+    sensitivity: 'base',
   });
 }
 
 function textoBuscaLocais(locais: LocalPosicao[]): string {
   return textoBusca(
     ...locais.map((l) => l.codigo),
+    ...locais.map((l) => l.qtde),
     locais.some((l) => l.codigo == null) ? 'sem local' : '',
   );
 }
 
-function formatosDoSaldo(s: ItemPosicao['saldo'], q: string): FormatoPosicao[] {
-  const faixas = s.volumes_por_qtde ?? [];
-  const out: FormatoPosicao[] = [];
+function formatoPassaBusca(
+  s: ItemPosicao['saldo'],
+  fmt: FormatoPosicao,
+  q: string,
+): boolean {
   const produtoBate = coincideLinhaConsolidado(s.produto, null, q);
+  return (
+    produtoBate ||
+    coincideLinhaConsolidado(s.produto, {
+      qtde: fmt.qtde,
+      unidade: fmt.unidade,
+      largura_mm: fmt.largura_mm,
+      comprimento_m: fmt.comprimento_m,
+    }, q) ||
+    coincideBusca(textoBuscaLocais(fmt.locais), q)
+  );
+}
 
-  for (const faixa of faixas) {
-    if (!faixa?.qtde) continue;
-    const locais = locaisDoFormato(s.lotes, faixa);
-    const formatoBate =
-      produtoBate ||
-      coincideLinhaConsolidado(s.produto, faixa, q) ||
-      coincideBusca(textoBuscaLocais(locais), q);
-    if (!formatoBate) continue;
-    out.push({
-      key: `f-${s.id}-${chaveFaixa(faixa)}`,
-      qtde: String(faixa.qtde),
-      unidade: faixa.unidade ?? s.unidade,
-      largura_mm: faixa.largura_mm ?? null,
-      comprimento_m: faixa.comprimento_m ?? null,
-      volumes: faixa.volumes ?? locais.reduce((acc, l) => acc + l.volumes, 0),
-      locais,
-    });
+function formatosDaApi(s: ItemPosicao['saldo'], q: string): FormatoPosicao[] {
+  const out: FormatoPosicao[] = [];
+  for (const row of s.saldos_por_dimensao ?? []) {
+    const fmt: FormatoPosicao = {
+      key: `f-${s.id}-${chaveDimensao(row)}`,
+      qtde: row.qtde,
+      unidade: row.unidade ?? s.unidade,
+      largura_mm: row.largura_mm ?? null,
+      comprimento_m: row.comprimento_m ?? null,
+      volumes: row.volumes,
+      locais: (row.locais ?? []).map((local) => ({
+        key: local.endereco_id != null ? `e-${local.endereco_id}` : 'sem-local',
+        enderecoId: local.endereco_id ?? null,
+        codigo: local.codigo?.trim() || null,
+        volumes: local.volumes,
+        qtde: local.qtde,
+      })),
+    };
+    fmt.locais.sort(ordenaLocais);
+    if (formatoPassaBusca(s, fmt, q)) out.push(fmt);
   }
   return out;
 }
 
 /**
- * Posição física: item → formatos (qtde/vol × L×C) → locais.
- * Não altera saldo oficial; só agrupa o que `/estoque/saldos` já entrega.
+ * Posição: produto + dimensão (L×C) → soma das qtdes dos volumes.
+ * Prefere `saldos_por_dimensao` (bcmath). Fallback: agrupa lotes no cliente.
+ */
+function formatosDoSaldo(s: ItemPosicao['saldo'], q: string): FormatoPosicao[] {
+  if (s.saldos_por_dimensao != null) {
+    return formatosDaApi(s, q);
+  }
+
+  const map = new Map<string, FormatoPosicao>();
+
+  for (const lote of s.lotes ?? []) {
+    if (!loteComSaldo(lote.qtde)) continue;
+    const dimKey = chaveDimensao(lote);
+    let fmt = map.get(dimKey);
+    if (!fmt) {
+      fmt = {
+        key: `f-${s.id}-${dimKey}`,
+        qtde: '0.0000',
+        unidade: s.unidade,
+        largura_mm: lote.largura_mm ?? null,
+        comprimento_m: lote.comprimento_m ?? null,
+        volumes: 0,
+        locais: [],
+      };
+      map.set(dimKey, fmt);
+    }
+    const qtdeLote = String(lote.qtde);
+    fmt.qtde = somaQtdeEstoque(fmt.qtde, qtdeLote);
+    fmt.volumes += 1;
+
+    const loc = chaveLocal(lote);
+    const existente = fmt.locais.find((l) => l.key === loc.key);
+    if (existente) {
+      existente.volumes += 1;
+      existente.qtde = somaQtdeEstoque(existente.qtde, qtdeLote);
+    } else {
+      fmt.locais.push({
+        key: loc.key,
+        enderecoId: loc.enderecoId,
+        codigo: loc.codigo,
+        volumes: 1,
+        qtde: somaQtdeEstoque('0', qtdeLote),
+      });
+    }
+  }
+
+  const out: FormatoPosicao[] = [];
+  for (const fmt of map.values()) {
+    fmt.locais.sort(ordenaLocais);
+    if (formatoPassaBusca(s, fmt, q)) out.push(fmt);
+  }
+
+  out.sort((a, b) => {
+    const la = a.largura_mm ?? '';
+    const lb = b.largura_mm ?? '';
+    if (la !== lb) return la.localeCompare(lb, 'pt-BR', { numeric: true });
+    return (a.comprimento_m ?? '').localeCompare(b.comprimento_m ?? '', 'pt-BR', { numeric: true });
+  });
+  return out;
+}
+
+/**
+ * Posição física: item → dimensão → soma da quantidade → locais.
+ * Não altera saldo oficial.
  */
 export function itensPosicao<T extends ItemPosicao['saldo']>(
   saldos: T[],

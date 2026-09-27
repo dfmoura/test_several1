@@ -131,6 +131,7 @@ class EstoqueConsultaService
             $lotes = $lotesPorProduto[(int) $s->produto_id] ?? [];
             $resumo = $this->resumoLotes($lotes);
             $volumesPorQtde = $this->consolidadoVolumesPorQtde($lotes);
+            $saldosPorDimensao = $this->posicaoPorDimensao($lotes);
             $volumesComSaldo = array_sum(array_column($volumesPorQtde, 'volumes'));
 
             return [
@@ -144,6 +145,7 @@ class EstoqueConsultaService
                 'controla_lote' => (bool) ($s->produto?->controla_lote ?? false),
                 'lotes_count' => $volumesComSaldo,
                 'volumes_por_qtde' => $volumesPorQtde,
+                'saldos_por_dimensao' => $saldosPorDimensao,
                 'validade_status' => $resumo['status'],
                 'proxima_validade' => $resumo['proxima_validade'],
                 'lotes' => $lotes,
@@ -342,6 +344,104 @@ class EstoqueConsultaService
                 ? 'VOL:'.$lote->empresa_id.':'.$lote->id.':'.$lote->qr_token
                 : null,
         ];
+    }
+
+    /**
+     * Posição de leitura: produto (já no saldo) + dimensão real L×C → soma das qtdes.
+     * Não é o saldo oficial (`estoque_saldos`). Sem segundo writer.
+     *
+     * @param  list<array<string, mixed>>  $lotes
+     * @return list<array{qtde: string, volumes: int, unidade: string, largura_mm: ?string, comprimento_m: ?string, locais: list<array{endereco_id: ?int, codigo: ?string, qtde: string, volumes: int}>}>
+     */
+    private function posicaoPorDimensao(array $lotes): array
+    {
+        /** @var array<string, array{qtde: string, volumes: int, unidade: string, largura_mm: ?string, comprimento_m: ?string, locais: array<string, array{endereco_id: ?int, codigo: ?string, qtde: string, volumes: int}>}> $map */
+        $map = [];
+
+        foreach ($lotes as $lote) {
+            $qtdeRaw = (string) ($lote['qtde'] ?? '0');
+            if (bccomp($qtdeRaw, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+
+            $qtde = PadraoDecimal::roundHalfUp($qtdeRaw, PadraoDecimal::SCALE_QTY);
+            $unidade = (string) ($lote['unidade'] ?? 'UN');
+            $largura = isset($lote['largura_mm']) && $lote['largura_mm'] !== null && $lote['largura_mm'] !== ''
+                ? (string) $lote['largura_mm']
+                : null;
+            $comprimento = isset($lote['comprimento_m']) && $lote['comprimento_m'] !== null && $lote['comprimento_m'] !== ''
+                ? (string) $lote['comprimento_m']
+                : null;
+            $key = ($largura ?? '').'|'.($comprimento ?? '');
+
+            if (! isset($map[$key])) {
+                $map[$key] = [
+                    'qtde' => PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY),
+                    'volumes' => 0,
+                    'unidade' => $unidade,
+                    'largura_mm' => $largura,
+                    'comprimento_m' => $comprimento,
+                    'locais' => [],
+                ];
+            }
+            $map[$key]['qtde'] = bcadd($map[$key]['qtde'], $qtde, PadraoDecimal::SCALE_QTY);
+            $map[$key]['volumes']++;
+
+            $enderecoId = $lote['endereco_id'] ?? (is_array($lote['endereco'] ?? null) ? ($lote['endereco']['id'] ?? null) : null);
+            $enderecoId = $enderecoId !== null && $enderecoId !== '' ? (int) $enderecoId : null;
+            $codigo = is_array($lote['endereco'] ?? null)
+                ? (isset($lote['endereco']['codigo']) && $lote['endereco']['codigo'] !== ''
+                    ? (string) $lote['endereco']['codigo']
+                    : null)
+                : null;
+            $localKey = $enderecoId !== null ? 'e-'.$enderecoId : 'sem-local';
+
+            if (! isset($map[$key]['locais'][$localKey])) {
+                $map[$key]['locais'][$localKey] = [
+                    'endereco_id' => $enderecoId,
+                    'codigo' => $codigo,
+                    'qtde' => PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY),
+                    'volumes' => 0,
+                ];
+            }
+            $map[$key]['locais'][$localKey]['qtde'] = bcadd(
+                $map[$key]['locais'][$localKey]['qtde'],
+                $qtde,
+                PadraoDecimal::SCALE_QTY,
+            );
+            $map[$key]['locais'][$localKey]['volumes']++;
+        }
+
+        $rows = [];
+        foreach ($map as $row) {
+            $locais = array_values($row['locais']);
+            usort($locais, static function (array $a, array $b): int {
+                $ca = (string) ($a['codigo'] ?? '');
+                $cb = (string) ($b['codigo'] ?? '');
+                if ($ca === '' && $cb !== '') {
+                    return 1;
+                }
+                if ($ca !== '' && $cb === '') {
+                    return -1;
+                }
+
+                return $ca <=> $cb;
+            });
+            $row['locais'] = $locais;
+            $rows[] = $row;
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            $la = (string) ($a['largura_mm'] ?? '');
+            $lb = (string) ($b['largura_mm'] ?? '');
+            if ($la !== $lb) {
+                return $la <=> $lb;
+            }
+
+            return ((string) ($a['comprimento_m'] ?? '')) <=> ((string) ($b['comprimento_m'] ?? ''));
+        });
+
+        return $rows;
     }
 
     /**

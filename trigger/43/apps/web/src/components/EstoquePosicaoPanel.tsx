@@ -49,15 +49,15 @@ export function EstoquePosicaoPanel({
   return (
     <div className="estoque-posicao">
       <p className="estoque-posicao-resumo muted">
-        {itens.length} item(ns) · {formatos} formato(s) · {volumes} volume(s)
+        {itens.length} item(ns) · {formatos} dimensão(ões) · {volumes} volume(s)
       </p>
 
       <div className="table-wrap table-wrap--freeze">
         <table className="data-table estoque-dense-table estoque-posicao-table">
           <thead>
             <tr>
-              <th>Formato</th>
-              <th className="num">Qtde / vol</th>
+              <th>Dimensão</th>
+              <th className="num">Qtde</th>
               <th className="num">Volumes</th>
               <th>Local</th>
             </tr>
@@ -146,7 +146,7 @@ export function EstoquePosicaoPanel({
                       {formatVolumeDimensao(faixa.largura_mm, faixa.comprimento_m)}
                     </td>
                     <td className="num">
-                      {formatQtyCompact(faixa.qtde)}{' '}
+                      <strong>{formatQty(faixa.qtde)}</strong>{' '}
                       <span className="table-muted">{faixa.unidade}</span>
                     </td>
                     <td className="num">{faixa.volumes}</td>
@@ -169,7 +169,9 @@ export function EstoquePosicaoPanel({
                                   Sem local
                                 </Link>
                               )}
-                              <span className="table-muted">{local.volumes}</span>
+                              <span className="table-muted">
+                                {formatQtyCompact(local.qtde)} {faixa.unidade}
+                              </span>
                             </li>
                           ))}
                         </ul>

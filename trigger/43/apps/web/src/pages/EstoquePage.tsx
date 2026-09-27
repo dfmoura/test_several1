@@ -56,7 +56,7 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  posicao: 'Quantidade de cada formato e onde está. Identidade da bobina em Volumes; documento em Movimentos.',
+  posicao: 'Saldo por produto e dimensão (soma da quantidade) e onde está. Bobina em Volumes; documento em Movimentos.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA ou ajuste aprovado.',
 };
@@ -238,7 +238,7 @@ export function EstoquePage() {
     setTab('lotes');
     setValidadeFiltro('');
     setProdutoLoteFiltro(produtoId);
-    setQtdeVolumeFiltro(faixa.qtde);
+    setQtdeVolumeFiltro(null);
     setDimVolumeFiltro({
       largura_mm: faixa.largura_mm,
       comprimento_m: faixa.comprimento_m,
@@ -257,7 +257,7 @@ export function EstoquePage() {
     <div className="estoque-posicao-page">
       <PageHeader
         title="Estoque"
-        description="Posição por item: formato do volume e local. Nada entra ou sai sem documento."
+        description="Saldo por produto e dimensão (soma da quantidade) e local. Nada entra ou sai sem documento."
       />
 
       <EstoqueModuleNav />
@@ -359,7 +359,7 @@ export function EstoquePage() {
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={
                   tab === 'posicao'
-                    ? 'Item, formato, local…'
+                    ? 'Item, dimensão, local…'
                     : tab === 'lotes'
                       ? 'SKU, lote…'
                       : 'MOV, NF, OC, fornecedor…'
@@ -391,19 +391,17 @@ export function EstoquePage() {
                 </select>
               </div>
             ) : null}
-            {tab === 'lotes' && (produtoLoteFiltro || qtdeVolumeFiltro) ? (
+            {tab === 'lotes' && (produtoLoteFiltro || qtdeVolumeFiltro || dimVolumeFiltro) ? (
               <div className="form-group">
                 <label>
-                  {qtdeVolumeFiltro
-                    ? `SKU · ${formatQtyCompact(qtdeVolumeFiltro)}${
-                        dimVolumeFiltro
-                          ? ` · ${formatVolumeDimensao(
-                              dimVolumeFiltro.largura_mm,
-                              dimVolumeFiltro.comprimento_m,
-                            )}`
-                          : ''
-                      }`
-                    : 'SKU'}
+                  {dimVolumeFiltro
+                    ? `SKU · ${formatVolumeDimensao(
+                        dimVolumeFiltro.largura_mm,
+                        dimVolumeFiltro.comprimento_m,
+                      )}`
+                    : qtdeVolumeFiltro
+                      ? `SKU · ${formatQtyCompact(qtdeVolumeFiltro)}`
+                      : 'SKU'}
                 </label>
                 <button type="button" className="linkish" onClick={limparFiltroVolumes}>
                   Limpar filtro

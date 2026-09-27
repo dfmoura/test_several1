@@ -361,6 +361,56 @@ class EstoqueLoteTest extends TestCase
         $this->assertSame(['1000.00', '1020.00'], $dims);
     }
 
+    public function test_consulta_saldos_posicao_soma_quantidade_por_dimensao(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $produto = $this->criarProduto('MP-PAP-092', 'MP', 'MP-PAP', true, true, 548);
+        $writer = app(EstoqueSaldoWriter::class);
+
+        $writer->aplicarEntrada($this->empresa, $produto, '10.0000', '50.00', [
+            'codigo' => 'VOL-DIM-A',
+            'data_entrada' => '2026-08-01',
+            'data_validade' => '2027-08-01',
+            'largura_mm' => '210.000',
+            'comprimento_m' => '1000.000',
+        ]);
+        $writer->aplicarEntrada($this->empresa, $produto, '5.5000', '50.00', [
+            'codigo' => 'VOL-DIM-B',
+            'data_entrada' => '2026-08-02',
+            'data_validade' => '2027-08-02',
+            'largura_mm' => '210.000',
+            'comprimento_m' => '1000.000',
+        ]);
+        $writer->aplicarEntrada($this->empresa, $produto, '8.0000', '50.00', [
+            'codigo' => 'VOL-DIM-C',
+            'data_entrada' => '2026-08-03',
+            'data_validade' => '2027-08-03',
+            'largura_mm' => '210.000',
+            'comprimento_m' => '1020.000',
+        ]);
+
+        $res = $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/saldos')
+            ->assertOk()
+            ->assertJsonPath('data.0.produto.codigo', 'MP-PAP-092')
+            ->assertJsonPath('data.0.qtde', '23.5000');
+
+        $posicao = collect($res->json('data.0.saldos_por_dimensao'));
+        $this->assertCount(2, $posicao);
+
+        $mil = $posicao->firstWhere('comprimento_m', '1000.00');
+        $this->assertNotNull($mil);
+        $this->assertSame('15.5000', $mil['qtde']);
+        $this->assertSame(2, $mil['volumes']);
+        $this->assertNull($mil['locais'][0]['codigo']);
+        $this->assertSame('15.5000', $mil['locais'][0]['qtde']);
+
+        $milVinte = $posicao->firstWhere('comprimento_m', '1020.00');
+        $this->assertNotNull($milVinte);
+        $this->assertSame('8.0000', $milVinte['qtde']);
+        $this->assertSame(1, $milVinte['volumes']);
+    }
+
     public function test_movimento_item_carrega_lote_id(): void
     {
         $produto = $this->criarProduto('MP-FLM-001', 'MP', 'MP-FLM', true, true, 548);
