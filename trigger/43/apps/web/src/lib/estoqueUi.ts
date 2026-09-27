@@ -222,10 +222,186 @@ export function mesmaDimensaoVolume(
     && (a.comprimento_m ?? null) === (b.comprimento_m ?? null);
 }
 
-/** Ordem canônica das famílias na guia Consolidado (igual cadastro de produtos). */
+/** Ordem canônica das famílias no filtro da posição (igual cadastro de produtos). */
 export const ESTOQUE_FAMILIAS_ORDEM = ['MP', 'EMB', 'REV', 'MUC', 'PA', 'SVC', 'FAC'] as const;
 
-/** Grupo do SKU para abas do consolidado (código estável). */
+export type LocalPosicao = {
+  key: string;
+  enderecoId: number | null;
+  codigo: string | null;
+  volumes: number;
+};
+
+export type FormatoPosicao = {
+  key: string;
+  qtde: string;
+  unidade: string;
+  largura_mm: string | null;
+  comprimento_m: string | null;
+  volumes: number;
+  locais: LocalPosicao[];
+};
+
+export type ItemPosicao = {
+  saldo: {
+    id: number;
+    produto_id: number;
+    produto?: ProdutoBuscaConsolidado;
+    qtde: string;
+    unidade: string;
+    controla_lote?: boolean;
+    lotes_count?: number;
+    volumes_por_qtde?: Array<
+      FaixaBuscaVolume & { volumes?: number; unidade?: string | null }
+    > | null;
+    lotes?: Array<{
+      qtde?: string | number | null;
+      largura_mm?: string | null;
+      comprimento_m?: string | null;
+      endereco_id?: number | null;
+      endereco?: { id: number; codigo: string } | null;
+    }> | null;
+  };
+  formatos: FormatoPosicao[];
+};
+
+function loteComSaldo(qtde: string | number | null | undefined): boolean {
+  const n = Number(qtde);
+  return Number.isFinite(n) && n > 0;
+}
+
+function chaveFaixa(faixa: FaixaBuscaVolume): string {
+  return `${faixa?.qtde ?? ''}|${faixa?.largura_mm ?? ''}|${faixa?.comprimento_m ?? ''}`;
+}
+
+function loteNaFaixa(
+  lote: {
+    qtde?: string | number | null;
+    largura_mm?: string | null;
+    comprimento_m?: string | null;
+  },
+  faixa: FaixaBuscaVolume,
+): boolean {
+  if (!faixa || !loteComSaldo(lote.qtde)) return false;
+  if (!mesmaQtdeEstoque(lote.qtde, faixa.qtde)) return false;
+  return mesmaDimensaoVolume(lote, {
+    largura_mm: faixa.largura_mm ?? null,
+    comprimento_m: faixa.comprimento_m ?? null,
+  });
+}
+
+/** Locais de um formato: endereço · N (sem local por último). Só leitura — não altera saldo. */
+export function locaisDoFormato(
+  lotes:
+    | Array<{
+        qtde?: string | number | null;
+        largura_mm?: string | null;
+        comprimento_m?: string | null;
+        endereco_id?: number | null;
+        endereco?: { id: number; codigo: string } | null;
+      }>
+    | null
+    | undefined,
+  faixa: FaixaBuscaVolume,
+): LocalPosicao[] {
+  const map = new Map<string, LocalPosicao>();
+  for (const lote of lotes ?? []) {
+    if (!loteNaFaixa(lote, faixa)) continue;
+    const id = lote.endereco_id ?? lote.endereco?.id ?? null;
+    const codigo = lote.endereco?.codigo?.trim() || null;
+    const key = id != null ? `e-${id}` : 'sem-local';
+    const cur = map.get(key);
+    if (cur) cur.volumes += 1;
+    else map.set(key, { key, enderecoId: id, codigo, volumes: 1 });
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.codigo == null && b.codigo != null) return 1;
+    if (a.codigo != null && b.codigo == null) return -1;
+    return (a.codigo ?? '').localeCompare(b.codigo ?? '', 'pt-BR', {
+      numeric: true,
+      sensitivity: 'base',
+    });
+  });
+}
+
+function textoBuscaLocais(locais: LocalPosicao[]): string {
+  return textoBusca(
+    ...locais.map((l) => l.codigo),
+    locais.some((l) => l.codigo == null) ? 'sem local' : '',
+  );
+}
+
+function formatosDoSaldo(s: ItemPosicao['saldo'], q: string): FormatoPosicao[] {
+  const faixas = s.volumes_por_qtde ?? [];
+  const out: FormatoPosicao[] = [];
+  const produtoBate = coincideLinhaConsolidado(s.produto, null, q);
+
+  for (const faixa of faixas) {
+    if (!faixa?.qtde) continue;
+    const locais = locaisDoFormato(s.lotes, faixa);
+    const formatoBate =
+      produtoBate ||
+      coincideLinhaConsolidado(s.produto, faixa, q) ||
+      coincideBusca(textoBuscaLocais(locais), q);
+    if (!formatoBate) continue;
+    out.push({
+      key: `f-${s.id}-${chaveFaixa(faixa)}`,
+      qtde: String(faixa.qtde),
+      unidade: faixa.unidade ?? s.unidade,
+      largura_mm: faixa.largura_mm ?? null,
+      comprimento_m: faixa.comprimento_m ?? null,
+      volumes: faixa.volumes ?? locais.reduce((acc, l) => acc + l.volumes, 0),
+      locais,
+    });
+  }
+  return out;
+}
+
+/**
+ * Posição física: item → formatos (qtde/vol × L×C) → locais.
+ * Não altera saldo oficial; só agrupa o que `/estoque/saldos` já entrega.
+ */
+export function itensPosicao<T extends ItemPosicao['saldo']>(
+  saldos: T[],
+  q: string,
+  familia = '',
+): Array<{ saldo: T; formatos: FormatoPosicao[] }> {
+  const fam = familia.trim();
+  const out: Array<{ saldo: T; formatos: FormatoPosicao[] }> = [];
+
+  for (const saldo of saldos) {
+    if (fam && saldo.produto?.familia !== fam) continue;
+    const formatos = formatosDoSaldo(saldo, q);
+    if (q.trim()) {
+      const produtoBate = coincideLinhaConsolidado(saldo.produto, null, q);
+      if (!produtoBate && formatos.length === 0) continue;
+    }
+    out.push({ saldo, formatos });
+  }
+
+  out.sort((a, b) =>
+    (a.saldo.produto?.codigo ?? '').localeCompare(b.saldo.produto?.codigo ?? '', 'pt-BR', {
+      numeric: true,
+      sensitivity: 'base',
+    }),
+  );
+  return out;
+}
+
+export function familiasNaPosicao(
+  saldos: Array<{ produto?: { familia?: string | null } | null }>,
+): string[] {
+  const present = new Set(
+    saldos.map((s) => s.produto?.familia).filter((f): f is string => Boolean(f)),
+  );
+  const ordered: string[] = ESTOQUE_FAMILIAS_ORDEM.filter((f) => present.has(f));
+  for (const f of present) {
+    if (!ordered.includes(f)) ordered.push(f);
+  }
+  return ordered;
+}
+
+/** Grupo do SKU (código estável do catálogo). */
 export function estoqueGrupoCodigo(produto: {
   grupo?: string | null;
   grupo_catalogo?: { codigo?: string | null } | null;

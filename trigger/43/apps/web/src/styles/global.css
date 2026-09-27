@@ -13751,125 +13751,111 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   background: #fafbfd;
 }
 
-/* Guia Consolidado: família → grupo → linha plana por faixa (Excel denso). */
-.estoque-consolidado {
-  --estoque-consol-pad-y: 0.12rem;
-  --estoque-consol-pad-x: 0.35rem;
-  --estoque-consol-font: 0.7rem;
-  padding: 0.45rem 0.65rem 0.7rem;
-}
-
-.estoque-consolidado-chrome {
-  display: flex;
-  flex-direction: column;
-  gap: 0.28rem;
-  margin-bottom: 0.45rem;
-  padding-bottom: 0.4rem;
+/* Posição: item → formato → local (sem segundo saldo). */
+.estoque-posicao-resumo {
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.7rem;
   border-bottom: 1px solid var(--border);
 }
 
-.estoque-consolidado-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.85rem;
-}
-
-.estoque-consolidado-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.74rem;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
-
-.estoque-consolidado-check input {
-  margin: 0;
-}
-
-.estoque-consolidado-resumo {
-  font-size: 0.7rem;
-}
-
-.estoque-consolidado-fam-hint {
-  margin: 0;
-  font-size: 0.68rem;
-  line-height: 1.25;
-}
-
-.estoque-posicao-page .tabs--nested {
-  gap: 0.12rem;
-  flex-wrap: wrap;
-}
-
-.estoque-posicao-page .tabs--nested .tab {
-  font-size: 0.7rem;
-  padding: 0.22rem 0.48rem;
-}
-
-.estoque-posicao-page .tabs--grupo {
-  margin-top: 0.1rem;
-}
-
-.estoque-consolidado-table--flat {
+.estoque-posicao-table {
   min-width: 640px;
-  font-size: var(--estoque-consol-font);
 }
 
-.estoque-consolidado-table--flat th,
-.estoque-consolidado-table--flat td {
-  padding: var(--estoque-consol-pad-y) var(--estoque-consol-pad-x);
-  line-height: 1.25;
-  vertical-align: middle;
-}
-
-.estoque-consolidado-table--flat thead th {
+.estoque-posicao-table thead th {
   font-size: 0.64rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.estoque-consolidado-table--flat .estoque-consolidado-col-produto {
-  min-width: 12rem;
-  max-width: 22rem;
+.estoque-posicao-bloco + .estoque-posicao-bloco .estoque-posicao-item-head > td {
+  border-top: 1px solid var(--border);
 }
 
-.estoque-consolidado-produto-inline {
+.estoque-posicao-item-head > td {
+  background: color-mix(in srgb, var(--surface) 88%, var(--text) 12%);
+  padding: 0.42rem 0.55rem;
+}
+
+.estoque-posicao-item {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  justify-content: space-between;
+  gap: 0.75rem 1.1rem;
   min-width: 0;
-  max-width: 22rem;
-  white-space: nowrap;
-  overflow: hidden;
 }
 
-.estoque-consolidado-produto-inline strong {
+.estoque-posicao-item-id {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.estoque-posicao-item-id strong {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
 }
 
-.estoque-consolidado-produto-inline .muted {
+.estoque-posicao-item-id .muted {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.68rem;
+  white-space: nowrap;
+  font-size: 0.72rem;
 }
 
-.estoque-consolidado-table--flat td.dimensao {
-  font-size: 0.68rem;
+.estoque-posicao-item-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
 }
 
-.estoque-consolidado-row:nth-child(even) > td {
-  background: color-mix(in srgb, var(--surface) 97%, var(--navy));
+.estoque-posicao-item-acoes {
+  flex-shrink: 0;
+}
+
+.estoque-posicao-formato td {
+  vertical-align: top;
+}
+
+.estoque-posicao-formato td:first-child {
+  padding-left: 1.15rem;
+}
+
+.estoque-posicao-locais {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.estoque-posicao-local {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.estoque-posicao-sem-local {
+  font-weight: 600;
 }
 
 @media (max-width: 720px) {
-  .estoque-consolidado-produto-inline {
-    max-width: 11rem;
+  .estoque-posicao-item {
+    flex-wrap: wrap;
+  }
+
+  .estoque-posicao-item-id {
+    flex-basis: 100%;
   }
 }
 

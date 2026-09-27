@@ -1,28 +1,26 @@
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { EstoqueConsolidadoPanel } from '../components/EstoqueConsolidadoPanel';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
+import { EstoquePosicaoPanel } from '../components/EstoquePosicaoPanel';
 import { PageHeader } from '../components/PageHeader';
 import { SortableTh } from '../components/SortableTh';
 import { StatusPill } from '../components/StatusPill';
 import { api, type EstoqueLote, type EstoqueMovimento, type EstoqueSaldo } from '../lib/api';
 import {
   coincideBusca,
-  coincideSaldoConsolidado,
-  formatValorPosicao,
+  familiasNaPosicao,
+  itensPosicao,
   mesmaDimensaoVolume,
   mesmaQtdeEstoque,
   movTipoLabel,
   qtdeKardex,
   somaValorPosicao,
   textoBusca,
+  type FormatoPosicao,
 } from '../lib/estoqueUi';
-import { familiaLabel, formatCurrency, formatDate, formatQty, formatQtyCompact } from '../lib/format';
+import { familiaLabel, formatDate, formatQtyCompact } from '../lib/format';
 import {
-  IconEye,
   IconMapPin,
-  IconOrcamento,
-  IconProduct,
   IconRastreio,
   IconTag,
 } from '../components/NavIcons';
@@ -31,24 +29,12 @@ import { validadeStatusLabel } from '../lib/produtoLotePolitica';
 import { useTableSort } from '../lib/useTableSort';
 import { formatVolumeDimensao } from '../lib/volumeEtiquetaPrint';
 
-type TabId = 'saldos' | 'consolidado' | 'lotes' | 'movimentos';
-
-const TAB_IDS: TabId[] = ['saldos', 'consolidado', 'lotes', 'movimentos'];
+type TabId = 'posicao' | 'lotes' | 'movimentos';
 
 function parseTab(raw: string | null): TabId {
-  if (raw && (TAB_IDS as string[]).includes(raw)) return raw as TabId;
-  return 'saldos';
+  if (raw === 'lotes' || raw === 'movimentos') return raw;
+  return 'posicao';
 }
-
-const SORT_SALDO = {
-  produto: (s: EstoqueSaldo) => s.produto?.codigo,
-  familia: (s: EstoqueSaldo) => s.produto?.familia,
-  qtde: (s: EstoqueSaldo) => Number(s.qtde),
-  volumes: (s: EstoqueSaldo) => (s.controla_lote ? (s.lotes_count ?? 0) : -1),
-  custo: (s: EstoqueSaldo) => Number(s.custo_medio),
-  valor: (s: EstoqueSaldo) => Number(s.qtde) * Number(s.custo_medio),
-  validade: (s: EstoqueSaldo) => s.proxima_validade || s.validade_status,
-};
 
 const SORT_MOV = {
   codigo: (m: EstoqueMovimento) => m.codigo,
@@ -70,36 +56,10 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  saldos:
-    'Posição oficial por SKU. Faixas em Consolidado; bobinas e ações físicas em Volumes.',
-  consolidado:
-    'Uma linha por faixa de volume (qtde/vol × L×C × N) com valor da faixa. Saldo do SKU fica em Por produto — não altera o saldo oficial.',
+  posicao: 'Quantidade de cada formato e onde está. Identidade da bobina em Volumes; documento em Movimentos.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
-  movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA e ajuste aprovado.',
+  movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA ou ajuste aprovado.',
 };
-
-/** Validade na grade: pill só quando crítico; OK/sem validade = texto leve. */
-function validadeResumo(
-  status: string | null | undefined,
-  proxima: string | null | undefined,
-) {
-  const critico = status === 'VENCIDO' || status === 'A_VENCER';
-  if (critico) {
-    return (
-      <>
-        <StatusPill status={validadeStatusLabel(status)} />
-        {proxima ? <div className="table-muted">{formatDate(proxima)}</div> : null}
-      </>
-    );
-  }
-  if (proxima) {
-    return <span className="table-muted">{formatDate(proxima)}</span>;
-  }
-  if (status) {
-    return <span className="table-muted">{validadeStatusLabel(status)}</span>;
-  }
-  return <span className="muted">—</span>;
-}
 
 function activateRow(e: KeyboardEvent, go: () => void) {
   if (e.key === 'Enter' || e.key === ' ') {
@@ -131,13 +91,7 @@ export function EstoquePage() {
     largura_mm: string | null;
     comprimento_m: string | null;
   } | null>(null);
-  const [consolidadoFamilia, setConsolidadoFamilia] = useState(
-    () => searchParams.get('familia') ?? '',
-  );
-  const [consolidadoGrupo, setConsolidadoGrupo] = useState(
-    () => searchParams.get('grupo') ?? 'todos',
-  );
-  const [consolidadoSoVolumes, setConsolidadoSoVolumes] = useState(true);
+  const [familia, setFamilia] = useState(() => searchParams.get('familia') ?? '');
   const [loading, setLoading] = useState(true);
 
   const setTab = useCallback(
@@ -146,32 +100,33 @@ export function EstoquePage() {
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          if (next === 'saldos') p.delete('tab');
+          if (next === 'posicao') p.delete('tab');
           else p.set('tab', next);
-          if (next !== 'consolidado') {
+          if (next !== 'posicao') {
             p.delete('familia');
             p.delete('grupo');
+          } else if (familia) {
+            p.set('familia', familia);
+            p.delete('grupo');
           } else {
-            if (consolidadoFamilia) p.set('familia', consolidadoFamilia);
-            else p.delete('familia');
-            if (consolidadoGrupo && consolidadoGrupo !== 'todos') p.set('grupo', consolidadoGrupo);
-            else p.delete('grupo');
+            p.delete('familia');
+            p.delete('grupo');
           }
           return p;
         },
         { replace: true },
       );
     },
-    [consolidadoFamilia, consolidadoGrupo, setSearchParams],
+    [familia, setSearchParams],
   );
 
-  const setConsolidadoFamiliaUrl = useCallback(
+  const setFamiliaUrl = useCallback(
     (fam: string) => {
-      setConsolidadoFamilia(fam);
+      setFamilia(fam);
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
-          p.set('tab', 'consolidado');
+          p.delete('tab');
           if (fam) p.set('familia', fam);
           else p.delete('familia');
           p.delete('grupo');
@@ -179,27 +134,8 @@ export function EstoquePage() {
         },
         { replace: true },
       );
-      setConsolidadoGrupo('todos');
     },
     [setSearchParams],
-  );
-
-  const setConsolidadoGrupoUrl = useCallback(
-    (grp: string) => {
-      setConsolidadoGrupo(grp);
-      setSearchParams(
-        (prev) => {
-          const p = new URLSearchParams(prev);
-          p.set('tab', 'consolidado');
-          if (consolidadoFamilia) p.set('familia', consolidadoFamilia);
-          if (grp && grp !== 'todos') p.set('grupo', grp);
-          else p.delete('grupo');
-          return p;
-        },
-        { replace: true },
-      );
-    },
-    [consolidadoFamilia, setSearchParams],
   );
 
   const alertas = useMemo(() => {
@@ -208,29 +144,12 @@ export function EstoquePage() {
     return { vencidos, aVencer };
   }, [lotes]);
 
-  const saldosFiltrados = useMemo(() => {
-    return saldos.filter((s) =>
-      coincideBusca(
-        textoBusca(
-          s.produto?.codigo,
-          s.produto?.descricao_comercial,
-          s.produto?.descricao_fiscal,
-          s.produto?.familia,
-        ),
-        q,
-      ),
-    );
-  }, [saldos, q]);
+  const posicaoItens = useMemo(
+    () => itensPosicao(saldos, tab === 'posicao' ? q : '', familia),
+    [saldos, q, familia, tab],
+  );
 
-  /** Contagem da guia Consolidado (mesma regra base do painel: busca + só volumes). */
-  const consolidadoCount = useMemo(() => {
-    return saldos.filter((s) => {
-      if (consolidadoSoVolumes && !(s.controla_lote && (s.lotes_count ?? 0) > 0)) {
-        return false;
-      }
-      return coincideSaldoConsolidado(s, q);
-    }).length;
-  }, [saldos, q, consolidadoSoVolumes]);
+  const familiasFiltro = useMemo(() => familiasNaPosicao(saldos), [saldos]);
 
   const lotesFiltrados = useMemo(() => {
     return lotes.filter((l) => {
@@ -273,7 +192,6 @@ export function EstoquePage() {
     );
   }, [movs, q]);
 
-  const saldosSort = useTableSort(saldosFiltrados, SORT_SALDO);
   const movsSort = useTableSort(movsFiltrados, SORT_MOV);
   const lotesSort = useTableSort(lotesFiltrados, SORT_LOTE);
 
@@ -312,6 +230,22 @@ export function EstoquePage() {
     setQ(produtoCodigo?.trim() || '');
   };
 
+  const abrirFormato = (
+    produtoId: number,
+    produtoCodigo: string | undefined,
+    faixa: FormatoPosicao,
+  ) => {
+    setTab('lotes');
+    setValidadeFiltro('');
+    setProdutoLoteFiltro(produtoId);
+    setQtdeVolumeFiltro(faixa.qtde);
+    setDimVolumeFiltro({
+      largura_mm: faixa.largura_mm,
+      comprimento_m: faixa.comprimento_m,
+    });
+    setQ(produtoCodigo?.trim() || '');
+  };
+
   const limparFiltroVolumes = () => {
     setProdutoLoteFiltro(null);
     setQtdeVolumeFiltro(null);
@@ -323,7 +257,7 @@ export function EstoquePage() {
     <div className="estoque-posicao-page">
       <PageHeader
         title="Estoque"
-        description="Saldo em unidade interna. Nada entra ou sai sem documento — compra (NF na OC), OP, sobra, PA ou ajuste aprovado."
+        description="Posição por item: formato do volume e local. Nada entra ou sai sem documento."
       />
 
       <EstoqueModuleNav />
@@ -395,8 +329,7 @@ export function EstoquePage() {
       <div className="tabs" role="tablist" aria-label="Visões da posição">
         {(
           [
-            ['saldos', 'Por produto', saldosFiltrados.length],
-            ['consolidado', 'Consolidado', consolidadoCount],
+            ['posicao', 'Posição', posicaoItens.length],
             ['lotes', 'Volumes', lotesFiltrados.length],
             ['movimentos', 'Movimentos', movsFiltrados.length],
           ] as const
@@ -425,16 +358,27 @@ export function EstoquePage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={
-                  tab === 'saldos'
-                    ? 'SKU, descrição, família…'
-                    : tab === 'consolidado'
-                      ? 'SKU, qtde/vol, dimensão, família, grupo…'
-                      : tab === 'lotes'
-                        ? 'SKU, lote…'
-                        : 'MOV, NF, OC, fornecedor…'
+                  tab === 'posicao'
+                    ? 'Item, formato, local…'
+                    : tab === 'lotes'
+                      ? 'SKU, lote…'
+                      : 'MOV, NF, OC, fornecedor…'
                 }
               />
             </div>
+            {tab === 'posicao' ? (
+              <div className="form-group">
+                <label>Família</label>
+                <select value={familia} onChange={(e) => setFamiliaUrl(e.target.value)}>
+                  <option value="">Todas</option>
+                  {familiasFiltro.map((f) => (
+                    <option key={f} value={f}>
+                      {f} — {familiaLabel(f)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             {tab === 'lotes' ? (
               <div className="form-group">
                 <label>Validade</label>
@@ -471,177 +415,24 @@ export function EstoquePage() {
       </div>
 
       <div className="card">
-        <div className={tab === 'consolidado' ? undefined : 'table-wrap table-wrap--freeze'}>
+        <div className={tab === 'posicao' ? undefined : 'table-wrap table-wrap--freeze'}>
           {loading ? (
             <div className="loading">Carregando…</div>
-          ) : tab === 'saldos' ? (
-            saldosSort.sorted.length === 0 ? (
+          ) : tab === 'posicao' ? (
+            posicaoItens.length === 0 ? (
               <div className="empty-state">
-                {q
-                  ? 'Nenhum saldo com este filtro.'
+                {q || familia
+                  ? 'Nenhum item nesta posição com o filtro atual.'
                   : 'Sem saldo. Receba uma OC para gerar a primeira entrada.'}
               </div>
             ) : (
-              <table className="data-table estoque-dense-table">
-                <thead>
-                  <tr>
-                    <SortableTh
-                      column="produto"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                    >
-                      Produto
-                    </SortableTh>
-                    <SortableTh
-                      column="familia"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                    >
-                      Família
-                    </SortableTh>
-                    <SortableTh
-                      column="qtde"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                      className="num"
-                    >
-                      Saldo
-                    </SortableTh>
-                    <SortableTh
-                      column="volumes"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                      className="num"
-                    >
-                      Volumes
-                    </SortableTh>
-                    <SortableTh
-                      column="custo"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                      className="num"
-                    >
-                      Custo médio
-                    </SortableTh>
-                    <SortableTh
-                      column="valor"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                      className="num"
-                    >
-                      Valor
-                    </SortableTh>
-                    <SortableTh
-                      column="validade"
-                      sorts={saldosSort.sorts} sortKey={saldosSort.sortKey}
-                      sortDir={saldosSort.sortDir}
-                      onSort={saldosSort.requestSort}
-                    >
-                      Validade
-                    </SortableTh>
-                    <th className="acoes" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {saldosSort.sorted.map((s) => {
-                    const desc =
-                      s.produto?.descricao_comercial || s.produto?.descricao_fiscal || '';
-                    return (
-                      <tr key={s.id}>
-                        <td className="produto">
-                          <strong>{s.produto?.codigo}</strong>
-                          {desc ? (
-                            <div className="muted" title={desc}>
-                              {desc}
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="familia">
-                          {s.produto?.familia ? (
-                            <span title={familiaLabel(s.produto.familia)}>
-                              {s.produto.familia}
-                            </span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                        <td className="num saldo-cell">
-                          <strong>{formatQty(s.qtde)}</strong>{' '}
-                          <span className="table-muted">{s.unidade}</span>
-                        </td>
-                        <td className="num">
-                          {s.controla_lote ? (s.lotes_count ?? 0) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                        <td className="num">{formatCurrency(s.custo_medio)}</td>
-                        <td className="num">{formatValorPosicao(s.qtde, s.custo_medio)}</td>
-                        <td>
-                          {s.controla_lote ? (
-                            validadeResumo(s.validade_status, s.proxima_validade)
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                        <td className="acoes">
-                          <div className="table-actions">
-                            {s.controla_lote ? (
-                              <button
-                                type="button"
-                                className="btn-icon"
-                                title="Ver volumes"
-                                aria-label={`Ver volumes de ${s.produto?.codigo ?? 'SKU'}`}
-                                onClick={() =>
-                                  abrirVolumesDoSku(s.produto_id, s.produto?.codigo)
-                                }
-                              >
-                                <IconEye />
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              className="btn-icon"
-                              title="Extrato"
-                              aria-label={`Extrato de ${s.produto?.codigo ?? 'SKU'}`}
-                              onClick={() => navigate(`/estoque/extrato/${s.produto_id}`)}
-                            >
-                              <IconOrcamento />
-                            </button>
-                            {hasPermission('produto.ler') ? (
-                              <Link
-                                to={`/produtos/${s.produto_id}`}
-                                className="btn-icon"
-                                title="Cadastro"
-                                aria-label={`Cadastro de ${s.produto?.codigo ?? 'SKU'}`}
-                              >
-                                <IconProduct />
-                              </Link>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <EstoquePosicaoPanel
+                itens={posicaoItens}
+                onAbrirFormato={abrirFormato}
+                onAbrirVolumes={abrirVolumesDoSku}
+                onExtrato={(produtoId) => navigate(`/estoque/extrato/${produtoId}`)}
+              />
             )
-          ) : tab === 'consolidado' ? (
-            <EstoqueConsolidadoPanel
-              saldos={saldos}
-              q={q}
-              familia={consolidadoFamilia}
-              grupo={consolidadoGrupo}
-              soComVolumes={consolidadoSoVolumes}
-              onFamiliaChange={setConsolidadoFamiliaUrl}
-              onGrupoChange={setConsolidadoGrupoUrl}
-              onSoComVolumesChange={setConsolidadoSoVolumes}
-            />
           ) : tab === 'lotes' ? (
             lotesSort.sorted.length === 0 ? (
               <div className="empty-state">
