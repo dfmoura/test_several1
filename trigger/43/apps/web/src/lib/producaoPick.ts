@@ -119,3 +119,52 @@ export function formatVolumeDimensao(v: OpRetiradaVolume): string | null {
 export function volumeSugerido(v: OpRetiradaVolume): boolean {
   return Boolean(v.sugerido) || parseQtdeDigitada(v.qtde_retirar) > 0;
 }
+
+function foldBusca(s: string): string {
+  return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+function variantesNumero(raw: string | number | null | undefined): string[] {
+  if (raw == null || String(raw).trim() === '') return [];
+  const s = String(raw).trim();
+  const n = Number(s.replace(',', '.'));
+  return [s, s.replace('.', ','), s.replace(',', '.'), Number.isFinite(n) ? String(n) : ''].filter(Boolean);
+}
+
+/** Texto único do volume — um campo casa em tudo que o chão lê. */
+export function volumeTextoBusca(v: OpRetiradaVolume, extra = ''): string {
+  const end = v.endereco?.codigo ?? '';
+  return [
+    extra,
+    v.lote_id,
+    v.codigo,
+    v.sku,
+    v.unidade,
+    v.data_entrada,
+    v.data_validade,
+    v.status,
+    v.status_label,
+    v.motivo,
+    v.movimento_codigo,
+    v.movimento_em,
+    v.endereco?.id,
+    end,
+    ...end.split(/[-_/.\s]+/),
+    ...variantesNumero(v.qtde_volume),
+    ...variantesNumero(v.qtde_retirar),
+    ...variantesNumero(v.largura_mm),
+    ...variantesNumero(v.comprimento_m),
+    formatVolumeTotal(v),
+    formatVolumeDimensao(v),
+    v.sugerido ? 'sugerido fefo' : '',
+  ]
+    .filter((x) => x != null && String(x).trim() !== '')
+    .join(' ');
+}
+
+export function volumePassaFiltro(v: OpRetiradaVolume, consulta: string, extra = ''): boolean {
+  const tokens = foldBusca(consulta).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const hay = foldBusca(volumeTextoBusca(v, extra));
+  return tokens.every((t) => hay.includes(t));
+}

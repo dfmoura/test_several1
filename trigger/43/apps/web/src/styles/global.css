@@ -12252,6 +12252,21 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   color: #1a3568;
 }
 
+.op-escolha__filtro {
+  margin: 0 0 0.85rem;
+}
+
+.op-escolha__filtro-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.op-escolha__filtro-row input {
+  flex: 1;
+  font-size: 1.05rem;
+}
+
 .op-escolha__vols {
   list-style: none;
   margin: 0;

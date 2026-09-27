@@ -41,7 +41,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | Estoque · Retiradas | Os mesmos azulejos + overlay. Perda / pegar de novo / entregar depois da baixa. | Mega-lista, abas de módulo na ficha |
 | Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 
-**Overlay:** um material por vez. Bobina = toque no **volume total** de cada uma. Unidade = quantidade. Confirmar = `SAIDA_PRODUCAO` (mesmo writer). Sem casar o m² planejado.
+**Overlay:** um material por vez. Bobina = toque no **volume total** de cada uma + **um filtro** (código, local, L×C, m², validade, status). Unidade = quantidade. Confirmar = `SAIDA_PRODUCAO` (mesmo writer). Sem casar o m² planejado.
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { OpFiltroVolumes } from './OpFiltroVolumes';
 import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import {
@@ -8,6 +9,7 @@ import {
   modoRetirada,
   modoRetiradaLabel,
   qtdeVolumeTotal,
+  volumePassaFiltro,
   volumeSugerido,
   volumesParaEscolha,
 } from '../lib/producaoPick';
@@ -59,23 +61,44 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
     }
     return init;
   });
+  const [filtro, setFiltro] = useState('');
   const [qtdeUn, setQtdeUn] = useState(material.qtde_planejada ?? String(alvo || ''));
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const onde = opKitOnde(material);
+  const extraBusca = [
+    material.produto?.codigo,
+    material.produto?.descricao_fiscal,
+    material.componente,
+    material.unidade,
+    onde,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const volsVisiveis = useMemo(
+    () => vols.filter((v) => volumePassaFiltro(v, filtro, extraBusca)),
+    [vols, filtro, extraBusca],
+  );
 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (filtro.trim()) {
+        setFiltro('');
+        return;
+      }
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [filtro, onClose]);
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
   const somaVol = escolhidos.reduce((acc, v) => acc + qtdeVolumeTotal(v), 0);
@@ -131,7 +154,6 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
     }
   };
 
-  const onde = opKitOnde(material);
   const tipo = opComponenteLabel(material.componente);
 
   return (
@@ -160,35 +182,49 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
         ) : estado === 'ja_saiu' ? (
           <p className="muted">Este item já saiu do estoque.</p>
         ) : modo === 'volume' ? (
-          <ul className="op-escolha__vols">
-            {vols.length === 0 ? (
-              <li className="muted">Nenhuma bobina disponível.</li>
-            ) : (
-              vols.map((v) => {
-                const id = v.lote_id as number;
-                const on = Boolean(marcados[id]);
-                const dim = formatVolumeDimensao(v);
-                return (
-                  <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        disabled={busy || !podeBaixar}
-                        onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
-                      />
-                      <span>
-                        <strong className="op-escolha__vol-qtde">{formatVolumeTotal(v)}</strong>
-                        <span className="op-escolha__vol-cod">{v.codigo ?? `Volume ${id}`}</span>
-                        {dim ? <span className="muted">{dim}</span> : null}
-                        {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
-                      </span>
-                    </label>
-                  </li>
-                );
-              })
-            )}
-          </ul>
+          <>
+            <OpFiltroVolumes
+              id="op-escolha-filtro"
+              value={filtro}
+              onChange={setFiltro}
+              total={vols.length}
+              visiveis={volsVisiveis.length}
+            />
+            <ul className="op-escolha__vols">
+              {vols.length === 0 ? (
+                <li className="muted">Nenhuma bobina disponível.</li>
+              ) : volsVisiveis.length === 0 ? (
+                <li className="muted">Nenhuma bobina com esse filtro.</li>
+              ) : (
+                volsVisiveis.map((v) => {
+                  const id = v.lote_id as number;
+                  const on = Boolean(marcados[id]);
+                  const dim = formatVolumeDimensao(v);
+                  return (
+                    <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={busy || !podeBaixar}
+                          onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
+                        />
+                        <span>
+                          <strong className="op-escolha__vol-qtde">{formatVolumeTotal(v)}</strong>
+                          <span className="op-escolha__vol-cod">{v.codigo ?? `Volume ${id}`}</span>
+                          {dim ? <span className="muted">{dim}</span> : null}
+                          {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
+                          {v.status_label ? <span className="muted">{v.status_label}</span> : null}
+                          {v.data_validade ? <span className="muted">Val. {v.data_validade}</span> : null}
+                          {v.sku ? <span className="muted">{v.sku}</span> : null}
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </>
         ) : (
           <div className="op-escolha__un">
             <label htmlFor="op-escolha-un">Quantas unidades</label>

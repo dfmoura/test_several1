@@ -10,12 +10,14 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDate, formatDecimalBr } from '../lib/format';
+import { OpFiltroVolumes } from './OpFiltroVolumes';
 import {
   formatPickPrincipal,
   modoRetirada,
   modoRetiradaLabel,
   modoRetiradaPreview,
   opKitLinhasOrdenadas,
+  volumePassaFiltro,
 } from '../lib/producaoPick';
 import { opKitNome, opKitOnde, parseQtdeDigitada } from '../lib/producaoUi';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
@@ -116,12 +118,24 @@ function PreviewVolumesEscolha({
   disabled: boolean;
   onChange: (next: OpRetiradaPreview) => void;
 }) {
+  const [filtro, setFiltro] = useState('');
+  const visiveis = preview.volumes.filter((v) => volumePassaFiltro(v, filtro));
   if (preview.volumes.length === 0) {
     return <p className="muted">Nenhum volume sugerido. Leia o QR ou inclua outro.</p>;
   }
   return (
+    <>
+      <OpFiltroVolumes
+        id="op-repo-filtro"
+        value={filtro}
+        onChange={setFiltro}
+        total={preview.volumes.length}
+        visiveis={visiveis.length}
+      />
     <ul className="op-pick-vols">
-      {preview.volumes.map((v) => {
+      {visiveis.length === 0 ? (
+        <li className="muted">Nenhuma bobina com esse filtro.</li>
+      ) : visiveis.map((v) => {
         const marcado = parseQtdeDigitada(v.qtde_retirar) > 0;
         return (
           <li
@@ -176,6 +190,7 @@ function PreviewVolumesEscolha({
         );
       })}
     </ul>
+    </>
   );
 }
 
