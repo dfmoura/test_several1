@@ -754,7 +754,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   </td>
                   <td>
                     {mat && porVolume
-                      ? formatPickPrincipal(mat)
+                      ? formatPickPrincipal(mat, op)
                       : `${formatDecimalBr(Number(l.planejado), 4)} ${l.unidade}`}
                   </td>
                   <td>
@@ -780,7 +780,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                     {l.pendente ? (
                       <strong>
                         {mat && porVolume
-                          ? formatPickPrincipal(mat)
+                          ? formatPickPrincipal(mat, op)
                           : `${formatDecimalBr(Number(l.a_retirar), 4)} ${l.unidade}`}
                       </strong>
                     ) : (

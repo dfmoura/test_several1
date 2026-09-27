@@ -110,7 +110,7 @@ export function OpKitPainel({
                 >
                   <span className="op-kit-tile__tipo">{tipo}</span>
                   <span className="op-kit-tile__nome">{opKitNome(m)}</span>
-                  <span className="op-kit-tile__qtde">{formatPickPrincipal(m)}</span>
+                  <span className="op-kit-tile__qtde">{formatPickPrincipal(m, op)}</span>
                   <span className="op-kit-tile__st">{opKitEstadoLabel(estado)}</span>
                 </button>
               );

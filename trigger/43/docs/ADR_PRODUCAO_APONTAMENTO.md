@@ -33,7 +33,7 @@ A OP já conclui com `POST /ordens-producao/{id}/concluir` (retorno → `ENTRADA
 | Porta | Quem | Ação |
 |-------|------|------|
 | OP | PCP | Pedido, ficha de retirada (anexo), avaria da mesa, CTA. Sem concluir. Resultado e embalagem depois de `CONCLUIDA`. |
-| Produção · Apontamentos | Chão | Receber na máquina, apontar, concluir. Complemento de papel aponta para a ficha do estoque. |
+| Produção · Apontamentos | Chão | Receber na máquina, apontar, concluir. Bobina = **metro linear** na tela (writer em m²). Complemento de papel aponta para a ficha do estoque. |
 | Painel | Ação de hoje | `op_curso` se `count > 0`. |
 
 ### Fora de escopo

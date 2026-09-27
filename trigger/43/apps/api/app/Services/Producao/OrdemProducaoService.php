@@ -1151,6 +1151,7 @@ class OrdemProducaoService
                 'descricao' => $o->pedidoItem->descricao,
                 'necessidade' => $o->pedidoItem->necessidade,
                 'qtde_pedida' => (string) $o->pedidoItem->qtde_pedida,
+                'largura_mm' => self::larguraMmEspecificacao($o->pedidoItem->especificacao),
             ] : null,
             'iniciada_em' => optional($o->iniciada_em)?->toIso8601String(),
             'concluida_em' => optional($o->concluida_em)?->toIso8601String(),
@@ -1493,5 +1494,26 @@ class OrdemProducaoService
         }
 
         return (string) $raw;
+    }
+
+    /** Pista do item do PED (largura_cm) — fallback de tela quando o volume/SKU não tem L. */
+    public static function larguraMmEspecificacao(mixed $spec): ?string
+    {
+        if (is_string($spec)) {
+            $spec = json_decode($spec, true);
+        }
+        if (! is_array($spec)) {
+            return null;
+        }
+        $cm = $spec['largura_cm'] ?? $spec['larguraCm'] ?? null;
+        if ($cm === null || $cm === '') {
+            return null;
+        }
+        $mm = (float) str_replace(',', '.', (string) $cm) * 10;
+        if ($mm <= 0) {
+            return null;
+        }
+
+        return (string) $mm;
     }
 }

@@ -3243,6 +3243,7 @@ export type OrdemProducao = {
     descricao: string;
     necessidade: string;
     qtde_pedida?: string;
+    largura_mm?: string | null;
   } | null;
   parceiro?: { id: number; codigo: string; razao_social: string } | null;
   materiais?: OrdemProducaoMaterial[];

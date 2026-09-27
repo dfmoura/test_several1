@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatDecimalBr } from '../lib/format';
+import {
+  formatLotePick,
+  formatQtdeCampo,
+  formatQtdePick,
+  qtdeOficialApontamento,
+  qtdeTelaApontamento,
+  unidadeApontamento,
+} from '../lib/producaoPick';
 import {
   ehMaterialProducao,
   hrefFichaEstoque,
@@ -69,8 +76,8 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
       return (
         qtdeConsumidaApontada(
           m.qtde_requisitada,
-          form.qtde_retorno,
-          form.qtde_perda,
+          qtdeOficialApontamento(m, form.qtde_retorno, op),
+          qtdeOficialApontamento(m, form.qtde_perda, op),
           m.qtde_avaria,
         ) <= 0
       );
@@ -87,8 +94,8 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
       return (
         qtdeConsumidaApontada(
           m.qtde_requisitada,
-          form.qtde_retorno,
-          form.qtde_perda,
+          qtdeOficialApontamento(m, form.qtde_retorno, op),
+          qtdeOficialApontamento(m, form.qtde_perda, op),
           m.qtde_avaria,
         ) <= 0
       );
@@ -105,7 +112,12 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
     };
     return (
       acc +
-      qtdeConsumidaApontada(m.qtde_requisitada, form.qtde_retorno, form.qtde_perda, m.qtde_avaria)
+      qtdeConsumidaApontada(
+        m.qtde_requisitada,
+        qtdeOficialApontamento(m, form.qtde_retorno, op),
+        qtdeOficialApontamento(m, form.qtde_perda, op),
+        m.qtde_avaria,
+      )
     );
   }, 0);
   const avariaPapel = papeisRequisitados.reduce(
@@ -121,7 +133,13 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
     const planejada = parseQtdeDigitada(m.qtde_planejada);
     return acc + (planejada > 0 ? planejada : parseQtdeDigitada(m.qtde_requisitada));
   }, 0);
-  const unidadePapel = papeisRequisitados[0]?.unidade ?? 'M2';
+  const papelAlvo = papeisRequisitados[0] ?? null;
+  const unidadePapel = papelAlvo ? unidadeApontamento(papelAlvo, op) : 'M2';
+  const consumoPapelTela = papelAlvo
+    ? qtdeTelaApontamento(papelAlvo, consumoPapel, op)
+    : consumoPapel;
+  const papelMinimoTela = (oficial: number) =>
+    papelAlvo ? qtdeTelaApontamento(papelAlvo, oficial, op) : oficial;
   const qtdeBoaNum = parseQtdeDigitada(qtdeBoa);
   const qtdeBoaValida = qtdeBoaNum > 0;
   const papelMinimo = papelMinimoParaQtdeBoa(empenhoPapel, op.qtde_planejada ?? '0', qtdeBoa, tol);
@@ -164,7 +182,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
     if (semMaterialParaProduzir) {
       setErr(
         papelInsuficiente && !consumoMpZero
-          ? `Papel insuficiente para a quantidade boa — consumido ${formatDecimalBr(consumoPapel, 4)} ${unidadePapel}, mínimo ${formatDecimalBr(papelMinimo, 4)} ${unidadePapel}. Avaria da separação não conta como processo. Sem substrato correspondente não há etiqueta.`
+          ? `Papel insuficiente para a quantidade boa — consumido ${formatQtdePick(consumoPapelTela, unidadePapel)}, mínimo ${formatQtdePick(papelMinimoTela(papelMinimo), unidadePapel)}. Avaria da separação não conta como processo. Sem substrato correspondente não há etiqueta.`
           : consumoMpZero && !consumoZeroTotal
             ? 'Sem consumo de papel/MP — sem material para produzir. Ajuste avaria da separação ou retorno/perda de processo do substrato.'
             : 'Consumo zero em todos os materiais — sem material consumido não há produção a concluir. Ajuste avaria, retorno ou perda.',
@@ -183,8 +201,8 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
         return {
           material_id: Number(m.id),
           produto_id: m.produto?.id ? Number(m.produto.id) : undefined,
-          qtde_retorno: String(parseQtdeDigitada(form.qtde_retorno)),
-          qtde_perda: String(parseQtdeDigitada(form.qtde_perda)),
+          qtde_retorno: qtdeOficialApontamento(m, form.qtde_retorno, op),
+          qtde_perda: qtdeOficialApontamento(m, form.qtde_perda, op),
         };
       });
       const res = await api.post<{ data: OrdemProducao }>(`/ordens-producao/${op.id}/concluir`, {
@@ -308,12 +326,19 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                       qtde_retorno: '0',
                       qtde_perda: '0',
                     };
+                    const retornoOficial = qtdeOficialApontamento(m, form.qtde_retorno, op);
+                    const perdaOficial = qtdeOficialApontamento(m, form.qtde_perda, op);
                     const consumo = qtdeConsumidaApontada(
                       m.qtde_requisitada,
-                      form.qtde_retorno,
-                      form.qtde_perda,
+                      retornoOficial,
+                      perdaOficial,
                       m.qtde_avaria,
                     );
+                    const un = unidadeApontamento(m, op);
+                    const bobinas =
+                      m.retirada?.volumes_baixados?.length
+                        ? m.retirada.volumes_baixados
+                        : [];
                     const ehMp = ehMaterialProducao(m);
                     const linhaPapelCritica =
                       ehMp &&
@@ -334,13 +359,21 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                         <td>
                           <strong>{m.produto?.codigo}</strong>
                           <div className="muted">{m.produto?.descricao_fiscal}</div>
+                          {bobinas.length > 0 ? (
+                            <ul className="muted" style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+                              {bobinas.map((v) => (
+                                <li key={v.lote_id ?? v.codigo}>
+                                  {formatLotePick(v)} ·{' '}
+                                  {formatQtdePick(qtdeTelaApontamento(m, v.qtde_retirar, op), un)}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
                         </td>
-                        <td>
-                          {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
-                        </td>
+                        <td>{formatQtdePick(qtdeTelaApontamento(m, m.qtde_requisitada, op), un)}</td>
                         <td>
                           {parseQtdeDigitada(m.qtde_avaria) > 0
-                            ? `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
+                            ? formatQtdePick(qtdeTelaApontamento(m, m.qtde_avaria, op), un)
                             : '—'}
                         </td>
                         <td>
@@ -349,8 +382,9 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                               value={form.qtde_retorno}
                               onChange={(e) => updateMat(m.id, { qtde_retorno: e.target.value })}
                               disabled={!canWrite}
-                              aria-label={`Retorno ${m.produto?.codigo ?? m.id}`}
+                              aria-label={`Retorno ${m.produto?.codigo ?? m.id} (${un})`}
                             />
+                            <span className="muted">{un}</span>
                           </div>
                         </td>
                         <td>
@@ -359,13 +393,12 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                               value={form.qtde_perda}
                               onChange={(e) => updateMat(m.id, { qtde_perda: e.target.value })}
                               disabled={!canWrite}
-                              aria-label={`Perda ${m.produto?.codigo ?? m.id}`}
+                              aria-label={`Perda ${m.produto?.codigo ?? m.id} (${un})`}
                             />
+                            <span className="muted">{un}</span>
                           </div>
                         </td>
-                        <td>
-                          {formatDecimalBr(consumo, 4)} {m.unidade}
-                        </td>
+                        <td>{formatQtdePick(qtdeTelaApontamento(m, consumo, op), un)}</td>
                       </tr>
                     );
                   })}
@@ -379,8 +412,9 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
               {papelInsuficiente && !consumoMpZero ? (
                 <>
                   <strong>Papel insuficiente para a quantidade boa</strong> — consumido{' '}
-                  {formatDecimalBr(consumoPapel, 4)} {unidadePapel}; mínimo{' '}
-                  {formatDecimalBr(papelMinimo, 4)} {unidadePapel} (±{tol}% do rendimento). Sem
+                  {formatQtdePick(consumoPapelTela, unidadePapel)}; mínimo{' '}
+                  {formatQtdePick(papelMinimoTela(papelMinimo), unidadePapel)} (±{tol}% do
+                  rendimento). Sem
                   substrato correspondente não há etiqueta. Requisite o papel que falta, reduza a
                   quantidade boa ou ajuste retorno/perda de processo.
                 </>
@@ -411,11 +445,11 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 <input
                   value={qtdeComplementar}
                   onChange={(e) => setQtdeComplementar(e.target.value)}
-                  placeholder={formatDecimalBr(papelComplementarSugerido, 4)}
+                  placeholder={formatQtdeCampo(papelMinimoTela(papelComplementarSugerido))}
                   aria-label="Quantidade de papel complementar"
                 />
                 <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85em' }}>
-                  Sugestão: {formatDecimalBr(papelComplementarSugerido, 4)} {unidadePapel}
+                  Sugestão: {formatQtdePick(papelMinimoTela(papelComplementarSugerido), unidadePapel)}
                   {avariaPapel > 0
                     ? ' (reposição da avaria e/ou rendimento).'
                     : ' para cobrir a perda de processo (empenho fixo).'}{' '}
@@ -426,7 +460,11 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 className="btn btn-primary"
                 to={hrefFichaEstoque(op.id, {
                   materialId: papelComplementarAlvo.id,
-                  qtde: qtdeComplementar || String(papelComplementarSugerido),
+                  qtde: qtdeOficialApontamento(
+                    papelComplementarAlvo,
+                    qtdeComplementar || formatQtdeCampo(papelMinimoTela(papelComplementarSugerido)),
+                    op,
+                  ),
                 })}
               >
                 Pegar de novo no estoque
@@ -505,7 +543,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
 function matsDe(op: OrdemProducao): MatForm[] {
   return (op.materiais ?? []).map((m) => ({
     material_id: m.id,
-    qtde_retorno: m.qtde_retorno || '0',
-    qtde_perda: m.qtde_perda || '0',
+    qtde_retorno: formatQtdeCampo(qtdeTelaApontamento(m, m.qtde_retorno || '0', op)),
+    qtde_perda: formatQtdeCampo(qtdeTelaApontamento(m, m.qtde_perda || '0', op)),
   }));
 }

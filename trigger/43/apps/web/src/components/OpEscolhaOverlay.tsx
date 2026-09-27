@@ -8,7 +8,7 @@ import {
   formatMetrosLineares,
   formatVolumeDimensao,
   formatVolumeTotal,
-  larguraMmDoMaterial,
+  larguraMmParaMetro,
   metrosLinearesVolume,
   modoRetirada,
   modoRetiradaLabel,
@@ -48,7 +48,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const estado = opKitEstado(material);
   const podeBaixar = canWrite && estado === 'falta_pegar';
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
-  const larguraFallback = larguraMmDoMaterial(material);
+  const larguraFallback = larguraMmParaMetro(material, op);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
   const fefoIds = useMemo(
     () =>
