@@ -4,6 +4,7 @@ import { OpFiltroVolumes } from './OpFiltroVolumes';
 import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import {
+  formatLotePick,
   formatVolumeDimensao,
   formatVolumeTotal,
   modoRetirada,
@@ -211,7 +212,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                         />
                         <span>
                           <strong className="op-escolha__vol-qtde">{formatVolumeTotal(v)}</strong>
-                          <span className="op-escolha__vol-cod">{v.codigo ?? `Volume ${id}`}</span>
+                          <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
+                          {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
                           {dim ? <span className="muted">{dim}</span> : null}
                           {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
                           {v.status_label ? <span className="muted">{v.status_label}</span> : null}

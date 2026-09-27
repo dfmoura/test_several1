@@ -3149,6 +3149,7 @@ export type EntregaFilaItem = {
 export type OpRetiradaVolume = {
   lote_id: number | null;
   codigo: string | null;
+  nf_numero?: string | null;
   qtde_volume: string | null;
   qtde_retirar: string;
   unidade: string | null;

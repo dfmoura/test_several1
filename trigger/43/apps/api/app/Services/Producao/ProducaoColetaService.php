@@ -261,6 +261,7 @@ class ProducaoColetaService
         return [
             'lote_id' => (int) $lote->id,
             'codigo' => $lote->codigo,
+            'nf_numero' => $lote->nf_numero !== null && $lote->nf_numero !== '' ? (string) $lote->nf_numero : null,
             'qtde_volume' => (string) $lote->qtde,
             'qtde_retirar' => PadraoDecimal::roundHalfUp($qtdeRetirar, PadraoDecimal::SCALE_QTY),
             'unidade' => $lote->unidade,

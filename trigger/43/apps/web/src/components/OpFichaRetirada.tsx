@@ -12,6 +12,7 @@ import { useAuth } from '../lib/auth';
 import { formatDate, formatDecimalBr } from '../lib/format';
 import { OpFiltroVolumes } from './OpFiltroVolumes';
 import {
+  formatLotePick,
   formatPickPrincipal,
   modoRetirada,
   modoRetiradaLabel,
@@ -162,7 +163,7 @@ function PreviewVolumesEscolha({
                 }
               />
               <span>
-                <strong>{v.codigo}</strong>
+                <strong>{formatLotePick(v)}</strong>
                 {v.endereco ? ` · ${v.endereco.codigo}` : ' · sem local'}
                 {marcado ? (volumePreviewInteiro(v) ? ' · volume inteiro' : ' · só parte') : ' · não levar'}
               </span>

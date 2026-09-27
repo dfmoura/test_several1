@@ -109,6 +109,11 @@ export function formatVolumeTotal(v: OpRetiradaVolume): string {
   return formatQtdePick(qtdeVolumeTotal(v), v.unidade || 'M2');
 }
 
+export function formatLotePick(v: { codigo?: string | null; lote_id?: number | null }): string {
+  const cod = (v.codigo ?? '').trim();
+  return `Lote ${cod || v.lote_id || '—'}`;
+}
+
 export function formatVolumeDimensao(v: OpRetiradaVolume): string | null {
   const largura = v.largura_mm ? `${formatDecimalBr(Number(v.largura_mm), 0)} mm` : null;
   const comp = v.comprimento_m ? `${formatDecimalBr(Number(v.comprimento_m), 0)} m` : null;
@@ -131,13 +136,30 @@ function variantesNumero(raw: string | number | null | undefined): string[] {
   return [s, s.replace('.', ','), s.replace(',', '.'), Number.isFinite(n) ? String(n) : ''].filter(Boolean);
 }
 
+function variantesLote(codigo: string | null | undefined, loteId: number | null | undefined): string[] {
+  const raw = (codigo ?? '').trim();
+  const semPref = raw.replace(/^(vol|lote|lot)[:\s-]*/i, '');
+  return [
+    'lote',
+    'lot',
+    'volume',
+    'vol',
+    loteId != null ? String(loteId) : '',
+    raw,
+    semPref,
+    ...raw.split(/[-_/.\s:]+/),
+    ...semPref.split(/[-_/.\s:]+/),
+  ].filter((s) => s !== '');
+}
+
 /** Texto único do volume — um campo casa em tudo que o chão lê. */
 export function volumeTextoBusca(v: OpRetiradaVolume, extra = ''): string {
   const end = v.endereco?.codigo ?? '';
   return [
     extra,
-    v.lote_id,
-    v.codigo,
+    ...variantesLote(v.codigo, v.lote_id),
+    ...variantesLote(v.nf_numero, null),
+    v.nf_numero,
     v.sku,
     v.unidade,
     v.data_entrada,
