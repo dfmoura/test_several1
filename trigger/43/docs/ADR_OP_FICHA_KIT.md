@@ -37,9 +37,9 @@ OP = ficha da etiqueta (herói + jornada + kit)
 
 | Porta | Mostra | Não mostra |
 |-------|--------|------------|
-| OP | Ficha da etiqueta + **azulejos do kit** (tipo de material). Clique abre **overlay** daquele item. | Tabela, caminhada, QR, avaria |
-| Estoque · Retiradas | Os mesmos azulejos + overlay. Perda / pegar de novo / entregar depois da baixa. | Mega-lista, abas de módulo na ficha |
-| Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
+| OP | Ficha da etiqueta + **cesta do kit** (azulejos). Overlay só mostra o que juntar. Baixa **não** confirma aqui. | Tabela, QR, avaria, confirmar saída |
+| Estoque · Retiradas | Os mesmos azulejos. Marca o físico e **Confirmar = saiu**. Perda / pegar de novo. | Mega-lista, abas de módulo na ficha |
+| Produção | Receber na máquina, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 
 **Overlay, ficha e apontamento:** quantidade da bobina = **volumes**. Writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo. Sem inventar L×C.
 

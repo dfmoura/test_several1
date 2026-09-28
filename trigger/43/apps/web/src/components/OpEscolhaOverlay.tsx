@@ -42,7 +42,8 @@ function qtdeCanon(n: number): string {
 export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp }: Props) {
   const modo = modoRetirada(material);
   const estado = opKitEstado(material);
-  const podeBaixar = canWrite && estado === 'falta_pegar';
+  const noEstoque = porta === 'chao';
+  const podeBaixar = noEstoque && canWrite && estado === 'falta_pegar';
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
   const fefoIds = useMemo(
@@ -156,11 +157,14 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <h2 id="op-escolha-title">{opKitNome(material)}</h2>
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
             <p className="muted">
+              {noEstoque
+                ? 'Retirada física — o que sair daqui sai do estoque.'
+                : 'Cesta desta ordem — a baixa é no estoque.'}{' '}
               {modoRetiradaLabel(modo)}
               {modo === 'volume'
                 ? ` · ${formatPickPrincipal(material, op)}`
                 : alvo > 0
-                  ? ` · a ordem pede ${formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} ${material.unidade}`
+                  ? ` · ${formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} ${material.unidade}`
                   : ''}
             </p>
           </div>
@@ -196,15 +200,18 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                   return (
                     <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
                       <label>
-                        <input
-                          type="checkbox"
-                          checked={on}
-                          disabled={busy || !podeBaixar}
-                          onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
-                        />
+                        {podeBaixar ? (
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={busy}
+                            onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
+                          />
+                        ) : null}
                         <span>
                           <strong className="op-escolha__vol-qtde">1 volume</strong>
                           <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
+                          {volumeSugerido(v) ? <span className="muted">sugerido</span> : null}
                           {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
                           {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
                           {v.status_label ? <span className="muted">{v.status_label}</span> : null}
@@ -220,16 +227,24 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
           </>
         ) : (
           <div className="op-escolha__un">
-            <label htmlFor="op-escolha-un">Quantas unidades</label>
-            <input
-              id="op-escolha-un"
-              className="op-escolha__un-input"
-              inputMode="decimal"
-              value={qtdeUn}
-              disabled={busy || !podeBaixar}
-              onChange={(e) => setQtdeUn(e.target.value)}
-            />
-            <p className="muted">{material.unidade}</p>
+            {podeBaixar ? (
+              <>
+                <label htmlFor="op-escolha-un">Quantas unidades vai levar</label>
+                <input
+                  id="op-escolha-un"
+                  className="op-escolha__un-input"
+                  inputMode="decimal"
+                  value={qtdeUn}
+                  disabled={busy}
+                  onChange={(e) => setQtdeUn(e.target.value)}
+                />
+                <p className="muted">{material.unidade}</p>
+              </>
+            ) : (
+              <p className="muted">
+                {formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} {material.unidade} nesta cesta.
+              </p>
+            )}
           </div>
         )}
 
@@ -246,7 +261,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
           </div>
         ) : null}
 
-        {modo === 'volume' && escolhidos.length > 0 ? (
+        {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
           <p className="op-escolha__soma">
             Levar {escolhidos.length === 1 ? '1 volume' : `${escolhidos.length} volumes`}
           </p>
@@ -259,7 +274,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             </button>
           ) : porta === 'op' && estado === 'falta_pegar' ? (
             <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
-              Escolher no estoque
+              Buscar no estoque
             </Link>
           ) : (
             <button type="button" className="btn btn-secondary" onClick={onClose}>

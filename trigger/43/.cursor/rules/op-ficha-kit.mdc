@@ -14,7 +14,7 @@ OP = o que produzir + kit + um CTA
 ## Faça
 
 - Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas.
-- Kit = **azulejos**. Clique abre **overlay** daquele material. Bobina = **volumes** (baixa em m² no writer); o resto = unidades. Filtro = lote do volume. Apontamento mostra volumes. Confirmar = físico, não casar o planejado.
+- Kit = **azulejos** (cesta da OP). Overlay na OP só mostra. **Confirmar saída só em Estoque · Retiradas**. Bobina = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
 - Avaria só na lista de retirada.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
