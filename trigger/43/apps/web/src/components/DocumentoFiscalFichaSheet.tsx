@@ -345,6 +345,30 @@ function DanfeLayout({
         <Cell label="UF" value=" " className="w-06" />
         <Cell label="CNPJ / CPF" value=" " className="w-14" />
       </div>
+      <div className="danfe-row">
+        <Cell
+          label="Quantidade"
+          value={
+            (p?.volumes?.length ?? 0) > 0
+              ? (p?.volumes ?? []).map((v) => v.quantidade).join(' / ')
+              : ' '
+          }
+          className="w-16"
+        />
+        <Cell
+          label="Espécie"
+          value={
+            (p?.volumes?.length ?? 0) > 0
+              ? (p?.volumes ?? []).map((v) => v.especie).join(' / ')
+              : ' '
+          }
+          className="w-20"
+        />
+        <Cell label="Marca" value=" " className="w-16" />
+        <Cell label="Numeração" value=" " className="w-16" />
+        <Cell label="Peso bruto" value=" " className="w-16" />
+        <Cell label="Peso líquido" value=" " className="w-16" />
+      </div>
 
       <h3 className="danfe-sec">Dados dos produtos / serviços</h3>
       <table className="danfe-items">
@@ -365,7 +389,15 @@ function DanfeLayout({
           {itens.map((it) => (
             <tr key={`${doc.id}-${it.numero}`}>
               <td>{it.codigo || ' '}</td>
-              <td>{it.descricao}</td>
+              <td>
+                {it.descricao}
+                {it.informacoes_adicionais ? (
+                  <>
+                    <br />
+                    <span className="danfe-infad">{it.informacoes_adicionais}</span>
+                  </>
+                ) : null}
+              </td>
               <td>{it.ncm}</td>
               <td>0/{it.csosn || '102'}</td>
               <td>{it.cfop}</td>

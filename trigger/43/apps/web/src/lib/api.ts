@@ -2783,6 +2783,8 @@ export type DocumentoFiscalPreviaItem = {
   quantidade?: string;
   valor_unitario?: string;
   valor?: string;
+  /** infAdProd — bobinas/comp da embalagem PA (eco DANFE). */
+  informacoes_adicionais?: string | null;
 };
 
 export type DocumentoFiscalPrevia = {
@@ -2835,6 +2837,8 @@ export type DocumentoFiscalPrevia = {
   };
   itens?: DocumentoFiscalPreviaItem[];
   duplicatas?: Array<{ numero: string; vencimento: string; valor: string }>;
+  /** Volumes de transporte (caixas PA) ecoados do payload. */
+  volumes?: Array<{ quantidade: string; especie: string }>;
   valor_total?: string;
   pedido?: string | null;
   faturamento?: string | null;

@@ -640,6 +640,7 @@ class EmissaoFiscalService
                 if (! is_array($item)) {
                     continue;
                 }
+                $infAdProd = trim((string) ($item['informacoes_adicionais_produto'] ?? ''));
                 $itens[] = [
                     'numero' => $item['numero_item'] ?? count($itens) + 1,
                     'codigo' => $item['codigo_produto'] ?? null,
@@ -651,6 +652,8 @@ class EmissaoFiscalService
                     'quantidade' => (string) ($item['quantidade_comercial'] ?? ''),
                     'valor_unitario' => (string) ($item['valor_unitario_comercial'] ?? ''),
                     'valor' => (string) ($item['valor_bruto'] ?? ''),
+                    // Eco DANFE: infAdProd (bobinas/comp) — ADR_PA_EMBALAGEM_BOBINA_CAIXA
+                    'informacoes_adicionais' => $infAdProd !== '' ? $infAdProd : null,
                 ];
             }
         }
@@ -724,10 +727,36 @@ class EmissaoFiscalService
             ],
             'itens' => $itens,
             'duplicatas' => $duplicatas,
+            'volumes' => $this->previaVolumes($payload),
             'valor_total' => (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor),
             'pedido' => $fat->pedido?->codigo,
             'faturamento' => $fat->codigo,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return list<array{quantidade: string, especie: string}>
+     */
+    private function previaVolumes(array $payload): array
+    {
+        $out = [];
+        foreach (($payload['volumes'] ?? []) as $vol) {
+            if (! is_array($vol)) {
+                continue;
+            }
+            $q = trim((string) ($vol['quantidade'] ?? ''));
+            $esp = trim((string) ($vol['especie'] ?? ''));
+            if ($q === '' && $esp === '') {
+                continue;
+            }
+            $out[] = [
+                'quantidade' => $q !== '' ? $q : '0',
+                'especie' => $esp !== '' ? $esp : 'CAIXA',
+            ];
+        }
+
+        return $out;
     }
 
     /**

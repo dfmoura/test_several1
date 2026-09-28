@@ -179,6 +179,11 @@ export function DocumentoFiscalPreviaCard({
                     {it.codigo ? <code>{it.codigo}</code> : null}
                     {it.codigo ? ' · ' : ''}
                     {it.descricao}
+                    {it.informacoes_adicionais ? (
+                      <div className="form-hint" style={{ marginTop: 4 }}>
+                        {it.informacoes_adicionais}
+                      </div>
+                    ) : null}
                   </td>
                   <td>
                     <code>{it.ncm || '—'}</code>

@@ -145,4 +145,6 @@ O que faltava era o **detalhe físico por item** nas observações (padrão Exac
 
 `resumoTexto()` continua na UI (inclui etiquetas). `textoFiscalItem()` é só para NF.
 
+**Eco na prévia/DANFE (2026-09-28b):** o payload Focus já tinha `informacoes_adicionais_produto`, mas a prévia/DANFE **não ecoava** no item — parecia que “nada mudou”. `previaDe` passa o campo; DANFE mostra sob a descrição do produto; volumes (caixas) na grade de transporte.
+
 **Proibido (inalterado):** `qCom` em BOB/CX; segundo escritor de saldo.

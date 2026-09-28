@@ -8676,6 +8676,14 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
+.danfe-infad {
+  display: block;
+  margin-top: 1pt;
+  font-size: 5.4pt;
+  line-height: 1.25;
+  color: #222;
+}
+
 .danfe-adic {
   display: flex;
   break-inside: avoid;

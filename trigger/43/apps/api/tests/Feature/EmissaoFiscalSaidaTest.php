@@ -680,5 +680,13 @@ class EmissaoFiscalSaidaTest extends TestCase
 
         $infCpl = (string) ($payload['informacoes_adicionais_contribuinte'] ?? '');
         $this->assertStringContainsString('10 BOB · 3 CX', $infCpl);
+
+        $previaInf = $ok->json('data.documentos_fiscais.0.previa.itens.0.informacoes_adicionais');
+        $this->assertIsString($previaInf);
+        $this->assertStringContainsString('10 BOB', $previaInf);
+        $this->assertSame(
+            [['quantidade' => '3', 'especie' => 'CAIXA']],
+            $ok->json('data.documentos_fiscais.0.previa.volumes')
+        );
     }
 }
