@@ -26,14 +26,14 @@ A OP já conclui com `POST /ordens-producao/{id}/concluir` (retorno → `ENTRADA
 | **Sem documento `APONT-`** | O confirmar **é** o apontamento. Sem rascunho de retorno/perda. |
 | **Fila + ficha** | Espelho das Retiradas. Sem hub, sem MES. |
 | **Painel `op_curso`** | Mesma fila, agora só OP com `SAIDA_PRODUCAO` → `/ordens-producao/apontamentos`. KPI da cadeia continua contando todas as OP abertas. |
-| **Menu** | Produção → **Apontamentos** (após Retiradas). |
+| **Menu** | Produção → **Na máquina**. Estoque → **A buscar**. |
 
 ### Superfícies
 
 | Porta | Quem | Ação |
 |-------|------|------|
 | OP | PCP | Pedido, ficha de retirada (anexo), avaria da mesa, CTA. Sem concluir. Resultado e embalagem depois de `CONCLUIDA`. |
-| Produção · Apontamentos | Chão | Receber na máquina, apontar, concluir. Bobina = **volumes** e **metro linear** na tela (writer em m²). Complemento de papel aponta para a ficha do estoque. |
+| Produção · **Na máquina** | Chão (`producao.ler`) | Conferir o que o estoque separou, **Confirmar: recebi**, produzir, concluir. Sem baixa nesta tela. Bobina = **volumes** e **metro linear** (writer em m²). |
 | Painel | Ação de hoje | `op_curso` se `count > 0`. |
 
 ### Fora de escopo

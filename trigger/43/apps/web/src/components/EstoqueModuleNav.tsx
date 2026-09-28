@@ -18,7 +18,7 @@ const ITEMS = [
   },
   {
     to: '/estoque/retiradas',
-    label: 'Retiradas',
+    label: 'A buscar',
     match: (pathname: string) => pathname.startsWith('/estoque/retiradas'),
   },
   {
@@ -33,7 +33,7 @@ const ITEMS = [
   },
 ] as const;
 
-/** Navegação do módulo — Saldos · Mapa · Guardar · Retiradas · Inventários · Ajustes. */
+/** Navegação do módulo — Saldos · Mapa · Guardar · A buscar · Inventários · Ajustes. */
 export function EstoqueModuleNav() {
   const { pathname } = useLocation();
 

@@ -131,7 +131,7 @@ class PainelService
                 $opCurso > 0,
             );
             $apontar = $this->apontamento->contarFila($empresa);
-            $this->fila($filas, 'op_curso', 'Produção em aberto', 'Receber o kit, devolver a sobra ou fechar a ordem', $apontar, '/ordens-producao/apontamentos');
+            $this->fila($filas, 'op_curso', 'Na máquina', 'Receber o material, produzir ou fechar a ordem', $apontar, '/ordens-producao/apontamentos');
         }
 
         if ($faturamento) {
@@ -233,16 +233,13 @@ class PainelService
         if ($estoque) {
             $ajustes = $this->contar(EstoqueAjuste::class, $empresa, [EstoqueAjuste::STATUS_PENDENTE]);
             $this->fila($filas, 'ajustes', 'Ajustes de estoque pendentes', 'Aguardando alçada', $ajustes, '/estoque/ajustes');
-        }
-
-        if ($producao || $estoque) {
-            $separacao = $this->coleta->contarFila($empresa);
+            $aBuscar = $this->coleta->contarARetirar($empresa);
             $this->fila(
                 $filas,
                 'op_separacao',
-                'Kit a buscar',
-                'Pegar o material no estoque ou entregar na produção',
-                $separacao,
+                'A buscar no estoque',
+                'Sai da prateleira para a produção',
+                $aBuscar,
                 '/estoque/retiradas',
             );
         }

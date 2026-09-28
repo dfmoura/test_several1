@@ -351,18 +351,29 @@ class ProducaoColetaService
 
     public function contarFila(Empresa $empresa): int
     {
+        return $this->contarARetirar($empresa) + $this->contarAEntregar($empresa);
+    }
+
+    /** Só o que ainda está na prateleira — fila do estoque. */
+    public function contarARetirar(Empresa $empresa): int
+    {
         return OrdemProducao::query()
             ->where('empresa_id', $empresa->id)
             ->whereIn('status', OrdemProducao::STATUSES_ABERTOS)
-            ->where(function ($q) {
-                $q->whereHas('materiais', function ($m) {
-                    $m->whereNull('saida_movimento_id')->where('qtde_planejada', '>', 0);
-                })->orWhere(function ($q2) {
-                    $q2->whereNull('insumos_entregues_em')
-                        ->whereHas('materiais', function ($m) {
-                            $m->whereNotNull('saida_movimento_id');
-                        });
-                });
+            ->whereHas('materiais', function ($m) {
+                $m->whereNull('saida_movimento_id')->where('qtde_planejada', '>', 0);
+            })
+            ->count();
+    }
+
+    public function contarAEntregar(Empresa $empresa): int
+    {
+        return OrdemProducao::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('status', OrdemProducao::STATUSES_ABERTOS)
+            ->whereNull('insumos_entregues_em')
+            ->whereHas('materiais', function ($m) {
+                $m->whereNotNull('saida_movimento_id');
             })
             ->count();
     }

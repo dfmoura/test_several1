@@ -12180,6 +12180,31 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   padding: 0 1.15rem 1.2rem;
 }
 
+.op-chegada {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.op-chegada > li {
+  border: 1px solid color-mix(in srgb, var(--border, #d5dde8) 80%, transparent);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.op-chegada > li > span {
+  font-weight: 700;
+}
+
+.op-chegada ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
 .op-escolha {
   position: fixed;
   inset: 0;

@@ -163,8 +163,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
             <p className="muted">
               {noEstoque
-                ? 'Retirada física — o que sair daqui sai do estoque.'
-                : 'Cesta desta ordem — a baixa é no estoque.'}{' '}
+                ? 'O que marcar aqui sai da prateleira. A produção recebe depois, na máquina.'
+                : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
               {modoRetiradaLabel(modo)}
               {modo === 'volume'
                 ? ` · ${formatPickPrincipal(material, op)}`
@@ -281,7 +281,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             </button>
           ) : porta === 'op' && estado === 'falta_pegar' ? (
             <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
-              Buscar no estoque
+              Estoque busca isto
             </Link>
           ) : (
             <button type="button" className="btn btn-secondary" onClick={onClose}>

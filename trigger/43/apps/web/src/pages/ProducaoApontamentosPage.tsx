@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { api, type ProducaoApontamentoCard, type ProducaoApontamentosFila } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { formatDecimalBr } from '../lib/format';
 import { hrefApontamentoProducao, opStatusLabel } from '../lib/producaoUi';
 
 /**
- * Fila do chão — apontar e concluir a OP.
- * Duas listas, um motor (POST …/concluir). Sem documento APONT-.
+ * Porta da máquina — receber o que o estoque separou, produzir, fechar.
  */
 export function ProducaoApontamentosPage() {
+  const { hasPermission } = useAuth();
   const [fila, setFila] = useState<ProducaoApontamentosFila | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function ProducaoApontamentosPage() {
         if (alive) setFila(res.data);
       })
       .catch((e) => {
-        if (alive) setErr(e instanceof Error ? e.message : 'Falha ao carregar apontamentos.');
+        if (alive) setErr(e instanceof Error ? e.message : 'Falha ao carregar a fila.');
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -37,17 +38,14 @@ export function ProducaoApontamentosPage() {
   return (
     <div className="page">
       <PageHeader
-        title="Produção"
-        description="Receba o kit, produza, devolva a sobra e feche a ordem. A ficha da ordem só lê o resultado."
+        title="Na máquina"
+        description="Confira o que o estoque tirou da prateleira, confirme o recebimento e produza. A baixa do estoque já foi feita."
         actions={
-          <>
+          hasPermission('producao.ler') ? (
             <Link className="btn btn-secondary" to="/ordens-producao">
               Ordens de produção
             </Link>
-            <Link className="btn btn-secondary" to="/estoque/retiradas">
-              Retiradas
-            </Link>
-          </>
+          ) : null
         }
       />
 
@@ -58,20 +56,20 @@ export function ProducaoApontamentosPage() {
         <>
           <p className="muted" style={{ marginTop: 0 }}>
             {fila.resumo.total === 0
-              ? 'Nenhuma OP com material na máquina nesta empresa.'
-              : `${fila.resumo.a_receber} a receber · ${fila.resumo.a_apontar} a concluir.`}
+              ? 'Nenhum material chegou na máquina nesta empresa.'
+              : `${fila.resumo.a_receber} a receber · ${fila.resumo.a_apontar} a produzir.`}
           </p>
           <Secao
-            titulo="A receber na máquina"
+            titulo="Chegou — confirmar recebimento"
             vazio="Nada aguardando quem recebeu."
             cards={fila.a_receber}
-            acao="Registrar recebimento"
+            acao="Recebi na máquina"
           />
           <Secao
-            titulo="A produzir e fechar"
-            vazio="Nenhuma ordem pronta para fechar."
+            titulo="Produzir e fechar"
+            vazio="Nenhuma ordem pronta para produzir."
             cards={fila.a_apontar}
-            acao="Abrir produção"
+            acao="Abrir a máquina"
           />
         </>
       ) : null}
@@ -106,8 +104,8 @@ function Secao({
                   <th>OP</th>
                   <th>Pedido</th>
                   <th>Cliente</th>
-                  <th>Planejada</th>
-                  <th>Baixadas</th>
+                  <th>Etiquetas</th>
+                  <th>Itens que chegaram</th>
                   <th>Status</th>
                   <th className="acoes" />
                 </tr>
@@ -126,7 +124,7 @@ function Secao({
                       <StatusPill status={opStatusLabel(c.status)} />
                     </td>
                     <td>
-                      <Link className="btn btn-secondary btn-sm" to={hrefApontamentoProducao(c.id)}>
+                      <Link className="btn btn-primary btn-sm" to={hrefApontamentoProducao(c.id)}>
                         {acao}
                       </Link>
                     </td>

@@ -53,7 +53,7 @@ class ProducaoColetaDirigidaTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['producao.ler', 'producao.escrever', 'estoque.ler'] as $p) {
+        foreach (['producao.ler', 'producao.escrever', 'estoque.ler', 'estoque.escrever'] as $p) {
             Permission::findOrCreate($p, 'web');
         }
 
@@ -207,7 +207,7 @@ class ProducaoColetaDirigidaTest extends TestCase
             'ativo' => true,
             'empresa_default_id' => $this->empresa->id,
         ]);
-        $this->user->givePermissionTo(['producao.ler', 'producao.escrever', 'estoque.ler']);
+        $this->user->givePermissionTo(['producao.ler', 'producao.escrever', 'estoque.ler', 'estoque.escrever']);
         $this->user->empresas()->attach($this->empresa->id, ['padrao' => true]);
     }
 
@@ -454,7 +454,8 @@ class ProducaoColetaDirigidaTest extends TestCase
         $painel = $this->withHeaders($this->h())->getJson('/api/v1/painel');
         $painel->assertOk();
         $ids = collect($painel->json('data.filas'))->pluck('id');
-        $this->assertTrue($ids->contains('op_separacao'));
+        $this->assertFalse($ids->contains('op_separacao'));
+        $this->assertTrue($ids->contains('op_curso'));
 
         $ent = $this->withHeaders($this->h())->postJson(
             "/api/v1/ordens-producao/{$this->op->id}/entregar-insumos",
@@ -603,5 +604,27 @@ class ProducaoColetaDirigidaTest extends TestCase
                 'recebido_por' => 'Ninguém',
             ])
             ->assertStatus(422);
+    }
+
+    public function test_producao_nao_baixa_prateleira(): void
+    {
+        $chao = User::query()->create([
+            'codigo' => 'USR-COL-CHAO',
+            'name' => 'Chao Maquina',
+            'email' => 'chao.coleta@test.local',
+            'password' => bcrypt('secret'),
+            'ativo' => true,
+            'empresa_default_id' => $this->empresa->id,
+        ]);
+        $chao->givePermissionTo(['producao.ler', 'producao.escrever']);
+        $chao->empresas()->attach($this->empresa->id, ['padrao' => true]);
+        Sanctum::actingAs($chao);
+
+        $this->withHeaders($this->h())->getJson('/api/v1/estoque/retiradas')->assertForbidden();
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/estoque/retiradas/{$this->op->id}/confirmar", [
+                'linhas' => [['material_id' => $this->matTubete->id]],
+            ])
+            ->assertForbidden();
     }
 }

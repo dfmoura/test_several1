@@ -145,16 +145,14 @@ class EstoqueRetiradaController extends Controller
 
     private function authorizeFila(Request $request): void
     {
-        $user = $request->user();
-        if (! $user->can('estoque.ler') && ! $user->can('producao.ler')) {
+        if (! $request->user()?->can('estoque.ler')) {
             abort(403);
         }
     }
 
     private function authorizeChaoWrite(Request $request): void
     {
-        $user = $request->user();
-        if (! $user->can('producao.escrever') && ! $user->can('estoque.escrever')) {
+        if (! $request->user()?->can('estoque.escrever')) {
             abort(403);
         }
     }

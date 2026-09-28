@@ -27,7 +27,7 @@ export const ROLE_CATALOG = [
   {
     id: 'PRODUCAO',
     label: 'Produção',
-    summary: 'Ordens, apontamentos e movimentação de estoque (sem custos).',
+    summary: 'Ordens e chão: receber o material, produzir e devolver sobra. Quem tira da prateleira é o estoque.',
     tone: 'ops',
   },
   {

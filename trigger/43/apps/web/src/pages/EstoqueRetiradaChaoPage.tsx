@@ -6,8 +6,8 @@ import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 /**
- * Porta do almoxarifado: confronta a requisição com o físico (QR ou manual).
- * A ficha anexada à OP é o mesmo DTO.
+ * Porta do estoque: o físico que sai da prateleira.
+ * Confirmar = SAIDA_PRODUCAO. Sem receber na máquina.
  */
 export function EstoqueRetiradaChaoPage() {
   const { id } = useParams();
@@ -30,7 +30,7 @@ export function EstoqueRetiradaChaoPage() {
       const res = await api.get<{ data: OrdemProducao }>(`/estoque/retiradas/${id}`);
       setOp(res.data);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao abrir a lista de retirada.');
+      setErr(e instanceof Error ? e.message : 'Falha ao abrir a lista.');
     } finally {
       setLoading(false);
     }
@@ -48,11 +48,6 @@ export function EstoqueRetiradaChaoPage() {
           Fila
         </Link>
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
-        {op ? (
-          <Link className="btn btn-secondary btn-sm" to={`/ordens-producao/${op.id}`}>
-            Voltar à lista
-          </Link>
-        ) : null}
       </div>
 
       {err ? <div className="alert alert-danger">{err}</div> : null}
@@ -64,8 +59,9 @@ export function EstoqueRetiradaChaoPage() {
             op={op}
             pedido={null}
             porta="chao"
-            podeProducao={hasPermission('producao.ler')}
-            canWrite={hasPermission('producao.escrever') || hasPermission('estoque.escrever')}
+            podeEstoque={hasPermission('estoque.ler')}
+            podeProducao={false}
+            canWrite={hasPermission('estoque.escrever')}
             materialInicialId={pedido.materialId && !pedido.qtde ? pedido.materialId : undefined}
             onOp={setOp}
           />

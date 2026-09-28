@@ -16,6 +16,7 @@ import { formatDecimalBr } from '../lib/format';
 import {
   ehMaterialProducao,
   hrefFichaEstoque,
+  opKitNome,
   papelMinimoParaQtdeBoa,
   parseQtdeDigitada,
   qtdeConsumidaApontada,
@@ -248,21 +249,61 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
       {err ? <div className="alert alert-danger">{err}</div> : null}
       {msg ? <div className="alert alert-success">{msg}</div> : null}
 
+      {!podeConcluirComSaida ? (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card-body">
+            <h3 style={{ margin: '0 0 0.35rem' }}>Aguardando o estoque</h3>
+            <p className="muted" style={{ margin: 0 }}>
+              O material ainda não saiu da prateleira. Quando o estoque confirmar a busca, aparece
+              aqui para você receber na máquina.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {op.pode_entregar_insumos && canWrite ? (
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div className="card-body">
-            <h3 style={{ margin: '0 0 0.35rem' }}>Receber o kit</h3>
+            <h3 style={{ margin: '0 0 0.35rem' }}>Recebi este material?</h3>
             <p className="muted" style={{ margin: '0 0 0.75rem' }}>
-              O material já saiu do estoque. Quem recebeu na máquina?
+              O estoque já tirou da prateleira. Confira o que chegou — confirmar aqui não baixa
+              estoque de novo.
             </p>
+            <ul className="op-chegada">
+              {materiaisRequisitados.map((m) => {
+                const porVolume = modoRetirada(m) === 'volume';
+                const L = larguraMmParaMetro(m, op);
+                const bobinas = m.retirada?.volumes_baixados ?? [];
+                return (
+                  <li key={m.id}>
+                    <strong>{opKitNome(m)}</strong>
+                    <span>
+                      {porVolume
+                        ? formatPickPrincipal(m, op)
+                        : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
+                    </span>
+                    {porVolume && bobinas.length > 0 ? (
+                      <ul>
+                        {bobinas.map((v) => (
+                          <li key={v.lote_id ?? v.codigo}>
+                            {formatLotePick(v)} · 1 volume
+                            {formatMetrosLineares(v, L) ? ` · ${formatMetrosLineares(v, L)}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div className="form-group" style={{ minWidth: 220, margin: 0 }}>
-                <label>Quem recebeu</label>
+                <label>Quem recebeu na máquina</label>
                 <input
                   value={recebidoPor}
                   onChange={(e) => setRecebidoPor(e.target.value)}
                   disabled={busy}
-                  placeholder="Nome no chão de fábrica"
+                  placeholder="Seu nome"
                 />
               </div>
               <button
@@ -271,7 +312,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 disabled={busy}
                 onClick={() => void entregarInsumos()}
               >
-                Confirmar recebimento
+                Confirmar: recebi na máquina
               </button>
             </div>
           </div>
@@ -292,8 +333,8 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
             <h3>Produzir, devolver e fechar</h3>
             <p className="muted" style={{ marginTop: 0 }}>
               <strong>Sobra</strong> volta ao estoque. <strong>Perda</strong> não volta. Rasgo na
-              mesa já foi registrado na lista de retirada. Etiquetas boas dentro de ±{tol}%
-              atualizam o pedido; fora da faixa pede motivo.
+              mesa já foi registrado no estoque. Etiquetas boas dentro de ±{tol}% atualizam o
+              pedido; fora da faixa pede motivo.
             </p>
           </div>
 
@@ -458,15 +499,21 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                   Confirma no estoque.
                 </p>
               </div>
-              <Link
-                className="btn btn-primary"
-                to={hrefFichaEstoque(op.id, {
-                  materialId: papelComplementarAlvo.id,
-                  qtde: qtdeComplementar || String(papelComplementarSugerido),
-                })}
-              >
-                Pegar de novo no estoque
-              </Link>
+              {hasPermission('estoque.ler') ? (
+                <Link
+                  className="btn btn-primary"
+                  to={hrefFichaEstoque(op.id, {
+                    materialId: papelComplementarAlvo.id,
+                    qtde: qtdeComplementar || String(papelComplementarSugerido),
+                  })}
+                >
+                  Estoque busca de novo
+                </Link>
+              ) : (
+                <p className="muted" style={{ margin: 0 }}>
+                  Peça ao estoque para buscar o complementar — a baixa é na prateleira.
+                </p>
+              )}
             </div>
           ) : null}
 

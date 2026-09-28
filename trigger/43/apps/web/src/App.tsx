@@ -471,7 +471,7 @@ export default function App() {
         <Route
           path="estoque/retiradas"
           element={
-            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+            <PermissionRoute permission="estoque.ler">
               <EstoqueRetiradasPage />
             </PermissionRoute>
           }
@@ -479,7 +479,7 @@ export default function App() {
         <Route
           path="estoque/retiradas/:id"
           element={
-            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+            <PermissionRoute permission="estoque.ler">
               <EstoqueRetiradaChaoPage />
             </PermissionRoute>
           }

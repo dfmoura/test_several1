@@ -129,20 +129,11 @@ const NAV_GROUPS: NavGroup[] = [
             !pathname.startsWith('/ordens-producao/apontamentos')),
       },
       {
-        to: '/estoque/retiradas',
-        label: 'Retiradas',
-        icon: IconEstoque,
-        permission: 'estoque.ler',
-        permissionsAny: ['producao.ler', 'estoque.ler'],
-        title: 'Fila do estoque: buscar o kit da ordem',
-        isActivePath: (pathname) => pathname.startsWith('/estoque/retiradas'),
-      },
-      {
         to: '/ordens-producao/apontamentos',
-        label: 'Apontamentos',
+        label: 'Na máquina',
         icon: IconAsset,
         permission: 'producao.ler',
-        title: 'Fila da produção: receber, produzir, devolver sobra e fechar',
+        title: 'Receber o que o estoque separou, produzir e devolver sobra',
         isActivePath: (pathname) => pathname.startsWith('/ordens-producao/apontamentos'),
       },
     ],
@@ -203,6 +194,14 @@ const NAV_GROUPS: NavGroup[] = [
         isActivePath: (pathname) =>
           pathname === '/estoque' ||
           (pathname.startsWith('/estoque/') && !pathname.startsWith('/estoque/retiradas')),
+      },
+      {
+        to: '/estoque/retiradas',
+        label: 'A buscar',
+        icon: IconEstoque,
+        permission: 'estoque.ler',
+        title: 'O que sai da prateleira para a produção',
+        isActivePath: (pathname) => pathname.startsWith('/estoque/retiradas'),
       },
     ],
   },

@@ -35,11 +35,15 @@ OP = ficha da etiqueta (herói + jornada + kit)
 
 ### Superfície
 
-| Porta | Mostra | Não mostra |
-|-------|--------|------------|
-| OP | Ficha da etiqueta + **cesta do kit** (azulejos). Overlay só mostra o que juntar. Baixa **não** confirma aqui. | Tabela, QR, avaria, confirmar saída |
-| Estoque · Retiradas | Os mesmos azulejos. Marca o físico e **Confirmar = saiu**. Perda / pegar de novo. | Mega-lista, abas de módulo na ficha |
-| Produção | Receber na máquina, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
+Duas pessoas, duas telas — o motor é o mesmo.
+
+| Porta | Quem (RBAC) | Mostra | Não mostra |
+|-------|-------------|--------|------------|
+| OP | PCP (`producao.ler`) | Ficha da etiqueta + **cesta**. Overlay só mostra. | Confirmar saída, receber na máquina |
+| Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. | Receber na máquina, etiquetas boas |
+| Produção · **Na máquina** | Chão (`producao.ler`) | O que **já saiu**: conferir, **Confirmar: recebi**, produzir, devolver sobra | Marcar prateleira, baixa de estoque |
+
+Menu: **A buscar** vive em Estoque (`estoque.ler`). **Na máquina** vive em Produção (`producao.ler`). Confirmar saída exige `estoque.escrever`; receber na máquina exige `producao.escrever`. O papel PRODUCAO não busca na prateleira.
 
 **Overlay, ficha e apontamento:** quantidade da bobina = **volumes** e, ao lado, **metro linear** (volume / SKU / pista do PED). Writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo.
 

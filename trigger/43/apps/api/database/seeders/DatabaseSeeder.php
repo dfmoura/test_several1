@@ -152,8 +152,6 @@ class DatabaseSeeder extends Seeder
             'patrimonio.ler',
             'backlog.ler',
             'compras.ler',
-            'estoque.ler',
-            'estoque.escrever',
             'producao.ler',
             'producao.escrever',
             'faturamento.ler',

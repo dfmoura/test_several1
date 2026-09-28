@@ -131,6 +131,7 @@ export function OrdemProducaoDetailPage() {
             op={op}
             pedido={pedido}
             porta="op"
+            podeEstoque={hasPermission('estoque.ler')}
             podeProducao={podeProducao}
             canWrite={
               hasPermission('producao.escrever') || hasPermission('estoque.escrever')

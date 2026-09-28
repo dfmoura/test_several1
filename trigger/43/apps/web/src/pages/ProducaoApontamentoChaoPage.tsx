@@ -39,18 +39,13 @@ export function ProducaoApontamentoChaoPage() {
   return (
     <div className="page">
       <PageHeader
-        title={op ? `Produção · ${op.codigo}` : 'Produção'}
-        description="Receba o kit, produza, devolva a sobra e informe as etiquetas boas."
+        title={op ? `Na máquina · ${op.codigo}` : 'Na máquina'}
+        description="Confira o que chegou, confirme o recebimento e produza. Sem baixa de estoque nesta tela."
         actions={
           <>
             <Link className="btn btn-secondary" to="/ordens-producao/apontamentos">
               Fila
             </Link>
-            {op ? (
-              <Link className="btn btn-secondary" to={`/ordens-producao/${op.id}`}>
-                Ordem de produção
-              </Link>
-            ) : null}
           </>
         }
       />

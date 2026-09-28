@@ -278,8 +278,7 @@ type Props = {
  */
 export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hideMarcar = false }: Props) {
   const { hasPermission } = useAuth();
-  const canWrite = hasPermission('producao.escrever') || hasPermission('estoque.escrever');
-  const canHandoff = hasPermission('producao.escrever');
+  const canWrite = hasPermission('estoque.escrever');
   const volRef = useRef<HTMLInputElement>(null);
 
   const [picks, setPicks] = useState<Record<number, PickRow[]>>(() => picksIniciais(op));
@@ -303,14 +302,12 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
     preview: OpRetiradaPreview;
     fefoLotes: number[];
   } | null>(null);
-  const [recebidoPor, setRecebidoPor] = useState(op.handoff?.recebidos_nome ?? '');
 
   useEffect(() => {
     setPicks(picksIniciais(op));
     setQtdesUnidade(qtdesUnidadeIniciais(op));
-    setRecebidoPor(op.handoff?.recebidos_nome ?? '');
     setRepo(null);
-  }, [op.id, op.handoff?.entregues_em, (op.materiais ?? []).map((m) => `${m.id}:${m.saida_movimento_id}:${m.qtde_requisitada}`).join('|')]);
+  }, [op.id, (op.materiais ?? []).map((m) => `${m.id}:${m.saida_movimento_id}:${m.qtde_requisitada}`).join('|')]);
 
   const ficha = op.ficha_retirada;
   const pendentes = (op.materiais ?? []).filter((m) => m.pendente);
@@ -689,28 +686,6 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [op.id, mode, pedido?.materialId, pedido?.produtoId, pedido?.qtde]);
-
-  const entregar = async () => {
-    if (recebidoPor.trim().length < 2) {
-      setErr('Informe quem recebeu na produção.');
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      const res = await api.post<{ data: OrdemProducao }>(
-        `/ordens-producao/${op.id}/entregar-insumos`,
-        { recebido_por: recebidoPor.trim() },
-      );
-      aplicar(res.data);
-      setMsg('Material entregue na produção.');
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Falha ao registrar a entrega.');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <section className="op-ficha" aria-labelledby="op-ficha-title">
@@ -1297,43 +1272,10 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
         </div>
       ) : null}
 
-      {chao && op.pode_entregar_insumos ? (
-        <div className="op-ficha__bloco">
-          <h4>Entregar na produção</h4>
-          <p className="muted">O material já saiu. Quem recebeu na máquina?</p>
-          <div className="form-group" style={{ maxWidth: 320 }}>
-            <label>Quem recebeu</label>
-            <input
-              value={recebidoPor}
-              onChange={(e) => setRecebidoPor(e.target.value)}
-              disabled={busy || !canHandoff}
-              placeholder="Nome no chão de fábrica"
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={busy || !canHandoff}
-            onClick={() => void entregar()}
-          >
-            Confirmar entrega
-          </button>
-        </div>
-      ) : null}
-
-      {op.handoff?.entregue ? (
-        <p className="muted">
-          Entregue
-          {op.handoff.entregues_em ? ` em ${formatDate(op.handoff.entregues_em)}` : ''}
-          {op.handoff.recebidos_nome ? ` · ${op.handoff.recebidos_nome}` : ''}
-          {op.handoff.entregues_por ? ` · registrado por ${op.handoff.entregues_por.nome}` : ''}.
-        </p>
-      ) : null}
-
       {chao && !canWrite ? (
         <p className="muted">
-          Leitura liberada. Baixa e avaria exigem <strong>produção.escrever</strong> ou{' '}
-          <strong>estoque.escrever</strong>.
+          Leitura. Confirmar saída exige <strong>estoque.escrever</strong>. Quem recebe é a produção,
+          na máquina.
         </p>
       ) : null}
 

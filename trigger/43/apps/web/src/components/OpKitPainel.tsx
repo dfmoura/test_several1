@@ -21,6 +21,7 @@ type Props = {
   op: OrdemProducao;
   pedido: Pedido | null;
   porta?: 'op' | 'chao';
+  podeEstoque?: boolean;
   podeProducao: boolean;
   canWrite: boolean;
   /** Abre o overlay deste material (ex.: veio da OP). */
@@ -35,6 +36,7 @@ export function OpKitPainel({
   op,
   pedido,
   porta = 'op',
+  podeEstoque = false,
   podeProducao,
   canWrite,
   materialInicialId,
@@ -73,14 +75,15 @@ export function OpKitPainel({
       return { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` };
     }
     if (soSem) return { to: '/compras/reposicao', label: 'Falta no estoque — ir a Compras' };
-    if (porta === 'op' && falta) {
-      return { to: hrefFichaEstoque(op.id), label: 'Buscar no estoque' };
+    if (porta === 'chao') return null;
+    if (porta === 'op' && falta && podeEstoque) {
+      return { to: hrefFichaEstoque(op.id), label: 'Estoque busca isto' };
     }
     if (atual === 'entregar' && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Levar para a máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Produção recebe na máquina' };
     }
     if ((atual === 'produzir' || atual === 'devolver') && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Abrir produção' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Abrir a máquina' };
     }
     return null;
   })();
@@ -102,8 +105,8 @@ export function OpKitPainel({
         <>
           <p className="op-kit__hint">
             {porta === 'chao'
-              ? 'Toque no material, marque o que pegou e confirme — isso sai do estoque.'
-              : 'Toque no material para ver a cesta. A retirada física confirma no estoque.'}
+              ? 'Toque no material, marque o que saiu da prateleira e confirme. Quem recebe é a produção.'
+              : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}
           </p>
           <div className="op-kit__tiles">
             {linhas.map((m) => {

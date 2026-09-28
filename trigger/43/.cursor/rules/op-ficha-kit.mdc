@@ -7,14 +7,14 @@ Norma: `docs/ADR_OP_FICHA_KIT.md`. Motor intacto: `ADR_PRODUCAO_PED_OP_ESTOQUE.m
 ```
 OP = o que produzir + kit + um CTA
   kit = materiais[] (sem CART- / REQ-)
-  Estoque · Retiradas = buscar / confirmar saída / pegar de novo
-  Produção = receber / devolver sobra / fechar
+    Estoque · A buscar = o que sai da prateleira (SAIDA_PRODUCAO)
+    Produção · Na máquina = o que chegou (handoff) / produzir / devolver
 ```
 
 ## Faça
 
 - Vocabulário humano: falta pegar · já saiu · sem estoque · devolver sobra · etiquetas boas.
-- Kit = **azulejos** (cesta da OP). Overlay na OP só mostra. **Confirmar saída só em Estoque · Retiradas**. Bobina = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
+- Kit = **azulejos**. Overlay na OP só mostra. **Confirmar saída só com `estoque.escrever`**, em Estoque · A buscar. **Receber na máquina só com `producao.escrever`**. Bobina = **volumes** (baixa em m²); o resto = unidades. Filtro = lote do volume.
 - Avaria só na lista de retirada.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
