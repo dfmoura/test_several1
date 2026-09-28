@@ -13,8 +13,11 @@ import { formatDate, formatDecimalBr } from '../lib/format';
 import { OpFiltroVolumes } from './OpFiltroVolumes';
 import {
   formatLotePick,
+  formatMetrosDeVolumes,
+  formatMetrosLineares,
   formatPickPrincipal,
-  formatVolumesPick,
+  formatVolumesComMetros,
+  larguraMmParaMetro,
   modoRetirada,
   modoRetiradaLabel,
   modoRetiradaPreview,
@@ -91,6 +94,18 @@ function nVolumesPreviewMarcados(preview: OpRetiradaPreview): number {
   return preview.volumes.filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0).length;
 }
 
+function rotuloVolumesPreview(
+  preview: OpRetiradaPreview,
+  material?: OrdemProducaoMaterial | null,
+  op?: OrdemProducao | null,
+  soMarcados = false,
+): string {
+  const marcados = preview.volumes.filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0);
+  const n = soMarcados ? nVolumesPreviewMarcados(preview) : nVolumesPreviewMarcados(preview) || preview.volumes.length;
+  const vols = soMarcados ? marcados : marcados.length > 0 ? marcados : preview.volumes;
+  return formatVolumesComMetros(n, formatMetrosDeVolumes(vols, material ? larguraMmParaMetro(material, op) : 0));
+}
+
 function qtdeCanon(n: number): string {
   return n.toFixed(4);
 }
@@ -119,10 +134,12 @@ function PreviewVolumesEscolha({
   preview,
   disabled,
   onChange,
+  larguraMmFallback = 0,
 }: {
   preview: OpRetiradaPreview;
   disabled: boolean;
   onChange: (next: OpRetiradaPreview) => void;
+  larguraMmFallback?: number;
 }) {
   const [filtro, setFiltro] = useState('');
   const visiveis = preview.volumes.filter((v) => volumePassaFiltro(v, filtro));
@@ -169,6 +186,7 @@ function PreviewVolumesEscolha({
               />
               <span>
                 <strong>1 volume</strong>
+                {formatMetrosLineares(v, larguraMmFallback) ? ` · ${formatMetrosLineares(v, larguraMmFallback)}` : ''}
                 {` · ${formatLotePick(v)}`}
                 {v.endereco ? ` · ${v.endereco.codigo}` : ' · sem local'}
                 {marcado ? (volumePreviewInteiro(v) ? ' · inteiro' : ' · só parte') : ' · não levar'}
@@ -857,7 +875,17 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   <h4 className="op-pick-line__nome">{opKitNome(r.m)}</h4>
                   <p className="muted op-pick-line__meta">
                     {porVolume
-                      ? `${formatPickPrincipal(r.m, op)} · marcado ${formatVolumesPick(r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0).length)}`
+                      ? `${formatPickPrincipal(r.m, op)} · marcado ${formatVolumesComMetros(
+                          r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0).length,
+                          formatMetrosDeVolumes(
+                            (r.m.retirada?.volumes ?? []).filter((v) =>
+                              r.lista.some(
+                                (p) => p.lote_id === v.lote_id && parseQtdeDigitada(p.qtde) > 0,
+                              ),
+                            ),
+                            larguraMmParaMetro(r.m, op),
+                          ),
+                        )}`
                       : `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade}`}
                   </p>
                 </div>
@@ -1137,7 +1165,11 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   repo.preview,
                   (op.materiais ?? []).find((x) => x.id === repo.materialId),
                 ) === 'volume'
-                  ? formatVolumesPick(nVolumesPreviewMarcados(repo.preview) || repo.preview.volumes.length)
+                  ? rotuloVolumesPreview(
+                      repo.preview,
+                      (op.materiais ?? []).find((x) => x.id === repo.materialId),
+                      op,
+                    )
                   : formatDecimalBr(parseQtdeDigitada(repo.qtde), 4)}
               </h4>
               {modoRetiradaPreview(
@@ -1146,11 +1178,20 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
               ) === 'volume' ? (
                 <>
                   <p className="muted">
-                    Escolha os volumes. Marcado {formatVolumesPick(nVolumesPreviewMarcados(repo.preview))}.
+                    Escolha os volumes. Marcado {rotuloVolumesPreview(
+                      repo.preview,
+                      (op.materiais ?? []).find((x) => x.id === repo.materialId),
+                      op,
+                      true,
+                    )}.
                   </p>
                   <PreviewVolumesEscolha
                     preview={repo.preview}
                     disabled={busy}
+                    larguraMmFallback={(() => {
+                      const mat = (op.materiais ?? []).find((x) => x.id === repo.materialId);
+                      return mat ? larguraMmParaMetro(mat, op) : 0;
+                    })()}
                     onChange={(preview) => setRepo({ ...repo, preview })}
                   />
                   {!mesmosLotes(repo.fefoLotes, lotesMarcadosPreview(repo.preview)) ? (
@@ -1195,18 +1236,31 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
           <p className="muted">
             {extra.sku} ·{' '}
             {modoRetiradaPreview(extra.preview) === 'volume'
-              ? formatVolumesPick(nVolumesPreviewMarcados(extra.preview) || extra.preview.volumes.length)
+              ? rotuloVolumesPreview(
+                  extra.preview,
+                  (op.materiais ?? []).find((x) => x.produto?.codigo === extra.sku),
+                  op,
+                )
               : formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)}{' '}
             — confirme o que pegou.
           </p>
           {modoRetiradaPreview(extra.preview) === 'volume' ? (
             <>
               <p className="muted">
-                Escolha os volumes. Marcado {formatVolumesPick(nVolumesPreviewMarcados(extra.preview))}.
+                Escolha os volumes. Marcado {rotuloVolumesPreview(
+                  extra.preview,
+                  (op.materiais ?? []).find((x) => x.produto?.codigo === extra.sku),
+                  op,
+                  true,
+                )}.
               </p>
               <PreviewVolumesEscolha
                 preview={extra.preview}
                 disabled={busy}
+                larguraMmFallback={(() => {
+                  const mat = (op.materiais ?? []).find((x) => x.produto?.codigo === extra.sku);
+                  return mat ? larguraMmParaMetro(mat, op) : 0;
+                })()}
                 onChange={(preview) => setExtra({ ...extra, preview })}
               />
               {!mesmosLotes(extra.fefoLotes, lotesMarcadosPreview(extra.preview)) ? (
@@ -1295,9 +1349,11 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
 
 export function OpVolumesBaixadosFicha({
   volumes,
+  larguraMmFallback = 0,
 }: {
   volumes: OpRetiradaVolume[];
   unidade?: string;
+  larguraMmFallback?: number;
 }) {
   if (volumes.length === 0) return null;
   return (
@@ -1305,6 +1361,7 @@ export function OpVolumesBaixadosFicha({
       {volumes.map((v, i) => (
         <li key={`${v.lote_id ?? 'q'}-${v.movimento_id ?? i}`}>
           <strong>1 volume</strong>
+          {formatMetrosLineares(v, larguraMmFallback) ? ` · ${formatMetrosLineares(v, larguraMmFallback)}` : ''}
           {v.codigo ? ` · ${formatLotePick(v)}` : ''}
           {v.endereco ? ` · ${v.endereco.codigo}` : ''}
           {v.movimento_codigo ? ` · ${v.movimento_codigo}` : ''}

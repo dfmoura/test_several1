@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { formatLotePick, formatVolumesPick, modoRetirada, nVolumesApontados } from '../lib/producaoPick';
+import {
+  formatLotePick,
+  formatMetrosLineares,
+  formatMetrosLinha,
+  formatPickPrincipal,
+  formatVolumesComMetros,
+  larguraMmParaMetro,
+  modoRetirada,
+  nVolumesApontados,
+} from '../lib/producaoPick';
 import { formatDecimalBr } from '../lib/format';
 import {
   ehMaterialProducao,
@@ -322,7 +331,10 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                     );
                     const porVolume = modoRetirada(m) === 'volume';
                     const nVol = nVolumesApontados(m);
+                    const L = larguraMmParaMetro(m, op);
                     const bobinas = m.retirada?.volumes_baixados ?? [];
+                    const metrosAvaria = formatMetrosLinha(m, op, parseQtdeDigitada(m.qtde_avaria));
+                    const metrosUso = formatMetrosLinha(m, op, consumo);
                     const ehMp = ehMaterialProducao(m);
                     const linhaPapelCritica =
                       ehMp &&
@@ -346,19 +358,23 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                           {porVolume && bobinas.length > 0 ? (
                             <ul className="muted" style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
                               {bobinas.map((v) => (
-                                <li key={v.lote_id ?? v.codigo}>{formatLotePick(v)} · 1 volume</li>
+                                <li key={v.lote_id ?? v.codigo}>
+                                  {formatLotePick(v)} · 1 volume
+                                  {formatMetrosLineares(v, L) ? ` · ${formatMetrosLineares(v, L)}` : ''}
+                                </li>
                               ))}
                             </ul>
                           ) : null}
                         </td>
                         <td>
                           {porVolume
-                            ? formatVolumesPick(nVol)
+                            ? formatPickPrincipal(m, op)
                             : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
                         </td>
                         <td>
                           {parseQtdeDigitada(m.qtde_avaria) > 0
-                            ? `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
+                            ? metrosAvaria ??
+                              `${formatDecimalBr(parseQtdeDigitada(m.qtde_avaria), 4)} ${m.unidade}`
                             : '—'}
                         </td>
                         <td>
@@ -383,7 +399,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                         </td>
                         <td>
                           {porVolume
-                            ? formatVolumesPick(nVol)
+                            ? formatVolumesComMetros(nVol, metrosUso)
                             : `${formatDecimalBr(consumo, 4)} ${m.unidade}`}
                         </td>
                       </tr>

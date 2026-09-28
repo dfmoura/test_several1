@@ -54,6 +54,11 @@ export function formatVolumesPick(n: number): string {
   return n === 1 ? '1 volume' : `${n} volumes`;
 }
 
+export function formatVolumesComMetros(nVol: number, metros: string | null | undefined): string {
+  const vols = formatVolumesPick(nVol);
+  return metros ? `${vols} · ${metros}` : vols;
+}
+
 export function modoRetiradaLabel(modo: ModoRetirada): string {
   return modo === 'volume' ? 'Por volumes' : 'Por unidades';
 }
@@ -70,17 +75,28 @@ export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
   return parseQtdeDigitada(m.produto?.largura_mm);
 }
 
-/** Comprimento real do volume (m). Sem inventar a partir da pista do PED. */
+/** Volume → SKU → pista do PED. Só tela; writer permanece em m². */
+export function larguraMmParaMetro(m: OrdemProducaoMaterial, op?: OrdemProducao | null): number {
+  const direta = larguraMmDoMaterial(m);
+  if (direta > 0) return direta;
+  if (modoRetirada(m) !== 'volume') return 0;
+  return parseQtdeDigitada(op?.pedido_item?.largura_mm);
+}
+
+function m2ParaMetros(m2: number, larguraMm: number): number | null {
+  if (larguraMm <= 0 || m2 <= 0) return null;
+  return m2 / (larguraMm / 1000);
+}
+
+/** Comprimento do volume (m). L×C; senão m² ÷ largura (volume, SKU ou pista). */
 export function metrosLinearesVolume(v: OpRetiradaVolume, larguraMmFallback = 0): number | null {
   const direto = parseQtdeDigitada(v.comprimento_m);
   if (direto > 0) return direto;
   const larguraMm = parseQtdeDigitada(v.largura_mm) || larguraMmFallback;
-  const m2 = qtdeVolumeTotal(v);
+  const m2 = parseQtdeDigitada(v.qtde_retirar) || parseQtdeDigitada(v.qtde_volume);
   const un = (v.unidade ?? '').toUpperCase().replace('²', '2');
-  if (larguraMm > 0 && m2 > 0 && (un === 'M2' || un === 'M²')) {
-    return m2 / (larguraMm / 1000);
-  }
-  return null;
+  if (un === 'UN' || un === 'PC' || un === 'KG') return null;
+  return m2ParaMetros(m2, larguraMm);
 }
 
 export function formatMetrosLineares(v: OpRetiradaVolume, larguraMmFallback = 0): string | null {
@@ -89,16 +105,58 @@ export function formatMetrosLineares(v: OpRetiradaVolume, larguraMmFallback = 0)
   return formatQtdePick(m, 'm');
 }
 
-/** O que o operador lê primeiro: volumes (bobina) ou unidades. */
-export function formatPickPrincipal(m: OrdemProducaoMaterial, _op?: OrdemProducao | null): string {
+export function somaMetrosDeVolumes(vols: OpRetiradaVolume[], larguraMmFallback = 0): number | null {
+  if (vols.length === 0) return null;
+  const metros = vols.map((v) => metrosLinearesVolume(v, larguraMmFallback));
+  if (!metros.every((x): x is number => x != null && x > 0)) return null;
+  return metros.reduce((a, b) => a + b, 0);
+}
+
+export function formatMetrosDeVolumes(vols: OpRetiradaVolume[], larguraMmFallback = 0): string | null {
+  const n = somaMetrosDeVolumes(vols, larguraMmFallback);
+  if (n == null) return null;
+  return formatQtdePick(n, 'm');
+}
+
+export function metrosLinhaMaterial(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+  m2Oficial?: number,
+): number | null {
+  if (modoRetirada(m) !== 'volume') return null;
+  const L = larguraMmParaMetro(m, op);
+  const baixados = m.retirada?.volumes_baixados ?? [];
+  const sugeridos = volumesParaEscolha(m).filter(volumeSugerido);
+  const use = baixados.length > 0 ? baixados : sugeridos.length > 0 ? sugeridos : volumesParaEscolha(m);
+  const somaVols = somaMetrosDeVolumes(use, L);
+  if (somaVols != null) return somaVols;
+  const m2 =
+    m2Oficial != null
+      ? m2Oficial
+      : m.saida_movimento_id
+        ? parseQtdeDigitada(m.qtde_requisitada)
+        : qtdeLinhaPick(m);
+  return m2ParaMetros(m2, L);
+}
+
+export function formatMetrosLinha(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+  m2Oficial?: number,
+): string | null {
+  const n = metrosLinhaMaterial(m, op, m2Oficial);
+  if (n == null) return null;
+  return formatQtdePick(n, 'm');
+}
+
+/** O que o operador lê: volumes, e metro linear quando dá para converter. */
+export function formatPickPrincipal(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
   if (modoRetirada(m) === 'volume') {
-    if (m.saida_movimento_id) {
-      const saiu = nVolumesApontados(m);
-      if (saiu > 0) return formatVolumesPick(saiu);
-    }
-    const n = nVolumesSugeridos(m) || volumesParaEscolha(m).length;
-    if (n > 0) return formatVolumesPick(n);
-    return 'Sem volume';
+    const n = m.saida_movimento_id
+      ? nVolumesApontados(m)
+      : nVolumesSugeridos(m) || volumesParaEscolha(m).length;
+    if (n <= 0) return 'Sem volume';
+    return formatVolumesComMetros(n, formatMetrosLinha(m, op));
   }
   return formatQtdePick(qtdeLinhaPick(m), m.unidade);
 }

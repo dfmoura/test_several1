@@ -5,7 +5,11 @@ import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api'
 import { formatDecimalBr } from '../lib/format';
 import {
   formatLotePick,
+  formatMetrosDeVolumes,
+  formatMetrosLineares,
   formatPickPrincipal,
+  formatVolumesComMetros,
+  larguraMmParaMetro,
   modoRetirada,
   modoRetiradaLabel,
   qtdeVolumeTotal,
@@ -45,6 +49,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const noEstoque = porta === 'chao';
   const podeBaixar = noEstoque && canWrite && estado === 'falta_pegar';
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
+  const larguraFallback = larguraMmParaMetro(material, op);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
   const fefoIds = useMemo(
     () =>
@@ -197,6 +202,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                 volsVisiveis.map((v) => {
                   const id = v.lote_id as number;
                   const on = Boolean(marcados[id]);
+                  const metros = formatMetrosLineares(v, larguraFallback);
                   return (
                     <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
                       <label>
@@ -210,6 +216,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                         ) : null}
                         <span>
                           <strong className="op-escolha__vol-qtde">1 volume</strong>
+                          {metros ? <span className="muted"> · {metros}</span> : null}
                           <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
                           {volumeSugerido(v) ? <span className="muted">sugerido</span> : null}
                           {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
@@ -263,7 +270,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
 
         {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
           <p className="op-escolha__soma">
-            Levar {escolhidos.length === 1 ? '1 volume' : `${escolhidos.length} volumes`}
+            Levar {formatVolumesComMetros(escolhidos.length, formatMetrosDeVolumes(escolhidos, larguraFallback))}
           </p>
         ) : null}
 
