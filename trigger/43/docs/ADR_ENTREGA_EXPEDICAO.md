@@ -78,8 +78,8 @@ Na expedição o operador imprime **os papéis que já existem**, no mesmo envel
 | Papel | Fonte | Rota |
 |-------|--------|------|
 | Romaneio ENT | ENT vigente | `/expedicao/:id/ficha` |
-| DANFE / prévia | primeiro DFS NFE do FAT | `/financeiro/faturamentos/:id/nf/:docId/ficha` |
-| Cobrança | cada TIT aberto/parcial | `/financeiro/faturamentos/:id/cobranca/:tituloId/ficha` |
+| DANFE / prévia | primeiro DFS NFE do FAT | `/faturamentos/:id/nf/:docId/ficha` |
+| Cobrança | cada TIT aberto/parcial | `/faturamentos/:id/cobranca/:tituloId/ficha` |
 | Etiquetas BOB/CX | embalagem PA confirmada | `/pa-embalagens/:embId/etiquetas` |
 
 Não é documento novo. Não baixa TIT. QR de PIX só na ficha de cobrança — nunca na DANFE nem em BOB:/CX:. `expedicao.ler` lê **um** FAT (show) e as etiquetas para imprimir; não lista faturamentos nem confirma embalagem.

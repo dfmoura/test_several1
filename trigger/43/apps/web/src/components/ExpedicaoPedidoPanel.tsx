@@ -13,6 +13,7 @@ import {
   modoEntregaLabel,
   tipoSaidaLabel,
 } from '../lib/expedicaoUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { StatusPill } from './StatusPill';
 
 type Props = {
@@ -204,7 +205,7 @@ export function ExpedicaoPedidoPanel({
               <span>Faturamento</span>
               <strong>
                 {hasPermission('faturamento.ler') ? (
-                  <Link to={`/financeiro/faturamentos/${preview.faturamento.id}`}>
+                  <Link to={hrefFaturamento(preview.faturamento.id)}>
                     {preview.faturamento.codigo}
                   </Link>
                 ) : (

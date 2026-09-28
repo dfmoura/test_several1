@@ -142,10 +142,10 @@ class PainelService
                 'Pedidos produzidos aguardando faturar',
                 $pedFaturar,
                 'inteiro',
-                '/financeiro/faturamentos',
+                '/faturamentos',
                 $pedFaturar > 0,
             );
-            $this->fila($filas, 'ped_faturar', 'Prontos para faturar', 'Produzidos, ainda sem NF/TIT', $pedFaturar, '/financeiro/faturamentos');
+            $this->fila($filas, 'ped_faturar', 'Prontos para faturar', 'Pedido produzido — ainda sem FAT', $pedFaturar, '/faturamentos');
         }
 
         if ($expedicao) {

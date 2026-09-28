@@ -6,6 +6,7 @@ import { StatusPill } from '../components/StatusPill';
 import { api, type Faturamento } from '../lib/api';
 import { formatCurrency, formatDate } from '../lib/format';
 import { nfStatusLabel } from '../lib/fiscalUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { useTableSort } from '../lib/useTableSort';
 
 const SORT = {
@@ -74,7 +75,17 @@ export function FaturamentosPage() {
     <>
       <PageHeader
         title="Faturamentos"
-        description="Documento FAT- do pedido produzido: apropria o sinal e gera as cobranças do saldo. A NF-e (Focus) entra depois, no mesmo documento."
+        description="Pedido produzido: gera o FAT, as cobranças do saldo e a NF. A expedição vem depois. Contas a receber ficam no financeiro."
+        actions={
+          <>
+            <Link className="btn btn-secondary" to="/pedidos">
+              Pedidos
+            </Link>
+            <Link className="btn btn-secondary" to="/expedicao">
+              Expedição
+            </Link>
+          </>
+        }
       />
 
       {erro ? <p className="form-error">{erro}</p> : null}
@@ -143,7 +154,7 @@ export function FaturamentosPage() {
               </thead>
               <tbody>
                 {sorted.map((f) => {
-                  const go = () => navigate(`/financeiro/faturamentos/${f.id}`);
+                  const go = () => navigate(hrefFaturamento(f.id));
                   return (
                     <tr
                       key={f.id}

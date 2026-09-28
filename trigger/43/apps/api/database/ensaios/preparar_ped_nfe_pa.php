@@ -170,7 +170,7 @@ echo 'PED '.$ped->codigo.' '.$ped->status.' id='.$ped->id."\n";
 echo 'URL /pedidos/'.$ped->id."\n";
 if ($fat) {
     echo 'FAT '.$fat->codigo.' id='.$fat->id."\n";
-    echo 'URL /financeiro/faturamentos/'.$fat->id."\n";
+    echo 'URL /faturamentos/'.$fat->id."\n";
 } else {
     echo "FAT pendente — faturar no PED (matriz 340 + etiquetas 3500 = 3840)\n";
 }

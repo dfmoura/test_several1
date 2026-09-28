@@ -9,7 +9,7 @@ import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
 import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz } from '../lib/fiscalUi';
-import { hrefFichaCobranca, tituloPreferidoFicha } from '../lib/cobrancaUi';
+import { hrefFaturamentos, hrefFichaCobranca, tituloPreferidoFicha } from '../lib/cobrancaUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 
 const MOD_FRETE_CIF = '0';
@@ -233,7 +233,7 @@ export function FaturamentoDetailPage() {
         }
         actions={
           <div className="btn-row">
-            <Link to="/financeiro/faturamentos" className="btn btn-secondary">
+            <Link to={hrefFaturamentos()} className="btn btn-secondary">
               Voltar
             </Link>
             {fat?.pedido?.id ? (

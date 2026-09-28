@@ -102,7 +102,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   3. QR só de `pix_copia_cola` / linha digitável da COB vigente.
   4. CTA ao lado de “Imprimir nota” e na grade de títulos.
 - **Aceite:**
-  - [x] Rota `/financeiro/faturamentos/:id/cobranca/:tituloId/ficha`
+  - [x] Rota `/faturamentos/:id/cobranca/:tituloId/ficha` (legado `/financeiro/faturamentos/…` redireciona)
   - [x] FAT detalhe expõe `titulos[].saldo` + `observacao` + PIX
 - **Fora de escopo:** WhatsApp/e-mail oficial · QR inventado · menu novo
 - **Teste local:** Faturar PED → Imprimir cobrança. Ctrl+Shift+R.
@@ -546,8 +546,8 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Depende de:** BL-083 · ADR_IMPLANTACAO_ACEITE · ADR_FATURAMENTO_COBRANCA · ADR_ENTREGA_EXPEDICAO
 - **Referência:** `ImplantacaoCatalogo` onda 4 · `flexorc-superficie.mdc`
 - **Decisão (fechada):**
-  1. Promover **Faturamentos** (Financeiro) e **Expedição** ao menu; estoque/compras/rastreio/NF avulso fora.
-  2. `F4_FATURAR.rota = /financeiro/faturamentos` · `F4_EXPEDIR.rota = /expedicao`.
+  1. Promover **Faturamentos** (grupo próprio, depois da Produção) e **Expedição** ao menu; estoque/compras/rastreio/NF avulso fora. FAT não vive em Financeiro (carteira).
+  2. `F4_FATURAR.rota = /faturamentos` · `F4_EXPEDIR.rota = /expedicao`. Caminho legado `/financeiro/faturamentos` redireciona.
   3. Painel: `modulos.expedicao` + cards/filas faturamento (ped produzido) e expedição (ped faturado + ENT vigente).
 - **Aceite:**
   - [x] Menu AppShell · matriz implantação

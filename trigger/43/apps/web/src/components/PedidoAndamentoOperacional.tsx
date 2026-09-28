@@ -8,6 +8,7 @@ import {
   opStatusLabel,
   pedStatusLabel,
 } from '../lib/producaoUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { statusOrcPill } from '../lib/orcamentoForm';
 
 type Props = {
@@ -133,7 +134,7 @@ export function PedidoAndamentoOperacional({ pedido }: Props) {
             <div className="ped-andamento-body">
               {fat ? (
                 <>
-                  <Link to={`/financeiro/faturamentos/${fat.id}`}>{fat.codigo}</Link>
+                  <Link to={hrefFaturamento(fat.id)}>{fat.codigo}</Link>
                   <StatusPill status={fat.status} />
                 </>
               ) : (

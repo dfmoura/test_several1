@@ -36,32 +36,27 @@ docker compose --env-file .env -f docker-compose.yml -f docker-compose.local.yml
 
 cat <<'EOF'
 
-Pronto para testar — ficha da etiqueta + kit (OP → estoque → produção)
+Pronto para testar — três portas + faturamento
   App:           http://localhost:8043
-  Menu:          Produção → Ordens · Retiradas · Apontamentos
-  OP aberta:     http://localhost:8043/ordens-producao
-  Retiradas:     http://localhost:8043/estoque/retiradas
-  Produção:      http://localhost:8043/ordens-producao/apontamentos
-  Painel:        http://localhost:8043/
   Login:         http://localhost:8043/login
+  Painel:        http://localhost:8043/
+  OP (cesta):    http://localhost:8043/ordens-producao
+  A buscar:      http://localhost:8043/estoque/retiradas
+  Na máquina:    http://localhost:8043/ordens-producao/apontamentos
+  Faturamentos:  http://localhost:8043/faturamentos
+  Legado FAT:    http://localhost:8043/financeiro/faturamentos  (redireciona)
 
-Pré-requisitos
-  • Usuário com producao.ler (Retiradas também aceita estoque.ler)
-  • Confirmar saída: producao.escrever ou estoque.escrever
-  • Receber / devolver sobra / fechar: producao.escrever
-  • OP ABERTA/EM_ANDAMENTO com kit
-  • SKU com lote: volume (qtde > 0) e QR VOL:
+Personas (EMP RETA, mesma senha do admin@retaetiquetas.com.br)
+  • admin@retaetiquetas.com.br — vê tudo
+  • lab.estoque@retaetiquetas.com.br — prateleira (A buscar); sem Na máquina / FAT
+  • lab.producao@retaetiquetas.com.br — máquina; A buscar 403; FAT só leitura
 
 Roteiro
-  1. Hard refresh (Ctrl+Shift+R) em http://localhost:8043
-  2. OP: pick ticket (local enorme → volumes ou unidades → material) + um CTA
-  3. Estoque → Retiradas: 1º local em cima; embaixo cada item
-       · bobina/papel/filme = marque volumes (inteiro por padrão)
-       · tubete/tinta/caixa = informe unidades
-       · Confirmar: saiu do estoque (baixa o físico, não exige casar o planejado)
-  4. Se rasgou: Registrar perda → Pegar de novo
-  5. Produção → receber o kit → devolver sobra → etiquetas boas → Fechar a ordem
-  6. Imprimir lista: ordem + kit
+  1. Hard refresh (Ctrl+Shift+R)
+  2. Admin: menu Faturamento entre Produção e Expedição; Financeiro = pagar/receber
+  3. Estoque: A buscar da OP aberta — bobina em volumes e metros; confirmar baixa
+  4. Produção: Na máquina — receber, produzir, sobra; sem item A buscar
+  5. Faturar PED produzido em /faturamentos
 
 Não inventar saldo. Entrada só via OC/receber ou AJU/INV aprovado.
 

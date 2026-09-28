@@ -338,7 +338,7 @@ SoD: `faturamento.escrever` ≠ `producao.escrever`. `expedicao.escrever` ≠ `f
 | Onde | O que a pessoa vê |
 |------|-------------------|
 | Pedido produzido | Preview humano → **Faturar e gerar cobranças** |
-| Financeiro → Faturamentos | Lista `FAT-`; ficha com itens, sinal, parcelas, NF |
+| Faturamento (após produção, antes da expedição) | Lista `FAT-`; ficha com itens, sinal, parcelas, NF |
 | Ficha da NF | Prévia JSON Focus + DANFE/DANFSe HTML A4 (marca **PRÉVIA SEM VALOR FISCAL** se não oficial) |
 | Expedição | Fila após FATURADO; balcão × transporte |
 | Contas a receber | Aging + ficha + BX; drill até PED/FAT/COB |
@@ -359,8 +359,9 @@ GET  /faturamentos/{id}
 POST /faturamentos/{id}/estornar          { motivo }
 POST /faturamentos/{id}/emitir-nf         mesma ref Focus; promove STUB
 POST /faturamentos/{id}/consultar-nf
-GET  /financeiro/faturamentos/:id/nf/:docId/ficha   (UI satélite, print)
 ```
+
+UI: `/faturamentos` (o caminho legado `/financeiro/faturamentos` redireciona). Ficha NF `/faturamentos/:id/nf/:docId/ficha`.
 
 Escopo: EMP do contexto + `hasEmpresaAccess`. Escrita: `faturamento.escrever`.
 

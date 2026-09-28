@@ -249,7 +249,7 @@ final class ImplantacaoCatalogo
                 'onda' => 4,
                 'superficie' => self::SUPERFICIE_ERP,
                 'elo' => true,
-                'rota' => '/financeiro/faturamentos',
+                'rota' => '/faturamentos',
                 'evidencia' => 'faturamento',
                 'paralelo' => false,
             ],

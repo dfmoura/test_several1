@@ -139,6 +139,22 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Faturamento',
+    items: [
+      {
+        to: '/faturamentos',
+        label: 'Faturamentos',
+        icon: IconOrcamento,
+        permission: 'faturamento.ler',
+        title: 'Pedido produzido vira FAT, cobrança e NF — depois a expedição',
+        isActivePath: (pathname) =>
+          pathname === '/faturamentos' ||
+          pathname.startsWith('/faturamentos/') ||
+          pathname.startsWith('/financeiro/faturamentos'),
+      },
+    ],
+  },
+  {
     label: 'Expedição',
     items: [
       {
@@ -220,15 +236,6 @@ const NAV_GROUPS: NavGroup[] = [
         icon: IconFinanceiro,
         permission: 'financeiro.ler',
       },
-      {
-        to: '/financeiro/faturamentos',
-        label: 'Faturamentos',
-        icon: IconFinanceiro,
-        permission: 'faturamento.ler',
-        isActivePath: (pathname) =>
-          pathname === '/financeiro/faturamentos' ||
-          pathname.startsWith('/financeiro/faturamentos/'),
-      },
     ],
   },
   {
@@ -279,7 +286,11 @@ export function AppShell() {
         : hasPermission(item.permission);
     }),
   }))
-    .filter((group) => produtoFlexorc.financeiro || group.label !== 'Financeiro')
+    .filter(
+      (group) =>
+        produtoFlexorc.financeiro ||
+        (group.label !== 'Financeiro' && group.label !== 'Faturamento'),
+    )
     .filter((group) => group.items.length > 0);
 
   const currentEmpresa = empresas.find((e) => e.id === empresaId);

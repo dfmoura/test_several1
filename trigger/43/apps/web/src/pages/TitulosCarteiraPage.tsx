@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { titStatusLabel } from '../lib/comprasUi';
 import { titFaixaLabel, titFormaLabel, titOrigemLabel, TIT_FORMAS } from '../lib/financeiroUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { formatCurrency, formatDate } from '../lib/format';
 import { useTableSort } from '../lib/useTableSort';
 
@@ -568,7 +569,7 @@ export function TitulosCarteiraPage({ tipo }: Props) {
                   <Link to={`/pedidos/${selected.pedido.id}`}>{selected.pedido.codigo}</Link>
                 ) : null}
                 {selected.faturamento ? (
-                  <Link to={`/financeiro/faturamentos/${selected.faturamento.id}`}>
+                  <Link to={hrefFaturamento(selected.faturamento.id)}>
                     {selected.faturamento.codigo}
                   </Link>
                 ) : null}

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { PlatformShell } from './components/PlatformShell';
 import { useAuth } from './lib/auth';
@@ -146,6 +146,15 @@ function PermissionRoute({
     : check(permission);
   if (!ok) return <Navigate to="/" replace />;
   return <>{children}</>;
+}
+
+/** Caminho legado /financeiro/faturamentos → superfície Faturamento. */
+function RedirectFaturamentoLegado() {
+  const { id, docId, tituloId } = useParams();
+  if (id && docId) return <Navigate to={`/faturamentos/${id}/nf/${docId}/ficha`} replace />;
+  if (id && tituloId) return <Navigate to={`/faturamentos/${id}/cobranca/${tituloId}/ficha`} replace />;
+  if (id) return <Navigate to={`/faturamentos/${id}`} replace />;
+  return <Navigate to="/faturamentos" replace />;
 }
 
 export default function App() {
@@ -541,7 +550,7 @@ export default function App() {
           }
         />
         <Route
-          path="financeiro/faturamentos"
+          path="faturamentos"
           element={
             <PermissionRoute permission="faturamento.ler">
               <FaturamentosPage />
@@ -549,13 +558,15 @@ export default function App() {
           }
         />
         <Route
-          path="financeiro/faturamentos/:id"
+          path="faturamentos/:id"
           element={
             <PermissionRoute permission="faturamento.ler">
               <FaturamentoDetailPage />
             </PermissionRoute>
           }
         />
+        <Route path="financeiro/faturamentos" element={<RedirectFaturamentoLegado />} />
+        <Route path="financeiro/faturamentos/:id" element={<RedirectFaturamentoLegado />} />
         <Route
           path="financeiro/comissoes"
           element={
@@ -932,7 +943,7 @@ export default function App() {
       />
 
       <Route
-        path="/financeiro/faturamentos/:id/nf/:docId/ficha"
+        path="/faturamentos/:id/nf/:docId/ficha"
         element={
           <ProtectedRoute>
             <PermissionRoute permission={['faturamento.ler', 'expedicao.ler']}>
@@ -943,7 +954,7 @@ export default function App() {
       />
 
       <Route
-        path="/financeiro/faturamentos/:id/cobranca/:tituloId/ficha"
+        path="/faturamentos/:id/cobranca/:tituloId/ficha"
         element={
           <ProtectedRoute>
             <PermissionRoute permission={['faturamento.ler', 'expedicao.ler']}>
@@ -951,6 +962,12 @@ export default function App() {
             </PermissionRoute>
           </ProtectedRoute>
         }
+      />
+
+      <Route path="/financeiro/faturamentos/:id/nf/:docId/ficha" element={<RedirectFaturamentoLegado />} />
+      <Route
+        path="/financeiro/faturamentos/:id/cobranca/:tituloId/ficha"
+        element={<RedirectFaturamentoLegado />}
       />
 
       <Route

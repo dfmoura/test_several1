@@ -6,6 +6,7 @@ import {
   formatUnitPrice,
 } from '../lib/format';
 import { docFiscalStatusLabel, docFiscalTipoLabel, nfePodeEventoSefaz } from '../lib/fiscalUi';
+import { hrefFichaNfe } from '../lib/cobrancaUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { StatusPill } from './StatusPill';
 
@@ -66,14 +67,9 @@ export function DocumentoFiscalPreviaCard({
         </div>
         <div className="btn-row">
           <a
-            href={`/financeiro/faturamentos/${faturamentoId}/nf/${doc.id}/ficha`}
+            href={hrefFichaNfe(faturamentoId, doc.id)}
             className="btn btn-secondary"
-            onClick={(e) =>
-              onAbrirFichaClick(
-                e,
-                `/financeiro/faturamentos/${faturamentoId}/nf/${doc.id}/ficha`,
-              )
-            }
+            onClick={(e) => onAbrirFichaClick(e, hrefFichaNfe(faturamentoId, doc.id))}
           >
             Imprimir nota
           </a>

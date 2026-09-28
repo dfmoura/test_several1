@@ -2,12 +2,21 @@ import type { DocumentoFiscalSaida, Faturamento, Titulo } from './api';
 
 const COB_MORTA = new Set(['CANCELADA', 'ESTORNADA', 'FALHA']);
 
+/** Superfície do FAT (não é carteira). Caminho antigo /financeiro/faturamentos redireciona. */
+export function hrefFaturamentos(): string {
+  return '/faturamentos';
+}
+
+export function hrefFaturamento(id: number | string): string {
+  return `/faturamentos/${id}`;
+}
+
 export function hrefFichaCobranca(faturamentoId: number, tituloId: number): string {
-  return `/financeiro/faturamentos/${faturamentoId}/cobranca/${tituloId}/ficha`;
+  return `${hrefFaturamento(faturamentoId)}/cobranca/${tituloId}/ficha`;
 }
 
 export function hrefFichaNfe(faturamentoId: number, documentoId: number): string {
-  return `/financeiro/faturamentos/${faturamentoId}/nf/${documentoId}/ficha`;
+  return `${hrefFaturamento(faturamentoId)}/nf/${documentoId}/ficha`;
 }
 
 export function hrefEtiquetasEmbalagem(embalagemId: number): string {

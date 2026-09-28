@@ -23,6 +23,7 @@ import {
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { pedStatusLabel } from '../lib/producaoUi';
 
 const MOD_FRETE_CIF = '0';
@@ -378,7 +379,7 @@ export function PedidoDetailPage() {
                       <div>
                         <span>Documento</span>
                         <strong>
-                          <Link to={`/financeiro/faturamentos/${preview.faturamento.id}`}>
+                          <Link to={hrefFaturamento(preview.faturamento.id)}>
                             {preview.faturamento.codigo}
                           </Link>
                         </strong>

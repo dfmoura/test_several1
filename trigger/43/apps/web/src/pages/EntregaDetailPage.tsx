@@ -14,6 +14,7 @@ import {
   provaTipoLabel,
   tipoSaidaLabel,
 } from '../lib/expedicaoUi';
+import { hrefFaturamento } from '../lib/cobrancaUi';
 import { pedStatusLabel } from '../lib/producaoUi';
 
 export function EntregaDetailPage() {
@@ -206,7 +207,7 @@ export function EntregaDetailPage() {
                     <span>Faturamento</span>
                     <strong>
                       {hasPermission('faturamento.ler') ? (
-                        <Link to={`/financeiro/faturamentos/${ent.faturamento.id}`}>
+                        <Link to={hrefFaturamento(ent.faturamento.id)}>
                           {ent.faturamento.codigo}
                         </Link>
                       ) : (

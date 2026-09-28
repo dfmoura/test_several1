@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DocumentoFiscalFichaSheet } from '../components/DocumentoFiscalFichaSheet';
 import { api, type DocumentoFiscalSaida, type Faturamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { hrefFaturamento, hrefFaturamentos } from '../lib/cobrancaUi';
 import { voltarDaFicha } from '../lib/fichaNav';
 import { brandDocumentTitle } from '../lib/brand';
 
@@ -65,7 +66,7 @@ export function DocumentoFiscalFichaPage() {
     };
   }, [fat, doc]);
 
-  const voltarPath = id ? `/financeiro/faturamentos/${id}` : '/financeiro/faturamentos';
+  const voltarPath = id ? hrefFaturamento(id) : hrefFaturamentos();
 
   return (
     <div className="ficha-page">

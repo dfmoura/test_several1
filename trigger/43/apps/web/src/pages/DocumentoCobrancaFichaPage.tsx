@@ -4,6 +4,7 @@ import { DocumentoCobrancaFichaSheet } from '../components/DocumentoCobrancaFich
 import { api, type Faturamento, type Titulo } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { brandDocumentTitle } from '../lib/brand';
+import { hrefFaturamento, hrefFaturamentos } from '../lib/cobrancaUi';
 import { voltarDaFicha } from '../lib/fichaNav';
 
 export function DocumentoCobrancaFichaPage() {
@@ -59,7 +60,7 @@ export function DocumentoCobrancaFichaPage() {
     };
   }, [fat, titulo]);
 
-  const voltarPath = id ? `/financeiro/faturamentos/${id}` : '/financeiro/faturamentos';
+  const voltarPath = id ? hrefFaturamento(id) : hrefFaturamentos();
 
   return (
     <div className="ficha-page">
