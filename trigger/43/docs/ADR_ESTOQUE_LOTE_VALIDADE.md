@@ -65,6 +65,10 @@ Operador pode desligar/ligar no cadastro. Validade sem lote é inválida (o sist
 4. Isolamento EMP: lote nunca cruza `empresa_id`.  
 5. Mesmo código de lote no mesmo SKU/EMP acumula qtde (mesmo batch do fornecedor).
 
+### Emenda 2026-09-28 — consulta sem físico zerado
+
+`GET /estoque/saldos` (lista da posição) e `GET /estoque/lotes?com_qtde=1` **não listam qtde ≤ 0**. Registro zerado permanece no banco (extrato, AJU com `produto_id`, auditoria). Sem segundo writer e sem apagar histórico.
+
 ## Fora de escopo
 
 - Endereço (rua/estante)  

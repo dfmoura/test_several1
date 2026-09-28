@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { formatoLabel } from './FacaShapeIcon';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
-import { formatPickPrincipal } from '../lib/producaoPick';
+import { formatNecessidadeOp } from '../lib/producaoPick';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import { specOperacional } from '../lib/producaoFicha';
 import {
@@ -131,7 +131,7 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
                     <strong>{opKitNome(m)}</strong>
                     {onde !== '—' ? <span className="op-carrinho__onde">{onde}</span> : null}
                   </div>
-                  <div className="op-carrinho__qtde">{formatPickPrincipal(m, op)}</div>
+                  <div className="op-carrinho__qtde">Precisa {formatNecessidadeOp(m, op)}</div>
                   <span className={`op-carrinho__st op-carrinho__st--${estado}`}>
                     {opKitEstadoLabel(estado)}
                   </span>

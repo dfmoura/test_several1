@@ -15,7 +15,9 @@ import {
   formatLotePick,
   formatMetrosDeVolumes,
   formatMetrosLineares,
+  formatNecessidadeOp,
   formatPickPrincipal,
+  formatQtdeMaterial,
   formatVolumesComMetros,
   larguraMmParaMetro,
   modoRetirada,
@@ -756,34 +758,34 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                     </div>
                   </td>
                   <td>
-                    {mat && porVolume
-                      ? formatPickPrincipal(mat, op)
+                    {mat
+                      ? formatNecessidadeOp(mat, op)
                       : `${formatDecimalBr(Number(l.planejado), 4)} ${l.unidade}`}
                   </td>
                   <td>
-                    {parseQtdeDigitada(l.requisitado) > 0
-                      ? `${formatDecimalBr(Number(l.requisitado), 4)} ${l.unidade}`
-                      : '—'}
+                    {mat
+                      ? formatQtdeMaterial(mat, op, parseQtdeDigitada(l.requisitado))
+                      : parseQtdeDigitada(l.requisitado) > 0
+                        ? `${formatDecimalBr(Number(l.requisitado), 4)} ${l.unidade}`
+                        : '—'}
                   </td>
                   <td>
-                    {parseQtdeDigitada(l.avaria) > 0 ? (
-                      <>
-                        {formatDecimalBr(Number(l.avaria), 4)} {l.unidade}
-                        {l.motivo_avaria ? (
-                          <div className="muted" style={{ fontSize: '0.85em' }}>
-                            {l.motivo_avaria}
-                          </div>
-                        ) : null}
-                      </>
-                    ) : (
-                      '—'
-                    )}
+                    {mat
+                      ? formatQtdeMaterial(mat, op, parseQtdeDigitada(l.avaria))
+                      : parseQtdeDigitada(l.avaria) > 0
+                        ? `${formatDecimalBr(Number(l.avaria), 4)} ${l.unidade}`
+                        : '—'}
+                    {l.motivo_avaria && parseQtdeDigitada(l.avaria) > 0 ? (
+                      <div className="muted" style={{ fontSize: '0.85em' }}>
+                        {l.motivo_avaria}
+                      </div>
+                    ) : null}
                   </td>
                   <td>
                     {l.pendente ? (
                       <strong>
-                        {mat && porVolume
-                          ? formatPickPrincipal(mat, op)
+                        {mat
+                          ? formatQtdeMaterial(mat, op, parseQtdeDigitada(l.a_retirar))
                           : `${formatDecimalBr(Number(l.a_retirar), 4)} ${l.unidade}`}
                       </strong>
                     ) : (
@@ -849,8 +851,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   <p className="op-pick-line__modo">{modoRetiradaLabel(porVolume ? 'volume' : 'unidade')}</p>
                   <h4 className="op-pick-line__nome">{opKitNome(r.m)}</h4>
                   <p className="muted op-pick-line__meta">
+                    Precisa {formatNecessidadeOp(r.m, op)}
                     {porVolume
-                      ? `${formatPickPrincipal(r.m, op)} · marcado ${formatVolumesComMetros(
+                      ? ` · marcado ${formatVolumesComMetros(
                           r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0).length,
                           formatMetrosDeVolumes(
                             (r.m.retirada?.volumes ?? []).filter((v) =>
@@ -861,7 +864,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                             larguraMmParaMetro(r.m, op),
                           ),
                         )}`
-                      : `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade}`}
+                      : ''}
                   </p>
                 </div>
               </header>

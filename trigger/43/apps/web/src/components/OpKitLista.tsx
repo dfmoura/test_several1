@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { StatusPill } from './StatusPill';
 import type { OrdemProducao, OrdemProducaoMaterial } from '../lib/api';
-import { formatPickPrincipal } from '../lib/producaoPick';
+import { formatNecessidadeOp } from '../lib/producaoPick';
 import {
   hrefFichaEstoque,
   opComponenteLabel,
@@ -81,7 +81,7 @@ export function OpKitLista({ op, podeAbrirEstoque }: Props) {
                       <span className="muted">{m.produto.codigo}</span>
                     ) : null}
                   </div>
-                  <div className="op-kit__qtde">{formatPickPrincipal(m, op)}</div>
+                  <div className="op-kit__qtde">Precisa {formatNecessidadeOp(m, op)}</div>
                   <div className="op-kit__onde muted">{onde === '—' ? 'Sem local' : onde}</div>
                   <div className="op-kit__estado">
                     <StatusPill status={opKitEstadoLabel(estado)} />

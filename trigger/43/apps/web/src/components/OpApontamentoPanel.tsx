@@ -6,6 +6,7 @@ import {
   formatLotePick,
   formatMetrosLineares,
   formatMetrosLinha,
+  formatNecessidadeOp,
   formatPickPrincipal,
   formatVolumesComMetros,
   larguraMmParaMetro,
@@ -278,9 +279,10 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                   <li key={m.id}>
                     <strong>{opKitNome(m)}</strong>
                     <span>
+                      Precisa {formatNecessidadeOp(m, op)}
                       {porVolume
-                        ? formatPickPrincipal(m, op)
-                        : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
+                        ? ` · chegou ${formatPickPrincipal(m, op)}`
+                        : ` · chegou ${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
                     </span>
                     {porVolume && bobinas.length > 0 ? (
                       <ul>
@@ -350,6 +352,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 <thead>
                   <tr>
                     <th>Material</th>
+                    <th>Precisa</th>
                     <th>Saiu</th>
                     <th>Rasgou</th>
                     <th>Devolver sobra</th>
@@ -407,6 +410,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                             </ul>
                           ) : null}
                         </td>
+                        <td>{formatNecessidadeOp(m, op)}</td>
                         <td>
                           {porVolume
                             ? formatPickPrincipal(m, op)

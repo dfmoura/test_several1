@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { formatPickPrincipal, modoRetirada } from '../lib/producaoPick';
+import { formatNecessidadeOp, formatPickPrincipal, modoRetirada } from '../lib/producaoPick';
 import { hrefFichaEstoque, parseQtdeDigitada } from '../lib/producaoUi';
 
 type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
@@ -166,6 +166,7 @@ export function OrdemProducaoDetailPage() {
                       <thead>
                         <tr>
                           <th>Material</th>
+                          <th>Precisa</th>
                           <th>Saiu</th>
                           <th>Sobra</th>
                           <th>Perda</th>
@@ -184,6 +185,7 @@ export function OrdemProducaoDetailPage() {
                                   </div>
                                 ) : null}
                               </td>
+                              <td>{formatNecessidadeOp(m, op)}</td>
                               <td>
                                 {modoRetirada(m) === 'volume'
                                   ? formatPickPrincipal(m, op)

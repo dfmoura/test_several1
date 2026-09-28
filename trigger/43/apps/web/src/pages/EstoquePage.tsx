@@ -155,10 +155,10 @@ export function EstoquePage() {
 
   const lotesFiltrados = useMemo(() => {
     return lotes.filter((l) => {
+      if (!(Number(l.qtde) > 0)) return false;
       if (validadeFiltro && l.status !== validadeFiltro) return false;
       if (produtoLoteFiltro && l.produto_id !== produtoLoteFiltro) return false;
       if (qtdeVolumeFiltro && !mesmaQtdeEstoque(l.qtde, qtdeVolumeFiltro)) return false;
-      if (qtdeVolumeFiltro && Number(l.qtde) <= 0) return false;
       if (dimVolumeFiltro) {
         if (!mesmaDimensaoVolume(l, dimVolumeFiltro)) return false;
       }
@@ -204,7 +204,7 @@ export function EstoquePage() {
         const [s, m, l] = await Promise.all([
           api.get<{ data: EstoqueSaldo[] }>('/estoque/saldos'),
           api.get<{ data: EstoqueMovimento[] }>('/estoque/movimentos'),
-          api.get<{ data: EstoqueLote[] }>('/estoque/lotes'),
+          api.get<{ data: EstoqueLote[] }>('/estoque/lotes?com_qtde=1'),
         ]);
         setSaldos(s.data);
         setMovs(m.data);

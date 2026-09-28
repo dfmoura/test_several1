@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OpFiltroVolumes } from './OpFiltroVolumes';
 import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
-import { formatDecimalBr } from '../lib/format';
 import {
   formatLotePick,
   formatMetrosDeVolumes,
   formatMetrosLineares,
-  formatPickPrincipal,
+  formatNecessidadeOp,
   formatVolumesComMetros,
   larguraMmParaMetro,
   modoRetirada,
@@ -161,16 +160,15 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <p className="op-escolha__tipo">{tipo}</p>
             <h2 id="op-escolha-title">{opKitNome(material)}</h2>
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
+            <p className="op-escolha__precisa">
+              <span>Precisa</span>
+              <strong>{formatNecessidadeOp(material, op)}</strong>
+            </p>
             <p className="muted">
               {noEstoque
                 ? 'O que marcar aqui sai da prateleira. A produção recebe depois, na máquina.'
                 : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
-              {modoRetiradaLabel(modo)}
-              {modo === 'volume'
-                ? ` · ${formatPickPrincipal(material, op)}`
-                : alvo > 0
-                  ? ` · ${formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} ${material.unidade}`
-                  : ''}
+              {modoRetiradaLabel(modo)}.
             </p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
@@ -245,12 +243,10 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                   disabled={busy}
                   onChange={(e) => setQtdeUn(e.target.value)}
                 />
-                <p className="muted">{material.unidade}</p>
+                <p className="muted">Informe o que vai levar agora.</p>
               </>
             ) : (
-              <p className="muted">
-                {formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} {material.unidade} nesta cesta.
-              </p>
+              <p className="muted">Quem tira da prateleira informa as unidades no estoque.</p>
             )}
           </div>
         )}

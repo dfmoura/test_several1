@@ -45,7 +45,7 @@ Duas pessoas, duas telas — o motor é o mesmo.
 
 Menu: **A buscar** vive em Estoque (`estoque.ler`). **Na máquina** vive em Produção (`producao.ler`). Confirmar saída exige `estoque.escrever`; receber na máquina exige `producao.escrever`. O papel PRODUCAO não busca na prateleira.
 
-**Overlay, ficha e apontamento:** quantidade da bobina = **volumes** e, ao lado, **metro linear** (volume / SKU / pista do PED). Writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo.
+**Kit (azulejo / lista / overlay):** cada material mostra **quanto a OP precisa** (`qtde_planejada`). Bobina: **metro linear da pista do PED** (m² ÷ largura_cm da spec) **e** m². Largura do volume na prateleira não redefine o pedido. Marcar **volumes**; writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo.
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
 

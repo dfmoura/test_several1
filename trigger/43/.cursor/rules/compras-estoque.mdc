@@ -26,6 +26,7 @@ Extensões:
 - UX menu Compras = **Ordens** · **A repor** · **Estoque** (Saldos/Movimentos · Inventários · Ajustes).
 - Contagem de inventário **cega** (API/UI sem saldo sistema para o contador).
 - XML só preenche; humano confirma conferência.
+- Posição / volumes: lista só o que tem físico (`qtde > 0`). Zero permanece no banco (extrato, AJU por `produto_id`).
 - SKU com `controla_lote`: entrada/saída/ajuste amarram `estoque_lotes` (código, data de entrada, validade). Custo médio permanece no SKU. Consumo FEFO se o lote não for informado.
 - Genealogia pós-OP: leitura de `SAIDA_PRODUCAO` + origens do lote até o instante da saída (fornecedor/NF/OC). Sem tabela paralela; sem inventar NF em SKU sem lote.
 - NF-e Focus autorizada → MOV `SAIDA_VENDA` (PA/REV da qtde faturada). Stub/prévia/NFS-e não baixam. Saldo só via `EstoqueSaldoWriter`.

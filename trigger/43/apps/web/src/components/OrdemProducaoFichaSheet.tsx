@@ -12,7 +12,7 @@ import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { formatPickPrincipal } from '../lib/producaoPick';
+import { formatNecessidadeOp } from '../lib/producaoPick';
 import {
   opKitEstado,
   opKitEstadoLabel,
@@ -157,7 +157,7 @@ export function OrdemProducaoFichaSheet({
                         <div className="ficha-muted">{m.produto.codigo}</div>
                       ) : null}
                     </td>
-                    <td>{formatPickPrincipal(m, o)}</td>
+                    <td>{formatNecessidadeOp(m, o)}</td>
                     <td>{opKitOnde(m) === '—' ? 'Sem local' : opKitOnde(m)}</td>
                     <td>{opKitEstadoLabel(estado)}</td>
                   </tr>

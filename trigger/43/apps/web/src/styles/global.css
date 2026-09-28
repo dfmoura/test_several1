@@ -12167,8 +12167,20 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 
 .op-kit-tile__qtde {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
   font-size: 1.15rem;
   font-weight: 700;
+  line-height: 1.25;
+}
+
+.op-kit-tile__qtde-kicker {
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b82;
 }
 
 .op-kit-tile__st {
@@ -12274,6 +12286,27 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   font-size: 1.65rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: #1a3568;
+}
+
+.op-escolha__precisa {
+  margin: 0.55rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.op-escolha__precisa span {
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b82;
+}
+
+.op-escolha__precisa strong {
+  font-size: 1.2rem;
+  font-weight: 800;
   color: #1a3568;
 }
 

@@ -1496,7 +1496,7 @@ class OrdemProducaoService
         return (string) $raw;
     }
 
-    /** Pista do item do PED (largura_cm) — fallback de tela quando o volume/SKU não tem L. */
+    /** Pista do item do PED (largura_cm → mm) — conversão de tela m² → metro linear da necessidade. */
     public static function larguraMmEspecificacao(mixed $spec): ?string
     {
         if (is_string($spec)) {

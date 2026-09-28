@@ -5,7 +5,7 @@ import { OpEscolhaOverlay } from './OpEscolhaOverlay';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
-import { formatPickPrincipal, opKitLinhasOrdenadas } from '../lib/producaoPick';
+import { formatNecessidadeOp, opKitLinhasOrdenadas } from '../lib/producaoPick';
 import { specOperacional } from '../lib/producaoFicha';
 import {
   hrefApontamentoProducao,
@@ -121,7 +121,10 @@ export function OpKitPainel({
                 >
                   <span className="op-kit-tile__tipo">{tipo}</span>
                   <span className="op-kit-tile__nome">{opKitNome(m)}</span>
-                  <span className="op-kit-tile__qtde">{formatPickPrincipal(m, op)}</span>
+                  <span className="op-kit-tile__qtde">
+                    <span className="op-kit-tile__qtde-kicker">Precisa</span>
+                    {formatNecessidadeOp(m, op)}
+                  </span>
                   <span className="op-kit-tile__st">{opKitEstadoLabel(estado)}</span>
                 </button>
               );

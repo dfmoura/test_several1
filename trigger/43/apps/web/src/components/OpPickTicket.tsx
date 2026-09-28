@@ -4,7 +4,7 @@ import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
-  formatPickPrincipal,
+  formatNecessidadeOp,
   modoRetirada,
   modoRetiradaLabel,
   opKitLinhasOrdenadas,
@@ -99,7 +99,7 @@ export function OpPickTicket({
         <div className="pick__next">
           <p className="pick__next-kicker">1º — vá neste local</p>
           <p className="pick__bin">{opKitOnde(proxima) === '—' ? 'Sem local' : opKitOnde(proxima)}</p>
-          <p className="pick__qty">{formatPickPrincipal(proxima, op)}</p>
+          <p className="pick__qty">Precisa {formatNecessidadeOp(proxima, op)}</p>
           <p className="pick__modo">{modoRetiradaLabel(modoRetirada(proxima))}</p>
           <p className="pick__item">{opKitNome(proxima)}</p>
           {cta ? (
@@ -149,7 +149,7 @@ export function OpPickTicket({
               <li key={m.id} className={`pick__walk-item pick__walk-item--${estado}`}>
                 <span className="pick__walk-n">{proxima ? i + 2 : i + 1}</span>
                 <span className="pick__walk-bin">{onde === '—' ? 'Sem local' : onde}</span>
-                <span className="pick__walk-qty">{formatPickPrincipal(m, op)}</span>
+                <span className="pick__walk-qty">Precisa {formatNecessidadeOp(m, op)}</span>
                 <span className="pick__walk-nome">{opKitNome(m)}</span>
                 <span className="pick__walk-st">{opKitEstadoLabel(estado)}</span>
               </li>

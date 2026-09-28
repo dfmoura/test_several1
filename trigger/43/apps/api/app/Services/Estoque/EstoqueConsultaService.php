@@ -97,6 +97,10 @@ class EstoqueConsultaService
     }
 
     /**
+     * Posição de estoque (consulta).
+     * Lista geral omite qtde ≤ 0 — físico zerado não polui a tela.
+     * Com produto_id (AJU / ficha): devolve o SKU mesmo zerado.
+     *
      * @return list<array<string, mixed>>
      */
     public function listSaldos(Empresa $empresa, ?string $q = null, ?int $produtoId = null): array
@@ -110,7 +114,10 @@ class EstoqueConsultaService
             ->orderBy('produto_id');
 
         if ($produtoId) {
+            // AJU / ficha do SKU: precisa ver zero. Posição geral: só o que tem físico.
             $query->where('produto_id', $produtoId);
+        } else {
+            $query->where('qtde', '>', 0);
         }
 
         if ($q) {

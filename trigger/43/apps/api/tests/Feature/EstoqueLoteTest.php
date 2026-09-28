@@ -411,6 +411,64 @@ class EstoqueLoteTest extends TestCase
         $this->assertSame(1, $milVinte['volumes']);
     }
 
+    public function test_consulta_saldos_omite_zerados_na_posicao(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $comSaldo = $this->criarProduto('MP-PAP-093', 'MP', 'MP-PAP', true, true, 548);
+        $zerado = $this->criarProduto('MP-PAP-094', 'MP', 'MP-PAP', true, true, 549);
+
+        app(EstoqueSaldoWriter::class)->aplicarEntrada($this->empresa, $comSaldo, '3.0000', '10.00', [
+            'codigo' => 'VOL-OK',
+            'data_entrada' => '2026-08-01',
+            'data_validade' => '2027-08-01',
+        ]);
+
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $zerado->id,
+            'qtde' => '0.0000',
+            'unidade' => 'M2',
+            'custo_medio' => '0.000000',
+        ]);
+
+        $lista = $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/saldos')
+            ->assertOk()
+            ->json('data');
+
+        $codigos = collect($lista)->pluck('produto.codigo')->all();
+        $this->assertContains('MP-PAP-093', $codigos);
+        $this->assertNotContains('MP-PAP-094', $codigos);
+
+        $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/saldos?produto_id='.$zerado->id)
+            ->assertOk()
+            ->assertJsonPath('data.0.produto.codigo', 'MP-PAP-094')
+            ->assertJsonPath('data.0.qtde', '0.0000');
+
+        EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $zerado->id,
+            'codigo' => 'VOL-ZERO',
+            'data_entrada' => '2026-08-01',
+            'data_validade' => '2027-08-01',
+            'qtde' => '0.0000',
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_VIRADA,
+        ]);
+
+        $lotesComQtde = $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/lotes?com_qtde=1')
+            ->assertOk()
+            ->json('data');
+        $this->assertNotContains('VOL-ZERO', collect($lotesComQtde)->pluck('codigo')->all());
+
+        $this->withHeaders(['X-Empresa-Id' => (string) $this->empresa->id])
+            ->getJson('/api/v1/estoque/lotes?produto_id='.$zerado->id.'&com_qtde=1')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_movimento_item_carrega_lote_id(): void
     {
         $produto = $this->criarProduto('MP-FLM-001', 'MP', 'MP-FLM', true, true, 548);

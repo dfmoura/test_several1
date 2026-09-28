@@ -344,6 +344,7 @@ function formatoPassaBusca(
 function formatosDaApi(s: ItemPosicao['saldo'], q: string): FormatoPosicao[] {
   const out: FormatoPosicao[] = [];
   for (const row of s.saldos_por_dimensao ?? []) {
+    if (!loteComSaldo(row.qtde)) continue;
     const fmt: FormatoPosicao = {
       key: `f-${s.id}-${chaveDimensao(row)}`,
       qtde: row.qtde,
@@ -440,6 +441,7 @@ export function itensPosicao<T extends ItemPosicao['saldo']>(
   const out: Array<{ saldo: T; formatos: FormatoPosicao[] }> = [];
 
   for (const saldo of saldos) {
+    if (!loteComSaldo(saldo.qtde)) continue;
     if (fam && saldo.produto?.familia !== fam) continue;
     const formatos = formatosDoSaldo(saldo, q);
     if (q.trim()) {

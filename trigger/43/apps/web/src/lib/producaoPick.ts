@@ -75,12 +75,27 @@ export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
   return parseQtdeDigitada(m.produto?.largura_mm);
 }
 
-/** Volume → SKU → pista do PED. Só tela; writer permanece em m². */
+/** Volume → SKU → pista do PED. Dimensão do que está na prateleira. */
 export function larguraMmParaMetro(m: OrdemProducaoMaterial, op?: OrdemProducao | null): number {
   const direta = larguraMmDoMaterial(m);
   if (direta > 0) return direta;
   if (modoRetirada(m) !== 'volume') return 0;
   return parseQtdeDigitada(op?.pedido_item?.largura_mm);
+}
+
+/**
+ * Largura do pedido da OP (pista), não do volume que estiver na prateleira.
+ * m² planejado ÷ esta largura = metro linear que a ordem precisa.
+ */
+export function larguraMmNecessidadeOp(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+): number {
+  const pista = parseQtdeDigitada(op?.pedido_item?.largura_mm);
+  if (pista > 0) return pista;
+  const sku = parseQtdeDigitada(m.produto?.largura_mm);
+  if (sku > 0) return sku;
+  return larguraMmDoMaterial(m);
 }
 
 function m2ParaMetros(m2: number, larguraMm: number): number | null {
@@ -158,7 +173,7 @@ export function formatPickPrincipal(m: OrdemProducaoMaterial, op?: OrdemProducao
     if (n <= 0) return 'Sem volume';
     return formatVolumesComMetros(n, formatMetrosLinha(m, op));
   }
-  return formatQtdePick(qtdeLinhaPick(m), m.unidade);
+  return formatQtdePick(qtdeLinhaPick(m), unidadeExibicao(m.unidade));
 }
 
 export function nVolumesApontados(m: OrdemProducaoMaterial): number {
@@ -169,6 +184,52 @@ export function nVolumesApontados(m: OrdemProducaoMaterial): number {
 
 export function qtdeLinhaPick(m: OrdemProducaoMaterial): number {
   return parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
+}
+
+/** Unidade da OP na tela (m², não M2 de planilha). */
+export function unidadeExibicao(unidade: string | null | undefined): string {
+  const u = (unidade ?? '').trim();
+  if (!u) return 'UN';
+  const n = u.toUpperCase().replace('²', '2');
+  if (n === 'M2') return 'm²';
+  return u;
+}
+
+/** Metro linear que a OP precisa (m² planejado ÷ largura). Só bobina. */
+export function metrosNecessidadeOp(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+): number | null {
+  if (modoRetirada(m) !== 'volume') return null;
+  return m2ParaMetros(qtdeLinhaPick(m), larguraMmNecessidadeOp(m, op));
+}
+
+/**
+ * Qtde de material na língua da tela. Bobina: metro linear (pista) + m². Writer segue m².
+ */
+export function formatQtdeMaterial(
+  m: OrdemProducaoMaterial,
+  op: OrdemProducao | null | undefined,
+  qtde: number,
+): string {
+  if (!(qtde > 0)) return '—';
+  const oficial = formatQtdePick(qtde, unidadeExibicao(m.unidade));
+  if (modoRetirada(m) !== 'volume') return oficial;
+  const metros = m2ParaMetros(qtde, larguraMmNecessidadeOp(m, op));
+  if (metros == null) return oficial;
+  return `${formatQtdePick(metros, 'm')} · ${oficial}`;
+}
+
+/**
+ * Quanto a OP pede deste material (`qtde_planejada`).
+ */
+export function formatNecessidadeOp(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+): string {
+  const n = qtdeLinhaPick(m);
+  if (n <= 0) return 'Sem quantidade';
+  return formatQtdeMaterial(m, op, n);
 }
 
 /** Caminhada de estoque: local primeiro (WMS). Sem local vai no fim. */
