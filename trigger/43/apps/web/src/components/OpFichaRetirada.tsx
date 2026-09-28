@@ -135,7 +135,7 @@ function PreviewVolumesEscolha({
       />
     <ul className="op-pick-vols">
       {visiveis.length === 0 ? (
-        <li className="muted">Nenhuma bobina com esse filtro.</li>
+        <li className="muted">Nenhum volume com esse filtro.</li>
       ) : visiveis.map((v) => {
         const marcado = parseQtdeDigitada(v.qtde_retirar) > 0;
         return (
@@ -163,9 +163,10 @@ function PreviewVolumesEscolha({
                 }
               />
               <span>
-                <strong>{formatLotePick(v)}</strong>
+                <strong>1 volume</strong>
+                {` · ${formatLotePick(v)}`}
                 {v.endereco ? ` · ${v.endereco.codigo}` : ' · sem local'}
-                {marcado ? (volumePreviewInteiro(v) ? ' · volume inteiro' : ' · só parte') : ' · não levar'}
+                {marcado ? (volumePreviewInteiro(v) ? ' · inteiro' : ' · só parte') : ' · não levar'}
               </span>
             </label>
             {marcado && !volumePreviewInteiro(v) ? (

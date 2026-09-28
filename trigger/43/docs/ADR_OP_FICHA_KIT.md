@@ -41,7 +41,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | Estoque · Retiradas | Os mesmos azulejos + overlay. Perda / pegar de novo / entregar depois da baixa. | Mega-lista, abas de módulo na ficha |
 | Produção | Receber, devolver sobra, etiquetas boas, fechar | Avaria da mesa (fica no estoque) |
 
-**Overlay e apontamento:** a mesma conversão — metro linear (volume → SKU → pista do PED). Writer e concluir ficam em m². Filtro do overlay casa o lote da bobina, não o SKU. Sem segundo saldo. Sem inventar L×C no lote.
+**Overlay e apontamento:** bobina = **volumes** (inteiro). Azulejo mostra quantos volumes há (ou já saíram). Writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo. Sem inventar L×C.
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
 

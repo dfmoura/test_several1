@@ -55,7 +55,7 @@ export function formatVolumesPick(n: number): string {
 }
 
 export function modoRetiradaLabel(modo: ModoRetirada): string {
-  return modo === 'volume' ? 'Metro linear' : 'Por unidades';
+  return modo === 'volume' ? 'Por volumes' : 'Por unidades';
 }
 
 export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
@@ -70,59 +70,7 @@ export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
   return parseQtdeDigitada(m.produto?.largura_mm);
 }
 
-/** Volume → SKU → pista do PED. Só conversão de tela; writer permanece em m². */
-export function larguraMmParaMetro(m: OrdemProducaoMaterial, op?: OrdemProducao | null): number {
-  const direta = larguraMmDoMaterial(m);
-  if (direta > 0) return direta;
-  if (modoRetirada(m) !== 'volume') return 0;
-  return parseQtdeDigitada(op?.pedido_item?.largura_mm);
-}
-
-export function apontaEmMetroLinear(m: OrdemProducaoMaterial, op?: OrdemProducao | null): boolean {
-  return modoRetirada(m) === 'volume' && larguraMmParaMetro(m, op) > 0;
-}
-
-export function m2ParaMetrosLineares(m2: number, larguraMm: number): number {
-  return m2 / (larguraMm / 1000);
-}
-
-export function metrosLinearesParaM2(metros: number, larguraMm: number): number {
-  return metros * (larguraMm / 1000);
-}
-
-export function unidadeApontamento(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
-  return apontaEmMetroLinear(m, op) ? 'm' : m.unidade;
-}
-
-export function qtdeTelaApontamento(
-  m: OrdemProducaoMaterial,
-  qtdeOficial: string | number | null | undefined,
-  op?: OrdemProducao | null,
-): number {
-  const n = parseQtdeDigitada(qtdeOficial);
-  const L = larguraMmParaMetro(m, op);
-  if (apontaEmMetroLinear(m, op) && L > 0) return m2ParaMetrosLineares(n, L);
-  return n;
-}
-
-export function qtdeOficialApontamento(
-  m: OrdemProducaoMaterial,
-  qtdeTela: string | number | null | undefined,
-  op?: OrdemProducao | null,
-): string {
-  const n = parseQtdeDigitada(qtdeTela);
-  const L = larguraMmParaMetro(m, op);
-  if (apontaEmMetroLinear(m, op) && L > 0) return String(metrosLinearesParaM2(n, L));
-  return String(n);
-}
-
-export function formatQtdeCampo(n: number): string {
-  if (!Number.isFinite(n)) return '0';
-  const r = Math.round(n * 1e4) / 1e4;
-  return String(r);
-}
-
-/** Comprimento da bobina (m). L×C do volume; senão m² ÷ largura (volume ou SKU). */
+/** Comprimento real do volume (m). Sem inventar a partir da pista do PED. */
 export function metrosLinearesVolume(v: OpRetiradaVolume, larguraMmFallback = 0): number | null {
   const direto = parseQtdeDigitada(v.comprimento_m);
   if (direto > 0) return direto;
@@ -141,23 +89,24 @@ export function formatMetrosLineares(v: OpRetiradaVolume, larguraMmFallback = 0)
   return formatQtdePick(m, 'm');
 }
 
-/** O que o operador lê primeiro: metro linear (bobina) ou unidades. */
-export function formatPickPrincipal(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
+/** O que o operador lê primeiro: volumes (bobina) ou unidades. */
+export function formatPickPrincipal(m: OrdemProducaoMaterial, _op?: OrdemProducao | null): string {
   if (modoRetirada(m) === 'volume') {
-    const vols = volumesParaEscolha(m).filter(volumeSugerido);
-    const fallback = larguraMmParaMetro(m, op);
-    const metros = vols.map((v) => metrosLinearesVolume(v, fallback));
-    if (vols.length > 0 && metros.every((x): x is number => x != null && x > 0)) {
-      return formatQtdePick(
-        metros.reduce((acc, n) => acc + n, 0),
-        'm',
-      );
+    if (m.saida_movimento_id) {
+      const saiu = nVolumesApontados(m);
+      if (saiu > 0) return formatVolumesPick(saiu);
     }
-    const n = nVolumesSugeridos(m);
+    const n = nVolumesSugeridos(m) || volumesParaEscolha(m).length;
     if (n > 0) return formatVolumesPick(n);
-    return 'Escolha bobinas';
+    return 'Sem volume';
   }
   return formatQtdePick(qtdeLinhaPick(m), m.unidade);
+}
+
+export function nVolumesApontados(m: OrdemProducaoMaterial): number {
+  const baixados = m.retirada?.volumes_baixados?.length ?? 0;
+  if (baixados > 0) return baixados;
+  return nVolumesSugeridos(m);
 }
 
 export function qtdeLinhaPick(m: OrdemProducaoMaterial): number {
