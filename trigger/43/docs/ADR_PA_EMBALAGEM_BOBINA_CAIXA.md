@@ -124,6 +124,25 @@ tubete / caixa_medida / saida_etiqueta ← snapshot
 
 - Models: `PaEmbalagem` · `PaEmbalagemBobina` · `PaEmbalagemCaixa`  
 - `PaEmbalagemService` · `PaEmbalagemController`  
-- Eco: `FocusPayloadBuilder` · `EntregaService` · `FaturamentoService` · OP show  
+- Eco: `FocusPayloadBuilder` · `NfeXmlBuilder` · `EntregaService` · `FaturamentoService` · OP show  
 - UI: bloco OP · etiquetas BOB/CX  
-- Testes: `PaEmbalagemTest`
+- Testes: `PaEmbalagemTest` · `EmissaoFiscalSaidaTest` (volumes + infAdProd)
+
+---
+
+## Emenda 2026-09-28 — `infAdProd` com bobinas (comp)
+
+O eixo comercial permanece: **`qCom` = etiquetas**; **`qVol` = caixas**.
+
+O que faltava era o **detalhe físico por item** nas observações (padrão Exact/Thermotag de mercado):
+
+| Campo | Conteúdo |
+|-------|----------|
+| `infAdProd` (por item FAT) | `N BOB · M CX · tubete … · saida … · medida … · comp: axQUN+bxRUN` |
+| `infCpl` | Pedido/FAT + eco curto `N BOB · M CX` (sem repetir o detalhe do item) |
+| Amarrio | embalagem via `pedido_item_id` da linha; se o PED tem só 1 embalagem, fallback nela |
+| Volumes | Σ caixas de **todas** as embalagens confirmadas do PED |
+
+`resumoTexto()` continua na UI (inclui etiquetas). `textoFiscalItem()` é só para NF.
+
+**Proibido (inalterado):** `qCom` em BOB/CX; segundo escritor de saldo.

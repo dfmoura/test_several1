@@ -185,18 +185,72 @@ class PaEmbalagemService
     }
 
     /**
+     * Embalagens confirmadas do PED (1 por OP/item), mais recente primeiro.
+     *
+     * @return \Illuminate\Support\Collection<int, PaEmbalagem>
+     */
+    public function confirmadasDoPedido(Empresa $empresa, Pedido $pedido)
+    {
+        return PaEmbalagem::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('pedido_id', $pedido->id)
+            ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
+            ->with('bobinas')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    public function vigenteDoPedidoItem(Empresa $empresa, int $pedidoId, ?int $pedidoItemId): ?PaEmbalagem
+    {
+        if ($pedidoItemId === null || $pedidoItemId < 1) {
+            return null;
+        }
+
+        return PaEmbalagem::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('pedido_id', $pedidoId)
+            ->where('pedido_item_id', $pedidoItemId)
+            ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
+            ->with('bobinas')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function resumoPedido(Empresa $empresa, Pedido $pedido): ?array
     {
-        $emb = $this->vigenteDoPedido($empresa, $pedido);
-        if (! $emb) {
+        $todos = $this->confirmadasDoPedido($empresa, $pedido);
+        if ($todos->isEmpty()) {
             return null;
         }
 
-        $emb->loadMissing(['bobinas', 'caixas']);
+        if ($todos->count() === 1) {
+            $emb = $todos->first();
+            $emb->loadMissing(['bobinas', 'caixas']);
 
-        return $this->toOut($emb, false);
+            return $this->toOut($emb, false);
+        }
+
+        $bobinas = (int) $todos->sum('qtde_bobinas');
+        $caixas = (int) $todos->sum('qtde_caixas');
+        $etiquetas = '0';
+        foreach ($todos as $e) {
+            $etiquetas = bcadd($etiquetas, (string) $e->qtde_etiquetas, PadraoDecimal::SCALE_QTY);
+        }
+
+        return [
+            'multipla' => true,
+            'qtde_etiquetas' => $etiquetas,
+            'qtde_bobinas' => $bobinas,
+            'qtde_caixas' => $caixas,
+            'resumo' => $todos->count().' itens · '
+                .number_format((float) $etiquetas, 0, ',', '.').' etiquetas · '
+                .$bobinas.' bobina'.($bobinas === 1 ? '' : 's').' · '
+                .$caixas.' caixa'.($caixas === 1 ? '' : 's'),
+            'pedido_id' => $pedido->id,
+        ];
     }
 
     /**
@@ -252,7 +306,7 @@ class PaEmbalagemService
     }
 
     /**
-     * Texto para NF (infAd / contribuinte).
+     * Texto para NF-e item (infAdProd) — bobinas + detalhe; ≤500 chars.
      */
     public function textoFiscal(?PaEmbalagem $emb): ?string
     {
@@ -260,7 +314,59 @@ class PaEmbalagemService
             return null;
         }
 
-        return $emb->resumoTexto();
+        $emb->loadMissing('bobinas');
+
+        return mb_substr($emb->textoFiscalItem(), 0, 500);
+    }
+
+    /**
+     * Eco curto para infCpl (sem repetir o detalhe do item).
+     *
+     * @param  \Illuminate\Support\Collection<int, PaEmbalagem>|iterable<int, PaEmbalagem>  $embs
+     */
+    public function textoFiscalEco(iterable $embs): ?string
+    {
+        $bobinas = 0;
+        $caixas = 0;
+        $n = 0;
+        foreach ($embs as $e) {
+            if (! $e instanceof PaEmbalagem) {
+                continue;
+            }
+            $n++;
+            $bobinas += (int) $e->qtde_bobinas;
+            $caixas += (int) $e->qtde_caixas;
+        }
+        if ($n < 1 || ($bobinas < 1 && $caixas < 1)) {
+            return null;
+        }
+
+        return $bobinas.' BOB · '.$caixas.' CX';
+    }
+
+    /**
+     * Resolve embalagem do item fiscal (pedido_item_id); fallback 1 embalagem no PED.
+     *
+     * @param  \Illuminate\Support\Collection<int, PaEmbalagem>  $embs
+     */
+    public function resolverParaItem($embs, ?int $pedidoItemId): ?PaEmbalagem
+    {
+        if ($embs->isEmpty()) {
+            return null;
+        }
+        if ($pedidoItemId !== null && $pedidoItemId > 0) {
+            $hit = $embs->first(
+                fn (PaEmbalagem $e) => (int) $e->pedido_item_id === $pedidoItemId
+            );
+            if ($hit) {
+                return $hit;
+            }
+        }
+        if ($embs->count() === 1) {
+            return $embs->first();
+        }
+
+        return null;
     }
 
     /**
@@ -274,6 +380,24 @@ class PaEmbalagemService
 
         return [
             'quantidade' => (int) $emb->qtde_caixas,
+            'especie' => 'CAIXA',
+        ];
+    }
+
+    /**
+     * Volumes de transporte do PED = Σ caixas de todas as embalagens confirmadas.
+     *
+     * @return array{quantidade: int, especie: string}|null
+     */
+    public function volumesTransportePedido(Empresa $empresa, Pedido $pedido): ?array
+    {
+        $caixas = (int) $this->confirmadasDoPedido($empresa, $pedido)->sum('qtde_caixas');
+        if ($caixas < 1) {
+            return null;
+        }
+
+        return [
+            'quantidade' => $caixas,
             'especie' => 'CAIXA',
         ];
     }

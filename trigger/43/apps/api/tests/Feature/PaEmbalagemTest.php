@@ -227,4 +227,46 @@ class PaEmbalagemTest extends TestCase
         }
         $this->assertSame('3200.0000', $soma);
     }
+
+    public function test_texto_fiscal_prioriza_bobinas_e_composicao(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $this->assertNotNull($emb);
+
+        $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
+        $this->assertNotNull($texto);
+        $this->assertStringContainsString('5 BOB', $texto);
+        $this->assertStringContainsString('1 CX', $texto);
+        $this->assertStringContainsString('tubete 3"', $texto);
+        $this->assertStringContainsString('saida ESQUERDA', $texto);
+        $this->assertStringContainsString('comp: 5x1000UN', $texto);
+        $this->assertStringNotContainsString('etiquetas', $texto);
+
+        $ui = $emb->resumoTexto();
+        $this->assertStringContainsString('etiquetas', $ui);
+    }
+
+    public function test_texto_fiscal_agrega_resto_na_composicao(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->op->qtde_boa = '3200.0000';
+        $this->op->save();
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", [])
+            ->assertOk();
+
+        $emb = app(PaEmbalagemService::class)->vigenteDaOp($this->empresa, $this->op->fresh());
+        $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
+        $this->assertNotNull($texto);
+        $this->assertStringContainsString('4 BOB', $texto);
+        $this->assertStringContainsString('comp: 3x1000UN+1x200UN', $texto);
+    }
 }

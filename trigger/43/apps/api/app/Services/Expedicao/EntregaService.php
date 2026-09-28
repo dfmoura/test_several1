@@ -582,9 +582,9 @@ class EntregaService
 
     private function volumesSugeridos(Empresa $empresa, Pedido $pedido): int
     {
-        $emb = $this->embalagem->vigenteDoPedido($empresa, $pedido);
-        if ($emb && $emb->qtde_caixas >= 1) {
-            return (int) $emb->qtde_caixas;
+        $vol = $this->embalagem->volumesTransportePedido($empresa, $pedido);
+        if ($vol && ($vol['quantidade'] ?? 0) >= 1) {
+            return (int) $vol['quantidade'];
         }
 
         $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];

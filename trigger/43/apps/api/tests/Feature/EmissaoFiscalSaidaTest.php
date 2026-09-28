@@ -656,6 +656,8 @@ class EmissaoFiscalSaidaTest extends TestCase
             'qtde_caixas' => 3,
             'etiq_por_rolo' => 1000,
             'rolos_por_caixa' => 4,
+            'tubete' => '3"',
+            'saida_etiqueta' => 'ESQUERDA',
             'origem' => \App\Models\PaEmbalagem::ORIGEM_MANUAL,
             'confirmada_em' => now(),
         ]);
@@ -667,5 +669,16 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame([
             ['quantidade' => '3', 'especie' => 'CAIXA'],
         ], $payload['volumes'] ?? null);
+
+        $infAd = $payload['items'][0]['informacoes_adicionais_produto'] ?? null;
+        $this->assertIsString($infAd);
+        $this->assertStringContainsString('10 BOB', $infAd);
+        $this->assertStringContainsString('3 CX', $infAd);
+        $this->assertStringContainsString('tubete 3"', $infAd);
+        $this->assertStringContainsString('saida ESQUERDA', $infAd);
+        $this->assertStringNotContainsString('etiquetas', $infAd);
+
+        $infCpl = (string) ($payload['informacoes_adicionais_contribuinte'] ?? '');
+        $this->assertStringContainsString('10 BOB · 3 CX', $infCpl);
     }
 }

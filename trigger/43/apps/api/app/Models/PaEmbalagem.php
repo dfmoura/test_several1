@@ -88,6 +88,9 @@ class PaEmbalagem extends Model
         return $this->hasMany(PaEmbalagemCaixa::class, 'embalagem_id')->orderBy('sequencia');
     }
 
+    /**
+     * Resumo operacional (UI OP/FAT) — inclui etiquetas.
+     */
     public function resumoTexto(): string
     {
         $parts = [
@@ -100,5 +103,66 @@ class PaEmbalagem extends Model
         }
 
         return implode(' · ', $parts);
+    }
+
+    /**
+     * Texto canônico para NF-e item (infAdProd) — bobinas em evidência.
+     * qCom continua em etiquetas; aqui só o físico (ADR_PA_EMBALAGEM_BOBINA_CAIXA).
+     */
+    public function textoFiscalItem(): string
+    {
+        $parts = [
+            $this->qtde_bobinas.' BOB',
+            $this->qtde_caixas.' CX',
+        ];
+        if ($this->tubete) {
+            $parts[] = 'tubete '.$this->tubete;
+        }
+        if ($this->saida_etiqueta) {
+            $parts[] = 'saida '.$this->saida_etiqueta;
+        }
+        if ($this->caixa_medida) {
+            $parts[] = 'medida '.$this->caixa_medida;
+        }
+        $comp = $this->composicaoBobinasTexto();
+        if ($comp !== null && $comp !== '') {
+            $parts[] = 'comp: '.$comp;
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    /**
+     * Agrega bobinas por qtde (estilo Exact/Thermotag): 8x1000UN+2x500UN.
+     */
+    public function composicaoBobinasTexto(): ?string
+    {
+        $this->loadMissing('bobinas');
+        if ($this->bobinas->isEmpty()) {
+            return null;
+        }
+
+        $grupos = [];
+        foreach ($this->bobinas as $b) {
+            $fmt = self::fmtQtdeCurta((string) $b->qtde_etiquetas);
+            $grupos[$fmt] = ($grupos[$fmt] ?? 0) + 1;
+        }
+
+        $chunks = [];
+        foreach ($grupos as $qtde => $n) {
+            $chunks[] = $n.'x'.$qtde.'UN';
+        }
+
+        return implode('+', $chunks);
+    }
+
+    private static function fmtQtdeCurta(string $qtde): string
+    {
+        $q = PadraoDecimal::roundHalfUp($qtde, PadraoDecimal::SCALE_QTY);
+        if (bccomp($q, PadraoDecimal::roundHalfUp($q, 0), PadraoDecimal::SCALE_QTY) === 0) {
+            return number_format((float) $q, 0, '', '');
+        }
+
+        return rtrim(rtrim($q, '0'), '.') ?: '0';
     }
 }

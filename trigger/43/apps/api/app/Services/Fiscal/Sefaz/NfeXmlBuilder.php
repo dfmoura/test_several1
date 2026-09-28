@@ -64,11 +64,16 @@ final class NfeXmlBuilder
         ]);
 
         $fat->loadMissing(['transportador', 'titulos', 'pedido']);
-        $emb = $fat->pedido_id
-            ? $this->embalagem->vigenteDoPedido($empresa, $fat->pedido ?? Pedido::query()->find((int) $fat->pedido_id))
+        $pedido = $fat->pedido_id
+            ? ($fat->pedido ?? Pedido::query()->find((int) $fat->pedido_id))
             : null;
-        $embTexto = $this->embalagem->textoFiscal($emb);
-        $volTransp = $this->embalagem->volumesTransporte($emb);
+        $embs = $pedido instanceof Pedido
+            ? $this->embalagem->confirmadasDoPedido($empresa, $pedido)
+            : collect();
+        $volTransp = $pedido instanceof Pedido
+            ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
+            : null;
+        $ecoCpl = $this->embalagem->textoFiscalEco($embs);
         $modFrete = $this->modFrete($fat);
         $idDest = $ufEmp === $ufDest ? 1 : 2;
         $cMunFG = preg_replace('/\D/', '', (string) $empresa->ibge) ?: '0000000';
@@ -101,6 +106,10 @@ final class NfeXmlBuilder
                 0,
                 120
             ));
+            $pedidoItemId = isset($linha['pedido_item_id']) ? (int) $linha['pedido_item_id'] : null;
+            $embTexto = $this->embalagem->textoFiscal(
+                $this->embalagem->resolverParaItem($embs, $pedidoItemId)
+            );
             $infAd = $embTexto ? '<infAdProd>'.$this->esc(mb_substr($embTexto, 0, 500)).'</infAdProd>' : '';
             $cest = preg_replace('/\D/', '', (string) ($produto?->cest ?? '')) ?: '';
             $cestXml = $cest !== '' ? '<CEST>'.$cest.'</CEST>' : '';
@@ -138,7 +147,7 @@ final class NfeXmlBuilder
         $emitXml = $this->emitXml($empresa, $cnpjEmp, $ufEmp);
         $transpXml = $this->transpXml($fat, $modFrete, $volTransp);
         $pagXml = $this->pagXml($fat, $valor);
-        $infCpl = $this->infAdicionais($fat, $embTexto);
+        $infCpl = $this->infAdicionais($fat, $ecoCpl);
 
         $infNFe = '<infNFe Id="NFe'.$chave.'" versao="4.00">'
             .'<ide>'

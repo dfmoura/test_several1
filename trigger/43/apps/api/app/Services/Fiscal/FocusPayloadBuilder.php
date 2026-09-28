@@ -41,11 +41,16 @@ class FocusPayloadBuilder
         $valor = $this->soma($itens);
         $emissao = now()->timezone('America/Sao_Paulo')->format('Y-m-d\TH:i:sP');
 
-        $emb = $fat->pedido_id
-            ? $this->embalagem->vigenteDoPedido($empresa, $fat->pedido ?? Pedido::query()->findOrFail((int) $fat->pedido_id))
+        $pedido = $fat->pedido_id
+            ? ($fat->pedido ?? Pedido::query()->findOrFail((int) $fat->pedido_id))
             : null;
-        $embTexto = $this->embalagem->textoFiscal($emb);
-        $volTransp = $this->embalagem->volumesTransporte($emb);
+        $embs = $pedido
+            ? $this->embalagem->confirmadasDoPedido($empresa, $pedido)
+            : collect();
+        $volTransp = $pedido
+            ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
+            : null;
+        $ecoCpl = $this->embalagem->textoFiscalEco($embs);
 
         $fat->loadMissing('transportador');
         $modFrete = $this->modalidadeFreteDoFat($fat);
@@ -88,6 +93,10 @@ class FocusPayloadBuilder
                 'pis_situacao_tributaria' => $produto?->cst_pis ?: FiscalSaidaDefaults::CST_PIS,
                 'cofins_situacao_tributaria' => $produto?->cst_cofins ?: FiscalSaidaDefaults::CST_COFINS,
             ];
+            $pedidoItemId = isset($linha['pedido_item_id']) ? (int) $linha['pedido_item_id'] : null;
+            $embTexto = $this->embalagem->textoFiscal(
+                $this->embalagem->resolverParaItem($embs, $pedidoItemId)
+            );
             if ($embTexto) {
                 $item['informacoes_adicionais_produto'] = mb_substr($embTexto, 0, 500);
             }
@@ -133,7 +142,7 @@ class FocusPayloadBuilder
             'valor_produtos' => $valor,
             'valor_total' => $valor,
             'modalidade_frete' => $modFrete,
-            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat, $embTexto),
+            'informacoes_adicionais_contribuinte' => $this->infAdicionais($fat, $ecoCpl),
             'formas_pagamento' => [[
                 'indicador_pagamento' => count($fat->titulos ?? []) > 1 ? 1 : 0,
                 'forma_pagamento' => FiscalSaidaDefaults::formaPagamentoFocus($fat->forma_pagamento, $saldoZero),

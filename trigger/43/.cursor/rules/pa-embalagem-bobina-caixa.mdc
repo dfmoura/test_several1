@@ -20,8 +20,10 @@ Norma: `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
 OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
   → embalar (sugerir do ORC → humano confirma)
   → bobinas (BOB:) + caixas (CX:)
-  → FAT/NF: qCom = etiquetas; volumes = caixas; infAd = resumo
-  → ENT: volumes default = qtde_caixas
+  → FAT/NF: qCom = etiquetas; volumes = Σ caixas;
+             infAdProd = N BOB · M CX · tubete · saida · comp (por pedido_item_id);
+             infCpl = eco curto BOB/CX
+  → ENT: volumes default = Σ caixas
 ```
 
 ## Faça
@@ -30,6 +32,7 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - Σ bobinas = `qtde_boa`. Saldo PA intacto no Writer.
 - QR `BOB:` e `CX:` (Elgin 50×40). Distintos de `VOL:` / `END:`.
 - Soft-aviso no FAT se PA sem embalagem; sem hard-block.
+- `infAdProd` por item via `pedido_item_id`; composição agregada (`NxQtdeUN`).
 
 ## Não faça
 
@@ -38,5 +41,6 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - MOV na embalagem ou no ENT.
 - Misturar bobina de PA com bobina de insumo Exact.
 - Explodir SKU por bobina/caixa.
+- Repetir o detalhe completo do item no `infCpl`.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
