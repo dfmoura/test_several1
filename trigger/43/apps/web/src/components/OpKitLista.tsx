@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
 import { StatusPill } from './StatusPill';
 import type { OrdemProducao, OrdemProducaoMaterial } from '../lib/api';
-import { formatDecimalBr } from '../lib/format';
+import { formatPickPrincipal } from '../lib/producaoPick';
 import {
   hrefFichaEstoque,
   opComponenteLabel,
   opKitEstado,
   opKitEstadoLabel,
   opKitOnde,
-  parseQtdeDigitada,
 } from '../lib/producaoUi';
 
 type Props = {
@@ -73,7 +72,6 @@ export function OpKitLista({ op, podeAbrirEstoque }: Props) {
           <ul className="op-kit__lista">
             {linhas.map((m) => {
               const estado = opKitEstado(m);
-              const qtde = parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
               const onde = opKitOnde(m);
               return (
                 <li key={m.id} className={`op-kit__item op-kit__item--${estado}`}>
@@ -83,9 +81,7 @@ export function OpKitLista({ op, podeAbrirEstoque }: Props) {
                       <span className="muted">{m.produto.codigo}</span>
                     ) : null}
                   </div>
-                  <div className="op-kit__qtde">
-                    {formatDecimalBr(qtde, 4)} {m.unidade}
-                  </div>
+                  <div className="op-kit__qtde">{formatPickPrincipal(m, op)}</div>
                   <div className="op-kit__onde muted">{onde === '—' ? 'Sem local' : onde}</div>
                   <div className="op-kit__estado">
                     <StatusPill status={opKitEstadoLabel(estado)} />

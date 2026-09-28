@@ -12,13 +12,13 @@ import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
+import { formatPickPrincipal } from '../lib/producaoPick';
 import {
   opKitEstado,
   opKitEstadoLabel,
   opKitNome,
   opKitOnde,
   opStatusLabel,
-  parseQtdeDigitada,
 } from '../lib/producaoUi';
 import { dash, formatDateTimeBr, opChipClass } from '../lib/producaoFicha';
 
@@ -33,12 +33,6 @@ export type OrdemProducaoFichaSheetProps = {
   emitidoPor: string;
   emitidoEm: Date;
 };
-
-function qty(value: string | number | null | undefined, unidade?: string | null, digits = 4): string {
-  const body = formatDecimalBr(value, digits);
-  if (body === '—') return '—';
-  return unidade ? `${body} ${unidade}` : body;
-}
 
 export function OrdemProducaoFichaSheet({
   ordem: o,
@@ -154,8 +148,6 @@ export function OrdemProducaoFichaSheet({
               {materiais.map((m, i) => {
                 const estado = opKitEstado(m);
                 const nome = opKitNome(m);
-                const qtde =
-                  parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
                 return (
                   <tr key={m.id}>
                     <td>{i + 1}</td>
@@ -165,7 +157,7 @@ export function OrdemProducaoFichaSheet({
                         <div className="ficha-muted">{m.produto.codigo}</div>
                       ) : null}
                     </td>
-                    <td>{qty(qtde, m.unidade)}</td>
+                    <td>{formatPickPrincipal(m, o)}</td>
                     <td>{opKitOnde(m) === '—' ? 'Sem local' : opKitOnde(m)}</td>
                     <td>{opKitEstadoLabel(estado)}</td>
                   </tr>

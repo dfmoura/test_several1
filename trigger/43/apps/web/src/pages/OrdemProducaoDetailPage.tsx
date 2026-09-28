@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
+import { formatPickPrincipal, modoRetirada } from '../lib/producaoPick';
 import { hrefFichaEstoque, parseQtdeDigitada } from '../lib/producaoUi';
 
 type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
@@ -183,13 +184,23 @@ export function OrdemProducaoDetailPage() {
                                 ) : null}
                               </td>
                               <td>
-                                {formatDecimalBr(Number(m.qtde_requisitada), 4)} {m.unidade}
+                                {modoRetirada(m) === 'volume'
+                                  ? formatPickPrincipal(m, op)
+                                  : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
                               </td>
                               <td>
-                                {formatDecimalBr(Number(m.qtde_retorno), 4)} {m.unidade}
+                                {modoRetirada(m) === 'volume'
+                                  ? parseQtdeDigitada(m.qtde_retorno) > 0
+                                    ? `${formatDecimalBr(Number(m.qtde_retorno), 4)} ${m.unidade}`
+                                    : '—'
+                                  : `${formatDecimalBr(Number(m.qtde_retorno), 4)} ${m.unidade}`}
                               </td>
                               <td>
-                                {formatDecimalBr(Number(m.qtde_perda), 4)} {m.unidade}
+                                {modoRetirada(m) === 'volume'
+                                  ? parseQtdeDigitada(m.qtde_perda) > 0
+                                    ? `${formatDecimalBr(Number(m.qtde_perda), 4)} ${m.unidade}`
+                                    : '—'
+                                  : `${formatDecimalBr(Number(m.qtde_perda), 4)} ${m.unidade}`}
                               </td>
                             </tr>
                           ))}

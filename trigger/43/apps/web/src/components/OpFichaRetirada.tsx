@@ -14,6 +14,7 @@ import { OpFiltroVolumes } from './OpFiltroVolumes';
 import {
   formatLotePick,
   formatPickPrincipal,
+  formatVolumesPick,
   modoRetirada,
   modoRetiradaLabel,
   modoRetiradaPreview,
@@ -84,6 +85,10 @@ function somaPicks(picks: PickRow[]): number {
 
 function somaPreviewMarcados(preview: OpRetiradaPreview): number {
   return preview.volumes.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde_retirar), 0);
+}
+
+function nVolumesPreviewMarcados(preview: OpRetiradaPreview): number {
+  return preview.volumes.filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0).length;
 }
 
 function qtdeCanon(n: number): string {
@@ -522,7 +527,11 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
         preview: porVolume ? previewComVolumesInteiros(res.data) : res.data,
         fefoLotes: lotesFefo(res.data),
       });
-      setMsg(`Reposição ${material.produto?.codigo ?? 'SKU'} · ${formatDecimalBr(parseQtdeDigitada(qtde), 4)} ${material.unidade}.`);
+      setMsg(
+        porVolume
+          ? `Reposição ${material.produto?.codigo ?? 'SKU'} · escolha os volumes.`
+          : `Reposição ${material.produto?.codigo ?? 'SKU'} · ${formatDecimalBr(parseQtdeDigitada(qtde), 4)} ${material.unidade}.`,
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao preparar a reposição.');
     } finally {
@@ -848,7 +857,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   <h4 className="op-pick-line__nome">{opKitNome(r.m)}</h4>
                   <p className="muted op-pick-line__meta">
                     {porVolume
-                      ? `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade} · marcado ${formatDecimalBr(r.soma, 4)} ${r.m.unidade}`
+                      ? `${formatPickPrincipal(r.m, op)} · marcado ${formatVolumesPick(r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0).length)}`
                       : `Pedido ${formatDecimalBr(r.alvo, 4)} ${r.m.unidade}`}
                   </p>
                 </div>
@@ -887,15 +896,14 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                                 }}
                               />
                               <span>
-                                <strong>{p.codigo}</strong>
+                                <strong>1 volume</strong>
+                                {` · ${formatLotePick({ codigo: p.codigo, lote_id: p.lote_id })}`}
                                 {p.endereco ? ` · ${p.endereco}` : ' · sem local'}
                                 {marcado
                                   ? volumeInteiro(p)
-                                    ? ' · volume inteiro'
+                                    ? ' · inteiro'
                                     : ' · só parte'
                                   : ' · não levar'}
-                                {' · '}
-                                {formatDecimalBr(Number(p.qtde_volume), 4)} {p.unidade}
                                 {!p.sugerido ? ' · fora da sugestão' : ''}
                               </span>
                             </label>
@@ -951,10 +959,9 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                         {r.m.retirada!.candidatos.map((c) => (
                           <li key={c.lote_id ?? c.codigo}>
                             <span>
-                              <strong>{c.codigo}</strong>
+                              <strong>1 volume</strong>
+                              {` · ${formatLotePick(c)}`}
                               {c.endereco ? ` · ${c.endereco.codigo}` : ' · sem local'}
-                              {' · '}
-                              {formatDecimalBr(Number(c.qtde_volume ?? 0), 4)} {c.unidade}
                             </span>
                             <button
                               type="button"
@@ -1066,7 +1073,10 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
               <div key={m.id} className="op-ficha__avaria">
                 <strong>{m.produto?.codigo ?? 'SKU'}</strong>
                 <span className="muted">
-                  Já saiu {formatDecimalBr(parseQtdeDigitada(m.qtde_requisitada), 4)} {m.unidade}
+                  Já saiu{' '}
+                  {modoRetirada(m) === 'volume'
+                    ? formatPickPrincipal(m, op)
+                    : `${formatDecimalBr(parseQtdeDigitada(m.qtde_requisitada), 4)} ${m.unidade}`}
                 </span>
                 <div className="op-ficha__avaria-row">
                   <div className="form-group">
@@ -1122,7 +1132,13 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
             <div className="op-retirada" style={{ marginTop: '0.85rem' }}>
               <h4 style={{ margin: '0 0 0.35rem' }}>
                 Reposição · {(op.materiais ?? []).find((x) => x.id === repo.materialId)?.produto?.codigo}{' '}
-                · {formatDecimalBr(parseQtdeDigitada(repo.qtde), 4)}
+                ·{' '}
+                {modoRetiradaPreview(
+                  repo.preview,
+                  (op.materiais ?? []).find((x) => x.id === repo.materialId),
+                ) === 'volume'
+                  ? formatVolumesPick(nVolumesPreviewMarcados(repo.preview) || repo.preview.volumes.length)
+                  : formatDecimalBr(parseQtdeDigitada(repo.qtde), 4)}
               </h4>
               {modoRetiradaPreview(
                 repo.preview,
@@ -1130,8 +1146,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
               ) === 'volume' ? (
                 <>
                   <p className="muted">
-                    Escolha os volumes. Marcado {formatDecimalBr(somaPreviewMarcados(repo.preview), 4)}{' '}
-                    {repo.preview.unidade}.
+                    Escolha os volumes. Marcado {formatVolumesPick(nVolumesPreviewMarcados(repo.preview))}.
                   </p>
                   <PreviewVolumesEscolha
                     preview={repo.preview}
@@ -1178,13 +1193,16 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
         <div className="op-ficha__bloco">
           <h4>Acrescentado no kit</h4>
           <p className="muted">
-            {extra.sku} · {formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)} — confirme o que pegou.
+            {extra.sku} ·{' '}
+            {modoRetiradaPreview(extra.preview) === 'volume'
+              ? formatVolumesPick(nVolumesPreviewMarcados(extra.preview) || extra.preview.volumes.length)
+              : formatDecimalBr(parseQtdeDigitada(extra.qtde), 4)}{' '}
+            — confirme o que pegou.
           </p>
           {modoRetiradaPreview(extra.preview) === 'volume' ? (
             <>
               <p className="muted">
-                Escolha os volumes. Marcado {formatDecimalBr(somaPreviewMarcados(extra.preview), 4)}{' '}
-                {extra.preview.unidade}.
+                Escolha os volumes. Marcado {formatVolumesPick(nVolumesPreviewMarcados(extra.preview))}.
               </p>
               <PreviewVolumesEscolha
                 preview={extra.preview}
@@ -1277,20 +1295,18 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
 
 export function OpVolumesBaixadosFicha({
   volumes,
-  unidade,
 }: {
   volumes: OpRetiradaVolume[];
-  unidade: string;
+  unidade?: string;
 }) {
   if (volumes.length === 0) return null;
   return (
     <ul className="op-retirada__baixados">
       {volumes.map((v, i) => (
         <li key={`${v.lote_id ?? 'q'}-${v.movimento_id ?? i}`}>
-          {v.codigo ? <strong>{v.codigo}</strong> : <strong>Quantidade</strong>}
+          <strong>1 volume</strong>
+          {v.codigo ? ` · ${formatLotePick(v)}` : ''}
           {v.endereco ? ` · ${v.endereco.codigo}` : ''}
-          {' · '}
-          {formatDecimalBr(Number(v.qtde_retirar), 4)} {v.unidade || unidade}
           {v.movimento_codigo ? ` · ${v.movimento_codigo}` : ''}
         </li>
       ))}

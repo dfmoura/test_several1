@@ -5,9 +5,7 @@ import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api'
 import { formatDecimalBr } from '../lib/format';
 import {
   formatLotePick,
-  formatMetrosLineares,
-  formatVolumeDimensao,
-  formatVolumeTotal,
+  formatPickPrincipal,
   modoRetirada,
   modoRetiradaLabel,
   qtdeVolumeTotal,
@@ -159,7 +157,11 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
             <p className="muted">
               {modoRetiradaLabel(modo)}
-              {alvo > 0 ? ` · a ordem pede ${formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} ${material.unidade}` : ''}
+              {modo === 'volume'
+                ? ` · ${formatPickPrincipal(material, op)}`
+                : alvo > 0
+                  ? ` · a ordem pede ${formatDecimalBr(alvo, alvo % 1 === 0 ? 0 : 2)} ${material.unidade}`
+                  : ''}
             </p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
@@ -191,7 +193,6 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                 volsVisiveis.map((v) => {
                   const id = v.lote_id as number;
                   const on = Boolean(marcados[id]);
-                  const dim = formatVolumeDimensao(v);
                   return (
                     <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
                       <label>
@@ -204,16 +205,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                         <span>
                           <strong className="op-escolha__vol-qtde">1 volume</strong>
                           <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
-                          <span className="muted">
-                            Estoque {formatVolumeTotal(v)}
-                            {parseQtdeDigitada(v.comprimento_m) > 0
-                              ? ` · ${formatMetrosLineares(v) ?? ''}`
-                              : parseQtdeDigitada(v.largura_mm) > 0
-                                ? ` · ${formatDecimalBr(Number(v.largura_mm), 0)} mm`
-                                : ''}
-                          </span>
                           {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
-                          {dim && !v.largura_mm ? <span className="muted">{dim}</span> : null}
                           {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
                           {v.status_label ? <span className="muted">{v.status_label}</span> : null}
                           {v.data_validade ? <span className="muted">Val. {v.data_validade}</span> : null}
