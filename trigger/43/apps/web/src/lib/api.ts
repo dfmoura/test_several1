@@ -2967,6 +2967,15 @@ export type Faturamento = {
   mod_frete?: string | null;
   mod_frete_label?: string | null;
   transportador_id?: number | null;
+  nfe_qtde_modo?: string | null;
+  nfe_qtde_modo_label?: string | null;
+  nfe_qtde_modo_sugerido?: string | null;
+  nfe_qtde_modo_opcoes?: Array<{
+    value: string;
+    label: string | null;
+    exige_embalagem?: boolean;
+  }>;
+  pode_editar_nfe_qtde_modo?: boolean;
   transportador?: {
     id: number;
     codigo: string;

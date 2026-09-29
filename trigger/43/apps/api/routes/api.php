@@ -408,6 +408,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/faturamentos/{faturamento}', [FaturamentoController::class, 'show']);
         Route::post('/faturamentos/{faturamento}/estornar', [FaturamentoController::class, 'estornar']);
         Route::put('/faturamentos/{faturamento}/transporte', [FaturamentoController::class, 'atualizarTransporte']);
+        Route::put('/faturamentos/{faturamento}/nfe-qtde-modo', [FaturamentoController::class, 'atualizarNfeQtdeModo']);
         Route::post('/faturamentos/{faturamento}/emitir-nf', [FaturamentoController::class, 'emitirNf']);
         Route::post('/faturamentos/{faturamento}/consultar-nf', [FaturamentoController::class, 'consultarNf']);
         Route::post('/faturamentos/{faturamento}/cancelar-nf', [FaturamentoController::class, 'cancelarNf']);

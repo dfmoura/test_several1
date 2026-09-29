@@ -76,6 +76,20 @@ class FaturamentoController extends Controller
         ]);
     }
 
+    public function atualizarNfeQtdeModo(Request $request, Faturamento $faturamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresaFat($faturamento);
+
+        $data = $request->validate([
+            'nfe_qtde_modo' => ['required', 'string', 'in:ROLO,ETIQUETA'],
+        ]);
+
+        return response()->json([
+            'data' => $this->faturamentos->atualizarNfeQtdeModo($this->empresa(), $faturamento, $data),
+        ]);
+    }
+
     public function estornar(Request $request, Faturamento $faturamento): JsonResponse
     {
         $this->authorizeWrite($request);

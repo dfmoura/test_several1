@@ -12,6 +12,7 @@ use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Fiscal\FiscalSaidaDefaults;
 use App\Services\Fiscal\FiscalSaidaTransporte;
 use App\Services\Fiscal\NfeChaveAcesso;
+use App\Services\Fiscal\NfePaQtdeModalidade;
 use App\Services\Producao\PaEmbalagemService;
 use App\Support\PadraoDecimal;
 
@@ -23,6 +24,7 @@ final class NfeXmlBuilder
     public function __construct(
         private readonly PaEmbalagemService $embalagem,
         private readonly FiscalSaidaTransporte $transporte,
+        private readonly NfePaQtdeModalidade $qtdeModo,
     ) {}
 
     /**
@@ -73,6 +75,7 @@ final class NfeXmlBuilder
         $volTransp = $pedido instanceof Pedido
             ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
             : null;
+        $modoQtde = $this->qtdeModo->efetivo($fat, $empresa, $pedido instanceof Pedido ? $pedido : null);
         $ecoCpl = $this->embalagem->textoFiscalEco($embs);
         $modFrete = $this->modFrete($fat);
         $idDest = $ufEmp === $ufDest ? 1 : 2;
@@ -83,6 +86,9 @@ final class NfeXmlBuilder
         $n = 0;
         foreach ($itens as $linha) {
             $n++;
+            $aplicado = $this->qtdeModo->aplicarItem($linha, $embs, $modoQtde);
+            $linha = $aplicado['linha'];
+            $embTexto = $aplicado['inf_ad'];
             $produto = $this->produtoDaLinha($linha);
             $qtde = PadraoDecimal::roundHalfUp((string) $linha['qtde'], PadraoDecimal::SCALE_QTY);
             $bruto = PadraoDecimal::roundHalfUp((string) $linha['valor'], PadraoDecimal::SCALE_MONEY);
@@ -106,10 +112,6 @@ final class NfeXmlBuilder
                 0,
                 120
             ));
-            $pedidoItemId = isset($linha['pedido_item_id']) ? (int) $linha['pedido_item_id'] : null;
-            $embTexto = $this->embalagem->textoFiscal(
-                $this->embalagem->resolverParaItem($embs, $pedidoItemId)
-            );
             $infAd = $embTexto ? '<infAdProd>'.$this->esc(mb_substr($embTexto, 0, 500)).'</infAdProd>' : '';
             $cest = preg_replace('/\D/', '', (string) ($produto?->cest ?? '')) ?: '';
             $cestXml = $cest !== '' ? '<CEST>'.$cest.'</CEST>' : '';

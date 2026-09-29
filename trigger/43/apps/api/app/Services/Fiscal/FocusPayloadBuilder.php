@@ -23,6 +23,7 @@ class FocusPayloadBuilder
     public function __construct(
         private readonly PaEmbalagemService $embalagem,
         private readonly FiscalSaidaTransporte $transporte,
+        private readonly NfePaQtdeModalidade $qtdeModo,
     ) {}
 
     /**
@@ -50,6 +51,7 @@ class FocusPayloadBuilder
         $volTransp = $pedido
             ? $this->embalagem->volumesTransportePedido($empresa, $pedido)
             : null;
+        $modoQtde = $this->qtdeModo->efetivo($fat, $empresa, $pedido);
         $ecoCpl = $this->embalagem->textoFiscalEco($embs);
 
         $fat->loadMissing('transportador');
@@ -60,6 +62,9 @@ class FocusPayloadBuilder
         $n = 0;
         foreach ($itens as $linha) {
             $n++;
+            $aplicado = $this->qtdeModo->aplicarItem($linha, $embs, $modoQtde);
+            $linha = $aplicado['linha'];
+            $embTexto = $aplicado['inf_ad'];
             $produto = $this->produtoDaLinha($linha);
             $qtde = (float) PadraoDecimal::roundHalfUp((string) $linha['qtde'], PadraoDecimal::SCALE_QTY);
             $unit = (float) PadraoDecimal::roundHalfUp((string) $linha['preco_unitario'], PadraoDecimal::SCALE_NF_UNIT);
@@ -93,10 +98,6 @@ class FocusPayloadBuilder
                 'pis_situacao_tributaria' => $produto?->cst_pis ?: FiscalSaidaDefaults::CST_PIS,
                 'cofins_situacao_tributaria' => $produto?->cst_cofins ?: FiscalSaidaDefaults::CST_COFINS,
             ];
-            $pedidoItemId = isset($linha['pedido_item_id']) ? (int) $linha['pedido_item_id'] : null;
-            $embTexto = $this->embalagem->textoFiscal(
-                $this->embalagem->resolverParaItem($embs, $pedidoItemId)
-            );
             if ($embTexto) {
                 $item['informacoes_adicionais_produto'] = mb_substr($embTexto, 0, 500);
             }

@@ -307,8 +307,14 @@ class PaEmbalagemService
 
     /**
      * Texto para NF-e item (infAdProd) — bobinas + detalhe; ≤500 chars.
+     * Default = modo ETIQUETA (compat). Preferir textoFiscalModo na emissão.
      */
     public function textoFiscal(?PaEmbalagem $emb): ?string
+    {
+        return $this->textoFiscalModo($emb, 'ETIQUETA');
+    }
+
+    public function textoFiscalModo(?PaEmbalagem $emb, string $modo): ?string
     {
         if (! $emb) {
             return null;
@@ -316,7 +322,7 @@ class PaEmbalagemService
 
         $emb->loadMissing('bobinas');
 
-        return mb_substr($emb->textoFiscalItem(), 0, 500);
+        return mb_substr($emb->textoFiscalModo($modo), 0, 500);
     }
 
     /**

@@ -1,0 +1,581 @@
+/* Home consultoria (body.page-consulting).
+   Visual sério B2B. Não altera landings de produto nem ecosystem.css. */
+
+@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap");
+
+body.page-consulting {
+  --cx-ink: #0c1a33;
+  --cx-navy: #1a3568;
+  --cx-muted: #5a6b7d;
+  --cx-line: rgba(26, 53, 104, 0.12);
+  --cx-soft: #f3f6fa;
+  --cx-paper: #ffffff;
+  --cx-accent: #6fa012;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", "Segoe UI", sans-serif;
+  color: var(--cx-ink);
+  font-family: var(--font-body);
+  background: var(--cx-paper);
+  overflow-x: hidden;
+}
+
+body.page-consulting .site-header {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom-color: var(--cx-line);
+  backdrop-filter: blur(12px);
+}
+
+body.page-consulting .logo-text {
+  display: none;
+}
+
+body.page-consulting .logo-link img {
+  height: 48px;
+  width: auto;
+}
+
+body.page-consulting .nav a {
+  font-weight: 500;
+  color: var(--cx-muted);
+}
+
+body.page-consulting .nav a:hover {
+  color: var(--cx-navy);
+}
+
+body.page-consulting .btn {
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+}
+
+body.page-consulting .btn-primary {
+  background: var(--cx-navy);
+  box-shadow: 0 6px 20px rgba(15, 35, 71, 0.22);
+}
+
+body.page-consulting .btn-primary:hover {
+  background: var(--cx-ink);
+  color: #fff;
+}
+
+body.page-consulting .btn-secondary {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: #fff;
+}
+
+body.page-consulting .btn-secondary:hover {
+  border-color: #fff;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.page-consulting .btn-outline {
+  border: 1.5px solid var(--cx-line);
+  background: #fff;
+  color: var(--cx-navy);
+  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+body.page-consulting .btn-outline:hover {
+  border-color: var(--cx-navy);
+  color: var(--cx-ink);
+}
+
+/* —— Hero: full-bleed com pessoas —— */
+.cx-hero {
+  position: relative;
+  min-height: min(92vh, 720px);
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+  isolation: isolate;
+}
+
+.cx-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  margin: 0;
+}
+
+.cx-hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 28%;
+}
+
+.cx-hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(105deg, rgba(8, 18, 36, 0.88) 0%, rgba(8, 18, 36, 0.72) 42%, rgba(8, 18, 36, 0.35) 100%),
+    linear-gradient(0deg, rgba(8, 18, 36, 0.55) 0%, transparent 45%);
+}
+
+.cx-hero-inner {
+  width: min(100% - 2rem, var(--max-width));
+  margin-inline: auto;
+  padding: clamp(5.5rem, 12vw, 8rem) 0 clamp(3rem, 6vw, 4.5rem);
+  max-width: 38rem;
+  animation: cx-rise 0.7s ease-out both;
+}
+
+.cx-hero-brand {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.cx-hero h1 {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.6vw, 3.15rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.cx-hero-lead {
+  margin: 0 0 1.75rem;
+  font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 34rem;
+}
+
+.cx-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@keyframes cx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* —— Seções —— */
+.cx-section {
+  padding: clamp(3.5rem, 7vw, 5.5rem) 0;
+}
+
+.cx-section--soft {
+  background: var(--cx-soft);
+}
+
+.cx-section--split {
+  padding: 0;
+}
+
+.cx-section-head {
+  max-width: 40rem;
+  margin-bottom: clamp(2rem, 4vw, 2.75rem);
+}
+
+.cx-section-head h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 3vw, 2.15rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--cx-ink);
+  letter-spacing: -0.015em;
+}
+
+.cx-section-head p {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--cx-muted);
+  line-height: 1.6;
+}
+
+.cx-kicker {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cx-navy);
+}
+
+/* —— Soluções —— */
+.cx-solutions {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--cx-line);
+}
+
+.cx-solution {
+  display: grid;
+  gap: 0.35rem 1.5rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--cx-line);
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  transition: background 0.2s;
+}
+
+.cx-solution:hover {
+  background: rgba(26, 53, 104, 0.02);
+}
+
+.cx-solution-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--cx-accent);
+  padding-top: 0.35rem;
+}
+
+.cx-solution h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--cx-ink);
+  grid-column: 2;
+}
+
+.cx-solution p {
+  margin: 0;
+  color: var(--cx-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+  max-width: 40rem;
+  grid-column: 2;
+}
+
+@media (min-width: 720px) {
+  .cx-solution {
+    grid-template-columns: 3rem 12rem 1fr;
+    align-items: baseline;
+  }
+
+  .cx-solution h3 {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .cx-solution p {
+    grid-column: 3;
+  }
+}
+
+/* —— Como trabalhamos —— */
+.cx-steps {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .cx-steps {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+.cx-step {
+  padding: 0;
+}
+
+.cx-step-num {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--cx-accent);
+}
+
+.cx-step h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--cx-ink);
+}
+
+.cx-step p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--cx-muted);
+  line-height: 1.55;
+}
+
+/* —— Por que / people band —— */
+.cx-why {
+  display: grid;
+  gap: 0;
+}
+
+@media (min-width: 900px) {
+  .cx-why {
+    grid-template-columns: 1.05fr 1fr;
+    min-height: 520px;
+  }
+}
+
+.cx-why-media {
+  margin: 0;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.cx-why-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+  min-height: 280px;
+}
+
+@media (min-width: 900px) {
+  .cx-why-media,
+  .cx-why-media img {
+    min-height: 100%;
+  }
+}
+
+.cx-why-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3.5rem);
+  background: var(--cx-ink);
+  color: #fff;
+}
+
+.cx-why-body .cx-kicker {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.cx-why-body h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.8vw, 2rem);
+  font-weight: 600;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.cx-why-body > p {
+  margin: 0 0 1.75rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+  font-size: 1.02rem;
+}
+
+.cx-disciplines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem 1.25rem;
+}
+
+@media (min-width: 480px) {
+  .cx-disciplines {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cx-disciplines li {
+  padding: 0.65rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.cx-disciplines li span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+/* —— Expertise strip com foto —— */
+.cx-expertise {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (min-width: 860px) {
+  .cx-expertise {
+    grid-template-columns: 1fr 1.1fr;
+    gap: 3rem;
+  }
+}
+
+.cx-expertise-media {
+  margin: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(15, 35, 71, 0.12);
+}
+
+.cx-expertise-media img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.cx-expertise-list {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.cx-expertise-list li {
+  padding-left: 1rem;
+  border-left: 2px solid var(--cx-accent);
+}
+
+.cx-expertise-list strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--cx-ink);
+  margin-bottom: 0.2rem;
+}
+
+.cx-expertise-list span {
+  font-size: 0.92rem;
+  color: var(--cx-muted);
+  line-height: 1.5;
+}
+
+/* —— Contato —— */
+.cx-contact {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 800px) {
+  .cx-contact {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+}
+
+.cx-contact h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.8vw, 2rem);
+  font-weight: 600;
+  color: var(--cx-ink);
+}
+
+.cx-contact > div > p {
+  margin: 0 0 1.25rem;
+  color: var(--cx-muted);
+  line-height: 1.6;
+}
+
+.cx-contact-details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cx-contact-details li {
+  font-size: 0.95rem;
+  color: var(--cx-muted);
+}
+
+.cx-contact-details strong {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cx-navy);
+  margin-bottom: 0.15rem;
+}
+
+.cx-contact-card {
+  background: var(--cx-ink);
+  color: #fff;
+  padding: clamp(1.75rem, 3vw, 2.25rem);
+  border-radius: 4px;
+}
+
+.cx-contact-card h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.cx-contact-card p {
+  margin: 0 0 1.25rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.cx-contact-card .btn-primary {
+  background: var(--cx-accent);
+  box-shadow: none;
+  width: 100%;
+}
+
+.cx-contact-card .btn-primary:hover {
+  background: #5e8a10;
+  color: #fff;
+}
+
+/* —— Footer adjust —— */
+body.page-consulting .site-footer {
+  background: var(--cx-ink);
+}
+
+body.page-consulting .footer-brand p,
+body.page-consulting .footer-col a,
+body.page-consulting .footer-bottom {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body.page-consulting .footer-logo-text strong,
+body.page-consulting .footer-col h4 {
+  color: #fff;
+}
+
+body.page-consulting .footer-col a:hover {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-hero-inner {
+    animation: none;
+  }
+}

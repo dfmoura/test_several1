@@ -106,13 +106,52 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Texto canônico para NF-e item (infAdProd) — bobinas em evidência.
+     * Texto canônico para NF-e item (infAdProd) — bobinas em evidência (modo ETIQUETA).
      * qCom continua em etiquetas; aqui só o físico (ADR_PA_EMBALAGEM_BOBINA_CAIXA).
      */
     public function textoFiscalItem(): string
     {
+        return $this->textoFiscalModoEtiqueta();
+    }
+
+    /**
+     * Modo ROLO: qCom = bobinas — obs. destaca etiquetas + composição.
+     * Modo ETIQUETA: qCom = etiquetas — obs. destaca bobinas.
+     */
+    public function textoFiscalModo(string $modo): string
+    {
+        return $modo === 'ROLO'
+            ? $this->textoFiscalModoRolo()
+            : $this->textoFiscalModoEtiqueta();
+    }
+
+    public function textoFiscalModoEtiqueta(): string
+    {
         $parts = [
             $this->qtde_bobinas.' BOB',
+            $this->qtde_caixas.' CX',
+        ];
+        if ($this->tubete) {
+            $parts[] = 'tubete '.$this->tubete;
+        }
+        if ($this->saida_etiqueta) {
+            $parts[] = 'saida '.$this->saida_etiqueta;
+        }
+        if ($this->caixa_medida) {
+            $parts[] = 'medida '.$this->caixa_medida;
+        }
+        $comp = $this->composicaoBobinasTexto();
+        if ($comp !== null && $comp !== '') {
+            $parts[] = 'comp: '.$comp;
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    public function textoFiscalModoRolo(): string
+    {
+        $parts = [
+            number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN',
             $this->qtde_caixas.' CX',
         ];
         if ($this->tubete) {

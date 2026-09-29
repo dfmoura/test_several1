@@ -18,6 +18,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Comercial\PrecoTravadoPedido;
 use App\Services\Fiscal\EmissaoFiscalService;
 use App\Services\Fiscal\FiscalSaidaTransporte;
+use App\Services\Fiscal\NfePaQtdeModalidade;
 use App\Services\Producao\PaEmbalagemService;
 use App\Support\FacasComposicao;
 use App\Support\PadraoDecimal;
@@ -45,6 +46,7 @@ class FaturamentoService
         private readonly EmissaoFiscalService $emissao,
         private readonly PaEmbalagemService $embalagem,
         private readonly FiscalSaidaTransporte $transporte,
+        private readonly NfePaQtdeModalidade $nfeQtde,
     ) {}
 
     /**
@@ -139,6 +141,7 @@ class FaturamentoService
         }
 
         $transporte = $this->transporte->resolver($empresa, $pedido, $data);
+        $nfeQtdeModo = $this->nfeQtde->sugerir($empresa, $pedido);
 
         $precisaCob = $this->formaEmiteCobranca($calc['forma_pagamento'])
             && bccomp($calc['valor_a_cobrar'], '0', PadraoDecimal::SCALE_MONEY) > 0;
@@ -149,7 +152,7 @@ class FaturamentoService
 
         $natureza = $this->naturezaReceita($calc['familia_fiscal']);
 
-        $fat = DB::transaction(function () use ($empresa, $pedido, $calc, $conta, $natureza, $transporte) {
+        $fat = DB::transaction(function () use ($empresa, $pedido, $calc, $conta, $natureza, $transporte, $nfeQtdeModo) {
             $locked = Pedido::query()->lockForUpdate()->with(['parceiro', 'itens'])->findOrFail($pedido->id);
             $dup = $this->existenteDoPedido($empresa, $locked);
             if ($dup) {
@@ -180,6 +183,7 @@ class FaturamentoService
                 'forma_pagamento' => $calc['forma_pagamento'],
                 'mod_frete' => $transporte['mod_frete'],
                 'transportador_id' => $transporte['transportador']?->id,
+                'nfe_qtde_modo' => $nfeQtdeModo,
                 'adiantamento_titulo_id' => $calc['adiantamento_titulo_id'],
                 'snapshot' => $calc['snapshot'],
                 'faturado_em' => now(),
@@ -386,6 +390,8 @@ class FaturamentoService
             'mod_frete' => $f->mod_frete,
             'mod_frete_label' => Faturamento::modFreteLabel($f->mod_frete),
             'transportador_id' => $f->transportador_id,
+            'nfe_qtde_modo' => $f->nfe_qtde_modo,
+            'nfe_qtde_modo_label' => Faturamento::nfeQtdeModoLabel($f->nfe_qtde_modo),
             'transportador' => $f->relationLoaded('transportador') && $f->transportador
                 ? $this->parceiroTransporteOut($f->transportador)
                 : null,
@@ -441,6 +447,14 @@ class FaturamentoService
                     ? $this->embalagem->resumoPedido($emp, $ped)
                     : null;
                 $out['pode_editar_transporte'] = $this->podeEditarTransporte($f);
+                $out['pode_editar_nfe_qtde_modo'] = $this->podeEditarTransporte($f);
+                $out['nfe_qtde_modo_opcoes'] = [
+                    ['value' => Faturamento::NFE_QTDE_ROLO, 'label' => Faturamento::nfeQtdeModoLabel(Faturamento::NFE_QTDE_ROLO), 'exige_embalagem' => true],
+                    ['value' => Faturamento::NFE_QTDE_ETIQUETA, 'label' => Faturamento::nfeQtdeModoLabel(Faturamento::NFE_QTDE_ETIQUETA), 'exige_embalagem' => false],
+                ];
+                $out['nfe_qtde_modo_sugerido'] = ($emp && $ped)
+                    ? $this->nfeQtde->sugerir($emp, $ped)
+                    : Faturamento::NFE_QTDE_ETIQUETA;
             }
         }
 
@@ -469,6 +483,49 @@ class FaturamentoService
 
         $faturamento->mod_frete = $resolved['mod_frete'];
         $faturamento->transportador_id = $resolved['transportador']?->id;
+        $faturamento->save();
+
+        $this->emissao->rebuildPrevistas($empresa, $faturamento->fresh(['transportador', 'pedido', 'parceiro', 'itens.pedidoItem.produtoPa', 'titulos']));
+
+        return $this->show($faturamento->fresh());
+    }
+
+    /**
+     * Modalidade da quantidade na NF-e (rolo × etiqueta) enquanto a NF não é oficial.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function atualizarNfeQtdeModo(Empresa $empresa, Faturamento $faturamento, array $data): array
+    {
+        $this->assertEmpresaFat($empresa, $faturamento);
+        $faturamento->loadMissing(['pedido', 'documentosFiscais']);
+
+        if (! $this->podeEditarTransporte($faturamento)) {
+            throw ValidationException::withMessages([
+                'nfe_qtde_modo' => ['Quantidade da NF só pode ser alterada enquanto a NF-e não estiver autorizada.'],
+            ]);
+        }
+
+        $modo = strtoupper(trim((string) ($data['nfe_qtde_modo'] ?? '')));
+        if (! in_array($modo, Faturamento::NFE_QTDE_MODOS, true)) {
+            throw ValidationException::withMessages([
+                'nfe_qtde_modo' => ['Informe ROLO ou ETIQUETA.'],
+            ]);
+        }
+
+        $pedido = $faturamento->pedido ?? Pedido::query()->findOrFail((int) $faturamento->pedido_id);
+        if ($modo === Faturamento::NFE_QTDE_ROLO) {
+            $embs = $this->embalagem->confirmadasDoPedido($empresa, $pedido);
+            $temBobina = $embs->contains(fn ($e) => (int) $e->qtde_bobinas >= 1);
+            if (! $temBobina) {
+                throw ValidationException::withMessages([
+                    'nfe_qtde_modo' => ['Para emitir por rolo, confirme a embalagem PA (bobinas) na OP.'],
+                ]);
+            }
+        }
+
+        $faturamento->nfe_qtde_modo = $modo;
         $faturamento->save();
 
         $this->emissao->rebuildPrevistas($empresa, $faturamento->fresh(['transportador', 'pedido', 'parceiro', 'itens.pedidoItem.produtoPa', 'titulos']));

@@ -42,6 +42,17 @@ class Faturamento extends Model
         self::MOD_FRETE_SEM,
     ];
 
+    /** Quantidade na NF-e de PA: rolo ou etiqueta — ADR_PA_EMBALAGEM_BOBINA_CAIXA. */
+    public const NFE_QTDE_ROLO = 'ROLO';
+
+    public const NFE_QTDE_ETIQUETA = 'ETIQUETA';
+
+    /** @var list<string> */
+    public const NFE_QTDE_MODOS = [
+        self::NFE_QTDE_ROLO,
+        self::NFE_QTDE_ETIQUETA,
+    ];
+
     protected $table = 'faturamentos';
 
     protected $fillable = [
@@ -59,6 +70,7 @@ class Faturamento extends Model
         'forma_pagamento',
         'mod_frete',
         'transportador_id',
+        'nfe_qtde_modo',
         'adiantamento_titulo_id',
         'snapshot',
         'observacao',
@@ -112,6 +124,15 @@ class Faturamento extends Model
             self::MOD_FRETE_CIF => 'CIF (emitente)',
             self::MOD_FRETE_FOB => 'FOB (destinatário)',
             self::MOD_FRETE_SEM => 'Sem frete',
+            default => null,
+        };
+    }
+
+    public static function nfeQtdeModoLabel(?string $modo): ?string
+    {
+        return match ($modo) {
+            self::NFE_QTDE_ROLO => 'Por rolo (bobina)',
+            self::NFE_QTDE_ETIQUETA => 'Por etiqueta (UN)',
             default => null,
         };
     }

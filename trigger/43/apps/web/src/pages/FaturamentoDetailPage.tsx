@@ -42,6 +42,7 @@ export function FaturamentoDetailPage() {
   const [textoCce, setTextoCce] = useState('');
   const [modFreteEdit, setModFreteEdit] = useState(MOD_FRETE_SEM);
   const [transportadorEdit, setTransportadorEdit] = useState<Parceiro | null>(null);
+  const [nfeQtdeModoEdit, setNfeQtdeModoEdit] = useState('ETIQUETA');
 
   const load = async () => {
     setLoading(true);
@@ -50,6 +51,7 @@ export function FaturamentoDetailPage() {
       const res = await api.get<{ data: Faturamento }>(`/faturamentos/${id}`);
       setFat(res.data);
       setModFreteEdit(res.data.mod_frete ?? MOD_FRETE_SEM);
+      setNfeQtdeModoEdit(res.data.nfe_qtde_modo ?? res.data.nfe_qtde_modo_sugerido ?? 'ETIQUETA');
       setTransportadorEdit(
         res.data.transportador
           ? ({
