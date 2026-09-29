@@ -215,6 +215,25 @@ export function FaturamentoDetailPage() {
     }
   };
 
+  const salvarNfeQtdeModo = async () => {
+    if (!fat) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.put<{ data: Faturamento }>(`/faturamentos/${fat.id}/nfe-qtde-modo`, {
+        nfe_qtde_modo: nfeQtdeModoEdit,
+      });
+      setFat(res.data);
+      setNfeQtdeModoEdit(res.data.nfe_qtde_modo ?? nfeQtdeModoEdit);
+      setMsg('Quantidade da NF-e atualizada. A prévia foi regenerada.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível atualizar a quantidade da NF.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const cobrancaHref = fat
     ? (() => {
         const tit = tituloPreferidoFicha(fat.titulos);
@@ -412,6 +431,58 @@ export function FaturamentoDetailPage() {
                         ? `${fat.transportador.codigo} — ${fat.transportador.razao_social}`
                         : '—'}
                     </strong>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div className="card-body">
+              <div className="form-section">
+                <h3>Quantidade na NF-e</h3>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  Padrão: por rolo quando há embalagem PA. Casos pequenos (amostra, sem bobina)
+                  usam etiqueta (UN). Cobrança e estoque continuam em etiquetas.
+                </p>
+              </div>
+              {fat.pode_editar_nfe_qtde_modo && hasPermission('faturamento.escrever') ? (
+                <div className="form-grid" style={{ gap: '0.75rem' }}>
+                  <div>
+                    <label className="form-label" htmlFor="fat-det-nfe-qtde">
+                      Modalidade
+                    </label>
+                    <select
+                      id="fat-det-nfe-qtde"
+                      className="input"
+                      value={nfeQtdeModoEdit}
+                      onChange={(e) => setNfeQtdeModoEdit(e.target.value)}
+                      disabled={busy}
+                    >
+                      {(fat.nfe_qtde_modo_opcoes ?? []).map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label ?? o.value}
+                          {o.exige_embalagem ? ' — exige embalagem' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="btn-row">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={busy}
+                      onClick={() => void salvarNfeQtdeModo()}
+                    >
+                      Salvar quantidade NF
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="detail-meta">
+                  <div>
+                    <span>Modalidade</span>
+                    <strong>{fat.nfe_qtde_modo_label ?? '—'}</strong>
                   </div>
                 </div>
               )}

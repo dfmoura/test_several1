@@ -88,7 +88,7 @@ body.page-consulting .btn-outline:hover {
   color: var(--cx-ink);
 }
 
-/* —— Hero: full-bleed com pessoas —— */
+/* --- Hero: full-bleed com pessoas --- */
 .cx-hero {
   position: relative;
   min-height: min(92vh, 720px);
@@ -173,7 +173,7 @@ body.page-consulting .btn-outline:hover {
   }
 }
 
-/* —— Seções —— */
+/* --- Seções --- */
 .cx-section {
   padding: clamp(3.5rem, 7vw, 5.5rem) 0;
 }
@@ -218,7 +218,7 @@ body.page-consulting .btn-outline:hover {
   color: var(--cx-navy);
 }
 
-/* —— Soluções —— */
+/* --- Soluções --- */
 .cx-solutions {
   display: grid;
   gap: 0;
@@ -281,7 +281,7 @@ body.page-consulting .btn-outline:hover {
   }
 }
 
-/* —— Como trabalhamos —— */
+/* --- Como trabalhamos --- */
 .cx-steps {
   display: grid;
   gap: 1.5rem;
@@ -322,7 +322,7 @@ body.page-consulting .btn-outline:hover {
   line-height: 1.55;
 }
 
-/* —— Por que / people band —— */
+/* --- Por que / people band --- */
 .cx-why {
   display: grid;
   gap: 0;
@@ -417,7 +417,7 @@ body.page-consulting .btn-outline:hover {
   line-height: 1.4;
 }
 
-/* —— Expertise strip com foto —— */
+/* --- Expertise strip com foto --- */
 .cx-expertise {
   display: grid;
   gap: 2rem;
@@ -472,7 +472,7 @@ body.page-consulting .btn-outline:hover {
   line-height: 1.5;
 }
 
-/* —— Contato —— */
+/* --- Contato --- */
 .cx-contact {
   display: grid;
   gap: 2rem;
@@ -554,7 +554,7 @@ body.page-consulting .btn-outline:hover {
   color: #fff;
 }
 
-/* —— Footer adjust —— */
+/* --- Footer adjust --- */
 body.page-consulting .site-footer {
   background: var(--cx-ink);
 }

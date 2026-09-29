@@ -145,6 +145,21 @@ O que faltava era o **detalhe físico por item** nas observações (padrão Exac
 
 `resumoTexto()` continua na UI (inclui etiquetas). `textoFiscalItem()` é só para NF.
 
-**Eco na prévia/DANFE (2026-09-28b):** o payload Focus já tinha `informacoes_adicionais_produto`, mas a prévia/DANFE **não ecoava** no item — parecia que “nada mudou”. `previaDe` passa o campo; DANFE mostra sob a descrição do produto; volumes (caixas) na grade de transporte.
+## Emenda 2026-09-29 — NF-e por rolo **ou** por etiqueta
 
-**Proibido (inalterado):** `qCom` em BOB/CX; segundo escritor de saldo.
+A venda típica emite a NF **por rolo** (`qCom` = bobinas, `uCom` = `RL`).  
+Há casos pequenos (amostra, sem rebobinar) que emitem **por etiqueta** (`UN`).
+
+| Camada | Sempre | Só no documento NF |
+|--------|--------|--------------------|
+| ORC / PED / FAT / TIT / COM | etiquetas | — |
+| `SAIDA_VENDA` | etiquetas | — |
+| `qCom` / `uCom` | — | **RL** (default c/ embalagem) ou **UN** |
+| `infAdProd` | — | no modo RL: total UN + comp; no modo UN: BOB + comp |
+| Volumes | caixas | intacto |
+
+Campo `faturamentos.nfe_qtde_modo` = `ROLO` | `ETIQUETA`.  
+Default no faturar: `ROLO` se houver embalagem com bobinas; senão `ETIQUETA`.  
+UI no FAT permite override enquanto a NF não for oficial. `ROLO` exige embalagem confirmada.
+
+**Proibido:** mudar `qtde_faturavel`/preço do FAT; inventar rolos sem `pa_embalagens`; `qCom` em CAIXA.

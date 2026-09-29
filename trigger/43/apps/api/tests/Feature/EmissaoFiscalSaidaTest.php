@@ -670,20 +670,25 @@ class EmissaoFiscalSaidaTest extends TestCase
             ['quantidade' => '3', 'especie' => 'CAIXA'],
         ], $payload['volumes'] ?? null);
 
+        $this->assertSame('ROLO', Faturamento::query()->first()?->nfe_qtde_modo);
+        $this->assertSame(10.0, (float) ($payload['items'][0]['quantidade_comercial'] ?? 0));
+        $this->assertSame('RL', $payload['items'][0]['unidade_comercial'] ?? null);
+
         $infAd = $payload['items'][0]['informacoes_adicionais_produto'] ?? null;
         $this->assertIsString($infAd);
-        $this->assertStringContainsString('10 BOB', $infAd);
+        $this->assertStringContainsString('UN', $infAd);
         $this->assertStringContainsString('3 CX', $infAd);
         $this->assertStringContainsString('tubete 3"', $infAd);
         $this->assertStringContainsString('saida ESQUERDA', $infAd);
-        $this->assertStringNotContainsString('etiquetas', $infAd);
+        $this->assertStringNotContainsString('BOB', $infAd);
 
         $infCpl = (string) ($payload['informacoes_adicionais_contribuinte'] ?? '');
         $this->assertStringContainsString('10 BOB · 3 CX', $infCpl);
 
         $previaInf = $ok->json('data.documentos_fiscais.0.previa.itens.0.informacoes_adicionais');
         $this->assertIsString($previaInf);
-        $this->assertStringContainsString('10 BOB', $previaInf);
+        $this->assertStringContainsString('UN', $previaInf);
+        $this->assertSame('RL', $ok->json('data.documentos_fiscais.0.previa.itens.0.unidade'));
         $this->assertSame(
             [['quantidade' => '3', 'especie' => 'CAIXA']],
             $ok->json('data.documentos_fiscais.0.previa.volumes')

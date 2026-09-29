@@ -250,6 +250,12 @@ class PaEmbalagemTest extends TestCase
 
         $ui = $emb->resumoTexto();
         $this->assertStringContainsString('etiquetas', $ui);
+
+        $rolo = app(PaEmbalagemService::class)->textoFiscalModo($emb, 'ROLO');
+        $this->assertNotNull($rolo);
+        $this->assertStringContainsString('5.000 UN', $rolo);
+        $this->assertStringContainsString('comp: 5x1000UN', $rolo);
+        $this->assertStringNotContainsString('BOB', $rolo);
     }
 
     public function test_texto_fiscal_agrega_resto_na_composicao(): void

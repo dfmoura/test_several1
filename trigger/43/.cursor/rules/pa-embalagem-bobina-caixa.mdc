@@ -20,10 +20,12 @@ Norma: `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
 OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
   → embalar (sugerir do ORC → humano confirma)
   → bobinas (BOB:) + caixas (CX:)
-  → FAT/NF: qCom = etiquetas; volumes = Σ caixas;
-             infAdProd = N BOB · M CX · tubete · saida · comp (por pedido_item_id);
-             infCpl = eco curto BOB/CX
+  → FAT/NF: qCom = RL (default c/ embalagem) ou UN (casos pequenos);
+             volumes = Σ caixas;
+             infAdProd conforme modalidade;
+             FAT.nfe_qtde_modo editável até NF oficial
   → ENT: volumes default = Σ caixas
+  → SAIDA_VENDA / TIT / COM: sempre etiquetas
 ```
 
 ## Faça
@@ -31,16 +33,16 @@ OP CONCLUIDA (ENTRADA_PA flat em etiquetas)
 - Embalagem **paralela** ao saldo (`pa_embalagens`) — não `estoque_lotes` / `VOL:`.
 - Σ bobinas = `qtde_boa`. Saldo PA intacto no Writer.
 - QR `BOB:` e `CX:` (Elgin 50×40). Distintos de `VOL:` / `END:`.
-- Soft-aviso no FAT se PA sem embalagem; sem hard-block.
-- `infAdProd` por item via `pedido_item_id`; composição agregada (`NxQtdeUN`).
+- Soft-aviso no FAT se PA sem embalagem; sem hard-block de faturar.
+- Modalidade NF: `ROLO` (exige embalagem) ou `ETIQUETA`; default inteligente.
 
 ## Não faça
 
 - `controla_lote` em PA-ETQ por causa da embalagem.
-- Faturar item em CX/BOB no lugar de etiquetas.
+- Mudar `qtde_faturavel`/TIT/COM para bobina.
 - MOV na embalagem ou no ENT.
 - Misturar bobina de PA com bobina de insumo Exact.
 - Explodir SKU por bobina/caixa.
-- Repetir o detalhe completo do item no `infCpl`.
+- Inventar rolos sem embalagem confirmada.
 
 Se a tarefa exigir violar isto → parar e citar `docs/ADR_PA_EMBALAGEM_BOBINA_CAIXA.md`.
