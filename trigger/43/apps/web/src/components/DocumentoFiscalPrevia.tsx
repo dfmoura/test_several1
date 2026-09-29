@@ -168,6 +168,7 @@ export function DocumentoFiscalPreviaCard({
                 <th>{nfse ? 'NBS / ISS' : 'NCM'}</th>
                 {!nfse ? <th>CFOP</th> : null}
                 <th>Qtde</th>
+                <th>Un</th>
                 <th>Valor</th>
               </tr>
             </thead>
@@ -180,7 +181,8 @@ export function DocumentoFiscalPreviaCard({
                     {it.codigo ? ' · ' : ''}
                     {it.descricao}
                     {it.informacoes_adicionais ? (
-                      <div className="form-hint" style={{ marginTop: 4 }}>
+                      <div className="nf-previa-infad" style={{ marginTop: 4 }}>
+                        <span className="nf-previa-infad-label">Obs. item · </span>
                         {it.informacoes_adicionais}
                       </div>
                     ) : null}
@@ -200,7 +202,10 @@ export function DocumentoFiscalPreviaCard({
                     </td>
                   ) : null}
                   <td>
-                    {formatDecimalBr(it.quantidade, 4)} {it.unidade}
+                    <strong>{formatDecimalBr(it.quantidade, 4)}</strong>
+                  </td>
+                  <td>
+                    <strong>{it.unidade || '—'}</strong>
                   </td>
                   <td>
                     {it.valor_unitario

@@ -443,7 +443,8 @@ export function FaturamentoDetailPage() {
                 <h3>Quantidade na NF-e</h3>
                 <p className="muted" style={{ marginTop: 0 }}>
                   Padrão: por rolo quando há embalagem PA. Casos pequenos (amostra, sem bobina)
-                  usam etiqueta (UN). Cobrança e estoque continuam em etiquetas.
+                  usam etiqueta (UN). Cobrança e estoque continuam em etiquetas — a tabela Itens
+                  abaixo não muda.
                 </p>
               </div>
               {fat.pode_editar_nfe_qtde_modo && hasPermission('faturamento.escrever') ? (
@@ -486,6 +487,46 @@ export function FaturamentoDetailPage() {
                   </div>
                 </div>
               )}
+              {(() => {
+                const nfeDocs = (fat.documentos_fiscais ?? []).filter((d) => d.tipo === 'NFE');
+                const ecoItens = nfeDocs.flatMap((d) => d.previa?.itens ?? []);
+                if (ecoItens.length === 0) return null;
+                return (
+                  <div className="nf-qtde-eco" role="status">
+                    <p className="nf-qtde-eco-title">O que vai / foi na nota (não é a tabela Itens)</p>
+                    <div className="table-wrap">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Qtde fiscal</th>
+                            <th>Un</th>
+                            <th>Obs. do item (infAdProd)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ecoItens.map((it) => (
+                            <tr key={`eco-nf-${it.numero}-${it.codigo ?? ''}`}>
+                              <td>{it.numero}</td>
+                              <td>
+                                <strong>{formatDecimalBr(it.quantidade, 4)}</strong>
+                              </td>
+                              <td>
+                                <strong>{it.unidade || '—'}</strong>
+                              </td>
+                              <td className="nf-qtde-eco-obs">
+                                {it.informacoes_adicionais?.trim()
+                                  ? it.informacoes_adicionais
+                                  : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -729,7 +770,12 @@ export function FaturamentoDetailPage() {
 
           <div className="card" style={{ marginBottom: '1rem' }}>
             <div className="card-body">
-              <h3>Itens</h3>
+              <h3>Itens (cobrança / estoque)</h3>
+              <p className="form-hint" style={{ marginTop: 0 }}>
+                Quantidade comercial em etiquetas (UN). A unidade e a qtde da NF-e (ex.: RL por
+                bobina) e a obs. do item ficam no card <strong>Quantidade na NF-e</strong> e na
+                prévia / DANFE.
+              </p>
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
