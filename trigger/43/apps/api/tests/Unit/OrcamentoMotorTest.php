@@ -19,19 +19,73 @@ class OrcamentoMotorTest extends TestCase
 
         $this->assertTrue($result['cobra_matriz']);
         $this->assertSame(536.0, $result['valor_matriz']);
+        $this->assertSame(536.0, $result['cromia_referencia']);
+        $this->assertSame(3, $result['motor_version']);
         $this->assertCount(3, $result['faixas']);
 
         foreach ($fx['faixas'] as $i => $faixaFx) {
             $got = $result['faixas'][$i];
             $excel = $faixaFx['excel'];
             $this->assertSame((int) $faixaFx['quantidade'], $got['quantidade']);
+            $this->assertSame('cromia_preto_inteiro', $got['troca_produto_modo']);
             $this->assertEqualsWithDelta($excel['etiqueta'], $got['valor_etiqueta'], 0.01);
             $this->assertEqualsWithDelta($excel['matriz'], $got['valor_matriz'], 0.01);
             $this->assertEqualsWithDelta($excel['total'], $got['valor_total'], 0.01);
             $this->assertEqualsWithDelta($excel['m2'], $got['m2'], 0.05);
+            $this->assertEqualsWithDelta($excel['valor_troca_produto'], $got['valor_troca_produto'], 0.01);
             $this->assertEqualsWithDelta($excel['perda_papel_troca_produto'], $got['perda_papel_troca_produto'], 0.01);
             $this->assertEqualsWithDelta($excel['valor_papel_troca_produto'], $got['valor_papel_troca_produto'], 0.01);
         }
+    }
+
+    public function test_preto_inteiro_usa_fracao_cromia_e_outros_tipos_hora(): void
+    {
+        $fixturePath = dirname(__DIR__).'/fixtures/orcamento_brahva.json';
+        $fx = json_decode((string) file_get_contents($fixturePath), true, 512, JSON_THROW_ON_ERROR);
+
+        $motor = new OrcamentoMotor;
+        $cat = OrcamentoCatalogo::loadFromJson();
+        $base = [
+            'cliente' => $fx['cliente'],
+            'medida' => $fx['medida'],
+            'largura_cm' => $fx['largura_cm'],
+            'puxada_cm' => $fx['puxada_cm'],
+            'cores' => $fx['cores'],
+            'papel' => $fx['papel'],
+            'acabamento' => $fx['acabamento'],
+            'modelos' => $fx['modelos'],
+            'colunas' => $fx['colunas'],
+            'etiq_por_rolo' => $fx['etiq_por_rolo'],
+            'tubete' => $fx['tubete'],
+            'z' => $fx['z'],
+            'maquina' => $fx['maquina'],
+            'imposto_pct' => $fx['imposto_pct'],
+            'matriz' => 'NAO',
+            'rpm' => $fx['rpm'],
+            'overrides' => $fx['overrides'],
+            'faixas' => [['quantidade' => 7000, 'comissao_pct' => 0]],
+        ];
+
+        $preto = $motor->calcular(array_merge($base, [
+            'tipo_troca_produto' => 'PRETO INTEIRO',
+        ]), $cat);
+        $this->assertSame(0.0, $preto['valor_matriz']);
+        $this->assertSame(536.0, $preto['cromia_referencia']);
+        $this->assertSame('cromia_preto_inteiro', $preto['faixas'][0]['troca_produto_modo']);
+        $this->assertEqualsWithDelta(804.0, $preto['faixas'][0]['valor_troca_produto'], 0.01);
+
+        $borda = $motor->calcular(array_merge($base, [
+            'tipo_troca_produto' => 'PRETO INTEIRO+BORDA',
+        ]), $cat);
+        $this->assertSame('hora_parada', $borda['faixas'][0]['troca_produto_modo']);
+        // 0,333… h × 6 extras × taxa 210
+        $this->assertEqualsWithDelta(210.0 * (1 / 3) * 6, $borda['faixas'][0]['valor_troca_produto'], 0.05);
+
+        $umModelo = $motor->calcular(array_merge($base, [
+            'tipo_troca_produto' => 'PRETO INTEIRO',
+            'modelos' => 1,
+        ]), $cat);
+        $this->assertEqualsWithDelta(0.0, $umModelo['faixas'][0]['valor_troca_produto'], 0.01);
     }
 
     public function test_rv4_amostra_oficial_motor_v2(): void
@@ -43,7 +97,7 @@ class OrcamentoMotorTest extends TestCase
         $cat = OrcamentoCatalogo::loadFromJson();
         $result = $this->calcularComFixture($motor, $cat, $fx);
 
-        $this->assertSame(2, $result['motor_version']);
+        $this->assertSame(3, $result['motor_version']);
         $this->assertFalse($result['cobra_matriz']);
         $got = $result['faixas'][0];
         $ref = $fx['faixas'][0]['motor_v2'];
@@ -51,6 +105,7 @@ class OrcamentoMotorTest extends TestCase
         $this->assertEqualsWithDelta($ref['m2'], $got['m2'], 0.05);
         $this->assertEqualsWithDelta($ref['perda_papel_troca_produto'], $got['perda_papel_troca_produto'], 0.01);
         $this->assertEqualsWithDelta($ref['valor_tinta'], $got['valor_tinta'], 0.05);
+        $this->assertSame('hora_parada', $got['troca_produto_modo']);
     }
 
     /**
@@ -151,11 +206,13 @@ class OrcamentoMotorTest extends TestCase
             'faixas' => [['quantidade' => $fx['faixas'][0]['quantidade'], 'comissao_pct' => 0]],
         ], $cat);
 
-        $this->assertSame(2, $result['motor_version']);
+        $this->assertSame(3, $result['motor_version']);
         $this->assertArrayHasKey('setup_horas', $result['catalog_snapshot']);
         $this->assertArrayHasKey('ceiling_etiqueta', $result['catalog_snapshot']);
         $this->assertArrayHasKey('minutos_troca_bobina', $result['catalog_snapshot']);
-        $this->assertSame(2, $result['catalog_snapshot']['motor_version']);
+        $this->assertSame(3, $result['catalog_snapshot']['motor_version']);
+        $this->assertArrayHasKey('cromia_referencia', $result['catalog_snapshot']);
+        $this->assertSame(536.0, $result['catalog_snapshot']['cromia_referencia']);
         $this->assertArrayHasKey('tarifas_resolvidas', $result['catalog_snapshot']);
         $tarifas = $result['catalog_snapshot']['tarifas_resolvidas'];
         $this->assertEqualsWithDelta(8.0, (float) $tarifas['preco_papel'], 0.001);

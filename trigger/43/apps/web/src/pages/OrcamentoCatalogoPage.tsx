@@ -1408,6 +1408,13 @@ function TrocasTable({
 
   return (
     <div className="card">
+      <div className="card-body" style={{ paddingBottom: 0 }}>
+        <p className="catalogo-nota" style={{ margin: 0 }}>
+          Tempo de parada alimenta a guia/OP. Em <strong>PRETO INTEIRO</strong> o valor
+          comercial da troca no ORC é estrutural: (modelos − 1) × (cromia ÷ 4) — mesma
+          geometria da matriz; não edita aqui.
+        </p>
+      </div>
       <div className="table-wrap">
         {rows.length === 0 ? (
           <div className="empty-state">Nenhum tipo de troca cadastrado.</div>

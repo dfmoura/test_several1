@@ -10,7 +10,7 @@ use App\Models\OrcCatalogoParametro;
  */
 final class OrcamentoMotorRegras
 {
-    public const MOTOR_VERSION = 2;
+    public const MOTOR_VERSION = 3;
 
     /**
      * @return array{
@@ -38,6 +38,13 @@ final class OrcamentoMotorRegras
                     'valor' => 4,
                     'formula' => '(largura × colunas) + 4',
                     'nota' => 'Estrutura do motor v1 (somente leitura).',
+                ],
+                [
+                    'id' => 'fracao_cromia_preto_inteiro',
+                    'rotulo' => 'Fração cromia · PRETO INTEIRO',
+                    'valor' => 4,
+                    'formula' => '(modelos − 1) × (cromia_ceil ÷ 4)',
+                    'nota' => 'R5 monetário quando tipo troca = PRETO INTEIRO — ADR_ORC_TROCA_PRETO_INTEIRO_CROMIA. Não confundir com tempo_h=0,25 h do catálogo.',
                 ],
                 [
                     'id' => 'perda_bobina_fator',
@@ -112,10 +119,10 @@ final class OrcamentoMotorRegras
                 'id' => 'R5_troca_produto',
                 'grupo' => 'tempos',
                 'titulo' => 'Troca de produto / arte',
-                'resumo' => 'Tempo de parada × (modelos − 1).',
-                'formula' => 'hora_troca_prod = tempo_parada(tipo) × (modelos − 1)',
+                'resumo' => 'Hora×taxa (padrão) ou (modelos−1)×(cromia÷4) em PRETO INTEIRO.',
+                'formula' => 'PRETO INTEIRO: (modelos−1)×(CEILING(cromia;1)÷4) · demais: tempo_parada(tipo)×(modelos−1)×taxa',
                 'parametrizado' => true,
-                'parametros' => [],
+                'parametros' => [OrcCatalogoParametro::CHAVE_MATRIZ_CM2],
                 'catalogo_tab' => 'trocas',
             ],
             [

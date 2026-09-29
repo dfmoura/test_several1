@@ -315,7 +315,7 @@ class OrcamentoCatalogoTest extends TestCase
         $this->asComercial()
             ->getJson('/api/v1/orcamento-catalogo/regras')
             ->assertOk()
-            ->assertJsonPath('data.motor_version', 2)
+            ->assertJsonPath('data.motor_version', 3)
             ->assertJsonFragment(['id' => 'R1_metragem'])
             ->assertJsonFragment(['id' => 'FECHAMENTO']);
 

@@ -285,6 +285,23 @@ function ParametrosCalculoPanel({
   const renderAjusteInput = (cell: (typeof componenteRows)[number]['celulas'][number]) => {
     if (!parametrosAjuste) return null;
     const ln = cell.linha;
+    if (ln.draftKey == null) {
+      return (
+        <div className="orc-params-input-wrap orc-params-input-wrap--estrutural">
+          <span className="orc-params-estrutural" title={ln.parametro}>
+            {ln.valorUsado != null
+              ? ln.valorUsado.toLocaleString('pt-BR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : '—'}
+          </span>
+          <span className="orc-params-unidade" title={ln.unidade}>
+            {ln.unidade}
+          </span>
+        </div>
+      );
+    }
     const tintaUsaAcima =
       tarifas.tinta_faixa_m2 != null
         ? Number(cell.detalhe.m2) > Number(tarifas.tinta_faixa_m2)
@@ -318,7 +335,7 @@ function ParametrosCalculoPanel({
               : 'default'
           }
           value={showDraft}
-          onChange={(e) => setDraftField(cell.faixaIndex, ln.draftKey, e.target.value)}
+          onChange={(e) => setDraftField(cell.faixaIndex, ln.draftKey!, e.target.value)}
         />
         <span className="orc-params-unidade" title={ln.unidade}>
           {ln.unidade}

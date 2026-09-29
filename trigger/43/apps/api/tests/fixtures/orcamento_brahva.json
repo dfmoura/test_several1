@@ -1,5 +1,6 @@
 {
   "arquivo": "15-07 BRAHVA.xlsm",
+  "nota_motor_v3": "PRETO INTEIRO: valor_troca = (modelos-1)×(cromia÷4); etiqueta recalculada vs Excel legado (hora×taxa). Matriz 536 intacta.",
   "cliente": "BRAHVA",
   "medida": "8,0X12,4",
   "largura_cm": 9.0,
@@ -32,13 +33,14 @@
       "quantidade": 7000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 1900.0,
+        "etiqueta": 2470.0,
         "matriz": 536.0,
-        "total": 2436.0,
+        "total": 3006.0,
         "metragem": 865.8195000000001,
         "m2": 78.0,
         "hora_maq": 1.8658195000000002,
-        "valor_servico": 1634.9990265000001,
+        "valor_servico": 2123.9990265,
+        "valor_troca_produto": 804.0,
         "perda_papel_troca_produto": 1.53,
         "valor_papel_troca_produto": 0.0
       }
@@ -47,13 +49,14 @@
       "quantidade": 10000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 2360.0,
+        "etiqueta": 2920.0,
         "matriz": 536.0,
-        "total": 2896.0,
+        "total": 3456.0,
         "metragem": 1236.885,
         "m2": 111.4,
         "hora_maq": 2.236885,
-        "valor_servico": 2027.4242320375001,
+        "valor_servico": 2516.4242320375,
+        "valor_troca_produto": 804.0,
         "perda_papel_troca_produto": 1.53,
         "valor_papel_troca_produto": 0.0
       }
@@ -62,13 +65,14 @@
       "quantidade": 14000,
       "comissao_pct": 0.0,
       "excel": {
-        "etiqueta": 2960.0,
+        "etiqueta": 3530.0,
         "matriz": 536.0,
-        "total": 3496.0,
+        "total": 4066.0,
         "metragem": 1731.6390000000001,
         "m2": 155.9,
         "hora_maq": 2.7316390000000004,
-        "valor_servico": 2547.364509798125,
+        "valor_servico": 3036.364509798125,
+        "valor_troca_produto": 804.0,
         "perda_papel_troca_produto": 1.53,
         "valor_papel_troca_produto": 0.0
       }

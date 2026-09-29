@@ -141,7 +141,7 @@ class OrcamentoGorduraTest extends TestCase
             ->postJson('/api/v1/orcamentos/calcular', $this->payload(0));
 
         $res->assertOk();
-        $this->assertEqualsWithDelta(1900.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
+        $this->assertEqualsWithDelta(2470.0, (float) $res->json('data.faixas.0.valor_etiqueta'), 0.01);
         $this->assertSame(0.0, (float) $res->json('data.valor_gordura'));
         $this->assertArrayNotHasKey('valor_etiqueta_base', $res->json('data.faixas.0'));
     }
@@ -158,7 +158,7 @@ class OrcamentoGorduraTest extends TestCase
         $etiqueta = (float) $preview->json('data.faixas.0.valor_etiqueta');
         $gordura = (float) $preview->json('data.faixas.0.valor_gordura');
 
-        $this->assertEqualsWithDelta(1900.0, $base, 0.01);
+        $this->assertEqualsWithDelta(2470.0, $base, 0.01);
         $this->assertSame(200.0, (float) $preview->json('data.valor_gordura'));
         $this->assertSame(200.0, $gordura);
         $this->assertGreaterThan($base, $etiqueta);

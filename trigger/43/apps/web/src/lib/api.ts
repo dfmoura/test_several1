@@ -2465,6 +2465,10 @@ export type OrcamentoFaixaResult = {
   hora_maq: number;
   hora_troca_prod: number;
   hora_troca_bobina: number;
+  /** R5: `hora_parada` | `cromia_preto_inteiro` (motor_version ≥ 3). */
+  troca_produto_modo?: 'hora_parada' | 'cromia_preto_inteiro' | string;
+  /** Cromia CEILING R$1 — base do PRETO INTEIRO. */
+  cromia_referencia?: number;
   perda_acerto: number;
   perda_acabamento: number;
   perda_papel_troca_produto: number;
@@ -2537,6 +2541,8 @@ export type OrcamentoResult = {
   chave_matriz: string | null;
   cobra_matriz: boolean;
   valor_matriz: number;
+  /** Cromia CEILING — referência R5 PRETO INTEIRO (mesmo sem cobrar clichê). */
+  cromia_referencia?: number;
   motor_version?: number;
   faixas: OrcamentoFaixaResult[];
   /** Multi-item (fase 2): posições 2..N além do flat (= item 1). */

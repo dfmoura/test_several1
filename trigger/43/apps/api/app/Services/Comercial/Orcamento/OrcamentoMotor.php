@@ -5,9 +5,17 @@ namespace App\Services\Comercial\Orcamento;
 /**
  * Motor R1–R20 — port fiel de trigger/36 calculator.py + matrix_key.py.
  * Intermediários espelham o Excel (float); teto comercial (ceiling) no fechamento.
+ *
+ * R5 especial: PRETO INTEIRO → (modelos−1)×(cromia_ceil÷4) — ADR_ORC_TROCA_PRETO_INTEIRO_CROMIA.
  */
 final class OrcamentoMotor
 {
+    /** Match exato do tipo de troca (não inclui +BORDA / +CALÇO). */
+    public const TIPO_TROCA_PRETO_INTEIRO = 'PRETO INTEIRO';
+
+    /** Divisor estrutural: fração da cromia cobrada por modelo extra. */
+    public const FRACAO_CROMIA_PRETO_INTEIRO = 4.0;
+
     public function excelCeiling(float $number, float $significance): float
     {
         if ($significance == 0.0) {
@@ -93,10 +101,10 @@ final class OrcamentoMotor
 
         $ck = $this->chaveMatriz($cliente, $medida, $z, $cores, $largura, $colunas);
         $cobra = $querMatriz && ! $matrizJaCobrada;
-        $matrizRaw = $querMatriz
-            ? $this->calcularMatriz($z, $largura, $colunas, $cores, $cat)
-            : 0.0;
-        $valorMatriz = $cobra ? $this->excelCeiling($matrizRaw, 1.0) : 0.0;
+        // Cromia geométrica sempre disponível (R5 PRETO INTEIRO); cobrança de clichê só se $cobra.
+        $matrizRaw = $this->calcularMatriz($z, $largura, $colunas, $cores, $cat);
+        $cromiaCeil = $matrizRaw > 0.0 ? $this->excelCeiling($matrizRaw, 1.0) : 0.0;
+        $valorMatriz = $cobra ? $cromiaCeil : 0.0;
 
         $faixasOut = [];
         foreach ($input['faixas'] as $faixa) {
@@ -106,6 +114,7 @@ final class OrcamentoMotor
                 $input,
                 $cat,
                 $valorMatriz,
+                $cromiaCeil,
             );
         }
 
@@ -113,6 +122,7 @@ final class OrcamentoMotor
             'chave_matriz' => $ck,
             'cobra_matriz' => $cobra,
             'valor_matriz' => $valorMatriz,
+            'cromia_referencia' => $cromiaCeil,
             'motor_version' => OrcamentoMotorRegras::MOTOR_VERSION,
             'faixas' => $faixasOut,
             'catalog_snapshot' => [
@@ -122,6 +132,7 @@ final class OrcamentoMotor
                 'tinta_acima_m2' => $cat->tintaAcimaM2,
                 'preco_caixa' => $cat->precoCaixa,
                 'matriz_cm2' => $cat->matrizCm2,
+                'cromia_referencia' => $cromiaCeil,
                 'setup_horas' => $cat->setupHoras,
                 'limite_metragem_bobina' => $cat->limiteMetragemBobina,
                 'minutos_troca_bobina' => $cat->minutosTrocaBobina,
@@ -182,6 +193,7 @@ final class OrcamentoMotor
         array $inp,
         OrcamentoCatalogo $cat,
         float $valorMatrizFaixa,
+        float $cromiaCeil = 0.0,
     ): array {
         $puxada = (float) $inp['puxada_cm'];
         $largura = (float) $inp['largura_cm'];
@@ -193,6 +205,8 @@ final class OrcamentoMotor
         $limite = $cat->limiteMetragemBobina;
         $tipoTroca = (string) ($inp['tipo_troca_produto'] ?? 'SEM PARADA');
         $impostoPct = (float) ($inp['imposto_pct'] ?? 16);
+        $extrasModelo = max(0, $modelos - 1);
+        $trocaPretoInteiro = $this->isTrocaPretoInteiro($tipoTroca);
 
         // R1
         $metragem = ($puxada / 100.0) * $q / $colunas;
@@ -209,8 +223,8 @@ final class OrcamentoMotor
             $horaTrocaBobina = ((($metragem / 1000.0) - 1) * $minutos) / 60.0;
             $temTrocaBobina = true;
         }
-        // R5
-        $horaTrocaProd = $cat->horaParada($tipoTroca) * ($modelos - 1);
+        // R5 — horas de parada (guia/OP); valor monetário pode usar cromia (PRETO INTEIRO).
+        $horaTrocaProd = $cat->horaParada($tipoTroca) * $extrasModelo;
         // R6–R8
         $perdaAcerto = $this->perdaAcertoM2($inp['cores'], $largura, $cat);
         $perdaTroca = $this->perdaTrocaProdutoM2($inp['cores'], $largura, $modelos, $colunas, $cat);
@@ -232,7 +246,11 @@ final class OrcamentoMotor
         $precoPapel = $cat->precoPapel((string) $inp['papel']);
         $valorPapel = ($m2 + $perdaAcerto + $perdaTroca + $perdaBobinaM2) * $precoPapel;
         $valorMaquina = $taxa * $horaMaq;
-        $valorTrocaProduto = $taxa * $horaTrocaProd;
+        if ($trocaPretoInteiro) {
+            $valorTrocaProduto = $extrasModelo * ($cromiaCeil / self::FRACAO_CROMIA_PRETO_INTEIRO);
+        } else {
+            $valorTrocaProduto = $taxa * $horaTrocaProd;
+        }
         $valorTrocaBobina = $temTrocaBobina ? $taxa * $horaTrocaBobina : 0.0;
         $valorPapelTrocaProduto = $cat->usaTintaMatriz() ? 0.0 : $perdaTroca * $precoPapel;
 
@@ -280,6 +298,8 @@ final class OrcamentoMotor
             'hora_maq' => $horaMaq,
             'hora_troca_prod' => $horaTrocaProd,
             'hora_troca_bobina' => $horaTrocaBobina,
+            'troca_produto_modo' => $trocaPretoInteiro ? 'cromia_preto_inteiro' : 'hora_parada',
+            'cromia_referencia' => $cromiaCeil,
             'perda_acerto' => $perdaAcerto,
             'perda_acabamento' => $perdaAcab,
             'perda_papel_troca_produto' => $perdaTroca,
@@ -366,6 +386,11 @@ final class OrcamentoMotor
         }
 
         return $metros * ($larguraCm / 100.0) * $modelos;
+    }
+
+    public function isTrocaPretoInteiro(string $tipo): bool
+    {
+        return OrcamentoCatalogo::norm($tipo) === self::TIPO_TROCA_PRETO_INTEIRO;
     }
 
     private function coresKey(mixed $cores): string

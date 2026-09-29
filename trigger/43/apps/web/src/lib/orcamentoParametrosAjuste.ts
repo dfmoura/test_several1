@@ -43,8 +43,8 @@ export type ParametroAjusteLinha = {
   valorUsado: number | null;
   /** Resultado R$ da linha de custo na faixa. */
   resultadoRs: number | null;
-  /** Chave no draft local (string vazia = usar default). */
-  draftKey: ParametroAjusteId;
+  /** Chave no draft local (string vazia = usar default). Null = estrutural (sem ajuste). */
+  draftKey: ParametroAjusteId | null;
 };
 
 export type TarifasResolvidas = {
@@ -67,6 +67,8 @@ export type TarifasResolvidas = {
   preco_tubete?: number | null;
   tubete?: string | null;
   preco_caixa?: number | null;
+  /** Ceiling da cromia (mesma geometria da matriz) — R5 PRETO INTEIRO. */
+  cromia_referencia?: number | null;
 };
 
 function num(v: unknown): number | null {
@@ -101,7 +103,16 @@ export function parseTarifasResolvidas(
     preco_tubete: num(t.preco_tubete),
     tubete: t.tubete != null ? String(t.tubete) : null,
     preco_caixa: num(t.preco_caixa),
+    cromia_referencia: num(snapshot?.cromia_referencia) ?? num(t.cromia_referencia),
   };
+}
+
+/** Match exato — alinhado a OrcamentoMotor::TIPO_TROCA_PRETO_INTEIRO. */
+export function isTrocaPretoInteiro(tipo: string | null | undefined): boolean {
+  return String(tipo ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase() === 'PRETO INTEIRO';
 }
 
 export function buildParametrosAjusteLinhas(opts: {
@@ -119,6 +130,8 @@ export function buildParametrosAjusteLinhas(opts: {
     comissao?: number;
     imposto?: number;
     m2?: number;
+    troca_produto_modo?: string;
+    cromia_referencia?: number;
   };
   comissaoPct: number;
   impostoPct: number;
@@ -126,6 +139,10 @@ export function buildParametrosAjusteLinhas(opts: {
   const { tarifas: t, detalhe: d, comissaoPct, impostoPct } = opts;
   const tintaUsaAcima =
     t.tinta_faixa_m2 != null && d.m2 != null ? Number(d.m2) > Number(t.tinta_faixa_m2) : true;
+  const trocaCromia =
+    d.troca_produto_modo === 'cromia_preto_inteiro' || isTrocaPretoInteiro(t.tipo_troca_produto);
+  const cromiaRef = num(d.cromia_referencia) ?? t.cromia_referencia ?? null;
+  const fracaoCromia = cromiaRef != null ? cromiaRef / 4 : null;
 
   return [
     {
@@ -151,13 +168,15 @@ export function buildParametrosAjusteLinhas(opts: {
     {
       id: 'troca_produto',
       label: 'Troca produto',
-      parametro: t.tipo_troca_produto
-        ? `h parada · ${t.tipo_troca_produto}`
-        : 'h parada (tipo troca)',
-      unidade: 'h',
-      valorUsado: t.hora_parada_troca ?? null,
+      parametro: trocaCromia
+        ? `cromia ÷ 4 · ${t.tipo_troca_produto ?? 'PRETO INTEIRO'} × (modelos − 1)`
+        : t.tipo_troca_produto
+          ? `h parada · ${t.tipo_troca_produto}`
+          : 'h parada (tipo troca)',
+      unidade: trocaCromia ? 'R$/modelo' : 'h',
+      valorUsado: trocaCromia ? fracaoCromia : (t.hora_parada_troca ?? null),
       resultadoRs: num(d.valor_troca_produto),
-      draftKey: 'troca_produto',
+      draftKey: trocaCromia ? null : 'troca_produto',
     },
     {
       id: 'troca_bobina',

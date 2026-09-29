@@ -5638,6 +5638,13 @@ table.data-table td.acoes {
   max-width: 100%;
 }
 
+.orc-params-input-wrap--estrutural .orc-params-estrutural {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .orc-params-totais-titulo {
   margin: 0.65rem 0 0.28rem;
   padding: 0 0.4rem;
