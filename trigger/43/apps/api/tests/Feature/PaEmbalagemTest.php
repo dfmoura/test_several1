@@ -121,8 +121,17 @@ class PaEmbalagemTest extends TestCase
             'qtde_faturavel' => '5000.0000',
             'status' => PedidoItem::STATUS_PRODUZIDO,
             'especificacao' => [
+                'medida' => '100X50',
+                'papel' => 'Couchê Brilho',
+                'cores' => 4,
+                'acabamento' => 'Verniz UV',
                 'tubete' => '3"',
                 'etiq_por_rolo' => 1000,
+                'saida_etiqueta' => 'ESQUERDA',
+                'modelos_composicao' => [
+                    ['nome' => 'Frente A'],
+                    ['nome' => 'Verso B'],
+                ],
             ],
         ]);
 
@@ -242,6 +251,11 @@ class PaEmbalagemTest extends TestCase
         $texto = app(PaEmbalagemService::class)->textoFiscal($emb);
         $this->assertNotNull($texto);
         $this->assertStringContainsString('5 BOB', $texto);
+        $this->assertStringContainsString('med 100X50', $texto);
+        $this->assertStringContainsString('Couchê Brilho', $texto);
+        $this->assertStringContainsString('4 cor(es)', $texto);
+        $this->assertStringContainsString('Verniz UV', $texto);
+        $this->assertStringContainsString('modelo Frente A/Verso B', $texto);
         $this->assertStringContainsString('1 CX', $texto);
         $this->assertStringContainsString('tubete 3"', $texto);
         $this->assertStringContainsString('saida ESQUERDA', $texto);
@@ -254,6 +268,8 @@ class PaEmbalagemTest extends TestCase
         $rolo = app(PaEmbalagemService::class)->textoFiscalModo($emb, 'ROLO');
         $this->assertNotNull($rolo);
         $this->assertStringContainsString('5.000 UN', $rolo);
+        $this->assertStringContainsString('med 100X50', $rolo);
+        $this->assertStringContainsString('modelo Frente A/Verso B', $rolo);
         $this->assertStringContainsString('comp: 5x1000UN', $rolo);
         $this->assertStringNotContainsString('BOB', $rolo);
     }

@@ -205,7 +205,7 @@ class EmissaoFiscalSaidaTest extends TestCase
             'ordem' => 1,
             'necessidade' => $overrides['necessidade'] ?? PedidoItem::NEC_PRODUCAO,
             'familia_fiscal' => $overrides['familia_fiscal'] ?? 'PA-ETQ',
-            'descricao' => $overrides['descricao'] ?? 'Etiqueta teste',
+            'descricao' => $overrides['descricao'] ?? '100X50 · Couchê · 4 cor(es) · Verniz · Q 10000',
             'qtde_pedida' => '10000.0000',
             'qtde_produzida' => '10000.0000',
             'qtde_faturavel' => '10000.0000',
@@ -213,6 +213,19 @@ class EmissaoFiscalSaidaTest extends TestCase
             'preco_unitario' => '0.350000',
             'valor_total' => '3500.00',
             'status' => PedidoItem::STATUS_PRODUZIDO,
+            'especificacao' => $overrides['especificacao'] ?? [
+                'medida' => '100X50',
+                'papel' => 'Couchê',
+                'cores' => 4,
+                'acabamento' => 'Verniz',
+                'tubete' => '3"',
+                'etiq_por_rolo' => 1000,
+                'saida_etiqueta' => 'ESQUERDA',
+                'modelos_composicao' => [
+                    ['nome' => 'Frente'],
+                    ['nome' => 'Verso'],
+                ],
+            ],
         ]);
 
         return $pedido->fresh(['itens', 'parceiro', 'orcamento']) ?? $pedido;
@@ -677,6 +690,10 @@ class EmissaoFiscalSaidaTest extends TestCase
         $infAd = $payload['items'][0]['informacoes_adicionais_produto'] ?? null;
         $this->assertIsString($infAd);
         $this->assertStringContainsString('UN', $infAd);
+        $this->assertStringContainsString('med 100X50', $infAd);
+        $this->assertStringContainsString('Couchê', $infAd);
+        $this->assertStringContainsString('4 cor(es)', $infAd);
+        $this->assertStringContainsString('modelo Frente/Verso', $infAd);
         $this->assertStringContainsString('3 CX', $infAd);
         $this->assertStringContainsString('tubete 3"', $infAd);
         $this->assertStringContainsString('saida ESQUERDA', $infAd);

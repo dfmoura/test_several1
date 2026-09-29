@@ -2,9 +2,11 @@
 
 /**
  * Ensaio local: PED PRODUZIDO + OP CONCLUIDA + embalagem PA confirmada
- * para testar NF-e com bobinas em infAdProd (ADR_PA_EMBALAGEM_BOBINA_CAIXA emenda 2026-09-28).
+ * para testar NF-e ROLO/ETIQUETA com infAdProd detalhado
+ * (medida · material · cores · modelo · bobinas/comp) — ADR_PA_EMBALAGEM_BOBINA_CAIXA.
  *
  * Não mexe em OP-2026-00001 nem inventa saldo de estoque.
+ * Usa PED-2026-EMBNF02 (ensaio fresco; EMBNF01 pode já ter FAT antiga).
  */
 
 use App\Models\Empresa;
@@ -50,13 +52,28 @@ if ($par === null) {
     exit(1);
 }
 
-$codigoPed = 'PED-2026-EMBNF01';
-$codigoOp = 'OP-2026-EMBNF01';
+$codigoPed = 'PED-2026-EMBNF02';
+$codigoOp = 'OP-2026-EMBNF02';
 $qtde = '5000.0000';
+
+$especItem = [
+    'medida' => '100X50',
+    'papel' => 'Couchê Brilho',
+    'cores' => 4,
+    'acabamento' => 'Verniz UV',
+    'tubete' => '3"',
+    'etiq_por_rolo' => 1000,
+    'saida_etiqueta' => 'ESQUERDA',
+    'modelos_composicao' => [
+        ['nome' => 'Frente A'],
+        ['nome' => 'Verso B'],
+    ],
+];
+$descItem = '100X50 · Couchê Brilho · 4 cor(es) · Verniz UV · Q 5000';
 
 $ped = Pedido::query()->where('empresa_id', $emp->id)->where('codigo', $codigoPed)->first();
 if ($ped === null) {
-    $numero = 99051;
+    $numero = 99052;
     while (Orcamento::query()->where('empresa_id', $emp->id)->where('ano', 2026)->where('numero', $numero)->exists()) {
         $numero++;
     }
@@ -65,7 +82,7 @@ if ($ped === null) {
         'empresa_id' => $emp->id,
         'ano' => 2026,
         'numero' => $numero,
-        'codigo' => 'ORC-2026-EMBNF01',
+        'codigo' => 'ORC-2026-EMBNF02',
         'versao' => 1,
         'parceiro_id' => $par->id,
         'cliente_nome' => $par->razao_social,
@@ -77,9 +94,14 @@ if ($ped === null) {
             'condicao_pagamento' => '28 DDL',
             'forma_pagamento' => 'PIX',
             'modo_entrega' => 'RETIRAR',
+            'medida' => '100X50',
+            'papel' => 'Couchê Brilho',
+            'cores' => 4,
+            'acabamento' => 'Verniz UV',
             'etiq_por_rolo' => 1000,
             'tubete' => '3"',
             'saida_etiqueta' => 'ESQUERDA',
+            'modelos_composicao' => $especItem['modelos_composicao'],
         ],
         'result_snapshot' => ['faixas' => [[
             'quantidade' => 5000,
@@ -94,7 +116,7 @@ if ($ped === null) {
         'prazo_entrega_dias' => 10,
         'validade_dias' => 7,
         'tolerancia_qtd_pct' => 20,
-        'observacao' => 'Ensaio embalagem PA → NF bobinas em infAdProd.',
+        'observacao' => 'Ensaio embalagem PA → NF ROLO + infAdProd detalhado.',
     ]);
 
     $ped = Pedido::query()->create([
@@ -106,15 +128,20 @@ if ($ped === null) {
         'faixa_index' => 0,
         'tolerancia_qtd_pct' => '20',
         'prazo_entrega_dias' => 10,
-        'observacao' => 'Ensaio: embalar (já confirmado) → faturar → conferir BOB/comp na NF.',
+        'observacao' => 'Ensaio: embalar → faturar (modo ROLO) → conferir med/modelo/comp na NF.',
         'snapshot' => [
             'input' => [
                 'condicao_pagamento' => '28 DDL',
                 'forma_pagamento' => 'PIX',
                 'modo_entrega' => 'RETIRAR',
+                'medida' => '100X50',
+                'papel' => 'Couchê Brilho',
+                'cores' => 4,
+                'acabamento' => 'Verniz UV',
                 'etiq_por_rolo' => 1000,
                 'tubete' => '3"',
                 'saida_etiqueta' => 'ESQUERDA',
+                'modelos_composicao' => $especItem['modelos_composicao'],
             ],
             'faixa' => [
                 'quantidade' => 5000,
@@ -135,7 +162,7 @@ if ($ped === null) {
         'ordem' => 1,
         'necessidade' => PedidoItem::NEC_PRODUCAO,
         'familia_fiscal' => 'PA-ETQ',
-        'descricao' => 'Etiqueta ensaio embalagem NF (bobinas)',
+        'descricao' => $descItem,
         'qtde_pedida' => $qtde,
         'qtde_produzida' => $qtde,
         'qtde_faturavel' => $qtde,
@@ -143,10 +170,7 @@ if ($ped === null) {
         'preco_unitario' => '0.350000',
         'valor_total' => '1750.00',
         'status' => PedidoItem::STATUS_PRODUZIDO,
-        'especificacao' => [
-            'tubete' => '3"',
-            'etiq_por_rolo' => 1000,
-        ],
+        'especificacao' => $especItem,
     ]);
 }
 
@@ -156,6 +180,16 @@ if ($item === null) {
     fwrite(STDERR, "PED sem item\n");
     exit(1);
 }
+
+// Garante espec rica mesmo se o PED já existia com ensaio antigo.
+$item->descricao = $descItem;
+$item->especificacao = $especItem;
+$item->qtde_produzida = $qtde;
+$item->qtde_faturavel = $qtde;
+$item->status = PedidoItem::STATUS_PRODUZIDO;
+$item->save();
+$ped->status = Pedido::STATUS_PRODUZIDO;
+$ped->save();
 
 $op = OrdemProducao::query()->where('empresa_id', $emp->id)->where('codigo', $codigoOp)->first();
 if ($op === null) {
@@ -191,18 +225,23 @@ if ($fat === null && ($emb === null || $emb->status !== PaEmbalagem::STATUS_CONF
     echo 'EMB já confirmada: '.$emb->codigo."\n";
 }
 
-$texto = $embSvc->textoFiscal($emb?->load('bobinas'));
+$emb?->load(['bobinas', 'pedidoItem']);
+$textoEtq = $embSvc->textoFiscalModo($emb, 'ETIQUETA');
+$textoRolo = $embSvc->textoFiscalModo($emb, 'ROLO');
 echo 'PED '.$ped->codigo.' '.$ped->status.' id='.$ped->id."\n";
 echo 'URL /pedidos/'.$ped->id."\n";
 echo 'OP '.$op->codigo.' '.$op->status.' boa='.$op->qtde_boa."\n";
 echo 'URL /ordens-producao/'.$op->id."\n";
-if ($texto) {
-    echo 'infAdProd esperado: '.$texto."\n";
+if ($textoRolo) {
+    echo 'infAdProd ROLO: '.$textoRolo."\n";
+}
+if ($textoEtq) {
+    echo 'infAdProd ETIQUETA: '.$textoEtq."\n";
 }
 if ($fat) {
-    echo 'FAT '.$fat->codigo.' — já faturado; abra a prévia/DANFE do DFS.'."\n";
+    echo 'FAT '.$fat->codigo.' modo='.($fat->nfe_qtde_modo ?? '—').' — já faturado; abra a prévia/DANFE do DFS.'."\n";
     echo 'URL /faturamentos/'.$fat->id."\n";
 } else {
-    echo "FAT pendente — faturar no PED e abrir prévia NF-e (bobinas em obs. do item).\n";
+    echo "FAT pendente — faturar no PED (default ROLO) e abrir prévia NF-e.\n";
 }
 echo "OP-2026-00001 intocada\n";

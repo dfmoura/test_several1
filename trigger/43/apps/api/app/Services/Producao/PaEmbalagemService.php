@@ -195,7 +195,7 @@ class PaEmbalagemService
             ->where('empresa_id', $empresa->id)
             ->where('pedido_id', $pedido->id)
             ->where('status', PaEmbalagem::STATUS_CONFIRMADA)
-            ->with('bobinas')
+            ->with(['bobinas', 'pedidoItem'])
             ->orderByDesc('id')
             ->get();
     }
@@ -314,15 +314,18 @@ class PaEmbalagemService
         return $this->textoFiscalModo($emb, 'ETIQUETA');
     }
 
-    public function textoFiscalModo(?PaEmbalagem $emb, string $modo): ?string
+    /**
+     * @param  array<string, mixed>|null  $especOverride
+     */
+    public function textoFiscalModo(?PaEmbalagem $emb, string $modo, ?array $especOverride = null): ?string
     {
         if (! $emb) {
             return null;
         }
 
-        $emb->loadMissing('bobinas');
+        $emb->loadMissing(['bobinas', 'pedidoItem']);
 
-        return mb_substr($emb->textoFiscalModo($modo), 0, 500);
+        return mb_substr($emb->textoFiscalModo($modo, $especOverride), 0, 500);
     }
 
     /**
@@ -481,7 +484,8 @@ class PaEmbalagemService
 
         $tubete = trim((string) ($espec['tubete'] ?? $input['tubete'] ?? ''));
         $caixaMedida = trim((string) ($faixa['caixa_medida'] ?? ''));
-        $saida = isset($input['saida_etiqueta']) ? trim((string) $input['saida_etiqueta']) : null;
+        $saidaRaw = $espec['saida_etiqueta'] ?? $input['saida_etiqueta'] ?? null;
+        $saida = $saidaRaw !== null ? trim((string) $saidaRaw) : null;
         if ($saida === '') {
             $saida = null;
         }

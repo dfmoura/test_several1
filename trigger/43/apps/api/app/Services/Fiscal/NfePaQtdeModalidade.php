@@ -78,11 +78,12 @@ final class NfePaQtdeModalidade
         $emb = $this->embalagem->resolverParaItem($embs, $pedidoItemId);
         $fam = strtoupper(trim((string) ($linha['familia_fiscal'] ?? '')));
         $ehPa = str_starts_with($fam, 'PA-') || $fam === 'PA-ETQ' || $fam === '';
+        $espec = is_array($linha['especificacao'] ?? null) ? $linha['especificacao'] : null;
 
         if (! $ehPa || ! $emb || (int) $emb->qtde_bobinas < 1) {
             return [
                 'linha' => $linha,
-                'inf_ad' => $this->embalagem->textoFiscal($emb),
+                'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ETIQUETA, $espec),
             ];
         }
 
@@ -96,14 +97,14 @@ final class NfePaQtdeModalidade
 
             return [
                 'linha' => $linha,
-                'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ROLO),
+                'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ROLO, $espec),
             ];
         }
 
         // ETIQUETA: qCom permanece; bobinas só em obs.
         return [
             'linha' => $linha,
-            'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ETIQUETA),
+            'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ETIQUETA, $espec),
         ];
     }
 

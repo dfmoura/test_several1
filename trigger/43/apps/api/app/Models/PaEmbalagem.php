@@ -115,22 +115,28 @@ class PaEmbalagem extends Model
     }
 
     /**
-     * Modo ROLO: qCom = bobinas — obs. destaca etiquetas + composição.
-     * Modo ETIQUETA: qCom = etiquetas — obs. destaca bobinas.
+     * Modo ROLO: qCom = bobinas — obs. destaca etiquetas + spec + composição.
+     * Modo ETIQUETA: qCom = etiquetas — obs. destaca bobinas + spec.
+     *
+     * @param  array<string, mixed>|null  $especOverride  espec do PED item (linha fiscal); senão usa pedidoItem
      */
-    public function textoFiscalModo(string $modo): string
+    public function textoFiscalModo(string $modo, ?array $especOverride = null): string
     {
         return $modo === 'ROLO'
-            ? $this->textoFiscalModoRolo()
-            : $this->textoFiscalModoEtiqueta();
+            ? $this->textoFiscalModoRolo($especOverride)
+            : $this->textoFiscalModoEtiqueta($especOverride);
     }
 
-    public function textoFiscalModoEtiqueta(): string
+    /**
+     * @param  array<string, mixed>|null  $especOverride
+     */
+    public function textoFiscalModoEtiqueta(?array $especOverride = null): string
     {
-        $parts = [
-            $this->qtde_bobinas.' BOB',
-            $this->qtde_caixas.' CX',
-        ];
+        $parts = array_merge(
+            [$this->qtde_bobinas.' BOB'],
+            $this->detalheEspecificacaoFiscalParts($especOverride),
+            [$this->qtde_caixas.' CX'],
+        );
         if ($this->tubete) {
             $parts[] = 'tubete '.$this->tubete;
         }
@@ -138,7 +144,7 @@ class PaEmbalagem extends Model
             $parts[] = 'saida '.$this->saida_etiqueta;
         }
         if ($this->caixa_medida) {
-            $parts[] = 'medida '.$this->caixa_medida;
+            $parts[] = 'caixa '.$this->caixa_medida;
         }
         $comp = $this->composicaoBobinasTexto();
         if ($comp !== null && $comp !== '') {
@@ -148,12 +154,16 @@ class PaEmbalagem extends Model
         return implode(' · ', $parts);
     }
 
-    public function textoFiscalModoRolo(): string
+    /**
+     * @param  array<string, mixed>|null  $especOverride
+     */
+    public function textoFiscalModoRolo(?array $especOverride = null): string
     {
-        $parts = [
-            number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN',
-            $this->qtde_caixas.' CX',
-        ];
+        $parts = array_merge(
+            [number_format((float) $this->qtde_etiquetas, 0, ',', '.').' UN'],
+            $this->detalheEspecificacaoFiscalParts($especOverride),
+            [$this->qtde_caixas.' CX'],
+        );
         if ($this->tubete) {
             $parts[] = 'tubete '.$this->tubete;
         }
@@ -161,7 +171,7 @@ class PaEmbalagem extends Model
             $parts[] = 'saida '.$this->saida_etiqueta;
         }
         if ($this->caixa_medida) {
-            $parts[] = 'medida '.$this->caixa_medida;
+            $parts[] = 'caixa '.$this->caixa_medida;
         }
         $comp = $this->composicaoBobinasTexto();
         if ($comp !== null && $comp !== '') {
@@ -169,6 +179,65 @@ class PaEmbalagem extends Model
         }
 
         return implode(' · ', $parts);
+    }
+
+    /**
+     * Medida / material / cores / acabamento / modelos do PED → infAdProd.
+     *
+     * @param  array<string, mixed>|null  $especOverride
+     * @return list<string>
+     */
+    public function detalheEspecificacaoFiscalParts(?array $especOverride = null): array
+    {
+        $spec = $especOverride;
+        if (! is_array($spec) || $spec === []) {
+            $this->loadMissing('pedidoItem');
+            $spec = is_array($this->pedidoItem?->especificacao) ? $this->pedidoItem->especificacao : [];
+        }
+
+        return self::partsFromEspecificacao($spec);
+    }
+
+    /**
+     * @param  array<string, mixed>  $spec
+     * @return list<string>
+     */
+    public static function partsFromEspecificacao(array $spec): array
+    {
+        $parts = [];
+        $medida = trim((string) ($spec['medida'] ?? ''));
+        if ($medida !== '') {
+            $parts[] = 'med '.$medida;
+        }
+        $papel = trim((string) ($spec['papel'] ?? ''));
+        if ($papel !== '') {
+            $parts[] = $papel;
+        }
+        if (isset($spec['cores']) && $spec['cores'] !== '' && $spec['cores'] !== null) {
+            $parts[] = $spec['cores'].' cor(es)';
+        }
+        $acab = trim((string) ($spec['acabamento'] ?? ''));
+        if ($acab !== '') {
+            $parts[] = $acab;
+        }
+        $mods = $spec['modelos_composicao'] ?? null;
+        if (is_array($mods) && $mods !== []) {
+            $nomes = [];
+            foreach ($mods as $m) {
+                if (! is_array($m)) {
+                    continue;
+                }
+                $n = trim((string) ($m['nome'] ?? ''));
+                if ($n !== '') {
+                    $nomes[] = $n;
+                }
+            }
+            if ($nomes !== []) {
+                $parts[] = 'modelo '.implode('/', array_slice($nomes, 0, 4));
+            }
+        }
+
+        return $parts;
     }
 
     /**

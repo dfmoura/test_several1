@@ -138,10 +138,11 @@ O que faltava era o **detalhe físico por item** nas observações (padrão Exac
 
 | Campo | Conteúdo |
 |-------|----------|
-| `infAdProd` (por item FAT) | `N BOB · M CX · tubete … · saida … · medida … · comp: axQUN+bxRUN` |
+| `infAdProd` (por item FAT) | `N BOB · med … · material · cores · acab · modelo … · M CX · tubete … · saida … · caixa … · comp: axQUN+bxRUN` |
 | `infCpl` | Pedido/FAT + eco curto `N BOB · M CX` (sem repetir o detalhe do item) |
 | Amarrio | embalagem via `pedido_item_id` da linha; se o PED tem só 1 embalagem, fallback nela |
 | Volumes | Σ caixas de **todas** as embalagens confirmadas do PED |
+| Spec | `medida` / `papel` / `cores` / `acabamento` / `modelos_composicao` do `PedidoItem.especificacao` |
 
 `resumoTexto()` continua na UI (inclui etiquetas). `textoFiscalItem()` é só para NF.
 
@@ -155,7 +156,7 @@ Há casos pequenos (amostra, sem rebobinar) que emitem **por etiqueta** (`UN`).
 | ORC / PED / FAT / TIT / COM | etiquetas | — |
 | `SAIDA_VENDA` | etiquetas | — |
 | `qCom` / `uCom` | — | **RL** (default c/ embalagem) ou **UN** |
-| `infAdProd` | — | no modo RL: total UN + comp; no modo UN: BOB + comp |
+| `infAdProd` | — | no modo RL: total UN + med/material/cores/modelo + comp; no modo UN: BOB + mesma spec + comp |
 | Volumes | caixas | intacto |
 
 Campo `faturamentos.nfe_qtde_modo` = `ROLO` | `ETIQUETA`.  
