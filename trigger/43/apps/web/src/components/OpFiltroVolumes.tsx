@@ -4,12 +4,21 @@ type Props = {
   total: number;
   visiveis: number;
   id?: string;
+  /** No overlay de A buscar o foco fica no QR — filtro sem autoFocus. */
+  autoFocus?: boolean;
 };
 
 /**
  * Um campo — lote desta bobina (código / NF), local, L×C, m².
  */
-export function OpFiltroVolumes({ value, onChange, total, visiveis, id = 'op-filtro-vols' }: Props) {
+export function OpFiltroVolumes({
+  value,
+  onChange,
+  total,
+  visiveis,
+  id = 'op-filtro-vols',
+  autoFocus = true,
+}: Props) {
   if (total < 1) return null;
   return (
     <div className="form-group op-escolha__filtro">
@@ -21,7 +30,7 @@ export function OpFiltroVolumes({ value, onChange, total, visiveis, id = 'op-fil
           onChange={(e) => onChange(e.target.value)}
           placeholder="Lote FLM-ENS-A, ENS-B, local…"
           autoComplete="off"
-          autoFocus
+          autoFocus={autoFocus}
         />
         {value.trim() ? (
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => onChange('')}>

@@ -1,17 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { OpFiltroVolumes } from './OpFiltroVolumes';
-import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
+import { ApiError, api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
+import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   formatLotePick,
   formatMetrosDeVolumes,
   formatMetrosLineares,
   formatNecessidadeOp,
+  formatQtdePick,
+  formatVolumeDimensao,
   formatVolumesComMetros,
   larguraMmParaMetro,
+  metrosNecessidadeOp,
   modoRetirada,
   modoRetiradaLabel,
   qtdeVolumeTotal,
+  somaMetrosDeVolumes,
   volumePassaFiltro,
   volumeSugerido,
   volumesParaEscolha,
@@ -39,8 +44,8 @@ function qtdeCanon(n: number): string {
 }
 
 /**
- * Um material por vez: bobina = volume total de cada uma; o resto = unidades.
- * Confirmar = SAIDA_PRODUCAO no writer existente.
+ * Um material por vez: bobina = volume inteiro no carrinho de sessão; o resto = unidades.
+ * QR só lê (VOL:); Confirmar = SAIDA_PRODUCAO no writer existente. Sem CART- / segundo ledger.
  */
 export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp }: Props) {
   const modo = modoRetirada(material);
@@ -50,6 +55,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
   const larguraFallback = larguraMmParaMetro(material, op);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
+  const precisaMetros = metrosNecessidadeOp(material, op);
   const fefoIds = useMemo(
     () =>
       (material.retirada?.volumes ?? [])
@@ -67,10 +73,13 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
     return init;
   });
   const [filtro, setFiltro] = useState('');
+  const [qr, setQr] = useState('');
   const [qtdeUn, setQtdeUn] = useState(material.qtde_planejada ?? String(alvo || ''));
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const qrRef = useRef<HTMLInputElement>(null);
   const onde = opKitOnde(material);
   const volsVisiveis = useMemo(
     () => vols.filter((v) => volumePassaFiltro(v, filtro)),
@@ -80,8 +89,12 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      if (qr.trim()) {
+        setQr('');
+        return;
+      }
       if (filtro.trim()) {
         setFiltro('');
         return;
@@ -93,10 +106,23 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
     };
-  }, [filtro, onClose]);
+  }, [filtro, qr, onClose]);
+
+  useEffect(() => {
+    if (!podeBaixar || modo !== 'volume') return;
+    const t = window.setTimeout(() => qrRef.current?.focus(), 40);
+    return () => window.clearTimeout(t);
+  }, [podeBaixar, modo, material.id]);
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
   const somaVol = escolhidos.reduce((acc, v) => acc + qtdeVolumeTotal(v), 0);
+  const metrosCarrinho = somaMetrosDeVolumes(escolhidos, larguraFallback);
+  const faltaMetros =
+    precisaMetros != null && metrosCarrinho != null
+      ? Math.max(0, precisaMetros - metrosCarrinho)
+      : null;
+  const cobreNecessidade =
+    precisaMetros != null && metrosCarrinho != null ? metrosCarrinho + 1e-6 >= precisaMetros : null;
   const override =
     modo === 'volume' &&
     (() => {
@@ -107,11 +133,76 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
       return ids.length !== fefoIds.length || ids.some((id, i) => id !== fefoIds[i]);
     })();
 
+  const marcarVolume = (loteId: number, on: boolean) => {
+    setMarcados((prev) => ({ ...prev, [loteId]: on }));
+    setErr(null);
+  };
+
+  const lerVolume = async (payload: string) => {
+    const p = payload.trim();
+    if (!p || !podeBaixar || modo !== 'volume') return;
+    if (p.toUpperCase().startsWith('END:')) {
+      setErr('Esse QR é de local (END:…). O local de cada bobina já aparece na tabela.');
+      setMsg(null);
+      qrRef.current?.select();
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.get<{ data: EstoqueQrVolumeInfo }>(
+        `/estoque/retiradas/${op.id}/volume?payload=${encodeURIComponent(p)}`,
+      );
+      const vol = res.data;
+      const produtoId = material.produto?.id;
+      if (!produtoId || vol.produto?.id !== produtoId) {
+        setErr(
+          `Volume ${vol.codigo} não é deste material (${opKitNome(material)}).`,
+        );
+        qrRef.current?.select();
+        return;
+      }
+      const naLista = vols.find((v) => v.lote_id === vol.lote_id);
+      if (!naLista?.lote_id) {
+        setErr(`Volume ${vol.codigo} não está na lista disponível desta linha.`);
+        qrRef.current?.select();
+        return;
+      }
+      if (marcados[naLista.lote_id]) {
+        setMsg(`Volume ${vol.codigo} já está no carrinho.`);
+        setQr('');
+        window.setTimeout(() => qrRef.current?.focus(), 40);
+        return;
+      }
+      marcarVolume(naLista.lote_id, true);
+      const metros = formatMetrosLineares(naLista, larguraFallback);
+      setMsg(
+        metros
+          ? `Volume ${vol.codigo} no carrinho · bobina inteira (${metros}).`
+          : `Volume ${vol.codigo} no carrinho · bobina inteira.`,
+      );
+      setQr('');
+      window.setTimeout(() => qrRef.current?.focus(), 40);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Volume não reconhecido.');
+      qrRef.current?.select();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onQrKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    void lerVolume(qr);
+  };
+
   const confirmar = async () => {
     if (!podeBaixar) return;
     if (modo === 'volume') {
       if (escolhidos.length === 0) {
-        setErr('Toque nos volumes que vai levar.');
+        setErr('Marque ou escaneie as bobinas que vai levar.');
         return;
       }
       if (override && motivo.trim().length < 3) {
@@ -124,6 +215,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
     }
     setBusy(true);
     setErr(null);
+    setMsg(null);
     try {
       const linha =
         modo === 'volume'
@@ -156,134 +248,245 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
       <button type="button" className="op-escolha__backdrop" aria-label="Fechar" onClick={onClose} />
       <div className="op-escolha__panel">
         <header className="op-escolha__head">
-          <div>
+          <div className="op-escolha__head-main">
             <p className="op-escolha__tipo">{tipo}</p>
             <h2 id="op-escolha-title">{opKitNome(material)}</h2>
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
-            <p className="op-escolha__precisa">
-              <span>Precisa</span>
-              <strong>{formatNecessidadeOp(material, op)}</strong>
-            </p>
-            <p className="muted">
+            <p className="muted op-escolha__hint">
               {noEstoque
-                ? 'O que marcar aqui sai da prateleira. A produção recebe depois, na máquina.'
+                ? 'Escaneie ou marque na tabela. Bobina sai inteira. Confirmar = saiu da prateleira.'
                 : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
               {modoRetiradaLabel(modo)}.
             </p>
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
-            Fechar
-          </button>
+          <div className="op-escolha__head-side">
+            <div className="op-escolha__precisa">
+              <span>Precisa</span>
+              <strong>{formatNecessidadeOp(material, op)}</strong>
+            </div>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
+              Fechar
+            </button>
+          </div>
         </header>
 
+        {modo === 'volume' && estado === 'falta_pegar' ? (
+          <div
+            className={`op-escolha__progresso${cobreNecessidade ? ' is-ok' : ''}`}
+            aria-live="polite"
+          >
+            <div className="op-escolha__progresso-item">
+              <span>No carrinho</span>
+              <strong>
+                {escolhidos.length === 0
+                  ? '—'
+                  : formatVolumesComMetros(
+                      escolhidos.length,
+                      formatMetrosDeVolumes(escolhidos, larguraFallback),
+                    )}
+              </strong>
+            </div>
+            <div className="op-escolha__progresso-item">
+              <span>{cobreNecessidade ? 'Situação' : 'Falta'}</span>
+              <strong>
+                {escolhidos.length === 0
+                  ? 'Vazio'
+                  : cobreNecessidade
+                    ? 'Quantidade coberta'
+                    : faltaMetros != null
+                      ? formatQtdePick(faltaMetros, 'm')
+                      : 'Conferir físico'}
+              </strong>
+            </div>
+          </div>
+        ) : null}
+
         {err ? <div className="alert alert-danger">{err}</div> : null}
+        {msg ? <div className="alert alert-success">{msg}</div> : null}
 
-        {estado === 'sem_estoque' ? (
-          <p className="muted">Sem saldo deste material. Compre antes de buscar.</p>
-        ) : estado === 'ja_saiu' ? (
-          <p className="muted">Este item já saiu do estoque.</p>
-        ) : modo === 'volume' ? (
-          <>
-            <OpFiltroVolumes
-              id="op-escolha-filtro"
-              value={filtro}
-              onChange={setFiltro}
-              total={vols.length}
-              visiveis={volsVisiveis.length}
-            />
-            <ul className="op-escolha__vols">
-              {vols.length === 0 ? (
-                <li className="muted">Nenhum volume disponível.</li>
-              ) : volsVisiveis.length === 0 ? (
-                <li className="muted">Nenhum volume com esse filtro.</li>
+        <div className="op-escolha__body">
+          {estado === 'sem_estoque' ? (
+            <p className="muted">Sem saldo deste material. Compre antes de buscar.</p>
+          ) : estado === 'ja_saiu' ? (
+            <p className="muted">Este item já saiu do estoque.</p>
+          ) : modo === 'volume' ? (
+            <>
+              {podeBaixar ? (
+                <div className="form-group op-escolha__qr">
+                  <label htmlFor="op-escolha-qr">Ler volume (VOL:…)</label>
+                  <input
+                    id="op-escolha-qr"
+                    ref={qrRef}
+                    value={qr}
+                    disabled={busy}
+                    onChange={(e) => setQr(e.target.value)}
+                    onKeyDown={onQrKey}
+                    placeholder="Pistola ou digite — Enter inclui no carrinho (ainda não grava)"
+                    autoComplete="off"
+                  />
+                  <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+                    Cada leitura = bobina inteira. Confirmar no rodapé dá a saída.
+                  </p>
+                </div>
+              ) : null}
+
+              <OpFiltroVolumes
+                id="op-escolha-filtro"
+                value={filtro}
+                onChange={setFiltro}
+                total={vols.length}
+                visiveis={volsVisiveis.length}
+                autoFocus={false}
+              />
+
+              <div className="table-wrap op-escolha__table-wrap">
+                <table className="data-table op-escolha__table">
+                  <thead>
+                    <tr>
+                      {podeBaixar ? <th className="op-escolha__col-check">Levar</th> : null}
+                      <th>Volume</th>
+                      <th>Metros</th>
+                      <th>L×C</th>
+                      <th>Local</th>
+                      <th>FEFO</th>
+                      <th>NF</th>
+                      <th>Validade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {vols.length === 0 ? (
+                      <tr>
+                        <td colSpan={podeBaixar ? 8 : 7} className="muted">
+                          Nenhum volume disponível.
+                        </td>
+                      </tr>
+                    ) : volsVisiveis.length === 0 ? (
+                      <tr>
+                        <td colSpan={podeBaixar ? 8 : 7} className="muted">
+                          Nenhum volume com esse filtro.
+                        </td>
+                      </tr>
+                    ) : (
+                      volsVisiveis.map((v) => {
+                        const id = v.lote_id as number;
+                        const on = Boolean(marcados[id]);
+                        const metros = formatMetrosLineares(v, larguraFallback);
+                        const dim = formatVolumeDimensao(v);
+                        const sugerido = volumeSugerido(v);
+                        return (
+                          <tr
+                            key={id}
+                            className={[
+                              on ? 'is-on' : '',
+                              sugerido ? 'is-fefo' : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            {podeBaixar ? (
+                              <td className="op-escolha__col-check">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  disabled={busy}
+                                  aria-label={`Levar ${formatLotePick(v)}`}
+                                  onChange={() => marcarVolume(id, !on)}
+                                />
+                              </td>
+                            ) : null}
+                            <td>
+                              <strong>{formatLotePick(v)}</strong>
+                              {v.sku ? <div className="muted">{v.sku}</div> : null}
+                            </td>
+                            <td>{metros ?? '—'}</td>
+                            <td>{dim ?? '—'}</td>
+                            <td>{v.endereco?.codigo ?? '—'}</td>
+                            <td>{sugerido ? 'Sugerido' : '—'}</td>
+                            <td>{v.nf_numero ?? '—'}</td>
+                            <td>
+                              {v.data_validade ?? '—'}
+                              {v.status_label ? (
+                                <div className="muted">{v.status_label}</div>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="op-escolha__un">
+              {podeBaixar ? (
+                <>
+                  <label htmlFor="op-escolha-un">Quantas unidades vai levar</label>
+                  <input
+                    id="op-escolha-un"
+                    className="op-escolha__un-input"
+                    inputMode="decimal"
+                    value={qtdeUn}
+                    disabled={busy}
+                    onChange={(e) => setQtdeUn(e.target.value)}
+                  />
+                  <p className="muted">Informe o que vai levar agora.</p>
+                </>
               ) : (
-                volsVisiveis.map((v) => {
-                  const id = v.lote_id as number;
-                  const on = Boolean(marcados[id]);
-                  const metros = formatMetrosLineares(v, larguraFallback);
-                  return (
-                    <li key={id} className={`op-escolha__vol${on ? ' is-on' : ''}`}>
-                      <label>
-                        {podeBaixar ? (
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            disabled={busy}
-                            onChange={() => setMarcados((prev) => ({ ...prev, [id]: !on }))}
-                          />
-                        ) : null}
-                        <span>
-                          <strong className="op-escolha__vol-qtde">1 volume</strong>
-                          {metros ? <span className="muted"> · {metros}</span> : null}
-                          <span className="op-escolha__vol-cod">{formatLotePick(v)}</span>
-                          {volumeSugerido(v) ? <span className="muted">sugerido</span> : null}
-                          {v.nf_numero ? <span className="muted">NF {v.nf_numero}</span> : null}
-                          {v.endereco?.codigo ? <span className="muted">{v.endereco.codigo}</span> : null}
-                          {v.status_label ? <span className="muted">{v.status_label}</span> : null}
-                          {v.data_validade ? <span className="muted">Val. {v.data_validade}</span> : null}
-                          {v.sku ? <span className="muted">{v.sku}</span> : null}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })
+                <p className="muted">Quem tira da prateleira informa as unidades no estoque.</p>
               )}
-            </ul>
-          </>
-        ) : (
-          <div className="op-escolha__un">
-            {podeBaixar ? (
-              <>
-                <label htmlFor="op-escolha-un">Quantas unidades vai levar</label>
-                <input
-                  id="op-escolha-un"
-                  className="op-escolha__un-input"
-                  inputMode="decimal"
-                  value={qtdeUn}
-                  disabled={busy}
-                  onChange={(e) => setQtdeUn(e.target.value)}
-                />
-                <p className="muted">Informe o que vai levar agora.</p>
-              </>
-            ) : (
-              <p className="muted">Quem tira da prateleira informa as unidades no estoque.</p>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {override && podeBaixar ? (
-          <div className="form-group" style={{ marginTop: '0.75rem' }}>
-            <label htmlFor="op-escolha-motivo">Motivo do outro volume</label>
-            <input
-              id="op-escolha-motivo"
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              disabled={busy}
-              placeholder="Ex.: rasgo no rolo sugerido"
-            />
-          </div>
-        ) : null}
-
-        {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
-          <p className="op-escolha__soma">
-            Levar {formatVolumesComMetros(escolhidos.length, formatMetrosDeVolumes(escolhidos, larguraFallback))}
-          </p>
-        ) : null}
+          {override && podeBaixar ? (
+            <div className="form-group" style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="op-escolha-motivo">Motivo do outro volume</label>
+              <input
+                id="op-escolha-motivo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                disabled={busy}
+                placeholder="Ex.: rasgo no rolo sugerido"
+              />
+            </div>
+          ) : null}
+        </div>
 
         <footer className="op-escolha__foot">
-          {podeBaixar ? (
-            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void confirmar()}>
-              Confirmar: saiu do estoque
-            </button>
-          ) : porta === 'op' && estado === 'falta_pegar' ? (
-            <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
-              Estoque busca isto
-            </Link>
+          {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
+            <p className="op-escolha__soma">
+              Levar{' '}
+              {formatVolumesComMetros(
+                escolhidos.length,
+                formatMetrosDeVolumes(escolhidos, larguraFallback),
+              )}
+              {cobreNecessidade === false ? (
+                <span className="muted"> · ainda abaixo do pedido</span>
+              ) : null}
+            </p>
           ) : (
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Ok
-            </button>
+            <span />
           )}
+          <div className="op-escolha__foot-actions">
+            {podeBaixar ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || (modo === 'volume' && escolhidos.length === 0)}
+                onClick={() => void confirmar()}
+              >
+                Confirmar: saiu do estoque
+              </button>
+            ) : porta === 'op' && estado === 'falta_pegar' ? (
+              <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
+                Estoque busca isto
+              </Link>
+            ) : (
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
+                Ok
+              </button>
+            )}
+          </div>
         </footer>
       </div>
     </div>

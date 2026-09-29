@@ -2938,6 +2938,7 @@ export type FaturamentoPreview = {
   parcelas?: FaturamentoParcela[];
   avisos?: string[];
   bloqueios?: string[];
+  familia_fiscal?: string | null;
   embalagem?: PaEmbalagemResumo | null;
   transporte?: {
     modo_entrega: string;
@@ -2982,6 +2983,7 @@ export type Faturamento = {
     exige_embalagem?: boolean;
   }>;
   pode_editar_nfe_qtde_modo?: boolean;
+  embalagem?: PaEmbalagemResumo | null;
   transportador?: {
     id: number;
     codigo: string;

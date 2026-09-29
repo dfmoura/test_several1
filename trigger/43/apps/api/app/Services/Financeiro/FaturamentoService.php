@@ -755,9 +755,9 @@ class FaturamentoService
             $pedido
         );
         if ($familia === 'PA-ETQ' && ! $embResumo) {
-            $avisos[] = 'Embalagem PA ainda não confirmada na OP — NF usará só a quantidade de etiquetas; recomenda-se embalar antes (bobinas/caixas).';
+            $avisos[] = 'Sem embalagem PA confirmada na OP: a NF sai por etiqueta (UN), sem quantidade em bobinas (ROLO) e sem observação detalhada de med/modelo/composição. Embalar na OP antes de faturar se quiser ROLO e obs. das bobinas.';
         } elseif ($embResumo) {
-            $avisos[] = 'Embalagem: '.$embResumo['resumo'].' (item NF em etiquetas; volumes = caixas).';
+            $avisos[] = 'Embalagem: '.$embResumo['resumo'].' (volumes = caixas; ROLO disponível na quantidade da NF).';
         }
         $emp = $pedido->empresa ?? Empresa::query()->find($pedido->empresa_id);
         if ($emp) {

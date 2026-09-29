@@ -446,6 +446,13 @@ export function FaturamentoDetailPage() {
                   usam etiqueta (UN). Cobrança e estoque continuam em etiquetas — a tabela Itens
                   abaixo não muda.
                 </p>
+                {!fat.embalagem ? (
+                  <p className="form-hint" style={{ marginTop: 0 }}>
+                    Sem embalagem PA confirmada na OP: a NF fica em etiqueta (UN), sem bobinas
+                    (ROLO) e sem observação detalhada de med/modelo/composição. Embalar na OP
+                    antes se precisar de ROLO e obs. das bobinas — não bloqueia o faturamento.
+                  </p>
+                ) : null}
               </div>
               {fat.pode_editar_nfe_qtde_modo && hasPermission('faturamento.escrever') ? (
                 <div className="form-grid" style={{ gap: '0.75rem' }}>

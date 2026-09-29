@@ -544,11 +544,26 @@ export function PedidoDetailPage() {
                     ) : (
                       <p className="muted">Nenhum título novo — o sinal cobre o valor faturável.</p>
                     )}
-                    {preview.avisos?.map((a) => (
-                      <p key={a} className="form-hint">
-                        {a}
+                    {preview.avisos?.map((a) => {
+                      const embAviso =
+                        !preview.embalagem &&
+                        (a.includes('embalagem') || a.includes('Embalar') || a.includes('ROLO'));
+                      return (
+                        <p
+                          key={a}
+                          className="form-hint"
+                          style={embAviso ? { fontWeight: 600 } : undefined}
+                        >
+                          {a}
+                        </p>
+                      );
+                    })}
+                    {preview.familia_fiscal === 'PA-ETQ' && !preview.embalagem ? (
+                      <p className="form-hint" style={{ marginTop: '0.5rem' }}>
+                        Sem embalagem confirmada: faturar agora gera NF por etiqueta — ROLO e obs.
+                        de bobinas só após embalar na OP.
                       </p>
-                    ))}
+                    ) : null}
                     {preview.transporte && !preview.ja_faturado ? (
                       <div className="form-section" style={{ marginTop: '1rem' }}>
                         <h4 style={{ marginBottom: '0.5rem' }}>Transporte na NF-e</h4>
