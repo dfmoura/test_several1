@@ -19,6 +19,7 @@ import {
   qtdeVolumeTotal,
   somaAreaM2Volumes,
   volumePassaFiltro,
+  localOverlayEscolha,
   volumeSugerido,
   volumesParaEscolha,
 } from '../lib/producaoPick';
@@ -27,7 +28,6 @@ import {
   opComponenteLabel,
   opKitEstado,
   opKitNome,
-  opKitOnde,
   parseQtdeDigitada,
 } from '../lib/producaoUi';
 
@@ -82,7 +82,6 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const qrRef = useRef<HTMLInputElement>(null);
-  const onde = opKitOnde(material);
   const volsVisiveis = useMemo(
     () => vols.filter((v) => volumePassaFiltro(v, filtro)),
     [vols, filtro],
@@ -117,6 +116,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   }, [podeBaixar, modo, material.id]);
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
+  const localCabe = localOverlayEscolha(material, escolhidos);
   const somaVol = escolhidos.reduce((acc, v) => acc + qtdeVolumeTotal(v), 0);
   const areaCarrinho = somaAreaM2Volumes(escolhidos);
   const faltaM2 =
@@ -260,7 +260,12 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
           <div className="op-escolha__head-main">
             <p className="op-escolha__tipo">{tipo}</p>
             <h2 id="op-escolha-title">{opKitNome(material)}</h2>
-            <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
+            {localCabe ? (
+              <p className="op-escolha__bin">
+                <span className="op-escolha__bin-rotulo">{localCabe.rotulo}</span>
+                <span>{localCabe.locais.join(' · ')}</span>
+              </p>
+            ) : null}
             <p className="muted op-escolha__hint">
               {noEstoque
                 ? 'Escaneie ou marque na tabela. Bobina sai inteira. Compare pela área (m²): metros do rolo não são os metros de pista da etiqueta quando a bobina é mais larga. Confirmar = saiu da prateleira.'

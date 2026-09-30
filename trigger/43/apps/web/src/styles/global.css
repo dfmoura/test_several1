@@ -12383,7 +12383,18 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.15;
   color: #1a3568;
+}
+
+.op-escolha__bin-rotulo {
+  display: block;
+  margin-bottom: 0.1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #5b6b82;
 }
 
 .op-escolha__hint {

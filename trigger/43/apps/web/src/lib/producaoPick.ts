@@ -368,6 +368,63 @@ export function volumeSugerido(v: OpRetiradaVolume): boolean {
   return Boolean(v.sugerido) || parseQtdeDigitada(v.qtde_retirar) > 0;
 }
 
+export type LocalOverlayEscolha = {
+  rotulo: 'Sugerido' | 'No carrinho' | 'Local';
+  locais: string[];
+};
+
+function enderecosDistintos(
+  vols: Array<{ endereco?: { codigo?: string | null } | null }>,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of vols) {
+    const end = v.endereco?.codigo?.trim() ?? '';
+    if (!end || seen.has(end)) continue;
+    seen.add(end);
+    out.push(end);
+  }
+  return out;
+}
+
+/**
+ * Local no overlay de escolha.
+ * Sugestão FEFO enquanto o carrinho segue a proposta; endereços marcados quando o operador muda;
+ * endereços baixados quando a linha já saiu. Sem endereço, não inventa código de lote.
+ */
+export function localOverlayEscolha(
+  m: OrdemProducaoMaterial,
+  escolhidos: OpRetiradaVolume[],
+): LocalOverlayEscolha | null {
+  if (modoRetirada(m) !== 'volume') return null;
+
+  if (opKitEstado(m) === 'ja_saiu') {
+    const locais = enderecosDistintos(m.retirada?.volumes_baixados ?? []);
+    return locais.length > 0 ? { rotulo: 'Local', locais } : null;
+  }
+  if (opKitEstado(m) !== 'falta_pegar') return null;
+
+  const sugeridos = (m.retirada?.volumes ?? []).filter((v) => v.lote_id && volumeSugerido(v));
+  const idsSug = sugeridos
+    .map((v) => v.lote_id)
+    .filter((id): id is number => typeof id === 'number')
+    .sort((a, b) => a - b);
+  const idsEsc = escolhidos
+    .map((v) => v.lote_id)
+    .filter((id): id is number => typeof id === 'number')
+    .sort((a, b) => a - b);
+  const mesmaSugestao =
+    idsEsc.length === idsSug.length && idsEsc.every((id, i) => id === idsSug[i]);
+
+  if (escolhidos.length === 0 || mesmaSugestao) {
+    const locais = enderecosDistintos(sugeridos);
+    return locais.length > 0 ? { rotulo: 'Sugerido', locais } : null;
+  }
+
+  const locais = enderecosDistintos(escolhidos);
+  return locais.length > 0 ? { rotulo: 'No carrinho', locais } : null;
+}
+
 function foldBusca(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }
