@@ -10091,9 +10091,53 @@ tr.row-inactive td {
 
 /* OC — pedido de compra ao fornecedor (A4 retrato). Escopo só em .ficha-sheet-oc.
    OP imprimível usa a família .ped-ficha (mesmo envelope do PED). */
+.ficha-sheet-op .ficha-kv-strip {
+  grid-template-columns: repeat(auto-fit, minmax(36mm, 1fr));
+}
+
 .ficha-sheet-op .ficha-title-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8mm;
   margin-top: 1.2mm;
   padding-bottom: 1.2mm;
+}
+
+.ficha-sheet-op .ficha-razao {
+  font-size: 10.5pt;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ficha-sheet-op .ficha-op-titulo {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.ficha-sheet-op .ficha-op-titulo-parte {
+  white-space: nowrap;
+}
+
+.ficha-sheet-op .ficha-op-titulo-parte + .ficha-op-titulo-parte::before {
+  content: '·';
+  margin: 0 0.35em;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.ficha-sheet-op .ficha-title-meta {
+  max-width: none;
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.8mm;
+}
+
+.ficha-sheet-op .ficha-autoria {
+  gap: 0.4mm 4mm;
+  margin: 1.2mm 0 0.4mm;
 }
 
 .ficha-sheet-op .ficha-party {
@@ -10742,6 +10786,11 @@ tr.row-inactive td {
   .ficha-title-meta {
     max-width: 100%;
     justify-content: flex-start;
+  }
+
+  .ficha-sheet-op .ficha-title-meta,
+  .ficha-sheet-op .ficha-autoria {
+    flex-wrap: wrap;
   }
 
   .ficha-masthead {

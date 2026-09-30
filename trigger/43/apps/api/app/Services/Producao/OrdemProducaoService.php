@@ -1161,6 +1161,10 @@ class OrdemProducaoService
         ];
 
         if ($detalhe) {
+            $o->loadMissing(['criador:id,name', 'atualizador:id,name']);
+            $out['updated_at'] = optional($o->updated_at)?->toIso8601String();
+            $out['criado_por'] = OrdemProducao::userStampFrom($o->criador);
+            $out['atualizado_por'] = OrdemProducao::userStampFrom($o->atualizador);
             $out['observacao'] = $o->observacao;
             $out['pode_devolver_ao_pedido'] = $this->podeDevolverAoPedido($o);
             $out['pa_movimento'] = $o->paMovimento ? [

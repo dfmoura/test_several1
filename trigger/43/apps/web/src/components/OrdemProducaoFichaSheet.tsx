@@ -50,6 +50,25 @@ function qtdeTxt(value: number | null, suffix: string, digits = 0): string {
   return `${formatDecimalBr(value, digits)} ${suffix}`;
 }
 
+/** Descrição oficial do item, em partes que não quebram no meio. */
+function tituloProduto(produto: string | null) {
+  if (!produto) return 'Ordem de produção';
+  const partes = produto
+    .split(/\s*·\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (partes.length < 2) return produto;
+  return (
+    <span className="ficha-op-titulo">
+      {partes.map((parte, i) => (
+        <span key={`${i}-${parte}`} className="ficha-op-titulo-parte">
+          {parte}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function OrdemProducaoFichaSheet({
   ordem: o,
   pedido,
@@ -127,7 +146,7 @@ export function OrdemProducaoFichaSheet({
 
       <div className="ficha-title-block">
         <div className="ficha-title-main">
-          <h2 className="ficha-razao">{produto ?? 'Ordem de produção'}</h2>
+          <h2 className="ficha-razao">{tituloProduto(produto)}</h2>
         </div>
         <div className="ficha-title-meta">
           <span className={`ficha-chip ${opChipClass(o.status)}`.trim()}>
@@ -323,7 +342,15 @@ export function OrdemProducaoFichaSheet({
         </FichaSection>
       ) : null}
 
-      <RegistroMetaStrip registro={{ created_at: o.created_at }} className="ficha-autoria" />
+      <RegistroMetaStrip
+        registro={{
+          criado_por: o.criado_por,
+          atualizado_por: o.atualizado_por ?? o.criado_por,
+          created_at: o.created_at,
+          updated_at: o.updated_at ?? o.created_at,
+        }}
+        className="ficha-autoria"
+      />
 
       <footer className="ficha-footer">
         <span>

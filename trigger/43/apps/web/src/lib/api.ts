@@ -3298,6 +3298,9 @@ export type OrdemProducao = {
   concluida_em: string | null;
   cancelada_em?: string | null;
   created_at: string | null;
+  updated_at?: string | null;
+  criado_por?: UsuarioRef | null;
+  atualizado_por?: UsuarioRef | null;
   rastreio?: RastreioDocumento;
   embalagem?: PaEmbalagemResumo | null;
   pode_embalar?: boolean;
