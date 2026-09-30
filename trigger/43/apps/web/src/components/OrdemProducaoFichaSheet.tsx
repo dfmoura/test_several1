@@ -127,8 +127,7 @@ export function OrdemProducaoFichaSheet({
 
       <div className="ficha-title-block">
         <div className="ficha-title-main">
-          <h2 className="ficha-razao">Ordem de produção</h2>
-          {produto ? <p className="ficha-op-produto">{produto}</p> : null}
+          <h2 className="ficha-razao">{produto ?? 'Ordem de produção'}</h2>
         </div>
         <div className="ficha-title-meta">
           <span className={`ficha-chip ${opChipClass(o.status)}`.trim()}>
@@ -139,7 +138,7 @@ export function OrdemProducaoFichaSheet({
           {pedido?.prazo_entrega_dias != null ? (
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(pedido)}</span>
           ) : null}
-          <span className="ficha-chip ficha-chip-muted">±{tol}%</span>
+          <span className="ficha-chip ficha-chip-muted">Tol. ±{tol}%</span>
         </div>
       </div>
 
@@ -179,7 +178,13 @@ export function OrdemProducaoFichaSheet({
                   value={Number(desc.etiq_por_rolo).toLocaleString('pt-BR')}
                 />
               ) : null}
-              {colunaReb ? <FichaKv label="Coluna de rebobinação" value={colunaReb} /> : null}
+              {colunaReb ? <FichaKv label="Rebobinação" value={colunaReb} /> : null}
+              {saidaOk ? (
+                <FichaKv
+                  label="Saída"
+                  value={<SaidaEtiquetaBadge code={saida} variant="dense" />}
+                />
+              ) : null}
               {tintas && tintas.length > 0 ? (
                 <FichaKv
                   label="Cores da arte"
@@ -188,13 +193,9 @@ export function OrdemProducaoFichaSheet({
                 />
               ) : null}
             </div>
-            {saidaOk ? (
-              <div className="ficha-saida-etiqueta ficha-op-saida">
-                <SaidaEtiquetaBadge code={saida} variant="thumb" />
-              </div>
-            ) : null}
             {artes.length > 0 ? (
-              <p className="ficha-op-artes">
+              <p className="ficha-inline-list">
+                <strong>Artes</strong>
                 {artes
                   .map((arte) =>
                     arte.qtde != null
@@ -210,36 +211,38 @@ export function OrdemProducaoFichaSheet({
 
       {corrida ? (
         <FichaSection title="Quanto rodar">
-          <p className="ficha-op-corrida">
-            {[
-              corrida.etiquetas != null ? qtdeTxt(corrida.etiquetas, 'un.') : null,
-              corrida.metros != null ? qtdeTxt(corrida.metros, 'm', 1) : null,
-              corrida.m2 != null ? qtdeTxt(corrida.m2, 'm²', 2) : null,
-              corrida.acertoM2 != null ? `acerto ${qtdeTxt(corrida.acertoM2, 'm²', 2)}` : null,
-              corrida.rolos != null
-                ? qtdeTxt(corrida.rolos, corrida.rolos === 1 ? 'rolo' : 'rolos')
-                : null,
-              corrida.caixas != null
-                ? qtdeTxt(corrida.caixas, corrida.caixas === 1 ? 'caixa' : 'caixas')
-                : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
+          <div className="ficha-op-corrida">
+            {corrida.etiquetas != null ? (
+              <FichaKv label="Etiquetas" value={formatDecimalBr(corrida.etiquetas, 0)} />
+            ) : null}
+            {corrida.metros != null ? (
+              <FichaKv label="Metragem" value={qtdeTxt(corrida.metros, 'm', 1)} />
+            ) : null}
+            {corrida.m2 != null ? <FichaKv label="Área" value={qtdeTxt(corrida.m2, 'm²', 2)} /> : null}
+            {corrida.acertoM2 != null ? (
+              <FichaKv label="Acerto" value={qtdeTxt(corrida.acertoM2, 'm²', 2)} />
+            ) : null}
+            {corrida.rolos != null ? (
+              <FichaKv label="Rolos" value={formatDecimalBr(corrida.rolos, 0)} />
+            ) : null}
+            {corrida.caixas != null ? (
+              <FichaKv label="Caixas" value={formatDecimalBr(corrida.caixas, 0)} />
+            ) : null}
+          </div>
         </FichaSection>
       ) : null}
 
-      <FichaSection title="O que pegar">
+      <FichaSection title="Material">
         {materiais.length === 0 ? (
           <p className="ficha-empty">Ainda não há lista de material nesta ordem.</p>
         ) : (
-          <table className="ficha-table">
+          <table className="ficha-table ficha-op-materiais">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Pegar</th>
+                <th>Item</th>
                 <th>Quanto</th>
-                <th>Onde</th>
+                <th>Local</th>
                 <th>Situação</th>
               </tr>
             </thead>
@@ -263,7 +266,7 @@ export function OrdemProducaoFichaSheet({
                         <div className="ficha-op-volumes">{quanto.volumes}</div>
                       ) : null}
                     </td>
-                    <td>{opKitOnde(m) === '—' ? 'Sem local' : opKitOnde(m)}</td>
+                    <td>{opKitOnde(m)}</td>
                     <td>{opKitEstadoLabel(estado)}</td>
                   </tr>
                 );
@@ -280,7 +283,7 @@ export function OrdemProducaoFichaSheet({
             value={o.handoff?.recebidos_nome?.trim() || '________________'}
           />
           <FichaKv label="Sobra devolvida" value="________________" />
-          <FichaKv label="Rasgou / faltou" value="________________" />
+          <FichaKv label="Perda / falta" value="________________" />
         </div>
       </FichaSection>
 

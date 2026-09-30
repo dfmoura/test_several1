@@ -304,6 +304,26 @@ export function formatQtdeMaterial(
 }
 
 /**
+ * Necessidade na ficha impressa. Bobina: metro da pista e m², sem o texto de tela.
+ * A linha de volumes (bobinas × metros do rolo) continua separada.
+ */
+function necessidadeFicha(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
+  const n = qtdeLinhaPick(m);
+  if (!(n > 0)) return '—';
+  if (modoRetirada(m) !== 'volume') {
+    return formatQtdePick(n, unidadeExibicao(m.unidade));
+  }
+  const un = (m.unidade ?? '').toUpperCase().replace('²', '2');
+  if (un === 'M' || un === 'MT' || un === 'ML') {
+    return formatQtdePick(n, 'm');
+  }
+  const metros = m2ParaMetros(n, larguraMmNecessidadeOp(m, op));
+  const area = formatQtdePick(n, 'm²');
+  if (metros == null) return area;
+  return `${formatQtdePick(metros, 'm')} · ${area}`;
+}
+
+/**
  * Quanto a OP pede deste material (`qtde_planejada`).
  */
 export function formatNecessidadeOp(
@@ -339,7 +359,7 @@ export function formatQuantoFicha(
   m: OrdemProducaoMaterial,
   op?: OrdemProducao | null,
 ): { pedido: string; volumes: string | null } {
-  const pedido = formatNecessidadeOp(m, op);
+  const pedido = necessidadeFicha(m, op);
   if (modoRetirada(m) !== 'volume') return { pedido, volumes: null };
   const vols = volumesQuantoFicha(m);
   if (vols.length === 0) return { pedido, volumes: null };

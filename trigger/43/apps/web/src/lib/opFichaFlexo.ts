@@ -75,7 +75,7 @@ export function textoFacaFlexo(spec: Record<string, unknown>): string | null {
 export function textoColunaRebobinacao(spec: Record<string, unknown>): string | null {
   const n = numeroPositivo(spec.coluna_rebobinacao);
   if (n == null) return null;
-  return formatDecimalBr(n, 0);
+  return `Coluna ${formatDecimalBr(n, 0)}`;
 }
 
 export type CorridaFisica = {

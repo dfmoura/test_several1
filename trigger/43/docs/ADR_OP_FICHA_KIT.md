@@ -62,7 +62,7 @@ Porta do estoque: os mesmos azulejos. Sem segunda caminhada e sem abas de módul
 
 ### Ficha impressa
 
-`/ordens-producao/:id/ficha` é a ordem de flexografia, retrato A4, sem preço. Leitura: ordem (quantidade, máquina, cliente) → impressão (substrato, medida, bobina, faca, saída, tubete, artes) → quanto rodar (etiquetas, metros, m², acerto, rolos, caixas da faixa travada) → o que pegar → conferência em branco. A tela da ordem repete essa leitura numa linha. Sem anilox, clichê, rpm, hora de troca nem a guia do orçamento. `faca_posicao` e `coluna_rebobinacao` viajam na especificação do item do PED.
+`/ordens-producao/:id/ficha` é a ordem de flexografia, retrato A4, sem preço. Leitura: ordem (produto, quantidade, máquina, cliente) → impressão (substrato, medida, bobina, faca, saída, tubete, artes) → quanto rodar (etiquetas, metragem, área, acerto, rolos, caixas da faixa travada, cada um com rótulo) → material → conferência em branco. Na coluna Quanto, bobina mostra a necessidade (metro da pista e m²) e, abaixo, bobinas e a soma dos metros lineares dos volumes. A tela da ordem repete a impressão numa linha. Sem anilox, clichê, rpm, hora de troca nem a guia do orçamento. `faca_posicao` e `coluna_rebobinacao` viajam na especificação do item do PED.
 
 ## Proibido
 
