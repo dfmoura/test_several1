@@ -11,6 +11,7 @@ use App\Services\Codigo\CodigoGenerator;
 use App\Services\Calendario\DiasUteisService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Support\CatalogoServicoSaida;
+use App\Support\FacasComposicao;
 use App\Support\OrcamentoAceiteFaixas;
 use App\Support\PadraoDecimal;
 use App\Support\TipoOperacaoSaida;
@@ -689,6 +690,8 @@ class PedidoService
             'colunas' => $input['colunas'] ?? null,
             'formato_faca' => $input['formato_faca'] ?? null,
             'faca_nova' => $input['faca_nova'] ?? $faixa['faca_nova'] ?? null,
+            'faca_posicao' => $this->facaPosicaoDoInput($input),
+            'coluna_rebobinacao' => $input['coluna_rebobinacao'] ?? null,
             'saida_etiqueta' => $input['saida_etiqueta'] ?? null,
             'facas' => $input['facas'] ?? $faixa['facas'] ?? null,
             'modelos_composicao' => $input['modelos_composicao'] ?? null,
@@ -705,5 +708,23 @@ class PedidoService
         }
 
         return (int) $spec['faixa_index'];
+    }
+
+    /**
+     * Posição no cilindro: escalar do job ou faca principal.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function facaPosicaoDoInput(array $input): ?string
+    {
+        $top = $input['faca_posicao'] ?? null;
+        if (is_string($top) && $top !== '') {
+            return $top;
+        }
+
+        $principal = FacasComposicao::principal($input['facas'] ?? null);
+        $pos = $principal['posicao'] ?? null;
+
+        return is_string($pos) && $pos !== '' ? $pos : null;
     }
 }

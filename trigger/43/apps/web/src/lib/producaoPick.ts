@@ -315,6 +315,42 @@ export function formatNecessidadeOp(
   return formatQtdeMaterial(m, op, n);
 }
 
+/** Rolo padrão de substrato quando o volume ainda não tem comprimento conferido. */
+const METROS_BOBINA_PADRAO = 1000;
+
+/** Bobinas que esta linha vai levar: as já baixadas, senão as sugeridas. */
+function volumesQuantoFicha(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
+  const baixados = m.retirada?.volumes_baixados ?? [];
+  if (baixados.length > 0) return baixados;
+  return (m.retirada?.volumes ?? []).filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0);
+}
+
+/** Comprimento real do volume. Sem conferência, o rolo padrão de 1.000 m. */
+function metrosBobinaFicha(v: OpRetiradaVolume): number {
+  const direto = parseQtdeDigitada(v.comprimento_m);
+  return direto > 0 ? direto : METROS_BOBINA_PADRAO;
+}
+
+/**
+ * Coluna Quanto da ficha. Bobina: o que a ordem pede e, na linha de baixo,
+ * quantas bobinas e a soma dos metros lineares desses volumes.
+ */
+export function formatQuantoFicha(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+): { pedido: string; volumes: string | null } {
+  const pedido = formatNecessidadeOp(m, op);
+  if (modoRetirada(m) !== 'volume') return { pedido, volumes: null };
+  const vols = volumesQuantoFicha(m);
+  if (vols.length === 0) return { pedido, volumes: null };
+  const metros = vols.map(metrosBobinaFicha).reduce((a, b) => a + b, 0);
+  const volumes =
+    metros > 0
+      ? `${formatVolumesPick(vols.length)} · ${formatQtdePick(metros, 'm')}`
+      : formatVolumesPick(vols.length);
+  return { pedido, volumes };
+}
+
 /** Caminhada de estoque: local primeiro (WMS). Sem local vai no fim. */
 export function opKitLinhasOrdenadas(linhas: OrdemProducaoMaterial[]): OrdemProducaoMaterial[] {
   return [...linhas].sort((a, b) => {

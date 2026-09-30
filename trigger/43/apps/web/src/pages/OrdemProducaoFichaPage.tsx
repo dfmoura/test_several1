@@ -83,7 +83,7 @@ export function OrdemProducaoFichaPage() {
             Voltar à ordem
           </button>
           <span className="ficha-toolbar-hint">
-            Ficha da etiqueta · kit para buscar · retrato A4 · uso interno (sem preço)
+            Ordem de flexografia · impressão, quanto rodar e kit · retrato A4 · sem preço
           </span>
         </div>
         <button

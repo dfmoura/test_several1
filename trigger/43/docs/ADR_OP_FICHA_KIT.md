@@ -60,6 +60,10 @@ Não exigir que a soma case o m²/UN planejado. O pedido da ordem continua visí
 
 Porta do estoque: os mesmos azulejos. Sem segunda caminhada e sem abas de módulo na ficha.
 
+### Ficha impressa
+
+`/ordens-producao/:id/ficha` é a ordem de flexografia, retrato A4, sem preço. Leitura: ordem (quantidade, máquina, cliente) → impressão (substrato, medida, bobina, faca, saída, tubete, artes) → quanto rodar (etiquetas, metros, m², acerto, rolos, caixas da faixa travada) → o que pegar → conferência em branco. A tela da ordem repete essa leitura numa linha. Sem anilox, clichê, rpm, hora de troca nem a guia do orçamento. `faca_posicao` e `coluna_rebobinacao` viajam na especificação do item do PED.
+
 ## Proibido
 
 1. Documento `CART-` / `REQ-` ou segundo writer.  

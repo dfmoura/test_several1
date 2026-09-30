@@ -112,6 +112,15 @@ class PedidoItensEspelhoTest extends TestCase
                 array_merge($this->job(), [
                     'rotulo' => 'Frente',
                     'medida' => '80X50',
+                    'faca_posicao' => 'CIMA',
+                    'coluna_rebobinacao' => 2,
+                    'facas' => [[
+                        'principal' => true,
+                        'formato' => 'DESENHADA',
+                        'medida' => '80X50',
+                        'posicao' => 'CIMA',
+                        'faca_nova' => false,
+                    ]],
                     'modelos' => 2,
                     'modelos_composicao' => [
                         ['ordem' => 1, 'nome' => 'Frente A', 'percentual' => 60, 'valor_arte' => 0],
@@ -122,6 +131,15 @@ class PedidoItensEspelhoTest extends TestCase
                     'rotulo' => 'Verso',
                     'medida' => '60X40',
                     'largura_cm' => 62,
+                    'faca_posicao' => 'BAIXO',
+                    'coluna_rebobinacao' => 3,
+                    'facas' => [[
+                        'principal' => true,
+                        'formato' => 'DESENHADA',
+                        'medida' => '60X40',
+                        'posicao' => 'BAIXO',
+                        'faca_nova' => false,
+                    ]],
                     'modelos' => 1,
                     'modelos_composicao' => [
                         ['ordem' => 1, 'nome' => 'Verso único', 'percentual' => 100, 'valor_arte' => 0],
@@ -153,6 +171,10 @@ class PedidoItensEspelhoTest extends TestCase
         $this->assertSame('Verso único', $i2->especificacao['modelos_composicao'][0]['nome'] ?? null);
         $this->assertSame(2, count($i1->especificacao['modelos_composicao'] ?? []));
         $this->assertSame(1, count($i2->especificacao['modelos_composicao'] ?? []));
+        $this->assertSame('CIMA', $i1->especificacao['faca_posicao'] ?? null);
+        $this->assertSame('BAIXO', $i2->especificacao['faca_posicao'] ?? null);
+        $this->assertSame(2, (int) ($i1->especificacao['coluna_rebobinacao'] ?? 0));
+        $this->assertSame(3, (int) ($i2->especificacao['coluna_rebobinacao'] ?? 0));
         $this->assertSame('80X50', $pedido->snapshot['input']['medida'] ?? null);
         $this->assertSame(1, $pedido->faixa_index);
     }

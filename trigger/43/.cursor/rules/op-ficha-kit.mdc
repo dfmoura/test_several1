@@ -18,6 +18,7 @@ OP = o que produzir + kit + um CTA
 - Avaria só na lista de retirada.
 - Extra = acrescentar no kit (mesma confirmação no estoque).
 - 1 kit por OP.
+- Ficha impressa = ordem de flexo: impressão, quanto rodar, kit, conferência. Sem preço, rpm, hora ou guia do ORC. Tela da ordem repete a mesma leitura numa linha.
 
 ## Não faça
 

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatoLabel } from './FacaShapeIcon';
 import { OpEscolhaOverlay } from './OpEscolhaOverlay';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
-import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
+import { linhaImpressaoFlexo } from '../lib/opFichaFlexo';
 import { formatNecessidadeOp, opKitLinhasOrdenadas } from '../lib/producaoPick';
 import { specOperacional } from '../lib/producaoFicha';
 import {
@@ -45,16 +44,10 @@ export function OpKitPainel({
   const item =
     pedido?.itens.find((i) => i.id === op.pedido_item?.id) ?? pedido?.itens[0] ?? null;
   const spec = pedido && item ? specOperacional(pedido, item) : {};
-  const desc = descricaoFromPedidoSpec(spec);
   const titulo =
     (op.pedido_item?.descricao ?? item?.descricao ?? '').trim() || 'Etiqueta sob medida';
   const qtde = formatDecimalBr(Number(op.qtde_planejada), 0);
-  const faca = desc.formato_faca
-    ? `${formatoLabel(desc.formato_faca)}${desc.faca_nova ? ' · nova' : ''}`
-    : null;
-  const specLinha = [desc.medida, desc.papel, faca, desc.cores]
-    .filter((s): s is string => Boolean(s && String(s).trim()))
-    .join(' · ');
+  const specLinha = linhaImpressaoFlexo(spec);
 
   const linhas = opKitLinhasOrdenadas(op.materiais ?? []);
   const [abertoId, setAbertoId] = useState<number | null>(materialInicialId ?? null);

@@ -4,15 +4,16 @@ import {
   identidadeParteComercial,
   metaLinhasParteComercial,
 } from './OrcPubParteComercial';
-import { PedidoItemFichaBloco } from './PedidoFichaSheet';
 import { FichaKv, FichaSection } from './ProducaoFichaBlocks';
 import { RastreioFichaSection } from './RastreioInsumosFichaSheet';
+import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
+import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
 import { formatEnderecoParceiro } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
-import { formatNecessidadeOp } from '../lib/producaoPick';
+import { formatQuantoFicha } from '../lib/producaoPick';
 import {
   opKitEstado,
   opKitEstadoLabel,
@@ -20,11 +21,21 @@ import {
   opKitOnde,
   opStatusLabel,
 } from '../lib/producaoUi';
-import { dash, formatDateTimeBr, opChipClass } from '../lib/producaoFicha';
+import { dash, faixaDoItem, formatDateTimeBr, opChipClass, specOperacional } from '../lib/producaoFicha';
+import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
+import {
+  artesDaOrdem,
+  corridaFisica,
+  textoBobinaFlexo,
+  textoColunaRebobinacao,
+  textoFacaFlexo,
+  textoMaquinaFlexo,
+} from '../lib/opFichaFlexo';
+import { saidaEtiquetaLabel } from '../lib/saidaEtiqueta';
 
 /**
- * Ficha da OP — mesma família visual do PED.
- * Sem preço. Spec do item do pedido. Materiais e conclusão só da OP.
+ * Ficha impressa da OP — ordem de flexo.
+ * Impressão, quanto rodar, kit. Sem preço. Sem guia do orçamento.
  */
 export type OrdemProducaoFichaSheetProps = {
   ordem: OrdemProducao;
@@ -33,6 +44,11 @@ export type OrdemProducaoFichaSheetProps = {
   emitidoPor: string;
   emitidoEm: Date;
 };
+
+function qtdeTxt(value: number | null, suffix: string, digits = 0): string {
+  if (value == null) return '—';
+  return `${formatDecimalBr(value, digits)} ${suffix}`;
+}
 
 export function OrdemProducaoFichaSheet({
   ordem: o,
@@ -43,6 +59,8 @@ export function OrdemProducaoFichaSheet({
 }: OrdemProducaoFichaSheetProps) {
   const item =
     pedido?.itens.find((i) => i.id === o.pedido_item?.id) ?? pedido?.itens[0] ?? null;
+  const spec = pedido && item ? specOperacional(pedido, item) : {};
+  const desc = descricaoFromPedidoSpec(spec);
   const materiais = o.materiais ?? [];
   const tol = o.pedido?.tolerancia_qtd_pct ?? pedido?.tolerancia_qtd_pct ?? '20';
   const pedCodigo = o.pedido?.codigo ?? pedido?.codigo ?? '—';
@@ -60,17 +78,45 @@ export function OrdemProducaoFichaSheet({
     .filter(Boolean)
     .join(' · ');
   const qtdePlanejada = formatDecimalBr(Number(o.qtde_planejada), 0);
-  const ops = pedido?.ordens_producao ?? [];
-  const oss = pedido?.ordens_servico ?? [];
+  const produto =
+    (o.pedido_item?.descricao ?? item?.descricao ?? '').trim() || null;
+  const maquina = textoMaquinaFlexo(spec);
+  const bobina = textoBobinaFlexo(spec);
+  const faca = textoFacaFlexo(spec);
+  const colunaReb = textoColunaRebobinacao(spec);
+  const saida = String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? '');
+  const saidaOk = Boolean(saidaEtiquetaLabel(saida));
+  const faixa = faixaDoItem(pedido, item);
+  const corrida = corridaFisica(faixa);
+  const qtdeArte = corrida?.etiquetas ?? (Number(o.qtde_planejada) || 0);
+  const artes = artesDaOrdem(spec, qtdeArte);
+  const tintas = desc.modelos_composicao;
+  const temImpressao = Boolean(
+    desc.papel ||
+      desc.medida ||
+      bobina ||
+      faca ||
+      saidaOk ||
+      desc.cores ||
+      desc.acabamento ||
+      desc.tubete ||
+      desc.etiq_por_rolo != null ||
+      colunaReb ||
+      (tintas && tintas.length > 0) ||
+      artes.length > 0,
+  );
 
   return (
-    <article className="ficha-sheet ped-ficha" aria-label={`Ficha da ordem ${o.codigo}`}>
+    <article
+      className="ficha-sheet ped-ficha ficha-sheet-op"
+      aria-label={`Ficha da ordem ${o.codigo}`}
+    >
       <header className="ficha-masthead">
         <div className="ficha-masthead-brand">
           <img src={BRAND.licensee.logo} alt={BRAND.licensee.logoAlt} className="ficha-logo" />
           <div>
             <strong className="ficha-org">{empresaNome}</strong>
-            <span className="ficha-doc-label">Ficha da ordem · operacional</span>
+            <span className="ficha-doc-label">Ordem de produção · flexografia</span>
           </div>
         </div>
         <div className="ficha-masthead-id">
@@ -82,12 +128,14 @@ export function OrdemProducaoFichaSheet({
       <div className="ficha-title-block">
         <div className="ficha-title-main">
           <h2 className="ficha-razao">Ordem de produção</h2>
+          {produto ? <p className="ficha-op-produto">{produto}</p> : null}
         </div>
         <div className="ficha-title-meta">
           <span className={`ficha-chip ${opChipClass(o.status)}`.trim()}>
             {opStatusLabel(o.status)}
           </span>
-          <span className="ficha-chip ficha-chip-muted">{qtdePlanejada} etiquetas</span>
+          <span className="ficha-chip">{qtdePlanejada} etiquetas</span>
+          {maquina ? <span className="ficha-chip ficha-op-maquina">{maquina}</span> : null}
           {pedido?.prazo_entrega_dias != null ? (
             <span className="ficha-chip ficha-chip-muted">{prazoEntregaCompleto(pedido)}</span>
           ) : null}
@@ -110,27 +158,78 @@ export function OrdemProducaoFichaSheet({
         ) : null}
       </div>
 
-      <FichaSection title="Item">
-        {pedido && item ? (
-          <div className="ped-ficha-itens">
-            <PedidoItemFichaBloco
-              pedido={pedido}
-              item={item}
-              ops={ops}
-              oss={oss}
-              multi={false}
-              eixo="producao"
-              qtdePlanejada={o.qtde_planejada}
-            />
-          </div>
-        ) : (
+      <FichaSection title="Impressão">
+        {!temImpressao ? (
           <p className="ficha-empty">
-            {o.pedido_item?.descricao ?? 'Item do pedido indisponível nesta ficha.'}
+            {produto ?? o.pedido_item?.descricao ?? 'Especificação indisponível nesta ficha.'}
           </p>
+        ) : (
+          <>
+            <div className="ficha-kv-grid cols-4">
+              {desc.papel ? <FichaKv label="Substrato" value={desc.papel} wide /> : null}
+              {desc.medida ? <FichaKv label="Medida" value={desc.medida} /> : null}
+              {bobina ? <FichaKv label="Bobina" value={bobina} wide /> : null}
+              {faca ? <FichaKv label="Faca" value={faca} wide /> : null}
+              {desc.cores ? <FichaKv label="Cores" value={String(desc.cores)} /> : null}
+              {desc.acabamento ? <FichaKv label="Acabamento" value={desc.acabamento} /> : null}
+              {desc.tubete ? <FichaKv label="Tubete" value={desc.tubete} /> : null}
+              {desc.etiq_por_rolo != null ? (
+                <FichaKv
+                  label="Etiq./rolo"
+                  value={Number(desc.etiq_por_rolo).toLocaleString('pt-BR')}
+                />
+              ) : null}
+              {colunaReb ? <FichaKv label="Coluna de rebobinação" value={colunaReb} /> : null}
+              {tintas && tintas.length > 0 ? (
+                <FichaKv
+                  label="Cores da arte"
+                  value={<ModeloTintasPorModelo modelos={tintas} />}
+                  wide
+                />
+              ) : null}
+            </div>
+            {saidaOk ? (
+              <div className="ficha-saida-etiqueta ficha-op-saida">
+                <SaidaEtiquetaBadge code={saida} variant="thumb" />
+              </div>
+            ) : null}
+            {artes.length > 0 ? (
+              <p className="ficha-op-artes">
+                {artes
+                  .map((arte) =>
+                    arte.qtde != null
+                      ? `${arte.nome} ${formatDecimalBr(arte.qtde, 0)}`
+                      : arte.nome,
+                  )
+                  .join(' · ')}
+              </p>
+            ) : null}
+          </>
         )}
       </FichaSection>
 
-      <FichaSection title="O que pegar (já calculado)">
+      {corrida ? (
+        <FichaSection title="Quanto rodar">
+          <p className="ficha-op-corrida">
+            {[
+              corrida.etiquetas != null ? qtdeTxt(corrida.etiquetas, 'un.') : null,
+              corrida.metros != null ? qtdeTxt(corrida.metros, 'm', 1) : null,
+              corrida.m2 != null ? qtdeTxt(corrida.m2, 'm²', 2) : null,
+              corrida.acertoM2 != null ? `acerto ${qtdeTxt(corrida.acertoM2, 'm²', 2)}` : null,
+              corrida.rolos != null
+                ? qtdeTxt(corrida.rolos, corrida.rolos === 1 ? 'rolo' : 'rolos')
+                : null,
+              corrida.caixas != null
+                ? qtdeTxt(corrida.caixas, corrida.caixas === 1 ? 'caixa' : 'caixas')
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+        </FichaSection>
+      ) : null}
+
+      <FichaSection title="O que pegar">
         {materiais.length === 0 ? (
           <p className="ficha-empty">Ainda não há lista de material nesta ordem.</p>
         ) : (
@@ -148,6 +247,7 @@ export function OrdemProducaoFichaSheet({
               {materiais.map((m, i) => {
                 const estado = opKitEstado(m);
                 const nome = opKitNome(m);
+                const quanto = formatQuantoFicha(m, o);
                 return (
                   <tr key={m.id}>
                     <td>{i + 1}</td>
@@ -157,7 +257,12 @@ export function OrdemProducaoFichaSheet({
                         <div className="ficha-muted">{m.produto.codigo}</div>
                       ) : null}
                     </td>
-                    <td>{formatNecessidadeOp(m, o)}</td>
+                    <td>
+                      {quanto.pedido}
+                      {quanto.volumes ? (
+                        <div className="ficha-op-volumes">{quanto.volumes}</div>
+                      ) : null}
+                    </td>
                     <td>{opKitOnde(m) === '—' ? 'Sem local' : opKitOnde(m)}</td>
                     <td>{opKitEstadoLabel(estado)}</td>
                   </tr>
@@ -166,7 +271,10 @@ export function OrdemProducaoFichaSheet({
             </tbody>
           </table>
         )}
-        <div className="ficha-kv-grid cols-3" style={{ marginTop: '0.85rem' }}>
+      </FichaSection>
+
+      <FichaSection title="Conferência">
+        <div className="ficha-kv-grid cols-3">
           <FichaKv
             label="Entregue para"
             value={o.handoff?.recebidos_nome?.trim() || '________________'}
