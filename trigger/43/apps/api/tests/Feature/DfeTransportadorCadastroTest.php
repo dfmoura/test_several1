@@ -6,6 +6,7 @@ use App\Models\DfeDocumento;
 use App\Models\Empresa;
 use App\Models\Parceiro;
 use App\Models\User;
+use App\Services\Compras\DfeTransporteMetaService;
 use App\Services\Consulta\BrasilApiClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -150,6 +151,24 @@ class DfeTransportadorCadastroTest extends TestCase
 
         Sanctum::actingAs($this->user);
 
+        $antes = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+            ->getJson('/api/v1/dfe-documentos')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $pendente = collect($antes->json('data'))->keyBy('numero');
+        $this->assertSame('pendente', $pendente['100']['transportador']['status']);
+        $this->assertTrue($pendente['100']['transportador']['pode_cadastrar']);
+        $this->assertNull($pendente['100']['transp_cnpj']);
+        $this->assertSame('sem_xml', $pendente['200']['transportador']['status']);
+        $this->assertFalse($pendente['200']['transportador']['pode_cadastrar']);
+
+        $docXml = DfeDocumento::query()->where('numero', '100')->first();
+        $this->assertNotNull($docXml);
+        $this->assertFalse((bool) $docXml->transp_extraido);
+
+        app(DfeTransporteMetaService::class)->hidratarPendentes($this->empresa->id, 40);
+
         $res = $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
             ->getJson('/api/v1/dfe-documentos')
             ->assertOk()
@@ -193,7 +212,7 @@ class DfeTransportadorCadastroTest extends TestCase
         $this->withHeaders($h)
             ->getJson('/api/v1/dfe-documentos')
             ->assertOk()
-            ->assertJsonPath('data.0.transportador.status', 'nao_cadastrado')
+            ->assertJsonPath('data.0.transportador.status', 'pendente')
             ->assertJsonPath('data.0.transportador.pode_cadastrar', true);
 
         $preview = $this->withHeaders($h)

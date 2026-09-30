@@ -75,15 +75,24 @@ final class NfePaQtdeModalidade
     public function aplicarItem(array $linha, Collection $embs, string $modo): array
     {
         $pedidoItemId = isset($linha['pedido_item_id']) ? (int) $linha['pedido_item_id'] : null;
-        $emb = $this->embalagem->resolverParaItem($embs, $pedidoItemId);
         $fam = strtoupper(trim((string) ($linha['familia_fiscal'] ?? '')));
-        $ehPa = str_starts_with($fam, 'PA-') || $fam === 'PA-ETQ' || $fam === '';
-        $espec = is_array($linha['especificacao'] ?? null) ? $linha['especificacao'] : null;
-
-        if (! $ehPa || ! $emb || (int) $emb->qtde_bobinas < 1) {
+        // Só PA leva embalagem → infAdProd. REV/SVC/setup não herdam bobina/medida da etiqueta
+        // (PED misto: 1 embalagem do job PA não pode virar obs do ribbon).
+        $ehPa = str_starts_with($fam, 'PA-') || $fam === 'PA';
+        if (! $ehPa) {
             return [
                 'linha' => $linha,
-                'inf_ad' => $this->embalagem->textoFiscalModo($emb, self::MODO_ETIQUETA, $espec),
+                'inf_ad' => null,
+            ];
+        }
+
+        $emb = $this->embalagem->resolverParaItem($embs, $pedidoItemId);
+        $espec = is_array($linha['especificacao'] ?? null) ? $linha['especificacao'] : null;
+
+        if (! $emb || (int) $emb->qtde_bobinas < 1) {
+            return [
+                'linha' => $linha,
+                'inf_ad' => null,
             ];
         }
 

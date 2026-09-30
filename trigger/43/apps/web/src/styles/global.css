@@ -2964,6 +2964,8 @@ table.data-table td.acoes {
   font-size: 0.82rem;
   line-height: 1.35;
   color: var(--text);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .nf-previa-infad-label {
@@ -8690,8 +8692,19 @@ tr.row-inactive td {
 .danfe-items {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 6.2pt;
 }
+
+.danfe-items col.c-cod { width: 11%; }
+.danfe-items col.c-desc { width: 28%; }
+.danfe-items col.c-ncm { width: 11%; }
+.danfe-items col.c-cst { width: 8%; }
+.danfe-items col.c-cfop { width: 8%; }
+.danfe-items col.c-un { width: 6%; }
+.danfe-items col.c-qtd { width: 9%; }
+.danfe-items col.c-vu { width: 9%; }
+.danfe-items col.c-vt { width: 10%; }
 
 .danfe-items thead {
   display: table-header-group;
@@ -8707,6 +8720,12 @@ tr.row-inactive td {
   border: 0.5pt solid #000;
   padding: 1.5pt 2pt;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.danfe-items td.desc {
+  white-space: normal;
 }
 
 .danfe-items th {
@@ -8720,13 +8739,21 @@ tr.row-inactive td {
   white-space: nowrap;
 }
 
-.danfe-infad {
-  display: block;
-  margin-top: 1.5pt;
-  font-size: 6.8pt;
+.danfe-item-extra td {
+  background: #fafafa;
+  font-size: 5.6pt;
   line-height: 1.3;
-  color: #111;
-  font-weight: 500;
+}
+
+.danfe-infad,
+.danfe-trib {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.danfe-infad {
+  margin-bottom: 1pt;
 }
 
 .danfe-adic {
@@ -12384,6 +12411,10 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   font-size: 1.15rem;
   font-weight: 800;
   color: #1a3568;
+}
+
+.op-escolha__precisa--saiu strong {
+  color: #2f6b4f;
 }
 
 .op-escolha__progresso {

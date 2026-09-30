@@ -726,8 +726,8 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
           <thead>
             <tr>
               <th>Material</th>
-              <th>Precisa</th>
-              <th>Já saiu</th>
+              <th>A ordem pede</th>
+              <th>Saiu da prateleira</th>
               <th>Rasgou</th>
               <th>A pegar</th>
               <th>Diferença</th>
@@ -754,7 +754,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                       </div>
                     ) : null}
                     <div className="muted" style={{ fontSize: '0.85em' }}>
-                      {porVolume ? 'Por volumes' : 'Por unidades'}
+                      {porVolume ? 'Por bobinas' : 'Por unidades'}
                     </div>
                   </td>
                   <td>
@@ -851,7 +851,7 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                   <p className="op-pick-line__modo">{modoRetiradaLabel(porVolume ? 'volume' : 'unidade')}</p>
                   <h4 className="op-pick-line__nome">{opKitNome(r.m)}</h4>
                   <p className="muted op-pick-line__meta">
-                    Precisa {formatNecessidadeOp(r.m, op)}
+                    A ordem pede: {formatNecessidadeOp(r.m, op)}
                     {porVolume
                       ? ` · marcado ${formatVolumesComMetros(
                           r.lista.filter((p) => parseQtdeDigitada(p.qtde) > 0).length,

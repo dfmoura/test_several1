@@ -70,8 +70,11 @@ final class ItensFiscaisNfe
     {
         $produto = $linha['produto'] ?? null;
         $fiscal = is_object($produto) ? trim((string) ($produto->descricao_fiscal ?? '')) : '';
-        if ($fiscal !== '') {
-            $linha['descricao'] = $fiscal;
+        $codigo = is_object($produto) ? (string) ($produto->codigo ?? '') : null;
+        $linha['descricao_pedido'] = (string) ($linha['descricao'] ?? '');
+        $xProd = NfeItemTexto::xProd($fiscal, $linha['descricao_pedido'], $codigo);
+        if ($xProd !== '') {
+            $linha['descricao'] = $xProd;
         }
 
         return $linha;

@@ -39,7 +39,7 @@ export function OpFiltroVolumes({
         ) : null}
       </div>
       <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-        {value.trim() ? `${visiveis} de ${total}` : `${total} ${total === 1 ? 'volume' : 'volumes'}`}
+        {value.trim() ? `${visiveis} de ${total}` : `${total} ${total === 1 ? 'bobina' : 'bobinas'}`}
       </p>
     </div>
   );

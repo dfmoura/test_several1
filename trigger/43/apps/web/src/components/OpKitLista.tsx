@@ -38,8 +38,8 @@ export function OpKitLista({ op, podeAbrirEstoque }: Props) {
         <div className="form-section" style={{ marginBottom: '0.75rem' }}>
           <h3 style={{ marginBottom: '0.25rem' }}>Kit desta ordem</h3>
           <p className="muted" style={{ margin: 0 }}>
-            O que precisa para produzir. No estoque você marca o que saiu; depois entrega na
-            máquina.
+            O que a ordem pede para produzir. No estoque você marca a bobina que saiu; depois
+            entrega na máquina.
           </p>
         </div>
 
@@ -81,7 +81,7 @@ export function OpKitLista({ op, podeAbrirEstoque }: Props) {
                       <span className="muted">{m.produto.codigo}</span>
                     ) : null}
                   </div>
-                  <div className="op-kit__qtde">Precisa {formatNecessidadeOp(m, op)}</div>
+                  <div className="op-kit__qtde">A ordem pede: {formatNecessidadeOp(m, op)}</div>
                   <div className="op-kit__onde muted">{onde === '—' ? 'Sem local' : onde}</div>
                   <div className="op-kit__estado">
                     <StatusPill status={opKitEstadoLabel(estado)} />

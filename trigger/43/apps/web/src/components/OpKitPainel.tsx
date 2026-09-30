@@ -105,8 +105,10 @@ export function OpKitPainel({
         <>
           <p className="op-kit__hint">
             {porta === 'chao'
-              ? 'Toque no material, marque o que saiu da prateleira e confirme. Quem recebe é a produção.'
-              : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}
+              ? 'Toque no material, marque a bobina que saiu da prateleira e confirme. Quem recebe é a produção.'
+              : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}{' '}
+            Bobina: a ordem pede metros de pista da etiqueta + área em m². Sai bobina inteira — compare pela
+            área (m²), não pelo comprimento do rolo.
           </p>
           <div className="op-kit__tiles">
             {linhas.map((m) => {
@@ -122,7 +124,7 @@ export function OpKitPainel({
                   <span className="op-kit-tile__tipo">{tipo}</span>
                   <span className="op-kit-tile__nome">{opKitNome(m)}</span>
                   <span className="op-kit-tile__qtde">
-                    <span className="op-kit-tile__qtde-kicker">Precisa</span>
+                    <span className="op-kit-tile__qtde-kicker">A ordem pede</span>
                     {formatNecessidadeOp(m, op)}
                   </span>
                   <span className="op-kit-tile__st">{opKitEstadoLabel(estado)}</span>

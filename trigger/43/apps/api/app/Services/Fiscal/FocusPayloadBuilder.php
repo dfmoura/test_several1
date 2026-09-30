@@ -79,10 +79,10 @@ class FocusPayloadBuilder
             $item = [
                 'numero_item' => $n,
                 'codigo_produto' => $produto?->codigo ?: 'FAT'.$n,
-                'descricao' => mb_substr(
-                    trim((string) ($produto?->descricao_fiscal ?: $linha['descricao'])),
-                    0,
-                    120
+                'descricao' => NfeItemTexto::xProd(
+                    $produto?->descricao_fiscal,
+                    (string) ($linha['descricao_pedido'] ?? $linha['descricao'] ?? ''),
+                    $produto?->codigo
                 ),
                 'codigo_ncm' => $this->ncm($produto),
                 'cfop' => $cfop,
@@ -329,11 +329,13 @@ class FocusPayloadBuilder
     {
         $fat->loadMissing('itens');
         $ped = $fat->pedido?->codigo ?? '';
+        $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             $ped !== '' ? 'Pedido '.$ped : null,
             'Fatura '.$fat->codigo,
             $embTexto ?: null,
             $this->temSetup($fat) ? 'Valor inclui matriz/clichê e ferramental do job' : null,
+            NfeItemTexto::complementoTributos($crt),
         ]);
 
         return implode(' · ', $parts);

@@ -167,8 +167,27 @@ Emissão oficial de NF-e/NFS-e de **saída** permanece no hub Focus (`ADR_EMISSA
 |---------|--------|
 | Colunas **Forn.** e **Transp.** com ícone (ok / pendente / N/A) | Densidade da tabela; tooltip leva o detalhe |
 | Metadados `transp_cnpj` / `transp_nome` / `transp_extraido` no `dfe_documentos` | Lista local sem reler XML a cada GET; alinhado a `emit_*` |
-| Hidratação lazy no GET se XML já no cofre e `transp_extraido=false` | Retrocompatível com documentos já baixados |
+| Hidratação lazy no GET se XML já no cofre e `transp_extraido=false` | **Substituída** pela emenda de 30/09 — backfill fora do GET |
 | Cadastro do transportador = mesmo padrão do fornecedor (preview/commit no XML do cofre → `ParceiroXmlImportService`) | Sem segundo escritor de PAR; papel `papel_transportadora` |
 | Transportador ausente / sem XML / PF → ícone neutro, sem ação | Evita falso positivo e cadastro inválido |
 
 Alterar este ADR exige alinhamento explícito às ADRs de compras/estoque/A1 e ao estudo 32.
+
+---
+
+## Emenda — lista da caixa não lê XML
+
+**Data:** 2026-09-30
+
+A hidratação lazy no GET (emenda de 15/09) fazia a abertura da Caixa gravar e abrir XML. Um arquivo lento ou uma falha derrubava a lista inteira, e a UI tratava o erro como caixa vazia.
+
+| Escolha | Motivo |
+|---------|--------|
+| GET da lista e do detalhe = só colunas já gravadas | Performance obrigatória: a tela não espera cofre nem fisco |
+| Sync, busca de XML e import local continuam gravando `transp_*` na hora | Nota nova não depende de backfill |
+| Pendência antiga: job `dfe:hidratar-transporte` (lote, fora do request; agenda 06:20) | Um XML ilegível não aborta o lote nem a lista |
+| Clique em cadastrar transportador ainda lê **um** XML (preview/commit) | Ação humana, um documento |
+| Filtro de ano inclui `data_emissao` nula | Nota sem emissão não desaparece da caixa |
+| Falha do GET aparece na tela | Caixa vazia fica reservada a lista realmente vazia |
+
+A linha “Hidratação lazy no GET” da emenda de 15/09 fica substituída por esta.

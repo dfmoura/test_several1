@@ -4,6 +4,7 @@ namespace App\Services\Compras;
 
 use App\Models\DfeDocumento;
 use App\Services\Fiscal\NfeEmitenteExtractor;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use SimpleXMLElement;
 use Throwable;
@@ -59,7 +60,33 @@ class DfeTransporteMetaService
     }
 
     /**
+     * Lote fora do GET da caixa. Nota nova já grava transp no sync / busca de XML.
+     *
+     * @return int Quantidade lida neste lote (igual ao limite quando ainda há pendência).
+     */
+    public function hidratarPendentes(?int $empresaId, int $limite): int
+    {
+        $limite = max(1, $limite);
+        $query = DfeDocumento::query()
+            ->where('transp_extraido', false)
+            ->whereNotNull('xml_path')
+            ->where('xml_path', '!=', '')
+            ->orderBy('id');
+
+        if ($empresaId !== null && $empresaId > 0) {
+            $query->where('empresa_id', $empresaId);
+        }
+
+        $docs = $query->limit($limite)->get()->all();
+        $this->hidratarEmLote($docs);
+
+        return count($docs);
+    }
+
+    /**
      * Hidrata metadados a partir do cofre quando o XML já existe e ainda não foi lido.
+     * Um arquivo ilegível não interrompe o lote: marca extraído vazio e segue.
+     * Falha de gravação (coluna ausente) sobe — não mascara migration pendente.
      *
      * @param  list<DfeDocumento>  $docs
      */
@@ -71,28 +98,40 @@ class DfeTransporteMetaService
             if ($doc->transp_extraido || ! $doc->temXml() || ! filled($doc->xml_path)) {
                 continue;
             }
-            if (! $disk->exists($doc->xml_path)) {
-                $doc->transp_extraido = true;
-                $doc->transp_cnpj = null;
-                $doc->transp_nome = null;
+
+            try {
+                if (! $disk->exists($doc->xml_path)) {
+                    $this->marcarSemTransporte($doc);
+
+                    continue;
+                }
+
+                $xml = $disk->get($doc->xml_path);
+                if (! is_string($xml) || trim($xml) === '') {
+                    $this->marcarSemTransporte($doc);
+
+                    continue;
+                }
+
+                $this->aplicarDeXml($doc, $xml);
                 $doc->save();
-
-                continue;
+            } catch (Throwable $e) {
+                Log::warning('dfe.transporte.hidratar', [
+                    'dfe_documento_id' => $doc->id,
+                    'empresa_id' => $doc->empresa_id,
+                    'erro' => $e->getMessage(),
+                ]);
+                $this->marcarSemTransporte($doc);
             }
-
-            $xml = $disk->get($doc->xml_path);
-            if (! is_string($xml) || trim($xml) === '') {
-                $doc->transp_extraido = true;
-                $doc->transp_cnpj = null;
-                $doc->transp_nome = null;
-                $doc->save();
-
-                continue;
-            }
-
-            $this->aplicarDeXml($doc, $xml);
-            $doc->save();
         }
+    }
+
+    private function marcarSemTransporte(DfeDocumento $doc): void
+    {
+        $doc->transp_extraido = true;
+        $doc->transp_cnpj = null;
+        $doc->transp_nome = null;
+        $doc->save();
     }
 
     /**

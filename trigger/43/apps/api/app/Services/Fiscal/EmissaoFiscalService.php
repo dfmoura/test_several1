@@ -524,12 +524,13 @@ class EmissaoFiscalService
 
     private function garantirPrevista(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc): void
     {
-        if (is_array($doc->payload_json) && $doc->payload_json !== []) {
+        if ($doc->eOficial() || $doc->eCanceladaOficial() || $doc->status === DocumentoFiscalSaida::STATUS_PROCESSANDO) {
             return;
         }
         if (! $doc->podeEnviar()) {
             return;
         }
+        // Prévia rejeitada/planejada acompanha a descrição e os tributos atuais.
         $this->persistirPrevista($empresa, $fat, $doc);
     }
 
@@ -636,18 +637,36 @@ class EmissaoFiscalService
                 'valor' => (string) ($payload['valor_servico'] ?? $d->valor),
             ];
         } else {
+            $crt = (int) ($empresa?->crt ?? 1);
+            $simples = in_array($crt, [1, 4], true);
             foreach (($payload['items'] ?? []) as $item) {
                 if (! is_array($item)) {
                     continue;
                 }
                 $infAdProd = trim((string) ($item['informacoes_adicionais_produto'] ?? ''));
+                $ibs = NfeIbsCbs::calcular((string) ($item['valor_bruto'] ?? '0'));
+                $cstIcms = $simples
+                    ? (preg_replace('/\D/', '', (string) ($item['icms_situacao_tributaria'] ?? '')) ?: FiscalSaidaDefaults::CSOSN_SIMPLES)
+                    : '40';
                 $itens[] = [
                     'numero' => $item['numero_item'] ?? count($itens) + 1,
                     'codigo' => $item['codigo_produto'] ?? null,
                     'descricao' => (string) ($item['descricao'] ?? ''),
                     'ncm' => (string) ($item['codigo_ncm'] ?? ''),
                     'cfop' => (string) ($item['cfop'] ?? ''),
-                    'csosn' => (string) ($item['icms_situacao_tributaria'] ?? ''),
+                    'csosn' => $cstIcms,
+                    'origem' => (int) ($item['icms_origem'] ?? 0),
+                    'cst_pis' => (string) ($item['pis_situacao_tributaria'] ?? FiscalSaidaDefaults::CST_PIS),
+                    'cst_cofins' => (string) ($item['cofins_situacao_tributaria'] ?? FiscalSaidaDefaults::CST_COFINS),
+                    'bc_icms' => '0.00',
+                    'v_icms' => '0.00',
+                    'v_ipi' => '0.00',
+                    'p_ibs_uf' => $ibs['p_uf'],
+                    'p_ibs_mun' => $ibs['p_mun'],
+                    'p_cbs' => $ibs['p_cbs'],
+                    'v_ibs_uf' => $ibs['vuf'],
+                    'v_ibs_mun' => $ibs['vmun'],
+                    'v_cbs' => $ibs['vcbs'],
                     'unidade' => (string) ($item['unidade_comercial'] ?? ''),
                     'quantidade' => (string) ($item['quantidade_comercial'] ?? ''),
                     'valor_unitario' => (string) ($item['valor_unitario_comercial'] ?? ''),
@@ -729,8 +748,37 @@ class EmissaoFiscalService
             'duplicatas' => $duplicatas,
             'volumes' => $this->previaVolumes($payload),
             'valor_total' => (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor),
+            'impostos' => $this->previaImpostos($itens, (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor)),
             'pedido' => $fat->pedido?->codigo,
             'faturamento' => $fat->codigo,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $itens
+     * @return array{v_ibs_uf: string, v_ibs_mun: string, v_cbs: string, v_nf_tot: string}
+     */
+    private function previaImpostos(array $itens, string $vNf): array
+    {
+        $uf = '0.00';
+        $mun = '0.00';
+        $cbs = '0.00';
+        foreach ($itens as $it) {
+            if (! isset($it['v_ibs_uf'])) {
+                continue;
+            }
+            $uf = PadraoDecimal::roundHalfUp(bcadd($uf, (string) $it['v_ibs_uf'], 8), PadraoDecimal::SCALE_MONEY);
+            $mun = PadraoDecimal::roundHalfUp(bcadd($mun, (string) $it['v_ibs_mun'], 8), PadraoDecimal::SCALE_MONEY);
+            $cbs = PadraoDecimal::roundHalfUp(bcadd($cbs, (string) $it['v_cbs'], 8), PadraoDecimal::SCALE_MONEY);
+        }
+        $base = PadraoDecimal::roundHalfUp($vNf, PadraoDecimal::SCALE_MONEY);
+        $porFora = PadraoDecimal::roundHalfUp(bcadd(bcadd($uf, $mun, 8), $cbs, 8), PadraoDecimal::SCALE_MONEY);
+
+        return [
+            'v_ibs_uf' => $uf,
+            'v_ibs_mun' => $mun,
+            'v_cbs' => $cbs,
+            'v_nf_tot' => PadraoDecimal::roundHalfUp(bcadd($base, $porFora, 8), PadraoDecimal::SCALE_MONEY),
         ];
     }
 

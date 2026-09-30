@@ -29,6 +29,9 @@ class DfeTransportadorCadastroService
 
     public const STATUS_SEM_XML = 'sem_xml';
 
+    /** XML já no cofre; metadados ainda não lidos (job fora do GET). */
+    public const STATUS_PENDENTE = 'pendente';
+
     public function __construct(
         private readonly ParceiroXmlImportService $xmlImport,
         private readonly DfeTransporteMetaService $transporteMeta,
@@ -98,7 +101,7 @@ class DfeTransportadorCadastroService
         }
 
         if (! $doc->transp_extraido) {
-            return $this->out(self::STATUS_SEM_XML, null, null, null, false);
+            return $this->out(self::STATUS_PENDENTE, null, null, null, true);
         }
 
         $digits = $this->digitsOrNull($doc->transp_cnpj);

@@ -80,13 +80,18 @@ final class SefazNfeClient implements NfeSefazClient
         $chave = $this->tag($resp, 'chNFe');
         $prot = $this->tag($resp, 'nProt');
 
+        // Preferir cStat/xMotivo do protocolo interno quando o lote veio 104.
+        $protCStat = $cStat;
+        $protMotivo = $xMotivo;
+        if (preg_match_all('/<cStat>(\d+)<\/cStat>/', $resp, $allStat) && count($allStat[1]) > 1) {
+            $protCStat = $allStat[1][count($allStat[1]) - 1];
+        }
+        if (preg_match_all('/<xMotivo>([^<]*)<\/xMotivo>/', $resp, $allMot) && count($allMot[1]) > 1) {
+            $protMotivo = html_entity_decode($allMot[1][count($allMot[1]) - 1], ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        }
+
         // 100 = autorizado; 104 = lote processado com prot; 103/105 = em processamento
         if (in_array($cStat, ['100', '150'], true) || ($cStat === '104' && $prot !== null)) {
-            $protCStat = $this->tag($resp, 'cStat', 1) ?? $cStat;
-            // Prefer inner prot cStat when present
-            if (preg_match_all('/<cStat>(\d+)<\/cStat>/', $resp, $all) && count($all[1]) > 1) {
-                $protCStat = $all[1][count($all[1]) - 1];
-            }
             if (in_array($protCStat, ['100', '150'], true) || $cStat === '100') {
                 $serie = $chave ? (int) substr($chave, 22, 3) : null;
                 $numero = $chave ? (int) substr($chave, 25, 9) : null;
@@ -94,7 +99,7 @@ final class SefazNfeClient implements NfeSefazClient
 
                 return new NfeSefazResultado(
                     status: NfeSefazResultado::STATUS_AUTORIZADO,
-                    mensagem: $xMotivo !== '' ? $xMotivo : 'Autorizado o uso da NF-e',
+                    mensagem: $protMotivo !== '' ? $protMotivo : 'Autorizado o uso da NF-e',
                     cStat: $protCStat,
                     chave: $chave,
                     numero: $numero,
@@ -103,9 +108,29 @@ final class SefazNfeClient implements NfeSefazClient
                     recibo: $recibo,
                     xmlNfe: $nfeProc,
                     xmlRetorno: $resp,
-                    body: ['cStat' => $protCStat, 'xMotivo' => $xMotivo, 'raw' => mb_substr($resp, 0, 4000)],
+                    body: [
+                        'cStat' => $protCStat,
+                        'xMotivo' => $protMotivo,
+                        'raw' => mb_substr($resp, 0, 4000),
+                    ],
                 );
             }
+
+            // 104 + prot com rejeição (ex.: 539, 215) — expor o motivo interno.
+            return new NfeSefazResultado(
+                status: NfeSefazResultado::STATUS_REJEITADO,
+                mensagem: $protMotivo !== '' ? $protMotivo : 'Rejeição SEFAZ '.$protCStat,
+                cStat: $protCStat,
+                chave: $chave,
+                recibo: $recibo,
+                xmlRetorno: $resp,
+                body: [
+                    'cStat' => $protCStat,
+                    'xMotivo' => $protMotivo,
+                    'cStat_lote' => $cStat,
+                    'raw' => mb_substr($resp, 0, 4000),
+                ],
+            );
         }
 
         if (in_array($cStat, ['103', '105'], true) || ($recibo !== null && $prot === null && $cStat === '104')) {
@@ -131,12 +156,16 @@ final class SefazNfeClient implements NfeSefazClient
 
         return new NfeSefazResultado(
             status: NfeSefazResultado::STATUS_REJEITADO,
-            mensagem: $xMotivo !== '' ? $xMotivo : 'Rejeição SEFAZ '.$cStat,
-            cStat: $cStat,
+            mensagem: ($protMotivo !== '' ? $protMotivo : ($xMotivo !== '' ? $xMotivo : 'Rejeição SEFAZ '.$cStat)),
+            cStat: $protCStat !== '' ? $protCStat : $cStat,
             chave: $chave,
             recibo: $recibo,
             xmlRetorno: $resp,
-            body: ['cStat' => $cStat, 'xMotivo' => $xMotivo],
+            body: [
+                'cStat' => $protCStat !== '' ? $protCStat : $cStat,
+                'xMotivo' => $protMotivo !== '' ? $protMotivo : $xMotivo,
+                'raw' => mb_substr($resp, 0, 4000),
+            ],
         );
     }
 

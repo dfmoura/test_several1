@@ -1,5 +1,5 @@
 import { TriggerAttribution } from './TriggerAttribution';
-import type { DocumentoFiscalSaida, Faturamento } from '../lib/api';
+import type { DocumentoFiscalPreviaItem, DocumentoFiscalSaida, Faturamento } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import {
   code128CSvg,
@@ -14,7 +14,7 @@ import {
   formatDecimalBr,
   formatTime,
 } from '../lib/format';
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 
 type Props = {
   fat: Faturamento;
@@ -46,6 +46,29 @@ function Cell({
 function money(v: string | number | null | undefined): string {
   const n = formatDecimalBr(v, 2);
   return n === '—' ? '0,00' : n;
+}
+
+function pct(v: string | number | null | undefined): string {
+  const n = formatDecimalBr(v, 2);
+  return n === '—' ? '0,00%' : `${n}%`;
+}
+
+function tributosDoItem(it: DocumentoFiscalPreviaItem): string {
+  const cst = `${it.origem ?? 0}/${it.csosn || '—'}`;
+  const partes = [
+    `ICMS ${cst}`,
+    `BC ${money(it.bc_icms)}`,
+    `ICMS ${money(it.v_icms)}`,
+    `IPI ${money(it.v_ipi)}`,
+    it.cst_pis ? `PIS ${it.cst_pis}` : '',
+    it.cst_cofins ? `COFINS ${it.cst_cofins}` : '',
+  ];
+  if (it.v_cbs != null) {
+    partes.push(`IBS UF ${pct(it.p_ibs_uf)} ${money(it.v_ibs_uf)}`);
+    partes.push(`IBS mun ${pct(it.p_ibs_mun)} ${money(it.v_ibs_mun)}`);
+    partes.push(`CBS ${pct(it.p_cbs)} ${money(it.v_cbs)}`);
+  }
+  return partes.filter(Boolean).join(' · ');
 }
 
 function nfeNumero(n: number | null | undefined): string {
@@ -335,6 +358,12 @@ function DanfeLayout({
         <Cell label="Outras despesas" value="0,00" />
         <Cell label="V. total da nota" value={money(total)} bold />
       </div>
+      <div className="danfe-row danfe-tax">
+        <Cell label="IBS UF" value={money(p?.impostos?.v_ibs_uf)} />
+        <Cell label="IBS município" value={money(p?.impostos?.v_ibs_mun)} />
+        <Cell label="CBS" value={money(p?.impostos?.v_cbs)} />
+        <Cell label="Total c/ IBS e CBS" value={money(p?.impostos?.v_nf_tot ?? total)} bold />
+      </div>
 
       <h3 className="danfe-sec">Transportador / volumes</h3>
       <div className="danfe-row">
@@ -372,12 +401,23 @@ function DanfeLayout({
 
       <h3 className="danfe-sec">Dados dos produtos / serviços</h3>
       <table className="danfe-items">
+        <colgroup>
+          <col className="c-cod" />
+          <col className="c-desc" />
+          <col className="c-ncm" />
+          <col className="c-cst" />
+          <col className="c-cfop" />
+          <col className="c-un" />
+          <col className="c-qtd" />
+          <col className="c-vu" />
+          <col className="c-vt" />
+        </colgroup>
         <thead>
           <tr>
             <th>Cód.</th>
             <th>Descrição do produto / serviço</th>
             <th>NCM/SH</th>
-            <th>O/CSOSN</th>
+            <th>CST</th>
             <th>CFOP</th>
             <th>Un</th>
             <th>Quant.</th>
@@ -387,25 +427,29 @@ function DanfeLayout({
         </thead>
         <tbody>
           {itens.map((it) => (
-            <tr key={`${doc.id}-${it.numero}`}>
-              <td>{it.codigo || ' '}</td>
-              <td>
-                {it.descricao}
-                {it.informacoes_adicionais ? (
-                  <>
-                    <br />
-                    <span className="danfe-infad">{it.informacoes_adicionais}</span>
-                  </>
-                ) : null}
-              </td>
-              <td>{it.ncm}</td>
-              <td>0/{it.csosn || '102'}</td>
-              <td>{it.cfop}</td>
-              <td>{it.unidade}</td>
-              <td className="num">{formatDecimalBr(it.quantidade, 4)}</td>
-              <td className="num">{formatDecimalBr(it.valor_unitario, 4)}</td>
-              <td className="num">{money(it.valor)}</td>
-            </tr>
+            <Fragment key={`${doc.id}-${it.numero}`}>
+              <tr>
+                <td>{it.codigo || ' '}</td>
+                <td className="desc">{it.descricao}</td>
+                <td>{it.ncm}</td>
+                <td className="num">
+                  {it.origem ?? 0}/{it.csosn || '—'}
+                </td>
+                <td>{it.cfop}</td>
+                <td>{it.unidade}</td>
+                <td className="num">{formatDecimalBr(it.quantidade, 4)}</td>
+                <td className="num">{formatDecimalBr(it.valor_unitario, 4)}</td>
+                <td className="num">{money(it.valor)}</td>
+              </tr>
+              <tr className="danfe-item-extra">
+                <td colSpan={9}>
+                  {it.informacoes_adicionais ? (
+                    <span className="danfe-infad">Inf. adicionais: {it.informacoes_adicionais}</span>
+                  ) : null}
+                  <span className="danfe-trib">Tributos: {tributosDoItem(it)}</span>
+                </td>
+              </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>

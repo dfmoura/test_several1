@@ -97,6 +97,8 @@ function cadastroLabel(papel: CadastroPapel, status: string | undefined): string
       return 'Transportador ausente no XML';
     case 'sem_xml':
       return 'Busque o XML para ver o transportador';
+    case 'pendente':
+      return 'XML na caixa — clique para identificar o transportador';
     default:
       return status ?? '—';
   }
@@ -136,6 +138,11 @@ function transportadorTitle(doc: DfeDocumento, podeParceiro: boolean): string {
   }
   if (t.status === 'sem_xml') {
     return 'Busque o XML no fisco antes de ver ou cadastrar o transportador.';
+  }
+  if (t.status === 'pendente') {
+    return podeParceiro
+      ? 'O XML já está na caixa. Clique para ler o transportador e, se precisar, cadastrá-lo.'
+      : 'O XML já está na caixa. Sem permissão para cadastrar o transportador.';
   }
   if (t.status === 'pf' || t.status === 'sem_cnpj') {
     return nome
@@ -191,6 +198,7 @@ export function ComprasNfeDestinadasPage() {
   const [situacao, setSituacao] = useState('');
   const [ano, setAno] = useState(String(anoAtual));
   const [loading, setLoading] = useState(true);
+  const [listaErro, setListaErro] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncErro, setSyncErro] = useState<string | null>(null);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
@@ -209,6 +217,7 @@ export function ComprasNfeDestinadasPage() {
 
   const load = useCallback(async (search?: string, st?: string, year?: string) => {
     setLoading(true);
+    setListaErro(null);
     try {
       const params = new URLSearchParams();
       if (search) params.set('q', search);
@@ -221,6 +230,12 @@ export function ComprasNfeDestinadasPage() {
       }>(`/dfe-documentos${qs ? `?${qs}` : ''}`);
       setDocs(res.data);
       setSync(res.meta.sync);
+    } catch (err: unknown) {
+      setListaErro(
+        err instanceof ApiError
+          ? err.message
+          : 'Não foi possível carregar a caixa de NF-e.',
+      );
     } finally {
       setLoading(false);
     }
@@ -440,7 +455,9 @@ export function ComprasNfeDestinadasPage() {
       cadastroPreview.acao === 'adicionar_papel' ||
       cadastroPreview.acao === 'adicionar_papel_transportadora');
 
-  const nenhumDocumentoFisco = docs.length === 0 && !q && !situacao;
+  const totalCaixa = sync?.total_documentos ?? 0;
+  const vazioPorAno = docs.length === 0 && !q && !situacao && totalCaixa > 0;
+  const nenhumDocumentoFisco = docs.length === 0 && !q && !situacao && totalCaixa === 0;
   const syncRodando = syncing || sync?.sync_status === 'RUNNING';
 
   const renderCadastroCell = (
@@ -458,7 +475,9 @@ export function ComprasNfeDestinadasPage() {
     const label = cadastroLabel(papel, status);
     const clicavel =
       status === 'cadastrado' ||
-      (podeParceiro && (status === 'nao_cadastrado' || status === 'sem_papel') && info?.pode_cadastrar);
+      (podeParceiro &&
+        (status === 'nao_cadastrado' || status === 'sem_papel' || status === 'pendente') &&
+        info?.pode_cadastrar);
     const icon = (
       <CadastroStatusIcon status={status} title={title} ariaLabel={`${label} — ${labelDoc}`} />
     );
@@ -540,9 +559,9 @@ export function ComprasNfeDestinadasPage() {
           </div>
         )}
 
-        {(syncErro || acaoErro) && (
+        {(syncErro || acaoErro || (listaErro && docs.length > 0)) && (
           <div className="nfe-destinadas-erro" role="alert">
-            {syncErro ?? acaoErro}
+            {syncErro ?? acaoErro ?? listaErro}
           </div>
         )}
 
@@ -735,7 +754,15 @@ export function ComprasNfeDestinadasPage() {
             <div className="loading">Carregando…</div>
           ) : sorted.length === 0 ? (
             <div className="empty-state">
-              {sync?.sync_bloqueio ? (
+              {listaErro ? (
+                <>{listaErro}</>
+              ) : vazioPorAno ? (
+                <>
+                  Nenhuma NF-e de {ano} nesta lista. A caixa tem {totalCaixa}{' '}
+                  {totalCaixa === 1 ? 'documento' : 'documentos'} — troque o ano e clique em
+                  Filtrar.
+                </>
+              ) : sync?.sync_bloqueio ? (
                 <>
                   {sync.sync_bloqueio} Enquanto isso, use o upload de XML na{' '}
                   <Link to="/compras/ordens">ordem de compra</Link>.

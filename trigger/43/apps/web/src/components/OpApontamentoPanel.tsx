@@ -279,16 +279,16 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                   <li key={m.id}>
                     <strong>{opKitNome(m)}</strong>
                     <span>
-                      Precisa {formatNecessidadeOp(m, op)}
+                      A ordem pede: {formatNecessidadeOp(m, op)}
                       {porVolume
-                        ? ` · chegou ${formatPickPrincipal(m, op)}`
-                        : ` · chegou ${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
+                        ? ` · saiu da prateleira: ${formatPickPrincipal(m, op)}`
+                        : ` · saiu da prateleira: ${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
                     </span>
                     {porVolume && bobinas.length > 0 ? (
                       <ul>
                         {bobinas.map((v) => (
                           <li key={v.lote_id ?? v.codigo}>
-                            {formatLotePick(v)} · 1 volume
+                            {formatLotePick(v)} · 1 bobina
                             {formatMetrosLineares(v, L) ? ` · ${formatMetrosLineares(v, L)}` : ''}
                           </li>
                         ))}
@@ -352,8 +352,8 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                 <thead>
                   <tr>
                     <th>Material</th>
-                    <th>Precisa</th>
-                    <th>Saiu</th>
+                    <th>A ordem pede</th>
+                    <th>Saiu da prateleira</th>
                     <th>Rasgou</th>
                     <th>Devolver sobra</th>
                     <th>Perdeu no processo</th>
@@ -403,7 +403,7 @@ export function OpApontamentoPanel({ op, onOp }: Props) {
                             <ul className="muted" style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
                               {bobinas.map((v) => (
                                 <li key={v.lote_id ?? v.codigo}>
-                                  {formatLotePick(v)} · 1 volume
+                                  {formatLotePick(v)} · 1 bobina
                                   {formatMetrosLineares(v, L) ? ` · ${formatMetrosLineares(v, L)}` : ''}
                                 </li>
                               ))}

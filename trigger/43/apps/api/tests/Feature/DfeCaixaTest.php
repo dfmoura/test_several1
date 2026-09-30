@@ -93,6 +93,16 @@ class DfeCaixaTest extends TestCase
             'situacao' => DfeDocumento::SITUACAO_DISPONIVEL,
         ]);
 
+        DfeDocumento::query()->create([
+            'empresa_id' => $empresa->id,
+            'nsu' => '3',
+            'chave' => str_repeat('4', 44),
+            'numero' => '101',
+            'emit_nome' => 'Sem Emissao',
+            'data_emissao' => null,
+            'situacao' => DfeDocumento::SITUACAO_NOVA,
+        ]);
+
         Sanctum::actingAs($user);
 
         $lista = $this->withHeader('X-Empresa-Id', (string) $empresa->id)
@@ -100,12 +110,15 @@ class DfeCaixaTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.ano', $anoAtual)
             ->assertJsonPath('meta.sync.sync_status', 'IDLE')
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.emit_nome', 'Fornecedor Alfa')
-            ->assertJsonPath('data.0.tem_xml', false)
-            ->assertJsonPath('data.0.fornecedor.status', 'nao_cadastrado');
+            ->assertJsonCount(2, 'data');
 
-        $this->assertArrayNotHasKey('xml_path', $lista->json('data.0'));
+        $porNome = collect($lista->json('data'))->keyBy('emit_nome');
+        $this->assertTrue($porNome->has('Fornecedor Alfa'));
+        $this->assertTrue($porNome->has('Sem Emissao'));
+        $this->assertFalse($porNome->has('Fornecedor Antigo'));
+        $this->assertFalse($porNome['Fornecedor Alfa']['tem_xml']);
+        $this->assertSame('nao_cadastrado', $porNome['Fornecedor Alfa']['fornecedor']['status']);
+        $this->assertArrayNotHasKey('xml_path', $porNome['Fornecedor Alfa']);
 
         $this->withHeader('X-Empresa-Id', (string) $outra->id)
             ->getJson('/api/v1/dfe-documentos')
@@ -113,7 +126,7 @@ class DfeCaixaTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.emit_nome', 'Outra EMP');
 
-        $idAlfa = (int) $lista->json('data.0.id');
+        $idAlfa = (int) $porNome['Fornecedor Alfa']['id'];
 
         $this->withHeader('X-Empresa-Id', (string) $outra->id)
             ->getJson("/api/v1/dfe-documentos/{$idAlfa}")
@@ -124,16 +137,18 @@ class DfeCaixaTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.chave', str_repeat('1', 44));
 
-        $this->withHeader('X-Empresa-Id', (string) $empresa->id)
+        $anoAnterior = $this->withHeader('X-Empresa-Id', (string) $empresa->id)
             ->getJson('/api/v1/dfe-documentos?ano='.($anoAtual - 1))
             ->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.emit_nome', 'Fornecedor Antigo');
+            ->assertJsonCount(2, 'data');
+        $nomesAnoAnterior = collect($anoAnterior->json('data'))->pluck('emit_nome')->all();
+        $this->assertContains('Fornecedor Antigo', $nomesAnoAnterior);
+        $this->assertContains('Sem Emissao', $nomesAnoAnterior);
 
         $this->withHeader('X-Empresa-Id', (string) $empresa->id)
             ->getJson('/api/v1/dfe-sync')
             ->assertOk()
-            ->assertJsonPath('data.total_documentos', 2)
+            ->assertJsonPath('data.total_documentos', 3)
             ->assertJsonPath('data.ano_alvo_hidratacao', $anoAtual);
     }
 

@@ -1455,6 +1455,7 @@ export type DfeTransportadorStatus =
   | 'sem_cnpj'
   | 'ausente'
   | 'sem_xml'
+  | 'pendente'
   | string;
 
 export type DfeTransportadorInfo = {
@@ -2785,12 +2786,31 @@ export type DocumentoFiscalPreviaItem = {
   ncm?: string;
   cfop?: string;
   csosn?: string;
+  origem?: number;
+  cst_pis?: string;
+  cst_cofins?: string;
+  bc_icms?: string;
+  v_icms?: string;
+  v_ipi?: string;
+  p_ibs_uf?: string;
+  p_ibs_mun?: string;
+  p_cbs?: string;
+  v_ibs_uf?: string;
+  v_ibs_mun?: string;
+  v_cbs?: string;
   unidade?: string;
   quantidade?: string;
   valor_unitario?: string;
   valor?: string;
   /** infAdProd — bobinas/comp da embalagem PA (eco DANFE). */
   informacoes_adicionais?: string | null;
+};
+
+export type DocumentoFiscalPreviaImpostos = {
+  v_ibs_uf: string;
+  v_ibs_mun: string;
+  v_cbs: string;
+  v_nf_tot: string;
 };
 
 export type DocumentoFiscalPrevia = {
@@ -2804,6 +2824,7 @@ export type DocumentoFiscalPrevia = {
   aviso: string;
   natureza?: string;
   informacoes_adicionais?: string;
+  impostos?: DocumentoFiscalPreviaImpostos;
   data_emissao?: string;
   /** Data da saída/entrada (DANFE) — Y-m-d. */
   data_saida?: string;

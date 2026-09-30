@@ -10,6 +10,8 @@ use App\Models\Pedido;
 use App\Models\Produto;
 use App\Services\Cadastros\ParceiroFiscalRules;
 use App\Services\Fiscal\FiscalSaidaDefaults;
+use App\Services\Fiscal\NfeIbsCbs;
+use App\Services\Fiscal\NfeItemTexto;
 use App\Services\Fiscal\FiscalSaidaTransporte;
 use App\Services\Fiscal\NfeChaveAcesso;
 use App\Services\Fiscal\NfePaQtdeModalidade;
@@ -84,6 +86,8 @@ final class NfeXmlBuilder
 
         $dets = '';
         $n = 0;
+        $ibsTot = ['vbc' => '0.00', 'vuf' => '0.00', 'vmun' => '0.00', 'vibs' => '0.00', 'vcbs' => '0.00'];
+        $vNfTot = '0.00';
         foreach ($itens as $linha) {
             $n++;
             $aplicado = $this->qtdeModo->aplicarItem($linha, $embs, $modoQtde);
@@ -107,16 +111,26 @@ final class NfeXmlBuilder
             $cstCofins = $produto?->cst_cofins ?: FiscalSaidaDefaults::CST_COFINS;
             $origem = (int) ($produto?->origem ?? 0);
             $cProd = $this->esc($produto?->codigo ?: 'FAT'.$n);
-            $xProd = $this->esc(mb_substr(
-                trim((string) ($produto?->descricao_fiscal ?: $linha['descricao'])),
-                0,
-                120
+            $xProd = $this->esc(NfeItemTexto::xProd(
+                $produto?->descricao_fiscal,
+                (string) ($linha['descricao_pedido'] ?? $linha['descricao'] ?? ''),
+                $produto?->codigo
             ));
             $infAd = $embTexto ? '<infAdProd>'.$this->esc(mb_substr($embTexto, 0, 500)).'</infAdProd>' : '';
             $cest = preg_replace('/\D/', '', (string) ($produto?->cest ?? '')) ?: '';
             $cestXml = $cest !== '' ? '<CEST>'.$cest.'</CEST>' : '';
             $ean = preg_replace('/\D/', '', (string) ($produto?->gtin ?? '')) ?: '';
             $cEAN = $ean !== '' ? $ean : 'SEM GTIN';
+
+            $ibs = $this->ibsCbsItem($produto, $bruto);
+            $ibsTot['vbc'] = $this->soma2($ibsTot['vbc'], $ibs['vbc']);
+            $ibsTot['vuf'] = $this->soma2($ibsTot['vuf'], $ibs['vuf']);
+            $ibsTot['vmun'] = $this->soma2($ibsTot['vmun'], $ibs['vmun']);
+            $ibsTot['vibs'] = $this->soma2($ibsTot['vibs'], $ibs['vibs']);
+            $ibsTot['vcbs'] = $this->soma2($ibsTot['vcbs'], $ibs['vcbs']);
+            // vItem = vProd + IBS + CBS (por fora). Soma dos vItem = vNFTot.
+            $vItem = $this->soma2($bruto, $this->soma2($ibs['vibs'], $ibs['vcbs']));
+            $vNfTot = $this->soma2($vNfTot, $vItem);
 
             $dets .= '<det nItem="'.$n.'">'
                 .'<prod>'
@@ -137,11 +151,13 @@ final class NfeXmlBuilder
                 .'<indTot>1</indTot>'
                 .'</prod>'
                 .'<imposto>'
-                .'<ICMS><ICMSSN102><orig>'.$origem.'</orig><CSOSN>'.$csosn.'</CSOSN></ICMSSN102></ICMS>'
+                .$this->icmsXml($empresa, $origem, $csosn)
                 .'<PIS><PISOutr><CST>'.$cstPis.'</CST><vBC>0.00</vBC><pPIS>0.00</pPIS><vPIS>0.00</vPIS></PISOutr></PIS>'
                 .'<COFINS><COFINSOutr><CST>'.$cstCofins.'</CST><vBC>0.00</vBC><pCOFINS>0.00</pCOFINS><vCOFINS>0.00</vCOFINS></COFINSOutr></COFINS>'
+                .$ibs['xml']
                 .'</imposto>'
                 .$infAd
+                .'<vItem>'.$vItem.'</vItem>'
                 .'</det>';
         }
 
@@ -168,7 +184,7 @@ final class NfeXmlBuilder
             .'<cDV>'.substr($chave, -1).'</cDV>'
             .'<tpAmb>'.$tpAmb.'</tpAmb>'
             .'<finNFe>1</finNFe>'
-            .'<indFinal>'.($dest->consumidor_final ? '1' : '0').'</indFinal>'
+            .'<indFinal>'.$this->indFinal($dest, $indIe).'</indFinal>'
             .'<indPres>'.FiscalSaidaDefaults::PRESENCA_COMPRADOR.'</indPres>'
             .'<procEmi>0</procEmi>'
             .'<verProc>FLEXOERP</verProc>'
@@ -182,7 +198,10 @@ final class NfeXmlBuilder
             .'<vProd>'.$valor.'</vProd><vFrete>0.00</vFrete><vSeg>0.00</vSeg><vDesc>0.00</vDesc>'
             .'<vII>0.00</vII><vIPI>0.00</vIPI><vIPIDevol>0.00</vIPIDevol>'
             .'<vPIS>0.00</vPIS><vCOFINS>0.00</vCOFINS><vOutro>0.00</vOutro><vNF>'.$valor.'</vNF>'
-            .'</ICMSTot></total>'
+            .'</ICMSTot>'
+            .$this->ibsCbsTotXml($ibsTot)
+            .'<vNFTot>'.$vNfTot.'</vNFTot>'
+            .'</total>'
             .$transpXml
             .$pagXml
             .($infCpl !== '' ? '<infAdic><infCpl>'.$this->esc($infCpl).'</infCpl></infAdic>' : '')
@@ -192,6 +211,113 @@ final class NfeXmlBuilder
             .'<NFe xmlns="http://www.portalfiscal.inf.br/nfe">'.$infNFe.'</NFe>';
 
         return ['xml' => $xml, 'chave' => $chave, 'cnf' => $cNF];
+    }
+
+    /**
+     * IBS/CBS do item — LC 214, ano-teste 2026: IBS UF 0,1% · IBS mun 0% · CBS 0,9%.
+     * Não entra em vNF. CST/cClassTrib do SKU quando preenchidos.
+     *
+     * @return array{xml: string, vbc: string, vuf: string, vmun: string, vibs: string, vcbs: string}
+     */
+    private function ibsCbsItem(?Produto $produto, string $vProd): array
+    {
+        $cst = preg_replace('/\D/', '', (string) ($produto?->cst_cbs ?? '')) ?: '000';
+        $cst = str_pad(substr($cst, 0, 3), 3, '0', STR_PAD_LEFT);
+        $classe = preg_replace('/\D/', '', (string) ($produto?->cclass_trib ?? '')) ?: '';
+        if (strlen($classe) !== 6 || ! str_starts_with($classe, $cst)) {
+            $classe = $cst.'001';
+        }
+
+        $calc = NfeIbsCbs::calcular($vProd, $produto?->aliquota_cbs);
+        $pUf = $calc['p_uf'];
+        $pMun = $calc['p_mun'];
+        $pCbs = $calc['p_cbs'];
+        $vBc = $calc['vbc'];
+        $vUf = $calc['vuf'];
+        $vMun = $calc['vmun'];
+        $vIbs = $calc['vibs'];
+        $vCbs = $calc['vcbs'];
+
+        $xml = '<IBSCBS>'
+            .'<CST>'.$cst.'</CST>'
+            .'<cClassTrib>'.$classe.'</cClassTrib>'
+            .'<gIBSCBS>'
+            .'<vBC>'.$vBc.'</vBC>'
+            .'<gIBSUF><pIBSUF>'.$pUf.'</pIBSUF><vIBSUF>'.$vUf.'</vIBSUF></gIBSUF>'
+            .'<gIBSMun><pIBSMun>'.$pMun.'</pIBSMun><vIBSMun>'.$vMun.'</vIBSMun></gIBSMun>'
+            .'<vIBS>'.$vIbs.'</vIBS>'
+            .'<gCBS><pCBS>'.$pCbs.'</pCBS><vCBS>'.$vCbs.'</vCBS></gCBS>'
+            .'</gIBSCBS>'
+            .'</IBSCBS>';
+
+        return [
+            'xml' => $xml,
+            'vbc' => $vBc,
+            'vuf' => $vUf,
+            'vmun' => $vMun,
+            'vibs' => $vIbs,
+            'vcbs' => $vCbs,
+        ];
+    }
+
+    /**
+     * @param  array{vbc: string, vuf: string, vmun: string, vibs: string, vcbs: string}  $tot
+     */
+    private function ibsCbsTotXml(array $tot): string
+    {
+        $z = '0.00';
+
+        return '<IBSCBSTot>'
+            .'<vBCIBSCBS>'.$tot['vbc'].'</vBCIBSCBS>'
+            .'<gIBS>'
+            .'<gIBSUF><vDif>'.$z.'</vDif><vDevTrib>'.$z.'</vDevTrib><vIBSUF>'.$tot['vuf'].'</vIBSUF></gIBSUF>'
+            .'<gIBSMun><vDif>'.$z.'</vDif><vDevTrib>'.$z.'</vDevTrib><vIBSMun>'.$tot['vmun'].'</vIBSMun></gIBSMun>'
+            .'<vIBS>'.$tot['vibs'].'</vIBS>'
+            .'<vCredPres>'.$z.'</vCredPres><vCredPresCondSus>'.$z.'</vCredPresCondSus>'
+            .'</gIBS>'
+            .'<gCBS>'
+            .'<vDif>'.$z.'</vDif><vDevTrib>'.$z.'</vDevTrib><vCBS>'.$tot['vcbs'].'</vCBS>'
+            .'<vCredPres>'.$z.'</vCredPres><vCredPresCondSus>'.$z.'</vCredPresCondSus>'
+            .'</gCBS>'
+            .'</IBSCBSTot>';
+    }
+
+    private function soma2(string $a, string $b): string
+    {
+        return $this->money(bcadd($a, $b, 8));
+    }
+
+    private function money(string $n): string
+    {
+        return PadraoDecimal::roundHalfUp($n, PadraoDecimal::SCALE_MONEY);
+    }
+
+    /**
+     * CSOSN só com CRT 1 ou 4. CRT 2/3 usa CST (cStat 591 se mandar CSOSN).
+     */
+    private function icmsXml(Empresa $empresa, int $origem, string $csosn): string
+    {
+        $crt = (int) ($empresa->crt ?? 1);
+        if (in_array($crt, [1, 4], true)) {
+            $cod = preg_replace('/\D/', '', $csosn) ?: FiscalSaidaDefaults::CSOSN_SIMPLES;
+            if (! in_array($cod, ['102', '103', '300', '400'], true)) {
+                $cod = FiscalSaidaDefaults::CSOSN_SIMPLES;
+            }
+
+            return '<ICMS><ICMSSN102><orig>'.$origem.'</orig><CSOSN>'.$cod.'</CSOSN></ICMSSN102></ICMS>';
+        }
+
+        return '<ICMS><ICMS40><orig>'.$origem.'</orig><CST>40</CST></ICMS40></ICMS>';
+    }
+
+    /** cStat 696 — não contribuinte (indIEDest 9) é consumidor final. */
+    private function indFinal(Parceiro $dest, int $indIe): string
+    {
+        if ($indIe === 9 || $dest->consumidor_final) {
+            return '1';
+        }
+
+        return '0';
     }
 
     private function emitXml(Empresa $empresa, string $cnpj, string $uf): string
@@ -326,10 +452,12 @@ final class NfeXmlBuilder
                 break;
             }
         }
+        $crt = (int) ($fat->empresa?->crt ?? 1);
         $parts = array_filter([
             'FAT '.$fat->codigo,
             $embTexto,
             $temSetup ? 'Valor inclui matriz/clichê e ferramental do job' : null,
+            NfeItemTexto::complementoTributos($crt),
         ]);
 
         return mb_substr(implode(' | ', $parts), 0, 2000);

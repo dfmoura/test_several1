@@ -347,6 +347,9 @@ return [
         'delay_entre_lotes_sec' => max(1, (int) env('DFE_DELAY_LOTES_SEC', 3)),
         // Após cStat 656, bloqueia novo “Atualizar” (anti martelo no AN).
         'cooldown_consumo_indevido_min' => max(1, (int) env('DFE_COOLDOWN_656_MIN', 60)),
+        // Backfill de transp_* fora do GET da caixa (lote + teto de rodadas).
+        'transporte_lote' => max(1, (int) env('DFE_TRANSPORTE_LOTE', 40)),
+        'transporte_max_rodadas' => max(1, (int) env('DFE_TRANSPORTE_MAX_RODADAS', 50)),
         'xml_disk' => 'local',
         'urls' => [
             // Ambiente Nacional — destinadas (não é o autorizador SEFAZ-MG).

@@ -50,8 +50,9 @@ export function formatQtdePick(n: number, unidade: string): string {
   return `${formatDecimalBr(n, decimals)} ${unidade}`;
 }
 
+/** Chão: bobina física (volume de estoque). */
 export function formatVolumesPick(n: number): string {
-  return n === 1 ? '1 volume' : `${n} volumes`;
+  return n === 1 ? '1 bobina' : `${n} bobinas`;
 }
 
 export function formatVolumesComMetros(nVol: number, metros: string | null | undefined): string {
@@ -59,8 +60,15 @@ export function formatVolumesComMetros(nVol: number, metros: string | null | und
   return metros ? `${vols} · ${metros}` : vols;
 }
 
+/** Carrinho / saída: bobinas + área oficial (comparável com o pedido). */
+export function formatVolumesComArea(nVol: number, areaM2: number | null | undefined): string {
+  const vols = formatVolumesPick(nVol);
+  if (areaM2 == null || !(areaM2 > 0)) return vols;
+  return `${vols} · ${formatQtdePick(areaM2, 'm²')}`;
+}
+
 export function modoRetiradaLabel(modo: ModoRetirada): string {
-  return modo === 'volume' ? 'Por volumes' : 'Por unidades';
+  return modo === 'volume' ? 'Por bobinas' : 'Por unidades';
 }
 
 export function larguraMmDoMaterial(m: OrdemProducaoMaterial): number {
@@ -133,6 +141,60 @@ export function formatMetrosDeVolumes(vols: OpRetiradaVolume[], larguraMmFallbac
   return formatQtdePick(n, 'm');
 }
 
+/**
+ * Área do volume em m² (unidade do writer).
+ * Prefer qtde em M2; senão L×C do rolo. Não usa comprimento sozinho.
+ */
+export function areaM2Volume(v: OpRetiradaVolume): number | null {
+  const un = (v.unidade ?? '').toUpperCase().replace('²', '2');
+  const q = parseQtdeDigitada(v.qtde_retirar) || parseQtdeDigitada(v.qtde_volume);
+  if (q > 0 && (un === 'M2' || un === '')) return q;
+  const L = parseQtdeDigitada(v.largura_mm);
+  const C = parseQtdeDigitada(v.comprimento_m);
+  if (L > 0 && C > 0) return (L / 1000) * C;
+  if (q > 0 && un !== 'UN' && un !== 'PC' && un !== 'KG' && un !== 'MIL' && un !== 'M' && un !== 'MT' && un !== 'ML') {
+    return q;
+  }
+  return null;
+}
+
+export function somaAreaM2Volumes(vols: OpRetiradaVolume[]): number | null {
+  if (vols.length === 0) return null;
+  const areas = vols.map(areaM2Volume);
+  if (!areas.every((x): x is number => x != null && x > 0)) return null;
+  return areas.reduce((a, b) => a + b, 0);
+}
+
+export function formatAreaM2Volumes(vols: OpRetiradaVolume[]): string | null {
+  const n = somaAreaM2Volumes(vols);
+  if (n == null) return null;
+  return formatQtdePick(n, 'm²');
+}
+
+/** Volumes marcados / já baixados desta linha (para leitura de chão). */
+export function volumesLinhaMaterial(m: OrdemProducaoMaterial): OpRetiradaVolume[] {
+  const baixados = m.retirada?.volumes_baixados ?? [];
+  if (baixados.length > 0) return baixados;
+  const sugeridos = volumesParaEscolha(m).filter(volumeSugerido);
+  if (sugeridos.length > 0) return sugeridos;
+  return volumesParaEscolha(m);
+}
+
+export function areaM2LinhaMaterial(
+  m: OrdemProducaoMaterial,
+  m2Oficial?: number,
+): number | null {
+  if (modoRetirada(m) !== 'volume') return null;
+  if (m2Oficial != null && m2Oficial > 0) return m2Oficial;
+  const soma = somaAreaM2Volumes(volumesLinhaMaterial(m));
+  if (soma != null) return soma;
+  if (m.saida_movimento_id) {
+    const req = parseQtdeDigitada(m.qtde_requisitada);
+    return req > 0 ? req : null;
+  }
+  return null;
+}
+
 export function metrosLinhaMaterial(
   m: OrdemProducaoMaterial,
   op?: OrdemProducao | null,
@@ -140,9 +202,7 @@ export function metrosLinhaMaterial(
 ): number | null {
   if (modoRetirada(m) !== 'volume') return null;
   const L = larguraMmParaMetro(m, op);
-  const baixados = m.retirada?.volumes_baixados ?? [];
-  const sugeridos = volumesParaEscolha(m).filter(volumeSugerido);
-  const use = baixados.length > 0 ? baixados : sugeridos.length > 0 ? sugeridos : volumesParaEscolha(m);
+  const use = volumesLinhaMaterial(m);
   const somaVols = somaMetrosDeVolumes(use, L);
   if (somaVols != null) return somaVols;
   const m2 =
@@ -164,13 +224,22 @@ export function formatMetrosLinha(
   return formatQtdePick(n, 'm');
 }
 
-/** O que o operador lê: volumes, e metro linear quando dá para converter. */
+/**
+ * O que saiu / está marcado: bobinas + área (m²).
+ * Comprimento do rolo é dimensão física — não comparar com metros de pista.
+ */
 export function formatPickPrincipal(m: OrdemProducaoMaterial, op?: OrdemProducao | null): string {
   if (modoRetirada(m) === 'volume') {
     const n = m.saida_movimento_id
       ? nVolumesApontados(m)
       : nVolumesSugeridos(m) || volumesParaEscolha(m).length;
     if (n <= 0) return 'Sem volume';
+    const vols = volumesLinhaMaterial(m);
+    const areaN = somaAreaM2Volumes(vols) ?? areaM2LinhaMaterial(m);
+    const area = areaN != null && areaN > 0 ? formatQtdePick(areaN, 'm²') : null;
+    const rolo = formatMetrosDeVolumes(vols, larguraMmParaMetro(m, op));
+    if (area && rolo) return `${formatVolumesPick(n)} · ${area} · rolo ${rolo}`;
+    if (area) return `${formatVolumesPick(n)} · ${area}`;
     return formatVolumesComMetros(n, formatMetrosLinha(m, op));
   }
   return formatQtdePick(qtdeLinhaPick(m), unidadeExibicao(m.unidade));
@@ -205,7 +274,10 @@ export function metrosNecessidadeOp(
 }
 
 /**
- * Qtde de material na língua da tela. Bobina: metro linear (pista) + m². Writer segue m².
+ * Qtde de material na língua da tela.
+ * Bobina: metro linear da **pista da etiqueta** (com largura) + área em m² (writer).
+ * Metros de pista ≠ comprimento do rolo quando a bobina é mais larga que a etiqueta.
+ * Se o SKU veio com unidade errada (ex.: MIL), a área continua m² — a conversão assume área.
  */
 export function formatQtdeMaterial(
   m: OrdemProducaoMaterial,
@@ -213,11 +285,22 @@ export function formatQtdeMaterial(
   qtde: number,
 ): string {
   if (!(qtde > 0)) return '—';
-  const oficial = formatQtdePick(qtde, unidadeExibicao(m.unidade));
-  if (modoRetirada(m) !== 'volume') return oficial;
-  const metros = m2ParaMetros(qtde, larguraMmNecessidadeOp(m, op));
-  if (metros == null) return oficial;
-  return `${formatQtdePick(metros, 'm')} · ${oficial}`;
+  if (modoRetirada(m) !== 'volume') {
+    return formatQtdePick(qtde, unidadeExibicao(m.unidade));
+  }
+  const un = (m.unidade ?? '').toUpperCase().replace('²', '2');
+  if (un === 'M' || un === 'MT' || un === 'ML') {
+    return formatQtdePick(qtde, 'm');
+  }
+  const pistaMm = larguraMmNecessidadeOp(m, op);
+  const metros = m2ParaMetros(qtde, pistaMm);
+  const area = formatQtdePick(qtde, 'm²');
+  if (metros == null) return area;
+  const pista =
+    pistaMm > 0
+      ? ` de pista (${formatDecimalBr(pistaMm, 0)} mm)`
+      : ' de pista';
+  return `${formatQtdePick(metros, 'm')}${pista} · ${area}`;
 }
 
 /**

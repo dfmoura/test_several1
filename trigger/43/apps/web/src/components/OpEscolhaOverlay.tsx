@@ -5,18 +5,19 @@ import { ApiError, api, type OrdemProducao, type OrdemProducaoMaterial } from '.
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   formatLotePick,
-  formatMetrosDeVolumes,
   formatMetrosLineares,
   formatNecessidadeOp,
+  formatPickPrincipal,
   formatQtdePick,
   formatVolumeDimensao,
-  formatVolumesComMetros,
+  formatVolumesComArea,
+  areaM2Volume,
   larguraMmParaMetro,
-  metrosNecessidadeOp,
   modoRetirada,
   modoRetiradaLabel,
+  qtdeLinhaPick,
   qtdeVolumeTotal,
-  somaMetrosDeVolumes,
+  somaAreaM2Volumes,
   volumePassaFiltro,
   volumeSugerido,
   volumesParaEscolha,
@@ -55,7 +56,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const vols = useMemo(() => volumesParaEscolha(material), [material]);
   const larguraFallback = larguraMmParaMetro(material, op);
   const alvo = parseQtdeDigitada(material.qtde_planejada ?? material.retirada?.qtde ?? '0');
-  const precisaMetros = metrosNecessidadeOp(material, op);
+  /** Área que a ordem pede (m²) — unidade do writer; comparável com o carrinho. */
+  const precisaM2 = modo === 'volume' ? qtdeLinhaPick(material) : null;
   const fefoIds = useMemo(
     () =>
       (material.retirada?.volumes ?? [])
@@ -116,13 +118,13 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
 
   const escolhidos = vols.filter((v) => v.lote_id && marcados[v.lote_id]);
   const somaVol = escolhidos.reduce((acc, v) => acc + qtdeVolumeTotal(v), 0);
-  const metrosCarrinho = somaMetrosDeVolumes(escolhidos, larguraFallback);
-  const faltaMetros =
-    precisaMetros != null && metrosCarrinho != null
-      ? Math.max(0, precisaMetros - metrosCarrinho)
+  const areaCarrinho = somaAreaM2Volumes(escolhidos);
+  const faltaM2 =
+    precisaM2 != null && areaCarrinho != null
+      ? Math.max(0, precisaM2 - areaCarrinho)
       : null;
   const cobreNecessidade =
-    precisaMetros != null && metrosCarrinho != null ? metrosCarrinho + 1e-6 >= precisaMetros : null;
+    precisaM2 != null && areaCarrinho != null ? areaCarrinho + 1e-6 >= precisaM2 : null;
   const override =
     modo === 'volume' &&
     (() => {
@@ -176,10 +178,17 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
         return;
       }
       marcarVolume(naLista.lote_id, true);
+      const area = areaM2Volume(naLista);
       const metros = formatMetrosLineares(naLista, larguraFallback);
+      const detalhe =
+        area != null && metros
+          ? `${formatQtdePick(area, 'm²')} · rolo ${metros}`
+          : area != null
+            ? formatQtdePick(area, 'm²')
+            : metros;
       setMsg(
-        metros
-          ? `Volume ${vol.codigo} no carrinho · bobina inteira (${metros}).`
+        detalhe
+          ? `Volume ${vol.codigo} no carrinho · bobina inteira (${detalhe}).`
           : `Volume ${vol.codigo} no carrinho · bobina inteira.`,
       );
       setQr('');
@@ -254,16 +263,22 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <p className="op-escolha__bin">{onde === '—' ? 'Sem local' : onde}</p>
             <p className="muted op-escolha__hint">
               {noEstoque
-                ? 'Escaneie ou marque na tabela. Bobina sai inteira. Confirmar = saiu da prateleira.'
+                ? 'Escaneie ou marque na tabela. Bobina sai inteira. Compare pela área (m²): metros do rolo não são os metros de pista da etiqueta quando a bobina é mais larga. Confirmar = saiu da prateleira.'
                 : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
               {modoRetiradaLabel(modo)}.
             </p>
           </div>
           <div className="op-escolha__head-side">
             <div className="op-escolha__precisa">
-              <span>Precisa</span>
+              <span>A ordem pede</span>
               <strong>{formatNecessidadeOp(material, op)}</strong>
             </div>
+            {estado === 'ja_saiu' ? (
+              <div className="op-escolha__precisa op-escolha__precisa--saiu">
+                <span>Saiu da prateleira</span>
+                <strong>{formatPickPrincipal(material, op)}</strong>
+              </div>
+            ) : null}
             <button type="button" className="btn btn-secondary btn-sm" onClick={onClose}>
               Fechar
             </button>
@@ -276,25 +291,22 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             aria-live="polite"
           >
             <div className="op-escolha__progresso-item">
-              <span>No carrinho</span>
+              <span>No carrinho (área)</span>
               <strong>
                 {escolhidos.length === 0
                   ? '—'
-                  : formatVolumesComMetros(
-                      escolhidos.length,
-                      formatMetrosDeVolumes(escolhidos, larguraFallback),
-                    )}
+                  : formatVolumesComArea(escolhidos.length, areaCarrinho)}
               </strong>
             </div>
             <div className="op-escolha__progresso-item">
-              <span>{cobreNecessidade ? 'Situação' : 'Falta'}</span>
+              <span>{cobreNecessidade ? 'Situação' : 'Falta (área)'}</span>
               <strong>
                 {escolhidos.length === 0
                   ? 'Vazio'
                   : cobreNecessidade
-                    ? 'Quantidade coberta'
-                    : faltaMetros != null
-                      ? formatQtdePick(faltaMetros, 'm')
+                    ? 'Área coberta'
+                    : faltaM2 != null
+                      ? formatQtdePick(faltaM2, 'm²')
                       : 'Conferir físico'}
               </strong>
             </div>
@@ -345,8 +357,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                     <tr>
                       {podeBaixar ? <th className="op-escolha__col-check">Levar</th> : null}
                       <th>Volume</th>
-                      <th>Metros</th>
-                      <th>L×C</th>
+                      <th>Área</th>
+                      <th>Rolo</th>
                       <th>Local</th>
                       <th>FEFO</th>
                       <th>NF</th>
@@ -371,6 +383,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                         const id = v.lote_id as number;
                         const on = Boolean(marcados[id]);
                         const metros = formatMetrosLineares(v, larguraFallback);
+                        const area = areaM2Volume(v);
                         const dim = formatVolumeDimensao(v);
                         const sugerido = volumeSugerido(v);
                         return (
@@ -398,8 +411,15 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                               <strong>{formatLotePick(v)}</strong>
                               {v.sku ? <div className="muted">{v.sku}</div> : null}
                             </td>
-                            <td>{metros ?? '—'}</td>
-                            <td>{dim ?? '—'}</td>
+                            <td>{area != null ? formatQtdePick(area, 'm²') : '—'}</td>
+                            <td>
+                              {dim ?? '—'}
+                              {metros && dim ? (
+                                <div className="muted" style={{ fontSize: '0.85em' }}>
+                                  {metros} de rolo
+                                </div>
+                              ) : null}
+                            </td>
                             <td>{v.endereco?.codigo ?? '—'}</td>
                             <td>{sugerido ? 'Sugerido' : '—'}</td>
                             <td>{v.nf_numero ?? '—'}</td>
@@ -455,13 +475,11 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
         <footer className="op-escolha__foot">
           {modo === 'volume' && escolhidos.length > 0 && podeBaixar ? (
             <p className="op-escolha__soma">
-              Levar{' '}
-              {formatVolumesComMetros(
-                escolhidos.length,
-                formatMetrosDeVolumes(escolhidos, larguraFallback),
-              )}
-              {cobreNecessidade === false ? (
-                <span className="muted"> · ainda abaixo do pedido</span>
+              Levar {formatVolumesComArea(escolhidos.length, areaCarrinho)}
+              {cobreNecessidade === true ? (
+                <span className="muted"> · área coberta</span>
+              ) : cobreNecessidade === false ? (
+                <span className="muted"> · ainda abaixo da área pedida</span>
               ) : null}
             </p>
           ) : (

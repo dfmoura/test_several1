@@ -17,7 +17,6 @@ class DfeCaixaService
     public function __construct(
         private readonly DfeFornecedorCadastroService $fornecedorCadastro,
         private readonly DfeTransportadorCadastroService $transportadorCadastro,
-        private readonly DfeTransporteMetaService $transporteMeta,
     ) {}
 
     /**
@@ -40,7 +39,11 @@ class DfeCaixaService
         }
 
         if ($ano !== null && $ano > 0) {
-            $query->whereYear('data_emissao', $ano);
+            // Emissão vazia não pode sumir da caixa: o filtro de ano só restringe data preenchida.
+            $query->where(function ($inner) use ($ano) {
+                $inner->whereYear('data_emissao', $ano)
+                    ->orWhereNull('data_emissao');
+            });
         }
 
         if ($q) {
@@ -61,7 +64,6 @@ class DfeCaixaService
         }
 
         $docs = $query->get()->all();
-        $this->transporteMeta->hidratarEmLote($docs);
         $mapaFornecedor = $this->fornecedorCadastro->mapaPorCnpj($empresa, $docs);
         $mapaTransportador = $this->transportadorCadastro->mapaPorCnpj($empresa, $docs);
 
@@ -83,7 +85,6 @@ class DfeCaixaService
     {
         $doc->loadMissing(['ordemCompra:id,codigo,status']);
         $empresa = Empresa::query()->findOrFail($doc->empresa_id);
-        $this->transporteMeta->hidratarEmLote([$doc]);
         $mapaFornecedor = $this->fornecedorCadastro->mapaPorCnpj($empresa, [$doc]);
         $mapaTransportador = $this->transportadorCadastro->mapaPorCnpj($empresa, [$doc]);
 

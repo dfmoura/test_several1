@@ -367,10 +367,10 @@ class PaEmbalagemService
             $hit = $embs->first(
                 fn (PaEmbalagem $e) => (int) $e->pedido_item_id === $pedidoItemId
             );
-            if ($hit) {
-                return $hit;
-            }
+            // Item explícito sem embalagem própria (ex.: REV no PED misto) — não herdar a do PA.
+            return $hit instanceof PaEmbalagem ? $hit : null;
         }
+        // Legado: linha sem pedido_item_id e uma única embalagem no PED.
         if ($embs->count() === 1) {
             return $embs->first();
         }

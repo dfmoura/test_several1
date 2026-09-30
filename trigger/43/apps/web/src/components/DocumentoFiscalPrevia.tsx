@@ -182,8 +182,19 @@ export function DocumentoFiscalPreviaCard({
                     {it.descricao}
                     {it.informacoes_adicionais ? (
                       <div className="nf-previa-infad" style={{ marginTop: 4 }}>
-                        <span className="nf-previa-infad-label">Obs. item · </span>
+                        <span className="nf-previa-infad-label">Inf. adicionais · </span>
                         {it.informacoes_adicionais}
+                      </div>
+                    ) : null}
+                    {it.csosn ? (
+                      <div className="nf-previa-infad">
+                        <span className="nf-previa-infad-label">Tributos · </span>
+                        ICMS {it.origem ?? 0}/{it.csosn}
+                        {it.cst_pis ? ` · PIS ${it.cst_pis}` : ''}
+                        {it.cst_cofins ? ` · COFINS ${it.cst_cofins}` : ''}
+                        {it.v_cbs != null
+                          ? ` · IBS UF ${formatDecimalBr(it.p_ibs_uf, 2)}% ${formatCurrency(it.v_ibs_uf)} · IBS mun ${formatDecimalBr(it.p_ibs_mun, 2)}% ${formatCurrency(it.v_ibs_mun)} · CBS ${formatDecimalBr(it.p_cbs, 2)}% ${formatCurrency(it.v_cbs)}`
+                          : ''}
                       </div>
                     ) : null}
                   </td>

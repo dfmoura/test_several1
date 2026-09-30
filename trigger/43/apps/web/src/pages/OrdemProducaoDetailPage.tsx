@@ -166,8 +166,8 @@ export function OrdemProducaoDetailPage() {
                       <thead>
                         <tr>
                           <th>Material</th>
-                          <th>Precisa</th>
-                          <th>Saiu</th>
+                          <th>A ordem pede</th>
+                          <th>Saiu da prateleira</th>
                           <th>Sobra</th>
                           <th>Perda</th>
                         </tr>
