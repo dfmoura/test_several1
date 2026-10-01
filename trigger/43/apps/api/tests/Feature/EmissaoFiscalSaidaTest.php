@@ -345,6 +345,9 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
         $this->assertSame('STUB', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
         $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.oficial'));
+        $this->assertSame('1.01', $ok->json('data.documentos_fiscais.0.previa.danfse.versao'));
+        $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.danfse.layout_oficial'));
+        $this->assertNull($ok->json('data.documentos_fiscais.0.previa.danfse.qr_url'));
         $this->assertSame(0, EstoqueMovimento::query()->count());
     }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { DanfseNacionalSheet } from '../components/DanfseNacionalSheet';
 import { PageHeader } from '../components/PageHeader';
 import { api } from '../lib/api';
-import { formatCnpjCpf, formatCurrency, formatDate } from '../lib/format';
+import { formatCurrency, formatDate } from '../lib/format';
 
 type Natureza = { id: number; codigo: string; nome: string };
 type TituloResumo = {
@@ -128,19 +129,32 @@ export function ComprasNfseTomadaPage() {
       {erro ? <p className="form-error">{erro}</p> : null}
       {aviso ? <p className="muted">{aviso}</p> : null}
 
+      <div className="danfse-v2-tela">
+        <DanfseNacionalSheet
+          danfse={{
+            versao: '1.01',
+            chave: nota.chave,
+            numero_nfse: nota.numero,
+            competencia: nota.data_emissao,
+            dh_nfse: nota.data_emissao,
+            prestador: { nome: nota.emit_nome, documento: nota.emit_cnpj },
+            servico: { descricao: nota.emit_nome ? `Serviço tomado de ${nota.emit_nome}` : '' },
+            valores: {
+              servico: nota.valor_total,
+              liquido: nota.valor_total,
+              desconto_incondicionado: '0.00',
+              deducoes: '0.00',
+              calculo_bm: '0.00',
+              desconto_condicionado: '0.00',
+            },
+          }}
+          watermark={/^(\d)\1{49}$/.test(nota.chave ?? '') || !nota.chave ? 'SEM VALOR FISCAL' : null}
+          rodape="NFS-e tomada · conferência antes do contas a pagar"
+        />
+      </div>
+
       <div className="card" style={{ marginBottom: '1rem' }}>
         <div className="card-body">
-          <p>
-            <strong>Prestador na nota:</strong> {nota.emit_nome || '—'}
-            {nota.emit_cnpj ? ` · ${formatCnpjCpf(nota.emit_cnpj)}` : ''}
-          </p>
-          <p>
-            <strong>Emissão:</strong> {nota.data_emissao ? formatDate(nota.data_emissao) : '—'}
-            {' · '}
-            <strong>Valor:</strong>{' '}
-            {nota.valor_total ? formatCurrency(Number(nota.valor_total)) : '—'}
-          </p>
-          {nota.chave ? <p className="muted">Chave {nota.chave}</p> : null}
           {nota.parceiro_sugerido ? (
             <p className="muted">
               Cadastro encontrado: {nota.parceiro_sugerido.codigo} · {nota.parceiro_sugerido.razao_social}

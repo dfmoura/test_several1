@@ -2869,6 +2869,66 @@ export type DocumentoFiscalPrevia = {
   valor_total?: string;
   pedido?: string | null;
   faturamento?: string | null;
+  /** Faixas do DANFSe nacional v2. Só na NFS-e. */
+  danfse?: DanfsePrevia | null;
+};
+
+export type DanfseParte = {
+  nome?: string | null;
+  documento?: string | null;
+  im?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+  endereco?: string | null;
+  municipio?: string | null;
+  cep?: string | null;
+  simples?: string | null;
+  regime_sn?: string | null;
+};
+
+export type DanfsePrevia = {
+  versao?: string;
+  layout_oficial?: boolean;
+  chave?: string | null;
+  qr_url?: string | null;
+  numero_nfse?: string | null;
+  numero_dps?: string | null;
+  serie_dps?: string | null;
+  competencia?: string | null;
+  dh_nfse?: string | null;
+  dh_dps?: string | null;
+  prefeitura?: string | null;
+  prestador?: DanfseParte;
+  tomador?: DanfseParte;
+  servico?: {
+    codigo_tributacao?: string | null;
+    codigo_municipal?: string | null;
+    local?: string | null;
+    pais?: string | null;
+    descricao?: string | null;
+    nbs?: string | null;
+  };
+  tributacao?: {
+    issqn?: string | null;
+    pais_resultado?: string | null;
+    incidencia?: string | null;
+    regime_especial?: string | null;
+    imunidade?: string | null;
+    suspensao?: string | null;
+    processo?: string | null;
+    beneficio?: string | null;
+    retencao_iss?: string | null;
+    retencao_pis_cofins?: string | null;
+  };
+  valores?: {
+    servico?: string | null;
+    desconto_incondicionado?: string | null;
+    deducoes?: string | null;
+    calculo_bm?: string | null;
+    desconto_condicionado?: string | null;
+    liquido?: string | null;
+  };
+  complemento?: string | null;
 };
 
 export type DocumentoFiscalSaida = {

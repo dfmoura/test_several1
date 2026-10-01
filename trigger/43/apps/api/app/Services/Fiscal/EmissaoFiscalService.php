@@ -640,7 +640,18 @@ class EmissaoFiscalService
         $empresa = $fat->empresa;
         $parceiro = $fat->parceiro ?? $fat->pedido?->parceiro;
 
-        if ($cancelada) {
+        if ($nfse) {
+            $motivo = trim((string) $d->mensagem);
+            if ($this->danfseLayoutOficial($d)) {
+                $aviso = 'NFS-e autorizada na SEFIN Nacional. DANFSe no padrão nacional.';
+            } elseif ($simulada || $this->danfseEnsaio($d)) {
+                $aviso = 'DANFSe de teste — sem SEFIN e sem valor fiscal. O desenho segue o padrão nacional.';
+            } else {
+                $aviso = $motivo !== ''
+                    ? 'Prévia — '.$motivo
+                    : 'Prévia do DANFSe — a SEFIN só recebe com certificado A1 em homologação ou produção.';
+            }
+        } elseif ($cancelada) {
             $aviso = 'NF-e cancelada na SEFAZ. DANFE auxiliar com a mesma chave — consulte autenticidade no portal nacional.';
         } elseif ($oficial) {
             $aviso = 'Nota autorizada na SEFAZ via certificado A1 da empresa. Numeração e chave oficiais.';
@@ -791,6 +802,154 @@ class EmissaoFiscalService
             'impostos' => $this->previaImpostos($itens, (string) ($payload['valor_total'] ?? $payload['valor_servico'] ?? $d->valor)),
             'pedido' => $fat->pedido?->codigo,
             'faturamento' => $fat->codigo,
+            'danfse' => $nfse ? $this->previaDanfse($d, $payload, $empresa, $parceiro, $emitEnd, $destNome, $destDoc, $destEnd) : null,
+        ];
+    }
+
+    private function danfseLayoutOficial(DocumentoFiscalSaida $d): bool
+    {
+        if (! $d->eOficial() || $d->tipo !== DocumentoFiscalSaida::TIPO_NFSE) {
+            return false;
+        }
+        if ($this->danfseEnsaio($d)) {
+            return false;
+        }
+        $chave = preg_replace('/\D/', '', (string) $d->chave) ?: '';
+
+        return strlen($chave) === 50
+            && in_array((string) $d->ambiente, ['homolog', 'production'], true);
+    }
+
+    private function danfseEnsaio(DocumentoFiscalSaida $d): bool
+    {
+        $protocolo = (string) $d->protocolo;
+
+        return $d->eSimulado()
+            || str_starts_with($protocolo, 'FAKE-')
+            || str_starts_with($protocolo, 'SIM-');
+    }
+
+    /**
+     * Espelho das faixas do DANFSe nacional v2 (NT 008). Não inventa ISS nem chave da SEFIN.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function previaDanfse(
+        DocumentoFiscalSaida $d,
+        array $payload,
+        ?Empresa $empresa,
+        ?Parceiro $parceiro,
+        string $emitEnd,
+        string $destNome,
+        string $destDoc,
+        string $destEnd,
+    ): array {
+        $layout = $this->danfseLayoutOficial($d);
+        $ensaio = $this->danfseEnsaio($d);
+        $comNumero = $layout || $ensaio;
+        $chave = preg_replace('/\D/', '', (string) $d->chave) ?: '';
+        $chave50 = strlen($chave) === 50 ? $chave : null;
+        $qr = null;
+        if ($layout && $chave50 !== null) {
+            $host = $d->ambiente === 'production'
+                ? 'https://www.nfse.gov.br'
+                : 'https://www.producaorestrita.nfse.gov.br';
+            $qr = $host.'/ConsultaPublica/?tpc=1&chave='.$chave50;
+        }
+        $opSimp = (string) ($payload['codigo_opcao_simples_nacional'] ?? '1');
+        $simples = match ($opSimp) {
+            '2' => 'Optante - Microempreendedor Individual (MEI)',
+            '3' => 'Optante - Microempresa ou Empresa de Pequeno Porte (ME/EPP)',
+            default => 'Não Optante',
+        };
+        $tribIss = (string) ($payload['tributacao_iss'] ?? '1');
+        $tribLabel = match ($tribIss) {
+            '2' => 'Imunidade',
+            '3' => 'Exportação de serviço',
+            '4' => 'Não Incidência',
+            default => 'Operação tributável',
+        };
+        $munPrest = trim((string) ($empresa?->municipio ?? ''));
+        $ufPrest = strtoupper(trim((string) ($empresa?->uf ?? '')));
+        $local = $munPrest !== '' ? ($ufPrest !== '' ? $munPrest.' - '.$ufPrest : $munPrest) : '';
+        $dh = $d->autorizado_em?->timezone('America/Sao_Paulo')->toIso8601String()
+            ?: (string) ($payload['data_emissao'] ?? '');
+        $cTrib = preg_replace('/\D/', '', (string) ($payload['codigo_tributacao_nacional_iss'] ?? '')) ?: '';
+        $nbs = preg_replace('/\D/', '', (string) ($payload['codigo_nbs'] ?? '')) ?: '';
+        $numero = $comNumero && $d->numero !== null ? (string) $d->numero : null;
+        $serie = (string) ($d->serie ?: ($payload['serie_dps'] ?? ''));
+
+        return [
+            'versao' => '1.01',
+            'layout_oficial' => $layout,
+            'chave' => $layout ? $chave50 : ($ensaio ? ($d->chave ?: null) : null),
+            'qr_url' => $qr,
+            'numero_nfse' => $layout ? null : $numero,
+            'numero_dps' => $layout ? $numero : null,
+            'serie_dps' => $serie !== '' ? $serie : null,
+            'competencia' => (string) ($payload['data_competencia'] ?? ''),
+            'dh_nfse' => $dh,
+            'dh_dps' => (string) ($payload['data_emissao'] ?? ''),
+            'prefeitura' => $munPrest !== '' ? 'Prefeitura Municipal de '.$munPrest : '',
+            'prestador' => [
+                'nome' => $empresa?->razao_social,
+                'documento' => (string) ($payload['cnpj_prestador'] ?? $empresa?->cnpj ?? ''),
+                'im' => (string) ($payload['inscricao_municipal_prestador'] ?? $empresa?->im ?? ''),
+                'telefone' => (string) ($empresa?->telefone ?? ''),
+                'email' => (string) ($empresa?->email ?? ''),
+                'endereco' => $emitEnd,
+                'municipio' => $local,
+                'cep' => (string) ($empresa?->cep ?? ''),
+                'simples' => $simples,
+                'regime_sn' => '',
+            ],
+            'tomador' => [
+                'nome' => $destNome,
+                'documento' => $destDoc,
+                'im' => (string) ($payload['inscricao_municipal_tomador'] ?? $parceiro?->im ?? ''),
+                'telefone' => (string) ($parceiro?->telefone ?? ''),
+                'email' => (string) ($payload['email_tomador'] ?? ''),
+                'endereco' => $destEnd,
+                'municipio' => trim(implode(' - ', array_filter([
+                    (string) ($parceiro?->municipio ?? ''),
+                    strtoupper(trim((string) ($payload['uf_tomador'] ?? $parceiro?->uf ?? ''))),
+                ]))),
+                'cep' => (string) ($payload['cep_tomador'] ?? $parceiro?->cep ?? ''),
+            ],
+            'servico' => [
+                'codigo_tributacao' => strlen($cTrib) === 6
+                    ? substr($cTrib, 0, 2).'.'.substr($cTrib, 2, 2).'.'.substr($cTrib, 4, 2)
+                    : $cTrib,
+                'codigo_municipal' => '',
+                'local' => $local,
+                'pais' => 'Brasil',
+                'descricao' => (string) ($payload['descricao_servico'] ?? ''),
+                'nbs' => strlen($nbs) === 9
+                    ? $nbs[0].'.'.substr($nbs, 1, 4).'.'.substr($nbs, 5, 2).'.'.substr($nbs, 7, 2)
+                    : $nbs,
+            ],
+            'tributacao' => [
+                'issqn' => $tribLabel,
+                'pais_resultado' => $tribIss === '3' ? '' : 'Brasil',
+                'incidencia' => $local,
+                'regime_especial' => '',
+                'imunidade' => '',
+                'suspensao' => '',
+                'processo' => '',
+                'beneficio' => '',
+                'retencao_iss' => 'Não Retido',
+                'retencao_pis_cofins' => '',
+            ],
+            'valores' => [
+                'servico' => (string) ($payload['valor_servico'] ?? $d->valor),
+                'desconto_incondicionado' => '0.00',
+                'deducoes' => '0.00',
+                'calculo_bm' => '0.00',
+                'desconto_condicionado' => '0.00',
+                'liquido' => (string) ($payload['valor_servico'] ?? $d->valor),
+            ],
+            'complemento' => (string) ($payload['informacoes_complementares'] ?? ''),
         ];
     }
 

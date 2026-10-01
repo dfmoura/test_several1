@@ -237,7 +237,7 @@ export function DocumentoFiscalPreviaCard({
 
       {doc.mensagem && !oficial ? <p className="form-hint">{doc.mensagem}</p> : null}
 
-      {!compact && envio ? (
+      {!compact && envio && !nfse ? (
         <details className="nf-previa-envio">
           <summary>Conteúdo do envio ao hub (JSON Focus)</summary>
           <p className="form-hint">

@@ -1,3 +1,4 @@
+import { DanfseNacionalSheet } from './DanfseNacionalSheet';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { DocumentoFiscalPreviaItem, DocumentoFiscalSaida, Faturamento } from '../lib/api';
 import { BRAND } from '../lib/brand';
@@ -138,6 +139,23 @@ export function DocumentoFiscalFichaSheet({ fat, doc, empresaNome, emitidoPor, e
   const oficial = p?.oficial === true;
   const simulada = p?.simulada === true;
   const nfse = doc.tipo === 'NFSE';
+
+  if (nfse && doc.previa?.danfse) {
+    const marca = doc.previa.danfse.layout_oficial
+      ? null
+      : simulada
+        ? 'SIMULADA SEM VALOR FISCAL'
+        : oficial
+          ? 'SEM VALOR FISCAL'
+          : 'PRÉVIA SEM VALOR FISCAL';
+    return (
+      <DanfseNacionalSheet
+        danfse={doc.previa.danfse}
+        watermark={marca}
+        rodape={`${doc.previa.danfse.layout_oficial ? 'DANFSe' : simulada ? 'DANFSe de teste' : 'Prévia DANFSe'} · ${fat.codigo} · ${emitidoPor} · ${emitidoEm.toLocaleString('pt-BR')}`}
+      />
+    );
+  }
 
   return nfse ? (
     <DanfseLayout
@@ -593,7 +611,7 @@ function DanfseLayout({
           <p>
             {oficial
               ? ' '
-              : 'Prévia operacional — hub Focus ainda não autorizou. Sem valor fiscal. Número da NFS-e só na autorização.'}
+              : 'Prévia do DANFSe nacional — sem valor fiscal até a SEFIN autorizar.'}
           </p>
         </div>
       </div>

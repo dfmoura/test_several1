@@ -82,7 +82,7 @@ URL de produção restrita e de produção não se misturam com o stage do app.
 
 - Cancelamento `e101101` e substituição.  
 - NFS-e municipal (ABRASF).  
-- DANFSe PDF de servidor (a prévia HTML permanece).  
+- DANFSe PDF de servidor. A ficha HTML segue as faixas do DANFSe nacional v2 (NT 008): identificação, emitente, tomador, serviço, tributação municipal e federal, valor total.  
 - SPED / DAS.
 
 ## Aceite

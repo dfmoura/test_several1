@@ -80,8 +80,11 @@ export function DocumentoFiscalFichaPage() {
             Voltar ao faturamento
           </button>
           <span className="ficha-toolbar-hint">
-            {doc?.tipo === 'NFSE' ? 'Prévia da NFS-e' : 'Prévia da NF-e (DANFE)'} · A4 · Imprimir ou
-            Salvar como PDF — sem valor fiscal até o hub autorizar
+            {doc?.tipo === 'NFSE'
+              ? doc.previa?.danfse?.layout_oficial
+                ? 'DANFSe nacional · A4 · Imprimir ou salvar como PDF'
+                : 'DANFSe nacional · A4 · sem valor fiscal neste ambiente'
+              : 'Prévia da NF-e (DANFE) · A4 · Imprimir ou salvar como PDF'}
           </span>
         </div>
         <button
