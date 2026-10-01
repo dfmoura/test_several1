@@ -159,10 +159,28 @@ class DocumentoFiscalSaida extends Model
         return is_string($chave) && strlen($chave) === 44;
     }
 
+    /** NFS-e cancelada na SEFIN, com chave de 50 dígitos. Ensaio não entra. */
+    public function eCanceladaNfse(): bool
+    {
+        if ($this->tipo !== self::TIPO_NFSE || $this->status !== self::STATUS_CANCELADO) {
+            return false;
+        }
+        if ($this->autorizacao_origem !== self::ORIGEM_SEFIN) {
+            return false;
+        }
+        $protocolo = (string) $this->protocolo;
+        if (str_starts_with($protocolo, 'FAKE') || str_starts_with($protocolo, 'SIM')) {
+            return false;
+        }
+        $chave = preg_replace('/\D+/', '', (string) $this->chave);
+
+        return is_string($chave) && strlen($chave) === 50;
+    }
+
     /** Autorizada ou cancelada oficial — numeração/chave/protocolo no DANFE. */
     public function temNumeracaoFiscal(): bool
     {
-        return $this->eOficial() || $this->eSimulado() || $this->eCanceladaOficial();
+        return $this->eOficial() || $this->eSimulado() || $this->eCanceladaOficial() || $this->eCanceladaNfse();
     }
 
     public function bloqueiaEstornoFat(): bool

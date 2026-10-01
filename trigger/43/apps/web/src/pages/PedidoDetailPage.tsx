@@ -365,13 +365,6 @@ export function PedidoDetailPage() {
               <div className="card-body">
                 <div className="form-section">
                   <h3>Faturamento e cobrança</h3>
-                  <p className="muted" style={{ marginTop: 0 }}>
-                    Preço travado no pedido. Quantidade faturável é a produzida (tolerância). O unitário
-                    é o total das etiquetas da faixa dividido pela quantidade — não o total vezes a
-                    quantidade. Matriz/clichê e faca são fixos. Sinal já recebido é apropriado — não é
-                    cobrado de novo. A nota segue no mesmo passo: prévia já visível; envio ao hub
-                    quando o Focus da empresa estiver apto. Sem inventar número nem XML autorizado.
-                  </p>
                 </div>
                 {preview.ja_faturado && preview.faturamento ? (
                   <>
@@ -622,7 +615,7 @@ export function PedidoDetailPage() {
                                     ? 'aguardando ambiente SEFAZ'
                                     : 'cadastre o certificado A1 da empresa (Empresas → A1)'
                                 }`
-                              : ` — ${preview.fiscal.hub?.mensagem ?? 'aguardando prontidão fiscal'}`}
+                              : ' — aguardando prontidão fiscal da empresa.'}
                         </p>
                         {preview.fiscal.avisos.map((a) => (
                           <p key={a} className="form-hint">

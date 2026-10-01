@@ -141,6 +141,25 @@ class FaturamentoController extends Controller
         ]);
     }
 
+    public function cancelarNfse(Request $request, Faturamento $faturamento): JsonResponse
+    {
+        $this->authorizeWrite($request);
+        $this->assertEmpresaFat($faturamento);
+        $data = $request->validate([
+            'motivo' => ['required', 'string', 'min:15', 'max:255'],
+            'codigo_motivo' => ['required', 'string', 'in:1,2,9'],
+        ]);
+
+        return response()->json([
+            'data' => $this->faturamentos->cancelarNfse(
+                $this->empresa(),
+                $faturamento,
+                (string) $data['motivo'],
+                (string) $data['codigo_motivo']
+            ),
+        ]);
+    }
+
     public function cartaCorrecao(Request $request, Faturamento $faturamento): JsonResponse
     {
         $this->authorizeWrite($request);

@@ -65,3 +65,18 @@ export function fatTemNfeParaEventoSefaz(fat: Faturamento | null | undefined): b
 export function nfeCanceladaSefaz(doc: DocumentoFiscalSaida | null | undefined): boolean {
   return Boolean(doc && doc.tipo === 'NFE' && doc.status === 'CANCELADO' && doc.chave);
 }
+
+/** NFS-e autorizada na SEFIN, com chave de 50 dígitos. Ensaio e stub ficam de fora. */
+export function nfsePodeCancelarSefin(doc: DocumentoFiscalSaida | null | undefined): boolean {
+  if (!doc || doc.tipo !== 'NFSE') return false;
+  if (doc.status !== 'AUTORIZADO') return false;
+  if (doc.autorizacao_origem !== 'SEFIN') return false;
+  if (!doc.chave || doc.chave.replace(/\D/g, '').length !== 50) return false;
+  const prot = doc.protocolo ?? '';
+  if (prot.startsWith('FAKE') || prot.startsWith('SIM')) return false;
+  return true;
+}
+
+export function nfseCanceladaSefin(doc: DocumentoFiscalSaida | null | undefined): boolean {
+  return Boolean(doc && doc.tipo === 'NFSE' && doc.status === 'CANCELADO' && doc.chave);
+}

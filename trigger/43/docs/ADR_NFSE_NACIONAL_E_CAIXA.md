@@ -80,7 +80,8 @@ A emissão local não usa a SEFIN de produção. A caixa usa o ADN de produção
 
 ## Fora desta fatia
 
-- Cancelamento `e101101` e substituição.  
+- Substituição de NFS-e.  
+- Cancelamento `e101101` está no faturamento: motivo 15–255 e código 1, 2 ou 9, pedido assinado com o A1, `POST /nfse/{chave}/eventos`. Não move estoque e não desfaz o faturamento. O estorno do faturamento continua depois, se a nota já estiver cancelada no fisco.  
 - NFS-e municipal (ABRASF).  
 - DANFSe PDF de servidor. A ficha HTML segue as faixas do DANFSe nacional v2 (NT 008): identificação, emitente, tomador, serviço, tributação municipal e federal, valor total.  
 - SPED / DAS.

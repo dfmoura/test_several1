@@ -8,7 +8,7 @@ import { api, type Faturamento, type Parceiro } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { titStatusLabel } from '../lib/comprasUi';
-import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz } from '../lib/fiscalUi';
+import { nfStatusLabel, fatTemNfeParaEventoSefaz, nfeCanceladaSefaz, nfePodeEventoSefaz, nfseCanceladaSefin, nfsePodeCancelarSefin } from '../lib/fiscalUi';
 import { hrefFaturamentos, hrefFichaCobranca, tituloPreferidoFicha } from '../lib/cobrancaUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 
@@ -38,6 +38,9 @@ export function FaturamentoDetailPage() {
   const [motivoEstorno, setMotivoEstorno] = useState('');
   const [cancelAberto, setCancelAberto] = useState(false);
   const [justCancel, setJustCancel] = useState('');
+  const [cancelNfseAberto, setCancelNfseAberto] = useState(false);
+  const [motivoNfse, setMotivoNfse] = useState('');
+  const [codigoMotivoNfse, setCodigoMotivoNfse] = useState('1');
   const [cceAberto, setCceAberto] = useState(false);
   const [textoCce, setTextoCce] = useState('');
   const [modFreteEdit, setModFreteEdit] = useState(MOD_FRETE_SEM);
@@ -171,6 +174,30 @@ export function FaturamentoDetailPage() {
       setJustCancel('');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível cancelar a NF-e.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancelarNfse = async () => {
+    if (!fat) return;
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.post<{ data: Faturamento & { evento?: { ok?: boolean; mensagem?: string } } }>(
+        `/faturamentos/${fat.id}/cancelar-nfse`,
+        { motivo: motivoNfse.trim(), codigo_motivo: codigoMotivoNfse },
+      );
+      setFat(res.data);
+      const ev = res.data.evento;
+      setMsg(ev?.ok ? 'NFS-e cancelada na SEFIN Nacional.' : ev?.mensagem ?? 'A SEFIN não registrou o cancelamento.');
+      if (ev?.ok) {
+        setCancelNfseAberto(false);
+        setMotivoNfse('');
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Não foi possível cancelar a NFS-e.');
     } finally {
       setBusy(false);
     }
@@ -565,8 +592,24 @@ export function FaturamentoDetailPage() {
                           ? () => {
                               setCancelAberto(true);
                               setCceAberto(false);
+                              setCancelNfseAberto(false);
                               window.requestAnimationFrame(() => {
                                 document.getElementById('nfe-eventos-sefaz')?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start',
+                                });
+                              });
+                            }
+                          : undefined
+                      }
+                      onAbrirCancelamentoNfse={
+                        nfsePodeCancelarSefin(d) && hasPermission('faturamento.escrever')
+                          ? () => {
+                              setCancelNfseAberto(true);
+                              setCancelAberto(false);
+                              setCceAberto(false);
+                              window.requestAnimationFrame(() => {
+                                document.getElementById('nfse-cancelamento')?.scrollIntoView({
                                   behavior: 'smooth',
                                   block: 'start',
                                 });
@@ -703,10 +746,77 @@ export function FaturamentoDetailPage() {
                   </div>
                 ) : null}
 
-                {(fat.documentos_fiscais ?? []).some(nfeCanceladaSefaz) ||
-                fat.nf_status === 'CANCELADA' ? (
+                {(fat.documentos_fiscais ?? []).some(nfsePodeCancelarSefin) &&
+                hasPermission('faturamento.escrever') ? (
+                  <div id="nfse-cancelamento" style={{ marginTop: '1rem' }}>
+                    {!cancelNfseAberto ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy}
+                        onClick={() => setCancelNfseAberto(true)}
+                      >
+                        Cancelar NFS-e
+                      </button>
+                    ) : (
+                      <div>
+                        <label className="field">
+                          <span>Motivo</span>
+                          <select
+                            value={codigoMotivoNfse}
+                            onChange={(e) => setCodigoMotivoNfse(e.target.value)}
+                            disabled={busy}
+                          >
+                            <option value="1">1 — Erro na emissão</option>
+                            <option value="2">2 — Serviço não prestado</option>
+                            <option value="9">9 — Outros</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>Descrição (mín. 15 caracteres)</span>
+                          <textarea
+                            rows={3}
+                            value={motivoNfse}
+                            onChange={(e) => setMotivoNfse(e.target.value)}
+                            disabled={busy}
+                            placeholder="Descreva o motivo perante a SEFIN…"
+                          />
+                        </label>
+                        <p className="form-hint">
+                          O cancelamento vai à SEFIN Nacional com o certificado A1. A NFS-e fica
+                          cancelada. O estoque não se move. O faturamento permanece no histórico.
+                        </p>
+                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={busy || motivoNfse.trim().length < 15}
+                            onClick={() => void cancelarNfse()}
+                          >
+                            Confirmar cancelamento na SEFIN
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={busy}
+                            onClick={() => setCancelNfseAberto(false)}
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {(fat.documentos_fiscais ?? []).some(nfeCanceladaSefaz) ? (
                   <p className="form-hint" style={{ marginTop: '1rem', marginBottom: 0 }}>
                     NF-e cancelada na SEFAZ. Não há novo cancelamento para este documento.
+                  </p>
+                ) : null}
+                {(fat.documentos_fiscais ?? []).some(nfseCanceladaSefin) ? (
+                  <p className="form-hint" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                    NFS-e cancelada na SEFIN Nacional. Não há novo cancelamento para este documento.
                   </p>
                 ) : null}
               </div>

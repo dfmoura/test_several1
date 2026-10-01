@@ -33,6 +33,7 @@ class EmissaoFiscalService
         private readonly \App\Services\Fiscal\Sefaz\NfeAutorizacaoService $nfeSefaz,
         private readonly \App\Services\Fiscal\Sefaz\NfeEventoService $nfeEventos,
         private readonly \App\Services\Fiscal\Nfse\NfseEmissaoService $nfse,
+        private readonly \App\Services\Fiscal\Nfse\NfseCancelamentoService $nfseCancelamento,
     ) {}
 
     public function checklist(): EmissaoFiscalChecklist
@@ -265,6 +266,56 @@ class EmissaoFiscalService
         return [
             'documentos' => $this->documentosOut($fat->fresh(['documentosFiscais'])),
             'evento' => $out['evento'],
+        ];
+    }
+
+    /**
+     * Cancelamento SEFIN (e101101). Não baixa nem devolve estoque.
+     *
+     * @return array<string, mixed>
+     */
+    public function cancelarNfse(Empresa $empresa, Faturamento $fat, string $motivo, string $codigo): array
+    {
+        $this->assertEmpresa($empresa, $fat);
+        $fat->loadMissing(['documentosFiscais']);
+        $doc = $fat->documentosFiscais->first(
+            fn (DocumentoFiscalSaida $d) => $this->nfseCancelamento->elegivel($d)
+        );
+        if (! $doc instanceof DocumentoFiscalSaida) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'documento' => ['Não há NFS-e autorizada na SEFIN para cancelar.'],
+            ]);
+        }
+
+        try {
+            $resultado = $this->nfseCancelamento->cancelar($empresa, $doc, $motivo, $codigo);
+        } catch (\RuntimeException $e) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'motivo' => [$e->getMessage()],
+            ]);
+        }
+        if ($resultado['ok']) {
+            $doc->status = DocumentoFiscalSaida::STATUS_CANCELADO;
+            $doc->mensagem = $resultado['mensagem'];
+            $doc->response_json = array_merge(
+                is_array($doc->response_json) ? $doc->response_json : [],
+                ['cancelamento' => [
+                    'tipo' => 'e101101',
+                    'sequencial' => $resultado['sequencial'],
+                    'mensagem' => $resultado['mensagem'],
+                ]]
+            );
+            $doc->save();
+            $fat->nf_status = Faturamento::NF_CANCELADA;
+            $fat->save();
+        } else {
+            $doc->mensagem = $resultado['mensagem'];
+            $doc->save();
+        }
+
+        return [
+            'documentos' => $this->documentosOut($fat->fresh(['documentosFiscais'])),
+            'evento' => $resultado,
         ];
     }
 
@@ -637,9 +688,12 @@ class EmissaoFiscalService
     {
         $oficial = $d->eOficial();
         $simulada = $d->eSimulado();
-        $cancelada = $d->eCanceladaOficial();
-        // DANFE completo (sem rascunho) para autorizada ou cancelada com chave SEFAZ.
-        $layoutOficial = $oficial || $cancelada;
+        $canceladaOficial = $d->eCanceladaOficial() || $d->eCanceladaNfse();
+        $canceladaNfse = $d->tipo === DocumentoFiscalSaida::TIPO_NFSE
+            && $d->status === DocumentoFiscalSaida::STATUS_CANCELADO;
+        $cancelada = $canceladaOficial || $canceladaNfse;
+        // Layout cheio (chave/número) só com autorização ou cancelamento oficial. A marca CANCELADA é à parte.
+        $layoutOficial = $oficial || $canceladaOficial;
         $comNumeracao = $d->temNumeracaoFiscal();
         $nfse = $d->tipo === DocumentoFiscalSaida::TIPO_NFSE;
         $empresa = $fat->empresa;
@@ -647,7 +701,11 @@ class EmissaoFiscalService
 
         if ($nfse) {
             $motivo = trim((string) $d->mensagem);
-            if ($this->danfseLayoutOficial($d)) {
+            if ($d->eCanceladaNfse()) {
+                $aviso = 'NFS-e cancelada na SEFIN Nacional. A chave permanece para consulta. Este documento não vale como nota autorizada.';
+            } elseif ($canceladaNfse) {
+                $aviso = 'NFS-e cancelada. Este documento não vale como nota autorizada.';
+            } elseif ($this->danfseLayoutOficial($d)) {
                 $aviso = 'NFS-e autorizada na SEFIN Nacional. DANFSe no padrão nacional.';
             } elseif ($simulada || $this->danfseEnsaio($d)) {
                 $aviso = 'DANFSe de teste — sem SEFIN e sem valor fiscal. O desenho segue o padrão nacional.';
@@ -813,7 +871,7 @@ class EmissaoFiscalService
 
     private function danfseLayoutOficial(DocumentoFiscalSaida $d): bool
     {
-        if (! $d->eOficial() || $d->tipo !== DocumentoFiscalSaida::TIPO_NFSE) {
+        if ($d->tipo !== DocumentoFiscalSaida::TIPO_NFSE || (! $d->eOficial() && ! $d->eCanceladaNfse())) {
             return false;
         }
         if ($this->danfseEnsaio($d)) {
@@ -889,6 +947,7 @@ class EmissaoFiscalService
         return [
             'versao' => '1.01',
             'layout_oficial' => $layout,
+            'cancelada' => $d->status === DocumentoFiscalSaida::STATUS_CANCELADO,
             'chave' => $layout ? $chave50 : ($ensaio ? ($d->chave ?: null) : null),
             'qr_url' => $qr,
             'numero_nfse' => $numero,

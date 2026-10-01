@@ -60,7 +60,9 @@ export function DocumentoFiscalFichaPage() {
   useEffect(() => {
     if (!fat || !doc) return;
     const tipo = doc.tipo === 'NFSE' ? 'NFS-e' : 'NF-e';
-    document.title = `Prévia ${tipo} ${doc.codigo} · ${fat.codigo}`;
+    const cancelada =
+      doc.status === 'CANCELADO' || doc.previa?.cancelada === true || doc.previa?.danfse?.cancelada === true;
+    document.title = `${cancelada ? 'Cancelada' : 'Prévia'} ${tipo} ${doc.codigo} · ${fat.codigo}`;
     return () => {
       document.title = brandDocumentTitle();
     };
@@ -81,9 +83,11 @@ export function DocumentoFiscalFichaPage() {
           </button>
           <span className="ficha-toolbar-hint">
             {doc?.tipo === 'NFSE'
-              ? doc.previa?.danfse?.layout_oficial
-                ? 'DANFSe nacional · A4 · Imprimir ou salvar como PDF'
-                : 'DANFSe nacional · A4 · sem valor fiscal neste ambiente'
+              ? doc.status === 'CANCELADO' || doc.previa?.cancelada || doc.previa?.danfse?.cancelada
+                ? 'DANFSe nacional · NFS-e cancelada · A4'
+                : doc.previa?.danfse?.layout_oficial
+                  ? 'DANFSe nacional · A4 · Imprimir ou salvar como PDF'
+                  : 'DANFSe nacional · A4 · sem valor fiscal neste ambiente'
               : 'Prévia da NF-e (DANFE) · A4 · Imprimir ou salvar como PDF'}
           </span>
         </div>

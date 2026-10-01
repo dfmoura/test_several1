@@ -5,7 +5,7 @@ import {
   formatDecimalBr,
   formatUnitPrice,
 } from '../lib/format';
-import { docFiscalStatusLabel, docFiscalTipoLabel, nfePodeEventoSefaz } from '../lib/fiscalUi';
+import { docFiscalStatusLabel, docFiscalTipoLabel, nfePodeEventoSefaz, nfsePodeCancelarSefin } from '../lib/fiscalUi';
 import { hrefFichaNfe } from '../lib/cobrancaUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { StatusPill } from './StatusPill';
@@ -13,11 +13,12 @@ import { StatusPill } from './StatusPill';
 type Props = {
   doc: DocumentoFiscalSaida;
   faturamentoId: number;
-  compact?: boolean;
   /** Ficha de cobrança do TIT em aberto (irmã da DANFE). */
   cobrancaHref?: string | null;
   /** Abre o card de cancelamento SEFAZ no faturamento (só NF-e autorizada oficial). */
   onAbrirCancelamentoSefaz?: () => void;
+  /** Abre o card de cancelamento SEFIN (só NFS-e autorizada oficial). */
+  onAbrirCancelamentoNfse?: () => void;
 };
 
 function linhaEndereco(doc: DocumentoFiscalSaida): string {
@@ -34,9 +35,9 @@ function linhaEndereco(doc: DocumentoFiscalSaida): string {
 export function DocumentoFiscalPreviaCard({
   doc,
   faturamentoId,
-  compact = false,
   cobrancaHref,
   onAbrirCancelamentoSefaz,
+  onAbrirCancelamentoNfse,
 }: Props) {
   const previa = doc.previa;
   const oficial = previa?.oficial === true;
@@ -44,9 +45,9 @@ export function DocumentoFiscalPreviaCard({
   const cancelada = previa?.cancelada === true || doc.status === 'CANCELADO';
   const comNumeracao = oficial || simulada || cancelada;
   const itens = previa?.itens ?? [];
-  const envio = doc.envio_hub ?? null;
   const nfse = doc.tipo === 'NFSE';
   const podeCancelar = Boolean(onAbrirCancelamentoSefaz) && nfePodeEventoSefaz(doc);
+  const podeCancelarNfse = Boolean(onAbrirCancelamentoNfse) && nfsePodeCancelarSefin(doc);
 
   return (
     <article className={`nf-previa${oficial || cancelada ? '' : ' nf-previa--rascunho'}${cancelada ? ' nf-previa--cancelada' : ''}`}>
@@ -54,7 +55,9 @@ export function DocumentoFiscalPreviaCard({
         <div>
           <p className="nf-previa-kicker">
             {cancelada
-              ? 'NF-e cancelada'
+              ? nfse
+                ? 'NFS-e cancelada'
+                : 'NF-e cancelada'
               : oficial
                 ? 'Documento fiscal'
                 : simulada
@@ -87,6 +90,11 @@ export function DocumentoFiscalPreviaCard({
               Cancelar NF-e
             </button>
           ) : null}
+          {podeCancelarNfse ? (
+            <button type="button" className="btn btn-secondary" onClick={onAbrirCancelamentoNfse}>
+              Cancelar NFS-e
+            </button>
+          ) : null}
           <StatusPill status={docFiscalStatusLabel(doc.status, simulada)} />
         </div>
       </header>
@@ -94,7 +102,9 @@ export function DocumentoFiscalPreviaCard({
       <p className={`nf-previa-banner${oficial && !cancelada ? ' is-ok' : ''}${cancelada ? ' is-cancelada' : ''}`}>
         {previa?.aviso ??
           (cancelada
-            ? 'NF-e cancelada na SEFAZ. Chave e protocolo permanecem para consulta.'
+            ? nfse
+              ? 'NFS-e cancelada na SEFIN Nacional. A chave permanece para consulta. Este documento não vale como nota autorizada.'
+              : 'NF-e cancelada na SEFAZ. Chave e protocolo permanecem para consulta.'
             : 'Prévia — aguardando SEFAZ. Não é documento fiscal autorizado.')}
       </p>
 
@@ -236,20 +246,6 @@ export function DocumentoFiscalPreviaCard({
       ) : null}
 
       {doc.mensagem && !oficial ? <p className="form-hint">{doc.mensagem}</p> : null}
-
-      {!compact && envio && !nfse ? (
-        <details className="nf-previa-envio">
-          <summary>Conteúdo do envio ao hub (JSON Focus)</summary>
-          <p className="form-hint">
-            Este é o contrato do hub — não é o XML autorizado da SEFAZ. Quando o hub for
-            cadastrado e testado, o mesmo documento ({doc.codigo}) é enviado com esta
-            referência. O XML/DANFE oficiais só existem depois da autorização.
-          </p>
-          <pre className="nf-previa-json">
-            <code>{JSON.stringify(envio, null, 2)}</code>
-          </pre>
-        </details>
-      ) : null}
     </article>
   );
 }

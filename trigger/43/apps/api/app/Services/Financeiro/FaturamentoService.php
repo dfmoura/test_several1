@@ -356,6 +356,19 @@ class FaturamentoService
     /**
      * @return array<string, mixed>
      */
+    public function cancelarNfse(Empresa $empresa, Faturamento $faturamento, string $motivo, string $codigo): array
+    {
+        $this->assertEmpresaFat($empresa, $faturamento);
+        $result = $this->emissao->cancelarNfse($empresa, $faturamento, $motivo, $codigo);
+        $out = $this->show($faturamento->fresh());
+        $out['evento'] = $result['evento'] ?? null;
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function cartaCorrecaoNfe(Empresa $empresa, Faturamento $faturamento, string $texto, ?int $nSeq = null): array
     {
         $this->assertEmpresaFat($empresa, $faturamento);

@@ -2889,6 +2889,7 @@ export type DanfseParte = {
 export type DanfsePrevia = {
   versao?: string;
   layout_oficial?: boolean;
+  cancelada?: boolean;
   chave?: string | null;
   qr_url?: string | null;
   numero_nfse?: string | null;

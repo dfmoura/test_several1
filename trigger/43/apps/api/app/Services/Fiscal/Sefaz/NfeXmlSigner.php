@@ -45,6 +45,16 @@ final class NfeXmlSigner
     }
 
     /**
+     * Pedido de registro de evento (e101101) — mesmo perfil da DPS.
+     *
+     * @param  array{path: string, senha: string}  $cert
+     */
+    public function assinarInfPedReg(string $xml, array $cert): string
+    {
+        return $this->assinar($xml, 'infPedReg', $cert, true);
+    }
+
+    /**
      * @param  array{path: string, senha: string}  $cert
      */
     private function assinar(string $xml, string $tagId, array $cert, bool $nfse = false): string

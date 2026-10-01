@@ -2956,6 +2956,14 @@ table.data-table td.acoes {
   color: #9b1c1c;
 }
 
+.nf-previa--cancelada {
+  border-color: #9b1c1c;
+}
+
+.nf-previa--cancelada .nf-previa-kicker {
+  color: #9b1c1c;
+}
+
 .nf-previa-meta {
   margin-bottom: 0.5rem;
 }
@@ -2997,31 +3005,6 @@ table.data-table td.acoes {
   font-size: 0.86rem;
   line-height: 1.35;
   color: var(--text);
-}
-
-.nf-previa-envio {
-  margin-top: 0.75rem;
-}
-
-.nf-previa-envio summary {
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.nf-previa-json {
-  margin: 0.6rem 0 0;
-  padding: 0.75rem 0.85rem;
-  max-height: 22rem;
-  overflow: auto;
-  border-radius: var(--radius-sm);
-  background: var(--surface-elevated, #0f172a0a);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 /* Dashboard — cockpit de ação (ADR_PAINEL_COCKPIT); EMP no shell, não aqui */
@@ -8430,6 +8413,11 @@ tr.row-inactive td {
   z-index: 1;
 }
 
+.danfe-sheet > .danfe-watermark {
+  position: absolute;
+  z-index: 0;
+}
+
 .danfe-lbl {
   display: block;
   font-size: 5.2pt;
@@ -8833,6 +8821,28 @@ tr.row-inactive td {
   line-height: 1.15;
   color: #000;
   padding: 5mm;
+}
+
+.danfse-v2-cancelada {
+  margin: 0;
+  padding: 1.6mm 2mm;
+  border: 0.5pt solid #333;
+  border-top: 0;
+  background: #fff;
+  color: #9b1c1c;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.danfse-v2.danfe-sheet-cancelada .danfe-watermark-cancelada {
+  font-size: 42pt;
+  opacity: 0.28;
+  color: #9b1c1c;
 }
 
 .danfse-v2-title {

@@ -141,18 +141,24 @@ export function DocumentoFiscalFichaSheet({ fat, doc, empresaNome, emitidoPor, e
   const nfse = doc.tipo === 'NFSE';
 
   if (nfse && doc.previa?.danfse) {
-    const marca = doc.previa.danfse.layout_oficial
+    const cancelada =
+      doc.status === 'CANCELADO' ||
+      doc.previa.danfse.cancelada === true ||
+      doc.previa.cancelada === true;
+    const marca = cancelada
       ? null
-      : simulada
-        ? 'SIMULADA SEM VALOR FISCAL'
-        : oficial
-          ? 'SEM VALOR FISCAL'
-          : 'PRÉVIA SEM VALOR FISCAL';
+      : doc.previa.danfse.layout_oficial
+        ? null
+        : simulada
+          ? 'SIMULADA SEM VALOR FISCAL'
+          : oficial
+            ? 'SEM VALOR FISCAL'
+            : 'PRÉVIA SEM VALOR FISCAL';
     return (
       <DanfseNacionalSheet
-        danfse={doc.previa.danfse}
+        danfse={{ ...doc.previa.danfse, cancelada }}
         watermark={marca}
-        rodape={`${doc.previa.danfse.layout_oficial ? 'DANFSe' : simulada ? 'DANFSe de teste' : 'Prévia DANFSe'} · ${fat.codigo} · ${emitidoPor} · ${emitidoEm.toLocaleString('pt-BR')}`}
+        rodape={`${cancelada ? 'DANFSe cancelada' : doc.previa.danfse.layout_oficial ? 'DANFSe' : simulada ? 'DANFSe de teste' : 'Prévia DANFSe'} · ${fat.codigo} · ${emitidoPor} · ${emitidoEm.toLocaleString('pt-BR')}`}
       />
     );
   }
@@ -524,17 +530,24 @@ function DanfseLayout({
   const dest = p?.destinatario;
   const item = p?.itens?.[0];
   const total = p?.valor_total ?? doc.valor;
-  const comNumeracao = oficial || simulada;
+  const cancelada = doc.status === 'CANCELADO' || p?.cancelada === true;
+  const comNumeracao = oficial || simulada || cancelada;
   const numero = comNumeracao && doc.numero != null ? String(doc.numero) : '—';
   const serie = comNumeracao && doc.serie != null ? String(doc.serie) : '—';
-  const selo = seloFiscal({ oficial, simulada, cancelada: false, homolog: homologacao(doc) });
+  const selo = cancelada
+    ? 'NFS-E CANCELADA'
+    : seloFiscal({ oficial, simulada, cancelada: false, homolog: homologacao(doc) });
 
   return (
     <article
-      className={`ficha-sheet danfe-sheet danfse-sheet${oficial ? '' : ' danfe-sheet-rascunho'}`}
+      className={`ficha-sheet danfe-sheet danfse-sheet${oficial || cancelada ? '' : ' danfe-sheet-rascunho'}${cancelada ? ' danfe-sheet-cancelada' : ''}`}
       aria-label="DANFSe — Documento Auxiliar da NFS-e"
     >
-      {!oficial ? (
+      {cancelada ? (
+        <div className="danfe-watermark danfe-watermark-cancelada" aria-hidden>
+          CANCELADA
+        </div>
+      ) : !oficial ? (
         <div className="danfe-watermark" aria-hidden>
           {simulada ? 'SIMULADA SEM VALOR FISCAL' : 'PRÉVIA SEM VALOR FISCAL'}
         </div>

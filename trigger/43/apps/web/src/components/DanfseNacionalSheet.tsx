@@ -126,9 +126,18 @@ export function DanfseNacionalSheet({
     };
   }, [danfse.qr_url]);
 
+  const cancelada = danfse.cancelada === true;
+
   return (
-    <article className="ficha-sheet danfe-sheet danfse-v2" aria-label="DANFSe — Documento Auxiliar da NFS-e">
-      {watermark ? (
+    <article
+      className={`ficha-sheet danfe-sheet danfse-v2${cancelada ? ' danfe-sheet-cancelada' : ''}`}
+      aria-label="DANFSe — Documento Auxiliar da NFS-e"
+    >
+      {cancelada ? (
+        <div className="danfe-watermark danfe-watermark-cancelada" aria-hidden>
+          CANCELADA
+        </div>
+      ) : watermark ? (
         <div className="danfe-watermark" aria-hidden>
           {watermark}
         </div>
@@ -142,6 +151,12 @@ export function DanfseNacionalSheet({
         </div>
         <p>{danfse.prefeitura || ' '}</p>
       </header>
+
+      {cancelada ? (
+        <p className="danfse-v2-cancelada" role="status">
+          NFS-e CANCELADA
+        </p>
+      ) : null}
 
       <section className="danfse-v2-band danfse-v2-id">
         <div>
