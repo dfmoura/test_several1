@@ -370,15 +370,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | Norma: docs/ADR_NFSE_NACIONAL_E_CAIXA.md
-    | driver off = documento de serviço permanece PLANEJADO (comportamento atual).
-    | sefin/adn só em homolog/produção com A1 apto. fake = testes, sem fisco.
+    | Vazio = canal oficial: SEFIN na saída e ADN na caixa, com A1.
+    | Local e homologação usam a produção restrita. Produção usa a produção.
+    | off = permanece planejado. fake = ensaio automático, sem fisco.
     |
     */
 
     'nfse' => [
-        'driver' => env('NFSE_DRIVER', 'off'), // off | fake | sefin
-        'caixa_driver' => env('NFSE_CAIXA_DRIVER', 'off'), // off | fake | adn
-        'stages_permitidos' => ['homolog', 'production'],
+        'driver' => env('NFSE_DRIVER', ''), // vazio | off | fake | sefin
+        'caixa_driver' => env('NFSE_CAIXA_DRIVER', ''), // vazio | off | fake | adn
+        'stages_permitidos' => ['local', 'dev', 'development', 'homolog', 'homologacao', 'production', 'prod', 'producao'],
         'timeout_sec' => (float) env('NFSE_HTTP_TIMEOUT_SEC', 60),
         'sefin_homolog' => env('NFSE_SEFIN_HOMOLOG', 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional'),
         'sefin_production' => env('NFSE_SEFIN_PRODUCTION', 'https://sefin.nfse.gov.br/SefinNacional'),

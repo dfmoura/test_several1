@@ -28,7 +28,7 @@ class NfseCaixaTest extends TestCase
         $this->assertSame(5, $item['onda']);
     }
 
-    public function test_local_sem_adn_coloca_nota_de_ensaio(): void
+    public function test_driver_off_nao_inventa_nota(): void
     {
         Permission::findOrCreate('compras.escrever', 'web');
         Permission::findOrCreate('compras.ler', 'web');
@@ -58,11 +58,10 @@ class NfseCaixaTest extends TestCase
         $h = ['X-Empresa-Id' => (string) $empresa->id];
         $sync = $this->withHeaders($h)->postJson('/api/v1/nfse-sync');
         $sync->assertOk();
-        $this->assertStringContainsString('ensaio', (string) $sync->json('data.sync_mensagem'));
+        $this->assertStringContainsString('desligado', (string) $sync->json('data.sync_mensagem'));
         $lista = $this->withHeaders($h)->getJson('/api/v1/nfse-tomadas?situacao=NA_CAIXA');
         $lista->assertOk();
-        $this->assertCount(1, $lista->json('data'));
-        $this->assertSame('150.00', $lista->json('data.0.valor_total'));
+        $this->assertCount(0, $lista->json('data'));
     }
 
     public function test_sync_fake_lanca_pagar_sem_estoque_e_isola_empresa(): void

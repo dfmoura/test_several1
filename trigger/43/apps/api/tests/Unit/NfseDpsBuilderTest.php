@@ -19,6 +19,11 @@ class NfseDpsBuilderTest extends TestCase
         $toma = new Parceiro;
         $toma->cnpj_cpf = '00000000000191';
         $toma->razao_social = 'Tomador Teste';
+        $toma->logradouro = 'Rua A';
+        $toma->numero = '10';
+        $toma->bairro = 'Centro';
+        $toma->cep = '38400000';
+        $toma->ibge = '3170206';
 
         $xml = (new NfseDpsBuilder)->montar($empresa, $toma, [
             'codigo_municipio_emissora' => 3106200,
@@ -35,5 +40,8 @@ class NfseDpsBuilderTest extends TestCase
         $this->assertStringContainsString('Id="DPS'.$xml['id_dps'].'"', $xml['xml']);
         $this->assertStringContainsString('<nDPS>7</nDPS>', $xml['xml']);
         $this->assertStringContainsString('<cTribNac>140101</cTribNac>', $xml['xml']);
+        $this->assertStringContainsString('<endNac><cMun>3170206</cMun><CEP>38400000</CEP></endNac>', $xml['xml']);
+        $this->assertStringContainsString('<opSimpNac>3</opSimpNac>', $xml['xml']);
+        $this->assertStringContainsString('<serie>00001</serie>', $xml['xml']);
     }
 }

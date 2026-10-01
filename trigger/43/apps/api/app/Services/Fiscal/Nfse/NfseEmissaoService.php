@@ -33,7 +33,7 @@ final class NfseEmissaoService
 
     public function driver(): string
     {
-        return strtolower(trim((string) config('erp.nfse.driver', 'off')));
+        return NfseCanal::emissao();
     }
 
     /**
@@ -65,7 +65,7 @@ final class NfseEmissaoService
         }
 
         if (! $this->sefinDisponivel()) {
-            $doc->mensagem = 'Emissão de NFS-e Nacional aguarda homologação ou produção com certificado A1 apto.';
+            $doc->mensagem = 'Emissão de NFS-e Nacional não roda neste stage.';
             $doc->save();
 
             return null;
@@ -100,6 +100,15 @@ final class NfseEmissaoService
         }
 
         $builtPayload = $this->payloads->nfse($empresa, $parceiro, $fat, $itens, (string) $doc->ref);
+        try {
+            $this->dps->validar($empresa, $parceiro, $builtPayload['payload']);
+        } catch (RuntimeException $e) {
+            $doc->status = DocumentoFiscalSaida::STATUS_REJEITADO;
+            $doc->mensagem = mb_substr($e->getMessage(), 0, 500);
+            $doc->save();
+
+            return null;
+        }
         $num = $this->numeracao->reservar($empresa);
         $tpAmb = $this->tpAmb();
         $montada = $this->dps->montar($empresa, $parceiro, $builtPayload['payload'], $num['numero'], $tpAmb);
@@ -130,16 +139,12 @@ final class NfseEmissaoService
 
     public function sefinDisponivel(): bool
     {
-        $stage = strtolower(trim((string) config('erp.stage', 'local')));
-
-        return in_array($stage, config('erp.nfse.stages_permitidos', ['homolog', 'production']), true);
+        return NfseCanal::falaComFisco();
     }
 
     public function tpAmb(): int
     {
-        $stage = strtolower(trim((string) config('erp.stage', 'local')));
-
-        return in_array($stage, ['production', 'prod', 'producao'], true) ? 1 : 2;
+        return NfseCanal::producao() ? 1 : 2;
     }
 
     /**
@@ -179,12 +184,15 @@ final class NfseEmissaoService
         }
 
         if ($http >= 200 && $http < 300 && strlen($chave) === 50) {
+            $nNfse = NfseCanal::numeroNaChave($chave);
+
             return [
                 'ok' => true,
                 'status_focus' => 'autorizado',
                 'http_status' => $http,
                 'chave' => $chave,
-                'numero' => (string) $numero,
+                'numero' => $nNfse ?? (string) $numero,
+                'numero_dps' => (string) $numero,
                 'serie' => $serie,
                 'protocolo' => (string) ($body['idDps'] ?? ''),
                 'mensagem' => 'NFS-e autorizada na SEFIN Nacional.',

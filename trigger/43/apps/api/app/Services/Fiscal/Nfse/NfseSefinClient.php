@@ -12,8 +12,7 @@ final class NfseSefinClient
 {
     public function baseUrl(): string
     {
-        $stage = strtolower(trim((string) config('erp.stage', 'local')));
-        $prod = in_array($stage, ['production', 'prod', 'producao'], true);
+        $prod = NfseCanal::producao();
 
         return rtrim((string) ($prod
             ? config('erp.nfse.sefin_production')

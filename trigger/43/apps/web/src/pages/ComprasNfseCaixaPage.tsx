@@ -123,9 +123,8 @@ export function ComprasNfseCaixaPage() {
             <div className="loading">Carregando…</div>
           ) : rows.length === 0 ? (
             <div className="empty-state">
-              Nenhuma NFS-e aguardando conferência. Neste ambiente local, Atualizar do fisco
-              coloca uma nota de ensaio na caixa (sem valor fiscal). O pagamento só nasce quando
-              você confirma a nota.
+              Nenhuma NFS-e aguardando conferência. Atualizar do fisco consulta o ADN nacional
+              com o certificado A1. O pagamento só nasce quando você confirma a nota.
             </div>
           ) : (
             <table className="data-table">

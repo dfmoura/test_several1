@@ -22,11 +22,12 @@ Dois contextos. O faturamento, a ordem de serviço e a caixa de NF-e de mercador
 ```
 SAÍDA (prestador)
   FAT + TIT RECEBER 1.01.03 + DFS NFSE PLANEJADO
-    → NFSE_DRIVER=off fora do stub   permanece PLANEJADO
-    → local + FISCAL_EMISSOR=stub   AUTORIZADO origem STUB (sem valor fiscal)
-    → NFSE_DRIVER=fake    AUTORIZADO origem SEFIN só em teste
-    → homolog/prod + A1 + NFSE_DRIVER=sefin
+    → driver vazio no stage operacional + A1
+         local e homologação → SEFIN produção restrita
+         produção → SEFIN produção
          DPS assinada → POST SEFIN /nfse → chave 50
+    → NFSE_DRIVER=off     permanece PLANEJADO (stub local só se o emissor de teste estiver ativo)
+    → NFSE_DRIVER=fake    AUTORIZADO só em ensaio automático, sem fisco
          falha fiscal não desfaz FAT/TIT/COB
          sem SAIDA_VENDA
 
@@ -59,10 +60,9 @@ ENTRADA (tomador)
 
 | Stage | Emissão | Caixa ADN |
 |-------|---------|-----------|
-| `local` | stub (`FISCAL_EMISSOR=stub`) — origem `STUB`, sem valor fiscal. Caixa: Atualizar coloca 1 nota de ensaio | ensaio local, sem ADN |
-| testing | `off` permanece planejado; `fake` no ensaio automático | `fake` no teste |
-| `homolog` | `sefin` + A1 | `adn` + A1 |
-| `production` | `sefin` + A1 | `adn` + A1 |
+| `local` / `homolog` | SEFIN produção restrita + A1 | ADN produção restrita + A1 |
+| testing | `off` permanece planejado; `fake` no ensaio automático | `off`; `fake` no teste |
+| `production` | SEFIN produção + A1 | ADN produção + A1 |
 
 URL de produção restrita e de produção não se misturam com o stage do app.
 

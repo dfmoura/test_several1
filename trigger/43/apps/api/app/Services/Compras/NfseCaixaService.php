@@ -126,13 +126,8 @@ final class NfseCaixaService
         );
 
         try {
-            $driver = strtolower(trim((string) config('erp.nfse.caixa_driver', 'off')));
+            $driver = \App\Services\Fiscal\Nfse\NfseCanal::caixa();
             if ($driver === 'off' || $driver === '') {
-                if ($this->ensaioLocal()) {
-                    $this->ingerirFake($empresa, $estado, true);
-
-                    return;
-                }
                 $this->encerrar($estado, 'IDLE', 'Canal ADN desligado. A caixa continua consultável.');
 
                 return;
@@ -196,18 +191,10 @@ final class NfseCaixaService
         );
     }
 
-    private function ensaioLocal(): bool
-    {
-        $stage = strtolower(trim((string) config('erp.stage', 'local')));
-
-        return in_array($stage, ['local', 'dev', 'development'], true);
-    }
-
     private function ingerirAdn(Empresa $empresa, NfseSyncEstado $estado): void
     {
-        $stage = strtolower(trim((string) config('erp.stage', 'local')));
-        if (! in_array($stage, config('erp.nfse.stages_permitidos', ['homolog', 'production']), true)) {
-            $this->encerrar($estado, 'IDLE', 'ADN de NFS-e só em homologação ou produção.');
+        if (! \App\Services\Fiscal\Nfse\NfseCanal::falaComFisco()) {
+            $this->encerrar($estado, 'IDLE', 'ADN de NFS-e não roda neste stage.');
 
             return;
         }
@@ -220,7 +207,7 @@ final class NfseCaixaService
         $material = null;
         try {
             $material = $this->materializer->materializar($empresa);
-            $prod = in_array($stage, ['production', 'prod', 'producao'], true);
+            $prod = \App\Services\Fiscal\Nfse\NfseCanal::producao();
             $base = rtrim((string) ($prod ? config('erp.nfse.adn_production') : config('erp.nfse.adn_homolog')), '/');
             $cnpj = preg_replace('/\D/', '', (string) $empresa->cnpj) ?: '';
             $nsu = $estado->ultimo_nsu !== '' ? $estado->ultimo_nsu : '0';

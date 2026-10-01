@@ -34,19 +34,20 @@ final class NfeXmlSigner
     }
 
     /**
-     * DPS da NFS-e Nacional — mesmo XML-DSig enveloped do A1.
+     * DPS da NFS-e Nacional — XML-DSig do emissor nacional (SHA-256, C14N exclusiva com comentários).
+     * Não altera a assinatura da NF-e (SHA-1, C14N inclusiva).
      *
      * @param  array{path: string, senha: string}  $cert
      */
     public function assinarInfDps(string $xml, array $cert): string
     {
-        return $this->assinar($xml, 'infDPS', $cert);
+        return $this->assinar($xml, 'infDPS', $cert, true);
     }
 
     /**
      * @param  array{path: string, senha: string}  $cert
      */
-    private function assinar(string $xml, string $tagId, array $cert): string
+    private function assinar(string $xml, string $tagId, array $cert, bool $nfse = false): string
     {
         $certs = [];
         if (! openssl_pkcs12_read((string) file_get_contents($cert['path']), $certs, $cert['senha'])) {
@@ -82,22 +83,34 @@ final class NfeXmlSigner
             throw new RuntimeException('Atributo Id ausente em '.$tagId.'.');
         }
 
-        // C14N inclusivo — mesmo Algorithm declarado nas Transforms
-        $canonical = $inf->C14N(false, false);
+        $c14nAlg = $nfse
+            ? 'http://www.w3.org/2001/10/xml-exc-c14n#WithComments'
+            : self::C14N_ALG;
+        $digestAlg = $nfse
+            ? 'http://www.w3.org/2001/04/xmlenc#sha256'
+            : self::DSIG_NS.'sha1';
+        $sigAlg = $nfse
+            ? 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
+            : self::DSIG_NS.'rsa-sha1';
+        $hashAlgo = $nfse ? 'sha256' : 'sha1';
+        $opensslAlgo = $nfse ? OPENSSL_ALGO_SHA256 : OPENSSL_ALGO_SHA1;
+
+        // O Algorithm declarado é o mesmo C14N calculado.
+        $canonical = $inf->C14N($nfse, $nfse);
         if ($canonical === false || $canonical === '') {
             throw new RuntimeException('Falha ao canonicalizar '.$tagId.'.');
         }
-        $digest = base64_encode(hash('sha1', $canonical, true));
+        $digest = base64_encode(hash($hashAlgo, $canonical, true));
 
         $signature = $doc->createElementNS(self::DSIG_NS, 'Signature');
         $signedInfo = $doc->createElementNS(self::DSIG_NS, 'SignedInfo');
 
         $c14nMethod = $doc->createElementNS(self::DSIG_NS, 'CanonicalizationMethod');
-        $c14nMethod->setAttribute('Algorithm', self::C14N_ALG);
+        $c14nMethod->setAttribute('Algorithm', $c14nAlg);
         $signedInfo->appendChild($c14nMethod);
 
         $sigMethod = $doc->createElementNS(self::DSIG_NS, 'SignatureMethod');
-        $sigMethod->setAttribute('Algorithm', self::DSIG_NS.'rsa-sha1');
+        $sigMethod->setAttribute('Algorithm', $sigAlg);
         $signedInfo->appendChild($sigMethod);
 
         $reference = $doc->createElementNS(self::DSIG_NS, 'Reference');
@@ -108,12 +121,12 @@ final class NfeXmlSigner
         $t1->setAttribute('Algorithm', self::DSIG_NS.'enveloped-signature');
         $transforms->appendChild($t1);
         $t2 = $doc->createElementNS(self::DSIG_NS, 'Transform');
-        $t2->setAttribute('Algorithm', self::C14N_ALG);
+        $t2->setAttribute('Algorithm', $c14nAlg);
         $transforms->appendChild($t2);
         $reference->appendChild($transforms);
 
         $digestMethod = $doc->createElementNS(self::DSIG_NS, 'DigestMethod');
-        $digestMethod->setAttribute('Algorithm', self::DSIG_NS.'sha1');
+        $digestMethod->setAttribute('Algorithm', $digestAlg);
         $reference->appendChild($digestMethod);
 
         $digestValue = $doc->createElementNS(self::DSIG_NS, 'DigestValue', $digest);
@@ -124,12 +137,12 @@ final class NfeXmlSigner
         // Assinar com SignedInfo já na árvore (xmlns em escopo para C14N inclusivo)
         $root->appendChild($signature);
 
-        $siCanon = $signedInfo->C14N(false, false);
+        $siCanon = $signedInfo->C14N($nfse, $nfse);
         if ($siCanon === false || $siCanon === '') {
             throw new RuntimeException('Falha ao canonicalizar SignedInfo.');
         }
         $rawSig = '';
-        if (! openssl_sign($siCanon, $rawSig, $pkey, OPENSSL_ALGO_SHA1)) {
+        if (! openssl_sign($siCanon, $rawSig, $pkey, $opensslAlgo)) {
             throw new RuntimeException('Falha ao assinar SignedInfo.');
         }
         $sigValue = $doc->createElementNS(self::DSIG_NS, 'SignatureValue', base64_encode($rawSig));
@@ -147,9 +160,11 @@ final class NfeXmlSigner
         if ($out === false) {
             throw new RuntimeException('Falha ao serializar XML assinado.');
         }
-        // cStat 588 — sem whitespace entre tags / sem declaração XML solta
-        $out = preg_replace('/>\s+</', '><', $out) ?? $out;
-        $out = preg_replace("/[\r\n\t]/", '', $out) ?? $out;
+        if (! $nfse) {
+            // cStat 588 — sem whitespace entre tags / sem declaração XML solta
+            $out = preg_replace('/>\s+</', '><', $out) ?? $out;
+            $out = preg_replace("/[\r\n\t]/", '', $out) ?? $out;
+        }
 
         return '<?xml version="1.0" encoding="UTF-8"?>'.$out;
     }

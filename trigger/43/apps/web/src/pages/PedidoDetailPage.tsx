@@ -608,7 +608,9 @@ export function PedidoDetailPage() {
                       <div style={{ marginTop: '1rem' }}>
                         <p className="form-hint" style={{ marginTop: 0 }}>
                           {preview.fiscal.documentos.map((d) => d.rotulo).join(' e ') || 'Documento fiscal'}
-                          {preview.fiscal.emissao_automatica
+                          {preview.fiscal.precisa_nfse && !preview.fiscal.precisa_nfe
+                            ? ' — NFS-e na SEFIN Nacional com o certificado A1 da empresa.'
+                            : preview.fiscal.emissao_automatica
                             ? preview.fiscal.emissor_teste?.ativo
                               ? ' — autorização de teste (sem SEFAZ, sem valor fiscal). Em homolog/produção usa o certificado A1.'
                               : preview.fiscal.sefaz?.apto
@@ -648,11 +650,13 @@ export function PedidoDetailPage() {
                           onClick={() => void faturar()}
                         >
                           Faturar e gerar cobranças
-                          {preview.fiscal?.emissor_teste?.ativo
-                            ? ' e autorizar nota de teste'
-                            : preview.fiscal?.emissao_automatica
-                              ? ' e emitir nota'
-                              : ''}
+                          {preview.fiscal?.precisa_nfse && !preview.fiscal?.precisa_nfe
+                            ? ' e emitir NFS-e na SEFIN'
+                            : preview.fiscal?.emissor_teste?.ativo
+                              ? ' e autorizar nota de teste'
+                              : preview.fiscal?.emissao_automatica
+                                ? ' e emitir nota'
+                                : ''}
                         </button>
                       </div>
                     ) : null}

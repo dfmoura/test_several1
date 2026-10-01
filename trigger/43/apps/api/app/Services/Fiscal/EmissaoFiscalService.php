@@ -479,6 +479,11 @@ class EmissaoFiscalService
         if (! empty($resultado['protocolo'])) {
             $doc->protocolo = (string) $resultado['protocolo'];
         }
+        if (! empty($resultado['numero_dps'])) {
+            $pj = is_array($doc->payload_json) ? $doc->payload_json : [];
+            $pj['_n_dps'] = (string) $resultado['numero_dps'];
+            $doc->payload_json = $pj;
+        }
         if ($runtime !== null) {
             $doc->fiscal_hub_id = $runtime['hub']->id;
             $doc->ambiente = $runtime['ambiente'];
@@ -879,14 +884,15 @@ class EmissaoFiscalService
         $nbs = preg_replace('/\D/', '', (string) ($payload['codigo_nbs'] ?? '')) ?: '';
         $numero = $comNumero && $d->numero !== null ? (string) $d->numero : null;
         $serie = (string) ($d->serie ?: ($payload['serie_dps'] ?? ''));
+        $nDps = isset($payload['_n_dps']) ? (string) $payload['_n_dps'] : null;
 
         return [
             'versao' => '1.01',
             'layout_oficial' => $layout,
             'chave' => $layout ? $chave50 : ($ensaio ? ($d->chave ?: null) : null),
             'qr_url' => $qr,
-            'numero_nfse' => $layout ? null : $numero,
-            'numero_dps' => $layout ? $numero : null,
+            'numero_nfse' => $numero,
+            'numero_dps' => $nDps,
             'serie_dps' => $serie !== '' ? $serie : null,
             'competencia' => (string) ($payload['data_competencia'] ?? ''),
             'dh_nfse' => $dh,

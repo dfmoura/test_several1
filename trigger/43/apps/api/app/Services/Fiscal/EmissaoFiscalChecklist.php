@@ -94,13 +94,10 @@ class EmissaoFiscalChecklist
             }
         }
 
-        if ($precisaNfse) {
-            $driverNfse = strtolower(trim((string) config('erp.nfse.driver', 'off')));
-            $canalLigado = in_array($driverNfse, ['fake', 'sefin'], true);
-            if (! $canalLigado && ! $stub['ativo']) {
-                $avisos[] = 'NFS-e Nacional ainda não emite nesta fatia — documento permanece planejado.';
-                $pendencias[] = 'Emissão de NFS-e ainda não disponível nesta fatia.';
-            }
+        $canalNfse = \App\Services\Fiscal\Nfse\NfseCanal::emissao();
+        if ($precisaNfse && $canalNfse === 'off' && ! $stub['ativo']) {
+            $avisos[] = 'NFS-e Nacional ainda não emite nesta fatia — documento permanece planejado.';
+            $pendencias[] = 'Emissão de NFS-e ainda não disponível nesta fatia.';
         }
 
         $pendencias = array_merge($pendencias, $this->saidaVenda->pendenciasEmissao($empresa, $pedido, $itensFat));
@@ -109,9 +106,13 @@ class EmissaoFiscalChecklist
         if ($precisaNfe) {
             $avisos[] = 'NF-e de produto (modelo 55) via certificado A1 da empresa na SEFAZ.';
         }
-        if ($stub['ativo'] && $stub['mensagem'] !== '') {
+        if ($precisaNfse && $canalNfse === 'sefin') {
+            $avisos[] = \App\Services\Fiscal\Nfse\NfseCanal::producao()
+                ? 'NFS-e na SEFIN Nacional de produção, com o certificado A1 da empresa.'
+                : 'NFS-e na SEFIN Nacional de produção restrita, com o certificado A1. Homologação usa o mesmo canal.';
+        } elseif ($stub['ativo'] && $stub['mensagem'] !== '') {
             $avisos[] = $precisaNfse && ! $precisaNfe
-                ? 'Autorização de teste da NFS-e — sem SEFIN e sem valor fiscal. O DANFSe segue o padrão nacional.'
+                ? 'Autorização de teste da NFS-e — sem SEFIN e sem valor fiscal.'
                 : $stub['mensagem'];
         }
 
