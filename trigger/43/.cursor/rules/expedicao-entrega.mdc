@@ -22,7 +22,7 @@ Módulo `expedicao/`. ENT consulta PED + FAT; não vive dentro do agregado Títu
 
 - Expedir só PED `FATURADO` com FAT vigente. 1 ENT vigente por PED.
 - Modo do snapshot (`RETIRAR` × `ENTREGAR`). Balcão confirma na hora com nome; transporte registra despacho e depois a prova.
-- Política `politica_nf_antes_expedir` (default SIM): sem hub a prévia + FAT basta; hub apto exige NF autorizada; `PROCESSANDO` bloqueia.
+- Política `politica_nf_antes_expedir` (default SIM): local/teste sem hub libera com FAT + prévia; hub apto exige NF autorizada. Homolog e produção exigem nota `eOficial` (SEFAZ/SEFIN). `PROCESSANDO` bloqueia.
 - Permissão `expedicao.escrever` (EXPEDICAO/PRODUCAO/ADMIN). FINANCEIRO só `expedicao.ler`.
 - Recusa/cancelamento: motivo; ENT histórica; PED volta a `FATURADO`; novo ENT permitido.
 - Isolar por `empresa_id` do contexto.

@@ -41,11 +41,13 @@ final class InterBillingGateway implements BillingGateway
 
     public function podeConfirmarDemo(): bool
     {
+        $stage = strtolower((string) config('erp.stage', 'local'));
+        if (in_array($stage, ['homolog', 'production', 'prod', 'producao'], true)) {
+            return false;
+        }
         if ($this->providerNome() === 'mock') {
             return true;
         }
-
-        $stage = strtolower((string) config('erp.stage', 'local'));
 
         return in_array($stage, ['local', 'testing'], true);
     }

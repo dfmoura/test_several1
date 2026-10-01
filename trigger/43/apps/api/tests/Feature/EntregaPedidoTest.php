@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\Entrega;
+use App\Models\DocumentoFiscalSaida;
 use App\Models\Faturamento;
 use App\Models\NaturezaGerencial;
 use App\Models\Orcamento;
@@ -508,5 +509,49 @@ class EntregaPedidoTest extends TestCase
         Sanctum::actingAs($soExp);
         $this->withHeaders($this->h())->getJson("/api/v1/faturamentos/{$fatId}")->assertOk();
         $this->withHeaders($this->h())->getJson('/api/v1/faturamentos')->assertForbidden();
+    }
+
+    public function test_homolog_exige_nota_oficial_antes_de_expedir(): void
+    {
+        $ped = $this->faturar($this->criarPedidoProduzido(['modo' => 'RETIRAR']));
+        $fat = $ped->fresh()->faturamento;
+        $this->assertNotNull($fat);
+
+        config(['erp.stage' => 'homolog']);
+        Sanctum::actingAs($this->expedicao);
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/pedidos/{$ped->id}/expedir", ['volumes' => 1])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['pedido']);
+
+        $doc = DocumentoFiscalSaida::query()->where('faturamento_id', $fat->id)->first();
+        if ($doc === null) {
+            $doc = DocumentoFiscalSaida::query()->create([
+                'empresa_id' => $this->empresa->id,
+                'codigo' => 'DFS-HOM-1',
+                'faturamento_id' => $fat->id,
+                'pedido_id' => $ped->id,
+                'tipo' => DocumentoFiscalSaida::TIPO_NFE,
+                'status' => DocumentoFiscalSaida::STATUS_AUTORIZADO,
+                'autorizacao_origem' => DocumentoFiscalSaida::ORIGEM_STUB,
+                'valor' => '10.00',
+            ]);
+        } else {
+            $doc->status = DocumentoFiscalSaida::STATUS_AUTORIZADO;
+            $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_STUB;
+            $doc->save();
+        }
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/pedidos/{$ped->id}/expedir", ['volumes' => 1])
+            ->assertStatus(422);
+
+        $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_SEFAZ;
+        $doc->status = DocumentoFiscalSaida::STATUS_AUTORIZADO;
+        $doc->save();
+
+        $this->withHeaders($this->h())
+            ->postJson("/api/v1/pedidos/{$ped->id}/expedir", ['volumes' => 1])
+            ->assertCreated();
     }
 }

@@ -651,9 +651,25 @@ class EntregaService
             if ($hub['apto'] && ! $autorizada) {
                 $bloqueios[] = 'Política da empresa: emitir a nota no hub antes de expedir.';
             }
+            if ($this->expedicaoExigeNotaOficial() && ! $fat->documentosFiscais->contains(
+                fn (DocumentoFiscalSaida $d) => $d->eOficial()
+            )) {
+                $bloqueios[] = 'Política da empresa: a nota precisa estar autorizada no fisco antes de expedir.';
+            }
         }
 
         return array_values(array_unique($bloqueios));
+    }
+
+    /**
+     * Lab e testes expedem com FAT + prévia. Homolog e produção exigem
+     * documento AUTORIZADO de origem SEFAZ ou SEFIN (eOficial).
+     */
+    private function expedicaoExigeNotaOficial(): bool
+    {
+        $stage = strtolower(trim((string) config('erp.stage', 'local')));
+
+        return in_array($stage, ['homolog', 'production', 'prod', 'producao'], true);
     }
 
     private function modoDoPedido(Pedido $pedido): string

@@ -72,6 +72,7 @@ Mais: `MAIL_*` + `VIAZAP_*` (envio da proposta) — `DEPLOY_LOCAL_AWS.md`.
 
 - Docs e `.env.aws.*.example` desta pasta usam `flexoerp001` como oficial.  
 - `aws-ready-check` recusa `flexorc` como base pública em **production**.  
+- O mesmo script recusa billing `mock`, ASAAS sem chave e webhook sem token. DNS, TLS, login e A1 **não** entram nesse resultado.  
 - IDs billing `FLEXORC-CONTA-*` permanecem (ADR de transição) — host ≠ prefixo de cobrança.  
 - `viazap.triggerti.com` continua gateway TRIGGER (instalação); não é o host do ERP.
 
@@ -86,3 +87,5 @@ Mais: `MAIL_*` + `VIAZAP_*` (envio da proposta) — `DEPLOY_LOCAL_AWS.md`.
 - [ ] ORC → link em `https://flexoerp001.triggerti.com/p/...`  
 - [ ] Webhooks ASAAS/Inter apontando para o host oficial (não flexorc)  
 - [ ] Tunnel `flexorc` só no notebook, se ainda precisar de ensaio  
+
+O script `aws-ready-check` não marca este corte como feito. Ele só recusa um `.env.aws` inseguro (stage, debug, seed, URL de lab, senha placeholder, billing mock, ASAAS sem chave ou sem token). DNS, TLS, login, certificado A1 e o painel do ASAAS apontando para este host continuam verificação humana.  

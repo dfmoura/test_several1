@@ -229,7 +229,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Teste local:** OP aberta com SKU `controla_lote` e volumes no local → Separação → **Preparar retirada** → conferir FEFO/local → confirmar. Ctrl+Shift+R se SPA antiga.
 
 ### BL-106 · [orc/norma+ux] ORC cabeçalho × itens (1..N jobs na proposta)
-- **Status:** Em andamento (fases 0–3a prontas; fase 3b OP por linha pendente)
+- **Status:** Feito
 - **Prioridade:** P1
 - **Origem:** Chat 2026-09-20/21 — multi-faca era o nível errado; multi-item é o correto
 - **Depende de:** `ADR_ORC_ITENS.md` · emenda `ADR_ORC_FACAS_COMPOSICAO` · motor R1–R20 intacto
@@ -246,7 +246,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - [x] Fase 1: paridade N=1 — `orcamento_itens` · dual-write create/update · `itens` no show · legado materializado na leitura · UI flat intacta · testes `OrcamentoItensTest` + asserts em `OrcamentoTest`
   - [x] Fase 2: UI N>1 + proposta/totais Σ + link único + hierarquia resultado (N=1 limpo · N>1 hero+acordeão/seletor nas 3 abas)
   - [x] Fase 3a: espelho PED N linhas (faixa + modelos por posição; sem N PEDs)
-  - [ ] Fase 3b: OP por linha
+  - [x] Fase 3b: OP por linha — uma OP por item de produção; empenho lê `especificacao.faixa` da linha (cabeçalho segue com a faixa do 1º item)
 - **Fora de escopo nesta BL:** proposta mista PA+SVC (fase 2 de tipo no item) · alterar R1–R20 · SKU por arte/faca
 - **Norma:** `docs/ADR_ORC_ITENS.md`
 - **Teste local:** http://localhost:8043 → Orçamentos → Novo → **Itens deste orçamento** (Adicionar/Duplicar) → Calcular/Salvar → no **detalhe**, guias por item na ficha + total/acordeão no resultado. Pedido aprovado lista N posições com faixa e modelos. Ctrl+Shift+R se SPA antiga.

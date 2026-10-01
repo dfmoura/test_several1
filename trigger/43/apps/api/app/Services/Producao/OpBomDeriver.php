@@ -156,7 +156,11 @@ class OpBomDeriver
         $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
         $input = is_array($snap['input'] ?? null) ? $snap['input'] : [];
         $espec = is_array($item->especificacao) ? $item->especificacao : [];
-        $faixa = is_array($snap['faixa'] ?? null) ? $snap['faixa'] : [];
+        $faixaPedido = is_array($snap['faixa'] ?? null) ? $snap['faixa'] : [];
+        // Cabeçalho guarda a faixa do 1º item (compat N=1). Cada linha traz a sua.
+        $faixa = array_key_exists('faixa', $espec) && is_array($espec['faixa'])
+            ? $espec['faixa']
+            : $faixaPedido;
 
         $papel = trim((string) ($espec['papel'] ?? $input['papel'] ?? ''));
         $tubete = trim((string) ($espec['tubete'] ?? $input['tubete'] ?? ''));

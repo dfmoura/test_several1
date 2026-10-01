@@ -163,6 +163,8 @@ Ficha-cliente A4: opções por posição, **sem** rádio — a escolha é no `/p
 - Tela/ficha do PED: tabela hierárquica item → modelos da faixa contratada
 - FAT lê preço/ferramental/artes por item quando a spec tem faixa; legado N=1 intacto
 
-**Futuro (fase 3b — OP por linha):**
-- OP/OS a partir da linha · sem N PEDs
+**Fase 3b (OP por linha):**
+- Uma OP por item de produção, sem N pedidos
+- Empenho (papel, tubete, caixa) lê `pedido_itens.especificacao.faixa`
+- Item antigo sem essa chave continua na faixa do cabeçalho
 - BL: `BL-106` em `docs/BACKLOG.md`

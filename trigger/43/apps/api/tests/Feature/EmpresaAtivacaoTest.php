@@ -308,10 +308,12 @@ class EmpresaAtivacaoTest extends TestCase
 
     public function test_webhook_asaas_confirma_billing_sem_confundir_com_sinal(): void
     {
+        config(['erp.asaas.webhook_token' => 'tok-teste']);
         $out = $this->cadastrarEmpresa();
         $empresaId = $out['empresa_id'];
 
-        $this->postJson('/api/v1/webhooks/bancarios/asaas', [
+        $this->withHeader('asaas-access-token', 'tok-teste')
+            ->postJson('/api/v1/webhooks/bancarios/asaas', [
             'event' => 'PAYMENT_RECEIVED',
             'payment' => [
                 'id' => 'pay_billing_1',

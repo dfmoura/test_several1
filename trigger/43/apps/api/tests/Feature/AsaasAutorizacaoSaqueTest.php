@@ -118,6 +118,18 @@ class AsaasAutorizacaoSaqueTest extends TestCase
             ->assertJsonPath('data.resultado', 'ERRO');
     }
 
+    public function test_webhook_de_eventos_recusa_quando_token_vazio(): void
+    {
+        config(['erp.asaas.webhook_token' => '']);
+
+        $this->withHeader('asaas-access-token', 'qualquer')
+            ->postJson('/api/v1/webhooks/bancarios/asaas', [
+                'event' => 'PAYMENT_RECEIVED',
+                'payment' => ['id' => 'pay_vazio', 'status' => 'RECEIVED'],
+            ])
+            ->assertUnauthorized();
+    }
+
     /** @return array<string, mixed> */
     private function transferencia(): array
     {

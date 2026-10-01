@@ -165,6 +165,36 @@ else
   warn "ORCAMENTO_WHATSAPP_AUTO=false — WhatsApp automático desligado"
 fi
 
+# Mensalidade e webhook. DNS/TLS/login continuam checklist humano (ADR host).
+BILLING="$(get BILLING_PROVIDER)"
+ASAAS_KEY="$(get ASAAS_API_KEY)"
+ASAAS_TOK="$(get ASAAS_WEBHOOK_TOKEN)"
+BILLING_LC="$(printf '%s' "$BILLING" | tr '[:upper:]' '[:lower:]')"
+
+echo
+echo "--- Conta (mensalidade) ---"
+if [[ "$BILLING_LC" == "mock" ]]; then
+  bad "BILLING_PROVIDER=mock — homolog/produção não confirma mensalidade de demonstração"
+elif [[ -z "$BILLING_LC" && -z "$ASAAS_KEY" ]]; then
+  bad "BILLING_PROVIDER vazio e sem ASAAS_API_KEY — o runtime cai em mock"
+elif [[ "$BILLING_LC" == "asaas" || ( -z "$BILLING_LC" && -n "$ASAAS_KEY" ) ]]; then
+  if [[ -z "$ASAAS_KEY" ]]; then
+    bad "BILLING_PROVIDER=asaas sem ASAAS_API_KEY"
+  else
+    ok "ASAAS_API_KEY presente"
+  fi
+  if [[ -z "$ASAAS_TOK" ]]; then
+    bad "ASAAS_WEBHOOK_TOKEN vazio — o webhook de eventos recusa POST sem token"
+  else
+    ok "ASAAS_WEBHOOK_TOKEN definido"
+  fi
+elif [[ "$BILLING_LC" == "inter" ]]; then
+  ok "BILLING_PROVIDER=inter (webhook Inter tem checagem própria)"
+else
+  warn "BILLING_PROVIDER=$BILLING — confirme se é asaas ou inter"
+fi
+warn "DNS, TLS, login e A1 não são verificados aqui — checklist humano em docs/ADR_HOST_INSTALACAO_FLEXOERP001.md"
+
 echo
 if [[ "$FAIL" -ne 0 ]]; then
   echo "RESULTADO: NÃO PRONTO — corrija os FAIL acima."

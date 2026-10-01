@@ -27,7 +27,7 @@ class WebhookBancarioController extends Controller
 
         if ($provider === 'asaas') {
             $esperado = $this->asaasAuth->tokenEventos();
-            if ($esperado !== '' && ! $this->asaasAuth->headerConfere($request, $esperado)) {
+            if ($esperado === '' || ! $this->asaasAuth->headerConfere($request, $esperado)) {
                 return response()->json(['message' => 'Token inválido.'], 401);
             }
         }

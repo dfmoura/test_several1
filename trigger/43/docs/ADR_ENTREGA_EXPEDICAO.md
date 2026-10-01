@@ -33,7 +33,7 @@ PED FATURADO (FAT + TIT/COB; NF prévia ou autorizada)
 | **Agregado `ENT-` em `expedicao/`** | Estudo §5.1: romaneio **não** mora no TIT. Financeiro só observa. |
 | **Modo do snapshot ORC/PED** | `RETIRAR` × `ENTREGAR` já travados no ORC (BL-058). Não reinventar CIF/FOB. |
 | **Dois passos, não TMS** | Fase 1: expedir (documento + destino) → confirmar (prova). Sem rota, CT-e, app de motorista. |
-| **NF antes de expedir = SIM** | Parâmetro `politica_nf_antes_expedir`. Sem hub: FAT + prévia basta (BL-052). Com hub apto: exige NF autorizada. `PROCESSANDO` bloqueia. |
+| **NF antes de expedir = SIM** | Parâmetro `politica_nf_antes_expedir`. Local e teste: sem hub, FAT + prévia basta; hub apto exige NF autorizada. Homolog e produção: exige documento `AUTORIZADO` de origem SEFAZ ou SEFIN (`eOficial`). `PROCESSANDO` bloqueia em qualquer stage. |
 | **1 ENT vigente : 1 PED** | Alinhado a 1 PED : 1 item. Recusa/cancelamento libera novo ENT. Nunca apagar. |
 | **Prova mínima** | Balcão: nome de quem retirou. Transporte: canhoto, rastreio ou observação. Sem foto nesta fase (campo texto). |
 | **SoD** | `expedicao.escrever` ≠ `financeiro.escrever`. FINANCEIRO consulta; não confirma entrega. PRODUÇÃO pode expedir (fábrica pequena). |
@@ -64,7 +64,8 @@ expedir exige FAT CONFIRMADO
   + se politica_nf_antes_expedir = SIM (default):
        DFS PROCESSANDO → bloqueia
        hub emissão habilitada e nenhuma NF AUTORIZADA → bloqueia
-       sem hub / só prévia PLANEJADO → libera (é a nota operacional do 39)
+       ERP_STAGE homolog|production → exige eOficial (SEFAZ/SEFIN), prévia e stub não liberam
+       local|testing sem hub → FAT + prévia libera
 ```
 
 ### Encerramento

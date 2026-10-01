@@ -268,7 +268,7 @@ Passo a passo do dinheiro e da nota **no 39**:
 5. NF-e Focus autorizada → `SAIDA_VENDA` da qtde faturada (SKU do item). Stub/prévia/NFS-e não baixam.
 6. Cliente paga → `BX-` na carteira (ou webhook). Limite de crédito sobe na baixa (quando o motor de crédito estiver no documento).
 7. Cada BX de TIT `FATURA` (e a apropriação do sinal no faturar) gera `COM- PREVISTA` se houver vendedor no snapshot — proporcional às **etiquetas**, sem frete/matriz/faca.
-8. Expedição gera `ENT-` **depois** do FAT. Política `politica_nf_antes_expedir=SIM`: sem hub a prévia basta; hub apto exige NF Focus autorizada; `PROCESSANDO` bloqueia.
+8. Expedição gera `ENT-` **depois** do FAT. Política `politica_nf_antes_expedir=SIM`: em local/teste, sem hub a prévia basta e hub apto exige NF autorizada; em homolog/produção a nota precisa estar autorizada na SEFAZ ou na SEFIN. `PROCESSANDO` bloqueia.
 9. Confirmar ENT **não** baixa TIT. À vista no balcão: CTA para Contas a receber.
 
 Lembretes:

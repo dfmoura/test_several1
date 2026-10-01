@@ -180,7 +180,9 @@ class MensalidadeAntecipadaTest extends TestCase
             'billing_metodo_em' => now()->subMonth(),
         ]);
 
-        $this->postJson('/api/v1/webhooks/bancarios/asaas', [
+        config(['erp.asaas.webhook_token' => 'tok-teste']);
+        $this->withHeader('asaas-access-token', 'tok-teste')
+            ->postJson('/api/v1/webhooks/bancarios/asaas', [
             'event' => 'PAYMENT_OVERDUE',
             'payment' => [
                 'id' => 'pay_over_1',
@@ -206,7 +208,8 @@ class MensalidadeAntecipadaTest extends TestCase
             ->assertJsonPath('data.conta.modo', 'suspensa')
             ->assertJsonPath('data.pagamento_pendente', true);
 
-        $this->postJson('/api/v1/webhooks/bancarios/asaas', [
+        $this->withHeader('asaas-access-token', 'tok-teste')
+            ->postJson('/api/v1/webhooks/bancarios/asaas', [
             'event' => 'PAYMENT_RECEIVED',
             'payment' => [
                 'id' => 'pay_ok_2',
