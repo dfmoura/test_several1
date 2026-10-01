@@ -2,6 +2,7 @@
 
 namespace App\Services\Fiscal\Dfe;
 
+use App\Services\Cadastros\EmpresaCertificadoA1Tls;
 use RuntimeException;
 
 /**
@@ -45,19 +46,16 @@ final class SefazNfeDistribuicaoClient implements DfeDistribuicaoClient
             throw new RuntimeException('Falha ao iniciar HTTP para DF-e.');
         }
 
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/soap+xml; charset=utf-8; action="'.self::SOAP_ACTION.'"',
             ],
             CURLOPT_POSTFIELDS => $soap,
-            CURLOPT_SSLCERT => $pfxPath,
-            CURLOPT_SSLCERTPASSWD => $senhaPfx,
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(15, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($pfxPath, $senhaPfx)));
 
         $body = curl_exec($ch);
         $errno = curl_errno($ch);
@@ -114,19 +112,16 @@ final class SefazNfeDistribuicaoClient implements DfeDistribuicaoClient
             throw new RuntimeException('Falha ao iniciar HTTP para DF-e (consChNFe).');
         }
 
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/soap+xml; charset=utf-8; action="'.self::SOAP_ACTION.'"',
             ],
             CURLOPT_POSTFIELDS => $soap,
-            CURLOPT_SSLCERT => $pfxPath,
-            CURLOPT_SSLCERTPASSWD => $senhaPfx,
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(15, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($pfxPath, $senhaPfx)));
 
         $body = curl_exec($ch);
         $errno = curl_errno($ch);

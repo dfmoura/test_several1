@@ -140,6 +140,7 @@ def _persistir_contratacoes_e_itens(
         unidades=list(unidades_alvo),
     )
     cursor_inicial: CursorItens | None = None
+    falha_anterior: str | None = None
     ck = carregar_checkpoint_itens(db)
     if (
         ck
@@ -149,6 +150,8 @@ def _persistir_contratacoes_e_itens(
     ):
         cursor_inicial = CursorItens.from_dict(ck["cursor"])
         if cursor_inicial:
+            erro_ck = ck.get("erro")
+            falha_anterior = erro_ck if isinstance(erro_ck, str) else None
             on_log(
                 "  Checkpoint de itens encontrado — retomando paginação "
                 "(progresso já persistido permanece)."
@@ -191,6 +194,7 @@ def _persistir_contratacoes_e_itens(
             on_pagina=_on_pagina,
             cursor_inicial=cursor_inicial,
             on_checkpoint=_on_checkpoint,
+            falha_anterior=falha_anterior,
         )
     except ColetaItensInterrompida as exc:
         salvar_checkpoint_itens(
@@ -206,14 +210,27 @@ def _persistir_contratacoes_e_itens(
             f"novos: {itens_novos}, atualizados: {itens_atualizados}). "
             f"Próxima execução retoma em página {exc.cursor.pagina}."
         )
-        raise ColetaItensInterrompida(
-            f"Coleta de itens incompleta (checkpoint salvo · "
-            f"{exc.cursor.unidade} {exc.cursor.periodo_ini}–{exc.cursor.periodo_fim} "
-            f"pág. {exc.cursor.pagina}): {exc}",
-            cursor=exc.cursor,
-        ) from exc
+        on_log(
+            "  ⚠ API de itens no limite desta execução — "
+            "checkpoint mantido; as etapas seguintes da cadeia seguem."
+        )
+        return {
+            "contratacoes_total": len(items),
+            "contratacoes_novos": novos,
+            "contratacoes_atualizados": atualizados,
+            "itens_total": itens_novos + itens_atualizados,
+            "itens_novos": itens_novos,
+            "itens_atualizados": itens_atualizados,
+            "itens_paginas": itens_paginas,
+            "itens_incompletos": 1,
+            "itens_erro": (
+                f"Coleta de itens incompleta (checkpoint salvo · "
+                f"{exc.cursor.unidade} {exc.cursor.periodo_ini}–{exc.cursor.periodo_fim} "
+                f"pág. {exc.cursor.pagina}): {exc}"
+            )[:500],
+        }
 
-    limpar_checkpoint_itens(db)
+    limpar_checkpoint_itens(db, escopo=escopo)
     db.commit()
     return {
         "contratacoes_total": len(items),

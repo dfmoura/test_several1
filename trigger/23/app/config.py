@@ -176,6 +176,10 @@ COMPRAS_PNCP_MAX_DIAS_PERIODO_RESULTADOS = int(
 )
 COMPRAS_PNCP_PAGE_SIZE = int(os.environ.get("COMPRAS_PNCP_PAGE_SIZE", "500"))
 COMPRAS_PNCP_ITENS_PAGE_SIZE = int(os.environ.get("COMPRAS_PNCP_ITENS_PAGE_SIZE", "100"))
+# Piso ao reduzir a página depois que a janela já é de 1 dia.
+COMPRAS_PNCP_ITENS_PAGE_SIZE_MIN = int(
+    os.environ.get("COMPRAS_PNCP_ITENS_PAGE_SIZE_MIN", "25")
+)
 COMPRAS_PNCP_MAX_DIAS_PERIODO = 365
 # Itens da contratação: consultas anuais costumam exceder 90s na API federal.
 COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS = int(
@@ -184,6 +188,14 @@ COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS = int(
 COMPRAS_PNCP_HTTP_TIMEOUT_SEC = float(os.environ.get("COMPRAS_PNCP_HTTP_TIMEOUT_SEC", "180"))
 # Retries amplos: catálogo CATMAT/CATSER na APIM federal costuma responder 429.
 COMPRAS_PNCP_MAX_RETRIES = int(os.environ.get("COMPRAS_PNCP_MAX_RETRIES", "5"))
+# Listagem de itens: 2 timeouts de 180s bastam. A mesma página não se recupera
+# na 5ª tentativa (caso DMAE pág. 5); a janela é partida ao meio em seguida.
+COMPRAS_PNCP_ITENS_TENTATIVAS = int(os.environ.get("COMPRAS_PNCP_ITENS_TENTATIVAS", "2"))
+# Falhas seguidas na listagem de itens antes de pausar com checkpoint e seguir
+# o restante da cadeia. Cada falha anterior parte a janela ou reduz a página.
+COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS = int(
+    os.environ.get("COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS", "3")
+)
 COMPRAS_PNCP_REQUEST_DELAY_SEC = float(os.environ.get("COMPRAS_PNCP_DELAY_SEC", "0.35"))
 # Backoff de ReadTimeout: base × 2^(n-1), com teto e jitter (API federal sob stress).
 COMPRAS_PNCP_TIMEOUT_BACKOFF_BASE_SEC = float(

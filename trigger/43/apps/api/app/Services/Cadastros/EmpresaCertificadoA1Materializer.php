@@ -7,8 +7,9 @@ use App\Models\EmpresaCertificadoA1;
 use RuntimeException;
 
 /**
- * Materializa o A1 do cofre em arquivo temporário (0600) para mTLS DF-e.
- * Sempre chamar liberar() no finally — nunca logar senha/PFX.
+ * Materializa o A1 do cofre em arquivo temporário (0600) para mTLS.
+ * Grava o PFX (assinatura XML) e, ao lado, a cadeia PEM da conexão.
+ * Sempre chamar liberar() no finally — nunca logar senha/PFX/chave.
  */
 final class EmpresaCertificadoA1Materializer
 {
@@ -49,6 +50,7 @@ final class EmpresaCertificadoA1Materializer
             throw new RuntimeException('Não foi possível gravar A1 temporário.');
         }
         @chmod($path, 0600);
+        $this->gravarCadeiaTls($dir, $bytes, $senha);
         unset($bytes);
 
         return [
@@ -67,15 +69,42 @@ final class EmpresaCertificadoA1Materializer
             return;
         }
         $path = $material['path'] ?? null;
-        if (is_string($path) && $path !== '' && is_file($path)) {
-            @unlink($path);
+        if (is_string($path) && $path !== '') {
             $dir = dirname($path);
             if (is_dir($dir) && str_contains($dir, 'dfe_a1_')) {
+                foreach (glob($dir.'/*') ?: [] as $file) {
+                    if (is_file($file)) {
+                        @unlink($file);
+                    }
+                }
                 @rmdir($dir);
+            } elseif (is_file($path)) {
+                @unlink($path);
             }
         }
         if (isset($material['senha'])) {
             $material['senha'] = '';
         }
+    }
+
+    private function gravarCadeiaTls(string $dir, string $bytes, string $senha): void
+    {
+        try {
+            $cadeia = (new EmpresaCertificadoA1Cadeia)->resumir($bytes, $senha);
+        } catch (RuntimeException) {
+            return;
+        }
+
+        $certPath = $dir.'/tls-cert.pem';
+        $keyPath = $dir.'/tls-key.pem';
+        if (file_put_contents($certPath, $cadeia['cert_pem']) === false
+            || file_put_contents($keyPath, $cadeia['key_pem']) === false) {
+            @unlink($certPath);
+            @unlink($keyPath);
+
+            return;
+        }
+        @chmod($certPath, 0600);
+        @chmod($keyPath, 0600);
     }
 }

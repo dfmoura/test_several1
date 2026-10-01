@@ -8,6 +8,7 @@ use App\Models\NfseSyncEstado;
 use App\Models\NfseTomada;
 use App\Services\Cadastros\EmpresaCertificadoA1Materializer;
 use App\Services\Cadastros\EmpresaCertificadoA1Service;
+use App\Services\Cadastros\EmpresaCertificadoA1Tls;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -344,17 +345,14 @@ final class NfseCaixaService
             throw new RuntimeException('Falha ao iniciar HTTP para o ADN.');
         }
         $timeout = max(5, (int) ceil((float) config('erp.nfse.timeout_sec', 60)));
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_HTTPGET => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
-            CURLOPT_SSLCERT => $cert['path'],
-            CURLOPT_SSLCERTPASSWD => $cert['senha'],
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($cert['path'], $cert['senha'])));
         $resp = curl_exec($ch);
         $errno = curl_errno($ch);
         $err = curl_error($ch);

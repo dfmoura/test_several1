@@ -16,7 +16,10 @@ from app.config import (
     COMPRAS_PNCP_ID_ENDPOINT,
     COMPRAS_PNCP_ITENS_ENDPOINT,
     COMPRAS_PNCP_ITENS_ID_ENDPOINT,
+    COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS,
     COMPRAS_PNCP_ITENS_PAGE_SIZE,
+    COMPRAS_PNCP_ITENS_PAGE_SIZE_MIN,
+    COMPRAS_PNCP_ITENS_TENTATIVAS,
     COMPRAS_PNCP_MAX_DIAS_PERIODO,
     COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS,
     COMPRAS_PNCP_MAX_RETRIES,
@@ -349,8 +352,12 @@ def _get_json(
     params: dict[str, Any],
     contexto: str,
     on_log: Callable[[str], None] | None = None,
+    max_retries: int | None = None,
 ) -> dict[str, Any]:
-    for tentativa in range(1, COMPRAS_PNCP_MAX_RETRIES + 1):
+    tentativas_max = max(
+        1, int(COMPRAS_PNCP_MAX_RETRIES if max_retries is None else max_retries)
+    )
+    for tentativa in range(1, tentativas_max + 1):
         try:
             resp = client.get(url, params=params)
         except (
@@ -361,22 +368,22 @@ def _get_json(
             httpx.ConnectError,
             httpx.RemoteProtocolError,
         ) as exc:
-            if tentativa >= COMPRAS_PNCP_MAX_RETRIES:
+            if tentativa >= tentativas_max:
                 raise RuntimeError(
-                    f"{contexto}: timeout após {COMPRAS_PNCP_MAX_RETRIES} tentativa(s)"
+                    f"{contexto}: timeout após {tentativas_max} tentativa(s)"
                 ) from exc
             espera = espera_retry_timeout(tentativa=tentativa)
             if on_log:
                 on_log(
                     f"    ⚠ Timeout na API ({exc.__class__.__name__}); "
-                    f"tentativa {tentativa}/{COMPRAS_PNCP_MAX_RETRIES} — "
+                    f"tentativa {tentativa}/{tentativas_max} — "
                     f"nova tentativa em {espera:.1f}s…"
                 )
             time.sleep(espera)
             continue
 
         if resp.status_code in _RETRYABLE_STATUS:
-            if tentativa >= COMPRAS_PNCP_MAX_RETRIES:
+            if tentativa >= tentativas_max:
                 raise RuntimeError(
                     f"{contexto} HTTP {resp.status_code}: {resp.text[:300]}"
                 )
@@ -384,7 +391,7 @@ def _get_json(
             if on_log:
                 on_log(
                     f"    ⚠ HTTP {resp.status_code} ({contexto}); "
-                    f"tentativa {tentativa}/{COMPRAS_PNCP_MAX_RETRIES} — "
+                    f"tentativa {tentativa}/{tentativas_max} — "
                     f"aguardando {espera:.1f}s…"
                 )
             time.sleep(espera)
@@ -780,6 +787,15 @@ class PncpItensClient:
     def close(self) -> None:
         self._http.close()
 
+    def reabrir(self) -> None:
+        """Nova conexão após timeout — descarta socket preso no pool."""
+        self.close()
+        self._http = httpx.Client(
+            timeout=_httpx_timeout(),
+            follow_redirects=True,
+            headers={"Accept": "*/*", "User-Agent": USER_AGENT},
+        )
+
     def consultar_pagina(
         self,
         *,
@@ -802,6 +818,7 @@ class PncpItensClient:
             params=params,
             contexto="API PNCP itens",
             on_log=self._on_log,
+            max_retries=COMPRAS_PNCP_ITENS_TENTATIVAS,
         )
 
     def consultar_por_contratacao(
@@ -827,28 +844,122 @@ class CursorItens:
     periodo_ini: str
     periodo_fim: str
     pagina: int
+    tamanho_pagina: int | None = None
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "unidade": self.unidade,
             "periodo_ini": self.periodo_ini,
             "periodo_fim": self.periodo_fim,
             "pagina": self.pagina,
         }
+        if self.tamanho_pagina:
+            data["tamanho_pagina"] = self.tamanho_pagina
+        return data
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any] | None) -> CursorItens | None:
         if not raw:
             return None
         try:
+            tamanho = raw.get("tamanho_pagina")
             return cls(
                 unidade=str(raw["unidade"]),
                 periodo_ini=str(raw["periodo_ini"]),
                 periodo_fim=str(raw["periodo_fim"]),
                 pagina=max(1, int(raw["pagina"])),
+                tamanho_pagina=int(tamanho) if tamanho else None,
             )
         except (KeyError, TypeError, ValueError):
             return None
+
+
+def _erro_timeout(exc: BaseException) -> bool:
+    return "timeout" in str(exc).lower()
+
+
+def _partir_periodo(
+    ini: date, fim: date
+) -> tuple[tuple[date, date], tuple[date, date]] | None:
+    """Parte a janela ao meio. None quando já é um único dia."""
+    dias = (fim - ini).days + 1
+    if dias < 2:
+        return None
+    metade = dias // 2
+    meio = ini + timedelta(days=metade - 1)
+    return (ini, meio), (meio + timedelta(days=1), fim)
+
+
+def _posicionar_cursor(
+    janelas: list[tuple[str, date, date]],
+    cursor: CursorItens | None,
+) -> tuple[list[tuple[str, date, date]], int, int, bool]:
+    """Encaixa o checkpoint na grade de janelas.
+
+    Retorna (janelas, índice inicial, página inicial, ignorado).
+    Janela contida numa consulta maior (após subdivisão) substitui só aquele
+    trecho e preserva o restante do período.
+    """
+    if cursor is None:
+        return janelas, 0, 1, False
+    try:
+        c_ini = date.fromisoformat(cursor.periodo_ini)
+        c_fim = date.fromisoformat(cursor.periodo_fim)
+    except ValueError:
+        return janelas, 0, 1, True
+    if c_fim < c_ini:
+        return janelas, 0, 1, True
+    for i, (unidade, per_ini, per_fim) in enumerate(janelas):
+        if unidade != cursor.unidade:
+            continue
+        if per_ini == c_ini and per_fim == c_fim:
+            return janelas, i, cursor.pagina, False
+        if per_ini <= c_ini and c_fim <= per_fim:
+            novas = list(janelas)
+            trechos = [(unidade, c_ini, c_fim)]
+            if c_fim < per_fim:
+                trechos.append((unidade, c_fim + timedelta(days=1), per_fim))
+            novas[i : i + 1] = trechos
+            return novas, i, cursor.pagina, False
+    return janelas, 0, 1, True
+
+
+def _piso_pagina_itens() -> int:
+    return max(1, min(COMPRAS_PNCP_ITENS_PAGE_SIZE, COMPRAS_PNCP_ITENS_PAGE_SIZE_MIN))
+
+
+def _adiantar_apos_timeout(
+    janelas: list[tuple[str, date, date]],
+    start_idx: int,
+    cursor: CursorItens,
+    falha_anterior: str | None,
+) -> tuple[list[tuple[str, date, date]], int, int | None]:
+    """Não repete a consulta que já esgotou timeout na execução anterior.
+
+    Janela de vários dias é partida na hora. Janela de 1 dia recomeça na página 1
+    com página menor, quando ainda houver folga. Retorna tamanho de página
+    explícito ou None para manter o do cursor.
+    """
+    if not falha_anterior or "timeout" not in falha_anterior.lower():
+        return janelas, start_idx, None
+    if start_idx < 0 or start_idx >= len(janelas):
+        return janelas, start_idx, None
+    unidade, per_ini, per_fim = janelas[start_idx]
+    partes = _partir_periodo(per_ini, per_fim)
+    if partes is not None:
+        (a_ini, a_fim), (b_ini, b_fim) = partes
+        novas = list(janelas)
+        novas[start_idx : start_idx + 1] = [
+            (unidade, a_ini, a_fim),
+            (unidade, b_ini, b_fim),
+        ]
+        return novas, start_idx, COMPRAS_PNCP_ITENS_PAGE_SIZE
+    tamanho = cursor.tamanho_pagina or COMPRAS_PNCP_ITENS_PAGE_SIZE
+    piso = _piso_pagina_itens()
+    novo = max(piso, tamanho // 2)
+    if novo < tamanho:
+        return janelas, start_idx, novo
+    return janelas, start_idx, tamanho
 
 
 @dataclass
@@ -882,13 +993,17 @@ def coletar_itens(
     on_pagina: Callable[[PaginaItensInfo], None] | None = None,
     cursor_inicial: CursorItens | None = None,
     on_checkpoint: Callable[[CursorItens], None] | None = None,
+    falha_anterior: str | None = None,
 ) -> list[CompraItemContratacao]:
     """Coleta itens PNCP com paginação.
 
     ``on_pagina`` — callback após cada página OK (persistência incremental).
     ``cursor_inicial`` — retoma em unidade/janela/página (idempotente via upsert).
     ``on_checkpoint`` — grava cursor da página atual *antes* da request (crash-safe).
-    Em timeout/429/5xx esgotado, levanta ``ColetaItensInterrompida`` com o cursor.
+
+    Timeout na listagem não repete a mesma consulta até esgotar a cadeia: a janela
+    é partida ao meio (e, no piso de 1 dia, a página é reduzida). Itens já gravados
+    permanecem. 429/5xx e o piso esgotado levantam ``ColetaItensInterrompida``.
     """
     log = on_log or (lambda _: None)
     fase = on_fase or (lambda _: None)
@@ -903,36 +1018,50 @@ def coletar_itens(
         for per_ini, per_fim in periodos
     ]
 
-    start_idx = 0
-    start_pagina = 1
-    if cursor_inicial is not None:
-        encontrado = False
-        for i, (unidade, per_ini, per_fim) in enumerate(janelas):
-            if (
-                unidade == cursor_inicial.unidade
-                and per_ini.isoformat() == cursor_inicial.periodo_ini
-                and per_fim.isoformat() == cursor_inicial.periodo_fim
-            ):
-                start_idx = i
-                start_pagina = cursor_inicial.pagina
-                encontrado = True
-                break
-        if encontrado:
+    janelas, start_idx, start_pagina, cursor_ignorado = _posicionar_cursor(
+        janelas, cursor_inicial
+    )
+    tamanho_adiantado: int | None = None
+    if cursor_inicial is not None and not cursor_ignorado:
+        janelas, start_idx, tamanho_adiantado = _adiantar_apos_timeout(
+            janelas, start_idx, cursor_inicial, falha_anterior
+        )
+        if tamanho_adiantado is not None:
+            start_pagina = 1
+    if cursor_inicial is not None and not cursor_ignorado:
+        log(
+            f"  Retomando itens do checkpoint: "
+            f"{mapa_unidades.get(cursor_inicial.unidade, cursor_inicial.unidade)} | "
+            f"{cursor_inicial.periodo_ini}–{cursor_inicial.periodo_fim} | "
+            f"página {cursor_inicial.pagina}"
+        )
+        if tamanho_adiantado is not None and start_idx < len(janelas):
+            seg_u, seg_ini, seg_fim = janelas[start_idx]
             log(
-                f"  Retomando itens do checkpoint: "
-                f"{mapa_unidades.get(cursor_inicial.unidade, cursor_inicial.unidade)} | "
-                f"{cursor_inicial.periodo_ini}–{cursor_inicial.periodo_fim} | "
-                f"página {cursor_inicial.pagina}"
+                "  Consulta que estourou tempo na execução anterior não será repetida. "
+                f"Seguindo em {mapa_unidades.get(seg_u, seg_u)} | {seg_ini}–{seg_fim} | página 1."
             )
-        else:
-            log(
-                "  Checkpoint de itens ignorado (escopo/janela não encontrada) — "
-                "reiniciando paginação."
-            )
+    elif cursor_inicial is not None:
+        log(
+            "  Checkpoint de itens ignorado (escopo/janela não encontrada) — "
+            "reiniciando paginação."
+        )
 
     vistos: set[str] = set()
     resultado: list[CompraItemContratacao] = []
     client = PncpItensClient(on_log=log)
+    falhas_seguidas = 0
+    limite_falhas = max(1, COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS)
+    aplicar_retomada = cursor_inicial is not None and not cursor_ignorado
+    tamanho_retomada = (
+        tamanho_adiantado
+        if tamanho_adiantado
+        else (
+            cursor_inicial.tamanho_pagina
+            if cursor_inicial and cursor_inicial.tamanho_pagina
+            else COMPRAS_PNCP_ITENS_PAGE_SIZE
+        )
+    )
 
     try:
         fase("coletando_itens")
@@ -946,19 +1075,27 @@ def coletar_itens(
                 f"(máx. {COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS} dias por consulta de itens)."
             )
 
-        for j_idx, (unidade, per_ini, per_fim) in enumerate(janelas):
-            if j_idx < start_idx:
-                continue
+        j_idx = start_idx
+        while j_idx < len(janelas):
+            unidade, per_ini, per_fim = janelas[j_idx]
             nome_u = mapa_unidades.get(unidade, unidade)
-            pagina = start_pagina if j_idx == start_idx else 1
+            if aplicar_retomada and j_idx == start_idx:
+                pagina = start_pagina
+                tamanho = max(1, tamanho_retomada)
+                aplicar_retomada = False
+            else:
+                pagina = 1
+                tamanho = COMPRAS_PNCP_ITENS_PAGE_SIZE
             # Garante entrada no loop ao retomar página > 1; a API atualiza total_paginas.
             total_paginas = max(pagina, 1)
+            avancar = True
             while pagina <= total_paginas:
                 cursor_atual = CursorItens(
                     unidade=unidade,
                     periodo_ini=per_ini.isoformat(),
                     periodo_fim=per_fim.isoformat(),
                     pagina=pagina,
+                    tamanho_pagina=tamanho,
                 )
                 if on_checkpoint:
                     on_checkpoint(cursor_atual)
@@ -970,24 +1107,61 @@ def coletar_itens(
                 try:
                     payload = client.consultar_pagina(
                         pagina=pagina,
-                        tamanho_pagina=COMPRAS_PNCP_ITENS_PAGE_SIZE,
+                        tamanho_pagina=tamanho,
                         unidade=unidade,
                         data_inicial=per_ini,
                         data_final=per_fim,
                     )
                 except RuntimeError as exc:
                     msg = str(exc)
-                    transitório = (
-                        "timeout" in msg.lower()
-                        or "HTTP 429" in msg
-                        or "HTTP 502" in msg
-                        or "HTTP 503" in msg
-                        or "HTTP 504" in msg
-                    )
-                    if transitório:
-                        raise ColetaItensInterrompida(msg, cursor=cursor_atual) from exc
-                    raise
+                    if not _erro_timeout(exc):
+                        transitório = (
+                            "HTTP 429" in msg
+                            or "HTTP 502" in msg
+                            or "HTTP 503" in msg
+                            or "HTTP 504" in msg
+                        )
+                        if transitório:
+                            raise ColetaItensInterrompida(msg, cursor=cursor_atual) from exc
+                        raise
 
+                    falhas_seguidas += 1
+                    dias = (per_fim - per_ini).days + 1
+                    partes = _partir_periodo(per_ini, per_fim)
+                    piso = _piso_pagina_itens()
+                    novo_tam = max(piso, tamanho // 2)
+                    if falhas_seguidas >= limite_falhas or (
+                        partes is None and novo_tam >= tamanho
+                    ):
+                        raise ColetaItensInterrompida(msg, cursor=cursor_atual) from exc
+
+                    client.reabrir()
+                    if partes is not None:
+                        (a_ini, a_fim), (b_ini, b_fim) = partes
+                        log(
+                            f"    ⚠ Timeout na janela {per_ini}–{per_fim} "
+                            f"({dias} dias, página {pagina}). "
+                            f"Dividindo em {a_ini}–{a_fim} e {b_ini}–{b_fim} "
+                            f"— itens já gravados permanecem."
+                        )
+                        janelas[j_idx : j_idx + 1] = [
+                            (unidade, a_ini, a_fim),
+                            (unidade, b_ini, b_fim),
+                        ]
+                        avancar = False
+                        break
+
+                    log(
+                        f"    ⚠ Timeout em {per_ini}–{per_fim}. "
+                        f"Página reduzida de {tamanho} para {novo_tam} "
+                        f"(reinício na página 1)."
+                    )
+                    tamanho = novo_tam
+                    pagina = 1
+                    total_paginas = 1
+                    continue
+
+                falhas_seguidas = 0
                 total_paginas = int(payload.get("totalPaginas") or 1)
                 registros = payload.get("resultado") or []
                 if not isinstance(registros, list):
@@ -1032,7 +1206,9 @@ def coletar_itens(
                     break
                 pagina += 1
                 time.sleep(COMPRAS_PNCP_REQUEST_DELAY_SEC)
-            time.sleep(DELAY_SEC / 2)
+            if avancar:
+                j_idx += 1
+                time.sleep(DELAY_SEC / 2)
     finally:
         client.close()
         fase("idle")

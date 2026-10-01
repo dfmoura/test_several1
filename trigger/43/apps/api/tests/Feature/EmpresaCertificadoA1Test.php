@@ -114,6 +114,7 @@ class EmpresaCertificadoA1Test extends TestCase
         $this->assertTrue($json['tem_senha']);
         $this->assertTrue($json['cnpj_bate_com_empresa']);
         $this->assertTrue($json['apto_operacao']);
+        $this->assertNull($json['aviso_cadeia']);
 
         $row = EmpresaCertificadoA1::query()->where('empresa_id', $this->empresa->id)->first();
         $this->assertNotNull($row);
@@ -130,6 +131,32 @@ class EmpresaCertificadoA1Test extends TestCase
         $this->assertArrayNotHasKey('pfx_cipher', $show);
         $this->assertArrayNotHasKey('senha', $show);
         $this->assertSame($json['fingerprint_sha256'], $show['fingerprint_sha256']);
+    }
+
+    public function test_upload_sem_autoridade_intermediaria_avisa_a_cadeia(): void
+    {
+        Sanctum::actingAs($this->admin);
+        $pfx = $this->pfxEmitidoSemCadeia($this->senha);
+
+        try {
+            $this->withHeader('X-Empresa-Id', (string) $this->empresa->id)
+                ->post(
+                    "/api/v1/empresas/{$this->empresa->id}/certificado-a1",
+                    [
+                        'arquivo' => new UploadedFile($pfx, 'sem-cadeia.pfx', 'application/x-pkcs12', null, true),
+                        'senha' => $this->senha,
+                    ],
+                    ['Accept' => 'application/json'],
+                )
+                ->assertCreated()
+                ->assertJsonPath('data.apto_operacao', true)
+                ->assertJsonPath(
+                    'data.aviso_cadeia',
+                    'O arquivo não inclui a autoridade intermediária. Exporte o A1 de novo com o caminho de certificação marcado e substitua neste cofre. Sem essa cadeia a SEFAZ recusa a emissão (certificado transmissor).',
+                );
+        } finally {
+            @unlink($pfx);
+        }
     }
 
     public function test_senha_errada_e_isolamento_entre_empresas(): void
@@ -372,5 +399,40 @@ class EmpresaCertificadoA1Test extends TestCase
         $this->assertFileExists($pfx);
 
         return $pfx;
+    }
+
+    private function pfxEmitidoSemCadeia(string $senha): string
+    {
+        $caKey = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        $leafKey = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        $this->assertNotFalse($caKey);
+        $this->assertNotFalse($leafKey);
+
+        $caCsr = openssl_csr_new(['commonName' => 'AC Teste'], $caKey, ['digest_alg' => 'sha256']);
+        $this->assertNotFalse($caCsr);
+        $ca = openssl_csr_sign($caCsr, null, $caKey, 30, ['digest_alg' => 'sha256']);
+        $this->assertNotFalse($ca);
+
+        $leafCsr = openssl_csr_new(
+            ['commonName' => 'Empresa A1 Teste:11.222.333/0001-81'],
+            $leafKey,
+            ['digest_alg' => 'sha256'],
+        );
+        $this->assertNotFalse($leafCsr);
+        $leaf = openssl_csr_sign($leafCsr, $ca, $caKey, 30, ['digest_alg' => 'sha256']);
+        $this->assertNotFalse($leaf);
+
+        $exported = '';
+        $this->assertTrue(openssl_pkcs12_export($leaf, $exported, $leafKey, $senha));
+        $path = sys_get_temp_dir().'/flexorc_a1_sem_cadeia_'.uniqid('', true).'.pfx';
+        file_put_contents($path, $exported);
+
+        return $path;
     }
 }

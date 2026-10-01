@@ -16,6 +16,9 @@ from app.compras.repository import (
 from app.compras_pncp import (
     ColetaItensInterrompida,
     CursorItens,
+    _adiantar_apos_timeout,
+    _partir_periodo,
+    _posicionar_cursor,
     coletar_itens,
 )
 from app.database import SessionLocal, init_db
@@ -74,7 +77,17 @@ def test_checkpoint_itens_persistencia_escopo():
         assert ck["status"] == "parcial"
         assert ck["escopo"] == escopo
         assert ck["cursor"]["pagina"] == 8
-        limpar_checkpoint_itens(db)
+        limpar_checkpoint_itens(
+            db,
+            escopo=escopo_itens(
+                data_inicial=date(2024, 1, 1),
+                data_final=date(2024, 12, 31),
+                unidades=["926922"],
+            ),
+        )
+        db.commit()
+        assert carregar_checkpoint_itens(db) is not None
+        limpar_checkpoint_itens(db, escopo=escopo)
         db.commit()
         assert carregar_checkpoint_itens(db) is None
     finally:
@@ -152,6 +165,7 @@ def test_coletar_itens_timeout_levanta_interrompida_com_cursor(monkeypatch):
         lambda: {"U1": "Unidade 1"},
     )
     monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS", 1)
     monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
     monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
 
@@ -176,3 +190,259 @@ def test_coletar_itens_timeout_levanta_interrompida_com_cursor(monkeypatch):
     assert ei.value.cursor.unidade == "U1"
     assert ei.value.cursor.pagina == 1
     assert ei.value.transiente is True
+
+
+def test_adiantar_apos_timeout_nao_repete_pagina_5_da_dmae():
+    """Checkpoint do incidente: página 5 já estourou. A próxima noite parte a janela."""
+    janelas = [("926287", date(2025, 9, 28), date(2025, 12, 26))]
+    cursor = CursorItens("926287", "2025-09-28", "2025-12-26", 5)
+    novas, idx, tamanho = _adiantar_apos_timeout(
+        janelas,
+        0,
+        cursor,
+        "API PNCP itens: timeout após 5 tentativa(s)",
+    )
+    assert idx == 0
+    assert tamanho == 100 or tamanho > 0
+    assert novas[0] == ("926287", date(2025, 9, 28), date(2025, 11, 11))
+    assert novas[1][0] == "926287"
+    assert novas[1][1] == date(2025, 11, 12)
+    intactas, _, tam_none = _adiantar_apos_timeout(janelas, 0, cursor, None)
+    assert intactas == janelas
+    assert tam_none is None
+
+
+def test_coletar_itens_nao_repete_janela_que_ja_estourou(monkeypatch):
+    monkeypatch.setattr(
+        "app.compras_pncp.obter_unidades_compradoras",
+        lambda: {"926287": "DMAE"},
+    )
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_PAGE_SIZE", 100)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
+    monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
+
+    chamadas: list[tuple[date, date, int]] = []
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def close(self):
+            pass
+
+        def reabrir(self):
+            pass
+
+        def consultar_pagina(self, *, data_inicial, data_final, pagina, **kwargs):
+            chamadas.append((data_inicial, data_final, pagina))
+            if (data_final - data_inicial).days + 1 > 50:
+                raise AssertionError("janela original de 90 dias não deve ser repetida")
+            return _payload_item(f"ITEM-{data_inicial.isoformat()}")
+
+    monkeypatch.setattr("app.compras_pncp.PncpItensClient", FakeClient)
+
+    itens = coletar_itens(
+        data_inicial=date(2025, 9, 28),
+        data_final=date(2025, 12, 26),
+        unidades=["926287"],
+        cursor_inicial=CursorItens("926287", "2025-09-28", "2025-12-26", 5),
+        falha_anterior="Coleta de itens incompleta: timeout após 5 tentativa(s)",
+    )
+    assert chamadas
+    assert all(pagina == 1 for _, _, pagina in chamadas)
+    assert all((fim - ini).days + 1 <= 50 for ini, fim, _ in chamadas)
+    assert len(itens) >= 1
+
+
+def test_partir_periodo_dmae_noventa_dias():
+    """Janela real do incidente: 2025-09-28–2025-12-26 (90 dias) parte ao meio."""
+    partes = _partir_periodo(date(2025, 9, 28), date(2025, 12, 26))
+    assert partes == (
+        (date(2025, 9, 28), date(2025, 11, 11)),
+        (date(2025, 11, 12), date(2025, 12, 26)),
+    )
+    assert _partir_periodo(date(2025, 11, 12), date(2025, 11, 12)) is None
+
+
+def test_posicionar_cursor_retoma_subjanela_e_preserva_o_resto():
+    janelas = [("926287", date(2025, 9, 28), date(2025, 12, 26))]
+    cursor = CursorItens(
+        unidade="926287",
+        periodo_ini="2025-09-28",
+        periodo_fim="2025-11-11",
+        pagina=1,
+        tamanho_pagina=50,
+    )
+    novas, idx, pagina, ignorado = _posicionar_cursor(janelas, cursor)
+    assert ignorado is False
+    assert (idx, pagina) == (0, 1)
+    assert novas == [
+        ("926287", date(2025, 9, 28), date(2025, 11, 11)),
+        ("926287", date(2025, 11, 12), date(2025, 12, 26)),
+    ]
+
+
+def _payload_item(chave: str) -> dict:
+    return {
+        "totalPaginas": 1,
+        "totalRegistros": 1,
+        "resultado": [
+            {
+                "idCompraItem": chave,
+                "idCompra": "C-1",
+                "numeroItem": 1,
+                "descricao": chave,
+            }
+        ],
+    }
+
+
+def test_coletar_itens_timeout_divide_janela_e_conclui(monkeypatch):
+    """A mesma página não é repetida até falhar a cadeia: a janela pesada é partida."""
+    monkeypatch.setattr(
+        "app.compras_pncp.obter_unidades_compradoras",
+        lambda: {"926287": "DMAE"},
+    )
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS", 3)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
+    monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
+
+    chamadas: list[tuple[date, date]] = []
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def close(self):
+            pass
+
+        def reabrir(self):
+            pass
+
+        def consultar_pagina(self, *, data_inicial, data_final, pagina, **kwargs):
+            chamadas.append((data_inicial, data_final))
+            if (data_final - data_inicial).days + 1 > 15:
+                raise RuntimeError("API PNCP itens: timeout após 2 tentativa(s)")
+            return _payload_item(f"ITEM-{data_inicial.isoformat()}-p{pagina}")
+
+    monkeypatch.setattr("app.compras_pncp.PncpItensClient", FakeClient)
+
+    itens = coletar_itens(
+        data_inicial=date(2025, 9, 28),
+        data_final=date(2025, 10, 17),
+        unidades=["926287"],
+    )
+    assert chamadas[0] == (date(2025, 9, 28), date(2025, 10, 17))
+    assert all((fim - ini).days + 1 <= 15 for ini, fim in chamadas[1:])
+    assert len(itens) >= 1
+
+
+def test_coletar_itens_terceira_falha_seguida_pausa_com_janela_menor(monkeypatch):
+    monkeypatch.setattr(
+        "app.compras_pncp.obter_unidades_compradoras",
+        lambda: {"U1": "Unidade 1"},
+    )
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS", 2)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
+    monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def close(self):
+            pass
+
+        def reabrir(self):
+            pass
+
+        def consultar_pagina(self, **kwargs):
+            raise RuntimeError("API PNCP itens: timeout após 2 tentativa(s)")
+
+    monkeypatch.setattr("app.compras_pncp.PncpItensClient", FakeClient)
+
+    with pytest.raises(ColetaItensInterrompida) as ei:
+        coletar_itens(
+            data_inicial=date(2025, 1, 1),
+            data_final=date(2025, 1, 20),
+            unidades=["U1"],
+        )
+    assert ei.value.cursor.periodo_ini == "2025-01-01"
+    assert ei.value.cursor.periodo_fim == "2025-01-10"
+    assert ei.value.cursor.pagina == 1
+
+
+def test_coletar_itens_timeout_em_um_dia_reduz_pagina(monkeypatch):
+    monkeypatch.setattr(
+        "app.compras_pncp.obter_unidades_compradoras",
+        lambda: {"U1": "Unidade 1"},
+    )
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_PAGE_SIZE", 100)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_PAGE_SIZE_MIN", 25)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_ITENS_MAX_FALHAS_SEGUIDAS", 3)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
+    monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
+
+    tamanhos: list[int] = []
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def close(self):
+            pass
+
+        def reabrir(self):
+            pass
+
+        def consultar_pagina(self, *, tamanho_pagina, **kwargs):
+            tamanhos.append(tamanho_pagina)
+            if tamanho_pagina > 25:
+                raise RuntimeError("API PNCP itens: timeout após 2 tentativa(s)")
+            return _payload_item("ITEM-DIA")
+
+    monkeypatch.setattr("app.compras_pncp.PncpItensClient", FakeClient)
+
+    itens = coletar_itens(
+        data_inicial=date(2025, 6, 1),
+        data_final=date(2025, 6, 1),
+        unidades=["U1"],
+    )
+    assert tamanhos[0] == 100
+    assert 25 in tamanhos
+    assert [i.id_compra_item for i in itens] == ["ITEM-DIA"]
+
+
+def test_http_429_nao_divide_janela(monkeypatch):
+    monkeypatch.setattr(
+        "app.compras_pncp.obter_unidades_compradoras",
+        lambda: {"U1": "Unidade 1"},
+    )
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_MAX_DIAS_PERIODO_ITENS", 365)
+    monkeypatch.setattr("app.compras_pncp.COMPRAS_PNCP_REQUEST_DELAY_SEC", 0)
+    monkeypatch.setattr("app.compras_pncp.DELAY_SEC", 0)
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        def close(self):
+            pass
+
+        def consultar_pagina(self, **kwargs):
+            raise RuntimeError("API PNCP itens HTTP 429: limite")
+
+    monkeypatch.setattr("app.compras_pncp.PncpItensClient", FakeClient)
+
+    with pytest.raises(ColetaItensInterrompida) as ei:
+        coletar_itens(
+            data_inicial=date(2025, 1, 1),
+            data_final=date(2025, 3, 31),
+            unidades=["U1"],
+        )
+    assert ei.value.cursor.periodo_ini == "2025-01-01"
+    assert ei.value.cursor.periodo_fim == "2025-03-31"

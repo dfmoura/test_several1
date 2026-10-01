@@ -2,6 +2,7 @@
 
 namespace App\Services\Fiscal\Sefaz;
 
+use App\Services\Cadastros\EmpresaCertificadoA1Tls;
 use RuntimeException;
 
 /**
@@ -25,19 +26,16 @@ final class SefazNfeSoapClient
             throw new RuntimeException('Falha ao iniciar HTTP para SEFAZ NF-e.');
         }
 
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/soap+xml; charset=utf-8; action="'.$soapAction.'"',
             ],
             CURLOPT_POSTFIELDS => $body,
-            CURLOPT_SSLCERT => $cert['path'],
-            CURLOPT_SSLCERTPASSWD => $cert['senha'],
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($cert['path'], $cert['senha'])));
 
         $resp = curl_exec($ch);
         $errno = curl_errno($ch);

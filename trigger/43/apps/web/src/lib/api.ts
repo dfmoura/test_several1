@@ -772,6 +772,7 @@ export type EmpresaCertificadoA1 = {
   tem_senha?: boolean;
   aviso?: string;
   aviso_cofre?: string;
+  aviso_cadeia?: string | null;
   message?: string;
 };
 

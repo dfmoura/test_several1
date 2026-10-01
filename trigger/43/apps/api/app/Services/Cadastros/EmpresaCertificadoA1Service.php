@@ -20,6 +20,8 @@ class EmpresaCertificadoA1Service
 
     public const EXTENSOES = ['pfx', 'p12'];
 
+    public const AVISO_CADEIA = 'O arquivo não inclui a autoridade intermediária. Exporte o A1 de novo com o caminho de certificação marcado e substitua neste cofre. Sem essa cadeia a SEFAZ recusa a emissão (certificado transmissor).';
+
     public function __construct(
         private readonly EmpresaCertificadoCrypto $crypto,
         private readonly AuditLogger $audit,
@@ -556,6 +558,24 @@ class EmpresaCertificadoA1Service
         return 'O CNPJ do certificado ('.$this->maskCnpj($cnpjCert).') difere do CNPJ da empresa ('.$this->maskCnpj($emp).'). Confira se o A1 é o correto para esta EMP.';
     }
 
+    private function avisoCadeiaDaLinha(EmpresaCertificadoA1 $row): ?string
+    {
+        if (! $row->pfx_cipher || ! $row->senha_cipher) {
+            return null;
+        }
+
+        try {
+            $bytes = $this->crypto->descriptografarBinario($row->pfx_cipher);
+            $senha = $this->crypto->descriptografarSenha($row->senha_cipher);
+            $resumo = (new EmpresaCertificadoA1Cadeia)->resumir($bytes, $senha);
+            unset($bytes, $senha);
+
+            return $resumo['incompleta'] ? self::AVISO_CADEIA : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     private function maskCnpj(string $digits): string
     {
         $d = preg_replace('/\D/', '', $digits) ?? '';
@@ -596,6 +616,7 @@ class EmpresaCertificadoA1Service
             'uploaded_by' => $row->uploaded_by,
             'tem_senha' => true,
             'aviso_cofre' => 'O arquivo e a senha ficam cifrados no servidor (APP_KEY). A API nunca devolve o PFX nem a senha. Emissão de NF-e/NFS-e continua pelo hub Focus quando configurado.',
+            'aviso_cadeia' => $this->avisoCadeiaDaLinha($row),
         ];
     }
 }

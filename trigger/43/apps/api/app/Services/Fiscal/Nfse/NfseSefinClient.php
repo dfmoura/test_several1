@@ -2,7 +2,7 @@
 
 namespace App\Services\Fiscal\Nfse;
 
-use App\Models\Empresa;
+use App\Services\Cadastros\EmpresaCertificadoA1Tls;
 use RuntimeException;
 
 /**
@@ -41,18 +41,15 @@ final class NfseSefinClient
         if ($ch === false) {
             throw new RuntimeException('Falha ao iniciar HTTP para a SEFIN.');
         }
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
             CURLOPT_POSTFIELDS => $json,
-            CURLOPT_SSLCERT => $cert['path'],
-            CURLOPT_SSLCERTPASSWD => $cert['senha'],
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($cert['path'], $cert['senha'])));
         $resp = curl_exec($ch);
         $errno = curl_errno($ch);
         $err = curl_error($ch);
@@ -101,18 +98,15 @@ final class NfseSefinClient
         if ($ch === false) {
             throw new RuntimeException('Falha ao iniciar HTTP para a SEFIN.');
         }
-        curl_setopt_array($ch, [
+        curl_setopt_array($ch, array_replace([
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
             CURLOPT_POSTFIELDS => $json,
-            CURLOPT_SSLCERT => $cert['path'],
-            CURLOPT_SSLCERTPASSWD => $cert['senha'],
-            CURLOPT_SSLCERTTYPE => 'P12',
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
-        ]);
+        ], EmpresaCertificadoA1Tls::opcoesCurl($cert['path'], $cert['senha'])));
         $resp = curl_exec($ch);
         $errno = curl_errno($ch);
         $err = curl_error($ch);

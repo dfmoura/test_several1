@@ -60,6 +60,15 @@ A1 reais (3DES/RC2) exigem o **provider legacy** do OpenSSL 3. Sem ele, `openssl
 - Superfície: a mesma (`Empresas` → guia Certificado A1). Sem endpoint paralelo, sem PFX em disco, sem CLI de upload.
 - CNPJ: extraído de CN, `serialNumber`, OU/O e DN completo (padrão ICP-Brasil).
 
+## Emenda — cadeia no mTLS (cStat 283)
+
+A rejeição **283** (certificado transmissor — cadeia de certificação) olha o certificado da conexão, não a assinatura do XML. No Linux da nuvem não há repositório do Windows para completar o caminho.
+
+- Na materialização, o cofre grava ao lado do PFX um PEM nesta ordem: **folha, intermediárias e a raiz que as emitiu**. O autorizador de MG recusa (cStat 283) se a raiz ficar de fora.
+- cURL de NF-e, DF-e, NFS-e (SEFIN) e caixa NFS-e usa esse PEM. A assinatura XML continua no PFX, só com o certificado da empresa.
+- Arquivo sem intermediária (e que não seja autoassinado) segue aceito no cofre. A ficha mostra `aviso_cadeia`: exportar de novo com o caminho de certificação. Não bloqueia identidade nem o gate de A1 apto.
+- Sem pacote de ACs embutido na imagem. A cadeia sai do próprio PKCS#12.
+
 ## Emenda — assinatura DF-e de entrada (caixa destinadas)
 
 Além da identidade, o mesmo cofre autentica:

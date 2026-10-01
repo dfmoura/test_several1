@@ -527,9 +527,9 @@ export function EmpresasPage() {
       setCertSenha('');
       if (certFileRef.current) certFileRef.current.value = '';
       setMessage(
-        res.data.aviso
-          ? `Certificado A1 armazenado no cofre. ${res.data.aviso}`
-          : 'Certificado A1 armazenado no cofre com proteção.',
+        ['Certificado A1 armazenado no cofre com proteção.', res.data.aviso, res.data.aviso_cadeia]
+          .filter(Boolean)
+          .join(' '),
       );
     } catch (err) {
       setError(fieldErrors(err));
@@ -1791,6 +1791,12 @@ export function EmpresasPage() {
                   </div>
                 )}
 
+                {cert?.aviso_cadeia ? (
+                  <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+                    {cert.aviso_cadeia}
+                  </div>
+                ) : null}
+
                 {cert?.aviso || cert?.aviso_cofre ? (
                   <p className="form-hint" style={{ marginBottom: '1rem' }}>
                     {cert.aviso ?? cert.aviso_cofre}
@@ -1817,7 +1823,11 @@ export function EmpresasPage() {
                             setError('');
                           }}
                         />
-                        <span className="form-hint">Máximo 2 MB. Só modelo A1 (arquivo).</span>
+                        <span className="form-hint">
+                          Máximo 2 MB. Só modelo A1 (arquivo). Na exportação, inclua o caminho de
+                          certificação — a SEFAZ recusa a NF-e se o arquivo vier só com o certificado
+                          da empresa.
+                        </span>
                       </div>
                       <div className="form-group">
                         <label htmlFor="empresa-a1-senha">Senha do certificado</label>

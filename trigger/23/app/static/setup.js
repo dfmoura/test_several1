@@ -576,7 +576,16 @@ function fmtAgData(iso) {
   }
 }
 
-function badgeAgOk(ok) {
+function coletaItensParciais(ultima) {
+  const compras = ultima?.detalhes?.etapas?.coleta?.resultado?.fontes?.compras;
+  if (compras && compras.itens_incompletos) return true;
+  return /itens parciais/i.test(ultima?.resumo || "");
+}
+
+function badgeAgOk(ok, ultima) {
+  if (ok === true && coletaItensParciais(ultima)) {
+    return '<span class="badge warn">Parcial</span>';
+  }
   if (ok === true) return '<span class="badge ok">OK</span>';
   if (ok === false) return '<span class="badge" style="background:#f8e8e4;color:#a33;border-color:#e4c7bf">Erro</span>';
   return '<span class="badge">—</span>';
@@ -637,7 +646,7 @@ function renderAgendamento(cfg) {
 
   if (ultima) {
     linhas.push(`<div class="ag-row"><span class="ag-label">Última execução</span><span class="ag-value">${
-      badgeAgOk(ultima.ok)
+      badgeAgOk(ultima.ok, ultima)
     } · ${esc(ultima.origem || "—")} · início ${esc(fmtAgData(ultima.iniciado_em))} · fim ${esc(fmtAgData(ultima.finalizado_em))}</span></div>`);
     if (ultima.resumo) {
       linhas.push(`<div class="ag-row"><span class="ag-label">Resumo</span><span class="ag-value">${esc(ultima.resumo)}</span></div>`);

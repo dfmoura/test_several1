@@ -408,6 +408,81 @@ def test_cadeia_roda_cnpjs_apos_coleta_ok(client):
         db.close()
 
 
+def test_cadeia_segue_quando_itens_ficam_parciais(client):
+    """Timeout de itens com checkpoint não pode impedir CNPJs e preços."""
+    client.put(
+        "/api/sistema/agendamento",
+        json={
+            "ativo": False,
+            "hora": 2,
+            "minuto": 0,
+            "incluir_coleta": True,
+            "incluir_cnpjs": True,
+        },
+    )
+
+    cnpj_chamado = {"n": 0}
+
+    def _coleta_parcial(**kwargs):
+        from app import coleta_hub as hub
+
+        hub.status["resultado"] = {
+            "ok": True,
+            "fontes": {
+                "compras": {
+                    "ok": True,
+                    "itens_incompletos": 1,
+                    "itens_erro": "checkpoint salvo · pág. 5",
+                }
+            },
+        }
+        hub.status["running"] = False
+        hub.status["fase"] = "idle"
+        hub.status["log"] = ["itens parciais"]
+
+    def _executar():
+        cnpj_chamado["n"] += 1
+        from app.compras import job_pendentes_cnpj as jp
+
+        jp.status["resultado"] = {
+            "ok": True,
+            "mensagem": "ok",
+            "total": 0,
+            "ok_count": 0,
+            "erros": 0,
+        }
+        jp.status["log"] = ["cnpj mock ok"]
+        jp.status["running"] = False
+
+    with patch("app.agendamento.coleta_hub.preparar_status"):
+        with patch(
+            "app.agendamento.coleta_hub.executar_coleta_unificada",
+            side_effect=_coleta_parcial,
+        ):
+            with patch("app.agendamento.iniciar_job_pendentes_cnpj", return_value={"status": "iniciada"}):
+                with patch("app.agendamento.executar_job_pendentes_cnpj", side_effect=_executar):
+                    agendamento.iniciar_cadeia(origem="manual")
+                    agendamento.executar_cadeia(origem="manual")
+
+    assert cnpj_chamado["n"] == 1
+    resultado = agendamento.status["resultado"]
+    assert resultado["ok"] is True
+    assert "itens parciais" in (resultado["resumo"] or "")
+
+    db = SessionLocal()
+    try:
+        from app.database import AgendamentoExecucao
+
+        ultima = db.scalars(
+            select(AgendamentoExecucao).order_by(AgendamentoExecucao.id.desc()).limit(1)
+        ).first()
+        assert ultima is not None
+        assert ultima.ok is True
+        assert ultima.origem == "manual"
+    finally:
+        db.close()
+
+
 def test_cadeia_roda_mercado_ia_apos_etapas_ok(client, monkeypatch):
     """Etapa final: preços de mercado só após coleta/CNPJs OK; item a item."""
     client.put(

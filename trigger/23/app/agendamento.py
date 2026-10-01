@@ -447,7 +447,15 @@ def executar_cadeia(*, origem: str = "manual") -> None:
                 _log(f"coleta · {linha}")
 
             if coleta_ok:
-                _log("Coleta concluída com sucesso")
+                compras = (resultado.get("fontes") or {}).get("compras") or {}
+                if compras.get("itens_incompletos"):
+                    aviso = compras.get("itens_erro") or "checkpoint de itens mantido"
+                    _log(
+                        "Coleta concluída com itens parciais — "
+                        f"etapas seguintes seguem. {aviso}"
+                    )
+                else:
+                    _log("Coleta concluída com sucesso")
             else:
                 erro = resultado.get("erro") or "Coleta falhou"
                 _log(f"Coleta falhou: {erro}")
@@ -518,7 +526,16 @@ def executar_cadeia(*, origem: str = "manual") -> None:
         ok_final = True
         partes = []
         if incluir_coleta:
-            partes.append("coleta OK")
+            compras_resumo = (
+                (detalhes.get("etapas", {}).get("coleta", {}).get("resultado") or {})
+                .get("fontes", {})
+                .get("compras")
+                or {}
+            )
+            if compras_resumo.get("itens_incompletos"):
+                partes.append("coleta com itens parciais")
+            else:
+                partes.append("coleta OK")
         if incluir_cnpjs:
             c = detalhes.get("etapas", {}).get("cnpjs", {}).get("resultado") or {}
             partes.append(

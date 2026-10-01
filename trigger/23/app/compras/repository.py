@@ -87,12 +87,24 @@ def salvar_checkpoint_itens(
     registrar_sync_meta(db, MODULO_ITENS_CURSOR, payload)
 
 
-def limpar_checkpoint_itens(db: Session) -> None:
+def limpar_checkpoint_itens(
+    db: Session, *, escopo: dict[str, Any] | None = None
+) -> None:
+    """Remove o cursor. Com ``escopo``, só apaga se for o deste período.
+
+    Uma coleta de outro ano não pode descartar o checkpoint de um ano ainda
+    incompleto (a cadeia percorre 2025 e 2026 na mesma noite).
+    """
     row = db.scalar(
         select(ComprasSyncMeta).where(ComprasSyncMeta.modulo == MODULO_ITENS_CURSOR)
     )
-    if row:
-        db.delete(row)
+    if not row:
+        return
+    if escopo is not None:
+        atual = carregar_checkpoint_itens(db)
+        if atual and atual.get("escopo") != escopo:
+            return
+    db.delete(row)
 
 
 def upsert_contratacao(db: Session, data: dict[str, Any]) -> tuple[CompraContratacao, bool]:
