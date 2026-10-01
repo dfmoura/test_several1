@@ -15,7 +15,7 @@ class SyncNfseEmpresaJob implements ShouldQueue
 
     public int $tries = 1;
 
-    public int $timeout = 120;
+    public int $timeout = 240;
 
     public function __construct(public readonly int $empresaId) {}
 

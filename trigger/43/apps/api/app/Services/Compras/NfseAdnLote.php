@@ -15,6 +15,21 @@ final class NfseAdnLote
      * @param  array<string, mixed>  $data
      * @return array{documentos: list<Documento>, max_nsu: ?string, vazio: bool}
      */
+    /**
+     * Produção restrita responde 404 com este status quando o CNPJ não tem DF-e.
+     * É caixa vazia, não falha de caminho.
+     */
+    public function vazioOficial(int $http, string $body): bool
+    {
+        if ($http !== 404) {
+            return false;
+        }
+        $json = json_decode($body, true);
+
+        return is_array($json)
+            && ($json['StatusProcessamento'] ?? '') === 'NENHUM_DOCUMENTO_LOCALIZADO';
+    }
+
     public function interpretar(array $data, string $ultimoNsu): array
     {
         $status = (string) ($data['StatusProcessamento'] ?? '');

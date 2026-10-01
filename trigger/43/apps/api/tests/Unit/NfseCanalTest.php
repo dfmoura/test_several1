@@ -18,9 +18,15 @@ class NfseCanalTest extends TestCase
         $this->assertSame('sefin', NfseCanal::emissao());
         $this->assertSame('adn', NfseCanal::caixa());
         $this->assertFalse(NfseCanal::producao());
+        $this->assertTrue(NfseCanal::adnProducao());
+
+        config(['erp.nfse.adn_ambiente' => 'restrita']);
+        $this->assertFalse(NfseCanal::adnProducao());
+        config(['erp.nfse.adn_ambiente' => '']);
 
         config(['erp.stage' => 'production']);
         $this->assertTrue(NfseCanal::producao());
+        $this->assertTrue(NfseCanal::adnProducao());
         $this->assertSame('sefin', NfseCanal::emissao());
     }
 

@@ -4,7 +4,8 @@ namespace App\Services\Fiscal\Nfse;
 
 /**
  * Canal oficial da NFS-e Nacional.
- * Local e homologação falam com a produção restrita. Produção fala com a produção.
+ * Emissão: local e homologação na SEFIN de produção restrita; produção na SEFIN de produção.
+ * Caixa: ADN de produção em todo stage operacional. A restrita não distribui as NFS-e já tomadas.
  * O stage testing não chama o fisco, salvo driver explícito fake.
  */
 final class NfseCanal
@@ -26,10 +27,20 @@ final class NfseCanal
         return in_array($stage, config('erp.nfse.stages_permitidos', []), true);
     }
 
-    /** Produção de verdade. Local e homologação ficam na produção restrita. */
+    /** Emissão na SEFIN de produção. Local e homologação ficam na produção restrita. */
     public static function producao(): bool
     {
         return in_array(self::stage(), ['production', 'prod', 'producao'], true);
+    }
+
+    /**
+     * Caixa no ADN de produção. NFSE_ADN_AMBIENTE=restrita devolve o sandbox.
+     */
+    public static function adnProducao(): bool
+    {
+        $forcado = strtolower(trim((string) config('erp.nfse.adn_ambiente', '')));
+
+        return ! in_array($forcado, ['restrita', 'homolog', 'homologacao'], true);
     }
 
     public static function numeroNaChave(string $chave): ?string

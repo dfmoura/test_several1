@@ -32,7 +32,7 @@ SAÍDA (prestador)
          sem SAIDA_VENDA
 
 ENTRADA (tomador)
-  Compras → Caixa de NFS-e (ADN, NSU, job)
+  Compras → Caixa de NFS-e (ADN de produção, NSU, job)
     → humano confere prestador, natureza, vencimento
     → NFS-e vinculadas + TIT PAGAR origem NFSE_TOMADA
     → organização do pagamento na carteira a pagar
@@ -43,7 +43,7 @@ ENTRADA (tomador)
 |---------|--------|
 | **Canal no ERP, por empresa** | O exemplo 22 é um CNPJ só. Aqui o A1 e o `empresa_id` já existem. |
 | **SEFIN, não hub** | A norma da NF-e tirou o hub do caminho vivo. NFS-e segue o mesmo critério. |
-| **Driver `off` por omissão** | Homologação atual não muda sozinha. Liga com `NFSE_DRIVER=sefin` e A1 apto. |
+| **Driver vazio** | Stage operacional usa SEFIN e ADN. `off` permanece planejado. `fake` é só ensaio. |
 | **Caixa separada da NF-e** | Chave 50 e ADN. Não mistura com `dfe_documentos` (chave 44). |
 | **Título sem estoque** | Serviço tomado não entra saldo. OC e `5.06` protegem mercadoria. |
 | **Natureza grupo 2 ou 3** | Custo ou despesa operacional, folha que aceita lançamento. Fora `5.06`, `3.05.06` e `3.01.05`. |
@@ -60,11 +60,11 @@ ENTRADA (tomador)
 
 | Stage | Emissão | Caixa ADN |
 |-------|---------|-----------|
-| `local` / `homolog` | SEFIN produção restrita + A1 | ADN produção restrita + A1 |
+| `local` / `homolog` | SEFIN produção restrita + A1 | ADN de produção + A1 |
 | testing | `off` permanece planejado; `fake` no ensaio automático | `off`; `fake` no teste |
-| `production` | SEFIN produção + A1 | ADN produção + A1 |
+| `production` | SEFIN produção + A1 | ADN de produção + A1 |
 
-URL de produção restrita e de produção não se misturam com o stage do app.
+A emissão local não usa a SEFIN de produção. A caixa usa o ADN de produção em qualquer stage operacional: a produção restrita responde que não há documento, e as NFS-e já tomadas pelo CNPJ só existem na produção. `NFSE_ADN_AMBIENTE=restrita` devolve a caixa ao sandbox.
 
 ## Proibido
 

@@ -49,6 +49,7 @@ final class NfseSefinClient
             CURLOPT_SSLCERT => $cert['path'],
             CURLOPT_SSLCERTPASSWD => $cert['senha'],
             CURLOPT_SSLCERTTYPE => 'P12',
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
         ]);

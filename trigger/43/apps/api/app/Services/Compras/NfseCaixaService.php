@@ -9,6 +9,7 @@ use App\Models\NfseTomada;
 use App\Models\Parceiro;
 use App\Services\Cadastros\EmpresaCertificadoA1Materializer;
 use App\Services\Cadastros\EmpresaCertificadoA1Service;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -48,7 +49,7 @@ final class NfseCaixaService
             });
         }
 
-        $rows = $query->orderByDesc('data_emissao')->orderByDesc('id')->limit(200)->get();
+        $rows = $query->orderByDesc('data_emissao')->orderByDesc('id')->limit(500)->get();
 
         return [
             'data' => $rows->map(fn (NfseTomada $n) => $this->linha($n))->all(),
@@ -207,31 +208,59 @@ final class NfseCaixaService
         $material = null;
         try {
             $material = $this->materializer->materializar($empresa);
-            $prod = \App\Services\Fiscal\Nfse\NfseCanal::producao();
-            $base = rtrim((string) ($prod ? config('erp.nfse.adn_production') : config('erp.nfse.adn_homolog')), '/');
-            $cnpj = preg_replace('/\D/', '', (string) $empresa->cnpj) ?: '';
-            $nsu = $estado->ultimo_nsu !== '' ? $estado->ultimo_nsu : '0';
-            $url = $base.'/contribuintes/DFe/'.$nsu.'?lote=true&cnpjConsulta='.$cnpj;
-            $raw = $this->get($url, ['path' => $material['path'], 'senha' => $material['senha']]);
-            $json = json_decode($raw, true);
-            if (! is_array($json)) {
-                throw new RuntimeException('ADN devolveu um corpo que não é JSON.');
-            }
-            $lote = $this->lote->interpretar($json, $nsu);
-            DB::transaction(function () use ($empresa, $lote) {
-                foreach ($lote['documentos'] as $doc) {
-                    $this->upsert($empresa, $doc);
+            $total = 0;
+            $rodadas = 0;
+            $teto = 15;
+            while ($rodadas < $teto) {
+                $rodadas++;
+                $antes = (string) $estado->ultimo_nsu;
+                $qtd = $this->buscarLote($empresa, $estado, $material);
+                $total += $qtd;
+                if ($qtd === 0 || (string) $estado->ultimo_nsu === $antes) {
+                    break;
                 }
-            });
-            if ($lote['max_nsu'] !== null) {
-                $estado->ultimo_nsu = $lote['max_nsu'];
-                $estado->max_nsu = $lote['max_nsu'];
             }
-            $qtd = count($lote['documentos']);
-            $this->encerrar($estado, 'IDLE', $qtd === 0 ? 'Nenhum documento novo no ADN.' : $qtd.' documento(s) na caixa.');
+            $msg = $total === 0
+                ? 'Nenhum documento novo no ADN de produção.'
+                : $total.' documento(s) no ADN de produção.';
+            if ($rodadas >= $teto && $total > 0) {
+                $msg .= ' Atualize de novo para continuar.';
+            }
+            $this->encerrar($estado, 'IDLE', $msg);
         } finally {
             $this->materializer->liberar($material);
         }
+    }
+
+    /**
+     * @param  array{path: string, senha: string, row_id: int}  $material
+     */
+    private function buscarLote(Empresa $empresa, NfseSyncEstado $estado, array $material): int
+    {
+        $base = rtrim((string) (\App\Services\Fiscal\Nfse\NfseCanal::adnProducao()
+            ? config('erp.nfse.adn_production')
+            : config('erp.nfse.adn_homolog')), '/');
+        $cnpj = preg_replace('/\D/', '', (string) $empresa->cnpj) ?: '';
+        $nsu = $estado->ultimo_nsu !== '' ? $estado->ultimo_nsu : '0';
+        $url = $base.'/contribuintes/DFe/'.$nsu.'?lote=true&cnpjConsulta='.$cnpj;
+        $raw = $this->get($url, ['path' => $material['path'], 'senha' => $material['senha']]);
+        $json = json_decode($raw, true);
+        if (! is_array($json)) {
+            throw new RuntimeException('ADN devolveu um corpo que não é JSON.');
+        }
+        $lote = $this->lote->interpretar($json, $nsu);
+        DB::transaction(function () use ($empresa, $lote) {
+            foreach ($lote['documentos'] as $doc) {
+                $this->upsert($empresa, $doc);
+            }
+        });
+        if ($lote['max_nsu'] !== null) {
+            $estado->ultimo_nsu = $lote['max_nsu'];
+            $estado->max_nsu = $lote['max_nsu'];
+            $estado->save();
+        }
+
+        return count($lote['documentos']);
     }
 
     /**
@@ -249,19 +278,25 @@ final class NfseCaixaService
         if ($existente !== null) {
             return;
         }
-        NfseTomada::query()->create([
-            'empresa_id' => $empresa->id,
-            'nsu' => $doc['nsu'],
-            'tipo_documento' => $tipo,
-            'chave' => $chave,
-            'numero' => $resumo['numero'],
-            'data_emissao' => $resumo['data_emissao'],
-            'emit_cnpj' => $resumo['emit_cnpj'],
-            'emit_nome' => $resumo['emit_nome'],
-            'valor_total' => $resumo['valor_total'],
-            'situacao' => $tipo === 'EVENTO' ? NfseTomada::SITUACAO_EVENTO : NfseTomada::SITUACAO_CAIXA,
-            'xml' => $doc['xml'],
-        ]);
+        try {
+            NfseTomada::query()->create([
+                'empresa_id' => $empresa->id,
+                'nsu' => $doc['nsu'],
+                'tipo_documento' => $tipo,
+                'chave' => $chave,
+                'numero' => $resumo['numero'],
+                'data_emissao' => $resumo['data_emissao'],
+                'emit_cnpj' => $resumo['emit_cnpj'],
+                'emit_nome' => $resumo['emit_nome'],
+                'valor_total' => $resumo['valor_total'],
+                'situacao' => $tipo === 'EVENTO' ? NfseTomada::SITUACAO_EVENTO : NfseTomada::SITUACAO_CAIXA,
+                'xml' => $doc['xml'],
+            ]);
+        } catch (QueryException $e) {
+            if (! str_contains($e->getMessage(), '1062')) {
+                throw $e;
+            }
+        }
     }
 
     /**
@@ -281,6 +316,7 @@ final class NfseCaixaService
             CURLOPT_SSLCERT => $cert['path'],
             CURLOPT_SSLCERTPASSWD => $cert['senha'],
             CURLOPT_SSLCERTTYPE => 'P12',
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_CONNECTTIMEOUT => min(20, $timeout),
         ]);
@@ -292,11 +328,28 @@ final class NfseCaixaService
         if ($errno !== 0 || ! is_string($resp)) {
             throw new RuntimeException('Falha de rede no ADN: '.($err !== '' ? $err : 'resposta vazia'));
         }
-        if ($http >= 400) {
-            throw new RuntimeException('ADN HTTP '.$http.'.');
+        if ($http >= 400 && ! $this->lote->vazioOficial($http, $resp)) {
+            throw new RuntimeException($this->mensagemHttp($http, $resp));
         }
 
         return $resp;
+    }
+
+    private function mensagemHttp(int $http, string $body): string
+    {
+        $json = json_decode($body, true);
+        $desc = '';
+        if (is_array($json)) {
+            $erros = $json['Erros'] ?? [];
+            if (is_array($erros) && isset($erros[0]) && is_array($erros[0])) {
+                $desc = trim((string) ($erros[0]['Descricao'] ?? ''));
+            }
+        }
+        if ($desc === '') {
+            $desc = trim(preg_replace('/\s+/', ' ', strip_tags($body)) ?? '');
+        }
+
+        return 'ADN HTTP '.$http.($desc !== '' ? ': '.mb_substr($desc, 0, 180) : '.');
     }
 
     private function encerrar(NfseSyncEstado $estado, string $status, string $mensagem): void

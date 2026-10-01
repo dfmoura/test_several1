@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { api } from '../lib/api';
@@ -29,6 +29,7 @@ export function ComprasNfseCaixaPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
+  const pollRef = useRef<number | null>(null);
 
   const load = async (search?: string) => {
     setLoading(true);
@@ -52,7 +53,25 @@ export function ComprasNfseCaixaPage() {
 
   useEffect(() => {
     void load();
+    return () => {
+      if (pollRef.current != null) window.clearInterval(pollRef.current);
+    };
   }, []);
+
+  useEffect(() => {
+    if (sync?.sync_status !== 'RUNNING') {
+      if (pollRef.current != null) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      setSincronizando(false);
+      return;
+    }
+    if (pollRef.current != null) return;
+    pollRef.current = window.setInterval(() => {
+      void load(q);
+    }, 2500);
+  }, [sync?.sync_status, q]);
 
   const handleSearch = (ev: FormEvent) => {
     ev.preventDefault();
@@ -123,7 +142,7 @@ export function ComprasNfseCaixaPage() {
             <div className="loading">Carregando…</div>
           ) : rows.length === 0 ? (
             <div className="empty-state">
-              Nenhuma NFS-e aguardando conferência. Atualizar do fisco consulta o ADN nacional
+              Nenhuma NFS-e aguardando conferência. Atualizar do fisco consulta o ADN de produção
               com o certificado A1. O pagamento só nasce quando você confirma a nota.
             </div>
           ) : (

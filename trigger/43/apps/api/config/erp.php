@@ -370,9 +370,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | Norma: docs/ADR_NFSE_NACIONAL_E_CAIXA.md
-    | Vazio = canal oficial: SEFIN na saída e ADN na caixa, com A1.
-    | Local e homologação usam a produção restrita. Produção usa a produção.
-    | off = permanece planejado. fake = ensaio automático, sem fisco.
+    | Vazio = canal oficial, com A1.
+    | Emissão: local e homologação na SEFIN de produção restrita; produção na SEFIN de produção.
+    | Caixa: ADN de produção. A restrita não tem as NFS-e já tomadas pelo CNPJ.
+    | NFSE_ADN_AMBIENTE=restrita força o sandbox da caixa. off = planejado. fake = ensaio.
     |
     */
 
@@ -383,6 +384,7 @@ return [
         'timeout_sec' => (float) env('NFSE_HTTP_TIMEOUT_SEC', 60),
         'sefin_homolog' => env('NFSE_SEFIN_HOMOLOG', 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional'),
         'sefin_production' => env('NFSE_SEFIN_PRODUCTION', 'https://sefin.nfse.gov.br/SefinNacional'),
+        'adn_ambiente' => env('NFSE_ADN_AMBIENTE', ''), // vazio = produção; restrita = sandbox
         'adn_homolog' => env('NFSE_ADN_HOMOLOG', 'https://adn.producaorestrita.nfse.gov.br'),
         'adn_production' => env('NFSE_ADN_PRODUCTION', 'https://adn.nfse.gov.br'),
     ],
