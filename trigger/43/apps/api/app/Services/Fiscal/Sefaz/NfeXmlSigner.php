@@ -34,6 +34,16 @@ final class NfeXmlSigner
     }
 
     /**
+     * DPS da NFS-e Nacional — mesmo XML-DSig enveloped do A1.
+     *
+     * @param  array{path: string, senha: string}  $cert
+     */
+    public function assinarInfDps(string $xml, array $cert): string
+    {
+        return $this->assinar($xml, 'infDPS', $cert);
+    }
+
+    /**
      * @param  array{path: string, senha: string}  $cert
      */
     private function assinar(string $xml, string $tagId, array $cert): string

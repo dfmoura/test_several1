@@ -36,6 +36,8 @@ class DocumentoFiscalSaida extends Model
 
     public const ORIGEM_SEFAZ = 'SEFAZ';
 
+    public const ORIGEM_SEFIN = 'SEFIN';
+
     public const ORIGEM_STUB = 'STUB';
 
     /** @var list<string> */

@@ -366,6 +366,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | NFS-e Nacional — SEFIN (saída) e ADN (caixa tomada)
+    |--------------------------------------------------------------------------
+    |
+    | Norma: docs/ADR_NFSE_NACIONAL_E_CAIXA.md
+    | driver off = documento de serviço permanece PLANEJADO (comportamento atual).
+    | sefin/adn só em homolog/produção com A1 apto. fake = testes, sem fisco.
+    |
+    */
+
+    'nfse' => [
+        'driver' => env('NFSE_DRIVER', 'off'), // off | fake | sefin
+        'caixa_driver' => env('NFSE_CAIXA_DRIVER', 'off'), // off | fake | adn
+        'stages_permitidos' => ['homolog', 'production'],
+        'timeout_sec' => (float) env('NFSE_HTTP_TIMEOUT_SEC', 60),
+        'sefin_homolog' => env('NFSE_SEFIN_HOMOLOG', 'https://sefin.producaorestrita.nfse.gov.br/SefinNacional'),
+        'sefin_production' => env('NFSE_SEFIN_PRODUCTION', 'https://sefin.nfse.gov.br/SefinNacional'),
+        'adn_homolog' => env('NFSE_ADN_HOMOLOG', 'https://adn.producaorestrita.nfse.gov.br'),
+        'adn_production' => env('NFSE_ADN_PRODUCTION', 'https://adn.nfse.gov.br'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | OpenRouteService (distância de carro EMP → PAR)
     |--------------------------------------------------------------------------
     |

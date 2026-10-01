@@ -388,6 +388,17 @@ final class ImplantacaoCatalogo
                 'paralelo' => true,
             ],
             [
+                'codigo' => 'F5_NFSE_CX',
+                'nome' => 'Caixa de NFS-e (serviço tomado)',
+                'porque' => 'NFS-e emitidas contra o CNPJ da EMP (ADN). Conferência humana gera contas a pagar — sem estoque e sem ordem de compra.',
+                'onda' => 5,
+                'superficie' => self::SUPERFICIE_ERP,
+                'elo' => false,
+                'rota' => '/compras/nfse-tomadas',
+                'evidencia' => null,
+                'paralelo' => true,
+            ],
+            [
                 'codigo' => 'F5_LAYOUT',
                 'nome' => 'Posições de estoque',
                 'porque' => 'Onde cada material fica (layout).',

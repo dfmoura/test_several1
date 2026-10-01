@@ -84,7 +84,7 @@ Após cancel SEFAZ autorizado, o estorno **comercial** do FAT volta a ser permit
 
 ## Fora de escopo
 
-- NFS-e Nacional / municipal  
+- NFS-e Nacional — ver `ADR_NFSE_NACIONAL_E_CAIXA.md` (não passa por esta ADR de NF-e)  
 - Inutilização de numeração  
 - Contingência FS/EPEC  
 - Remoção física de Focus  

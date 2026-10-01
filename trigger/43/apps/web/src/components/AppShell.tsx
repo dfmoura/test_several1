@@ -197,6 +197,23 @@ const NAV_GROUPS: NavGroup[] = [
           pathname === '/compras/nfe-recebidas' || pathname.startsWith('/compras/nfe-recebidas/'),
       },
       {
+        to: '/compras/nfse-tomadas',
+        label: 'Caixa de NFS-e',
+        icon: IconCompras,
+        permission: 'compras.ler',
+        title: 'Serviços tomados contra o CNPJ — aguardam conferência para o contas a pagar',
+        isActivePath: (pathname) =>
+          pathname === '/compras/nfse-tomadas' || pathname.startsWith('/compras/nfse-tomadas/'),
+      },
+      {
+        to: '/compras/nfse-vinculadas',
+        label: 'NFS-e vinculadas',
+        icon: IconCompras,
+        permission: 'compras.ler',
+        title: 'Espelho das NFS-e já conferidas, com título a pagar',
+        isActivePath: (pathname) => pathname === '/compras/nfse-vinculadas',
+      },
+      {
         to: '/compras/reposicao',
         label: 'A repor',
         icon: IconCompras,

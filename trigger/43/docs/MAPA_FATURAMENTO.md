@@ -407,7 +407,7 @@ Caminho escolhido (BL-100+): **NF-e direta SEFAZ + A1** (`ADR_EMISSAO_NFE_SEFAZ_
 
 1. **`DEV-` ponta a ponta** — fiscal + estoque + financeiro + COM; pode vir de RMA.  
 2. **Faturamento parcial (UC-FIS-004)** — N FAT/NF no mesmo `pedido_id`.  
-3. **NFS-e Nacional** — ADR própria (sem Focus “de passagem”).  
+3. **NFS-e Nacional** — canal SEFIN/ADN em `ADR_NFSE_NACIONAL_E_CAIXA.md` (`NFSE_DRIVER` / `NFSE_CAIXA_DRIVER`; omissão mantém a nota planejada). Cancelamento e101101 ainda fora.  
 4. **Frete receita no FAT (`1.01.05`)** e NAT própria do ferramental (`1.01.04`).  
 5. **MSG- (WhatsApp oficial)** da NF/boleto.  
 6. **Juros / desconto / perda com alçada** e estorno de BX com efeito em COM-/PED.  

@@ -15,11 +15,24 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-118`
+`BL-119`
 
 ---
 
 ## Itens
+
+### BL-118 · [fiscal] NFS-e Nacional — emissão SEFIN e caixa tomada
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-10-01 — serviço vendido na SEFIN; serviço tomado vira contas a pagar
+- **Depende de:** `ADR_NFSE_NACIONAL_E_CAIXA.md` · `ADR_OPERACOES_SAIDA.md` · `ADR_CAIXA_DFE_NFE_DESTINADAS.md`
+- **Decisão (fechada):**
+  1. Saída no DFS já planejado. `NFSE_DRIVER=off` preserva o plano. `sefin` + A1 em homolog/prod. `fake` só ensaio.
+  2. Caixa ADN separada da NF-e. Conferência gera TIT PAGAR `NFSE_TOMADA`. Sem estoque e sem OC.
+- **Aceite:**
+  - [x] PHPUnit `test_servico_fica_planejado_sem_emissao_nfse` + `test_nfse_fake_autoriza_sem_baixar_estoque`
+  - [x] PHPUnit `NfseCaixaTest`
+- **Fora de escopo:** evento e101101 · NFS-e municipal · DANFSe PDF
 
 ### BL-117 · [orc/ped] Item de revenda (SKU REV, sem OP)
 - **Status:** Feito

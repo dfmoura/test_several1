@@ -75,6 +75,7 @@ class Titulo extends Model
         'orcamento_id',
         'pedido_id',
         'faturamento_id',
+        'nfse_tomada_id',
         'origem',
         'documento',
         'parcela',

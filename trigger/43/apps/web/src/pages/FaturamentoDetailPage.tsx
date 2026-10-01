@@ -545,7 +545,9 @@ export function FaturamentoDetailPage() {
                   <p className="muted" style={{ marginTop: 0 }}>
                     NF-e (produto) via certificado A1 da empresa na SEFAZ. Numeração no ERP; chave e
                     protocolo vêm do fisco. Em ambiente local pode autorizar só para teste (sem valor
-                    fiscal). NFS-e de serviço permanece planejada nesta fatia.
+                    fiscal). NFS-e de serviço usa o mesmo faturamento. Neste ambiente local a
+                    autorização é de teste, sem valor fiscal. Em homologação ou produção, a SEFIN
+                    autoriza com o certificado A1.
                     {fatTemNfeParaEventoSefaz(fat)
                       ? ' Com NF autorizada: use Cancelar NF-e ou Carta de correção nesta seção.'
                       : ''}

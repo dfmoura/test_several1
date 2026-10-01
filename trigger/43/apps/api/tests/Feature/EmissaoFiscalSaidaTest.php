@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\DocumentoFiscalSaida;
+use App\Models\EstoqueMovimento;
 use App\Models\Empresa;
 use App\Models\EmpresaContaFinanceira;
 use App\Models\Faturamento;
@@ -323,6 +324,47 @@ class EmissaoFiscalSaidaTest extends TestCase
         $this->assertNotNull($ok->json('data.documentos_fiscais.0.chave'));
         $this->assertNotNull($ok->json('data.documentos_fiscais.0.numero'));
         $this->assertSame(1, DocumentoFiscalSaida::query()->count());
+    }
+
+    public function test_stub_local_autoriza_nfse_sem_valor_fiscal(): void
+    {
+        config([
+            'erp.fiscal_emissor' => 'stub',
+            'erp.stage' => 'local',
+            'erp.nfe.driver' => 'sefaz',
+            'erp.nfse.driver' => 'off',
+        ]);
+
+        $ped = $this->criarPedidoProduzido([
+            'necessidade' => PedidoItem::NEC_SERVICO,
+            'familia_fiscal' => 'SVC',
+            'descricao' => 'Serviço de impressão',
+        ]);
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('STUB', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertFalse($ok->json('data.documentos_fiscais.0.previa.oficial'));
+        $this->assertSame(0, EstoqueMovimento::query()->count());
+    }
+
+    public function test_nfse_fake_autoriza_sem_baixar_estoque(): void
+    {
+        config(['erp.nfse.driver' => 'fake']);
+
+        $ped = $this->criarPedidoProduzido([
+            'necessidade' => PedidoItem::NEC_SERVICO,
+            'familia_fiscal' => 'SVC',
+            'descricao' => 'Serviço de impressão',
+        ]);
+        $ok = $this->withHeaders($this->h())->postJson("/api/v1/pedidos/{$ped->id}/faturar");
+        $ok->assertCreated();
+        $this->assertSame('NFSE', $ok->json('data.documentos_fiscais.0.tipo'));
+        $this->assertSame('AUTORIZADO', $ok->json('data.documentos_fiscais.0.status'));
+        $this->assertSame('SEFIN', $ok->json('data.documentos_fiscais.0.autorizacao_origem'));
+        $this->assertSame(50, strlen((string) $ok->json('data.documentos_fiscais.0.chave')));
+        $this->assertSame(0, EstoqueMovimento::query()->count());
+        $this->assertStringContainsString('sem valor fiscal', (string) $ok->json('data.documentos_fiscais.0.mensagem'));
     }
 
     public function test_servico_fica_planejado_sem_emissao_nfse(): void

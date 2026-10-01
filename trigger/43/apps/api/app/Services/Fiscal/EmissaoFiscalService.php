@@ -17,7 +17,7 @@ use Throwable;
 /**
  * Planeja e emite NF-e do FAT via SEFAZ + A1 (ADR_EMISSAO_NFE_SEFAZ_DIRETO).
  * HTTP só depois do FAT commit. Numeração no ERP. Focus legado não é chamado.
- * Local: stub se permitido. NFS-e permanece planejada nesta fatia.
+ * Local: stub se permitido na NF-e. NFS-e segue ADR_NFSE_NACIONAL_E_CAIXA (driver off permanece planejada).
  */
 class EmissaoFiscalService
 {
@@ -32,6 +32,7 @@ class EmissaoFiscalService
         private readonly EstoqueSaidaVendaService $saidaVenda,
         private readonly \App\Services\Fiscal\Sefaz\NfeAutorizacaoService $nfeSefaz,
         private readonly \App\Services\Fiscal\Sefaz\NfeEventoService $nfeEventos,
+        private readonly \App\Services\Fiscal\Nfse\NfseEmissaoService $nfse,
     ) {}
 
     public function checklist(): EmissaoFiscalChecklist
@@ -129,8 +130,19 @@ class EmissaoFiscalService
                 continue;
             }
             if ($doc->tipo === DocumentoFiscalSaida::TIPO_NFSE) {
-                $doc->mensagem = 'Emissão de NFS-e ainda não disponível nesta fatia.';
-                $doc->save();
+                if ($this->nfse->driver() === 'off' && $stubAtivo) {
+                    $cadastro = $check['pendencias_cadastro'] ?? [];
+                    if ($cadastro !== []) {
+                        $doc->mensagem = implode(' ', $cadastro);
+                        $doc->save();
+
+                        continue;
+                    }
+                    $this->autorizarStub($empresa, $fat, $doc);
+
+                    continue;
+                }
+                $this->emitirNfse($empresa, $fat, $doc);
 
                 continue;
             }
@@ -360,6 +372,31 @@ class EmissaoFiscalService
         $this->enviarDocumentoSefaz($empresa, $fat, $doc);
     }
 
+    private function emitirNfse(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc): void
+    {
+        try {
+            $resultado = $this->nfse->emitir($empresa, $fat, $doc);
+        } catch (Throwable $e) {
+            $doc->status = DocumentoFiscalSaida::STATUS_ERRO;
+            $doc->mensagem = mb_substr($e->getMessage(), 0, 500);
+            $doc->fiscal_hub_id = null;
+            $doc->save();
+            Log::warning('Emissão NFS-e falhou', [
+                'faturamento_id' => $fat->id,
+                'documento_id' => $doc->id,
+                'erro' => $e->getMessage(),
+            ]);
+
+            return;
+        }
+
+        if ($resultado === null) {
+            return;
+        }
+
+        $this->aplicarResultado($doc->fresh() ?? $doc, $resultado, null, $empresa, $fat);
+    }
+
     private function enviarDocumentoSefaz(Empresa $empresa, Faturamento $fat, DocumentoFiscalSaida $doc): void
     {
         $parceiro = $fat->parceiro ?? $fat->pedido?->parceiro;
@@ -451,6 +488,9 @@ class EmissaoFiscalService
         if ($origem === DocumentoFiscalSaida::ORIGEM_STUB) {
             $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_STUB;
             $doc->ambiente = 'local';
+            $doc->fiscal_hub_id = null;
+        } elseif ($origem === DocumentoFiscalSaida::ORIGEM_SEFIN) {
+            $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_SEFIN;
             $doc->fiscal_hub_id = null;
         } elseif ($focus === 'autorizado' || $origem === DocumentoFiscalSaida::ORIGEM_SEFAZ || $origem === 'SEFAZ') {
             $doc->autorizacao_origem = DocumentoFiscalSaida::ORIGEM_SEFAZ;

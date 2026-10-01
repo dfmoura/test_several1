@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\CondicaoPagamentoSugestaoController;
 use App\Http\Controllers\Api\V1\CalendarioController;
 use App\Http\Controllers\Api\V1\DepartamentoController;
 use App\Http\Controllers\Api\V1\DfeCaixaController;
+use App\Http\Controllers\Api\V1\NfseCaixaController;
 use App\Http\Controllers\Api\V1\NfeEntradaController;
 use App\Http\Controllers\Api\V1\FeriadoController;
 use App\Http\Controllers\Api\V1\CotacaoController;
@@ -292,6 +293,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/dfe-sync', [DfeCaixaController::class, 'syncEstado']);
         Route::post('/dfe-sync', [DfeCaixaController::class, 'enfileirarSync']);
         Route::post('/ordens-compra/{ordemCompra}/receber/xml/preview-dfe', [DfeCaixaController::class, 'previewNaOc']);
+
+        // Caixa NFS-e tomada (ADN) — título a pagar na conferência, sem estoque
+        Route::get('/nfse-tomadas', [NfseCaixaController::class, 'index']);
+        Route::get('/nfse-tomadas/{nfseTomada}', [NfseCaixaController::class, 'show']);
+        Route::get('/nfse-tomadas/{nfseTomada}/xml', [NfseCaixaController::class, 'xml']);
+        Route::post('/nfse-tomadas/{nfseTomada}/lancar', [NfseCaixaController::class, 'lancar']);
+        Route::post('/nfse-tomadas/{nfseTomada}/desfazer', [NfseCaixaController::class, 'desfazer']);
+        Route::post('/nfse-tomadas/{nfseTomada}/sem-interesse', [NfseCaixaController::class, 'semInteresse']);
+        Route::get('/nfse-sync', [NfseCaixaController::class, 'syncEstado']);
+        Route::post('/nfse-sync', [NfseCaixaController::class, 'enfileirarSync']);
 
         // NF-e recebidas — espelho pós-receber (somente leitura; F5_NFE_ENT)
         Route::get('/nfe-entradas', [NfeEntradaController::class, 'index']);

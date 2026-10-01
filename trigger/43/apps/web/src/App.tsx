@@ -58,6 +58,9 @@ import { ComprasOrdensPage } from './pages/ComprasOrdensPage';
 import { ComprasNfeDestinadasPage } from './pages/ComprasNfeDestinadasPage';
 import { ComprasNfeRecebidaDetailPage } from './pages/ComprasNfeRecebidaDetailPage';
 import { ComprasNfeRecebidasPage } from './pages/ComprasNfeRecebidasPage';
+import { ComprasNfseCaixaPage } from './pages/ComprasNfseCaixaPage';
+import { ComprasNfseTomadaPage } from './pages/ComprasNfseTomadaPage';
+import { ComprasNfseVinculadasPage } from './pages/ComprasNfseVinculadasPage';
 import { ComprasReposicaoPage } from './pages/ComprasReposicaoPage';
 import { EstoqueAjustesPage } from './pages/EstoqueAjustesPage';
 import { EstoqueExtratoPage } from './pages/EstoqueExtratoPage';
@@ -370,6 +373,30 @@ export default function App() {
           element={
             <PermissionRoute permission="compras.ler">
               <ComprasNfeRecebidasPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="compras/nfse-tomadas"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfseCaixaPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="compras/nfse-tomadas/:id"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfseTomadaPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="compras/nfse-vinculadas"
+          element={
+            <PermissionRoute permission="compras.ler">
+              <ComprasNfseVinculadasPage />
             </PermissionRoute>
           }
         />
