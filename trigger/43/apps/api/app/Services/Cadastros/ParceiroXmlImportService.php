@@ -265,17 +265,40 @@ class ParceiroXmlImportService
         int $line,
         array $seenCnpj = [],
     ): array {
-        $warnings = [];
-        $errors = [];
-        $fieldSources = [];
-
         try {
             $extracted = $this->extractor->extract($xmlContent);
         } catch (Throwable $e) {
             return $this->errorRow($line, $fileName, [$e->getMessage()]);
         }
 
-        $emit = $extracted['emit'];
+        return $this->previewExtracted($empresa, $extracted, $fileName, $line, $seenCnpj);
+    }
+
+    /**
+     * Simula o cadastro a partir de um emitente já extraído.
+     * A NFS-e nacional não passa pelo extrator de NF-e modelo 55; o tipo padrão dela é Serviço.
+     *
+     * @param  array<string, mixed>  $extracted
+     * @param  array<string, int>  $seenCnpj
+     * @return array<string, mixed>
+     */
+    public function previewExtracted(
+        Empresa $empresa,
+        array $extracted,
+        string $fileName,
+        int $line = 1,
+        array $seenCnpj = [],
+        string $tipoFornecimento = 'MERCADORIA',
+    ): array {
+        $warnings = [];
+        $errors = [];
+        $fieldSources = [];
+        $tipoFornecimento = $this->tipoFornecimento($tipoFornecimento);
+
+        $emit = $extracted['emit'] ?? [];
+        if (! is_array($emit)) {
+            return $this->errorRow($line, $fileName, ['Emitente ausente no documento.']);
+        }
         $cnpj = $this->digitsOrNull($emit['cnpj_cpf'] ?? null);
         if ($cnpj === null || strlen($cnpj) !== 14) {
             return $this->errorRow($line, $fileName, [
@@ -309,7 +332,13 @@ class ParceiroXmlImportService
         }
 
         $xmlAddress = $this->pickAddress($emit);
-        $xmlPayload = $this->xmlToSeedPayload($emit, $extracted['cfop_entrada_sugerido'] ?? null);
+        $xmlPayload = $this->xmlToSeedPayload(
+            $emit,
+            isset($extracted['cfop_entrada_sugerido']) && is_string($extracted['cfop_entrada_sugerido'])
+                ? $extracted['cfop_entrada_sugerido']
+                : null,
+            $tipoFornecimento,
+        );
         foreach ($xmlPayload as $field => $_) {
             $fieldSources[$field] = 'xml';
         }
@@ -947,7 +976,7 @@ class ParceiroXmlImportService
      * @param  array<string, mixed>  $emit
      * @return array<string, mixed>
      */
-    private function xmlToSeedPayload(array $emit, ?string $cfop): array
+    private function xmlToSeedPayload(array $emit, ?string $cfop, string $tipoFornecimento = 'MERCADORIA'): array
     {
         $payload = [
             'cnpj_cpf' => $this->digitsOrNull($emit['cnpj_cpf'] ?? null),
@@ -966,7 +995,7 @@ class ParceiroXmlImportService
             'telefone' => $this->digitsOrNull($emit['telefone'] ?? null),
             'papel_fornecedor' => true,
             'emite_documento_fiscal' => true,
-            'tipo_fornecimento' => 'MERCADORIA',
+            'tipo_fornecimento' => $this->tipoFornecimento($tipoFornecimento),
             'situacao' => 'ATIVO',
         ];
 
@@ -983,6 +1012,13 @@ class ParceiroXmlImportService
             $payload,
             static fn ($v) => $v !== null && $v !== ''
         );
+    }
+
+    private function tipoFornecimento(string $tipo): string
+    {
+        return in_array($tipo, ['MERCADORIA', 'SERVICO', 'UTILIDADE', 'TRIBUTO'], true)
+            ? $tipo
+            : 'MERCADORIA';
     }
 
     /**

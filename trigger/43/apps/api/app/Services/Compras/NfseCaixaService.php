@@ -6,7 +6,6 @@ use App\Jobs\SyncNfseEmpresaJob;
 use App\Models\Empresa;
 use App\Models\NfseSyncEstado;
 use App\Models\NfseTomada;
-use App\Models\Parceiro;
 use App\Services\Cadastros\EmpresaCertificadoA1Materializer;
 use App\Services\Cadastros\EmpresaCertificadoA1Service;
 use Illuminate\Database\QueryException;
@@ -21,6 +20,7 @@ final class NfseCaixaService
     public function __construct(
         private readonly NfseAdnLote $lote,
         private readonly NfseTomadaXmlResumo $resumo,
+        private readonly NfsePrestadorCadastroService $prestador,
         private readonly EmpresaCertificadoA1Service $a1,
         private readonly EmpresaCertificadoA1Materializer $materializer,
     ) {}
@@ -35,24 +35,49 @@ final class NfseCaixaService
             $query->where('situacao', $situacao);
         }
         if ($ano !== null) {
-            $query->where(function ($w) use ($ano) {
-                $w->whereYear('data_emissao', $ano)->orWhereNull('data_emissao');
-            });
+            $query->whereYear('data_emissao', $ano);
         }
         if ($q !== null && trim($q) !== '') {
-            $like = '%'.trim($q).'%';
-            $query->where(function ($w) use ($like) {
+            $term = trim($q);
+            $like = '%'.$term.'%';
+            $digits = preg_replace('/\D/', '', $term) ?: '';
+            $query->where(function ($w) use ($like, $digits, $term) {
                 $w->where('chave', 'like', $like)
                     ->orWhere('emit_nome', 'like', $like)
                     ->orWhere('emit_cnpj', 'like', $like)
                     ->orWhere('numero', 'like', $like);
+                if ($digits !== '' && $digits !== $term) {
+                    $w->orWhere('emit_cnpj', 'like', '%'.$digits.'%');
+                }
             });
         }
 
-        $rows = $query->orderByDesc('data_emissao')->orderByDesc('id')->limit(500)->get();
+        $rows = $query
+            ->select([
+                'id',
+                'empresa_id',
+                'nsu',
+                'tipo_documento',
+                'chave',
+                'numero',
+                'data_emissao',
+                'emit_cnpj',
+                'emit_nome',
+                'valor_total',
+                'situacao',
+                'parceiro_id',
+                'vinculado_em',
+            ])
+            ->selectRaw("CASE WHEN xml IS NOT NULL AND TRIM(xml) <> '' THEN 1 ELSE 0 END AS tem_xml")
+            ->orderByDesc('data_emissao')
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get();
+
+        $mapa = $this->prestador->mapaPorCnpj($empresa, $rows->all());
 
         return [
-            'data' => $rows->map(fn (NfseTomada $n) => $this->linha($n))->all(),
+            'data' => $rows->map(fn (NfseTomada $n) => $this->comPrestador($n, $this->linha($n), $mapa))->all(),
             'meta' => ['total' => $rows->count()],
         ];
     }
@@ -63,9 +88,19 @@ final class NfseCaixaService
     public function show(Empresa $empresa, NfseTomada $nota): array
     {
         $nota->load(['parceiro', 'titulos']);
-        $linha = $this->linha($nota);
-        $linha['xml_disponivel'] = is_string($nota->xml) && $nota->xml !== '';
-        $linha['parceiro_sugerido'] = $this->sugerirParceiro($empresa, $nota);
+        $mapa = $this->prestador->mapaPorCnpj($empresa, [$nota]);
+        $linha = $this->comPrestador($nota, $this->linha($nota), $mapa);
+        $linha['xml_disponivel'] = $linha['tem_xml'];
+        $prestador = $linha['prestador'];
+        $linha['parceiro_sugerido'] = is_array($prestador)
+            && ($prestador['status'] ?? '') === NfsePrestadorCadastroService::STATUS_CADASTRADO
+            && ! empty($prestador['parceiro_id'])
+            ? [
+                'id' => $prestador['parceiro_id'],
+                'codigo' => $prestador['codigo'],
+                'razao_social' => $prestador['razao_social'],
+            ]
+            : null;
         $linha['titulos'] = $nota->titulos->map(fn ($t) => [
             'id' => $t->id,
             'codigo' => $t->codigo,
@@ -382,27 +417,16 @@ final class NfseCaixaService
     }
 
     /**
-     * @return array{id: int, codigo: string, razao_social: string}|null
+     * @param  array<string, mixed>  $linha
+     * @param  array<string, array{status: string, parceiro_id: ?int, codigo: ?string, razao_social: ?string}>  $mapa
+     * @return array<string, mixed>
      */
-    private function sugerirParceiro(Empresa $empresa, NfseTomada $nota): ?array
+    private function comPrestador(NfseTomada $nota, array $linha, array $mapa): array
     {
-        $cnpj = preg_replace('/\D/', '', (string) $nota->emit_cnpj) ?: '';
-        if (strlen($cnpj) !== 14) {
-            return null;
-        }
-        $par = Parceiro::query()
-            ->where('empresa_id', $empresa->id)
-            ->where('cnpj_cpf', $cnpj)
-            ->first();
-        if ($par === null) {
-            return null;
-        }
+        $linha['tem_xml'] = $this->prestador->temXml($nota);
+        $linha['prestador'] = $this->prestador->resolver($nota, $mapa);
 
-        return [
-            'id' => $par->id,
-            'codigo' => $par->codigo,
-            'razao_social' => $par->razao_social,
-        ];
+        return $linha;
     }
 
     /**

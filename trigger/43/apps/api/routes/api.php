@@ -301,6 +301,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/nfse-tomadas/{nfseTomada}/lancar', [NfseCaixaController::class, 'lancar']);
         Route::post('/nfse-tomadas/{nfseTomada}/desfazer', [NfseCaixaController::class, 'desfazer']);
         Route::post('/nfse-tomadas/{nfseTomada}/sem-interesse', [NfseCaixaController::class, 'semInteresse']);
+        Route::post('/nfse-tomadas/{nfseTomada}/prestador/preview', [NfseCaixaController::class, 'prestadorPreview']);
+        Route::post('/nfse-tomadas/{nfseTomada}/prestador/commit', [NfseCaixaController::class, 'prestadorCommit']);
         Route::get('/nfse-sync', [NfseCaixaController::class, 'syncEstado']);
         Route::post('/nfse-sync', [NfseCaixaController::class, 'enfileirarSync']);
 

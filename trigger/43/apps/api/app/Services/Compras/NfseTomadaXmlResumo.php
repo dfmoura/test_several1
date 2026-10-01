@@ -21,7 +21,9 @@ final class NfseTomadaXmlResumo
         }
         $xp = new DOMXPath($doc);
         $cnpj = $this->texto($xp, '//*[local-name()="prest"]/*[local-name()="CNPJ"]')
-            ?: $this->texto($xp, '//*[local-name()="emit"]/*[local-name()="CNPJ"]');
+            ?: $this->texto($xp, '//*[local-name()="emit"]/*[local-name()="CNPJ"]')
+            ?: $this->texto($xp, '//*[local-name()="prest"]/*[local-name()="CPF"]')
+            ?: $this->texto($xp, '//*[local-name()="emit"]/*[local-name()="CPF"]');
         $nome = $this->texto($xp, '//*[local-name()="emit"]/*[local-name()="xNome"]')
             ?: $this->texto($xp, '//*[local-name()="prest"]/*[local-name()="xNome"]');
         $valor = $this->texto($xp, '//*[local-name()="vServ"]')
@@ -38,7 +40,7 @@ final class NfseTomadaXmlResumo
         return [
             'numero' => $numero !== '' ? mb_substr($numero, 0, 20) : null,
             'data_emissao' => $data,
-            'emit_cnpj' => $cnpj !== '' ? substr(preg_replace('/\D/', '', $cnpj) ?: '', 0, 14) : null,
+            'emit_cnpj' => $this->documento($cnpj),
             'emit_nome' => $nome !== '' ? mb_substr($nome, 0, 160) : null,
             'valor_total' => $valor !== '' && is_numeric($valor) ? number_format((float) $valor, 2, '.', '') : null,
         ];
@@ -56,6 +58,16 @@ final class NfseTomadaXmlResumo
             'emit_nome' => null,
             'valor_total' => null,
         ];
+    }
+
+    private function documento(string $valor): ?string
+    {
+        $digits = preg_replace('/\D/', '', $valor) ?: '';
+        if (strlen($digits) !== 14 && strlen($digits) !== 11) {
+            return null;
+        }
+
+        return $digits;
     }
 
     private function texto(DOMXPath $xp, string $query): string

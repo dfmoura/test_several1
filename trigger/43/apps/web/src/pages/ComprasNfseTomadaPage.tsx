@@ -1,8 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DanfseNacionalSheet } from '../components/DanfseNacionalSheet';
+import {
+  NfsePrestadorAcao,
+  NfsePrestadorCadastroCard,
+  type NfsePrestador,
+} from '../components/NfsePrestadorCadastroCard';
 import { PageHeader } from '../components/PageHeader';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDate } from '../lib/format';
 
 type Natureza = { id: number; codigo: string; nome: string };
@@ -26,6 +32,8 @@ type Nota = {
   emit_cnpj: string | null;
   valor_total: string | null;
   situacao: string;
+  tem_xml?: boolean;
+  prestador?: NfsePrestador;
   parceiro_sugerido: { id: number; codigo: string; razao_social: string } | null;
   titulos: TituloResumo[];
   naturezas: Natureza[];
@@ -33,9 +41,12 @@ type Nota = {
 
 export function ComprasNfseTomadaPage() {
   const { id } = useParams();
+  const { hasPermission } = useAuth();
+  const podeParceiro = hasPermission('parceiro.escrever');
   const [nota, setNota] = useState<Nota | null>(null);
   const [prestadores, setPrestadores] = useState<Prestador[]>([]);
   const [parceiroId, setParceiroId] = useState('');
+  const [cadastroAberto, setCadastroAberto] = useState(false);
   const [naturezaId, setNaturezaId] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -49,15 +60,13 @@ export function ComprasNfseTomadaPage() {
     try {
       const res = await api.get<{ data: Nota }>(`/nfse-tomadas/${id}`);
       setNota(res.data);
-      if (res.data.parceiro_sugerido) {
-        setParceiroId(String(res.data.parceiro_sugerido.id));
-      }
       try {
         const pars = await api.get<{ data: Prestador[] }>('/parceiros?papel=fornecedor');
         setPrestadores(pars.data ?? []);
       } catch {
         setPrestadores([]);
       }
+      setParceiroId(res.data.parceiro_sugerido ? String(res.data.parceiro_sugerido.id) : '');
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível abrir a NFS-e.');
     } finally {
@@ -153,19 +162,29 @@ export function ComprasNfseTomadaPage() {
         />
       </div>
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div className="card-body">
-          {nota.parceiro_sugerido ? (
-            <p className="muted">
-              Cadastro encontrado: {nota.parceiro_sugerido.codigo} · {nota.parceiro_sugerido.razao_social}
-            </p>
-          ) : (
-            <p className="muted">
-              Se o prestador ainda não existe, cadastre-o em Parceiros com o papel de fornecedor e volte para escolhê-lo.
-            </p>
-          )}
+      {cadastroAberto ? (
+        <NfsePrestadorCadastroCard
+          notaId={nota.id}
+          numero={nota.numero}
+          emitNome={nota.emit_nome}
+          onClose={() => setCadastroAberto(false)}
+          onCommitted={() => {
+            setCadastroAberto(false);
+            void load();
+          }}
+        />
+      ) : (
+        <div className="card" style={{ marginBottom: '1rem' }}>
+          <div className="card-body">
+            <NfsePrestadorAcao
+              prestador={nota.prestador}
+              podeParceiro={podeParceiro}
+              temXml={Boolean(nota.tem_xml)}
+              onCadastrar={() => setCadastroAberto(true)}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {naCaixa ? (
         <div className="card">

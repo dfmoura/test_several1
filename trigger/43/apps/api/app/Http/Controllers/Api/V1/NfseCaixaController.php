@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\NfseTomada;
 use App\Services\Compras\NfseCaixaService;
+use App\Services\Compras\NfsePrestadorCadastroService;
 use App\Services\Compras\NfseTomadaFinanceiroService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class NfseCaixaController extends Controller
     public function __construct(
         private readonly NfseCaixaService $caixa,
         private readonly NfseTomadaFinanceiroService $financeiro,
+        private readonly NfsePrestadorCadastroService $prestador,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -107,6 +109,37 @@ class NfseCaixaController extends Controller
         return response()->json(['data' => $this->caixa->show($this->empresa(), $nota)]);
     }
 
+    public function prestadorPreview(Request $request, NfseTomada $nfseTomada): JsonResponse
+    {
+        $this->authorizeParceiro($request);
+        $this->assertEmpresa($nfseTomada);
+
+        return response()->json([
+            'data' => [
+                'row' => $this->prestador->preview($this->empresa(), $nfseTomada),
+                'nota' => $this->caixa->show($this->empresa(), $nfseTomada),
+            ],
+        ]);
+    }
+
+    public function prestadorCommit(Request $request, NfseTomada $nfseTomada): JsonResponse
+    {
+        $this->authorizeParceiro($request);
+        $this->assertEmpresa($nfseTomada);
+        $commit = $this->prestador->commit($this->empresa(), $nfseTomada);
+        $nota = $nfseTomada->fresh();
+        if ($nota === null) {
+            abort(404);
+        }
+
+        return response()->json([
+            'data' => [
+                'commit' => $commit,
+                'nota' => $this->caixa->show($this->empresa(), $nota),
+            ],
+        ]);
+    }
+
     public function semInteresse(Request $request, NfseTomada $nfseTomada): JsonResponse
     {
         $this->authorizeWrite($request);
@@ -134,6 +167,13 @@ class NfseCaixaController extends Controller
     {
         if (! $request->user()->can('financeiro.escrever')) {
             abort(403, 'Sem permissão para organizar o contas a pagar desta NFS-e.');
+        }
+    }
+
+    private function authorizeParceiro(Request $request): void
+    {
+        if (! $request->user()->can('parceiro.escrever')) {
+            abort(403, 'Sem permissão para cadastrar parceiro a partir da NFS-e.');
         }
     }
 

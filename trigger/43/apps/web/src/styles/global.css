@@ -14950,6 +14950,15 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   outline: 1px solid color-mix(in srgb, var(--success, #1a7f4b) 40%, transparent);
 }
 
+.nfse-prestador {
+  min-width: 14rem;
+}
+
+.nfse-prestador-doc,
+.nfse-nowrap {
+  white-space: nowrap;
+}
+
 .estoque-dense-table {
   min-width: 680px;
   font-size: var(--estoque-font);
