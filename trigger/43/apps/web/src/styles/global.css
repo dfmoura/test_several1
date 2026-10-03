@@ -11502,11 +11502,18 @@ table.data-table.mapa-facas-table td {
 }
 
 table.data-table.mapa-facas-table thead th {
-  font-size: 0.59rem;
-  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+table.data-table.mapa-facas-table .th-sort-label {
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 table.data-table.mapa-facas-table .th-sort-btn {
+  width: auto;
   padding: 0.12rem 0.38rem;
 }
 

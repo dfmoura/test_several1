@@ -30,6 +30,7 @@ export type FacaRecord = Record<string, unknown> & {
   tamanho_raw?: string | null;
   completa?: boolean;
   cliente_nota?: string | null;
+  nf_numero?: string | null;
   fornecedor?: string | null;
   label?: string;
   /**
@@ -145,6 +146,7 @@ const FACA_SORT = {
   z: (f: FacaRecord) => (f.z != null ? Number(f.z) : null),
   rep: (f: FacaRecord) => (f.repeticao != null ? Number(f.repeticao) : null),
   puxada: (f: FacaRecord) => (f.puxada != null ? Number(f.puxada) : null),
+  nf: (f: FacaRecord) => String(f.nf_numero || ''),
   nota: (f: FacaRecord) => String(f.cliente_nota || f.fornecedor || ''),
 };
 
@@ -375,7 +377,7 @@ export function FacaPicker({
             <p className="faca-modal-sub">
               {mode === 'nova'
                 ? 'Medida ainda não está no mapa. Simule no ORC com custo/prazo cotados — cadastro oficial só após aprovação.'
-                : 'Fonte oficial · medida, N facas, formato, Z, REP e puxada vêm juntos. Clique na linha para selecionar.'}
+                : 'Fonte oficial · formato, silhueta, medida, largura, puxada, máquina, repetição, N FACA, Z e nº NF. Clique na linha para selecionar.'}
             </p>
           </div>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
@@ -523,15 +525,14 @@ export function FacaPicker({
                       Largura
                     </SortableTh>
                     <SortableTh
-                      column="n_facas"
+                      column="puxada"
                       className="num"
                       sorts={sorts}
                       sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
-                      label="N FACA"
                     >
-                      N FACA
+                      Puxada
                     </SortableTh>
                     <SortableTh
                       column="maquina"
@@ -543,6 +544,28 @@ export function FacaPicker({
                       Máquina
                     </SortableTh>
                     <SortableTh
+                      column="rep"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="Repetição"
+                    >
+                      Repetição
+                    </SortableTh>
+                    <SortableTh
+                      column="n_facas"
+                      className="num"
+                      sorts={sorts}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onSort={requestSort}
+                      label="N FACA"
+                    >
+                      N FACA
+                    </SortableTh>
+                    <SortableTh
                       column="z"
                       sorts={sorts}
                       sortKey={sortKey}
@@ -552,22 +575,13 @@ export function FacaPicker({
                       Z
                     </SortableTh>
                     <SortableTh
-                      column="rep"
+                      column="nf"
                       sorts={sorts}
                       sortKey={sortKey}
                       sortDir={sortDir}
                       onSort={requestSort}
                     >
-                      REP
-                    </SortableTh>
-                    <SortableTh
-                      column="puxada"
-                      sorts={sorts}
-                      sortKey={sortKey}
-                      sortDir={sortDir}
-                      onSort={requestSort}
-                    >
-                      Puxada
+                      Nº NF
                     </SortableTh>
                     <SortableTh
                       column="nota"
@@ -583,7 +597,7 @@ export function FacaPicker({
                 <tbody>
                   {!items.length && !loading ? (
                     <tr>
-                      <td colSpan={10} className="faca-empty">
+                      <td colSpan={11} className="faca-empty">
                         Nenhuma faca neste filtro.
                         {permitirFacaNova ? (
                           <>
@@ -632,14 +646,17 @@ export function FacaPicker({
                           <td className="num">
                             <strong>{dim.largura}</strong>
                           </td>
-                          <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
+                          <td className="num">
+                            {f.puxada != null ? fmtNum(f.puxada) : <em className="warn-txt">manual</em>}
+                          </td>
                           <td>{String(f.maquina_catalogo || '')}</td>
-                          <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>
                           <td className="num">
                             {f.repeticao != null ? fmtNum(f.repeticao, 4) : '—'}
                           </td>
-                          <td className="num">
-                            {f.puxada != null ? fmtNum(f.puxada) : <em className="warn-txt">manual</em>}
+                          <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
+                          <td className="num">{f.z != null ? fmtNum(f.z, 0) : '—'}</td>
+                          <td className="mapa-facas-nf" title={String(f.nf_numero || '') || undefined}>
+                            {String(f.nf_numero || '—')}
                           </td>
                           <td className="nota">{String(f.cliente_nota || f.fornecedor || '')}</td>
                         </tr>
