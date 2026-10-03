@@ -194,6 +194,84 @@ class OrcamentoAprovacaoTest extends TestCase
         $del->assertStatus(422);
     }
 
+    public function test_fichas_destacam_contato_responsavel_e_travam_no_envio(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}");
+        $show->assertOk();
+        $this->assertSame('Maria Compradora', $show->json('data.contato_cliente.nome'));
+        $this->assertSame('Compras', $show->json('data.contato_cliente.funcao'));
+        $this->assertArrayNotHasKey('email', $show->json('data.contato_cliente'));
+        $this->assertArrayNotHasKey('whatsapp', $show->json('data.contato_cliente'));
+
+        $prev = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $prev->assertOk();
+        $this->assertSame('Maria Compradora', $prev->json('data.destinatario.nome'));
+        $this->assertSame('Compras', $prev->json('data.destinatario.funcao'));
+        $this->assertArrayNotHasKey('email', $prev->json('data.destinatario'));
+        $this->assertArrayNotHasKey('destino', $prev->json('data.destinatario'));
+
+        $ana = ParceiroContato::query()->create([
+            'parceiro_id' => $this->parceiro->id,
+            'nome' => 'Ana Diretora',
+            'funcao' => 'Diretora',
+            'whatsapp' => '31988887777',
+            'principal' => false,
+            'autorizado_aprovar' => true,
+            'ordem' => 2,
+        ]);
+
+        $antes = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $this->assertSame('Maria Compradora', $antes->json('data.destinatario.nome'));
+
+        $env = $this->withHeaders($h)->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao", [
+            'parceiro_contato_id' => $ana->id,
+        ]);
+        $env->assertOk();
+        $token = $env->json('data.token');
+
+        $ana->update(['nome' => 'Ana Alterada', 'funcao' => 'Outra']);
+
+        $showDepois = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}");
+        $this->assertSame('Ana Diretora', $showDepois->json('data.contato_cliente.nome'));
+        $this->assertSame('Diretora', $showDepois->json('data.contato_cliente.funcao'));
+
+        $prevDepois = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $this->assertSame('Ana Diretora', $prevDepois->json('data.destinatario.nome'));
+        $this->assertSame('Diretora', $prevDepois->json('data.destinatario.funcao'));
+
+        $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
+        $pub->assertOk();
+        $this->assertSame('Ana Diretora', $pub->json('data.destinatario.nome'));
+        $this->assertSame('Diretora', $pub->json('data.destinatario.funcao'));
+        $this->assertArrayNotHasKey('email', $pub->json('data.destinatario'));
+    }
+
+    public function test_ficha_sem_pessoa_no_cadastro_nao_repete_a_empresa(): void
+    {
+        ParceiroContato::query()->where('parceiro_id', $this->parceiro->id)->delete();
+        $this->parceiro->update([
+            'contato_nome' => null,
+            'contato_funcao' => null,
+        ]);
+
+        Sanctum::actingAs($this->comercial);
+        $id = $this->criarOrcamento();
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}");
+        $show->assertOk();
+        $this->assertNull($show->json('data.contato_cliente'));
+
+        $prev = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $prev->assertOk();
+        $this->assertNull($prev->json('data.destinatario.nome'));
+        $this->assertNull($prev->json('data.destinatario.funcao'));
+    }
+
     public function test_exige_destinatario_quando_ha_varios_autorizados(): void
     {
         ParceiroContato::query()->create([

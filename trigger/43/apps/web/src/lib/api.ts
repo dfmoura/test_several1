@@ -2638,6 +2638,8 @@ export type Orcamento = {
     canal_envio?: string | null;
     url?: string | null;
   } | null;
+  /** Pessoa do cliente nas fichas (nome + função). Só no detalhe. */
+  contato_cliente?: { nome: string; funcao: string | null } | null;
   parceiro?: {
     id: number;
     codigo: string;

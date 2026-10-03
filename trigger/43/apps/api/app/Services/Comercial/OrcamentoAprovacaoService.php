@@ -35,6 +35,7 @@ class OrcamentoAprovacaoService
         private readonly OrcamentoPropostaEmailService $propostaEmail,
         private readonly OrcamentoPropostaWhatsAppService $propostaWhatsApp,
         private readonly DiasUteisService $diasUteis,
+        private readonly OrcamentoContatoFicha $contatoFicha,
     ) {}
 
     /**
@@ -919,8 +920,9 @@ class OrcamentoAprovacaoService
 
         $faixas = $this->faixasComerciaisProposta($input, $result);
 
-        $destinoNome = $link?->destino_nome;
-        $destinoFuncao = $link?->destino_funcao;
+        $contatoFicha = $this->contatoFicha->resolver($orcamento);
+        $destinoNome = $contatoFicha['nome'] ?? null;
+        $destinoFuncao = $contatoFicha['funcao'] ?? null;
 
         $dto = [
             'codigo' => $orcamento->codigo,

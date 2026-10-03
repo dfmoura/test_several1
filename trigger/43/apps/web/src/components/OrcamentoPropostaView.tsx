@@ -60,6 +60,10 @@ export function OrcamentoPropostaView({
   ]
     .filter(Boolean)
     .join(' · ');
+  const contatoNome = (proposta.destinatario?.nome ?? '').trim();
+  const aosCuidados = contatoNome
+    ? { nome: contatoNome, funcao: proposta.destinatario?.funcao }
+    : null;
 
   return (
     <div className="orc-pub">
@@ -93,6 +97,7 @@ export function OrcamentoPropostaView({
             }
           }
           leadFallback={proposta.cliente_nome}
+          aosCuidados={aosCuidados}
         />
 
         {multi ? (

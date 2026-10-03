@@ -41,6 +41,7 @@ class OrcamentoService
         private readonly VendedorResolver $vendedores,
         private readonly ContornoSvgSanitizer $contornoSvgSanitizer,
         private readonly DiasUteisService $diasUteis,
+        private readonly OrcamentoContatoFicha $contatoFicha,
     ) {}
 
     /** @return array<string, mixed> */
@@ -119,7 +120,7 @@ class OrcamentoService
             ...Orcamento::userStampWith(),
         ]);
 
-        return $this->toOut($orcamento, comItens: true);
+        return $this->toOut($orcamento, comItens: true, comContato: true);
     }
 
     /**
@@ -938,7 +939,7 @@ class OrcamentoService
     }
 
     /** @return array<string, mixed> */
-    private function toOut(Orcamento $o, bool $comItens = false): array
+    private function toOut(Orcamento $o, bool $comItens = false, bool $comContato = false): array
     {
         $o->loadMissing(Orcamento::userStampWith());
 
@@ -1026,6 +1027,10 @@ class OrcamentoService
             'created_at' => $o->created_at?->toIso8601String(),
             'updated_at' => $o->updated_at?->toIso8601String(),
         ];
+
+        if ($comContato) {
+            $out['contato_cliente'] = $this->contatoFicha->resolver($o);
+        }
 
         if ($comItens) {
             $out['itens'] = OrcamentoItens::toOut($o);

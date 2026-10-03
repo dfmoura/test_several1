@@ -28,6 +28,8 @@ type Props = {
   parte: OrcPubParteComercialData | null | undefined;
   /** Exibe código interno (PAR-/EMP-) — útil em confirmação PED. */
   showCodigo?: boolean;
+  /** Pessoa do cliente. Só a proposta do ORC passa; PED/OP ficam sem a linha. */
+  aosCuidados?: { nome: string; funcao?: string | null } | null;
 };
 
 function normNome(value: string | null | undefined): string {
@@ -149,15 +151,25 @@ export function OrcPubParteComercial({
   leadFallback = '—',
   parte,
   showCodigo = false,
+  aosCuidados = null,
 }: Props) {
   const { display } = identidadeParteComercial(parte, leadFallback);
   const meta = metaLinhasParteComercial(parte, { showCodigo });
   const endereco = formatEnderecoParceiro(parte);
+  const contatoNome = (aosCuidados?.nome ?? '').trim();
+  const contatoFuncao = (aosCuidados?.funcao ?? '').trim();
 
   return (
     <section className="orc-pub-card">
       <h2>{title}</h2>
       <p className="orc-pub-lead">{display}</p>
+      {contatoNome ? (
+        <p className="orc-pub-ac">
+          <span className="orc-pub-ac-kicker">Aos cuidados de</span>
+          <strong>{contatoNome}</strong>
+          {contatoFuncao ? <span className="orc-pub-ac-funcao"> · {contatoFuncao}</span> : null}
+        </p>
+      ) : null}
       <div className="orc-pub-meta">
         {meta.map((line) => (
           <span key={line}>{line}</span>

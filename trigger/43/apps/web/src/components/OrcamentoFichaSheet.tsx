@@ -87,15 +87,31 @@ function snap(input: Record<string, unknown>, key: string): string {
   return displaySnap(input[key]);
 }
 
-type KvProps = { label: string; value: ReactNode; wide?: boolean };
+type KvProps = { label: string; value: ReactNode; wide?: boolean; destaque?: boolean };
 
-function Kv({ label, value, wide }: KvProps) {
+function Kv({ label, value, wide, destaque }: KvProps) {
+  const cls = [
+    'ficha-kv',
+    wide ? 'ficha-kv-wide' : '',
+    destaque ? 'ficha-kv-destaque' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
-    <div className={`ficha-kv${wide ? ' ficha-kv-wide' : ''}`}>
+    <div className={cls}>
       <span className="ficha-kv-label">{label}</span>
       <span className="ficha-kv-value">{value}</span>
     </div>
   );
+}
+
+function contatoClienteTexto(
+  contato: { nome?: string | null; funcao?: string | null } | null | undefined,
+): string {
+  const nome = (contato?.nome ?? '').trim();
+  if (!nome) return '—';
+  const funcao = (contato?.funcao ?? '').trim();
+  return funcao ? `${nome} · ${funcao}` : nome;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -669,6 +685,7 @@ export function OrcamentoFichaSheet({
               .join(' · ') || '—'
           }
         />
+        <Kv label="Contato" value={contatoClienteTexto(orc.contato_cliente)} destaque />
         <Kv
           label="Vendedor"
           value={
