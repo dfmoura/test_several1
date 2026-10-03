@@ -111,6 +111,15 @@ function formatParamValue(v: number | null, unidade: string): string {
   return `${n} ${unidade}`;
 }
 
+/** Mesmo texto da coluna Qtde / unidade da Guia de produção, por nome do componente. */
+function qtdeGuiaDoComponente(
+  porItem: Map<string, string> | undefined,
+  label: string,
+): string {
+  const qtde = porItem?.get(label)?.trim();
+  return qtde ? qtde : '—';
+}
+
 function ParametrosCalculoPanel({
   faixas,
   snapshot,
@@ -119,6 +128,8 @@ function ParametrosCalculoPanel({
   parametrosAjuste,
   onAplicarParametros,
   aplicandoParametros,
+  guiaEspec,
+  modelosComposicao,
 }: {
   faixas: OrcamentoFaixaResult[];
   snapshot?: Record<string, unknown>;
@@ -127,6 +138,8 @@ function ParametrosCalculoPanel({
   parametrosAjuste?: ParametrosAjusteCtx | null;
   onAplicarParametros?: (a: ParametrosAjusteApply) => void | Promise<void>;
   aplicandoParametros?: boolean;
+  guiaEspec?: OrcGuiaProducaoEspec | null;
+  modelosComposicao?: ModeloComposicaoForm[] | null;
 }) {
   const [globalDraft, setGlobalDraft] = useState<Partial<Record<ParametroAjusteId, string>>>({});
   const [comissaoDraftByFaixa, setComissaoDraftByFaixa] = useState<Record<number, string>>({});
@@ -248,6 +261,18 @@ function ParametrosCalculoPanel({
     [faixas, tarifas, impostoPct, parametrosAjuste?.comissaoPct, parametrosAjuste?.comissaoPctByFaixa],
   );
 
+  const qtdePorFaixa = useMemo(
+    () =>
+      faixas.map((fx) => {
+        const porItem = new Map<string, string>();
+        for (const ln of buildGuiaProducaoLinhas(guiaEspec, fx, modelosComposicao)) {
+          if (!porItem.has(ln.item)) porItem.set(ln.item, ln.quantidade);
+        }
+        return porItem;
+      }),
+    [faixas, guiaEspec, modelosComposicao],
+  );
+
   const componenteRows = useMemo(() => {
     if (faixasComLinhas.length === 0) return [];
     return faixasComLinhas[0].linhas.map((base) => ({
@@ -261,15 +286,16 @@ function ParametrosCalculoPanel({
         quantidadeLabel: fx.quantidadeLabel,
         detalhe: fx.detalhe,
         comissaoPct: fx.comissaoPct,
+        qtde: qtdeGuiaDoComponente(qtdePorFaixa[fx.faixaIndex], base.label),
         linha: fx.linhas.find((ln) => ln.id === base.id)!,
       })),
     }));
-  }, [faixasComLinhas]);
+  }, [faixasComLinhas, qtdePorFaixa]);
 
   const faixaBandClass = (faixaIndex: number) =>
     faixaIndex % 2 === 1 ? 'orc-params-faixa-band' : '';
 
-  const colsPorFaixa = editavel ? 3 : 2;
+  const colsPorFaixa = editavel ? 4 : 3;
   const faixaBorderClass = (faixaIndex: number) =>
     faixaIndex > 0 ? 'orc-params-faixa-border' : '';
 
@@ -392,6 +418,12 @@ function ParametrosCalculoPanel({
                   className={`orc-params-cell orc-params-head-sub ${faixaBorderClass(fx.faixaIndex)} ${faixaBandClass(fx.faixaIndex)}`}
                   role="columnheader"
                 >
+                  Qtde / unidade
+                </div>
+                <div
+                  className={`orc-params-cell orc-params-head-sub ${faixaBandClass(fx.faixaIndex)}`}
+                  role="columnheader"
+                >
                   Valor usado
                 </div>
                 <div
@@ -424,7 +456,13 @@ function ParametrosCalculoPanel({
               {row.celulas.map((cell) => (
                 <Fragment key={cell.faixaIndex}>
                   <div
-                    className={`orc-params-cell orc-params-valor num ${faixaBorderClass(cell.faixaIndex)} ${faixaBandClass(cell.faixaIndex)}`}
+                    className={`orc-params-cell orc-params-qtde num ${faixaBorderClass(cell.faixaIndex)} ${faixaBandClass(cell.faixaIndex)}`}
+                    role="cell"
+                  >
+                    {cell.qtde}
+                  </div>
+                  <div
+                    className={`orc-params-cell orc-params-valor num ${faixaBandClass(cell.faixaIndex)}`}
                     role="cell"
                   >
                     {formatParamValue(cell.linha.valorUsado, cell.linha.unidade)}
@@ -541,18 +579,28 @@ function ParametrosCalculoPanel({
                 {linha.label}
               </div>
               {faixas.map((fx, i) => (
-                <div
-                  key={i}
-                  className={`orc-params-cell orc-params-total-valor num ${faixaBorderClass(i)} ${faixaBandClass(i)}`}
-                  style={faixaGridSpan(i)}
-                  role="cell"
-                >
-                  {'destaque' in linha && linha.destaque ? (
-                    <strong>{linha.valor(fx)}</strong>
-                  ) : (
-                    linha.valor(fx)
-                  )}
-                </div>
+                <Fragment key={i}>
+                  <div
+                    className={`orc-params-cell orc-params-qtde num ${faixaBorderClass(i)} ${faixaBandClass(i)}`}
+                    style={{ gridColumn: 2 + i * colsPorFaixa }}
+                    role="cell"
+                  >
+                    —
+                  </div>
+                  <div
+                    className={`orc-params-cell orc-params-total-valor num ${faixaBandClass(i)}`}
+                    style={{
+                      gridColumn: `${3 + i * colsPorFaixa} / span ${colsPorFaixa - 1}`,
+                    }}
+                    role="cell"
+                  >
+                    {'destaque' in linha && linha.destaque ? (
+                      <strong>{linha.valor(fx)}</strong>
+                    ) : (
+                      linha.valor(fx)
+                    )}
+                  </div>
+                </Fragment>
               ))}
             </div>
           ))}
@@ -1405,6 +1453,8 @@ export function OrcamentoResultado({
             <ParametrosCalculoPanel
               faixas={faixas}
               calculo={resultAtivo}
+              guiaEspec={multi ? itemAtivo?.guiaEspec : guiaEspec}
+              modelosComposicao={modelosVisiveis}
               snapshot={resultAtivo.catalog_snapshot}
               parametrosAjuste={podeAjustarItem ? parametrosAjuste : null}
               onAplicarParametros={podeAjustarItem ? onAplicarParametros : undefined}

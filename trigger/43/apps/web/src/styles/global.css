@@ -5472,6 +5472,7 @@ table.data-table td.acoes {
 /* Comparativo por faixa — CSS Grid (densidade alta para N faixas) */
 .orc-params-comparativo {
   --orc-grid-comp: 9.75rem;
+  --orc-grid-qtde: 9.25rem;
   --orc-grid-valor: 5.35rem;
   --orc-grid-resultado: 4.75rem;
   --orc-grid-ajuste: 5.15rem;
@@ -5506,20 +5507,20 @@ table.data-table td.acoes {
     var(--orc-grid-comp)
     repeat(
       var(--orc-faixas, 1),
-      var(--orc-grid-valor) var(--orc-grid-resultado) var(--orc-grid-ajuste)
+      var(--orc-grid-qtde) var(--orc-grid-valor) var(--orc-grid-resultado) var(--orc-grid-ajuste)
     );
   min-width: calc(
     var(--orc-grid-comp) + var(--orc-faixas, 1) *
-      (var(--orc-grid-valor) + var(--orc-grid-resultado) + var(--orc-grid-ajuste))
+      (var(--orc-grid-qtde) + var(--orc-grid-valor) + var(--orc-grid-resultado) + var(--orc-grid-ajuste))
   );
 }
 
 .orc-params-comparativo--leitura .orc-params-grid {
   grid-template-columns:
     var(--orc-grid-comp)
-    repeat(var(--orc-faixas, 1), var(--orc-grid-valor) var(--orc-grid-resultado));
+    repeat(var(--orc-faixas, 1), var(--orc-grid-qtde) var(--orc-grid-valor) var(--orc-grid-resultado));
   min-width: calc(
-    var(--orc-grid-comp) + var(--orc-faixas, 1) * (var(--orc-grid-valor) + var(--orc-grid-resultado))
+    var(--orc-grid-comp) + var(--orc-faixas, 1) * (var(--orc-grid-qtde) + var(--orc-grid-valor) + var(--orc-grid-resultado))
   );
 }
 
@@ -5608,11 +5609,16 @@ table.data-table td.acoes {
   background: #f3f6fb;
 }
 
+.orc-params-qtde,
 .orc-params-valor,
 .orc-params-resultado {
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.orc-params-qtde {
+  font-weight: 600;
 }
 
 .orc-params-ajuste-cell {
