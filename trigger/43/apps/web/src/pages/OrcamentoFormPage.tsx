@@ -349,11 +349,12 @@ export function OrcamentoFormPage() {
     const patchItem = (prev: OrcForm) => {
       const next = { ...prev, [key]: value };
       // Mantém a faca principal alinhada aos campos editáveis da geometria.
+      // largura_cm é a largura do papel (motor): a escolha da faca sugere o valor,
+      // mas digitar outra largura não reescreve a largura da faca.
       const geoKeys = new Set([
         'medida',
         'puxada_cm',
         'z',
-        'largura_cm',
         'formato_faca',
         'maquina',
         'faca_nova',
@@ -371,7 +372,6 @@ export function OrcamentoFormPage() {
           if (key === 'medida') patched.medida = value as string;
           if (key === 'puxada_cm') patched.puxada_cm = (value as number) || '';
           if (key === 'z') patched.z = value as number | '';
-          if (key === 'largura_cm') patched.largura_cm = (value as number) || '';
           if (key === 'formato_faca') patched.formato = value as string;
           if (key === 'maquina') patched.maquina = value as string;
           if (key === 'faca_nova') patched.faca_nova = value as boolean;
@@ -397,7 +397,6 @@ export function OrcamentoFormPage() {
       key === 'medida' ||
       key === 'puxada_cm' ||
       key === 'z' ||
-      key === 'largura_cm' ||
       key === 'formato_faca' ||
       key === 'maquina' ||
       key === 'faca_nova'
@@ -408,7 +407,6 @@ export function OrcamentoFormPage() {
         if (key === 'medida') next.medida = value as string;
         if (key === 'puxada_cm') next.puxada = (value as number) || null;
         if (key === 'z') next.z = value === '' ? null : (value as number);
-        if (key === 'largura_cm') next.largura_faca = (value as number) || null;
         if (key === 'formato_faca') {
           next.formato = (value as string) || 'RETA';
           next.faca = (value as string) || 'RETA';
