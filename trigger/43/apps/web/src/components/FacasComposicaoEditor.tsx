@@ -162,7 +162,7 @@ export function FacasComposicaoEditor({
         <ul className="orc-facas-lista" aria-label="Facas do orçamento">
           {facas.map((f, i) => {
             const dim = dimensoesDaFaca(f);
-            const cols = !f.faca_nova ? formatColunasMapaLabel(f.colunas_mapa) : null;
+            const cols = formatColunasMapaLabel(f.colunas_mapa);
             const puxadaVazia = f.puxada_cm === '' || f.puxada_cm == null;
             return (
               <li
@@ -218,24 +218,24 @@ export function FacasComposicaoEditor({
                     ) : null}
                   </div>
                   <div className="orc-facas-meta" aria-label="Dados da faca">
+                    <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
                     <MetaChip label="Medida" value={f.medida.trim() || '—'} />
                     <MetaChip
                       label="Largura"
                       value={dim.largura === '—' ? '—' : `${dim.largura} cm`}
                     />
-                    <MetaChip label="Formato" value={f.formato ? formatoLabel(f.formato) : '—'} />
-                    <MetaChip
-                      label="N FACA"
-                      value={f.n_facas != null ? String(f.n_facas) : '—'}
-                    />
-                    {cols ? <MetaChip label="Cols. faca" value={cols} /> : null}
-                    <MetaChip label="Máquina" value={f.maquina || '—'} />
-                    <MetaChip label="Z" value={fmtChipNum(f.z, 0)} />
                     <MetaChip
                       label="Puxada"
                       value={puxadaVazia ? 'manual' : `${fmtChipNum(f.puxada_cm)} cm`}
                       warn={puxadaVazia}
                     />
+                    <MetaChip label="Cols. faca" value={cols ?? '—'} />
+                    <MetaChip label="Máquina" value={f.maquina || '—'} />
+                    <MetaChip
+                      label="N. Faca"
+                      value={f.n_facas != null ? String(f.n_facas) : '—'}
+                    />
+                    <MetaChip label="Z" value={fmtChipNum(f.z, 0)} />
                   </div>
                 </div>
               </li>

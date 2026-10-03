@@ -1476,20 +1476,6 @@ export function OrcamentoFormPage() {
               umaPorItem
             />
             <div className="form-grid faca-auto-fields">
-              {showMedidaField ? (
-                <div className="form-group manual-field">
-                  <label>
-                    Medida *{' '}
-                    <span className="field-note">{facaNova ? 'faca nova' : 'manual'}</span>
-                  </label>
-                  <input
-                    value={form.medida}
-                    onChange={(e) => setField('medida', e.target.value)}
-                    placeholder="ex.: 8,0X12,4"
-                    disabled={!canWrite}
-                  />
-                </div>
-              ) : null}
               {showFormatoField ? (
                 <div className="form-group manual-field">
                   <label>
@@ -1517,6 +1503,34 @@ export function OrcamentoFormPage() {
                   </datalist>
                 </div>
               ) : null}
+              {showMedidaField ? (
+                <div className="form-group manual-field">
+                  <label>
+                    Medida *{' '}
+                    <span className="field-note">{facaNova ? 'faca nova' : 'manual'}</span>
+                  </label>
+                  <input
+                    value={form.medida}
+                    onChange={(e) => setField('medida', e.target.value)}
+                    placeholder="ex.: 8,0X12,4"
+                    disabled={!canWrite}
+                  />
+                </div>
+              ) : null}
+              <div className="form-group">
+                <label>
+                  Largura papel (cm) *{' '}
+                  <span className="field-note">sugestão da faca — ajuste se preciso</span>
+                </label>
+                <NumericInput
+                  step="0.01"
+                  value={form.largura_cm}
+                  emptyCommit={0}
+                  blankZero
+                  onCommit={(v) => setField('largura_cm', v === '' ? 0 : v)}
+                  disabled={!canWrite}
+                />
+              </div>
               {showPuxadaField ? (
                 <div className="form-group manual-field">
                   <label>Puxada (cm) *</label>
@@ -1544,20 +1558,6 @@ export function OrcamentoFormPage() {
                   />
                 </div>
               ) : null}
-              <div className="form-group">
-                <label>
-                  Largura papel (cm) *{' '}
-                  <span className="field-note">sugestão da faca — ajuste se preciso</span>
-                </label>
-                <NumericInput
-                  step="0.01"
-                  value={form.largura_cm}
-                  emptyCommit={0}
-                  blankZero
-                  onCommit={(v) => setField('largura_cm', v === '' ? 0 : v)}
-                  disabled={!canWrite}
-                />
-              </div>
             </div>
           </section>
 
