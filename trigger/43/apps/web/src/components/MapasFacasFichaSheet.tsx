@@ -179,14 +179,15 @@ export function MapasFacasFichaSheet({
               <table className="ficha-table ficha-table-num ficha-mapa-facas-table">
                 <thead>
                   <tr>
-                    <th className="ficha-th-num ficha-mapa-facas-col-n">N FACA</th>
+                    <th className="ficha-mapa-facas-col-formato">Formato</th>
                     <th className="ficha-mapa-facas-col-silhueta">Silhueta</th>
                     <th className="ficha-mapa-facas-col-medida">Medida</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-largura">Largura</th>
-                    <th className="ficha-mapa-facas-col-formato">Formato</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-z">Z</th>
-                    <th className="ficha-th-num ficha-mapa-facas-col-rep">Rep</th>
                     <th className="ficha-th-num ficha-mapa-facas-col-num">Puxada</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-rep">Repetição</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-n">N FACA</th>
+                    <th className="ficha-th-num ficha-mapa-facas-col-z">Z</th>
+                    <th className="ficha-mapa-facas-col-nf">Nº NF</th>
                     <th className="ficha-mapa-facas-col-cil">Cil.</th>
                     <th className="ficha-mapa-facas-col-cliente">Cliente</th>
                   </tr>
@@ -194,22 +195,26 @@ export function MapasFacasFichaSheet({
                 <tbody>
                   {g.items.map((f) => {
                     const cliente = dash(f.cliente_nota);
+                    const nf = dash(f.nf_numero);
                     const dim = facaDimensoesExibicao(f);
                     return (
                       <tr
                         key={f.id}
                         className={!f.ativo ? 'ficha-mapa-facas-row-inativa' : undefined}
                       >
-                        <td className="ficha-td-num">{dash(f.n_facas)}</td>
+                        <td className="ficha-mapa-facas-formato">{formatoLabel(f.formato)}</td>
                         <td className="ficha-mapa-facas-silhueta-cell">
                           <FichaFacaSilhuetaCell faca={f} />
                         </td>
                         <td className="ficha-mapa-facas-medida">{dash(f.medida)}</td>
                         <td className="ficha-td-num ficha-mapa-facas-dim">{dim.largura}</td>
-                        <td className="ficha-mapa-facas-formato">{formatoLabel(f.formato)}</td>
-                        <td className="ficha-td-num">{dash(f.z)}</td>
-                        <td className="ficha-td-num">{fmtNum(f.repeticao, 8)}</td>
                         <td className="ficha-td-num">{fmtNum(f.puxada, 4)}</td>
+                        <td className="ficha-td-num">{fmtNum(f.repeticao, 8)}</td>
+                        <td className="ficha-td-num">{dash(f.n_facas)}</td>
+                        <td className="ficha-td-num">{dash(f.z)}</td>
+                        <td className="ficha-mapa-facas-nf" title={nf === '—' ? undefined : nf}>
+                          {nf}
+                        </td>
                         <td>{dash(f.cilindro)}</td>
                         <td className="ficha-mapa-facas-cliente" title={cliente === '—' ? undefined : cliente}>
                           {cliente}

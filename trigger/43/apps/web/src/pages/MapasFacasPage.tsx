@@ -95,6 +95,7 @@ const FACA_SORT = {
   rep: (f: FacaMapa) => (f.repeticao != null ? Number(f.repeticao) : null),
   puxada: (f: FacaMapa) => (f.puxada != null ? Number(f.puxada) : null),
   cliente: (f: FacaMapa) => f.cliente_nota,
+  nf: (f: FacaMapa) => f.nf_numero,
 };
 
 function fmtNum(v: unknown, d = 2): string {
@@ -782,16 +783,8 @@ export function MapasFacasPage() {
                 <table className="data-table mapa-facas-table">
                   <thead>
                     <tr>
-                      <SortableTh
-                        column="n_facas"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="N FACA"
-                      >
-                        N FACA
+                      <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Formato
                       </SortableTh>
                       <th className="mapa-facas-th-silhueta" scope="col">
                         Silhueta
@@ -808,13 +801,42 @@ export function MapasFacasPage() {
                         onSort={requestSort}
                         label="Largura"
                       >
-                        LAR
+                        Largura
                       </SortableTh>
-                      <SortableTh column="formato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                        Formato
+                      <SortableTh
+                        column="puxada"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                      >
+                        Puxada
                       </SortableTh>
                       <SortableTh column="maquina" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Máquina
+                      </SortableTh>
+                      <SortableTh
+                        column="rep"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="Repetição"
+                      >
+                        Repetição
+                      </SortableTh>
+                      <SortableTh
+                        column="n_facas"
+                        className="num"
+                        sorts={sorts}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={requestSort}
+                        label="N FACA"
+                      >
+                        N FACA
                       </SortableTh>
                       <SortableTh
                         column="z"
@@ -827,26 +849,8 @@ export function MapasFacasPage() {
                       >
                         Z
                       </SortableTh>
-                      <SortableTh
-                        column="rep"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                        label="REP"
-                      >
-                        REP
-                      </SortableTh>
-                      <SortableTh
-                        column="puxada"
-                        className="num"
-                        sorts={sorts}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={requestSort}
-                      >
-                        Puxada
+                      <SortableTh column="nf" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                        Nº NF
                       </SortableTh>
                       <SortableTh column="cliente" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                         Cliente
@@ -856,7 +860,7 @@ export function MapasFacasPage() {
                   <tbody>
                     {!loading && items.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="mapa-facas-empty-cell">
+                        <td colSpan={11} className="mapa-facas-empty-cell">
                           Nenhuma faca com estes filtros.
                         </td>
                       </tr>
@@ -886,7 +890,11 @@ export function MapasFacasPage() {
                               }
                             }}
                           >
-                            <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
+                            <td>
+                              <div className="mapa-facas-row-formato">
+                                <span>{formatoLabel(f.formato)}</span>
+                              </div>
+                            </td>
                             <td className="mapa-facas-silhueta-cell">
                               <FacaApresentacao
                                 className="mapa-facas-list-visual"
@@ -921,20 +929,19 @@ export function MapasFacasPage() {
                             <td className="num mapa-facas-dim-cell">
                               <strong>{dim.largura}</strong>
                             </td>
-                            <td>
-                              <div className="mapa-facas-row-formato">
-                                <span>{formatoLabel(f.formato)}</span>
-                              </div>
-                            </td>
-                            <td className="maquina">{f.maquina_catalogo || '—'}</td>
-                            <td className="num">{fmtNum(f.z, 1)}</td>
-                            <td className="num">{fmtNum(f.repeticao, 2)}</td>
                             <td className="num">
                               {f.puxada != null ? (
                                 fmtNum(f.puxada, 2)
                               ) : (
                                 <em className="warn-txt">manual</em>
                               )}
+                            </td>
+                            <td className="maquina">{f.maquina_catalogo || '—'}</td>
+                            <td className="num">{fmtNum(f.repeticao, 2)}</td>
+                            <td className="num">{f.n_facas != null ? fmtNum(f.n_facas, 0) : '—'}</td>
+                            <td className="num">{fmtNum(f.z, 1)}</td>
+                            <td className="mapa-facas-nf" title={f.nf_numero || undefined}>
+                              {f.nf_numero || '—'}
                             </td>
                             <td className="cliente" title={f.cliente_nota || undefined}>
                               {f.cliente_nota || '—'}

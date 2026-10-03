@@ -10155,37 +10155,41 @@ tr.row-inactive td {
   overflow-wrap: anywhere;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-n {
-  width: 7%;
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {
+  width: 9%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-silhueta {
-  width: 9%;
+  width: 8%;
   text-align: center;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-medida {
-  width: 14%;
+  width: 12%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-largura {
-  width: 8%;
-}
-
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-formato {
-  width: 10%;
+  width: 7%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-num {
   width: 6%;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-col-z {
-  width: 3.5%;
-}
-
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-rep {
   width: 8%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-n {
+  width: 6%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-z {
+  width: 4%;
+}
+
+.ficha-sheet-mapa-facas .ficha-mapa-facas-col-nf {
+  width: 10%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-cil {
@@ -10193,7 +10197,7 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-col-cliente {
-  width: 19%;
+  width: 14%;
 }
 
 .ficha-sheet-mapa-facas .ficha-mapa-facas-medida,
@@ -10203,7 +10207,8 @@ tr.row-inactive td {
   font-variant-numeric: tabular-nums;
 }
 
-.ficha-sheet-mapa-facas .ficha-mapa-facas-cliente {
+.ficha-sheet-mapa-facas .ficha-mapa-facas-cliente,
+.ficha-sheet-mapa-facas .ficha-mapa-facas-nf {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11482,11 +11487,11 @@ tr.row-inactive td {
 }
 
 /* Scroll + sticky: .table-wrap--freeze (compartilhado com cadastros).
-   Lista = inventário (N FACA → silhueta → medida); NF/valor/obs/fornecedor no overlay.
-   Densidade tipográfica; silhueta (largura + desenho) permanece o sujeito da linha.
+   Lista = Formato → silhueta → medida → largura → puxada → máquina → repetição → N FACA → Z → Nº NF → cliente.
+   Valor, obs. e fornecedor continuam no painel da faca.
    Seletor table.data-table.mapa-facas-table vence o font/padding base de .data-table. */
 table.data-table.mapa-facas-table {
-  min-width: 640px;
+  min-width: 760px;
   font-size: 0.64rem;
   line-height: 1.2;
 }
@@ -11528,7 +11533,8 @@ table.data-table.mapa-facas-table td.maquina {
 }
 
 table.data-table.mapa-facas-table td.fornecedor,
-table.data-table.mapa-facas-table td.cliente {
+table.data-table.mapa-facas-table td.cliente,
+table.data-table.mapa-facas-table td.mapa-facas-nf {
   max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
@@ -11537,6 +11543,11 @@ table.data-table.mapa-facas-table td.cliente {
   font-size: 0.62rem;
   letter-spacing: 0.01em;
   color: var(--navy);
+}
+
+table.data-table.mapa-facas-table td.mapa-facas-nf {
+  max-width: 7.5rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .mapa-facas-medida-cell,

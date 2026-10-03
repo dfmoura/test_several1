@@ -42,6 +42,7 @@ export type FacaMapaItem = {
   tamanho_raw?: string | null;
   tamanho_tipo?: string | null;
   cliente_nota?: string | null;
+  nf_numero?: string | null;
   obs?: string | null;
   completa: boolean;
   ativo: boolean;
