@@ -26,7 +26,6 @@ import {
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
-import { FacasComposicaoEditor } from './FacasComposicaoEditor';
 import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
 import {
   buildItensResultadoUi,
@@ -82,7 +81,7 @@ type Props = {
    * true (padrão): prévia CONSOLIDADO após Calcular (modelos, prazo).
    * false: o detalhe já mostrou spec/condições — só números do motor
    * (estudo 32 · GERACAO §1.5: cálculo ≠ eco da ficha).
-   * Silhueta da faca fica no formulário e na ficha operacional — não na aba comercial.
+   * Geometria da faca fica na seção Faca (edição e orçamento salvo) — não na aba comercial.
    */
   echoEspecificacao?: boolean;
   /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
@@ -1022,9 +1021,6 @@ function PropostaItemBloco({
             quantidadesPorFaixa={item.quantidadesPorFaixa}
           />
         ) : null}
-        {facasRows.length > 0 ? (
-          <FacasComposicaoEditor facas={facasRows} canWrite={false} />
-        ) : null}
         <ComercialFaixasTable
           faixas={faixas}
           facaNova={mostrarFerramental}
@@ -1350,9 +1346,6 @@ export function OrcamentoResultado({
                     }))}
                     quantidadesPorFaixa={modelosComposicaoQuantidades ?? undefined}
                   />
-                ) : null}
-                {facasRows.length > 0 ? (
-                  <FacasComposicaoEditor facas={facasRows} canWrite={false} />
                 ) : null}
                 <ComercialFaixasTable
                   faixas={faixas}
