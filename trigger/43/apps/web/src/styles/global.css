@@ -5621,6 +5621,18 @@ table.data-table td.acoes {
   font-weight: 600;
 }
 
+.orc-params-grid--subtotal .orc-params-cell {
+  border-top: 1px solid rgba(26, 53, 104, 0.22);
+}
+
+.orc-params-grid--subtotal .orc-params-sticky {
+  background: #f7f9fc;
+}
+
+.orc-params-grid--subtotal .orc-params-resultado {
+  font-weight: 700;
+}
+
 .orc-params-ajuste-cell {
   text-align: left;
   vertical-align: middle;

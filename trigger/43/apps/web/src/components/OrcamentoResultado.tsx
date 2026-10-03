@@ -292,6 +292,31 @@ function ParametrosCalculoPanel({
     }));
   }, [faixasComLinhas, qtdePorFaixa]);
 
+  const subtotalAteCaixa = useMemo(() => {
+    const ateCaixa = new Set<ParametroAjusteId>([
+      'papel',
+      'maquina',
+      'troca_produto',
+      'troca_bobina',
+      'tinta',
+      'acabamento',
+      'rebobinacao',
+      'tubete',
+      'caixa',
+    ]);
+    return faixasComLinhas.map((fx) => {
+      let algum = false;
+      let soma = 0;
+      for (const ln of fx.linhas) {
+        if (!ateCaixa.has(ln.id)) continue;
+        if (ln.resultadoRs == null || !Number.isFinite(ln.resultadoRs)) continue;
+        algum = true;
+        soma += ln.resultadoRs;
+      }
+      return algum ? soma : null;
+    });
+  }, [faixasComLinhas]);
+
   const faixaBandClass = (faixaIndex: number) =>
     faixaIndex % 2 === 1 ? 'orc-params-faixa-band' : '';
 
@@ -445,7 +470,8 @@ function ParametrosCalculoPanel({
           </div>
 
           {componenteRows.map((row) => (
-            <div key={row.id} className="orc-params-grid orc-params-grid--body" role="row">
+            <Fragment key={row.id}>
+            <div className="orc-params-grid orc-params-grid--body" role="row">
               <div
                 className="orc-params-cell orc-params-cell-comp orc-params-sticky"
                 role="rowheader"
@@ -486,6 +512,49 @@ function ParametrosCalculoPanel({
                 </Fragment>
               ))}
             </div>
+            {row.id === 'caixa' ? (
+              <div
+                className="orc-params-grid orc-params-grid--body orc-params-grid--subtotal"
+                role="row"
+              >
+                <div
+                  className="orc-params-cell orc-params-cell-comp orc-params-sticky"
+                  role="rowheader"
+                >
+                  <strong>Subtotal</strong>
+                  <div className="field-note">até Caixa</div>
+                </div>
+                {row.celulas.map((cell) => (
+                  <Fragment key={cell.faixaIndex}>
+                    <div
+                      className={`orc-params-cell orc-params-qtde num ${faixaBorderClass(cell.faixaIndex)} ${faixaBandClass(cell.faixaIndex)}`}
+                      role="cell"
+                    />
+                    <div
+                      className={`orc-params-cell orc-params-valor num ${faixaBandClass(cell.faixaIndex)}`}
+                      role="cell"
+                    />
+                    <div
+                      className={`orc-params-cell orc-params-resultado num ${faixaBandClass(cell.faixaIndex)}`}
+                      role="cell"
+                    >
+                      <strong>
+                        {subtotalAteCaixa[cell.faixaIndex] != null
+                          ? formatCurrency(subtotalAteCaixa[cell.faixaIndex]!)
+                          : '—'}
+                      </strong>
+                    </div>
+                    {editavel ? (
+                      <div
+                        className={`orc-params-cell orc-params-ajuste-cell ${faixaBandClass(cell.faixaIndex)}`}
+                        role="cell"
+                      />
+                    ) : null}
+                  </Fragment>
+                ))}
+              </div>
+            ) : null}
+            </Fragment>
           ))}
 
           <h3 className="orc-fluxo-subtitulo orc-params-totais-titulo">Totais</h3>
