@@ -110,6 +110,8 @@ export function modelosDoSnap(input: Record<string, unknown>): ModeloComposicaoF
         valor_arte?: number;
         arte_url?: string | null;
         tintas?: string[];
+        decisao?: 'APROVADO' | 'REPROVADO' | null;
+        decidido_em?: string | null;
       };
       return {
         ordem: Number(r.ordem) || i + 1,
@@ -118,6 +120,8 @@ export function modelosDoSnap(input: Record<string, unknown>): ModeloComposicaoF
         valor_arte: Math.max(0, Number(r.valor_arte) || 0),
         arte_url: String(r.arte_url ?? '').trim() || null,
         tintas: normalizeTintas(r.tintas),
+        decisao: r.decisao === 'APROVADO' || r.decisao === 'REPROVADO' ? r.decisao : null,
+        decidido_em: r.decidido_em ?? null,
       };
     })
     .filter((m) => m.nome !== '');

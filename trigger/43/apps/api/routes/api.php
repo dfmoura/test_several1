@@ -91,6 +91,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/publico/orcamentos/{token}/decidir', [OrcamentoPublicoController::class, 'decidir'])
             ->where('token', '[A-Za-z0-9_-]{20,128}')
             ->middleware('throttle:20,1');
+        Route::post('/publico/orcamentos/{token}/modelos/decidir', [OrcamentoPublicoController::class, 'decidirModelo'])
+            ->where('token', '[A-Za-z0-9_-]{20,128}')
+            ->middleware('throttle:30,1');
         Route::get('/publico/orcamentos/{token}/arte/{empresa}/{arquivo}', [OrcamentoPublicoController::class, 'arte'])
             ->where([
                 'token' => '[A-Za-z0-9_-]{20,128}',

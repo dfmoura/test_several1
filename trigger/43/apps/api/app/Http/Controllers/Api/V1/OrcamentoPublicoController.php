@@ -62,4 +62,22 @@ class OrcamentoPublicoController extends Controller
 
         return response()->json(['data' => $result]);
     }
+
+    public function decidirModelo(Request $request, string $token): JsonResponse
+    {
+        $data = $request->validate([
+            'acao' => ['required', 'string', 'in:APROVAR,REPROVAR'],
+            'item_ordem' => ['nullable', 'integer', 'min:1'],
+            'modelo_ordem' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $result = $this->aprovacao->decidirModeloPeloLink(
+            $token,
+            $data,
+            $request->ip(),
+            $request->userAgent(),
+        );
+
+        return response()->json(['data' => $result]);
+    }
 }

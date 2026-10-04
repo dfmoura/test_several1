@@ -6,7 +6,13 @@ import {
 } from '../lib/orcamentoForm';
 import { formatCurrency } from '../lib/format';
 import { normalizeTintas } from '../lib/modeloTintas';
+import {
+  decisaoModeloCliente,
+  type AcaoModeloCliente,
+  type DecisaoModeloCliente,
+} from '../lib/modeloDecisao';
 import { ModeloArteTrigger } from './ModeloArteOverlay';
+import { ModeloDecisaoSelo } from './ModeloDecisaoSelo';
 import { ModeloTintasTags } from './ModeloTintasTags';
 
 export type ModeloComposicaoRow = {
@@ -16,6 +22,8 @@ export type ModeloComposicaoRow = {
   valor_arte?: number;
   arte_url?: string | null;
   tintas?: string[] | null;
+  decisao?: DecisaoModeloCliente | null;
+  decidido_em?: string | null;
 };
 
 /** Faixa de quantidade do ORC — base do rateio inteiro por modelo. */
@@ -49,6 +57,14 @@ type Props = {
   arteSaida?: string | null;
   /** Miniatura/overlay da arte. Ficha PED contratual: off. */
   showArtePreview?: boolean;
+  /**
+   * auto: coluna só se alguma linha já foi decidida.
+   * selo: sempre (ficha / prévia depois do envio), sem botão.
+   * decidir: link do cliente — modal aprova ou reprova.
+   */
+  decisaoModo?: 'auto' | 'selo' | 'decidir';
+  onDecidirModelo?: (modeloOrdem: number, acao: AcaoModeloCliente) => void;
+  modeloDecidindoOrdem?: number | null;
 };
 
 function formatQtd(value: number): string {
@@ -63,6 +79,8 @@ function toFormRows(modelos: ModeloComposicaoRow[]): ModeloComposicaoForm[] {
     valor_arte: Math.max(0, Number(m.valor_arte) || 0),
     arte_url: String(m.arte_url ?? '').trim() || null,
     tintas: normalizeTintas(m.tintas),
+    decisao: decisaoModeloCliente(m.decisao),
+    decidido_em: m.decidido_em ?? null,
   }));
 }
 
@@ -83,6 +101,9 @@ export function ModelosComposicaoTable({
   arteCaption,
   arteSaida,
   showArtePreview = true,
+  decisaoModo = 'auto',
+  onDecidirModelo,
+  modeloDecidindoOrdem = null,
 }: Props) {
   const rows = toFormRows(modelos).filter((m) => m.nome !== '');
   if (rows.length === 0) return null;
@@ -105,6 +126,12 @@ export function ModelosComposicaoTable({
   /** Tela (data): coluna própria. Pub/ficha: miniatura no nome, só se houver arquivo. */
   const colunaPreview = showArtePreview && variant === 'data';
   const previewNoNome = showArtePreview && variant !== 'data';
+  const decidir = decisaoModo === 'decidir' && Boolean(onDecidirModelo);
+  const exibirDecisao =
+    decisaoModo === 'selo' ||
+    decidir ||
+    rows.some((m) => m.decisao === 'APROVADO' || m.decisao === 'REPROVADO');
+  const leadingCols = (colunaPreview ? 3 : 2) + (exibirDecisao ? 1 : 0);
 
   const defaultHint =
     variant === 'pub'
@@ -163,6 +190,7 @@ export function ModelosComposicaoTable({
               </th>
               {colunaPreview ? <th className="orc-modelo-arte-preview-col">Arte</th> : null}
               <th>{isPub ? 'Modelo' : 'Modelo (arte)'}</th>
+              {exibirDecisao ? <th className="orc-modelo-decisao-col">Cliente</th> : null}
               {exibirTintas ? (
                 <th
                   className="orc-modelo-tintas-col"
@@ -210,23 +238,50 @@ export function ModelosComposicaoTable({
                       arteUrl={m.arte_url}
                       caption={arteCaption}
                       saidaEtiqueta={arteSaida}
+                      decisao={m.decisao}
                     />
                   </td>
                 ) : null}
                 <td>
                   <span className="orc-modelo-nome-com-arte">
-                    {previewNoNome && (m.arte_url || '').trim() ? (
+                    {previewNoNome && ((m.arte_url || '').trim() || decidir) ? (
                       <ModeloArteTrigger
                         nome={m.nome}
                         arteUrl={m.arte_url}
                         dense
                         caption={arteCaption}
                         saidaEtiqueta={arteSaida}
+                        decisao={m.decisao}
+                        abrirSemArte={decidir}
+                        decidindo={decidir && modeloDecidindoOrdem === (m.ordem || i + 1)}
+                        onDecidir={
+                          decidir
+                            ? (acao) => onDecidirModelo?.(m.ordem || i + 1, acao)
+                            : undefined
+                        }
                       />
                     ) : null}
                     <span>{m.nome}</span>
                   </span>
                 </td>
+                {exibirDecisao ? (
+                  <td className="orc-modelo-decisao-col">
+                    {decidir ? (
+                      <ModeloArteTrigger
+                        nome={m.nome}
+                        arteUrl={m.arte_url}
+                        caption={arteCaption}
+                        saidaEtiqueta={arteSaida}
+                        decisao={m.decisao}
+                        aparencia="selo"
+                        decidindo={modeloDecidindoOrdem === (m.ordem || i + 1)}
+                        onDecidir={(acao) => onDecidirModelo?.(m.ordem || i + 1, acao)}
+                      />
+                    ) : (
+                      <ModeloDecisaoSelo decisao={m.decisao} pendente={exibirDecisao} />
+                    )}
+                  </td>
+                ) : null}
                 {exibirTintas ? (
                   <td className="orc-modelo-tintas-col">
                     <ModeloTintasTags tintas={m.tintas} empty="—" />
@@ -255,7 +310,7 @@ export function ModelosComposicaoTable({
           {alocPorFaixa.length > 1 || exibirArte ? (
             <tfoot>
               <tr className="orc-modelos-table-total">
-                <td colSpan={colunaPreview ? 3 : 2}>Total</td>
+                <td colSpan={leadingCols}>Total</td>
                 {exibirTintas ? <td className="orc-modelo-tintas-col" /> : null}
                 {exibirArte ? (
                   <td className={arteClass}>{formatCurrency(somaArtes)}</td>

@@ -3,6 +3,7 @@
 namespace App\Services\Comercial;
 
 use App\Models\Orcamento;
+use App\Models\OrcamentoItem;
 use App\Models\OrcamentoLinkAprovacao;
 use App\Models\Parceiro;
 use App\Services\Audit\AuditLogger;
@@ -12,6 +13,7 @@ use App\Services\Comercial\Orcamento\OrcamentoFreteEstimadoService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Plataforma\EmpresaAtivacaoService;
 use App\Support\FlexorcSuperficie;
+use App\Support\ModelosComposicao;
 use App\Support\OrcamentoAceiteFaixas;
 use App\Support\TipoOperacaoSaida;
 use App\Support\UrlArtePublica;
@@ -471,11 +473,166 @@ class OrcamentoAprovacaoService
             throw new HttpException(409, 'Orçamento não está aguardando aprovação do cliente.');
         }
 
+        $this->assertModelosDecididos($orcamento, $acao);
+
         if ($acao === 'APROVAR') {
             return $this->aprovar($orcamento, $link, $data, $ip, $userAgent);
         }
 
         return $this->recusar($orcamento, $link, $data, $ip, $userAgent);
+    }
+
+    /**
+     * Aceite de um modelo. Não consome o link nem altera o status do orçamento.
+     *
+     * @param  array{acao: string, item_ordem?: int, modelo_ordem: int}  $data
+     * @return array<string, mixed>
+     */
+    public function decidirModeloPeloLink(string $token, array $data, ?string $ip, ?string $userAgent): array
+    {
+        $verbo = strtoupper(trim((string) ($data['acao'] ?? '')));
+        $acao = match ($verbo) {
+            'APROVAR' => ModelosComposicao::DECISAO_APROVADO,
+            'REPROVAR' => ModelosComposicao::DECISAO_REPROVADO,
+            default => null,
+        };
+        if ($acao === null) {
+            throw ValidationException::withMessages([
+                'acao' => ['Informe APROVAR ou REPROVAR.'],
+            ]);
+        }
+
+        $itemOrdem = max(1, (int) ($data['item_ordem'] ?? 1));
+        $modeloOrdem = (int) ($data['modelo_ordem'] ?? 0);
+        if ($modeloOrdem < 1) {
+            throw ValidationException::withMessages([
+                'modelo_ordem' => ['Informe o modelo.'],
+            ]);
+        }
+
+        $link = $this->findLinkOrFail($token);
+
+        if (! $link->ativo || $link->usado_em !== null) {
+            throw new HttpException(410, 'Esta proposta não está mais disponível.');
+        }
+
+        if ($link->expira_em === null || $link->expira_em->isPast()) {
+            throw new HttpException(410, 'Proposta vencida — solicite atualização ao vendedor.');
+        }
+
+        $orcamento = $link->orcamento;
+        if ($orcamento === null || $orcamento->trashed()) {
+            throw new HttpException(404, 'Proposta não encontrada.');
+        }
+
+        if ($orcamento->empresa) {
+            app()->instance('empresa', $orcamento->empresa);
+        }
+
+        if (! $orcamento->aguardandoCliente()) {
+            throw new HttpException(409, 'Orçamento não está aguardando aprovação do cliente.');
+        }
+
+        DB::transaction(function () use ($orcamento, $link, $itemOrdem, $modeloOrdem, $acao, $ip, $userAgent) {
+            $orcamento->load('itens');
+            $item = $orcamento->itens->first(fn ($row) => (int) $row->ordem === $itemOrdem);
+
+            if ($orcamento->itens->isNotEmpty() && ! $item instanceof OrcamentoItem) {
+                throw ValidationException::withMessages([
+                    'item_ordem' => ['Posição não encontrada nesta proposta.'],
+                ]);
+            }
+
+            $antes = null;
+            if ($item instanceof OrcamentoItem) {
+                $snap = is_array($item->input_snapshot) ? $item->input_snapshot : [];
+                $antes = $this->decisaoNaComposicao($snap, $modeloOrdem);
+                $snap['modelos_composicao'] = ModelosComposicao::aplicarDecisao(
+                    is_array($snap['modelos_composicao'] ?? null) ? $snap['modelos_composicao'] : [],
+                    $modeloOrdem,
+                    $acao,
+                );
+                $item->input_snapshot = $snap;
+                $item->save();
+            }
+
+            if ($itemOrdem === 1 || ! $item instanceof OrcamentoItem) {
+                $header = is_array($orcamento->input_snapshot) ? $orcamento->input_snapshot : [];
+                if (! $item instanceof OrcamentoItem) {
+                    $antes = $this->decisaoNaComposicao($header, $modeloOrdem);
+                }
+                $header['modelos_composicao'] = ModelosComposicao::aplicarDecisao(
+                    is_array($header['modelos_composicao'] ?? null) ? $header['modelos_composicao'] : [],
+                    $modeloOrdem,
+                    $acao,
+                );
+                $orcamento->input_snapshot = $header;
+                $orcamento->save();
+            }
+
+            $this->audit->log('DECISAO_MODELO_CLIENTE', 'Orcamento', $orcamento->id, [
+                'item_ordem' => $itemOrdem,
+                'modelo_ordem' => $modeloOrdem,
+                'decisao' => $antes,
+            ], [
+                'item_ordem' => $itemOrdem,
+                'modelo_ordem' => $modeloOrdem,
+                'decisao' => $acao,
+                'destinatario' => $link->destino_nome,
+                'ip' => $ip,
+                'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
+            ]);
+        });
+
+        $orcamento = $orcamento->fresh(['empresa', 'parceiro', 'itens']);
+
+        return [
+            'ok' => true,
+            'item_ordem' => $itemOrdem,
+            'modelo_ordem' => $modeloOrdem,
+            'decisao' => $acao,
+            'modelos_cliente' => ModelosComposicao::contarDecisoes($orcamento),
+            'proposta' => $this->dtoComercial($orcamento, $link->fresh(), false),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $snap
+     */
+    private function decisaoNaComposicao(array $snap, int $modeloOrdem): ?string
+    {
+        $rows = $snap['modelos_composicao'] ?? null;
+        if (! is_array($rows)) {
+            return null;
+        }
+        foreach (array_values($rows) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if ((int) ($row['ordem'] ?? $i + 1) === $modeloOrdem) {
+                return ModelosComposicao::normalizarDecisao($row['decisao'] ?? null);
+            }
+        }
+
+        return null;
+    }
+
+    private function assertModelosDecididos(Orcamento $orcamento, string $acao): void
+    {
+        $contagem = ModelosComposicao::contarDecisoes($orcamento);
+        if ($contagem['total'] === 0) {
+            return;
+        }
+        if ($contagem['pendentes'] > 0) {
+            throw ValidationException::withMessages([
+                'modelos' => ['Aprove ou reprove cada modelo antes de decidir a proposta.'],
+            ]);
+        }
+        if ($acao === 'APROVAR' && $contagem['reprovados'] > 0) {
+            throw ValidationException::withMessages([
+                'modelos' => ['Há modelo reprovado. Recuse a proposta para o comercial ajustar a arte.'],
+            ]);
+        }
     }
 
     /**
@@ -1237,6 +1394,8 @@ class OrcamentoAprovacaoService
                 'valor_arte' => round(max(0.0, (float) ($row['valor_arte'] ?? 0)), 2),
                 'arte_url' => $artes->dtoArteUrl($arteRef, $token),
                 'tintas' => \App\Support\ModelosComposicao::normalizeTintas($row['tintas'] ?? []),
+                'decisao' => ModelosComposicao::normalizarDecisao($row['decisao'] ?? null),
+                'decidido_em' => ($quando = trim((string) ($row['decidido_em'] ?? ''))) !== '' ? $quando : null,
             ];
         }
 

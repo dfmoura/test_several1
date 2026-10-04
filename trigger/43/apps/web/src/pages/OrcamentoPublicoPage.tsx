@@ -10,6 +10,7 @@ import {
   type OrcamentoPropostaPublica,
 } from '../lib/api';
 import { BRAND } from '../lib/brand';
+import { contarDecisoesModelos, type AcaoModeloCliente } from '../lib/modeloDecisao';
 import { formatCurrency } from '../lib/format';
 import {
   defaultFaixasItens,
@@ -171,6 +172,10 @@ export function OrcamentoPublicoPage() {
   const [nome, setNome] = useState('');
   const [motivo, setMotivo] = useState('');
   const [pending, setPending] = useState(false);
+  const [modeloDecidindo, setModeloDecidindo] = useState<{
+    itemOrdem: number;
+    modeloOrdem: number;
+  } | null>(null);
   const [decidido, setDecidido] = useState<Decidido>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [adiantamentoLive, setAdiantamentoLive] = useState<OrcamentoAdiantamentoPublico | null>(
@@ -262,6 +267,51 @@ export function OrcamentoPublicoPage() {
     !proposta.disponivel ||
     decidido !== null;
 
+  const modelosCliente = useMemo(() => {
+    if (!proposta) return contarDecisoesModelos([]);
+    const listas =
+      proposta.itens && proposta.itens.length > 0
+        ? proposta.itens.map((it) => it.descricao?.modelos_composicao)
+        : [proposta.descricao?.modelos_composicao];
+    return contarDecisoesModelos(listas);
+  }, [proposta]);
+
+  const travaModelos = modelosCliente.total > 0 && modelosCliente.pendentes > 0;
+  const travaAprovar =
+    modelosCliente.total > 0 && (modelosCliente.pendentes > 0 || modelosCliente.reprovados > 0);
+
+  const mensagemFalha = (e: unknown, fallback: string) => {
+    if (e instanceof ApiError) {
+      const detalhe = e.details ? Object.values(e.details).flat().find(Boolean) : undefined;
+      return detalhe || e.message || fallback;
+    }
+    return e instanceof Error ? e.message : fallback;
+  };
+
+  const handleDecidirModelo = async (
+    itemOrdem: number,
+    modeloOrdem: number,
+    acao: AcaoModeloCliente,
+  ) => {
+    if (!token || bloquearAcoes) return;
+    setModeloDecidindo({ itemOrdem, modeloOrdem });
+    setErro(null);
+    try {
+      const res = await api.publicPost<{
+        data: { proposta: OrcamentoPropostaPublica };
+      }>(`/publico/orcamentos/${token}/modelos/decidir`, {
+        item_ordem: itemOrdem,
+        modelo_ordem: modeloOrdem,
+        acao,
+      });
+      setProposta(res.data.proposta);
+    } catch (e) {
+      setErro(mensagemFalha(e, 'Não foi possível registrar a decisão do modelo'));
+    } finally {
+      setModeloDecidindo(null);
+    }
+  };
+
   const onCopied = useCallback((ok: boolean) => {
     setCopyMsg(ok ? 'Código PIX copiado.' : 'Não foi possível copiar — selecione o texto manualmente.');
   }, []);
@@ -309,7 +359,7 @@ export function OrcamentoPublicoPage() {
         setProposta(null);
       }
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Não foi possível aprovar');
+      setErro(mensagemFalha(e, 'Não foi possível aprovar'));
     } finally {
       setPending(false);
     }
@@ -333,7 +383,7 @@ export function OrcamentoPublicoPage() {
       });
       setProposta(null);
     } catch (e) {
-      setErro(e instanceof ApiError ? e.message : 'Não foi possível recusar');
+      setErro(mensagemFalha(e, 'Não foi possível recusar'));
     } finally {
       setPending(false);
     }
@@ -471,6 +521,8 @@ export function OrcamentoPublicoPage() {
         setFaixasItens((prev) => ({ ...prev, [ordem]: index }))
       }
       erro={erro}
+      onDecidirModelo={bloquearAcoes ? undefined : handleDecidirModelo}
+      modeloDecidindo={modeloDecidindo}
       acoes={
         !bloquearAcoes ? (
           <section className="orc-pub-card orc-pub-actions">
@@ -520,11 +572,21 @@ export function OrcamentoPublicoPage() {
                 placeholder="Comentário para o comercial"
               />
             </div>
+            {travaModelos ? (
+              <p className="form-hint">
+                Aprove ou reprove cada modelo — abra a arte na composição — antes de decidir a
+                proposta.
+              </p>
+            ) : modelosCliente.reprovados > 0 ? (
+              <p className="form-hint">
+                Há modelo reprovado. Recuse a proposta para o comercial ajustar a arte.
+              </p>
+            ) : null}
             <div className="btn-row orc-pub-btns">
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={pending}
+                disabled={pending || travaAprovar}
                 onClick={() => void handleAprovar()}
               >
                 Aprovar proposta
@@ -532,7 +594,7 @@ export function OrcamentoPublicoPage() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                disabled={pending}
+                disabled={pending || travaModelos}
                 onClick={() => void handleRecusar()}
               >
                 Recusar

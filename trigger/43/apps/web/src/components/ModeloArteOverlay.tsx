@@ -11,7 +11,9 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { api, getToken, getEmpresaId } from '../lib/api';
+import type { AcaoModeloCliente, DecisaoModeloCliente } from '../lib/modeloDecisao';
 import { isSaidaEtiqueta } from '../lib/saidaEtiqueta';
+import { ModeloDecisaoSelo } from './ModeloDecisaoSelo';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 
 type Props = {
@@ -25,6 +27,10 @@ type Props = {
   saidaEtiqueta?: string | null;
   editable?: boolean;
   onChange?: (next: { arte_url: string | null; preview_url?: string | null }) => void;
+  /** Selo já gravado. No link do cliente, os botões ficam no mesmo modal. */
+  decisao?: DecisaoModeloCliente | null;
+  onDecidir?: (acao: AcaoModeloCliente) => void;
+  decidindo?: boolean;
 };
 
 /** Eco comercial da medida no overlay da arte. */
@@ -210,6 +216,9 @@ export function ModeloArteOverlay({
   saidaEtiqueta,
   editable = false,
   onChange,
+  decisao = null,
+  onDecidir,
+  decidindo = false,
 }: Props) {
   const [rasterSrc, setRasterSrc] = useState<string | null>(null);
   const [svgMarkup, setSvgMarkup] = useState<string | null>(null);
@@ -483,6 +492,39 @@ export function ModeloArteOverlay({
           ) : null}
 
           {erro ? <p className="form-error">{erro}</p> : null}
+
+          {onDecidir || decisao ? (
+            <div className="modelo-arte-preview__decisao">
+              <ModeloDecisaoSelo decisao={decisao} pendente={Boolean(onDecidir)} />
+              {onDecidir ? (
+                <>
+                  <div className="btn-row">
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      aria-pressed={decisao === 'APROVADO'}
+                      disabled={decidindo}
+                      onClick={() => onDecidir('APROVAR')}
+                    >
+                      Aprovar modelo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      aria-pressed={decisao === 'REPROVADO'}
+                      disabled={decidindo}
+                      onClick={() => onDecidir('REPROVAR')}
+                    >
+                      Reprovar modelo
+                    </button>
+                  </div>
+                  <p className="form-hint modelo-arte-preview__hint">
+                    Pode trocar esta decisão até aprovar ou recusar a proposta.
+                  </p>
+                </>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>,
@@ -499,6 +541,13 @@ type TriggerProps = {
   editable?: boolean;
   onChange?: (next: { arte_url: string | null }) => void;
   dense?: boolean;
+  decisao?: DecisaoModeloCliente | null;
+  onDecidir?: (acao: AcaoModeloCliente) => void;
+  decidindo?: boolean;
+  /** Abre o modal mesmo sem arquivo — o cliente decide o modelo ali. */
+  abrirSemArte?: boolean;
+  /** selo: o próprio status abre o modal (link do cliente). */
+  aparencia?: 'miniatura' | 'selo';
 };
 
 async function resolveThumbSrc(url: string): Promise<{ src: string | null; revoke: boolean }> {
@@ -530,6 +579,11 @@ export function ModeloArteTrigger({
   editable = false,
   onChange,
   dense = false,
+  decisao = null,
+  onDecidir,
+  decidindo = false,
+  abrirSemArte = false,
+  aparencia = 'miniatura',
 }: TriggerProps) {
   const [open, setOpen] = useState(false);
   const [thumb, setThumb] = useState<string | null>(null);
@@ -571,29 +625,46 @@ export function ModeloArteTrigger({
     }
   };
 
-  const label = hasArt
-    ? `Ver arte: ${nome || 'modelo'}`
-    : editable
-      ? `Anexar arte: ${nome || 'modelo'}`
-      : `Sem arte: ${nome || 'modelo'}`;
+  const label =
+    aparencia === 'selo'
+      ? `Decidir modelo: ${nome || 'modelo'}`
+      : hasArt
+        ? `Ver arte: ${nome || 'modelo'}`
+        : editable
+          ? `Anexar arte: ${nome || 'modelo'}`
+          : `Sem arte: ${nome || 'modelo'}`;
 
   return (
     <>
       <button
         type="button"
-        className={`modelo-arte-trigger${dense ? ' modelo-arte-trigger--dense' : ''}${
-          hasArt ? ' has-art' : ''
-        }`}
+        className={
+          aparencia === 'selo'
+            ? 'modelo-decisao-abrir'
+            : `modelo-arte-trigger${dense ? ' modelo-arte-trigger--dense' : ''}${
+                hasArt ? ' has-art' : ''
+              }`
+        }
         onClick={() => setOpen(true)}
         onKeyDown={onTriggerKey}
-        title={hasArt ? 'Ampliar arte' : editable ? 'Anexar arte' : 'Sem arte'}
+        title={
+          aparencia === 'selo'
+            ? 'Abrir para aprovar ou reprovar'
+            : hasArt
+              ? 'Ampliar arte'
+              : editable
+                ? 'Anexar arte'
+                : 'Sem arte'
+        }
         aria-label={label}
       >
-        {thumb ? (
+        {aparencia === 'selo' ? (
+          <ModeloDecisaoSelo decisao={decisao} pendente />
+        ) : thumb ? (
           <img src={thumb} alt="" className="modelo-arte-trigger__img" />
         ) : (
           <span className="modelo-arte-trigger__placeholder" aria-hidden>
-            {editable ? '+' : '·'}
+            {editable ? '+' : abrirSemArte ? 'Ver' : '·'}
           </span>
         )}
       </button>
@@ -605,6 +676,9 @@ export function ModeloArteTrigger({
         caption={caption}
         saidaEtiqueta={saidaEtiqueta}
         editable={editable}
+        decisao={decisao}
+        onDecidir={onDecidir}
+        decidindo={decidindo}
         onChange={
           onChange
             ? (next) => {

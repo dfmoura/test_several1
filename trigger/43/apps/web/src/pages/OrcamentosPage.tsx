@@ -11,6 +11,7 @@ import { StatusPill } from '../components/StatusPill';
 import { api, type Orcamento } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatCurrency, formatDateTime } from '../lib/format';
+import { textoResumoModelosCliente } from '../lib/modeloDecisao';
 import { isOrcEditavel, statusOrcPill } from '../lib/orcamentoForm';
 import { tipoOperacaoFromSnap, tipoOperacaoLabel } from '../lib/operacoesSaida';
 import { totalPropostaFaixa } from '../lib/orcamentoFrete';
@@ -158,6 +159,7 @@ export function OrcamentosPage() {
                     <SortableTh column="status" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
                       Status
                     </SortableTh>
+                    <th title="Decisão do cliente sobre os modelos">Modelos</th>
                     <SortableTh
                       column="versao"
                       sorts={sorts} sortKey={sortKey}
@@ -235,6 +237,11 @@ export function OrcamentosPage() {
                         </td>
                         <td className="status">
                           <StatusPill status={statusOrcPill(o.status, o.financeiro_status)} />
+                        </td>
+                        <td className="orc-modelos-cliente-cell">
+                          {textoResumoModelosCliente(o.modelos_cliente) ?? (
+                            <span className="muted">—</span>
+                          )}
                         </td>
                         <td className="num">v{o.versao}</td>
                         <td className="num">

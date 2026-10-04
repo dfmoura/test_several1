@@ -52,6 +52,8 @@ type ModeloCompSnap = {
   valor_arte?: number;
   arte_url?: string | null;
   tintas?: string[];
+  decisao?: 'APROVADO' | 'REPROVADO' | null;
+  decidido_em?: string | null;
 };
 
 type ItemFichaSnap = {
@@ -692,8 +694,9 @@ export function OrcamentoDetailPage() {
               </a>
             </div>
             <p className="orc-share-hint" style={{ marginTop: '0.65rem', marginBottom: 0 }}>
-              “Abrir proposta” é prévia interna (sem aprovar/recusar). A decisão do cliente fica
-              somente no link da mensagem acima.
+              “Abrir proposta” é prévia interna: mostra se cada modelo está aprovado ou reprovado,
+              sem decidir. Aprovar ou reprovar os modelos, e depois a proposta, fica somente no
+              link da mensagem acima.
             </p>
           </div>
         </div>
@@ -957,6 +960,7 @@ export function OrcamentoDetailPage() {
                 valor_arte: Math.max(0, Number(m.valor_arte) || 0),
                 arte_url: String(m.arte_url ?? '').trim() || null,
                 tintas: m.tintas,
+                decisao: m.decisao === 'APROVADO' || m.decisao === 'REPROVADO' ? m.decisao : null,
               }))}
               faixas={faixasItem.map((fx, i) => ({
                 key: i,
@@ -994,6 +998,7 @@ export function OrcamentoDetailPage() {
                   valor_arte: Math.max(0, Number(m.valor_arte) || 0),
                   arte_url: String(m.arte_url ?? '').trim() || null,
                   tintas: m.tintas,
+                  decisao: m.decisao === 'APROVADO' || m.decisao === 'REPROVADO' ? m.decisao : null,
                 }))
           }
           parametrosAjuste={

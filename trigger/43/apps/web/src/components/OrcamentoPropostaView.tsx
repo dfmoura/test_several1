@@ -7,6 +7,7 @@ import {
 import { OrcPubHeroEmitente, OrcPubParteComercial } from './OrcPubParteComercial';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { OrcamentoPropostaPublica } from '../lib/api';
+import type { AcaoModeloCliente } from '../lib/modeloDecisao';
 import { BRAND } from '../lib/brand';
 import {
   disposicoesGeraisProposta,
@@ -31,7 +32,12 @@ type Props = {
   /** Slot da decisão do cliente (só no link público). */
   acoes?: ReactNode;
   kicker?: string;
+  /** Só no link ativo: aprovar ou reprovar cada modelo no modal da arte. */
+  onDecidirModelo?: (itemOrdem: number, modeloOrdem: number, acao: AcaoModeloCliente) => Promise<void>;
+  modeloDecidindo?: { itemOrdem: number; modeloOrdem: number } | null;
 };
+
+const STATUS_MODELO_VISIVEL = new Set(['ENVIADO', 'VISUALIZADO', 'APROVADO', 'REPROVADO']);
 
 /**
  * Casca comercial da proposta (estudo 32 · CONSOLIDADO · ADR_ORC_ITENS).
@@ -50,7 +56,14 @@ export function OrcamentoPropostaView({
   erro,
   acoes,
   kicker = 'Proposta comercial',
+  onDecidirModelo,
+  modeloDecidindo = null,
 }: Props) {
+  const decisaoModo = onDecidirModelo
+    ? 'decidir'
+    : STATUS_MODELO_VISIVEL.has(proposta.status)
+      ? 'selo'
+      : 'auto';
   const desc = proposta.descricao;
   const faixas = proposta.faixas ?? [];
   const multi = isPropostaMultiItem(proposta);
@@ -107,6 +120,9 @@ export function OrcamentoPropostaView({
             faixasItens={faixasItens}
             onFaixaItemChange={onFaixaItemChange}
             somenteLeitura={somenteLeitura}
+            decisaoModo={decisaoModo}
+            onDecidirModelo={onDecidirModelo}
+            modeloDecidindo={modeloDecidindo}
           />
         ) : (
           <OrcPubEspecificacaoBloco
@@ -114,6 +130,15 @@ export function OrcamentoPropostaView({
             desc={desc}
             faixas={faixas}
             faixaHighlight={faixaIndex}
+            decisaoModo={decisaoModo}
+            onDecidirModelo={
+              onDecidirModelo
+                ? (modeloOrdem, acao) => onDecidirModelo(1, modeloOrdem, acao)
+                : undefined
+            }
+            modeloDecidindoOrdem={
+              modeloDecidindo?.itemOrdem === 1 ? modeloDecidindo.modeloOrdem : null
+            }
             title={
               proposta.tipo_operacao === 'SERVICO'
                 ? 'Serviço'

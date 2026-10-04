@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { AcaoModeloCliente } from '../lib/modeloDecisao';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
 import { ModeloTintasPorModelo } from './ModeloTintasTags';
@@ -28,6 +29,9 @@ type SpecProps = {
   faixaHighlight?: number;
   title?: string | null;
   className?: string;
+  decisaoModo?: 'auto' | 'selo' | 'decidir';
+  onDecidirModelo?: (modeloOrdem: number, acao: AcaoModeloCliente) => void;
+  modeloDecidindoOrdem?: number | null;
 };
 
 type SpecCell = {
@@ -123,6 +127,9 @@ export function OrcPubEspecificacaoBloco({
   faixaHighlight = -1,
   title = null,
   className,
+  decisaoModo = 'auto',
+  onDecidirModelo,
+  modeloDecidindoOrdem = null,
 }: SpecProps) {
   const isServico = tipoOperacao === 'SERVICO';
   const isRevenda = desc?.necessidade === 'REVENDA';
@@ -172,13 +179,20 @@ export function OrcPubEspecificacaoBloco({
         <ModelosComposicaoTable
           variant="pub"
           title="Modelos"
-          hint={null}
+          hint={
+            decisaoModo === 'decidir'
+              ? 'Toque em Pendente, ou na figura, para aprovar ou reprovar cada modelo. A proposta só pode ser decidida depois disso.'
+              : null
+          }
           showValorArte
           arteCaption={modeloArteCaptionFromMedida(desc?.medida)}
           arteSaida={
             isSaidaEtiqueta(desc?.saida_etiqueta) ? desc.saida_etiqueta : undefined
           }
           modelos={desc.modelos_composicao}
+          decisaoModo={decisaoModo}
+          onDecidirModelo={onDecidirModelo}
+          modeloDecidindoOrdem={modeloDecidindoOrdem}
           faixas={(faixas ?? []).map((fx) => ({
             key: fx.index,
             quantidade: fx.quantidade,
@@ -510,12 +524,18 @@ function OrcPubItemDetalhe({
   faixaHighlight = -1,
   selecionavel = false,
   onFaixaChange,
+  decisaoModo = 'auto',
+  onDecidirModelo,
+  modeloDecidindoOrdem = null,
 }: {
   item: OrcPropostaItem;
   tipoOperacao?: string | null;
   faixaHighlight?: number;
   selecionavel?: boolean;
   onFaixaChange?: (index: number) => void;
+  decisaoModo?: 'auto' | 'selo' | 'decidir';
+  onDecidirModelo?: (modeloOrdem: number, acao: AcaoModeloCliente) => void;
+  modeloDecidindoOrdem?: number | null;
 }) {
   const faixas = item.faixas ?? [];
   const idx =
@@ -539,6 +559,9 @@ function OrcPubItemDetalhe({
           faixas={faixas}
           faixaHighlight={idx}
           title={null}
+          decisaoModo={decisaoModo}
+          onDecidirModelo={onDecidirModelo}
+          modeloDecidindoOrdem={modeloDecidindoOrdem}
         />
         {faixas.length > 0 ? (
           <OrcPubFaixasBloco
@@ -566,6 +589,9 @@ type MultiProps = {
   faixasItens?: Record<number, number>;
   onFaixaItemChange?: (ordem: number, index: number) => void;
   somenteLeitura?: boolean;
+  decisaoModo?: 'auto' | 'selo' | 'decidir';
+  onDecidirModelo?: (itemOrdem: number, modeloOrdem: number, acao: AcaoModeloCliente) => void;
+  modeloDecidindo?: { itemOrdem: number; modeloOrdem: number } | null;
 };
 
 /**
@@ -578,6 +604,9 @@ export function OrcPubItensAcordeao({
   faixasItens,
   onFaixaItemChange,
   somenteLeitura = true,
+  decisaoModo = 'auto',
+  onDecidirModelo,
+  modeloDecidindo = null,
 }: MultiProps) {
   if (!isPropostaMultiItem(proposta)) return null;
   const itens = proposta.itens ?? [];
@@ -622,6 +651,15 @@ export function OrcPubItensAcordeao({
               selecionavel={selecionavel}
               onFaixaChange={
                 selecionavel ? (index) => onFaixaItemChange?.(it.ordem, index) : undefined
+              }
+              decisaoModo={decisaoModo}
+              onDecidirModelo={
+                onDecidirModelo
+                  ? (modeloOrdem, acao) => onDecidirModelo(it.ordem, modeloOrdem, acao)
+                  : undefined
+              }
+              modeloDecidindoOrdem={
+                modeloDecidindo?.itemOrdem === it.ordem ? modeloDecidindo.modeloOrdem : null
               }
             />
           );

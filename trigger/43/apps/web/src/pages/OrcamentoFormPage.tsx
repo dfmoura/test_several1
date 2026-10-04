@@ -31,6 +31,7 @@ import {
   isFormaPagamentoCanonica,
 } from '../lib/condicoesComerciais';
 import { ModelosComposicaoEditor } from '../components/ModelosComposicaoEditor';
+import { limparDecisaoModelo } from '../lib/modeloDecisao';
 import { NumericInput } from '../components/NumericInput';
 import {
   CORES_OPCOES,
@@ -589,9 +590,11 @@ export function OrcamentoFormPage() {
   const setModeloComposicaoNome = (index: number, nome: string) => {
     setForm((prev) => ({
       ...prev,
-      modelos_composicao: prev.modelos_composicao.map((m, i) =>
-        i === index ? { ...m, nome } : m,
-      ),
+      modelos_composicao: prev.modelos_composicao.map((m, i) => {
+        if (i !== index) return m;
+        const next = { ...m, nome };
+        return m.nome.trim() === nome.trim() ? next : limparDecisaoModelo(next);
+      }),
     }));
     setCalculo(null);
   };
@@ -609,18 +612,26 @@ export function OrcamentoFormPage() {
   const setModeloArteUrl = (index: number, arteUrl: string | null) => {
     setForm((prev) => ({
       ...prev,
-      modelos_composicao: prev.modelos_composicao.map((m, i) =>
-        i === index ? { ...m, arte_url: arteUrl } : m,
-      ),
+      modelos_composicao: prev.modelos_composicao.map((m, i) => {
+        if (i !== index) return m;
+        const next = { ...m, arte_url: arteUrl };
+        return (m.arte_url ?? '').trim() === (arteUrl ?? '').trim()
+          ? next
+          : limparDecisaoModelo(next);
+      }),
     }));
   };
 
   const setModeloTintas = (index: number, tintas: string[]) => {
     setForm((prev) => ({
       ...prev,
-      modelos_composicao: prev.modelos_composicao.map((m, i) =>
-        i === index ? { ...m, tintas } : m,
-      ),
+      modelos_composicao: prev.modelos_composicao.map((m, i) => {
+        if (i !== index) return m;
+        const next = { ...m, tintas };
+        const antes = (m.tintas ?? []).join('\n');
+        const depois = tintas.join('\n');
+        return antes === depois ? next : limparDecisaoModelo(next);
+      }),
     }));
   };
 

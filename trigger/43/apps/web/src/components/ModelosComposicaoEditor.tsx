@@ -6,6 +6,7 @@ import {
   type ModeloComposicaoForm,
 } from '../lib/orcamentoForm';
 import { modeloArteCaptionFromMedida, ModeloArteTrigger } from './ModeloArteOverlay';
+import { ModeloDecisaoSelo } from './ModeloDecisaoSelo';
 import { ModeloTintasInput } from './ModeloTintasInput';
 import { NumericInput } from './NumericInput';
 
@@ -120,6 +121,9 @@ export function ModelosComposicaoEditor({
                 Fig.
               </th>
               <th className="orc-modelo-nome-col">Modelo (arte)</th>
+              <th className="orc-modelo-decisao-col" title="Decisão do cliente neste modelo">
+                Cliente
+              </th>
               <th
                 className="orc-modelo-tintas-col"
                 title="Cores nomeadas desta arte — não altera o preço nem as estações"
@@ -165,6 +169,7 @@ export function ModelosComposicaoEditor({
                       dense
                       caption={modeloArteCaptionFromMedida(medida)}
                       saidaEtiqueta={saidaEtiqueta}
+                      decisao={m.decisao}
                     />
                   </td>
                   <td className="orc-modelo-nome-col">
@@ -180,6 +185,16 @@ export function ModelosComposicaoEditor({
                     />
                     {isRestoRow ? (
                       <span className="orc-modelo-resto-hint">Recebe o restante desta faixa</span>
+                    ) : null}
+                  </td>
+                  <td className="orc-modelo-decisao-col">
+                    <ModeloDecisaoSelo
+                      decisao={m.decisao}
+                      pendente={modelos.some((row) => row.decisao === 'APROVADO' || row.decisao === 'REPROVADO')}
+                    />
+                    {m.decisao == null &&
+                    !modelos.some((row) => row.decisao === 'APROVADO' || row.decisao === 'REPROVADO') ? (
+                      <span className="muted">—</span>
                     ) : null}
                   </td>
                   <td className="orc-modelo-tintas-col">

@@ -2604,6 +2604,13 @@ export type Orcamento = {
   editavel: boolean;
   enviavel?: boolean;
   aguardando_cliente?: boolean;
+  /** Contagem após o envio. Ausente em rascunho e enquanto não há modelo nomeado. */
+  modelos_cliente?: {
+    total: number;
+    aprovados: number;
+    reprovados: number;
+    pendentes: number;
+  } | null;
   tipo_operacao?: string;
   input_snapshot: Record<string, unknown> | null;
   result_snapshot: OrcamentoResult | null;
@@ -3761,6 +3768,9 @@ export type OrcamentoPropostaPublica = {
       arte_url?: string | null;
       /** Cores nomeadas da arte (fora do motor). */
       tintas?: string[];
+      /** Aceite do cliente neste modelo. Ausente = pendente. */
+      decisao?: 'APROVADO' | 'REPROVADO' | null;
+      decidido_em?: string | null;
     }> | null;
     tipo_servico?: string | null;
     descricao_servico?: string | null;

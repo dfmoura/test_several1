@@ -12,6 +12,7 @@ import {
 } from './orcamentoParametrosAjuste';
 import { type FacaPosicaoCodigo, isFacaPosicao } from './facaPosicao';
 import { type SaidaEtiquetaCodigo, isSaidaEtiqueta } from './saidaEtiqueta';
+import { decisaoModeloCliente, limparDecisaoModelo } from './modeloDecisao';
 import { normalizeTintas } from './modeloTintas';
 import { modoComFrete, MOD_FRETE_CIF, normalizarModFreteTerceiros, normalizarModoEntrega, totalPropostaFaixa } from './orcamentoFrete';
 import { facaDimensoesExibicao } from './facasMapa';
@@ -104,6 +105,9 @@ export type ModeloComposicaoForm = {
   arte_url?: string | null;
   /** Cores da arte (tags). Opcional; não altera preço. */
   tintas?: string[];
+  /** Aceite do cliente. Só leitura no formulário; o link é quem grava. */
+  decisao?: 'APROVADO' | 'REPROVADO' | null;
+  decidido_em?: string | null;
 };
 
 /** Composição de facas no ORC — ADR_ORC_FACAS_COMPOSICAO. */
@@ -512,6 +516,8 @@ export function syncModelosComposicao(
       valor_arte: Math.max(0, Number(prev?.[i]?.valor_arte) || 0),
       arte_url: prev?.[i]?.arte_url?.trim() || null,
       tintas: normalizeTintas(prev?.[i]?.tintas),
+      decisao: decisaoModeloCliente(prev?.[i]?.decisao),
+      decidido_em: prev?.[i]?.decidido_em ?? null,
     });
   }
   return out;
@@ -882,6 +888,8 @@ export function formFromSnapshot(
           valor_arte: Math.max(0, Number(r.valor_arte) || 0),
           arte_url: String(r.arte_url ?? '').trim() || null,
           tintas: normalizeTintas(r.tintas),
+          decisao: decisaoModeloCliente(r.decisao),
+          decidido_em: r.decidido_em ?? null,
         }))
       : syncModelosComposicao(compRaw, modelos);
 
@@ -1099,10 +1107,12 @@ export function cloneOrcFormItem(source: OrcForm, catalog: OrcCatalogo | null): 
     ...base,
     ...source,
     faixas: source.faixas.map((f) => ({ ...f })),
-    modelos_composicao: source.modelos_composicao.map((m) => ({
-      ...m,
-      tintas: [...normalizeTintas(m.tintas)],
-    })),
+    modelos_composicao: source.modelos_composicao.map((m) =>
+      limparDecisaoModelo({
+        ...m,
+        tintas: [...normalizeTintas(m.tintas)],
+      }),
+    ),
     modelos_composicao_quantidades:
       source.modelos_composicao_quantidades?.map((row) => [...row]) ??
       syncModelosComposicaoQuantidades(

@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Support\ArteModeloUrl;
+use App\Models\Orcamento;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
  * Σ valor_arte entra no total comercial pós-motor (como faca nova) — não em R1–R20.
  * arte_url é só visualização (http(s) ou orc-arte:…) — fora do motor.
  * tintas[] = nomes das cores da arte (spec comercial/operacional) — fora de R1–R20.
+ * decisao / decidido_em = aceite do cliente por modelo (link público). Fora do motor.
+ * Quem grava a decisão é o link; o salvamento comercial só preserva se nome, figura e cores não mudaram.
  */
 final class ModelosComposicao
 {
@@ -22,6 +24,10 @@ final class ModelosComposicao
     public const TINTAS_MAX = 12;
 
     public const TINTA_MAX_CHARS = 40;
+
+    public const DECISAO_APROVADO = 'APROVADO';
+
+    public const DECISAO_REPROVADO = 'REPROVADO';
 
     /**
      * Garante `modelos_composicao` coerente com `modelos`.
@@ -264,6 +270,182 @@ final class ModelosComposicao
         }
 
         return round($soma, 2);
+    }
+
+    public static function normalizarDecisao(mixed $raw): ?string
+    {
+        $v = strtoupper(trim((string) $raw));
+
+        return in_array($v, [self::DECISAO_APROVADO, self::DECISAO_REPROVADO], true) ? $v : null;
+    }
+
+    /**
+     * Identidade que o cliente viu: nome + figura + cores. Preço e quantidade ficam de fora.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    public static function identidadeCliente(array $row): string
+    {
+        $nome = trim((string) ($row['nome'] ?? ''));
+        $arte = ArteModeloUrl::normalize($row['arte_url'] ?? null) ?? '';
+        $tintas = self::normalizeTintas($row['tintas'] ?? []);
+
+        return $nome."\n".$arte."\n".implode("\n", $tintas);
+    }
+
+    /**
+     * Copia a decisão já gravada quando a linha não mudou de identidade.
+     * Ignora `decisao` vinda do payload comercial.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<string, mixed>  $anterior
+     * @return array<string, mixed>
+     */
+    public static function preservarDecisoes(array $input, array $anterior): array
+    {
+        $novo = $input['modelos_composicao'] ?? null;
+        if (! is_array($novo)) {
+            return $input;
+        }
+
+        $velho = $anterior['modelos_composicao'] ?? null;
+        $velho = is_array($velho) ? array_values($velho) : [];
+        $out = [];
+
+        foreach (array_values($novo) as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            unset($row['decisao'], $row['decidido_em']);
+            $prev = isset($velho[$i]) && is_array($velho[$i]) ? $velho[$i] : null;
+            if ($prev !== null && self::identidadeCliente($row) === self::identidadeCliente($prev)) {
+                $decisao = self::normalizarDecisao($prev['decisao'] ?? null);
+                if ($decisao !== null) {
+                    $row['decisao'] = $decisao;
+                    $quando = trim((string) ($prev['decidido_em'] ?? ''));
+                    if ($quando !== '') {
+                        $row['decidido_em'] = $quando;
+                    }
+                }
+            }
+            $out[] = $row;
+        }
+
+        $input['modelos_composicao'] = $out;
+
+        return $input;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $composicao
+     * @return list<array<string, mixed>>
+     */
+    public static function aplicarDecisao(array $composicao, int $modeloOrdem, string $acao): array
+    {
+        $acao = self::normalizarDecisao($acao);
+        if ($acao === null) {
+            throw ValidationException::withMessages([
+                'acao' => ['Informe APROVAR ou REPROVAR.'],
+            ]);
+        }
+
+        $found = false;
+        foreach ($composicao as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $ordem = (int) ($row['ordem'] ?? $i + 1);
+            if ($ordem !== $modeloOrdem) {
+                continue;
+            }
+            if (trim((string) ($row['nome'] ?? '')) === '') {
+                throw ValidationException::withMessages([
+                    'modelo_ordem' => ['Este modelo ainda não tem nome para o cliente decidir.'],
+                ]);
+            }
+            $composicao[$i]['decisao'] = $acao;
+            $composicao[$i]['decidido_em'] = now()->toIso8601String();
+            $found = true;
+            break;
+        }
+
+        if (! $found) {
+            throw ValidationException::withMessages([
+                'modelo_ordem' => ['Modelo não encontrado nesta proposta.'],
+            ]);
+        }
+
+        return $composicao;
+    }
+
+    /**
+     * Conta modelos nomeados. Composição ausente ou sem nome não trava o aceite legado.
+     *
+     * @return array{total: int, aprovados: int, reprovados: int, pendentes: int}
+     */
+    public static function contarDecisoes(Orcamento $orcamento): array
+    {
+        $orcamento->loadMissing('itens');
+        $fontes = [];
+        if ($orcamento->itens->isNotEmpty()) {
+            foreach ($orcamento->itens as $item) {
+                $fontes[] = $item->input_snapshot;
+            }
+        } else {
+            $fontes[] = $orcamento->input_snapshot;
+        }
+
+        $aprovados = 0;
+        $reprovados = 0;
+        $pendentes = 0;
+
+        foreach ($fontes as $snap) {
+            $rows = is_array($snap) ? ($snap['modelos_composicao'] ?? null) : null;
+            if (! is_array($rows)) {
+                continue;
+            }
+            foreach ($rows as $row) {
+                if (! is_array($row) || trim((string) ($row['nome'] ?? '')) === '') {
+                    continue;
+                }
+                $decisao = self::normalizarDecisao($row['decisao'] ?? null);
+                if ($decisao === self::DECISAO_APROVADO) {
+                    $aprovados++;
+                } elseif ($decisao === self::DECISAO_REPROVADO) {
+                    $reprovados++;
+                } else {
+                    $pendentes++;
+                }
+            }
+        }
+
+        return [
+            'total' => $aprovados + $reprovados + $pendentes,
+            'aprovados' => $aprovados,
+            'reprovados' => $reprovados,
+            'pendentes' => $pendentes,
+        ];
+    }
+
+    /**
+     * Resumo da lista — só depois do envio, quando há modelo nomeado.
+     *
+     * @return array{total: int, aprovados: int, reprovados: int, pendentes: int}|null
+     */
+    public static function resumoLista(Orcamento $orcamento): ?array
+    {
+        if (! in_array($orcamento->status, [
+            Orcamento::STATUS_ENVIADO,
+            Orcamento::STATUS_VISUALIZADO,
+            Orcamento::STATUS_APROVADO,
+            Orcamento::STATUS_REPROVADO,
+        ], true)) {
+            return null;
+        }
+
+        $contagem = self::contarDecisoes($orcamento);
+
+        return $contagem['total'] > 0 ? $contagem : null;
     }
 
     /**

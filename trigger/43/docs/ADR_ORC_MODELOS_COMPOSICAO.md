@@ -109,8 +109,28 @@ ORC (tags na composição) → input_snapshot.modelos_composicao[].tintas
 - Não sincronizar `count(tintas)` com o select de estações (4V, verniz, branco).
 - Proibido: sobrecarregar `cores`; guardar só em `observacao`; explodir `PA-ETQ` por tinta.
 
+## Emenda 2026-10-03 — decisão do cliente por modelo
+
+Cada linha nomeada de `modelos_composicao` pode levar `decisao` (`APROVADO` | `REPROVADO`) e `decidido_em`. Ausência = pendente. Sem tabela nova e sem status novo de orçamento. Fora do motor R1–R20.
+
+| Quem | O quê |
+|------|--------|
+| Cliente no `/p/:token` | `POST …/modelos/decidir` grava só a decisão. Não consome o link. Pode trocar até decidir a proposta. |
+| Modal da arte | Botões só nesse link. Ficha, prévia e detalhe mostram o selo. |
+| Comercial na edição | Coluna Cliente somente leitura. Nome, figura ou cores da linha apagam a decisão. Preço e quantidade preservam. |
+| Lista Orçamentos | Contagem só com proposta enviada, visualizada, aprovada ou reprovada. |
+
+Aceite da proposta (servidor e tela):
+
+1. Com modelo nomeado pendente, nem aprovar nem recusar a proposta.
+2. Com algum modelo reprovado, só recusar a proposta. A linha permanece; o comercial ajusta a arte e reenvia.
+3. Aprovar a proposta exige todos os modelos aprovados.
+4. Composição sem nome (legado) não trava o aceite.
+
+Proibido: o comercial gravar a decisão; exigir figura para decidir; recalcular o preço ao aprovar o modelo.
+
 ## Rastreio
 
 - `App\Support\ModelosComposicao` · `ArteModeloUrl` · `OrcArteModeloService` · `OrcamentoValidationRules` · `OrcamentoAprovacaoService::dtoComercial` · `FaturamentoService::itensArte`
-- UI: `orcamentoForm.ts` · `modeloTintas.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `ModeloTintasInput` · `ModeloTintasTags` · `ModeloArteOverlay` · `OrcamentoFormPage` · `OrcamentoPropostaView`
+- UI: `orcamentoForm.ts` · `modeloDecisao.ts` · `modeloTintas.ts` · `ModelosComposicaoEditor` · `ModelosComposicaoTable` · `ModeloDecisaoSelo` · `ModeloTintasInput` · `ModeloTintasTags` · `ModeloArteOverlay` · `OrcamentoFormPage` · `OrcamentoPropostaView` · `OrcamentoPublicoPage`
 - Testes: `ModelosComposicaoTest` · `ArteModeloUrlTest` · `OrcamentoTest` · `OrcamentoAprovacaoTest`

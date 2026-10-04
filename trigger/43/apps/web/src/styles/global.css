@@ -4731,6 +4731,79 @@ table.data-table td.acoes {
   color: var(--navy);
 }
 
+.modelo-decisao {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.modelo-decisao--aprovado {
+  background: rgba(39, 174, 96, 0.12);
+  color: var(--success);
+}
+
+.modelo-decisao--reprovado {
+  background: rgba(192, 57, 43, 0.12);
+  color: var(--danger);
+}
+
+.modelo-decisao--pendente {
+  background: rgba(214, 137, 16, 0.12);
+  color: var(--warning);
+}
+
+.modelo-decisao-abrir {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.modelo-decisao-abrir:hover .modelo-decisao,
+.modelo-decisao-abrir:focus-visible .modelo-decisao {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+.orc-modelo-decisao-col {
+  width: 6.5rem;
+  white-space: nowrap;
+}
+
+.orc-modelos-cliente-cell {
+  font-size: 0.82rem;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.modelo-arte-preview__decisao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.modelo-arte-preview__decisao .btn-row {
+  margin: 0;
+}
+
+.modelo-arte-preview__decisao .form-hint {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .modelo-arte-preview__caption {
   display: inline-flex;
   align-items: center;

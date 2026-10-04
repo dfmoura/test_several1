@@ -176,6 +176,82 @@ class ModelosComposicaoTest extends TestCase
         $this->assertSame(3000, $outFaixa2[1]['quantidade']);
     }
 
+    public function test_normalize_nao_aceita_decisao_forjada(): void
+    {
+        $rows = ModelosComposicao::normalizeAndAssert([
+            ['nome' => 'maçã', 'percentual' => 40, 'decisao' => 'APROVADO'],
+            ['nome' => 'abacate', 'percentual' => 60],
+        ], 2);
+
+        $this->assertArrayNotHasKey('decisao', $rows[0]);
+    }
+
+    public function test_preserva_decisao_se_so_preco_muda_e_limpa_se_nome_figura_ou_cor_mudam(): void
+    {
+        $anterior = [
+            'modelos_composicao' => [
+                [
+                    'ordem' => 1,
+                    'nome' => 'maçã',
+                    'percentual' => 40,
+                    'valor_arte' => 10,
+                    'arte_url' => null,
+                    'tintas' => ['Preto'],
+                    'decisao' => 'APROVADO',
+                    'decidido_em' => '2026-10-01T12:00:00-03:00',
+                ],
+                [
+                    'ordem' => 2,
+                    'nome' => 'abacate',
+                    'percentual' => 60,
+                    'valor_arte' => 0,
+                    'arte_url' => 'https://arte.example/a.png',
+                    'tintas' => [],
+                    'decisao' => 'REPROVADO',
+                    'decidido_em' => '2026-10-01T12:05:00-03:00',
+                ],
+            ],
+        ];
+
+        $mesmo = ModelosComposicao::preservarDecisoes([
+            'modelos_composicao' => [
+                ['ordem' => 1, 'nome' => 'maçã', 'percentual' => 50, 'valor_arte' => 80, 'arte_url' => null, 'tintas' => ['Preto'], 'decisao' => 'REPROVADO'],
+                ['ordem' => 2, 'nome' => 'abacate', 'percentual' => 50, 'valor_arte' => 1, 'arte_url' => 'https://arte.example/a.png', 'tintas' => [], 'decisao' => 'APROVADO'],
+            ],
+        ], $anterior);
+
+        $this->assertSame('APROVADO', $mesmo['modelos_composicao'][0]['decisao']);
+        $this->assertSame('REPROVADO', $mesmo['modelos_composicao'][1]['decisao']);
+        $this->assertEqualsWithDelta(80.0, $mesmo['modelos_composicao'][0]['valor_arte'], 0.01);
+
+        $nome = ModelosComposicao::preservarDecisoes([
+            'modelos_composicao' => [
+                ['ordem' => 1, 'nome' => 'maçã nova', 'percentual' => 40, 'valor_arte' => 10, 'arte_url' => null, 'tintas' => ['Preto']],
+                ['ordem' => 2, 'nome' => 'abacate', 'percentual' => 60, 'valor_arte' => 0, 'arte_url' => 'https://arte.example/a.png', 'tintas' => []],
+            ],
+        ], $anterior);
+        $this->assertArrayNotHasKey('decisao', $nome['modelos_composicao'][0]);
+        $this->assertSame('REPROVADO', $nome['modelos_composicao'][1]['decisao']);
+
+        $figura = ModelosComposicao::preservarDecisoes([
+            'modelos_composicao' => [
+                ['ordem' => 1, 'nome' => 'maçã', 'percentual' => 40, 'arte_url' => null, 'tintas' => ['Preto']],
+                ['ordem' => 2, 'nome' => 'abacate', 'percentual' => 60, 'arte_url' => 'https://arte.example/b.png', 'tintas' => []],
+            ],
+        ], $anterior);
+        $this->assertSame('APROVADO', $figura['modelos_composicao'][0]['decisao']);
+        $this->assertArrayNotHasKey('decisao', $figura['modelos_composicao'][1]);
+
+        $cor = ModelosComposicao::preservarDecisoes([
+            'modelos_composicao' => [
+                ['ordem' => 1, 'nome' => 'maçã', 'percentual' => 40, 'arte_url' => null, 'tintas' => ['Preto', 'Branco']],
+                ['ordem' => 2, 'nome' => 'abacate', 'percentual' => 60, 'arte_url' => 'https://arte.example/a.png', 'tintas' => []],
+            ],
+        ], $anterior);
+        $this->assertArrayNotHasKey('decisao', $cor['modelos_composicao'][0]);
+        $this->assertSame('REPROVADO', $cor['modelos_composicao'][1]['decisao']);
+    }
+
     public function test_rejeita_matriz_com_soma_errada(): void
     {
         $this->expectException(ValidationException::class);

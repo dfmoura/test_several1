@@ -83,6 +83,7 @@ class OrcamentoService
             ->with([
                 'parceiro:id,codigo,razao_social,nome_fantasia,is_prospect',
                 'vendedor:id,codigo,razao_social,nome_fantasia,comissao_percentual,papel_vendedor',
+                'itens:id,orcamento_id,ordem,input_snapshot',
                 ...Orcamento::userStampWith(),
             ])
             ->where('empresa_id', $empresa->id)
@@ -197,6 +198,9 @@ class OrcamentoService
         $vendedor = $this->vendedores->resolve($empresa, $data['vendedor_parceiro_id'] ?? null);
         $transportador = $this->resolveTransportadorOpcional($empresa, $data);
         $doc = $this->precificarDocumento($empresa, $parceiro, $data, $vendedor, $transportador);
+        $orcamento->loadMissing('itens');
+        $doc['jobs'] = $this->preservarDecisoesModelos($orcamento, $doc['jobs']);
+        $doc['flat_input'] = $doc['jobs'][0]['input'];
         $input = $doc['flat_input'];
         $result = $doc['flat_result'];
 
@@ -274,6 +278,29 @@ class OrcamentoService
                 'deleted' => true,
             ]);
         });
+    }
+
+    /**
+     * A decisão do cliente permanece na linha se nome, figura e cores não mudaram.
+     *
+     * @param  list<array{rotulo: string|null, input: array<string, mixed>, result: array<string, mixed>}>  $jobs
+     * @return list<array{rotulo: string|null, input: array<string, mixed>, result: array<string, mixed>}>
+     */
+    private function preservarDecisoesModelos(Orcamento $orcamento, array $jobs): array
+    {
+        $itens = $orcamento->itens->keyBy(fn ($item) => (int) $item->ordem);
+
+        foreach ($jobs as $i => $job) {
+            $ordem = $i + 1;
+            $prev = $itens->get($ordem);
+            $anterior = is_array($prev?->input_snapshot) ? $prev->input_snapshot : [];
+            if ($anterior === [] && $ordem === 1 && is_array($orcamento->input_snapshot)) {
+                $anterior = $orcamento->input_snapshot;
+            }
+            $jobs[$i]['input'] = ModelosComposicao::preservarDecisoes($job['input'], $anterior);
+        }
+
+        return $jobs;
     }
 
     private function assertEditavel(Orcamento $orcamento): void
@@ -958,6 +985,7 @@ class OrcamentoService
             'editavel' => $o->isEditavel(),
             'enviavel' => $o->isEnviavel(),
             'aguardando_cliente' => $o->aguardandoCliente(),
+            'modelos_cliente' => ModelosComposicao::resumoLista($o),
             'input_snapshot' => $o->input_snapshot,
             'result_snapshot' => $o->result_snapshot,
             'tipo_operacao' => TipoOperacaoSaida::fromInput(

@@ -1104,4 +1104,100 @@ class OrcamentoAprovacaoTest extends TestCase
 
         return $result;
     }
+
+    public function test_cliente_decide_modelos_antes_da_proposta(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $payload = $this->payload();
+        $payload['modelos'] = 2;
+        $payload['modelos_composicao'] = [
+            ['nome' => 'maçã verde', 'percentual' => 30, 'valor_arte' => 90, 'tintas' => ['Preto']],
+            ['nome' => 'abacate', 'percentual' => 70, 'valor_arte' => 10],
+        ];
+
+        $id = (int) $this->withHeaders($h)->postJson('/api/v1/orcamentos', $payload)->json('data.id');
+        $token = $this->withHeaders($h)
+            ->postJson("/api/v1/orcamentos/{$id}/enviar-aprovacao")
+            ->json('data.token');
+
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'nome_cliente' => 'Maria Compradora',
+            'faixa_index' => 0,
+        ])->assertStatus(422);
+
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'RECUSAR',
+            'motivo' => 'arte',
+        ])->assertStatus(422);
+
+        $link = OrcamentoLinkAprovacao::query()->where('token', $token)->first();
+        $this->assertNotNull($link);
+        $this->assertTrue($link->ativo);
+        $this->assertNull($link->usado_em);
+
+        $um = $this->postJson("/api/v1/publico/orcamentos/{$token}/modelos/decidir", [
+            'item_ordem' => 1,
+            'modelo_ordem' => 1,
+            'acao' => 'APROVAR',
+        ]);
+        $um->assertOk();
+        $this->assertSame('APROVADO', $um->json('data.decisao'));
+        $this->assertSame('APROVADO', $um->json('data.proposta.descricao.modelos_composicao.0.decisao'));
+        $this->assertNull($um->json('data.proposta.descricao.modelos_composicao.1.decisao'));
+        $this->assertSame(1, $um->json('data.modelos_cliente.aprovados'));
+        $this->assertSame(1, $um->json('data.modelos_cliente.pendentes'));
+
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'nome_cliente' => 'Maria Compradora',
+            'faixa_index' => 0,
+        ])->assertStatus(422);
+
+        $dois = $this->postJson("/api/v1/publico/orcamentos/{$token}/modelos/decidir", [
+            'modelo_ordem' => 2,
+            'acao' => 'REPROVAR',
+        ]);
+        $dois->assertOk();
+
+        $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'APROVAR',
+            'nome_cliente' => 'Maria Compradora',
+            'faixa_index' => 0,
+        ])->assertStatus(422);
+
+        $recusa = $this->postJson("/api/v1/publico/orcamentos/{$token}/decidir", [
+            'acao' => 'RECUSAR',
+            'motivo' => 'Arte do abacate',
+        ]);
+        $recusa->assertOk();
+        $this->assertSame('REPROVADO', $recusa->json('data.status'));
+
+        $lista = $this->withHeaders($h)->getJson('/api/v1/orcamentos');
+        $lista->assertOk();
+        $row = collect($lista->json('data'))->firstWhere('id', $id);
+        $this->assertSame(1, $row['modelos_cliente']['aprovados']);
+        $this->assertSame(1, $row['modelos_cliente']['reprovados']);
+        $this->assertSame(0, $row['modelos_cliente']['pendentes']);
+
+        $orc = Orcamento::query()->findOrFail($id);
+        $snap = $orc->input_snapshot;
+        $snap['modelos_composicao'][0]['valor_arte'] = 120;
+        $snap['modelos_composicao'][0]['decisao'] = 'REPROVADO';
+        $edit = $payload;
+        $edit['modelos_composicao'] = $snap['modelos_composicao'];
+        $edit['modelos_composicao'][1]['nome'] = 'abacate novo';
+        $edit['modelos_composicao'][1]['decisao'] = 'APROVADO';
+
+        $upd = $this->withHeaders($h)->putJson("/api/v1/orcamentos/{$id}", $edit);
+        $upd->assertOk();
+        $salvo = $upd->json('data.input_snapshot.modelos_composicao');
+        $this->assertSame('APROVADO', $salvo[0]['decisao']);
+        $this->assertEqualsWithDelta(120.0, (float) $salvo[0]['valor_arte'], 0.01);
+        $this->assertArrayNotHasKey('decisao', $salvo[1]);
+        $this->assertSame('CALCULADO', $upd->json('data.status'));
+        $this->assertNull($upd->json('data.modelos_cliente'));
+    }
 }
