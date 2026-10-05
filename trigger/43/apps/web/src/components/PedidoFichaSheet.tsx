@@ -35,8 +35,9 @@ import { ModeloTintasTags } from './ModeloTintasTags';
 import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
- * Ficha do pedido — contrato interno A4 paisagem.
- * Etiquetas (uma linha por modelo) e revenda em blocos separados.
+ * Ficha do pedido — contrato interno A4 retrato.
+ * Etiquetas: faixa de spec do item + uma linha por modelo.
+ * Revenda e serviços em blocos próprios.
  * Valores travados. Sem custo/gordura. Sem readequação.
  * Ficha da OP e ficha-cliente não usam este recorte.
  */
@@ -78,6 +79,40 @@ function fmtRolos(value: number | null | undefined): string {
   return formatDecimalBr(value, scale, { stripTrailingZeros: true });
 }
 
+function EtqSpecCols() {
+  return (
+    <colgroup>
+      <col className="ped-ficha-etq-c-n" />
+      <col className="ped-ficha-etq-c-mat" />
+      <col className="ped-ficha-etq-c-med" />
+      <col className="ped-ficha-etq-c-acab" />
+      <col className="ped-ficha-etq-c-tub" />
+      <col className="ped-ficha-etq-c-cores" />
+      <col className="ped-ficha-etq-c-saida" />
+      <col className="ped-ficha-etq-c-maq" />
+      <col className="ped-ficha-etq-c-nfaca" />
+      <col className="ped-ficha-etq-c-faca" />
+      <col className="ped-ficha-etq-c-fx" />
+    </colgroup>
+  );
+}
+
+function EtqDetalheCols() {
+  return (
+    <colgroup>
+      <col className="ped-ficha-etq-c-modelo" />
+      <col className="ped-ficha-etq-c-tintas" />
+      <col className="ped-ficha-etq-c-val" />
+      <col className="ped-ficha-etq-c-val" />
+      <col className="ped-ficha-etq-c-val" />
+      <col className="ped-ficha-etq-c-er" />
+      <col className="ped-ficha-etq-c-rolos" />
+      <col className="ped-ficha-etq-c-etiq" />
+      <col className="ped-ficha-etq-c-sub" />
+    </colgroup>
+  );
+}
+
 function PedidoTabelaEtiquetas({
   pedido,
   itens,
@@ -103,102 +138,125 @@ function PedidoTabelaEtiquetas({
   const total = somaValores(itens);
 
   return (
-    <table className="ficha-table ped-ficha-contrato-table ped-ficha-contrato-table--etq">
-      <thead>
-        <tr>
-          <th className="ped-ficha-col-n">#</th>
-          <th>Material</th>
-          <th>Medida</th>
-          <th>Acab.</th>
-          <th className="ped-ficha-col-xs">Tub.</th>
-          <th className="ped-ficha-col-xs">Cores</th>
-          <th>Saída</th>
-          <th className="ped-ficha-col-xs">Máq.</th>
-          <th className="ped-ficha-col-xs">Nº faca</th>
-          <th>Faca</th>
-          <th className="ped-ficha-col-xs">Fx</th>
-          <th>Modelo</th>
-          <th>Cores arte</th>
-          <th className="ficha-td-num ped-ficha-th-val">Vlr. arte</th>
-          <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
-          <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
-          <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
-          <th className="ficha-td-num ped-ficha-th-val ped-ficha-col-xs">Rolos</th>
-          <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
-          <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
-        </tr>
-      </thead>
-      {grupos.map(({ item, linhas }) => (
-        <tbody key={item.id} className="ped-ficha-contrato-grupo">
-          {linhas.map((ln) => (
-            <tr key={ln.key}>
-              <td className="ped-ficha-col-n">{String(ln.ordem).padStart(2, '0')}</td>
-              <td>{dashCell(ln.material)}</td>
-              <td>{dashCell(ln.medida)}</td>
-              <td>{dashCell(ln.acabamento)}</td>
-              <td className="ped-ficha-col-xs">{dashCell(ln.tubete)}</td>
-              <td className="ped-ficha-col-xs">{dashCell(ln.cores)}</td>
-              <td>{dashCell(ln.saida)}</td>
-              <td className="ped-ficha-col-xs">{dashCell(ln.maquina)}</td>
-              <td className="ped-ficha-col-xs ficha-td-num">{dashCell(ln.nFaca)}</td>
-              <td>{dashCell(ln.faca)}</td>
-              <td className="ped-ficha-col-xs">{dashCell(ln.faixa)}</td>
-              <td className="ped-ficha-col-modelo">{ln.modelo}</td>
-              <td className="ped-ficha-col-tintas">
-                <ModeloTintasTags tintas={ln.tintas} empty="—" />
+    <div className="ped-ficha-etq">
+      {grupos.map(({ item, linhas }) => {
+        const spec = linhas[0];
+        if (!spec) return null;
+        return (
+          <div key={item.id} className="ped-ficha-contrato-grupo ped-ficha-etq-item">
+            <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-spec">
+              <EtqSpecCols />
+              <thead>
+                <tr>
+                  <th className="ped-ficha-col-n">#</th>
+                  <th>Material</th>
+                  <th>Medida</th>
+                  <th>Acab.</th>
+                  <th>Tub.</th>
+                  <th>Cores</th>
+                  <th>Saída</th>
+                  <th>Máq.</th>
+                  <th>Nº faca</th>
+                  <th>Faca</th>
+                  <th>Fx</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="ped-ficha-col-n">{String(spec.ordem).padStart(2, '0')}</td>
+                  <td>{dashCell(spec.material)}</td>
+                  <td>{dashCell(spec.medida)}</td>
+                  <td>{dashCell(spec.acabamento)}</td>
+                  <td>{dashCell(spec.tubete)}</td>
+                  <td>{dashCell(spec.cores)}</td>
+                  <td>{dashCell(spec.saida)}</td>
+                  <td>{dashCell(spec.maquina)}</td>
+                  <td>{dashCell(spec.nFaca)}</td>
+                  <td>{dashCell(spec.faca)}</td>
+                  <td>{dashCell(spec.faixa)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-detalhe">
+              <EtqDetalheCols />
+              <thead>
+                <tr>
+                  <th>Modelo</th>
+                  <th>Cores arte</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Vlr. arte</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linhas.map((ln) => (
+                  <tr key={ln.key}>
+                    <td className="ped-ficha-col-modelo">{ln.modelo}</td>
+                    <td className="ped-ficha-col-tintas">
+                      <ModeloTintasTags tintas={ln.tintas} empty="—" />
+                    </td>
+                    <td className="ficha-td-num">
+                      {ln.valorArte > 0 ? formatCurrency(ln.valorArte) : '—'}
+                    </td>
+                    <td className="ficha-td-num">
+                      {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
+                    </td>
+                    <td className="ficha-td-num">
+                      {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
+                    </td>
+                    <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
+                    <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
+                    <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
+                    <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+      <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-detalhe ped-ficha-etq-totais">
+        <EtqDetalheCols />
+        <tbody>
+          {somaMatriz > 0 ? (
+            <tr className="ped-ficha-contrato-foot-matriz">
+              <td colSpan={2} className="ficha-td-num">
+                Total matriz
               </td>
+              <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
               <td className="ficha-td-num">
-                {ln.valorArte > 0 ? formatCurrency(ln.valorArte) : '—'}
+                <strong>{formatCurrency(somaMatriz)}</strong>
               </td>
-              <td className="ficha-td-num">
-                {ln.unitario != null ? formatUnitPrice(ln.unitario) : '—'}
-              </td>
-              <td className="ficha-td-num">
-                {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
-              </td>
-              <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
-              <td className="ficha-td-num ped-ficha-col-xs">{fmtRolos(ln.rolos)}</td>
-              <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
-              <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
             </tr>
-          ))}
-        </tbody>
-      ))}
-      <tfoot>
-        {somaMatriz > 0 ? (
-          <tr className="ped-ficha-contrato-foot-matriz">
-            <td colSpan={13} className="ficha-td-num">
-              Total matriz
+          ) : null}
+          <tr>
+            <td colSpan={2} className="ficha-td-num">
+              {rodape}
+            </td>
+            <td className="ficha-td-num">
+              {somaArte > 0 ? formatCurrency(somaArte) : '—'}
             </td>
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
-            <td className="ficha-td-num">—</td>
-            <td className="ficha-td-num">—</td>
-            <td className="ficha-td-num">—</td>
-            <td className="ficha-td-num">—</td>
+            <td className="ficha-td-num">{temEtiqPorRolo ? fmtQtdInt(somaEtiqPorRolo) : '—'}</td>
+            <td className="ficha-td-num">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
+            <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
             <td className="ficha-td-num">
-              <strong>{formatCurrency(somaMatriz)}</strong>
+              <strong>{formatCurrency(total)}</strong>
             </td>
           </tr>
-        ) : null}
-        <tr>
-          <td colSpan={13} className="ficha-td-num">
-            {rodape}
-          </td>
-          <td className="ficha-td-num">
-            {somaArte > 0 ? formatCurrency(somaArte) : '—'}
-          </td>
-          <td className="ficha-td-num">—</td>
-          <td className="ficha-td-num">—</td>
-          <td className="ficha-td-num">{temEtiqPorRolo ? fmtQtdInt(somaEtiqPorRolo) : '—'}</td>
-          <td className="ficha-td-num ped-ficha-col-xs">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
-          <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
-          <td className="ficha-td-num">
-            <strong>{formatCurrency(total)}</strong>
-          </td>
-        </tr>
-      </tfoot>
-    </table>
+        </tbody>
+      </table>
+    </div>
   );
 }
 

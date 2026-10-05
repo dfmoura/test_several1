@@ -9839,12 +9839,12 @@ tr.row-inactive td {
   font-size: 6pt;
 }
 
-/* PED contrato — A4 paisagem. Escopo só em .ficha-sheet-ped (OP fica retrato). */
+/* PED contrato — A4 retrato. Escopo só em .ficha-sheet-ped (ORC de cálculo permanece paisagem). */
 .ficha-sheet.ficha-sheet-ped {
-  width: 297mm;
-  max-width: 297mm;
-  padding: 6mm 7mm 5mm;
-  font-size: 7.5pt;
+  width: 210mm;
+  max-width: 100%;
+  padding: 8mm 8mm 6mm;
+  font-size: 8pt;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-blocos {
@@ -9855,26 +9855,81 @@ tr.row-inactive td {
 
 .ficha-sheet-ped .ped-ficha-contrato-table {
   width: 100%;
-  font-size: 6.5pt;
+  font-size: 7.25pt;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table th {
-  font-size: 5.5pt;
-  padding: 0.55mm 0.8mm;
+  font-size: 6.25pt;
+  padding: 0.7mm 1mm;
   white-space: nowrap;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table th.ped-ficha-th-val {
   white-space: normal;
-  max-width: 16mm;
-  line-height: 1.1;
+  line-height: 1.15;
   text-align: right;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table td {
-  padding: 0.5mm 0.8mm;
+  padding: 0.7mm 1mm;
   vertical-align: middle;
-  line-height: 1.15;
+  line-height: 1.2;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-c-n { width: 6%; }
+.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 14%; }
+.ficha-sheet-ped .ped-ficha-etq-c-med { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 11%; }
+.ficha-sheet-ped .ped-ficha-etq-c-tub { width: 6%; }
+.ficha-sheet-ped .ped-ficha-etq-c-cores { width: 6%; }
+.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-maq { width: 8%; }
+.ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 8%; }
+.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-fx { width: 5%; }
+
+.ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 16%; }
+.ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 16%; }
+.ficha-sheet-ped .ped-ficha-etq-c-val { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-er { width: 11%; }
+.ficha-sheet-ped .ped-ficha-etq-c-rolos { width: 8%; }
+.ficha-sheet-ped .ped-ficha-etq-c-etiq { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-sub { width: 10%; }
+
+.ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item {
+  margin-top: 2.4mm;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item .ped-ficha-etq-spec {
+  border-top: 0.35pt solid var(--border);
+}
+
+.ficha-sheet-ped .ped-ficha-etq-detalhe {
+  border-top: 0;
+  border-left: 1.75pt solid color-mix(in srgb, var(--navy, #1a3568) 42%, var(--border, #c5ced9));
+}
+
+.ficha-sheet-ped .ped-ficha-etq-detalhe th {
+  background: #f7f9fc;
+  color: var(--text-muted, #5a6570);
+  font-size: 6pt;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-detalhe th.ped-ficha-th-val {
+  white-space: nowrap;
+  font-size: 5.75pt;
+  letter-spacing: 0.01em;
+}
+
+.ficha-sheet-ped .ped-ficha-etq-totais {
+  margin-top: 1.6mm;
+  border-top: 0.35pt solid var(--border);
+  border-left-width: 0.35pt;
+  border-left-color: var(--border);
+}
+
+.ficha-sheet-ped .ped-ficha-etq-totais td {
+  background: #fff;
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table .ped-ficha-col-n {
@@ -9887,17 +9942,16 @@ tr.row-inactive td {
   font-weight: 600;
 }
 
-.ficha-sheet-ped .ped-ficha-col-xs,
-.ficha-sheet-ped .ped-ficha-contrato-table th.ped-ficha-col-xs {
-  width: 8mm;
-  max-width: 11mm;
-  padding-left: 0.4mm;
-  padding-right: 0.4mm;
-  white-space: nowrap;
+.ficha-sheet-ped .ped-ficha-contrato-table--simples .ped-ficha-contrato-grupo:nth-child(even) {
+  background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
+}
+
+.ficha-sheet-ped .ped-ficha-etq-spec .ped-ficha-col-n {
+  width: auto;
 }
 
 .ficha-sheet-ped .ped-ficha-col-tintas {
-  max-width: 28mm;
+  max-width: none;
   padding-left: 0.45mm;
   padding-right: 0.45mm;
 }
@@ -9908,17 +9962,13 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-ped .ped-ficha-col-tintas .modelo-tinta-tag {
-  font-size: 5.5pt;
-  padding: 0 0.6mm;
-  line-height: 1.2;
+  font-size: 6.25pt;
+  padding: 0 0.7mm;
+  line-height: 1.25;
 }
 
-.ficha-sheet-ped .ped-ficha-contrato-grupo + .ped-ficha-contrato-grupo {
+.ficha-sheet-ped .ped-ficha-contrato-table--simples .ped-ficha-contrato-grupo + .ped-ficha-contrato-grupo {
   border-top: 0.6pt solid color-mix(in srgb, var(--border, #c5ced9) 88%, transparent);
-}
-
-.ficha-sheet-ped .ped-ficha-contrato-grupo:nth-child(even) {
-  background: color-mix(in srgb, var(--navy, #1a3568) 2%, #fff);
 }
 
 .ficha-sheet-ped .ped-ficha-contrato-table tfoot td {
@@ -11089,6 +11139,12 @@ tr.row-inactive td {
   margin: 6mm;
 }
 
+/* A4 retrato — ficha contrato do PED. Não reutiliza ficha-orc-a4. */
+@page ficha-ped-a4 {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
 @media print {
   body.ficha-print-mode {
     background: #fff !important;
@@ -11147,9 +11203,15 @@ tr.row-inactive td {
     page-break-inside: avoid;
   }
 
-  body.ficha-print-mode .ficha-sheet.ficha-sheet-orc,
-  body.ficha-print-mode .ficha-sheet.ficha-sheet-ped {
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-orc {
     page: ficha-orc-a4;
+    width: auto;
+    max-width: none;
+    padding: 0;
+  }
+
+  body.ficha-print-mode .ficha-sheet.ficha-sheet-ped {
+    page: ficha-ped-a4;
     width: auto;
     max-width: none;
     padding: 0;
