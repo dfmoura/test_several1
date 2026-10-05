@@ -9877,16 +9877,16 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-ped .ped-ficha-etq-c-n { width: 6%; }
-.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 14%; }
+.ficha-sheet-ped .ped-ficha-etq-c-qtd { width: 9%; }
 .ficha-sheet-ped .ped-ficha-etq-c-med { width: 12%; }
-.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 11%; }
+.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 14%; }
+.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 10%; }
 .ficha-sheet-ped .ped-ficha-etq-c-tub { width: 6%; }
 .ficha-sheet-ped .ped-ficha-etq-c-cores { width: 6%; }
-.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 11%; }
 .ficha-sheet-ped .ped-ficha-etq-c-maq { width: 8%; }
 .ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 8%; }
-.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 12%; }
-.ficha-sheet-ped .ped-ficha-etq-c-fx { width: 5%; }
+.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 10%; }
 
 .ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 16%; }
 .ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 16%; }
