@@ -74,6 +74,11 @@ function fmtQtdInt(value: number | null | undefined): string {
   return formatDecimalBr(value, 0);
 }
 
+function fmtCm(value: number | null | undefined, digits = 2): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return '—';
+  return `${formatDecimalBr(value, digits)} cm`;
+}
+
 function fmtRolos(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
   const scale = Math.abs(value - Math.round(value)) < 1e-6 ? 0 : 2;
@@ -88,6 +93,8 @@ function EtqSpecCols() {
       <col className="ped-ficha-etq-c-med" />
       <col className="ped-ficha-etq-c-nfaca" />
       <col className="ped-ficha-etq-c-faca" />
+      <col className="ped-ficha-etq-c-larg" />
+      <col className="ped-ficha-etq-c-pux" />
       <col className="ped-ficha-etq-c-mat" />
       <col className="ped-ficha-etq-c-acab" />
       <col className="ped-ficha-etq-c-tub" />
@@ -154,6 +161,8 @@ function PedidoTabelaEtiquetas({
                   <th>Medida</th>
                   <th>Nº faca</th>
                   <th>Faca</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Largura</th>
+                  <th className="ficha-td-num ped-ficha-th-val">Puxada</th>
                   <th>Material</th>
                   <th>Acab.</th>
                   <th>Tub.</th>
@@ -169,6 +178,8 @@ function PedidoTabelaEtiquetas({
                   <td>{dashCell(spec.medida)}</td>
                   <td>{dashCell(spec.nFaca)}</td>
                   <td>{dashCell(spec.faca)}</td>
+                  <td className="ficha-td-num">{fmtCm(spec.larguraCm)}</td>
+                  <td className="ficha-td-num">{fmtCm(spec.puxadaCm, 4)}</td>
                   <td>{dashCell(spec.material)}</td>
                   <td>{dashCell(spec.acabamento)}</td>
                   <td>{dashCell(spec.tubete)}</td>

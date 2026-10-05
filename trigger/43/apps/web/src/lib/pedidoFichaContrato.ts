@@ -33,6 +33,8 @@ export type PedidoFichaEtiquetaLinha = {
   maquina: string | null;
   nFaca: string | null;
   faca: string | null;
+  larguraCm: number | null;
+  puxadaCm: number | null;
   faixa: string | null;
   modelo: string;
   tintas: string[];
@@ -125,6 +127,16 @@ function numPositivo(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** Primeiro cm válido: faca principal, senão o espelho da spec. */
+function cmPositivo(...cands: unknown[]): number | null {
+  for (const raw of cands) {
+    if (raw === '' || raw == null) continue;
+    const n = numPositivo(raw);
+    if (n != null) return n;
+  }
+  return null;
+}
+
 function money2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
@@ -203,6 +215,8 @@ export function linhasEtiquetaDoItem(
   const nFacaRaw = principal?.n_facas ?? spec.n_facas;
   const nFaca =
     nFacaRaw != null && Number.isFinite(Number(nFacaRaw)) ? String(Number(nFacaRaw)) : null;
+  const larguraCm = cmPositivo(principal?.largura_cm, desc.largura_cm);
+  const puxadaCm = cmPositivo(principal?.puxada_cm, desc.puxada_cm);
 
   const base = {
     itemId: item.id,
@@ -216,6 +230,8 @@ export function linhasEtiquetaDoItem(
     maquina: maquinaRaw || null,
     nFaca,
     faca: visual.faca,
+    larguraCm,
+    puxadaCm,
     faixa: `#${faixaIdx + 1}`,
     etiqPorRolo,
     unitario,

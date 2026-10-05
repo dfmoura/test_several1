@@ -9876,17 +9876,19 @@ tr.row-inactive td {
   line-height: 1.2;
 }
 
-.ficha-sheet-ped .ped-ficha-etq-c-n { width: 6%; }
-.ficha-sheet-ped .ped-ficha-etq-c-qtd { width: 9%; }
-.ficha-sheet-ped .ped-ficha-etq-c-med { width: 12%; }
-.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 14%; }
-.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 10%; }
-.ficha-sheet-ped .ped-ficha-etq-c-tub { width: 6%; }
-.ficha-sheet-ped .ped-ficha-etq-c-cores { width: 6%; }
-.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 11%; }
-.ficha-sheet-ped .ped-ficha-etq-c-maq { width: 8%; }
-.ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 8%; }
-.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-n { width: 5%; }
+.ficha-sheet-ped .ped-ficha-etq-c-qtd { width: 7%; }
+.ficha-sheet-ped .ped-ficha-etq-c-med { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 7%; }
+.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-larg { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-pux { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 7%; }
+.ficha-sheet-ped .ped-ficha-etq-c-tub { width: 5%; }
+.ficha-sheet-ped .ped-ficha-etq-c-cores { width: 5%; }
+.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 7%; }
+.ficha-sheet-ped .ped-ficha-etq-c-maq { width: 5%; }
 
 .ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 16%; }
 .ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 16%; }
@@ -9902,6 +9904,10 @@ tr.row-inactive td {
 
 .ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item .ped-ficha-etq-spec {
   border-top: 0.35pt solid var(--border);
+}
+
+.ficha-sheet-ped .ped-ficha-etq-spec th.ped-ficha-th-val {
+  white-space: nowrap;
 }
 
 .ficha-sheet-ped .ped-ficha-etq-item .ped-ficha-etq-detalhe {
