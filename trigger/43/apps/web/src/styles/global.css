@@ -9890,12 +9890,13 @@ tr.row-inactive td {
 .ficha-sheet-ped .ped-ficha-etq-c-saida { width: 7%; }
 .ficha-sheet-ped .ped-ficha-etq-c-maq { width: 5%; }
 
-.ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 16%; }
-.ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 16%; }
-.ficha-sheet-ped .ped-ficha-etq-c-val { width: 10%; }
-.ficha-sheet-ped .ped-ficha-etq-c-er { width: 11%; }
-.ficha-sheet-ped .ped-ficha-etq-c-rolos { width: 8%; }
-.ficha-sheet-ped .ped-ficha-etq-c-etiq { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 15%; }
+.ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 14%; }
+.ficha-sheet-ped .ped-ficha-etq-c-val { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-er { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-ml { width: 9%; }
+.ficha-sheet-ped .ped-ficha-etq-c-rolos { width: 7%; }
+.ficha-sheet-ped .ped-ficha-etq-c-etiq { width: 8%; }
 .ficha-sheet-ped .ped-ficha-etq-c-sub { width: 10%; }
 
 .ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item {

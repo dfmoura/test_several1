@@ -40,6 +40,8 @@ export type PedidoFichaEtiquetaLinha = {
   tintas: string[];
   valorArte: number;
   etiqPorRolo: number | null;
+  /** Comprimento do rolo acabado: etiq/rolo × puxada(cm) ÷ 100. Não divide por colunas. */
+  metrosPorRolo: number | null;
   rolos: number | null;
   etiquetas: number | null;
   subtotal: number;
@@ -125,6 +127,13 @@ export function etiquetasPorModeloDoItem(
 function numPositivo(raw: unknown): number | null {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Rolo acabado = uma pista. A metragem do motor (÷ colunas) é a bobina mãe do pedido. */
+function metrosLinearesPorRolo(etiqPorRolo: number | null, puxadaCm: number | null): number | null {
+  if (etiqPorRolo == null || puxadaCm == null) return null;
+  const metros = (etiqPorRolo * puxadaCm) / 100;
+  return Number.isFinite(metros) && metros > 0 ? metros : null;
 }
 
 /** Primeiro cm válido: faca principal, senão o espelho da spec. */
@@ -234,6 +243,7 @@ export function linhasEtiquetaDoItem(
     puxadaCm,
     faixa: `#${faixaIdx + 1}`,
     etiqPorRolo,
+    metrosPorRolo: metrosLinearesPorRolo(etiqPorRolo, puxadaCm),
     unitario,
     valorRolo,
   };

@@ -74,6 +74,11 @@ function fmtQtdInt(value: number | null | undefined): string {
   return formatDecimalBr(value, 0);
 }
 
+function fmtMetros(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return '—';
+  return formatDecimalBr(value, 2);
+}
+
 function fmtCm(value: number | null | undefined, digits = 2): string {
   if (value == null || !Number.isFinite(value) || value <= 0) return '—';
   return `${formatDecimalBr(value, digits)} cm`;
@@ -114,6 +119,7 @@ function EtqDetalheCols() {
       <col className="ped-ficha-etq-c-val" />
       <col className="ped-ficha-etq-c-val" />
       <col className="ped-ficha-etq-c-er" />
+      <col className="ped-ficha-etq-c-ml" />
       <col className="ped-ficha-etq-c-rolos" />
       <col className="ped-ficha-etq-c-etiq" />
       <col className="ped-ficha-etq-c-sub" />
@@ -199,6 +205,7 @@ function PedidoTabelaEtiquetas({
                   <th className="ficha-td-num ped-ficha-th-val">Unitário</th>
                   <th className="ficha-td-num ped-ficha-th-val">Valor rolo</th>
                   <th className="ficha-td-num ped-ficha-th-val">Etiq. por rolo</th>
+                  <th className="ficha-td-num ped-ficha-th-val">m/rolo</th>
                   <th className="ficha-td-num ped-ficha-th-val">Rolos</th>
                   <th className="ficha-td-num ped-ficha-th-val">Etiquetas</th>
                   <th className="ficha-td-num ped-ficha-th-val">Subtotal</th>
@@ -221,6 +228,7 @@ function PedidoTabelaEtiquetas({
                       {ln.valorRolo != null ? formatCurrency(ln.valorRolo) : '—'}
                     </td>
                     <td className="ficha-td-num">{fmtQtdInt(ln.etiqPorRolo)}</td>
+                    <td className="ficha-td-num">{fmtMetros(ln.metrosPorRolo)}</td>
                     <td className="ficha-td-num">{fmtRolos(ln.rolos)}</td>
                     <td className="ficha-td-num">{fmtQtdInt(ln.etiquetas)}</td>
                     <td className="ficha-td-num">{formatCurrency(ln.subtotal)}</td>
@@ -245,6 +253,7 @@ function PedidoTabelaEtiquetas({
               <td className="ficha-td-num">—</td>
               <td className="ficha-td-num">—</td>
               <td className="ficha-td-num">—</td>
+              <td className="ficha-td-num">—</td>
               <td className="ficha-td-num">
                 <strong>{formatCurrency(somaMatriz)}</strong>
               </td>
@@ -260,6 +269,7 @@ function PedidoTabelaEtiquetas({
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">{temEtiqPorRolo ? fmtQtdInt(somaEtiqPorRolo) : '—'}</td>
+            <td className="ficha-td-num">—</td>
             <td className="ficha-td-num">{temRolos ? fmtRolos(somaRolos) : '—'}</td>
             <td className="ficha-td-num">{fmtQtdInt(somaEtiquetas)}</td>
             <td className="ficha-td-num">
