@@ -86,14 +86,14 @@ function EtqSpecCols() {
       <col className="ped-ficha-etq-c-n" />
       <col className="ped-ficha-etq-c-qtd" />
       <col className="ped-ficha-etq-c-med" />
+      <col className="ped-ficha-etq-c-nfaca" />
+      <col className="ped-ficha-etq-c-faca" />
       <col className="ped-ficha-etq-c-mat" />
       <col className="ped-ficha-etq-c-acab" />
       <col className="ped-ficha-etq-c-tub" />
       <col className="ped-ficha-etq-c-cores" />
       <col className="ped-ficha-etq-c-saida" />
       <col className="ped-ficha-etq-c-maq" />
-      <col className="ped-ficha-etq-c-nfaca" />
-      <col className="ped-ficha-etq-c-faca" />
     </colgroup>
   );
 }
@@ -152,14 +152,14 @@ function PedidoTabelaEtiquetas({
                   <th className="ped-ficha-col-n">#</th>
                   <th className="ficha-td-num ped-ficha-th-val">Qtd</th>
                   <th>Medida</th>
+                  <th>Nº faca</th>
+                  <th>Faca</th>
                   <th>Material</th>
                   <th>Acab.</th>
                   <th>Tub.</th>
                   <th>Cores</th>
                   <th>Saída</th>
                   <th>Máq.</th>
-                  <th>Nº faca</th>
-                  <th>Faca</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,14 +167,14 @@ function PedidoTabelaEtiquetas({
                   <td className="ped-ficha-col-n">{String(spec.ordem).padStart(2, '0')}</td>
                   <td className="ficha-td-num">{fmtQtdInt(qtdeFaixaDoItem(pedido, item))}</td>
                   <td>{dashCell(spec.medida)}</td>
+                  <td>{dashCell(spec.nFaca)}</td>
+                  <td>{dashCell(spec.faca)}</td>
                   <td>{dashCell(spec.material)}</td>
                   <td>{dashCell(spec.acabamento)}</td>
                   <td>{dashCell(spec.tubete)}</td>
                   <td>{dashCell(spec.cores)}</td>
                   <td>{dashCell(spec.saida)}</td>
                   <td>{dashCell(spec.maquina)}</td>
-                  <td>{dashCell(spec.nFaca)}</td>
-                  <td>{dashCell(spec.faca)}</td>
                 </tr>
               </tbody>
             </table>
