@@ -1109,6 +1109,18 @@ export function OrcamentoFormPage() {
                     </button>
                   </div>
                 </div>
+                <div className="form-group">
+                  <label>
+                    Desconto (R$) <span className="field-note">no documento</span>
+                  </label>
+                  <NumericInput
+                    min={0}
+                    step="0.01"
+                    value={form.valor_desconto}
+                    onCommit={(v) => setField('valor_desconto', v === '' ? 0 : Math.max(0, v))}
+                    disabled={!canWrite}
+                  />
+                </div>
                 {modoComFrete(form.modo_entrega) ? (
                   <div className="form-group">
                     <label>

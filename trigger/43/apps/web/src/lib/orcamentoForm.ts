@@ -203,6 +203,8 @@ export type OrcForm = {
   modo_entrega: 'RETIRAR' | 'ENTREGA_PROPRIA' | 'ENTREGA_TERCEIROS';
   /** R$ opcional em entrega própria/terceiros. Vazio = a definir (não soma no total). */
   valor_frete_manual: number | '';
+  /** Desconto do documento, em R$. Não entra no motor. Reduz o total dos itens. */
+  valor_desconto: number;
   /** CIF (0) | FOB (1) — só ENTREGA_TERCEIROS. */
   mod_frete: '' | '0' | '1';
   /** PAR papel_transportadora — só ENTREGA_TERCEIROS (opcional no ORC). */
@@ -862,6 +864,7 @@ export function defaultOrcForm(catalog: OrcCatalogo | null): OrcForm {
     vendedor_parceiro_id: '',
     modo_entrega: 'RETIRAR',
     valor_frete_manual: '',
+    valor_desconto: 0,
     mod_frete: '',
     transportador_id: '',
     overrides: {},
@@ -1001,6 +1004,7 @@ export function formFromSnapshot(
       snap.valor_frete_manual == null || snap.valor_frete_manual === ''
         ? ''
         : Number(snap.valor_frete_manual),
+    valor_desconto: Math.max(0, Number(snap.valor_desconto) || 0),
     mod_frete:
       normalizarModFreteTerceiros(
         String(snap.modo_entrega ?? ''),
@@ -1028,6 +1032,7 @@ export const ORC_HEADER_KEYS = [
   'vendedor_parceiro_id',
   'modo_entrega',
   'valor_frete_manual',
+  'valor_desconto',
   'mod_frete',
   'transportador_id',
 ] as const;
@@ -1050,6 +1055,7 @@ export function syncHeaderAcrossItens(itens: OrcForm[], headerSource: OrcForm): 
     vendedor_parceiro_id: headerSource.vendedor_parceiro_id,
     modo_entrega: headerSource.modo_entrega,
     valor_frete_manual: headerSource.valor_frete_manual,
+    valor_desconto: headerSource.valor_desconto,
     mod_frete: headerSource.mod_frete,
     transportador_id: headerSource.transportador_id,
   };
@@ -1202,6 +1208,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
         modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
           : null,
+      valor_desconto: Math.max(0, Number(form.valor_desconto) || 0),
       mod_frete: normalizarModFreteTerceiros(form.modo_entrega, form.mod_frete || MOD_FRETE_CIF),
       transportador_id:
         form.modo_entrega === 'ENTREGA_TERCEIROS' && form.transportador_id !== ''
@@ -1240,6 +1247,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
         modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
           ? form.valor_frete_manual
           : null,
+      valor_desconto: Math.max(0, Number(form.valor_desconto) || 0),
       mod_frete: normalizarModFreteTerceiros(form.modo_entrega, form.mod_frete || MOD_FRETE_CIF),
       transportador_id:
         form.modo_entrega === 'ENTREGA_TERCEIROS' && form.transportador_id !== ''
@@ -1340,6 +1348,7 @@ export function payloadFromForm(form: OrcForm): Record<string, unknown> {
       modoComFrete(form.modo_entrega) && form.valor_frete_manual !== ''
         ? form.valor_frete_manual
         : null,
+    valor_desconto: Math.max(0, Number(form.valor_desconto) || 0),
     mod_frete: normalizarModFreteTerceiros(form.modo_entrega, form.mod_frete || MOD_FRETE_CIF),
     transportador_id:
       form.modo_entrega === 'ENTREGA_TERCEIROS' && form.transportador_id !== ''

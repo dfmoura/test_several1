@@ -1127,6 +1127,7 @@ class OrcamentoAprovacaoService
             'condicao_pagamento' => $this->nullIfEmptySnap($input['condicao_pagamento'] ?? null),
             'forma_pagamento' => $this->nullIfEmptySnap($input['forma_pagamento'] ?? null),
             'frete' => $this->fretePublico($input, $result, $faixas),
+            'valor_desconto' => round(max(0, (float) ($input['valor_desconto'] ?? 0)), 2),
             'cobra_matriz' => (bool) $orcamento->cobra_matriz,
             'valor_matriz' => (float) $orcamento->valor_matriz,
             'matriz_nota' => $orcamento->cobra_matriz ? 'Cobrado somente no 1º pedido deste modelo.' : null,

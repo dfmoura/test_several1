@@ -681,11 +681,13 @@ export function OrcPubItensAcordeao({
   if (!isPropostaMultiItem(proposta)) return null;
   const itens = proposta.itens ?? [];
   const selecionavel = !somenteLeitura && Boolean(onFaixaItemChange);
-  const totalDoc = selecionavel && faixasItens
+  const bruto = selecionavel && faixasItens
     ? totalDocumentoSelecionado(proposta, faixasItens)
     : proposta.valor_total_documento_primeira_faixa != null
       ? Number(proposta.valor_total_documento_primeira_faixa)
       : itens.reduce((acc, it) => acc + totalPrimeiraFaixaItem(it), 0);
+  const desconto = Math.min(Math.max(0, Number(proposta.valor_desconto) || 0), Math.max(0, bruto));
+  const totalDoc = bruto - desconto;
 
   return (
     <section className="orc-pub-card orc-pub-itens-doc">
@@ -700,6 +702,11 @@ export function OrcPubItensAcordeao({
         </div>
         <p className="orc-pub-itens-doc-total">{formatCurrency(totalDoc)}</p>
       </header>
+      {desconto > 0 ? (
+        <p className="orc-pub-note orc-pub-note--tight">
+          Desconto no documento {formatCurrency(desconto)}
+        </p>
+      ) : null}
       {proposta.cobra_matriz && !propostaSomenteRevenda(proposta) ? (
         <p className="orc-pub-note orc-pub-note--tight">
           Matriz {formatCurrency(proposta.valor_matriz ?? 0)}

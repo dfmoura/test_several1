@@ -699,6 +699,13 @@ class OrcamentoService
             $transportador,
         );
 
+        $desconto = $this->normalizeValorGordura($data['valor_desconto'] ?? $input['valor_desconto'] ?? 0);
+        if ($desconto > 0) {
+            $input['valor_desconto'] = $desconto;
+        } else {
+            unset($input['valor_desconto']);
+        }
+
         return array_merge($input, [
             'prazo_entrega_dias' => (int) ($data['prazo_entrega_dias'] ?? 12),
             'validade_dias' => (int) ($data['validade_dias'] ?? 7),

@@ -13,7 +13,7 @@ import {
   disposicoesGeraisProposta,
   textoToleranciaQuantidade,
 } from '../lib/orcamentoDisposicoesComerciais';
-import { formatDateTime } from '../lib/format';
+import { formatCurrency, formatDateTime } from '../lib/format';
 import { isPropostaMultiItem, propostaSomenteRevenda } from '../lib/orcamentoPropostaItens';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
 
@@ -231,6 +231,11 @@ export function OrcamentoPropostaView({
             {proposta.frete ? (
               <li>
                 Frete desta proposta: <strong>{proposta.frete.texto}</strong>
+              </li>
+            ) : null}
+            {(proposta.valor_desconto ?? 0) > 0 ? (
+              <li>
+                Desconto no documento: <strong>{formatCurrency(proposta.valor_desconto)}</strong>
               </li>
             ) : null}
           </ul>

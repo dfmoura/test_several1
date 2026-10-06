@@ -3796,6 +3796,7 @@ export type OrcamentoPropostaPublica = {
     texto: string;
     somavel: boolean;
   } | null;
+  valor_desconto?: number;
   cobra_matriz?: boolean;
   valor_matriz?: number;
   matriz_nota?: string | null;

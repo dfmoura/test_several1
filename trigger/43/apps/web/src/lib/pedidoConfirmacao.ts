@@ -51,6 +51,13 @@ export function freteTextoDoPedido(pedido: Pedido): string | null {
   });
 }
 
+/** Desconto do documento gravado no orçamento. Zero quando não há. */
+export function descontoDoPedido(pedido: Pedido): number {
+  const n = Number(snapInput(pedido).valor_desconto);
+  if (!Number.isFinite(n) || n <= 0.004) return 0;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 /** Linha de frete do fechamento da ficha. Fora do total do pedido. */
 export function freteFechamentoDoPedido(pedido: Pedido): { valorTexto: string; nota: string } {
   const nota = 'fora do total';

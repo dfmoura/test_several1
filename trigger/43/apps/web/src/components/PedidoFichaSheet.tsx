@@ -11,6 +11,7 @@ import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format'
 import { formatoLabel } from './FacaShapeIcon';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
+  descontoDoPedido,
   formatEnderecoParceiro,
   freteFechamentoDoPedido,
   freteTextoDoPedido,
@@ -337,7 +338,9 @@ function PedidoFechamento({ pedido }: { pedido: Pedido }) {
     0,
   );
   const frete = freteFechamentoDoPedido(pedido);
-  const totalPedido = somaValores(pedido.itens ?? []);
+  const somaItens = somaValores(pedido.itens ?? []);
+  const desconto = Math.min(descontoDoPedido(pedido), Math.max(0, somaItens));
+  const totalPedido = somaItens - desconto;
 
   return (
     <div className="ped-ficha-fechamento">
@@ -363,9 +366,12 @@ function PedidoFechamento({ pedido }: { pedido: Pedido }) {
       ) : null}
       <p>
         <span>
-          Desconto <span className="ped-ficha-fechamento-nota">não aplicado</span>
+          Desconto{' '}
+          <span className="ped-ficha-fechamento-nota">
+            {desconto > 0 ? 'no documento' : 'não aplicado'}
+          </span>
         </span>
-        <strong>{formatCurrency(0)}</strong>
+        <strong>{formatCurrency(desconto)}</strong>
       </p>
       <p className="ped-ficha-total-pedido">
         <span>Total do pedido</span>
