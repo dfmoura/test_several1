@@ -1,0 +1,7 @@
+services:
+  caddy:
+    ports:
+      - "127.0.0.1:8048:80"
+  postgres:
+    ports:
+      - "127.0.0.1:54348:5432"

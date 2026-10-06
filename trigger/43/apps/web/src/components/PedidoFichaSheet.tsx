@@ -19,7 +19,7 @@ import { pedStatusLabel } from '../lib/producaoUi';
 import {
   linhaSimplesDoItem,
   linhasEtiquetaDoItem,
-  matrizResidualDoItem,
+  valorMatrizCobradoDoItem,
   particionarItensPedido,
   somaValores,
 } from '../lib/pedidoFichaContrato';
@@ -122,11 +122,14 @@ function PedidoTabelaEtiquetas({
   itens: PedidoItem[];
   rodape: string;
 }) {
-  const grupos = itens.map((item) => ({
-    item,
-    linhas: linhasEtiquetaDoItem(pedido, item, visualEtiqueta(pedido, item)),
-    matriz: matrizResidualDoItem(pedido, item),
-  }));
+  const grupos = itens.map((item) => {
+    const matriz = valorMatrizCobradoDoItem(pedido, item);
+    return {
+      item,
+      linhas: linhasEtiquetaDoItem(pedido, item, visualEtiqueta(pedido, item)),
+      matriz,
+    };
+  });
   const modelos = grupos.flatMap((g) => g.linhas);
   const somaRolos = modelos.reduce((acc, ln) => acc + (ln.rolos ?? 0), 0);
   const temRolos = modelos.some((ln) => ln.rolos != null);
@@ -139,7 +142,7 @@ function PedidoTabelaEtiquetas({
 
   return (
     <div className="ped-ficha-etq">
-      {grupos.map(({ item, linhas }) => {
+      {grupos.map(({ item, linhas, matriz }) => {
         const spec = linhas[0];
         if (!spec) return null;
         return (
@@ -162,6 +165,10 @@ function PedidoTabelaEtiquetas({
                 <FichaKv label="Acab." value={dashCell(spec.acabamento)} />
                 <FichaKv label="Tub." value={dashCell(spec.tubete)} />
                 <FichaKv label="Cores" value={dashCell(spec.cores)} />
+                <FichaKv
+                  label="Matriz"
+                  value={matriz > 0 ? <span className="ped-ficha-etq-num">{formatCurrency(matriz)}</span> : 'Não'}
+                />
                 <FichaKv label="Saída" value={dashCell(spec.saida)} />
                 <FichaKv label="Máq." value={dashCell(spec.maquina)} />
               </div>

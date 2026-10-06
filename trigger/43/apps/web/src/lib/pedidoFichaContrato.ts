@@ -187,6 +187,19 @@ export function matrizResidualDoItem(pedido: Pedido, item: PedidoItem): number {
   return 0;
 }
 
+/**
+ * Matriz cobrada neste item. O valor travado na faixa prevalece;
+ * sem o campo, usa o residual já mostrado no rodapé.
+ */
+export function valorMatrizCobradoDoItem(pedido: Pedido, item: PedidoItem): number {
+  const faixa = faixaDoItem(pedido, item);
+  if (faixa && Object.prototype.hasOwnProperty.call(faixa, 'valor_matriz')) {
+    const n = Number(faixa.valor_matriz);
+    return Number.isFinite(n) && n > 0.004 ? money2(n) : 0;
+  }
+  return matrizResidualDoItem(pedido, item);
+}
+
 function rolosAlvo(pedido: Pedido, item: PedidoItem, etiqPorRolo: number | null): number | null {
   const faixa = faixaDoItem(pedido, item);
   const daFaixa = numPositivo(faixa?.rolos);

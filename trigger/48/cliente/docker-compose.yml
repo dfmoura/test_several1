@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cliente_postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-cliente}
+      POSTGRES_USER: ${DB_USERNAME:-cliente}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cliente_local}
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=30", "-c", "work_mem=4MB"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-cliente} -d ${DB_DATABASE:-cliente}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    mem_limit: 384m
+
+  app:
+    build:
+      context: ./docker/php
+    container_name: cliente_app
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+    env_file:
+      - ./apps/api/.env
+    environment: &app_env
+      DB_HOST: postgres
+      MIGRATE_ON_BOOT: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/app-ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    mem_limit: 256m
+
+  worker:
+    build:
+      context: ./docker/php
+    container_name: cliente_worker
+    working_dir: /var/www/html
+    volumes:
+      - ./apps/api:/var/www/html
+    env_file:
+      - ./apps/api/.env
+    environment:
+      <<: *app_env
+      MIGRATE_ON_BOOT: "false"
+    command: ["cliente-worker"]
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 192m
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: cliente_caddy
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./apps/api:/var/www/html:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 64m
+
+volumes:
+  pgdata:

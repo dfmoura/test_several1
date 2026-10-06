@@ -1,0 +1,12 @@
+:80 {
+	root * /var/www/html/public
+	encode gzip
+	php_fastcgi app:9000
+	file_server
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+}

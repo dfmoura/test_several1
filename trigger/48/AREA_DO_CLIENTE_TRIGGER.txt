@@ -813,8 +813,8 @@ UX que importa
 
 Uma VM. Um repositório novo (não é a pasta 12). Poucos processos.
 
-  Linguagem      PHP 8.3
-  Aplicação      Laravel 11
+  Linguagem      PHP 8.4
+  Aplicação      Laravel 12
   HTTP           PHP-FPM atrás do Caddy
   Interface      Blade + Alpine.js
   Banco          PostgreSQL 16
@@ -829,10 +829,17 @@ Uma VM. Um repositório novo (não é a pasta 12). Poucos processos.
   Hospedagem     Lightsail 2 GB
 
 Por que esta combinação
-  Laravel 11 já é operado pela Trigger no Lightsail (39 e 43):
-  migração, fila database, sessão, política de acesso, cifra,
-  e-mail, Compose com overlay local e aws. Reusar o jeito de
-  operar. Não reusar o domínio do ERP.
+  O jeito de operar já existe no Lightsail (39 e 43): migração,
+  fila database, sessão, política de acesso, cifra, e-mail,
+  Compose com overlay local e aws. Reusar esse jeito. Não reusar
+  o domínio do ERP.
+
+  A linha Laravel 11 foi a primeira escolha por ser a das pastas
+  39 e 43. O Composer bloqueia laravel/framework 11.31.0–11.57.0
+  por avisos de segurança (PKSA-d5tc-s1qs-h781 e correlatos).
+  Laravel 12.69 não tem esses avisos e exige PHP >= 8.4.1.
+  A arquitetura não muda: FPM, Caddy, Blade, Postgres, sessão
+  de servidor. PHP 8.4-FPM no lugar de 8.3.
 
   PHP-FPM, e não FrankenPHP. FrankenPHP não aparece em nenhum
   sistema da pasta trigger/. No dia em que o webhook falhar, o
@@ -1118,7 +1125,7 @@ Fase 3 — quando houver uso
   Construir um aplicativo novo, pequeno e inteiro, em
   cliente.triggerti.com, num Lightsail de 2 GB.
 
-  Laravel 11, PHP 8.3-FPM, Caddy, Blade, Alpine, PostgreSQL 16,
+  Laravel 12, PHP 8.4-FPM, Caddy, Blade, Alpine, PostgreSQL 16,
   Compose, sessão de servidor, PIX Inter, livro de saldo em
   centavos, ticket na abertura, aceite sem cobrar o valor cheio,
   fatura liquidada na apresentação, uma demanda por vez.

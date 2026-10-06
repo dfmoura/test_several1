@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="APP_KEY" value="base64:LQr7+PQdQQpR4e4riY31qz3r9xGGWsp243qQYnhYFpY=" force="true"/>
+        <env name="APP_TIMEZONE" value="America/Sao_Paulo" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="postgres" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="cliente_teste" force="true"/>
+        <env name="DB_USERNAME" value="cliente" force="true"/>
+        <env name="DB_PASSWORD" value="cliente_local" force="true"/>
+        <env name="PIX_DRIVER" value="fake" force="true"/>
+        <env name="OPERADOR_EMAIL" value="operacao@triggerti.com" force="true"/>
+        <env name="OPERADOR_PASSWORD" value="senha-operacao-local" force="true"/>
+        <env name="ARGON_MEMORY" value="8192" force="true"/>
+        <env name="ARGON_TIME" value="1" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="MIGRATE_ON_BOOT" value="false" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
+    </php>
+</phpunit>
