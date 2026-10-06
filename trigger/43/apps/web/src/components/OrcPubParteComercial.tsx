@@ -30,6 +30,8 @@ type Props = {
   showCodigo?: boolean;
   /** Pessoa do cliente. Só a proposta do ORC passa; PED/OP ficam sem a linha. */
   aosCuidados?: { nome: string; funcao?: string | null } | null;
+  /** Aceite já feito. Usa a mesma faixa da pessoa; não cria bloco novo. */
+  aprovador?: { nome: string; funcao?: string | null; quando?: string | null } | null;
 };
 
 function normNome(value: string | null | undefined): string {
@@ -152,18 +154,34 @@ export function OrcPubParteComercial({
   parte,
   showCodigo = false,
   aosCuidados = null,
+  aprovador = null,
 }: Props) {
   const { display } = identidadeParteComercial(parte, leadFallback);
   const meta = metaLinhasParteComercial(parte, { showCodigo });
   const endereco = formatEnderecoParceiro(parte);
   const contatoNome = (aosCuidados?.nome ?? '').trim();
   const contatoFuncao = (aosCuidados?.funcao ?? '').trim();
+  const aprovadorNome = (aprovador?.nome ?? '').trim();
+  const aprovadorFuncao = (aprovador?.funcao ?? '').trim();
+  const aprovadorQuando = (aprovador?.quando ?? '').trim();
+  const mesmaPessoa =
+    aprovadorNome !== '' &&
+    contatoNome !== '' &&
+    aprovadorNome.localeCompare(contatoNome, 'pt-BR', { sensitivity: 'accent' }) === 0;
 
   return (
     <section className="orc-pub-card">
       <h2>{title}</h2>
       <p className="orc-pub-lead">{display}</p>
-      {contatoNome ? (
+      {aprovadorNome ? (
+        <p className="orc-pub-ac">
+          <span className="orc-pub-ac-kicker">Aprovado por</span>
+          <strong>{aprovadorNome}</strong>
+          {aprovadorFuncao ? <span className="orc-pub-ac-funcao"> · {aprovadorFuncao}</span> : null}
+          {aprovadorQuando ? <span className="orc-pub-ac-funcao"> · {aprovadorQuando}</span> : null}
+        </p>
+      ) : null}
+      {contatoNome && !mesmaPessoa ? (
         <p className="orc-pub-ac">
           <span className="orc-pub-ac-kicker">Aos cuidados de</span>
           <strong>{contatoNome}</strong>

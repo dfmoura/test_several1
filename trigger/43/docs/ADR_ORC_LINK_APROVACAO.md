@@ -87,6 +87,8 @@ ENVIADO / VISUALIZADO →  "Enviado p/ aprovação"  imutável
 
 Após aprovar **ou** rejeitar, GET do token responde **indisponível** (não mostra a proposta).
 
+A ficha do cliente e a prévia autenticada (`GET …/proposta-comercial`) trocam o título para **Proposta aprovada** (ou recusada) e a faixa da pessoa passa a dizer **Aprovado por**, com nome, função e data. É o mesmo lugar de “Aos cuidados de”; se o aprovador for outra pessoa, as duas linhas permanecem. Sem card novo, sem alterar a tabela. Sem IP, navegador, custo ou gordura. O link público não reabre.
+
 ## API
 
 **Autenticada** (`orcamento.escrever` / `orcamento.ler`):

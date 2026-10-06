@@ -39,6 +39,10 @@ type Props = {
 
 const STATUS_MODELO_VISIVEL = new Set(['ENVIADO', 'VISUALIZADO', 'APROVADO', 'REPROVADO']);
 
+function mesmoNome(a: string, b: string): boolean {
+  return a.trim().localeCompare(b.trim(), 'pt-BR', { sensitivity: 'accent' }) === 0;
+}
+
 /**
  * Casca comercial da proposta (estudo 32 · CONSOLIDADO · ADR_ORC_ITENS).
  * N=1 / SERVICO: layout clássico. N>1: total do documento + acordeão por item.
@@ -78,12 +82,35 @@ export function OrcamentoPropostaView({
   const aosCuidados = contatoNome
     ? { nome: contatoNome, funcao: proposta.destinatario?.funcao }
     : null;
+  const aceite = proposta.aceite ?? null;
+  const decidida = aceite != null && (proposta.status === 'APROVADO' || proposta.status === 'REPROVADO');
+  const recusada = decidida && proposta.status === 'REPROVADO';
+  const aguardaSinal = decidida && !recusada && proposta.financeiro_status === 'AGUARDA_ADIANTAMENTO';
+  const kickerDocumento = !decidida
+    ? kicker
+    : recusada
+      ? 'Proposta recusada'
+      : aguardaSinal
+        ? 'Proposta aprovada — aguardando o sinal'
+        : 'Proposta aprovada';
+  const aprovadorNome = recusada ? '' : (aceite?.nome ?? '').trim();
+  const aprovador =
+    aprovadorNome !== ''
+      ? {
+          nome: aprovadorNome,
+          funcao:
+            contatoNome && mesmoNome(aprovadorNome, contatoNome)
+              ? (aceite?.funcao ?? aosCuidados?.funcao ?? null)
+              : (aceite?.funcao ?? null),
+          quando: aceite?.decidido_em ? formatDateTime(aceite.decidido_em) : null,
+        }
+      : null;
 
   return (
     <div className="orc-pub">
       <div className="orc-pub-shell">
         <OrcPubHeroEmitente
-          kicker={kicker}
+          kicker={kickerDocumento}
           titulo={empresaNome}
           empresa={proposta.empresa}
           documentoId={proposta.codigo}
@@ -112,6 +139,7 @@ export function OrcamentoPropostaView({
           }
           leadFallback={proposta.cliente_nome}
           aosCuidados={aosCuidados}
+          aprovador={aprovador}
         />
 
         {multi ? (

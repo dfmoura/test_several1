@@ -3825,6 +3825,24 @@ export type OrcamentoPropostaPublica = {
   }> | null;
   /** Σ 1ª faixa de cada item — hero da ficha/prévia quando N>1. No link, o total é a soma ao vivo. */
   valor_total_documento_primeira_faixa?: number | null;
+  /**
+   * Decisão já tomada — só na ficha/prévia autenticada.
+   * Nulo enquanto a proposta está em aberto. O link público não reabre este bloco.
+   */
+  aceite?: {
+    decidido_em: string | null;
+    nome: string | null;
+    funcao: string | null;
+    motivo: string | null;
+    faixa_index: number | null;
+    itens: Array<{
+      ordem: number;
+      rotulo?: string | null;
+      faixa_index: number | null;
+      quantidade: number | null;
+      valor_total: number | null;
+    }>;
+  } | null;
   observacao_comercial?: string | null;
   /** URL pública da prova de arte (PDF/imagem/Drive…). Só http(s). */
   url_arte?: string | null;

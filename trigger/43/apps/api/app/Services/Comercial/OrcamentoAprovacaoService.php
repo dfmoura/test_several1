@@ -1165,7 +1165,111 @@ class OrcamentoAprovacaoService
             $dto['valor_total_documento_primeira_faixa'] = round($valorTotalDoc, 2);
         }
 
+        $dto['aceite'] = $this->aceiteComercial(
+            $orcamento,
+            $multiItem,
+            $faixas,
+            is_array($dto['itens'] ?? null) ? $dto['itens'] : [],
+        );
+
         return $dto;
+    }
+
+    /**
+     * Eco comercial da decisão na ficha/prévia autenticada.
+     * Sem IP, navegador, canal interno, custo ou gordura.
+     * Nulo enquanto a proposta não foi decidida — o link público segue sem este bloco.
+     *
+     * @param  list<array<string, mixed>>  $faixasDoc
+     * @param  list<array<string, mixed>>  $itensDto
+     * @return array<string, mixed>|null
+     */
+    private function aceiteComercial(
+        Orcamento $orcamento,
+        bool $multiItem,
+        array $faixasDoc,
+        array $itensDto,
+    ): ?array {
+        if (! in_array($orcamento->status, [Orcamento::STATUS_APROVADO, Orcamento::STATUS_REPROVADO], true)) {
+            return null;
+        }
+
+        $linhas = [];
+        if ($orcamento->status === Orcamento::STATUS_APROVADO) {
+            if ($multiItem) {
+                $porOrdem = [];
+                foreach ($itensDto as $row) {
+                    if (is_array($row)) {
+                        $porOrdem[(int) ($row['ordem'] ?? 0)] = $row;
+                    }
+                }
+                foreach ($orcamento->itens->sortBy('ordem') as $item) {
+                    $idx = $item->aceite_faixa_index;
+                    $row = $porOrdem[(int) $item->ordem] ?? null;
+                    $faixasItem = is_array($row) && is_array($row['faixas'] ?? null) ? $row['faixas'] : [];
+                    $fx = $this->faixaComercialPorIndice($faixasItem, $idx !== null ? (int) $idx : null);
+                    $linhas[] = [
+                        'ordem' => (int) $item->ordem,
+                        'rotulo' => $this->nullIfEmptySnap($item->rotulo),
+                        'faixa_index' => $idx !== null ? (int) $idx : null,
+                        'quantidade' => $fx !== null ? (int) ($fx['quantidade'] ?? 0) : null,
+                        'valor_total' => $fx !== null ? round((float) ($fx['valor_total'] ?? 0), 2) : null,
+                    ];
+                }
+            } elseif ($orcamento->aceite_faixa_index !== null) {
+                $idx = (int) $orcamento->aceite_faixa_index;
+                $fx = $this->faixaComercialPorIndice($faixasDoc, $idx);
+                $linhas[] = [
+                    'ordem' => 1,
+                    'rotulo' => null,
+                    'faixa_index' => $idx,
+                    'quantidade' => $fx !== null ? (int) ($fx['quantidade'] ?? 0) : null,
+                    'valor_total' => $fx !== null ? round((float) ($fx['valor_total'] ?? 0), 2) : null,
+                ];
+            }
+        }
+
+        $contato = $this->contatoFicha->resolver($orcamento);
+        $assinado = $this->nullIfEmptySnap($orcamento->aceite_nome_cliente);
+        $nomeContato = $contato['nome'] ?? null;
+        $nome = $orcamento->status === Orcamento::STATUS_APROVADO
+            ? ($assinado ?? $nomeContato)
+            : null;
+        $funcao = $nome !== null && $nomeContato !== null && $this->mesmoNomeComercial($nome, $nomeContato)
+            ? ($contato['funcao'] ?? null)
+            : null;
+
+        return [
+            'decidido_em' => $orcamento->decidido_em?->toIso8601String(),
+            'nome' => $nome,
+            'funcao' => $funcao,
+            'motivo' => $this->nullIfEmptySnap($orcamento->motivo_decisao),
+            'faixa_index' => $orcamento->status === Orcamento::STATUS_APROVADO && $orcamento->aceite_faixa_index !== null
+                ? (int) $orcamento->aceite_faixa_index
+                : null,
+            'itens' => $linhas,
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $faixas
+     * @return array<string, mixed>|null
+     */
+    private function faixaComercialPorIndice(array $faixas, ?int $index): ?array
+    {
+        if ($index === null) {
+            return null;
+        }
+        foreach ($faixas as $fx) {
+            if (! is_array($fx)) {
+                continue;
+            }
+            if ((int) ($fx['index'] ?? -1) === $index) {
+                return $fx;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1341,6 +1445,14 @@ class OrcamentoAprovacaoService
                 ? (trim((string) ($snap['transportador_nome'] ?? $input['transportador_nome'] ?? '')) ?: null)
                 : null,
         ];
+    }
+
+    private function mesmoNomeComercial(?string $a, ?string $b): bool
+    {
+        $na = mb_strtolower((string) preg_replace('/\s+/u', ' ', trim((string) $a)));
+        $nb = mb_strtolower((string) preg_replace('/\s+/u', ' ', trim((string) $b)));
+
+        return $na !== '' && $na === $nb;
     }
 
     private function nullIfEmptySnap(mixed $value): ?string

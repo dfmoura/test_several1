@@ -312,6 +312,7 @@ class OrcamentoAprovacaoTest extends TestCase
         $pub = $this->getJson("/api/v1/publico/orcamentos/{$token}");
         $pub->assertOk();
         $this->assertSame('VISUALIZADO', $pub->json('data.status'));
+        $this->assertNull($pub->json('data.aceite'));
         $this->assertSame('Maria Compradora', $pub->json('data.destinatario.nome'));
         $this->assertStringContainsString('Maria Compradora', $pub->json('data.destinatario.instrucao'));
         $this->assertArrayNotHasKey('imposto', $pub->json('data'));
@@ -342,6 +343,28 @@ class OrcamentoAprovacaoTest extends TestCase
 
         $gone = $this->getJson("/api/v1/publico/orcamentos/{$token}");
         $gone->assertStatus(410);
+
+        $ficha = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $ficha->assertOk();
+        $this->assertSame('APROVADO', $ficha->json('data.status'));
+        $this->assertSame('Maria Compradora', $ficha->json('data.aceite.nome'));
+        $this->assertSame('Compras', $ficha->json('data.aceite.funcao'));
+        $this->assertNotEmpty($ficha->json('data.aceite.decidido_em'));
+        $this->assertSame(0, $ficha->json('data.aceite.faixa_index'));
+        $this->assertSame(0, $ficha->json('data.aceite.itens.0.faixa_index'));
+        $this->assertSame(
+            (int) $ficha->json('data.faixas.0.quantidade'),
+            (int) $ficha->json('data.aceite.itens.0.quantidade'),
+        );
+        $this->assertEqualsWithDelta(
+            (float) $ficha->json('data.faixas.0.valor_total'),
+            (float) $ficha->json('data.aceite.itens.0.valor_total'),
+            0.02,
+        );
+        $this->assertArrayNotHasKey('aceite_ip', $ficha->json('data.aceite'));
+        $this->assertArrayNotHasKey('aceite_user_agent', $ficha->json('data.aceite'));
+        $this->assertArrayNotHasKey('valor_gordura', $ficha->json('data'));
+        $this->assertArrayNotHasKey('valor_gordura', $ficha->json('data.aceite'));
     }
 
     public function test_recusa_permite_editar_e_reenviar(): void
@@ -356,6 +379,15 @@ class OrcamentoAprovacaoTest extends TestCase
             'acao' => 'RECUSAR',
             'motivo' => 'Preço alto',
         ])->assertOk();
+
+        $ficha = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $ficha->assertOk();
+        $this->assertSame('REPROVADO', $ficha->json('data.status'));
+        $this->assertSame('Preço alto', $ficha->json('data.aceite.motivo'));
+        $this->assertNull($ficha->json('data.aceite.nome'));
+        $this->assertNull($ficha->json('data.aceite.funcao'));
+        $this->assertNull($ficha->json('data.aceite.faixa_index'));
+        $this->assertSame([], $ficha->json('data.aceite.itens'));
 
         $this->getJson("/api/v1/publico/orcamentos/{$token}")->assertStatus(410);
 
@@ -595,6 +627,25 @@ class OrcamentoAprovacaoTest extends TestCase
             ->pluck('aceite_faixa_index')
             ->all();
         $this->assertSame([1, 0], $idxs);
+
+        $ficha = $this->withHeaders($h)->getJson("/api/v1/orcamentos/{$id}/proposta-comercial");
+        $ficha->assertOk();
+        $this->assertSame(1, $ficha->json('data.aceite.faixa_index'));
+        $this->assertSame(1, $ficha->json('data.aceite.itens.0.faixa_index'));
+        $this->assertSame(0, $ficha->json('data.aceite.itens.1.faixa_index'));
+        $this->assertSame('Frente', $ficha->json('data.aceite.itens.0.rotulo'));
+        $this->assertSame('Verso', $ficha->json('data.aceite.itens.1.rotulo'));
+        $this->assertSame('Maria Compradora', $ficha->json('data.aceite.nome'));
+        $this->assertSame('Compras', $ficha->json('data.aceite.funcao'));
+        $this->assertSame(
+            (int) $ficha->json('data.itens.0.faixas.1.quantidade'),
+            (int) $ficha->json('data.aceite.itens.0.quantidade'),
+        );
+        $this->assertSame(
+            (int) $ficha->json('data.itens.1.faixas.0.quantidade'),
+            (int) $ficha->json('data.aceite.itens.1.quantidade'),
+        );
+        $this->assertArrayNotHasKey('aceite_ip', $ficha->json('data.aceite'));
     }
 
     public function test_proposta_multi_item_rejeita_mapa_incompleto(): void
@@ -642,6 +693,7 @@ class OrcamentoAprovacaoTest extends TestCase
         $prev->assertOk();
         $this->assertSame('preview', $prev->json('data.modo'));
         $this->assertTrue($prev->json('data.somente_leitura'));
+        $this->assertNull($prev->json('data.aceite'));
         $this->assertFalse($prev->json('data.disponivel'));
         $this->assertArrayHasKey('faixas', $prev->json('data'));
         $this->assertArrayHasKey('formato_faca', $prev->json('data.descricao'));
