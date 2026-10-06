@@ -24,7 +24,7 @@ function parseStatusTab(raw: string | null): StatusTab {
 const SORT = {
   codigo: (p: Pedido) => p.codigo,
   parceiro: (p: Pedido) => p.parceiro?.razao_social,
-  item: (p: Pedido) => p.itens[0]?.descricao,
+  contato: (p: Pedido) => p.contato_cliente?.nome,
   orcamento: (p: Pedido) => p.orcamento?.codigo,
   status: (p: Pedido) => p.status,
   prazo: (p: Pedido) => p.prazo_entrega_dias,
@@ -136,7 +136,7 @@ export function PedidosPage() {
                 id="pedidos-busca"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="PED, ORC, cliente…"
+                placeholder="PED, ORC, cliente, contato…"
               />
             </div>
             <div style={{ alignSelf: 'flex-end' }}>
@@ -174,8 +174,8 @@ export function PedidosPage() {
                   >
                     Cliente
                   </SortableTh>
-                  <SortableTh column="item" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
-                    Item
+                  <SortableTh column="contato" sorts={sorts} sortKey={sortKey} sortDir={sortDir} onSort={requestSort}>
+                    Contato
                   </SortableTh>
                   <SortableTh
                     column="orcamento"
@@ -219,7 +219,14 @@ export function PedidosPage() {
                           </div>
                         ) : null}
                       </td>
-                      <td>{p.itens[0]?.descricao ?? '—'}</td>
+                      <td>
+                        {p.contato_cliente?.nome ?? '—'}
+                        {p.contato_cliente?.funcao ? (
+                          <div className="muted" style={{ fontSize: '0.8em' }}>
+                            {p.contato_cliente.funcao}
+                          </div>
+                        ) : null}
+                      </td>
                       <td
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => e.stopPropagation()}

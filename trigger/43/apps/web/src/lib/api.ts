@@ -2741,6 +2741,8 @@ export type Pedido = {
     status?: string | null;
     financeiro_status?: string | null;
   } | null;
+  /** Pessoa do cliente (nome + função). Mesma regra da ficha do ORC. Sem telefone ou e-mail. */
+  contato_cliente?: { nome: string; funcao: string | null } | null;
   itens: PedidoItem[];
   ordens_producao?: Array<{
     id: number;

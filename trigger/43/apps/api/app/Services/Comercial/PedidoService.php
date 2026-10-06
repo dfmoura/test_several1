@@ -26,6 +26,7 @@ class PedidoService
     public function __construct(
         private readonly CodigoGenerator $codigos,
         private readonly DiasUteisService $diasUteis,
+        private readonly OrcamentoContatoFicha $contatoFicha,
     ) {}
 
     /**
@@ -202,7 +203,16 @@ class PedidoService
     {
         $query = Pedido::query()
             ->where('empresa_id', $empresa->id)
-            ->with(['parceiro:id,codigo,razao_social', 'vendedor:id,codigo,razao_social', 'orcamento:id,codigo', 'itens', 'faturamento'])
+            ->with([
+                'parceiro:id,codigo,razao_social',
+                'vendedor:id,codigo,razao_social',
+                'orcamento:id,codigo,parceiro_id',
+                'orcamento.linkAprovacao',
+                'orcamento.parceiro:id,whatsapp,email,telefone,contato_nome,contato_funcao',
+                'orcamento.parceiro.contatos',
+                'itens',
+                'faturamento',
+            ])
             ->orderByDesc('id');
 
         if ($status) {
@@ -213,8 +223,13 @@ class PedidoService
             $like = '%'.$q.'%';
             $query->where(function ($w) use ($like) {
                 $w->where('codigo', 'like', $like)
-                    ->orWhereHas('parceiro', fn ($p) => $p->where('razao_social', 'like', $like))
-                    ->orWhereHas('orcamento', fn ($o) => $o->where('codigo', 'like', $like));
+                    ->orWhereHas('parceiro', function ($p) use ($like) {
+                        $p->where('razao_social', 'like', $like)
+                            ->orWhere('contato_nome', 'like', $like);
+                    })
+                    ->orWhereHas('parceiro.contatos', fn ($c) => $c->where('nome', 'like', $like))
+                    ->orWhereHas('orcamento', fn ($o) => $o->where('codigo', 'like', $like))
+                    ->orWhereHas('orcamento.linkAprovacao', fn ($l) => $l->where('destino_nome', 'like', $like));
             });
         }
 
@@ -230,7 +245,7 @@ class PedidoService
             'empresa:id,codigo,razao_social,nome_fantasia,cnpj,email,telefone,logradouro,numero,complemento,bairro,municipio,uf,cep',
             'parceiro:id,codigo,razao_social,nome_fantasia,cnpj_cpf,email,telefone,whatsapp,logradouro,numero,complemento,bairro,municipio,uf,cep',
             'vendedor:id,codigo,razao_social,nome_fantasia',
-            'orcamento:id,codigo,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
+            'orcamento:id,codigo,parceiro_id,status,financeiro_status,tolerancia_qtd_pct,vendedor_parceiro_id',
             'itens.produtoPa:id,codigo,descricao_fiscal',
             'ordensProducao.materiais',
             'ordensServico',
@@ -272,6 +287,9 @@ class PedidoService
                 'status' => $p->orcamento->status ?? null,
                 'financeiro_status' => $p->orcamento->financeiro_status ?? null,
             ] : null,
+            'contato_cliente' => $p->relationLoaded('orcamento') && $p->orcamento
+                ? $this->contatoFicha->resolver($p->orcamento)
+                : null,
             'itens' => $p->itens->map(fn (PedidoItem $i) => [
                 'id' => $i->id,
                 'ordem' => $i->ordem,

@@ -40,14 +40,7 @@ class OrcamentoContatoFicha
             return null;
         }
 
-        $parceiro = Parceiro::query()
-            ->with(['contatos' => fn ($q) => $q
-                ->orderByDesc('autorizado_aprovar')
-                ->orderByDesc('principal')
-                ->orderBy('ordem')
-                ->orderBy('id')])
-            ->find($orcamento->parceiro_id);
-
+        $parceiro = $this->parceiroComContatos($orcamento);
         if ($parceiro === null) {
             return null;
         }
@@ -62,6 +55,19 @@ class OrcamentoContatoFicha
             }
             $elegiveis[] = $contato;
         }
+
+        usort($elegiveis, function (ParceiroContato $a, ParceiroContato $b): int {
+            $rank = static function (ParceiroContato $c): array {
+                return [
+                    $c->autorizado_aprovar ? 0 : 1,
+                    $c->principal ? 0 : 1,
+                    (int) $c->ordem,
+                    (int) $c->id,
+                ];
+            };
+
+            return $rank($a) <=> $rank($b);
+        });
 
         $autorizados = array_values(array_filter(
             $elegiveis,
@@ -85,6 +91,24 @@ class OrcamentoContatoFicha
         }
 
         return $this->pessoa($parceiro->contato_nome, $parceiro->contato_funcao);
+    }
+
+    /**
+     * Usa o parceiro já carregado com contatos (lista de PED). Sem isso, busca o cadastro.
+     */
+    private function parceiroComContatos(Orcamento $orcamento): ?Parceiro
+    {
+        if ($orcamento->relationLoaded('parceiro') && $orcamento->parceiro?->relationLoaded('contatos')) {
+            return $orcamento->parceiro;
+        }
+
+        return Parceiro::query()
+            ->with(['contatos' => fn ($q) => $q
+                ->orderByDesc('autorizado_aprovar')
+                ->orderByDesc('principal')
+                ->orderBy('ordem')
+                ->orderBy('id')])
+            ->find($orcamento->parceiro_id);
     }
 
     /**
