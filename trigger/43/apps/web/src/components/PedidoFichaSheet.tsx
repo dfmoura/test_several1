@@ -83,6 +83,11 @@ function fmtMetros(value: number | null | undefined): string {
   return formatDecimalBr(value, 2);
 }
 
+function fmtColunas(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value < 1) return '—';
+  return formatDecimalBr(Math.round(value), 0);
+}
+
 function fmtZ(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value) || value <= 0) return '—';
   const scale = Math.abs(value - Math.round(value)) < 1e-6 ? 0 : 1;
@@ -162,6 +167,7 @@ function PedidoTabelaEtiquetas({
                 <FichaKv label="Faca" value={dashCell(spec.faca)} />
                 <FichaKv label="Largura" value={<span className="ped-ficha-etq-num">{fmtCm(spec.larguraCm)}</span>} />
                 <FichaKv label="Puxada" value={<span className="ped-ficha-etq-num">{fmtCm(spec.puxadaCm, 4)}</span>} />
+                <FichaKv label="Colunas" value={<span className="ped-ficha-etq-num">{fmtColunas(spec.colunas)}</span>} />
                 <FichaKv label="Z" value={<span className="ped-ficha-etq-num">{fmtZ(spec.z)}</span>} />
               </div>
               <div className="ped-ficha-etq-form-row ped-ficha-etq-form-row--proc">

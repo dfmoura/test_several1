@@ -105,6 +105,10 @@ export function descricaoFromPedidoSpec(
     etiq_por_rolo: s.etiq_por_rolo != null ? Number(s.etiq_por_rolo) : null,
     largura_cm: s.largura_cm != null ? Number(s.largura_cm) : null,
     puxada_cm: s.puxada_cm != null ? Number(s.puxada_cm) : null,
+    colunas: (() => {
+      const n = Number(s.colunas);
+      return Number.isFinite(n) && n >= 1 ? Math.round(n) : null;
+    })(),
     formato_faca: s.formato_faca != null ? String(s.formato_faca) : null,
     faca_nova: Boolean(s.faca_nova),
     saida_etiqueta: s.saida_etiqueta != null ? String(s.saida_etiqueta) : null,

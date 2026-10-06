@@ -35,6 +35,8 @@ export type PedidoFichaEtiquetaLinha = {
   faca: string | null;
   larguraCm: number | null;
   puxadaCm: number | null;
+  /** Pistas na largura. Inteiro do snapshot; não entra no m/rolo. */
+  colunas: number | null;
   z: number | null;
   faixa: string | null;
   modelo: string;
@@ -241,6 +243,7 @@ export function linhasEtiquetaDoItem(
   const larguraCm = cmPositivo(principal?.largura_cm, desc.largura_cm);
   const puxadaCm = cmPositivo(principal?.puxada_cm, desc.puxada_cm);
   const z = cmPositivo(principal?.z, spec.z);
+  const colunas = desc.colunas ?? null;
 
   const base = {
     itemId: item.id,
@@ -256,6 +259,7 @@ export function linhasEtiquetaDoItem(
     faca: visual.faca,
     larguraCm,
     puxadaCm,
+    colunas,
     z,
     faixa: `#${faixaIdx + 1}`,
     etiqPorRolo,

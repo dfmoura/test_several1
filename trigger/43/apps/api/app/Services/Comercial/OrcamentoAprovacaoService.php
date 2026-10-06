@@ -1352,6 +1352,9 @@ class OrcamentoAprovacaoService
             'etiq_por_rolo' => $input['etiq_por_rolo'] ?? null,
             'largura_cm' => $input['largura_cm'] ?? null,
             'puxada_cm' => $input['puxada_cm'] ?? null,
+            'colunas' => isset($input['colunas']) && (int) $input['colunas'] >= 1
+                ? (int) $input['colunas']
+                : null,
             'formato_faca' => $input['formato_faca'] ?? null,
             'faca_nova' => $facaNova,
             'facas' => $facas,

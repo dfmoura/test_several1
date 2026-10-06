@@ -106,6 +106,15 @@ function SpecPaDense({ desc }: { desc?: OrcPropostaDescricao | null }) {
           ? `${formatDecimalBr(Number(desc.puxada_cm), 2)} cm`
           : '—',
     },
+    {
+      key: 'colunas',
+      label: 'Colunas',
+      size: 'narrow',
+      value:
+        desc?.colunas != null && Number(desc.colunas) >= 1
+          ? Math.round(Number(desc.colunas)).toLocaleString('pt-BR')
+          : '—',
+    },
   ];
   if (isSaidaEtiqueta(desc?.saida_etiqueta)) {
     cells.push({

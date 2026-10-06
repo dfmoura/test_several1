@@ -101,6 +101,9 @@ export function OrdemProducaoFichaSheet({
     (o.pedido_item?.descricao ?? item?.descricao ?? '').trim() || null;
   const maquina = textoMaquinaFlexo(spec);
   const bobina = textoBobinaFlexo(spec);
+  const colunasN = Number(spec.colunas);
+  const colunasTxt =
+    Number.isFinite(colunasN) && colunasN >= 1 ? formatDecimalBr(Math.round(colunasN), 0) : null;
   const faca = textoFacaFlexo(spec);
   const colunaReb = textoColunaRebobinacao(spec);
   const saida = String(spec.saida_etiqueta ?? desc.saida_etiqueta ?? '');
@@ -111,8 +114,9 @@ export function OrdemProducaoFichaSheet({
   const artes = artesDaOrdem(spec, qtdeArte);
   const tintas = desc.modelos_composicao;
   const temImpressao = Boolean(
-    desc.papel ||
+      desc.papel ||
       desc.medida ||
+      colunasTxt ||
       bobina ||
       faca ||
       saidaOk ||
@@ -186,6 +190,7 @@ export function OrdemProducaoFichaSheet({
             <div className="ficha-kv-grid cols-4">
               {desc.papel ? <FichaKv label="Substrato" value={desc.papel} wide /> : null}
               {desc.medida ? <FichaKv label="Medida" value={desc.medida} /> : null}
+              {colunasTxt ? <FichaKv label="Colunas" value={colunasTxt} /> : null}
               {bobina ? <FichaKv label="Bobina" value={bobina} wide /> : null}
               {faca ? <FichaKv label="Faca" value={faca} wide /> : null}
               {desc.cores ? <FichaKv label="Cores" value={String(desc.cores)} /> : null}

@@ -3742,6 +3742,8 @@ export type OrcamentoPropostaPublica = {
     etiq_por_rolo: number | null;
     largura_cm: number | null;
     puxada_cm: number | null;
+    /** Pistas na largura. Não é coluna do mapa da faca nem rebobinação. */
+    colunas?: number | null;
     formato_faca: string | null;
     faca_nova: boolean;
     facas?: Array<{
