@@ -9876,19 +9876,19 @@ tr.row-inactive td {
   line-height: 1.2;
 }
 
-.ficha-sheet-ped .ped-ficha-etq-c-n { width: 5%; }
-.ficha-sheet-ped .ped-ficha-etq-c-qtd { width: 7%; }
-.ficha-sheet-ped .ped-ficha-etq-c-med { width: 10%; }
-.ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 7%; }
-.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 9%; }
-.ficha-sheet-ped .ped-ficha-etq-c-larg { width: 9%; }
-.ficha-sheet-ped .ped-ficha-etq-c-pux { width: 12%; }
-.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 12%; }
-.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 7%; }
-.ficha-sheet-ped .ped-ficha-etq-c-tub { width: 5%; }
-.ficha-sheet-ped .ped-ficha-etq-c-cores { width: 5%; }
-.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 7%; }
-.ficha-sheet-ped .ped-ficha-etq-c-maq { width: 5%; }
+.ficha-sheet-ped .ped-ficha-etq-c-n { width: 8%; }
+.ficha-sheet-ped .ped-ficha-etq-c-qtd { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-med { width: 18%; }
+.ficha-sheet-ped .ped-ficha-etq-c-nfaca { width: 12%; }
+.ficha-sheet-ped .ped-ficha-etq-c-faca { width: 18%; }
+.ficha-sheet-ped .ped-ficha-etq-c-larg { width: 14%; }
+.ficha-sheet-ped .ped-ficha-etq-c-pux { width: 18%; }
+.ficha-sheet-ped .ped-ficha-etq-c-mat { width: 28%; }
+.ficha-sheet-ped .ped-ficha-etq-c-acab { width: 16%; }
+.ficha-sheet-ped .ped-ficha-etq-c-tub { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-cores { width: 10%; }
+.ficha-sheet-ped .ped-ficha-etq-c-saida { width: 18%; }
+.ficha-sheet-ped .ped-ficha-etq-c-maq { width: 18%; }
 
 .ficha-sheet-ped .ped-ficha-etq-c-modelo { width: 15%; }
 .ficha-sheet-ped .ped-ficha-etq-c-tintas { width: 14%; }
@@ -9903,8 +9903,13 @@ tr.row-inactive td {
   margin-top: 3.2mm;
 }
 
-.ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item .ped-ficha-etq-spec {
+.ficha-sheet-ped .ped-ficha-etq-item + .ped-ficha-etq-item > .ped-ficha-etq-spec:first-child {
   border-top: 0.35pt solid var(--border);
+}
+
+.ficha-sheet-ped .ped-ficha-etq-spec-proc {
+  margin-top: 0;
+  border-top: 0;
 }
 
 .ficha-sheet-ped .ped-ficha-etq-spec th.ped-ficha-th-val {

@@ -1,0 +1,1141 @@
+AREA DO CLIENTE — TRIGGER DATA INTELLIGENCE
+Especificação de produto, arquitetura e operação
+Documento de decisão. Sem código. Nenhum arquivo de trigger/12 foi alterado.
+
+Data: 05/10/2026
+Prestador: TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA
+Nome fantasia: TRIGGER DATA INTELLIGENCE
+CNPJ: 53.369.941/0001-63
+Site atual: https://www.triggerti.com
+Contato: diogo.moura@triggerti.com
+Pasta do site (intocada): /home/dfmoura/Documents/test_several1/trigger/12
+Este arquivo: /home/dfmoura/Documents/test_several1/trigger/48/AREA_DO_CLIENTE_TRIGGER.txt
+
+Este texto substitui a versão anterior do mesmo arquivo. A versão anterior
+já apontava o caminho certo (subdomínio, ledger, PIX Inter, uma VM).
+Esta versão aprofunda o modelo, registra o que foi relido no disco e
+decide, ponto a ponto, onde o prompt genérico de "plataforma completa"
+entra, onde entra depois e onde é recusado.
+
+
+================================================================================
+1. VEREDITO
+================================================================================
+
+O site da pasta 12 continua excelente para o que ele é: vitrine estática,
+identidade navy e verde, Cloudflare Pages via Wrangler, sem package.json
+dentro de site/. A home e /consultoria/ já vendem o serviço certo —
+demanda sob medida, escopo antes de executar, cobrança pelo trabalho
+feito, time sênior em software, sistemas, dados, arquitetura e UX.
+
+A área do cliente não entra nesse site. Entra como aplicativo novo, em
+subdomínio, numa única VM Lightsail. Até o dia do lançamento, home,
+consultoria, landings de produto, privacidade, sitemap e deploy do
+Cloudflare permanecem como estão.
+
+Decisão de produto, em uma frase:
+
+  A empresa (CNPJ) entra com um responsável (CPF). Um PIX de ativação
+  vira saldo na carteira e libera o cadastro. Com saldo, o cliente abre
+  uma demanda de desenvolvimento. A Trigger analisa e devolve escopo,
+  prazo e valor. O cliente aprova aquele valor. A Trigger executa,
+  apresenta e, no mesmo ato, liquida a fatura no saldo e no PIX da
+  diferença, se houver.
+
+O prompt longo colado na conversa é matéria-prima, não planta baixa.
+A planta baixa é este documento. Onde os dois divergem, vale este.
+
+
+================================================================================
+2. O QUE FOI VERIFICADO (SOMENTE LEITURA)
+================================================================================
+
+Nada em trigger/12 foi editado, movido ou publicado nesta análise.
+
+Site — /home/dfmoura/Documents/test_several1/trigger/12
+  site/README.md
+    Publica só a pasta site/. Framework preset vazio. Domínio canônico
+    https://www.triggerti.com. Contato diogo.moura@triggerti.com.
+    Empresa e CNPJ conferem com o cabeçalho deste documento.
+  site/wrangler.toml
+    Projeto trigger-site, assets estáticos. Comentário explícito:
+    não colocar package.json em site/, senão o Cloudflare instala
+    node_modules e o Wrangler tenta publicar (limite de asset).
+  Busca por package.json e composer.json dentro de site/: nenhum.
+  site/index.html
+    Home de ecossistema. Menu: Soluções, Como trabalhamos,
+    Especialistas, Contato. Sem área logada.
+  site/consultoria/index.html
+    Título "Como contratar". Promessa: "Você envia a demanda, alinhamos
+    escopo e cobramos pelo trabalho executado."
+    Frase que deixa de valer no dia do link: "Sem portal e sem
+    assinatura. Um e-mail com escopo é o suficiente para começar."
+    O e-mail modelo já pede os quatro campos da demanda: empresa,
+    sistema/ambiente atual, descrição, prazo desejado, contato técnico.
+    Destino atual: mailto diogo.moura@triggerti.com.
+  site/privacidade.html
+    Controladora: TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA,
+    TRIGGER DATA INTELLIGENCE, CNPJ 53.369.941/0001-63.
+    Cobre o site institucional. Ainda não cobre cadastro de CPF,
+    saldo nem demanda. Isso precisa de texto próprio antes do go-live.
+  Landings estoque-sankhya, gestao-condominial e canal-zap existem e
+    vendem produto. Não são esta área.
+  PLANO_EXECUCAO.md e texto.txt, na raiz da pasta 12, são do app
+    Gestão Condominial (venda B2B, Banco Inter do condomínio).
+    Outro produto. Não misturar.
+
+Identidade visual conferida no CSS, não inventada
+  site/assets/css/styles.css
+    --navy #1a3568
+    --navy-dark #0f2347
+    --navy-light #2a4a8a
+    --green #7cb518
+    --green-hover #6a9c14
+    --radius 12px
+    --max-width 1120px
+  site/assets/css/consulting.css (a página que esta área estende)
+    --cx-ink #0c1a33
+    --cx-muted #5a6b7d
+    --cx-soft #f3f6fa
+    --cx-accent #6fa012
+    títulos Source Serif 4
+    texto Source Sans 3
+  Logo de header: site/assets/img/logo-trigger-header.png
+
+Sistemas de exemplo em trigger/ — lição usada, código não copiado
+  39  FLEXOERP licenciado. Laravel 11, MySQL 8, React, fila database,
+      Compose, Lightsail 2 GB / 2 vCPU / 60 GB. Doutrina em
+      docs/LIGHTSAIL_E_FUTURO.md: sem RDS, sem ALB, sem NAT, sem Redis
+      no dia 1, Postgres/MySQL sem porta pública, swap de segurança,
+      segredo fora do git. Memória somada ~1 GB em caps.
+      É o músculo operacional. Não é o domínio desta área.
+  43  Mesmo motor, fatia comercial SaaS. PIX de sinal no aceite de
+      orçamento (Asaas no produto, Inter em ADR de mensalidade).
+      Lição que fica: aceite comercial e baixa financeira são fatos
+      diferentes; webhook entra numa caixa antes de creditar;
+      falha de NFS-e não desfaz o financeiro (ADR_NFSE_NACIONAL_E_CAIXA).
+      O modelo TIT/COB/BX daquele ERP é grande demais para cá.
+  1 e 2  API Pix do Banco Inter (cobrança, certificado, webhook,
+      pix-receiver). Canal de recebimento desta área. Certificados
+      ficam naquelas pastas; não copiar segredo para o repositório novo.
+  22  Emissor NFS-e Nacional. Postgres 16, Redis, RabbitMQ, MinIO,
+      Traefik, vários serviços (api, worker, sync, web, danfse).
+      Correto para nota. Não cabe na mesma VM de 2 GB desta área.
+  26  Monólito Node (Fastify, Postgres, BullMQ, Redis, JWT) de ERP
+      industrial, com frontend separado. Stack parecida com o prompt
+      genérico. Pesada para um portal de dezenas de demandas.
+
+Nenhum desses sistemas foi modificado.
+
+
+================================================================================
+3. FRONTEIRA: SITE × ÁREA DO CLIENTE
+================================================================================
+
+Dois sistemas. Uma marca. Um contrato.
+
+  www.triggerti.com              cliente.triggerti.com
+  -----------------------------  ------------------------------------------
+  Cloudflare Pages               AWS Lightsail, uma VM
+  HTML estático                  Aplicação com login, saldo, demanda, PIX
+  Institucional e produtos       Área logada do contratante
+  Sem banco, sem sessão          PostgreSQL na própria VM
+  Já no ar                       Novo. Não existe hoje.
+
+URL decidida: https://cliente.triggerti.com
+
+O Pages não autentica, não guarda saldo e não recebe webhook de banco.
+Colocar runtime dentro de site/ quebra a regra do README e mistura
+deploy de marketing com deploy de dinheiro.
+
+DNS, quando for implementar
+  O registro cliente aponta para o IP estático do Lightsail em modo
+  somente DNS (nuvem cinza no Cloudflare). O certificado TLS fica no
+  Caddy da VM. Webhook do Inter não passa por cache de CDN.
+  www continua laranja, no Pages, como hoje.
+
+No dia do lançamento, e só nesse dia, o site ganha
+  um link "Área do cliente" no menu da home e da consultoria;
+  a reescrita da frase "Sem portal e sem assinatura", descrevendo
+  o fluxo real (cadastro, PIX, demanda, proposta, entrega).
+  Landings de Estoque Sankhya, Gestão Condominial e Canal Zap não
+  mudam. Elas vendem produto. Esta área vende consultoria e
+  desenvolvimento sob medida.
+
+O e-mail da consultoria continua existindo como canal humano.
+A área do cliente passa a ser o canal com saldo, proposta e fatura.
+
+
+================================================================================
+4. O QUE O PROMPT GENÉRICO PEDE E O QUE FICA DECIDIDO
+================================================================================
+
+O prompt descreve uma plataforma grande (Next.js, NestJS, Prisma, Redis,
+BullMQ, JWT, cartão, boleto, chat, IA, Jira, GitHub, app mobile).
+Parte disso é o produto certo. Parte é peso de outro sistema.
+
+Entra no desenho desde o primeiro release
+  CNPJ como empresa/tenant. CPF como pessoa vinculada. Não misturar.
+  Carteira com ledger. Saldo nunca é um campo editável.
+  Disponível, reservado e consumido como leituras do livro.
+  Proposta com versão. Aprovação amarra a versão exata.
+  Isolamento por empresa. O backend ignora company_id vindo do browser.
+  Histórico de status. Auditoria das ações de dinheiro e de aceite.
+  Nota interna invisível ao cliente, mesmo que a tela seja simples.
+  Numeração DEM-000001.
+  PIX com txid, idempotência e caixa de webhook.
+  Conta sem pagamento confirmado não abre demanda.
+
+Entra no modelo de dados e fica sem tela no primeiro release
+  Segundo CPF na mesma empresa (papéis CLIENTE_ADMIN e CLIENTE_USUARIO).
+  Mais de uma demanda em paralelo.
+  Canal de notificação além de in-app e e-mail (WhatsApp).
+  NFS-e automática.
+  Assinatura eletrônica (o registro de aprovação já é o gancho).
+  Armazenamento S3 (o volume local já usa a mesma interface de arquivo).
+  Ajuste financeiro da Trigger com justificativa obrigatória.
+  Saldo mínimo com alerta.
+
+Fica de fora de propósito, inclusive do modelo ativo
+  Cartão, boleto, mensalidade, saque, split, marketplace.
+  Gateway genérico plugável no primeiro código. Há uma porta só de
+  cobrança PIX (criar, consultar, cancelar). Reembolso, se um dia
+  existir, é devolução no banco mais movimento contrário.
+  Next.js, NestJS, Prisma, Redis, BullMQ, Kubernetes, RDS, ALB.
+  Clonar FLEXOERP, condomínio, estoque ou o emissor de nota.
+  App nativo. A página de PIX é mobile de verdade no browser.
+  IA de escopo, GitHub, Jira, Trello, ERP, API pública.
+
+Conflito resolvido: quando reservar e quando consumir
+  O prompt genérico reserva o valor cheio da proposta na aprovação
+  e consome depois. O pedido original deste produto é outro:
+  o PIX inicial valida o cadastro e gera saldo para ABRIR demanda;
+  depois da aprovação a Trigger executa, apresenta e aí liquida.
+  Decisão: na abertura reserva-se um ticket fixo. Na aprovação
+  fixa-se o contrato (escopo, valor, prazo). Na apresentação
+  liquida-se a fatura. O livro aceita, no futuro, uma reserva
+  maior na aprovação sem trocar de tabela — seria só outra
+  política em cima do mesmo movimento RESERVA. Não é a política
+  do primeiro release, porque travaria a execução até o cliente
+  completar 100% do valor antes de ver o trabalho.
+
+
+================================================================================
+5. PARA QUEM É
+================================================================================
+
+Contratante: pessoa jurídica com CNPJ ativo, inclusive MEI.
+Quem opera: uma pessoa física, CPF, vinculada àquele CNPJ.
+No primeiro release há um responsável titular por empresa.
+A tabela de vínculo já nasce preparada para outros CPFs.
+
+Fora do produto
+  Pessoa física sem CNPJ.
+  Portal do síndico, do app de estoque ou do licenciado FLEXOERP.
+  Esses produtos já têm casa. Esta área é só da consultoria Trigger:
+  processos, módulos, customização, dados, arquitetura, UX e
+  sistemas sob medida.
+
+Operador interno: usuário da Trigger, criado por seed, sem
+auto-cadastro público. É quem analisa, precifica, executa e liquida.
+Papel de cliente e papel de equipe são sujeitos diferentes.
+A equipe não entra "como se fosse" o cliente.
+
+
+================================================================================
+6. JORNADA
+================================================================================
+
+6.1 Fluxo feliz
+
+  1. No site, a pessoa escolhe Área do cliente.
+  2. Se já tem conta, entra com e-mail e senha.
+  3. Se não tem, informa o CNPJ. O sistema consulta a Receita via
+     BrasilAPI, preenche razão social e nome fantasia e recusa CNPJ
+     baixado, inapto, suspenso ou nulo.
+  4. Vincula o responsável: nome, CPF, e-mail, celular, senha, e a
+     declaração de que é responsável legal ou procurador da empresa.
+     O CPF não é o login. O login é o e-mail.
+  5. Aceita os termos de contratação e o aviso de privacidade.
+  6. A conta nasce AGUARDA_PIX. O sistema emite um PIX de ativação.
+  7. O pagamento compensado vira crédito na carteira. A conta fica ATIVA.
+  8. Com saldo disponível pelo menos igual ao ticket, o cliente abre
+     uma demanda: sistema ou processo atual, o que precisa evoluir,
+     prazo desejado, contato técnico e anexos.
+  9. A abertura reserva o ticket. A demanda fica EM_ANALISE.
+ 10. A Trigger pode pedir um complemento (mensagem na demanda) e
+     devolve uma proposta versionada: escopo, valor, prazo em dias
+     úteis, critérios de aceite, o que está incluso, o que não está,
+     validade.
+ 11. A tela da proposta mostra valor, saldo disponível, saldo já
+     reservado nesta demanda e o que ainda faltará liquidar na entrega.
+ 12. O cliente aprova aquele valor, ou recusa, ou a proposta vence.
+     Aprovar é aceite comercial. A execução pode começar.
+     Aprovar não marca a fatura como paga.
+ 13. A Trigger executa e registra marcos visíveis ao cliente.
+ 14. Na apresentação, o sistema gera a fatura pelo valor aprovado,
+     abate o reservado e o disponível, e emite o PIX da diferença
+     se o valor for maior que o saldo aplicado.
+ 15. Com a fatura liquidada, a demanda fica CONCLUIDA. Saldo que
+     sobrar continua na carteira e serve para a próxima demanda.
+
+6.2 O que cada lado vê
+
+  Cliente: cadastro, PIX, saldo (disponível, reservado, consumido),
+  suas demandas, proposta, aprovar ou recusar, marcos, apresentação,
+  liquidação, extrato.
+  Trigger, em /operacao: fila, escrever proposta, marco, apresentar,
+  ver fatura e conciliação. Não existe "editar saldo". Todo crédito
+  ou débito nasce de um movimento com origem.
+
+6.3 O que o cliente sempre entende, em qualquer tela
+
+  Quanto saldo tem.
+  Em que etapa a demanda está.
+  Quanto ela custa, quando já houver proposta.
+  O que precisa aprovar.
+  O que está sendo feito.
+  Se precisa completar saldo, e de quanto, e em que momento
+  (na liquidação, não como surpresa no meio da execução).
+
+
+================================================================================
+7. REGRAS DE DINHEIRO
+================================================================================
+
+Unidade: centavos, inteiro. Nunca ponto flutuante.
+Moeda: BRL. Fuso: America/Sao_Paulo.
+Parâmetros de negócio, numa tabela de configuração, não espalhados:
+
+  ATIVACAO_CENTAVOS      = 50000     (R$ 500,00)
+  TICKET_ABERTURA        = 50000     (R$ 500,00)
+  VALIDADE_PROPOSTA_DIAS = 10        (dias corridos)
+  EXPIRACAO_PIX_MINUTOS  = 60        (ativação e complemento)
+  RECUSAS_SEM_CUSTO      = 2         (em janela de 90 dias)
+  DIAS_PARA_BLOQUEIO     = 5         (PIX complementar em aberto)
+  RASCUNHO_CONTA_DIAS    = 7         (cadastro sem PIX)
+
+Por que R$ 500
+  Alto o bastante para filtrar cadastro vazio. Baixo o bastante para
+  uma empresa real começar. Não é taxa perdida: entra como saldo e
+  é abatido da fatura. Se a Trigger recusar a demanda, o saldo volta.
+  O parâmetro muda antes do go-live sem redesenhar o sistema.
+
+Carteira — ledger
+  A verdade é a tabela de movimentos. Só acrescenta. Nunca apaga,
+  nunca atualiza valor. O saldo de tela é a soma, calculada na mesma
+  transação do movimento (pode haver cache de leitura, reescrito
+  nessa transação, nunca editado por fora).
+
+  Tipos
+    CREDITO_PIX           entrada confirmada pelo banco
+    RESERVA               disponível → reservado
+    ESTORNO_RESERVA       reservado → disponível
+    CONSUMO               reservado (e disponível, se usado) → consumido
+    CREDITO_COMPLEMENTO   PIX da diferença da fatura
+    ESTORNO_CONSUMO       só com justificativa da Trigger, movimento
+                          contrário, nunca delete
+    AJUSTE                só equipe interna, justificativa obrigatória,
+                          auditoria. Fora da tela do primeiro release
+                          se não houver operação real que precise;
+                          a tabela já aceita o tipo.
+
+  Leitura
+    Creditado   = soma de créditos confirmados
+    Reservado   = reservas em aberto (reserva − estorno daquela reserva)
+    Consumido   = consumos − estornos de consumo
+    Disponível  = creditado − reservado − consumido
+
+  Reservado não paga outra demanda e não é sacável.
+  Não há saque. Saldo é crédito de serviço com a Trigger,
+  não conta de pagamento, não é moeda eletrônica de terceiros.
+
+  Cada movimento guarda: empresa, tipo, valor sempre positivo,
+  saldo disponível anterior, saldo disponível posterior,
+  demanda, cobrança, fatura, ator, data, observação,
+  chave de idempotência única.
+
+Ativação
+  Sem PIX compensado a conta não abre demanda. Cadastro abandonado
+  por 7 dias vai a EXPIRADA e o CNPJ pode cadastrar de novo.
+  Se já houve PIX, o CNPJ não se reabre por cima: a conta existe.
+
+Abrir demanda
+  Exige conta ATIVA, nenhuma liquidação vencida e disponível >= ticket.
+  Uma demanda não terminal por empresa no primeiro release.
+  A abertura reserva o ticket. Não debita o valor do projeto:
+  esse valor ainda não existe.
+
+Análise e proposta
+  A Trigger envia proposta com valor, ou recusa com motivo.
+  Recusa da Trigger devolve a reserva na hora.
+  Valor mínimo da proposta: o próprio ticket. Abaixo disso o ciclo
+  não se paga.
+  Enquanto o cliente não aprovou, uma nova versão substitui a
+  anterior. A anterior fica SUBSTITUIDA, não some.
+  Validade 10 dias. Vencida, a reserva volta e a demanda encerra
+  EXPIRADA. O cliente abre outra se ainda tiver saldo.
+  Não há contra-proposta digitada pelo cliente no primeiro release.
+  Pedido de mudança é mensagem; a Trigger responde com nova versão.
+
+Aprovação
+  Fixa escopo, valor, prazo, critérios e a versão aprovada.
+  Registra aprovador, CPF (cifrado / hash), empresa, data, IP,
+  valor e o snapshot do escopo aprovado.
+  A execução começa com o ticket já reservado como cobertura parcial.
+  O aceite não consome o valor cheio.
+
+Saldo insuficiente na liquidação, não na aprovação
+  Aprovar não exige cobrir 100% do valor. A tela deixa isso claro:
+  "Na entrega, abatemos o saldo e cobramos a diferença por PIX."
+  Se no dia da apresentação o disponível + reservado não cobrir,
+  emite-se o PIX da diferença. O botão de completar saldo também
+  existe antes, por vontade do cliente (recarga), como CREDITO_PIX
+  de finalidade RECARGA, mesma máquina da ativação.
+
+Liquidação, no ato da apresentação
+  Fatura = valor da versão aprovada. Uma fatura por demanda.
+  Abate primeiro o reservado daquela demanda, depois o disponível.
+  Se fatura > saldo aplicado: demanda fica APRESENTADA, fatura
+  ABERTA, PIX complementar. O cliente vê o resumo da entrega.
+  O pacote fechado (arquivos finais) libera quando o PIX compensar.
+  Se fatura <= saldo aplicado: liquida na hora. Sobra volta a
+  disponível.
+  CONCLUIDA só com fatura LIQUIDADA.
+
+Abuso de análise
+  Duas recusas do cliente em 90 dias devolvem a reserva.
+  A terceira recusa no período converte o ticket em remuneração
+  da análise (CONSUMO com motivo ANALISE_NAO_CONTRATADA).
+  A Trigger também pode recusar novas demandas dessa empresa.
+
+Atraso
+  PIX complementar sem pagamento em 5 dias: conta BLOQUEADA para
+  nova demanda. A demanda apresentada continua aguardando.
+  Regularizou, volta a ATIVA.
+
+O que este modelo é
+  Crédito de serviço, proposta fechada, execução, fatura na entrega.
+  Não é mensalidade. Não é 100% antes de existir escopo.
+  Não é "manda o e-mail e a gente trabalha". Não é marketplace.
+
+
+================================================================================
+8. MÁQUINAS DE ESTADO
+================================================================================
+
+Conta
+  RASCUNHO
+    → AGUARDA_PIX
+    → ATIVA                  crédito de ativação confirmado
+    → BLOQUEADA              liquidação vencida
+    → ATIVA                  liquidação regularizada
+  AGUARDA_PIX após 7 dias sem pagamento → EXPIRADA
+  ATIVA → CANCELADA        só pela Trigger, com motivo, sem apagar livro
+  Estado de pagamento mora na cobrança, não duplicado na conta.
+  Por isso não há PAGAMENTO_EM_ANALISE na empresa: o PIX está
+  CRIADA, ATIVA, PAGA, EXPIRADA ou CANCELADA.
+
+Demanda
+  RASCUNHO                  ainda não reservou; pode abandonar
+    → EM_ANALISE            reserva feita
+    → PROPOSTA_ENVIADA
+         → APROVADA         aceite; execução pode começar
+         → RECUSADA_CLIENTE estorno, salvo a 3ª recusa em 90 dias
+         → EXPIRADA         estorno
+    → RECUSADA_TRIGGER      estorno
+    → EM_EXECUCAO
+    → APRESENTADA           fatura aberta ou já liquidada neste passo
+    → CONCLUIDA             fatura liquidada
+  Cancelamento livre pelo cliente só até a aprovação.
+  Depois da aprovação, cancelar é ato da Trigger, com motivo e com
+  regra explícita do ticket (devolve ou consome o que já foi trabalho).
+  Status terminal guarda motivo e data. Nada é apagado.
+
+  Estados do prompt que viram marco, não status
+    pediu informação, agendada, em desenvolvimento, em testes,
+    em validação. O cliente vê a linha do tempo. A fila interna
+    filtra pelos status de cima, que são poucos e verdadeiros.
+    Pedir informação não troca o status: é mensagem, e a demanda
+    continua EM_ANALISE ou PROPOSTA_ENVIADA. Um selo
+    "aguardando você" na timeline basta.
+
+Cobrança PIX
+  CRIADA → ATIVA (QR na tela) → PAGA | EXPIRADA | CANCELADA
+  PAGA é irreversível na aplicação. Devolução ao pagador, se existir,
+  é operação no banco mais movimento contrário.
+
+Proposta
+  VIGENTE → SUBSTITUIDA | APROVADA | RECUSADA | EXPIRADA
+  Uma VIGENTE por demanda. A aprovada fica imutável.
+
+Fatura
+  ABERTA → LIQUIDADA
+  Sem parcelamento no primeiro release.
+
+
+================================================================================
+9. MODELO DE DADOS
+================================================================================
+
+Identificadores internos: UUID ou bigint. O cliente vê código legível
+só onde faz sentido (DEM-000001). Sequência global da instalação,
+não por empresa, para o telefone da Trigger não ter dois "DEM-000007".
+
+empresas
+  id, cnpj 14 dígitos único, razao_social, nome_fantasia,
+  situacao_cadastral, dados_receita (json da consulta), status,
+  criada_em
+
+usuarios
+  id, nome, cpf_cifrado, cpf_hash único, email único, telefone,
+  senha_hash, email_verificado_em, criado_em
+  CPF nunca em claro em índice, log, URL ou tela cheia.
+
+vinculos
+  id, usuario_id, empresa_id, papel (TITULAR | ADMIN | USUARIO),
+  status (ATIVO | BLOQUEADO), criado_em
+  Único (empresa_id, usuario_id).
+  Único parcial: um TITULAR ativo por empresa no v1.
+  Preparado para vários CPFs. A tela de convite não entra agora.
+
+usuarios_trigger
+  id, nome, email único, senha_hash, ativo
+  Tabela separada de propósito. Não é "usuário com flag admin".
+
+sessoes
+  id, sujeito_tipo (CLIENTE | TRIGGER), sujeito_id, expira_em,
+  revogada_em, ip, user_agent
+
+cobrancas_pix
+  id, empresa_id, finalidade (ATIVACAO | RECARGA | COMPLEMENTO_FATURA),
+  txid único, valor_centavos, status, expira_em, payload_copia_cola,
+  end_to_end_id único quando pago, fatura_id nulo fora do complemento
+
+movimentos_saldo
+  id, empresa_id, tipo, valor_centavos, saldo_disponivel_antes,
+  saldo_disponivel_depois, cobranca_id, demanda_id, fatura_id,
+  ator_tipo, ator_id, observacao, criado_em, chave_idempotencia única
+  Sem updated_at de negócio. Sem delete.
+
+faturas
+  id, empresa_id, demanda_id única, proposta_id,
+  valor_centavos, abatido_reservado_centavos, abatido_disponivel_centavos,
+  complemento_centavos, status, liquidada_em, nfse_status (PLANEJADA)
+
+demandas
+  id, codigo único, empresa_id, aberto_por (usuario_id),
+  titulo, sistema_atual, descricao, objetivo, tipo, prioridade,
+  prazo_desejado, contato_tecnico, status, criada_em
+  Tipos: nova funcionalidade, melhoria, correção, integração,
+  relatório, automação, manutenção, outro.
+  Prioridade: baixa, normal, alta, urgente.
+  Tipo e prioridade orientam a fila. Não mudam o preço sozinhos.
+
+demanda_eventos
+  id, demanda_id, de_status, para_status, ator, em, motivo
+  Toda troca relevante passa aqui.
+
+demanda_anexos
+  id, demanda_id, mensagem_id nulo, nome_original, caminho_interno,
+  tamanho, mime, criado_em
+  Caminho é id interno. O nome enviado pelo cliente não vira path.
+
+mensagens
+  id, demanda_id, autor_tipo, autor_id, visibilidade
+  (CLIENTE | INTERNA), corpo, criada_em
+  INTERNA não tem rota de leitura para papel cliente.
+  Teste de autorização cobre isso. Não basta esconder no CSS.
+
+propostas
+  id, demanda_id, versao inteira crescente, objetivo, contexto,
+  descricao_funcional, requisitos, criterios_aceite, premissas,
+  restricoes, incluso, nao_incluso, prazo_dias_uteis,
+  horas_estimadas nulo, valor_centavos, observacao, valida_ate, status
+  Horas são dado interno de estimativa. O cliente contrata valor
+  e prazo, não banco de horas, no primeiro release.
+
+aprovacoes
+  id, proposta_id única, empresa_id, usuario_id, cpf_hash,
+  valor_centavos, escopo_snapshot (json ou texto congelado),
+  ip, em
+  Gancho futuro de assinatura eletrônica: coluna provedor_assinatura
+  nula. Não integrar agora.
+
+marcos
+  id, demanda_id, texto, visivel_ao_cliente, criado_por, criado_em
+
+apresentacoes
+  id, demanda_id única, resumo, criada_em
+
+nfse_documentos
+  id, fatura_id, status (PLANEJADA | AUTORIZADA | FALHA),
+  chave, numero, xml_caminho, erro, atualizado_em
+  Nasce PLANEJADA. Emissão automática é fase seguinte.
+
+notificacoes
+  id, destinatario_tipo, destinatario_id, empresa_id,
+  tipo, titulo, corpo, lida_em, email_enviado_em, criada_em
+  Canal e-mail sai da mesma linha. WhatsApp seria outra coluna
+  ou outra tabela de entrega, depois.
+
+webhook_inbox
+  id, provedor, entrega_id única, payload, recebido_em, processado_em, erro
+
+auditoria
+  id, ator_tipo, ator_id, empresa_id nulo, acao, entidade, entidade_id,
+  antes (json), depois (json), ip, em
+  Sem delete.
+
+parametros
+  chave, valor, atualizado_em
+  Os números da seção 7 moram aqui.
+
+configuracao_saldo_minimo
+  Pode ser uma chave em parametros (SALDO_MINIMO_CENTAVOS).
+  Abaixo disso, a home mostra aviso. Envio automático fica para
+  quando o e-mail transacional já estiver estável.
+
+Integridade que o banco garante, não só o código
+  cnpj único;
+  email de usuário único;
+  cpf_hash único;
+  um titular ativo por empresa;
+  uma demanda não terminal por empresa (índice parcial);
+  txid único;
+  end_to_end_id único;
+  chave de idempotência única;
+  uma fatura por demanda;
+  uma proposta vigente por demanda;
+  uma aprovação por proposta;
+  proibido apagar movimento, cobrança paga, aprovação ou auditoria
+  (privilégio do papel da aplicação não inclui DELETE nessas tabelas).
+
+Índices mínimos
+  demandas (empresa_id, status), (codigo);
+  movimentos (empresa_id, criado_em);
+  cobrancas (empresa_id, status);
+  mensagens (demanda_id, criada_em);
+  notificacoes (destinatario, lida_em);
+  auditoria (empresa_id, em), (entidade, entidade_id).
+
+
+================================================================================
+10. AUTENTICAÇÃO E AUTORIZAÇÃO
+================================================================================
+
+Login decidido: e-mail + senha.
+CPF na tela de login vaza em log de acesso, histórico do browser e
+ombro alheio, e não ajuda a recuperação. O CPF continua sendo a
+identidade civil do vínculo, validado por dígito e armazenado cifrado.
+
+Senha: Argon2id. Política mínima de tamanho, sem regra teatral de
+símbolos que só gera senha anotada em papel.
+
+Sessão de servidor, cookie Secure, HttpOnly, SameSite=Lax.
+Não JWT no browser. O prompt pedia JWT porque assumia SPA.
+Esta interface é servidor. Sessão encerra no logout, na troca de
+senha e por inatividade (8 horas absolutas, 30 minutos ociosos —
+ajustável em parâmetro).
+
+CSRF em todo formulário que altera estado.
+Limite de tentativa em entrar, cadastrar, recuperar senha e emitir PIX.
+Recuperação de senha por link de uso único, curto, via SES.
+Log de autenticação na auditoria: sucesso, falha, logout, recuperação.
+Sem enumerar se o e-mail existe: a mensagem de erro de login é única.
+
+Autorização
+  Toda query de cliente filtra pela empresa do vínculo da sessão.
+  Nunca pelo id que o formulário mandou sozinho.
+  Rota /operacao exige sujeito TRIGGER.
+  Mensagem INTERNA exige sujeito TRIGGER na leitura e na escrita.
+  Cliente TITULAR, no v1, pode tudo da própria empresa: ver saldo,
+  abrir demanda, aprovar, ver extrato, ver usuários (só ele).
+  Quando o segundo usuário existir, USUARIO abre demanda e acompanha;
+  ADMIN aprova e gere pessoas. A matriz já pode nascer numa tabela
+  permissao, com duas linhas seed, para não reinventar depois.
+
+Um CPF não acessa empresa sem vínculo ativo.
+
+
+================================================================================
+11. MULTI-EMPRESA
+================================================================================
+
+Uma instalação da Trigger. N empresas clientes. Isolamento por
+empresa_id em tudo que é dado de cliente: vínculo, demanda, mensagem,
+anexo, cobrança, movimento, fatura, notificação, auditoria.
+
+Não é o multi-empresa do FLEXOERP (licenciado com várias EMPs
+industriais). Aqui a empresa é o próprio cliente contratante.
+Não há header X-Empresa-Id escolhido pelo browser no v1, porque
+há um vínculo só. Quando houver vários CNPJs no mesmo login, a
+troca de empresa será ação explícita de sessão, e o servidor
+confere o vínculo antes de trocar.
+
+
+================================================================================
+12. PIX — BANCO INTER
+================================================================================
+
+Canal: API Pix do Banco Inter, cobrança imediata (cob).
+Recebedor: conta da TRIGGER DESENVOLVIMENTO PROFISSIONAL LTDA.
+
+Por que Inter
+  O recebimento é da própria Trigger, em PIX, na conta que a empresa
+  já opera. O Asaas está certo no FLEXOERP (43), onde existe
+  mensalidade de produto. Aqui um segundo intermediário só acrescenta
+  taxa. O conhecimento da API já está nas pastas 1 e 2 e no produto
+  de condomínio.
+
+Contrato interno da cobrança (uma porta, duas implementações)
+  criar(empresa, finalidade, valor, referencia)
+  consultar(txid)
+  cancelar(txid)
+  Implementação Inter em homologação e produção.
+  Implementação falsa no notebook: botão "simular pagamento" chama
+  a mesma função de baixa do webhook. Não existe atalho que marque
+  pago por fora dessa função.
+
+Como a baixa funciona
+  A aplicação gera o txid. Não aceita txid vindo do browser.
+  Guarda o copia-e-cola e mostra o QR.
+  Enquanto houver cobrança ATIVA da mesma finalidade e da mesma
+  referência (ativação da empresa, ou complemento daquela fatura),
+  a tela reexibe. Não cria outra.
+  A baixa só ocorre depois de gravar a entrega na webhook_inbox.
+  Reentrega não gera segundo crédito: idempotência por txid +
+  endToEndId + chave do movimento.
+  Um job curto consulta cobranças ATIVAS no banco e chama a mesma
+  baixa, para o caso de webhook perdido.
+  mTLS e segredos ficam em arquivo na VM, fora do git, permissão
+  restrita. Homologação do Inter antes de produção.
+
+PIX estático de chave aleatória não serve. Sem txid não há como
+saber qual CNPJ pagou o quê.
+
+Recarga voluntária usa a mesma porta, finalidade RECARGA, valor
+escolhido pelo cliente com mínimo igual ao ticket, para não criar
+PIX de centavos.
+
+
+================================================================================
+13. FATURA E NFS-e
+================================================================================
+
+Liquidar significa: documento de cobrança fechado, saldo abatido,
+complemento pago se havia, demanda concluída.
+
+No primeiro release a fatura é PDF interno: prestador, tomador, CNPJ,
+descrição do serviço, valor, data, número da demanda, versão da
+proposta. O campo fiscal nasce PLANEJADA.
+
+NFS-e Nacional não sobe nesta VM. O emissor da pasta 22 é outro
+sistema. Falha de nota não desfaz fatura nem movimento.
+
+Quando o certificado A1 e-CNPJ e o município estiverem prontos para
+a SEFIN nacional, um processo à parte preenche nfse_documentos.
+Até lá a Trigger pode emitir no portal nacional e registrar número
+e chave na fatura. A demanda não espera a nota para ficar concluída
+no financeiro. A obrigação fiscal da empresa continua valendo fora
+deste software.
+
+
+================================================================================
+14. EXPERIÊNCIA
+================================================================================
+
+A área herda a página de consultoria, não inventa outra marca.
+
+  Tinta        #0c1a33     --cx-ink
+  Navy         #1a3568     --navy / --cx-navy
+  Navy escuro  #0f2347
+  Verde botão  #7cb518     --green
+  Verde hover  #6a9c14
+  Fundo suave  #f3f6fa     --cx-soft
+  Muted        #5a6b7d
+  Título       Source Serif 4
+  Texto        Source Sans 3
+  Logo         logo-trigger-header.png
+  Raio         12 px
+  Largura      até 1120 px; formulário estreito, cerca de 32 rem
+
+Tom igual ao da home e da consultoria: direto, problema, escopo,
+entrega. Dentro da área logada as palavras são empresa, saldo,
+demanda, proposta, entrega e fatura. O cliente vê o passo atual
+e o próximo. Sem jargão de API.
+
+Telas do cliente
+  Entrar
+  Esqueci a senha
+  Cadastrar empresa (CNPJ, confirmação dos dados da Receita)
+  Vincular responsável (CPF, e-mail, senha, aceite)
+  Ativar com PIX (QR grande, copia-e-cola, "aguardando o banco",
+    a mesma cobrança se a pessoa sair e voltar)
+  Início: disponível, reservado, consumido no período, demanda
+    atual ou "Nova demanda" desligado com o motivo escrito
+    ("falta saldo", "há demanda em andamento", "conta bloqueada")
+  Nova demanda: os campos que o e-mail da consultoria já pede,
+    mais tipo, prioridade e anexos
+  Detalhe: timeline (aberta, em análise, proposta, em execução,
+    apresentada, liquidada) e mensagens visíveis
+  Proposta: escopo, incluso, não incluso, valor, prazo, aceite.
+    Aprovar pede confirmação explícita do valor em reais.
+    Recusar pede motivo curto.
+  Apresentação e, se houver, PIX do complemento
+  Conta: dados da empresa, CPF mascarado (ex.: ***.456.789-**),
+    extrato em linguagem humana
+    ("PIX de ativação", "Reserva da demanda DEM-000007",
+     "Abatimento da fatura")
+
+Telas da Trigger, mesmo host, /operacao
+  Fila: em análise, proposta enviada, aprovadas, em execução,
+  aguardando pagamento, concluídas recentes
+  Abrir a demanda, nota interna, nova versão de proposta, marco,
+  apresentar, ver fatura e movimentos
+  Se não está na demanda, não aconteceu. Sem planilha paralela.
+
+UX que importa
+  Máscara e validação de CNPJ e CPF antes de enviar, e de novo
+  no servidor.
+  Erro de pagamento em uma frase e um único próximo passo.
+  Celular primeiro na tela de PIX: o pagamento ocorre no app do
+  banco. A página sobrevive a trocar de aplicativo e voltar.
+  Destinos do cliente: Início, Demandas, Extrato, Conta.
+  Contraste do navy no branco, foco visível, aprovar que não
+  depende só da cor, rótulo de verdade em cada campo.
+  Confirmação nas ações que mexem em dinheiro ou aceite.
+
+
+================================================================================
+15. STACK DECIDIDA
+================================================================================
+
+Uma VM. Um repositório novo (não é a pasta 12). Poucos processos.
+
+  Linguagem      PHP 8.3
+  Aplicação      Laravel 11
+  HTTP           PHP-FPM atrás do Caddy
+  Interface      Blade + Alpine.js
+  Banco          PostgreSQL 16
+  Fila           tabela no Postgres, worker no mesmo Compose
+  Sessão         banco (ou cookie cifrado do Laravel), não JWT
+  Borda          Caddy na VM: TLS e proxy para o FPM
+  Arquivos       volume local; interface de storage já permite S3 depois
+  E-mail         Amazon SES
+  CNPJ           BrasilAPI na hora do cadastro
+  PIX            Banco Inter, atrás da porta da seção 12
+  Empacotamento  Docker Compose
+  Hospedagem     Lightsail 2 GB
+
+Por que esta combinação
+  Laravel 11 já é operado pela Trigger no Lightsail (39 e 43):
+  migração, fila database, sessão, política de acesso, cifra,
+  e-mail, Compose com overlay local e aws. Reusar o jeito de
+  operar. Não reusar o domínio do ERP.
+
+  PHP-FPM, e não FrankenPHP. FrankenPHP não aparece em nenhum
+  sistema da pasta trigger/. No dia em que o webhook falhar, o
+  runtime tem de ser o que a equipe já depura. Um processo a menos
+  não compensa estrear runtime no caminho do dinheiro.
+  O Caddy já é o caminho de TLS descrito na doutrina do 39.
+
+  Blade e Alpine, e não React/Next. A área é formulário, status
+  e QR. Um SPA acrescenta Node na produção, outro build e mais RAM.
+  O 39 paga esse custo porque o ERP é outro produto. Aqui não.
+
+  PostgreSQL 16, e não MySQL. O 39 usa MySQL por história do ERP.
+  Sistema novo, com livro e unicidade forte, usa Postgres — o mesmo
+  major que o emissor da pasta 22 já usa. SQLite fica de fora:
+  webhook e clique chegam juntos; um escritor único vira fila
+  invisível e backup ruim no meio da escrita.
+
+  Sem Redis no dia 1. A fila cabe no Postgres. A doutrina do 39
+  é essa, e o volume aqui é menor (dezenas de demandas, não
+  milhares de jobs por minuto).
+
+  Sem Kubernetes, RDS, ALB, NAT Gateway, fila gerenciada.
+  Cada um custa mais do que a VM e não muda o produto com um
+  time pequeno.
+
+O que não usar
+  Não clonar o FLEXOERP para "aproveitar". Outro contrato, outra base.
+  Não subir o emissor da pasta 22 ao lado.
+  Não transformar o site estático em aplicação.
+  Não usar Cloudflare Workers como backend: o pedido é Lightsail,
+  e o certificado mTLS do Inter fica num volume da VM.
+
+
+================================================================================
+16. ESTRUTURA DE PASTAS (QUANDO FOR CONSTRUIR)
+================================================================================
+
+Ainda não criar. Quando a implementação for autorizada, o repositório
+novo fica fora de trigger/12. Forma sugerida:
+
+  apps/api                  Laravel: domínio, HTTP, jobs, policies
+    app/Domain/Empresa
+    app/Domain/Carteira
+    app/Domain/Cobranca
+    app/Domain/Demanda
+    app/Domain/Proposta
+    app/Domain/Fatura
+    app/Domain/Notificacao
+    app/Domain/Auditoria
+  resources/views           Blade do cliente e de /operacao
+  database/migrations
+  tests                     regras de dinheiro, isolamento, webhook
+  docker                    FPM, Caddy, Postgres enxuto
+  docker-compose.yml
+  docker-compose.local.yml
+  docker-compose.aws.yml
+  docs                      este TXT copiado ou referenciado
+
+Regra de código, para o dia em que existir código
+  Regra de negócio no domínio, no servidor.
+  O Blade mostra e coleta. Não calcula saldo nem decide status.
+  Toda mudança de saldo numa transação com o movimento.
+  Teste automático nas regras da seção 7 e no isolamento entre
+  empresas, antes de chamar a funcionalidade de pronta.
+  Segredo em variável de ambiente. APP_DEBUG desligado fora do
+  notebook. OpenAPI só se nascer uma API externa; no v1 a interface
+  é o próprio HTML, e a documentação viva é este arquivo mais
+  os testes.
+
+
+================================================================================
+17. LIGHTSAIL
+================================================================================
+
+Instância
+  Ubuntu 24.04 LTS
+  2 GB RAM, 2 vCPU, 60 GB SSD
+  IP estático do próprio Lightsail
+  Plano de 1 GB fica de fora: Postgres + aplicação + worker + pico
+  de webhook não têm folga honesta. A diferença de preço não paga
+  uma queda no meio de um PIX.
+
+Memória alvo (limites no Compose)
+
+  postgres     384 MB
+  app (FPM)    256 MB
+  worker       192 MB
+  caddy         64 MB
+  soma         ~900 MB, com folga no host de 2 GB
+
+  Swap de 2 GB, no mesmo espírito do script de Lightsail do 39.
+  Swap é rede de segurança, não capacidade de trabalho.
+
+Compose
+  Base única. Overlay local (portas, PIX falso). Overlay aws
+  (Postgres sem publish; só 80 e 443). Segredos em .env na VM,
+  nunca no git. A mesma imagem sobe no notebook e na AWS.
+
+Rede
+  Firewall do Lightsail: 80 e 443. SSH pelo fluxo do próprio
+  Lightsail ou restrito ao IP de operação. Postgres sem porta
+  pública.
+
+Backup
+  Snapshot diário do disco.
+  pg_dump diário, compactado, 14 dias no disco, e cópia para fora
+  da VM (bucket barato) assim que existir o primeiro cliente real.
+  Snapshot não substitui dump lógico se uma migração corromper dados.
+  Antes do go-live: restaurar o dump numa VM limpa e entrar na
+  conta de teste. Ensaio feito, não só script existente.
+
+E-mail e DNS
+  SES na mesma conta AWS, domínio triggerti.com com SPF e DKIM.
+  Remetente no estilo nao-responda@triggerti.com, resposta para
+  diogo.moura@triggerti.com.
+  Mensagens do primeiro release: conta ativada, proposta disponível,
+  execução iniciada, apresentação pronta, complemento de PIX,
+  demanda concluída, recuperação de senha.
+
+Observabilidade mínima
+  Log da aplicação em arquivo com rotação.
+  Health público sem dado interno.
+  Alerta se o worker parar ou se uma cobrança permanecer ATIVA
+  depois de expirada (job quebrado).
+  Sem Prometheus no dia 1.
+
+
+================================================================================
+18. SEGURANÇA, LGPD E CONTRATO
+================================================================================
+
+Acesso: como na seção 10.
+Dados pessoais
+  CPF cifrado na coluna, mascarado na tela.
+  Base legal: execução de contrato e obrigação fiscal do tomador.
+  Finalidade no aviso: cadastro, cobrança, demanda, nota.
+  Movimentos e faturas ficam pelo prazo da obrigação contábil.
+  Conta EXPIRADA sem nenhum PIX pode ter o CPF removido depois
+  dos 7 dias de rascunho. Se houve PIX, o mínimo fiscal permanece.
+  Contato do titular dos dados: diogo.moura@triggerti.com.
+  privacidade.html hoje não cobre esta área. Antes do go-live,
+  publicar o texto no subdomínio (e um ponteiro no site, no mesmo
+  dia do link). Sem esse texto, não há cadastro de CPF.
+
+Consulta de CNPJ
+  BrasilAPI traz cadastro público. Não prova procurador.
+  O controle do v1 é dígito do CPF mais a declaração assinada
+  no clique. Se no futuro a consulta de quadro societário existir,
+  ela alerta quando o CPF não aparece; não bloqueia, porque
+  procurador é legítimo. Bloqueio automático só para situação
+  cadastral morta.
+
+Webhook, anexos, auditoria
+  Só a função de baixa credita.
+  Inbox antes de processar. Repetição não duplica.
+  Certificado do Inter fora do repositório.
+  Anexos: pdf, png, jpg, webp, txt, zip. Teto por arquivo e por
+  demanda. Sem executar o que o cliente envia.
+  Auditoria obrigatória: login, logout, criação de empresa,
+  aprovação, recusa, liquidação, bloqueio, crédito de PIX,
+  estorno, ajuste.
+
+Regra crítica
+  Um cliente não vê dado de outra empresa. Teste de isolamento
+  faz parte do critério de pronto, não é revisão opcional.
+
+
+================================================================================
+19. FORA DO PRIMEIRO RELEASE
+================================================================================
+
+  Mensalidade, cartão, boleto, parcelamento, saque.
+  Vários usuários na tela (a tabela vinculos já existe).
+  Várias demandas ao mesmo tempo.
+  Contra-proposta e helpdesk. Mensagem na demanda sim; fila de
+  tickets não.
+  App nativo.
+  NFS-e automática nesta VM.
+  WhatsApp, IA de escopo, GitHub, Jira, Trello, ERP, API pública.
+  Assinatura eletrônica (o registro em aprovacoes fica pronto).
+  Painel de BI, DRE, comissão.
+  Reescrita do site e das landings.
+  Kubernetes e banco gerenciado.
+
+Relatórios do primeiro release, simples, em tela
+  Cliente: extrato, demandas por status, valor aprovado e consumido
+  no período.
+  Trigger: empresas ativas, demandas por status, faturas abertas,
+  total creditado no período.
+  Relatório analítico pesado espera uso real.
+
+
+================================================================================
+20. FASES
+================================================================================
+
+Fase 0 — este documento
+  Decisão fechada. Nada em produção. Site intocado.
+  Implementação só começa com aprovação explícita.
+
+Fase 1 — caminho feliz em homologação
+  Cadastro CNPJ + CPF, PIX de ativação no sandbox do Inter,
+  ledger, uma demanda, proposta versionada, aprovação com registro,
+  marcos, apresentação, liquidação com complemento, PDF, e-mails
+  essenciais, /operacao, auditoria, testes das regras de dinheiro
+  e do isolamento.
+  Critério: um CNPJ de teste percorre o fluxo sem planilha e sem
+  marcar pago à mão. O botão de simular pagamento passa pela mesma
+  baixa do webhook.
+
+Fase 2 — produção no Lightsail
+  VM 2 GB, TLS, DNS somente, backup ensaiado, termos e privacidade
+  publicados, Inter em produção com um PIX real de valor baixo da
+  própria Trigger, link no site e ajuste do texto "como contratar".
+  Critério: a home continua no ar no Pages; o subdomínio abre;
+  o pagamento real credita uma vez só; o site não ganhou
+  package.json.
+
+Fase 3 — quando houver uso
+  NFS-e ligada ao emissor (outro processo), segundo usuário por
+  CNPJ, mais de uma demanda se a capacidade do time permitir,
+  cópia do dump para fora da VM se ainda não estiver feita,
+  alerta de saldo mínimo por e-mail.
+
+
+================================================================================
+21. CRITÉRIOS DE PRONTO
+================================================================================
+
+  www.triggerti.com continua estático no Cloudflare, sem package.json
+  em site/ e sem queda das URLs atuais.
+  cliente.triggerti.com é o único lugar com login.
+  CNPJ inapto não cadastra.
+  Conta sem PIX não abre demanda.
+  O mesmo webhook duas vezes gera um único crédito.
+  Reserva volta se a Trigger recusa ou se a proposta expira.
+  A terceira recusa do cliente em 90 dias consome o ticket.
+  Aprovar não marca a fatura como paga e não exige saldo cheio.
+  Apresentar gera a fatura e o complemento certo
+  (valor aprovado − reservado aplicado − disponível aplicado).
+  CONCLUIDA só com fatura LIQUIDADA.
+  Nota interna não aparece em nenhuma resposta de cliente.
+  CPF não aparece completo em tela, log ou URL.
+  Cliente da empresa A não lê demanda, saldo ou mensagem da empresa B.
+  Postgres não está publicado na internet.
+  Restauração de backup foi feita uma vez em ensaio.
+  Textos cabem no tom da consultoria.
+  Há uma marca só: a da Trigger. Sem portal genérico.
+
+
+================================================================================
+22. RISCOS E COMO FICAM CONTIDOS
+================================================================================
+
+  Webhook perdido.
+    Job de consulta no Inter usa a mesma baixa.
+  Cliente aprova e some na liquidação.
+    O ticket permanece reservado. A conta bloqueia após 5 dias.
+    O pacote fechado só libera no pagamento. Já houve PIX inicial
+    e aceite com IP, usuário e versão.
+  Análise de graça em série.
+    Uma demanda por vez, reserva na abertura, terceira recusa
+    retém o ticket.
+  VM única.
+    Aceito no dia 1. Snapshot mais dump. RDS só se backup ou
+    disponibilidade deixarem de bastar. A aplicação muda a
+    connection string, não o domínio.
+  Certificado do Inter vence.
+    Validade no checklist mensal. Sem certificado não se emite
+    PIX novo; saldo e demandas já pagas continuam visíveis.
+  Escopo crescer para ERP, nota e SPA.
+    Recusar. FLEXOERP, condomínio, estoque e o emissor não moram
+    nesta VM. O prompt genérico não redefine a stack.
+  Frase "sem portal" continuar no ar depois do lançamento.
+    A fase 2 inclui o texto da consultoria no mesmo diff do link.
+    Sem isso o site mente.
+
+
+================================================================================
+23. RESUMO PARA QUEM VAI CONSTRUIR
+================================================================================
+
+  Construir um aplicativo novo, pequeno e inteiro, em
+  cliente.triggerti.com, num Lightsail de 2 GB.
+
+  Laravel 11, PHP 8.3-FPM, Caddy, Blade, Alpine, PostgreSQL 16,
+  Compose, sessão de servidor, PIX Inter, livro de saldo em
+  centavos, ticket na abertura, aceite sem cobrar o valor cheio,
+  fatura liquidada na apresentação, uma demanda por vez.
+
+  Não construir em cima do HTML do site.
+  Não clonar o ERP das pastas 39 e 43.
+  Não subir NFS-e, Redis, RDS, ALB, Next ou Nest agora.
+  Não mexer na pasta trigger/12 até o dia em que o único diff do
+  site for o link "Área do cliente" e o texto de "como contratar".
+
+  O site segue sendo a vitrine.
+  A área do cliente passa a ser o contrato: CNPJ, CPF, PIX, saldo,
+  demanda, análise, proposta, aprovação, execução, apresentação
+  e liquidação.
+
+  Implementação: só depois de aprovação deste documento.
+
+
+Fim do documento.
+================================================================================
