@@ -213,12 +213,20 @@ function FichaItemBody({
   const mostrarFrete = !multi && Boolean(freteDoc);
 
   const inputFaixas = Array.isArray(input.faixas)
-    ? (input.faixas as Array<{ quantidade?: number; comissao_pct?: number }>)
+    ? (input.faixas as Array<{
+        quantidade?: number;
+        comissao_pct?: number;
+        valor_unitario?: number;
+      }>)
     : [];
   const comissaoPctByQtd = new Map<number, number>();
+  const unitarioInformadoByQtd = new Map<number, number>();
   for (const fx of inputFaixas) {
     const q = Number(fx.quantidade);
-    if (Number.isFinite(q)) comissaoPctByQtd.set(q, Number(fx.comissao_pct) || 0);
+    if (!Number.isFinite(q)) continue;
+    comissaoPctByQtd.set(q, Number(fx.comissao_pct) || 0);
+    const unit = Number(fx.valor_unitario);
+    if (Number.isFinite(unit)) unitarioInformadoByQtd.set(q, unit);
   }
 
   const isRevenda = isRevendaSnap(input);
@@ -356,7 +364,7 @@ function FichaItemBody({
             }))}
           />
         ) : null}
-        {facasComp.length > 1 ? (
+        {!isRevenda && facasComp.length > 1 ? (
           <FacasComposicaoTable
             variant="ficha"
             title={null}
@@ -367,7 +375,65 @@ function FichaItemBody({
         ) : null}
       </Section>
 
-      {faixas.length > 0 ? (
+      {isRevenda ? (
+        faixas.length > 0 ? (
+          <Section title="Preço comercial">
+            <table className="ficha-table ficha-table-num">
+              <thead>
+                <tr>
+                  <th>Qtdade</th>
+                  <th className="ficha-th-num">Unitário</th>
+                  <th className="ficha-th-num">% comissão</th>
+                  <th className="ficha-th-num">Comissão</th>
+                  <th className="ficha-th-num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {faixas.map((fx, i) => {
+                  const q = Number(fx.quantidade) || 0;
+                  const informado = fx.valor_unitario_informado;
+                  const unit =
+                    informado != null && Number.isFinite(Number(informado))
+                      ? Number(informado)
+                      : (unitarioInformadoByQtd.get(Number(fx.quantidade)) ??
+                        (q > 0 ? (Number(fx.valor_etiqueta) || 0) / q : 0));
+                  const comPct = comissaoPctByQtd.get(Number(fx.quantidade));
+                  const total = faixaTotal(fx, false, 0, 0);
+                  return (
+                    <tr key={i}>
+                      <td>{qtyBr(fx.quantidade)}</td>
+                      <td className="ficha-td-num">{money(unit)}</td>
+                      <td className="ficha-td-num">{comPct != null ? pctBr(comPct) : '—'}</td>
+                      <td className="ficha-td-num">{money(fx.comissao)}</td>
+                      <td className="ficha-td-num">
+                        <strong>{money(total)}</strong>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {temGordura || mostrarFrete ? (
+              <p className="ficha-empty" style={{ borderTop: 0 }}>
+                {[
+                  temGordura
+                    ? `Gordura ${money(valorGordura)} — uso interno; não aparece na proposta ao cliente.`
+                    : '',
+                  mostrarFrete && freteDoc
+                    ? `Frete (${modoEntregaLabel(freteDoc.modo).toLowerCase()}) — informativo, fora do total e do unitário; vazio = a definir.`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              </p>
+            ) : null}
+          </Section>
+        ) : (
+          <Section title="Resultado">
+            <p className="ficha-empty">Sem resultado calculado neste item.</p>
+          </Section>
+        )
+      ) : faixas.length > 0 ? (
         <>
           <Section title={multi ? 'Cálculo — métricas' : 'Cálculo dos valores — métricas'}>
             <table className="ficha-table ficha-table-num ficha-table-metricas">
@@ -580,7 +646,9 @@ export function OrcamentoFichaSheet({
     calculoComItensDoOrcamento(orc.result_snapshot, orc.itens) ?? orc.result_snapshot;
   const itens = itensFichaOrc(orc);
   const multi = itens.length > 1;
+  const somenteRevenda = itens.length > 0 && itens.every((it) => isRevendaSnap(it.input));
   const item0 = itens[0];
+  const codigoRevenda = String(item0?.input.produto_codigo ?? '').trim();
   const facasChip = facasFromSnapshot(item0?.input ?? inputDoc);
   const facaNovaChip = Boolean(
     (item0?.input.faca_nova ?? item0?.result?.faca_nova) ||
@@ -662,17 +730,28 @@ export function OrcamentoFichaSheet({
       </div>
 
       <div className="ficha-kv-strip">
-        <Kv
-          label="Matriz"
-          value={
-            multi
-              ? `${itens.length} itens · ver fechamento de cada item`
-              : `${matrizLabel}${matrizTarifa(catalogSnap)}`
-          }
-        />
+        {somenteRevenda ? (
+          <Kv
+            label={multi ? 'Produtos' : 'Produto'}
+            value={multi ? `${itens.length} itens` : codigoRevenda || 'Revenda'}
+          />
+        ) : (
+          <Kv
+            label="Matriz"
+            value={
+              multi
+                ? `${itens.length} itens · ver fechamento de cada item`
+                : `${matrizLabel}${matrizTarifa(catalogSnap)}`
+            }
+          />
+        )}
         <Kv
           label="Prazo / validade"
-          value={`${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`}
+          value={
+            somenteRevenda
+              ? `${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias`
+              : `${prazoEntregaCompleto(orc)} · ${orc.validade_dias} dias · ±${dash(orc.tolerancia_qtd_pct)}%`
+          }
         />
         <Kv
           label="Condição / forma"
@@ -702,8 +781,12 @@ export function OrcamentoFichaSheet({
             <thead>
               <tr>
                 <th>Item</th>
-                <th className="ficha-th-num">Facas</th>
-                <th className="ficha-th-num">Artes</th>
+                {somenteRevenda ? null : (
+                  <>
+                    <th className="ficha-th-num">Facas</th>
+                    <th className="ficha-th-num">Artes</th>
+                  </>
+                )}
                 <th className="ficha-th-num">Total (1ª qtd.)</th>
               </tr>
             </thead>
@@ -715,8 +798,12 @@ export function OrcamentoFichaSheet({
                 return (
                   <tr key={it.ordem}>
                     <td>{rotuloItemOrc(it.ordem, it.rotulo)}</td>
-                    <td className="ficha-td-num">{money(r.valorFacas)}</td>
-                    <td className="ficha-td-num">{money(r.valorArtes)}</td>
+                    {somenteRevenda ? null : (
+                      <>
+                        <td className="ficha-td-num">{money(r.valorFacas)}</td>
+                        <td className="ficha-td-num">{money(r.valorArtes)}</td>
+                      </>
+                    )}
                     <td className="ficha-td-num">
                       <strong>{money(r.total)}</strong>
                     </td>
@@ -727,9 +814,11 @@ export function OrcamentoFichaSheet({
                 <td>
                   <strong>Documento</strong>
                 </td>
-                <td className="ficha-td-num" colSpan={2}>
-                  {itens.length} itens · 1ª quantidade de cada
-                </td>
+                {somenteRevenda ? null : (
+                  <td className="ficha-td-num" colSpan={2}>
+                    {itens.length} itens · 1ª quantidade de cada
+                  </td>
+                )}
                 <td className="ficha-td-num">
                   <strong>{money(resultDoc.totais.soma_primeira_faixa_proposta)}</strong>
                 </td>

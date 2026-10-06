@@ -9,6 +9,7 @@ import { formatCurrency, formatDecimalBr } from '../lib/format';
 import {
   faixaDoItem,
   isPropostaMultiItem,
+  propostaSomenteRevenda,
   rotuloPropostaItem,
   totalDocumentoSelecionado,
   totalFaixaItem,
@@ -165,7 +166,7 @@ export function OrcPubEspecificacaoBloco({
         {
           key: 'desc',
           label: 'Produto',
-          value: desc?.produto_descricao || 'Revenda',
+          value: desc?.produto_descricao || 'Produto',
         },
         ...(desc?.unidade
           ? [{ key: 'un', label: 'Unidade', value: desc.unidade } satisfies SpecCell]
@@ -277,6 +278,7 @@ function OrcPubFaixasTabela({
   radioName?: string;
 }) {
   const isServico = tipoOperacao === 'SERVICO';
+  const isRevenda = descricao?.necessidade === 'REVENDA';
   const mostrarFrete = Boolean(frete && modoComFrete(frete.modo));
   const selecionavel = !somenteExibicao && !somenteLeitura && Boolean(onFaixaChange);
 
@@ -336,6 +338,66 @@ function OrcPubFaixasTabela({
                   </td>
                   <td className="orc-pub-num">
                     {unit != null ? formatCurrency(unit) : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (isRevenda) {
+    return (
+      <div className="table-wrap orc-pub-faixas-wrap">
+        <table className="orc-pub-faixas-table">
+          <thead>
+            <tr>
+              {selecionavel ? <th className="orc-pub-faixas-sel" aria-label="Seleção" /> : null}
+              <th className="orc-pub-num">Qtd</th>
+              <th className="orc-pub-num">Unitário</th>
+              {mostrarFrete ? <th className="orc-pub-num">Frete</th> : null}
+              <th className="orc-pub-num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {faixas.map((fx) => {
+              const q = Number(fx.quantidade) || 0;
+              const total = Number(fx.valor_total) || 0;
+              const unit =
+                fx.valor_unitario != null
+                  ? Number(fx.valor_unitario)
+                  : q > 0
+                    ? total / q
+                    : null;
+              const selected = faixaIndex === fx.index;
+              return (
+                <tr
+                  key={fx.index}
+                  className={selected ? 'is-selected' : undefined}
+                  onClick={selecionavel ? () => onFaixaChange?.(fx.index) : undefined}
+                >
+                  {selecionavel ? (
+                    <td className="orc-pub-faixas-sel">
+                      <input
+                        type="radio"
+                        name={radioName}
+                        checked={selected}
+                        onChange={() => onFaixaChange?.(fx.index)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
+                  ) : null}
+                  <td className="orc-pub-num">{q.toLocaleString('pt-BR')}</td>
+                  <td className="orc-pub-num">{unit != null ? formatCurrency(unit) : '—'}</td>
+                  {mostrarFrete ? (
+                    <td className="orc-pub-num">
+                      {formatValorFrete(fx.valor_frete, { aDefinir: true })}
+                    </td>
+                  ) : null}
+                  <td className="orc-pub-num">
+                    <strong>{formatCurrency(total)}</strong>
                   </td>
                 </tr>
               );
@@ -510,6 +572,14 @@ function resumoLinhaItem(item: OrcPropostaItem, faixaIndex?: number): string {
     faixaIndex != null && faixaIndex >= 0
       ? faixaDoItem(item, faixaIndex)
       : item.faixas?.[0];
+  if (d?.necessidade === 'REVENDA') {
+    const unidade = (d.unidade ?? '').trim();
+    const qtd = fx
+      ? `${fx.quantidade.toLocaleString('pt-BR')}${unidade ? ` ${unidade}` : ''}`
+      : null;
+    const bits = [d.produto_codigo || null, d.produto_descricao || null, qtd].filter(Boolean);
+    return bits.join(' · ');
+  }
   const bits = [
     d?.medida || null,
     d?.papel || null,
@@ -630,7 +700,7 @@ export function OrcPubItensAcordeao({
         </div>
         <p className="orc-pub-itens-doc-total">{formatCurrency(totalDoc)}</p>
       </header>
-      {proposta.cobra_matriz ? (
+      {proposta.cobra_matriz && !propostaSomenteRevenda(proposta) ? (
         <p className="orc-pub-note orc-pub-note--tight">
           Matriz {formatCurrency(proposta.valor_matriz ?? 0)}
           {proposta.matriz_nota ? ` — ${proposta.matriz_nota}` : ''}

@@ -2490,6 +2490,8 @@ export type OrcamentoFaixaResult = {
   valor_tubete: number;
   valor_caixa: number;
   valor_servico: number;
+  /** Preço comercial digitado (revenda/serviço), antes da comissão. */
+  valor_unitario_informado?: number;
   comissao: number;
   imposto: number;
   base: number;

@@ -15,6 +15,16 @@ export function isPropostaMultiItem(proposta: OrcamentoPropostaPublica): boolean
   return Array.isArray(proposta.itens) && proposta.itens.length > 1;
 }
 
+/** Orçamento inteiro é produto de revenda — sem linha de etiqueta. */
+export function propostaSomenteRevenda(proposta: OrcamentoPropostaPublica): boolean {
+  if (proposta.tipo_operacao === 'SERVICO') return false;
+  if (isPropostaMultiItem(proposta)) {
+    const itens = proposta.itens ?? [];
+    return itens.length > 0 && itens.every((it) => it.descricao?.necessidade === 'REVENDA');
+  }
+  return proposta.descricao?.necessidade === 'REVENDA';
+}
+
 export function rotuloPropostaItem(ordem: number, rotulo?: string | null): string {
   const r = (rotulo ?? '').trim();
   return r ? `Item ${ordem} · ${r}` : `Item ${ordem}`;

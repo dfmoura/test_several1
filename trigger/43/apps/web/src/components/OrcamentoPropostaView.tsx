@@ -14,7 +14,7 @@ import {
   textoToleranciaQuantidade,
 } from '../lib/orcamentoDisposicoesComerciais';
 import { formatDateTime } from '../lib/format';
-import { isPropostaMultiItem } from '../lib/orcamentoPropostaItens';
+import { isPropostaMultiItem, propostaSomenteRevenda } from '../lib/orcamentoPropostaItens';
 import { prazoUtilLabel } from '../lib/prazoEntrega';
 
 type Props = {
@@ -67,6 +67,7 @@ export function OrcamentoPropostaView({
   const desc = proposta.descricao;
   const faixas = proposta.faixas ?? [];
   const multi = isPropostaMultiItem(proposta);
+  const somenteRevenda = propostaSomenteRevenda(proposta);
   const documentoMeta = [
     `v${proposta.versao}`,
     proposta.expira_em ? `válida até ${formatDateTime(proposta.expira_em)}` : null,
@@ -143,7 +144,7 @@ export function OrcamentoPropostaView({
               proposta.tipo_operacao === 'SERVICO'
                 ? 'Serviço'
                 : desc?.necessidade === 'REVENDA'
-                  ? 'Revenda'
+                  ? 'Produto'
                   : 'Especificação'
             }
           />
@@ -159,7 +160,7 @@ export function OrcamentoPropostaView({
             somenteLeitura={somenteLeitura}
             faixaIndex={faixaIndex}
             onFaixaChange={onFaixaChange}
-            cobraMatriz={Boolean(proposta.cobra_matriz)}
+            cobraMatriz={Boolean(proposta.cobra_matriz) && !somenteRevenda}
             valorMatriz={proposta.valor_matriz ?? 0}
             matrizNota={proposta.matriz_nota}
           />
@@ -180,13 +181,15 @@ export function OrcamentoPropostaView({
             <li>
               Validade da proposta: <strong>{proposta.validade_dias} dias</strong>
             </li>
-            <li>
-              Tolerância de quantidade: <strong>±{proposta.tolerancia_qtd_pct}%</strong>
-              <span className="orc-pub-cond-extra">
-                {' '}
-                — {textoToleranciaQuantidade()}
-              </span>
-            </li>
+            {somenteRevenda ? null : (
+              <li>
+                Tolerância de quantidade: <strong>±{proposta.tolerancia_qtd_pct}%</strong>
+                <span className="orc-pub-cond-extra">
+                  {' '}
+                  — {textoToleranciaQuantidade()}
+                </span>
+              </li>
+            )}
             {proposta.condicao_pagamento ? (
               <li>
                 Condição de pagamento: <strong>{proposta.condicao_pagamento}</strong>
