@@ -6,15 +6,22 @@ import { opKitEstado, opKitNome, opKitOnde, parseQtdeDigitada } from './producao
 export type ModoRetirada = 'volume' | 'unidade';
 
 const COMPONENTES_VOLUME = new Set(['PAPEL']);
-const FAMILIAS_VOLUME = ['MP-PAP', 'MP-FLM', 'MP-LAM', 'PA-BOB'];
+/** Grupo no código do SKU (MP-PAP-001). Família do produto é MP, não o grupo. */
+const GRUPOS_VOLUME = ['MP-PAP', 'MP-FLM', 'MP-TEC', 'MP-LAM', 'MP-CLD', 'MP-ADF', 'MP-RET', 'PA-BOB'];
+
+function codigoDeGrupoVolume(codigo: string | null | undefined): boolean {
+  const c = (codigo ?? '').trim().toUpperCase();
+  return GRUPOS_VOLUME.some((p) => c === p || c.startsWith(`${p}-`));
+}
 
 export function modoRetirada(m: OrdemProducaoMaterial): ModoRetirada {
   const controla = Boolean(m.retirada?.controla_lote ?? m.produto?.controla_lote);
   if (!controla) return 'unidade';
   const comp = (m.componente ?? '').toUpperCase();
   if (COMPONENTES_VOLUME.has(comp)) return 'volume';
+  if (codigoDeGrupoVolume(m.produto?.codigo)) return 'volume';
   const fam = (m.produto?.familia ?? '').toUpperCase();
-  if (FAMILIAS_VOLUME.some((p) => fam === p || fam.startsWith(`${p}-`))) return 'volume';
+  if (GRUPOS_VOLUME.some((p) => fam === p || fam.startsWith(`${p}-`))) return 'volume';
   const vols = m.retirada?.volumes ?? [];
   if (vols.some((v) => v.largura_mm || v.comprimento_m)) return 'volume';
   return 'unidade';

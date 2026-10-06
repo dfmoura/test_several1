@@ -266,6 +266,23 @@ Não altera: dual de unidades, entrada OC→assist→receber, anti-explosão L×
 
 ---
 
+## Emenda 2026-10-06 — uma geometria, um saldo, volume inteiro
+
+Largura, metro linear e m² são a mesma conta do volume. Kg é a mesma quantidade pesada (gramatura no SKU). Não há segundo saldo.
+
+| Grupo | Saldo oficial | O que varia no volume |
+|-------|----------------|------------------------|
+| MP-PAP, MP-FLM, MP-LAM, MP-RET | M2 | largura, comprimento e o m² daquele rolo |
+| MP-TEC, MP-CLD, MP-ADF | M | comprimento real. Largura identifica o SKU. Se a largura mudar a cada rolo, o SKU passa a M2=M2 |
+
+- Qualquer par suficiente fecha o terceiro (`VolumeGeometria`). Os três informados e divergentes → conferência para; não se escolhe número em silêncio.
+- RL continua unidade de nota quando o comprimento do rolo é fixo. Não é o saldo padrão de foil nem de fita.
+- Retalho com origem conhecida permanece volume do material de origem. MP-RET é sobra sem origem: um SKU por material, lote obrigatório, medida no volume.
+- Baixa de chão desses grupos é bobina inteira (código do SKU), não fração do rolo.
+- SKUs já gravados em RL não são reescritos. O padrão novo vale para cadastro novo.
+
+---
+
 ## Rastreio no código / docs
 
 - Unidades: `ADR_UNIDADES_PRODUTO.md` · `ProdutoBobinaDimensoes` · `produtoBobinaDimensoesUi.ts`  

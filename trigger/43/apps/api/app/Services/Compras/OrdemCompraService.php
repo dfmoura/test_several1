@@ -14,6 +14,7 @@ use App\Services\Fiscal\NfeEntradaService;
 use App\Support\BobinaAreaComercial;
 use App\Support\NfeExactDimensoes;
 use App\Support\PadraoDecimal;
+use App\Support\VolumeGeometria;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -525,16 +526,23 @@ class OrdemCompraService
             $composicao = $this->normalizeComposicao($raw['composicao'] ?? null, $idx);
 
             if ($composicao !== []) {
-                $areaM2 = '0';
-                foreach ($composicao as $faixa) {
-                    $areaM2 = bcadd($areaM2, $faixa['area_m2'], PadraoDecimal::SCALE_QTY + 2);
-                }
-                $areaM2 = PadraoDecimal::roundHalfUp($areaM2, PadraoDecimal::SCALE_QTY);
-                $qtde = BobinaAreaComercial::fromAreaM2(
-                    $produto,
-                    $areaM2,
-                    "itens.{$idx}.composicao"
+                $qtde = VolumeGeometria::qtdePedido(
+                    (string) ($produto->unidade_comercial ?? ''),
+                    (string) ($produto->unidade_interna ?? ''),
+                    $composicao,
                 );
+                if ($qtde === null) {
+                    $areaM2 = '0';
+                    foreach ($composicao as $faixa) {
+                        $areaM2 = bcadd($areaM2, $faixa['area_m2'], PadraoDecimal::SCALE_QTY + 2);
+                    }
+                    $areaM2 = PadraoDecimal::roundHalfUp($areaM2, PadraoDecimal::SCALE_QTY);
+                    $qtde = BobinaAreaComercial::fromAreaM2(
+                        $produto,
+                        $areaM2,
+                        "itens.{$idx}.composicao"
+                    );
+                }
             } else {
                 $qtde = PadraoDecimal::parseStrict($raw['qtde_pedida'] ?? null, PadraoDecimal::SCALE_QTY);
             }

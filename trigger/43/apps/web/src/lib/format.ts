@@ -110,6 +110,45 @@ export function comprimentoFromAreaLargura(
   return clampDecimalScale(q / (l / 1000), DECIMAL_SCALE.dim);
 }
 
+export function larguraFromAreaComprimento(
+  qtdeM2: string | number,
+  comprimentoM: string | number,
+): string {
+  const q = Number(String(qtdeM2).replace(',', '.'));
+  const c = Number(String(comprimentoM).replace(',', '.'));
+  if (!(q > 0) || !(c > 0)) return '';
+  return clampDecimalScale((q / c) * 1000, DECIMAL_SCALE.dim);
+}
+
+export function normUnidadeVolume(raw: string | null | undefined): string {
+  return String(raw ?? '')
+    .trim()
+    .toUpperCase()
+    .replace('M²', 'M2')
+    .replace(/\s/g, '');
+}
+
+/**
+ * Conferência do volume. M2: qtde é área e o metro sai da largura.
+ * M: qtde é o metro do rolo. RL não inventa comprimento.
+ */
+export function sugerirComprimentoVolume(input: {
+  qtde: string | number;
+  larguraMm: string | number;
+  comprimentoM?: string | number | null;
+  unidadeInterna?: string | null;
+}): string {
+  const informado = String(input.comprimentoM ?? '').trim();
+  if (informado) return informado;
+  const un = normUnidadeVolume(input.unidadeInterna);
+  if (un === 'M') {
+    const q = String(input.qtde ?? '').trim();
+    return q ? clampDecimalScale(q, DECIMAL_SCALE.dim) : '';
+  }
+  if (un === 'RL') return '';
+  return comprimentoFromAreaLargura(input.qtde, input.larguraMm);
+}
+
 /**
  * Área parcial (m²) = quantidade × (largura_mm/1000) × comprimento_m.
  * Espelha NfeExactDimensoes::areaM2 × quantidade (pedido OC).

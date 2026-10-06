@@ -354,7 +354,7 @@ export function ComoCadastraPage() {
                       <td>
                         <code>MP-RET</code>
                       </td>
-                      <td>Retalho / sobra útil de bobina (cada retalho útil = SKU próprio)</td>
+                      <td>Retalho / sobra sem origem rastreável (um SKU por material; medida no volume)</td>
                     </tr>
                     <tr>
                       <td>EMB</td>

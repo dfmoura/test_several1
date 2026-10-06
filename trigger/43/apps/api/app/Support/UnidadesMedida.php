@@ -22,7 +22,7 @@ final class UnidadesMedida
             [
                 'codigo' => 'RL',
                 'descricao' => 'Rolo / bobina',
-                'uso' => 'Estoque de substratos (largura × comprimento no SKU).',
+                'uso' => 'Contagem de rolos na nota, quando o comprimento é fixo. A medida real do rolo fica no volume.',
             ],
             [
                 'codigo' => 'M',

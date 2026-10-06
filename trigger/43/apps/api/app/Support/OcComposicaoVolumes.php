@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
  * Expande composição do pedido (OC) em volumes sugeridos na conferência.
  * Norma: ADR_OC_RASCUNHO_ENVIO · ADR_ENTRADA_XML_ASSIST — XML prevalece; isto é fallback.
  *
- * qtde de cada volume = unidade comercial do SKU (m² físicos convertidos via fator quando com≠M2).
+ * qtde de cada volume = unidade comercial do SKU (M2 via área; M = comprimento; RL ≠ M2 = 1 rolo).
  * Σ m² físico para confronto continua em somaAreaM2().
  *
  * nLote vazio → código interno provisório determinístico (não aleatório), editável.
@@ -74,7 +74,7 @@ final class OcComposicaoVolumes
             if ($nBobinas !== null && $nBobinas >= 1 && $nBobinas <= 500) {
                 for ($i = 0; $i < $nBobinas; $i++) {
                     $out[] = self::volumeStub(
-                        self::qtdeComercial($produto, $areaUnit),
+                        self::qtdeComercial($produto, $areaUnit, $comprimento),
                         $largura,
                         $comprimento,
                         $dataEntrada,
@@ -84,7 +84,7 @@ final class OcComposicaoVolumes
                 }
             } else {
                 $out[] = self::volumeStub(
-                    self::qtdeComercial($produto, $areaFaixa),
+                    self::qtdeComercial($produto, $areaFaixa, $comprimento),
                     $largura,
                     $comprimento,
                     $dataEntrada,
@@ -154,10 +154,19 @@ final class OcComposicaoVolumes
         return PadraoDecimal::roundHalfUp($sum, PadraoDecimal::SCALE_QTY);
     }
 
-    private static function qtdeComercial(?\App\Models\Produto $produto, string $areaM2): string
+    private static function qtdeComercial(?\App\Models\Produto $produto, string $areaM2, string $comprimentoM): string
     {
         if ($produto === null) {
             return PadraoDecimal::roundHalfUp($areaM2, PadraoDecimal::SCALE_QTY);
+        }
+
+        $naUnidade = VolumeGeometria::qtdeDeUmVolume(
+            (string) ($produto->unidade_comercial ?? ''),
+            (string) ($produto->unidade_interna ?? ''),
+            $comprimentoM,
+        );
+        if ($naUnidade !== null) {
+            return $naUnidade;
         }
 
         return BobinaAreaComercial::fromAreaM2($produto, $areaM2);

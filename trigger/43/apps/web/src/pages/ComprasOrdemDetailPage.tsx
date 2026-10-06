@@ -16,7 +16,8 @@ import { ocStatusLabel } from '../lib/comprasUi';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import {
   clampDecimalScale,
-  comprimentoFromAreaLargura,
+  normUnidadeVolume,
+  sugerirComprimentoVolume,
   DECIMAL_SCALE,
   formatCnpjCpf,
   formatCurrency,
@@ -566,10 +567,14 @@ export function ComprasOrdemDetailPage() {
         if (item.lotes && item.lotes.length > 0) {
           next[item.ordem_compra_item_id] = item.lotes.map((l) => {
             const largura = clampDecimalScale(l.largura_mm || '', DECIMAL_SCALE.dim);
+            const ocItem = (oc?.itens ?? []).find((i) => i.id === item.ordem_compra_item_id);
             const comprimento =
-              clampDecimalScale(l.comprimento_m || '', DECIMAL_SCALE.dim) ||
-              comprimentoFromAreaLargura(l.qtde, largura) ||
-              '';
+              sugerirComprimentoVolume({
+                qtde: l.qtde,
+                larguraMm: largura,
+                comprimentoM: clampDecimalScale(l.comprimento_m || '', DECIMAL_SCALE.dim),
+                unidadeInterna: ocItem?.produto?.unidade_interna,
+              }) || '';
             return {
               codigo: l.codigo,
               qtde: clampDecimalScale(l.qtde, DECIMAL_SCALE.qty),
@@ -1981,14 +1986,19 @@ export function ComprasOrdemDetailPage() {
                                                 onChange={(e) => {
                                                   const next = [...volumeForms[item.id]];
                                                   const qtde = e.target.value;
-                                                  let comprimento = next[vIdx].comprimento_m;
-                                                  if (next[vIdx].largura_mm.trim()) {
-                                                    const derived = comprimentoFromAreaLargura(
-                                                      qtde,
-                                                      next[vIdx].largura_mm,
-                                                    );
-                                                    if (derived) comprimento = derived;
-                                                  }
+                                                  const un = item.produto?.unidade_interna;
+                                                  const comprimento =
+                                                    normUnidadeVolume(un) === 'M'
+                                                      ? qtde
+                                                      : sugerirComprimentoVolume({
+                                                          qtde,
+                                                          larguraMm: next[vIdx].largura_mm,
+                                                          comprimentoM:
+                                                            normUnidadeVolume(un) === 'M2'
+                                                              ? ''
+                                                              : next[vIdx].comprimento_m,
+                                                          unidadeInterna: un,
+                                                        }) || next[vIdx].comprimento_m;
                                                   next[vIdx] = {
                                                     ...next[vIdx],
                                                     qtde,
@@ -2009,15 +2019,23 @@ export function ComprasOrdemDetailPage() {
                                                 onChange={(e) => {
                                                   const next = [...volumeForms[item.id]];
                                                   const largura = e.target.value;
-                                                  const derived = comprimentoFromAreaLargura(
-                                                    next[vIdx].qtde,
-                                                    largura,
-                                                  );
+                                                  const un = item.produto?.unidade_interna;
+                                                  const derived =
+                                                    normUnidadeVolume(un) === 'M'
+                                                      ? next[vIdx].comprimento_m
+                                                      : sugerirComprimentoVolume({
+                                                          qtde: next[vIdx].qtde,
+                                                          larguraMm: largura,
+                                                          comprimentoM:
+                                                            normUnidadeVolume(un) === 'M2'
+                                                              ? ''
+                                                              : next[vIdx].comprimento_m,
+                                                          unidadeInterna: un,
+                                                        });
                                                   next[vIdx] = {
                                                     ...next[vIdx],
                                                     largura_mm: largura,
-                                                    comprimento_m:
-                                                      derived || next[vIdx].comprimento_m,
+                                                    comprimento_m: derived || next[vIdx].comprimento_m,
                                                   };
                                                   setVolumeForms({
                                                     ...volumeForms,
@@ -2032,9 +2050,12 @@ export function ComprasOrdemDetailPage() {
                                                 value={vol.comprimento_m}
                                                 onChange={(e) => {
                                                   const next = [...volumeForms[item.id]];
+                                                  const comprimento = e.target.value;
+                                                  const un = normUnidadeVolume(item.produto?.unidade_interna);
                                                   next[vIdx] = {
                                                     ...next[vIdx],
-                                                    comprimento_m: e.target.value,
+                                                    comprimento_m: comprimento,
+                                                    qtde: un === 'M' && comprimento.trim() ? comprimento : next[vIdx].qtde,
                                                   };
                                                   setVolumeForms({
                                                     ...volumeForms,

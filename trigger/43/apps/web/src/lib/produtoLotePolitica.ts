@@ -16,7 +16,7 @@ export function politicaLotePorGrupo(grupo: string | null | undefined): ProdutoL
   if (g === 'MP-CLD') {
     return { controla_lote: true, controla_validade: true, prazo_validade_dias: 730 };
   }
-  if (g === 'MP-TEC') {
+  if (g === 'MP-TEC' || g === 'MP-RET') {
     return { controla_lote: true, controla_validade: false, prazo_validade_dias: null };
   }
   return { controla_lote: false, controla_validade: false, prazo_validade_dias: null };

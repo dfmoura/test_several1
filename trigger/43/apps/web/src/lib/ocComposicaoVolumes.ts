@@ -25,7 +25,11 @@ export function ocFaixaCompleta(f: OcFaixaForm): boolean {
   );
 }
 
-/** Σ área → qtde comercial (M2 ou KG via fator). Vazio se não houver faixas válidas. */
+/**
+ * Σ das faixas → qtde comercial.
+ * M = metros (n × comprimento). RL (estoque ≠ M2) = contagem de rolos.
+ * M2 / KG = área, com fator quando a nota não fala m².
+ */
 export function qtdeComercialFromFaixas(
   faixas: OcFaixaForm[],
   ctx: Pick<
@@ -34,13 +38,47 @@ export function qtdeComercialFromFaixas(
   > = {},
 ): string {
   if (faixas.length === 0) return '';
+  const com = normUnidade(ctx.unidade_comercial);
+  const int = normUnidade(ctx.unidade_interna);
+  const validas = faixas.filter(ocFaixaCompleta);
+  if (validas.length === 0) return '';
+
+  if (com === 'M' || (com === '' && int === 'M')) {
+    const metros = validas.reduce(
+      (s, f) => s + parseFaixaNum(f.quantidade) * parseFaixaNum(f.comprimento_m),
+      0,
+    );
+    return metros > 0 ? clampDecimalScale(metros, DECIMAL_SCALE.qty) : '';
+  }
+
+  if (com === 'RL' && int !== 'M2') {
+    const rolos = validas.reduce((s, f) => s + parseFaixaNum(f.quantidade), 0);
+    return rolos > 0 ? clampDecimalScale(rolos, DECIMAL_SCALE.qty) : '';
+  }
+
   let sum = 0;
-  for (const f of faixas) {
+  for (const f of validas) {
     const area = areaM2FromFaixaOc(f.largura_mm, f.quantidade, f.comprimento_m);
     if (area) sum += Number(area);
   }
   if (!(sum > 0)) return '';
   return qtdeComercialFromAreaM2(sum, ctx);
+}
+
+/** Qtde de um volume na unidade comercial. null = usar a área (M2). */
+export function qtdeDeUmVolume(
+  comprimentoM: string,
+  ctx: Pick<OcComposicaoVolumesCtx, 'unidade_comercial' | 'unidade_interna'> = {},
+): string | null {
+  const com = normUnidade(ctx.unidade_comercial);
+  const int = normUnidade(ctx.unidade_interna);
+  if (com === 'M' || (com === '' && int === 'M')) {
+    return clampDecimalScale(comprimentoM, DECIMAL_SCALE.qty);
+  }
+  if (com === 'RL' && int !== 'M2') {
+    return clampDecimalScale(1, DECIMAL_SCALE.qty);
+  }
+  return null;
 }
 
 export type VolumeSugestaoOc = {
@@ -133,7 +171,7 @@ export function codigoLoteInternoOc(
  * Expande faixas do pedido OC → volumes sugeridos (1 bobina inteira = 1 volume).
  * Espelha App\Support\OcComposicaoVolumes — XML/rastro prevalece; isto é fallback.
  * nLote vazio → INT-{OC}-I{ordem}-{LxC}-{seq} (interno, não aleatório).
- * qtde = unidade comercial (converte m² quando SKU ≠ M2).
+ * qtde = unidade comercial (metros se o saldo é M; 1 rolo se a nota é RL; m² no restante).
  */
 export function volumesFromOcComposicao(
   composicao: OrdemCompraItemComposicao[] | undefined | null,
@@ -171,7 +209,7 @@ export function volumesFromOcComposicao(
             comprimento,
             seq,
           ),
-          qtde: qtdeComercialFromAreaM2(areaUnitNum, ctx),
+          qtde: qtdeDeUmVolume(comprimento, ctx) ?? qtdeComercialFromAreaM2(areaUnitNum, ctx),
           data_entrada: dataEntrada,
           data_validade: '',
           data_fabricacao: '',
@@ -189,7 +227,9 @@ export function volumesFromOcComposicao(
           comprimento,
           seq,
         ),
-        qtde: qtdeComercialFromAreaM2(Number(areaFaixa), ctx),
+        qtde:
+          qtdeDeUmVolume(comprimento, ctx) ??
+          qtdeComercialFromAreaM2(Number(areaFaixa), ctx),
         data_entrada: dataEntrada,
         data_validade: '',
         data_fabricacao: '',

@@ -414,6 +414,18 @@ export function EstoqueAjustesPage() {
       prev.map((v, i) => {
         if (i !== idx) return v;
         const row = { ...v, ...patch };
+        if (unidadeInternaNorm === 'M') {
+          if (patch.qtde !== undefined && String(patch.qtde).trim()) {
+            row.comprimento_m = patch.qtde;
+          }
+          if (
+            patch.comprimento_m !== undefined &&
+            String(patch.comprimento_m).trim() &&
+            patch.qtde === undefined
+          ) {
+            row.qtde = patch.comprimento_m;
+          }
+        }
         const mudouDim =
           patch.largura_mm !== undefined || patch.comprimento_m !== undefined;
         if (
@@ -874,11 +886,13 @@ export function EstoqueAjustesPage() {
                         </strong>
                         <span className="muted">
                           Um por bobina · soma = diferença positiva
-                          {mostraLxC && lxCPreencheQtde
-                            ? ' · L×C preenche a qtde do volume'
-                            : mostraLxC
-                              ? ' · informe a qtde do volume (L×C é dimensão)'
-                              : ''}
+                          {unidadeInternaNorm === 'M'
+                            ? ' · a quantidade em metros é o comprimento do rolo'
+                            : mostraLxC && lxCPreencheQtde
+                              ? ' · L×C preenche a qtde do volume'
+                              : mostraLxC
+                                ? ' · informe a qtde do volume (L×C é dimensão)'
+                                : ''}
                         </span>
                       </div>
                       <div className="oc-volumes-scroll">

@@ -115,6 +115,10 @@ class EstoqueLoteTest extends TestCase
         $tub = ProdutoLotePolitica::paraGrupo('EMB-TUB');
         $this->assertFalse($tub['controla_lote']);
         $this->assertFalse($tub['controla_validade']);
+
+        $ret = ProdutoLotePolitica::paraGrupo('MP-RET');
+        $this->assertTrue($ret['controla_lote']);
+        $this->assertFalse($ret['controla_validade']);
     }
 
     public function test_sku_sem_lote_recebe_sem_exigir_codigo(): void

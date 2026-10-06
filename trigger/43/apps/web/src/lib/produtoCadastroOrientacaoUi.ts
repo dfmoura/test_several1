@@ -103,6 +103,20 @@ export function decideCadastroOrientacao(input: {
     };
   }
 
+  if (grupo === 'MP-TEC' || grupo === 'MP-CLD' || grupo === 'MP-ADF') {
+    return {
+      lead: 'Cada rolo é um volume inteiro. A largura identifica o material no SKU; o metro real fica no volume. Saldo em metros. m² e kg são leitura — kg só com gramatura.',
+      preferM2Igual: false,
+    };
+  }
+
+  if (grupo === 'MP-RET') {
+    return {
+      lead: 'Sobra com origem conhecida continua volume do material de origem. MP-RET é sobra sem origem rastreável: um SKU por material, medida real no volume, saldo em m².',
+      preferM2Igual: false,
+    };
+  }
+
   if (familia === 'MUC') {
     return {
       lead: 'Uso e consumo: limpeza, escritório, EPI e afins. Compra vira despesa (não matéria-prima). Vincule o cProd do fornecedor no de-para. Sem bobina nem OP.',

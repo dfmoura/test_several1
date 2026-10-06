@@ -13,9 +13,8 @@ use App\Models\EstoqueSaldo;
 use App\Models\Produto;
 use App\Models\User;
 use App\Services\Codigo\CodigoGenerator;
-use App\Support\NfeExactDimensoes;
-use App\Support\OcPedidoDetalhe;
 use App\Support\PadraoDecimal;
+use App\Support\VolumeGeometria;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -938,9 +937,6 @@ class EstoqueAjusteService
         string $origem,
         string $qtdeAbs
     ): array {
-        $usaArea = strtoupper((string) ($produto->unidade_interna ?? 'UN')) === 'M2'
-            || OcPedidoDetalhe::permiteParaProduto($produto);
-
         $origemTipo = ($motivo === 'A03' || $origem === EstoqueAjuste::ORIGEM_VIRADA)
             ? EstoqueLote::ORIGEM_VIRADA
             : EstoqueLote::ORIGEM_AJUSTE;
@@ -972,19 +968,21 @@ class EstoqueAjusteService
                 ? PadraoDecimal::roundHalfUp((string) $qtdeRaw, PadraoDecimal::SCALE_QTY)
                 : null;
 
-            if ($usaArea && $largura !== null && $comprimento !== null
-                && bccomp($largura, '0', PadraoDecimal::SCALE_DIM) > 0
-                && bccomp($comprimento, '0', PadraoDecimal::SCALE_DIM) > 0) {
-                $area = NfeExactDimensoes::areaM2($largura, $comprimento);
-                if ($qtde === null) {
-                    $qtde = $area;
-                } elseif (bccomp($qtde, $area, PadraoDecimal::SCALE_QTY) !== 0) {
-                    throw ValidationException::withMessages([
-                        "lote_payload.{$idx}.qtde" => [
-                            "Quantidade ({$qtde}) deve igualar a área L×C ({$area} M2).",
-                        ],
-                    ]);
-                }
+            $geo = VolumeGeometria::fechar(
+                $largura,
+                $comprimento,
+                $qtde,
+                (string) ($produto->unidade_interna ?? ''),
+            );
+            if ($geo['status'] === VolumeGeometria::STATUS_CONTRADITORIO) {
+                throw ValidationException::withMessages([
+                    "lote_payload.{$idx}.qtde" => [$geo['mensagem'] ?? 'Largura, comprimento e quantidade do volume não fecham.'],
+                ]);
+            }
+            $largura = $geo['largura_mm'];
+            $comprimento = $geo['comprimento_m'];
+            if ($qtde === null && $geo['qtde'] !== null) {
+                $qtde = $geo['qtde'];
             }
 
             if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
