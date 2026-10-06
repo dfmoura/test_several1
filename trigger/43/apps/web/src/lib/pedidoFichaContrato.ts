@@ -299,3 +299,11 @@ export function linhaSimplesDoItem(pedido: Pedido, item: PedidoItem): PedidoFich
 export function somaValores(itens: PedidoItem[]): number {
   return itens.reduce((acc, it) => acc + (Number(it.valor_total) || 0), 0);
 }
+
+/** Comissão já embutida no preço da faixa. Revenda fica fora. Não soma no total. */
+export function comissaoInclusaDoItem(pedido: Pedido, item: PedidoItem): number {
+  if (item.necessidade === 'REVENDA') return 0;
+  const n = Number(faixaDoItem(pedido, item)?.comissao);
+  if (!Number.isFinite(n) || n <= 0.004) return 0;
+  return money2(n);
+}

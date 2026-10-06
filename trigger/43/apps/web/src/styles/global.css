@@ -10032,10 +10032,38 @@ tr.row-inactive td {
   padding-bottom: 0.2mm;
 }
 
-.ficha-sheet-ped .ped-ficha-total-pedido {
-  margin: 2mm 0 0;
-  text-align: right;
+.ficha-sheet-ped .ped-ficha-fechamento {
+  width: 78mm;
+  max-width: 100%;
+  margin: 2.8mm 0 0 auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ficha-sheet-ped .ped-ficha-fechamento p {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3mm;
+  margin: 0;
+  padding: 0.7mm 0;
+  border-bottom: 0.35pt solid var(--border);
   font-size: 8pt;
+}
+
+.ficha-sheet-ped .ped-ficha-fechamento-nota {
+  margin-left: 1.2mm;
+  font-size: 6.25pt;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-muted, #5a6570);
+}
+
+.ficha-sheet-ped .ped-ficha-fechamento .ped-ficha-total-pedido {
+  margin: 0;
+  padding-top: 1.2mm;
+  border-bottom: 0;
+  font-weight: 700;
 }
 
 .ped-ficha-item-head {

@@ -12,6 +12,7 @@ import { formatoLabel } from './FacaShapeIcon';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
   formatEnderecoParceiro,
+  freteFechamentoDoPedido,
   freteTextoDoPedido,
 } from '../lib/pedidoConfirmacao';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
@@ -20,6 +21,7 @@ import {
   linhaSimplesDoItem,
   linhasEtiquetaDoItem,
   valorMatrizCobradoDoItem,
+  comissaoInclusaDoItem,
   particionarItensPedido,
   somaValores,
 } from '../lib/pedidoFichaContrato';
@@ -324,55 +326,88 @@ function PedidoTabelaSimples({
   );
 }
 
+function PedidoFechamento({ pedido }: { pedido: Pedido }) {
+  const grupos = particionarItensPedido(pedido.itens ?? []);
+  const totalEtiquetas = somaValores(grupos.etiquetas);
+  const totalRevenda = somaValores(grupos.revendas);
+  const vendaMista = grupos.etiquetas.length > 0 && grupos.revendas.length > 0;
+  const mostraComissao = grupos.etiquetas.length > 0 || grupos.servicos.length > 0;
+  const comissao = [...grupos.etiquetas, ...grupos.servicos].reduce(
+    (acc, item) => acc + comissaoInclusaDoItem(pedido, item),
+    0,
+  );
+  const frete = freteFechamentoDoPedido(pedido);
+  const totalPedido = somaValores(pedido.itens ?? []);
+
+  return (
+    <div className="ped-ficha-fechamento">
+      {vendaMista ? (
+        <p>
+          <span>Subtotal da venda</span>
+          <strong>{formatCurrency(totalEtiquetas + totalRevenda)}</strong>
+        </p>
+      ) : null}
+      <p>
+        <span>
+          Frete <span className="ped-ficha-fechamento-nota">{frete.nota}</span>
+        </span>
+        <strong>{frete.valorTexto}</strong>
+      </p>
+      {mostraComissao ? (
+        <p>
+          <span>
+            Comissão <span className="ped-ficha-fechamento-nota">já inclusa</span>
+          </span>
+          <strong>{formatCurrency(comissao)}</strong>
+        </p>
+      ) : null}
+      <p className="ped-ficha-total-pedido">
+        <span>Total do pedido</span>
+        <strong>{formatCurrency(totalPedido)}</strong>
+      </p>
+    </div>
+  );
+}
+
 function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
   const grupos = particionarItensPedido(pedido.itens ?? []);
-  const nGrupos =
-    (grupos.etiquetas.length > 0 ? 1 : 0) +
-    (grupos.revendas.length > 0 ? 1 : 0) +
-    (grupos.servicos.length > 0 ? 1 : 0);
-  const misto = nGrupos > 1;
-  const totalPedido = somaValores(pedido.itens ?? []);
 
   return (
     <div className="ped-ficha-contrato-blocos">
       {grupos.etiquetas.length > 0 ? (
-        <FichaSection title="Etiquetas">
+        <FichaSection title="Etiqueta sob medida">
           <PedidoTabelaEtiquetas
             pedido={pedido}
             itens={grupos.etiquetas}
-            rodape={misto ? 'Total etiquetas' : 'Total do pedido'}
+            rodape="Total etiquetas"
           />
         </FichaSection>
       ) : null}
       {grupos.revendas.length > 0 ? (
-        <FichaSection title="Revenda">
+        <FichaSection title="Produto de revenda">
           <PedidoTabelaSimples
             pedido={pedido}
             itens={grupos.revendas}
             sku
             descricaoLabel="Descrição"
             valorLabel="Subtotal"
-            rodape={misto ? 'Total revenda' : 'Total do pedido'}
+            rodape="Total revenda"
           />
         </FichaSection>
       ) : null}
       {grupos.servicos.length > 0 ? (
-        <FichaSection title="Serviços">
+        <FichaSection title="Prestação de serviço">
           <PedidoTabelaSimples
             pedido={pedido}
             itens={grupos.servicos}
             sku={false}
             descricaoLabel="Descrição"
             valorLabel="Total"
-            rodape={misto ? 'Total serviços' : 'Total do pedido'}
+            rodape="Total serviços"
           />
         </FichaSection>
       ) : null}
-      {misto ? (
-        <p className="ped-ficha-total-pedido">
-          Total do pedido <strong>{formatCurrency(totalPedido)}</strong>
-        </p>
-      ) : null}
+      <PedidoFechamento pedido={pedido} />
     </div>
   );
 }
