@@ -361,6 +361,12 @@ function PedidoFechamento({ pedido }: { pedido: Pedido }) {
           <strong>{formatCurrency(comissao)}</strong>
         </p>
       ) : null}
+      <p>
+        <span>
+          Desconto <span className="ped-ficha-fechamento-nota">não aplicado</span>
+        </span>
+        <strong>{formatCurrency(0)}</strong>
+      </p>
       <p className="ped-ficha-total-pedido">
         <span>Total do pedido</span>
         <strong>{formatCurrency(totalPedido)}</strong>
