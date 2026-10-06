@@ -1109,10 +1109,8 @@ export function OrcamentoFormPage() {
                     </button>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>
-                    Desconto (R$) <span className="field-note">no documento</span>
-                  </label>
+                <div className="form-group span-full">
+                  <label>Desconto do documento (R$)</label>
                   <NumericInput
                     min={0}
                     step="0.01"
@@ -1120,6 +1118,10 @@ export function OrcamentoFormPage() {
                     onCommit={(v) => setField('valor_desconto', v === '' ? 0 : Math.max(0, v))}
                     disabled={!canWrite}
                   />
+                  <span className="field-note">
+                    Vale para o orçamento inteiro. Reduz o total dos itens. Não entra no preço da
+                    etiqueta, na matriz, na faca, na arte nem no frete.
+                  </span>
                 </div>
                 {modoComFrete(form.modo_entrega) ? (
                   <div className="form-group">
@@ -2058,6 +2060,7 @@ export function OrcamentoFormPage() {
         <div style={{ marginTop: '1rem' }}>
           <OrcamentoResultado
             calculo={calculo}
+            valorDesconto={form.valor_desconto}
             modoServico={modoPrecoComercial}
             prazoEntregaDias={form.prazo_entrega_dias}
             validadeDias={form.validade_dias}

@@ -6,6 +6,7 @@ import { ModeloTintasPorModelo } from './ModeloTintasTags';
 import { SaidaEtiquetaBadge } from './SaidaEtiquetaBadge';
 import { tintasDeComposicao } from '../lib/modeloTintas';
 import { formatCurrency, formatDecimalBr } from '../lib/format';
+import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import {
   faixaDoItem,
   isPropostaMultiItem,
@@ -240,6 +241,8 @@ type FaixasProps = {
   title?: string | null;
   hint?: string | null;
   asCard?: boolean;
+  /** Cabeçalho do documento. A coluna Total da faixa permanece o preço do item. */
+  valorDesconto?: number;
   /** Isola o rádio quando há N tabelas na mesma página. */
   radioName?: string;
 };
@@ -516,6 +519,7 @@ export function OrcPubFaixasBloco({
   hint = null,
   asCard = true,
   radioName = 'faixa',
+  valorDesconto = 0,
 }: FaixasProps) {
   const defaultHint = somenteExibicao
     ? null
@@ -544,12 +548,22 @@ export function OrcPubFaixasBloco({
         {matrizNota ? ` — ${matrizNota}` : ''}
       </p>
     ) : null;
+  const faixaSel = faixas.find((fx) => fx.index === faixaIndex) ?? faixas[0];
+  const fechaFaixa = descontoAplicadoNoTotal(valorDesconto, Number(faixaSel?.valor_total) || 0);
+  const notaDesconto =
+    fechaFaixa.desconto > 0 ? (
+      <p className="orc-pub-note">
+        Desconto no documento {formatCurrency(fechaFaixa.desconto)} · Total do documento{' '}
+        {formatCurrency(fechaFaixa.total)}
+      </p>
+    ) : null;
 
   if (!asCard) {
     return (
       <div className="orc-pub-faixas-embed">
         {title ? <h3 className="orc-pub-item-sub">{title}</h3> : null}
         {tabela}
+        {notaDesconto}
       </div>
     );
   }
@@ -561,6 +575,7 @@ export function OrcPubFaixasBloco({
         <p className="orc-pub-hint">{hint ?? defaultHint}</p>
       ) : null}
       {tabela}
+      {notaDesconto}
       {notaMatriz}
     </section>
   );
@@ -686,8 +701,9 @@ export function OrcPubItensAcordeao({
     : proposta.valor_total_documento_primeira_faixa != null
       ? Number(proposta.valor_total_documento_primeira_faixa)
       : itens.reduce((acc, it) => acc + totalPrimeiraFaixaItem(it), 0);
-  const desconto = Math.min(Math.max(0, Number(proposta.valor_desconto) || 0), Math.max(0, bruto));
-  const totalDoc = bruto - desconto;
+  const fechamento = descontoAplicadoNoTotal(proposta.valor_desconto, bruto);
+  const desconto = fechamento.desconto;
+  const totalDoc = fechamento.total;
 
   return (
     <section className="orc-pub-card orc-pub-itens-doc">

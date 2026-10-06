@@ -110,7 +110,7 @@ export function PedidoItensContrato({
               <tfoot>
                 <tr>
                   <td colSpan={6} className="num">
-                    Total do pedido
+                    Total dos itens
                   </td>
                   <td className="num">
                     <strong>{formatCurrency(totalPedido)}</strong>

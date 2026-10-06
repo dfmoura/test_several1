@@ -19,8 +19,10 @@ import {
   condicaoPagamentoDoPedido,
   formaPagamentoDoPedido,
   formatEnderecoParceiro,
+  descontoDoPedido,
   freteTextoDoPedido,
 } from '../lib/pedidoConfirmacao';
+import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import { nfStatusLabel } from '../lib/fiscalUi';
 import { hrefFaturamento } from '../lib/cobrancaUi';
@@ -197,10 +199,16 @@ export function PedidoDetailPage() {
   const forma = pedido ? formaPagamentoDoPedido(pedido) : null;
   const condicaoTexto =
     condicao || forma ? [condicao, forma].filter(Boolean).join(' · ') : null;
-  const totalPedido = (pedido?.itens ?? []).reduce(
+  const somaItens = (pedido?.itens ?? []).reduce(
     (acc, it) => acc + (Number(it.valor_total) || 0),
     0,
   );
+  const fechamentoPedido = descontoAplicadoNoTotal(
+    pedido ? descontoDoPedido(pedido) : 0,
+    somaItens,
+  );
+  const descontoAplicado = fechamentoPedido.desconto;
+  const totalPedido = fechamentoPedido.total;
 
   return (
     <>
@@ -325,6 +333,10 @@ export function PedidoDetailPage() {
                     </strong>
                   </div>
                 ) : null}
+                <div>
+                  <span>Desconto do documento</span>
+                  <strong>{formatCurrency(descontoAplicado)}</strong>
+                </div>
                 <div className="ped-detail-total">
                   <span>Total do pedido</span>
                   <strong>{formatCurrency(totalPedido)}</strong>

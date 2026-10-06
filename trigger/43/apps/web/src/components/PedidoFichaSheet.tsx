@@ -9,6 +9,7 @@ import type { Pedido, PedidoItem } from '../lib/api';
 import { BRAND } from '../lib/brand';
 import { formatCurrency, formatDecimalBr, formatUnitPrice } from '../lib/format';
 import { formatoLabel } from './FacaShapeIcon';
+import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import { descricaoFromPedidoSpec } from '../lib/orcamentoPropostaItens';
 import {
   descontoDoPedido,
@@ -339,8 +340,9 @@ function PedidoFechamento({ pedido }: { pedido: Pedido }) {
   );
   const frete = freteFechamentoDoPedido(pedido);
   const somaItens = somaValores(pedido.itens ?? []);
-  const desconto = Math.min(descontoDoPedido(pedido), Math.max(0, somaItens));
-  const totalPedido = somaItens - desconto;
+  const fechamento = descontoAplicadoNoTotal(descontoDoPedido(pedido), somaItens);
+  const desconto = fechamento.desconto;
+  const totalPedido = fechamento.total;
 
   return (
     <div className="ped-ficha-fechamento">

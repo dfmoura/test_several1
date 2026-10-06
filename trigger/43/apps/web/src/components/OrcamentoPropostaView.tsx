@@ -191,6 +191,7 @@ export function OrcamentoPropostaView({
             cobraMatriz={Boolean(proposta.cobra_matriz) && !somenteRevenda}
             valorMatriz={proposta.valor_matriz ?? 0}
             matrizNota={proposta.matriz_nota}
+            valorDesconto={proposta.valor_desconto}
           />
         ) : null}
 

@@ -12,6 +12,7 @@ import {
 import { BRAND } from '../lib/brand';
 import { contarDecisoesModelos, type AcaoModeloCliente } from '../lib/modeloDecisao';
 import { formatCurrency } from '../lib/format';
+import { descontoAplicadoNoTotal } from '../lib/orcamentoForm';
 import {
   defaultFaixasItens,
   faixaDoItem,
@@ -509,6 +510,13 @@ export function OrcamentoPublicoPage() {
     );
   }
 
+  const aceiteDoc = isPropostaMultiItem(proposta)
+    ? descontoAplicadoNoTotal(
+        proposta.valor_desconto,
+        totalDocumentoSelecionado(proposta, faixasItens),
+      )
+    : null;
+
   return (
     <OrcamentoPropostaView
       proposta={proposta}
@@ -545,9 +553,15 @@ export function OrcamentoPublicoPage() {
                       </li>
                     );
                   })}
+                  {aceiteDoc && aceiteDoc.desconto > 0 ? (
+                    <li>
+                      <span>Desconto no documento</span>
+                      <span>{formatCurrency(aceiteDoc.desconto)}</span>
+                    </li>
+                  ) : null}
                   <li className="orc-pub-aceite-resumo-total">
                     <span>Total do orçamento</span>
-                    <span>{formatCurrency(totalDocumentoSelecionado(proposta, faixasItens))}</span>
+                    <span>{formatCurrency(aceiteDoc?.total ?? 0)}</span>
                   </li>
                 </ul>
               </div>

@@ -216,6 +216,28 @@ export type OrcForm = {
   overrides: OrcOverrides;
 };
 
+/** Valor gravado no cabeçalho. Ausente ou inválido = zero. */
+export function valorDescontoInformado(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0.004) return 0;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/** Desconto limitado à soma dos itens. O total do documento é a base menos esse valor. */
+export function descontoAplicadoNoTotal(
+  informado: unknown,
+  base: number,
+): { desconto: number; total: number } {
+  const teto = Number.isFinite(base) && base > 0
+    ? Math.round((base + Number.EPSILON) * 100) / 100
+    : 0;
+  const desconto = Math.min(valorDescontoInformado(informado), teto);
+  return {
+    desconto,
+    total: Math.round((teto - desconto + Number.EPSILON) * 100) / 100,
+  };
+}
+
 export function isRevendaItem(form: Pick<OrcForm, 'necessidade' | 'tipo_operacao'>): boolean {
   return form.tipo_operacao !== TIPO_SERVICO && form.necessidade === 'REVENDA';
 }

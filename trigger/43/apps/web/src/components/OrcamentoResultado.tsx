@@ -26,7 +26,7 @@ import {
 import { useTableSort } from '../lib/useTableSort';
 import { ModelosComposicaoTable } from './ModelosComposicaoTable';
 import { modeloArteCaptionFromMedida } from './ModeloArteOverlay';
-import { facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
+import { descontoAplicadoNoTotal, facasFromSnapshot, labelFerramentalAddOn, somaValorFacas } from '../lib/orcamentoForm';
 import {
   buildItensResultadoUi,
   isOrcMultiItem,
@@ -84,6 +84,8 @@ type Props = {
    * Geometria da faca fica na seção Faca (edição e orçamento salvo) — não na aba comercial.
    */
   echoEspecificacao?: boolean;
+  /** Desconto do documento (cabeçalho). Não altera as linhas do motor. */
+  valorDesconto?: number;
   /** Prestação de serviço: sem breakdown de papel/faca e sem guia de produção. */
   modoServico?: boolean;
   /**
@@ -1167,6 +1169,7 @@ export function OrcamentoResultado({
   modelosComposicaoQuantidades,
   guiaEspec,
   echoEspecificacao = true,
+  valorDesconto = 0,
   modoServico = false,
   parametrosAjuste = null,
   onAplicarParametros,
@@ -1178,6 +1181,10 @@ export function OrcamentoResultado({
   const [aba, setAba] = useState<AbaResultado>('comercial');
   const [faixaDetalhe, setFaixaDetalhe] = useState(0);
   const multi = !servico && isOrcMultiItem(calculo);
+  const fechamentoDoc = descontoAplicadoNoTotal(
+    valorDesconto,
+    Number(calculo.totais?.soma_primeira_faixa_proposta) || 0,
+  );
 
   const itensUi = useMemo(() => {
     if (!multi) {
@@ -1396,11 +1403,14 @@ export function OrcamentoResultado({
                 </h4>
                 <p className="orc-result-meta" style={{ margin: '0.25rem 0 0.75rem' }}>
                   <strong style={{ fontSize: '1.2rem' }}>
-                    {formatCurrency(calculo.totais.soma_primeira_faixa_proposta)}
+                    {formatCurrency(fechamentoDoc.total)}
                   </strong>
                   <span className="field-note">
                     {' '}
                     · {calculo.totais.n_itens} itens · 1ª quantidade de cada item
+                    {fechamentoDoc.desconto > 0
+                      ? ` · desconto ${formatCurrency(fechamentoDoc.desconto)}`
+                      : ''}
                   </span>
                 </p>
                 <div className="table-wrap">

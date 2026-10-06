@@ -11,8 +11,10 @@ import { formatCurrency, formatDecimalBr } from '../lib/format';
 import { prazoEntregaCompleto } from '../lib/prazoEntrega';
 import {
   calculoComItensDoOrcamento,
+  descontoAplicadoNoTotal,
   displaySnap,
   facasFromSnapshot,
+  valorDescontoInformado,
   isRevendaSnap,
   labelFerramentalAddOn,
   somaValorFacas,
@@ -647,6 +649,10 @@ export function OrcamentoFichaSheet({
   const itens = itensFichaOrc(orc);
   const multi = itens.length > 1;
   const somenteRevenda = itens.length > 0 && itens.every((it) => isRevendaSnap(it.input));
+  const fechamentoOrc = descontoAplicadoNoTotal(
+    inputDoc.valor_desconto,
+    Number(resultDoc?.totais?.soma_primeira_faixa_proposta) || 0,
+  );
   const item0 = itens[0];
   const codigoRevenda = String(item0?.input.produto_codigo ?? '').trim();
   const facasChip = facasFromSnapshot(item0?.input ?? inputDoc);
@@ -764,6 +770,7 @@ export function OrcamentoFichaSheet({
               .join(' · ') || '—'
           }
         />
+        <Kv label="Desconto" value={money(valorDescontoInformado(inputDoc.valor_desconto))} />
         <Kv label="Contato" value={contatoClienteTexto(orc.contato_cliente)} destaque />
         <Kv
           label="Vendedor"
@@ -811,6 +818,11 @@ export function OrcamentoFichaSheet({
                 );
               })}
               <tr>
+                <td>Desconto</td>
+                {somenteRevenda ? null : <td className="ficha-td-num" colSpan={2} />}
+                <td className="ficha-td-num">{money(fechamentoOrc.desconto)}</td>
+              </tr>
+              <tr>
                 <td>
                   <strong>Documento</strong>
                 </td>
@@ -820,7 +832,7 @@ export function OrcamentoFichaSheet({
                   </td>
                 )}
                 <td className="ficha-td-num">
-                  <strong>{money(resultDoc.totais.soma_primeira_faixa_proposta)}</strong>
+                  <strong>{money(fechamentoOrc.total)}</strong>
                 </td>
               </tr>
             </tbody>

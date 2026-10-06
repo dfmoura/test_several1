@@ -10,6 +10,7 @@ import { FacasComposicaoEditor } from '../components/FacasComposicaoEditor';
 import {
   calculoComItensDoOrcamento,
   facasFromSnapshot,
+  valorDescontoInformado,
 } from '../lib/orcamentoForm';
 import { buildItensResultadoUi, rotuloItemOrc } from '../lib/orcamentoResultadoItens';
 import { OrcamentoResultado } from '../components/OrcamentoResultado';
@@ -767,6 +768,12 @@ export function OrcamentoDetailPage() {
                 <strong>{condicoesComerciaisSnap}</strong>
               </div>
             ) : null}
+            <div>
+              <span>Desconto do documento</span>
+              <strong>
+                {formatCurrency(valorDescontoInformado(input.valor_desconto))}
+              </strong>
+            </div>
             {orc.link_aprovacao?.destino_nome ? (
               <div>
                 <span>Destinatário do link</span>
@@ -984,6 +991,7 @@ export function OrcamentoDetailPage() {
       {calculoDetalhe ? (
         <OrcamentoResultado
           calculo={calculoDetalhe}
+          valorDesconto={valorDescontoInformado(input.valor_desconto)}
           modoServico={isServico || isRevendaDoc}
           echoEspecificacao={false}
           itensUi={itensUiDetalhe}
