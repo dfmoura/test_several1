@@ -37,7 +37,7 @@ import { tipoServicoLabel } from '../lib/operacoesSaida';
 
 /**
  * Ficha do pedido — contrato interno A4 retrato.
- * Etiquetas: faixa de spec do item + uma linha por modelo.
+ * Etiquetas: spec em formulário (rótulo sobre o valor) + tabela por modelo.
  * Revenda e serviços em blocos próprios.
  * Valores travados. Sem custo/gordura. Sem readequação.
  * Ficha da OP e ficha-cliente não usam este recorte.
@@ -90,33 +90,6 @@ function fmtRolos(value: number | null | undefined): string {
   return formatDecimalBr(value, scale, { stripTrailingZeros: true });
 }
 
-function EtqFacaCols() {
-  return (
-    <colgroup>
-      <col className="ped-ficha-etq-c-n" />
-      <col className="ped-ficha-etq-c-qtd" />
-      <col className="ped-ficha-etq-c-med" />
-      <col className="ped-ficha-etq-c-nfaca" />
-      <col className="ped-ficha-etq-c-faca" />
-      <col className="ped-ficha-etq-c-larg" />
-      <col className="ped-ficha-etq-c-pux" />
-    </colgroup>
-  );
-}
-
-function EtqProcCols() {
-  return (
-    <colgroup>
-      <col className="ped-ficha-etq-c-mat" />
-      <col className="ped-ficha-etq-c-acab" />
-      <col className="ped-ficha-etq-c-tub" />
-      <col className="ped-ficha-etq-c-cores" />
-      <col className="ped-ficha-etq-c-saida" />
-      <col className="ped-ficha-etq-c-maq" />
-    </colgroup>
-  );
-}
-
 function EtqDetalheCols() {
   return (
     <colgroup>
@@ -165,54 +138,27 @@ function PedidoTabelaEtiquetas({
         if (!spec) return null;
         return (
           <div key={item.id} className="ped-ficha-contrato-grupo ped-ficha-etq-item">
-            <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-spec">
-              <EtqFacaCols />
-              <thead>
-                <tr>
-                  <th className="ped-ficha-col-n">#</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Qtd</th>
-                  <th>Medida</th>
-                  <th>Nº faca</th>
-                  <th>Faca</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Largura</th>
-                  <th className="ficha-td-num ped-ficha-th-val">Puxada</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="ped-ficha-col-n">{String(spec.ordem).padStart(2, '0')}</td>
-                  <td className="ficha-td-num">{fmtQtdInt(qtdeFaixaDoItem(pedido, item))}</td>
-                  <td>{dashCell(spec.medida)}</td>
-                  <td>{dashCell(spec.nFaca)}</td>
-                  <td>{dashCell(spec.faca)}</td>
-                  <td className="ficha-td-num">{fmtCm(spec.larguraCm)}</td>
-                  <td className="ficha-td-num">{fmtCm(spec.puxadaCm, 4)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-spec ped-ficha-etq-spec-proc">
-              <EtqProcCols />
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Acab.</th>
-                  <th>Tub.</th>
-                  <th>Cores</th>
-                  <th>Saída</th>
-                  <th>Máq.</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{dashCell(spec.material)}</td>
-                  <td>{dashCell(spec.acabamento)}</td>
-                  <td>{dashCell(spec.tubete)}</td>
-                  <td>{dashCell(spec.cores)}</td>
-                  <td>{dashCell(spec.saida)}</td>
-                  <td>{dashCell(spec.maquina)}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="ped-ficha-etq-form">
+              <div className="ped-ficha-etq-form-index">
+                {String(spec.ordem).padStart(2, '0')}
+              </div>
+              <div className="ped-ficha-etq-form-row ped-ficha-etq-form-row--faca">
+                <FichaKv label="Qtd" value={<span className="ped-ficha-etq-num">{fmtQtdInt(qtdeFaixaDoItem(pedido, item))}</span>} />
+                <FichaKv label="Medida" value={dashCell(spec.medida)} />
+                <FichaKv label="Nº faca" value={<span className="ped-ficha-etq-num">{dashCell(spec.nFaca)}</span>} />
+                <FichaKv label="Faca" value={dashCell(spec.faca)} />
+                <FichaKv label="Largura" value={<span className="ped-ficha-etq-num">{fmtCm(spec.larguraCm)}</span>} />
+                <FichaKv label="Puxada" value={<span className="ped-ficha-etq-num">{fmtCm(spec.puxadaCm, 4)}</span>} />
+              </div>
+              <div className="ped-ficha-etq-form-row ped-ficha-etq-form-row--proc">
+                <FichaKv label="Material" value={dashCell(spec.material)} />
+                <FichaKv label="Acab." value={dashCell(spec.acabamento)} />
+                <FichaKv label="Tub." value={dashCell(spec.tubete)} />
+                <FichaKv label="Cores" value={dashCell(spec.cores)} />
+                <FichaKv label="Saída" value={dashCell(spec.saida)} />
+                <FichaKv label="Máq." value={dashCell(spec.maquina)} />
+              </div>
+            </div>
             <table className="ficha-table ped-ficha-contrato-table ped-ficha-etq-detalhe">
               <EtqDetalheCols />
               <thead>
