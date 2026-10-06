@@ -79,6 +79,12 @@ function fmtMetros(value: number | null | undefined): string {
   return formatDecimalBr(value, 2);
 }
 
+function fmtZ(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) return '—';
+  const scale = Math.abs(value - Math.round(value)) < 1e-6 ? 0 : 1;
+  return formatDecimalBr(value, scale, { stripTrailingZeros: true });
+}
+
 function fmtCm(value: number | null | undefined, digits = 2): string {
   if (value == null || !Number.isFinite(value) || value <= 0) return '—';
   return `${formatDecimalBr(value, digits)} cm`;
@@ -149,6 +155,7 @@ function PedidoTabelaEtiquetas({
                 <FichaKv label="Faca" value={dashCell(spec.faca)} />
                 <FichaKv label="Largura" value={<span className="ped-ficha-etq-num">{fmtCm(spec.larguraCm)}</span>} />
                 <FichaKv label="Puxada" value={<span className="ped-ficha-etq-num">{fmtCm(spec.puxadaCm, 4)}</span>} />
+                <FichaKv label="Z" value={<span className="ped-ficha-etq-num">{fmtZ(spec.z)}</span>} />
               </div>
               <div className="ped-ficha-etq-form-row ped-ficha-etq-form-row--proc">
                 <FichaKv label="Material" value={dashCell(spec.material)} />

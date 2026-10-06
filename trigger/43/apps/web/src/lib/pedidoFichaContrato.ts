@@ -35,6 +35,7 @@ export type PedidoFichaEtiquetaLinha = {
   faca: string | null;
   larguraCm: number | null;
   puxadaCm: number | null;
+  z: number | null;
   faixa: string | null;
   modelo: string;
   tintas: string[];
@@ -226,6 +227,7 @@ export function linhasEtiquetaDoItem(
     nFacaRaw != null && Number.isFinite(Number(nFacaRaw)) ? String(Number(nFacaRaw)) : null;
   const larguraCm = cmPositivo(principal?.largura_cm, desc.largura_cm);
   const puxadaCm = cmPositivo(principal?.puxada_cm, desc.puxada_cm);
+  const z = cmPositivo(principal?.z, spec.z);
 
   const base = {
     itemId: item.id,
@@ -241,6 +243,7 @@ export function linhasEtiquetaDoItem(
     faca: visual.faca,
     larguraCm,
     puxadaCm,
+    z,
     faixa: `#${faixaIdx + 1}`,
     etiqPorRolo,
     metrosPorRolo: metrosLinearesPorRolo(etiqPorRolo, puxadaCm),
