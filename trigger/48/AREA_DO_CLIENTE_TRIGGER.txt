@@ -1141,7 +1141,9 @@ Fase 3 — quando houver uso
   demanda, análise, proposta, aprovação, execução, apresentação
   e liquidação.
 
-  Implementação: só depois de aprovação deste documento.
+  Implementação da primeira versão: autorizada depois deste documento.
+  O código está em trigger/48/cliente. Laravel 12 e PHP 8.4-FPM,
+  pelo bloqueio de segurança da linha 11.
 
 
 Fim do documento.

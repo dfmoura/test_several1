@@ -9906,7 +9906,7 @@ tr.row-inactive td {
 }
 
 .ficha-sheet-ped .ped-ficha-etq-form-row--proc {
-  grid-template-columns: 1.55fr 1fr 0.48fr 0.52fr 1.15fr 0.95fr 1.05fr;
+  grid-template-columns: 1.5fr 1.45fr 0.48fr 0.52fr 0.75fr 0.95fr 1.05fr;
   border-top: 0.35pt solid var(--border);
 }
 
