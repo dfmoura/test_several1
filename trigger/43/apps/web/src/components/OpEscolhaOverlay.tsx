@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Link } from 'react-router-dom';
 import {
   OpFiltroVolumes,
   VOLUME_FILTRO_VAZIO,
@@ -34,7 +33,6 @@ import {
   volumesParaEscolha,
 } from '../lib/producaoPick';
 import {
-  hrefFichaEstoque,
   opComponenteLabel,
   opKitEstado,
   opKitNome,
@@ -48,10 +46,6 @@ type Props = {
   canWrite: boolean;
   onClose: () => void;
   onOp: (data: OrdemProducao) => void;
-  /** Porta OP: aplica a seleção de volumes na lista do kit (sem baixar). */
-  onAplicarEscolha?: (loteIds: number[]) => void;
-  /** Sessão do kit — volumes já escolhidos (Remover / Usar estes volumes). */
-  loteIdsIniciais?: number[];
 };
 
 function qtdeCanon(n: number): string {
@@ -59,8 +53,8 @@ function qtdeCanon(n: number): string {
 }
 
 /**
- * Um material por vez: bobina = volume inteiro no carrinho de sessão; o resto = unidades.
- * QR só lê (VOL:); Confirmar = SAIDA_PRODUCAO no writer existente. Sem CART- / segundo ledger.
+ * Exceção: outro volume (com motivo) ou devolver.
+ * Happy path FEFO fica no kit (botão Saiu / Confirmar saída sugerida).
  */
 export function OpEscolhaOverlay({
   op,
@@ -69,8 +63,6 @@ export function OpEscolhaOverlay({
   canWrite,
   onClose,
   onOp,
-  onAplicarEscolha,
-  loteIdsIniciais,
 }: Props) {
   const modo = modoRetirada(material);
   const estado = opKitEstado(material);
@@ -79,8 +71,7 @@ export function OpEscolhaOverlay({
   const podeBaixar =
     noEstoque && canWrite && estado !== 'ja_saiu' && (estado === 'falta_pegar' || modo === 'volume');
   /**
-   * Devolver: mesmo MOV ENTRADA_SOBRA. Quem tem estoque.escrever pode na OP ou no chão —
-   * evita “não funciona” quando o lab testa pela ficha da OP.
+   * Devolver: mesmo MOV ENTRADA_SOBRA. Quem tem estoque.escrever pode na OP ou no chão.
    */
   const podeDevolver = canWrite && estado === 'ja_saiu';
   const volsADevolver = useMemo(
@@ -106,23 +97,13 @@ export function OpEscolhaOverlay({
         .sort((a, b) => a - b),
     [material],
   );
-  const iniciaisSet = useMemo(
-    () => (loteIdsIniciais ? new Set(loteIdsIniciais) : null),
-    [loteIdsIniciais],
-  );
 
   const [marcados, setMarcados] = useState<Record<number, boolean>>(() => {
     const init: Record<number, boolean> = {};
     for (const v of vols) {
       if (!v.lote_id) continue;
-      init[v.lote_id] = iniciaisSet
-        ? iniciaisSet.has(v.lote_id)
-        : volumeSugerido(v);
-    }
-    if (iniciaisSet) {
-      for (const id of iniciaisSet) {
-        if (init[id] === undefined) init[id] = true;
-      }
+      // Exceção: começa vazio — operador marca o volume que vai de fato.
+      init[v.lote_id] = false;
     }
     return init;
   });
@@ -164,10 +145,7 @@ export function OpEscolhaOverlay({
           const next = { ...prev };
           for (const v of lista) {
             if (!v.lote_id || next[v.lote_id] !== undefined) continue;
-            // Sessão do kit (inclui lista vazia pós-Remover) manda; senão FEFO.
-            next[v.lote_id] = iniciaisSet
-              ? iniciaisSet.has(v.lote_id)
-              : volumeSugerido(v);
+            next[v.lote_id] = false;
           }
           return next;
         });
@@ -181,7 +159,7 @@ export function OpEscolhaOverlay({
     return () => {
       cancel = true;
     };
-  }, [modo, estado, op.id, material.id, iniciaisSet]);
+  }, [modo, estado, op.id, material.id]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -436,9 +414,9 @@ export function OpEscolhaOverlay({
                 ? podeDevolver
                   ? 'Marque o que volta à prateleira (antes de concluir a OP).'
                   : 'Já saiu. Peça a quem tem estoque para devolver à prateleira.'
-                : noEstoque
-                  ? 'Marque ou leia o QR. Confirmar = saiu da prateleira.'
-                  : 'Escolha os volumes. A saída confirma no estoque.'}
+                : modo === 'volume'
+                  ? 'Outro volume — marque o que vai levar e informe o motivo (FEFO fica no botão Saiu da lista).'
+                  : 'Ajuste a quantidade se diferir do pedido (o botão Saiu da lista usa a qtde sugerida).'}
             </p>
           </div>
           <div className="op-escolha__head-side">
@@ -807,38 +785,11 @@ export function OpEscolhaOverlay({
                 disabled={busy || (modo === 'volume' && escolhidos.length === 0)}
                 onClick={() => void confirmar()}
               >
-                Confirmar: saiu do estoque
+                Confirmar outro volume
               </button>
-            ) : porta === 'op' && modo === 'volume' && onAplicarEscolha && estado !== 'ja_saiu' ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    onAplicarEscolha(
-                      escolhidos
-                        .map((v) => v.lote_id)
-                        .filter((id): id is number => typeof id === 'number' && id > 0),
-                    );
-                    onClose();
-                  }}
-                >
-                  Usar estes volumes
-                </button>
-                <Link
-                  className="btn btn-secondary"
-                  to={hrefFichaEstoque(op.id, { materialId: material.id })}
-                >
-                  Ir ao estoque
-                </Link>
-              </>
-            ) : porta === 'op' && (estado === 'falta_pegar' || (estado === 'sem_estoque' && modo === 'volume')) ? (
-              <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
-                Confirmar saída no estoque
-              </Link>
             ) : (
               <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Ok
+                Fechar
               </button>
             )}
           </div>

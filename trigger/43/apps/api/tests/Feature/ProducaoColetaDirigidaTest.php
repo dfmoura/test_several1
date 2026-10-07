@@ -285,6 +285,35 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame([], $tubete['retirada']['volumes']);
     }
 
+    public function test_estoque_confirmar_pendentes_baixa_tudo_com_fefo(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $ok = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar-pendentes"
+        );
+        $ok->assertOk();
+
+        $papel = collect($ok->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $tubete = collect($ok->json('data.materiais'))->firstWhere('id', $this->matTubete->id);
+        $this->assertFalse($papel['pendente']);
+        $this->assertFalse($tubete['pendente']);
+        $this->assertSame('150.0000', (string) $papel['qtde_requisitada']);
+        $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
+        $this->assertSame('70.0000', (string) $this->loteVigente->fresh()->qtde);
+        $this->assertTrue(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $this->op->id)
+                ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO)
+                ->exists()
+        );
+
+        $again = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/confirmar-pendentes"
+        );
+        $again->assertStatus(422);
+    }
+
     public function test_requisitar_com_volumes_da_sugestao_debita_exato(): void
     {
         Sanctum::actingAs($this->user);

@@ -107,6 +107,17 @@ class EstoqueRetiradaController extends Controller
         ]);
     }
 
+    /** Happy path: baixa todas as linhas pendentes com FEFO/qtde planejada. */
+    public function confirmarPendentes(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeChaoWrite($request);
+        $this->assertEmpresa($ordemProducao);
+
+        return response()->json([
+            'data' => $this->service->requisitarPendentes($this->empresa(), $ordemProducao),
+        ]);
+    }
+
     public function confirmar(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeChaoWrite($request);

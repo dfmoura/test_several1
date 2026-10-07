@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { OpFichaRetirada } from '../components/OpFichaRetirada';
 import { OpKitPainel } from '../components/OpKitPainel';
 import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -8,17 +7,13 @@ import { onAbrirFichaClick } from '../lib/fichaNav';
 
 /**
  * Porta do estoque: o físico que sai da prateleira.
- * Confirmar = SAIDA_PRODUCAO. Sem receber na máquina.
+ * Happy path = Confirmar saída sugerida. Overlay = outro volume / devolver.
  */
 export function EstoqueRetiradaChaoPage() {
   const { id } = useParams();
   const { hasPermission } = useAuth();
   const [params] = useSearchParams();
-  const pedido = {
-    materialId: Number(params.get('material_id') || 0) || undefined,
-    produtoId: Number(params.get('produto_id') || 0) || undefined,
-    qtde: params.get('qtde') || undefined,
-  };
+  const materialInicialId = Number(params.get('material_id') || 0) || undefined;
   const [op, setOp] = useState<OrdemProducao | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -64,19 +59,16 @@ export function EstoqueRetiradaChaoPage() {
       {loading ? <p className="muted">Carregando…</p> : null}
 
       {op ? (
-        <>
-          <OpKitPainel
-            op={op}
-            pedido={null}
-            porta="chao"
-            podeEstoque={hasPermission('estoque.ler')}
-            podeProducao={false}
-            canWrite={hasPermission('estoque.escrever')}
-            materialInicialId={pedido.materialId && !pedido.qtde ? pedido.materialId : undefined}
-            onOp={setOp}
-          />
-          <OpFichaRetirada op={op} mode="chao" onOp={setOp} pedido={pedido} hideResumo hideMarcar />
-        </>
+        <OpKitPainel
+          op={op}
+          pedido={null}
+          porta="chao"
+          podeEstoque={hasPermission('estoque.ler')}
+          podeProducao={false}
+          canWrite={hasPermission('estoque.escrever')}
+          materialInicialId={materialInicialId}
+          onOp={setOp}
+        />
       ) : null}
     </div>
   );

@@ -12867,6 +12867,15 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   white-space: nowrap;
 }
 
+.op-kit-lista__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .op-kit-lista__vols {
   margin: 0.65rem 0 0 2.35rem;
 }

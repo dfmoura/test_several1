@@ -334,6 +334,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/retiradas/{ordemProducao}/preview', [EstoqueRetiradaController::class, 'preview']);
         Route::post('/estoque/retiradas/{ordemProducao}/avaria', [EstoqueRetiradaController::class, 'avaria']);
         Route::post('/estoque/retiradas/{ordemProducao}/devolver', [EstoqueRetiradaController::class, 'devolver']);
+        Route::post('/estoque/retiradas/{ordemProducao}/confirmar-pendentes', [EstoqueRetiradaController::class, 'confirmarPendentes']);
         Route::post('/estoque/retiradas/{ordemProducao}/confirmar', [EstoqueRetiradaController::class, 'confirmar']);
         Route::get('/estoque/separacoes', [EstoqueSeparacaoRevendaController::class, 'index']);
         Route::get('/estoque/separacoes/{pedidoItem}', [EstoqueSeparacaoRevendaController::class, 'show']);

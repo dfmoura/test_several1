@@ -47,6 +47,29 @@ export function volumesFefoConfirm(preview?: OpRetiradaPreview | null): { lote_i
     .map((v) => ({ lote_id: v.lote_id as number, qtde: String(parseQtdeDigitada(v.qtde_retirar)) }));
 }
 
+/**
+ * Payload de uma linha para POST /estoque/retiradas/{op}/confirmar (happy path FEFO).
+ * Volume: volumes sugeridos; unidade: só qtde planejada (writer escolhe FEFO).
+ */
+export function linhaConfirmarSugerida(
+  m: OrdemProducaoMaterial,
+): {
+  material_id: number;
+  qtde: string;
+  volumes?: { lote_id: number; qtde: string }[];
+} | null {
+  if (opKitEstado(m) !== 'falta_pegar') return null;
+  const qtde = String(qtdeLinhaPick(m) || parseQtdeDigitada(m.retirada?.qtde));
+  if (!(parseQtdeDigitada(qtde) > 0)) return null;
+  if (modoRetirada(m) === 'volume') {
+    const volumes = volumesFefoConfirm(m.retirada);
+    if (volumes.length === 0) return null;
+    const soma = volumes.reduce((acc, v) => acc + parseQtdeDigitada(v.qtde), 0);
+    return { material_id: m.id, qtde: soma.toFixed(4), volumes };
+  }
+  return { material_id: m.id, qtde: parseQtdeDigitada(qtde).toFixed(4) };
+}
+
 export function nVolumesSugeridos(m: OrdemProducaoMaterial): number {
   return (m.retirada?.volumes ?? []).filter((v) => parseQtdeDigitada(v.qtde_retirar) > 0).length;
 }

@@ -46,20 +46,28 @@ Duas pessoas, duas telas — o motor é o mesmo.
 
 Menu: **A buscar** vive em Estoque (`estoque.ler`). **Na máquina** vive em Produção (`producao.ler`). Confirmar saída exige `estoque.escrever`; receber na máquina exige `producao.escrever`. O papel PRODUCAO não busca na prateleira.
 
-**Kit (azulejo / lista / overlay):** cada material mostra **quanto a OP precisa** (`qtde_planejada`). Bobina: **metro linear da pista do PED** (m² ÷ largura_cm da spec) **e** m². Largura do volume na prateleira não redefine o pedido. Marcar **volumes**; writer e concluir ficam em m². Filtro casa o lote, não o SKU. Sem segundo saldo.
+**Kit (lista):** cada material mostra **quanto a OP precisa** (`qtde_planejada`) e a sugestão FEFO. Bobina: **metro linear da pista do PED** **e** m². Writer e concluir ficam em m². Sem segundo saldo.
 
 Estados do kit: **falta pegar · já saiu · sem estoque**.
 
+### Happy path (obrigatório na UX)
+
+| Passo | Ação |
+|-------|------|
+| OP | Só lê o kit + CTA **Confirmar saída no estoque**. Sem escolher volume na OP. |
+| Estoque · A buscar | Por linha: **Saiu** (FEFO/qtde). Rodapé: **Confirmar saída sugerida (N)** → `POST …/confirmar-pendentes`. |
+| Overlay | Só **Outro volume** (motivo) ou **Devolver**. Não é o caminho feliz. |
+
+Ficha impressa: link na toolbar. Sem segunda lista embutida na página do chão.
+
 ### Como escolher (produto manda)
 
-| Produto | Chão marca | Confirmar envia |
-|---------|------------|-----------------|
-| Bobina / papel / filme (`PAPEL`, `MP-PAP`/`MP-FLM`/`MP-LAM`, L×C) | Volumes (inteiro por padrão) | `qtde` = soma dos volumes · `volumes[]` |
-| Tubete, tinta, caixa, MUC | Unidades | `qtde` informada · FEFO no writer |
+| Produto | Happy path | Exceção (overlay) |
+|---------|------------|-------------------|
+| Bobina / papel / filme | FEFO automático | Marca outro volume + motivo |
+| Tubete, tinta, caixa, MUC | qtde planejada · FEFO no writer | Ajusta qtde no overlay |
 
-Não exigir que a soma case o m²/UN planejado. O pedido da ordem continua visível; o fato oficial é o físico. Motivo só se o volume for outro que o FEFO. Invariante da coleta permanece: soma de `volumes[]` = `qtde` da saída.
-
-Porta do estoque: os mesmos azulejos. Sem segunda caminhada e sem abas de módulo na ficha.
+Não exigir que a soma case o m²/UN planejado. Motivo só se o volume for outro que o FEFO. Invariante: soma de `volumes[]` = `qtde` da saída.
 
 ### Ficha impressa
 

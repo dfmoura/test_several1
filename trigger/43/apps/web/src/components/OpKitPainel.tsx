@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OpEscolhaOverlay } from './OpEscolhaOverlay';
-import type { OrdemProducao, OrdemProducaoMaterial, Pedido } from '../lib/api';
+import { api, type OrdemProducao, type OrdemProducaoMaterial, type Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { linhaImpressaoFlexo } from '../lib/opFichaFlexo';
 import {
   formatLotePick,
   formatVolumeDimensao,
   leituraNecessidadeOp,
+  linhaConfirmarSugerida,
   modoRetirada,
   opKitLinhasOrdenadas,
   volumeSugerido,
@@ -48,8 +49,9 @@ function volumesSugeridosLinha(m: OrdemProducaoMaterial) {
 }
 
 /**
- * Ficha da etiqueta + lista profissional do kit.
- * Seleção de volumes é sessão (reverter na lista); baixa só no estoque.
+ * Ficha da etiqueta + lista do kit.
+ * Happy path (chão): um clique «Saiu» / «Confirmar saída sugerida».
+ * Overlay só para outro volume ou devolver.
  */
 export function OpKitPainel({
   op,
@@ -70,52 +72,59 @@ export function OpKitPainel({
   const specLinha = linhaImpressaoFlexo(spec);
 
   const linhas = opKitLinhasOrdenadas(op.materiais ?? []);
-  const [abertoId, setAbertoId] = useState<number | null>(materialInicialId ?? null);
-  /** lote_ids mantidos na lista do kit (sessão). Ausente = ainda usa sugestão FEFO. */
-  const [escolhas, setEscolhas] = useState<Record<number, number[]>>({});
+  const [abertoId, setAbertoId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const aberto = linhas.find((m) => m.id === abertoId) ?? null;
   const atual = opPassoAtual(op);
-  const falta = linhas.some((m) => opKitEstado(m) === 'falta_pegar');
+  const pendentes = linhas.filter((m) => opKitEstado(m) === 'falta_pegar');
+  const falta = pendentes.length > 0;
+  const noEstoque = porta === 'chao';
 
   useEffect(() => {
-    if (materialInicialId) setAbertoId(materialInicialId);
-  }, [materialInicialId]);
-
-  /** Troca de OP limpa a sessão de escolha. */
-  useEffect(() => {
-    setEscolhas({});
-  }, [op.id]);
-
-  const volsDaLinha = (m: OrdemProducaoMaterial) => {
+    if (!materialInicialId) return;
+    const m = (op.materiais ?? []).find((x) => x.id === materialInicialId);
+    if (!m) return;
     const estado = opKitEstado(m);
-    const base = volumesSugeridosLinha(m);
-    if (estado === 'ja_saiu') return base;
-    const ids = escolhas[m.id];
-    if (ids === undefined) return base;
-    if (ids.length === 0) return [];
-    const idSet = new Set(ids);
-    const doCatalogo = volumesParaEscolha(m).filter((v) => v.lote_id && idSet.has(v.lote_id));
-    // Mantém ordem da escolha; inclui só o que ainda existe no preview
-    return ids
-      .map((id) => doCatalogo.find((v) => v.lote_id === id))
-      .filter((v): v is NonNullable<typeof v> => Boolean(v));
+    // Deep-link: overlay só devolver ou sem estoque — happy path fica no botão Saiu.
+    if (estado === 'ja_saiu' || estado === 'sem_estoque') {
+      setAbertoId(materialInicialId);
+    }
+  }, [materialInicialId, op.materiais]);
+
+  const confirmarLinha = async (m: OrdemProducaoMaterial) => {
+    const linha = linhaConfirmarSugerida(m);
+    if (!linha) {
+      setErr('Sem sugestão FEFO neste material — use «Outro volume».');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.post<{ data: OrdemProducao }>(`/estoque/retiradas/${op.id}/confirmar`, {
+        linhas: [linha],
+      });
+      onOp(res.data);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao confirmar a saída.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const garantirEscolha = (m: OrdemProducaoMaterial): number[] => {
-    if (escolhas[m.id] !== undefined) return escolhas[m.id];
-    return volumesSugeridosLinha(m)
-      .map((v) => v.lote_id)
-      .filter((id): id is number => typeof id === 'number' && id > 0);
-  };
-
-  const reverterVolume = (m: OrdemProducaoMaterial, loteId: number) => {
-    if (opKitEstado(m) === 'ja_saiu') return;
-    const atualIds = garantirEscolha(m).filter((id) => id !== loteId);
-    setEscolhas((prev) => ({ ...prev, [m.id]: atualIds }));
-  };
-
-  const aplicarEscolha = (materialId: number, loteIds: number[]) => {
-    setEscolhas((prev) => ({ ...prev, [materialId]: loteIds }));
+  const confirmarTudo = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.post<{ data: OrdemProducao }>(
+        `/estoque/retiradas/${op.id}/confirmar-pendentes`,
+      );
+      onOp(res.data);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao confirmar as saídas.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const cta = (() => {
@@ -149,6 +158,8 @@ export function OpKitPainel({
         </p>
       </header>
 
+      {err ? <div className="alert alert-danger">{err}</div> : null}
+
       {linhas.length === 0 ? (
         <p className="op-kit__vazio">Ainda sem materiais nesta ordem.</p>
       ) : (
@@ -159,18 +170,12 @@ export function OpKitPainel({
             const leitura = leituraNecessidadeOp(m, op);
             const onde = opKitOnde(m);
             const porVolume = modoRetirada(m) === 'volume';
-            const vols = volsDaLinha(m);
-            const podeReverter = estado !== 'ja_saiu' && porta === 'op';
-            const acaoLabel =
-              estado === 'ja_saiu'
-                ? canWrite
-                  ? 'Devolver'
-                  : 'Ver volumes'
-                : porVolume
-                  ? vols.length > 0
-                    ? 'Alterar volumes'
-                    : 'Adicionar volumes'
-                  : 'Detalhe';
+            const vols = volumesSugeridosLinha(m);
+            const podeSair =
+              noEstoque && canWrite && estado === 'falta_pegar' && Boolean(linhaConfirmarSugerida(m));
+            const podeOutro =
+              noEstoque && canWrite && (estado === 'falta_pegar' || estado === 'sem_estoque');
+            const podeDevolver = canWrite && estado === 'ja_saiu';
 
             return (
               <li key={m.id} className={`op-kit-lista__item op-kit-lista__item--${estado}`}>
@@ -206,20 +211,61 @@ export function OpKitPainel({
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm op-kit-lista__acao"
-                    onClick={() => setAbertoId(m.id)}
-                  >
-                    {acaoLabel}
-                  </button>
+                  <div className="op-kit-lista__acoes">
+                    {podeSair ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={busy}
+                        onClick={() => void confirmarLinha(m)}
+                      >
+                        Saiu
+                      </button>
+                    ) : null}
+                    {podeOutro ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => setAbertoId(m.id)}
+                      >
+                        {estado === 'sem_estoque'
+                          ? 'Ver estoque'
+                          : porVolume
+                            ? 'Outro volume'
+                            : 'Ajustar qtde'}
+                      </button>
+                    ) : null}
+                    {podeDevolver ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={busy}
+                        onClick={() => setAbertoId(m.id)}
+                      >
+                        Devolver
+                      </button>
+                    ) : null}
+                    {!podeSair && !podeOutro && !podeDevolver && porta === 'op' && estado === 'falta_pegar' ? (
+                      <Link
+                        className="btn btn-secondary btn-sm"
+                        to={hrefFichaEstoque(op.id, { materialId: m.id })}
+                      >
+                        No estoque
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
 
                 {porVolume ? (
                   <div className="op-kit-lista__vols">
                     {vols.length === 0 ? (
                       <p className="op-kit-lista__vols-vazio">
-                        Nenhum volume escolhido. Use «Adicionar volumes» para completar.
+                        {estado === 'sem_estoque'
+                          ? 'Sem saldo neste SKU.'
+                          : estado === 'ja_saiu'
+                            ? 'Nada fora da prateleira.'
+                            : 'Sem sugestão FEFO — use «Outro volume» no estoque.'}
                       </p>
                     ) : (
                       <table className="op-kit-lista__table">
@@ -228,8 +274,7 @@ export function OpKitPainel({
                             <th>Volume</th>
                             <th>Local</th>
                             <th>Dimensão</th>
-                            <th>{estado === 'ja_saiu' ? 'Saiu' : 'Sugestão'}</th>
-                            {podeReverter ? <th className="op-kit-lista__col-acao" /> : null}
+                            <th>{estado === 'ja_saiu' ? 'Fora' : 'Sugestão'}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -245,19 +290,6 @@ export function OpKitPainel({
                                     ? 'FEFO'
                                     : '—'}
                               </td>
-                              {podeReverter && v.lote_id ? (
-                                <td className="op-kit-lista__col-acao">
-                                  <button
-                                    type="button"
-                                    className="op-kit-lista__reverter"
-                                    onClick={() => reverterVolume(m, v.lote_id as number)}
-                                  >
-                                    Remover
-                                  </button>
-                                </td>
-                              ) : podeReverter ? (
-                                <td />
-                              ) : null}
                             </tr>
                           ))}
                         </tbody>
@@ -270,6 +302,19 @@ export function OpKitPainel({
           })}
         </ol>
       )}
+
+      {noEstoque && canWrite && falta ? (
+        <div className="op-kit__cta">
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={() => void confirmarTudo()}
+          >
+            Confirmar saída sugerida ({pendentes.length})
+          </button>
+        </div>
+      ) : null}
 
       {cta ? (
         <div className="op-kit__cta">
@@ -287,16 +332,6 @@ export function OpKitPainel({
           canWrite={canWrite}
           onClose={() => setAbertoId(null)}
           onOp={onOp}
-          loteIdsIniciais={
-            porta === 'op' && modoRetirada(aberto) === 'volume' && escolhas[aberto.id] !== undefined
-              ? escolhas[aberto.id]
-              : undefined
-          }
-          onAplicarEscolha={
-            porta === 'op' && modoRetirada(aberto) === 'volume'
-              ? (loteIds) => aplicarEscolha(aberto.id, loteIds)
-              : undefined
-          }
         />
       ) : null}
     </section>
