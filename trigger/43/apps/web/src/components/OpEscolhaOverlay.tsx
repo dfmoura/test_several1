@@ -77,6 +77,14 @@ export function OpEscolhaOverlay({
   const noEstoque = porta === 'chao';
   const podeBaixar =
     noEstoque && canWrite && estado !== 'ja_saiu' && (estado === 'falta_pegar' || modo === 'volume');
+  const podeDevolver = noEstoque && canWrite && estado === 'ja_saiu';
+  const volsADevolver = useMemo(
+    () =>
+      material.retirada?.volumes_a_devolver?.length
+        ? material.retirada.volumes_a_devolver
+        : (material.retirada?.volumes_baixados ?? []),
+    [material],
+  );
   const volsLinha = useMemo(() => volumesParaEscolha(material), [material]);
   const [catalogo, setCatalogo] = useState<OpRetiradaVolume[] | null>(null);
   const [catalogoCarregando, setCatalogoCarregando] = useState(false);
@@ -113,10 +121,21 @@ export function OpEscolhaOverlay({
     }
     return init;
   });
+  const [devolverMarcados, setDevolverMarcados] = useState<Record<number, boolean>>(() => {
+    const init: Record<number, boolean> = {};
+    for (const v of volsADevolver) {
+      if (v.lote_id) init[v.lote_id] = false;
+    }
+    return init;
+  });
   const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
   const [qr, setQr] = useState('');
   const [qtdeUn, setQtdeUn] = useState(material.qtde_planejada ?? String(alvo || ''));
+  const [qtdeDevolver, setQtdeDevolver] = useState(
+    String(parseQtdeDigitada(material.qtde_requisitada) || ''),
+  );
   const [motivo, setMotivo] = useState('');
+  const [motivoDevolver, setMotivoDevolver] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -339,6 +358,57 @@ export function OpEscolhaOverlay({
     }
   };
 
+  const volsDevolverEscolhidos = volsADevolver.filter(
+    (v) => v.lote_id && devolverMarcados[v.lote_id],
+  );
+
+  const confirmarDevolver = async () => {
+    if (!podeDevolver) return;
+    if (motivoDevolver.trim().length < 3) {
+      setErr('Informe o motivo da devolução (mínimo 3 caracteres).');
+      return;
+    }
+    if (modo === 'volume') {
+      if (volsDevolverEscolhidos.length === 0) {
+        setErr('Marque o volume que volta à prateleira.');
+        return;
+      }
+    } else if (parseQtdeDigitada(qtdeDevolver) <= 0) {
+      setErr('Informe a quantidade a devolver.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const payload =
+        modo === 'volume'
+          ? {
+              material_id: material.id,
+              motivo: motivoDevolver.trim(),
+              volumes: volsDevolverEscolhidos.map((v) => ({
+                lote_id: v.lote_id as number,
+                qtde: qtdeCanon(parseQtdeDigitada(v.qtde_retirar) || qtdeVolumeTotal(v)),
+              })),
+            }
+          : {
+              material_id: material.id,
+              motivo: motivoDevolver.trim(),
+              qtde: qtdeCanon(parseQtdeDigitada(qtdeDevolver)),
+            };
+      const res = await api.post<{ data: OrdemProducao }>(
+        `/estoque/retiradas/${op.id}/devolver`,
+        payload,
+      );
+      onOp(res.data);
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao devolver.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const tipo = opComponenteLabel(material.componente);
   const leitura = leituraNecessidadeOp(material, op);
 
@@ -357,9 +427,13 @@ export function OpEscolhaOverlay({
               </p>
             ) : null}
             <p className="muted op-escolha__hint">
-              {noEstoque
-                ? 'Marque ou leia o QR. Confirmar = saiu da prateleira.'
-                : 'Escolha os volumes. A saída confirma no estoque.'}
+              {estado === 'ja_saiu'
+                ? podeDevolver
+                  ? 'Marque o que volta à prateleira antes de concluir a OP.'
+                  : 'Já saiu. Devolver no estoque se precisar voltar à prateleira.'
+                : noEstoque
+                  ? 'Marque ou leia o QR. Confirmar = saiu da prateleira.'
+                  : 'Escolha os volumes. A saída confirma no estoque.'}
             </p>
           </div>
           <div className="op-escolha__head-side">
@@ -413,7 +487,113 @@ export function OpEscolhaOverlay({
 
         <div className="op-escolha__body">
           {estado === 'ja_saiu' ? (
-            <p className="muted">Este item já saiu do estoque.</p>
+            podeDevolver ? (
+              modo === 'volume' ? (
+                <>
+                  <p className="muted" style={{ marginTop: 0 }}>
+                    Volumes ainda fora da prateleira nesta OP.
+                  </p>
+                  <div className="table-wrap op-escolha__table-wrap">
+                    <table className="data-table op-escolha__table">
+                      <thead>
+                        <tr>
+                          <th className="op-escolha__col-check">Devolver</th>
+                          <th>Volume</th>
+                          <th>Qtde</th>
+                          <th>Local</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {volsADevolver.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="muted">
+                              Nada a devolver neste SKU.
+                            </td>
+                          </tr>
+                        ) : (
+                          volsADevolver.map((v) => {
+                            const id = v.lote_id as number;
+                            const on = Boolean(devolverMarcados[id]);
+                            return (
+                              <tr key={id} className={on ? 'is-on' : ''}>
+                                <td className="op-escolha__col-check">
+                                  <input
+                                    type="checkbox"
+                                    checked={on}
+                                    disabled={busy}
+                                    aria-label={`Devolver ${formatLotePick(v)}`}
+                                    onChange={() =>
+                                      setDevolverMarcados((prev) => ({
+                                        ...prev,
+                                        [id]: !prev[id],
+                                      }))
+                                    }
+                                  />
+                                </td>
+                                <td>
+                                  <strong>{formatLotePick(v)}</strong>
+                                </td>
+                                <td>
+                                  {formatQtdePick(
+                                    parseQtdeDigitada(v.qtde_retirar),
+                                    v.unidade ?? material.unidade,
+                                  )}
+                                </td>
+                                <td>{v.endereco?.codigo ?? '—'}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label htmlFor="op-escolha-motivo-dev">Motivo da devolução</label>
+                    <input
+                      id="op-escolha-motivo-dev"
+                      value={motivoDevolver}
+                      onChange={(e) => setMotivoDevolver(e.target.value)}
+                      disabled={busy}
+                      placeholder="Ex.: sobrou na mesa / pegou a bobina errada"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="op-escolha__un">
+                  <label htmlFor="op-escolha-dev-un">Quantidade a devolver</label>
+                  <input
+                    id="op-escolha-dev-un"
+                    className="op-escolha__un-input"
+                    inputMode="decimal"
+                    value={qtdeDevolver}
+                    disabled={busy}
+                    onChange={(e) => setQtdeDevolver(e.target.value)}
+                  />
+                  <p className="muted">
+                    Já saiu{' '}
+                    {formatQtdePick(
+                      parseQtdeDigitada(material.qtde_requisitada),
+                      material.unidade,
+                    )}
+                    .
+                  </p>
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label htmlFor="op-escolha-motivo-dev-un">Motivo da devolução</label>
+                    <input
+                      id="op-escolha-motivo-dev-un"
+                      value={motivoDevolver}
+                      onChange={(e) => setMotivoDevolver(e.target.value)}
+                      disabled={busy}
+                      placeholder="Ex.: sobrou / não vai usar"
+                    />
+                  </div>
+                </div>
+              )
+            ) : (
+              <p className="muted">
+                Este item já saiu do estoque. Para devolver à prateleira, abra no estoque (A buscar).
+              </p>
+            )
           ) : modo === 'volume' ? (
             <>
               {estado === 'sem_estoque' ? (
@@ -592,11 +772,30 @@ export function OpEscolhaOverlay({
                 <span className="muted"> · ainda abaixo da área pedida</span>
               ) : null}
             </p>
+          ) : podeDevolver && modo === 'volume' && volsDevolverEscolhidos.length > 0 ? (
+            <p className="op-escolha__soma">
+              Devolver {volsDevolverEscolhidos.length}{' '}
+              {volsDevolverEscolhidos.length === 1 ? 'volume' : 'volumes'}
+            </p>
           ) : (
             <span />
           )}
           <div className="op-escolha__foot-actions">
-            {podeBaixar ? (
+            {podeDevolver ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={
+                  busy ||
+                  (modo === 'volume'
+                    ? volsDevolverEscolhidos.length === 0
+                    : parseQtdeDigitada(qtdeDevolver) <= 0)
+                }
+                onClick={() => void confirmarDevolver()}
+              >
+                Devolver à prateleira
+              </button>
+            ) : podeBaixar ? (
               <button
                 type="button"
                 className="btn btn-primary"
@@ -628,6 +827,13 @@ export function OpEscolhaOverlay({
                   Ir ao estoque
                 </Link>
               </>
+            ) : porta === 'op' && estado === 'ja_saiu' ? (
+              <Link
+                className="btn btn-primary"
+                to={hrefFichaEstoque(op.id, { materialId: material.id })}
+              >
+                Devolver no estoque
+              </Link>
             ) : porta === 'op' && (estado === 'falta_pegar' || (estado === 'sem_estoque' && modo === 'volume')) ? (
               <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
                 Confirmar saída no estoque

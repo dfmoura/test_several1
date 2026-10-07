@@ -3306,6 +3306,8 @@ export type OpRetiradaPreview = {
   volumes: OpRetiradaVolume[];
   candidatos: OpRetiradaVolume[];
   volumes_baixados?: OpRetiradaVolume[];
+  /** Ainda fora da prateleira (SAIDA − SOBRA), para devolver antes de concluir. */
+  volumes_a_devolver?: OpRetiradaVolume[];
 };
 
 export type OrdemProducaoMaterial = {

@@ -220,7 +220,8 @@ class ProducaoColetaService
             ]);
         }
 
-        $pendente = $mat->saida_movimento_id === null;
+        $pendente = $mat->saida_movimento_id === null
+            || bccomp((string) $mat->qtde_requisitada, '0', PadraoDecimal::SCALE_QTY) <= 0;
         $qtdeAlvo = $qtde !== null && $qtde !== ''
             ? PadraoDecimal::roundHalfUp($qtde, PadraoDecimal::SCALE_QTY)
             : PadraoDecimal::roundHalfUp(
@@ -242,6 +243,99 @@ class ProducaoColetaService
             ];
 
         $out['volumes_baixados'] = $this->volumesBaixados($empresa, $op, (int) $mat->produto_id);
+        $out['volumes_a_devolver'] = $this->volumesADevolver($empresa, $op, (int) $mat->produto_id);
+
+        return $out;
+    }
+
+    /**
+     * Volumes ainda fora da prateleira nesta OP (SAIDA − ENTRADA_SOBRA), por lote.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function volumesADevolver(Empresa $empresa, OrdemProducao $op, int $produtoId): array
+    {
+        $agg = [];
+        $meta = [];
+
+        $aplicar = function (string $sinal, $itens) use (&$agg, &$meta): void {
+            foreach ($itens as $item) {
+                $loteId = $item->lote_id ? (int) $item->lote_id : 0;
+                $key = $loteId > 0 ? 'L'.$loteId : 'S';
+                $q = PadraoDecimal::roundHalfUp((string) $item->qtde, PadraoDecimal::SCALE_QTY);
+                $agg[$key] = isset($agg[$key])
+                    ? PadraoDecimal::roundHalfUp(
+                        $sinal === '+'
+                            ? bcadd($agg[$key], $q, PadraoDecimal::SCALE_QTY + 4)
+                            : bcsub($agg[$key], $q, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    )
+                    : ($sinal === '+' ? $q : PadraoDecimal::roundHalfUp(
+                        bcmul($q, '-1', PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    ));
+                if (! isset($meta[$key])) {
+                    $meta[$key] = $item;
+                }
+            }
+        };
+
+        $saidas = EstoqueMovimentoItem::query()
+            ->with(['lote.endereco:id,codigo', 'produto:id,codigo'])
+            ->where('produto_id', $produtoId)
+            ->whereHas('movimento', function ($q) use ($empresa, $op) {
+                $q->where('empresa_id', $empresa->id)
+                    ->where('ordem_producao_id', $op->id)
+                    ->where('tipo', EstoqueMovimento::TIPO_SAIDA_PRODUCAO);
+            })
+            ->get();
+        $aplicar('+', $saidas);
+
+        $sobras = EstoqueMovimentoItem::query()
+            ->with(['lote.endereco:id,codigo', 'produto:id,codigo'])
+            ->where('produto_id', $produtoId)
+            ->whereHas('movimento', function ($q) use ($empresa, $op) {
+                $q->where('empresa_id', $empresa->id)
+                    ->where('ordem_producao_id', $op->id)
+                    ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_SOBRA);
+            })
+            ->get();
+        $aplicar('-', $sobras);
+
+        $out = [];
+        $ordem = 1;
+        foreach ($agg as $key => $qtde) {
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            /** @var EstoqueMovimentoItem $item */
+            $item = $meta[$key];
+            $lote = $item->lote;
+            if ($lote) {
+                $linha = $this->volumeToOut($lote, $qtde, false, 'A_DEVOLVER', $ordem);
+            } else {
+                $linha = [
+                    'lote_id' => null,
+                    'codigo' => null,
+                    'qtde_volume' => null,
+                    'qtde_retirar' => $qtde,
+                    'unidade' => $item->unidade,
+                    'data_entrada' => null,
+                    'data_validade' => null,
+                    'status' => null,
+                    'status_label' => null,
+                    'largura_mm' => null,
+                    'comprimento_m' => null,
+                    'endereco' => null,
+                    'sugerido' => false,
+                    'motivo' => 'A_DEVOLVER',
+                    'ordem_politica' => $ordem,
+                ];
+            }
+            $linha['sku'] = $item->produto?->codigo;
+            $out[] = $linha;
+            $ordem++;
+        }
 
         return $out;
     }

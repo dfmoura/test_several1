@@ -793,6 +793,132 @@ class ProducaoPedOpEstoqueTest extends TestCase
         $this->assertTrue(bccomp((string) $linha['qtde_consumida'], '0', 4) > 0);
     }
 
+    public function test_devolver_material_antes_de_concluir_restaura_saldo_e_libera_pegar_de_novo(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        $planejada = (string) $papel['qtde_planejada'];
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd($planejada, '100.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+        $saldoAntes = (string) EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde');
+
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $aposSaida = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $linha = collect($aposSaida->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $this->assertFalse($linha['pendente']);
+        $req = (string) $linha['qtde_requisitada'];
+        $saldoAposSaida = (string) EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde');
+        $this->assertSame(bcsub($saldoAntes, $req, 4), $saldoAposSaida);
+
+        $parcial = bcmul($req, '0.40', 4);
+        $devParcial = $this->withHeaders($h)->postJson("/api/v1/estoque/retiradas/{$opId}/devolver", [
+            'material_id' => $papel['id'],
+            'qtde' => $parcial,
+            'motivo' => 'Sobrou na mesa',
+        ]);
+        $devParcial->assertOk();
+        $linhaParcial = collect($devParcial->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $this->assertFalse($linhaParcial['pendente']);
+        $this->assertSame(bcsub($req, $parcial, 4), (string) $linhaParcial['qtde_requisitada']);
+        $this->assertTrue(
+            EstoqueMovimento::query()
+                ->where('ordem_producao_id', $opId)
+                ->where('tipo', EstoqueMovimento::TIPO_ENTRADA_SOBRA)
+                ->exists()
+        );
+
+        $resto = (string) $linhaParcial['qtde_requisitada'];
+        $devTotal = $this->withHeaders($h)->postJson("/api/v1/estoque/retiradas/{$opId}/devolver", [
+            'material_id' => $papel['id'],
+            'qtde' => $resto,
+            'motivo' => 'Não vai usar nesta OP',
+        ]);
+        $devTotal->assertOk();
+        $linhaFinal = collect($devTotal->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $this->assertTrue($linhaFinal['pendente']);
+        $this->assertSame('0.0000', (string) $linhaFinal['qtde_requisitada']);
+        $this->assertNull($linhaFinal['saida_movimento_id']);
+        $saldoFinal = (string) EstoqueSaldo::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde');
+        $this->assertSame($saldoAntes, $saldoFinal);
+
+        $acima = $this->withHeaders($h)->postJson("/api/v1/estoque/retiradas/{$opId}/devolver", [
+            'material_id' => $papel['id'],
+            'qtde' => '1.0000',
+            'motivo' => 'Já devolveu tudo',
+        ]);
+        $acima->assertStatus(422);
+    }
+
+    public function test_devolver_parcial_limita_avaria_ao_que_ainda_esta_fora(): void
+    {
+        Sanctum::actingAs($this->comercial);
+        $h = ['X-Empresa-Id' => (string) $this->empresa->id];
+        [, , $opId] = $this->abrirOpAprovada($h);
+
+        $show = $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}");
+        $papel = collect($show->json('data.materiais'))->firstWhere('componente', 'PAPEL');
+        $this->assertNotNull($papel);
+        EstoqueSaldo::query()->updateOrCreate(
+            ['empresa_id' => $this->empresa->id, 'produto_id' => $this->mp->id],
+            [
+                'qtde' => bcadd((string) $papel['qtde_planejada'], '80.0000', 4),
+                'unidade' => 'M2',
+                'custo_medio' => '10.000000',
+            ],
+        );
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/requisitar", [
+            'material_id' => $papel['id'],
+        ])->assertOk();
+
+        $req = (string) collect(
+            $this->withHeaders($h)->getJson("/api/v1/ordens-producao/{$opId}")->json('data.materiais')
+        )->firstWhere('id', $papel['id'])['qtde_requisitada'];
+
+        $avaria = bcmul($req, '0.80', 4);
+        $this->withHeaders($h)->postJson("/api/v1/ordens-producao/{$opId}/avaria", [
+            'material_id' => $papel['id'],
+            'qtde' => $avaria,
+            'motivo' => 'Rasgo na mesa',
+        ])->assertOk();
+
+        // Devolve 50% — avaria apontada (80%) passa a exceder o restante (50%) → clamp.
+        $devolver = bcmul($req, '0.50', 4);
+        $dev = $this->withHeaders($h)->postJson("/api/v1/estoque/retiradas/{$opId}/devolver", [
+            'material_id' => $papel['id'],
+            'qtde' => $devolver,
+            'motivo' => 'Parte volta à prateleira',
+        ]);
+        $dev->assertOk();
+        $linha = collect($dev->json('data.materiais'))->firstWhere('id', $papel['id']);
+        $resto = bcsub($req, $devolver, 4);
+        $this->assertSame($resto, (string) $linha['qtde_requisitada']);
+        $this->assertSame($resto, (string) $linha['qtde_avaria']);
+        $this->assertSame('Rasgo na mesa', $linha['motivo_avaria']);
+    }
+
     public function test_avaria_exige_saida_motivo_e_nao_excede_requisitado(): void
     {
         Sanctum::actingAs($this->comercial);

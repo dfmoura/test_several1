@@ -315,6 +315,72 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertSame([$this->loteVencido->id, $this->loteVigente->id], $baixados);
     }
 
+    public function test_devolver_volume_antes_de_concluir_restaura_lote_e_pendente(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->withHeaders($this->h())->postJson(
+            "/api/v1/ordens-producao/{$this->op->id}/requisitar",
+            [
+                'material_id' => $this->matPapel->id,
+                'qtde' => '150.0000',
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                ],
+            ]
+        )->assertOk();
+
+        $semVolume = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
+            [
+                'material_id' => $this->matPapel->id,
+                'qtde' => '50.0000',
+                'motivo' => 'Bobina errada',
+            ]
+        );
+        $semVolume->assertStatus(422);
+
+        $dev = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
+            [
+                'material_id' => $this->matPapel->id,
+                'motivo' => 'Bobina errada na mesa',
+                'volumes' => [
+                    ['lote_id' => $this->loteVigente->id, 'qtde' => '50.0000'],
+                ],
+            ]
+        );
+        $dev->assertOk();
+
+        $this->assertSame('0.0000', (string) $this->loteVencido->fresh()->qtde);
+        $this->assertSame('120.0000', (string) $this->loteVigente->fresh()->qtde);
+        $papel = collect($dev->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $this->assertFalse($papel['pendente']);
+        $this->assertSame('100.0000', (string) $papel['qtde_requisitada']);
+        $aDevolver = collect($papel['retirada']['volumes_a_devolver'])->pluck('lote_id')->all();
+        $this->assertSame([$this->loteVencido->id], $aDevolver);
+
+        $devResto = $this->withHeaders($this->h())->postJson(
+            "/api/v1/estoque/retiradas/{$this->op->id}/devolver",
+            [
+                'material_id' => $this->matPapel->id,
+                'motivo' => 'Não usa mais',
+                'volumes' => [
+                    ['lote_id' => $this->loteVencido->id, 'qtde' => '100.0000'],
+                ],
+            ]
+        );
+        $devResto->assertOk();
+        $papelFinal = collect($devResto->json('data.materiais'))->firstWhere('id', $this->matPapel->id);
+        $this->assertTrue($papelFinal['pendente']);
+        $this->assertSame('0.0000', (string) $papelFinal['qtde_requisitada']);
+        $this->assertSame('100.0000', (string) $this->loteVencido->fresh()->qtde);
+        $this->assertSame('300.0000', (string) EstoqueSaldo::query()
+            ->where('produto_id', $this->mp->id)
+            ->value('qtde'));
+    }
+
     public function test_override_sem_motivo_recusado_e_com_motivo_grava_outro_volume(): void
     {
         Sanctum::actingAs($this->user);

@@ -40,7 +40,9 @@ type Props = {
 function volumesSugeridosLinha(m: OrdemProducaoMaterial) {
   const estado = opKitEstado(m);
   if (estado === 'ja_saiu') {
-    return m.retirada?.volumes_baixados ?? [];
+    return m.retirada?.volumes_a_devolver?.length
+      ? m.retirada.volumes_a_devolver
+      : (m.retirada?.volumes_baixados ?? []);
   }
   return volumesParaEscolha(m).filter((v) => volumeSugerido(v) || Number(v.qtde_retirar) > 0);
 }
@@ -161,7 +163,9 @@ export function OpKitPainel({
             const podeReverter = estado !== 'ja_saiu' && porta === 'op';
             const acaoLabel =
               estado === 'ja_saiu'
-                ? 'Ver volumes'
+                ? porta === 'chao'
+                  ? 'Devolver'
+                  : 'Ver volumes'
                 : porVolume
                   ? vols.length > 0
                     ? 'Alterar volumes'

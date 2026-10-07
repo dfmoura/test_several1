@@ -71,6 +71,28 @@ class EstoqueRetiradaController extends Controller
         ]);
     }
 
+    public function devolver(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeChaoWrite($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['required', 'integer'],
+            'qtde' => array_merge(['nullable'], PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)),
+            'motivo' => ['required', 'string', 'min:3', 'max:255'],
+            'volumes' => ['nullable', 'array'],
+            'volumes.*.lote_id' => ['required_with:volumes', 'integer'],
+            'volumes.*.qtde' => array_merge(
+                ['required_with:volumes'],
+                PadraoDecimal::rules(PadraoDecimal::SCALE_QTY, true)
+            ),
+        ]);
+
+        return response()->json([
+            'data' => $this->service->devolverMaterial($this->empresa(), $ordemProducao, $data),
+        ]);
+    }
+
     public function resolverVolume(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeFila($request);

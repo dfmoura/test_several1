@@ -3,6 +3,7 @@
 namespace App\Services\Producao;
 
 use App\Models\Empresa;
+use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueMovimentoItem;
 use App\Models\EstoqueSaldo;
@@ -586,6 +587,239 @@ class OrdemProducaoService
                 $mat->avaria_por = Auth::id();
             }
             $mat->save();
+
+            return $op;
+        });
+
+        return $this->show($op->fresh());
+    }
+
+    /**
+     * Devolve à prateleira material já baixado (antes de concluir a OP).
+     * MOV ENTRADA_SOBRA + reduz qtde_requisitada. Sem segundo writer.
+     *
+     * @param  array{material_id?: int, qtde?: mixed, motivo?: string, volumes?: list<array{lote_id?: int, qtde?: mixed}>}  $data
+     * @return array<string, mixed>
+     */
+    public function devolverMaterial(Empresa $empresa, OrdemProducao $op, array $data): array
+    {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+        if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Só é possível devolver material com a OP aberta ou em andamento.'],
+            ]);
+        }
+
+        $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
+        $motivo = trim((string) ($data['motivo'] ?? ''));
+        $volumesIn = is_array($data['volumes'] ?? null) ? array_values($data['volumes']) : [];
+
+        if ($materialId <= 0) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Informe o material a devolver.'],
+            ]);
+        }
+        if (mb_strlen($motivo) < 3) {
+            throw ValidationException::withMessages([
+                'motivo' => ['Informe o motivo da devolução (mínimo 3 caracteres).'],
+            ]);
+        }
+
+        $op = DB::transaction(function () use ($empresa, $op, $materialId, $motivo, $volumesIn, $data) {
+            $op = OrdemProducao::query()->lockForUpdate()->findOrFail($op->id);
+            if ($op->empresa_id !== $empresa->id) {
+                abort(404);
+            }
+            if (! in_array($op->status, OrdemProducao::STATUSES_ABERTOS, true)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Só é possível devolver material com a OP aberta ou em andamento.'],
+                ]);
+            }
+
+            $mat = OrdemProducaoMaterial::query()
+                ->with('produto')
+                ->where('ordem_producao_id', $op->id)
+                ->where('id', $materialId)
+                ->lockForUpdate()
+                ->first();
+            if (! $mat || ! $mat->produto) {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Material não pertence a esta OP.'],
+                ]);
+            }
+
+            $req = PadraoDecimal::roundHalfUp((string) $mat->qtde_requisitada, PadraoDecimal::SCALE_QTY);
+            if (bccomp($req, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                throw ValidationException::withMessages([
+                    'material_id' => ['Este material não tem quantidade fora do estoque para devolver.'],
+                ]);
+            }
+
+            $produto = $mat->produto;
+            $disponiveis = $this->coleta->volumesADevolver($empresa, $op, (int) $produto->id);
+            $dispPorLote = [];
+            foreach ($disponiveis as $v) {
+                $lid = (int) ($v['lote_id'] ?? 0);
+                $dispPorLote[$lid] = PadraoDecimal::roundHalfUp((string) $v['qtde_retirar'], PadraoDecimal::SCALE_QTY);
+            }
+
+            $alocacoes = [];
+            if ($volumesIn !== []) {
+                if (! $produto->controla_lote) {
+                    throw ValidationException::withMessages([
+                        'volumes' => ['Este SKU não controla volume — informe só a quantidade.'],
+                    ]);
+                }
+                $vistos = [];
+                $soma = '0';
+                foreach ($volumesIn as $idx => $row) {
+                    if (! is_array($row)) {
+                        throw ValidationException::withMessages([
+                            "volumes.{$idx}" => ['Volume inválido.'],
+                        ]);
+                    }
+                    $loteId = (int) ($row['lote_id'] ?? 0);
+                    $q = PadraoDecimal::parseStrict((string) ($row['qtde'] ?? ''), PadraoDecimal::SCALE_QTY);
+                    if ($loteId <= 0 || isset($vistos[$loteId]) || $q === null || bccomp($q, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                        throw ValidationException::withMessages([
+                            "volumes.{$idx}" => ['Informe cada volume uma vez, com quantidade > 0.'],
+                        ]);
+                    }
+                    $max = $dispPorLote[$loteId] ?? '0';
+                    if (bccomp($q, $max, PadraoDecimal::SCALE_QTY) > 0) {
+                        throw ValidationException::withMessages([
+                            "volumes.{$idx}.qtde" => ["Só há {$max} deste volume ainda fora do estoque nesta OP."],
+                        ]);
+                    }
+                    $vistos[$loteId] = true;
+                    $soma = bcadd($soma, $q, PadraoDecimal::SCALE_QTY + 4);
+                    $alocacoes[] = ['lote_id' => $loteId, 'qtde' => PadraoDecimal::roundHalfUp($q, PadraoDecimal::SCALE_QTY)];
+                }
+                $qtde = PadraoDecimal::roundHalfUp($soma, PadraoDecimal::SCALE_QTY);
+            } else {
+                $qtde = PadraoDecimal::parseStrict((string) ($data['qtde'] ?? ''), PadraoDecimal::SCALE_QTY);
+                if ($qtde === null || bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    throw ValidationException::withMessages([
+                        'qtde' => ['Informe a quantidade a devolver ou marque os volumes.'],
+                    ]);
+                }
+                if ($produto->controla_lote && $disponiveis !== []) {
+                    throw ValidationException::withMessages([
+                        'volumes' => ['Marque o volume que volta à prateleira.'],
+                    ]);
+                }
+            }
+
+            if (bccomp($qtde, $req, PadraoDecimal::SCALE_QTY) > 0) {
+                throw ValidationException::withMessages([
+                    'qtde' => ["Devolução ({$qtde}) não pode exceder o que saiu ({$req})."],
+                ]);
+            }
+
+            $ano = (int) now()->year;
+            $codigoMov = $this->codigos->nextCode($empresa->id, 'MOV-'.$ano, 5);
+            $mov = EstoqueMovimento::query()->create([
+                'empresa_id' => $empresa->id,
+                'codigo' => $codigoMov,
+                'tipo' => EstoqueMovimento::TIPO_ENTRADA_SOBRA,
+                'pedido_id' => $op->pedido_id,
+                'ordem_producao_id' => $op->id,
+                'conferido_em' => now(),
+                'conferido_por' => Auth::id(),
+                'observacao' => 'Devolução antes de concluir '.$op->codigo.' · '.$motivo,
+            ]);
+
+            $ordemItem = 1;
+            $custoUnit = null;
+            if ($alocacoes === []) {
+                $aplicado = $this->saldos->aplicarEntradaUnitario(
+                    $empresa,
+                    $produto,
+                    $qtde,
+                    null,
+                    $this->loteRefDaSaida($mat)
+                );
+                $custoUnit = $aplicado['valor_unitario'];
+                EstoqueMovimentoItem::query()->create([
+                    'movimento_id' => $mov->id,
+                    'produto_id' => $produto->id,
+                    'lote_id' => $aplicado['lote_id'] ?? null,
+                    'qtde' => $qtde,
+                    'unidade' => $mat->unidade,
+                    'valor_unitario' => $aplicado['valor_unitario'],
+                    'valor_total' => $aplicado['valor_total'],
+                    'custo_medio_apos' => $aplicado['custo_medio_apos'],
+                    'ordem' => $ordemItem,
+                ]);
+            } else {
+                foreach ($alocacoes as $aloc) {
+                    $lote = EstoqueLote::query()
+                        ->where('empresa_id', $empresa->id)
+                        ->where('produto_id', $produto->id)
+                        ->where('id', $aloc['lote_id'])
+                        ->first();
+                    $loteRef = $lote ? [
+                        'lote_id' => $lote->id,
+                        'codigo' => $lote->codigo,
+                        'data_entrada' => optional($lote->data_entrada)?->format('Y-m-d'),
+                        'data_validade' => optional($lote->data_validade)?->format('Y-m-d'),
+                        'data_fabricacao' => optional($lote->data_fabricacao)?->format('Y-m-d'),
+                        'origem_tipo' => EstoqueLote::ORIGEM_PRODUCAO,
+                    ] : null;
+                    $aplicado = $this->saldos->aplicarEntradaUnitario(
+                        $empresa,
+                        $produto,
+                        $aloc['qtde'],
+                        $custoUnit,
+                        $loteRef
+                    );
+                    $custoUnit = $aplicado['valor_unitario'];
+                    EstoqueMovimentoItem::query()->create([
+                        'movimento_id' => $mov->id,
+                        'produto_id' => $produto->id,
+                        'lote_id' => $aplicado['lote_id'] ?? $aloc['lote_id'],
+                        'qtde' => $aloc['qtde'],
+                        'unidade' => $mat->unidade,
+                        'valor_unitario' => $aplicado['valor_unitario'],
+                        'valor_total' => $aplicado['valor_total'],
+                        'custo_medio_apos' => $aplicado['custo_medio_apos'],
+                        'ordem' => $ordemItem,
+                    ]);
+                    $ordemItem++;
+                }
+            }
+
+            $novaReq = PadraoDecimal::roundHalfUp(
+                bcsub($req, $qtde, PadraoDecimal::SCALE_QTY + 4),
+                PadraoDecimal::SCALE_QTY
+            );
+            $mat->qtde_requisitada = $novaReq;
+            // Avaria da separação não pode ficar maior que o que ainda está fora.
+            $avariaAtual = PadraoDecimal::roundHalfUp((string) ($mat->qtde_avaria ?? '0'), PadraoDecimal::SCALE_QTY);
+            if (bccomp($novaReq, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                $mat->saida_movimento_id = null;
+                $mat->qtde_avaria = '0';
+                $mat->motivo_avaria = null;
+                $mat->avaria_em = null;
+                $mat->avaria_por = null;
+            } elseif (bccomp($avariaAtual, $novaReq, PadraoDecimal::SCALE_QTY) > 0) {
+                $mat->qtde_avaria = $novaReq;
+                if (bccomp($novaReq, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                    $mat->motivo_avaria = null;
+                    $mat->avaria_em = null;
+                    $mat->avaria_por = null;
+                }
+            }
+            $mat->save();
+
+            if ($op->insumos_entregues_em !== null) {
+                $op->insumos_entregues_em = null;
+                $op->insumos_entregues_por = null;
+                $op->insumos_recebidos_nome = null;
+                $op->save();
+            }
 
             return $op;
         });
@@ -1245,7 +1479,8 @@ class OrdemProducaoService
 
         $linhasComFaltante = 0;
         $materiais = $o->materiais->map(function (OrdemProducaoMaterial $m) use ($empresa, $o, $saldos, &$linhasComFaltante) {
-            $pendente = $m->saida_movimento_id === null;
+            $pendente = $m->saida_movimento_id === null
+                || bccomp((string) $m->qtde_requisitada, '0', PadraoDecimal::SCALE_QTY) <= 0;
             $disponivel = $saldos->get((int) $m->produto_id)
                 ? PadraoDecimal::roundHalfUp((string) $saldos->get((int) $m->produto_id)->qtde, PadraoDecimal::SCALE_QTY)
                 : PadraoDecimal::roundHalfUp('0', PadraoDecimal::SCALE_QTY);

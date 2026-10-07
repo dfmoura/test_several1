@@ -518,6 +518,52 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
     }
   };
 
+  const devolverMaterial = async (material: OrdemProducaoMaterial) => {
+    const form = avaria[material.id] ?? { qtde: '', motivo: '' };
+    if (form.motivo.trim().length < 3) {
+      setErr('Informe o motivo da devolução (mínimo 3 caracteres).');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const payload: Record<string, unknown> = {
+        material_id: material.id,
+        motivo: form.motivo.trim(),
+      };
+      if (modoRetirada(material) === 'volume') {
+        const vols =
+          material.retirada?.volumes_a_devolver?.length
+            ? material.retirada.volumes_a_devolver
+            : (material.retirada?.volumes_baixados ?? []);
+        if (vols.length === 0) {
+          setErr('Nenhum volume fora do estoque para devolver.');
+          setBusy(false);
+          return;
+        }
+        payload.volumes = vols
+          .filter((v) => v.lote_id)
+          .map((v) => ({
+            lote_id: v.lote_id as number,
+            qtde: String(parseQtdeDigitada(v.qtde_retirar)),
+          }));
+      } else {
+        payload.qtde = String(parseQtdeDigitada(material.qtde_requisitada));
+      }
+      const res = await api.post<{ data: OrdemProducao }>(
+        `/estoque/retiradas/${op.id}/devolver`,
+        payload,
+      );
+      aplicar(res.data);
+      setMsg('Material devolvido à prateleira. Pode pegar de novo se precisar.');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Falha ao devolver.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const prepararRepo = async (material: OrdemProducaoMaterial, qtdeForcada?: string) => {
     const form = avaria[material.id];
     const qtde =
@@ -1124,6 +1170,14 @@ export function OpFichaRetirada({ op, mode, onOp, pedido, hideResumo = false, hi
                     onClick={() => void registrarAvaria(m)}
                   >
                     Registrar perda
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy || !canWrite}
+                    onClick={() => void devolverMaterial(m)}
+                  >
+                    Devolver à prateleira
                   </button>
                   <button
                     type="button"

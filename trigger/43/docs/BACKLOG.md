@@ -207,9 +207,10 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
   - [x] Chão: QR + manual + avaria + reposição
   - [x] Anexo visível na OP
   - [x] PHPUnit `test_ficha_confronta_ciclo_avaria_e_reposicao_no_chao`
-- **Fora de escopo:** empenho reservado · WMS · segundo writer
-- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md`
-- **Teste local:** Estoque → Retiradas → ficha da OP → baixar (QR ou manual) → avaria → requisitar de novo. Ctrl+Shift+R.
+  - [x] Devolver “Já saiu” antes de concluir (`POST /estoque/retiradas/{op}/devolver` · `ENTRADA_SOBRA` · avaria limitada ao restante)
+- **Fora de escopo:** empenho reservado · WMS · segundo writer · estorno inventado
+- **Norma:** `docs/ADR_PRODUCAO_COLETA_DIRIGIDA.md` · `docs/ADR_OP_FICHA_KIT.md`
+- **Teste local:** Estoque → A buscar → baixar → Devolver à prateleira (parcial/total) → pegar de novo se precisar. Ctrl+Shift+R.
 
 ### BL-108 · [producao/estoque/ux] Coleta dirigida — chão QR + handoff + Painel (Fases B–C)
 - **Status:** Feito
