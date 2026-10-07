@@ -13,10 +13,24 @@ import {
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
-import { formatNecessidadeOp, formatPickPrincipal, modoRetirada } from '../lib/producaoPick';
+import {
+  leituraNecessidadeOp,
+  leituraQtdeMaterial,
+  unidadeExibicao,
+  type LeituraQtdeMaterial,
+} from '../lib/producaoPick';
 import { hrefFichaEstoque, parseQtdeDigitada } from '../lib/producaoUi';
 
 type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
+
+function QtdeMaterialLeitura({ leitura }: { leitura: LeituraQtdeMaterial }) {
+  return (
+    <>
+      {leitura.principal}
+      {leitura.complemento ? <span className="op-qtde-extra">{leitura.complemento}</span> : null}
+    </>
+  );
+}
 
 export function OrdemProducaoDetailPage() {
   const { id } = useParams();
@@ -185,25 +199,23 @@ export function OrdemProducaoDetailPage() {
                                   </div>
                                 ) : null}
                               </td>
-                              <td>{formatNecessidadeOp(m, op)}</td>
                               <td>
-                                {modoRetirada(m) === 'volume'
-                                  ? formatPickPrincipal(m, op)
-                                  : `${formatDecimalBr(Number(m.qtde_requisitada), 4)} ${m.unidade}`}
+                                <QtdeMaterialLeitura leitura={leituraNecessidadeOp(m, op)} />
                               </td>
                               <td>
-                                {modoRetirada(m) === 'volume'
-                                  ? parseQtdeDigitada(m.qtde_retorno) > 0
-                                    ? `${formatDecimalBr(Number(m.qtde_retorno), 4)} ${m.unidade}`
-                                    : '—'
-                                  : `${formatDecimalBr(Number(m.qtde_retorno), 4)} ${m.unidade}`}
+                                <QtdeMaterialLeitura
+                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_requisitada))}
+                                />
                               </td>
                               <td>
-                                {modoRetirada(m) === 'volume'
-                                  ? parseQtdeDigitada(m.qtde_perda) > 0
-                                    ? `${formatDecimalBr(Number(m.qtde_perda), 4)} ${m.unidade}`
-                                    : '—'
-                                  : `${formatDecimalBr(Number(m.qtde_perda), 4)} ${m.unidade}`}
+                                <QtdeMaterialLeitura
+                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_retorno))}
+                                />
+                              </td>
+                              <td>
+                                <QtdeMaterialLeitura
+                                  leitura={leituraQtdeMaterial(m, op, parseQtdeDigitada(m.qtde_perda))}
+                                />
                               </td>
                             </tr>
                           ))}
@@ -241,11 +253,9 @@ export function OrdemProducaoDetailPage() {
                       .filter((e) => e.key !== linha.key && e.produto)
                       .map((e) => e.produto!.id),
                   );
-                  const un = (
-                    linha.produto?.unidade_interna ||
-                    linha.produto?.unidade_comercial ||
-                    'un.'
-                  ).toUpperCase();
+                  const un = unidadeExibicao(
+                    linha.produto?.unidade_interna || linha.produto?.unidade_comercial,
+                  );
                   return (
                     <div key={linha.key} className="oc-form-page__item">
                       <div

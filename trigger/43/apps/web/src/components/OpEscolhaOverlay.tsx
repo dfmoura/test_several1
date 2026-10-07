@@ -6,7 +6,7 @@ import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   formatLotePick,
   formatMetrosLineares,
-  formatNecessidadeOp,
+  leituraNecessidadeOp,
   formatPickPrincipal,
   formatQtdePick,
   formatVolumeDimensao,
@@ -251,6 +251,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   };
 
   const tipo = opComponenteLabel(material.componente);
+  const leitura = leituraNecessidadeOp(material, op);
 
   return (
     <div className="op-escolha" role="dialog" aria-modal="true" aria-labelledby="op-escolha-title">
@@ -276,7 +277,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
           <div className="op-escolha__head-side">
             <div className="op-escolha__precisa">
               <span>A ordem pede</span>
-              <strong>{formatNecessidadeOp(material, op)}</strong>
+              <strong>{leitura.principal}</strong>
+              {leitura.complemento ? <span className="op-qtde-extra">{leitura.complemento}</span> : null}
             </div>
             {estado === 'ja_saiu' ? (
               <div className="op-escolha__precisa op-escolha__precisa--saiu">

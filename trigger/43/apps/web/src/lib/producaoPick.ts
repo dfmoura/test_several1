@@ -262,13 +262,52 @@ export function qtdeLinhaPick(m: OrdemProducaoMaterial): number {
   return parseQtdeDigitada(m.qtde_planejada) || parseQtdeDigitada(m.qtde_requisitada);
 }
 
-/** Unidade da OP na tela (m², não M2 de planilha). */
+function codigoUnidade(unidade: string | null | undefined): string {
+  return (unidade ?? '').trim().toUpperCase().replace('²', '2').replace('Ç', 'C');
+}
+
+/**
+ * Símbolo da unidade de estoque na tela.
+ * O código do cadastro (M2, UN, KG) não aparece cru.
+ */
 export function unidadeExibicao(unidade: string | null | undefined): string {
-  const u = (unidade ?? '').trim();
-  if (!u) return 'UN';
-  const n = u.toUpperCase().replace('²', '2');
-  if (n === 'M2') return 'm²';
-  return u;
+  switch (codigoUnidade(unidade)) {
+    case '':
+    case 'UN':
+    case 'PC':
+      return 'un';
+    case 'M2':
+      return 'm²';
+    case 'M':
+    case 'MT':
+    case 'ML':
+      return 'm';
+    case 'KG':
+      return 'kg';
+    case 'G':
+      return 'g';
+    case 'L':
+      return 'L';
+    case 'MIL':
+      return 'mil';
+    case 'CX':
+      return 'cx';
+    case 'PCT':
+      return 'pct';
+    case 'RL':
+      return 'rl';
+    default:
+      return (unidade ?? '').trim();
+  }
+}
+
+/**
+ * Bobina cuja quantidade gravada é área.
+ * MIL no SKU de volume continua área: o número não é milheiro.
+ */
+function qtdeGravadaEhArea(unidade: string | null | undefined): boolean {
+  const n = codigoUnidade(unidade);
+  return n === '' || n === 'M2' || n === 'MIL';
 }
 
 /** Metro linear que a OP precisa (m² planejado ÷ largura). Só bobina. */
@@ -280,34 +319,57 @@ export function metrosNecessidadeOp(
   return m2ParaMetros(qtdeLinhaPick(m), larguraMmNecessidadeOp(m, op));
 }
 
+export type LeituraQtdeMaterial = {
+  /** Quantidade na unidade de estoque do produto. */
+  principal: string;
+  /** Metro de pista da etiqueta. Só bobina em área (m²). */
+  complemento: string | null;
+};
+
+function complementoPista(qtde: number, pistaMm: number): string | null {
+  const metros = m2ParaMetros(qtde, pistaMm);
+  if (metros == null) return null;
+  const metrosTxt = formatQtdePick(metros, 'm');
+  if (pistaMm > 0) {
+    return `${metrosTxt} de pista · largura ${formatDecimalBr(pistaMm, 0)} mm`;
+  }
+  return `${metrosTxt} de pista`;
+}
+
 /**
- * Qtde de material na língua da tela.
- * Bobina: metro linear da **pista da etiqueta** (com largura) + área em m² (writer).
+ * Quantidade na unidade de estoque do produto, mais a leitura de pista quando a bobina é área.
+ * Metro e quilograma não ganham m² ao lado. MIL em volume continua área.
  * Metros de pista ≠ comprimento do rolo quando a bobina é mais larga que a etiqueta.
- * Se o SKU veio com unidade errada (ex.: MIL), a área continua m² — a conversão assume área.
+ */
+export function leituraQtdeMaterial(
+  m: OrdemProducaoMaterial,
+  op: OrdemProducao | null | undefined,
+  qtde: number,
+): LeituraQtdeMaterial {
+  if (!(qtde > 0)) return { principal: '—', complemento: null };
+  const area = modoRetirada(m) === 'volume' && qtdeGravadaEhArea(m.unidade);
+  if (!area) {
+    return { principal: formatQtdePick(qtde, unidadeExibicao(m.unidade)), complemento: null };
+  }
+  return {
+    principal: formatQtdePick(qtde, 'm²'),
+    complemento: complementoPista(qtde, larguraMmNecessidadeOp(m, op)),
+  };
+}
+
+function juntarLeitura(leitura: LeituraQtdeMaterial): string {
+  return leitura.complemento ? `${leitura.principal} · ${leitura.complemento}` : leitura.principal;
+}
+
+/**
+ * Qtde de material numa linha só. A unidade oficial vem na frente; a pista, depois.
  */
 export function formatQtdeMaterial(
   m: OrdemProducaoMaterial,
   op: OrdemProducao | null | undefined,
   qtde: number,
 ): string {
-  if (!(qtde > 0)) return '—';
-  if (modoRetirada(m) !== 'volume') {
-    return formatQtdePick(qtde, unidadeExibicao(m.unidade));
-  }
-  const un = (m.unidade ?? '').toUpperCase().replace('²', '2');
-  if (un === 'M' || un === 'MT' || un === 'ML') {
-    return formatQtdePick(qtde, 'm');
-  }
-  const pistaMm = larguraMmNecessidadeOp(m, op);
-  const metros = m2ParaMetros(qtde, pistaMm);
-  const area = formatQtdePick(qtde, 'm²');
-  if (metros == null) return area;
-  const pista =
-    pistaMm > 0
-      ? ` de pista (${formatDecimalBr(pistaMm, 0)} mm)`
-      : ' de pista';
-  return `${formatQtdePick(metros, 'm')}${pista} · ${area}`;
+  return juntarLeitura(leituraQtdeMaterial(m, op, qtde));
 }
 
 /**
@@ -331,15 +393,25 @@ function necessidadeFicha(m: OrdemProducaoMaterial, op?: OrdemProducao | null): 
 }
 
 /**
+ * Quanto a OP pede deste material (`qtde_planejada`), em duas leituras.
+ */
+export function leituraNecessidadeOp(
+  m: OrdemProducaoMaterial,
+  op?: OrdemProducao | null,
+): LeituraQtdeMaterial {
+  const n = qtdeLinhaPick(m);
+  if (n <= 0) return { principal: 'Sem quantidade', complemento: null };
+  return leituraQtdeMaterial(m, op, n);
+}
+
+/**
  * Quanto a OP pede deste material (`qtde_planejada`).
  */
 export function formatNecessidadeOp(
   m: OrdemProducaoMaterial,
   op?: OrdemProducao | null,
 ): string {
-  const n = qtdeLinhaPick(m);
-  if (n <= 0) return 'Sem quantidade';
-  return formatQtdeMaterial(m, op, n);
+  return juntarLeitura(leituraNecessidadeOp(m, op));
 }
 
 /** Rolo padrão de substrato quando o volume ainda não tem comprimento conferido. */
@@ -412,7 +484,7 @@ export function qtdeVolumeTotal(v: OpRetiradaVolume): number {
 }
 
 export function formatVolumeTotal(v: OpRetiradaVolume): string {
-  return formatQtdePick(qtdeVolumeTotal(v), v.unidade || 'M2');
+  return formatQtdePick(qtdeVolumeTotal(v), unidadeExibicao(v.unidade || 'M2'));
 }
 
 export function formatLotePick(v: { codigo?: string | null; lote_id?: number | null }): string {

@@ -4,7 +4,7 @@ import { OpEscolhaOverlay } from './OpEscolhaOverlay';
 import type { OrdemProducao, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { linhaImpressaoFlexo } from '../lib/opFichaFlexo';
-import { formatNecessidadeOp, opKitLinhasOrdenadas } from '../lib/producaoPick';
+import { leituraNecessidadeOp, opKitLinhasOrdenadas } from '../lib/producaoPick';
 import { specOperacional } from '../lib/producaoFicha';
 import {
   hrefApontamentoProducao,
@@ -100,13 +100,14 @@ export function OpKitPainel({
             {porta === 'chao'
               ? 'Toque no material, marque a bobina que saiu da prateleira e confirme. Quem recebe é a produção.'
               : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}{' '}
-            Bobina: a ordem pede metros de pista da etiqueta + área em m². Sai bobina inteira — compare pela
-            área (m²), não pelo comprimento do rolo.
+            Bobina: a quantidade é a área em m². Embaixo, o metro de pista da etiqueta. Sai bobina
+            inteira — compare pela área, não pelo comprimento do rolo.
           </p>
           <div className="op-kit__tiles">
             {linhas.map((m) => {
               const estado = opKitEstado(m);
               const tipo = opComponenteLabel(m.componente);
+              const leitura = leituraNecessidadeOp(m, op);
               return (
                 <button
                   key={m.id}
@@ -118,7 +119,10 @@ export function OpKitPainel({
                   <span className="op-kit-tile__nome">{opKitNome(m)}</span>
                   <span className="op-kit-tile__qtde">
                     <span className="op-kit-tile__qtde-kicker">A ordem pede</span>
-                    {formatNecessidadeOp(m, op)}
+                    {leitura.principal}
+                    {leitura.complemento ? (
+                      <span className="op-qtde-extra">{leitura.complemento}</span>
+                    ) : null}
                   </span>
                   <span className="op-kit-tile__st">{opKitEstadoLabel(estado)}</span>
                 </button>
