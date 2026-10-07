@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\EstoqueController;
 use App\Http\Controllers\Api\V1\EstoqueInventarioController;
 use App\Http\Controllers\Api\V1\EstoqueOperacionalController;
 use App\Http\Controllers\Api\V1\EstoqueRetiradaController;
+use App\Http\Controllers\Api\V1\EstoqueSeparacaoRevendaController;
 use App\Http\Controllers\Api\V1\EstoqueVolumeController;
 use App\Http\Controllers\Api\V1\EntregaController;
 use App\Http\Controllers\Api\V1\FacasController;
@@ -333,6 +334,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/retiradas/{ordemProducao}/preview', [EstoqueRetiradaController::class, 'preview']);
         Route::post('/estoque/retiradas/{ordemProducao}/avaria', [EstoqueRetiradaController::class, 'avaria']);
         Route::post('/estoque/retiradas/{ordemProducao}/confirmar', [EstoqueRetiradaController::class, 'confirmar']);
+        Route::get('/estoque/separacoes', [EstoqueSeparacaoRevendaController::class, 'index']);
+        Route::get('/estoque/separacoes/{pedidoItem}', [EstoqueSeparacaoRevendaController::class, 'show']);
+        Route::post('/estoque/separacoes/{pedidoItem}/confirmar', [EstoqueSeparacaoRevendaController::class, 'confirmar']);
         Route::get('/estoque/movimentos', [EstoqueController::class, 'movimentos']);
         Route::get('/estoque/movimentos/{estoqueMovimento}/ficha-entrada', [EstoqueVolumeController::class, 'fichaEntrada']);
         Route::get('/estoque/produtos/{produto}/extrato', [EstoqueController::class, 'extrato']);

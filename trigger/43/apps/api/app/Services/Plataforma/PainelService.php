@@ -15,6 +15,7 @@ use App\Models\Pedido;
 use App\Models\Titulo;
 use App\Models\User;
 use App\Services\Estoque\EstoqueReposicaoService;
+use App\Services\Estoque\EstoqueSeparacaoRevendaService;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Producao\ProducaoApontamentoService;
 use App\Services\Producao\ProducaoColetaService;
@@ -55,6 +56,7 @@ class PainelService
         private readonly EstoqueReposicaoService $reposicao,
         private readonly ProducaoColetaService $coleta,
         private readonly ProducaoApontamentoService $apontamento,
+        private readonly EstoqueSeparacaoRevendaService $separacaoRevenda,
     ) {}
 
     /**
@@ -242,6 +244,14 @@ class PainelService
                 'Sai da prateleira para a produção',
                 $aBuscar,
                 '/estoque/retiradas',
+            );
+            $this->fila(
+                $filas,
+                'revenda_separacao',
+                'A separar (revenda)',
+                'Sai da prateleira para revender — o saldo sai na NF-e',
+                $this->separacaoRevenda->contar($empresa),
+                '/estoque/separacoes',
             );
             // Local não trava nota nem ajuste: o volume nasce e esta fila pede Guardar.
             $aGuardar = EstoqueLote::query()

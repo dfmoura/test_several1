@@ -4,6 +4,7 @@ import { OpFichaRetirada } from '../components/OpFichaRetirada';
 import { OpKitPainel } from '../components/OpKitPainel';
 import { api, type OrdemProducao } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { onAbrirFichaClick } from '../lib/fichaNav';
 
 /**
  * Porta do estoque: o físico que sai da prateleira.
@@ -47,6 +48,15 @@ export function EstoqueRetiradaChaoPage() {
         <Link className="btn btn-secondary btn-sm" to="/estoque/retiradas">
           Fila
         </Link>
+        {op ? (
+          <a
+            className="btn btn-secondary btn-sm"
+            href={`/estoque/retiradas/${op.id}/ficha`}
+            onClick={(e) => onAbrirFichaClick(e, `/estoque/retiradas/${op.id}/ficha`)}
+          >
+            Ficha para o estoque
+          </a>
+        ) : null}
         {op ? <span className="pick-toolbar__ref">{op.codigo}</span> : null}
       </div>
 

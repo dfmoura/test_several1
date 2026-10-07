@@ -20,7 +20,6 @@ type Props = {
   pedido: Pedido;
   busy?: boolean;
   canWriteProducao?: boolean;
-  onSepararRevenda?: (itemId: number) => void;
   onAbrirOrdem?: (itemId: number, necessidade: string) => void;
 };
 
@@ -56,7 +55,6 @@ export function PedidoItensContrato({
   pedido,
   busy = false,
   canWriteProducao = false,
-  onSepararRevenda,
   onAbrirOrdem,
 }: Props) {
   const podeAgir = canWriteProducao && ['LIBERADO', 'EM_PRODUCAO'].includes(pedido.status);
@@ -72,7 +70,7 @@ export function PedidoItensContrato({
           <h3>Itens do pedido</h3>
           <p className="muted" style={{ marginTop: 0 }}>
             Continuação do orçamento aprovado — cada posição com a faixa contratada e os
-            modelos respectivos. Revenda confirma a separação aqui, sem ordem.
+            modelos respectivos. Revenda segue para o estoque separar, sem ordem.
           </p>
         </div>
 
@@ -103,7 +101,6 @@ export function PedidoItensContrato({
                   item={item}
                   busy={busy}
                   podeAgir={podeAgir}
-                  onSepararRevenda={onSepararRevenda}
                   onAbrirOrdem={onAbrirOrdem}
                 />
               ))}
@@ -131,14 +128,12 @@ function PedidoItemGrupo({
   item,
   busy,
   podeAgir,
-  onSepararRevenda,
   onAbrirOrdem,
 }: {
   pedido: Pedido;
   item: PedidoItem;
   busy: boolean;
   podeAgir: boolean;
-  onSepararRevenda?: (itemId: number) => void;
   onAbrirOrdem?: (itemId: number, necessidade: string) => void;
 }) {
   const spec = specOperacional(pedido, item);
@@ -198,15 +193,13 @@ function PedidoItemGrupo({
         </td>
         <td>
           <div className="table-actions table-actions--wrap">
-            {isRevenda && podeAgir && item.status === 'PENDENTE' && onSepararRevenda ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={() => onSepararRevenda(item.id)}
+            {isRevenda && (item.status === 'PENDENTE' || item.status === 'PRODUZIDO') ? (
+              <Link
+                to={`/estoque/separacoes/${item.id}`}
+                className={item.status === 'PENDENTE' ? 'btn btn-primary' : 'btn btn-secondary'}
               >
-                Confirmar separação
-              </button>
+                {item.status === 'PENDENTE' ? 'Separar no estoque' : 'Ficha de separação'}
+              </Link>
             ) : null}
             {item.necessidade === 'PRODUCAO' && opAtiva ? (
               <Link to={`/ordens-producao/${opAtiva.id}`} className="btn btn-secondary">

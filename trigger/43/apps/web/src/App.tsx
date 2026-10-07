@@ -74,6 +74,10 @@ import { EstoqueVolumesEtiquetasPage } from './pages/EstoqueVolumesEtiquetasPage
 import { EstoqueGuardarPage } from './pages/EstoqueGuardarPage';
 import { EstoqueRetiradasPage } from './pages/EstoqueRetiradasPage';
 import { EstoqueRetiradaChaoPage } from './pages/EstoqueRetiradaChaoPage';
+import { EstoqueRetiradaFichaPage } from './pages/EstoqueRetiradaFichaPage';
+import { EstoqueSeparacoesPage } from './pages/EstoqueSeparacoesPage';
+import { EstoqueSeparacaoChaoPage } from './pages/EstoqueSeparacaoChaoPage';
+import { EstoqueSeparacaoFichaPage } from './pages/EstoqueSeparacaoFichaPage';
 import { PedidosPage } from './pages/PedidosPage';
 import { PedidoDetailPage } from './pages/PedidoDetailPage';
 import { PedidoFichaPage } from './pages/PedidoFichaPage';
@@ -521,6 +525,22 @@ export default function App() {
           }
         />
         <Route
+          path="estoque/separacoes"
+          element={
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <EstoqueSeparacoesPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="estoque/separacoes/:id"
+          element={
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <EstoqueSeparacaoChaoPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="estoque/movimentos/:movimentoId/ficha-entrada"
           element={
             <PermissionRoute permission="estoque.ler">
@@ -909,6 +929,28 @@ export default function App() {
           <ProtectedRoute>
             <PermissionRoute permission="producao.ler">
               <OrdemProducaoFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/estoque/retiradas/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission="estoque.ler">
+              <EstoqueRetiradaFichaPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/estoque/separacoes/:id/ficha"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute permission={['estoque.ler', 'producao.ler']}>
+              <EstoqueSeparacaoFichaPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

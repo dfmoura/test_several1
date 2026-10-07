@@ -226,7 +226,9 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'estoque.ler',
         isActivePath: (pathname) =>
           pathname === '/estoque' ||
-          (pathname.startsWith('/estoque/') && !pathname.startsWith('/estoque/retiradas')),
+          (pathname.startsWith('/estoque/') &&
+            !pathname.startsWith('/estoque/retiradas') &&
+            !pathname.startsWith('/estoque/separacoes')),
       },
       {
         to: '/estoque/retiradas',
@@ -235,6 +237,14 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'estoque.ler',
         title: 'O que sai da prateleira para a produção',
         isActivePath: (pathname) => pathname.startsWith('/estoque/retiradas'),
+      },
+      {
+        to: '/estoque/separacoes',
+        label: 'A separar',
+        icon: IconEstoque,
+        permission: 'estoque.ler',
+        title: 'O que sai da prateleira para revenda — o saldo sai na NF-e',
+        isActivePath: (pathname) => pathname.startsWith('/estoque/separacoes'),
       },
     ],
   },

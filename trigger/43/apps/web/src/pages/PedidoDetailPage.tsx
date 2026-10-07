@@ -91,24 +91,6 @@ export function PedidoDetailPage() {
     void load();
   }, [id]);
 
-  const separarRevenda = async (itemId: number) => {
-    if (!pedido) return;
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      await api.post<{ data: Pedido }>(`/pedidos/${pedido.id}/separar-revenda`, {
-        pedido_item_id: itemId,
-      });
-      setMsg('Separação de revenda confirmada.');
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Não foi possível confirmar a separação.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const abrirOrdem = async (itemId: number, necessidade: string) => {
     if (!pedido) return;
     setBusy(true);
@@ -368,7 +350,6 @@ export function PedidoDetailPage() {
             pedido={pedido}
             busy={busy}
             canWriteProducao={hasPermission('producao.escrever')}
-            onSepararRevenda={(itemId) => void separarRevenda(itemId)}
             onAbrirOrdem={(itemId, necessidade) => void abrirOrdem(itemId, necessidade)}
           />
 

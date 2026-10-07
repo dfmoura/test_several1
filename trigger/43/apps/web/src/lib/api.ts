@@ -3453,6 +3453,58 @@ export type EstoqueRetiradasFila = {
   resumo: { a_retirar: number; a_entregar: number; total: number };
 };
 
+export type EstoqueSeparacaoCard = {
+  pedido_item_id: number;
+  pedido_id: number;
+  pedido_codigo: string | null;
+  parceiro: { id: number; razao_social: string } | null;
+  produto: { id: number; codigo: string; descricao: string } | null;
+  descricao: string;
+  qtde: string;
+  unidade: string;
+  primeiro_local: string | null;
+};
+
+export type EstoqueSeparacaoFila = {
+  a_separar: EstoqueSeparacaoCard[];
+  resumo: { a_separar: number };
+};
+
+export type EstoqueSeparacaoVolumeMarcado = {
+  lote_id: number;
+  codigo: string | null;
+  qtde: string;
+  unidade: string | null;
+  endereco: string | null;
+};
+
+export type EstoqueSeparacaoDetalhe = {
+  pedido_item_id: number;
+  pedido_id: number;
+  pedido_codigo: string | null;
+  pedido_status: string | null;
+  parceiro: { id: number; razao_social: string } | null;
+  descricao: string;
+  qtde_pedida: string;
+  unidade: string;
+  status: string;
+  pode_confirmar: boolean;
+  produto: {
+    id: number;
+    codigo: string;
+    descricao: string;
+    unidade: string | null;
+    controla_lote: boolean;
+  } | null;
+  saldo: string;
+  retirada: OpRetiradaPreview;
+  separacao: {
+    qtde: string;
+    em: string | null;
+    volumes: EstoqueSeparacaoVolumeMarcado[];
+  } | null;
+};
+
 export type ProducaoApontamentoCard = {
   id: number;
   codigo: string;

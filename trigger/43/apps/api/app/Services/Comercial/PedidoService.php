@@ -126,11 +126,18 @@ class PedidoService
     }
 
     /**
-     * Confirma separação de item REV — sem OP. qtde faturável = pedida.
+     * Confirma separação de item REV — sem OP e sem MOV.
+     * Volumes marcados ficam no snapshot (o que o estoque levou). A baixa é a NF-e.
      *
+     * @param  list<array<string, mixed>>  $volumesMarcados
      * @return array<string, mixed>
      */
-    public function separarRevenda(Empresa $empresa, Pedido $pedido, PedidoItem $item): array
+    public function separarRevenda(
+        Empresa $empresa,
+        Pedido $pedido,
+        PedidoItem $item,
+        array $volumesMarcados = [],
+    ): array
     {
         if ($pedido->empresa_id !== $empresa->id || $item->pedido_id !== $pedido->id) {
             abort(404);
@@ -154,7 +161,7 @@ class PedidoService
             ]);
         }
 
-        return DB::transaction(function () use ($pedido, $item) {
+        return DB::transaction(function () use ($pedido, $item, $volumesMarcados) {
             $qtde = PadraoDecimal::roundHalfUp((string) $item->qtde_pedida, PadraoDecimal::SCALE_QTY);
             if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                 throw ValidationException::withMessages([
@@ -176,11 +183,16 @@ class PedidoService
             }
 
             $snap = is_array($pedido->snapshot) ? $pedido->snapshot : [];
-            $snap['separacao_revenda'] = [
+            $registro = [
                 'pedido_item_id' => $item->id,
                 'qtde' => $qtde,
                 'em' => now()->toIso8601String(),
+                'volumes' => array_values($volumesMarcados),
             ];
+            $snap['separacao_revenda'] = $registro;
+            $porItem = is_array($snap['separacoes_revenda'] ?? null) ? $snap['separacoes_revenda'] : [];
+            $porItem[(string) $item->id] = $registro;
+            $snap['separacoes_revenda'] = $porItem;
             $pedido->snapshot = $snap;
             $pedido->save();
 
