@@ -37,6 +37,16 @@ class ProdutoLotePoliticaTest extends TestCase
         }
     }
 
+    public function test_mp_substrato_tinta_default_com_lote(): void
+    {
+        foreach (['MP-PAP', 'MP-FLM', 'MP-LAM', 'MP-TIN', 'MP-ADF', 'MP-CLD', 'MP-TEC', 'MP-RET'] as $grupo) {
+            $p = ProdutoLotePolitica::paraGrupo($grupo);
+            $this->assertTrue($p['controla_lote'], $grupo);
+        }
+        $this->assertFalse(ProdutoLotePolitica::paraGrupo('MUC-GER')['controla_lote']);
+        $this->assertFalse(ProdutoLotePolitica::paraGrupo('PA-ETQ')['controla_lote']);
+    }
+
     public function test_abertura_soma_igual_ao_total(): void
     {
         $produto = new \App\Models\Produto([

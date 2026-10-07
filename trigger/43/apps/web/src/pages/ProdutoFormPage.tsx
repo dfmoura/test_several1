@@ -15,7 +15,11 @@ import {
   nomesAindaIguaisAoModelo,
 } from '../lib/produtoCadastroOrientacaoUi';
 import { decideUnidadesConversaoUi, unidadesDiferem } from '../lib/produtoUnidadesConversaoUi';
-import { politicaLotePorGrupo } from '../lib/produtoLotePolitica';
+import {
+  avisoLoteDesligadoContraPolitica,
+  hintLoteVolumeLocal,
+  politicaLotePorGrupo,
+} from '../lib/produtoLotePolitica';
 import { DECIMAL_SCALE, decimalStep, familiaLabel, naturezaGrupoLabel } from '../lib/format';
 
 /** Chaves do formulário em `atributos` — espelho de ProdutoAtributos::FORM_KEYS. */
@@ -268,6 +272,10 @@ function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: b
   const fill = (current: string, next: string | null | undefined) =>
     force || !current ? (next ?? '') : current;
 
+  // Lote/volume: sempre espelha o grupo ao aplicar defaults (troca de grupo).
+  // Operador ainda pode ligar/desligar no formulário depois — ADR §política.
+  const pol = politicaLotePorGrupo(grupo.codigo);
+
   return {
     ...base,
     grupo_id: String(grupo.id),
@@ -280,17 +288,9 @@ function applyGrupoDefaults(base: ProdutoFormData, grupo: ProdutoGrupo, force: b
     grupo_estoque: fill(base.grupo_estoque, grupo.grupo_estoque_padrao),
     cfop_entrada_padrao: fill(base.cfop_entrada_padrao, grupo.cfop_entrada_padrao),
     cfop_saida_padrao: fill(base.cfop_saida_padrao, grupo.cfop_saida_padrao),
-    ...(() => {
-      const pol = politicaLotePorGrupo(grupo.codigo);
-      if (!force && (base.controla_lote || base.controla_validade || base.prazo_validade_dias)) {
-        return {};
-      }
-      return {
-        controla_lote: pol.controla_lote,
-        controla_validade: pol.controla_validade,
-        prazo_validade_dias: pol.prazo_validade_dias != null ? String(pol.prazo_validade_dias) : '',
-      };
-    })(),
+    controla_lote: pol.controla_lote,
+    controla_validade: pol.controla_validade,
+    prazo_validade_dias: pol.prazo_validade_dias != null ? String(pol.prazo_validade_dias) : '',
   };
 }
 
@@ -625,6 +625,10 @@ export function ProdutoFormPage() {
     [grupos, form.grupo_id]
   );
 
+  const avisoLoteContraPolitica = avisoLoteDesligadoContraPolitica(
+    form.grupo,
+    form.controla_lote,
+  );
 
   const unitsDiffer = useMemo(
     () => unidadesDiferem(form.unidade_comercial, form.unidade_interna),
@@ -1542,11 +1546,17 @@ export function ProdutoFormPage() {
                           });
                         }}
                       />{' '}
-                      Controla lote
+                      Controla lote (volume)
                     </label>
                     <span className="form-hint">
-                      Substratos e tintas: sim. Tubete, caixa e ribbon: não.
+                      {hintLoteVolumeLocal(form.controla_lote)} MP bobina/tinta: sim. EMB/REV/MUC/PA:
+                      não.
                     </span>
+                    {avisoLoteContraPolitica ? (
+                      <span className="form-hint" style={{ color: '#b45309' }}>
+                        {avisoLoteContraPolitica}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="form-group">
                     <label>

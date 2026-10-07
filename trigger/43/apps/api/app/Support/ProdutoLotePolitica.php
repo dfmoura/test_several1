@@ -5,6 +5,9 @@ namespace App\Support;
 /**
  * Política de lote/validade por grupo — estudo 32 CONTROLE_ESTOQUE_PROFISSIONAL §6.2.
  * Substratos e tintas controlam lote; adesivos/tintas/foils controlam validade.
+ *
+ * Volume = estoque_lotes quando controla_lote. Localização (Guardar / endereco_id)
+ * só existe no volume — não no SKU. Não forçar lote em EMB/REV/PA/MUC.
  */
 final class ProdutoLotePolitica
 {
