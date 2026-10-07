@@ -336,9 +336,9 @@ export function EstoquePage() {
       {!loading && volumesSemLocal > 0 && (
         <div className="alert alert-warning alert--compact" style={{ marginBottom: '0.75rem' }}>
           {volumesSemLocal} volume(s) com saldo ainda sem local —{' '}
-          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Ver volumes</Link>
+          <Link to="/estoque/guardar">Guardar no local</Link>
           {' · '}
-          <Link to="/estoque/guardar">Guardar</Link>
+          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Etiquetas</Link>
         </div>
       )}
 

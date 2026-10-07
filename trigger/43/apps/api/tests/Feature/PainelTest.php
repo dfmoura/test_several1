@@ -228,7 +228,7 @@ class PainelTest extends TestCase
             ->assertOk();
         $this->assertSame(1, $this->filaCount($a->json('data.filas'), 'a_guardar'));
         $filaA = collect($a->json('data.filas'))->firstWhere('id', 'a_guardar');
-        $this->assertSame('/estoque/lotes/etiquetas?sem_endereco=1', $filaA['to']);
+        $this->assertSame('/estoque/guardar', $filaA['to']);
 
         $b = $this->withHeader('X-Empresa-Id', (string) $this->empB->id)
             ->getJson('/api/v1/painel')

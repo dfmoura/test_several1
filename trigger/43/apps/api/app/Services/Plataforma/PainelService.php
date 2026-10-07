@@ -253,7 +253,8 @@ class PainelService
                 $this->separacaoRevenda->contar($empresa),
                 '/estoque/separacoes',
             );
-            // Local não trava nota nem ajuste: o volume nasce e esta fila pede Guardar.
+            // Local não trava nota nem ajuste: o volume nasce e esta fila pede Guardar
+            // (ação = /estoque/guardar; etiquetas ficam no fluxo pós-receber / reimpressão).
             $aGuardar = EstoqueLote::query()
                 ->where('empresa_id', $empresa->id)
                 ->whereNull('endereco_id')
@@ -263,9 +264,9 @@ class PainelService
                 $filas,
                 'a_guardar',
                 'A guardar',
-                'Volume com saldo ainda sem local',
+                'Volume com saldo ainda sem local — amarre no local',
                 $aGuardar,
-                '/estoque/lotes/etiquetas?sem_endereco=1',
+                '/estoque/guardar',
             );
         }
 

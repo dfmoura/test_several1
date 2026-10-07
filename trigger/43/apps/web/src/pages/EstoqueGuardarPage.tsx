@@ -1,11 +1,21 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
 import { EstoqueQrFilaPanel } from '../components/EstoqueQrFilaPanel';
 import { useEstoqueQrFila } from '../hooks/useEstoqueQrFila';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, type EstoqueLote } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
+
+async function contarVolumesSemLocal(): Promise<number | null> {
+  try {
+    const res = await api.get<{ data: EstoqueLote[] }>('/estoque/lotes?com_qtde=1');
+    return res.data.filter((l) => l.endereco_id == null && Number(l.qtde) > 0).length;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * WMS leve — amarra volume(s) (VOL) ↔ local (END).
@@ -16,6 +26,11 @@ export function EstoqueGuardarPage() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('estoque.escrever');
   const qr = useEstoqueQrFila({ canWrite });
+  const [pendentesSemLocal, setPendentesSemLocal] = useState<number | null>(null);
+
+  useEffect(() => {
+    void contarVolumesSemLocal().then(setPendentesSemLocal);
+  }, []);
 
   const guardarFila = async () => {
     if (!canWrite) {
@@ -67,6 +82,10 @@ export function EstoqueGuardarPage() {
     qr.setFila(restantes);
     qr.setBusy(false);
 
+    if (ok.length > 0) {
+      void contarVolumesSemLocal().then(setPendentesSemLocal);
+    }
+
     const localCodigo = qr.endereco.codigo;
     if (falhas.length === 0) {
       qr.setMsg(
@@ -111,7 +130,14 @@ export function EstoqueGuardarPage() {
             <Link className="btn btn-secondary" to="/estoque/enderecos/etiquetas">
               Etiquetas dos locais
             </Link>
-            <Link className="btn btn-secondary" to="/estoque/lotes/etiquetas">
+            <Link
+              className="btn btn-secondary"
+              to={
+                pendentesSemLocal && pendentesSemLocal > 0
+                  ? '/estoque/lotes/etiquetas?sem_endereco=1'
+                  : '/estoque/lotes/etiquetas'
+              }
+            >
               Reimprimir volumes
             </Link>
           </>
@@ -119,6 +145,20 @@ export function EstoqueGuardarPage() {
       />
 
       <EstoqueModuleNav />
+
+      {pendentesSemLocal != null && pendentesSemLocal > 0 && (
+        <div className="alert alert-warning alert--compact" style={{ marginBottom: '0.75rem' }}>
+          {pendentesSemLocal} volume(s) com saldo ainda sem local — leia o QR da bobina e o QR do
+          local, depois confirme. Sem etiqueta?{' '}
+          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Imprimir volumes sem local</Link>.
+        </div>
+      )}
+
+      {pendentesSemLocal === 0 && (
+        <div className="alert alert-success alert--compact" style={{ marginBottom: '0.75rem' }}>
+          Nenhum volume com saldo sem local. Pode guardar para mudar de prateleira.
+        </div>
+      )}
 
       <EstoqueQrFilaPanel
         qr={qr}

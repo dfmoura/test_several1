@@ -308,9 +308,9 @@ export function EstoqueMapaPage() {
       {resumo && resumo.volumes_sem_local > 0 && (
         <div className="alert alert-warning alert--compact" style={{ marginBottom: '0.75rem' }}>
           {resumo.volumes_sem_local} volume(s) com saldo ainda sem local —{' '}
-          <Link to="/estoque/guardar">Guardar</Link>
+          <Link to="/estoque/guardar">Guardar no local</Link>
           {' · '}
-          <Link to="/estoque/lotes/etiquetas">Reimprimir volumes</Link>
+          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Etiquetas sem local</Link>
         </div>
       )}
 

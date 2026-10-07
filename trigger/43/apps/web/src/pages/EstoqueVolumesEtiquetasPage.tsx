@@ -129,10 +129,17 @@ export function EstoqueVolumesEtiquetasPage() {
             <Link className="btn btn-secondary" to="/estoque">
               Estoque
             </Link>
-            <Link className="btn btn-secondary" to="/estoque/guardar">
+            <Link
+              className={semEndereco ? 'btn btn-primary' : 'btn btn-secondary'}
+              to="/estoque/guardar"
+            >
               Guardar no local
             </Link>
-            <button type="button" className="btn btn-primary no-print" onClick={() => window.print()}>
+            <button
+              type="button"
+              className={`btn no-print ${semEndereco ? 'btn-secondary' : 'btn-primary'}`}
+              onClick={() => window.print()}
+            >
               Imprimir
             </button>
           </>
