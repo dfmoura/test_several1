@@ -79,7 +79,7 @@ export function EstoqueEnderecosEtiquetasPage() {
       const d = res.data;
       const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} V→L` : '';
       const desativados =
-        d.desativados > 0 ? `, ${d.desativados} fora do gabarito desativado(s)` : '';
+        d.desativados > 0 ? `, ${d.desativados} legado duplicado inativado(s)` : '';
       setMsg(
         `Gabarito 6×4×3: ${d.total} locais (${d.criados} criados, ${d.existentes} ok${renomeados}${desativados}).`,
       );
@@ -95,7 +95,7 @@ export function EstoqueEnderecosEtiquetasPage() {
     <div className="page">
       <PageHeader
         title="Etiquetas dos locais"
-        description="QR da localização (estante). Cole em cada local P01-C01-L01 … P06-C04-L03."
+        description="QR da localização (estante). Cole no endereço impresso, do gabarito ou do local cadastrado."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -132,12 +132,14 @@ export function EstoqueEnderecosEtiquetasPage() {
             <div className="form-group" style={{ margin: 0 }}>
               <label>Prateleira</label>
               <select value={prateleiraFiltro} onChange={(e) => setPrateleiraFiltro(e.target.value)}>
-                <option value="">Todas (72)</option>
-                {[1, 2, 3, 4, 5, 6].map((p) => (
-                  <option key={p} value={String(p)}>
-                    P{String(p).padStart(2, '0')}
-                  </option>
-                ))}
+                <option value="">{`Todas (${enderecos.length})`}</option>
+                {[...new Set(enderecos.map((e) => e.prateleira))]
+                  .sort((a, b) => a - b)
+                  .map((p) => (
+                    <option key={p} value={String(p)}>
+                      P{String(p).padStart(2, '0')}
+                    </option>
+                  ))}
               </select>
             </div>
             <button type="button" className="btn btn-secondary" disabled={seeding} onClick={() => void seed()}>

@@ -369,8 +369,8 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.volumes_count', 0);
 
-        // Realinhamento: V04 legado sai do gabarito ativo (sem apagar).
-        EstoqueEndereco::query()->create([
+        // Extensão legada V04 permanece ativa; o seed só alinha o código no mesmo id.
+        $ext = EstoqueEndereco::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'P01-C01-V04',
             'prateleira' => 1,
@@ -382,17 +382,22 @@ class EstoqueVolumeMultiTest extends TestCase
             'ativo' => true,
         ]);
         $realinhado = app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
-        $this->assertSame(1, $realinhado['desativados']);
-        $this->assertFalse(
-            (bool) EstoqueEndereco::query()
-                ->where('empresa_id', $this->empresa->id)
-                ->where('codigo', 'P01-C01-V04')
-                ->value('ativo')
-        );
+        $this->assertSame(0, $realinhado['desativados']);
+        $this->assertSame(1, $realinhado['renomeados']);
+        $ext->refresh();
+        $this->assertTrue($ext->ativo);
+        $this->assertSame('P01-C01-L04', $ext->codigo);
         $this->assertSame(
-            72,
+            73,
             EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
         );
+
+        $legadoExt = 'END:'.$this->empresa->id.':'.$ext->id.':P01-C01-V04';
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($legadoExt))
+            ->assertOk()
+            ->assertJsonPath('data.id', $ext->id)
+            ->assertJsonPath('data.codigo', 'P01-C01-L04');
     }
 
     public function test_mapa_ocupacao_agrega_volumes_por_local(): void
@@ -469,6 +474,161 @@ class EstoqueVolumeMultiTest extends TestCase
             ->getJson('/api/v1/estoque/lotes?endereco_id='.$end->id.'&com_qtde=1')
             ->assertOk()
             ->assertJsonCount(2, 'data');
+    }
+
+    public function test_cadastra_local_alem_do_gabarito_sem_apagar_no_seed(): void
+    {
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+
+        $l04 = $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 1,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.codigo', 'P01-C01-L04')
+            ->assertJsonPath('data.vao', 4)
+            ->json('data');
+
+        $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 1,
+                'vao' => 4,
+            ])
+            ->assertStatus(422);
+
+        $p07 = $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 7,
+                'coluna' => 1,
+                'vao' => 1,
+                'largura_m' => '1.200',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.codigo', 'P07-C01-L01')
+            ->json('data');
+
+        $mapa = $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/mapa')
+            ->assertOk()
+            ->json('data');
+        $this->assertSame(74, $mapa['resumo']['total_locais']);
+        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P01-C01-L04'));
+        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P07-C01-L01'));
+
+        $this->withHeaders($this->h)
+            ->patchJson('/api/v1/estoque/enderecos/'.$l04['id'], ['ativo' => false])
+            ->assertOk()
+            ->assertJsonPath('data.ativo', false)
+            ->assertJsonPath('data.codigo', 'P01-C01-L04');
+
+        $peloProximo = $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 1,
+            ])
+            ->assertCreated()
+            ->json('data');
+        $this->assertSame($l04['id'], $peloProximo['id']);
+        $this->assertSame('P01-C01-L04', $peloProximo['codigo']);
+        $this->assertTrue($peloProximo['ativo']);
+
+        $this->withHeaders($this->h)
+            ->patchJson('/api/v1/estoque/enderecos/'.$l04['id'], ['ativo' => false])
+            ->assertOk();
+
+        $this->assertSame(
+            $l04['id'],
+            EstoqueEndereco::query()->where('codigo', 'P01-C01-L04')->where('empresa_id', $this->empresa->id)->value('id')
+        );
+
+        app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
+
+        $this->assertFalse(
+            (bool) EstoqueEndereco::query()->whereKey($l04['id'])->value('ativo')
+        );
+        $this->assertTrue(
+            (bool) EstoqueEndereco::query()->whereKey($p07['id'])->value('ativo')
+        );
+        $this->assertSame('P07-C01-L01', EstoqueEndereco::query()->whereKey($p07['id'])->value('codigo'));
+        $this->assertSame(
+            73,
+            EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
+        );
+
+        $reativado = $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 1,
+                'vao' => 4,
+            ])
+            ->assertCreated()
+            ->json('data');
+        $this->assertSame($l04['id'], $reativado['id']);
+        $this->assertTrue($reativado['ativo']);
+
+        $outra = Empresa::query()->create([
+            'codigo' => 'EMP-VOL2',
+            'razao_social' => 'Outra Empresa',
+            'nome_fantasia' => 'OUT',
+            'cnpj' => '11222333000181',
+            'situacao' => 'ATIVA',
+            'venda_ativa' => true,
+            'estoque_ativo' => true,
+        ]);
+
+        $this->withHeaders(['X-Empresa-Id' => (string) $outra->id])
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 1,
+                'vao' => 1,
+            ])
+            ->assertStatus(403);
+
+        $this->withHeaders($this->h)
+            ->patchJson('/api/v1/estoque/enderecos/999999', ['ativo' => false])
+            ->assertNotFound();
+
+        EstoqueEndereco::query()->create([
+            'empresa_id' => $outra->id,
+            'codigo' => 'P01-C01-L01',
+            'prateleira' => 1,
+            'coluna' => 1,
+            'vao' => 1,
+            'largura_m' => EstoqueEndereco::LARGURA_M,
+            'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
+            'altura_m' => EstoqueEndereco::ALTURA_M,
+            'ativo' => true,
+        ]);
+
+        $ids = collect($this->withHeaders($this->h)->getJson('/api/v1/estoque/enderecos')->assertOk()->json('data'))
+            ->pluck('id');
+        $this->assertFalse(
+            $ids->contains(
+                EstoqueEndereco::query()->where('empresa_id', $outra->id)->value('id')
+            )
+        );
+
+        $leitor = User::query()->create([
+            'codigo' => 'USR-VOL-LER',
+            'name' => 'Leitor Volume',
+            'email' => 'vol-ler@test.local',
+            'password' => bcrypt('secret'),
+            'ativo' => true,
+            'empresa_default_id' => $this->empresa->id,
+        ]);
+        $leitor->givePermissionTo(['estoque.ler']);
+        $leitor->empresas()->attach([$this->empresa->id]);
+        Sanctum::actingAs($leitor);
+
+        $this->withHeaders($this->h)
+            ->postJson('/api/v1/estoque/enderecos', [
+                'prateleira' => 1,
+                'coluna' => 2,
+                'vao' => 4,
+            ])
+            ->assertStatus(403);
     }
 
     public function test_catalogo_exact_tem_4_insumos(): void

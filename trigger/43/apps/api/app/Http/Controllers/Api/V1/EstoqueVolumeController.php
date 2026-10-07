@@ -27,7 +27,7 @@ class EstoqueVolumeController extends Controller
     }
 
     /**
-     * Mapa de ocupação 6×4×3 — leitura agregada (ADR F4 / WMS leve).
+     * Mapa de ocupação — leitura agregada da malha gravada (ADR F4 / WMS leve).
      */
     public function mapa(Request $request): JsonResponse
     {
@@ -53,6 +53,55 @@ class EstoqueVolumeController extends Controller
 
         return response()->json([
             'data' => $this->volumes->seedEnderecos($this->empresa()),
+        ]);
+    }
+
+    public function storeEndereco(Request $request): JsonResponse
+    {
+        if (! $request->user()->can('estoque.escrever')) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'prateleira' => ['required', 'integer', 'min:1', 'max:255'],
+            'coluna' => ['required', 'integer', 'min:1', 'max:255'],
+            'vao' => ['nullable', 'integer', 'min:1', 'max:255'],
+            'largura_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],
+            'profundidade_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],
+            'altura_m' => ['nullable', 'numeric', 'min:0.001', 'max:999.999'],
+        ]);
+
+        $end = $this->enderecos->cadastrar($this->empresa(), $data);
+
+        return response()->json([
+            'data' => $this->enderecos->toOut($end),
+        ], 201);
+    }
+
+    public function updateEndereco(Request $request, int $estoqueEndereco): JsonResponse
+    {
+        if (! $request->user()->can('estoque.escrever')) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'ativo' => ['sometimes', 'boolean'],
+            'largura_m' => ['sometimes', 'nullable', 'numeric', 'min:0.001', 'max:999.999'],
+            'profundidade_m' => ['sometimes', 'nullable', 'numeric', 'min:0.001', 'max:999.999'],
+            'altura_m' => ['sometimes', 'nullable', 'numeric', 'min:0.001', 'max:999.999'],
+        ]);
+
+        if ($data === []) {
+            return response()->json([
+                'message' => 'Informe o que alterar no local.',
+                'errors' => ['ativo' => ['Informe o que alterar no local.']],
+            ], 422);
+        }
+
+        $end = $this->enderecos->atualizar($this->empresa(), $estoqueEndereco, $data);
+
+        return response()->json([
+            'data' => $this->enderecos->toOut($end),
         ]);
     }
 

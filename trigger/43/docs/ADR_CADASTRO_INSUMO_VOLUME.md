@@ -52,7 +52,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 | **De-para** | `produto_fornecedor_codigos` | `cProd` + descrição do fornecedor **obrigatórios** — sem isso não há entrada assistida. |
 | **Dimensão nominal** | `produtos.atributos` | `largura_mm` / `comprimento_m` / `gramatura_g_m2` / `programa_compra` = **referência** de OC/conversão — **não** chave do SKU. |
 | **Volume / bobina** | `estoque_lotes` (+ payload futuro) | Unidade física manuseável; para Avery, 1 `nLote` = 1 volume. Dimensão **real** na entrada. |
-| **Localização** | futuro (`estoque_enderecos`) | 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). UX: **Local/Locais**; domínio: campo `vao`, código `Pxx-Cxx-Lxx` (legado `Vxx` aceito no QR). Fora do cadastro de produto. |
+| **Localização** | `estoque_enderecos` | Gabarito inicial: 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além dessa malha nasce por cadastro, no mesmo código. UX: **Local/Locais**; domínio: campo `vao`, código `Pxx-Cxx-Lxx` (legado `Vxx` aceito no QR). Fora do cadastro de produto. |
 
 ### Unidades (inalteradas — ADR-039-UNID-001)
 
@@ -180,11 +180,12 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 
 ### F4 — Localização (WMS leve)
 
-- **Vocabulário de produto (UX):** **Local / Locais**. Domínio: coluna `vao` / `VAOS`; código canônico **`Pxx-Cxx-Lxx`** (seed renomeia legado `Vxx`→`Lxx` no mesmo id; QR legado `Vxx` ainda resolve).  
-- Modelo: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — **sem Local 4** / `L04` (72 endereços ativos).  
+- **Vocabulário de produto (UX):** **Local / Locais**. Domínio: coluna `vao`; código canônico **`Pxx-Cxx-Lxx`** (seed renomeia legado `Vxx`→`Lxx` no mesmo id; QR legado `Vxx` ainda resolve).  
+- **Gabarito inicial** da planta: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — 72 endereços. O quarto local e a prateleira seguinte **não** substituem esse código: nascem por cadastro (`POST /estoque/enderecos`) na mesma malha (`P01-C01-L04`, `P07-C01-L01`).  
+- Posição e código são a identidade impressa. Cadastro gera o código; não se digita outro. Inativar tira do mapa; não se apaga a linha (o volume continua no `endereco_id`).  
 - QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`).  
 - Vínculo volume ↔ endereço.  
-- Comando `erp:seed-estoque-enderecos` (cria faltantes; desativa `vao > 3` sem apagar histórico).
+- Comando `erp:seed-estoque-enderecos` (cria faltantes do gabarito; reativa só os 72; alinha `Vxx`→`Lxx`; **não** desativa extensão cadastrada).
 - **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
   Canônico: **Elgin L42 Pro Full · 50 × 40 mm** (mesmo canal/driver do volume F3; uma face = uma etiqueta).  
 - **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem local”).  
@@ -202,6 +203,7 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 - [x] Tela Guardar (volume ↔ local, duas ordens) + reimpressão de volumes
 - [x] UX Local/Locais (domínio `vao` intacto)
 - [x] Mapa de ocupação (`GET /estoque/mapa` + `/estoque/mapa`) — célula = endereço; drill-down volumes; só leitura
+- [x] Cadastro de local na mesma malha (`POST`/`PATCH /estoque/enderecos`); seed preserva extensão; mapa e etiquetas leem a malha gravada
 
 ### F5 — Reposição → OC → ciclo fechado
 

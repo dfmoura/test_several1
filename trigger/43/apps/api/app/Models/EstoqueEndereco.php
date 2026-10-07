@@ -9,16 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Endereço físico do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Gabarito canônico: 6 prateleiras × 4 colunas × 3 locais (sem Local 4 / L04).
- * UX: Local/Locais · código: Pxx-Cxx-Lxx · coluna SQL: `vao` (eixo do slot).
+ * Gabarito inicial (seed): 6 prateleiras × 4 colunas × 3 locais.
+ * Local além dessa malha nasce por cadastro, no mesmo código Pxx-Cxx-Lxx.
+ * UX: Local/Locais · coluna SQL: `vao` (eixo do slot).
  */
 class EstoqueEndereco extends Model
 {
+    /** Teto do gabarito semeado — não é o limite do cadastro. */
     public const PRATELEIRAS = 6;
 
     public const COLUNAS = 4;
 
     public const VAOS = 3;
+
+    public const EIXO_MAX = 255;
 
     /** Prefixo do slot no código (Local). Legado impresso: V. */
     public const PREFIXO_SLOT = 'L';

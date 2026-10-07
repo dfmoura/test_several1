@@ -9,13 +9,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Semear gabarito de locais — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Código canônico Pxx-Cxx-Lxx; migra legado Pxx-Cxx-Vxx sem duplicar slot.
+ * Locais do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
+ * Gabarito 6×4×3 é o padrão da planta. Cadastro estende a mesma malha.
+ * Código canônico Pxx-Cxx-Lxx; legado Pxx-Cxx-Vxx resolve no mesmo id.
  */
 class EstoqueEnderecoService
 {
     /**
-     * Semear e alinhar gabarito (cria/renomeia L01–L{VAOS}; desativa slot > VAOS).
+     * Semear o gabarito e alinhar código legado.
+     * Reativa só os 72 do gabarito. Extensão (L04, P07, …) permanece como está.
      *
      * @return array{criados: int, existentes: int, renomeados: int, desativados: int, total: int}
      */
@@ -97,11 +99,9 @@ class EstoqueEnderecoService
                 }
             }
 
-            $desativados = EstoqueEndereco::query()
-                ->where('empresa_id', $empresa->id)
-                ->where('vao', '>', EstoqueEndereco::VAOS)
-                ->where('ativo', true)
-                ->update(['ativo' => false]);
+            $alinhados = $this->alinharLegadoForaDoGabarito($empresa);
+            $renomeados += $alinhados['renomeados'];
+            $desativados += $alinhados['desativados'];
         });
 
         $total = EstoqueEndereco::PRATELEIRAS * EstoqueEndereco::COLUNAS * EstoqueEndereco::VAOS;
@@ -113,6 +113,192 @@ class EstoqueEnderecoService
             'desativados' => $desativados,
             'total' => $total,
         ];
+    }
+
+    /**
+     * Novo local na malha Pxx-Cxx-Lxx. Sem `vao`, usa o primeiro número sem local ativo.
+     * Posição inativa volta no mesmo id (etiqueta já impressa continua válida).
+     *
+     * @param  array{prateleira: int|string, coluna: int|string, vao?: int|string|null, largura_m?: string|null, profundidade_m?: string|null, altura_m?: string|null}  $input
+     */
+    public function cadastrar(Empresa $empresa, array $input): EstoqueEndereco
+    {
+        $p = (int) $input['prateleira'];
+        $c = (int) $input['coluna'];
+
+        return DB::transaction(function () use ($empresa, $input, $p, $c) {
+            $v = isset($input['vao']) && $input['vao'] !== null && $input['vao'] !== ''
+                ? (int) $input['vao']
+                : $this->proximoVao($empresa, $p, $c);
+
+            $codigo = EstoqueEndereco::codigoDe($p, $c, $v);
+
+            $row = EstoqueEndereco::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('prateleira', $p)
+                ->where('coluna', $c)
+                ->where('vao', $v)
+                ->lockForUpdate()
+                ->first();
+
+            if ($row !== null && $row->ativo) {
+                throw ValidationException::withMessages([
+                    'vao' => ["Local {$row->codigo} já está cadastrado."],
+                ]);
+            }
+
+            $dims = [
+                'largura_m' => $this->medida($input['largura_m'] ?? null, EstoqueEndereco::LARGURA_M),
+                'profundidade_m' => $this->medida($input['profundidade_m'] ?? null, EstoqueEndereco::PROFUNDIDADE_M),
+                'altura_m' => $this->medida($input['altura_m'] ?? null, EstoqueEndereco::ALTURA_M),
+            ];
+
+            if ($row !== null) {
+                $row->codigo = $codigo;
+                $row->ativo = true;
+                $row->fill($dims);
+                $row->save();
+
+                return $row;
+            }
+
+            return EstoqueEndereco::query()->create([
+                'empresa_id' => $empresa->id,
+                'codigo' => $codigo,
+                'prateleira' => $p,
+                'coluna' => $c,
+                'vao' => $v,
+                'ativo' => true,
+                ...$dims,
+            ]);
+        });
+    }
+
+    /**
+     * Medidas e ativo. Posição e código não mudam — a etiqueta colada continua válida.
+     *
+     * @param  array{ativo?: bool, largura_m?: string|null, profundidade_m?: string|null, altura_m?: string|null}  $input
+     */
+    public function atualizar(Empresa $empresa, int $id, array $input): EstoqueEndereco
+    {
+        $row = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($id)
+            ->first();
+
+        if ($row === null) {
+            abort(404);
+        }
+
+        if (array_key_exists('ativo', $input)) {
+            $row->ativo = (bool) $input['ativo'];
+        }
+
+        foreach (['largura_m', 'profundidade_m', 'altura_m'] as $campo) {
+            if (! array_key_exists($campo, $input) || $input[$campo] === null || $input[$campo] === '') {
+                continue;
+            }
+            $row->{$campo} = $this->medida($input[$campo], (string) $row->{$campo});
+        }
+
+        $row->save();
+
+        return $row;
+    }
+
+    /**
+     * Vxx fora do gabarito vira Lxx no mesmo id. Duplicata legado+canônico funde o volume e inativa o legado.
+     *
+     * @return array{renomeados: int, desativados: int}
+     */
+    private function alinharLegadoForaDoGabarito(Empresa $empresa): array
+    {
+        $renomeados = 0;
+        $desativados = 0;
+
+        $fora = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where(function ($q) {
+                $q->where('prateleira', '>', EstoqueEndereco::PRATELEIRAS)
+                    ->orWhere('coluna', '>', EstoqueEndereco::COLUNAS)
+                    ->orWhere('vao', '>', EstoqueEndereco::VAOS);
+            })
+            ->orderBy('id')
+            ->get();
+
+        foreach ($fora as $row) {
+            $canon = EstoqueEndereco::codigoDe($row->prateleira, $row->coluna, $row->vao);
+            $legado = EstoqueEndereco::codigoLegadoDe($row->prateleira, $row->coluna, $row->vao);
+            if (strcasecmp((string) $row->codigo, $legado) !== 0) {
+                continue;
+            }
+
+            $rowNovo = EstoqueEndereco::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('codigo', $canon)
+                ->first();
+
+            if ($rowNovo !== null && $rowNovo->id !== $row->id) {
+                EstoqueLote::query()
+                    ->where('empresa_id', $empresa->id)
+                    ->where('endereco_id', $row->id)
+                    ->update(['endereco_id' => $rowNovo->id]);
+                $row->ativo = false;
+                $row->save();
+                $desativados++;
+
+                continue;
+            }
+
+            $row->codigo = $canon;
+            $row->save();
+            $renomeados++;
+        }
+
+        return [
+            'renomeados' => $renomeados,
+            'desativados' => $desativados,
+        ];
+    }
+
+    private function proximoVao(Empresa $empresa, int $prateleira, int $coluna): int
+    {
+        $ativos = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('prateleira', $prateleira)
+            ->where('coluna', $coluna)
+            ->where('ativo', true)
+            ->lockForUpdate()
+            ->pluck('vao')
+            ->map(fn ($vao) => (int) $vao)
+            ->all();
+
+        $ocupados = array_fill_keys($ativos, true);
+        for ($vao = 1; $vao <= EstoqueEndereco::EIXO_MAX; $vao++) {
+            if (! isset($ocupados[$vao])) {
+                return $vao;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'vao' => ['Esta prateleira e coluna já têm o local 255.'],
+        ]);
+    }
+
+    private function medida(mixed $valor, string $padrao): string
+    {
+        if ($valor === null || $valor === '') {
+            return $padrao;
+        }
+
+        $texto = is_string($valor) ? trim($valor) : (string) $valor;
+        if (! is_numeric($texto)) {
+            throw ValidationException::withMessages([
+                'largura_m' => ['Medida do local inválida.'],
+            ]);
+        }
+
+        return number_format((float) $texto, 3, '.', '');
     }
 
     /**

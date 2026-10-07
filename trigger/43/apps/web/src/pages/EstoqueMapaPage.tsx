@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { EstoqueModuleNav } from '../components/EstoqueModuleNav';
@@ -9,11 +9,24 @@ import {
   type EstoqueMapaLocal,
   type EstoqueMapaResumo,
 } from '../lib/api';
+import { useAuth } from '../lib/auth';
 
-const PRATELEIRAS = [1, 2, 3, 4, 5, 6] as const;
-const COLUNAS = [1, 2, 3, 4] as const;
-const LOCAIS = [1, 2, 3] as const;
+const GABARITO_P = 6;
+const GABARITO_C = 4;
+const GABARITO_L = 3;
 const DOTS_MAX = 6;
+
+function seqAte(n: number): number[] {
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
+
+function erroApi(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    const first = err.details ? Object.values(err.details)[0]?.[0] : undefined;
+    return first ?? err.message;
+  }
+  return fallback;
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -27,17 +40,30 @@ function densidadeClass(volumes: number): string {
 }
 
 /**
- * Mapa de ocupação dos locais (6×4×3) — ADR_CADASTRO_INSUMO_VOLUME F4.
- * Leitura agregada; saldo oficial continua em Saldos. Sem geometria inventada.
+ * Mapa de ocupação dos locais — ADR_CADASTRO_INSUMO_VOLUME F4.
+ * A grade lê a malha gravada (gabarito 6×4×3 e o que foi cadastrado além).
+ * Leitura agregada; saldo oficial continua em Saldos.
  */
 export function EstoqueMapaPage() {
+  const { hasPermission } = useAuth();
+  const canWrite = hasPermission('estoque.escrever');
   const [locais, setLocais] = useState<EstoqueMapaLocal[]>([]);
   const [resumo, setResumo] = useState<EstoqueMapaResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [cadastrando, setCadastrando] = useState(false);
+  const [inativando, setInativando] = useState(false);
   const [prateleiraFiltro, setPrateleiraFiltro] = useState<string>('');
+  const [novo, setNovo] = useState({
+    prateleira: '1',
+    coluna: '1',
+    vao: '',
+    largura_m: '1.500',
+    profundidade_m: '0.600',
+    altura_m: '1.000',
+  });
   const [soOcupados, setSoOcupados] = useState(false);
   const [selecionado, setSelecionado] = useState<EstoqueMapaLocal | null>(null);
   const [volumes, setVolumes] = useState<EstoqueLote[]>([]);
@@ -72,10 +98,32 @@ export function EstoqueMapaPage() {
     return map;
   }, [locais]);
 
+  const malha = useMemo(() => {
+    let maxP = GABARITO_P;
+    let maxC = GABARITO_C;
+    let maxL = GABARITO_L;
+    for (const e of locais) {
+      maxP = Math.max(maxP, e.prateleira);
+      maxC = Math.max(maxC, e.coluna);
+      maxL = Math.max(maxL, e.vao);
+    }
+    return {
+      prateleiras: seqAte(maxP),
+      colunas: seqAte(maxC),
+      locais: seqAte(maxL),
+    };
+  }, [locais]);
+
   const prateleirasVisiveis = useMemo(() => {
-    if (!prateleiraFiltro) return [...PRATELEIRAS];
-    return PRATELEIRAS.filter((p) => p === Number(prateleiraFiltro));
-  }, [prateleiraFiltro]);
+    if (!prateleiraFiltro) return malha.prateleiras;
+    return malha.prateleiras.filter((p) => p === Number(prateleiraFiltro));
+  }, [malha.prateleiras, prateleiraFiltro]);
+
+  useEffect(() => {
+    if (prateleiraFiltro && !malha.prateleiras.includes(Number(prateleiraFiltro))) {
+      setPrateleiraFiltro('');
+    }
+  }, [malha.prateleiras, prateleiraFiltro]);
 
   const abrirLocal = async (cell: EstoqueMapaLocal) => {
     setSelecionado(cell);
@@ -111,7 +159,7 @@ export function EstoqueMapaPage() {
       const d = res.data;
       const renomeados = (d.renomeados ?? 0) > 0 ? `, ${d.renomeados} V→L` : '';
       const desativados =
-        d.desativados > 0 ? `, ${d.desativados} fora do gabarito desativado(s)` : '';
+        d.desativados > 0 ? `, ${d.desativados} legado duplicado inativado(s)` : '';
       setMsg(
         `Gabarito 6×4×3: ${d.total} locais (${d.criados} criados, ${d.existentes} ok${renomeados}${desativados}).`,
       );
@@ -123,11 +171,74 @@ export function EstoqueMapaPage() {
     }
   };
 
+  const cadastrar = async (event: FormEvent) => {
+    event.preventDefault();
+    setCadastrando(true);
+    setMsg(null);
+    setError(null);
+    try {
+      const body: {
+        prateleira: number;
+        coluna: number;
+        vao?: number;
+        largura_m: string;
+        profundidade_m: string;
+        altura_m: string;
+      } = {
+        prateleira: Number(novo.prateleira),
+        coluna: Number(novo.coluna),
+        largura_m: novo.largura_m,
+        profundidade_m: novo.profundidade_m,
+        altura_m: novo.altura_m,
+      };
+      if (novo.vao.trim() !== '') body.vao = Number(novo.vao);
+      body.largura_m = body.largura_m.replace(',', '.');
+      body.profundidade_m = body.profundidade_m.replace(',', '.');
+      body.altura_m = body.altura_m.replace(',', '.');
+      const res = await api.post<{ data: { codigo: string } }>('/estoque/enderecos', body);
+      setMsg(`Local ${res.data.codigo} cadastrado. Imprima a etiqueta antes de guardar volume.`);
+      setNovo((atual) => ({ ...atual, vao: '' }));
+      await load();
+    } catch (err) {
+      setError(erroApi(err, 'Falha ao cadastrar o local.'));
+    } finally {
+      setCadastrando(false);
+    }
+  };
+
+  const inativar = async (cell: EstoqueMapaLocal) => {
+    const ocupacao =
+      cell.volumes_count > 0
+        ? ` Há ${cell.volumes_count} volume(s) neste endereço; eles continuam ligados a ele.`
+        : '';
+    if (
+      !window.confirm(
+        `Inativar ${cell.codigo}? O local sai do mapa e do Guardar.${ocupacao}`,
+      )
+    ) {
+      return;
+    }
+    setInativando(true);
+    setMsg(null);
+    setError(null);
+    try {
+      await api.patch(`/estoque/enderecos/${cell.id}`, { ativo: false });
+      setSelecionado(null);
+      setVolumes([]);
+      setMsg(`${cell.codigo} inativado. Cadastrar a mesma posição reativa este endereço.`);
+      await load();
+    } catch (err) {
+      setError(erroApi(err, 'Falha ao inativar o local.'));
+    } finally {
+      setInativando(false);
+    }
+  };
+
   return (
     <div className="page estoque-mapa-page">
       <PageHeader
         title="Mapa dos locais"
-        description="Ocupação do almoxarifado por endereço (Pxx-Cxx-Lxx). Clique na célula para ver os volumes."
+        description="Ocupação por endereço (Pxx-Cxx-Lxx). O gabarito é 6×4×3; local novo entra na mesma malha."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -213,7 +324,7 @@ export function EstoqueMapaPage() {
               onChange={(e) => setPrateleiraFiltro(e.target.value)}
             >
               <option value="">Todas</option>
-              {PRATELEIRAS.map((p) => (
+              {malha.prateleiras.map((p) => (
                 <option key={p} value={String(p)}>
                   P{pad2(p)}
                 </option>
@@ -240,6 +351,92 @@ export function EstoqueMapaPage() {
         </div>
       </div>
 
+      {canWrite && (
+        <form className="card estoque-filtros-card" onSubmit={(e) => void cadastrar(e)}>
+          <div className="card-body" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-prateleira">Prateleira</label>
+              <input
+                id="novo-prateleira"
+                type="number"
+                min={1}
+                max={255}
+                required
+                value={novo.prateleira}
+                onChange={(e) => setNovo((atual) => ({ ...atual, prateleira: e.target.value }))}
+                style={{ width: '5.5rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-coluna">Coluna</label>
+              <input
+                id="novo-coluna"
+                type="number"
+                min={1}
+                max={255}
+                required
+                value={novo.coluna}
+                onChange={(e) => setNovo((atual) => ({ ...atual, coluna: e.target.value }))}
+                style={{ width: '5.5rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-local">Local</label>
+              <input
+                id="novo-local"
+                type="number"
+                min={1}
+                max={255}
+                placeholder="próximo"
+                value={novo.vao}
+                onChange={(e) => setNovo((atual) => ({ ...atual, vao: e.target.value }))}
+                style={{ width: '5.5rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-largura">Largura (m)</label>
+              <input
+                id="novo-largura"
+                inputMode="decimal"
+                required
+                value={novo.largura_m}
+                onChange={(e) => setNovo((atual) => ({ ...atual, largura_m: e.target.value }))}
+                style={{ width: '6rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-prof">Profundidade (m)</label>
+              <input
+                id="novo-prof"
+                inputMode="decimal"
+                required
+                value={novo.profundidade_m}
+                onChange={(e) => setNovo((atual) => ({ ...atual, profundidade_m: e.target.value }))}
+                style={{ width: '6rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="novo-alt">Altura (m)</label>
+              <input
+                id="novo-alt"
+                inputMode="decimal"
+                required
+                value={novo.altura_m}
+                onChange={(e) => setNovo((atual) => ({ ...atual, altura_m: e.target.value }))}
+                style={{ width: '6rem' }}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={cadastrando}>
+              {cadastrando ? 'Cadastrando…' : 'Cadastrar local'}
+            </button>
+            <p className="muted" style={{ margin: 0, flex: '1 1 16rem' }}>
+              Em branco, entra o primeiro local livre daquela prateleira e coluna. O código
+              sai sozinho. Se esse número estiver inativo, volta o mesmo endereço.
+            </p>
+          </div>
+        </form>
+      )}
+
       {loading ? (
         <p className="muted">Carregando mapa…</p>
       ) : locais.length === 0 ? (
@@ -261,12 +458,19 @@ export function EstoqueMapaPage() {
                 <header className="estoque-mapa-prateleira-head">
                   <h2>P{pad2(p)}</h2>
                 </header>
-                <div className="estoque-mapa-colunas">
-                  {COLUNAS.map((c) => (
+                <div
+                  className="estoque-mapa-colunas"
+                  style={
+                    malha.colunas.length === GABARITO_C
+                      ? undefined
+                      : { gridTemplateColumns: `repeat(${malha.colunas.length}, minmax(6.5rem, 1fr))` }
+                  }
+                >
+                  {malha.colunas.map((c) => (
                     <div key={c} className="estoque-mapa-coluna">
                       <div className="estoque-mapa-coluna-head">C{pad2(c)}</div>
                       <div className="estoque-mapa-locais">
-                        {LOCAIS.map((v) => {
+                        {malha.locais.map((v) => {
                           const cell = bySlot.get(`${p}-${c}-${v}`);
                           if (!cell) {
                             return (
@@ -341,16 +545,28 @@ export function EstoqueMapaPage() {
                         {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setSelecionado(null);
-                        setVolumes([]);
-                      }}
-                    >
-                      Fechar
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      {canWrite && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          disabled={inativando}
+                          onClick={() => void inativar(selecionado)}
+                        >
+                          {inativando ? 'Inativando…' : 'Inativar'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setSelecionado(null);
+                          setVolumes([]);
+                        }}
+                      >
+                        Fechar
+                      </button>
+                    </div>
                   </div>
 
                   {loadingVolumes && <p className="muted">Carregando volumes…</p>}

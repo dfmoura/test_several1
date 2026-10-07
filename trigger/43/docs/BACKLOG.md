@@ -333,7 +333,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Origem:** Chat 2026-09-05 — cadastro insumo → volume → prateleiras
 - **Depende de:** BL-097 · `ADR_CADASTRO_INSUMO_VOLUME.md` F4
 - **Decisão (fechada):**
-  1. Gabarito 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m) — sem Local 4 (`L04`). UX: Local/Locais; domínio: `vao` / código `Lxx`.
+  1. Gabarito inicial 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além da malha (L04, P07, …) nasce por cadastro, código `Pxx-Cxx-Lxx`. UX: Local/Locais; domínio: `vao`.
   2. QR do local; vínculo volume ↔ endereço; saldo oficial continua SKU (+ lote).
 - **Aceite:**
   - [x] Endereços cadastráveis por EMP (`estoque_enderecos` + seed)

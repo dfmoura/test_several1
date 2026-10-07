@@ -320,6 +320,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/estoque/lotes/{estoqueLote}/etiqueta', [EstoqueVolumeController::class, 'etiqueta']);
         Route::post('/estoque/lotes/{estoqueLote}/endereco', [EstoqueVolumeController::class, 'vincularEndereco']);
         Route::get('/estoque/enderecos', [EstoqueVolumeController::class, 'enderecos']);
+        Route::post('/estoque/enderecos', [EstoqueVolumeController::class, 'storeEndereco']);
+        Route::patch('/estoque/enderecos/{estoqueEndereco}', [EstoqueVolumeController::class, 'updateEndereco']);
         Route::get('/estoque/mapa', [EstoqueVolumeController::class, 'mapa']);
         Route::get('/estoque/enderecos/por-qr', [EstoqueVolumeController::class, 'resolverEndereco']);
         Route::post('/estoque/enderecos/seed', [EstoqueVolumeController::class, 'seedEnderecos']);
