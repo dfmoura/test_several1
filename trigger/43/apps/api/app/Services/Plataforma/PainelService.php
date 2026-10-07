@@ -6,6 +6,7 @@ use App\Models\BemPatrimonial;
 use App\Models\Empresa;
 use App\Models\Entrega;
 use App\Models\EstoqueAjuste;
+use App\Models\EstoqueLote;
 use App\Models\Orcamento;
 use App\Models\OrdemCompra;
 use App\Models\OrdemProducao;
@@ -241,6 +242,20 @@ class PainelService
                 'Sai da prateleira para a produção',
                 $aBuscar,
                 '/estoque/retiradas',
+            );
+            // Local não trava nota nem ajuste: o volume nasce e esta fila pede Guardar.
+            $aGuardar = EstoqueLote::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereNull('endereco_id')
+                ->where('qtde', '>', 0)
+                ->count();
+            $this->fila(
+                $filas,
+                'a_guardar',
+                'A guardar',
+                'Volume com saldo ainda sem local',
+                $aGuardar,
+                '/estoque/lotes/etiquetas?sem_endereco=1',
             );
         }
 

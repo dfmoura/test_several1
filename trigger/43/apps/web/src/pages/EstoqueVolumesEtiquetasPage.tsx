@@ -100,8 +100,11 @@ export function EstoqueVolumesEtiquetasPage() {
     if (movimentoId) {
       return `${volumes.length} volume(s) desta entrada — cole o QR na bobina (50×40 mm)`;
     }
+    if (semEndereco) {
+      return `${volumes.length} volume(s) com saldo ainda sem local — cole o QR e guarde no local`;
+    }
     return `${volumes.length} volume(s) com saldo — cole o QR na bobina`;
-  }, [movimentoId, isAjuste, volumes.length]);
+  }, [movimentoId, isAjuste, semEndereco, volumes.length]);
 
   return (
     <div className="page">

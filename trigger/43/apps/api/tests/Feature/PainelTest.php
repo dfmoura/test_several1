@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Empresa;
+use App\Models\EstoqueEndereco;
+use App\Models\EstoqueLote;
 use App\Models\Orcamento;
 use App\Models\Parceiro;
 use App\Models\Pedido;
+use App\Models\Produto;
 use App\Models\Titulo;
 use App\Models\User;
 use App\Services\Cadastros\NaturezaGerencialService;
@@ -201,6 +204,44 @@ class PainelTest extends TestCase
         $this->assertTrue($res->json('data.modulos.estoque'));
     }
 
+    public function test_volume_sem_local_entra_na_fila_a_guardar_da_emp(): void
+    {
+        $produtoA = $this->produto($this->empA, 'MP-PNL-A');
+        $produtoB = $this->produto($this->empB, 'MP-PNL-B');
+        $localA = EstoqueEndereco::query()->create([
+            'empresa_id' => $this->empA->id,
+            'codigo' => 'P01-C01-L01',
+            'prateleira' => 1,
+            'coluna' => 1,
+            'vao' => 1,
+        ]);
+
+        $this->lote($this->empA, $produtoA, 'VOL-SEM', '4.0000', null);
+        $this->lote($this->empA, $produtoA, 'VOL-COM', '2.0000', (int) $localA->id);
+        $this->lote($this->empA, $produtoA, 'VOL-ZERO', '0.0000', null);
+        $this->lote($this->empB, $produtoB, 'VOL-B', '9.0000', null);
+
+        Sanctum::actingAs($this->admin);
+
+        $a = $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->getJson('/api/v1/painel')
+            ->assertOk();
+        $this->assertSame(1, $this->filaCount($a->json('data.filas'), 'a_guardar'));
+        $filaA = collect($a->json('data.filas'))->firstWhere('id', 'a_guardar');
+        $this->assertSame('/estoque/lotes/etiquetas?sem_endereco=1', $filaA['to']);
+
+        $b = $this->withHeader('X-Empresa-Id', (string) $this->empB->id)
+            ->getJson('/api/v1/painel')
+            ->assertOk();
+        $this->assertSame(1, $this->filaCount($b->json('data.filas'), 'a_guardar'));
+
+        Sanctum::actingAs($this->comercial);
+        $comercial = $this->withHeader('X-Empresa-Id', (string) $this->empA->id)
+            ->getJson('/api/v1/painel')
+            ->assertOk();
+        $this->assertNull($this->filaCount($comercial->json('data.filas'), 'a_guardar'));
+    }
+
     public function test_sem_vinculo_na_emp_retorna_403(): void
     {
         Sanctum::actingAs($this->comercial);
@@ -232,6 +273,38 @@ class PainelTest extends TestCase
         $user->empresas()->attach($sync);
 
         return $user;
+    }
+
+    private function produto(Empresa $emp, string $codigo): Produto
+    {
+        return Produto::query()->create([
+            'empresa_id' => $emp->id,
+            'codigo' => $codigo,
+            'familia' => 'MP',
+            'grupo' => 'MP-PAP',
+            'descricao_fiscal' => $codigo,
+            'unidade_comercial' => 'M2',
+            'unidade_interna' => 'M2',
+            'fator_conversao' => '1',
+            'custo_medio' => '0',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+        ]);
+    }
+
+    private function lote(Empresa $emp, Produto $produto, string $codigo, string $qtde, ?int $enderecoId): EstoqueLote
+    {
+        return EstoqueLote::query()->create([
+            'empresa_id' => $emp->id,
+            'produto_id' => $produto->id,
+            'codigo' => $codigo,
+            'data_entrada' => now()->toDateString(),
+            'qtde' => $qtde,
+            'unidade' => 'M2',
+            'origem_tipo' => EstoqueLote::ORIGEM_ENTRADA_COMPRA,
+            'endereco_id' => $enderecoId,
+            'qr_token' => bin2hex(random_bytes(8)),
+        ]);
     }
 
     private function orcamento(Empresa $emp, Parceiro $par, int $n, string $status): Orcamento

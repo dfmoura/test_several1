@@ -248,6 +248,11 @@ export function EstoquePage() {
     setQ(produtoCodigo?.trim() || '');
   };
 
+  const volumesSemLocal = useMemo(
+    () => lotes.filter((l) => l.endereco_id == null && Number(l.qtde) > 0).length,
+    [lotes],
+  );
+
   const limparFiltroVolumes = () => {
     setProdutoLoteFiltro(null);
     setQtdeVolumeFiltro(null);
@@ -325,6 +330,15 @@ export function EstoquePage() {
             </button>
           )}
           <span className="muted"> — Volumes</span>
+        </div>
+      )}
+
+      {!loading && volumesSemLocal > 0 && (
+        <div className="alert alert-warning alert--compact" style={{ marginBottom: '0.75rem' }}>
+          {volumesSemLocal} volume(s) com saldo ainda sem local —{' '}
+          <Link to="/estoque/lotes/etiquetas?sem_endereco=1">Ver volumes</Link>
+          {' · '}
+          <Link to="/estoque/guardar">Guardar</Link>
         </div>
       )}
 
