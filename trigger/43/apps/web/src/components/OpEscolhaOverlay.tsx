@@ -6,6 +6,7 @@ import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   formatLotePick,
   formatMetrosLineares,
+  bobinaEmMetroLinear,
   leituraNecessidadeOp,
   formatPickPrincipal,
   formatQtdePick,
@@ -269,7 +270,9 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             ) : null}
             <p className="muted op-escolha__hint">
               {noEstoque
-                ? 'Escaneie ou marque na tabela. Bobina sai inteira. Compare pela área (m²): metros do rolo não são os metros de pista da etiqueta quando a bobina é mais larga. Confirmar = saiu da prateleira.'
+                ? bobinaEmMetroLinear(material)
+                  ? 'Escaneie ou marque na tabela. Bobina sai inteira. A ordem pede o comprimento do rolo. Confirmar = saiu da prateleira.'
+                  : 'Escaneie ou marque na tabela. Bobina sai inteira. O número da ordem é a área em m². Embaixo fica o comprimento da etiqueta — não é o comprimento do rolo se a bobina for mais larga. Confirmar = saiu da prateleira.'
                 : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
               {modoRetiradaLabel(modo)}.
             </p>

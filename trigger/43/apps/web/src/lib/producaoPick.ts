@@ -310,6 +310,23 @@ function qtdeGravadaEhArea(unidade: string | null | undefined): boolean {
   return n === '' || n === 'M2' || n === 'MIL';
 }
 
+function unidadeEhLinear(unidade: string | null | undefined): boolean {
+  const n = codigoUnidade(unidade);
+  return n === 'M' || n === 'MT' || n === 'ML';
+}
+
+/** Bobina cujo estoque é metro linear: a quantidade é o comprimento do rolo. */
+export function bobinaEmMetroLinear(m: OrdemProducaoMaterial): boolean {
+  return modoRetirada(m) === 'volume' && unidadeEhLinear(m.unidade);
+}
+
+function formatMetrosDeRolo(qtde: number): string {
+  const decimals = Math.abs(qtde - Math.round(qtde)) < 1e-6 ? 0 : 2;
+  const numero = formatDecimalBr(qtde, decimals);
+  const palavra = Math.abs(qtde - 1) < 1e-6 ? 'metro de rolo' : 'metros de rolo';
+  return `${numero} ${palavra}`;
+}
+
 /** Metro linear que a OP precisa (m² planejado ÷ largura). Só bobina. */
 export function metrosNecessidadeOp(
   m: OrdemProducaoMaterial,
@@ -322,7 +339,7 @@ export function metrosNecessidadeOp(
 export type LeituraQtdeMaterial = {
   /** Quantidade na unidade de estoque do produto. */
   principal: string;
-  /** Metro de pista da etiqueta. Só bobina em área (m²). */
+  /** Comprimento da etiqueta. Só bobina em área (m²). */
   complemento: string | null;
 };
 
@@ -331,14 +348,14 @@ function complementoPista(qtde: number, pistaMm: number): string | null {
   if (metros == null) return null;
   const metrosTxt = formatQtdePick(metros, 'm');
   if (pistaMm > 0) {
-    return `${metrosTxt} de pista · largura ${formatDecimalBr(pistaMm, 0)} mm`;
+    return `${metrosTxt} de comprimento da etiqueta · largura ${formatDecimalBr(pistaMm, 0)} mm`;
   }
-  return `${metrosTxt} de pista`;
+  return `${metrosTxt} de comprimento da etiqueta`;
 }
 
 /**
  * Quantidade na unidade de estoque do produto, mais a leitura de pista quando a bobina é área.
- * Metro e quilograma não ganham m² ao lado. MIL em volume continua área.
+ * Metro linear vira “metros de rolo” (o comprimento). Quilograma não ganha m² ao lado. MIL em volume continua área.
  * Metros de pista ≠ comprimento do rolo quando a bobina é mais larga que a etiqueta.
  */
 export function leituraQtdeMaterial(
@@ -347,12 +364,15 @@ export function leituraQtdeMaterial(
   qtde: number,
 ): LeituraQtdeMaterial {
   if (!(qtde > 0)) return { principal: '—', complemento: null };
+  if (bobinaEmMetroLinear(m)) {
+    return { principal: formatMetrosDeRolo(qtde), complemento: null };
+  }
   const area = modoRetirada(m) === 'volume' && qtdeGravadaEhArea(m.unidade);
   if (!area) {
     return { principal: formatQtdePick(qtde, unidadeExibicao(m.unidade)), complemento: null };
   }
   return {
-    principal: formatQtdePick(qtde, 'm²'),
+    principal: `${formatQtdePick(qtde, 'm²')} de área`,
     complemento: complementoPista(qtde, larguraMmNecessidadeOp(m, op)),
   };
 }
@@ -382,9 +402,8 @@ function necessidadeFicha(m: OrdemProducaoMaterial, op?: OrdemProducao | null): 
   if (modoRetirada(m) !== 'volume') {
     return formatQtdePick(n, unidadeExibicao(m.unidade));
   }
-  const un = (m.unidade ?? '').toUpperCase().replace('²', '2');
-  if (un === 'M' || un === 'MT' || un === 'ML') {
-    return formatQtdePick(n, 'm');
+  if (bobinaEmMetroLinear(m)) {
+    return formatMetrosDeRolo(n);
   }
   const metros = m2ParaMetros(n, larguraMmNecessidadeOp(m, op));
   const area = formatQtdePick(n, 'm²');
