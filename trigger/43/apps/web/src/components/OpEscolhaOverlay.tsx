@@ -75,9 +75,14 @@ export function OpEscolhaOverlay({
   const modo = modoRetirada(material);
   const estado = opKitEstado(material);
   const noEstoque = porta === 'chao';
+  /** Baixa só na porta do estoque (ADR três portas). */
   const podeBaixar =
     noEstoque && canWrite && estado !== 'ja_saiu' && (estado === 'falta_pegar' || modo === 'volume');
-  const podeDevolver = noEstoque && canWrite && estado === 'ja_saiu';
+  /**
+   * Devolver: mesmo MOV ENTRADA_SOBRA. Quem tem estoque.escrever pode na OP ou no chão —
+   * evita “não funciona” quando o lab testa pela ficha da OP.
+   */
+  const podeDevolver = canWrite && estado === 'ja_saiu';
   const volsADevolver = useMemo(
     () =>
       material.retirada?.volumes_a_devolver?.length
@@ -429,8 +434,8 @@ export function OpEscolhaOverlay({
             <p className="muted op-escolha__hint">
               {estado === 'ja_saiu'
                 ? podeDevolver
-                  ? 'Marque o que volta à prateleira antes de concluir a OP.'
-                  : 'Já saiu. Devolver no estoque se precisar voltar à prateleira.'
+                  ? 'Marque o que volta à prateleira (antes de concluir a OP).'
+                  : 'Já saiu. Peça a quem tem estoque para devolver à prateleira.'
                 : noEstoque
                   ? 'Marque ou leia o QR. Confirmar = saiu da prateleira.'
                   : 'Escolha os volumes. A saída confirma no estoque.'}
@@ -591,7 +596,7 @@ export function OpEscolhaOverlay({
               )
             ) : (
               <p className="muted">
-                Este item já saiu do estoque. Para devolver à prateleira, abra no estoque (A buscar).
+                Este item já saiu do estoque. Quem devolve precisa de permissão de estoque.
               </p>
             )
           ) : modo === 'volume' ? (
@@ -827,13 +832,6 @@ export function OpEscolhaOverlay({
                   Ir ao estoque
                 </Link>
               </>
-            ) : porta === 'op' && estado === 'ja_saiu' ? (
-              <Link
-                className="btn btn-primary"
-                to={hrefFichaEstoque(op.id, { materialId: material.id })}
-              >
-                Devolver no estoque
-              </Link>
             ) : porta === 'op' && (estado === 'falta_pegar' || (estado === 'sem_estoque' && modo === 'volume')) ? (
               <Link className="btn btn-primary" to={hrefFichaEstoque(op.id, { materialId: material.id })}>
                 Confirmar saída no estoque

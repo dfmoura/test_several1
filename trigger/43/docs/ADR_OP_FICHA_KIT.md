@@ -32,7 +32,7 @@ OP = ficha da etiqueta (herói + jornada + kit)
 | **Avaria numa porta** | Só na lista de retirada. OP não duplica o formulário. |
 | **Extra = acrescentar no kit** | Mesmo `materiais[]` + confirmação no estoque. |
 | **1 kit por OP** | Pedido com N etiquetas = N fichas. Onda de separação = ADR futuro. |
-| **Devolver “Já saiu” no estoque** | Antes de concluir: `POST /estoque/retiradas/{op}/devolver` → mesmo `ENTRADA_SOBRA` + `EstoqueSaldoWriter`, reduz `qtde_requisitada`, zera `saida_movimento_id` se voltar tudo. OP só aponta para o estoque. Sem estorno inventado, sem segundo writer. Avaria da separação é limitada ao que ainda está fora. |
+| **Devolver “Já saiu”** | Antes de concluir: `POST /estoque/retiradas/{op}/devolver` → mesmo `ENTRADA_SOBRA` + `EstoqueSaldoWriter`, reduz `qtde_requisitada`, zera `saida_movimento_id` se voltar tudo. UI na porta estoque **e** na OP se o usuário tem `estoque.escrever` (mesmo motor; sem formulário duplicado para quem só tem produção). Sem estorno inventado, sem segundo writer. Avaria da separação é limitada ao que ainda está fora. |
 
 ### Superfície
 

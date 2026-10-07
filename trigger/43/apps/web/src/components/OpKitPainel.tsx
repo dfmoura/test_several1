@@ -163,7 +163,7 @@ export function OpKitPainel({
             const podeReverter = estado !== 'ja_saiu' && porta === 'op';
             const acaoLabel =
               estado === 'ja_saiu'
-                ? porta === 'chao'
+                ? canWrite
                   ? 'Devolver'
                   : 'Ver volumes'
                 : porVolume
