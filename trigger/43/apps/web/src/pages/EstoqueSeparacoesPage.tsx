@@ -39,7 +39,7 @@ export function EstoqueSeparacoesPage() {
     <div className="page">
       <PageHeader
         title="A separar"
-        description="Produto de revenda que ainda está na prateleira. Marque o volume, imprima a ficha e confirme. O saldo sai na NF-e, não aqui."
+        description="Revenda a separar. Escolha volumes, confirme — o saldo sai na NF-e."
         actions={
           <Link className="btn btn-secondary" to="/estoque/retiradas">
             A buscar

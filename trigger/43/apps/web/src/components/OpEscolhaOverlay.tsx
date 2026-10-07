@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { OpFiltroVolumes } from './OpFiltroVolumes';
+import {
+  OpFiltroVolumes,
+  VOLUME_FILTRO_VAZIO,
+  filtrarVolumesEscolha,
+  volumeFiltroAtivo,
+  type VolumeFiltroEstado,
+} from './OpFiltroVolumes';
 import {
   ApiError,
   api,
@@ -20,11 +26,9 @@ import {
   areaM2Volume,
   larguraMmParaMetro,
   modoRetirada,
-  modoRetiradaLabel,
   qtdeLinhaPick,
   qtdeVolumeTotal,
   somaAreaM2Volumes,
-  volumePassaFiltro,
   localOverlayEscolha,
   volumeSugerido,
   volumesParaEscolha,
@@ -84,7 +88,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
     }
     return init;
   });
-  const [filtro, setFiltro] = useState('');
+  const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
   const [qr, setQr] = useState('');
   const [qtdeUn, setQtdeUn] = useState(material.qtde_planejada ?? String(alvo || ''));
   const [motivo, setMotivo] = useState('');
@@ -92,10 +96,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const qrRef = useRef<HTMLInputElement>(null);
-  const volsVisiveis = useMemo(
-    () => vols.filter((v) => volumePassaFiltro(v, filtro)),
-    [vols, filtro],
-  );
+  const volsVisiveis = useMemo(() => filtrarVolumesEscolha(vols, filtro), [vols, filtro]);
 
   useEffect(() => {
     if (modo !== 'volume' || estado === 'ja_saiu') return;
@@ -139,8 +140,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
         setQr('');
         return;
       }
-      if (filtro.trim()) {
-        setFiltro('');
+      if (volumeFiltroAtivo(filtro)) {
+        setFiltro(VOLUME_FILTRO_VAZIO);
         return;
       }
       onClose();
@@ -329,9 +330,8 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             ) : null}
             <p className="muted op-escolha__hint">
               {noEstoque
-                ? 'Escaneie ou marque na tabela. Sai a bobina inteira, em geral 1.000 m. Confirmar = saiu da prateleira.'
-                : 'Cesta desta ordem — quem tira da prateleira confirma no estoque.'}{' '}
-              {modoRetiradaLabel(modo)}.
+                ? 'Marque ou leia o QR. Confirmar = saiu da prateleira.'
+                : 'Escolha os volumes. A saída confirma no estoque.'}
             </p>
           </div>
           <div className="op-escolha__head-side">
@@ -390,8 +390,7 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
             <>
               {estado === 'sem_estoque' ? (
                 <p className="muted" style={{ marginTop: 0 }}>
-                  Este código não tem saldo. A lista é o estoque — os parecidos com este papel vêm
-                  primeiro. A bobina sai inteira.
+                  Sem saldo neste SKU. Volumes parecidos aparecem primeiro na lista.
                 </p>
               ) : null}
               {podeBaixar ? (
@@ -404,17 +403,14 @@ export function OpEscolhaOverlay({ op, material, porta, canWrite, onClose, onOp 
                     disabled={busy}
                     onChange={(e) => setQr(e.target.value)}
                     onKeyDown={onQrKey}
-                    placeholder="Pistola ou digite — Enter inclui no carrinho (ainda não grava)"
+                    placeholder="Pistola ou digite — Enter marca o volume"
                     autoComplete="off"
                   />
-                  <p className="muted" style={{ margin: '0.35rem 0 0' }}>
-                    Cada leitura = bobina inteira. Confirmar no rodapé dá a saída.
-                  </p>
                 </div>
               ) : null}
 
               <OpFiltroVolumes
-                id="op-escolha-filtro"
+                idPrefix="op-escolha"
                 value={filtro}
                 onChange={setFiltro}
                 total={vols.length}

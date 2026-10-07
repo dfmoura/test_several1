@@ -35,7 +35,7 @@ export function OpAndamentoPassos({ op, podeEstoque, podeProducao }: Props) {
           <h3 style={{ marginBottom: '0.25rem' }}>Onde estamos</h3>
           <p className="muted" style={{ margin: 0 }}>
             {soSemEstoque
-              ? 'Falta material no estoque — compre antes de buscar.'
+              ? 'Há material sem saldo. Escolha volumes ou aguarde reposição.'
               : 'Uma ação de cada vez. O sistema e o físico usam a mesma lista.'}
           </p>
         </div>
@@ -72,13 +72,9 @@ export function OpAndamentoPassos({ op, podeEstoque, podeProducao }: Props) {
             <Link to={`/pedidos/${op.pedido.id}`} className="btn btn-primary">
               Continuar no pedido {op.pedido.codigo}
             </Link>
-          ) : atual === 'pegar' && soSemEstoque ? (
-            <Link to="/compras/reposicao" className="btn btn-primary">
-              Falta material — ir a Compras
-            </Link>
           ) : atual === 'pegar' && podeEstoque ? (
             <Link to={hrefFichaEstoque(op.id)} className="btn btn-primary">
-              Ir buscar no estoque
+              Confirmar saída no estoque
             </Link>
           ) : atual === 'entregar' && podeProducao ? (
             <Link to={hrefApontamentoProducao(op.id)} className="btn btn-primary">

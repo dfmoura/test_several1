@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { OpEscolhaOverlay } from './OpEscolhaOverlay';
-import type { OrdemProducao, Pedido } from '../lib/api';
+import type { OrdemProducao, OrdemProducaoMaterial, Pedido } from '../lib/api';
 import { formatDecimalBr } from '../lib/format';
 import { linhaImpressaoFlexo } from '../lib/opFichaFlexo';
-import { leituraNecessidadeOp, opKitLinhasOrdenadas } from '../lib/producaoPick';
+import {
+  formatLotePick,
+  formatVolumeDimensao,
+  leituraNecessidadeOp,
+  modoRetirada,
+  opKitLinhasOrdenadas,
+  volumeSugerido,
+  volumesParaEscolha,
+} from '../lib/producaoPick';
 import { specOperacional } from '../lib/producaoFicha';
 import {
   hrefApontamentoProducao,
@@ -13,6 +21,7 @@ import {
   opKitEstado,
   opKitEstadoLabel,
   opKitNome,
+  opKitOnde,
   opPassoAtual,
 } from '../lib/producaoUi';
 
@@ -28,8 +37,17 @@ type Props = {
   onOp: (data: OrdemProducao) => void;
 };
 
+function volumesDaLinha(m: OrdemProducaoMaterial) {
+  const estado = opKitEstado(m);
+  if (estado === 'ja_saiu') {
+    return m.retirada?.volumes_baixados ?? [];
+  }
+  return volumesParaEscolha(m).filter((v) => volumeSugerido(v) || Number(v.qtde_retirar) > 0);
+}
+
 /**
- * Ficha da etiqueta + azulejos do kit. Clique abre o overlay daquele material.
+ * Ficha da etiqueta + lista profissional do kit.
+ * Clique em Volumes abre o overlay (tabela + filtros). Baixa só no estoque.
  */
 export function OpKitPainel({
   op,
@@ -54,7 +72,6 @@ export function OpKitPainel({
   const aberto = linhas.find((m) => m.id === abertoId) ?? null;
   const atual = opPassoAtual(op);
   const falta = linhas.some((m) => opKitEstado(m) === 'falta_pegar');
-  const soSem = linhas.some((m) => opKitEstado(m) === 'sem_estoque') && !falta;
 
   useEffect(() => {
     if (materialInicialId) setAbertoId(materialInicialId);
@@ -67,15 +84,12 @@ export function OpKitPainel({
     if (op.status === 'CONCLUIDA' && op.pedido) {
       return { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` };
     }
-    if (soSem && porta === 'op' && podeEstoque) {
-      return { to: hrefFichaEstoque(op.id), label: 'Estoque busca isto' };
-    }
     if (porta === 'chao') return null;
     if (porta === 'op' && falta && podeEstoque) {
-      return { to: hrefFichaEstoque(op.id), label: 'Estoque busca isto' };
+      return { to: hrefFichaEstoque(op.id), label: 'Confirmar saída no estoque' };
     }
     if (atual === 'entregar' && podeProducao) {
-      return { to: hrefApontamentoProducao(op.id), label: 'Produção recebe na máquina' };
+      return { to: hrefApontamentoProducao(op.id), label: 'Receber na máquina' };
     }
     if ((atual === 'produzir' || atual === 'devolver') && podeProducao) {
       return { to: hrefApontamentoProducao(op.id), label: 'Abrir a máquina' };
@@ -95,42 +109,108 @@ export function OpKitPainel({
       </header>
 
       {linhas.length === 0 ? (
-        <p className="op-kit__hint">Ainda sem kit nesta ordem.</p>
+        <p className="op-kit__vazio">Ainda sem materiais nesta ordem.</p>
       ) : (
-        <>
-          <p className="op-kit__hint">
-            {porta === 'chao'
-              ? 'Toque no material, marque a bobina que saiu da prateleira e confirme. Quem recebe é a produção.'
-              : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}{' '}
-            Papel e filme saem em bobina inteira. Cada volume tem 1.000 m.
-          </p>
-          <div className="op-kit__tiles">
-            {linhas.map((m) => {
-              const estado = opKitEstado(m);
-              const tipo = opComponenteLabel(m.componente);
-              const leitura = leituraNecessidadeOp(m, op);
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`op-kit-tile op-kit-tile--${estado}`}
-                  onClick={() => setAbertoId(m.id)}
-                >
-                  <span className="op-kit-tile__tipo">{tipo}</span>
-                  <span className="op-kit-tile__nome">{opKitNome(m)}</span>
-                  <span className="op-kit-tile__qtde">
-                    <span className="op-kit-tile__qtde-kicker">A ordem pede</span>
-                    {leitura.principal}
-                    {leitura.complemento ? (
-                      <span className="op-qtde-extra">{leitura.complemento}</span>
-                    ) : null}
+        <ol className="op-kit-lista">
+          {linhas.map((m, i) => {
+            const estado = opKitEstado(m);
+            const tipo = opComponenteLabel(m.componente);
+            const leitura = leituraNecessidadeOp(m, op);
+            const onde = opKitOnde(m);
+            const porVolume = modoRetirada(m) === 'volume';
+            const vols = volumesDaLinha(m);
+            const acaoLabel =
+              estado === 'ja_saiu'
+                ? 'Ver volumes'
+                : porVolume
+                  ? vols.length > 0
+                    ? 'Alterar volumes'
+                    : 'Adicionar volumes'
+                  : 'Detalhe';
+
+            return (
+              <li key={m.id} className={`op-kit-lista__item op-kit-lista__item--${estado}`}>
+                <div className="op-kit-lista__topo">
+                  <span className="op-kit-lista__n" aria-hidden>
+                    {i + 1}
                   </span>
-                  <span className="op-kit-tile__st">{opKitEstadoLabel(estado)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </>
+                  <div className="op-kit-lista__corpo">
+                    <div className="op-kit-lista__titulo">
+                      <span className="op-kit-lista__tipo">{tipo}</span>
+                      <strong>{opKitNome(m)}</strong>
+                      {m.produto?.codigo ? (
+                        <span className="op-kit-lista__sku">{m.produto.codigo}</span>
+                      ) : null}
+                    </div>
+                    <div className="op-kit-lista__meta">
+                      <span>
+                        Pedido:{' '}
+                        <strong>
+                          {leitura.principal}
+                          {leitura.complemento ? ` · ${leitura.complemento}` : ''}
+                        </strong>
+                      </span>
+                      <span className="op-kit-lista__sep" aria-hidden>
+                        ·
+                      </span>
+                      <span>{onde === '—' ? 'Sem local' : onde}</span>
+                      <span className="op-kit-lista__sep" aria-hidden>
+                        ·
+                      </span>
+                      <span className={`op-kit-lista__st op-kit-lista__st--${estado}`}>
+                        {opKitEstadoLabel(estado)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm op-kit-lista__acao"
+                    onClick={() => setAbertoId(m.id)}
+                  >
+                    {acaoLabel}
+                  </button>
+                </div>
+
+                {porVolume ? (
+                  <div className="op-kit-lista__vols">
+                    {vols.length === 0 ? (
+                      <p className="op-kit-lista__vols-vazio">
+                        Nenhum volume escolhido. Use «Adicionar volumes» para completar.
+                      </p>
+                    ) : (
+                      <table className="op-kit-lista__table">
+                        <thead>
+                          <tr>
+                            <th>Volume</th>
+                            <th>Local</th>
+                            <th>Dimensão</th>
+                            <th>{estado === 'ja_saiu' ? 'Saiu' : 'Sugestão'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vols.map((v) => (
+                            <tr key={v.lote_id ?? v.codigo}>
+                              <td>{formatLotePick(v)}</td>
+                              <td>{v.endereco?.codigo ?? '—'}</td>
+                              <td>{formatVolumeDimensao(v) ?? '—'}</td>
+                              <td>
+                                {estado === 'ja_saiu'
+                                  ? 'Baixado'
+                                  : volumeSugerido(v)
+                                    ? 'FEFO'
+                                    : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
       )}
 
       {cta ? (

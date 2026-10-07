@@ -51,6 +51,7 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
     pendentes.every((m) => m.aguardando_material);
   const falta = pendentes.length;
   const jaSaiu = linhas.filter((m) => !m.pendente).length;
+  // soSemEstoque: alerta de saldo (sem CTA Compras — ADR: reposição fora desta tela)
 
   const cta = (() => {
     if (op.status === 'CANCELADA' && op.pedido) {
@@ -59,11 +60,8 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
     if (op.status === 'CONCLUIDA' && op.pedido) {
       return { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` };
     }
-    if (atual === 'pegar' && soSemEstoque) {
-      return { to: '/compras/reposicao', label: 'Falta no estoque — ir a Compras' };
-    }
     if (atual === 'pegar' && podeEstoque) {
-      return { to: hrefFichaEstoque(op.id), label: 'Ir buscar isto no estoque' };
+      return { to: hrefFichaEstoque(op.id), label: 'Confirmar saída no estoque' };
     }
     if (atual === 'entregar' && podeProducao) {
       return { to: hrefApontamentoProducao(op.id), label: 'Entregar na máquina' };

@@ -10,7 +10,12 @@ import {
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDate, formatDecimalBr } from '../lib/format';
-import { OpFiltroVolumes } from './OpFiltroVolumes';
+import {
+  OpFiltroVolumes,
+  VOLUME_FILTRO_VAZIO,
+  filtrarVolumesEscolha,
+  type VolumeFiltroEstado,
+} from './OpFiltroVolumes';
 import {
   formatLotePick,
   formatMetrosDeVolumes,
@@ -24,7 +29,6 @@ import {
   modoRetiradaLabel,
   modoRetiradaPreview,
   opKitLinhasOrdenadas,
-  volumePassaFiltro,
 } from '../lib/producaoPick';
 import { opKitNome, opKitOnde, parseQtdeDigitada } from '../lib/producaoUi';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
@@ -143,15 +147,15 @@ function PreviewVolumesEscolha({
   onChange: (next: OpRetiradaPreview) => void;
   larguraMmFallback?: number;
 }) {
-  const [filtro, setFiltro] = useState('');
-  const visiveis = preview.volumes.filter((v) => volumePassaFiltro(v, filtro));
+  const [filtro, setFiltro] = useState<VolumeFiltroEstado>(VOLUME_FILTRO_VAZIO);
+  const visiveis = filtrarVolumesEscolha(preview.volumes, filtro);
   if (preview.volumes.length === 0) {
     return <p className="muted">Nenhum volume sugerido. Leia o QR ou inclua outro.</p>;
   }
   return (
     <>
       <OpFiltroVolumes
-        id="op-repo-filtro"
+        idPrefix="op-repo"
         value={filtro}
         onChange={setFiltro}
         total={preview.volumes.length}
