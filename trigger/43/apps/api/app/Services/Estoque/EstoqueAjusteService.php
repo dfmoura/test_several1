@@ -44,7 +44,7 @@ class EstoqueAjusteService
     ): array {
         $query = EstoqueAjuste::query()
             ->with([
-                'produto:id,codigo,descricao_fiscal,familia,unidade_interna',
+                'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
                 'solicitadoPorUser:id,name',
                 'aprovadoPorUser:id,name',
                 'movimento:id,codigo,tipo',
@@ -548,7 +548,7 @@ class EstoqueAjusteService
     public function toOut(EstoqueAjuste $ajuste): array
     {
         $ajuste->loadMissing([
-            'produto:id,codigo,descricao_fiscal,familia,unidade_interna',
+            'produto:id,codigo,descricao_fiscal,familia,unidade_interna,unidade_comercial,fator_conversao',
             'solicitadoPorUser:id,name',
             'aprovadoPorUser:id,name',
             'movimento:id,codigo,tipo',
@@ -571,6 +571,10 @@ class EstoqueAjusteService
                 'descricao_fiscal' => $ajuste->produto->descricao_fiscal,
                 'familia' => $ajuste->produto->familia,
                 'unidade_interna' => $ajuste->produto->unidade_interna,
+                'unidade_comercial' => $ajuste->produto->unidade_comercial,
+                'fator_conversao' => $ajuste->produto->fator_conversao !== null
+                    ? (string) $ajuste->produto->fator_conversao
+                    : null,
             ] : null,
             'inventario_item_id' => $ajuste->inventario_item_id,
             'inventario_id' => $ajuste->inventarioItem?->inventario_id,

@@ -1974,6 +1974,8 @@ export type EstoqueAjuste = {
     descricao_fiscal: string;
     familia: string;
     unidade_interna: string | null;
+    unidade_comercial?: string | null;
+    fator_conversao?: string | null;
   } | null;
   origem: string;
   motivo_codigo: string;

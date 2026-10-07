@@ -32,8 +32,8 @@ import {
   formatDateTime,
   formatQty,
 } from '../lib/format';
+import { leituraUnidadeComercial } from '../lib/leituraUnidadeComercial';
 import { areaM2Volume } from '../lib/nfeExactDimensoes';
-import { qtdeComercialFromAreaM2 } from '../lib/ocComposicaoVolumes';
 import { formatApiFieldErrors } from '../lib/usuarios';
 
 /** Normaliza un. para comparar M2 (aceita M² / m²). */
@@ -149,6 +149,70 @@ function ajuResumoVolumesLinha(a: EstoqueAjuste): string | null {
   return null;
 }
 
+/** Equivalente comercial — só leitura. A quantidade lançada continua na unidade de estoque. */
+function EcoComercial({
+  qtde,
+  unidadeDaQtde,
+  unidadeComercial,
+  fatorConversao,
+  unidadeDoFator,
+  block = false,
+}: {
+  qtde: string;
+  unidadeDaQtde?: string | null;
+  unidadeComercial?: string | null;
+  fatorConversao?: string | null;
+  unidadeDoFator?: string | null;
+  block?: boolean;
+}) {
+  const leitura = leituraUnidadeComercial({
+    qtdeInterna: qtde,
+    unidadeDaQtde,
+    unidadeComercial,
+    fatorConversao,
+    unidadeDoFator,
+  });
+  if (leitura.kind === 'oculta') return null;
+  const texto =
+    leitura.kind === 'incompleta'
+      ? `cadastro sem fator para ${leitura.unidadeNome}`
+      : `equivale a ${formatQty(leitura.qtde)} ${leitura.unidadeNome}`;
+  if (block) {
+    return (
+      <div
+        className="muted"
+        style={{
+          fontSize: '0.75rem',
+          fontWeight: 400,
+          textTransform: 'none',
+          letterSpacing: 'normal',
+        }}
+      >
+        {texto}
+      </div>
+    );
+  }
+  return <span className="muted"> · {texto}</span>;
+}
+
+function QtyAjuste({ qtde, ajuste }: { qtde: string; ajuste: EstoqueAjuste }) {
+  return (
+    <>
+      <strong>
+        {formatQty(qtde)} {ajuste.unidade}
+      </strong>
+      <EcoComercial
+        block
+        qtde={qtde}
+        unidadeDaQtde={ajuste.unidade}
+        unidadeComercial={ajuste.produto?.unidade_comercial}
+        fatorConversao={ajuste.produto?.fator_conversao}
+        unidadeDoFator={ajuste.produto?.unidade_interna}
+      />
+    </>
+  );
+}
+
 /** Qtde física + L×C dos volumes — leitura/conferência; sem alterar saldo. */
 function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
   const payload = a.lote_payload;
@@ -185,6 +249,14 @@ function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
                     </td>
                     <td className="num">
                       {formatQty(v.qtde)} {a.unidade}
+                      <EcoComercial
+                        block
+                        qtde={v.qtde}
+                        unidadeDaQtde={a.unidade}
+                        unidadeComercial={a.produto?.unidade_comercial}
+                        fatorConversao={a.produto?.fator_conversao}
+                        unidadeDoFator={a.produto?.unidade_interna}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -200,6 +272,13 @@ function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
             Contagem por QR — local <strong>{evidencia!.endereco.codigo}</strong> ·{' '}
             {evidencia!.volumes.length} volume(s) · soma{' '}
             {formatQty(evidencia!.qtde_soma)} {a.unidade}
+            <EcoComercial
+              qtde={evidencia!.qtde_soma}
+              unidadeDaQtde={a.unidade}
+              unidadeComercial={a.produto?.unidade_comercial}
+              fatorConversao={a.produto?.fator_conversao}
+              unidadeDoFator={a.produto?.unidade_interna}
+            />
           </p>
           <div className="table-wrap">
             <table className="data-table">
@@ -219,6 +298,14 @@ function AjusteVolumesPainel({ a }: { a: EstoqueAjuste }) {
                     </td>
                     <td className="num">
                       {formatQty(v.qtde)} {v.unidade ?? a.unidade}
+                      <EcoComercial
+                        block
+                        qtde={v.qtde}
+                        unidadeDaQtde={v.unidade ?? a.unidade}
+                        unidadeComercial={a.produto?.unidade_comercial}
+                        fatorConversao={a.produto?.fator_conversao}
+                        unidadeDoFator={a.produto?.unidade_interna}
+                      />
                     </td>
                     <td>
                       {v.status === 'LOCAL_ERRADO'
@@ -293,6 +380,12 @@ export function EstoqueAjustesPage() {
   const saldoLinear = unidadeInternaNorm === 'M';
   const qtdeDerivada = saldoArea || saldoLinear;
   const nomeSaldo = nomeUnidadeEstoque(unidadeInternaNorm);
+  const ecoProduto = {
+    unidadeDaQtde: selectedProduto?.unidade_interna,
+    unidadeComercial: selectedProduto?.unidade_comercial,
+    fatorConversao: selectedProduto?.fator_conversao,
+    unidadeDoFator: selectedProduto?.unidade_interna,
+  };
   const usaVolumesManual = produtoControlaLote && modoContagem === 'manual';
   const usaVolumesEntrada = usaVolumesManual && (isSaldoInicial || modoVolume === 'entrada');
   const usaVolumesBaixa = usaVolumesManual && !isSaldoInicial && modoVolume === 'baixa';
@@ -446,12 +539,7 @@ export function EstoqueAjustesPage() {
           row.comprimento_m.trim()
         ) {
           const area = areaM2Volume(row.largura_mm, row.comprimento_m);
-          const qtde = qtdeComercialFromAreaM2(area, {
-            unidade_comercial: selectedProduto?.unidade_comercial,
-            unidade_interna: selectedProduto?.unidade_interna,
-            fator_conversao: selectedProduto?.fator_conversao,
-          });
-          if (Number(qtde) > 0) row.qtde = qtde;
+          if (Number(area) > 0) row.qtde = area;
         }
         return row;
       }),
@@ -856,13 +944,26 @@ export function EstoqueAjustesPage() {
                             : undefined
                     }
                   />
-                  {produto && (usaVolumesEntrada || usaVolumesBaixa) && (
+                  <EcoComercial block qtde={qtdeContada} {...ecoProduto} />
+                  {produto && (
                     <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
                       Saldo sistema: {formatQty(qtdeSistema)}{' '}
                       {nomeSaldo || selectedProduto?.unidade_interna || ''}
-                      {usaVolumesEntrada
-                        ? ` · Δ +${formatQty(somaVolumes(volumes))}`
-                        : ` · Δ −${formatQty(somaBaixas(baixas))}`}
+                      <EcoComercial qtde={qtdeSistema} {...ecoProduto} />
+                      {usaVolumesEntrada && (
+                        <>
+                          {' · Δ +'}
+                          {formatQty(somaVolumes(volumes))}
+                          <EcoComercial qtde={somaVolumes(volumes)} {...ecoProduto} />
+                        </>
+                      )}
+                      {usaVolumesBaixa && (
+                        <>
+                          {' · Δ −'}
+                          {formatQty(somaBaixas(baixas))}
+                          <EcoComercial qtde={somaBaixas(baixas)} {...ecoProduto} />
+                        </>
+                      )}
                     </p>
                   )}
                 </div>
@@ -880,6 +981,7 @@ export function EstoqueAjustesPage() {
                       <p className="muted" style={{ margin: '0.5rem 0 0' }}>
                         Soma da fila: {formatQty(estoqueQrSomaQtde(qr.fila))}{' '}
                         {nomeSaldo || selectedProduto?.unidade_interna || qr.fila[0]?.unidade || ''}
+                        <EcoComercial qtde={estoqueQrSomaQtde(qr.fila)} {...ecoProduto} />
                         {qr.endereco ? ` · local ${qr.endereco.codigo}` : ' · confirme o local'}
                       </p>
                     )}
@@ -984,6 +1086,7 @@ export function EstoqueAjustesPage() {
                                           : 'Quantidade na unidade de estoque do produto'
                                     }
                                   />
+                                  <EcoComercial block qtde={v.qtde} {...ecoProduto} />
                                 </td>
                                 <td className="col-date">
                                   <input
@@ -1034,6 +1137,7 @@ export function EstoqueAjustesPage() {
                         <span className="muted" style={{ marginLeft: '0.75rem' }}>
                           Soma do saldo: {formatQty(somaVolumes(volumes))}
                           {nomeSaldo ? ` ${nomeSaldo}` : ''}
+                          <EcoComercial qtde={somaVolumes(volumes)} {...ecoProduto} />
                         </span>
                       </div>
                     </div>
@@ -1080,7 +1184,10 @@ export function EstoqueAjustesPage() {
                                         : '—'}
                                     </td>
                                   )}
-                                  <td className="col-num">{formatQty(b.qtde_disponivel)}</td>
+                                  <td className="col-num">
+                                    {formatQty(b.qtde_disponivel)}
+                                    <EcoComercial block qtde={b.qtde_disponivel} {...ecoProduto} />
+                                  </td>
                                   <td className="col-num">
                                     <input
                                       inputMode="decimal"
@@ -1088,6 +1195,7 @@ export function EstoqueAjustesPage() {
                                       onChange={(e) => patchBaixa(b.lote_id, e.target.value)}
                                       placeholder="0.0000"
                                     />
+                                    <EcoComercial block qtde={b.qtde} {...ecoProduto} />
                                   </td>
                                 </tr>
                               ))}
@@ -1098,6 +1206,7 @@ export function EstoqueAjustesPage() {
                       <p className="muted" style={{ margin: '0.45rem 0 0' }}>
                         Soma das baixas: {formatQty(somaBaixas(baixas))}
                         {nomeSaldo ? ` ${nomeSaldo}` : ''}
+                        <EcoComercial qtde={somaBaixas(baixas)} {...ecoProduto} />
                       </p>
                     </div>
                   </div>
@@ -1165,21 +1274,15 @@ export function EstoqueAjustesPage() {
                   </div>
                   <div>
                     <span>Sistema</span>
-                    <strong>
-                      {formatQty(selected.qtde_sistema)} {selected.unidade}
-                    </strong>
+                    <QtyAjuste qtde={selected.qtde_sistema} ajuste={selected} />
                   </div>
                   <div>
                     <span>Contado</span>
-                    <strong>
-                      {formatQty(selected.qtde_contada)} {selected.unidade}
-                    </strong>
+                    <QtyAjuste qtde={selected.qtde_contada} ajuste={selected} />
                   </div>
                   <div>
                     <span>Diferença</span>
-                    <strong>
-                      {formatQty(selected.qtde_diferenca)} {selected.unidade}
-                    </strong>
+                    <QtyAjuste qtde={selected.qtde_diferenca} ajuste={selected} />
                   </div>
                   <div>
                     <span>Valor (R$)</span>
@@ -1310,21 +1413,15 @@ export function EstoqueAjustesPage() {
                 </div>
                 <div>
                   <span>Sistema</span>
-                  <strong>
-                    {formatQty(selected.qtde_sistema)} {selected.unidade}
-                  </strong>
+                  <QtyAjuste qtde={selected.qtde_sistema} ajuste={selected} />
                 </div>
                 <div>
                   <span>Contado</span>
-                  <strong>
-                    {formatQty(selected.qtde_contada)} {selected.unidade}
-                  </strong>
+                  <QtyAjuste qtde={selected.qtde_contada} ajuste={selected} />
                 </div>
                 <div>
                   <span>Diferença</span>
-                  <strong>
-                    {formatQty(selected.qtde_diferenca)} {selected.unidade}
-                  </strong>
+                  <QtyAjuste qtde={selected.qtde_diferenca} ajuste={selected} />
                 </div>
                 <div>
                   <span>Valor (R$)</span>
