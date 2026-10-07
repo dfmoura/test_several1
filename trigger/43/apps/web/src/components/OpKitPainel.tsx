@@ -37,7 +37,7 @@ type Props = {
   onOp: (data: OrdemProducao) => void;
 };
 
-function volumesDaLinha(m: OrdemProducaoMaterial) {
+function volumesSugeridosLinha(m: OrdemProducaoMaterial) {
   const estado = opKitEstado(m);
   if (estado === 'ja_saiu') {
     return m.retirada?.volumes_baixados ?? [];
@@ -47,7 +47,7 @@ function volumesDaLinha(m: OrdemProducaoMaterial) {
 
 /**
  * Ficha da etiqueta + lista profissional do kit.
- * Clique em Volumes abre o overlay (tabela + filtros). Baixa só no estoque.
+ * Seleção de volumes é sessão (reverter na lista); baixa só no estoque.
  */
 export function OpKitPainel({
   op,
@@ -69,6 +69,8 @@ export function OpKitPainel({
 
   const linhas = opKitLinhasOrdenadas(op.materiais ?? []);
   const [abertoId, setAbertoId] = useState<number | null>(materialInicialId ?? null);
+  /** lote_ids mantidos na lista do kit (sessão). Ausente = ainda usa sugestão FEFO. */
+  const [escolhas, setEscolhas] = useState<Record<number, number[]>>({});
   const aberto = linhas.find((m) => m.id === abertoId) ?? null;
   const atual = opPassoAtual(op);
   const falta = linhas.some((m) => opKitEstado(m) === 'falta_pegar');
@@ -76,6 +78,43 @@ export function OpKitPainel({
   useEffect(() => {
     if (materialInicialId) setAbertoId(materialInicialId);
   }, [materialInicialId]);
+
+  /** Troca de OP limpa a sessão de escolha. */
+  useEffect(() => {
+    setEscolhas({});
+  }, [op.id]);
+
+  const volsDaLinha = (m: OrdemProducaoMaterial) => {
+    const estado = opKitEstado(m);
+    const base = volumesSugeridosLinha(m);
+    if (estado === 'ja_saiu') return base;
+    const ids = escolhas[m.id];
+    if (ids === undefined) return base;
+    if (ids.length === 0) return [];
+    const idSet = new Set(ids);
+    const doCatalogo = volumesParaEscolha(m).filter((v) => v.lote_id && idSet.has(v.lote_id));
+    // Mantém ordem da escolha; inclui só o que ainda existe no preview
+    return ids
+      .map((id) => doCatalogo.find((v) => v.lote_id === id))
+      .filter((v): v is NonNullable<typeof v> => Boolean(v));
+  };
+
+  const garantirEscolha = (m: OrdemProducaoMaterial): number[] => {
+    if (escolhas[m.id] !== undefined) return escolhas[m.id];
+    return volumesSugeridosLinha(m)
+      .map((v) => v.lote_id)
+      .filter((id): id is number => typeof id === 'number' && id > 0);
+  };
+
+  const reverterVolume = (m: OrdemProducaoMaterial, loteId: number) => {
+    if (opKitEstado(m) === 'ja_saiu') return;
+    const atualIds = garantirEscolha(m).filter((id) => id !== loteId);
+    setEscolhas((prev) => ({ ...prev, [m.id]: atualIds }));
+  };
+
+  const aplicarEscolha = (materialId: number, loteIds: number[]) => {
+    setEscolhas((prev) => ({ ...prev, [materialId]: loteIds }));
+  };
 
   const cta = (() => {
     if (op.status === 'CANCELADA' && op.pedido) {
@@ -118,7 +157,8 @@ export function OpKitPainel({
             const leitura = leituraNecessidadeOp(m, op);
             const onde = opKitOnde(m);
             const porVolume = modoRetirada(m) === 'volume';
-            const vols = volumesDaLinha(m);
+            const vols = volsDaLinha(m);
+            const podeReverter = estado !== 'ja_saiu' && porta === 'op';
             const acaoLabel =
               estado === 'ja_saiu'
                 ? 'Ver volumes'
@@ -185,6 +225,7 @@ export function OpKitPainel({
                             <th>Local</th>
                             <th>Dimensão</th>
                             <th>{estado === 'ja_saiu' ? 'Saiu' : 'Sugestão'}</th>
+                            {podeReverter ? <th className="op-kit-lista__col-acao" /> : null}
                           </tr>
                         </thead>
                         <tbody>
@@ -200,6 +241,19 @@ export function OpKitPainel({
                                     ? 'FEFO'
                                     : '—'}
                               </td>
+                              {podeReverter && v.lote_id ? (
+                                <td className="op-kit-lista__col-acao">
+                                  <button
+                                    type="button"
+                                    className="op-kit-lista__reverter"
+                                    onClick={() => reverterVolume(m, v.lote_id as number)}
+                                  >
+                                    Remover
+                                  </button>
+                                </td>
+                              ) : podeReverter ? (
+                                <td />
+                              ) : null}
                             </tr>
                           ))}
                         </tbody>
@@ -229,6 +283,16 @@ export function OpKitPainel({
           canWrite={canWrite}
           onClose={() => setAbertoId(null)}
           onOp={onOp}
+          loteIdsIniciais={
+            porta === 'op' && modoRetirada(aberto) === 'volume' && escolhas[aberto.id] !== undefined
+              ? escolhas[aberto.id]
+              : undefined
+          }
+          onAplicarEscolha={
+            porta === 'op' && modoRetirada(aberto) === 'volume'
+              ? (loteIds) => aplicarEscolha(aberto.id, loteIds)
+              : undefined
+          }
         />
       ) : null}
     </section>

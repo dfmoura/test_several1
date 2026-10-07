@@ -267,6 +267,7 @@ export function EstoqueSeparacaoChaoPage() {
                             <th>Local</th>
                             <th>Dimensão</th>
                             <th>Levar</th>
+                            <th className="op-kit-lista__col-acao" />
                           </tr>
                         </thead>
                         <tbody>
@@ -287,6 +288,22 @@ export function EstoqueSeparacaoChaoPage() {
                                 <td>
                                   {formatDecimalBr(m.qtde, 4, { stripTrailingZeros: true })}{' '}
                                   {vol?.unidade ?? detalhe.unidade}
+                                </td>
+                                <td className="op-kit-lista__col-acao">
+                                  <button
+                                    type="button"
+                                    className="op-kit-lista__reverter"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      setMarcas((atual) =>
+                                        atual.map((x) =>
+                                          x.lote_id === m.lote_id ? { ...x, marcado: false } : x,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    Remover
+                                  </button>
                                 </td>
                               </tr>
                             );

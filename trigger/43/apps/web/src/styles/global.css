@@ -12899,6 +12899,37 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   font-weight: 700;
 }
 
+.op-kit-lista__col-acao {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.op-kit-lista__reverter {
+  margin: 0;
+  padding: 0.15rem 0.35rem;
+  border: 0;
+  background: transparent;
+  color: #5b6b82;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.op-kit-lista__reverter:hover,
+.op-kit-lista__reverter:focus-visible {
+  color: #b42318;
+  outline: none;
+}
+
+.op-kit-lista__reverter:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .op-qtde-extra {
   display: block;
   font-size: 0.78rem;
