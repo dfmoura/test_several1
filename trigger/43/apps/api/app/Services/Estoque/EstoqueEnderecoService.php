@@ -2,6 +2,7 @@
 
 namespace App\Services\Estoque;
 
+use App\Models\CodigoSequence;
 use App\Models\Empresa;
 use App\Models\EstoqueEndereco;
 use App\Models\EstoqueLote;
@@ -11,12 +12,13 @@ use Illuminate\Validation\ValidationException;
 /**
  * Locais do almoxarifado — ADR_CADASTRO_INSUMO_VOLUME F4.
  * Gabarito 6×4×3 é o padrão da planta. Cadastro estende a mesma malha.
- * Código canônico Pxx-Cxx-Lxx; legado Pxx-Cxx-Vxx resolve no mesmo id.
+ * Malha = prateleira/coluna/vao; rótulo impresso = P00000001 (seq. por EMP).
+ * QR legado Pxx-Cxx-Lxx / Vxx ainda resolve no mesmo id.
  */
 class EstoqueEnderecoService
 {
     /**
-     * Semear o gabarito e alinhar código legado.
+     * Semear o gabarito, alinhar rótulo sequencial e legado de malha.
      * Reativa só os 72 do gabarito. Extensão (L04, P07, …) permanece como está.
      *
      * @return array{criados: int, existentes: int, renomeados: int, desativados: int, total: int}
@@ -32,74 +34,16 @@ class EstoqueEnderecoService
             for ($p = 1; $p <= EstoqueEndereco::PRATELEIRAS; $p++) {
                 for ($c = 1; $c <= EstoqueEndereco::COLUNAS; $c++) {
                     for ($v = 1; $v <= EstoqueEndereco::VAOS; $v++) {
-                        $codigo = EstoqueEndereco::codigoDe($p, $c, $v);
-                        $legado = EstoqueEndereco::codigoLegadoDe($p, $c, $v);
-
-                        $rowNovo = EstoqueEndereco::query()
-                            ->where('empresa_id', $empresa->id)
-                            ->where('codigo', $codigo)
-                            ->first();
-                        $rowLegado = EstoqueEndereco::query()
-                            ->where('empresa_id', $empresa->id)
-                            ->where('codigo', $legado)
-                            ->first();
-
-                        if ($rowNovo !== null && $rowLegado !== null && $rowNovo->id !== $rowLegado->id) {
-                            EstoqueLote::query()
-                                ->where('empresa_id', $empresa->id)
-                                ->where('endereco_id', $rowLegado->id)
-                                ->update(['endereco_id' => $rowNovo->id]);
-                            $rowLegado->ativo = false;
-                            $rowLegado->save();
-                            if (! $rowNovo->ativo) {
-                                $rowNovo->ativo = true;
-                                $rowNovo->save();
-                            }
-                            $renomeados++;
-                            $existentes++;
-
-                            continue;
-                        }
-
-                        if ($rowLegado !== null && $rowNovo === null) {
-                            $rowLegado->codigo = $codigo;
-                            $rowLegado->prateleira = $p;
-                            $rowLegado->coluna = $c;
-                            $rowLegado->vao = $v;
-                            $rowLegado->ativo = true;
-                            $rowLegado->save();
-                            $renomeados++;
-
-                            continue;
-                        }
-
-                        if ($rowNovo !== null) {
-                            if (! $rowNovo->ativo) {
-                                $rowNovo->ativo = true;
-                                $rowNovo->save();
-                            }
-                            $existentes++;
-
-                            continue;
-                        }
-
-                        EstoqueEndereco::query()->create([
-                            'empresa_id' => $empresa->id,
-                            'codigo' => $codigo,
-                            'prateleira' => $p,
-                            'coluna' => $c,
-                            'vao' => $v,
-                            'largura_m' => EstoqueEndereco::LARGURA_M,
-                            'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
-                            'altura_m' => EstoqueEndereco::ALTURA_M,
-                            'ativo' => true,
-                        ]);
-                        $criados++;
+                        $r = $this->garantirSlot($empresa, $p, $c, $v);
+                        $criados += $r['criados'];
+                        $existentes += $r['existentes'];
+                        $renomeados += $r['renomeados'];
+                        $desativados += $r['desativados'];
                     }
                 }
             }
 
-            $alinhados = $this->alinharLegadoForaDoGabarito($empresa);
+            $alinhados = $this->alinharRotulosForaDoGabarito($empresa);
             $renomeados += $alinhados['renomeados'];
             $desativados += $alinhados['desativados'];
         });
@@ -116,8 +60,8 @@ class EstoqueEnderecoService
     }
 
     /**
-     * Novo local na malha Pxx-Cxx-Lxx. Sem `vao`, usa o primeiro número sem local ativo.
-     * Posição inativa volta no mesmo id (etiqueta já impressa continua válida).
+     * Novo local na malha. Sem `vao`, usa o primeiro número sem local ativo.
+     * Posição inativa volta no mesmo id (rótulo já impresso continua válido).
      *
      * @param  array{prateleira: int|string, coluna: int|string, vao?: int|string|null, largura_m?: string|null, profundidade_m?: string|null, altura_m?: string|null}  $input
      */
@@ -130,8 +74,6 @@ class EstoqueEnderecoService
             $v = isset($input['vao']) && $input['vao'] !== null && $input['vao'] !== ''
                 ? (int) $input['vao']
                 : $this->proximoVao($empresa, $p, $c);
-
-            $codigo = EstoqueEndereco::codigoDe($p, $c, $v);
 
             $row = EstoqueEndereco::query()
                 ->where('empresa_id', $empresa->id)
@@ -154,7 +96,9 @@ class EstoqueEnderecoService
             ];
 
             if ($row !== null) {
-                $row->codigo = $codigo;
+                if (! EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
+                    $row->codigo = $this->proximoCodigoRotulo($empresa);
+                }
                 $row->ativo = true;
                 $row->fill($dims);
                 $row->save();
@@ -164,7 +108,7 @@ class EstoqueEnderecoService
 
             return EstoqueEndereco::query()->create([
                 'empresa_id' => $empresa->id,
-                'codigo' => $codigo,
+                'codigo' => $this->proximoCodigoRotulo($empresa),
                 'prateleira' => $p,
                 'coluna' => $c,
                 'vao' => $v,
@@ -207,11 +151,130 @@ class EstoqueEnderecoService
     }
 
     /**
-     * Vxx fora do gabarito vira Lxx no mesmo id. Duplicata legado+canônico funde o volume e inativa o legado.
+     * @return array{criados: int, existentes: int, renomeados: int, desativados: int}
+     */
+    private function garantirSlot(Empresa $empresa, int $p, int $c, int $v): array
+    {
+        $malha = EstoqueEndereco::codigoMalhaDe($p, $c, $v);
+        $legado = EstoqueEndereco::codigoLegadoDe($p, $c, $v);
+
+        $rowPos = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('prateleira', $p)
+            ->where('coluna', $c)
+            ->where('vao', $v)
+            ->first();
+        $rowMalha = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', $malha)
+            ->first();
+        $rowLegado = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', $legado)
+            ->first();
+
+        if ($rowMalha !== null && $rowLegado !== null && $rowMalha->id !== $rowLegado->id) {
+            $this->fundirVolumes($empresa, (int) $rowLegado->id, (int) $rowMalha->id);
+            $rowLegado->ativo = false;
+            $rowLegado->save();
+            $survivor = $rowPos ?? $rowMalha;
+            $r = $this->ativarEAlinharRotulo($empresa, $survivor);
+            $r['desativados'] = 1;
+
+            return $r;
+        }
+
+        if ($rowLegado !== null && $rowPos === null && $rowMalha === null) {
+            $rowLegado->prateleira = $p;
+            $rowLegado->coluna = $c;
+            $rowLegado->vao = $v;
+            $r = $this->ativarEAlinharRotulo($empresa, $rowLegado);
+            $r['renomeados'] = max(1, $r['renomeados']);
+
+            return $r;
+        }
+
+        if ($rowMalha !== null && $rowPos === null) {
+            $rowMalha->prateleira = $p;
+            $rowMalha->coluna = $c;
+            $rowMalha->vao = $v;
+
+            return $this->ativarEAlinharRotulo($empresa, $rowMalha);
+        }
+
+        if ($rowPos !== null) {
+            if ($rowLegado !== null && $rowLegado->id !== $rowPos->id) {
+                $this->fundirVolumes($empresa, (int) $rowLegado->id, (int) $rowPos->id);
+                $rowLegado->ativo = false;
+                $rowLegado->save();
+                $r = $this->ativarEAlinharRotulo($empresa, $rowPos);
+                $r['desativados'] = 1;
+
+                return $r;
+            }
+
+            return $this->ativarEAlinharRotulo($empresa, $rowPos);
+        }
+
+        EstoqueEndereco::query()->create([
+            'empresa_id' => $empresa->id,
+            'codigo' => $this->proximoCodigoRotulo($empresa),
+            'prateleira' => $p,
+            'coluna' => $c,
+            'vao' => $v,
+            'largura_m' => EstoqueEndereco::LARGURA_M,
+            'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
+            'altura_m' => EstoqueEndereco::ALTURA_M,
+            'ativo' => true,
+        ]);
+
+        return ['criados' => 1, 'existentes' => 0, 'renomeados' => 0, 'desativados' => 0];
+    }
+
+    /**
+     * @return array{criados: int, existentes: int, renomeados: int, desativados: int}
+     */
+    private function ativarEAlinharRotulo(Empresa $empresa, EstoqueEndereco $row): array
+    {
+        $renomeados = 0;
+        $existentes = 0;
+
+        if (! EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
+            $row->codigo = $this->proximoCodigoRotulo($empresa);
+            $renomeados = 1;
+        } else {
+            $existentes = 1;
+        }
+
+        if (! $row->ativo) {
+            $row->ativo = true;
+        }
+
+        $row->save();
+
+        return [
+            'criados' => 0,
+            'existentes' => $existentes,
+            'renomeados' => $renomeados,
+            'desativados' => 0,
+        ];
+    }
+
+    private function fundirVolumes(Empresa $empresa, int $deEnderecoId, int $paraEnderecoId): void
+    {
+        EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('endereco_id', $deEnderecoId)
+            ->update(['endereco_id' => $paraEnderecoId]);
+    }
+
+    /**
+     * Fora do gabarito: malha L/V vira rótulo sequencial no mesmo id.
+     * Duplicata malha+legado funde o volume e inativa o legado.
      *
      * @return array{renomeados: int, desativados: int}
      */
-    private function alinharLegadoForaDoGabarito(Empresa $empresa): array
+    private function alinharRotulosForaDoGabarito(Empresa $empresa): array
     {
         $renomeados = 0;
         $desativados = 0;
@@ -227,30 +290,42 @@ class EstoqueEnderecoService
             ->get();
 
         foreach ($fora as $row) {
-            $canon = EstoqueEndereco::codigoDe($row->prateleira, $row->coluna, $row->vao);
-            $legado = EstoqueEndereco::codigoLegadoDe($row->prateleira, $row->coluna, $row->vao);
-            if (strcasecmp((string) $row->codigo, $legado) !== 0) {
+            if (EstoqueEndereco::isCodigoSequencial((string) $row->codigo)) {
                 continue;
             }
 
-            $rowNovo = EstoqueEndereco::query()
+            $malha = EstoqueEndereco::codigoMalhaDe($row->prateleira, $row->coluna, $row->vao);
+            $legado = EstoqueEndereco::codigoLegadoDe($row->prateleira, $row->coluna, $row->vao);
+            $codigoAtual = (string) $row->codigo;
+
+            if (strcasecmp($codigoAtual, $legado) !== 0 && strcasecmp($codigoAtual, $malha) !== 0
+                && ! EstoqueEndereco::isCodigoMalha($codigoAtual)) {
+                continue;
+            }
+
+            $outro = EstoqueEndereco::query()
                 ->where('empresa_id', $empresa->id)
-                ->where('codigo', $canon)
+                ->where('prateleira', $row->prateleira)
+                ->where('coluna', $row->coluna)
+                ->where('vao', $row->vao)
+                ->where('id', '!=', $row->id)
                 ->first();
 
-            if ($rowNovo !== null && $rowNovo->id !== $row->id) {
-                EstoqueLote::query()
-                    ->where('empresa_id', $empresa->id)
-                    ->where('endereco_id', $row->id)
-                    ->update(['endereco_id' => $rowNovo->id]);
+            if ($outro !== null) {
+                $this->fundirVolumes($empresa, (int) $row->id, (int) $outro->id);
                 $row->ativo = false;
                 $row->save();
                 $desativados++;
+                if (! EstoqueEndereco::isCodigoSequencial((string) $outro->codigo)) {
+                    $outro->codigo = $this->proximoCodigoRotulo($empresa);
+                    $outro->save();
+                    $renomeados++;
+                }
 
                 continue;
             }
 
-            $row->codigo = $canon;
+            $row->codigo = $this->proximoCodigoRotulo($empresa);
             $row->save();
             $renomeados++;
         }
@@ -259,6 +334,60 @@ class EstoqueEnderecoService
             'renomeados' => $renomeados,
             'desativados' => $desativados,
         ];
+    }
+
+    private function proximoCodigoRotulo(Empresa $empresa): string
+    {
+        $n = DB::transaction(function () use ($empresa) {
+            $row = CodigoSequence::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('prefixo', EstoqueEndereco::SEQ_PREFIXO)
+                ->lockForUpdate()
+                ->first();
+
+            $floor = $this->maxCodigoSequencialExistente($empresa) + 1;
+
+            if ($row === null) {
+                $current = max(1, $floor);
+                CodigoSequence::query()->create([
+                    'empresa_id' => $empresa->id,
+                    'prefixo' => EstoqueEndereco::SEQ_PREFIXO,
+                    'proximo' => $current + 1,
+                ]);
+
+                return $current;
+            }
+
+            $current = max((int) $row->proximo, $floor);
+            $row->update(['proximo' => $current + 1]);
+
+            return $current;
+        });
+
+        return EstoqueEndereco::codigoSequencialDe($n);
+    }
+
+    private function maxCodigoSequencialExistente(Empresa $empresa): int
+    {
+        $prefix = EstoqueEndereco::PREFIXO_ROTULO;
+        $pad = EstoqueEndereco::PAD_ROTULO;
+        $codes = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('codigo', 'like', $prefix.'%')
+            ->pluck('codigo');
+
+        $max = 0;
+        foreach ($codes as $codigo) {
+            if (! EstoqueEndereco::isCodigoSequencial((string) $codigo)) {
+                continue;
+            }
+            $n = (int) substr((string) $codigo, strlen($prefix), $pad);
+            if ($n > $max) {
+                $max = $n;
+            }
+        }
+
+        return $max;
     }
 
     private function proximoVao(Empresa $empresa, int $prateleira, int $coluna): int
@@ -416,6 +545,11 @@ class EstoqueEnderecoService
         return [
             'id' => $e->id,
             'codigo' => $e->codigo,
+            'codigo_malha' => EstoqueEndereco::codigoMalhaDe(
+                (int) $e->prateleira,
+                (int) $e->coluna,
+                (int) $e->vao
+            ),
             'prateleira' => $e->prateleira,
             'coluna' => $e->coluna,
             'vao' => $e->vao,
@@ -429,7 +563,7 @@ class EstoqueEnderecoService
 
     /**
      * Resolve payload END:{empresa_id}:{id}:{codigo} — valida EMP e código.
-     * Aceita código legado Pxx-Cxx-Vxx se o registro canônico for o Lxx do mesmo slot.
+     * Aceita rótulo sequencial atual e malha legada Pxx-Cxx-Lxx / Vxx do mesmo slot.
      */
     public function resolverPorQr(Empresa $empresa, string $payload): EstoqueEndereco
     {
@@ -467,14 +601,22 @@ class EstoqueEnderecoService
 
     private function codigoCompativel(EstoqueEndereco $end, string $codigo): bool
     {
-        if (strcasecmp($end->codigo, $codigo) === 0) {
+        if (strcasecmp((string) $end->codigo, $codigo) === 0) {
             return true;
         }
 
-        $canon = EstoqueEndereco::codigoDe($end->prateleira, $end->coluna, $end->vao);
-        $legado = EstoqueEndereco::codigoLegadoDe($end->prateleira, $end->coluna, $end->vao);
+        $malha = EstoqueEndereco::codigoMalhaDe(
+            (int) $end->prateleira,
+            (int) $end->coluna,
+            (int) $end->vao
+        );
+        $legado = EstoqueEndereco::codigoLegadoDe(
+            (int) $end->prateleira,
+            (int) $end->coluna,
+            (int) $end->vao
+        );
 
-        return strcasecmp($end->codigo, $canon) === 0
-            && strcasecmp($codigo, $legado) === 0;
+        return strcasecmp($codigo, $malha) === 0
+            || strcasecmp($codigo, $legado) === 0;
     }
 }

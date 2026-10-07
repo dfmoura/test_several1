@@ -14970,10 +14970,12 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
 }
 
 .estoque-mapa-celula-cod {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .estoque-mapa-celula-n {

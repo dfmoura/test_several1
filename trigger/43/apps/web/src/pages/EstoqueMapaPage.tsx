@@ -238,7 +238,7 @@ export function EstoqueMapaPage() {
     <div className="page estoque-mapa-page">
       <PageHeader
         title="Mapa dos locais"
-        description="Ocupação por endereço (Pxx-Cxx-Lxx). O gabarito é 6×4×3; local novo entra na mesma malha."
+        description="Ocupação por local (rótulo P00000001; malha Prat/Col/Local). Gabarito 6×4×3; local novo entra na mesma malha."
         actions={
           <>
             <Link className="btn btn-secondary" to="/estoque">
@@ -504,7 +504,7 @@ export function EstoqueMapaPage() {
                               aria-pressed={ativo}
                               aria-label={`${cell.codigo}, ${cell.volumes_count} volumes`}
                             >
-                              <span className="estoque-mapa-celula-cod">L{pad2(v)}</span>
+                              <span className="estoque-mapa-celula-cod">{cell.codigo}</span>
                               <span className="estoque-mapa-dots" aria-hidden>
                                 {cell.volumes_count <= 0 ? (
                                   <span className="estoque-mapa-dot estoque-mapa-dot--vazio" />
@@ -541,6 +541,9 @@ export function EstoqueMapaPage() {
                     <div>
                       <h3 style={{ margin: 0 }}>{selecionado.codigo}</h3>
                       <p className="muted" style={{ margin: '0.2rem 0 0' }}>
+                        {selecionado.codigo_malha
+                          ? `${selecionado.codigo_malha} · `
+                          : `P${pad2(selecionado.prateleira)}-C${pad2(selecionado.coluna)}-L${pad2(selecionado.vao)} · `}
                         {selecionado.volumes_count} volume(s)
                         {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
                       </p>

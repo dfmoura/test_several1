@@ -317,7 +317,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Origem:** Chat 2026-09-12 — visão espacial leve do almoxarifado
 - **Depende de:** BL-098 · `ADR_CADASTRO_INSUMO_VOLUME.md` F4
 - **Decisão (fechada):**
-  1. Mapa = ocupação por **endereço** (não geometria de produto). Célula = `Pxx-Cxx-Lxx`.
+  1. Mapa = ocupação por **endereço** (não geometria de produto). Célula = rótulo `P########` na malha Prat/Col/Local.
   2. `GET /estoque/mapa` agrega volumes com `qtde > 0`; drill-down `GET /estoque/lotes?endereco_id=&com_qtde=1`.
   3. Só leitura — sem tocar `EstoqueSaldoWriter` / MOV / receber.
 - **Aceite:**
@@ -333,7 +333,7 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 - **Origem:** Chat 2026-09-05 — cadastro insumo → volume → prateleiras
 - **Depende de:** BL-097 · `ADR_CADASTRO_INSUMO_VOLUME.md` F4
 - **Decisão (fechada):**
-  1. Gabarito inicial 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além da malha (L04, P07, …) nasce por cadastro, código `Pxx-Cxx-Lxx`. UX: Local/Locais; domínio: `vao`.
+  1. Gabarito inicial 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além da malha nasce por cadastro; rótulo `P00000001` sequencial por EMP; malha `prateleira/coluna/vao`. UX: Local/Locais; domínio: `vao`.
   2. QR do local; vínculo volume ↔ endereço; saldo oficial continua SKU (+ lote).
 - **Aceite:**
   - [x] Endereços cadastráveis por EMP (`estoque_enderecos` + seed)

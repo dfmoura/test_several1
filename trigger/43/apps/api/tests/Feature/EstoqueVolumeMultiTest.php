@@ -290,6 +290,8 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->assertSame(72, $out['total']);
         $this->assertSame(72, EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count());
         $this->assertSame(0, $out['desativados']);
+        $this->assertSame('P00000001', $this->codigoDoSlot(1, 1, 1));
+        $this->assertSame('P00000021', $this->codigoDoSlot(2, 3, 3));
 
         $lote = EstoqueLote::query()->create([
             'empresa_id' => $this->empresa->id,
@@ -302,17 +304,14 @@ class EstoqueVolumeMultiTest extends TestCase
             'qr_token' => bin2hex(random_bytes(8)),
         ]);
 
-        $end = EstoqueEndereco::query()
-            ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P01-C01-L01')
-            ->firstOrFail();
+        $end = $this->enderecoDoSlot(1, 1, 1);
 
         $this->withHeaders($this->h)
             ->postJson("/api/v1/estoque/lotes/{$lote->id}/endereco", [
                 'endereco_id' => $end->id,
             ])
             ->assertOk()
-            ->assertJsonPath('data.endereco.codigo', 'P01-C01-L01');
+            ->assertJsonPath('data.endereco.codigo', 'P00000001');
 
         $this->withHeaders($this->h)
             ->getJson("/api/v1/estoque/lotes/{$lote->id}/etiqueta")
@@ -331,14 +330,21 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->withHeaders($this->h)
             ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($endPayload))
             ->assertOk()
-            ->assertJsonPath('data.codigo', 'P01-C01-L01');
+            ->assertJsonPath('data.codigo', 'P00000001')
+            ->assertJsonPath('data.codigo_malha', 'P01-C01-L01');
 
-        // QR legado Vxx ainda resolve após migração Lxx (mesmo id/slot).
+        // QR legado de malha (L/V) ainda resolve após rótulo sequencial (mesmo id/slot).
         $legadoPayload = 'END:'.$this->empresa->id.':'.$end->id.':'.EstoqueEndereco::codigoLegadoDe(1, 1, 1);
         $this->withHeaders($this->h)
             ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($legadoPayload))
             ->assertOk()
-            ->assertJsonPath('data.codigo', 'P01-C01-L01');
+            ->assertJsonPath('data.codigo', 'P00000001');
+
+        $malhaPayload = 'END:'.$this->empresa->id.':'.$end->id.':'.EstoqueEndereco::codigoMalhaDe(1, 1, 1);
+        $this->withHeaders($this->h)
+            ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($malhaPayload))
+            ->assertOk()
+            ->assertJsonPath('data.codigo', 'P00000001');
 
         $lote2 = EstoqueLote::query()->create([
             'empresa_id' => $this->empresa->id,
@@ -351,10 +357,7 @@ class EstoqueVolumeMultiTest extends TestCase
             'qr_token' => bin2hex(random_bytes(8)),
         ]);
 
-        $end2 = EstoqueEndereco::query()
-            ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P02-C03-L03')
-            ->firstOrFail();
+        $end2 = $this->enderecoDoSlot(2, 3, 3);
 
         $this->withHeaders($this->h)
             ->postJson('/api/v1/estoque/guardar', [
@@ -362,14 +365,14 @@ class EstoqueVolumeMultiTest extends TestCase
                 'endereco_qr' => $end2->qrPayload(),
             ])
             ->assertOk()
-            ->assertJsonPath('data.endereco.codigo', 'P02-C03-L03');
+            ->assertJsonPath('data.endereco.codigo', 'P00000021');
 
         $this->withHeaders($this->h)
             ->getJson('/api/v1/estoque/lotes/etiquetas?sem_endereco=1')
             ->assertOk()
             ->assertJsonPath('data.volumes_count', 0);
 
-        // Extensão legada V04 permanece ativa; o seed só alinha o código no mesmo id.
+        // Extensão legada V04 permanece ativa; o seed alinha para rótulo sequencial no mesmo id.
         $ext = EstoqueEndereco::query()->create([
             'empresa_id' => $this->empresa->id,
             'codigo' => 'P01-C01-V04',
@@ -386,7 +389,7 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->assertSame(1, $realinhado['renomeados']);
         $ext->refresh();
         $this->assertTrue($ext->ativo);
-        $this->assertSame('P01-C01-L04', $ext->codigo);
+        $this->assertSame('P00000073', $ext->codigo);
         $this->assertSame(
             73,
             EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
@@ -397,17 +400,14 @@ class EstoqueVolumeMultiTest extends TestCase
             ->getJson('/api/v1/estoque/enderecos/por-qr?payload='.urlencode($legadoExt))
             ->assertOk()
             ->assertJsonPath('data.id', $ext->id)
-            ->assertJsonPath('data.codigo', 'P01-C01-L04');
+            ->assertJsonPath('data.codigo', 'P00000073');
     }
 
     public function test_mapa_ocupacao_agrega_volumes_por_local(): void
     {
         app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
 
-        $end = EstoqueEndereco::query()
-            ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P01-C01-L01')
-            ->firstOrFail();
+        $end = $this->enderecoDoSlot(1, 1, 1);
 
         EstoqueLote::query()->create([
             'empresa_id' => $this->empresa->id,
@@ -465,8 +465,9 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->assertSame(1, $mapa['resumo']['volumes_sem_local']);
         $this->assertSame(1, $mapa['resumo']['skus_distintos']);
 
-        $cell = collect($mapa['locais'])->firstWhere('codigo', 'P01-C01-L01');
+        $cell = collect($mapa['locais'])->firstWhere('codigo', 'P00000001');
         $this->assertNotNull($cell);
+        $this->assertSame('P01-C01-L01', $cell['codigo_malha']);
         $this->assertSame(2, $cell['volumes_count']);
         $this->assertSame(1, $cell['skus_count']);
 
@@ -486,7 +487,8 @@ class EstoqueVolumeMultiTest extends TestCase
                 'coluna' => 1,
             ])
             ->assertCreated()
-            ->assertJsonPath('data.codigo', 'P01-C01-L04')
+            ->assertJsonPath('data.codigo', 'P00000073')
+            ->assertJsonPath('data.codigo_malha', 'P01-C01-L04')
             ->assertJsonPath('data.vao', 4)
             ->json('data');
 
@@ -506,7 +508,8 @@ class EstoqueVolumeMultiTest extends TestCase
                 'largura_m' => '1.200',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.codigo', 'P07-C01-L01')
+            ->assertJsonPath('data.codigo', 'P00000074')
+            ->assertJsonPath('data.codigo_malha', 'P07-C01-L01')
             ->json('data');
 
         $mapa = $this->withHeaders($this->h)
@@ -514,14 +517,14 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertOk()
             ->json('data');
         $this->assertSame(74, $mapa['resumo']['total_locais']);
-        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P01-C01-L04'));
-        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P07-C01-L01'));
+        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P00000073'));
+        $this->assertNotNull(collect($mapa['locais'])->firstWhere('codigo', 'P00000074'));
 
         $this->withHeaders($this->h)
             ->patchJson('/api/v1/estoque/enderecos/'.$l04['id'], ['ativo' => false])
             ->assertOk()
             ->assertJsonPath('data.ativo', false)
-            ->assertJsonPath('data.codigo', 'P01-C01-L04');
+            ->assertJsonPath('data.codigo', 'P00000073');
 
         $peloProximo = $this->withHeaders($this->h)
             ->postJson('/api/v1/estoque/enderecos', [
@@ -531,7 +534,7 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertCreated()
             ->json('data');
         $this->assertSame($l04['id'], $peloProximo['id']);
-        $this->assertSame('P01-C01-L04', $peloProximo['codigo']);
+        $this->assertSame('P00000073', $peloProximo['codigo']);
         $this->assertTrue($peloProximo['ativo']);
 
         $this->withHeaders($this->h)
@@ -540,7 +543,7 @@ class EstoqueVolumeMultiTest extends TestCase
 
         $this->assertSame(
             $l04['id'],
-            EstoqueEndereco::query()->where('codigo', 'P01-C01-L04')->where('empresa_id', $this->empresa->id)->value('id')
+            EstoqueEndereco::query()->where('codigo', 'P00000073')->where('empresa_id', $this->empresa->id)->value('id')
         );
 
         app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
@@ -551,7 +554,7 @@ class EstoqueVolumeMultiTest extends TestCase
         $this->assertTrue(
             (bool) EstoqueEndereco::query()->whereKey($p07['id'])->value('ativo')
         );
-        $this->assertSame('P07-C01-L01', EstoqueEndereco::query()->whereKey($p07['id'])->value('codigo'));
+        $this->assertSame('P00000074', EstoqueEndereco::query()->whereKey($p07['id'])->value('codigo'));
         $this->assertSame(
             73,
             EstoqueEndereco::query()->where('empresa_id', $this->empresa->id)->where('ativo', true)->count()
@@ -566,6 +569,7 @@ class EstoqueVolumeMultiTest extends TestCase
             ->assertCreated()
             ->json('data');
         $this->assertSame($l04['id'], $reativado['id']);
+        $this->assertSame('P00000073', $reativado['codigo']);
         $this->assertTrue($reativado['ativo']);
 
         $outra = Empresa::query()->create([
@@ -592,7 +596,7 @@ class EstoqueVolumeMultiTest extends TestCase
 
         EstoqueEndereco::query()->create([
             'empresa_id' => $outra->id,
-            'codigo' => 'P01-C01-L01',
+            'codigo' => 'P00000001',
             'prateleira' => 1,
             'coluna' => 1,
             'vao' => 1,
@@ -629,6 +633,21 @@ class EstoqueVolumeMultiTest extends TestCase
                 'vao' => 4,
             ])
             ->assertStatus(403);
+    }
+
+    private function enderecoDoSlot(int $prateleira, int $coluna, int $vao): EstoqueEndereco
+    {
+        return EstoqueEndereco::query()
+            ->where('empresa_id', $this->empresa->id)
+            ->where('prateleira', $prateleira)
+            ->where('coluna', $coluna)
+            ->where('vao', $vao)
+            ->firstOrFail();
+    }
+
+    private function codigoDoSlot(int $prateleira, int $coluna, int $vao): string
+    {
+        return (string) $this->enderecoDoSlot($prateleira, $coluna, $vao)->codigo;
     }
 
     public function test_catalogo_exact_tem_4_insumos(): void

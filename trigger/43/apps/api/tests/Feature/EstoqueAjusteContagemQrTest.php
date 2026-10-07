@@ -95,7 +95,9 @@ class EstoqueAjusteContagemQrTest extends TestCase
         app(EstoqueEnderecoService::class)->seedGabarito($this->empresa);
         $this->endereco = EstoqueEndereco::query()
             ->where('empresa_id', $this->empresa->id)
-            ->where('codigo', 'P01-C01-L01')
+            ->where('prateleira', 1)
+            ->where('coluna', 1)
+            ->where('vao', 1)
             ->firstOrFail();
 
         foreach ([['VOL-A', '40.0000'], ['VOL-B', '35.0000'], ['VOL-C', '25.0000']] as [$codigo, $qtde]) {
@@ -140,7 +142,7 @@ class EstoqueAjusteContagemQrTest extends TestCase
                     'qtde' => '40.0000',
                     'unidade' => 'M2',
                     'status' => 'ENCONTRADO',
-                    'endereco_atual' => 'P01-C01-L01',
+                    'endereco_atual' => 'P00000001',
                 ],
                 [
                     'lote_id' => $this->lotes[1]->id,
@@ -148,7 +150,7 @@ class EstoqueAjusteContagemQrTest extends TestCase
                     'qtde' => '35.0000',
                     'unidade' => 'M2',
                     'status' => 'ENCONTRADO',
-                    'endereco_atual' => 'P01-C01-L01',
+                    'endereco_atual' => 'P00000001',
                 ],
             ],
         ];
@@ -166,7 +168,7 @@ class EstoqueAjusteContagemQrTest extends TestCase
             ->assertJsonPath('data.status', EstoqueAjuste::STATUS_PENDENTE)
             ->assertJsonPath('data.qtde_diferenca', '-25.0000')
             ->assertJsonPath('data.contagem_evidencia.modo', 'QR_VOLUME_LOCAL')
-            ->assertJsonPath('data.contagem_evidencia.endereco.codigo', 'P01-C01-L01')
+            ->assertJsonPath('data.contagem_evidencia.endereco.codigo', 'P00000001')
             ->assertJsonPath('data.contagem_evidencia.volumes.0.codigo', 'VOL-A');
 
         $ajuId = $aju->json('data.id');

@@ -1796,7 +1796,10 @@ export type ReceberXmlPreview = {
 
 export type EstoqueEndereco = {
   id: number;
+  /** Rótulo impresso sequencial (P00000001). */
   codigo: string;
+  /** Malha derivada Pxx-Cxx-Lxx (posição; não é o código da etiqueta). */
+  codigo_malha?: string;
   prateleira: number;
   coluna: number;
   vao: number;

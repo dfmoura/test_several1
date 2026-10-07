@@ -10,7 +10,7 @@ class SeedEstoqueEnderecosCommand extends Command
 {
     protected $signature = 'erp:seed-estoque-enderecos {--empresa=}';
 
-    protected $description = 'Gabarito 6×4×3 (Pxx-Cxx-Lxx); não desativa local cadastrado além da malha';
+    protected $description = 'Gabarito 6×4×3 com rótulo P00000001; não desativa local cadastrado além da malha';
 
     public function handle(EstoqueEnderecoService $service): int
     {
@@ -30,7 +30,7 @@ class SeedEstoqueEnderecosCommand extends Command
         foreach ($empresas as $empresa) {
             $out = $service->seedGabarito($empresa);
             $this->info(sprintf(
-                'EMP %s (#%d): %d criados · %d ok · %d V→L · %d legado duplicado inativado · total gabarito %d',
+                'EMP %s (#%d): %d criados · %d ok · %d rótulo→seq · %d legado duplicado inativado · total gabarito %d',
                 $empresa->codigo,
                 $empresa->id,
                 $out['criados'],

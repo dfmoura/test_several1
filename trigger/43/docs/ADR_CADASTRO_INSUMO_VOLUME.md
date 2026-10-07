@@ -52,7 +52,7 @@ Conferência cria N VOLUMES (1 rastro ≈ 1 bobina quando nLote é unitário)
 | **De-para** | `produto_fornecedor_codigos` | `cProd` + descrição do fornecedor **obrigatórios** — sem isso não há entrada assistida. |
 | **Dimensão nominal** | `produtos.atributos` | `largura_mm` / `comprimento_m` / `gramatura_g_m2` / `programa_compra` = **referência** de OC/conversão — **não** chave do SKU. |
 | **Volume / bobina** | `estoque_lotes` (+ payload futuro) | Unidade física manuseável; para Avery, 1 `nLote` = 1 volume. Dimensão **real** na entrada. |
-| **Localização** | `estoque_enderecos` | Gabarito inicial: 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além dessa malha nasce por cadastro, no mesmo código. UX: **Local/Locais**; domínio: campo `vao`, código `Pxx-Cxx-Lxx` (legado `Vxx` aceito no QR). Fora do cadastro de produto. |
+| **Localização** | `estoque_enderecos` | Gabarito inicial: 6 prateleiras × 4 colunas × 3 locais (1,50 × 0,60 × 1,00 m). Local além dessa malha nasce por cadastro. UX: **Local/Locais**; domínio: `prateleira`/`coluna`/`vao` (malha); rótulo impresso canônico **`P00000001`** sequencial por EMP (`codigo_sequences` prefixo `LOC`); malha legada `Pxx-Cxx-Lxx` / `Vxx` ainda resolve no QR. Fora do cadastro de produto. |
 
 ### Unidades (inalteradas — ADR-039-UNID-001)
 
@@ -180,13 +180,17 @@ Evidência Avery NF 889513: `infAdProd` traz padrões `4x205x1000` e misturas `1
 
 ### F4 — Localização (WMS leve)
 
-- **Vocabulário de produto (UX):** **Local / Locais**. Domínio: coluna `vao`; código canônico **`Pxx-Cxx-Lxx`** (seed renomeia legado `Vxx`→`Lxx` no mesmo id; QR legado `Vxx` ainda resolve).  
-- **Gabarito inicial** da planta: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — 72 endereços. O quarto local e a prateleira seguinte **não** substituem esse código: nascem por cadastro (`POST /estoque/enderecos`) na mesma malha (`P01-C01-L04`, `P07-C01-L01`).  
-- Posição e código são a identidade impressa. Cadastro gera o código; não se digita outro. Inativar tira do mapa; não se apaga a linha (o volume continua no `endereco_id`).  
-- QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`).  
-- Vínculo volume ↔ endereço.  
-- Comando `erp:seed-estoque-enderecos` (cria faltantes do gabarito; reativa só os 72; alinha `Vxx`→`Lxx`; **não** desativa extensão cadastrada).
-- **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — imprimir e colar na estante.  
+- **Vocabulário de produto (UX):** **Local / Locais**.  
+- **Duas camadas (norma):**  
+  - **Malha (posição):** `prateleira` × `coluna` × `vao` — identidade espacial (mapa, seed, cadastro, unique por EMP). Não se apaga.  
+  - **Rótulo (`codigo`):** canônico **`P00000001`** (P + 8 dígitos), sequencial **por EMP** via `codigo_sequences` prefixo `LOC`. Cadastro/seed geram; operador **não** digita.  
+- **Malha legada (só referência / QR antigo):** `Pxx-Cxx-Lxx` e `Pxx-Cxx-Vxx` — o seed alinha rótulo estrutural → sequencial no **mesmo id**; QR com malha legada **ainda resolve** (`codigoCompativel`). Após realinhar, **reimprimir** etiquetas de local (payload `END:` carrega o `codigo` atual).  
+- **Gabarito inicial** da planta: 6 prateleiras × 4 colunas × **3 locais** (1,50 × 0,60 × 1,00 m) — 72 endereços. Extensão na mesma malha (`POST /estoque/enderecos`: vao 4, prateleira 7, …) recebe o próximo `P########`; API devolve também `codigo_malha` derivado (ex.: `P01-C01-L04`) só para leitura.  
+- Inativar tira do mapa; não se apaga a linha (o volume continua no `endereco_id`). Reativar **mantém** o mesmo `codigo` (etiqueta válida).  
+- QR do local: payload `END:{empresa_id}:{id}:{codigo}` (espelho do `VOL:…`). Resolução por `id` + EMP; segmento `codigo` = checksum (atual ou malha legada do slot).  
+- Vínculo volume ↔ endereço por `endereco_id` (não pelo texto do rótulo).  
+- Comando `erp:seed-estoque-enderecos` (cria faltantes do gabarito com rótulo sequencial; reativa só os 72; alinha malha legada → sequencial; **não** desativa extensão cadastrada).  
+- **Etiquetas dos locais:** `/estoque/enderecos/etiquetas` — face mostra `P########` + Prat/Col/Local da malha.  
   Canônico: **Elgin L42 Pro Full · 50 × 40 mm** (mesmo canal/driver do volume F3; uma face = uma etiqueta).  
 - **Reimprimir volumes:** `/estoque/lotes/etiquetas` (filtro “sem local”).  
 - **Guardar:** `/estoque/guardar` — duas ordens de leitura no chão (mesma API 1:1):  
