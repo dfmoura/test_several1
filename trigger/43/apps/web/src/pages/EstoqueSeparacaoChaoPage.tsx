@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, type EstoqueSeparacaoDetalhe, type OpRetiradaVolume } from '../lib/api';
+import { VolumePickTable } from '../components/VolumePickTable';
+import { ApiError, api, type EstoqueSeparacaoDetalhe, type OpRetiradaVolume } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDateTime, formatDecimalBr } from '../lib/format';
+import {
+  marcasDePreviewVolumes,
+  ordenarMarcasPorLocal,
+  type VolumePickMarca,
+} from '../lib/producaoPick';
 import { parseQtdeDigitada } from '../lib/producaoUi';
-
-type Marca = { lote_id: number; qtde: string; marcado: boolean };
 
 function qtdeLegivel(raw: string | null | undefined): string {
   const n = Number(raw);
@@ -14,24 +19,14 @@ function qtdeLegivel(raw: string | null | undefined): string {
   return String(n);
 }
 
-function marcaInicial(vols: OpRetiradaVolume[], sugerido: boolean): Marca[] {
-  return vols
-    .filter((v) => v.lote_id)
-    .map((v) => ({
-      lote_id: v.lote_id as number,
-      qtde: qtdeLegivel(
-        sugerido && Number(v.qtde_retirar) > 0 ? v.qtde_retirar : (v.qtde_volume ?? v.qtde_retirar),
-      ),
-      marcado: sugerido && Number(v.qtde_retirar) > 0,
-    }));
-}
-
 export function EstoqueSeparacaoChaoPage() {
   const { id } = useParams();
   const { hasPermission } = useAuth();
   const podeEscrever = hasPermission('estoque.escrever') || hasPermission('producao.escrever');
+  const volRef = useRef<HTMLInputElement>(null);
   const [detalhe, setDetalhe] = useState<EstoqueSeparacaoDetalhe | null>(null);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [marcas, setMarcas] = useState<VolumePickMarca[]>([]);
+  const [qr, setQr] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -44,11 +39,9 @@ export function EstoqueSeparacaoChaoPage() {
     try {
       const res = await api.get<{ data: EstoqueSeparacaoDetalhe }>(`/estoque/separacoes/${id}`);
       setDetalhe(res.data);
-      const sugeridos = res.data.retirada.volumes ?? [];
-      const outros = (res.data.retirada.candidatos ?? []).filter(
-        (c) => !sugeridos.some((s) => s.lote_id === c.lote_id),
+      setMarcas(
+        marcasDePreviewVolumes(res.data.retirada.volumes ?? [], res.data.retirada.candidatos ?? []),
       );
-      setMarcas([...marcaInicial(sugeridos, true), ...marcaInicial(outros, false)]);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao abrir a separação.');
     } finally {
@@ -69,21 +62,71 @@ export function EstoqueSeparacaoChaoPage() {
     return `/estoque/separacoes/${id}/ficha?m=${encodeURIComponent(q)}`;
   }, [id, marcas]);
 
-  const volDo = (loteId: number) =>
+  const volDo = (loteId: number): OpRetiradaVolume | undefined =>
     [...(detalhe?.retirada.volumes ?? []), ...(detalhe?.retirada.candidatos ?? [])].find(
       (v) => v.lote_id === loteId,
     );
-  const marcasNaCaminhada = [...marcas].sort((a, b) => {
-    const ea = volDo(a.lote_id)?.endereco?.codigo ?? '';
-    const eb = volDo(b.lote_id)?.endereco?.codigo ?? '';
-    if (!ea && eb) return 1;
-    if (ea && !eb) return -1;
-    return ea.localeCompare(eb, 'pt-BR');
-  });
+  const marcasNaCaminhada = ordenarMarcasPorLocal(marcas, (loteId) => volDo(loteId)?.endereco?.codigo);
   const separada = detalhe?.separacao?.volumes ?? [];
   const localPrimeiro = detalhe?.pode_confirmar
     ? (volDo(marcas.find((m) => m.marcado)?.lote_id ?? 0)?.endereco?.codigo ?? null)
     : (separada.find((v) => v.endereco)?.endereco ?? null);
+
+  const marcarVolume = (loteId: number, qtde?: string, lido = false) => {
+    const vol = volDo(loteId);
+    const fallback = qtdeLegivel(vol?.qtde_volume ?? vol?.qtde_retirar ?? '0');
+    setMarcas((atual) => {
+      const existe = atual.find((x) => x.lote_id === loteId);
+      if (existe) {
+        return atual.map((x) =>
+          x.lote_id === loteId
+            ? {
+                ...x,
+                marcado: true,
+                lido: x.lido || lido,
+                qtde: qtde && parseQtdeDigitada(qtde) > 0 ? qtdeLegivel(qtde) : x.qtde || fallback,
+              }
+            : x,
+        );
+      }
+      return [
+        ...atual,
+        {
+          lote_id: loteId,
+          qtde: qtde && parseQtdeDigitada(qtde) > 0 ? qtdeLegivel(qtde) : fallback,
+          marcado: true,
+          lido,
+        },
+      ];
+    });
+  };
+
+  const lerVolume = async (payload: string) => {
+    const p = payload.trim();
+    if (!p || !id) return;
+    if (p.toUpperCase().startsWith('END:')) {
+      setErr('Esse QR é de local (END:…). A ficha já mostra o local de cada volume.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const res = await api.get<{ data: EstoqueQrVolumeInfo }>(
+        `/estoque/separacoes/${id}/volume?payload=${encodeURIComponent(p)}`,
+      );
+      const vol = res.data;
+      marcarVolume(vol.lote_id, vol.qtde, true);
+      setMsg(`Volume ${vol.codigo} marcado.`);
+      setQr('');
+      setTimeout(() => volRef.current?.focus(), 50);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Volume não reconhecido neste produto.');
+      volRef.current?.select();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const confirmar = async () => {
     if (!id || !detalhe?.pode_confirmar) return;
@@ -167,72 +210,44 @@ export function EstoqueSeparacaoChaoPage() {
               <div className="card-body">
                 <h3 style={{ marginTop: 0 }}>Volumes nesta empresa</h3>
                 <p className="muted" style={{ marginTop: 0 }}>
-                  A lista segue o local. O que já vem marcado é a sugestão para a quantidade do pedido.
+                  Leia o QR (VOL:…) ou marque na lista. A ordem segue o local. O que já vem marcado é a
+                  sugestão para a quantidade do pedido.
                 </p>
-                {marcasNaCaminhada.length === 0 ? (
-                  <p className="muted">Nenhum volume com saldo para este produto.</p>
-                ) : (
-                  <div className="table-wrap">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Levar</th>
-                          <th>Local</th>
-                          <th>Volume</th>
-                          <th>No volume</th>
-                          <th>Quantidade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {marcasNaCaminhada.map((m) => {
-                          const vol = volDo(m.lote_id);
-                          return (
-                            <tr key={m.lote_id}>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={m.marcado}
-                                  disabled={busy}
-                                  aria-label={`Levar volume ${vol?.codigo ?? m.lote_id}`}
-                                  onChange={(e) =>
-                                    setMarcas((atual) =>
-                                      atual.map((x) =>
-                                        x.lote_id === m.lote_id ? { ...x, marcado: e.target.checked } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>{vol?.endereco?.codigo ?? '—'}</td>
-                              <td>{vol?.codigo ?? '—'}</td>
-                              <td>
-                                {vol?.qtde_volume != null
-                                  ? `${formatDecimalBr(vol.qtde_volume, 4, { stripTrailingZeros: true })} ${vol.unidade ?? ''}`
-                                  : '—'}
-                              </td>
-                              <td>
-                                <input
-                                  className="input"
-                                  inputMode="decimal"
-                                  value={m.qtde}
-                                  disabled={busy || !m.marcado}
-                                  aria-label={`Quantidade do volume ${vol?.codigo ?? m.lote_id}`}
-                                  onChange={(e) =>
-                                    setMarcas((atual) =>
-                                      atual.map((x) =>
-                                        x.lote_id === m.lote_id ? { ...x, qtde: e.target.value } : x,
-                                      ),
-                                    )
-                                  }
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <div className="form-group" style={{ maxWidth: 420, marginBottom: '1rem' }}>
+                  <label htmlFor="sep-vol-qr">Ler volume (VOL:…)</label>
+                  <input
+                    id="sep-vol-qr"
+                    ref={volRef}
+                    className="input"
+                    value={qr}
+                    disabled={busy || !podeEscrever}
+                    onChange={(e) => setQr(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void lerVolume(qr);
+                      }
+                    }}
+                    placeholder="Cole ou leia o QR do volume"
+                    autoComplete="off"
+                  />
+                </div>
+                <VolumePickTable
+                  marcas={marcasNaCaminhada}
+                  volDo={volDo}
+                  busy={busy}
+                  modo="snapshot"
+                  onToggle={(loteId, marcado) =>
+                    setMarcas((atual) =>
+                      atual.map((x) => (x.lote_id === loteId ? { ...x, marcado } : x)),
+                    )
+                  }
+                  onQtde={(loteId, qtde) =>
+                    setMarcas((atual) =>
+                      atual.map((x) => (x.lote_id === loteId ? { ...x, qtde } : x)),
+                    )
+                  }
+                />
               </div>
             </div>
           ) : null}

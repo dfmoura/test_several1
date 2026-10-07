@@ -15,11 +15,32 @@ Status: `Backlog` · `Pronto para executar` · `Em andamento` · `Feito`
 
 ## Próximo ID
 
-`BL-119`
+`BL-120`
 
 ---
 
 ## Itens
+
+### BL-119 · [estoque/ux] Separação REV — QR + local + ficha (paridade A buscar)
+- **Status:** Feito
+- **Prioridade:** P1
+- **Origem:** Chat 2026-10-07 — organizar pós-PED: preparação × volumes × ficha (produção + revenda)
+- **Depende de:** `ADR_ORC_ITEM_REVENDA.md` · `ADR_PRODUCAO_COLETA_DIRIGIDA.md` · `ADR_CADASTRO_INSUMO_VOLUME.md` · `MAPA_FLUXO_POS_ORC.md`
+- **Decisão (fechada):**
+  1. Sem entidade `PREP-`/`CART-`/`REQ-`. Preparação = portas Estoque (**A buscar** OP · **A separar** REV).
+  2. REV: `GET /estoque/separacoes/{pedidoItem}/volume` (QR = leitura; volume deve ser do SKU do item).
+  3. Ficha impressa lista local + QR por volume; confirmar grava snapshot — sem MOV.
+  4. Expedição BL-115 permanece pós-FAT (não misturar).
+  5. Pick compartilhado **leve**: `VolumePickTable` + helpers em `producaoPick` (`modo: snapshot|debita`). REV usa agora; OP multi-kit permanece em `OpFichaRetirada` (adoção futura sem risco).
+- **Aceite:**
+  - [x] QR resolve volume do SKU REV; rejeita volume de outro produto / outra EMP
+  - [x] Chão A separar: ler VOL:… marca o volume; ficha mostra local + QR
+  - [x] Confirmar REV não cria MOV; saldo intacto até NF-e
+  - [x] Mapa + ADR revenda apontam porta Estoque · A separar
+  - [x] Tabela pick compartilhada leve na REV (`VolumePickTable` · `modo=snapshot`)
+- **Fora de escopo:** baixar REV no separar · fundir filas · empenho pesado · mexer BL-115 · refatorar kit OP para o mesmo componente
+- **Norma:** `docs/ADR_ORC_ITEM_REVENDA.md` · `docs/MAPA_FLUXO_POS_ORC.md`
+- **Teste:** `php vendor/bin/phpunit --filter EstoqueSeparacaoRevendaTest`
 
 ### BL-118 · [fiscal] NFS-e Nacional — emissão SEFIN e caixa tomada
 - **Status:** Feito

@@ -23,13 +23,26 @@ Revenda é **posição do ORC**, não quarto `tipo_operacao`. Cabeçalho permane
 | Item | Origem | Preço | PED | Chão | Pronto para FAT |
 |------|--------|-------|-----|------|-----------------|
 | Etiqueta | catálogo ORC + R1–R20 | motor | `PRODUCAO` · `PA-ETQ` | OP | concluir OP |
-| Revenda | SKU família `REV` da EMP | comercial explícito (`preco_tabela` sugere) | `REVENDA` · grupo do SKU | **proibido OP/OS** | **Confirmar separação** no PED |
+| Revenda | SKU família `REV` da EMP | comercial explícito (`preco_tabela` sugere) | `REVENDA` · grupo do SKU | **proibido OP/OS** | **Estoque · A separar** (volumes + local + QR) |
 
 ```
-só REV:   ORC → PED LIBERADO → separar → PRODUZIDO → FAT → ENT
-misto:    linhas PRODUCAO → OP; linhas REVENDA → separar
+só REV:   ORC → PED LIBERADO → Estoque · A separar → PRODUZIDO → FAT → ENT
+misto:    linhas PRODUCAO → OP → A buscar; linhas REVENDA → A separar
           PED PRODUZIDO só quando todas as linhas prontas
 ```
+
+### Emenda — porta canônica do almoxarifado (BL-119)
+
+A preparação física da revenda **não** é um documento `PREP-`/`CART-`/`REQ-` e **não** baixa saldo. Porta canônica:
+
+| Porta | Quem | Ação |
+|-------|------|------|
+| PED | Comercial | CTA **Separar no estoque** → `/estoque/separacoes/:pedidoItem` |
+| Estoque · **A separar** | Almoxarifado | Preview FEFO + marcar N volumes (local + QR); ficha impressa; confirmar |
+| Confirmar | — | Grava volumes no `snapshot` do PED · item `PRODUZIDO` · **sem** MOV |
+| NF-e | Fiscal | Única `SAIDA_VENDA` do SKU REV |
+
+QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_COLETA_DIRIGIDA.md`. Sem fundir com **A buscar** (OP) nem com expedição BL-115.
 
 ### Regras
 
@@ -46,7 +59,8 @@ misto:    linhas PRODUCAO → OP; linhas REVENDA → separar
 
 - No item: **Etiqueta sob medida** | **Produto de revenda**.  
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
-- PED: CTA **Confirmar separação** na linha do item; sem OP/OS.
+- PED: CTA **Separar no estoque** / **Ficha de separação** → `/estoque/separacoes/:pedidoItem`; sem OP/OS.  
+- Chão: Estoque · **A separar** (paridade de volumes/local/QR com A buscar; sem debitar).
 
 ## Proibido
 
@@ -56,10 +70,13 @@ misto:    linhas PRODUCAO → OP; linhas REVENDA → separar
 4. Inventar PA-ETQ por ribbon/cliente.  
 5. Baixar saldo no PED, no separar ou no commit do FAT.  
 6. Dois PEDs (um desenho, um de revenda).  
-7. Misturar com fase PA+SVC (dois DFS) — REV é a mesma NF-e.
+7. Misturar com fase PA+SVC (dois DFS) — REV é a mesma NF-e.  
+8. Documento `PREP-` / `CART-` / `REQ-` para a separação.  
+9. Fundir A separar com A buscar ou com a ficha de expedição (BL-115).
 
 ## Rastreio
 
 - `OrcamentoRevendaPrecificador` · `PedidoService::separarRevenda`  
-- `POST /pedidos/{pedido}/separar-revenda`  
-- Testes: `OrcamentoRevendaPrecificadorTest` · `RevendaOrcAteFaturamentoTest`
+- `EstoqueSeparacaoRevendaService` · `GET/POST /estoque/separacoes…` · `GET …/volume` (QR)  
+- `POST /pedidos/{pedido}/separar-revenda` (legado / atalho sem volumes na UI)  
+- Testes: `OrcamentoRevendaPrecificadorTest` · `RevendaOrcAteFaturamentoTest` · `EstoqueSeparacaoRevendaTest`

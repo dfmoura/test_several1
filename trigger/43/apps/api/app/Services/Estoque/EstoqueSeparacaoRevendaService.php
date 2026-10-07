@@ -22,6 +22,7 @@ class EstoqueSeparacaoRevendaService
     public function __construct(
         private readonly ProducaoColetaService $coleta,
         private readonly PedidoService $pedidos,
+        private readonly EstoqueVolumeService $volumes,
     ) {}
 
     /**
@@ -67,6 +68,32 @@ class EstoqueSeparacaoRevendaService
         ]);
 
         return $this->detalhe($empresa, $item);
+    }
+
+    /**
+     * QR = leitura. Resolve VOL:… e exige que o volume seja do SKU deste item.
+     *
+     * @return array<string, mixed>
+     */
+    public function resolverVolume(Empresa $empresa, PedidoItem $item, string $payload): array
+    {
+        $item = $this->itemDaEmpresa($empresa, $item);
+        $produto = $item->produtoPa;
+        if (! $produto) {
+            throw ValidationException::withMessages([
+                'payload' => ['Esta linha de revenda não tem SKU.'],
+            ]);
+        }
+
+        $etiqueta = $this->volumes->resolverVolumePorQr($empresa, $payload);
+        $produtoId = (int) ($etiqueta['produto']['id'] ?? 0);
+        if ($produtoId !== (int) $produto->id) {
+            throw ValidationException::withMessages([
+                'payload' => ['Volume não é deste produto de revenda.'],
+            ]);
+        }
+
+        return $etiqueta;
     }
 
     /**
@@ -179,6 +206,8 @@ class EstoqueSeparacaoRevendaService
                 'volumes' => [],
                 'candidatos' => [],
             ];
+        $retirada['volumes'] = $this->comQrPayload($empresa, $retirada['volumes'] ?? []);
+        $retirada['candidatos'] = $this->comQrPayload($empresa, $retirada['candidatos'] ?? []);
 
         $saldo = '0';
         if ($produto) {
@@ -219,14 +248,14 @@ class EstoqueSeparacaoRevendaService
             ] : null,
             'saldo' => $saldo,
             'retirada' => $retirada,
-            'separacao' => $this->separacaoGravada($pedido, $item),
+            'separacao' => $this->separacaoGravada($empresa, $pedido, $item),
         ];
     }
 
     /**
      * @return array<string, mixed>|null
      */
-    private function separacaoGravada(?Pedido $pedido, PedidoItem $item): ?array
+    private function separacaoGravada(Empresa $empresa, ?Pedido $pedido, PedidoItem $item): ?array
     {
         $snap = is_array($pedido?->snapshot) ? $pedido->snapshot : [];
         $porItem = is_array($snap['separacoes_revenda'] ?? null) ? $snap['separacoes_revenda'] : [];
@@ -241,11 +270,51 @@ class EstoqueSeparacaoRevendaService
             return null;
         }
 
+        $vols = is_array($registro['volumes'] ?? null) ? array_values($registro['volumes']) : [];
+
         return [
             'qtde' => (string) ($registro['qtde'] ?? $item->qtde_pedida),
             'em' => $registro['em'] ?? null,
-            'volumes' => is_array($registro['volumes'] ?? null) ? array_values($registro['volumes']) : [],
+            'volumes' => $this->comQrPayload($empresa, $vols),
         ];
+    }
+
+    /**
+     * Anexa qr_payload aos volumes (ficha + chão).
+     *
+     * @param  list<array<string, mixed>>  $volumes
+     * @return list<array<string, mixed>>
+     */
+    private function comQrPayload(Empresa $empresa, array $volumes): array
+    {
+        $ids = [];
+        foreach ($volumes as $vol) {
+            $id = (int) ($vol['lote_id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        if ($ids === []) {
+            return $volumes;
+        }
+
+        $lotes = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('id', array_values(array_unique($ids)))
+            ->get()
+            ->keyBy('id');
+
+        $out = [];
+        foreach ($volumes as $vol) {
+            $id = (int) ($vol['lote_id'] ?? 0);
+            $lote = $id > 0 ? $lotes->get($id) : null;
+            if ($lote instanceof EstoqueLote) {
+                $vol['qr_payload'] = $lote->qrPayload();
+            }
+            $out[] = $vol;
+        }
+
+        return $out;
     }
 
     /**
@@ -338,6 +407,7 @@ class EstoqueSeparacaoRevendaService
                 'qtde' => PadraoDecimal::roundHalfUp($qtde, PadraoDecimal::SCALE_QTY),
                 'unidade' => $lote->unidade,
                 'endereco' => $lote->endereco?->codigo,
+                'qr_payload' => $lote->qrPayload(),
             ];
         }
 

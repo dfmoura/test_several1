@@ -284,4 +284,53 @@ class EstoqueSeparacaoRevendaTest extends TestCase
             ->getJson('/api/v1/estoque/separacoes/'.$this->item->id)
             ->assertStatus(422);
     }
+
+    public function test_qr_resolve_volume_do_sku_e_rejeita_outro_produto(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $this->lote->ensureQrToken();
+        $ok = $this->withHeaders($this->h())->getJson(
+            '/api/v1/estoque/separacoes/'.$this->item->id.'/volume?payload='.urlencode($this->lote->qrPayload())
+        );
+        $ok->assertOk();
+        $ok->assertJsonPath('data.lote_id', $this->lote->id);
+        $ok->assertJsonPath('data.produto.id', $this->rev->id);
+        $this->assertNotEmpty($ok->json('data.qr_payload'));
+
+        $show = $this->withHeaders($this->h())->getJson('/api/v1/estoque/separacoes/'.$this->item->id);
+        $show->assertOk();
+        $show->assertJsonPath('data.retirada.volumes.0.lote_id', $this->lote->id);
+        $this->assertNotEmpty($show->json('data.retirada.volumes.0.qr_payload'));
+
+        $outro = Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'REV-QR-OUT',
+            'familia' => 'REV',
+            'descricao_fiscal' => 'OUTRO QR',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'controla_lote' => true,
+        ]);
+        $loteOutro = EstoqueLote::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $outro->id,
+            'codigo' => 'VOL-QR-OUT',
+            'qtde' => '2.0000',
+            'unidade' => 'UN',
+            'data_entrada' => '2026-04-03',
+            'origem_tipo' => EstoqueLote::ORIGEM_VIRADA,
+        ]);
+        $loteOutro->ensureQrToken();
+
+        $this->withHeaders($this->h())
+            ->getJson(
+                '/api/v1/estoque/separacoes/'.$this->item->id.'/volume?payload='.urlencode($loteOutro->qrPayload())
+            )
+            ->assertStatus(422);
+
+        $this->assertSame(0, EstoqueMovimento::query()->count());
+    }
 }

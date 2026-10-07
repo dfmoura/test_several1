@@ -27,10 +27,11 @@ ORC (enviado → APROVADO)
   ├─ exige sinal → AGUARDA_ADIANTAMENTO → BX/PIX → LIBERADO
   └─ crédito/política OK → LIBERADO
        → PED- (1:1 ORC; snapshot travado; 1 item fase 1 · N itens quando `ADR_ORC_ITENS` fase 3)
-            ├─ PRODUCAO → OP- (empenho leve → requisitar SAIDA_PRODUCAO
-            │                 → concluir: ENTRADA_SOBRA / perda / ENTRADA_PA ±tol)
+            ├─ PRODUCAO → OP- (kit → Estoque · A buscar → SAIDA_PRODUCAO
+            │                 → Na máquina → concluir: ENTRADA_SOBRA / perda / ENTRADA_PA ±tol)
             ├─ SERVICO  → OS- (concluir sem ENTRADA_PA)
-            └─ REVENDA  → Confirmar separação no PED (sem OP) · `ADR_ORC_ITEM_REVENDA.md`
+            └─ REVENDA  → Estoque · A separar (volumes + local + QR; sem OP; sem MOV)
+                          · `ADR_ORC_ITEM_REVENDA.md` · item PRODUZIDO; baixa só na NF-e
        → item/PED PRODUZIDO → FAT → ENT → BX → ENCERRADO
 ```
 
@@ -86,9 +87,11 @@ Saldo **somente** via `EstoqueSaldoWriter` + MOV. Isolamento `empresa_id`.
 |------|--------|
 | ORC `AGUARDA_ADIANTAMENTO` | Copy: pedido operacional após confirmação do sinal (sem CTA PED) |
 | ORC `LIBERADO` + PED | CTA **Ver pedido `PED-…`** + status do PED |
-| PED detalhe | **Andamento operacional** com códigos ORC → PED → OP/OS → materiais/produção → FAT/ENT |
-| Expedição / ENT | Fila → **preparar** (`/expedicao/pedido/:id`: o que falta + Expedição e entrega) → romaneio + kit (nota / cobrança / BOB-CX) |
+| PED detalhe | **Andamento operacional** com códigos ORC → PED → OP/OS → materiais/produção → FAT/ENT; REV aponta para **Estoque · A separar** |
+| Expedição / ENT | Fila → **preparar** (`/expedicao/pedido/:id`: o que falta + Expedição e entrega) → romaneio + kit (nota / cobrança / BOB-CX). **Não** é preparação de materiais. |
 | OP detalhe | **Ficha da etiqueta**: o que produzir + kit (falta pegar / já saiu / sem estoque) + jornada Pegar → Entregar → Produzir → Devolver sobra → Fechar; um CTA. Baixa só em Retiradas; fechar só em Produção. |
+| Estoque · A buscar | Preparação física da OP: títulos do kit + N volumes (local + QR); confirmar = `SAIDA_PRODUCAO` |
+| Estoque · A separar | Preparação física da REV: SKU + N volumes (local + QR); confirmar = snapshot no PED · item `PRODUZIDO` (sem MOV) |
 | Estoque | Card **Entrada e documentos** → OC (NF-e) · ajustes/virada · produtos |
 | Produtos | Papel no fluxo (compra/estoque/OP) + links Estoque/OC |
 | Compras (quando `F5_DFE_CX`) | **Caixa DF-e** → amarrar opcional à OC → assist/`receber()` |
@@ -114,6 +117,8 @@ Norma UX do estudo 32: timeline do PED com códigos dos documentos — não dash
 - Motor: [`ADR_PRODUCAO_PED_OP_ESTOQUE.md`](ADR_PRODUCAO_PED_OP_ESTOQUE.md)  
 - Coleta dirigida: [`ADR_PRODUCAO_COLETA_DIRIGIDA.md`](ADR_PRODUCAO_COLETA_DIRIGIDA.md)  
 - Ficha da OP + kit: [`ADR_OP_FICHA_KIT.md`](ADR_OP_FICHA_KIT.md)  
+- Revenda (A separar): [`ADR_ORC_ITEM_REVENDA.md`](ADR_ORC_ITEM_REVENDA.md)  
+
 - Sinal: [`ADR_ORC_ADIANTAMENTO_PIX.md`](ADR_ORC_ADIANTAMENTO_PIX.md)  
 - Guia ORC: [`ADR_ORC_GUIA_PRODUCAO.md`](ADR_ORC_GUIA_PRODUCAO.md)
 - Saída da etiqueta (bobina): [`ADR_ORC_SAIDA_ETIQUETA.md`](ADR_ORC_SAIDA_ETIQUETA.md)  

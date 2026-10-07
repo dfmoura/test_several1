@@ -35,6 +35,19 @@ class EstoqueSeparacaoRevendaController extends Controller
         ]);
     }
 
+    public function resolverVolume(Request $request, PedidoItem $pedidoItem): JsonResponse
+    {
+        $this->authorizeLer($request);
+
+        $data = $request->validate([
+            'payload' => ['required', 'string', 'max:120'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->resolverVolume($this->empresa(), $pedidoItem, $data['payload']),
+        ]);
+    }
+
     public function confirmar(Request $request, PedidoItem $pedidoItem): JsonResponse
     {
         $this->authorizeEscrever($request);

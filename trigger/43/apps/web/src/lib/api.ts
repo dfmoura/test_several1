@@ -3292,6 +3292,8 @@ export type OpRetiradaVolume = {
   produto_id?: number | null;
   descricao?: string | null;
   proximidade?: number | null;
+  /** Presente na porta A separar (REV) para ficha impressa / QR. */
+  qr_payload?: string | null;
 };
 
 export type OpRetiradaPreview = {
@@ -3484,6 +3486,7 @@ export type EstoqueSeparacaoVolumeMarcado = {
   qtde: string;
   unidade: string | null;
   endereco: string | null;
+  qr_payload?: string | null;
 };
 
 export type EstoqueSeparacaoDetalhe = {

@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { TriggerAttribution } from './TriggerAttribution';
 import type { EstoqueSeparacaoDetalhe, EstoqueSeparacaoVolumeMarcado, OpRetiradaVolume } from '../lib/api';
 import { formatDate, formatDateTime, formatDecimalBr } from '../lib/format';
@@ -8,6 +10,7 @@ type Linha = {
   codigo: string;
   levar: string;
   validade: string;
+  qr_payload: string | null;
 };
 
 type Props = {
@@ -27,6 +30,7 @@ function linhaDeVolume(v: OpRetiradaVolume, qtde?: string): Linha {
     codigo: v.codigo ?? '—',
     levar: `${formatDecimalBr(levar, 4, { stripTrailingZeros: true })} ${v.unidade ?? ''}`.trim(),
     validade: v.data_validade ? formatDate(v.data_validade) : '—',
+    qr_payload: v.qr_payload ?? null,
   };
 }
 
@@ -37,6 +41,7 @@ function linhaGravada(v: EstoqueSeparacaoVolumeMarcado): Linha {
     codigo: v.codigo ?? '—',
     levar: `${formatDecimalBr(v.qtde, 4, { stripTrailingZeros: true })} ${v.unidade ?? ''}`.trim(),
     validade: '—',
+    qr_payload: v.qr_payload ?? null,
   };
 }
 
@@ -62,6 +67,7 @@ export function linhasDaSeparacao(
 /**
  * Folha que o almoxarifado leva na mão para a revenda.
  * Não baixa saldo — a saída oficial é a NF-e.
+ * Cada volume: local + QR utilizável no chão.
  */
 export function EstoqueSeparacaoFichaSheet({
   detalhe,
@@ -75,6 +81,31 @@ export function EstoqueSeparacaoFichaSheet({
     : detalhe.descricao;
   const linhas = linhasDaSeparacao(detalhe, marcados);
   const primeiro = linhas.find((l) => l.local !== '—')?.local ?? 'Sem local';
+  const [qrMap, setQrMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const next: Record<string, string> = {};
+      await Promise.all(
+        linhas.map(async (l) => {
+          if (!l.qr_payload) return;
+          next[l.key] = await QRCode.toDataURL(l.qr_payload, {
+            width: 96,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+            color: { dark: '#000000', light: '#ffffff' },
+          });
+        }),
+      );
+      if (!cancelled) setQrMap(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // linhas é derivado estável por detalhe/marcados nesta renderização
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalhe, marcados]);
 
   return (
     <article className="ficha-sheet ficha-sheet-pick">
@@ -116,6 +147,7 @@ export function EstoqueSeparacaoFichaSheet({
                 <th>Volume</th>
                 <th>Levar</th>
                 <th>Validade</th>
+                <th>QR</th>
               </tr>
             </thead>
             <tbody>
@@ -128,6 +160,21 @@ export function EstoqueSeparacaoFichaSheet({
                   <td>{l.codigo}</td>
                   <td>{l.levar}</td>
                   <td>{l.validade}</td>
+                  <td>
+                    {qrMap[l.key] ? (
+                      <img
+                        className="ficha-pick-qr"
+                        src={qrMap[l.key]}
+                        alt={`QR ${l.codigo}`}
+                        width={72}
+                        height={72}
+                      />
+                    ) : l.qr_payload ? (
+                      <span className="ficha-pick-qr-hri">{l.qr_payload}</span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

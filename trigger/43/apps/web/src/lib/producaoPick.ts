@@ -722,3 +722,57 @@ export function volumePassaFiltro(v: OpRetiradaVolume, consulta: string): boolea
     return false;
   });
 }
+
+/** Marca de volume na porta A separar / pick compartilhado (BL-119). */
+export type VolumePickMarca = {
+  lote_id: number;
+  qtde: string;
+  marcado: boolean;
+  lido?: boolean;
+};
+
+function qtdePickLegivel(raw: string | null | undefined): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw ?? '';
+  return String(n);
+}
+
+/** Monta marcas a partir do preview FEFO (sugeridos + candidatos). */
+export function marcasDePreviewVolumes(
+  volumes: OpRetiradaVolume[],
+  candidatos: OpRetiradaVolume[] = [],
+): VolumePickMarca[] {
+  const sugeridos = volumes.filter((v) => v.lote_id);
+  const outros = candidatos.filter(
+    (c) => c.lote_id && !sugeridos.some((s) => s.lote_id === c.lote_id),
+  );
+  const de = (vols: OpRetiradaVolume[], sugerido: boolean): VolumePickMarca[] =>
+    vols.map((v) => ({
+      lote_id: v.lote_id as number,
+      qtde: qtdePickLegivel(
+        sugerido && Number(v.qtde_retirar) > 0 ? v.qtde_retirar : (v.qtde_volume ?? v.qtde_retirar),
+      ),
+      marcado: sugerido && Number(v.qtde_retirar) > 0,
+    }));
+  return [...de(sugeridos, true), ...de(outros, false)];
+}
+
+/** Caminhada do almoxarifado: volumes com local primeiro, ordenados pelo código. */
+export function ordenarMarcasPorLocal<T extends { lote_id: number }>(
+  marcas: T[],
+  localDe: (loteId: number) => string | null | undefined,
+): T[] {
+  return [...marcas].sort((a, b) => {
+    const ea = localDe(a.lote_id) ?? '';
+    const eb = localDe(b.lote_id) ?? '';
+    if (!ea && eb) return 1;
+    if (ea && !eb) return -1;
+    return ea.localeCompare(eb, 'pt-BR');
+  });
+}
+
+/**
+ * Semântica do pick: `debita` = confirmação grava MOV (A buscar);
+ * `snapshot` = só registra no PED (A separar). Não funde endpoints.
+ */
+export type VolumePickModo = 'debita' | 'snapshot';
