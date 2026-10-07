@@ -44,6 +44,16 @@ function normUnidadeAjuste(u: string | null | undefined): string {
     .replace('M²', 'M2');
 }
 
+/** Nome da unidade de estoque na tela de ajuste — sem sigla ambígua. */
+function nomeUnidadeEstoque(norm: string): string {
+  if (norm === 'M2') return 'm²';
+  if (norm === 'M') return 'metro linear';
+  if (norm === 'KG') return 'kg';
+  if (norm === 'UN') return 'un';
+  if (norm === 'RL') return 'rolo';
+  return norm;
+}
+
 type VolumeLinha = {
   codigo: string;
   qtde: string;
@@ -278,9 +288,11 @@ export function EstoqueAjustesPage() {
     unidadeInternaNorm === 'M2' ||
     unidadeComercialNorm === 'M2' ||
     selectedProduto?.familia === 'MP';
-  /** L×C deriva a qtde a registrar quando o SKU opera em M2 (norma BobinaAreaComercial). */
-  const lxCPreencheQtde =
-    unidadeInternaNorm === 'M2' || unidadeComercialNorm === 'M2';
+  /** Saldo em m²: a quantidade é a área. Saldo em metro linear: a quantidade é o comprimento. */
+  const saldoArea = unidadeInternaNorm === 'M2';
+  const saldoLinear = unidadeInternaNorm === 'M';
+  const qtdeDerivada = saldoArea || saldoLinear;
+  const nomeSaldo = nomeUnidadeEstoque(unidadeInternaNorm);
   const usaVolumesManual = produtoControlaLote && modoContagem === 'manual';
   const usaVolumesEntrada = usaVolumesManual && (isSaldoInicial || modoVolume === 'entrada');
   const usaVolumesBaixa = usaVolumesManual && !isSaldoInicial && modoVolume === 'baixa';
@@ -414,25 +426,24 @@ export function EstoqueAjustesPage() {
       prev.map((v, i) => {
         if (i !== idx) return v;
         const row = { ...v, ...patch };
-        if (unidadeInternaNorm === 'M') {
-          if (patch.qtde !== undefined && String(patch.qtde).trim()) {
-            row.comprimento_m = patch.qtde;
-          }
-          if (
-            patch.comprimento_m !== undefined &&
-            String(patch.comprimento_m).trim() &&
-            patch.qtde === undefined
-          ) {
-            row.qtde = patch.comprimento_m;
-          }
+        if (
+          unidadeInternaNorm === 'M' &&
+          patch.qtde !== undefined &&
+          patch.comprimento_m === undefined &&
+          String(patch.qtde).trim()
+        ) {
+          row.comprimento_m = patch.qtde;
+        }
+        if (unidadeInternaNorm === 'M' && row.comprimento_m.trim()) {
+          row.qtde = row.comprimento_m.trim();
         }
         const mudouDim =
           patch.largura_mm !== undefined || patch.comprimento_m !== undefined;
         if (
-          lxCPreencheQtde &&
+          unidadeInternaNorm === 'M2' &&
           mudouDim &&
-          row.largura_mm?.trim() &&
-          row.comprimento_m?.trim()
+          row.largura_mm.trim() &&
+          row.comprimento_m.trim()
         ) {
           const area = areaM2Volume(row.largura_mm, row.comprimento_m);
           const qtde = qtdeComercialFromAreaM2(area, {
@@ -825,10 +836,8 @@ export function EstoqueAjustesPage() {
                 )}
                 <div className="form-group">
                   <label>
-                    Qtde contada
-                    {selectedProduto?.unidade_interna
-                      ? ` (${selectedProduto.unidade_interna})`
-                      : ''}
+                    Saldo contado
+                    {nomeSaldo ? ` (${nomeSaldo})` : ''}
                   </label>
                   <input
                     required
@@ -850,7 +859,7 @@ export function EstoqueAjustesPage() {
                   {produto && (usaVolumesEntrada || usaVolumesBaixa) && (
                     <p className="muted" style={{ margin: '0.35rem 0 0', fontSize: '0.85rem' }}>
                       Saldo sistema: {formatQty(qtdeSistema)}{' '}
-                      {selectedProduto?.unidade_interna ?? ''}
+                      {nomeSaldo || selectedProduto?.unidade_interna || ''}
                       {usaVolumesEntrada
                         ? ` · Δ +${formatQty(somaVolumes(volumes))}`
                         : ` · Δ −${formatQty(somaBaixas(baixas))}`}
@@ -870,7 +879,7 @@ export function EstoqueAjustesPage() {
                     {qr.fila.length > 0 && (
                       <p className="muted" style={{ margin: '0.5rem 0 0' }}>
                         Soma da fila: {formatQty(estoqueQrSomaQtde(qr.fila))}{' '}
-                        {selectedProduto?.unidade_interna ?? qr.fila[0]?.unidade ?? ''}
+                        {nomeSaldo || selectedProduto?.unidade_interna || qr.fila[0]?.unidade || ''}
                         {qr.endereco ? ` · local ${qr.endereco.codigo}` : ' · confirme o local'}
                       </p>
                     )}
@@ -885,14 +894,11 @@ export function EstoqueAjustesPage() {
                           {isSaldoInicial ? 'Volumes de abertura' : 'Volumes a registrar'}
                         </strong>
                         <span className="muted">
-                          Um por bobina · soma = diferença positiva
-                          {unidadeInternaNorm === 'M'
-                            ? ' · a quantidade em metros é o comprimento do rolo'
-                            : mostraLxC && lxCPreencheQtde
-                              ? ' · L×C preenche a qtde do volume'
-                              : mostraLxC
-                                ? ' · informe a qtde do volume (L×C é dimensão)'
-                                : ''}
+                          {saldoArea
+                            ? 'Uma bobina por linha. Informe a largura e o comprimento. A quantidade do saldo é a área em m² — 210 mm × 1.000 m = 210 m².'
+                            : saldoLinear
+                              ? 'Uma bobina por linha. O saldo é metro linear: a quantidade é o comprimento do rolo. A largura não entra na conta.'
+                              : 'Uma bobina por linha. A quantidade é na unidade de estoque do produto.'}
                         </span>
                       </div>
                       <div className="oc-volumes-scroll">
@@ -901,13 +907,20 @@ export function EstoqueAjustesPage() {
                             <tr>
                               <th className="col-idx">#</th>
                               <th className="col-lote">Código / nLote</th>
-                              {mostraLxC && <th className="col-dim">Largura mm</th>}
-                              {mostraLxC && <th className="col-dim">Comp. m</th>}
+                              {mostraLxC && <th className="col-dim">Largura (mm)</th>}
+                              {(mostraLxC || saldoLinear) && (
+                                <th className="col-dim">
+                                  {saldoLinear ? 'Comprimento (metro linear)' : 'Comprimento (m)'}
+                                </th>
+                              )}
                               <th className="col-num">
-                                Qtde do volume
-                                {selectedProduto?.unidade_interna
-                                  ? ` (${selectedProduto.unidade_interna})`
-                                  : ''}
+                                {saldoArea
+                                  ? 'Área (m²)'
+                                  : saldoLinear
+                                    ? 'Metro linear (m)'
+                                    : nomeSaldo
+                                      ? `Qtde (${nomeSaldo})`
+                                      : 'Qtde do volume'}
                               </th>
                               <th className="col-date">Entrada</th>
                               {selectedProduto?.controla_validade && (
@@ -941,7 +954,7 @@ export function EstoqueAjustesPage() {
                                     />
                                   </td>
                                 )}
-                                {mostraLxC && (
+                                {(mostraLxC || saldoLinear) && (
                                   <td className="col-dim">
                                     <input
                                       inputMode="decimal"
@@ -957,17 +970,18 @@ export function EstoqueAjustesPage() {
                                   <input
                                     required
                                     inputMode="decimal"
+                                    readOnly={qtdeDerivada}
                                     value={v.qtde}
                                     onChange={(e) =>
                                       patchVolume(idx, { qtde: e.target.value })
                                     }
-                                    placeholder={
-                                      lxCPreencheQtde ? 'preenche com L×C' : '0.0000'
-                                    }
+                                    placeholder={qtdeDerivada ? 'calculado' : '0.0000'}
                                     title={
-                                      lxCPreencheQtde
-                                        ? 'Qtde do volume a registrar — calculada ao informar L×C (editável)'
-                                        : 'Qtde do volume a registrar na unidade do SKU'
+                                      saldoArea
+                                        ? 'Área em m², calculada pela largura e pelo comprimento'
+                                        : saldoLinear
+                                          ? 'Metro linear, igual ao comprimento do rolo'
+                                          : 'Quantidade na unidade de estoque do produto'
                                     }
                                   />
                                 </td>
@@ -1018,8 +1032,8 @@ export function EstoqueAjustesPage() {
                           + Volume
                         </button>
                         <span className="muted" style={{ marginLeft: '0.75rem' }}>
-                          Soma: {formatQty(somaVolumes(volumes))}{' '}
-                          {selectedProduto?.unidade_interna ?? ''}
+                          Soma do saldo: {formatQty(somaVolumes(volumes))}
+                          {nomeSaldo ? ` ${nomeSaldo}` : ''}
                         </span>
                       </div>
                     </div>
@@ -1032,7 +1046,8 @@ export function EstoqueAjustesPage() {
                       <div className="oc-volumes-panel__bar">
                         <strong>Volumes a baixar</strong>
                         <span className="muted">
-                          Informe quanto debitar em cada bobina · soma = diferença negativa
+                          Informe quanto debitar em cada bobina
+                        {nomeSaldo ? `, em ${nomeSaldo}` : ''}
                         </span>
                       </div>
                       {baixas.length === 0 ? (
@@ -1046,8 +1061,12 @@ export function EstoqueAjustesPage() {
                               <tr>
                                 <th className="col-lote">Volume</th>
                                 {mostraLxC && <th className="col-dim">Dimensão</th>}
-                                <th className="col-num">Disponível</th>
-                                <th className="col-num">Baixar</th>
+                                <th className="col-num">
+                                  Disponível{nomeSaldo ? ` (${nomeSaldo})` : ''}
+                                </th>
+                                <th className="col-num">
+                                  Baixar{nomeSaldo ? ` (${nomeSaldo})` : ''}
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -1077,8 +1096,8 @@ export function EstoqueAjustesPage() {
                         </div>
                       )}
                       <p className="muted" style={{ margin: '0.45rem 0 0' }}>
-                        Soma baixas: {formatQty(somaBaixas(baixas))}{' '}
-                        {selectedProduto?.unidade_interna ?? ''}
+                        Soma das baixas: {formatQty(somaBaixas(baixas))}
+                        {nomeSaldo ? ` ${nomeSaldo}` : ''}
                       </p>
                     </div>
                   </div>
