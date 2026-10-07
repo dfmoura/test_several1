@@ -199,6 +199,14 @@ class OrdemProducaoService
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId): array
+    {
+        return $this->coleta->volumesParaEscolha($empresa, $op, $materialId);
+    }
+
+    /**
      * Requisição de MP/EMB → SAIDA_PRODUCAO.
      *
      * @param  array{produto_id?: int, material_id?: int, qtde?: string|number, complementar?: bool, volumes?: list<array{lote_id?: int, qtde?: string}>, volumes_motivo?: string}  $data
@@ -218,6 +226,10 @@ class OrdemProducaoService
         $materialId = isset($data['material_id']) ? (int) $data['material_id'] : 0;
         $produtoId = isset($data['produto_id']) ? (int) $data['produto_id'] : 0;
         $complementar = (bool) ($data['complementar'] ?? false);
+        $volumesIn = is_array($data['volumes'] ?? null) ? array_values($data['volumes']) : [];
+        $produtoDosVolumes = $volumesIn !== []
+            ? $this->coleta->produtoIdDosVolumes($empresa, $volumesIn)
+            : null;
 
         /** @var OrdemProducaoMaterial|null $matPendente */
         $matPendente = null;
@@ -242,6 +254,9 @@ class OrdemProducaoService
                 ]);
             }
             $produtoId = (int) $matPendente->produto_id;
+            if (! $matPendente->saida_movimento_id && $produtoDosVolumes && $produtoDosVolumes !== $produtoId) {
+                $produtoId = $produtoDosVolumes;
+            }
         }
 
         $qtdeRaw = $data['qtde'] ?? null;
@@ -269,9 +284,10 @@ class OrdemProducaoService
 
         $this->congelamento->assertProdutoLivre($empresa, $produto->id, 'saída para produção');
 
-        $volumes = is_array($data['volumes'] ?? null) ? array_values($data['volumes']) : [];
+        $volumes = $volumesIn;
         $volumesMotivo = isset($data['volumes_motivo']) ? trim((string) $data['volumes_motivo']) : '';
-        if ($volumes !== []) {
+        $produtoLinhaId = $matPendente ? (int) $matPendente->produto_id : $produtoId;
+        if ($volumes !== [] && $produtoLinhaId === (int) $produto->id) {
             $this->coleta->validarOverride($empresa, $produto, $qtde, $volumes, $volumesMotivo);
         }
         $override = $volumes !== []
@@ -378,6 +394,7 @@ class OrdemProducaoService
                 if (bccomp((string) $mat->qtde_planejada, '0', PadraoDecimal::SCALE_QTY) <= 0) {
                     $mat->qtde_planejada = $qtde;
                 }
+                $mat->produto_id = $produto->id;
                 $mat->qtde_requisitada = $qtde;
                 $mat->saida_movimento_id = $mov->id;
                 $mat->unidade = $produto->unidade_interna ?? 'UN';

@@ -40,6 +40,24 @@ class OrdemProducaoController extends Controller
         return response()->json(['data' => $this->service->show($ordemProducao)]);
     }
 
+    public function volumesEscolha(Request $request, OrdemProducao $ordemProducao): JsonResponse
+    {
+        $this->authorizeLerMaterial($request);
+        $this->assertEmpresa($ordemProducao);
+
+        $data = $request->validate([
+            'material_id' => ['required', 'integer'],
+        ]);
+
+        return response()->json([
+            'data' => $this->service->volumesParaEscolha(
+                $this->empresa(),
+                $ordemProducao,
+                (int) $data['material_id'],
+            ),
+        ]);
+    }
+
     public function requisitar(Request $request, OrdemProducao $ordemProducao): JsonResponse
     {
         $this->authorizeWrite($request);
@@ -167,6 +185,14 @@ class OrdemProducaoController extends Controller
     private function authorizeRead(Request $request): void
     {
         if (! $request->user()->can('producao.ler')) {
+            abort(403);
+        }
+    }
+
+    private function authorizeLerMaterial(Request $request): void
+    {
+        $user = $request->user();
+        if (! $user->can('producao.ler') && ! $user->can('estoque.ler')) {
             abort(403);
         }
     }

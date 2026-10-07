@@ -69,9 +69,6 @@ export function OpPickTicket({
     if (op.status === 'CONCLUIDA' && op.pedido) {
       return { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` };
     }
-    if (atual === 'pegar' && soSemEstoque) {
-      return { to: '/compras/reposicao', label: 'Falta no estoque — ir a Compras' };
-    }
     if (atual === 'pegar' && podeEstoque) {
       return { to: hrefFichaEstoque(op.id), label: 'Pegar agora no estoque' };
     }
@@ -121,7 +118,10 @@ export function OpPickTicket({
       ) : soSemEstoque ? (
         <div className="pick__next pick__next--alerta">
           <p className="pick__next-kicker">Sem saldo</p>
-          <p className="pick__item">Tem item sem estoque. Compre antes de buscar.</p>
+          <p className="pick__item">
+            Este código não tem saldo. Abra o material e escolha no estoque — os parecidos vêm
+            primeiro.
+          </p>
           {cta ? (
             <Link to={cta.to} className="btn btn-primary pick__cta">
               {cta.label}

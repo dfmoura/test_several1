@@ -3286,6 +3286,9 @@ export type OpRetiradaVolume = {
   movimento_codigo?: string | null;
   movimento_em?: string | null;
   sku?: string | null;
+  produto_id?: number | null;
+  descricao?: string | null;
+  proximidade?: number | null;
 };
 
 export type OpRetiradaPreview = {

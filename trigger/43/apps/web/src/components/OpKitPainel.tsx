@@ -67,7 +67,9 @@ export function OpKitPainel({
     if (op.status === 'CONCLUIDA' && op.pedido) {
       return { to: `/pedidos/${op.pedido.id}`, label: `Continuar no pedido ${op.pedido.codigo}` };
     }
-    if (soSem) return { to: '/compras/reposicao', label: 'Falta no estoque — ir a Compras' };
+    if (soSem && porta === 'op' && podeEstoque) {
+      return { to: hrefFichaEstoque(op.id), label: 'Estoque busca isto' };
+    }
     if (porta === 'chao') return null;
     if (porta === 'op' && falta && podeEstoque) {
       return { to: hrefFichaEstoque(op.id), label: 'Estoque busca isto' };

@@ -107,7 +107,7 @@ export function OpCarrinho({ op, pedido, podeEstoque, podeProducao }: Props) {
 
         {soSemEstoque ? (
           <div className="alert alert-warning" role="status">
-            Tem item sem saldo. Compre antes de buscar o restante.
+            Este código não tem saldo. Abra o material e escolha no estoque — os parecidos vêm primeiro.
           </div>
         ) : null}
 

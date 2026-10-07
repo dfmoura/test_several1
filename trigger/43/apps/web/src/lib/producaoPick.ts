@@ -692,6 +692,8 @@ export function volumeTextoBusca(v: OpRetiradaVolume): string {
   const end = v.endereco?.codigo ?? '';
   return [
     volumeTextoLote(v),
+    v.sku,
+    v.descricao,
     end,
     ...end.split(/[-_/.\s]+/),
     ...variantesNumero(v.qtde_volume),

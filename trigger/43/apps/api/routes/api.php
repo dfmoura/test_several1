@@ -407,6 +407,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/ordens-producao/apontamentos', [ProducaoApontamentoController::class, 'index']);
         Route::get('/ordens-producao/apontamentos/{ordemProducao}', [ProducaoApontamentoController::class, 'show']);
         Route::get('/ordens-producao/{ordemProducao}', [OrdemProducaoController::class, 'show']);
+        Route::get('/ordens-producao/{ordemProducao}/volumes-escolha', [OrdemProducaoController::class, 'volumesEscolha']);
         Route::get('/ordens-producao/{ordemProducao}/retirada', [OrdemProducaoController::class, 'previewRetirada']);
         Route::post('/ordens-producao/{ordemProducao}/requisitar', [OrdemProducaoController::class, 'requisitar']);
         Route::post('/ordens-producao/{ordemProducao}/avaria', [OrdemProducaoController::class, 'avaria']);

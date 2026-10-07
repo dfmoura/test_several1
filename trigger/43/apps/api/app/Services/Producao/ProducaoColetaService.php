@@ -515,6 +515,197 @@ class ProducaoColetaService
     }
 
     /**
+     * Volumes com saldo para escolher na linha. Não trava no SKU casado:
+     * entra todo lote da empresa, o produto da linha primeiro e os parecidos em seguida.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function volumesParaEscolha(Empresa $empresa, OrdemProducao $op, int $materialId): array
+    {
+        if ($op->empresa_id !== $empresa->id) {
+            abort(404);
+        }
+
+        $mat = OrdemProducaoMaterial::query()
+            ->with('produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_interna,controla_lote')
+            ->where('ordem_producao_id', $op->id)
+            ->where('empresa_id', $empresa->id)
+            ->where('id', $materialId)
+            ->first();
+        if (! $mat) {
+            throw ValidationException::withMessages([
+                'material_id' => ['Material não pertence a esta ordem.'],
+            ]);
+        }
+
+        $produtoLinha = $mat->produto;
+        $texto = trim(implode(' ', array_filter([
+            (string) ($mat->origem_texto ?? ''),
+            (string) ($produtoLinha->descricao_fiscal ?? ''),
+            (string) ($produtoLinha->descricao_comercial ?? ''),
+            (string) ($produtoLinha->codigo ?? ''),
+        ])));
+        $tokens = $this->tokensProximidade($texto);
+
+        $sugeridos = [];
+        if ($produtoLinha && $produtoLinha->controla_lote) {
+            $qtde = PadraoDecimal::roundHalfUp((string) $mat->qtde_planejada, PadraoDecimal::SCALE_QTY);
+            if (bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) > 0) {
+                $prev = $this->preview($empresa, $produtoLinha, $qtde);
+                foreach ($prev['volumes'] as $vol) {
+                    $loteId = (int) ($vol['lote_id'] ?? 0);
+                    if ($loteId > 0) {
+                        $sugeridos[$loteId] = $vol;
+                    }
+                }
+            }
+        }
+
+        $lotes = EstoqueLote::query()
+            ->with([
+                'endereco:id,codigo',
+                'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_interna,controla_lote,empresa_id',
+            ])
+            ->where('empresa_id', $empresa->id)
+            ->where('qtde', '>', 0)
+            ->whereHas('produto', function ($q) use ($empresa) {
+                $q->where('empresa_id', $empresa->id)
+                    ->where('controla_lote', true);
+            })
+            ->orderBy('id')
+            ->get();
+
+        $linhas = [];
+        foreach ($lotes as $lote) {
+            $produto = $lote->produto;
+            if (! $produto || (int) $produto->empresa_id !== (int) $empresa->id) {
+                continue;
+            }
+            $loteId = (int) $lote->id;
+            if (isset($sugeridos[$loteId])) {
+                $row = $sugeridos[$loteId];
+            } else {
+                $row = $this->volumeToOut($lote, '0', false, 'ESTOQUE', null);
+            }
+            $hay = trim(implode(' ', array_filter([
+                (string) $produto->codigo,
+                (string) $produto->descricao_fiscal,
+                (string) ($produto->descricao_comercial ?? ''),
+            ])));
+            $mesmo = $produtoLinha && (int) $produto->id === (int) $produtoLinha->id;
+            $row['sku'] = $produto->codigo;
+            $row['produto_id'] = (int) $produto->id;
+            $row['descricao'] = $produto->descricao_fiscal;
+            $row['proximidade'] = $mesmo ? 1000 : $this->scoreProximidade($hay, $tokens);
+            $linhas[] = $row;
+        }
+
+        usort($linhas, static function (array $a, array $b): int {
+            $pa = (int) ($a['proximidade'] ?? 0);
+            $pb = (int) ($b['proximidade'] ?? 0);
+            if ($pa !== $pb) {
+                return $pb <=> $pa;
+            }
+            $sa = ! empty($a['sugerido']) ? 0 : 1;
+            $sb = ! empty($b['sugerido']) ? 0 : 1;
+            if ($sa !== $sb) {
+                return $sa <=> $sb;
+            }
+
+            return strcmp((string) ($a['sku'] ?? ''), (string) ($b['sku'] ?? ''));
+        });
+
+        return $linhas;
+    }
+
+    /**
+     * Um produto só. Volumes de SKUs diferentes não saem na mesma linha.
+     *
+     * @param  list<array<string, mixed>>  $volumes
+     */
+    public function produtoIdDosVolumes(Empresa $empresa, array $volumes): ?int
+    {
+        $ids = [];
+        foreach ($volumes as $vol) {
+            $id = (int) ($vol['lote_id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        if ($ids === []) {
+            return null;
+        }
+
+        $produtos = EstoqueLote::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('id', $ids)
+            ->pluck('produto_id')
+            ->unique()
+            ->values();
+        if ($produtos->count() !== 1) {
+            throw ValidationException::withMessages([
+                'volumes' => ['Escolha bobinas de um mesmo produto.'],
+            ]);
+        }
+
+        return (int) $produtos->first();
+    }
+
+    /**
+     * @param  list<string>  $tokens
+     */
+    private function scoreProximidade(string $hay, array $tokens): int
+    {
+        if ($tokens === []) {
+            return 0;
+        }
+        $norm = $this->normalizarBusca($hay);
+        $score = 0;
+        foreach ($tokens as $token) {
+            if ($token !== '' && str_contains($norm, $token)) {
+                $score += strlen($token) >= 4 ? 3 : 1;
+            }
+        }
+
+        return $score;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tokensProximidade(string $text): array
+    {
+        $stop = [
+            'AUTOADESIVO', 'AUTO', 'ADESIVO', 'PAPEL', 'FILME', 'DE', 'DA', 'DO', 'COM', 'PARA', 'G',
+        ];
+        $parts = preg_split('/[^A-Z0-9]+/', $this->normalizarBusca($text)) ?: [];
+        $out = [];
+        foreach ($parts as $p) {
+            if ($p === '' || strlen($p) < 2 || in_array($p, $stop, true)) {
+                continue;
+            }
+            $out[$p] = true;
+        }
+
+        return array_keys($out);
+    }
+
+    private function normalizarBusca(string $text): string
+    {
+        $t = mb_strtoupper(trim($text), 'UTF-8');
+        $t = strtr($t, [
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A',
+            'É' => 'E', 'Ê' => 'E',
+            'Í' => 'I',
+            'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O',
+            'Ú' => 'U',
+            'Ç' => 'C',
+        ]);
+
+        return $t;
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $volumes
      * @return list<array<string, mixed>>
      */
