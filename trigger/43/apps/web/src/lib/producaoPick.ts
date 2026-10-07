@@ -411,8 +411,79 @@ function necessidadeFicha(m: OrdemProducaoMaterial, op?: OrdemProducao | null): 
   return `${formatQtdePick(metros, 'm')} · ${area}`;
 }
 
+/** Comprimento do volume quando o lote ainda não tem metro conferido. */
+const METROS_BOBINA_PADRAO = 1000;
+
+/**
+ * Bobina sai o volume inteiro. Cada um tem, em geral, 1.000 m.
+ * A conta é do trabalho, não dos lotes que o FEFO sugeriu.
+ * Sem a largura do rolo, não inventa quantas — a área sozinha não diz o número.
+ */
+function leituraBobinaInteira(m: OrdemProducaoMaterial, qtde: number): LeituraQtdeMaterial {
+  const metrosVol = metrosPorVolume(m);
+  const metrosTxt = formatQtdePick(metrosVol, 'm');
+  const n = nBobinasParaCobrir(m, qtde, metrosVol);
+  if (n == null) {
+    return { principal: 'Bobina inteira', complemento: `de ${metrosTxt}` };
+  }
+  return {
+    principal: formatVolumesPick(n),
+    complemento: n === 1 ? `de ${metrosTxt}` : `de ${metrosTxt} cada`,
+  };
+}
+
+/** Metro do rolo cheio. Retalho curto não muda o padrão de 1.000 m. */
+function metrosPorVolume(m: OrdemProducaoMaterial): number {
+  const cheios = comprimentosRoloCheio(m);
+  if (cheios.length === 0) return METROS_BOBINA_PADRAO;
+  const base = cheios[0];
+  if (cheios.every((n) => Math.abs(n - base) < 0.51)) return base;
+  return METROS_BOBINA_PADRAO;
+}
+
+function comprimentosRoloCheio(m: OrdemProducaoMaterial): number[] {
+  return volumesParaEscolha(m)
+    .map((v) => parseQtdeDigitada(v.comprimento_m))
+    .filter((n) => n > 0 && Math.abs(n - METROS_BOBINA_PADRAO) <= 30);
+}
+
+/** Largura de um rolo cheio, senão a nominal do SKU. Nunca a pista da etiqueta. */
+function larguraMmRoloCheio(m: OrdemProducaoMaterial): number {
+  for (const v of volumesParaEscolha(m)) {
+    const c = parseQtdeDigitada(v.comprimento_m);
+    const cheio = c <= 0 || Math.abs(c - METROS_BOBINA_PADRAO) <= 30;
+    const w = parseQtdeDigitada(v.largura_mm);
+    if (cheio && w > 0) return w;
+  }
+  const sku = parseQtdeDigitada(m.produto?.largura_mm);
+  if (sku > 0) return sku;
+  for (const v of volumesParaEscolha(m)) {
+    const w = parseQtdeDigitada(v.largura_mm);
+    if (w > 0) return w;
+  }
+  return 0;
+}
+
+function nBobinasParaCobrir(
+  m: OrdemProducaoMaterial,
+  qtde: number,
+  metrosVol: number,
+): number | null {
+  if (!(metrosVol > 0) || !(qtde > 0)) return null;
+  if (unidadeEhLinear(m.unidade)) {
+    return Math.max(1, Math.ceil(qtde / metrosVol - 1e-9));
+  }
+  if (!qtdeGravadaEhArea(m.unidade)) return null;
+  const larguraMm = larguraMmRoloCheio(m);
+  if (!(larguraMm > 0)) return null;
+  const areaUma = (larguraMm / 1000) * metrosVol;
+  if (!(areaUma > 0)) return null;
+  return Math.max(1, Math.ceil(qtde / areaUma - 1e-9));
+}
+
 /**
  * Quanto a OP pede deste material (`qtde_planejada`), em duas leituras.
+ * Bobina: quantas inteiras, com o metro de cada volume.
  */
 export function leituraNecessidadeOp(
   m: OrdemProducaoMaterial,
@@ -420,6 +491,7 @@ export function leituraNecessidadeOp(
 ): LeituraQtdeMaterial {
   const n = qtdeLinhaPick(m);
   if (n <= 0) return { principal: 'Sem quantidade', complemento: null };
+  if (modoRetirada(m) === 'volume') return leituraBobinaInteira(m, n);
   return leituraQtdeMaterial(m, op, n);
 }
 
@@ -432,9 +504,6 @@ export function formatNecessidadeOp(
 ): string {
   return juntarLeitura(leituraNecessidadeOp(m, op));
 }
-
-/** Rolo padrão de substrato quando o volume ainda não tem comprimento conferido. */
-const METROS_BOBINA_PADRAO = 1000;
 
 /** Bobinas que esta linha vai levar: as já baixadas, senão as sugeridas. */
 function volumesQuantoFicha(m: OrdemProducaoMaterial): OpRetiradaVolume[] {

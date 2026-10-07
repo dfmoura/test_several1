@@ -100,7 +100,7 @@ export function OpKitPainel({
             {porta === 'chao'
               ? 'Toque no material, marque a bobina que saiu da prateleira e confirme. Quem recebe é a produção.'
               : 'Toque no material para ver a cesta. Quem tira da prateleira confirma no estoque.'}{' '}
-            Bobina sai inteira. Em m², o número grande é a área do papel e, embaixo, o comprimento da etiqueta. Em metro linear, o número é o comprimento do rolo.
+            Papel e filme saem em bobina inteira. Cada volume tem 1.000 m.
           </p>
           <div className="op-kit__tiles">
             {linhas.map((m) => {
