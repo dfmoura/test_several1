@@ -866,7 +866,7 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                         {opKitNome(m)}
                         <span className="muted" style={{ fontWeight: 500, marginLeft: 8 }}>
                           {m.escolher_produto && estado !== 'ja_saiu'
-                            ? (volumeDireto ? escolhidos.length === 0 : produtoId <= 0)
+                            ? !volumeDireto && produtoId <= 0
                               ? 'Escolher'
                               : 'Falta pegar'
                             : opKitEstadoLabel(estado)}
@@ -875,15 +875,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                       {podeEditar && porVolume ? (
                         <button
                           type="button"
-                          className={
-                            volumeDireto && escolhidos.length === 0
-                              ? 'btn btn-primary btn-sm'
-                              : 'btn btn-secondary btn-sm'
-                          }
+                          className="btn btn-secondary btn-sm"
                           disabled={busy}
                           onClick={() => abrirOverlay(m)}
                         >
-                          {volumeDireto && escolhidos.length === 0 ? 'Escolher volume' : '+ volume'}
+                          + volume
                         </button>
                       ) : null}
                     </div>
