@@ -794,4 +794,27 @@ class ProducaoColetaDirigidaTest extends TestCase
         $this->assertTrue($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $this->mp->id));
         $this->assertFalse($coleta->produtoEscolhaPermitido($this->empresa, $comGrupo, $tinta->id));
     }
+
+    public function test_acabamento_lista_volumes_sem_escolher_item(): void
+    {
+        $mat = OrdemProducaoMaterial::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'ordem_producao_id' => $this->op->id,
+            'produto_id' => null,
+            'qtde_planejada' => '12.0000',
+            'qtde_requisitada' => '0',
+            'qtde_consumida' => '0',
+            'qtde_retorno' => '0',
+            'qtde_perda' => '0',
+            'unidade' => 'M2',
+            'componente' => 'ACABAMENTO',
+            'origem_texto' => 'LAMINAÇÃO',
+            'ordem' => 3,
+        ]);
+
+        $volumes = app(ProducaoColetaService::class)->volumesParaEscolha($this->empresa, $this->op, $mat->id);
+        $ids = array_column($volumes, 'lote_id');
+        $this->assertContains($this->loteVigente->id, $ids);
+        $this->assertNotContains($this->emb->id, array_column($volumes, 'produto_id'));
+    }
 }

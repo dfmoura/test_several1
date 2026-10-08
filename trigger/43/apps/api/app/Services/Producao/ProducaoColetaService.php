@@ -1066,6 +1066,9 @@ class ProducaoColetaService
 
         $produtoLinha = $mat->produto;
         $comp = strtoupper((string) $mat->componente);
+        if ((int) $mat->produto_id <= 0 && $comp === 'ACABAMENTO' && (int) $produtoEscolhido <= 0) {
+            return $this->volumesDasBobinas($empresa, $mat);
+        }
         if ((int) $mat->produto_id <= 0 && in_array($comp, ['PAPEL', 'ACABAMENTO'], true)) {
             $produtoEscolhido = (int) $produtoEscolhido;
             if ($produtoEscolhido <= 0 || ! $this->produtoEscolhaPermitido($empresa, $mat, $produtoEscolhido)) {
@@ -1150,6 +1153,59 @@ class ProducaoColetaService
 
             return strcmp((string) ($a['sku'] ?? ''), (string) ($b['sku'] ?? ''));
         });
+
+        return $linhas;
+    }
+
+    /**
+     * Volumes de todas as bobinas com saldo. O grupo do catálogo vem primeiro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function volumesDasBobinas(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    {
+        $ids = array_map('intval', array_column($this->opcoesBobina($empresa, $mat), 'produto_id'));
+        if ($ids === []) {
+            return [];
+        }
+
+        $ordem = array_flip($ids);
+        $lotes = EstoqueLote::query()
+            ->with([
+                'endereco:id,codigo',
+                'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,unidade_interna,controla_lote,empresa_id',
+            ])
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', $ids)
+            ->where('qtde', '>', 0)
+            ->get()
+            ->sort(function (EstoqueLote $a, EstoqueLote $b) use ($ordem): int {
+                $oa = $ordem[(int) $a->produto_id] ?? 9999;
+                $ob = $ordem[(int) $b->produto_id] ?? 9999;
+                if ($oa !== $ob) {
+                    return $oa <=> $ob;
+                }
+                $va = $a->data_validade?->getTimestamp();
+                $vb = $b->data_validade?->getTimestamp();
+                if ($va === null && $vb !== null) {
+                    return 1;
+                }
+                if ($vb === null && $va !== null) {
+                    return -1;
+                }
+                if ($va !== $vb) {
+                    return ($va ?? 0) <=> ($vb ?? 0);
+                }
+
+                return $a->id <=> $b->id;
+            })
+            ->values();
+
+        $linhas = [];
+        foreach ($lotes as $lote) {
+            $row = $this->volumeToOut($lote, '0', false, 'ESTOQUE', null);
+            $linhas[] = $this->identificarProduto($row, $lote->produto);
+        }
 
         return $linhas;
     }
