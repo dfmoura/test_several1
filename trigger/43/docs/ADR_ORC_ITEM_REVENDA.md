@@ -60,7 +60,7 @@ QR = leitura (scan marca; humano confirma) — mesmo contrato de `ADR_PRODUCAO_C
 - No item: **Etiqueta sob medida** | **Produto de revenda**.  
 - N=1 só-REV: zero chrome de fábrica (sem faca/escada de artes).  
 - PED: CTA **Separar no estoque** / **Ficha de separação** → `/estoque/separacoes/:pedidoItem`; sem OP/OS.  
-- Chão: Estoque · **A separar** (paridade de volumes/local/QR com A buscar; sem debitar).
+- Chão: Estoque · **A separar** — cabeçalho da ficha do item (valores) e formulário de faixa do orçamento para acrescentar ou remover volumes já conhecidos (e ler QR). Sem busca no estoque. Sem debitar.
 
 ## Proibido
 

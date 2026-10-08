@@ -1,27 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ProdutoCombobox } from '../components/ProdutoCombobox';
-import { OpKitPainel } from '../components/OpKitPainel';
+import { OpInsumosReservados } from '../components/OpInsumosReservados';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
+import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
-import {
-  api,
-  type OrdemProducao,
-  type Pedido,
-  type Produto,
-} from '../lib/api';
+import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { onAbrirFichaClick } from '../lib/fichaNav';
 import { formatDecimalBr } from '../lib/format';
 import {
   leituraNecessidadeOp,
   leituraQtdeMaterial,
-  unidadeExibicao,
   type LeituraQtdeMaterial,
 } from '../lib/producaoPick';
-import { hrefFichaEstoque, parseQtdeDigitada } from '../lib/producaoUi';
-
-type ExtraLinha = { key: number; produto: Produto | null; qtde: string };
+import { parseQtdeDigitada } from '../lib/producaoUi';
 
 function QtdeMaterialLeitura({ leitura }: { leitura: LeituraQtdeMaterial }) {
   return (
@@ -44,10 +36,6 @@ export function OrdemProducaoDetailPage() {
   const [busy, setBusy] = useState(false);
   const [devolverAberto, setDevolverAberto] = useState(false);
   const [motivoDevolver, setMotivoDevolver] = useState('');
-
-  const extraKeyRef = useRef(1);
-  const emptyExtra = (): ExtraLinha => ({ key: extraKeyRef.current++, produto: null, qtde: '' });
-  const [extras, setExtras] = useState<ExtraLinha[]>(() => [emptyExtra()]);
 
   const load = async () => {
     setLoading(true);
@@ -106,6 +94,8 @@ export function OrdemProducaoDetailPage() {
   };
 
   const podeProducao = Boolean(aberta && hasPermission('producao.ler'));
+  const itemPedido =
+    pedido?.itens.find((i) => i.id === op?.pedido_item?.id) ?? null;
 
   return (
     <>
@@ -141,10 +131,12 @@ export function OrdemProducaoDetailPage() {
         )
       ) : (
         <>
-          <OpKitPainel
+          {pedido && itemPedido ? (
+            <PedidoItemFichaCabecalho pedido={pedido} item={itemPedido} />
+          ) : null}
+
+          <OpInsumosReservados
             op={op}
-            pedido={pedido}
-            porta="op"
             podeEstoque={hasPermission('estoque.ler')}
             podeProducao={podeProducao}
             canWrite={hasPermission('estoque.escrever')}
@@ -231,117 +223,6 @@ export function OrdemProducaoDetailPage() {
               canWrite={hasPermission('producao.escrever')}
               onChanged={() => void load()}
             />
-          ) : null}
-
-          {aberta && hasPermission('producao.escrever') ? (
-            <details className="card" style={{ marginBottom: '1rem' }}>
-              <summary className="op-mais-summary">Acrescentar no kit</summary>
-              <div className="card-body" style={{ paddingTop: 0 }}>
-                <p className="muted" style={{ margin: '0 0 0.75rem', fontSize: '0.9em' }}>
-                  Algo que não veio na lista. Informe e peça no estoque — a saída confirma lá.
-                </p>
-                {extras.map((linha, idx) => {
-                  const idsNaOp = new Set(
-                    (op.materiais ?? [])
-                      .map((m) => m.produto?.id)
-                      .filter((pid): pid is number => Number(pid) > 0),
-                  );
-                  const idsNesteForm = new Set(
-                    extras
-                      .filter((e) => e.key !== linha.key && e.produto)
-                      .map((e) => e.produto!.id),
-                  );
-                  const un = unidadeExibicao(
-                    linha.produto?.unidade_interna || linha.produto?.unidade_comercial,
-                  );
-                  return (
-                    <div key={linha.key} className="oc-form-page__item">
-                      <div
-                        className={`oc-form-page__item-row${extras.length > 1 ? ' has-remove' : ''}`}
-                      >
-                        <ProdutoCombobox
-                          className="oc-form-page__item-produto"
-                          label={idx === 0 ? 'Material' : 'Material'}
-                          value={linha.produto}
-                          onChange={(p) => {
-                            if (p && (idsNaOp.has(p.id) || idsNesteForm.has(p.id))) {
-                              setErr(
-                                idsNaOp.has(p.id)
-                                  ? 'Este item já está no kit. Peça de novo pela lista de retirada.'
-                                  : 'Este item já está em outra linha.',
-                              );
-                              return;
-                            }
-                            setErr(null);
-                            setExtras((prev) =>
-                              prev.map((e) => (e.key === linha.key ? { ...e, produto: p } : e)),
-                            );
-                          }}
-                          familias={['MP', 'EMB']}
-                          showSummary={false}
-                          placeholder="Buscar por código ou descrição…"
-                          emptyMessage="Nenhum material encontrado."
-                        />
-                        <div className="form-group oc-form-page__item-qtde">
-                          <label>Quanto ({un})</label>
-                          <input
-                            inputMode="decimal"
-                            value={linha.qtde}
-                            onChange={(e) =>
-                              setExtras((prev) =>
-                                prev.map((x) =>
-                                  x.key === linha.key ? { ...x, qtde: e.target.value } : x,
-                                ),
-                              )
-                            }
-                            aria-label={`Quantidade extra ${linha.produto?.codigo ?? idx + 1}`}
-                          />
-                        </div>
-                        {extras.length > 1 ? (
-                          <div className="form-group oc-form-page__item-remove">
-                            <label>&nbsp;</label>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              disabled={busy}
-                              onClick={() =>
-                                setExtras((prev) => prev.filter((e) => e.key !== linha.key))
-                              }
-                            >
-                              Remover
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="btn-row" style={{ marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    disabled={busy}
-                    onClick={() => setExtras((prev) => [...prev, emptyExtra()])}
-                  >
-                    + Item
-                  </button>
-                  {extras
-                    .filter((e) => e.produto && parseQtdeDigitada(e.qtde) > 0)
-                    .map((e) => (
-                      <Link
-                        key={e.key}
-                        className="btn btn-primary btn-sm"
-                        to={hrefFichaEstoque(op.id, {
-                          produtoId: e.produto!.id,
-                          qtde: e.qtde,
-                        })}
-                      >
-                        Pedir {e.produto!.codigo} no estoque
-                      </Link>
-                    ))}
-                </div>
-              </div>
-            </details>
           ) : null}
 
           {aberta && hasPermission('producao.escrever') && op.pode_devolver_ao_pedido ? (

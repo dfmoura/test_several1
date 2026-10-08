@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { SeparacaoVolumesOverlay } from '../components/SeparacaoVolumesOverlay';
-import { ApiError, api, type EstoqueSeparacaoDetalhe, type OpRetiradaVolume } from '../lib/api';
+import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
+import {
+  ApiError,
+  api,
+  type EstoqueSeparacaoDetalhe,
+  type OpRetiradaVolume,
+  type Pedido,
+} from '../lib/api';
 import { useAuth } from '../lib/auth';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import { onAbrirFichaClick } from '../lib/fichaNav';
@@ -29,8 +35,9 @@ export function EstoqueSeparacaoChaoPage() {
   const { hasPermission } = useAuth();
   const podeEscrever = hasPermission('estoque.escrever') || hasPermission('producao.escrever');
   const [detalhe, setDetalhe] = useState<EstoqueSeparacaoDetalhe | null>(null);
+  const [pedido, setPedido] = useState<Pedido | null>(null);
   const [marcas, setMarcas] = useState<VolumePickMarca[]>([]);
-  const [overlayAberto, setOverlayAberto] = useState(false);
+  const [qr, setQr] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -46,6 +53,16 @@ export function EstoqueSeparacaoChaoPage() {
       setMarcas(
         marcasDePreviewVolumes(res.data.retirada.volumes ?? [], res.data.retirada.candidatos ?? []),
       );
+      if (res.data.pedido_id) {
+        try {
+          const ped = await api.get<{ data: Pedido }>(`/pedidos/${res.data.pedido_id}`);
+          setPedido(ped.data);
+        } catch {
+          setPedido(null);
+        }
+      } else {
+        setPedido(null);
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Falha ao abrir a separação.');
     } finally {
@@ -74,9 +91,6 @@ export function EstoqueSeparacaoChaoPage() {
   const volDo = (loteId: number) => catalogo.find((v) => v.lote_id === loteId);
   const marcados = marcas.filter((m) => m.marcado && parseQtdeDigitada(m.qtde) > 0);
   const separada = detalhe?.separacao?.volumes ?? [];
-  const localPrimeiro = detalhe?.pode_confirmar
-    ? (volDo(marcados[0]?.lote_id ?? 0)?.endereco?.codigo ?? null)
-    : (separada.find((v) => v.endereco)?.endereco ?? null);
 
   const marcarVolume = (loteId: number, qtde?: string, lido = false) => {
     const vol = volDo(loteId);
@@ -142,7 +156,6 @@ export function EstoqueSeparacaoChaoPage() {
         detalhe.produto?.controla_lote ? { volumes } : {},
       );
       setDetalhe(res.data);
-      setOverlayAberto(false);
       setMsg('Separação confirmada. O saldo sai na NF-e.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Não foi possível confirmar.');
@@ -157,6 +170,26 @@ export function EstoqueSeparacaoChaoPage() {
   const qtdePedida = detalhe
     ? formatDecimalBr(detalhe.qtde_pedida, 4, { stripTrailingZeros: true })
     : '';
+  const itemPedido =
+    pedido?.itens.find((i) => i.id === detalhe?.pedido_item_id) ?? null;
+  const proximoVolume = catalogo.find(
+    (v) => v.lote_id && !marcas.some((m) => m.lote_id === v.lote_id && m.marcado),
+  );
+
+  const acrescentarVolume = () => {
+    if (!proximoVolume?.lote_id) return;
+    marcarVolume(proximoVolume.lote_id);
+  };
+
+  const onQrKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' || !podeEscrever) return;
+    const payload = qr.trim();
+    if (!payload) return;
+    e.preventDefault();
+    void lerVolume(payload)
+      .then(() => setQr(''))
+      .catch(() => undefined);
+  };
 
   return (
     <div className="page">
@@ -186,210 +219,178 @@ export function EstoqueSeparacaoChaoPage() {
       {loading ? <p className="muted">Carregando…</p> : null}
 
       {detalhe && !loading ? (
-        <section className="pick op-kit" aria-label="Separação de revenda">
-          <header className="pick__job">
-            <p className="pick__job-qtde">
-              {qtdePedida} {detalhe.unidade}
-            </p>
-            <h2 className="pick__job-nome">{nome}</h2>
-            <p className="pick__job-meta">
-              {detalhe.parceiro?.razao_social ?? '—'}
-              {detalhe.pedido_codigo ? ` · ${detalhe.pedido_codigo}` : ''}
-              {' · '}
-              saldo {formatDecimalBr(detalhe.saldo, 4, { stripTrailingZeros: true })} {detalhe.unidade}
-            </p>
-          </header>
+        <>
+          {pedido && itemPedido ? (
+            <PedidoItemFichaCabecalho pedido={pedido} item={itemPedido} />
+          ) : null}
 
-          <ol className="op-kit-lista">
-            <li
-              className={`op-kit-lista__item op-kit-lista__item--${
-                detalhe.pode_confirmar ? 'falta_pegar' : 'ja_saiu'
-              }`}
-            >
-              <div className="op-kit-lista__topo">
-                <span className="op-kit-lista__n" aria-hidden>
-                  1
-                </span>
-                <div className="op-kit-lista__corpo">
-                  <div className="op-kit-lista__titulo">
-                    <span className="op-kit-lista__tipo">Revenda</span>
-                    <strong>{nome}</strong>
-                    {detalhe.produto?.codigo ? (
-                      <span className="op-kit-lista__sku">{detalhe.produto.codigo}</span>
-                    ) : null}
-                  </div>
-                  <div className="op-kit-lista__meta">
-                    <span>
-                      Pedido:{' '}
-                      <strong>
-                        {qtdePedida} {detalhe.unidade}
-                      </strong>
-                    </span>
-                    <span className="op-kit-lista__sep" aria-hidden>
-                      ·
-                    </span>
-                    <span>{localPrimeiro || 'Sem local'}</span>
-                    <span className="op-kit-lista__sep" aria-hidden>
-                      ·
-                    </span>
-                    <span
-                      className={`op-kit-lista__st op-kit-lista__st--${
-                        detalhe.pode_confirmar ? 'falta_pegar' : 'ja_saiu'
-                      }`}
+          <section className="op-insumos" aria-label="Volumes da revenda">
+            <div className="card">
+              <div className="card-body">
+                <div className="orc-section-head">
+                  <h3 className="orc-subsection-title" style={{ fontSize: '1.05rem' }}>
+                    {nome}
+                  </h3>
+                  {detalhe.pode_confirmar && detalhe.produto?.controla_lote && podeEscrever ? (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={busy || !proximoVolume}
+                      onClick={acrescentarVolume}
                     >
-                      {detalhe.pode_confirmar ? 'A separar' : 'Separado'}
-                    </span>
-                  </div>
+                      + volume
+                    </button>
+                  ) : null}
                 </div>
-                {detalhe.pode_confirmar && detalhe.produto?.controla_lote ? (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm op-kit-lista__acao"
-                    onClick={() => setOverlayAberto(true)}
-                  >
-                    {marcados.length > 0 ? 'Alterar volumes' : 'Adicionar volumes'}
-                  </button>
-                ) : null}
-              </div>
 
-              {detalhe.produto?.controla_lote ? (
-                <div className="op-kit-lista__vols">
-                  {detalhe.pode_confirmar ? (
-                    marcados.length === 0 ? (
-                      <p className="op-kit-lista__vols-vazio">
-                        Nenhum volume escolhido. Use «Adicionar volumes».
-                      </p>
-                    ) : (
-                      <table className="op-kit-lista__table">
-                        <thead>
-                          <tr>
-                            <th>Volume</th>
-                            <th>Local</th>
-                            <th>Dimensão</th>
-                            <th>Levar</th>
-                            <th className="op-kit-lista__col-acao" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {marcados.map((m) => {
-                            const vol = volDo(m.lote_id);
-                            return (
-                              <tr key={m.lote_id}>
-                                <td>
-                                  {formatLotePick(vol ?? { lote_id: m.lote_id })}
-                                  {m.lido ? (
-                                    <span className="muted" style={{ marginLeft: 6, fontSize: '0.85em' }}>
-                                      QR
-                                    </span>
-                                  ) : null}
-                                </td>
-                                <td>{vol?.endereco?.codigo ?? '—'}</td>
-                                <td>{vol ? formatVolumeDimensao(vol) ?? '—' : '—'}</td>
-                                <td>
-                                  {formatDecimalBr(m.qtde, 4, { stripTrailingZeros: true })}{' '}
-                                  {vol?.unidade ?? detalhe.unidade}
-                                </td>
-                                <td className="op-kit-lista__col-acao">
-                                  <button
-                                    type="button"
-                                    className="op-kit-lista__reverter"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      setMarcas((atual) =>
-                                        atual.map((x) =>
-                                          x.lote_id === m.lote_id ? { ...x, marcado: false } : x,
-                                        ),
-                                      )
-                                    }
-                                  >
-                                    Remover
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )
-                  ) : separada.length > 0 ? (
-                    <table className="op-kit-lista__table">
-                      <thead>
-                        <tr>
-                          <th>Volume</th>
-                          <th>Local</th>
-                          <th>Quantidade</th>
-                          <th>
+                {detalhe.pode_confirmar && detalhe.produto?.controla_lote && podeEscrever ? (
+                  <div className="form-group" style={{ maxWidth: 320, marginBottom: '0.75rem' }}>
+                    <label>Ler QR do volume</label>
+                    <input
+                      value={qr}
+                      disabled={busy}
+                      placeholder="VOL:…"
+                      onChange={(e) => setQr(e.target.value)}
+                      onKeyDown={onQrKey}
+                    />
+                  </div>
+                ) : null}
+
+                {detalhe.produto?.controla_lote && detalhe.pode_confirmar ? (
+                  marcados.length === 0 ? (
+                    <p className="form-hint" style={{ marginTop: 0 }}>
+                      Nenhum volume nesta lista.
+                    </p>
+                  ) : (
+                    marcados.map((m) => {
+                      const vol = volDo(m.lote_id);
+                      const max = vol
+                        ? parseQtdeDigitada(vol.qtde_volume ?? vol.qtde_retirar)
+                        : 0;
+                      return (
+                        <div key={m.lote_id} className="form-grid faixa-row">
+                          <div className="form-group">
+                            <label>Volume</label>
+                            <input
+                              value={formatLotePick(vol ?? { lote_id: m.lote_id })}
+                              disabled
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Local</label>
+                            <input value={vol?.endereco?.codigo ?? '—'} disabled />
+                          </div>
+                          <div className="form-group">
+                            <label>Medida</label>
+                            <input value={vol ? formatVolumeDimensao(vol) ?? '—' : '—'} disabled />
+                          </div>
+                          <div className="form-group">
+                            <label>Quantidade ({vol?.unidade ?? detalhe.unidade})</label>
+                            <input
+                              inputMode="decimal"
+                              disabled={!podeEscrever || busy}
+                              value={m.qtde}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const n = parseQtdeDigitada(raw);
+                                const qtde = max > 0 && n > max ? String(max) : raw;
+                                setMarcas((atual) =>
+                                  atual.map((x) => (x.lote_id === m.lote_id ? { ...x, qtde } : x)),
+                                );
+                              }}
+                            />
+                          </div>
+                          {podeEscrever ? (
+                            <div className="form-group faixa-remove">
+                              <label>&nbsp;</label>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                disabled={busy}
+                                onClick={() =>
+                                  setMarcas((atual) =>
+                                    atual.map((x) =>
+                                      x.lote_id === m.lote_id ? { ...x, marcado: false } : x,
+                                    ),
+                                  )
+                                }
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })
+                  )
+                ) : null}
+
+                {detalhe.produto?.controla_lote && !detalhe.pode_confirmar && separada.length > 0
+                  ? separada.map((v) => (
+                      <div key={v.lote_id} className="form-grid faixa-row">
+                        <div className="form-group">
+                          <label>Volume</label>
+                          <input value={v.codigo ?? '—'} disabled />
+                        </div>
+                        <div className="form-group">
+                          <label>Local</label>
+                          <input value={v.endereco ?? '—'} disabled />
+                        </div>
+                        <div className="form-group">
+                          <label>Quantidade ({v.unidade ?? detalhe.unidade})</label>
+                          <input
+                            value={formatDecimalBr(v.qtde, 4, { stripTrailingZeros: true })}
+                            disabled
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>
                             {detalhe.separacao?.em
                               ? `Em ${formatDateTime(detalhe.separacao.em)}`
                               : 'Separado'}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {separada.map((v) => (
-                          <tr key={v.lote_id}>
-                            <td>{v.codigo ?? '—'}</td>
-                            <td>{v.endereco ?? '—'}</td>
-                            <td>
-                              {formatDecimalBr(v.qtde, 4, { stripTrailingZeros: true })}{' '}
-                              {v.unidade ?? detalhe.unidade}
-                            </td>
-                            <td>Ok</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : null}
-                </div>
-              ) : detalhe.pode_confirmar ? (
-                <p className="op-kit-lista__vols-vazio" style={{ margin: '0.65rem 0 0 2.35rem' }}>
-                  Este produto não controla volume. Confirme a quantidade pedida no saldo.
-                </p>
-              ) : null}
-            </li>
-          </ol>
+                          </label>
+                          <input value="Ok" disabled />
+                        </div>
+                      </div>
+                    ))
+                  : null}
 
-          {detalhe.pode_confirmar ? (
-            <div className="op-kit__cta">
-              {podeEscrever ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={
-                    busy ||
-                    (Boolean(detalhe.produto?.controla_lote) && marcados.length === 0)
-                  }
-                  onClick={() => void confirmar()}
-                >
-                  Confirmar: separado para revenda
-                </button>
-              ) : (
-                <p className="muted">Quem confirma a separação é quem escreve no estoque.</p>
-              )}
-              <p className="muted" style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                Confirmar não baixa saldo — a saída oficial é a NF-e.
-              </p>
+                {!detalhe.produto?.controla_lote && detalhe.pode_confirmar ? (
+                  <div className="form-grid faixa-row">
+                    <div className="form-group">
+                      <label>Quantidade ({detalhe.unidade})</label>
+                      <input value={qtdePedida} disabled />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
-          ) : (
-            <p className="muted" style={{ padding: '0 1.15rem 1.2rem' }}>
-              Esta linha já foi separada.
-            </p>
-          )}
-        </section>
-      ) : null}
 
-      {overlayAberto && detalhe ? (
-        <SeparacaoVolumesOverlay
-          titulo={nome ?? 'Produto'}
-          pedidoQtde={qtdePedida}
-          unidade={detalhe.unidade}
-          volumes={catalogo}
-          marcas={marcas}
-          busy={busy}
-          onLerQr={podeEscrever ? lerVolume : undefined}
-          onChangeMarcas={setMarcas}
-          onClose={() => setOverlayAberto(false)}
-        />
+            {detalhe.pode_confirmar ? (
+              <div className="btn-row">
+                {podeEscrever ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={
+                      busy || (Boolean(detalhe.produto?.controla_lote) && marcados.length === 0)
+                    }
+                    onClick={() => void confirmar()}
+                  >
+                    Confirmar: separado para revenda
+                  </button>
+                ) : (
+                  <p className="muted">Quem confirma a separação é quem escreve no estoque.</p>
+                )}
+                <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+                  Confirmar não baixa saldo — a saída oficial é a NF-e.
+                </p>
+              </div>
+            ) : (
+              <p className="muted">Esta linha já foi separada.</p>
+            )}
+          </section>
+        </>
       ) : null}
     </div>
   );

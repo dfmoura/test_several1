@@ -40,7 +40,7 @@ Duas pessoas, duas telas — o motor é o mesmo.
 
 | Porta | Quem (RBAC) | Mostra | Não mostra |
 |-------|-------------|--------|------------|
-| OP | PCP (`producao.ler`) | Ficha da etiqueta + **cesta**. Overlay só mostra. | Confirmar saída, receber na máquina |
+| OP | PCP (`producao.ler`); confirmar exige `estoque.escrever` | Cabeçalho da ficha do item + insumos do kit no formulário de faixa. | Busca no estoque, montar kit do catálogo, receber na máquina |
 | Estoque · **A buscar** | Almoxarifado (`estoque.ler`) | O que **sai da prateleira**. Marca volume e **Confirmar = saiu**. Em **Já saiu**: **Devolver à prateleira** (mesmo MOV de sobra). | Receber na máquina, etiquetas boas |
 | Produção · **Na máquina** | Chão (`producao.ler`) | O que **já saiu**: conferir, **Confirmar: recebi**, produzir, devolver sobra na conclusão | Marcar prateleira, baixa de estoque |
 
@@ -54,7 +54,7 @@ Estados do kit: **falta pegar · já saiu · sem estoque**.
 
 | Passo | Ação |
 |-------|------|
-| OP | Só lê o kit + CTA **Confirmar saída no estoque**. Sem escolher volume na OP. |
+| OP | Cabeçalho da ficha do item (formulário + modelos e valores) e, em seguida, os insumos do kit. Acrescenta ou remove volume/unidade **já conhecidos** do estoque, no formulário de faixa do orçamento. Sem busca. Quem tem `estoque.escrever` confirma a saída no mesmo `POST …/confirmar`; quem só lê segue para A buscar. |
 | Estoque · A buscar | Por linha: **Saiu** (FEFO/qtde). Rodapé: **Confirmar saída sugerida (N)** → `POST …/confirmar-pendentes`. |
 | Overlay | Só **Outro volume** (motivo) ou **Devolver**. Não é o caminho feliz. |
 

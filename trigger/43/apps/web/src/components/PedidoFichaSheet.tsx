@@ -432,6 +432,52 @@ function PedidoItensTabelaContrato({ pedido }: { pedido: Pedido }) {
   );
 }
 
+/**
+ * Recorte da ficha do pedido para a ordem e para a separação:
+ * formulário do item + modelos (ou a linha de revenda) com os valores travados.
+ */
+export function PedidoItemFichaCabecalho({
+  pedido,
+  item,
+}: {
+  pedido: Pedido;
+  item: PedidoItem;
+}) {
+  if (item.necessidade === 'REVENDA') {
+    return (
+      <div className="op-pedido-cabecalho ficha-sheet-ped">
+        <PedidoTabelaSimples
+          pedido={pedido}
+          itens={[item]}
+          sku
+          descricaoLabel="Descrição"
+          valorLabel="Subtotal"
+          rodape="Total"
+        />
+      </div>
+    );
+  }
+  if (item.necessidade === 'SERVICO') {
+    return (
+      <div className="op-pedido-cabecalho ficha-sheet-ped">
+        <PedidoTabelaSimples
+          pedido={pedido}
+          itens={[item]}
+          sku={false}
+          descricaoLabel="Descrição"
+          valorLabel="Total"
+          rodape="Total"
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="op-pedido-cabecalho ficha-sheet-ped">
+      <PedidoTabelaEtiquetas pedido={pedido} itens={[item]} rodape="Total" />
+    </div>
+  );
+}
+
 export function PedidoFichaSheet({
   pedido: p,
   empresaNome,
