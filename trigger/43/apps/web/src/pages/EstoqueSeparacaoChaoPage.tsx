@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
+import { SeparacaoVolumesOverlay } from '../components/SeparacaoVolumesOverlay';
 import {
   ApiError,
   api,
@@ -37,7 +38,7 @@ export function EstoqueSeparacaoChaoPage() {
   const [detalhe, setDetalhe] = useState<EstoqueSeparacaoDetalhe | null>(null);
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [marcas, setMarcas] = useState<VolumePickMarca[]>([]);
-  const [qr, setQr] = useState('');
+  const [overlayAberto, setOverlayAberto] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -172,24 +173,6 @@ export function EstoqueSeparacaoChaoPage() {
     : '';
   const itemPedido =
     pedido?.itens.find((i) => i.id === detalhe?.pedido_item_id) ?? null;
-  const proximoVolume = catalogo.find(
-    (v) => v.lote_id && !marcas.some((m) => m.lote_id === v.lote_id && m.marcado),
-  );
-
-  const acrescentarVolume = () => {
-    if (!proximoVolume?.lote_id) return;
-    marcarVolume(proximoVolume.lote_id);
-  };
-
-  const onQrKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || !podeEscrever) return;
-    const payload = qr.trim();
-    if (!payload) return;
-    e.preventDefault();
-    void lerVolume(payload)
-      .then(() => setQr(''))
-      .catch(() => undefined);
-  };
 
   return (
     <div className="page">
@@ -235,26 +218,13 @@ export function EstoqueSeparacaoChaoPage() {
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
-                      disabled={busy || !proximoVolume}
-                      onClick={acrescentarVolume}
+                      disabled={busy}
+                      onClick={() => setOverlayAberto(true)}
                     >
                       + volume
                     </button>
                   ) : null}
                 </div>
-
-                {detalhe.pode_confirmar && detalhe.produto?.controla_lote && podeEscrever ? (
-                  <div className="form-group" style={{ maxWidth: 320, marginBottom: '0.75rem' }}>
-                    <label>Ler QR do volume</label>
-                    <input
-                      value={qr}
-                      disabled={busy}
-                      placeholder="VOL:…"
-                      onChange={(e) => setQr(e.target.value)}
-                      onKeyDown={onQrKey}
-                    />
-                  </div>
-                ) : null}
 
                 {detalhe.produto?.controla_lote && detalhe.pode_confirmar ? (
                   marcados.length === 0 ? (
@@ -390,6 +360,22 @@ export function EstoqueSeparacaoChaoPage() {
               <p className="muted">Esta linha já foi separada.</p>
             )}
           </section>
+
+          {overlayAberto ? (
+            <SeparacaoVolumesOverlay
+              titulo={nome ?? 'Produto'}
+              pedidoQtde={qtdePedida}
+              unidade={detalhe.unidade}
+              volumes={catalogo}
+              marcas={marcas}
+              busy={busy}
+              modo="snapshot"
+              hint="Marque um ou mais volumes. A confirmação da separação fica nesta tela."
+              onLerQr={podeEscrever ? lerVolume : undefined}
+              onChangeMarcas={setMarcas}
+              onClose={() => setOverlayAberto(false)}
+            />
+          ) : null}
         </>
       ) : null}
     </div>

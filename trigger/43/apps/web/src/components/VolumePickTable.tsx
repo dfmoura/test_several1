@@ -8,6 +8,8 @@ type Props = {
   busy?: boolean;
   /** `snapshot` = revenda (sem MOV); `debita` = produção (SAIDA_PRODUCAO). */
   modo?: VolumePickModo;
+  /** OP: a lista pode trazer mais de um produto. Revenda fica no SKU da linha. */
+  mostrarProduto?: boolean;
   onToggle: (loteId: number, marcado: boolean) => void;
   onQtde: (loteId: number, qtde: string) => void;
 };
@@ -21,6 +23,7 @@ export function VolumePickTable({
   volDo,
   busy = false,
   modo = 'snapshot',
+  mostrarProduto = false,
   onToggle,
   onQtde,
 }: Props) {
@@ -35,6 +38,7 @@ export function VolumePickTable({
           <tr>
             <th>Levar</th>
             <th>Local</th>
+            {mostrarProduto ? <th>Produto</th> : null}
             <th>Volume</th>
             <th>No volume</th>
             <th>Quantidade</th>
@@ -60,6 +64,16 @@ export function VolumePickTable({
                   ) : null}
                 </td>
                 <td>{vol?.endereco?.codigo ?? '—'}</td>
+                {mostrarProduto ? (
+                  <td>
+                    {vol?.sku ?? '—'}
+                    {vol?.descricao ? (
+                      <div className="muted" style={{ fontSize: '0.85em' }}>
+                        {vol.descricao}
+                      </div>
+                    ) : null}
+                  </td>
+                ) : null}
                 <td>{vol?.codigo ?? '—'}</td>
                 <td>
                   {vol?.qtde_volume != null

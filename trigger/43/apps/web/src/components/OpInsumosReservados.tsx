@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
+import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
+import { ApiError, api, type OpRetiradaVolume, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
+import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
 import {
   formatLotePick,
   formatVolumeDimensao,
@@ -10,6 +12,7 @@ import {
   qtdeVolumeTotal,
   unidadeExibicao,
   volumesParaEscolha,
+  type VolumePickMarca,
 } from '../lib/producaoPick';
 import {
   hrefApontamentoProducao,
@@ -117,6 +120,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
   const [motivos, setMotivos] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [overlayMaterialId, setOverlayMaterialId] = useState<number | null>(null);
+  const [catalogoOverlay, setCatalogoOverlay] = useState<OpRetiradaVolume[]>([]);
+  const [conhecidos, setConhecidos] = useState<Record<number, OpRetiradaVolume>>({});
+  const [overlayBusy, setOverlayBusy] = useState(false);
+  const overlayTicket = useRef(0);
 
   if (epoch !== assinatura) {
     const next = picksDe(materiais);
@@ -130,18 +138,133 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
   const atual = opPassoAtual(op);
   const pendentes = (materiais ?? []).filter((m) => opKitEstado(m) === 'falta_pegar');
 
-  const volDo = (m: OrdemProducaoMaterial, loteId: number) =>
-    volumesParaEscolha(m).find((v) => v.lote_id === loteId);
+  const lembrar = (lista: OpRetiradaVolume[]) => {
+    setConhecidos((prev) => {
+      let mudou = false;
+      const next = { ...prev };
+      for (const v of lista) {
+        if (!v.lote_id || next[v.lote_id] === v) continue;
+        next[v.lote_id] = v;
+        mudou = true;
+      }
+      return mudou ? next : prev;
+    });
+  };
 
-  const acrescentar = (m: OrdemProducaoMaterial) => {
-    const usados = new Set((volumes[m.id] ?? []).map((v) => v.lote_id));
-    const prox = volumesParaEscolha(m).find((v) => v.lote_id && !usados.has(v.lote_id));
-    if (!prox?.lote_id) return;
-    const qtde = String(qtdeVolumeTotal(prox) || parseQtdeDigitada(prox.qtde_retirar));
+  const volDo = (m: OrdemProducaoMaterial, loteId: number) =>
+    conhecidos[loteId] ?? volumesParaEscolha(m).find((v) => v.lote_id === loteId);
+
+  const juntarCatalogo = (base: OpRetiradaVolume[], extra: OpRetiradaVolume[]) => {
+    const seen = new Set<number>();
+    const out: OpRetiradaVolume[] = [];
+    for (const v of [...base, ...extra]) {
+      if (!v.lote_id || seen.has(v.lote_id)) continue;
+      seen.add(v.lote_id);
+      out.push(v);
+    }
+    return out;
+  };
+
+  const abrirOverlay = (m: OrdemProducaoMaterial) => {
+    const ticket = overlayTicket.current + 1;
+    overlayTicket.current = ticket;
+    const base = volumesParaEscolha(m);
+    lembrar(base);
+    setCatalogoOverlay(base);
+    setOverlayMaterialId(m.id);
+    setOverlayBusy(true);
+    void api
+      .get<{ data: OpRetiradaVolume[] }>(
+        `/ordens-producao/${op.id}/volumes-escolha?material_id=${m.id}`,
+      )
+      .then((res) => {
+        if (overlayTicket.current !== ticket) return;
+        const lista = juntarCatalogo(base, res.data ?? []);
+        lembrar(lista);
+        setCatalogoOverlay(lista);
+      })
+      .catch(() => {
+        /* o preview do kit já abre a lista */
+      })
+      .finally(() => {
+        if (overlayTicket.current === ticket) setOverlayBusy(false);
+      });
+  };
+
+  const aplicarMarcas = (materialId: number, marcas: VolumePickMarca[]) => {
     setVolumes((prev) => ({
       ...prev,
-      [m.id]: [...(prev[m.id] ?? []), { lote_id: prox.lote_id as number, qtde }],
+      [materialId]: marcas
+        .filter((marca) => marca.marcado && parseQtdeDigitada(marca.qtde) > 0)
+        .map((marca) => ({ lote_id: marca.lote_id, qtde: marca.qtde })),
     }));
+  };
+
+  const marcasDoOverlay = (materialId: number): VolumePickMarca[] => {
+    const escolhidos = new Map((volumes[materialId] ?? []).map((v) => [v.lote_id, v.qtde]));
+    const vistos = new Set<number>();
+    const out: VolumePickMarca[] = [];
+    for (const v of catalogoOverlay) {
+      if (!v.lote_id || vistos.has(v.lote_id)) continue;
+      vistos.add(v.lote_id);
+      const qtdeEscolhida = escolhidos.get(v.lote_id);
+      out.push({
+        lote_id: v.lote_id,
+        qtde:
+          qtdeEscolhida ??
+          String(qtdeVolumeTotal(v) || parseQtdeDigitada(v.qtde_retirar) || ''),
+        marcado: qtdeEscolhida != null,
+      });
+    }
+    return out;
+  };
+
+  const lerQrOverlay = async (payload: string) => {
+    const material = (materiais ?? []).find((m) => m.id === overlayMaterialId);
+    if (!material) return;
+    try {
+      const res = await api.get<{ data: EstoqueQrVolumeInfo }>(
+        `/estoque/retiradas/${op.id}/volume?payload=${encodeURIComponent(payload)}`,
+      );
+      const vol = res.data;
+      if (material.produto?.id && vol.produto?.id && vol.produto.id !== material.produto.id) {
+        throw new Error('Volume de outro produto.');
+      }
+      const linha: OpRetiradaVolume = {
+        lote_id: vol.lote_id,
+        codigo: vol.codigo,
+        nf_numero: vol.nf_numero,
+        qtde_volume: vol.qtde,
+        qtde_retirar: vol.qtde,
+        unidade: vol.unidade,
+        data_entrada: vol.data_entrada,
+        data_validade: null,
+        status: null,
+        status_label: null,
+        largura_mm: null,
+        comprimento_m: null,
+        endereco: vol.endereco,
+        sugerido: false,
+        motivo: 'ESTOQUE',
+        ordem_politica: null,
+        sku: vol.produto?.codigo ?? null,
+        produto_id: vol.produto?.id ?? null,
+        descricao: vol.produto?.descricao_fiscal ?? null,
+      };
+      lembrar([linha]);
+      setCatalogoOverlay((prev) => juntarCatalogo(prev, [linha]));
+      setVolumes((prev) => {
+        const atuais = prev[material.id] ?? [];
+        if (atuais.some((v) => v.lote_id === vol.lote_id)) return prev;
+        return {
+          ...prev,
+          [material.id]: [...atuais, { lote_id: vol.lote_id, qtde: vol.qtde }],
+        };
+      });
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw e instanceof Error ? e : new Error('Volume não reconhecido.');
+    }
   };
 
   const ressincronizar = async () => {
@@ -278,10 +401,6 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                 const porVolume = modoRetirada(m) === 'volume';
                 const podeEditar = Boolean(aberta && canWrite && estado === 'falta_pegar');
                 const escolhidos = volumes[m.id] ?? [];
-                const usados = new Set(escolhidos.map((v) => v.lote_id));
-                const temProximo = volumesParaEscolha(m).some(
-                  (v) => v.lote_id && !usados.has(v.lote_id),
-                );
                 const diverge = porVolume && divergeDoSugerido(escolhidos, volumesIniciais(m));
                 const baixados =
                   m.retirada?.volumes_a_devolver?.length
@@ -307,8 +426,8 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          disabled={busy || !temProximo}
-                          onClick={() => acrescentar(m)}
+                          disabled={busy}
+                          onClick={() => abrirOverlay(m)}
                         >
                           + volume
                         </button>
@@ -330,7 +449,16 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                             <div key={linha.lote_id} className="form-grid faixa-row">
                               <div className="form-group">
                                 <label>Volume</label>
-                                <input value={vol ? formatLotePick(vol) : `Lote ${linha.lote_id}`} disabled />
+                                <input
+                                  value={
+                                    vol
+                                      ? `${formatLotePick(vol)}${
+                                          vol.sku && vol.sku !== m.produto?.codigo ? ` · ${vol.sku}` : ''
+                                        }`
+                                      : `Lote ${linha.lote_id}`
+                                  }
+                                  disabled
+                                />
                               </div>
                               <div className="form-group">
                                 <label>Local</label>
@@ -490,6 +618,38 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
           </Link>
         </div>
       ) : null}
+
+      {overlayMaterialId != null
+        ? (() => {
+            const material = (materiais ?? []).find((m) => m.id === overlayMaterialId);
+            if (!material) return null;
+            const un = unidadeExibicao(material.unidade || material.retirada?.unidade);
+            const pedidoQtde = String(qtdeLinhaPick(material) || '');
+            return (
+              <SeparacaoVolumesOverlay
+                titulo={opKitNome(material)}
+                pedidoQtde={pedidoQtde}
+                unidade={un}
+                volumes={catalogoOverlay}
+                marcas={marcasDoOverlay(material.id)}
+                busy={busy}
+                modo="debita"
+                mostrarProduto
+                hint={
+                  overlayBusy
+                    ? 'Carregando o estoque. Marque um ou mais volumes. A confirmação da saída fica na ordem.'
+                    : 'Marque um ou mais volumes. A confirmação da saída fica na ordem.'
+                }
+                onLerQr={canWrite ? lerQrOverlay : undefined}
+                onChangeMarcas={(next) => aplicarMarcas(material.id, next)}
+                onClose={() => {
+                  overlayTicket.current += 1;
+                  setOverlayMaterialId(null);
+                }}
+              />
+            );
+          })()
+        : null}
     </section>
   );
 }

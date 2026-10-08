@@ -11,6 +11,7 @@ import type { OpRetiradaVolume } from '../lib/api';
 import {
   ordenarMarcasPorLocal,
   type VolumePickMarca,
+  type VolumePickModo,
 } from '../lib/producaoPick';
 import { parseQtdeDigitada } from '../lib/producaoUi';
 
@@ -23,6 +24,10 @@ type Props = {
   busy?: boolean;
   /** QR opcional — resolve no pai (porta REV / OP). */
   onLerQr?: (payload: string) => Promise<void>;
+  /** Texto do cabeçalho. A confirmação permanece na tela de trás. */
+  hint?: string;
+  modo?: VolumePickModo;
+  mostrarProduto?: boolean;
   onChangeMarcas: (next: VolumePickMarca[]) => void;
   onClose: () => void;
 };
@@ -39,6 +44,9 @@ export function SeparacaoVolumesOverlay({
   marcas,
   busy = false,
   onLerQr,
+  hint = 'Marque um ou mais volumes. A confirmação fica na tela anterior.',
+  modo = 'snapshot',
+  mostrarProduto = false,
   onChangeMarcas,
   onClose,
 }: Props) {
@@ -64,7 +72,10 @@ export function SeparacaoVolumesOverlay({
         qtde: String(Number(v.qtde_volume ?? v.qtde_retirar) || ''),
         marcado: false,
       }));
-    return ordenarMarcasPorLocal([...base, ...faltando], (id) => volDo(id)?.endereco?.codigo);
+    return ordenarMarcasPorLocal(
+      [...base, ...faltando],
+      (id) => volumes.find((v) => v.lote_id === id)?.endereco?.codigo,
+    );
   }, [volumes, marcas, filtro]);
 
   const nMarcados = marcas.filter((m) => m.marcado && parseQtdeDigitada(m.qtde) > 0).length;
@@ -126,7 +137,14 @@ export function SeparacaoVolumesOverlay({
       return;
     }
     setErrLocal(null);
-    void onLerQr(p).then(() => setQr(''));
+    void onLerQr(p)
+      .then(() => {
+        setQr('');
+        setErrLocal(null);
+      })
+      .catch((e: unknown) => {
+        setErrLocal(e instanceof Error ? e.message : 'Volume não reconhecido.');
+      });
   };
 
   return (
@@ -137,9 +155,7 @@ export function SeparacaoVolumesOverlay({
           <div className="op-escolha__head-main">
             <p className="op-escolha__tipo">Volumes</p>
             <h2 id="sep-vol-title">{titulo}</h2>
-            <p className="muted op-escolha__hint">
-              Marque os volumes. Confirmar a separação fica na tela anterior.
-            </p>
+            <p className="muted op-escolha__hint">{hint}</p>
           </div>
           <div className="op-escolha__head-side">
             <div className="op-escolha__precisa">
@@ -186,9 +202,15 @@ export function SeparacaoVolumesOverlay({
             marcas={marcasVisiveis}
             volDo={volDo}
             busy={busy}
-            modo="snapshot"
+            modo={modo}
+            mostrarProduto={mostrarProduto}
             onToggle={(loteId, marcado) => upsertMarca(loteId, { marcado })}
-            onQtde={(loteId, qtde) => upsertMarca(loteId, { qtde, marcado: true })}
+            onQtde={(loteId, qtde) => {
+              const max = parseQtdeDigitada(volDo(loteId)?.qtde_volume);
+              const n = parseQtdeDigitada(qtde);
+              const limitada = max > 0 && n > max ? String(max) : qtde;
+              upsertMarca(loteId, { qtde: limitada, marcado: true });
+            }}
           />
         </div>
 
