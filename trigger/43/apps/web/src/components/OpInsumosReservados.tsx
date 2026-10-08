@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { LocalSaldoCampo } from './LocalSaldoCampo';
 import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
@@ -122,17 +122,95 @@ function rotuloOpcao(o: OpInsumoOpcao): string {
   return desc || codigo || '—';
 }
 
-function CampoLeitura({ label, value, largo = false }: { label: string; value: string; largo?: boolean }) {
+type CelulaInsumo = {
+  key: string;
+  label: string;
+  title?: string;
+  num?: boolean;
+  /** Largura da coluna. O produto fica sem token e ocupa o resto do cartão. */
+  w?: string;
+  node: ReactNode;
+};
+
+function classeCelula(c: CelulaInsumo): string | undefined {
+  const partes = [c.num ? 'num' : '', c.key === 'produto' ? 'op-insumo-produto' : ''].filter(Boolean);
+  return partes.length > 0 ? partes.join(' ') : undefined;
+}
+
+/** Uma linha por registro, na largura do cartão. O texto que não cabe fica no tooltip. */
+function TabelaRegistro({ linhas }: { linhas: { id: string | number; cols: CelulaInsumo[] }[] }) {
+  const cab = linhas[0]?.cols ?? [];
+  if (cab.length === 0) return null;
   return (
-    <div className={largo ? 'form-group span-2' : 'form-group'}>
-      <label>{label}</label>
-      <input value={value || '—'} disabled title={value || undefined} />
+    <div className="table-wrap op-insumo-linha">
+      <table className="data-table">
+        <colgroup>
+          {cab.map((c) => (
+            <col key={c.key} className={c.w ?? (c.key === 'produto' ? undefined : `op-insumo-w--${c.key}`)} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr>
+            {cab.map((c) => (
+              <th key={c.key} className={classeCelula(c)} title={c.title}>
+                {c.label || <span className="sr-only">Ação</span>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((linha) => (
+            <tr key={linha.id}>
+              {linha.cols.map((c) => (
+                <td key={c.key} className={classeCelula(c)}>
+                  {typeof c.node === 'string' ? <span title={c.node}>{c.node}</span> : c.node}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
+function colunasVolume(args: {
+  produto: string;
+  volume: string;
+  local: string;
+  polegada: string | null;
+  medida: string | null;
+  m2: string | null;
+  metros: string | null;
+  qtdeLabel: string;
+  qtde: ReactNode;
+  acao?: ReactNode;
+}): CelulaInsumo[] {
+  const cols: CelulaInsumo[] = [
+    {
+      key: 'produto',
+      label: 'Produto',
+      node: <span title={args.produto}>{args.produto}</span>,
+    },
+    { key: 'volume', label: 'Volume', node: args.volume },
+    { key: 'local', label: 'Local', node: args.local },
+  ];
+  if (args.polegada) cols.push({ key: 'polegada', label: 'Polegada', node: args.polegada });
+  if (args.medida != null) cols.push({ key: 'medida', label: 'Medida', node: args.medida });
+  if (args.m2 != null) {
+    cols.push({ key: 'm2', label: 'm²', title: 'Metro quadrado', num: true, node: args.m2 });
+  }
+  if (args.metros != null) {
+    cols.push({ key: 'ml', label: 'm', title: 'Metro linear', num: true, node: args.metros });
+  }
+  cols.push({ key: 'qtde', label: 'Qtde', title: args.qtdeLabel, num: true, node: args.qtde });
+  if (args.acao) cols.push({ key: 'acao', label: '', node: args.acao });
+  return cols;
+}
+
 /**
  * Insumos já apontados no kit da ordem, grupo a grupo.
+ * Cada item escolhido fica numa linha, dentro da largura do cartão.
  * Bobina: produto, m² e metro linear em cada volume.
  * Tubete e caixa sem lote: escolha entre os SKUs da polegada ou da medida aprovada.
  */
@@ -498,6 +576,17 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                     ? m.retirada.volumes_a_devolver
                     : (m.retirada?.volumes_baixados ?? []);
                 const un = unidadeExibicao(m.unidade || m.retirada?.unidade);
+                const metragem = insumoComMetragem(m);
+                const polegada = rotuloPolegada(
+                  m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
+                );
+                const ehTubete = (m.componente ?? '').toUpperCase() === 'TUBETE';
+                const qtdeLabel = `Quantidade (${un})`;
+                const mostrarMedidaPendentes =
+                  metragem ||
+                  escolhidos.some((linha) => Boolean(formatVolumeDimensao(volDo(m, linha.lote_id))));
+                const mostrarMedidaBaixados =
+                  metragem || baixados.some((vol) => Boolean(formatVolumeDimensao(vol)));
 
                 return (
                   <div key={m.id} className="orc-faixas-bloco">
@@ -523,9 +612,10 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                     {porVolume && estado !== 'ja_saiu' ? (
                       escolhidos.length === 0 ? (
                         <>
-                          <div className="form-grid faixa-row">
-                            <CampoLeitura label="Produto" value={nomeProdutoLinha(m.produto)} largo />
-                          </div>
+                          <p className="op-insumo-previsto">
+                            <span>Produto</span>
+                            <strong>{nomeProdutoLinha(m.produto)}</strong>
+                          </p>
                           <p className="form-hint" style={{ marginTop: 0 }}>
                             {estado === 'sem_estoque'
                               ? 'Sem saldo neste item.'
@@ -533,67 +623,45 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                           </p>
                         </>
                       ) : (
-                        escolhidos.map((linha) => {
-                          const vol = volDo(m, linha.lote_id);
-                          const max = vol ? qtdeVolumeTotal(vol) : 0;
-                          const metragem = insumoComMetragem(m);
-                          const polegada = rotuloPolegada(
-                            m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
-                          );
-                          const leitura = vol
-                            ? formatLeituraBobina(vol, linha.qtde, larguraMmDoMaterial(m))
-                            : null;
-                          return (
-                            <div key={linha.lote_id} className="form-grid faixa-row">
-                              <CampoLeitura
-                                label="Produto"
-                                value={rotuloProdutoVolume(vol, m.produto)}
-                                largo
-                              />
-                              <CampoLeitura
-                                label="Volume"
-                                value={vol ? formatLotePick(vol) : `Lote ${linha.lote_id}`}
-                              />
-                              <CampoLeitura label="Local" value={vol?.endereco?.codigo ?? '—'} />
-                              {(m.componente ?? '').toUpperCase() === 'TUBETE' && polegada ? (
-                                <CampoLeitura label="Polegada" value={polegada} />
-                              ) : null}
-                              {metragem ? (
-                                <CampoLeitura
-                                  label="Medida"
-                                  value={vol ? formatVolumeDimensao(vol) ?? '—' : '—'}
-                                />
-                              ) : vol && formatVolumeDimensao(vol) ? (
-                                <CampoLeitura label="Medida" value={formatVolumeDimensao(vol) ?? '—'} />
-                              ) : null}
-                              {metragem ? (
-                                <>
-                                  <CampoLeitura label="Metro quadrado" value={leitura?.m2 ?? '—'} />
-                                  <CampoLeitura label="Metro linear" value={leitura?.metros ?? '—'} />
-                                </>
-                              ) : null}
-                              <div className="form-group">
-                                <label>Quantidade ({un})</label>
-                                <input
-                                  inputMode="decimal"
-                                  disabled={!podeEditar || busy}
-                                  value={linha.qtde}
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    const n = parseQtdeDigitada(raw);
-                                    const qtde = max > 0 && n > max ? String(max) : raw;
-                                    setVolumes((prev) => ({
-                                      ...prev,
-                                      [m.id]: (prev[m.id] ?? []).map((v) =>
-                                        v.lote_id === linha.lote_id ? { ...v, qtde } : v,
-                                      ),
-                                    }));
-                                  }}
-                                />
-                              </div>
-                              {podeEditar ? (
-                                <div className="form-group faixa-remove">
-                                  <label>&nbsp;</label>
+                        <TabelaRegistro
+                          linhas={escolhidos.map((linha) => {
+                            const vol = volDo(m, linha.lote_id);
+                            const max = vol ? qtdeVolumeTotal(vol) : 0;
+                            const leitura = vol
+                              ? formatLeituraBobina(vol, linha.qtde, larguraMmDoMaterial(m))
+                              : null;
+                            const medidaVol = vol ? formatVolumeDimensao(vol) : null;
+                            return {
+                              id: linha.lote_id,
+                              cols: colunasVolume({
+                                produto: rotuloProdutoVolume(vol, m.produto),
+                                volume: vol ? formatLotePick(vol) : `Lote ${linha.lote_id}`,
+                                local: vol?.endereco?.codigo ?? '—',
+                                polegada: ehTubete && polegada ? polegada : null,
+                                medida: mostrarMedidaPendentes ? medidaVol ?? '—' : null,
+                                m2: metragem ? leitura?.m2 ?? '—' : null,
+                                metros: metragem ? leitura?.metros ?? '—' : null,
+                                qtdeLabel,
+                                qtde: (
+                                  <input
+                                    inputMode="decimal"
+                                    disabled={!podeEditar || busy}
+                                    value={linha.qtde}
+                                    aria-label={qtdeLabel}
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      const n = parseQtdeDigitada(raw);
+                                      const qtde = max > 0 && n > max ? String(max) : raw;
+                                      setVolumes((prev) => ({
+                                        ...prev,
+                                        [m.id]: (prev[m.id] ?? []).map((v) =>
+                                          v.lote_id === linha.lote_id ? { ...v, qtde } : v,
+                                        ),
+                                      }));
+                                    }}
+                                  />
+                                ),
+                                acao: podeEditar ? (
                                   <button
                                     type="button"
                                     className="btn btn-secondary btn-sm"
@@ -609,11 +677,11 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                                   >
                                     Remover
                                   </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })
+                                ) : undefined,
+                              }),
+                            };
+                          })}
+                        />
                       )
                     ) : null}
 
@@ -623,139 +691,143 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                           Já saiu da prateleira.
                         </p>
                       ) : (
-                        baixados.map((vol) => {
-                          const qtde = String(parseQtdeDigitada(vol.qtde_retirar || vol.qtde_volume));
-                          const metragem = insumoComMetragem(m);
-                          const polegada = rotuloPolegada(
-                            m.origem_texto ?? m.produto?.descricao_comercial ?? m.produto?.descricao_fiscal,
-                          );
-                          const leitura = metragem
-                            ? formatLeituraBobina(vol, qtde, larguraMmDoMaterial(m))
-                            : null;
-                          return (
-                            <div key={vol.lote_id ?? vol.codigo} className="form-grid faixa-row">
-                              <CampoLeitura
-                                label="Produto"
-                                value={rotuloProdutoVolume(vol, m.produto)}
-                                largo
-                              />
-                              <CampoLeitura label="Volume" value={formatLotePick(vol)} />
-                              <CampoLeitura label="Local" value={vol.endereco?.codigo ?? '—'} />
-                              {(m.componente ?? '').toUpperCase() === 'TUBETE' && polegada ? (
-                                <CampoLeitura label="Polegada" value={polegada} />
-                              ) : null}
-                              {metragem ? (
-                                <CampoLeitura label="Medida" value={formatVolumeDimensao(vol) ?? '—'} />
-                              ) : formatVolumeDimensao(vol) ? (
-                                <CampoLeitura label="Medida" value={formatVolumeDimensao(vol) ?? '—'} />
-                              ) : null}
-                              {metragem ? (
-                                <>
-                                  <CampoLeitura label="Metro quadrado" value={leitura?.m2 ?? '—'} />
-                                  <CampoLeitura label="Metro linear" value={leitura?.metros ?? '—'} />
-                                </>
-                              ) : null}
-                              <CampoLeitura label={`Quantidade (${un})`} value={qtde} />
-                            </div>
-                          );
-                        })
+                        <TabelaRegistro
+                          linhas={baixados.map((vol) => {
+                            const qtde = String(parseQtdeDigitada(vol.qtde_retirar || vol.qtde_volume));
+                            const leitura = metragem
+                              ? formatLeituraBobina(vol, qtde, larguraMmDoMaterial(m))
+                              : null;
+                            const medidaVol = formatVolumeDimensao(vol);
+                            return {
+                              id: vol.lote_id ?? vol.codigo ?? qtde,
+                              cols: colunasVolume({
+                                produto: rotuloProdutoVolume(vol, m.produto),
+                                volume: formatLotePick(vol),
+                                local: vol.endereco?.codigo ?? '—',
+                                polegada: ehTubete && polegada ? polegada : null,
+                                medida: mostrarMedidaBaixados ? medidaVol ?? '—' : null,
+                                m2: metragem ? leitura?.m2 ?? '—' : null,
+                                metros: metragem ? leitura?.metros ?? '—' : null,
+                                qtdeLabel,
+                                qtde,
+                              }),
+                            };
+                          })}
+                        />
                       )
                     ) : null}
 
                     {!porVolume ? (
-                      <div className="form-grid faixa-row">
-                        <div className="form-group span-2">
-                          <label>Produto</label>
-                          {podeTrocar ? (
-                            <select
-                              value={String(produtoId)}
-                              disabled={busy}
-                              onChange={(e) => {
-                                const id = Number(e.target.value);
-                                const prox = opcoes.find((o) => o.produto_id === id);
-                                const teto = parseQtdeDigitada(prox?.qtde_disponivel);
-                                setProdutos((prev) => ({ ...prev, [m.id]: id }));
-                                setUnidades((prev) => {
-                                  const atual = parseQtdeDigitada(prev[m.id] ?? '');
-                                  if (teto > 0 && atual > teto) {
-                                    return { ...prev, [m.id]: String(teto) };
-                                  }
-                                  return prev;
-                                });
-                              }}
-                            >
-                              {opcoes.map((o) => (
-                                <option key={o.produto_id} value={o.produto_id}>
-                                  {rotuloOpcao(o)}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              value={
-                                opcao
-                                  ? rotuloOpcao(opcao)
-                                  : nomeProdutoLinha(m.produto)
-                              }
-                              disabled
-                            />
-                          )}
-                        </div>
-                        {opcao?.detalhe ? (
-                          <CampoLeitura
-                            label={(m.componente ?? '').toUpperCase() === 'TUBETE' ? 'Polegada' : 'Medida'}
-                            value={opcao.detalhe}
-                          />
-                        ) : null}
-                        {!m.produto?.controla_lote && (opcao || m.produto?.id) ? (
-                          <div className="form-group">
-                            <label>Local</label>
-                            {aberta && canWrite && produtoId > 0 ? (
-                              <LocalSaldoCampo
-                                produtoId={produtoId}
-                                local={opcao?.local ?? m.local}
-                                disabled={busy}
-                                onSaved={() => void ressincronizar()}
-                              />
-                            ) : (
-                              <input
-                                value={
-                                  opcao?.local?.nome?.trim() ||
-                                  opcao?.local?.codigo ||
-                                  m.local?.nome?.trim() ||
-                                  m.local?.codigo ||
-                                  'Sem local'
-                                }
-                                disabled
-                              />
-                            )}
-                          </div>
-                        ) : null}
-                        {opcoes.length > 0 ? (
-                          <CampoLeitura
-                            label="Em estoque"
-                            value={saldoOpcao > 0 ? formatQtdePick(saldoOpcao, un) : 'Sem saldo'}
-                          />
-                        ) : null}
-                        <div className="form-group">
-                          <label>Quantidade ({un})</label>
-                          <input
-                            inputMode="decimal"
-                            disabled={estado === 'ja_saiu' || !podeEditarQtde || busy}
-                            value={
-                              estado === 'ja_saiu'
-                                ? String(parseQtdeDigitada(m.qtde_requisitada))
-                                : (unidades[m.id] ?? '')
-                            }
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const n = parseQtdeDigitada(raw);
-                              const qtde = saldoOpcao > 0 && n > saldoOpcao ? String(saldoOpcao) : raw;
-                              setUnidades((prev) => ({ ...prev, [m.id]: qtde }));
-                            }}
-                          />
-                        </div>
-                      </div>
+                      <TabelaRegistro
+                        linhas={[
+                          {
+                            id: m.id,
+                            cols: [
+                              {
+                                key: 'produto',
+                                label: 'Produto',
+                                node: podeTrocar ? (
+                                  <select
+                                    value={String(produtoId)}
+                                    disabled={busy}
+                                    title={opcao ? rotuloOpcao(opcao) : nomeProdutoLinha(m.produto)}
+                                    onChange={(e) => {
+                                      const id = Number(e.target.value);
+                                      const prox = opcoes.find((o) => o.produto_id === id);
+                                      const teto = parseQtdeDigitada(prox?.qtde_disponivel);
+                                      setProdutos((prev) => ({ ...prev, [m.id]: id }));
+                                      setUnidades((prev) => {
+                                        const atual = parseQtdeDigitada(prev[m.id] ?? '');
+                                        if (teto > 0 && atual > teto) {
+                                          return { ...prev, [m.id]: String(teto) };
+                                        }
+                                        return prev;
+                                      });
+                                    }}
+                                  >
+                                    {opcoes.map((o) => (
+                                      <option key={o.produto_id} value={o.produto_id}>
+                                        {rotuloOpcao(o)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span title={opcao ? rotuloOpcao(opcao) : nomeProdutoLinha(m.produto)}>
+                                    {opcao ? rotuloOpcao(opcao) : nomeProdutoLinha(m.produto)}
+                                  </span>
+                                ),
+                              },
+                              ...(opcao?.detalhe
+                                ? [
+                                    {
+                                      key: 'detalhe',
+                                      label: ehTubete ? 'Polegada' : 'Medida',
+                                      node: opcao.detalhe,
+                                    },
+                                  ]
+                                : []),
+                              ...(!m.produto?.controla_lote && (opcao || m.produto?.id)
+                                ? [
+                                    {
+                                      key: 'local',
+                                      label: 'Local',
+                                      w: aberta && canWrite && produtoId > 0 ? 'op-insumo-w--lugar' : undefined,
+                                      node:
+                                        aberta && canWrite && produtoId > 0 ? (
+                                          <LocalSaldoCampo
+                                            produtoId={produtoId}
+                                            local={opcao?.local ?? m.local}
+                                            disabled={busy}
+                                            onSaved={() => void ressincronizar()}
+                                          />
+                                        ) : (
+                                          opcao?.local?.nome?.trim() ||
+                                          opcao?.local?.codigo ||
+                                          m.local?.nome?.trim() ||
+                                          m.local?.codigo ||
+                                          'Sem local'
+                                        ),
+                                    },
+                                  ]
+                                : []),
+                              ...(opcoes.length > 0
+                                ? [
+                                    {
+                                      key: 'estoque',
+                                      label: 'Em estoque',
+                                      num: true,
+                                      node: saldoOpcao > 0 ? formatQtdePick(saldoOpcao, un) : 'Sem saldo',
+                                    },
+                                  ]
+                                : []),
+                              {
+                                key: 'qtde',
+                                label: 'Qtde',
+                                title: qtdeLabel,
+                                num: true,
+                                node:
+                                  estado === 'ja_saiu' ? (
+                                    String(parseQtdeDigitada(m.qtde_requisitada))
+                                  ) : (
+                                    <input
+                                      inputMode="decimal"
+                                      disabled={!podeEditarQtde || busy}
+                                      value={unidades[m.id] ?? ''}
+                                      aria-label={qtdeLabel}
+                                      onChange={(e) => {
+                                        const raw = e.target.value;
+                                        const n = parseQtdeDigitada(raw);
+                                        const qtde =
+                                          saldoOpcao > 0 && n > saldoOpcao ? String(saldoOpcao) : raw;
+                                        setUnidades((prev) => ({ ...prev, [m.id]: qtde }));
+                                      }}
+                                    />
+                                  ),
+                              },
+                            ],
+                          },
+                        ]}
+                      />
                     ) : null}
 
                     {podeEditar && diverge ? (
