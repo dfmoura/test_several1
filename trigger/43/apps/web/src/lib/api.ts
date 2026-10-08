@@ -3325,17 +3325,29 @@ export type OpRetiradaPreview = {
   volumes_a_devolver?: OpRetiradaVolume[];
 };
 
+export type OpInsumoOpcao = {
+  produto_id: number;
+  codigo: string;
+  descricao: string;
+  qtde_disponivel: string;
+  local?: { id: number; codigo: string; nome?: string | null } | null;
+  detalhe?: string | null;
+};
+
 export type OrdemProducaoMaterial = {
   id: number;
   produto: {
     id: number;
     codigo: string;
     descricao_fiscal: string;
+    descricao_comercial?: string | null;
     unidade_interna: string | null;
     familia: string;
     controla_lote?: boolean;
     largura_mm?: string | null;
   } | null;
+  /** Tubete da polegada aprovada, ou caixa da medida aprovada, com saldo. */
+  opcoes?: OpInsumoOpcao[];
   retirada?: OpRetiradaPreview;
   componente?: string | null;
   origem_texto?: string | null;

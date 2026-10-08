@@ -12953,6 +12953,56 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   padding: 0.85rem 1.15rem 1.2rem;
 }
 
+/* Título do item na ordem: a etiqueta e o status, sem repetir a ficha. */
+.op-item-detalhe {
+  margin-bottom: 1rem;
+}
+
+.op-item-detalhe .op-pedido-cabecalho.ficha-sheet-ped {
+  margin-bottom: 0;
+}
+
+.op-item-titulo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--navy, #1a3568) 9%, #fff);
+  border: 1px solid var(--border, #d5dde8);
+}
+
+.op-item-titulo--liga {
+  border-bottom: 0;
+}
+
+.op-item-titulo__kicker {
+  margin: 0 0 0.12rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #5b6b82;
+}
+
+.op-item-titulo h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--navy, #1a3568);
+}
+
+.op-item-titulo .status-pill {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 640px) {
+  .op-item-titulo {
+    flex-wrap: wrap;
+  }
+}
+
 /* Cabeçalho da ficha na tela da ordem / separação — mesmo formulário, leitura de tela. */
 .op-pedido-cabecalho.ficha-sheet-ped {
   margin-bottom: 1rem;
@@ -12985,6 +13035,11 @@ table.data-table.mapa-facas-table tbody tr.is-incomplete.is-selected td {
   flex-direction: column;
   gap: 0.85rem;
   margin-bottom: 1rem;
+}
+
+.op-insumos .form-group input,
+.op-insumos .form-group select {
+  width: 100%;
 }
 
 @media (max-width: 640px) {

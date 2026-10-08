@@ -6,10 +6,12 @@ use App\Models\Empresa;
 use App\Models\EstoqueLote;
 use App\Models\EstoqueMovimento;
 use App\Models\EstoqueMovimentoItem;
+use App\Models\EstoqueSaldo;
 use App\Models\OrdemProducao;
 use App\Models\OrdemProducaoMaterial;
 use App\Models\Produto;
 use App\Services\Estoque\EstoqueSaldoWriter;
+use App\Support\InsumoEscolhaRelacao;
 use App\Support\PadraoDecimal;
 use App\Support\ProdutoLotePolitica;
 use Illuminate\Validation\ValidationException;
@@ -74,7 +76,10 @@ class ProducaoColetaService
             if (! $lote) {
                 continue;
             }
-            $volumes[] = $this->volumeToOut($lote, (string) $aloc['qtde'], true, 'FEFO', $ordem);
+            $volumes[] = $this->identificarProduto(
+                $this->volumeToOut($lote, (string) $aloc['qtde'], true, 'FEFO', $ordem),
+                $produto,
+            );
             $ordem++;
         }
 
@@ -83,7 +88,10 @@ class ProducaoColetaService
             if (isset($idsSugeridos[(int) $lote->id])) {
                 continue;
             }
-            $candidatos[] = $this->volumeToOut($lote, '0', false, 'DISPONIVEL', null);
+            $candidatos[] = $this->identificarProduto(
+                $this->volumeToOut($lote, '0', false, 'DISPONIVEL', null),
+                $produto,
+            );
         }
 
         $alocado = '0';
@@ -119,7 +127,7 @@ class ProducaoColetaService
     {
         $itens = EstoqueMovimentoItem::query()
             ->with([
-                'produto:id,codigo',
+                'produto:id,codigo,descricao_fiscal,descricao_comercial',
                 'lote.endereco:id,codigo',
                 'movimento:id,codigo,tipo,ordem_producao_id,empresa_id,created_at,observacao',
             ])
@@ -161,8 +169,7 @@ class ProducaoColetaService
             $linha['movimento_id'] = $item->movimento_id;
             $linha['movimento_codigo'] = $item->movimento?->codigo;
             $linha['movimento_em'] = optional($item->movimento?->created_at)?->toIso8601String();
-            $linha['sku'] = $item->produto?->codigo;
-            $out[] = $linha;
+            $out[] = $this->identificarProduto($linha, $item->produto);
             $ordem++;
         }
 
@@ -281,7 +288,7 @@ class ProducaoColetaService
         };
 
         $saidas = EstoqueMovimentoItem::query()
-            ->with(['lote.endereco:id,codigo', 'produto:id,codigo'])
+            ->with(['lote.endereco:id,codigo', 'produto:id,codigo,descricao_fiscal,descricao_comercial'])
             ->where('produto_id', $produtoId)
             ->whereHas('movimento', function ($q) use ($empresa, $op) {
                 $q->where('empresa_id', $empresa->id)
@@ -292,7 +299,7 @@ class ProducaoColetaService
         $aplicar('+', $saidas);
 
         $sobras = EstoqueMovimentoItem::query()
-            ->with(['lote.endereco:id,codigo', 'produto:id,codigo'])
+            ->with(['lote.endereco:id,codigo', 'produto:id,codigo,descricao_fiscal,descricao_comercial'])
             ->where('produto_id', $produtoId)
             ->whereHas('movimento', function ($q) use ($empresa, $op) {
                 $q->where('empresa_id', $empresa->id)
@@ -332,8 +339,7 @@ class ProducaoColetaService
                     'ordem_politica' => $ordem,
                 ];
             }
-            $linha['sku'] = $item->produto?->codigo;
-            $out[] = $linha;
+            $out[] = $this->identificarProduto($linha, $item->produto);
             $ordem++;
         }
 
@@ -373,6 +379,194 @@ class ProducaoColetaService
             'motivo' => $motivo,
             'ordem_politica' => $ordemPolitica,
         ];
+    }
+
+    /**
+     * SKUs sem lote da mesma polegada (tubete) ou da mesma medida (caixa), com saldo.
+     * O SKU da linha entra mesmo sem saldo, para a escolha não sumir.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function opcoesUnidade(Empresa $empresa, OrdemProducaoMaterial $mat): array
+    {
+        $comp = strtoupper(trim((string) $mat->componente));
+        if (! in_array($comp, ['TUBETE', 'CAIXA'], true)) {
+            return [];
+        }
+        $mat->loadMissing('produto:id,codigo,descricao_fiscal,descricao_comercial,familia,controla_lote,atributos');
+        if ($mat->produto?->controla_lote) {
+            return [];
+        }
+
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'EMB')
+            ->where('controla_lote', false)
+            ->when($comp === 'TUBETE', function ($q) {
+                $q->where(function ($q) {
+                    $q->where('codigo', 'like', 'EMB-TUB%')
+                        ->orWhere('descricao_fiscal', 'like', '%TUBETE%');
+                });
+            })
+            ->when($comp === 'CAIXA', function ($q) {
+                $q->where(function ($q) {
+                    $q->where('codigo', 'like', 'EMB-CX%')
+                        ->orWhere('descricao_fiscal', 'like', '%CAIXA%');
+                });
+            })
+            ->orderBy('codigo')
+            ->get([
+                'id',
+                'codigo',
+                'descricao_fiscal',
+                'descricao_comercial',
+                'atributos',
+            ]);
+
+        $escolhidos = [];
+        foreach ($produtos as $produto) {
+            if ((int) $produto->id === (int) $mat->produto_id || $this->produtoCabeNaLinha($mat, $produto)) {
+                $escolhidos[(int) $produto->id] = $produto;
+            }
+        }
+        if ($mat->produto && ! isset($escolhidos[(int) $mat->produto->id])) {
+            $escolhidos[(int) $mat->produto->id] = $mat->produto;
+        }
+        if ($escolhidos === []) {
+            return [];
+        }
+
+        $saldos = EstoqueSaldo::query()
+            ->with('endereco:id,codigo,nome')
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('produto_id', array_keys($escolhidos))
+            ->get()
+            ->groupBy('produto_id');
+
+        $linhas = [];
+        foreach ($escolhidos as $produto) {
+            $rows = $saldos->get($produto->id);
+            $qtde = '0';
+            $local = null;
+            $maior = '-1';
+            if ($rows) {
+                foreach ($rows as $saldo) {
+                    $qtde = PadraoDecimal::roundHalfUp(
+                        bcadd($qtde, (string) $saldo->qtde, PadraoDecimal::SCALE_QTY + 4),
+                        PadraoDecimal::SCALE_QTY
+                    );
+                    if (bccomp((string) $saldo->qtde, $maior, PadraoDecimal::SCALE_QTY) > 0) {
+                        $maior = (string) $saldo->qtde;
+                        $local = $saldo->endereco?->resumo();
+                    }
+                }
+            }
+            $atual = (int) $produto->id === (int) $mat->produto_id;
+            if (! $atual && bccomp($qtde, '0', PadraoDecimal::SCALE_QTY) <= 0) {
+                continue;
+            }
+            $attrs = is_array($produto->atributos) ? $produto->atributos : [];
+            $polegadaBruta = trim((string) ($attrs['diametro_pol'] ?? ''));
+            if ($polegadaBruta === '') {
+                $polegadaBruta = (string) ($mat->origem_texto ?? '');
+            }
+            $detalhe = $comp === 'TUBETE'
+                ? InsumoEscolhaRelacao::rotuloPolegada($polegadaBruta)
+                : (trim((string) ($mat->origem_texto ?? '')) !== '' ? trim((string) $mat->origem_texto) : null);
+            $linhas[] = [
+                'produto_id' => (int) $produto->id,
+                'codigo' => $produto->codigo,
+                'descricao' => $this->nomeProduto($produto),
+                'qtde_disponivel' => $qtde,
+                'local' => $local,
+                'detalhe' => $detalhe,
+                'atual' => $atual,
+            ];
+        }
+
+        usort($linhas, static function (array $a, array $b): int {
+            if (($a['atual'] ?? false) !== ($b['atual'] ?? false)) {
+                return ($a['atual'] ?? false) ? -1 : 1;
+            }
+
+            return strcmp((string) $a['codigo'], (string) $b['codigo']);
+        });
+
+        return array_map(static function (array $linha): array {
+            unset($linha['atual']);
+
+            return $linha;
+        }, $linhas);
+    }
+
+    public function produtoAlternativoPermitido(Empresa $empresa, OrdemProducaoMaterial $mat, int $produtoId): bool
+    {
+        if ($produtoId <= 0) {
+            return false;
+        }
+        if ((int) $mat->produto_id === $produtoId) {
+            return true;
+        }
+        foreach ($this->opcoesUnidade($empresa, $mat) as $opcao) {
+            if ((int) ($opcao['produto_id'] ?? 0) === $produtoId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $linha
+     * @return array<string, mixed>
+     */
+    private function identificarProduto(array $linha, ?Produto $produto): array
+    {
+        if ($produto === null) {
+            return $linha;
+        }
+        $linha['sku'] = $produto->codigo;
+        $linha['produto_id'] = (int) $produto->id;
+        $linha['descricao'] = $this->nomeProduto($produto);
+
+        return $linha;
+    }
+
+    private function nomeProduto(Produto $produto): string
+    {
+        $comercial = trim((string) ($produto->descricao_comercial ?? ''));
+        if ($comercial !== '') {
+            return $comercial;
+        }
+
+        return trim((string) ($produto->descricao_fiscal ?? ''));
+    }
+
+    private function produtoCabeNaLinha(OrdemProducaoMaterial $mat, Produto $produto): bool
+    {
+        $comp = strtoupper(trim((string) $mat->componente));
+        if ($comp === 'TUBETE') {
+            $attrsLinha = is_array($mat->produto?->atributos) ? $mat->produto->atributos : [];
+            $aprovada = InsumoEscolhaRelacao::chavePolegada((string) ($mat->origem_texto ?? ''))
+                ?? InsumoEscolhaRelacao::chavePolegada((string) ($attrsLinha['diametro_pol'] ?? ''))
+                ?? InsumoEscolhaRelacao::chavePolegada((string) ($mat->produto?->descricao_fiscal ?? ''));
+            if ($aprovada === null) {
+                return false;
+            }
+            $attrs = is_array($produto->atributos) ? $produto->atributos : [];
+            $doProduto = InsumoEscolhaRelacao::chavePolegada((string) ($attrs['diametro_pol'] ?? ''))
+                ?? InsumoEscolhaRelacao::chavePolegada($produto->descricao_fiscal.' '.($produto->descricao_comercial ?? ''));
+
+            return $doProduto === $aprovada;
+        }
+        if ($comp === 'CAIXA') {
+            $texto = trim($produto->codigo.' '.$produto->descricao_fiscal.' '.($produto->descricao_comercial ?? ''));
+
+            return InsumoEscolhaRelacao::caixaCompativel((string) ($mat->origem_texto ?? ''), $texto);
+        }
+
+        return false;
     }
 
     /**

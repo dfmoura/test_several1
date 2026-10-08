@@ -155,6 +155,9 @@ class EstoqueRetiradaController extends Controller
             $payload = [];
             if ($materialId > 0) {
                 $payload['material_id'] = $materialId;
+                if ($produtoId > 0) {
+                    $payload['produto_id'] = $produtoId;
+                }
             } else {
                 $payload['produto_id'] = $produtoId;
             }

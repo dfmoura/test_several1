@@ -85,7 +85,7 @@ class OrdemProducaoService
             'pedido.parceiro:id,codigo,razao_social',
             'pedido.orcamento:id,codigo,tolerancia_qtd_pct',
             'pedidoItem.produtoPa:id,codigo,descricao_fiscal',
-            'materiais.produto:id,codigo,descricao_fiscal,unidade_interna,familia,controla_lote,atributos',
+            'materiais.produto:id,codigo,descricao_fiscal,descricao_comercial,unidade_interna,familia,controla_lote,atributos',
             'paMovimento:id,codigo,tipo',
         ]);
 
@@ -255,8 +255,27 @@ class OrdemProducaoService
                 ]);
             }
             $produtoId = (int) $matPendente->produto_id;
+            $matPendente->loadMissing('produto:id,controla_lote');
+            if ($volumesIn !== [] && $matPendente->produto && ! $matPendente->produto->controla_lote) {
+                throw ValidationException::withMessages([
+                    'volumes' => ['Este item não usa volume. Informe a quantidade.'],
+                ]);
+            }
             if (! $matPendente->saida_movimento_id && $produtoDosVolumes && $produtoDosVolumes !== $produtoId) {
                 $produtoId = $produtoDosVolumes;
+            }
+            $pedidoProduto = isset($data['produto_id']) ? (int) $data['produto_id'] : 0;
+            if (! $matPendente->saida_movimento_id
+                && $produtoDosVolumes === null
+                && $pedidoProduto > 0
+                && $pedidoProduto !== $produtoId
+            ) {
+                if (! $this->coleta->produtoAlternativoPermitido($empresa, $matPendente, $pedidoProduto)) {
+                    throw ValidationException::withMessages([
+                        'produto_id' => ['Este produto não corresponde à polegada ou à medida aprovada.'],
+                    ]);
+                }
+                $produtoId = $pedidoProduto;
             }
         }
 
@@ -1506,6 +1525,7 @@ class OrdemProducaoService
                     'id' => $m->produto->id,
                     'codigo' => $m->produto->codigo,
                     'descricao_fiscal' => $m->produto->descricao_fiscal,
+                    'descricao_comercial' => $m->produto->descricao_comercial,
                     'unidade_interna' => $m->produto->unidade_interna,
                     'familia' => $m->produto->familia,
                     'controla_lote' => (bool) $m->produto->controla_lote,
@@ -1513,6 +1533,9 @@ class OrdemProducaoService
                 ] : null,
                 'componente' => $m->componente,
                 'origem_texto' => $m->origem_texto,
+                'opcoes' => $pendente && $m->produto && ! $m->produto->controla_lote
+                    ? $this->coleta->opcoesUnidade($empresa, $m)
+                    : [],
                 'qtde_planejada' => (string) $m->qtde_planejada,
                 'qtde_requisitada' => (string) $m->qtde_requisitada,
                 'qtde_avaria' => (string) ($m->qtde_avaria ?? '0'),

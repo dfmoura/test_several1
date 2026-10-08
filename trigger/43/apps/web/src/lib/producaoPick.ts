@@ -610,6 +610,155 @@ export function formatVolumeDimensao(v: OpRetiradaVolume): string | null {
   return largura || comp;
 }
 
+export function nomeProdutoLinha(produto: {
+  codigo?: string | null;
+  descricao_fiscal?: string | null;
+  descricao_comercial?: string | null;
+} | null | undefined): string {
+  const desc = (produto?.descricao_comercial ?? '').trim() || (produto?.descricao_fiscal ?? '').trim();
+  const sku = (produto?.codigo ?? '').trim();
+  if (sku && desc) return `${sku} — ${desc}`;
+  return desc || sku || '—';
+}
+
+export function rotuloProdutoVolume(
+  v: OpRetiradaVolume | undefined,
+  fallback?: { codigo?: string | null; descricao_fiscal?: string | null; descricao_comercial?: string | null } | null,
+): string {
+  const sku = (v?.sku ?? '').trim();
+  const desc = (v?.descricao ?? '').trim();
+  if (sku && desc) return `${sku} — ${desc}`;
+  if (desc || sku) return desc || sku;
+  return nomeProdutoLinha(fallback);
+}
+
+/**
+ * m² e metro linear da quantidade que sai deste volume.
+ * A quantidade em m² escala o comprimento do rolo; em metro, a área sai da largura.
+ */
+export function leituraBobinaDaQtde(
+  v: OpRetiradaVolume,
+  qtdeInformada: string | number,
+  larguraMmFallback = 0,
+): { m2: number | null; metros: number | null } {
+  const qtde = typeof qtdeInformada === 'number' ? qtdeInformada : parseQtdeDigitada(qtdeInformada);
+  const largura = parseQtdeDigitada(v.largura_mm) || larguraMmFallback;
+  const comprimento = parseQtdeDigitada(v.comprimento_m);
+  const total = qtdeVolumeTotal(v);
+
+  if (unidadeEhLinear(v.unidade)) {
+    const metros = qtde > 0 ? qtde : comprimento > 0 ? comprimento : null;
+    const m2 = metros != null && largura > 0 ? (largura / 1000) * metros : null;
+    return { m2, metros };
+  }
+
+  if (qtdeGravadaEhArea(v.unidade)) {
+    const m2 = qtde > 0 ? qtde : null;
+    let metros: number | null = null;
+    if (comprimento > 0 && total > 0 && qtde > 0) {
+      metros = comprimento * (qtde / total);
+    } else if (m2 != null && largura > 0) {
+      metros = m2 / (largura / 1000);
+    }
+    return { m2, metros };
+  }
+
+  if (largura > 0 && comprimento > 0) {
+    const fator = total > 0 && qtde > 0 ? Math.min(qtde / total, 1) : qtde > 0 ? 1 : 0;
+    if (fator <= 0) return { m2: null, metros: null };
+    return { m2: (largura / 1000) * comprimento * fator, metros: comprimento * fator };
+  }
+
+  return { m2: null, metros: null };
+}
+
+export function formatLeituraBobina(
+  v: OpRetiradaVolume,
+  qtdeInformada: string | number,
+  larguraMmFallback = 0,
+): { m2: string | null; metros: string | null } {
+  const leitura = leituraBobinaDaQtde(v, qtdeInformada, larguraMmFallback);
+  return {
+    m2: leitura.m2 != null && leitura.m2 > 0 ? formatQtdePick(leitura.m2, 'm²') : null,
+    metros: leitura.metros != null && leitura.metros > 0 ? formatQtdePick(leitura.metros, 'm') : null,
+  };
+}
+
+export function rotuloPolegada(raw: string | null | undefined): string | null {
+  switch (chavePolegada(raw)) {
+    case '1':
+      return '1"';
+    case '1.5':
+      return '1 1/2"';
+    case '3':
+      return '3"';
+    default:
+      return null;
+  }
+}
+
+/** Mesma chave do motor (`InsumoEscolhaRelacao`): 1 | 1.5 | 3. */
+export function chavePolegada(raw: string | null | undefined): string | null {
+  const t = (raw ?? '').trim().replace(/[″”]/g, '"');
+  if (!t) return null;
+  const fold = t.toUpperCase();
+  if (/1\s*1\s*\/\s*2|1[,.]\s*5/.test(t)) return '1.5';
+  if (/(^|[^0-9])3\s*(?:"|POL)/.test(fold) || /^3\s*"?$/.test(t.trim())) return '3';
+  if (/(^|[^0-9])1\s*(?:"|POL)/.test(fold) || /^1\s*"?$/.test(t.trim())) return '1';
+  if (/(^|[^0-9])76\s*MM/.test(fold)) return '3';
+  if (/(^|[^0-9])40\s*MM/.test(fold)) return '1.5';
+  if (/(^|[^0-9])25\s*MM/.test(fold)) return '1';
+  return null;
+}
+
+function gruposMedida(texto: string): string[] {
+  return texto.match(/\d+/g) ?? [];
+}
+
+function caixaCompativel(medida: string, texto: string): boolean {
+  const precisa = gruposMedida(medida);
+  if (precisa.length === 0) return false;
+  const tem = gruposMedida(texto);
+  if (tem.length < precisa.length) return false;
+  for (let i = 0; i <= tem.length - precisa.length; i++) {
+    if (precisa.every((n, j) => tem[i + j] === n)) return true;
+  }
+  return false;
+}
+
+function parece(v: OpRetiradaVolume, ...trechos: string[]): boolean {
+  const texto = `${v.sku ?? ''} ${v.descricao ?? ''}`.toUpperCase();
+  return trechos.some((t) => texto.includes(t));
+}
+
+/**
+ * Papel e demais bobinas: qualquer volume do catálogo da linha.
+ * Tubete: a polegada aprovada. Caixa: a medida aprovada. O SKU da linha sempre entra.
+ */
+export function volumeCabeNaLinha(m: OrdemProducaoMaterial, v: OpRetiradaVolume): boolean {
+  const comp = (m.componente ?? '').trim().toUpperCase();
+  if (comp !== 'TUBETE' && comp !== 'CAIXA') return true;
+  if (m.produto?.id && v.produto_id && v.produto_id === m.produto.id) return true;
+  if (!v.produto_id) return true;
+  if (comp === 'TUBETE') {
+    if (!parece(v, 'TUBETE', 'EMB-TUB')) return false;
+    const aprovada =
+      chavePolegada(m.origem_texto) ??
+      chavePolegada(m.produto?.descricao_comercial) ??
+      chavePolegada(m.produto?.descricao_fiscal);
+    if (!aprovada) return false;
+    return chavePolegada(`${v.sku ?? ''} ${v.descricao ?? ''}`) === aprovada;
+  }
+  if (!parece(v, 'CAIXA', 'EMB-CX')) return false;
+  return caixaCompativel(m.origem_texto ?? '', `${v.sku ?? ''} ${v.descricao ?? ''}`);
+}
+
+export function insumoComMetragem(m: OrdemProducaoMaterial): boolean {
+  const comp = (m.componente ?? '').trim().toUpperCase();
+  if (comp === 'TUBETE' || comp === 'CAIXA') return false;
+  return modoRetirada(m) === 'volume';
+}
+
 export function volumeSugerido(v: OpRetiradaVolume): boolean {
   return Boolean(v.sugerido) || parseQtdeDigitada(v.qtde_retirar) > 0;
 }

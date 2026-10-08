@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { OpInsumosReservados } from '../components/OpInsumosReservados';
 import { PaEmbalagemPanel } from '../components/PaEmbalagemPanel';
 import { PedidoItemFichaCabecalho } from '../components/PedidoFichaSheet';
+import { StatusPill } from '../components/StatusPill';
 import { RastreioInsumosPanel } from '../components/RastreioInsumosPanel';
 import { api, type OrdemProducao, type Pedido } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -13,7 +14,7 @@ import {
   leituraQtdeMaterial,
   type LeituraQtdeMaterial,
 } from '../lib/producaoPick';
-import { parseQtdeDigitada } from '../lib/producaoUi';
+import { opStatusLabel, parseQtdeDigitada } from '../lib/producaoUi';
 
 function QtdeMaterialLeitura({ leitura }: { leitura: LeituraQtdeMaterial }) {
   return (
@@ -131,9 +132,29 @@ export function OrdemProducaoDetailPage() {
         )
       ) : (
         <>
-          {pedido && itemPedido ? (
-            <PedidoItemFichaCabecalho pedido={pedido} item={itemPedido} />
-          ) : null}
+          <div className="op-item-detalhe">
+            <header
+              className={`op-item-titulo${pedido && itemPedido ? ' op-item-titulo--liga' : ''}`}
+            >
+              <div className="op-item-titulo__texto">
+                <p className="op-item-titulo__kicker">
+                  {itemPedido?.necessidade === 'REVENDA'
+                    ? 'Revenda'
+                    : itemPedido?.necessidade === 'SERVICO'
+                      ? 'Serviço'
+                      : 'Etiqueta'}
+                </p>
+                <h2>
+                  {(op.pedido_item?.descricao ?? itemPedido?.descricao ?? '').trim() ||
+                    'Etiqueta sob medida'}
+                </h2>
+              </div>
+              <StatusPill status={opStatusLabel(op.status)} />
+            </header>
+            {pedido && itemPedido ? (
+              <PedidoItemFichaCabecalho pedido={pedido} item={itemPedido} />
+            ) : null}
+          </div>
 
           <OpInsumosReservados
             op={op}
