@@ -10,8 +10,11 @@ use App\Models\PaEmbalagem;
 use App\Models\PaEmbalagemBobina;
 use App\Models\PaEmbalagemCaixa;
 use App\Models\Pedido;
+use App\Models\Produto;
 use App\Services\Codigo\CodigoGenerator;
+use App\Support\CaixaMedida;
 use App\Support\PadraoDecimal;
+use App\Support\RoloCaixaEncaixe;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -551,6 +554,14 @@ class PaEmbalagemService
             );
         }
 
+        $caixa = $this->caixaDoEncaixe((int) $op->empresa_id, $caixaMedida);
+        $largura = $espec['largura_cm'] ?? $input['largura_cm'] ?? null;
+        $encaixe = RoloCaixaEncaixe::avaliar(
+            $largura !== null && $largura !== '' ? (string) $largura : null,
+            $caixa['lados'],
+            $caixa['rotulo'],
+        );
+
         return [
             'qtde_etiquetas' => $qtdeBoa,
             'qtde_bobinas' => $nBobinas,
@@ -560,12 +571,53 @@ class PaEmbalagemService
             'tubete' => $tubete !== '' ? $tubete : null,
             'caixa_medida' => $caixaMedida !== '' ? $caixaMedida : null,
             'saida_etiqueta' => $saida,
+            'encaixe' => $encaixe,
             'bobinas' => $bobinas,
             'caixas' => array_values($caixasAcc),
             'resumo' => number_format((float) $qtdeBoa, 0, ',', '.').' etiquetas · '
                 .$nBobinas.' bobina'.($nBobinas === 1 ? '' : 's').' · '
                 .$nCaixas.' caixa'.($nCaixas === 1 ? '' : 's'),
         ];
+    }
+
+    /**
+     * @return array{lados: list<string>|null, rotulo: ?string}
+     */
+    private function caixaDoEncaixe(int $empresaId, string $medida): array
+    {
+        $vazio = ['lados' => null, 'rotulo' => null];
+        if ($medida === '' || $empresaId < 1) {
+            return $vazio;
+        }
+
+        $produtos = Produto::query()
+            ->where('empresa_id', $empresaId)
+            ->where('situacao', 'ATIVO')
+            ->where('familia', 'EMB')
+            ->where(function ($q) {
+                $q->where('codigo', 'like', 'EMB-CX%')
+                    ->orWhere('descricao_fiscal', 'like', '%CAIXA%');
+            })
+            ->orderBy('codigo')
+            ->get(['codigo', 'atributos']);
+
+        foreach ($produtos as $produto) {
+            $attrs = is_array($produto->atributos) ? $produto->atributos : null;
+            if (CaixaMedida::casaAtributos($attrs, $medida) !== true) {
+                continue;
+            }
+            $m = CaixaMedida::fromAtributos($attrs);
+            if ($m === null) {
+                continue;
+            }
+
+            return [
+                'lados' => [$m[CaixaMedida::COMP], $m[CaixaMedida::LARG], $m[CaixaMedida::ALT]],
+                'rotulo' => $produto->codigo.' · '.CaixaMedida::rotulo($attrs),
+            ];
+        }
+
+        return $vazio;
     }
 
     /**

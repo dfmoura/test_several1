@@ -10,6 +10,7 @@ use App\Models\PaEmbalagemBobina;
 use App\Models\Parceiro;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
+use App\Models\Produto;
 use App\Models\User;
 use App\Services\Financeiro\AdiantamentoService;
 use App\Services\Producao\PaEmbalagemService;
@@ -178,6 +179,44 @@ class PaEmbalagemTest extends TestCase
         $this->assertSame(1, $plano['qtde_caixas']);
         $this->assertSame('5000.0000', $plano['qtde_etiquetas']);
         $this->assertCount(5, $plano['bobinas']);
+        $this->assertNull($plano['encaixe']['texto']);
+    }
+
+    public function test_encaixe_avisa_sem_mudar_quantidade_nem_bloquear_confirmacao(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        Produto::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'codigo' => 'EMB-CX-002',
+            'familia' => 'EMB',
+            'descricao_fiscal' => 'CAIXA PAPELAO 250X200X200',
+            'unidade_comercial' => 'UN',
+            'unidade_interna' => 'UN',
+            'fator_conversao' => '1',
+            'situacao' => 'ATIVO',
+            'atributos' => ['comp_mm' => '250', 'larg_mm' => '200', 'alt_mm' => '200'],
+        ]);
+
+        $snap = $this->pedido->snapshot;
+        $snap['input']['largura_cm'] = 30;
+        $snap['faixa']['caixa_medida'] = '250x200x200';
+        $this->pedido->snapshot = $snap;
+        $this->pedido->save();
+
+        $res = $this->withHeaders($this->h())
+            ->getJson("/api/v1/ordens-producao/{$this->op->id}/embalagem-sugerir");
+
+        $res->assertOk();
+        $this->assertSame('nao_cabe', $res->json('data.plano.encaixe.status'));
+        $this->assertSame(1, $res->json('data.plano.qtde_caixas'));
+
+        $ok = $this->withHeaders($this->h())
+            ->postJson("/api/v1/ordens-producao/{$this->op->id}/embalar", []);
+
+        $ok->assertOk();
+        $this->assertSame(1, $ok->json('data.qtde_caixas'));
+        $this->assertSame(5, $ok->json('data.qtde_bobinas'));
     }
 
     public function test_confirmar_grava_bobinas_caixas_e_qr(): void

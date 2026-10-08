@@ -11,6 +11,10 @@ type Plano = {
   rolos_por_caixa: number;
   tubete?: string | null;
   caixa_medida?: string | null;
+  encaixe?: {
+    status: string;
+    texto: string | null;
+  } | null;
 };
 
 type Props = {
@@ -167,6 +171,17 @@ export function PaEmbalagemPanel({ op, canWrite, onChanged }: Props) {
                   {plano.tubete ? ` · tubete ${plano.tubete}` : ''}
                   {plano.caixa_medida ? ` · ${plano.caixa_medida}` : ''}
                 </p>
+                {plano.encaixe?.texto ? (
+                  <p
+                    className="muted"
+                    style={{
+                      marginTop: 0,
+                      color: plano.encaixe.status === 'nao_cabe' ? '#9b2c2c' : undefined,
+                    }}
+                  >
+                    {plano.encaixe.texto}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <p className="muted">Carregando sugestão de bobinas e caixas…</p>
