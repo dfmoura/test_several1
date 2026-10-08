@@ -7,6 +7,7 @@ import {
   ApiError,
   type EstoqueLote,
   type EstoqueMapaLocal,
+  type EstoqueMapaNomeado,
   type EstoqueMapaResumo,
 } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -48,6 +49,7 @@ export function EstoqueMapaPage() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission('estoque.escrever');
   const [locais, setLocais] = useState<EstoqueMapaLocal[]>([]);
+  const [nomeados, setNomeados] = useState<EstoqueMapaNomeado[]>([]);
   const [resumo, setResumo] = useState<EstoqueMapaResumo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +77,10 @@ export function EstoqueMapaPage() {
     setLoading(true);
     try {
       const res = await api.get<{
-        data: { locais: EstoqueMapaLocal[]; resumo: EstoqueMapaResumo };
+        data: { locais: EstoqueMapaLocal[]; nomeados?: EstoqueMapaNomeado[]; resumo: EstoqueMapaResumo };
       }>('/estoque/mapa');
       setLocais(res.data.locais);
+      setNomeados(res.data.nomeados ?? []);
       setResumo(res.data.resumo);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Falha ao carregar o mapa.');
@@ -103,6 +106,7 @@ export function EstoqueMapaPage() {
     let maxC = GABARITO_C;
     let maxL = GABARITO_L;
     for (const e of locais) {
+      if (e.prateleira == null || e.coluna == null || e.vao == null) continue;
       maxP = Math.max(maxP, e.prateleira);
       maxC = Math.max(maxC, e.coluna);
       maxL = Math.max(maxL, e.vao);
@@ -301,6 +305,30 @@ export function EstoqueMapaPage() {
           <div>
             <span>Sem local</span>
             <strong>{resumo.volumes_sem_local}</strong>
+          </div>
+        </div>
+      )}
+
+      {nomeados.length > 0 && (
+        <div className="card" style={{ marginBottom: '0.75rem' }}>
+          <div className="card-body">
+            <h3 className="orc-subsection-title" style={{ marginTop: 0 }}>
+              Fora da malha
+            </h3>
+            <ul style={{ margin: '0.35rem 0 0', paddingLeft: '1.1rem' }}>
+              {nomeados.map((lugar) => (
+                <li key={lugar.id}>
+                  <strong>{lugar.nome?.trim() || lugar.codigo}</strong>
+                  {lugar.volumes_count > 0 ? ` · ${lugar.volumes_count} volume(s)` : ''}
+                  {lugar.itens.length === 0 && lugar.volumes_count === 0 ? ' · vazio' : ''}
+                  {lugar.itens.map((item) => (
+                    <span key={item.produto_id}>
+                      {` · ${item.codigo} ${item.qtde} ${item.unidade}`}
+                    </span>
+                  ))}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
@@ -543,7 +571,11 @@ export function EstoqueMapaPage() {
                       <p className="muted" style={{ margin: '0.2rem 0 0' }}>
                         {selecionado.codigo_malha
                           ? `${selecionado.codigo_malha} · `
-                          : `P${pad2(selecionado.prateleira)}-C${pad2(selecionado.coluna)}-L${pad2(selecionado.vao)} · `}
+                          : selecionado.prateleira != null &&
+                              selecionado.coluna != null &&
+                              selecionado.vao != null
+                            ? `P${pad2(selecionado.prateleira)}-C${pad2(selecionado.coluna)}-L${pad2(selecionado.vao)} · `
+                            : ''}
                         {selecionado.volumes_count} volume(s)
                         {selecionado.skus_count > 0 ? ` · ${selecionado.skus_count} SKU(s)` : ''}
                       </p>

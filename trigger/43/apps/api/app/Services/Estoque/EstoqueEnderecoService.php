@@ -6,6 +6,8 @@ use App\Models\CodigoSequence;
 use App\Models\Empresa;
 use App\Models\EstoqueEndereco;
 use App\Models\EstoqueLote;
+use App\Models\EstoqueSaldo;
+use App\Models\Produto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -116,6 +118,134 @@ class EstoqueEnderecoService
                 ...$dims,
             ]);
         });
+    }
+
+    /**
+     * Lugar fora da malha (Garagem, em cima das estantes). Reusa o mesmo nome na EMP.
+     */
+    public function garantirNome(Empresa $empresa, string $nome): EstoqueEndereco
+    {
+        $nome = trim((string) preg_replace('/\s+/u', ' ', $nome));
+        if (mb_strlen($nome) < 2) {
+            throw ValidationException::withMessages([
+                'nome' => ['Dê um nome ao local (mínimo 2 caracteres).'],
+            ]);
+        }
+        if (mb_strlen($nome) > 80) {
+            throw ValidationException::withMessages([
+                'nome' => ['Nome do local até 80 caracteres.'],
+            ]);
+        }
+
+        return DB::transaction(function () use ($empresa, $nome) {
+            $existente = EstoqueEndereco::query()
+                ->where('empresa_id', $empresa->id)
+                ->whereRaw('LOWER(nome) = ?', [mb_strtolower($nome)])
+                ->lockForUpdate()
+                ->first();
+
+            if ($existente !== null) {
+                if (! $existente->ativo) {
+                    $existente->ativo = true;
+                    $existente->save();
+                }
+
+                return $existente;
+            }
+
+            return EstoqueEndereco::query()->create([
+                'empresa_id' => $empresa->id,
+                'codigo' => $this->proximoCodigoRotulo($empresa),
+                'nome' => $nome,
+                'prateleira' => null,
+                'coluna' => null,
+                'vao' => null,
+                'largura_m' => EstoqueEndereco::LARGURA_M,
+                'profundidade_m' => EstoqueEndereco::PROFUNDIDADE_M,
+                'altura_m' => EstoqueEndereco::ALTURA_M,
+                'ativo' => true,
+            ]);
+        });
+    }
+
+    /**
+     * Um local para a quantidade inteira do SKU sem volume. Não gera MOV.
+     *
+     * @return array{produto_id: int, local: ?array{id: int, codigo: string, nome: ?string}}
+     */
+    public function colocarSaldo(Empresa $empresa, int $produtoId, ?int $enderecoId, ?string $nome): array
+    {
+        $produto = Produto::query()
+            ->where('empresa_id', $empresa->id)
+            ->whereKey($produtoId)
+            ->first();
+        if ($produto === null) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Produto não encontrado nesta empresa.'],
+            ]);
+        }
+        if ($produto->controla_lote) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Este item tem volume. O local de cada volume fica em Guardar.'],
+            ]);
+        }
+
+        $endereco = $this->resolverLocalDoSaldo($empresa, $enderecoId, $nome);
+
+        $saldo = EstoqueSaldo::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('produto_id', $produto->id)
+            ->first();
+
+        if ($saldo === null) {
+            throw ValidationException::withMessages([
+                'produto_id' => ['Este item ainda não tem saldo. Receba antes de marcar o local.'],
+            ]);
+        }
+
+        $saldo->endereco_id = $endereco?->id;
+        $saldo->save();
+
+        $saldo->load('endereco:id,codigo,nome');
+
+        return [
+            'produto_id' => (int) $produto->id,
+            'local' => $saldo->endereco?->resumo(),
+        ];
+    }
+
+    private function resolverLocalDoSaldo(Empresa $empresa, ?int $enderecoId, ?string $nome): ?EstoqueEndereco
+    {
+        if ($enderecoId !== null && $enderecoId > 0) {
+            $end = EstoqueEndereco::query()
+                ->where('empresa_id', $empresa->id)
+                ->where('ativo', true)
+                ->whereKey($enderecoId)
+                ->first();
+            if ($end === null) {
+                throw ValidationException::withMessages([
+                    'endereco_id' => ['Local inválido ou inativo nesta empresa.'],
+                ]);
+            }
+
+            return $end;
+        }
+
+        $texto = trim((string) $nome);
+        if ($texto === '') {
+            return null;
+        }
+
+        $porCodigo = EstoqueEndereco::query()
+            ->where('empresa_id', $empresa->id)
+            ->where('ativo', true)
+            ->where('codigo', $texto)
+            ->first();
+        if ($porCodigo !== null) {
+            return $porCodigo;
+        }
+
+        return $this->garantirNome($empresa, $texto);
     }
 
     /**
@@ -495,11 +625,53 @@ class EstoqueEnderecoService
 
         $volumesSemLocal = (int) $semLocalQuery->count();
 
+        $idsNomeados = $locais
+            ->filter(fn (EstoqueEndereco $end) => $end->prateleira === null)
+            ->map(fn (EstoqueEndereco $end) => (int) $end->id)
+            ->all();
+        $saldosNomeados = EstoqueSaldo::query()
+            ->with('produto:id,codigo,descricao_comercial,descricao_fiscal,controla_lote')
+            ->where('empresa_id', $empresa->id)
+            ->whereIn('endereco_id', $idsNomeados === [] ? [0] : $idsNomeados)
+            ->where('qtde', '>', 0);
+        if ($produtoId !== null && $produtoId > 0) {
+            $saldosNomeados->where('produto_id', $produtoId);
+        }
+        $saldosPorLocal = $idsNomeados === []
+            ? collect()
+            : $saldosNomeados->get()->groupBy(fn (EstoqueSaldo $s) => (int) $s->endereco_id);
+
         $out = [];
+        $nomeados = [];
         $ocupados = 0;
         $volumesGuardados = 0;
 
         foreach ($locais as $end) {
+            if ($end->prateleira === null) {
+                $volumes = isset($porEndereco[(int) $end->id]) ? (int) $porEndereco[(int) $end->id]->volumes_count : 0;
+                $pilhas = [];
+                foreach ($saldosPorLocal->get((int) $end->id, collect()) as $saldo) {
+                    if ($saldo->produto?->controla_lote) {
+                        continue;
+                    }
+                    $pilhas[] = [
+                        'produto_id' => (int) $saldo->produto_id,
+                        'codigo' => (string) ($saldo->produto?->codigo ?? ''),
+                        'descricao' => (string) ($saldo->produto?->descricao_comercial ?: $saldo->produto?->descricao_fiscal ?: ''),
+                        'qtde' => (string) $saldo->qtde,
+                        'unidade' => (string) $saldo->unidade,
+                    ];
+                }
+                if ($produtoId !== null && $produtoId > 0 && $volumes === 0 && $pilhas === []) {
+                    continue;
+                }
+                $cell = $this->toOut($end);
+                $cell['volumes_count'] = $volumes;
+                $cell['itens'] = $pilhas;
+                $nomeados[] = $cell;
+
+                continue;
+            }
             $row = $porEndereco[(int) $end->id] ?? null;
             $volumes = $row !== null ? (int) $row->volumes_count : 0;
             $skus = $row !== null ? (int) $row->skus_count : 0;
@@ -526,6 +698,7 @@ class EstoqueEnderecoService
 
         return [
             'locais' => $out,
+            'nomeados' => $nomeados,
             'resumo' => [
                 'total_locais' => count($out),
                 'ocupados' => $ocupados,
@@ -542,14 +715,15 @@ class EstoqueEnderecoService
      */
     public function toOut(EstoqueEndereco $e): array
     {
+        $temMalha = $e->prateleira !== null && $e->coluna !== null && $e->vao !== null;
+
         return [
             'id' => $e->id,
             'codigo' => $e->codigo,
-            'codigo_malha' => EstoqueEndereco::codigoMalhaDe(
-                (int) $e->prateleira,
-                (int) $e->coluna,
-                (int) $e->vao
-            ),
+            'nome' => $e->nome,
+            'codigo_malha' => $temMalha
+                ? EstoqueEndereco::codigoMalhaDe((int) $e->prateleira, (int) $e->coluna, (int) $e->vao)
+                : null,
             'prateleira' => $e->prateleira,
             'coluna' => $e->coluna,
             'vao' => $e->vao,
@@ -603,6 +777,10 @@ class EstoqueEnderecoService
     {
         if (strcasecmp((string) $end->codigo, $codigo) === 0) {
             return true;
+        }
+
+        if ($end->prateleira === null || $end->coluna === null || $end->vao === null) {
+            return false;
         }
 
         $malha = EstoqueEndereco::codigoMalhaDe(

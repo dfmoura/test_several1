@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { LocalSaldoCampo } from './LocalSaldoCampo';
 import { SeparacaoVolumesOverlay } from './SeparacaoVolumesOverlay';
 import { ApiError, api, type OpRetiradaVolume, type OrdemProducao, type OrdemProducaoMaterial } from '../lib/api';
 import type { EstoqueQrVolumeInfo } from '../lib/estoqueQrFila';
@@ -564,6 +565,24 @@ export function OpInsumosReservados({ op, podeEstoque, podeProducao, canWrite, o
                           </div>
                         ))
                       )
+                    ) : null}
+
+                    {!porVolume && !m.produto?.controla_lote && m.produto?.id ? (
+                      <div className="form-grid faixa-row">
+                        <div className="form-group">
+                          <label>Local</label>
+                          {aberta && canWrite ? (
+                            <LocalSaldoCampo
+                              produtoId={m.produto.id}
+                              local={m.local}
+                              disabled={busy}
+                              onSaved={() => void ressincronizar()}
+                            />
+                          ) : (
+                            <input value={m.local?.nome?.trim() || m.local?.codigo || 'Sem local'} disabled />
+                          )}
+                        </div>
+                      </div>
                     ) : null}
 
                     {!porVolume && estado !== 'ja_saiu' ? (

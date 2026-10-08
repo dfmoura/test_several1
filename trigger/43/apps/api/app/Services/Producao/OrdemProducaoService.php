@@ -1472,9 +1472,10 @@ class OrdemProducaoService
         $saldos = $produtoIds === []
             ? collect()
             : EstoqueSaldo::query()
+                ->with('endereco:id,codigo,nome')
                 ->where('empresa_id', $empresa->id)
                 ->whereIn('produto_id', $produtoIds)
-                ->get(['produto_id', 'qtde'])
+                ->get()
                 ->keyBy('produto_id');
 
         $linhasComFaltante = 0;
@@ -1523,6 +1524,9 @@ class OrdemProducaoService
                 'unidade' => $m->unidade,
                 'pendente' => $pendente,
                 'qtde_disponivel' => $disponivel,
+                'local' => $m->produto?->controla_lote
+                    ? null
+                    : $saldos->get((int) $m->produto_id)?->endereco?->resumo(),
                 'qtde_faltante' => $faltante,
                 'aguardando_material' => $aguardando,
                 'saida_movimento_id' => $m->saida_movimento_id,

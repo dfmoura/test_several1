@@ -259,6 +259,7 @@ export type ItemPosicao = {
     qtde: string;
     unidade: string;
     controla_lote?: boolean;
+    local?: { id: number; codigo: string; nome?: string | null } | null;
     lotes_count?: number;
     volumes_por_qtde?: Array<
       FaixaBuscaVolume & { volumes?: number; unidade?: string | null }

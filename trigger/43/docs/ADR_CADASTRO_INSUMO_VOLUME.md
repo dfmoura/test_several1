@@ -289,6 +289,17 @@ Largura, metro linear e m² são a mesma conta do volume. Kg é a mesma quantida
 
 ---
 
+## Emenda 2026-10-07 — local do item sem volume
+
+Bobina continua com local no volume (Guardar). Tubete, caixa e demais SKUs sem lote têm **um** local para a quantidade inteira, em `estoque_saldos.endereco_id`.
+
+- O lugar é um `estoque_enderecos`: célula da malha ou nome livre (Garagem, em cima das estantes), com rótulo `P########` e sem prateleira/coluna/vão.
+- Marcar ou tirar o local não gera MOV, não altera a quantidade e não cria saldo. Sem saldo, recebe antes.
+- SKU com volume recusa esse vínculo — o local de cada bobina segue no Guardar.
+- Dois lugares para o mesmo tubete exigem volume (lote ligado de propósito), não um segundo saldo.
+
+---
+
 ## Rastreio no código / docs
 
 - Unidades: `ADR_UNIDADES_PRODUTO.md` · `ProdutoBobinaDimensoes` · `produtoBobinaDimensoesUi.ts`  

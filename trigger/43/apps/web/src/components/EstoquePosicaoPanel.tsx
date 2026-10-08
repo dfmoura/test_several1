@@ -1,4 +1,5 @@
 import { type KeyboardEvent } from 'react';
+import { LocalSaldoCampo, rotuloLocal } from './LocalSaldoCampo';
 import type { FormatoPosicao, ItemPosicao } from '../lib/estoqueUi';
 import { linhasPosicao } from '../lib/estoqueUi';
 import { formatQty } from '../lib/format';
@@ -8,8 +9,10 @@ type Linha = ReturnType<typeof linhasPosicao>[number];
 
 type Props = {
   itens: ItemPosicao[];
+  podeMarcarLocal?: boolean;
   onAbrirFormato: (produtoId: number, codigo: string | undefined, faixa: FormatoPosicao) => void;
   onAbrirVolumes: (produtoId: number, codigo?: string | null) => void;
+  onLocalSalvo?: () => void;
 };
 
 function produtoNome(s: ItemPosicao['saldo']): string {
@@ -27,7 +30,13 @@ function activateRow(e: KeyboardEvent, go: () => void) {
   }
 }
 
-export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: Props) {
+export function EstoquePosicaoPanel({
+  itens,
+  podeMarcarLocal,
+  onAbrirFormato,
+  onAbrirVolumes,
+  onLocalSalvo,
+}: Props) {
   const linhas = linhasPosicao(itens);
 
   if (linhas.length === 0) {
@@ -57,6 +66,7 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
               <th>Dimensão</th>
               <th className="num">Quantidade</th>
               <th className="num">Volumes</th>
+              <th>Local</th>
             </tr>
           </thead>
           <tbody>
@@ -70,6 +80,9 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
               const volumes = linha.formato
                 ? linha.formato.volumes
                 : (s.controla_lote ? (s.lotes_count ?? 0) : null);
+              const locaisVolume = (linha.formato?.locais ?? [])
+                .map((l) => l.codigo)
+                .filter((c): c is string => Boolean(c));
               return (
                 <tr
                   key={linha.formato?.key ?? `sku-${s.id}`}
@@ -91,6 +104,19 @@ export function EstoquePosicaoPanel({ itens, onAbrirFormato, onAbrirVolumes }: P
                     {formatQty(qtde)} {unidade}
                   </td>
                   <td className="num">{volumes == null ? '—' : volumes}</td>
+                  <td>
+                    {!s.controla_lote && podeMarcarLocal && onLocalSalvo ? (
+                      <LocalSaldoCampo
+                        produtoId={s.produto_id}
+                        local={s.local}
+                        onSaved={onLocalSalvo}
+                      />
+                    ) : s.controla_lote ? (
+                      locaisVolume.length > 0 ? locaisVolume.join(', ') : '—'
+                    ) : (
+                      rotuloLocal(s.local) || 'Sem local'
+                    )}
+                  </td>
                 </tr>
               );
             })}

@@ -13,6 +13,7 @@ class EstoqueSaldo extends Model
     protected $fillable = [
         'empresa_id',
         'produto_id',
+        'endereco_id',
         'qtde',
         'unidade',
         'custo_medio',
@@ -34,5 +35,10 @@ class EstoqueSaldo extends Model
     public function produto(): BelongsTo
     {
         return $this->belongsTo(Produto::class);
+    }
+
+    public function endereco(): BelongsTo
+    {
+        return $this->belongsTo(EstoqueEndereco::class, 'endereco_id');
     }
 }

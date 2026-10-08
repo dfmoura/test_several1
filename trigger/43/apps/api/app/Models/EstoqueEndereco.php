@@ -48,6 +48,7 @@ class EstoqueEndereco extends Model
     protected $fillable = [
         'empresa_id',
         'codigo',
+        'nome',
         'prateleira',
         'coluna',
         'vao',
@@ -78,6 +79,18 @@ class EstoqueEndereco extends Model
     public function lotes(): HasMany
     {
         return $this->hasMany(EstoqueLote::class, 'endereco_id');
+    }
+
+    /**
+     * @return array{id: int, codigo: string, nome: ?string}
+     */
+    public function resumo(): array
+    {
+        return [
+            'id' => (int) $this->id,
+            'codigo' => (string) $this->codigo,
+            'nome' => $this->nome,
+        ];
     }
 
     /** Rótulo canônico impresso — P00000001. */

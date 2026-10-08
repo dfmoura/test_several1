@@ -32,7 +32,7 @@ export function EstoqueEnderecosEtiquetasPage() {
     setLoading(true);
     try {
       const res = await api.get<{ data: EstoqueEndereco[] }>('/estoque/enderecos');
-      setEnderecos(res.data);
+      setEnderecos(res.data.filter((e) => e.prateleira != null && e.coluna != null && e.vao != null));
       const next: Record<number, string> = {};
       await Promise.all(
         res.data.map(async (e) => {
@@ -133,7 +133,7 @@ export function EstoqueEnderecosEtiquetasPage() {
               <label>Prateleira</label>
               <select value={prateleiraFiltro} onChange={(e) => setPrateleiraFiltro(e.target.value)}>
                 <option value="">{`Todas (${enderecos.length})`}</option>
-                {[...new Set(enderecos.map((e) => e.prateleira))]
+                {[...new Set(enderecos.map((e) => e.prateleira).filter((p): p is number => p != null))]
                   .sort((a, b) => a - b)
                   .map((p) => (
                     <option key={p} value={String(p)}>

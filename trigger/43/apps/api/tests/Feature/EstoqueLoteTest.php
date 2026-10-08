@@ -494,6 +494,45 @@ class EstoqueLoteTest extends TestCase
         $this->assertSame(0, EstoqueMovimentoItem::query()->count());
     }
 
+    public function test_sku_sem_volume_marca_local_nomeado_sem_movimento(): void
+    {
+        Sanctum::actingAs($this->operador);
+        $produto = $this->criarProduto('EMB-TUB-LOC', 'EMB', 'EMB-TUB', false, false);
+        $headers = ['X-Empresa-Id' => (string) $this->empresa->id];
+
+        $this->withHeaders($headers)
+            ->postJson('/api/v1/estoque/saldos/'.$produto->id.'/local', ['nome' => 'Garagem'])
+            ->assertStatus(422);
+
+        EstoqueSaldo::query()->create([
+            'empresa_id' => $this->empresa->id,
+            'produto_id' => $produto->id,
+            'qtde' => '12.0000',
+            'unidade' => 'UN',
+            'custo_medio' => '0',
+        ]);
+
+        $res = $this->withHeaders($headers)->postJson('/api/v1/estoque/saldos/'.$produto->id.'/local', [
+            'nome' => 'Garagem',
+        ]);
+        $res->assertOk();
+        $res->assertJsonPath('data.local.nome', 'Garagem');
+        $this->assertNotNull($res->json('data.local.codigo'));
+        $this->assertSame('12.0000', (string) EstoqueSaldo::query()->where('produto_id', $produto->id)->value('qtde'));
+        $this->assertSame(0, \App\Models\EstoqueMovimento::query()->count());
+
+        $deNovo = $this->withHeaders($headers)->postJson('/api/v1/estoque/saldos/'.$produto->id.'/local', [
+            'nome' => 'garagem',
+        ]);
+        $deNovo->assertOk();
+        $this->assertSame($res->json('data.local.id'), $deNovo->json('data.local.id'));
+
+        $papel = $this->criarProduto('MP-PAP-LOC', 'MP', 'MP-PAP', true, false);
+        $this->withHeaders($headers)
+            ->postJson('/api/v1/estoque/saldos/'.$papel->id.'/local', ['nome' => 'Garagem'])
+            ->assertStatus(422);
+    }
+
     private ?int $ocId = null;
 
     private function criarProduto(

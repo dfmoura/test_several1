@@ -1798,11 +1798,13 @@ export type EstoqueEndereco = {
   id: number;
   /** Rótulo impresso sequencial (P00000001). */
   codigo: string;
+  /** Nome livre (Garagem). Vazio na célula da malha. */
+  nome?: string | null;
   /** Malha derivada Pxx-Cxx-Lxx (posição; não é o código da etiqueta). */
-  codigo_malha?: string;
-  prateleira: number;
-  coluna: number;
-  vao: number;
+  codigo_malha?: string | null;
+  prateleira: number | null;
+  coluna: number | null;
+  vao: number | null;
   largura_m: string;
   profundidade_m: string;
   altura_m: string;
@@ -1814,6 +1816,17 @@ export type EstoqueEndereco = {
 export type EstoqueMapaLocal = EstoqueEndereco & {
   volumes_count: number;
   skus_count: number;
+};
+
+export type EstoqueMapaNomeado = EstoqueEndereco & {
+  volumes_count: number;
+  itens: Array<{
+    produto_id: number;
+    codigo: string;
+    descricao: string;
+    qtde: string;
+    unidade: string;
+  }>;
 };
 
 export type EstoqueMapaResumo = {
@@ -1897,6 +1910,8 @@ export type EstoqueSaldo = {
   unidade: string;
   custo_medio: string;
   controla_lote?: boolean;
+  /** SKU sem volume: um local para a quantidade inteira. */
+  local?: { id: number; codigo: string; nome?: string | null } | null;
   lotes_count?: number; // volumes (bobinas) com qtde > 0
   /** Faixas de qtde (ex. M²/bobina) → N volumes — consolidado físico. */
   volumes_por_qtde?: EstoqueSaldoVolumePorQtde[];
@@ -3335,6 +3350,8 @@ export type OrdemProducaoMaterial = {
   unidade: string;
   pendente?: boolean;
   qtde_disponivel?: string;
+  /** SKU sem volume: onde está a quantidade. */
+  local?: { id: number; codigo: string; nome?: string | null } | null;
   qtde_faltante?: string;
   aguardando_material?: boolean;
   saida_movimento_id: number | null;

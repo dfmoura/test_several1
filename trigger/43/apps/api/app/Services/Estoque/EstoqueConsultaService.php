@@ -109,6 +109,7 @@ class EstoqueConsultaService
             ->with([
                 'produto:id,codigo,descricao_fiscal,descricao_comercial,familia,grupo,grupo_id,unidade_interna,custo_medio,controla_lote,controla_validade,prazo_validade_dias',
                 'produto.grupoCatalogo:id,codigo,nome,familia',
+                'endereco:id,codigo,nome',
             ])
             ->where('empresa_id', $empresa->id)
             ->orderBy('produto_id');
@@ -150,6 +151,7 @@ class EstoqueConsultaService
                 'unidade' => $s->unidade,
                 'custo_medio' => (string) $s->custo_medio,
                 'controla_lote' => (bool) ($s->produto?->controla_lote ?? false),
+                'local' => ($s->produto?->controla_lote || $s->endereco === null) ? null : $s->endereco->resumo(),
                 'lotes_count' => $volumesComSaldo,
                 'volumes_por_qtde' => $volumesPorQtde,
                 'saldos_por_dimensao' => $saldosPorDimensao,

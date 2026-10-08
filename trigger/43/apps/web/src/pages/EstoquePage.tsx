@@ -57,7 +57,7 @@ const SORT_LOTE = {
 };
 
 const TAB_HINT: Record<TabId, string> = {
-  posicao: 'Uma linha: produto, dimensão, quantidade e volumes. Bobina em Volumes; documento em Movimentos.',
+  posicao: 'Uma linha: produto, dimensão, quantidade e volumes. Item sem volume marca o local aqui (Garagem, em cima das estantes). Bobina em Volumes.',
   lotes: 'Volume = bobina (nLote). Dimensão real L×C, etiqueta/QR e local. Consumo FEFO se lote omitido na baixa.',
   movimentos: 'Todo saldo nasce de um MOV. Compra, produção, sobra, PA ou ajuste aprovado.',
 };
@@ -197,23 +197,25 @@ export function EstoquePage() {
   const movsSort = useTableSort(movsFiltrados, SORT_MOV);
   const lotesSort = useTableSort(lotesFiltrados, SORT_LOTE);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      try {
-        const [s, m, l] = await Promise.all([
-          api.get<{ data: EstoqueSaldo[] }>('/estoque/saldos'),
-          api.get<{ data: EstoqueMovimento[] }>('/estoque/movimentos'),
-          api.get<{ data: EstoqueLote[] }>('/estoque/lotes?com_qtde=1'),
-        ]);
-        setSaldos(s.data);
-        setMovs(m.data);
-        setLotes(l.data);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const recarregar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setLoading(true);
+    try {
+      const [s, m, l] = await Promise.all([
+        api.get<{ data: EstoqueSaldo[] }>('/estoque/saldos'),
+        api.get<{ data: EstoqueMovimento[] }>('/estoque/movimentos'),
+        api.get<{ data: EstoqueLote[] }>('/estoque/lotes?com_qtde=1'),
+      ]);
+      setSaldos(s.data);
+      setMovs(m.data);
+      setLotes(l.data);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void recarregar();
+  }, [recarregar]);
 
   const abrirLotesCriticos = (status: 'VENCIDO' | 'A_VENCER') => {
     setTab('lotes');
@@ -442,8 +444,10 @@ export function EstoquePage() {
             ) : (
               <EstoquePosicaoPanel
                 itens={posicaoItens}
+                podeMarcarLocal={hasPermission('estoque.escrever')}
                 onAbrirFormato={abrirFormato}
                 onAbrirVolumes={abrirVolumesDoSku}
+                onLocalSalvo={() => void recarregar(true)}
               />
             )
           ) : tab === 'lotes' ? (

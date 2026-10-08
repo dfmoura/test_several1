@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Empresa;
 use App\Models\OrdemCompra;
 use App\Services\Estoque\EstoqueConsultaService;
+use App\Services\Estoque\EstoqueEnderecoService;
 use App\Services\Estoque\EstoqueEntradaService;
 use App\Services\Estoque\EstoqueEntradaXmlService;
 use App\Support\CompraValidationRules;
@@ -16,6 +17,7 @@ class EstoqueController extends Controller
 {
     public function __construct(
         private readonly EstoqueConsultaService $consulta,
+        private readonly EstoqueEnderecoService $enderecos,
         private readonly EstoqueEntradaService $entrada,
         private readonly EstoqueEntradaXmlService $xmlEntrada,
     ) {}
@@ -34,6 +36,28 @@ class EstoqueController extends Controller
                 $this->empresa(),
                 $validated['q'] ?? null,
                 isset($validated['produto_id']) ? (int) $validated['produto_id'] : null,
+            ),
+        ]);
+    }
+
+    /**
+     * Local único do SKU sem volume. Não altera quantidade.
+     */
+    public function colocarLocal(Request $request, int $produto): JsonResponse
+    {
+        $this->authorizeWrite($request);
+
+        $data = $request->validate([
+            'endereco_id' => ['nullable', 'integer'],
+            'nome' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        return response()->json([
+            'data' => $this->enderecos->colocarSaldo(
+                $this->empresa(),
+                $produto,
+                isset($data['endereco_id']) ? (int) $data['endereco_id'] : null,
+                $data['nome'] ?? null,
             ),
         ]);
     }

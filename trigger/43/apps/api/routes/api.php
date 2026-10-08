@@ -316,6 +316,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/nfe-entradas/{nfeEntrada}/xml', [NfeEntradaController::class, 'downloadXml']);
 
         Route::get('/estoque/saldos', [EstoqueController::class, 'saldos']);
+        Route::post('/estoque/saldos/{produto}/local', [EstoqueController::class, 'colocarLocal']);
         Route::get('/estoque/lotes', [EstoqueController::class, 'lotes']);
         Route::get('/estoque/lotes/etiquetas', [EstoqueVolumeController::class, 'etiquetasVolumes']);
         Route::get('/estoque/lotes/{estoqueLote}/etiqueta', [EstoqueVolumeController::class, 'etiqueta']);
